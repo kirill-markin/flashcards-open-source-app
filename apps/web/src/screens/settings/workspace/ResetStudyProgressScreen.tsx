@@ -1,6 +1,11 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { ApiContractError } from "../../../api";
 import { useAppData } from "../../../appData";
+import {
+  isCapturedSyncFailure,
+  isExpectedUnobservedSyncFailure,
+} from "../../../appData/sync/observation/syncErrorObservation";
+import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import { captureApiContractError } from "../../../observability/apiContractObservation";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
@@ -21,6 +26,7 @@ export function ResetStudyProgressScreen(): ReactElement {
     session,
     setErrorMessage: setAppErrorMessage,
   } = useAppData();
+  const { showCapturedTechnicalError, showTechnicalError } = useAppErrorDialog();
   const { t, formatCount } = useI18n();
   const [isResetDialogOpen, setIsResetDialogOpen] = useState<boolean>(false);
   const [resetConfirmationValue, setResetConfirmationValue] = useState<string>("");
@@ -39,6 +45,7 @@ export function ResetStudyProgressScreen(): ReactElement {
       : resetPreview === null
         ? "confirmation"
         : "preview-ready";
+  const technicalErrorMessage = t("appError.technicalError.message");
 
   useEffect(() => {
     if (isResetDialogOpen === false) {
@@ -99,16 +106,33 @@ export function ResetStudyProgressScreen(): ReactElement {
       const preview = await loadWorkspaceResetProgressPreview(activeWorkspace.workspaceId);
       setResetPreview(preview);
     } catch (error) {
+      if (isCapturedSyncFailure(error)) {
+        showCapturedTechnicalError(error);
+        setAppErrorMessage(technicalErrorMessage);
+        setResetErrorMessage(technicalErrorMessage);
+        return;
+      }
+      if (isExpectedUnobservedSyncFailure(error)) {
+        setResetErrorMessage(error instanceof Error ? error.message : String(error));
+        return;
+      }
+
       if (error instanceof ApiContractError) {
-        captureApiContractError(error, {
+        const wasCaptured = captureApiContractError(error, {
           feature: "settings",
           sourceAction: "workspace_reset_progress_preview_load",
           userId: session?.userId ?? null,
           workspaceId: activeWorkspace.workspaceId,
           installationId: cloudSettings?.installationId ?? null,
         });
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setAppErrorMessage(technicalErrorMessage);
+          setResetErrorMessage(technicalErrorMessage);
+          return;
+        }
       } else {
-        captureAppOperationError(error, {
+        const wasCaptured = captureAppOperationError(error, {
           feature: "settings",
           operation: "workspace_reset_preview_load",
           userId: session?.userId ?? null,
@@ -121,6 +145,12 @@ export function ResetStudyProgressScreen(): ReactElement {
             t("settingsWorkspace.resetProgress.availabilityHint"),
           ],
         });
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setAppErrorMessage(technicalErrorMessage);
+          setResetErrorMessage(technicalErrorMessage);
+          return;
+        }
       }
       setResetErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -140,19 +170,43 @@ export function ResetStudyProgressScreen(): ReactElement {
       await resetWorkspaceProgress(activeWorkspace.workspaceId, resetConfirmationValue);
       clearResetDialogState();
       void refreshLocalData().catch((error: unknown) => {
-        setAppErrorMessage(error instanceof Error ? error.message : String(error));
+        if (isCapturedSyncFailure(error)) {
+          showCapturedTechnicalError(error);
+          setAppErrorMessage(technicalErrorMessage);
+          return;
+        }
+        if (isExpectedUnobservedSyncFailure(error)) {
+          setAppErrorMessage(error instanceof Error ? error.message : String(error));
+          return;
+        }
+
+        const wasCaptured = showTechnicalError(error, {
+          feature: "sync",
+          operation: "refresh_local_metadata",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace.workspaceId,
+          installationId: cloudSettings?.installationId ?? null,
+          entityId: activeWorkspace.workspaceId,
+        });
+        setAppErrorMessage(wasCaptured ? technicalErrorMessage : error instanceof Error ? error.message : String(error));
       });
     } catch (error) {
       if (error instanceof ApiContractError) {
-        captureApiContractError(error, {
+        const wasCaptured = captureApiContractError(error, {
           feature: "settings",
           sourceAction: "workspace_reset_progress_execute",
           userId: session?.userId ?? null,
           workspaceId: activeWorkspace.workspaceId,
           installationId: cloudSettings?.installationId ?? null,
         });
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setAppErrorMessage(technicalErrorMessage);
+          setResetErrorMessage(technicalErrorMessage);
+          return;
+        }
       } else {
-        captureAppOperationError(error, {
+        const wasCaptured = captureAppOperationError(error, {
           feature: "settings",
           operation: "workspace_reset_execute",
           userId: session?.userId ?? null,
@@ -165,6 +219,12 @@ export function ResetStudyProgressScreen(): ReactElement {
             t("settingsWorkspace.resetProgress.availabilityHint"),
           ],
         });
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setAppErrorMessage(technicalErrorMessage);
+          setResetErrorMessage(technicalErrorMessage);
+          return;
+        }
       }
       setResetErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {

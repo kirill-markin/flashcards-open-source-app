@@ -11,6 +11,11 @@ import {
 
 const workspaceNotFoundErrorCode = "WORKSPACE_NOT_FOUND";
 const workspaceSyncDiscardedErrorName = "WorkspaceSyncDiscardedError";
+const syncFailureCapturedProperty = "__flashcardsSyncFailureCaptured";
+
+type SyncFailureCapturedCarrier = Readonly<{
+  __flashcardsSyncFailureCaptured?: true;
+}>;
 
 export type WorkspaceSyncDiscardedError = Error & Readonly<{
   name: typeof workspaceSyncDiscardedErrorName;
@@ -40,6 +45,22 @@ export function isWorkspaceNotFoundError(error: unknown): error is ApiError {
   return error instanceof ApiError
     && error.statusCode === 404
     && error.code === workspaceNotFoundErrorCode;
+}
+
+export function markSyncFailureCaptured(error: Error): void {
+  Object.assign(error, {
+    [syncFailureCapturedProperty]: true,
+  });
+}
+
+export function isCapturedSyncFailure(error: unknown): boolean {
+  return error instanceof Error
+    && (error as SyncFailureCapturedCarrier)[syncFailureCapturedProperty] === true;
+}
+
+export function isExpectedUnobservedSyncFailure(error: unknown): boolean {
+  return error instanceof Error
+    && shouldCaptureUnexpectedSyncError(error) === false;
 }
 
 function getCurrentRoute(): string | null {
@@ -139,9 +160,9 @@ function shouldCaptureUnexpectedSyncError(error: Error): boolean {
   return true;
 }
 
-function captureUnexpectedSyncError(input: SyncFailureObservationInput): void {
+function captureUnexpectedSyncError(input: SyncFailureObservationInput): boolean {
   if (shouldCaptureUnexpectedSyncError(input.error) === false) {
-    return;
+    return false;
   }
 
   captureWebException({
@@ -158,17 +179,20 @@ function captureUnexpectedSyncError(input: SyncFailureObservationInput): void {
       workspaceId: input.workspaceId,
     },
   });
+  return true;
 }
 
-export function observeSyncFailure(input: SyncFailureObservationInput): void {
-  captureApiContractError(input.error, {
+export function observeSyncFailure(input: SyncFailureObservationInput): boolean {
+  const wasApiContractCaptured = captureApiContractError(input.error, {
     feature: "sync",
     sourceAction: "sync_workspace_refresh",
     userId: input.userId,
     workspaceId: input.workspaceId,
     installationId: input.installationId,
   });
-  if (input.error instanceof ApiContractError === false) {
-    captureUnexpectedSyncError(input);
+  if (input.error instanceof ApiContractError) {
+    return wasApiContractCaptured;
   }
+
+  return captureUnexpectedSyncError(input);
 }

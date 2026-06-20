@@ -21,7 +21,8 @@ export type AppTechnicalErrorContext = Readonly<{
 }>;
 
 type AppErrorDialogContextValue = Readonly<{
-  showTechnicalError: (error: unknown, context: AppTechnicalErrorContext) => void;
+  showTechnicalError: (error: unknown, context: AppTechnicalErrorContext) => boolean;
+  showCapturedTechnicalError: (error: unknown) => void;
   showTechnicalErrorPreview: () => void;
   dismiss: () => void;
 }>;
@@ -67,8 +68,12 @@ export function AppErrorDialogProvider(props: AppErrorDialogProviderProps): Reac
     setPresentation(null);
   }, []);
 
-  const showTechnicalError = useCallback((error: unknown, context: AppTechnicalErrorContext): void => {
-    captureAppOperationError(error, {
+  const showCapturedTechnicalError = useCallback((error: unknown): void => {
+    setPresentation(buildAppErrorPresentation(error, buildPresentationMessages(t)));
+  }, [t]);
+
+  const showTechnicalError = useCallback((error: unknown, context: AppTechnicalErrorContext): boolean => {
+    const wasCaptured = captureAppOperationError(error, {
       feature: context.feature,
       operation: context.operation,
       userId: context.userId,
@@ -77,8 +82,12 @@ export function AppErrorDialogProvider(props: AppErrorDialogProviderProps): Reac
       entityId: context.entityId,
     });
 
-    setPresentation(buildAppErrorPresentation(error, buildPresentationMessages(t)));
-  }, [t]);
+    if (wasCaptured) {
+      showCapturedTechnicalError(error);
+    }
+
+    return wasCaptured;
+  }, [showCapturedTechnicalError]);
 
   const showTechnicalErrorPreview = useCallback((): void => {
     setPresentation(buildAppErrorPresentation(buildPreviewError(), buildPresentationMessages(t)));
@@ -86,9 +95,10 @@ export function AppErrorDialogProvider(props: AppErrorDialogProviderProps): Reac
 
   const contextValue = useMemo((): AppErrorDialogContextValue => ({
     showTechnicalError,
+    showCapturedTechnicalError,
     showTechnicalErrorPreview,
     dismiss,
-  }), [dismiss, showTechnicalError, showTechnicalErrorPreview]);
+  }), [dismiss, showCapturedTechnicalError, showTechnicalError, showTechnicalErrorPreview]);
 
   return (
     <AppErrorDialogContext.Provider value={contextValue}>

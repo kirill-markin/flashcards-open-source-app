@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppDataContextValue } from "../../appData";
+import { AppErrorDialogProvider } from "../../appError/AppErrorContext";
 import { I18nProvider } from "../../i18n";
 import {
   accountDangerZoneRoute,
@@ -195,10 +196,12 @@ function setupSettingsScreenTest(): SettingsScreenTestHarness {
     await act(async () => {
       currentRoot.render(
         <I18nProvider>
-          <MemoryRouter initialEntries={["/settings"]}>
-            <SettingsScreen />
-            <LocationProbe />
-          </MemoryRouter>
+          <AppErrorDialogProvider>
+            <MemoryRouter initialEntries={["/settings"]}>
+              <SettingsScreen />
+              <LocationProbe />
+            </MemoryRouter>
+          </AppErrorDialogProvider>
         </I18nProvider>,
       );
     });

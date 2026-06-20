@@ -1,6 +1,8 @@
 import { useRef, type ReactElement } from "react";
 import { useAppData } from "../../appData";
+import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
+import type { WebAppOperation } from "../../observability/webObservability";
 import { useChatDraft } from "../composer/ChatDraftContext";
 import { useChatLayout } from "../layout/ChatLayoutContext";
 import {
@@ -34,6 +36,7 @@ type Props = Readonly<{
 export function ChatPanel(props: Props): ReactElement {
   const { mode } = props;
   const appData = useAppData();
+  const { showCapturedTechnicalError, showTechnicalError } = useAppErrorDialog();
   const { t, formatNumber } = useI18n();
   const {
     draft,
@@ -88,6 +91,17 @@ export function ChatPanel(props: Props): ReactElement {
     count: formatNumber(USER_VISIBLE_ATTACHMENT_LIMIT_MB),
   });
   const attachmentUnsupportedMessage = t("chatPanel.alerts.attachmentUnsupported");
+  const technicalErrorMessage = t("appError.technicalError.message");
+  function showChatTechnicalError(error: unknown, operation: WebAppOperation): boolean {
+    return showTechnicalError(error, {
+      feature: "chat",
+      operation,
+      userId: appData.session?.userId ?? null,
+      workspaceId: activeWorkspaceId,
+      installationId: appData.cloudSettings?.installationId ?? null,
+      entityId: currentSessionId,
+    });
+  }
   const {
     beginResizeDrag,
     isDragging,
@@ -110,6 +124,7 @@ export function ChatPanel(props: Props): ReactElement {
     ensureRemoteSession,
     focusComposerRequestVersion,
     inputText: draftInputText,
+    onTechnicalError: showChatTechnicalError,
     t,
     textareaRef,
     updateInputText,
@@ -136,14 +151,17 @@ export function ChatPanel(props: Props): ReactElement {
     isSessionVerified: appData.isSessionVerified,
     pendingSyncMessage: t("chatPanel.transientErrors.pendingSync"),
     moveDraftToSession,
+    onCapturedTechnicalError: showCapturedTechnicalError,
+    onTechnicalError: (error) => showChatTechnicalError(error, "chat_send_prepare"),
     replacePendingAttachments,
     requestComposerFocusRestore,
     runSync: appData.runSync,
     sendChatMessage,
     sendPhase,
     sessionRestoringMessage: t("chatPanel.transientErrors.sessionRestoring"),
-    setErrorMessage: appData.setErrorMessage,
+    setAppErrorMessage: appData.setErrorMessage,
     setSendPhase,
+    technicalErrorMessage,
     workspaceRequiredMessage: t("chatPanel.transientErrors.workspaceRequired"),
   });
   const rootClassName = mode === "sidebar" ? "chat-sidebar" : "chat-sidebar-fullscreen";
@@ -180,6 +198,9 @@ export function ChatPanel(props: Props): ReactElement {
     canAttachDraftFiles,
     currentSessionId,
     draftInputText,
+    onTechnicalError: (error) => {
+      showChatTechnicalError(error, "chat_attachment_prepare");
+    },
     pendingAttachmentsRef,
     setPendingAttachmentsState,
   });
@@ -309,7 +330,7 @@ export function ChatPanel(props: Props): ReactElement {
                 key={`${message.timestamp}-${index}`}
                 className={`chat-msg chat-msg-${message.role}`}
               >
-                {renderStoredMessageContent(message, t)}
+                {renderStoredMessageContent(message, t, (error) => showChatTechnicalError(error, "chat_tool_call_copy"))}
                 {isLastAssistant ? (
                   <span className="chat-streaming-indicator">
                     <span className="chat-dots" />
@@ -425,7 +446,13 @@ export function ChatPanel(props: Props): ReactElement {
 
         <div className="chat-controls">
           <div className="chat-controls-right">
-            <FileAttachment onAttach={handleAttach} disabled={!canAttachDraftFiles} />
+            <FileAttachment
+              onAttach={handleAttach}
+              onTechnicalError={(error) => {
+                showChatTechnicalError(error, "chat_attachment_prepare");
+              }}
+              disabled={!canAttachDraftFiles}
+            />
             <button
               type="button"
               className={`chat-mic-btn${dictationState === "recording" ? " chat-mic-btn-recording" : ""}`}

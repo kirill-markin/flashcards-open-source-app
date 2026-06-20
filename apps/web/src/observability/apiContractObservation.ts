@@ -92,12 +92,13 @@ function captureApiContractErrorWithRoute(
   });
 }
 
-export function captureApiContractError(error: unknown, context: ApiContractObservationContext): void {
+export function captureApiContractError(error: unknown, context: ApiContractObservationContext): boolean {
   if (error instanceof ApiContractError === false) {
-    return;
+    return false;
   }
 
   captureApiContractErrorWithRoute(error, context, getCurrentRoute());
+  return true;
 }
 
 export function captureRouteApiContractError(error: unknown, context: RouteApiContractObservationContext): void {
