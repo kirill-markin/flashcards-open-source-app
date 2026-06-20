@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import {
+  ApiError,
   createWorkspace as createWorkspaceRequest,
   deleteWorkspace as deleteWorkspaceRequest,
   isAuthRedirectError,
@@ -10,6 +11,7 @@ import {
 } from "../../../api";
 import type { TranslationKey } from "../../../i18n";
 import { captureApiContractError } from "../../../observability/apiContractObservation";
+import { normalizeCaughtError } from "../../../observability/webObservability";
 import type {
   ResetWorkspaceProgressResponse,
   SessionInfo,
@@ -63,6 +65,23 @@ function requireVerifiedWorkspaceSession(
   return session;
 }
 
+function isExpectedWorkspaceActionApiError(error: Error): boolean {
+  if (error instanceof ApiError === false) {
+    return false;
+  }
+
+  switch (error.code) {
+    case "WORKSPACE_DELETE_CONFIRMATION_INVALID":
+    case "WORKSPACE_DELETE_SHARED":
+    case "WORKSPACE_NOT_FOUND":
+    case "WORKSPACE_OWNER_REQUIRED":
+    case "WORKSPACE_SELECTION_REQUIRED":
+      return true;
+  }
+
+  return false;
+}
+
 export function useWorkspaceActions(params: UseWorkspaceActionsParams): WorkspaceSessionCommands {
   const {
     t,
@@ -75,6 +94,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
     setAvailableWorkspaces,
     setIsChoosingWorkspace,
     setErrorMessage,
+    setTechnicalError,
     activateWorkspace,
     runSync,
     discardWorkspaceSync,
@@ -110,16 +130,22 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         return;
       }
 
-      captureWorkspaceTransitionError("workspace_select_client_failed", buildWorkspaceInteractionLogDetails(
-        sessionVerificationState,
-        verifiedSession,
-        activeWorkspace,
-        availableWorkspaces,
-        cloudSettings,
-        workspaceId,
-        getErrorMessage(error),
-      ), error);
-      setErrorMessage(getErrorMessage(error));
+      const normalizedError = normalizeCaughtError(error);
+      const nextErrorMessage = getErrorMessage(normalizedError);
+      const isExpectedError = isExpectedWorkspaceActionApiError(normalizedError);
+      if (isExpectedError === false) {
+        captureWorkspaceTransitionError("workspace_select_client_failed", buildWorkspaceInteractionLogDetails(
+          sessionVerificationState,
+          verifiedSession,
+          activeWorkspace,
+          availableWorkspaces,
+          cloudSettings,
+          workspaceId,
+          nextErrorMessage,
+        ), normalizedError);
+      }
+      setErrorMessage(nextErrorMessage);
+      setTechnicalError(isExpectedError ? null : normalizedError);
     } finally {
       setIsChoosingWorkspace(false);
     }
@@ -133,6 +159,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
     t,
     setErrorMessage,
     setIsChoosingWorkspace,
+    setTechnicalError,
   ]);
 
   const createWorkspace = useCallback(async function createWorkspace(name: string): Promise<void> {
@@ -171,17 +198,22 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         return;
       }
 
-      const nextErrorMessage = getErrorMessage(error);
-      captureWorkspaceTransitionError("workspace_create_client_failed", buildWorkspaceInteractionLogDetails(
-        sessionVerificationState,
-        verifiedSession,
-        activeWorkspace,
-        availableWorkspaces,
-        cloudSettings,
-        null,
-        nextErrorMessage,
-      ), error);
+      const normalizedError = normalizeCaughtError(error);
+      const nextErrorMessage = getErrorMessage(normalizedError);
+      const isExpectedError = isExpectedWorkspaceActionApiError(normalizedError);
+      if (isExpectedError === false) {
+        captureWorkspaceTransitionError("workspace_create_client_failed", buildWorkspaceInteractionLogDetails(
+          sessionVerificationState,
+          verifiedSession,
+          activeWorkspace,
+          availableWorkspaces,
+          cloudSettings,
+          null,
+          nextErrorMessage,
+        ), normalizedError);
+      }
       setErrorMessage(nextErrorMessage);
+      setTechnicalError(isExpectedError ? null : normalizedError);
       throw error;
     } finally {
       setIsChoosingWorkspace(false);
@@ -196,6 +228,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
     t,
     setErrorMessage,
     setIsChoosingWorkspace,
+    setTechnicalError,
   ]);
 
   const renameWorkspace = useCallback(async function renameWorkspace(
@@ -292,12 +325,17 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         return;
       }
 
-      const nextErrorMessage = getErrorMessage(error);
-      captureWorkspaceTransitionError("workspace_delete_client_failed", {
-        workspaceId,
-        errorMessage: nextErrorMessage,
-      }, error);
+      const normalizedError = normalizeCaughtError(error);
+      const nextErrorMessage = getErrorMessage(normalizedError);
+      const isExpectedError = isExpectedWorkspaceActionApiError(normalizedError);
+      if (isExpectedError === false) {
+        captureWorkspaceTransitionError("workspace_delete_client_failed", {
+          workspaceId,
+          errorMessage: nextErrorMessage,
+        }, normalizedError);
+      }
       setErrorMessage(nextErrorMessage);
+      setTechnicalError(isExpectedError ? null : normalizedError);
       throw error;
     } finally {
       setIsChoosingWorkspace(false);
@@ -311,6 +349,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
     t,
     setErrorMessage,
     setIsChoosingWorkspace,
+    setTechnicalError,
   ]);
 
   const loadWorkspaceResetProgressPreview = useCallback(async function loadWorkspaceResetProgressPreview(

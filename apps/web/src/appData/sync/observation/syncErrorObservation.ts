@@ -24,6 +24,10 @@ export type SyncFailureObservationInput = Readonly<{
   installationId: string | null;
 }>;
 
+type SyncFailureObservationMetadata = Readonly<{
+  syncFailureWasCaptured?: unknown;
+}>;
+
 export function createWorkspaceSyncDiscardedError(workspaceId: string): WorkspaceSyncDiscardedError {
   const error = new Error(`Workspace sync was discarded: ${workspaceId}`);
   error.name = workspaceSyncDiscardedErrorName;
@@ -139,9 +143,9 @@ function shouldCaptureUnexpectedSyncError(error: Error): boolean {
   return true;
 }
 
-function captureUnexpectedSyncError(input: SyncFailureObservationInput): void {
+function captureUnexpectedSyncError(input: SyncFailureObservationInput): boolean {
   if (shouldCaptureUnexpectedSyncError(input.error) === false) {
-    return;
+    return false;
   }
 
   captureWebException({
@@ -158,17 +162,36 @@ function captureUnexpectedSyncError(input: SyncFailureObservationInput): void {
       workspaceId: input.workspaceId,
     },
   });
+  return true;
 }
 
-export function observeSyncFailure(input: SyncFailureObservationInput): void {
-  captureApiContractError(input.error, {
-    feature: "sync",
-    sourceAction: "sync_workspace_refresh",
-    userId: input.userId,
-    workspaceId: input.workspaceId,
-    installationId: input.installationId,
+export function attachSyncFailureObservation(error: Error, wasCaptured: boolean): Error {
+  Object.assign(error, {
+    syncFailureWasCaptured: wasCaptured,
   });
-  if (input.error instanceof ApiContractError === false) {
-    captureUnexpectedSyncError(input);
+  return error;
+}
+
+export function getSyncFailureObservationCaptureState(error: unknown): boolean | null {
+  if (error instanceof Error === false) {
+    return null;
   }
+
+  const wasCaptured = (error as SyncFailureObservationMetadata).syncFailureWasCaptured;
+  return typeof wasCaptured === "boolean" ? wasCaptured : null;
+}
+
+export function observeSyncFailure(input: SyncFailureObservationInput): boolean {
+  if (input.error instanceof ApiContractError) {
+    captureApiContractError(input.error, {
+      feature: "sync",
+      sourceAction: "sync_workspace_refresh",
+      userId: input.userId,
+      workspaceId: input.workspaceId,
+      installationId: input.installationId,
+    });
+    return true;
+  }
+
+  return captureUnexpectedSyncError(input);
 }

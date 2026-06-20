@@ -5,6 +5,7 @@ import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, vi } from "vitest";
 import { I18nProvider } from "../../../i18n";
+import { AppErrorDialogProvider } from "../../../appError/AppErrorContext";
 import { createDefaultStreakFreeze } from "../../../progress/streakFreeze";
 import type { AppDataContextValue } from "../../../appData";
 import { clearLoadingSnapshotFallbackStorage } from "../../shared/loadingSnapshots";
@@ -166,7 +167,7 @@ export function createDeferredPromise<Value>(): DeferredPromise<Value> {
   };
 }
 
-export function ReviewScreenDataHarness(props: ReviewScreenDataHarnessProps): ReactElement {
+function ReviewScreenDataHarnessContent(props: ReviewScreenDataHarnessProps): ReactElement {
   const {
     onResult,
     state,
@@ -189,6 +190,14 @@ export function ReviewScreenDataHarness(props: ReviewScreenDataHarnessProps): Re
   }, [onResult, result]);
 
   return <div data-testid="review-screen-data-harness" />;
+}
+
+export function ReviewScreenDataHarness(props: ReviewScreenDataHarnessProps): ReactElement {
+  return (
+    <AppErrorDialogProvider>
+      <ReviewScreenDataHarnessContent {...props} />
+    </AppErrorDialogProvider>
+  );
 }
 
 function createWorkspaceSettings(): NonNullable<AppDataContextValue["workspaceSettings"]> {
@@ -216,6 +225,7 @@ function createAppData(state: ReviewScreenTestState): ReviewScreenAppData {
     sessionVerificationState: "verified",
     isSessionVerified: true,
     sessionErrorMessage: "",
+    sessionTechnicalError: null,
     session: null,
     activeWorkspace: {
       workspaceId: "workspace-1",
@@ -232,6 +242,7 @@ function createAppData(state: ReviewScreenTestState): ReviewScreenAppData {
     isSyncing: false,
     selectedReviewFilter: { kind: "allCards" },
     errorMessage: "",
+    technicalError: null,
     setErrorMessage: vi.fn(),
     setAccountPreferences: vi.fn(),
     refreshAccountPreferences: vi.fn(async () => ({
@@ -601,9 +612,11 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
     await act(async () => {
       currentRoot.render(
         <I18nProvider>
-          <MemoryRouter>
-            <ReviewScreen />
-          </MemoryRouter>
+          <AppErrorDialogProvider>
+            <MemoryRouter>
+              <ReviewScreen />
+            </MemoryRouter>
+          </AppErrorDialogProvider>
         </I18nProvider>,
       );
     });

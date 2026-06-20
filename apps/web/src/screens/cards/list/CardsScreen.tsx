@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { useAppData } from "../../../appData";
+import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { getCardFilterActiveDimensionCount, normalizeCardFilter } from "../../../cardFilters";
 import { EFFORT_LEVELS } from "../../../deckFilters";
 import { useI18n } from "../../../i18n";
 import { CardTagsInput, type CardTagsInputHandle } from "../CardTagsInput";
+import { getExpectedCardMutationInlineErrorMessage } from "../cardMutationErrors";
 import { EditableCardEffortCell, EditableCardTagsCell, EditableCardTextCell } from "./CardsTableEditors";
 import { queryLocalCardsPage } from "../../../localDb/cards/cards";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
@@ -130,6 +132,7 @@ export function CardsScreen(): ReactElement {
     updateCardItem,
     setErrorMessage,
   } = useAppData();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime, formatNumber } = useI18n();
   const [searchText, setSearchText] = useState<string>("");
   const [debouncedSearchText, setDebouncedSearchText] = useState<string>("");
@@ -239,12 +242,13 @@ export function CardsScreen(): ReactElement {
         installationId: observationIdentity.installationId,
         entityId: null,
       });
+      showCapturedTechnicalError(error);
       setCardsQueryState((currentState) => ({
         ...currentState,
         hasLoaded: currentState.hasLoaded,
         isLoading: false,
         isLoadingMore: false,
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorMessage: t("appError.technicalError.message"),
       }));
     }
   }
@@ -296,10 +300,11 @@ export function CardsScreen(): ReactElement {
         installationId: observationIdentity.installationId,
         entityId: null,
       });
+      showCapturedTechnicalError(error);
       setCardsQueryState((currentState) => ({
         ...currentState,
         isLoadingMore: false,
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorMessage: t("appError.technicalError.message"),
       }));
     }
   }
@@ -380,6 +385,12 @@ export function CardsScreen(): ReactElement {
       try {
         await updateCardItem(card.cardId, patch);
       } catch (error) {
+        const expectedErrorMessage = getExpectedCardMutationInlineErrorMessage(error, t("cardForm.errors.cardNotFound"));
+        if (expectedErrorMessage !== null) {
+          setErrorMessage(expectedErrorMessage);
+          return;
+        }
+
         const observationIdentity = observationIdentityRef.current;
         captureAppOperationError(error, {
           feature: "cards",
@@ -389,14 +400,16 @@ export function CardsScreen(): ReactElement {
           installationId: observationIdentity.installationId,
           entityId: card.cardId,
         });
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        showCapturedTechnicalError(error);
+        setErrorMessage(t("appError.technicalError.message"));
         return;
       }
 
       try {
         await loadFirstPage();
       } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        showCapturedTechnicalError(error);
+        setErrorMessage(t("appError.technicalError.message"));
       }
     } finally {
       setSavingCardId("");

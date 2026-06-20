@@ -45,6 +45,7 @@ import {
   requireCloudInstallationId,
 } from "../local/syncCloudSettings";
 import {
+  attachSyncFailureObservation,
   createWorkspaceSyncDiscardedError,
   isWorkspaceNotFoundError,
   isWorkspaceSyncDiscardedError,
@@ -83,6 +84,7 @@ type UseSyncEngineParams = Readonly<{
   setLocalReadVersion: Dispatch<SetStateAction<number>>;
   setIsSyncing: Dispatch<SetStateAction<boolean>>;
   setErrorMessage: Dispatch<SetStateAction<string>>;
+  setTechnicalError: Dispatch<SetStateAction<Error | null>>;
 }>;
 
 type SyncEngine = Readonly<{
@@ -103,6 +105,11 @@ type SyncEngine = Readonly<{
   deleteDeckItem: (deckId: string) => Promise<Deck>;
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
   seedLinkedWorkspace: (request: TestSeedRequest) => Promise<TestSeedResult>;
+}>;
+
+type SyncFailureReport = Readonly<{
+  error: Error;
+  wasCaptured: boolean;
 }>;
 
 function createSyncRunId(): string {
@@ -135,6 +142,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     setLocalReadVersion,
     setIsSyncing,
     setErrorMessage,
+    setTechnicalError,
   } = params;
   const activeWorkspaceRef = useRef<WorkspaceSummary | null>(activeWorkspace);
   const syncPromisesRef = useRef<Map<string, Promise<void>>>(new Map());
@@ -279,11 +287,16 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     }
   }, [isVisibleWorkspace, setWorkspaceSettings]);
 
-  const reportGlobalSyncError = useCallback(function reportGlobalSyncError(errorMessage: string): void {
-    setErrorMessage(errorMessage);
-  }, [setErrorMessage]);
+  const reportGlobalSyncError = useCallback(function reportGlobalSyncError(report: SyncFailureReport): void {
+    setErrorMessage(getErrorMessage(report.error));
+    if (report.wasCaptured) {
+      setTechnicalError(report.error);
+    } else {
+      setTechnicalError(null);
+    }
+  }, [setErrorMessage, setTechnicalError]);
 
-  const ignoreSyncError = useCallback(function ignoreSyncError(_errorMessage: string): void {
+  const ignoreSyncError = useCallback(function ignoreSyncError(_report: SyncFailureReport): void {
   }, []);
 
   const waitForWorkspaceSyncToSettle = useCallback(async function waitForWorkspaceSyncToSettle(
@@ -301,7 +314,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
   const runSyncForWorkspaceInternal = useCallback(async function runSyncForWorkspaceInternal(
     workspace: WorkspaceSummary,
-    reportSyncError: (errorMessage: string) => void,
+    reportSyncError: (report: SyncFailureReport) => void,
   ): Promise<void> {
     // Local writes may happen during warm start, but remote sync stays paused
     // until auth verification confirms which account owns this browser state.
@@ -394,14 +407,18 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         Object.assign(normalizedError, {
           syncRunId,
         });
-        observeSyncFailure({
+        const wasCaptured = observeSyncFailure({
           error: normalizedError,
           userId: session.userId,
           workspaceId,
           installationId: syncInstallationId,
         });
-        reportSyncError(getErrorMessage(normalizedError));
-        throw normalizedError;
+        const observedError = attachSyncFailureObservation(normalizedError, wasCaptured);
+        reportSyncError({
+          error: observedError,
+          wasCaptured,
+        });
+        throw observedError;
       } finally {
         if (syncGeneration === syncGenerationRef.current) {
           syncPromisesRef.current.delete(workspaceId);

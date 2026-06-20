@@ -35,11 +35,13 @@ export type HarnessSnapshot = Readonly<{
   sessionLoadState: SessionLoadState;
   sessionVerificationState: SessionVerificationState;
   sessionErrorMessage: string;
+  sessionTechnicalError: Error | null;
   session: SessionInfo | null;
   activeWorkspace: WorkspaceSummary | null;
   availableWorkspaces: ReadonlyArray<WorkspaceSummary>;
   cloudSettings: CloudSettings | null;
   errorMessage: string;
+  technicalError: Error | null;
 }>;
 
 export type HarnessActions = Readonly<{
@@ -241,11 +243,13 @@ export function TestHarness(props: TestHarnessProps): ReactElement {
   const [sessionLoadState, setSessionLoadState] = useState<SessionLoadState>(initialSessionLoadState);
   const [sessionVerificationState, setSessionVerificationState] = useState<SessionVerificationState>(initialSessionVerificationState);
   const [sessionErrorMessage, setSessionErrorMessage] = useState<string>("");
+  const [sessionTechnicalError, setSessionTechnicalError] = useState<Error | null>(null);
   const [session, setSession] = useState<SessionInfo | null>(initialSession);
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceSummary | null>(initialActiveWorkspace);
   const [availableWorkspaces, setAvailableWorkspaces] = useState<ReadonlyArray<WorkspaceSummary>>(initialAvailableWorkspaces);
   const [, setIsChoosingWorkspace] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [technicalError, setTechnicalError] = useState<Error | null>(null);
   const [cloudSettings, setCloudSettings] = useState<CloudSettings | null>(null);
 
   const actions = useWorkspaceSession({
@@ -259,11 +263,13 @@ export function TestHarness(props: TestHarnessProps): ReactElement {
     setSessionLoadState,
     setSessionVerificationState,
     setSessionErrorMessage,
+    setSessionTechnicalError,
     setSession,
     setActiveWorkspace,
     setAvailableWorkspaces,
     setIsChoosingWorkspace,
     setErrorMessage,
+    setTechnicalError,
     setCloudSettings,
     refreshWorkspaceView: refreshWorkspaceViewMock,
     runSync: runSyncMock,
@@ -289,11 +295,13 @@ export function TestHarness(props: TestHarnessProps): ReactElement {
       sessionLoadState,
       sessionVerificationState,
       sessionErrorMessage,
+      sessionTechnicalError,
       session,
       activeWorkspace,
       availableWorkspaces,
       cloudSettings,
       errorMessage,
+      technicalError,
     });
   }, [
     activeWorkspace,
@@ -303,8 +311,10 @@ export function TestHarness(props: TestHarnessProps): ReactElement {
     onStateChange,
     session,
     sessionErrorMessage,
+    sessionTechnicalError,
     sessionLoadState,
     sessionVerificationState,
+    technicalError,
   ]);
 
   return <div data-testid="workspace-session-test-harness" />;

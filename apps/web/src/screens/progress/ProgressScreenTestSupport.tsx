@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, vi } from "vitest";
 import type { AppDataContextValue } from "../../appData";
+import { AppErrorDialogProvider } from "../../appError/AppErrorContext";
 import {
   createEmptyProgressLeaderboardSourceState,
   createNextLeaderboardState,
@@ -172,7 +173,9 @@ export function createProgressScreenRenderTestContext(): ProgressScreenRenderTes
       getRoot().render(
         <MemoryRouter>
           <I18nProvider>
-            <ProgressScreen />
+            <AppErrorDialogProvider>
+              <ProgressScreen />
+            </AppErrorDialogProvider>
           </I18nProvider>
         </MemoryRouter>,
       );
@@ -184,7 +187,9 @@ export function createProgressScreenRenderTestContext(): ProgressScreenRenderTes
       getRoot().render(
         <MemoryRouter initialEntries={initialEntries}>
           <I18nProvider>
-            <ProgressScreen />
+            <AppErrorDialogProvider>
+              <ProgressScreen />
+            </AppErrorDialogProvider>
           </I18nProvider>
         </MemoryRouter>,
       );
@@ -204,6 +209,7 @@ export function createAppData(): AppDataContextValue {
     sessionVerificationState: "verified",
     isSessionVerified: true,
     sessionErrorMessage: "",
+    sessionTechnicalError: null,
     session: null,
     activeWorkspace: {
       workspaceId: "workspace-1",
@@ -220,6 +226,7 @@ export function createAppData(): AppDataContextValue {
     isSyncing: false,
     selectedReviewFilter: { kind: "allCards" },
     errorMessage: "",
+    technicalError: null,
     setErrorMessage: vi.fn(),
     setAccountPreferences: vi.fn(),
     refreshAccountPreferences: vi.fn(async () => ({
@@ -641,6 +648,7 @@ export function mockProgressSourceStateWithLeaderboard(leaderboard: ProgressLead
         renderedSnapshot: createProgressSummarySnapshot(),
         isLoading: false,
         errorMessage: "",
+        technicalError: null,
       },
       series: {
         scopeKey: "progress::series::UTC::2026-04-13::2026-04-21",
@@ -651,6 +659,7 @@ export function mockProgressSourceStateWithLeaderboard(leaderboard: ProgressLead
         renderedSnapshot: createProgressSeriesSnapshot(),
         isLoading: false,
         errorMessage: "",
+        technicalError: null,
       },
       reviewSchedule: {
         scopeKey: "progress::review-schedule::UTC::2026-04-21",
@@ -665,6 +674,7 @@ export function mockProgressSourceStateWithLeaderboard(leaderboard: ProgressLead
         renderedSnapshot: createReviewScheduleSnapshot(),
         isLoading: false,
         errorMessage: "",
+        technicalError: null,
       },
       leaderboard,
     },
@@ -688,6 +698,7 @@ export function mockProgressSourceStateWithInactivePreviousWeek(): void {
         renderedSnapshot: createProgressSummarySnapshot(),
         isLoading: false,
         errorMessage: "",
+        technicalError: null,
       },
       series: {
         scopeKey: "progress::series::UTC::2026-04-06::2026-04-21",
@@ -698,6 +709,7 @@ export function mockProgressSourceStateWithInactivePreviousWeek(): void {
         renderedSnapshot: seriesSnapshot,
         isLoading: false,
         errorMessage: "",
+        technicalError: null,
       },
       reviewSchedule: {
         scopeKey: "progress::review-schedule::UTC::2026-04-21",
@@ -712,6 +724,7 @@ export function mockProgressSourceStateWithInactivePreviousWeek(): void {
         renderedSnapshot: createReviewScheduleSnapshot(),
         isLoading: false,
         errorMessage: "",
+        technicalError: null,
       },
       leaderboard: createEmptyProgressLeaderboardSourceState(),
     },

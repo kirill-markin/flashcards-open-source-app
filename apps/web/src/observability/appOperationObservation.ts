@@ -130,10 +130,10 @@ function isExpectedAppOperationError(error: Error, context: AppOperationObservat
     || error.message === "Deck name must not be empty";
 }
 
-export function captureAppOperationError(caughtError: unknown, context: AppOperationObservationContext): void {
+export function captureAppOperationError(caughtError: unknown, context: AppOperationObservationContext): boolean {
   const error = normalizeCaughtError(caughtError);
   if (isExpectedAppOperationError(error, context)) {
-    return;
+    return false;
   }
 
   captureWebException({
@@ -145,4 +145,5 @@ export function captureAppOperationError(caughtError: unknown, context: AppOpera
       entityId: context.entityId,
     },
   });
+  return true;
 }

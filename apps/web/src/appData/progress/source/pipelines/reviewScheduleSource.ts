@@ -18,8 +18,10 @@ import {
   storePersistedProgressReviewSchedule,
 } from "../../storage/progressStorage";
 import {
+  captureProgressLocalLoadError,
   captureProgressServerLoadError,
   getErrorMessage,
+  normalizeProgressSourceError,
   type ProgressCanLoadServerBaseRef,
   type ProgressNumberRef,
   type ProgressScopeKeyRef,
@@ -47,6 +49,7 @@ type ProgressReviewScheduleSourcePipelineParams = Readonly<{
   activeWorkspaceId: string | null;
   canLoadServerBase: boolean;
   canLoadServerBaseRef: ProgressCanLoadServerBaseRef;
+  canExposeTechnicalErrors: boolean;
   currentScopeKeyRef: ProgressScopeKeyRef;
   dispatch: ProgressSourceDispatch;
   input: ProgressReviewScheduleInput;
@@ -66,6 +69,7 @@ export function useProgressReviewScheduleSourcePipeline(
     activeWorkspaceId,
     canLoadServerBase,
     canLoadServerBaseRef,
+    canExposeTechnicalErrors,
     currentScopeKeyRef,
     dispatch,
     input,
@@ -155,10 +159,19 @@ export function useProgressReviewScheduleSourcePipeline(
         return;
       }
 
+      const technicalError = normalizeProgressSourceError(error);
+      const wasCaptured = canExposeTechnicalErrors
+        && captureProgressLocalLoadError(technicalError, {
+          operation: "progress_review_schedule_local_load",
+          workspaceId: activeWorkspaceId,
+          installationId,
+        });
+
       dispatch({
         type: "review_schedule_local_load_failed",
         scopeKey,
-        errorMessage: getErrorMessage(error),
+        errorMessage: getErrorMessage(technicalError),
+        technicalError: wasCaptured ? technicalError : null,
         progressScheduleLocalVersion,
         canRenderServerBase: canLoadServerBaseRef.current,
       });
@@ -167,6 +180,7 @@ export function useProgressReviewScheduleSourcePipeline(
     accessibleWorkspaceIds,
     canLoadServerBase,
     canLoadServerBaseRef,
+    canExposeTechnicalErrors,
     currentScopeKeyRef,
     dispatch,
     input,
@@ -233,17 +247,21 @@ export function useProgressReviewScheduleSourcePipeline(
               && canLoadServerBaseRef.current
               && isCurrentRefreshRequest
             ) {
+              const technicalError = normalizeProgressSourceError(error);
+              const wasCaptured = canExposeTechnicalErrors
+                && captureProgressServerLoadError(technicalError, {
+                  operation: "progress_review_schedule_server_load",
+                  workspaceId: activeWorkspaceId,
+                  installationId,
+                });
+
               dispatch({
                 type: "review_schedule_server_load_failed",
                 scopeKey: targetScopeKey,
-                errorMessage: getErrorMessage(error),
+                errorMessage: getErrorMessage(technicalError),
+                technicalError: wasCaptured ? technicalError : null,
                 progressScheduleLocalVersion: requestedRefresh.progressScheduleLocalVersion,
                 canRenderServerBase: canLoadServerBaseRef.current,
-              });
-              captureProgressServerLoadError(error, {
-                operation: "progress_review_schedule_server_load",
-                workspaceId: activeWorkspaceId,
-                installationId,
               });
             }
           }
@@ -263,7 +281,7 @@ export function useProgressReviewScheduleSourcePipeline(
 
     serverRefreshPromisesRef.current.set(targetScopeKey, refreshPromise);
     return refreshPromise;
-  }, [activeWorkspaceId, canLoadServerBaseRef, currentScopeKeyRef, dispatch, installationId]);
+  }, [activeWorkspaceId, canExposeTechnicalErrors, canLoadServerBaseRef, currentScopeKeyRef, dispatch, installationId]);
 
   useEffect(() => {
     if (scopeKey === null || refreshKey === null) {

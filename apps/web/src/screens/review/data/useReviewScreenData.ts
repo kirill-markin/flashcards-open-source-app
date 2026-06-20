@@ -3,6 +3,7 @@ import {
   ALL_CARDS_REVIEW_FILTER,
   isReviewFilterEqual,
 } from "../../../appData/domain";
+import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import { loadDecksListSnapshot } from "../../../localDb/cards/decks";
 import {
@@ -28,14 +29,13 @@ import {
   writeReviewLoadingSnapshot,
 } from "../../shared/loadingSnapshots";
 import { formatEffortLevelLabel } from "../../shared/featureFormatting";
+import { getExpectedCardMutationInlineErrorMessage } from "../../cards/cardMutationErrors";
 import {
   addPendingReviewSnapshot,
-  buildChunkReplenishmentFailureMessage,
   buildDisplayedReviewQueue,
   buildDisplayedReviewTimeline,
   buildReviewQueueChunkExcludedCardIds,
   buildReviewSessionSignature,
-  buildSubmitFailureMessage,
   createEmptyReviewCounts,
   filterExcludedReviewCards,
   filterPendingReviewCards,
@@ -50,7 +50,6 @@ import {
   resolveFilteredPresentedCard,
   resolvePresentedCard,
   resolveReviewFilterTitle,
-  toReviewErrorMessage,
   toTagSuggestions,
   type PendingReviewSnapshot,
   type ReviewSessionSignature,
@@ -73,6 +72,12 @@ type UseReviewScreenDataParams = Readonly<{
 type LocalHotStateStatus = "loading" | "hydrated" | "unhydrated";
 
 export type ReviewSubmissionOutcome = "saved" | "failed" | "stale";
+
+const workspaceUnavailableErrorMessage = "Workspace is unavailable";
+
+function isWorkspaceUnavailableError(error: unknown): boolean {
+  return error instanceof Error && error.message === workspaceUnavailableErrorMessage;
+}
 
 export type UseReviewScreenDataResult = Readonly<{
   activeReviewQueue: ReadonlyArray<Card>;
@@ -106,6 +111,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     userId,
   } = params;
   const { t } = useI18n();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const [canonicalReviewQueue, setCanonicalReviewQueue] = useState<ReadonlyArray<Card>>([]);
   const [queueCards, setQueueCards] = useState<ReadonlyArray<Card>>([]);
   const [reviewCounts, setReviewCounts] = useState<ReviewCounts>(createEmptyReviewCounts);
@@ -151,7 +157,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const visibleReviewLoadErrorMessage = reviewLoadErrorMessage !== ""
     ? reviewLoadErrorMessage
     : hasColdEmptyRestoreFailure
-      ? appErrorMessage
+      ? t("appError.technicalError.message")
       : "";
   const isLocalEmptyHotStateRestoring = hasColdEmptyLocalHotState && hasColdEmptyRestoreFailure === false;
   const isInitialReviewLoad = (isReviewLoading && visibleHasLoadedReviewData === false) || isLocalEmptyHotStateRestoring;
@@ -243,7 +249,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
 
       try {
         if (activeWorkspaceId === null) {
-          throw new Error("Workspace is unavailable");
+          throw new Error(workspaceUnavailableErrorMessage);
         }
 
         const [
@@ -349,18 +355,22 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           return;
         }
 
-        if (activeWorkspaceId !== null) {
-          const observationIdentity = observationIdentityRef.current;
-          captureAppOperationError(error, {
-            feature: "review",
-            operation: "review_data_load",
-            userId: observationIdentity.userId,
-            workspaceId: activeWorkspaceId,
-            installationId: observationIdentity.installationId,
-            entityId: null,
-          });
+        if (isWorkspaceUnavailableError(error)) {
+          setReviewLoadErrorMessage(workspaceUnavailableErrorMessage);
+          return;
         }
-        setReviewLoadErrorMessage(error instanceof Error ? error.message : String(error));
+
+        const observationIdentity = observationIdentityRef.current;
+        captureAppOperationError(error, {
+          feature: "review",
+          operation: "review_data_load",
+          userId: observationIdentity.userId,
+          workspaceId: activeWorkspaceId,
+          installationId: observationIdentity.installationId,
+          entityId: null,
+        });
+        showCapturedTechnicalError(error);
+        setReviewLoadErrorMessage(t("appError.technicalError.message"));
       } finally {
         if (!isCancelled && shouldShowBlockingLoader) {
           setIsReviewLoading(false);
@@ -405,15 +415,6 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
       await submitReviewItem(submissionContext.cardId, rating);
     } catch (error) {
       const observationIdentity = observationIdentityRef.current;
-      captureAppOperationError(error, {
-        feature: "review",
-        operation: "review_submit",
-        userId: observationIdentity.userId,
-        workspaceId: submissionContext.workspaceId,
-        installationId: observationIdentity.installationId,
-        entityId: submissionContext.cardId,
-      });
-      const originalSubmitErrorMessage = toReviewErrorMessage(error);
       pendingReviewSnapshotsRef.current = removePendingReviewSnapshot(
         pendingReviewSnapshotsRef.current,
         submissionContext.cardId,
@@ -432,20 +433,10 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
       }
 
       let freshRollbackCard: Card | null = null;
-      let rollbackLookupErrorMessage: string | null = null;
       try {
         freshRollbackCard = await loadPresentedCardForPreservation(submissionContext.cardId, getCardById);
-      } catch (lookupError) {
-        const observationIdentity = observationIdentityRef.current;
-        captureAppOperationError(lookupError, {
-          feature: "review",
-          operation: "review_rollback_lookup",
-          userId: observationIdentity.userId,
-          workspaceId: submissionContext.workspaceId,
-          installationId: observationIdentity.installationId,
-          entityId: submissionContext.cardId,
-        });
-        rollbackLookupErrorMessage = toReviewErrorMessage(lookupError);
+      } catch {
+        // The submit failure owns the visible technical report; rollback lookup is only UI preservation.
       }
       const currentResolvedReviewFilter = resolvedReviewFilterRef.current;
       const currentDeckSummaries = deckSummariesRef.current;
@@ -460,6 +451,21 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         ) === false
       ) {
         return "stale";
+      }
+
+      const expectedSubmitErrorMessage = getExpectedCardMutationInlineErrorMessage(
+        error,
+        t("reviewEditor.errors.cardNotFound"),
+      );
+      if (expectedSubmitErrorMessage === null) {
+        captureAppOperationError(error, {
+          feature: "review",
+          operation: "review_submit",
+          userId: observationIdentity.userId,
+          workspaceId: submissionContext.workspaceId,
+          installationId: observationIdentity.installationId,
+          entityId: submissionContext.cardId,
+        });
       }
 
       const isFreshRollbackCardPreservable = freshRollbackCard !== null
@@ -481,7 +487,12 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
       setPresentedCardState(rollbackPresentedCard);
       setQueueCardsState(rollbackQueueCards);
       setCurrentReviewSessionSignature(rollbackActiveReviewQueue, rollbackQueueCards);
-      setErrorMessage(buildSubmitFailureMessage(originalSubmitErrorMessage, rollbackLookupErrorMessage));
+      if (expectedSubmitErrorMessage !== null) {
+        setErrorMessage(expectedSubmitErrorMessage);
+      } else {
+        showCapturedTechnicalError(error);
+        setErrorMessage(t("appError.technicalError.message"));
+      }
       return "failed";
     }
 
@@ -528,7 +539,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         const currentWorkspaceId = activeWorkspaceIdRef.current;
         const requestedReviewQueueCursor = reviewQueueCursorRef.current;
         if (currentWorkspaceId === null) {
-          throw new Error("Workspace is unavailable");
+          throw new Error(workspaceUnavailableErrorMessage);
         }
 
         const excludedCardIds = buildReviewQueueChunkExcludedCardIds(
@@ -603,6 +614,11 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           return "stale";
         }
 
+        if (isWorkspaceUnavailableError(error)) {
+          setErrorMessage(workspaceUnavailableErrorMessage);
+          return "saved";
+        }
+
         const observationIdentity = observationIdentityRef.current;
         captureAppOperationError(error, {
           feature: "review",
@@ -612,7 +628,8 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           installationId: observationIdentity.installationId,
           entityId: submissionContext.cardId,
         });
-        setErrorMessage(buildChunkReplenishmentFailureMessage(toReviewErrorMessage(error)));
+        showCapturedTechnicalError(error);
+        setErrorMessage(t("appError.technicalError.message"));
         return "saved";
       }
     }

@@ -1,9 +1,15 @@
 // @vitest-environment jsdom
+import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { progressLeaderboardHash, progressStreakHash } from "../../routes";
 import {
   createAppData,
+  createLeaderboardSourceState,
+  createProgressSeriesSnapshot,
+  createProgressSummarySnapshot,
   createProgressScreenRenderTestContext,
+  createReviewScheduleSnapshot,
+  refreshProgressMock,
   useAppDataMock,
   useProgressInvalidationStateMock,
   useProgressSourceMock,
@@ -51,6 +57,72 @@ describe("ProgressScreen shell", () => {
       progressScheduleLocalVersion: 3,
       progressServerInvalidationVersion: 5,
     }));
+  });
+
+  it("opens technical details when a later progress source fails after an expected inline error", async () => {
+    const technicalError = new Error("Series server exploded");
+    useProgressSourceMock.mockReturnValue({
+      progressSourceState: {
+        summary: {
+          scopeKey: "progress::summary::UTC::2026-04-21",
+          referenceLocalDate: "2026-04-21",
+          localFallback: null,
+          localFallbackActiveDates: [],
+          serverBase: createProgressSummarySnapshot(),
+          hasPendingLocalReviews: false,
+          renderedSeriesContext: null,
+          renderedSnapshot: createProgressSummarySnapshot(),
+          isLoading: false,
+          errorMessage: "Authentication required.",
+          technicalError: null,
+        },
+        series: {
+          scopeKey: "progress::series::UTC::2026-04-13::2026-04-21",
+          localFallback: null,
+          localFallbackActiveDates: [],
+          serverBase: createProgressSeriesSnapshot(),
+          pendingLocalOverlay: null,
+          renderedSnapshot: createProgressSeriesSnapshot(),
+          isLoading: false,
+          errorMessage: "Series server exploded",
+          technicalError,
+        },
+        reviewSchedule: {
+          scopeKey: "progress::review-schedule::UTC::2026-04-21",
+          localFallback: null,
+          serverBase: createReviewScheduleSnapshot(),
+          progressScheduleLocalVersion: 0,
+          serverBaseProgressScheduleLocalVersion: 0,
+          serverBaseLocalCardTotalDelta: 0,
+          hasPendingLocalCardChanges: false,
+          hasCompleteLocalCardState: false,
+          pendingLocalCardTotalDelta: 0,
+          renderedSnapshot: createReviewScheduleSnapshot(),
+          isLoading: false,
+          errorMessage: "",
+          technicalError: null,
+        },
+        leaderboard: createLeaderboardSourceState("ready", null),
+      },
+      refreshProgress: refreshProgressMock,
+    });
+
+    await progressScreen.renderProgressScreen();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const container = progressScreen.getContainer();
+
+    expect(container.querySelector(".error-banner")?.textContent).toContain("Authentication required.");
+    const dialog = document.body.querySelector("[data-testid='app-error-dialog']");
+    if (!(dialog instanceof HTMLElement)) {
+      throw new Error("Expected technical error dialog to open");
+    }
+    const details = dialog.querySelector("[data-testid='app-error-dialog-details']");
+    if (!(details instanceof HTMLElement)) {
+      throw new Error("Expected technical error dialog details to render");
+    }
+    expect(details.textContent).toContain("Series server exploded");
   });
 
   it("scrolls to the leaderboard card when the route hash targets it", async () => {

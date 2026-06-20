@@ -718,6 +718,7 @@ describe("useProgressSource summary and series", () => {
       renderedSnapshot: null,
       isLoading: false,
       errorMessage: "",
+      technicalError: null,
     });
     expect(harness.getApi().progressSourceState.reviewSchedule).toEqual({
       scopeKey: null,
@@ -732,6 +733,7 @@ describe("useProgressSource summary and series", () => {
       renderedSnapshot: null,
       isLoading: false,
       errorMessage: "",
+      technicalError: null,
     });
   });
 });

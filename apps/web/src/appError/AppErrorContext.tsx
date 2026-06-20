@@ -22,6 +22,7 @@ export type AppTechnicalErrorContext = Readonly<{
 
 type AppErrorDialogContextValue = Readonly<{
   showTechnicalError: (error: unknown, context: AppTechnicalErrorContext) => void;
+  showCapturedTechnicalError: (error: unknown) => void;
   showTechnicalErrorPreview: () => void;
   dismiss: () => void;
 }>;
@@ -80,15 +81,20 @@ export function AppErrorDialogProvider(props: AppErrorDialogProviderProps): Reac
     setPresentation(buildAppErrorPresentation(error, buildPresentationMessages(t)));
   }, [t]);
 
+  const showCapturedTechnicalError = useCallback((error: unknown): void => {
+    setPresentation(buildAppErrorPresentation(error, buildPresentationMessages(t)));
+  }, [t]);
+
   const showTechnicalErrorPreview = useCallback((): void => {
     setPresentation(buildAppErrorPresentation(buildPreviewError(), buildPresentationMessages(t)));
   }, [t]);
 
   const contextValue = useMemo((): AppErrorDialogContextValue => ({
     showTechnicalError,
+    showCapturedTechnicalError,
     showTechnicalErrorPreview,
     dismiss,
-  }), [dismiss, showTechnicalError, showTechnicalErrorPreview]);
+  }), [dismiss, showCapturedTechnicalError, showTechnicalError, showTechnicalErrorPreview]);
 
   return (
     <AppErrorDialogContext.Provider value={contextValue}>
