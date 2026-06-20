@@ -671,7 +671,8 @@ final class ProgressReviewSchedulePendingOverlayTests: ProgressStoreTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: card.cardId,
                 rating: .good,
-                reviewedAtClient: formatIsoTimestamp(date: now)
+                reviewedAtClient: formatIsoTimestamp(date: now),
+                reviewedTimeZone: "UTC"
             )
         )
         try self.moveReviewScheduleCardDueAt(
@@ -789,7 +790,8 @@ final class ProgressReviewSchedulePendingOverlayTests: ProgressStoreTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: fixture.card.cardId,
                 rating: .good,
-                reviewedAtClient: formatIsoTimestamp(date: fixture.now)
+                reviewedAtClient: formatIsoTimestamp(date: fixture.now),
+                reviewedTimeZone: "UTC"
             )
         )
         try self.moveReviewScheduleCardDueAt(

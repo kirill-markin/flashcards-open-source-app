@@ -274,7 +274,8 @@ final class ReviewNotificationsSupportTests: XCTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: card.cardId,
                 rating: .good,
-                reviewedAtClient: formatIsoTimestamp(date: reviewedAt)
+                reviewedAtClient: formatIsoTimestamp(date: reviewedAt),
+                reviewedTimeZone: "UTC"
             )
         )
 
@@ -337,7 +338,8 @@ final class ReviewNotificationsSupportTests: XCTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: card.cardId,
                 rating: .good,
-                reviewedAtClient: formatIsoTimestamp(date: reviewedAt)
+                reviewedAtClient: formatIsoTimestamp(date: reviewedAt),
+                reviewedTimeZone: "UTC"
             )
         )
 
@@ -400,7 +402,8 @@ final class ReviewNotificationsSupportTests: XCTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: card.cardId,
                 rating: .good,
-                reviewedAtClient: formatIsoTimestamp(date: reviewedAt)
+                reviewedAtClient: formatIsoTimestamp(date: reviewedAt),
+                reviewedTimeZone: "UTC"
             )
         )
         _ = try database.core.execute(

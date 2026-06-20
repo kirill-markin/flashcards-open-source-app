@@ -235,7 +235,7 @@ extension CardStore {
     func loadReviewEvents(workspaceId: String) throws -> [ReviewEvent] {
         try self.core.query(
             sql: """
-            SELECT review_event_id, workspace_id, card_id, replica_id, client_event_id, rating, reviewed_at_client, reviewed_at_server
+            SELECT review_event_id, workspace_id, card_id, replica_id, client_event_id, rating, reviewed_at_client, reviewed_time_zone, reviewed_at_server
             FROM review_events
             WHERE workspace_id = ?
             ORDER BY reviewed_at_server DESC
@@ -255,7 +255,8 @@ extension CardStore {
                 clientEventId: DatabaseCore.columnText(statement: statement, index: 4),
                 rating: rating,
                 reviewedAtClient: DatabaseCore.columnText(statement: statement, index: 6),
-                reviewedAtServer: DatabaseCore.columnText(statement: statement, index: 7)
+                reviewedTimeZone: DatabaseCore.columnOptionalText(statement: statement, index: 7),
+                reviewedAtServer: DatabaseCore.columnText(statement: statement, index: 8)
             )
         }
     }

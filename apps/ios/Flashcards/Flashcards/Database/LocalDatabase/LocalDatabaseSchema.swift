@@ -1,7 +1,7 @@
 import Foundation
 
 enum LocalDatabaseSchema {
-    static let currentVersion: Int = 17
+    static let currentVersion: Int = 18
 
     static var baseMigrationSQL: String {
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
@@ -78,6 +78,7 @@ enum LocalDatabaseSchema {
             client_event_id TEXT NOT NULL, -- client-generated review-event idempotency key reused on push retry
             rating INTEGER NOT NULL CHECK (rating BETWEEN 0 AND 3), -- review rating from Again to Easy
             reviewed_at_client TEXT NOT NULL, -- timestamp captured on the device when the user answered
+            reviewed_time_zone TEXT, -- IANA timezone identifier captured on the device when the review was created
             reviewed_at_server TEXT NOT NULL, -- local mirror of the backend receive timestamp once synced; local writes use current device time until ack
             UNIQUE (workspace_id, replica_id, client_event_id)
         );

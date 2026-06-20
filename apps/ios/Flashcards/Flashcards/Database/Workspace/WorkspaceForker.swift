@@ -9,6 +9,7 @@ private struct WorkspaceForkReviewEventRow {
     let clientEventId: String
     let rating: Int64
     let reviewedAtClient: String
+    let reviewedTimeZone: String?
     let reviewedAtServer: String
 }
 
@@ -326,9 +327,10 @@ struct WorkspaceForker {
                     client_event_id,
                     rating,
                     reviewed_at_client,
+                    reviewed_time_zone,
                     reviewed_at_server
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 values: [
                     .text(destinationReviewEventId),
@@ -338,6 +340,7 @@ struct WorkspaceForker {
                     .text(sourceReviewEvent.clientEventId),
                     .integer(sourceReviewEvent.rating),
                     .text(sourceReviewEvent.reviewedAtClient),
+                    sourceReviewEvent.reviewedTimeZone.map(SQLiteValue.text) ?? .null,
                     .text(sourceReviewEvent.reviewedAtServer)
                 ]
             )
@@ -381,7 +384,7 @@ struct WorkspaceForker {
         let placeholders: String = sourceReviewEventIds.map { _ in "?" }.joined(separator: ", ")
         let rows: [WorkspaceForkReviewEventRow] = try self.core.query(
             sql: """
-            SELECT review_event_id, card_id, replica_id, client_event_id, rating, reviewed_at_client, reviewed_at_server
+            SELECT review_event_id, card_id, replica_id, client_event_id, rating, reviewed_at_client, reviewed_time_zone, reviewed_at_server
             FROM review_events
             WHERE workspace_id = ? AND review_event_id IN (\(placeholders))
             ORDER BY review_event_id ASC
@@ -397,7 +400,8 @@ struct WorkspaceForker {
                 clientEventId: DatabaseCore.columnText(statement: statement, index: 3),
                 rating: DatabaseCore.columnInt64(statement: statement, index: 4),
                 reviewedAtClient: DatabaseCore.columnText(statement: statement, index: 5),
-                reviewedAtServer: DatabaseCore.columnText(statement: statement, index: 6)
+                reviewedTimeZone: DatabaseCore.columnOptionalText(statement: statement, index: 6),
+                reviewedAtServer: DatabaseCore.columnText(statement: statement, index: 7)
             )
         }
 

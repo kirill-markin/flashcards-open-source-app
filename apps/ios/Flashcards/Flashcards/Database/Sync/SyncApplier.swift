@@ -310,9 +310,10 @@ struct SyncApplier {
                 client_event_id,
                 rating,
                 reviewed_at_client,
+                reviewed_time_zone,
                 reviewed_at_server
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             values: [
                 .text(reviewEvent.reviewEventId),
@@ -322,6 +323,7 @@ struct SyncApplier {
                 .text(reviewEvent.clientEventId),
                 .integer(Int64(reviewEvent.rating.rawValue)),
                 .text(reviewEvent.reviewedAtClient),
+                reviewEvent.reviewedTimeZone.map(SQLiteValue.text) ?? .null,
                 .text(reviewEvent.reviewedAtServer)
             ]
         )

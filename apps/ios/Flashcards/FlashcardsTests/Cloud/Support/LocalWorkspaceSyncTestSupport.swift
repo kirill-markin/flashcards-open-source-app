@@ -285,6 +285,7 @@ struct WorkspaceSyncDeckOutboxPayload: Decodable {
 struct WorkspaceSyncReviewEventOutboxPayload: Decodable {
     let reviewEventId: String
     let cardId: String
+    let reviewedTimeZone: String?
 }
 
 struct WorkspaceSyncPushRetryRequestBody: Decodable {

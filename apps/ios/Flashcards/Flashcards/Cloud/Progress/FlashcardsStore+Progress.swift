@@ -303,6 +303,7 @@ extension FlashcardsStore {
     func handleProgressLocalMutation(
         now: Date,
         reviewedAtClient: String,
+        reviewedTimeZone: String?,
         rating: ReviewRating
     ) {
         do {
@@ -346,6 +347,7 @@ extension FlashcardsStore {
                 snapshot: progressSnapshot,
                 scopeKey: scopeKey,
                 reviewedAtClient: reviewedAtClient,
+                reviewedTimeZone: reviewedTimeZone,
                 rating: rating,
                 activeReviewLocalDates: activeReviewLocalDates
             )

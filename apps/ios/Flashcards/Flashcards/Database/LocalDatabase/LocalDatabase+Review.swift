@@ -27,6 +27,7 @@ extension LocalDatabase {
                 cardId: reviewSubmission.cardId,
                 rating: reviewSubmission.rating,
                 reviewedAtClient: reviewSubmission.reviewedAtClient,
+                reviewedTimeZone: reviewSubmission.reviewedTimeZone,
                 installationId: cloudSettings.installationId,
                 reviewEventId: reviewEventId,
                 clientEventId: clientEventId,

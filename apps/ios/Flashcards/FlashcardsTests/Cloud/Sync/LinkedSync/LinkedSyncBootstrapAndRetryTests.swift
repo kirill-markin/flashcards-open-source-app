@@ -430,7 +430,8 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: savedCard.cardId,
                 rating: .good,
-                reviewedAtClient: "2026-04-01T00:00:00.000Z"
+                reviewedAtClient: "2026-04-01T00:00:00.000Z",
+                reviewedTimeZone: "UTC"
             )
         )
         let reviewEvent = try XCTUnwrap(try database.loadReviewEvents(workspaceId: workspace.workspaceId).first)
@@ -486,7 +487,8 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: savedCard.cardId,
                 rating: .good,
-                reviewedAtClient: "2026-04-01T00:00:00.000Z"
+                reviewedAtClient: "2026-04-01T00:00:00.000Z",
+                reviewedTimeZone: "UTC"
             )
         )
         let reviewEvent = try XCTUnwrap(try database.loadReviewEvents(workspaceId: workspace.workspaceId).first)
@@ -542,7 +544,8 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: savedCard.cardId,
                 rating: .good,
-                reviewedAtClient: "2026-04-01T00:00:00.000Z"
+                reviewedAtClient: "2026-04-01T00:00:00.000Z",
+                reviewedTimeZone: "UTC"
             )
         )
         try database.deleteAllOutboxEntries(workspaceId: workspace.workspaceId)
@@ -560,6 +563,7 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
             clientEventId: "remote-client-event",
             rating: .easy,
             reviewedAtClient: "2026-04-02T00:00:00.000Z",
+            reviewedTimeZone: "UTC",
             reviewedAtServer: "2026-04-02T00:00:01.000Z"
         )
         let configuration = URLSessionConfiguration.ephemeral
@@ -582,8 +586,11 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
 
         let syncState = try XCTUnwrap(try self.loadSyncState(database: database, workspaceId: workspace.workspaceId))
         let reviewEvents = try database.loadReviewEvents(workspaceId: workspace.workspaceId)
+        let importedReviewEvent = try XCTUnwrap(reviewEvents.first { event in
+            event.reviewEventId == remoteReviewEvent.reviewEventId
+        })
         XCTAssertTrue(syncResult.changedEntityTypes.contains(.reviewEvent))
-        XCTAssertTrue(reviewEvents.contains { event in event.reviewEventId == remoteReviewEvent.reviewEventId })
+        XCTAssertEqual("UTC", importedReviewEvent.reviewedTimeZone)
         XCTAssertTrue(CloudSyncRunnerTestURLProtocol.reviewHistoryImportEventCounts.isEmpty)
         XCTAssertEqual([0], CloudSyncRunnerTestURLProtocol.reviewHistoryPullAfterSequenceIds)
         XCTAssertEqual(2, syncState.lastAppliedReviewSequenceId)

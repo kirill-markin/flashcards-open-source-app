@@ -3,6 +3,36 @@ import XCTest
 @testable import Flashcards
 
 final class ProgressSeriesMergeTests: ProgressStoreTestCase {
+    func testProgressSeriesUsesReviewEventTimezoneForLocalReviewDay() throws {
+        let requestRange = ProgressRequestRange(
+            timeZone: "UTC",
+            from: "2026-04-01",
+            to: "2026-04-02"
+        )
+        let series = try makeProgressSeriesFromReviewEvents(
+            reviewEvents: [
+                ProgressReviewEventSource(
+                    reviewEventId: "review-event-1",
+                    reviewedAtClient: "2026-04-02T01:30:00.000Z",
+                    reviewedTimeZone: "America/Los_Angeles",
+                    rating: .good
+                )
+            ],
+            requestRange: requestRange
+        )
+        let reviewCountsByDate = Dictionary(uniqueKeysWithValues: series.dailyReviews.map { day in
+            (day.date, day.reviewCount)
+        })
+        let streakStatesByDate = Dictionary(uniqueKeysWithValues: series.streakDays.map { day in
+            (day.date, day.state)
+        })
+
+        XCTAssertEqual(1, reviewCountsByDate["2026-04-01"])
+        XCTAssertEqual(0, reviewCountsByDate["2026-04-02"])
+        XCTAssertEqual(.reviewed, streakStatesByDate["2026-04-01"])
+        XCTAssertEqual(.pending, streakStatesByDate["2026-04-02"])
+    }
+
     func testMergeProgressSeriesAppliesOnlyTodayLocalOverlay() throws {
         let requestRange = ProgressSeriesLoadRequest(
             apiBaseUrl: "",

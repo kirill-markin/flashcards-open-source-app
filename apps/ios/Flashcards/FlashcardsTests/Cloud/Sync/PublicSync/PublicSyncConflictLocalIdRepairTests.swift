@@ -21,7 +21,8 @@ final class PublicSyncConflictLocalIdRepairTests: LocalWorkspaceSyncTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: savedCard.cardId,
                 rating: .good,
-                reviewedAtClient: "2026-04-02T15:50:57.000Z"
+                reviewedAtClient: "2026-04-02T15:50:57.000Z",
+                reviewedTimeZone: "UTC"
             )
         )
 
@@ -90,7 +91,8 @@ final class PublicSyncConflictLocalIdRepairTests: LocalWorkspaceSyncTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: savedCard.cardId,
                 rating: .easy,
-                reviewedAtClient: "2026-04-02T15:50:57.000Z"
+                reviewedAtClient: "2026-04-02T15:50:57.000Z",
+                reviewedTimeZone: "UTC"
             )
         )
         let sourceReviewEvent = try XCTUnwrap(try database.loadReviewEvents(workspaceId: workspace.workspaceId).first)

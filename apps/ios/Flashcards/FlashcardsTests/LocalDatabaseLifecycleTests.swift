@@ -16,6 +16,7 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
         )
         XCTAssertTrue(try self.hasColumn(database: database, tableName: "cards", columnName: "due_at_millis"))
         XCTAssertTrue(try self.hasColumn(database: database, tableName: "cards", columnName: "fsrs_last_reviewed_at_millis"))
+        XCTAssertTrue(try self.hasColumn(database: database, tableName: "review_events", columnName: "reviewed_time_zone"))
         XCTAssertTrue(try self.hasColumn(database: database, tableName: "outbox", columnName: "review_schedule_impact"))
         XCTAssertTrue(
             try self.hasIndex(
@@ -82,7 +83,8 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: card.cardId,
                 rating: .good,
-                reviewedAtClient: formatIsoTimestamp(date: reviewTime)
+                reviewedAtClient: formatIsoTimestamp(date: reviewTime),
+                reviewedTimeZone: "UTC"
             )
         )
 

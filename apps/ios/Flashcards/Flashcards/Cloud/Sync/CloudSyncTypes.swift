@@ -378,6 +378,7 @@ struct ReviewEventSyncPayload: Codable, Hashable {
     let clientEventId: String
     let rating: Int
     let reviewedAtClient: String
+    let reviewedTimeZone: String?
 
     enum CodingKeys: String, CodingKey {
         case reviewEventId
@@ -386,6 +387,7 @@ struct ReviewEventSyncPayload: Codable, Hashable {
         case clientEventId
         case rating
         case reviewedAtClient
+        case reviewedTimeZone
     }
 
     init(
@@ -394,7 +396,8 @@ struct ReviewEventSyncPayload: Codable, Hashable {
         installationId: String,
         clientEventId: String,
         rating: Int,
-        reviewedAtClient: String
+        reviewedAtClient: String,
+        reviewedTimeZone: String?
     ) {
         self.reviewEventId = reviewEventId
         self.cardId = cardId
@@ -402,6 +405,7 @@ struct ReviewEventSyncPayload: Codable, Hashable {
         self.clientEventId = clientEventId
         self.rating = rating
         self.reviewedAtClient = reviewedAtClient
+        self.reviewedTimeZone = reviewedTimeZone
     }
 
     init(from decoder: Decoder) throws {
@@ -412,6 +416,7 @@ struct ReviewEventSyncPayload: Codable, Hashable {
         self.clientEventId = try container.decode(String.self, forKey: .clientEventId)
         self.rating = try container.decode(Int.self, forKey: .rating)
         self.reviewedAtClient = try container.decode(String.self, forKey: .reviewedAtClient)
+        self.reviewedTimeZone = try container.decodeIfPresent(String.self, forKey: .reviewedTimeZone)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -421,6 +426,7 @@ struct ReviewEventSyncPayload: Codable, Hashable {
         try container.encode(self.clientEventId, forKey: .clientEventId)
         try container.encode(self.rating, forKey: .rating)
         try container.encode(self.reviewedAtClient, forKey: .reviewedAtClient)
+        try container.encodeIfPresent(self.reviewedTimeZone, forKey: .reviewedTimeZone)
     }
 }
 

@@ -289,7 +289,8 @@ extension FlashcardsStore {
                 submission: ReviewSubmission(
                     cardId: request.cardId,
                     rating: request.rating,
-                    reviewedAtClient: request.reviewedAtClient
+                    reviewedAtClient: request.reviewedAtClient,
+                    reviewedTimeZone: request.reviewedTimeZone
                 )
             )
             let now = Date()
@@ -328,6 +329,7 @@ extension FlashcardsStore {
             self.handleProgressLocalMutation(
                 now: now,
                 reviewedAtClient: request.reviewedAtClient,
+                reviewedTimeZone: request.reviewedTimeZone,
                 rating: request.rating
             )
             if bootstrapRefreshOutcome.didChange || didReconcileReviewState {

@@ -37,7 +37,8 @@ final class LocalDatabaseSchemaVersion14To15MigrationTests: LocalDatabaseTestCas
             reviewSubmission: ReviewSubmission(
                 cardId: card.cardId,
                 rating: .good,
-                reviewedAtClient: "2026-04-18T12:00:00.000Z"
+                reviewedAtClient: "2026-04-18T12:00:00.000Z",
+                reviewedTimeZone: "UTC"
             )
         )
         try database.close()

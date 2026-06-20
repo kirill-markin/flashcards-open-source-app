@@ -238,6 +238,7 @@ struct ReviewSubmissionRequest: Hashable, Sendable {
     let cardSnapshot: Card
     let rating: ReviewRating
     let reviewedAtClient: String
+    let reviewedTimeZone: String
 }
 
 struct ReviewSubmissionFailure: Identifiable, Hashable, Sendable {

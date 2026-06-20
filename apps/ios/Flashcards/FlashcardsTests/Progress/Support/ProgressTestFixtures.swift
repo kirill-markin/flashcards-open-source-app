@@ -71,6 +71,7 @@ func makeProgressSeriesFromReviewedAtClients(
         ProgressReviewEventSource(
             reviewEventId: "test-review-event-\(index + 1)",
             reviewedAtClient: reviewedAtClient,
+            reviewedTimeZone: nil,
             rating: .good
         )
     }

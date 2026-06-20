@@ -530,6 +530,7 @@ extension FlashcardsStore {
                     ProgressReviewEventSource(
                         reviewEventId: reviewEvent.reviewEventId,
                         reviewedAtClient: reviewEvent.reviewedAtClient,
+                        reviewedTimeZone: reviewEvent.reviewedTimeZone,
                         rating: reviewEvent.rating
                     )
                 )
@@ -563,6 +564,7 @@ extension FlashcardsStore {
                         ProgressReviewEventSource(
                             reviewEventId: pendingPayload.reviewEventId,
                             reviewedAtClient: pendingPayload.reviewedAtClient,
+                            reviewedTimeZone: pendingPayload.reviewedTimeZone,
                             rating: pendingRating
                         )
                     )

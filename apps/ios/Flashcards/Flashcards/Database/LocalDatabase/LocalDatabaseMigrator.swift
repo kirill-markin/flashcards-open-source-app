@@ -70,6 +70,9 @@ struct LocalDatabaseMigrator {
             case 16:
                 try self.migrateSchemaVersion16To17()
                 schemaVersion = 17
+            case 17:
+                try self.migrateSchemaVersion17To18()
+                schemaVersion = 18
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -562,6 +565,20 @@ struct LocalDatabaseMigrator {
             sql: """
             ALTER TABLE sync_state
             ADD COLUMN pending_review_history_import INTEGER NOT NULL DEFAULT 0 CHECK (pending_review_history_import IN (0, 1))
+            """,
+            values: []
+        )
+    }
+
+    private func migrateSchemaVersion17To18() throws {
+        guard try self.core.columnExists(tableName: "review_events", columnName: "reviewed_time_zone") == false else {
+            return
+        }
+
+        try self.core.execute(
+            sql: """
+            ALTER TABLE review_events
+            ADD COLUMN reviewed_time_zone TEXT
             """,
             values: []
         )

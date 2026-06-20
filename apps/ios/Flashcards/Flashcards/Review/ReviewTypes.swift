@@ -106,6 +106,7 @@ struct ReviewEvent: Codable, Identifiable, Hashable, Sendable {
     let clientEventId: String
     let rating: ReviewRating
     let reviewedAtClient: String
+    let reviewedTimeZone: String?
     let reviewedAtServer: String
 
     enum CodingKeys: String, CodingKey {
@@ -116,6 +117,7 @@ struct ReviewEvent: Codable, Identifiable, Hashable, Sendable {
         case clientEventId
         case rating
         case reviewedAtClient
+        case reviewedTimeZone
         case reviewedAtServer
     }
 
@@ -131,6 +133,7 @@ struct ReviewEvent: Codable, Identifiable, Hashable, Sendable {
         clientEventId: String,
         rating: ReviewRating,
         reviewedAtClient: String,
+        reviewedTimeZone: String?,
         reviewedAtServer: String
     ) {
         self.reviewEventId = reviewEventId
@@ -140,6 +143,7 @@ struct ReviewEvent: Codable, Identifiable, Hashable, Sendable {
         self.clientEventId = clientEventId
         self.rating = rating
         self.reviewedAtClient = reviewedAtClient
+        self.reviewedTimeZone = reviewedTimeZone
         self.reviewedAtServer = reviewedAtServer
     }
 
@@ -152,6 +156,7 @@ struct ReviewEvent: Codable, Identifiable, Hashable, Sendable {
         self.clientEventId = try container.decode(String.self, forKey: .clientEventId)
         self.rating = try container.decode(ReviewRating.self, forKey: .rating)
         self.reviewedAtClient = try container.decode(String.self, forKey: .reviewedAtClient)
+        self.reviewedTimeZone = try container.decodeIfPresent(String.self, forKey: .reviewedTimeZone)
         self.reviewedAtServer = try container.decode(String.self, forKey: .reviewedAtServer)
     }
 
@@ -163,6 +168,7 @@ struct ReviewEvent: Codable, Identifiable, Hashable, Sendable {
         try container.encode(self.clientEventId, forKey: .clientEventId)
         try container.encode(self.rating, forKey: .rating)
         try container.encode(self.reviewedAtClient, forKey: .reviewedAtClient)
+        try container.encodeIfPresent(self.reviewedTimeZone, forKey: .reviewedTimeZone)
         try container.encode(self.reviewedAtServer, forKey: .reviewedAtServer)
     }
 }
@@ -177,4 +183,5 @@ struct ReviewSubmission: Hashable, Sendable {
     let cardId: String
     let rating: ReviewRating
     let reviewedAtClient: String
+    let reviewedTimeZone: String?
 }

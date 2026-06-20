@@ -382,7 +382,8 @@ final class GuestCloudUpgradeMutationBlockingTests: XCTestCase {
                 submission: ReviewSubmission(
                     cardId: card.cardId,
                     rating: .good,
-                    reviewedAtClient: "2026-04-25T12:00:00.000Z"
+                    reviewedAtClient: "2026-04-25T12:00:00.000Z",
+                    reviewedTimeZone: "UTC"
                 )
             )
             XCTFail("Review submission executor should block guest outbox writes after guest upgrade drain starts.")

@@ -66,6 +66,7 @@ enum CloudSyncMapper {
             clientEventId: payload.clientEventId,
             rating: payload.rating,
             reviewedAtClient: payload.reviewedAtClient,
+            reviewedTimeZone: payload.reviewedTimeZone,
             reviewedAtServer: payload.reviewedAtServer
         )
     }
@@ -79,6 +80,7 @@ enum CloudSyncMapper {
             clientEventId: payload.clientEventId,
             rating: payload.rating,
             reviewedAtClient: payload.reviewedAtClient,
+            reviewedTimeZone: payload.reviewedTimeZone,
             reviewedAtServer: payload.reviewedAtServer
         )
     }

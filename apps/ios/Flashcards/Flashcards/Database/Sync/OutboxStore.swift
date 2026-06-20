@@ -42,6 +42,7 @@ private struct ReviewEventOutboxPayload: Codable {
     let clientEventId: String
     let rating: Int
     let reviewedAtClient: String
+    let reviewedTimeZone: String?
 }
 
 private struct ReviewEventOutboxCandidate {
@@ -589,7 +590,8 @@ struct OutboxStore {
                 installationId: installationId,
                 clientEventId: reviewEvent.clientEventId,
                 rating: reviewEvent.rating.rawValue,
-                reviewedAtClient: reviewEvent.reviewedAtClient
+                reviewedAtClient: reviewEvent.reviewedAtClient,
+                reviewedTimeZone: reviewEvent.reviewedTimeZone
             )
         )
         try self.enqueueOutboxOperation(
