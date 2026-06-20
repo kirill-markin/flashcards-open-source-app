@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressStreakLeaderboardScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.repository.progress.progressHistoryDayCount
 import java.time.LocalDate
@@ -56,6 +57,14 @@ internal fun createProgressLeaderboardScopeKey(
     cloudSettings: CloudSettings
 ): ProgressLeaderboardScopeKey {
     return ProgressLeaderboardScopeKey(
+        scopeId = createProgressScopeId(cloudSettings = cloudSettings)
+    )
+}
+
+internal fun createProgressStreakLeaderboardScopeKey(
+    cloudSettings: CloudSettings
+): ProgressStreakLeaderboardScopeKey {
+    return ProgressStreakLeaderboardScopeKey(
         scopeId = createProgressScopeId(cloudSettings = cloudSettings)
     )
 }

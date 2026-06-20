@@ -29,6 +29,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdTo
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
@@ -299,6 +300,10 @@ class LocalCloudAccountRepository(
         return progressRemoteReader.loadProgressLeaderboard()
     }
 
+    override suspend fun loadProgressStreakLeaderboard(): CloudProgressStreakLeaderboard {
+        return progressRemoteReader.loadProgressStreakLeaderboard()
+    }
+
     override suspend fun loadCommunityProfile(): CloudCommunityProfile {
         return progressRemoteReader.loadCommunityProfile()
     }
@@ -313,6 +318,7 @@ class LocalCloudAccountRepository(
         // while the cached payload would stay rendered until its hourly nextRefreshAfter.
         // Dropping the cache makes the next Progress visit refetch the correct status.
         database.progressRemoteCacheDao().deleteAllProgressLeaderboardCaches()
+        database.progressRemoteCacheDao().deleteAllProgressStreakLeaderboardCaches()
         return updatedProfile
     }
 

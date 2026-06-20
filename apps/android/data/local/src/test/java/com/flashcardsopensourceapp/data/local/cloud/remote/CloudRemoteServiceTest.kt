@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.guest.buildGuestUpgra
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressReviewScheduleResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressSeriesResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressStreakLeaderboard
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressSummaryResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.parseRemotePushResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.parseCloudErrorPayload
@@ -15,6 +16,8 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationC
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRowKind
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardRow
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
@@ -452,6 +455,134 @@ class CloudRemoteServiceTest {
         assertEquals("Kai", window.rankingRows[0].friendDisplayName)
         val participantRow = window.rows[0] as CloudProgressLeaderboardRow.Participant
         assertEquals("Kai", participantRow.friendDisplayName)
+    }
+
+    @Test
+    fun parseCloudProgressStreakLeaderboardReadsRankingRows() {
+        val response = JSONObject(
+            """
+            {
+              "status": "ready",
+              "metric": {
+                "metricVersion": "streak_days_v1",
+                "title": "Current streak days",
+                "description": "Ranks use current streak days from the public daily snapshot. Public values can trail your live personal streak."
+              },
+              "snapshotId": "3e6c0b88-5f5a-4db3-8c8c-9d6a3840a1e4",
+              "snapshotGeneratedAt": "2026-06-10T12:00:05.000Z",
+              "asOfUtcDate": "2026-06-10",
+              "nextRefreshAfter": "2026-06-11T12:00:00.000Z",
+              "participantCount": 2,
+              "viewer": {
+                "publicProfileId": "viewer-profile",
+                "displayName": "You",
+                "rank": 2,
+                "streakDays": 3
+              },
+              "rows": [
+                {
+                  "kind": "top",
+                  "publicProfileId": "participant-1",
+                  "anonymousDisplayName": "Silver Bright Harbor",
+                  "friendDisplayName": "Kai",
+                  "streakDays": 5,
+                  "rank": 1
+                },
+                {
+                  "kind": "viewer",
+                  "publicProfileId": "viewer-profile",
+                  "anonymousDisplayName": "Jade Swift River",
+                  "streakDays": 3,
+                  "rank": 2
+                }
+              ],
+              "rankingRows": [
+                {
+                  "kind": "participant",
+                  "publicProfileId": "participant-1",
+                  "anonymousDisplayName": "Silver Bright Harbor",
+                  "friendDisplayName": "Kai",
+                  "streakDays": 5,
+                  "rank": 1
+                },
+                {
+                  "kind": "viewer",
+                  "publicProfileId": "viewer-profile",
+                  "anonymousDisplayName": "Jade Swift River",
+                  "streakDays": 3,
+                  "rank": 2
+                }
+              ]
+            }
+            """.trimIndent()
+        )
+
+        val leaderboard = parseCloudProgressStreakLeaderboard(
+            payload = response,
+            fieldPath = "progress.streakLeaderboard"
+        )
+
+        assertTrue(leaderboard is CloudProgressStreakLeaderboard.Ready)
+        val readyLeaderboard = leaderboard as CloudProgressStreakLeaderboard.Ready
+        assertEquals("2026-06-10", readyLeaderboard.asOfUtcDate)
+        assertEquals(2, readyLeaderboard.rankingRows.size)
+        assertEquals(CloudProgressLeaderboardRankingRowKind.VIEWER, readyLeaderboard.rankingRows[1].kind)
+        assertEquals("viewer-profile", readyLeaderboard.rankingRows[1].publicProfileId)
+        assertEquals("Kai", readyLeaderboard.rankingRows[0].friendDisplayName)
+        val participantRow = readyLeaderboard.rows[0] as CloudProgressStreakLeaderboardRow.Participant
+        assertEquals("Kai", participantRow.friendDisplayName)
+        assertEquals(5, participantRow.streakDays)
+    }
+
+    @Test
+    fun parseCloudProgressStreakLeaderboardRejectsIncreasingRankingStreakDays() {
+        val response = JSONObject(
+            """
+            {
+              "status": "ready",
+              "metric": {
+                "metricVersion": "streak_days_v1",
+                "title": "Current streak days",
+                "description": "Ranks use current streak days from the public daily snapshot. Public values can trail your live personal streak."
+              },
+              "snapshotId": "3e6c0b88-5f5a-4db3-8c8c-9d6a3840a1e4",
+              "snapshotGeneratedAt": "2026-06-10T12:00:05.000Z",
+              "asOfUtcDate": "2026-06-10",
+              "nextRefreshAfter": "2026-06-11T12:00:00.000Z",
+              "participantCount": 2,
+              "viewer": {
+                "publicProfileId": "viewer-profile",
+                "displayName": "You",
+                "rank": 2,
+                "streakDays": 5
+              },
+              "rows": [],
+              "rankingRows": [
+                {
+                  "kind": "participant",
+                  "publicProfileId": "participant-1",
+                  "anonymousDisplayName": "Silver Bright Harbor",
+                  "streakDays": 3,
+                  "rank": 1
+                },
+                {
+                  "kind": "viewer",
+                  "publicProfileId": "viewer-profile",
+                  "anonymousDisplayName": "Jade Swift River",
+                  "streakDays": 5,
+                  "rank": 2
+                }
+              ]
+            }
+            """.trimIndent()
+        )
+
+        assertThrows(CloudContractMismatchException::class.java) {
+            parseCloudProgressStreakLeaderboard(
+                payload = response,
+                fieldPath = "progress.streakLeaderboard"
+            )
+        }
     }
 
     @Test

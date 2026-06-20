@@ -1,6 +1,8 @@
 package com.flashcardsopensourceapp.data.local.model.progress
 
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import java.time.Instant
+import java.time.ZoneOffset
 
 enum class ProgressLeaderboardWindowKey(
     val wireKey: String,
@@ -314,6 +316,290 @@ private fun CloudProgressLeaderboardRankingRow.toCompactProgressLeaderboardRow(
         anonymousDisplayName = anonymousDisplayName,
         friendDisplayName = friendDisplayName,
         qualifiedReviewCount = qualifiedReviewCount,
+        rank = rank
+    )
+}
+
+data class ProgressStreakLeaderboardScopeKey(
+    val scopeId: String
+)
+
+data class CloudProgressStreakLeaderboardMetric(
+    val metricVersion: String,
+    val title: String,
+    val description: String
+)
+
+data class CloudProgressStreakLeaderboardViewer(
+    val publicProfileId: String,
+    val displayName: String,
+    val rank: Int,
+    val streakDays: Int
+)
+
+sealed interface CloudProgressStreakLeaderboardRow {
+    data class Participant(
+        val kind: ProgressLeaderboardParticipantRowKind,
+        val publicProfileId: String,
+        val anonymousDisplayName: String,
+        val friendDisplayName: String?,
+        val streakDays: Int,
+        val rank: Int
+    ) : CloudProgressStreakLeaderboardRow
+
+    data object Gap : CloudProgressStreakLeaderboardRow
+}
+
+data class CloudProgressStreakLeaderboardRankingRow(
+    val kind: CloudProgressLeaderboardRankingRowKind,
+    val publicProfileId: String,
+    val anonymousDisplayName: String,
+    val friendDisplayName: String?,
+    val streakDays: Int,
+    val rank: Int
+)
+
+sealed interface CloudProgressStreakLeaderboard {
+    val status: ProgressLeaderboardStatus
+    val metric: CloudProgressStreakLeaderboardMetric
+
+    data class Ready(
+        override val status: ProgressLeaderboardStatus,
+        override val metric: CloudProgressStreakLeaderboardMetric,
+        val snapshotId: String,
+        val snapshotGeneratedAt: String,
+        val asOfUtcDate: String,
+        val nextRefreshAfter: String,
+        val participantCount: Int,
+        val viewer: CloudProgressStreakLeaderboardViewer,
+        val rows: List<CloudProgressStreakLeaderboardRow>,
+        val rankingRows: List<CloudProgressStreakLeaderboardRankingRow>
+    ) : CloudProgressStreakLeaderboard {
+        init {
+            require(status == ProgressLeaderboardStatus.READY) {
+                "Ready streak leaderboard payload must use ready status."
+            }
+        }
+    }
+
+    data class NonReady(
+        override val status: ProgressLeaderboardStatus,
+        override val metric: CloudProgressStreakLeaderboardMetric
+    ) : CloudProgressStreakLeaderboard {
+        init {
+            require(status != ProgressLeaderboardStatus.READY) {
+                "Non-ready streak leaderboard payload must not use ready status."
+            }
+        }
+    }
+}
+
+data class ProgressStreakLeaderboardSnapshot(
+    val scopeKey: ProgressStreakLeaderboardScopeKey,
+    val cloudState: CloudAccountState,
+    val leaderboard: CloudProgressStreakLeaderboard?,
+    val renderedLeaderboard: CloudProgressStreakLeaderboard?,
+    val payloadUpdatedAtMillis: Long?,
+    val viewerCurrentStreakDays: Int?,
+    val isRefreshDue: Boolean,
+    val didLastRemoteLoadFail: Boolean
+)
+
+fun createRenderedProgressStreakLeaderboard(
+    leaderboard: CloudProgressStreakLeaderboard?,
+    viewerCurrentStreakDays: Int?,
+    currentTimeMillis: Long
+): CloudProgressStreakLeaderboard? {
+    if (viewerCurrentStreakDays != null) {
+        require(viewerCurrentStreakDays >= 0) {
+            "Viewer current streak days must not be negative."
+        }
+    }
+
+    return when (leaderboard) {
+        null -> viewerCurrentStreakDays?.let { streakDays ->
+            createViewerOnlyProgressStreakLeaderboard(
+                viewerCurrentStreakDays = streakDays,
+                currentTimeMillis = currentTimeMillis
+            )
+        }
+        is CloudProgressStreakLeaderboard.NonReady -> {
+            if (
+                leaderboard.status == ProgressLeaderboardStatus.SNAPSHOT_UNAVAILABLE &&
+                viewerCurrentStreakDays != null
+            ) {
+                createViewerOnlyProgressStreakLeaderboard(
+                    viewerCurrentStreakDays = viewerCurrentStreakDays,
+                    currentTimeMillis = currentTimeMillis
+                )
+            } else {
+                leaderboard
+            }
+        }
+        is CloudProgressStreakLeaderboard.Ready -> leaderboard.toRenderedProgressStreakLeaderboard(
+            viewerCurrentStreakDays = viewerCurrentStreakDays
+        )
+    }
+}
+
+private fun createViewerOnlyProgressStreakLeaderboard(
+    viewerCurrentStreakDays: Int,
+    currentTimeMillis: Long
+): CloudProgressStreakLeaderboard.Ready {
+    val generatedAt = Instant.ofEpochMilli(currentTimeMillis)
+    val asOfUtcDate = generatedAt.atZone(ZoneOffset.UTC).toLocalDate().toString()
+    val viewer = CloudProgressStreakLeaderboardViewer(
+        publicProfileId = "local-viewer",
+        displayName = "You",
+        rank = 1,
+        streakDays = viewerCurrentStreakDays
+    )
+    val viewerRankingRow = CloudProgressStreakLeaderboardRankingRow(
+        kind = CloudProgressLeaderboardRankingRowKind.VIEWER,
+        publicProfileId = viewer.publicProfileId,
+        anonymousDisplayName = viewer.displayName,
+        friendDisplayName = null,
+        streakDays = viewer.streakDays,
+        rank = viewer.rank
+    )
+
+    return CloudProgressStreakLeaderboard.Ready(
+        status = ProgressLeaderboardStatus.READY,
+        metric = createDefaultProgressStreakLeaderboardMetric(),
+        snapshotId = "local-viewer",
+        snapshotGeneratedAt = generatedAt.toString(),
+        asOfUtcDate = asOfUtcDate,
+        nextRefreshAfter = generatedAt.toString(),
+        participantCount = 1,
+        viewer = viewer,
+        rows = listOf(viewerRankingRow.toCompactProgressStreakLeaderboardRow(topRowCount = 1)),
+        rankingRows = listOf(viewerRankingRow)
+    )
+}
+
+private fun createDefaultProgressStreakLeaderboardMetric(): CloudProgressStreakLeaderboardMetric {
+    return CloudProgressStreakLeaderboardMetric(
+        metricVersion = "streak_days_v1",
+        title = "Current streak days",
+        description = "Ranks use current streak days from the public daily snapshot. Public values can trail your live personal streak."
+    )
+}
+
+private fun CloudProgressStreakLeaderboard.Ready.toRenderedProgressStreakLeaderboard(
+    viewerCurrentStreakDays: Int?
+): CloudProgressStreakLeaderboard.Ready {
+    val viewerRankingRow = requireNotNull(
+        rankingRows.firstOrNull { row -> row.kind == CloudProgressLeaderboardRankingRowKind.VIEWER }
+    ) {
+        "Streak leaderboard rankingRows must include viewer '${viewer.publicProfileId}'."
+    }
+    val viewerStreakDays = maxOf(
+        viewer.streakDays,
+        viewerCurrentStreakDays ?: 0
+    )
+    val participantRows = rankingRows.filter { row ->
+        row.kind != CloudProgressLeaderboardRankingRowKind.VIEWER
+    }
+    val viewerInsertionIndex = participantRows.indexOfFirst { row ->
+        row.streakDays <= viewerStreakDays
+    }.let { index ->
+        if (index == -1) {
+            participantRows.size
+        } else {
+            index
+        }
+    }
+    val unrankedRows = participantRows.toMutableList().apply {
+        add(
+            viewerInsertionIndex,
+            viewerRankingRow.copy(streakDays = viewerStreakDays)
+        )
+    }
+    val projectedRankingRows = unrankedRows.mapIndexed { index, row ->
+        row.copy(rank = index + 1)
+    }
+    val projectedViewer = requireNotNull(
+        projectedRankingRows.firstOrNull { row -> row.kind == CloudProgressLeaderboardRankingRowKind.VIEWER }
+    ) {
+        "Projected streak leaderboard rankingRows must include viewer '${viewer.publicProfileId}'."
+    }
+
+    return copy(
+        participantCount = projectedRankingRows.size,
+        viewer = viewer.copy(
+            rank = projectedViewer.rank,
+            streakDays = projectedViewer.streakDays
+        ),
+        rows = buildProgressStreakLeaderboardCompactRows(rankingRows = projectedRankingRows),
+        rankingRows = projectedRankingRows
+    )
+}
+
+private fun buildProgressStreakLeaderboardCompactRows(
+    rankingRows: List<CloudProgressStreakLeaderboardRankingRow>
+): List<CloudProgressStreakLeaderboardRow> {
+    val totalRowCount = rankingRows.size
+    val topRowCount = minOf(3, totalRowCount)
+    val viewerRank = requireNotNull(
+        rankingRows.firstOrNull { row -> row.kind == CloudProgressLeaderboardRankingRowKind.VIEWER }?.rank
+    ) {
+        "Projected streak leaderboard rankingRows must include a viewer row."
+    }
+    val shownRanks = mutableSetOf<Int>()
+    (1..topRowCount).forEach { rank ->
+        shownRanks.add(rank)
+    }
+    if (viewerRank > topRowCount) {
+        listOf(viewerRank - 1, viewerRank, viewerRank + 1).forEach { rank ->
+            if (rank >= 1 && rank <= totalRowCount) {
+                shownRanks.add(rank)
+            }
+        }
+    } else if (viewerRank == topRowCount && viewerRank < totalRowCount) {
+        shownRanks.add(viewerRank + 1)
+    }
+    if (totalRowCount > topRowCount) {
+        shownRanks.add(totalRowCount)
+    }
+    rankingRows.forEach { row ->
+        if (row.friendDisplayName != null) {
+            shownRanks.add(row.rank)
+        }
+    }
+
+    val rowsByRank = rankingRows.associateBy { row -> row.rank }
+    return buildList {
+        var previousRank = 0
+        shownRanks.sorted().forEach { rank ->
+            if (previousRank != 0 && rank > previousRank + 1) {
+                add(CloudProgressStreakLeaderboardRow.Gap)
+            }
+
+            val rankingRow = requireNotNull(rowsByRank[rank]) {
+                "Projected streak leaderboard rankingRows must include rank $rank."
+            }
+            add(rankingRow.toCompactProgressStreakLeaderboardRow(topRowCount = topRowCount))
+            previousRank = rank
+        }
+        if (previousRank < totalRowCount) {
+            add(CloudProgressStreakLeaderboardRow.Gap)
+        }
+    }
+}
+
+private fun CloudProgressStreakLeaderboardRankingRow.toCompactProgressStreakLeaderboardRow(
+    topRowCount: Int
+): CloudProgressStreakLeaderboardRow.Participant {
+    return CloudProgressStreakLeaderboardRow.Participant(
+        kind = when {
+            kind == CloudProgressLeaderboardRankingRowKind.VIEWER -> ProgressLeaderboardParticipantRowKind.VIEWER
+            rank <= topRowCount -> ProgressLeaderboardParticipantRowKind.TOP
+            else -> ProgressLeaderboardParticipantRowKind.NEIGHBOR
+        },
+        publicProfileId = publicProfileId,
+        anonymousDisplayName = anonymousDisplayName,
+        friendDisplayName = friendDisplayName,
+        streakDays = streakDays,
         rank = rank
     )
 }

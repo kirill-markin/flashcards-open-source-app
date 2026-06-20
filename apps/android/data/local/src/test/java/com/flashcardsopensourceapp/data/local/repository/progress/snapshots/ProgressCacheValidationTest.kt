@@ -7,20 +7,25 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakFreeze
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewHistoryWatermark
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressStreakLeaderboardScopeKey
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.findProgressReviewScheduleServerBase
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCacheEntity
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressLeaderboardOrNull
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressStreakLeaderboardOrNull
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressReviewScheduleOrNull
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressSeriesOrNull
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressSummaryOrNull
 import com.flashcardsopensourceapp.data.local.repository.progress.createCloudSettings
 import com.flashcardsopensourceapp.data.local.repository.progress.createProgressLeaderboardForTest
 import com.flashcardsopensourceapp.data.local.repository.progress.createProgressLeaderboardRankingRowForTest
+import com.flashcardsopensourceapp.data.local.repository.progress.createProgressStreakLeaderboardForTest
+import com.flashcardsopensourceapp.data.local.repository.progress.createProgressStreakLeaderboardRankingRowForTest
 import com.flashcardsopensourceapp.data.local.repository.progress.createReviewSchedule
 import java.time.LocalDate
 import java.time.ZoneId
@@ -318,6 +323,48 @@ class ProgressCacheValidationTest {
             restoredRows.map { row -> row.kind }
         )
         assertEquals(listOf(1, 2), restoredRows.map { row -> row.rank })
+        assertEquals(listOf("Kai", null), restoredRows.map { row -> row.friendDisplayName })
+    }
+
+    @Test
+    fun progressStreakLeaderboardCachePreservesRankingRows(): Unit {
+        val leaderboard = createProgressStreakLeaderboardForTest(
+            rankingRows = listOf(
+                createProgressStreakLeaderboardRankingRowForTest(
+                    kind = CloudProgressLeaderboardRankingRowKind.PARTICIPANT,
+                    publicProfileId = "participant-1",
+                    anonymousDisplayName = "Silver Bright Harbor",
+                    streakDays = 9,
+                    rank = 1
+                ).copy(friendDisplayName = "Kai"),
+                createProgressStreakLeaderboardRankingRowForTest(
+                    kind = CloudProgressLeaderboardRankingRowKind.VIEWER,
+                    publicProfileId = "viewer-profile",
+                    anonymousDisplayName = "Misty Quiet Grove",
+                    streakDays = 7,
+                    rank = 2
+                )
+            )
+        )
+
+        val restoredLeaderboard = leaderboard.toCacheEntity(
+            scopeKey = ProgressStreakLeaderboardScopeKey(scopeId = "linked:user-1"),
+            updatedAtMillis = 1L
+        ).toCloudProgressStreakLeaderboardOrNull()
+
+        val restoredReadyLeaderboard = checkNotNull(restoredLeaderboard)
+        assertTrue(restoredReadyLeaderboard is CloudProgressStreakLeaderboard.Ready)
+        val readyLeaderboard = restoredReadyLeaderboard as CloudProgressStreakLeaderboard.Ready
+        val restoredRows = readyLeaderboard.rankingRows
+        assertEquals(
+            listOf(
+                CloudProgressLeaderboardRankingRowKind.PARTICIPANT,
+                CloudProgressLeaderboardRankingRowKind.VIEWER
+            ),
+            restoredRows.map { row -> row.kind }
+        )
+        assertEquals(listOf(1, 2), restoredRows.map { row -> row.rank })
+        assertEquals(listOf(9, 7), restoredRows.map { row -> row.streakDays })
         assertEquals(listOf("Kai", null), restoredRows.map { row -> row.friendDisplayName })
     }
 }

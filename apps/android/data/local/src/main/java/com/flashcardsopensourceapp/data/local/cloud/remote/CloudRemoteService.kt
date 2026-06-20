@@ -35,6 +35,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
@@ -311,6 +312,16 @@ class CloudRemoteService private constructor(
         authorizationHeader: String
     ): CloudProgressLeaderboard {
         return progressApi.loadProgressLeaderboard(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader
+        )
+    }
+
+    override suspend fun loadProgressStreakLeaderboard(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ): CloudProgressStreakLeaderboard {
+        return progressApi.loadProgressStreakLeaderboard(
             apiBaseUrl = apiBaseUrl,
             authorizationHeader = authorizationHeader
         )

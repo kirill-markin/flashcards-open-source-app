@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
@@ -15,11 +16,15 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewSched
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressStreakLeaderboardScopeKey
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressStreakLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.createRenderedProgressLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.createRenderedProgressStreakLeaderboard
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.ProgressLeaderboardCachedPayload
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.ProgressStreakLeaderboardCachedPayload
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressPendingReviewLocalDate
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressQualifiedReviewActivity
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressRepositoryWarning
@@ -79,10 +84,25 @@ internal data class ProgressLeaderboardStoreInputs(
     val currentTimeMillis: Long
 )
 
+internal data class ProgressStreakLeaderboardStoreInputs(
+    val scopeKey: ProgressStreakLeaderboardScopeKey,
+    val cloudState: CloudAccountState,
+    val serverBase: ProgressStreakLeaderboardCachedPayload?,
+    val viewerCurrentStreakDays: Int?,
+    val didLastRemoteLoadFail: Boolean,
+    val currentTimeMillis: Long
+)
+
 internal data class ProgressLeaderboardStoreState(
     val scopeKey: ProgressLeaderboardScopeKey,
     val cloudState: CloudAccountState,
     val snapshot: ProgressLeaderboardSnapshot
+)
+
+internal data class ProgressStreakLeaderboardStoreState(
+    val scopeKey: ProgressStreakLeaderboardScopeKey,
+    val cloudState: CloudAccountState,
+    val snapshot: ProgressStreakLeaderboardSnapshot
 )
 
 internal data class ProgressSummaryStoreState(
@@ -246,6 +266,32 @@ internal fun createProgressLeaderboardStoreState(
     )
 }
 
+internal fun createProgressStreakLeaderboardStoreState(
+    inputs: ProgressStreakLeaderboardStoreInputs
+): ProgressStreakLeaderboardStoreState {
+    return ProgressStreakLeaderboardStoreState(
+        scopeKey = inputs.scopeKey,
+        cloudState = inputs.cloudState,
+        snapshot = ProgressStreakLeaderboardSnapshot(
+            scopeKey = inputs.scopeKey,
+            cloudState = inputs.cloudState,
+            leaderboard = inputs.serverBase?.leaderboard,
+            renderedLeaderboard = createRenderedProgressStreakLeaderboard(
+                leaderboard = inputs.serverBase?.leaderboard,
+                viewerCurrentStreakDays = inputs.viewerCurrentStreakDays,
+                currentTimeMillis = inputs.currentTimeMillis
+            ),
+            payloadUpdatedAtMillis = inputs.serverBase?.updatedAtMillis,
+            viewerCurrentStreakDays = inputs.viewerCurrentStreakDays,
+            isRefreshDue = isProgressStreakLeaderboardRefreshDue(
+                leaderboard = inputs.serverBase?.leaderboard,
+                currentTimeMillis = inputs.currentTimeMillis
+            ),
+            didLastRemoteLoadFail = inputs.didLastRemoteLoadFail
+        )
+    )
+}
+
 // Rolling windows are measured in whole hours backward from the device clock; the
 // unbounded all-time window uses the full qualified count. Only the viewer row count
 // is ever overlaid with these values, server snapshot ranks stay authoritative.
@@ -300,6 +346,35 @@ private fun parseProgressLeaderboardInstantMillisOrNull(rawInstant: String): Lon
     }.getOrElse { error ->
         logProgressRepositoryWarning(
             event = "progress_leaderboard_next_refresh_after_invalid",
+            fields = listOf("nextRefreshAfter" to rawInstant),
+            error = error
+        )
+        null
+    }
+}
+
+internal fun isProgressStreakLeaderboardRefreshDue(
+    leaderboard: CloudProgressStreakLeaderboard?,
+    currentTimeMillis: Long
+): Boolean {
+    return when (leaderboard) {
+        null -> true
+        is CloudProgressStreakLeaderboard.NonReady -> true
+        is CloudProgressStreakLeaderboard.Ready -> {
+            val nextRefreshAfterMillis = parseProgressStreakLeaderboardInstantMillisOrNull(
+                rawInstant = leaderboard.nextRefreshAfter
+            ) ?: return true
+            currentTimeMillis >= nextRefreshAfterMillis
+        }
+    }
+}
+
+private fun parseProgressStreakLeaderboardInstantMillisOrNull(rawInstant: String): Long? {
+    return runCatching {
+        Instant.parse(rawInstant).toEpochMilli()
+    }.getOrElse { error ->
+        logProgressRepositoryWarning(
+            event = "progress_streak_leaderboard_next_refresh_after_invalid",
             fields = listOf("nextRefreshAfter" to rawInstant),
             error = error
         )

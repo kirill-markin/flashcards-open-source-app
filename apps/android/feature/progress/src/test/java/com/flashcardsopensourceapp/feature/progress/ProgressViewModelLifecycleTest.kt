@@ -58,10 +58,12 @@ class ProgressViewModelLifecycleTest {
             assertEquals(1, repository.refreshSeriesIfInvalidatedCallCount)
             assertEquals(1, repository.refreshReviewScheduleIfInvalidatedCallCount)
             assertEquals(1, repository.refreshLeaderboardIfInvalidatedCallCount)
+            assertEquals(1, repository.refreshStreakLeaderboardIfInvalidatedCallCount)
             assertEquals(0, repository.refreshSummaryManuallyCallCount)
             assertEquals(0, repository.refreshSeriesManuallyCallCount)
             assertEquals(0, repository.refreshReviewScheduleManuallyCallCount)
             assertEquals(0, repository.refreshLeaderboardManuallyCallCount)
+            assertEquals(0, repository.refreshStreakLeaderboardManuallyCallCount)
         } finally {
             Dispatchers.resetMain()
         }
@@ -82,10 +84,12 @@ class ProgressViewModelLifecycleTest {
             assertEquals(0, repository.refreshSeriesIfInvalidatedCallCount)
             assertEquals(0, repository.refreshReviewScheduleIfInvalidatedCallCount)
             assertEquals(0, repository.refreshLeaderboardIfInvalidatedCallCount)
+            assertEquals(0, repository.refreshStreakLeaderboardIfInvalidatedCallCount)
             assertEquals(1, repository.refreshSummaryManuallyCallCount)
             assertEquals(1, repository.refreshSeriesManuallyCallCount)
             assertEquals(1, repository.refreshReviewScheduleManuallyCallCount)
             assertEquals(1, repository.refreshLeaderboardManuallyCallCount)
+            assertEquals(1, repository.refreshStreakLeaderboardManuallyCallCount)
         } finally {
             Dispatchers.resetMain()
         }

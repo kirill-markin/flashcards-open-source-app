@@ -29,7 +29,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration19To20,
         migration20To21,
         migration21To22,
-        migration22To23
+        migration22To23,
+        migration23To24
     )
 }
 
@@ -819,5 +820,20 @@ val migration21To22: Migration = object : Migration(21, 22) {
 val migration22To23: Migration = object : Migration(22, 23) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE review_logs ADD COLUMN reviewedTimeZone TEXT")
+    }
+}
+
+val migration23To24: Migration = object : Migration(23, 24) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS progress_streak_leaderboard_cache (
+                scopeKey TEXT NOT NULL PRIMARY KEY,
+                scopeId TEXT NOT NULL,
+                payloadJson TEXT NOT NULL,
+                updatedAtMillis INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
     }
 }

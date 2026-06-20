@@ -23,6 +23,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
@@ -125,6 +126,10 @@ interface CloudRemoteGateway {
         apiBaseUrl: String,
         authorizationHeader: String
     ): CloudProgressLeaderboard
+    suspend fun loadProgressStreakLeaderboard(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ): CloudProgressStreakLeaderboard
     suspend fun loadCommunityProfile(
         apiBaseUrl: String,
         authorizationHeader: String

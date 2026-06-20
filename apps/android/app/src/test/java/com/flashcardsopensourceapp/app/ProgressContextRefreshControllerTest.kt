@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressStreakLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import kotlinx.coroutines.CompletableDeferred
@@ -48,6 +49,7 @@ class ProgressContextRefreshControllerTest {
         assertEquals(0, repository.seriesRefreshCallCount)
         assertEquals(0, repository.reviewScheduleRefreshCallCount)
         assertEquals(0, repository.leaderboardRefreshCallCount)
+        assertEquals(0, repository.streakLeaderboardRefreshCallCount)
     }
 
     @Test
@@ -69,7 +71,8 @@ class ProgressContextRefreshControllerTest {
                 repository.summaryRefreshCallCount == 1 &&
                     repository.seriesRefreshCallCount == 1 &&
                     repository.reviewScheduleRefreshCallCount == 1 &&
-                    repository.leaderboardRefreshCallCount == 1
+                    repository.leaderboardRefreshCallCount == 1 &&
+                    repository.streakLeaderboardRefreshCallCount == 1
             }
         } finally {
             appScope.cancel()
@@ -79,6 +82,7 @@ class ProgressContextRefreshControllerTest {
         assertEquals(1, repository.seriesRefreshCallCount)
         assertEquals(1, repository.reviewScheduleRefreshCallCount)
         assertEquals(1, repository.leaderboardRefreshCallCount)
+        assertEquals(1, repository.streakLeaderboardRefreshCallCount)
     }
 
     @Test
@@ -104,13 +108,15 @@ class ProgressContextRefreshControllerTest {
             assertEquals(1, repository.summaryRefreshCallCount)
             assertEquals(0, repository.seriesRefreshCallCount)
             assertEquals(0, repository.reviewScheduleRefreshCallCount)
+            assertEquals(0, repository.streakLeaderboardRefreshCallCount)
 
             repository.releaseFirstSummaryRefresh()
 
             awaitUntil {
                 repository.summaryRefreshCallCount == 2 &&
                     repository.seriesRefreshCallCount == 0 &&
-                    repository.reviewScheduleRefreshCallCount == 0
+                    repository.reviewScheduleRefreshCallCount == 0 &&
+                    repository.streakLeaderboardRefreshCallCount == 0
             }
         } finally {
             appScope.cancel()
@@ -119,6 +125,7 @@ class ProgressContextRefreshControllerTest {
         assertEquals(2, repository.summaryRefreshCallCount)
         assertEquals(0, repository.seriesRefreshCallCount)
         assertEquals(0, repository.reviewScheduleRefreshCallCount)
+        assertEquals(0, repository.streakLeaderboardRefreshCallCount)
     }
 
     @Test
@@ -138,14 +145,16 @@ class ProgressContextRefreshControllerTest {
             awaitUntil {
                 repository.summaryRefreshCallCount == 1 &&
                     repository.seriesRefreshCallCount == 1 &&
-                    repository.reviewScheduleRefreshCallCount == 1
+                    repository.reviewScheduleRefreshCallCount == 1 &&
+                    repository.streakLeaderboardRefreshCallCount == 1
             }
 
             controller.refreshIfInvalidated(visibleScreen = VisibleAppScreen.PROGRESS)
             awaitUntil {
                 repository.summaryRefreshCallCount == 2 &&
                     repository.seriesRefreshCallCount == 2 &&
-                    repository.reviewScheduleRefreshCallCount == 2
+                    repository.reviewScheduleRefreshCallCount == 2 &&
+                    repository.streakLeaderboardRefreshCallCount == 2
             }
         } finally {
             appScope.cancel()
@@ -154,6 +163,7 @@ class ProgressContextRefreshControllerTest {
         assertEquals(2, repository.summaryRefreshCallCount)
         assertEquals(2, repository.seriesRefreshCallCount)
         assertEquals(2, repository.reviewScheduleRefreshCallCount)
+        assertEquals(2, repository.streakLeaderboardRefreshCallCount)
     }
 }
 
@@ -195,6 +205,9 @@ private class FakeProgressRepository(
     @Volatile
     var leaderboardRefreshCallCount: Int = 0
 
+    @Volatile
+    var streakLeaderboardRefreshCallCount: Int = 0
+
     override fun observeSummarySnapshot(): Flow<ProgressSummarySnapshot?> {
         return emptyFlow()
     }
@@ -208,6 +221,10 @@ private class FakeProgressRepository(
     }
 
     override fun observeLeaderboardSnapshot(): Flow<ProgressLeaderboardSnapshot?> {
+        return emptyFlow()
+    }
+
+    override fun observeStreakLeaderboardSnapshot(): Flow<ProgressStreakLeaderboardSnapshot?> {
         return emptyFlow()
     }
 
@@ -233,6 +250,10 @@ private class FakeProgressRepository(
         leaderboardRefreshCallCount += 1
     }
 
+    override suspend fun refreshStreakLeaderboardIfInvalidated() {
+        streakLeaderboardRefreshCallCount += 1
+    }
+
     override suspend fun refreshLeaderboardForReviewShortcut() {
         throw UnsupportedOperationException("Not used in ProgressContextRefreshControllerTest.")
     }
@@ -250,6 +271,10 @@ private class FakeProgressRepository(
     }
 
     override suspend fun refreshLeaderboardManually() {
+        throw UnsupportedOperationException("Not used in ProgressContextRefreshControllerTest.")
+    }
+
+    override suspend fun refreshStreakLeaderboardManually() {
         throw UnsupportedOperationException("Not used in ProgressContextRefreshControllerTest.")
     }
 
