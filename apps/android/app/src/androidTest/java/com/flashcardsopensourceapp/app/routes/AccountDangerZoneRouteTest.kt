@@ -35,6 +35,8 @@ class AccountDangerZoneRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         isDeleting = false,
                         deleteState = DestructiveActionState.IDLE,
                         errorMessage = "",
+                        errorTechnicalDetails = null,
+                        errorTechnicalDetailsReportId = null,
                         successMessage = "",
                         showDeleteConfirmation = false
                     ),
@@ -42,6 +44,7 @@ class AccountDangerZoneRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onDismissDeleteConfirmation = {},
                     onConfirmationTextChange = {},
                     onDeleteAccount = {},
+                    onShowTechnicalDetails = { _, _ -> },
                     onBack = {}
                 )
             }
@@ -64,6 +67,8 @@ class AccountDangerZoneRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         isDeleting = true,
                         deleteState = DestructiveActionState.IN_PROGRESS,
                         errorMessage = "",
+                        errorTechnicalDetails = null,
+                        errorTechnicalDetailsReportId = null,
                         successMessage = "",
                         showDeleteConfirmation = false
                     ),
@@ -71,6 +76,7 @@ class AccountDangerZoneRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onDismissDeleteConfirmation = {},
                     onConfirmationTextChange = {},
                     onDeleteAccount = {},
+                    onShowTechnicalDetails = { _, _ -> },
                     onBack = {}
                 )
             }
@@ -90,7 +96,9 @@ class AccountDangerZoneRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         confirmationText = "",
                         isDeleting = false,
                         deleteState = DestructiveActionState.FAILED,
-                        errorMessage = "Delete request did not finish.",
+                        errorMessage = settingsString(SettingsR.string.settings_account_danger_zone_delete_failed),
+                        errorTechnicalDetails = "Delete request did not finish.",
+                        errorTechnicalDetailsReportId = "test-account-delete-failure",
                         successMessage = "",
                         showDeleteConfirmation = true
                     ),
@@ -98,6 +106,7 @@ class AccountDangerZoneRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onDismissDeleteConfirmation = {},
                     onConfirmationTextChange = {},
                     onDeleteAccount = {},
+                    onShowTechnicalDetails = { _, _ -> },
                     onBack = {}
                 )
             }
@@ -105,7 +114,9 @@ class AccountDangerZoneRouteTest : FirebaseAppInstrumentationTimeoutTest() {
 
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_danger_zone_dialog_title)).assertIsDisplayed()
         composeRule.waitUntil(timeoutMillis = 5_000L) {
-            composeRule.onAllNodesWithText("Delete request did not finish.").fetchSemanticsNodes().size == 2
+            composeRule.onAllNodesWithText(
+                settingsString(SettingsR.string.settings_account_danger_zone_delete_failed)
+            ).fetchSemanticsNodes().size == 2
         }
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_danger_zone_confirmation_phrase)).assertIsDisplayed()
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_cancel)).assertIsDisplayed()

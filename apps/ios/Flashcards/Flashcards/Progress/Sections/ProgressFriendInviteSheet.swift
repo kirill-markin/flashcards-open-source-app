@@ -214,6 +214,7 @@ struct ProgressFriendInviteSheet: View {
                 }
             }
         }
+        .technicalErrorSheet(store: self.store)
         .interactiveDismissDisabled(self.isCreating)
     }
 
@@ -252,9 +253,31 @@ struct ProgressFriendInviteSheet: View {
                 inviteeDisplayName: self.displayName
             )
         } catch {
-            self.errorMessage = Flashcards.errorMessage(error: error)
+            if isInlineFriendInvitationError(error: error) {
+                self.errorMessage = Flashcards.errorMessage(error: error)
+            } else {
+                self.errorMessage = ""
+                self.store.presentTechnicalError(error)
+            }
         }
     }
+}
+
+private func isInlineFriendInvitationError(error: Error) -> Bool {
+    if error is FriendInvitationDisplayNameValidationError {
+        return true
+    }
+
+    if let localStoreError = error as? LocalStoreError {
+        switch localStoreError {
+        case .validation:
+            return true
+        case .database, .notFound, .uninitialized:
+            return false
+        }
+    }
+
+    return false
 }
 
 #Preview {

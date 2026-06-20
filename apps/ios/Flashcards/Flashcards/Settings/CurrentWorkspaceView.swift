@@ -3,12 +3,12 @@ import SwiftUI
 struct CurrentWorkspaceView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
-    @State private var screenErrorMessage: String = ""
     @State private var linkedWorkspaces: [CloudWorkspaceSummary]? = nil
     @State private var isWorkspacePickerPresented: Bool = false
     @State private var isWorkspacePickerLoading: Bool = false
+    @State private var workspacePickerGuidanceMessage: String = ""
     @State private var workspaceNameDraft: String = ""
-    @State private var renameErrorMessage: String = ""
+    @State private var renameGuidanceMessage: String = ""
     @State private var isRenameSubmitting: Bool = false
 
     private var currentWorkspaceName: String {
@@ -29,12 +29,6 @@ struct CurrentWorkspaceView: View {
 
     var body: some View {
         List {
-            if self.screenErrorMessage.isEmpty == false {
-                Section {
-                    CopyableErrorMessageView(message: self.screenErrorMessage)
-                }
-            }
-
             Section {
                 Button {
                     self.handleWorkspaceRowTap()
@@ -75,10 +69,6 @@ struct CurrentWorkspaceView: View {
                         .autocorrectionDisabled(true)
                         .accessibilityIdentifier(UITestIdentifier.currentWorkspaceNameField)
 
-                    if self.renameErrorMessage.isEmpty == false {
-                        CopyableErrorMessageView(message: self.renameErrorMessage)
-                    }
-
                     Button(
                         self.isRenameSubmitting
                             ? aiSettingsLocalized("common.saving", "Saving...")
@@ -90,6 +80,11 @@ struct CurrentWorkspaceView: View {
                     }
                     .disabled(self.isRenameDisabled)
                     .accessibilityIdentifier(UITestIdentifier.currentWorkspaceSaveNameButton)
+
+                    if self.renameGuidanceMessage.isEmpty == false {
+                        Text(self.renameGuidanceMessage)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }
@@ -106,13 +101,14 @@ struct CurrentWorkspaceView: View {
             CurrentWorkspacePickerContainer(
                 workspaces: self.linkedWorkspaces,
                 isLoading: self.isWorkspacePickerLoading,
-                errorMessage: self.screenErrorMessage,
+                guidanceMessage: self.workspacePickerGuidanceMessage,
                 localWorkspaceName: self.currentWorkspaceName,
                 onDismiss: {
                     self.isWorkspacePickerPresented = false
                 }
             )
             .environment(self.store)
+            .technicalErrorSheetHost(store: self.store)
         }
     }
 
@@ -127,7 +123,7 @@ struct CurrentWorkspaceView: View {
 
     private func presentWorkspacePicker() {
         self.linkedWorkspaces = nil
-        self.screenErrorMessage = ""
+        self.workspacePickerGuidanceMessage = ""
         self.isWorkspacePickerLoading = true
         self.isWorkspacePickerPresented = true
 
@@ -139,7 +135,11 @@ struct CurrentWorkspaceView: View {
             do {
                 self.linkedWorkspaces = try await self.store.listLinkedWorkspaces()
             } catch {
-                self.screenErrorMessage = Flashcards.errorMessage(error: error)
+                if let guidanceMessage = self.store.workspaceOperationGuidanceMessage(error: error) {
+                    self.workspacePickerGuidanceMessage = guidanceMessage
+                } else if self.store.shouldPresentWorkspaceOperationTechnicalError(error: error) {
+                    self.store.presentTechnicalError(error)
+                }
             }
         }
     }
@@ -147,12 +147,16 @@ struct CurrentWorkspaceView: View {
     @MainActor
     private func renameWorkspace() async {
         self.isRenameSubmitting = true
-        self.renameErrorMessage = ""
 
         do {
+            self.renameGuidanceMessage = ""
             try await store.renameCurrentWorkspace(name: self.workspaceNameDraft)
         } catch {
-            self.renameErrorMessage = Flashcards.errorMessage(error: error)
+            if let guidanceMessage = self.store.workspaceOperationGuidanceMessage(error: error) {
+                self.renameGuidanceMessage = guidanceMessage
+            } else if self.store.shouldPresentWorkspaceOperationTechnicalError(error: error) {
+                self.store.presentTechnicalError(error)
+            }
         }
 
         self.isRenameSubmitting = false
@@ -162,7 +166,7 @@ struct CurrentWorkspaceView: View {
 private struct CurrentWorkspacePickerContainer: View {
     let workspaces: [CloudWorkspaceSummary]?
     let isLoading: Bool
-    let errorMessage: String
+    let guidanceMessage: String
     let localWorkspaceName: String
     let onDismiss: () -> Void
 
@@ -179,13 +183,14 @@ private struct CurrentWorkspacePickerContainer: View {
                         onDismiss: self.onDismiss
                     )
                 } else {
-                    CopyableErrorMessageView(
-                        message: self.errorMessage.isEmpty
+                    Text(
+                        self.guidanceMessage.isEmpty
                             ? aiSettingsLocalized("settings.currentWorkspace.loadError", "Failed to load linked workspaces.")
-                            : self.errorMessage
+                            : self.guidanceMessage
                     )
-                    .padding()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        .foregroundStyle(.secondary)
+                        .padding()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
             .accessibilityIdentifier(UITestIdentifier.currentWorkspacePickerScreen)
@@ -209,8 +214,8 @@ private struct CurrentWorkspacePickerSheet: View {
     let localWorkspaceName: String
     let onDismiss: () -> Void
 
-    @State private var errorMessage: String = ""
     @State private var isSwitching: Bool = false
+    @State private var guidanceMessage: String = ""
 
     private var selectionItems: [CloudWorkspaceSelectionItem] {
         makeCloudWorkspaceSelectionItems(workspaces: self.workspaces, localWorkspaceName: self.localWorkspaceName)
@@ -218,9 +223,10 @@ private struct CurrentWorkspacePickerSheet: View {
 
     var body: some View {
         List {
-            if self.errorMessage.isEmpty == false {
+            if self.guidanceMessage.isEmpty == false {
                 Section {
-                    CopyableErrorMessageView(message: self.errorMessage)
+                    Text(self.guidanceMessage)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -257,11 +263,15 @@ private struct CurrentWorkspacePickerSheet: View {
             }
 
             do {
+                self.guidanceMessage = ""
                 try await self.store.switchLinkedWorkspace(selection: selection)
-                self.errorMessage = ""
                 self.onDismiss()
             } catch {
-                self.errorMessage = Flashcards.errorMessage(error: error)
+                if let guidanceMessage = self.store.workspaceOperationGuidanceMessage(error: error) {
+                    self.guidanceMessage = guidanceMessage
+                } else if self.store.shouldPresentWorkspaceOperationTechnicalError(error: error) {
+                    self.store.presentTechnicalError(error)
+                }
             }
         }
     }

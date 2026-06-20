@@ -1,11 +1,15 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { useParams } from "react-router-dom";
 import {
+  explainBrowserMediaPermissionError,
+  isExpectedBrowserMediaPermissionError,
   queryBrowserPermissionState,
   requestBrowserMediaPermission,
   type BrowserMediaPermissionKind,
   type BrowserPermissionState,
 } from "../../../access/browserAccess";
+import { useAppData } from "../../../appData";
+import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { type TranslationKey, useI18n } from "../../../i18n";
 import { SettingsShell } from "../SettingsShared";
 
@@ -70,59 +74,28 @@ function buildAccessDetailContent(
   };
 }
 
-function formatPermissionError(
+function formatExpectedPermissionError(
   kind: BrowserMediaPermissionKind,
   error: unknown,
   permissionState: BrowserPermissionState,
   t: (key: TranslationKey) => string,
-): string {
-  if (error instanceof DOMException) {
-    if (error.name === "NotAllowedError") {
-      if (permissionState === "denied") {
-        return kind === "camera"
-          ? t("accessSettings.permission.errorNotAllowedDeniedCamera")
-          : t("accessSettings.permission.errorNotAllowedDeniedMicrophone");
-      }
-
-      return kind === "camera"
-        ? t("accessSettings.permission.errorNotAllowedCamera")
-        : t("accessSettings.permission.errorNotAllowedMicrophone");
-    }
-
-    if (error.name === "NotFoundError") {
-      return kind === "camera"
-        ? t("accessSettings.permission.errorNotFoundCamera")
-        : t("accessSettings.permission.errorNotFoundMicrophone");
-    }
-
-    if (error.name === "NotReadableError") {
-      return kind === "camera"
-        ? t("accessSettings.permission.errorNotReadableCamera")
-        : t("accessSettings.permission.errorNotReadableMicrophone");
-    }
+): string | null {
+  if (isExpectedBrowserMediaPermissionError(error)) {
+    return explainBrowserMediaPermissionError(kind, error, permissionState, t);
   }
 
-  if (error instanceof Error) {
-    if (error.message === "Media device access is unavailable in this browser.") {
-      return t("accessSettings.permission.errorMediaUnavailable");
-    }
-
-    if (error.message === "Media permissions require HTTPS or localhost.") {
-      return t("accessSettings.permission.errorSecureContext");
-    }
-
-    return error.message;
-  }
-
-  return String(error);
+  return null;
 }
 
 export function AccessPermissionDetailScreen(): ReactElement {
   const params = useParams();
   const kind = parseAccessDetailKind(params.accessKind);
+  const { activeWorkspace, cloudSettings, session } = useAppData();
+  const { showTechnicalError } = useAppErrorDialog();
   const { t } = useI18n();
   const [permissionState, setPermissionState] = useState<BrowserPermissionState>("unsupported");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const technicalErrorMessage = t("appError.technicalError.message");
 
   useEffect(() => {
     if (isBrowserMediaPermissionKind(kind) === false) {
@@ -162,7 +135,21 @@ export function AccessPermissionDetailScreen(): ReactElement {
     } catch (error) {
       const nextState = await queryBrowserPermissionState(mediaKind);
       setPermissionState(nextState);
-      setErrorMessage(formatPermissionError(mediaKind, error, nextState, t));
+      const expectedErrorMessage = formatExpectedPermissionError(mediaKind, error, nextState, t);
+      if (expectedErrorMessage !== null) {
+        setErrorMessage(expectedErrorMessage);
+        return;
+      }
+
+      const wasCaptured = showTechnicalError(error, {
+        feature: "settings",
+        operation: "access_permission_request",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+        entityId: mediaKind,
+      });
+      setErrorMessage(wasCaptured ? technicalErrorMessage : error instanceof Error ? error.message : String(error));
     }
   }
 

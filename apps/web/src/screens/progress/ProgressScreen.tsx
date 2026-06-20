@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useLocation } from "react-router-dom";
 import { useAppData } from "../../appData";
+import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import {
   buildReviewProgressBadgeStateFromSummarySnapshot,
   formatReviewProgressFreezeValue,
@@ -64,6 +65,7 @@ export function ProgressScreen(): ReactElement {
     progressScheduleLocalVersion,
     progressServerInvalidationVersion,
     leaderboardAutoRefreshEnabled: true,
+    canExposeTechnicalErrors: true,
     sections: {
       includeSummary: true,
       includeSeries: true,
@@ -80,18 +82,45 @@ export function ProgressScreen(): ReactElement {
   const [isLeaderboardInfoVisible, setIsLeaderboardInfoVisible] = useState<boolean>(false);
   const streakSectionRef = useRef<HTMLElement | null>(null);
   const leaderboardSectionRef = useRef<HTMLElement | null>(null);
+  const shownTechnicalErrorRef = useRef<Error | null>(null);
   const progressSummary = progressSourceState.summary.renderedSnapshot;
   const progress = progressSourceState.series.renderedSnapshot;
   const reviewSchedule = progressSourceState.reviewSchedule.renderedSnapshot;
   const isLoading = progressSourceState.summary.isLoading
     || progressSourceState.series.isLoading
     || progressSourceState.reviewSchedule.isLoading;
-  const errorMessage = progressSourceState.summary.errorMessage !== ""
-    ? progressSourceState.summary.errorMessage
+  const progressErrorState = progressSourceState.summary.errorMessage !== ""
+    ? progressSourceState.summary
     : progressSourceState.series.errorMessage !== ""
-      ? progressSourceState.series.errorMessage
-      : progressSourceState.reviewSchedule.errorMessage;
+      ? progressSourceState.series
+      : progressSourceState.reviewSchedule;
+  const progressErrorMessage = progressErrorState.errorMessage;
+  const visibleProgressErrorMessage = progressErrorMessage === ""
+    ? ""
+    : progressErrorState.technicalError === null
+      ? progressErrorMessage
+      : t("appError.technicalError.message");
+  const technicalError = progressSourceState.summary.technicalError
+    ?? progressSourceState.series.technicalError
+    ?? progressSourceState.reviewSchedule.technicalError
+    ?? progressSourceState.leaderboard.technicalError
+    ?? progressSourceState.leaderboard.localViewerCountsTechnicalError;
   const reviewProgressBadge = buildReviewProgressBadgeStateFromSummarySnapshot(progressSummary);
+  const { showCapturedTechnicalError } = useAppErrorDialog();
+
+  useEffect(() => {
+    if (technicalError === null) {
+      shownTechnicalErrorRef.current = null;
+      return;
+    }
+
+    if (shownTechnicalErrorRef.current === technicalError) {
+      return;
+    }
+
+    shownTechnicalErrorRef.current = technicalError;
+    showCapturedTechnicalError(technicalError);
+  }, [showCapturedTechnicalError, technicalError]);
 
   useEffect(() => {
     setSelectedPageStartLocalDate(null);
@@ -262,9 +291,9 @@ export function ProgressScreen(): ReactElement {
 
         {isLoading && progress === null ? <p className="subtitle">{t("loading.progress")}</p> : null}
 
-        {errorMessage !== "" ? (
+        {visibleProgressErrorMessage !== "" ? (
           <>
-            <p className="error-banner">{errorMessage}</p>
+            <p className="error-banner">{visibleProgressErrorMessage}</p>
           </>
         ) : null}
 

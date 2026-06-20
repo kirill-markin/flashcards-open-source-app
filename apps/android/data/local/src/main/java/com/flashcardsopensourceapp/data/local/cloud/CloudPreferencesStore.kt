@@ -54,6 +54,7 @@ private const val activeWorkspaceIdKey: String = "active-workspace-id"
 private const val updatedAtMillisKey: String = "updated-at-millis"
 private const val accountDeletionStatusKey: String = "account-deletion-status"
 private const val accountDeletionFailureMessageKey: String = "account-deletion-failure-message"
+private const val accountDeletionFailureReportIdKey: String = "account-deletion-failure-report-id"
 private const val customOriginKey: String = "custom-origin"
 private const val cloudCredentialRecoveryStateKey: String = "cloud-credential-recovery-state"
 private const val reviewReactionAnimationsEnabledKey: String = "review-reaction-animations-enabled"
@@ -388,22 +389,29 @@ class CloudPreferencesStore(
         metadataPreferences.edit(commit = true) {
             putString(accountDeletionStatusKey, accountDeletionStatusInProgress)
             remove(accountDeletionFailureMessageKey)
+            remove(accountDeletionFailureReportIdKey)
         }
         accountDeletionState.value = AccountDeletionState.InProgress
     }
 
     fun markAccountDeletionFailed(message: String) {
+        val reportId = nextAccountDeletionFailureReportId()
         metadataPreferences.edit(commit = true) {
             putString(accountDeletionStatusKey, accountDeletionStatusFailed)
             putString(accountDeletionFailureMessageKey, message)
+            putString(accountDeletionFailureReportIdKey, reportId)
         }
-        accountDeletionState.value = AccountDeletionState.Failed(message = message)
+        accountDeletionState.value = AccountDeletionState.Failed(
+            message = message,
+            technicalDetailsReportId = reportId
+        )
     }
 
     fun clearAccountDeletionState() {
         metadataPreferences.edit(commit = true) {
             putString(accountDeletionStatusKey, accountDeletionStatusHidden)
             remove(accountDeletionFailureMessageKey)
+            remove(accountDeletionFailureReportIdKey)
         }
         accountDeletionState.value = AccountDeletionState.Hidden
     }
@@ -452,12 +460,27 @@ class CloudPreferencesStore(
     private fun loadAccountDeletionState(): AccountDeletionState {
         return when (metadataPreferences.getString(accountDeletionStatusKey, accountDeletionStatusHidden)) {
             accountDeletionStatusInProgress -> AccountDeletionState.InProgress
-            accountDeletionStatusFailed -> AccountDeletionState.Failed(
-                message = metadataPreferences.getString(accountDeletionFailureMessageKey, null)
+            accountDeletionStatusFailed -> {
+                val message = metadataPreferences.getString(accountDeletionFailureMessageKey, null)
                     ?: "Account deletion failed."
-            )
+                AccountDeletionState.Failed(
+                    message = message,
+                    technicalDetailsReportId = metadataPreferences.getString(
+                        accountDeletionFailureReportIdKey,
+                        null
+                    ) ?: legacyAccountDeletionFailureReportId(message = message)
+                )
+            }
             else -> AccountDeletionState.Hidden
         }
+    }
+
+    private fun nextAccountDeletionFailureReportId(): String {
+        return "account-deletion-state-failed:${UUID.randomUUID()}"
+    }
+
+    private fun legacyAccountDeletionFailureReportId(message: String): String {
+        return "account-deletion-state-failed:legacy:${message.hashCode()}"
     }
 
     private fun loadAccountPreferences(): AccountPreferences {

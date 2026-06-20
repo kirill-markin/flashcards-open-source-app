@@ -26,6 +26,64 @@ extension FlashcardsStore {
         await self.refreshReviewLeaderboardBadgeIfNeeded(now: Date())
     }
 
+    func refreshReviewBadgesIfNeeded() async {
+        await self.refreshReviewBadgesIfNeeded(now: Date())
+    }
+
+    func refreshReviewBadgesIfNeeded(now: Date) async {
+        do {
+            let scopeKey = try self.prepareProgressScope(now: now)
+            try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
+
+            let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
+            let leaderboardScopeKey = self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
+            self.publishProgressLeaderboardSnapshotIsolatingErrors(
+                scopeKey: leaderboardScopeKey,
+                now: now
+            )
+
+            let shouldRefreshSummary = self.shouldRefreshProgressSummary(scopeKey: summaryScopeKey)
+            let shouldRefreshLeaderboard = leaderboardScopeKey.cloudState == .linked
+                && self.shouldRefreshProgressLeaderboard(scopeKey: leaderboardScopeKey, now: now)
+            guard shouldRefreshSummary || shouldRefreshLeaderboard else {
+                return
+            }
+
+            guard let activeSession = try await self.progressCloudSession(scopeKey: scopeKey) else {
+                return
+            }
+
+            if shouldRefreshSummary && shouldRefreshLeaderboard {
+                async let refreshProgressBadge: Void = self.refreshProgressSummaryServerBase(
+                    scopeKey: summaryScopeKey,
+                    linkedSession: activeSession
+                )
+                async let refreshLeaderboardBadge: Void = self.refreshProgressLeaderboardServerBase(
+                    scopeKey: leaderboardScopeKey,
+                    linkedSession: activeSession
+                )
+                _ = await (refreshProgressBadge, refreshLeaderboardBadge)
+            } else if shouldRefreshSummary {
+                await self.refreshProgressSummaryServerBase(
+                    scopeKey: summaryScopeKey,
+                    linkedSession: activeSession
+                )
+            } else if shouldRefreshLeaderboard {
+                await self.refreshProgressLeaderboardServerBase(
+                    scopeKey: leaderboardScopeKey,
+                    linkedSession: activeSession
+                )
+            }
+        } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
+
+            self.presentTechnicalError(error)
+            self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
+        }
+    }
+
     func refreshProgressIfNeeded() async {
         await self.refreshProgressIfNeeded(now: Date())
     }
@@ -56,7 +114,8 @@ extension FlashcardsStore {
                 return
             }
 
-            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
         }
     }
 
@@ -90,7 +149,10 @@ extension FlashcardsStore {
                 return
             }
 
-            self.replaceProgressLeaderboardRefreshErrorMessage(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.replaceProgressLeaderboardRefreshErrorMessage(
+                message: localizedProgressLeaderboardRefreshErrorMessage()
+            )
         }
     }
 
@@ -174,7 +236,8 @@ extension FlashcardsStore {
                 return
             }
 
-            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
         }
     }
 
@@ -212,7 +275,8 @@ extension FlashcardsStore {
                 return
             }
 
-            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
         }
     }
 
@@ -288,7 +352,8 @@ extension FlashcardsStore {
             self.applyProgressSnapshot(snapshot: patchedSnapshot)
             self.clearProgressErrorMessage()
         } catch {
-            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
         }
     }
 
@@ -304,7 +369,8 @@ extension FlashcardsStore {
 
             self.publishReviewScheduleSnapshotIsolatingErrors(scopeKey: scheduleScopeKey)
         } catch {
-            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
         }
     }
 
@@ -379,7 +445,8 @@ extension FlashcardsStore {
                 return
             }
 
-            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
         }
     }
 
@@ -401,7 +468,8 @@ extension FlashcardsStore {
         do {
             try self.prepareProgressForCurrentVisibleTabState(now: now)
         } catch {
-            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
             self.applyProgressSnapshot(snapshot: nil)
         }
     }
@@ -417,7 +485,8 @@ extension FlashcardsStore {
                 await self.refreshVisibleProgressIfNeeded(now: now)
             }
         } catch {
-            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
             self.applyProgressSnapshot(snapshot: nil)
         }
     }
@@ -434,9 +503,7 @@ extension FlashcardsStore {
     private func refreshVisibleProgressIfNeeded(now: Date) async {
         switch self.currentVisibleTab {
         case .review:
-            async let refreshProgressBadge: Void = self.refreshReviewProgressBadgeIfNeeded(now: now)
-            async let refreshLeaderboardBadge: Void = self.refreshReviewLeaderboardBadgeIfNeeded(now: now)
-            _ = await (refreshProgressBadge, refreshLeaderboardBadge)
+            await self.refreshReviewBadgesIfNeeded(now: now)
         case .progress:
             await self.refreshProgressIfNeeded(now: now)
         case .cards, .ai, .settings:

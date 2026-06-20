@@ -59,12 +59,14 @@ fun CloudSignInEmailRoute(
     uiState: CloudSignInUiState,
     onEmailChange: (String) -> Unit,
     onSendCode: () -> Unit,
+    onShowTechnicalDetails: (String, String) -> Unit,
     onBack: () -> Unit
 ) {
     CloudSignInEmailRouteImpl(
         uiState = uiState,
         onEmailChange = onEmailChange,
         onSendCode = onSendCode,
+        onShowTechnicalDetails = onShowTechnicalDetails,
         onBack = onBack
     )
 }
@@ -74,12 +76,14 @@ fun CloudSignInCodeRoute(
     uiState: CloudSignInUiState,
     onCodeChange: (String) -> Unit,
     onVerifyCode: () -> Unit,
+    onShowTechnicalDetails: (String, String) -> Unit,
     onBack: () -> Unit
 ) {
     CloudSignInCodeRouteImpl(
         uiState = uiState,
         onCodeChange = onCodeChange,
         onVerifyCode = onVerifyCode,
+        onShowTechnicalDetails = onShowTechnicalDetails,
         onBack = onBack
     )
 }
@@ -88,12 +92,16 @@ fun CloudSignInCodeRoute(
 fun CloudSignInErrorCard(
     message: String,
     technicalDetails: String?,
-    modifier: Modifier
+    technicalDetailsReportId: String?,
+    modifier: Modifier,
+    onShowTechnicalDetails: (String, String) -> Unit
 ) {
     CloudSignInErrorCardImpl(
         message = message,
         technicalDetails = technicalDetails,
-        modifier = modifier
+        technicalDetailsReportId = technicalDetailsReportId,
+        modifier = modifier,
+        onShowTechnicalDetails = onShowTechnicalDetails
     )
 }
 
@@ -104,6 +112,7 @@ fun CloudPostAuthRoute(
     onSelectWorkspace: (CloudWorkspaceLinkSelection) -> Unit,
     onRetry: () -> Unit,
     onFailureAction: () -> Unit,
+    onShowTechnicalDetails: (String, String) -> Unit,
     onBack: () -> Unit,
     canNavigateBack: Boolean
 ) {
@@ -113,6 +122,7 @@ fun CloudPostAuthRoute(
         onSelectWorkspace = onSelectWorkspace,
         onRetry = onRetry,
         onFailureAction = onFailureAction,
+        onShowTechnicalDetails = onShowTechnicalDetails,
         onBack = onBack,
         canNavigateBack = canNavigateBack
     )
@@ -128,6 +138,8 @@ fun CloudCredentialRecoveryGateRoute(
     isEraseConfirmationVisible: Boolean,
     isErasing: Boolean,
     eraseErrorMessage: String,
+    eraseErrorTechnicalDetails: String?,
+    eraseErrorTechnicalDetailsReportId: String?,
     onSignIn: () -> Unit,
     onEmailChange: (String) -> Unit,
     onSendCode: () -> Unit,
@@ -138,6 +150,7 @@ fun CloudCredentialRecoveryGateRoute(
     onRetryPostAuth: () -> Unit,
     onBackToOverview: () -> Unit,
     onBackToEmail: () -> Unit,
+    onShowTechnicalDetails: (String, String) -> Unit,
     onRequestEraseConfirmation: () -> Unit,
     onDismissEraseConfirmation: () -> Unit,
     onConfirmErase: () -> Unit
@@ -151,6 +164,8 @@ fun CloudCredentialRecoveryGateRoute(
         isEraseConfirmationVisible = isEraseConfirmationVisible,
         isErasing = isErasing,
         eraseErrorMessage = eraseErrorMessage,
+        eraseErrorTechnicalDetails = eraseErrorTechnicalDetails,
+        eraseErrorTechnicalDetailsReportId = eraseErrorTechnicalDetailsReportId,
         onSignIn = onSignIn,
         onEmailChange = onEmailChange,
         onSendCode = onSendCode,
@@ -161,6 +176,7 @@ fun CloudCredentialRecoveryGateRoute(
         onRetryPostAuth = onRetryPostAuth,
         onBackToOverview = onBackToOverview,
         onBackToEmail = onBackToEmail,
+        onShowTechnicalDetails = onShowTechnicalDetails,
         onRequestEraseConfirmation = onRequestEraseConfirmation,
         onDismissEraseConfirmation = onDismissEraseConfirmation,
         onConfirmErase = onConfirmErase

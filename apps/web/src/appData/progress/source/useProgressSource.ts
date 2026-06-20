@@ -52,6 +52,7 @@ type UseProgressSourceParams = Readonly<{
   progressScheduleLocalVersion: number;
   progressServerInvalidationVersion: number;
   leaderboardAutoRefreshEnabled: boolean;
+  canExposeTechnicalErrors: boolean;
   sections: ProgressSourceSections;
 }>;
 
@@ -70,6 +71,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     progressScheduleLocalVersion,
     progressServerInvalidationVersion,
     leaderboardAutoRefreshEnabled,
+    canExposeTechnicalErrors,
     sections,
   } = params;
   const { includeSummary, includeSeries, includeReviewSchedule, includeLeaderboard } = sections;
@@ -145,6 +147,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     activeWorkspaceId,
     canLoadServerBase,
     canLoadServerBaseRef,
+    canExposeTechnicalErrors,
     currentScopeKeyRef: currentSummaryScopeKeyRef,
     dispatch,
     input: summaryInput,
@@ -159,6 +162,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     activeWorkspaceId,
     canLoadServerBase,
     canLoadServerBaseRef,
+    canExposeTechnicalErrors,
     currentScopeKeyRef: currentSeriesScopeKeyRef,
     dispatch,
     input: seriesInput,
@@ -173,6 +177,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     activeWorkspaceId,
     canLoadServerBase,
     canLoadServerBaseRef,
+    canExposeTechnicalErrors,
     currentScopeKeyRef: currentReviewScheduleScopeKeyRef,
     dispatch,
     input: reviewScheduleInput,
@@ -189,6 +194,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     autoRefreshEnabled: leaderboardAutoRefreshEnabled,
     canLoadServerBase,
     canLoadServerBaseRef,
+    canExposeTechnicalErrors,
     currentScopeKeyRef: currentLeaderboardScopeKeyRef,
     dispatch,
     installationId,

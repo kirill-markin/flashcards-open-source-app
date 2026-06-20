@@ -107,6 +107,11 @@ struct ScheduledStrictReminderPayload: Codable, Hashable, Sendable, Identifiable
     }
 }
 
+struct ScheduledStrictRemindersDiagnosticsRead: Hashable, Sendable {
+    let payloads: [ScheduledStrictReminderPayload]
+    let status: ScheduledNotificationPayloadReadStatus
+}
+
 struct StrictReminderSchedulingSnapshot: Sendable {
     let now: Date
     let calendar: Calendar
@@ -227,6 +232,24 @@ func loadScheduledStrictReminders(
         )
         userDefaults.removeObject(forKey: strictReminderScheduledPayloadsUserDefaultsKey)
         return []
+    }
+}
+
+func readScheduledStrictRemindersForDiagnostics(
+    userDefaults: UserDefaults,
+    decoder: JSONDecoder
+) -> ScheduledStrictRemindersDiagnosticsRead {
+    guard let data = userDefaults.data(forKey: strictReminderScheduledPayloadsUserDefaultsKey) else {
+        return ScheduledStrictRemindersDiagnosticsRead(payloads: [], status: .readable)
+    }
+
+    do {
+        return ScheduledStrictRemindersDiagnosticsRead(
+            payloads: try decoder.decode([ScheduledStrictReminderPayload].self, from: data),
+            status: .readable
+        )
+    } catch {
+        return ScheduledStrictRemindersDiagnosticsRead(payloads: [], status: .unreadable)
     }
 }
 
@@ -541,7 +564,15 @@ func removePendingStrictReminders(
 func deliveredStrictReminderRequestIdentifiers(
     center: UNUserNotificationCenter
 ) async -> [String] {
-    await deliveredStrictReminderRequestIdentifiers(center: center, removalScope: nil)
+    await withCheckedContinuation { continuation in
+        center.getDeliveredNotifications { notifications in
+            continuation.resume(
+                returning: filterStrictReminderRequestIdentifiers(
+                    identifiers: notifications.map(\.request.identifier)
+                )
+            )
+        }
+    }
 }
 
 func deliveredStrictReminderRequestIdentifiers(

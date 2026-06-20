@@ -81,6 +81,25 @@ export const jaCatalog = {
   shell: {
     primaryNavigation: "メインナビゲーション",
   },
+  appError: {
+    technicalError: {
+      title: "問題が発生しました",
+      message: "技術的なエラーが発生しました。もう一度試すか、アプリを再起動してください。",
+      detailsToggle: "技術的な詳細",
+      close: "閉じる",
+      labels: {
+        name: "名前",
+        message: "メッセージ",
+        endpoint: "エンドポイント",
+        requestId: "リクエスト ID",
+        statusCode: "ステータスコード",
+        code: "コード",
+        bodyKind: "本文の種類",
+        attemptCount: "試行回数",
+        originalErrorName: "元のエラー",
+      },
+    },
+  },
   filters: {
     allCards: "すべてのカード",
     and: "AND",
@@ -388,6 +407,11 @@ export const jaCatalog = {
       screenSubtitle: "復習リアクションのバリエーションを直接再生します。",
       probability: "確率 {{percent}}",
       playAccessibility: "{{variant}} のアニメーションを再生、{{probability}}",
+    },
+    technicalError: {
+      title: "技術エラーダイアログ",
+      description: "共通の技術エラーダイアログをプレビューします。",
+      value: "プレビュー",
     },
   },
   settingsWorkspace: {

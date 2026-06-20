@@ -386,6 +386,7 @@ export type ProgressSummarySourceState = Readonly<{
   renderedSnapshot: ProgressSummarySnapshot | null;
   isLoading: boolean;
   errorMessage: string;
+  technicalError: Error | null;
 }>;
 
 export type ProgressSeriesSourceState = Readonly<{
@@ -397,6 +398,7 @@ export type ProgressSeriesSourceState = Readonly<{
   renderedSnapshot: ProgressSeriesSnapshot | null;
   isLoading: boolean;
   errorMessage: string;
+  technicalError: Error | null;
 }>;
 
 export type ProgressReviewScheduleSourceState = Readonly<{
@@ -412,6 +414,7 @@ export type ProgressReviewScheduleSourceState = Readonly<{
   renderedSnapshot: ProgressReviewScheduleSnapshot | null;
   isLoading: boolean;
   errorMessage: string;
+  technicalError: Error | null;
 }>;
 
 export type ProgressLeaderboardSourceState = Readonly<{
@@ -423,10 +426,12 @@ export type ProgressLeaderboardSourceState = Readonly<{
   isLoading: boolean;
   /** Last server leaderboard load failure; empty after a successful or skipped server load. */
   errorMessage: string;
+  technicalError: Error | null;
   /** True when `errorMessage` came from a transport-level failure (offline/unreachable) rather than an HTTP error response. */
   isNetworkError: boolean;
   /** Last local viewer-count load failure; kept apart from `errorMessage` so a local-only failure is never rendered as a server or offline state. */
   localViewerCountsErrorMessage: string;
+  localViewerCountsTechnicalError: Error | null;
 }>;
 
 export type ProgressSourceState = Readonly<{

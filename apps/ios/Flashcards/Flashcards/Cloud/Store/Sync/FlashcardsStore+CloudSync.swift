@@ -20,7 +20,41 @@ extension FlashcardsStore {
             now: now,
             extendsFastPolling: false,
             allowsVisibleChangeBanner: false,
-            surfacesGlobalErrorMessage: true
+            surfacesGlobalErrorMessage: true,
+            technicalErrorCaptureContext: nil
+        )
+    }
+
+    func technicalErrorModalCloudSyncTrigger(now: Date) -> CloudSyncTrigger {
+        CloudSyncTrigger(
+            source: .manualSyncNow,
+            now: now,
+            extendsFastPolling: false,
+            allowsVisibleChangeBanner: false,
+            surfacesGlobalErrorMessage: false,
+            capturesTechnicalFailures: true,
+            technicalErrorCaptureContext: self.beginTechnicalErrorCaptureContext()
+        )
+    }
+
+    func postAuthCloudSyncTrigger(now: Date) -> CloudSyncTrigger {
+        self.postAuthCloudSyncTrigger(
+            now: now,
+            technicalErrorCaptureContext: nil
+        )
+    }
+
+    func postAuthCloudSyncTrigger(
+        now: Date,
+        technicalErrorCaptureContext: TechnicalErrorCaptureContext?
+    ) -> CloudSyncTrigger {
+        CloudSyncTrigger(
+            source: .postAuth,
+            now: now,
+            extendsFastPolling: false,
+            allowsVisibleChangeBanner: false,
+            surfacesGlobalErrorMessage: false,
+            technicalErrorCaptureContext: technicalErrorCaptureContext
         )
     }
 
@@ -94,9 +128,10 @@ extension FlashcardsStore {
             } catch {
                 self.syncStatus = self.syncStatusForCloudFailure(
                     error: error,
-                    fallbackCloudState: failureStateCloudState
+                    fallbackCloudState: failureStateCloudState,
+                    trigger: trigger
                 )
-                self.captureCloudSyncFailureIfNeeded(
+                let didCapture = self.captureCloudSyncFailureIfNeeded(
                     error: error,
                     linkedSession: activeSession,
                     fallbackCloudState: failureStateCloudState,
@@ -106,13 +141,14 @@ extension FlashcardsStore {
                 if trigger.surfacesGlobalErrorMessage {
                     self.globalErrorMessage = Flashcards.errorMessage(error: error)
                 }
-                throw error
+                throw didCapture ? markTechnicalErrorObserved(error: error) : error
             }
             self.syncStatus = self.syncStatusForCloudFailure(
                 error: failureError,
-                fallbackCloudState: failureStateCloudState
+                fallbackCloudState: failureStateCloudState,
+                trigger: trigger
             )
-            self.captureCloudSyncFailureIfNeeded(
+            let didCapture = self.captureCloudSyncFailureIfNeeded(
                 error: failureError,
                 linkedSession: activeSession,
                 fallbackCloudState: failureStateCloudState,
@@ -122,7 +158,7 @@ extension FlashcardsStore {
             if trigger.surfacesGlobalErrorMessage {
                 self.globalErrorMessage = Flashcards.errorMessage(error: failureError)
             }
-            throw failureError
+            throw didCapture ? markTechnicalErrorObserved(error: failureError) : failureError
         }
     }
 
@@ -408,8 +444,13 @@ extension FlashcardsStore {
 
     private func syncStatusForCloudFailure(
         error: Error,
-        fallbackCloudState: CloudAccountState?
+        fallbackCloudState: CloudAccountState?,
+        trigger: CloudSyncTrigger
     ) -> SyncStatus {
+        if trigger.source == .postAuth {
+            return .idle
+        }
+
         if let blockedMessage = self.blockedCloudIdentityConflictMessage(error: error) {
             return .blocked(message: blockedMessage)
         }
@@ -429,7 +470,19 @@ extension FlashcardsStore {
         return .failed(message: Flashcards.errorMessage(error: error))
     }
 
-    private func blockedCloudIdentityConflictMessage(error: Error) -> String? {
+    func transitionSyncStatusForCloudFailure(error: Error, trigger: CloudSyncTrigger) -> SyncStatus {
+        if trigger.source == .postAuth {
+            return .idle
+        }
+
+        if let blockedMessage = self.blockedCloudIdentityConflictMessage(error: error) {
+            return .blocked(message: blockedMessage)
+        }
+
+        return .failed(message: Flashcards.errorMessage(error: error))
+    }
+
+    func blockedCloudIdentityConflictMessage(error: Error) -> String? {
         guard let syncError = error as? CloudSyncError else {
             return nil
         }
@@ -446,7 +499,8 @@ extension FlashcardsStore {
         error: Error,
         linkedSession: CloudLinkedSession,
         fallbackCloudState: CloudAccountState?,
-        action: String
+        action: String,
+        captureContext: TechnicalErrorCaptureContext?
     ) {
         let diagnostics = cloudSyncFailureDiagnostics(error: error)
         let scope = IOSObservationScope(
@@ -460,6 +514,7 @@ extension FlashcardsStore {
             cloudState: fallbackCloudState ?? self.cloudSettings?.cloudState,
             configurationMode: linkedSession.configurationMode
         )
+        self.markTechnicalErrorCaptured(captureContext: captureContext)
         FlashcardsObservability.captureException(
             .cloudSyncFailed(
                 error: error,
@@ -475,43 +530,43 @@ extension FlashcardsStore {
         )
     }
 
+    @discardableResult
     func captureCloudSyncFailureIfNeeded(
         error: Error,
         linkedSession: CloudLinkedSession,
         fallbackCloudState: CloudAccountState?,
         trigger: CloudSyncTrigger,
         action: String
-    ) {
+    ) -> Bool {
         guard self.shouldCaptureCloudSyncFailure(error: error, trigger: trigger) else {
-            return
+            return false
         }
 
         self.captureCloudSyncFailure(
             error: error,
             linkedSession: linkedSession,
             fallbackCloudState: fallbackCloudState,
-            action: action
+            action: action,
+            captureContext: trigger.technicalErrorCaptureContext
         )
+        return true
     }
 
     private func shouldCaptureCloudSyncFailure(error: Error, trigger: CloudSyncTrigger) -> Bool {
         if isRequestCancellationError(error: error) {
             return false
         }
+        if self.blockedCloudIdentityConflictMessage(error: error) != nil {
+            return false
+        }
         if isRetryableNetworkTransportFailure(error: error) {
             return false
         }
-        if trigger.surfacesGlobalErrorMessage {
-            return true
-        }
-        if self.isCloudAccountDeletedError(error) {
-            return true
-        }
-        if self.blockedCloudIdentityConflictMessage(error: error) != nil {
+        if trigger.capturesTechnicalFailures {
             return true
         }
 
-        return false
+        return self.isCloudAccountDeletedError(error)
     }
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {

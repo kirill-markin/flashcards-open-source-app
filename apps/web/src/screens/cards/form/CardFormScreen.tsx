@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../../../appData";
+import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { useAiCardHandoff } from "../../../chat/handoff/useAiCardHandoff";
 import { useI18n } from "../../../i18n";
 import { CardFormFields, isCardFormStateDirty, toCardFormState, type CardFormState } from "./CardForm";
+import { getExpectedCardMutationInlineErrorMessage } from "../cardMutationErrors";
 import type { Card, CreateCardInput, TagSuggestion, UpdateCardInput } from "../../../types";
 import { loadCardById } from "../../../localDb/cards/cards";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
@@ -16,6 +18,12 @@ function toTagSuggestions(tags: Awaited<ReturnType<typeof loadWorkspaceTagsSumma
     countState: "ready",
     cardsCount: tagSummary.cardsCount,
   }));
+}
+
+const workspaceUnavailableErrorMessage = "Workspace is unavailable";
+
+function isWorkspaceUnavailableError(error: unknown): boolean {
+  return error instanceof Error && error.message === workspaceUnavailableErrorMessage;
 }
 
 export function CardFormScreen(): ReactElement {
@@ -32,6 +40,7 @@ export function CardFormScreen(): ReactElement {
     localReadVersion,
     session,
   } = useAppData();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const [currentCard, setCurrentCard] = useState<Card | null>(null);
   const [formState, setFormState] = useState<CardFormState>(toCardFormState(null));
   const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
@@ -68,7 +77,7 @@ export function CardFormScreen(): ReactElement {
 
     try {
       if (activeWorkspace === null) {
-        throw new Error("Workspace is unavailable");
+        throw new Error(workspaceUnavailableErrorMessage);
       }
 
       const workspaceId = activeWorkspace.workspaceId;
@@ -94,18 +103,22 @@ export function CardFormScreen(): ReactElement {
         return;
       }
 
-      if (activeWorkspace !== null) {
-        const observationIdentity = observationIdentityRef.current;
-        captureAppOperationError(error, {
-          feature: "cards",
-          operation: "card_form_load",
-          userId: observationIdentity.userId,
-          workspaceId: activeWorkspace.workspaceId,
-          installationId: observationIdentity.installationId,
-          entityId: cardId ?? null,
-        });
+      if (isWorkspaceUnavailableError(error)) {
+        setLoadErrorMessage(workspaceUnavailableErrorMessage);
+        return;
       }
-      setLoadErrorMessage(error instanceof Error ? error.message : String(error));
+
+      const observationIdentity = observationIdentityRef.current;
+      captureAppOperationError(error, {
+        feature: "cards",
+        operation: "card_form_load",
+        userId: observationIdentity.userId,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: observationIdentity.installationId,
+        entityId: cardId ?? null,
+      });
+      showCapturedTechnicalError(error);
+      setLoadErrorMessage(t("appError.technicalError.message"));
     } finally {
       if (isCurrentLoadRequest()) {
         setIsLoading(false);
@@ -145,6 +158,17 @@ export function CardFormScreen(): ReactElement {
       setFormState(toCardFormState(savedCard));
       return savedCard;
     } catch (error) {
+      const expectedErrorMessage = getExpectedCardMutationInlineErrorMessage(error, t("cardForm.errors.cardNotFound"));
+      if (expectedErrorMessage !== null) {
+        setActionErrorMessage(expectedErrorMessage);
+        return null;
+      }
+
+      if (isWorkspaceUnavailableError(error)) {
+        setActionErrorMessage(workspaceUnavailableErrorMessage);
+        return null;
+      }
+
       captureAppOperationError(error, {
         feature: "cards",
         operation: "card_save",
@@ -153,7 +177,8 @@ export function CardFormScreen(): ReactElement {
         installationId: cloudSettings?.installationId ?? null,
         entityId: cardId,
       });
-      setActionErrorMessage(error instanceof Error ? error.message : String(error));
+      showCapturedTechnicalError(error);
+      setActionErrorMessage(t("appError.technicalError.message"));
       return null;
     } finally {
       setIsSaving(false);
@@ -180,6 +205,17 @@ export function CardFormScreen(): ReactElement {
 
       navigate(cardsRoute);
     } catch (error) {
+      const expectedErrorMessage = getExpectedCardMutationInlineErrorMessage(error, t("cardForm.errors.cardNotFound"));
+      if (expectedErrorMessage !== null) {
+        setActionErrorMessage(expectedErrorMessage);
+        return;
+      }
+
+      if (isWorkspaceUnavailableError(error)) {
+        setActionErrorMessage(workspaceUnavailableErrorMessage);
+        return;
+      }
+
       captureAppOperationError(error, {
         feature: "cards",
         operation: "card_save",
@@ -188,7 +224,8 @@ export function CardFormScreen(): ReactElement {
         installationId: cloudSettings?.installationId ?? null,
         entityId: cardId ?? null,
       });
-      setActionErrorMessage(error instanceof Error ? error.message : String(error));
+      showCapturedTechnicalError(error);
+      setActionErrorMessage(t("appError.technicalError.message"));
     } finally {
       setIsSaving(false);
     }
@@ -230,6 +267,17 @@ export function CardFormScreen(): ReactElement {
       await deleteCardItem(cardId);
       navigate(cardsRoute);
     } catch (error) {
+      const expectedErrorMessage = getExpectedCardMutationInlineErrorMessage(error, t("cardForm.errors.cardNotFound"));
+      if (expectedErrorMessage !== null) {
+        setActionErrorMessage(expectedErrorMessage);
+        return;
+      }
+
+      if (isWorkspaceUnavailableError(error)) {
+        setActionErrorMessage(workspaceUnavailableErrorMessage);
+        return;
+      }
+
       captureAppOperationError(error, {
         feature: "cards",
         operation: "card_delete",
@@ -238,7 +286,8 @@ export function CardFormScreen(): ReactElement {
         installationId: cloudSettings?.installationId ?? null,
         entityId: cardId,
       });
-      setActionErrorMessage(error instanceof Error ? error.message : String(error));
+      showCapturedTechnicalError(error);
+      setActionErrorMessage(t("appError.technicalError.message"));
     } finally {
       setIsDeleting(false);
     }

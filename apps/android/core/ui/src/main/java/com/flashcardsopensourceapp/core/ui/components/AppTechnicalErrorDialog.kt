@@ -33,6 +33,7 @@ fun AppTechnicalErrorDialog(
     onDismiss: () -> Unit
 ) {
     var isShowingDetails by rememberSaveable(
+        error.reportId,
         error.title,
         error.message,
         error.technicalDetails

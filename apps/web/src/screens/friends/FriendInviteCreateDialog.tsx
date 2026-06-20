@@ -1,10 +1,14 @@
 import { useState, type ReactElement } from "react";
 import { createPortal } from "react-dom";
 import {
+  ApiError,
   buildLoginUrl,
   createFriendInvitation,
   isAuthRedirectError,
 } from "../../api";
+import { isExpectedClipboardWriteError } from "../../access/browserAccess";
+import { useAppData } from "../../appData";
+import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import type { FriendInvitationCreateResponse } from "../../types";
 import { validateFriendInvitationDisplayName } from "../invite/friendInvitationDisplayName";
@@ -19,8 +23,21 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function isExpectedFriendInvitationCreateError(error: unknown): boolean {
+  return error instanceof ApiError
+    && error.statusCode >= 400
+    && error.statusCode < 500
+    && (
+      error.code === "FRIEND_INVITATION_DISPLAY_NAME_INVALID"
+      || error.code === "FRIEND_INVITATION_HUMAN_AUTH_REQUIRED"
+      || error.code === "FRIEND_INVITATION_LIMIT_REACHED"
+    );
+}
+
 export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): ReactElement {
   const { authRedirectUrl, canCreateInvite, onClose } = props;
+  const { activeWorkspace, cloudSettings, session } = useAppData();
+  const { showTechnicalError } = useAppErrorDialog();
   const { locale, t, formatDateTime } = useI18n();
   const [friendDisplayName, setFriendDisplayName] = useState<string>("");
   const [fieldErrorMessage, setFieldErrorMessage] = useState<string>("");
@@ -30,6 +47,7 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isCopying, setIsCopying] = useState<boolean>(false);
   const [isSharing, setIsSharing] = useState<boolean>(false);
+  const technicalErrorMessage = t("appError.technicalError.message");
 
   async function submitInviteCreate(): Promise<void> {
     const validationMessage = validateFriendInvitationDisplayName(friendDisplayName, {
@@ -57,7 +75,20 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
         return;
       }
 
-      setErrorMessage(getErrorMessage(error));
+      if (isExpectedFriendInvitationCreateError(error)) {
+        setErrorMessage(getErrorMessage(error));
+        return;
+      }
+
+      const wasCaptured = showTechnicalError(error, {
+        feature: "progress",
+        operation: "friend_invitation_create",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+        entityId: null,
+      });
+      setErrorMessage(wasCaptured ? technicalErrorMessage : getErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -74,13 +105,27 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
 
     try {
       if (typeof navigator.clipboard?.writeText !== "function") {
-        throw new Error(t("progressScreen.leaderboard.invite.clipboardUnavailable"));
+        setErrorMessage(t("progressScreen.leaderboard.invite.clipboardUnavailable"));
+        return;
       }
 
       await navigator.clipboard.writeText(createdInvite.inviteUrl);
       setStatusMessage(t("progressScreen.leaderboard.invite.copied"));
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      if (isExpectedClipboardWriteError(error)) {
+        setErrorMessage(t("progressScreen.leaderboard.invite.clipboardUnavailable"));
+        return;
+      }
+
+      const wasCaptured = showTechnicalError(error, {
+        feature: "progress",
+        operation: "friend_invitation_copy",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+        entityId: null,
+      });
+      setErrorMessage(wasCaptured ? technicalErrorMessage : getErrorMessage(error));
     } finally {
       setIsCopying(false);
     }
@@ -97,7 +142,8 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
 
     try {
       if (typeof navigator.share !== "function") {
-        throw new Error(t("progressScreen.leaderboard.invite.shareUnavailable"));
+        setErrorMessage(t("progressScreen.leaderboard.invite.shareUnavailable"));
+        return;
       }
 
       await navigator.share({
@@ -107,7 +153,19 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
       });
       setStatusMessage(t("progressScreen.leaderboard.invite.shared"));
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      const wasCaptured = showTechnicalError(error, {
+        feature: "progress",
+        operation: "friend_invitation_share",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+        entityId: null,
+      });
+      setErrorMessage(wasCaptured ? technicalErrorMessage : getErrorMessage(error));
     } finally {
       setIsSharing(false);
     }

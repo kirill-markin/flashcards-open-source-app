@@ -53,6 +53,7 @@ import com.flashcardsopensourceapp.core.ui.AppTechnicalError
 import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.core.ui.components.AppTechnicalErrorDialog
 import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
+import com.flashcardsopensourceapp.core.ui.nextAppTechnicalErrorReportId
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
@@ -526,6 +527,7 @@ internal fun AiRouteContent(
             is AiAlertState.GeneralError -> {
                 AppTechnicalErrorDialog(
                     error = AppTechnicalError(
+                        reportId = nextAppTechnicalErrorReportId(source = "ai-general-error"),
                         title = activeAlert.title,
                         message = activeAlert.message,
                         technicalDetails = ""

@@ -79,6 +79,25 @@ const enCatalog = {
   shell: {
     primaryNavigation: "Primary navigation",
   },
+  appError: {
+    technicalError: {
+      title: "Something went wrong",
+      message: "A technical error occurred. Try again or restart the app.",
+      detailsToggle: "Technical details",
+      close: "Close",
+      labels: {
+        name: "Name",
+        message: "Message",
+        endpoint: "Endpoint",
+        requestId: "Request ID",
+        statusCode: "Status code",
+        code: "Code",
+        bodyKind: "Body kind",
+        attemptCount: "Attempt count",
+        originalErrorName: "Original error",
+      },
+    },
+  },
   filters: {
     allCards: "All cards",
     and: "AND",
@@ -386,6 +405,11 @@ const enCatalog = {
       screenSubtitle: "Play review reaction variants directly.",
       probability: "{{percent}} probability",
       playAccessibility: "Play {{variant}} animation, {{probability}}",
+    },
+    technicalError: {
+      title: "Technical error dialog",
+      description: "Preview the shared technical-error dialog.",
+      value: "Preview",
     },
   },
   settingsWorkspace: {

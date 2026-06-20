@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 fun interface TransientMessageController {
     fun showMessage(message: String)
@@ -34,6 +35,7 @@ class AppMessageBus(
         extraBufferCapacity = 32
     )
     private val activeTechnicalErrorFlow = MutableStateFlow<AppTechnicalError?>(value = null)
+    private val reportedTechnicalErrorIds: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
     val messages: Flow<String> = messagesFlow.asSharedFlow()
     val activeTechnicalError: StateFlow<AppTechnicalError?> = activeTechnicalErrorFlow.asStateFlow()
@@ -46,9 +48,13 @@ class AppMessageBus(
         error: AppTechnicalError,
         throwable: Throwable
     ) {
-        if (shouldReportTechnicalError(throwable)) {
+        if (reportedTechnicalErrorIds.add(error.reportId) && shouldReportTechnicalError(throwable)) {
             reportTechnicalError(throwable)
         }
+        activeTechnicalErrorFlow.value = error
+    }
+
+    fun showReportedTechnicalError(error: AppTechnicalError) {
         activeTechnicalErrorFlow.value = error
     }
 

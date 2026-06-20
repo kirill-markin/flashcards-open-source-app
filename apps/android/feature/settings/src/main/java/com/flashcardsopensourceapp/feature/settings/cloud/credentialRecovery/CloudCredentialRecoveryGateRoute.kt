@@ -62,6 +62,8 @@ fun CloudCredentialRecoveryGateRoute(
     isEraseConfirmationVisible: Boolean,
     isErasing: Boolean,
     eraseErrorMessage: String,
+    eraseErrorTechnicalDetails: String?,
+    eraseErrorTechnicalDetailsReportId: String?,
     onSignIn: () -> Unit,
     onEmailChange: (String) -> Unit,
     onSendCode: () -> Unit,
@@ -72,6 +74,7 @@ fun CloudCredentialRecoveryGateRoute(
     onRetryPostAuth: () -> Unit,
     onBackToOverview: () -> Unit,
     onBackToEmail: () -> Unit,
+    onShowTechnicalDetails: (String, String) -> Unit,
     onRequestEraseConfirmation: () -> Unit,
     onDismissEraseConfirmation: () -> Unit,
     onConfirmErase: () -> Unit
@@ -113,7 +116,10 @@ fun CloudCredentialRecoveryGateRoute(
                 recoveryState = recoveryState,
                 isErasing = isErasing,
                 eraseErrorMessage = eraseErrorMessage,
+                eraseErrorTechnicalDetails = eraseErrorTechnicalDetails,
+                eraseErrorTechnicalDetailsReportId = eraseErrorTechnicalDetailsReportId,
                 onSignIn = onSignIn,
+                onShowTechnicalDetails = onShowTechnicalDetails,
                 onRequestEraseConfirmation = onRequestEraseConfirmation
             )
         }
@@ -123,6 +129,7 @@ fun CloudCredentialRecoveryGateRoute(
                 uiState = signInUiState,
                 onEmailChange = onEmailChange,
                 onSendCode = onSendCode,
+                onShowTechnicalDetails = onShowTechnicalDetails,
                 onBack = onBackToOverview
             )
         }
@@ -132,6 +139,7 @@ fun CloudCredentialRecoveryGateRoute(
                 uiState = signInUiState,
                 onCodeChange = onCodeChange,
                 onVerifyCode = onVerifyCode,
+                onShowTechnicalDetails = onShowTechnicalDetails,
                 onBack = onBackToEmail
             )
         }
@@ -156,6 +164,7 @@ fun CloudCredentialRecoveryGateRoute(
                 onSelectWorkspace = onSelectWorkspace,
                 onRetry = onRetryPostAuth,
                 onFailureAction = {},
+                onShowTechnicalDetails = onShowTechnicalDetails,
                 onBack = onBackToOverview,
                 canNavigateBack = isRecoveryStateActive
             )
@@ -166,6 +175,9 @@ fun CloudCredentialRecoveryGateRoute(
         CloudCredentialRecoveryEraseConfirmationDialog(
             isErasing = isErasing,
             eraseErrorMessage = eraseErrorMessage,
+            eraseErrorTechnicalDetails = eraseErrorTechnicalDetails,
+            eraseErrorTechnicalDetailsReportId = eraseErrorTechnicalDetailsReportId,
+            onShowTechnicalDetails = onShowTechnicalDetails,
             onDismiss = onDismissEraseConfirmation,
             onConfirm = onConfirmErase
         )
@@ -177,7 +189,10 @@ private fun CloudCredentialRecoveryGateOverview(
     recoveryState: CloudCredentialRecoveryState,
     isErasing: Boolean,
     eraseErrorMessage: String,
+    eraseErrorTechnicalDetails: String?,
+    eraseErrorTechnicalDetailsReportId: String?,
     onSignIn: () -> Unit,
+    onShowTechnicalDetails: (String, String) -> Unit,
     onRequestEraseConfirmation: () -> Unit
 ) {
     Scaffold(
@@ -223,8 +238,10 @@ private fun CloudCredentialRecoveryGateOverview(
                 item {
                     CloudSignInErrorCard(
                         message = eraseErrorMessage,
-                        technicalDetails = null,
-                        modifier = Modifier.fillMaxWidth()
+                        technicalDetails = eraseErrorTechnicalDetails,
+                        technicalDetailsReportId = eraseErrorTechnicalDetailsReportId,
+                        modifier = Modifier.fillMaxWidth(),
+                        onShowTechnicalDetails = onShowTechnicalDetails
                     )
                 }
             }
@@ -263,6 +280,9 @@ private fun CloudCredentialRecoveryGateOverview(
 private fun CloudCredentialRecoveryEraseConfirmationDialog(
     isErasing: Boolean,
     eraseErrorMessage: String,
+    eraseErrorTechnicalDetails: String?,
+    eraseErrorTechnicalDetailsReportId: String?,
+    onShowTechnicalDetails: (String, String) -> Unit,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -312,6 +332,21 @@ private fun CloudCredentialRecoveryEraseConfirmationDialog(
                         text = eraseErrorMessage,
                         color = MaterialTheme.colorScheme.error
                     )
+                }
+                if (
+                    eraseErrorTechnicalDetails.isNullOrBlank().not() &&
+                    eraseErrorTechnicalDetailsReportId.isNullOrBlank().not()
+                ) {
+                    TextButton(
+                        onClick = {
+                            onShowTechnicalDetails(
+                                eraseErrorTechnicalDetails.orEmpty(),
+                                eraseErrorTechnicalDetailsReportId.orEmpty()
+                            )
+                        }
+                    ) {
+                        Text(stringResource(R.string.settings_sign_in_error_show_details))
+                    }
                 }
             }
         },

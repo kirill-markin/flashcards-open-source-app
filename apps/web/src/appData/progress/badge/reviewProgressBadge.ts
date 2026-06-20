@@ -74,6 +74,7 @@ export function useReviewProgressBadge(): ReviewProgressBadgeState {
     progressScheduleLocalVersion: 0,
     progressServerInvalidationVersion,
     leaderboardAutoRefreshEnabled: true,
+    canExposeTechnicalErrors: false,
     sections: REVIEW_PROGRESS_BADGE_SECTIONS,
   });
 

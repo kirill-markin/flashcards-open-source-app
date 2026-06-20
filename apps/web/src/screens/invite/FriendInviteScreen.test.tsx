@@ -3,6 +3,7 @@ import { act } from "react";
 import ReactDOM from "react-dom/client";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AppErrorDialogProvider } from "../../appError/AppErrorContext";
 import { I18nProvider } from "../../i18n";
 import type { SessionInfo } from "../../types";
 import { FriendInviteScreen } from "./FriendInviteScreen";
@@ -21,15 +22,19 @@ const {
   previewFriendInvitationMock: vi.fn(),
 }));
 
-vi.mock("../../api", () => ({
-  acceptFriendInvitation: acceptFriendInvitationMock,
-  buildLoginUrl: (returnUrl: string, localeHint: string): string => (
-    `https://auth.example.test/login?redirect_uri=${encodeURIComponent(returnUrl)}&locale=${encodeURIComponent(localeHint)}`
-  ),
-  getOptionalSession: getOptionalSessionMock,
-  isAuthRedirectError: (_error: unknown): boolean => false,
-  previewFriendInvitation: previewFriendInvitationMock,
-}));
+vi.mock("../../api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../api")>();
+  return {
+    ...actual,
+    acceptFriendInvitation: acceptFriendInvitationMock,
+    buildLoginUrl: (returnUrl: string, localeHint: string): string => (
+      `https://auth.example.test/login?redirect_uri=${encodeURIComponent(returnUrl)}&locale=${encodeURIComponent(localeHint)}`
+    ),
+    getOptionalSession: getOptionalSessionMock,
+    isAuthRedirectError: (_error: unknown): boolean => false,
+    previewFriendInvitation: previewFriendInvitationMock,
+  };
+});
 
 vi.mock("../../appData/progress/invalidation/progressInvalidation", () => ({
   invalidateServerProgress: invalidateServerProgressMock,
@@ -102,9 +107,11 @@ describe("FriendInviteScreen", () => {
       root.render(
         <MemoryRouter initialEntries={["/invite/raw-token"]}>
           <I18nProvider>
-            <Routes>
-              <Route path="/invite/:token" element={<FriendInviteScreen />} />
-            </Routes>
+            <AppErrorDialogProvider>
+              <Routes>
+                <Route path="/invite/:token" element={<FriendInviteScreen />} />
+              </Routes>
+            </AppErrorDialogProvider>
           </I18nProvider>
         </MemoryRouter>,
       );
@@ -129,7 +136,7 @@ describe("FriendInviteScreen", () => {
 
     expect(container.querySelector("[data-testid='friend-invite-error']")).not.toBeNull();
     expect(container.querySelector("[data-testid='friend-invite-inactive']")).toBeNull();
-    expect(container.textContent).toContain("Preview request failed");
+    expect(container.textContent).toContain("A technical error occurred. Try again or restart the app.");
     expect(getOptionalSessionMock).not.toHaveBeenCalled();
   });
 

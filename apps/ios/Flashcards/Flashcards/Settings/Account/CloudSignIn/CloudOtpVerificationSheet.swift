@@ -9,6 +9,7 @@ struct CloudOtpVerificationSheet: View {
 
     @State private var code: String = ""
     @State private var authErrorPresentation: CloudAuthInlineErrorPresentation?
+    @State private var technicalErrorPresentation: TechnicalErrorPresentation?
     @State private var isVerifyingCode: Bool = false
     @State private var isSendingCode: Bool = false
     @State private var challengeState: OtpChallengeState = .active
@@ -18,6 +19,7 @@ struct CloudOtpVerificationSheet: View {
         case active
         case consumed
         case expired
+        case tooManyAttempts
     }
 
     init(
@@ -39,7 +41,12 @@ struct CloudOtpVerificationSheet: View {
                 Form {
                     if let authErrorPresentation = self.authErrorPresentation {
                         Section {
-                            CloudAuthInlineErrorView(presentation: authErrorPresentation)
+                            CloudAuthInlineErrorView(
+                                presentation: authErrorPresentation,
+                                onTechnicalError: { technicalError in
+                                    self.presentTechnicalError(technicalError)
+                                }
+                            )
                         }
                     }
 
@@ -119,6 +126,14 @@ struct CloudOtpVerificationSheet: View {
                     }
                 }
             }
+            .sheet(item: self.$technicalErrorPresentation) { presentation in
+                TechnicalErrorSheet(
+                    presentation: presentation,
+                    onClose: {
+                        self.technicalErrorPresentation = nil
+                    }
+                )
+            }
         }
     }
 
@@ -138,6 +153,8 @@ struct CloudOtpVerificationSheet: View {
             return aiSettingsLocalized("settings.account.cloudSignIn.challengePrompt.consumed", "This code was already used. Request a new code to continue.")
         case .expired:
             return aiSettingsLocalized("settings.account.cloudSignIn.challengePrompt.expired", "This code expired. Request a new code to continue.")
+        case .tooManyAttempts:
+            return aiSettingsLocalized("settings.account.cloudSignIn.challengePrompt.tooManyAttempts", "Too many attempts. Request a new code to continue.")
         }
     }
 
@@ -154,20 +171,21 @@ struct CloudOtpVerificationSheet: View {
         guard nextCode.isEmpty == false else {
             self.authErrorPresentation = CloudAuthInlineErrorPresentation(
                 message: aiSettingsLocalized("settings.account.cloudSignIn.codeRequired", "Code is required"),
-                technicalDetails: nil
+                technicalError: nil
             )
             return
         }
         guard let currentChallenge = self.currentChallenge else {
             self.authErrorPresentation = CloudAuthInlineErrorPresentation(
                 message: aiSettingsLocalized("settings.account.cloudSignIn.codeStillLoading", "Code is still loading"),
-                technicalDetails: nil
+                technicalError: nil
             )
             return
         }
 
         Task { @MainActor in
             self.isVerifyingCode = true
+            let captureContext = self.store.beginTechnicalErrorCaptureContext()
             defer {
                 self.isVerifyingCode = false
             }
@@ -175,7 +193,8 @@ struct CloudOtpVerificationSheet: View {
             do {
                 let verifiedContext = try await self.store.verifyCloudOtp(
                     challenge: currentChallenge,
-                    code: nextCode
+                    code: nextCode,
+                    captureContext: captureContext
                 )
                 self.code = ""
                 self.challengeState = .consumed
@@ -186,9 +205,12 @@ struct CloudOtpVerificationSheet: View {
                     return
                 }
                 self.applyOtpErrorState(error: error)
-                self.authErrorPresentation = makeCloudAuthInlineErrorPresentation(
-                    error: error,
-                    context: .verifyCode
+                self.presentAuthErrorPresentation(
+                    makeCloudAuthInlineErrorPresentation(
+                        error: error,
+                        context: .verifyCode
+                    ),
+                    captureContext: captureContext
                 )
             }
         }
@@ -198,12 +220,16 @@ struct CloudOtpVerificationSheet: View {
         let currentEmail = self.currentEmail
         Task { @MainActor in
             self.isSendingCode = true
+            let captureContext = self.store.beginTechnicalErrorCaptureContext()
             defer {
                 self.isSendingCode = false
             }
 
             do {
-                let sendCodeResult = try await self.store.sendCloudSignInCode(email: currentEmail)
+                let sendCodeResult = try await self.store.sendCloudSignInCode(
+                    email: currentEmail,
+                    captureContext: captureContext
+                )
 
                 switch sendCodeResult {
                 case .otpChallenge(let nextChallenge):
@@ -218,9 +244,12 @@ struct CloudOtpVerificationSheet: View {
                 if isRequestCancellationError(error: error) {
                     return
                 }
-                self.authErrorPresentation = makeCloudAuthInlineErrorPresentation(
-                    error: error,
-                    context: .sendCode
+                self.presentAuthErrorPresentation(
+                    makeCloudAuthInlineErrorPresentation(
+                        error: error,
+                        context: .sendCode
+                    ),
+                    captureContext: captureContext
                 )
             }
         }
@@ -242,8 +271,34 @@ struct CloudOtpVerificationSheet: View {
                 self.code = ""
                 self.challengeState = .consumed
             }
+
+            if details.code == "OTP_TOO_MANY_ATTEMPTS" {
+                self.code = ""
+                self.challengeState = .tooManyAttempts
+            }
         case .invalidBaseUrl, .invalidResponseBody:
             return
         }
+    }
+
+    private func presentTechnicalError(_ action: TechnicalErrorAction) {
+        self.technicalErrorPresentation = self.store.makeTechnicalErrorPresentation(action: action)
+    }
+
+    private func presentAuthErrorPresentation(
+        _ presentation: CloudAuthInlineErrorPresentation,
+        captureContext: TechnicalErrorCaptureContext
+    ) {
+        self.authErrorPresentation = CloudAuthInlineErrorPresentation(
+            message: presentation.message,
+            technicalError: presentation.technicalError.map { action in
+                self.store.captureTechnicalErrorActionIfNeeded(
+                    action: self.store.makeTechnicalErrorAction(
+                        error: action.error,
+                        captureContext: captureContext
+                    )
+                )
+            }
+        )
     }
 }

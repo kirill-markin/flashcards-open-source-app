@@ -272,9 +272,7 @@ struct RootTabView: View {
     private func refreshSelectedTabIfNeeded(nextTab: AppTab) async {
         switch nextTab {
         case .review:
-            async let refreshProgressBadge: Void = self.store.refreshReviewProgressBadgeIfNeeded()
-            async let refreshLeaderboardBadge: Void = self.store.refreshReviewLeaderboardBadgeIfNeeded()
-            _ = await (refreshProgressBadge, refreshLeaderboardBadge)
+            await self.store.refreshReviewBadgesIfNeeded()
         case .progress:
             await self.store.refreshProgressIfNeeded()
         case .ai, .cards, .settings:
@@ -379,7 +377,8 @@ struct RootTabView: View {
                     now: Date(),
                     extendsFastPolling: true,
                     allowsVisibleChangeBanner: true,
-                    surfacesGlobalErrorMessage: false
+                    surfacesGlobalErrorMessage: false,
+                    capturesTechnicalFailures: false
                 )
             )
         }
@@ -607,6 +606,8 @@ struct RootTabView: View {
             TestSettingsView()
         case .testAnimations:
             TestAnimationsView()
+        case .notificationDiagnostics:
+            NotificationDiagnosticsView()
         case .workspaceNotifications:
             ReviewNotificationsSettingsView()
         case .workspaceScheduler:

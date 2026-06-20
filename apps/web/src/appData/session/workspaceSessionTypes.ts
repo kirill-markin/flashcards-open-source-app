@@ -25,11 +25,13 @@ export type WorkspaceSessionSetters = Readonly<{
   setSessionLoadState: Dispatch<SetStateAction<SessionLoadState>>;
   setSessionVerificationState: Dispatch<SetStateAction<SessionVerificationState>>;
   setSessionErrorMessage: Dispatch<SetStateAction<string>>;
+  setSessionTechnicalError: Dispatch<SetStateAction<Error | null>>;
   setSession: Dispatch<SetStateAction<SessionInfo | null>>;
   setActiveWorkspace: Dispatch<SetStateAction<WorkspaceSummary | null>>;
   setAvailableWorkspaces: Dispatch<SetStateAction<ReadonlyArray<WorkspaceSummary>>>;
   setIsChoosingWorkspace: Dispatch<SetStateAction<boolean>>;
   setErrorMessage: Dispatch<SetStateAction<string>>;
+  setTechnicalError: Dispatch<SetStateAction<Error | null>>;
   setCloudSettings: Dispatch<SetStateAction<CloudSettings | null>>;
 }>;
 

@@ -1,6 +1,11 @@
 package com.flashcardsopensourceapp.core.ui
 
+import java.util.concurrent.atomic.AtomicLong
+
+private val appTechnicalErrorReportIdSequence = AtomicLong(0L)
+
 data class AppTechnicalError(
+    val reportId: String,
     val title: String,
     val message: String,
     val technicalDetails: String
@@ -12,24 +17,16 @@ fun makeAppTechnicalError(
     throwable: Throwable
 ): AppTechnicalError {
     return AppTechnicalError(
+        reportId = nextAppTechnicalErrorReportId(source = "app-technical-error"),
         title = title,
         message = message,
-        technicalDetails = technicalDetailsForAppError(throwable = throwable)
+        technicalDetails = renderTechnicalErrorDetails(error = throwable)
     )
 }
 
-private fun technicalDetailsForAppError(throwable: Throwable): String {
-    val stackTrace = throwable.stackTraceToString().trim()
-    if (stackTrace.isNotEmpty()) {
-        return stackTrace
-    }
-
-    val message = throwable.message
-    if (message.isNullOrBlank()) {
-        return throwable::class.java.name
-    }
-
-    return "${throwable::class.java.name}: $message"
+fun nextAppTechnicalErrorReportId(source: String): String {
+    val normalizedSource = source.trim().ifEmpty { "technical-error" }
+    return "$normalizedSource:${appTechnicalErrorReportIdSequence.incrementAndGet()}"
 }
 
 interface AppTechnicalErrorController {

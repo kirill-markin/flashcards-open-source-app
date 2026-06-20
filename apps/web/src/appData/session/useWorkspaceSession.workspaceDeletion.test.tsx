@@ -8,6 +8,7 @@ import {
   cleanupWorkspaceSessionTestEnvironment,
   createDiscardAllSyncWorkMock,
   flushEffects,
+  getObservabilityMocks,
   getWorkspaceTransitionEventNames,
   replacementWorkspace,
   resetWorkspaceSessionTestEnvironment,
@@ -23,6 +24,19 @@ import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadCloudSettings } from "../../localDb/sync/cloudSettings";
 import type { WorkspaceSummary } from "../../types";
+
+function buildWorkspaceDeleteErrorResponse(message: string, code: string): Response {
+  return new Response(JSON.stringify({
+    error: message,
+    code,
+    requestId: "request-1",
+  }), {
+    status: 400,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
 
 describe("useWorkspaceSession workspace deletion", () => {
   let container: HTMLDivElement | null = null;
@@ -126,5 +140,77 @@ describe("useWorkspaceSession workspace deletion", () => {
       linkedWorkspaceId: "workspace-2",
       linkedUserId: "user-1",
     }));
+  });
+
+  it("keeps expected delete failures inline without technical details or capture", async () => {
+    seedBrowserStorage();
+    await seedIndexedDbState();
+
+    const deleteErrorMessage = "Confirmation text did not match.";
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildWorkspaceDeleteErrorResponse(
+        deleteErrorMessage,
+        "WORKSPACE_DELETE_CONFIRMATION_INVALID",
+      ));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const refreshWorkspaceViewMock = vi.fn(async (_workspaceId: string): Promise<void> => {});
+    const runSyncMock = vi.fn(async (): Promise<void> => {});
+    const runSyncSilentlyMock = vi.fn(async (): Promise<void> => {});
+    const runSyncForWorkspaceMock = vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {});
+    const discardWorkspaceSyncMock = vi.fn((_workspaceId: string): void => {});
+    let latestActions: HarnessActions | null = null;
+
+    await act(async () => {
+      root?.render(
+        <TestHarness
+          initialSessionLoadState="ready"
+          initialSessionVerificationState="unverified"
+          initialSession={seededSession}
+          initialActiveWorkspace={seededWorkspace}
+          initialAvailableWorkspaces={[seededWorkspace]}
+          onStateChange={(snapshot: HarnessSnapshot): void => {
+            latestState = snapshot;
+          }}
+          refreshWorkspaceViewMock={refreshWorkspaceViewMock}
+          runSyncMock={runSyncMock}
+          runSyncSilentlyMock={runSyncSilentlyMock}
+          runSyncForWorkspaceMock={runSyncForWorkspaceMock}
+          discardWorkspaceSyncMock={discardWorkspaceSyncMock}
+          discardAllSyncWorkMock={createDiscardAllSyncWorkMock()}
+          resetUserScopedUiStateMock={vi.fn((): void => {})}
+          onActionsChange={(actions: HarnessActions): void => {
+            latestActions = actions;
+          }}
+        />,
+      );
+    });
+
+    await vi.waitFor(() => {
+      expect(latestState?.sessionLoadState).toBe("ready");
+      expect(latestState?.sessionVerificationState).toBe("verified");
+      expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
+    });
+    await flushEffects();
+
+    if (latestActions === null) {
+      throw new Error("Workspace session actions were not published");
+    }
+
+    let caughtError: unknown = null;
+    await act(async () => {
+      try {
+        await latestActions.deleteWorkspace("workspace-1", "wrong confirmation");
+      } catch (error) {
+        caughtError = error;
+      }
+    });
+
+    expect(caughtError).toBeInstanceOf(Error);
+    expect(latestState?.errorMessage).toBe(deleteErrorMessage);
+    expect(latestState?.technicalError).toBeNull();
+    expect(getObservabilityMocks().captureWebExceptionMock).not.toHaveBeenCalled();
   });
  });

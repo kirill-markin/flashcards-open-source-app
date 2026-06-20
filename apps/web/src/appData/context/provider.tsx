@@ -5,7 +5,9 @@ import {
   useEffect,
   useRef,
   useState,
+  type Dispatch,
   type ReactElement,
+  type SetStateAction,
 } from "react";
 import { revalidateSession } from "../../api";
 import { useI18n } from "../../i18n";
@@ -143,7 +145,8 @@ export function AppDataProvider(props: Props): ReactElement {
   const [sessionVerificationState, setSessionVerificationState] = useState<SessionVerificationState>(
     "unverified",
   );
-  const [sessionErrorMessage, setSessionErrorMessage] = useState<string>("");
+  const [sessionErrorMessage, setSessionErrorMessageState] = useState<string>("");
+  const [sessionTechnicalError, setSessionTechnicalError] = useState<Error | null>(null);
   const [session, setSession] = useState<SessionInfo | null>(warmStartSnapshot?.session ?? null);
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceSummary | null>(warmStartSnapshot?.activeWorkspace ?? null);
   const [availableWorkspaces, setAvailableWorkspaces] = useState<ReadonlyArray<WorkspaceSummary>>(
@@ -155,10 +158,21 @@ export function AppDataProvider(props: Props): ReactElement {
   const [localReadVersion, setLocalReadVersion] = useState<number>(0);
   const [localCardCount, setLocalCardCount] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [errorMessage, setErrorMessageState] = useState<string>("");
+  const [technicalError, setTechnicalError] = useState<Error | null>(null);
   const [selectedReviewFilterState, setSelectedReviewFilterState] = useState<ReviewFilter>(loadSelectedReviewFilter);
   const shouldSkipSelectedReviewFilterPersistRef = useRef<boolean>(false);
   const accountPreferencesMutationVersionRef = useRef<number>(0);
+
+  const setSessionErrorMessage = useCallback<Dispatch<SetStateAction<string>>>((nextMessageAction): void => {
+    setSessionTechnicalError(null);
+    setSessionErrorMessageState(nextMessageAction);
+  }, []);
+
+  const setErrorMessage = useCallback<Dispatch<SetStateAction<string>>>((nextMessageAction): void => {
+    setTechnicalError(null);
+    setErrorMessageState(nextMessageAction);
+  }, []);
 
   const syncEngine = useSyncEngine({
     sessionLoadState,
@@ -170,6 +184,7 @@ export function AppDataProvider(props: Props): ReactElement {
     setLocalReadVersion,
     setIsSyncing,
     setErrorMessage,
+    setTechnicalError,
   });
 
   useEffect(() => {
@@ -352,11 +367,13 @@ export function AppDataProvider(props: Props): ReactElement {
     setSessionLoadState,
     setSessionVerificationState,
     setSessionErrorMessage,
+    setSessionTechnicalError,
     setSession,
     setActiveWorkspace,
     setAvailableWorkspaces,
     setIsChoosingWorkspace,
     setErrorMessage,
+    setTechnicalError,
     setCloudSettings,
     refreshWorkspaceView: syncEngine.refreshWorkspaceView,
     runSync: syncEngine.runSync,
@@ -372,6 +389,7 @@ export function AppDataProvider(props: Props): ReactElement {
     sessionVerificationState,
     isSessionVerified: sessionVerificationState === "verified",
     sessionErrorMessage,
+    sessionTechnicalError,
     session,
     activeWorkspace,
     availableWorkspaces,
@@ -383,6 +401,7 @@ export function AppDataProvider(props: Props): ReactElement {
     isSyncing,
     selectedReviewFilter: selectedReviewFilterState,
     errorMessage,
+    technicalError,
     setErrorMessage,
     setAccountPreferences,
     refreshAccountPreferences,

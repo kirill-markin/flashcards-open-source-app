@@ -454,8 +454,10 @@ function areProgressLeaderboardSourceStatesEqual(
   return left.scopeKey === right.scopeKey
     && left.isLoading === right.isLoading
     && left.errorMessage === right.errorMessage
+    && left.technicalError === right.technicalError
     && left.isNetworkError === right.isNetworkError
     && left.localViewerCountsErrorMessage === right.localViewerCountsErrorMessage
+    && left.localViewerCountsTechnicalError === right.localViewerCountsTechnicalError
     && areProgressLeaderboardSnapshotsEqual(left.serverBase, right.serverBase)
     && areProgressLeaderboardLocalViewerCountsEqual(left.localViewerCounts, right.localViewerCounts)
     && areProgressLeaderboardSnapshotsEqual(left.renderedSnapshot, right.renderedSnapshot);
@@ -470,6 +472,7 @@ function areProgressSummarySourceStatesEqual(
     && left.hasPendingLocalReviews === right.hasPendingLocalReviews
     && left.isLoading === right.isLoading
     && left.errorMessage === right.errorMessage
+    && left.technicalError === right.technicalError
     && areStringArraysEqual(left.localFallbackActiveDates, right.localFallbackActiveDates)
     && areProgressRenderedSeriesSummaryContextsEqual(left.renderedSeriesContext, right.renderedSeriesContext)
     && areProgressSummarySnapshotsEqual(left.localFallback, right.localFallback)
@@ -484,6 +487,7 @@ function areProgressSeriesSourceStatesEqual(
   return left.scopeKey === right.scopeKey
     && left.isLoading === right.isLoading
     && left.errorMessage === right.errorMessage
+    && left.technicalError === right.technicalError
     && areStringArraysEqual(left.localFallbackActiveDates, right.localFallbackActiveDates)
     && areProgressSeriesSnapshotsEqual(left.localFallback, right.localFallback)
     && areProgressSeriesSnapshotsEqual(left.serverBase, right.serverBase)
@@ -504,6 +508,7 @@ function areProgressReviewScheduleSourceStatesEqual(
     && left.pendingLocalCardTotalDelta === right.pendingLocalCardTotalDelta
     && left.isLoading === right.isLoading
     && left.errorMessage === right.errorMessage
+    && left.technicalError === right.technicalError
     && areProgressReviewScheduleSnapshotsEqual(left.localFallback, right.localFallback)
     && areProgressReviewScheduleSnapshotsEqual(left.serverBase, right.serverBase)
     && areProgressReviewScheduleSnapshotsEqual(left.renderedSnapshot, right.renderedSnapshot);

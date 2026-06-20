@@ -20,6 +20,8 @@ data class CloudPostAuthUiState(
     val processingTitle: String,
     val processingMessage: String,
     val errorMessage: String,
+    val errorTechnicalDetails: String?,
+    val errorTechnicalDetailsReportId: String?,
     val canRetry: Boolean,
     val canLogout: Boolean,
     val failureActionLabel: String,

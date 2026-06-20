@@ -6,6 +6,7 @@
     <string name="top_level_cards">Cards</string>
     <string name="top_level_settings">Settings</string>
     <string name="startup_error_title">Startup failed</string>
+    <string name="startup_error_message">Flashcards could not finish starting. Retry startup, or open technical details if support asks for them.</string>
     <string name="startup_error_retry">Retry startup</string>
     <string name="unsupported_android_runtime_title">Android version unsupported</string>
     <string name="unsupported_android_runtime_message">Flashcards requires Android 14 or newer. Update Android on this device or install the app on a supported device.</string>

@@ -50,7 +50,7 @@ func extendCloudSyncFastPollingUntil(currentDeadline: Date?, now: Date, duration
 enum AccountDeletionState: Equatable {
     case hidden
     case inProgress
-    case failed(message: String)
+    case failed
 }
 
 @MainActor
@@ -168,6 +168,7 @@ final class FlashcardsStore {
     @ObservationIgnored var progressReviewScheduleLocalCache: ProgressReviewScheduleLocalCacheEntry?
     @ObservationIgnored var activeAutomaticFeedbackPromptTask: Task<Void, Never>?
     @ObservationIgnored var nextAutomaticFeedbackPromptRetryAt: Date?
+    @ObservationIgnored var capturedTechnicalErrorCaptureContextIDs: Set<String>
 
     var aiChatStore: AIChatStore {
         if let cachedAIChatStore {
@@ -493,6 +494,7 @@ final class FlashcardsStore {
         self.progressReviewScheduleLocalCache = nil
         self.activeAutomaticFeedbackPromptTask = nil
         self.nextAutomaticFeedbackPromptRetryAt = nil
+        self.capturedTechnicalErrorCaptureContextIDs = []
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {
@@ -534,9 +536,85 @@ final class FlashcardsStore {
     }
 
     func presentTechnicalError(_ error: Error) {
-        let presentation: TechnicalErrorPresentation = makeTechnicalErrorPresentation(error: error)
-        self.capturePresentedTechnicalError(error: error)
+        if isRequestCancellationError(error: error) {
+            return
+        }
+
+        let presentationError = technicalErrorPresentationSource(error: error)
+        let presentation: TechnicalErrorPresentation = makeTechnicalErrorPresentation(error: presentationError)
+        if isTechnicalErrorObserved(error: error) == false {
+            self.captureTechnicalErrorForVisiblePresentation(error: presentationError)
+        }
         self.presentedTechnicalError = presentation
+    }
+
+    func makeTechnicalErrorPresentation(action: TechnicalErrorAction) -> TechnicalErrorPresentation {
+        let presentationError = technicalErrorPresentationSource(error: action.error)
+        let presentation: TechnicalErrorPresentation = Flashcards.makeTechnicalErrorPresentation(error: presentationError)
+
+        switch action.capturePolicy {
+        case .captureOnPresentation:
+            if isTechnicalErrorObserved(error: action.error) == false {
+                self.captureTechnicalErrorForVisiblePresentation(error: presentationError)
+            }
+        case .alreadyCaptured:
+            break
+        }
+
+        return presentation
+    }
+
+    func makeTechnicalErrorPresentationIfNeeded(action: TechnicalErrorAction) -> TechnicalErrorPresentation? {
+        if isRequestCancellationError(error: action.error) {
+            return nil
+        }
+
+        return self.makeTechnicalErrorPresentation(action: action)
+    }
+
+    func captureTechnicalErrorActionIfNeeded(action: TechnicalErrorAction) -> TechnicalErrorAction {
+        if isRequestCancellationError(error: action.error) {
+            return TechnicalErrorAction(
+                error: action.error,
+                capturePolicy: .alreadyCaptured
+            )
+        }
+
+        switch action.capturePolicy {
+        case .captureOnPresentation:
+            if isTechnicalErrorObserved(error: action.error) == false {
+                let presentationError = technicalErrorPresentationSource(error: action.error)
+                self.captureTechnicalErrorForVisiblePresentation(error: presentationError)
+            }
+            return TechnicalErrorAction(
+                error: action.error,
+                capturePolicy: .alreadyCaptured
+            )
+        case .alreadyCaptured:
+            return action
+        }
+    }
+
+    func beginTechnicalErrorCaptureContext() -> TechnicalErrorCaptureContext {
+        TechnicalErrorCaptureContext()
+    }
+
+    func makeTechnicalErrorAction(
+        error: Error,
+        captureContext: TechnicalErrorCaptureContext
+    ) -> TechnicalErrorAction {
+        let capturePolicy: TechnicalErrorCapturePolicy = self.consumeTechnicalErrorCaptureContext(captureContext)
+            ? .alreadyCaptured
+            : .captureOnPresentation
+        return Flashcards.makeTechnicalErrorAction(error: error, capturePolicy: capturePolicy)
+    }
+
+    func markTechnicalErrorCaptured(captureContext: TechnicalErrorCaptureContext?) {
+        guard let captureContext else {
+            return
+        }
+
+        self.capturedTechnicalErrorCaptureContextIDs.insert(captureContext.id)
     }
 
     func presentTechnicalErrorPreview() {
@@ -547,7 +625,7 @@ final class FlashcardsStore {
         self.presentedTechnicalError = nil
     }
 
-    private func capturePresentedTechnicalError(error: Error) {
+    private func captureTechnicalErrorForVisiblePresentation(error: Error) {
         FlashcardsObservability.captureSilentFailure(
             error: error,
             scope: IOSObservationScope(
@@ -567,5 +645,9 @@ final class FlashcardsStore {
             backendCode: nil,
             requestId: nil
         )
+    }
+
+    private func consumeTechnicalErrorCaptureContext(_ captureContext: TechnicalErrorCaptureContext) -> Bool {
+        self.capturedTechnicalErrorCaptureContextIDs.remove(captureContext.id) != nil
     }
 }

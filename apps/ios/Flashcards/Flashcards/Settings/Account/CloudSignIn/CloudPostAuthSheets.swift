@@ -1,8 +1,8 @@
 import SwiftUI
-import UIKit
 
 struct CloudAuthInlineErrorView: View {
     let presentation: CloudAuthInlineErrorPresentation
+    let onTechnicalError: (TechnicalErrorAction) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -12,19 +12,14 @@ struct CloudAuthInlineErrorView: View {
                 .textSelection(.enabled)
                 .accessibilityIdentifier(UITestIdentifier.cloudSignInInlineAuthErrorMessage)
 
-            if let technicalDetails = self.presentation.technicalDetails {
-                DisclosureGroup(aiSettingsLocalized("settings.account.cloudSignIn.technicalDetails", "Technical details")) {
-                    Text(technicalDetails)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
-                        .padding(.top, 4)
-                        .contextMenu {
-                            Button(aiSettingsLocalized("settings.account.cloudSignIn.copyTechnicalDetails", "Copy technical details")) {
-                                UIPasteboard.general.string = technicalDetails
-                            }
-                        }
+            if let technicalError = self.presentation.technicalError {
+                Button {
+                    self.onTechnicalError(technicalError)
+                } label: {
+                    Label(
+                        aiSettingsLocalized("settings.account.cloudSignIn.technicalDetails", "Technical details"),
+                        systemImage: "info.circle"
+                    )
                 }
                 .tint(.secondary)
             }
@@ -78,6 +73,7 @@ struct CloudPostAuthRecoveryNeededSheet: View {
 
 struct CloudPostAuthFailureSheet: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @State private var technicalErrorPresentation: TechnicalErrorPresentation?
 
     let state: CloudPostAuthFailureState
     let isRetryDisabled: Bool
@@ -106,41 +102,24 @@ struct CloudPostAuthFailureSheet: View {
                 horizontalPadding: 0
             ) {
                 Form {
-                    if self.state.kind == .standard {
-                        Section {
-                            CopyableErrorMessageView(message: self.state.message)
-                                .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthFailureMessage)
-                        }
-                    }
-
                     Section(aiSettingsLocalized("settings.account.cloudSignIn.section.cloudAccount", "Cloud account")) {
                         Text(self.state.title)
                             .font(.headline)
-                        if self.state.kind == .guestLocalRecovery {
-                            Text(self.failureDescription)
-                                .foregroundStyle(.secondary)
-                                .textSelection(.enabled)
-                                .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthFailureMessage)
-                        } else {
-                            Text(self.failureDescription)
-                                .foregroundStyle(.secondary)
-                        }
+                        Text(self.failureDescription)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                            .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthFailureMessage)
                     }
 
-                    if let technicalDetails = self.state.technicalDetails {
+                    if let technicalError = self.state.technicalError {
                         Section {
-                            DisclosureGroup(aiSettingsLocalized("settings.account.cloudSignIn.technicalDetails", "Technical details")) {
-                                Text(technicalDetails)
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.secondary)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .textSelection(.enabled)
-                                    .padding(.top, 4)
-                                    .contextMenu {
-                                        Button(aiSettingsLocalized("settings.account.cloudSignIn.copyTechnicalDetails", "Copy technical details")) {
-                                            UIPasteboard.general.string = technicalDetails
-                                        }
-                                    }
+                            Button {
+                                self.presentTechnicalError(technicalError)
+                            } label: {
+                                Label(
+                                    aiSettingsLocalized("settings.account.cloudSignIn.technicalDetails", "Technical details"),
+                                    systemImage: "info.circle"
+                                )
                             }
                             .tint(.secondary)
                         }
@@ -169,19 +148,28 @@ struct CloudPostAuthFailureSheet: View {
             .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthFailureScreen)
             .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.cloudSyncTitle", "Cloud sync"))
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(item: self.$technicalErrorPresentation) { presentation in
+                TechnicalErrorSheet(
+                    presentation: presentation,
+                    onClose: {
+                        self.technicalErrorPresentation = nil
+                    }
+                )
+            }
         }
     }
 
     private var failureDescription: String {
         switch self.state.kind {
         case .standard:
-            return aiSettingsLocalized(
-                "settings.account.cloudSignIn.failureDescription",
-                "Your sign-in succeeded, but the cloud workspace setup or initial sync did not finish."
-            )
+            return self.state.message
         case .guestLocalRecovery:
             return self.state.message
         }
+    }
+
+    private func presentTechnicalError(_ action: TechnicalErrorAction) {
+        self.technicalErrorPresentation = self.store.makeTechnicalErrorPresentation(action: action)
     }
 }
 

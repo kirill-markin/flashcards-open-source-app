@@ -35,18 +35,18 @@ extension FlashcardsStore {
                 installationId: self.cloudSettings?.installationId,
                 errorMessage: Flashcards.errorMessage(error: error)
             )
-            self.captureCloudSyncFailureIfNeeded(
+            let didCapture = self.captureCloudSyncFailureIfNeeded(
                 error: error,
                 linkedSession: linkedSession,
                 fallbackCloudState: self.cloudSettings?.cloudState,
                 trigger: trigger,
                 action: "same_workspace_cloud_restore"
             )
-            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
+            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error, trigger: trigger)
             if trigger.surfacesGlobalErrorMessage {
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
-            throw error
+            throw didCapture ? markTechnicalErrorObserved(error: error) : error
         }
     }
 

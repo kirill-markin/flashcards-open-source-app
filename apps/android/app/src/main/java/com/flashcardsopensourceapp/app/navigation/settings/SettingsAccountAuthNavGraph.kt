@@ -11,6 +11,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
+import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
@@ -73,6 +74,14 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                         }
                     }
                 },
+                onShowTechnicalDetails = { technicalDetails, reportId ->
+                    appGraph.showTechnicalErrorDialog(
+                        reportId = reportId,
+                        title = context.getString(R.string.technical_error_dialog_default_title),
+                        message = context.getString(R.string.technical_error_dialog_default_message),
+                        technicalDetails = technicalDetails
+                    )
+                },
                 onBack = {
                     navController.popBackStack()
                 }
@@ -108,6 +117,14 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                             }
                         }
                     }
+                },
+                onShowTechnicalDetails = { technicalDetails, reportId ->
+                    appGraph.showTechnicalErrorDialog(
+                        reportId = reportId,
+                        title = context.getString(R.string.technical_error_dialog_default_title),
+                        message = context.getString(R.string.technical_error_dialog_default_message),
+                        technicalDetails = technicalDetails
+                    )
                 },
                 onBack = {
                     navController.popBackStack()
@@ -165,6 +182,14 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                             navigateToSettingsAccountStatus(navController = navController)
                         }
                     }
+                },
+                onShowTechnicalDetails = { technicalDetails, reportId ->
+                    appGraph.showTechnicalErrorDialog(
+                        reportId = reportId,
+                        title = context.getString(R.string.technical_error_dialog_default_title),
+                        message = context.getString(R.string.technical_error_dialog_default_message),
+                        technicalDetails = technicalDetails
+                    )
                 },
                 onBack = {
                     navController.popBackStack()

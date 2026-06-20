@@ -153,7 +153,8 @@ extension FlashcardsStore {
                 now: Date(),
                 extendsFastPolling: false,
                 allowsVisibleChangeBanner: false,
-                surfacesGlobalErrorMessage: true
+                surfacesGlobalErrorMessage: true,
+                capturesTechnicalFailures: false
             )
         )
         return restoredGuestSession.session
@@ -404,8 +405,14 @@ extension FlashcardsStore {
             if self.isCloudAccountDeletedError(error) {
                 return
             }
+            if isRequestCancellationError(error: error) {
+                return
+            }
 
-            self.accountDeletionState = .failed(message: Flashcards.errorMessage(error: error))
+            if self.shouldPresentAccountDeletionTechnicalError(error: error) {
+                self.presentTechnicalError(error)
+            }
+            self.accountDeletionState = .failed
         }
     }
 
@@ -432,7 +439,22 @@ extension FlashcardsStore {
             self.accountDeletionState = .hidden
             self.accountDeletionSuccessMessage = "Your account has been deleted."
         } catch {
-            self.accountDeletionState = .failed(message: Flashcards.errorMessage(error: error))
+            self.presentTechnicalError(error)
+            self.accountDeletionState = .failed
         }
+    }
+
+    private func shouldPresentAccountDeletionTechnicalError(error: Error) -> Bool {
+        if isRequestCancellationError(error: error) {
+            return false
+        }
+        if isRetryableNetworkTransportFailure(error: error) {
+            return false
+        }
+        if self.blockedCloudIdentityConflictMessage(error: error) != nil {
+            return false
+        }
+
+        return true
     }
 }

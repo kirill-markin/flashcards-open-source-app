@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { isAuthRedirectError, updateAccountPreferences } from "../../api";
 import { useAppData } from "../../appData";
+import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import type { AccountPreferences } from "../../types";
@@ -15,11 +16,13 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
     session,
     setAccountPreferences,
   } = useAppData();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const { t } = useI18n();
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const reviewReactionAnimationsEnabled = session?.preferences.reviewReactionAnimationsEnabled !== false;
   const isToggleDisabled = isSubmitting || isSessionVerified === false || session === null;
+  const technicalErrorMessage = t("appError.technicalError.message");
 
   useEffect(() => {
     if (session === null || isSessionVerified === false) {
@@ -39,7 +42,13 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
           return;
         }
 
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        const wasCaptured = capturePreferenceOperationError(error, "account_preferences_refresh");
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setErrorMessage(technicalErrorMessage);
+        } else {
+          setErrorMessage(error instanceof Error ? error.message : String(error));
+        }
       }
     }
 
@@ -50,8 +59,8 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
     };
   }, [isSessionVerified, refreshAccountPreferences, session?.userId]);
 
-  function capturePreferenceOperationError(error: unknown, operation: "account_preferences_refresh" | "account_preferences_update"): void {
-    captureAppOperationError(error, {
+  function capturePreferenceOperationError(error: unknown, operation: "account_preferences_refresh" | "account_preferences_update"): boolean {
+    return captureAppOperationError(error, {
       feature: "settings",
       operation,
       userId: session?.userId ?? null,
@@ -70,8 +79,13 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
         return;
       }
 
-      capturePreferenceOperationError(error, "account_preferences_refresh");
-      setErrorMessage(error instanceof Error ? error.message : String(error));
+      const wasCaptured = capturePreferenceOperationError(error, "account_preferences_refresh");
+      if (wasCaptured) {
+        showCapturedTechnicalError(error);
+        setErrorMessage(technicalErrorMessage);
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      }
     }
   }
 
@@ -106,8 +120,13 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
         return;
       }
 
-      capturePreferenceOperationError(error, "account_preferences_update");
-      setErrorMessage(error instanceof Error ? error.message : String(error));
+      const wasCaptured = capturePreferenceOperationError(error, "account_preferences_update");
+      if (wasCaptured) {
+        showCapturedTechnicalError(error);
+        setErrorMessage(technicalErrorMessage);
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      }
     } finally {
       setIsSubmitting(false);
     }

@@ -365,6 +365,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             onShowTechnicalErrorDialogPreview = {
                 appGraph.testTechnicalErrorDialogPreviewController.showTestPreview(
                     error = AppTechnicalError(
+                        reportId = "settings-test-technical-error-preview",
                         title = technicalErrorTitle,
                         message = technicalErrorMessage,
                         technicalDetails = technicalErrorDetails

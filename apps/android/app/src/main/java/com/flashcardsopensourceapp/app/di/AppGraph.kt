@@ -23,6 +23,8 @@ import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.core.observability.shouldCaptureAndroidThrowable
 import com.flashcardsopensourceapp.core.ui.AppMessageBus
+import com.flashcardsopensourceapp.core.ui.AppTechnicalError
+import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.core.ui.TestModeStore
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
@@ -99,8 +101,12 @@ private const val appGraphLogTag: String = "AppGraph"
 sealed interface AppStartupState {
     data object Loading : AppStartupState
     data object Ready : AppStartupState
-    data class Failed(val message: String) : AppStartupState
+    data class Failed(val technicalDetails: String) : AppStartupState
 }
+
+private class AppTechnicalErrorDetailsException(
+    technicalDetails: String
+) : IllegalStateException(technicalDetails)
 
 data class AppGuestCloudSession(
     val workspaceId: String
@@ -438,7 +444,7 @@ class AppGraph(
                     "event=app_startup_exception ${renderSanitizedThrowableLogFields(error = error)}"
                 )
                 startupStateMutable.value = AppStartupState.Failed(
-                    message = error.message ?: "Android startup failed."
+                    technicalDetails = renderTechnicalErrorDetails(error = error)
                 )
             }
         }
@@ -469,7 +475,7 @@ class AppGraph(
         }) {
             AppStartupState.Ready -> Unit
             is AppStartupState.Failed -> {
-                throw IllegalStateException(currentStartupState.message)
+                throw IllegalStateException(currentStartupState.technicalDetails)
             }
 
             AppStartupState.Loading -> {
@@ -484,6 +490,38 @@ class AppGraph(
 
     fun retryStartup() {
         startStartup()
+    }
+
+    fun showTechnicalErrorDialog(
+        reportId: String,
+        title: String,
+        message: String,
+        technicalDetails: String
+    ) {
+        appMessageBus.showTechnicalError(
+            error = AppTechnicalError(
+                reportId = reportId,
+                title = title,
+                message = message,
+                technicalDetails = technicalDetails
+            ),
+            throwable = AppTechnicalErrorDetailsException(technicalDetails = technicalDetails)
+        )
+    }
+
+    fun showReportedTechnicalErrorDialog(
+        title: String,
+        message: String,
+        technicalDetails: String
+    ) {
+        appMessageBus.showReportedTechnicalError(
+            error = AppTechnicalError(
+                reportId = "already-reported",
+                title = title,
+                message = message,
+                technicalDetails = technicalDetails
+            )
+        )
     }
 
     private fun captureTechnicalErrorDialogException(throwable: Throwable) {

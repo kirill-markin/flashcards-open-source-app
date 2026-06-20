@@ -63,7 +63,12 @@ extension ReviewView {
             try store.enqueueReviewSubmission(cardId: cardId, rating: rating)
             self.screenErrorMessage = ""
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            if let inlineErrorMessage = reviewSubmissionInlineErrorMessage(error: error) {
+                self.screenErrorMessage = inlineErrorMessage
+            } else {
+                self.screenErrorMessage = ""
+                store.presentTechnicalError(error)
+            }
         }
     }
 
@@ -77,7 +82,8 @@ extension ReviewView {
             self.totalCardsCount = tagsSummary.totalCards
             self.screenErrorMessage = ""
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            self.screenErrorMessage = ""
+            store.presentTechnicalError(error)
         }
     }
 
@@ -92,15 +98,15 @@ extension ReviewView {
             return
         }
 
-        let nextPreparedRevealState = currentCard.map { card in
-            makePreparedReviewRevealState(
+        let currentPreparedRevealStatePreparation = currentCard.map { card in
+            makePreparedReviewRevealStatePreparation(
                 card: card,
                 schedulerSettings: store.schedulerSettings,
                 now: now
             )
         }
-        let nextPreparedNextRevealState = nextCard.map { card in
-            makePreparedReviewRevealState(
+        let nextPreparedNextRevealStatePreparation = nextCard.map { card in
+            makePreparedReviewRevealStatePreparation(
                 card: card,
                 schedulerSettings: store.schedulerSettings,
                 now: now
@@ -110,8 +116,11 @@ extension ReviewView {
             return
         }
 
-        self.preparedRevealState = nextPreparedRevealState
-        self.preparedNextRevealState = nextPreparedNextRevealState
+        self.preparedRevealState = currentPreparedRevealStatePreparation?.state
+        self.preparedNextRevealState = nextPreparedNextRevealStatePreparation?.state
+        if let technicalError = currentPreparedRevealStatePreparation?.technicalError {
+            store.presentTechnicalError(technicalError)
+        }
     }
 
     func cachedPreparedRevealState(card: Card) -> PreparedReviewRevealState? {
@@ -129,4 +138,21 @@ extension ReviewView {
 
         return nil
     }
+}
+
+private func reviewSubmissionInlineErrorMessage(error: Error) -> String? {
+    if let localStoreError = error as? LocalStoreError {
+        switch localStoreError {
+        case .validation:
+            return Flashcards.errorMessage(error: error)
+        case .database, .notFound, .uninitialized:
+            return nil
+        }
+    }
+
+    if error is PendingGuestUpgradeLocalMutationError {
+        return Flashcards.errorMessage(error: error)
+    }
+
+    return nil
 }

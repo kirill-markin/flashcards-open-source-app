@@ -18,8 +18,10 @@ import {
   storePersistedProgressLeaderboard,
 } from "../../storage/progressStorage";
 import {
+  captureProgressLocalLoadError,
   captureProgressServerLoadError,
   getErrorMessage,
+  normalizeProgressSourceError,
   type ProgressCanLoadServerBaseRef,
   type ProgressScopeKeyRef,
   type ProgressSourceDispatch,
@@ -46,6 +48,7 @@ type ProgressLeaderboardSourcePipelineParams = Readonly<{
   autoRefreshEnabled: boolean;
   canLoadServerBase: boolean;
   canLoadServerBaseRef: ProgressCanLoadServerBaseRef;
+  canExposeTechnicalErrors: boolean;
   currentScopeKeyRef: ProgressScopeKeyRef;
   dispatch: ProgressSourceDispatch;
   installationId: string | null;
@@ -82,6 +85,7 @@ export function useProgressLeaderboardSourcePipeline(
     autoRefreshEnabled,
     canLoadServerBase,
     canLoadServerBaseRef,
+    canExposeTechnicalErrors,
     currentScopeKeyRef,
     dispatch,
     installationId,
@@ -151,10 +155,19 @@ export function useProgressLeaderboardSourcePipeline(
         return;
       }
 
+      const technicalError = normalizeProgressSourceError(error);
+      const wasCaptured = canExposeTechnicalErrors
+        && captureProgressLocalLoadError(technicalError, {
+          operation: "progress_leaderboard_local_load",
+          workspaceId: activeWorkspaceId,
+          installationId,
+        });
+
       dispatch({
         type: "leaderboard_local_load_failed",
         scopeKey,
-        errorMessage: getErrorMessage(error),
+        errorMessage: getErrorMessage(technicalError),
+        technicalError: wasCaptured ? technicalError : null,
         canRenderServerBase: canLoadServerBaseRef.current,
       });
     });
@@ -162,6 +175,7 @@ export function useProgressLeaderboardSourcePipeline(
     accessibleWorkspaceIds,
     canLoadServerBase,
     canLoadServerBaseRef,
+    canExposeTechnicalErrors,
     currentScopeKeyRef,
     dispatch,
     manualRefreshVersion,
@@ -242,17 +256,21 @@ export function useProgressLeaderboardSourcePipeline(
               && canLoadServerBaseRef.current
               && isCurrentRefreshRequest
             ) {
+              const technicalError = normalizeProgressSourceError(error);
+              const wasCaptured = canExposeTechnicalErrors
+                && captureProgressServerLoadError(technicalError, {
+                  operation: "progress_leaderboard_server_load",
+                  workspaceId: activeWorkspaceId,
+                  installationId,
+                });
+
               dispatch({
                 type: "leaderboard_server_load_failed",
                 scopeKey: targetScopeKey,
-                errorMessage: getErrorMessage(error),
-                isNetworkError: error instanceof ApiNetworkError,
+                errorMessage: getErrorMessage(technicalError),
+                technicalError: wasCaptured ? technicalError : null,
+                isNetworkError: technicalError instanceof ApiNetworkError,
                 canRenderServerBase: canLoadServerBaseRef.current,
-              });
-              captureProgressServerLoadError(error, {
-                operation: "progress_leaderboard_server_load",
-                workspaceId: activeWorkspaceId,
-                installationId,
               });
             }
           }
@@ -269,7 +287,7 @@ export function useProgressLeaderboardSourcePipeline(
 
     serverRefreshPromisesRef.current.set(targetScopeKey, refreshPromise);
     return refreshPromise;
-  }, [activeWorkspaceId, canLoadServerBaseRef, currentScopeKeyRef, dispatch, installationId]);
+  }, [activeWorkspaceId, canExposeTechnicalErrors, canLoadServerBaseRef, currentScopeKeyRef, dispatch, installationId]);
 
   useEffect(() => {
     if (autoRefreshEnabled === false) {

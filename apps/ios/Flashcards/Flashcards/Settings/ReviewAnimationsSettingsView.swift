@@ -3,18 +3,17 @@ import SwiftUI
 struct ReviewAnimationsSettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
-    @State private var screenErrorMessage: String = ""
     @State private var isSaving: Bool = false
+    @State private var guidanceMessage: String = ""
 
     var body: some View {
         List {
-            if self.screenErrorMessage.isEmpty == false {
-                Section {
-                    CopyableErrorMessageView(message: self.screenErrorMessage)
-                }
-            }
-
             Section {
+                if self.guidanceMessage.isEmpty == false {
+                    Text(self.guidanceMessage)
+                        .foregroundStyle(.secondary)
+                }
+
                 Toggle(
                     aiSettingsLocalized(
                         "settings.reviewAnimations.toggle",
@@ -54,9 +53,9 @@ struct ReviewAnimationsSettingsView: View {
 
             do {
                 try await store.updateReviewReactionAnimationsEnabled(isEnabled: isEnabled)
-                self.screenErrorMessage = ""
+                self.guidanceMessage = ""
             } catch {
-                self.screenErrorMessage = Flashcards.errorMessage(error: error)
+                self.handleReviewAnimationsFailure(error: error)
             }
         }
     }
@@ -64,10 +63,26 @@ struct ReviewAnimationsSettingsView: View {
     private func refreshCloudAccountContext() async {
         do {
             try await store.refreshCloudAccountContextIfActive()
-            self.screenErrorMessage = ""
+            self.guidanceMessage = ""
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            self.handleReviewAnimationsFailure(error: error)
         }
+    }
+
+    private func handleReviewAnimationsFailure(error: Error) {
+        if isRequestCancellationError(error: error) {
+            return
+        }
+        if isRetryableNetworkTransportFailure(error: error) {
+            self.guidanceMessage = aiSettingsLocalized("settings.sync.failed.generic", "Sync failed")
+            return
+        }
+        if let guidanceMessage = self.store.blockedCloudIdentityConflictMessage(error: error) {
+            self.guidanceMessage = guidanceMessage
+            return
+        }
+
+        self.store.presentTechnicalError(error)
     }
 }
 

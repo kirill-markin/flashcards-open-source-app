@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppDataContextValue } from "../../appData";
+import { AppErrorDialogProvider } from "../../appError/AppErrorContext";
 import { I18nProvider } from "../../i18n";
 import {
   accountDangerZoneRoute,
@@ -67,6 +68,7 @@ function createAppData(): Mutable<AppDataContextValue> {
     sessionVerificationState: "verified",
     isSessionVerified: true,
     sessionErrorMessage: "",
+    sessionTechnicalError: null,
     session: {
       userId: "user-1",
       selectedWorkspaceId: "workspace-1",
@@ -115,6 +117,7 @@ function createAppData(): Mutable<AppDataContextValue> {
     isSyncing: false,
     selectedReviewFilter: { kind: "allCards" } satisfies ReviewFilter,
     errorMessage: "",
+    technicalError: null,
     setErrorMessage: vi.fn(),
     setAccountPreferences: vi.fn(),
     refreshAccountPreferences: vi.fn(async () => ({
@@ -195,10 +198,12 @@ function setupSettingsScreenTest(): SettingsScreenTestHarness {
     await act(async () => {
       currentRoot.render(
         <I18nProvider>
-          <MemoryRouter initialEntries={["/settings"]}>
-            <SettingsScreen />
-            <LocationProbe />
-          </MemoryRouter>
+          <AppErrorDialogProvider>
+            <MemoryRouter initialEntries={["/settings"]}>
+              <SettingsScreen />
+              <LocationProbe />
+            </MemoryRouter>
+          </AppErrorDialogProvider>
         </I18nProvider>,
       );
     });

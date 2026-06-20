@@ -5,7 +5,7 @@ struct DeleteCurrentWorkspaceView: View {
 
     @State private var isDeletePreviewLoading: Bool = false
     @State private var deletePreview: CloudWorkspaceDeletePreview? = nil
-    @State private var deletePreviewErrorMessage: String = ""
+    @State private var guidanceMessage: String = ""
     @State private var isDeleteWorkspaceAlertPresented: Bool = false
     @State private var isDeleteWorkspaceConfirmationPresented: Bool = false
 
@@ -15,12 +15,6 @@ struct DeleteCurrentWorkspaceView: View {
 
     var body: some View {
         List {
-            if store.globalErrorMessage.isEmpty == false {
-                Section {
-                    CopyableErrorMessageView(message: store.globalErrorMessage)
-                }
-            }
-
             Section(aiSettingsLocalized("settings.row.deleteCurrentWorkspace", "Delete Current Workspace")) {
                 Text(
                     aiSettingsLocalized(
@@ -30,8 +24,9 @@ struct DeleteCurrentWorkspaceView: View {
                 )
                     .foregroundStyle(.secondary)
 
-                if self.deletePreviewErrorMessage.isEmpty == false {
-                    CopyableErrorMessageView(message: self.deletePreviewErrorMessage)
+                if self.guidanceMessage.isEmpty == false {
+                    Text(self.guidanceMessage)
+                        .foregroundStyle(.secondary)
                 }
 
                 Button(
@@ -73,6 +68,7 @@ struct DeleteCurrentWorkspaceView: View {
             if let deletePreview {
                 DeleteWorkspaceConfirmationView(preview: deletePreview)
                     .environment(store)
+                    .technicalErrorSheetHost(store: self.store)
             }
         }
     }
@@ -80,13 +76,17 @@ struct DeleteCurrentWorkspaceView: View {
     @MainActor
     private func prepareDeleteWorkspace() async {
         self.isDeletePreviewLoading = true
-        self.deletePreviewErrorMessage = ""
+        self.guidanceMessage = ""
 
         do {
             self.deletePreview = try await store.loadCurrentWorkspaceDeletePreview()
             self.isDeleteWorkspaceAlertPresented = true
         } catch {
-            self.deletePreviewErrorMessage = Flashcards.errorMessage(error: error)
+            if let guidanceMessage = self.store.workspaceOperationGuidanceMessage(error: error) {
+                self.guidanceMessage = guidanceMessage
+            } else if self.store.shouldPresentWorkspaceOperationTechnicalError(error: error) {
+                self.store.presentTechnicalError(error)
+            }
         }
 
         self.isDeletePreviewLoading = false
