@@ -111,6 +111,20 @@ test("API Gateway predeclares /me/progress/leaderboard", () => {
   );
 });
 
+test("API Gateway predeclares /me/progress/leaderboards/streak", () => {
+  const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
+  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+
+  assert.match(
+    apiGatewaySource,
+    /const meProgressLeaderboards = meProgress\.addResource\("leaderboards"\);/,
+  );
+  assert.match(
+    apiGatewaySource,
+    /meProgressLeaderboards\.addResource\("streak"\)\.addMethod\("GET", integration\);/,
+  );
+});
+
 test("published OpenAPI documents the progress leaderboard without internal ids", () => {
   const openApiDocument = loadOpenApiDocument() as Readonly<{
     paths?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
@@ -141,6 +155,61 @@ test("published OpenAPI documents the progress leaderboard without internal ids"
     assert.equal(serializedSchemas.includes(expectedField), true, `OpenAPI must document ${expectedField}`);
   }
   for (const internalField of [
+    "userId",
+    "friend_user_id",
+    "friendUserId",
+    "friend_public_profile_id",
+    "friendPublicProfileId",
+    "created_from_invitation_id",
+    "friendInvitationId",
+    "inviter_user_id",
+    "inviterUserId",
+    "createdFromInvitationId",
+    "baseSort",
+    "reviewed_by",
+    "reviewedBy",
+    "email",
+  ]) {
+    assert.equal(serializedSchemas.includes(internalField), false, `OpenAPI must not expose ${internalField}`);
+  }
+});
+
+test("published OpenAPI documents the streak leaderboard without internal ids or rating fields", () => {
+  const openApiDocument = loadOpenApiDocument() as Readonly<{
+    paths?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+    components?: Readonly<{ schemas?: Readonly<Record<string, unknown>> }>;
+  }>;
+  const leaderboardPath = openApiDocument.paths?.["/me/progress/leaderboards/streak"];
+  const schemas = openApiDocument.components?.schemas ?? {};
+  const leaderboardSchemas = Object.fromEntries(
+    Object.entries(schemas).filter(([name]) => name.startsWith("StreakLeaderboard")),
+  );
+  const serializedSchemas = JSON.stringify(leaderboardSchemas);
+
+  assert.notEqual(leaderboardPath?.get, undefined);
+  assert.notEqual(schemas.StreakLeaderboardResponse, undefined);
+  for (const expectedField of [
+    "status",
+    "metricVersion",
+    "streakDays",
+    "anonymousDisplayName",
+    "friendDisplayName",
+    "publicProfileId",
+    "rank",
+    "snapshotId",
+    "snapshotGeneratedAt",
+    "asOfUtcDate",
+    "nextRefreshAfter",
+    "participantCount",
+    "rankingRows",
+  ]) {
+    assert.equal(serializedSchemas.includes(expectedField), true, `OpenAPI must document ${expectedField}`);
+  }
+  for (const internalField of [
+    "defaultWindowKey",
+    "windowKey",
+    "windows",
+    "qualifiedReviewCount",
     "userId",
     "friend_user_id",
     "friendUserId",

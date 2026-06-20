@@ -540,6 +540,85 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /me/progress/leaderboards/streak:
+    get:
+      tags:
+        - bootstrap
+      summary: Load the compact community streak leaderboard
+      description: >-
+        Returns the latest daily current-streak leaderboard snapshot with
+        viewer-perspective ranks, viewer-favoring tie placement, and
+        server-computed compact rows. The metric is current streak days from
+        the public daily snapshot, so public values can trail the user's live
+        personal streak. Guests receive status linked_account_required and
+        opted-out users receive participation_disabled, both without rows.
+        ApiKey authentication is rejected. Only opaque public profile ids and
+        locale-derived anonymous display names are returned by default. Rows can
+        also include a viewer-private friendDisplayName when the participant is
+        a current opted-in friend of the viewer. Internal user ids, invitation
+        ids, emails, raw active-day dates, and base sort positions are never
+        exposed.
+      security:
+        - BearerAuth: []
+        - GuestAuthorizationHeader: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Compact current-streak leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreakLeaderboardResponse'
+              example:
+                status: ready
+                metric:
+                  metricVersion: streak_days_v1
+                  title: Current streak days
+                  description: Ranks use current streak days from the public daily snapshot. Public values can trail your live personal streak.
+                snapshotId: 3e6c0b88-5f5a-4db3-8c8c-9d6a3840a1e4
+                snapshotGeneratedAt: '2026-06-10T12:00:05.000Z'
+                asOfUtcDate: '2026-06-10'
+                nextRefreshAfter: '2026-06-11T12:00:00.000Z'
+                participantCount: 2
+                viewer:
+                  publicProfileId: 5b9d3f2a-1c4e-4a7b-9f0d-2e6c8a1b4d7f
+                  displayName: You
+                  rank: 2
+                  streakDays: 3
+                rows:
+                  - kind: top
+                    publicProfileId: a1d2c3b4-5e6f-4a8b-9c0d-1e2f3a4b5c6d
+                    anonymousDisplayName: Silver Bright Harbor
+                    streakDays: 5
+                    rank: 1
+                  - kind: viewer
+                    publicProfileId: 5b9d3f2a-1c4e-4a7b-9f0d-2e6c8a1b4d7f
+                    anonymousDisplayName: Jade Swift River
+                    streakDays: 3
+                    rank: 2
+                rankingRows:
+                  - kind: participant
+                    publicProfileId: a1d2c3b4-5e6f-4a8b-9c0d-1e2f3a4b5c6d
+                    anonymousDisplayName: Silver Bright Harbor
+                    streakDays: 5
+                    rank: 1
+                  - kind: viewer
+                    publicProfileId: 5b9d3f2a-1c4e-4a7b-9f0d-2e6c8a1b4d7f
+                    anonymousDisplayName: Jade Swift River
+                    streakDays: 3
+                    rank: 2
+        '403':
+          description: Forbidden authentication transport
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /agent/me:
     $ref: paths/agent_me.yaml
   /agent/workspaces:
@@ -911,6 +990,188 @@ components:
           description: Empty unless status is ready; otherwise one item per leaderboard window.
           items:
             $ref: '#/components/schemas/ProgressLeaderboardWindow'
+    StreakLeaderboardMetric:
+      type: object
+      additionalProperties: false
+      required:
+        - metricVersion
+        - title
+        - description
+      properties:
+        metricVersion:
+          type: string
+          enum:
+            - streak_days_v1
+        title:
+          type: string
+        description:
+          type: string
+          description: >-
+            Communicates that the metric is current streak days from the public
+            daily snapshot and can trail the user's live personal streak.
+    StreakLeaderboardViewer:
+      type: object
+      additionalProperties: false
+      required:
+        - publicProfileId
+        - displayName
+        - rank
+        - streakDays
+      properties:
+        publicProfileId:
+          $ref: ./components/schemas/UuidString.yaml
+        displayName:
+          type: string
+          enum:
+            - You
+          description: Always "You"; clients render the viewer row using the row kind.
+        rank:
+          type: integer
+          minimum: 1
+        streakDays:
+          type: integer
+          minimum: 0
+    StreakLeaderboardParticipantRow:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - publicProfileId
+        - anonymousDisplayName
+        - streakDays
+        - rank
+      properties:
+        kind:
+          type: string
+          enum:
+            - top
+            - neighbor
+            - viewer
+        publicProfileId:
+          $ref: ./components/schemas/UuidString.yaml
+        anonymousDisplayName:
+          type: string
+          description: Locale-aware anonymous display label derived from the public profile id.
+        friendDisplayName:
+          type: string
+          description: Viewer-private friend label shown only for current opted-in friends.
+        streakDays:
+          type: integer
+          minimum: 0
+        rank:
+          type: integer
+          minimum: 1
+    StreakLeaderboardGapRow:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+      properties:
+        kind:
+          type: string
+          enum:
+            - gap
+    StreakLeaderboardRow:
+      oneOf:
+        - $ref: '#/components/schemas/StreakLeaderboardParticipantRow'
+        - $ref: '#/components/schemas/StreakLeaderboardGapRow'
+    StreakLeaderboardRankingRow:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - publicProfileId
+        - anonymousDisplayName
+        - streakDays
+        - rank
+      properties:
+        kind:
+          type: string
+          enum:
+            - participant
+            - viewer
+        publicProfileId:
+          $ref: ./components/schemas/UuidString.yaml
+        anonymousDisplayName:
+          type: string
+          description: Locale-aware anonymous display label derived from the public profile id.
+        friendDisplayName:
+          type: string
+          description: Viewer-private friend label shown only for current opted-in friends.
+        streakDays:
+          type: integer
+          minimum: 0
+        rank:
+          type: integer
+          minimum: 1
+    StreakLeaderboardReadyResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - metric
+        - snapshotId
+        - snapshotGeneratedAt
+        - asOfUtcDate
+        - nextRefreshAfter
+        - participantCount
+        - viewer
+        - rows
+        - rankingRows
+      properties:
+        status:
+          type: string
+          enum:
+            - ready
+        metric:
+          $ref: '#/components/schemas/StreakLeaderboardMetric'
+        snapshotId:
+          $ref: ./components/schemas/UuidString.yaml
+        snapshotGeneratedAt:
+          type: string
+          format: date-time
+        asOfUtcDate:
+          type: string
+          format: date
+        nextRefreshAfter:
+          type: string
+          format: date-time
+        participantCount:
+          type: integer
+          minimum: 0
+          description: >-
+            Size of the viewer-perspective ranking. Always includes the viewer
+            so the viewer rank is never greater than this value.
+        viewer:
+          $ref: '#/components/schemas/StreakLeaderboardViewer'
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/StreakLeaderboardRow'
+        rankingRows:
+          type: array
+          description: Full frozen viewer-perspective ranking list with contiguous ranks and no gap rows.
+          items:
+            $ref: '#/components/schemas/StreakLeaderboardRankingRow'
+    StreakLeaderboardNonReadyResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - metric
+      properties:
+        status:
+          type: string
+          enum:
+            - linked_account_required
+            - participation_disabled
+            - snapshot_unavailable
+        metric:
+          $ref: '#/components/schemas/StreakLeaderboardMetric'
+    StreakLeaderboardResponse:
+      oneOf:
+        - $ref: '#/components/schemas/StreakLeaderboardReadyResponse'
+        - $ref: '#/components/schemas/StreakLeaderboardNonReadyResponse'
     ErrorResponse:
       type: object
       additionalProperties: true

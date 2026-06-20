@@ -186,6 +186,14 @@ export type ProgressLeaderboardDetails = Readonly<{
   windowCount: number | null;
 }>;
 
+export type StreakLeaderboardDetails = Readonly<{
+  statusCode: number;
+  authTransport: string;
+  status: string | null;
+  metricVersion: string | null;
+  participantCount: number | null;
+}>;
+
 export type AccountDeleteDetails = Readonly<{
   statusCode: number;
   transport: string;
@@ -679,6 +687,8 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"me_progress_series_error", FailureDetailsFor<ProgressSeriesDetails>>
   | EventByAction<"me_progress_leaderboard", ProgressLeaderboardDetails>
   | EventByAction<"me_progress_leaderboard_error", FailureDetailsFor<ProgressLeaderboardDetails>>
+  | EventByAction<"me_progress_streak_leaderboard", StreakLeaderboardDetails>
+  | EventByAction<"me_progress_streak_leaderboard_error", FailureDetailsFor<StreakLeaderboardDetails>>
   | EventByAction<"account_delete", AccountDeleteDetails>
   | EventByAction<"account_delete_error", FailureDetailsFor<AccountDeleteDetails>>
   | EventByAction<"feedback_state", FeedbackStateDetails>
@@ -796,6 +806,10 @@ export type BackendExceptionEvent =
   | (EventByAction<"me_progress_review_schedule_error", FailureDetailsFor<ProgressReviewScheduleDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"me_progress_series_error", FailureDetailsFor<ProgressSeriesDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"me_progress_leaderboard_error", FailureDetailsFor<ProgressLeaderboardDetails>> & Readonly<{ error: Error }>)
+  | (
+    EventByAction<"me_progress_streak_leaderboard_error", FailureDetailsFor<StreakLeaderboardDetails>>
+    & Readonly<{ error: Error }>
+  )
   | (EventByAction<"account_delete_error", FailureDetailsFor<AccountDeleteDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"feedback_state_error", FailureDetailsFor<FeedbackStateDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"feedback_prompt_event_error", FailureDetailsFor<FeedbackPromptEventDetails>> & Readonly<{ error: Error }>)

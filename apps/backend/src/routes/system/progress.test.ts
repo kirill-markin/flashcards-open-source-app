@@ -3,6 +3,7 @@ import test from "node:test";
 import type {
   ProgressLeaderboard,
   ProgressSummaryResponse,
+  StreakLeaderboard,
 } from "../../progress";
 import type { RequestContext } from "../../server/requestContext";
 import {
@@ -10,6 +11,7 @@ import {
   createProgressReviewSchedule,
   createProgressSeries,
   createProgressSummaryResponse,
+  createStreakLeaderboard,
   createSystemTestApp,
 } from "./systemTestSupport";
 
@@ -171,6 +173,58 @@ test("GET /me/progress/leaderboard rejects ApiKey authentication", async () => {
     },
   });
   const response = await app.request("http://localhost/me/progress/leaderboard");
+
+  assert.equal(called, false);
+  assert.equal(response.status, 403);
+  assert.deepEqual(await response.json(), {
+    error: "This endpoint requires Guest, Bearer, or Session authentication",
+    requestId: "request-1",
+    code: "PROGRESS_HUMAN_AUTH_REQUIRED",
+  });
+});
+
+test("GET /me/progress/leaderboards/streak returns the streak leaderboard for Session and Bearer", async () => {
+  const transports: ReadonlyArray<RequestContext["transport"]> = ["session", "bearer"];
+
+  for (const transport of transports) {
+    const app = createSystemTestApp({
+      transport,
+      locale: "es-MX",
+      loadStreakLeaderboardFn: async ({ userId, transport: requestTransport, localeHint }) => {
+        assert.equal(userId, "user-1");
+        assert.equal(requestTransport, transport);
+        assert.equal(localeHint, "es-MX");
+        return createStreakLeaderboard();
+      },
+    });
+    const response = await app.request("http://localhost/me/progress/leaderboards/streak");
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), createStreakLeaderboard());
+  }
+});
+
+test("GET /me/progress/leaderboards/streak returns linked_account_required for Guest", async () => {
+  const app = createSystemTestApp({ transport: "guest" });
+  const response = await app.request("http://localhost/me/progress/leaderboards/streak");
+  const payload = await response.json() as StreakLeaderboard;
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.status, "linked_account_required");
+  assert.equal("rows" in payload, false);
+  assert.equal(payload.metric.metricVersion, "streak_days_v1");
+});
+
+test("GET /me/progress/leaderboards/streak rejects ApiKey authentication", async () => {
+  let called = false;
+  const app = createSystemTestApp({
+    transport: "api_key",
+    loadStreakLeaderboardFn: async () => {
+      called = true;
+      return createStreakLeaderboard();
+    },
+  });
+  const response = await app.request("http://localhost/me/progress/leaderboards/streak");
 
   assert.equal(called, false);
   assert.equal(response.status, 403);

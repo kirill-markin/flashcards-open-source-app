@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import {
   loadProgressLeaderboard,
+  loadStreakLeaderboard,
   loadUserProgressReviewSchedule,
   loadUserProgressSeries,
   loadUserProgressSummary,
@@ -11,6 +12,7 @@ import {
   type ProgressReviewSchedule,
   type ProgressSeries,
   type ProgressSummaryResponse,
+  type StreakLeaderboard,
 } from "../../progress";
 import {
   addBackendBreadcrumb,
@@ -31,6 +33,7 @@ export {
   loadUserProgressReviewSchedule,
   loadUserProgressSeries,
   loadUserProgressSummary,
+  loadStreakLeaderboard,
 };
 
 type ProgressRoutesOptions = Readonly<{
@@ -40,6 +43,7 @@ type ProgressRoutesOptions = Readonly<{
   loadUserProgressSeriesFn: typeof loadUserProgressSeries;
   loadUserProgressSummaryFn: typeof loadUserProgressSummary;
   loadProgressLeaderboardFn: typeof loadProgressLeaderboard;
+  loadStreakLeaderboardFn: typeof loadStreakLeaderboard;
 }>;
 
 export function registerProgressRoutes(
@@ -226,6 +230,8 @@ export function registerProgressRoutes(
     }
   });
 
+  // Legacy rating leaderboard path. A future /me/progress/leaderboards/rating
+  // alias is intentionally outside the streak leaderboard change.
   app.get("/me/progress/leaderboard", async (context) => {
     const { requestContext } = await options.loadRequestContextFromRequestFn(
       context.req.raw,
@@ -270,6 +276,53 @@ export function registerProgressRoutes(
         error,
         { action: "me_progress_leaderboard_error", error: normalizeCaughtError(error), scope, details },
         { action: "me_progress_leaderboard_error", scope, details },
+      );
+      throw error;
+    }
+  });
+
+  app.get("/me/progress/leaderboards/streak", async (context) => {
+    const { requestContext } = await options.loadRequestContextFromRequestFn(
+      context.req.raw,
+      options.allowedOrigins,
+    );
+    const requestId = context.get("requestId");
+
+    try {
+      assertProgressHumanTransport(requestContext.transport);
+
+      const leaderboard = await options.loadStreakLeaderboardFn({
+        userId: requestContext.userId,
+        transport: requestContext.transport,
+        localeHint: requestContext.locale,
+      });
+
+      addBackendBreadcrumb({
+        action: "me_progress_streak_leaderboard",
+        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId),
+        details: {
+          statusCode: 200,
+          authTransport: requestContext.transport,
+          status: leaderboard.status,
+          metricVersion: leaderboard.metric.metricVersion,
+          participantCount: leaderboard.status === "ready" ? leaderboard.participantCount : null,
+        },
+      });
+
+      return context.json(leaderboard satisfies StreakLeaderboard);
+    } catch (error) {
+      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId);
+      const details = {
+        authTransport: requestContext.transport,
+        status: null,
+        metricVersion: null,
+        participantCount: null,
+        ...createBackendFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "me_progress_streak_leaderboard_error", error: normalizeCaughtError(error), scope, details },
+        { action: "me_progress_streak_leaderboard_error", scope, details },
       );
       throw error;
     }

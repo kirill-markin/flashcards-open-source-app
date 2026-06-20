@@ -9,6 +9,7 @@ import type {
 import type { PublicProfile } from "../../community/publicProfiles";
 import type {
   loadProgressLeaderboard,
+  loadStreakLeaderboard,
   loadUserProgressReviewSchedule,
   loadUserProgressSeries,
   loadUserProgressSummary,
@@ -22,6 +23,7 @@ export type SystemRoutesOptions = Readonly<{
   loadUserProgressSeriesFn?: typeof loadUserProgressSeries;
   loadUserProgressSummaryFn?: typeof loadUserProgressSummary;
   loadProgressLeaderboardFn?: typeof loadProgressLeaderboard;
+  loadStreakLeaderboardFn?: typeof loadStreakLeaderboard;
   updateAccountPreferencesFn?: UpdateAccountPreferencesFn;
   ensurePublicProfileForUserFn?: EnsurePublicProfileForUserFn;
   updateLeaderboardParticipationFn?: UpdateLeaderboardParticipationFn;

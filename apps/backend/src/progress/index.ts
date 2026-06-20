@@ -35,6 +35,12 @@ export {
   type ProgressLeaderboard,
   type ProgressLeaderboardRequest,
 } from "../community/leaderboard/progressLeaderboard";
+export {
+  loadStreakLeaderboard,
+  loadStreakLeaderboardInExecutor,
+  type StreakLeaderboard,
+  type StreakLeaderboardRequest,
+} from "../community/leaderboard/streakLeaderboard";
 
 export type ProgressSummaryInput = Readonly<{
   timeZone: string;
