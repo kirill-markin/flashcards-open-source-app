@@ -58,6 +58,7 @@ export type ReviewHistoryRow = Readonly<{
   rating: number;
   reviewed_at_client: TimestampValue;
   reviewed_at_server: TimestampValue;
+  reviewed_time_zone: string | null;
   review_sequence: string | number;
 }>;
 

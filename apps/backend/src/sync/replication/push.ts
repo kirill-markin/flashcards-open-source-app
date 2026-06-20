@@ -234,6 +234,7 @@ export async function processOperationInExecutor(
         rating: operation.payload.rating,
         reviewedAtClient: normalizedReviewedAtClient,
         reviewedAtServer: new Date().toISOString(),
+        reviewedTimeZone: operation.payload.reviewedTimeZone,
       },
       operation.operationId,
       resolveReviewedBy,

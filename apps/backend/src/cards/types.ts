@@ -61,6 +61,7 @@ export type ReviewHistoryRow = Readonly<{
   rating: number;
   reviewed_at_client: TimestampValue;
   reviewed_at_server: TimestampValue;
+  reviewed_time_zone: string | null;
 }>;
 
 export type DeckSummaryRow = Readonly<{
@@ -177,6 +178,7 @@ export type SubmitReviewInput = Readonly<{
   cardId: string;
   rating: ReviewRating;
   reviewedAtClient: string;
+  reviewedTimeZone?: string;
   reviewEventId?: string;
   clientEventId?: string;
 }>;
@@ -195,6 +197,7 @@ export type ReviewEvent = Readonly<{
   rating: number;
   reviewedAtClient: string;
   reviewedAtServer: string;
+  reviewedTimeZone?: string;
 }>;
 
 export type ReviewHistoryItem = ReviewEvent;

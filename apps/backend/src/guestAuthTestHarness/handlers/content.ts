@@ -282,11 +282,43 @@ export function handleContentExecutorQuery<Row extends pg.QueryResultRow>(
       rating: Number(params[5]),
       reviewed_at_client: String(params[6]),
       reviewed_at_server: String(params[7]),
+      reviewed_time_zone: null,
+      reviewed_local_date: null,
+      reviewed_time_zone_source: null,
       // VALUES (..., security.current_user_id()) — immutable authorship from the scope.
       reviewed_by_user_id: typeof state.currentUserId === "string" ? state.currentUserId : null,
     };
     state.reviewEvents.push(insertedReviewEvent);
     return createQueryResult<Row>([createReviewEventQueryRow(insertedReviewEvent) as unknown as Row]);
+  }
+
+  if (
+    text.startsWith("UPDATE content.review_events")
+    && text.includes("SET reviewed_time_zone = $2")
+  ) {
+    const reviewEventId = String(params[0]);
+    const reviewedByUserId = String(params[4]);
+    const reviewEventIndex = state.reviewEvents.findIndex((reviewEvent) => (
+      reviewEvent.review_event_id === reviewEventId
+      && reviewEvent.reviewed_by_user_id === reviewedByUserId
+    ));
+    if (reviewEventIndex === -1) {
+      return createQueryResult<Row>([]);
+    }
+
+    const currentReviewEvent = state.reviewEvents[reviewEventIndex];
+    if (currentReviewEvent === undefined) {
+      return createQueryResult<Row>([]);
+    }
+
+    const updatedReviewEvent: ReviewEventState = {
+      ...currentReviewEvent,
+      reviewed_time_zone: String(params[1]),
+      reviewed_local_date: String(params[2]),
+      reviewed_time_zone_source: String(params[3]),
+    };
+    state.reviewEvents[reviewEventIndex] = updatedReviewEvent;
+    return createQueryResult<Row>([createReviewEventQueryRow(updatedReviewEvent) as unknown as Row]);
   }
 
   return null;

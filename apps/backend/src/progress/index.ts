@@ -14,6 +14,10 @@ import {
   type StreakDayState,
   type StreakFreeze,
 } from "./streakFreeze";
+import {
+  formatDateAsTimeZoneLocalDate,
+  validateIanaTimeZone,
+} from "./timeZone";
 
 // The compact Progress-tab community leaderboard lives in the community module
 // (next to the snapshot writer) but is re-exported here so every /me/progress/*
@@ -191,21 +195,19 @@ function throwProgressValidationError(message: string, code: string): never {
 }
 
 function validateTimeZone(value: string): string {
-  const trimmedValue = value.trim();
-  if (trimmedValue === "") {
+  const validation = validateIanaTimeZone(value);
+  if (validation.ok) {
+    return validation.timeZone;
+  }
+
+  if (validation.issue === "required") {
     throwProgressValidationError("timeZone is required", "PROGRESS_TIMEZONE_REQUIRED");
   }
 
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone: trimmedValue });
-  } catch {
-    throwProgressValidationError(
-      "timeZone must be a valid IANA timezone",
-      "PROGRESS_TIMEZONE_INVALID",
-    );
-  }
-
-  return trimmedValue;
+  throwProgressValidationError(
+    "timeZone must be a valid IANA timezone",
+    "PROGRESS_TIMEZONE_INVALID",
+  );
 }
 
 function validateProgressSummaryInput(input: ProgressSummaryInput): ProgressSummaryInput {
@@ -264,33 +266,6 @@ function createUtcDateFromLocalDate(value: string): Date {
 
 function formatUtcDateAsLocalDate(value: Date): string {
   return value.toISOString().slice(0, 10);
-}
-
-function getRequiredDatePart(
-  parts: ReadonlyArray<Intl.DateTimeFormatPart>,
-  partType: "year" | "month" | "day",
-): string {
-  const value = parts.find((part) => part.type === partType)?.value;
-  if (value === undefined || value === "") {
-    throw new Error(`Timezone date is missing ${partType}`);
-  }
-
-  return value;
-}
-
-function formatDateAsTimeZoneLocalDate(value: Date, timeZone: string): string {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const parts = formatter.formatToParts(value);
-  const year = getRequiredDatePart(parts, "year");
-  const month = getRequiredDatePart(parts, "month");
-  const day = getRequiredDatePart(parts, "day");
-
-  return `${year}-${month}-${day}`;
 }
 
 function shiftLocalDate(value: string, offsetDays: number): string {

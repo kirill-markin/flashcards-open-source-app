@@ -215,6 +215,7 @@ function createReviewEventSnapshot(
     rating: reviewEvent.rating,
     reviewedAtClient: toIsoString(reviewEvent.reviewedAtClient),
     reviewedAtServer: toIsoString(reviewEvent.reviewedAtServer),
+    reviewedTimeZone: reviewEvent.reviewedTimeZone ?? undefined,
   };
 }
 

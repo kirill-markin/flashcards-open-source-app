@@ -342,6 +342,7 @@ export function isGuestUpgradeMergeOnlyExecutorQuery(text: string): boolean {
     || text === "SELECT workspace_id FROM sync.find_conflicting_workspace_id($1, $2) LIMIT 1"
     || text.includes("FROM sync.hot_changes")
     || text.includes("INSERT INTO sync.hot_changes")
+    || text === "SELECT progress_time_zone FROM org.user_settings WHERE user_id = $1 LIMIT 1"
     || text.startsWith("DELETE FROM content.")
     || text.startsWith("INSERT INTO content.")
     || text.startsWith("UPDATE content.")
