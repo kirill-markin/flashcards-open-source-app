@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.app.navigation.settings
 
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
@@ -155,6 +156,8 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
 
     composable(route = SettingsAccountDangerZoneDestination.route) {
         val context = LocalContext.current
+        val technicalErrorDialogTitle = stringResource(id = R.string.technical_error_dialog_default_title)
+        val technicalErrorDialogMessage = stringResource(id = R.string.technical_error_dialog_default_message)
         val accountDangerZoneViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.account.AccountDangerZoneViewModel>(
             factory = createAccountDangerZoneViewModelFactory(
                 cloudAccountRepository = appGraph.cloudAccountRepository,
@@ -176,8 +179,8 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
             onShowTechnicalDetails = { technicalDetails, reportId ->
                 appGraph.showTechnicalErrorDialog(
                     reportId = reportId,
-                    title = context.getString(R.string.technical_error_dialog_default_title),
-                    message = context.getString(R.string.technical_error_dialog_default_message),
+                    title = technicalErrorDialogTitle,
+                    message = technicalErrorDialogMessage,
                     technicalDetails = technicalDetails
                 )
             },

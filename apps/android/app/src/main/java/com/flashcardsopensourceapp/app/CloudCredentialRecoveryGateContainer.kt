@@ -40,6 +40,12 @@ internal fun CloudCredentialRecoveryGateContainer(
     val eraseFailedMessage: String = stringResource(
         SettingsR.string.settings_cloud_recovery_gate_erase_failed
     )
+    val technicalErrorDialogTitle: String = stringResource(
+        R.string.technical_error_dialog_default_title
+    )
+    val technicalErrorDialogMessage: String = stringResource(
+        R.string.technical_error_dialog_default_message
+    )
     val signInViewModel: CloudSignInViewModel = viewModel(
         viewModelStoreOwner = appGraph.cloudCredentialRecoveryGateViewModelStoreOwner,
         key = "cloud_credential_recovery_sign_in",
@@ -152,8 +158,8 @@ internal fun CloudCredentialRecoveryGateContainer(
         onShowTechnicalDetails = { technicalDetails, reportId ->
             appGraph.showTechnicalErrorDialog(
                 reportId = reportId,
-                title = context.getString(R.string.technical_error_dialog_default_title),
-                message = context.getString(R.string.technical_error_dialog_default_message),
+                title = technicalErrorDialogTitle,
+                message = technicalErrorDialogMessage,
                 technicalDetails = technicalDetails
             )
         },
