@@ -138,6 +138,29 @@ function isRealClientActivityFact(fact: StoredFact): boolean {
     && isNonDemoEmailOrUnknown(fact.reviewedByEmail);
 }
 
+function isEligibleLeaderboardProfile(
+  state: MutableLeaderboardStoreState,
+  profile: StoredProfile,
+): boolean {
+  if (!profile.participationEnabled) {
+    return false;
+  }
+
+  const user = state.usersById.get(profile.userId);
+  return user !== undefined && isNonDemoEmailOrUnknown(user.email);
+}
+
+function isAllTimeSnapshotFact(fact: StoredFact, metricVersion: string, asOfMs: number): boolean {
+  if (fact.metricVersion !== metricVersion || !fact.isCountable) {
+    return false;
+  }
+  if (!isRealClientActivityFact(fact)) {
+    return false;
+  }
+
+  return Date.parse(fact.reviewedAtClient) <= asOfMs;
+}
+
 function computeEligibleEntries(
   state: MutableLeaderboardStoreState,
   call: RefreshCall,
@@ -147,41 +170,41 @@ function computeEligibleEntries(
     ? null
     : asOfMs - call.lowerBoundHours * MILLISECONDS_PER_HOUR;
 
-  const countByProfileId = new Map<string, number>();
+  const eligibleProfileIds = new Set<string>();
   for (const profile of state.profilesById.values()) {
-    if (!profile.participationEnabled) {
+    if (isEligibleLeaderboardProfile(state, profile)) {
+      eligibleProfileIds.add(profile.publicProfileId);
+    }
+  }
+
+  const allTimeParticipantIds = new Set<string>();
+  for (const fact of state.facts) {
+    if (!isAllTimeSnapshotFact(fact, call.metricVersion, asOfMs)) {
       continue;
     }
 
-    const user = state.usersById.get(profile.userId);
-    if (user === undefined || !isNonDemoEmailOrUnknown(user.email)) {
-      continue;
+    if (eligibleProfileIds.has(fact.publicProfileId)) {
+      allTimeParticipantIds.add(fact.publicProfileId);
     }
+  }
 
-    countByProfileId.set(profile.publicProfileId, 0);
+  const countByProfileId = new Map<string, number>();
+  for (const publicProfileId of allTimeParticipantIds) {
+    countByProfileId.set(publicProfileId, 0);
   }
 
   for (const fact of state.facts) {
-    if (fact.metricVersion !== call.metricVersion || !fact.isCountable) {
-      continue;
-    }
-    if (!isRealClientActivityFact(fact)) {
+    if (!isAllTimeSnapshotFact(fact, call.metricVersion, asOfMs)) {
       continue;
     }
 
     const reviewedAtMs = Date.parse(fact.reviewedAtClient);
-    if (reviewedAtMs > asOfMs) {
-      continue;
-    }
     if (lowerBoundMs !== null && reviewedAtMs <= lowerBoundMs) {
       continue;
     }
-
-    const profile = state.profilesById.get(fact.publicProfileId);
-    if (profile === undefined || !countByProfileId.has(profile.publicProfileId)) {
+    if (!countByProfileId.has(fact.publicProfileId)) {
       continue;
     }
-
     countByProfileId.set(fact.publicProfileId, (countByProfileId.get(fact.publicProfileId) ?? 0) + 1);
   }
 
@@ -260,6 +283,7 @@ const PROFILE_C = "00000000-0000-4000-8000-00000000000c";
 const PROFILE_D = "00000000-0000-4000-8000-00000000000d";
 const PROFILE_E = "00000000-0000-4000-8000-00000000000e";
 const PROFILE_F = "00000000-0000-4000-8000-00000000000f";
+const PROFILE_G = "00000000-0000-4000-8000-000000000010";
 
 // now 14:30 truncates to as_of 14:00 on the same UTC hour.
 const NOW = new Date("2026-06-10T14:30:00.000Z");
@@ -308,6 +332,7 @@ function seedLeaderboardFixture(state: MutableLeaderboardStoreState): void {
   state.profilesById.set(PROFILE_D, { publicProfileId: PROFILE_D, userId: "user-d", participationEnabled: true });
   state.profilesById.set(PROFILE_E, { publicProfileId: PROFILE_E, userId: "user-e", participationEnabled: true });
   state.profilesById.set(PROFILE_F, { publicProfileId: PROFILE_F, userId: "user-f", participationEnabled: true });
+  state.profilesById.set(PROFILE_G, { publicProfileId: PROFILE_G, userId: "user-g", participationEnabled: true });
 
   state.usersById.set("user-a", { userId: "user-a", email: "a@real.test" });
   state.usersById.set("user-b", { userId: "user-b", email: "b@real.test" });
@@ -315,6 +340,7 @@ function seedLeaderboardFixture(state: MutableLeaderboardStoreState): void {
   state.usersById.set("user-d", { userId: "user-d", email: null });
   state.usersById.set("user-e", { userId: "user-e", email: "demo@example.com" });
   state.usersById.set("user-f", { userId: "user-f", email: "f@real.test" });
+  state.usersById.set("user-g", { userId: "user-g", email: "g@real.test" });
 
   const metricVersion = LEADERBOARD_SNAPSHOT_METRIC_VERSION;
   state.facts.push(
@@ -340,7 +366,11 @@ function seedLeaderboardFixture(state: MutableLeaderboardStoreState): void {
     createWebClientFact(PROFILE_D, metricVersion, true, "2026-06-10T13:00:00.000Z", null),
     // profile-e: demo example.com account.
     createWebClientFact(PROFILE_E, metricVersion, true, "2026-06-10T13:00:00.000Z", "demo@example.com"),
-    // profile-f: again and system facts do not count, but the linked opted-in profile still appears with zero.
+    // profile-f: old real client activity gives all-time participation, but zero in rolling windows.
+    createWebClientFact(PROFILE_F, metricVersion, true, "2026-04-01T13:00:00.000Z", "f@real.test"),
+    // profile-g: again and system facts do not count, so the opted-in non-demo profile is excluded.
+    createWebClientFact(PROFILE_G, metricVersion, false, "2026-06-10T13:00:00.000Z", "g@real.test"),
+    createSystemFact(PROFILE_G, metricVersion, true, "2026-06-10T13:15:00.000Z", "g@real.test"),
     createWebClientFact(PROFILE_F, metricVersion, false, "2026-06-10T13:00:00.000Z", "f@real.test"),
     createSystemFact(PROFILE_F, metricVersion, true, "2026-06-10T13:15:00.000Z", "f@real.test"),
   );
@@ -421,7 +451,7 @@ test("generateLeaderboardSnapshots refreshes every window once with the matching
   }
 });
 
-test("last_24_hours snapshot includes opted-in public profiles even with zero countable reviews", async () => {
+test("last_24_hours snapshot includes all-time-active participants even with zero window reviews", async () => {
   const state = createLeaderboardStoreState();
   seedLeaderboardFixture(state);
 
@@ -430,7 +460,7 @@ test("last_24_hours snapshot includes opted-in public profiles even with zero co
   // profile-b has 3 countable reviews in 24h; profile-a has 2 (1h-before plus the as_of
   // boundary fact); the again fact, the 25h fact, and the future fact are all excluded.
   // profile-d is an unlinked guest and still appears as an anonymized participant.
-  // profile-f is linked and opted in, so it appears with zero real-client countable reviews.
+  // profile-f has all-time real client activity, so it appears with zero reviews in this window.
   assert.deepEqual(entriesForWindow(state, "last_24_hours"), [
     { publicProfileId: PROFILE_B, qualifiedReviewCount: 3, baseSortPosition: 1 },
     { publicProfileId: PROFILE_A, qualifiedReviewCount: 2, baseSortPosition: 2 },
@@ -451,17 +481,17 @@ test("all_time snapshot includes older reviews and breaks count ties by public_p
     { publicProfileId: PROFILE_A, qualifiedReviewCount: 3, baseSortPosition: 1 },
     { publicProfileId: PROFILE_B, qualifiedReviewCount: 3, baseSortPosition: 2 },
     { publicProfileId: PROFILE_D, qualifiedReviewCount: 1, baseSortPosition: 3 },
-    { publicProfileId: PROFILE_F, qualifiedReviewCount: 0, baseSortPosition: 4 },
+    { publicProfileId: PROFILE_F, qualifiedReviewCount: 1, baseSortPosition: 4 },
   ]);
 });
 
-test("opted-out and demo profiles are excluded while unlinked guests participate", async () => {
+test("opted-out, demo, and all-time-zero profiles are excluded while unlinked guests participate", async () => {
   const state = createLeaderboardStoreState();
   seedLeaderboardFixture(state);
 
   await generateWithFake(state, LEADERBOARD_SNAPSHOT_METRIC_VERSION, NOW);
 
-  const excludedProfileIds = new Set([PROFILE_C, PROFILE_E]);
+  const excludedProfileIds = new Set([PROFILE_C, PROFILE_E, PROFILE_G]);
   for (const window of LEADERBOARD_WINDOWS) {
     const profileIdsInWindow = entriesForWindow(state, window.windowKey).map((entry) => entry.publicProfileId);
     for (const excludedProfileId of excludedProfileIds) {
@@ -673,5 +703,31 @@ test("0062 migration includes unlinked guest public profiles in snapshots", () =
   assert.match(sql, /profiles\.leaderboard_participation_enabled = TRUE/);
   assert.match(sql, /user_settings\.email IS NULL OR LOWER\(btrim\(user_settings\.email\)\) NOT LIKE '%@example\.com'/);
   assert.equal(/user_settings\.email IS NOT NULL/.test(sql), false);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION community\.refresh_leaderboard_snapshot\(TEXT, TEXT, INTEGER, TIMESTAMPTZ, TIMESTAMPTZ\) TO backend_app/);
+});
+
+test("0071 migration limits snapshots to all-time-active participants while preserving zero window counts", () => {
+  const migrationPath = resolve(
+    process.cwd(),
+    "../../db/migrations/0071_progress_leaderboard_all_time_participants.sql",
+  );
+  const sql = readFileSync(migrationPath, "utf8").replace(/\s+/g, " ");
+
+  assert.match(sql, /CREATE OR REPLACE FUNCTION community\.refresh_leaderboard_snapshot/);
+  assert.match(sql, /WITH real_countable_facts AS \( SELECT facts\.public_profile_id, facts\.reviewed_at_client FROM community\.public_review_activity_facts AS facts/);
+  assert.match(sql, /INNER JOIN content\.review_events AS review_events/);
+  assert.match(sql, /INNER JOIN sync\.workspace_replicas AS workspace_replicas/);
+  assert.match(sql, /facts\.metric_version = p_metric_version/);
+  assert.match(sql, /facts\.is_countable = TRUE/);
+  assert.match(sql, /facts\.reviewed_at_client <= p_as_of_server_hour/);
+  assert.match(sql, /workspace_replicas\.actor_kind = 'client_installation'/);
+  assert.match(sql, /workspace_replicas\.platform IN \('web', 'android', 'ios'\)/);
+  assert.match(sql, /fact_user_settings\.email IS NULL OR LOWER\(btrim\(fact_user_settings\.email\)\) NOT LIKE '%@example\.com'/);
+  assert.match(sql, /all_time_participants AS \( SELECT DISTINCT real_countable_facts\.public_profile_id FROM real_countable_facts \)/);
+  assert.match(sql, /INNER JOIN all_time_participants ON all_time_participants\.public_profile_id = profiles\.public_profile_id/);
+  assert.match(sql, /LEFT JOIN real_countable_facts AS window_facts ON window_facts\.public_profile_id = profiles\.public_profile_id AND \( p_window_lower_bound_hours IS NULL OR window_facts\.reviewed_at_client > p_as_of_server_hour - \(p_window_lower_bound_hours \* interval '1 hour'\) \)/);
+  assert.match(sql, /COUNT\(window_facts\.public_profile_id\)::int AS qualified_review_count/);
+  assert.match(sql, /profiles\.leaderboard_participation_enabled = TRUE/);
+  assert.match(sql, /user_settings\.email IS NULL OR LOWER\(btrim\(user_settings\.email\)\) NOT LIKE '%@example\.com'/);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION community\.refresh_leaderboard_snapshot\(TEXT, TEXT, INTEGER, TIMESTAMPTZ, TIMESTAMPTZ\) TO backend_app/);
 });
