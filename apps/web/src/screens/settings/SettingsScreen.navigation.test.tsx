@@ -5,10 +5,12 @@ import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppDataContextValue } from "../../appData";
 import { AppErrorDialogProvider } from "../../appError/AppErrorContext";
+import { AIChatPreferencesProvider } from "../../chat/preferences/AIChatPreferencesContext";
 import { I18nProvider } from "../../i18n";
 import {
   accountDangerZoneRoute,
   accountStatusRoute,
+  settingsAIChatSuggestionsRoute,
   settingsCurrentWorkspaceRoute,
   settingsFeedbackRoute,
   settingsLanguageRoute,
@@ -60,6 +62,31 @@ type SettingsScreenTestHarness = Readonly<{
 
 function throwNotUsed(functionName: string): never {
   throw new Error(`${functionName} was not expected in this test`);
+}
+
+function createStorageMock(): Storage {
+  const state = new Map<string, string>();
+
+  return {
+    get length(): number {
+      return state.size;
+    },
+    clear(): void {
+      state.clear();
+    },
+    getItem(key: string): string | null {
+      return state.get(key) ?? null;
+    },
+    key(index: number): string | null {
+      return [...state.keys()][index] ?? null;
+    },
+    removeItem(key: string): void {
+      state.delete(key);
+    },
+    setItem(key: string, value: string): void {
+      state.set(key, value);
+    },
+  };
 }
 
 function createAppData(): Mutable<AppDataContextValue> {
@@ -165,6 +192,10 @@ function setupSettingsScreenTest(): SettingsScreenTestHarness {
     isTestModeEnabledRef.current = false;
     useAppDataMock.mockReset();
     useAppDataMock.mockReturnValue(createAppData());
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: createStorageMock(),
+    });
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
@@ -199,10 +230,12 @@ function setupSettingsScreenTest(): SettingsScreenTestHarness {
       currentRoot.render(
         <I18nProvider>
           <AppErrorDialogProvider>
-            <MemoryRouter initialEntries={["/settings"]}>
-              <SettingsScreen />
-              <LocationProbe />
-            </MemoryRouter>
+            <AIChatPreferencesProvider>
+              <MemoryRouter initialEntries={["/settings"]}>
+                <SettingsScreen />
+                <LocationProbe />
+              </MemoryRouter>
+            </AIChatPreferencesProvider>
           </AppErrorDialogProvider>
         </I18nProvider>,
       );
@@ -295,6 +328,7 @@ describe("SettingsScreen navigation", () => {
       "settings-row-current-workspace",
       "settings-row-review-reminders",
       "settings-row-review-animations",
+      "settings-row-ai-chat-suggestions",
       "settings-row-leaderboard-participation",
       "settings-row-language",
       "settings-row-access",
@@ -317,7 +351,8 @@ describe("SettingsScreen navigation", () => {
     expect(getContainer().querySelector("[data-testid='settings-invite-open']")?.textContent).toBe("Invite friend");
     expect(rowIndex("settings-invite-open")).toBeLessThan(rowIndex("settings-row-account-status"));
     expect(rowIndex("settings-row-review-reminders")).toBeLessThan(rowIndex("settings-row-review-animations"));
-    expect(rowIndex("settings-row-review-animations")).toBeLessThan(rowIndex("settings-row-leaderboard-participation"));
+    expect(rowIndex("settings-row-review-animations")).toBeLessThan(rowIndex("settings-row-ai-chat-suggestions"));
+    expect(rowIndex("settings-row-ai-chat-suggestions")).toBeLessThan(rowIndex("settings-row-leaderboard-participation"));
     expect(rowIndex("settings-row-leaderboard-participation")).toBeLessThan(rowIndex("settings-row-language"));
     expect(rowIndex("settings-row-support")).toBeLessThan(rowIndex("settings-row-legal"));
     expect(getContainer().querySelector("[data-testid='settings-row-test']")).toBeNull();
@@ -366,6 +401,9 @@ describe("SettingsScreen navigation", () => {
 
     await clickRow("settings-row-review-animations");
     expect(currentPathname()).toBe(settingsReviewAnimationsRoute);
+
+    await clickRow("settings-row-ai-chat-suggestions");
+    expect(currentPathname()).toBe(settingsAIChatSuggestionsRoute);
 
     await clickRow("settings-row-leaderboard-participation");
     expect(currentPathname()).toBe(settingsLeaderboardParticipationRoute);

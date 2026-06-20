@@ -517,6 +517,12 @@ export const jaCatalog = {
     toggleTitle: "カード評価後にアニメーションを表示",
     toggleDescription: "復習時のリアクションアニメーションだけに適用されます。",
   },
+  aiChatSuggestionsSettings: {
+    title: "AIチャットの提案",
+    subtitle: "AIチャット入力欄に表示する提案プロンプトを管理します。",
+    toggleTitle: "AIチャット入力欄に提案を表示",
+    toggleDescription: "チャットが待機中で準備できているとき、入力欄の上に提案プロンプトが表示されます。",
+  },
   leaderboardParticipationSettings: {
     title: "リーダーボード参加",
     subtitle: "コミュニティランキングに表示されるか、ランキングを見られるかを管理します。",

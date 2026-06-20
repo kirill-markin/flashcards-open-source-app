@@ -517,6 +517,12 @@ const arCatalog: TranslationCatalog = {
     toggleTitle: "إظهار الرسوم المتحركة بعد تقييم بطاقة",
     toggleDescription: "ينطبق هذا فقط على رسوم التفاعل المتحركة في المراجعة.",
   },
+  aiChatSuggestionsSettings: {
+    title: "اقتراحات دردشة الذكاء الاصطناعي",
+    subtitle: "تحكم في اقتراحات المطالبات في حقل كتابة دردشة الذكاء الاصطناعي.",
+    toggleTitle: "عرض الاقتراحات في حقل كتابة دردشة الذكاء الاصطناعي",
+    toggleDescription: "تظهر المطالبات المقترحة أعلى حقل الكتابة عندما تكون الدردشة خاملة وجاهزة.",
+  },
   leaderboardParticipationSettings: {
     title: "المشاركة في لوحة الصدارة",
     subtitle: "تحكم في ظهورك في تصنيفات المجتمع وإمكانية رؤيتها.",

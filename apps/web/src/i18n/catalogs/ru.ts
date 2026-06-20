@@ -517,6 +517,12 @@ export const ruCatalog = {
     toggleTitle: "Показывать анимации после оценки карточки",
     toggleDescription: "Влияет только на анимации реакции при повторении.",
   },
+  aiChatSuggestionsSettings: {
+    title: "Подсказки AI-чата",
+    subtitle: "Управляйте подсказками над полем ввода AI-чата.",
+    toggleTitle: "Показывать подсказки в поле ввода AI-чата",
+    toggleDescription: "Подсказки появляются над полем ввода, когда чат свободен и готов.",
+  },
   leaderboardParticipationSettings: {
     title: "Участие в таблице лидеров",
     subtitle: "Управляйте тем, показывают ли вас в рейтинге сообщества и видите ли вы его.",

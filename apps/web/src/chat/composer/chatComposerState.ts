@@ -116,6 +116,7 @@ export function getCanSendPendingMessage(params: Readonly<{
 }
 
 export function getCanShowComposerSuggestions(params: Readonly<{
+  areComposerSuggestionsEnabled: boolean;
   composerAction: ChatComposerAction;
   composerSuggestionsCount: number;
   dictationState: ChatDictationState;
@@ -128,6 +129,7 @@ export function getCanShowComposerSuggestions(params: Readonly<{
   sendPhase: ChatComposerSendPhase;
 }>): boolean {
   const {
+    areComposerSuggestionsEnabled,
     composerAction,
     composerSuggestionsCount,
     dictationState,
@@ -140,7 +142,8 @@ export function getCanShowComposerSuggestions(params: Readonly<{
     sendPhase,
   } = params;
 
-  return isHistoryLoaded
+  return areComposerSuggestionsEnabled
+    && isHistoryLoaded
     && composerAction === "send"
     && sendPhase === "idle"
     && !isAssistantRunActive

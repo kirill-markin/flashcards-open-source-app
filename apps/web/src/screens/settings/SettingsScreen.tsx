@@ -17,6 +17,7 @@ import {
   accountStatusRoute,
   accountSupportRoute,
   settingsAccessRoute,
+  settingsAIChatSuggestionsRoute,
   settingsCurrentWorkspaceRoute,
   settingsDecksRoute,
   settingsDeleteCurrentWorkspaceRoute,
@@ -33,6 +34,7 @@ import {
   settingsTagsRoute,
   settingsTestRoute,
 } from "../../routes";
+import { useAIChatPreferences } from "../../chat/preferences/AIChatPreferencesContext";
 import { useTestMode } from "../../testMode";
 import { FriendInviteCreateDialog } from "../friends/FriendInviteCreateDialog";
 import {
@@ -78,6 +80,7 @@ export function SettingsScreen(): ReactElement {
     workspaceSettings,
   } = useAppData();
   const { localePreference, t } = useI18n();
+  const { aiChatComposerSuggestionsEnabled } = useAIChatPreferences();
   const { isTestModeEnabled } = useTestMode();
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState<boolean>(false);
   const currentWorkspaceName = activeWorkspace?.name ?? t("common.unavailable");
@@ -152,6 +155,13 @@ export function SettingsScreen(): ReactElement {
             value={session?.preferences.reviewReactionAnimationsEnabled === false ? t("common.off") : t("common.on")}
             to={settingsReviewAnimationsRoute}
             testId="settings-row-review-animations"
+          />
+          <SettingsNavigationCard
+            title={t("aiChatSuggestionsSettings.title")}
+            description={t("aiChatSuggestionsSettings.subtitle")}
+            value={aiChatComposerSuggestionsEnabled ? t("common.on") : t("common.off")}
+            to={settingsAIChatSuggestionsRoute}
+            testId="settings-row-ai-chat-suggestions"
           />
           <SettingsNavigationCard
             title={t("leaderboardParticipationSettings.title")}

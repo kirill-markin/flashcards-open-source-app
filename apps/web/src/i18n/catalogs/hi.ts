@@ -517,6 +517,12 @@ const hiCatalog: TranslationCatalog = {
     toggleTitle: "कार्ड रेट करने के बाद एनिमेशन दिखाएँ",
     toggleDescription: "यह केवल रिव्यू रिएक्शन एनिमेशन को प्रभावित करता है।",
   },
+  aiChatSuggestionsSettings: {
+    title: "AI चैट सुझाव",
+    subtitle: "AI चैट कम्पोज़र में दिखने वाले सुझाए गए प्रॉम्प्ट नियंत्रित करें।",
+    toggleTitle: "AI चैट कम्पोज़र में सुझाव दिखाएँ",
+    toggleDescription: "जब चैट खाली और तैयार होती है, तो सुझाए गए प्रॉम्प्ट कम्पोज़र के ऊपर दिखते हैं।",
+  },
   leaderboardParticipationSettings: {
     title: "लीडरबोर्ड भागीदारी",
     subtitle: "नियंत्रित करें कि आप समुदाय रैंकिंग में दिखें और उन्हें देख सकें या नहीं.",

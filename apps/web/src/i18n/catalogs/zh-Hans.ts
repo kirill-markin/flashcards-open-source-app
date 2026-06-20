@@ -517,6 +517,12 @@ export const zhHansCatalog = {
     toggleTitle: "评分后显示动画",
     toggleDescription: "只影响复习评分后的反应动画。",
   },
+  aiChatSuggestionsSettings: {
+    title: "AI 聊天建议",
+    subtitle: "控制 AI 聊天输入框中的建议提示。",
+    toggleTitle: "在 AI 聊天输入框中显示建议",
+    toggleDescription: "当聊天处于空闲且就绪状态时，建议提示会显示在输入框上方。",
+  },
   leaderboardParticipationSettings: {
     title: "排行榜参与",
     subtitle: "控制你是否出现在社区排名中，以及是否可以查看排名。",

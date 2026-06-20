@@ -46,6 +46,7 @@ import {
   reviewRoute,
   settingsAccessRoute,
   settingsAccessDetailRoutePattern,
+  settingsAIChatSuggestionsRoute,
   settingsCurrentWorkspaceRoute,
   settingsDeckNewRoute,
   settingsDecksRoute,
@@ -67,6 +68,7 @@ import {
 } from "./routes";
 import { isWorkspaceManagementLocked } from "./workspaceManagement";
 import { TestModeProvider, useTestMode } from "./testMode";
+import { AIChatPreferencesProvider } from "./chat/preferences/AIChatPreferencesContext";
 import { CardFormScreen } from "./screens/cards/form/CardFormScreen";
 import { CardsScreen } from "./screens/cards/list/CardsScreen";
 import { FriendInviteScreen } from "./screens/invite/FriendInviteScreen";
@@ -130,6 +132,9 @@ const LanguageSettingsScreen = lazy(async () => import("./screens/settings/Langu
 })));
 const LeaderboardParticipationSettingsScreen = lazy(async () => import("./screens/settings/LeaderboardParticipationSettingsScreen").then((module) => ({
   default: module.LeaderboardParticipationSettingsScreen,
+})));
+const AIChatSuggestionsSettingsScreen = lazy(async () => import("./screens/settings/AIChatSuggestionsSettingsScreen").then((module) => ({
+  default: module.AIChatSuggestionsSettingsScreen,
 })));
 const SettingsScreen = lazy(async () => import("./screens/settings/SettingsScreen").then((module) => ({
   default: module.SettingsScreen,
@@ -733,6 +738,7 @@ export function RoutedShell(): ReactElement {
           <Route path={settingsAccessDetailRoutePattern} element={renderDeferredRoute(<AccessPermissionDetailScreen />, "loading.accessDetails")} />
           <Route path={settingsNotificationsRoute} element={renderDeferredRoute(<NotificationsSettingsScreen />, "loading.notificationSettings")} />
           <Route path={settingsReviewAnimationsRoute} element={renderDeferredRoute(<ReviewAnimationsSettingsScreen />, "loading.settings")} />
+          <Route path={settingsAIChatSuggestionsRoute} element={renderDeferredRoute(<AIChatSuggestionsSettingsScreen />, "loading.settings")} />
           <Route path={settingsSchedulerRoute} element={renderDeferredRoute(<WorkspaceSchedulerScreen />, "loading.schedulerSettings")} />
           <Route path={settingsExportRoute} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />
           <Route path={settingsResetStudyProgressRoute} element={renderDeferredRoute(<ResetStudyProgressScreen />, "loading.settings")} />
@@ -790,13 +796,15 @@ export function RoutedShell(): ReactElement {
 function AuthenticatedApp(): ReactElement {
   return (
     <AppDataProvider>
-      <ChatLayoutProvider>
-        <ChatSessionControllerProvider>
-          <ChatDraftProvider>
-            <AppShell />
-          </ChatDraftProvider>
-        </ChatSessionControllerProvider>
-      </ChatLayoutProvider>
+      <AIChatPreferencesProvider>
+        <ChatLayoutProvider>
+          <ChatSessionControllerProvider>
+            <ChatDraftProvider>
+              <AppShell />
+            </ChatDraftProvider>
+          </ChatSessionControllerProvider>
+        </ChatLayoutProvider>
+      </AIChatPreferencesProvider>
     </AppDataProvider>
   );
 }

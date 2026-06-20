@@ -517,6 +517,12 @@ const esEsCatalog: TranslationCatalog = {
     toggleTitle: "Mostrar animaciones después de calificar una tarjeta",
     toggleDescription: "Solo afecta a las animaciones de reacción del repaso.",
   },
+  aiChatSuggestionsSettings: {
+    title: "Sugerencias del chat de IA",
+    subtitle: "Controla las sugerencias que aparecen en el compositor del chat de IA.",
+    toggleTitle: "Mostrar sugerencias en el compositor del chat de IA",
+    toggleDescription: "Las sugerencias aparecen encima del compositor cuando el chat está inactivo y listo.",
+  },
   leaderboardParticipationSettings: {
     title: "Participación en la clasificación",
     subtitle: "Controla si apareces en las clasificaciones de la comunidad y si puedes verlas.",
