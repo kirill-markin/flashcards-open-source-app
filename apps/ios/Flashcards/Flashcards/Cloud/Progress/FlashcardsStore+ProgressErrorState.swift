@@ -54,6 +54,15 @@ func localizedProgressLeaderboardRefreshErrorMessage() -> String {
     )
 }
 
+func localizedProgressStreakLeaderboardRefreshErrorMessage() -> String {
+    String(
+        localized: "progress.error.streak_leaderboard_refresh_failed",
+        defaultValue: "Streak leaderboard couldn't refresh. Pull to try again.",
+        table: progressStringsTableName,
+        comment: "Generic progress card message when streak leaderboard refresh fails"
+    )
+}
+
 @MainActor
 extension FlashcardsStore {
     func clearProgressErrorMessage() {
@@ -93,6 +102,14 @@ extension FlashcardsStore {
     func beginProgressLeaderboardRefreshErrorScope() {
         self.applyProgressErrorState(
             state: progressErrorStateClearingGeneralAndLeaderboardRefreshMessages(
+                state: self.progressErrorState
+            )
+        )
+    }
+
+    func beginProgressStreakLeaderboardRefreshErrorScope() {
+        self.applyProgressErrorState(
+            state: progressErrorStateClearingGeneralAndStreakLeaderboardRefreshMessages(
                 state: self.progressErrorState
             )
         )
@@ -174,9 +191,26 @@ extension FlashcardsStore {
         )
     }
 
+    func clearProgressStreakLeaderboardRefreshErrorMessage() {
+        self.applyProgressErrorState(
+            state: progressErrorStateClearingStreakLeaderboardRefreshMessage(
+                state: self.progressErrorState
+            )
+        )
+    }
+
     func replaceProgressLeaderboardRefreshErrorMessage(message: String) {
         self.applyProgressErrorState(
             state: progressErrorStateWithLeaderboardRefreshMessage(
+                state: self.progressErrorState,
+                message: message
+            )
+        )
+    }
+
+    func replaceProgressStreakLeaderboardRefreshErrorMessage(message: String) {
+        self.applyProgressErrorState(
+            state: progressErrorStateWithStreakLeaderboardRefreshMessage(
                 state: self.progressErrorState,
                 message: message
             )

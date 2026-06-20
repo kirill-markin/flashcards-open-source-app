@@ -273,6 +273,77 @@ extension FlashcardsStore {
         }
     }
 
+    func refreshProgressStreakLeaderboardServerBase(
+        scopeKey: ProgressLeaderboardScopeKey,
+        linkedSession: CloudLinkedSession
+    ) async {
+        let refreshToken = self.progressStreakLeaderboardRefreshToken
+        if self.progressActiveStreakLeaderboardRefreshScopeKey == scopeKey,
+           self.progressActiveStreakLeaderboardRefreshToken == refreshToken {
+            return
+        }
+
+        self.progressActiveStreakLeaderboardRefreshScopeKey = scopeKey
+        self.progressActiveStreakLeaderboardRefreshToken = refreshToken
+        self.isProgressStreakLeaderboardRefreshing = true
+        self.updateProgressRefreshingState()
+        self.beginProgressStreakLeaderboardRefreshErrorScope()
+
+        defer {
+            if self.progressActiveStreakLeaderboardRefreshScopeKey == scopeKey,
+               self.progressActiveStreakLeaderboardRefreshToken == refreshToken {
+                self.progressActiveStreakLeaderboardRefreshScopeKey = nil
+                self.progressActiveStreakLeaderboardRefreshToken = nil
+                self.isProgressStreakLeaderboardRefreshing = false
+                self.updateProgressRefreshingState()
+            }
+        }
+
+        do {
+            let serverBase = try await self.loadProgressStreakLeaderboardServerBaseWithSessionRecovery(
+                linkedSession: linkedSession
+            )
+
+            guard self.isCurrentProgressStreakLeaderboardRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+                return
+            }
+
+            let persistedServerBase = PersistedProgressStreakLeaderboardServerBase(
+                scopeKey: scopeKey,
+                serverBase: serverBase,
+                storedAt: nowIsoTimestamp()
+            )
+            try self.persistProgressStreakLeaderboardServerBase(serverBase: persistedServerBase)
+            self.progressStreakLeaderboardServerBaseCache = persistedServerBase
+            self.progressStreakLeaderboardInvalidatedScopeKeys.remove(scopeKey)
+            self.clearProgressStreakLeaderboardRefreshErrorMessage()
+
+            guard let observedScopeKey = self.progressObservedScopeKey,
+                  self.currentProgressLeaderboardScopeKey(seriesScopeKey: observedScopeKey) == scopeKey else {
+                return
+            }
+
+            self.publishProgressStreakLeaderboardSnapshotIsolatingErrors(
+                scopeKey: scopeKey,
+                seriesScopeKey: observedScopeKey,
+                now: Date()
+            )
+        } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
+
+            guard self.isCurrentProgressStreakLeaderboardRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+                return
+            }
+
+            self.presentTechnicalError(error)
+            self.replaceProgressStreakLeaderboardRefreshErrorMessage(
+                message: localizedProgressStreakLeaderboardRefreshErrorMessage()
+            )
+        }
+    }
+
     func shouldRefreshProgressSummary(scopeKey: ProgressSummaryScopeKey) -> Bool {
         guard self.progressSummaryServerBaseCache?.scopeKey == scopeKey else {
             return true
@@ -334,6 +405,27 @@ extension FlashcardsStore {
         )
     }
 
+    func shouldRefreshProgressStreakLeaderboard(
+        scopeKey: ProgressLeaderboardScopeKey,
+        now: Date
+    ) -> Bool {
+        guard scopeKey.cloudState == .linked else {
+            return false
+        }
+        guard let cachedServerBase = self.progressStreakLeaderboardServerBaseCache,
+              cachedServerBase.scopeKey == scopeKey else {
+            return true
+        }
+        if self.progressStreakLeaderboardInvalidatedScopeKeys.contains(scopeKey) {
+            return true
+        }
+
+        return progressStreakLeaderboardRequiresScheduledRefresh(
+            leaderboard: cachedServerBase.serverBase,
+            now: now
+        )
+    }
+
     func activeProgressCloudSession(scopeKey: ProgressScopeKey) -> CloudLinkedSession? {
         guard let cloudSettings = self.cloudSettings else {
             return nil
@@ -375,6 +467,9 @@ extension FlashcardsStore {
         self.invalidateProgressSummaryAndSeries(scopeKey: scopeKey, summaryScopeKey: summaryScopeKey)
         self.invalidateProgressReviewSchedule(scopeKey: scheduleScopeKey)
         self.invalidateProgressLeaderboard(
+            scopeKey: self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
+        )
+        self.invalidateProgressStreakLeaderboard(
             scopeKey: self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
         )
     }
@@ -420,6 +515,17 @@ extension FlashcardsStore {
         self.updateProgressRefreshingState()
     }
 
+    func invalidateProgressStreakLeaderboard(scopeKey: ProgressLeaderboardScopeKey) {
+        // Keep the persisted payload so an offline manual refresh still renders the
+        // cached leaderboard; the invalidation only forces the next online refetch.
+        self.progressStreakLeaderboardInvalidatedScopeKeys.insert(scopeKey)
+        self.progressStreakLeaderboardRefreshToken += 1
+        self.progressActiveStreakLeaderboardRefreshScopeKey = nil
+        self.progressActiveStreakLeaderboardRefreshToken = nil
+        self.isProgressStreakLeaderboardRefreshing = false
+        self.updateProgressRefreshingState()
+    }
+
     func markProgressReviewSchedulePendingLocalOverlay(scopeKey: ReviewScheduleScopeKey) throws {
         self.progressReviewScheduleInvalidatedScopeKeys.insert(scopeKey)
         if let cachedServerBase = self.progressReviewScheduleServerBaseCache,
@@ -445,6 +551,7 @@ extension FlashcardsStore {
             || self.isProgressSeriesRefreshing
             || self.isProgressReviewScheduleRefreshing
             || self.isProgressLeaderboardRefreshing
+            || self.isProgressStreakLeaderboardRefreshing
         if self.isProgressRefreshing != isRefreshing {
             self.isProgressRefreshing = isRefreshing
         }
@@ -558,6 +665,26 @@ extension FlashcardsStore {
         }
     }
 
+    private func loadProgressStreakLeaderboardServerBase(
+        linkedSession: CloudLinkedSession
+    ) async throws -> UserProgressStreakLeaderboard {
+        let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+        let leaderboard = try await cloudSyncService.loadProgressStreakLeaderboard(
+            apiBaseUrl: linkedSession.apiBaseUrl,
+            authorizationHeader: linkedSession.authorizationHeaderValue
+        )
+        try validateProgressStreakLeaderboard(leaderboard: leaderboard)
+        return leaderboard
+    }
+
+    private func loadProgressStreakLeaderboardServerBaseWithSessionRecovery(
+        linkedSession: CloudLinkedSession
+    ) async throws -> UserProgressStreakLeaderboard {
+        try await self.withCloudSessionPreservingStableContext(linkedSession: linkedSession) { refreshedSession in
+            try await self.loadProgressStreakLeaderboardServerBase(linkedSession: refreshedSession)
+        }
+    }
+
     private func isCurrentProgressSummaryRefresh(
         scopeKey: ProgressSummaryScopeKey,
         refreshToken: Int
@@ -592,5 +719,14 @@ extension FlashcardsStore {
         self.progressActiveLeaderboardRefreshScopeKey == scopeKey
             && self.progressActiveLeaderboardRefreshToken == refreshToken
             && self.progressLeaderboardRefreshToken == refreshToken
+    }
+
+    private func isCurrentProgressStreakLeaderboardRefresh(
+        scopeKey: ProgressLeaderboardScopeKey,
+        refreshToken: Int
+    ) -> Bool {
+        self.progressActiveStreakLeaderboardRefreshScopeKey == scopeKey
+            && self.progressActiveStreakLeaderboardRefreshToken == refreshToken
+            && self.progressStreakLeaderboardRefreshToken == refreshToken
     }
 }

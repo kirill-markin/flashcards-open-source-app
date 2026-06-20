@@ -249,6 +249,25 @@ func makeTestProgressLeaderboardMetric() -> ProgressLeaderboardMetric {
     )
 }
 
+func makeTestProgressStreakLeaderboardMetric() -> ProgressLeaderboardMetric {
+    ProgressLeaderboardMetric(
+        metricVersion: "streak_days_v1",
+        title: "Current streak days",
+        description: "Ranks use current streak days from the public daily snapshot."
+    )
+}
+
+func makeCommunityPublicProfileForProgressTests(
+    leaderboardParticipationEnabled: Bool
+) -> CommunityPublicProfile {
+    CommunityPublicProfile(
+        publicProfileId: "profile-viewer",
+        anonymousDisplayName: "Indigo Quiet Field",
+        leaderboardParticipationEnabled: leaderboardParticipationEnabled,
+        linkedAccountRequiredForLeaderboard: false
+    )
+}
+
 func makeNonReadyProgressLeaderboardForTests(
     status: ProgressLeaderboardStatus
 ) -> UserProgressLeaderboard {
@@ -257,6 +276,16 @@ func makeNonReadyProgressLeaderboardForTests(
         metric: makeTestProgressLeaderboardMetric(),
         defaultWindowKey: .last24Hours,
         windows: []
+    )
+}
+
+func makeNonReadyProgressStreakLeaderboardForTests(
+    status: ProgressLeaderboardStatus
+) -> UserProgressStreakLeaderboard {
+    UserProgressStreakLeaderboard(
+        status: status,
+        metric: makeTestProgressStreakLeaderboardMetric(),
+        readyPayload: nil
     )
 }
 
@@ -290,11 +319,71 @@ func makeReadyProgressLeaderboardForTests(
     )
 }
 
+func makeReadyProgressStreakLeaderboardForTests(
+    participantCount: Int,
+    viewer: ProgressStreakLeaderboardViewer,
+    rows: [ProgressStreakLeaderboardRow],
+    rankingRows: [ProgressStreakLeaderboardRankingRow],
+    snapshotGeneratedAt: String,
+    nextRefreshAfter: String
+) -> UserProgressStreakLeaderboard {
+    UserProgressStreakLeaderboard(
+        status: .ready,
+        metric: makeTestProgressStreakLeaderboardMetric(),
+        readyPayload: ProgressStreakLeaderboardReadyPayload(
+            snapshotId: "49c6a3f5-7dc7-48ef-9f81-8ec98c13f86c",
+            snapshotGeneratedAt: snapshotGeneratedAt,
+            asOfUtcDate: "2026-06-10",
+            nextRefreshAfter: nextRefreshAfter,
+            participantCount: participantCount,
+            viewer: viewer,
+            rows: rows,
+            rankingRows: rankingRows
+        )
+    )
+}
+
 func makeProgressLeaderboardScopeKeyForTests() -> ProgressLeaderboardScopeKey {
     ProgressLeaderboardScopeKey(
         cloudState: .linked,
         linkedUserId: "linked-user-1",
         localeIdentifier: "en"
+    )
+}
+
+func makeProgressStreakLeaderboardParticipantRowForTests(
+    kind: ProgressLeaderboardParticipantKind,
+    publicProfileId: String,
+    anonymousDisplayName: String,
+    streakDays: Int,
+    rank: Int
+) -> ProgressStreakLeaderboardRow {
+    .participant(
+        ProgressStreakLeaderboardParticipantRow(
+            kind: kind,
+            publicProfileId: publicProfileId,
+            anonymousDisplayName: anonymousDisplayName,
+            friendDisplayName: nil,
+            streakDays: streakDays,
+            rank: rank
+        )
+    )
+}
+
+func makeProgressStreakLeaderboardRankingRowForTests(
+    kind: ProgressLeaderboardRankingRowKind,
+    publicProfileId: String,
+    anonymousDisplayName: String,
+    streakDays: Int,
+    rank: Int
+) -> ProgressStreakLeaderboardRankingRow {
+    ProgressStreakLeaderboardRankingRow(
+        kind: kind,
+        publicProfileId: publicProfileId,
+        anonymousDisplayName: anonymousDisplayName,
+        friendDisplayName: nil,
+        streakDays: streakDays,
+        rank: rank
     )
 }
 

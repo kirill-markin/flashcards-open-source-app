@@ -170,6 +170,15 @@ final class GuestUpgradeDrainCloudSyncService: CloudSyncServing {
         return makeNonReadyProgressLeaderboardForTests(status: .snapshotUnavailable)
     }
 
+    func loadProgressStreakLeaderboard(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ) async throws -> UserProgressStreakLeaderboard {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        return makeNonReadyProgressStreakLeaderboardForTests(status: .snapshotUnavailable)
+    }
+
     func loadCommunityPublicProfile(
         apiBaseUrl: String,
         authorizationHeader: String

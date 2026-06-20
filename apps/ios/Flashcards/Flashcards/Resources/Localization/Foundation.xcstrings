@@ -6727,6 +6727,65 @@
         }
       }
     },
+    "progress.error.streak_leaderboard_refresh_failed" : {
+      "comment" : "Generic progress card message when streak leaderboard refresh fails",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر تحديث لوحة صدارة السلسلة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak-Bestenliste konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak leaderboard couldn't refresh. Pull to try again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar la clasificación de rachas. Desliza para intentarlo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar la tabla de rachas. Desliza para intentarlo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "स्ट्रीक लीडरबोर्ड रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連続記録のリーダーボードを更新できませんでした。もう一度試すには下に引いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось обновить таблицу серий. Потяните, чтобы повторить попытку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法刷新连续天数排行榜。下拉重试。"
+          }
+        }
+      }
+    },
     "progress.error.review_schedule_refresh_failed" : {
       "comment" : "Generic progress card message when review schedule refresh fails",
       "localizations" : {

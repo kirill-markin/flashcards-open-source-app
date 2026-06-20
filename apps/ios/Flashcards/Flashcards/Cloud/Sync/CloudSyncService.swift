@@ -217,6 +217,19 @@ final class CloudSyncService: @unchecked Sendable {
         )
     }
 
+    func loadProgressStreakLeaderboard(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ) async throws -> UserProgressStreakLeaderboard {
+        try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: "/me/progress/leaderboards/streak",
+            method: "GET",
+            body: Optional<String>.none
+        )
+    }
+
     func loadCommunityPublicProfile(
         apiBaseUrl: String,
         authorizationHeader: String

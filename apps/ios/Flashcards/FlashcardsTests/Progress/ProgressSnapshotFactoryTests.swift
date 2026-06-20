@@ -176,6 +176,224 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
         )
     }
 
+    func testStreakLeaderboardProjectionUsesPersonalStreakAndViewerWinsTies() throws {
+        let leaderboard = makeReadyProgressStreakLeaderboardForTests(
+            participantCount: 4,
+            viewer: ProgressStreakLeaderboardViewer(
+                publicProfileId: "profile-viewer",
+                displayName: "You",
+                rank: 3,
+                streakDays: 3
+            ),
+            rows: [
+                makeProgressStreakLeaderboardParticipantRowForTests(
+                    kind: .top,
+                    publicProfileId: "profile-top",
+                    anonymousDisplayName: "Silver Bright Harbor",
+                    streakDays: 8,
+                    rank: 1
+                ),
+                makeProgressStreakLeaderboardParticipantRowForTests(
+                    kind: .top,
+                    publicProfileId: "profile-peer",
+                    anonymousDisplayName: "Amber Calm Meadow",
+                    streakDays: 5,
+                    rank: 2
+                ),
+                makeProgressStreakLeaderboardParticipantRowForTests(
+                    kind: .viewer,
+                    publicProfileId: "profile-viewer",
+                    anonymousDisplayName: "Indigo Quiet Field",
+                    streakDays: 3,
+                    rank: 3
+                ),
+                makeProgressStreakLeaderboardParticipantRowForTests(
+                    kind: .neighbor,
+                    publicProfileId: "profile-tail",
+                    anonymousDisplayName: "Blue Final Harbor",
+                    streakDays: 1,
+                    rank: 4
+                ),
+            ],
+            rankingRows: [
+                makeProgressStreakLeaderboardRankingRowForTests(
+                    kind: .participant,
+                    publicProfileId: "profile-top",
+                    anonymousDisplayName: "Silver Bright Harbor",
+                    streakDays: 8,
+                    rank: 1
+                ),
+                makeProgressStreakLeaderboardRankingRowForTests(
+                    kind: .participant,
+                    publicProfileId: "profile-peer",
+                    anonymousDisplayName: "Amber Calm Meadow",
+                    streakDays: 5,
+                    rank: 2
+                ),
+                makeProgressStreakLeaderboardRankingRowForTests(
+                    kind: .viewer,
+                    publicProfileId: "profile-viewer",
+                    anonymousDisplayName: "Indigo Quiet Field",
+                    streakDays: 3,
+                    rank: 3
+                ),
+                makeProgressStreakLeaderboardRankingRowForTests(
+                    kind: .participant,
+                    publicProfileId: "profile-tail",
+                    anonymousDisplayName: "Blue Final Harbor",
+                    streakDays: 1,
+                    rank: 4
+                ),
+            ],
+            snapshotGeneratedAt: "2026-06-10T12:00:05.000Z",
+            nextRefreshAfter: "2026-06-11T12:00:00.000Z"
+        )
+
+        let snapshot = try makeProgressStreakLeaderboardSnapshot(
+            leaderboard: leaderboard,
+            scopeKey: self.scopeKey,
+            personalStreakDays: 5
+        )
+
+        guard case .ready(let readyState) = snapshot.state else {
+            XCTFail("Expected ready streak leaderboard state, received \(snapshot.state)")
+            return
+        }
+
+        XCTAssertEqual(4, readyState.participantCount)
+        XCTAssertEqual(2, readyState.viewerRank)
+        XCTAssertEqual(5, readyState.viewerStreakDays)
+
+        let participantRows = readyState.rows.compactMap { row -> ProgressStreakLeaderboardParticipantRowState? in
+            guard case .participant(let participantRow) = row else {
+                return nil
+            }
+
+            return participantRow
+        }
+        let viewerRow = try XCTUnwrap(participantRows.first { row in
+            row.kind == .viewer
+        })
+        let tiedPeerRow = try XCTUnwrap(participantRows.first { row in
+            row.publicProfileId == "profile-peer"
+        })
+
+        XCTAssertEqual(2, viewerRow.rank)
+        XCTAssertEqual(5, viewerRow.streakDays)
+        XCTAssertEqual(3, tiedPeerRow.rank)
+        XCTAssertEqual(5, tiedPeerRow.streakDays)
+    }
+
+    func testStreakLeaderboardAcceptsMultipleGapRowsForSeparatedParticipantRows() throws {
+        let viewerRank = 16
+        let rankingRows = (1...24).map { rank in
+            makeProgressStreakLeaderboardRankingRowForTests(
+                kind: rank == viewerRank ? .viewer : .participant,
+                publicProfileId: rank == viewerRank ? "profile-viewer" : "profile-\(rank)",
+                anonymousDisplayName: rank == viewerRank ? "Indigo Quiet Field" : "Rank \(rank)",
+                streakDays: 25 - rank,
+                rank: rank
+            )
+        }
+        let leaderboard = makeReadyProgressStreakLeaderboardForTests(
+            participantCount: 24,
+            viewer: ProgressStreakLeaderboardViewer(
+                publicProfileId: "profile-viewer",
+                displayName: "You",
+                rank: viewerRank,
+                streakDays: 9
+            ),
+            rows: [
+                makeProgressStreakLeaderboardParticipantRowForTests(
+                    kind: .top,
+                    publicProfileId: "profile-1",
+                    anonymousDisplayName: "Rank 1",
+                    streakDays: 24,
+                    rank: 1
+                ),
+                .gap,
+                makeProgressStreakLeaderboardParticipantRowForTests(
+                    kind: .neighbor,
+                    publicProfileId: "profile-8",
+                    anonymousDisplayName: "Rank 8",
+                    streakDays: 17,
+                    rank: 8
+                ),
+                .gap,
+                makeProgressStreakLeaderboardParticipantRowForTests(
+                    kind: .viewer,
+                    publicProfileId: "profile-viewer",
+                    anonymousDisplayName: "Indigo Quiet Field",
+                    streakDays: 9,
+                    rank: viewerRank
+                ),
+                .gap,
+                makeProgressStreakLeaderboardParticipantRowForTests(
+                    kind: .neighbor,
+                    publicProfileId: "profile-24",
+                    anonymousDisplayName: "Rank 24",
+                    streakDays: 1,
+                    rank: 24
+                ),
+            ],
+            rankingRows: rankingRows,
+            snapshotGeneratedAt: "2026-06-10T12:00:05.000Z",
+            nextRefreshAfter: "2026-06-11T12:00:00.000Z"
+        )
+
+        try validateProgressStreakLeaderboard(leaderboard: leaderboard)
+        let snapshot = try makeProgressStreakLeaderboardSnapshot(
+            leaderboard: leaderboard,
+            scopeKey: self.scopeKey,
+            personalStreakDays: nil
+        )
+
+        guard case .ready(let readyState) = snapshot.state else {
+            XCTFail("Expected ready streak leaderboard state, received \(snapshot.state)")
+            return
+        }
+
+        XCTAssertEqual(viewerRank, readyState.viewerRank)
+        XCTAssertEqual(9, readyState.viewerStreakDays)
+    }
+
+    func testStreakLeaderboardUsesPersonalViewerRowWithoutReadyServerPayload() throws {
+        let missingServerSnapshot = try makeProgressStreakLeaderboardSnapshot(
+            leaderboard: nil,
+            scopeKey: self.scopeKey,
+            personalStreakDays: 12
+        )
+        let unavailableServerSnapshot = try makeProgressStreakLeaderboardSnapshot(
+            leaderboard: makeNonReadyProgressStreakLeaderboardForTests(status: .snapshotUnavailable),
+            scopeKey: self.scopeKey,
+            personalStreakDays: 12
+        )
+
+        for snapshot in [missingServerSnapshot, unavailableServerSnapshot] {
+            guard case .ready(let readyState) = snapshot.state else {
+                XCTFail("Expected ready local streak leaderboard state, received \(snapshot.state)")
+                return
+            }
+
+            XCTAssertNil(readyState.snapshotGeneratedAt)
+            XCTAssertNil(readyState.asOfUtcDate)
+            XCTAssertEqual(1, readyState.participantCount)
+            XCTAssertEqual(1, readyState.viewerRank)
+            XCTAssertEqual(12, readyState.viewerStreakDays)
+            XCTAssertEqual(1, readyState.rows.count)
+
+            guard case .participant(let viewerRow) = readyState.rows[0] else {
+                XCTFail("Expected local viewer row, received \(readyState.rows[0])")
+                return
+            }
+
+            XCTAssertEqual(.viewer, viewerRow.kind)
+            XCTAssertNil(viewerRow.publicProfileId)
+            XCTAssertEqual(12, viewerRow.streakDays)
+            XCTAssertEqual(1, viewerRow.rank)
+        }
+    }
+
     func testBestLeaderboardPlacementChoosesLowestViewerRank() throws {
         let readyState = self.makeReadyLeaderboardState(
             viewerRanksByWindow: [
@@ -748,6 +966,36 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
             XCTAssertEqual(LeaderboardWindowKey.last24Hours.rawValue, windowKey)
             XCTAssertEqual(3, expectedRank)
             XCTAssertEqual(4, actualRank)
+        }
+    }
+
+    func testDecoderRejectsNonReadyStreakLeaderboardWithReadyPayloadFields() throws {
+        let json = """
+        {
+          "status": "snapshot_unavailable",
+          "metric": {
+            "metricVersion": "streak_days_v1",
+            "title": "Current streak days",
+            "description": "Ranks use current streak days from the public daily snapshot."
+          },
+          "snapshotId": "49c6a3f5-7dc7-48ef-9f81-8ec98c13f86c"
+        }
+        """
+
+        XCTAssertThrowsError(
+            try JSONDecoder().decode(
+                UserProgressStreakLeaderboard.self,
+                from: Data(json.utf8)
+            )
+        ) { error in
+            guard case DecodingError.dataCorrupted(let context) = error else {
+                XCTFail("Expected dataCorrupted decoding error, received \(error)")
+                return
+            }
+
+            XCTAssertTrue(
+                context.debugDescription.contains("Non-ready streak leaderboard payload must not include snapshotId.")
+            )
         }
     }
 }

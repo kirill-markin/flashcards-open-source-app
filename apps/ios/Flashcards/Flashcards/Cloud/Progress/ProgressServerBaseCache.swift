@@ -56,11 +56,19 @@ struct PersistedProgressLeaderboardServerBase: Codable, Hashable, Sendable {
     let storedAt: String
 }
 
+/// Cached daily streak leaderboard payload exactly as the API returned it.
+struct PersistedProgressStreakLeaderboardServerBase: Codable, Hashable, Sendable {
+    let scopeKey: ProgressLeaderboardScopeKey
+    let serverBase: UserProgressStreakLeaderboard
+    let storedAt: String
+}
+
 private let progressSummaryServerBaseCacheUserDefaultsKeyPrefix: String = "progress-summary-server-base"
 private let progressSeriesServerBaseCacheUserDefaultsKeyPrefix: String = "progress-series-server-base"
 private let reviewScheduleServerBaseCacheUserDefaultsKeyPrefix: String = "progress-review-schedule-server-base"
 private let legacyProgressLeaderboardServerBaseCacheUserDefaultsKeyPrefix: String = "progress-leaderboard-server-base"
 private let progressLeaderboardServerBaseCacheUserDefaultsKeyPrefix: String = "progress-leaderboard-server-base-v2"
+private let progressStreakLeaderboardServerBaseCacheUserDefaultsKeyPrefix: String = "progress-streak-leaderboard-server-base-v1"
 
 @MainActor
 extension FlashcardsStore {
@@ -97,6 +105,16 @@ extension FlashcardsStore {
         self.removeLegacyProgressLeaderboardServerBase(scopeKey: serverBase.scopeKey)
     }
 
+    func persistProgressStreakLeaderboardServerBase(
+        serverBase: PersistedProgressStreakLeaderboardServerBase
+    ) throws {
+        let data = try self.encoder.encode(serverBase)
+        self.userDefaults.set(
+            data,
+            forKey: progressStreakLeaderboardServerBaseUserDefaultsKey(scopeKey: serverBase.scopeKey)
+        )
+    }
+
     func removePersistedReviewScheduleServerBase(scopeKey: ReviewScheduleScopeKey) {
         self.userDefaults.removeObject(
             forKey: reviewScheduleServerBaseUserDefaultsKey(scopeKey: scopeKey)
@@ -108,6 +126,12 @@ extension FlashcardsStore {
             forKey: progressLeaderboardServerBaseUserDefaultsKey(scopeKey: scopeKey)
         )
         self.removeLegacyProgressLeaderboardServerBase(scopeKey: scopeKey)
+    }
+
+    func removePersistedProgressStreakLeaderboardServerBase(scopeKey: ProgressLeaderboardScopeKey) {
+        self.userDefaults.removeObject(
+            forKey: progressStreakLeaderboardServerBaseUserDefaultsKey(scopeKey: scopeKey)
+        )
     }
 
     func loadPersistedProgressSummaryServerBase(
@@ -321,6 +345,56 @@ extension FlashcardsStore {
         }
     }
 
+    func loadPersistedProgressStreakLeaderboardServerBase(
+        scopeKey: ProgressLeaderboardScopeKey
+    ) -> PersistedProgressStreakLeaderboardServerBase? {
+        let key = progressStreakLeaderboardServerBaseUserDefaultsKey(scopeKey: scopeKey)
+        guard let data = self.userDefaults.data(forKey: key) else {
+            return nil
+        }
+
+        do {
+            let serverBase = try self.decoder.decode(PersistedProgressStreakLeaderboardServerBase.self, from: data)
+            guard serverBase.scopeKey == scopeKey else {
+                self.removeProgressServerBaseCache(
+                    key: key,
+                    cacheKind: "streak_leaderboard",
+                    reason: "scope_mismatch",
+                    expectedScopeKey: scopeKey.storageKey,
+                    actualScopeKey: serverBase.scopeKey.storageKey,
+                    errorMessage: nil
+                )
+                return nil
+            }
+
+            do {
+                try validateProgressStreakLeaderboard(leaderboard: serverBase.serverBase)
+            } catch {
+                self.removeProgressServerBaseCache(
+                    key: key,
+                    cacheKind: "streak_leaderboard",
+                    reason: "validation_failed",
+                    expectedScopeKey: scopeKey.storageKey,
+                    actualScopeKey: serverBase.scopeKey.storageKey,
+                    errorMessage: Flashcards.errorMessage(error: error)
+                )
+                return nil
+            }
+
+            return serverBase
+        } catch {
+            self.removeProgressServerBaseCache(
+                key: key,
+                cacheKind: "streak_leaderboard",
+                reason: "decode_failed",
+                expectedScopeKey: scopeKey.storageKey,
+                actualScopeKey: nil,
+                errorMessage: Flashcards.errorMessage(error: error)
+            )
+            return nil
+        }
+    }
+
     private func removeLegacyProgressLeaderboardServerBase(scopeKey: ProgressLeaderboardScopeKey) {
         // The unversioned cache predates rankingRows, which the current renderer requires.
         self.userDefaults.removeObject(
@@ -377,6 +451,10 @@ private func reviewScheduleServerBaseUserDefaultsKey(scopeKey: ReviewScheduleSco
 
 private func progressLeaderboardServerBaseUserDefaultsKey(scopeKey: ProgressLeaderboardScopeKey) -> String {
     "\(progressLeaderboardServerBaseCacheUserDefaultsKeyPrefix)|\(scopeKey.storageKey)"
+}
+
+private func progressStreakLeaderboardServerBaseUserDefaultsKey(scopeKey: ProgressLeaderboardScopeKey) -> String {
+    "\(progressStreakLeaderboardServerBaseCacheUserDefaultsKeyPrefix)|\(scopeKey.storageKey)"
 }
 
 private func legacyProgressLeaderboardServerBaseUserDefaultsKey(scopeKey: ProgressLeaderboardScopeKey) -> String {

@@ -116,6 +116,110 @@ func makeProgressLeaderboardSnapshot(
     )
 }
 
+func makeProgressStreakLeaderboardPlaceholderSnapshot(
+    scopeKey: ProgressLeaderboardScopeKey
+) -> ProgressStreakLeaderboardSnapshot {
+    ProgressStreakLeaderboardSnapshot(
+        scopeKey: scopeKey,
+        state: .awaitingServerData
+    )
+}
+
+func makeProgressStreakLeaderboardSnapshot(
+    leaderboard: UserProgressStreakLeaderboard?,
+    scopeKey: ProgressLeaderboardScopeKey,
+    personalStreakDays: Int?
+) throws -> ProgressStreakLeaderboardSnapshot {
+    if let leaderboard {
+        try validateProgressStreakLeaderboard(leaderboard: leaderboard)
+    }
+
+    if let readyPayload = leaderboard?.readyPayload {
+        return try makeProgressStreakLeaderboardSnapshot(
+            readyPayload: readyPayload,
+            scopeKey: scopeKey,
+            personalStreakDays: personalStreakDays
+        )
+    }
+
+    guard let personalStreakDays else {
+        return makeProgressStreakLeaderboardPlaceholderSnapshot(scopeKey: scopeKey)
+    }
+
+    return try makeLocalProgressStreakLeaderboardSnapshot(
+        scopeKey: scopeKey,
+        personalStreakDays: personalStreakDays
+    )
+}
+
+private func makeProgressStreakLeaderboardSnapshot(
+    readyPayload: ProgressStreakLeaderboardReadyPayload,
+    scopeKey: ProgressLeaderboardScopeKey,
+    personalStreakDays: Int?
+) throws -> ProgressStreakLeaderboardSnapshot {
+    let overlaidViewerStreakDays = max(
+        readyPayload.viewer.streakDays,
+        personalStreakDays ?? readyPayload.viewer.streakDays
+    )
+    let projectedRankingRows = try makeProjectedProgressStreakLeaderboardRankingRows(
+        readyPayload: readyPayload,
+        viewerStreakDays: overlaidViewerStreakDays
+    )
+    let projectedViewerRank = try progressStreakLeaderboardViewerRank(rankingRows: projectedRankingRows)
+    let rows = try makeCompactProgressStreakLeaderboardRowStates(
+        rankingRows: projectedRankingRows,
+        viewerRank: projectedViewerRank
+    )
+
+    return ProgressStreakLeaderboardSnapshot(
+        scopeKey: scopeKey,
+        state: .ready(
+            ProgressStreakLeaderboardReadyState(
+                snapshotGeneratedAt: readyPayload.snapshotGeneratedAt,
+                asOfUtcDate: readyPayload.asOfUtcDate,
+                participantCount: readyPayload.participantCount,
+                viewerRank: projectedViewerRank,
+                viewerStreakDays: overlaidViewerStreakDays,
+                rows: rows
+            )
+        )
+    )
+}
+
+private func makeLocalProgressStreakLeaderboardSnapshot(
+    scopeKey: ProgressLeaderboardScopeKey,
+    personalStreakDays: Int
+) throws -> ProgressStreakLeaderboardSnapshot {
+    guard personalStreakDays >= 0 else {
+        throw LocalStoreError.validation("Personal streak days must not be negative: \(personalStreakDays)")
+    }
+
+    return ProgressStreakLeaderboardSnapshot(
+        scopeKey: scopeKey,
+        state: .ready(
+            ProgressStreakLeaderboardReadyState(
+                snapshotGeneratedAt: nil,
+                asOfUtcDate: nil,
+                participantCount: 1,
+                viewerRank: 1,
+                viewerStreakDays: personalStreakDays,
+                rows: [
+                    .participant(
+                        ProgressStreakLeaderboardParticipantRowState(
+                            kind: .viewer,
+                            publicProfileId: nil,
+                            anonymousDisplayName: progressLeaderboardViewerRowTitle(),
+                            friendDisplayName: nil,
+                            streakDays: personalStreakDays,
+                            rank: 1
+                        )
+                    ),
+                ]
+            )
+        )
+    )
+}
+
 /// The live overlay only reranks the current viewer against the frozen server
 /// ranking; other participants stay in the server-provided order.
 private func makeProgressLeaderboardWindowState(
@@ -336,6 +440,166 @@ private func resolveProgressLeaderboardDefaultWindowKey(
     }
 
     return bestWindowKey
+}
+
+private func makeProjectedProgressStreakLeaderboardRankingRows(
+    readyPayload: ProgressStreakLeaderboardReadyPayload,
+    viewerStreakDays: Int
+) throws -> [ProgressStreakLeaderboardRankingRow] {
+    guard let serverViewerRow = readyPayload.rankingRows.first(where: { rankingRow in
+        rankingRow.kind == .viewer
+    }) else {
+        throw LocalStoreError.validation("Streak leaderboard ranking rows are missing the viewer")
+    }
+
+    let participantRows = readyPayload.rankingRows.filter { rankingRow in
+        rankingRow.kind == .participant
+    }
+    let projectedViewerRow = ProgressStreakLeaderboardRankingRow(
+        kind: .viewer,
+        publicProfileId: serverViewerRow.publicProfileId,
+        anonymousDisplayName: serverViewerRow.anonymousDisplayName,
+        friendDisplayName: serverViewerRow.friendDisplayName,
+        streakDays: viewerStreakDays,
+        rank: serverViewerRow.rank
+    )
+    let insertionIndex = participantRows.firstIndex { rankingRow in
+        rankingRow.streakDays <= viewerStreakDays
+    } ?? participantRows.count
+    let projectedRows = Array(participantRows.prefix(insertionIndex))
+        + [projectedViewerRow]
+        + Array(participantRows.suffix(participantRows.count - insertionIndex))
+
+    return projectedRows.enumerated().map { index, rankingRow in
+        ProgressStreakLeaderboardRankingRow(
+            kind: rankingRow.kind,
+            publicProfileId: rankingRow.publicProfileId,
+            anonymousDisplayName: rankingRow.anonymousDisplayName,
+            friendDisplayName: rankingRow.friendDisplayName,
+            streakDays: rankingRow.streakDays,
+            rank: index + 1
+        )
+    }
+}
+
+private func progressStreakLeaderboardViewerRank(
+    rankingRows: [ProgressStreakLeaderboardRankingRow]
+) throws -> Int {
+    guard let viewerRow = rankingRows.first(where: { rankingRow in
+        rankingRow.kind == .viewer
+    }) else {
+        throw LocalStoreError.validation("Projected streak leaderboard ranking rows are missing the viewer")
+    }
+
+    return viewerRow.rank
+}
+
+private func makeCompactProgressStreakLeaderboardRowStates(
+    rankingRows: [ProgressStreakLeaderboardRankingRow],
+    viewerRank: Int
+) throws -> [ProgressStreakLeaderboardRowState] {
+    let participantCount = rankingRows.count
+    let topRowCount = min(progressLeaderboardTopRowCount, participantCount)
+    var shownRanks: Set<Int> = []
+
+    if topRowCount > 0 {
+        for rank in 1...topRowCount {
+            shownRanks.insert(rank)
+        }
+    }
+
+    if viewerRank > topRowCount {
+        for rank in [viewerRank - 1, viewerRank, viewerRank + 1] {
+            guard rank >= 1, rank <= participantCount else {
+                continue
+            }
+
+            shownRanks.insert(rank)
+        }
+    } else if viewerRank == topRowCount && viewerRank < participantCount {
+        shownRanks.insert(viewerRank + 1)
+    }
+
+    if participantCount > topRowCount {
+        shownRanks.insert(participantCount)
+    }
+    for rankingRow in rankingRows where isProgressStreakLeaderboardFriendRow(rankingRow: rankingRow) {
+        shownRanks.insert(rankingRow.rank)
+    }
+
+    var rows: [ProgressStreakLeaderboardRowState] = []
+    var previousRank: Int = 0
+    for rank in shownRanks.sorted() {
+        if previousRank != 0, rank > previousRank + 1 {
+            rows.append(.gap(ProgressLeaderboardGapRowState(id: "gap-\(rows.count)")))
+        }
+
+        let rankingRowIndex = rank - 1
+        guard rankingRows.indices.contains(rankingRowIndex) else {
+            throw LocalStoreError.validation("Projected streak leaderboard ranking rows are missing rank \(rank)")
+        }
+
+        rows.append(
+            .participant(
+                makeProgressStreakLeaderboardParticipantRowState(
+                    rankingRow: rankingRows[rankingRowIndex],
+                    topRowCount: topRowCount
+                )
+            )
+        )
+        previousRank = rank
+    }
+
+    if previousRank < participantCount {
+        rows.append(.gap(ProgressLeaderboardGapRowState(id: "gap-\(rows.count)")))
+    }
+
+    return rows
+}
+
+private func makeProgressStreakLeaderboardParticipantRowState(
+    rankingRow: ProgressStreakLeaderboardRankingRow,
+    topRowCount: Int
+) -> ProgressStreakLeaderboardParticipantRowState {
+    ProgressStreakLeaderboardParticipantRowState(
+        kind: progressLeaderboardParticipantKind(
+            rankingRowKind: rankingRow.kind,
+            rank: rankingRow.rank,
+            topRowCount: topRowCount
+        ),
+        publicProfileId: rankingRow.publicProfileId,
+        anonymousDisplayName: rankingRow.anonymousDisplayName,
+        friendDisplayName: rankingRow.friendDisplayName,
+        streakDays: rankingRow.streakDays,
+        rank: rankingRow.rank
+    )
+}
+
+private func isProgressStreakLeaderboardFriendRow(
+    rankingRow: ProgressStreakLeaderboardRankingRow
+) -> Bool {
+    guard rankingRow.kind == .participant,
+          let friendDisplayName = rankingRow.friendDisplayName else {
+        return false
+    }
+
+    return friendDisplayName.isEmpty == false
+}
+
+private func progressLeaderboardParticipantKind(
+    rankingRowKind: ProgressLeaderboardRankingRowKind,
+    rank: Int,
+    topRowCount: Int
+) -> ProgressLeaderboardParticipantKind {
+    if rankingRowKind == .viewer {
+        return .viewer
+    }
+
+    if rank <= topRowCount {
+        return .top
+    }
+
+    return .neighbor
 }
 
 private struct ProgressTimelineDay: Hashable, Sendable {

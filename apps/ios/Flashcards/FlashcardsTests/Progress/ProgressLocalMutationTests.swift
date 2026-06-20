@@ -487,6 +487,116 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
     }
 
     @MainActor
+    func testHandleProgressLocalMutationPublishesStreakLeaderboardFromPatchedSnapshot() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-06-10T12:00:00.000Z"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: timeZone,
+            dayCount: 140
+        )
+        let serverSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [:],
+            generatedAt: "2026-06-10T11:59:00.000Z"
+        )
+        let serverSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: [],
+            generatedAt: "2026-06-10T11:59:00.000Z"
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: serverSummary,
+            serverSeries: serverSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .linked
+        )
+        defer { context.tearDown() }
+
+        let scopeKey = try context.store.prepareProgressSnapshot(now: now)
+        let leaderboardScopeKey = context.store.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
+        context.store.progressStreakLeaderboardServerBaseCache = PersistedProgressStreakLeaderboardServerBase(
+            scopeKey: leaderboardScopeKey,
+            serverBase: makeReadyProgressStreakLeaderboardForTests(
+                participantCount: 2,
+                viewer: ProgressStreakLeaderboardViewer(
+                    publicProfileId: "profile-viewer",
+                    displayName: "You",
+                    rank: 2,
+                    streakDays: 0
+                ),
+                rows: [
+                    makeProgressStreakLeaderboardParticipantRowForTests(
+                        kind: .top,
+                        publicProfileId: "profile-peer",
+                        anonymousDisplayName: "Amber Calm Meadow",
+                        streakDays: 1,
+                        rank: 1
+                    ),
+                    makeProgressStreakLeaderboardParticipantRowForTests(
+                        kind: .viewer,
+                        publicProfileId: "profile-viewer",
+                        anonymousDisplayName: "Indigo Quiet Field",
+                        streakDays: 0,
+                        rank: 2
+                    ),
+                ],
+                rankingRows: [
+                    makeProgressStreakLeaderboardRankingRowForTests(
+                        kind: .participant,
+                        publicProfileId: "profile-peer",
+                        anonymousDisplayName: "Amber Calm Meadow",
+                        streakDays: 1,
+                        rank: 1
+                    ),
+                    makeProgressStreakLeaderboardRankingRowForTests(
+                        kind: .viewer,
+                        publicProfileId: "profile-viewer",
+                        anonymousDisplayName: "Indigo Quiet Field",
+                        streakDays: 0,
+                        rank: 2
+                    ),
+                ],
+                snapshotGeneratedAt: "2026-06-10T00:00:05.000Z",
+                nextRefreshAfter: "2026-06-11T00:00:00.000Z"
+            ),
+            storedAt: "2026-06-10T00:00:05.000Z"
+        )
+        context.store.publishProgressStreakLeaderboardSnapshotIsolatingErrors(
+            scopeKey: leaderboardScopeKey,
+            seriesScopeKey: scopeKey,
+            now: now
+        )
+        let initialReadyState = try progressStreakLeaderboardReadyState(
+            snapshot: try XCTUnwrap(context.store.progressStreakLeaderboardSnapshot)
+        )
+        XCTAssertEqual(2, initialReadyState.viewerRank)
+        XCTAssertEqual(0, initialReadyState.viewerStreakDays)
+
+        context.store.handleProgressLocalMutation(
+            now: now,
+            reviewedAtClient: "2026-06-10T12:15:00.000Z",
+            reviewedTimeZone: "UTC",
+            rating: .good
+        )
+
+        let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
+        XCTAssertEqual(1, progressSnapshot.summary.currentStreakDays)
+        let readyState = try progressStreakLeaderboardReadyState(
+            snapshot: try XCTUnwrap(context.store.progressStreakLeaderboardSnapshot)
+        )
+        XCTAssertEqual(1, readyState.viewerRank)
+        XCTAssertEqual(1, readyState.viewerStreakDays)
+    }
+
+    @MainActor
     func testHandleProgressLocalMutationRebuildsSnapshotAfterLocalDayRollover() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
@@ -567,4 +677,14 @@ private func progressStreakState(
     snapshot.chartData.chartDays.first { chartDay in
         chartDay.localDate == localDate
     }?.streakState
+}
+
+private func progressStreakLeaderboardReadyState(
+    snapshot: ProgressStreakLeaderboardSnapshot
+) throws -> ProgressStreakLeaderboardReadyState {
+    guard case .ready(let readyState) = snapshot.state else {
+        throw LocalStoreError.validation("Expected a ready streak leaderboard snapshot")
+    }
+
+    return readyState
 }

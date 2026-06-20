@@ -39,7 +39,14 @@ extension FlashcardsStore {
             return
         }
 
+        let previousProfile = self.communityPublicProfile
         self.communityPublicProfile = profile
+        if self.shouldResetProgressLeaderboardsAfterCommunityProfileRefresh(
+            previousProfile: previousProfile,
+            profile: profile
+        ) {
+            self.handleProgressLeaderboardParticipationDidChange()
+        }
     }
 
     func updateLeaderboardParticipationEnabled(isEnabled: Bool) async throws {
@@ -104,13 +111,48 @@ extension FlashcardsStore {
             linkedUserId: cloudSettings.linkedUserId,
             localeIdentifier: progressLeaderboardPreferredLocaleIdentifier()
         )
+        let now = Date()
         self.removePersistedProgressLeaderboardServerBase(scopeKey: scopeKey)
+        self.removePersistedProgressStreakLeaderboardServerBase(scopeKey: scopeKey)
         if self.progressLeaderboardServerBaseCache?.scopeKey == scopeKey {
             self.progressLeaderboardServerBaseCache = nil
         }
+        if self.progressStreakLeaderboardServerBaseCache?.scopeKey == scopeKey {
+            self.progressStreakLeaderboardServerBaseCache = nil
+        }
         self.invalidateProgressLeaderboard(scopeKey: scopeKey)
+        self.invalidateProgressStreakLeaderboard(scopeKey: scopeKey)
         // Republish immediately so rows fetched under the previous participation
         // status are never rendered again while the forced refetch is pending.
-        self.publishProgressLeaderboardSnapshotIsolatingErrors(scopeKey: scopeKey, now: Date())
+        self.publishProgressLeaderboardSnapshotIsolatingErrors(scopeKey: scopeKey, now: now)
+        if let observedScopeKey = self.progressObservedScopeKey,
+           self.currentProgressLeaderboardScopeKey(seriesScopeKey: observedScopeKey) == scopeKey {
+            self.publishProgressStreakLeaderboardSnapshotIsolatingErrors(
+                scopeKey: scopeKey,
+                seriesScopeKey: observedScopeKey,
+                now: now
+            )
+        } else if self.progressStreakLeaderboardSnapshot?.scopeKey == scopeKey {
+            self.applyProgressStreakLeaderboardSnapshot(snapshot: nil)
+        }
+    }
+
+    private func shouldResetProgressLeaderboardsAfterCommunityProfileRefresh(
+        previousProfile: CommunityPublicProfile?,
+        profile: CommunityPublicProfile
+    ) -> Bool {
+        guard let previousProfile else {
+            return profile.leaderboardParticipationEnabled == false
+                || profile.linkedAccountRequiredForLeaderboard
+                || self.progressLeaderboardServerBaseCache != nil
+                || self.progressStreakLeaderboardServerBaseCache != nil
+                || self.progressLeaderboardSnapshot != nil
+                || self.progressStreakLeaderboardSnapshot != nil
+        }
+
+        return previousProfile.publicProfileId != profile.publicProfileId
+            || previousProfile.anonymousDisplayName != profile.anonymousDisplayName
+            || previousProfile.leaderboardParticipationEnabled != profile.leaderboardParticipationEnabled
+            || previousProfile.linkedAccountRequiredForLeaderboard != profile.linkedAccountRequiredForLeaderboard
     }
 }

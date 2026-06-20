@@ -165,3 +165,48 @@ struct ProgressLeaderboardParticipantRowState: Hashable, Sendable {
     let qualifiedReviewCount: Int
     let rank: Int
 }
+
+struct ProgressStreakLeaderboardSnapshot: Hashable, Sendable {
+    let scopeKey: ProgressLeaderboardScopeKey
+    let state: ProgressStreakLeaderboardSnapshotState
+}
+
+enum ProgressStreakLeaderboardSnapshotState: Hashable, Sendable {
+    /// Linked account without a cached server payload and no personal Progress snapshot yet.
+    case awaitingServerData
+    case ready(ProgressStreakLeaderboardReadyState)
+}
+
+struct ProgressStreakLeaderboardReadyState: Hashable, Sendable {
+    let snapshotGeneratedAt: String?
+    let asOfUtcDate: String?
+    let participantCount: Int
+    /// Viewer rank after applying the live personal streak to the frozen daily ranking.
+    let viewerRank: Int
+    /// Server snapshot streak overlaid with the current personal Progress streak.
+    let viewerStreakDays: Int
+    let rows: [ProgressStreakLeaderboardRowState]
+}
+
+enum ProgressStreakLeaderboardRowState: Hashable, Identifiable, Sendable {
+    case participant(ProgressStreakLeaderboardParticipantRowState)
+    case gap(ProgressLeaderboardGapRowState)
+
+    var id: String {
+        switch self {
+        case .participant(let row):
+            return "participant-\(row.rank)-\(row.publicProfileId ?? "local-viewer")"
+        case .gap(let row):
+            return row.id
+        }
+    }
+}
+
+struct ProgressStreakLeaderboardParticipantRowState: Hashable, Sendable {
+    let kind: ProgressLeaderboardParticipantKind
+    let publicProfileId: String?
+    let anonymousDisplayName: String
+    let friendDisplayName: String?
+    let streakDays: Int
+    let rank: Int
+}
