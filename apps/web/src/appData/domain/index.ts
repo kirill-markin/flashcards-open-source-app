@@ -754,10 +754,11 @@ export function buildReviewEvent(
   replicaId: string,
   rating: 0 | 1 | 2 | 3,
   reviewedAtClient: string,
+  reviewedTimeZone: string | undefined,
   reviewEventId: string,
   clientEventId: string,
 ): ReviewEvent {
-  return {
+  const reviewEvent: ReviewEvent = {
     reviewEventId,
     workspaceId,
     cardId,
@@ -766,6 +767,15 @@ export function buildReviewEvent(
     rating,
     reviewedAtClient,
     reviewedAtServer: reviewedAtClient,
+  };
+
+  if (reviewedTimeZone === undefined) {
+    return reviewEvent;
+  }
+
+  return {
+    ...reviewEvent,
+    reviewedTimeZone,
   };
 }
 
@@ -815,18 +825,23 @@ export function buildDeckUpsertOperation(deck: Deck): SyncPushOperation {
 }
 
 export function buildReviewEventAppendOperation(reviewEvent: ReviewEvent): SyncPushOperation {
+  const payload = {
+    reviewEventId: reviewEvent.reviewEventId,
+    cardId: reviewEvent.cardId,
+    clientEventId: reviewEvent.clientEventId,
+    rating: reviewEvent.rating,
+    reviewedAtClient: reviewEvent.reviewedAtClient,
+  };
+
   return {
     operationId: reviewEvent.reviewEventId,
     entityType: "review_event",
     entityId: reviewEvent.reviewEventId,
     action: "append",
     clientUpdatedAt: reviewEvent.reviewedAtClient,
-    payload: {
-      reviewEventId: reviewEvent.reviewEventId,
-      cardId: reviewEvent.cardId,
-      clientEventId: reviewEvent.clientEventId,
-      rating: reviewEvent.rating,
-      reviewedAtClient: reviewEvent.reviewedAtClient,
+    payload: reviewEvent.reviewedTimeZone === undefined ? payload : {
+      ...payload,
+      reviewedTimeZone: reviewEvent.reviewedTimeZone,
     },
   };
 }

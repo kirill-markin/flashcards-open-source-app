@@ -205,7 +205,10 @@ function aggregateReviewEventsByWorkspaceAndLocalDate(
   const counts = new Map<string, ProgressDailyCountRecord>();
 
   for (const reviewEvent of reviewEvents) {
-    const localDate = mapReviewedAtClientToLocalDate(reviewEvent.reviewedAtClient, timeZone);
+    const localDate = mapReviewedAtClientToLocalDate(
+      reviewEvent.reviewedAtClient,
+      reviewEvent.reviewedTimeZone ?? timeZone,
+    );
     const countKey = `${reviewEvent.workspaceId}::${localDate}`;
     const currentCount = counts.get(countKey) ?? createEmptyProgressDailyCountRecord(
       reviewEvent.workspaceId,
@@ -380,13 +383,17 @@ export async function loadPendingProgressDailyReviews(
       continue;
     }
 
-    const localDate = mapReviewedAtClientToLocalDate(outboxRecord.operation.payload.reviewedAtClient, input.timeZone);
+    const payload = outboxRecord.operation.payload;
+    const localDate = mapReviewedAtClientToLocalDate(
+      payload.reviewedAtClient,
+      payload.reviewedTimeZone ?? input.timeZone,
+    );
     if (isDateWithinRange(localDate, input) === false) {
       continue;
     }
 
     const currentCount = counts.get(localDate) ?? createEmptyDailyReviewPoint(localDate);
-    counts.set(localDate, addReviewRatingToDailyReviewPoint(currentCount, outboxRecord.operation.payload.rating));
+    counts.set(localDate, addReviewRatingToDailyReviewPoint(currentCount, payload.rating));
   }
 
   return [...counts.entries()]

@@ -92,6 +92,7 @@ export type SubmitReviewLocallyInput = Readonly<{
   cardId: string;
   rating: LocalReviewRating;
   reviewedAtClient: string;
+  reviewedTimeZone: string;
 }>;
 
 export async function requireCard(workspaceId: string, cardId: string): Promise<Card> {
@@ -290,6 +291,7 @@ export async function submitReviewLocally(input: SubmitReviewLocallyInput): Prom
     installationId,
     input.rating,
     input.reviewedAtClient,
+    input.reviewedTimeZone,
     reviewEventId,
     clientEventId,
   );

@@ -15,6 +15,7 @@ import {
   parseNumber,
   parseNumberArray,
   parseObject,
+  parseOptionalField,
   parseRequiredField,
   parseString,
   parseStringArray,
@@ -115,7 +116,7 @@ export function parseDeck(value: unknown, endpoint: string, path: string): Deck 
 
 export function parseReviewEvent(value: unknown, endpoint: string, path: string): ReviewEvent {
   const objectValue = parseObject(value, endpoint, path);
-  return {
+  const reviewEvent: ReviewEvent = {
     reviewEventId: parseRequiredField(objectValue, "reviewEventId", endpoint, path, parseString),
     workspaceId: parseRequiredField(objectValue, "workspaceId", endpoint, path, parseString),
     cardId: parseRequiredField(objectValue, "cardId", endpoint, path, parseString),
@@ -124,5 +125,15 @@ export function parseReviewEvent(value: unknown, endpoint: string, path: string)
     rating: parseRequiredField(objectValue, "rating", endpoint, path, parseReviewRating),
     reviewedAtClient: parseRequiredField(objectValue, "reviewedAtClient", endpoint, path, parseString),
     reviewedAtServer: parseRequiredField(objectValue, "reviewedAtServer", endpoint, path, parseString),
+  };
+  const reviewedTimeZone = parseOptionalField(objectValue, "reviewedTimeZone", endpoint, path, parseString);
+
+  if (reviewedTimeZone === undefined) {
+    return reviewEvent;
+  }
+
+  return {
+    ...reviewEvent,
+    reviewedTimeZone,
   };
 }

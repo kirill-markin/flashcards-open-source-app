@@ -319,7 +319,7 @@ function fallBackFromInvalidProgressTimeZone(
   return fallbackTimeZone;
 }
 
-function getBrowserTimeZone(): string {
+export function getBrowserTimeZone(): string {
   let timeZone: string | null = null;
   try {
     const observedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
