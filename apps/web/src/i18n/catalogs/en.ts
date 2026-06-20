@@ -515,6 +515,12 @@ const enCatalog = {
     toggleTitle: "Show animations after rating a card",
     toggleDescription: "Only the review reaction animations are affected.",
   },
+  aiChatSuggestionsSettings: {
+    title: "AI Chat Suggestions",
+    subtitle: "Control suggested prompt chips in the AI chat composer.",
+    toggleTitle: "Show suggestions in the AI chat composer",
+    toggleDescription: "Suggested prompts appear above the composer when chat is idle and ready.",
+  },
   leaderboardParticipationSettings: {
     title: "Leaderboard participation",
     subtitle: "Control whether you appear in and can view community rankings.",

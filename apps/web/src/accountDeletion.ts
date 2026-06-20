@@ -6,6 +6,7 @@ import {
   type LocalBrowserDataCleanupReason,
   type WebObservationScope,
 } from "./observability/webObservability";
+import { AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY } from "./chat/preferences/AIChatPreferencesContext";
 import { TEST_MODE_STORAGE_KEY } from "./testMode";
 
 export type { LocalBrowserDataCleanupReason } from "./observability/webObservability";
@@ -24,6 +25,7 @@ const APP_LOCAL_STORAGE_KEYS: ReadonlyArray<string> = [
 const PRESERVED_BROWSER_LOCAL_STORAGE_KEYS: ReadonlyArray<string> = [
   INSTALLATION_ID_STORAGE_KEY,
   LOCALE_PREFERENCE_STORAGE_KEY,
+  AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY,
   TEST_MODE_STORAGE_KEY,
 ];
 
@@ -241,11 +243,11 @@ export function clearAuthResetRequired(): void {
  * Clears browser-local user state aggressively after logout, account deletion,
  * or a confirmed account switch.
  *
- * The stable installation id, explicit locale preference, and hidden test-mode
- * flag are intentionally retained because they are browser-scoped preferences
- * rather than user-scoped session state. Keeping them preserves device identity,
- * UI language, and local tester tooling across re-login while still clearing
- * application data.
+ * The stable installation id, explicit locale preference, AI chat suggestions
+ * setting, and hidden test-mode flag are intentionally retained because they are
+ * browser-scoped preferences rather than user-scoped session state. Keeping them
+ * preserves device identity, UI language, local chat UI preferences, and local
+ * tester tooling across re-login while still clearing application data.
  */
 export async function clearAllLocalBrowserData(reason: LocalBrowserDataCleanupReason): Promise<void> {
   const browserStorage = getBrowserStorage();

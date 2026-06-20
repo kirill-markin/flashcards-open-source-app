@@ -26,6 +26,7 @@ export const settingsFeedbackRoute: string = "/settings/feedback";
 export const settingsLanguageRoute: string = "/settings/language";
 export const settingsLeaderboardParticipationRoute: string = "/settings/leaderboard-participation";
 export const settingsReviewAnimationsRoute: string = "/settings/review-animations";
+export const settingsAIChatSuggestionsRoute: string = "/settings/ai-chat-suggestions";
 export const settingsServerRoute: string = "/settings/server";
 export const settingsResetStudyProgressRoute: string = "/settings/reset-study-progress";
 export const settingsDeleteCurrentWorkspaceRoute: string = "/settings/delete-current-workspace";

@@ -7,6 +7,7 @@ import type { Locale, LocalePreference } from "../../../../i18n/types";
 import type { ChatSessionSnapshot, StartChatRunRequestBody } from "../../../../types";
 import { defaultChatConfig } from "../../../sessionController/support/config";
 import { ChatDraftProvider } from "../../../composer/ChatDraftContext";
+import { AIChatPreferencesProvider } from "../../../preferences/AIChatPreferencesContext";
 import { ChatSessionControllerProvider } from "../../../sessionController";
 import {
   loadChatDraftWorkspaceState,
@@ -811,14 +812,18 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
           AppErrorDialogProvider,
           null,
           createElement(
-            ChatSessionControllerProvider,
+            AIChatPreferencesProvider,
             null,
             createElement(
-              ChatDraftProvider,
+              ChatSessionControllerProvider,
               null,
-              createElement(MessagesScrollerMetricsConfigurator),
-              createElement(LocalePreferenceProbe),
-              panel,
+              createElement(
+                ChatDraftProvider,
+                null,
+                createElement(MessagesScrollerMetricsConfigurator),
+                createElement(LocalePreferenceProbe),
+                panel,
+              ),
             ),
           ),
         ),

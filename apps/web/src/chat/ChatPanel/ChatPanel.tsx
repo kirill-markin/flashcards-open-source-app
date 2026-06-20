@@ -22,6 +22,7 @@ import {
 } from "../composer/chatComposerState";
 import { renderStoredMessageContent } from "../history/chatMessageContent";
 import { useChatAutoScroll } from "../history/useChatAutoScroll";
+import { useAIChatPreferences } from "../preferences/AIChatPreferencesContext";
 import { useChatSession } from "../sessionController";
 import { useChatAttachments } from "../attachments/useChatAttachments";
 import { useChatComposerKeyboard } from "../composer/useChatComposerKeyboard";
@@ -38,6 +39,7 @@ export function ChatPanel(props: Props): ReactElement {
   const appData = useAppData();
   const { showCapturedTechnicalError, showTechnicalError } = useAppErrorDialog();
   const { t, formatNumber } = useI18n();
+  const { aiChatComposerSuggestionsEnabled } = useAIChatPreferences();
   const {
     draft,
     focusComposerRequestVersion,
@@ -227,6 +229,7 @@ export function ChatPanel(props: Props): ReactElement {
   });
   const isSendButtonBusy = sendPhase === "preparingSend" || sendPhase === "startingRun";
   const canShowComposerSuggestions = getCanShowComposerSuggestions({
+    areComposerSuggestionsEnabled: aiChatComposerSuggestionsEnabled,
     composerAction,
     composerSuggestionsCount: composerSuggestions.length,
     dictationState,
@@ -238,6 +241,7 @@ export function ChatPanel(props: Props): ReactElement {
     pendingAttachmentCount: pendingAttachments.length,
     sendPhase,
   });
+  const visibleComposerSuggestions = canShowComposerSuggestions ? composerSuggestions : [];
   const microphoneAriaLabel = dictationState === "recording" ? t("chatPanel.dictation.stop") : t("chatPanel.dictation.start");
   const dictationStatusLabel = dictationState === "requesting_permission"
     ? t("chatPanel.dictation.waitingForPermission")
@@ -382,14 +386,14 @@ export function ChatPanel(props: Props): ReactElement {
           </div>
         ) : null}
 
-        {canShowComposerSuggestions ? (
+        {visibleComposerSuggestions.length > 0 ? (
           <div
             className="chat-composer-suggestions"
             aria-label={t("chatPanel.suggestedReplies")}
             data-testid="chat-composer-suggestions"
-            data-suggestion-count={composerSuggestions.length}
+            data-suggestion-count={visibleComposerSuggestions.length}
           >
-            {composerSuggestions.map((suggestion, index) => (
+            {visibleComposerSuggestions.map((suggestion, index) => (
               <button
                 key={suggestion.id}
                 type="button"

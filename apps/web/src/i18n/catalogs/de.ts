@@ -517,6 +517,12 @@ const deCatalog: TranslationCatalog = {
     toggleTitle: "Animationen nach der Bewertung einer Karte anzeigen",
     toggleDescription: "Betrifft nur die Reaktionsanimationen beim Wiederholen.",
   },
+  aiChatSuggestionsSettings: {
+    title: "KI-Chat-Vorschläge",
+    subtitle: "Steuere vorgeschlagene Prompts im KI-Chat-Eingabefeld.",
+    toggleTitle: "Vorschläge im KI-Chat-Eingabefeld anzeigen",
+    toggleDescription: "Vorgeschlagene Prompts erscheinen über dem Eingabefeld, wenn der Chat bereit und inaktiv ist.",
+  },
   leaderboardParticipationSettings: {
     title: "Bestenlisten-Teilnahme",
     subtitle: "Lege fest, ob du in Community-Ranglisten erscheinst und sie sehen kannst.",

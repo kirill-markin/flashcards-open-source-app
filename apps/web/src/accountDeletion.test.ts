@@ -7,6 +7,7 @@ import {
   isBrowserReauthRequired,
   markBrowserReauthRequired,
 } from "./accountDeletion";
+import { AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY } from "./chat/preferences/AIChatPreferencesContext";
 import { INSTALLATION_ID_STORAGE_KEY } from "./clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "./i18n/runtime";
 import { loadCloudSettings, putCloudSettings } from "./localDb/sync/cloudSettings";
@@ -60,6 +61,7 @@ function createStorageMock(): Storage {
 function seedLocalBrowserState(): void {
   window.localStorage.setItem(INSTALLATION_ID_STORAGE_KEY, "installation-1");
   window.localStorage.setItem(LOCALE_PREFERENCE_STORAGE_KEY, "ar");
+  window.localStorage.setItem(AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY, "false");
   window.localStorage.setItem("flashcards-warm-start-snapshot", JSON.stringify({
     version: 1,
   }));
@@ -82,6 +84,7 @@ function expectLocalBrowserStateCleared(): void {
   expect(isBrowserReauthRequired()).toBe(false);
   expect(window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY)).toBe("installation-1");
   expect(window.localStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY)).toBe("ar");
+  expect(window.localStorage.getItem(AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY)).toBe("false");
 }
 
 function createMockOpenDbRequest(fire: (request: IDBOpenDBRequest) => void): IDBOpenDBRequest {
@@ -186,6 +189,7 @@ describe("account deletion local cleanup helpers", () => {
     expect(isBrowserReauthRequired()).toBe(true);
     expect(window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY)).toBe("installation-1");
     expect(window.localStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY)).toBe("ar");
+    expect(window.localStorage.getItem(AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY)).toBe("false");
     expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith(expect.objectContaining({
       action: "local_browser_data_cleanup",
       details: expect.objectContaining({
