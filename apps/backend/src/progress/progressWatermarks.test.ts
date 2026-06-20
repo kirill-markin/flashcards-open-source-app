@@ -20,7 +20,7 @@ test("progress responses include sorted review-history watermarks for accessible
       "user-1": ["workspace-2", "workspace-1"],
     },
     reviewRowsByRequest: {},
-    allReviewDateRowsByRequest: {},
+    activeReviewDateRowsByUser: {},
     reviewScheduleRowsByRequest: {
       "workspace-1|Europe/Madrid": [
         createEmptyReviewScheduleCountRow(),
@@ -69,7 +69,7 @@ test("progress responses return empty review-history watermarks when the user ha
       "user-1": [],
     },
     reviewRowsByRequest: {},
-    allReviewDateRowsByRequest: {},
+    activeReviewDateRowsByUser: {},
     reviewScheduleRowsByRequest: {},
     reviewSequenceIdsByWorkspaceId: {},
   });
@@ -100,7 +100,7 @@ test("loadUserProgressSummaryInExecutor raises workspace context for invalid rev
       "user-1": ["workspace-1"],
     },
     reviewRowsByRequest: {},
-    allReviewDateRowsByRequest: {},
+    activeReviewDateRowsByUser: {},
     reviewScheduleRowsByRequest: {},
     reviewSequenceIdsByWorkspaceId: {
       "workspace-1": "42-invalid",

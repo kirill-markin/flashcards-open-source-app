@@ -46,7 +46,7 @@ test("loadUserProgressReviewScheduleInExecutor returns stable zero buckets for a
       "user-1": ["workspace-1"],
     },
     reviewRowsByRequest: {},
-    allReviewDateRowsByRequest: {},
+    activeReviewDateRowsByUser: {},
     reviewScheduleRowsByRequest: {
       "workspace-1|Europe/Madrid": [
         createEmptyReviewScheduleCountRow(),
@@ -80,7 +80,7 @@ test("loadUserProgressReviewScheduleInExecutor merges bucket counts across works
       "user-1": ["workspace-1", "workspace-2"],
     },
     reviewRowsByRequest: {},
-    allReviewDateRowsByRequest: {},
+    activeReviewDateRowsByUser: {},
     reviewScheduleRowsByRequest: {
       "workspace-1|Europe/Madrid": [
         createReviewScheduleCountRow({
@@ -154,7 +154,7 @@ test("loadUserProgressReviewScheduleInExecutor uses timezone calendar boundaries
       "user-1": ["workspace-1"],
     },
     reviewRowsByRequest: {},
-    allReviewDateRowsByRequest: {},
+    activeReviewDateRowsByUser: {},
     reviewScheduleRowsByRequest: {
       "workspace-1|America/Los_Angeles": [
         createEmptyReviewScheduleCountRow(),

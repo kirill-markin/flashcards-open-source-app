@@ -40,7 +40,7 @@ type WorkspaceMembershipRow = Readonly<{
 export type ProgressExecutorFixture = Readonly<{
   workspaceIdsByUser: Readonly<Record<string, ReadonlyArray<string>>>;
   reviewRowsByRequest: Readonly<Record<string, ReadonlyArray<DailyReviewCountRow>>>;
-  allReviewDateRowsByRequest: Readonly<Record<string, ReadonlyArray<ReviewDateRow>>>;
+  activeReviewDateRowsByUser: Readonly<Record<string, ReadonlyArray<ReviewDateRow>>>;
   reviewScheduleRowsByRequest: Readonly<Record<string, ReadonlyArray<ReviewScheduleCountRow>>>;
   reviewSequenceIdsByWorkspaceId: Readonly<Record<string, string | number>>;
 }>;
@@ -253,6 +253,28 @@ export function createProgressExecutor(
       }
 
       if (
+        text.includes("WITH target_user AS")
+        && text.includes("UPDATE org.user_settings AS user_settings")
+        && text.includes("target_user.progress_time_zone IS DISTINCT FROM $2")
+      ) {
+        const userId = typeof params[0] === "string" ? params[0] : String(params[0]);
+        if (scope.userId !== userId) {
+          throw new Error("Progress timezone remember requires user scope");
+        }
+
+        if (!(userId in fixture.workspaceIdsByUser)) {
+          return createQueryResult<QueryResultRow>([]) as pg.QueryResult<Row>;
+        }
+
+        return createQueryResult<QueryResultRow>([
+          {
+            user_id: userId,
+            updated: false,
+          },
+        ]) as pg.QueryResult<Row>;
+      }
+
+      if (
         text.includes("SELECT memberships.workspace_id")
         && text.includes("FROM org.workspace_memberships memberships")
       ) {
@@ -264,6 +286,33 @@ export function createProgressExecutor(
         return createQueryResult<WorkspaceMembershipRow>(
           (fixture.workspaceIdsByUser[userId] ?? []).map((workspaceId) => ({ workspace_id: workspaceId })),
         ) as unknown as pg.QueryResult<Row>;
+      }
+
+      if (
+        text.includes("WITH target_review_events AS")
+        && text.includes("INSERT INTO progress.user_active_review_days")
+      ) {
+        const userId = typeof params[0] === "string" ? params[0] : String(params[0]);
+        const workspaceId = typeof params[2] === "string" ? params[2] : String(params[2]);
+        if (scope.userId !== userId || scope.workspaceId !== workspaceId) {
+          throw new Error("Active review day materialization requires user scope and workspace RLS scope");
+        }
+
+        return createQueryResult<QueryResultRow>([]) as pg.QueryResult<Row>;
+      }
+
+      if (
+        text.includes("FROM progress.user_active_review_days AS active_days")
+        && text.includes("ORDER BY active_days.local_date ASC")
+      ) {
+        const userId = typeof params[0] === "string" ? params[0] : String(params[0]);
+        if (scope.userId !== userId) {
+          throw new Error("Active review date query requires matching user scope");
+        }
+
+        const rows = [...(fixture.activeReviewDateRowsByUser[userId] ?? [])]
+          .sort((left, right) => left.review_date.localeCompare(right.review_date));
+        return createQueryResult<ReviewDateRow>(rows) as unknown as pg.QueryResult<Row>;
       }
 
       if (
@@ -313,22 +362,6 @@ export function createProgressExecutor(
         const key = `${workspaceId}|${timeZone}|${from}|${to}`;
         return createQueryResult<DailyReviewCountRow>(
           fixture.reviewRowsByRequest[key] ?? [],
-        ) as unknown as pg.QueryResult<Row>;
-      }
-
-      if (
-        text.includes("SELECT DISTINCT timezone($2, review_events.reviewed_at_client)::date AS review_local_date")
-        && text.includes("ORDER BY review_local_dates.review_local_date DESC")
-      ) {
-        const workspaceId = typeof params[0] === "string" ? params[0] : String(params[0]);
-        const timeZone = typeof params[1] === "string" ? params[1] : String(params[1]);
-        if (scope.userId === null || scope.workspaceId !== workspaceId) {
-          throw new Error("All review date query requires matching workspace scope");
-        }
-
-        const key = `${workspaceId}|${timeZone}`;
-        return createQueryResult<ReviewDateRow>(
-          fixture.allReviewDateRowsByRequest[key] ?? [],
         ) as unknown as pg.QueryResult<Row>;
       }
 
