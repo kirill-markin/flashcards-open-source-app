@@ -355,7 +355,8 @@ final class ReviewBackgroundReconcileTests: ProgressStoreTestCase {
             ),
             cardSnapshot: staleSubmittedCard,
             rating: .good,
-            reviewedAtClient: "2026-04-18T09:10:00.000Z"
+            reviewedAtClient: "2026-04-18T09:10:00.000Z",
+            reviewedTimeZone: "UTC"
         )
 
         store.handleReviewSubmissionFailure(
@@ -451,7 +452,8 @@ final class ReviewBackgroundReconcileTests: ProgressStoreTestCase {
             ),
             cardSnapshot: submittedCard,
             rating: .good,
-            reviewedAtClient: "2026-04-18T09:10:00.000Z"
+            reviewedAtClient: "2026-04-18T09:10:00.000Z",
+            reviewedTimeZone: "UTC"
         )
 
         store.handleReviewSubmissionFailure(
@@ -572,7 +574,8 @@ final class ReviewBackgroundReconcileTests: ProgressStoreTestCase {
             ),
             cardSnapshot: staleSubmittedCard,
             rating: .good,
-            reviewedAtClient: "2026-04-18T09:10:00.000Z"
+            reviewedAtClient: "2026-04-18T09:10:00.000Z",
+            reviewedTimeZone: "UTC"
         )
 
         await store.processReviewSubmissionRequest(request: request)

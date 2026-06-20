@@ -771,6 +771,7 @@ enum LinkedSyncRunnerTestTransportSupport {
             let body = try Self.jsonObjectBody(request: request)
             let afterReviewSequenceId = try XCTUnwrap(body["afterReviewSequenceId"] as? NSNumber).int64Value
             CloudSyncRunnerTestURLProtocol.reviewHistoryPullAfterSequenceIds.append(afterReviewSequenceId)
+            let reviewedTimeZoneJson = remoteReviewEvent.reviewedTimeZone.map { "\"\($0)\"" } ?? "null"
             return try Self.jsonResponse(
                 request: request,
                 statusCode: 200,
@@ -785,6 +786,7 @@ enum LinkedSyncRunnerTestTransportSupport {
                       "clientEventId": "\(remoteReviewEvent.clientEventId)",
                       "rating": \(remoteReviewEvent.rating.rawValue),
                       "reviewedAtClient": "\(remoteReviewEvent.reviewedAtClient)",
+                      "reviewedTimeZone": \(reviewedTimeZoneJson),
                       "reviewedAtServer": "\(remoteReviewEvent.reviewedAtServer)"
                     }
                   ],

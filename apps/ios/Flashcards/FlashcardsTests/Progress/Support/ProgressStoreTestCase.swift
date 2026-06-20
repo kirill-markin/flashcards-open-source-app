@@ -49,7 +49,8 @@ class ProgressStoreTestCase: XCTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: card.cardId,
                 rating: .good,
-                reviewedAtClient: reviewedAtClient
+                reviewedAtClient: reviewedAtClient,
+                reviewedTimeZone: "UTC"
             )
         )
     }

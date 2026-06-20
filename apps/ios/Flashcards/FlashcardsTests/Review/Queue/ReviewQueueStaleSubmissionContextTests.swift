@@ -60,7 +60,8 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
             ),
             cardSnapshot: submittedCard,
             rating: .good,
-            reviewedAtClient: "2026-03-09T09:00:00.000Z"
+            reviewedAtClient: "2026-03-09T09:00:00.000Z",
+            reviewedTimeZone: "UTC"
         )
 
         let nextState = runtime.completeReviewSubmission(
@@ -126,7 +127,8 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
             ),
             cardSnapshot: submittedCard,
             rating: .good,
-            reviewedAtClient: "2026-03-09T09:00:00.000Z"
+            reviewedAtClient: "2026-03-09T09:00:00.000Z",
+            reviewedTimeZone: "UTC"
         )
 
         let nextState = runtime.failReviewSubmission(
@@ -197,7 +199,8 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
             ),
             cardSnapshot: submittedCard,
             rating: .good,
-            reviewedAtClient: "2026-03-09T09:00:00.000Z"
+            reviewedAtClient: "2026-03-09T09:00:00.000Z",
+            reviewedTimeZone: "UTC"
         )
 
         let nextState = runtime.failReviewSubmission(
@@ -277,7 +280,8 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
             ),
             cardSnapshot: submittedCard,
             rating: .good,
-            reviewedAtClient: "2026-03-09T09:00:00.000Z"
+            reviewedAtClient: "2026-03-09T09:00:00.000Z",
+            reviewedTimeZone: "UTC"
         )
 
         let nextState = runtime.failReviewSubmission(
@@ -367,7 +371,8 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
             ),
             cardSnapshot: submittedCard,
             rating: .good,
-            reviewedAtClient: "2026-03-09T09:00:00.000Z"
+            reviewedAtClient: "2026-03-09T09:00:00.000Z",
+            reviewedTimeZone: "UTC"
         )
 
         let nextState = runtime.failReviewSubmission(

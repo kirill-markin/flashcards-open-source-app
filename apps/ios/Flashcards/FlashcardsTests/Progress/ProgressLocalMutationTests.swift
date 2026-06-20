@@ -47,6 +47,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         context.store.handleProgressLocalMutation(
             now: now,
             reviewedAtClient: "2026-04-18T12:30:00.000Z",
+            reviewedTimeZone: "UTC",
             rating: .good
         )
 
@@ -128,6 +129,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         context.store.handleProgressLocalMutation(
             now: now,
             reviewedAtClient: reviewedAtClient,
+            reviewedTimeZone: "UTC",
             rating: .good
         )
 
@@ -213,6 +215,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         context.store.handleProgressLocalMutation(
             now: now,
             reviewedAtClient: reviewedAtClient,
+            reviewedTimeZone: "UTC",
             rating: .good
         )
 
@@ -265,6 +268,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         context.store.handleProgressLocalMutation(
             now: now,
             reviewedAtClient: "2026-04-18T12:30:00.000Z",
+            reviewedTimeZone: "UTC",
             rating: .good
         )
 
@@ -340,6 +344,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         context.store.handleProgressLocalMutation(
             now: now,
             reviewedAtClient: formatIsoTimestamp(date: yesterdayReviewDate),
+            reviewedTimeZone: "UTC",
             rating: .good
         )
 
@@ -397,6 +402,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
                 hour: 12,
                 timeZoneIdentifier: requestRange.timeZone
             ),
+            reviewedTimeZone: "UTC",
             rating: .good
         )
 
@@ -470,6 +476,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
                 hour: 12,
                 timeZoneIdentifier: requestRange.timeZone
             ),
+            reviewedTimeZone: "UTC",
             rating: .good
         )
 
@@ -538,6 +545,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         context.store.handleProgressLocalMutation(
             now: rolloverNow,
             reviewedAtClient: reviewedAtClient,
+            reviewedTimeZone: "UTC",
             rating: .good
         )
 

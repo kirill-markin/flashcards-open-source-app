@@ -104,12 +104,14 @@ extension FlashcardsStore {
         let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         let reviewedAtClient = nowIsoTimestamp()
+        let reviewedTimeZone = TimeZone.current.identifier
         _ = try context.database.submitReview(
             workspaceId: context.workspaceId,
             reviewSubmission: ReviewSubmission(
                 cardId: cardId,
                 rating: rating,
-                reviewedAtClient: reviewedAtClient
+                reviewedAtClient: reviewedAtClient,
+                reviewedTimeZone: reviewedTimeZone
             )
         )
         let reviewedAt = parseIsoTimestamp(value: reviewedAtClient) ?? now

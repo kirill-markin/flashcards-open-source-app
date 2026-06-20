@@ -21,7 +21,8 @@ final class LocalWorkspaceLinkMigrationTests: LocalWorkspaceSyncTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: savedCard.cardId,
                 rating: .good,
-                reviewedAtClient: "2026-04-02T15:50:57.000Z"
+                reviewedAtClient: "2026-04-02T15:50:57.000Z",
+                reviewedTimeZone: "UTC"
             )
         )
         try self.updateSyncState(
@@ -80,7 +81,8 @@ final class LocalWorkspaceLinkMigrationTests: LocalWorkspaceSyncTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: savedCard.cardId,
                 rating: .good,
-                reviewedAtClient: "2026-04-02T15:50:57.000Z"
+                reviewedAtClient: "2026-04-02T15:50:57.000Z",
+                reviewedTimeZone: "UTC"
             )
         )
         try database.updateWorkspaceSchedulerSettings(
@@ -148,6 +150,7 @@ final class LocalWorkspaceLinkMigrationTests: LocalWorkspaceSyncTestCase {
         XCTAssertEqual(expectedForkedReviewEventId, migratedReviewEvent.reviewEventId)
         XCTAssertEqual("workspace-linked", migratedReviewEvent.workspaceId)
         XCTAssertEqual(expectedForkedCardId, migratedReviewEvent.cardId)
+        XCTAssertEqual("UTC", migratedReviewEvent.reviewedTimeZone)
         XCTAssertTrue(outboxRows.allSatisfy { row in row.workspaceId == "workspace-linked" })
         XCTAssertFalse(outboxRows.contains { row in row.entityId == savedCard.cardId })
         XCTAssertFalse(outboxRows.contains { row in row.entityId == savedDeck.deckId })
@@ -173,6 +176,7 @@ final class LocalWorkspaceLinkMigrationTests: LocalWorkspaceSyncTestCase {
                 return row.entityId == expectedForkedReviewEventId
                     && payload.reviewEventId == expectedForkedReviewEventId
                     && payload.cardId == expectedForkedCardId
+                    && payload.reviewedTimeZone == "UTC"
             }
         )
         XCTAssertEqual(["workspace-linked"], schedulerOutboxRows.map(\.entityId))

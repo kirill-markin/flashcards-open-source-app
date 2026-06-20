@@ -748,7 +748,8 @@ extension FlashcardsStore {
                 reviewSubmission: ReviewSubmission(
                     cardId: card.cardId,
                     rating: reviewSeed.rating,
-                    reviewedAtClient: reviewedAtClient
+                    reviewedAtClient: reviewedAtClient,
+                    reviewedTimeZone: TimeZone.current.identifier
                 )
             )
         }

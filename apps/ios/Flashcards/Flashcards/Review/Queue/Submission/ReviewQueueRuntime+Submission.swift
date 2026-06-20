@@ -38,7 +38,8 @@ extension ReviewQueueRuntime {
             ),
             cardSnapshot: cardSnapshot,
             rating: rating,
-            reviewedAtClient: nowIsoTimestamp()
+            reviewedAtClient: nowIsoTimestamp(),
+            reviewedTimeZone: TimeZone.current.identifier
         )
         self.state.pendingReviewRequests.append(request)
 

@@ -486,6 +486,7 @@ struct RemoteReviewEventChangePayload: Decodable {
     let clientEventId: String
     let rating: ReviewRating
     let reviewedAtClient: String
+    let reviewedTimeZone: String?
     let reviewedAtServer: String
 }
 
@@ -612,5 +613,6 @@ struct RemoteReviewEventEnvelope: Decodable {
     let clientEventId: String
     let rating: ReviewRating
     let reviewedAtClient: String
+    let reviewedTimeZone: String?
     let reviewedAtServer: String
 }

@@ -154,6 +154,7 @@ extension CardStore {
         cardId: String,
         rating: ReviewRating,
         reviewedAtClient: String,
+        reviewedTimeZone: String?,
         installationId: String,
         reviewEventId: String,
         clientEventId: String,
@@ -169,9 +170,10 @@ extension CardStore {
                 client_event_id,
                 rating,
                 reviewed_at_client,
+                reviewed_time_zone,
                 reviewed_at_server
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             values: [
                 .text(reviewEventId),
@@ -181,6 +183,7 @@ extension CardStore {
                 .text(clientEventId),
                 .integer(Int64(rating.rawValue)),
                 .text(reviewedAtClient),
+                reviewedTimeZone.map(SQLiteValue.text) ?? .null,
                 .text(reviewedAtServer)
             ]
         )
@@ -193,6 +196,7 @@ extension CardStore {
             clientEventId: clientEventId,
             rating: rating,
             reviewedAtClient: reviewedAtClient,
+            reviewedTimeZone: reviewedTimeZone,
             reviewedAtServer: reviewedAtServer
         )
     }

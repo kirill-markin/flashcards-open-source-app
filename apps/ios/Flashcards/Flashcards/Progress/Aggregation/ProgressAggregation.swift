@@ -20,6 +20,7 @@ struct ProgressReviewedAtClientSources: Hashable, Sendable {
 struct ProgressReviewEventSource: Hashable, Sendable {
     let reviewEventId: String
     let reviewedAtClient: String
+    let reviewedTimeZone: String?
     let rating: ReviewRating
 }
 
@@ -470,18 +471,13 @@ private func progressReviewRatingCountsByLocalDate(
     reviewEvents: [ProgressReviewEventSource],
     requestRange: ProgressRequestRange
 ) throws -> [String: ProgressReviewRatingCounts] {
-    let timeZone = try progressTimeZone(identifier: requestRange.timeZone)
-    let calendar = makeProgressStoreCalendar(timeZone: timeZone)
     var ratingCountsByLocalDate: [String: ProgressReviewRatingCounts] = [:]
 
     for reviewEvent in reviewEvents {
-        guard let reviewedAtDate = parseIsoTimestamp(value: reviewEvent.reviewedAtClient) else {
-            throw LocalStoreError.validation(
-                "Progress reviewedAtClient timestamp is invalid: \(reviewEvent.reviewedAtClient)"
-            )
-        }
-
-        let localDate = progressLocalDateStringForStore(date: reviewedAtDate, calendar: calendar)
+        let localDate = try progressReviewEventLocalDate(
+            reviewEvent: reviewEvent,
+            fallbackTimeZone: requestRange.timeZone
+        )
         if localDate < requestRange.from || localDate > requestRange.to {
             continue
         }
@@ -500,17 +496,24 @@ func progressActiveDatesFromReviewEvents(
     reviewEvents: [ProgressReviewEventSource],
     timeZone: String
 ) throws -> Set<String> {
-    let resolvedTimeZone = try progressTimeZone(identifier: timeZone)
-    let calendar = makeProgressStoreCalendar(timeZone: resolvedTimeZone)
     return try Set(reviewEvents.map { reviewEvent in
-        guard let reviewedAtDate = parseIsoTimestamp(value: reviewEvent.reviewedAtClient) else {
-            throw LocalStoreError.validation(
-                "Progress reviewedAtClient timestamp is invalid: \(reviewEvent.reviewedAtClient)"
-            )
-        }
-
-        return progressLocalDateStringForStore(date: reviewedAtDate, calendar: calendar)
+        try progressReviewEventLocalDate(reviewEvent: reviewEvent, fallbackTimeZone: timeZone)
     })
+}
+
+private func progressReviewEventLocalDate(
+    reviewEvent: ProgressReviewEventSource,
+    fallbackTimeZone: String
+) throws -> String {
+    guard let reviewedAtDate = parseIsoTimestamp(value: reviewEvent.reviewedAtClient) else {
+        throw LocalStoreError.validation(
+            "Progress reviewedAtClient timestamp is invalid: \(reviewEvent.reviewedAtClient)"
+        )
+    }
+
+    let timeZone = try progressTimeZone(identifier: reviewEvent.reviewedTimeZone ?? fallbackTimeZone)
+    let calendar = makeProgressStoreCalendar(timeZone: timeZone)
+    return progressLocalDateStringForStore(date: reviewedAtDate, calendar: calendar)
 }
 
 func progressActiveDatesFromReviewedAtClientSources(
@@ -693,6 +696,7 @@ func patchProgressSnapshot(
     snapshot: ProgressSnapshot,
     scopeKey: ProgressScopeKey,
     reviewedAtClient: String,
+    reviewedTimeZone: String?,
     rating: ReviewRating,
     activeReviewLocalDates: Set<String>
 ) throws -> ProgressSnapshot {
@@ -707,8 +711,15 @@ func patchProgressSnapshot(
 
     let timeZone = try progressTimeZone(identifier: scopeKey.timeZone)
     let calendar = makeProgressStoreCalendar(timeZone: timeZone)
-    let reviewedAtDate = try reviewedAtDateForProgressMutation(reviewedAtClient: reviewedAtClient)
-    let reviewedLocalDate = progressLocalDateStringForStore(date: reviewedAtDate, calendar: calendar)
+    let reviewedLocalDate = try progressReviewEventLocalDate(
+        reviewEvent: ProgressReviewEventSource(
+            reviewEventId: "local-progress-mutation",
+            reviewedAtClient: reviewedAtClient,
+            reviewedTimeZone: reviewedTimeZone,
+            rating: rating
+        ),
+        fallbackTimeZone: scopeKey.timeZone
+    )
     let patchedActiveReviewLocalDates = activeReviewLocalDates.union([reviewedLocalDate])
     let dailyReviews = try makePatchedSnapshotProgressDailyReviews(
         snapshot: snapshot,
@@ -956,12 +967,4 @@ private func patchedProgressSourceState(sourceState: ProgressSourceState) -> Pro
     case .serverBase, .serverBaseWithPendingLocalOverlay:
         return .serverBaseWithPendingLocalOverlay
     }
-}
-
-private func reviewedAtDateForProgressMutation(reviewedAtClient: String) throws -> Date {
-    guard let reviewedAtDate = parseIsoTimestamp(value: reviewedAtClient) else {
-        throw LocalStoreError.validation("Progress reviewedAtClient timestamp is invalid: \(reviewedAtClient)")
-    }
-
-    return reviewedAtDate
 }

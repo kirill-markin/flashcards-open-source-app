@@ -160,7 +160,8 @@ final class ProgressLocalStoreTests: ProgressStoreTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: card.cardId,
                 rating: .good,
-                reviewedAtClient: "2026-04-02T15:50:57.000Z"
+                reviewedAtClient: "2026-04-02T15:50:57.000Z",
+                reviewedTimeZone: "UTC"
             )
         )
 
@@ -171,6 +172,7 @@ final class ProgressLocalStoreTests: ProgressStoreTestCase {
 
         XCTAssertEqual(1, pendingBeforeDelete.count)
         XCTAssertEqual("2026-04-02T15:50:57.000Z", pendingBeforeDelete.first?.reviewedAtClient)
+        XCTAssertEqual("UTC", pendingBeforeDelete.first?.reviewedTimeZone)
 
         let outboxEntries = try database.loadOutboxEntries(workspaceId: workspace.workspaceId, limit: Int.max)
         try database.deleteOutboxEntries(operationIds: outboxEntries.map(\.operationId))
@@ -233,7 +235,8 @@ final class ProgressLocalStoreTests: ProgressStoreTestCase {
             reviewSubmission: ReviewSubmission(
                 cardId: createdCard.cardId,
                 rating: .good,
-                reviewedAtClient: "2026-04-02T15:50:57.000Z"
+                reviewedAtClient: "2026-04-02T15:50:57.000Z",
+                reviewedTimeZone: "UTC"
             )
         )
 
