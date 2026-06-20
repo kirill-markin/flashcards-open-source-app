@@ -63,8 +63,8 @@ extension ReviewView {
             try store.enqueueReviewSubmission(cardId: cardId, rating: rating)
             self.screenErrorMessage = ""
         } catch {
-            if isInlineReviewSubmissionError(error: error) {
-                self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            if let inlineErrorMessage = reviewSubmissionInlineErrorMessage(error: error) {
+                self.screenErrorMessage = inlineErrorMessage
             } else {
                 self.screenErrorMessage = ""
                 store.presentTechnicalError(error)
@@ -140,19 +140,19 @@ extension ReviewView {
     }
 }
 
-private func isInlineReviewSubmissionError(error: Error) -> Bool {
+private func reviewSubmissionInlineErrorMessage(error: Error) -> String? {
     if let localStoreError = error as? LocalStoreError {
         switch localStoreError {
         case .validation:
-            return true
+            return Flashcards.errorMessage(error: error)
         case .database, .notFound, .uninitialized:
-            return false
+            return nil
         }
     }
 
     if error is PendingGuestUpgradeLocalMutationError {
-        return true
+        return Flashcards.errorMessage(error: error)
     }
 
-    return false
+    return nil
 }
