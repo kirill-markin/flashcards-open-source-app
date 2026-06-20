@@ -160,7 +160,8 @@ class LocalWorkspaceSyncTestCase: XCTestCase {
             now: now,
             extendsFastPolling: false,
             allowsVisibleChangeBanner: false,
-            surfacesGlobalErrorMessage: false
+            surfacesGlobalErrorMessage: false,
+            capturesTechnicalFailures: false
         )
     }
 

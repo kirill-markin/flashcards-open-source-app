@@ -379,7 +379,8 @@ struct RootTabView: View {
                     now: Date(),
                     extendsFastPolling: true,
                     allowsVisibleChangeBanner: true,
-                    surfacesGlobalErrorMessage: false
+                    surfacesGlobalErrorMessage: false,
+                    capturesTechnicalFailures: false
                 )
             )
         }

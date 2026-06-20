@@ -33,6 +33,7 @@ struct DangerZoneView: View {
         .fullScreenCover(isPresented: self.$isDeleteAccountConfirmationPresented) {
             DeleteAccountConfirmationView()
                 .environment(store)
+                .technicalErrorSheetHost(store: self.store)
         }
     }
 }

@@ -231,7 +231,8 @@ struct FlashcardsApp: App {
                                 now: now,
                                 extendsFastPolling: usesFastCloudSyncPolling(tab: navigation.selectedTab),
                                 allowsVisibleChangeBanner: true,
-                                surfacesGlobalErrorMessage: false
+                                surfacesGlobalErrorMessage: false,
+                                capturesTechnicalFailures: false
                             )
                         )
                         store.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
@@ -265,14 +266,7 @@ struct FlashcardsApp: App {
                 .task(id: self.cloudSyncPollingTaskID) {
                     await self.runCloudSyncPollingLoop()
                 }
-                .sheet(item: self.technicalErrorPresentation) { presentation in
-                    TechnicalErrorSheet(
-                        presentation: presentation,
-                        onClose: {
-                            self.store.dismissTechnicalError()
-                        }
-                    )
-                }
+                .technicalErrorSheetHost(store: self.store)
         }
     }
 
@@ -304,19 +298,6 @@ struct FlashcardsApp: App {
 
     private var isCloudCredentialRecoveryGateActive: Bool {
         self.store.cloudCredentialRecoveryState != nil
-    }
-
-    private var technicalErrorPresentation: Binding<TechnicalErrorPresentation?> {
-        Binding<TechnicalErrorPresentation?>(
-            get: {
-                self.store.presentedTechnicalError
-            },
-            set: { presentation in
-                if presentation == nil {
-                    self.store.dismissTechnicalError()
-                }
-            }
-        )
     }
 
     @MainActor
@@ -356,7 +337,8 @@ struct FlashcardsApp: App {
                         now: now,
                         extendsFastPolling: usesFastCloudSyncPolling(tab: self.navigation.selectedTab),
                         allowsVisibleChangeBanner: true,
-                        surfacesGlobalErrorMessage: false
+                        surfacesGlobalErrorMessage: false,
+                        capturesTechnicalFailures: false
                     )
                 )
                 self.store.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
@@ -544,7 +526,8 @@ struct FlashcardsApp: App {
                     now: Date(),
                     extendsFastPolling: false,
                     allowsVisibleChangeBanner: true,
-                    surfacesGlobalErrorMessage: false
+                    surfacesGlobalErrorMessage: false,
+                    capturesTechnicalFailures: false
                 )
             )
         }

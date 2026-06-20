@@ -50,7 +50,7 @@ func extendCloudSyncFastPollingUntil(currentDeadline: Date?, now: Date, duration
 enum AccountDeletionState: Equatable {
     case hidden
     case inProgress
-    case failed(message: String)
+    case failed
 }
 
 @MainActor
@@ -534,8 +534,15 @@ final class FlashcardsStore {
     }
 
     func presentTechnicalError(_ error: Error) {
-        let presentation: TechnicalErrorPresentation = makeTechnicalErrorPresentation(error: error)
-        self.capturePresentedTechnicalError(error: error)
+        if isRequestCancellationError(error: error) {
+            return
+        }
+
+        let presentationError = technicalErrorPresentationSource(error: error)
+        let presentation: TechnicalErrorPresentation = makeTechnicalErrorPresentation(error: presentationError)
+        if isTechnicalErrorObserved(error: error) == false {
+            self.capturePresentedTechnicalError(error: presentationError)
+        }
         self.presentedTechnicalError = presentation
     }
 

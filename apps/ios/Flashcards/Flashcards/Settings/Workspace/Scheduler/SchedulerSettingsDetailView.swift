@@ -3,7 +3,7 @@ import SwiftUI
 struct SchedulerSettingsDetailView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
-    @State private var screenErrorMessage: String = ""
+    @State private var validationErrorMessage: String = ""
     @State private var draft: SchedulerSettingsDraft = makeDefaultSchedulerSettingsDraft()
     @State private var isSaveConfirmationPresented: Bool = false
     @State private var pendingSchedulerSettingsUpdate: PendingSchedulerSettingsUpdate?
@@ -22,15 +22,10 @@ struct SchedulerSettingsDetailView: View {
 
     var body: some View {
         List {
-            if store.globalErrorMessage.isEmpty == false {
+            if self.validationErrorMessage.isEmpty == false {
                 Section {
-                    CopyableErrorMessageView(message: store.globalErrorMessage)
-                }
-            }
-
-            if screenErrorMessage.isEmpty == false {
-                Section {
-                    CopyableErrorMessageView(message: screenErrorMessage)
+                    Text(self.validationErrorMessage)
+                        .foregroundStyle(.red)
                 }
             }
 
@@ -193,9 +188,9 @@ struct SchedulerSettingsDetailView: View {
                 enableFuzz: self.draft.enableFuzz
             )
             self.isSaveConfirmationPresented = true
-            self.screenErrorMessage = ""
+            self.validationErrorMessage = ""
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            self.validationErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
 
@@ -209,16 +204,19 @@ struct SchedulerSettingsDetailView: View {
                 enableFuzz: update.enableFuzz
             )
             self.pendingSchedulerSettingsUpdate = nil
-            self.screenErrorMessage = ""
+            self.validationErrorMessage = ""
+        } catch LocalStoreError.validation(let message) {
+            self.pendingSchedulerSettingsUpdate = nil
+            self.validationErrorMessage = message
         } catch {
             self.pendingSchedulerSettingsUpdate = nil
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            self.store.presentTechnicalError(error)
         }
     }
 
     private func resetSchedulerSettingsDraft() {
         self.draft = makeDefaultSchedulerSettingsDraft()
-        self.screenErrorMessage = ""
+        self.validationErrorMessage = ""
     }
 
     private func schedulerInfoRow(title: String, value: String, note: String) -> some View {

@@ -774,19 +774,18 @@ extension FlashcardsStore {
                 installationId: self.cloudSettings?.installationId,
                 errorMessage: Flashcards.errorMessage(error: error)
             )
-            if isRetryableNetworkTransportFailure(error: error) == false {
-                self.captureCloudSyncFailure(
-                    error: error,
-                    linkedSession: linkedSession,
-                    fallbackCloudState: self.cloudSettings?.cloudState,
-                    action: "cloud_link_sync"
-                )
-            }
+            let didCapture = self.captureCloudSyncFailureIfNeeded(
+                error: error,
+                linkedSession: linkedSession,
+                fallbackCloudState: self.cloudSettings?.cloudState,
+                trigger: trigger,
+                action: "cloud_link_sync"
+            )
             self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
             if trigger.surfacesGlobalErrorMessage {
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
-            throw error
+            throw didCapture ? markTechnicalErrorObserved(error: error) : error
         }
     }
 

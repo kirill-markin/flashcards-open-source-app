@@ -1,5 +1,31 @@
 import Foundation
 
+struct ObservedTechnicalError: LocalizedError {
+    let underlyingError: Error
+
+    var errorDescription: String? {
+        errorMessage(error: self.underlyingError)
+    }
+}
+
+func markTechnicalErrorObserved(error: Error) -> Error {
+    if isTechnicalErrorObserved(error: error) {
+        return error
+    }
+    return ObservedTechnicalError(underlyingError: error)
+}
+
+func isTechnicalErrorObserved(error: Error) -> Bool {
+    error is ObservedTechnicalError
+}
+
+func technicalErrorPresentationSource(error: Error) -> Error {
+    if let observedError = error as? ObservedTechnicalError {
+        return observedError.underlyingError
+    }
+    return error
+}
+
 struct CloudAuthInlineErrorPresentation: Equatable {
     let message: String
     let technicalDetails: String?
@@ -11,6 +37,10 @@ enum CloudAuthInlineErrorContext {
 }
 
 func errorMessage(error: Error) -> String {
+    if let observedError = error as? ObservedTechnicalError {
+        return errorMessage(error: observedError.underlyingError)
+    }
+
     if let localizedError = error as? LocalizedError, let description = localizedError.errorDescription {
         return description
     }

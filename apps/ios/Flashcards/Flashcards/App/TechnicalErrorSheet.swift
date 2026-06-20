@@ -84,6 +84,41 @@ struct TechnicalErrorSheet: View {
     }
 }
 
+private struct TechnicalErrorSheetHostModifier: ViewModifier {
+    let store: FlashcardsStore
+
+    private var technicalErrorPresentation: Binding<TechnicalErrorPresentation?> {
+        Binding<TechnicalErrorPresentation?>(
+            get: {
+                self.store.presentedTechnicalError
+            },
+            set: { presentation in
+                if presentation == nil {
+                    self.store.dismissTechnicalError()
+                }
+            }
+        )
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(item: self.technicalErrorPresentation) { presentation in
+                TechnicalErrorSheet(
+                    presentation: presentation,
+                    onClose: {
+                        self.store.dismissTechnicalError()
+                    }
+                )
+            }
+    }
+}
+
+extension View {
+    func technicalErrorSheetHost(store: FlashcardsStore) -> some View {
+        self.modifier(TechnicalErrorSheetHostModifier(store: store))
+    }
+}
+
 #Preview {
     TechnicalErrorSheet(
         presentation: makeTechnicalErrorPreviewPresentation(),

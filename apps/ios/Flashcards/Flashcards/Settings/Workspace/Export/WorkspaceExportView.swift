@@ -3,16 +3,17 @@ import UIKit
 
 struct WorkspaceExportView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
-    @State private var errorMessage: String = ""
+    @State private var guidanceMessage: String = ""
     @State private var isExporting: Bool = false
     @State private var exportedFileURL: URL? = nil
     @State private var isShareSheetPresented: Bool = false
 
     var body: some View {
         List {
-            if self.errorMessage.isEmpty == false || store.globalErrorMessage.isEmpty == false {
+            if self.guidanceMessage.isEmpty == false {
                 Section {
-                    CopyableErrorMessageView(message: self.errorMessage.isEmpty ? store.globalErrorMessage : self.errorMessage)
+                    Text(self.guidanceMessage)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -62,12 +63,14 @@ struct WorkspaceExportView: View {
     @MainActor
     private func exportCsv() async {
         guard let database = store.database, let workspace = store.workspace else {
-            self.errorMessage = aiSettingsLocalized("settings.workspace.export.workspaceUnavailable", "Workspace is unavailable")
+            self.guidanceMessage = aiSettingsLocalized("settings.workspace.export.workspaceUnavailable", "Workspace is unavailable")
             return
         }
 
-        self.cleanupExportedFile()
-        self.errorMessage = ""
+        guard self.cleanupExportedFile() else {
+            return
+        }
+        self.guidanceMessage = ""
         self.isExporting = true
 
         do {
@@ -82,16 +85,17 @@ struct WorkspaceExportView: View {
             )
             self.isShareSheetPresented = true
         } catch {
-            self.errorMessage = Flashcards.errorMessage(error: error)
+            self.store.presentTechnicalError(error)
         }
 
         self.isExporting = false
     }
 
     @MainActor
-    private func cleanupExportedFile() {
+    @discardableResult
+    private func cleanupExportedFile() -> Bool {
         guard let exportedFileURL = self.exportedFileURL else {
-            return
+            return true
         }
 
         do {
@@ -99,10 +103,12 @@ struct WorkspaceExportView: View {
                 try FileManager.default.removeItem(at: exportedFileURL)
             }
         } catch {
-            self.errorMessage = Flashcards.errorMessage(error: error)
+            self.store.presentTechnicalError(error)
+            return false
         }
 
         self.exportedFileURL = nil
+        return true
     }
 }
 

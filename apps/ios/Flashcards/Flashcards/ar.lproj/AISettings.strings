@@ -192,6 +192,7 @@
 "settings.sync.syncing" = "المزامنة";
 "settings.sync.blocked" = "تم حظر المزامنة: %@";
 "settings.sync.failed" = "فشل المزامنة: %@";
+"settings.sync.failed.generic" = "فشل المزامنة";
 "settings.sync.recovery.linkedCredentialsMissing" = "بيانات اعتماد تسجيل الدخول الآمنة مفقودة على هذا الجهاز. تم الحفاظ على البيانات المحلية. سجّل الدخول مرة أخرى لإعادة توصيل المزامنة.";
 "settings.sync.recovery.guestSessionMissing" = "بيانات اعتماد الضيف مفقودة على هذا الجهاز. تم الحفاظ على البيانات المحلية، لكن لا يمكن استرداد حساب الضيف السحابي القديم بدون رمزه.";
 "settings.sync.recovery.invalidStoredState" = "بيانات استرداد بيانات اعتماد السحابة المخزنة على هذا الجهاز غير صالحة. تم إيقاف المزامنة مؤقتا حتى تعيد توصيل هوية السحابة أو تعيد تعيينها.";
@@ -557,6 +558,7 @@
 "settings.workspace.decks.description" = "التشكيلات مرشحات ذكية تضم البطاقات المطابقة لمستويات الجهد والوسوم التي تختارها.";
 "settings.workspace.decks.editorSmartFilterDescription" = "المجموعة مرشح ذكي.";
 "settings.workspace.decks.editorMatchingRulesDescription" = "تتطابق البطاقات حسب مستويات الجهد والوسوم التي تحددها. يمكنك اختيار المجموعة من القائمة العلوية اليسرى في المراجعة.";
+"settings.workspace.decks.emptyNameValidation" = "أدخل اسمًا للمجموعة.";
 "settings.workspace.decks.emptyRuleValidation" = "اختر مستوى جهد واحدًا أو وسمًا واحدًا على الأقل، أو استخدم كل البطاقات في المراجعة.";
 "settings.workspace.decks.loading" = "جارٍ تحميل التشكيلات...";
 "settings.workspace.decks.noMatching" = "لا توجد تشكيلات مطابقة";

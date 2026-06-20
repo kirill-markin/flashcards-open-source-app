@@ -35,7 +35,7 @@ extension FlashcardsStore {
                 installationId: self.cloudSettings?.installationId,
                 errorMessage: Flashcards.errorMessage(error: error)
             )
-            self.captureCloudSyncFailureIfNeeded(
+            let didCapture = self.captureCloudSyncFailureIfNeeded(
                 error: error,
                 linkedSession: linkedSession,
                 fallbackCloudState: self.cloudSettings?.cloudState,
@@ -46,7 +46,7 @@ extension FlashcardsStore {
             if trigger.surfacesGlobalErrorMessage {
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
-            throw error
+            throw didCapture ? markTechnicalErrorObserved(error: error) : error
         }
     }
 

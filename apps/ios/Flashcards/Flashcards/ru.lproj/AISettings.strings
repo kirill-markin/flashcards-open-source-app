@@ -192,6 +192,7 @@
 "settings.sync.syncing" = "Синхронизация";
 "settings.sync.blocked" = "Синхронизация заблокирована: %@";
 "settings.sync.failed" = "Ошибка синхронизации: %@";
+"settings.sync.failed.generic" = "Синхронизация не удалась";
 "settings.sync.recovery.linkedCredentialsMissing" = "На этом устройстве отсутствуют защищенные учетные данные для входа. Локальные данные сохранены. Войдите снова, чтобы восстановить синхронизацию.";
 "settings.sync.recovery.guestSessionMissing" = "На этом устройстве отсутствуют гостевые учетные данные. Локальные данные сохранены, но старую гостевую облачную учетную запись нельзя восстановить без ее токена.";
 "settings.sync.recovery.invalidStoredState" = "Данные восстановления облачных учетных данных на этом устройстве повреждены. Синхронизация приостановлена, пока вы не подключите заново или не сбросите облачную идентификацию.";
@@ -557,6 +558,7 @@
 "settings.workspace.decks.description" = "Колоды — это умные фильтры, которые включают карточки, соответствующие выбранным уровням усилия и тегам.";
 "settings.workspace.decks.editorSmartFilterDescription" = "Колода — это умный фильтр.";
 "settings.workspace.decks.editorMatchingRulesDescription" = "Карточки подбираются по выбранным уровням усилия и тегам. Колоду можно выбрать в меню сверху слева на экране «Повторение».";
+"settings.workspace.decks.emptyNameValidation" = "Введите название колоды.";
 "settings.workspace.decks.emptyRuleValidation" = "Выберите хотя бы один уровень усилия или тег либо используйте «Все карточки» на экране «Повторение».";
 "settings.workspace.decks.loading" = "Загрузка колод...";
 "settings.workspace.decks.noMatching" = "Нет подходящих колод";

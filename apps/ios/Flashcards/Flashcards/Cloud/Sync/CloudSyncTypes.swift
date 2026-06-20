@@ -44,6 +44,7 @@ struct CloudSyncTrigger: Hashable, Sendable {
     let extendsFastPolling: Bool
     let allowsVisibleChangeBanner: Bool
     let surfacesGlobalErrorMessage: Bool
+    let capturesTechnicalFailures: Bool
 }
 
 struct CloudSyncResult: Hashable, Sendable {

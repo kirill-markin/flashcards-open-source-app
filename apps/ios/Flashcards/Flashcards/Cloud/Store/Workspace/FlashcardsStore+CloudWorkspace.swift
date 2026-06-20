@@ -2,6 +2,41 @@ import Foundation
 
 @MainActor
 extension FlashcardsStore {
+    func workspaceOperationGuidanceMessage(error: Error) -> String? {
+        if isRequestCancellationError(error: error) {
+            return nil
+        }
+        if isRetryableNetworkTransportFailure(error: error) {
+            return aiSettingsLocalized("settings.sync.failed.generic", "Sync failed")
+        }
+        return self.blockedCloudIdentityConflictMessage(error: error)
+    }
+
+    func shouldPresentWorkspaceOperationTechnicalError(error: Error) -> Bool {
+        if isRequestCancellationError(error: error) {
+            return false
+        }
+
+        if self.workspaceOperationGuidanceMessage(error: error) != nil {
+            return false
+        }
+
+        return true
+    }
+
+    private func captureWorkspaceCloudSyncFailureIfNeeded(error: Error, trigger: CloudSyncTrigger, action: String) -> Bool {
+        guard let linkedSession = self.cloudRuntime.activeCloudSession() else {
+            return false
+        }
+        return self.captureCloudSyncFailureIfNeeded(
+            error: error,
+            linkedSession: linkedSession,
+            fallbackCloudState: self.cloudSettings?.cloudState,
+            trigger: trigger,
+            action: action
+        )
+    }
+
     func listAgentApiKeys() async throws -> (connections: [AgentApiKeyConnection], instructions: String) {
         return try await self.withAuthenticatedCloudSession { session in
             let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
@@ -28,8 +63,9 @@ extension FlashcardsStore {
             throw LocalStoreError.validation("Workspace switching is available only for linked cloud workspaces")
         }
 
+        let trigger = self.technicalErrorModalCloudSyncTrigger(now: Date())
         if self.cloudRuntime.activeCloudSession() == nil {
-            try await self.restoreCloudLinkFromStoredCredentials(trigger: self.manualCloudSyncTrigger(now: Date()))
+            try await self.restoreCloudLinkFromStoredCredentials(trigger: trigger)
         }
 
         return try await self.withAuthenticatedCloudSession { session in
@@ -48,8 +84,9 @@ extension FlashcardsStore {
             throw LocalStoreError.validation("Workspace switching is available only for linked cloud workspaces")
         }
 
+        let trigger = self.technicalErrorModalCloudSyncTrigger(now: Date())
         if self.cloudRuntime.activeCloudSession() == nil {
-            try await self.restoreCloudLinkFromStoredCredentials(trigger: self.manualCloudSyncTrigger(now: Date()))
+            try await self.restoreCloudLinkFromStoredCredentials(trigger: trigger)
         }
 
         let currentWorkspaceId = self.workspace?.workspaceId
@@ -102,12 +139,17 @@ extension FlashcardsStore {
             try await self.applySyncResultWithoutBlockingReset(
                 syncResult: syncResult,
                 now: Date(),
-                trigger: self.manualCloudSyncTrigger(now: Date())
+                trigger: trigger
             )
         } catch {
+            let didCapture = self.captureWorkspaceCloudSyncFailureIfNeeded(
+                error: error,
+                trigger: trigger,
+                action: "switch_workspace_sync"
+            )
             self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
-            throw error
+            throw didCapture ? markTechnicalErrorObserved(error: error) : error
         }
     }
 
@@ -116,8 +158,9 @@ extension FlashcardsStore {
             throw LocalStoreError.validation("Workspace rename is available only for linked cloud workspaces")
         }
 
+        let trigger = self.technicalErrorModalCloudSyncTrigger(now: Date())
         if self.cloudRuntime.activeCloudSession() == nil {
-            try await self.restoreCloudLinkFromStoredCredentials(trigger: self.manualCloudSyncTrigger(now: Date()))
+            try await self.restoreCloudLinkFromStoredCredentials(trigger: trigger)
         }
 
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -147,8 +190,9 @@ extension FlashcardsStore {
             throw LocalStoreError.validation("Workspace deletion is available only for linked cloud workspaces")
         }
 
+        let trigger = self.technicalErrorModalCloudSyncTrigger(now: Date())
         if self.cloudRuntime.activeCloudSession() == nil {
-            try await self.restoreCloudLinkFromStoredCredentials(trigger: self.manualCloudSyncTrigger(now: Date()))
+            try await self.restoreCloudLinkFromStoredCredentials(trigger: trigger)
         }
 
         let workspaceId = try requireWorkspaceId(workspace: self.workspace)
@@ -167,25 +211,36 @@ extension FlashcardsStore {
             throw LocalStoreError.validation("Workspace progress reset is available only for linked cloud workspaces")
         }
 
+        let trigger = self.technicalErrorModalCloudSyncTrigger(now: Date())
         if self.cloudRuntime.activeCloudSession() == nil {
-            try await self.restoreCloudLinkFromStoredCredentials(trigger: self.manualCloudSyncTrigger(now: Date()))
+            try await self.restoreCloudLinkFromStoredCredentials(trigger: trigger)
         }
 
         let workspaceId = try requireWorkspaceId(workspace: self.workspace)
-        let preview = try await self.withAuthenticatedCloudSession { session in
-            let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
-            let syncResult = try await self.runLinkedSync(linkedSession: session)
-            let now = Date()
-            try await self.applySyncResultWithoutBlockingReset(
-                syncResult: syncResult,
-                now: now,
-                trigger: self.manualCloudSyncTrigger(now: now)
+        let preview: CloudWorkspaceResetProgressPreview
+        do {
+            preview = try await self.withAuthenticatedCloudSession { session in
+                let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+                let syncResult = try await self.runLinkedSync(linkedSession: session)
+                let now = Date()
+                try await self.applySyncResultWithoutBlockingReset(
+                    syncResult: syncResult,
+                    now: now,
+                    trigger: trigger
+                )
+                return try await cloudSyncService.loadWorkspaceResetProgressPreview(
+                    apiBaseUrl: session.apiBaseUrl,
+                    bearerToken: session.bearerToken,
+                    workspaceId: workspaceId
+                )
+            }
+        } catch {
+            let didCapture = self.captureWorkspaceCloudSyncFailureIfNeeded(
+                error: error,
+                trigger: trigger,
+                action: "load_workspace_reset_progress_preview"
             )
-            return try await cloudSyncService.loadWorkspaceResetProgressPreview(
-                apiBaseUrl: session.apiBaseUrl,
-                bearerToken: session.bearerToken,
-                workspaceId: workspaceId
-            )
+            throw didCapture ? markTechnicalErrorObserved(error: error) : error
         }
 
         guard preview.confirmationText == workspaceResetProgressConfirmationText else {
@@ -200,8 +255,9 @@ extension FlashcardsStore {
             throw LocalStoreError.validation("Workspace deletion is available only for linked cloud workspaces")
         }
 
+        let trigger = self.technicalErrorModalCloudSyncTrigger(now: Date())
         if self.cloudRuntime.activeCloudSession() == nil {
-            try await self.restoreCloudLinkFromStoredCredentials(trigger: self.manualCloudSyncTrigger(now: Date()))
+            try await self.restoreCloudLinkFromStoredCredentials(trigger: trigger)
         }
 
         let localWorkspaceId = try requireWorkspaceId(workspace: self.workspace)
@@ -240,12 +296,17 @@ extension FlashcardsStore {
             try await self.applySyncResultWithoutBlockingReset(
                 syncResult: syncResult,
                 now: Date(),
-                trigger: self.manualCloudSyncTrigger(now: Date())
+                trigger: trigger
             )
         } catch {
+            let didCapture = self.captureWorkspaceCloudSyncFailureIfNeeded(
+                error: error,
+                trigger: trigger,
+                action: "delete_workspace_sync"
+            )
             self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
-            throw error
+            throw didCapture ? markTechnicalErrorObserved(error: error) : error
         }
     }
 
@@ -254,8 +315,9 @@ extension FlashcardsStore {
             throw LocalStoreError.validation("Workspace progress reset is available only for linked cloud workspaces")
         }
 
+        let trigger = self.technicalErrorModalCloudSyncTrigger(now: Date())
         if self.cloudRuntime.activeCloudSession() == nil {
-            try await self.restoreCloudLinkFromStoredCredentials(trigger: self.manualCloudSyncTrigger(now: Date()))
+            try await self.restoreCloudLinkFromStoredCredentials(trigger: trigger)
         }
 
         let localWorkspaceId = try requireWorkspaceId(workspace: self.workspace)
@@ -269,7 +331,7 @@ extension FlashcardsStore {
                 try await self.applySyncResultWithoutBlockingReset(
                     syncResult: syncResult,
                     now: now,
-                    trigger: self.manualCloudSyncTrigger(now: now)
+                    trigger: trigger
                 )
                 let response = try await cloudSyncService.resetWorkspaceProgress(
                     apiBaseUrl: session.apiBaseUrl,
@@ -284,7 +346,7 @@ extension FlashcardsStore {
             try await self.applySyncResultWithoutBlockingReset(
                 syncResult: syncResult,
                 now: Date(),
-                trigger: self.manualCloudSyncTrigger(now: Date())
+                trigger: trigger
             )
             self.globalErrorMessage = ""
 
@@ -292,9 +354,14 @@ extension FlashcardsStore {
                 throw LocalStoreError.validation("Workspace progress reset did not return ok=true")
             }
         } catch {
+            let didCapture = self.captureWorkspaceCloudSyncFailureIfNeeded(
+                error: error,
+                trigger: trigger,
+                action: "reset_workspace_progress_sync"
+            )
             self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
-            throw error
+            throw didCapture ? markTechnicalErrorObserved(error: error) : error
         }
     }
 }

@@ -509,7 +509,8 @@ struct CloudSignInSheet: View {
                         now: Date(),
                         extendsFastPolling: false,
                         allowsVisibleChangeBanner: false,
-                        surfacesGlobalErrorMessage: true
+                        surfacesGlobalErrorMessage: true,
+                        capturesTechnicalFailures: false
                     )
                 )
             }

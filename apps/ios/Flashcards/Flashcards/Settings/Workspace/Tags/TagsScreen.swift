@@ -14,7 +14,6 @@ struct TagsScreen: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @State private var tagsSummary: WorkspaceTagsSummary = WorkspaceTagsSummary(tags: [], totalCards: 0)
-    @State private var errorMessage: String = ""
     @State private var isLoading: Bool = true
     @State private var isSearchPresented: Bool = false
     @State private var searchText: String = ""
@@ -28,13 +27,6 @@ struct TagsScreen: View {
 
     var body: some View {
         List {
-            if self.errorMessage.isEmpty == false {
-                Section {
-                    Text(self.errorMessage)
-                        .foregroundStyle(.red)
-                }
-            }
-
             Section {
                 Text(
                     aiSettingsLocalized(
@@ -123,18 +115,16 @@ struct TagsScreen: View {
     private func reloadTagsSummary() async {
         guard let database = store.database, let workspaceId = store.workspace?.workspaceId else {
             self.tagsSummary = WorkspaceTagsSummary(tags: [], totalCards: 0)
-            self.errorMessage = ""
             self.isLoading = false
             return
         }
 
         self.isLoading = true
-        self.errorMessage = ""
 
         do {
             self.tagsSummary = try database.loadWorkspaceTagsSummary(workspaceId: workspaceId)
         } catch {
-            self.errorMessage = Flashcards.errorMessage(error: error)
+            self.store.presentTechnicalError(error)
         }
 
         self.isLoading = false
