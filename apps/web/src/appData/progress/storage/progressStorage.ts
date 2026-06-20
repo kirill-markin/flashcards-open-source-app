@@ -12,6 +12,8 @@ export {
 } from "./reviewScheduleStorage";
 export {
   loadPersistedProgressLeaderboard,
+  loadPersistedProgressStreakLeaderboard,
   storePersistedProgressLeaderboard,
+  storePersistedProgressStreakLeaderboard,
   clearPersistedProgressLeaderboard,
 } from "./leaderboardStorage";

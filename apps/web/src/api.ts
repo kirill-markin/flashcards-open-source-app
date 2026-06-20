@@ -48,6 +48,7 @@ export {
   loadProgressLeaderboard,
   loadProgressReviewSchedule,
   loadProgressSeries,
+  loadProgressStreakLeaderboard,
   loadProgressSummary,
 } from "./api/endpoints/progress";
 export {

@@ -97,7 +97,7 @@ export type AuthResetCleanupBreadcrumbDetails = Readonly<{
 
 export type ProgressCacheMissBreadcrumbDetails = Readonly<{
   eventName: "progress_cache_miss";
-  section: "summary" | "series" | "review_schedule" | "leaderboard";
+  section: "summary" | "series" | "review_schedule" | "leaderboard" | "streak_leaderboard";
   reason: "invalid_json" | "invalid_shape" | "scope_mismatch" | "time_zone_mismatch" | "version_mismatch";
   workspaceIds: ReadonlyArray<string>;
 }>;
@@ -290,7 +290,8 @@ export type ProgressServerLoadFailureDetails = Readonly<{
     | "progress_summary_server_load"
     | "progress_series_server_load"
     | "progress_review_schedule_server_load"
-    | "progress_leaderboard_server_load";
+    | "progress_leaderboard_server_load"
+    | "progress_streak_leaderboard_server_load";
   workspaceId: string | null;
 }>;
 

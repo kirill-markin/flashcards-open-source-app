@@ -14,7 +14,7 @@ type LocalStorageLike = Storage & Record<string, string | undefined> & Readonly<
   setItem?: (key: string, value: string) => void;
 }>;
 
-export type ProgressCacheSection = "summary" | "series" | "review_schedule" | "leaderboard";
+export type ProgressCacheSection = "summary" | "series" | "review_schedule" | "leaderboard" | "streak_leaderboard";
 export type ProgressCacheMissReason = "empty" | "invalid_json" | "invalid_shape" | "scope_mismatch" | "time_zone_mismatch" | "version_mismatch";
 
 export type ProgressCacheReadResult<TValue> =

@@ -9,6 +9,12 @@ import type {
   ProgressReviewHistoryWatermark,
   ProgressReviewSchedule,
   ProgressSeries,
+  ProgressStreakLeaderboard,
+  ProgressStreakLeaderboardMetric,
+  ProgressStreakLeaderboardRankingRow,
+  ProgressStreakLeaderboardRow,
+  ProgressStreakLeaderboardStatus,
+  ProgressStreakLeaderboardViewer,
   ProgressSummaryPayload,
 } from "../types";
 import {
@@ -17,6 +23,9 @@ import {
   progressLeaderboardStatuses,
   progressLeaderboardWindowKeys,
   progressReviewScheduleBucketKeys,
+  progressStreakLeaderboardParticipantRowKinds,
+  progressStreakLeaderboardRankingRowKinds,
+  progressStreakLeaderboardStatuses,
   streakDayStates,
 } from "../types";
 import { findProgressReviewScheduleValidationIssue } from "../progress/progressReviewScheduleValidation";
@@ -30,6 +39,7 @@ import {
   parseArray,
   parseBoolean,
   parseEnum,
+  parseLiteral,
   parseNullableString,
   parseNumber,
   parseObject,
@@ -469,6 +479,208 @@ export function parseProgressLeaderboardResponse(value: unknown, endpoint: strin
     defaultWindowKey: parseRequiredField(objectValue, "defaultWindowKey", endpoint, "", parseProgressLeaderboardWindowKey),
     windows: parseRequiredField(objectValue, "windows", endpoint, "", parseProgressLeaderboardWindowArray),
   };
+}
+
+function parseProgressStreakLeaderboardStatus(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressStreakLeaderboardStatus {
+  return parseEnum(value, endpoint, path, progressStreakLeaderboardStatuses);
+}
+
+function parseProgressStreakLeaderboardMetric(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressStreakLeaderboardMetric {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    metricVersion: parseEnum(objectValue.metricVersion, endpoint, joinPath(path, "metricVersion"), ["streak_days_v1"] as const),
+    title: parseRequiredField(objectValue, "title", endpoint, path, parseString),
+    description: parseRequiredField(objectValue, "description", endpoint, path, parseString),
+  };
+}
+
+function parseProgressStreakLeaderboardViewer(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressStreakLeaderboardViewer {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    publicProfileId: parseRequiredField(objectValue, "publicProfileId", endpoint, path, parseString),
+    displayName: parseRequiredField(
+      objectValue,
+      "displayName",
+      endpoint,
+      path,
+      (displayName, displayNameEndpoint, displayNamePath): "You" => parseLiteral(
+        displayName,
+        displayNameEndpoint,
+        displayNamePath,
+        "You",
+      ),
+    ),
+    rank: parseRequiredField(objectValue, "rank", endpoint, path, parseLeaderboardRank),
+    streakDays: parseRequiredField(objectValue, "streakDays", endpoint, path, parseNonNegativeSafeInteger),
+  };
+}
+
+function parseProgressStreakLeaderboardRow(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressStreakLeaderboardRow {
+  const objectValue = parseObject(value, endpoint, path);
+
+  if (objectValue.kind === "gap") {
+    return { kind: "gap" };
+  }
+
+  return {
+    kind: parseEnum(objectValue.kind, endpoint, joinPath(path, "kind"), progressStreakLeaderboardParticipantRowKinds),
+    publicProfileId: parseRequiredField(objectValue, "publicProfileId", endpoint, path, parseString),
+    anonymousDisplayName: parseRequiredField(objectValue, "anonymousDisplayName", endpoint, path, parseString),
+    friendDisplayName: parseOptionalField(objectValue, "friendDisplayName", endpoint, path, parseString),
+    streakDays: parseRequiredField(objectValue, "streakDays", endpoint, path, parseNonNegativeSafeInteger),
+    rank: parseRequiredField(objectValue, "rank", endpoint, path, parseLeaderboardRank),
+  };
+}
+
+function parseProgressStreakLeaderboardRowArray(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ReadonlyArray<ProgressStreakLeaderboardRow> {
+  return parseArray(value, endpoint, path, parseProgressStreakLeaderboardRow);
+}
+
+function parseProgressStreakLeaderboardRankingRow(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressStreakLeaderboardRankingRow {
+  const objectValue = parseObject(value, endpoint, path);
+
+  return {
+    kind: parseEnum(objectValue.kind, endpoint, joinPath(path, "kind"), progressStreakLeaderboardRankingRowKinds),
+    publicProfileId: parseRequiredField(objectValue, "publicProfileId", endpoint, path, parseString),
+    anonymousDisplayName: parseRequiredField(objectValue, "anonymousDisplayName", endpoint, path, parseString),
+    friendDisplayName: parseOptionalField(objectValue, "friendDisplayName", endpoint, path, parseString),
+    streakDays: parseRequiredField(objectValue, "streakDays", endpoint, path, parseNonNegativeSafeInteger),
+    rank: parseRequiredField(objectValue, "rank", endpoint, path, parseLeaderboardRank),
+  };
+}
+
+function parseProgressStreakLeaderboardRankingRowArray(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ReadonlyArray<ProgressStreakLeaderboardRankingRow> {
+  return parseArray(value, endpoint, path, parseProgressStreakLeaderboardRankingRow);
+}
+
+function validateProgressStreakLeaderboardRankingRows(
+  participantCount: number,
+  viewer: ProgressStreakLeaderboardViewer,
+  rankingRows: ReadonlyArray<ProgressStreakLeaderboardRankingRow>,
+  endpoint: string,
+  path: string,
+): void {
+  const rankingRowsPath = joinPath(path, "rankingRows");
+
+  if (rankingRows.length !== participantCount) {
+    throw new ApiContractError(endpoint, describePath(rankingRowsPath), "one row per participant");
+  }
+
+  let viewerRowCount = 0;
+  let previousStreakDays: number | null = null;
+
+  rankingRows.forEach((row, index) => {
+    const rowPath = joinIndexPath(rankingRowsPath, index);
+
+    if (row.rank !== index + 1) {
+      throw new ApiContractError(endpoint, describePath(joinPath(rowPath, "rank")), "a contiguous rank matching array order");
+    }
+
+    if (previousStreakDays !== null && row.streakDays > previousStreakDays) {
+      throw new ApiContractError(endpoint, describePath(joinPath(rowPath, "streakDays")), "non-increasing ranking order");
+    }
+
+    if (row.kind === "viewer") {
+      viewerRowCount += 1;
+
+      if (previousStreakDays !== null && previousStreakDays === row.streakDays) {
+        throw new ApiContractError(endpoint, describePath(rowPath), "the current viewer row before equal streak values");
+      }
+
+      if (
+        row.publicProfileId !== viewer.publicProfileId
+        || row.rank !== viewer.rank
+        || row.streakDays !== viewer.streakDays
+      ) {
+        throw new ApiContractError(endpoint, describePath(rowPath), "the current viewer row");
+      }
+    } else if (row.publicProfileId === viewer.publicProfileId) {
+      throw new ApiContractError(endpoint, describePath(rowPath), "a non-viewer participant");
+    }
+
+    previousStreakDays = row.streakDays;
+  });
+
+  if (viewerRowCount !== 1) {
+    throw new ApiContractError(endpoint, describePath(rankingRowsPath), "exactly one current viewer row");
+  }
+}
+
+function parseProgressStreakLeaderboardReadyResponse(
+  objectValue: JsonObject,
+  metric: ProgressStreakLeaderboardMetric,
+  endpoint: string,
+): ProgressStreakLeaderboard {
+  const participantCount = parseRequiredField(objectValue, "participantCount", endpoint, "", parseNonNegativeSafeInteger);
+  const viewer = parseRequiredField(objectValue, "viewer", endpoint, "", parseProgressStreakLeaderboardViewer);
+  const rankingRows = parseRequiredField(
+    objectValue,
+    "rankingRows",
+    endpoint,
+    "",
+    parseProgressStreakLeaderboardRankingRowArray,
+  );
+
+  validateProgressStreakLeaderboardRankingRows(participantCount, viewer, rankingRows, endpoint, "");
+
+  return {
+    status: "ready",
+    metric,
+    snapshotId: parseRequiredField(objectValue, "snapshotId", endpoint, "", parseString),
+    snapshotGeneratedAt: parseRequiredField(objectValue, "snapshotGeneratedAt", endpoint, "", parseString),
+    asOfUtcDate: parseRequiredField(objectValue, "asOfUtcDate", endpoint, "", parseString),
+    nextRefreshAfter: parseRequiredField(objectValue, "nextRefreshAfter", endpoint, "", parseString),
+    participantCount,
+    viewer,
+    rows: parseRequiredField(objectValue, "rows", endpoint, "", parseProgressStreakLeaderboardRowArray),
+    rankingRows,
+  };
+}
+
+export function parseProgressStreakLeaderboardResponse(
+  value: unknown,
+  endpoint: string,
+): ProgressStreakLeaderboard {
+  const objectValue = parseObject(value, endpoint, "");
+  const status = parseProgressStreakLeaderboardStatus(objectValue.status, endpoint, "status");
+  const metric = parseRequiredField(objectValue, "metric", endpoint, "", parseProgressStreakLeaderboardMetric);
+
+  if (status !== "ready") {
+    return {
+      status,
+      metric,
+    };
+  }
+
+  return parseProgressStreakLeaderboardReadyResponse(objectValue, metric, endpoint);
 }
 
 export function parseProgressReviewScheduleResponse(value: unknown, endpoint: string): ProgressReviewSchedule {

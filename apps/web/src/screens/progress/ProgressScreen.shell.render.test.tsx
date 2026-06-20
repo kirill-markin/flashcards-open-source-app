@@ -103,6 +103,16 @@ describe("ProgressScreen shell", () => {
           technicalError: null,
         },
         leaderboard: createLeaderboardSourceState("ready", null),
+        streakLeaderboard: {
+          scopeKey: null,
+          serverBase: null,
+          currentSummary: null,
+          renderedSnapshot: null,
+          isLoading: false,
+          errorMessage: "",
+          technicalError: null,
+          isNetworkError: false,
+        },
       },
       refreshProgress: refreshProgressMock,
     });

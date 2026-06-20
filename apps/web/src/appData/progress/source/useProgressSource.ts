@@ -188,7 +188,10 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     refreshKey: reviewScheduleRefreshKey,
     scopeKey: reviewScheduleScopeKey,
   });
-  const { refreshProgressLeaderboard } = useProgressLeaderboardSourcePipeline({
+  const {
+    refreshProgressLeaderboard,
+    refreshProgressStreakLeaderboard,
+  } = useProgressLeaderboardSourcePipeline({
     accessibleWorkspaceIds,
     activeWorkspaceId,
     autoRefreshEnabled: leaderboardAutoRefreshEnabled,
@@ -226,6 +229,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
       seriesScopeKey,
       reviewScheduleScopeKey,
       leaderboardScopeKey,
+      streakLeaderboardScopeKey: leaderboardScopeKey,
       progressScheduleLocalVersion,
       canRenderServerBase: canLoadServerBase,
     });
@@ -268,9 +272,19 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     }
 
     if (leaderboardScopeKey !== null) {
+      const leaderboardManualRefreshKey = buildProgressRefreshKey(
+        leaderboardScopeKey,
+        progressServerInvalidationVersion,
+        nextManualRefreshVersion,
+      );
       refreshPromises.push(refreshProgressLeaderboard(
         leaderboardScopeKey,
-        buildProgressRefreshKey(leaderboardScopeKey, progressServerInvalidationVersion, nextManualRefreshVersion),
+        leaderboardManualRefreshKey,
+        true,
+      ));
+      refreshPromises.push(refreshProgressStreakLeaderboard(
+        leaderboardScopeKey,
+        leaderboardManualRefreshKey,
         true,
       ));
     }
@@ -284,6 +298,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     refreshProgressLeaderboard,
     refreshProgressReviewSchedule,
     refreshProgressSeries,
+    refreshProgressStreakLeaderboard,
     refreshProgressSummary,
     reviewScheduleInput,
     reviewScheduleScopeKey,

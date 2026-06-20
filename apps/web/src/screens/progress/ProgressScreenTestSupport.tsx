@@ -6,6 +6,7 @@ import type { AppDataContextValue } from "../../appData";
 import { AppErrorDialogProvider } from "../../appError/AppErrorContext";
 import {
   createEmptyProgressLeaderboardSourceState,
+  createEmptyProgressStreakLeaderboardSourceState,
   createNextLeaderboardState,
   createProgressLeaderboardSnapshot,
 } from "../../appData/progress/snapshots/progressSnapshots";
@@ -42,6 +43,7 @@ const {
 
 export {
   createEmptyProgressLeaderboardSourceState,
+  createEmptyProgressStreakLeaderboardSourceState,
   refreshProgressMock,
   useAppDataMock,
   useProgressInvalidationStateMock,
@@ -677,6 +679,7 @@ export function mockProgressSourceStateWithLeaderboard(leaderboard: ProgressLead
         technicalError: null,
       },
       leaderboard,
+      streakLeaderboard: createEmptyProgressStreakLeaderboardSourceState(),
     },
     refreshProgress: refreshProgressMock,
   });
@@ -727,6 +730,7 @@ export function mockProgressSourceStateWithInactivePreviousWeek(): void {
         technicalError: null,
       },
       leaderboard: createEmptyProgressLeaderboardSourceState(),
+      streakLeaderboard: createEmptyProgressStreakLeaderboardSourceState(),
     },
     refreshProgress: refreshProgressMock,
   });

@@ -104,7 +104,8 @@ export function ProgressScreen(): ReactElement {
     ?? progressSourceState.series.technicalError
     ?? progressSourceState.reviewSchedule.technicalError
     ?? progressSourceState.leaderboard.technicalError
-    ?? progressSourceState.leaderboard.localViewerCountsTechnicalError;
+    ?? progressSourceState.leaderboard.localViewerCountsTechnicalError
+    ?? progressSourceState.streakLeaderboard.technicalError;
   const reviewProgressBadge = buildReviewProgressBadgeStateFromSummarySnapshot(progressSummary);
   const { showCapturedTechnicalError } = useAppErrorDialog();
 

@@ -7,6 +7,8 @@ import type {
   ProgressSeriesSnapshot,
   ProgressSeriesSourceState,
   ProgressSourceState,
+  ProgressStreakLeaderboardSnapshot,
+  ProgressStreakLeaderboardSourceState,
   ProgressSummarySnapshot,
   ProgressSummarySourceState,
 } from "../../../types";
@@ -16,18 +18,20 @@ import {
   createEmptyProgressReviewScheduleSourceState,
   createEmptyProgressSeriesSourceState,
   createEmptyProgressSourceState,
+  createEmptyProgressStreakLeaderboardSourceState,
   createEmptyProgressSummarySourceState,
   createProgressRenderedSeriesSummaryContext,
   createNextLeaderboardState,
   createNextReviewScheduleState,
   createNextSeriesState,
+  createNextStreakLeaderboardState,
   createNextSummaryState,
   resolveProgressReviewScheduleLoadedServerBaseLocalCardTotalDelta,
   resolveProgressReviewScheduleServerBaseLocalCardTotalDelta,
 } from "../snapshots/progressSnapshots";
 
 export type ProgressSourceAction =
-  | Readonly<{ type: "summary_scope_reset" }>
+  | Readonly<{ type: "summary_scope_reset"; canRenderServerBase: boolean }>
   | Readonly<{ type: "series_scope_reset"; canRenderServerBase: boolean }>
   | Readonly<{ type: "review_schedule_scope_reset" }>
   | Readonly<{
@@ -178,12 +182,39 @@ export type ProgressSourceAction =
     scopeKey: ProgressScopeKey;
     canRenderServerBase: boolean;
   }>
+  | Readonly<{ type: "streak_leaderboard_scope_reset" }>
+  | Readonly<{
+    type: "streak_leaderboard_scope_initialized";
+    scopeKey: ProgressScopeKey;
+    serverBase: ProgressStreakLeaderboardSnapshot | null;
+    canRenderServerBase: boolean;
+  }>
+  | Readonly<{
+    type: "streak_leaderboard_server_load_succeeded";
+    scopeKey: ProgressScopeKey;
+    serverBase: ProgressStreakLeaderboardSnapshot;
+    canRenderServerBase: boolean;
+  }>
+  | Readonly<{
+    type: "streak_leaderboard_server_load_failed";
+    scopeKey: ProgressScopeKey;
+    errorMessage: string;
+    technicalError: Error | null;
+    isNetworkError: boolean;
+    canRenderServerBase: boolean;
+  }>
+  | Readonly<{
+    type: "streak_leaderboard_server_load_skipped";
+    scopeKey: ProgressScopeKey;
+    canRenderServerBase: boolean;
+  }>
   | Readonly<{
     type: "refresh_started";
     summaryScopeKey: ProgressScopeKey | null;
     seriesScopeKey: ProgressScopeKey | null;
     reviewScheduleScopeKey: ProgressScopeKey | null;
     leaderboardScopeKey: ProgressScopeKey | null;
+    streakLeaderboardScopeKey: ProgressScopeKey | null;
     progressScheduleLocalVersion: number;
     canRenderServerBase: boolean;
   }>
@@ -206,26 +237,49 @@ function createSummaryStateWithRenderedSeriesContext(
   }, canRenderServerBase);
 }
 
+function createStreakLeaderboardStateWithCurrentSummary(
+  streakLeaderboardState: ProgressStreakLeaderboardSourceState,
+  summaryState: ProgressSummarySourceState,
+  canRenderServerBase: boolean,
+): ProgressStreakLeaderboardSourceState {
+  return createNextStreakLeaderboardState(streakLeaderboardState, {
+    currentSummary: summaryState.renderedSnapshot,
+  }, canRenderServerBase);
+}
+
 function reduceProgressSourceState(
   state: ProgressSourceState,
   action: ProgressSourceAction,
 ): ProgressSourceState {
   switch (action.type) {
-    case "summary_scope_reset":
+    case "summary_scope_reset": {
+      const nextSummaryState = createEmptyProgressSummarySourceState();
       return {
         ...state,
-        summary: createEmptyProgressSummarySourceState(),
-      };
-    case "series_scope_reset": {
-      const nextSeriesState = createEmptyProgressSeriesSourceState();
-      return {
-        ...state,
-        summary: createSummaryStateWithRenderedSeriesContext(
-          state.summary,
-          nextSeriesState,
+        summary: nextSummaryState,
+        streakLeaderboard: createStreakLeaderboardStateWithCurrentSummary(
+          state.streakLeaderboard,
+          nextSummaryState,
           action.canRenderServerBase,
         ),
+      };
+    }
+    case "series_scope_reset": {
+      const nextSeriesState = createEmptyProgressSeriesSourceState();
+      const nextSummaryState = createSummaryStateWithRenderedSeriesContext(
+        state.summary,
+        nextSeriesState,
+        action.canRenderServerBase,
+      );
+      return {
+        ...state,
+        summary: nextSummaryState,
         series: nextSeriesState,
+        streakLeaderboard: createStreakLeaderboardStateWithCurrentSummary(
+          state.streakLeaderboard,
+          nextSummaryState,
+          action.canRenderServerBase,
+        ),
       };
     }
     case "review_schedule_scope_reset":
@@ -233,22 +287,30 @@ function reduceProgressSourceState(
         ...state,
         reviewSchedule: createEmptyProgressReviewScheduleSourceState(),
       };
-    case "summary_scope_initialized":
+    case "summary_scope_initialized": {
+      const nextSummaryState = createNextSummaryState(state.summary, {
+        scopeKey: action.scopeKey,
+        referenceLocalDate: action.referenceLocalDate,
+        localFallback: null,
+        localFallbackActiveDates: [],
+        serverBase: action.serverBase,
+        hasPendingLocalReviews: false,
+        renderedSeriesContext: null,
+        isLoading: true,
+        errorMessage: "",
+        technicalError: null,
+      }, action.canRenderServerBase);
+
       return {
         ...state,
-        summary: createNextSummaryState(state.summary, {
-          scopeKey: action.scopeKey,
-          referenceLocalDate: action.referenceLocalDate,
-          localFallback: null,
-          localFallbackActiveDates: [],
-          serverBase: action.serverBase,
-          hasPendingLocalReviews: false,
-          renderedSeriesContext: null,
-          isLoading: true,
-          errorMessage: "",
-          technicalError: null,
-        }, action.canRenderServerBase),
+        summary: nextSummaryState,
+        streakLeaderboard: createStreakLeaderboardStateWithCurrentSummary(
+          state.streakLeaderboard,
+          nextSummaryState,
+          action.canRenderServerBase,
+        ),
       };
+    }
     case "series_scope_initialized": {
       const nextSeriesState = createNextSeriesState(state.series, {
         scopeKey: action.scopeKey,
@@ -260,15 +322,21 @@ function reduceProgressSourceState(
         errorMessage: "",
         technicalError: null,
       }, action.canRenderServerBase);
+      const nextSummaryState = createSummaryStateWithRenderedSeriesContext(
+        state.summary,
+        nextSeriesState,
+        action.canRenderServerBase,
+      );
 
       return {
         ...state,
-        summary: createSummaryStateWithRenderedSeriesContext(
-          state.summary,
-          nextSeriesState,
+        summary: nextSummaryState,
+        series: nextSeriesState,
+        streakLeaderboard: createStreakLeaderboardStateWithCurrentSummary(
+          state.streakLeaderboard,
+          nextSummaryState,
           action.canRenderServerBase,
         ),
-        series: nextSeriesState,
       };
     }
     case "review_schedule_scope_initialized":
@@ -291,38 +359,54 @@ function reduceProgressSourceState(
           technicalError: null,
         }, action.canRenderServerBase),
       };
-    case "summary_local_load_succeeded":
+    case "summary_local_load_succeeded": {
       if (state.summary.scopeKey !== action.scopeKey) {
         return state;
       }
 
+      const nextSummaryState = createNextSummaryState(state.summary, {
+        scopeKey: action.scopeKey,
+        localFallback: action.localFallback,
+        localFallbackActiveDates: action.localFallbackActiveDates,
+        hasPendingLocalReviews: action.hasPendingLocalReviews,
+        isLoading: false,
+      }, action.canRenderServerBase);
+
       return {
         ...state,
-        summary: createNextSummaryState(state.summary, {
-          scopeKey: action.scopeKey,
-          localFallback: action.localFallback,
-          localFallbackActiveDates: action.localFallbackActiveDates,
-          hasPendingLocalReviews: action.hasPendingLocalReviews,
-          isLoading: false,
-        }, action.canRenderServerBase),
+        summary: nextSummaryState,
+        streakLeaderboard: createStreakLeaderboardStateWithCurrentSummary(
+          state.streakLeaderboard,
+          nextSummaryState,
+          action.canRenderServerBase,
+        ),
       };
-    case "summary_local_load_failed":
+    }
+    case "summary_local_load_failed": {
       if (state.summary.scopeKey !== action.scopeKey) {
         return state;
       }
 
+      const failedSummaryState = createNextSummaryState(state.summary, {
+        scopeKey: action.scopeKey,
+        localFallback: null,
+        localFallbackActiveDates: [],
+        hasPendingLocalReviews: false,
+        isLoading: false,
+        errorMessage: action.errorMessage,
+        technicalError: action.technicalError,
+      }, action.canRenderServerBase);
+
       return {
         ...state,
-        summary: createNextSummaryState(state.summary, {
-          scopeKey: action.scopeKey,
-          localFallback: null,
-          localFallbackActiveDates: [],
-          hasPendingLocalReviews: false,
-          isLoading: false,
-          errorMessage: action.errorMessage,
-          technicalError: action.technicalError,
-        }, action.canRenderServerBase),
+        summary: failedSummaryState,
+        streakLeaderboard: createStreakLeaderboardStateWithCurrentSummary(
+          state.streakLeaderboard,
+          failedSummaryState,
+          action.canRenderServerBase,
+        ),
       };
+    }
     case "series_local_load_succeeded": {
       if (state.series.scopeKey !== action.scopeKey) {
         return state;
@@ -335,15 +419,21 @@ function reduceProgressSourceState(
         pendingLocalOverlay: action.pendingLocalOverlay,
         isLoading: false,
       }, action.canRenderServerBase);
+      const nextSummaryState = createSummaryStateWithRenderedSeriesContext(
+        state.summary,
+        nextSeriesState,
+        action.canRenderServerBase,
+      );
 
       return {
         ...state,
-        summary: createSummaryStateWithRenderedSeriesContext(
-          state.summary,
-          nextSeriesState,
+        summary: nextSummaryState,
+        series: nextSeriesState,
+        streakLeaderboard: createStreakLeaderboardStateWithCurrentSummary(
+          state.streakLeaderboard,
+          nextSummaryState,
           action.canRenderServerBase,
         ),
-        series: nextSeriesState,
       };
     }
     case "series_local_load_failed": {
@@ -360,15 +450,21 @@ function reduceProgressSourceState(
         errorMessage: action.errorMessage,
         technicalError: action.technicalError,
       }, action.canRenderServerBase);
+      const nextSummaryState = createSummaryStateWithRenderedSeriesContext(
+        state.summary,
+        nextSeriesState,
+        action.canRenderServerBase,
+      );
 
       return {
         ...state,
-        summary: createSummaryStateWithRenderedSeriesContext(
-          state.summary,
-          nextSeriesState,
+        summary: nextSummaryState,
+        series: nextSeriesState,
+        streakLeaderboard: createStreakLeaderboardStateWithCurrentSummary(
+          state.streakLeaderboard,
+          nextSummaryState,
           action.canRenderServerBase,
         ),
-        series: nextSeriesState,
       };
     }
     case "review_schedule_local_load_succeeded":
@@ -416,35 +512,51 @@ function reduceProgressSourceState(
           technicalError: action.technicalError,
         }, action.canRenderServerBase),
       };
-    case "summary_server_load_succeeded":
+    case "summary_server_load_succeeded": {
       if (state.summary.scopeKey !== action.scopeKey) {
         return state;
       }
 
+      const nextSummaryState = createNextSummaryState(state.summary, {
+        scopeKey: action.scopeKey,
+        serverBase: action.serverBase,
+        isLoading: false,
+        errorMessage: "",
+        technicalError: null,
+      }, action.canRenderServerBase);
+
       return {
         ...state,
-        summary: createNextSummaryState(state.summary, {
-          scopeKey: action.scopeKey,
-          serverBase: action.serverBase,
-          isLoading: false,
-          errorMessage: "",
-          technicalError: null,
-        }, action.canRenderServerBase),
+        summary: nextSummaryState,
+        streakLeaderboard: createStreakLeaderboardStateWithCurrentSummary(
+          state.streakLeaderboard,
+          nextSummaryState,
+          action.canRenderServerBase,
+        ),
       };
-    case "summary_server_load_failed":
+    }
+    case "summary_server_load_failed": {
       if (state.summary.scopeKey !== action.scopeKey) {
         return state;
       }
 
+      const nextSummaryState = createNextSummaryState(state.summary, {
+        scopeKey: action.scopeKey,
+        isLoading: false,
+        errorMessage: action.errorMessage,
+        technicalError: action.technicalError,
+      }, action.canRenderServerBase);
+
       return {
         ...state,
-        summary: createNextSummaryState(state.summary, {
-          scopeKey: action.scopeKey,
-          isLoading: false,
-          errorMessage: action.errorMessage,
-          technicalError: action.technicalError,
-        }, action.canRenderServerBase),
+        summary: nextSummaryState,
+        streakLeaderboard: createStreakLeaderboardStateWithCurrentSummary(
+          state.streakLeaderboard,
+          nextSummaryState,
+          action.canRenderServerBase,
+        ),
       };
+    }
     case "series_server_load_succeeded": {
       if (state.series.scopeKey !== action.scopeKey) {
         return state;
@@ -457,15 +569,21 @@ function reduceProgressSourceState(
         errorMessage: "",
         technicalError: null,
       }, action.canRenderServerBase);
+      const nextSummaryState = createSummaryStateWithRenderedSeriesContext(
+        state.summary,
+        nextSeriesState,
+        action.canRenderServerBase,
+      );
 
       return {
         ...state,
-        summary: createSummaryStateWithRenderedSeriesContext(
-          state.summary,
-          nextSeriesState,
+        summary: nextSummaryState,
+        series: nextSeriesState,
+        streakLeaderboard: createStreakLeaderboardStateWithCurrentSummary(
+          state.streakLeaderboard,
+          nextSummaryState,
           action.canRenderServerBase,
         ),
-        series: nextSeriesState,
       };
     }
     case "series_server_load_failed": {
@@ -479,15 +597,21 @@ function reduceProgressSourceState(
         errorMessage: action.errorMessage,
         technicalError: action.technicalError,
       }, action.canRenderServerBase);
+      const nextSummaryState = createSummaryStateWithRenderedSeriesContext(
+        state.summary,
+        nextSeriesState,
+        action.canRenderServerBase,
+      );
 
       return {
         ...state,
-        summary: createSummaryStateWithRenderedSeriesContext(
-          state.summary,
-          nextSeriesState,
+        summary: nextSummaryState,
+        series: nextSeriesState,
+        streakLeaderboard: createStreakLeaderboardStateWithCurrentSummary(
+          state.streakLeaderboard,
+          nextSummaryState,
           action.canRenderServerBase,
         ),
-        series: nextSeriesState,
       };
     }
     case "review_schedule_server_load_succeeded":
@@ -622,6 +746,67 @@ function reduceProgressSourceState(
           isLoading: false,
         }, action.canRenderServerBase),
       };
+    case "streak_leaderboard_scope_reset":
+      return {
+        ...state,
+        streakLeaderboard: createEmptyProgressStreakLeaderboardSourceState(),
+      };
+    case "streak_leaderboard_scope_initialized":
+      return {
+        ...state,
+        streakLeaderboard: createNextStreakLeaderboardState(state.streakLeaderboard, {
+          scopeKey: action.scopeKey,
+          serverBase: action.serverBase,
+          currentSummary: state.summary.renderedSnapshot,
+          isLoading: action.canRenderServerBase,
+          errorMessage: "",
+          technicalError: null,
+          isNetworkError: false,
+        }, action.canRenderServerBase),
+      };
+    case "streak_leaderboard_server_load_succeeded":
+      if (state.streakLeaderboard.scopeKey !== action.scopeKey) {
+        return state;
+      }
+
+      return {
+        ...state,
+        streakLeaderboard: createNextStreakLeaderboardState(state.streakLeaderboard, {
+          scopeKey: action.scopeKey,
+          serverBase: action.serverBase,
+          isLoading: false,
+          errorMessage: "",
+          technicalError: null,
+          isNetworkError: false,
+        }, action.canRenderServerBase),
+      };
+    case "streak_leaderboard_server_load_failed":
+      if (state.streakLeaderboard.scopeKey !== action.scopeKey) {
+        return state;
+      }
+
+      return {
+        ...state,
+        streakLeaderboard: createNextStreakLeaderboardState(state.streakLeaderboard, {
+          scopeKey: action.scopeKey,
+          isLoading: false,
+          errorMessage: action.errorMessage,
+          technicalError: action.technicalError,
+          isNetworkError: action.isNetworkError,
+        }, action.canRenderServerBase),
+      };
+    case "streak_leaderboard_server_load_skipped":
+      if (state.streakLeaderboard.scopeKey !== action.scopeKey) {
+        return state;
+      }
+
+      return {
+        ...state,
+        streakLeaderboard: createNextStreakLeaderboardState(state.streakLeaderboard, {
+          scopeKey: action.scopeKey,
+          isLoading: false,
+        }, action.canRenderServerBase),
+      };
     case "refresh_started":
       return {
         summary: action.summaryScopeKey === null
@@ -658,6 +843,15 @@ function reduceProgressSourceState(
             technicalError: null,
             isNetworkError: false,
           }, action.canRenderServerBase),
+        streakLeaderboard: action.streakLeaderboardScopeKey === null
+          ? state.streakLeaderboard
+          : createNextStreakLeaderboardState(state.streakLeaderboard, {
+            scopeKey: action.streakLeaderboardScopeKey,
+            isLoading: action.canRenderServerBase,
+            errorMessage: "",
+            technicalError: null,
+            isNetworkError: false,
+          }, action.canRenderServerBase),
       };
     case "errors_cleared":
       return {
@@ -679,6 +873,11 @@ function reduceProgressSourceState(
           isNetworkError: false,
           localViewerCountsErrorMessage: "",
           localViewerCountsTechnicalError: null,
+        }, action.canRenderServerBase),
+        streakLeaderboard: createNextStreakLeaderboardState(state.streakLeaderboard, {
+          errorMessage: "",
+          technicalError: null,
+          isNetworkError: false,
         }, action.canRenderServerBase),
       };
   }

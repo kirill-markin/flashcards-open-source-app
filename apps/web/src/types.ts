@@ -347,6 +347,101 @@ export type ProgressLeaderboardSnapshot = ProgressLeaderboard & Readonly<{
   isApproximate: boolean;
 }>;
 
+export const progressStreakLeaderboardStatuses = [
+  "ready",
+  "linked_account_required",
+  "participation_disabled",
+  "snapshot_unavailable",
+] as const;
+
+export type ProgressStreakLeaderboardStatus = typeof progressStreakLeaderboardStatuses[number];
+
+export type ProgressStreakLeaderboardMetric = Readonly<{
+  metricVersion: "streak_days_v1";
+  title: string;
+  description: string;
+}>;
+
+export type ProgressStreakLeaderboardViewer = Readonly<{
+  publicProfileId: string;
+  displayName: "You";
+  rank: number;
+  streakDays: number;
+}>;
+
+export const progressStreakLeaderboardParticipantRowKinds = ["top", "neighbor", "viewer"] as const;
+
+export type ProgressStreakLeaderboardParticipantRowKind = typeof progressStreakLeaderboardParticipantRowKinds[number];
+
+export type ProgressStreakLeaderboardParticipantRow = Readonly<{
+  kind: ProgressStreakLeaderboardParticipantRowKind;
+  publicProfileId: string;
+  anonymousDisplayName: string;
+  friendDisplayName?: string;
+  streakDays: number;
+  rank: number;
+}>;
+
+export type ProgressStreakLeaderboardGapRow = Readonly<{
+  kind: "gap";
+}>;
+
+export type ProgressStreakLeaderboardRow = ProgressStreakLeaderboardParticipantRow | ProgressStreakLeaderboardGapRow;
+
+export const progressStreakLeaderboardRankingRowKinds = ["participant", "viewer"] as const;
+
+export type ProgressStreakLeaderboardRankingRowKind = typeof progressStreakLeaderboardRankingRowKinds[number];
+
+export type ProgressStreakLeaderboardRankingRow = Readonly<{
+  kind: ProgressStreakLeaderboardRankingRowKind;
+  publicProfileId: string;
+  anonymousDisplayName: string;
+  friendDisplayName?: string;
+  streakDays: number;
+  rank: number;
+}>;
+
+export type ProgressStreakLeaderboardReady = Readonly<{
+  status: "ready";
+  metric: ProgressStreakLeaderboardMetric;
+  snapshotId: string;
+  snapshotGeneratedAt: string;
+  asOfUtcDate: string;
+  nextRefreshAfter: string;
+  participantCount: number;
+  viewer: ProgressStreakLeaderboardViewer;
+  rows: ReadonlyArray<ProgressStreakLeaderboardRow>;
+  rankingRows: ReadonlyArray<ProgressStreakLeaderboardRankingRow>;
+}>;
+
+export type ProgressStreakLeaderboardNonReady = Readonly<{
+  status: Exclude<ProgressStreakLeaderboardStatus, "ready">;
+  metric: ProgressStreakLeaderboardMetric;
+}>;
+
+export type ProgressStreakLeaderboard = ProgressStreakLeaderboardReady | ProgressStreakLeaderboardNonReady;
+
+export type ProgressStreakLeaderboardReadySnapshot = Omit<
+  ProgressStreakLeaderboardReady,
+  "snapshotId" | "snapshotGeneratedAt" | "asOfUtcDate" | "nextRefreshAfter"
+> & Readonly<{
+  snapshotId: string | null;
+  snapshotGeneratedAt: string | null;
+  asOfUtcDate: string | null;
+  nextRefreshAfter: string | null;
+  source: "server" | "local_only";
+  isApproximate: boolean;
+}>;
+
+export type ProgressStreakLeaderboardNonReadySnapshot = ProgressStreakLeaderboardNonReady & Readonly<{
+  source: "server";
+  isApproximate: boolean;
+}>;
+
+export type ProgressStreakLeaderboardSnapshot =
+  | ProgressStreakLeaderboardReadySnapshot
+  | ProgressStreakLeaderboardNonReadySnapshot;
+
 export type FriendInvitationCreateRequest = Readonly<{
   inviteeDisplayName: string;
 }>;
@@ -434,11 +529,23 @@ export type ProgressLeaderboardSourceState = Readonly<{
   localViewerCountsTechnicalError: Error | null;
 }>;
 
+export type ProgressStreakLeaderboardSourceState = Readonly<{
+  scopeKey: ProgressScopeKey | null;
+  serverBase: ProgressStreakLeaderboardSnapshot | null;
+  currentSummary: ProgressSummarySnapshot | null;
+  renderedSnapshot: ProgressStreakLeaderboardSnapshot | null;
+  isLoading: boolean;
+  errorMessage: string;
+  technicalError: Error | null;
+  isNetworkError: boolean;
+}>;
+
 export type ProgressSourceState = Readonly<{
   summary: ProgressSummarySourceState;
   series: ProgressSeriesSourceState;
   reviewSchedule: ProgressReviewScheduleSourceState;
   leaderboard: ProgressLeaderboardSourceState;
+  streakLeaderboard: ProgressStreakLeaderboardSourceState;
 }>;
 
 export type FeedbackTrigger = "settings" | "automatic";
