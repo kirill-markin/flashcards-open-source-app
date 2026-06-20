@@ -28,6 +28,7 @@ import com.flashcardsopensourceapp.feature.progress.sections.LeaderboardSectionC
 import com.flashcardsopensourceapp.feature.progress.sections.LoadingCard
 import com.flashcardsopensourceapp.feature.progress.sections.ReviewScheduleSectionCard
 import com.flashcardsopensourceapp.feature.progress.sections.ReviewsSectionCard
+import com.flashcardsopensourceapp.feature.progress.sections.StreakLeaderboardSectionCard
 import com.flashcardsopensourceapp.feature.progress.sections.StreakSectionCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -164,6 +165,13 @@ fun ProgressRoute(
                             onSelectWindow = onSelectLeaderboardWindow,
                             onCreateFriendInvitation = onCreateFriendInvitation,
                             onClearFriendInvitationFailure = onClearFriendInvitationFailure,
+                            onOpenSignIn = onOpenSignIn,
+                            onOpenLeaderboardSettings = onOpenLeaderboardSettings
+                        )
+                    }
+                    item {
+                        StreakLeaderboardSectionCard(
+                            uiState = uiState.streakLeaderboardSection,
                             onOpenSignIn = onOpenSignIn,
                             onOpenLeaderboardSettings = onOpenLeaderboardSettings
                         )

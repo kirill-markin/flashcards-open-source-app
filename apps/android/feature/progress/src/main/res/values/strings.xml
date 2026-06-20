@@ -43,9 +43,9 @@
     <string name="progress_review_schedule_bucket_years_1_to_2">1-2 years</string>
     <string name="progress_review_schedule_bucket_later">Later</string>
     <string name="progress_review_schedule_bucket_value">%1$s (%2$s)</string>
-    <string name="progress_leaderboard_title">Leaderboard</string>
-    <string name="progress_leaderboard_info_button_content_description">About the leaderboard</string>
-    <string name="progress_leaderboard_info_title">How ranking works</string>
+    <string name="progress_leaderboard_title">Rating leaderboard</string>
+    <string name="progress_leaderboard_info_button_content_description">About the rating leaderboard</string>
+    <string name="progress_leaderboard_info_title">How rating ranking works</string>
     <string name="progress_leaderboard_info_fallback_body">Hard, Good, and Easy reviews count toward your rank. Again does not count.</string>
     <string name="progress_leaderboard_info_dismiss">OK</string>
     <string name="progress_leaderboard_window_last_24_hours">24h</string>
@@ -58,12 +58,21 @@
     <string name="progress_leaderboard_gap_content_description">Hidden ranks</string>
     <string name="progress_leaderboard_empty_window">No qualified reviews in this period yet.</string>
     <string name="progress_leaderboard_updated_label">Updated %1$d min ago</string>
-    <string name="progress_leaderboard_sign_in_message">Sign up or sign in to see how your reviews rank in the community.</string>
+    <string name="progress_leaderboard_sign_in_message">Sign up or sign in to see how your reviews rank on the rating leaderboard.</string>
     <string name="progress_leaderboard_sign_in_button">Sign in</string>
-    <string name="progress_leaderboard_participation_disabled_message">Rankings are visible only while you participate in the leaderboard. Turn participation on in leaderboard settings.</string>
+    <string name="progress_leaderboard_participation_disabled_message">Rating rankings are visible only while you participate in the rating leaderboard. Turn participation on in leaderboard settings.</string>
     <string name="progress_leaderboard_participation_disabled_button">Open leaderboard settings</string>
-    <string name="progress_leaderboard_offline_message">The leaderboard needs a connection. It will load when you are back online.</string>
-    <string name="progress_leaderboard_unavailable_message">The leaderboard is not ready yet. Check back soon.</string>
+    <string name="progress_leaderboard_offline_message">The rating leaderboard needs a connection. It will load when you are back online.</string>
+    <string name="progress_leaderboard_unavailable_message">The rating leaderboard is not ready yet. Check back soon.</string>
+    <string name="progress_streak_leaderboard_title">Streak leaderboard</string>
+    <string name="progress_streak_leaderboard_info_button_content_description">About the streak leaderboard</string>
+    <string name="progress_streak_leaderboard_info_title">How streak ranking works</string>
+    <string name="progress_streak_leaderboard_info_fallback_body">Ranks use current streak days from the public daily snapshot. Public values can trail your live personal streak.</string>
+    <string name="progress_streak_leaderboard_empty">No streak leaderboard rows yet.</string>
+    <string name="progress_streak_leaderboard_sign_in_message">Sign up or sign in to compare streaks with the community.</string>
+    <string name="progress_streak_leaderboard_participation_disabled_message">Streak rankings are visible only while you participate in the streak leaderboard. Turn participation on in leaderboard settings.</string>
+    <string name="progress_streak_leaderboard_offline_message">The streak leaderboard needs a connection. It will load when you are back online.</string>
+    <string name="progress_streak_leaderboard_unavailable_message">The streak leaderboard is not ready yet. Check back soon.</string>
     <string name="progress_today">Today</string>
     <plurals name="progress_streak_summary_content_description">
         <item quantity="one">Review streak %d day.</item>
@@ -80,5 +89,9 @@
     <plurals name="progress_leaderboard_participant_count">
         <item quantity="one">%1$s participant</item>
         <item quantity="other">%1$s participants</item>
+    </plurals>
+    <plurals name="progress_streak_leaderboard_day_count">
+        <item quantity="one">%1$s day</item>
+        <item quantity="other">%1$s days</item>
     </plurals>
 </resources>

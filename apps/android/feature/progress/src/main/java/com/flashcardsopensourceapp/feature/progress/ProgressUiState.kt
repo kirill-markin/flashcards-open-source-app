@@ -109,6 +109,38 @@ sealed interface ProgressLeaderboardSectionUiState {
     }
 }
 
+sealed interface ProgressStreakLeaderboardRowUiState {
+    data class Participant(
+        val rank: Int,
+        val displayName: String,
+        val streakDays: Int,
+        val isViewer: Boolean
+    ) : ProgressStreakLeaderboardRowUiState
+
+    data object Gap : ProgressStreakLeaderboardRowUiState
+}
+
+sealed interface ProgressStreakLeaderboardSectionUiState {
+    data object Loading : ProgressStreakLeaderboardSectionUiState
+
+    data object SignInRequired : ProgressStreakLeaderboardSectionUiState
+
+    data object ParticipationDisabled : ProgressStreakLeaderboardSectionUiState
+
+    data object Offline : ProgressStreakLeaderboardSectionUiState
+
+    data object SnapshotUnavailable : ProgressStreakLeaderboardSectionUiState
+
+    data class Ready(
+        // Server-localized explanation that public streak rankings may trail live local streaks;
+        // null falls back to the client string resource.
+        val metricDescription: String?,
+        val participantCount: Int,
+        val rows: List<ProgressStreakLeaderboardRowUiState>,
+        val snapshotGeneratedAtMillis: Long?
+    ) : ProgressStreakLeaderboardSectionUiState
+}
+
 sealed interface ProgressSummaryUiState {
     data object Loading : ProgressSummaryUiState
 
@@ -134,6 +166,7 @@ sealed interface ProgressUiState {
         val streakSection: ProgressStreakSectionUiState,
         val reviewsSection: ProgressReviewsSectionUiState,
         val reviewScheduleSection: ProgressReviewScheduleSectionUiState?,
-        val leaderboardSection: ProgressLeaderboardSectionUiState
+        val leaderboardSection: ProgressLeaderboardSectionUiState,
+        val streakLeaderboardSection: ProgressStreakLeaderboardSectionUiState
     ) : ProgressUiState
 }

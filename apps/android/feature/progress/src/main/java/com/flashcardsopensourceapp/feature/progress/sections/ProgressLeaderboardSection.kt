@@ -141,8 +141,10 @@ internal fun LeaderboardSectionCard(
                 }
 
                 ProgressLeaderboardSectionUiState.SignInRequired -> {
-                    LeaderboardResolvedContent {
-                        LeaderboardPlaceholder(
+                    ProgressLeaderboardResolvedContent(
+                        testTag = progressLeaderboardResolvedContentTag
+                    ) {
+                        ProgressLeaderboardPlaceholder(
                             message = stringResource(id = R.string.progress_leaderboard_sign_in_message),
                             buttonLabel = stringResource(id = R.string.progress_leaderboard_sign_in_button),
                             onButtonClick = onOpenSignIn
@@ -151,8 +153,10 @@ internal fun LeaderboardSectionCard(
                 }
 
                 ProgressLeaderboardSectionUiState.ParticipationDisabled -> {
-                    LeaderboardResolvedContent {
-                        LeaderboardPlaceholder(
+                    ProgressLeaderboardResolvedContent(
+                        testTag = progressLeaderboardResolvedContentTag
+                    ) {
+                        ProgressLeaderboardPlaceholder(
                             message = stringResource(id = R.string.progress_leaderboard_participation_disabled_message),
                             buttonLabel = stringResource(id = R.string.progress_leaderboard_participation_disabled_button),
                             onButtonClick = onOpenLeaderboardSettings
@@ -161,8 +165,10 @@ internal fun LeaderboardSectionCard(
                 }
 
                 ProgressLeaderboardSectionUiState.Offline -> {
-                    LeaderboardResolvedContent {
-                        LeaderboardPlaceholder(
+                    ProgressLeaderboardResolvedContent(
+                        testTag = progressLeaderboardResolvedContentTag
+                    ) {
+                        ProgressLeaderboardPlaceholder(
                             message = stringResource(id = R.string.progress_leaderboard_offline_message),
                             buttonLabel = null,
                             onButtonClick = null
@@ -171,8 +177,10 @@ internal fun LeaderboardSectionCard(
                 }
 
                 ProgressLeaderboardSectionUiState.SnapshotUnavailable -> {
-                    LeaderboardResolvedContent {
-                        LeaderboardPlaceholder(
+                    ProgressLeaderboardResolvedContent(
+                        testTag = progressLeaderboardResolvedContentTag
+                    ) {
+                        ProgressLeaderboardPlaceholder(
                             message = stringResource(id = R.string.progress_leaderboard_unavailable_message),
                             buttonLabel = null,
                             onButtonClick = null
@@ -181,7 +189,9 @@ internal fun LeaderboardSectionCard(
                 }
 
                 is ProgressLeaderboardSectionUiState.Ready -> {
-                    LeaderboardResolvedContent {
+                    ProgressLeaderboardResolvedContent(
+                        testTag = progressLeaderboardResolvedContentTag
+                    ) {
                         LeaderboardReadyContent(
                             uiState = uiState,
                             onSelectWindow = onSelectWindow
@@ -198,12 +208,12 @@ internal fun LeaderboardSectionCard(
         val infoBody = readyState?.metricDescription ?: fallbackInfoBody
         val selectedSnapshotGeneratedAtMillis = readyState?.selectedWindow?.snapshotGeneratedAtMillis
         val updatedText = selectedSnapshotGeneratedAtMillis?.let { snapshotGeneratedAtMillis ->
-            stringResource(
-                id = R.string.progress_leaderboard_updated_label,
-                leaderboardElapsedMinutes(
-                    snapshotGeneratedAtMillis = snapshotGeneratedAtMillis,
-                    nowMillis = System.currentTimeMillis()
-                )
+                    stringResource(
+                        id = R.string.progress_leaderboard_updated_label,
+                        progressLeaderboardElapsedMinutes(
+                            snapshotGeneratedAtMillis = snapshotGeneratedAtMillis,
+                            nowMillis = System.currentTimeMillis()
+                        )
             )
         }
         AlertDialog(
@@ -239,14 +249,15 @@ internal fun LeaderboardSectionCard(
 }
 
 @Composable
-private fun LeaderboardResolvedContent(
+internal fun ProgressLeaderboardResolvedContent(
+    testTag: String,
     content: @Composable () -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .testTag(progressLeaderboardResolvedContentTag)
+            .testTag(testTag)
     ) {
         content()
     }
@@ -315,11 +326,22 @@ private fun LeaderboardReadyContent(
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             selectedWindow.rows.forEach { row ->
                 when (row) {
-                    ProgressLeaderboardRowUiState.Gap -> LeaderboardGapRow()
-                    is ProgressLeaderboardRowUiState.Participant -> LeaderboardParticipantRow(
-                        row = row,
+                    ProgressLeaderboardRowUiState.Gap -> ProgressLeaderboardGapRow(
+                        contentDescription = stringResource(
+                            id = R.string.progress_leaderboard_gap_content_description
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    is ProgressLeaderboardRowUiState.Participant -> ProgressLeaderboardParticipantRow(
                         rankLabel = countFormatter.format(row.rank.toLong()),
-                        countLabel = countFormatter.format(row.qualifiedReviewCount.toLong())
+                        displayName = if (row.isViewer) {
+                            stringResource(id = R.string.progress_leaderboard_you)
+                        } else {
+                            row.displayName
+                        },
+                        metricLabel = countFormatter.format(row.qualifiedReviewCount.toLong()),
+                        isViewer = row.isViewer,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
@@ -338,7 +360,7 @@ private fun LeaderboardReadyContent(
     }
 }
 
-private fun leaderboardElapsedMinutes(snapshotGeneratedAtMillis: Long, nowMillis: Long): Long {
+internal fun progressLeaderboardElapsedMinutes(snapshotGeneratedAtMillis: Long, nowMillis: Long): Long {
     return maxOf(0L, nowMillis - snapshotGeneratedAtMillis) / millisecondsPerMinute
 }
 
@@ -365,32 +387,30 @@ private fun leaderboardReservedRows(
 }
 
 @Composable
-private fun LeaderboardParticipantRow(
-    row: ProgressLeaderboardRowUiState.Participant,
+internal fun ProgressLeaderboardParticipantRow(
     rankLabel: String,
-    countLabel: String
+    displayName: String,
+    metricLabel: String,
+    isViewer: Boolean,
+    modifier: Modifier
 ) {
     val emphasisColor = MaterialTheme.colorScheme.primary
-    val rowColor = if (row.isViewer) emphasisColor else MaterialTheme.colorScheme.onSurface
-    val rowWeight = if (row.isViewer) FontWeight.SemiBold else null
+    val rowColor = if (isViewer) emphasisColor else MaterialTheme.colorScheme.onSurface
+    val rowWeight = if (isViewer) FontWeight.SemiBold else null
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier
     ) {
         Text(
             text = stringResource(id = R.string.progress_leaderboard_rank_label, rankLabel),
-            color = if (row.isViewer) emphasisColor else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (isViewer) emphasisColor else MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = rowWeight
         )
         Text(
-            text = if (row.isViewer) {
-                stringResource(id = R.string.progress_leaderboard_you)
-            } else {
-                row.displayName
-            },
+            text = displayName,
             color = rowColor,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = rowWeight,
@@ -399,7 +419,7 @@ private fun LeaderboardParticipantRow(
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = countLabel,
+            text = metricLabel,
             color = rowColor,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = rowWeight,
@@ -452,23 +472,24 @@ private fun LeaderboardReservedGapRow() {
 }
 
 @Composable
-private fun LeaderboardGapRow() {
-    val gapContentDescription = stringResource(id = R.string.progress_leaderboard_gap_content_description)
+internal fun ProgressLeaderboardGapRow(
+    contentDescription: String,
+    modifier: Modifier
+) {
     Text(
         text = "⋯",
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         style = MaterialTheme.typography.bodyMedium,
         textAlign = TextAlign.Center,
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .clearAndSetSemantics {
-                contentDescription = gapContentDescription
+                this.contentDescription = contentDescription
             }
     )
 }
 
 @Composable
-private fun LeaderboardPlaceholder(
+internal fun ProgressLeaderboardPlaceholder(
     message: String,
     buttonLabel: String?,
     onButtonClick: (() -> Unit)?
