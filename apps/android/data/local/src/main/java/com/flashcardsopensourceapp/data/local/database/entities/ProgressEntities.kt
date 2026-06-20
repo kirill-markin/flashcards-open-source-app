@@ -65,6 +65,16 @@ data class ProgressLeaderboardCacheEntity(
     val updatedAtMillis: Long
 )
 
+// Keeps the streak leaderboard cache distinct from the rating leaderboard cache
+// because both payloads are compact rankings but use different metric fields.
+@Entity(tableName = "progress_streak_leaderboard_cache")
+data class ProgressStreakLeaderboardCacheEntity(
+    @PrimaryKey val scopeKey: String,
+    val scopeId: String,
+    val payloadJson: String,
+    val updatedAtMillis: Long
+)
+
 @Entity(
     tableName = "progress_local_day_counts",
     primaryKeys = ["timeZone", "workspaceId", "localDate"],

@@ -1,9 +1,11 @@
 package com.flashcardsopensourceapp.data.local.repository.progress.cache
 
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressLeaderboard
+import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressStreakLeaderboard
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressLeaderboardCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewScheduleCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressSeriesCacheEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressStreakLeaderboardCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressSummaryCacheEntity
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
@@ -15,12 +17,16 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDay
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakFreeze
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardRankingRow
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardRow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewHistoryWatermark
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressStreakLeaderboardScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressRepositoryWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.createInclusiveLocalDateRange
@@ -133,8 +139,26 @@ internal fun CloudProgressLeaderboard.toCacheEntity(
     )
 }
 
+internal fun CloudProgressStreakLeaderboard.toCacheEntity(
+    scopeKey: ProgressStreakLeaderboardScopeKey,
+    updatedAtMillis: Long
+): ProgressStreakLeaderboardCacheEntity {
+    return ProgressStreakLeaderboardCacheEntity(
+        scopeKey = serializeProgressStreakLeaderboardScopeKey(scopeKey = scopeKey),
+        scopeId = scopeKey.scopeId,
+        payloadJson = serializeCloudProgressStreakLeaderboard(leaderboard = this).toString(),
+        updatedAtMillis = updatedAtMillis
+    )
+}
+
 internal fun serializeProgressLeaderboardScopeKey(
     scopeKey: ProgressLeaderboardScopeKey
+): String {
+    return scopeKey.scopeId
+}
+
+internal fun serializeProgressStreakLeaderboardScopeKey(
+    scopeKey: ProgressStreakLeaderboardScopeKey
 ): String {
     return scopeKey.scopeId
 }
@@ -161,6 +185,28 @@ internal data class ProgressLeaderboardCachedPayload(
     val updatedAtMillis: Long
 )
 
+internal fun findProgressStreakLeaderboardServerBase(
+    leaderboardCaches: List<ProgressStreakLeaderboardCacheEntity>,
+    scopeKey: ProgressStreakLeaderboardScopeKey
+): ProgressStreakLeaderboardCachedPayload? {
+    return leaderboardCaches.asSequence()
+        .filter { entry -> entry.scopeId == scopeKey.scopeId }
+        .mapNotNull { entry ->
+            entry.toCloudProgressStreakLeaderboardOrNull()?.let { leaderboard ->
+                ProgressStreakLeaderboardCachedPayload(
+                    leaderboard = leaderboard,
+                    updatedAtMillis = entry.updatedAtMillis
+                )
+            }
+        }
+        .firstOrNull()
+}
+
+internal data class ProgressStreakLeaderboardCachedPayload(
+    val leaderboard: CloudProgressStreakLeaderboard,
+    val updatedAtMillis: Long
+)
+
 internal fun ProgressLeaderboardCacheEntity.toCloudProgressLeaderboardOrNull(): CloudProgressLeaderboard? {
     return runCatching {
         parseCloudProgressLeaderboard(
@@ -170,6 +216,25 @@ internal fun ProgressLeaderboardCacheEntity.toCloudProgressLeaderboardOrNull(): 
     }.getOrElse { error ->
         logProgressRepositoryWarning(
             event = "progress_leaderboard_cache_skipped",
+            fields = listOf(
+                "scopeKey" to scopeKey,
+                "scopeId" to scopeId
+            ),
+            error = error
+        )
+        null
+    }
+}
+
+internal fun ProgressStreakLeaderboardCacheEntity.toCloudProgressStreakLeaderboardOrNull(): CloudProgressStreakLeaderboard? {
+    return runCatching {
+        parseCloudProgressStreakLeaderboard(
+            payload = JSONObject(payloadJson),
+            fieldPath = "progressStreakLeaderboardCache"
+        )
+    }.getOrElse { error ->
+        logProgressRepositoryWarning(
+            event = "progress_streak_leaderboard_cache_skipped",
             fields = listOf(
                 "scopeKey" to scopeKey,
                 "scopeId" to scopeId
@@ -237,6 +302,54 @@ internal fun serializeCloudProgressLeaderboard(
         )
 }
 
+internal fun serializeCloudProgressStreakLeaderboard(
+    leaderboard: CloudProgressStreakLeaderboard
+): JSONObject {
+    val baseJson = JSONObject()
+        .put("status", leaderboard.status.wireKey)
+        .put(
+            "metric",
+            JSONObject()
+                .put("metricVersion", leaderboard.metric.metricVersion)
+                .put("title", leaderboard.metric.title)
+                .put("description", leaderboard.metric.description)
+        )
+
+    return when (leaderboard) {
+        is CloudProgressStreakLeaderboard.NonReady -> baseJson
+        is CloudProgressStreakLeaderboard.Ready -> baseJson
+            .put("snapshotId", leaderboard.snapshotId)
+            .put("snapshotGeneratedAt", leaderboard.snapshotGeneratedAt)
+            .put("asOfUtcDate", leaderboard.asOfUtcDate)
+            .put("nextRefreshAfter", leaderboard.nextRefreshAfter)
+            .put("participantCount", leaderboard.participantCount)
+            .put(
+                "viewer",
+                JSONObject()
+                    .put("publicProfileId", leaderboard.viewer.publicProfileId)
+                    .put("displayName", leaderboard.viewer.displayName)
+                    .put("rank", leaderboard.viewer.rank)
+                    .put("streakDays", leaderboard.viewer.streakDays)
+            )
+            .put(
+                "rows",
+                JSONArray().apply {
+                    leaderboard.rows.forEach { row ->
+                        put(row.toCacheJson())
+                    }
+                }
+            )
+            .put(
+                "rankingRows",
+                JSONArray().apply {
+                    leaderboard.rankingRows.forEach { row ->
+                        put(row.toCacheJson())
+                    }
+                }
+            )
+    }
+}
+
 private fun CloudProgressLeaderboardRow.toCacheJson(): JSONObject {
     return when (this) {
         is CloudProgressLeaderboardRow.Gap -> JSONObject().put("kind", "gap")
@@ -257,6 +370,29 @@ private fun CloudProgressLeaderboardRankingRow.toCacheJson(): JSONObject {
         .put("anonymousDisplayName", anonymousDisplayName)
         .putOptionalCloudString(name = "friendDisplayName", value = friendDisplayName)
         .put("qualifiedReviewCount", qualifiedReviewCount)
+        .put("rank", rank)
+}
+
+private fun CloudProgressStreakLeaderboardRow.toCacheJson(): JSONObject {
+    return when (this) {
+        is CloudProgressStreakLeaderboardRow.Gap -> JSONObject().put("kind", "gap")
+        is CloudProgressStreakLeaderboardRow.Participant -> JSONObject()
+            .put("kind", kind.wireKey)
+            .put("publicProfileId", publicProfileId)
+            .put("anonymousDisplayName", anonymousDisplayName)
+            .putOptionalCloudString(name = "friendDisplayName", value = friendDisplayName)
+            .put("streakDays", streakDays)
+            .put("rank", rank)
+    }
+}
+
+private fun CloudProgressStreakLeaderboardRankingRow.toCacheJson(): JSONObject {
+    return JSONObject()
+        .put("kind", kind.wireKey)
+        .put("publicProfileId", publicProfileId)
+        .put("anonymousDisplayName", anonymousDisplayName)
+        .putOptionalCloudString(name = "friendDisplayName", value = friendDisplayName)
+        .put("streakDays", streakDays)
         .put("rank", rank)
 }
 

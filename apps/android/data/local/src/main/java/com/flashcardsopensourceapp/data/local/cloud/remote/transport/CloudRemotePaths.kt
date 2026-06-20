@@ -45,6 +45,10 @@ internal fun buildProgressLeaderboardCloudPath(): String {
     return "/me/progress/leaderboard"
 }
 
+internal fun buildProgressStreakLeaderboardCloudPath(): String {
+    return "/me/progress/leaderboards/streak"
+}
+
 internal fun buildCommunityProfileCloudPath(): String {
     return "/me/community/profile"
 }

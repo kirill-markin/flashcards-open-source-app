@@ -7,6 +7,7 @@ import androidx.room.Query
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressLeaderboardCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewScheduleCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressSeriesCacheEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressStreakLeaderboardCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressSummaryCacheEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -24,6 +25,9 @@ interface ProgressRemoteCacheDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertProgressLeaderboardCache(entry: ProgressLeaderboardCacheEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertProgressStreakLeaderboardCache(entry: ProgressStreakLeaderboardCacheEntity)
+
     @Query("SELECT * FROM progress_summary_cache ORDER BY updatedAtMillis DESC, scopeKey DESC")
     fun observeProgressSummaryCaches(): Flow<List<ProgressSummaryCacheEntity>>
 
@@ -36,6 +40,12 @@ interface ProgressRemoteCacheDao {
     @Query("SELECT * FROM progress_leaderboard_cache ORDER BY updatedAtMillis DESC, scopeKey DESC")
     fun observeProgressLeaderboardCaches(): Flow<List<ProgressLeaderboardCacheEntity>>
 
+    @Query("SELECT * FROM progress_streak_leaderboard_cache ORDER BY updatedAtMillis DESC, scopeKey DESC")
+    fun observeProgressStreakLeaderboardCaches(): Flow<List<ProgressStreakLeaderboardCacheEntity>>
+
     @Query("DELETE FROM progress_leaderboard_cache")
     suspend fun deleteAllProgressLeaderboardCaches()
+
+    @Query("DELETE FROM progress_streak_leaderboard_cache")
+    suspend fun deleteAllProgressStreakLeaderboardCaches()
 }

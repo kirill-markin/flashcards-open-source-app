@@ -17,6 +17,11 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeader
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardWindow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewScheduleBucket
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardMetric
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardRankingRow
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardRow
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardViewer
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardParticipantRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardStatus
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
@@ -228,6 +233,75 @@ private fun createProgressLeaderboardParticipantRowForTest(
         anonymousDisplayName = rankingRow.anonymousDisplayName,
         friendDisplayName = rankingRow.friendDisplayName,
         qualifiedReviewCount = rankingRow.qualifiedReviewCount,
+        rank = rankingRow.rank
+    )
+}
+
+internal fun createProgressStreakLeaderboardForTest(
+    rankingRows: List<CloudProgressStreakLeaderboardRankingRow>
+): CloudProgressStreakLeaderboard.Ready {
+    val viewerRow = requireNotNull(
+        rankingRows.firstOrNull { row -> row.kind == CloudProgressLeaderboardRankingRowKind.VIEWER }
+    )
+    return CloudProgressStreakLeaderboard.Ready(
+        status = ProgressLeaderboardStatus.READY,
+        metric = CloudProgressStreakLeaderboardMetric(
+            metricVersion = "streak_days_v1",
+            title = "Current streak days",
+            description = "Ranks use current streak days from the public daily snapshot. Public values can trail your live personal streak."
+        ),
+        snapshotId = "snapshot-1",
+        snapshotGeneratedAt = "2026-06-10T12:00:05.000Z",
+        asOfUtcDate = "2026-06-10",
+        nextRefreshAfter = "2026-06-11T12:00:00.000Z",
+        participantCount = rankingRows.size,
+        viewer = CloudProgressStreakLeaderboardViewer(
+            publicProfileId = viewerRow.publicProfileId,
+            displayName = "You",
+            rank = viewerRow.rank,
+            streakDays = viewerRow.streakDays
+        ),
+        rows = rankingRows.map { row ->
+            createProgressStreakLeaderboardParticipantRowForTest(
+                kind = when {
+                    row.kind == CloudProgressLeaderboardRankingRowKind.VIEWER -> ProgressLeaderboardParticipantRowKind.VIEWER
+                    row.rank <= 3 -> ProgressLeaderboardParticipantRowKind.TOP
+                    else -> ProgressLeaderboardParticipantRowKind.NEIGHBOR
+                },
+                rankingRow = row
+            )
+        },
+        rankingRows = rankingRows
+    )
+}
+
+internal fun createProgressStreakLeaderboardRankingRowForTest(
+    kind: CloudProgressLeaderboardRankingRowKind,
+    publicProfileId: String,
+    anonymousDisplayName: String,
+    streakDays: Int,
+    rank: Int
+): CloudProgressStreakLeaderboardRankingRow {
+    return CloudProgressStreakLeaderboardRankingRow(
+        kind = kind,
+        publicProfileId = publicProfileId,
+        anonymousDisplayName = anonymousDisplayName,
+        friendDisplayName = null,
+        streakDays = streakDays,
+        rank = rank
+    )
+}
+
+private fun createProgressStreakLeaderboardParticipantRowForTest(
+    kind: ProgressLeaderboardParticipantRowKind,
+    rankingRow: CloudProgressStreakLeaderboardRankingRow
+): CloudProgressStreakLeaderboardRow.Participant {
+    return CloudProgressStreakLeaderboardRow.Participant(
+        kind = kind,
+        publicProfileId = rankingRow.publicProfileId,
+        anonymousDisplayName = rankingRow.anonymousDisplayName,
+        friendDisplayName = rankingRow.friendDisplayName,
+        streakDays = rankingRow.streakDays,
         rank = rankingRow.rank
     )
 }

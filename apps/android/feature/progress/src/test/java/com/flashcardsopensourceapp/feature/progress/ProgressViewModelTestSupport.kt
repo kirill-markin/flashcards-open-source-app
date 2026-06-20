@@ -27,6 +27,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewSched
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSource
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressStreakLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.createRenderedProgressLeaderboard
@@ -48,6 +49,7 @@ internal class FakeProgressRepository : ProgressRepository {
     private val seriesSnapshots = MutableStateFlow<ProgressSeriesSnapshot?>(null)
     private val reviewScheduleSnapshots = MutableStateFlow<ProgressReviewScheduleSnapshot?>(null)
     private val leaderboardSnapshots = MutableStateFlow<ProgressLeaderboardSnapshot?>(null)
+    private val streakLeaderboardSnapshots = MutableStateFlow<ProgressStreakLeaderboardSnapshot?>(null)
     var refreshSummaryIfInvalidatedCallCount: Int = 0
         private set
     var refreshSeriesIfInvalidatedCallCount: Int = 0
@@ -55,6 +57,8 @@ internal class FakeProgressRepository : ProgressRepository {
     var refreshReviewScheduleIfInvalidatedCallCount: Int = 0
         private set
     var refreshLeaderboardIfInvalidatedCallCount: Int = 0
+        private set
+    var refreshStreakLeaderboardIfInvalidatedCallCount: Int = 0
         private set
     var refreshLeaderboardForReviewShortcutCallCount: Int = 0
         private set
@@ -65,6 +69,8 @@ internal class FakeProgressRepository : ProgressRepository {
     var refreshReviewScheduleManuallyCallCount: Int = 0
         private set
     var refreshLeaderboardManuallyCallCount: Int = 0
+        private set
+    var refreshStreakLeaderboardManuallyCallCount: Int = 0
         private set
 
     fun emitSummarySnapshot(
@@ -107,6 +113,10 @@ internal class FakeProgressRepository : ProgressRepository {
         return leaderboardSnapshots
     }
 
+    override fun observeStreakLeaderboardSnapshot(): Flow<ProgressStreakLeaderboardSnapshot?> {
+        return streakLeaderboardSnapshots
+    }
+
     override suspend fun refreshSummaryIfInvalidated() {
         refreshSummaryIfInvalidatedCallCount += 1
     }
@@ -121,6 +131,10 @@ internal class FakeProgressRepository : ProgressRepository {
 
     override suspend fun refreshLeaderboardIfInvalidated() {
         refreshLeaderboardIfInvalidatedCallCount += 1
+    }
+
+    override suspend fun refreshStreakLeaderboardIfInvalidated() {
+        refreshStreakLeaderboardIfInvalidatedCallCount += 1
     }
 
     override suspend fun refreshLeaderboardForReviewShortcut() {
@@ -141,6 +155,10 @@ internal class FakeProgressRepository : ProgressRepository {
 
     override suspend fun refreshLeaderboardManually() {
         refreshLeaderboardManuallyCallCount += 1
+    }
+
+    override suspend fun refreshStreakLeaderboardManually() {
+        refreshStreakLeaderboardManuallyCallCount += 1
     }
 }
 

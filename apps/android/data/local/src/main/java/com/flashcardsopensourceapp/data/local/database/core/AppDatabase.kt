@@ -21,6 +21,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalDay
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewHistoryStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewScheduleCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressSeriesCacheEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressStreakLeaderboardCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressSummaryCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
@@ -56,11 +57,12 @@ private const val appDatabaseName: String = "flashcards-android.db"
         ProgressSeriesCacheEntity::class,
         ProgressReviewScheduleCacheEntity::class,
         ProgressLeaderboardCacheEntity::class,
+        ProgressStreakLeaderboardCacheEntity::class,
         ProgressLocalDayCountEntity::class,
         ProgressReviewHistoryStateEntity::class,
         ProgressLocalCacheStateEntity::class
     ],
-    version = 23,
+    version = 24,
     exportSchema = false
 )
 @TypeConverters(DatabaseTypeConverters::class)

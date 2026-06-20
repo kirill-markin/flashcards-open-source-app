@@ -26,6 +26,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
@@ -71,6 +72,8 @@ internal class FakeCloudRemoteGateway private constructor(
     private var bootstrapPullResponseIndex: Int = 0
     private var bootstrapPushErrorIndex: Int = 0
     private var importReviewHistoryErrorIndex: Int = 0
+    private var progressLeaderboardResponse: CloudProgressLeaderboard? = null
+    private var progressStreakLeaderboardResponse: CloudProgressStreakLeaderboard? = null
 
     companion object {
         fun standard(): FakeCloudRemoteGateway {
@@ -377,6 +380,14 @@ internal class FakeCloudRemoteGateway private constructor(
     val importReviewHistoryBodies = mutableListOf<JSONObject>()
     val createdWorkspaceId: String = createdWorkspace.workspaceId
 
+    fun setProgressLeaderboardResponse(response: CloudProgressLeaderboard): Unit {
+        progressLeaderboardResponse = response
+    }
+
+    fun setProgressStreakLeaderboardResponse(response: CloudProgressStreakLeaderboard): Unit {
+        progressStreakLeaderboardResponse = response
+    }
+
     override suspend fun validateConfiguration(configuration: CloudServiceConfiguration) {
     }
 
@@ -565,7 +576,18 @@ internal class FakeCloudRemoteGateway private constructor(
         apiBaseUrl: String,
         authorizationHeader: String
     ): CloudProgressLeaderboard {
-        throw UnsupportedOperationException()
+        return requireNotNull(progressLeaderboardResponse) {
+            "Fake progress leaderboard response was not configured."
+        }
+    }
+
+    override suspend fun loadProgressStreakLeaderboard(
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ): CloudProgressStreakLeaderboard {
+        return requireNotNull(progressStreakLeaderboardResponse) {
+            "Fake progress streak leaderboard response was not configured."
+        }
     }
 
     override suspend fun loadCommunityProfile(

@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressStreakLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
@@ -19,6 +20,7 @@ import com.flashcardsopensourceapp.data.local.repository.progress.inputs.observe
 import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressLeaderboardOrchestration
 import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressReviewScheduleOrchestration
 import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressSeriesOrchestration
+import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressStreakLeaderboardOrchestration
 import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressSummaryOrchestration
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressBackgroundLauncher
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.createProgressObservationVersions
@@ -88,6 +90,13 @@ class LocalProgressRepository(
         observability = observability,
         observationVersions = observationVersions
     )
+    private val streakLeaderboardOrchestration = ProgressStreakLeaderboardOrchestration(
+        database = database,
+        cloudAccountRepository = cloudAccountRepository,
+        timeProvider = timeProvider,
+        observability = observability,
+        observationVersions = observationVersions
+    )
 
     // Captured handle for the input-observation flow so the lifecycle of this
     // long-running collector is explicit rather than hidden inside an init block.
@@ -123,6 +132,10 @@ class LocalProgressRepository(
         return leaderboardOrchestration.observeSnapshot()
     }
 
+    override fun observeStreakLeaderboardSnapshot(): Flow<ProgressStreakLeaderboardSnapshot?> {
+        return streakLeaderboardOrchestration.observeSnapshot()
+    }
+
     override suspend fun refreshSummaryIfInvalidated() {
         summaryOrchestration.refreshIfInvalidated()
     }
@@ -137,6 +150,10 @@ class LocalProgressRepository(
 
     override suspend fun refreshLeaderboardIfInvalidated() {
         leaderboardOrchestration.refreshIfInvalidated()
+    }
+
+    override suspend fun refreshStreakLeaderboardIfInvalidated() {
+        streakLeaderboardOrchestration.refreshIfInvalidated()
     }
 
     override suspend fun refreshLeaderboardForReviewShortcut() {
@@ -157,6 +174,10 @@ class LocalProgressRepository(
 
     override suspend fun refreshLeaderboardManually() {
         leaderboardOrchestration.refreshManually()
+    }
+
+    override suspend fun refreshStreakLeaderboardManually() {
+        streakLeaderboardOrchestration.refreshManually()
     }
 
     private fun handleProgressInputs(
@@ -180,6 +201,13 @@ class LocalProgressRepository(
         leaderboardOrchestration.handleInputs(
             inputs = inputs,
             clockSnapshot = clockSnapshot
+        )
+        streakLeaderboardOrchestration.handleInputs(
+            inputs = inputs,
+            clockSnapshot = clockSnapshot,
+            viewerCurrentStreakDays = summaryHandledInputs.currentStoreState.snapshot
+                ?.renderedSummary
+                ?.currentStreakDays
         )
 
         if (

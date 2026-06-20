@@ -27,6 +27,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
@@ -48,6 +49,7 @@ import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressStreakLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
@@ -141,15 +143,18 @@ interface ProgressRepository {
     fun observeSeriesSnapshot(): Flow<ProgressSeriesSnapshot?>
     fun observeReviewScheduleSnapshot(): Flow<ProgressReviewScheduleSnapshot?>
     fun observeLeaderboardSnapshot(): Flow<ProgressLeaderboardSnapshot?>
+    fun observeStreakLeaderboardSnapshot(): Flow<ProgressStreakLeaderboardSnapshot?>
     suspend fun refreshSummaryIfInvalidated()
     suspend fun refreshSeriesIfInvalidated()
     suspend fun refreshReviewScheduleIfInvalidated()
     suspend fun refreshLeaderboardIfInvalidated()
+    suspend fun refreshStreakLeaderboardIfInvalidated()
     suspend fun refreshLeaderboardForReviewShortcut()
     suspend fun refreshSummaryManually()
     suspend fun refreshSeriesManually()
     suspend fun refreshReviewScheduleManually()
     suspend fun refreshLeaderboardManually()
+    suspend fun refreshStreakLeaderboardManually()
 }
 
 interface FeedbackRepository {
@@ -193,6 +198,7 @@ interface CloudAccountRepository {
     suspend fun loadProgressSeries(timeZone: String, from: String, to: String): CloudProgressSeries
     suspend fun loadProgressReviewSchedule(timeZone: String): CloudProgressReviewSchedule
     suspend fun loadProgressLeaderboard(): CloudProgressLeaderboard
+    suspend fun loadProgressStreakLeaderboard(): CloudProgressStreakLeaderboard
     suspend fun loadCommunityProfile(): CloudCommunityProfile
     suspend fun updateCommunityLeaderboardParticipation(
         leaderboardParticipationEnabled: Boolean

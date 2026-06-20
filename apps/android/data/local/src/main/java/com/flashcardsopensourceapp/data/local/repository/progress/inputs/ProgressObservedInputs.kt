@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewHi
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewScheduleCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressReviewScheduleCardDueEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressSeriesCacheEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ProgressStreakLeaderboardCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressSummaryCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
@@ -51,6 +52,7 @@ internal data class ProgressObservedInputs(
     val seriesCaches: List<ProgressSeriesCacheEntity>,
     val reviewScheduleCaches: List<ProgressReviewScheduleCacheEntity>,
     val leaderboardCaches: List<ProgressLeaderboardCacheEntity>,
+    val streakLeaderboardCaches: List<ProgressStreakLeaderboardCacheEntity>,
     val qualifiedReviewActivity: ProgressQualifiedReviewActivity
 )
 
@@ -193,8 +195,9 @@ internal fun observeProgressInputs(
         seriesInputsFlow,
         remoteCacheDao.observeProgressReviewScheduleCaches(),
         remoteCacheDao.observeProgressLeaderboardCaches(),
+        remoteCacheDao.observeProgressStreakLeaderboardCaches(),
         qualifiedReviewActivityFlow
-    ) { seriesInputs, reviewScheduleCaches, leaderboardCaches, qualifiedReviewActivity ->
+    ) { seriesInputs, reviewScheduleCaches, leaderboardCaches, streakLeaderboardCaches, qualifiedReviewActivity ->
         ProgressObservedInputs(
             cloudSettings = seriesInputs.summaryInputs.baseInputs.cloudSettings,
             workspaces = seriesInputs.summaryInputs.baseInputs.workspaces,
@@ -210,6 +213,7 @@ internal fun observeProgressInputs(
             seriesCaches = seriesInputs.seriesCaches,
             reviewScheduleCaches = reviewScheduleCaches,
             leaderboardCaches = leaderboardCaches,
+            streakLeaderboardCaches = streakLeaderboardCaches,
             qualifiedReviewActivity = qualifiedReviewActivity
         )
     }

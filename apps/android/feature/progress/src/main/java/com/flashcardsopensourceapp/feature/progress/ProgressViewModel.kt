@@ -95,6 +95,9 @@ class ProgressViewModel(
         launchAndLogFailure(event = "progress_leaderboard_refresh_if_invalidated_failed") {
             progressRepository.refreshLeaderboardIfInvalidated()
         }
+        launchAndLogFailure(event = "progress_streak_leaderboard_refresh_if_invalidated_failed") {
+            progressRepository.refreshStreakLeaderboardIfInvalidated()
+        }
     }
 
     fun refreshManually() {
@@ -109,6 +112,9 @@ class ProgressViewModel(
         }
         launchAndLogFailure(event = "progress_leaderboard_refresh_manually_failed") {
             progressRepository.refreshLeaderboardManually()
+        }
+        launchAndLogFailure(event = "progress_streak_leaderboard_refresh_manually_failed") {
+            progressRepository.refreshStreakLeaderboardManually()
         }
     }
 
