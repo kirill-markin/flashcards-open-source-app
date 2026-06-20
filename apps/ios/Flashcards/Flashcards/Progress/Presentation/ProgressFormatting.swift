@@ -259,9 +259,9 @@ func progressReviewScheduleAccessibilitySummary(snapshot: ReviewScheduleSnapshot
 func progressLeaderboardSectionTitle() -> String {
     String(
         localized: "progress.screen.leaderboard.section_title",
-        defaultValue: "Leaderboard",
+        defaultValue: "Rating leaderboard",
         table: progressStringsTableName,
-        comment: "Progress leaderboard section title"
+        comment: "Progress rating leaderboard section title"
     )
 }
 
@@ -290,6 +290,50 @@ func progressLeaderboardViewerRowTitle() -> String {
         table: progressStringsTableName,
         comment: "Progress leaderboard label for the viewer's own row"
     )
+}
+
+func progressStreakLeaderboardSectionTitle() -> String {
+    String(
+        localized: "progress.screen.streak_leaderboard.section_title",
+        defaultValue: "Streak leaderboard",
+        table: progressStringsTableName,
+        comment: "Progress streak leaderboard section title"
+    )
+}
+
+func progressStreakLeaderboardInfoMessage(snapshotGeneratedAt: String?, now: Date) -> String {
+    let baseMessage = String(
+        localized: "progress.screen.streak_leaderboard.info.message",
+        defaultValue: "Current streak days determine your rank.",
+        table: progressStringsTableName,
+        comment: "Progress streak leaderboard info explanation of ranking metric"
+    )
+
+    guard let snapshotGeneratedAt,
+          let updatedText = progressLeaderboardUpdatedText(snapshotGeneratedAt: snapshotGeneratedAt, now: now) else {
+        return baseMessage
+    }
+
+    return "\(baseMessage)\n\n\(updatedText)"
+}
+
+func progressStreakLeaderboardDayCountText(streakDays: Int) -> String {
+    if streakDays == 1 {
+        return String(
+            localized: "progress.screen.streak_leaderboard.day_count.one",
+            defaultValue: "1 day",
+            table: progressStringsTableName,
+            comment: "Progress streak leaderboard singular day count"
+        )
+    }
+
+    let localizedFormat = String(
+        localized: "progress.screen.streak_leaderboard.day_count.other",
+        defaultValue: "%lld days",
+        table: progressStringsTableName,
+        comment: "Progress streak leaderboard plural day count"
+    )
+    return String(format: localizedFormat, locale: Locale.current, Int64(streakDays))
 }
 
 func progressLeaderboardWindowTitle(key: LeaderboardWindowKey) -> String {

@@ -4,12 +4,14 @@ import SwiftUI
 private enum ProgressScreenSectionID: Hashable {
     case streak
     case leaderboard
+    case streakLeaderboard
 }
 
 private struct ProgressPresentationTaskID: Hashable {
     let requestID: UUID?
     let hasStreakSection: Bool
     let hasLeaderboardSection: Bool
+    let hasStreakLeaderboardSection: Bool
 }
 
 struct ProgressScreen: View {
@@ -27,11 +29,16 @@ struct ProgressScreen: View {
         self.store.progressSnapshot != nil
     }
 
+    private var isStreakLeaderboardSectionAvailable: Bool {
+        self.store.progressSnapshot != nil && self.store.progressStreakLeaderboardSnapshot != nil
+    }
+
     private var progressPresentationTaskID: ProgressPresentationTaskID {
         ProgressPresentationTaskID(
             requestID: self.navigation.progressPresentationRequest?.id,
             hasStreakSection: self.isStreakSectionAvailable,
-            hasLeaderboardSection: self.isLeaderboardSectionAvailable
+            hasLeaderboardSection: self.isLeaderboardSectionAvailable,
+            hasStreakLeaderboardSection: self.isStreakLeaderboardSectionAvailable
         )
     }
 
@@ -94,6 +101,19 @@ struct ProgressScreen: View {
                             }
                             .id(ProgressScreenSectionID.leaderboard)
                             .accessibilityIdentifier(UITestIdentifier.progressLeaderboardSection)
+                            .modifier(ProgressCardModifier())
+                        }
+
+                        if let streakLeaderboardSnapshot = self.store.progressStreakLeaderboardSnapshot {
+                            VStack(alignment: .leading, spacing: 0) {
+                                ProgressStreakLeaderboardSection(
+                                    snapshot: streakLeaderboardSnapshot,
+                                    isRefreshing: self.store.isProgressRefreshing,
+                                    streakLeaderboardRefreshMessage: self.store.progressErrorState.streakLeaderboardRefreshMessage
+                                )
+                            }
+                            .id(ProgressScreenSectionID.streakLeaderboard)
+                            .accessibilityIdentifier(UITestIdentifier.progressStreakLeaderboardSection)
                             .modifier(ProgressCardModifier())
                         }
 

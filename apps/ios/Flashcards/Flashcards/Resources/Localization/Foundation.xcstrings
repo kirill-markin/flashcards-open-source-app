@@ -3719,60 +3719,60 @@
       }
     },
     "progress.screen.leaderboard.info.accessibility_label" : {
-      "comment" : "Accessibility label for the leaderboard info button",
+      "comment" : "Accessibility label for the rating leaderboard info button",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "حول لوحة الصدارة"
+            "value" : "حول لوحة صدارة التقييمات"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Über die Bestenliste"
+            "value" : "Über die Bewertungs-Bestenliste"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "About the leaderboard"
+            "value" : "About the rating leaderboard"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Acerca de la tabla de clasificación"
+            "value" : "Acerca de la clasificación por valoración"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Acerca de la tabla de posiciones"
+            "value" : "Acerca de la tabla por valoración"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "लीडरबोर्ड के बारे में"
+            "value" : "रेटिंग लीडरबोर्ड के बारे में"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "リーダーボードについて"
+            "value" : "評価リーダーボードについて"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "О таблице лидеров"
+            "value" : "О таблице лидеров по оценкам"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "关于排行榜"
+            "value" : "关于评分排行榜"
           }
         }
       }
@@ -3837,7 +3837,7 @@
       }
     },
     "progress.screen.leaderboard.load_failed.message" : {
-      "comment" : "Progress leaderboard placeholder message after a failed load",
+      "comment" : "Progress rating leaderboard placeholder message after a failed load",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -3896,125 +3896,125 @@
       }
     },
     "progress.screen.leaderboard.load_failed.title" : {
-      "comment" : "Progress leaderboard placeholder title after a failed load",
+      "comment" : "Progress rating leaderboard placeholder title after a failed load",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تعذّر تحميل لوحة الصدارة"
+            "value" : "تعذّر تحميل لوحة صدارة التقييمات"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bestenliste konnte nicht geladen werden"
+            "value" : "Bewertungs-Bestenliste konnte nicht geladen werden"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Couldn't load the leaderboard"
+            "value" : "Couldn't load the rating leaderboard"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No se pudo cargar la tabla de clasificación"
+            "value" : "No se pudo cargar la clasificación por valoración"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No se pudo cargar la tabla de posiciones"
+            "value" : "No se pudo cargar la tabla por valoración"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "लीडरबोर्ड लोड नहीं हो सका"
+            "value" : "रेटिंग लीडरबोर्ड लोड नहीं हो सका"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "リーダーボードを読み込めませんでした"
+            "value" : "評価リーダーボードを読み込めませんでした"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Не удалось загрузить таблицу лидеров"
+            "value" : "Не удалось загрузить таблицу лидеров по оценкам"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法加载排行榜"
+            "value" : "无法加载评分排行榜"
           }
         }
       }
     },
     "progress.screen.leaderboard.offline.message" : {
-      "comment" : "Progress leaderboard offline placeholder message",
+      "comment" : "Progress rating leaderboard offline placeholder message",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "اتصل بالإنترنت لتحميل لوحة الصدارة."
+            "value" : "اتصل بالإنترنت لتحميل لوحة صدارة التقييمات."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stelle eine Internetverbindung her, um die Bestenliste zu laden."
+            "value" : "Stelle eine Internetverbindung her, um die Bewertungs-Bestenliste zu laden."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Connect to the internet to load the leaderboard."
+            "value" : "Connect to the internet to load the rating leaderboard."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Conéctate a internet para cargar la tabla de clasificación."
+            "value" : "Conéctate a internet para cargar la clasificación por valoración."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Conéctate a internet para cargar la tabla de posiciones."
+            "value" : "Conéctate a internet para cargar la tabla por valoración."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "लीडरबोर्ड लोड करने के लिए इंटरनेट से कनेक्ट करें।"
+            "value" : "रेटिंग लीडरबोर्ड लोड करने के लिए इंटरनेट से कनेक्ट करें।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "リーダーボードを読み込むにはインターネットに接続してください。"
+            "value" : "評価リーダーボードを読み込むにはインターネットに接続してください。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Подключитесь к интернету, чтобы загрузить таблицу лидеров."
+            "value" : "Подключитесь к интернету, чтобы загрузить таблицу лидеров по оценкам."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "连接互联网以加载排行榜。"
+            "value" : "连接互联网以加载评分排行榜。"
           }
         }
       }
     },
     "progress.screen.leaderboard.offline.title" : {
-      "comment" : "Progress leaderboard offline placeholder title",
+      "comment" : "Progress rating leaderboard offline placeholder title",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -4073,178 +4073,178 @@
       }
     },
     "progress.screen.leaderboard.participation_disabled.button" : {
-      "comment" : "Progress leaderboard participation-disabled placeholder button",
+      "comment" : "Progress rating leaderboard participation-disabled placeholder button",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "افتح إعدادات لوحة الصدارة"
+            "value" : "افتح إعدادات لوحة صدارة التقييمات"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bestenlisten-Einstellungen öffnen"
+            "value" : "Bewertungs-Bestenliste-Einstellungen öffnen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open leaderboard settings"
+            "value" : "Open rating leaderboard settings"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abrir ajustes de la clasificación"
+            "value" : "Abrir ajustes de valoración"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abrir configuración de la tabla"
+            "value" : "Abrir configuración de valoración"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "लीडरबोर्ड सेटिंग खोलें"
+            "value" : "रेटिंग लीडरबोर्ड सेटिंग खोलें"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "リーダーボード設定を開く"
+            "value" : "評価リーダーボード設定を開く"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Открыть настройки таблицы лидеров"
+            "value" : "Открыть настройки таблицы лидеров по оценкам"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开排行榜设置"
+            "value" : "打开评分排行榜设置"
           }
         }
       }
     },
     "progress.screen.leaderboard.participation_disabled.message" : {
-      "comment" : "Progress leaderboard participation-disabled placeholder message",
+      "comment" : "Progress rating leaderboard participation-disabled placeholder message",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تظهر التصنيفات فقط أثناء مشاركتك في لوحة الصدارة."
+            "value" : "تظهر التصنيفات فقط أثناء مشاركتك في لوحة صدارة التقييمات."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Platzierungen sind nur sichtbar, solange du an der Bestenliste teilnimmst."
+            "value" : "Platzierungen sind nur sichtbar, solange du an der Bewertungs-Bestenliste teilnimmst."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rankings are visible only while you participate in the leaderboard."
+            "value" : "Rankings are visible only while you participate in the rating leaderboard."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las posiciones solo son visibles mientras participas en la tabla de clasificación."
+            "value" : "Las posiciones solo son visibles mientras participas en la clasificación por valoración."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las posiciones solo son visibles mientras participas en la tabla de posiciones."
+            "value" : "Las posiciones solo son visibles mientras participas en la tabla por valoración."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "रैंकिंग केवल तभी दिखती है जब आप लीडरबोर्ड में भाग लेते हैं।"
+            "value" : "रैंकिंग केवल तभी दिखती है जब आप रेटिंग लीडरबोर्ड में भाग लेते हैं।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ランキングはリーダーボードに参加している間のみ表示されます。"
+            "value" : "ランキングは評価リーダーボードに参加している間のみ表示されます。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Рейтинг виден только пока вы участвуете в таблице лидеров."
+            "value" : "Рейтинг виден только пока вы участвуете в таблице лидеров по оценкам."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "只有参与排行榜时才能查看排名。"
+            "value" : "只有参与评分排行榜时才能查看排名。"
           }
         }
       }
     },
     "progress.screen.leaderboard.participation_disabled.title" : {
-      "comment" : "Progress leaderboard participation-disabled placeholder title",
+      "comment" : "Progress rating leaderboard participation-disabled placeholder title",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "المشاركة متوقفة"
+            "value" : "المشاركة في التقييمات متوقفة"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Teilnahme ist aus"
+            "value" : "Bewertungs-Teilnahme ist aus"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Participation is off"
+            "value" : "Rating participation is off"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La participación está desactivada"
+            "value" : "La participación por valoración está desactivada"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La participación está desactivada"
+            "value" : "La participación por valoración está desactivada"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "भागीदारी बंद है"
+            "value" : "रेटिंग भागीदारी बंद है"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "参加はオフです"
+            "value" : "評価への参加はオフです"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Участие отключено"
+            "value" : "Участие в рейтинге оценок отключено"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未参与排行榜"
+            "value" : "未参与评分排行"
           }
         }
       }
@@ -4368,60 +4368,60 @@
       }
     },
     "progress.screen.leaderboard.section_title" : {
-      "comment" : "Progress leaderboard section title",
+      "comment" : "Progress rating leaderboard section title",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "لوحة الصدارة"
+            "value" : "لوحة صدارة التقييمات"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bestenliste"
+            "value" : "Bewertungs-Bestenliste"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Leaderboard"
+            "value" : "Rating leaderboard"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tabla de clasificación"
+            "value" : "Clasificación por valoración"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tabla de posiciones"
+            "value" : "Tabla por valoración"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "लीडरबोर्ड"
+            "value" : "रेटिंग लीडरबोर्ड"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "リーダーボード"
+            "value" : "評価リーダーボード"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Таблица лидеров"
+            "value" : "Таблица лидеров по оценкам"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "排行榜"
+            "value" : "评分排行榜"
           }
         }
       }
@@ -4486,184 +4486,184 @@
       }
     },
     "progress.screen.leaderboard.sign_in.message" : {
-      "comment" : "Progress leaderboard sign-in placeholder message",
+      "comment" : "Progress rating leaderboard sign-in placeholder message",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "سجّل الدخول بالبريد الإلكتروني لترى ترتيب مراجعاتك مقارنة بالمتعلمين الآخرين."
+            "value" : "سجّل الدخول بالبريد الإلكتروني لترى ترتيب مراجعاتك في لوحة صدارة التقييمات."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Melde dich mit E-Mail an, um zu sehen, wie deine Wiederholungen im Vergleich zu anderen Lernenden abschneiden."
+            "value" : "Melde dich mit E-Mail an, um zu sehen, wie deine Wiederholungen in der Bewertungs-Bestenliste rangieren."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sign in with email to see how your reviews rank against other learners."
+            "value" : "Sign in with email to see how your reviews rank on the rating leaderboard."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inicia sesión con tu correo para ver cómo se posicionan tus repasos frente a otros estudiantes."
+            "value" : "Inicia sesión con tu correo para ver cómo se posicionan tus repasos en la clasificación por valoración."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inicia sesión con tu correo para ver cómo se posicionan tus repasos frente a otros estudiantes."
+            "value" : "Inicia sesión con tu correo para ver cómo se posicionan tus repasos en la tabla por valoración."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ईमेल से साइन इन करें और देखें कि अन्य शिक्षार्थियों की तुलना में आपकी समीक्षाएँ किस स्थान पर हैं।"
+            "value" : "ईमेल से साइन इन करें और देखें कि रेटिंग लीडरबोर्ड पर आपकी समीक्षाएँ किस स्थान पर हैं।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "メールでサインインすると、他の学習者と比べた復習のランキングを確認できます。"
+            "value" : "メールでサインインすると、評価リーダーボードでの復習ランキングを確認できます。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Войдите по электронной почте, чтобы узнать, как ваши повторения соотносятся с другими учениками."
+            "value" : "Войдите по электронной почте, чтобы увидеть место ваших повторений в таблице лидеров по оценкам."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用邮箱登录，查看你的复习与其他学习者的排名对比。"
+            "value" : "使用邮箱登录，查看你的复习在评分排行榜上的排名。"
           }
         }
       }
     },
     "progress.screen.leaderboard.sign_in.title" : {
-      "comment" : "Progress leaderboard sign-in placeholder title",
+      "comment" : "Progress rating leaderboard sign-in placeholder title",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "انضم إلى لوحة الصدارة"
+            "value" : "انضم إلى لوحة صدارة التقييمات"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tritt der Bestenliste bei"
+            "value" : "Tritt der Bewertungs-Bestenliste bei"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Join the leaderboard"
+            "value" : "Join the rating leaderboard"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Únete a la tabla de clasificación"
+            "value" : "Únete a la clasificación por valoración"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Únete a la tabla de posiciones"
+            "value" : "Únete a la tabla por valoración"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "लीडरबोर्ड से जुड़ें"
+            "value" : "रेटिंग लीडरबोर्ड से जुड़ें"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "リーダーボードに参加"
+            "value" : "評価リーダーボードに参加"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Присоединяйтесь к таблице лидеров"
+            "value" : "Присоединяйтесь к таблице лидеров по оценкам"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "加入排行榜"
+            "value" : "加入评分排行榜"
           }
         }
       }
     },
     "progress.screen.leaderboard.unavailable.message" : {
-      "comment" : "Progress leaderboard snapshot-unavailable placeholder message",
+      "comment" : "Progress rating leaderboard snapshot-unavailable placeholder message",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يجري تجهيز لوحة الصدارة. عد للتحقق قريبًا."
+            "value" : "يجري تجهيز لوحة صدارة التقييمات. عد للتحقق قريبًا."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Bestenliste wird vorbereitet. Schau bald wieder vorbei."
+            "value" : "Die Bewertungs-Bestenliste wird vorbereitet. Schau bald wieder vorbei."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The leaderboard is being prepared. Check back soon."
+            "value" : "The rating leaderboard is being prepared. Check back soon."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La tabla de clasificación se está preparando. Vuelve pronto."
+            "value" : "La clasificación por valoración se está preparando. Vuelve pronto."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La tabla de posiciones se está preparando. Vuelve pronto."
+            "value" : "La tabla por valoración se está preparando. Vuelve pronto."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "लीडरबोर्ड तैयार किया जा रहा है। थोड़ी देर में फिर देखें।"
+            "value" : "रेटिंग लीडरबोर्ड तैयार किया जा रहा है। थोड़ी देर में फिर देखें।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "リーダーボードを準備しています。しばらくしてからご確認ください。"
+            "value" : "評価リーダーボードを準備しています。しばらくしてからご確認ください。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Таблица лидеров готовится. Загляните позже."
+            "value" : "Таблица лидеров по оценкам готовится. Загляните позже."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "排行榜正在准备中，请稍后再来查看。"
+            "value" : "评分排行榜正在准备中，请稍后再来查看。"
           }
         }
       }
     },
     "progress.screen.leaderboard.unavailable.title" : {
-      "comment" : "Progress leaderboard snapshot-unavailable placeholder title",
+      "comment" : "Progress rating leaderboard snapshot-unavailable placeholder title",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -6669,60 +6669,60 @@
       }
     },
     "progress.error.leaderboard_refresh_failed" : {
-      "comment" : "Generic progress card message when leaderboard refresh fails",
+      "comment" : "Generic progress card message when rating leaderboard refresh fails",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تعذر تحديث لوحة الصدارة. اسحب للمحاولة مرة أخرى."
+            "value" : "تعذر تحديث لوحة صدارة التقييمات. اسحب للمحاولة مرة أخرى."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bestenliste konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
+            "value" : "Bewertungs-Bestenliste konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Leaderboard couldn't refresh. Pull to try again."
+            "value" : "Rating leaderboard couldn't refresh. Pull to try again."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No se pudo actualizar la tabla de clasificación. Desliza para intentarlo de nuevo."
+            "value" : "No se pudo actualizar la clasificación por valoración. Desliza para intentarlo de nuevo."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No se pudo actualizar la tabla de posiciones. Desliza para intentarlo de nuevo."
+            "value" : "No se pudo actualizar la tabla por valoración. Desliza para intentarlo de nuevo."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "लीडरबोर्ड रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
+            "value" : "रेटिंग लीडरबोर्ड रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "リーダーボードを更新できませんでした。もう一度試すには下に引いてください。"
+            "value" : "評価リーダーボードを更新できませんでした。もう一度試すには下に引いてください。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Не удалось обновить таблицу лидеров. Потяните, чтобы повторить попытку."
+            "value" : "Не удалось обновить таблицу лидеров по оценкам. Потяните, чтобы повторить попытку."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法刷新排行榜。下拉重试。"
+            "value" : "无法刷新评分排行榜。下拉重试。"
           }
         }
       }
@@ -7431,6 +7431,596 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已冻结的一天"
+          }
+        }
+      }
+    },
+    "progress.screen.streak_leaderboard.day_count.one" : {
+      "comment" : "Progress streak leaderboard singular day count",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يوم واحد"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 Tag"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 day"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 día"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 día"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 दिन"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1日"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 день"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1天"
+          }
+        }
+      }
+    },
+    "progress.screen.streak_leaderboard.day_count.other" : {
+      "comment" : "Progress streak leaderboard plural day count",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld يومًا"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Tage"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld days"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld días"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld días"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld दिन"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld日"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld дн."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld天"
+          }
+        }
+      }
+    },
+    "progress.screen.streak_leaderboard.info.accessibility_label" : {
+      "comment" : "Accessibility label for the streak leaderboard info button",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حول لوحة صدارة السلسلة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Über die Serien-Bestenliste"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About the streak leaderboard"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acerca de la clasificación de rachas"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acerca de la tabla de rachas"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "स्ट्रीक लीडरबोर्ड के बारे में"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連続記録リーダーボードについて"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "О таблице лидеров по сериям"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关于连续记录排行榜"
+          }
+        }
+      }
+    },
+    "progress.screen.streak_leaderboard.info.message" : {
+      "comment" : "Progress streak leaderboard info explanation of ranking metric",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تحدد أيام سلسلتك الحالية ترتيبك."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine aktuellen Serientage bestimmen deinen Rang."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current streak days determine your rank."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus días de racha actuales determinan tu posición."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus días de racha actuales determinan tu posición."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपकी मौजूदा स्ट्रीक के दिन आपकी रैंक तय करते हैं।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在の連続記録日数でランクが決まります。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваше место определяется текущим числом дней серии."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前连续记录天数决定你的排名。"
+          }
+        }
+      }
+    },
+    "progress.screen.streak_leaderboard.load_failed.message" : {
+      "comment" : "Progress streak leaderboard placeholder message after a failed load",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versuche es später erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again later."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inténtalo de nuevo más tarde."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inténtalo de nuevo más tarde."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बाद में फिर से कोशिश करें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "後でもう一度お試しください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Попробуйте позже."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请稍后重试。"
+          }
+        }
+      }
+    },
+    "progress.screen.streak_leaderboard.load_failed.title" : {
+      "comment" : "Progress streak leaderboard placeholder title after a failed load",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذّر تحميل لوحة صدارة السلسلة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serien-Bestenliste konnte nicht geladen werden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load the streak leaderboard"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo cargar la clasificación de rachas"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo cargar la tabla de rachas"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "स्ट्रीक लीडरबोर्ड लोड नहीं हो सका"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連続記録リーダーボードを読み込めませんでした"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось загрузить таблицу лидеров по сериям"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载连续记录排行榜"
+          }
+        }
+      }
+    },
+    "progress.screen.streak_leaderboard.offline.message" : {
+      "comment" : "Progress streak leaderboard offline placeholder message",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اتصل بالإنترنت لتحميل لوحة صدارة السلسلة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stelle eine Internetverbindung her, um die Serien-Bestenliste zu laden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect to the internet to load the streak leaderboard."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conéctate a internet para cargar la clasificación de rachas."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conéctate a internet para cargar la tabla de rachas."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "स्ट्रीक लीडरबोर्ड लोड करने के लिए इंटरनेट से कनेक्ट करें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連続記録リーダーボードを読み込むにはインターネットに接続してください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подключитесь к интернету, чтобы загрузить таблицу лидеров по сериям."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接互联网以加载连续记录排行榜。"
+          }
+        }
+      }
+    },
+    "progress.screen.streak_leaderboard.offline.title" : {
+      "comment" : "Progress streak leaderboard offline placeholder title",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أنت غير متصل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du bist offline"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're offline"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin conexión"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin conexión"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आप ऑफ़लाइन हैं"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフラインです"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вы офлайн"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "您处于离线状态"
+          }
+        }
+      }
+    },
+    "progress.screen.streak_leaderboard.row.accessibility_value" : {
+      "comment" : "Accessibility value for a streak leaderboard row with rank and streak day count",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المرتبة %1$lld، %2$@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rang %1$lld, %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rank %1$lld, %2$@"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puesto %1$lld, %2$@"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puesto %1$lld, %2$@"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रैंक %1$lld, %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ランク%1$lld、%2$@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Место %1$lld, %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第%1$lld名，%2$@"
+          }
+        }
+      }
+    },
+    "progress.screen.streak_leaderboard.section_title" : {
+      "comment" : "Progress streak leaderboard section title",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لوحة صدارة السلسلة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serien-Bestenliste"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak leaderboard"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clasificación de rachas"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tabla de rachas"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "स्ट्रीक लीडरबोर्ड"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連続記録リーダーボード"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Таблица лидеров по сериям"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连续记录排行榜"
           }
         }
       }
