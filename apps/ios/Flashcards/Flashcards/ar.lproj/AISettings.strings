@@ -389,6 +389,7 @@
 "settings.account.cloudSignIn.challengePrompt.active" = "أدخل الرمز المكوّن من 8 أرقام الذي وصلك عبر البريد الإلكتروني. إذا لم تجده، فتحقق من مجلد الرسائل غير المرغوب فيها.";
 "settings.account.cloudSignIn.challengePrompt.consumed" = "لقد تم استخدام هذا الرمز بالفعل. اطلب واحدة جديدة للمتابعة.";
 "settings.account.cloudSignIn.challengePrompt.expired" = "لقد انتهت صلاحية هذا الرمز. اطلب واحدة جديدة للمتابعة.";
+"settings.account.cloudSignIn.challengePrompt.tooManyAttempts" = "حدثت محاولات كثيرة جدًا. اطلب رمزًا جديدًا للمتابعة.";
 "settings.account.cloudSignIn.workspaceDescription" = "اختر خيارًا للمتابعة: اربط هذا الجهاز بمساحة عمل سحابية موجودة أو أنشئ مساحة جديدة.";
 "settings.account.cloudSignIn.failure.initialSyncFailed" = "تم تسجيل الدخول، ولكن فشلت المزامنة الأولية.";
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "لقد قمت بتسجيل الدخول، ولكن فشل تكوين السحابة.";

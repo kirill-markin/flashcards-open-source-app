@@ -389,6 +389,7 @@
 "settings.account.cloudSignIn.challengePrompt.active" = "メールで受け取った 8 桁のコードを入力してください。見つからない場合は、迷惑メールフォルダを確認してください。";
 "settings.account.cloudSignIn.challengePrompt.consumed" = "このコードはすでに使用されています。続行するには、新しいリクエストをリクエストしてください。";
 "settings.account.cloudSignIn.challengePrompt.expired" = "このコードの有効期限は切れています。続行するには、新しいリクエストをリクエストしてください。";
+"settings.account.cloudSignIn.challengePrompt.tooManyAttempts" = "試行回数が多すぎます。続行するには新しいコードをリクエストしてください。";
 "settings.account.cloudSignIn.workspaceDescription" = "オプションを選択して続行します: このデバイスを既存のクラウド ワークスペースにリンクするか、新しいクラウド ワークスペースを作成します。";
 "settings.account.cloudSignIn.failure.initialSyncFailed" = "ログインしましたが、初期同期に失敗しました。";
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "ログインしましたが、クラウド構成に失敗しました。";

@@ -155,25 +155,113 @@ func makeGuestLocalRecoveryPostAuthFailurePresentation(
     )
 }
 
-struct CloudPostAuthFailureState: Identifiable, Hashable {
+func makeCloudPostAuthVisibleFailureMessage(error: Error) -> String {
+    if let safeFailure = safeCloudPostAuthDomainFailure(error: error) {
+        return safeFailure.message
+    }
+
+    return aiSettingsLocalized(
+        "settings.account.cloudSignIn.failureDescription",
+        "Your sign-in succeeded, but the cloud workspace setup or initial sync did not finish."
+    )
+}
+
+func isSafeCloudPostAuthDomainFailure(error: Error) -> Bool {
+    safeCloudPostAuthDomainFailure(error: error) != nil
+}
+
+private enum SafeCloudPostAuthDomainFailure {
+    case bootstrapEligibility(String)
+    case credentialRecovery(String)
+
+    var message: String {
+        switch self {
+        case .bootstrapEligibility(let message),
+             .credentialRecovery(let message):
+            return message
+        }
+    }
+}
+
+private func safeCloudPostAuthDomainFailure(error: Error) -> SafeCloudPostAuthDomainFailure? {
+    if let bootstrapError = error as? CloudBootstrapEligibilityError {
+        switch bootstrapError {
+        case .remoteWorkspaceIsNotEmpty:
+            return .bootstrapEligibility(bootstrapError.visiblePostAuthMessage)
+        }
+    }
+
+    if let credentialRecoveryMessage = safeCloudCredentialRecoveryPostAuthMessage(error: error) {
+        return .credentialRecovery(credentialRecoveryMessage)
+    }
+
+    return nil
+}
+
+private func safeCloudCredentialRecoveryPostAuthMessage(error: Error) -> String? {
+    guard let localStoreError = error as? LocalStoreError else {
+        return nil
+    }
+    guard case .validation(let message) = localStoreError else {
+        return nil
+    }
+
+    if safeCloudCredentialRecoveryPostAuthMessages().contains(message) {
+        return message
+    }
+    if isLocalizedCloudCredentialRecoveryUpgradeWorkspaceMessage(message) {
+        return message
+    }
+
+    return nil
+}
+
+private func safeCloudCredentialRecoveryPostAuthMessages() -> Set<String> {
+    [
+        localizedCloudCredentialRecoveryBlockedMessage(reason: .linkedCredentialsMissing),
+        localizedCloudCredentialRecoveryBlockedMessage(reason: .guestSessionMissing),
+        localizedCloudCredentialRecoveryBlockedMessage(reason: .invalidStoredState),
+        localizedCloudCredentialRecoveryWrongLinkedAccountMessage(),
+        localizedCloudCredentialRecoveryWrongLinkedWorkspaceMessage(),
+        localizedCloudCredentialRecoveryInterruptedUpgradeAccountMessage()
+    ]
+}
+
+private func isLocalizedCloudCredentialRecoveryUpgradeWorkspaceMessage(_ message: String) -> Bool {
+    let sentinel = "__FLASHCARDS_WORKSPACE_NAME__"
+    let localizedTemplate = localizedCloudCredentialRecoveryUpgradeWorkspaceMessage(workspaceName: sentinel)
+    let components = localizedTemplate.components(separatedBy: sentinel)
+
+    guard components.count == 2 else {
+        return message == localizedTemplate
+    }
+
+    let prefix = components[0]
+    let suffix = components[1]
+    return message.hasPrefix(prefix)
+        && message.hasSuffix(suffix)
+        && message.count >= prefix.count + suffix.count
+}
+
+struct CloudPostAuthFailureState: Identifiable {
     let id: String
     let title: String
     let message: String
-    let technicalDetails: String?
+    let technicalError: TechnicalErrorAction?
     let retryAction: CloudPostAuthRetryAction
     let kind: CloudPostAuthFailureKind
 
     init(
         title: String,
         message: String,
-        technicalDetails: String?,
+        technicalError: TechnicalErrorAction?,
         retryAction: CloudPostAuthRetryAction,
         kind: CloudPostAuthFailureKind
     ) {
         self.id = UUID().uuidString
         self.title = title
         self.message = message
-        self.technicalDetails = technicalDetails
+        self.technicalError = technicalError
         self.retryAction = retryAction
         self.kind = kind
     }

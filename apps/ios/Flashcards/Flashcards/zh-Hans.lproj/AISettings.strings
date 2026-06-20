@@ -389,6 +389,7 @@
 "settings.account.cloudSignIn.challengePrompt.active" = "输入您通过电子邮件收到的 8 位代码。如果没有看到，请检查垃圾邮件文件夹。";
 "settings.account.cloudSignIn.challengePrompt.consumed" = "该代码已被使用。请求新的继续。";
 "settings.account.cloudSignIn.challengePrompt.expired" = "该代码已过期。请求新的继续。";
+"settings.account.cloudSignIn.challengePrompt.tooManyAttempts" = "尝试次数过多。请求新的验证码继续。";
 "settings.account.cloudSignIn.workspaceDescription" = "选择一个选项继续：将此设备链接到现有云工作区或创建一个新的云工作区。";
 "settings.account.cloudSignIn.failure.initialSyncFailed" = "已登录，但初始同步失败。";
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "我登录了，但是云端配置失败。";

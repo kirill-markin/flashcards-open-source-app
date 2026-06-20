@@ -389,6 +389,7 @@
 "settings.account.cloudSignIn.challengePrompt.active" = "Введите 8-значный код, который вы получили по электронной почте. Если его нет, проверьте папку «Спам».";
 "settings.account.cloudSignIn.challengePrompt.consumed" = "Этот код уже использовался. Чтобы продолжить, запросите новый.";
 "settings.account.cloudSignIn.challengePrompt.expired" = "Срок действия этого кода истек. Чтобы продолжить, запросите новый.";
+"settings.account.cloudSignIn.challengePrompt.tooManyAttempts" = "Слишком много попыток. Чтобы продолжить, запросите новый код.";
 "settings.account.cloudSignIn.workspaceDescription" = "Выберите вариант продолжения: свяжите это устройство с существующим облачным рабочим пространством или создайте новое.";
 "settings.account.cloudSignIn.failure.initialSyncFailed" = "Выполнен вход, но первоначальная синхронизация не удалась.";
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Я вошел в систему, но конфигурация облака не удалась.";

@@ -389,6 +389,7 @@
 "settings.account.cloudSignIn.challengePrompt.active" = "Introduce el codigo de 8 digitos que recibiste por correo. Si no lo ves, revisa la carpeta de spam.";
 "settings.account.cloudSignIn.challengePrompt.consumed" = "Este codigo ya se ha usado. Solicita uno nuevo para continuar.";
 "settings.account.cloudSignIn.challengePrompt.expired" = "Este codigo ha caducado. Solicita uno nuevo para continuar.";
+"settings.account.cloudSignIn.challengePrompt.tooManyAttempts" = "Demasiados intentos. Solicita un codigo nuevo para continuar.";
 "settings.account.cloudSignIn.workspaceDescription" = "Elige una opcion para continuar: vincular este dispositivo a un espacio de trabajo en la nube existente o crear uno nuevo.";
 "settings.account.cloudSignIn.failure.initialSyncFailed" = "Se inicio sesion, pero fallo la sincronizacion inicial.";
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Se inicio sesion, pero fallo la configuracion de la nube.";
