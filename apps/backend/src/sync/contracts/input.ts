@@ -5,6 +5,7 @@ import type {
   ValidationIssueSummary,
 } from "../../shared/errors";
 import { normalizeIsoTimestamp } from "../conflicts/lww";
+import { validateIanaTimeZone } from "../../progress/timeZone";
 
 type Platform = "ios" | "android" | "web";
 
@@ -31,6 +32,20 @@ const commonDaysByMonth: ReadonlyArray<number> = [
   30,
   31,
 ];
+
+function validateReviewedTimeZone(value: string, refinementContext: z.core.$RefinementCtx): void {
+  const validation = validateIanaTimeZone(value);
+  if (validation.ok) {
+    return;
+  }
+
+  refinementContext.addIssue({
+    code: "custom",
+    message: validation.issue === "required"
+      ? "reviewedTimeZone is required when provided"
+      : "reviewedTimeZone must be a valid IANA timezone",
+  });
+}
 
 type IsoDateParts = Readonly<{
   year: number;
@@ -188,6 +203,7 @@ const reviewEventPushPayloadSchema = z.object({
   clientEventId: z.string().min(1),
   rating: reviewRatingSchema,
   reviewedAtClient: z.string().datetime(),
+  reviewedTimeZone: z.string().superRefine(validateReviewedTimeZone).optional(),
 });
 
 const reviewEventImportPayloadSchema = reviewEventPushPayloadSchema.extend({

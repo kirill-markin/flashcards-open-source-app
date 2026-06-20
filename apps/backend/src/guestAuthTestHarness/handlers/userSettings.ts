@@ -46,6 +46,18 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
     return createQueryResult<Row>(rows);
   }
 
+  if (text === "SELECT progress_time_zone FROM org.user_settings WHERE user_id = $1 LIMIT 1") {
+    const userId = params[0];
+    if (typeof userId !== "string") {
+      return createQueryResult<Row>([]);
+    }
+
+    scope.requireCurrentUserScope(userId);
+    const row = state.userSettings.get(userId) ?? null;
+    const rows = row === null ? [] : [{ progress_time_zone: row.progress_time_zone } as unknown as Row];
+    return createQueryResult<Row>(rows);
+  }
+
   if (text === "UPDATE org.user_settings SET email = $1 WHERE user_id = $2") {
     const email = params[0] === null ? null : String(params[0]);
     const userId = String(params[1]);

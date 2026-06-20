@@ -62,6 +62,7 @@ export function mapReviewHistoryRows(rows: ReadonlyArray<ReviewHistoryRow>): Rea
     rating: row.rating,
     reviewedAtClient: toIsoString(row.reviewed_at_client),
     reviewedAtServer: toIsoString(row.reviewed_at_server),
+    reviewedTimeZone: row.reviewed_time_zone ?? undefined,
   }));
 }
 
@@ -90,6 +91,7 @@ export async function processSyncReviewHistoryImportInExecutor(
           rating: reviewEvent.rating,
           reviewedAtClient: reviewEvent.reviewedAtClient,
           reviewedAtServer: reviewEvent.reviewedAtServer,
+          reviewedTimeZone: reviewEvent.reviewedTimeZone,
         },
         reviewEvent.reviewEventId,
         resolveReviewedBy,
@@ -132,7 +134,7 @@ export async function processSyncReviewHistoryPull(
 
     const result = await executor.query<ReviewHistoryRow>(
       [
-        "SELECT review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server, review_sequence",
+        "SELECT review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server, reviewed_time_zone, review_sequence",
         "FROM content.review_events",
         "WHERE workspace_id = $1 AND review_sequence > $2",
         "ORDER BY review_sequence ASC",

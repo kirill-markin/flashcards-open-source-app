@@ -97,6 +97,7 @@ export function mapReviewHistoryItem(row: ReviewHistoryRow): ReviewHistoryItem {
     rating: row.rating,
     reviewedAtClient: toIsoString(row.reviewed_at_client),
     reviewedAtServer: toIsoString(row.reviewed_at_server),
+    reviewedTimeZone: row.reviewed_time_zone ?? undefined,
   };
 }
 

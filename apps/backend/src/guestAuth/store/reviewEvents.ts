@@ -11,6 +11,7 @@ type ReviewEventRow = Readonly<{
   rating: number;
   reviewed_at_client: Date | string;
   reviewed_at_server: Date | string;
+  reviewed_time_zone: string | null;
 }>;
 
 export type GuestReviewEventRecord = Readonly<{
@@ -21,6 +22,7 @@ export type GuestReviewEventRecord = Readonly<{
   rating: number;
   reviewedAtClient: Date | string;
   reviewedAtServer: Date | string;
+  reviewedTimeZone: string | null;
 }>;
 
 function mapGuestReviewEventRecord(row: ReviewEventRow): GuestReviewEventRecord {
@@ -32,6 +34,7 @@ function mapGuestReviewEventRecord(row: ReviewEventRow): GuestReviewEventRecord 
     rating: row.rating,
     reviewedAtClient: row.reviewed_at_client,
     reviewedAtServer: row.reviewed_at_server,
+    reviewedTimeZone: row.reviewed_time_zone,
   };
 }
 
@@ -47,7 +50,7 @@ export async function loadGuestReviewEventsInExecutor(
 
   const result = await executor.query<ReviewEventRow>(
     [
-      "SELECT review_event_id, card_id, replica_id, client_event_id, rating, reviewed_at_client, reviewed_at_server",
+      "SELECT review_event_id, card_id, replica_id, client_event_id, rating, reviewed_at_client, reviewed_at_server, reviewed_time_zone",
       "FROM content.review_events",
       "WHERE workspace_id = $1",
       "ORDER BY review_sequence ASC, review_event_id ASC",

@@ -10,6 +10,7 @@ export type UserSettingsState = Readonly<{
   user_id: string;
   workspace_id: string | null;
   email: string | null;
+  progress_time_zone: string | null;
 }>;
 
 export type WorkspaceState = Readonly<{
@@ -94,6 +95,9 @@ export type ReviewEventState = Readonly<{
   rating: number;
   reviewed_at_client: string;
   reviewed_at_server: string;
+  reviewed_time_zone?: string | null;
+  reviewed_local_date?: string | null;
+  reviewed_time_zone_source?: string | null;
   // Immutable authorship. Optional because seeded historical fixtures may predate it;
   // new harness inserts populate it from the request scope, like the real backend.
   reviewed_by_user_id?: string | null;

@@ -6,6 +6,7 @@ import {
   type CurrentUserPublicProfileResolver,
 } from "../community/reviewActivityFacts";
 import { HttpError } from "../shared/errors";
+import { storeActiveReviewDayForReviewEventInExecutor } from "../progress/activeReviewDays";
 import {
   computeReviewSchedule,
   type ReviewableCardScheduleState,
@@ -35,6 +36,10 @@ import type {
   ReviewableCardRow,
   SubmitReviewInput,
 } from "./types";
+
+type ProgressTimeZoneRow = Readonly<{
+  progress_time_zone: string | null;
+}>;
 
 // Keep in sync with apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::makeReviewableCardScheduleState(card:).
 function toReviewableCardScheduleState(
@@ -79,6 +84,23 @@ async function loadReviewableCardForUpdate(
   return validateOrResetReviewableCardRow(executor, workspaceId, existingCard);
 }
 
+async function loadProgressTimeZoneForUserInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+): Promise<string | null> {
+  const result = await executor.query<ProgressTimeZoneRow>(
+    [
+      "SELECT progress_time_zone",
+      "FROM org.user_settings",
+      "WHERE user_id = $1",
+      "LIMIT 1",
+    ].join(" "),
+    [userId],
+  );
+
+  return result.rows[0]?.progress_time_zone ?? null;
+}
+
 export async function appendReviewEventSnapshotInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
@@ -92,7 +114,7 @@ export async function appendReviewEventSnapshotInExecutor(
       "(review_event_id, workspace_id, card_id, replica_id, client_event_id, rating, reviewed_at_client, reviewed_at_server, reviewed_by_user_id)",
       "VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, now()), security.current_user_id())",
       "ON CONFLICT DO NOTHING",
-      "RETURNING review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
+      "RETURNING review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server, reviewed_time_zone",
     ].join(" "),
     [
       reviewEvent.reviewEventId,
@@ -115,6 +137,17 @@ export async function appendReviewEventSnapshotInExecutor(
     // history import, guest merge) records the fact for the right user. The resolver
     // is invoked only here, on a real insert, and memoizes across a batch.
     const reviewedBy = await resolveReviewedBy();
+    const reviewedTimeZone = reviewEvent.reviewedTimeZone ?? null;
+    const fallbackProgressTimeZone = reviewedTimeZone === null
+      ? await loadProgressTimeZoneForUserInExecutor(executor, reviewedBy.userId)
+      : null;
+    const activeDayWrite = await storeActiveReviewDayForReviewEventInExecutor(executor, {
+      reviewEventId: insertedReviewEvent.reviewEventId,
+      reviewedByUserId: reviewedBy.userId,
+      reviewedAtClient: insertedReviewEvent.reviewedAtClient,
+      reviewedTimeZone,
+      fallbackProgressTimeZone,
+    });
     await recordQualifiedReviewActivityFactInExecutor(executor, reviewedBy, {
       reviewEventId: insertedReviewEvent.reviewEventId,
       rating: insertedReviewEvent.rating,
@@ -123,7 +156,10 @@ export async function appendReviewEventSnapshotInExecutor(
     });
 
     return {
-      reviewEvent: insertedReviewEvent,
+      reviewEvent: {
+        ...insertedReviewEvent,
+        reviewedTimeZone: activeDayWrite.reviewedTimeZone ?? undefined,
+      },
       applied: true,
       changeId: null,
     };
@@ -147,7 +183,7 @@ export async function appendReviewEventSnapshotInExecutor(
 
   const existingResult = await executor.query<ReviewHistoryRow>(
     [
-      "SELECT review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
+      "SELECT review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server, reviewed_time_zone",
       "FROM content.review_events",
       "WHERE workspace_id = $1 AND (review_event_id = $2 OR (replica_id = $3 AND client_event_id = $4))",
       "ORDER BY reviewed_at_server DESC",
@@ -207,6 +243,7 @@ export async function submitReview(
         rating: input.rating,
         reviewedAtClient: reviewedAtClient.toISOString(),
         reviewedAtServer: new Date().toISOString(),
+        reviewedTimeZone: input.reviewedTimeZone,
       },
       normalizedMetadata.lastOperationId,
       createCurrentUserPublicProfileResolver(executor),

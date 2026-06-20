@@ -54,5 +54,6 @@ export function createReviewEventQueryRow(reviewEvent: ReviewEventState): Readon
     rating: reviewEvent.rating,
     reviewed_at_client: reviewEvent.reviewed_at_client,
     reviewed_at_server: reviewEvent.reviewed_at_server,
+    reviewed_time_zone: reviewEvent.reviewed_time_zone ?? null,
   };
 }

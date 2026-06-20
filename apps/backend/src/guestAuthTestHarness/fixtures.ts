@@ -61,6 +61,7 @@ export function createUserSettingsState(userId: string, workspaceId: string | nu
     user_id: userId,
     workspace_id: workspaceId,
     email,
+    progress_time_zone: null,
   };
 }
 
