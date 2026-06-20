@@ -48,9 +48,9 @@ func localizedProgressReviewScheduleRenderErrorMessage() -> String {
 func localizedProgressLeaderboardRefreshErrorMessage() -> String {
     String(
         localized: "progress.error.leaderboard_refresh_failed",
-        defaultValue: "Leaderboard couldn't refresh. Pull to try again.",
+        defaultValue: "Rating leaderboard couldn't refresh. Pull to try again.",
         table: progressStringsTableName,
-        comment: "Generic progress card message when leaderboard refresh fails"
+        comment: "Generic progress card message when rating leaderboard refresh fails"
     )
 }
 

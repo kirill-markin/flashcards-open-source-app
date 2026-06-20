@@ -28,6 +28,8 @@ enum UITestIdentifier {
     static let progressReviewScheduleSection: String = "progress.reviewScheduleSection"
     static let progressLeaderboardSection: String = "progress.leaderboardSection"
     static let progressLeaderboardInviteFriendButton: String = "progress.leaderboard.inviteFriendButton"
+    static let progressStreakLeaderboardSection: String = "progress.streakLeaderboardSection"
+    static let progressStreakLeaderboardRowPrefix: String = "progress.streakLeaderboard.row."
     static let progressFriendInviteSheet: String = "progress.friendInvite.sheet"
     static let progressFriendInviteDisplayNameField: String = "progress.friendInvite.displayNameField"
     static let progressFriendInviteCreateButton: String = "progress.friendInvite.createButton"

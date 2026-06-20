@@ -87,9 +87,9 @@ struct ProgressLeaderboardSection: View {
             .accessibilityLabel(
                 String(
                     localized: "progress.screen.leaderboard.info.accessibility_label",
-                    defaultValue: "About the leaderboard",
+                    defaultValue: "About the rating leaderboard",
                     table: progressStringsTableName,
-                    comment: "Accessibility label for the leaderboard info button"
+                    comment: "Accessibility label for the rating leaderboard info button"
                 )
             )
         }
@@ -193,9 +193,9 @@ struct ProgressLeaderboardSection: View {
             Label(
                 String(
                     localized: "progress.screen.leaderboard.sign_in.title",
-                    defaultValue: "Join the leaderboard",
+                    defaultValue: "Join the rating leaderboard",
                     table: progressStringsTableName,
-                    comment: "Progress leaderboard sign-in placeholder title"
+                    comment: "Progress rating leaderboard sign-in placeholder title"
                 ),
                 systemImage: "person.crop.circle.badge.plus"
             )
@@ -203,9 +203,9 @@ struct ProgressLeaderboardSection: View {
             Text(
                 String(
                     localized: "progress.screen.leaderboard.sign_in.message",
-                    defaultValue: "Sign in with email to see how your reviews rank against other learners.",
+                    defaultValue: "Sign in with email to see how your reviews rank on the rating leaderboard.",
                     table: progressStringsTableName,
-                    comment: "Progress leaderboard sign-in placeholder message"
+                    comment: "Progress rating leaderboard sign-in placeholder message"
                 )
             )
         } actions: {
@@ -228,9 +228,9 @@ struct ProgressLeaderboardSection: View {
             Label(
                 String(
                     localized: "progress.screen.leaderboard.participation_disabled.title",
-                    defaultValue: "Participation is off",
+                    defaultValue: "Rating participation is off",
                     table: progressStringsTableName,
-                    comment: "Progress leaderboard participation-disabled placeholder title"
+                    comment: "Progress rating leaderboard participation-disabled placeholder title"
                 ),
                 systemImage: "eye.slash"
             )
@@ -238,18 +238,18 @@ struct ProgressLeaderboardSection: View {
             Text(
                 String(
                     localized: "progress.screen.leaderboard.participation_disabled.message",
-                    defaultValue: "Rankings are visible only while you participate in the leaderboard.",
+                    defaultValue: "Rankings are visible only while you participate in the rating leaderboard.",
                     table: progressStringsTableName,
-                    comment: "Progress leaderboard participation-disabled placeholder message"
+                    comment: "Progress rating leaderboard participation-disabled placeholder message"
                 )
             )
         } actions: {
             Button(
                 String(
                     localized: "progress.screen.leaderboard.participation_disabled.button",
-                    defaultValue: "Open leaderboard settings",
+                    defaultValue: "Open rating leaderboard settings",
                     table: progressStringsTableName,
-                    comment: "Progress leaderboard participation-disabled placeholder button"
+                    comment: "Progress rating leaderboard participation-disabled placeholder button"
                 )
             ) {
                 self.navigation.openSettings(destination: .leaderboardParticipation)
@@ -265,7 +265,7 @@ struct ProgressLeaderboardSection: View {
                     localized: "progress.screen.leaderboard.unavailable.title",
                     defaultValue: "Not ready yet",
                     table: progressStringsTableName,
-                    comment: "Progress leaderboard snapshot-unavailable placeholder title"
+                    comment: "Progress rating leaderboard snapshot-unavailable placeholder title"
                 ),
                 systemImage: "hourglass"
             )
@@ -273,9 +273,9 @@ struct ProgressLeaderboardSection: View {
             Text(
                 String(
                     localized: "progress.screen.leaderboard.unavailable.message",
-                    defaultValue: "The leaderboard is being prepared. Check back soon.",
+                    defaultValue: "The rating leaderboard is being prepared. Check back soon.",
                     table: progressStringsTableName,
-                    comment: "Progress leaderboard snapshot-unavailable placeholder message"
+                    comment: "Progress rating leaderboard snapshot-unavailable placeholder message"
                 )
             )
         }
@@ -298,9 +298,9 @@ struct ProgressLeaderboardSection: View {
                 Label(
                     String(
                         localized: "progress.screen.leaderboard.load_failed.title",
-                        defaultValue: "Couldn't load the leaderboard",
+                        defaultValue: "Couldn't load the rating leaderboard",
                         table: progressStringsTableName,
-                        comment: "Progress leaderboard placeholder title after a failed load"
+                        comment: "Progress rating leaderboard placeholder title after a failed load"
                     ),
                     systemImage: "exclamationmark.triangle"
                 )
@@ -310,7 +310,7 @@ struct ProgressLeaderboardSection: View {
                         localized: "progress.screen.leaderboard.load_failed.message",
                         defaultValue: "Try again later.",
                         table: progressStringsTableName,
-                        comment: "Progress leaderboard placeholder message after a failed load"
+                        comment: "Progress rating leaderboard placeholder message after a failed load"
                     )
                 )
             }
@@ -321,7 +321,7 @@ struct ProgressLeaderboardSection: View {
                         localized: "progress.screen.leaderboard.offline.title",
                         defaultValue: "You're offline",
                         table: progressStringsTableName,
-                        comment: "Progress leaderboard offline placeholder title"
+                        comment: "Progress rating leaderboard offline placeholder title"
                     ),
                     systemImage: "wifi.slash"
                 )
@@ -329,9 +329,9 @@ struct ProgressLeaderboardSection: View {
                 Text(
                     String(
                         localized: "progress.screen.leaderboard.offline.message",
-                        defaultValue: "Connect to the internet to load the leaderboard.",
+                        defaultValue: "Connect to the internet to load the rating leaderboard.",
                         table: progressStringsTableName,
-                        comment: "Progress leaderboard offline placeholder message"
+                        comment: "Progress rating leaderboard offline placeholder message"
                     )
                 )
             }
