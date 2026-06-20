@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 private const val aiChatPreferencesName: String = "flashcards-ai-chat-preferences"
 private const val aiChatConsentKey: String = "external-provider-consent"
+private const val aiChatComposerSuggestionsEnabledKey: String = "composer-suggestions-enabled"
 
 class AiChatPreferencesStore(
     context: Context
@@ -15,6 +16,7 @@ class AiChatPreferencesStore(
     private val preferences =
         context.getSharedPreferences(aiChatPreferencesName, Context.MODE_PRIVATE)
     private val consentState = MutableStateFlow(loadConsent())
+    private val composerSuggestionsEnabledState = MutableStateFlow(loadComposerSuggestionsEnabled())
 
     fun observeConsent(): StateFlow<Boolean> {
         return consentState.asStateFlow()
@@ -38,7 +40,26 @@ class AiChatPreferencesStore(
         consentState.value = false
     }
 
+    fun observeComposerSuggestionsEnabled(): StateFlow<Boolean> {
+        return composerSuggestionsEnabledState.asStateFlow()
+    }
+
+    fun areComposerSuggestionsEnabled(): Boolean {
+        return composerSuggestionsEnabledState.value
+    }
+
+    fun updateComposerSuggestionsEnabled(isEnabled: Boolean) {
+        preferences.edit(commit = true) {
+            putBoolean(aiChatComposerSuggestionsEnabledKey, isEnabled)
+        }
+        composerSuggestionsEnabledState.value = isEnabled
+    }
+
     private fun loadConsent(): Boolean {
         return preferences.getBoolean(aiChatConsentKey, false)
+    }
+
+    private fun loadComposerSuggestionsEnabled(): Boolean {
+        return preferences.getBoolean(aiChatComposerSuggestionsEnabledKey, true)
     }
 }

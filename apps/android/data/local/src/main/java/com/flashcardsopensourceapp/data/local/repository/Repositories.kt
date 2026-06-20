@@ -219,6 +219,9 @@ interface AiChatRepository {
     fun observeConsent(): Flow<Boolean>
     fun hasConsent(): Boolean
     fun updateConsent(hasConsent: Boolean)
+    fun observeComposerSuggestionsEnabled(): Flow<Boolean>
+    fun areComposerSuggestionsEnabled(): Boolean
+    fun updateComposerSuggestionsEnabled(isEnabled: Boolean)
     fun makeExplicitSessionId(): String
     suspend fun prepareSessionForAi(workspaceId: String?): AiChatPreparedRemoteSession
     suspend fun ensureReadyForSend(workspaceId: String?)

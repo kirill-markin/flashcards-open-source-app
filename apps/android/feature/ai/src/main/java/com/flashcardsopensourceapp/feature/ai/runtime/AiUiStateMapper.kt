@@ -52,6 +52,7 @@ internal fun mapToAiUiState(
     cloudState: CloudAccountState,
     isCloudIdentityBlocked: Boolean,
     hasConsent: Boolean,
+    areComposerSuggestionsEnabled: Boolean,
     runtimeState: AiChatRuntimeState,
     textProvider: AiTextProvider
 ): AiUiState {
@@ -87,7 +88,8 @@ internal fun mapToAiUiState(
     val canEditDraft = canEditAiDraft(state = runtimeState)
     val canManageDraftAttachments = canManageAiDraftAttachments(state = runtimeState)
     val composerSuggestions = if (
-        isConversationReady
+        areComposerSuggestionsEnabled
+        && isConversationReady
         && runtimeState.composerPhase == AiComposerPhase.IDLE
         && hasActiveRun.not()
         && runtimeState.dictationState == AiChatDictationState.IDLE

@@ -290,6 +290,7 @@ internal fun makeSessionSnapshot(
 
 internal class FakeAiChatRepository : AiChatRepository {
     val consent: MutableStateFlow<Boolean> = MutableStateFlow(value = true)
+    val composerSuggestionsEnabled: MutableStateFlow<Boolean> = MutableStateFlow(value = true)
     val bootstrapResponses: ArrayDeque<AiChatBootstrapResponse> = ArrayDeque()
     val loadBootstrapGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val loadBootstrapNonCancellableGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
@@ -360,6 +361,18 @@ internal class FakeAiChatRepository : AiChatRepository {
 
     override fun updateConsent(hasConsent: Boolean) {
         consent.value = hasConsent
+    }
+
+    override fun observeComposerSuggestionsEnabled(): Flow<Boolean> {
+        return composerSuggestionsEnabled
+    }
+
+    override fun areComposerSuggestionsEnabled(): Boolean {
+        return composerSuggestionsEnabled.value
+    }
+
+    override fun updateComposerSuggestionsEnabled(isEnabled: Boolean) {
+        composerSuggestionsEnabled.value = isEnabled
     }
 
     override fun makeExplicitSessionId(): String {

@@ -82,6 +82,12 @@ class AiViewModel(
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = aiChatRepository.hasConsent()
     )
+    private val composerSuggestionsEnabledState = aiChatRepository.observeComposerSuggestionsEnabled()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+            initialValue = aiChatRepository.areComposerSuggestionsEnabled()
+        )
     private val chatRuntime = AiChatRuntime(
         scope = viewModelScope,
         aiChatRepository = aiChatRepository,
@@ -101,14 +107,23 @@ class AiViewModel(
         metadataState,
         cloudSettingsState,
         syncStatusState,
-        consentState,
+        combine(
+            consentState,
+            composerSuggestionsEnabledState
+        ) { hasConsent, areComposerSuggestionsEnabled ->
+            AiChatPreferenceState(
+                hasConsent = hasConsent,
+                areComposerSuggestionsEnabled = areComposerSuggestionsEnabled
+            )
+        },
         chatRuntime.state
-    ) { metadata, cloudSettings, syncStatus, hasConsent, runtimeState ->
+    ) { metadata, cloudSettings, syncStatus, preferences, runtimeState ->
         mapToAiUiState(
             metadata = metadata,
             cloudState = cloudSettings.cloudState,
             isCloudIdentityBlocked = syncStatus.status is SyncStatus.Blocked,
-            hasConsent = hasConsent,
+            hasConsent = preferences.hasConsent,
+            areComposerSuggestionsEnabled = preferences.areComposerSuggestionsEnabled,
             runtimeState = runtimeState,
             textProvider = textProvider
         )
@@ -148,6 +163,12 @@ class AiViewModel(
     }
 
     fun applyComposerSuggestion(suggestion: AiChatComposerSuggestion) {
+        if (aiChatRepository.areComposerSuggestionsEnabled().not()) {
+            return
+        }
+        if (uiState.value.composerSuggestions.contains(suggestion).not()) {
+            return
+        }
         chatRuntime.applyComposerSuggestion(suggestion = suggestion)
     }
 
@@ -252,6 +273,11 @@ class AiViewModel(
         chatRuntime.warmUpLinkedSessionIfNeeded(resumeDiagnostics = null)
     }
 }
+
+private data class AiChatPreferenceState(
+    val hasConsent: Boolean,
+    val areComposerSuggestionsEnabled: Boolean
+)
 
 fun createAiViewModelFactory(
     aiChatRepository: AiChatRepository,

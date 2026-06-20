@@ -1,9 +1,10 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.ai.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.feature.ai.AiUiState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
@@ -25,7 +26,10 @@ class AiUiStateMapperTest {
             draftMessage = "Next draft"
         )
 
-        val uiState = mapRuntimeState(runtimeState = runtimeState)
+        val uiState = mapRuntimeState(
+            runtimeState = runtimeState,
+            areComposerSuggestionsEnabled = true
+        )
 
         assertTrue(uiState.isStreaming)
         assertTrue(uiState.isComposerBusy)
@@ -60,7 +64,10 @@ class AiUiStateMapperTest {
                 draftMessage = "Blocked draft"
             )
 
-            val uiState = mapRuntimeState(runtimeState = runtimeState)
+            val uiState = mapRuntimeState(
+                runtimeState = runtimeState,
+                areComposerSuggestionsEnabled = true
+            )
 
             assertFalse(uiState.isCardHandoffReady)
             assertFalse(uiState.canEditDraftText)
@@ -87,7 +94,10 @@ class AiUiStateMapperTest {
             )
         )
 
-        val uiState = mapRuntimeState(runtimeState = runtimeState)
+        val uiState = mapRuntimeState(
+            runtimeState = runtimeState,
+            areComposerSuggestionsEnabled = true
+        )
 
         assertTrue(uiState.canEditDraftText)
         assertTrue(uiState.canEditDraft)
@@ -124,7 +134,10 @@ class AiUiStateMapperTest {
                     draftMessage = "Typed while recording"
                 )
 
-                val uiState = mapRuntimeState(runtimeState = runtimeState)
+                val uiState = mapRuntimeState(
+                    runtimeState = runtimeState,
+                    areComposerSuggestionsEnabled = true
+                )
 
                 assertTrue(uiState.canEditDraftText)
                 assertFalse(uiState.canEditDraft)
@@ -141,12 +154,45 @@ class AiUiStateMapperTest {
         }
     }
 
-    private fun mapRuntimeState(runtimeState: AiChatRuntimeState): AiUiState {
+    @Test
+    fun disabledComposerSuggestionsHideServerSuggestions() {
+        val runtimeState = makeAiDraftState(
+            workspaceId = defaultTestWorkspaceId,
+            persistedState = makeDefaultAiChatPersistedState()
+        ).copy(
+            serverComposerSuggestions = listOf(
+                AiChatComposerSuggestion(
+                    id = "suggestion-1",
+                    text = "Make a card about Kotlin flows",
+                    source = "server",
+                    assistantItemId = null
+                )
+            )
+        )
+
+        val enabledUiState = mapRuntimeState(
+            runtimeState = runtimeState,
+            areComposerSuggestionsEnabled = true
+        )
+        val disabledUiState = mapRuntimeState(
+            runtimeState = runtimeState,
+            areComposerSuggestionsEnabled = false
+        )
+
+        assertTrue(enabledUiState.composerSuggestions.isNotEmpty())
+        assertTrue(disabledUiState.composerSuggestions.isEmpty())
+    }
+
+    private fun mapRuntimeState(
+        runtimeState: AiChatRuntimeState,
+        areComposerSuggestionsEnabled: Boolean
+    ): AiUiState {
         return mapToAiUiState(
             metadata = initialAiAppMetadataSummary(textProvider = testAiTextProvider()),
             cloudState = CloudAccountState.GUEST,
             isCloudIdentityBlocked = false,
             hasConsent = true,
+            areComposerSuggestionsEnabled = areComposerSuggestionsEnabled,
             runtimeState = runtimeState,
             textProvider = testAiTextProvider()
         )
