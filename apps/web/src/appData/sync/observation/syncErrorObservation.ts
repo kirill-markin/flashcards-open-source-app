@@ -29,6 +29,10 @@ export type SyncFailureObservationInput = Readonly<{
   installationId: string | null;
 }>;
 
+type SyncFailureObservationMetadata = Readonly<{
+  syncFailureWasCaptured?: unknown;
+}>;
+
 export function createWorkspaceSyncDiscardedError(workspaceId: string): WorkspaceSyncDiscardedError {
   const error = new Error(`Workspace sync was discarded: ${workspaceId}`);
   error.name = workspaceSyncDiscardedErrorName;
@@ -180,6 +184,29 @@ function captureUnexpectedSyncError(input: SyncFailureObservationInput): boolean
     },
   });
   return true;
+}
+
+export function attachSyncFailureObservation(error: Error, wasCaptured: boolean): Error {
+  Object.assign(error, {
+    syncFailureWasCaptured: wasCaptured,
+  });
+  if (wasCaptured) {
+    markSyncFailureCaptured(error);
+  }
+  return error;
+}
+
+export function getSyncFailureObservationCaptureState(error: unknown): boolean | null {
+  if (error instanceof Error === false) {
+    return null;
+  }
+
+  const wasCaptured = (error as SyncFailureObservationMetadata).syncFailureWasCaptured;
+  if (typeof wasCaptured === "boolean") {
+    return wasCaptured;
+  }
+
+  return isCapturedSyncFailure(error) ? true : null;
 }
 
 export function observeSyncFailure(input: SyncFailureObservationInput): boolean {

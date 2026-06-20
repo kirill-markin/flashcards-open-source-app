@@ -17,8 +17,10 @@ import {
   storePersistedProgressSummary,
 } from "../../storage/progressStorage";
 import {
+  captureProgressLocalLoadError,
   captureProgressServerLoadError,
   getErrorMessage,
+  normalizeProgressSourceError,
   type ProgressCanLoadServerBaseRef,
   type ProgressScopeKeyRef,
   type ProgressSourceDispatch,
@@ -39,6 +41,7 @@ type ProgressSummarySourcePipelineParams = Readonly<{
   activeWorkspaceId: string | null;
   canLoadServerBase: boolean;
   canLoadServerBaseRef: ProgressCanLoadServerBaseRef;
+  canExposeTechnicalErrors: boolean;
   currentScopeKeyRef: ProgressScopeKeyRef;
   dispatch: ProgressSourceDispatch;
   input: ProgressSummaryInput;
@@ -57,6 +60,7 @@ export function useProgressSummarySourcePipeline(
     activeWorkspaceId,
     canLoadServerBase,
     canLoadServerBaseRef,
+    canExposeTechnicalErrors,
     currentScopeKeyRef,
     dispatch,
     input,
@@ -126,10 +130,19 @@ export function useProgressSummarySourcePipeline(
         return;
       }
 
+      const technicalError = normalizeProgressSourceError(error);
+      const wasCaptured = canExposeTechnicalErrors
+        && captureProgressLocalLoadError(technicalError, {
+          operation: "progress_summary_local_load",
+          workspaceId: activeWorkspaceId,
+          installationId,
+        });
+
       dispatch({
         type: "summary_local_load_failed",
         scopeKey,
-        errorMessage: getErrorMessage(error),
+        errorMessage: getErrorMessage(technicalError),
+        technicalError: wasCaptured ? technicalError : null,
         canRenderServerBase: canLoadServerBaseRef.current,
       });
     });
@@ -137,6 +150,7 @@ export function useProgressSummarySourcePipeline(
     accessibleWorkspaceIds,
     canLoadServerBase,
     canLoadServerBaseRef,
+    canExposeTechnicalErrors,
     currentScopeKeyRef,
     dispatch,
     input,
@@ -198,16 +212,20 @@ export function useProgressSummarySourcePipeline(
               && canLoadServerBaseRef.current
               && isCurrentRefreshRequest
             ) {
+              const technicalError = normalizeProgressSourceError(error);
+              const wasCaptured = canExposeTechnicalErrors
+                && captureProgressServerLoadError(technicalError, {
+                  operation: "progress_summary_server_load",
+                  workspaceId: activeWorkspaceId,
+                  installationId,
+                });
+
               dispatch({
                 type: "summary_server_load_failed",
                 scopeKey: targetScopeKey,
-                errorMessage: getErrorMessage(error),
+                errorMessage: getErrorMessage(technicalError),
+                technicalError: wasCaptured ? technicalError : null,
                 canRenderServerBase: canLoadServerBaseRef.current,
-              });
-              captureProgressServerLoadError(error, {
-                operation: "progress_summary_server_load",
-                workspaceId: activeWorkspaceId,
-                installationId,
               });
             }
           }
@@ -224,7 +242,7 @@ export function useProgressSummarySourcePipeline(
 
     serverRefreshPromisesRef.current.set(targetScopeKey, refreshPromise);
     return refreshPromise;
-  }, [activeWorkspaceId, canLoadServerBaseRef, currentScopeKeyRef, dispatch, installationId]);
+  }, [activeWorkspaceId, canExposeTechnicalErrors, canLoadServerBaseRef, currentScopeKeyRef, dispatch, installationId]);
 
   useEffect(() => {
     if (scopeKey === null || refreshKey === null) {

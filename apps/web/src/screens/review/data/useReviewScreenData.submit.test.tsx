@@ -26,6 +26,28 @@ const {
   revealAnswer,
 } = setupReviewScreenTest();
 
+const technicalErrorMessage = "A technical error occurred. Try again or restart the app.";
+
+function queryTechnicalErrorDialog(): HTMLElement | null {
+  const dialog = document.body.querySelector("[data-testid='app-error-dialog']");
+  return dialog instanceof HTMLElement ? dialog : null;
+}
+
+function expectTechnicalErrorDialogWithDetails(rawErrorMessage: string): void {
+  const dialog = queryTechnicalErrorDialog();
+  if (dialog === null) {
+    throw new Error("Technical error dialog was not found");
+  }
+
+  const details = dialog.querySelector("[data-testid='app-error-dialog-details']");
+  if (!(details instanceof HTMLElement)) {
+    throw new Error("Technical error dialog details were not found");
+  }
+
+  expect(dialog.textContent).toContain(technicalErrorMessage);
+  expect(details.textContent).toContain(rawErrorMessage);
+}
+
 describe("useReviewScreenData submit", () => {
   it("optimistically advances during submit and restores a fresh due card after a same-context submit failure", async () => {
     const state = getState();
@@ -83,7 +105,8 @@ describe("useReviewScreenData submit", () => {
       await Promise.resolve();
     });
 
-    expect(state.appData.setErrorMessage).toHaveBeenCalledWith("Review submit failed");
+    expect(state.appData.setErrorMessage).toHaveBeenCalledWith(technicalErrorMessage);
+    expectTechnicalErrorDialogWithDetails("Review submit failed");
     expect(getContainer().textContent).toContain("Pending refreshed front");
     expect(getContainer().textContent).not.toContain("Pending original front");
   });
@@ -156,7 +179,8 @@ describe("useReviewScreenData submit", () => {
       });
 
       expect(state.appData.getCardById).toHaveBeenCalledWith(submittedCard.cardId);
-      expect(state.appData.setErrorMessage).toHaveBeenCalledWith("Review submit failed\nRollback lookup failed: Rollback lookup read failed");
+      expect(state.appData.setErrorMessage).toHaveBeenCalledWith(technicalErrorMessage);
+      expectTechnicalErrorDialogWithDetails("Review submit failed");
       expect(latestResult?.activeReviewQueue[0]?.cardId).toBe(nextCard.cardId);
       expect(latestResult?.activeReviewQueue.map((queueCard) => queueCard.cardId)).not.toContain(submittedCard.cardId);
     } finally {
@@ -165,6 +189,41 @@ describe("useReviewScreenData submit", () => {
       });
       hookContainer.remove();
     }
+  });
+
+  it("keeps expected card-not-found submit failures inline without technical details", async () => {
+    const state = getState();
+    const submittedCard = createCard({
+      cardId: "card-submit-not-found",
+      frontText: "Submit not found front",
+      backText: "Submit not found back",
+      dueAt: "2026-03-10T11:00:00.000Z",
+    });
+    const nextCard = createCard({
+      cardId: "card-submit-not-found-next",
+      frontText: "Submit not found next front",
+      backText: "Submit not found next back",
+      dueAt: "2026-03-10T11:30:00.000Z",
+    });
+    const submitReviewPromise = createDeferredPromise<Card>();
+    state.cards = [submittedCard, nextCard];
+    state.reviewQueue = [submittedCard, nextCard];
+    state.reviewTimeline = [submittedCard, nextCard];
+    state.appData.submitReviewItem.mockImplementation(async (): Promise<Card> => submitReviewPromise.promise);
+
+    await renderReviewScreen();
+    await revealAnswer();
+    await dispatchDocumentKeydown("3");
+
+    await act(async () => {
+      submitReviewPromise.reject(new Error(`Card not found: ${submittedCard.cardId}`));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(state.appData.setErrorMessage).toHaveBeenCalledWith("Card not found");
+    expect(state.appData.setErrorMessage).not.toHaveBeenCalledWith(technicalErrorMessage);
+    expect(queryTechnicalErrorDialog()).toBeNull();
   });
 
   it("does not mutate queue, presented card, or timeline after a stale workspace submit failure", async () => {
@@ -313,6 +372,8 @@ describe("useReviewScreenData submit", () => {
       });
 
       expect(state.appData.setErrorMessage).not.toHaveBeenCalledWith("Review submit failed");
+      expect(state.appData.setErrorMessage).not.toHaveBeenCalledWith(technicalErrorMessage);
+      expect(queryTechnicalErrorDialog()).toBeNull();
       expect(state.appData.getCardById).not.toHaveBeenCalledWith(submittedCard.cardId);
       expect(latestResult?.activeReviewQueue.map((queueCard) => queueCard.cardId)).toEqual(expectedActiveQueueCardIds);
       expect(latestResult?.queueCards.map((queueCard) => queueCard.cardId)).toEqual(expectedTimelineCardIds);
@@ -442,6 +503,8 @@ describe("useReviewScreenData submit", () => {
       });
 
       expect(state.appData.setErrorMessage).not.toHaveBeenCalledWith("Review submit failed");
+      expect(state.appData.setErrorMessage).not.toHaveBeenCalledWith(technicalErrorMessage);
+      expect(queryTechnicalErrorDialog()).toBeNull();
       expect(state.appData.getCardById).not.toHaveBeenCalledWith(submittedCard.cardId);
       expect(latestResult?.activeReviewQueue.map((queueCard) => queueCard.cardId)).toEqual([oldNextCard.cardId]);
 
@@ -585,6 +648,8 @@ describe("useReviewScreenData submit", () => {
       });
 
       expect(state.appData.setErrorMessage).not.toHaveBeenCalledWith("Review submit failed");
+      expect(state.appData.setErrorMessage).not.toHaveBeenCalledWith(technicalErrorMessage);
+      expect(queryTechnicalErrorDialog()).toBeNull();
       expect(state.appData.getCardById).not.toHaveBeenCalledWith(submittedCard.cardId);
       expect(latestResult?.activeReviewQueue.map((queueCard) => queueCard.cardId)).toEqual([
         newHeadCard.cardId,
@@ -655,7 +720,8 @@ describe("useReviewScreenData submit", () => {
       await Promise.resolve();
     });
 
-    expect(state.appData.setErrorMessage).toHaveBeenCalledWith("Review submit failed");
+    expect(state.appData.setErrorMessage).toHaveBeenCalledWith(technicalErrorMessage);
+    expectTechnicalErrorDialogWithDetails("Review submit failed");
     expect(getContainer().textContent).toContain("Filter mismatch next front");
     expect(getContainer().textContent).not.toContain("Filter mismatch submitted original front");
     expect(getContainer().textContent).not.toContain("Filter mismatch submitted fresh front");

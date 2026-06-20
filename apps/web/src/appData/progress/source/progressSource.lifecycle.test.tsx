@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { ApiError } from "../../../api";
 import type {
   ProgressSeries,
   ProgressSummaryPayload,
@@ -13,6 +14,7 @@ import {
   buildGoodDailyReviewPoint,
   buildServerSeries,
   buildServerSummary,
+  captureWebExceptionMock,
   createDeferredPromise,
   flushEffects,
   leaderboardOnlySections,
@@ -26,7 +28,9 @@ import {
   loadProgressSummaryMock,
   noProgressSections,
   renderHarness,
+  renderHarnessWithoutTechnicalErrors,
   renderInvalidationHarness,
+  summaryOnlySections,
   summaryAndSeriesSections,
   summaryAndSeriesWithInvalidationSections,
 } from "./progressSourceTestSupport";
@@ -65,6 +69,89 @@ describe("useProgressSource lifecycle", () => {
     const leaderboardState = harness.getApi().progressSourceState.leaderboard;
     expect(leaderboardState.isLoading).toBe(false);
     expect(leaderboardState.renderedSnapshot).toBeNull();
+  });
+
+  it("keeps captured leaderboard viewer-count failures available for technical details", async () => {
+    const localViewerCountsError = new Error("Viewer counts failed");
+    loadLocalLeaderboardViewerCountsMock.mockRejectedValueOnce(localViewerCountsError);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: leaderboardOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.leaderboard.localViewerCountsErrorMessage).toBe("Viewer counts failed");
+    expect(harness.getApi().progressSourceState.leaderboard.localViewerCountsTechnicalError).toBe(localViewerCountsError);
+    expect(captureWebExceptionMock).toHaveBeenCalledWith(expect.objectContaining({
+      action: "app_operation_failed",
+      details: expect.objectContaining({
+        operation: "progress_leaderboard_local_load",
+      }),
+    }));
+  });
+
+  it("keeps non-dialog progress consumers from capturing technical failures", async () => {
+    const localViewerCountsError = new Error("Viewer counts failed");
+    loadLocalLeaderboardViewerCountsMock.mockRejectedValueOnce(localViewerCountsError);
+
+    const harness = renderHarnessWithoutTechnicalErrors({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: leaderboardOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.leaderboard.localViewerCountsErrorMessage).toBe("Viewer counts failed");
+    expect(harness.getApi().progressSourceState.leaderboard.localViewerCountsTechnicalError).toBeNull();
+    expect(captureWebExceptionMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps expected server progress failures inline without technical capture", async () => {
+    loadProgressSummaryMock.mockRejectedValueOnce(new ApiError({
+      statusCode: 401,
+      message: "Authentication required.",
+      code: "AUTH_UNAUTHORIZED",
+      requestId: "request-1",
+      endpoint: "GET /me/progress/summary",
+      responseBodyKind: "json",
+    }));
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.errorMessage).toBe("Authentication required.");
+    expect(harness.getApi().progressSourceState.summary.technicalError).toBeNull();
+    expect(captureWebExceptionMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps captured progress failures available for technical details", async () => {
+    const serverError = new Error("Progress summary failed");
+    loadProgressSummaryMock.mockRejectedValueOnce(serverError);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.errorMessage).toBe("Progress summary failed");
+    expect(harness.getApi().progressSourceState.summary.technicalError).toBe(serverError);
+    expect(captureWebExceptionMock).toHaveBeenCalledTimes(1);
   });
 
   it("keeps local progress visible when server eligibility turns off during an in-flight refresh", async () => {
@@ -173,6 +260,7 @@ describe("useProgressSource lifecycle", () => {
       renderedSnapshot: null,
       isLoading: false,
       errorMessage: "",
+      technicalError: null,
     });
     expect(harness.getApi().progressSourceState.series).toEqual({
       scopeKey: null,
@@ -183,6 +271,7 @@ describe("useProgressSource lifecycle", () => {
       renderedSnapshot: null,
       isLoading: false,
       errorMessage: "",
+      technicalError: null,
     });
     expect(harness.getApi().progressSourceState.reviewSchedule).toEqual({
       scopeKey: null,
@@ -197,6 +286,7 @@ describe("useProgressSource lifecycle", () => {
       renderedSnapshot: null,
       isLoading: false,
       errorMessage: "",
+      technicalError: null,
     });
   });
 

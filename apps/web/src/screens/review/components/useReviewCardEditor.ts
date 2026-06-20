@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import type { TranslationKey } from "../../../i18n";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
+import { getExpectedCardMutationInlineErrorMessage } from "../../cards/cardMutationErrors";
 import { toCardFormState, type CardFormState } from "../../cards/form/CardForm";
 import type { Card } from "../../../types";
 
@@ -47,6 +49,7 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
     userId,
     workspaceId,
   } = params;
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const [isEditorPresented, setIsEditorPresented] = useState<boolean>(false);
   const [editingCardId, setEditingCardId] = useState<string>("");
   const [editorFormState, setEditorFormState] = useState<CardFormState>(toCardFormState(null));
@@ -80,6 +83,12 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
       });
       setIsEditorPresented(false);
     } catch (error) {
+      const expectedErrorMessage = getExpectedCardMutationInlineErrorMessage(error, t("reviewEditor.errors.cardNotFound"));
+      if (expectedErrorMessage !== null) {
+        setEditorErrorMessage(expectedErrorMessage);
+        return;
+      }
+
       captureAppOperationError(error, {
         feature: "review",
         operation: "review_card_save",
@@ -88,7 +97,8 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
         installationId,
         entityId: editingCardId,
       });
-      setEditorErrorMessage(error instanceof Error ? error.message : String(error));
+      showCapturedTechnicalError(error);
+      setEditorErrorMessage(t("appError.technicalError.message"));
     } finally {
       setIsEditorSaving(false);
     }
@@ -113,6 +123,12 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
       });
       return savedCard;
     } catch (error) {
+      const expectedErrorMessage = getExpectedCardMutationInlineErrorMessage(error, t("reviewEditor.errors.cardNotFound"));
+      if (expectedErrorMessage !== null) {
+        setEditorErrorMessage(expectedErrorMessage);
+        return null;
+      }
+
       captureAppOperationError(error, {
         feature: "review",
         operation: "review_card_save",
@@ -121,7 +137,8 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
         installationId,
         entityId: editingCardId,
       });
-      setEditorErrorMessage(error instanceof Error ? error.message : String(error));
+      showCapturedTechnicalError(error);
+      setEditorErrorMessage(t("appError.technicalError.message"));
       return null;
     } finally {
       setIsEditorSaving(false);
@@ -146,6 +163,12 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
       await deleteCardItem(editingCardId);
       setIsEditorPresented(false);
     } catch (error) {
+      const expectedErrorMessage = getExpectedCardMutationInlineErrorMessage(error, t("reviewEditor.errors.cardNotFound"));
+      if (expectedErrorMessage !== null) {
+        setEditorErrorMessage(expectedErrorMessage);
+        return;
+      }
+
       captureAppOperationError(error, {
         feature: "review",
         operation: "review_card_delete",
@@ -154,7 +177,8 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
         installationId,
         entityId: editingCardId,
       });
-      setEditorErrorMessage(error instanceof Error ? error.message : String(error));
+      showCapturedTechnicalError(error);
+      setEditorErrorMessage(t("appError.technicalError.message"));
     } finally {
       setIsEditorSaving(false);
     }

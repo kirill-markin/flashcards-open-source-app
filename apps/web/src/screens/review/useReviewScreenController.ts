@@ -6,6 +6,7 @@ import {
   submitFeedback,
 } from "../../api";
 import { useAppData, useReviewLeaderboardBadge, useReviewProgressBadge } from "../../appData";
+import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { ALL_CARDS_REVIEW_FILTER, currentReviewCard } from "../../appData/domain";
 import {
   buildNextAutomaticFeedbackPromptAt,
@@ -103,6 +104,7 @@ export function useReviewScreenController(
   const reviewLeaderboardBadge = useReviewLeaderboardBadge();
   const reviewProgressBadge = useReviewProgressBadge();
   const { locale, t, formatCount } = useI18n();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const [isAnswerVisible, setIsAnswerVisible] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [reviewSubmitState, setReviewSubmitState] = useState<ReviewSubmitState>("idle");
@@ -546,7 +548,7 @@ export function useReviewScreenController(
       reviewButtonOptions = buildReviewButtonOptions(selectedCard, workspaceSettings, reviewButtonsNow, t, formatCount);
     } catch (error) {
       reviewButtonScheduleError = normalizeCaughtError(error);
-      reviewButtonErrorMessage = reviewButtonScheduleError.message;
+      reviewButtonErrorMessage = t("appError.technicalError.message");
     }
   } else if (isAnswerVisible && selectedCard !== null) {
     reviewButtonErrorMessage = t("reviewScreen.errors.schedulerUnavailable");
@@ -581,12 +583,14 @@ export function useReviewScreenController(
       installationId: cloudSettings?.installationId ?? null,
       entityId: selectedCard.cardId,
     });
+    showCapturedTechnicalError(reviewButtonScheduleError);
   }, [
     activeWorkspace?.workspaceId,
     cloudSettings?.installationId,
     reviewButtonErrorCaptureKey,
     reviewButtonScheduleError,
     selectedCard,
+    showCapturedTechnicalError,
     session?.userId,
   ]);
 

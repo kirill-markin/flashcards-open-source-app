@@ -29,6 +29,7 @@ import {
   captureWorkspaceTransitionError,
   logWorkspaceTransition,
 } from "../observation/workspaceSessionObservation";
+import { getSyncFailureObservationCaptureState } from "../../sync/observation/syncErrorObservation";
 import type {
   WorkspaceSessionActivation,
   WorkspaceSessionSetters,
@@ -36,7 +37,7 @@ import type {
   WorkspaceSessionSyncActions,
   WorkspaceSessionUiActions,
 } from "../workspaceSessionTypes";
-import type { WorkspaceActivationBootstrapPhase } from "../../../observability/webObservability";
+import { normalizeCaughtError, type WorkspaceActivationBootstrapPhase } from "../../../observability/webObservability";
 
 type UseWorkspaceActivationParams =
   & Pick<WorkspaceSessionState, "activeWorkspace" | "sessionVerificationState">
@@ -49,10 +50,12 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     setSessionLoadState,
     setSessionVerificationState,
     setSessionErrorMessage,
+    setSessionTechnicalError,
     setSession,
     setActiveWorkspace,
     setAvailableWorkspaces,
     setErrorMessage,
+    setTechnicalError,
     setCloudSettings,
     refreshWorkspaceView,
     runSyncForWorkspace,
@@ -76,6 +79,8 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     setCloudSettings(null);
     setSessionLoadState("loading");
     setSessionVerificationState("unverified");
+    setSessionTechnicalError(null);
+    setTechnicalError(null);
     resetUserScopedUiState();
     await discardAllSyncWork(async (): Promise<void> => {
       await clearAllLocalBrowserData(reason);
@@ -88,7 +93,9 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     setCloudSettings,
     setSession,
     setSessionLoadState,
+    setSessionTechnicalError,
     setSessionVerificationState,
+    setTechnicalError,
   ]);
 
   const publishSelectedWorkspace = useCallback(function publishSelectedWorkspace(
@@ -164,6 +171,8 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
         bootstrapPhase = "completed";
         setSessionErrorMessage("");
         setErrorMessage("");
+        setSessionTechnicalError(null);
+        setTechnicalError(null);
         logWorkspaceTransition("workspace_activate_bootstrap_succeeded", {
           workspaceId: workspace.workspaceId,
           sessionVerificationState,
@@ -185,15 +194,21 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
           return;
         }
 
-        const nextErrorMessage = getErrorMessage(error);
-        captureWorkspaceTransitionError("workspace_activate_bootstrap_failed", {
-          workspaceId: workspace.workspaceId,
-          errorMessage: nextErrorMessage,
-          sessionVerificationState,
-          bootstrapPhase,
-        }, error);
+        const normalizedError = normalizeCaughtError(error);
+        const nextErrorMessage = getErrorMessage(normalizedError);
+        const syncFailureCaptureState = getSyncFailureObservationCaptureState(normalizedError);
+        if (syncFailureCaptureState === null) {
+          captureWorkspaceTransitionError("workspace_activate_bootstrap_failed", {
+            workspaceId: workspace.workspaceId,
+            errorMessage: nextErrorMessage,
+            sessionVerificationState,
+            bootstrapPhase,
+          }, normalizedError);
+        }
         setSessionErrorMessage(nextErrorMessage);
         setErrorMessage(nextErrorMessage);
+        setSessionTechnicalError(syncFailureCaptureState === false ? null : normalizedError);
+        setTechnicalError(syncFailureCaptureState === false ? null : normalizedError);
       }
     })();
   }, [
@@ -202,7 +217,9 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     sessionVerificationState,
     setErrorMessage,
     setSessionErrorMessage,
+    setSessionTechnicalError,
     setSessionLoadState,
+    setTechnicalError,
   ]);
 
   useEffect(() => {
@@ -248,6 +265,8 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     setCloudSettings(linkedCloudSettings);
     setSessionErrorMessage("");
     setErrorMessage("");
+    setSessionTechnicalError(null);
+    setTechnicalError(null);
     publishSelectedWorkspace(currentSession, currentWorkspaces, workspace);
     logWorkspaceTransition("workspace_activate_published", {
       workspaceId: workspace.workspaceId,
@@ -261,6 +280,8 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     setCloudSettings,
     setErrorMessage,
     setSessionErrorMessage,
+    setSessionTechnicalError,
+    setTechnicalError,
   ]);
 
   const resolveInitialWorkspace = useCallback(async function resolveInitialWorkspace(

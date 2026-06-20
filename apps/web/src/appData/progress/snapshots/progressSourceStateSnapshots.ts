@@ -22,6 +22,7 @@ export function createEmptyProgressSummarySourceState(): ProgressSummarySourceSt
     renderedSnapshot: null,
     isLoading: false,
     errorMessage: "",
+    technicalError: null,
   };
 }
 
@@ -35,6 +36,7 @@ export function createEmptyProgressSeriesSourceState(): ProgressSeriesSourceStat
     renderedSnapshot: null,
     isLoading: false,
     errorMessage: "",
+    technicalError: null,
   };
 }
 
@@ -52,6 +54,7 @@ export function createEmptyProgressReviewScheduleSourceState(): ProgressReviewSc
     renderedSnapshot: null,
     isLoading: false,
     errorMessage: "",
+    technicalError: null,
   };
 }
 
@@ -63,8 +66,10 @@ export function createEmptyProgressLeaderboardSourceState(): ProgressLeaderboard
     renderedSnapshot: null,
     isLoading: false,
     errorMessage: "",
+    technicalError: null,
     isNetworkError: false,
     localViewerCountsErrorMessage: "",
+    localViewerCountsTechnicalError: null,
   };
 }
 

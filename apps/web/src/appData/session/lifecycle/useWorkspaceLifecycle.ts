@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import {
+  ApiError,
   getSession,
   isAuthRedirectError,
   revalidateSession as revalidateSessionRequest,
@@ -12,7 +13,9 @@ import {
 } from "../../../accountDeletion";
 import type { TranslationKey } from "../../../i18n";
 import { loadCloudSettings, putCloudSettings } from "../../../localDb/sync/cloudSettings";
-import { setWebObservabilityUser } from "../../../observability/webObservability";
+import { captureAppOperationError } from "../../../observability/appOperationObservation";
+import { normalizeCaughtError, setWebObservabilityUser } from "../../../observability/webObservability";
+import { getSyncFailureObservationCaptureState } from "../../sync/observation/syncErrorObservation";
 import { getErrorMessage } from "../../domain";
 import {
   buildLinkingReadyCloudSettings,
@@ -51,6 +54,20 @@ type WorkspaceLifecycle = Readonly<{
   initialize: () => Promise<void>;
 }>;
 
+function isExpectedWorkspaceSessionApiError(error: Error): boolean {
+  if (error instanceof ApiError === false) {
+    return false;
+  }
+
+  switch (error.code) {
+    case "WORKSPACE_NOT_FOUND":
+    case "WORKSPACE_SELECTION_REQUIRED":
+      return true;
+  }
+
+  return false;
+}
+
 export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): WorkspaceLifecycle {
   const {
     t,
@@ -62,10 +79,12 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     setSessionLoadState,
     setSessionVerificationState,
     setSessionErrorMessage,
+    setSessionTechnicalError,
     setSession,
     setActiveWorkspace,
     setAvailableWorkspaces,
     setErrorMessage,
+    setTechnicalError,
     setCloudSettings,
     runSync,
     runSyncSilently,
@@ -93,6 +112,8 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     setSessionVerificationState("unverified");
     setSessionErrorMessage("");
     setErrorMessage("");
+    setSessionTechnicalError(null);
+    setTechnicalError(null);
 
     try {
       if (consumeLoggedOutMarker()) {
@@ -106,6 +127,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         setSessionLoadState("deleted");
         setSessionVerificationState("verified");
         setSessionErrorMessage(t("app.accountDeleted"));
+        setSessionTechnicalError(null);
         return;
       }
 
@@ -143,13 +165,19 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return;
       }
 
-      const nextErrorMessage = getErrorMessage(error);
-      captureWorkspaceTransitionError("session_bootstrap_failed", {
-        errorMessage: nextErrorMessage,
-        sessionVerificationState,
-      }, error);
+      const normalizedError = normalizeCaughtError(error);
+      const nextErrorMessage = getErrorMessage(normalizedError);
+      const isExpectedError = isExpectedWorkspaceSessionApiError(normalizedError);
+      if (isExpectedError === false) {
+        captureWorkspaceTransitionError("session_bootstrap_failed", {
+          errorMessage: nextErrorMessage,
+          sessionVerificationState,
+        }, normalizedError);
+      }
       setSessionLoadState("error");
       setSessionErrorMessage(nextErrorMessage);
+      setSessionTechnicalError(isExpectedError ? null : normalizedError);
+      setTechnicalError(null);
     }
   }, [
     clearConfirmedUserScopedState,
@@ -167,7 +195,9 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     setSession,
     setSessionErrorMessage,
     setSessionLoadState,
+    setSessionTechnicalError,
     setSessionVerificationState,
+    setTechnicalError,
   ]);
 
   const initializeRef = useRef(initialize);
@@ -201,14 +231,20 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
           setErrorMessage("");
           return false;
         } catch (error) {
-          const nextErrorMessage = getErrorMessage(error);
-          captureWorkspaceTransitionError("session_account_switch_failed", {
-            errorMessage: nextErrorMessage,
-            sessionVerificationState,
-          }, error);
+          const normalizedError = normalizeCaughtError(error);
+          const nextErrorMessage = getErrorMessage(normalizedError);
+          const isExpectedError = isExpectedWorkspaceSessionApiError(normalizedError);
+          if (isExpectedError === false) {
+            captureWorkspaceTransitionError("session_account_switch_failed", {
+              errorMessage: nextErrorMessage,
+              sessionVerificationState,
+            }, normalizedError);
+          }
           setSessionLoadState("error");
           setSessionErrorMessage(nextErrorMessage);
           setErrorMessage(nextErrorMessage);
+          setSessionTechnicalError(isExpectedError ? null : normalizedError);
+          setTechnicalError(isExpectedError ? null : normalizedError);
           throw createSessionAccountSwitchError(nextErrorMessage);
         }
       }
@@ -217,6 +253,8 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       clearBrowserReauthRequired();
       setSessionErrorMessage("");
       setErrorMessage("");
+      setSessionTechnicalError(null);
+      setTechnicalError(null);
       return true;
     } catch (error) {
       if (isAuthRedirectError(error)) {
@@ -236,7 +274,9 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     setSession,
     setSessionErrorMessage,
     setSessionLoadState,
+    setSessionTechnicalError,
     setSessionVerificationState,
+    setTechnicalError,
   ]);
 
   const runResumeAttempt = useCallback(async function runResumeAttempt(): Promise<void> {
@@ -247,7 +287,9 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
 
     setSessionErrorMessage("");
     setErrorMessage("");
-  }, [revalidateActiveSession, runSyncSilently, setErrorMessage, setSessionErrorMessage]);
+    setSessionTechnicalError(null);
+    setTechnicalError(null);
+  }, [revalidateActiveSession, runSyncSilently, setErrorMessage, setSessionErrorMessage, setSessionTechnicalError, setTechnicalError]);
 
   const resumeInBackground = useCallback(async function resumeInBackground(): Promise<void> {
     const activeResume = resumePromiseRef.current;
@@ -283,9 +325,22 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         }
       }
 
-      const nextErrorMessage = getErrorMessage(lastError);
+      const normalizedError = normalizeCaughtError(lastError);
+      const nextErrorMessage = getErrorMessage(normalizedError);
+      const syncFailureCaptureState = getSyncFailureObservationCaptureState(normalizedError);
+      const didCaptureResumeError = syncFailureCaptureState === null
+        ? captureAppOperationError(normalizedError, {
+          feature: "auth",
+          operation: "session_resume",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace?.workspaceId ?? null,
+          installationId: null,
+          entityId: null,
+        })
+        : syncFailureCaptureState;
       setErrorMessage(nextErrorMessage);
-      throw lastError;
+      setTechnicalError(didCaptureResumeError ? normalizedError : null);
+      throw normalizedError;
     })().finally(() => {
       if (resumePromiseRef.current === trackedResumePromise) {
         resumePromiseRef.current = null;
@@ -294,7 +349,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
 
     resumePromiseRef.current = trackedResumePromise;
     return trackedResumePromise;
-  }, [runResumeAttempt, setErrorMessage]);
+  }, [activeWorkspace?.workspaceId, runResumeAttempt, session?.userId, setErrorMessage, setTechnicalError]);
 
   useEffect(() => {
     if (sessionLoadState !== "ready" || sessionVerificationState !== "verified" || session === null) {

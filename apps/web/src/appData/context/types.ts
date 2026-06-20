@@ -24,6 +24,7 @@ export type AppDataContextValue = Readonly<{
   sessionVerificationState: SessionVerificationState;
   isSessionVerified: boolean;
   sessionErrorMessage: string;
+  sessionTechnicalError: Error | null;
   session: SessionInfo | null;
   activeWorkspace: WorkspaceSummary | null;
   availableWorkspaces: ReadonlyArray<WorkspaceSummary>;
@@ -35,6 +36,7 @@ export type AppDataContextValue = Readonly<{
   isSyncing: boolean;
   selectedReviewFilter: ReviewFilter;
   errorMessage: string;
+  technicalError: Error | null;
   setErrorMessage: (message: string) => void;
   setAccountPreferences: (userId: string, preferences: AccountPreferences) => void;
   refreshAccountPreferences: () => Promise<AccountPreferences>;

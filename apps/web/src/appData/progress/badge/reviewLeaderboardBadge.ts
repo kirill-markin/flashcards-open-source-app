@@ -50,6 +50,7 @@ export function useReviewLeaderboardBadge(): ReviewLeaderboardBadgeState {
     progressScheduleLocalVersion: 0,
     progressServerInvalidationVersion,
     leaderboardAutoRefreshEnabled: false,
+    canExposeTechnicalErrors: false,
     sections: REVIEW_LEADERBOARD_BADGE_SECTIONS,
   });
 

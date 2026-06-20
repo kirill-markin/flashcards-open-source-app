@@ -62,6 +62,7 @@ export type ProgressSourceAction =
     type: "summary_local_load_failed";
     scopeKey: ProgressScopeKey;
     errorMessage: string;
+    technicalError: Error | null;
     canRenderServerBase: boolean;
   }>
   | Readonly<{
@@ -78,6 +79,7 @@ export type ProgressSourceAction =
     type: "review_schedule_local_load_failed";
     scopeKey: ProgressScopeKey;
     errorMessage: string;
+    technicalError: Error | null;
     progressScheduleLocalVersion: number;
     canRenderServerBase: boolean;
   }>
@@ -93,6 +95,7 @@ export type ProgressSourceAction =
     type: "series_local_load_failed";
     scopeKey: ProgressScopeKey;
     errorMessage: string;
+    technicalError: Error | null;
     canRenderServerBase: boolean;
   }>
   | Readonly<{
@@ -105,6 +108,7 @@ export type ProgressSourceAction =
     type: "summary_server_load_failed";
     scopeKey: ProgressScopeKey;
     errorMessage: string;
+    technicalError: Error | null;
     canRenderServerBase: boolean;
   }>
   | Readonly<{
@@ -117,6 +121,7 @@ export type ProgressSourceAction =
     type: "series_server_load_failed";
     scopeKey: ProgressScopeKey;
     errorMessage: string;
+    technicalError: Error | null;
     canRenderServerBase: boolean;
   }>
   | Readonly<{
@@ -130,6 +135,7 @@ export type ProgressSourceAction =
     type: "review_schedule_server_load_failed";
     scopeKey: ProgressScopeKey;
     errorMessage: string;
+    technicalError: Error | null;
     progressScheduleLocalVersion: number;
     canRenderServerBase: boolean;
   }>
@@ -150,6 +156,7 @@ export type ProgressSourceAction =
     type: "leaderboard_local_load_failed";
     scopeKey: ProgressScopeKey;
     errorMessage: string;
+    technicalError: Error | null;
     canRenderServerBase: boolean;
   }>
   | Readonly<{
@@ -162,6 +169,7 @@ export type ProgressSourceAction =
     type: "leaderboard_server_load_failed";
     scopeKey: ProgressScopeKey;
     errorMessage: string;
+    technicalError: Error | null;
     isNetworkError: boolean;
     canRenderServerBase: boolean;
   }>
@@ -238,6 +246,7 @@ function reduceProgressSourceState(
           renderedSeriesContext: null,
           isLoading: true,
           errorMessage: "",
+          technicalError: null,
         }, action.canRenderServerBase),
       };
     case "series_scope_initialized": {
@@ -249,6 +258,7 @@ function reduceProgressSourceState(
         pendingLocalOverlay: null,
         isLoading: true,
         errorMessage: "",
+        technicalError: null,
       }, action.canRenderServerBase);
 
       return {
@@ -278,6 +288,7 @@ function reduceProgressSourceState(
           pendingLocalCardTotalDelta: 0,
           isLoading: true,
           errorMessage: "",
+          technicalError: null,
         }, action.canRenderServerBase),
       };
     case "summary_local_load_succeeded":
@@ -309,6 +320,7 @@ function reduceProgressSourceState(
           hasPendingLocalReviews: false,
           isLoading: false,
           errorMessage: action.errorMessage,
+          technicalError: action.technicalError,
         }, action.canRenderServerBase),
       };
     case "series_local_load_succeeded": {
@@ -346,6 +358,7 @@ function reduceProgressSourceState(
         pendingLocalOverlay: null,
         isLoading: false,
         errorMessage: action.errorMessage,
+        technicalError: action.technicalError,
       }, action.canRenderServerBase);
 
       return {
@@ -400,6 +413,7 @@ function reduceProgressSourceState(
           pendingLocalCardTotalDelta: 0,
           isLoading: false,
           errorMessage: action.errorMessage,
+          technicalError: action.technicalError,
         }, action.canRenderServerBase),
       };
     case "summary_server_load_succeeded":
@@ -414,6 +428,7 @@ function reduceProgressSourceState(
           serverBase: action.serverBase,
           isLoading: false,
           errorMessage: "",
+          technicalError: null,
         }, action.canRenderServerBase),
       };
     case "summary_server_load_failed":
@@ -427,6 +442,7 @@ function reduceProgressSourceState(
           scopeKey: action.scopeKey,
           isLoading: false,
           errorMessage: action.errorMessage,
+          technicalError: action.technicalError,
         }, action.canRenderServerBase),
       };
     case "series_server_load_succeeded": {
@@ -439,6 +455,7 @@ function reduceProgressSourceState(
         serverBase: action.serverBase,
         isLoading: false,
         errorMessage: "",
+        technicalError: null,
       }, action.canRenderServerBase);
 
       return {
@@ -460,6 +477,7 @@ function reduceProgressSourceState(
         scopeKey: action.scopeKey,
         isLoading: false,
         errorMessage: action.errorMessage,
+        technicalError: action.technicalError,
       }, action.canRenderServerBase);
 
       return {
@@ -492,6 +510,7 @@ function reduceProgressSourceState(
           serverBaseLocalCardTotalDelta: loadedServerBaseLocalCardTotalDelta,
           isLoading: false,
           errorMessage: "",
+          technicalError: null,
         }, action.canRenderServerBase),
       };
     case "review_schedule_server_load_failed":
@@ -506,6 +525,7 @@ function reduceProgressSourceState(
           progressScheduleLocalVersion: action.progressScheduleLocalVersion,
           isLoading: false,
           errorMessage: action.errorMessage,
+          technicalError: action.technicalError,
         }, action.canRenderServerBase),
       };
     case "leaderboard_scope_reset":
@@ -525,8 +545,10 @@ function reduceProgressSourceState(
           localViewerCounts: null,
           isLoading: action.canRenderServerBase,
           errorMessage: "",
+          technicalError: null,
           isNetworkError: false,
           localViewerCountsErrorMessage: "",
+          localViewerCountsTechnicalError: null,
         }, action.canRenderServerBase),
       };
     case "leaderboard_local_load_succeeded":
@@ -540,6 +562,7 @@ function reduceProgressSourceState(
           scopeKey: action.scopeKey,
           localViewerCounts: action.localViewerCounts,
           localViewerCountsErrorMessage: "",
+          localViewerCountsTechnicalError: null,
         }, action.canRenderServerBase),
       };
     case "leaderboard_local_load_failed":
@@ -553,6 +576,7 @@ function reduceProgressSourceState(
           scopeKey: action.scopeKey,
           localViewerCounts: null,
           localViewerCountsErrorMessage: action.errorMessage,
+          localViewerCountsTechnicalError: action.technicalError,
         }, action.canRenderServerBase),
       };
     case "leaderboard_server_load_succeeded":
@@ -567,6 +591,7 @@ function reduceProgressSourceState(
           serverBase: action.serverBase,
           isLoading: false,
           errorMessage: "",
+          technicalError: null,
           isNetworkError: false,
         }, action.canRenderServerBase),
       };
@@ -581,6 +606,7 @@ function reduceProgressSourceState(
           scopeKey: action.scopeKey,
           isLoading: false,
           errorMessage: action.errorMessage,
+          technicalError: action.technicalError,
           isNetworkError: action.isNetworkError,
         }, action.canRenderServerBase),
       };
@@ -604,6 +630,7 @@ function reduceProgressSourceState(
             scopeKey: action.summaryScopeKey,
             isLoading: true,
             errorMessage: "",
+            technicalError: null,
           }, action.canRenderServerBase),
         series: action.seriesScopeKey === null
           ? state.series
@@ -611,6 +638,7 @@ function reduceProgressSourceState(
             scopeKey: action.seriesScopeKey,
             isLoading: true,
             errorMessage: "",
+            technicalError: null,
           }, action.canRenderServerBase),
         reviewSchedule: action.reviewScheduleScopeKey === null
           ? state.reviewSchedule
@@ -619,6 +647,7 @@ function reduceProgressSourceState(
             progressScheduleLocalVersion: action.progressScheduleLocalVersion,
             isLoading: true,
             errorMessage: "",
+            technicalError: null,
           }, action.canRenderServerBase),
         leaderboard: action.leaderboardScopeKey === null
           ? state.leaderboard
@@ -626,6 +655,7 @@ function reduceProgressSourceState(
             scopeKey: action.leaderboardScopeKey,
             isLoading: action.canRenderServerBase,
             errorMessage: "",
+            technicalError: null,
             isNetworkError: false,
           }, action.canRenderServerBase),
       };
@@ -633,17 +663,22 @@ function reduceProgressSourceState(
       return {
         summary: createNextSummaryState(state.summary, {
           errorMessage: "",
+          technicalError: null,
         }, action.canRenderServerBase),
         series: createNextSeriesState(state.series, {
           errorMessage: "",
+          technicalError: null,
         }, action.canRenderServerBase),
         reviewSchedule: createNextReviewScheduleState(state.reviewSchedule, {
           errorMessage: "",
+          technicalError: null,
         }, action.canRenderServerBase),
         leaderboard: createNextLeaderboardState(state.leaderboard, {
           errorMessage: "",
+          technicalError: null,
           isNetworkError: false,
           localViewerCountsErrorMessage: "",
+          localViewerCountsTechnicalError: null,
         }, action.canRenderServerBase),
       };
   }

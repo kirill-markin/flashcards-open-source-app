@@ -299,6 +299,7 @@ export type AuthResetCleanupFailureDetails = Readonly<{
 }>;
 
 export type WebAppOperation =
+  | "session_resume"
   | "account_deletion_submit"
   | "access_permission_request"
   | "agent_connections_load"
@@ -320,6 +321,10 @@ export type WebAppOperation =
   | "review_card_save"
   | "review_card_delete"
   | "review_schedule_preview"
+  | "progress_summary_local_load"
+  | "progress_series_local_load"
+  | "progress_review_schedule_local_load"
+  | "progress_leaderboard_local_load"
   | "feedback_activity_load"
   | "feedback_state_load"
   | "feedback_prompt_event"

@@ -68,6 +68,7 @@ function createAppData(): Mutable<AppDataContextValue> {
     sessionVerificationState: "verified",
     isSessionVerified: true,
     sessionErrorMessage: "",
+    sessionTechnicalError: null,
     session: {
       userId: "user-1",
       selectedWorkspaceId: "workspace-1",
@@ -116,6 +117,7 @@ function createAppData(): Mutable<AppDataContextValue> {
     isSyncing: false,
     selectedReviewFilter: { kind: "allCards" } satisfies ReviewFilter,
     errorMessage: "",
+    technicalError: null,
     setErrorMessage: vi.fn(),
     setAccountPreferences: vi.fn(),
     refreshAccountPreferences: vi.fn(async () => ({
