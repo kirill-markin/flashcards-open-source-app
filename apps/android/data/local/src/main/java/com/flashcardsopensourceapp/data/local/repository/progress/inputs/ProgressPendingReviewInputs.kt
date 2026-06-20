@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.repository.progress.inputs
 import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressRepositoryWarning
+import java.time.DateTimeException
 import java.time.Instant
 import java.time.ZoneId
 import org.json.JSONObject
@@ -39,7 +40,6 @@ internal fun createProgressPendingReviewLocalDates(
     timeZone: String
 ): List<ProgressPendingReviewLocalDate> {
     val workspaceIdSet = workspaceIds.toSet()
-    val zoneId = ZoneId.of(timeZone)
     return buildList {
         pendingReviewOutboxEntries.forEach { entry ->
             if (workspaceIdSet.contains(entry.workspaceId).not()) {
@@ -47,7 +47,7 @@ internal fun createProgressPendingReviewLocalDates(
             }
 
             val pendingReviewInput = try {
-                entry.toPendingReviewInput(zoneId = zoneId)
+                entry.toPendingReviewInput(fallbackTimeZone = timeZone)
             } catch (error: IllegalArgumentException) {
                 logProgressRepositoryWarning(
                     event = "progress_pending_overlay_entry_skipped",
@@ -90,7 +90,7 @@ private data class ProgressPendingReviewInput(
 )
 
 private fun OutboxEntryEntity.toPendingReviewInput(
-    zoneId: ZoneId
+    fallbackTimeZone: String
 ): ProgressPendingReviewInput {
     val payloadJsonObject = try {
         JSONObject(payloadJson)
@@ -120,6 +120,11 @@ private fun OutboxEntryEntity.toPendingReviewInput(
         ?: throw IllegalArgumentException(
             "Invalid rating '$ratingOrdinal' in pending review-event payload for outbox entry '$outboxEntryId'."
         )
+    val reviewedTimeZone = payloadJsonObject.getOptionalReviewEventPayloadString(
+        key = "reviewedTimeZone",
+        outboxEntryId = outboxEntryId,
+        payloadJson = payloadJson
+    )
     val reviewedAtInstant = try {
         Instant.parse(reviewedAtClient)
     } catch (error: Exception) {
@@ -129,7 +134,44 @@ private fun OutboxEntryEntity.toPendingReviewInput(
         )
     }
     return ProgressPendingReviewInput(
-        localDate = reviewedAtInstant.atZone(zoneId).toLocalDate().toString(),
+        localDate = reviewedAtInstant.atZone(
+            resolvePendingReviewZoneId(
+                reviewedTimeZone = reviewedTimeZone,
+                fallbackTimeZone = fallbackTimeZone,
+                outboxEntryId = outboxEntryId
+            )
+        ).toLocalDate().toString(),
         rating = rating
     )
+}
+
+private fun JSONObject.getOptionalReviewEventPayloadString(
+    key: String,
+    outboxEntryId: String,
+    payloadJson: String
+): String? {
+    if (has(key).not() || isNull(key)) {
+        return null
+    }
+    val value = get(key)
+    return value as? String ?: throw IllegalArgumentException(
+        "Invalid $key in pending review-event payload for outbox entry '$outboxEntryId': expected string or null. Payload: $payloadJson"
+    )
+}
+
+private fun resolvePendingReviewZoneId(
+    reviewedTimeZone: String?,
+    fallbackTimeZone: String,
+    outboxEntryId: String
+): ZoneId {
+    val timeZone = reviewedTimeZone ?: fallbackTimeZone
+    try {
+        return ZoneId.of(timeZone)
+    } catch (error: DateTimeException) {
+        val fieldName = if (reviewedTimeZone == null) "fallback timeZone" else "reviewedTimeZone"
+        throw IllegalArgumentException(
+            "Invalid $fieldName '$timeZone' in pending review-event payload for outbox entry '$outboxEntryId'.",
+            error
+        )
+    }
 }

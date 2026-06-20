@@ -323,7 +323,8 @@ internal class CloudIdentityTestEnvironment private constructor(
                 clientEventId = "event-$workspaceId",
                 rating = ReviewRating.GOOD,
                 reviewedAtMillis = 200L,
-                reviewedAtServerIso = "2026-04-02T15:50:57.000Z"
+                reviewedAtServerIso = "2026-04-02T15:50:57.000Z",
+                reviewedTimeZone = null
             )
         )
         return cardId

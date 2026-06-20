@@ -28,7 +28,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration18To19,
         migration19To20,
         migration20To21,
-        migration21To22
+        migration21To22,
+        migration22To23
     )
 }
 
@@ -812,5 +813,11 @@ val migration21To22: Migration = object : Migration(21, 22) {
             ADD COLUMN streakFreezeEarnedUnitsPerStreakDay INTEGER NOT NULL DEFAULT 1
             """.trimIndent()
         )
+    }
+}
+
+val migration22To23: Migration = object : Migration(22, 23) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE review_logs ADD COLUMN reviewedTimeZone TEXT")
     }
 }

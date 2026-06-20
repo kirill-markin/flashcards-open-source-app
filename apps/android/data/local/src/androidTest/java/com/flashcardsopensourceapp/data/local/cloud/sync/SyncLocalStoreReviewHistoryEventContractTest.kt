@@ -60,7 +60,8 @@ class SyncLocalStoreReviewHistoryEventContractTest {
                 clientEventId = "client-event-1",
                 rating = ReviewRating.GOOD,
                 reviewedAtMillis = 1_000L,
-                reviewedAtServerIso = "2026-03-27T19:05:00Z"
+                reviewedAtServerIso = "2026-03-27T19:05:00Z",
+                reviewedTimeZone = null
             )
         )
 
@@ -191,6 +192,7 @@ private fun makeRemoteReviewHistoryEvent(
         clientEventId = "client-event-$reviewEventId",
         rating = ReviewRating.GOOD.ordinal,
         reviewedAtClient = reviewedAtClient,
-        reviewedAtServer = reviewedAtClient
+        reviewedAtServer = reviewedAtClient,
+        reviewedTimeZone = null
     )
 }

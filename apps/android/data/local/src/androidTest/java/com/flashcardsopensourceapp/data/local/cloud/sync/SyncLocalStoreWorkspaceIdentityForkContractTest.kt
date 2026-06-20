@@ -90,7 +90,8 @@ class SyncLocalStoreWorkspaceIdentityForkContractTest {
             clientEventId = "client-event-1",
             rating = ReviewRating.GOOD,
             reviewedAtMillis = 6L,
-            reviewedAtServerIso = "2026-03-27T19:05:00Z"
+            reviewedAtServerIso = "2026-03-27T19:05:00Z",
+            reviewedTimeZone = null
         )
         database.cardDao().insertCard(originalCard)
         database.deckDao().insertDeck(originalDeck)
@@ -257,7 +258,8 @@ class SyncLocalStoreWorkspaceIdentityForkContractTest {
             clientEventId = "client-event-1",
             rating = ReviewRating.GOOD,
             reviewedAtMillis = 3L,
-            reviewedAtServerIso = "2026-03-27T19:05:00Z"
+            reviewedAtServerIso = "2026-03-27T19:05:00Z",
+            reviewedTimeZone = null
         )
         database.cardDao().insertCard(originalCard)
         database.reviewLogDao().insertReviewLog(originalReviewLog)
@@ -370,7 +372,8 @@ class SyncLocalStoreWorkspaceIdentityForkContractTest {
             clientEventId = "client-event-1",
             rating = ReviewRating.GOOD,
             reviewedAtMillis = 3L,
-            reviewedAtServerIso = "2026-03-27T19:05:00Z"
+            reviewedAtServerIso = "2026-03-27T19:05:00Z",
+            reviewedTimeZone = null
         )
         database.cardDao().insertCard(originalCard)
         database.reviewLogDao().insertReviewLog(originalReviewLog)

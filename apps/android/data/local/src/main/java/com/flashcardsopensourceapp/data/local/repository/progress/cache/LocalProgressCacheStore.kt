@@ -19,8 +19,7 @@ class LocalProgressCacheStore(
         reviewLog: ReviewLogEntity,
         updatedAtMillis: Long
     ) {
-        val zoneId = timeProvider.currentZoneId()
-        val timeZone = zoneId.id
+        val timeZone = timeProvider.currentZoneId().id
         val previousHistoryState = database.progressLocalCacheDao().loadProgressReviewHistoryState(reviewLog.workspaceId)
         val previousHistoryVersion = previousHistoryState?.historyVersion ?: 0L
         val nextHistoryVersion = previousHistoryVersion + 1L
@@ -29,8 +28,8 @@ class LocalProgressCacheStore(
             timeZone = timeZone,
             workspaceId = reviewLog.workspaceId,
             localDate = toLocalDate(
-                reviewedAtMillis = reviewLog.reviewedAtMillis,
-                zoneId = zoneId
+                reviewLog = reviewLog,
+                fallbackTimeZone = timeZone
             ),
             countDelta = createProgressRatingCountDelta(rating = reviewLog.rating)
         )
@@ -79,7 +78,8 @@ class LocalProgressCacheStore(
             if (
                 existingReviewLog.workspaceId != reviewLog.workspaceId ||
                 existingReviewLog.reviewedAtMillis != reviewLog.reviewedAtMillis ||
-                existingReviewLog.rating != reviewLog.rating
+                existingReviewLog.rating != reviewLog.rating ||
+                existingReviewLog.reviewedTimeZone != reviewLog.reviewedTimeZone
             ) {
                 replacementWorkspaceIds.add(existingReviewLog.workspaceId)
                 replacementWorkspaceIds.add(reviewLog.workspaceId)
@@ -103,7 +103,6 @@ class LocalProgressCacheStore(
         }
 
         val timeZone = timeProvider.currentZoneId().id
-        val zoneId = timeProvider.currentZoneId()
         newReviewLogs.groupBy(ReviewLogEntity::workspaceId).forEach { (workspaceId, workspaceReviewLogs) ->
             val previousHistoryState = database.progressLocalCacheDao().loadProgressReviewHistoryState(workspaceId)
             val previousHistoryVersion = previousHistoryState?.historyVersion ?: 0L
@@ -111,8 +110,8 @@ class LocalProgressCacheStore(
 
             workspaceReviewLogs.groupBy { reviewLog ->
                 toLocalDate(
-                    reviewedAtMillis = reviewLog.reviewedAtMillis,
-                    zoneId = zoneId
+                    reviewLog = reviewLog,
+                    fallbackTimeZone = timeZone
                 )
             }.forEach { (localDate, dateReviewLogs) ->
                 incrementLocalDayCount(
@@ -199,7 +198,6 @@ class LocalProgressCacheStore(
         timeZone: String,
         updatedAtMillis: Long
     ) {
-        val zoneId = ZoneId.of(timeZone)
         val reviewLogs = database.reviewLogDao().loadReviewLogs()
         val reviewLogsByWorkspace = reviewLogs.groupBy(ReviewLogEntity::workspaceId)
         val historyStates = database.progressLocalCacheDao().loadProgressReviewHistoryStates()
@@ -216,7 +214,6 @@ class LocalProgressCacheStore(
             rebuildWorkspaceStateFromLogsInTransaction(
                 workspaceId = workspaceId,
                 reviewLogs = workspaceReviewLogs,
-                zoneId = zoneId,
                 timeZone = timeZone,
                 updatedAtMillis = updatedAtMillis,
                 nextHistoryVersion = database.progressLocalCacheDao().loadProgressReviewHistoryState(
@@ -244,7 +241,6 @@ class LocalProgressCacheStore(
         rebuildWorkspaceStateFromLogsInTransaction(
             workspaceId = workspaceId,
             reviewLogs = reviewLogs,
-            zoneId = ZoneId.of(timeZone),
             timeZone = timeZone,
             updatedAtMillis = updatedAtMillis,
             nextHistoryVersion = nextHistoryVersion,
@@ -255,7 +251,6 @@ class LocalProgressCacheStore(
     private suspend fun rebuildWorkspaceStateFromLogsInTransaction(
         workspaceId: String,
         reviewLogs: List<ReviewLogEntity>,
-        zoneId: ZoneId,
         timeZone: String,
         updatedAtMillis: Long,
         nextHistoryVersion: Long,
@@ -279,8 +274,8 @@ class LocalProgressCacheStore(
 
         val dayCounts = reviewLogs.groupBy { reviewLog ->
             toLocalDate(
-                reviewedAtMillis = reviewLog.reviewedAtMillis,
-                zoneId = zoneId
+                reviewLog = reviewLog,
+                fallbackTimeZone = timeZone
             )
         }.map { (localDate, dateReviewLogs) ->
             val countDelta = createProgressRatingCountDelta(reviewLogs = dateReviewLogs)
@@ -388,6 +383,16 @@ private fun createProgressRatingCountDelta(
         hardCount = if (rating == ReviewRating.HARD) 1 else 0,
         goodCount = if (rating == ReviewRating.GOOD) 1 else 0,
         easyCount = if (rating == ReviewRating.EASY) 1 else 0
+    )
+}
+
+private fun toLocalDate(
+    reviewLog: ReviewLogEntity,
+    fallbackTimeZone: String
+): String {
+    return toLocalDate(
+        reviewedAtMillis = reviewLog.reviewedAtMillis,
+        zoneId = ZoneId.of(reviewLog.reviewedTimeZone ?: fallbackTimeZone)
     )
 }
 

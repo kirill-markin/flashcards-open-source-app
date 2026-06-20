@@ -23,6 +23,8 @@ import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinit
 import com.flashcardsopensourceapp.data.local.model.scheduling.decodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
+import java.time.DateTimeException
+import java.time.ZoneId
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -74,6 +76,7 @@ internal fun buildReviewEventOutboxPayloadJson(reviewLog: ReviewLogEntity): JSON
         .put("clientEventId", reviewLog.clientEventId)
         .put("rating", reviewLog.rating.ordinal)
         .put("reviewedAtClient", formatIsoTimestamp(reviewLog.reviewedAtMillis))
+        .putNullableString("reviewedTimeZone", reviewLog.reviewedTimeZone)
 }
 
 internal fun buildCardBootstrapEntryJson(
@@ -164,6 +167,7 @@ internal fun buildReviewHistoryImportEventJson(reviewLog: ReviewLogEntity): JSON
         .put("clientEventId", reviewLog.clientEventId)
         .put("rating", reviewLog.rating.ordinal)
         .put("reviewedAtClient", formatIsoTimestamp(reviewLog.reviewedAtMillis))
+        .putNullableString("reviewedTimeZone", reviewLog.reviewedTimeZone)
         .put("reviewedAtServer", reviewLog.reviewedAtServerIso)
 }
 
@@ -240,11 +244,33 @@ internal fun decodeOutboxOperation(entry: OutboxEntryEntity): SyncOperation {
                     cardId = payloadJson.requireCloudString("cardId", "outbox.reviewEvent.cardId"),
                     clientEventId = payloadJson.requireCloudString("clientEventId", "outbox.reviewEvent.clientEventId"),
                     rating = payloadJson.requireCloudInt("rating", "outbox.reviewEvent.rating"),
-                    reviewedAtClient = payloadJson.requireCloudString("reviewedAtClient", "outbox.reviewEvent.reviewedAtClient")
+                    reviewedAtClient = payloadJson.requireCloudString("reviewedAtClient", "outbox.reviewEvent.reviewedAtClient"),
+                    reviewedTimeZone = parseOptionalReviewTimeZone(
+                        rawValue = payloadJson.optCloudStringOrNull(
+                            "reviewedTimeZone",
+                            "outbox.reviewEvent.reviewedTimeZone"
+                        ),
+                        fieldPath = "outbox.reviewEvent.reviewedTimeZone"
+                    )
                 )
             )
         }
     )
+}
+
+internal fun parseOptionalReviewTimeZone(rawValue: String?, fieldPath: String): String? {
+    if (rawValue == null) {
+        return null
+    }
+    try {
+        ZoneId.of(rawValue)
+    } catch (error: DateTimeException) {
+        throw CloudContractMismatchException(
+            "Cloud contract mismatch for $fieldPath: expected a valid time zone id, got invalid string \"$rawValue\"",
+            error
+        )
+    }
+    return rawValue
 }
 
 internal fun parseSyncEntityType(rawValue: String): SyncEntityType {

@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHt
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudLongOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseOptionalReviewTimeZone
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
@@ -65,7 +66,8 @@ data class RemoteReviewHistoryEvent(
     val clientEventId: String,
     val rating: Int,
     val reviewedAtClient: String,
-    val reviewedAtServer: String
+    val reviewedAtServer: String,
+    val reviewedTimeZone: String?
 )
 
 data class RemoteReviewHistoryPullResponse(
@@ -308,6 +310,13 @@ private fun parseReviewHistoryEvents(events: JSONArray): List<RemoteReviewHistor
                     reviewedAtServer = event.requireCloudString(
                         "reviewedAtServer",
                         "reviewHistoryPull.reviewEvents[$index].reviewedAtServer"
+                    ),
+                    reviewedTimeZone = parseOptionalReviewTimeZone(
+                        rawValue = event.optCloudStringOrNull(
+                            "reviewedTimeZone",
+                            "reviewHistoryPull.reviewEvents[$index].reviewedTimeZone"
+                        ),
+                        fieldPath = "reviewHistoryPull.reviewEvents[$index].reviewedTimeZone"
                     )
                 )
             )
