@@ -135,6 +135,7 @@
 "settings.row.currentWorkspace" = "Espacio de trabajo";
 "settings.row.reviewReminders" = "Recordatorios";
 "settings.row.reviewAnimations" = "Animaciones de repaso";
+"settings.row.aiChatSuggestions" = "Sugerencias del chat con IA";
 "settings.row.leaderboardParticipation" = "Participación en la tabla";
 "settings.row.language" = "Idioma";
 "settings.row.language.value" = "iOS";
@@ -167,6 +168,9 @@
 "settings.currentWorkspace.renameLinkedOnly" = "El cambio de nombre del espacio de trabajo solo esta disponible para espacios de trabajo en la nube vinculados.";
 "settings.reviewAnimations.title" = "Animaciones de repaso";
 "settings.reviewAnimations.toggle" = "Mostrar animaciones despues de valorar una tarjeta";
+"settings.aiChatSuggestions.title" = "Sugerencias del chat con IA";
+"settings.aiChatSuggestions.toggle" = "Mostrar sugerencias en el redactor";
+"settings.aiChatSuggestions.description" = "Cuando está desactivado, el chat con IA no muestra sugerencias de mensajes encima del redactor.";
 "settings.leaderboardParticipation.title" = "Participación en la tabla";
 "settings.leaderboardParticipation.toggle" = "Mostrarme en la tabla de posiciones";
 "settings.leaderboardParticipation.description" = "Cuando está desactivado, tu actividad anónima no aparece en la tabla de posiciones.";

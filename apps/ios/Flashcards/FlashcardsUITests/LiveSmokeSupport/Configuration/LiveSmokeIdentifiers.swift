@@ -29,6 +29,7 @@ enum LiveSmokeIdentifier {
     static let settingsCurrentWorkspaceRow: String = "settings.currentWorkspaceRow"
     static let settingsReviewRemindersRow: String = "settings.reviewRemindersRow"
     static let settingsReviewAnimationsRow: String = "settings.reviewAnimationsRow"
+    static let settingsAIChatSuggestionsRow: String = "settings.aiChatSuggestionsRow"
     static let settingsLeaderboardParticipationRow: String = "settings.leaderboardParticipationRow"
     static let settingsLanguageRow: String = "settings.languageRow"
     static let settingsAccessRow: String = "settings.accessRow"
@@ -48,6 +49,8 @@ enum LiveSmokeIdentifier {
     static let settingsDeleteAccountRow: String = "settings.deleteAccountRow"
     static let settingsTestRow: String = "settings.testRow"
     static let reviewAnimationsSettingsScreen: String = "reviewAnimationsSettings.screen"
+    static let aiChatSuggestionsSettingsScreen: String = "aiChatSuggestionsSettings.screen"
+    static let aiChatSuggestionsSettingsToggle: String = "aiChatSuggestionsSettings.toggle"
     static let leaderboardParticipationSettingsScreen: String = "leaderboardParticipationSettings.screen"
     static let languageSettingsScreen: String = "languageSettings.screen"
     static let languageSettingsSystemText: String = "languageSettings.systemText"
@@ -301,6 +304,7 @@ enum LiveSmokeScreen: CaseIterable {
     case cloudSignInPostAuthFailure
     case currentWorkspace
     case reviewAnimationsSettings
+    case aiChatSuggestionsSettings
     case leaderboardParticipationSettings
     case languageSettings
     case resetStudyProgress
@@ -334,6 +338,8 @@ enum LiveSmokeScreen: CaseIterable {
             return LiveSmokeIdentifier.currentWorkspaceScreen
         case .reviewAnimationsSettings:
             return LiveSmokeIdentifier.reviewAnimationsSettingsScreen
+        case .aiChatSuggestionsSettings:
+            return LiveSmokeIdentifier.aiChatSuggestionsSettingsScreen
         case .leaderboardParticipationSettings:
             return LiveSmokeIdentifier.leaderboardParticipationSettingsScreen
         case .languageSettings:
@@ -375,6 +381,8 @@ enum LiveSmokeScreen: CaseIterable {
             return "Workspace"
         case .reviewAnimationsSettings:
             return "Review Animations"
+        case .aiChatSuggestionsSettings:
+            return "AI Chat Suggestions"
         case .leaderboardParticipationSettings:
             return "Leaderboard participation"
         case .languageSettings:

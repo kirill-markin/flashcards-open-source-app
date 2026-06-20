@@ -87,6 +87,9 @@ extension AIChatStore {
     }
 
     var visibleComposerSuggestions: [AIChatComposerSuggestion] {
+        guard self.areComposerSuggestionsEnabled else {
+            return []
+        }
         guard self.isChatInteractive else {
             return []
         }
@@ -142,6 +145,9 @@ extension AIChatStore {
     }
 
     func applyComposerSuggestion(_ suggestion: AIChatComposerSuggestion) {
+        guard self.areComposerSuggestionsEnabled else {
+            return
+        }
         guard self.canEditDraft else {
             return
         }

@@ -93,6 +93,7 @@ final class FlashcardsStore {
     var currentTransientBanner: TransientBanner?
     var queuedTransientBanners: [TransientBanner]
     var isTestModeEnabled: Bool
+    var aiChatComposerSuggestionsEnabled: Bool
     var reviewNotificationsSettings: ReviewNotificationsSettings
     var strictRemindersSettings: StrictRemindersSettings
     var reviewReminderAttentionState: ReviewReminderAttentionState?
@@ -398,6 +399,7 @@ final class FlashcardsStore {
         self.currentTransientBanner = nil
         self.queuedTransientBanners = []
         self.isTestModeEnabled = userDefaults.bool(forKey: testModeEnabledUserDefaultsKey)
+        self.aiChatComposerSuggestionsEnabled = loadAIChatComposerSuggestionsEnabled(userDefaults: userDefaults)
         self.reviewNotificationsSettings = makeDefaultReviewNotificationsSettings()
         self.strictRemindersSettings = loadStrictRemindersSettings(
             userDefaults: userDefaults,

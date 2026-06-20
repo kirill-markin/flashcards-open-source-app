@@ -135,6 +135,7 @@
 "settings.row.currentWorkspace" = "ワークスペース";
 "settings.row.reviewReminders" = "リマインダー";
 "settings.row.reviewAnimations" = "復習アニメーション";
+"settings.row.aiChatSuggestions" = "AIチャットの候補";
 "settings.row.leaderboardParticipation" = "リーダーボード参加";
 "settings.row.language" = "言語";
 "settings.row.language.value" = "iOS";
@@ -167,6 +168,9 @@
 "settings.currentWorkspace.renameLinkedOnly" = "ワークスペース名の変更は、リンク済みのクラウドワークスペースでのみ利用できます。";
 "settings.reviewAnimations.title" = "復習アニメーション";
 "settings.reviewAnimations.toggle" = "カード評価後にアニメーションを表示";
+"settings.aiChatSuggestions.title" = "AIチャットの候補";
+"settings.aiChatSuggestions.toggle" = "入力欄の候補を表示";
+"settings.aiChatSuggestions.description" = "オフにすると、AIチャットは入力欄の上に候補プロンプトを表示しません。";
 "settings.leaderboardParticipation.title" = "リーダーボード参加";
 "settings.leaderboardParticipation.toggle" = "リーダーボードに自分を表示";
 "settings.leaderboardParticipation.description" = "オフにすると、匿名のアクティビティはリーダーボードに表示されません。";

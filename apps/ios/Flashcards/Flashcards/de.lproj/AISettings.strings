@@ -135,6 +135,7 @@
 "settings.row.currentWorkspace" = "Arbeitsbereich";
 "settings.row.reviewReminders" = "Erinnerungen";
 "settings.row.reviewAnimations" = "Wiederholungsanimationen";
+"settings.row.aiChatSuggestions" = "KI-Chat-Vorschläge";
 "settings.row.leaderboardParticipation" = "Bestenlisten-Teilnahme";
 "settings.row.language" = "Sprache";
 "settings.row.language.value" = "iOS";
@@ -167,6 +168,9 @@
 "settings.currentWorkspace.renameLinkedOnly" = "Das Umbenennen von Arbeitsbereichen ist nur fur verknupfte Cloud-Arbeitsbereiche verfugbar.";
 "settings.reviewAnimations.title" = "Wiederholungsanimationen";
 "settings.reviewAnimations.toggle" = "Animationen nach dem Bewerten einer Karte anzeigen";
+"settings.aiChatSuggestions.title" = "KI-Chat-Vorschläge";
+"settings.aiChatSuggestions.toggle" = "Vorschläge im Texteingabefeld anzeigen";
+"settings.aiChatSuggestions.description" = "Wenn diese Einstellung aus ist, zeigt der KI-Chat keine vorgeschlagenen Prompts über dem Texteingabefeld.";
 "settings.leaderboardParticipation.title" = "Bestenlisten-Teilnahme";
 "settings.leaderboardParticipation.toggle" = "Mich in der Bestenliste anzeigen";
 "settings.leaderboardParticipation.description" = "Wenn diese Einstellung aus ist, erscheint deine anonyme Aktivität nicht in der Bestenliste.";

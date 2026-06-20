@@ -36,6 +36,12 @@ struct SettingsView: View {
             : aiSettingsLocalized("common.off", "Off")
     }
 
+    private var aiChatSuggestionsValue: String {
+        store.aiChatComposerSuggestionsEnabled
+            ? aiSettingsLocalized("common.on", "On")
+            : aiSettingsLocalized("common.off", "Off")
+    }
+
     private var settingsAttentionSummary: SettingsAttentionSummary {
         makeSettingsAttentionSummary(
             issues: makeSettingsAttentionIssues(cloudState: store.cloudSettings?.cloudState)
@@ -92,6 +98,16 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsReviewAnimationsRow)
+
+                NavigationLink(value: SettingsNavigationDestination.aiChatSuggestions) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.aiChatSuggestions", "AI Chat Suggestions"),
+                        value: self.aiChatSuggestionsValue,
+                        systemImage: "lightbulb",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsAIChatSuggestionsRow)
 
                 NavigationLink(value: SettingsNavigationDestination.leaderboardParticipation) {
                     SettingsNavigationRow(

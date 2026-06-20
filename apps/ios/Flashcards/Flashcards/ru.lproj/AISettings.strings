@@ -135,6 +135,7 @@
 "settings.row.currentWorkspace" = "Рабочая область";
 "settings.row.reviewReminders" = "Напоминания";
 "settings.row.reviewAnimations" = "Анимации повторения";
+"settings.row.aiChatSuggestions" = "Подсказки AI-чата";
 "settings.row.leaderboardParticipation" = "Участие в таблице лидеров";
 "settings.row.language" = "Язык";
 "settings.row.language.value" = "iOS";
@@ -167,6 +168,9 @@
 "settings.currentWorkspace.renameLinkedOnly" = "Переименование рабочей области доступно только для связанных облачных рабочих областей.";
 "settings.reviewAnimations.title" = "Анимации повторения";
 "settings.reviewAnimations.toggle" = "Показывать анимации после оценки карточки";
+"settings.aiChatSuggestions.title" = "Подсказки AI-чата";
+"settings.aiChatSuggestions.toggle" = "Показывать подсказки в поле ввода";
+"settings.aiChatSuggestions.description" = "Когда настройка выключена, AI-чат не показывает предложенные запросы над полем ввода.";
 "settings.leaderboardParticipation.title" = "Участие в таблице лидеров";
 "settings.leaderboardParticipation.toggle" = "Показывать меня в таблице лидеров";
 "settings.leaderboardParticipation.description" = "Когда настройка выключена, ваша обезличенная активность не появляется в таблице лидеров.";

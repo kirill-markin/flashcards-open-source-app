@@ -135,6 +135,7 @@
 "settings.row.currentWorkspace" = "वर्कस्पेस";
 "settings.row.reviewReminders" = "रिमाइंडर";
 "settings.row.reviewAnimations" = "समीक्षा एनिमेशन";
+"settings.row.aiChatSuggestions" = "AI चैट सुझाव";
 "settings.row.leaderboardParticipation" = "लीडरबोर्ड भागीदारी";
 "settings.row.language" = "भाषा";
 "settings.row.language.value" = "iOS";
@@ -167,6 +168,9 @@
 "settings.currentWorkspace.renameLinkedOnly" = "कार्यस्थान का नाम बदलना केवल लिंक किए गए क्लाउड कार्यस्थानों के लिए उपलब्ध है।";
 "settings.reviewAnimations.title" = "समीक्षा एनिमेशन";
 "settings.reviewAnimations.toggle" = "कार्ड को रेट करने के बाद एनिमेशन दिखाएं";
+"settings.aiChatSuggestions.title" = "AI चैट सुझाव";
+"settings.aiChatSuggestions.toggle" = "कंपोज़र सुझाव दिखाएँ";
+"settings.aiChatSuggestions.description" = "यह बंद होने पर, AI चैट कंपोज़र के ऊपर सुझाए गए प्रॉम्प्ट नहीं दिखाता.";
 "settings.leaderboardParticipation.title" = "लीडरबोर्ड भागीदारी";
 "settings.leaderboardParticipation.toggle" = "मुझे लीडरबोर्ड पर दिखाएँ";
 "settings.leaderboardParticipation.description" = "यह बंद होने पर आपकी गुमनाम गतिविधि लीडरबोर्ड पर नहीं दिखेगी.";

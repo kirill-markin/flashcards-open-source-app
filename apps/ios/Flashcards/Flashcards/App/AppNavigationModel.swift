@@ -7,6 +7,8 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
         return [.currentWorkspace]
     case .reviewAnimations:
         return [.reviewAnimations]
+    case .aiChatSuggestions:
+        return [.aiChatSuggestions]
     case .leaderboardParticipation:
         return [.leaderboardParticipation]
     case .language:
