@@ -75,6 +75,7 @@ final class FlashcardsStore {
     var progressSnapshot: ProgressSnapshot?
     var reviewScheduleSnapshot: ReviewScheduleSnapshot?
     var progressLeaderboardSnapshot: ProgressLeaderboardSnapshot?
+    var progressStreakLeaderboardSnapshot: ProgressStreakLeaderboardSnapshot?
     var reviewLeaderboardBadgeState: ReviewLeaderboardBadgeState
     var reviewProgressBadgeState: ReviewProgressBadgeState
     var progressErrorMessage: String
@@ -139,31 +140,38 @@ final class FlashcardsStore {
     @ObservationIgnored var progressSeriesServerBaseCache: PersistedProgressSeriesServerBase?
     @ObservationIgnored var progressReviewScheduleServerBaseCache: PersistedReviewScheduleServerBase?
     @ObservationIgnored var progressLeaderboardServerBaseCache: PersistedProgressLeaderboardServerBase?
+    @ObservationIgnored var progressStreakLeaderboardServerBaseCache: PersistedProgressStreakLeaderboardServerBase?
     @ObservationIgnored var progressObservedScopeKey: ProgressScopeKey?
     @ObservationIgnored var progressErrorState: ProgressErrorState
     @ObservationIgnored var progressSummaryInvalidatedScopeKeys: Set<ProgressSummaryScopeKey>
     @ObservationIgnored var progressSeriesInvalidatedScopeKeys: Set<ProgressScopeKey>
     @ObservationIgnored var progressReviewScheduleInvalidatedScopeKeys: Set<ReviewScheduleScopeKey>
     @ObservationIgnored var progressLeaderboardInvalidatedScopeKeys: Set<ProgressLeaderboardScopeKey>
+    @ObservationIgnored var progressStreakLeaderboardInvalidatedScopeKeys: Set<ProgressLeaderboardScopeKey>
     @ObservationIgnored var progressSummaryRefreshToken: Int
     @ObservationIgnored var progressSeriesRefreshToken: Int
     @ObservationIgnored var progressReviewScheduleRefreshToken: Int
     @ObservationIgnored var progressLeaderboardRefreshToken: Int
+    @ObservationIgnored var progressStreakLeaderboardRefreshToken: Int
     @ObservationIgnored var progressActiveSummaryRefreshScopeKey: ProgressSummaryScopeKey?
     @ObservationIgnored var progressActiveSeriesRefreshScopeKey: ProgressScopeKey?
     @ObservationIgnored var progressActiveReviewScheduleRefreshScopeKey: ReviewScheduleScopeKey?
     @ObservationIgnored var progressActiveLeaderboardRefreshScopeKey: ProgressLeaderboardScopeKey?
+    @ObservationIgnored var progressActiveStreakLeaderboardRefreshScopeKey: ProgressLeaderboardScopeKey?
     @ObservationIgnored var progressActiveSummaryRefreshToken: Int?
     @ObservationIgnored var progressActiveSeriesRefreshToken: Int?
     @ObservationIgnored var progressActiveReviewScheduleRefreshToken: Int?
     @ObservationIgnored var progressActiveLeaderboardRefreshToken: Int?
+    @ObservationIgnored var progressActiveStreakLeaderboardRefreshToken: Int?
     @ObservationIgnored var isProgressSummaryRefreshing: Bool
     @ObservationIgnored var isProgressSeriesRefreshing: Bool
     @ObservationIgnored var isProgressReviewScheduleRefreshing: Bool
     @ObservationIgnored var isProgressLeaderboardRefreshing: Bool
+    @ObservationIgnored var isProgressStreakLeaderboardRefreshing: Bool
     @ObservationIgnored var isCommunityProfileUpdateInFlight: Bool
     @ObservationIgnored var progressReviewedAtClientRevision: Int
     @ObservationIgnored var progressLeaderboardPublishedClientRevision: Int?
+    @ObservationIgnored var progressStreakLeaderboardPublishedClientRevision: Int?
     @ObservationIgnored var progressReviewScheduleLocalRevision: Int
     @ObservationIgnored var progressReviewedAtClientCache: ProgressReviewedAtClientCacheEntry?
     @ObservationIgnored var progressReviewScheduleLocalCache: ProgressReviewScheduleLocalCacheEntry?
@@ -374,6 +382,7 @@ final class FlashcardsStore {
         self.progressSnapshot = nil
         self.reviewScheduleSnapshot = nil
         self.progressLeaderboardSnapshot = nil
+        self.progressStreakLeaderboardSnapshot = nil
         self.reviewLeaderboardBadgeState = makeEmptyReviewLeaderboardBadgeState()
         self.reviewProgressBadgeState = makeEmptyReviewProgressBadgeState()
         self.progressErrorMessage = ""
@@ -466,31 +475,38 @@ final class FlashcardsStore {
         self.progressSeriesServerBaseCache = nil
         self.progressReviewScheduleServerBaseCache = nil
         self.progressLeaderboardServerBaseCache = nil
+        self.progressStreakLeaderboardServerBaseCache = nil
         self.progressObservedScopeKey = nil
         self.progressErrorState = makeEmptyProgressErrorState()
         self.progressSummaryInvalidatedScopeKeys = []
         self.progressSeriesInvalidatedScopeKeys = []
         self.progressReviewScheduleInvalidatedScopeKeys = []
         self.progressLeaderboardInvalidatedScopeKeys = []
+        self.progressStreakLeaderboardInvalidatedScopeKeys = []
         self.progressSummaryRefreshToken = 0
         self.progressSeriesRefreshToken = 0
         self.progressReviewScheduleRefreshToken = 0
         self.progressLeaderboardRefreshToken = 0
+        self.progressStreakLeaderboardRefreshToken = 0
         self.progressActiveSummaryRefreshScopeKey = nil
         self.progressActiveSeriesRefreshScopeKey = nil
         self.progressActiveReviewScheduleRefreshScopeKey = nil
         self.progressActiveLeaderboardRefreshScopeKey = nil
+        self.progressActiveStreakLeaderboardRefreshScopeKey = nil
         self.progressActiveSummaryRefreshToken = nil
         self.progressActiveSeriesRefreshToken = nil
         self.progressActiveReviewScheduleRefreshToken = nil
         self.progressActiveLeaderboardRefreshToken = nil
+        self.progressActiveStreakLeaderboardRefreshToken = nil
         self.isProgressSummaryRefreshing = false
         self.isProgressSeriesRefreshing = false
         self.isProgressReviewScheduleRefreshing = false
         self.isProgressLeaderboardRefreshing = false
+        self.isProgressStreakLeaderboardRefreshing = false
         self.isCommunityProfileUpdateInFlight = false
         self.progressReviewedAtClientRevision = 0
         self.progressLeaderboardPublishedClientRevision = nil
+        self.progressStreakLeaderboardPublishedClientRevision = nil
         self.progressReviewScheduleLocalRevision = 0
         self.progressReviewedAtClientCache = nil
         self.progressReviewScheduleLocalCache = nil

@@ -148,6 +148,169 @@ struct UserProgressLeaderboard: Codable, Hashable, Sendable {
     let windows: [ProgressLeaderboardWindow]
 }
 
+struct ProgressStreakLeaderboardViewer: Codable, Hashable, Sendable {
+    let publicProfileId: String
+    let displayName: String
+    let rank: Int
+    let streakDays: Int
+}
+
+struct ProgressStreakLeaderboardParticipantRow: Codable, Hashable, Sendable {
+    let kind: ProgressLeaderboardParticipantKind
+    let publicProfileId: String
+    /// Server-generated from the public profile id and the request locale.
+    /// Clients must never generate or persist their own anonymous names.
+    let anonymousDisplayName: String
+    /// Viewer-private friend label shown only for current opted-in friends.
+    let friendDisplayName: String?
+    let streakDays: Int
+    let rank: Int
+}
+
+struct ProgressStreakLeaderboardRankingRow: Codable, Hashable, Sendable {
+    let kind: ProgressLeaderboardRankingRowKind
+    let publicProfileId: String
+    /// Server-generated from the public profile id and the request locale.
+    /// Clients must never generate or persist their own anonymous names.
+    let anonymousDisplayName: String
+    /// Viewer-private friend label shown only for current opted-in friends.
+    let friendDisplayName: String?
+    let streakDays: Int
+    let rank: Int
+}
+
+enum ProgressStreakLeaderboardRow: Codable, Hashable, Sendable {
+    case participant(ProgressStreakLeaderboardParticipantRow)
+    case gap
+
+    private enum CodingKeys: String, CodingKey {
+        case kind
+    }
+
+    private static let gapKindRawValue: String = "gap"
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let kind = try container.decode(String.self, forKey: .kind)
+        if kind == Self.gapKindRawValue {
+            self = .gap
+            return
+        }
+
+        self = .participant(try ProgressStreakLeaderboardParticipantRow(from: decoder))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        switch self {
+        case .gap:
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(Self.gapKindRawValue, forKey: .kind)
+        case .participant(let participantRow):
+            try participantRow.encode(to: encoder)
+        }
+    }
+}
+
+struct ProgressStreakLeaderboardReadyPayload: Codable, Hashable, Sendable {
+    let snapshotId: String
+    let snapshotGeneratedAt: String
+    let asOfUtcDate: String
+    let nextRefreshAfter: String
+    let participantCount: Int
+    let viewer: ProgressStreakLeaderboardViewer
+    let rows: [ProgressStreakLeaderboardRow]
+    let rankingRows: [ProgressStreakLeaderboardRankingRow]
+}
+
+struct UserProgressStreakLeaderboard: Codable, Hashable, Sendable {
+    let status: ProgressLeaderboardStatus
+    let metric: ProgressLeaderboardMetric
+    /// Present only when status is ready. Non-ready streak responses carry no rows.
+    let readyPayload: ProgressStreakLeaderboardReadyPayload?
+
+    private enum CodingKeys: String, CodingKey {
+        case status
+        case metric
+        case snapshotId
+        case snapshotGeneratedAt
+        case asOfUtcDate
+        case nextRefreshAfter
+        case participantCount
+        case viewer
+        case rows
+        case rankingRows
+    }
+
+    private static let readyPayloadCodingKeys: [CodingKeys] = [
+        .snapshotId,
+        .snapshotGeneratedAt,
+        .asOfUtcDate,
+        .nextRefreshAfter,
+        .participantCount,
+        .viewer,
+        .rows,
+        .rankingRows,
+    ]
+
+    init(
+        status: ProgressLeaderboardStatus,
+        metric: ProgressLeaderboardMetric,
+        readyPayload: ProgressStreakLeaderboardReadyPayload?
+    ) {
+        self.status = status
+        self.metric = metric
+        self.readyPayload = readyPayload
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let status = try container.decode(ProgressLeaderboardStatus.self, forKey: .status)
+        let metric = try container.decode(ProgressLeaderboardMetric.self, forKey: .metric)
+        let readyPayload: ProgressStreakLeaderboardReadyPayload?
+        if status == .ready {
+            readyPayload = ProgressStreakLeaderboardReadyPayload(
+                snapshotId: try container.decode(String.self, forKey: .snapshotId),
+                snapshotGeneratedAt: try container.decode(String.self, forKey: .snapshotGeneratedAt),
+                asOfUtcDate: try container.decode(String.self, forKey: .asOfUtcDate),
+                nextRefreshAfter: try container.decode(String.self, forKey: .nextRefreshAfter),
+                participantCount: try container.decode(Int.self, forKey: .participantCount),
+                viewer: try container.decode(ProgressStreakLeaderboardViewer.self, forKey: .viewer),
+                rows: try container.decode([ProgressStreakLeaderboardRow].self, forKey: .rows),
+                rankingRows: try container.decode([ProgressStreakLeaderboardRankingRow].self, forKey: .rankingRows)
+            )
+        } else {
+            if let unexpectedKey = Self.readyPayloadCodingKeys.first(where: { key in container.contains(key) }) {
+                throw DecodingError.dataCorruptedError(
+                    forKey: unexpectedKey,
+                    in: container,
+                    debugDescription: "Non-ready streak leaderboard payload must not include \(unexpectedKey.stringValue)."
+                )
+            }
+            readyPayload = nil
+        }
+
+        self.init(status: status, metric: metric, readyPayload: readyPayload)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.status, forKey: .status)
+        try container.encode(self.metric, forKey: .metric)
+        guard let readyPayload else {
+            return
+        }
+
+        try container.encode(readyPayload.snapshotId, forKey: .snapshotId)
+        try container.encode(readyPayload.snapshotGeneratedAt, forKey: .snapshotGeneratedAt)
+        try container.encode(readyPayload.asOfUtcDate, forKey: .asOfUtcDate)
+        try container.encode(readyPayload.nextRefreshAfter, forKey: .nextRefreshAfter)
+        try container.encode(readyPayload.participantCount, forKey: .participantCount)
+        try container.encode(readyPayload.viewer, forKey: .viewer)
+        try container.encode(readyPayload.rows, forKey: .rows)
+        try container.encode(readyPayload.rankingRows, forKey: .rankingRows)
+    }
+}
+
 enum ProgressLeaderboardValidationError: LocalizedError {
     case unexpectedWindows(status: String, windowCount: Int)
     case invalidWindowKeys([String])
@@ -195,6 +358,53 @@ enum ProgressLeaderboardValidationError: LocalizedError {
     }
 }
 
+enum ProgressStreakLeaderboardValidationError: LocalizedError {
+    case missingReadyPayload
+    case unexpectedReadyPayload(status: String)
+    case invalidTimestamp(field: String, value: String)
+    case invalidAsOfUtcDate(String)
+    case negativeParticipantCount(Int)
+    case invalidViewerRank(rank: Int, participantCount: Int)
+    case negativeStreakDays(streakDays: Int)
+    case invalidRowRank(rank: Int)
+    case rankingRowCountMismatch(participantCount: Int, rankingRowCount: Int)
+    case invalidRankingRowRank(expectedRank: Int, actualRank: Int)
+    case unorderedRankingRows(previousRank: Int, previousStreakDays: Int, rank: Int, streakDays: Int)
+    case viewerRowMismatch
+    case viewerRankingRowMismatch
+
+    var errorDescription: String? {
+        switch self {
+        case .missingReadyPayload:
+            return "Streak leaderboard with ready status must contain a ready payload."
+        case .unexpectedReadyPayload(let status):
+            return "Streak leaderboard with status \(status) must not contain a ready payload."
+        case .invalidTimestamp(let field, let value):
+            return "Streak leaderboard contained an invalid \(field) timestamp: \(value)."
+        case .invalidAsOfUtcDate(let value):
+            return "Streak leaderboard contained an invalid asOfUtcDate value: \(value)."
+        case .negativeParticipantCount(let participantCount):
+            return "Streak leaderboard contained a negative participant count: \(participantCount)."
+        case .invalidViewerRank(let rank, let participantCount):
+            return "Streak leaderboard viewer rank \(rank) is outside 1...\(participantCount)."
+        case .negativeStreakDays(let streakDays):
+            return "Streak leaderboard contained a negative streakDays value: \(streakDays)."
+        case .invalidRowRank(let rank):
+            return "Streak leaderboard contained an invalid row rank: \(rank)."
+        case .rankingRowCountMismatch(let participantCount, let rankingRowCount):
+            return "Streak leaderboard participant count \(participantCount) did not match ranking row count \(rankingRowCount)."
+        case .invalidRankingRowRank(let expectedRank, let actualRank):
+            return "Streak leaderboard expected ranking row rank \(expectedRank), received \(actualRank)."
+        case .unorderedRankingRows(let previousRank, let previousStreakDays, let rank, let streakDays):
+            return "Streak leaderboard ranking row \(rank) streak \(streakDays) exceeded previous rank \(previousRank) streak \(previousStreakDays)."
+        case .viewerRowMismatch:
+            return "Streak leaderboard rows did not contain exactly one viewer row matching the viewer."
+        case .viewerRankingRowMismatch:
+            return "Streak leaderboard ranking rows did not contain exactly one viewer row matching the viewer."
+        }
+    }
+}
+
 /// Refresh policy for a cached payload: ready payloads wait for the earliest
 /// server-provided nextRefreshAfter, an unavailable snapshot retries on the next
 /// pass, and the remaining placeholder statuses stay cached until invalidated.
@@ -213,6 +423,25 @@ func progressLeaderboardRequiresScheduledRefresh(
         }
 
         return now >= earliestNextRefreshAfter
+    case .snapshotUnavailable:
+        return true
+    case .participationDisabled, .linkedAccountRequired:
+        return false
+    }
+}
+
+func progressStreakLeaderboardRequiresScheduledRefresh(
+    leaderboard: UserProgressStreakLeaderboard,
+    now: Date
+) -> Bool {
+    switch leaderboard.status {
+    case .ready:
+        guard let readyPayload = leaderboard.readyPayload,
+              let nextRefreshAfter = parseIsoTimestamp(value: readyPayload.nextRefreshAfter) else {
+            return true
+        }
+
+        return now >= nextRefreshAfter
     case .snapshotUnavailable:
         return true
     case .participationDisabled, .linkedAccountRequired:
@@ -388,5 +617,151 @@ private func validateProgressLeaderboardRankingRows(window: ProgressLeaderboardW
         viewerRow.qualifiedReviewCount == window.viewer.qualifiedReviewCount
     else {
         throw ProgressLeaderboardValidationError.viewerRankingRowMismatch(windowKey: windowKey)
+    }
+}
+
+func validateProgressStreakLeaderboard(leaderboard: UserProgressStreakLeaderboard) throws {
+    guard leaderboard.status == .ready else {
+        guard leaderboard.readyPayload == nil else {
+            throw ProgressStreakLeaderboardValidationError.unexpectedReadyPayload(
+                status: leaderboard.status.rawValue
+            )
+        }
+
+        return
+    }
+
+    guard let readyPayload = leaderboard.readyPayload else {
+        throw ProgressStreakLeaderboardValidationError.missingReadyPayload
+    }
+
+    try validateProgressStreakLeaderboardReadyPayload(readyPayload: readyPayload)
+}
+
+private func validateProgressStreakLeaderboardReadyPayload(
+    readyPayload: ProgressStreakLeaderboardReadyPayload
+) throws {
+    let timestampFields: [(field: String, value: String)] = [
+        ("snapshotGeneratedAt", readyPayload.snapshotGeneratedAt),
+        ("nextRefreshAfter", readyPayload.nextRefreshAfter),
+    ]
+    for timestampField in timestampFields {
+        guard parseIsoTimestamp(value: timestampField.value) != nil else {
+            throw ProgressStreakLeaderboardValidationError.invalidTimestamp(
+                field: timestampField.field,
+                value: timestampField.value
+            )
+        }
+    }
+
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+    guard progressStrictDate(localDate: readyPayload.asOfUtcDate, calendar: calendar) != nil else {
+        throw ProgressStreakLeaderboardValidationError.invalidAsOfUtcDate(readyPayload.asOfUtcDate)
+    }
+
+    guard readyPayload.participantCount >= 0 else {
+        throw ProgressStreakLeaderboardValidationError.negativeParticipantCount(readyPayload.participantCount)
+    }
+
+    guard readyPayload.viewer.rank >= 1, readyPayload.viewer.rank <= readyPayload.participantCount else {
+        throw ProgressStreakLeaderboardValidationError.invalidViewerRank(
+            rank: readyPayload.viewer.rank,
+            participantCount: readyPayload.participantCount
+        )
+    }
+
+    guard readyPayload.viewer.streakDays >= 0 else {
+        throw ProgressStreakLeaderboardValidationError.negativeStreakDays(
+            streakDays: readyPayload.viewer.streakDays
+        )
+    }
+
+    try validateProgressStreakLeaderboardRankingRows(readyPayload: readyPayload)
+
+    var viewerRows: [ProgressStreakLeaderboardParticipantRow] = []
+    for row in readyPayload.rows {
+        guard case .participant(let participantRow) = row else {
+            continue
+        }
+
+        guard participantRow.streakDays >= 0 else {
+            throw ProgressStreakLeaderboardValidationError.negativeStreakDays(
+                streakDays: participantRow.streakDays
+            )
+        }
+
+        guard participantRow.rank >= 1 else {
+            throw ProgressStreakLeaderboardValidationError.invalidRowRank(rank: participantRow.rank)
+        }
+
+        if participantRow.kind == .viewer {
+            viewerRows.append(participantRow)
+        }
+    }
+
+    guard
+        viewerRows.count == 1,
+        let viewerRow = viewerRows.first,
+        viewerRow.publicProfileId == readyPayload.viewer.publicProfileId,
+        viewerRow.rank == readyPayload.viewer.rank,
+        viewerRow.streakDays == readyPayload.viewer.streakDays
+    else {
+        throw ProgressStreakLeaderboardValidationError.viewerRowMismatch
+    }
+}
+
+private func validateProgressStreakLeaderboardRankingRows(
+    readyPayload: ProgressStreakLeaderboardReadyPayload
+) throws {
+    guard readyPayload.rankingRows.count == readyPayload.participantCount else {
+        throw ProgressStreakLeaderboardValidationError.rankingRowCountMismatch(
+            participantCount: readyPayload.participantCount,
+            rankingRowCount: readyPayload.rankingRows.count
+        )
+    }
+
+    var viewerRows: [ProgressStreakLeaderboardRankingRow] = []
+    var previousRankingRow: ProgressStreakLeaderboardRankingRow?
+    for (index, rankingRow) in readyPayload.rankingRows.enumerated() {
+        guard rankingRow.streakDays >= 0 else {
+            throw ProgressStreakLeaderboardValidationError.negativeStreakDays(
+                streakDays: rankingRow.streakDays
+            )
+        }
+
+        let expectedRank = index + 1
+        guard rankingRow.rank == expectedRank else {
+            throw ProgressStreakLeaderboardValidationError.invalidRankingRowRank(
+                expectedRank: expectedRank,
+                actualRank: rankingRow.rank
+            )
+        }
+
+        if let previousRankingRow,
+           rankingRow.streakDays > previousRankingRow.streakDays {
+            throw ProgressStreakLeaderboardValidationError.unorderedRankingRows(
+                previousRank: previousRankingRow.rank,
+                previousStreakDays: previousRankingRow.streakDays,
+                rank: rankingRow.rank,
+                streakDays: rankingRow.streakDays
+            )
+        }
+
+        if rankingRow.kind == .viewer {
+            viewerRows.append(rankingRow)
+        }
+
+        previousRankingRow = rankingRow
+    }
+
+    guard
+        viewerRows.count == 1,
+        let viewerRow = viewerRows.first,
+        viewerRow.publicProfileId == readyPayload.viewer.publicProfileId,
+        viewerRow.rank == readyPayload.viewer.rank,
+        viewerRow.streakDays == readyPayload.viewer.streakDays
+    else {
+        throw ProgressStreakLeaderboardValidationError.viewerRankingRowMismatch
     }
 }

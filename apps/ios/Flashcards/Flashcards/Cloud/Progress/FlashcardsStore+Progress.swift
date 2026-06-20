@@ -169,11 +169,16 @@ extension FlashcardsStore {
                 scopeKey: leaderboardScopeKey,
                 now: now
             )
+            let shouldRefreshStreakLeaderboard = self.shouldRefreshProgressStreakLeaderboard(
+                scopeKey: leaderboardScopeKey,
+                now: now
+            )
 
             guard shouldRefreshSummary
                 || shouldRefreshSeries
                 || shouldRefreshReviewSchedule
-                || shouldRefreshLeaderboard else {
+                || shouldRefreshLeaderboard
+                || shouldRefreshStreakLeaderboard else {
                 return
             }
 
@@ -205,31 +210,30 @@ extension FlashcardsStore {
                 }
             }
 
-            if shouldRefreshReviewSchedule && shouldRefreshLeaderboard {
-                async let refreshReviewSchedule: Void = self.refreshProgressReviewScheduleServerBase(
-                    scopeKey: scheduleScopeKey,
-                    linkedSession: activeSession
-                )
-                async let refreshLeaderboard: Void = self.refreshProgressLeaderboardServerBase(
-                    scopeKey: leaderboardScopeKey,
-                    linkedSession: activeSession
-                )
-                _ = await (refreshReviewSchedule, refreshLeaderboard)
-            } else if shouldRefreshReviewSchedule {
-                await self.refreshProgressReviewScheduleServerBase(
-                    scopeKey: scheduleScopeKey,
-                    linkedSession: activeSession
-                )
-            } else if shouldRefreshLeaderboard {
-                await self.refreshProgressLeaderboardServerBase(
-                    scopeKey: leaderboardScopeKey,
-                    linkedSession: activeSession
-                )
-            }
+            async let refreshReviewSchedule: Void = self.refreshProgressReviewScheduleServerBaseIfNeeded(
+                scopeKey: scheduleScopeKey,
+                linkedSession: activeSession
+            )
+            async let refreshLeaderboard: Void = self.refreshProgressLeaderboardServerBaseIfNeeded(
+                scopeKey: leaderboardScopeKey,
+                linkedSession: activeSession,
+                now: now
+            )
+            async let refreshStreakLeaderboard: Void = self.refreshProgressStreakLeaderboardServerBaseIfNeeded(
+                scopeKey: leaderboardScopeKey,
+                linkedSession: activeSession,
+                now: now
+            )
+            _ = await (refreshReviewSchedule, refreshLeaderboard, refreshStreakLeaderboard)
 
             if self.progressObservedScopeKey == scopeKey {
                 try self.publishProgressSnapshot(scopeKey: scopeKey)
                 self.publishReviewScheduleSnapshotIsolatingErrors(scopeKey: scheduleScopeKey)
+                self.publishProgressStreakLeaderboardSnapshotIsolatingErrors(
+                    scopeKey: leaderboardScopeKey,
+                    seriesScopeKey: scopeKey,
+                    now: now
+                )
             }
         } catch {
             if isRequestCancellationError(error: error) {
@@ -269,7 +273,20 @@ extension FlashcardsStore {
                 scopeKey: leaderboardScopeKey,
                 linkedSession: activeSession
             )
-            _ = await (refreshSummary, refreshSeries, refreshReviewSchedule, refreshLeaderboard)
+            async let refreshStreakLeaderboard: Void = self.refreshProgressStreakLeaderboardServerBaseIfLinked(
+                scopeKey: leaderboardScopeKey,
+                linkedSession: activeSession
+            )
+            _ = await (refreshSummary, refreshSeries, refreshReviewSchedule, refreshLeaderboard, refreshStreakLeaderboard)
+
+            if self.progressObservedScopeKey == scopeKey {
+                try self.publishProgressSnapshot(scopeKey: scopeKey)
+                self.publishProgressStreakLeaderboardSnapshotIsolatingErrors(
+                    scopeKey: leaderboardScopeKey,
+                    seriesScopeKey: scopeKey,
+                    now: now
+                )
+            }
         } catch {
             if isRequestCancellationError(error: error) {
                 return
@@ -296,6 +313,64 @@ extension FlashcardsStore {
         )
     }
 
+    private func refreshProgressStreakLeaderboardServerBaseIfLinked(
+        scopeKey: ProgressLeaderboardScopeKey,
+        linkedSession: CloudLinkedSession
+    ) async {
+        guard scopeKey.cloudState == .linked else {
+            return
+        }
+
+        await self.refreshProgressStreakLeaderboardServerBase(
+            scopeKey: scopeKey,
+            linkedSession: linkedSession
+        )
+    }
+
+    private func refreshProgressReviewScheduleServerBaseIfNeeded(
+        scopeKey: ReviewScheduleScopeKey,
+        linkedSession: CloudLinkedSession
+    ) async {
+        guard self.shouldRefreshProgressReviewSchedule(scopeKey: scopeKey) else {
+            return
+        }
+
+        await self.refreshProgressReviewScheduleServerBase(
+            scopeKey: scopeKey,
+            linkedSession: linkedSession
+        )
+    }
+
+    private func refreshProgressLeaderboardServerBaseIfNeeded(
+        scopeKey: ProgressLeaderboardScopeKey,
+        linkedSession: CloudLinkedSession,
+        now: Date
+    ) async {
+        guard self.shouldRefreshProgressLeaderboard(scopeKey: scopeKey, now: now) else {
+            return
+        }
+
+        await self.refreshProgressLeaderboardServerBase(
+            scopeKey: scopeKey,
+            linkedSession: linkedSession
+        )
+    }
+
+    private func refreshProgressStreakLeaderboardServerBaseIfNeeded(
+        scopeKey: ProgressLeaderboardScopeKey,
+        linkedSession: CloudLinkedSession,
+        now: Date
+    ) async {
+        guard self.shouldRefreshProgressStreakLeaderboard(scopeKey: scopeKey, now: now) else {
+            return
+        }
+
+        await self.refreshProgressStreakLeaderboardServerBase(
+            scopeKey: scopeKey,
+            linkedSession: linkedSession
+        )
+    }
+
     func handleProgressContextDidChange(now: Date) {
         self.prepareProgressForCurrentVisibleTabAndRefreshIfNeeded(now: now)
     }
@@ -317,23 +392,34 @@ extension FlashcardsStore {
             )
             try self.markProgressReviewSchedulePendingLocalOverlay(scopeKey: scheduleScopeKey)
             try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
+            let leaderboardScopeKey = self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
             self.publishReviewScheduleSnapshotIsolatingErrors(
                 scopeKey: scheduleScopeKey
             )
             // Re-render the cached leaderboard so the viewer's live qualified
             // count reflects the just-submitted review immediately.
             self.publishProgressLeaderboardSnapshotIsolatingErrors(
-                scopeKey: self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey),
+                scopeKey: leaderboardScopeKey,
                 now: now
             )
 
             guard let progressSnapshot = self.progressSnapshot else {
+                self.publishProgressStreakLeaderboardSnapshotIsolatingErrors(
+                    scopeKey: leaderboardScopeKey,
+                    seriesScopeKey: scopeKey,
+                    now: now
+                )
                 self.clearProgressErrorMessage()
                 return
             }
 
             guard progressSnapshot.scopeKey == scopeKey else {
                 try self.publishProgressSnapshot(scopeKey: scopeKey)
+                self.publishProgressStreakLeaderboardSnapshotIsolatingErrors(
+                    scopeKey: leaderboardScopeKey,
+                    seriesScopeKey: scopeKey,
+                    now: now
+                )
                 self.clearProgressErrorMessage()
                 return
             }
@@ -352,6 +438,11 @@ extension FlashcardsStore {
                 activeReviewLocalDates: activeReviewLocalDates
             )
             self.applyProgressSnapshot(snapshot: patchedSnapshot)
+            self.publishProgressStreakLeaderboardSnapshotIsolatingErrors(
+                scopeKey: leaderboardScopeKey,
+                seriesScopeKey: scopeKey,
+                now: now
+            )
             self.clearProgressErrorMessage()
         } catch {
             self.presentTechnicalError(error)
@@ -429,6 +520,11 @@ extension FlashcardsStore {
             if reviewProgressDataChanged && isReviewVisible == false {
                 self.publishProgressLeaderboardSnapshotIsolatingErrors(
                     scopeKey: self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey),
+                    now: now
+                )
+                self.publishProgressStreakLeaderboardSnapshotIsolatingErrors(
+                    scopeKey: self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey),
+                    seriesScopeKey: scopeKey,
                     now: now
                 )
             }

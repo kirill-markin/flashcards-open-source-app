@@ -20,6 +20,9 @@ extension FlashcardsStore {
             self.progressLeaderboardServerBaseCache = self.loadPersistedProgressLeaderboardServerBase(
                 scopeKey: self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
             )
+            self.progressStreakLeaderboardServerBaseCache = self.loadPersistedProgressStreakLeaderboardServerBase(
+                scopeKey: self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
+            )
             self.clearProgressErrorMessage()
             if previousScopeKey != nil {
                 self.invalidateProgress(
@@ -57,6 +60,14 @@ extension FlashcardsStore {
         if self.progressLeaderboardSnapshot?.scopeKey != leaderboardScopeKey
             || self.progressLeaderboardPublishedClientRevision != self.progressReviewedAtClientRevision {
             self.publishProgressLeaderboardSnapshotIsolatingErrors(scopeKey: leaderboardScopeKey, now: now)
+        }
+        if self.progressStreakLeaderboardSnapshot?.scopeKey != leaderboardScopeKey
+            || self.progressStreakLeaderboardPublishedClientRevision != self.progressReviewedAtClientRevision {
+            self.publishProgressStreakLeaderboardSnapshotIsolatingErrors(
+                scopeKey: leaderboardScopeKey,
+                seriesScopeKey: scopeKey,
+                now: now
+            )
         }
 
         return scopeKey
@@ -372,6 +383,92 @@ extension FlashcardsStore {
         }
     }
 
+    func publishProgressStreakLeaderboardSnapshot(
+        scopeKey: ProgressLeaderboardScopeKey,
+        seriesScopeKey: ProgressScopeKey,
+        now: Date
+    ) throws {
+        let snapshot = try self.makeCurrentProgressStreakLeaderboardSnapshot(
+            scopeKey: scopeKey,
+            seriesScopeKey: seriesScopeKey,
+            now: now
+        )
+        self.applyProgressStreakLeaderboardSnapshot(snapshot: snapshot)
+        self.progressStreakLeaderboardPublishedClientRevision = self.progressReviewedAtClientRevision
+    }
+
+    private func makeCurrentProgressStreakLeaderboardSnapshot(
+        scopeKey: ProgressLeaderboardScopeKey,
+        seriesScopeKey: ProgressScopeKey,
+        now: Date
+    ) throws -> ProgressStreakLeaderboardSnapshot {
+        _ = now
+        let personalStreakDays = try self.currentProgressStreakDays(seriesScopeKey: seriesScopeKey)
+        switch scopeKey.cloudState {
+        case .none, .some(.disconnected), .some(.linkingReady), .some(.guest):
+            return try makeProgressStreakLeaderboardSnapshot(
+                leaderboard: nil,
+                scopeKey: scopeKey,
+                personalStreakDays: personalStreakDays
+            )
+        case .some(.linked):
+            break
+        }
+
+        guard let cachedServerBase = self.progressStreakLeaderboardServerBaseCache,
+              cachedServerBase.scopeKey == scopeKey else {
+            return try makeProgressStreakLeaderboardSnapshot(
+                leaderboard: nil,
+                scopeKey: scopeKey,
+                personalStreakDays: personalStreakDays
+            )
+        }
+
+        return try makeProgressStreakLeaderboardSnapshot(
+            leaderboard: cachedServerBase.serverBase,
+            scopeKey: scopeKey,
+            personalStreakDays: personalStreakDays
+        )
+    }
+
+    private func currentProgressStreakDays(seriesScopeKey: ProgressScopeKey) throws -> Int? {
+        if let progressSnapshot = self.progressSnapshot,
+           progressSnapshot.scopeKey == seriesScopeKey {
+            return progressSnapshot.summary.currentStreakDays
+        }
+
+        let reviewedAtClientSources = try self.loadProgressReviewedAtClientSources()
+        let renderedProgress = try self.makeProgressRenderedSummaryAndSeries(
+            scopeKey: seriesScopeKey,
+            reviewedAtClientSources: reviewedAtClientSources
+        )
+        return renderedProgress.renderedSummary.summary.currentStreakDays
+    }
+
+    func publishProgressStreakLeaderboardSnapshotIsolatingErrors(
+        scopeKey: ProgressLeaderboardScopeKey,
+        seriesScopeKey: ProgressScopeKey,
+        now: Date
+    ) {
+        do {
+            try self.publishProgressStreakLeaderboardSnapshot(
+                scopeKey: scopeKey,
+                seriesScopeKey: seriesScopeKey,
+                now: now
+            )
+        } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
+
+            self.applyProgressStreakLeaderboardSnapshot(snapshot: nil)
+            self.presentTechnicalError(error)
+            self.replaceProgressStreakLeaderboardRefreshErrorMessage(
+                message: localizedProgressStreakLeaderboardRefreshErrorMessage()
+            )
+        }
+    }
+
     func applyProgressLeaderboardSnapshot(snapshot: ProgressLeaderboardSnapshot?) {
         if self.progressLeaderboardSnapshot != snapshot {
             self.progressLeaderboardSnapshot = snapshot
@@ -379,6 +476,12 @@ extension FlashcardsStore {
         self.applyReviewLeaderboardBadgeState(
             badgeState: makeReviewLeaderboardBadgeState(progressLeaderboardSnapshot: snapshot)
         )
+    }
+
+    func applyProgressStreakLeaderboardSnapshot(snapshot: ProgressStreakLeaderboardSnapshot?) {
+        if self.progressStreakLeaderboardSnapshot != snapshot {
+            self.progressStreakLeaderboardSnapshot = snapshot
+        }
     }
 
     func publishReviewProgressBadgeState(scopeKey: ProgressScopeKey) throws {
@@ -400,6 +503,7 @@ extension FlashcardsStore {
         if snapshot == nil {
             self.applyReviewScheduleSnapshot(snapshot: nil)
             self.applyProgressLeaderboardSnapshot(snapshot: nil)
+            self.applyProgressStreakLeaderboardSnapshot(snapshot: nil)
         }
 
         self.applyReviewProgressBadgeState(
