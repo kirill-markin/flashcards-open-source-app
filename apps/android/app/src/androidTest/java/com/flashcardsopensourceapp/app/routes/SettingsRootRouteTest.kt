@@ -23,6 +23,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsAccountStatusRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAgentConnectionsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsAccountSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsAdvancedSectionTag
+import com.flashcardsopensourceapp.feature.settings.settingsAiChatSuggestionsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsCurrentWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDecksRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteAccountRowTag
@@ -87,6 +88,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             settingsCurrentWorkspaceRowTag,
             settingsReviewRemindersRowTag,
             settingsReviewAnimationsRowTag,
+            settingsAiChatSuggestionsRowTag,
             settingsLeaderboardParticipationRowTag,
             settingsLanguageRowTag,
             settingsAccessRowTag,
@@ -117,6 +119,10 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         )
         assertRootRowOrder(
             firstRowTag = settingsReviewAnimationsRowTag,
+            secondRowTag = settingsAiChatSuggestionsRowTag
+        )
+        assertRootRowOrder(
+            firstRowTag = settingsAiChatSuggestionsRowTag,
             secondRowTag = settingsLeaderboardParticipationRowTag
         )
         assertRootRowOrder(
@@ -147,6 +153,11 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertRowClick(
             rowTag = settingsReviewAnimationsRowTag,
             expectedClick = "review_animations",
+            clickedRows = clickedRows
+        )
+        assertRowClick(
+            rowTag = settingsAiChatSuggestionsRowTag,
+            expectedClick = "ai_chat_suggestions",
             clickedRows = clickedRows
         )
         assertRowClick(
@@ -279,6 +290,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         accountStatusAttentionCount = 0,
                         friendInviteAvailability = friendInviteAvailability,
                         reviewReactionAnimationsEnabled = true,
+                        aiChatComposerSuggestionsEnabled = true,
                         canManageAccountPreferences = canManageAccountPreferences,
                         isTestModeEnabled = isTestModeEnabled
                     ),
@@ -296,6 +308,9 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     },
                     onOpenReviewAnimations = {
                         clickedRows += "review_animations"
+                    },
+                    onOpenAiChatSuggestions = {
+                        clickedRows += "ai_chat_suggestions"
                     },
                     onOpenLeaderboardParticipation = {
                         clickedRows += "leaderboard_participation"

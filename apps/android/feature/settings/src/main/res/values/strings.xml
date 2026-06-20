@@ -91,6 +91,10 @@
     <string name="settings_review_animations_toggle_title">Show animations after rating a card</string>
     <string name="settings_review_animations_toggle_body">Review reaction animations appear briefly after Again, Hard, Good, and Easy.</string>
     <string name="settings_review_animations_update_failed">Could not update review animations.</string>
+    <string name="settings_ai_chat_suggestions_title">AI Chat Suggestions</string>
+    <string name="settings_ai_chat_suggestions_toggle_title">Show composer suggestions</string>
+    <string name="settings_ai_chat_suggestions_toggle_body">Suggested prompts appear above the AI chat composer when the conversation is ready.</string>
+    <string name="settings_ai_chat_suggestions_update_failed">Could not update AI chat suggestions.</string>
     <string name="settings_technical_error_title">Something went wrong</string>
     <string name="settings_leaderboard_participation_title">Leaderboard participation</string>
     <string name="settings_leaderboard_participation_summary">Control community leaderboard visibility</string>

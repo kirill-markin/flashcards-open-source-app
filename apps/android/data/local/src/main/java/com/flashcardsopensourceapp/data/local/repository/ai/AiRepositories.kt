@@ -66,6 +66,18 @@ class LocalAiChatRepository(
         aiChatPreferencesStore.updateConsent(hasConsent = hasConsent)
     }
 
+    override fun observeComposerSuggestionsEnabled(): Flow<Boolean> {
+        return aiChatPreferencesStore.observeComposerSuggestionsEnabled()
+    }
+
+    override fun areComposerSuggestionsEnabled(): Boolean {
+        return aiChatPreferencesStore.areComposerSuggestionsEnabled()
+    }
+
+    override fun updateComposerSuggestionsEnabled(isEnabled: Boolean) {
+        aiChatPreferencesStore.updateComposerSuggestionsEnabled(isEnabled = isEnabled)
+    }
+
     override fun makeExplicitSessionId(): String {
         return UUID.randomUUID().toString().lowercase()
     }

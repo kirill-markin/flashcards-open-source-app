@@ -12,13 +12,14 @@ import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
+import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
+import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncCompletion
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEvent
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncOutcome
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncRequest
-import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
-import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.workspace.shared.workspaceUpdatedOnAnotherDeviceMessage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,6 +31,7 @@ import kotlinx.coroutines.launch
 class SettingsViewModel(
     workspaceRepository: WorkspaceRepository,
     private val cloudAccountRepository: CloudAccountRepository,
+    private val aiChatRepository: AiChatRepository,
     private val autoSyncEventRepository: AutoSyncEventRepository,
     private val messageController: TransientMessageController,
     testModeStore: TestModeStore,
@@ -49,8 +51,13 @@ class SettingsViewModel(
         workspaceRepository.observeAppMetadata(),
         cloudAccountRepository.observeCloudSettings(),
         cloudAccountRepository.observeAccountPreferences(),
+        aiChatRepository.observeComposerSuggestionsEnabled(),
         testModeStore.observeIsEnabled()
-    ) { metadata, cloudSettings, accountPreferences, isTestModeEnabled ->
+    ) { metadata,
+        cloudSettings,
+        accountPreferences,
+        aiChatComposerSuggestionsEnabled,
+        isTestModeEnabled ->
         val attentionSummary: SettingsAttentionSummary = makeSettingsAttentionSummary(
             issues = makeSettingsAttentionIssues(cloudState = cloudSettings.cloudState)
         )
@@ -71,6 +78,7 @@ class SettingsViewModel(
             accountStatusAttentionCount = attentionSummary.accountStatusRowCount,
             friendInviteAvailability = friendInviteAvailability(cloudState = cloudSettings.cloudState),
             reviewReactionAnimationsEnabled = accountPreferences.reviewReactionAnimationsEnabled,
+            aiChatComposerSuggestionsEnabled = aiChatComposerSuggestionsEnabled,
             canManageAccountPreferences = canManageAccountPreferences(cloudState = cloudSettings.cloudState),
             isTestModeEnabled = isTestModeEnabled
         )
@@ -88,6 +96,7 @@ class SettingsViewModel(
             accountStatusAttentionCount = 1,
             friendInviteAvailability = SettingsFriendInviteAvailability.LOADING,
             reviewReactionAnimationsEnabled = true,
+            aiChatComposerSuggestionsEnabled = true,
             canManageAccountPreferences = false,
             isTestModeEnabled = false
         )
@@ -128,6 +137,20 @@ class SettingsViewModel(
                 throw error
             } catch (error: Exception) {
                 messageController.showMessage(message = strings.get(R.string.settings_account_preferences_refresh_failed))
+            }
+        }
+    }
+
+    fun updateAiChatComposerSuggestionsEnabled(isEnabled: Boolean) {
+        viewModelScope.launch {
+            try {
+                aiChatRepository.updateComposerSuggestionsEnabled(isEnabled = isEnabled)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                messageController.showMessage(
+                    message = strings.get(R.string.settings_ai_chat_suggestions_update_failed)
+                )
             }
         }
     }
@@ -222,6 +245,7 @@ private fun friendInviteAvailability(cloudState: CloudAccountState): SettingsFri
 fun createSettingsViewModelFactory(
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
+    aiChatRepository: AiChatRepository,
     autoSyncEventRepository: AutoSyncEventRepository,
     messageController: TransientMessageController,
     testModeStore: TestModeStore,
@@ -233,6 +257,7 @@ fun createSettingsViewModelFactory(
             SettingsViewModel(
                 workspaceRepository = workspaceRepository,
                 cloudAccountRepository = cloudAccountRepository,
+                aiChatRepository = aiChatRepository,
                 autoSyncEventRepository = autoSyncEventRepository,
                 messageController = messageController,
                 testModeStore = testModeStore,

@@ -34,10 +34,10 @@ import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationViewMode
 import com.flashcardsopensourceapp.feature.friendinvite.createFriendInvitationViewModelFactory
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
 import com.flashcardsopensourceapp.feature.review.reaction.TestAnimationsRoute
-import com.flashcardsopensourceapp.feature.settings.review.ReviewAnimationsRoute
-import com.flashcardsopensourceapp.feature.settings.SettingsRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsFriendInviteAvailability
+import com.flashcardsopensourceapp.feature.settings.SettingsRoute
 import com.flashcardsopensourceapp.feature.settings.TestSettingsRoute
+import com.flashcardsopensourceapp.feature.settings.ai.AiChatSuggestionsRoute
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.device.DeviceDiagnosticsRoute
 import com.flashcardsopensourceapp.feature.settings.device.createDeviceDiagnosticsViewModelFactory
@@ -47,6 +47,7 @@ import com.flashcardsopensourceapp.feature.settings.leaderboard.LeaderboardParti
 import com.flashcardsopensourceapp.feature.settings.leaderboard.createLeaderboardParticipationViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.notifications.NotificationDiagnosticsRoute
 import com.flashcardsopensourceapp.feature.settings.notifications.NotificationDiagnosticsUiState
+import com.flashcardsopensourceapp.feature.settings.review.ReviewAnimationsRoute
 import com.flashcardsopensourceapp.feature.settings.settingsInviteFriendDisplayNameFieldTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.CurrentWorkspaceRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.current.createCurrentWorkspaceViewModelFactory
@@ -73,6 +74,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             factory = createSettingsViewModelFactory(
                 workspaceRepository = appGraph.workspaceRepository,
                 cloudAccountRepository = appGraph.cloudAccountRepository,
+                aiChatRepository = appGraph.aiChatRepository,
                 autoSyncEventRepository = appGraph.autoSyncEventRepository,
                 messageController = appGraph.appMessageBus,
                 testModeStore = appGraph.testModeStore,
@@ -126,6 +128,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             },
             onOpenReviewAnimations = {
                 navController.navigate(route = SettingsReviewAnimationsDestination.route)
+            },
+            onOpenAiChatSuggestions = {
+                navController.navigate(route = SettingsAiChatSuggestionsDestination.route)
             },
             onOpenLeaderboardParticipation = {
                 navController.navigate(route = SettingsLeaderboardParticipationDestination.route)
@@ -205,6 +210,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             factory = createSettingsViewModelFactory(
                 workspaceRepository = appGraph.workspaceRepository,
                 cloudAccountRepository = appGraph.cloudAccountRepository,
+                aiChatRepository = appGraph.aiChatRepository,
                 autoSyncEventRepository = appGraph.autoSyncEventRepository,
                 messageController = appGraph.appMessageBus,
                 testModeStore = appGraph.testModeStore,
@@ -222,6 +228,36 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             reviewReactionAnimationsEnabled = uiState.reviewReactionAnimationsEnabled,
             canManageAccountPreferences = uiState.canManageAccountPreferences,
             onUpdateReviewReactionAnimationsEnabled = settingsViewModel::updateReviewReactionAnimationsEnabled,
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+
+    composable(route = SettingsAiChatSuggestionsDestination.route) { backStackEntry ->
+        val context = LocalContext.current
+        val settingsRootBackStackEntry = settingsRootBackStackEntry(
+            navController = navController,
+            currentBackStackEntry = backStackEntry
+        )
+        val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
+            viewModelStoreOwner = settingsRootBackStackEntry,
+            factory = createSettingsViewModelFactory(
+                workspaceRepository = appGraph.workspaceRepository,
+                cloudAccountRepository = appGraph.cloudAccountRepository,
+                aiChatRepository = appGraph.aiChatRepository,
+                autoSyncEventRepository = appGraph.autoSyncEventRepository,
+                messageController = appGraph.appMessageBus,
+                testModeStore = appGraph.testModeStore,
+                visibleAppScreenRepository = appGraph.visibleAppScreenController,
+                applicationContext = context.applicationContext
+            )
+        )
+        val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+
+        AiChatSuggestionsRoute(
+            aiChatComposerSuggestionsEnabled = uiState.aiChatComposerSuggestionsEnabled,
+            onUpdateAiChatComposerSuggestionsEnabled = settingsViewModel::updateAiChatComposerSuggestionsEnabled,
             onBack = {
                 navController.popBackStack()
             }

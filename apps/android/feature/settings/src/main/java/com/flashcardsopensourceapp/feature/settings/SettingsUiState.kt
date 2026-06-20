@@ -17,6 +17,7 @@ data class SettingsUiState(
     val accountStatusAttentionCount: Int,
     val friendInviteAvailability: SettingsFriendInviteAvailability,
     val reviewReactionAnimationsEnabled: Boolean,
+    val aiChatComposerSuggestionsEnabled: Boolean,
     val canManageAccountPreferences: Boolean,
     val isTestModeEnabled: Boolean
 )

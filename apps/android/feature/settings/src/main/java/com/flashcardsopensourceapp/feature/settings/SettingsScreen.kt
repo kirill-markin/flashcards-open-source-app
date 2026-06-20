@@ -92,6 +92,7 @@ fun SettingsRoute(
     onOpenCurrentWorkspace: () -> Unit,
     onOpenReviewReminders: () -> Unit,
     onOpenReviewAnimations: () -> Unit,
+    onOpenAiChatSuggestions: () -> Unit,
     onOpenLeaderboardParticipation: () -> Unit,
     onOpenLanguage: () -> Unit,
     onOpenAccess: () -> Unit,
@@ -188,6 +189,20 @@ fun SettingsRoute(
                         onClick = onOpenReviewAnimations
                     )
                 }
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_ai_chat_suggestions_title),
+                    summary = if (uiState.aiChatComposerSuggestionsEnabled) {
+                        stringResource(R.string.settings_common_on)
+                    } else {
+                        stringResource(R.string.settings_common_off)
+                    },
+                    attentionCount = null,
+                    testTag = settingsAiChatSuggestionsRowTag,
+                    onClick = onOpenAiChatSuggestions
+                )
             }
 
             item {
