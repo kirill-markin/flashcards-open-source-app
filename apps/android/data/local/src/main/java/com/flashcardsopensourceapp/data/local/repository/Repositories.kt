@@ -131,6 +131,11 @@ interface SyncRepository {
     suspend fun syncNow()
 }
 
+open class SyncBlockedException(
+    message: String,
+    cause: Throwable?
+) : IllegalStateException(message, cause)
+
 interface ProgressRepository {
     fun observeSummarySnapshot(): Flow<ProgressSummarySnapshot?>
     fun observeSeriesSnapshot(): Flow<ProgressSeriesSnapshot?>

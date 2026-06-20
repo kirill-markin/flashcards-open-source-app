@@ -6,9 +6,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
+import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
@@ -48,6 +50,7 @@ class ReviewViewModel(
     private val progressRepository: ProgressRepository,
     private val autoSyncEventRepository: AutoSyncEventRepository,
     private val messageController: TransientMessageController,
+    private val technicalErrorController: AppTechnicalErrorController,
     private val reviewNotificationsStore: ReviewNotificationsStore,
     private val shouldShowNotificationPermissionPrePrompt: () -> Boolean,
     private val onReviewNotificationsChanged: (ReviewNotificationsReconcileTrigger) -> Unit,
@@ -380,9 +383,17 @@ class ReviewViewModel(
                         currentContext = rollbackLookup.currentContext,
                         rollbackCard = rollbackLookup.rollbackCard,
                         pendingReviewedCard = pendingReviewedCard,
-                        errorMessage = error.message ?: textProvider.reviewCouldNotBeSaved
+                        errorMessage = textProvider.reviewCouldNotBeSaved
                     )
                 }
+                technicalErrorController.showTechnicalError(
+                    error = makeAppTechnicalError(
+                        title = textProvider.technicalErrorTitle,
+                        message = textProvider.reviewCouldNotBeSaved,
+                        throwable = error
+                    ),
+                    throwable = error
+                )
                 ownedReviewSubmissions = ownedReviewSubmissions - pendingReviewedCard
             }
         }
@@ -517,9 +528,17 @@ class ReviewViewModel(
                 draftState.update { state ->
                     applyFailedReviewPreviewPage(
                         state = state,
-                        errorMessage = error.message ?: textProvider.reviewQueueCouldNotBeLoaded
+                        errorMessage = textProvider.reviewQueueCouldNotBeLoaded
                     )
                 }
+                technicalErrorController.showTechnicalError(
+                    error = makeAppTechnicalError(
+                        title = textProvider.technicalErrorTitle,
+                        message = textProvider.reviewQueueCouldNotBeLoaded,
+                        throwable = error
+                    ),
+                    throwable = error
+                )
             }
         }
     }
@@ -746,6 +765,7 @@ fun createReviewViewModelFactory(
     progressRepository: ProgressRepository,
     autoSyncEventRepository: AutoSyncEventRepository,
     messageController: TransientMessageController,
+    technicalErrorController: AppTechnicalErrorController,
     reviewNotificationsStore: ReviewNotificationsStore,
     shouldShowNotificationPermissionPrePrompt: () -> Boolean,
     onReviewNotificationsChanged: (ReviewNotificationsReconcileTrigger) -> Unit,
@@ -765,6 +785,7 @@ fun createReviewViewModelFactory(
                 progressRepository = progressRepository,
                 autoSyncEventRepository = autoSyncEventRepository,
                 messageController = messageController,
+                technicalErrorController = technicalErrorController,
                 reviewNotificationsStore = reviewNotificationsStore,
                 shouldShowNotificationPermissionPrePrompt = shouldShowNotificationPermissionPrePrompt,
                 onReviewNotificationsChanged = onReviewNotificationsChanged,

@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote
 
+import com.flashcardsopensourceapp.core.observability.AndroidAlreadyObservedThrowable
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapPullResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapPushResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemotePullResponse
@@ -34,6 +35,11 @@ import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import org.json.JSONObject
 
+class CloudHealthValidationException(
+    message: String,
+    cause: Throwable?
+) : Exception(message, cause)
+
 data class CloudSyncConflictDetails(
     val entityType: SyncEntityType?,
     val entityId: String?,
@@ -50,8 +56,9 @@ class CloudRemoteException(
     val responseBody: String?,
     val errorCode: String?,
     val requestId: String?,
-    val syncConflict: CloudSyncConflictDetails?
-) : Exception(message)
+    val syncConflict: CloudSyncConflictDetails?,
+    override val androidObservationAlreadyCaptured: Boolean
+) : Exception(message), AndroidAlreadyObservedThrowable
 
 interface CloudRemoteGateway {
     suspend fun validateConfiguration(configuration: CloudServiceConfiguration)

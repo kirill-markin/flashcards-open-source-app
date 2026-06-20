@@ -75,6 +75,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     progressRepository = appGraph.progressRepository,
                     autoSyncEventRepository = appGraph.autoSyncEventRepository,
                     messageController = appGraph.appMessageBus,
+                    technicalErrorController = appGraph.appMessageBus,
                     reviewNotificationsStore = appGraph.reviewNotificationsStore,
                     shouldShowNotificationPermissionPrePrompt = {
                         hasNotificationPermission(context = context).not()
@@ -229,6 +230,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     progressRepository = appGraph.progressRepository,
                     autoSyncEventRepository = appGraph.autoSyncEventRepository,
                     messageController = appGraph.appMessageBus,
+                    technicalErrorController = appGraph.appMessageBus,
                     reviewNotificationsStore = appGraph.reviewNotificationsStore,
                     shouldShowNotificationPermissionPrePrompt = {
                         hasNotificationPermission(context = context).not()

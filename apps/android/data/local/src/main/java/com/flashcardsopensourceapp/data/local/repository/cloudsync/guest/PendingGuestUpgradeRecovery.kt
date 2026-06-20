@@ -16,11 +16,12 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
+import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.isCloudIdentityConflictError
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncSession
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudWorkspaceForkRecoveryMode
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runCloudSyncCore
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.syncBlockedExceptionFor
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.requireCurrentWorkspace
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.toGuestUpgradeSelection
 import kotlinx.coroutines.CancellationException
@@ -200,14 +201,16 @@ private suspend fun hydratePendingGuestUpgradeLinkedWorkspace(
         )
     } catch (error: CancellationException) {
         throw error
+    } catch (error: SyncBlockedException) {
+        throw error
     } catch (error: Exception) {
-        val preservesBlockedSyncState = error is CloudSyncBlockedException || isCloudIdentityConflictError(error = error)
-        if (preservesBlockedSyncState.not()) {
-            syncLocalStore.markSyncFailure(
-                workspaceId = completion.workspace.workspaceId,
-                errorMessage = error.message ?: "Cloud sync failed."
-            )
+        if (isCloudIdentityConflictError(error = error)) {
+            throw syncBlockedExceptionFor(error = error)
         }
+        syncLocalStore.markSyncFailure(
+            workspaceId = completion.workspace.workspaceId,
+            errorMessage = error.message ?: "Cloud sync failed."
+        )
         throw IllegalStateException(
             "Guest upgrade completed on the server, but Android could not hydrate linked workspace " +
                 "'${completion.workspace.workspaceId}'. Check your connection and reopen the app to retry. " +

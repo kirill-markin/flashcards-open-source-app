@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntit
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
+import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
 import kotlinx.coroutines.flow.first
@@ -52,7 +53,8 @@ class LocalSyncRepositorySyncBlockingTest {
                     .toString(),
                 errorCode = "SYNC_INSTALLATION_PLATFORM_MISMATCH",
                 requestId = "request-platform-mismatch",
-                syncConflict = null
+                syncConflict = null,
+                androidObservationAlreadyCaptured = false
             )
         )
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
@@ -61,7 +63,7 @@ class LocalSyncRepositorySyncBlockingTest {
 
         try {
             syncRepository.syncNow()
-        } catch (_: CloudRemoteException) {
+        } catch (_: SyncBlockedException) {
         }
 
         val cloudSettings = environment.cloudPreferencesStore.currentCloudSettings()
@@ -92,7 +94,8 @@ class LocalSyncRepositorySyncBlockingTest {
                     .toString(),
                 errorCode = "GUEST_SESSION_PLATFORM_MISMATCH",
                 requestId = "request-guest-platform-mismatch",
-                syncConflict = null
+                syncConflict = null,
+                androidObservationAlreadyCaptured = false
             )
         )
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
@@ -101,7 +104,7 @@ class LocalSyncRepositorySyncBlockingTest {
 
         try {
             syncRepository.syncNow()
-        } catch (_: CloudRemoteException) {
+        } catch (_: SyncBlockedException) {
         }
 
         val cloudSettings = environment.cloudPreferencesStore.currentCloudSettings()
@@ -132,7 +135,8 @@ class LocalSyncRepositorySyncBlockingTest {
                     .toString(),
                 errorCode = "SYNC_REPLICA_CONFLICT",
                 requestId = "request-replica-conflict",
-                syncConflict = null
+                syncConflict = null,
+                androidObservationAlreadyCaptured = false
             )
         )
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
@@ -141,7 +145,7 @@ class LocalSyncRepositorySyncBlockingTest {
 
         try {
             syncRepository.syncNow()
-        } catch (_: CloudRemoteException) {
+        } catch (_: SyncBlockedException) {
         }
 
         val cloudSettings = environment.cloudPreferencesStore.currentCloudSettings()
@@ -182,7 +186,8 @@ class LocalSyncRepositorySyncBlockingTest {
                         .toString(),
                     errorCode = syncWorkspaceForkRequiredErrorCode,
                     requestId = "request-push-fork",
-                    syncConflict = null
+                    syncConflict = null,
+                    androidObservationAlreadyCaptured = false
                 )
             }
         }
@@ -234,7 +239,7 @@ class LocalSyncRepositorySyncBlockingTest {
 
         try {
             syncRepository.syncNow()
-        } catch (_: CloudSyncBlockedException) {
+        } catch (_: SyncBlockedException) {
         }
 
         val cloudSettings = environment.cloudPreferencesStore.currentCloudSettings()

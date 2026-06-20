@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
+import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
@@ -14,6 +16,7 @@ import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.workspace.shared.formatWorkspaceSchedulerDesiredRetention
 import com.flashcardsopensourceapp.feature.settings.workspace.shared.formatWorkspaceSchedulerUpdatedAtLabel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +45,7 @@ private data class ParsedSchedulerInput(
 
 class SchedulerSettingsViewModel(
     private val workspaceRepository: WorkspaceRepository,
+    private val technicalErrorController: AppTechnicalErrorController,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val schedulerSettingsState = workspaceRepository.observeWorkspaceSchedulerSettings().stateIn(
@@ -205,13 +209,34 @@ class SchedulerSettingsViewModel(
             return false
         }
 
-        workspaceRepository.updateWorkspaceSchedulerSettings(
-            desiredRetention = parsedInput.desiredRetention,
-            learningStepsMinutes = parsedInput.learningStepsMinutes,
-            relearningStepsMinutes = parsedInput.relearningStepsMinutes,
-            maximumIntervalDays = parsedInput.maximumIntervalDays,
-            enableFuzz = parsedInput.enableFuzz
-        )
+        try {
+            workspaceRepository.updateWorkspaceSchedulerSettings(
+                desiredRetention = parsedInput.desiredRetention,
+                learningStepsMinutes = parsedInput.learningStepsMinutes,
+                relearningStepsMinutes = parsedInput.relearningStepsMinutes,
+                maximumIntervalDays = parsedInput.maximumIntervalDays,
+                enableFuzz = parsedInput.enableFuzz
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_scheduler_save_failed)
+            draftState.update { state ->
+                state.copy(
+                    errorMessage = errorMessage,
+                    showSaveConfirmation = false
+                )
+            }
+            technicalErrorController.showTechnicalError(
+                error = makeAppTechnicalError(
+                    title = strings.get(R.string.settings_technical_error_title),
+                    message = errorMessage,
+                    throwable = error
+                ),
+                throwable = error
+            )
+            return false
+        }
         draftState.update { state ->
             state.copy(
                 errorMessage = "",
@@ -236,12 +261,14 @@ class SchedulerSettingsViewModel(
 
 fun createSchedulerSettingsViewModelFactory(
     workspaceRepository: WorkspaceRepository,
+    technicalErrorController: AppTechnicalErrorController,
     applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             SchedulerSettingsViewModel(
                 workspaceRepository = workspaceRepository,
+                technicalErrorController = technicalErrorController,
                 strings = createSettingsStringResolver(context = applicationContext)
             )
         }

@@ -172,9 +172,8 @@ internal class AiChatBootstrapCoordinator(
                     }
                 }
 
-                val blockedSyncMessage = syncBlockedMessageOrNull()
-                if (blockedSyncMessage != null) {
-                    throw AiChatBootstrapBlockedException(blockedSyncMessage)
+                if (isSyncBlocked()) {
+                    throw AiChatBootstrapBlockedException()
                 }
 
                 val remoteBootstrap = loadBootstrapRemoteResultWithRetry(
@@ -732,17 +731,15 @@ internal class AiChatBootstrapCoordinator(
         }
     }
 
-    private fun syncBlockedMessageOrNull(): String? {
+    private fun isSyncBlocked(): Boolean {
         val syncStatus = context.currentSyncStatus()
-        return if (syncStatus is SyncStatus.Blocked) {
-            syncStatus.message
-        } else {
-            null
-        }
+        return syncStatus is SyncStatus.Blocked
     }
 }
 
-internal class AiChatBootstrapBlockedException(message: String) : IllegalStateException(message)
+internal class AiChatBootstrapBlockedException : IllegalStateException(
+    "AI chat bootstrap is blocked by cloud sync status."
+)
 
 private data class AiBootstrapRemoteResult(
     val ensuredSession: AiChatSessionProvisioningResult,

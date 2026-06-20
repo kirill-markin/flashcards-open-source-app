@@ -26,7 +26,10 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.upsertAssista
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.upsertAssistantText
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.upsertAssistantToolCall
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
-import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiUserFacingErrorMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatFailureIssueDisposition
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailureIssueDisposition
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiErrorAlert
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiUserFacingErrorPresentation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
@@ -189,13 +192,15 @@ internal class AiChatLiveStreamCoordinator(
                     }
                     return@launch
                 }
-                captureLiveStreamCrashIfNeeded(
+                val issueDisposition = aiChatFailureIssueDisposition(error = error)
+                val technicalErrorAlreadyObserved = captureLiveStreamCrashIfNeeded(
                     error = error,
+                    issueDisposition = issueDisposition,
                     workspaceId = workspaceId,
                     sessionId = sessionId,
                     runId = runId
                 )
-                val message = makeAiUserFacingErrorMessage(
+                val presentation = makeAiUserFacingErrorPresentation(
                     error = error,
                     surface = AiErrorSurface.CHAT,
                     configuration = context.currentServerConfiguration(),
@@ -207,7 +212,11 @@ internal class AiChatLiveStreamCoordinator(
                         isLiveAttached = false,
                         composerPhase = AiComposerPhase.IDLE,
                         repairStatus = null,
-                        activeAlert = context.textProvider.generalError(message = message),
+                        activeAlert = makeAiErrorAlert(
+                            presentation = presentation,
+                            technicalErrorAlreadyObserved = technicalErrorAlreadyObserved,
+                            textProvider = context.textProvider
+                        ),
                         errorMessage = ""
                     )
                 }
@@ -231,12 +240,13 @@ internal class AiChatLiveStreamCoordinator(
 
     private fun captureLiveStreamCrashIfNeeded(
         error: Exception,
+        issueDisposition: AiChatFailureIssueDisposition,
         workspaceId: String?,
         sessionId: String,
         runId: String
-    ) {
-        if (error is AiChatRemoteException) {
-            return
+    ): Boolean {
+        if (issueDisposition == AiChatFailureIssueDisposition.NONE || error is AiChatRemoteException) {
+            return false
         }
         context.observability.captureException(
             event = AndroidExceptionIssueEvent.AiStreamCrash(
@@ -251,6 +261,7 @@ internal class AiChatLiveStreamCoordinator(
                 versionCode = null
             )
         )
+        return true
     }
 
     private fun liveStreamCrashRequestId(error: Exception): String? {
@@ -510,7 +521,7 @@ internal class AiChatLiveStreamCoordinator(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            val message = makeAiUserFacingErrorMessage(
+            val presentation = makeAiUserFacingErrorPresentation(
                 error = error,
                 surface = AiErrorSurface.CHAT,
                 configuration = context.currentServerConfiguration(),
@@ -522,7 +533,11 @@ internal class AiChatLiveStreamCoordinator(
                     isLiveAttached = false,
                     composerPhase = AiComposerPhase.IDLE,
                     repairStatus = null,
-                    activeAlert = context.textProvider.generalError(message = message),
+                    activeAlert = makeAiErrorAlert(
+                        presentation = presentation,
+                        technicalErrorAlreadyObserved = false,
+                        textProvider = context.textProvider
+                    ),
                     errorMessage = ""
                 )
             }

@@ -220,6 +220,7 @@ private fun createWorkspaceForkRequiredErrorWithoutPublicConflictDetails(
             .toString(),
         errorCode = syncWorkspaceForkRequiredErrorCode,
         requestId = requestId,
-        syncConflict = null
+        syncConflict = null,
+        androidObservationAlreadyCaptured = false
     )
 }

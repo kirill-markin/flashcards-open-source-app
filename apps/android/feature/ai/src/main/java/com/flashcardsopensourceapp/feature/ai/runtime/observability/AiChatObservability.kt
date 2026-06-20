@@ -8,8 +8,7 @@ import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRequestTooLargeException
-import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatAttachmentUnsupportedTypeRemoteError
-import com.flashcardsopensourceapp.data.local.ai.remote.isAiChatRequestTooLargeRemoteError
+import com.flashcardsopensourceapp.data.local.ai.remote.isExpectedAiChatRemoteUserError
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.network.isLikelyTransientNetworkIoException
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapBlockedException
@@ -265,7 +264,10 @@ internal fun aiChatRemoteErrorDetails(error: AiChatRemoteException?): AiChatRemo
 
 internal fun aiChatFailureIssueDisposition(error: Exception): AiChatFailureIssueDisposition {
     if (error is AiChatRemoteException) {
-        return if (isExpectedAiChatRemoteError(error = error)) {
+        if (error.androidObservationAlreadyCaptured) {
+            return AiChatFailureIssueDisposition.NONE
+        }
+        return if (isExpectedAiChatRemoteUserError(error = error)) {
             AiChatFailureIssueDisposition.NONE
         } else {
             AiChatFailureIssueDisposition.WARNING
@@ -282,7 +284,7 @@ internal fun aiChatFailureIssueDisposition(error: Exception): AiChatFailureIssue
         }
     }
     if (error is AiChatBootstrapBlockedException) {
-        return AiChatFailureIssueDisposition.WARNING
+        return AiChatFailureIssueDisposition.NONE
     }
 
     return AiChatFailureIssueDisposition.EXCEPTION
@@ -317,52 +319,6 @@ private fun redactedAiWarningErrorMessage(value: String?): String {
         "[redacted]"
     }
 }
-
-private fun isExpectedAiChatRemoteError(error: AiChatRemoteException): Boolean {
-    if (isAiChatRequestTooLargeRemoteError(error = error)) {
-        return true
-    }
-
-    if (isAiChatAttachmentUnsupportedTypeRemoteError(error = error)) {
-        return true
-    }
-
-    val statusCode = error.statusCode
-    if (statusCode == 401 || statusCode == 403 || statusCode == 429) {
-        return true
-    }
-
-    val code = error.code?.trim()?.uppercase() ?: return false
-    return expectedAiChatRemoteErrorCodes.contains(element = code)
-}
-
-private val expectedAiChatRemoteErrorCodes: Set<String> = setOf(
-    "AI_WORKSPACE_REQUIRED",
-    "AUTH_UNAUTHORIZED",
-    "CHAT_ACTIVE_RUN_IN_PROGRESS",
-    "CHAT_LIVE_AFTER_CURSOR_INVALID",
-    "CHAT_LIVE_AUTH_EXPIRED",
-    "CHAT_LIVE_AUTH_INVALID",
-    "CHAT_LIVE_NOT_FOUND",
-    "CHAT_LIVE_RUN_ID_REQUIRED",
-    "CHAT_LIVE_SESSION_ID_REQUIRED",
-    "CHAT_ATTACHMENT_UNSUPPORTED_TYPE",
-    "CHAT_REQUEST_TOO_LARGE",
-    "CHAT_SESSION_ID_CONFLICT",
-    "CHAT_TRANSCRIPTION_FILE_EMPTY",
-    "CHAT_TRANSCRIPTION_FILE_REQUIRED",
-    "CHAT_TRANSCRIPTION_FILE_UNSUPPORTED",
-    "CHAT_TRANSCRIPTION_INVALID_AUDIO",
-    "CHAT_TRANSCRIPTION_INVALID_MULTIPART",
-    "CHAT_TRANSCRIPTION_RATE_LIMITED",
-    "CHAT_TRANSCRIPTION_SOURCE_INVALID",
-    "GUEST_AI_LIMIT_REACHED",
-    "GUEST_AUTH_INVALID",
-    "WORKSPACE_ID_INVALID",
-    "WORKSPACE_ID_REQUIRED",
-    "WORKSPACE_NOT_FOUND",
-    "WORKSPACE_SELECTION_REQUIRED"
-)
 
 private class AiChatRuntimeAppObservability(
     private val delegate: AppObservability,

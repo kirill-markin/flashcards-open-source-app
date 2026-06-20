@@ -40,7 +40,8 @@ import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailur
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailureWarningMessage
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatRemoteErrorDetails
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.countAiChatContentParts
-import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiUserFacingErrorMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiErrorAlert
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiUserFacingErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatBreadcrumb
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatException
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatWarning
@@ -442,14 +443,15 @@ internal class AiChatSendCoordinator(
             return
         }
 
-        val message = makeAiUserFacingErrorMessage(
+        val presentation = makeAiUserFacingErrorPresentation(
             error = error,
             surface = AiErrorSurface.CHAT,
             configuration = currentServerConfiguration(),
             textProvider = context.textProvider
         )
         val currentState = context.runtimeStateMutable.value
-        when (aiChatFailureIssueDisposition(error = error)) {
+        val issueDisposition = aiChatFailureIssueDisposition(error = error)
+        when (issueDisposition) {
             AiChatFailureIssueDisposition.NONE -> Unit
             AiChatFailureIssueDisposition.WARNING -> {
                 context.observability.recordAiChatWarning(
@@ -470,7 +472,7 @@ internal class AiChatSendCoordinator(
                         cloudState = currentCloudState().name,
                         chatSessionId = currentState.persistedState.chatSessionId,
                         messageCount = currentState.persistedState.messages.size,
-                        userFacingMessage = message,
+                        userFacingMessage = presentation.message,
                         remoteError = aiChatRemoteErrorDetails(error = remoteError),
                         error = error
                     )
@@ -482,7 +484,11 @@ internal class AiChatSendCoordinator(
                 activeRun = null,
                 isLiveAttached = false,
                 composerPhase = AiComposerPhase.IDLE,
-                activeAlert = context.textProvider.generalError(message = message),
+                activeAlert = makeAiErrorAlert(
+                    presentation = presentation,
+                    technicalErrorAlreadyObserved = issueDisposition != AiChatFailureIssueDisposition.NONE,
+                    textProvider = context.textProvider
+                ),
                 errorMessage = ""
             )
         }

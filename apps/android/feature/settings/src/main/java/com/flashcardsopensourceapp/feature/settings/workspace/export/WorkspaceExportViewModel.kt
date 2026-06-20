@@ -6,11 +6,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
+import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceExportData
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +28,7 @@ private data class WorkspaceExportDraftState(
 
 class WorkspaceExportViewModel(
     private val workspaceRepository: WorkspaceRepository,
+    private val technicalErrorController: AppTechnicalErrorController,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
@@ -74,21 +78,24 @@ class WorkspaceExportViewModel(
                 }
             }
             exportData
-        } catch (error: IllegalArgumentException) {
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_export_prepare_failed)
             draftState.update { state ->
                 state.copy(
                     isExporting = false,
-                    errorMessage = error.message ?: strings.get(R.string.settings_export_prepare_failed)
+                    errorMessage = errorMessage
                 )
             }
-            null
-        } catch (error: IllegalStateException) {
-            draftState.update { state ->
-                state.copy(
-                    isExporting = false,
-                    errorMessage = error.message ?: strings.get(R.string.settings_export_prepare_failed)
-                )
-            }
+            technicalErrorController.showTechnicalError(
+                error = makeAppTechnicalError(
+                    title = strings.get(R.string.settings_technical_error_title),
+                    message = errorMessage,
+                    throwable = error
+                ),
+                throwable = error
+            )
             null
         }
     }
@@ -117,12 +124,14 @@ class WorkspaceExportViewModel(
 
 fun createWorkspaceExportViewModelFactory(
     workspaceRepository: WorkspaceRepository,
+    technicalErrorController: AppTechnicalErrorController,
     applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             WorkspaceExportViewModel(
                 workspaceRepository = workspaceRepository,
+                technicalErrorController = technicalErrorController,
                 strings = createSettingsStringResolver(context = applicationContext)
             )
         }

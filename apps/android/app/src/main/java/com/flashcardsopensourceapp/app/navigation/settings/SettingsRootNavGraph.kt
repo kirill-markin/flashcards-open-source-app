@@ -258,6 +258,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                 cloudAccountRepository = appGraph.cloudAccountRepository,
                 autoSyncEventRepository = appGraph.autoSyncEventRepository,
                 messageController = appGraph.appMessageBus,
+                technicalErrorController = appGraph.appMessageBus,
                 visibleAppScreenRepository = appGraph.visibleAppScreenController,
                 applicationContext = context.applicationContext
             )

@@ -262,7 +262,8 @@ class AiChatRuntimeSendDraftRestorationTest {
             code = "CHAT_SESSION_NOT_FOUND",
             stage = null,
             requestId = null,
-            responseBody = null
+            responseBody = null,
+            androidObservationAlreadyCaptured = false
         )
         val runtime = makeRuntime(scope = this, repository = repository)
 
@@ -300,7 +301,8 @@ class AiChatRuntimeSendDraftRestorationTest {
             code = aiChatAttachmentUnsupportedTypeCode,
             stage = null,
             requestId = "request-1",
-            responseBody = null
+            responseBody = null,
+            androidObservationAlreadyCaptured = false
         )
         val runtime = makeRuntime(scope = this, repository = repository)
         val attachment = AiChatAttachment.Binary(

@@ -54,6 +54,7 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 workspaceRepository = appGraph.workspaceRepository,
                 cloudAccountRepository = appGraph.cloudAccountRepository,
                 reviewNotificationsStore = appGraph.reviewNotificationsStore,
+                technicalErrorController = appGraph.appMessageBus,
                 applicationContext = context.applicationContext
             )
         )
@@ -158,6 +159,7 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 cloudAccountRepository = appGraph.cloudAccountRepository,
                 autoSyncEventRepository = appGraph.autoSyncEventRepository,
                 messageController = appGraph.appMessageBus,
+                technicalErrorController = appGraph.appMessageBus,
                 visibleAppScreenRepository = appGraph.visibleAppScreenController,
                 applicationContext = context.applicationContext
             )
@@ -385,6 +387,7 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
         val schedulerSettingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.scheduler.SchedulerSettingsViewModel>(
             factory = createSchedulerSettingsViewModelFactory(
                 workspaceRepository = appGraph.workspaceRepository,
+                technicalErrorController = appGraph.appMessageBus,
                 applicationContext = context.applicationContext
             )
         )
@@ -421,12 +424,14 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
         val workspaceExportViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.export.WorkspaceExportViewModel>(
             factory = createWorkspaceExportViewModelFactory(
                 workspaceRepository = appGraph.workspaceRepository,
+                technicalErrorController = appGraph.appMessageBus,
                 applicationContext = context.applicationContext
             )
         )
 
         WorkspaceExportRoute(
             viewModel = workspaceExportViewModel,
+            technicalErrorController = appGraph.appMessageBus,
             onBack = {
                 navController.popBackStack()
             }

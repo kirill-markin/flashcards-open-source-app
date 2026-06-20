@@ -19,6 +19,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSele
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspacePostAuthRoute
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
+import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.requireActiveCloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.requireCloudLinkMatchesCredentialRecoveryBeforeSideEffects
@@ -31,10 +32,10 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.Authe
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudSessionProvider
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.isCloudIdentityConflictError
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncSession
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudWorkspaceForkRecoveryMode
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runCloudSyncCore
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.syncBlockedExceptionFor
 import kotlinx.coroutines.CancellationException
 
 internal class CloudWorkspaceLinkCoordinator(
@@ -271,16 +272,16 @@ internal class CloudWorkspaceLinkCoordinator(
             )
         } catch (error: CancellationException) {
             throw error
+        } catch (error: SyncBlockedException) {
+            throw error
         } catch (error: Exception) {
-            val preservesBlockedSyncState: Boolean = error is CloudSyncBlockedException || isCloudIdentityConflictError(
-                error = error
-            )
-            if (preservesBlockedSyncState.not()) {
-                syncLocalStore.markSyncFailure(
-                    workspaceId = guestWorkspaceId,
-                    errorMessage = error.message ?: "Cloud sync failed."
-                )
+            if (isCloudIdentityConflictError(error = error)) {
+                throw syncBlockedExceptionFor(error = error)
             }
+            syncLocalStore.markSyncFailure(
+                workspaceId = guestWorkspaceId,
+                errorMessage = error.message ?: "Cloud sync failed."
+            )
             throw IllegalStateException(
                 "Guest upgrade is paused because guest sync did not finish for workspace '$guestWorkspaceId'. " +
                     "Check your connection and try signing in again. Cause=${error.message ?: "Cloud sync failed."}",

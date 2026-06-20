@@ -91,6 +91,7 @@
     <string name="settings_review_animations_toggle_title">Show animations after rating a card</string>
     <string name="settings_review_animations_toggle_body">Review reaction animations appear briefly after Again, Hard, Good, and Easy.</string>
     <string name="settings_review_animations_update_failed">Could not update review animations.</string>
+    <string name="settings_technical_error_title">Something went wrong</string>
     <string name="settings_leaderboard_participation_title">Leaderboard participation</string>
     <string name="settings_leaderboard_participation_summary">Control community leaderboard visibility</string>
     <string name="settings_leaderboard_participation_toggle_title">Show me on the leaderboard</string>
@@ -425,6 +426,7 @@
     <string name="settings_scheduler_apply_dialog_title">Apply scheduler settings?</string>
     <string name="settings_scheduler_apply_dialog_body">This changes future review intervals only and keeps current card history intact.</string>
     <string name="settings_scheduler_invalid">Scheduler settings are invalid.</string>
+    <string name="settings_scheduler_save_failed">Scheduler settings could not be saved.</string>
     <string name="settings_scheduler_desired_retention_invalid">Desired retention must be a decimal number.</string>
     <string name="settings_scheduler_desired_retention_range_invalid">Desired retention must be greater than 0 and less than 1.</string>
     <string name="settings_scheduler_max_interval_invalid">Maximum interval must be a positive integer.</string>

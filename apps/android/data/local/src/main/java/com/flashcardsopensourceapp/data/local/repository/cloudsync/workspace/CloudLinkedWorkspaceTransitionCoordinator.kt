@@ -10,14 +10,15 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.AuthenticatedCloudSession
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.isCloudIdentityConflictError
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncSession
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudWorkspaceForkRecoveryMode
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.androidClientPlatform
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runCloudSyncCore
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.syncBlockedExceptionFor
 import kotlinx.coroutines.CancellationException
 import org.json.JSONObject
 
@@ -153,16 +154,16 @@ internal class CloudLinkedWorkspaceTransitionCoordinator(
             )
         } catch (error: CancellationException) {
             throw error
+        } catch (error: SyncBlockedException) {
+            throw error
         } catch (error: Exception) {
-            val preservesBlockedSyncState: Boolean = error is CloudSyncBlockedException || isCloudIdentityConflictError(
-                error = error
-            )
-            if (preservesBlockedSyncState.not()) {
-                syncLocalStore.markSyncFailure(
-                    workspaceId = workspaceId,
-                    errorMessage = error.message ?: "Cloud sync failed."
-                )
+            if (isCloudIdentityConflictError(error = error)) {
+                throw syncBlockedExceptionFor(error = error)
             }
+            syncLocalStore.markSyncFailure(
+                workspaceId = workspaceId,
+                errorMessage = error.message ?: "Cloud sync failed."
+            )
             throw IllegalStateException(
                 buildTransitionInvariantMessage(
                     stage = "initial sync failed",

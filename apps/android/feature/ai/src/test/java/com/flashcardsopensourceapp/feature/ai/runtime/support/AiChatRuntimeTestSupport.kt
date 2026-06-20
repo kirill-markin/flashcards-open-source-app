@@ -118,6 +118,27 @@ internal fun makeRuntimeWithCloudState(
     )
 }
 
+internal fun makeRuntimeWithObservability(
+    scope: TestScope,
+    repository: FakeAiChatRepository,
+    observability: AppObservability
+): AiChatRuntime {
+    return AiChatRuntime(
+        scope = scope,
+        aiChatRepository = repository,
+        autoSyncEventRepository = FakeAutoSyncEventRepository(),
+        appVersion = testAppVersion,
+        versionCode = testVersionCode,
+        textProvider = testAiTextProvider(),
+        hasConsent = { repository.consent.value },
+        currentCloudState = { CloudAccountState.GUEST },
+        currentServerConfiguration = { makeOfficialCloudServiceConfiguration() },
+        currentSyncStatus = { SyncStatus.Idle },
+        currentUiLocaleTag = { testUiLocaleTag },
+        observability = observability
+    )
+}
+
 private object TestAppObservability : AppObservability {
     override fun setCloudIdentity(identity: CloudObservationIdentity) {
     }
@@ -132,6 +153,26 @@ private object TestAppObservability : AppObservability {
     }
 
     override fun captureException(event: AndroidExceptionIssueEvent) {
+    }
+}
+
+internal class RecordingAppObservability : AppObservability {
+    val exceptionEvents: MutableList<AndroidExceptionIssueEvent> = mutableListOf()
+
+    override fun setCloudIdentity(identity: CloudObservationIdentity) {
+    }
+
+    override fun clearCloudIdentity() {
+    }
+
+    override fun addBreadcrumb(event: AndroidBreadcrumbEvent) {
+    }
+
+    override fun captureWarning(event: AndroidWarningIssueEvent) {
+    }
+
+    override fun captureException(event: AndroidExceptionIssueEvent) {
+        exceptionEvents += event
     }
 }
 

@@ -14,7 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSele
 import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.CloudSyncBlockedException
+import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudAccountSnapshot
@@ -364,11 +364,9 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
                 selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
             )
             throw AssertionError("Expected guest upgrade drain to block workspace fork recovery.")
-        } catch (error: IllegalStateException) {
-            assertTrue(error.message?.contains("Guest upgrade is paused because guest sync did not finish") == true)
-            assertTrue(error.cause is CloudSyncBlockedException)
+        } catch (error: SyncBlockedException) {
             assertTrue(
-                error.cause?.message?.contains(
+                error.message?.contains(
                     "automatic workspace identity fork recovery is disabled for this sync"
                 ) == true
             )
@@ -456,8 +454,8 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
                 selection = CloudWorkspaceLinkSelection.Existing(workspaceId = localWorkspaceId)
             )
             throw AssertionError("Expected bound guest upgrade to stop before backend completion.")
-        } catch (error: IllegalStateException) {
-            assertTrue(error.message?.contains("Guest upgrade is paused because guest sync did not finish") == true)
+        } catch (error: SyncBlockedException) {
+            assertTrue(error.message?.isNotBlank() == true)
         }
 
         assertEquals(CloudAccountState.GUEST, environment.cloudPreferencesStore.currentCloudSettings().cloudState)

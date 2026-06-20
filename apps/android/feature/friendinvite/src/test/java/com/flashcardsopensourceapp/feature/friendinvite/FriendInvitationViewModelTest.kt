@@ -145,7 +145,8 @@ private fun createFriendInvitationRemoteException(
         responseBody = "{\"code\":\"$errorCode\"}",
         errorCode = errorCode,
         requestId = "req-1",
-        syncConflict = null
+        syncConflict = null,
+        androidObservationAlreadyCaptured = false
     )
 }
 

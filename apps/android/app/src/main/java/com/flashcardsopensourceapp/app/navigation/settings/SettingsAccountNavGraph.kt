@@ -36,6 +36,7 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
                 cloudAccountRepository = appGraph.cloudAccountRepository,
                 syncRepository = appGraph.syncRepository,
                 messageController = appGraph.appMessageBus,
+                technicalErrorController = appGraph.appMessageBus,
                 applicationContext = context.applicationContext
             )
         )
@@ -69,6 +70,7 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
         val serverSettingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.server.ServerSettingsViewModel>(
             factory = createServerSettingsViewModelFactory(
                 cloudAccountRepository = appGraph.cloudAccountRepository,
+                technicalErrorController = appGraph.appMessageBus,
                 applicationContext = context.applicationContext
             )
         )
@@ -127,6 +129,7 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
         val agentConnectionsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.agent.AgentConnectionsViewModel>(
             factory = createAgentConnectionsViewModelFactory(
                 cloudAccountRepository = appGraph.cloudAccountRepository,
+                technicalErrorController = appGraph.appMessageBus,
                 applicationContext = context.applicationContext
             )
         )

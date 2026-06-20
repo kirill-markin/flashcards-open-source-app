@@ -140,7 +140,8 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             onWarmUpSessionIfNeeded = aiViewModel::warmUpLinkedSessionIfNeeded,
             onRetryConversationLoad = aiViewModel::retryConversationBootstrap,
             onShowAlert = aiViewModel::showAlert,
-            onShowErrorMessage = aiViewModel::showErrorMessage
+            onShowErrorMessage = aiViewModel::showErrorMessage,
+            technicalErrorController = appGraph.appMessageBus
         )
     }
 }

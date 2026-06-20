@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.ai.remote
 
+import com.flashcardsopensourceapp.core.observability.AndroidAlreadyObservedThrowable
 import com.flashcardsopensourceapp.core.observability.AndroidBreadcrumbEvent
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidObservationFeature
@@ -92,6 +93,9 @@ private val expectedAiChatHttpFailureCodes: Set<String> = setOf(
     "CHAT_LIVE_NOT_FOUND",
     "CHAT_LIVE_RUN_ID_REQUIRED",
     "CHAT_LIVE_SESSION_ID_REQUIRED",
+    "CHAT_TRANSCRIPTION_NOT_CONFIGURED",
+    "CHAT_TRANSCRIPTION_UNAVAILABLE",
+    "CHAT_TRANSCRIPTION_PROVIDER_AUTH_FAILED",
     "CHAT_ATTACHMENT_UNSUPPORTED_TYPE",
     "CHAT_REQUEST_TOO_LARGE",
     "CHAT_SESSION_ID_CONFLICT",
@@ -108,6 +112,11 @@ private val expectedAiChatHttpFailureCodes: Set<String> = setOf(
     "GUEST_SESSION_PLATFORM_MISMATCH",
     "GUEST_WEB_SESSION_UNSUPPORTED",
     "GUEST_WEB_SYNC_UNSUPPORTED",
+    "LOCAL_CHAT_CONTINUATION_FAILED",
+    "LOCAL_CHAT_NOT_CONFIGURED",
+    "LOCAL_CHAT_PROVIDER_AUTH_FAILED",
+    "LOCAL_CHAT_RATE_LIMITED",
+    "LOCAL_CHAT_UNAVAILABLE",
     "WORKSPACE_ID_INVALID",
     "WORKSPACE_ID_REQUIRED",
     "WORKSPACE_NOT_FOUND",
@@ -155,8 +164,9 @@ class AiChatRemoteException(
     val code: String?,
     val stage: String?,
     val requestId: String?,
-    val responseBody: String?
-) : Exception(message)
+    val responseBody: String?,
+    override val androidObservationAlreadyCaptured: Boolean
+) : Exception(message), AndroidAlreadyObservedThrowable
 
 class AiChatRequestTooLargeException(
     val byteCount: Int,
@@ -194,6 +204,12 @@ fun isAiChatRequestTooLargeRemoteError(error: AiChatRemoteException): Boolean {
 fun isAiChatAttachmentUnsupportedTypeRemoteError(error: AiChatRemoteException): Boolean {
     return error.statusCode == 400
         && error.code?.trim()?.uppercase() == aiChatAttachmentUnsupportedTypeCode
+}
+
+fun isExpectedAiChatRemoteUserError(error: AiChatRemoteException): Boolean {
+    return error.statusCode?.let { statusCode ->
+        isExpectedAiChatHttpFailure(statusCode = statusCode, code = error.code)
+    } ?: isExpectedAiChatHttpFailureCode(code = error.code)
 }
 
 private fun encodeAiChatStartRunRequestPayload(request: AiChatStartRunRequest): JSONObject {
@@ -847,7 +863,7 @@ internal fun readAiChatRemoteErrorResponse(
             fields = fields
         )
     }
-    captureAiChatHttpFailureObservation(
+    val androidObservationAlreadyCaptured = captureAiChatHttpFailureObservation(
         observability = observability,
         observationVersions = observationVersions,
         endpointName = endpointName,
@@ -864,7 +880,8 @@ internal fun readAiChatRemoteErrorResponse(
         code = parsedError?.code,
         stage = parsedError?.stage,
         requestId = resolvedRequestId,
-        responseBody = responseBody
+        responseBody = responseBody,
+        androidObservationAlreadyCaptured = androidObservationAlreadyCaptured
     )
 }
 
@@ -889,23 +906,9 @@ private fun captureAiChatHttpFailureObservation(
     statusCode: Int,
     code: String?,
     stage: String?
-) {
-    if (statusCode >= 500) {
-        observability.captureWarning(
-            event = AndroidWarningIssueEvent.HttpServerError(
-                feature = AndroidObservationFeature.AI,
-                endpointName = endpointName,
-                method = method,
-                requestId = requestId,
-                statusCode = statusCode,
-                code = code,
-                stage = stage,
-                appVersion = observationVersions.appVersion,
-                clientVersion = observationVersions.clientVersion,
-                versionCode = observationVersions.versionCode
-            )
-        )
-        return
+): Boolean {
+    if (observability === NoopAiChatHttpObservability) {
+        return false
     }
 
     if (
@@ -922,12 +925,30 @@ private fun captureAiChatHttpFailureObservation(
                 requestId = requestId,
                 statusCode = statusCode,
                 code = code,
+                stage = stage,
                 appVersion = observationVersions.appVersion,
                 clientVersion = observationVersions.clientVersion,
                 versionCode = observationVersions.versionCode
             )
         )
-        return
+        return false
+    }
+
+    if (statusCode >= 500) {
+        observability.captureWarning(
+            event = AndroidWarningIssueEvent.HttpServerError(
+                feature = AndroidObservationFeature.AI,
+                endpointName = endpointName,
+                method = method,
+                requestId = requestId,
+                statusCode = statusCode,
+                code = code,
+                appVersion = observationVersions.appVersion,
+                clientVersion = observationVersions.clientVersion,
+                versionCode = observationVersions.versionCode
+            )
+        )
+        return true
     }
 
     if (statusCode in 400..499) {
@@ -945,18 +966,24 @@ private fun captureAiChatHttpFailureObservation(
                 versionCode = observationVersions.versionCode
             )
         )
+        return true
     }
+
+    return false
 }
 
 private fun isExpectedAiChatHttpFailure(
     statusCode: Int,
     code: String?
 ): Boolean {
+    if (isExpectedAiChatHttpFailureCode(code = code)) {
+        return true
+    }
     if (statusCode == 401 || statusCode == 403 || statusCode == 413 || statusCode == 429) {
         return true
     }
 
-    return isExpectedAiChatHttpFailureCode(code = code)
+    return false
 }
 
 private fun isExpectedAiChatHttpFailureCode(code: String?): Boolean {

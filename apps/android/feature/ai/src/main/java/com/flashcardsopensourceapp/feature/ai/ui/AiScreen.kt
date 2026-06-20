@@ -49,6 +49,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.flashcardsopensourceapp.core.ui.AppTechnicalError
+import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
+import com.flashcardsopensourceapp.core.ui.components.AppTechnicalErrorDialog
+import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
+import com.flashcardsopensourceapp.core.ui.nextAppTechnicalErrorReportId
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
@@ -101,7 +106,8 @@ internal fun AiRouteContent(
     onWarmUpSessionIfNeeded: () -> Unit,
     onRetryConversationLoad: () -> Unit,
     onShowAlert: (AiAlertState) -> Unit,
-    onShowErrorMessage: (String) -> Unit
+    onShowErrorMessage: (String) -> Unit,
+    technicalErrorController: AppTechnicalErrorController
 ) {
     val context = LocalContext.current
     val textProvider = remember(context) { aiTextProvider(context = context) }
@@ -498,41 +504,80 @@ internal fun AiRouteContent(
         )
     }
 
-    uiState.activeAlert?.let { activeAlert ->
-        AlertDialog(
-            onDismissRequest = onDismissAlert,
-            title = {
-                Text(activeAlert.title)
-            },
-            text = {
-                Text(activeAlert.message)
-            },
-            confirmButton = {
-                if (activeAlert.showsSettingsAction) {
-                    TextButton(
-                        onClick = {
-                            onDismissAlert()
-                            openApplicationSettings(context = context)
-                        }
-                    ) {
-                        Text(stringResource(id = R.string.ai_open_settings))
-                    }
-                } else {
-                    TextButton(onClick = onDismissAlert) {
-                        Text(stringResource(id = R.string.ai_ok))
-                    }
-                }
-            },
-            dismissButton = if (activeAlert.showsSettingsAction) {
-                {
-                    TextButton(onClick = onDismissAlert) {
-                        Text(stringResource(id = R.string.ai_cancel))
-                    }
-                }
-            } else {
-                null
-            }
+    val activeTechnicalAlert = uiState.activeAlert as? AiAlertState.GeneralError
+    val activeTechnicalError = activeTechnicalAlert?.technicalError
+    LaunchedEffect(activeTechnicalAlert, activeTechnicalError) {
+        if (activeTechnicalAlert == null || activeTechnicalError == null) {
+            return@LaunchedEffect
+        }
+
+        technicalErrorController.showTechnicalError(
+            error = makeAppTechnicalError(
+                title = activeTechnicalAlert.title,
+                message = activeTechnicalAlert.message,
+                throwable = activeTechnicalError
+            ),
+            throwable = activeTechnicalError
         )
+        onDismissAlert()
+    }
+
+    if (activeTechnicalError == null) {
+        when (val activeAlert = uiState.activeAlert) {
+            is AiAlertState.GeneralError -> {
+                AppTechnicalErrorDialog(
+                    error = AppTechnicalError(
+                        reportId = nextAppTechnicalErrorReportId(source = "ai-general-error"),
+                        title = activeAlert.title,
+                        message = activeAlert.message,
+                        technicalDetails = ""
+                    ),
+                    showDetailsLabel = stringResource(id = R.string.ai_error_show_details),
+                    hideDetailsLabel = stringResource(id = R.string.ai_error_hide_details),
+                    dismissLabel = stringResource(id = R.string.ai_ok),
+                    onDismiss = onDismissAlert
+                )
+            }
+
+            is AiAlertState.SettingsActionRequired -> {
+                AlertDialog(
+                    onDismissRequest = onDismissAlert,
+                    title = {
+                        Text(activeAlert.title)
+                    },
+                    text = {
+                        Text(activeAlert.message)
+                    },
+                    confirmButton = {
+                        if (activeAlert.showsSettingsAction) {
+                            TextButton(
+                                onClick = {
+                                    onDismissAlert()
+                                    openApplicationSettings(context = context)
+                                }
+                            ) {
+                                Text(stringResource(id = R.string.ai_open_settings))
+                            }
+                        } else {
+                            TextButton(onClick = onDismissAlert) {
+                                Text(stringResource(id = R.string.ai_ok))
+                            }
+                        }
+                    },
+                    dismissButton = if (activeAlert.showsSettingsAction) {
+                        {
+                            TextButton(onClick = onDismissAlert) {
+                                Text(stringResource(id = R.string.ai_cancel))
+                            }
+                        }
+                    } else {
+                        null
+                    }
+                )
+            }
+
+            null -> Unit
+        }
     }
 }
 

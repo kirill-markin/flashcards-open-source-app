@@ -33,7 +33,8 @@ class ProgressRemoteLoadWarningSuppressionTest {
                     responseBody = "",
                     errorCode = null,
                     requestId = "request-1",
-                    syncConflict = null
+                    syncConflict = null,
+                    androidObservationAlreadyCaptured = false
                 )
             )
         )
@@ -53,7 +54,8 @@ class ProgressRemoteLoadWarningSuppressionTest {
                     responseBody = """{"code":"SYNC_INVALID_INPUT"}""",
                     errorCode = "SYNC_INVALID_INPUT",
                     requestId = "request-2",
-                    syncConflict = null
+                    syncConflict = null,
+                    androidObservationAlreadyCaptured = false
                 )
             )
         )

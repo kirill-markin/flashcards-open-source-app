@@ -14,7 +14,8 @@ sealed interface AiAlertState {
 
     data class GeneralError(
         override val title: String,
-        override val message: String
+        override val message: String,
+        val technicalError: Throwable?
     ) : AiAlertState {
         override val showsSettingsAction: Boolean = false
     }
@@ -25,3 +26,8 @@ enum class AiAttachmentSettingsSource {
     PHOTOS,
     FILES
 }
+
+class AiDictationNoSpeechException(
+    message: String,
+    cause: Throwable?
+) : IllegalStateException(message, cause)
