@@ -925,7 +925,6 @@ private fun captureAiChatHttpFailureObservation(
                 requestId = requestId,
                 statusCode = statusCode,
                 code = code,
-                stage = stage,
                 appVersion = observationVersions.appVersion,
                 clientVersion = observationVersions.clientVersion,
                 versionCode = observationVersions.versionCode
@@ -943,6 +942,7 @@ private fun captureAiChatHttpFailureObservation(
                 requestId = requestId,
                 statusCode = statusCode,
                 code = code,
+                stage = stage,
                 appVersion = observationVersions.appVersion,
                 clientVersion = observationVersions.clientVersion,
                 versionCode = observationVersions.versionCode
