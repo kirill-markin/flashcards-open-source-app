@@ -426,9 +426,9 @@ extension FlashcardsStore {
         let center = UNUserNotificationCenter.current()
         let pendingRequestIdentifiers = await pendingReviewNotificationRequestIdentifiers(center: center)
         if trigger.shouldClearDeliveredReviewNotifications {
-            let deliveredReviewNotifications = await deliveredReviewReminderNotifications(center: center)
-            self.markReviewReminderAttentionFromDeliveredNotifications(
-                notifications: deliveredReviewNotifications,
+            let deliveredReviewReminderStates = await deliveredReviewReminderAttentionStates(center: center)
+            self.markReviewReminderAttentionFromDeliveredStates(
+                states: deliveredReviewReminderStates,
                 workspaceId: workspaceId
             )
             self.reconcileReviewReminderAttentionAfterReviewLogs(now: now)
@@ -680,15 +680,10 @@ extension FlashcardsStore {
         self.persistScheduledReviewNotifications(payloads: acceptedPayloads)
     }
 
-    private func markReviewReminderAttentionFromDeliveredNotifications(
-        notifications: [UNNotification],
+    private func markReviewReminderAttentionFromDeliveredStates(
+        states: [ReviewReminderAttentionState],
         workspaceId: String
     ) {
-        let states = notifications.compactMap { notification in
-            makeReviewReminderAttentionState(
-                notification: notification
-            )
-        }
         let currentWorkspaceStates = states.filter { state in
             state.workspaceId == workspaceId
         }
