@@ -116,6 +116,7 @@ final class AIChatStore {
 
     var serverChatConfig: AIChatServerConfig
     var hasExternalProviderConsent: Bool
+    var areComposerSuggestionsEnabled: Bool
 
     var composerPhase: AIChatComposerPhase {
         self.runLifecycle.composerPhase
@@ -602,6 +603,7 @@ final class AIChatStore {
         self.activeRunSession = nil
         self.serverChatConfig = aiChatServerConfig(lastKnownFeatures: persistedState.lastKnownChatFeatures)
         self.hasExternalProviderConsent = initialConsentState
+        self.areComposerSuggestionsEnabled = flashcardsStore.aiChatComposerSuggestionsEnabled
         self.chatSessionId = aiChatResolvedSessionId(
             workspaceId: initialHistoryWorkspaceId,
             sessionId: persistedState.chatSessionId

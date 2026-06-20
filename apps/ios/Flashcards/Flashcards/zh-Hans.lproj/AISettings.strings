@@ -135,6 +135,7 @@
 "settings.row.currentWorkspace" = "工作空间";
 "settings.row.reviewReminders" = "提醒";
 "settings.row.reviewAnimations" = "复习动画";
+"settings.row.aiChatSuggestions" = "AI 聊天建议";
 "settings.row.leaderboardParticipation" = "排行榜参与";
 "settings.row.language" = "语言";
 "settings.row.language.value" = "iOS";
@@ -167,6 +168,9 @@
 "settings.currentWorkspace.renameLinkedOnly" = "只有已关联的云端工作空间可以重命名。";
 "settings.reviewAnimations.title" = "复习动画";
 "settings.reviewAnimations.toggle" = "给卡片评分后显示动画";
+"settings.aiChatSuggestions.title" = "AI 聊天建议";
+"settings.aiChatSuggestions.toggle" = "显示输入框建议";
+"settings.aiChatSuggestions.description" = "关闭后，AI 聊天不会在输入框上方显示建议提示。";
 "settings.leaderboardParticipation.title" = "排行榜参与";
 "settings.leaderboardParticipation.toggle" = "在排行榜中显示我";
 "settings.leaderboardParticipation.description" = "关闭后，你的匿名活动不会显示在排行榜中。";

@@ -590,6 +590,8 @@ struct RootTabView: View {
             CurrentWorkspaceView()
         case .reviewAnimations:
             ReviewAnimationsSettingsView()
+        case .aiChatSuggestions:
+            AIChatSuggestionsSettingsView()
         case .leaderboardParticipation:
             LeaderboardParticipationSettingsView()
         case .language:

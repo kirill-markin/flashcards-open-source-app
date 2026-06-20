@@ -51,6 +51,10 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
         try self.assertScreenVisible(screen: .reviewAnimationsSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.returnToSettingsRoot()
 
+        try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsAIChatSuggestionsRow)
+        try self.assertScreenVisible(screen: .aiChatSuggestionsSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.returnToSettingsRoot()
+
         try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsLeaderboardParticipationRow)
         try self.assertScreenVisible(screen: .leaderboardParticipationSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.returnToSettingsRoot()
@@ -133,6 +137,10 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         try self.assertElementExistsScrollingIntoView(
+            identifier: LiveSmokeIdentifier.settingsAIChatSuggestionsRow,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertElementExistsScrollingIntoView(
             identifier: LiveSmokeIdentifier.settingsLeaderboardParticipationRow,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
@@ -143,14 +151,18 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
 
         let remindersFrame = self.app.buttons[LiveSmokeIdentifier.settingsReviewRemindersRow].firstMatch.frame
         let animationsFrame = self.app.buttons[LiveSmokeIdentifier.settingsReviewAnimationsRow].firstMatch.frame
+        let aiChatSuggestionsFrame = self.app.buttons[LiveSmokeIdentifier.settingsAIChatSuggestionsRow].firstMatch.frame
         let leaderboardFrame = self.app.buttons[LiveSmokeIdentifier.settingsLeaderboardParticipationRow].firstMatch.frame
         let languageFrame = self.app.buttons[LiveSmokeIdentifier.settingsLanguageRow].firstMatch.frame
-        if remindersFrame.minY < animationsFrame.minY && animationsFrame.minY < leaderboardFrame.minY && leaderboardFrame.minY < languageFrame.minY {
+        if remindersFrame.minY < animationsFrame.minY
+            && animationsFrame.minY < aiChatSuggestionsFrame.minY
+            && aiChatSuggestionsFrame.minY < leaderboardFrame.minY
+            && leaderboardFrame.minY < languageFrame.minY {
             return
         }
 
         throw LiveSmokeFailure.unexpectedAccountState(
-            message: "General settings rows should appear as Reminders, Review Animations, Leaderboard participation, then Language.",
+            message: "General settings rows should appear as Reminders, Review Animations, AI Chat Suggestions, Leaderboard participation, then Language.",
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )

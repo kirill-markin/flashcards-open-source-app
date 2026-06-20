@@ -135,6 +135,7 @@
 "settings.row.currentWorkspace" = "مساحة العمل";
 "settings.row.reviewReminders" = "التذكيرات";
 "settings.row.reviewAnimations" = "رسوم المراجعة المتحركة";
+"settings.row.aiChatSuggestions" = "اقتراحات دردشة الذكاء الاصطناعي";
 "settings.row.leaderboardParticipation" = "المشاركة في لوحة الصدارة";
 "settings.row.language" = "اللغة";
 "settings.row.language.value" = "iOS";
@@ -167,6 +168,9 @@
 "settings.currentWorkspace.renameLinkedOnly" = "إعادة تسمية مساحة العمل متاحة فقط لمساحات العمل السحابية المرتبطة.";
 "settings.reviewAnimations.title" = "رسوم المراجعة المتحركة";
 "settings.reviewAnimations.toggle" = "إظهار الرسوم المتحركة بعد تقييم بطاقة";
+"settings.aiChatSuggestions.title" = "اقتراحات دردشة الذكاء الاصطناعي";
+"settings.aiChatSuggestions.toggle" = "إظهار اقتراحات محرر الرسائل";
+"settings.aiChatSuggestions.description" = "عند إيقاف هذا الخيار، لن تعرض دردشة الذكاء الاصطناعي اقتراحات فوق محرر الرسائل.";
 "settings.leaderboardParticipation.title" = "المشاركة في لوحة الصدارة";
 "settings.leaderboardParticipation.toggle" = "إظهاري في لوحة الصدارة";
 "settings.leaderboardParticipation.description" = "عند إيقاف هذا الخيار، لن يظهر نشاطك المجهول في لوحة الصدارة.";
