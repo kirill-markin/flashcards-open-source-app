@@ -96,6 +96,11 @@ extension View {
             )
         }
     }
+
+    @MainActor
+    func technicalErrorSheetHost(store: FlashcardsStore) -> some View {
+        self.technicalErrorSheet(store: store)
+    }
 }
 
 @MainActor

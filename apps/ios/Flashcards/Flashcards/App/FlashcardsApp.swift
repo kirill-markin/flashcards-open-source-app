@@ -231,7 +231,8 @@ struct FlashcardsApp: App {
                                 now: now,
                                 extendsFastPolling: usesFastCloudSyncPolling(tab: navigation.selectedTab),
                                 allowsVisibleChangeBanner: true,
-                                surfacesGlobalErrorMessage: false
+                                surfacesGlobalErrorMessage: false,
+                                capturesTechnicalFailures: false
                             )
                         )
                         store.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
@@ -336,7 +337,8 @@ struct FlashcardsApp: App {
                         now: now,
                         extendsFastPolling: usesFastCloudSyncPolling(tab: self.navigation.selectedTab),
                         allowsVisibleChangeBanner: true,
-                        surfacesGlobalErrorMessage: false
+                        surfacesGlobalErrorMessage: false,
+                        capturesTechnicalFailures: false
                     )
                 )
                 self.store.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
@@ -524,7 +526,8 @@ struct FlashcardsApp: App {
                     now: Date(),
                     extendsFastPolling: false,
                     allowsVisibleChangeBanner: true,
-                    surfacesGlobalErrorMessage: false
+                    surfacesGlobalErrorMessage: false,
+                    capturesTechnicalFailures: false
                 )
             )
         }

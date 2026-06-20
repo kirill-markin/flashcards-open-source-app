@@ -191,6 +191,7 @@
 "settings.sync.syncing" = "Sincronizando";
 "settings.sync.blocked" = "Sincronizacion bloqueada: %@";
 "settings.sync.failed" = "Fallo de sincronizacion: %@";
+"settings.sync.failed.generic" = "Fallo de sincronizacion";
 "settings.sync.recovery.linkedCredentialsMissing" = "Faltan las credenciales seguras de inicio de sesion en este dispositivo. Los datos locales se conservan. Inicia sesion de nuevo para reconectar la sincronizacion.";
 "settings.sync.recovery.guestSessionMissing" = "Faltan las credenciales de invitado en este dispositivo. Los datos locales se conservan, pero la antigua cuenta de invitado en la nube no se puede recuperar sin su token.";
 "settings.sync.recovery.invalidStoredState" = "Los datos de recuperacion de credenciales en la nube guardados en este dispositivo no son validos. La sincronizacion esta pausada hasta que reconectes o restablezcas la identidad en la nube.";
@@ -603,6 +604,7 @@
 "settings.workspace.decks.description" = "Los mazos son filtros inteligentes que incluyen tarjetas que coinciden con los niveles de esfuerzo y las etiquetas que elijas.";
 "settings.workspace.decks.editorSmartFilterDescription" = "Un mazo es un filtro inteligente.";
 "settings.workspace.decks.editorMatchingRulesDescription" = "Las tarjetas coinciden con los niveles de esfuerzo y las etiquetas que selecciones. Puedes elegir el mazo desde el menú superior izquierdo en Repasar.";
+"settings.workspace.decks.emptyNameValidation" = "Ingresa un nombre para el mazo.";
 "settings.workspace.decks.emptyRuleValidation" = "Elige al menos un nivel de esfuerzo o una etiqueta, o usa Todas las tarjetas en Repasar.";
 "settings.workspace.decks.loading" = "Cargando mazos...";
 "settings.workspace.decks.noMatching" = "No hay mazos coincidentes";

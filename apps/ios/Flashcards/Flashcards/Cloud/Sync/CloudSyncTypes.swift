@@ -45,6 +45,7 @@ struct CloudSyncTrigger: Hashable, Sendable {
     let extendsFastPolling: Bool
     let allowsVisibleChangeBanner: Bool
     let surfacesGlobalErrorMessage: Bool
+    let capturesTechnicalFailures: Bool
     let technicalErrorCaptureContext: TechnicalErrorCaptureContext?
 
     init(
@@ -60,6 +61,26 @@ struct CloudSyncTrigger: Hashable, Sendable {
             extendsFastPolling: extendsFastPolling,
             allowsVisibleChangeBanner: allowsVisibleChangeBanner,
             surfacesGlobalErrorMessage: surfacesGlobalErrorMessage,
+            capturesTechnicalFailures: false,
+            technicalErrorCaptureContext: nil
+        )
+    }
+
+    init(
+        source: CloudSyncTriggerSource,
+        now: Date,
+        extendsFastPolling: Bool,
+        allowsVisibleChangeBanner: Bool,
+        surfacesGlobalErrorMessage: Bool,
+        capturesTechnicalFailures: Bool
+    ) {
+        self.init(
+            source: source,
+            now: now,
+            extendsFastPolling: extendsFastPolling,
+            allowsVisibleChangeBanner: allowsVisibleChangeBanner,
+            surfacesGlobalErrorMessage: surfacesGlobalErrorMessage,
+            capturesTechnicalFailures: capturesTechnicalFailures,
             technicalErrorCaptureContext: nil
         )
     }
@@ -72,11 +93,32 @@ struct CloudSyncTrigger: Hashable, Sendable {
         surfacesGlobalErrorMessage: Bool,
         technicalErrorCaptureContext: TechnicalErrorCaptureContext?
     ) {
+        self.init(
+            source: source,
+            now: now,
+            extendsFastPolling: extendsFastPolling,
+            allowsVisibleChangeBanner: allowsVisibleChangeBanner,
+            surfacesGlobalErrorMessage: surfacesGlobalErrorMessage,
+            capturesTechnicalFailures: technicalErrorCaptureContext != nil,
+            technicalErrorCaptureContext: technicalErrorCaptureContext
+        )
+    }
+
+    init(
+        source: CloudSyncTriggerSource,
+        now: Date,
+        extendsFastPolling: Bool,
+        allowsVisibleChangeBanner: Bool,
+        surfacesGlobalErrorMessage: Bool,
+        capturesTechnicalFailures: Bool,
+        technicalErrorCaptureContext: TechnicalErrorCaptureContext?
+    ) {
         self.source = source
         self.now = now
         self.extendsFastPolling = extendsFastPolling
         self.allowsVisibleChangeBanner = allowsVisibleChangeBanner
         self.surfacesGlobalErrorMessage = surfacesGlobalErrorMessage
+        self.capturesTechnicalFailures = capturesTechnicalFailures
         self.technicalErrorCaptureContext = technicalErrorCaptureContext
     }
 }

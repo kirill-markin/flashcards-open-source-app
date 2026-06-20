@@ -34,12 +34,14 @@ extension FlashcardsStore {
             if isRequestCancellationError(error: error) {
                 throw error
             }
-            self.captureCloudAuthFailure(
-                error: error,
-                configuration: configuration,
-                action: .sendCode,
-                captureContext: captureContext
-            )
+            if isRetryableNetworkTransportFailure(error: error) == false {
+                self.captureCloudAuthFailure(
+                    error: error,
+                    configuration: configuration,
+                    action: .sendCode,
+                    captureContext: captureContext
+                )
+            }
             throw error
         }
     }
@@ -66,12 +68,14 @@ extension FlashcardsStore {
             if isRequestCancellationError(error: error) {
                 throw error
             }
-            self.captureCloudAuthFailure(
-                error: error,
-                configuration: configuration,
-                action: .verifyCode,
-                captureContext: captureContext
-            )
+            if isRetryableNetworkTransportFailure(error: error) == false {
+                self.captureCloudAuthFailure(
+                    error: error,
+                    configuration: configuration,
+                    action: .verifyCode,
+                    captureContext: captureContext
+                )
+            }
             throw error
         }
     }
@@ -815,20 +819,18 @@ extension FlashcardsStore {
                 installationId: self.cloudSettings?.installationId,
                 errorMessage: Flashcards.errorMessage(error: error)
             )
-            if isRetryableNetworkTransportFailure(error: error) == false {
-                self.captureCloudSyncFailure(
-                    error: error,
-                    linkedSession: linkedSession,
-                    fallbackCloudState: self.cloudSettings?.cloudState,
-                    action: "cloud_link_sync",
-                    captureContext: trigger.technicalErrorCaptureContext
-                )
-            }
+            let didCapture = self.captureCloudSyncFailureIfNeeded(
+                error: error,
+                linkedSession: linkedSession,
+                fallbackCloudState: self.cloudSettings?.cloudState,
+                trigger: trigger,
+                action: "cloud_link_sync"
+            )
             self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error, trigger: trigger)
             if trigger.surfacesGlobalErrorMessage {
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
-            throw error
+            throw didCapture ? markTechnicalErrorObserved(error: error) : error
         }
     }
 

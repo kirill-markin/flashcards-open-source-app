@@ -98,7 +98,8 @@ class CloudCredentialRecoveryTestCase: LocalWorkspaceSyncTestCase {
             now: Date(timeIntervalSince1970: 1_775_000_000),
             extendsFastPolling: false,
             allowsVisibleChangeBanner: false,
-            surfacesGlobalErrorMessage: false
+            surfacesGlobalErrorMessage: false,
+            capturesTechnicalFailures: false
         )
     }
 

@@ -34,21 +34,22 @@ struct AccessSettingsView: View {
 
 struct AccessPermissionDetailView: View {
     @State private var status: AccessPermissionStatus
-    @State private var screenErrorMessage: String
+    @State private var guidanceMessage: String
 
     let kind: AccessPermissionKind
 
     init(kind: AccessPermissionKind) {
         self.kind = kind
         self._status = State(initialValue: accessPermissionStatus(kind: kind))
-        self._screenErrorMessage = State(initialValue: "")
+        self._guidanceMessage = State(initialValue: "")
     }
 
     var body: some View {
         List {
-            if self.screenErrorMessage.isEmpty == false {
+            if self.guidanceMessage.isEmpty == false {
                 Section {
-                    CopyableErrorMessageView(message: self.screenErrorMessage)
+                    Text(self.guidanceMessage)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -88,12 +89,12 @@ struct AccessPermissionDetailView: View {
         case .askEveryTime:
             Task { @MainActor in
                 self.status = await requestAccessPermission(kind: self.kind)
-                self.screenErrorMessage = ""
+                self.guidanceMessage = ""
             }
         case .allowed, .blocked, .limited:
             openApplicationSettings()
         case .unavailable:
-            self.screenErrorMessage = aiSettingsLocalized(
+            self.guidanceMessage = aiSettingsLocalized(
                 "settings.access.guidance.unavailable",
                 "This access is unavailable on the current device."
             )

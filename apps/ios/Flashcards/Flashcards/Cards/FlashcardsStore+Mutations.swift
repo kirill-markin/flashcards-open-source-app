@@ -13,7 +13,8 @@ extension FlashcardsStore {
             now: now,
             extendsFastPolling: true,
             allowsVisibleChangeBanner: false,
-            surfacesGlobalErrorMessage: false
+            surfacesGlobalErrorMessage: false,
+            capturesTechnicalFailures: false
         )
     }
 

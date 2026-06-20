@@ -25,7 +25,7 @@ struct AccountDeletionProgressView: View {
                     )
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
-                case .failed(let message):
+                case .failed:
                     Text(
                         aiSettingsLocalized(
                             "settings.account.deletionProgress.failed",
@@ -34,7 +34,6 @@ struct AccountDeletionProgressView: View {
                     )
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
-                    CopyableErrorMessageView(message: message)
                     Button(aiSettingsLocalized("settings.account.deletionProgress.retry", "Retry deletion"), role: .destructive) {
                         store.retryPendingAccountDeletion()
                     }

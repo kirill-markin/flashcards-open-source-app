@@ -33,7 +33,6 @@ struct SyncStatusIndicatorView: View {
 struct AccountStatusView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
-    @State private var screenErrorMessage: String = ""
     @State private var isCloudSignInPresented: Bool = false
     @State private var isLogoutConfirmationPresented: Bool = false
 
@@ -45,12 +44,6 @@ struct AccountStatusView: View {
 
     var body: some View {
         List {
-            if screenErrorMessage.isEmpty == false {
-                Section {
-                    CopyableErrorMessageView(message: screenErrorMessage)
-                }
-            }
-
             Section(aiSettingsLocalized("settings.account.status.section.accountStatus", "Account Status")) {
                 if let cloudSettings = store.cloudSettings {
                     let syncStatusPresentation = makeSyncStatusPresentation(
@@ -77,10 +70,6 @@ struct AccountStatusView: View {
 
                     LabeledContent(aiSettingsLocalized("settings.account.status.syncStatus", "Sync status")) {
                         SyncStatusIndicatorView(presentation: syncStatusPresentation)
-                    }
-
-                    if case .blocked(let message) = store.syncStatus {
-                        CopyableErrorMessageView(message: message)
                     }
 
                     if let lastSuccessfulCloudSyncAt = store.lastSuccessfulCloudSyncAt {
@@ -167,29 +156,39 @@ struct AccountStatusView: View {
     private func logoutCloudAccount() {
         do {
             try store.logoutCloudAccount()
-            self.screenErrorMessage = ""
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            self.store.presentTechnicalError(error)
         }
     }
 
     private func syncNow() {
         Task { @MainActor in
+            let trigger = self.store.technicalErrorModalCloudSyncTrigger(now: Date())
+
             do {
-                try await store.syncCloudNow(
-                    trigger: CloudSyncTrigger(
-                        source: .manualSyncNow,
-                        now: Date(),
-                        extendsFastPolling: false,
-                        allowsVisibleChangeBanner: false,
-                        surfacesGlobalErrorMessage: true
-                    )
-                )
-                self.screenErrorMessage = ""
+                try await store.syncCloudNow(trigger: trigger)
             } catch {
-                self.screenErrorMessage = Flashcards.errorMessage(error: error)
+                if self.shouldPresentManualSyncTechnicalError(error: error) {
+                    self.store.presentTechnicalError(error)
+                }
             }
         }
+    }
+
+    private func shouldPresentManualSyncTechnicalError(error: Error) -> Bool {
+        if isRequestCancellationError(error: error) {
+            return false
+        }
+
+        if self.isSyncBlocked {
+            return false
+        }
+
+        if isRetryableNetworkTransportFailure(error: error) {
+            return false
+        }
+
+        return true
     }
 
     private var isSyncBlocked: Bool {

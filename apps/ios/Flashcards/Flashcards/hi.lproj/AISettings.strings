@@ -191,6 +191,7 @@
 "settings.sync.syncing" = "सिंक्रोनाइज़िंग";
 "settings.sync.blocked" = "सिंक्रनाइज़ेशन अवरुद्ध: %@";
 "settings.sync.failed" = "सिंक्रनाइज़ेशन विफलता: %@";
+"settings.sync.failed.generic" = "सिंक विफल रहा";
 "settings.sync.recovery.linkedCredentialsMissing" = "इस डिवाइस पर सुरक्षित साइन-इन क्रेडेंशियल गायब हैं। स्थानीय डेटा सुरक्षित रखा गया है। सिंक फिर से जोड़ने के लिए फिर से साइन इन करें।";
 "settings.sync.recovery.guestSessionMissing" = "इस डिवाइस पर अतिथि क्रेडेंशियल गायब हैं। स्थानीय डेटा सुरक्षित रखा गया है, लेकिन पुराना अतिथि क्लाउड खाता उसके टोकन के बिना पुनर्प्राप्त नहीं किया जा सकता।";
 "settings.sync.recovery.invalidStoredState" = "इस डिवाइस पर सहेजा गया क्लाउड क्रेडेंशियल रिकवरी डेटा अमान्य है। जब तक आप क्लाउड पहचान को फिर से कनेक्ट या रीसेट नहीं करते, सिंक रुका रहेगा।";
@@ -603,6 +604,7 @@
 "settings.workspace.decks.description" = "डेक स्मार्ट फ़िल्टर हैं जो आपके चुने गए प्रयास स्तरों और टैग से मेल खाने वाले कार्ड शामिल करते हैं।";
 "settings.workspace.decks.editorSmartFilterDescription" = "डेक एक स्मार्ट फ़िल्टर है।";
 "settings.workspace.decks.editorMatchingRulesDescription" = "कार्ड आपके चुने गए प्रयास स्तरों और टैग से मेल खाते हैं। आप समीक्षा में ऊपर-बाएं मेनू से डेक चुन सकते हैं।";
+"settings.workspace.decks.emptyNameValidation" = "डेक का नाम दर्ज करें.";
 "settings.workspace.decks.emptyRuleValidation" = "कम से कम एक प्रयास स्तर या टैग चुनें, या समीक्षा में सभी कार्ड का उपयोग करें.";
 "settings.workspace.decks.loading" = "डेक लोड हो रहा है...";
 "settings.workspace.decks.noMatching" = "कोई मेल खाता डेक नहीं";

@@ -191,6 +191,7 @@
 "settings.sync.syncing" = "Synchronisierung";
 "settings.sync.blocked" = "Synchronisierung blockiert: %@";
 "settings.sync.failed" = "Synchronisierungsfehler: %@";
+"settings.sync.failed.generic" = "Synchronisierung fehlgeschlagen";
 "settings.sync.recovery.linkedCredentialsMissing" = "Sichere Anmeldedaten fehlen auf diesem Gerät. Lokale Daten bleiben erhalten. Melde dich erneut an, um die Synchronisierung wieder zu verbinden.";
 "settings.sync.recovery.guestSessionMissing" = "Gast-Anmeldedaten fehlen auf diesem Gerät. Lokale Daten bleiben erhalten, aber das alte Gast-Cloudkonto kann ohne sein Token nicht wiederhergestellt werden.";
 "settings.sync.recovery.invalidStoredState" = "Die auf diesem Gerät gespeicherten Cloud-Wiederherstellungsdaten sind ungültig. Die Synchronisierung ist pausiert, bis du die Cloud-Identität erneut verbindest oder zurücksetzt.";
@@ -603,6 +604,7 @@
 "settings.workspace.decks.description" = "Decks sind intelligente Filter, die Karten einschließen, die den gewählten Aufwandsstufen und Tags entsprechen.";
 "settings.workspace.decks.editorSmartFilterDescription" = "Ein Deck ist ein intelligenter Filter.";
 "settings.workspace.decks.editorMatchingRulesDescription" = "Karten werden über die Aufwandsstufen und Tags gefunden, die Sie auswählen. Sie können das Deck im Menü oben links unter „Wiederholen“ auswählen.";
+"settings.workspace.decks.emptyNameValidation" = "Geben Sie einen Decknamen ein.";
 "settings.workspace.decks.emptyRuleValidation" = "Wählen Sie mindestens eine Aufwandsstufe oder ein Tag aus, oder verwenden Sie „Alle Karten“ unter „Wiederholen“.";
 "settings.workspace.decks.loading" = "Ladedecks...";
 "settings.workspace.decks.noMatching" = "Keine passenden Decks";

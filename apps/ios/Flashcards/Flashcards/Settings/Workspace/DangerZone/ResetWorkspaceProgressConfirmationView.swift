@@ -6,8 +6,8 @@ struct ResetWorkspaceProgressConfirmationView: View {
 
     @State private var confirmationText: String = ""
     @State private var preview: CloudWorkspaceResetProgressPreview? = nil
-    @State private var previewErrorMessage: String = ""
-    @State private var resetErrorMessage: String = ""
+    @State private var previewGuidanceMessage: String = ""
+    @State private var resetGuidanceMessage: String = ""
     @State private var isLoadingPreview: Bool = false
     @State private var isResetting: Bool = false
     @FocusState private var isConfirmationFieldFocused: Bool
@@ -100,12 +100,13 @@ struct ResetWorkspaceProgressConfirmationView: View {
                 self.requestPreview()
             }
             .onChange(of: self.confirmationText) { _, _ in
-                self.previewErrorMessage = ""
+                self.previewGuidanceMessage = ""
             }
             .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressConfirmationField)
 
-        if self.previewErrorMessage.isEmpty == false {
-            CopyableErrorMessageView(message: self.previewErrorMessage)
+        if self.previewGuidanceMessage.isEmpty == false {
+            Text(self.previewGuidanceMessage)
+                .foregroundStyle(.secondary)
         }
 
         if self.isLoadingPreview {
@@ -156,8 +157,9 @@ struct ResetWorkspaceProgressConfirmationView: View {
                 .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressCardsCount)
         }
 
-        if self.resetErrorMessage.isEmpty == false {
-            CopyableErrorMessageView(message: self.resetErrorMessage)
+        if self.resetGuidanceMessage.isEmpty == false {
+            Text(self.resetGuidanceMessage)
+                .foregroundStyle(.secondary)
         }
 
         if self.isResetting {
@@ -189,7 +191,7 @@ struct ResetWorkspaceProgressConfirmationView: View {
         }
 
         self.isLoadingPreview = true
-        self.previewErrorMessage = ""
+        self.previewGuidanceMessage = ""
 
         Task {
             await self.loadPreview()
@@ -204,7 +206,11 @@ struct ResetWorkspaceProgressConfirmationView: View {
             self.isLoadingPreview = false
         } catch {
             self.preview = nil
-            self.previewErrorMessage = Flashcards.errorMessage(error: error)
+            if let guidanceMessage = self.store.workspaceOperationGuidanceMessage(error: error) {
+                self.previewGuidanceMessage = guidanceMessage
+            } else if self.store.shouldPresentWorkspaceOperationTechnicalError(error: error) {
+                self.store.presentTechnicalError(error)
+            }
             self.isLoadingPreview = false
         }
     }
@@ -218,7 +224,7 @@ struct ResetWorkspaceProgressConfirmationView: View {
         }
 
         self.isResetting = true
-        self.resetErrorMessage = ""
+        self.resetGuidanceMessage = ""
 
         Task {
             await self.performReset(preview: preview)
@@ -237,7 +243,11 @@ struct ResetWorkspaceProgressConfirmationView: View {
             self.isResetting = false
             self.isPresented = false
         } catch {
-            self.resetErrorMessage = Flashcards.errorMessage(error: error)
+            if let guidanceMessage = self.store.workspaceOperationGuidanceMessage(error: error) {
+                self.resetGuidanceMessage = guidanceMessage
+            } else if self.store.shouldPresentWorkspaceOperationTechnicalError(error: error) {
+                self.store.presentTechnicalError(error)
+            }
             self.isResetting = false
         }
     }

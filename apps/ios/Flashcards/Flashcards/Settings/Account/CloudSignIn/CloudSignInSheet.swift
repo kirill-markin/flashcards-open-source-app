@@ -429,6 +429,9 @@ struct CloudSignInSheet: View {
             self.postAuthLoadingState = nil
             self.postAuthGuestLocalRecoveryPreparationState = nil
             self.postAuthSyncState = nil
+            if isRequestCancellationError(error: error) {
+                return
+            }
             if self.store.cloudCredentialRecoveryState?.reason == .guestSessionMissing {
                 let failurePresentation = makeGuestLocalRecoveryPostAuthFailurePresentation(
                     retryAction: .prepareLink(verifiedContext: loadingState.verifiedContext)
@@ -436,7 +439,7 @@ struct CloudSignInSheet: View {
                 self.presentPostAuthFailure(
                     title: failurePresentation.title,
                     message: failurePresentation.message ?? makeCloudPostAuthVisibleFailureMessage(error: error),
-                    technicalError: isSafeCloudPostAuthDomainFailure(error: error)
+                    technicalError: self.isNonTechnicalPostAuthFailure(error: error)
                         ? nil
                         : makeTechnicalErrorAction(error: error),
                     retryAction: failurePresentation.retryAction,
@@ -446,7 +449,7 @@ struct CloudSignInSheet: View {
                 self.presentPostAuthFailure(
                     title: aiSettingsLocalized("settings.account.cloudSignIn.failure.cloudSetupFailed", "Signed in, but cloud setup failed."),
                     message: makeCloudPostAuthVisibleFailureMessage(error: error),
-                    technicalError: isSafeCloudPostAuthDomainFailure(error: error)
+                    technicalError: self.isNonTechnicalPostAuthFailure(error: error)
                         ? nil
                         : makeTechnicalErrorAction(error: error),
                     retryAction: .prepareLink(verifiedContext: loadingState.verifiedContext),
@@ -550,6 +553,10 @@ struct CloudSignInSheet: View {
             guard self.postAuthSyncState?.id == syncState.id else {
                 return
             }
+            if isRequestCancellationError(error: error) {
+                self.postAuthSyncState = nil
+                return
+            }
 
             let failurePresentation = makeCloudPostAuthFailurePresentation(
                 operation: syncState.operation,
@@ -560,7 +567,7 @@ struct CloudSignInSheet: View {
             self.presentPostAuthFailure(
                 title: failurePresentation.title,
                 message: failurePresentation.message ?? makeCloudPostAuthVisibleFailureMessage(error: error),
-                technicalError: isSafeCloudPostAuthDomainFailure(error: error)
+                technicalError: self.isNonTechnicalPostAuthFailure(error: error)
                     ? nil
                     : self.store.makeTechnicalErrorAction(
                         error: error,
@@ -596,6 +603,19 @@ struct CloudSignInSheet: View {
         )
     }
 
+    private func isNonTechnicalPostAuthFailure(error: Error) -> Bool {
+        if isSafeCloudPostAuthDomainFailure(error: error) {
+            return true
+        }
+        if isRetryableNetworkTransportFailure(error: error) {
+            return true
+        }
+        if self.store.blockedCloudIdentityConflictMessage(error: error) != nil {
+            return true
+        }
+        return false
+    }
+
     private func presentAuthErrorPresentation(
         _ presentation: CloudAuthInlineErrorPresentation,
         captureContext: TechnicalErrorCaptureContext
@@ -614,7 +634,7 @@ struct CloudSignInSheet: View {
     }
 
     private func presentTechnicalError(_ action: TechnicalErrorAction) {
-        self.technicalErrorPresentation = self.store.makeTechnicalErrorPresentation(action: action)
+        self.technicalErrorPresentation = self.store.makeTechnicalErrorPresentationIfNeeded(action: action)
     }
 
     private func logoutAndDismiss() {

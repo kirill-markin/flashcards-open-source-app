@@ -48,12 +48,6 @@ struct SettingsView: View {
                 self.friendInviteButton
             }
 
-            if store.globalErrorMessage.isEmpty == false {
-                Section {
-                    CopyableErrorMessageView(message: store.globalErrorMessage)
-                }
-            }
-
             Section(aiSettingsLocalized("settings.section.account", "Account")) {
                 NavigationLink(value: SettingsNavigationDestination.accountStatus) {
                     SettingsNavigationRow(
@@ -383,9 +377,9 @@ func makeSyncStatusPresentation(status: SyncStatus, cloudState: CloudAccountStat
             title: aiSettingsLocalizedFormat("settings.sync.blocked", "Sync blocked: %@", message),
             tone: .failure
         )
-    case .failed(let message):
+    case .failed:
         return SyncStatusPresentation(
-            title: aiSettingsLocalizedFormat("settings.sync.failed", "Sync failed: %@", message),
+            title: aiSettingsLocalized("settings.sync.failed.generic", "Sync failed"),
             tone: .failure
         )
     }

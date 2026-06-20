@@ -8,12 +8,6 @@ struct ResetStudyProgressView: View {
 
     var body: some View {
         List {
-            if store.globalErrorMessage.isEmpty == false {
-                Section {
-                    CopyableErrorMessageView(message: store.globalErrorMessage)
-                }
-            }
-
             Section(aiSettingsLocalized("settings.row.resetStudyProgress", "Reset Study Progress")) {
                 Text(
                     aiSettingsLocalized(
@@ -49,6 +43,7 @@ struct ResetStudyProgressView: View {
         .fullScreenCover(isPresented: self.$isResetProgressConfirmationPresented) {
             ResetWorkspaceProgressConfirmationView(isPresented: self.$isResetProgressConfirmationPresented)
                 .environment(store)
+                .technicalErrorSheetHost(store: self.store)
         }
     }
 }

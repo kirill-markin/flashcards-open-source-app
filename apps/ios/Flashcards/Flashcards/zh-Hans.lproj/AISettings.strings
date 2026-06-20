@@ -191,6 +191,7 @@
 "settings.sync.syncing" = "正在同步";
 "settings.sync.blocked" = "同步被阻止：%@";
 "settings.sync.failed" = "同步失败：%@";
+"settings.sync.failed.generic" = "同步失败";
 "settings.sync.recovery.linkedCredentialsMissing" = "此设备缺少安全登录凭据。本地数据已保留。请重新登录以重新连接同步。";
 "settings.sync.recovery.guestSessionMissing" = "此设备缺少访客凭据。本地数据已保留，但没有令牌就无法恢复旧的访客云账户。";
 "settings.sync.recovery.invalidStoredState" = "此设备上存储的云凭据恢复数据无效。同步已暂停，直到你重新连接或重置云身份。";
@@ -603,6 +604,7 @@
 "settings.workspace.decks.description" = "牌组是智能筛选器，会包含符合你选择的努力级别和标签的卡片。";
 "settings.workspace.decks.editorSmartFilterDescription" = "牌组是智能筛选器。";
 "settings.workspace.decks.editorMatchingRulesDescription" = "卡片会按你选择的努力级别和标签匹配。你可以在“复习”左上角菜单中选择该牌组。";
+"settings.workspace.decks.emptyNameValidation" = "请输入卡组名称。";
 "settings.workspace.decks.emptyRuleValidation" = "请选择至少一个努力级别或标签，或在“复习”中使用“所有卡片”。";
 "settings.workspace.decks.loading" = "正在加载牌组...";
 "settings.workspace.decks.noMatching" = "没有匹配的牌组";

@@ -3,17 +3,11 @@ import SwiftUI
 struct LeaderboardParticipationSettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
-    @State private var screenErrorMessage: String = ""
     @State private var isSaving: Bool = false
+    @State private var guidanceMessage: String = ""
 
     var body: some View {
         List {
-            if self.screenErrorMessage.isEmpty == false {
-                Section {
-                    CopyableErrorMessageView(message: self.screenErrorMessage)
-                }
-            }
-
             Section {
                 self.leaderboardParticipationContent
             }
@@ -29,6 +23,11 @@ struct LeaderboardParticipationSettingsView: View {
     @ViewBuilder
     private var leaderboardParticipationContent: some View {
         if store.canManageLeaderboardParticipation {
+            if self.guidanceMessage.isEmpty == false {
+                Text(self.guidanceMessage)
+                    .foregroundStyle(.secondary)
+            }
+
             if let communityProfile = store.communityPublicProfile {
                 Toggle(
                     aiSettingsLocalized(
@@ -88,9 +87,9 @@ struct LeaderboardParticipationSettingsView: View {
 
             do {
                 try await store.updateLeaderboardParticipationEnabled(isEnabled: isEnabled)
-                self.screenErrorMessage = ""
+                self.guidanceMessage = ""
             } catch {
-                self.screenErrorMessage = Flashcards.errorMessage(error: error)
+                self.handleLeaderboardParticipationFailure(error: error)
             }
         }
     }
@@ -98,10 +97,26 @@ struct LeaderboardParticipationSettingsView: View {
     private func refreshCommunityProfile() async {
         do {
             try await store.refreshCommunityPublicProfileIfAvailable()
-            self.screenErrorMessage = ""
+            self.guidanceMessage = ""
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            self.handleLeaderboardParticipationFailure(error: error)
         }
+    }
+
+    private func handleLeaderboardParticipationFailure(error: Error) {
+        if isRequestCancellationError(error: error) {
+            return
+        }
+        if isRetryableNetworkTransportFailure(error: error) {
+            self.guidanceMessage = aiSettingsLocalized("settings.sync.failed.generic", "Sync failed")
+            return
+        }
+        if let guidanceMessage = self.store.blockedCloudIdentityConflictMessage(error: error) {
+            self.guidanceMessage = guidanceMessage
+            return
+        }
+
+        self.store.presentTechnicalError(error)
     }
 }
 

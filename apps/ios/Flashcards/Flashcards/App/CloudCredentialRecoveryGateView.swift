@@ -8,7 +8,6 @@ struct CloudCredentialRecoveryGateView: View {
     @State private var isCloudSignInPresented: Bool = false
     @State private var isEraseConfirmationPresented: Bool = false
     @State private var isErasing: Bool = false
-    @State private var eraseErrorMessage: String = ""
 
     private var presentation: CloudCredentialRecoveryGatePresentation {
         makeCloudCredentialRecoveryGatePresentation(reason: self.recoveryState.reason)
@@ -39,12 +38,6 @@ struct CloudCredentialRecoveryGateView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 24)
-                    }
-
-                    if self.eraseErrorMessage.isEmpty == false {
-                        Section {
-                            CopyableErrorMessageView(message: self.eraseErrorMessage)
-                        }
                     }
 
                     if self.isErasing {
@@ -136,7 +129,6 @@ struct CloudCredentialRecoveryGateView: View {
         }
 
         self.isErasing = true
-        self.eraseErrorMessage = ""
 
         Task {
             await self.eraseLocalData()
@@ -150,7 +142,7 @@ struct CloudCredentialRecoveryGateView: View {
         do {
             try self.store.eraseLocalDataForCredentialRecovery()
         } catch {
-            self.eraseErrorMessage = Flashcards.errorMessage(error: error)
+            self.store.presentTechnicalError(error)
         }
 
         self.isErasing = false

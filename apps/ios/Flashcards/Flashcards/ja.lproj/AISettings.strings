@@ -191,6 +191,7 @@
 "settings.sync.syncing" = "同期中";
 "settings.sync.blocked" = "同期がブロックされました: %@";
 "settings.sync.failed" = "同期失敗: %@";
+"settings.sync.failed.generic" = "同期に失敗しました";
 "settings.sync.recovery.linkedCredentialsMissing" = "このデバイスの安全なサインイン認証情報が見つかりません。ローカルデータは保持されています。同期を再接続するにはもう一度サインインしてください。";
 "settings.sync.recovery.guestSessionMissing" = "このデバイスのゲスト認証情報が見つかりません。ローカルデータは保持されていますが、古いゲストクラウドアカウントはトークンなしでは復元できません。";
 "settings.sync.recovery.invalidStoredState" = "このデバイスに保存されたクラウド認証情報の復旧データが無効です。クラウド ID を再接続またはリセットするまで同期は一時停止されます。";
@@ -603,6 +604,7 @@
 "settings.workspace.decks.description" = "デッキはスマートフィルターです。選択した努力レベルとタグに一致するカードが含まれます。";
 "settings.workspace.decks.editorSmartFilterDescription" = "デッキはスマートフィルターです。";
 "settings.workspace.decks.editorMatchingRulesDescription" = "選択した努力レベルとタグでカードが一致します。復習の左上メニューからデッキを選択できます。";
+"settings.workspace.decks.emptyNameValidation" = "デッキ名を入力してください。";
 "settings.workspace.decks.emptyRuleValidation" = "少なくとも 1 つの努力レベルまたはタグを選択するか、復習ですべてのカードを使用してください。";
 "settings.workspace.decks.loading" = "デッキをロード中...";
 "settings.workspace.decks.noMatching" = "一致するデッキがありません";

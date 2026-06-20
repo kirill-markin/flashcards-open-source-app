@@ -20,7 +20,7 @@ struct ServerSettingsView: View {
     @State private var customOriginInput: String = ""
     @State private var currentConfiguration: CloudServiceConfiguration?
     @State private var previewConfiguration: CloudServiceConfiguration?
-    @State private var screenErrorMessage: String = ""
+    @State private var customServerValidationMessage: String = ""
     @State private var isSaving: Bool = false
     @State private var confirmationAction: ServerSettingsConfirmationAction?
     @State private var isConfirmationPresented: Bool = false
@@ -60,12 +60,6 @@ struct ServerSettingsView: View {
 
     var body: some View {
         Form {
-            if self.screenErrorMessage.isEmpty == false {
-                Section {
-                    CopyableErrorMessageView(message: self.screenErrorMessage)
-                }
-            }
-
             Section(aiSettingsLocalized("settings.account.server.section.currentServer", "Current Server")) {
                 if let currentConfiguration {
                     LabeledContent(aiSettingsLocalized("settings.account.server.mode", "Mode")) {
@@ -141,6 +135,11 @@ struct ServerSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                if self.customServerValidationMessage.isEmpty == false {
+                    Text(self.customServerValidationMessage)
+                        .foregroundStyle(.red)
+                }
+
                 Button(aiSettingsLocalized("settings.account.server.applyCustomServer", "Apply Custom Server")) {
                     self.prepareCustomServerApply()
                 }
@@ -190,13 +189,13 @@ struct ServerSettingsView: View {
             self.currentConfiguration = configuration
             self.customOriginInput = configuration.customOrigin ?? ""
             self.updatePreviewConfiguration()
-            self.screenErrorMessage = ""
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            self.store.presentTechnicalError(error)
         }
     }
 
     private func updatePreviewConfiguration() {
+        self.customServerValidationMessage = ""
         let trimmedValue = self.customOriginInput.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedValue.isEmpty {
             self.previewConfiguration = nil
@@ -220,10 +219,14 @@ struct ServerSettingsView: View {
             do {
                 let configuration = try await self.store.validateCustomCloudServer(customOrigin: self.customOriginInput)
                 self.confirmationAction = .apply(configuration)
-                self.screenErrorMessage = ""
+                self.customServerValidationMessage = ""
                 self.isConfirmationPresented = true
             } catch {
-                self.screenErrorMessage = Flashcards.errorMessage(error: error)
+                if isCustomServerUserFixableValidationError(error) {
+                    self.customServerValidationMessage = Flashcards.errorMessage(error: error)
+                } else {
+                    self.store.presentTechnicalError(error)
+                }
             }
         }
     }
@@ -246,16 +249,32 @@ struct ServerSettingsView: View {
                 return
             }
 
-            self.screenErrorMessage = ""
             self.confirmationAction = nil
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            self.store.presentTechnicalError(error)
         }
     }
 
     private func matchesCurrentCustomConfiguration(_ configuration: CloudServiceConfiguration) -> Bool {
         self.currentConfiguration?.mode == .custom
             && self.currentConfiguration?.customOrigin == configuration.customOrigin
+    }
+}
+
+private func isCustomServerUserFixableValidationError(_ error: Error) -> Bool {
+    if error is CloudServiceConfigurationValidationError {
+        return true
+    }
+
+    guard let configurationError = error as? CloudConfigurationError else {
+        return false
+    }
+
+    switch configurationError {
+    case .invalidCustomOrigin:
+        return true
+    case .missingValue, .invalidUrl:
+        return false
     }
 }
 

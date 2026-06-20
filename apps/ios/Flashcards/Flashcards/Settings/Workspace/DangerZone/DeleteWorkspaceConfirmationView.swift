@@ -7,7 +7,7 @@ struct DeleteWorkspaceConfirmationView: View {
     let preview: CloudWorkspaceDeletePreview
 
     @State private var confirmationText: String = ""
-    @State private var errorMessage: String = ""
+    @State private var guidanceMessage: String = ""
     @State private var isDeleting: Bool = false
     @FocusState private var isConfirmationFieldFocused: Bool
 
@@ -59,8 +59,9 @@ struct DeleteWorkspaceConfirmationView: View {
                         }
                         .accessibilityIdentifier(UITestIdentifier.deleteWorkspaceConfirmationField)
 
-                    if self.errorMessage.isEmpty == false {
-                        CopyableErrorMessageView(message: self.errorMessage)
+                    if self.guidanceMessage.isEmpty == false {
+                        Text(self.guidanceMessage)
+                            .foregroundStyle(.secondary)
                     }
 
                     Button(
@@ -98,13 +99,17 @@ struct DeleteWorkspaceConfirmationView: View {
     @MainActor
     private func deleteWorkspace() async {
         self.isDeleting = true
-        self.errorMessage = ""
+        self.guidanceMessage = ""
 
         do {
             try await store.deleteCurrentWorkspace(confirmationText: self.confirmationText)
             dismiss()
         } catch {
-            self.errorMessage = Flashcards.errorMessage(error: error)
+            if let guidanceMessage = self.store.workspaceOperationGuidanceMessage(error: error) {
+                self.guidanceMessage = guidanceMessage
+            } else if self.store.shouldPresentWorkspaceOperationTechnicalError(error: error) {
+                self.store.presentTechnicalError(error)
+            }
         }
 
         self.isDeleting = false

@@ -3,7 +3,7 @@ import XCTest
 @testable import Flashcards
 
 final class CloudAuthInlineErrorPresentationTests: XCTestCase {
-    func testTransportFailureDuringSendCodeShowsFriendlyMessageAndTechnicalDetails() {
+    func testRetryableTransportFailureDuringSendCodeShowsFriendlyMessageWithoutTechnicalDetails() {
         let error = URLError(.networkConnectionLost)
 
         let presentation = makeCloudAuthInlineErrorPresentation(
@@ -15,11 +15,10 @@ final class CloudAuthInlineErrorPresentationTests: XCTestCase {
             presentation.message,
             "The connection was interrupted while sending the code. Check your email, then try again if needed."
         )
-        XCTAssertEqual(presentation.technicalError?.capturePolicy, .captureOnPresentation)
-        XCTAssertNotNil(presentation.technicalError)
+        XCTAssertNil(presentation.technicalError)
     }
 
-    func testWrappedTransportFailureDuringVerifyCodeStillUsesFriendlyMessage() {
+    func testWrappedRetryableTransportFailureDuringVerifyCodeStillUsesFriendlyMessageWithoutTechnicalDetails() {
         let transportError = URLError(.timedOut)
         let error = NSError(
             domain: "Flashcards.Tests",
@@ -36,8 +35,7 @@ final class CloudAuthInlineErrorPresentationTests: XCTestCase {
             presentation.message,
             "The connection was interrupted while verifying the code. Try again, or request a new code if needed."
         )
-        XCTAssertEqual(presentation.technicalError?.capturePolicy, .captureOnPresentation)
-        XCTAssertNotNil(presentation.technicalError)
+        XCTAssertNil(presentation.technicalError)
     }
 
     func testUserActionableServerAuthErrorsKeepExistingFriendlyMessageWithoutTechnicalError() {
