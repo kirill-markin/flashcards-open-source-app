@@ -303,6 +303,7 @@ class AiChatRuntimeDictationSessionTest {
         assertEquals(AiChatDictationState.IDLE, runtime.state.value.dictationState)
         assertEquals("", runtime.state.value.draftMessage)
         val alert = runtime.state.value.activeAlert as AiAlertState.GeneralError
-        assertTrue(alert.message.contains("mismatched sessionId"))
+        assertEquals("AI request failed.", alert.message)
+        assertTrue(checkNotNull(alert.technicalError).message.orEmpty().contains("mismatched sessionId"))
     }
 }
