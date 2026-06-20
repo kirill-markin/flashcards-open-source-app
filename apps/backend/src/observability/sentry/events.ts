@@ -4,6 +4,7 @@ export type BackendService =
   | "chat-live"
   | "global-metrics-snapshot"
   | "community-leaderboard-snapshot"
+  | "streak-leaderboard-snapshot"
   | "progress-active-days-backfill"
   | "migration";
 
@@ -535,6 +536,21 @@ export type CommunityLeaderboardSnapshotFailureDetails = Readonly<{
   message: string;
 }>;
 
+export type StreakLeaderboardSnapshotGeneratedDetails = Readonly<{
+  metricVersion: string;
+  generatedAtUtc: string;
+  asOfUtcDate: string;
+  snapshotId: string;
+  pagesScanned: number;
+  participantsScanned: number;
+  entryCount: number;
+}>;
+
+export type StreakLeaderboardSnapshotFailureDetails = Readonly<{
+  metricVersion: string;
+  message: string;
+}>;
+
 export type ProgressActiveDaysBackfillCompletedDetails = Readonly<{
   batchSize: number;
   maxPages: number;
@@ -641,6 +657,7 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"request_error", RequestErrorDetails>
   | EventByAction<"global_metrics_snapshot_generated", GlobalMetricsSnapshotGeneratedDetails>
   | EventByAction<"community_leaderboard_snapshot_generated", CommunityLeaderboardSnapshotGeneratedDetails>
+  | EventByAction<"streak_leaderboard_snapshot_generated", StreakLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"progress_active_days_backfill_completed", ProgressActiveDaysBackfillCompletedDetails>
   | EventByAction<"database_transient_retry", DatabaseTransientRetryDetails>
   | EventByAction<"global_metrics_s3_retry", GlobalMetricsS3RetryDetails>
@@ -803,6 +820,9 @@ export type BackendExceptionEvent =
   | (EventByAction<"chat_worker_failed", ChatWorkerFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"global_metrics_snapshot_failed", GlobalMetricsSnapshotFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"community_leaderboard_snapshot_failed", CommunityLeaderboardSnapshotFailureDetails> & Readonly<{ error: Error }>)
+  | (EventByAction<"streak_leaderboard_snapshot_failed", StreakLeaderboardSnapshotFailureDetails> & Readonly<{
+    error: Error;
+  }>)
   | (EventByAction<"progress_active_days_backfill_failed", ProgressActiveDaysBackfillFailureDetails> & Readonly<{
     error: Error;
   }>)

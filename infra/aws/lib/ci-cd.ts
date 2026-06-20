@@ -14,6 +14,7 @@ export interface CiCdProps {
   globalMetricsSnapshotFn: lambda.IFunction;
   globalMetricsSnapshotFreshnessCheckerFn: lambda.IFunction;
   communityLeaderboardSnapshotFn: lambda.IFunction;
+  streakLeaderboardSnapshotFn: lambda.IFunction;
   progressActiveDaysBackfillFn: lambda.IFunction;
   migrationFn: lambda.IFunction;
   userPoolArn: string;
@@ -134,6 +135,12 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
     sid: "InvokeCommunityLeaderboardSnapshotLambda",
     actions: ["lambda:InvokeFunction"],
     resources: [props.communityLeaderboardSnapshotFn.functionArn],
+  }));
+
+  cdkDeployStatements.push(new iam.PolicyStatement({
+    sid: "InvokeStreakLeaderboardSnapshotLambda",
+    actions: ["lambda:InvokeFunction"],
+    resources: [props.streakLeaderboardSnapshotFn.functionArn],
   }));
 
   cdkDeployStatements.push(new iam.PolicyStatement({
