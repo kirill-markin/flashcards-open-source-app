@@ -15,6 +15,11 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDay
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakFreeze
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardMetric
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardRankingRow
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardRow
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardViewer
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardParticipantRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardScopeKey
@@ -27,10 +32,12 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewSched
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSource
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressStreakLeaderboardScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressStreakLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.createRenderedProgressLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.createRenderedProgressStreakLeaderboard
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -95,6 +102,12 @@ internal class FakeProgressRepository : ProgressRepository {
         snapshot: ProgressLeaderboardSnapshot
     ) {
         leaderboardSnapshots.value = snapshot
+    }
+
+    fun emitStreakLeaderboardSnapshot(
+        snapshot: ProgressStreakLeaderboardSnapshot
+    ) {
+        streakLeaderboardSnapshots.value = snapshot
     }
 
     override fun observeSummarySnapshot(): Flow<ProgressSummarySnapshot?> {
@@ -447,6 +460,143 @@ internal fun createCloudProgressLeaderboardWindow(
         ),
         rows = createLeaderboardCompactRows(rankingRows = rankingRows),
         rankingRows = rankingRows
+    )
+}
+
+internal fun createProgressStreakLeaderboardSnapshot(): ProgressStreakLeaderboardSnapshot {
+    return createProgressStreakLeaderboardSnapshot(
+        cloudState = CloudAccountState.LINKED,
+        leaderboard = createCloudProgressStreakLeaderboard(),
+        viewerCurrentStreakDays = null,
+        didLastRemoteLoadFail = false
+    )
+}
+
+internal fun createProgressStreakLeaderboardSnapshot(
+    cloudState: CloudAccountState,
+    leaderboard: CloudProgressStreakLeaderboard?,
+    viewerCurrentStreakDays: Int?,
+    didLastRemoteLoadFail: Boolean
+): ProgressStreakLeaderboardSnapshot {
+    return ProgressStreakLeaderboardSnapshot(
+        scopeKey = ProgressStreakLeaderboardScopeKey(scopeId = "linked:user-1"),
+        cloudState = cloudState,
+        leaderboard = leaderboard,
+        renderedLeaderboard = createRenderedProgressStreakLeaderboard(
+            leaderboard = leaderboard,
+            viewerCurrentStreakDays = viewerCurrentStreakDays,
+            currentTimeMillis = 1_750_000_000_000L
+        ),
+        payloadUpdatedAtMillis = if (leaderboard == null) null else 1_750_000_000_000L,
+        viewerCurrentStreakDays = viewerCurrentStreakDays,
+        isRefreshDue = false,
+        didLastRemoteLoadFail = didLastRemoteLoadFail
+    )
+}
+
+internal fun createCloudProgressStreakLeaderboard(): CloudProgressStreakLeaderboard.Ready {
+    val rankingRows = listOf(
+        createCloudProgressStreakLeaderboardRankingRow(
+            kind = CloudProgressLeaderboardRankingRowKind.PARTICIPANT,
+            rank = 1,
+            streakDays = 30
+        ),
+        createCloudProgressStreakLeaderboardRankingRow(
+            kind = CloudProgressLeaderboardRankingRowKind.VIEWER,
+            rank = 2,
+            streakDays = 12
+        ),
+        createCloudProgressStreakLeaderboardRankingRow(
+            kind = CloudProgressLeaderboardRankingRowKind.PARTICIPANT,
+            rank = 3,
+            streakDays = 8
+        )
+    )
+    val viewerRow = rankingRows.single { row ->
+        row.kind == CloudProgressLeaderboardRankingRowKind.VIEWER
+    }
+
+    return CloudProgressStreakLeaderboard.Ready(
+        status = ProgressLeaderboardStatus.READY,
+        metric = CloudProgressStreakLeaderboardMetric(
+            metricVersion = "streak_days_v1",
+            title = "Current streak days",
+            description = "Ranks use current streak days from the public daily snapshot."
+        ),
+        snapshotId = "streak-snapshot-1",
+        snapshotGeneratedAt = "2026-04-18T14:00:05.000Z",
+        asOfUtcDate = "2026-04-18",
+        nextRefreshAfter = "2026-04-19T00:00:00.000Z",
+        participantCount = rankingRows.size,
+        viewer = CloudProgressStreakLeaderboardViewer(
+            publicProfileId = viewerRow.publicProfileId,
+            displayName = "You",
+            rank = viewerRow.rank,
+            streakDays = viewerRow.streakDays
+        ),
+        rows = rankingRows.map { row ->
+            createCloudProgressStreakLeaderboardParticipantRow(
+                kind = when {
+                    row.kind == CloudProgressLeaderboardRankingRowKind.VIEWER -> {
+                        ProgressLeaderboardParticipantRowKind.VIEWER
+                    }
+                    row.rank <= 3 -> ProgressLeaderboardParticipantRowKind.TOP
+                    else -> ProgressLeaderboardParticipantRowKind.NEIGHBOR
+                },
+                rankingRow = row
+            )
+        },
+        rankingRows = rankingRows
+    )
+}
+
+internal fun createCloudProgressStreakLeaderboardNonReady(
+    status: ProgressLeaderboardStatus
+): CloudProgressStreakLeaderboard.NonReady {
+    return CloudProgressStreakLeaderboard.NonReady(
+        status = status,
+        metric = CloudProgressStreakLeaderboardMetric(
+            metricVersion = "streak_days_v1",
+            title = "Current streak days",
+            description = "Ranks use current streak days from the public daily snapshot."
+        )
+    )
+}
+
+private fun createCloudProgressStreakLeaderboardRankingRow(
+    kind: CloudProgressLeaderboardRankingRowKind,
+    rank: Int,
+    streakDays: Int
+): CloudProgressStreakLeaderboardRankingRow {
+    return CloudProgressStreakLeaderboardRankingRow(
+        kind = kind,
+        publicProfileId = if (kind == CloudProgressLeaderboardRankingRowKind.VIEWER) {
+            "viewer-profile"
+        } else {
+            "streak-participant-$rank"
+        },
+        anonymousDisplayName = if (kind == CloudProgressLeaderboardRankingRowKind.VIEWER) {
+            "Misty Quiet Grove"
+        } else {
+            "Streak Participant $rank"
+        },
+        friendDisplayName = null,
+        streakDays = streakDays,
+        rank = rank
+    )
+}
+
+private fun createCloudProgressStreakLeaderboardParticipantRow(
+    kind: ProgressLeaderboardParticipantRowKind,
+    rankingRow: CloudProgressStreakLeaderboardRankingRow
+): CloudProgressStreakLeaderboardRow.Participant {
+    return CloudProgressStreakLeaderboardRow.Participant(
+        kind = kind,
+        publicProfileId = rankingRow.publicProfileId,
+        anonymousDisplayName = rankingRow.anonymousDisplayName,
+        friendDisplayName = rankingRow.friendDisplayName,
+        streakDays = rankingRow.streakDays,
+        rank = rankingRow.rank
     )
 }
 
