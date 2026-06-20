@@ -4,9 +4,16 @@ import {
   type DatabaseExecutor,
   type SqlValue,
 } from "../database";
+import { withTransientDatabaseRetry } from "../database/transient";
 import { unsafeRepeatableReadTransaction } from "../database/unsafe";
+import { createBackendRuntimeObservationScope } from "../observability/sentry";
 import { HttpError } from "../shared/errors";
 import { listUserWorkspaceIdsInExecutor } from "../workspaces/queries";
+import {
+  loadUserActiveReviewLocalDatesInExecutor,
+  materializeMissingActiveReviewDaysForUserInExecutor,
+  rememberProgressTimeZoneInExecutor,
+} from "./activeReviewDays";
 import {
   evaluateStreakFreeze,
   streakFreezePolicy,
@@ -131,10 +138,6 @@ type DailyReviewCountRow = Readonly<{
   easy_count: string | number;
 }>;
 
-type ReviewDateRow = Readonly<{
-  review_date: string;
-}>;
-
 type ReviewScheduleCountRow = Readonly<{
   new_count: string | number;
   today_count: string | number;
@@ -171,11 +174,6 @@ const reviewScheduleSqlColumnByBucketKey: Readonly<Record<ReviewScheduleBucketKe
   years1To2: "years_1_to_2_count",
   later: "later_count",
 };
-
-type WorkspaceProgressSummaryRequest = Readonly<{
-  workspaceId: string;
-  timeZone: string;
-}>;
 
 type WorkspaceProgressReviewScheduleRequest = Readonly<{
   workspaceId: string;
@@ -531,15 +529,6 @@ function addDailyReviewCountRows(
   return nextAggregate;
 }
 
-function accumulateReviewDates(
-  aggregate: Set<string>,
-  rows: ReadonlyArray<ReviewDateRow>,
-): void {
-  for (const row of rows) {
-    aggregate.add(row.review_date);
-  }
-}
-
 function createDailyReviews(
   range: ReadonlyArray<string>,
   aggregate: ReadonlyMap<string, DailyReviewCounts>,
@@ -555,10 +544,6 @@ function createDailyReviews(
       easyCount: counts.easyCount,
     };
   });
-}
-
-function createSortedActiveReviewLocalDates(reviewDates: ReadonlySet<string>): ReadonlyArray<string> {
-  return [...reviewDates].sort((left, right) => left.localeCompare(right));
 }
 
 function createStreakDays(
@@ -690,46 +675,6 @@ async function loadReviewScheduleCountRowInExecutor(
   return row;
 }
 
-async function loadAllReviewDateRowsInExecutor(
-  executor: DatabaseExecutor,
-  request: WorkspaceProgressSummaryRequest,
-): Promise<ReadonlyArray<ReviewDateRow>> {
-  const queryParams: ReadonlyArray<SqlValue> = [
-    request.workspaceId,
-    request.timeZone,
-  ];
-  const result = await executor.query<ReviewDateRow>(
-    [
-      "SELECT",
-      "to_char(review_local_dates.review_local_date, 'YYYY-MM-DD') AS review_date",
-      "FROM (",
-      "SELECT DISTINCT timezone($2, review_events.reviewed_at_client)::date AS review_local_date",
-      "FROM content.review_events AS review_events",
-      "WHERE review_events.workspace_id = $1",
-      ") AS review_local_dates",
-      "ORDER BY review_local_dates.review_local_date DESC",
-    ].join(" "),
-    queryParams,
-  );
-
-  return result.rows;
-}
-
-function findLatestReviewedOn(
-  currentLatest: string | null,
-  candidateLatest: string | null,
-): string | null {
-  if (candidateLatest === null) {
-    return currentLatest;
-  }
-
-  if (currentLatest === null) {
-    return candidateLatest;
-  }
-
-  return currentLatest.localeCompare(candidateLatest) >= 0 ? currentLatest : candidateLatest;
-}
-
 function createProgressSummary(
   activeReviewDayCount: number,
   currentStreakDays: number,
@@ -753,12 +698,11 @@ async function buildUserProgressSummaryInExecutor(
   request: ProgressSummaryRequest,
   generatedAtDate: Date,
 ): Promise<ProgressSummaryResponse> {
-  const reviewDates = new Set<string>();
   await applyUserDatabaseScopeInExecutor(executor, { userId: request.userId });
-  // Human progress stays intentionally user-wide across every workspace the
-  // user can still access; AI workspace routing does not change that contract.
+  // Personal Progress active streak days are user-wide materialized days.
+  // The workspace loop only bounds raw review_event and watermark reads by RLS.
   const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
-  let lastReviewedOn: string | null = null;
+  await rememberProgressTimeZoneInExecutor(executor, request.userId, request.timeZone);
   let reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark> = [];
 
   for (const workspaceId of workspaceIds) {
@@ -766,23 +710,26 @@ async function buildUserProgressSummaryInExecutor(
       userId: request.userId,
       workspaceId,
     });
-    const rows = await loadAllReviewDateRowsInExecutor(executor, {
+    await materializeMissingActiveReviewDaysForUserInExecutor(
+      executor,
+      request.userId,
       workspaceId,
-      timeZone: request.timeZone,
-    });
-    accumulateReviewDates(reviewDates, rows);
-    lastReviewedOn = findLatestReviewedOn(lastReviewedOn, rows[0]?.review_date ?? null);
+      request.timeZone,
+    );
     reviewHistoryWatermarks = reviewHistoryWatermarks.concat(
       await loadReviewHistoryWatermarksInExecutor(executor, [workspaceId]),
     );
   }
 
+  const activeReviewLocalDates = await loadUserActiveReviewLocalDatesInExecutor(executor, request.userId);
+  const activeReviewDateSet = new Set(activeReviewLocalDates);
+  const lastReviewedOn = activeReviewLocalDates.at(-1) ?? null;
   const today = formatDateAsTimeZoneLocalDate(generatedAtDate, request.timeZone);
   // Future-dated rows can appear when a client clock is ahead, so today must
   // be checked against the full normalized date set instead of the latest date.
-  const hasReviewedToday = reviewDates.has(today);
+  const hasReviewedToday = activeReviewDateSet.has(today);
   const streakFreezeEvaluation = evaluateStreakFreeze(
-    createSortedActiveReviewLocalDates(reviewDates),
+    activeReviewLocalDates,
     today,
     streakFreezePolicy,
   );
@@ -790,7 +737,7 @@ async function buildUserProgressSummaryInExecutor(
   return {
     timeZone: request.timeZone,
     summary: createProgressSummary(
-      reviewDates.size,
+      activeReviewLocalDates.length,
       streakFreezeEvaluation.currentStreakDays,
       streakFreezeEvaluation.longestStreakDays,
       hasReviewedToday,
@@ -843,9 +790,11 @@ async function buildUserProgressSeriesInExecutor(
   generatedAtDate: Date,
 ): Promise<ProgressSeries> {
   let dailyReviewCounts: ReadonlyMap<string, DailyReviewCounts> = new Map<string, DailyReviewCounts>();
-  const reviewDates = new Set<string>();
   await applyUserDatabaseScopeInExecutor(executor, { userId: request.userId });
+  // Daily review counts stay on the bounded raw range query, while streak
+  // state comes from the user-wide materialized active-day table below.
   const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
+  await rememberProgressTimeZoneInExecutor(executor, request.userId, request.timeZone);
   let reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark> = [];
 
   for (const workspaceId of workspaceIds) {
@@ -862,12 +811,11 @@ async function buildUserProgressSeriesInExecutor(
       to: request.to,
     });
     dailyReviewCounts = addDailyReviewCountRows(dailyReviewCounts, rows);
-    accumulateReviewDates(
-      reviewDates,
-      await loadAllReviewDateRowsInExecutor(executor, {
-        workspaceId,
-        timeZone: request.timeZone,
-      }),
+    await materializeMissingActiveReviewDaysForUserInExecutor(
+      executor,
+      request.userId,
+      workspaceId,
+      request.timeZone,
     );
     reviewHistoryWatermarks = reviewHistoryWatermarks.concat(
       await loadReviewHistoryWatermarksInExecutor(executor, [workspaceId]),
@@ -875,9 +823,11 @@ async function buildUserProgressSeriesInExecutor(
   }
 
   const range = createInclusiveLocalDateRange(request.from, request.to);
+  const activeReviewLocalDates = await loadUserActiveReviewLocalDatesInExecutor(executor, request.userId);
+  const activeReviewDateSet = new Set(activeReviewLocalDates);
   const today = formatDateAsTimeZoneLocalDate(generatedAtDate, request.timeZone);
   const streakFreezeEvaluation = evaluateStreakFreeze(
-    createSortedActiveReviewLocalDates(reviewDates),
+    activeReviewLocalDates,
     today,
     streakFreezePolicy,
   );
@@ -892,7 +842,7 @@ async function buildUserProgressSeriesInExecutor(
     ),
     streakDays: createStreakDays(
       range,
-      reviewDates,
+      activeReviewDateSet,
       streakFreezeEvaluation.streakDays,
       today,
     ),
@@ -923,7 +873,12 @@ export async function loadUserProgressSeriesInExecutor(
 }
 
 export async function loadUserProgressSummary(request: ProgressSummaryRequest): Promise<ProgressSummaryResponse> {
-  return unsafeRepeatableReadTransaction(async (executor) => loadUserProgressSummaryInExecutor(executor, request));
+  return withTransientDatabaseRetry(
+    () => unsafeRepeatableReadTransaction(
+      async (executor) => loadUserProgressSummaryInExecutor(executor, request),
+    ),
+    createBackendRuntimeObservationScope,
+  );
 }
 
 export async function loadUserProgressReviewSchedule(
@@ -935,5 +890,10 @@ export async function loadUserProgressReviewSchedule(
 }
 
 export async function loadUserProgressSeries(request: ProgressSeriesRequest): Promise<ProgressSeries> {
-  return unsafeRepeatableReadTransaction(async (executor) => loadUserProgressSeriesInExecutor(executor, request));
+  return withTransientDatabaseRetry(
+    () => unsafeRepeatableReadTransaction(
+      async (executor) => loadUserProgressSeriesInExecutor(executor, request),
+    ),
+    createBackendRuntimeObservationScope,
+  );
 }

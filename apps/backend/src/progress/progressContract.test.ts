@@ -13,6 +13,11 @@ function loadApiGatewaySource(): string {
   return fs.readFileSync(apiGatewayPath, "utf8");
 }
 
+function loadProgressIndexSource(): string {
+  const progressIndexPath = path.resolve(process.cwd(), "src/progress/index.ts");
+  return fs.readFileSync(progressIndexPath, "utf8").replace(/\s+/g, " ");
+}
+
 test("published contract excludes progress endpoints while the API Gateway resource tree still predeclares the paths", () => {
   const openApiDocument = loadOpenApiDocument() as Readonly<{
     info?: Readonly<{ title?: string; description?: string }>;
@@ -46,6 +51,25 @@ test("progress barrel re-exports the community leaderboard loaders", async () =>
 
   assert.equal(guestLeaderboard.status, "linked_account_required");
   assert.deepEqual(guestLeaderboard.windows, []);
+});
+
+test("public progress streak loaders retry transient repeatable-read materialization failures", () => {
+  const source = loadProgressIndexSource();
+
+  assert.match(source, /import \{ withTransientDatabaseRetry \} from "\.\.\/database\/transient";/);
+  assert.match(source, /import \{ createBackendRuntimeObservationScope \} from "\.\.\/observability\/sentry";/);
+  assert.match(
+    source,
+    /export async function loadUserProgressSummary\(request: ProgressSummaryRequest\): Promise<ProgressSummaryResponse> \{ return withTransientDatabaseRetry\( \(\) => unsafeRepeatableReadTransaction\( async \(executor\) => loadUserProgressSummaryInExecutor\(executor, request\), \), createBackendRuntimeObservationScope, \); \}/,
+  );
+  assert.match(
+    source,
+    /export async function loadUserProgressSeries\(request: ProgressSeriesRequest\): Promise<ProgressSeries> \{ return withTransientDatabaseRetry\( \(\) => unsafeRepeatableReadTransaction\( async \(executor\) => loadUserProgressSeriesInExecutor\(executor, request\), \), createBackendRuntimeObservationScope, \); \}/,
+  );
+  assert.doesNotMatch(
+    source,
+    /export async function loadUserProgressReviewSchedule\( request: ProgressReviewScheduleRequest, \): Promise<ProgressReviewSchedule> \{ return withTransientDatabaseRetry/,
+  );
 });
 
 test("published contract documents the progress leaderboard and the API Gateway predeclares it", () => {

@@ -19,7 +19,7 @@ test("loadUserProgressSummaryInExecutor returns zero summary metrics for an empt
       "user-1": ["workspace-1"],
     },
     reviewRowsByRequest: {},
-    allReviewDateRowsByRequest: {},
+    activeReviewDateRowsByUser: {},
     reviewScheduleRowsByRequest: {},
     reviewSequenceIdsByWorkspaceId: {
       "workspace-1": 0,
@@ -53,6 +53,24 @@ test("loadUserProgressSummaryInExecutor returns zero summary metrics for an empt
   );
 });
 
+test("loadUserProgressSummaryInExecutor raises when the progress timezone settings row is missing", async () => {
+  const { executor } = createProgressExecutor({
+    workspaceIdsByUser: {},
+    reviewRowsByRequest: {},
+    activeReviewDateRowsByUser: {},
+    reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {},
+  });
+
+  await assert.rejects(
+    () => loadUserProgressSummaryInExecutor(executor, {
+      userId: "missing-user",
+      timeZone: "Europe/Madrid",
+    }),
+    /Progress timezone user_settings row was not found for userId=missing-user/,
+  );
+});
+
 test("loadUserProgressSummaryInExecutor freezes one completed missed day and recharges progress", async () => {
   const timeZone = "Europe/Madrid";
   const today = formatDateAsTimeZoneLocalDate(new Date(), timeZone);
@@ -62,8 +80,8 @@ test("loadUserProgressSummaryInExecutor freezes one completed missed day and rec
       "user-1": ["workspace-1"],
     },
     reviewRowsByRequest: {},
-    allReviewDateRowsByRequest: {
-      [`workspace-1|${timeZone}`]: [
+    activeReviewDateRowsByUser: {
+      "user-1": [
         { review_date: twoDaysAgo },
       ],
     },
@@ -122,10 +140,10 @@ test("loadUserProgressSummaryInExecutor resets a gap larger than available freez
         },
       ],
     },
-    allReviewDateRowsByRequest: {
-      [`workspace-1|${timeZone}`]: [
-        { review_date: today },
+    activeReviewDateRowsByUser: {
+      "user-1": [
         { review_date: sixDaysAgo },
+        { review_date: today },
       ],
     },
     reviewScheduleRowsByRequest: {},
@@ -164,21 +182,18 @@ test("loadUserProgressSummaryInExecutor resets a gap larger than available freez
   ]);
 });
 
-test("loadUserProgressSummaryInExecutor merges all-time review dates across workspaces without double-counting overlap", async () => {
+test("loadUserProgressSummaryInExecutor reads user-wide active review dates without double-counting overlap", async () => {
   const { executor } = createProgressExecutor({
     workspaceIdsByUser: {
       "user-1": ["workspace-1", "workspace-2"],
     },
     reviewRowsByRequest: {},
-    allReviewDateRowsByRequest: {
-      "workspace-1|Europe/Madrid": [
-        { review_date: "2026-04-14" },
-        { review_date: "2026-04-13" },
+    activeReviewDateRowsByUser: {
+      "user-1": [
         { review_date: "2026-04-11" },
-      ],
-      "workspace-2|Europe/Madrid": [
-        { review_date: "2026-04-14" },
         { review_date: "2026-04-12" },
+        { review_date: "2026-04-13" },
+        { review_date: "2026-04-14" },
       ],
     },
     reviewScheduleRowsByRequest: {},
@@ -207,14 +222,14 @@ test("loadUserProgressSummaryInExecutor merges all-time review dates across work
   ]);
 });
 
-test("loadUserProgressSummaryInExecutor derives active review dates from reviewed_at_client in the requested timezone", async () => {
+test("loadUserProgressSummaryInExecutor materializes and reads active review days in the requested timezone", async () => {
   const { executor, recordedQueries } = createProgressExecutor({
     workspaceIdsByUser: {
       "user-1": ["workspace-1"],
     },
     reviewRowsByRequest: {},
-    allReviewDateRowsByRequest: {
-      "workspace-1|America/Los_Angeles": [
+    activeReviewDateRowsByUser: {
+      "user-1": [
         { review_date: "2026-04-11" },
       ],
     },
@@ -229,31 +244,62 @@ test("loadUserProgressSummaryInExecutor derives active review dates from reviewe
     timeZone: "America/Los_Angeles",
   });
 
-  const summaryQuery = recordedQueries.find((query) => (
-    query.text.includes("SELECT DISTINCT timezone($2, review_events.reviewed_at_client)::date AS review_local_date")
+  const timezoneRememberQuery = recordedQueries.find((query) => (
+    query.text.includes("WITH target_user AS")
+    && query.text.includes("UPDATE org.user_settings AS user_settings")
   ));
-  if (summaryQuery === undefined) {
-    assert.fail("Expected an all-time review date query to be recorded");
+  if (timezoneRememberQuery === undefined) {
+    assert.fail("Expected a progress timezone remember query to be recorded");
   }
-  assert.match(summaryQuery.text, /ORDER BY review_local_dates\.review_local_date DESC/);
-  assert.doesNotMatch(summaryQuery.text, /reviewed_at_server/);
-  assert.deepEqual(summaryQuery.params, [
-    "workspace-1",
+  assert.match(timezoneRememberQuery.text, /target_user\.progress_time_zone IS DISTINCT FROM \$2/);
+  assert.match(timezoneRememberQuery.text, /LEFT JOIN updated_user/);
+  assert.deepEqual(timezoneRememberQuery.params, [
+    "user-1",
     "America/Los_Angeles",
   ]);
+
+  const materializationQuery = recordedQueries.find((query) => (
+    query.text.includes("WITH target_review_events AS")
+  ));
+  if (materializationQuery === undefined) {
+    assert.fail("Expected an active review day materialization query to be recorded");
+  }
+  assert.match(materializationQuery.text, /timezone\(\$2, review_events\.reviewed_at_client\)::date/);
+  assert.match(materializationQuery.text, /WHERE review_events\.reviewed_by_user_id = \$1/);
+  assert.match(materializationQuery.text, /AND review_events\.workspace_id = \$3/);
+  assert.match(materializationQuery.text, /INSERT INTO progress\.user_active_review_days/);
+  assert.deepEqual(materializationQuery.params, [
+    "user-1",
+    "America/Los_Angeles",
+    "workspace-1",
+  ]);
+
+  const activeDayQuery = recordedQueries.find((query) => (
+    query.text.includes("FROM progress.user_active_review_days AS active_days")
+  ));
+  if (activeDayQuery === undefined) {
+    assert.fail("Expected an active review day read query to be recorded");
+  }
+  assert.match(activeDayQuery.text, /ORDER BY active_days\.local_date ASC/);
+  assert.doesNotMatch(activeDayQuery.text, /workspace_id/);
+  assert.deepEqual(activeDayQuery.params, ["user-1"]);
+  assert.equal(
+    recordedQueries.some((query) => (
+      query.text.includes("SELECT DISTINCT timezone($2, review_events.reviewed_at_client)::date")
+    )),
+    false,
+  );
 });
 
-test("loadUserProgressSummaryInExecutor applies user scope for memberships and workspace scope for each summary query", async () => {
+test("loadUserProgressSummaryInExecutor applies user scope while reading user-wide active days", async () => {
   const { executor, recordedQueries } = createProgressExecutor({
     workspaceIdsByUser: {
       "user-1": ["workspace-1", "workspace-2"],
     },
     reviewRowsByRequest: {},
-    allReviewDateRowsByRequest: {
-      "workspace-1|Europe/Madrid": [
+    activeReviewDateRowsByUser: {
+      "user-1": [
         { review_date: "2026-04-11" },
-      ],
-      "workspace-2|Europe/Madrid": [
         { review_date: "2026-04-14" },
       ],
     },
@@ -269,11 +315,25 @@ test("loadUserProgressSummaryInExecutor applies user scope for memberships and w
     timeZone: "Europe/Madrid",
   });
 
-  const summaryQueries = recordedQueries.filter((query) => (
-    query.text.includes("SELECT DISTINCT timezone($2, review_events.reviewed_at_client)::date AS review_local_date")
+  const materializationQueries = recordedQueries.filter((query) => (
+    query.text.includes("WITH target_review_events AS")
   ));
-  assert.equal(summaryQueries.length, 2);
-  assert.match(summaryQueries[0]?.text ?? "", /WHERE review_events\.workspace_id = \$1/);
+  assert.equal(materializationQueries.length, 2);
+  assert.ok(materializationQueries.every((query) => (
+    query.text.includes("WHERE review_events.reviewed_by_user_id = $1")
+    && query.text.includes("AND review_events.workspace_id = $3")
+  )));
+  assert.deepEqual(materializationQueries.map((query) => query.params), [
+    ["user-1", "Europe/Madrid", "workspace-1"],
+    ["user-1", "Europe/Madrid", "workspace-2"],
+  ]);
+
+  const activeDayQueries = recordedQueries.filter((query) => (
+    query.text.includes("FROM progress.user_active_review_days AS active_days")
+  ));
+  assert.equal(activeDayQueries.length, 1);
+  assert.deepEqual(activeDayQueries[0]?.params, ["user-1"]);
+  assert.doesNotMatch(activeDayQueries[0]?.text ?? "", /workspace_id/);
 
   const scopeQueries = recordedQueries.filter((query) => query.text.includes("set_config('app.user_id', $1, true)"));
   assert.deepEqual(scopeQueries.map((query) => query.params), [
@@ -294,12 +354,12 @@ test("loadUserProgressSummaryInExecutor keeps summary independent from the reque
       "user-1": ["workspace-1"],
     },
     reviewRowsByRequest: {},
-    allReviewDateRowsByRequest: {
-      [`workspace-1|${timeZone}`]: [
-        { review_date: today },
-        { review_date: yesterday },
-        { review_date: twoDaysAgo },
+    activeReviewDateRowsByUser: {
+      "user-1": [
         { review_date: tenDaysAgo },
+        { review_date: twoDaysAgo },
+        { review_date: yesterday },
+        { review_date: today },
       ],
     },
     reviewScheduleRowsByRequest: {},
@@ -333,11 +393,11 @@ test("loadUserProgressSummaryInExecutor keeps hasReviewedToday true when a futur
       "user-1": ["workspace-1"],
     },
     reviewRowsByRequest: {},
-    allReviewDateRowsByRequest: {
-      [`workspace-1|${timeZone}`]: [
-        { review_date: tomorrow },
-        { review_date: today },
+    activeReviewDateRowsByUser: {
+      "user-1": [
         { review_date: yesterday },
+        { review_date: today },
+        { review_date: tomorrow },
       ],
     },
     reviewScheduleRowsByRequest: {},
