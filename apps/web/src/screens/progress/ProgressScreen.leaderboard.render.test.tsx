@@ -10,8 +10,11 @@ import {
   createLeaderboardSourceStateFromLeaderboard,
   createLeaderboardWithViewerRanks,
   createLeaderboardWithWindowRankingRows,
+  createLocalOnlyStreakLeaderboardSourceState,
   createProgressScreenRenderTestContext,
+  createStreakLeaderboardSourceState,
   linkedCloudSettings,
+  mockProgressSourceStateWithLeaderboards,
   mockProgressSourceStateWithLeaderboard,
   useAppDataMock,
 } from "./ProgressScreenTestSupport";
@@ -28,7 +31,7 @@ describe("ProgressScreen leaderboard", () => {
       throw new Error("Leaderboard guest placeholder was not found");
     }
 
-    expect(guestPlaceholder.textContent).toContain("Sign in to see how your reviews rank alongside other learners.");
+    expect(guestPlaceholder.textContent).toContain("Sign in to see how your review ratings rank alongside other learners.");
     const signInLink = guestPlaceholder.querySelector("a");
     if (!(signInLink instanceof HTMLAnchorElement)) {
       throw new Error("Leaderboard guest sign-in link was not found");
@@ -127,6 +130,7 @@ describe("ProgressScreen leaderboard", () => {
     if (!(leaderboardCard instanceof HTMLElement)) {
       throw new Error("Leaderboard card was not found");
     }
+    expect(leaderboardCard.textContent).toContain("Rating leaderboard");
 
     const headerActions = leaderboardCard.querySelector(".progress-leaderboard-head-actions");
     if (!(headerActions instanceof HTMLElement)) {
@@ -182,6 +186,69 @@ describe("ProgressScreen leaderboard", () => {
     expect(topGapRow.querySelector("a")).toBeNull();
     expect(bottomGapRow.querySelector("button")).toBeNull();
     expect(bottomGapRow.querySelector("a")).toBeNull();
+  });
+
+  it("renders separate rating and streak leaderboard cards with streak day values", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboards(
+      createLeaderboardSourceState("ready", null),
+      createStreakLeaderboardSourceState("ready"),
+    );
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+
+    const ratingCard = container.querySelector("[data-testid='progress-leaderboard-card']");
+    if (!(ratingCard instanceof HTMLElement)) {
+      throw new Error("Rating leaderboard card was not found");
+    }
+    const streakCard = container.querySelector("[data-testid='progress-streak-leaderboard-card']");
+    if (!(streakCard instanceof HTMLElement)) {
+      throw new Error("Streak leaderboard card was not found");
+    }
+
+    expect(ratingCard.compareDocumentPosition(streakCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(ratingCard.textContent).toContain("Rating leaderboard");
+    expect(streakCard.textContent).toContain("Streak leaderboard");
+
+    expect(ratingCard.querySelector("[data-testid='progress-leaderboard-invite-open']")).not.toBeNull();
+    expect(ratingCard.querySelector("[data-testid='progress-leaderboard-period-last_24_hours']")).not.toBeNull();
+    expect(streakCard.querySelector("[data-testid='progress-leaderboard-invite-open']")).toBeNull();
+    expect(streakCard.querySelector(".progress-leaderboard-periods")).toBeNull();
+    expect(streakCard.querySelectorAll("[data-testid^='progress-leaderboard-period-']")).toHaveLength(0);
+
+    expect(streakCard.querySelector("[data-testid='progress-streak-leaderboard-streak-days-top']")?.textContent).toBe("8 days");
+    expect(streakCard.querySelector("[data-testid='progress-streak-leaderboard-streak-days-viewer']")?.textContent).toBe("2 days");
+    expect(streakCard.querySelector("[data-testid='progress-streak-leaderboard-row-viewer']")?.textContent).toContain("You");
+  });
+
+  it("renders the local viewer-only streak leaderboard row when the server snapshot is unavailable", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboards(
+      createLeaderboardSourceState("ready", null),
+      createLocalOnlyStreakLeaderboardSourceState(),
+    );
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+
+    const streakCard = container.querySelector("[data-testid='progress-streak-leaderboard-card']");
+    if (!(streakCard instanceof HTMLElement)) {
+      throw new Error("Streak leaderboard card was not found");
+    }
+
+    const rows = [...streakCard.querySelectorAll(".progress-leaderboard-row:not(.progress-leaderboard-row-padding)")];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.getAttribute("data-kind")).toBe("viewer");
+    expect(rows[0]?.textContent).toContain("#1");
+    expect(rows[0]?.textContent).toContain("You");
+    expect(streakCard.querySelector("[data-testid='progress-streak-leaderboard-streak-days-viewer']")?.textContent).toBe("2 days");
   });
 
   it("renders friend rows from ranking rows and dedupes already visible friends", async () => {
@@ -274,6 +341,38 @@ describe("ProgressScreen leaderboard", () => {
     expect(infoText.textContent).toContain("Again reviews are not counted.");
     expect(infoText.textContent).toContain("Updated 35 min ago");
     expect(container.querySelector("[data-testid='progress-leaderboard-freshness']")).toBeNull();
+  });
+
+  it("reveals the streak leaderboard info text with snapshot freshness", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-21T10:35:05.000Z"));
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboards(
+      createLeaderboardSourceState("ready", null),
+      createStreakLeaderboardSourceState("ready"),
+    );
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+
+    const infoToggle = container.querySelector("[data-testid='progress-streak-leaderboard-info-toggle']");
+    if (!(infoToggle instanceof HTMLButtonElement)) {
+      throw new Error("Streak leaderboard info toggle was not found");
+    }
+
+    await act(async () => {
+      infoToggle.click();
+    });
+
+    const infoText = container.querySelector("[data-testid='progress-streak-leaderboard-info']");
+    if (!(infoText instanceof HTMLParagraphElement)) {
+      throw new Error("Streak leaderboard info text was not found");
+    }
+    expect(infoText.textContent).toContain("Current streak days determine your rank.");
+    expect(infoText.textContent).toContain("Updated 50 min ago");
   });
 
   it("reranks the viewer and renders new neighbors when the local qualified review count moves higher", async () => {

@@ -17,6 +17,7 @@ import type {
   ProgressReviewScheduleBucketKey,
 } from "../../types";
 import { ProgressLeaderboardSection } from "./leaderboard/ProgressLeaderboardSection";
+import { ProgressStreakLeaderboardSection } from "./leaderboard/ProgressStreakLeaderboardSection";
 import { ProgressReviewScheduleSection } from "./reviewSchedule/ProgressReviewScheduleSection";
 import {
   buildReviewScheduleBucketViews,
@@ -80,6 +81,7 @@ export function ProgressScreen(): ReactElement {
   const [selectedLeaderboardWindowKey, setSelectedLeaderboardWindowKey] = useState<ProgressLeaderboardWindowKey | null>(null);
   const [isStreakInfoVisible, setIsStreakInfoVisible] = useState<boolean>(false);
   const [isLeaderboardInfoVisible, setIsLeaderboardInfoVisible] = useState<boolean>(false);
+  const [isStreakLeaderboardInfoVisible, setIsStreakLeaderboardInfoVisible] = useState<boolean>(false);
   const streakSectionRef = useRef<HTMLElement | null>(null);
   const leaderboardSectionRef = useRef<HTMLElement | null>(null);
   const shownTechnicalErrorRef = useRef<Error | null>(null);
@@ -321,6 +323,13 @@ export function ProgressScreen(): ReactElement {
               onSelectWindowKey={setSelectedLeaderboardWindowKey}
               isInfoVisible={isLeaderboardInfoVisible}
               onToggleInfo={() => setIsLeaderboardInfoVisible((previous) => previous === false)}
+            />
+
+            <ProgressStreakLeaderboardSection
+              sourceState={progressSourceState.streakLeaderboard}
+              canRenderServerBase={canRenderLeaderboardServerBase}
+              isInfoVisible={isStreakLeaderboardInfoVisible}
+              onToggleInfo={() => setIsStreakLeaderboardInfoVisible((previous) => previous === false)}
             />
 
             <ProgressReviewsChartSection

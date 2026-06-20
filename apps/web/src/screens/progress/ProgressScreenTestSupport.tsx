@@ -8,7 +8,9 @@ import {
   createEmptyProgressLeaderboardSourceState,
   createEmptyProgressStreakLeaderboardSourceState,
   createNextLeaderboardState,
+  createNextStreakLeaderboardState,
   createProgressLeaderboardSnapshot,
+  createProgressStreakLeaderboardSnapshot,
 } from "../../appData/progress/snapshots/progressSnapshots";
 import { I18nProvider } from "../../i18n";
 import { shiftLocalDate } from "../../progress/progressDates";
@@ -23,6 +25,9 @@ import type {
   ProgressLeaderboardWindowKey,
   ProgressReviewScheduleSnapshot,
   ProgressSeriesSnapshot,
+  ProgressStreakLeaderboard,
+  ProgressStreakLeaderboardRankingRow,
+  ProgressStreakLeaderboardSourceState,
   ProgressSummarySnapshot,
   StreakDay,
   StreakDayState,
@@ -636,7 +641,111 @@ export function createLeaderboardSourceStateFromLeaderboard(
   }, true);
 }
 
-export function mockProgressSourceStateWithLeaderboard(leaderboard: ProgressLeaderboardSourceState): void {
+function createStreakRankingParticipantRow(
+  rank: number,
+  publicProfileId: string,
+  anonymousDisplayName: string,
+  streakDays: number,
+): ProgressStreakLeaderboardRankingRow {
+  return {
+    kind: "participant",
+    publicProfileId,
+    anonymousDisplayName,
+    streakDays,
+    rank,
+  };
+}
+
+function createHiddenStreakRankingParticipantRow(rank: number, streakDays: number): ProgressStreakLeaderboardRankingRow {
+  return createStreakRankingParticipantRow(
+    rank,
+    `streak-profile-${rank}`,
+    `Hidden Streak Rank ${rank}`,
+    streakDays,
+  );
+}
+
+export function createStreakLeaderboardRankingRows(): ReadonlyArray<ProgressStreakLeaderboardRankingRow> {
+  return [
+    createStreakRankingParticipantRow(1, "streak-profile-1", "Solar Clear Summit", 8),
+    createStreakRankingParticipantRow(2, "streak-profile-2", "Misty Brave Ridge", 6),
+    createStreakRankingParticipantRow(3, "streak-profile-3", "Bright Quiet Field", 4),
+    {
+      kind: "viewer",
+      publicProfileId: "viewer-profile",
+      anonymousDisplayName: "Quiet Maple Grove",
+      streakDays: 2,
+      rank: 4,
+    },
+    createHiddenStreakRankingParticipantRow(5, 1),
+  ];
+}
+
+export function createStreakLeaderboard(status: ProgressStreakLeaderboard["status"]): ProgressStreakLeaderboard {
+  const metric = {
+    metricVersion: "streak_days_v1" as const,
+    title: "Current streak days",
+    description: "Current streak days determine the rank.",
+  };
+
+  if (status !== "ready") {
+    return {
+      status,
+      metric,
+    };
+  }
+
+  return {
+    status: "ready",
+    metric,
+    snapshotId: "8c33dd20-0e1c-41a8-a056-2336adad5d28",
+    snapshotGeneratedAt: "2026-04-21T09:45:05.000Z",
+    asOfUtcDate: "2026-04-21",
+    nextRefreshAfter: "2026-04-22T00:00:00.000Z",
+    participantCount: 5,
+    viewer: {
+      publicProfileId: "viewer-profile",
+      displayName: "You",
+      rank: 4,
+      streakDays: 2,
+    },
+    rows: [
+      { kind: "top", publicProfileId: "streak-profile-1", anonymousDisplayName: "Solar Clear Summit", streakDays: 8, rank: 1 },
+      { kind: "top", publicProfileId: "streak-profile-2", anonymousDisplayName: "Misty Brave Ridge", streakDays: 6, rank: 2 },
+      { kind: "top", publicProfileId: "streak-profile-3", anonymousDisplayName: "Bright Quiet Field", streakDays: 4, rank: 3 },
+      { kind: "viewer", publicProfileId: "viewer-profile", anonymousDisplayName: "Quiet Maple Grove", streakDays: 2, rank: 4 },
+      { kind: "neighbor", publicProfileId: "streak-profile-5", anonymousDisplayName: "Hidden Streak Rank 5", streakDays: 1, rank: 5 },
+    ],
+    rankingRows: createStreakLeaderboardRankingRows(),
+  };
+}
+
+export function createStreakLeaderboardSourceState(status: ProgressStreakLeaderboard["status"]): ProgressStreakLeaderboardSourceState {
+  return createStreakLeaderboardSourceStateFromLeaderboard(createStreakLeaderboard(status));
+}
+
+export function createStreakLeaderboardSourceStateFromLeaderboard(
+  leaderboard: ProgressStreakLeaderboard,
+): ProgressStreakLeaderboardSourceState {
+  return createNextStreakLeaderboardState(createEmptyProgressStreakLeaderboardSourceState(), {
+    scopeKey: "workspace-1::leaderboard",
+    serverBase: createProgressStreakLeaderboardSnapshot(leaderboard, false),
+    currentSummary: createProgressSummarySnapshot(),
+  }, true);
+}
+
+export function createLocalOnlyStreakLeaderboardSourceState(): ProgressStreakLeaderboardSourceState {
+  return createNextStreakLeaderboardState(createEmptyProgressStreakLeaderboardSourceState(), {
+    scopeKey: "workspace-1::leaderboard",
+    serverBase: null,
+    currentSummary: createProgressSummarySnapshot(),
+  }, true);
+}
+
+export function mockProgressSourceStateWithLeaderboards(
+  leaderboard: ProgressLeaderboardSourceState,
+  streakLeaderboard: ProgressStreakLeaderboardSourceState,
+): void {
   useProgressSourceMock.mockReturnValue({
     progressSourceState: {
       summary: {
@@ -679,10 +788,14 @@ export function mockProgressSourceStateWithLeaderboard(leaderboard: ProgressLead
         technicalError: null,
       },
       leaderboard,
-      streakLeaderboard: createEmptyProgressStreakLeaderboardSourceState(),
+      streakLeaderboard,
     },
     refreshProgress: refreshProgressMock,
   });
+}
+
+export function mockProgressSourceStateWithLeaderboard(leaderboard: ProgressLeaderboardSourceState): void {
+  mockProgressSourceStateWithLeaderboards(leaderboard, createEmptyProgressStreakLeaderboardSourceState());
 }
 
 export function mockProgressSourceStateWithInactivePreviousWeek(): void {
