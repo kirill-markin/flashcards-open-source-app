@@ -21,6 +21,7 @@ struct CloudSignInSheet: View {
     @State private var postAuthRecoveryNeededState: CloudPostAuthRecoveryNeededState?
     @State private var postAuthFailureState: CloudPostAuthFailureState?
     @State private var authErrorPresentation: CloudAuthInlineErrorPresentation?
+    @State private var technicalErrorPresentation: TechnicalErrorPresentation?
     @State private var isSendingCode: Bool = false
     @State private var isLogoutConfirmationPresented: Bool = false
     @State private var hasRecordedActivePresentation: Bool = false
@@ -41,7 +42,12 @@ struct CloudSignInSheet: View {
                 Form {
                     if let authErrorPresentation = self.authErrorPresentation {
                         Section {
-                            CloudAuthInlineErrorView(presentation: authErrorPresentation)
+                            CloudAuthInlineErrorView(
+                                presentation: authErrorPresentation,
+                                onTechnicalError: { technicalError in
+                                    self.presentTechnicalError(technicalError)
+                                }
+                            )
                         }
                     }
 
@@ -175,6 +181,14 @@ struct CloudSignInSheet: View {
             } message: {
                 Text(aiSettingsLocalized("settings.account.status.logoutAlertMessage", "All local workspaces and synced data will be removed from this device."))
             }
+            .sheet(item: self.$technicalErrorPresentation) { presentation in
+                TechnicalErrorSheet(
+                    presentation: presentation,
+                    onClose: {
+                        self.technicalErrorPresentation = nil
+                    }
+                )
+            }
             .onAppear {
                 self.recordActivePresentationIfNeeded()
                 self.scheduleEmailFieldFocus()
@@ -293,7 +307,7 @@ struct CloudSignInSheet: View {
         guard isValidCloudEmail(self.email) else {
             self.authErrorPresentation = CloudAuthInlineErrorPresentation(
                 message: aiSettingsLocalized("settings.account.cloudSignIn.enterValidEmail", "Enter a valid email address"),
-                technicalDetails: nil
+                technicalError: nil
             )
             return
         }
@@ -306,12 +320,16 @@ struct CloudSignInSheet: View {
 
         Task { @MainActor in
             self.isSendingCode = true
+            let captureContext = self.store.beginTechnicalErrorCaptureContext()
             defer {
                 self.isSendingCode = false
             }
 
             do {
-                let sendCodeResult = try await self.store.sendCloudSignInCode(email: nextEmail)
+                let sendCodeResult = try await self.store.sendCloudSignInCode(
+                    email: nextEmail,
+                    captureContext: captureContext
+                )
 
                 switch sendCodeResult {
                 case .otpChallenge(let nextChallenge):
@@ -342,9 +360,12 @@ struct CloudSignInSheet: View {
                 if self.otpSheetState?.id == nextOtpSheetState.id {
                     self.otpSheetState = nil
                 }
-                self.authErrorPresentation = makeCloudAuthInlineErrorPresentation(
-                    error: error,
-                    context: .sendCode
+                self.presentAuthErrorPresentation(
+                    makeCloudAuthInlineErrorPresentation(
+                        error: error,
+                        context: .sendCode
+                    ),
+                    captureContext: captureContext
                 )
             }
         }
@@ -414,16 +435,20 @@ struct CloudSignInSheet: View {
                 )
                 self.presentPostAuthFailure(
                     title: failurePresentation.title,
-                    message: failurePresentation.message ?? Flashcards.errorMessage(error: error),
-                    technicalDetails: Flashcards.errorMessage(error: error),
+                    message: failurePresentation.message ?? makeCloudPostAuthVisibleFailureMessage(error: error),
+                    technicalError: isSafeCloudPostAuthDomainFailure(error: error)
+                        ? nil
+                        : makeTechnicalErrorAction(error: error),
                     retryAction: failurePresentation.retryAction,
                     kind: failurePresentation.kind
                 )
             } else {
                 self.presentPostAuthFailure(
                     title: aiSettingsLocalized("settings.account.cloudSignIn.failure.cloudSetupFailed", "Signed in, but cloud setup failed."),
-                    message: Flashcards.errorMessage(error: error),
-                    technicalDetails: nil,
+                    message: makeCloudPostAuthVisibleFailureMessage(error: error),
+                    technicalError: isSafeCloudPostAuthDomainFailure(error: error)
+                        ? nil
+                        : makeTechnicalErrorAction(error: error),
                     retryAction: .prepareLink(verifiedContext: loadingState.verifiedContext),
                     kind: .standard
                 )
@@ -490,26 +515,26 @@ struct CloudSignInSheet: View {
     }
 
     private func runPostAuthSync(_ syncState: CloudPostAuthSyncState) async {
+        let captureContext = self.store.beginTechnicalErrorCaptureContext()
         do {
             switch syncState.operation {
             case .completeLink(let linkContext, let selection):
                 try await self.store.completeCloudLink(
                     linkContext: linkContext,
-                    selection: selection
+                    selection: selection,
+                    technicalErrorCaptureContext: captureContext
                 )
             case .completeGuestLink(let linkContext, let selection):
                 try await self.store.completeGuestCloudLink(
                     linkContext: linkContext,
-                    selection: selection
+                    selection: selection,
+                    technicalErrorCaptureContext: captureContext
                 )
             case .syncOnly:
                 try await self.store.syncCloudNow(
-                    trigger: CloudSyncTrigger(
-                        source: .manualSyncNow,
+                    trigger: self.store.postAuthCloudSyncTrigger(
                         now: Date(),
-                        extendsFastPolling: false,
-                        allowsVisibleChangeBanner: false,
-                        surfacesGlobalErrorMessage: true
+                        technicalErrorCaptureContext: captureContext
                     )
                 )
             }
@@ -534,10 +559,13 @@ struct CloudSignInSheet: View {
             self.postAuthSyncState = nil
             self.presentPostAuthFailure(
                 title: failurePresentation.title,
-                message: failurePresentation.message ?? Flashcards.errorMessage(error: error),
-                technicalDetails: failurePresentation.kind == .guestLocalRecovery
-                    ? Flashcards.errorMessage(error: error)
-                    : nil,
+                message: failurePresentation.message ?? makeCloudPostAuthVisibleFailureMessage(error: error),
+                technicalError: isSafeCloudPostAuthDomainFailure(error: error)
+                    ? nil
+                    : self.store.makeTechnicalErrorAction(
+                        error: error,
+                        captureContext: captureContext
+                    ),
                 retryAction: failurePresentation.retryAction,
                 kind: failurePresentation.kind
             )
@@ -547,7 +575,7 @@ struct CloudSignInSheet: View {
     private func presentPostAuthFailure(
         title: String,
         message: String,
-        technicalDetails: String?,
+        technicalError: TechnicalErrorAction?,
         retryAction: CloudPostAuthRetryAction,
         kind: CloudPostAuthFailureKind
     ) {
@@ -560,10 +588,33 @@ struct CloudSignInSheet: View {
         self.postAuthFailureState = CloudPostAuthFailureState(
             title: title,
             message: message,
-            technicalDetails: technicalDetails,
+            technicalError: technicalError.map { action in
+                self.store.captureTechnicalErrorActionIfNeeded(action: action)
+            },
             retryAction: retryAction,
             kind: kind
         )
+    }
+
+    private func presentAuthErrorPresentation(
+        _ presentation: CloudAuthInlineErrorPresentation,
+        captureContext: TechnicalErrorCaptureContext
+    ) {
+        self.authErrorPresentation = CloudAuthInlineErrorPresentation(
+            message: presentation.message,
+            technicalError: presentation.technicalError.map { action in
+                self.store.captureTechnicalErrorActionIfNeeded(
+                    action: self.store.makeTechnicalErrorAction(
+                        error: action.error,
+                        captureContext: captureContext
+                    )
+                )
+            }
+        )
+    }
+
+    private func presentTechnicalError(_ action: TechnicalErrorAction) {
+        self.technicalErrorPresentation = self.store.makeTechnicalErrorPresentation(action: action)
     }
 
     private func logoutAndDismiss() {
@@ -573,7 +624,7 @@ struct CloudSignInSheet: View {
         } catch {
             self.authErrorPresentation = CloudAuthInlineErrorPresentation(
                 message: Flashcards.errorMessage(error: error),
-                technicalDetails: nil
+                technicalError: nil
             )
         }
 

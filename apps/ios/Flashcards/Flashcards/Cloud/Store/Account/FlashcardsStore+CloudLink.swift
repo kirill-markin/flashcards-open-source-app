@@ -4,6 +4,10 @@ enum CloudBootstrapEligibilityError: LocalizedError {
     case remoteWorkspaceIsNotEmpty
 
     var errorDescription: String? {
+        self.visiblePostAuthMessage
+    }
+
+    var visiblePostAuthMessage: String {
         switch self {
         case .remoteWorkspaceIsNotEmpty:
             return "Choose a new or empty workspace on this server before uploading the current local data."
@@ -14,6 +18,13 @@ enum CloudBootstrapEligibilityError: LocalizedError {
 @MainActor
 extension FlashcardsStore {
     func sendCloudSignInCode(email: String) async throws -> CloudSendCodeResult {
+        try await self.sendCloudSignInCode(email: email, captureContext: nil)
+    }
+
+    func sendCloudSignInCode(
+        email: String,
+        captureContext: TechnicalErrorCaptureContext?
+    ) async throws -> CloudSendCodeResult {
         let configuration = try self.currentCloudServiceConfiguration()
         do {
             let result = try await self.cloudRuntime.sendCode(email: email, configuration: configuration)
@@ -26,13 +37,22 @@ extension FlashcardsStore {
             self.captureCloudAuthFailure(
                 error: error,
                 configuration: configuration,
-                action: .sendCode
+                action: .sendCode,
+                captureContext: captureContext
             )
             throw error
         }
     }
 
     func verifyCloudOtp(challenge: CloudOtpChallenge, code: String) async throws -> CloudVerifiedAuthContext {
+        try await self.verifyCloudOtp(challenge: challenge, code: code, captureContext: nil)
+    }
+
+    func verifyCloudOtp(
+        challenge: CloudOtpChallenge,
+        code: String,
+        captureContext: TechnicalErrorCaptureContext?
+    ) async throws -> CloudVerifiedAuthContext {
         let configuration = try self.currentCloudServiceConfiguration()
         do {
             let context = try await self.cloudRuntime.verifyCode(
@@ -49,7 +69,8 @@ extension FlashcardsStore {
             self.captureCloudAuthFailure(
                 error: error,
                 configuration: configuration,
-                action: .verifyCode
+                action: .verifyCode,
+                captureContext: captureContext
             )
             throw error
         }
@@ -224,10 +245,23 @@ extension FlashcardsStore {
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection
     ) async throws {
+        try await self.completeCloudLink(
+            linkContext: linkContext,
+            selection: selection,
+            technicalErrorCaptureContext: nil
+        )
+    }
+
+    func completeCloudLink(
+        linkContext: CloudWorkspaceLinkContext,
+        selection: CloudWorkspaceLinkSelection,
+        technicalErrorCaptureContext: TechnicalErrorCaptureContext?
+    ) async throws {
         if linkContext.postAuthRecoveryRoute == .guestLocalRecovery {
             try await self.completeGuestLocalRecoveryCloudLink(
                 linkContext: linkContext,
-                selection: selection
+                selection: selection,
+                technicalErrorCaptureContext: technicalErrorCaptureContext
             )
             return
         }
@@ -241,7 +275,10 @@ extension FlashcardsStore {
                 throw LocalStoreError.uninitialized("Workspace is unavailable")
             }
 
-            let trigger = self.manualCloudSyncTrigger(now: Date())
+            let trigger = self.postAuthCloudSyncTrigger(
+                now: Date(),
+                technicalErrorCaptureContext: technicalErrorCaptureContext
+            )
             try self.validatePostAuthRecoveryRouteBeforeCloudLinkCompletion(
                 linkContext: linkContext,
                 selection: selection
@@ -340,7 +377,8 @@ extension FlashcardsStore {
 
     private func completeGuestLocalRecoveryCloudLink(
         linkContext: CloudWorkspaceLinkContext,
-        selection: CloudWorkspaceLinkSelection
+        selection: CloudWorkspaceLinkSelection,
+        technicalErrorCaptureContext: TechnicalErrorCaptureContext?
     ) async throws {
         _ = try await self.cloudRuntime.runWorkspaceCompletion { [weak self] in
             guard let self else {
@@ -351,7 +389,10 @@ extension FlashcardsStore {
                 throw LocalStoreError.uninitialized("Workspace is unavailable")
             }
 
-            let trigger = self.manualCloudSyncTrigger(now: Date())
+            let trigger = self.postAuthCloudSyncTrigger(
+                now: Date(),
+                technicalErrorCaptureContext: technicalErrorCaptureContext
+            )
             let recoveryState = try self.validateGuestLocalRecoveryBeforeCloudLinkCompletion(
                 linkContext: linkContext,
                 selection: selection
@@ -779,10 +820,11 @@ extension FlashcardsStore {
                     error: error,
                     linkedSession: linkedSession,
                     fallbackCloudState: self.cloudSettings?.cloudState,
-                    action: "cloud_link_sync"
+                    action: "cloud_link_sync",
+                    captureContext: trigger.technicalErrorCaptureContext
                 )
             }
-            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
+            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error, trigger: trigger)
             if trigger.surfacesGlobalErrorMessage {
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }

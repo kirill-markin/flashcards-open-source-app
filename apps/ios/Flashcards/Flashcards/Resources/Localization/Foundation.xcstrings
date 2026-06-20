@@ -2243,6 +2243,65 @@
         }
       }
     },
+    "cloud_auth.error.otp_too_many_attempts" : {
+      "comment" : "Cloud auth error when too many OTP attempts were made",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تمت محاولات كثيرة جدًا. اطلب رمزًا جديدًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu viele Versuche. Fordere einen neuen Code an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Too many attempts. Request a new code."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demasiados intentos. Solicita un código nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demasiados intentos. Solicita un código nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बहुत अधिक प्रयास हो गए। नया कोड माँगें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "試行回数が多すぎます。新しいコードをリクエストしてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Слишком много попыток. Запросите новый код."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尝试次数过多。请重新获取验证码。"
+          }
+        }
+      }
+    },
     "cloud_auth.error.otp_verify_failed" : {
       "comment" : "Cloud auth error when verifying the OTP code failed",
       "localizations" : {
