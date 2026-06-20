@@ -1,11 +1,27 @@
 import { useEffect, useState, type ReactElement } from "react";
-import { ApiContractError, loadWorkspaceDeletePreview } from "../../../api";
+import { ApiContractError, ApiError, loadWorkspaceDeletePreview } from "../../../api";
 import { useAppData } from "../../../appData";
+import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import { captureApiContractError } from "../../../observability/apiContractObservation";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import type { WorkspaceDeletePreview } from "../../../types";
 import { SettingsGroup, SettingsShell } from "../SettingsShared";
+
+function isExpectedWorkspaceDeleteError(error: unknown): error is ApiError {
+  return error instanceof ApiError
+    && error.statusCode >= 400
+    && error.statusCode < 500
+    && (
+      error.code === "AUTH_UNAUTHORIZED"
+      || error.code === "SESSION_CSRF_TOKEN_INVALID"
+      || error.code === "WORKSPACE_DELETE_CONFIRMATION_INVALID"
+      || error.code === "WORKSPACE_DELETE_SHARED"
+      || error.code === "WORKSPACE_NOT_FOUND"
+      || error.code === "WORKSPACE_OWNER_REQUIRED"
+      || error.code === "WORKSPACE_SELECTION_REQUIRED"
+    );
+}
 
 export function DeleteCurrentWorkspaceScreen(): ReactElement {
   const {
@@ -15,6 +31,7 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
     isSessionVerified,
     session,
   } = useAppData();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatCount } = useI18n();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [deletePreview, setDeletePreview] = useState<WorkspaceDeletePreview | null>(null);
@@ -27,6 +44,7 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
     : t("workspaceOverview.rename.restoringSession");
   const isDeleteConfirmationMatched = deletePreview !== null
     && deleteConfirmationValue === deletePreview.confirmationText;
+  const technicalErrorMessage = t("appError.technicalError.message");
 
   useEffect(() => {
     if (!isDeleteDialogOpen) {
@@ -66,16 +84,26 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
       const preview = await loadWorkspaceDeletePreview(activeWorkspace.workspaceId);
       setDeletePreview(preview);
     } catch (error) {
+      if (isExpectedWorkspaceDeleteError(error)) {
+        setDeletePreviewErrorMessage(error.message);
+        return;
+      }
+
       if (error instanceof ApiContractError) {
-        captureApiContractError(error, {
+        const wasCaptured = captureApiContractError(error, {
           feature: "settings",
           sourceAction: "workspace_delete_preview_load",
           userId: session?.userId ?? null,
           workspaceId: activeWorkspace.workspaceId,
           installationId: cloudSettings?.installationId ?? null,
         });
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setDeletePreviewErrorMessage(technicalErrorMessage);
+          return;
+        }
       } else {
-        captureAppOperationError(error, {
+        const wasCaptured = captureAppOperationError(error, {
           feature: "settings",
           operation: "workspace_delete_preview_load",
           userId: session?.userId ?? null,
@@ -83,6 +111,11 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
           installationId: cloudSettings?.installationId ?? null,
           entityId: activeWorkspace.workspaceId,
         });
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setDeletePreviewErrorMessage(technicalErrorMessage);
+          return;
+        }
       }
       setDeletePreviewErrorMessage(error instanceof Error ? error.message : String(error));
     }
@@ -101,16 +134,26 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
       const preview = await loadWorkspaceDeletePreview(activeWorkspace.workspaceId);
       setDeletePreview(preview);
     } catch (error) {
+      if (isExpectedWorkspaceDeleteError(error)) {
+        setDeletePreviewErrorMessage(error.message);
+        return;
+      }
+
       if (error instanceof ApiContractError) {
-        captureApiContractError(error, {
+        const wasCaptured = captureApiContractError(error, {
           feature: "settings",
           sourceAction: "workspace_delete_preview_retry",
           userId: session?.userId ?? null,
           workspaceId: activeWorkspace.workspaceId,
           installationId: cloudSettings?.installationId ?? null,
         });
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setDeletePreviewErrorMessage(technicalErrorMessage);
+          return;
+        }
       } else {
-        captureAppOperationError(error, {
+        const wasCaptured = captureAppOperationError(error, {
           feature: "settings",
           operation: "workspace_delete_preview_retry",
           userId: session?.userId ?? null,
@@ -118,6 +161,11 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
           installationId: cloudSettings?.installationId ?? null,
           entityId: activeWorkspace.workspaceId,
         });
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setDeletePreviewErrorMessage(technicalErrorMessage);
+          return;
+        }
       }
       setDeletePreviewErrorMessage(error instanceof Error ? error.message : String(error));
     }
@@ -135,7 +183,15 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
       await deleteWorkspace(activeWorkspace.workspaceId, deleteConfirmationValue);
       closeDeleteDialog();
     } catch (error) {
-      setDeletePreviewErrorMessage(error instanceof Error ? error.message : String(error));
+      const nextErrorMessage = error instanceof Error ? error.message : String(error);
+      const isExpectedError = nextErrorMessage === t("app.sessionUnavailable")
+        || nextErrorMessage === t("app.sessionRestoringActionLocked");
+      if (isExpectedError || isExpectedWorkspaceDeleteError(error)) {
+        setDeletePreviewErrorMessage(nextErrorMessage);
+      } else {
+        showCapturedTechnicalError(error);
+        setDeletePreviewErrorMessage(technicalErrorMessage);
+      }
     } finally {
       setIsDeleteSubmitting(false);
     }

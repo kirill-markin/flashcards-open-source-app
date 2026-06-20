@@ -1,6 +1,7 @@
 import { StrictMode, act, createElement, useEffect, useLayoutEffect, type ReactNode } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, expect, vi } from "vitest";
+import { AppErrorDialogProvider } from "../../../../appError/AppErrorContext";
 import { I18nProvider, useI18n } from "../../../../i18n";
 import type { Locale, LocalePreference } from "../../../../i18n/types";
 import type { ChatSessionSnapshot, StartChatRunRequestBody } from "../../../../types";
@@ -144,6 +145,7 @@ vi.mock("../../../attachments/FileAttachment", () => ({
   binaryPendingAttachmentExceedsSizeLimit: binaryPendingAttachmentExceedsSizeLimitMock,
   ChatAttachmentTooLargeError: ChatAttachmentTooLargeErrorMock,
   isChatAttachmentTooLargeError: (error: unknown) => error instanceof ChatAttachmentTooLargeErrorMock,
+  isExpectedImageAttachmentPreparationError: () => false,
   isBinaryPendingAttachment: isBinaryPendingAttachmentMock,
   EXTRA_AGGRESSIVE_IMAGE_COMPRESSION: {
     maxSidePixels: 1_280,
@@ -806,14 +808,18 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
         I18nProvider,
         null,
         createElement(
-          ChatSessionControllerProvider,
+          AppErrorDialogProvider,
           null,
           createElement(
-            ChatDraftProvider,
+            ChatSessionControllerProvider,
             null,
-            createElement(MessagesScrollerMetricsConfigurator),
-            createElement(LocalePreferenceProbe),
-            panel,
+            createElement(
+              ChatDraftProvider,
+              null,
+              createElement(MessagesScrollerMetricsConfigurator),
+              createElement(LocalePreferenceProbe),
+              panel,
+            ),
           ),
         ),
       );

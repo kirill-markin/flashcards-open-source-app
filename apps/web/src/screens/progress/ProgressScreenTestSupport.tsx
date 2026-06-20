@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, vi } from "vitest";
 import type { AppDataContextValue } from "../../appData";
+import { AppErrorDialogProvider } from "../../appError/AppErrorContext";
 import {
   createEmptyProgressLeaderboardSourceState,
   createNextLeaderboardState,
@@ -172,7 +173,9 @@ export function createProgressScreenRenderTestContext(): ProgressScreenRenderTes
       getRoot().render(
         <MemoryRouter>
           <I18nProvider>
-            <ProgressScreen />
+            <AppErrorDialogProvider>
+              <ProgressScreen />
+            </AppErrorDialogProvider>
           </I18nProvider>
         </MemoryRouter>,
       );
@@ -184,7 +187,9 @@ export function createProgressScreenRenderTestContext(): ProgressScreenRenderTes
       getRoot().render(
         <MemoryRouter initialEntries={initialEntries}>
           <I18nProvider>
-            <ProgressScreen />
+            <AppErrorDialogProvider>
+              <ProgressScreen />
+            </AppErrorDialogProvider>
           </I18nProvider>
         </MemoryRouter>,
       );

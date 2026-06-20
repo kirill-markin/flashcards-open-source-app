@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { useAppData } from "../../../../appData";
+import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
 import { ALL_CARDS_DECK_SLUG } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckDetailRoute, settingsDeckNewRoute } from "../../../../routes";
@@ -54,6 +55,7 @@ const emptyDecksSnapshot: DecksListSnapshot = {
 
 export function DecksScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, localReadVersion, refreshLocalData, session } = useAppData();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatNumber } = useI18n();
   const [decksSnapshot, setDecksSnapshot] = useState<DecksListSnapshot>(emptyDecksSnapshot);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -65,6 +67,7 @@ export function DecksScreen(): ReactElement {
     userId: null,
     installationId: null,
   });
+  const technicalErrorMessage = t("appError.technicalError.message");
   observationIdentityRef.current = {
     userId: session?.userId ?? null,
     installationId: cloudSettings?.installationId ?? null,
@@ -95,7 +98,7 @@ export function DecksScreen(): ReactElement {
 
         if (activeWorkspace !== null) {
           const observationIdentity = observationIdentityRef.current;
-          captureAppOperationError(error, {
+          const wasCaptured = captureAppOperationError(error, {
             feature: "settings",
             operation: "deck_list_load",
             userId: observationIdentity.userId,
@@ -103,6 +106,11 @@ export function DecksScreen(): ReactElement {
             installationId: observationIdentity.installationId,
             entityId: null,
           });
+          if (wasCaptured) {
+            showCapturedTechnicalError(error);
+            setErrorMessage(technicalErrorMessage);
+            return;
+          }
         }
         setErrorMessage(error instanceof Error ? error.message : String(error));
       } finally {

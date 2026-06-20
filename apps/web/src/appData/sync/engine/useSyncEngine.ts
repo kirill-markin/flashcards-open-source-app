@@ -46,6 +46,7 @@ import {
 } from "../local/syncCloudSettings";
 import {
   createWorkspaceSyncDiscardedError,
+  markSyncFailureCaptured,
   isWorkspaceNotFoundError,
   isWorkspaceSyncDiscardedError,
   observeSyncFailure,
@@ -394,12 +395,15 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         Object.assign(normalizedError, {
           syncRunId,
         });
-        observeSyncFailure({
+        const wasSyncFailureCaptured = observeSyncFailure({
           error: normalizedError,
           userId: session.userId,
           workspaceId,
           installationId: syncInstallationId,
         });
+        if (wasSyncFailureCaptured) {
+          markSyncFailureCaptured(normalizedError);
+        }
         reportSyncError(getErrorMessage(normalizedError));
         throw normalizedError;
       } finally {

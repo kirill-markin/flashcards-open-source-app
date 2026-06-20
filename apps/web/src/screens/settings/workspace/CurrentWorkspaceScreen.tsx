@@ -1,6 +1,7 @@
 import { type FormEvent, type ReactElement, useEffect, useState } from "react";
 import { ApiContractError } from "../../../api";
 import { useAppData } from "../../../appData";
+import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { addWebBreadcrumb } from "../../../observability/webObservability";
@@ -21,6 +22,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
     cloudSettings,
     renameWorkspace,
   } = useAppData();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime } = useI18n();
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
@@ -41,6 +43,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
     || trimmedWorkspaceName === ""
     || trimmedWorkspaceName === activeWorkspace.name
     || isRenameSubmitting;
+  const technicalErrorMessage = t("appError.technicalError.message");
 
   useEffect(() => {
     setWorkspaceName(activeWorkspace?.name ?? "");
@@ -93,7 +96,17 @@ export function CurrentWorkspaceScreen(): ReactElement {
       setIsCreating(false);
       setNewWorkspaceName("");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : String(error));
+      const nextErrorMessage = error instanceof Error ? error.message : String(error);
+      const isExpectedError = nextErrorMessage === t("app.sessionUnavailable")
+        || nextErrorMessage === t("app.sessionRestoringActionLocked")
+        || nextErrorMessage === t("settingsCurrentWorkspace.workspaceNameRequired");
+      if (isExpectedError) {
+        setErrorMessage(nextErrorMessage);
+        return;
+      }
+
+      showCapturedTechnicalError(error);
+      setErrorMessage(technicalErrorMessage);
     }
   }
 
@@ -127,7 +140,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
       await renameWorkspace(activeWorkspace.workspaceId, trimmedWorkspaceName);
     } catch (error) {
       if (error instanceof ApiContractError === false) {
-        captureAppOperationError(error, {
+        const wasCaptured = captureAppOperationError(error, {
           feature: "settings",
           operation: "workspace_rename",
           userId: session?.userId ?? null,
@@ -140,6 +153,15 @@ export function CurrentWorkspaceScreen(): ReactElement {
             t("settingsCurrentWorkspace.workspaceNameRequired"),
           ],
         });
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setRenameErrorMessage(technicalErrorMessage);
+          return;
+        }
+      } else {
+        showCapturedTechnicalError(error);
+        setRenameErrorMessage(technicalErrorMessage);
+        return;
       }
       setRenameErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {

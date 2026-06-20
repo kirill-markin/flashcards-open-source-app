@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import { isCapturedSyncFailure } from "../../appData/sync/observation/syncErrorObservation";
 import { listOutboxRecords } from "../../localDb/sync/outbox";
 import type { ChatComposerSendPhase } from "./ChatDraftContext";
 import {
@@ -36,14 +37,17 @@ type UseChatComposerSendParams = Readonly<{
   isSessionVerified: boolean;
   pendingSyncMessage: string;
   moveDraftToSession: (sourceSessionId: string | null, sourceDraftUpdatedAt: number | null, targetSessionId: string, nextDraft: ChatDraftContent) => number | null;
+  onCapturedTechnicalError: (error: unknown) => void;
+  onTechnicalError: (error: unknown) => boolean;
   replacePendingAttachments: (nextPendingAttachments: ReadonlyArray<PendingAttachment>) => void;
   requestComposerFocusRestore: () => void;
   runSync: () => Promise<void>;
   sendChatMessage: (params: SendChatMessageParams) => Promise<SendChatMessageResult>;
   sendPhase: ChatComposerSendPhase;
   sessionRestoringMessage: string;
-  setErrorMessage: (message: string) => void;
+  setAppErrorMessage: (message: string) => void;
   setSendPhase: (nextSendPhase: ChatComposerSendPhase) => void;
+  technicalErrorMessage: string;
   workspaceRequiredMessage: string;
 }>;
 
@@ -72,14 +76,17 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
     isSessionVerified,
     pendingSyncMessage,
     moveDraftToSession,
+    onCapturedTechnicalError,
+    onTechnicalError,
     replacePendingAttachments,
     requestComposerFocusRestore,
     runSync,
     sendChatMessage,
     sendPhase,
     sessionRestoringMessage,
-    setErrorMessage,
+    setAppErrorMessage,
     setSendPhase,
+    technicalErrorMessage,
     workspaceRequiredMessage,
   } = params;
   const [isDraftOptimisticallyClearedForSend, setIsDraftOptimisticallyClearedForSend] = useState<boolean>(false);
@@ -223,12 +230,12 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
     }
 
     if (isSessionVerified === false) {
-      setErrorMessage(sessionRestoringMessage);
+      setAppErrorMessage(sessionRestoringMessage);
       return;
     }
 
     if (activeWorkspaceId === null) {
-      setErrorMessage(workspaceRequiredMessage);
+      setAppErrorMessage(workspaceRequiredMessage);
       return;
     }
 
@@ -265,7 +272,23 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
       if (isSendLifecycleRequestCurrent(requestSequence) === false) {
         return;
       }
+    } catch (error) {
+      if (isSendLifecycleRequestCurrent(requestSequence) === false) {
+        return;
+      }
 
+      restoreComposerAfterPendingSend(nextAttachments);
+      if (isCapturedSyncFailure(error)) {
+        onCapturedTechnicalError(error);
+        setAppErrorMessage(technicalErrorMessage);
+      } else {
+        setAppErrorMessage(error instanceof Error ? error.message : String(error));
+      }
+      setSendPhase("idle");
+      return;
+    }
+
+    try {
       const outboxRecords = await listOutboxRecords(activeWorkspaceId);
       if (isSendLifecycleRequestCurrent(requestSequence) === false) {
         return;
@@ -273,7 +296,7 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
 
       if (outboxRecords.length > 0) {
         restoreComposerAfterPendingSend(nextAttachments);
-        setErrorMessage(pendingSyncMessage);
+        setAppErrorMessage(pendingSyncMessage);
         setSendPhase("idle");
         return;
       }
@@ -283,7 +306,8 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
       }
 
       restoreComposerAfterPendingSend(nextAttachments);
-      setErrorMessage(error instanceof Error ? error.message : String(error));
+      const wasCaptured = onTechnicalError(error);
+      setAppErrorMessage(wasCaptured ? technicalErrorMessage : error instanceof Error ? error.message : String(error));
       setSendPhase("idle");
       return;
     }

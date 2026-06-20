@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { ApiContractError, listAgentApiKeys, revokeAgentApiKey } from "../../../api";
 import { useAppData } from "../../../appData";
+import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import { captureApiContractError } from "../../../observability/apiContractObservation";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
@@ -9,12 +10,14 @@ import { SettingsShell } from "../SettingsShared";
 
 export function AgentConnectionsScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, isSessionVerified, session } = useAppData();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime } = useI18n();
   const [connections, setConnections] = useState<ReadonlyArray<AgentApiKeyConnection>>([]);
   const [instructions, setInstructions] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [busyConnectionId, setBusyConnectionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(isSessionVerified);
+  const technicalErrorMessage = t("appError.technicalError.message");
 
   useEffect(() => {
     if (isSessionVerified === false) {
@@ -33,15 +36,16 @@ export function AgentConnectionsScreen(): ReactElement {
       setInstructions(result.instructions);
       setErrorMessage("");
     } catch (error) {
-      captureApiContractError(error, {
+      const wasContractErrorCaptured = captureApiContractError(error, {
         feature: "settings",
         sourceAction: "agent_connections_load",
         userId: session?.userId ?? null,
         workspaceId: activeWorkspace?.workspaceId ?? null,
         installationId: cloudSettings?.installationId ?? null,
       });
+      let wasCaptured = wasContractErrorCaptured;
       if (error instanceof ApiContractError === false) {
-        captureAppOperationError(error, {
+        wasCaptured = captureAppOperationError(error, {
           feature: "settings",
           operation: "agent_connections_load",
           userId: session?.userId ?? null,
@@ -50,7 +54,12 @@ export function AgentConnectionsScreen(): ReactElement {
           entityId: null,
         });
       }
-      setErrorMessage(error instanceof Error ? error.message : String(error));
+      if (wasCaptured) {
+        showCapturedTechnicalError(error);
+        setErrorMessage(technicalErrorMessage);
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -70,15 +79,16 @@ export function AgentConnectionsScreen(): ReactElement {
       setInstructions(result.instructions);
       setErrorMessage("");
     } catch (error) {
-      captureApiContractError(error, {
+      const wasContractErrorCaptured = captureApiContractError(error, {
         feature: "settings",
         sourceAction: "agent_connection_revoke",
         userId: session?.userId ?? null,
         workspaceId: activeWorkspace?.workspaceId ?? null,
         installationId: cloudSettings?.installationId ?? null,
       });
+      let wasCaptured = wasContractErrorCaptured;
       if (error instanceof ApiContractError === false) {
-        captureAppOperationError(error, {
+        wasCaptured = captureAppOperationError(error, {
           feature: "settings",
           operation: "agent_connection_revoke",
           userId: session?.userId ?? null,
@@ -87,7 +97,12 @@ export function AgentConnectionsScreen(): ReactElement {
           entityId: connectionId,
         });
       }
-      setErrorMessage(error instanceof Error ? error.message : String(error));
+      if (wasCaptured) {
+        showCapturedTechnicalError(error);
+        setErrorMessage(technicalErrorMessage);
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      }
     } finally {
       setBusyConnectionId(null);
     }

@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import {
+  ApiError,
   createWorkspace as createWorkspaceRequest,
   deleteWorkspace as deleteWorkspaceRequest,
   isAuthRedirectError,
@@ -61,6 +62,21 @@ function requireVerifiedWorkspaceSession(
   }
 
   return session;
+}
+
+function isExpectedWorkspaceDeleteError(error: unknown): boolean {
+  return error instanceof ApiError
+    && error.statusCode >= 400
+    && error.statusCode < 500
+    && (
+      error.code === "AUTH_UNAUTHORIZED"
+      || error.code === "SESSION_CSRF_TOKEN_INVALID"
+      || error.code === "WORKSPACE_DELETE_CONFIRMATION_INVALID"
+      || error.code === "WORKSPACE_DELETE_SHARED"
+      || error.code === "WORKSPACE_NOT_FOUND"
+      || error.code === "WORKSPACE_OWNER_REQUIRED"
+      || error.code === "WORKSPACE_SELECTION_REQUIRED"
+    );
 }
 
 export function useWorkspaceActions(params: UseWorkspaceActionsParams): WorkspaceSessionCommands {
@@ -181,7 +197,6 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         null,
         nextErrorMessage,
       ), error);
-      setErrorMessage(nextErrorMessage);
       throw error;
     } finally {
       setIsChoosingWorkspace(false);
@@ -226,7 +241,6 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         return;
       }
 
-      const nextErrorMessage = getErrorMessage(error);
       captureApiContractError(error, {
         feature: "settings",
         sourceAction: "workspace_rename_client",
@@ -234,7 +248,6 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         workspaceId,
         installationId: cloudSettings?.installationId ?? null,
       });
-      setErrorMessage(nextErrorMessage);
       throw error;
     } finally {
       setIsChoosingWorkspace(false);
@@ -293,11 +306,12 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
       }
 
       const nextErrorMessage = getErrorMessage(error);
-      captureWorkspaceTransitionError("workspace_delete_client_failed", {
-        workspaceId,
-        errorMessage: nextErrorMessage,
-      }, error);
-      setErrorMessage(nextErrorMessage);
+      if (isExpectedWorkspaceDeleteError(error) === false) {
+        captureWorkspaceTransitionError("workspace_delete_client_failed", {
+          workspaceId,
+          errorMessage: nextErrorMessage,
+        }, error);
+      }
       throw error;
     } finally {
       setIsChoosingWorkspace(false);
@@ -334,8 +348,6 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         return Promise.reject(error);
       }
 
-      const nextErrorMessage = getErrorMessage(error);
-      setErrorMessage(nextErrorMessage);
       throw error;
     }
   }, [activeWorkspace?.workspaceId, cloudSettings?.cloudState, runSync, session, sessionVerificationState, t, setErrorMessage]);
@@ -362,8 +374,6 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         return Promise.reject(error);
       }
 
-      const nextErrorMessage = getErrorMessage(error);
-      setErrorMessage(nextErrorMessage);
       throw error;
     }
   }, [activeWorkspace?.workspaceId, cloudSettings?.cloudState, runSync, session, sessionVerificationState, t, setErrorMessage]);

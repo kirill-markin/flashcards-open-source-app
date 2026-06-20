@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppData } from "../../../appData";
+import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
@@ -14,6 +15,7 @@ const emptyTagsSummary: WorkspaceTagsSummary = {
 
 export function TagsScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, localReadVersion, openReview, refreshLocalData, session } = useAppData();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatCount, formatNumber } = useI18n();
   const navigate = useNavigate();
   const [tagsSummary, setTagsSummary] = useState<WorkspaceTagsSummary>(emptyTagsSummary);
@@ -26,6 +28,7 @@ export function TagsScreen(): ReactElement {
     userId: null,
     installationId: null,
   });
+  const technicalErrorMessage = t("appError.technicalError.message");
   observationIdentityRef.current = {
     userId: session?.userId ?? null,
     installationId: cloudSettings?.installationId ?? null,
@@ -56,7 +59,7 @@ export function TagsScreen(): ReactElement {
 
         if (activeWorkspace !== null) {
           const observationIdentity = observationIdentityRef.current;
-          captureAppOperationError(error, {
+          const wasCaptured = captureAppOperationError(error, {
             feature: "settings",
             operation: "tags_load",
             userId: observationIdentity.userId,
@@ -64,6 +67,11 @@ export function TagsScreen(): ReactElement {
             installationId: observationIdentity.installationId,
             entityId: null,
           });
+          if (wasCaptured) {
+            showCapturedTechnicalError(error);
+            setErrorMessage(technicalErrorMessage);
+            return;
+          }
         }
         setErrorMessage(error instanceof Error ? error.message : String(error));
       } finally {
