@@ -853,6 +853,7 @@ export type ReviewEvent = Readonly<{
   clientEventId: string;
   rating: ReviewRating;
   reviewedAtClient: string;
+  reviewedTimeZone?: string;
   reviewedAtServer: string;
 }>;
 
@@ -926,6 +927,7 @@ export type SyncPushOperation =
       clientEventId: string;
       rating: ReviewRating;
       reviewedAtClient: string;
+      reviewedTimeZone?: string;
     }>;
   }>;
 

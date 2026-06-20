@@ -811,7 +811,10 @@ export async function putReviewEvent(reviewEvent: ReviewEvent): Promise<void> {
       return;
     }
 
-    const localDate = mapReviewedAtClientToLocalDate(reviewEvent.reviewedAtClient, progressCacheState.timeZone);
+    const localDate = mapReviewedAtClientToLocalDate(
+      reviewEvent.reviewedAtClient,
+      reviewEvent.reviewedTimeZone ?? progressCacheState.timeZone,
+    );
     const existingProgressDailyCount = await getFromStore<ProgressDailyCountRecord>(
       database,
       "progressDailyCounts",

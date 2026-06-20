@@ -15,6 +15,8 @@ import {
   submitReviewLocally,
 } from "./syncLocalMutations";
 
+const deterministicSeedReviewTimeZone = "UTC";
+
 export type WorkspaceSeedReadiness = Readonly<{
   workspaceSettingsLoaded: boolean;
   hotStateHydrated: boolean;
@@ -140,6 +142,7 @@ export async function seedWorkspaceLocally(input: SeedWorkspaceLocallyInput): Pr
         cardId: nextCard.cardId,
         rating: review.rating,
         reviewedAtClient: review.reviewedAtClient,
+        reviewedTimeZone: deterministicSeedReviewTimeZone,
       });
       nextCard = reviewResult.card;
       if (reviewResult.didChangeProgressHistory) {

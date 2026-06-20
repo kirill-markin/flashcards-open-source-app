@@ -342,4 +342,106 @@ describe("localDb progress", () => {
       "2025-01-08",
     ]);
   });
+
+  it("uses stored review-event timezone for local active dates when present", async () => {
+    await putReviewEvent({
+      reviewEventId: "active-date-stored-timezone",
+      workspaceId,
+      cardId: "due-other",
+      replicaId: "device-1",
+      clientEventId: "active-date-stored-timezone-client-event",
+      rating: 2,
+      reviewedAtClient: "2025-01-07T23:30:00.000Z",
+      reviewedTimeZone: "UTC",
+      reviewedAtServer: "2025-01-07T23:30:00.000Z",
+    });
+    await putReviewEvent({
+      reviewEventId: "active-date-legacy-timezone",
+      workspaceId,
+      cardId: "due-same-a",
+      replicaId: "device-1",
+      clientEventId: "active-date-legacy-timezone-client-event",
+      rating: 3,
+      reviewedAtClient: "2025-01-07T23:30:00.000Z",
+      reviewedAtServer: "2025-01-07T23:30:00.000Z",
+    });
+
+    const result = await loadLocalProgressActiveDates([workspaceId], "Europe/Madrid");
+
+    expect(result).toEqual([
+      "2025-01-07",
+      "2025-01-08",
+    ]);
+  });
+
+  it("uses pending review-event timezone for local daily overlays when present", async () => {
+    await putOutboxRecord({
+      operationId: "pending-review-stored-timezone",
+      workspaceId,
+      createdAt: "2025-01-07T23:30:00.000Z",
+      attemptCount: 0,
+      lastError: "",
+      operation: {
+        operationId: "pending-review-stored-timezone",
+        entityType: "review_event",
+        entityId: "pending-review-stored-timezone",
+        action: "append",
+        clientUpdatedAt: "2025-01-07T23:30:00.000Z",
+        payload: {
+          reviewEventId: "pending-review-stored-timezone",
+          cardId: "due-other",
+          clientEventId: "pending-review-stored-timezone-client-event",
+          rating: 2,
+          reviewedAtClient: "2025-01-07T23:30:00.000Z",
+          reviewedTimeZone: "UTC",
+        },
+      },
+    });
+    await putOutboxRecord({
+      operationId: "pending-review-legacy-timezone",
+      workspaceId,
+      createdAt: "2025-01-07T23:30:00.000Z",
+      attemptCount: 0,
+      lastError: "",
+      operation: {
+        operationId: "pending-review-legacy-timezone",
+        entityType: "review_event",
+        entityId: "pending-review-legacy-timezone",
+        action: "append",
+        clientUpdatedAt: "2025-01-07T23:30:00.000Z",
+        payload: {
+          reviewEventId: "pending-review-legacy-timezone",
+          cardId: "due-same-a",
+          clientEventId: "pending-review-legacy-timezone-client-event",
+          rating: 3,
+          reviewedAtClient: "2025-01-07T23:30:00.000Z",
+        },
+      },
+    });
+
+    const result = await loadPendingProgressDailyReviews([workspaceId], {
+      timeZone: "Europe/Madrid",
+      from: "2025-01-07",
+      to: "2025-01-08",
+    });
+
+    expect(result).toEqual([
+      {
+        date: "2025-01-07",
+        reviewCount: 1,
+        againCount: 0,
+        hardCount: 0,
+        goodCount: 1,
+        easyCount: 0,
+      },
+      {
+        date: "2025-01-08",
+        reviewCount: 1,
+        againCount: 0,
+        hardCount: 0,
+        goodCount: 0,
+        easyCount: 1,
+      },
+    ]);
+  });
 });

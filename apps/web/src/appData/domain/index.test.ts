@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { Card } from "../../types";
 import {
   buildCardUpsertOperation,
+  buildReviewEvent,
+  buildReviewEventAppendOperation,
   cardsMatchingReviewFilter,
   compareCardsForReviewOrder,
   doesCardMutationAffectReviewSchedule,
@@ -156,6 +158,40 @@ describe("review order domain", () => {
     const card = makeReviewOrderCard("reviewed-card", "2026-02-31T12:00:00.000Z", "2026-03-10T09:00:00.000Z", null);
 
     expect(() => buildCardUpsertOperation(card)).toThrow(/invalid dueAt/);
+  });
+
+  it("serializes review event timezone only when present", () => {
+    const reviewEvent = buildReviewEvent(
+      "workspace-1",
+      "card-1",
+      "device-1",
+      2,
+      "2026-03-10T10:00:00.000Z",
+      "Europe/Madrid",
+      "review-1",
+      "client-event-1",
+    );
+    const legacyReviewEvent = buildReviewEvent(
+      "workspace-1",
+      "card-1",
+      "device-1",
+      2,
+      "2026-03-10T10:00:00.000Z",
+      undefined,
+      "review-2",
+      "client-event-2",
+    );
+
+    expect(buildReviewEventAppendOperation(reviewEvent).payload).toEqual({
+      reviewEventId: "review-1",
+      cardId: "card-1",
+      clientEventId: "client-event-1",
+      rating: 2,
+      reviewedAtClient: "2026-03-10T10:00:00.000Z",
+      reviewedTimeZone: "Europe/Madrid",
+    });
+    expect(legacyReviewEvent).not.toHaveProperty("reviewedTimeZone");
+    expect(buildReviewEventAppendOperation(legacyReviewEvent).payload).not.toHaveProperty("reviewedTimeZone");
   });
 
   it("classifies only schedule-relevant card mutations as review schedule changes", () => {

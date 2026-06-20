@@ -42,6 +42,9 @@ import {
   invalidateProgress,
 } from "../../progress/invalidation/progressInvalidation";
 import {
+  getBrowserTimeZone,
+} from "../../../progress/progressDates";
+import {
   requireCloudInstallationId,
 } from "../local/syncCloudSettings";
 import {
@@ -641,11 +644,14 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       throw new Error("Workspace is unavailable");
     }
 
+    const reviewedAtClient = nowIso();
+    const reviewedTimeZone = getBrowserTimeZone();
     const mutationResult = await runLocalWorkspaceMutation(() => submitReviewLocally({
       workspaceId: activeWorkspaceId,
       cardId,
       rating,
-      reviewedAtClient: nowIso(),
+      reviewedAtClient,
+      reviewedTimeZone,
     }));
     bumpLocalReadVersion();
     invalidateLocalProgress();
