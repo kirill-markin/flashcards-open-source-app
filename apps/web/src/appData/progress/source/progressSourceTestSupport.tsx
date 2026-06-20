@@ -88,8 +88,11 @@ vi.mock("../../../api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../api")>();
 
   return {
+    ApiError: actual.ApiError,
     ApiContractError: actual.ApiContractError,
     ApiNetworkError: actual.ApiNetworkError,
+    AuthRedirectError: actual.AuthRedirectError,
+    isAuthRedirectError: actual.isAuthRedirectError,
     loadProgressSummary: progressSourceMocks.loadProgressSummaryMock,
     loadProgressSeries: progressSourceMocks.loadProgressSeriesMock,
     loadProgressReviewSchedule: progressSourceMocks.loadProgressReviewScheduleMock,
@@ -252,7 +255,10 @@ export const noProgressSections = {
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-export function renderHarness(props: HarnessProps): Readonly<{
+function renderProgressSourceHarness(
+  props: HarnessProps,
+  canExposeTechnicalErrors: boolean,
+): Readonly<{
   getApi: () => ProgressSourceApi;
   rerender: (nextProps: HarnessProps) => void;
 }> {
@@ -268,6 +274,7 @@ export function renderHarness(props: HarnessProps): Readonly<{
       progressScheduleLocalVersion: 0,
       progressServerInvalidationVersion: currentProps.progressServerInvalidationVersion,
       leaderboardAutoRefreshEnabled: true,
+      canExposeTechnicalErrors,
       sections: currentProps.sections,
     });
     return null;
@@ -296,6 +303,20 @@ export function renderHarness(props: HarnessProps): Readonly<{
   };
 }
 
+export function renderHarness(props: HarnessProps): Readonly<{
+  getApi: () => ProgressSourceApi;
+  rerender: (nextProps: HarnessProps) => void;
+}> {
+  return renderProgressSourceHarness(props, true);
+}
+
+export function renderHarnessWithoutTechnicalErrors(props: HarnessProps): Readonly<{
+  getApi: () => ProgressSourceApi;
+  rerender: (nextProps: HarnessProps) => void;
+}> {
+  return renderProgressSourceHarness(props, false);
+}
+
 export function renderInvalidationHarness(props: HarnessProps): Readonly<{
   getApi: () => ProgressSourceApi;
 }> {
@@ -317,6 +338,7 @@ export function renderInvalidationHarness(props: HarnessProps): Readonly<{
       progressScheduleLocalVersion,
       progressServerInvalidationVersion,
       leaderboardAutoRefreshEnabled: true,
+      canExposeTechnicalErrors: true,
       sections: currentProps.sections,
     });
     return null;

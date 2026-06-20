@@ -20,6 +20,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -84,7 +85,10 @@ import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncSource
+import com.flashcardsopensourceapp.core.ui.AppTechnicalError
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
+import com.flashcardsopensourceapp.core.ui.components.AppTechnicalErrorDialog
+import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.feature.review.reaction.rememberReviewReactionLottieConfigurationStore
 import com.flashcardsopensourceapp.feature.settings.SettingsAttentionBadge
@@ -96,6 +100,8 @@ import kotlinx.coroutines.launch
 
 private const val startupLoadingTag: String = "app.startupLoading"
 private const val startupErrorTag: String = "app.startupError"
+internal const val accountDeletionBlockingTechnicalDetailsTag: String =
+    "accountDeletionBlocking.technicalDetails"
 
 @Composable
 fun FlashcardsApp(
@@ -108,6 +114,19 @@ fun FlashcardsApp(
         val startupState by appGraph.startupState.collectAsStateWithLifecycle(
             initialValue = AppStartupState.Loading
         )
+        val activeTechnicalError by appGraph.appMessageBus.activeTechnicalError.collectAsStateWithLifecycle()
+        val activeTechnicalErrorPreview by appGraph.testTechnicalErrorDialogPreviewController
+            .activePreviewTechnicalError
+            .collectAsStateWithLifecycle()
+        val displayedTechnicalError: AppTechnicalError? = activeTechnicalError ?: activeTechnicalErrorPreview
+        val dismissDisplayedTechnicalError: () -> Unit = {
+            if (activeTechnicalError != null) {
+                appGraph.appMessageBus.dismissTechnicalError()
+                appGraph.testTechnicalErrorDialogPreviewController.dismissTestPreview()
+            } else {
+                appGraph.testTechnicalErrorDialogPreviewController.dismissTestPreview()
+            }
+        }
         when (val currentStartupState = startupState) {
             AppStartupState.Loading -> {
                 StartupLoadingScreen()
@@ -115,10 +134,24 @@ fun FlashcardsApp(
             }
 
             is AppStartupState.Failed -> {
-                StartupErrorScreen(
-                    message = currentStartupState.message,
-                    onRetry = appGraph::retryStartup
-                )
+                val context = LocalContext.current
+                Box(modifier = Modifier.fillMaxSize()) {
+                    StartupErrorScreen(
+                        technicalDetails = currentStartupState.technicalDetails,
+                        onShowTechnicalDetails = { technicalDetails ->
+                            appGraph.showReportedTechnicalErrorDialog(
+                                title = context.getString(R.string.technical_error_dialog_default_title),
+                                message = context.getString(R.string.technical_error_dialog_default_message),
+                                technicalDetails = technicalDetails
+                            )
+                        },
+                        onRetry = appGraph::retryStartup
+                    )
+                    AppTechnicalErrorDialogHost(
+                        error = displayedTechnicalError,
+                        onDismiss = dismissDisplayedTechnicalError
+                    )
+                }
                 return@FlashcardsTheme
             }
 
@@ -167,6 +200,10 @@ fun FlashcardsApp(
                     modifier = Modifier
                         .align(alignment = Alignment.BottomCenter)
                         .padding(horizontal = 16.dp, vertical = 24.dp)
+                )
+                AppTechnicalErrorDialogHost(
+                    error = displayedTechnicalError,
+                    onDismiss = dismissDisplayedTechnicalError
                 )
             }
             return@FlashcardsTheme
@@ -265,7 +302,8 @@ fun FlashcardsApp(
             isAuthFlowActive = isGuestSignInAfterReviewPromptAuthRoute(route = currentRoute),
             isAppModalActive = isGuestSignInAfterReviewPromptModalActive(
                 accountDeletionState = accountDeletionState,
-                isFeedbackPromptVisible = feedbackPromptUiState.isVisible
+                isFeedbackPromptVisible = feedbackPromptUiState.isVisible,
+                isTechnicalErrorVisible = displayedTechnicalError != null
             )
         )
         val feedbackPromptContext = FeedbackPromptContext(
@@ -273,7 +311,8 @@ fun FlashcardsApp(
             isAuthFlowActive = isFeedbackPromptAuthRoute(route = currentRoute),
             isAppModalActive = isFeedbackPromptModalActive(
                 accountDeletionState = accountDeletionState,
-                isGuestSignInAfterReviewPromptVisible = guestSignInAfterReviewPromptUiState.isVisible
+                isGuestSignInAfterReviewPromptVisible = guestSignInAfterReviewPromptUiState.isVisible,
+                isTechnicalErrorVisible = displayedTechnicalError != null
             )
         )
 
@@ -549,6 +588,14 @@ fun FlashcardsApp(
                 )
                 AccountDeletionBlockingSurface(
                     accountDeletionState = accountDeletionState,
+                    onShowTechnicalDetails = { technicalDetails, reportId ->
+                        appGraph.showTechnicalErrorDialog(
+                            reportId = reportId,
+                            title = applicationContext.getString(R.string.technical_error_dialog_default_title),
+                            message = applicationContext.getString(R.string.technical_error_dialog_default_message),
+                            technicalDetails = technicalDetails
+                        )
+                    },
                     onRetryDeletion = {
                         appGraph.cloudAccountRepository.retryPendingAccountDeletion()
                     }
@@ -582,6 +629,10 @@ fun FlashcardsApp(
                         onDismiss = appGraph.feedbackPromptController::dismiss
                     )
                 }
+                AppTechnicalErrorDialogHost(
+                    error = displayedTechnicalError,
+                    onDismiss = dismissDisplayedTechnicalError
+                )
             }
         }
     }
@@ -647,9 +698,12 @@ private fun isGuestSignInAfterReviewPromptAuthRoute(route: String?): Boolean {
 
 private fun isGuestSignInAfterReviewPromptModalActive(
     accountDeletionState: AccountDeletionState,
-    isFeedbackPromptVisible: Boolean
+    isFeedbackPromptVisible: Boolean,
+    isTechnicalErrorVisible: Boolean
 ): Boolean {
-    return accountDeletionState != AccountDeletionState.Hidden || isFeedbackPromptVisible
+    return accountDeletionState != AccountDeletionState.Hidden ||
+        isFeedbackPromptVisible ||
+        isTechnicalErrorVisible
 }
 
 private fun isFeedbackPromptAuthRoute(route: String?): Boolean {
@@ -658,9 +712,27 @@ private fun isFeedbackPromptAuthRoute(route: String?): Boolean {
 
 private fun isFeedbackPromptModalActive(
     accountDeletionState: AccountDeletionState,
-    isGuestSignInAfterReviewPromptVisible: Boolean
+    isGuestSignInAfterReviewPromptVisible: Boolean,
+    isTechnicalErrorVisible: Boolean
 ): Boolean {
-    return accountDeletionState != AccountDeletionState.Hidden || isGuestSignInAfterReviewPromptVisible
+    return accountDeletionState != AccountDeletionState.Hidden ||
+        isGuestSignInAfterReviewPromptVisible ||
+        isTechnicalErrorVisible
+}
+
+@Composable
+private fun AppTechnicalErrorDialogHost(
+    error: AppTechnicalError?,
+    onDismiss: () -> Unit
+) {
+    val activeError = error ?: return
+    AppTechnicalErrorDialog(
+        error = activeError,
+        showDetailsLabel = stringResource(id = R.string.technical_error_dialog_show_details),
+        hideDetailsLabel = stringResource(id = R.string.technical_error_dialog_hide_details),
+        dismissLabel = stringResource(id = R.string.technical_error_dialog_close),
+        onDismiss = onDismiss
+    )
 }
 
 @Composable
@@ -681,7 +753,8 @@ private fun StartupLoadingScreen() {
 
 @Composable
 private fun StartupErrorScreen(
-    message: String,
+    technicalDetails: String,
+    onShowTechnicalDetails: (String) -> Unit,
     onRetry: () -> Unit
 ) {
     Surface(
@@ -705,9 +778,14 @@ private fun StartupErrorScreen(
                         style = MaterialTheme.typography.titleLarge
                     )
                     Text(
-                        text = message,
+                        text = stringResource(id = R.string.startup_error_message),
                         style = MaterialTheme.typography.bodyMedium
                     )
+                    if (technicalDetails.isNotBlank()) {
+                        OutlinedButton(onClick = { onShowTechnicalDetails(technicalDetails) }) {
+                            Text(text = stringResource(id = R.string.technical_error_dialog_show_details))
+                        }
+                    }
                     Button(onClick = onRetry) {
                         Text(text = stringResource(id = R.string.startup_error_retry))
                     }
@@ -748,6 +826,7 @@ private fun UnsupportedRuntimeScreen() {
 @Composable
 internal fun AccountDeletionBlockingSurface(
     accountDeletionState: AccountDeletionState,
+    onShowTechnicalDetails: (String, String) -> Unit,
     onRetryDeletion: suspend () -> Unit
 ) {
     if (accountDeletionState == AccountDeletionState.Hidden) {
@@ -791,16 +870,26 @@ internal fun AccountDeletionBlockingSurface(
                         )
                     }
                     is AccountDeletionState.Failed -> {
+                        val technicalDetails = renderTechnicalErrorDetails(
+                            errorType = "AccountDeletionState.Failed",
+                            message = accountDeletionState.message
+                        )
                         Text(
                             text = stringResource(id = R.string.account_deletion_failed_message),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = accountDeletionState.message,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(16.dp)
-                            )
+                        OutlinedButton(
+                            onClick = {
+                                onShowTechnicalDetails(
+                                    technicalDetails,
+                                    accountDeletionState.technicalDetailsReportId
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(accountDeletionBlockingTechnicalDetailsTag)
+                        ) {
+                            Text(stringResource(id = R.string.technical_error_dialog_show_details))
                         }
                         Button(
                             onClick = {

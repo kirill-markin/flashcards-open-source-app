@@ -9,6 +9,21 @@ struct CardFormState {
     var effortLevel: EffortLevel
 }
 
+func cardEditorInlineErrorMessage(error: Error) -> String? {
+    guard let localStoreError = error as? LocalStoreError else {
+        return nil
+    }
+
+    switch localStoreError {
+    case .validation:
+        return Flashcards.errorMessage(error: error)
+    case .notFound:
+        return String(localized: "Card not found.", table: "ReviewCards")
+    case .database, .uninitialized:
+        return nil
+    }
+}
+
 private enum CardTextField: String {
     case front
     case back

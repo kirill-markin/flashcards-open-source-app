@@ -57,7 +57,12 @@ extension ReviewView {
                 effortLevel: normalizedInput.effortLevel
             )
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            if let inlineErrorMessage = cardEditorInlineErrorMessage(error: error) {
+                self.screenErrorMessage = inlineErrorMessage
+            } else {
+                self.screenErrorMessage = ""
+                store.presentTechnicalError(error)
+            }
             return nil
         }
     }
@@ -88,7 +93,12 @@ extension ReviewView {
             self.screenErrorMessage = ""
             self.isEditorPresented = false
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            if let inlineErrorMessage = cardEditorInlineErrorMessage(error: error) {
+                self.screenErrorMessage = inlineErrorMessage
+            } else {
+                self.screenErrorMessage = ""
+                store.presentTechnicalError(error)
+            }
         }
     }
 
@@ -104,7 +114,12 @@ extension ReviewView {
             self.isEditorPresented = false
             self.editingCardId = nil
         } catch {
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            if let inlineErrorMessage = cardEditorInlineErrorMessage(error: error) {
+                self.screenErrorMessage = inlineErrorMessage
+            } else {
+                self.screenErrorMessage = ""
+                store.presentTechnicalError(error)
+            }
         }
     }
 }

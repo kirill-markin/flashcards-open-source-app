@@ -145,7 +145,8 @@ describe("ReviewScreen controls", () => {
 
     expect(reviewPane.dataset.reviewPaneState).toBe("empty");
     expect(reviewPane.dataset.reviewPaneEmptyReason).toBe("no-cards");
-    expect(getContainer().textContent).toContain("Cloud sync failed");
+    expect(getContainer().textContent).not.toContain("Cloud sync failed");
+    expect(getContainer().querySelector(".error-banner")?.textContent).toContain("A technical error occurred.");
   });
 
   it("renders compact review header controls with scope before streak", async () => {

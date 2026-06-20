@@ -497,6 +497,15 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
             notifications = null,
             feedback = null
         )
+        is AndroidExceptionIssueEvent.AppTechnicalErrorDialogException -> SentryAndroidObservationContext(
+            feature = event.feature.tagValue,
+            action = event.action.tagValue,
+            http = null,
+            ai = null,
+            progress = null,
+            notifications = null,
+            feedback = null
+        )
         is AndroidExceptionIssueEvent.AiStreamCrash -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
             action = event.action.tagValue,

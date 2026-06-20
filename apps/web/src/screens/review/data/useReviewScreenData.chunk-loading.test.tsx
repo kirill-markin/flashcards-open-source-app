@@ -26,6 +26,28 @@ const {
   revealAnswer,
 } = setupReviewScreenTest();
 
+const technicalErrorMessage = "A technical error occurred. Try again or restart the app.";
+
+function queryTechnicalErrorDialog(): HTMLElement | null {
+  const dialog = document.body.querySelector("[data-testid='app-error-dialog']");
+  return dialog instanceof HTMLElement ? dialog : null;
+}
+
+function expectTechnicalErrorDialogWithDetails(rawErrorMessage: string): void {
+  const dialog = queryTechnicalErrorDialog();
+  if (dialog === null) {
+    throw new Error("Technical error dialog was not found");
+  }
+
+  const details = dialog.querySelector("[data-testid='app-error-dialog-details']");
+  if (!(details instanceof HTMLElement)) {
+    throw new Error("Technical error dialog details were not found");
+  }
+
+  expect(dialog.textContent).toContain(technicalErrorMessage);
+  expect(details.textContent).toContain(rawErrorMessage);
+}
+
 describe("useReviewScreenData chunk loading", () => {
   it("excludes canonical, presented, and pending card ids when replenishing after optimistic submit", async () => {
     const state = getState();
@@ -164,7 +186,8 @@ describe("useReviewScreenData chunk loading", () => {
         await Promise.resolve();
       });
 
-      expect(state.appData.setErrorMessage).toHaveBeenCalledWith("Failed to load more cards after submit: Chunk load failed");
+      expect(state.appData.setErrorMessage).toHaveBeenCalledWith(technicalErrorMessage);
+      expectTechnicalErrorDialogWithDetails("Chunk load failed");
     } finally {
       await act(async () => {
         hookRoot.unmount();
@@ -294,6 +317,8 @@ describe("useReviewScreenData chunk loading", () => {
       });
 
       expect(state.appData.setErrorMessage).not.toHaveBeenCalledWith("Failed to load more cards after submit: Chunk load failed");
+      expect(state.appData.setErrorMessage).not.toHaveBeenCalledWith(technicalErrorMessage);
+      expect(queryTechnicalErrorDialog()).toBeNull();
       expect(latestResult?.activeReviewQueue.map((card) => card.cardId)).toEqual(newCards.map((card) => card.cardId));
     } finally {
       await act(async () => {

@@ -42,7 +42,7 @@ extension FlashcardsStore {
                 trigger: trigger,
                 action: "same_workspace_cloud_restore"
             )
-            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
+            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error, trigger: trigger)
             if trigger.surfacesGlobalErrorMessage {
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }

@@ -266,7 +266,7 @@ struct FlashcardsApp: App {
                 .task(id: self.cloudSyncPollingTaskID) {
                     await self.runCloudSyncPollingLoop()
                 }
-                .technicalErrorSheetHost(store: self.store)
+                .technicalErrorSheet(store: self.store)
         }
     }
 

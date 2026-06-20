@@ -8,6 +8,12 @@ let notificationSchedulingDelayedReadbackNanoseconds: UInt64 = 350_000_000
 func appNotificationPendingRequestBreakdown(
     identifiers: [String]
 ) -> AppNotificationPendingRequestBreakdown {
+    appNotificationRequestBreakdown(identifiers: identifiers)
+}
+
+func appNotificationRequestBreakdown(
+    identifiers: [String]
+) -> AppNotificationPendingRequestBreakdown {
     let reviewCount: Int = identifiers.filter(isReviewNotificationRequestIdentifier).count
     let strictCount: Int = identifiers.filter(isStrictReminderRequestIdentifier).count
     return AppNotificationPendingRequestBreakdown(
@@ -88,6 +94,16 @@ func pendingAppNotificationRequestIdentifiers(
     await withCheckedContinuation { continuation in
         center.getPendingNotificationRequests { requests in
             continuation.resume(returning: requests.map(\.identifier))
+        }
+    }
+}
+
+func deliveredAppNotificationRequestIdentifiers(
+    center: UNUserNotificationCenter
+) async -> [String] {
+    await withCheckedContinuation { continuation in
+        center.getDeliveredNotifications { notifications in
+            continuation.resume(returning: notifications.map(\.request.identifier))
         }
     }
 }

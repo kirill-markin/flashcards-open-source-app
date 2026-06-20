@@ -21,7 +21,7 @@ extension FlashcardsStore {
             extendsFastPolling: false,
             allowsVisibleChangeBanner: false,
             surfacesGlobalErrorMessage: true,
-            capturesTechnicalFailures: false
+            technicalErrorCaptureContext: nil
         )
     }
 
@@ -32,7 +32,29 @@ extension FlashcardsStore {
             extendsFastPolling: false,
             allowsVisibleChangeBanner: false,
             surfacesGlobalErrorMessage: false,
-            capturesTechnicalFailures: true
+            capturesTechnicalFailures: true,
+            technicalErrorCaptureContext: self.beginTechnicalErrorCaptureContext()
+        )
+    }
+
+    func postAuthCloudSyncTrigger(now: Date) -> CloudSyncTrigger {
+        self.postAuthCloudSyncTrigger(
+            now: now,
+            technicalErrorCaptureContext: nil
+        )
+    }
+
+    func postAuthCloudSyncTrigger(
+        now: Date,
+        technicalErrorCaptureContext: TechnicalErrorCaptureContext?
+    ) -> CloudSyncTrigger {
+        CloudSyncTrigger(
+            source: .postAuth,
+            now: now,
+            extendsFastPolling: false,
+            allowsVisibleChangeBanner: false,
+            surfacesGlobalErrorMessage: false,
+            technicalErrorCaptureContext: technicalErrorCaptureContext
         )
     }
 
@@ -106,7 +128,8 @@ extension FlashcardsStore {
             } catch {
                 self.syncStatus = self.syncStatusForCloudFailure(
                     error: error,
-                    fallbackCloudState: failureStateCloudState
+                    fallbackCloudState: failureStateCloudState,
+                    trigger: trigger
                 )
                 let didCapture = self.captureCloudSyncFailureIfNeeded(
                     error: error,
@@ -122,7 +145,8 @@ extension FlashcardsStore {
             }
             self.syncStatus = self.syncStatusForCloudFailure(
                 error: failureError,
-                fallbackCloudState: failureStateCloudState
+                fallbackCloudState: failureStateCloudState,
+                trigger: trigger
             )
             let didCapture = self.captureCloudSyncFailureIfNeeded(
                 error: failureError,
@@ -420,8 +444,13 @@ extension FlashcardsStore {
 
     private func syncStatusForCloudFailure(
         error: Error,
-        fallbackCloudState: CloudAccountState?
+        fallbackCloudState: CloudAccountState?,
+        trigger: CloudSyncTrigger
     ) -> SyncStatus {
+        if trigger.source == .postAuth {
+            return .idle
+        }
+
         if let blockedMessage = self.blockedCloudIdentityConflictMessage(error: error) {
             return .blocked(message: blockedMessage)
         }
@@ -434,6 +463,18 @@ extension FlashcardsStore {
     }
 
     func transitionSyncStatusForCloudFailure(error: Error) -> SyncStatus {
+        if let blockedMessage = self.blockedCloudIdentityConflictMessage(error: error) {
+            return .blocked(message: blockedMessage)
+        }
+
+        return .failed(message: Flashcards.errorMessage(error: error))
+    }
+
+    func transitionSyncStatusForCloudFailure(error: Error, trigger: CloudSyncTrigger) -> SyncStatus {
+        if trigger.source == .postAuth {
+            return .idle
+        }
+
         if let blockedMessage = self.blockedCloudIdentityConflictMessage(error: error) {
             return .blocked(message: blockedMessage)
         }
@@ -458,7 +499,8 @@ extension FlashcardsStore {
         error: Error,
         linkedSession: CloudLinkedSession,
         fallbackCloudState: CloudAccountState?,
-        action: String
+        action: String,
+        captureContext: TechnicalErrorCaptureContext?
     ) {
         let diagnostics = cloudSyncFailureDiagnostics(error: error)
         let scope = IOSObservationScope(
@@ -472,6 +514,7 @@ extension FlashcardsStore {
             cloudState: fallbackCloudState ?? self.cloudSettings?.cloudState,
             configurationMode: linkedSession.configurationMode
         )
+        self.markTechnicalErrorCaptured(captureContext: captureContext)
         FlashcardsObservability.captureException(
             .cloudSyncFailed(
                 error: error,
@@ -503,7 +546,8 @@ extension FlashcardsStore {
             error: error,
             linkedSession: linkedSession,
             fallbackCloudState: fallbackCloudState,
-            action: action
+            action: action,
+            captureContext: trigger.technicalErrorCaptureContext
         )
         return true
     }

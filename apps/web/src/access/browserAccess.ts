@@ -55,6 +55,27 @@ export async function requestBrowserMediaPermission(kind: BrowserMediaPermission
   }
 }
 
+export function isExpectedClipboardWriteError(error: unknown): boolean {
+  return error instanceof DOMException
+    && (error.name === "NotAllowedError" || error.name === "SecurityError");
+}
+
+export function isExpectedBrowserMediaPermissionError(error: unknown): boolean {
+  if (error instanceof DOMException) {
+    return error.name === "NotAllowedError"
+      || error.name === "NotFoundError"
+      || error.name === "NotReadableError"
+      || error.name === "SecurityError";
+  }
+
+  if (error instanceof Error) {
+    return error.message === "Media device access is unavailable in this browser."
+      || error.message === "Media permissions require HTTPS or localhost.";
+  }
+
+  return false;
+}
+
 export function explainBrowserMediaPermissionError(
   kind: BrowserMediaPermissionKind,
   error: unknown,
@@ -84,6 +105,10 @@ export function explainBrowserMediaPermissionError(
       return kind === "camera"
         ? t("accessSettings.permission.errorNotReadableCamera")
         : t("accessSettings.permission.errorNotReadableMicrophone");
+    }
+
+    if (error.name === "SecurityError") {
+      return t("accessSettings.permission.errorSecureContext");
     }
   }
 

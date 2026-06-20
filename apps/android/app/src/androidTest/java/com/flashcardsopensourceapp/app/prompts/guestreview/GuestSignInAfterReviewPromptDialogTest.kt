@@ -98,10 +98,12 @@ class GuestSignInAfterReviewPromptDialogTest : FirebaseAppInstrumentationTimeout
                                 isVerifyingCode = false,
                                 errorMessage = "",
                                 errorTechnicalDetails = null,
+                                errorTechnicalDetailsReportId = null,
                                 challengeEmail = null
                             ),
                             onEmailChange = {},
                             onSendCode = {},
+                            onShowTechnicalDetails = { _, _ -> },
                             onBack = {
                                 navController.popBackStack()
                             }

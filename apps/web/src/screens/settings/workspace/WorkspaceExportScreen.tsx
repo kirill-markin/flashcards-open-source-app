@@ -1,5 +1,6 @@
 import { useState, type ReactElement } from "react";
 import { useAppData } from "../../../appData";
+import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { exportWorkspaceCardsCsv } from "../../../workspaceExport";
@@ -7,10 +8,12 @@ import { SettingsShell } from "../SettingsShared";
 
 export function WorkspaceExportScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, session } = useAppData();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const { t } = useI18n();
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
+  const technicalErrorMessage = t("appError.technicalError.message");
 
   async function exportCsv(): Promise<void> {
     if (activeWorkspace === null) {
@@ -33,7 +36,7 @@ export function WorkspaceExportScreen(): ReactElement {
       });
       setSuccessMessage(t("workspaceExport.success"));
     } catch (error) {
-      captureAppOperationError(error, {
+      const wasCaptured = captureAppOperationError(error, {
         feature: "settings",
         operation: "workspace_export",
         userId: session?.userId ?? null,
@@ -41,7 +44,12 @@ export function WorkspaceExportScreen(): ReactElement {
         installationId: cloudSettings?.installationId ?? null,
         entityId: activeWorkspace.workspaceId,
       });
-      setErrorMessage(error instanceof Error ? error.message : String(error));
+      if (wasCaptured) {
+        showCapturedTechnicalError(error);
+        setErrorMessage(technicalErrorMessage);
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      }
     } finally {
       setIsExporting(false);
     }

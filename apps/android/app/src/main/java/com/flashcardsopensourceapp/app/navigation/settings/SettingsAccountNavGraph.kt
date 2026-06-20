@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.feature.settings.account.AccountDangerZoneRoute
 import com.flashcardsopensourceapp.feature.settings.account.AccountLegalRoute
@@ -168,6 +169,14 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
                 coroutineScope.launch {
                     accountDangerZoneViewModel.deleteAccount()
                 }
+            },
+            onShowTechnicalDetails = { technicalDetails, reportId ->
+                appGraph.showTechnicalErrorDialog(
+                    reportId = reportId,
+                    title = context.getString(R.string.technical_error_dialog_default_title),
+                    message = context.getString(R.string.technical_error_dialog_default_message),
+                    technicalDetails = technicalDetails
+                )
             },
             onBack = {
                 navController.popBackStack()

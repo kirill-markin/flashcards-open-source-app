@@ -84,39 +84,37 @@ struct TechnicalErrorSheet: View {
     }
 }
 
-private struct TechnicalErrorSheetHostModifier: ViewModifier {
-    let store: FlashcardsStore
-
-    private var technicalErrorPresentation: Binding<TechnicalErrorPresentation?> {
-        Binding<TechnicalErrorPresentation?>(
-            get: {
-                self.store.presentedTechnicalError
-            },
-            set: { presentation in
-                if presentation == nil {
-                    self.store.dismissTechnicalError()
+extension View {
+    @MainActor
+    func technicalErrorSheet(store: FlashcardsStore) -> some View {
+        self.sheet(item: technicalErrorPresentation(store: store)) { presentation in
+            TechnicalErrorSheet(
+                presentation: presentation,
+                onClose: {
+                    store.dismissTechnicalError()
                 }
-            }
-        )
+            )
+        }
     }
 
-    func body(content: Content) -> some View {
-        content
-            .sheet(item: self.technicalErrorPresentation) { presentation in
-                TechnicalErrorSheet(
-                    presentation: presentation,
-                    onClose: {
-                        self.store.dismissTechnicalError()
-                    }
-                )
-            }
+    @MainActor
+    func technicalErrorSheetHost(store: FlashcardsStore) -> some View {
+        self.technicalErrorSheet(store: store)
     }
 }
 
-extension View {
-    func technicalErrorSheetHost(store: FlashcardsStore) -> some View {
-        self.modifier(TechnicalErrorSheetHostModifier(store: store))
-    }
+@MainActor
+private func technicalErrorPresentation(store: FlashcardsStore) -> Binding<TechnicalErrorPresentation?> {
+    Binding<TechnicalErrorPresentation?>(
+        get: {
+            store.presentedTechnicalError
+        },
+        set: { presentation in
+            if presentation == nil {
+                store.dismissTechnicalError()
+            }
+        }
+    )
 }
 
 #Preview {

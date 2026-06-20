@@ -81,6 +81,25 @@ const esMxCatalog: TranslationCatalog = {
   shell: {
     primaryNavigation: "Navegación principal",
   },
+  appError: {
+    technicalError: {
+      title: "Algo salió mal",
+      message: "Se produjo un error técnico. Intenta de nuevo o reinicia la aplicación.",
+      detailsToggle: "Detalles técnicos",
+      close: "Cerrar",
+      labels: {
+        name: "Nombre",
+        message: "Mensaje",
+        endpoint: "Endpoint",
+        requestId: "ID de solicitud",
+        statusCode: "Código de estado",
+        code: "Código",
+        bodyKind: "Tipo de cuerpo",
+        attemptCount: "Número de intentos",
+        originalErrorName: "Error original",
+      },
+    },
+  },
   filters: {
     allCards: "Todas las tarjetas",
     and: "Y",
@@ -388,6 +407,11 @@ const esMxCatalog: TranslationCatalog = {
       screenSubtitle: "Reproduce directamente las variantes de reacción de repaso.",
       probability: "{{percent}} de probabilidad",
       playAccessibility: "Reproducir la animación {{variant}}, {{probability}}",
+    },
+    technicalError: {
+      title: "Diálogo de error técnico",
+      description: "Previsualiza el diálogo compartido de error técnico.",
+      value: "Vista previa",
     },
   },
   settingsWorkspace: {

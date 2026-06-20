@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState, type MutableRefObject, type RefObject } from "react";
-import { transcribeChatAudio } from "../../api";
+import {
+  ApiError,
+  isAuthRedirectError,
+  transcribeChatAudio,
+} from "../../api";
 import {
   explainBrowserMediaPermissionError,
+  isExpectedBrowserMediaPermissionError,
   queryBrowserPermissionState,
 } from "../../access/browserAccess";
 import type { TranslationKey, TranslationValues } from "../../i18n";
@@ -12,6 +17,7 @@ import {
 } from "./chatDictation";
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;
+type ChatDictationTechnicalOperation = "chat_dictation_start" | "chat_dictation_transcribe";
 
 type UseChatDictationCaptureParams = Readonly<{
   activeWorkspaceId: string | null;
@@ -19,6 +25,7 @@ type UseChatDictationCaptureParams = Readonly<{
   ensureRemoteSession: () => Promise<string>;
   focusComposerRequestVersion: number;
   inputText: string;
+  onTechnicalError: (error: unknown, operation: ChatDictationTechnicalOperation) => boolean;
   t: Translate;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   updateInputText: (updateDraftText: (currentInputText: string) => string) => void;
@@ -74,6 +81,38 @@ function cleanupDictationResources(
   recordedChunksRef.current = [];
 }
 
+function isExpectedDictationApiError(error: unknown): boolean {
+  if (!(error instanceof ApiError) || error.statusCode >= 500) {
+    return false;
+  }
+
+  if (error.statusCode === 401) {
+    return true;
+  }
+
+  switch (error.code) {
+    case "AI_CHAT_V2_HUMAN_AUTH_REQUIRED":
+    case "AUTH_UNAUTHORIZED":
+    case "CHAT_SESSION_ID_CONFLICT":
+    case "CHAT_TRANSCRIPTION_RATE_LIMITED":
+    case "CHAT_TRANSCRIPTION_FILE_EMPTY":
+    case "CHAT_TRANSCRIPTION_FILE_REQUIRED":
+    case "CHAT_TRANSCRIPTION_FILE_UNSUPPORTED":
+    case "CHAT_TRANSCRIPTION_INVALID_AUDIO":
+    case "CHAT_TRANSCRIPTION_INVALID_MULTIPART":
+    case "CHAT_TRANSCRIPTION_SOURCE_INVALID":
+    case "GUEST_AUTH_INVALID":
+    case "SESSION_CSRF_TOKEN_INVALID":
+    case "WORKSPACE_NOT_FOUND":
+    case "WORKSPACE_SELECTION_REQUIRED":
+      return true;
+  }
+
+  return error.statusCode === 400
+    && error.code === null
+    && error.responseBodyKind === "json";
+}
+
 function stopMediaRecorder(
   recorder: MediaRecorder,
   recordedChunksRef: MutableRefObject<Array<Blob>>,
@@ -109,6 +148,7 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
     ensureRemoteSession,
     focusComposerRequestVersion,
     inputText,
+    onTechnicalError,
     t,
     textareaRef,
     updateInputText,
@@ -268,7 +308,11 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
       cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
       const permissionState = await queryBrowserPermissionState("microphone");
       if (isMountedRef.current) {
-        window.alert(explainBrowserMediaPermissionError("microphone", error, permissionState, t));
+        if (isExpectedBrowserMediaPermissionError(error)) {
+          window.alert(explainBrowserMediaPermissionError("microphone", error, permissionState, t));
+        } else if (isAuthRedirectError(error) === false && onTechnicalError(error, "chat_dictation_start") === false) {
+          window.alert(t("chatPanel.errors.genericFailure"));
+        }
         setDictationState("idle");
       }
     }
@@ -330,12 +374,17 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
       }
     } catch (error) {
       if (isMountedRef.current) {
-        const message = error instanceof Error && error.message === "MICROPHONE_RECORDING_FAILED"
-          ? t("chatPanel.alerts.microphoneUnavailable")
-          : error instanceof Error
-            ? error.message
-            : String(error);
-        window.alert(message);
+        if (error instanceof Error && error.message === "MICROPHONE_RECORDING_FAILED") {
+          window.alert(t("chatPanel.alerts.microphoneUnavailable"));
+        } else if (error instanceof Error && error.message === t("chatPanel.transientErrors.workspaceRequired")) {
+          window.alert(t("chatPanel.transientErrors.workspaceRequired"));
+        } else if (isAuthRedirectError(error)) {
+          return;
+        } else if (isExpectedDictationApiError(error)) {
+          window.alert(t("chatPanel.errors.genericFailure"));
+        } else if (onTechnicalError(error, "chat_dictation_transcribe") === false) {
+          window.alert(t("chatPanel.errors.genericFailure"));
+        }
       }
     } finally {
       cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);

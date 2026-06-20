@@ -18,6 +18,7 @@ enum class AndroidObservationAction(
 ) {
     APP_SCOPE_UNCAUGHT_EXCEPTION(tagValue = "app_scope_uncaught_exception"),
     APP_STARTUP_EXCEPTION(tagValue = "app_startup_exception"),
+    APP_TECHNICAL_ERROR_DIALOG_EXCEPTION(tagValue = "app_technical_error_dialog_exception"),
     CLOUD_IDENTITY_SET(tagValue = "cloud_identity_set"),
     CLOUD_IDENTITY_CLEARED(tagValue = "cloud_identity_cleared"),
     EXPECTED_HTTP_FAILURE(tagValue = "expected_http_failure"),
@@ -586,6 +587,26 @@ sealed interface AndroidExceptionIssueEvent : AndroidObservationEvent {
             requestId = null,
             statusCode = null,
             code = startupPhase,
+            appVersion = appVersion,
+            clientVersion = clientVersion,
+            versionCode = versionCode
+        )
+    }
+
+    data class AppTechnicalErrorDialogException(
+        override val throwable: Throwable,
+        val appVersion: String?,
+        val clientVersion: String?,
+        val versionCode: Int?
+    ) : AndroidExceptionIssueEvent {
+        override val feature: AndroidObservationFeature = AndroidObservationFeature.APP
+        override val action: AndroidObservationAction = AndroidObservationAction.APP_TECHNICAL_ERROR_DIALOG_EXCEPTION
+        override val tags: AndroidObservationTags = AndroidObservationTags(
+            userId = null,
+            workspaceId = null,
+            requestId = null,
+            statusCode = null,
+            code = null,
             appVersion = appVersion,
             clientVersion = clientVersion,
             versionCode = versionCode

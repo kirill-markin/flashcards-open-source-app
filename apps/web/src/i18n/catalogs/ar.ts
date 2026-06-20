@@ -81,6 +81,25 @@ const arCatalog: TranslationCatalog = {
   shell: {
     primaryNavigation: "التنقل الرئيسي",
   },
+  appError: {
+    technicalError: {
+      title: "حدث خطأ ما",
+      message: "حدث خطأ تقني. حاول مرة أخرى أو أعد تشغيل التطبيق.",
+      detailsToggle: "التفاصيل التقنية",
+      close: "إغلاق",
+      labels: {
+        name: "الاسم",
+        message: "الرسالة",
+        endpoint: "نقطة النهاية",
+        requestId: "معرّف الطلب",
+        statusCode: "رمز الحالة",
+        code: "الرمز",
+        bodyKind: "نوع المحتوى",
+        attemptCount: "عدد المحاولات",
+        originalErrorName: "الخطأ الأصلي",
+      },
+    },
+  },
   filters: {
     allCards: "كل البطاقات",
     and: "و",
@@ -388,6 +407,11 @@ const arCatalog: TranslationCatalog = {
       screenSubtitle: "شغّل متغيرات تفاعل المراجعة مباشرة.",
       probability: "احتمال {{percent}}",
       playAccessibility: "تشغيل حركة {{variant}}، {{probability}}",
+    },
+    technicalError: {
+      title: "مربع حوار الخطأ التقني",
+      description: "عاين مربع حوار الأخطاء التقنية المشترك.",
+      value: "معاينة",
     },
   },
   settingsWorkspace: {

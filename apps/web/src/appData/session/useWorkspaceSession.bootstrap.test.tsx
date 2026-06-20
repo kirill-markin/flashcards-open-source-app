@@ -37,6 +37,19 @@ import { captureWorkspaceTransitionError } from "./observation/workspaceSessionO
 
 const observabilityMocks = getObservabilityMocks();
 
+function buildApiErrorResponse(message: string, code: string, status: number): Response {
+  return new Response(JSON.stringify({
+    error: message,
+    code,
+    requestId: "request-1",
+  }), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
 describe("useWorkspaceSession bootstrap", () => {
   let container: HTMLDivElement | null = null;
   let root: ReactDOM.Root | null = null;
@@ -97,6 +110,145 @@ describe("useWorkspaceSession bootstrap", () => {
         syncRunId: "sync-run-1",
       }),
     }));
+  });
+
+  it("does not recapture already observed workspace activation sync failures", async () => {
+    seedBrowserStorage();
+    await seedIndexedDbState();
+
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const observedSyncError = Object.assign(new Error("Captured sync failed"), {
+      syncFailureWasCaptured: true,
+    });
+    const runSyncForWorkspaceMock = vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {
+      throw observedSyncError;
+    });
+
+    await act(async () => {
+      root?.render(
+        <TestHarness
+          initialSessionLoadState="ready"
+          initialSessionVerificationState="unverified"
+          initialSession={seededSession}
+          initialActiveWorkspace={seededWorkspace}
+          initialAvailableWorkspaces={[seededWorkspace]}
+          onStateChange={(snapshot: HarnessSnapshot): void => {
+            latestState = snapshot;
+          }}
+          refreshWorkspaceViewMock={vi.fn(async (): Promise<void> => {})}
+          runSyncMock={vi.fn(async (): Promise<void> => {})}
+          runSyncSilentlyMock={vi.fn(async (): Promise<void> => {})}
+          runSyncForWorkspaceMock={runSyncForWorkspaceMock}
+          discardWorkspaceSyncMock={vi.fn((_workspaceId: string): void => {})}
+          discardAllSyncWorkMock={createDiscardAllSyncWorkMock()}
+          resetUserScopedUiStateMock={vi.fn((): void => {})}
+          onActionsChange={null}
+        />,
+      );
+    });
+
+    await vi.waitFor(() => {
+      expect(latestState?.sessionErrorMessage).toBe("Captured sync failed");
+    });
+
+    expect(observabilityMocks.captureWebExceptionMock).not.toHaveBeenCalled();
+    expect(latestState?.sessionTechnicalError).toBe(observedSyncError);
+    expect(latestState?.technicalError).toBe(observedSyncError);
+  });
+
+  it("keeps expected workspace activation sync failures inline without technical details", async () => {
+    seedBrowserStorage();
+    await seedIndexedDbState();
+
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const expectedSyncError = Object.assign(new Error("Expected sync state"), {
+      syncFailureWasCaptured: false,
+    });
+    const runSyncForWorkspaceMock = vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {
+      throw expectedSyncError;
+    });
+
+    await act(async () => {
+      root?.render(
+        <TestHarness
+          initialSessionLoadState="ready"
+          initialSessionVerificationState="unverified"
+          initialSession={seededSession}
+          initialActiveWorkspace={seededWorkspace}
+          initialAvailableWorkspaces={[seededWorkspace]}
+          onStateChange={(snapshot: HarnessSnapshot): void => {
+            latestState = snapshot;
+          }}
+          refreshWorkspaceViewMock={vi.fn(async (): Promise<void> => {})}
+          runSyncMock={vi.fn(async (): Promise<void> => {})}
+          runSyncSilentlyMock={vi.fn(async (): Promise<void> => {})}
+          runSyncForWorkspaceMock={runSyncForWorkspaceMock}
+          discardWorkspaceSyncMock={vi.fn((_workspaceId: string): void => {})}
+          discardAllSyncWorkMock={createDiscardAllSyncWorkMock()}
+          resetUserScopedUiStateMock={vi.fn((): void => {})}
+          onActionsChange={null}
+        />,
+      );
+    });
+
+    await vi.waitFor(() => {
+      expect(latestState?.sessionErrorMessage).toBe("Expected sync state");
+    });
+
+    expect(observabilityMocks.captureWebExceptionMock).not.toHaveBeenCalled();
+    expect(latestState?.sessionTechnicalError).toBeNull();
+    expect(latestState?.technicalError).toBeNull();
+  });
+
+  it("keeps expected bootstrap workspace selection failures inline without technical details", async () => {
+    seedBrowserStorage();
+    await seedIndexedDbState();
+
+    const workspaceNotFoundMessage = "Workspace not found";
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(buildSessionResponse(null, "csrf-refresh"))
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildApiErrorResponse(workspaceNotFoundMessage, "WORKSPACE_NOT_FOUND", 404));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await act(async () => {
+      root?.render(
+        <TestHarness
+          initialSessionLoadState="ready"
+          initialSessionVerificationState="unverified"
+          initialSession={seededSession}
+          initialActiveWorkspace={seededWorkspace}
+          initialAvailableWorkspaces={[seededWorkspace]}
+          onStateChange={(snapshot: HarnessSnapshot): void => {
+            latestState = snapshot;
+          }}
+          refreshWorkspaceViewMock={vi.fn(async (): Promise<void> => {})}
+          runSyncMock={vi.fn(async (): Promise<void> => {})}
+          runSyncSilentlyMock={vi.fn(async (): Promise<void> => {})}
+          runSyncForWorkspaceMock={vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {})}
+          discardWorkspaceSyncMock={vi.fn((_workspaceId: string): void => {})}
+          discardAllSyncWorkMock={createDiscardAllSyncWorkMock()}
+          resetUserScopedUiStateMock={vi.fn((): void => {})}
+          onActionsChange={null}
+        />,
+      );
+    });
+
+    await vi.waitFor(() => {
+      expect(latestState?.sessionErrorMessage).toBe(workspaceNotFoundMessage);
+    });
+
+    expect(observabilityMocks.captureWebExceptionMock).not.toHaveBeenCalled();
+    expect(latestState?.sessionTechnicalError).toBeNull();
+    expect(latestState?.technicalError).toBeNull();
   });
 
   it("redirects after unrecoverable bootstrap auth failure, preserves local data, and skips the generic error state", async () => {

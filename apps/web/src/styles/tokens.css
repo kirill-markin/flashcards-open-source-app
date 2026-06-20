@@ -43,4 +43,5 @@
   --desktop-shell-gutter: var(--shell-frame-gap);
   --content-width: 1240px;
   --shell-width: 1320px;
+  --z-index-app-modal-top: 300;
 }

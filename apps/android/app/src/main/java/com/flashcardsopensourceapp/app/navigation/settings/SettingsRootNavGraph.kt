@@ -21,11 +21,13 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.app.notifications.loadNotificationDiagnosticsUiState
+import com.flashcardsopensourceapp.core.ui.AppTechnicalError
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationDialog
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationShareEffect
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationViewModel
@@ -351,9 +353,23 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
     }
 
     composable(route = SettingsTestDestination.route) {
+        val technicalErrorTitle = stringResource(id = R.string.technical_error_dialog_default_title)
+        val technicalErrorMessage = stringResource(id = R.string.technical_error_dialog_default_message)
+        val technicalErrorDetails = stringResource(id = R.string.technical_error_dialog_preview_details)
+
         TestSettingsRoute(
             onOpenAnimations = {
                 navController.navigate(route = SettingsTestAnimationsDestination.route)
+            },
+            onShowTechnicalErrorDialogPreview = {
+                appGraph.testTechnicalErrorDialogPreviewController.showTestPreview(
+                    error = AppTechnicalError(
+                        reportId = "settings-test-technical-error-preview",
+                        title = technicalErrorTitle,
+                        message = technicalErrorMessage,
+                        technicalDetails = technicalErrorDetails
+                    )
+                )
             },
             onOpenNotificationDiagnostics = {
                 navController.navigate(route = SettingsNotificationDiagnosticsDestination.route)

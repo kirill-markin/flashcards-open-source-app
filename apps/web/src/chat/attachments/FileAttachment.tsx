@@ -31,6 +31,7 @@ export type PendingAttachment = BinaryPendingAttachment | CardPendingAttachment;
 
 type Props = Readonly<{
   onAttach: (attachment: PendingAttachment) => Promise<void> | void;
+  onTechnicalError: (error: unknown) => void;
   disabled?: boolean;
 }>;
 
@@ -43,6 +44,13 @@ export class ChatAttachmentTooLargeError extends Error {
   constructor() {
     super("AI chat attachment is too large.");
     this.name = "ChatAttachmentTooLargeError";
+  }
+}
+
+export class ChatImageAttachmentPreparationError extends Error {
+  constructor(fileName: string, causeMessage: string) {
+    super(`Failed to process image "${fileName}". ${causeMessage}`);
+    this.name = "ChatImageAttachmentPreparationError";
   }
 }
 
@@ -153,6 +161,10 @@ export function binaryPendingAttachmentExceedsSizeLimit(attachment: PendingAttac
 
 export function isChatAttachmentTooLargeError(error: unknown): boolean {
   return error instanceof ChatAttachmentTooLargeError;
+}
+
+export function isExpectedImageAttachmentPreparationError(error: unknown): boolean {
+  return error instanceof ChatImageAttachmentPreparationError;
 }
 
 function readFileAsBase64(file: File): Promise<string> {
@@ -331,8 +343,9 @@ export async function prepareAttachment(file: File): Promise<PendingAttachment> 
       }
 
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(
-        `Failed to process image "${file.name}". Please try another image format or a smaller file. ${message}`,
+      throw new ChatImageAttachmentPreparationError(
+        file.name,
+        `Please try another image format or a smaller file. ${message}`,
       );
     }
   }
@@ -351,7 +364,7 @@ export async function prepareAttachment(file: File): Promise<PendingAttachment> 
 }
 
 export function FileAttachment(props: Props): ReactElement {
-  const { onAttach } = props;
+  const { onAttach, onTechnicalError } = props;
   const { t } = useI18n();
   const disabled = props.disabled === true;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -385,8 +398,12 @@ export function FileAttachment(props: Props): ReactElement {
           continue;
         }
 
-        const message = error instanceof Error ? error.message : String(error);
-        window.alert(message);
+        if (isExpectedImageAttachmentPreparationError(error)) {
+          window.alert(attachmentUnsupportedMessage);
+          continue;
+        }
+
+        onTechnicalError(error);
       }
     }
 

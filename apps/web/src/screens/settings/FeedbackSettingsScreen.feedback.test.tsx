@@ -4,6 +4,7 @@ import { act } from "react";
 import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AppErrorDialogProvider } from "../../appError/AppErrorContext";
 import type { AppDataContextValue } from "../../appData";
 import { createStorageMock } from "../../api/ApiTestSupport";
 import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
@@ -59,6 +60,7 @@ function createAppData(): Mutable<AppDataContextValue> {
     sessionVerificationState: "verified",
     isSessionVerified: true,
     sessionErrorMessage: "",
+    sessionTechnicalError: null,
     session: {
       userId: "user-1",
       selectedWorkspaceId: "workspace-1",
@@ -96,6 +98,7 @@ function createAppData(): Mutable<AppDataContextValue> {
     isSyncing: false,
     selectedReviewFilter: { kind: "allCards" } satisfies ReviewFilter,
     errorMessage: "",
+    technicalError: null,
     setErrorMessage: vi.fn(),
     setAccountPreferences: vi.fn(),
     refreshAccountPreferences: vi.fn(async () => ({
@@ -192,9 +195,11 @@ function setupFeedbackSettingsScreenTest(): FeedbackSettingsScreenTestHarness {
     await act(async () => {
       currentRoot.render(
         <I18nProvider>
-          <MemoryRouter>
-            <FeedbackSettingsScreen />
-          </MemoryRouter>
+          <AppErrorDialogProvider>
+            <MemoryRouter>
+              <FeedbackSettingsScreen />
+            </MemoryRouter>
+          </AppErrorDialogProvider>
         </I18nProvider>,
       );
     });

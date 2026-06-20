@@ -134,8 +134,42 @@ struct CurrentReviewNotificationCard: Hashable, Sendable {
     let frontText: String
 }
 
+enum ScheduledNotificationPayloadReadStatus: Hashable, Sendable {
+    case readable
+    case unreadable
+}
+
+struct ScheduledReviewNotificationsDiagnosticsRead: Hashable, Sendable {
+    let payloads: [ScheduledReviewNotificationPayload]
+    let status: ScheduledNotificationPayloadReadStatus
+}
+
 func makeScheduledReviewNotificationsUserDefaultsKey(workspaceId: String) -> String {
     "\(reviewNotificationScheduledPayloadsUserDefaultsKeyPrefix)\(workspaceId)"
+}
+
+func readScheduledReviewNotificationsForDiagnostics(
+    userDefaults: UserDefaults,
+    decoder: JSONDecoder,
+    workspaceId: String?
+) -> ScheduledReviewNotificationsDiagnosticsRead {
+    guard let workspaceId else {
+        return ScheduledReviewNotificationsDiagnosticsRead(payloads: [], status: .readable)
+    }
+
+    let storageKey: String = makeScheduledReviewNotificationsUserDefaultsKey(workspaceId: workspaceId)
+    guard let data = userDefaults.data(forKey: storageKey) else {
+        return ScheduledReviewNotificationsDiagnosticsRead(payloads: [], status: .readable)
+    }
+
+    do {
+        return ScheduledReviewNotificationsDiagnosticsRead(
+            payloads: try decoder.decode([ScheduledReviewNotificationPayload].self, from: data),
+            status: .readable
+        )
+    } catch {
+        return ScheduledReviewNotificationsDiagnosticsRead(payloads: [], status: .unreadable)
+    }
 }
 
 func loadScheduledReviewNotifications(

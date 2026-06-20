@@ -73,8 +73,8 @@ struct SettingsView: View {
             Section(aiSettingsLocalized("settings.section.general", "General")) {
                 NavigationLink(value: SettingsNavigationDestination.workspaceNotifications) {
                     SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.reviewReminders", "Review Reminders"),
-                        value: aiSettingsLocalized("settings.row.reviewReminders.value", "This Device"),
+                        title: aiSettingsLocalized("settings.row.reviewReminders", "Reminders"),
+                        value: nil,
                         systemImage: "bell.badge",
                         attentionCount: nil
                     )
@@ -271,7 +271,7 @@ struct SettingsView: View {
                     NavigationLink(value: SettingsNavigationDestination.test) {
                         SettingsNavigationRow(
                             title: aiSettingsLocalized("settings.row.test", "Test"),
-                            value: aiSettingsLocalized("settings.row.test.itemCount", "3 items"),
+                            value: aiSettingsLocalized("settings.row.test.itemCount", "4 items"),
                             systemImage: "wrench.and.screwdriver",
                             attentionCount: nil
                         )

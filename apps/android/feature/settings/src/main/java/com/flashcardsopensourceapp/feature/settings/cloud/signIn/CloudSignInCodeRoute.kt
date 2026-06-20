@@ -24,6 +24,7 @@ fun CloudSignInCodeRoute(
     uiState: CloudSignInUiState,
     onCodeChange: (String) -> Unit,
     onVerifyCode: () -> Unit,
+    onShowTechnicalDetails: (String, String) -> Unit,
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
@@ -61,7 +62,9 @@ fun CloudSignInCodeRoute(
                     CloudSignInErrorCard(
                         message = uiState.errorMessage,
                         technicalDetails = uiState.errorTechnicalDetails,
-                        modifier = Modifier.fillMaxWidth()
+                        technicalDetailsReportId = uiState.errorTechnicalDetailsReportId,
+                        modifier = Modifier.fillMaxWidth(),
+                        onShowTechnicalDetails = onShowTechnicalDetails
                     )
                 }
             }

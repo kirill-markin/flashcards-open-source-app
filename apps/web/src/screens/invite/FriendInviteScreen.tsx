@@ -1,12 +1,14 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
+  ApiError,
   acceptFriendInvitation,
   buildLoginUrl,
   getOptionalSession,
   isAuthRedirectError,
   previewFriendInvitation,
 } from "../../api";
+import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { invalidateServerProgress } from "../../appData/progress/invalidation/progressInvalidation";
 import { clearPersistedProgressLeaderboard } from "../../appData/progress/storage/progressStorage";
 import { getAppConfig } from "../../config";
@@ -36,6 +38,30 @@ function readInviteTokenParam(token: string | undefined): string {
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function hasExpectedFriendInvitationApiCode(error: unknown, codes: ReadonlyArray<string>): boolean {
+  return error instanceof ApiError
+    && error.statusCode >= 400
+    && error.statusCode < 500
+    && error.code !== null
+    && codes.includes(error.code);
+}
+
+function isExpectedFriendInvitationPreviewError(error: unknown): boolean {
+  return hasExpectedFriendInvitationApiCode(error, [
+    "FRIEND_INVITATION_API_KEY_AUTH_UNSUPPORTED",
+    "FRIEND_INVITATION_TOKEN_REQUIRED",
+  ]);
+}
+
+function isExpectedFriendInvitationAcceptError(error: unknown): boolean {
+  return hasExpectedFriendInvitationApiCode(error, [
+    "FRIEND_INVITATION_DISPLAY_NAME_INVALID",
+    "FRIEND_INVITATION_HUMAN_AUTH_REQUIRED",
+    "FRIEND_INVITATION_SELF",
+    "FRIEND_INVITATION_TOKEN_REQUIRED",
+  ]);
 }
 
 function isInviteAccepted(response: FriendInvitationAcceptResponse): boolean {
@@ -279,6 +305,7 @@ export function FriendInviteReadyPanel({
 export function FriendInviteScreen(): ReactElement {
   const { token } = useParams();
   const inviteToken = readInviteTokenParam(token);
+  const { showTechnicalError } = useAppErrorDialog();
   const { locale, t } = useI18n();
   const [loadState, setLoadState] = useState<InviteLoadState>("loading");
   const [preview, setPreview] = useState<FriendInvitationPreviewResponse | null>(null);
@@ -288,6 +315,7 @@ export function FriendInviteScreen(): ReactElement {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [acceptedResponse, setAcceptedResponse] = useState<FriendInvitationAcceptResponse | null>(null);
+  const technicalErrorMessage = t("appError.technicalError.message");
 
   async function loadInvite(): Promise<void> {
     setLoadState("loading");
@@ -313,7 +341,21 @@ export function FriendInviteScreen(): ReactElement {
         return;
       }
 
-      setErrorMessage(getErrorMessage(error));
+      if (isExpectedFriendInvitationPreviewError(error)) {
+        setErrorMessage(getErrorMessage(error));
+        setLoadState("error");
+        return;
+      }
+
+      const wasCaptured = showTechnicalError(error, {
+        feature: "progress",
+        operation: "friend_invitation_preview",
+        userId: null,
+        workspaceId: null,
+        installationId: null,
+        entityId: null,
+      });
+      setErrorMessage(wasCaptured ? technicalErrorMessage : getErrorMessage(error));
       setLoadState("error");
     }
   }
@@ -363,7 +405,20 @@ export function FriendInviteScreen(): ReactElement {
         return;
       }
 
-      setErrorMessage(getErrorMessage(error));
+      if (isExpectedFriendInvitationAcceptError(error)) {
+        setErrorMessage(getErrorMessage(error));
+        return;
+      }
+
+      const wasCaptured = showTechnicalError(error, {
+        feature: "progress",
+        operation: "friend_invitation_accept",
+        userId: session.userId,
+        workspaceId: null,
+        installationId: null,
+        entityId: null,
+      });
+      setErrorMessage(wasCaptured ? technicalErrorMessage : getErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }

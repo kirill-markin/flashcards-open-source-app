@@ -9,6 +9,7 @@ import {
   subscribeToAccountDeletionPending,
 } from "./accountDeletion";
 import { AppDataProvider, useAppData } from "./appData";
+import { AppErrorDialogProvider } from "./appError/AppErrorContext";
 import {
   ApiError,
   ApiContractError,
@@ -22,6 +23,7 @@ import { ChatDraftProvider } from "./chat/composer/ChatDraftContext";
 import { ChatLayoutProvider, useChatLayout } from "./chat/layout/ChatLayoutContext";
 import { ChatSessionControllerProvider } from "./chat/sessionController";
 import { ChatToggle } from "./chat/layout/ChatToggle";
+import { useAppErrorDialog } from "./appError/AppErrorContext";
 import { type TranslationKey, useI18n } from "./i18n";
 import { captureApiContractError } from "./observability/apiContractObservation";
 import { captureAppOperationError } from "./observability/appOperationObservation";
@@ -324,26 +326,48 @@ export function AppShell(): ReactElement {
     sessionVerificationState,
     isSessionVerified,
     sessionErrorMessage,
+    sessionTechnicalError,
     session,
     activeWorkspace,
     availableWorkspaces,
     isChoosingWorkspace,
     isSyncing,
     errorMessage,
+    technicalError,
     initialize,
     chooseWorkspace,
     createWorkspace,
     cloudSettings,
   } = useAppData();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const [isAccountDeletionPendingState, setIsAccountDeletionPendingState] = useState<boolean>(isAccountDeletionPending);
   const [accountDeletionErrorMessage, setAccountDeletionErrorMessage] = useState<string>("");
+  const [accountDeletionTechnicalError, setAccountDeletionTechnicalError] = useState<Error | null>(null);
   const [isAccountDeletionSubmitting, setIsAccountDeletionSubmitting] = useState<boolean>(false);
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState<boolean>(false);
+  const shownSessionTechnicalErrorRef = useRef<Error | null>(null);
+  const shownGlobalTechnicalErrorRef = useRef<Error | null>(null);
   const sessionRestoringMessage = sessionVerificationState === "unverified" ? t("loading.restoringSession") : "";
   const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
   const workspaceManagementLockedMessage = t("workspaceManagement.lockedMessage");
   const activeWorkspaceId: string | null = activeWorkspace?.workspaceId ?? null;
   const activeWorkspaceName: string | null = activeWorkspace?.name ?? null;
+  const visibleTechnicalErrorMessage = t("appError.technicalError.message");
+  const visibleSessionErrorMessage = sessionErrorMessage === ""
+    ? ""
+    : sessionTechnicalError === null
+      ? sessionErrorMessage
+      : visibleTechnicalErrorMessage;
+  const visibleGlobalErrorMessage = errorMessage === ""
+    ? ""
+    : technicalError === null
+      ? errorMessage
+      : visibleTechnicalErrorMessage;
+  const visibleAccountDeletionErrorMessage = accountDeletionErrorMessage === ""
+    ? ""
+    : accountDeletionTechnicalError === null
+      ? accountDeletionErrorMessage
+      : visibleTechnicalErrorMessage;
 
   const completeAccountDeletion = useCallback(async function completeAccountDeletion(): Promise<void> {
     if (isSessionVerified === false) {
@@ -352,6 +376,7 @@ export function AppShell(): ReactElement {
 
     setIsAccountDeletionSubmitting(true);
     setAccountDeletionErrorMessage("");
+    setAccountDeletionTechnicalError(null);
 
     try {
       const persistedCsrfToken = loadAccountDeletionCsrfToken();
@@ -368,15 +393,19 @@ export function AppShell(): ReactElement {
         return;
       }
 
-      captureApiContractError(error, {
-        feature: "auth",
-        sourceAction: "account_deletion_submit",
-        userId: session?.userId ?? null,
-        workspaceId: activeWorkspace?.workspaceId ?? null,
-        installationId: cloudSettings?.installationId ?? null,
-      });
-      if (error instanceof ApiContractError === false) {
-        captureAppOperationError(error, {
+      const normalizedError = error instanceof Error ? error : new Error(String(error));
+      let wasCaptured = false;
+      if (normalizedError instanceof ApiContractError) {
+        captureApiContractError(normalizedError, {
+          feature: "auth",
+          sourceAction: "account_deletion_submit",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace?.workspaceId ?? null,
+          installationId: cloudSettings?.installationId ?? null,
+        });
+        wasCaptured = true;
+      } else {
+        wasCaptured = captureAppOperationError(normalizedError, {
           feature: "auth",
           operation: "account_deletion_submit",
           userId: session?.userId ?? null,
@@ -385,11 +414,16 @@ export function AppShell(): ReactElement {
           entityId: null,
         });
       }
-      setAccountDeletionErrorMessage(error instanceof Error ? error.message : String(error));
+
+      setAccountDeletionErrorMessage(normalizedError.message);
+      setAccountDeletionTechnicalError(wasCaptured ? normalizedError : null);
+      if (wasCaptured) {
+        showCapturedTechnicalError(normalizedError);
+      }
     } finally {
       setIsAccountDeletionSubmitting(false);
     }
-  }, [activeWorkspace?.workspaceId, cloudSettings?.installationId, isSessionVerified, session?.userId]);
+  }, [activeWorkspace?.workspaceId, cloudSettings?.installationId, isSessionVerified, session?.userId, showCapturedTechnicalError]);
 
   useEffect(() => subscribeToAccountDeletionPending(() => {
     setIsAccountDeletionPendingState(isAccountDeletionPending());
@@ -428,6 +462,34 @@ export function AppShell(): ReactElement {
     }
   }, [accountDeletionErrorMessage, completeAccountDeletion, isAccountDeletionPendingState, isAccountDeletionSubmitting, isSessionVerified]);
 
+  useEffect(() => {
+    if (sessionLoadState !== "error" || sessionTechnicalError === null) {
+      shownSessionTechnicalErrorRef.current = null;
+      return;
+    }
+
+    if (shownSessionTechnicalErrorRef.current === sessionTechnicalError) {
+      return;
+    }
+
+    shownSessionTechnicalErrorRef.current = sessionTechnicalError;
+    showCapturedTechnicalError(sessionTechnicalError);
+  }, [sessionLoadState, sessionTechnicalError, showCapturedTechnicalError]);
+
+  useEffect(() => {
+    if (errorMessage === "" || technicalError === null) {
+      shownGlobalTechnicalErrorRef.current = null;
+      return;
+    }
+
+    if (shownGlobalTechnicalErrorRef.current === technicalError) {
+      return;
+    }
+
+    shownGlobalTechnicalErrorRef.current = technicalError;
+    showCapturedTechnicalError(technicalError);
+  }, [errorMessage, showCapturedTechnicalError, technicalError]);
+
   function toggleMobileNavigation(): void {
     setIsMobileNavigationOpen((currentValue: boolean): boolean => !currentValue);
   }
@@ -442,7 +504,7 @@ export function AppShell(): ReactElement {
               ? t("app.deleteAccountInProgress")
               : t("app.deleteAccountRestoring")}
           </p>
-          {accountDeletionErrorMessage !== "" ? <p className="error-banner">{accountDeletionErrorMessage}</p> : null}
+          {visibleAccountDeletionErrorMessage !== "" ? <p className="error-banner">{visibleAccountDeletionErrorMessage}</p> : null}
           <button
             className="primary-btn"
             type="button"
@@ -471,7 +533,7 @@ export function AppShell(): ReactElement {
       <main className="page-state">
         <section className="panel panel-center state-panel">
           <h1 className="title">{t("app.title")}</h1>
-          <p className="error-banner">{sessionErrorMessage}</p>
+          <p className="error-banner">{visibleSessionErrorMessage}</p>
           <button className="primary-btn" type="button" onClick={() => void initialize()}>
             {t("common.retry")}
           </button>
@@ -514,7 +576,7 @@ export function AppShell(): ReactElement {
               </button>
             ))}
           </div>
-          {errorMessage !== "" ? <p className="error-banner">{errorMessage}</p> : null}
+          {visibleGlobalErrorMessage !== "" ? <p className="error-banner">{visibleGlobalErrorMessage}</p> : null}
         </section>
       </main>
     );
@@ -593,9 +655,9 @@ export function AppShell(): ReactElement {
           ) : null}
         </header>
       </div>
-      {errorMessage !== "" ? (
+      {visibleGlobalErrorMessage !== "" ? (
         <div className="global-error-wrap">
-          <div className="global-error">{errorMessage}</div>
+          <div className="global-error">{visibleGlobalErrorMessage}</div>
         </div>
       ) : null}
       <RoutedShell />
@@ -743,20 +805,22 @@ export default function App(): ReactElement {
   return (
     <AppErrorBoundary fallback={<AppCrashFallback />}>
       <BrowserRouter>
-        <TestModeProvider>
-          <SentryRoutes>
-            <Route
-              path={friendInvitePreviewIndexRoute}
-              element={renderDeferredRoute(<FriendInvitePreviewScreen />, "friendInvite.loading")}
-            />
-            <Route
-              path={friendInvitePreviewRoutePattern}
-              element={renderDeferredRoute(<FriendInvitePreviewScreen />, "friendInvite.loading")}
-            />
-            <Route path={friendInviteRoutePattern} element={<FriendInviteScreen />} />
-            <Route path="/*" element={<AuthenticatedApp />} />
-          </SentryRoutes>
-        </TestModeProvider>
+        <AppErrorDialogProvider>
+          <TestModeProvider>
+            <SentryRoutes>
+              <Route
+                path={friendInvitePreviewIndexRoute}
+                element={renderDeferredRoute(<FriendInvitePreviewScreen />, "friendInvite.loading")}
+              />
+              <Route
+                path={friendInvitePreviewRoutePattern}
+                element={renderDeferredRoute(<FriendInvitePreviewScreen />, "friendInvite.loading")}
+              />
+              <Route path={friendInviteRoutePattern} element={<FriendInviteScreen />} />
+              <Route path="/*" element={<AuthenticatedApp />} />
+            </SentryRoutes>
+          </TestModeProvider>
+        </AppErrorDialogProvider>
       </BrowserRouter>
     </AppErrorBoundary>
   );

@@ -16,10 +16,13 @@ internal data class CloudSignInDraftState(
     val isVerifyingCode: Boolean,
     val errorMessage: String,
     val errorTechnicalDetails: String?,
+    val errorTechnicalDetailsReportId: String?,
     val pendingSelection: CloudWorkspaceLinkSelection?,
     val processingTitle: String,
     val processingMessage: String,
     val postAuthErrorMessage: String,
+    val postAuthErrorTechnicalDetails: String?,
+    val postAuthErrorTechnicalDetailsReportId: String?,
     val postAuthRecoveryBlocked: Boolean,
     val postAuthResetAllowed: Boolean,
     val retryAction: CloudPostAuthRetryAction?,
@@ -28,7 +31,14 @@ internal data class CloudSignInDraftState(
 
 internal data class CloudSignInErrorPresentation(
     val message: String,
-    val technicalDetails: String?
+    val technicalDetails: String?,
+    val technicalDetailsReportId: String?
+)
+
+internal data class CloudPostAuthErrorPresentation(
+    val message: String,
+    val technicalDetails: String?,
+    val technicalDetailsReportId: String?
 )
 
 internal fun initialCloudSignInDraftState(): CloudSignInDraftState {
@@ -42,10 +52,13 @@ internal fun initialCloudSignInDraftState(): CloudSignInDraftState {
         isVerifyingCode = false,
         errorMessage = "",
         errorTechnicalDetails = null,
+        errorTechnicalDetailsReportId = null,
         pendingSelection = null,
         processingTitle = "",
         processingMessage = "",
         postAuthErrorMessage = "",
+        postAuthErrorTechnicalDetails = null,
+        postAuthErrorTechnicalDetailsReportId = null,
         postAuthRecoveryBlocked = false,
         postAuthResetAllowed = false,
         retryAction = null,
@@ -61,14 +74,24 @@ internal fun updateCloudSignInEmail(
     state: CloudSignInDraftState,
     email: String
 ): CloudSignInDraftState {
-    return state.copy(email = email, errorMessage = "", errorTechnicalDetails = null)
+    return state.copy(
+        email = email,
+        errorMessage = "",
+        errorTechnicalDetails = null,
+        errorTechnicalDetailsReportId = null
+    )
 }
 
 internal fun updateCloudSignInCode(
     state: CloudSignInDraftState,
     code: String
 ): CloudSignInDraftState {
-    return state.copy(code = code, errorMessage = "", errorTechnicalDetails = null)
+    return state.copy(
+        code = code,
+        errorMessage = "",
+        errorTechnicalDetails = null,
+        errorTechnicalDetailsReportId = null
+    )
 }
 
 internal fun startCloudSendCodeAttempt(
@@ -84,10 +107,13 @@ internal fun startCloudSendCodeAttempt(
         isVerifyingCode = false,
         errorMessage = "",
         errorTechnicalDetails = null,
+        errorTechnicalDetailsReportId = null,
         pendingSelection = null,
         processingTitle = "",
         processingMessage = "",
         postAuthErrorMessage = "",
+        postAuthErrorTechnicalDetails = null,
+        postAuthErrorTechnicalDetailsReportId = null,
         postAuthRecoveryBlocked = false,
         postAuthResetAllowed = false,
         retryAction = null,
@@ -107,6 +133,7 @@ internal fun acceptCloudOtpChallenge(
         isSendingCode = false,
         errorMessage = "",
         errorTechnicalDetails = null,
+        errorTechnicalDetailsReportId = null,
         challenge = challenge,
         linkContext = null,
         pendingSelection = null,
@@ -127,7 +154,8 @@ internal fun failCloudSendCode(
     return state.copy(
         isSendingCode = false,
         errorMessage = errorPresentation.message,
-        errorTechnicalDetails = errorPresentation.technicalDetails
+        errorTechnicalDetails = errorPresentation.technicalDetails,
+        errorTechnicalDetailsReportId = errorPresentation.technicalDetailsReportId
     )
 }
 
@@ -152,10 +180,13 @@ internal fun startCloudVerifyCodeAttempt(
         isVerifyingCode = true,
         errorMessage = "",
         errorTechnicalDetails = null,
+        errorTechnicalDetailsReportId = null,
         pendingSelection = null,
         processingTitle = "",
         processingMessage = "",
         postAuthErrorMessage = "",
+        postAuthErrorTechnicalDetails = null,
+        postAuthErrorTechnicalDetailsReportId = null,
         postAuthRecoveryBlocked = false,
         postAuthResetAllowed = false,
         retryAction = null,
@@ -174,7 +205,8 @@ internal fun failCloudVerifyCode(
     return state.copy(
         isVerifyingCode = false,
         errorMessage = errorPresentation.message,
-        errorTechnicalDetails = errorPresentation.technicalDetails
+        errorTechnicalDetails = errorPresentation.technicalDetails,
+        errorTechnicalDetailsReportId = errorPresentation.technicalDetailsReportId
     )
 }
 
@@ -205,6 +237,7 @@ internal fun publishCloudVerifiedLinkContext(
         isVerifyingCode = isVerifyingCode,
         errorMessage = "",
         errorTechnicalDetails = null,
+        errorTechnicalDetailsReportId = null,
         challenge = null,
         linkContext = linkContext,
         pendingSelection = if (recoveryErrorMessage.isEmpty()) {
@@ -215,6 +248,8 @@ internal fun publishCloudVerifiedLinkContext(
         processingTitle = "",
         processingMessage = "",
         postAuthErrorMessage = recoveryErrorMessage,
+        postAuthErrorTechnicalDetails = null,
+        postAuthErrorTechnicalDetailsReportId = null,
         postAuthRecoveryBlocked = recoveryErrorMessage.isNotEmpty(),
         postAuthResetAllowed = isCloudPostAuthResetAllowed(linkContext = linkContext),
         retryAction = null,
@@ -239,12 +274,15 @@ internal fun clearCloudPostAuthDraftState(state: CloudSignInDraftState): CloudSi
         processingTitle = "",
         processingMessage = "",
         postAuthErrorMessage = "",
+        postAuthErrorTechnicalDetails = null,
+        postAuthErrorTechnicalDetailsReportId = null,
         postAuthRecoveryBlocked = false,
         postAuthResetAllowed = false,
         retryAction = null,
         completionToken = null,
         errorMessage = "",
-        errorTechnicalDetails = null
+        errorTechnicalDetails = null,
+        errorTechnicalDetailsReportId = null
     )
 }
 

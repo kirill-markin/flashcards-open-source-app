@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactElement } from "react";
+import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../i18n";
 import { settingsTestAnimationsRoute } from "../../routes";
 import {
@@ -25,7 +26,7 @@ import {
   reviewReactionLottieFallbackVariant,
   startReviewReactionLottiePrewarm,
 } from "../review/reactions/reviewReactionLottie";
-import { SettingsGroup, SettingsNavigationCard, SettingsShell } from "./SettingsShared";
+import { SettingsActionCard, SettingsGroup, SettingsNavigationCard, SettingsShell } from "./SettingsShared";
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;
 type FormatNumber = (value: number, options?: Readonly<Intl.NumberFormatOptions>) => string;
@@ -36,6 +37,7 @@ const probabilityFormatOptions: Readonly<Intl.NumberFormatOptions> = {
 
 export function TestSettingsScreen(): ReactElement {
   const { t } = useI18n();
+  const { showTechnicalErrorPreview } = useAppErrorDialog();
 
   return (
     <SettingsShell
@@ -52,6 +54,13 @@ export function TestSettingsScreen(): ReactElement {
               value={t("settingsTest.animations.value")}
               to={settingsTestAnimationsRoute}
               testId="test-settings-animations-row"
+            />
+            <SettingsActionCard
+              title={t("settingsTest.technicalError.title")}
+              description={t("settingsTest.technicalError.description")}
+              value={t("settingsTest.technicalError.value")}
+              onClick={showTechnicalErrorPreview}
+              testId="test-settings-technical-error-row"
             />
           </div>
         </SettingsGroup>

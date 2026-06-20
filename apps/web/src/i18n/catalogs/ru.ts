@@ -81,6 +81,25 @@ export const ruCatalog = {
   shell: {
     primaryNavigation: "Основная навигация",
   },
+  appError: {
+    technicalError: {
+      title: "Что-то пошло не так",
+      message: "Произошла техническая ошибка. Попробуйте еще раз или перезапустите приложение.",
+      detailsToggle: "Технические детали",
+      close: "Закрыть",
+      labels: {
+        name: "Имя",
+        message: "Сообщение",
+        endpoint: "Эндпоинт",
+        requestId: "ID запроса",
+        statusCode: "Код статуса",
+        code: "Код",
+        bodyKind: "Тип тела",
+        attemptCount: "Число попыток",
+        originalErrorName: "Исходная ошибка",
+      },
+    },
+  },
   filters: {
     allCards: "Все карточки",
     and: "AND",
@@ -388,6 +407,11 @@ export const ruCatalog = {
       screenSubtitle: "Запускайте варианты реакции на повторение напрямую.",
       probability: "Вероятность {{percent}}",
       playAccessibility: "Воспроизвести анимацию {{variant}}, {{probability}}",
+    },
+    technicalError: {
+      title: "Диалог технической ошибки",
+      description: "Предпросмотр общего диалога технической ошибки.",
+      value: "Предпросмотр",
     },
   },
   settingsWorkspace: {
