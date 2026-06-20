@@ -124,7 +124,8 @@ internal fun createTestReviewRepository(runtime: LocalDatabaseTestRuntime): Revi
         localProgressCacheStore = LocalProgressCacheStore(
             database = runtime.database,
             timeProvider = SystemTimeProvider
-        )
+        ),
+        timeProvider = SystemTimeProvider
     )
 }
 

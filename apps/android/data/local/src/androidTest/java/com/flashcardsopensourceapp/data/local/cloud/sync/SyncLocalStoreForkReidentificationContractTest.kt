@@ -80,7 +80,8 @@ class SyncLocalStoreForkReidentificationContractTest {
             clientEventId = "client-event-1",
             rating = ReviewRating.GOOD,
             reviewedAtMillis = 6L,
-            reviewedAtServerIso = "2026-03-27T19:05:00Z"
+            reviewedAtServerIso = "2026-03-27T19:05:00Z",
+            reviewedTimeZone = null
         )
         database.cardDao().insertCard(originalCard)
         database.tagDao().insertTags(
@@ -165,7 +166,8 @@ class SyncLocalStoreForkReidentificationContractTest {
             clientEventId = "client-event-1",
             rating = ReviewRating.GOOD,
             reviewedAtMillis = 6L,
-            reviewedAtServerIso = "2026-03-27T19:05:00Z"
+            reviewedAtServerIso = "2026-03-27T19:05:00Z",
+            reviewedTimeZone = null
         )
         database.reviewLogDao().insertReviewLog(originalReviewLog)
         syncLocalStore.enqueueReviewEventAppend(reviewLog = originalReviewLog)

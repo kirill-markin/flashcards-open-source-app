@@ -182,9 +182,14 @@ class LocalSyncOutboxContractTest {
         assertEquals(1, reviewLogs.size)
         assertFalse(reviewLogs.first().replicaId.isBlank())
         assertFalse(reviewLogs.first().clientEventId.isBlank())
-        assertTrue(entries.any { entry ->
+        assertFalse(reviewLogs.first().reviewedTimeZone.isNullOrBlank())
+        val reviewEventEntry = entries.first { entry ->
             entry.entityType == "review_event" && entry.entityId == reviewLogs.first().reviewLogId
-        })
+        }
+        assertEquals(
+            reviewLogs.first().reviewedTimeZone,
+            JSONObject(reviewEventEntry.payloadJson).getString("reviewedTimeZone")
+        )
         assertTrue(entries.any { entry ->
             entry.entityType == "card" && entry.entityId == cardId
         })

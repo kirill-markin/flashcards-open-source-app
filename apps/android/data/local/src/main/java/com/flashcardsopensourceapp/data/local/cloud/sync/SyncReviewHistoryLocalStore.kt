@@ -118,7 +118,8 @@ internal class SyncReviewHistoryLocalStore(
                 clientEventId = event.clientEventId,
                 rating = ReviewRating.entries[event.rating],
                 reviewedAtMillis = parseIsoTimestamp(event.reviewedAtClient),
-                reviewedAtServerIso = event.reviewedAtServer
+                reviewedAtServerIso = event.reviewedAtServer,
+                reviewedTimeZone = event.reviewedTimeZone
             )
         }
         var newReviewLogs: List<ReviewLogEntity> = emptyList()

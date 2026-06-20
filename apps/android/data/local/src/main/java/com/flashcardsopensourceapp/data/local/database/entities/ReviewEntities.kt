@@ -32,5 +32,6 @@ data class ReviewLogEntity(
     val clientEventId: String,
     val rating: ReviewRating,
     val reviewedAtMillis: Long,
-    val reviewedAtServerIso: String
+    val reviewedAtServerIso: String,
+    val reviewedTimeZone: String?
 )

@@ -92,7 +92,8 @@ data class ReviewEventSyncPayload(
     val cardId: String,
     val clientEventId: String,
     val rating: Int,
-    val reviewedAtClient: String
+    val reviewedAtClient: String,
+    val reviewedTimeZone: String?
 )
 
 sealed interface SyncOperationPayload {

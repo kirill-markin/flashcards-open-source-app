@@ -116,7 +116,8 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
                 clientEventId = "client-event-explicit-drop",
                 rating = ReviewRating.GOOD,
                 reviewedAtMillis = 210L,
-                reviewedAtServerIso = "2026-04-02T15:51:57.000Z"
+                reviewedAtServerIso = "2026-04-02T15:51:57.000Z",
+                reviewedTimeZone = null
             )
         )
         environment.database.outboxDao().insertOutboxEntry(

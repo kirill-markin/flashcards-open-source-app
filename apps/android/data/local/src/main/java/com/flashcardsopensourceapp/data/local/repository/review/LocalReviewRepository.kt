@@ -39,6 +39,7 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.obs
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runLocalOutboxMutationTransaction
 import com.flashcardsopensourceapp.data.local.repository.decks.toDeckSummary
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
+import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import com.flashcardsopensourceapp.data.local.repository.workspace.makeWorkspaceTagsSummary
 import com.flashcardsopensourceapp.data.local.repository.workspace.makeWorkspaceTagsSummaryFromStoredTagNames
 import com.flashcardsopensourceapp.data.local.repository.workspace.toWorkspaceSchedulerSettings
@@ -55,7 +56,8 @@ class LocalReviewRepository(
     private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
     private val syncLocalStore: SyncLocalStore,
-    private val localProgressCacheStore: LocalProgressCacheStore
+    private val localProgressCacheStore: LocalProgressCacheStore,
+    private val timeProvider: TimeProvider
 ) : ReviewRepository {
     override fun observeReviewSession(
         selectedFilter: ReviewFilter,
@@ -422,7 +424,8 @@ class LocalReviewRepository(
                 clientEventId = UUID.randomUUID().toString(),
                 rating = rating,
                 reviewedAtMillis = reviewedAtMillis,
-                reviewedAtServerIso = formatIsoTimestamp(reviewedAtMillis)
+                reviewedAtServerIso = formatIsoTimestamp(reviewedAtMillis),
+                reviewedTimeZone = timeProvider.currentZoneId().id
             )
             database.reviewLogDao().insertReviewLog(reviewLog = reviewLog)
             localProgressCacheStore.recordReviewInTransaction(

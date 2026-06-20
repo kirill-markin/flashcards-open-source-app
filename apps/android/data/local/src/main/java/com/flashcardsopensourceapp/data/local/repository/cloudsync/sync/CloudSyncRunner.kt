@@ -713,6 +713,7 @@ private fun buildOperationPayload(payload: SyncOperationPayload): JSONObject {
             .put("clientEventId", payload.payload.clientEventId)
             .put("rating", payload.payload.rating)
             .put("reviewedAtClient", payload.payload.reviewedAtClient)
+            .putNullableString("reviewedTimeZone", payload.payload.reviewedTimeZone)
     }
 }
 

@@ -311,7 +311,8 @@ class AppGraph(
         database = database,
         preferencesStore = cloudPreferencesStore,
         syncLocalStore = syncLocalStore,
-        localProgressCacheStore = localProgressCacheStore
+        localProgressCacheStore = localProgressCacheStore,
+        timeProvider = SystemTimeProvider
     )
     val feedbackRepository: FeedbackRepository = LocalFeedbackRepository(
         database = database,
