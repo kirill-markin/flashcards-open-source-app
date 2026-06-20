@@ -26,6 +26,7 @@ export interface OutputsProps {
   globalMetricsSnapshotFunction: lambda.IFunction;
   globalMetricsSnapshotFreshnessCheckerFunction: lambda.IFunction;
   communityLeaderboardSnapshotFunction: lambda.IFunction;
+  progressActiveDaysBackfillFunction: lambda.IFunction;
   globalMetricsVisible: boolean;
   userPoolId: string;
   userPoolClientId: string;
@@ -130,6 +131,11 @@ export function outputs(scope: Construct, props: OutputsProps): void {
   new cdk.CfnOutput(scope, "CommunityLeaderboardSnapshotFunctionName", {
     value: props.communityLeaderboardSnapshotFunction.functionName,
     description: "Lambda function name for community leaderboard snapshot generation",
+  });
+
+  new cdk.CfnOutput(scope, "ProgressActiveDaysBackfillFunctionName", {
+    value: props.progressActiveDaysBackfillFunction.functionName,
+    description: "Lambda function name for Progress active review days backfill",
   });
 
   new cdk.CfnOutput(scope, "GlobalMetricsVisible", {

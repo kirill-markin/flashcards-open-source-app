@@ -20,6 +20,11 @@ export type ReviewActiveDayWriteResult = Readonly<{
   reviewedTimeZoneSource: ReviewTimeZoneSource | null;
 }>;
 
+export type ActiveReviewDayMaterializationResult = Readonly<{
+  reviewEventsMaterialized: number;
+  activeReviewDaysUpserted: number;
+}>;
+
 type SelectedReviewTimeZone = Readonly<{
   timeZone: string;
   source: ReviewTimeZoneSource;
@@ -34,7 +39,21 @@ type UserActiveReviewLocalDateRow = Readonly<{
   review_date: string;
 }>;
 
+type ActiveReviewDayMaterializationRow = Readonly<{
+  review_events_materialized: string | number;
+  active_review_days_upserted: string | number;
+}>;
+
 const localDatePattern = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseNonNegativeDatabaseInteger(value: string | number, fieldName: string): number {
+  const parsedValue = typeof value === "number" ? value : Number.parseInt(value, 10);
+  if (!Number.isInteger(parsedValue) || parsedValue < 0) {
+    throw new Error(`Database ${fieldName} must be a non-negative integer: ${value}`);
+  }
+
+  return parsedValue;
+}
 
 function parseReviewedAtClient(value: string, reviewEventId: string): Date {
   const reviewedAtClient = new Date(value);
@@ -214,9 +233,9 @@ export async function materializeMissingActiveReviewDaysForUserInExecutor(
   userId: string,
   workspaceId: string,
   timeZone: string,
-): Promise<void> {
+): Promise<ActiveReviewDayMaterializationResult> {
   const normalizedTimeZone = requireIanaTimeZone(timeZone, "timeZone");
-  await executor.query(
+  const result = await executor.query<ActiveReviewDayMaterializationRow>(
     [
       "WITH target_review_events AS (",
       "SELECT",
@@ -224,15 +243,17 @@ export async function materializeMissingActiveReviewDaysForUserInExecutor(
       "review_events.reviewed_by_user_id,",
       "review_events.reviewed_at_client,",
       "review_events.reviewed_local_date,",
-      "timezone($2, review_events.reviewed_at_client)::date AS fallback_local_date,",
-      "COALESCE(review_events.reviewed_time_zone, $2) AS event_time_zone,",
-      "COALESCE(review_events.reviewed_time_zone_source, 'user_settings') AS event_time_zone_source",
+      "COALESCE(review_events.reviewed_time_zone, $2) AS materialized_time_zone,",
+      "COALESCE(review_events.reviewed_time_zone_source, 'user_settings') AS materialized_time_zone_source,",
+      "timezone(COALESCE(review_events.reviewed_time_zone, $2), review_events.reviewed_at_client)::date",
+      "AS materialized_local_date,",
+      "active_days.local_date AS active_day_local_date",
       "FROM content.review_events AS review_events",
       "LEFT JOIN progress.user_active_review_days AS active_days",
       "ON active_days.reviewed_by_user_id = review_events.reviewed_by_user_id",
       "AND active_days.local_date = COALESCE(",
       "review_events.reviewed_local_date,",
-      "timezone($2, review_events.reviewed_at_client)::date",
+      "timezone(COALESCE(review_events.reviewed_time_zone, $2), review_events.reviewed_at_client)::date",
       ")",
       "WHERE review_events.reviewed_by_user_id = $1",
       "AND review_events.workspace_id = $3",
@@ -242,9 +263,9 @@ export async function materializeMissingActiveReviewDaysForUserInExecutor(
       ")",
       "), updated_review_events AS (",
       "UPDATE content.review_events AS review_events",
-      "SET reviewed_time_zone = $2,",
-      "reviewed_local_date = target_review_events.fallback_local_date,",
-      "reviewed_time_zone_source = 'user_settings'",
+      "SET reviewed_time_zone = target_review_events.materialized_time_zone,",
+      "reviewed_local_date = target_review_events.materialized_local_date,",
+      "reviewed_time_zone_source = target_review_events.materialized_time_zone_source",
       "FROM target_review_events",
       "WHERE review_events.review_event_id = target_review_events.review_event_id",
       "AND target_review_events.reviewed_local_date IS NULL",
@@ -252,29 +273,23 @@ export async function materializeMissingActiveReviewDaysForUserInExecutor(
       "), active_day_rows AS (",
       "SELECT",
       "target_review_events.reviewed_by_user_id,",
-      "COALESCE(target_review_events.reviewed_local_date, target_review_events.fallback_local_date) AS local_date,",
+      "COALESCE(target_review_events.reviewed_local_date, target_review_events.materialized_local_date) AS local_date,",
       "COUNT(*)::int AS review_count,",
       "MIN(target_review_events.reviewed_at_client) AS first_reviewed_at_client,",
       "MAX(target_review_events.reviewed_at_client) AS last_reviewed_at_client,",
       "(ARRAY_AGG(",
-      "CASE",
-      "WHEN target_review_events.reviewed_local_date IS NULL THEN $2",
-      "ELSE target_review_events.event_time_zone",
-      "END",
+      "target_review_events.materialized_time_zone",
       "ORDER BY target_review_events.reviewed_at_client ASC, target_review_events.review_event_id ASC",
       "))[1] AS time_zone,",
       "(ARRAY_AGG(",
-      "CASE",
-      "WHEN target_review_events.reviewed_local_date IS NULL THEN 'user_settings'",
-      "ELSE target_review_events.event_time_zone_source",
-      "END",
+      "target_review_events.materialized_time_zone_source",
       "ORDER BY target_review_events.reviewed_at_client ASC, target_review_events.review_event_id ASC",
       "))[1] AS time_zone_source",
       "FROM target_review_events",
       "GROUP BY",
       "target_review_events.reviewed_by_user_id,",
-      "COALESCE(target_review_events.reviewed_local_date, target_review_events.fallback_local_date)",
-      ")",
+      "COALESCE(target_review_events.reviewed_local_date, target_review_events.materialized_local_date)",
+      "), upserted_active_days AS (",
       "INSERT INTO progress.user_active_review_days",
       "(",
       "reviewed_by_user_id, local_date, review_count, first_reviewed_at_client,",
@@ -303,9 +318,30 @@ export async function materializeMissingActiveReviewDaysForUserInExecutor(
       "ELSE progress.user_active_review_days.time_zone_source",
       "END,",
       "updated_at = now()",
+      "RETURNING reviewed_by_user_id, local_date",
+      ")",
+      "SELECT",
+      "(SELECT COUNT(*)::int FROM updated_review_events) AS review_events_materialized,",
+      "(SELECT COUNT(*)::int FROM upserted_active_days) AS active_review_days_upserted",
     ].join(" "),
     [userId, normalizedTimeZone, workspaceId],
   );
+
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new Error(`Active review day materialization did not return counters for userId=${userId}, workspaceId=${workspaceId}`);
+  }
+
+  return {
+    reviewEventsMaterialized: parseNonNegativeDatabaseInteger(
+      row.review_events_materialized,
+      "review_events_materialized",
+    ),
+    activeReviewDaysUpserted: parseNonNegativeDatabaseInteger(
+      row.active_review_days_upserted,
+      "active_review_days_upserted",
+    ),
+  };
 }
 
 export async function loadUserActiveReviewLocalDatesInExecutor(

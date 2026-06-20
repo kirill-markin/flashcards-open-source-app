@@ -37,6 +37,11 @@ type WorkspaceMembershipRow = Readonly<{
   workspace_id: string;
 }>;
 
+type ActiveReviewDayMaterializationRow = Readonly<{
+  review_events_materialized: number;
+  active_review_days_upserted: number;
+}>;
+
 export type ProgressExecutorFixture = Readonly<{
   workspaceIdsByUser: Readonly<Record<string, ReadonlyArray<string>>>;
   reviewRowsByRequest: Readonly<Record<string, ReadonlyArray<DailyReviewCountRow>>>;
@@ -298,7 +303,12 @@ export function createProgressExecutor(
           throw new Error("Active review day materialization requires user scope and workspace RLS scope");
         }
 
-        return createQueryResult<QueryResultRow>([]) as pg.QueryResult<Row>;
+        return createQueryResult<ActiveReviewDayMaterializationRow>([
+          {
+            review_events_materialized: 0,
+            active_review_days_upserted: 0,
+          },
+        ]) as unknown as pg.QueryResult<Row>;
       }
 
       if (
