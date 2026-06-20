@@ -559,7 +559,7 @@ final class FlashcardsStore {
         }
 
         let presentationError = technicalErrorPresentationSource(error: error)
-        let presentation: TechnicalErrorPresentation = makeTechnicalErrorPresentation(error: presentationError)
+        let presentation: TechnicalErrorPresentation = Flashcards.makeTechnicalErrorPresentation(error: presentationError)
         if isTechnicalErrorObserved(error: error) == false {
             self.captureTechnicalErrorForVisiblePresentation(error: presentationError)
         }
