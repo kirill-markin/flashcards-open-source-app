@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
@@ -37,6 +38,8 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
     ) {
         composable(route = SettingsAccountSignInEmailDestination.route) { backStackEntry ->
             val context = LocalContext.current
+            val technicalErrorDialogTitle = stringResource(id = R.string.technical_error_dialog_default_title)
+            val technicalErrorDialogMessage = stringResource(id = R.string.technical_error_dialog_default_message)
             val authGraphBackStackEntry = settingsAccountAuthBackStackEntry(
                 navController = navController,
                 currentBackStackEntry = backStackEntry
@@ -77,8 +80,8 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 onShowTechnicalDetails = { technicalDetails, reportId ->
                     appGraph.showTechnicalErrorDialog(
                         reportId = reportId,
-                        title = context.getString(R.string.technical_error_dialog_default_title),
-                        message = context.getString(R.string.technical_error_dialog_default_message),
+                        title = technicalErrorDialogTitle,
+                        message = technicalErrorDialogMessage,
                         technicalDetails = technicalDetails
                     )
                 },
@@ -90,6 +93,8 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
 
         composable(route = SettingsAccountSignInCodeDestination.route) { backStackEntry ->
             val context = LocalContext.current
+            val technicalErrorDialogTitle = stringResource(id = R.string.technical_error_dialog_default_title)
+            val technicalErrorDialogMessage = stringResource(id = R.string.technical_error_dialog_default_message)
             val authGraphBackStackEntry = settingsAccountAuthBackStackEntry(
                 navController = navController,
                 currentBackStackEntry = backStackEntry
@@ -121,8 +126,8 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 onShowTechnicalDetails = { technicalDetails, reportId ->
                     appGraph.showTechnicalErrorDialog(
                         reportId = reportId,
-                        title = context.getString(R.string.technical_error_dialog_default_title),
-                        message = context.getString(R.string.technical_error_dialog_default_message),
+                        title = technicalErrorDialogTitle,
+                        message = technicalErrorDialogMessage,
                         technicalDetails = technicalDetails
                     )
                 },
@@ -134,6 +139,8 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
 
         composable(route = SettingsAccountPostAuthDestination.route) { backStackEntry ->
             val context = LocalContext.current
+            val technicalErrorDialogTitle = stringResource(id = R.string.technical_error_dialog_default_title)
+            val technicalErrorDialogMessage = stringResource(id = R.string.technical_error_dialog_default_message)
             val authGraphBackStackEntry = settingsAccountAuthBackStackEntry(
                 navController = navController,
                 currentBackStackEntry = backStackEntry
@@ -186,8 +193,8 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 onShowTechnicalDetails = { technicalDetails, reportId ->
                     appGraph.showTechnicalErrorDialog(
                         reportId = reportId,
-                        title = context.getString(R.string.technical_error_dialog_default_title),
-                        message = context.getString(R.string.technical_error_dialog_default_message),
+                        title = technicalErrorDialogTitle,
+                        message = technicalErrorDialogMessage,
                         technicalDetails = technicalDetails
                     )
                 },

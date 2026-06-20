@@ -119,6 +119,8 @@ fun FlashcardsApp(
             .activePreviewTechnicalError
             .collectAsStateWithLifecycle()
         val displayedTechnicalError: AppTechnicalError? = activeTechnicalError ?: activeTechnicalErrorPreview
+        val technicalErrorDialogTitle = stringResource(id = R.string.technical_error_dialog_default_title)
+        val technicalErrorDialogMessage = stringResource(id = R.string.technical_error_dialog_default_message)
         val dismissDisplayedTechnicalError: () -> Unit = {
             if (activeTechnicalError != null) {
                 appGraph.appMessageBus.dismissTechnicalError()
@@ -134,14 +136,13 @@ fun FlashcardsApp(
             }
 
             is AppStartupState.Failed -> {
-                val context = LocalContext.current
                 Box(modifier = Modifier.fillMaxSize()) {
                     StartupErrorScreen(
                         technicalDetails = currentStartupState.technicalDetails,
                         onShowTechnicalDetails = { technicalDetails ->
                             appGraph.showReportedTechnicalErrorDialog(
-                                title = context.getString(R.string.technical_error_dialog_default_title),
-                                message = context.getString(R.string.technical_error_dialog_default_message),
+                                title = technicalErrorDialogTitle,
+                                message = technicalErrorDialogMessage,
                                 technicalDetails = technicalDetails
                             )
                         },
@@ -591,8 +592,8 @@ fun FlashcardsApp(
                     onShowTechnicalDetails = { technicalDetails, reportId ->
                         appGraph.showTechnicalErrorDialog(
                             reportId = reportId,
-                            title = applicationContext.getString(R.string.technical_error_dialog_default_title),
-                            message = applicationContext.getString(R.string.technical_error_dialog_default_message),
+                            title = technicalErrorDialogTitle,
+                            message = technicalErrorDialogMessage,
                             technicalDetails = technicalDetails
                         )
                     },
