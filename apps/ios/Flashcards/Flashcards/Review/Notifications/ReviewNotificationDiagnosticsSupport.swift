@@ -138,15 +138,14 @@ func deliveredReviewNotificationRequestIdentifiers(
     }
 }
 
-func deliveredReviewReminderNotifications(
+func deliveredReviewReminderAttentionStates(
     center: UNUserNotificationCenter
-) async -> [UNNotification] {
+) async -> [ReviewReminderAttentionState] {
     await withCheckedContinuation { continuation in
         center.getDeliveredNotifications { notifications in
             continuation.resume(
-                returning: notifications.filter { notification in
-                    isReviewNotificationRequestIdentifier(identifier: notification.request.identifier)
-                        && parseAppNotificationTapRequest(userInfo: notification.request.content.userInfo) == .openReviewReminder
+                returning: notifications.compactMap { notification in
+                    makeReviewReminderAttentionState(notification: notification)
                 }
             )
         }
