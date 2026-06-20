@@ -18,6 +18,8 @@ import type {
   ProgressSeriesRequest,
   ProgressSummaryRequest,
   ProgressSummaryResponse,
+  StreakLeaderboard,
+  StreakLeaderboardRequest,
 } from "../../progress";
 import type { AppEnv } from "../../server/app";
 import type { RequestContext } from "../../server/requestContext";
@@ -43,6 +45,7 @@ type SystemTestAppOptions = Readonly<{
   loadUserProgressSeriesFn?: (args: ProgressSeriesRequest) => Promise<ProgressSeries>;
   loadUserProgressSummaryFn?: (args: ProgressSummaryRequest) => Promise<ProgressSummaryResponse>;
   loadProgressLeaderboardFn?: (args: ProgressLeaderboardRequest) => Promise<ProgressLeaderboard>;
+  loadStreakLeaderboardFn?: (args: StreakLeaderboardRequest) => Promise<StreakLeaderboard>;
 }>;
 
 export function createDefaultAccountPreferences(): AccountPreferences {
@@ -216,6 +219,60 @@ export function createProgressLeaderboard(): ProgressLeaderboard {
   };
 }
 
+export function createStreakLeaderboard(): StreakLeaderboard {
+  return {
+    status: "ready",
+    metric: {
+      metricVersion: "streak_days_v1",
+      title: "Current streak days",
+      description: "Ranks use current streak days from the public daily snapshot. Public values can trail your live personal streak.",
+    },
+    snapshotId: "3e6c0b88-5f5a-4db3-8c8c-9d6a3840a1e4",
+    snapshotGeneratedAt: "2026-06-10T12:00:05.000Z",
+    asOfUtcDate: "2026-06-10",
+    nextRefreshAfter: "2026-06-11T12:00:00.000Z",
+    participantCount: 2,
+    viewer: {
+      publicProfileId: "5b9d3f2a-1c4e-4a7b-9f0d-2e6c8a1b4d7f",
+      displayName: "You",
+      rank: 2,
+      streakDays: 3,
+    },
+    rows: [
+      {
+        kind: "top",
+        publicProfileId: "a1d2c3b4-5e6f-4a8b-9c0d-1e2f3a4b5c6d",
+        anonymousDisplayName: "Silver Bright Harbor",
+        streakDays: 5,
+        rank: 1,
+      },
+      {
+        kind: "viewer",
+        publicProfileId: "5b9d3f2a-1c4e-4a7b-9f0d-2e6c8a1b4d7f",
+        anonymousDisplayName: "Jade Swift River",
+        streakDays: 3,
+        rank: 2,
+      },
+    ],
+    rankingRows: [
+      {
+        kind: "participant",
+        publicProfileId: "a1d2c3b4-5e6f-4a8b-9c0d-1e2f3a4b5c6d",
+        anonymousDisplayName: "Silver Bright Harbor",
+        streakDays: 5,
+        rank: 1,
+      },
+      {
+        kind: "viewer",
+        publicProfileId: "5b9d3f2a-1c4e-4a7b-9f0d-2e6c8a1b4d7f",
+        anonymousDisplayName: "Jade Swift River",
+        streakDays: 3,
+        rank: 2,
+      },
+    ],
+  };
+}
+
 export function createSystemTestApp(options: SystemTestAppOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   app.use("*", async (context, next) => {
@@ -269,6 +326,7 @@ export function createSystemTestApp(options: SystemTestAppOptions): Hono<AppEnv>
     loadUserProgressSeriesFn: options.loadUserProgressSeriesFn,
     loadUserProgressSummaryFn: options.loadUserProgressSummaryFn,
     loadProgressLeaderboardFn: options.loadProgressLeaderboardFn,
+    loadStreakLeaderboardFn: options.loadStreakLeaderboardFn,
   }));
 
   return app;

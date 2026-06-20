@@ -27,6 +27,7 @@ import {
 } from "./friendInvitations";
 import {
   loadProgressLeaderboard,
+  loadStreakLeaderboard,
   loadUserProgressReviewSchedule,
   loadUserProgressSeries,
   loadUserProgressSummary,
@@ -41,6 +42,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   const loadUserProgressSeriesFn = options.loadUserProgressSeriesFn ?? loadUserProgressSeries;
   const loadUserProgressSummaryFn = options.loadUserProgressSummaryFn ?? loadUserProgressSummary;
   const loadProgressLeaderboardFn = options.loadProgressLeaderboardFn ?? loadProgressLeaderboard;
+  const loadStreakLeaderboardFn = options.loadStreakLeaderboardFn ?? loadStreakLeaderboard;
   const updateAccountPreferencesFn = options.updateAccountPreferencesFn ?? updateAccountPreferences;
   const ensurePublicProfileForUserFn = options.ensurePublicProfileForUserFn ?? ensurePublicProfileForUser;
   const updateLeaderboardParticipationFn = options.updateLeaderboardParticipationFn ?? updateLeaderboardParticipation;
@@ -112,6 +114,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
     loadUserProgressSeriesFn,
     loadUserProgressSummaryFn,
     loadProgressLeaderboardFn,
+    loadStreakLeaderboardFn,
   });
   registerAccountDeletionRoute(app, {
     allowedOrigins: options.allowedOrigins,
