@@ -6,9 +6,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
+import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncCompletion
@@ -17,12 +19,15 @@ import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepos
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncOutcome
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncRequest
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
+import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.DestructiveActionState
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
+import com.flashcardsopensourceapp.feature.settings.cloud.expectedWorkspaceCloudFailureMessage
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.workspace.shared.workspaceUpdatedOnAnotherDeviceMessage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -51,6 +56,7 @@ class WorkspaceOverviewViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
     private val autoSyncEventRepository: AutoSyncEventRepository,
     private val messageController: TransientMessageController,
+    private val technicalErrorController: AppTechnicalErrorController,
     visibleAppScreenRepository: VisibleAppScreenRepository,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
@@ -181,12 +187,25 @@ class WorkspaceOverviewViewModel(
                 )
             }
             true
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_workspace_name_save_failed)
+            val expectedErrorMessage = expectedWorkspaceCloudFailureMessage(
+                error = error,
+                fallbackMessage = errorMessage
+            )
             draftState.update { state ->
                 state.copy(
                     isSavingName = false,
-                    errorMessage = error.message ?: strings.get(R.string.settings_workspace_name_save_failed),
+                    errorMessage = expectedErrorMessage ?: errorMessage,
                     successMessage = ""
+                )
+            }
+            if (expectedErrorMessage == null) {
+                showTechnicalError(
+                    message = errorMessage,
+                    throwable = error
                 )
             }
             false
@@ -225,12 +244,25 @@ class WorkspaceOverviewViewModel(
                     deletePreview = deletePreview
                 )
             }
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_workspace_delete_preview_failed)
+            val expectedErrorMessage = expectedWorkspaceCloudFailureMessage(
+                error = error,
+                fallbackMessage = errorMessage
+            )
             draftState.update { state ->
                 state.copy(
                     isDeletePreviewLoading = false,
-                    errorMessage = error.message ?: strings.get(R.string.settings_workspace_delete_preview_failed),
+                    errorMessage = expectedErrorMessage ?: errorMessage,
                     successMessage = ""
+                )
+            }
+            if (expectedErrorMessage == null) {
+                showTechnicalError(
+                    message = errorMessage,
+                    throwable = error
                 )
             }
         }
@@ -330,13 +362,36 @@ class WorkspaceOverviewViewModel(
                 message = strings.get(R.string.settings_current_workspace_switched_message, result.workspace.name)
             )
             true
-        } catch (error: Exception) {
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: SyncBlockedException) {
             draftState.update { state ->
                 state.copy(
                     isDeletingWorkspace = false,
                     deleteState = DestructiveActionState.FAILED,
-                    errorMessage = error.message ?: strings.get(R.string.settings_workspace_delete_failed),
+                    errorMessage = strings.get(R.string.settings_account_status_sync_blocked_body),
                     successMessage = ""
+                )
+            }
+            false
+        } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_workspace_delete_failed)
+            val expectedErrorMessage = expectedWorkspaceCloudFailureMessage(
+                error = error,
+                fallbackMessage = errorMessage
+            )
+            draftState.update { state ->
+                state.copy(
+                    isDeletingWorkspace = false,
+                    deleteState = DestructiveActionState.FAILED,
+                    errorMessage = expectedErrorMessage ?: errorMessage,
+                    successMessage = ""
+                )
+            }
+            if (expectedErrorMessage == null) {
+                showTechnicalError(
+                    message = errorMessage,
+                    throwable = error
                 )
             }
             false
@@ -410,6 +465,20 @@ class WorkspaceOverviewViewModel(
         lastVisibleAutoSyncChangeSignature = currentWorkspaceOverviewSignature
         messageController.showMessage(message = workspaceUpdatedOnAnotherDeviceMessage(strings = strings))
     }
+
+    private fun showTechnicalError(
+        message: String,
+        throwable: Throwable
+    ) {
+        technicalErrorController.showTechnicalError(
+            error = makeAppTechnicalError(
+                title = strings.get(R.string.settings_technical_error_title),
+                message = message,
+                throwable = throwable
+            ),
+            throwable = throwable
+        )
+    }
 }
 
 private data class WorkspaceOverviewVisibleSignature(
@@ -441,6 +510,7 @@ fun createWorkspaceOverviewViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
     autoSyncEventRepository: AutoSyncEventRepository,
     messageController: TransientMessageController,
+    technicalErrorController: AppTechnicalErrorController,
     visibleAppScreenRepository: VisibleAppScreenRepository,
     applicationContext: Context
 ): ViewModelProvider.Factory {
@@ -451,6 +521,7 @@ fun createWorkspaceOverviewViewModelFactory(
                 cloudAccountRepository = cloudAccountRepository,
                 autoSyncEventRepository = autoSyncEventRepository,
                 messageController = messageController,
+                technicalErrorController = technicalErrorController,
                 visibleAppScreenRepository = visibleAppScreenRepository,
                 strings = createSettingsStringResolver(context = applicationContext)
             )

@@ -1,17 +1,22 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
+import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeAssistantStatusMessage
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.makeUserMessage
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
+import java.net.ProtocolException
+import java.net.SocketTimeoutException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -99,5 +104,62 @@ class AiChatRuntimeLiveAttachmentTest {
         assertNull(runtime.state.value.activeRun)
         assertFalse(runtime.state.value.isLiveAttached)
         assertEquals(2, repository.loadBootstrapCalls)
+    }
+
+    @Test
+    fun transientLiveAttachIoShowsSafeAlertWithoutCapture() = runTest {
+        val repository = FakeAiChatRepository()
+        val observability = RecordingAppObservability()
+        val sessionId = repository.nextEnsureSessionId
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = sessionId,
+            activeRun = makeActiveRun(runId = "run-1", cursor = "5")
+        )
+        repository.liveFlows["run-1"] = flow {
+            throw SocketTimeoutException("timeout")
+        }
+        val runtime = makeRuntimeWithObservability(
+            scope = this,
+            repository = repository,
+            observability = observability
+        )
+
+        runtime.onScreenVisible()
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
+
+        val alert = runtime.state.value.activeAlert as AiAlertState.GeneralError
+        assertEquals("AI request failed.", alert.message)
+        assertNull(alert.technicalError)
+        assertTrue(observability.exceptionEvents.isEmpty())
+    }
+
+    @Test
+    fun unexpectedLiveAttachIoCapturesAndKeepsTechnicalAlert() = runTest {
+        val repository = FakeAiChatRepository()
+        val observability = RecordingAppObservability()
+        val sessionId = repository.nextEnsureSessionId
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = sessionId,
+            activeRun = makeActiveRun(runId = "run-1", cursor = "5")
+        )
+        repository.liveFlows["run-1"] = flow {
+            throw ProtocolException("bad response contract")
+        }
+        val runtime = makeRuntimeWithObservability(
+            scope = this,
+            repository = repository,
+            observability = observability
+        )
+
+        runtime.onScreenVisible()
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
+
+        val alert = runtime.state.value.activeAlert as AiAlertState.GeneralError
+        assertEquals("AI request failed.", alert.message)
+        assertNotNull(alert.technicalError)
+        assertEquals(1, observability.exceptionEvents.size)
+        assertTrue(observability.exceptionEvents.single() is AndroidExceptionIssueEvent.AiStreamCrash)
     }
 }

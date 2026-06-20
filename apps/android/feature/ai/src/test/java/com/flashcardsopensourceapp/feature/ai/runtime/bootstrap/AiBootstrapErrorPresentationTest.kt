@@ -3,20 +3,41 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapBlockedException
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatFailureIssueDisposition
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.aiChatFailureIssueDisposition
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiBootstrapErrorPresentation
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiUserFacingErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.strings.testAiTextProvider
-import java.io.IOException
+import java.net.ProtocolException
+import java.net.SocketTimeoutException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AiBootstrapErrorPresentationTest {
     @Test
-    fun ioExceptionUsesNetworkMessageAndTechnicalDetails() {
+    fun transientIoExceptionUsesNetworkMessageAndHidesTechnicalDetails() {
         val presentation = makeAiBootstrapErrorPresentation(
-            error = IOException("timeout while connecting"),
+            error = SocketTimeoutException("timeout"),
+            configuration = makeOfficialCloudServiceConfiguration(),
+            textProvider = testAiTextProvider()
+        )
+
+        assertEquals(
+            "We could not connect to AI. Check your connection and try again.",
+            presentation.message
+        )
+        assertNull(presentation.technicalDetails)
+    }
+
+    @Test
+    fun unexpectedIoExceptionUsesNetworkMessageAndTechnicalDetails() {
+        val presentation = makeAiBootstrapErrorPresentation(
+            error = ProtocolException("bad response contract"),
             configuration = makeOfficialCloudServiceConfiguration(),
             textProvider = testAiTextProvider()
         )
@@ -26,11 +47,38 @@ class AiBootstrapErrorPresentationTest {
             presentation.message
         )
         assertNotNull(presentation.technicalDetails)
-        assertTrue(presentation.technicalDetails.orEmpty().contains("timeout while connecting"))
+        assertTrue(presentation.technicalDetails.orEmpty().contains("bad response contract"))
     }
 
     @Test
-    fun remoteExceptionKeepsPrimaryMessageFriendlyAndMovesDiagnosticsToDetails() {
+    fun transientIoUserFacingPresentationHidesTechnicalError() {
+        val presentation = makeAiUserFacingErrorPresentation(
+            error = SocketTimeoutException("timeout"),
+            surface = AiErrorSurface.CHAT,
+            configuration = makeOfficialCloudServiceConfiguration(),
+            textProvider = testAiTextProvider()
+        )
+
+        assertEquals("AI request failed.", presentation.message)
+        assertNull(presentation.technicalError)
+    }
+
+    @Test
+    fun unexpectedIoUserFacingPresentationKeepsTechnicalError() {
+        val error = ProtocolException("bad response contract")
+        val presentation = makeAiUserFacingErrorPresentation(
+            error = error,
+            surface = AiErrorSurface.CHAT,
+            configuration = makeOfficialCloudServiceConfiguration(),
+            textProvider = testAiTextProvider()
+        )
+
+        assertEquals("AI request failed.", presentation.message)
+        assertEquals(error, presentation.technicalError)
+    }
+
+    @Test
+    fun expectedRemoteExceptionKeepsPrimaryMessageFriendlyAndHidesTechnicalDetails() {
         val presentation = makeAiBootstrapErrorPresentation(
             error = AiChatRemoteException(
                 message = "upstream failed with raw response",
@@ -38,12 +86,12 @@ class AiBootstrapErrorPresentationTest {
                 code = "LOCAL_CHAT_UNAVAILABLE",
                 stage = "load_bootstrap",
                 requestId = "request-123",
-                responseBody = "{\"error\":\"raw\"}"
+                responseBody = "{\"error\":\"raw\"}",
+                androidObservationAlreadyCaptured = false
             ),
             configuration = makeOfficialCloudServiceConfiguration(),
             textProvider = testAiTextProvider()
         )
-        val technicalDetails = presentation.technicalDetails.orEmpty()
 
         assertEquals(
             "AI is temporarily unavailable on the official server. Try again later.",
@@ -53,8 +101,85 @@ class AiBootstrapErrorPresentationTest {
         assertFalse(presentation.message.contains("LOCAL_CHAT_UNAVAILABLE"))
         assertFalse(presentation.message.contains("load_bootstrap"))
         assertFalse(presentation.message.contains("raw"))
+        assertNull(presentation.technicalDetails)
+    }
+
+    @Test
+    fun expectedProviderRemoteExceptionHidesTechnicalDetails() {
+        val presentation = makeAiBootstrapErrorPresentation(
+            error = AiChatRemoteException(
+                message = "provider auth failed with raw response",
+                statusCode = 503,
+                code = "LOCAL_CHAT_PROVIDER_AUTH_FAILED",
+                stage = "load_bootstrap",
+                requestId = "request-456",
+                responseBody = "{\"error\":\"raw\"}",
+                androidObservationAlreadyCaptured = false
+            ),
+            configuration = makeOfficialCloudServiceConfiguration(),
+            textProvider = testAiTextProvider()
+        )
+
+        assertEquals(
+            "AI is temporarily unavailable on the official server. Try again later.",
+            presentation.message
+        )
+        assertFalse(presentation.message.contains("503"))
+        assertFalse(presentation.message.contains("LOCAL_CHAT_PROVIDER_AUTH_FAILED"))
+        assertFalse(presentation.message.contains("provider auth failed"))
+        assertNull(presentation.technicalDetails)
+    }
+
+    @Test
+    fun expectedRemoteProviderAndTranscriptionErrorsHaveNoIssueDisposition() {
+        listOf(
+            "LOCAL_CHAT_UNAVAILABLE",
+            "LOCAL_CHAT_PROVIDER_AUTH_FAILED",
+            "CHAT_TRANSCRIPTION_NOT_CONFIGURED",
+            "CHAT_TRANSCRIPTION_PROVIDER_AUTH_FAILED",
+            "CHAT_TRANSCRIPTION_UNAVAILABLE"
+        ).forEach { code ->
+            val error = AiChatRemoteException(
+                message = "expected provider failure",
+                statusCode = 503,
+                code = code,
+                stage = "load_bootstrap",
+                requestId = "request-$code",
+                responseBody = "{\"error\":\"raw\"}",
+                androidObservationAlreadyCaptured = false
+            )
+
+            assertEquals(
+                AiChatFailureIssueDisposition.NONE,
+                aiChatFailureIssueDisposition(error = error)
+            )
+        }
+    }
+
+    @Test
+    fun unexpectedRemoteExceptionKeepsPrimaryMessageFriendlyAndMovesDiagnosticsToDetails() {
+        val presentation = makeAiBootstrapErrorPresentation(
+            error = AiChatRemoteException(
+                message = "upstream failed with raw response",
+                statusCode = 503,
+                code = "AI_PROVIDER_EXPLODED",
+                stage = "load_bootstrap",
+                requestId = "request-123",
+                responseBody = "{\"error\":\"raw\"}",
+                androidObservationAlreadyCaptured = false
+            ),
+            configuration = makeOfficialCloudServiceConfiguration(),
+            textProvider = testAiTextProvider()
+        )
+        val technicalDetails = presentation.technicalDetails.orEmpty()
+
+        assertEquals("AI chat could not be loaded. Try again.", presentation.message)
+        assertFalse(presentation.message.contains("503"))
+        assertFalse(presentation.message.contains("AI_PROVIDER_EXPLODED"))
+        assertFalse(presentation.message.contains("load_bootstrap"))
+        assertFalse(presentation.message.contains("raw"))
         assertTrue(technicalDetails.contains("statusCode: 503"))
-        assertTrue(technicalDetails.contains("code: LOCAL_CHAT_UNAVAILABLE"))
+        assertTrue(technicalDetails.contains("code: AI_PROVIDER_EXPLODED"))
         assertTrue(technicalDetails.contains("stage: load_bootstrap"))
         assertTrue(technicalDetails.contains("requestId: request-123"))
         assertFalse(technicalDetails.contains("message:"))
@@ -92,11 +217,10 @@ class AiBootstrapErrorPresentationTest {
     }
 
     @Test
-    fun blockedCloudIdentityUsesFriendlyPrimaryMessageAndBlockedReasonInTechnicalDetails() {
+    fun blockedCloudIdentityUsesFriendlyPrimaryMessageAndHidesTechnicalDetails() {
+        val error = AiChatBootstrapBlockedException()
         val presentation = makeAiBootstrapErrorPresentation(
-            error = AiChatBootstrapBlockedException(
-                message = "Cloud sync is blocked for this installation."
-            ),
+            error = error,
             configuration = makeOfficialCloudServiceConfiguration(),
             textProvider = testAiTextProvider()
         )
@@ -106,10 +230,10 @@ class AiBootstrapErrorPresentationTest {
             presentation.message
         )
         assertFalse(presentation.message.contains("Cloud sync is blocked"))
-        assertTrue(
-            presentation.technicalDetails.orEmpty().contains(
-                "Cloud sync is blocked for this installation."
-            )
+        assertNull(presentation.technicalDetails)
+        assertEquals(
+            AiChatFailureIssueDisposition.NONE,
+            aiChatFailureIssueDisposition(error = error)
         )
     }
 

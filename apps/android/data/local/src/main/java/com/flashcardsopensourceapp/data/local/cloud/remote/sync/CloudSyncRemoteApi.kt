@@ -223,7 +223,8 @@ internal fun parseRemotePushResponse(response: JSONObject): RemotePushResponse {
                         responseBody = response.toString(),
                         errorCode = null,
                         requestId = null,
-                        syncConflict = null
+                        syncConflict = null,
+                        androidObservationAlreadyCaptured = false
                     )
                 }
                 add(

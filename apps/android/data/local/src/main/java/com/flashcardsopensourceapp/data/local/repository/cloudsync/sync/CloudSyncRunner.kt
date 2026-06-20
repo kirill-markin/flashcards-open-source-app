@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.PersistedOutboxEntry
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.sync.SyncOperationPayload
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinitionJsonObject
+import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.isCloudIdentityConflictError
 import kotlinx.coroutines.CancellationException
 import org.json.JSONArray
@@ -153,11 +154,13 @@ internal suspend fun runCloudSyncCore(
         throw error
     } catch (error: Exception) {
         if (error is CloudSyncBlockedException || isCloudIdentityConflictError(error = error)) {
+            val blockedError = syncBlockedExceptionFor(error = error)
             syncLocalStore.markSyncBlocked(
                 workspaceId = workspaceId,
                 installationId = cloudSettings.installationId,
-                errorMessage = error.message ?: "Cloud sync is blocked for this installation."
+                errorMessage = blockedSyncMessage(error = blockedError)
             )
+            throw blockedError
         }
         throw error
     }
@@ -207,7 +210,21 @@ private enum class WorkspaceForkRecoveryStage(
 internal class CloudSyncBlockedException(
     message: String,
     cause: Throwable?
-) : Exception(message, cause)
+) : SyncBlockedException(message = message, cause = cause)
+
+internal fun syncBlockedExceptionFor(error: Exception): SyncBlockedException {
+    if (error is SyncBlockedException) {
+        return error
+    }
+    return SyncBlockedException(
+        message = error.message ?: "Cloud sync is blocked for this installation.",
+        cause = error
+    )
+}
+
+internal fun blockedSyncMessage(error: SyncBlockedException): String {
+    return error.message ?: "Cloud sync is blocked for this installation."
+}
 
 private suspend fun runBootstrapHydrationWithForkRecovery(
     cloudSettings: CloudSettings,

@@ -22,6 +22,9 @@ class ReviewTextProvider(
     val reviewUpdatedOnAnotherDeviceMessage: String
         get() = resources.getString(R.string.review_updated_on_another_device)
 
+    val technicalErrorTitle: String
+        get() = resources.getString(R.string.review_technical_error_title)
+
     val reviewCouldNotBeSaved: String
         get() = resources.getString(R.string.review_could_not_be_saved)
 

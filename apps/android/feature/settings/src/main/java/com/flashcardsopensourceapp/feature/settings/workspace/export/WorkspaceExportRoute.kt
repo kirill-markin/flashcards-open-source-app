@@ -28,12 +28,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
+import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceExportData
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsScreenScaffold
 import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 import java.time.LocalDate
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 const val workspaceExportScreenTag: String = "workspace_export_screen"
@@ -42,6 +45,7 @@ const val workspaceExportCsvButtonTag: String = "workspace_export_csv_button"
 @Composable
 fun WorkspaceExportRoute(
     viewModel: WorkspaceExportViewModel,
+    technicalErrorController: AppTechnicalErrorController,
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -68,13 +72,18 @@ fun WorkspaceExportRoute(
                     csv = makeWorkspaceCardsCsv(exportData = exportData)
                 )
                 viewModel.finishExport()
-            } catch (error: IllegalArgumentException) {
-                viewModel.showExportError(
-                    message = context.getString(R.string.settings_export_write_failed)
-                )
-            } catch (error: IllegalStateException) {
-                viewModel.showExportError(
-                    message = context.getString(R.string.settings_export_write_failed)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                val errorMessage = context.getString(R.string.settings_export_write_failed)
+                viewModel.showExportError(message = errorMessage)
+                technicalErrorController.showTechnicalError(
+                    error = makeAppTechnicalError(
+                        title = context.getString(R.string.settings_technical_error_title),
+                        message = errorMessage,
+                        throwable = error
+                    ),
+                    throwable = error
                 )
             }
             pendingExportData = null

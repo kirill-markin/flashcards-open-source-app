@@ -82,21 +82,35 @@ data class AiTextProvider(
     fun generalError(message: String): AiAlertState {
         return AiAlertState.GeneralError(
             title = errorTitle,
-            message = message
+            message = message,
+            technicalError = null
+        )
+    }
+
+    fun technicalError(
+        message: String,
+        throwable: Throwable
+    ): AiAlertState {
+        return AiAlertState.GeneralError(
+            title = errorTitle,
+            message = message,
+            technicalError = throwable
         )
     }
 
     fun requestTooLargeAlert(): AiAlertState {
         return AiAlertState.GeneralError(
             title = requestTooLargeTitle,
-            message = requestTooLargeMessage
+            message = requestTooLargeMessage,
+            technicalError = null
         )
     }
 
     fun attachmentUnsupportedAlert(): AiAlertState {
         return AiAlertState.GeneralError(
             title = attachmentUnsupportedTitle,
-            message = attachmentUnsupportedMessage
+            message = attachmentUnsupportedMessage,
+            technicalError = null
         )
     }
 

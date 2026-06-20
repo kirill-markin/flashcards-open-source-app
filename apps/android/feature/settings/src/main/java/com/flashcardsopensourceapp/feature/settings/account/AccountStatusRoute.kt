@@ -55,7 +55,7 @@ fun AccountStatusRoute(
                 .fillMaxSize()
                 .testTag(tag = accountStatusScreenTag)
         ) {
-            if (uiState.syncBlockedMessage != null) {
+            if (uiState.isSyncBlocked) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(
@@ -65,10 +65,6 @@ fun AccountStatusRoute(
                             Text(
                                 text = stringResource(R.string.settings_account_status_sync_blocked_title),
                                 style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = uiState.syncBlockedMessage,
-                                color = MaterialTheme.colorScheme.error
                             )
                             Text(
                                 text = stringResource(R.string.settings_account_status_sync_blocked_body)

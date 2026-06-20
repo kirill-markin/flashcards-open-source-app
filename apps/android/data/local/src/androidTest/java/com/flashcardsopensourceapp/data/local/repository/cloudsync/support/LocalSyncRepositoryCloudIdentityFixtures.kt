@@ -48,7 +48,8 @@ internal fun createSyncWorkspaceForkRequiredError(
             recoverable = true,
             conflictingWorkspaceId = null,
             remoteIsEmpty = null
-        )
+        ),
+        androidObservationAlreadyCaptured = false
     )
 }
 

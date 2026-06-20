@@ -6,6 +6,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
+import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudHealthValidationException
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.cloud.makeCustomCloudServiceConfiguration
@@ -13,12 +17,14 @@ import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import java.io.IOException
 
 private data class ServerSettingsDraftState(
     val customOrigin: String,
@@ -29,6 +35,7 @@ private data class ServerSettingsDraftState(
 
 class ServerSettingsViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
+    private val technicalErrorController: AppTechnicalErrorController,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
@@ -107,20 +114,31 @@ class ServerSettingsViewModel(
     }
 
     suspend fun applyPreviewConfiguration() {
-        val previewConfiguration = requireNotNull(draftState.value.previewConfiguration) {
-            strings.get(R.string.settings_server_enter_valid_url)
+        val previewConfiguration = draftState.value.previewConfiguration
+        if (previewConfiguration == null) {
+            draftState.update { state ->
+                state.copy(errorMessage = strings.get(R.string.settings_server_enter_valid_url))
+            }
+            return
         }
         draftState.update { state -> state.copy(isApplying = true, errorMessage = "") }
         try {
             cloudAccountRepository.applyCustomServer(previewConfiguration)
             draftState.update { state -> state.copy(isApplying = false, errorMessage = "") }
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_server_apply_failed)
             draftState.update { state ->
                 state.copy(
                     isApplying = false,
-                    errorMessage = error.message ?: strings.get(R.string.settings_server_apply_failed)
+                    errorMessage = errorMessage
                 )
             }
+            showTechnicalError(
+                message = errorMessage,
+                throwable = error
+            )
         }
     }
 
@@ -135,13 +153,48 @@ class ServerSettingsViewModel(
                     errorMessage = ""
                 )
             }
-        } catch (error: Exception) {
+        } catch (error: IllegalArgumentException) {
             draftState.update { state ->
                 state.copy(
                     isApplying = false,
-                    errorMessage = error.message ?: strings.get(R.string.settings_server_validate_failed)
+                    errorMessage = strings.get(R.string.settings_server_enter_valid_url)
                 )
             }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: CloudRemoteException) {
+            draftState.update { state ->
+                state.copy(
+                    isApplying = false,
+                    errorMessage = strings.get(R.string.settings_server_validate_failed)
+                )
+            }
+        } catch (error: CloudHealthValidationException) {
+            draftState.update { state ->
+                state.copy(
+                    isApplying = false,
+                    errorMessage = strings.get(R.string.settings_server_validate_failed)
+                )
+            }
+        } catch (error: IOException) {
+            draftState.update { state ->
+                state.copy(
+                    isApplying = false,
+                    errorMessage = strings.get(R.string.settings_server_validate_failed)
+                )
+            }
+        } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_server_validate_failed)
+            draftState.update { state ->
+                state.copy(
+                    isApplying = false,
+                    errorMessage = errorMessage
+                )
+            }
+            showTechnicalError(
+                message = errorMessage,
+                throwable = error
+            )
         }
     }
 
@@ -157,25 +210,48 @@ class ServerSettingsViewModel(
                     errorMessage = ""
                 )
             }
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_server_reset_failed)
             draftState.update { state ->
                 state.copy(
                     isApplying = false,
-                    errorMessage = error.message ?: strings.get(R.string.settings_server_reset_failed)
+                    errorMessage = errorMessage
                 )
             }
+            showTechnicalError(
+                message = errorMessage,
+                throwable = error
+            )
         }
+    }
+
+    private fun showTechnicalError(
+        message: String,
+        throwable: Throwable
+    ) {
+        technicalErrorController.showTechnicalError(
+            error = makeAppTechnicalError(
+                title = strings.get(R.string.settings_technical_error_title),
+                message = message,
+                throwable = throwable
+            ),
+            throwable = throwable
+        )
     }
 }
 
 fun createServerSettingsViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
+    technicalErrorController: AppTechnicalErrorController,
     applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             ServerSettingsViewModel(
                 cloudAccountRepository = cloudAccountRepository,
+                technicalErrorController = technicalErrorController,
                 strings = createSettingsStringResolver(context = applicationContext)
             )
         }

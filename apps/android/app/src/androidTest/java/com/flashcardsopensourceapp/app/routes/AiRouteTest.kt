@@ -33,6 +33,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
+import com.flashcardsopensourceapp.core.ui.AppTechnicalError
+import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
@@ -59,6 +61,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+
+private object NoOpTechnicalErrorController : AppTechnicalErrorController {
+    override fun showTechnicalError(
+        error: AppTechnicalError,
+        throwable: Throwable
+    ) = Unit
+}
 
 @RunWith(AndroidJUnit4::class)
 class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
@@ -106,7 +115,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onWarmUpSessionIfNeeded = {},
                     onRetryConversationLoad = {},
                     onShowAlert = {},
-                    onShowErrorMessage = {}
+                    onShowErrorMessage = {},
+                    technicalErrorController = NoOpTechnicalErrorController
                 )
             }
         }
@@ -179,7 +189,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onWarmUpSessionIfNeeded = {},
                     onRetryConversationLoad = {},
                     onShowAlert = {},
-                    onShowErrorMessage = {}
+                    onShowErrorMessage = {},
+                    technicalErrorController = NoOpTechnicalErrorController
                 )
             }
         }
@@ -237,7 +248,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onWarmUpSessionIfNeeded = {},
                     onRetryConversationLoad = {},
                     onShowAlert = {},
-                    onShowErrorMessage = {}
+                    onShowErrorMessage = {},
+                    technicalErrorController = NoOpTechnicalErrorController
                 )
             }
         }
@@ -273,7 +285,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onWarmUpSessionIfNeeded = {},
                     onRetryConversationLoad = {},
                     onShowAlert = {},
-                    onShowErrorMessage = {}
+                    onShowErrorMessage = {},
+                    technicalErrorController = NoOpTechnicalErrorController
                 )
             }
         }
@@ -312,7 +325,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onWarmUpSessionIfNeeded = {},
                     onRetryConversationLoad = {},
                     onShowAlert = {},
-                    onShowErrorMessage = {}
+                    onShowErrorMessage = {},
+                    technicalErrorController = NoOpTechnicalErrorController
                 )
             }
         }
@@ -364,7 +378,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         onWarmUpSessionIfNeeded = {},
                         onRetryConversationLoad = {},
                         onShowAlert = {},
-                        onShowErrorMessage = {}
+                        onShowErrorMessage = {},
+                        technicalErrorController = NoOpTechnicalErrorController
                     )
                 }
             }
@@ -418,7 +433,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onWarmUpSessionIfNeeded = {},
                     onRetryConversationLoad = {},
                     onShowAlert = {},
-                    onShowErrorMessage = {}
+                    onShowErrorMessage = {},
+                    technicalErrorController = NoOpTechnicalErrorController
                 )
             }
         }
@@ -473,7 +489,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onWarmUpSessionIfNeeded = {},
                     onRetryConversationLoad = {},
                     onShowAlert = {},
-                    onShowErrorMessage = {}
+                    onShowErrorMessage = {},
+                    technicalErrorController = NoOpTechnicalErrorController
                 )
             }
         }
@@ -531,7 +548,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onWarmUpSessionIfNeeded = {},
                     onRetryConversationLoad = {},
                     onShowAlert = {},
-                    onShowErrorMessage = {}
+                    onShowErrorMessage = {},
+                    technicalErrorController = NoOpTechnicalErrorController
                 )
             }
         }
@@ -600,7 +618,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                             onWarmUpSessionIfNeeded = {},
                             onRetryConversationLoad = {},
                             onShowAlert = {},
-                            onShowErrorMessage = {}
+                            onShowErrorMessage = {},
+                            technicalErrorController = NoOpTechnicalErrorController
                         )
                     }
 
@@ -654,7 +673,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onWarmUpSessionIfNeeded = {},
                     onRetryConversationLoad = {},
                     onShowAlert = {},
-                    onShowErrorMessage = {}
+                    onShowErrorMessage = {},
+                    technicalErrorController = NoOpTechnicalErrorController
                 )
             }
         }
@@ -720,7 +740,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onWarmUpSessionIfNeeded = {},
                     onRetryConversationLoad = {},
                     onShowAlert = {},
-                    onShowErrorMessage = {}
+                    onShowErrorMessage = {},
+                    technicalErrorController = NoOpTechnicalErrorController
                 )
             }
         }

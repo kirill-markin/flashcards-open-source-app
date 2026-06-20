@@ -791,7 +791,8 @@ class CloudSignInViewModelTest {
                 responseBody = "{\"error\":\"bad request\"}",
                 errorCode = "VALIDATION_ERROR",
                 requestId = "req-123",
-                syncConflict = null
+                syncConflict = null,
+                androidObservationAlreadyCaptured = false
             )
         )
         val viewModel = CloudSignInViewModel(

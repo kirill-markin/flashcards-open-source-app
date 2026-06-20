@@ -58,7 +58,8 @@ class LocalSyncRepositoryDisconnectedStateTest {
                     .toString(),
                 errorCode = "ACCOUNT_DELETED",
                 requestId = "request-1",
-                syncConflict = null
+                syncConflict = null,
+                androidObservationAlreadyCaptured = false
             )
         )
         val repository = environment.createSyncRepository(remoteGateway = remoteGateway)

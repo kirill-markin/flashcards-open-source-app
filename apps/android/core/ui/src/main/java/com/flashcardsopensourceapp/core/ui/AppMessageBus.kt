@@ -26,7 +26,8 @@ fun bidiWrap(
 }
 
 class AppMessageBus(
-    private val reportTechnicalError: (Throwable) -> Unit
+    private val reportTechnicalError: (Throwable) -> Unit,
+    private val shouldReportTechnicalError: (Throwable) -> Boolean
 ) : TransientMessageController, AppTechnicalErrorController {
     private val messagesFlow = MutableSharedFlow<String>(
         replay = 0,
@@ -45,7 +46,9 @@ class AppMessageBus(
         error: AppTechnicalError,
         throwable: Throwable
     ) {
-        reportTechnicalError(throwable)
+        if (shouldReportTechnicalError(throwable)) {
+            reportTechnicalError(throwable)
+        }
         activeTechnicalErrorFlow.value = error
     }
 

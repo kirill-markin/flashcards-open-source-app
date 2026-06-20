@@ -12,9 +12,12 @@ import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumAttachmentBy
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatSupportedFileExtensions
 import com.flashcardsopensourceapp.data.local.model.ai.canonicalAiChatAttachmentMediaTypeForExtension
 import com.flashcardsopensourceapp.data.local.model.ai.makeAiChatAttachment
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiDictationNoSpeechException
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileNotFoundException
+import java.io.IOException
 import java.util.UUID
 
 private const val cameraAttachmentFileName: String = "photo.jpg"
@@ -32,6 +35,11 @@ data class RecordedAiChatAudio(
     val mediaType: String,
     val audioBytes: ByteArray
 )
+
+class AiAttachmentImportUserException(
+    message: String,
+    cause: Throwable?
+) : Exception(message, cause)
 
 class AndroidAiChatDictationRecorder(
     private val context: Context,
@@ -76,21 +84,34 @@ class AndroidAiChatDictationRecorder(
             textProvider.dictationRecordingFileMissing
         }
 
-        try {
+        val stopFailure = try {
             recorder.stop()
+            null
+        } catch (error: RuntimeException) {
+            error
         } finally {
             recorder.release()
             mediaRecorder = null
         }
 
         outputFile = null
+        if (stopFailure != null) {
+            recordedFile.delete()
+            throw AiDictationNoSpeechException(
+                message = textProvider.noSpeechRecorded,
+                cause = stopFailure
+            )
+        }
         val audioBytes = try {
             recordedFile.readBytes()
         } finally {
             recordedFile.delete()
         }
-        require(audioBytes.isNotEmpty()) {
-            textProvider.noSpeechRecorded
+        if (audioBytes.isEmpty()) {
+            throw AiDictationNoSpeechException(
+                message = textProvider.noSpeechRecorded,
+                cause = null
+            )
         }
 
         return RecordedAiChatAudio(
@@ -130,8 +151,11 @@ fun makeAiChatImageAttachmentFromUri(
     textProvider: AiTextProvider
 ): AiChatAttachment {
     val mediaType = resolveMimeType(context = context, uri = uri)
-    require(mediaType.startsWith(prefix = "image/")) {
-        textProvider.selectedItemNotImage
+    if (mediaType.startsWith(prefix = "image/").not()) {
+        throw AiAttachmentImportUserException(
+            message = textProvider.selectedItemNotImage,
+            cause = null
+        )
     }
     val displayName = queryDisplayName(context = context, uri = uri)
         ?: "photo.${fileExtensionFromMimeType(mediaType = mediaType) ?: "jpg"}"
@@ -153,16 +177,21 @@ fun makeAiChatDocumentAttachmentFromUri(
     uri: Uri,
     textProvider: AiTextProvider
 ): AiChatAttachment {
-    val bytes = context.contentResolver.openInputStream(uri)?.use { inputStream ->
-        inputStream.readBytes()
-    } ?: throw IllegalArgumentException(textProvider.selectedFileReadFailed)
+    val bytes = readAiChatDocumentAttachmentBytes(
+        context = context,
+        uri = uri,
+        textProvider = textProvider
+    )
     requireAiChatAttachmentSize(
         byteCount = bytes.size,
         textProvider = textProvider
     )
 
     val displayName = queryDisplayName(context = context, uri = uri)
-        ?: throw IllegalArgumentException(textProvider.selectedFileNameUnavailable)
+        ?: throw AiAttachmentImportUserException(
+            message = textProvider.selectedFileNameUnavailable,
+            cause = null
+        )
     val mediaType = resolveMimeType(context = context, uri = uri)
     val fileExtension = resolveFileExtension(
         fileName = displayName,
@@ -180,6 +209,33 @@ fun makeAiChatDocumentAttachmentFromUri(
         mediaType = canonicalMediaType,
         base64Data = bytes.base64()
     )
+}
+
+private fun readAiChatDocumentAttachmentBytes(
+    context: Context,
+    uri: Uri,
+    textProvider: AiTextProvider
+): ByteArray {
+    return try {
+        context.contentResolver.openInputStream(uri)?.use { inputStream ->
+            inputStream.readBytes()
+        } ?: throw AiAttachmentImportUserException(
+            message = textProvider.selectedFileReadFailed,
+            cause = null
+        )
+    } catch (error: SecurityException) {
+        throw error
+    } catch (error: FileNotFoundException) {
+        throw AiAttachmentImportUserException(
+            message = textProvider.selectedFileReadFailed,
+            cause = error
+        )
+    } catch (error: IOException) {
+        throw AiAttachmentImportUserException(
+            message = textProvider.selectedFileReadFailed,
+            cause = error
+        )
+    }
 }
 
 fun aiChatDocumentPickerMimeTypes(): Array<String> {
@@ -233,15 +289,21 @@ private fun resolveFileExtension(
     }
 
     return fileExtensionFromMimeType(mediaType = mediaType)
-        ?: throw IllegalArgumentException(textProvider.selectedFileTypeUnsupported)
+        ?: throw AiAttachmentImportUserException(
+            message = textProvider.selectedFileTypeUnsupported,
+            cause = null
+        )
 }
 
 private fun requireAiChatAttachmentSize(
     byteCount: Int,
     textProvider: AiTextProvider
 ) {
-    require(byteCount <= aiChatMaximumAttachmentBytes) {
-        textProvider.attachmentTooLarge
+    if (byteCount > aiChatMaximumAttachmentBytes) {
+        throw AiAttachmentImportUserException(
+            message = textProvider.attachmentTooLarge,
+            cause = null
+        )
     }
 }
 
@@ -261,10 +323,13 @@ private fun compressImageUriForAiChatAttachment(
             textProvider = textProvider
         )
     } catch (error: Exception) {
-        if (error is IllegalArgumentException && error.message == textProvider.attachmentTooLarge) {
+        if (error is AiAttachmentImportUserException) {
             throw error
         }
-        throw IllegalArgumentException(textProvider.selectedImageReadFailed, error)
+        throw AiAttachmentImportUserException(
+            message = textProvider.selectedImageReadFailed,
+            cause = error
+        )
     }
 }
 
@@ -392,8 +457,11 @@ private fun requireSupportedAiChatAttachmentExtension(
     textProvider: AiTextProvider
 ) {
     val normalizedExtension = fileExtension.trim().lowercase()
-    require(aiChatSupportedFileExtensions.contains(normalizedExtension)) {
-        textProvider.unsupportedFileType(extension = normalizedExtension)
+    if (aiChatSupportedFileExtensions.contains(normalizedExtension).not()) {
+        throw AiAttachmentImportUserException(
+            message = textProvider.unsupportedFileType(extension = normalizedExtension),
+            cause = null
+        )
     }
 }
 

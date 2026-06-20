@@ -23,6 +23,7 @@ import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEvent
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncOutcome
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncRequest
+import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGuestSessionCoordinator
@@ -133,7 +134,7 @@ class LocalSyncRepository(
             val persistedBlockedStatus = persistedSyncStatus?.status as? SyncStatus.Blocked
             if (persistedBlockedStatus != null) {
                 syncStatusState.value = persistedSyncStatus
-                val error = IllegalStateException(persistedBlockedStatus.message)
+                val error = SyncBlockedException(message = persistedBlockedStatus.message, cause = null)
                 emitAutoSyncFailure(
                     autoSyncRequest = autoSyncRequest,
                     error = error
@@ -142,7 +143,7 @@ class LocalSyncRepository(
             }
             if (currentStatus is SyncStatus.Blocked) {
                 if (currentStatus.installationId == cloudSettings.installationId) {
-                    val error = IllegalStateException(currentStatus.message)
+                    val error = SyncBlockedException(message = currentStatus.message, cause = null)
                     emitAutoSyncFailure(
                         autoSyncRequest = autoSyncRequest,
                         error = error
@@ -215,8 +216,9 @@ class LocalSyncRepository(
                     emitAutoSyncSuccess(autoSyncRequest = autoSyncRequest)
                     return@runExclusive
                 }
-                if (isCloudIdentityConflictError(error = error) || error is CloudSyncBlockedException) {
-                    val message = error.message ?: "Cloud sync is blocked for this installation."
+                if (isCloudIdentityConflictError(error = error) || error is SyncBlockedException) {
+                    val blockedError = syncBlockedExceptionFor(error = error)
+                    val message = blockedSyncMessage(error = blockedError)
                     syncStatusState.value = SyncStatusSnapshot(
                         status = SyncStatus.Blocked(
                             message = message,
@@ -227,9 +229,9 @@ class LocalSyncRepository(
                     )
                     emitAutoSyncFailure(
                         autoSyncRequest = autoSyncRequest,
-                        error = error
+                        error = blockedError
                     )
-                    throw error
+                    throw blockedError
                 }
                 if (error is CloudLinkedAccountMismatchException) {
                     val message = error.message ?: "Cloud account changed during sync."

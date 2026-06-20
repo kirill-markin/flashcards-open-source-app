@@ -37,7 +37,8 @@ class AiChatRuntimeGuestQuotaPromptTest {
             code = "GUEST_AI_LIMIT_REACHED",
             stage = null,
             requestId = "request-1",
-            responseBody = null
+            responseBody = null,
+            androidObservationAlreadyCaptured = false
         )
         val runtime = makeRuntime(scope = this, repository = repository)
         val attachment = AiChatAttachment.Binary(
@@ -105,7 +106,8 @@ class AiChatRuntimeGuestQuotaPromptTest {
             code = "GUEST_AI_LIMIT_REACHED",
             stage = null,
             requestId = "request-1",
-            responseBody = null
+            responseBody = null,
+            androidObservationAlreadyCaptured = false
         )
         val runtime = makeRuntime(scope = this, repository = repository)
 
@@ -148,7 +150,8 @@ class AiChatRuntimeGuestQuotaPromptTest {
             code = "GUEST_AI_LIMIT_REACHED",
             stage = null,
             requestId = "request-1",
-            responseBody = null
+            responseBody = null,
+            androidObservationAlreadyCaptured = false
         )
         val runtime = makeRuntime(scope = this, repository = repository)
 

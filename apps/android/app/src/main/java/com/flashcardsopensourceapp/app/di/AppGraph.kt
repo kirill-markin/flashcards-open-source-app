@@ -21,6 +21,7 @@ import com.flashcardsopensourceapp.app.store.StoreReviewRequestManager
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
+import com.flashcardsopensourceapp.core.observability.shouldCaptureAndroidThrowable
 import com.flashcardsopensourceapp.core.ui.AppMessageBus
 import com.flashcardsopensourceapp.core.ui.TestModeStore
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
@@ -136,7 +137,8 @@ class AppGraph(
 
     internal val appPackageInfo: AppPackageInfo = loadPackageInfo(context = context)
     val appMessageBus = AppMessageBus(
-        reportTechnicalError = ::captureTechnicalErrorDialogException
+        reportTechnicalError = ::captureTechnicalErrorDialogException,
+        shouldReportTechnicalError = ::shouldCaptureAndroidThrowable
     )
     val testTechnicalErrorDialogPreviewController = TestTechnicalErrorDialogPreviewController()
     val testModeStore = TestModeStore(context = context.applicationContext)

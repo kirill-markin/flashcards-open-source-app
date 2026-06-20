@@ -6,17 +6,22 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
+import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
+import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.DestructiveActionState
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
+import com.flashcardsopensourceapp.feature.settings.cloud.expectedWorkspaceCloudFailureMessage
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.workspace.shared.formatWorkspaceSchedulerSummary
 import com.flashcardsopensourceapp.feature.settings.workspaceResetProgressConfirmationText
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -40,6 +45,7 @@ class WorkspaceSettingsViewModel(
     workspaceRepository: WorkspaceRepository,
     private val cloudAccountRepository: CloudAccountRepository,
     reviewNotificationsStore: ReviewNotificationsStore,
+    private val technicalErrorController: AppTechnicalErrorController,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
@@ -188,13 +194,35 @@ class WorkspaceSettingsViewModel(
                     showResetConfirmation = false
                 )
             }
-        } catch (error: Exception) {
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: SyncBlockedException) {
             draftState.update { state ->
                 state.copy(
                     isResetPreviewLoading = false,
                     showResetConfirmation = true,
                     showResetPreviewAlert = false,
-                    errorMessage = error.message ?: strings.get(R.string.settings_workspace_reset_preview_failed)
+                    errorMessage = strings.get(R.string.settings_account_status_sync_blocked_body)
+                )
+            }
+        } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_workspace_reset_preview_failed)
+            val expectedErrorMessage = expectedWorkspaceCloudFailureMessage(
+                error = error,
+                fallbackMessage = errorMessage
+            )
+            draftState.update { state ->
+                state.copy(
+                    isResetPreviewLoading = false,
+                    showResetConfirmation = true,
+                    showResetPreviewAlert = false,
+                    errorMessage = expectedErrorMessage ?: errorMessage
+                )
+            }
+            if (expectedErrorMessage == null) {
+                showTechnicalError(
+                    message = errorMessage,
+                    throwable = error
                 )
             }
         }
@@ -259,15 +287,50 @@ class WorkspaceSettingsViewModel(
                     )
                 )
             }
-        } catch (error: Exception) {
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: SyncBlockedException) {
             draftState.update { state ->
                 state.copy(
                     resetState = DestructiveActionState.FAILED,
-                    errorMessage = error.message ?: strings.get(R.string.settings_workspace_reset_failed),
+                    errorMessage = strings.get(R.string.settings_account_status_sync_blocked_body),
                     successMessage = ""
                 )
             }
+        } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_workspace_reset_failed)
+            val expectedErrorMessage = expectedWorkspaceCloudFailureMessage(
+                error = error,
+                fallbackMessage = errorMessage
+            )
+            draftState.update { state ->
+                state.copy(
+                    resetState = DestructiveActionState.FAILED,
+                    errorMessage = expectedErrorMessage ?: errorMessage,
+                    successMessage = ""
+                )
+            }
+            if (expectedErrorMessage == null) {
+                showTechnicalError(
+                    message = errorMessage,
+                    throwable = error
+                )
+            }
         }
+    }
+
+    private fun showTechnicalError(
+        message: String,
+        throwable: Throwable
+    ) {
+        technicalErrorController.showTechnicalError(
+            error = makeAppTechnicalError(
+                title = strings.get(R.string.settings_technical_error_title),
+                message = message,
+                throwable = throwable
+            ),
+            throwable = throwable
+        )
     }
 }
 
@@ -275,6 +338,7 @@ fun createWorkspaceSettingsViewModelFactory(
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
     reviewNotificationsStore: ReviewNotificationsStore,
+    technicalErrorController: AppTechnicalErrorController,
     applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
@@ -283,6 +347,7 @@ fun createWorkspaceSettingsViewModelFactory(
                 workspaceRepository = workspaceRepository,
                 cloudAccountRepository = cloudAccountRepository,
                 reviewNotificationsStore = reviewNotificationsStore,
+                technicalErrorController = technicalErrorController,
                 strings = createSettingsStringResolver(context = applicationContext)
             )
         }

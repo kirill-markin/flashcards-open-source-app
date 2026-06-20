@@ -56,6 +56,7 @@
     <string name="review_manage_filtered_decks">Manage decks</string>
     <string name="review_current_chip">Current</string>
     <string name="review_updated_on_another_device">This review updated on another device.</string>
+    <string name="review_technical_error_title">Something went wrong</string>
     <string name="review_could_not_be_saved">Review could not be saved.</string>
     <string name="review_queue_could_not_be_loaded">Review queue could not be loaded.</string>
     <string name="review_speech_unavailable">Speech is unavailable on this device.</string>

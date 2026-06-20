@@ -6,10 +6,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
+import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
+import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.R
@@ -22,6 +25,7 @@ import com.flashcardsopensourceapp.feature.settings.makeSettingsAttentionIssues
 import com.flashcardsopensourceapp.feature.settings.makeSettingsAttentionSummary
 import com.flashcardsopensourceapp.feature.settings.resolveAppMetadataSyncStatusText
 import com.flashcardsopensourceapp.feature.settings.resolveWorkspaceName
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -39,6 +43,7 @@ class AccountStatusViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
     private val syncRepository: SyncRepository,
     private val messageController: TransientMessageController,
+    private val technicalErrorController: AppTechnicalErrorController,
     workspaceRepository: WorkspaceRepository,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
@@ -69,7 +74,7 @@ class AccountStatusViewModel(
             linkedEmail = cloudSettings.linkedEmail,
             installationId = cloudSettings.installationId,
             syncStatusText = when (val status = syncStatus.status) {
-                is SyncStatus.Blocked -> status.message
+                is SyncStatus.Blocked -> strings.get(R.string.settings_account_status_sync_blocked_title)
                 is com.flashcardsopensourceapp.data.local.model.sync.SyncStatus.Failed -> status.message
                 com.flashcardsopensourceapp.data.local.model.sync.SyncStatus.Idle -> when (cloudSettings.cloudState) {
                     CloudAccountState.GUEST -> strings.get(R.string.settings_cloud_status_guest_ai_session)
@@ -85,7 +90,11 @@ class AccountStatusViewModel(
             isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
             isLinkingReady = cloudSettings.cloudState == CloudAccountState.LINKING_READY,
             isSyncBlocked = syncStatus.status is SyncStatus.Blocked,
-            syncBlockedMessage = (syncStatus.status as? SyncStatus.Blocked)?.message,
+            syncBlockedMessage = if (syncStatus.status is SyncStatus.Blocked) {
+                strings.get(R.string.settings_account_status_sync_blocked_body)
+            } else {
+                null
+            },
             accountStatusPrimaryActionAttentionCount = accountStatusPrimaryActionAttentionCount(
                 cloudState = cloudSettings.cloudState,
                 attentionSummary = attentionSummary
@@ -133,16 +142,56 @@ class AccountStatusViewModel(
 
     suspend fun syncNow() {
         draftState.update { state -> state.copy(isSubmitting = true, errorMessage = "") }
-        try {
-            syncRepository.syncNow()
-            draftState.update { state -> state.copy(isSubmitting = false, errorMessage = "") }
-        } catch (error: Exception) {
+        val blockedMessage = uiState.value.syncBlockedMessage
+        if (blockedMessage.isNullOrBlank().not()) {
             draftState.update { state ->
                 state.copy(
                     isSubmitting = false,
-                    errorMessage = error.message ?: strings.get(R.string.settings_account_status_sync_failed)
+                    errorMessage = blockedMessage ?: strings.get(R.string.settings_account_status_sync_blocked_body)
                 )
             }
+            return
+        }
+
+        try {
+            syncRepository.syncNow()
+            draftState.update { state -> state.copy(isSubmitting = false, errorMessage = "") }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: SyncBlockedException) {
+            draftState.update { state ->
+                state.copy(
+                    isSubmitting = false,
+                    errorMessage = strings.get(R.string.settings_account_status_sync_blocked_body)
+                )
+            }
+        } catch (error: Exception) {
+            val syncBlockedMessage = uiState.value.syncBlockedMessage
+            if (syncBlockedMessage.isNullOrBlank().not()) {
+                draftState.update { state ->
+                    state.copy(
+                        isSubmitting = false,
+                        errorMessage = syncBlockedMessage ?: strings.get(R.string.settings_account_status_sync_blocked_body)
+                    )
+                }
+                return
+            }
+
+            val errorMessage = strings.get(R.string.settings_account_status_sync_failed)
+            draftState.update { state ->
+                state.copy(
+                    isSubmitting = false,
+                    errorMessage = errorMessage
+                )
+            }
+            technicalErrorController.showTechnicalError(
+                error = makeAppTechnicalError(
+                    title = strings.get(R.string.settings_technical_error_title),
+                    message = errorMessage,
+                    throwable = error
+                ),
+                throwable = error
+            )
         }
     }
 
@@ -160,14 +209,25 @@ class AccountStatusViewModel(
             messageController.showMessage(
                 message = strings.get(R.string.settings_account_status_logged_out_message)
             )
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_account_status_logout_failed)
             draftState.update { state ->
                 state.copy(
                     isSubmitting = false,
                     showLogoutConfirmation = false,
-                    errorMessage = error.message ?: strings.get(R.string.settings_account_status_logout_failed)
+                    errorMessage = errorMessage
                 )
             }
+            technicalErrorController.showTechnicalError(
+                error = makeAppTechnicalError(
+                    title = strings.get(R.string.settings_technical_error_title),
+                    message = errorMessage,
+                    throwable = error
+                ),
+                throwable = error
+            )
         }
     }
 }
@@ -188,6 +248,7 @@ fun createAccountStatusViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
     syncRepository: SyncRepository,
     messageController: TransientMessageController,
+    technicalErrorController: AppTechnicalErrorController,
     applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
@@ -196,6 +257,7 @@ fun createAccountStatusViewModelFactory(
                 cloudAccountRepository = cloudAccountRepository,
                 syncRepository = syncRepository,
                 messageController = messageController,
+                technicalErrorController = technicalErrorController,
                 workspaceRepository = workspaceRepository,
                 strings = createSettingsStringResolver(context = applicationContext)
             )

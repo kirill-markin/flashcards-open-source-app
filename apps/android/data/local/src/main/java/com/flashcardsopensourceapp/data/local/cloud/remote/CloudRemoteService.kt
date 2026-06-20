@@ -92,15 +92,19 @@ class CloudRemoteService private constructor(
     private val syncApi = CloudSyncRemoteApi(httpClient = httpClient)
 
     override suspend fun validateConfiguration(configuration: CloudServiceConfiguration) {
-        httpClient.getJson(
-            baseUrl = configuration.authBaseUrl,
-            path = "/health",
-            authorizationHeader = null
+        requireAuthHealthResponse(
+            response = httpClient.getJson(
+                baseUrl = configuration.authBaseUrl,
+                path = "/health",
+                authorizationHeader = null
+            )
         )
-        httpClient.getJson(
-            baseUrl = configuration.apiBaseUrl,
-            path = "/health",
-            authorizationHeader = null
+        requireApiHealthResponse(
+            response = httpClient.getJson(
+                baseUrl = configuration.apiBaseUrl,
+                path = "/health",
+                authorizationHeader = null
+            )
         )
     }
 
@@ -490,4 +494,27 @@ class CloudRemoteService private constructor(
             body = body
         )
     }
+}
+
+private fun requireAuthHealthResponse(response: JSONObject) {
+    if (response.optBoolean("ok", false)) {
+        return
+    }
+
+    throw CloudHealthValidationException(
+        message = "Cloud auth health response was not recognized.",
+        cause = null
+    )
+}
+
+private fun requireApiHealthResponse(response: JSONObject) {
+    val status = response.optString("status", "").trim()
+    if (status.equals("ok", ignoreCase = true)) {
+        return
+    }
+
+    throw CloudHealthValidationException(
+        message = "Cloud API health response was not recognized.",
+        cause = null
+    )
 }

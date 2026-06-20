@@ -18,6 +18,7 @@ internal fun makeCloudRemoteException(statusCode: Int): CloudRemoteException {
         responseBody = """{"message":"temporary"}""",
         errorCode = null,
         requestId = "request-$statusCode",
-        syncConflict = null
+        syncConflict = null,
+        androidObservationAlreadyCaptured = false
     )
 }

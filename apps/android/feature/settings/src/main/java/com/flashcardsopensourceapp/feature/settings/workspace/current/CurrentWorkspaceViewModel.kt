@@ -6,9 +6,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
+import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
@@ -18,17 +20,20 @@ import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepos
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncOutcome
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncRequest
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
+import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.cloud.buildCurrentWorkspaceItems
 import com.flashcardsopensourceapp.feature.settings.cloud.currentWorkspaceSelectionErrorMessage
 import com.flashcardsopensourceapp.feature.settings.cloud.displayCloudAccountStateTitle
+import com.flashcardsopensourceapp.feature.settings.cloud.expectedWorkspaceCloudFailureMessage
 import com.flashcardsopensourceapp.feature.settings.cloud.resolveSelectedWorkspaceId
 import com.flashcardsopensourceapp.feature.settings.cloud.workspaceSelectionTitle
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.resolveWorkspaceName
 import com.flashcardsopensourceapp.feature.settings.workspace.shared.workspaceUpdatedOnAnotherDeviceMessage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -61,6 +66,7 @@ class CurrentWorkspaceViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
     private val autoSyncEventRepository: AutoSyncEventRepository,
     private val messageController: TransientMessageController,
+    private val technicalErrorController: AppTechnicalErrorController,
     visibleAppScreenRepository: VisibleAppScreenRepository,
     workspaceRepository: WorkspaceRepository,
     private val strings: SettingsStringResolver
@@ -215,13 +221,26 @@ class CurrentWorkspaceViewModel(
                     workspaces = workspaces
                 )
             }
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_current_workspace_load_failed)
+            val expectedErrorMessage = expectedWorkspaceCloudFailureMessage(
+                error = error,
+                fallbackMessage = errorMessage
+            )
             draftState.update { state ->
                 state.copy(
                     operation = CurrentWorkspaceOperation.IDLE,
                     workspaceLoadState = CurrentWorkspaceLoadState.Failed,
-                    errorMessage = error.message ?: strings.get(R.string.settings_current_workspace_load_failed),
+                    errorMessage = expectedErrorMessage ?: errorMessage,
                     successMessage = ""
+                )
+            }
+            if (expectedErrorMessage == null) {
+                showTechnicalError(
+                    message = errorMessage,
+                    throwable = error
                 )
             }
         }
@@ -238,6 +257,24 @@ class CurrentWorkspaceViewModel(
     }
 
     suspend fun switchWorkspace(selection: CloudWorkspaceLinkSelection) {
+        if (
+            selection is CloudWorkspaceLinkSelection.Existing &&
+            draftState.value.workspaces.none { workspace ->
+                workspace.workspaceId == selection.workspaceId
+            }
+        ) {
+            draftState.update { state ->
+                state.copy(
+                    operation = CurrentWorkspaceOperation.IDLE,
+                    workspaceLoadState = CurrentWorkspaceLoadState.Loaded,
+                    pendingWorkspaceTitle = null,
+                    errorMessage = strings.get(R.string.settings_current_workspace_invalid_selection),
+                    successMessage = ""
+                )
+            }
+            return
+        }
+
         draftState.update { state ->
             state.copy(
                 operation = CurrentWorkspaceOperation.SWITCHING,
@@ -268,8 +305,19 @@ class CurrentWorkspaceViewModel(
                 workspaces = workspaces,
                 strings = strings
             )
-            require(reconciliationErrorMessage == null) {
-                reconciliationErrorMessage ?: strings.get(R.string.settings_current_workspace_reconcile_failed)
+            if (reconciliationErrorMessage != null) {
+                draftState.update { state ->
+                    state.copy(
+                        operation = CurrentWorkspaceOperation.IDLE,
+                        workspaceLoadState = CurrentWorkspaceLoadState.Loaded,
+                        pendingWorkspaceTitle = null,
+                        errorMessage = reconciliationErrorMessage,
+                        successMessage = "",
+                        hasUserEditedName = false,
+                        workspaces = workspaces
+                    )
+                }
+                return
             }
             draftState.update { state ->
                 state.copy(
@@ -287,13 +335,35 @@ class CurrentWorkspaceViewModel(
             messageController.showMessage(
                 message = strings.get(R.string.settings_current_workspace_switched_message, workspace.name)
             )
-        } catch (error: Exception) {
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: SyncBlockedException) {
             draftState.update { state ->
                 state.copy(
                     operation = CurrentWorkspaceOperation.IDLE,
                     workspaceLoadState = CurrentWorkspaceLoadState.Loaded,
-                    errorMessage = error.message ?: strings.get(R.string.settings_current_workspace_switch_failed),
+                    errorMessage = strings.get(R.string.settings_account_status_sync_blocked_body),
                     successMessage = ""
+                )
+            }
+        } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_current_workspace_switch_failed)
+            val expectedErrorMessage = expectedWorkspaceCloudFailureMessage(
+                error = error,
+                fallbackMessage = errorMessage
+            )
+            draftState.update { state ->
+                state.copy(
+                    operation = CurrentWorkspaceOperation.IDLE,
+                    workspaceLoadState = CurrentWorkspaceLoadState.Loaded,
+                    errorMessage = expectedErrorMessage ?: errorMessage,
+                    successMessage = ""
+                )
+            }
+            if (expectedErrorMessage == null) {
+                showTechnicalError(
+                    message = errorMessage,
+                    throwable = error
                 )
             }
         }
@@ -375,12 +445,25 @@ class CurrentWorkspaceViewModel(
                 )
             }
             true
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_workspace_name_save_failed)
+            val expectedErrorMessage = expectedWorkspaceCloudFailureMessage(
+                error = error,
+                fallbackMessage = errorMessage
+            )
             draftState.update { state ->
                 state.copy(
                     isSavingName = false,
-                    errorMessage = error.message ?: strings.get(R.string.settings_workspace_name_save_failed),
+                    errorMessage = expectedErrorMessage ?: errorMessage,
                     successMessage = ""
+                )
+            }
+            if (expectedErrorMessage == null) {
+                showTechnicalError(
+                    message = errorMessage,
+                    throwable = error
                 )
             }
             false
@@ -455,6 +538,19 @@ class CurrentWorkspaceViewModel(
         messageController.showMessage(message = workspaceUpdatedOnAnotherDeviceMessage(strings = strings))
     }
 
+    private fun showTechnicalError(
+        message: String,
+        throwable: Throwable
+    ) {
+        technicalErrorController.showTechnicalError(
+            error = makeAppTechnicalError(
+                title = strings.get(R.string.settings_technical_error_title),
+                message = message,
+                throwable = throwable
+            ),
+            throwable = throwable
+        )
+    }
 }
 
 private data class CurrentWorkspaceItemVisibleSignature(
@@ -529,6 +625,7 @@ fun createCurrentWorkspaceViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
     autoSyncEventRepository: AutoSyncEventRepository,
     messageController: TransientMessageController,
+    technicalErrorController: AppTechnicalErrorController,
     visibleAppScreenRepository: VisibleAppScreenRepository,
     applicationContext: Context
 ): ViewModelProvider.Factory {
@@ -538,6 +635,7 @@ fun createCurrentWorkspaceViewModelFactory(
                 cloudAccountRepository = cloudAccountRepository,
                 autoSyncEventRepository = autoSyncEventRepository,
                 messageController = messageController,
+                technicalErrorController = technicalErrorController,
                 visibleAppScreenRepository = visibleAppScreenRepository,
                 workspaceRepository = workspaceRepository,
                 strings = createSettingsStringResolver(context = applicationContext)

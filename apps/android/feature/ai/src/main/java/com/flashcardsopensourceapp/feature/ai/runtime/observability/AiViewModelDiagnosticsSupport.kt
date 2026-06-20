@@ -1,12 +1,17 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.observability
 
+import com.flashcardsopensourceapp.core.observability.alreadyObservedAndroidThrowable
+import com.flashcardsopensourceapp.core.observability.shouldCaptureAndroidThrowable
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.ai.remote.isExpectedAiChatRemoteUserError
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.feature.ai.AiBootstrapErrorPresentation
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapBlockedException
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiUserFacingErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.aiChatAvailabilityMessage
-import com.flashcardsopensourceapp.feature.ai.runtime.errors.makeAiChatUserFacingErrorMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.makeAiChatUserFacingErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import java.io.IOException
 
@@ -15,20 +20,46 @@ private const val cloudContractMismatchExceptionName: String =
 private const val aiChatBootstrapSessionMismatchExceptionName: String =
     "com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapSessionMismatchException"
 
-internal fun makeAiUserFacingErrorMessage(
+internal fun makeAiUserFacingErrorPresentation(
     error: Exception,
     surface: AiErrorSurface,
     configuration: CloudServiceConfiguration,
     textProvider: AiTextProvider
-): String {
+): AiUserFacingErrorPresentation {
     val remoteError = error as? AiChatRemoteException
-    return makeAiChatUserFacingErrorMessage(
-        rawMessage = error.message ?: textProvider.requestFailed,
+    val presentation = makeAiChatUserFacingErrorPresentation(
+        throwable = error,
         code = remoteError?.code,
         requestId = remoteError?.requestId,
         configurationMode = configuration.mode,
         surface = surface,
         textProvider = textProvider
+    )
+    if (shouldSuppressExpectedAiTechnicalPresentation(error = error, remoteError = remoteError)) {
+        return presentation.copy(technicalError = null)
+    }
+    return presentation
+}
+
+internal fun makeAiErrorAlert(
+    presentation: AiUserFacingErrorPresentation,
+    technicalErrorAlreadyObserved: Boolean,
+    textProvider: AiTextProvider
+): AiAlertState {
+    val technicalError = presentation.technicalError ?: return textProvider.generalError(
+        message = presentation.message
+    )
+    val throwable = if (
+        technicalErrorAlreadyObserved &&
+        shouldCaptureAndroidThrowable(throwable = technicalError)
+    ) {
+        alreadyObservedAndroidThrowable(throwable = technicalError)
+    } else {
+        technicalError
+    }
+    return textProvider.technicalError(
+        message = presentation.message,
+        throwable = throwable
     )
 }
 
@@ -51,8 +82,33 @@ internal fun makeAiBootstrapErrorPresentation(
 
     return AiBootstrapErrorPresentation(
         message = message,
-        technicalDetails = errorTechnicalDetails(error = error)
+        technicalDetails = if (
+            shouldSuppressExpectedAiTechnicalPresentation(
+                error = error,
+                remoteError = remoteError
+            )
+        ) {
+            null
+        } else {
+            errorTechnicalDetails(error = error)
+        }
     )
+}
+
+private fun shouldSuppressExpectedAiTechnicalPresentation(
+    error: Exception,
+    remoteError: AiChatRemoteException?
+): Boolean {
+    if (remoteError != null && isExpectedAiChatRemoteUserError(error = remoteError)) {
+        return true
+    }
+    if (error is AiChatBootstrapBlockedException) {
+        return true
+    }
+    if (error is IOException) {
+        return aiChatFailureIssueDisposition(error = error) == AiChatFailureIssueDisposition.NONE
+    }
+    return false
 }
 
 internal fun remoteErrorFields(error: AiChatRemoteException?): List<Pair<String, String?>> {
@@ -114,8 +170,7 @@ private fun shouldIncludeLocalErrorMessage(error: Exception): Boolean {
         return false
     }
 
-    return error is AiChatBootstrapBlockedException ||
-        error is IOException ||
+    return error is IOException ||
         error::class.java.name == aiChatBootstrapSessionMismatchExceptionName
 }
 

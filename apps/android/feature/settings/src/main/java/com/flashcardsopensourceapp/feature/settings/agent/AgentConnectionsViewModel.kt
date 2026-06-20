@@ -6,13 +6,17 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
+import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
+import com.flashcardsopensourceapp.feature.settings.cloud.expectedAgentCloudFailureMessage
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.formatTimestampLabel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +34,7 @@ private data class AgentConnectionsDraftState(
 
 class AgentConnectionsViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
+    private val technicalErrorController: AppTechnicalErrorController,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
@@ -97,11 +102,24 @@ class AgentConnectionsViewModel(
                     connections = result.connections
                 )
             }
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_agent_connections_load_failed)
+            val expectedErrorMessage = expectedAgentCloudFailureMessage(
+                error = error,
+                fallbackMessage = errorMessage
+            )
             draftState.update { state ->
                 state.copy(
                     isLoading = false,
-                    errorMessage = error.message ?: strings.get(R.string.settings_agent_connections_load_failed)
+                    errorMessage = expectedErrorMessage ?: errorMessage
+                )
+            }
+            if (expectedErrorMessage == null) {
+                showTechnicalError(
+                    message = errorMessage,
+                    throwable = error
                 )
             }
         }
@@ -132,25 +150,54 @@ class AgentConnectionsViewModel(
                     }
                 )
             }
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_agent_connections_revoke_failed)
+            val expectedErrorMessage = expectedAgentCloudFailureMessage(
+                error = error,
+                fallbackMessage = errorMessage
+            )
             draftState.update { state ->
                 state.copy(
-                    errorMessage = error.message ?: strings.get(R.string.settings_agent_connections_revoke_failed),
+                    errorMessage = expectedErrorMessage ?: errorMessage,
                     revokingConnectionId = null
                 )
             }
+            if (expectedErrorMessage == null) {
+                showTechnicalError(
+                    message = errorMessage,
+                    throwable = error
+                )
+            }
         }
+    }
+
+    private fun showTechnicalError(
+        message: String,
+        throwable: Throwable
+    ) {
+        technicalErrorController.showTechnicalError(
+            error = makeAppTechnicalError(
+                title = strings.get(R.string.settings_technical_error_title),
+                message = message,
+                throwable = throwable
+            ),
+            throwable = throwable
+        )
     }
 }
 
 fun createAgentConnectionsViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
+    technicalErrorController: AppTechnicalErrorController,
     applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             AgentConnectionsViewModel(
                 cloudAccountRepository = cloudAccountRepository,
+                technicalErrorController = technicalErrorController,
                 strings = createSettingsStringResolver(context = applicationContext)
             )
         }

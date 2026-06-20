@@ -54,15 +54,22 @@ fun aiAttachmentImportAlert(
     error: Exception,
     textProvider: AiTextProvider
 ): AiAlertState {
-    return if (error is SecurityException) {
-        when (capability) {
+    return when (error) {
+        is SecurityException -> when (capability) {
             AccessCapability.CAMERA -> textProvider.attachmentSettingsAlert(source = AiAttachmentSettingsSource.CAMERA)
             AccessCapability.PHOTOS -> textProvider.attachmentSettingsAlert(source = AiAttachmentSettingsSource.PHOTOS)
             AccessCapability.FILES -> textProvider.attachmentSettingsAlert(source = AiAttachmentSettingsSource.FILES)
             AccessCapability.MICROPHONE -> textProvider.microphoneSettingsAlert()
         }
-    } else {
-        textProvider.generalError(message = error.message ?: textProvider.selectedAttachmentCouldNotBeAdded)
+
+        is AiAttachmentImportUserException -> textProvider.generalError(
+            message = error.message ?: textProvider.selectedAttachmentCouldNotBeAdded
+        )
+
+        else -> textProvider.technicalError(
+            message = textProvider.selectedAttachmentCouldNotBeAdded,
+            throwable = error
+        )
     }
 }
 

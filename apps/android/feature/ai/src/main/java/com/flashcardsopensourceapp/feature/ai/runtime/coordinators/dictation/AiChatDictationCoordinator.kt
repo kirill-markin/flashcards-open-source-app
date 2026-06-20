@@ -9,8 +9,10 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversatio
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.appendTranscriptToDraft
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canPrepareAiDraftInComposerPhase
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.session.AiChatSessionCoordinator
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiDictationNoSpeechException
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
-import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiUserFacingErrorMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiErrorAlert
+import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiUserFacingErrorPresentation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
@@ -104,8 +106,11 @@ internal class AiChatDictationCoordinator(
                 require(transcription.sessionId == ensuredSession.sessionId) {
                     "AI dictation returned mismatched sessionId. expectedSessionId=${ensuredSession.sessionId} responseSessionId=${transcription.sessionId}"
                 }
-                require(transcript.isNotEmpty()) {
-                    context.textProvider.noSpeechRecorded
+                if (transcript.isEmpty()) {
+                    throw AiDictationNoSpeechException(
+                        message = context.textProvider.noSpeechRecorded,
+                        cause = null
+                    )
                 }
 
                 var didApplyResult = false
@@ -145,6 +150,38 @@ internal class AiChatDictationCoordinator(
                     )
                 )
                 throw error
+            } catch (_: AiDictationNoSpeechException) {
+                val currentStateSnapshot = context.runtimeStateMutable.value
+                if (
+                    canApplyDictationResult(
+                        state = currentStateSnapshot,
+                        originWorkspaceId = originWorkspaceId,
+                        targetSessionId = targetSessionId,
+                        dictationJob = dictationJob
+                    ).not()
+                ) {
+                    return@launch
+                }
+
+                context.runtimeStateMutable.update { state ->
+                    if (
+                        canApplyDictationResult(
+                            state = state,
+                            originWorkspaceId = originWorkspaceId,
+                            targetSessionId = targetSessionId,
+                            dictationJob = dictationJob
+                        ).not()
+                    ) {
+                        return@update state
+                    }
+                    state.copy(
+                        dictationState = AiChatDictationState.IDLE,
+                        activeAlert = context.textProvider.generalError(
+                            message = context.textProvider.noSpeechRecorded
+                        ),
+                        errorMessage = ""
+                    )
+                }
             } catch (error: Exception) {
                 val currentStateSnapshot = context.runtimeStateMutable.value
                 if (
@@ -158,7 +195,7 @@ internal class AiChatDictationCoordinator(
                     return@launch
                 }
 
-                val message = makeAiUserFacingErrorMessage(
+                val presentation = makeAiUserFacingErrorPresentation(
                     error = error,
                     surface = AiErrorSurface.DICTATION,
                     configuration = context.currentServerConfiguration(),
@@ -177,7 +214,11 @@ internal class AiChatDictationCoordinator(
                     }
                     state.copy(
                         dictationState = AiChatDictationState.IDLE,
-                        activeAlert = context.textProvider.generalError(message = message),
+                        activeAlert = makeAiErrorAlert(
+                            presentation = presentation,
+                            technicalErrorAlreadyObserved = false,
+                            textProvider = context.textProvider
+                        ),
                         errorMessage = ""
                     )
                 }

@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.ai
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
@@ -31,7 +32,8 @@ fun AiRoute(
     onWarmUpSessionIfNeeded: () -> Unit,
     onRetryConversationLoad: () -> Unit,
     onShowAlert: (AiAlertState) -> Unit,
-    onShowErrorMessage: (String) -> Unit
+    onShowErrorMessage: (String) -> Unit,
+    technicalErrorController: AppTechnicalErrorController
 ) {
     AiRouteContent(
         uiState = uiState,
@@ -55,6 +57,7 @@ fun AiRoute(
         onWarmUpSessionIfNeeded = onWarmUpSessionIfNeeded,
         onRetryConversationLoad = onRetryConversationLoad,
         onShowAlert = onShowAlert,
-        onShowErrorMessage = onShowErrorMessage
+        onShowErrorMessage = onShowErrorMessage,
+        technicalErrorController = technicalErrorController
     )
 }

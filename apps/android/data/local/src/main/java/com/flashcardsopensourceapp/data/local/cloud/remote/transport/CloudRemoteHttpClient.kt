@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.core.observability.AndroidObservationFeature
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudHealthValidationException
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudSyncConflictDetails
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
@@ -43,6 +44,7 @@ private const val cloudHttpTransientRetryBaseDelayMs: Long = 250L
 private const val cloudHttpTransientRetryMaxDelayMs: Long = 2_000L
 private const val cloudHttpRetryHttpResponseStage: String = "http_response"
 private const val cloudHttpRetryIoExceptionStage: String = "io_exception"
+private const val cloudHealthValidationPath: String = "/health"
 private const val officialCloudApiHost: String = "api.flashcards-open-source-app.com"
 private const val officialCloudAuthHost: String = "auth.flashcards-open-source-app.com"
 private val cloudJsonMediaType = "application/json".toMediaType()
@@ -118,6 +120,8 @@ private val expectedCloudHttpFailureCodes: Set<String> = setOf(
     "WORKSPACE_NOT_FOUND",
     "WORKSPACE_OWNER_REQUIRED",
     "WORKSPACE_RESET_PROGRESS_CONFIRMATION_INVALID",
+    "WORKSPACE_DELETE_SHARED",
+    "WORKSPACE_RESET_SHARED",
     "WORKSPACE_SELECTION_REQUIRED"
 )
 
@@ -335,7 +339,7 @@ internal class CloudJsonHttpClient(
                             )
                             retryDelayMs = delayMs
                         } else {
-                            captureCloudHttpFailureObservation(
+                            val androidObservationAlreadyCaptured = captureCloudHttpFailureObservation(
                                 observability = observability,
                                 observationVersions = observationVersions,
                                 request = request,
@@ -364,14 +368,25 @@ internal class CloudJsonHttpClient(
                                 responseBody = responseBody,
                                 errorCode = parsedError?.code,
                                 requestId = parsedError?.requestId,
-                                syncConflict = parsedError?.syncConflict
+                                syncConflict = parsedError?.syncConflict,
+                                androidObservationAlreadyCaptured = androidObservationAlreadyCaptured
                             )
                         }
                     } else {
-                        successfulResponse = if (responseBody.isBlank()) {
-                            JSONObject()
-                        } else {
-                            JSONObject(responseBody)
+                        try {
+                            successfulResponse = if (responseBody.isBlank()) {
+                                JSONObject()
+                            } else {
+                                JSONObject(responseBody)
+                            }
+                        } catch (error: JSONException) {
+                            if (isExpectedCloudHealthValidationFailure(path = path, method = method.requestMethod)) {
+                                throw CloudHealthValidationException(
+                                    message = "Cloud health response was not valid JSON.",
+                                    cause = error
+                                )
+                            }
+                            throw error
                         }
                     }
                 }
@@ -565,9 +580,31 @@ private fun captureCloudHttpFailureObservation(
     statusCode: Int,
     code: String?,
     syncConflict: CloudSyncConflictDetails?
-) {
+): Boolean {
     val feature = cloudObservationFeature(request = request)
     val endpointName = cloudObservationEndpointName(path = path)
+    if (
+        isExpectedCloudHealthValidationFailure(
+            path = path,
+            method = method
+        )
+    ) {
+        observability.addBreadcrumb(
+            event = AndroidBreadcrumbEvent.ExpectedHttpFailure(
+                feature = feature,
+                endpointName = endpointName,
+                method = method,
+                requestId = requestId,
+                statusCode = statusCode,
+                code = code,
+                appVersion = observationVersions.appVersion,
+                clientVersion = observationVersions.clientVersion,
+                versionCode = observationVersions.versionCode
+            )
+        )
+        return false
+    }
+
     if (statusCode >= 500) {
         observability.captureWarning(
             event = AndroidWarningIssueEvent.HttpServerError(
@@ -583,7 +620,7 @@ private fun captureCloudHttpFailureObservation(
                 versionCode = observationVersions.versionCode
             )
         )
-        return
+        return true
     }
 
     if (
@@ -606,7 +643,7 @@ private fun captureCloudHttpFailureObservation(
                 versionCode = observationVersions.versionCode
             )
         )
-        return
+        return false
     }
 
     if (statusCode in 400..499) {
@@ -624,7 +661,10 @@ private fun captureCloudHttpFailureObservation(
                 versionCode = observationVersions.versionCode
             )
         )
+        return true
     }
+
+    return false
 }
 
 private fun cloudObservationEndpointName(path: String): String {
@@ -669,6 +709,14 @@ private fun isExpectedCloudHttpFailure(
 
     val normalizedCode = code?.trim()?.uppercase() ?: return false
     return expectedCloudHttpFailureCodes.contains(element = normalizedCode)
+}
+
+private fun isExpectedCloudHealthValidationFailure(
+    path: String,
+    method: String
+): Boolean {
+    return method == CloudHttpMethod.GET.requestMethod &&
+        path.substringBefore(delimiter = "?") == cloudHealthValidationPath
 }
 
 private fun cancellationException(message: String, cause: Throwable): CancellationException {

@@ -10,6 +10,11 @@ enum class AiErrorSurface {
     DICTATION
 }
 
+data class AiUserFacingErrorPresentation(
+    val message: String,
+    val technicalError: Throwable?
+)
+
 private val aiChatAvailabilityErrorCodes: Set<String> = setOf(
     "LOCAL_CHAT_NOT_CONFIGURED",
     "LOCAL_CHAT_UNAVAILABLE",
@@ -62,32 +67,54 @@ fun aiChatAvailabilityMessage(
     }
 }
 
-fun makeAiChatUserFacingErrorMessage(
-    rawMessage: String,
+fun makeAiChatUserFacingErrorPresentation(
+    throwable: Throwable,
     code: String?,
     requestId: String?,
     configurationMode: CloudServiceConfigurationMode,
     surface: AiErrorSurface,
     textProvider: AiTextProvider
-): String {
-    val mappedMessage = if (code == null) {
-        null
-    } else if (code == aiChatAttachmentUnsupportedTypeCode) {
-        textProvider.attachmentUnsupportedMessage
-    } else if (code == aiChatRequestTooLargeCode) {
-        textProvider.requestTooLargeMessage
-    } else {
-        aiChatAvailabilityMessage(
-            code = code,
-            configurationMode = configurationMode,
-            surface = surface,
+): AiUserFacingErrorPresentation {
+    val mappedMessage = mappedAiChatErrorMessage(
+        code = code,
+        configurationMode = configurationMode,
+        surface = surface,
+        textProvider = textProvider
+    )
+    return AiUserFacingErrorPresentation(
+        message = appendAiRequestIdReference(
+            message = mappedMessage ?: textProvider.requestFailed,
+            requestId = requestId,
             textProvider = textProvider
-        )
+        ),
+        technicalError = if (mappedMessage == null) {
+            throwable
+        } else {
+            null
+        }
+    )
+}
+
+private fun mappedAiChatErrorMessage(
+    code: String?,
+    configurationMode: CloudServiceConfigurationMode,
+    surface: AiErrorSurface,
+    textProvider: AiTextProvider
+): String? {
+    if (code == null) {
+        return null
+    }
+    if (code == aiChatAttachmentUnsupportedTypeCode) {
+        return textProvider.attachmentUnsupportedMessage
+    }
+    if (code == aiChatRequestTooLargeCode) {
+        return textProvider.requestTooLargeMessage
     }
 
-    return appendAiRequestIdReference(
-        message = mappedMessage ?: rawMessage,
-        requestId = requestId,
+    return aiChatAvailabilityMessage(
+        code = code,
+        configurationMode = configurationMode,
+        surface = surface,
         textProvider = textProvider
     )
 }

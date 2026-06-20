@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
+import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiDictationNoSpeechException
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import com.flashcardsopensourceapp.feature.settings.access.AccessCapability
 import com.flashcardsopensourceapp.feature.settings.access.AccessStatus
@@ -120,10 +121,19 @@ internal fun handleDictationToggle(
                 recordedAudio.mediaType,
                 recordedAudio.audioBytes
             )
+        } catch (_: AiDictationNoSpeechException) {
+            dictationRecorder.cancelRecording()
+            onCancelDictation()
+            onShowAlert(textProvider.generalError(message = textProvider.noSpeechRecorded))
         } catch (error: Exception) {
             dictationRecorder.cancelRecording()
             onCancelDictation()
-            onShowAlert(textProvider.generalError(message = error.message ?: textProvider.audioRecordingFinishFailed))
+            onShowAlert(
+                textProvider.technicalError(
+                    message = textProvider.audioRecordingFinishFailed,
+                    throwable = error
+                )
+            )
         }
         return
     }
@@ -199,6 +209,11 @@ internal fun startDictationRecording(
     } catch (error: Exception) {
         dictationRecorder.cancelRecording()
         onCancelDictation()
-        onShowAlert(textProvider.generalError(message = error.message ?: textProvider.audioRecordingStartFailed))
+        onShowAlert(
+            textProvider.technicalError(
+                message = textProvider.audioRecordingStartFailed,
+                throwable = error
+            )
+        )
     }
 }
