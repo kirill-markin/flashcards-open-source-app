@@ -4,6 +4,7 @@ export type BackendService =
   | "chat-live"
   | "global-metrics-snapshot"
   | "community-leaderboard-snapshot"
+  | "progress-active-days-backfill"
   | "migration";
 
 export type BackendObservationScope = Readonly<{
@@ -534,6 +535,35 @@ export type CommunityLeaderboardSnapshotFailureDetails = Readonly<{
   message: string;
 }>;
 
+export type ProgressActiveDaysBackfillCompletedDetails = Readonly<{
+  batchSize: number;
+  maxPages: number;
+  pagesScanned: number;
+  usersScanned: number;
+  usersMaterialized: number;
+  reviewEventsMaterialized: number;
+  activeReviewDaysUpserted: number;
+  skippedUsers: number;
+  errors: number;
+  finished: boolean;
+}>;
+
+export type ProgressActiveDaysBackfillCandidateFailureDetails = Readonly<{
+  userId: string;
+  workspaceId: string;
+  progressTimeZone: string;
+  missingReviewLocalDateCount: number;
+  missingActiveReviewDayCount: number;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+export type ProgressActiveDaysBackfillFailureDetails = Readonly<{
+  batchSize: number | null;
+  maxPages: number | null;
+  message: string;
+}>;
+
 export type DatabaseTransientRetryDetails = Readonly<{
   attempt: number;
   maxAttempts: number;
@@ -611,6 +641,7 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"request_error", RequestErrorDetails>
   | EventByAction<"global_metrics_snapshot_generated", GlobalMetricsSnapshotGeneratedDetails>
   | EventByAction<"community_leaderboard_snapshot_generated", CommunityLeaderboardSnapshotGeneratedDetails>
+  | EventByAction<"progress_active_days_backfill_completed", ProgressActiveDaysBackfillCompletedDetails>
   | EventByAction<"database_transient_retry", DatabaseTransientRetryDetails>
   | EventByAction<"global_metrics_s3_retry", GlobalMetricsS3RetryDetails>
   | EventByAction<"sync_push", SyncPushDetails>
@@ -696,6 +727,10 @@ export type BackendWarningEvent =
   | (EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerLifecycleDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_composer_suggestions_failed", ChatWorkerLifecycleDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_transcription_failed", ChatTranscriptionFailureDetails> & Readonly<{ message: string }>)
+  | (EventByAction<
+    "progress_active_days_backfill_candidate_failed",
+    ProgressActiveDaysBackfillCandidateFailureDetails
+  > & Readonly<{ message: string }>)
   | EventByAction<"langfuse_telemetry_flush_failed", LangfuseTelemetryFlushFailureDetails>
   | EventByAction<"langfuse_chat_turn_export_failed", LangfuseChatTurnExportFailureDetails>
   | EventByAction<"langfuse_chat_turn_start_failed", LangfuseChatTurnStartFailureDetails>
@@ -768,6 +803,9 @@ export type BackendExceptionEvent =
   | (EventByAction<"chat_worker_failed", ChatWorkerFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"global_metrics_snapshot_failed", GlobalMetricsSnapshotFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"community_leaderboard_snapshot_failed", CommunityLeaderboardSnapshotFailureDetails> & Readonly<{ error: Error }>)
+  | (EventByAction<"progress_active_days_backfill_failed", ProgressActiveDaysBackfillFailureDetails> & Readonly<{
+    error: Error;
+  }>)
   | (EventByAction<"migration_failed", MigrationFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"chat_live_bootstrap_failed", ChatLiveBootstrapFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"chat_live_request_error", ChatLiveRequestDetails> & Readonly<{ error: Error }>)

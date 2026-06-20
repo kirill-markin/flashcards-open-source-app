@@ -264,7 +264,10 @@ test("loadUserProgressSummaryInExecutor materializes and reads active review day
   if (materializationQuery === undefined) {
     assert.fail("Expected an active review day materialization query to be recorded");
   }
-  assert.match(materializationQuery.text, /timezone\(\$2, review_events\.reviewed_at_client\)::date/);
+  assert.match(
+    materializationQuery.text,
+    /timezone\(COALESCE\(review_events\.reviewed_time_zone, \$2\), review_events\.reviewed_at_client\)::date/,
+  );
   assert.match(materializationQuery.text, /WHERE review_events\.reviewed_by_user_id = \$1/);
   assert.match(materializationQuery.text, /AND review_events\.workspace_id = \$3/);
   assert.match(materializationQuery.text, /INSERT INTO progress\.user_active_review_days/);

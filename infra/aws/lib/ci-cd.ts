@@ -14,6 +14,7 @@ export interface CiCdProps {
   globalMetricsSnapshotFn: lambda.IFunction;
   globalMetricsSnapshotFreshnessCheckerFn: lambda.IFunction;
   communityLeaderboardSnapshotFn: lambda.IFunction;
+  progressActiveDaysBackfillFn: lambda.IFunction;
   migrationFn: lambda.IFunction;
   userPoolArn: string;
   webBucket: s3.IBucket;
@@ -133,6 +134,12 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
     sid: "InvokeCommunityLeaderboardSnapshotLambda",
     actions: ["lambda:InvokeFunction"],
     resources: [props.communityLeaderboardSnapshotFn.functionArn],
+  }));
+
+  cdkDeployStatements.push(new iam.PolicyStatement({
+    sid: "InvokeProgressActiveDaysBackfillLambda",
+    actions: ["lambda:InvokeFunction"],
+    resources: [props.progressActiveDaysBackfillFn.functionArn],
   }));
 
   const deployRole = new iam.Role(scope, "GithubActionsRole", {
