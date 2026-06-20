@@ -182,11 +182,11 @@ function ReviewEmptyPane(props: ReviewEmptyPaneProps): ReactElement {
           : t("reviewScreen.empty.noCardsBody")}
       </p>
       <div className="review-empty-actions">
-        <Link className="primary-btn" to={`${cardsRoute}/new`}>
+        <Link className="ghost-btn" to={`${cardsRoute}/new`}>
           {t("reviewScreen.actions.createCard")}
         </Link>
         <p className="review-empty-or">{t("reviewScreen.empty.or")}</p>
-        <Link className="ghost-btn" to={chatRoute}>
+        <Link className="primary-btn" to={chatRoute}>
           {t("reviewScreen.actions.createWithAi")}
         </Link>
         {shouldShowSwitchToAllCardsAction ? (
