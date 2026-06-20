@@ -8,6 +8,8 @@ data class AccountDangerZoneUiState(
     val isDeleting: Boolean,
     val deleteState: DestructiveActionState,
     val errorMessage: String,
+    val errorTechnicalDetails: String?,
+    val errorTechnicalDetailsReportId: String?,
     val successMessage: String,
     val showDeleteConfirmation: Boolean
 )

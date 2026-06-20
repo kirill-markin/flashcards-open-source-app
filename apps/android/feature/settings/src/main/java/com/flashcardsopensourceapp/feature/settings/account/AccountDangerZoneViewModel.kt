@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.nextAppTechnicalErrorReportId
+import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
@@ -14,6 +16,7 @@ import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.accountDeletionConfirmationText
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +27,8 @@ import kotlinx.coroutines.flow.update
 private data class AccountDangerZoneDraftState(
     val confirmationText: String,
     val errorMessage: String,
+    val errorTechnicalDetails: String?,
+    val errorTechnicalDetailsReportId: String?,
     val showDeleteConfirmation: Boolean
 )
 
@@ -35,6 +40,8 @@ class AccountDangerZoneViewModel(
         value = AccountDangerZoneDraftState(
             confirmationText = "",
             errorMessage = "",
+            errorTechnicalDetails = null,
+            errorTechnicalDetailsReportId = null,
             showDeleteConfirmation = false
         )
     )
@@ -54,9 +61,22 @@ class AccountDangerZoneViewModel(
                 AccountDeletionState.Hidden -> DestructiveActionState.IDLE
             },
             errorMessage = when (deletionState) {
-                is AccountDeletionState.Failed -> deletionState.message
+                is AccountDeletionState.Failed -> strings.get(R.string.settings_account_danger_zone_delete_failed)
                 AccountDeletionState.Hidden,
                 AccountDeletionState.InProgress -> draft.errorMessage
+            },
+            errorTechnicalDetails = when (deletionState) {
+                is AccountDeletionState.Failed -> renderTechnicalErrorDetails(
+                    errorType = "AccountDeletionState.Failed",
+                    message = deletionState.message
+                )
+                AccountDeletionState.Hidden,
+                AccountDeletionState.InProgress -> draft.errorTechnicalDetails
+            },
+            errorTechnicalDetailsReportId = when (deletionState) {
+                is AccountDeletionState.Failed -> deletionState.technicalDetailsReportId
+                AccountDeletionState.Hidden,
+                AccountDeletionState.InProgress -> draft.errorTechnicalDetailsReportId
             },
             successMessage = "",
             showDeleteConfirmation = draft.showDeleteConfirmation
@@ -70,6 +90,8 @@ class AccountDangerZoneViewModel(
             isDeleting = false,
             deleteState = DestructiveActionState.IDLE,
             errorMessage = "",
+            errorTechnicalDetails = null,
+            errorTechnicalDetailsReportId = null,
             successMessage = "",
             showDeleteConfirmation = false
         )
@@ -79,7 +101,9 @@ class AccountDangerZoneViewModel(
         draftState.update { state ->
             state.copy(
                 showDeleteConfirmation = true,
-                errorMessage = ""
+                errorMessage = "",
+                errorTechnicalDetails = null,
+                errorTechnicalDetailsReportId = null
             )
         }
     }
@@ -97,7 +121,9 @@ class AccountDangerZoneViewModel(
         draftState.update { state ->
             state.copy(
                 confirmationText = value,
-                errorMessage = ""
+                errorMessage = "",
+                errorTechnicalDetails = null,
+                errorTechnicalDetailsReportId = null
             )
         }
     }
@@ -106,7 +132,9 @@ class AccountDangerZoneViewModel(
         if (uiState.value.confirmationText != accountDeletionConfirmationText(strings = strings)) {
             draftState.update { state ->
                 state.copy(
-                    errorMessage = strings.get(R.string.settings_account_danger_zone_confirmation_required)
+                    errorMessage = strings.get(R.string.settings_account_danger_zone_confirmation_required),
+                    errorTechnicalDetails = null,
+                    errorTechnicalDetailsReportId = null
                 )
             }
             return false
@@ -118,19 +146,28 @@ class AccountDangerZoneViewModel(
                 state.copy(
                     confirmationText = "",
                     errorMessage = "",
+                    errorTechnicalDetails = null,
+                    errorTechnicalDetailsReportId = null,
                     showDeleteConfirmation = false
                 )
             }
             true
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
             draftState.update { state ->
                 state.copy(
-                    errorMessage = error.message ?: strings.get(R.string.settings_account_danger_zone_delete_failed)
+                    errorMessage = strings.get(R.string.settings_account_danger_zone_delete_failed),
+                    errorTechnicalDetails = renderTechnicalErrorDetails(error = error),
+                    errorTechnicalDetailsReportId = nextAppTechnicalErrorReportId(
+                        source = "account-danger-zone-delete"
+                    )
                 )
             }
             false
         }
     }
+
 }
 
 fun createAccountDangerZoneViewModelFactory(

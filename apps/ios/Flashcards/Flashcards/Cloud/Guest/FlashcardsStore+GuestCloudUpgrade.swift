@@ -13,6 +13,18 @@ extension FlashcardsStore {
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection
     ) async throws {
+        try await self.completeGuestCloudLink(
+            linkContext: linkContext,
+            selection: selection,
+            technicalErrorCaptureContext: nil
+        )
+    }
+
+    func completeGuestCloudLink(
+        linkContext: CloudWorkspaceLinkContext,
+        selection: CloudWorkspaceLinkSelection,
+        technicalErrorCaptureContext: TechnicalErrorCaptureContext?
+    ) async throws {
         _ = try await self.cloudRuntime.runWorkspaceCompletion { [weak self] in
             guard let self else {
                 throw LocalStoreError.uninitialized("Flashcards store is unavailable")
@@ -27,7 +39,10 @@ extension FlashcardsStore {
             }
 
             let configuration = try self.currentCloudServiceConfiguration()
-            let trigger = self.manualCloudSyncTrigger(now: Date())
+            let trigger = self.postAuthCloudSyncTrigger(
+                now: Date(),
+                technicalErrorCaptureContext: technicalErrorCaptureContext
+            )
             try self.validatePendingGuestUpgradeAccountIfNeeded(
                 userId: linkContext.userId,
                 apiBaseUrl: linkContext.apiBaseUrl
@@ -424,7 +439,7 @@ extension FlashcardsStore {
                 )
             }
         } catch {
-            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
+            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error, trigger: trigger)
             if trigger.surfacesGlobalErrorMessage {
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
@@ -715,10 +730,11 @@ extension FlashcardsStore {
                     error: error,
                     linkedSession: linkedSession,
                     fallbackCloudState: self.cloudSettings?.cloudState,
-                    action: "guest_cloud_link_sync"
+                    action: "guest_cloud_link_sync",
+                    captureContext: trigger.technicalErrorCaptureContext
                 )
             }
-            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
+            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error, trigger: trigger)
             if trigger.surfacesGlobalErrorMessage {
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }

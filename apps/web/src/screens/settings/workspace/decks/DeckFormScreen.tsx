@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../../../../appData";
+import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
 import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition, EFFORT_LEVELS } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckDetailRoute, settingsDecksRoute } from "../../../../routes";
@@ -42,6 +43,7 @@ function hasDeckRules(formState: FormState): boolean {
 export function DeckFormScreen(): ReactElement {
   const { deckId } = useParams();
   const navigate = useNavigate();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const { t } = useI18n();
   const {
     activeWorkspace,
@@ -72,6 +74,7 @@ export function DeckFormScreen(): ReactElement {
   const isCreateMode = deckId === undefined;
   const screenTitle = isCreateMode ? t("deckForm.title.new") : t("deckForm.title.edit");
   const backHref = isCreateMode || deckId === undefined ? settingsDecksRoute : buildSettingsDeckDetailRoute(deckId);
+  const technicalErrorMessage = t("appError.technicalError.message");
   observationIdentityRef.current = {
     userId: session?.userId ?? null,
     installationId: cloudSettings?.installationId ?? null,
@@ -113,7 +116,7 @@ export function DeckFormScreen(): ReactElement {
     } catch (error) {
       if (activeWorkspace !== null && deckId !== ALL_CARDS_DECK_SLUG) {
         const observationIdentity = observationIdentityRef.current;
-        captureAppOperationError(error, {
+        const wasCaptured = captureAppOperationError(error, {
           feature: "settings",
           operation: "deck_detail_load",
           userId: observationIdentity.userId,
@@ -121,6 +124,11 @@ export function DeckFormScreen(): ReactElement {
           installationId: observationIdentity.installationId,
           entityId: deckId ?? null,
         });
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setScreenErrorMessage(technicalErrorMessage);
+          return;
+        }
       }
       setScreenErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -165,7 +173,7 @@ export function DeckFormScreen(): ReactElement {
         navigate(buildSettingsDeckDetailRoute(updatedDeck.deckId));
       }
     } catch (error) {
-      captureAppOperationError(error, {
+      const wasCaptured = captureAppOperationError(error, {
         feature: "settings",
         operation: "deck_save",
         userId: session?.userId ?? null,
@@ -173,7 +181,12 @@ export function DeckFormScreen(): ReactElement {
         installationId: cloudSettings?.installationId ?? null,
         entityId: deckId ?? null,
       });
-      setErrorMessage(error instanceof Error ? error.message : String(error));
+      if (wasCaptured) {
+        showCapturedTechnicalError(error);
+        setErrorMessage(technicalErrorMessage);
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      }
     } finally {
       setIsSaving(false);
     }

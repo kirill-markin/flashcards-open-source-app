@@ -201,6 +201,7 @@ sealed interface AccountDeletionState {
     data object InProgress : AccountDeletionState
 
     data class Failed(
-        val message: String
+        val message: String,
+        val technicalDetailsReportId: String
     ) : AccountDeletionState
 }

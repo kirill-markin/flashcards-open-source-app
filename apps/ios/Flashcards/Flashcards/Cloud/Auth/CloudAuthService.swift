@@ -43,6 +43,12 @@ enum CloudAuthError: LocalizedError {
                     table: "Foundation",
                     comment: "Cloud auth error when the OTP code is invalid"
                 )
+            case "OTP_TOO_MANY_ATTEMPTS":
+                return String(
+                    localized: "cloud_auth.error.otp_too_many_attempts",
+                    table: "Foundation",
+                    comment: "Cloud auth error when too many OTP attempts were made"
+                )
             case "OTP_SEND_FAILED":
                 return appendCloudRequestIdReference(
                     message: String(

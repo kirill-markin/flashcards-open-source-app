@@ -132,6 +132,7 @@ class CloudIdentityResetCoordinatorTest {
 
         val failedState = environment.cloudPreferencesStore.currentAccountDeletionState()
         assertTrue(failedState is AccountDeletionState.Failed)
+        assertTrue((failedState as AccountDeletionState.Failed).technicalDetailsReportId.isNotBlank())
         assertEquals(1, remoteGateway.deleteAccountCalls)
         assertEquals(CloudAccountState.LINKED, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
         assertEquals(initialLocalWorkspaceId, environment.database.workspaceDao().loadAnyWorkspace()?.workspaceId)

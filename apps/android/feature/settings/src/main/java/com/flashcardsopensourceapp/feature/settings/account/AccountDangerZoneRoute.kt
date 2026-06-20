@@ -40,6 +40,7 @@ fun AccountDangerZoneRoute(
     onDismissDeleteConfirmation: () -> Unit,
     onConfirmationTextChange: (String) -> Unit,
     onDeleteAccount: () -> Unit,
+    onShowTechnicalDetails: (String, String) -> Unit,
     onBack: () -> Unit
 ) {
     val strings = createSettingsStringResolver(context = LocalContext.current)
@@ -56,11 +57,31 @@ fun AccountDangerZoneRoute(
             if (uiState.errorMessage.isNotEmpty()) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = uiState.errorMessage,
-                            color = MaterialTheme.colorScheme.error,
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.padding(20.dp)
-                        )
+                        ) {
+                            Text(
+                                text = uiState.errorMessage,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            if (
+                                uiState.errorTechnicalDetails.isNullOrBlank().not() &&
+                                uiState.errorTechnicalDetailsReportId.isNullOrBlank().not()
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        onShowTechnicalDetails(
+                                            uiState.errorTechnicalDetails.orEmpty(),
+                                            uiState.errorTechnicalDetailsReportId.orEmpty()
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(stringResource(R.string.settings_sign_in_error_show_details))
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -172,6 +193,22 @@ fun AccountDangerZoneRoute(
                             text = uiState.errorMessage,
                             color = MaterialTheme.colorScheme.error
                         )
+                    }
+                    if (
+                        uiState.deleteState == DestructiveActionState.FAILED &&
+                        uiState.errorTechnicalDetails.isNullOrBlank().not() &&
+                        uiState.errorTechnicalDetailsReportId.isNullOrBlank().not()
+                    ) {
+                        TextButton(
+                            onClick = {
+                                onShowTechnicalDetails(
+                                    uiState.errorTechnicalDetails.orEmpty(),
+                                    uiState.errorTechnicalDetailsReportId.orEmpty()
+                                )
+                            }
+                        ) {
+                            Text(stringResource(R.string.settings_sign_in_error_show_details))
+                        }
                     }
                     DestructiveConfirmationPhraseText(
                         text = accountDeletionConfirmationText(strings = strings),

@@ -1,10 +1,12 @@
 import type { ReactElement } from "react";
+import { isExpectedClipboardWriteError } from "../../access/browserAccess";
 import type { TranslationKey } from "../../i18n";
 import type { TranslationValues } from "../../i18n/types";
 import type { StoredMessage } from "./useChatHistory";
 import { buildCardContextXml, formatCardAttachmentLabel } from "../attachments/chatCardParts";
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;
+type ChatMessageTechnicalErrorHandler = (error: unknown) => boolean;
 
 function formatEffortValue(value: "fast" | "medium" | "long", t: Translate): string {
   if (value === "fast") {
@@ -73,15 +75,16 @@ function buildToolCallSummaryText(name: string, input: string | null, t: Transla
   return toolPreview === null ? toolLabel : `${toolLabel}: ${toolPreview}`;
 }
 
-function toClipboardErrorMessage(sectionTitle: string, error: unknown, t: Translate): string {
-  if (error instanceof Error && error.message.trim() !== "") {
-    return `${t("chatMessageContent.failedToCopy", { section: sectionTitle.toLowerCase() })} ${error.message}`;
-  }
-
+function toClipboardErrorMessage(sectionTitle: string, t: Translate): string {
   return t("chatMessageContent.failedToCopy", { section: sectionTitle.toLowerCase() });
 }
 
-async function copyToolCallSection(text: string, sectionTitle: string, t: Translate): Promise<void> {
+async function copyToolCallSection(
+  text: string,
+  sectionTitle: string,
+  t: Translate,
+  onTechnicalError: ChatMessageTechnicalErrorHandler,
+): Promise<void> {
   if (typeof navigator.clipboard?.writeText !== "function") {
     window.alert(t("chatMessageContent.failedToCopy", { section: sectionTitle.toLowerCase() }));
     return;
@@ -90,7 +93,14 @@ async function copyToolCallSection(text: string, sectionTitle: string, t: Transl
   try {
     await navigator.clipboard.writeText(text);
   } catch (error) {
-    window.alert(toClipboardErrorMessage(sectionTitle, error, t));
+    if (isExpectedClipboardWriteError(error)) {
+      window.alert(toClipboardErrorMessage(sectionTitle, t));
+      return;
+    }
+
+    if (onTechnicalError(error) === false) {
+      window.alert(toClipboardErrorMessage(sectionTitle, t));
+    }
   }
 }
 
@@ -99,6 +109,7 @@ function renderToolCallSection(
   text: string | null,
   sectionClassName: "input" | "output",
   t: Translate,
+  onTechnicalError: ChatMessageTechnicalErrorHandler,
 ): ReactElement | null {
   if (text === null || text === "") {
     return null;
@@ -115,7 +126,7 @@ function renderToolCallSection(
           type="button"
           className="chat-tool-call-copy"
           onClick={() => {
-            void copyToolCallSection(text, sectionTitle, t);
+            void copyToolCallSection(text, sectionTitle, t, onTechnicalError);
           }}
         >
           {t("chatMessageContent.copy")}
@@ -164,7 +175,11 @@ function renderCardAttachment(
  * Renders persisted chat history parts without normalizing whitespace so the
  * transcript stays byte-for-byte faithful to stored assistant output.
  */
-export function renderStoredMessageContent(message: StoredMessage, t: Translate): ReactElement {
+export function renderStoredMessageContent(
+  message: StoredMessage,
+  t: Translate,
+  onTechnicalError: ChatMessageTechnicalErrorHandler,
+): ReactElement {
   const elements: Array<ReactElement> = [];
   let previousPartWasAttachment = false;
 
@@ -236,8 +251,8 @@ export function renderStoredMessageContent(message: StoredMessage, t: Translate)
           <span className="chat-tool-call-summary-main" title={summaryText}>{summaryText}</span>
           <span className="chat-tool-call-status">{toolCallStatusLabel(part.status, t)}</span>
         </summary>
-        {renderToolCallSection(t("chatMessageContent.request"), part.input, "input", t)}
-        {renderToolCallSection(t("chatMessageContent.response"), part.output, "output", t)}
+        {renderToolCallSection(t("chatMessageContent.request"), part.input, "input", t, onTechnicalError)}
+        {renderToolCallSection(t("chatMessageContent.response"), part.output, "output", t, onTechnicalError)}
       </details>,
     );
   }

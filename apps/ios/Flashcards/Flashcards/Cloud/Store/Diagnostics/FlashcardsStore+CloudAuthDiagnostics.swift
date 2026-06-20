@@ -21,6 +21,20 @@ extension FlashcardsStore {
         configuration: CloudServiceConfiguration,
         action: CloudAuthFailureAction
     ) {
+        self.captureCloudAuthFailure(
+            error: error,
+            configuration: configuration,
+            action: action,
+            captureContext: nil
+        )
+    }
+
+    func captureCloudAuthFailure(
+        error: Error,
+        configuration: CloudServiceConfiguration,
+        action: CloudAuthFailureAction,
+        captureContext: TechnicalErrorCaptureContext?
+    ) {
         let diagnostics = cloudAuthFailureDiagnostics(error: error)
         let scope = IOSObservationScope(
             feature: .cloudAuth,
@@ -60,6 +74,7 @@ extension FlashcardsStore {
             return
         }
 
+        self.markTechnicalErrorCaptured(captureContext: captureContext)
         FlashcardsObservability.captureException(
             .cloudAuthFailed(
                 error: error,
@@ -80,7 +95,8 @@ private let userCorrectableCloudAuthBackendCodes: Set<String> = [
     "INVALID_EMAIL",
     "OTP_CHALLENGE_CONSUMED",
     "OTP_CODE_INVALID",
-    "OTP_SESSION_EXPIRED"
+    "OTP_SESSION_EXPIRED",
+    "OTP_TOO_MANY_ATTEMPTS"
 ]
 
 private struct CloudAuthFailureDiagnosticsFields {

@@ -66,20 +66,18 @@ function requireVerifiedWorkspaceSession(
 }
 
 function isExpectedWorkspaceActionApiError(error: Error): boolean {
-  if (error instanceof ApiError === false) {
-    return false;
-  }
-
-  switch (error.code) {
-    case "WORKSPACE_DELETE_CONFIRMATION_INVALID":
-    case "WORKSPACE_DELETE_SHARED":
-    case "WORKSPACE_NOT_FOUND":
-    case "WORKSPACE_OWNER_REQUIRED":
-    case "WORKSPACE_SELECTION_REQUIRED":
-      return true;
-  }
-
-  return false;
+  return error instanceof ApiError
+    && error.statusCode >= 400
+    && error.statusCode < 500
+    && (
+      error.code === "AUTH_UNAUTHORIZED"
+      || error.code === "SESSION_CSRF_TOKEN_INVALID"
+      || error.code === "WORKSPACE_DELETE_CONFIRMATION_INVALID"
+      || error.code === "WORKSPACE_DELETE_SHARED"
+      || error.code === "WORKSPACE_NOT_FOUND"
+      || error.code === "WORKSPACE_OWNER_REQUIRED"
+      || error.code === "WORKSPACE_SELECTION_REQUIRED"
+    );
 }
 
 export function useWorkspaceActions(params: UseWorkspaceActionsParams): WorkspaceSessionCommands {
@@ -259,7 +257,6 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         return;
       }
 
-      const nextErrorMessage = getErrorMessage(error);
       captureApiContractError(error, {
         feature: "settings",
         sourceAction: "workspace_rename_client",
@@ -267,7 +264,6 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         workspaceId,
         installationId: cloudSettings?.installationId ?? null,
       });
-      setErrorMessage(nextErrorMessage);
       throw error;
     } finally {
       setIsChoosingWorkspace(false);
@@ -373,8 +369,6 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         return Promise.reject(error);
       }
 
-      const nextErrorMessage = getErrorMessage(error);
-      setErrorMessage(nextErrorMessage);
       throw error;
     }
   }, [activeWorkspace?.workspaceId, cloudSettings?.cloudState, runSync, session, sessionVerificationState, t, setErrorMessage]);
@@ -401,8 +395,6 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         return Promise.reject(error);
       }
 
-      const nextErrorMessage = getErrorMessage(error);
-      setErrorMessage(nextErrorMessage);
       throw error;
     }
   }, [activeWorkspace?.workspaceId, cloudSettings?.cloudState, runSync, session, sessionVerificationState, t, setErrorMessage]);

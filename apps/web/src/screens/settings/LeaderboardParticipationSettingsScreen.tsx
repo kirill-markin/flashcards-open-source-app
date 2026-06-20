@@ -7,6 +7,7 @@ import {
 import { useAppData } from "../../appData";
 import { invalidateServerProgress } from "../../appData/progress/invalidation/progressInvalidation";
 import { clearPersistedProgressLeaderboard } from "../../appData/progress/storage/progressStorage";
+import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import type { CommunityPublicProfile } from "../../types";
@@ -14,6 +15,7 @@ import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
 export function LeaderboardParticipationSettingsScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, isSessionVerified, session } = useAppData();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const { t } = useI18n();
   const [communityProfile, setCommunityProfile] = useState<CommunityPublicProfile | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -25,12 +27,13 @@ export function LeaderboardParticipationSettingsScreen(): ReactElement {
     || isSessionVerified === false
     || session === null
     || canManageLeaderboardParticipation === false;
+  const technicalErrorMessage = t("appError.technicalError.message");
 
   function captureCommunityProfileOperationError(
     error: unknown,
     operation: "community_profile_refresh" | "community_profile_update",
-  ): void {
-    captureAppOperationError(error, {
+  ): boolean {
+    return captureAppOperationError(error, {
       feature: "settings",
       operation,
       userId: session?.userId ?? null,
@@ -65,8 +68,13 @@ export function LeaderboardParticipationSettingsScreen(): ReactElement {
           return;
         }
 
-        captureCommunityProfileOperationError(error, "community_profile_refresh");
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        const wasCaptured = captureCommunityProfileOperationError(error, "community_profile_refresh");
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setErrorMessage(technicalErrorMessage);
+        } else {
+          setErrorMessage(error instanceof Error ? error.message : String(error));
+        }
       }
     }
 
@@ -115,8 +123,13 @@ export function LeaderboardParticipationSettingsScreen(): ReactElement {
         return;
       }
 
-      captureCommunityProfileOperationError(error, "community_profile_update");
-      setErrorMessage(error instanceof Error ? error.message : String(error));
+      const wasCaptured = captureCommunityProfileOperationError(error, "community_profile_update");
+      if (wasCaptured) {
+        showCapturedTechnicalError(error);
+        setErrorMessage(technicalErrorMessage);
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      }
     } finally {
       setIsSubmitting(false);
     }

@@ -40,8 +40,14 @@ struct ProgressScreen: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 20) {
                     if self.store.progressErrorMessage.isEmpty == false {
-                        CopyableErrorMessageView(message: self.store.progressErrorMessage)
-                            .modifier(ProgressCardModifier())
+                        Label {
+                            Text(self.store.progressErrorMessage)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        } icon: {
+                            Image(systemName: "exclamationmark.triangle")
+                                .foregroundStyle(.orange)
+                        }
+                        .modifier(ProgressCardModifier())
                     }
 
                     if let progressSnapshot = self.store.progressSnapshot {

@@ -45,6 +45,7 @@ fun CloudPostAuthRoute(
     onSelectWorkspace: (CloudWorkspaceLinkSelection) -> Unit,
     onRetry: () -> Unit,
     onFailureAction: () -> Unit,
+    onShowTechnicalDetails: (String, String) -> Unit,
     onBack: () -> Unit,
     canNavigateBack: Boolean
 ) {
@@ -136,6 +137,22 @@ fun CloudPostAuthRoute(
                                     text = uiState.errorMessage,
                                     color = MaterialTheme.colorScheme.error
                                 )
+                                if (
+                                    uiState.errorTechnicalDetails.isNullOrBlank().not() &&
+                                    uiState.errorTechnicalDetailsReportId.isNullOrBlank().not()
+                                ) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            onShowTechnicalDetails(
+                                                uiState.errorTechnicalDetails.orEmpty(),
+                                                uiState.errorTechnicalDetailsReportId.orEmpty()
+                                            )
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(stringResource(R.string.settings_sign_in_error_show_details))
+                                    }
+                                }
                             }
 
                             CloudPostAuthMode.IDLE -> {

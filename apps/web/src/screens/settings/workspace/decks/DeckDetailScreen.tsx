@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../../../../appData";
+import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
 import { ALL_CARDS_REVIEW_FILTER, isCardDue } from "../../../../appData/domain";
 import { ALL_CARDS_DECK_SLUG } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
@@ -33,6 +34,7 @@ function hasDeckFilterRules(filterDefinition: DeckFilterDefinition): boolean {
 export function DeckDetailScreen(): ReactElement {
   const { deckId } = useParams();
   const navigate = useNavigate();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatCount, formatDateTime, formatNumber } = useI18n();
   const {
     activeWorkspace,
@@ -58,6 +60,7 @@ export function DeckDetailScreen(): ReactElement {
 
   const currentDeckId = deckId ?? "";
   const nowTimestamp = Date.now();
+  const technicalErrorMessage = t("appError.technicalError.message");
   observationIdentityRef.current = {
     userId: session?.userId ?? null,
     installationId: cloudSettings?.installationId ?? null,
@@ -126,7 +129,7 @@ export function DeckDetailScreen(): ReactElement {
     } catch (error) {
       if (activeWorkspace !== null) {
         const observationIdentity = observationIdentityRef.current;
-        captureAppOperationError(error, {
+        const wasCaptured = captureAppOperationError(error, {
           feature: "settings",
           operation: "deck_detail_load",
           userId: observationIdentity.userId,
@@ -134,6 +137,11 @@ export function DeckDetailScreen(): ReactElement {
           installationId: observationIdentity.installationId,
           entityId: deckId,
         });
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setScreenErrorMessage(technicalErrorMessage);
+          return;
+        }
       }
       setScreenErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -163,7 +171,7 @@ export function DeckDetailScreen(): ReactElement {
       await deleteDeckItem(deckId);
       navigate(settingsDecksRoute);
     } catch (error) {
-      captureAppOperationError(error, {
+      const wasCaptured = captureAppOperationError(error, {
         feature: "settings",
         operation: "deck_delete",
         userId: session?.userId ?? null,
@@ -171,7 +179,12 @@ export function DeckDetailScreen(): ReactElement {
         installationId: cloudSettings?.installationId ?? null,
         entityId: deckId,
       });
-      setScreenErrorMessage(error instanceof Error ? error.message : String(error));
+      if (wasCaptured) {
+        showCapturedTechnicalError(error);
+        setScreenErrorMessage(technicalErrorMessage);
+      } else {
+        setScreenErrorMessage(error instanceof Error ? error.message : String(error));
+      }
     } finally {
       setIsDeleting(false);
     }

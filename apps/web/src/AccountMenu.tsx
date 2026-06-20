@@ -1,4 +1,5 @@
 import { type FormEvent, type ReactElement, useEffect, useRef, useState } from "react";
+import { useAppErrorDialog } from "./appError/AppErrorContext";
 import { useI18n } from "./i18n";
 import type { WorkspaceSummary } from "./types";
 import { useTransientMessage } from "./useTransientMessage";
@@ -29,6 +30,7 @@ export function AccountMenu(props: Props): ReactElement {
     onSelectWorkspace,
     onCreateWorkspace,
   } = props;
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime } = useI18n();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
@@ -38,6 +40,7 @@ export function AccountMenu(props: Props): ReactElement {
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { message, showMessage } = useTransientMessage(3000);
+  const technicalErrorMessage = t("appError.technicalError.message");
 
   useEffect(() => {
     if (!isOpen) {
@@ -119,7 +122,18 @@ export function AccountMenu(props: Props): ReactElement {
       setIsCreating(false);
       setNewWorkspaceName("");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : String(error));
+      const nextErrorMessage = error instanceof Error ? error.message : String(error);
+      const isExpectedError = nextErrorMessage === t("app.sessionUnavailable")
+        || nextErrorMessage === t("app.sessionRestoringActionLocked")
+        || nextErrorMessage === t("accountMenu.workspaceNameRequired")
+        || nextErrorMessage === t("settingsCurrentWorkspace.workspaceNameRequired");
+      if (isExpectedError) {
+        setErrorMessage(nextErrorMessage);
+        return;
+      }
+
+      showCapturedTechnicalError(error);
+      setErrorMessage(technicalErrorMessage);
     }
   }
 

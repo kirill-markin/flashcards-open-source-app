@@ -43,10 +43,12 @@ class SettingsAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                 isVerifyingCode = false,
                                 errorMessage = "",
                                 errorTechnicalDetails = null,
+                                errorTechnicalDetailsReportId = null,
                                 challengeEmail = null
                             ),
                             onEmailChange = { email = it },
                             onSendCode = { route = "code" },
+                            onShowTechnicalDetails = { _, _ -> },
                             onBack = {}
                         )
                     }
@@ -61,10 +63,12 @@ class SettingsAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                 isVerifyingCode = false,
                                 errorMessage = "",
                                 errorTechnicalDetails = null,
+                                errorTechnicalDetailsReportId = null,
                                 challengeEmail = email
                             ),
                             onCodeChange = { code = it },
                             onVerifyCode = {},
+                            onShowTechnicalDetails = { _, _ -> },
                             onBack = { route = "email" }
                         )
                     }

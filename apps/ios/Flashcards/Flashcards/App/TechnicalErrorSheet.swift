@@ -84,6 +84,34 @@ struct TechnicalErrorSheet: View {
     }
 }
 
+extension View {
+    @MainActor
+    func technicalErrorSheet(store: FlashcardsStore) -> some View {
+        self.sheet(item: technicalErrorPresentation(store: store)) { presentation in
+            TechnicalErrorSheet(
+                presentation: presentation,
+                onClose: {
+                    store.dismissTechnicalError()
+                }
+            )
+        }
+    }
+}
+
+@MainActor
+private func technicalErrorPresentation(store: FlashcardsStore) -> Binding<TechnicalErrorPresentation?> {
+    Binding<TechnicalErrorPresentation?>(
+        get: {
+            store.presentedTechnicalError
+        },
+        set: { presentation in
+            if presentation == nil {
+                store.dismissTechnicalError()
+            }
+        }
+    )
+}
+
 #Preview {
     TechnicalErrorSheet(
         presentation: makeTechnicalErrorPreviewPresentation(),

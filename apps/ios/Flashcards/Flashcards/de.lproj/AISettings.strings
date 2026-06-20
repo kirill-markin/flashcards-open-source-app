@@ -436,6 +436,7 @@
 "settings.account.cloudSignIn.challengePrompt.active" = "Geben Sie den 8-stelligen Code ein, den Sie per E-Mail erhalten haben. Wenn Sie ihn nicht sehen, prüfen Sie den Spam-Ordner.";
 "settings.account.cloudSignIn.challengePrompt.consumed" = "Dieser Code wurde bereits verwendet. Fordern Sie ein neues an, um fortzufahren.";
 "settings.account.cloudSignIn.challengePrompt.expired" = "Dieser Code ist abgelaufen. Fordern Sie ein neues an, um fortzufahren.";
+"settings.account.cloudSignIn.challengePrompt.tooManyAttempts" = "Zu viele Versuche. Fordern Sie einen neuen Code an, um fortzufahren.";
 "settings.account.cloudSignIn.workspaceDescription" = "Wählen Sie eine Option, um fortzufahren: Verknüpfen Sie dieses Gerät mit einem vorhandenen Cloud-Arbeitsbereich oder erstellen Sie einen neuen.";
 "settings.account.cloudSignIn.failure.initialSyncFailed" = "Angemeldet, aber die erste Synchronisierung ist fehlgeschlagen.";
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Ich habe mich angemeldet, aber die Cloud-Konfiguration ist fehlgeschlagen.";

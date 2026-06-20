@@ -11,6 +11,7 @@ import {
   checkFileSize,
   isBinaryPendingAttachment,
   isChatAttachmentTooLargeError,
+  isExpectedImageAttachmentPreparationError,
   prepareAttachment,
   recompressImageAttachment,
   type PendingAttachment,
@@ -29,6 +30,7 @@ type UseChatAttachmentsParams = Readonly<{
   canAttachDraftFiles: boolean;
   currentSessionId: string | null;
   draftInputText: string;
+  onTechnicalError: (error: unknown) => void;
   pendingAttachmentsRef: MutableRefObject<ReadonlyArray<PendingAttachment>>;
   setPendingAttachmentsState: (nextAttachments: ReadonlyArray<PendingAttachment>) => void;
 }>;
@@ -84,6 +86,7 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
     canAttachDraftFiles,
     currentSessionId,
     draftInputText,
+    onTechnicalError,
     pendingAttachmentsRef,
     setPendingAttachmentsState,
   } = params;
@@ -123,8 +126,7 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
           EXTRA_AGGRESSIVE_IMAGE_COMPRESSION,
         );
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        window.alert(message);
+        onTechnicalError(error);
         return;
       }
 
@@ -226,8 +228,12 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
           continue;
         }
 
-        const message = error instanceof Error ? error.message : String(error);
-        window.alert(message);
+        if (isExpectedImageAttachmentPreparationError(error)) {
+          window.alert(attachmentUnsupportedMessage);
+          continue;
+        }
+
+        onTechnicalError(error);
       }
     }
   }

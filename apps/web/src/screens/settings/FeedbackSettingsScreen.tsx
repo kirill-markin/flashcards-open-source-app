@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactElement } from "react";
-import { submitFeedback } from "../../api";
+import { ApiError, submitFeedback } from "../../api";
 import { useAppData } from "../../appData";
+import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import {
   buildFeedbackSubmissionRequest,
   feedbackMaximumMessageLength,
@@ -17,12 +18,27 @@ import type { FeedbackSubmissionRequest } from "../../types";
 import { useTransientMessage } from "../../useTransientMessage";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
+function isExpectedFeedbackSubmitError(error: unknown): error is ApiError {
+  return error instanceof ApiError
+    && error.statusCode >= 400
+    && error.statusCode < 500
+    && (
+      error.code === "FEEDBACK_BODY_TOO_LARGE"
+      || error.code === "FEEDBACK_HUMAN_AUTH_REQUIRED"
+      || error.code === "FEEDBACK_INSTALLATION_FORBIDDEN"
+      || error.code === "FEEDBACK_INVALID_INPUT"
+      || error.code === "FEEDBACK_SUBMISSION_ID_CONFLICT"
+      || error.code === "FEEDBACK_WORKSPACE_FORBIDDEN"
+    );
+}
+
 export function FeedbackSettingsScreen(): ReactElement {
   const {
     activeWorkspace,
     cloudSettings,
     session,
   } = useAppData();
+  const { showCapturedTechnicalError } = useAppErrorDialog();
   const { locale, t } = useI18n();
   const { message, showMessage } = useTransientMessage(3000);
   const [feedbackMessage, setFeedbackMessage] = useState<string>("");
@@ -33,6 +49,7 @@ export function FeedbackSettingsScreen(): ReactElement {
     linkedUserId: cloudSettings?.linkedUserId ?? null,
   });
   const isSubmitDisabled = isFeedbackSubmitting || isFeedbackMessageSubmittable(feedbackMessage) === false;
+  const technicalErrorMessage = t("appError.technicalError.message");
 
   async function submitSettingsFeedback(): Promise<void> {
     const normalizedMessage = normalizeFeedbackMessage(feedbackMessage);
@@ -56,7 +73,7 @@ export function FeedbackSettingsScreen(): ReactElement {
         now: new Date(),
       });
     } catch (error) {
-      captureAppOperationError(error, {
+      const wasCaptured = captureAppOperationError(error, {
         feature: "feedback",
         operation: "feedback_submit",
         userId: session?.userId ?? null,
@@ -64,7 +81,10 @@ export function FeedbackSettingsScreen(): ReactElement {
         installationId: cloudSettings?.installationId ?? null,
         entityId: null,
       });
-      setFeedbackErrorMessage(t("feedback.submitError"));
+      if (wasCaptured) {
+        showCapturedTechnicalError(error);
+      }
+      setFeedbackErrorMessage(wasCaptured ? technicalErrorMessage : t("feedback.submitError"));
       return;
     }
 
@@ -79,7 +99,7 @@ export function FeedbackSettingsScreen(): ReactElement {
           submittedAt: submissionRequest.createdAtClient,
         });
       } catch (error) {
-        captureAppOperationError(error, {
+        const wasCaptured = captureAppOperationError(error, {
           feature: "feedback",
           operation: "feedback_submit",
           userId: session?.userId ?? null,
@@ -87,11 +107,19 @@ export function FeedbackSettingsScreen(): ReactElement {
           installationId: cloudSettings?.installationId ?? null,
           entityId: submissionRequest.feedbackSubmissionId,
         });
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+        }
       }
       setFeedbackMessage("");
       showMessage(t("feedback.success"));
     } catch (error) {
-      captureAppOperationError(error, {
+      if (isExpectedFeedbackSubmitError(error)) {
+        setFeedbackErrorMessage(t("feedback.submitError"));
+        return;
+      }
+
+      const wasCaptured = captureAppOperationError(error, {
         feature: "feedback",
         operation: "feedback_submit",
         userId: session?.userId ?? null,
@@ -99,7 +127,10 @@ export function FeedbackSettingsScreen(): ReactElement {
         installationId: cloudSettings?.installationId ?? null,
         entityId: submissionRequest.feedbackSubmissionId,
       });
-      setFeedbackErrorMessage(t("feedback.submitError"));
+      if (wasCaptured) {
+        showCapturedTechnicalError(error);
+      }
+      setFeedbackErrorMessage(wasCaptured ? technicalErrorMessage : t("feedback.submitError"));
     } finally {
       setIsFeedbackSubmitting(false);
     }
