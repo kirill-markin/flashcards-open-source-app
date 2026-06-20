@@ -10,6 +10,7 @@ import type {
   ProgressScopeKey,
   ProgressSeries,
   ProgressSeriesInput,
+  ProgressStreakLeaderboard,
   ProgressSummary,
   ProgressSummaryPayload,
   StreakDay,
@@ -47,6 +48,7 @@ const progressSourceMocks = vi.hoisted(() => ({
   loadProgressSeriesMock: vi.fn<(input: Readonly<{ timeZone: string; from: string; to: string }>) => Promise<ProgressSeries>>(),
   loadProgressReviewScheduleMock: vi.fn<(input: Readonly<{ timeZone: string; today: string }>) => Promise<ProgressReviewSchedule>>(),
   loadProgressLeaderboardMock: vi.fn<() => Promise<ProgressLeaderboard>>(),
+  loadProgressStreakLeaderboardMock: vi.fn<() => Promise<ProgressStreakLeaderboard>>(),
   loadLocalLeaderboardViewerCountsMock: vi.fn<(workspaceIds: ReadonlyArray<string>, now: Date) => Promise<ProgressLeaderboardLocalViewerCounts>>(),
   hasPendingProgressReviewEventsMock: vi.fn<(workspaceIds: ReadonlyArray<string>) => Promise<boolean>>(),
   loadLocalProgressActiveDatesMock: vi.fn<(workspaceIds: ReadonlyArray<string>, timeZone: string) => Promise<ReadonlyArray<string>>>(),
@@ -68,6 +70,7 @@ const {
   loadProgressSeriesMock,
   loadProgressReviewScheduleMock,
   loadProgressLeaderboardMock,
+  loadProgressStreakLeaderboardMock,
   loadLocalLeaderboardViewerCountsMock,
   hasPendingProgressReviewEventsMock,
   loadLocalProgressActiveDatesMock,
@@ -97,6 +100,7 @@ vi.mock("../../../api", async (importOriginal) => {
     loadProgressSeries: progressSourceMocks.loadProgressSeriesMock,
     loadProgressReviewSchedule: progressSourceMocks.loadProgressReviewScheduleMock,
     loadProgressLeaderboard: progressSourceMocks.loadProgressLeaderboardMock,
+    loadProgressStreakLeaderboard: progressSourceMocks.loadProgressStreakLeaderboardMock,
   };
 });
 
@@ -513,6 +517,40 @@ export function buildServerReviewSchedule(newCount: number, generatedAt: string 
   };
 }
 
+export function buildServerStreakLeaderboard(viewerStreakDays: number): ProgressStreakLeaderboard {
+  return {
+    status: "ready",
+    metric: {
+      metricVersion: "streak_days_v1",
+      title: "Current streak days",
+      description: "Ranks use current streak days from the public daily snapshot.",
+    },
+    snapshotId: "3e6c0b88-5f5a-4db3-8c8c-9d6a3840a1e4",
+    snapshotGeneratedAt: "2026-04-18T12:00:05.000Z",
+    asOfUtcDate: "2026-04-18",
+    nextRefreshAfter: "2026-04-19T12:00:00.000Z",
+    participantCount: 4,
+    viewer: {
+      publicProfileId: "viewer-profile",
+      displayName: "You",
+      rank: 3,
+      streakDays: viewerStreakDays,
+    },
+    rows: [
+      { kind: "top", publicProfileId: "profile-1", anonymousDisplayName: "Silver Bright Harbor", streakDays: 8, rank: 1 },
+      { kind: "top", publicProfileId: "profile-2", anonymousDisplayName: "Coral Keen Valley", streakDays: 5, rank: 2 },
+      { kind: "viewer", publicProfileId: "viewer-profile", anonymousDisplayName: "Quiet Maple Grove", streakDays: viewerStreakDays, rank: 3 },
+      { kind: "neighbor", publicProfileId: "profile-4", anonymousDisplayName: "Amber Calm Ridge", streakDays: 1, rank: 4 },
+    ],
+    rankingRows: [
+      { kind: "participant", publicProfileId: "profile-1", anonymousDisplayName: "Silver Bright Harbor", streakDays: 8, rank: 1 },
+      { kind: "participant", publicProfileId: "profile-2", anonymousDisplayName: "Coral Keen Valley", streakDays: 5, rank: 2 },
+      { kind: "viewer", publicProfileId: "viewer-profile", anonymousDisplayName: "Quiet Maple Grove", streakDays: viewerStreakDays, rank: 3 },
+      { kind: "participant", publicProfileId: "profile-4", anonymousDisplayName: "Amber Calm Ridge", streakDays: 1, rank: 4 },
+    ],
+  };
+}
+
 export function replaceProgressReviewScheduleBucketCount(
   schedule: ProgressReviewSchedule,
   bucketIndex: number,
@@ -629,6 +667,18 @@ export function storePersistedProgressLeaderboardForTest(
   }));
 }
 
+export function storePersistedProgressStreakLeaderboardForTest(
+  scopeKey: ProgressScopeKey,
+  serverBase: ProgressStreakLeaderboard,
+): void {
+  window.localStorage.setItem("flashcards-progress-server-streak-leaderboard", JSON.stringify({
+    version: 1,
+    scopeKey,
+    savedAt: "2026-04-18T09:00:00.000Z",
+    serverBase,
+  }));
+}
+
 export async function flushEffects(): Promise<void> {
   await act(async () => {
     await Promise.resolve();
@@ -669,6 +719,7 @@ beforeEach(() => {
   loadProgressSeriesMock.mockReset();
   loadProgressReviewScheduleMock.mockReset();
   loadProgressLeaderboardMock.mockReset();
+  loadProgressStreakLeaderboardMock.mockReset();
   loadLocalLeaderboardViewerCountsMock.mockReset();
   hasPendingProgressReviewEventsMock.mockReset();
   loadLocalProgressActiveDatesMock.mockReset();
@@ -709,6 +760,7 @@ beforeEach(() => {
   loadProgressSummaryMock.mockResolvedValue(buildServerSummary(1, "2026-04-18T09:15:00.000Z"));
   loadProgressSeriesMock.mockResolvedValue(buildServerSeries(1, "2026-04-18T09:15:00.000Z"));
   loadProgressReviewScheduleMock.mockResolvedValue(buildServerReviewSchedule(1, "2026-04-18T09:15:00.000Z"));
+  loadProgressStreakLeaderboardMock.mockResolvedValue(buildServerStreakLeaderboard(1));
 });
 
 afterEach(() => {
@@ -741,6 +793,7 @@ export {
   loadProgressLeaderboardMock,
   loadProgressReviewScheduleMock,
   loadProgressSeriesMock,
+  loadProgressStreakLeaderboardMock,
   loadProgressSummaryMock,
   setWebObservabilityUserMock,
 };

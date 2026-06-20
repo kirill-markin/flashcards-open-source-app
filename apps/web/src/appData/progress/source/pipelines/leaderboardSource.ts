@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import {
   ApiNetworkError,
   loadProgressLeaderboard,
+  loadProgressStreakLeaderboard,
 } from "../../../../api";
 import {
   loadLocalLeaderboardViewerCounts,
@@ -9,13 +10,17 @@ import {
 import type {
   ProgressLeaderboard,
   ProgressScopeKey,
+  ProgressStreakLeaderboard,
 } from "../../../../types";
 import {
   createProgressLeaderboardSnapshot,
+  createProgressStreakLeaderboardSnapshot,
 } from "../../snapshots/progressSnapshots";
 import {
   loadPersistedProgressLeaderboard,
+  loadPersistedProgressStreakLeaderboard,
   storePersistedProgressLeaderboard,
+  storePersistedProgressStreakLeaderboard,
 } from "../../storage/progressStorage";
 import {
   captureProgressLocalLoadError,
@@ -33,8 +38,15 @@ export type RefreshProgressLeaderboard = (
   bypassFreshnessGate: boolean,
 ) => Promise<void>;
 
+export type RefreshProgressStreakLeaderboard = (
+  targetScopeKey: ProgressScopeKey,
+  nextRefreshKey: string,
+  bypassFreshnessGate: boolean,
+) => Promise<void>;
+
 export type ProgressLeaderboardSourcePipeline = Readonly<{
   refreshProgressLeaderboard: RefreshProgressLeaderboard;
+  refreshProgressStreakLeaderboard: RefreshProgressStreakLeaderboard;
 }>;
 
 type ProgressLeaderboardRefreshRequest = Readonly<{
@@ -76,6 +88,18 @@ function isProgressLeaderboardFresh(leaderboard: ProgressLeaderboard | null, now
   });
 }
 
+function isProgressStreakLeaderboardFresh(
+  leaderboard: ProgressStreakLeaderboard | null,
+  nowTimestamp: number,
+): boolean {
+  if (leaderboard === null || leaderboard.status !== "ready") {
+    return false;
+  }
+
+  const nextRefreshAfterTimestamp = Date.parse(leaderboard.nextRefreshAfter);
+  return Number.isNaN(nextRefreshAfterTimestamp) === false && nextRefreshAfterTimestamp > nowTimestamp;
+}
+
 export function useProgressLeaderboardSourcePipeline(
   params: ProgressLeaderboardSourcePipelineParams,
 ): ProgressLeaderboardSourcePipeline {
@@ -97,23 +121,37 @@ export function useProgressLeaderboardSourcePipeline(
   const localLoadSequenceRef = useRef<number>(0);
   const serverRefreshPromisesRef = useRef<Map<ProgressScopeKey, Promise<void>>>(new Map());
   const requestedRefreshRequestsRef = useRef<Map<ProgressScopeKey, ProgressLeaderboardRefreshRequest>>(new Map());
+  const streakServerRefreshPromisesRef = useRef<Map<ProgressScopeKey, Promise<void>>>(new Map());
+  const requestedStreakRefreshRequestsRef = useRef<Map<ProgressScopeKey, ProgressLeaderboardRefreshRequest>>(new Map());
 
   useEffect(() => {
     currentScopeKeyRef.current = scopeKey;
 
     if (scopeKey === null) {
       dispatch({ type: "leaderboard_scope_reset" });
+      dispatch({ type: "streak_leaderboard_scope_reset" });
       return;
     }
 
     const persistedLeaderboard = canLoadServerBase
       ? loadPersistedProgressLeaderboard(scopeKey)
       : null;
+    const persistedStreakLeaderboard = canLoadServerBase
+      ? loadPersistedProgressStreakLeaderboard(scopeKey)
+      : null;
 
     dispatch({
       type: "leaderboard_scope_initialized",
       scopeKey,
       serverBase: persistedLeaderboard === null ? null : createProgressLeaderboardSnapshot(persistedLeaderboard, false),
+      canRenderServerBase: canLoadServerBaseRef.current,
+    });
+    dispatch({
+      type: "streak_leaderboard_scope_initialized",
+      scopeKey,
+      serverBase: persistedStreakLeaderboard === null
+        ? null
+        : createProgressStreakLeaderboardSnapshot(persistedStreakLeaderboard, false),
       canRenderServerBase: canLoadServerBaseRef.current,
     });
   }, [canLoadServerBase, canLoadServerBaseRef, currentScopeKeyRef, dispatch, scopeKey]);
@@ -289,6 +327,112 @@ export function useProgressLeaderboardSourcePipeline(
     return refreshPromise;
   }, [activeWorkspaceId, canExposeTechnicalErrors, canLoadServerBaseRef, currentScopeKeyRef, dispatch, installationId]);
 
+  const refreshProgressStreakLeaderboard = useCallback<RefreshProgressStreakLeaderboard>(async function refreshProgressStreakLeaderboard(
+    targetScopeKey: ProgressScopeKey,
+    nextRefreshKey: string,
+    bypassFreshnessGate: boolean,
+  ): Promise<void> {
+    requestedStreakRefreshRequestsRef.current.set(targetScopeKey, {
+      refreshKey: nextRefreshKey,
+      bypassFreshnessGate,
+    });
+
+    const inFlightRefresh = streakServerRefreshPromisesRef.current.get(targetScopeKey);
+    if (inFlightRefresh !== undefined) {
+      return inFlightRefresh;
+    }
+
+    const refreshPromise = (async (): Promise<void> => {
+      try {
+        while (true) {
+          const requestedRefresh = requestedStreakRefreshRequestsRef.current.get(targetScopeKey);
+
+          if (requestedRefresh === undefined) {
+            throw new Error(`Missing requested progress streak leaderboard refresh key for scope ${targetScopeKey}`);
+          }
+
+          if (currentScopeKeyRef.current !== targetScopeKey || canLoadServerBaseRef.current === false) {
+            requestedStreakRefreshRequestsRef.current.delete(targetScopeKey);
+            return;
+          }
+
+          if (
+            requestedRefresh.bypassFreshnessGate === false
+            && isProgressStreakLeaderboardFresh(loadPersistedProgressStreakLeaderboard(targetScopeKey), Date.now())
+          ) {
+            if (requestedStreakRefreshRequestsRef.current.get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey) {
+              dispatch({
+                type: "streak_leaderboard_server_load_skipped",
+                scopeKey: targetScopeKey,
+                canRenderServerBase: canLoadServerBaseRef.current,
+              });
+              requestedStreakRefreshRequestsRef.current.delete(targetScopeKey);
+              return;
+            }
+
+            continue;
+          }
+
+          try {
+            const serverLeaderboard = await loadProgressStreakLeaderboard();
+            const isCurrentRefreshRequest: boolean = requestedStreakRefreshRequestsRef.current
+              .get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey;
+
+            if (
+              currentScopeKeyRef.current === targetScopeKey
+              && canLoadServerBaseRef.current
+              && isCurrentRefreshRequest
+            ) {
+              storePersistedProgressStreakLeaderboard(targetScopeKey, serverLeaderboard);
+              dispatch({
+                type: "streak_leaderboard_server_load_succeeded",
+                scopeKey: targetScopeKey,
+                serverBase: createProgressStreakLeaderboardSnapshot(serverLeaderboard, false),
+                canRenderServerBase: canLoadServerBaseRef.current,
+              });
+            }
+          } catch (error: unknown) {
+            const isCurrentRefreshRequest: boolean = requestedStreakRefreshRequestsRef.current
+              .get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey;
+
+            if (
+              currentScopeKeyRef.current === targetScopeKey
+              && canLoadServerBaseRef.current
+              && isCurrentRefreshRequest
+            ) {
+              const technicalError = normalizeProgressSourceError(error);
+              const wasCaptured = canExposeTechnicalErrors
+                && captureProgressServerLoadError(technicalError, {
+                  operation: "progress_streak_leaderboard_server_load",
+                  workspaceId: activeWorkspaceId,
+                  installationId,
+                });
+
+              dispatch({
+                type: "streak_leaderboard_server_load_failed",
+                scopeKey: targetScopeKey,
+                errorMessage: getErrorMessage(technicalError),
+                technicalError: wasCaptured ? technicalError : null,
+                isNetworkError: technicalError instanceof ApiNetworkError,
+                canRenderServerBase: canLoadServerBaseRef.current,
+              });
+            }
+          }
+
+          if (requestedStreakRefreshRequestsRef.current.get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey) {
+            requestedStreakRefreshRequestsRef.current.delete(targetScopeKey);
+            return;
+          }
+        }
+      } finally {
+        streakServerRefreshPromisesRef.current.delete(targetScopeKey);
+      }
+    })();
+
+    streakServerRefreshPromisesRef.current.set(targetScopeKey, refreshPromise);
+    return refreshPromise;
+  }, [activeWorkspaceId, canExposeTechnicalErrors, canLoadServerBaseRef, currentScopeKeyRef, dispatch, installationId]);
+
   useEffect(() => {
     if (autoRefreshEnabled === false) {
       return;
@@ -299,18 +443,26 @@ export function useProgressLeaderboardSourcePipeline(
     }
 
     if (requestedRefreshRequestsRef.current.get(scopeKey)?.refreshKey === refreshKey) {
-      return;
+      if (requestedStreakRefreshRequestsRef.current.get(scopeKey)?.refreshKey === refreshKey) {
+        return;
+      }
+    } else {
+      void refreshProgressLeaderboard(scopeKey, refreshKey, false);
     }
 
-    void refreshProgressLeaderboard(scopeKey, refreshKey, false);
+    if (requestedStreakRefreshRequestsRef.current.get(scopeKey)?.refreshKey !== refreshKey) {
+      void refreshProgressStreakLeaderboard(scopeKey, refreshKey, false);
+    }
   }, [
     autoRefreshEnabled,
     refreshKey,
     refreshProgressLeaderboard,
+    refreshProgressStreakLeaderboard,
     scopeKey,
   ]);
 
   return {
     refreshProgressLeaderboard,
+    refreshProgressStreakLeaderboard,
   };
 }

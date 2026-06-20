@@ -3,11 +3,13 @@ import type {
   ProgressReviewScheduleSourceState,
   ProgressSeriesSourceState,
   ProgressSourceState,
+  ProgressStreakLeaderboardSourceState,
   ProgressSummarySourceState,
 } from "../../../types";
 import { buildRenderedLeaderboard } from "./progressLeaderboardSnapshots";
 import { buildRenderedReviewSchedule } from "./progressReviewScheduleSnapshots";
 import { buildRenderedSeries } from "./progressSeriesSnapshots";
+import { buildRenderedStreakLeaderboard } from "./progressStreakLeaderboardSnapshots";
 import { buildRenderedSummary } from "./progressSummarySnapshots";
 
 export function createEmptyProgressSummarySourceState(): ProgressSummarySourceState {
@@ -73,12 +75,26 @@ export function createEmptyProgressLeaderboardSourceState(): ProgressLeaderboard
   };
 }
 
+export function createEmptyProgressStreakLeaderboardSourceState(): ProgressStreakLeaderboardSourceState {
+  return {
+    scopeKey: null,
+    serverBase: null,
+    currentSummary: null,
+    renderedSnapshot: null,
+    isLoading: false,
+    errorMessage: "",
+    technicalError: null,
+    isNetworkError: false,
+  };
+}
+
 export function createEmptyProgressSourceState(): ProgressSourceState {
   return {
     summary: createEmptyProgressSummarySourceState(),
     series: createEmptyProgressSeriesSourceState(),
     reviewSchedule: createEmptyProgressReviewScheduleSourceState(),
     leaderboard: createEmptyProgressLeaderboardSourceState(),
+    streakLeaderboard: createEmptyProgressStreakLeaderboardSourceState(),
   };
 }
 
@@ -145,6 +161,28 @@ export function createNextLeaderboardState(
       nextStateWithoutRenderedSnapshot.localViewerCounts,
       canRenderServerBase,
     ),
+  };
+}
+
+export function createNextStreakLeaderboardState(
+  currentState: ProgressStreakLeaderboardSourceState,
+  patch: Readonly<Partial<Omit<ProgressStreakLeaderboardSourceState, "renderedSnapshot">>>,
+  canRenderServerBase: boolean,
+): ProgressStreakLeaderboardSourceState {
+  const nextStateWithoutRenderedSnapshot = {
+    ...currentState,
+    ...patch,
+  };
+
+  return {
+    ...nextStateWithoutRenderedSnapshot,
+    renderedSnapshot: nextStateWithoutRenderedSnapshot.scopeKey === null
+      ? null
+      : buildRenderedStreakLeaderboard(
+        nextStateWithoutRenderedSnapshot.serverBase,
+        nextStateWithoutRenderedSnapshot.currentSummary,
+        canRenderServerBase,
+      ),
   };
 }
 

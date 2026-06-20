@@ -78,7 +78,10 @@ export function useProgressSummarySourcePipeline(
     currentScopeKeyRef.current = scopeKey;
 
     if (scopeKey === null) {
-      dispatch({ type: "summary_scope_reset" });
+      dispatch({
+        type: "summary_scope_reset",
+        canRenderServerBase: canLoadServerBaseRef.current,
+      });
       return;
     }
 

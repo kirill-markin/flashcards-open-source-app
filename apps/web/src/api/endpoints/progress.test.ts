@@ -12,6 +12,7 @@ import {
 import {
   loadProgressReviewSchedule,
   loadProgressSeries,
+  loadProgressStreakLeaderboard,
   loadProgressSummary,
 } from "./progress";
 
@@ -64,6 +65,68 @@ function createThreeDayStreakDays(): ReadonlyArray<StreakDay> {
     { date: "2026-04-02", state: "frozen" },
     { date: "2026-04-03", state: "reviewed" },
   ];
+}
+
+function createProgressStreakLeaderboardValue(): Readonly<{
+  status: "ready";
+  metric: Readonly<{
+    metricVersion: "streak_days_v1";
+    title: string;
+    description: string;
+  }>;
+  snapshotId: string;
+  snapshotGeneratedAt: string;
+  asOfUtcDate: string;
+  nextRefreshAfter: string;
+  participantCount: number;
+  viewer: Readonly<{
+    publicProfileId: string;
+    displayName: "You";
+    rank: number;
+    streakDays: number;
+  }>;
+  rows: ReadonlyArray<Readonly<{
+    kind: "top" | "viewer";
+    publicProfileId: string;
+    anonymousDisplayName: string;
+    streakDays: number;
+    rank: number;
+  }>>;
+  rankingRows: ReadonlyArray<Readonly<{
+    kind: "participant" | "viewer";
+    publicProfileId: string;
+    anonymousDisplayName: string;
+    streakDays: number;
+    rank: number;
+  }>>;
+}> {
+  return {
+    status: "ready",
+    metric: {
+      metricVersion: "streak_days_v1",
+      title: "Current streak days",
+      description: "Ranks use current streak days from the public daily snapshot.",
+    },
+    snapshotId: "3e6c0b88-5f5a-4db3-8c8c-9d6a3840a1e4",
+    snapshotGeneratedAt: "2026-06-10T12:00:05.000Z",
+    asOfUtcDate: "2026-06-10",
+    nextRefreshAfter: "2026-06-11T12:00:00.000Z",
+    participantCount: 2,
+    viewer: {
+      publicProfileId: "viewer-profile",
+      displayName: "You",
+      rank: 2,
+      streakDays: 3,
+    },
+    rows: [
+      { kind: "top", publicProfileId: "profile-1", anonymousDisplayName: "Silver Bright Harbor", streakDays: 5, rank: 1 },
+      { kind: "viewer", publicProfileId: "viewer-profile", anonymousDisplayName: "Jade Swift River", streakDays: 3, rank: 2 },
+    ],
+    rankingRows: [
+      { kind: "participant", publicProfileId: "profile-1", anonymousDisplayName: "Silver Bright Harbor", streakDays: 5, rank: 1 },
+      { kind: "viewer", publicProfileId: "viewer-profile", anonymousDisplayName: "Jade Swift River", streakDays: 3, rank: 2 },
+    ],
+  };
 }
 
 describe("progress API endpoints", () => {
@@ -359,6 +422,44 @@ describe("progress API endpoints", () => {
       to: "2026-04-03",
     })).rejects.toThrow(
       "Invalid API response for GET /me/progress/series: dailyReviews[0].againCount must be number",
+    );
+  });
+
+  it("decodes streak leaderboard responses from the streak leaderboard path", async () => {
+    const responseValue = createProgressStreakLeaderboardValue();
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createJsonResponse(responseValue));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressStreakLeaderboard()).resolves.toEqual(responseValue);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/v1/me/progress/leaderboards/streak",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("rejects streak leaderboard responses where the viewer is below an equal streak row", async () => {
+    const responseValue = createProgressStreakLeaderboardValue();
+    const invalidResponseValue = {
+      ...responseValue,
+      participantCount: 3,
+      viewer: {
+        ...responseValue.viewer,
+        rank: 3,
+      },
+      rankingRows: [
+        responseValue.rankingRows[0],
+        { kind: "participant", publicProfileId: "profile-2", anonymousDisplayName: "Amber Calm Ridge", streakDays: 3, rank: 2 },
+        { kind: "viewer", publicProfileId: "viewer-profile", anonymousDisplayName: "Jade Swift River", streakDays: 3, rank: 3 },
+      ],
+    };
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createJsonResponse(invalidResponseValue));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressStreakLeaderboard()).rejects.toThrow(
+      "Invalid API response for GET /me/progress/leaderboards/streak: rankingRows[2] must be the current viewer row before equal streak values",
     );
   });
 

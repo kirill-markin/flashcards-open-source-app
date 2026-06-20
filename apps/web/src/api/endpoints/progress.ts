@@ -3,6 +3,7 @@ import {
   parseProgressLeaderboardResponse,
   parseProgressReviewScheduleResponse,
   parseProgressSeriesResponse,
+  parseProgressStreakLeaderboardResponse,
   parseProgressSummaryResponse,
 } from "../../apiContracts/progress";
 import type {
@@ -11,6 +12,7 @@ import type {
   ProgressReviewScheduleInput,
   ProgressSeries,
   ProgressSeriesInput,
+  ProgressStreakLeaderboard,
   ProgressSummaryInput,
   ProgressSummaryPayload,
 } from "../../types";
@@ -54,6 +56,16 @@ export async function loadProgressLeaderboard(): Promise<ProgressLeaderboard> {
     }, allowAuthRecoveryWithTransientNetworkRetry),
     "GET /me/progress/leaderboard",
     parseProgressLeaderboardResponse,
+  );
+}
+
+export async function loadProgressStreakLeaderboard(): Promise<ProgressStreakLeaderboard> {
+  return parseContractResponse(
+    await requestJson("/me/progress/leaderboards/streak", {
+      method: "GET",
+    }, allowAuthRecoveryWithTransientNetworkRetry),
+    "GET /me/progress/leaderboards/streak",
+    parseProgressStreakLeaderboardResponse,
   );
 }
 

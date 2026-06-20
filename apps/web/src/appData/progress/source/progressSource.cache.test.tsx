@@ -4,6 +4,7 @@ import type {
   ProgressLeaderboard,
   ProgressReviewSchedule,
   ProgressSeries,
+  ProgressStreakLeaderboard,
   ProgressSummaryPayload,
 } from "../../../types";
 import type { ProgressCacheMissBreadcrumbDetails } from "../../../observability/webObservability";
@@ -18,6 +19,7 @@ import {
   buildGoodDailyReviewPoint,
   buildServerReviewSchedule,
   buildServerSeries,
+  buildServerStreakLeaderboard,
   buildServerSummary,
   createDeferredPromise,
   flushEffects,
@@ -26,6 +28,7 @@ import {
   loadProgressLeaderboardMock,
   loadProgressReviewScheduleMock,
   loadProgressSeriesMock,
+  loadProgressStreakLeaderboardMock,
   loadProgressSummaryMock,
   renderHarness,
   replaceProgressReviewScheduleBucketCount,
@@ -34,6 +37,7 @@ import {
   storePersistedProgressLeaderboardForTest,
   storePersistedProgressReviewScheduleForTest,
   storePersistedProgressSeriesForTest,
+  storePersistedProgressStreakLeaderboardForTest,
   storePersistedProgressSummaryForTest,
   summaryAndSeriesSections,
   summaryOnlySections,
@@ -144,9 +148,13 @@ describe("useProgressSource cache", () => {
 
   it("hydrates matching leaderboard cache with rankingRows before remote refresh completes", async () => {
     const cachedLeaderboard = buildCachedLeaderboard();
+    const cachedStreakLeaderboard = buildServerStreakLeaderboard(3);
     const deferredLeaderboard = createDeferredPromise<ProgressLeaderboard>();
+    const deferredStreakLeaderboard = createDeferredPromise<ProgressStreakLeaderboard>();
     storePersistedProgressLeaderboardForTest(buildCurrentLeaderboardScopeKey(), cachedLeaderboard);
+    storePersistedProgressStreakLeaderboardForTest(buildCurrentLeaderboardScopeKey(), cachedStreakLeaderboard);
     loadProgressLeaderboardMock.mockImplementation(() => deferredLeaderboard.promise);
+    loadProgressStreakLeaderboardMock.mockImplementation(() => deferredStreakLeaderboard.promise);
 
     const harness = renderHarness({
       sessionVerificationState: "verified",
@@ -161,6 +169,9 @@ describe("useProgressSource cache", () => {
       cachedLeaderboard.windows[0]?.rankingRows,
     );
     expect(harness.getApi().progressSourceState.leaderboard.renderedSnapshot?.windows[0]?.viewer.rank).toBe(2);
+    expect(harness.getApi().progressSourceState.streakLeaderboard.serverBase?.status).toBe("ready");
+    expect(harness.getApi().progressSourceState.streakLeaderboard.renderedSnapshot?.status).toBe("ready");
+    expect(harness.getApi().progressSourceState.streakLeaderboard.renderedSnapshot?.viewer.streakDays).toBe(3);
 
     deferredLeaderboard.resolve({
       ...cachedLeaderboard,
@@ -169,9 +180,15 @@ describe("useProgressSource cache", () => {
         snapshotGeneratedAt: "2026-04-18T09:11:00.000Z",
       })),
     });
+    deferredStreakLeaderboard.resolve({
+      ...cachedStreakLeaderboard,
+      snapshotGeneratedAt: "2026-04-18T12:01:00.000Z",
+    });
     await flushEffects();
 
     expect(harness.getApi().progressSourceState.leaderboard.serverBase?.windows[0]?.snapshotGeneratedAt).toBe("2026-04-18T09:11:00.000Z");
+    expect(harness.getApi().progressSourceState.streakLeaderboard.serverBase?.status).toBe("ready");
+    expect(harness.getApi().progressSourceState.streakLeaderboard.serverBase?.snapshotGeneratedAt).toBe("2026-04-18T12:01:00.000Z");
   });
 
   it("treats corrupt and mismatched cache entries as misses", async () => {

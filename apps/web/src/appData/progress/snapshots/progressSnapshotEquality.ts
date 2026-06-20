@@ -19,6 +19,12 @@ import type {
   ProgressSeriesSnapshot,
   ProgressSeriesSourceState,
   ProgressSourceState,
+  ProgressStreakLeaderboardMetric,
+  ProgressStreakLeaderboardRankingRow,
+  ProgressStreakLeaderboardRow,
+  ProgressStreakLeaderboardSnapshot,
+  ProgressStreakLeaderboardSourceState,
+  ProgressStreakLeaderboardViewer,
   ProgressSummary,
   ProgressSummaryPayload,
   ProgressSummarySnapshot,
@@ -447,6 +453,132 @@ function areProgressLeaderboardLocalViewerCountsEqual(
   return progressLeaderboardWindowKeys.every((windowKey) => left[windowKey] === right[windowKey]);
 }
 
+function areProgressStreakLeaderboardMetricsEqual(
+  left: ProgressStreakLeaderboardMetric,
+  right: ProgressStreakLeaderboardMetric,
+): boolean {
+  return left.metricVersion === right.metricVersion
+    && left.title === right.title
+    && left.description === right.description;
+}
+
+function areProgressStreakLeaderboardViewersEqual(
+  left: ProgressStreakLeaderboardViewer,
+  right: ProgressStreakLeaderboardViewer,
+): boolean {
+  return left.publicProfileId === right.publicProfileId
+    && left.displayName === right.displayName
+    && left.rank === right.rank
+    && left.streakDays === right.streakDays;
+}
+
+function areProgressStreakLeaderboardRowsEqual(
+  left: ProgressStreakLeaderboardRow,
+  right: ProgressStreakLeaderboardRow,
+): boolean {
+  if (left.kind === "gap" || right.kind === "gap") {
+    return left.kind === right.kind;
+  }
+
+  return left.kind === right.kind
+    && left.publicProfileId === right.publicProfileId
+    && left.anonymousDisplayName === right.anonymousDisplayName
+    && left.friendDisplayName === right.friendDisplayName
+    && left.streakDays === right.streakDays
+    && left.rank === right.rank;
+}
+
+function areProgressStreakLeaderboardRowArraysEqual(
+  left: ReadonlyArray<ProgressStreakLeaderboardRow>,
+  right: ReadonlyArray<ProgressStreakLeaderboardRow>,
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const leftRow = left[index];
+    const rightRow = right[index];
+
+    if (leftRow === undefined || rightRow === undefined || areProgressStreakLeaderboardRowsEqual(leftRow, rightRow) === false) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function areProgressStreakLeaderboardRankingRowsEqual(
+  left: ProgressStreakLeaderboardRankingRow,
+  right: ProgressStreakLeaderboardRankingRow,
+): boolean {
+  return left.kind === right.kind
+    && left.publicProfileId === right.publicProfileId
+    && left.anonymousDisplayName === right.anonymousDisplayName
+    && left.friendDisplayName === right.friendDisplayName
+    && left.streakDays === right.streakDays
+    && left.rank === right.rank;
+}
+
+function areProgressStreakLeaderboardRankingRowArraysEqual(
+  left: ReadonlyArray<ProgressStreakLeaderboardRankingRow>,
+  right: ReadonlyArray<ProgressStreakLeaderboardRankingRow>,
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const leftRow = left[index];
+    const rightRow = right[index];
+
+    if (
+      leftRow === undefined
+      || rightRow === undefined
+      || areProgressStreakLeaderboardRankingRowsEqual(leftRow, rightRow) === false
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function areProgressStreakLeaderboardSnapshotsEqual(
+  left: ProgressStreakLeaderboardSnapshot | null,
+  right: ProgressStreakLeaderboardSnapshot | null,
+): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (left === null || right === null) {
+    return false;
+  }
+
+  if (
+    left.status !== right.status
+    || left.source !== right.source
+    || left.isApproximate !== right.isApproximate
+    || areProgressStreakLeaderboardMetricsEqual(left.metric, right.metric) === false
+  ) {
+    return false;
+  }
+
+  if (left.status !== "ready" || right.status !== "ready") {
+    return true;
+  }
+
+  return left.snapshotId === right.snapshotId
+    && left.snapshotGeneratedAt === right.snapshotGeneratedAt
+    && left.asOfUtcDate === right.asOfUtcDate
+    && left.nextRefreshAfter === right.nextRefreshAfter
+    && left.participantCount === right.participantCount
+    && areProgressStreakLeaderboardViewersEqual(left.viewer, right.viewer)
+    && areProgressStreakLeaderboardRowArraysEqual(left.rows, right.rows)
+    && areProgressStreakLeaderboardRankingRowArraysEqual(left.rankingRows, right.rankingRows);
+}
+
 function areProgressLeaderboardSourceStatesEqual(
   left: ProgressLeaderboardSourceState,
   right: ProgressLeaderboardSourceState,
@@ -461,6 +593,20 @@ function areProgressLeaderboardSourceStatesEqual(
     && areProgressLeaderboardSnapshotsEqual(left.serverBase, right.serverBase)
     && areProgressLeaderboardLocalViewerCountsEqual(left.localViewerCounts, right.localViewerCounts)
     && areProgressLeaderboardSnapshotsEqual(left.renderedSnapshot, right.renderedSnapshot);
+}
+
+function areProgressStreakLeaderboardSourceStatesEqual(
+  left: ProgressStreakLeaderboardSourceState,
+  right: ProgressStreakLeaderboardSourceState,
+): boolean {
+  return left.scopeKey === right.scopeKey
+    && left.isLoading === right.isLoading
+    && left.errorMessage === right.errorMessage
+    && left.technicalError === right.technicalError
+    && left.isNetworkError === right.isNetworkError
+    && areProgressStreakLeaderboardSnapshotsEqual(left.serverBase, right.serverBase)
+    && areProgressSummarySnapshotsEqual(left.currentSummary, right.currentSummary)
+    && areProgressStreakLeaderboardSnapshotsEqual(left.renderedSnapshot, right.renderedSnapshot);
 }
 
 function areProgressSummarySourceStatesEqual(
@@ -518,5 +664,6 @@ export function areProgressSourceStatesEqual(left: ProgressSourceState, right: P
   return areProgressSummarySourceStatesEqual(left.summary, right.summary)
     && areProgressSeriesSourceStatesEqual(left.series, right.series)
     && areProgressReviewScheduleSourceStatesEqual(left.reviewSchedule, right.reviewSchedule)
-    && areProgressLeaderboardSourceStatesEqual(left.leaderboard, right.leaderboard);
+    && areProgressLeaderboardSourceStatesEqual(left.leaderboard, right.leaderboard)
+    && areProgressStreakLeaderboardSourceStatesEqual(left.streakLeaderboard, right.streakLeaderboard);
 }
