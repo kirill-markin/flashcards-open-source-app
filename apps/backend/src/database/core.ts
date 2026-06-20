@@ -13,7 +13,7 @@ import {
 
 let pool: pg.Pool | undefined;
 
-export type SqlValue = string | number | boolean | Date | null | ReadonlyArray<string>;
+export type SqlValue = string | number | boolean | Date | null | ReadonlyArray<string> | ReadonlyArray<number>;
 
 export type UserDatabaseScope = Readonly<{
   userId: string;

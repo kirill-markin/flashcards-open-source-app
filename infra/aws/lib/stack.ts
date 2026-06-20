@@ -16,6 +16,7 @@ import { authGateway } from "./gateways/auth-gateway";
 import { analyticsAccess, type AnalyticsAccessResult } from "./analytics-access";
 import { globalMetrics } from "./global-metrics";
 import { communityLeaderboard } from "./community-leaderboard";
+import { streakLeaderboard } from "./streak-leaderboard";
 import { progressActiveDaysBackfill } from "./progress-active-days-backfill";
 
 function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefined {
@@ -168,6 +169,13 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       backendDbSecret: dbResult.backendDbSecret,
       ...sentryContext,
     });
+    const streakLeaderboardResult = streakLeaderboard(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      backendDbSecret: dbResult.backendDbSecret,
+      ...sentryContext,
+    });
     const progressActiveDaysBackfillResult = progressActiveDaysBackfill(this, {
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,
@@ -282,6 +290,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       chatLiveFn: api.chatLiveFn,
       globalMetricsSnapshotFn: globalMetricsResult.snapshotFunction,
       communityLeaderboardSnapshotFn: communityLeaderboardResult.snapshotFunction,
+      streakLeaderboardSnapshotFn: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFn: progressActiveDaysBackfillResult.backfillFunction,
     });
 
@@ -294,6 +303,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       globalMetricsSnapshotFn: globalMetricsResult.snapshotFunction,
       globalMetricsSnapshotFreshnessCheckerFn: globalMetricsResult.snapshotFreshnessCheckerFunction,
       communityLeaderboardSnapshotFn: communityLeaderboardResult.snapshotFunction,
+      streakLeaderboardSnapshotFn: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFn: progressActiveDaysBackfillResult.backfillFunction,
       migrationFn,
       userPoolArn: authResult.userPool.userPoolArn,
@@ -322,6 +332,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       globalMetricsSnapshotFunction: globalMetricsResult.snapshotFunction,
       globalMetricsSnapshotFreshnessCheckerFunction: globalMetricsResult.snapshotFreshnessCheckerFunction,
       communityLeaderboardSnapshotFunction: communityLeaderboardResult.snapshotFunction,
+      streakLeaderboardSnapshotFunction: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFunction: progressActiveDaysBackfillResult.backfillFunction,
       globalMetricsVisible,
       userPoolId: authResult.userPool.userPoolId,

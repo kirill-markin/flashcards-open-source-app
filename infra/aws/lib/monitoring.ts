@@ -16,9 +16,11 @@ import {
   globalMetricsSnapshotFreshnessMetricStackDimensionName,
 } from "./global-metrics";
 import { communityLeaderboardSnapshotScheduleHours } from "./community-leaderboard";
+import { streakLeaderboardSnapshotScheduleHours } from "./streak-leaderboard";
 import { progressActiveDaysBackfillScheduleHours } from "./progress-active-days-backfill";
 
 const communityLeaderboardSnapshotStaleEvaluationPeriods = 2;
+const streakLeaderboardSnapshotStaleEvaluationPeriods = 2;
 const progressActiveDaysBackfillStaleEvaluationPeriods = 2;
 
 export interface MonitoringProps {
@@ -34,6 +36,7 @@ export interface MonitoringProps {
   chatLiveFn: lambda.IFunction;
   globalMetricsSnapshotFn: lambda.IFunction;
   communityLeaderboardSnapshotFn: lambda.IFunction;
+  streakLeaderboardSnapshotFn: lambda.IFunction;
   progressActiveDaysBackfillFn: lambda.IFunction;
 }
 
@@ -242,6 +245,32 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     alarmDescription:
       "Community leaderboard snapshot Lambda has not run for two consecutive hours, " +
       "so the stored leaderboard snapshot is going stale",
+    treatMissingData: cloudwatch.TreatMissingData.BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  new cloudwatch.Alarm(scope, "StreakLeaderboardSnapshotLambdaErrorAlarm", {
+    metric: props.streakLeaderboardSnapshotFn.metricErrors({
+      period: cdk.Duration.minutes(15),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Streak leaderboard snapshot Lambda had errors",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  new cloudwatch.Alarm(scope, "StreakLeaderboardSnapshotStaleAlarm", {
+    metric: props.streakLeaderboardSnapshotFn.metricInvocations({
+      period: cdk.Duration.hours(streakLeaderboardSnapshotScheduleHours),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+    evaluationPeriods: streakLeaderboardSnapshotStaleEvaluationPeriods,
+    datapointsToAlarm: streakLeaderboardSnapshotStaleEvaluationPeriods,
+    alarmDescription:
+      "Streak leaderboard snapshot Lambda has not run for two consecutive days, " +
+      "so the stored streak leaderboard snapshot is going stale",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
 
