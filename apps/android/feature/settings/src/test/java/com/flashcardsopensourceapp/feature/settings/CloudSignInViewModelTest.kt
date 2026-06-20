@@ -841,7 +841,8 @@ class CloudSignInViewModelTest {
                 responseBody = "not found",
                 errorCode = null,
                 requestId = "req-404",
-                syncConflict = null
+                syncConflict = null,
+                androidObservationAlreadyCaptured = false
             )
         )
         val viewModel = CloudSignInViewModel(
@@ -931,7 +932,8 @@ class CloudSignInViewModelTest {
                 responseBody = "{\"error\":\"bad request\"}",
                 errorCode = "OTP_VERIFY_FAILED",
                 requestId = "req-verify",
-                syncConflict = null
+                syncConflict = null,
+                androidObservationAlreadyCaptured = false
             )
         )
         val viewModel = CloudSignInViewModel(
