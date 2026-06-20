@@ -12,8 +12,11 @@ import type {
 } from "../../../types";
 import { progressLeaderboardWindowKeys } from "../../../types";
 import { FriendInviteCreateDialog } from "../../friends/FriendInviteCreateDialog";
-
-const millisecondsPerMinute = 60_000;
+import {
+  getProgressLeaderboardElapsedMinutes,
+  ProgressLeaderboardRows,
+  type ProgressLeaderboardDisplayRow,
+} from "./ProgressLeaderboardPresentation";
 
 function getLeaderboardPeriodLabel(windowKey: ProgressLeaderboardWindowKey, t: ReturnType<typeof useI18n>["t"]): string {
   if (windowKey === "last_24_hours") {
@@ -33,15 +36,6 @@ function getLeaderboardPeriodLabel(windowKey: ProgressLeaderboardWindowKey, t: R
   }
 
   return t("progressScreen.leaderboard.periods.allTime");
-}
-
-function getLeaderboardElapsedMinutes(snapshotGeneratedAt: string, now: Date): number {
-  const snapshotTime = new Date(snapshotGeneratedAt).getTime();
-  if (Number.isNaN(snapshotTime)) {
-    throw new Error(`Invalid leaderboard snapshot timestamp: ${snapshotGeneratedAt}`);
-  }
-
-  return Math.floor(Math.max(0, now.getTime() - snapshotTime) / millisecondsPerMinute);
 }
 
 function resolveLeaderboardWindow(
@@ -108,75 +102,33 @@ function resolveLeaderboardReservedRowCount(leaderboard: ProgressLeaderboard): n
   );
 }
 
-function ProgressLeaderboardRows(props: Readonly<{
-  window: ProgressLeaderboardWindow;
-  reservedRowCount: number;
-}>): ReactElement {
-  const { t, formatNumber } = useI18n();
-  const { window: leaderboardWindow, reservedRowCount } = props;
-  const paddingRowCount = Math.max(0, reservedRowCount - leaderboardWindow.rows.length);
+function buildRatingLeaderboardRows(
+  leaderboardWindow: ProgressLeaderboardWindow,
+  formatNumber: ReturnType<typeof useI18n>["formatNumber"],
+): ReadonlyArray<ProgressLeaderboardDisplayRow> {
+  return leaderboardWindow.rows.map((row): ProgressLeaderboardDisplayRow => {
+    if (row.kind === "gap") {
+      return {
+        kind: "gap",
+        rowTestId: "progress-leaderboard-row-gap",
+      };
+    }
 
-  return (
-    <ol className="progress-leaderboard-list">
-      {leaderboardWindow.rows.map((row, rowIndex) => {
-        if (row.kind === "gap") {
-          return (
-            <li
-              key={`leaderboard-gap-${rowIndex}`}
-              className="progress-leaderboard-row progress-leaderboard-gap"
-              data-kind="gap"
-              data-testid="progress-leaderboard-row-gap"
-              aria-hidden="true"
-            >
-              <span className="progress-leaderboard-gap-dots">…</span>
-            </li>
-          );
-        }
-
-        const rowClassName = row.kind === "viewer"
-          ? "progress-leaderboard-row progress-leaderboard-row-viewer"
-          : row.friendDisplayName === undefined
-            ? "progress-leaderboard-row"
-            : "progress-leaderboard-row progress-leaderboard-row-friend";
-        const displayName = row.kind === "viewer"
-          ? t("progressScreen.leaderboard.you")
-          : row.friendDisplayName ?? row.anonymousDisplayName;
-
-        return (
-          <li
-            key={`${row.publicProfileId}-${row.rank}`}
-            className={rowClassName}
-            data-kind={row.kind}
-            data-friend={row.friendDisplayName === undefined ? "false" : "true"}
-            data-testid={`progress-leaderboard-row-${row.kind}`}
-          >
-            <span className="progress-leaderboard-rank">
-              {t("progressScreen.leaderboard.rankLabel", { rank: formatNumber(row.rank) })}
-            </span>
-            <span className="progress-leaderboard-name">
-              {displayName}
-            </span>
-            <span className="progress-leaderboard-count" data-testid={`progress-leaderboard-count-${row.kind}`}>
-              {formatNumber(row.qualifiedReviewCount)}
-            </span>
-          </li>
-        );
-      })}
-      {Array.from({ length: paddingRowCount }, (_value, index) => (
-        <li
-          key={`leaderboard-padding-${index}`}
-          className="progress-leaderboard-row progress-leaderboard-row-padding"
-          data-kind="padding"
-          data-testid="progress-leaderboard-row-padding"
-          aria-hidden="true"
-        />
-      ))}
-    </ol>
-  );
+    return {
+      kind: row.kind,
+      publicProfileId: row.publicProfileId,
+      anonymousDisplayName: row.anonymousDisplayName,
+      friendDisplayName: row.friendDisplayName,
+      rank: row.rank,
+      metricText: formatNumber(row.qualifiedReviewCount),
+      rowTestId: `progress-leaderboard-row-${row.kind}`,
+      metricTestId: `progress-leaderboard-count-${row.kind}`,
+    };
+  });
 }
 
 function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElement {
-  const { t } = useI18n();
+  const { t, formatNumber } = useI18n();
   const { sourceState, canRenderServerBase, selectedWindowKey, onSelectWindowKey } = props;
   const leaderboard = sourceState.renderedSnapshot;
 
@@ -258,7 +210,11 @@ function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElem
           {t("progressScreen.leaderboard.unavailable")}
         </p>
       ) : (
-        <ProgressLeaderboardRows window={leaderboardWindow} reservedRowCount={reservedRowCount} />
+        <ProgressLeaderboardRows
+          rows={buildRatingLeaderboardRows(leaderboardWindow, formatNumber)}
+          paddingRowCount={Math.max(0, reservedRowCount - leaderboardWindow.rows.length)}
+          paddingRowTestId="progress-leaderboard-row-padding"
+        />
       )}
     </>
   );
@@ -281,7 +237,7 @@ export function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProp
   const infoUpdatedAt = leaderboardWindow === null
     ? null
     : t("progressScreen.leaderboard.updatedAt", {
-      minutes: formatNumber(getLeaderboardElapsedMinutes(leaderboardWindow.snapshotGeneratedAt, new Date())),
+      minutes: formatNumber(getProgressLeaderboardElapsedMinutes(leaderboardWindow.snapshotGeneratedAt, new Date())),
     });
 
   return (
