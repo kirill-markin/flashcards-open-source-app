@@ -170,6 +170,7 @@ struct ProgressLeaderboardSelectedProfile: Hashable, Identifiable, Sendable {
     let publicProfileId: String
     let anonymousDisplayName: String
     let friendDisplayName: String?
+    let isViewer: Bool
 
     var id: String {
         self.publicProfileId

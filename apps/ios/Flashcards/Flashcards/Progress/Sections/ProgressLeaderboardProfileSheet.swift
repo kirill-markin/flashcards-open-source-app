@@ -47,7 +47,7 @@ struct ProgressLeaderboardProfileSheet: View {
     private var content: some View {
         switch self.loadState {
         case .loading:
-            ProgressLeaderboardProfileLoadingView()
+            ProgressLeaderboardProfileLoadingView(selectedProfile: self.selectedProfile)
         case .loaded(let profile):
             self.loadedContent(profile: profile)
         case .failed(let message):
@@ -67,7 +67,10 @@ struct ProgressLeaderboardProfileSheet: View {
         switch profile.status {
         case .ready:
             if let readyPayload = profile.readyPayload {
-                ProgressLeaderboardProfileReadyView(profile: readyPayload)
+                ProgressLeaderboardProfileReadyView(
+                    selectedProfile: self.selectedProfile,
+                    profile: readyPayload
+                )
             } else {
                 ProgressLeaderboardProfileUnavailableView(status: .profileUnavailable)
             }
@@ -77,6 +80,10 @@ struct ProgressLeaderboardProfileSheet: View {
     }
 
     private var navigationTitle: String {
+        if self.selectedProfile.isViewer {
+            return progressLeaderboardViewerRowTitle()
+        }
+
         guard case .loaded(let profile) = self.loadState,
               let readyPayload = profile.readyPayload else {
             return progressLeaderboardProfileDisplayName(
@@ -112,20 +119,36 @@ struct ProgressLeaderboardProfileSheet: View {
 }
 
 private struct ProgressLeaderboardProfileLoadingView: View {
-    var body: some View {
-        VStack(spacing: 12) {
-            ProgressView()
+    let selectedProfile: ProgressLeaderboardSelectedProfile
 
-            Text(
-                String(
-                    localized: "progress.leaderboard_profile.loading",
-                    defaultValue: "Loading profile...",
-                    table: progressStringsTableName,
-                    comment: "Loading message for a leaderboard profile sheet"
+    var body: some View {
+        VStack(spacing: 20) {
+            if self.selectedProfile.isViewer {
+                VStack(alignment: .center, spacing: 8) {
+                    Text(progressLeaderboardViewerRowTitle())
+                        .font(.title2.bold())
+                        .foregroundStyle(.primary)
+
+                    Text(self.selectedProfile.anonymousDisplayName)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            VStack(spacing: 12) {
+                ProgressView()
+
+                Text(
+                    String(
+                        localized: "progress.leaderboard_profile.loading",
+                        defaultValue: "Loading profile...",
+                        table: progressStringsTableName,
+                        comment: "Loading message for a leaderboard profile sheet"
+                    )
                 )
-            )
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityIdentifier(UITestIdentifier.progressLeaderboardProfileLoading)
@@ -133,6 +156,7 @@ private struct ProgressLeaderboardProfileLoadingView: View {
 }
 
 private struct ProgressLeaderboardProfileReadyView: View {
+    let selectedProfile: ProgressLeaderboardSelectedProfile
     let profile: ProgressLeaderboardProfileReadyPayload
 
     var body: some View {
@@ -143,7 +167,7 @@ private struct ProgressLeaderboardProfileReadyView: View {
                         .font(.title2.bold())
                         .foregroundStyle(.primary)
 
-                    if self.profile.friendDisplayName != nil || self.profile.isFriend {
+                    if self.shouldShowFriendBadge {
                         Label(
                             progressLeaderboardProfileFriendBadgeTitle(),
                             systemImage: "person.fill"
@@ -152,8 +176,8 @@ private struct ProgressLeaderboardProfileReadyView: View {
                         .foregroundStyle(.secondary)
                     }
 
-                    if self.profile.friendDisplayName != nil {
-                        Text(self.profile.anonymousDisplayName)
+                    if let secondaryAnonymousDisplayName {
+                        Text(secondaryAnonymousDisplayName)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -265,10 +289,26 @@ private struct ProgressLeaderboardProfileReadyView: View {
     }
 
     private var displayName: String {
+        if self.selectedProfile.isViewer {
+            return progressLeaderboardViewerRowTitle()
+        }
+
         progressLeaderboardProfileDisplayName(
             anonymousDisplayName: self.profile.anonymousDisplayName,
             friendDisplayName: self.profile.friendDisplayName
         )
+    }
+
+    private var secondaryAnonymousDisplayName: String? {
+        if self.selectedProfile.isViewer || self.profile.friendDisplayName != nil {
+            return self.profile.anonymousDisplayName
+        }
+
+        return nil
+    }
+
+    private var shouldShowFriendBadge: Bool {
+        self.selectedProfile.isViewer == false && self.profile.isFriend
     }
 }
 
@@ -501,7 +541,8 @@ private struct ProgressLeaderboardProfileErrorView: View {
         selectedProfile: ProgressLeaderboardSelectedProfile(
             publicProfileId: "preview-profile",
             anonymousDisplayName: "Cedar Peak",
-            friendDisplayName: "Alex"
+            friendDisplayName: "Alex",
+            isViewer: false
         )
     )
     .environment(FlashcardsStore())
