@@ -152,10 +152,23 @@ export type IndexedDbOpenLifecycleBreadcrumbDetails = Readonly<{
   indexedDbDatabaseUpgraded: boolean;
 }>;
 
-export type StaleBundleReloadBreadcrumbDetails = Readonly<{
+export type StaleBundleReloadSkipReason = "storage_unavailable" | "rate_limited" | "storage_write_failed";
+
+export type StaleBundlePreloadErrorBreadcrumbDetails = Readonly<{
+  eventName: "stale_bundle_preload_error";
+  assetPath: string | null;
+  reloadScheduled: boolean;
+  reloadSkipReason: StaleBundleReloadSkipReason | null;
+}>;
+
+export type StaleBundleReloadRecoveredBreadcrumbDetails = Readonly<{
   eventName: "stale_bundle_reload_recovered";
   reloadAgeMs: number | null;
 }>;
+
+export type StaleBundleReloadBreadcrumbDetails =
+  | StaleBundlePreloadErrorBreadcrumbDetails
+  | StaleBundleReloadRecoveredBreadcrumbDetails;
 
 export type IndexedDbDeleteLifecycleBreadcrumbDetails = Readonly<{
   eventName: "indexed_db_delete_lifecycle";

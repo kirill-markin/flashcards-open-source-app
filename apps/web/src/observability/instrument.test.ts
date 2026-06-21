@@ -148,6 +148,51 @@ describe("Sentry privacy sanitizer", () => {
     expect(sanitizedEvent.breadcrumbs?.[0]?.message).toBe("web.route_change");
   });
 
+  it("redacts arbitrary TypeError exception values", () => {
+    const event: SentryPrivacyEvent = {
+      exception: {
+        values: [
+          {
+            type: "TypeError",
+            value: `Cannot read private card text: ${sensitiveCardText}`,
+          },
+        ],
+      },
+    };
+
+    const sanitizedEvent = sanitizeSentryEventForPrivacy(event);
+
+    expect(sanitizedEvent.exception?.values?.[0]?.value).toBe("[Filtered exception value]");
+    expect(serializeEvent(sanitizedEvent)).not.toContain(sensitiveCardText);
+  });
+
+  it("keeps structured stale bundle breadcrumb diagnostics", () => {
+    const breadcrumb: SentryPrivacyBreadcrumb = {
+      category: "web.stale_bundle_reload",
+      level: "info",
+      message: "web.stale_bundle_preload_error",
+      data: {
+        app: "web",
+        feature: "app",
+        route: "/settings",
+        assetPath: "/assets/SettingsScreen-abc123.js",
+        reloadScheduled: true,
+        reloadSkipReason: null,
+      },
+    };
+
+    const sanitizedBreadcrumb = sanitizeSentryBreadcrumbForPrivacy(breadcrumb);
+
+    if (sanitizedBreadcrumb === null) {
+      throw new Error("Expected stale bundle breadcrumb to be kept after privacy sanitization");
+    }
+
+    expect(sanitizedBreadcrumb.message).toBe("web.stale_bundle_preload_error");
+    expect(sanitizedBreadcrumb.data?.assetPath).toBe("/assets/SettingsScreen-abc123.js");
+    expect(sanitizedBreadcrumb.data?.reloadScheduled).toBe(true);
+    expect(sanitizedBreadcrumb.data?.reloadSkipReason).toBe(null);
+  });
+
   it("redacts normalized query and search key variants without redacting route names", () => {
     const event: SentryPrivacyEvent = {
       extra: {

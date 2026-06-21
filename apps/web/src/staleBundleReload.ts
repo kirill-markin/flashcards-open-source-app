@@ -1,11 +1,13 @@
 import {
   addWebBreadcrumb,
+  type StaleBundleReloadSkipReason,
   type WebObservationScope,
 } from "./observability/webObservability";
 
 const PRELOAD_ERROR_RELOADED_AT_STORAGE_KEY = "flashcards-preload-error-reloaded-at";
 const PRELOAD_ERROR_REPORT_PENDING_STORAGE_KEY = "flashcards-preload-error-report-pending";
 const PRELOAD_ERROR_RELOAD_MIN_INTERVAL_MS = 60_000;
+const ASSET_PATH_PATTERN = /(?:https?:\/\/[^\s"'<>]+|(?:\/|\.\.?\/)assets\/[^\s"'<>]+)/u;
 
 function getSessionStorage(): Storage | null {
   try {
@@ -44,6 +46,41 @@ function buildReloadObservationScope(): WebObservationScope {
   };
 }
 
+function stripTrailingPunctuation(value: string): string {
+  return value.replace(/[),.;:!?]+$/u, "");
+}
+
+function extractPreloadAssetPath(error: Error): string | null {
+  const match = error.message.match(ASSET_PATH_PATTERN);
+  if (match === null) {
+    return null;
+  }
+
+  try {
+    const url = new URL(stripTrailingPunctuation(match[0]), window.location.origin);
+    return url.pathname.startsWith("/assets/") ? url.pathname : null;
+  } catch {
+    return null;
+  }
+}
+
+function reportPreloadError(
+  assetPath: string | null,
+  reloadScheduled: boolean,
+  reloadSkipReason: StaleBundleReloadSkipReason | null,
+): void {
+  addWebBreadcrumb({
+    action: "stale_bundle_reload",
+    scope: buildReloadObservationScope(),
+    details: {
+      eventName: "stale_bundle_preload_error",
+      assetPath,
+      reloadScheduled,
+      reloadSkipReason,
+    },
+  });
+}
+
 function reportRecoveredReload(sessionStorage: Storage): void {
   if (sessionStorage.getItem(PRELOAD_ERROR_REPORT_PENDING_STORAGE_KEY) !== "1") {
     return;
@@ -79,13 +116,16 @@ export function installStaleBundleReloadGuard(): void {
   }
 
   window.addEventListener("vite:preloadError", (event) => {
+    const assetPath = extractPreloadAssetPath(event.payload);
     const sessionStorage = getSessionStorage();
     if (sessionStorage === null) {
+      reportPreloadError(assetPath, false, "storage_unavailable");
       return;
     }
 
     const lastReloadAtMs = Number(sessionStorage.getItem(PRELOAD_ERROR_RELOADED_AT_STORAGE_KEY) ?? "0");
     if (Number.isFinite(lastReloadAtMs) && Date.now() - lastReloadAtMs < PRELOAD_ERROR_RELOAD_MIN_INTERVAL_MS) {
+      reportPreloadError(assetPath, false, "rate_limited");
       return;
     }
 
@@ -95,9 +135,11 @@ export function installStaleBundleReloadGuard(): void {
     } catch {
       // Without a persisted rate-limit marker a reload could loop, so let the
       // preload error surface instead of healing.
+      reportPreloadError(assetPath, false, "storage_write_failed");
       return;
     }
 
+    reportPreloadError(assetPath, true, null);
     event.preventDefault();
     window.location.reload();
   });
