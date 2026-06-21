@@ -1,9 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { CardSnapshotInput } from "../../cards";
+import type pg from "pg";
+import type { CardSnapshotInput, EffortLevel } from "../../cards";
+import type { CardRow } from "../../cards/types";
+import type { DatabaseExecutor, SqlValue } from "../../database";
+import {
+  parseDeckFilterDefinition,
+  upsertDeckSnapshotInExecutor,
+  type DeckRow,
+} from "../../decks";
 import { HttpError } from "../../shared/errors";
 import { parseBootstrapEntryRow } from "../replication/bootstrap";
+import { buildHotChangesFromRows } from "../replication/hotPull";
 import { parseSyncPushInput } from "./input";
+import { toCardSnapshotInput } from "./snapshots";
 import type { BootstrapProjectionRow } from "./types";
 
 type ReviewEventTimestampFixture = Readonly<{
@@ -16,13 +26,17 @@ type CardDueAtFixture = Readonly<{
   dueAt: string | null;
 }>;
 
+type CardSyncPushPayload = Omit<CardSnapshotInput, "effortLevel"> & Readonly<{
+  effortLevel?: EffortLevel;
+}>;
+
 type CardSyncPushOperation = Readonly<{
   operationId: string;
   entityType: "card";
   action: "upsert";
   entityId: string;
   clientUpdatedAt: string;
-  payload: CardSnapshotInput;
+  payload: CardSyncPushPayload;
 }>;
 
 type CardSyncPushInput = Readonly<{
@@ -106,6 +120,10 @@ function createCardSnapshotPayload(fixture: CardDueAtFixture): CardSnapshotInput
 }
 
 function createCardSyncPushInput(fixture: CardDueAtFixture): CardSyncPushInput {
+  return createCardSyncPushInputWithPayload(createCardSnapshotPayload(fixture));
+}
+
+function createCardSyncPushInputWithPayload(payload: CardSyncPushPayload): CardSyncPushInput {
   return {
     installationId: "installation-1",
     platform: "ios",
@@ -116,10 +134,16 @@ function createCardSyncPushInput(fixture: CardDueAtFixture): CardSyncPushInput {
         action: "upsert",
         entityId: "card-1",
         clientUpdatedAt: "2026-02-28T09:30:00.000Z",
-        payload: createCardSnapshotPayload(fixture),
+        payload,
       },
     ],
   };
+}
+
+function omitLegacyEffortLevel(payload: CardSnapshotInput): CardSyncPushPayload {
+  const { effortLevel, ...payloadWithoutEffortLevel } = payload;
+  assert.equal(effortLevel, "fast");
+  return payloadWithoutEffortLevel;
 }
 
 function createCardBootstrapPayload(fixture: CardDueAtFixture): CardBootstrapPayload {
@@ -138,6 +162,101 @@ function createCardBootstrapProjectionRow(fixture: CardDueAtFixture): BootstrapP
     entity_type: "card",
     entity_id: "card-1",
     payload: createCardBootstrapPayload(fixture),
+  };
+}
+
+function createQueryResult<Row extends pg.QueryResultRow>(rows: ReadonlyArray<Row>): pg.QueryResult<Row> {
+  return {
+    command: "SELECT",
+    rowCount: rows.length,
+    oid: 0,
+    fields: [],
+    rows: [...rows],
+  };
+}
+
+function createHotPullCardRow(effortLevel: EffortLevel): CardRow {
+  return {
+    card_id: "card-1",
+    front_text: "Question",
+    back_text: "Answer",
+    tags: ["sync"],
+    effort_level: effortLevel,
+    due_at: null,
+    created_at: "2026-02-28T09:00:00.000Z",
+    reps: 0,
+    lapses: 0,
+    fsrs_card_state: "new",
+    fsrs_step_index: null,
+    fsrs_stability: null,
+    fsrs_difficulty: null,
+    fsrs_last_reviewed_at: null,
+    fsrs_scheduled_days: null,
+    client_updated_at: "2026-02-28T09:30:00.000Z",
+    last_modified_by_replica_id: "replica-1",
+    last_operation_id: "operation-card-1",
+    updated_at: "2026-02-28T09:30:00.000Z",
+    deleted_at: null,
+  };
+}
+
+function createHotPullCardExecutor(effortLevel: EffortLevel): DatabaseExecutor {
+  return {
+    query: async <Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> => {
+      assert.match(text, /FROM content\.cards/);
+      assert.deepEqual(params, ["workspace-1", ["card-1"]]);
+      return createQueryResult([createHotPullCardRow(effortLevel) as unknown as Row]);
+    },
+  };
+}
+
+function createDeckSnapshotExecutor(): DatabaseExecutor {
+  return {
+    query: async <Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> => {
+      if (
+        text.includes("FROM content.decks")
+        && text.includes("WHERE workspace_id = $1 AND deck_id = $2")
+      ) {
+        return createQueryResult<Row>([]);
+      }
+
+      if (
+        text.includes("INSERT INTO content.decks")
+        && text.includes("ON CONFLICT DO NOTHING")
+      ) {
+        const filterDefinition = JSON.parse(String(params[3])) as unknown;
+        return createQueryResult<Row>([{
+          deck_id: params[0],
+          workspace_id: params[1],
+          name: params[2],
+          filter_definition: filterDefinition,
+          created_at: params[4],
+          client_updated_at: params[5],
+          last_modified_by_replica_id: params[6],
+          last_operation_id: params[7],
+          updated_at: "2026-02-28T09:30:00.000Z",
+          deleted_at: params[8],
+        } as DeckRow as unknown as Row]);
+      }
+
+      if (text.includes("INSERT INTO sync.workspace_sync_metadata")) {
+        return createQueryResult<Row>([]);
+      }
+
+      if (text.includes("INSERT INTO sync.hot_changes")) {
+        return createQueryResult<Row>([{
+          change_id: 1,
+        } as unknown as Row]);
+      }
+
+      throw new Error(`Unexpected query: ${text}`);
+    },
   };
 }
 
@@ -255,6 +374,80 @@ test("parseSyncPushInput accepts dueAt as a string or null without numeric publi
   assert.equal(Object.prototype.hasOwnProperty.call(operationWithoutDueAt.payload, "dueAtMillis"), false);
 });
 
+test("parseSyncPushInput accepts card operations without legacy effortLevel", () => {
+  const payload = omitLegacyEffortLevel(createCardSnapshotPayload({
+    dueAt: null,
+  }));
+  const parsedInput = parseSyncPushInput(createCardSyncPushInputWithPayload(payload));
+  const operation = parsedInput.operations[0];
+  if (operation?.entityType !== "card") {
+    assert.fail("Expected the parsed sync operation to remain a card");
+  }
+
+  assert.equal(Object.prototype.hasOwnProperty.call(operation.payload, "effortLevel"), false);
+});
+
+test("toCardSnapshotInput converts legacy medium and long effort into tags", () => {
+  const mediumSnapshot = toCardSnapshotInput({
+    ...createCardSnapshotPayload({ dueAt: null }),
+    effortLevel: "medium",
+  });
+  const longSnapshot = toCardSnapshotInput({
+    ...createCardSnapshotPayload({ dueAt: null }),
+    tags: ["Long"],
+    effortLevel: "long",
+  });
+
+  assert.deepEqual(mediumSnapshot.tags, ["sync", "medium"]);
+  assert.equal(mediumSnapshot.effortLevel, "fast");
+  assert.deepEqual(longSnapshot.tags, ["Long", "long"]);
+  assert.equal(longSnapshot.effortLevel, "fast");
+});
+
+test("parseDeckFilterDefinition converts legacy effortLevels into canonical tags", () => {
+  const filterDefinition = parseDeckFilterDefinition({
+    version: 2,
+    effortLevels: ["medium", "long", "fast", "medium"],
+    tags: ["Study", "Long"],
+  });
+
+  assert.deepEqual(filterDefinition, {
+    version: 2,
+    effortLevels: [],
+    tags: ["Study", "Long", "medium", "long"],
+  });
+});
+
+test("upsertDeckSnapshotInExecutor normalizes legacy sync effortLevels before persistence", async () => {
+  const result = await upsertDeckSnapshotInExecutor(
+    createDeckSnapshotExecutor(),
+    "workspace-1",
+    {
+      deckId: "deck-1",
+      name: "Legacy deck",
+      filterDefinition: {
+        version: 2,
+        effortLevels: ["long"],
+        tags: ["Long"],
+      },
+      createdAt: "2026-02-28T09:00:00.000Z",
+      deletedAt: null,
+    },
+    {
+      clientUpdatedAt: "2026-02-28T09:30:00.000Z",
+      lastModifiedByReplicaId: "replica-1",
+      lastOperationId: "operation-deck-1",
+    },
+  );
+
+  assert.equal(result.applied, true);
+  assert.deepEqual(result.deck.filterDefinition, {
+    version: 2,
+    effortLevels: [],
+    tags: ["Long", "long"],
+  });
+});
+
 test("parseSyncPushInput rejects malformed non-null dueAt timestamps before ingest", () => {
   const malformedDueAtValues: ReadonlyArray<string> = [
     "2026-02-31T00:00:00.000Z",
@@ -298,6 +491,7 @@ test("parseBootstrapEntryRow keeps outbound card dueAt as a string or null witho
   }
 
   assert.equal(entryWithDueAt.payload.dueAt, validDueAt);
+  assert.equal(entryWithDueAt.payload.effortLevel, "fast");
   assert.equal(Object.prototype.hasOwnProperty.call(entryWithDueAt.payload, "dueAtMillis"), false);
 
   const entryWithoutDueAt = parseBootstrapEntryRow(createCardBootstrapProjectionRow({
@@ -308,5 +502,27 @@ test("parseBootstrapEntryRow keeps outbound card dueAt as a string or null witho
   }
 
   assert.equal(entryWithoutDueAt.payload.dueAt, null);
+  assert.equal(entryWithoutDueAt.payload.effortLevel, "fast");
   assert.equal(Object.prototype.hasOwnProperty.call(entryWithoutDueAt.payload, "dueAtMillis"), false);
+});
+
+test("buildHotChangesFromRows keeps outbound card effortLevel as fast", async () => {
+  const changes = await buildHotChangesFromRows(
+    createHotPullCardExecutor("long"),
+    "workspace-1",
+    [
+      {
+        change_id: 7,
+        entity_type: "card",
+        entity_id: "card-1",
+      },
+    ],
+  );
+
+  const change = changes[0];
+  if (change?.entityType !== "card") {
+    assert.fail("Expected the hot pull entry to remain a card");
+  }
+
+  assert.equal(change.payload.effortLevel, "fast");
 });

@@ -109,6 +109,101 @@ async function retryTransientOnce<Result>(operation: () => Promise<Result>): Pro
   return operation();
 }
 
+test("POST /sync/push accepts card payloads without legacy effortLevel", async () => {
+  let processCalls = 0;
+  const routes = createSyncRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    assertUserHasWorkspaceAccessFn: async (userId, requestedWorkspaceId) => {
+      assert.equal(userId, "user-1");
+      assert.equal(requestedWorkspaceId, workspaceId);
+    },
+    processSyncPushFn: async (requestedWorkspaceId, userId, input) => {
+      processCalls += 1;
+      assert.equal(requestedWorkspaceId, workspaceId);
+      assert.equal(userId, "user-1");
+      const operation = input.operations[0];
+      if (operation?.entityType !== "card") {
+        throw new Error("Expected card sync operation");
+      }
+
+      assert.equal(Object.prototype.hasOwnProperty.call(operation.payload, "effortLevel"), false);
+      return {
+        operations: [
+          {
+            operationId: operation.operationId,
+            entityType: operation.entityType,
+            entityId: operation.entityId,
+            status: "applied",
+            resultingHotChangeId: 1,
+            error: null,
+          },
+        ],
+      };
+    },
+    bindGuestSessionPlatformFn: async () => {
+      throw new Error("Signed-in web sync should not bind a guest session platform");
+    },
+  });
+  const app = createSyncTestApp(routes);
+
+  const response = await app.request(`http://localhost/workspaces/${workspaceId}/sync/push`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      installationId: "install-1",
+      platform: "web",
+      appVersion: "1.0.0",
+      operations: [
+        {
+          operationId: "operation-card-1",
+          entityType: "card",
+          action: "upsert",
+          entityId: "card-1",
+          clientUpdatedAt: "2026-02-28T09:30:00.000Z",
+          payload: {
+            cardId: "card-1",
+            frontText: "Question",
+            backText: "Answer",
+            tags: ["sync"],
+            dueAt: null,
+            createdAt: "2026-02-28T09:00:00.000Z",
+            reps: 0,
+            lapses: 0,
+            fsrsCardState: "new",
+            fsrsStepIndex: null,
+            fsrsStability: null,
+            fsrsDifficulty: null,
+            fsrsLastReviewedAt: null,
+            fsrsScheduledDays: null,
+            deletedAt: null,
+          },
+        },
+      ],
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    operations: [
+      {
+        operationId: "operation-card-1",
+        entityType: "card",
+        entityId: "card-1",
+        status: "applied",
+        resultingHotChangeId: 1,
+        error: null,
+      },
+    ],
+  });
+  assert.equal(processCalls, 1);
+});
+
 test("sync routes reject guest web platform before creating a workspace replica", async () => {
   const routes = createSyncRoutes({
     allowedOrigins: [],

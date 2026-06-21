@@ -158,6 +158,11 @@ const cardSnapshotSchema = z.object({
   deletedAt: z.string().datetime().nullable(),
 });
 
+const cardSnapshotInputSchema = cardSnapshotSchema.extend({
+  // TODO(old-mobile-cutoff): Remove legacy effort input during final sync wire-drop cleanup.
+  effortLevel: effortLevelSchema.optional(),
+});
+
 export const cardPayloadSchema = cardSnapshotSchema.extend({
   clientUpdatedAt: z.string().datetime(),
   lastModifiedByReplicaId: z.string().min(1),
@@ -211,7 +216,7 @@ const reviewEventImportPayloadSchema = reviewEventPushPayloadSchema.extend({
   reviewedAtServer: z.string().datetime(),
 });
 
-const cardBootstrapPushPayloadSchema = cardSnapshotSchema.extend({
+const cardBootstrapPushPayloadSchema = cardSnapshotInputSchema.extend({
   clientUpdatedAt: z.string().datetime(),
   lastOperationId: z.string().min(1),
   updatedAt: z.string().datetime(),
@@ -239,7 +244,7 @@ const baseOperationSchema = z.object({
 const cardOperationSchema = baseOperationSchema.extend({
   entityType: z.literal("card"),
   action: z.literal("upsert"),
-  payload: cardSnapshotSchema,
+  payload: cardSnapshotInputSchema,
 });
 
 const deckOperationSchema = baseOperationSchema.extend({

@@ -1,7 +1,9 @@
 import type {
   CardMutationMetadata,
   CardSnapshotInput,
+  EffortLevel,
 } from "../../cards";
+import { appendLegacyEffortTag } from "../../cards/shared";
 import type {
   DeckMutationMetadata,
   DeckSnapshotInput,
@@ -17,13 +19,18 @@ type MutationMetadataInput = Readonly<{
   lastOperationId: string;
 }>;
 
-export function toCardSnapshotInput(payload: CardSnapshotInput): CardSnapshotInput {
+type CardSnapshotPayload = Omit<CardSnapshotInput, "effortLevel"> & Readonly<{
+  effortLevel?: EffortLevel;
+}>;
+
+export function toCardSnapshotInput(payload: CardSnapshotPayload): CardSnapshotInput {
   return {
     cardId: payload.cardId,
     frontText: payload.frontText,
     backText: payload.backText,
-    tags: payload.tags,
-    effortLevel: payload.effortLevel,
+    tags: appendLegacyEffortTag(payload.tags, payload.effortLevel),
+    // TODO(old-mobile-cutoff): Remove legacy effort defaulting during final sync wire-drop cleanup.
+    effortLevel: "fast",
     dueAt: payload.dueAt,
     createdAt: payload.createdAt,
     reps: payload.reps,

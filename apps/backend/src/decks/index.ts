@@ -26,6 +26,7 @@ import {
   findSyncConflictWorkspaceIdInExecutor,
 } from "../sync/conflicts/fork";
 import type { EffortLevel } from "../cards";
+import { appendLegacyEffortTag } from "../cards/shared";
 
 type TimestampValue = Date | string;
 type ErrorFactory = (message: string) => Error;
@@ -228,6 +229,28 @@ function normalizeDeckTags(
   return [...uniqueTags];
 }
 
+function appendLegacyDeckEffortTags(
+  tags: ReadonlyArray<string>,
+  effortLevels: ReadonlyArray<EffortLevel>,
+): ReadonlyArray<string> {
+  return effortLevels.reduce<ReadonlyArray<string>>(
+    (dedupedTags, effortLevel) => appendLegacyEffortTag(dedupedTags, effortLevel),
+    tags,
+  );
+}
+
+function normalizeDeckFilterDefinitionValues(
+  tags: ReadonlyArray<string>,
+  effortLevels: ReadonlyArray<EffortLevel>,
+): DeckFilterDefinition {
+  return {
+    version: 2,
+    // TODO(old-mobile-cutoff): Remove legacy effortLevels output during final sync wire-drop cleanup.
+    effortLevels: [],
+    tags: appendLegacyDeckEffortTags(tags, effortLevels),
+  };
+}
+
 function parseDeckFilterDefinitionWithFactory(
   value: unknown,
   errorFactory: ErrorFactory,
@@ -239,11 +262,10 @@ function parseDeckFilterDefinitionWithFactory(
     throwError(errorFactory, "filterDefinition version must be 2");
   }
 
-  return {
-    version: 2,
-    effortLevels: normalizeDeckEffortLevels(record.effortLevels, "filterDefinition effortLevels", errorFactory),
-    tags: normalizeDeckTags(record.tags, "filterDefinition tags", errorFactory),
-  };
+  return normalizeDeckFilterDefinitionValues(
+    normalizeDeckTags(record.tags, "filterDefinition tags", errorFactory),
+    normalizeDeckEffortLevels(record.effortLevels, "filterDefinition effortLevels", errorFactory),
+  );
 }
 
 export function mapDeck(row: DeckRow): Deck {
@@ -319,7 +341,7 @@ function normalizeDeckSnapshotInput(input: DeckSnapshotInput): DeckSnapshotInput
   return {
     deckId: input.deckId,
     name: input.name,
-    filterDefinition: input.filterDefinition,
+    filterDefinition: normalizeTypedDeckFilterDefinition(input.filterDefinition),
     createdAt: normalizeIsoTimestamp(input.createdAt, "createdAt"),
     deletedAt: input.deletedAt === null ? null : normalizeIsoTimestamp(input.deletedAt, "deletedAt"),
   };
@@ -334,19 +356,18 @@ function normalizeDeckName(name: string): string {
 }
 
 function normalizeTypedDeckFilterDefinition(filterDefinition: DeckFilterDefinition): DeckFilterDefinition {
-  return {
-    version: 2,
-    effortLevels: normalizeDeckEffortLevels(
-      filterDefinition.effortLevels,
-      "filterDefinition effortLevels",
-      createRequestError,
-    ),
-    tags: normalizeDeckTags(
+  return normalizeDeckFilterDefinitionValues(
+    normalizeDeckTags(
       filterDefinition.tags,
       "filterDefinition tags",
       createRequestError,
     ),
-  };
+    normalizeDeckEffortLevels(
+      filterDefinition.effortLevels,
+      "filterDefinition effortLevels",
+      createRequestError,
+    ),
+  );
 }
 
 function normalizeCreateDeckInput(input: CreateDeckInput): CreateDeckInput {

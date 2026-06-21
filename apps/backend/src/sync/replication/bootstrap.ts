@@ -242,6 +242,7 @@ export async function processSyncBootstrap(
       : decodeBootstrapCursor(input.cursor);
     const remoteIsEmpty = await loadRemoteEmptyState(executor, workspaceId);
 
+    // TODO(old-mobile-cutoff): Remove legacy effort fields during final sync wire-drop cleanup.
     const result = await executor.query<BootstrapProjectionRow>(
       [
         "WITH bootstrap_entries AS (",
@@ -273,7 +274,7 @@ export async function processSyncBootstrap(
         "      'frontText', cards.front_text,",
         "      'backText', cards.back_text,",
         "      'tags', cards.tags,",
-        "      'effortLevel', cards.effort_level,",
+        "      'effortLevel', 'fast',",
         "      'dueAt', CASE WHEN cards.due_at IS NULL THEN NULL ELSE to_char(date_trunc('milliseconds', cards.due_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') END,",
         "      'createdAt', to_char(date_trunc('milliseconds', cards.created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),",
         "      'reps', cards.reps,",
@@ -301,7 +302,11 @@ export async function processSyncBootstrap(
         "      'deckId', decks.deck_id::text,",
         "      'workspaceId', decks.workspace_id::text,",
         "      'name', decks.name,",
-        "      'filterDefinition', decks.filter_definition,",
+        "      'filterDefinition', jsonb_build_object(",
+        "        'version', 2,",
+        "        'effortLevels', '[]'::jsonb,",
+        "        'tags', decks.filter_definition->'tags'",
+        "      ),",
         "      'createdAt', to_char(date_trunc('milliseconds', decks.created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),",
         "      'clientUpdatedAt', to_char(date_trunc('milliseconds', decks.client_updated_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),",
         "      'lastModifiedByReplicaId', decks.last_modified_by_replica_id::text,",

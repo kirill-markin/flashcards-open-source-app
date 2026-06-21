@@ -1,4 +1,5 @@
 import type { EffortLevel } from "../../cards";
+import { appendLegacyEffortTag } from "../../cards/shared";
 import {
   applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
@@ -52,12 +53,14 @@ export type GuestCardRecord = Readonly<{
 }>;
 
 function mapGuestCardRecord(row: CardRow): GuestCardRecord {
+  const legacyEffortLevel = row.effort_level as EffortLevel;
+
   return {
     cardId: row.card_id,
     frontText: row.front_text,
     backText: row.back_text,
-    tags: row.tags,
-    effortLevel: row.effort_level as EffortLevel,
+    tags: appendLegacyEffortTag(row.tags, legacyEffortLevel),
+    effortLevel: "fast",
     dueAt: row.due_at,
     createdAt: row.created_at,
     reps: row.reps,
