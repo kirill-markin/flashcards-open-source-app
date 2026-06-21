@@ -33,6 +33,13 @@ func notificationScheduledAtMillisRange(
     )
 }
 
+func isFutureNotificationPayload(
+    scheduledAtMillis: Int64,
+    now: Date
+) -> Bool {
+    TimeInterval(scheduledAtMillis) / 1_000 > now.timeIntervalSince1970
+}
+
 func reviewNotificationScheduledAtMillisRange(
     payloads: [ScheduledReviewNotificationPayload]
 ) -> NotificationScheduledAtMillisRange {

@@ -481,6 +481,18 @@ func acceptedStrictReminderPayloads(
     }
 }
 
+func futureStrictReminderPayloads(
+    payloads: [ScheduledStrictReminderPayload],
+    now: Date
+) -> [ScheduledStrictReminderPayload] {
+    payloads.filter { payload in
+        isFutureNotificationPayload(
+            scheduledAtMillis: payload.scheduledAtMillis,
+            now: now
+        )
+    }
+}
+
 func strictReminderScheduledAtMillisRange(
     payloads: [ScheduledStrictReminderPayload]
 ) -> NotificationScheduledAtMillisRange {

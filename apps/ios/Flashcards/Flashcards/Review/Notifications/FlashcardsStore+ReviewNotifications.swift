@@ -516,6 +516,7 @@ extension FlashcardsStore {
         let appStateBeforeAdd: String = currentAppNotificationApplicationStateDiagnosticValue()
         var addFailure: Error?
         var failedRequestId: String?
+        var attemptedPayloads: [ScheduledReviewNotificationPayload] = []
 
         for payload in payloads {
             guard self.reviewNotificationsRescheduleGeneration == generation else {
@@ -523,6 +524,13 @@ extension FlashcardsStore {
             }
             guard Task.isCancelled == false else {
                 return
+            }
+            let addNow = Date()
+            guard isFutureNotificationPayload(
+                scheduledAtMillis: payload.scheduledAtMillis,
+                now: addNow
+            ) else {
+                continue
             }
             let content = UNMutableNotificationContent()
             content.title = appDisplayName()
@@ -533,13 +541,14 @@ extension FlashcardsStore {
                 content.badge = NSNumber(value: 1)
             }
 
-            let interval = max(1, TimeInterval(payload.scheduledAtMillis) / 1000 - now.timeIntervalSince1970)
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+            let interval = max(1, TimeInterval(payload.scheduledAtMillis) / 1_000 - addNow.timeIntervalSince1970)
+            let notificationTrigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
             let request = UNNotificationRequest(
                 identifier: payload.requestId,
                 content: content,
-                trigger: trigger
+                trigger: notificationTrigger
             )
+            attemptedPayloads.append(payload)
             do {
                 try await center.add(request)
             } catch {
@@ -572,17 +581,26 @@ extension FlashcardsStore {
             return
         }
         let appStateAfterReadback: String = currentAppNotificationApplicationStateDiagnosticValue()
-        let acceptedPayloads: [ScheduledReviewNotificationPayload] = acceptedReviewNotificationPayloads(
-            payloads: payloads,
+        let readbackNow = Date()
+        let expectedPayloads: [ScheduledReviewNotificationPayload] = futureReviewNotificationPayloads(
+            payloads: attemptedPayloads,
+            now: readbackNow
+        )
+        let acceptedAttemptedPayloads: [ScheduledReviewNotificationPayload] = acceptedReviewNotificationPayloads(
+            payloads: attemptedPayloads,
             pendingRequestIdentifiers: pendingAfterRequestIdentifiers
         )
-        let hasReadbackMismatch: Bool = addFailure == nil && acceptedPayloads.count != payloads.count
+        let acceptedExpectedPayloads: [ScheduledReviewNotificationPayload] = acceptedReviewNotificationPayloads(
+            payloads: expectedPayloads,
+            pendingRequestIdentifiers: pendingAfterRequestIdentifiers
+        )
+        let hasReadbackMismatch: Bool = addFailure == nil && acceptedExpectedPayloads.count != expectedPayloads.count
         var delayedReadback: DelayedNotificationSchedulingReadback?
         if hasReadbackMismatch {
             do {
                 delayedReadback = try await delayedNotificationSchedulingReadback(
                     center: center,
-                    plannedRequestIdentifiers: payloads.map(\.requestId),
+                    plannedRequestIdentifiers: expectedPayloads.map(\.requestId),
                     delayNanoseconds: notificationSchedulingDelayedReadbackNanoseconds
                 )
             } catch is CancellationError {
@@ -605,12 +623,18 @@ extension FlashcardsStore {
                 return
             }
         }
+        let diagnosticPayloads: [ScheduledReviewNotificationPayload]
+        if addFailure == nil {
+            diagnosticPayloads = expectedPayloads
+        } else {
+            diagnosticPayloads = attemptedPayloads
+        }
         let diagnostics: NotificationSchedulingDiagnostics = makeNotificationSchedulingDiagnostics(
             trigger: trigger.diagnosticValue,
-            scheduledAtMillisRange: reviewNotificationScheduledAtMillisRange(payloads: payloads),
+            scheduledAtMillisRange: reviewNotificationScheduledAtMillisRange(payloads: diagnosticPayloads),
             delaySecondsRange: reviewNotificationSchedulingDelaySecondsRange(
-                payloads: payloads,
-                now: now
+                payloads: diagnosticPayloads,
+                now: readbackNow
             ),
             pendingBeforeRequestIdentifiers: pendingBeforeRequestIdentifiers,
             pendingAfterRequestIdentifiers: pendingAfterRequestIdentifiers,
@@ -640,8 +664,8 @@ extension FlashcardsStore {
                         workspaceId: workspaceId,
                         requestId: failedRequestId,
                         stage: "add",
-                        plannedCount: payloads.count,
-                        acceptedCount: acceptedPayloads.count,
+                        plannedCount: attemptedPayloads.count,
+                        acceptedCount: acceptedAttemptedPayloads.count,
                         diagnostics: diagnostics,
                         error: addFailure,
                         messageSummary: nil
@@ -668,8 +692,8 @@ extension FlashcardsStore {
                         workspaceId: workspaceId,
                         requestId: nil,
                         stage: "readback",
-                        plannedCount: payloads.count,
-                        acceptedCount: acceptedPayloads.count,
+                        plannedCount: expectedPayloads.count,
+                        acceptedCount: acceptedExpectedPayloads.count,
                         diagnostics: diagnostics,
                         error: nil,
                         messageSummary: "Notification Center accepted fewer review reminders than planned"
@@ -677,7 +701,7 @@ extension FlashcardsStore {
                 )
             )
         }
-        self.persistScheduledReviewNotifications(payloads: acceptedPayloads)
+        self.persistScheduledReviewNotifications(payloads: acceptedExpectedPayloads)
     }
 
     private func markReviewReminderAttentionFromDeliveredStates(
