@@ -2,7 +2,6 @@ package com.flashcardsopensourceapp.feature.review
 
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
-import com.flashcardsopensourceapp.data.local.model.review.ReviewEffortFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 
@@ -36,7 +35,6 @@ data class ReviewUiState(
     val preparedCurrentCard: PreparedReviewCardPresentation?,
     val preparedNextCard: PreparedReviewCardPresentation?,
     val availableDeckFilters: List<ReviewDeckFilterOption>,
-    val availableEffortFilters: List<ReviewEffortFilterOption>,
     val availableTagFilters: List<ReviewTagFilterOption>,
     val reviewLeaderboardBadge: ReviewLeaderboardBadgeState,
     val reviewProgressBadge: ReviewProgressBadgeState,

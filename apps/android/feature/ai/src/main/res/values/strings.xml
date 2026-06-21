@@ -48,7 +48,6 @@
     <string name="ai_thinking">Thinking...</string>
     <string name="ai_card_id_label">ID: %1$s</string>
     <string name="ai_card_tags_label">Tags: %1$s</string>
-    <string name="ai_card_effort_label">Effort: %1$s</string>
     <string name="ai_hide_prompt_context">Hide prompt context</string>
     <string name="ai_show_prompt_context">Show prompt context</string>
     <string name="ai_generating_response">Generating response...</string>
@@ -120,7 +119,4 @@
     <string name="ai_server_dictation_custom_unavailable">AI dictation is unavailable on this server. Contact the server operator.</string>
     <string name="ai_message_with_request_id">%1$s Request ID: %2$s</string>
     <string name="ai_entry_prefill_create_card">Help me create a card.</string>
-    <string name="ai_fast">Fast</string>
-    <string name="ai_medium">Medium</string>
-    <string name="ai_long">Long</string>
 </resources>

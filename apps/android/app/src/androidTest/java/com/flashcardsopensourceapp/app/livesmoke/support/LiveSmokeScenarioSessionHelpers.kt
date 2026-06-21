@@ -58,7 +58,6 @@ internal fun LiveSmokeContext.deleteCurrentWorkspaceCards() {
             searchQuery = "",
             filter = CardFilter(
                 tags = emptyList(),
-                effort = emptyList()
             )
         ).first()
         if (currentCards.isEmpty()) {
@@ -85,7 +84,6 @@ internal fun LiveSmokeContext.deleteCurrentWorkspaceCards() {
             searchQuery = "",
             filter = CardFilter(
                 tags = emptyList(),
-                effort = emptyList()
             )
         ).first()
         if (remainingCards.isNotEmpty()) {

@@ -10,7 +10,6 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemotePushRespon
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteSyncChange
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
@@ -51,7 +50,6 @@ class LocalSyncRepositoryHotRowReplayTest {
             workspaceId = workspaceId,
             frontText = "Local pending front",
             backText = "Local pending back",
-            effortLevel = EffortLevel.MEDIUM,
             dueAtMillis = null,
             createdAtMillis = 100L,
             updatedAtMillis = 200L,

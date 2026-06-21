@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
@@ -24,7 +23,6 @@ private data class CardEditorDraftState(
     val frontText: String,
     val backText: String,
     val selectedTags: List<String>,
-    val effortLevel: EffortLevel,
     val frontTextErrorMessage: String,
     val backTextErrorMessage: String,
     val tagsErrorMessage: String,
@@ -44,7 +42,6 @@ class CardEditorViewModel(
             frontText = "",
             backText = "",
             selectedTags = emptyList(),
-            effortLevel = EffortLevel.FAST,
             frontTextErrorMessage = "",
             backTextErrorMessage = "",
             tagsErrorMessage = "",
@@ -74,7 +71,6 @@ class CardEditorViewModel(
                         frontText = card.frontText,
                         backText = card.backText,
                         selectedTags = card.tags,
-                        effortLevel = card.effortLevel,
                         hasLoadedInitialValues = true
                     )
                 }
@@ -97,7 +93,6 @@ class CardEditorViewModel(
                     referenceTags = tagsSummary.tags.map(WorkspaceTagSummary::tag)
                 ),
                 availableTagSuggestions = tagsSummary.tags,
-                effortLevel = currentState.effortLevel,
                 frontTextErrorMessage = currentState.frontTextErrorMessage,
                 backTextErrorMessage = currentState.backTextErrorMessage,
                 tagsErrorMessage = currentState.tagsErrorMessage,
@@ -115,7 +110,6 @@ class CardEditorViewModel(
                 backText = "",
                 selectedTags = emptyList(),
                 availableTagSuggestions = emptyList(),
-                effortLevel = EffortLevel.FAST,
                 frontTextErrorMessage = "",
                 backTextErrorMessage = "",
                 tagsErrorMessage = "",
@@ -209,16 +203,6 @@ class CardEditorViewModel(
         }
     }
 
-    fun updateEffortLevel(effortLevel: EffortLevel) {
-        inputState.update { state ->
-            state.copy(
-                effortLevel = effortLevel,
-                errorMessage = "",
-                isDirty = true
-            )
-        }
-    }
-
     suspend fun save(editingCardId: String?): CardDraft? {
         val state = uiState.value
         val validation = validateCardEditorInput(
@@ -242,7 +226,6 @@ class CardEditorViewModel(
             frontText = state.frontText,
             backText = state.backText,
             selectedTags = state.selectedTags,
-            effortLevel = state.effortLevel,
             referenceTags = currentReferenceTags()
         )
 

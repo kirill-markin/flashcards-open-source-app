@@ -4,7 +4,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.support.LocalDatabaseTestRuntime
@@ -54,7 +53,6 @@ class LocalSyncOutboxContractTest {
                 frontText = "What is a repository?",
                 backText = "A boundary that owns data access.",
                 tags = listOf("architecture"),
-                effortLevel = EffortLevel.MEDIUM
             )
         )
         val createdCardId = database.cardDao().observeCardsWithRelations().first()
@@ -67,7 +65,6 @@ class LocalSyncOutboxContractTest {
                 frontText = "What is a repository pattern?",
                 backText = "A boundary that owns data access.",
                 tags = listOf("architecture", "data"),
-                effortLevel = EffortLevel.LONG
             )
         )
         cardsRepository.deleteCard(cardId = createdCardId)
@@ -95,8 +92,7 @@ class LocalSyncOutboxContractTest {
             deckDraft = DeckDraft(
                 name = "Architecture",
                 filterDefinition = buildDeckFilterDefinition(
-                    effortLevels = listOf(EffortLevel.MEDIUM),
-                    tags = listOf("architecture")
+                    tags = listOf("architecture", "medium")
                 )
             )
         )
@@ -109,8 +105,7 @@ class LocalSyncOutboxContractTest {
             deckDraft = DeckDraft(
                 name = "Architecture Updated",
                 filterDefinition = buildDeckFilterDefinition(
-                    effortLevels = listOf(EffortLevel.LONG),
-                    tags = listOf("architecture", "data")
+                    tags = listOf("architecture", "data", "long")
                 )
             )
         )
@@ -163,7 +158,6 @@ class LocalSyncOutboxContractTest {
                 frontText = "What is WorkManager?",
                 backText = "Reliable background work scheduling.",
                 tags = listOf("android"),
-                effortLevel = EffortLevel.FAST
             )
         )
         val cardId = database.cardDao().observeCardsWithRelations().first()

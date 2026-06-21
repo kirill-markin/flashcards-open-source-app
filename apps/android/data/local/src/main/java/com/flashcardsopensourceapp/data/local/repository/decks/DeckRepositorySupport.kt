@@ -26,7 +26,6 @@ internal fun normalizeDeckDraft(deckDraft: DeckDraft): DeckDraft {
     return DeckDraft(
         name = trimmedName,
         filterDefinition = buildDeckFilterDefinition(
-            effortLevels = deckDraft.filterDefinition.effortLevels,
             tags = deckDraft.filterDefinition.tags
         )
     )

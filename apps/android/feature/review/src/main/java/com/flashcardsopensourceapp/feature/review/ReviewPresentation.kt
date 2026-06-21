@@ -101,7 +101,6 @@ data class PreparedReviewAnswerOption(
 
 data class PreparedReviewCardPresentation(
     val card: ReviewCard,
-    val effortLabel: String,
     val tagsLabel: String,
     val dueLabel: String,
     val repsLabel: String,
@@ -115,7 +114,6 @@ data class PreparedReviewCardPresentation(
 
 data class PreparedReviewPreviewCardPresentation(
     val card: ReviewCard,
-    val effortLabel: String,
     val tagsLabel: String,
     val dueLabel: String,
     val backText: String
@@ -224,7 +222,6 @@ fun prepareReviewCardPresentation(
 
     return PreparedReviewCardPresentation(
         card = card,
-        effortLabel = textProvider.effortLabel(effortLevel = card.effortLevel),
         tagsLabel = textProvider.tagsLabel(tags = card.tags),
         dueLabel = textProvider.dueLabel(dueAtMillis = card.dueAtMillis),
         repsLabel = textProvider.repsLabel(reps = card.reps),
@@ -250,7 +247,6 @@ fun prepareReviewPreviewCardPresentation(
 ): PreparedReviewPreviewCardPresentation {
     return PreparedReviewPreviewCardPresentation(
         card = card,
-        effortLabel = textProvider.effortLabel(effortLevel = card.effortLevel),
         tagsLabel = textProvider.tagsLabel(tags = card.tags),
         dueLabel = textProvider.dueLabel(dueAtMillis = card.dueAtMillis),
         backText = card.backText

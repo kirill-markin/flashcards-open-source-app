@@ -8,7 +8,6 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
@@ -142,7 +141,11 @@ class LocalSyncRepositoryWorkspaceForkRecoveryTest {
             "Expected sync state for workspace '$workspaceId' after push recovery."
         }
         val firstPushOperation = pushBodies.first().getJSONArray("operations").getJSONObject(0)
+        val firstPushPayload = firstPushOperation.getJSONObject("payload")
+        val firstPushTags = firstPushPayload.getJSONArray("tags")
         val secondPushOperation = pushBodies.last().getJSONArray("operations").getJSONObject(0)
+        val secondPushPayload = secondPushOperation.getJSONObject("payload")
+        val secondPushTags = secondPushPayload.getJSONArray("tags")
 
         assertEquals(SyncStatus.Idle, syncRepository.observeSyncStatus().first().status)
         assertNull(environment.database.cardDao().loadCard(seededCardId))
@@ -151,9 +154,15 @@ class LocalSyncRepositoryWorkspaceForkRecoveryTest {
         assertEquals(0, environment.database.outboxDao().countOutboxEntries())
         assertEquals(2, pushBodies.size)
         assertEquals(seededCardId, firstPushOperation.getString("entityId"))
-        assertEquals(seededCardId, firstPushOperation.getJSONObject("payload").getString("cardId"))
+        assertEquals(seededCardId, firstPushPayload.getString("cardId"))
+        assertEquals(1, firstPushTags.length())
+        assertEquals("medium", firstPushTags.getString(0))
+        assertEquals("fast", firstPushPayload.getString("effortLevel"))
         assertEquals(recoveredCardId, secondPushOperation.getString("entityId"))
-        assertEquals(recoveredCardId, secondPushOperation.getJSONObject("payload").getString("cardId"))
+        assertEquals(recoveredCardId, secondPushPayload.getString("cardId"))
+        assertEquals(1, secondPushTags.length())
+        assertEquals("medium", secondPushTags.getString(0))
+        assertEquals("fast", secondPushPayload.getString("effortLevel"))
         assertTrue(baseGateway.bootstrapPullWorkspaceIds.isEmpty())
         assertTrue(baseGateway.bootstrapPushBodies.isEmpty())
         assertTrue(baseGateway.importReviewHistoryBodies.isEmpty())
@@ -175,7 +184,6 @@ class LocalSyncRepositoryWorkspaceForkRecoveryTest {
             workspaceId = workspaceId,
             frontText = "Question 2",
             backText = "Answer 2",
-            effortLevel = EffortLevel.MEDIUM,
             dueAtMillis = null,
             createdAtMillis = 110L,
             updatedAtMillis = 110L,

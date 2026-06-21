@@ -1,6 +1,5 @@
 package com.flashcardsopensourceapp.feature.cards.editor
 
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
 
 data class CardEditorUiState(
@@ -11,7 +10,6 @@ data class CardEditorUiState(
     val backText: String,
     val selectedTags: List<String>,
     val availableTagSuggestions: List<WorkspaceTagSummary>,
-    val effortLevel: EffortLevel,
     val frontTextErrorMessage: String,
     val backTextErrorMessage: String,
     val tagsErrorMessage: String,

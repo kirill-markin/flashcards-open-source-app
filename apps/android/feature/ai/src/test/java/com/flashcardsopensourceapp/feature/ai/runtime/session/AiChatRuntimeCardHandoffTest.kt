@@ -9,7 +9,6 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatLiveEvent
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
 import com.flashcardsopensourceapp.feature.ai.AiCardHandoffResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -56,7 +55,6 @@ class AiChatRuntimeCardHandoffTest {
             frontText = "Front",
             backText = "Back",
             tags = listOf("tag"),
-            effortLevel = EffortLevel.LONG
         )
         advanceUntilIdle()
 
@@ -93,7 +91,6 @@ class AiChatRuntimeCardHandoffTest {
             frontText = "Front",
             backText = "Back",
             tags = listOf("tag"),
-            effortLevel = EffortLevel.FAST
         )
         advanceUntilIdle()
 
@@ -150,7 +147,6 @@ class AiChatRuntimeCardHandoffTest {
             frontText = "Front",
             backText = "Back",
             tags = listOf("tag"),
-            effortLevel = EffortLevel.LONG
         )
         advanceUntilIdle()
 
@@ -199,7 +195,6 @@ class AiChatRuntimeCardHandoffTest {
             frontText = "Front",
             backText = "Back",
             tags = listOf("tag"),
-            effortLevel = EffortLevel.LONG
         )
         advanceUntilIdle()
 
@@ -234,7 +229,6 @@ class AiChatRuntimeCardHandoffTest {
             frontText = "Front",
             backText = "Back",
             tags = listOf("tag"),
-            effortLevel = EffortLevel.FAST
         )
         advanceUntilIdle()
 

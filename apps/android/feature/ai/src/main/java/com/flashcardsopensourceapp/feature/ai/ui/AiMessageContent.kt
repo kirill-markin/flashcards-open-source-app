@@ -196,9 +196,7 @@ private fun MessageBubbleContent(
                         cardId = contentPart.cardId,
                         frontText = contentPart.frontText,
                         backText = contentPart.backText,
-                        tags = contentPart.tags,
-                        effortLevel = contentPart.effortLevel,
-                        textProvider = textProvider
+                        tags = contentPart.tags
                     )
                 }
 
@@ -303,9 +301,7 @@ private fun CardContextContentCard(
     cardId: String,
     frontText: String,
     backText: String,
-    tags: List<String>,
-    effortLevel: com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel,
-    textProvider: AiTextProvider
+    tags: List<String>
 ) {
     val context = LocalContext.current
     val locale = currentResourceLocale(resources = context.resources)
@@ -314,8 +310,7 @@ private fun CardContextContentCard(
         cardId = cardId,
         frontText = frontText,
         backText = backText,
-        tags = tags,
-        effortLevel = effortLevel
+        tags = tags
     )
 
     Surface(
@@ -373,18 +368,6 @@ private fun CardContextContentCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
-            Text(
-                text = stringResource(
-                    id = R.string.ai_card_effort_label,
-                    bidiWrap(
-                        text = textProvider.effortLabel(effortLevel = effortLevel),
-                        locale = locale
-                    )
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
 
             TextButton(
                 onClick = {

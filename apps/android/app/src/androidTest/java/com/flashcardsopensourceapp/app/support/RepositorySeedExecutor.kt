@@ -13,7 +13,6 @@ import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import java.util.UUID
@@ -29,7 +28,6 @@ internal data class RepositorySeedCard(
     val frontText: String,
     val backText: String,
     val tags: List<String>,
-    val effortLevel: EffortLevel,
     val reviews: List<RepositorySeedReview>
 )
 
@@ -144,7 +142,6 @@ internal class RepositorySeedExecutor(
             workspaceId = workspaceId,
             frontText = seedCard.frontText,
             backText = seedCard.backText,
-            effortLevel = seedCard.effortLevel,
             dueAtMillis = null,
             createdAtMillis = createdAtMillis,
             updatedAtMillis = createdAtMillis,
@@ -192,8 +189,7 @@ internal class RepositorySeedExecutor(
             cardDraft = CardDraft(
                 frontText = seedCard.frontText,
                 backText = seedCard.backText,
-                tags = seedCard.tags,
-                effortLevel = seedCard.effortLevel
+                tags = seedCard.tags
             )
         )
     }

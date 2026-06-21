@@ -95,8 +95,7 @@ internal fun NavGraphBuilder.registerAiNavGraph(
                 cardId = request.cardId,
                 frontText = request.frontText,
                 backText = request.backText,
-                tags = request.tags,
-                effortLevel = request.effortLevel
+                tags = request.tags
             )
             AiChatDiagnosticsLogger.info(
                 event = "ai_nav_handoff_effect_finished",

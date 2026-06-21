@@ -49,6 +49,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -194,23 +195,14 @@ class LocalReviewRepository(
                             queueCards.size == queueLoadLimit
                     )
                 }
-                val filterOptionsFlow: Flow<ReviewFilterOptionsState> = combine(
-                    database.reviewCountDao().observeReviewEffortDueCounts(
-                        workspaceId = queryBase.workspaceId,
-                        nowMillis = queryBase.nowMillis
-                    ),
+                val tagFiltersFlow: Flow<List<com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption>> =
                     database.reviewCountDao().observeReviewTagDueCounts(
                         workspaceId = queryBase.workspaceId,
                         nowMillis = queryBase.nowMillis
                     )
-                ) { effortCountRows, tagCountRows ->
-                    ReviewFilterOptionsState(
-                        effortFilters = buildReviewEffortFilterOptionsFromRows(rows = effortCountRows),
-                        tagFilters = buildReviewTagFilterOptionsFromRows(rows = tagCountRows)
-                    )
-                }
+                        .map(::buildReviewTagFilterOptionsFromRows)
 
-                combine(queueStateFlow, filterOptionsFlow) { queueState, filterOptions ->
+                combine(queueStateFlow, tagFiltersFlow) { queueState, tagFilters ->
                     val deckSummaries: List<DeckSummary> = loadReviewDeckSummaries(
                         database = database,
                         workspaceId = queryBase.workspaceId,
@@ -229,8 +221,7 @@ class LocalReviewRepository(
                         totalCount = queueState.totalCount,
                         hasMoreCards = queueState.hasMoreCards,
                         availableDeckFilters = buildReviewDeckFilterOptions(decks = deckSummaries),
-                        availableEffortFilters = filterOptions.effortFilters,
-                        availableTagFilters = filterOptions.tagFilters,
+                        availableTagFilters = tagFilters,
                         settings = queryBase.settings,
                         reviewedAtMillis = queryBase.nowMillis
                     )

@@ -15,7 +15,6 @@ import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCardQueueStatus
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
@@ -105,7 +104,6 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
                     preparedCurrentCard = null,
                     preparedNextCard = null,
                     availableDeckFilters = emptyList(),
-                    availableEffortFilters = emptyList(),
                     availableTagFilters = emptyList(),
                     reviewLeaderboardBadge = ReviewLeaderboardBadgeState(
                         rank = null,
@@ -130,7 +128,6 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
                                     frontText = frontText,
                                     backText = backText,
                                     tags = listOf("db", "sql"),
-                                    effortLevel = EffortLevel.FAST,
                                     dueAtMillis = null,
                                     updatedAtMillis = 1L,
                                     createdAtMillis = 1L,
@@ -138,7 +135,6 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
                                     lapses = 0,
                                     queueStatus = ReviewCardQueueStatus.ACTIVE
                                 ),
-                                effortLabel = "Fast",
                                 tagsLabel = tagsLabel,
                                 dueLabel = "Today",
                                 backText = backText

@@ -11,7 +11,6 @@ import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.sync.CardSyncPayload
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.sync.DeckSyncPayload
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.ReviewEventSyncPayload
 import com.flashcardsopensourceapp.data.local.model.sync.SyncAction
@@ -28,13 +27,24 @@ import java.time.ZoneId
 import org.json.JSONArray
 import org.json.JSONObject
 
+private const val legacyFastEffortWireValue: String = "fast"
+private const val legacyMediumEffortTag: String = "medium"
+private const val legacyLongEffortTag: String = "long"
+
+internal enum class LegacyEffortLevel {
+    FAST,
+    MEDIUM,
+    LONG
+}
+
 internal fun buildCardOutboxPayloadJson(card: CardEntity, tags: List<String>): JSONObject {
     return JSONObject()
         .put("cardId", card.cardId)
         .put("frontText", card.frontText)
         .put("backText", card.backText)
         .put("tags", JSONArray(tags))
-        .put("effortLevel", card.effortLevel.name.lowercase())
+        // TODO: Remove legacy effortLevel once the backend wire contract drops it.
+        .put("effortLevel", legacyFastEffortWireValue)
         .putNullableString("dueAt", card.dueAtMillis?.let(::formatIsoTimestamp))
         .put("createdAt", formatIsoTimestamp(card.createdAtMillis))
         .put("reps", card.reps)
@@ -52,7 +62,14 @@ internal fun buildDeckOutboxPayloadJson(deck: DeckEntity): JSONObject {
     return JSONObject()
         .put("deckId", deck.deckId)
         .put("name", deck.name)
-        .put("filterDefinition", JSONObject(deck.filterDefinitionJson))
+        .put(
+            "filterDefinition",
+            buildLegacySyncDeckFilterDefinitionJsonObject(
+                filterDefinition = com.flashcardsopensourceapp.data.local.model.cards.decodeDeckFilterDefinitionJson(
+                    filterDefinitionJson = deck.filterDefinitionJson
+                )
+            )
+        )
         .put("createdAt", formatIsoTimestamp(deck.createdAtMillis))
         .putNullableString("deletedAt", deck.deletedAtMillis?.let(::formatIsoTimestamp))
 }
@@ -94,7 +111,8 @@ internal fun buildCardBootstrapEntryJson(
                 .put("frontText", card.frontText)
                 .put("backText", card.backText)
                 .put("tags", JSONArray(card.tags))
-                .put("effortLevel", card.effortLevel.name.lowercase())
+                // TODO: Remove legacy effortLevel once the backend wire contract drops it.
+                .put("effortLevel", legacyFastEffortWireValue)
                 .putNullableString("dueAt", card.dueAtMillis?.let(::formatIsoTimestamp))
                 .put("createdAt", formatIsoTimestamp(card.createdAtMillis))
                 .put("reps", card.reps)
@@ -126,7 +144,14 @@ internal fun buildDeckBootstrapEntryJson(
                 .put("deckId", deck.deckId)
                 .put("workspaceId", deck.workspaceId)
                 .put("name", deck.name)
-                .put("filterDefinition", JSONObject(deck.filterDefinitionJson))
+                .put(
+                    "filterDefinition",
+                    buildLegacySyncDeckFilterDefinitionJsonObject(
+                        filterDefinition = com.flashcardsopensourceapp.data.local.model.cards.decodeDeckFilterDefinitionJson(
+                            filterDefinitionJson = deck.filterDefinitionJson
+                        )
+                    )
+                )
                 .put("createdAt", formatIsoTimestamp(deck.createdAtMillis))
                 .put("clientUpdatedAt", formatIsoTimestamp(deck.updatedAtMillis))
                 .put("lastOperationId", lastOperationId)
@@ -186,8 +211,8 @@ internal fun decodeOutboxOperation(entry: OutboxEntryEntity): SyncOperation {
                     cardId = payloadJson.requireCloudString("cardId", "outbox.card.cardId"),
                     frontText = payloadJson.requireCloudString("frontText", "outbox.card.frontText"),
                     backText = payloadJson.requireCloudString("backText", "outbox.card.backText"),
-                    tags = payloadJson.requireCloudArray("tags", "outbox.card.tags").toCloudStringList("outbox.card.tags"),
-                    effortLevel = payloadJson.requireCloudString("effortLevel", "outbox.card.effortLevel"),
+                    tags = parseCardOutboxTags(payloadJson = payloadJson, fieldPath = "outbox.card"),
+                    effortLevel = legacyFastEffortWireValue,
                     dueAt = payloadJson.requireCloudNullableString("dueAt", "outbox.card.dueAt"),
                     createdAt = payloadJson.requireCloudString("createdAt", "outbox.card.createdAt"),
                     reps = payloadJson.requireCloudInt("reps", "outbox.card.reps"),
@@ -307,15 +332,41 @@ internal fun SyncAction.toRemoteValue(): String {
     }
 }
 
-internal fun parseEffortLevel(rawValue: String, fieldPath: String): EffortLevel {
+internal fun parseLegacyEffortLevel(rawValue: String, fieldPath: String): LegacyEffortLevel {
     return when (rawValue) {
-        "fast" -> EffortLevel.FAST
-        "medium" -> EffortLevel.MEDIUM
-        "long" -> EffortLevel.LONG
+        "fast" -> LegacyEffortLevel.FAST
+        "medium" -> LegacyEffortLevel.MEDIUM
+        "long" -> LegacyEffortLevel.LONG
         else -> throw CloudContractMismatchException(
             "Cloud contract mismatch for $fieldPath: expected one of [fast, medium, long], got invalid string \"$rawValue\""
         )
     }
+}
+
+internal fun legacyEffortTag(effortLevel: LegacyEffortLevel): String? {
+    return when (effortLevel) {
+        LegacyEffortLevel.FAST -> null
+        LegacyEffortLevel.MEDIUM -> legacyMediumEffortTag
+        LegacyEffortLevel.LONG -> legacyLongEffortTag
+    }
+}
+
+private fun parseCardOutboxTags(payloadJson: JSONObject, fieldPath: String): List<String> {
+    val tags = payloadJson.requireCloudArray("tags", "$fieldPath.tags").toCloudStringList("$fieldPath.tags")
+    // TODO: Remove legacy effortLevel decode once the backend wire contract drops it.
+    val effortTag = payloadJson.optCloudStringOrNull("effortLevel", "$fieldPath.effortLevel")
+        ?.let { rawValue ->
+            legacyEffortTag(
+                effortLevel = parseLegacyEffortLevel(
+                    rawValue = rawValue,
+                    fieldPath = "$fieldPath.effortLevel"
+                )
+            )
+        }
+    return normalizeTags(
+        values = tags + listOfNotNull(effortTag),
+        referenceTags = emptyList()
+    )
 }
 
 internal fun parseFsrsCardState(rawValue: String, fieldPath: String): FsrsCardState {
@@ -331,17 +382,25 @@ internal fun parseFsrsCardState(rawValue: String, fieldPath: String): FsrsCardSt
 }
 
 internal fun parseDeckFilterDefinition(jsonObject: JSONObject, fieldPath: String): DeckFilterDefinition {
-    val effortLevels = jsonObject.optJSONArray("effortLevels")
+    // TODO: Remove legacy effortLevels decode once the backend wire contract drops it.
+    val effortTags = jsonObject.optJSONArray("effortLevels")
         ?.toCloudStringList("$fieldPath.effortLevels")
-        ?.mapIndexed { index, value ->
-            parseEffortLevel(value, "$fieldPath.effortLevels[$index]")
+        ?.mapIndexedNotNull { index, value ->
+            legacyEffortTag(
+                effortLevel = parseLegacyEffortLevel(value, "$fieldPath.effortLevels[$index]")
+            )
         }
         ?: emptyList()
     val tags = jsonObject.optJSONArray("tags")?.toCloudStringList("$fieldPath.tags") ?: emptyList()
     return buildDeckFilterDefinition(
-        effortLevels = effortLevels,
-        tags = tags
+        tags = tags + effortTags
     ).copy(version = jsonObject.optCloudIntOrNull("version", "$fieldPath.version") ?: 2)
+}
+
+internal fun buildLegacySyncDeckFilterDefinitionJsonObject(filterDefinition: DeckFilterDefinition): JSONObject {
+    return buildDeckFilterDefinitionJsonObject(filterDefinition = filterDefinition)
+        // TODO: Remove legacy effortLevels once the backend wire contract drops it.
+        .put("effortLevels", JSONArray())
 }
 
 internal fun toCardSummary(card: CardWithRelations): CardSummary {
@@ -351,7 +410,6 @@ internal fun toCardSummary(card: CardWithRelations): CardSummary {
         frontText = card.card.frontText,
         backText = card.card.backText,
         tags = normalizeTags(card.tags.map(TagEntity::name), emptyList()),
-        effortLevel = card.card.effortLevel,
         dueAtMillis = card.card.dueAtMillis,
         createdAtMillis = card.card.createdAtMillis,
         updatedAtMillis = card.card.updatedAtMillis,

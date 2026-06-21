@@ -21,9 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
-import com.flashcardsopensourceapp.data.local.model.review.ReviewEffortFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 
@@ -32,7 +30,6 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 internal fun ReviewFilterSheet(
     selectedFilter: ReviewFilter,
     availableDeckFilters: List<ReviewDeckFilterOption>,
-    availableEffortFilters: List<ReviewEffortFilterOption>,
     availableTagFilters: List<ReviewTagFilterOption>,
     onDismiss: () -> Unit,
     onSelectFilter: (ReviewFilter) -> Unit,
@@ -125,33 +122,6 @@ internal fun ReviewFilterSheet(
             }
 
             item {
-                Text(
-                    text = stringResource(id = R.string.review_effort_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-                )
-            }
-
-            items(availableEffortFilters.size) { index ->
-                val effortFilter = availableEffortFilters[index]
-                ReviewFilterOptionRow(
-                    title = stringResource(
-                        id = R.string.review_filter_title_with_count,
-                        bidiWrap(
-                            text = reviewEffortLabel(effortLevel = effortFilter.effortLevel),
-                            locale = locale
-                        ),
-                        effortFilter.totalCount
-                    ),
-                    subtitle = stringResource(id = R.string.review_virtual_effort_filter_subtitle),
-                    selected = selectedFilter == ReviewFilter.Effort(effortLevel = effortFilter.effortLevel),
-                    onClick = {
-                        onSelectFilter(ReviewFilter.Effort(effortLevel = effortFilter.effortLevel))
-                    }
-                )
-            }
-
-            item {
                 HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
             }
 
@@ -189,13 +159,4 @@ private fun ReviewFilterOptionRow(
         },
         modifier = Modifier.clickable(onClick = onClick)
     )
-}
-
-@Composable
-private fun reviewEffortLabel(effortLevel: EffortLevel): String {
-    return when (effortLevel) {
-        EffortLevel.FAST -> stringResource(id = R.string.review_fast)
-        EffortLevel.MEDIUM -> stringResource(id = R.string.review_medium)
-        EffortLevel.LONG -> stringResource(id = R.string.review_long)
-    }
 }

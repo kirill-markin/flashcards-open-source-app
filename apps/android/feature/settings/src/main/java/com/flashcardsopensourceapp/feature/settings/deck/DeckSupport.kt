@@ -74,7 +74,7 @@ internal fun toPersistedDeckDetailInfo(
 }
 
 private fun hasDeckFilterRules(filterDefinition: DeckFilterDefinition): Boolean {
-    return filterDefinition.effortLevels.isNotEmpty() || filterDefinition.tags.isNotEmpty()
+    return filterDefinition.tags.isNotEmpty()
 }
 
 internal fun formatDeckFilter(
@@ -82,20 +82,6 @@ internal fun formatDeckFilter(
     strings: SettingsStringResolver
 ): String {
     val parts = buildList {
-        if (filterDefinition.effortLevels.isNotEmpty()) {
-            add(
-                strings.get(
-                    R.string.settings_deck_filter_effort,
-                    filterDefinition.effortLevels.joinToString(separator = ", ") { effortLevel ->
-                        when (effortLevel) {
-                            com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel.FAST -> strings.get(R.string.settings_effort_fast)
-                            com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel.MEDIUM -> strings.get(R.string.settings_effort_medium)
-                            com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel.LONG -> strings.get(R.string.settings_effort_long)
-                        }
-                    }
-                )
-            )
-        }
         if (filterDefinition.tags.isNotEmpty()) {
             add(
                 strings.get(

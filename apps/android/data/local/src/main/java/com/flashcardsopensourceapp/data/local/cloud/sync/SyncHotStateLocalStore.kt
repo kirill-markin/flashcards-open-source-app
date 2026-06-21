@@ -8,9 +8,12 @@ import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteSyncChange
+import com.flashcardsopensourceapp.data.local.cloud.wire.legacyEffortTag
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudDoubleOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudIntOrNull
-import com.flashcardsopensourceapp.data.local.cloud.wire.parseEffortLevel
+import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseLegacyEffortLevel
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.cloud.wire.parseFsrsCardState
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
@@ -24,6 +27,7 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.toCloudIntList
 import com.flashcardsopensourceapp.data.local.cloud.wire.toCloudStringList
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
+import com.flashcardsopensourceapp.data.local.model.cards.encodeDeckFilterDefinitionJson
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
 import org.json.JSONObject
 import java.util.UUID
@@ -69,10 +73,6 @@ internal class SyncHotStateLocalStore(
             workspaceId = workspaceId,
             frontText = payload.requireCloudString("frontText", "$fieldPath.frontText"),
             backText = payload.requireCloudString("backText", "$fieldPath.backText"),
-            effortLevel = parseEffortLevel(
-                rawValue = payload.requireCloudString("effortLevel", "$fieldPath.effortLevel"),
-                fieldPath = "$fieldPath.effortLevel"
-            ),
             dueAtMillis = payload.requireCloudNullableIsoTimestampMillis("dueAt", "$fieldPath.dueAt"),
             createdAtMillis = payload.requireCloudIsoTimestampMillis("createdAt", "$fieldPath.createdAt"),
             updatedAtMillis = payload.requireCloudIsoTimestampMillis("clientUpdatedAt", "$fieldPath.clientUpdatedAt"),
@@ -102,7 +102,7 @@ internal class SyncHotStateLocalStore(
         replaceCardTags(
             workspaceId = workspaceId,
             cardId = card.cardId,
-            tags = payload.requireCloudArray("tags", "$fieldPath.tags").toCloudStringList("$fieldPath.tags")
+            tags = decodeRemoteCardTags(payload = payload, fieldPath = fieldPath)
         )
     }
 
@@ -111,7 +111,12 @@ internal class SyncHotStateLocalStore(
             deckId = payload.requireCloudString("deckId", "$fieldPath.deckId"),
             workspaceId = workspaceId,
             name = payload.requireCloudString("name", "$fieldPath.name"),
-            filterDefinitionJson = payload.requireCloudObject("filterDefinition", "$fieldPath.filterDefinition").toString(),
+            filterDefinitionJson = encodeDeckFilterDefinitionJson(
+                filterDefinition = parseDeckFilterDefinition(
+                    jsonObject = payload.requireCloudObject("filterDefinition", "$fieldPath.filterDefinition"),
+                    fieldPath = "$fieldPath.filterDefinition"
+                )
+            ),
             createdAtMillis = payload.requireCloudIsoTimestampMillis("createdAt", "$fieldPath.createdAt"),
             updatedAtMillis = payload.requireCloudIsoTimestampMillis("clientUpdatedAt", "$fieldPath.clientUpdatedAt"),
             deletedAtMillis = payload.requireCloudNullableIsoTimestampMillis("deletedAt", "$fieldPath.deletedAt")
@@ -176,5 +181,24 @@ internal class SyncHotStateLocalStore(
             }
         )
         database.tagDao().deleteUnusedTags(workspaceId = workspaceId)
+    }
+
+    private fun decodeRemoteCardTags(payload: JSONObject, fieldPath: String): List<String> {
+        val tags = payload.requireCloudArray("tags", "$fieldPath.tags").toCloudStringList("$fieldPath.tags")
+        val legacyEffortTag = payload.optCloudStringOrNull("effortLevel", "$fieldPath.effortLevel")?.let { value ->
+            // TODO: Remove legacy effortLevel decode once the backend wire contract drops it.
+            legacyEffortTag(
+                effortLevel = parseLegacyEffortLevel(
+                    rawValue = value,
+                    fieldPath = "$fieldPath.effortLevel"
+                )
+            )
+        }
+
+        return if (legacyEffortTag == null) {
+            tags
+        } else {
+            tags + legacyEffortTag
+        }
     }
 }

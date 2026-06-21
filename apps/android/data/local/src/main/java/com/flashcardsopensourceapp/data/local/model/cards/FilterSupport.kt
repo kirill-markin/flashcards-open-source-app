@@ -1,6 +1,5 @@
 package com.flashcardsopensourceapp.data.local.model.cards
 
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -66,24 +65,19 @@ fun normalizeTags(values: List<String>, referenceTags: List<String>): List<Strin
     }
 }
 
-fun buildCardFilter(tags: List<String>, effort: List<EffortLevel>, referenceTags: List<String>): CardFilter {
+fun buildCardFilter(tags: List<String>, referenceTags: List<String>): CardFilter {
     return CardFilter(
-        tags = normalizeTags(values = tags, referenceTags = referenceTags),
-        effort = effort.distinct()
+        tags = normalizeTags(values = tags, referenceTags = referenceTags)
     )
 }
 
 fun cardFilterActiveDimensionCount(filter: CardFilter): Int {
-    val effortDimension = if (filter.effort.isEmpty()) 0 else 1
     val tagDimension = if (filter.tags.isEmpty()) 0 else 1
-    return effortDimension + tagDimension
+    return tagDimension
 }
 
 fun formatCardFilterSummary(filter: CardFilter): String {
     val parts = buildList {
-        if (filter.effort.isNotEmpty()) {
-            add("effort in ${filter.effort.joinToString(separator = ", ") { effortLevel -> effortLevel.name.lowercase() }}")
-        }
         if (filter.tags.isNotEmpty()) {
             add("tags any of ${filter.tags.joinToString(separator = ", ")}")
         }
@@ -96,19 +90,15 @@ fun formatCardFilterSummary(filter: CardFilter): String {
     return parts.joinToString(separator = " AND ")
 }
 
-fun buildDeckFilterDefinition(effortLevels: List<EffortLevel>, tags: List<String>): DeckFilterDefinition {
+fun buildDeckFilterDefinition(tags: List<String>): DeckFilterDefinition {
     return DeckFilterDefinition(
         version = 2,
-        effortLevels = effortLevels.distinct(),
         tags = normalizeTags(values = tags, referenceTags = emptyList())
     )
 }
 
 fun formatDeckFilterDefinition(filterDefinition: DeckFilterDefinition): String {
     val parts = buildList {
-        if (filterDefinition.effortLevels.isNotEmpty()) {
-            add("effort in ${filterDefinition.effortLevels.joinToString(separator = ", ") { effortLevel -> effortLevel.name.lowercase() }}")
-        }
         if (filterDefinition.tags.isNotEmpty()) {
             add("tags any of ${filterDefinition.tags.joinToString(separator = ", ")}")
         }
@@ -128,34 +118,20 @@ fun encodeDeckFilterDefinitionJson(filterDefinition: DeckFilterDefinition): Stri
 fun buildDeckFilterDefinitionJsonObject(filterDefinition: DeckFilterDefinition): JSONObject {
     return JSONObject()
         .put("version", filterDefinition.version)
-        .put(
-            "effortLevels",
-            JSONArray(filterDefinition.effortLevels.map { effortLevel ->
-                effortLevel.toDeckFilterJsonValue()
-            })
-        )
         .put("tags", JSONArray(filterDefinition.tags))
 }
 
 fun decodeDeckFilterDefinitionJson(filterDefinitionJson: String): DeckFilterDefinition {
     val jsonObject = JSONObject(filterDefinitionJson)
     val version = jsonObject.getInt("version")
-    val effortLevels = jsonObject.optJSONArray("effortLevels")?.toStringList()?.map { value ->
-        parseDeckFilterEffortLevel(rawValue = value)
-    } ?: emptyList()
     val tags = jsonObject.optJSONArray("tags")?.toStringList() ?: emptyList()
 
     return buildDeckFilterDefinition(
-        effortLevels = effortLevels,
         tags = tags
     ).copy(version = version)
 }
 
 fun matchesCardFilter(filter: CardFilter, card: CardSummary): Boolean {
-    if (filter.effort.isNotEmpty() && filter.effort.contains(card.effortLevel).not()) {
-        return false
-    }
-
     if (filter.tags.isEmpty()) {
         return true
     }
@@ -168,10 +144,6 @@ fun matchesCardFilter(filter: CardFilter, card: CardSummary): Boolean {
 
 fun matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: CardSummary): Boolean {
     // Keep deck matching semantics aligned with apps/web/src/appData/domain/index.ts::matchesDeckFilterDefinition and apps/ios/Flashcards/Flashcards/Cards/List/CardFilterSupport.swift::matchesDeckFilterDefinition.
-    if (filterDefinition.effortLevels.isNotEmpty() && filterDefinition.effortLevels.contains(card.effortLevel).not()) {
-        return false
-    }
-
     if (filterDefinition.tags.isEmpty()) {
         return true
     }
@@ -210,26 +182,9 @@ fun queryCards(cards: List<CardSummary>, searchText: String, filter: CardFilter)
 
     return filteredCards.filter { card ->
         matchesSearchTokens(
-            values = listOf(card.frontText, card.backText, card.effortLevel.name.lowercase()) + card.tags,
+            values = listOf(card.frontText, card.backText) + card.tags,
             searchTokens = searchTokens
         )
-    }
-}
-
-private fun EffortLevel.toDeckFilterJsonValue(): String {
-    return when (this) {
-        EffortLevel.FAST -> "fast"
-        EffortLevel.MEDIUM -> "medium"
-        EffortLevel.LONG -> "long"
-    }
-}
-
-private fun parseDeckFilterEffortLevel(rawValue: String): EffortLevel {
-    return when (rawValue.lowercase()) {
-        "fast" -> EffortLevel.FAST
-        "medium" -> EffortLevel.MEDIUM
-        "long" -> EffortLevel.LONG
-        else -> throw IllegalArgumentException("Unsupported deck filter effort level: $rawValue")
     }
 }
 

@@ -2,7 +2,6 @@ package com.flashcardsopensourceapp.app.navigation
 
 import com.flashcardsopensourceapp.app.notifications.AppNotificationTapRequest
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,8 +18,7 @@ data class AiCardHandoffRequest(
     val cardId: String,
     val frontText: String,
     val backText: String,
-    val tags: List<String>,
-    val effortLevel: EffortLevel
+    val tags: List<String>
 )
 
 data class CardEditorRequest(
@@ -110,16 +108,14 @@ class AppHandoffCoordinator {
         cardId: String,
         frontText: String,
         backText: String,
-        tags: List<String>,
-        effortLevel: EffortLevel
+        tags: List<String>
     ) {
         aiCardHandoffState.value = AiCardHandoffRequest(
             requestId = nextRequestId.incrementAndGet(),
             cardId = cardId,
             frontText = frontText,
             backText = backText,
-            tags = tags,
-            effortLevel = effortLevel
+            tags = tags
         )
     }
 

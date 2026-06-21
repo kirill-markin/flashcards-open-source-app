@@ -358,12 +358,6 @@ private fun NotificationDiagnosticsReviewPayloadCard(
                     value = deckId
                 )
             },
-            payload.reviewFilter.effortLevel?.let { effortLevel ->
-                NotificationDiagnosticsInfoRow(
-                    label = stringResource(R.string.settings_notification_diagnostics_filter_effort_label),
-                    value = effortLevel
-                )
-            },
             payload.reviewFilter.tag?.let { tag ->
                 NotificationDiagnosticsInfoRow(
                     label = stringResource(R.string.settings_notification_diagnostics_filter_tag_label),

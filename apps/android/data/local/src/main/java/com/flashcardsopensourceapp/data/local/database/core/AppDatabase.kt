@@ -62,7 +62,7 @@ private const val appDatabaseName: String = "flashcards-android.db"
         ProgressReviewHistoryStateEntity::class,
         ProgressLocalCacheStateEntity::class
     ],
-    version = 24,
+    version = 25,
     exportSchema = false
 )
 @TypeConverters(DatabaseTypeConverters::class)

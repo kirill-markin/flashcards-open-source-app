@@ -3,7 +3,6 @@ package com.flashcardsopensourceapp.app.marketing.screenshots
 import com.flashcardsopensourceapp.app.support.RepositorySeedCard
 import com.flashcardsopensourceapp.app.support.RepositorySeedReview
 import com.flashcardsopensourceapp.app.support.RepositorySeedScenario
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import java.time.Instant
 import java.time.ZoneId
@@ -130,7 +129,6 @@ private fun marketingSupportCardsSeedCards(
             frontText = card.frontText,
             backText = card.backText,
             tags = listOf(card.subjectTag),
-            effortLevel = EffortLevel.MEDIUM,
             reviews = reviewPlan.reviewDayOffsets.sortedDescending().map { daysAgo ->
                 RepositorySeedReview(
                     rating = marketingReviewRatingForDayOffset(daysAgo = daysAgo),
@@ -155,7 +153,6 @@ private fun marketingSharedReviewSeedCard(
         frontText = localeConfig.reviewCard.frontText,
         backText = localeConfig.reviewCard.backText,
         tags = localeConfig.reviewCard.tags,
-        effortLevel = EffortLevel.MEDIUM,
         reviews = emptyList()
     )
 }

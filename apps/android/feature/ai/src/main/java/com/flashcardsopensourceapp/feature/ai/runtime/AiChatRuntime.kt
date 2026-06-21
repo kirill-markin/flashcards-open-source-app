@@ -4,7 +4,6 @@ import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
@@ -305,8 +304,7 @@ internal class AiChatRuntime(
         cardId: String,
         frontText: String,
         backText: String,
-        tags: List<String>,
-        effortLevel: EffortLevel
+        tags: List<String>
     ): AiCardHandoffResult {
         val currentState = runtimeStateMutable.value
         context.observability.recordAiChatBreadcrumb(
@@ -367,8 +365,7 @@ internal class AiChatRuntime(
             cardId = cardId,
             frontText = frontText,
             backText = backText,
-            tags = tags,
-            effortLevel = effortLevel
+            tags = tags
         )
 
         if (currentState.composerPhase == AiComposerPhase.RUNNING) {

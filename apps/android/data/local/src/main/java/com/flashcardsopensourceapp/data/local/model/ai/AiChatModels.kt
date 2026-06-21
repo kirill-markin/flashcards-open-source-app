@@ -1,7 +1,6 @@
 package com.flashcardsopensourceapp.data.local.model.ai
 
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import java.util.UUID
 
 const val aiChatOptimisticAssistantStatusToken: String = "__ai_optimistic_assistant_status__"
@@ -138,8 +137,7 @@ sealed interface AiChatAttachment {
         val cardId: String,
         val frontText: String,
         val backText: String,
-        val tags: List<String>,
-        val effortLevel: EffortLevel
+        val tags: List<String>
     ) : AiChatAttachment
 
     data class Unknown(
@@ -196,8 +194,7 @@ sealed interface AiChatContentPart {
         val cardId: String,
         val frontText: String,
         val backText: String,
-        val tags: List<String>,
-        val effortLevel: EffortLevel
+        val tags: List<String>
     ) : AiChatContentPart
 
     data class ToolCall(
@@ -265,8 +262,7 @@ sealed interface AiChatWireContentPart {
         val cardId: String,
         val frontText: String,
         val backText: String,
-        val tags: List<String>,
-        val effortLevel: EffortLevel
+        val tags: List<String>
     ) : AiChatWireContentPart
 
     data class ToolCall(
@@ -487,8 +483,7 @@ fun buildAiChatRequestContent(content: List<AiChatContentPart>): List<AiChatWire
                 cardId = part.cardId,
                 frontText = part.frontText,
                 backText = part.backText,
-                tags = part.tags,
-                effortLevel = part.effortLevel
+                tags = part.tags
             )
 
             is AiChatContentPart.ToolCall -> AiChatWireContentPart.ToolCall(
@@ -530,21 +525,15 @@ fun makeAiChatCardAttachment(
     cardId: String,
     frontText: String,
     backText: String,
-    tags: List<String>,
-    effortLevel: EffortLevel
+    tags: List<String>
 ): AiChatAttachment.Card {
     return AiChatAttachment.Card(
         id = UUID.randomUUID().toString().lowercase(),
         cardId = cardId,
         frontText = frontText,
         backText = backText,
-        tags = tags,
-        effortLevel = effortLevel
+        tags = tags
     )
-}
-
-fun aiChatEffortLevelWireValue(effortLevel: EffortLevel): String {
-    return effortLevel.name.lowercase()
 }
 
 fun formatAiChatCardAttachmentLabel(frontText: String): String {
@@ -560,8 +549,7 @@ fun buildAiChatCardContextXml(
     cardId: String,
     frontText: String,
     backText: String,
-    tags: List<String>,
-    effortLevel: EffortLevel
+    tags: List<String>
 ): String {
     val escapedTags = tags.joinToString(separator = "") { tag ->
         "<tag>${escapeAiChatCardXmlValue(value = tag)}</tag>"
@@ -573,9 +561,6 @@ fun buildAiChatCardContextXml(
         append("<card_id>")
         append(escapeAiChatCardXmlValue(value = cardId))
         append("</card_id>\n")
-        append("<effort_level>")
-        append(escapeAiChatCardXmlValue(value = aiChatEffortLevelWireValue(effortLevel = effortLevel)))
-        append("</effort_level>\n")
         append("<front_text>\n")
         append(escapeAiChatCardXmlValue(value = frontText))
         append("\n</front_text>\n")

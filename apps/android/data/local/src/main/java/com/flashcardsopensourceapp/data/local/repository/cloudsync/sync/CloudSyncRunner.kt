@@ -13,7 +13,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.sync.PersistedOutboxEntry
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.sync.SyncOperationPayload
-import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinitionJsonObject
+import com.flashcardsopensourceapp.data.local.cloud.wire.buildLegacySyncDeckFilterDefinitionJsonObject
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.isCloudIdentityConflictError
 import kotlinx.coroutines.CancellationException
@@ -679,6 +679,7 @@ private fun buildOperationPayload(payload: SyncOperationPayload): JSONObject {
             .put("frontText", payload.payload.frontText)
             .put("backText", payload.payload.backText)
             .put("tags", JSONArray(payload.payload.tags))
+            // TODO: Remove legacy effortLevel once the backend wire contract drops it.
             .put("effortLevel", payload.payload.effortLevel)
             .putNullableString("dueAt", payload.payload.dueAt)
             .put("createdAt", payload.payload.createdAt)
@@ -718,7 +719,7 @@ private fun buildOperationPayload(payload: SyncOperationPayload): JSONObject {
 }
 
 private fun buildDeckFilterDefinitionJson(filterDefinition: com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition): JSONObject {
-    return buildDeckFilterDefinitionJsonObject(filterDefinition = filterDefinition)
+    return buildLegacySyncDeckFilterDefinitionJsonObject(filterDefinition = filterDefinition)
 }
 
 private fun com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType.toRemoteValue(): String {

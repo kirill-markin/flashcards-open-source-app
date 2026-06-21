@@ -10,7 +10,6 @@ import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
@@ -237,15 +236,13 @@ class AiViewModel(
         cardId: String,
         frontText: String,
         backText: String,
-        tags: List<String>,
-        effortLevel: EffortLevel
+        tags: List<String>
     ): AiCardHandoffResult {
         return chatRuntime.handoffCardToChat(
             cardId = cardId,
             frontText = frontText,
             backText = backText,
-            tags = tags,
-            effortLevel = effortLevel
+            tags = tags
         )
     }
 

@@ -241,8 +241,7 @@ fun CardsRoute(
             },
             onClear = {
                 draftFilter = CardFilter(
-                    tags = emptyList(),
-                    effort = emptyList()
+                    tags = emptyList()
                 )
             },
             onDraftFilterChange = { nextFilter ->

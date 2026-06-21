@@ -12,7 +12,6 @@ import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
@@ -59,7 +58,6 @@ class SyncLocalStoreWorkspaceIdentityForkContractTest {
             workspaceId = syncLocalStoreContractWorkspaceId,
             frontText = "Front",
             backText = "Back",
-            effortLevel = EffortLevel.MEDIUM,
             dueAtMillis = null,
             createdAtMillis = 1L,
             updatedAtMillis = 2L,
@@ -236,7 +234,6 @@ class SyncLocalStoreWorkspaceIdentityForkContractTest {
             workspaceId = syncLocalStoreContractWorkspaceId,
             frontText = "Front",
             backText = "Back",
-            effortLevel = EffortLevel.MEDIUM,
             dueAtMillis = null,
             createdAtMillis = 1L,
             updatedAtMillis = 2L,
@@ -350,7 +347,6 @@ class SyncLocalStoreWorkspaceIdentityForkContractTest {
             workspaceId = syncLocalStoreContractWorkspaceId,
             frontText = "Front",
             backText = "Back",
-            effortLevel = EffortLevel.MEDIUM,
             dueAtMillis = null,
             createdAtMillis = 1L,
             updatedAtMillis = 2L,

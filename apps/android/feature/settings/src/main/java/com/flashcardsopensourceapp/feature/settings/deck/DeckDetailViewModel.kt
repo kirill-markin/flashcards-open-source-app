@@ -33,8 +33,7 @@ class DeckDetailViewModel(
     private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val deckFilter = CardFilter(
-        tags = emptyList(),
-        effort = emptyList()
+        tags = emptyList()
     )
 
     val uiState: StateFlow<DeckDetailUiState> = when (deckDetailRequest) {

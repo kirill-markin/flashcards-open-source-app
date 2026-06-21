@@ -4,7 +4,6 @@ import android.content.Context
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCallStatus
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAttachmentSettingsSource
@@ -73,9 +72,6 @@ data class AiTextProvider(
     val consentRequiredMessage: String,
     val guestQuotaReachedMessage: String,
     val guestQuotaButtonTitle: String,
-    private val fastLabel: String,
-    private val mediumLabel: String,
-    private val longLabel: String,
     private val messageWithRequestIdFormat: String,
     private val bidiLocale: Locale
 ) {
@@ -192,13 +188,6 @@ data class AiTextProvider(
         )
     }
 
-    fun effortLabel(effortLevel: EffortLevel): String {
-        return when (effortLevel) {
-            EffortLevel.FAST -> fastLabel
-            EffortLevel.MEDIUM -> mediumLabel
-            EffortLevel.LONG -> longLabel
-        }
-    }
 }
 
 fun aiTextProvider(context: Context): AiTextProvider {
@@ -264,9 +253,6 @@ fun aiTextProvider(context: Context): AiTextProvider {
         consentRequiredMessage = context.getString(R.string.ai_consent_required_message),
         guestQuotaReachedMessage = context.getString(R.string.ai_guest_quota_reached_message),
         guestQuotaButtonTitle = context.getString(R.string.ai_guest_quota_button_title),
-        fastLabel = context.getString(R.string.ai_fast),
-        mediumLabel = context.getString(R.string.ai_medium),
-        longLabel = context.getString(R.string.ai_long),
         messageWithRequestIdFormat = context.getString(R.string.ai_message_with_request_id),
         bidiLocale = currentResourceLocale(resources = context.resources)
     )
@@ -335,9 +321,6 @@ fun testAiTextProvider(): AiTextProvider {
         consentRequiredMessage = "Review AI data use and accept it on this device before using AI features.",
         guestQuotaReachedMessage = "Your free guest AI limit for this month is used up. Create an account or log in to keep using AI.",
         guestQuotaButtonTitle = "Create account or Log in",
-        fastLabel = "Fast",
-        mediumLabel = "Medium",
-        longLabel = "Long",
         messageWithRequestIdFormat = "%1\$s Request ID: %2\$s",
         bidiLocale = Locale.ENGLISH
     )

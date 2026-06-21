@@ -9,9 +9,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatRole
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ai.defaultAiChatServerConfig
-import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -51,7 +49,6 @@ class AiChatHistoryStoreTest {
                     frontText = "Front",
                     backText = "Back",
                     tags = listOf("tag"),
-                    effortLevel = EffortLevel.MEDIUM
                 )
             )
         )
@@ -84,7 +81,7 @@ class AiChatHistoryStoreTest {
     }
 
     @Test
-    fun loadStateClearsCorruptedCardEffortLevelAndReturnsDefaultState() = runBlocking {
+    fun loadStatePreservesLegacyCardEffortLevelAsTag() = runBlocking {
         val preferences = context.getSharedPreferences("flashcards-ai-chat-history", Context.MODE_PRIVATE)
         preferences.edit()
             .putString(
@@ -105,7 +102,7 @@ class AiChatHistoryStoreTest {
                                             .put("frontText", "Front")
                                             .put("backText", "Back")
                                             .put("tags", JSONArray().put("tag"))
-                                            .put("effortLevel", "BROKEN")
+                                            .put("effortLevel", "MEDIUM")
                                     )
                                 )
                                 .put("timestampMillis", 1L)
@@ -123,8 +120,64 @@ class AiChatHistoryStoreTest {
 
         val loadedState = store.loadState(workspaceId = "workspace-1")
 
-        assertEquals(makeDefaultAiChatPersistedState(), loadedState)
-        assertFalse(preferences.contains(historyKey(workspaceId = "workspace-1")))
+        assertEquals(1, loadedState.messages.size)
+        assertEquals(
+            AiChatContentPart.Card(
+                cardId = "card-1",
+                frontText = "Front",
+                backText = "Back",
+                tags = listOf("tag", "medium")
+            ),
+            loadedState.messages.first().content.first()
+        )
+        assertTrue(preferences.contains(historyKey(workspaceId = "workspace-1")))
+    }
+
+    @Test
+    fun loadDraftStatePreservesLegacyCardEffortLevelAsTag() = runBlocking {
+        val preferences = context.getSharedPreferences("flashcards-ai-chat-history", Context.MODE_PRIVATE)
+        preferences.edit()
+            .putString(
+                draftKey(workspaceId = "workspace-1", sessionId = "session-1"),
+                JSONObject()
+                    .put("draftMessage", "Draft")
+                    .put(
+                        "pendingAttachments",
+                        JSONArray().put(
+                            JSONObject()
+                                .put("type", "card")
+                                .put("id", "attachment-1")
+                                .put("cardId", "card-1")
+                                .put("frontText", "Front")
+                                .put("backText", "Back")
+                                .put("tags", JSONArray().put("tag"))
+                                .put("effortLevel", "LONG")
+                        )
+                    )
+                    .toString()
+            )
+            .commit()
+
+        val loadedDraftState = store.loadDraftState(
+            workspaceId = "workspace-1",
+            sessionId = "session-1"
+        )
+
+        assertEquals(
+            AiChatDraftState(
+                draftMessage = "Draft",
+                pendingAttachments = listOf(
+                    AiChatAttachment.Card(
+                        id = "attachment-1",
+                        cardId = "card-1",
+                        frontText = "Front",
+                        backText = "Back",
+                        tags = listOf("tag", "long")
+                    )
+                )
+            ),
+            loadedDraftState
+        )
     }
 
     @Test

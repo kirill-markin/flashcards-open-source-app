@@ -3,21 +3,17 @@ package com.flashcardsopensourceapp.data.local.repository.review
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardWithRelations
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
-import com.flashcardsopensourceapp.data.local.database.review.ReviewEffortCountRow
 import com.flashcardsopensourceapp.data.local.database.review.ReviewTagCountRow
 import com.flashcardsopensourceapp.data.local.database.review.activeReviewRecentPriorityWindowMillis
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
-import com.flashcardsopensourceapp.data.local.model.review.ReviewEffortFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.review.buildBoundedReviewSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.cards.formatCardEffortLabel
 import com.flashcardsopensourceapp.data.local.model.cards.isCardDue
 import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.review.matchesReviewFilter
@@ -49,7 +45,6 @@ internal sealed interface ReviewTagPredicate {
 }
 
 internal data class ReviewQueuePredicate(
-    val effortLevels: List<EffortLevel>,
     val tagPredicate: ReviewTagPredicate
 )
 
@@ -73,11 +68,6 @@ internal data class ReviewSessionQueueState(
     val hasMoreCards: Boolean
 )
 
-internal data class ReviewFilterOptionsState(
-    val effortFilters: List<ReviewEffortFilterOption>,
-    val tagFilters: List<ReviewTagFilterOption>
-)
-
 internal fun makeEmptyReviewSessionSnapshot(nowMillis: Long): ReviewSessionSnapshot {
     return buildBoundedReviewSessionSnapshot(
         selectedFilter = ReviewFilter.AllCards,
@@ -89,7 +79,6 @@ internal fun makeEmptyReviewSessionSnapshot(nowMillis: Long): ReviewSessionSnaps
         totalCount = 0,
         hasMoreCards = false,
         availableDeckFilters = emptyList(),
-        availableEffortFilters = emptyList(),
         availableTagFilters = emptyList(),
         settings = makeDefaultWorkspaceSchedulerSettings(
             workspaceId = "",
@@ -106,7 +95,6 @@ internal fun makeReviewQueuePredicate(
 ): ReviewQueuePredicate {
     return when (selectedFilter) {
         ReviewFilter.AllCards -> ReviewQueuePredicate(
-            effortLevels = emptyList(),
             tagPredicate = ReviewTagPredicate.None
         )
 
@@ -122,13 +110,7 @@ internal fun makeReviewQueuePredicate(
             )
         }
 
-        is ReviewFilter.Effort -> ReviewQueuePredicate(
-            effortLevels = listOf(selectedFilter.effortLevel),
-            tagPredicate = ReviewTagPredicate.None
-        )
-
         is ReviewFilter.Tag -> ReviewQueuePredicate(
-            effortLevels = emptyList(),
             tagPredicate = makeReviewTagPredicate(
                 requestedTagNames = listOf(selectedFilter.tag),
                 storedTagNames = storedTagNames
@@ -142,7 +124,6 @@ internal fun makeReviewQueuePredicate(
     storedTagNames: List<String>
 ): ReviewQueuePredicate {
     return ReviewQueuePredicate(
-        effortLevels = filterDefinition.effortLevels.distinct(),
         tagPredicate = makeReviewTagPredicate(
             requestedTagNames = filterDefinition.tags,
             storedTagNames = storedTagNames
@@ -189,45 +170,20 @@ internal fun observeActiveReviewQueue(
     val cutoffMillis = nowMillis - activeReviewRecentPriorityWindowMillis
     return when (val tagPredicate: ReviewTagPredicate = predicate.tagPredicate) {
         ReviewTagPredicate.Impossible -> flowOf(emptyList<CardWithRelations>())
-        ReviewTagPredicate.None -> {
-            if (predicate.effortLevels.isEmpty()) {
-                database.reviewQueueDao().observeBucketedActiveReviewQueue(
-                    workspaceId = workspaceId,
-                    cutoffMillis = cutoffMillis,
-                    nowMillis = nowMillis,
-                    limit = limit
-                )
-            } else {
-                database.reviewQueueDao().observeBucketedActiveReviewQueueByEffortLevels(
-                    workspaceId = workspaceId,
-                    cutoffMillis = cutoffMillis,
-                    nowMillis = nowMillis,
-                    effortLevels = predicate.effortLevels,
-                    limit = limit
-                )
-            }
-        }
+        ReviewTagPredicate.None -> database.reviewQueueDao().observeBucketedActiveReviewQueue(
+            workspaceId = workspaceId,
+            cutoffMillis = cutoffMillis,
+            nowMillis = nowMillis,
+            limit = limit
+        )
 
-        is ReviewTagPredicate.ExactTagNames -> {
-            if (predicate.effortLevels.isEmpty()) {
-                database.reviewQueueDao().observeBucketedActiveReviewQueueByAnyTags(
-                    workspaceId = workspaceId,
-                    cutoffMillis = cutoffMillis,
-                    nowMillis = nowMillis,
-                    tagNames = tagPredicate.tagNames,
-                    limit = limit
-                )
-            } else {
-                database.reviewQueueDao().observeBucketedActiveReviewQueueByEffortLevelsAndAnyTags(
-                    workspaceId = workspaceId,
-                    cutoffMillis = cutoffMillis,
-                    nowMillis = nowMillis,
-                    effortLevels = predicate.effortLevels,
-                    tagNames = tagPredicate.tagNames,
-                    limit = limit
-                )
-            }
-        }
+        is ReviewTagPredicate.ExactTagNames -> database.reviewQueueDao().observeBucketedActiveReviewQueueByAnyTags(
+            workspaceId = workspaceId,
+            cutoffMillis = cutoffMillis,
+            nowMillis = nowMillis,
+            tagNames = tagPredicate.tagNames,
+            limit = limit
+        )
     }
 }
 
@@ -239,37 +195,16 @@ internal fun observeReviewDueCount(
 ): Flow<Int> {
     return when (val tagPredicate: ReviewTagPredicate = predicate.tagPredicate) {
         ReviewTagPredicate.Impossible -> flowOf(0)
-        ReviewTagPredicate.None -> {
-            if (predicate.effortLevels.isEmpty()) {
-                database.reviewCountDao().observeReviewDueCount(
-                    workspaceId = workspaceId,
-                    nowMillis = nowMillis
-                )
-            } else {
-                database.reviewCountDao().observeReviewDueCountByEffortLevels(
-                    workspaceId = workspaceId,
-                    nowMillis = nowMillis,
-                    effortLevels = predicate.effortLevels
-                )
-            }
-        }
+        ReviewTagPredicate.None -> database.reviewCountDao().observeReviewDueCount(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis
+        )
 
-        is ReviewTagPredicate.ExactTagNames -> {
-            if (predicate.effortLevels.isEmpty()) {
-                database.reviewCountDao().observeReviewDueCountByAnyTags(
-                    workspaceId = workspaceId,
-                    nowMillis = nowMillis,
-                    tagNames = tagPredicate.tagNames
-                )
-            } else {
-                database.reviewCountDao().observeReviewDueCountByEffortLevelsAndAnyTags(
-                    workspaceId = workspaceId,
-                    nowMillis = nowMillis,
-                    effortLevels = predicate.effortLevels,
-                    tagNames = tagPredicate.tagNames
-                )
-            }
-        }
+        is ReviewTagPredicate.ExactTagNames -> database.reviewCountDao().observeReviewDueCountByAnyTags(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            tagNames = tagPredicate.tagNames
+        )
     }
 }
 
@@ -280,31 +215,12 @@ internal fun observeReviewTotalCount(
 ): Flow<Int> {
     return when (val tagPredicate: ReviewTagPredicate = predicate.tagPredicate) {
         ReviewTagPredicate.Impossible -> flowOf(0)
-        ReviewTagPredicate.None -> {
-            if (predicate.effortLevels.isEmpty()) {
-                database.reviewCountDao().observeReviewTotalCount(workspaceId = workspaceId)
-            } else {
-                database.reviewCountDao().observeReviewTotalCountByEffortLevels(
-                    workspaceId = workspaceId,
-                    effortLevels = predicate.effortLevels
-                )
-            }
-        }
+        ReviewTagPredicate.None -> database.reviewCountDao().observeReviewTotalCount(workspaceId = workspaceId)
 
-        is ReviewTagPredicate.ExactTagNames -> {
-            if (predicate.effortLevels.isEmpty()) {
-                database.reviewCountDao().observeReviewTotalCountByAnyTags(
-                    workspaceId = workspaceId,
-                    tagNames = tagPredicate.tagNames
-                )
-            } else {
-                database.reviewCountDao().observeReviewTotalCountByEffortLevelsAndAnyTags(
-                    workspaceId = workspaceId,
-                    effortLevels = predicate.effortLevels,
-                    tagNames = tagPredicate.tagNames
-                )
-            }
-        }
+        is ReviewTagPredicate.ExactTagNames -> database.reviewCountDao().observeReviewTotalCountByAnyTags(
+            workspaceId = workspaceId,
+            tagNames = tagPredicate.tagNames
+        )
     }
 }
 
@@ -425,22 +341,6 @@ private fun isPreservablePresentedCard(
     )
 }
 
-internal fun buildReviewEffortFilterOptionsFromRows(
-    rows: List<ReviewEffortCountRow>
-): List<ReviewEffortFilterOption> {
-    val countsByEffort: Map<EffortLevel, Int> = rows.associate { row ->
-        row.effortLevel to row.totalCount
-    }
-
-    return EffortLevel.entries.map { effortLevel ->
-        ReviewEffortFilterOption(
-            effortLevel = effortLevel,
-            title = formatCardEffortLabel(effortLevel = effortLevel),
-            totalCount = countsByEffort[effortLevel] ?: 0
-        )
-    }
-}
-
 internal fun buildReviewTagFilterOptionsFromRows(
     rows: List<ReviewTagCountRow>
 ): List<ReviewTagFilterOption> {
@@ -500,37 +400,16 @@ internal suspend fun countReviewDueCards(
 ): Int {
     return when (val tagPredicate: ReviewTagPredicate = predicate.tagPredicate) {
         ReviewTagPredicate.Impossible -> 0
-        ReviewTagPredicate.None -> {
-            if (predicate.effortLevels.isEmpty()) {
-                database.reviewCountDao().countReviewDueCards(
-                    workspaceId = workspaceId,
-                    nowMillis = nowMillis
-                )
-            } else {
-                database.reviewCountDao().countReviewDueCardsByEffortLevels(
-                    workspaceId = workspaceId,
-                    nowMillis = nowMillis,
-                    effortLevels = predicate.effortLevels
-                )
-            }
-        }
+        ReviewTagPredicate.None -> database.reviewCountDao().countReviewDueCards(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis
+        )
 
-        is ReviewTagPredicate.ExactTagNames -> {
-            if (predicate.effortLevels.isEmpty()) {
-                database.reviewCountDao().countReviewDueCardsByAnyTags(
-                    workspaceId = workspaceId,
-                    nowMillis = nowMillis,
-                    tagNames = tagPredicate.tagNames
-                )
-            } else {
-                database.reviewCountDao().countReviewDueCardsByEffortLevelsAndAnyTags(
-                    workspaceId = workspaceId,
-                    nowMillis = nowMillis,
-                    effortLevels = predicate.effortLevels,
-                    tagNames = tagPredicate.tagNames
-                )
-            }
-        }
+        is ReviewTagPredicate.ExactTagNames -> database.reviewCountDao().countReviewDueCardsByAnyTags(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            tagNames = tagPredicate.tagNames
+        )
     }
 }
 

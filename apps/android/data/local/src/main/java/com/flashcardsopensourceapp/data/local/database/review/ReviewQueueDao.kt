@@ -4,7 +4,6 @@ import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Transaction
 import com.flashcardsopensourceapp.data.local.database.entities.CardWithRelations
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -42,30 +41,6 @@ interface ReviewQueueDao {
             AND fsrsLastReviewedAtMillis IS NOT NULL
             AND fsrsLastReviewedAtMillis >= :cutoffMillis
             AND fsrsLastReviewedAtMillis <= :nowMillis
-            AND effortLevel IN (:effortLevels)
-        ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
-        LIMIT :limit
-        """
-    )
-    fun observeRecentlyReviewedDueReviewQueueByEffortLevels(
-        workspaceId: String,
-        cutoffMillis: Long,
-        nowMillis: Long,
-        effortLevels: List<EffortLevel>,
-        limit: Int
-    ): Flow<List<CardWithRelations>>
-
-    @Transaction
-    @Query(
-        """
-        SELECT * FROM cards INDEXED BY index_cards_workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_createdAtMillis_cardId
-        WHERE workspaceId = :workspaceId
-            AND deletedAtMillis IS NULL
-            AND dueAtMillis IS NOT NULL
-            AND dueAtMillis <= :nowMillis
-            AND fsrsLastReviewedAtMillis IS NOT NULL
-            AND fsrsLastReviewedAtMillis >= :cutoffMillis
-            AND fsrsLastReviewedAtMillis <= :nowMillis
             AND EXISTS (
                 SELECT 1
                 FROM card_tags
@@ -82,39 +57,6 @@ interface ReviewQueueDao {
         workspaceId: String,
         cutoffMillis: Long,
         nowMillis: Long,
-        tagNames: List<String>,
-        limit: Int
-    ): Flow<List<CardWithRelations>>
-
-    @Transaction
-    @Query(
-        """
-        SELECT * FROM cards INDEXED BY index_cards_workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_createdAtMillis_cardId
-        WHERE workspaceId = :workspaceId
-            AND deletedAtMillis IS NULL
-            AND dueAtMillis IS NOT NULL
-            AND dueAtMillis <= :nowMillis
-            AND fsrsLastReviewedAtMillis IS NOT NULL
-            AND fsrsLastReviewedAtMillis >= :cutoffMillis
-            AND fsrsLastReviewedAtMillis <= :nowMillis
-            AND effortLevel IN (:effortLevels)
-            AND EXISTS (
-                SELECT 1
-                FROM card_tags
-                INNER JOIN tags ON tags.tagId = card_tags.tagId
-                WHERE card_tags.cardId = cards.cardId
-                    AND tags.workspaceId = cards.workspaceId
-                    AND tags.name IN (:tagNames)
-            )
-        ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
-        LIMIT :limit
-        """
-    )
-    fun observeRecentlyReviewedDueReviewQueueByEffortLevelsAndAnyTags(
-        workspaceId: String,
-        cutoffMillis: Long,
-        nowMillis: Long,
-        effortLevels: List<EffortLevel>,
         tagNames: List<String>,
         limit: Int
     ): Flow<List<CardWithRelations>>
@@ -140,32 +82,6 @@ interface ReviewQueueDao {
         workspaceId: String,
         cutoffMillis: Long,
         nowMillis: Long,
-        limit: Int
-    ): Flow<List<CardWithRelations>>
-
-    @Transaction
-    @Query(
-        """
-        SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
-        WHERE workspaceId = :workspaceId
-            AND deletedAtMillis IS NULL
-            AND dueAtMillis IS NOT NULL
-            AND dueAtMillis <= :nowMillis
-            AND (
-                fsrsLastReviewedAtMillis IS NULL
-                OR fsrsLastReviewedAtMillis < :cutoffMillis
-                OR fsrsLastReviewedAtMillis > :nowMillis
-            )
-            AND effortLevel IN (:effortLevels)
-        ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
-        LIMIT :limit
-        """
-    )
-    fun observeOtherDueReviewQueueByEffortLevels(
-        workspaceId: String,
-        cutoffMillis: Long,
-        nowMillis: Long,
-        effortLevels: List<EffortLevel>,
         limit: Int
     ): Flow<List<CardWithRelations>>
 
@@ -208,41 +124,6 @@ interface ReviewQueueDao {
         SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
         WHERE workspaceId = :workspaceId
             AND deletedAtMillis IS NULL
-            AND dueAtMillis IS NOT NULL
-            AND dueAtMillis <= :nowMillis
-            AND (
-                fsrsLastReviewedAtMillis IS NULL
-                OR fsrsLastReviewedAtMillis < :cutoffMillis
-                OR fsrsLastReviewedAtMillis > :nowMillis
-            )
-            AND effortLevel IN (:effortLevels)
-            AND EXISTS (
-                SELECT 1
-                FROM card_tags
-                INNER JOIN tags ON tags.tagId = card_tags.tagId
-                WHERE card_tags.cardId = cards.cardId
-                    AND tags.workspaceId = cards.workspaceId
-                    AND tags.name IN (:tagNames)
-            )
-        ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
-        LIMIT :limit
-        """
-    )
-    fun observeOtherDueReviewQueueByEffortLevelsAndAnyTags(
-        workspaceId: String,
-        cutoffMillis: Long,
-        nowMillis: Long,
-        effortLevels: List<EffortLevel>,
-        tagNames: List<String>,
-        limit: Int
-    ): Flow<List<CardWithRelations>>
-
-    @Transaction
-    @Query(
-        """
-        SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
-        WHERE workspaceId = :workspaceId
-            AND deletedAtMillis IS NULL
             AND dueAtMillis IS NULL
         ORDER BY createdAtMillis DESC, cardId ASC
         LIMIT :limit
@@ -250,24 +131,6 @@ interface ReviewQueueDao {
     )
     fun observeNewReviewQueue(
         workspaceId: String,
-        limit: Int
-    ): Flow<List<CardWithRelations>>
-
-    @Transaction
-    @Query(
-        """
-        SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
-        WHERE workspaceId = :workspaceId
-            AND deletedAtMillis IS NULL
-            AND dueAtMillis IS NULL
-            AND effortLevel IN (:effortLevels)
-        ORDER BY createdAtMillis DESC, cardId ASC
-        LIMIT :limit
-        """
-    )
-    fun observeNewReviewQueueByEffortLevels(
-        workspaceId: String,
-        effortLevels: List<EffortLevel>,
         limit: Int
     ): Flow<List<CardWithRelations>>
 
@@ -299,36 +162,9 @@ interface ReviewQueueDao {
     @Transaction
     @Query(
         """
-        SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
-        WHERE workspaceId = :workspaceId
-            AND deletedAtMillis IS NULL
-            AND dueAtMillis IS NULL
-            AND effortLevel IN (:effortLevels)
-            AND EXISTS (
-                SELECT 1
-                FROM card_tags
-                INNER JOIN tags ON tags.tagId = card_tags.tagId
-                WHERE card_tags.cardId = cards.cardId
-                    AND tags.workspaceId = cards.workspaceId
-                    AND tags.name IN (:tagNames)
-            )
-        ORDER BY createdAtMillis DESC, cardId ASC
-        LIMIT :limit
-        """
-    )
-    fun observeNewReviewQueueByEffortLevelsAndAnyTags(
-        workspaceId: String,
-        effortLevels: List<EffortLevel>,
-        tagNames: List<String>,
-        limit: Int
-    ): Flow<List<CardWithRelations>>
-
-    @Transaction
-    @Query(
-        """
-        SELECT cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+        SELECT cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
         FROM (
-            SELECT 0 AS activeQueueBucket, cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+            SELECT 0 AS activeQueueBucket, cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
             FROM (
                 SELECT * FROM cards INDEXED BY index_cards_workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_createdAtMillis_cardId
                 WHERE workspaceId = :workspaceId
@@ -342,7 +178,7 @@ interface ReviewQueueDao {
                 LIMIT :limit
             )
             UNION ALL
-            SELECT 1 AS activeQueueBucket, cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+            SELECT 1 AS activeQueueBucket, cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
             FROM (
                 SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
                 WHERE workspaceId = :workspaceId
@@ -358,7 +194,7 @@ interface ReviewQueueDao {
                 LIMIT :limit
             )
             UNION ALL
-            SELECT 2 AS activeQueueBucket, cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+            SELECT 2 AS activeQueueBucket, cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
             FROM (
                 SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
                 WHERE workspaceId = :workspaceId
@@ -382,69 +218,9 @@ interface ReviewQueueDao {
     @Transaction
     @Query(
         """
-        SELECT cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+        SELECT cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
         FROM (
-            SELECT 0 AS activeQueueBucket, cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
-            FROM (
-                SELECT * FROM cards INDEXED BY index_cards_workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_createdAtMillis_cardId
-                WHERE workspaceId = :workspaceId
-                    AND deletedAtMillis IS NULL
-                    AND dueAtMillis IS NOT NULL
-                    AND dueAtMillis <= :nowMillis
-                    AND fsrsLastReviewedAtMillis IS NOT NULL
-                    AND fsrsLastReviewedAtMillis >= :cutoffMillis
-                    AND fsrsLastReviewedAtMillis <= :nowMillis
-                    AND effortLevel IN (:effortLevels)
-                ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
-                LIMIT :limit
-            )
-            UNION ALL
-            SELECT 1 AS activeQueueBucket, cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
-            FROM (
-                SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
-                WHERE workspaceId = :workspaceId
-                    AND deletedAtMillis IS NULL
-                    AND dueAtMillis IS NOT NULL
-                    AND dueAtMillis <= :nowMillis
-                    AND (
-                        fsrsLastReviewedAtMillis IS NULL
-                        OR fsrsLastReviewedAtMillis < :cutoffMillis
-                        OR fsrsLastReviewedAtMillis > :nowMillis
-                    )
-                    AND effortLevel IN (:effortLevels)
-                ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
-                LIMIT :limit
-            )
-            UNION ALL
-            SELECT 2 AS activeQueueBucket, cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
-            FROM (
-                SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
-                WHERE workspaceId = :workspaceId
-                    AND deletedAtMillis IS NULL
-                    AND dueAtMillis IS NULL
-                    AND effortLevel IN (:effortLevels)
-                ORDER BY createdAtMillis DESC, cardId ASC
-                LIMIT :limit
-            )
-        )
-        ORDER BY activeQueueBucket ASC, dueAtMillis ASC, createdAtMillis DESC, cardId ASC
-        LIMIT :limit
-        """
-    )
-    fun observeBucketedActiveReviewQueueByEffortLevels(
-        workspaceId: String,
-        cutoffMillis: Long,
-        nowMillis: Long,
-        effortLevels: List<EffortLevel>,
-        limit: Int
-    ): Flow<List<CardWithRelations>>
-
-    @Transaction
-    @Query(
-        """
-        SELECT cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
-        FROM (
-            SELECT 0 AS activeQueueBucket, cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+            SELECT 0 AS activeQueueBucket, cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
             FROM (
                 SELECT * FROM cards INDEXED BY index_cards_workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_createdAtMillis_cardId
                 WHERE workspaceId = :workspaceId
@@ -466,7 +242,7 @@ interface ReviewQueueDao {
                 LIMIT :limit
             )
             UNION ALL
-            SELECT 1 AS activeQueueBucket, cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+            SELECT 1 AS activeQueueBucket, cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
             FROM (
                 SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
                 WHERE workspaceId = :workspaceId
@@ -490,7 +266,7 @@ interface ReviewQueueDao {
                 LIMIT :limit
             )
             UNION ALL
-            SELECT 2 AS activeQueueBucket, cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+            SELECT 2 AS activeQueueBucket, cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
             FROM (
                 SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
                 WHERE workspaceId = :workspaceId
@@ -516,91 +292,6 @@ interface ReviewQueueDao {
         workspaceId: String,
         cutoffMillis: Long,
         nowMillis: Long,
-        tagNames: List<String>,
-        limit: Int
-    ): Flow<List<CardWithRelations>>
-
-    @Transaction
-    @Query(
-        """
-        SELECT cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
-        FROM (
-            SELECT 0 AS activeQueueBucket, cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
-            FROM (
-                SELECT * FROM cards INDEXED BY index_cards_workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_createdAtMillis_cardId
-                WHERE workspaceId = :workspaceId
-                    AND deletedAtMillis IS NULL
-                    AND dueAtMillis IS NOT NULL
-                    AND dueAtMillis <= :nowMillis
-                    AND fsrsLastReviewedAtMillis IS NOT NULL
-                    AND fsrsLastReviewedAtMillis >= :cutoffMillis
-                    AND fsrsLastReviewedAtMillis <= :nowMillis
-                    AND effortLevel IN (:effortLevels)
-                    AND EXISTS (
-                        SELECT 1
-                        FROM card_tags
-                        INNER JOIN tags ON tags.tagId = card_tags.tagId
-                        WHERE card_tags.cardId = cards.cardId
-                            AND tags.workspaceId = cards.workspaceId
-                            AND tags.name IN (:tagNames)
-                    )
-                ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
-                LIMIT :limit
-            )
-            UNION ALL
-            SELECT 1 AS activeQueueBucket, cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
-            FROM (
-                SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
-                WHERE workspaceId = :workspaceId
-                    AND deletedAtMillis IS NULL
-                    AND dueAtMillis IS NOT NULL
-                    AND dueAtMillis <= :nowMillis
-                    AND (
-                        fsrsLastReviewedAtMillis IS NULL
-                        OR fsrsLastReviewedAtMillis < :cutoffMillis
-                        OR fsrsLastReviewedAtMillis > :nowMillis
-                    )
-                    AND effortLevel IN (:effortLevels)
-                    AND EXISTS (
-                        SELECT 1
-                        FROM card_tags
-                        INNER JOIN tags ON tags.tagId = card_tags.tagId
-                        WHERE card_tags.cardId = cards.cardId
-                            AND tags.workspaceId = cards.workspaceId
-                            AND tags.name IN (:tagNames)
-                    )
-                ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
-                LIMIT :limit
-            )
-            UNION ALL
-            SELECT 2 AS activeQueueBucket, cardId, workspaceId, frontText, backText, effortLevel, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
-            FROM (
-                SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
-                WHERE workspaceId = :workspaceId
-                    AND deletedAtMillis IS NULL
-                    AND dueAtMillis IS NULL
-                    AND effortLevel IN (:effortLevels)
-                    AND EXISTS (
-                        SELECT 1
-                        FROM card_tags
-                        INNER JOIN tags ON tags.tagId = card_tags.tagId
-                        WHERE card_tags.cardId = cards.cardId
-                            AND tags.workspaceId = cards.workspaceId
-                            AND tags.name IN (:tagNames)
-                    )
-                ORDER BY createdAtMillis DESC, cardId ASC
-                LIMIT :limit
-            )
-        )
-        ORDER BY activeQueueBucket ASC, dueAtMillis ASC, createdAtMillis DESC, cardId ASC
-        LIMIT :limit
-        """
-    )
-    fun observeBucketedActiveReviewQueueByEffortLevelsAndAnyTags(
-        workspaceId: String,
-        cutoffMillis: Long,
-        nowMillis: Long,
-        effortLevels: List<EffortLevel>,
         tagNames: List<String>,
         limit: Int
     ): Flow<List<CardWithRelations>>

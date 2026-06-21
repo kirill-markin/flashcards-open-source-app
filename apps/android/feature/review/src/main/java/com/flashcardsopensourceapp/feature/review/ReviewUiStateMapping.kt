@@ -34,7 +34,6 @@ internal fun initialReviewUiState(textProvider: ReviewTextProvider): ReviewUiSta
         preparedCurrentCard = null,
         preparedNextCard = null,
         availableDeckFilters = emptyList(),
-        availableEffortFilters = emptyList(),
         availableTagFilters = emptyList(),
         reviewLeaderboardBadge = createEmptyReviewLeaderboardBadgeState(),
         reviewProgressBadge = createEmptyReviewProgressBadgeState(),
@@ -63,7 +62,6 @@ internal fun loadingReviewSessionSnapshot(textProvider: ReviewTextProvider): Rev
         totalCount = 0,
         hasMoreCards = false,
         availableDeckFilters = emptyList(),
-        availableEffortFilters = emptyList(),
         availableTagFilters = emptyList(),
         isLoading = true
     )
@@ -124,7 +122,6 @@ internal fun mapToReviewUiState(
         preparedCurrentCard = currentPreparedCard,
         preparedNextCard = preparedNextCard,
         availableDeckFilters = sessionSnapshot.availableDeckFilters,
-        availableEffortFilters = sessionSnapshot.availableEffortFilters,
         availableTagFilters = sessionSnapshot.availableTagFilters,
         reviewLeaderboardBadge = progressLeaderboardSnapshot?.toReviewLeaderboardBadgeState()
             ?: createEmptyReviewLeaderboardBadgeState(),

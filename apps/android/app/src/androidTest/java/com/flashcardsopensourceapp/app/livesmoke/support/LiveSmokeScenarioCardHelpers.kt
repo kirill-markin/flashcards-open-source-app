@@ -25,7 +25,6 @@ import com.flashcardsopensourceapp.app.livesmoke.flows.openCardsTab
 import com.flashcardsopensourceapp.app.livesmoke.flows.openReviewTab
 import com.flashcardsopensourceapp.app.livesmoke.flows.updateCardText
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.feature.cards.cardsCardFrontTextTag
 import com.flashcardsopensourceapp.feature.review.reviewCurrentCardFrontContentTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
@@ -100,7 +99,6 @@ internal fun LiveSmokeContext.seedCardViaRepository(
                         frontText = frontText,
                         backText = backText,
                         tags = listOf(markerTag),
-                        effortLevel = EffortLevel.MEDIUM,
                         reviews = emptyList()
                     )
                 )

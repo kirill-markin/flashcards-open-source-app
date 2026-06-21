@@ -8,7 +8,6 @@ import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
@@ -102,7 +101,6 @@ internal suspend fun insertSyncContractCard(
             workspaceId = workspaceId,
             frontText = "Front",
             backText = "Back",
-            effortLevel = EffortLevel.MEDIUM,
             dueAtMillis = null,
             createdAtMillis = 1L,
             updatedAtMillis = 1L,

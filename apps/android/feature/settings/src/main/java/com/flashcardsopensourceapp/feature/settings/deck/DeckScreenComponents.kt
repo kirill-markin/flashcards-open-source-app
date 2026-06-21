@@ -102,17 +102,6 @@ internal fun DeckCardRow(
                 text = card.frontText,
                 style = MaterialTheme.typography.titleSmall
             )
-            Text(
-                text = stringResource(
-                    R.string.settings_deck_card_effort,
-                    when (card.effortLevel.name) {
-                        "FAST" -> stringResource(R.string.settings_effort_fast)
-                        "MEDIUM" -> stringResource(R.string.settings_effort_medium)
-                        else -> stringResource(R.string.settings_effort_long)
-                    }
-                ),
-                color = MaterialTheme.colorScheme.primary
-            )
             if (card.tags.isNotEmpty()) {
                 Text(
                     text = card.tags.joinToString(separator = " | "),

@@ -4,7 +4,6 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 
 internal const val cardsReviewQueueIndexName: String = "index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId"
@@ -66,7 +65,6 @@ data class CardEntity(
     val workspaceId: String,
     val frontText: String,
     val backText: String,
-    val effortLevel: EffortLevel,
     val dueAtMillis: Long?,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,

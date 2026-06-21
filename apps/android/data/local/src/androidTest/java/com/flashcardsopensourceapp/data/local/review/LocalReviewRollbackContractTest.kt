@@ -6,7 +6,6 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCardQueueStatus
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
@@ -53,7 +52,6 @@ class LocalReviewRollbackContractTest {
         val currentCard = makeNewReviewOrderingCardEntity(
             cardId = "rollback-current-card",
             workspaceId = workspaceId,
-            effortLevel = EffortLevel.FAST,
             createdAtMillis = nowMillis,
             updatedAtMillis = nowMillis
         )
@@ -84,14 +82,12 @@ class LocalReviewRollbackContractTest {
         val otherWorkspaceCard = makeNewReviewOrderingCardEntity(
             cardId = "rollback-other-workspace-card",
             workspaceId = otherWorkspaceId,
-            effortLevel = EffortLevel.FAST,
             createdAtMillis = nowMillis,
             updatedAtMillis = nowMillis
         )
         val futureCard = makeDueReviewOrderingCardEntity(
             cardId = "rollback-future-card",
             workspaceId = activeWorkspaceId,
-            effortLevel = EffortLevel.FAST,
             dueAtMillis = nowMillis + oneDayMillis,
             createdAtMillis = nowMillis,
             updatedAtMillis = nowMillis
@@ -99,7 +95,6 @@ class LocalReviewRollbackContractTest {
         val deletedCard = makeNewReviewOrderingCardEntity(
             cardId = "rollback-deleted-card",
             workspaceId = activeWorkspaceId,
-            effortLevel = EffortLevel.FAST,
             createdAtMillis = nowMillis,
             updatedAtMillis = nowMillis
         ).copy(
@@ -165,21 +160,18 @@ class LocalReviewRollbackContractTest {
         val visibleCard = makeNewReviewOrderingCardEntity(
             cardId = "rollback-visible-card",
             workspaceId = workspaceId,
-            effortLevel = EffortLevel.FAST,
             createdAtMillis = nowMillis,
             updatedAtMillis = nowMillis
         )
         val excludedCard = makeNewReviewOrderingCardEntity(
             cardId = "rollback-excluded-card",
             workspaceId = workspaceId,
-            effortLevel = EffortLevel.FAST,
             createdAtMillis = nowMillis - 1L,
             updatedAtMillis = nowMillis - 1L
         )
         val deletedStaleCard = makeNewReviewOrderingCardEntity(
             cardId = "rollback-deleted-stale-card",
             workspaceId = workspaceId,
-            effortLevel = EffortLevel.FAST,
             createdAtMillis = nowMillis - 2L,
             updatedAtMillis = nowMillis - 2L
         ).copy(
@@ -205,7 +197,6 @@ class LocalReviewRollbackContractTest {
             deckDraft = DeckDraft(
                 name = "Visible rollback deck",
                 filterDefinition = buildDeckFilterDefinition(
-                    effortLevels = emptyList(),
                     tags = listOf("Visible")
                 )
             )

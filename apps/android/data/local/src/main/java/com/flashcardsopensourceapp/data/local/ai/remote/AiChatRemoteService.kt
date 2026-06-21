@@ -48,7 +48,6 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.network.awaitOkHttpResponse
-import com.flashcardsopensourceapp.data.local.model.ai.aiChatEffortLevelWireValue
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatAttachmentUnsupportedTypeCode
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumStartRunRequestBytes
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatRequestTooLargeCode
@@ -251,7 +250,6 @@ private fun encodeAiChatWireContentPart(part: com.flashcardsopensourceapp.data.l
             .put("frontText", part.frontText)
             .put("backText", part.backText)
             .put("tags", JSONArray(part.tags))
-            .put("effortLevel", aiChatEffortLevelWireValue(part.effortLevel))
 
         is com.flashcardsopensourceapp.data.local.model.ai.AiChatWireContentPart.ToolCall -> JSONObject()
             .put("type", "tool_call")

@@ -23,9 +23,6 @@ import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -35,14 +32,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.feature.cards.R
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
-import com.flashcardsopensourceapp.feature.cards.cardEditorEffortLevelTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorFrontSummaryCardTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorSaveButtonTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorTagsSummaryCardTag
-import com.flashcardsopensourceapp.feature.cards.formatCardsEffortLevelTitle
 import com.flashcardsopensourceapp.feature.cards.formatCardsTagSelectionSummary
 import com.flashcardsopensourceapp.feature.cards.formatCardsTextPreview
 
@@ -55,7 +49,6 @@ fun CardEditorRoute(
     onOpenTagsEditor: () -> Unit,
     onEditWithAi: (() -> Unit)?,
     onRemoveTag: (String) -> Unit,
-    onEffortLevelChange: (EffortLevel) -> Unit,
     onSave: () -> Unit,
     onDelete: (() -> Unit)?,
     onBack: () -> Unit
@@ -243,36 +236,6 @@ fun CardEditorRoute(
                                     )
                                 }
                             )
-                        }
-                    }
-                }
-            }
-
-            item {
-                Text(
-                    text = stringResource(id = R.string.cards_effort_level_title),
-                    style = MaterialTheme.typography.titleSmall
-                )
-            }
-
-            item {
-                SingleChoiceSegmentedButtonRow(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    val options = EffortLevel.entries
-                    options.forEachIndexed { index, option ->
-                        SegmentedButton(
-                            selected = uiState.effortLevel == option,
-                            onClick = {
-                                onEffortLevelChange(option)
-                            },
-                            modifier = Modifier.testTag(cardEditorEffortLevelTag(effortLevel = option)),
-                            shape = SegmentedButtonDefaults.itemShape(
-                                index = index,
-                                count = options.size
-                            )
-                        ) {
-                            Text(formatCardsEffortLevelTitle(resources = resources, effortLevel = option))
                         }
                     }
                 }

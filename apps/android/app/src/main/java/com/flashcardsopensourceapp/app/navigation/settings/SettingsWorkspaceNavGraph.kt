@@ -314,7 +314,6 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
         DeckEditorRoute(
             uiState = uiState,
             onNameChange = deckEditorViewModel::updateName,
-            onToggleEffortLevel = deckEditorViewModel::toggleEffortLevel,
             onToggleTag = deckEditorViewModel::toggleTag,
             onSave = {
                 coroutineScope.launch {

@@ -11,7 +11,6 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
@@ -476,7 +475,6 @@ private fun createBlockedGuestUpgradeCard(workspaceId: String): CardEntity {
         workspaceId = workspaceId,
         frontText = "Blocked Question",
         backText = "Blocked Answer",
-        effortLevel = EffortLevel.MEDIUM,
         dueAtMillis = null,
         createdAtMillis = 500L,
         updatedAtMillis = 500L,

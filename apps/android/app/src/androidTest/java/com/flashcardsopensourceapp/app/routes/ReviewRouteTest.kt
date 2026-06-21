@@ -85,7 +85,6 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         preparedCurrentCard = null,
                         preparedNextCard = null,
                         availableDeckFilters = emptyList(),
-                        availableEffortFilters = emptyList(),
                         availableTagFilters = emptyList(),
                         reviewLeaderboardBadge = ReviewLeaderboardBadgeState(
                             rank = leaderboardRank,

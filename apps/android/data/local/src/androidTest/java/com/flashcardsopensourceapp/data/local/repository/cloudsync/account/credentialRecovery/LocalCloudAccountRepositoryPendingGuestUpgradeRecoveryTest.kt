@@ -15,7 +15,6 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
@@ -345,7 +344,6 @@ private fun createPendingGuestUpgradeBlockedCard(workspaceId: String): CardEntit
         workspaceId = workspaceId,
         frontText = "Blocked Question",
         backText = "Blocked Answer",
-        effortLevel = EffortLevel.MEDIUM,
         dueAtMillis = null,
         createdAtMillis = 500L,
         updatedAtMillis = 500L,
