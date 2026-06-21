@@ -293,7 +293,7 @@ private struct ProgressLeaderboardProfileReadyView: View {
             return progressLeaderboardViewerRowTitle()
         }
 
-        progressLeaderboardProfileDisplayName(
+        return progressLeaderboardProfileDisplayName(
             anonymousDisplayName: self.profile.anonymousDisplayName,
             friendDisplayName: self.profile.friendDisplayName
         )
