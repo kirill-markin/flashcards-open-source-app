@@ -302,11 +302,19 @@ func progressStreakLeaderboardSectionTitle() -> String {
 }
 
 func progressStreakLeaderboardInfoMessage(snapshotGeneratedAt: String?, now: Date) -> String {
-    let baseMessage = String(
+    let localizedFormat = String(
         localized: "progress.screen.streak_leaderboard.info.message",
-        defaultValue: "Current streak days determine your rank.",
+        defaultValue: "Current streak days determine your rank. A streak day is any local day with at least one card review rated %1$@, %2$@, %3$@, or %4$@.",
         table: progressStringsTableName,
         comment: "Progress streak leaderboard info explanation of ranking metric"
+    )
+    let baseMessage = String(
+        format: localizedFormat,
+        locale: Locale.current,
+        ReviewRating.again.title,
+        ReviewRating.hard.title,
+        ReviewRating.good.title,
+        ReviewRating.easy.title
     )
 
     guard let snapshotGeneratedAt,
@@ -469,13 +477,79 @@ func progressLeaderboardUpdatedText(snapshotGeneratedAt: String, now: Date) -> S
         return nil
     }
 
-    let elapsedSeconds = max(0, now.timeIntervalSince(generatedAtDate))
-    let elapsedMinutes = Int64(elapsedSeconds / 60)
+    let elapsedTime = progressLeaderboardElapsedTime(generatedAtDate: generatedAtDate, now: now)
+    let elapsedText: String
+    if elapsedTime.hours == 0 {
+        elapsedText = progressLeaderboardElapsedMinuteText(minutes: elapsedTime.minutes)
+    } else if elapsedTime.minutes == 0 {
+        elapsedText = progressLeaderboardElapsedHourText(hours: elapsedTime.hours)
+    } else {
+        let localizedFormat = String(
+            localized: "progress.screen.leaderboard.updated_at.elapsed.hours_minutes",
+            defaultValue: "%1$@ %2$@",
+            table: progressStringsTableName,
+            comment: "Progress leaderboard freshness elapsed time with hours and remaining minutes"
+        )
+        elapsedText = String(
+            format: localizedFormat,
+            locale: Locale.current,
+            progressLeaderboardElapsedHourText(hours: elapsedTime.hours),
+            progressLeaderboardElapsedMinuteText(minutes: elapsedTime.minutes)
+        )
+    }
+
     let localizedFormat = String(
         localized: "progress.screen.leaderboard.updated_at",
-        defaultValue: "Updated %lld min ago",
+        defaultValue: "Updated %@ ago",
         table: progressStringsTableName,
-        comment: "Progress leaderboard freshness text with elapsed whole minutes"
+        comment: "Progress leaderboard freshness text with localized elapsed time"
     )
-    return String(format: localizedFormat, locale: Locale.current, elapsedMinutes)
+    return String(format: localizedFormat, locale: Locale.current, elapsedText)
+}
+
+private func progressLeaderboardElapsedTime(
+    generatedAtDate: Date,
+    now: Date
+) -> (hours: Int64, minutes: Int64) {
+    let elapsedSeconds = max(0, now.timeIntervalSince(generatedAtDate))
+    let elapsedMinutes = Int64(elapsedSeconds / 60)
+    return (hours: elapsedMinutes / 60, minutes: elapsedMinutes % 60)
+}
+
+private func progressLeaderboardElapsedHourText(hours: Int64) -> String {
+    if hours == 1 {
+        return String(
+            localized: "progress.screen.leaderboard.updated_at.hour.one",
+            defaultValue: "1 hour",
+            table: progressStringsTableName,
+            comment: "Progress leaderboard freshness singular elapsed hour"
+        )
+    }
+
+    let localizedFormat = String(
+        localized: "progress.screen.leaderboard.updated_at.hour.other",
+        defaultValue: "%lld hours",
+        table: progressStringsTableName,
+        comment: "Progress leaderboard freshness plural elapsed hours"
+    )
+    return String(format: localizedFormat, locale: Locale.current, hours)
+}
+
+private func progressLeaderboardElapsedMinuteText(minutes: Int64) -> String {
+    if minutes == 1 {
+        return String(
+            localized: "progress.screen.leaderboard.updated_at.minute.one",
+            defaultValue: "1 minute",
+            table: progressStringsTableName,
+            comment: "Progress leaderboard freshness singular elapsed minute"
+        )
+    }
+
+    let localizedFormat = String(
+        localized: "progress.screen.leaderboard.updated_at.minute.other",
+        defaultValue: "%lld minutes",
+        table: progressStringsTableName,
+        comment: "Progress leaderboard freshness plural elapsed minutes"
+    )
+    return String(format: localizedFormat, locale: Locale.current, minutes)
 }
