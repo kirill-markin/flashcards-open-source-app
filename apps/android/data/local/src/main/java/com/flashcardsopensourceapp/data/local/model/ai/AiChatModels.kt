@@ -226,6 +226,7 @@ data class AiChatMessage(
 
 data class AiChatPersistedState(
     val messages: List<AiChatMessage>,
+    val composerSuggestions: List<AiChatComposerSuggestion>,
     val chatSessionId: String,
     val lastKnownChatConfig: AiChatServerConfig?,
     val pendingToolRunPostSync: Boolean,
@@ -339,6 +340,7 @@ data class StoredGuestAiSession(
 fun makeDefaultAiChatPersistedState(): AiChatPersistedState {
     return AiChatPersistedState(
         messages = emptyList(),
+        composerSuggestions = emptyList(),
         chatSessionId = "",
         lastKnownChatConfig = null,
         pendingToolRunPostSync = false,

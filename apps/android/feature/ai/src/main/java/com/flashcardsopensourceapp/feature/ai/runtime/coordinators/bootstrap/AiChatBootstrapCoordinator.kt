@@ -146,7 +146,7 @@ internal class AiChatBootstrapCoordinator(
                             isLiveAttached = false,
                             draftMessage = "",
                             pendingAttachments = emptyList(),
-                            serverComposerSuggestions = emptyList(),
+                            serverComposerSuggestions = persistedState.composerSuggestions,
                             composerPhase = AiComposerPhase.IDLE,
                             dictationState = com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState.IDLE,
                             conversationBootstrapState = AiConversationBootstrapState.LOADING,

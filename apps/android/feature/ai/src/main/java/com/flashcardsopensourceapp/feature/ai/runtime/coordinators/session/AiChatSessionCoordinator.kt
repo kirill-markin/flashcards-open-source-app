@@ -69,7 +69,7 @@ internal class AiChatSessionCoordinator(
                 } else {
                     state.focusComposerRequestVersion
                 },
-                serverComposerSuggestions = emptyList(),
+                serverComposerSuggestions = state.serverComposerSuggestions,
                 composerPhase = AiComposerPhase.IDLE,
                 dictationState = AiChatDictationState.IDLE,
                 conversationBootstrapState = AiConversationBootstrapState.READY,

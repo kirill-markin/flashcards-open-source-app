@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatFeatures
@@ -205,6 +206,10 @@ class AiChatHistoryStore(
     private fun encodeState(state: AiChatPersistedState): JSONObject {
         return JSONObject()
             .put("messages", JSONArray(state.messages.map(::encodeMessage)))
+            .put(
+                "composerSuggestions",
+                JSONArray(state.composerSuggestions.map(::encodeComposerSuggestion))
+            )
             .put("chatSessionId", state.chatSessionId)
             .put("lastKnownChatConfig", state.lastKnownChatConfig?.let(::encodeChatConfig))
             .put("pendingToolRunPostSync", state.pendingToolRunPostSync)
@@ -223,11 +228,15 @@ class AiChatHistoryStore(
             }
             ?.takeLast(aiChatMaxMessages)
             ?: emptyList()
+        val composerSuggestions = jsonObject.optJSONArray("composerSuggestions")
+            ?.let(::decodeComposerSuggestions)
+            ?: emptyList()
         val lastKnownChatConfig = jsonObject.optJSONObject("lastKnownChatConfig")
             ?.let(::decodeChatConfig)
 
         return AiChatPersistedState(
             messages = messages,
+            composerSuggestions = composerSuggestions,
             chatSessionId = chatSessionId,
             lastKnownChatConfig = lastKnownChatConfig,
             pendingToolRunPostSync = jsonObject.optBoolean("pendingToolRunPostSync", false),
@@ -256,6 +265,31 @@ class AiChatHistoryStore(
                 dictationEnabled = features.optBoolean("dictationEnabled", true),
                 attachmentsEnabled = features.optBoolean("attachmentsEnabled", true)
             )
+        )
+    }
+
+    private fun encodeComposerSuggestion(suggestion: AiChatComposerSuggestion): JSONObject {
+        return JSONObject()
+            .put("id", suggestion.id)
+            .put("text", suggestion.text)
+            .put("source", suggestion.source)
+            .put("assistantItemId", suggestion.assistantItemId ?: JSONObject.NULL)
+    }
+
+    private fun decodeComposerSuggestions(jsonArray: JSONArray): List<AiChatComposerSuggestion> {
+        return buildList {
+            for (index in 0 until jsonArray.length()) {
+                add(decodeComposerSuggestion(jsonObject = jsonArray.getJSONObject(index)))
+            }
+        }
+    }
+
+    private fun decodeComposerSuggestion(jsonObject: JSONObject): AiChatComposerSuggestion {
+        return AiChatComposerSuggestion(
+            id = jsonObject.getString("id"),
+            text = jsonObject.getString("text"),
+            source = jsonObject.getString("source"),
+            assistantItemId = jsonObject.optString("assistantItemId", "").ifBlank { null }
         )
     }
 

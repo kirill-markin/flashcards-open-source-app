@@ -57,6 +57,7 @@ class CloudIdentityResetCoordinatorTest {
             workspaceId = initialLocalWorkspaceId,
             state = AiChatPersistedState(
                 messages = emptyList(),
+                composerSuggestions = emptyList(),
                 chatSessionId = "session-1",
                 lastKnownChatConfig = null,
                 pendingToolRunPostSync = false,

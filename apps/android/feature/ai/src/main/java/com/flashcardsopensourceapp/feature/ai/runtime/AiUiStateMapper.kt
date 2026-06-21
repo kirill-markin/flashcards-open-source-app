@@ -87,9 +87,10 @@ internal fun mapToAiUiState(
     val canEditDraftText = canEditAiDraftText(state = runtimeState)
     val canEditDraft = canEditAiDraft(state = runtimeState)
     val canManageDraftAttachments = canManageAiDraftAttachments(state = runtimeState)
+    val canShowComposerSuggestions: Boolean = isConversationReady || isConversationLoading
     val composerSuggestions = if (
         areComposerSuggestionsEnabled
-        && isConversationReady
+        && canShowComposerSuggestions
         && runtimeState.composerPhase == AiComposerPhase.IDLE
         && hasActiveRun.not()
         && runtimeState.dictationState == AiChatDictationState.IDLE
