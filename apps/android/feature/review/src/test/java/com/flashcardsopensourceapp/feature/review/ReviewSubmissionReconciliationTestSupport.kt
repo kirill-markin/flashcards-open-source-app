@@ -1,6 +1,5 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCardQueueStatus
@@ -12,7 +11,6 @@ internal const val pinnedReviewOneHourMillis: Long = 60L * 60L * 1_000L
 internal fun makePreparedReviewCardPresentation(card: ReviewCard): PreparedReviewCardPresentation {
     return PreparedReviewCardPresentation(
         card = card,
-        effortLabel = "Fast",
         tagsLabel = card.tags.joinToString(),
         dueLabel = "Due",
         repsLabel = "2 reps",
@@ -94,7 +92,6 @@ internal fun makePinnedReviewCard(
         frontText = "Front $cardId",
         backText = "Back $cardId",
         tags = tags,
-        effortLevel = EffortLevel.FAST,
         dueAtMillis = pinnedReviewNowMillis - pinnedReviewOneHourMillis,
         updatedAtMillis = updatedAtMillis,
         createdAtMillis = updatedAtMillis,

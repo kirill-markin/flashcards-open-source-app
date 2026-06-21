@@ -6,7 +6,6 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatReasoningSummary
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCallStatus
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
@@ -56,8 +55,7 @@ private data class AiChatCardContentPartWire(
     val cardId: StrictRemoteString,
     val frontText: StrictRemoteString,
     val backText: StrictRemoteString,
-    val tags: List<StrictRemoteString>,
-    val effortLevel: StrictRemoteString
+    val tags: List<StrictRemoteString>
 )
 
 @Serializable
@@ -132,8 +130,7 @@ internal fun mapAiChatContentPart(
                 cardId = wire.cardId.value,
                 frontText = wire.frontText.value,
                 backText = wire.backText.value,
-                tags = wire.tags.map(StrictRemoteString::value),
-                effortLevel = wire.effortLevel.value.toEffortLevel()
+                tags = wire.tags.map(StrictRemoteString::value)
             )
         }
 
@@ -176,15 +173,4 @@ internal fun extractAiChatItemId(part: JsonObject): String? {
         ?.jsonPrimitive
         ?.contentOrNull
         ?.ifBlank { null }
-}
-
-private fun String.toEffortLevel(): EffortLevel {
-    return when (this) {
-        "fast" -> EffortLevel.FAST
-        "medium" -> EffortLevel.MEDIUM
-        "long" -> EffortLevel.LONG
-        else -> throw CloudContractMismatchException(
-            "Cloud contract mismatch for chat.content.card.effortLevel: unsupported effort level"
-        )
-    }
 }

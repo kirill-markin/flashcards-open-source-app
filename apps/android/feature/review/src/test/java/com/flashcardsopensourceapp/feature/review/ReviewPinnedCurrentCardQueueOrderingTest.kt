@@ -1,7 +1,6 @@
 package com.flashcardsopensourceapp.feature.review
 
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
@@ -142,7 +141,6 @@ private fun makePinnedReviewSessionSnapshot(
         totalCount = totalCount,
         hasMoreCards = false,
         availableDeckFilters = emptyList(),
-        availableEffortFilters = emptyList(),
         availableTagFilters = emptyList(),
         settings = makeDefaultWorkspaceSchedulerSettings(
             workspaceId = pinnedReviewWorkspaceId,
@@ -164,7 +162,6 @@ private fun makePinnedReviewCardSummary(
         frontText = "Front $cardId",
         backText = "Back $cardId",
         tags = emptyList(),
-        effortLevel = EffortLevel.FAST,
         dueAtMillis = dueAtMillis,
         createdAtMillis = createdAtMillis,
         updatedAtMillis = updatedAtMillis,

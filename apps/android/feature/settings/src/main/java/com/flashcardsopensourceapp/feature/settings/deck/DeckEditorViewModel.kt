@@ -9,7 +9,6 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.repository.DecksRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
@@ -41,7 +40,6 @@ class DeckEditorViewModel(
     private val inputState = MutableStateFlow(
         value = DeckEditorInputState(
             name = "",
-            selectedEffortLevels = emptyList(),
             selectedTags = emptyList(),
             errorMessage = "",
             loadedEditingDeckId = null,
@@ -92,18 +90,6 @@ class DeckEditorViewModel(
         }
     }
 
-    fun toggleEffortLevel(effortLevel: EffortLevel) {
-        inputState.update { state ->
-            state.copy(
-                selectedEffortLevels = toggleEffortLevelSelection(
-                    selectedEffortLevels = state.selectedEffortLevels,
-                    effortLevel = effortLevel
-                ),
-                errorMessage = ""
-            )
-        }
-    }
-
     fun toggleTag(tag: String) {
         inputState.update { state ->
             state.copy(
@@ -131,12 +117,7 @@ class DeckEditorViewModel(
             return null
         }
 
-        if (
-            isDeckFilterEmpty(
-                selectedEffortLevels = state.selectedEffortLevels,
-                selectedTags = state.selectedTags
-            )
-        ) {
+        if (isDeckFilterEmpty(selectedTags = state.selectedTags)) {
             inputState.update { currentState ->
                 currentState.copy(errorMessage = strings.get(R.string.settings_deck_editor_filter_required))
             }
@@ -146,7 +127,6 @@ class DeckEditorViewModel(
         val deckDraft = DeckDraft(
             name = trimmedName,
             filterDefinition = buildDeckFilterDefinition(
-                effortLevels = state.selectedEffortLevels,
                 tags = state.selectedTags
             )
         )
@@ -185,16 +165,6 @@ fun createDeckEditorViewModelFactory(
     }
 }
 
-private fun toggleEffortLevelSelection(selectedEffortLevels: List<EffortLevel>, effortLevel: EffortLevel): List<EffortLevel> {
-    if (selectedEffortLevels.contains(effortLevel)) {
-        return selectedEffortLevels.filter { value ->
-            value != effortLevel
-        }
-    }
-
-    return selectedEffortLevels + effortLevel
-}
-
 private fun toggleTagSelection(selectedTags: List<String>, tag: String): List<String> {
     if (selectedTags.contains(tag)) {
         return selectedTags.filter { value ->
@@ -205,13 +175,12 @@ private fun toggleTagSelection(selectedTags: List<String>, tag: String): List<St
     return selectedTags + tag
 }
 
-private fun isDeckFilterEmpty(selectedEffortLevels: List<EffortLevel>, selectedTags: List<String>): Boolean {
-    return selectedEffortLevels.isEmpty() && selectedTags.isEmpty()
+private fun isDeckFilterEmpty(selectedTags: List<String>): Boolean {
+    return selectedTags.isEmpty()
 }
 
 private data class DeckEditorInputState(
     val name: String,
-    val selectedEffortLevels: List<EffortLevel>,
     val selectedTags: List<String>,
     val errorMessage: String,
     val loadedEditingDeckId: String?,
@@ -232,7 +201,6 @@ private fun applyObservedEditingDeck(
 
     return currentState.copy(
         name = deck.name,
-        selectedEffortLevels = deck.filterDefinition.effortLevels,
         selectedTags = deck.filterDefinition.tags,
         loadedEditingDeckId = deck.deckId,
         isEditingDeckMissing = false
@@ -258,7 +226,6 @@ private fun toDeckEditorUiState(
         },
         isEditing = editingDeckId != null,
         name = inputState.name,
-        selectedEffortLevels = inputState.selectedEffortLevels,
         selectedTags = inputState.selectedTags,
         availableTags = availableTags,
         errorMessage = inputState.errorMessage

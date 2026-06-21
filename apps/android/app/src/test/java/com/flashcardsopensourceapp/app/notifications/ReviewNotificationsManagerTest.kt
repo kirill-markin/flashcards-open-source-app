@@ -126,7 +126,6 @@ class ReviewNotificationsManagerTest {
             activeReviewTagNames = listOf("Éclair", "Plain"),
             selectedDeckFilterDefinition = DeckFilterDefinition(
                 version = 2,
-                effortLevels = emptyList(),
                 tags = listOf("missing-tag")
             )
         )
@@ -163,7 +162,6 @@ class ReviewNotificationsManagerTest {
             activeReviewTagNames = listOf("Éclair", "Привет"),
             selectedDeckFilterDefinition = DeckFilterDefinition(
                 version = 2,
-                effortLevels = emptyList(),
                 tags = listOf("привет")
             )
         )

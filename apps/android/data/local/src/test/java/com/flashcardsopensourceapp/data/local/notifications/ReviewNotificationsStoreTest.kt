@@ -1,6 +1,5 @@
 package com.flashcardsopensourceapp.data.local.notifications
 
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import java.time.Instant
 import java.time.LocalDate
@@ -293,17 +292,20 @@ class ReviewNotificationsStoreTest {
     }
 
     @Test
-    fun effortReviewFilterRoundTripsThroughNotificationPersistence() {
-        val persistedFilter = makePersistedReviewFilter(
-            reviewFilter = ReviewFilter.Effort(effortLevel = EffortLevel.MEDIUM)
+    fun legacyEffortReviewFilterDecodesToTagFilter() {
+        val persistedFilter = PersistedReviewFilter(
+            kind = "effort",
+            deckId = null,
+            effortLevel = "MEDIUM",
+            tag = null
         )
 
         assertEquals(
-            ReviewFilter.Effort(effortLevel = EffortLevel.MEDIUM),
+            ReviewFilter.Tag(tag = "medium"),
             decodePersistedReviewFilter(filter = persistedFilter)
         )
         assertEquals("effort", persistedFilter.kind)
-        assertEquals(EffortLevel.MEDIUM.name, persistedFilter.effortLevel)
+        assertEquals("MEDIUM", persistedFilter.effortLevel)
     }
 
     @Test

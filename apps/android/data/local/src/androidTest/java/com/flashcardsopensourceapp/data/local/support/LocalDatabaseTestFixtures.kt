@@ -8,7 +8,6 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
@@ -132,7 +131,6 @@ internal fun createTestReviewRepository(runtime: LocalDatabaseTestRuntime): Revi
 internal fun makeDueReviewOrderingCardEntity(
     cardId: String,
     workspaceId: String,
-    effortLevel: EffortLevel,
     dueAtMillis: Long,
     createdAtMillis: Long,
     updatedAtMillis: Long
@@ -142,7 +140,6 @@ internal fun makeDueReviewOrderingCardEntity(
         workspaceId = workspaceId,
         frontText = cardId,
         backText = "Back",
-        effortLevel = effortLevel,
         dueAtMillis = dueAtMillis,
         createdAtMillis = createdAtMillis,
         updatedAtMillis = updatedAtMillis,
@@ -161,7 +158,6 @@ internal fun makeDueReviewOrderingCardEntity(
 internal fun makeNewReviewOrderingCardEntity(
     cardId: String,
     workspaceId: String,
-    effortLevel: EffortLevel,
     createdAtMillis: Long,
     updatedAtMillis: Long
 ): CardEntity {
@@ -170,7 +166,6 @@ internal fun makeNewReviewOrderingCardEntity(
         workspaceId = workspaceId,
         frontText = cardId,
         backText = "Back",
-        effortLevel = effortLevel,
         dueAtMillis = null,
         createdAtMillis = createdAtMillis,
         updatedAtMillis = updatedAtMillis,

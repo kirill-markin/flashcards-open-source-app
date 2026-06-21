@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.outlined.AccessTime
-import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -134,10 +133,6 @@ internal fun PreviewCardRow(
                 PreviewMetadataItem(
                     icon = Icons.Outlined.AccessTime,
                     label = previewCard.dueLabel
-                )
-                PreviewMetadataItem(
-                    icon = Icons.Outlined.Timer,
-                    label = previewCard.effortLabel
                 )
                 PreviewMetadataItem(
                     icon = Icons.AutoMirrored.Outlined.Label,

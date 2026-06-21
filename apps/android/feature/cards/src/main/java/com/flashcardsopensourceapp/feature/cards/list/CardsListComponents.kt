@@ -40,12 +40,10 @@ import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.buildCardFilter
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
 import com.flashcardsopensourceapp.feature.cards.R
 import com.flashcardsopensourceapp.feature.cards.cardsCardFrontTextTag
 import com.flashcardsopensourceapp.feature.cards.cardsCardRowTag
-import com.flashcardsopensourceapp.feature.cards.formatCardsEffortLevelTitle
 import com.flashcardsopensourceapp.feature.cards.formatCardsMetadataSummary
 
 @Composable
@@ -180,7 +178,6 @@ internal fun CardsFilterSheet(
     onClear: () -> Unit,
     onDraftFilterChange: (CardFilter) -> Unit
 ) {
-    val resources = LocalContext.current.resources
     ModalBottomSheet(
         onDismissRequest = onDismiss
     ) {
@@ -194,36 +191,6 @@ internal fun CardsFilterSheet(
                 text = stringResource(id = R.string.cards_filters_title),
                 style = MaterialTheme.typography.headlineSmall
             )
-
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = stringResource(id = R.string.cards_effort_title),
-                    style = MaterialTheme.typography.titleSmall
-                )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    EffortLevel.entries.forEach { effortLevel ->
-                        FilterChip(
-                            selected = draftFilter.effort.contains(effortLevel),
-                            onClick = {
-                                onDraftFilterChange(
-                                    draftFilter.copy(
-                                        effort = toggleEffortSelection(
-                                            selectedEffort = draftFilter.effort,
-                                            effortLevel = effortLevel
-                                        )
-                                    )
-                                )
-                            },
-                            label = {
-                                Text(formatCardsEffortLevelTitle(resources = resources, effortLevel = effortLevel))
-                            }
-                        )
-                    }
-                }
-            }
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
@@ -250,7 +217,6 @@ internal fun CardsFilterSheet(
                                                 selectedTags = draftFilter.tags,
                                                 tag = tagSummary.tag
                                             ),
-                                            effort = draftFilter.effort,
                                             referenceTags = availableTags.map { tag -> tag.tag }
                                         )
                                     )
@@ -291,16 +257,6 @@ internal fun CardsFilterSheet(
             }
         }
     }
-}
-
-private fun toggleEffortSelection(selectedEffort: List<EffortLevel>, effortLevel: EffortLevel): List<EffortLevel> {
-    if (selectedEffort.contains(effortLevel)) {
-        return selectedEffort.filter { value ->
-            value != effortLevel
-        }
-    }
-
-    return selectedEffort + effortLevel
 }
 
 private fun toggleTagSelection(selectedTags: List<String>, tag: String): List<String> {

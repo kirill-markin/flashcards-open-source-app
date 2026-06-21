@@ -27,7 +27,6 @@ internal data class MarketingReviewCardFixture(
     val frontText: String,
     val backText: String,
     val tags: List<String>,
-    val effortLevelTitle: String
 )
 
 internal data class MarketingConceptCard(
@@ -74,8 +73,7 @@ private fun makeEnglishUnitedStatesMarketingScreenshotLocaleConfig(
             backText = "Opportunity cost is the value of the next best alternative you give up when you choose one option over another.\n\n" +
                 "Exam example: If you spend Saturday studying for a microeconomics exam instead of working a paid shift, " +
                 "the lost wages are part of the opportunity cost.",
-            tags = listOf("economics"),
-            effortLevelTitle = "Medium"
+            tags = listOf("economics")
         ),
         reviewAiDraftMessage = "Create 6 new flashcards on the same economics topic, covering closely related ideas that we do not already have.",
         cards = listOf(
@@ -143,8 +141,7 @@ private val arabicMarketingScreenshotLocaleConfig: MarketingScreenshotLocaleConf
         frontText = "في الاقتصاد، ما هي تكلفة الفرصة البديلة؟",
         backText = "تكلفة الفرصة البديلة هي قيمة أفضل بديل تتخلى عنه عندما تختار خيارًا بدلًا من آخر.\n\n" +
             "مثال امتحاني: إذا قضيت يوم السبت في الاستعداد لامتحان الاقتصاد الجزئي بدلًا من العمل في وردية مدفوعة الأجر، فإن الأجر الذي خسرته يُعد جزءًا من تكلفة الفرصة البديلة.",
-        tags = listOf("اقتصاد"),
-        effortLevelTitle = "متوسط"
+        tags = listOf("اقتصاد")
     ),
     reviewAiDraftMessage = "أنشئ 6 بطاقات تعليمية جديدة حول الموضوع الاقتصادي نفسه، تغطي أفكارًا مرتبطة به ارتباطًا وثيقًا ولا نملكها بعد.",
     cards = listOf(
@@ -211,8 +208,7 @@ private val chineseSimplifiedMarketingScreenshotLocaleConfig: MarketingScreensho
         frontText = "在经济学中，什么是机会成本？",
         backText = "机会成本是当你在多个选项中做出选择时，所放弃的最佳替代方案的价值。\n\n" +
             "考试示例：如果你把周六用来准备微观经济学考试，而不是去上一班有报酬的班次，那么失去的工资就是机会成本的一部分。",
-        tags = listOf("经济学"),
-        effortLevelTitle = "中等"
+        tags = listOf("经济学")
     ),
     reviewAiDraftMessage = "请围绕同一经济学主题再创建 6 张新卡片，覆盖与之密切相关且我们目前还没有的概念。",
     cards = listOf(
@@ -279,8 +275,7 @@ private val germanMarketingScreenshotLocaleConfig: MarketingScreenshotLocaleConf
         frontText = "Was sind in der Volkswirtschaftslehre Opportunitätskosten?",
         backText = "Opportunitätskosten sind der Wert der besten Alternative, auf die man verzichtet, wenn man sich für eine andere Option entscheidet.\n\n" +
             "Prüfungsbeispiel: Wenn du den Samstag damit verbringst, für eine Mikroökonomie-Klausur zu lernen, statt eine bezahlte Schicht zu arbeiten, gehört der entgangene Lohn zu den Opportunitätskosten.",
-        tags = listOf("Volkswirtschaft"),
-        effortLevelTitle = "Mittel"
+        tags = listOf("Volkswirtschaft")
     ),
     reviewAiDraftMessage = "Erstelle 6 neue Lernkarten zum selben volkswirtschaftlichen Thema, die eng verwandte Ideen abdecken und die wir noch nicht haben.",
     cards = listOf(
@@ -347,8 +342,7 @@ private val hindiMarketingScreenshotLocaleConfig: MarketingScreenshotLocaleConfi
         frontText = "अर्थशास्त्र में अवसर लागत क्या होती है?",
         backText = "अवसर लागत उस सबसे अच्छे विकल्प का मूल्य है, जिसे आप किसी दूसरी पसंद को चुनते समय छोड़ देते हैं।\n\n" +
             "परीक्षा उदाहरण: अगर आप शनिवार को माइक्रोइकॉनॉमिक्स की परीक्षा की तैयारी में लगाते हैं, बजाय किसी भुगतान वाली शिफ्ट में काम करने के, तो छूटी हुई मजदूरी अवसर लागत का हिस्सा होती है।",
-        tags = listOf("अर्थशास्त्र"),
-        effortLevelTitle = "मध्यम"
+        tags = listOf("अर्थशास्त्र")
     ),
     reviewAiDraftMessage = "इसी अर्थशास्त्र विषय पर 6 नई फ्लैशकार्ड बनाओ, जो इससे करीबी रूप से जुड़े विचारों को कवर करें और जो हमारे पास पहले से मौजूद न हों।",
     cards = listOf(
@@ -415,8 +409,7 @@ private val japaneseMarketingScreenshotLocaleConfig: MarketingScreenshotLocaleCo
         frontText = "経済学でいう機会費用とは何ですか？",
         backText = "機会費用とは、ある選択をしたときに諦める最良の代替案の価値のことです。\n\n" +
             "試験の例：土曜日を有給シフトで働く代わりにミクロ経済学の試験勉強に使ったなら、得られなかった賃金は機会費用の一部になります。",
-        tags = listOf("経済学"),
-        effortLevelTitle = "中"
+        tags = listOf("経済学")
     ),
     reviewAiDraftMessage = "同じ経済学のテーマについて、関連性が高く、まだ私たちが持っていない内容の新しいフラッシュカードを 6 枚作ってください。",
     cards = listOf(
@@ -483,8 +476,7 @@ private val russianMarketingScreenshotLocaleConfig: MarketingScreenshotLocaleCon
         frontText = "Что такое альтернативная стоимость в экономике?",
         backText = "Альтернативная стоимость — это ценность лучшего варианта, от которого вы отказываетесь, выбирая другой вариант.\n\n" +
             "Пример для экзамена: если вы тратите субботу на подготовку к экзамену по микроэкономике вместо оплачиваемой смены, то недополученный заработок входит в альтернативную стоимость.",
-        tags = listOf("экономика"),
-        effortLevelTitle = "Средний"
+        tags = listOf("экономика")
     ),
     reviewAiDraftMessage = "Создай 6 новых карточек по той же теме экономики, которые охватывают тесно связанные идеи и которых у нас ещё нет.",
     cards = listOf(
@@ -551,8 +543,7 @@ private val spanishLatinAmericaMarketingScreenshotLocaleConfig: MarketingScreens
         frontText = "En economía, ¿qué es el costo de oportunidad?",
         backText = "El costo de oportunidad es el valor de la mejor alternativa a la que renuncias cuando eliges una opción en lugar de otra.\n\n" +
             "Ejemplo de examen: si dedicas el sábado a estudiar para un examen de microeconomía en vez de trabajar en un turno pagado, el dinero que dejaste de ganar forma parte del costo de oportunidad.",
-        tags = listOf("economía"),
-        effortLevelTitle = "Medio"
+        tags = listOf("economía")
     ),
     reviewAiDraftMessage = "Crea 6 tarjetas nuevas sobre el mismo tema de economía, que cubran ideas estrechamente relacionadas y que todavía no tengamos.",
     cards = listOf(
@@ -619,8 +610,7 @@ private val spanishSpainMarketingScreenshotLocaleConfig: MarketingScreenshotLoca
         frontText = "En economía, ¿qué es el coste de oportunidad?",
         backText = "El coste de oportunidad es el valor de la mejor alternativa a la que renuncias cuando eliges una opción en lugar de otra.\n\n" +
             "Ejemplo de examen: si dedicas el sábado a preparar un examen de microeconomía en vez de trabajar en un turno remunerado, el sueldo que dejas de percibir forma parte del coste de oportunidad.",
-        tags = listOf("economía"),
-        effortLevelTitle = "Media"
+        tags = listOf("economía")
     ),
     reviewAiDraftMessage = "Crea 6 tarjetas nuevas sobre el mismo tema de economía, que cubran ideas estrechamente relacionadas y que todavía no tengamos.",
     cards = listOf(
@@ -687,8 +677,7 @@ private val spanishUnitedStatesMarketingScreenshotLocaleConfig: MarketingScreens
         frontText = "En economía, ¿qué es el costo de oportunidad?",
         backText = "El costo de oportunidad es el valor de la mejor alternativa a la que renuncias cuando eliges una opción en lugar de otra.\n\n" +
             "Ejemplo de examen: si dedicas el sábado a estudiar para un examen de microeconomía en vez de trabajar en un turno pagado, el ingreso que dejaste de ganar forma parte del costo de oportunidad.",
-        tags = listOf("economía"),
-        effortLevelTitle = "Medio"
+        tags = listOf("economía")
     ),
     reviewAiDraftMessage = "Crea 6 tarjetas nuevas sobre el mismo tema de economía, que cubran ideas estrechamente relacionadas y que todavía no tengamos.",
     cards = listOf(

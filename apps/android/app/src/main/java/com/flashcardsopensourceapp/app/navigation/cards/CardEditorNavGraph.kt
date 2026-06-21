@@ -102,8 +102,7 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                                 cardId = handoffCardId,
                                 frontText = savedCardDraft.frontText,
                                 backText = savedCardDraft.backText,
-                                tags = savedCardDraft.tags,
-                                effortLevel = savedCardDraft.effortLevel
+                                tags = savedCardDraft.tags
                             )
                             navigateToTopLevelDestination(
                                 navController = navController,
@@ -113,7 +112,6 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                     }
                 },
                 onRemoveTag = editorViewModel::removeTag,
-                onEffortLevelChange = editorViewModel::updateEffortLevel,
                 onSave = {
                     coroutineScope.launch {
                         val didSave = editorViewModel.save(editingCardId = editingCardId)

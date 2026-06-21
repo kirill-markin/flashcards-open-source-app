@@ -6,7 +6,6 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
@@ -66,14 +65,12 @@ class LocalReviewFilterContractTest {
                 makeNewReviewOrderingCardEntity(
                     cardId = "visible-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     createdAtMillis = nowMillis,
                     updatedAtMillis = nowMillis
                 ),
                 makeNewReviewOrderingCardEntity(
                     cardId = "deleted-stale-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     createdAtMillis = nowMillis - 1L,
                     updatedAtMillis = nowMillis - 1L
                 ).copy(
@@ -131,14 +128,12 @@ class LocalReviewFilterContractTest {
                 makeNewReviewOrderingCardEntity(
                     cardId = "active-workspace-card",
                     workspaceId = activeWorkspaceId,
-                    effortLevel = EffortLevel.FAST,
                     createdAtMillis = 100L,
                     updatedAtMillis = 100L
                 ),
                 makeNewReviewOrderingCardEntity(
                     cardId = "other-workspace-presented-card",
                     workspaceId = otherWorkspaceId,
-                    effortLevel = EffortLevel.FAST,
                     createdAtMillis = 200L,
                     updatedAtMillis = 200L
                 )
@@ -167,14 +162,12 @@ class LocalReviewFilterContractTest {
         val activeWorkspaceCard = makeNewReviewOrderingCardEntity(
             cardId = "active-workspace-card",
             workspaceId = activeWorkspaceId,
-            effortLevel = EffortLevel.FAST,
             createdAtMillis = 100L,
             updatedAtMillis = 100L
         )
         val otherWorkspaceCard = makeNewReviewOrderingCardEntity(
             cardId = "other-workspace-pending-card",
             workspaceId = otherWorkspaceId,
-            effortLevel = EffortLevel.FAST,
             createdAtMillis = 200L,
             updatedAtMillis = 200L
         )
@@ -227,14 +220,12 @@ class LocalReviewFilterContractTest {
                 makeNewReviewOrderingCardEntity(
                     cardId = "unicode-tag-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     createdAtMillis = 200L,
                     updatedAtMillis = 200L
                 ),
                 makeNewReviewOrderingCardEntity(
                     cardId = "plain-tag-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     createdAtMillis = 100L,
                     updatedAtMillis = 100L
                 )
@@ -301,14 +292,12 @@ class LocalReviewFilterContractTest {
                 makeNewReviewOrderingCardEntity(
                     cardId = "unicode-deck-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     createdAtMillis = 200L,
                     updatedAtMillis = 200L
                 ),
                 makeNewReviewOrderingCardEntity(
                     cardId = "other-deck-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     createdAtMillis = 100L,
                     updatedAtMillis = 100L
                 )
@@ -324,7 +313,6 @@ class LocalReviewFilterContractTest {
             deckDraft = DeckDraft(
                 name = "Unicode deck",
                 filterDefinition = buildDeckFilterDefinition(
-                    effortLevels = emptyList(),
                     tags = listOf("привет")
                 )
             )
@@ -333,7 +321,6 @@ class LocalReviewFilterContractTest {
             deckDraft = DeckDraft(
                 name = "Missing tag deck",
                 filterDefinition = buildDeckFilterDefinition(
-                    effortLevels = emptyList(),
                     tags = listOf("missing-unicode-tag")
                 )
             )

@@ -13,7 +13,6 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
@@ -81,7 +80,6 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
                 workspaceId = localWorkspaceId,
                 frontText = "Keep Question",
                 backText = "Keep Answer",
-                effortLevel = EffortLevel.MEDIUM,
                 dueAtMillis = null,
                 createdAtMillis = 110L,
                 updatedAtMillis = 110L,

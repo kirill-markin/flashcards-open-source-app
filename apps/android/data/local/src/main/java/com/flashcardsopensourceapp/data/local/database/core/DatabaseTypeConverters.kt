@@ -1,21 +1,10 @@
 package com.flashcardsopensourceapp.data.local.database.core
 
 import androidx.room.TypeConverter
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 
 class DatabaseTypeConverters {
-    @TypeConverter
-    fun fromEffortLevel(value: EffortLevel): String {
-        return value.name
-    }
-
-    @TypeConverter
-    fun toEffortLevel(value: String): EffortLevel {
-        return EffortLevel.valueOf(value)
-    }
-
     @TypeConverter
     fun fromReviewRating(value: ReviewRating): String {
         return value.name

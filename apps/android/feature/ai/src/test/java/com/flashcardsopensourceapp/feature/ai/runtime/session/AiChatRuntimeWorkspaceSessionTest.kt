@@ -10,7 +10,6 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ai.makeAiChatCardAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
 import kotlinx.coroutines.CompletableDeferred
@@ -500,7 +499,6 @@ class AiChatRuntimeWorkspaceSessionTest {
                     frontText = "Front",
                     backText = "Back",
                     tags = listOf("tag"),
-                    effortLevel = EffortLevel.MEDIUM
                 )
             )
         )

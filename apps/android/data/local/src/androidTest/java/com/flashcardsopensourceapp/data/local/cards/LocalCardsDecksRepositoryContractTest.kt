@@ -6,7 +6,6 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.support.LocalDatabaseTestRuntime
@@ -55,7 +54,6 @@ class LocalCardsDecksRepositoryContractTest {
                 frontText = "What is a ViewModel?",
                 backText = "A lifecycle-aware state holder for a screen.",
                 tags = listOf("android", "state"),
-                effortLevel = EffortLevel.FAST
             )
         )
         cardsRepository.createCard(
@@ -63,14 +61,12 @@ class LocalCardsDecksRepositoryContractTest {
                 frontText = "What is SQLite used for?",
                 backText = "Persistent local storage.",
                 tags = listOf("storage"),
-                effortLevel = EffortLevel.MEDIUM
             )
         )
         decksRepository.createDeck(
             deckDraft = DeckDraft(
                 name = "Storage Cards",
                 filterDefinition = buildDeckFilterDefinition(
-                    effortLevels = emptyList(),
                     tags = listOf("storage")
                 )
             )
@@ -80,7 +76,6 @@ class LocalCardsDecksRepositoryContractTest {
             searchQuery = "",
             filter = CardFilter(
                 tags = emptyList(),
-                effort = emptyList()
             )
         ).first()
         val decks = decksRepository.observeDecks().first()
@@ -105,7 +100,6 @@ class LocalCardsDecksRepositoryContractTest {
             workspaceId = workspaceId,
             frontText = "Older",
             backText = "Back",
-            effortLevel = EffortLevel.FAST,
             dueAtMillis = null,
             createdAtMillis = 100L,
             updatedAtMillis = 100L,
@@ -124,7 +118,6 @@ class LocalCardsDecksRepositoryContractTest {
             workspaceId = workspaceId,
             frontText = "Newer",
             backText = "Back",
-            effortLevel = EffortLevel.FAST,
             dueAtMillis = null,
             createdAtMillis = 200L,
             updatedAtMillis = 200L,

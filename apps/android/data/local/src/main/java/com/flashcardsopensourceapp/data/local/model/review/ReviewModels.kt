@@ -1,6 +1,5 @@
 package com.flashcardsopensourceapp.data.local.model.review
 
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 
 enum class ReviewRating {
@@ -17,10 +16,6 @@ sealed interface ReviewFilter {
         val deckId: String
     ) : ReviewFilter
 
-    data class Effort(
-        val effortLevel: EffortLevel
-    ) : ReviewFilter
-
     data class Tag(
         val tag: String
     ) : ReviewFilter
@@ -31,7 +26,6 @@ data class ReviewCard(
     val frontText: String,
     val backText: String,
     val tags: List<String>,
-    val effortLevel: EffortLevel,
     val dueAtMillis: Long?,
     val updatedAtMillis: Long,
     val createdAtMillis: Long,
@@ -76,12 +70,6 @@ data class ReviewDeckFilterOption(
     val totalCount: Int
 )
 
-data class ReviewEffortFilterOption(
-    val effortLevel: EffortLevel,
-    val title: String,
-    val totalCount: Int
-)
-
 data class ReviewTagFilterOption(
     val tag: String,
     val totalCount: Int
@@ -100,7 +88,6 @@ data class ReviewSessionSnapshot(
     val totalCount: Int,
     val hasMoreCards: Boolean,
     val availableDeckFilters: List<ReviewDeckFilterOption>,
-    val availableEffortFilters: List<ReviewEffortFilterOption>,
     val availableTagFilters: List<ReviewTagFilterOption>,
     val isLoading: Boolean
 )

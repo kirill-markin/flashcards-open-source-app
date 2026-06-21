@@ -3,7 +3,6 @@ package com.flashcardsopensourceapp.feature.review
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
-import com.flashcardsopensourceapp.data.local.model.review.ReviewEffortFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 import kotlinx.coroutines.CancellationException
@@ -260,17 +259,12 @@ private fun isOwnedReviewFilterOptionChange(
     val dueCountDelta = previousSignature.dueCount - nextSignature.dueCount
     if (dueCountDelta == 0) {
         return previousSignature.availableDeckFilters == nextSignature.availableDeckFilters &&
-            previousSignature.availableEffortFilters == nextSignature.availableEffortFilters &&
             previousSignature.availableTagFilters == nextSignature.availableTagFilters
     }
 
     return hasOwnedDeckFilterOptionChange(
         previousOptions = previousSignature.availableDeckFilters,
         nextOptions = nextSignature.availableDeckFilters,
-        committedReviewedCards = committedReviewedCards
-    ) && hasOwnedEffortFilterOptionChange(
-        previousOptions = previousSignature.availableEffortFilters,
-        nextOptions = nextSignature.availableEffortFilters,
         committedReviewedCards = committedReviewedCards
     ) && hasOwnedTagFilterOptionChange(
         previousOptions = previousSignature.availableTagFilters,
@@ -297,28 +291,6 @@ private fun hasOwnedDeckFilterOptionChange(
         nextOption.title == previousOption.title &&
             countDelta >= 0 &&
             countDelta <= committedReviewedCards.size
-    }
-}
-
-private fun hasOwnedEffortFilterOptionChange(
-    previousOptions: List<ReviewEffortFilterOption>,
-    nextOptions: List<ReviewEffortFilterOption>,
-    committedReviewedCards: List<ReviewCard>
-): Boolean {
-    if (previousOptions.size != nextOptions.size) {
-        return false
-    }
-
-    val nextOptionsByEffort = nextOptions.associateBy { option ->
-        option.effortLevel
-    }
-    return previousOptions.all { previousOption ->
-        val nextOption = nextOptionsByEffort[previousOption.effortLevel] ?: return false
-        val expectedDelta = committedReviewedCards.count { reviewedCard ->
-            previousOption.effortLevel == reviewedCard.effortLevel
-        }
-        nextOption.title == previousOption.title &&
-            previousOption.totalCount - nextOption.totalCount == expectedDelta
     }
 }
 

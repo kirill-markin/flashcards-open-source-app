@@ -2,7 +2,6 @@ package com.flashcardsopensourceapp.data.local.review
 
 import android.content.Context
 import androidx.core.content.edit
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import org.json.JSONObject
 
@@ -100,11 +99,6 @@ private fun encodePersistedReviewFilter(reviewFilter: ReviewFilter): String {
             payload.put(persistedReviewFilterDeckIdKey, reviewFilter.deckId)
         }
 
-        is ReviewFilter.Effort -> {
-            payload.put(persistedReviewFilterKindKey, persistedReviewFilterEffortKind)
-            payload.put(persistedReviewFilterEffortLevelKey, reviewFilter.effortLevel.name)
-        }
-
         is ReviewFilter.Tag -> {
             payload.put(persistedReviewFilterKindKey, persistedReviewFilterTagKind)
             payload.put(persistedReviewFilterTagKey, reviewFilter.tag)
@@ -131,7 +125,7 @@ private fun decodePersistedReviewFilter(rawValue: String): ReviewFilter {
             require(effortLevelValue.isNotEmpty()) {
                 "Persisted review filter is missing effortLevel."
             }
-            ReviewFilter.Effort(effortLevel = enumValueOf<EffortLevel>(effortLevelValue))
+            decodeLegacyEffortReviewFilter(rawValue = effortLevelValue)
         }
 
         persistedReviewFilterTagKind -> {
@@ -145,5 +139,14 @@ private fun decodePersistedReviewFilter(rawValue: String): ReviewFilter {
         else -> {
             throw IllegalArgumentException("Persisted review filter has an unsupported kind.")
         }
+    }
+}
+
+private fun decodeLegacyEffortReviewFilter(rawValue: String): ReviewFilter {
+    return when (rawValue.trim().lowercase()) {
+        "fast" -> ReviewFilter.AllCards
+        "medium" -> ReviewFilter.Tag(tag = "medium")
+        "long" -> ReviewFilter.Tag(tag = "long")
+        else -> throw IllegalArgumentException("Persisted review filter has an unsupported effortLevel.")
     }
 }

@@ -7,7 +7,6 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import kotlinx.coroutines.flow.first
@@ -51,7 +50,6 @@ class SyncLocalStoreHotRowPreservationContractTest {
             workspaceId = syncLocalStoreContractWorkspaceId,
             frontText = "Local front",
             backText = "Local back",
-            effortLevel = EffortLevel.MEDIUM,
             dueAtMillis = null,
             createdAtMillis = 1L,
             updatedAtMillis = 2L,

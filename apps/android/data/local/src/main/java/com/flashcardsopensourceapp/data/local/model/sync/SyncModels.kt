@@ -56,6 +56,7 @@ data class CardSyncPayload(
     val frontText: String,
     val backText: String,
     val tags: List<String>,
+    // TODO: Remove legacy effortLevel once the backend wire contract drops it.
     val effortLevel: String,
     val dueAt: String?,
     val createdAt: String,

@@ -31,7 +31,6 @@ import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.review.loadTopActiveReviewCard
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.cards.decodeDeckFilterDefinitionJson
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
@@ -620,12 +619,6 @@ class ReviewNotificationsManager(
                 nowMillis = nowMillis
             )
 
-            is ReviewFilter.Effort -> loadCurrentEffortReviewNotificationCard(
-                workspaceId = workspaceId,
-                effortLevel = reviewFilter.effortLevel,
-                nowMillis = nowMillis
-            )
-
             is ReviewFilter.Tag -> loadCurrentTagReviewNotificationCard(
                 workspaceId = workspaceId,
                 tag = reviewFilter.tag,
@@ -645,7 +638,6 @@ class ReviewNotificationsManager(
             )
 
             ReviewFilter.AllCards,
-            is ReviewFilter.Effort,
             is ReviewFilter.Tag -> null
         }
 
@@ -676,7 +668,6 @@ class ReviewNotificationsManager(
             reviewCardSelectionDao = database.reviewCardSelectionDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
-            effortLevels = emptyList(),
             tagNames = emptyList()
         ) ?: return null
 
@@ -714,28 +705,6 @@ class ReviewNotificationsManager(
         )
     }
 
-    private suspend fun loadCurrentEffortReviewNotificationCard(
-        workspaceId: String,
-        effortLevel: EffortLevel,
-        nowMillis: Long
-    ): CurrentReviewNotificationCard? {
-        val card = loadTopActiveReviewCard(
-            reviewCardSelectionDao = database.reviewCardSelectionDao(),
-            workspaceId = workspaceId,
-            nowMillis = nowMillis,
-            effortLevels = listOf(effortLevel),
-            tagNames = emptyList()
-        ) ?: return null
-
-        return CurrentReviewNotificationCard(
-            reviewFilter = makePersistedReviewFilter(
-                reviewFilter = ReviewFilter.Effort(effortLevel = effortLevel)
-            ),
-            cardId = card.cardId,
-            frontText = card.frontText
-        )
-    }
-
     private suspend fun loadCurrentTagReviewNotificationCard(
         workspaceId: String,
         tag: String,
@@ -756,7 +725,6 @@ class ReviewNotificationsManager(
             reviewCardSelectionDao = database.reviewCardSelectionDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
-            effortLevels = emptyList(),
             tagNames = exactTagNames
         ) ?: return null
 
@@ -781,47 +749,12 @@ class ReviewNotificationsManager(
             return null
         }
 
-        return when {
-            filterDefinition.effortLevels.isEmpty() && hasTagPredicate.not() -> {
-                loadTopActiveReviewCard(
-                    reviewCardSelectionDao = database.reviewCardSelectionDao(),
-                    workspaceId = workspaceId,
-                    nowMillis = nowMillis,
-                    effortLevels = emptyList(),
-                    tagNames = emptyList()
-                )
-            }
-
-            filterDefinition.effortLevels.isNotEmpty() && hasTagPredicate.not() -> {
-                loadTopActiveReviewCard(
-                    reviewCardSelectionDao = database.reviewCardSelectionDao(),
-                    workspaceId = workspaceId,
-                    nowMillis = nowMillis,
-                    effortLevels = filterDefinition.effortLevels,
-                    tagNames = emptyList()
-                )
-            }
-
-            filterDefinition.effortLevels.isEmpty() -> {
-                loadTopActiveReviewCard(
-                    reviewCardSelectionDao = database.reviewCardSelectionDao(),
-                    workspaceId = workspaceId,
-                    nowMillis = nowMillis,
-                    effortLevels = emptyList(),
-                    tagNames = exactTagNames
-                )
-            }
-
-            else -> {
-                loadTopActiveReviewCard(
-                    reviewCardSelectionDao = database.reviewCardSelectionDao(),
-                    workspaceId = workspaceId,
-                    nowMillis = nowMillis,
-                    effortLevels = filterDefinition.effortLevels,
-                    tagNames = exactTagNames
-                )
-            }
-        }
+        return loadTopActiveReviewCard(
+            reviewCardSelectionDao = database.reviewCardSelectionDao(),
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            tagNames = exactTagNames
+        )
     }
 
     private suspend fun loadExactStoredReviewTagNames(
@@ -854,7 +787,6 @@ internal fun resolveReviewNotificationFilterPlan(
 ): ReviewNotificationFilterPlan {
     return when (selectedReviewFilter) {
         ReviewFilter.AllCards -> ReviewNotificationFilterPlan.Schedule(reviewFilter = ReviewFilter.AllCards)
-        is ReviewFilter.Effort -> ReviewNotificationFilterPlan.Schedule(reviewFilter = selectedReviewFilter)
         is ReviewFilter.Tag -> {
             val exactTagName = resolveExactStoredReviewTagNames(
                 requestedTagNames = listOf(selectedReviewFilter.tag),

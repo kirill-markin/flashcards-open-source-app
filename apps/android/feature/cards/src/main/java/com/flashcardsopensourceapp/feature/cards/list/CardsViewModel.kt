@@ -7,7 +7,6 @@ import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncCompletion
@@ -37,8 +36,7 @@ class CardsViewModel(
     private val searchQuery = MutableStateFlow(value = "")
     private val activeFilter = MutableStateFlow(
         value = CardFilter(
-            tags = emptyList(),
-            effort = emptyList()
+            tags = emptyList()
         )
     )
 
@@ -81,7 +79,7 @@ class CardsViewModel(
         initialValue = CardsUiState(
             isLoading = true,
             searchQuery = "",
-            activeFilter = CardFilter(tags = emptyList(), effort = emptyList()),
+            activeFilter = CardFilter(tags = emptyList()),
             availableTagSuggestions = emptyList(),
             cards = emptyList()
         )
@@ -101,8 +99,7 @@ class CardsViewModel(
 
     fun clearFilter() {
         activeFilter.value = CardFilter(
-            tags = emptyList(),
-            effort = emptyList()
+            tags = emptyList()
         )
     }
 
@@ -169,7 +166,6 @@ class CardsViewModel(
 private data class VisibleCardSignature(
     val cardId: String,
     val frontText: String,
-    val effortLevel: EffortLevel,
     val tags: List<String>,
     val dueAtMillis: Long?
 )
@@ -188,7 +184,6 @@ private fun buildCardsVisibleSignature(uiState: CardsUiState): CardsVisibleSigna
             VisibleCardSignature(
                 cardId = card.cardId,
                 frontText = card.frontText,
-                effortLevel = card.effortLevel,
                 tags = card.tags,
                 dueAtMillis = card.dueAtMillis
             )

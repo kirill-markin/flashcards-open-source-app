@@ -80,7 +80,6 @@ Not all UI text comes straight from composables with `stringResource(...)`.
 
 Check these provider and resolver entry points:
 
-- `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/CardPresentationSupport.kt`
 - `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/review/ReviewSupport.kt`
 - `apps/android/feature/cards/src/main/java/com/flashcardsopensourceapp/feature/cards/CardsStrings.kt`
 - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/AiStrings.kt`
@@ -88,7 +87,7 @@ Check these provider and resolver entry points:
 - `apps/android/feature/settings/src/main/java/com/flashcardsopensourceapp/feature/settings/SettingsStringResolver.kt`
 
 These files feed user-visible copy into view models, alerts, metadata rows, tool status labels, review filter titles, due labels, and other presentation helpers outside the obvious composable surface.
-Also sweep `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/` for user-facing presentation labels such as effort labels, `All cards`, `No tags`, and `new`.
+Also sweep `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/` for user-facing presentation labels such as `All cards`, `No tags`, and `new`.
 
 Do one repo sweep before you call the work done:
 

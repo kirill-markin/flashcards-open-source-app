@@ -2,7 +2,6 @@ package com.flashcardsopensourceapp.feature.review
 
 import android.content.Context
 import android.content.res.Resources
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewIntervalDescription
@@ -86,14 +85,6 @@ class ReviewTextProvider(
         }
     }
 
-    fun effortLabel(effortLevel: EffortLevel): String {
-        return when (effortLevel) {
-            EffortLevel.FAST -> resources.getString(R.string.review_fast)
-            EffortLevel.MEDIUM -> resources.getString(R.string.review_medium)
-            EffortLevel.LONG -> resources.getString(R.string.review_long)
-        }
-    }
-
     fun tagsLabel(tags: List<String>): String {
         return if (tags.isEmpty()) {
             resources.getString(R.string.review_no_tags_label)
@@ -128,7 +119,6 @@ class ReviewTextProvider(
                 deck.deckId == selectedFilter.deckId
             }?.title ?: allCardsTitle()
 
-            is ReviewFilter.Effort -> effortLabel(effortLevel = selectedFilter.effortLevel)
             is ReviewFilter.Tag -> selectedFilter.tag
         }
     }

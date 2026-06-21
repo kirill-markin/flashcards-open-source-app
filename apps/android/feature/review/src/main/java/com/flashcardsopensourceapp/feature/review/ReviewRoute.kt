@@ -52,8 +52,7 @@ fun ReviewRoute(
         cardId: String,
         frontText: String,
         backText: String,
-        tags: List<String>,
-        effortLevel: com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
+        tags: List<String>
     ) -> Unit,
     onOpenDeckManagement: () -> Unit,
     onCreateCard: () -> Unit,
@@ -297,7 +296,6 @@ fun ReviewRoute(
         ReviewFilterSheet(
             selectedFilter = uiState.selectedFilter,
             availableDeckFilters = uiState.availableDeckFilters,
-            availableEffortFilters = uiState.availableEffortFilters,
             availableTagFilters = uiState.availableTagFilters,
             onDismiss = {
                 isFilterSheetVisible = false

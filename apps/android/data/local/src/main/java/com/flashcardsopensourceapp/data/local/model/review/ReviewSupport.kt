@@ -2,11 +2,9 @@ package com.flashcardsopensourceapp.data.local.model.review
 
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
-import com.flashcardsopensourceapp.data.local.model.cards.formatCardEffortLabel
 import com.flashcardsopensourceapp.data.local.model.cards.isCardDue
 import com.flashcardsopensourceapp.data.local.model.cards.matchesDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagsSummary
 
@@ -66,10 +64,6 @@ fun matchesReviewFilter(filter: ReviewFilter, decks: List<DeckSummary>, card: Ca
             )
         }
 
-        is ReviewFilter.Effort -> {
-            card.effortLevel == filter.effortLevel
-        }
-
         is ReviewFilter.Tag -> {
             val requestedTagKey = normalizeTagKey(tag = filter.tag)
             card.tags.any { tag ->
@@ -112,10 +106,6 @@ fun resolveReviewFilterFromTagNames(
             }
         }
 
-        is ReviewFilter.Effort -> {
-            ReviewFilter.Effort(effortLevel = selectedFilter.effortLevel)
-        }
-
         is ReviewFilter.Tag -> {
             val matchingTag = tagNames.firstOrNull { tag ->
                 normalizeTagKey(tag = tag) == normalizeTagKey(tag = selectedFilter.tag)
@@ -140,7 +130,6 @@ fun reviewFilterTitle(
             deck.deckId == selectedFilter.deckId
         }?.name ?: "All cards"
 
-        is ReviewFilter.Effort -> formatCardEffortLabel(effortLevel = selectedFilter.effortLevel)
         is ReviewFilter.Tag -> selectedFilter.tag
     }
 }
@@ -205,26 +194,6 @@ fun buildReviewDeckFilterOptions(decks: List<DeckSummary>): List<ReviewDeckFilte
             option.deckId
         }
     )
-}
-
-fun buildReviewEffortFilterOptions(
-    cards: List<CardSummary>,
-    reviewedAtMillis: Long
-): List<ReviewEffortFilterOption> {
-    val dueCards = cards.filter { card ->
-        isCardDue(card = card, nowMillis = reviewedAtMillis)
-    }
-    val counts = dueCards.groupingBy { card ->
-        card.effortLevel
-    }.eachCount()
-
-    return EffortLevel.entries.map { effortLevel ->
-        ReviewEffortFilterOption(
-            effortLevel = effortLevel,
-            title = formatCardEffortLabel(effortLevel = effortLevel),
-            totalCount = counts[effortLevel] ?: 0
-        )
-    }
 }
 
 fun buildReviewTagFilterOptions(cards: List<CardSummary>, reviewedAtMillis: Long): List<ReviewTagFilterOption> {
@@ -325,10 +294,6 @@ fun buildReviewSessionSnapshot(
         totalCount = totalMatchingCards.size,
         hasMoreCards = false,
         availableDeckFilters = buildReviewDeckFilterOptions(decks = decks),
-        availableEffortFilters = buildReviewEffortFilterOptions(
-            cards = cards,
-            reviewedAtMillis = reviewedAtMillis
-        ),
         availableTagFilters = buildReviewTagFilterOptions(
             cards = cards,
             reviewedAtMillis = reviewedAtMillis
@@ -347,7 +312,6 @@ fun buildBoundedReviewSessionSnapshot(
     totalCount: Int,
     hasMoreCards: Boolean,
     availableDeckFilters: List<ReviewDeckFilterOption>,
-    availableEffortFilters: List<ReviewEffortFilterOption>,
     availableTagFilters: List<ReviewTagFilterOption>,
     settings: WorkspaceSchedulerSettings,
     reviewedAtMillis: Long
@@ -387,7 +351,6 @@ fun buildBoundedReviewSessionSnapshot(
         totalCount = totalCount,
         hasMoreCards = hasMoreCards,
         availableDeckFilters = availableDeckFilters,
-        availableEffortFilters = availableEffortFilters,
         availableTagFilters = availableTagFilters,
         isLoading = false
     )
@@ -481,7 +444,6 @@ fun toReviewCard(
         frontText = card.frontText,
         backText = card.backText,
         tags = card.tags,
-        effortLevel = card.effortLevel,
         dueAtMillis = card.dueAtMillis,
         updatedAtMillis = card.updatedAtMillis,
         createdAtMillis = card.createdAtMillis,

@@ -8,12 +8,6 @@ enum class FsrsCardState {
     RELEARNING
 }
 
-enum class EffortLevel {
-    FAST,
-    MEDIUM,
-    LONG
-}
-
 // Keep in sync with apps/backend/src/scheduling/workspaceConfig.ts::WorkspaceSchedulerSettings, apps/web/src/types.ts::WorkspaceSchedulerSettings, and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift::WorkspaceSchedulerSettings.
 data class WorkspaceSchedulerSettings(
     val workspaceId: String,

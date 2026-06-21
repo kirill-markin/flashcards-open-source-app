@@ -789,7 +789,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         val cards: List<CardSummary> = runBlocking {
             application.appGraph.cardsRepository.observeCards(
                 searchQuery = "",
-                filter = CardFilter(tags = emptyList(), effort = emptyList())
+                filter = CardFilter(tags = emptyList())
             ).first()
         }
         val matchingCards: List<CardSummary> = cards.filter { card ->

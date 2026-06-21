@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.res.Resources
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -51,14 +50,6 @@ fun formatCardsTagSelectionSummary(resources: Resources, tags: List<String>): St
     return tags.joinToString(separator = ", ")
 }
 
-fun formatCardsEffortLevelTitle(resources: Resources, effortLevel: EffortLevel): String {
-    return when (effortLevel) {
-        EffortLevel.FAST -> resources.getString(R.string.cards_fast)
-        EffortLevel.MEDIUM -> resources.getString(R.string.cards_medium)
-        EffortLevel.LONG -> resources.getString(R.string.cards_long)
-    }
-}
-
 fun formatCardsTagsLabel(resources: Resources, tags: List<String>): String {
     return if (tags.isEmpty()) {
         resources.getString(R.string.cards_no_tags_label)
@@ -81,7 +72,6 @@ fun formatCardsDueLabel(resources: Resources, dueAtMillis: Long?): String {
 
 fun formatCardsMetadataSummary(resources: Resources, card: CardSummary): String {
     return listOf(
-        formatCardsEffortLevelTitle(resources = resources, effortLevel = card.effortLevel),
         formatCardsTagsLabel(resources = resources, tags = card.tags),
         formatCardsDueLabel(resources = resources, dueAtMillis = card.dueAtMillis)
     ).joinToString(separator = " | ")
@@ -89,16 +79,6 @@ fun formatCardsMetadataSummary(resources: Resources, card: CardSummary): String 
 
 fun formatCardsFilterSummary(resources: Resources, filter: CardFilter): String {
     val parts = buildList {
-        if (filter.effort.isNotEmpty()) {
-            add(
-                resources.getString(
-                    R.string.cards_filter_summary_effort,
-                    filter.effort.joinToString(separator = ", ") { effortLevel ->
-                        formatCardsEffortLevelTitle(resources = resources, effortLevel = effortLevel)
-                    }
-                )
-            )
-        }
         if (filter.tags.isNotEmpty()) {
             add(
                 resources.getString(

@@ -48,7 +48,6 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         preparedCurrentCard = null,
                         preparedNextCard = null,
                         availableDeckFilters = emptyList(),
-                        availableEffortFilters = emptyList(),
                         availableTagFilters = emptyList(),
                         reviewLeaderboardBadge = ReviewLeaderboardBadgeState(
                             rank = null,
@@ -115,7 +114,6 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         preparedCurrentCard = null,
                         preparedNextCard = null,
                         availableDeckFilters = emptyList(),
-                        availableEffortFilters = emptyList(),
                         availableTagFilters = emptyList(),
                         reviewLeaderboardBadge = ReviewLeaderboardBadgeState(
                             rank = null,
@@ -168,7 +166,6 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         preparedCurrentCard = null,
                         preparedNextCard = null,
                         availableDeckFilters = emptyList(),
-                        availableEffortFilters = emptyList(),
                         availableTagFilters = emptyList(),
                         reviewLeaderboardBadge = ReviewLeaderboardBadgeState(
                             rank = null,

@@ -5,7 +5,6 @@ import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
 import com.flashcardsopensourceapp.data.local.database.review.loadTopActiveReviewCard
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.support.LocalDatabaseTestRuntime
 import com.flashcardsopensourceapp.data.local.support.bootstrapTestWorkspace
 import com.flashcardsopensourceapp.data.local.support.closeLocalDatabaseTestRuntime
@@ -60,7 +59,6 @@ class CardDaoReviewQueueContractTest {
                 makeDueReviewOrderingCardEntity(
                     cardId = "recent-cutoff-a",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     dueAtMillis = nowMillis - oneHourMillis,
                     createdAtMillis = 300L,
                     updatedAtMillis = 300L
@@ -68,7 +66,6 @@ class CardDaoReviewQueueContractTest {
                 makeDueReviewOrderingCardEntity(
                     cardId = "recent-cutoff-b",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     dueAtMillis = nowMillis - oneHourMillis,
                     createdAtMillis = 300L,
                     updatedAtMillis = 300L
@@ -76,7 +73,6 @@ class CardDaoReviewQueueContractTest {
                 makeDueReviewOrderingCardEntity(
                     cardId = "recent-cutoff-older-created",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     dueAtMillis = nowMillis - oneHourMillis,
                     createdAtMillis = 200L,
                     updatedAtMillis = 200L
@@ -84,7 +80,6 @@ class CardDaoReviewQueueContractTest {
                 makeDueReviewOrderingCardEntity(
                     cardId = "old-boundary-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.LONG,
                     dueAtMillis = nowMillis - oneHourMillis - 1L,
                     createdAtMillis = 400L,
                     updatedAtMillis = 400L
@@ -92,7 +87,6 @@ class CardDaoReviewQueueContractTest {
                 makeDueReviewOrderingCardEntity(
                     cardId = "due-now-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.MEDIUM,
                     dueAtMillis = nowMillis,
                     createdAtMillis = 500L,
                     updatedAtMillis = 500L
@@ -100,14 +94,12 @@ class CardDaoReviewQueueContractTest {
                 makeNewReviewOrderingCardEntity(
                     cardId = "new-medium-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.MEDIUM,
                     createdAtMillis = 600L,
                     updatedAtMillis = 600L
                 ),
                 makeDueReviewOrderingCardEntity(
                     cardId = "future-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     dueAtMillis = nowMillis + 1L,
                     createdAtMillis = 700L,
                     updatedAtMillis = 700L
@@ -131,35 +123,18 @@ class CardDaoReviewQueueContractTest {
             reviewCardSelectionDao = database.reviewCardSelectionDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
-            effortLevels = emptyList(),
-            tagNames = emptyList()
-        )
-        val effortTop = loadTopActiveReviewCard(
-            reviewCardSelectionDao = database.reviewCardSelectionDao(),
-            workspaceId = workspaceId,
-            nowMillis = nowMillis,
-            effortLevels = listOf(EffortLevel.FAST),
             tagNames = emptyList()
         )
         val tagTop = loadTopActiveReviewCard(
             reviewCardSelectionDao = database.reviewCardSelectionDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
-            effortLevels = emptyList(),
-            tagNames = listOf("Priority")
-        )
-        val effortAndTagTop = loadTopActiveReviewCard(
-            reviewCardSelectionDao = database.reviewCardSelectionDao(),
-            workspaceId = workspaceId,
-            nowMillis = nowMillis,
-            effortLevels = listOf(EffortLevel.MEDIUM),
             tagNames = listOf("Priority")
         )
         val futureOnlyTagTop = loadTopActiveReviewCard(
             reviewCardSelectionDao = database.reviewCardSelectionDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
-            effortLevels = emptyList(),
             tagNames = listOf("Future Only")
         )
         val cutoffMillis = nowMillis - oneHourMillis
@@ -171,13 +146,12 @@ class CardDaoReviewQueueContractTest {
         ).first().map { card ->
             card.card.cardId
         }
-        val effortAndTagQueue = database.reviewQueueDao().observeBucketedActiveReviewQueueByEffortLevelsAndAnyTags(
+        val priorityQueue = database.reviewQueueDao().observeBucketedActiveReviewQueueByAnyTags(
             workspaceId = workspaceId,
             cutoffMillis = cutoffMillis,
             nowMillis = nowMillis,
-            effortLevels = listOf(EffortLevel.MEDIUM),
             tagNames = listOf("Priority"),
-            limit = 10
+            limit = 4
         ).first().map { card ->
             card.card.cardId
         }
@@ -201,15 +175,13 @@ class CardDaoReviewQueueContractTest {
         ).first()
 
         assertEquals("recent-cutoff-a", allCardsTop?.cardId)
-        assertEquals("recent-cutoff-a", effortTop?.cardId)
         assertEquals("recent-cutoff-a", tagTop?.cardId)
-        assertEquals("due-now-card", effortAndTagTop?.cardId)
         assertNull(futureOnlyTagTop)
         assertEquals(
             listOf("recent-cutoff-a", "recent-cutoff-b", "recent-cutoff-older-created", "old-boundary-card"),
             boundedQueue
         )
-        assertEquals(listOf("due-now-card", "new-medium-card"), effortAndTagQueue)
+        assertEquals(boundedQueue, priorityQueue)
         assertEquals(6, priorityDueCount)
         assertEquals(6, priorityTotalCount)
         assertEquals(0, futureOnlyDueCount)

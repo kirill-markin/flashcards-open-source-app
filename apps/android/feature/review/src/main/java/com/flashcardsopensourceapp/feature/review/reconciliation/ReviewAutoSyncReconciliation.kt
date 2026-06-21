@@ -2,7 +2,6 @@ package com.flashcardsopensourceapp.feature.review
 
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
-import com.flashcardsopensourceapp.data.local.model.review.ReviewEffortFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 
@@ -14,7 +13,6 @@ internal data class VisibleAutoSyncChangeSignature(
     val totalCount: Int,
     val hasMoreCards: Boolean,
     val availableDeckFilters: List<ReviewDeckFilterOption>,
-    val availableEffortFilters: List<ReviewEffortFilterOption>,
     val availableTagFilters: List<ReviewTagFilterOption>
 )
 
@@ -30,7 +28,6 @@ internal fun makeVisibleAutoSyncChangeSignature(
         totalCount = sessionSnapshot.totalCount,
         hasMoreCards = sessionSnapshot.hasMoreCards,
         availableDeckFilters = sessionSnapshot.availableDeckFilters,
-        availableEffortFilters = sessionSnapshot.availableEffortFilters,
         availableTagFilters = sessionSnapshot.availableTagFilters
     )
 }

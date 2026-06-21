@@ -17,7 +17,6 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ai.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
@@ -37,6 +36,8 @@ private const val aiChatWorkspaceHistoryPrefix: String = "ai-chat-history::"
 private const val aiChatDefaultDraftKey: String = "ai-chat-draft"
 private const val aiChatWorkspaceDraftPrefix: String = "ai-chat-draft::"
 private const val aiChatMaxMessages: Int = 200
+private const val legacyMediumEffortTag: String = "medium"
+private const val legacyLongEffortTag: String = "long"
 
 fun makeAiChatHistoryScopedWorkspaceId(
     workspaceId: String?,
@@ -331,7 +332,6 @@ class AiChatHistoryStore(
                 .put("frontText", contentPart.frontText)
                 .put("backText", contentPart.backText)
                 .put("tags", JSONArray(contentPart.tags))
-                .put("effortLevel", contentPart.effortLevel.name)
 
             is AiChatContentPart.ToolCall -> JSONObject()
                 .put("type", "tool_call")
@@ -412,8 +412,7 @@ class AiChatHistoryStore(
                 cardId = jsonObject.getString("cardId"),
                 frontText = jsonObject.getString("frontText"),
                 backText = jsonObject.getString("backText"),
-                tags = jsonObject.optJSONArray("tags")?.let(::decodeStringArray) ?: emptyList(),
-                effortLevel = decodeEffortLevel(jsonObject = jsonObject)
+                tags = decodeCardTags(jsonObject = jsonObject)
             )
 
             "tool_call" -> AiChatContentPart.ToolCall(
@@ -482,7 +481,6 @@ class AiChatHistoryStore(
                 .put("frontText", attachment.frontText)
                 .put("backText", attachment.backText)
                 .put("tags", JSONArray(attachment.tags))
-                .put("effortLevel", attachment.effortLevel.name)
 
             is AiChatAttachment.Unknown -> JSONObject()
                 .put("type", "unknown")
@@ -516,8 +514,7 @@ class AiChatHistoryStore(
                 cardId = jsonObject.getString("cardId"),
                 frontText = jsonObject.getString("frontText"),
                 backText = jsonObject.getString("backText"),
-                tags = jsonObject.optJSONArray("tags")?.let(::decodeStringArray) ?: emptyList(),
-                effortLevel = decodeEffortLevel(jsonObject = jsonObject)
+                tags = decodeCardTags(jsonObject = jsonObject)
             )
 
             "unknown" -> AiChatAttachment.Unknown(
@@ -562,16 +559,6 @@ class AiChatHistoryStore(
         )
     }
 
-    private fun decodeEffortLevel(jsonObject: JSONObject): EffortLevel {
-        val rawValue = jsonObject.getString("effortLevel").trim()
-        return when (rawValue) {
-            EffortLevel.FAST.name -> EffortLevel.FAST
-            EffortLevel.MEDIUM.name -> EffortLevel.MEDIUM
-            EffortLevel.LONG.name -> EffortLevel.LONG
-            else -> throw IllegalArgumentException("Invalid AI chat card effort level: $rawValue")
-        }
-    }
-
     private fun currentState(workspaceId: String?): AiChatPersistedState {
         val rawValue = preferences.getString(storageKey(workspaceId = workspaceId), null)
             ?: return makeDefaultAiChatPersistedState()
@@ -594,6 +581,27 @@ class AiChatHistoryStore(
             for (index in 0 until jsonArray.length()) {
                 add(jsonArray.getString(index))
             }
+        }
+    }
+
+    private fun decodeCardTags(jsonObject: JSONObject): List<String> {
+        val tags = jsonObject.optJSONArray("tags")?.let(::decodeStringArray) ?: emptyList()
+        val effortTag = decodeLegacyCardEffortTag(jsonObject = jsonObject) ?: return tags
+        if (tags.any { tag -> tag.equals(effortTag, ignoreCase = true) }) {
+            return tags
+        }
+        return tags + effortTag
+    }
+
+    private fun decodeLegacyCardEffortTag(jsonObject: JSONObject): String? {
+        if (!jsonObject.has("effortLevel") || jsonObject.isNull("effortLevel")) {
+            return null
+        }
+        return when (jsonObject.getString("effortLevel").trim().uppercase()) {
+            "FAST" -> null
+            "MEDIUM" -> legacyMediumEffortTag
+            "LONG" -> legacyLongEffortTag
+            else -> null
         }
     }
 }

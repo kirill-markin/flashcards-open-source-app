@@ -202,7 +202,6 @@ private fun PersistedReviewFilter.toNotificationDiagnosticsUiState(): Notificati
     return NotificationDiagnosticsReviewFilterUiState(
         kind = kind,
         deckId = deckId,
-        effortLevel = effortLevel,
         tag = tag
     )
 }

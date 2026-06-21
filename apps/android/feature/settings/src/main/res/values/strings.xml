@@ -170,7 +170,6 @@
     <string name="settings_notification_diagnostics_card_id_label">Card ID</string>
     <string name="settings_notification_diagnostics_filter_kind_label">Filter kind</string>
     <string name="settings_notification_diagnostics_filter_deck_label">Filter deck</string>
-    <string name="settings_notification_diagnostics_filter_effort_label">Filter effort</string>
     <string name="settings_notification_diagnostics_filter_tag_label">Filter tag</string>
     <string name="settings_notification_diagnostics_time_offset_label">Time offset</string>
 
@@ -391,24 +390,18 @@
     <string name="settings_deck_editor_new_title">New deck</string>
     <string name="settings_deck_editor_edit_title">Edit deck</string>
     <string name="settings_deck_editor_explainer_title">Decks are smart filters</string>
-    <string name="settings_deck_editor_explainer_body">Selected effort levels and tags decide which cards match. Select this deck from the Review filter.</string>
+    <string name="settings_deck_editor_explainer_body">Selected tags decide which cards match. Select this deck from the Review filter.</string>
     <string name="settings_deck_editor_name_label">Deck name</string>
-    <string name="settings_deck_editor_effort_title">Effort</string>
     <string name="settings_deck_editor_tags_title">Tags</string>
     <string name="settings_deck_editor_no_tags">No tags available yet. Create cards first, then use their tags in a deck rule.</string>
     <string name="settings_deck_editor_rule_summary_title">Rule summary</string>
     <string name="settings_deck_editor_cancel_button">Cancel</string>
     <string name="settings_deck_editor_delete_button">Delete deck</string>
     <string name="settings_deck_editor_name_required">Deck name is required.</string>
-    <string name="settings_deck_editor_filter_required">Choose at least one effort level or tag, or use All cards in Review.</string>
+    <string name="settings_deck_editor_filter_required">Choose at least one tag, or use All cards in Review.</string>
     <string name="settings_deck_editor_save_failed">Could not save the deck.</string>
-    <string name="settings_deck_filter_effort">effort in %1$s</string>
     <string name="settings_deck_filter_tags_any">tags any of %1$s</string>
     <string name="settings_deck_filter_join"> AND </string>
-    <string name="settings_deck_card_effort">Effort: %1$s</string>
-    <string name="settings_effort_fast">Fast</string>
-    <string name="settings_effort_medium">Medium</string>
-    <string name="settings_effort_long">Long</string>
     <string name="settings_effort_easy">Easy</string>
     <string name="settings_effort_good">Good</string>
     <string name="settings_effort_hard">Hard</string>

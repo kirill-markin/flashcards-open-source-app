@@ -5,7 +5,6 @@ import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.review.loadTopActiveReviewCard
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewIntervalDescription
@@ -60,7 +59,6 @@ class LocalReviewQueueContractTest {
                 frontText = "UI basics",
                 backText = "Compose UI",
                 tags = listOf("ui"),
-                effortLevel = EffortLevel.FAST
             )
         )
         cardsRepository.createCard(
@@ -68,7 +66,6 @@ class LocalReviewQueueContractTest {
                 frontText = "Material components",
                 backText = "Material 3",
                 tags = listOf("ui"),
-                effortLevel = EffortLevel.FAST
             )
         )
         cardsRepository.createCard(
@@ -76,14 +73,12 @@ class LocalReviewQueueContractTest {
                 frontText = "Offline sync",
                 backText = "Queue writes locally first.",
                 tags = listOf("sync"),
-                effortLevel = EffortLevel.LONG
             )
         )
         decksRepository.createDeck(
             deckDraft = DeckDraft(
                 name = "UI cards",
                 filterDefinition = buildDeckFilterDefinition(
-                    effortLevels = emptyList(),
                     tags = listOf("ui")
                 )
             )
@@ -113,12 +108,6 @@ class LocalReviewQueueContractTest {
             pendingReviewedCards = emptySet(),
             presentedCardId = null
         ).first()
-        val effortSnapshot = reviewRepository.observeReviewSession(
-            selectedFilter = ReviewFilter.Effort(effortLevel = EffortLevel.FAST),
-            pendingReviewedCards = emptySet(),
-            presentedCardId = null
-        ).first()
-
         assertEquals(ReviewFilter.AllCards, allCardsSnapshot.selectedFilter)
         assertEquals(3, allCardsSnapshot.dueCount)
         assertEquals(3, allCardsSnapshot.totalCount)
@@ -127,9 +116,6 @@ class LocalReviewQueueContractTest {
         assertEquals(3, pendingSnapshot.totalCount)
         assertEquals(2, tagSnapshot.dueCount)
         assertEquals(2, tagSnapshot.totalCount)
-        assertEquals(ReviewFilter.Effort(effortLevel = EffortLevel.FAST), effortSnapshot.selectedFilter)
-        assertEquals(2, effortSnapshot.dueCount)
-        assertEquals(2, effortSnapshot.totalCount)
         assertEquals(
             ReviewIntervalDescription.Minutes(count = 10),
             tagSnapshot.answerOptions.first { option ->
@@ -149,7 +135,6 @@ class LocalReviewQueueContractTest {
                 frontText = "First",
                 backText = "One",
                 tags = listOf("alpha"),
-                effortLevel = EffortLevel.FAST
             )
         )
         cardsRepository.createCard(
@@ -157,7 +142,6 @@ class LocalReviewQueueContractTest {
                 frontText = "Second",
                 backText = "Two",
                 tags = listOf("beta"),
-                effortLevel = EffortLevel.FAST
             )
         )
         cardsRepository.createCard(
@@ -165,7 +149,6 @@ class LocalReviewQueueContractTest {
                 frontText = "Third",
                 backText = "Three",
                 tags = listOf("gamma"),
-                effortLevel = EffortLevel.FAST
             )
         )
 
@@ -206,7 +189,6 @@ class LocalReviewQueueContractTest {
                 makeDueReviewOrderingCardEntity(
                     cardId = "old-due-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     dueAtMillis = nowMillis - oneDayMillis,
                     createdAtMillis = nowMillis - (2 * oneDayMillis),
                     updatedAtMillis = nowMillis - (2 * oneDayMillis)
@@ -214,14 +196,12 @@ class LocalReviewQueueContractTest {
                 makeNewReviewOrderingCardEntity(
                     cardId = "new-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     createdAtMillis = nowMillis - oneDayMillis,
                     updatedAtMillis = nowMillis - oneDayMillis
                 ),
                 makeDueReviewOrderingCardEntity(
                     cardId = "future-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     dueAtMillis = nowMillis + oneDayMillis,
                     createdAtMillis = nowMillis - oneDayMillis,
                     updatedAtMillis = nowMillis - oneDayMillis
@@ -229,7 +209,6 @@ class LocalReviewQueueContractTest {
                 makeDueReviewOrderingCardEntity(
                     cardId = "due-last-hour-old-review-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     dueAtMillis = nowMillis - fiveMinutesMillis,
                     createdAtMillis = nowMillis - fiveMinutesMillis,
                     updatedAtMillis = nowMillis - fiveMinutesMillis
@@ -237,7 +216,6 @@ class LocalReviewQueueContractTest {
                 makeDueReviewOrderingCardEntity(
                     cardId = "recent-due-1115-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     dueAtMillis = nowMillis - fortyFiveMinutesMillis,
                     createdAtMillis = nowMillis - fortyFiveMinutesMillis,
                     updatedAtMillis = nowMillis - fortyFiveMinutesMillis
@@ -245,7 +223,6 @@ class LocalReviewQueueContractTest {
                 makeDueReviewOrderingCardEntity(
                     cardId = "recent-due-1155-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     dueAtMillis = nowMillis - fiveMinutesMillis,
                     createdAtMillis = nowMillis - fiveMinutesMillis,
                     updatedAtMillis = nowMillis - fiveMinutesMillis
@@ -268,7 +245,6 @@ class LocalReviewQueueContractTest {
             reviewCardSelectionDao = database.reviewCardSelectionDao(),
             workspaceId = workspaceId,
             nowMillis = nowMillis,
-            effortLevels = emptyList(),
             tagNames = emptyList()
         )
 
@@ -296,7 +272,6 @@ class LocalReviewQueueContractTest {
                 makeNewReviewOrderingCardEntity(
                     cardId = "new-card-${index.toString().padStart(length = 2, padChar = '0')}",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     createdAtMillis = 1_000L + index,
                     updatedAtMillis = 1_000L + index
                 )
@@ -346,7 +321,6 @@ class LocalReviewQueueContractTest {
                 makeDueReviewOrderingCardEntity(
                     cardId = "old-presented-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     dueAtMillis = oldDueAtMillis,
                     createdAtMillis = nowMillis - (2 * oneDayMillis),
                     updatedAtMillis = nowMillis - (2 * oneDayMillis)
@@ -354,7 +328,6 @@ class LocalReviewQueueContractTest {
                 makeDueReviewOrderingCardEntity(
                     cardId = "future-presented-card",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     dueAtMillis = futureDueAtMillis,
                     createdAtMillis = nowMillis - oneDayMillis,
                     updatedAtMillis = nowMillis - oneDayMillis
@@ -363,7 +336,6 @@ class LocalReviewQueueContractTest {
                 makeDueReviewOrderingCardEntity(
                     cardId = "recent-card-${index.toString().padStart(length = 2, padChar = '0')}",
                     workspaceId = workspaceId,
-                    effortLevel = EffortLevel.FAST,
                     dueAtMillis = recentReviewedDueAtMillis,
                     createdAtMillis = nowMillis - 1_000L + index,
                     updatedAtMillis = nowMillis - 1_000L + index

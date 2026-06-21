@@ -18,7 +18,6 @@ internal fun toCardSummary(card: CardWithRelations): CardSummary {
             values = card.tags.map { tag -> tag.name },
             referenceTags = emptyList()
         ),
-        effortLevel = card.card.effortLevel,
         dueAtMillis = card.card.dueAtMillis,
         createdAtMillis = card.card.createdAtMillis,
         updatedAtMillis = card.card.updatedAtMillis,

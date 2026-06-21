@@ -78,8 +78,7 @@ private fun makeAttachmentContentPart(attachment: AiChatAttachment): AiChatConte
             cardId = attachment.cardId,
             frontText = attachment.frontText,
             backText = attachment.backText,
-            tags = attachment.tags,
-            effortLevel = attachment.effortLevel
+            tags = attachment.tags
         )
         is AiChatAttachment.Unknown -> AiChatContentPart.Unknown(
             originalType = attachment.originalType,

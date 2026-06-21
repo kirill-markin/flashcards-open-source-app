@@ -139,23 +139,21 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 onOpenCurrentCard = { cardId ->
                     appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
                 },
-                onOpenCurrentCardWithAi = { cardId, frontText, backText, tags, effortLevel ->
+                onOpenCurrentCardWithAi = { cardId, frontText, backText, tags ->
                     AiChatDiagnosticsLogger.info(
                         event = "review_ai_handoff_requested",
                         fields = listOf(
                             "cardId" to cardId,
                             "frontText" to frontText,
                             "backTextLength" to backText.length.toString(),
-                            "tagsCount" to tags.size.toString(),
-                            "effortLevel" to effortLevel.name
+                            "tagsCount" to tags.size.toString()
                         )
                     )
                     appGraph.appHandoffCoordinator.requestAiCardHandoff(
                         cardId = cardId,
                         frontText = frontText,
                         backText = backText,
-                        tags = tags,
-                        effortLevel = effortLevel
+                        tags = tags
                     )
                     navigateToTopLevelDestination(
                         navController = navController,

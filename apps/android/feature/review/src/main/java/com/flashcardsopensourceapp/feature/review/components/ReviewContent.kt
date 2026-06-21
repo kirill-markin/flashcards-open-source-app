@@ -19,7 +19,6 @@ import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -44,7 +43,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 
 private val reviewShowAnswerContentBottomPadding = 120.dp
 private val reviewAnswerGridContentBottomPadding = 184.dp
@@ -75,8 +73,7 @@ internal fun ReviewContent(
         cardId: String,
         frontText: String,
         backText: String,
-        tags: List<String>,
-        effortLevel: EffortLevel
+        tags: List<String>
     ) -> Unit,
     onCreateCard: () -> Unit,
     onCreateCardWithAi: () -> Unit,
@@ -129,8 +126,7 @@ internal fun ReviewContent(
                                 card.cardId,
                                 card.frontText,
                                 card.backText,
-                                card.tags,
-                                card.effortLevel
+                                card.tags
                             )
                         },
                         onToggleFrontSpeech = onToggleFrontSpeech,
@@ -246,10 +242,6 @@ private fun ReviewCardContent(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                ReviewMetadataItem(
-                    icon = Icons.Outlined.Timer,
-                    label = currentCard.effortLabel
-                )
                 ReviewMetadataItem(
                     icon = Icons.AutoMirrored.Outlined.Label,
                     label = currentCard.tagsLabel

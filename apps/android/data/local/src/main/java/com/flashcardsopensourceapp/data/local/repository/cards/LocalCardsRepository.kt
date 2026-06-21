@@ -53,7 +53,6 @@ class LocalCardsRepository(
             workspaceId = workspace.workspaceId,
             frontText = cardDraft.frontText,
             backText = cardDraft.backText,
-            effortLevel = cardDraft.effortLevel,
             dueAtMillis = null,
             createdAtMillis = currentTimeMillis,
             updatedAtMillis = currentTimeMillis,
@@ -94,7 +93,6 @@ class LocalCardsRepository(
         val updatedCard: CardEntity = currentCard.copy(
             frontText = cardDraft.frontText,
             backText = cardDraft.backText,
-            effortLevel = cardDraft.effortLevel,
             updatedAtMillis = System.currentTimeMillis(),
             deletedAtMillis = null
         )

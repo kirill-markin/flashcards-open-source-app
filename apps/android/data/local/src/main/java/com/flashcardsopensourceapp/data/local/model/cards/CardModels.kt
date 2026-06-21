@@ -1,11 +1,9 @@
 package com.flashcardsopensourceapp.data.local.model.cards
 
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 
 data class DeckFilterDefinition(
     val version: Int,
-    val effortLevels: List<EffortLevel>,
     val tags: List<String>
 )
 
@@ -34,7 +32,6 @@ data class CardSummary(
     val frontText: String,
     val backText: String,
     val tags: List<String>,
-    val effortLevel: EffortLevel,
     val dueAtMillis: Long?,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
@@ -52,11 +49,9 @@ data class CardSummary(
 data class CardDraft(
     val frontText: String,
     val backText: String,
-    val tags: List<String>,
-    val effortLevel: EffortLevel
+    val tags: List<String>
 )
 
 data class CardFilter(
-    val tags: List<String>,
-    val effort: List<EffortLevel>
+    val tags: List<String>
 )

@@ -26,7 +26,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 
@@ -35,7 +34,6 @@ import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 fun DeckEditorRoute(
     uiState: DeckEditorUiState,
     onNameChange: (String) -> Unit,
-    onToggleEffortLevel: (EffortLevel) -> Unit,
     onToggleTag: (String) -> Unit,
     onSave: () -> Unit,
     onDelete: (() -> Unit)?,
@@ -137,39 +135,6 @@ fun DeckEditorRoute(
 
             item {
                 Text(
-                    text = stringResource(R.string.settings_deck_editor_effort_title),
-                    style = MaterialTheme.typography.titleSmall
-                )
-            }
-
-            item {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    EffortLevel.entries.forEach { effortLevel ->
-                        FilterChip(
-                            selected = uiState.selectedEffortLevels.contains(effortLevel),
-                            enabled = isEditorEnabled,
-                            onClick = {
-                                onToggleEffortLevel(effortLevel)
-                            },
-                            label = {
-                                Text(
-                                    when (effortLevel) {
-                                        EffortLevel.FAST -> stringResource(R.string.settings_effort_fast)
-                                        EffortLevel.MEDIUM -> stringResource(R.string.settings_effort_medium)
-                                        EffortLevel.LONG -> stringResource(R.string.settings_effort_long)
-                                    }
-                                )
-                            }
-                        )
-                    }
-                }
-            }
-
-            item {
-                Text(
                     text = stringResource(R.string.settings_deck_editor_tags_title),
                     style = MaterialTheme.typography.titleSmall
                 )
@@ -224,7 +189,6 @@ fun DeckEditorRoute(
                             text = formatDeckFilter(
                                 filterDefinition = DeckFilterDefinition(
                                     version = 2,
-                                    effortLevels = uiState.selectedEffortLevels,
                                     tags = uiState.selectedTags
                                 ),
                                 strings = strings

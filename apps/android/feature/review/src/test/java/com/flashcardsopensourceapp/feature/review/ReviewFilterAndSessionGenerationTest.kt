@@ -1,10 +1,8 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.scheduling.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
-import com.flashcardsopensourceapp.data.local.model.review.ReviewEffortFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 import org.junit.Assert.assertEquals
@@ -435,23 +433,6 @@ private fun createObservedReviewSessionSignature(
                 deckId = "all-fast",
                 title = "All fast",
                 totalCount = dueCount
-            )
-        ),
-        availableEffortFilters = listOf(
-            ReviewEffortFilterOption(
-                effortLevel = EffortLevel.FAST,
-                title = "Fast",
-                totalCount = dueCount
-            ),
-            ReviewEffortFilterOption(
-                effortLevel = EffortLevel.MEDIUM,
-                title = "Medium",
-                totalCount = 0
-            ),
-            ReviewEffortFilterOption(
-                effortLevel = EffortLevel.LONG,
-                title = "Long",
-                totalCount = 0
             )
         ),
         availableTagFilters = availableTagFilters
