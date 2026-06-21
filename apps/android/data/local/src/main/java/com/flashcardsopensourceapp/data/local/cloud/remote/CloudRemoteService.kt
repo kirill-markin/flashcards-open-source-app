@@ -33,6 +33,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationC
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
@@ -324,6 +325,18 @@ class CloudRemoteService private constructor(
         return progressApi.loadProgressStreakLeaderboard(
             apiBaseUrl = apiBaseUrl,
             authorizationHeader = authorizationHeader
+        )
+    }
+
+    override suspend fun loadProgressLeaderboardProfile(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        publicProfileId: String
+    ): CloudProgressLeaderboardProfile {
+        return progressApi.loadProgressLeaderboardProfile(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            publicProfileId = publicProfileId
         )
     }
 

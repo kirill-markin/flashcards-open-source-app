@@ -27,6 +27,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
@@ -302,6 +303,10 @@ class LocalCloudAccountRepository(
 
     override suspend fun loadProgressStreakLeaderboard(): CloudProgressStreakLeaderboard {
         return progressRemoteReader.loadProgressStreakLeaderboard()
+    }
+
+    override suspend fun loadProgressLeaderboardProfile(publicProfileId: String): CloudProgressLeaderboardProfile {
+        return progressRemoteReader.loadProgressLeaderboardProfile(publicProfileId = publicProfileId)
     }
 
     override suspend fun loadCommunityProfile(): CloudCommunityProfile {

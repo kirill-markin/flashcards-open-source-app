@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.progress.sections
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +30,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardProfileIdentityUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressStreakLeaderboardRowUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressStreakLeaderboardSectionUiState
 import com.flashcardsopensourceapp.feature.progress.R
@@ -39,6 +43,7 @@ import java.util.Locale
 @Composable
 internal fun StreakLeaderboardSectionCard(
     uiState: ProgressStreakLeaderboardSectionUiState,
+    onOpenProfile: (ProgressLeaderboardProfileIdentityUiState) -> Unit,
     onOpenSignIn: () -> Unit,
     onOpenLeaderboardSettings: () -> Unit
 ) {
@@ -149,7 +154,10 @@ internal fun StreakLeaderboardSectionCard(
                     ProgressLeaderboardResolvedContent(
                         testTag = progressStreakLeaderboardResolvedContentTag
                     ) {
-                        ProgressStreakLeaderboardReadyContent(uiState = uiState)
+                        ProgressStreakLeaderboardReadyContent(
+                            uiState = uiState,
+                            onOpenProfile = onOpenProfile
+                        )
                     }
                 }
             }
@@ -193,7 +201,8 @@ internal fun StreakLeaderboardSectionCard(
 
 @Composable
 private fun ProgressStreakLeaderboardReadyContent(
-    uiState: ProgressStreakLeaderboardSectionUiState.Ready
+    uiState: ProgressStreakLeaderboardSectionUiState.Ready,
+    onOpenProfile: (ProgressLeaderboardProfileIdentityUiState) -> Unit
 ) {
     val configuration = LocalConfiguration.current
     val locale = if (configuration.locales.isEmpty) {
@@ -239,18 +248,29 @@ private fun ProgressStreakLeaderboardReadyContent(
                             count = row.streakDays,
                             countFormatter.format(row.streakDays.toLong())
                         )
+                        val displayName = if (row.isViewer) {
+                            stringResource(id = R.string.progress_leaderboard_you)
+                        } else {
+                            row.displayName
+                        }
+                        val contentDescription = stringResource(
+                            id = R.string.progress_leaderboard_profile_row_content_description,
+                            displayName
+                        )
                         ProgressLeaderboardParticipantRow(
                             rankLabel = countFormatter.format(row.rank.toLong()),
-                            displayName = if (row.isViewer) {
-                                stringResource(id = R.string.progress_leaderboard_you)
-                            } else {
-                                row.displayName
-                            },
+                            displayName = displayName,
                             metricLabel = streakDaysLabel,
                             isViewer = row.isViewer,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag(progressStreakLeaderboardParticipantRowTag(rank = row.rank))
+                                .semantics {
+                                    this.contentDescription = contentDescription
+                                }
+                                .clickable {
+                                    onOpenProfile(row.profileIdentity)
+                                }
                         )
                     }
                 }

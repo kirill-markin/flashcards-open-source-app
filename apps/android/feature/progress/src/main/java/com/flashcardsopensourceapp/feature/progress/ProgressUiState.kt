@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.progress
 
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakDayState
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardProfileStatus
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
 import java.time.LocalDate
@@ -67,13 +68,33 @@ data class ProgressReviewScheduleSectionUiState(
     val hasCards: Boolean
 )
 
+data class ProgressLeaderboardProfileIdentityUiState(
+    val publicProfileId: String,
+    val displayName: String,
+    val anonymousDisplayName: String,
+    val friendDisplayName: String?,
+    val isViewer: Boolean
+)
+
 sealed interface ProgressLeaderboardRowUiState {
     data class Participant(
         val rank: Int,
         val displayName: String,
+        val publicProfileId: String,
+        val anonymousDisplayName: String,
+        val friendDisplayName: String?,
         val qualifiedReviewCount: Int,
         val isViewer: Boolean
-    ) : ProgressLeaderboardRowUiState
+    ) : ProgressLeaderboardRowUiState {
+        val profileIdentity: ProgressLeaderboardProfileIdentityUiState
+            get() = ProgressLeaderboardProfileIdentityUiState(
+                publicProfileId = publicProfileId,
+                displayName = displayName,
+                anonymousDisplayName = anonymousDisplayName,
+                friendDisplayName = friendDisplayName,
+                isViewer = isViewer
+            )
+    }
 
     data object Gap : ProgressLeaderboardRowUiState
 }
@@ -113,9 +134,21 @@ sealed interface ProgressStreakLeaderboardRowUiState {
     data class Participant(
         val rank: Int,
         val displayName: String,
+        val publicProfileId: String,
+        val anonymousDisplayName: String,
+        val friendDisplayName: String?,
         val streakDays: Int,
         val isViewer: Boolean
-    ) : ProgressStreakLeaderboardRowUiState
+    ) : ProgressStreakLeaderboardRowUiState {
+        val profileIdentity: ProgressLeaderboardProfileIdentityUiState
+            get() = ProgressLeaderboardProfileIdentityUiState(
+                publicProfileId = publicProfileId,
+                displayName = displayName,
+                anonymousDisplayName = anonymousDisplayName,
+                friendDisplayName = friendDisplayName,
+                isViewer = isViewer
+            )
+    }
 
     data object Gap : ProgressStreakLeaderboardRowUiState
 }
@@ -150,6 +183,50 @@ sealed interface ProgressSummaryUiState {
     ) : ProgressSummaryUiState
 }
 
+data class ProgressLeaderboardProfileBestRatingPlacementUiState(
+    val windowKey: ProgressLeaderboardWindowKey,
+    val rank: Int
+)
+
+data class ProgressLeaderboardProfileReviewActivityDayUiState(
+    val date: LocalDate,
+    val reviewCount: Int
+)
+
+data class ProgressLeaderboardProfileReadyUiState(
+    val publicProfileId: String,
+    val anonymousDisplayName: String,
+    val friendDisplayName: String?,
+    val isFriend: Boolean,
+    val currentStreakDays: Int,
+    val bestRatingPlacement: ProgressLeaderboardProfileBestRatingPlacementUiState?,
+    val reviewActivityDays: List<ProgressLeaderboardProfileReviewActivityDayUiState>,
+    val joinedDate: LocalDate,
+    val totalCards: Int
+)
+
+sealed interface ProgressLeaderboardProfileSheetUiState {
+    val selectedProfile: ProgressLeaderboardProfileIdentityUiState
+
+    data class Loading(
+        override val selectedProfile: ProgressLeaderboardProfileIdentityUiState
+    ) : ProgressLeaderboardProfileSheetUiState
+
+    data class Ready(
+        override val selectedProfile: ProgressLeaderboardProfileIdentityUiState,
+        val profile: ProgressLeaderboardProfileReadyUiState
+    ) : ProgressLeaderboardProfileSheetUiState
+
+    data class Unavailable(
+        override val selectedProfile: ProgressLeaderboardProfileIdentityUiState,
+        val status: ProgressLeaderboardProfileStatus
+    ) : ProgressLeaderboardProfileSheetUiState
+
+    data class Error(
+        override val selectedProfile: ProgressLeaderboardProfileIdentityUiState
+    ) : ProgressLeaderboardProfileSheetUiState
+}
+
 sealed interface ProgressUiState {
     data object Loading : ProgressUiState
 
@@ -167,6 +244,7 @@ sealed interface ProgressUiState {
         val reviewsSection: ProgressReviewsSectionUiState,
         val reviewScheduleSection: ProgressReviewScheduleSectionUiState?,
         val leaderboardSection: ProgressLeaderboardSectionUiState,
-        val streakLeaderboardSection: ProgressStreakLeaderboardSectionUiState
+        val streakLeaderboardSection: ProgressStreakLeaderboardSectionUiState,
+        val leaderboardProfileSheet: ProgressLeaderboardProfileSheetUiState?
     ) : ProgressUiState
 }

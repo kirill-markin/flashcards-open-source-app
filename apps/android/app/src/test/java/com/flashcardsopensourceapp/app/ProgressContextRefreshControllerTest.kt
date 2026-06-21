@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
@@ -275,6 +276,10 @@ private class FakeProgressRepository(
     }
 
     override suspend fun refreshStreakLeaderboardManually() {
+        throw UnsupportedOperationException("Not used in ProgressContextRefreshControllerTest.")
+    }
+
+    override suspend fun loadLeaderboardProfile(publicProfileId: String): CloudProgressLeaderboardProfile {
         throw UnsupportedOperationException("Not used in ProgressContextRefreshControllerTest.")
     }
 

@@ -1,8 +1,10 @@
 package com.flashcardsopensourceapp.feature.progress
 
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardProfileStatus
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardStatus
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
+import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -41,10 +43,14 @@ class ProgressViewModelLeaderboardTest {
             val firstRow = rows[0] as ProgressLeaderboardRowUiState.Participant
             assertEquals(1, firstRow.rank)
             assertEquals("Silver Bright Harbor", firstRow.displayName)
+            assertEquals("participant-1", firstRow.publicProfileId)
+            assertEquals("Silver Bright Harbor", firstRow.anonymousDisplayName)
+            assertEquals(null, firstRow.friendDisplayName)
             assertEquals(51, firstRow.qualifiedReviewCount)
             assertEquals(false, firstRow.isViewer)
             val viewerRow = rows[5] as ProgressLeaderboardRowUiState.Participant
             assertEquals(42, viewerRow.rank)
+            assertEquals("viewer-profile", viewerRow.publicProfileId)
             assertTrue(viewerRow.isViewer)
         } finally {
             Dispatchers.resetMain()
@@ -232,5 +238,115 @@ class ProgressViewModelLeaderboardTest {
         val selectedWindow = checkNotNull(sectionUiState.selectedWindow)
         assertEquals(9, selectedWindow.rows.size)
         assertEquals(13, sectionUiState.reservedRowCount)
+    }
+
+    @Test
+    fun openingLeaderboardProfileLoadsReadySheet() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        try {
+            val repository = FakeProgressRepository()
+            val viewModel = createProgressViewModelForTest(progressRepository = repository)
+
+            repository.emitSummarySnapshot(snapshot = createProgressSummarySnapshot())
+            repository.emitSeriesSnapshot(snapshot = createProgressSeriesSnapshot())
+            repository.emitLeaderboardSnapshot(snapshot = createProgressLeaderboardSnapshot())
+            advanceUntilIdle()
+
+            val loadedState = viewModel.uiState.value as ProgressUiState.Loaded
+            val leaderboardSection = loadedState.leaderboardSection as ProgressLeaderboardSectionUiState.Ready
+            val firstRow = checkNotNull(leaderboardSection.selectedWindow)
+                .rows
+                .first() as ProgressLeaderboardRowUiState.Participant
+
+            viewModel.openLeaderboardProfile(selectedProfile = firstRow.profileIdentity)
+            advanceUntilIdle()
+
+            assertEquals(listOf("participant-1"), repository.loadedLeaderboardProfileIds)
+            val uiState = viewModel.uiState.value as ProgressUiState.Loaded
+            val sheet = uiState.leaderboardProfileSheet as ProgressLeaderboardProfileSheetUiState.Ready
+            assertEquals("participant-1", sheet.selectedProfile.publicProfileId)
+            assertEquals("Silver Bright Harbor", sheet.selectedProfile.displayName)
+            assertEquals("Kai", sheet.profile.friendDisplayName)
+            assertTrue(sheet.profile.isFriend)
+            assertEquals(5, sheet.profile.currentStreakDays)
+            assertEquals(ProgressLeaderboardWindowKey.LAST_24_HOURS, sheet.profile.bestRatingPlacement?.windowKey)
+            assertEquals(1, sheet.profile.bestRatingPlacement?.rank)
+            assertEquals(30, sheet.profile.reviewActivityDays.size)
+            assertEquals(LocalDate.parse("2026-05-01"), sheet.profile.joinedDate)
+            assertEquals(72, sheet.profile.totalCards)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    fun openingLeaderboardProfileMapsUnavailableSheet() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        try {
+            val repository = FakeProgressRepository()
+            repository.leaderboardProfileResponse = createCloudProgressLeaderboardProfileNonReady(
+                status = ProgressLeaderboardProfileStatus.PROFILE_UNAVAILABLE
+            )
+            val viewModel = createProgressViewModelForTest(progressRepository = repository)
+
+            repository.emitSummarySnapshot(snapshot = createProgressSummarySnapshot())
+            repository.emitSeriesSnapshot(snapshot = createProgressSeriesSnapshot())
+            repository.emitLeaderboardSnapshot(snapshot = createProgressLeaderboardSnapshot())
+            advanceUntilIdle()
+
+            val loadedState = viewModel.uiState.value as ProgressUiState.Loaded
+            val leaderboardSection = loadedState.leaderboardSection as ProgressLeaderboardSectionUiState.Ready
+            val firstRow = checkNotNull(leaderboardSection.selectedWindow)
+                .rows
+                .first() as ProgressLeaderboardRowUiState.Participant
+
+            viewModel.openLeaderboardProfile(selectedProfile = firstRow.profileIdentity)
+            advanceUntilIdle()
+
+            val uiState = viewModel.uiState.value as ProgressUiState.Loaded
+            val sheet = uiState.leaderboardProfileSheet as ProgressLeaderboardProfileSheetUiState.Unavailable
+            assertEquals(ProgressLeaderboardProfileStatus.PROFILE_UNAVAILABLE, sheet.status)
+            assertEquals("participant-1", sheet.selectedProfile.publicProfileId)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    fun leaderboardProfileFailureMapsErrorAndRetryReloads() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        try {
+            val repository = FakeProgressRepository()
+            repository.leaderboardProfileError = IllegalStateException("Synthetic profile load failure.")
+            val viewModel = createProgressViewModelForTest(progressRepository = repository)
+
+            repository.emitSummarySnapshot(snapshot = createProgressSummarySnapshot())
+            repository.emitSeriesSnapshot(snapshot = createProgressSeriesSnapshot())
+            repository.emitLeaderboardSnapshot(snapshot = createProgressLeaderboardSnapshot())
+            advanceUntilIdle()
+
+            val loadedState = viewModel.uiState.value as ProgressUiState.Loaded
+            val leaderboardSection = loadedState.leaderboardSection as ProgressLeaderboardSectionUiState.Ready
+            val firstRow = checkNotNull(leaderboardSection.selectedWindow)
+                .rows
+                .first() as ProgressLeaderboardRowUiState.Participant
+
+            viewModel.openLeaderboardProfile(selectedProfile = firstRow.profileIdentity)
+            advanceUntilIdle()
+
+            val failedState = viewModel.uiState.value as ProgressUiState.Loaded
+            val errorSheet = failedState.leaderboardProfileSheet as ProgressLeaderboardProfileSheetUiState.Error
+            assertEquals("participant-1", errorSheet.selectedProfile.publicProfileId)
+
+            repository.leaderboardProfileError = null
+            viewModel.retryLeaderboardProfile()
+            advanceUntilIdle()
+
+            assertEquals(listOf("participant-1", "participant-1"), repository.loadedLeaderboardProfileIds)
+            val retriedState = viewModel.uiState.value as ProgressUiState.Loaded
+            assertTrue(retriedState.leaderboardProfileSheet is ProgressLeaderboardProfileSheetUiState.Ready)
+        } finally {
+            Dispatchers.resetMain()
+        }
     }
 }

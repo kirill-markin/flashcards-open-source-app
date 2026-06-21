@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
@@ -80,6 +81,17 @@ internal class CloudProgressRemoteReader(
             remoteService.loadProgressStreakLeaderboard(
                 apiBaseUrl = progressSession.apiBaseUrl,
                 authorizationHeader = progressSession.authorizationHeader
+            )
+        }
+    }
+
+    suspend fun loadProgressLeaderboardProfile(publicProfileId: String): CloudProgressLeaderboardProfile {
+        return operationCoordinator.runExclusive {
+            val progressSession: ProgressCloudSession = progressSession()
+            remoteService.loadProgressLeaderboardProfile(
+                apiBaseUrl = progressSession.apiBaseUrl,
+                authorizationHeader = progressSession.authorizationHeader,
+                publicProfileId = publicProfileId
             )
         }
     }

@@ -64,6 +64,19 @@
     <string name="progress_leaderboard_participation_disabled_button">Open leaderboard settings</string>
     <string name="progress_leaderboard_offline_message">The rating leaderboard needs a connection. It will load when you are back online.</string>
     <string name="progress_leaderboard_unavailable_message">The rating leaderboard is not ready yet. Check back soon.</string>
+    <string name="progress_leaderboard_profile_row_content_description">Open %1$s profile</string>
+    <string name="progress_leaderboard_profile_friend_label">Friend</string>
+    <string name="progress_leaderboard_profile_current_streak_label">Current streak</string>
+    <string name="progress_leaderboard_profile_best_rating_label">Best rating rank</string>
+    <string name="progress_leaderboard_profile_best_rating_value">%1$s in %2$s</string>
+    <string name="progress_leaderboard_profile_no_rating_value">Not ranked yet</string>
+    <string name="progress_leaderboard_profile_activity_title">Last 30 days</string>
+    <string name="progress_leaderboard_profile_activity_chart_content_description">Review activity for the last 30 days</string>
+    <string name="progress_leaderboard_profile_joined_value">Joined %1$s</string>
+    <string name="progress_leaderboard_profile_linked_account_required_message">Sign in to view leaderboard profiles.</string>
+    <string name="progress_leaderboard_profile_participation_disabled_message">Turn leaderboard participation on to view profiles.</string>
+    <string name="progress_leaderboard_profile_unavailable_message">This leaderboard profile is not available.</string>
+    <string name="progress_leaderboard_profile_error_message">This profile could not be loaded. Check your connection and try again.</string>
     <string name="progress_streak_leaderboard_title">Streak leaderboard</string>
     <string name="progress_streak_leaderboard_info_button_content_description">About the streak leaderboard</string>
     <string name="progress_streak_leaderboard_info_title">How streak ranking works</string>
@@ -93,5 +106,13 @@
     <plurals name="progress_streak_leaderboard_day_count">
         <item quantity="one">%1$s day</item>
         <item quantity="other">%1$s days</item>
+    </plurals>
+    <plurals name="progress_leaderboard_profile_activity_total">
+        <item quantity="one">%1$s review total</item>
+        <item quantity="other">%1$s reviews total</item>
+    </plurals>
+    <plurals name="progress_leaderboard_profile_total_cards_value">
+        <item quantity="one">%1$s card</item>
+        <item quantity="other">%1$s cards</item>
     </plurals>
 </resources>

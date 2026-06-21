@@ -4,6 +4,12 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardMetric
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfileBestRatingPlacement
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfileMetrics
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfileReviewActivity
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfileReviewActivityDay
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfileStats
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
@@ -22,6 +28,8 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreak
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardViewer
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardParticipantRowKind
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardProfileReviewActivityDateBasis
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardProfileStatus
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardStatus
@@ -79,6 +87,9 @@ internal class FakeProgressRepository : ProgressRepository {
         private set
     var refreshStreakLeaderboardManuallyCallCount: Int = 0
         private set
+    val loadedLeaderboardProfileIds = mutableListOf<String>()
+    var leaderboardProfileResponse: CloudProgressLeaderboardProfile = createCloudProgressLeaderboardProfile()
+    var leaderboardProfileError: Exception? = null
 
     fun emitSummarySnapshot(
         snapshot: ProgressSummarySnapshot
@@ -172,6 +183,14 @@ internal class FakeProgressRepository : ProgressRepository {
 
     override suspend fun refreshStreakLeaderboardManually() {
         refreshStreakLeaderboardManuallyCallCount += 1
+    }
+
+    override suspend fun loadLeaderboardProfile(publicProfileId: String): CloudProgressLeaderboardProfile {
+        loadedLeaderboardProfileIds += publicProfileId
+        leaderboardProfileError?.let { error ->
+            throw error
+        }
+        return leaderboardProfileResponse
     }
 }
 
@@ -428,6 +447,53 @@ internal fun createCloudProgressLeaderboard(
         defaultWindowKey = ProgressLeaderboardWindowKey.LAST_24_HOURS,
         windows = windows
     )
+}
+
+internal fun createCloudProgressLeaderboardProfile(): CloudProgressLeaderboardProfile.Ready {
+    return CloudProgressLeaderboardProfile.Ready(
+        status = ProgressLeaderboardProfileStatus.READY,
+        publicProfileId = "participant-1",
+        anonymousDisplayName = "Silver Bright Harbor",
+        friendDisplayName = "Kai",
+        isFriend = true,
+        metrics = CloudProgressLeaderboardProfileMetrics(
+            currentStreakDays = 5,
+            bestRatingPlacement = CloudProgressLeaderboardProfileBestRatingPlacement(
+                windowKey = ProgressLeaderboardWindowKey.LAST_24_HOURS,
+                rank = 1
+            )
+        ),
+        reviewActivity = CloudProgressLeaderboardProfileReviewActivity(
+            dateBasis = ProgressLeaderboardProfileReviewActivityDateBasis.PROFILE_LOCAL_DAY_WITH_UTC_FALLBACK,
+            days = createCloudProgressLeaderboardProfileReviewActivityDays()
+        ),
+        stats = CloudProgressLeaderboardProfileStats(
+            joinedAt = "2026-05-01T10:00:00.000Z",
+            totalCards = 72
+        ),
+        generatedAt = "2026-06-21T12:34:56.000Z"
+    )
+}
+
+internal fun createCloudProgressLeaderboardProfileNonReady(
+    status: ProgressLeaderboardProfileStatus
+): CloudProgressLeaderboardProfile.NonReady {
+    return CloudProgressLeaderboardProfile.NonReady(status = status)
+}
+
+private fun createCloudProgressLeaderboardProfileReviewActivityDays(): List<CloudProgressLeaderboardProfileReviewActivityDay> {
+    val startDate = LocalDate.parse("2026-05-23")
+    return (0 until 30).map { dayIndex ->
+        CloudProgressLeaderboardProfileReviewActivityDay(
+            date = startDate.plusDays(dayIndex.toLong()).toString(),
+            reviewCount = when (dayIndex) {
+                0 -> 2
+                9 -> 5
+                29 -> 1
+                else -> 0
+            }
+        )
+    }
 }
 
 internal fun createCloudProgressLeaderboardWindow(): CloudProgressLeaderboardWindow {

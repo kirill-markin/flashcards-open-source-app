@@ -2,12 +2,14 @@ package com.flashcardsopensourceapp.data.local.cloud.remote.progress
 
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgressLeaderboardCloudPath
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgressLeaderboardProfileCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgressReviewScheduleCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgressSeriesCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgressSummaryCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildProgressStreakLeaderboardCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseCloudIsoTimestamp
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
@@ -18,6 +20,12 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.progress.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardMetric
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfileBestRatingPlacement
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfileMetrics
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfileReviewActivity
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfileReviewActivityDay
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfileStats
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRow
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRankingRowKind
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardRow
@@ -36,6 +44,8 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreak
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboardViewer
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardParticipantRowKind
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardProfileReviewActivityDateBasis
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardProfileStatus
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardStatus
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleBucketKey
@@ -43,6 +53,8 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewHisto
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import org.json.JSONObject
+
+private const val leaderboardProfileReviewActivityDayCount: Int = 30
 
 internal class CloudProgressRemoteApi(
     private val httpClient: CloudJsonHttpClient
@@ -129,6 +141,31 @@ internal class CloudProgressRemoteApi(
             payload = response,
             fieldPath = "progress.streakLeaderboard"
         )
+    }
+
+    suspend fun loadProgressLeaderboardProfile(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        publicProfileId: String
+    ): CloudProgressLeaderboardProfile {
+        val response = httpClient.getJson(
+            baseUrl = apiBaseUrl,
+            path = buildProgressLeaderboardProfileCloudPath(publicProfileId = publicProfileId),
+            authorizationHeader = authorizationHeader
+        )
+        val profile = parseCloudProgressLeaderboardProfile(
+            payload = response,
+            fieldPath = "progress.leaderboardProfile"
+        )
+        if (
+            profile is CloudProgressLeaderboardProfile.Ready &&
+            profile.publicProfileId != publicProfileId
+        ) {
+            throw CloudContractMismatchException(
+                "progress.leaderboardProfile.publicProfileId expected requested profile '$publicProfileId' but got '${profile.publicProfileId}'."
+            )
+        }
+        return profile
     }
 }
 
@@ -661,6 +698,179 @@ private fun requirePositiveLeaderboardRank(
 ): Int {
     if (value < 1) {
         throw CloudContractMismatchException("$fieldPath must be at least 1.")
+    }
+
+    return value
+}
+
+internal fun parseCloudProgressLeaderboardProfile(
+    payload: JSONObject,
+    fieldPath: String
+): CloudProgressLeaderboardProfile {
+    val status = ProgressLeaderboardProfileStatus.fromWireKey(
+        wireKey = payload.requireCloudString("status", "$fieldPath.status")
+    )
+    if (status != ProgressLeaderboardProfileStatus.READY) {
+        return CloudProgressLeaderboardProfile.NonReady(status = status)
+    }
+
+    val generatedAt = payload.requireCloudString("generatedAt", "$fieldPath.generatedAt")
+    parseCloudIsoTimestamp(
+        value = generatedAt,
+        fieldPath = "$fieldPath.generatedAt"
+    )
+
+    return CloudProgressLeaderboardProfile.Ready(
+        status = status,
+        publicProfileId = requireNonBlankProgressString(
+            value = payload.requireCloudString("publicProfileId", "$fieldPath.publicProfileId"),
+            fieldPath = "$fieldPath.publicProfileId"
+        ),
+        anonymousDisplayName = requireNonBlankProgressString(
+            value = payload.requireCloudString("anonymousDisplayName", "$fieldPath.anonymousDisplayName"),
+            fieldPath = "$fieldPath.anonymousDisplayName"
+        ),
+        friendDisplayName = payload.optCloudStringOrNull("friendDisplayName", "$fieldPath.friendDisplayName"),
+        isFriend = payload.requireCloudBoolean("isFriend", "$fieldPath.isFriend"),
+        metrics = payload.requireCloudObject("metrics", "$fieldPath.metrics")
+            .toCloudProgressLeaderboardProfileMetrics(fieldPath = "$fieldPath.metrics"),
+        reviewActivity = payload.requireCloudObject("reviewActivity", "$fieldPath.reviewActivity")
+            .toCloudProgressLeaderboardProfileReviewActivity(fieldPath = "$fieldPath.reviewActivity"),
+        stats = payload.requireCloudObject("stats", "$fieldPath.stats")
+            .toCloudProgressLeaderboardProfileStats(fieldPath = "$fieldPath.stats"),
+        generatedAt = generatedAt
+    )
+}
+
+private fun JSONObject.toCloudProgressLeaderboardProfileMetrics(
+    fieldPath: String
+): CloudProgressLeaderboardProfileMetrics {
+    return CloudProgressLeaderboardProfileMetrics(
+        currentStreakDays = requireNonNegativeLeaderboardInt(
+            value = requireCloudInt("currentStreakDays", "$fieldPath.currentStreakDays"),
+            fieldPath = "$fieldPath.currentStreakDays"
+        ),
+        bestRatingPlacement = requireCloudNullableLeaderboardProfileBestRatingPlacement(
+            key = "bestRatingPlacement",
+            fieldPath = "$fieldPath.bestRatingPlacement"
+        )
+    )
+}
+
+private fun JSONObject.requireCloudNullableLeaderboardProfileBestRatingPlacement(
+    key: String,
+    fieldPath: String
+): CloudProgressLeaderboardProfileBestRatingPlacement? {
+    if (has(key).not()) {
+        throw CloudContractMismatchException("Cloud contract mismatch for $fieldPath: expected present value.")
+    }
+
+    val value = get(key)
+    return when {
+        value === JSONObject.NULL -> null
+        value is JSONObject -> value.toCloudProgressLeaderboardProfileBestRatingPlacement(fieldPath = fieldPath)
+        else -> throw CloudContractMismatchException(
+            "Cloud contract mismatch for $fieldPath: expected object or null."
+        )
+    }
+}
+
+private fun JSONObject.toCloudProgressLeaderboardProfileBestRatingPlacement(
+    fieldPath: String
+): CloudProgressLeaderboardProfileBestRatingPlacement {
+    return CloudProgressLeaderboardProfileBestRatingPlacement(
+        windowKey = ProgressLeaderboardWindowKey.fromWireKey(
+            wireKey = requireCloudString("windowKey", "$fieldPath.windowKey")
+        ),
+        rank = requirePositiveLeaderboardRank(
+            value = requireCloudInt("rank", "$fieldPath.rank"),
+            fieldPath = "$fieldPath.rank"
+        )
+    )
+}
+
+private fun JSONObject.toCloudProgressLeaderboardProfileReviewActivity(
+    fieldPath: String
+): CloudProgressLeaderboardProfileReviewActivity {
+    val daysArray = requireCloudArray("days", "$fieldPath.days")
+    val days = buildList {
+        for (index in 0 until daysArray.length()) {
+            val dayFieldPath = "$fieldPath.days[$index]"
+            val day = daysArray.requireCloudObject(index, dayFieldPath)
+            add(
+                CloudProgressLeaderboardProfileReviewActivityDay(
+                    date = day.requireCloudString("date", "$dayFieldPath.date"),
+                    reviewCount = requireNonNegativeLeaderboardInt(
+                        value = day.requireCloudInt("reviewCount", "$dayFieldPath.reviewCount"),
+                        fieldPath = "$dayFieldPath.reviewCount"
+                    )
+                )
+            )
+        }
+    }
+    validateCloudProgressLeaderboardProfileReviewActivityDays(
+        days = days,
+        fieldPath = "$fieldPath.days"
+    )
+
+    return CloudProgressLeaderboardProfileReviewActivity(
+        dateBasis = ProgressLeaderboardProfileReviewActivityDateBasis.fromWireKey(
+            wireKey = requireCloudString("dateBasis", "$fieldPath.dateBasis")
+        ),
+        days = days
+    )
+}
+
+private fun validateCloudProgressLeaderboardProfileReviewActivityDays(
+    days: List<CloudProgressLeaderboardProfileReviewActivityDay>,
+    fieldPath: String
+) {
+    if (days.size != leaderboardProfileReviewActivityDayCount) {
+        throw CloudContractMismatchException(
+            "$fieldPath expected $leaderboardProfileReviewActivityDayCount entries but got ${days.size}."
+        )
+    }
+
+    var previousDate: LocalDate? = null
+    days.forEachIndexed { index, day ->
+        val date = parseCloudProgressLocalDate(
+            value = day.date,
+            fieldPath = "$fieldPath[$index].date"
+        )
+        val expectedDate = previousDate?.plusDays(1L)
+        if (expectedDate != null && date != expectedDate) {
+            throw CloudContractMismatchException(
+                "$fieldPath[$index].date expected '${expectedDate}' after the previous entry but got '${day.date}'."
+            )
+        }
+        previousDate = date
+    }
+}
+
+private fun JSONObject.toCloudProgressLeaderboardProfileStats(
+    fieldPath: String
+): CloudProgressLeaderboardProfileStats {
+    val joinedAt = requireCloudString("joinedAt", "$fieldPath.joinedAt")
+    parseCloudIsoTimestamp(
+        value = joinedAt,
+        fieldPath = "$fieldPath.joinedAt"
+    )
+
+    return CloudProgressLeaderboardProfileStats(
+        joinedAt = joinedAt,
+        totalCards = requireNonNegativeLeaderboardInt(
+            value = requireCloudInt("totalCards", "$fieldPath.totalCards"),
+            fieldPath = "$fieldPath.totalCards"
+        )
+    )
+}
+
+private fun requireNonBlankProgressString(
+    value: String,
+    fieldPath: String
+): String {
+    if (value.isBlank()) {
+        throw CloudContractMismatchException("$fieldPath must not be blank.")
     }
 
     return value

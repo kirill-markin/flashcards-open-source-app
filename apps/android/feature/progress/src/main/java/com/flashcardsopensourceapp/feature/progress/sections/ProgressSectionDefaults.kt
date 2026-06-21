@@ -16,10 +16,21 @@ const val progressLeaderboardPeriodSelectorTag: String = "progress_leaderboard_p
 const val progressLeaderboardInfoButtonTag: String = "progress_leaderboard_info_button"
 const val progressLeaderboardInviteButtonTag: String = "progress_leaderboard_invite_button"
 const val progressLeaderboardInviteDisplayNameFieldTag: String = "progress_leaderboard_invite_display_name_field"
+const val progressLeaderboardProfileSheetTag: String = "progress_leaderboard_profile_sheet"
+const val progressLeaderboardProfileActivityChartTag: String = "progress_leaderboard_profile_activity_chart"
+const val progressLeaderboardProfileRetryButtonTag: String = "progress_leaderboard_profile_retry_button"
 const val progressStreakLeaderboardSectionTag: String = "progress_streak_leaderboard_section"
 const val progressStreakLeaderboardResolvedContentTag: String =
     "progress_streak_leaderboard_resolved_content"
 const val progressStreakLeaderboardInfoButtonTag: String = "progress_streak_leaderboard_info_button"
+
+fun progressLeaderboardParticipantRowTag(rank: Int): String {
+    return "progress_leaderboard_row_$rank"
+}
+
+fun progressLeaderboardGapRowTag(index: Int): String {
+    return "progress_leaderboard_gap_row_$index"
+}
 
 fun progressStreakLeaderboardParticipantRowTag(rank: Int): String {
     return "progress_streak_leaderboard_row_$rank"
