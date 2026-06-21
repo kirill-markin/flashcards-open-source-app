@@ -138,7 +138,7 @@ class AiChatRuntimeConversationResetRaceTest {
     }
 
     @Test
-    fun clearConversationKeepsDraftAttachmentsAndSuggestionsClearedDuringBootstrapReload() = runTest {
+    fun clearConversationKeepsCachedSuggestionsDuringProvisioningAndClearsAfterServerResponse() = runTest {
         val repository = FakeAiChatRepository()
         repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
             chatSessionId = "session-1"
@@ -222,7 +222,10 @@ class AiChatRuntimeConversationResetRaceTest {
         assertEquals(freshSessionId, runtime.state.value.conversationScopeId)
         assertEquals("", runtime.state.value.draftMessage)
         assertTrue(runtime.state.value.pendingAttachments.isEmpty())
-        assertTrue(runtime.state.value.serverComposerSuggestions.isEmpty())
+        assertEquals(
+            listOf("suggestion-1"),
+            runtime.state.value.serverComposerSuggestions.map { suggestion -> suggestion.id }
+        )
         assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
 
         bootstrapGate.complete(Unit)

@@ -18,6 +18,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiAccessConte
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiConversationBootstrapState
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canApplyAiComposerSuggestion
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canEditAiDraft
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canEditAiDraftText
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.canManageAiDraftAttachments
@@ -167,7 +168,7 @@ internal class AiChatRuntime(
     }
 
     fun applyComposerSuggestion(suggestion: AiChatComposerSuggestion) {
-        if (canEditAiDraft(state = runtimeStateMutable.value).not()) {
+        if (canApplyAiComposerSuggestion(state = runtimeStateMutable.value).not()) {
             return
         }
         runtimeStateMutable.update { state ->

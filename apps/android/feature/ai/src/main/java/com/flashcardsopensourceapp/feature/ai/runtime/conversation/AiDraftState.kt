@@ -124,6 +124,31 @@ internal fun canManageAiDraftAttachments(state: AiChatRuntimeState): Boolean {
     return canEditAiDraft(state = state)
 }
 
+internal fun canApplyAiComposerSuggestion(state: AiChatRuntimeState): Boolean {
+    val isConversationReady: Boolean =
+        state.conversationBootstrapState == AiConversationBootstrapState.READY
+    val isWarmConversationLoading: Boolean = (
+        state.conversationBootstrapState == AiConversationBootstrapState.LOADING ||
+            state.conversationBootstrapState == AiConversationBootstrapState.RESETTING
+        ) && state.serverComposerSuggestions.isNotEmpty()
+    if (isConversationReady.not() && isWarmConversationLoading.not()) {
+        return false
+    }
+    if (state.composerPhase != AiComposerPhase.IDLE) {
+        return false
+    }
+    if (state.activeRun != null) {
+        return false
+    }
+    if (state.dictationState != AiChatDictationState.IDLE) {
+        return false
+    }
+    if (state.pendingAttachments.isNotEmpty()) {
+        return false
+    }
+    return state.draftMessage.trim().isEmpty()
+}
+
 internal fun canPrepareAiDraftInComposerPhase(composerPhase: AiComposerPhase): Boolean {
     return composerPhase == AiComposerPhase.IDLE || composerPhase == AiComposerPhase.RUNNING
 }
@@ -172,7 +197,7 @@ internal fun makeAiDraftState(
         draftMessage = "",
         pendingAttachments = emptyList(),
         focusComposerRequestVersion = 0L,
-        serverComposerSuggestions = emptyList(),
+        serverComposerSuggestions = normalizedPersistedState.composerSuggestions,
         composerPhase = AiComposerPhase.IDLE,
         dictationState = AiChatDictationState.IDLE,
         conversationBootstrapState = AiConversationBootstrapState.READY,

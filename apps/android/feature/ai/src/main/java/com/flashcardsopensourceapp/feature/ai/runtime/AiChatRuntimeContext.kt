@@ -174,7 +174,9 @@ internal class AiChatRuntimeContext(
     ) {
         aiChatRepository.savePersistedState(
             workspaceId = snapshot.workspaceId,
-            state = snapshot.persistedState
+            state = snapshot.persistedState.copy(
+                composerSuggestions = snapshot.serverComposerSuggestions
+            )
         )
         val chatSessionId = snapshot.persistedState.chatSessionId.ifBlank { null }
         if (chatSessionId != null) {

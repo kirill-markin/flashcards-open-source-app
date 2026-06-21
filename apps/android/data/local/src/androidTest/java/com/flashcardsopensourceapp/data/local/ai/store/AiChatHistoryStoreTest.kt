@@ -201,6 +201,7 @@ class AiChatHistoryStoreTest {
                     itemId = "item-1"
                 )
             ),
+            composerSuggestions = emptyList(),
             chatSessionId = "session-1",
             lastKnownChatConfig = null,
             pendingToolRunPostSync = true,
@@ -217,6 +218,7 @@ class AiChatHistoryStoreTest {
     fun saveStatePersistsOnlyChatFeatureConfig() = runBlocking {
         val state = AiChatPersistedState(
             messages = emptyList(),
+            composerSuggestions = emptyList(),
             chatSessionId = "session-1",
             lastKnownChatConfig = defaultAiChatServerConfig,
             pendingToolRunPostSync = false,

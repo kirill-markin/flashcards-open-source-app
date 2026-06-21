@@ -133,7 +133,8 @@ internal fun AiRouteContent(
     }
     val hasLocalConversationContent = uiState.messages.isNotEmpty() ||
         uiState.draftMessage.isNotEmpty() ||
-        uiState.pendingAttachments.isNotEmpty()
+        uiState.pendingAttachments.isNotEmpty() ||
+        uiState.composerSuggestions.isNotEmpty()
     val isColdConversationLoading = uiState.isConversationLoading &&
         hasLocalConversationContent.not()
     val showConversation = uiState.isConversationReady ||
