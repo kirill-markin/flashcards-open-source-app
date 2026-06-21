@@ -39,6 +39,7 @@ struct IOSObservationScope: Sendable, Hashable {
 }
 
 enum IOSBreadcrumbEvent: Sendable {
+    case appLifecycle(AppLifecycleObservation)
     case cloudFlow(CloudFlowObservation)
     case cloudRetry(CloudRetryObservation)
     case aiChatLifecycle(AIChatLifecycleObservation)
@@ -68,6 +69,31 @@ enum IOSExceptionEvent {
     case notificationSchedulingFailed(error: Error, scope: IOSObservationScope, details: NotificationFailureDetails)
     case localDataRepairFailed(error: Error, scope: IOSObservationScope, details: LocalDataRepairFailureDetails)
     case silentFailure(error: Error, scope: IOSObservationScope, details: SilentFailureDetails)
+}
+
+enum AppLifecycleAction: String, Sendable, Hashable {
+    case appInitConfigured = "app_init_configured"
+    case appStoreInitialized = "app_store_initialized"
+    case visibleTabPrepareStart = "visible_tab_prepare_start"
+    case visibleTabPrepareSuccess = "visible_tab_prepare_success"
+    case initialStartupStart = "initial_startup_start"
+    case initialStartupReady = "initial_startup_ready"
+    case initialStartupFailed = "initial_startup_failed"
+    case scenePhaseChanged = "scene_phase_changed"
+    case progressContextRefresh = "progress_context_refresh"
+    case launchCloudSyncTriggered = "launch_cloud_sync_triggered"
+    case launchNotificationReconcileTriggered = "launch_notification_reconcile_triggered"
+}
+
+struct AppLifecycleObservation: Sendable, Hashable {
+    let action: AppLifecycleAction
+    let scope: IOSObservationScope
+    let stage: String?
+    let scenePhase: String?
+    let selectedTab: String?
+    let isStartupReady: Bool?
+    let isRecoveryGateActive: Bool?
+    let messageSummary: String?
 }
 
 struct CloudFlowObservation: Sendable, Hashable {

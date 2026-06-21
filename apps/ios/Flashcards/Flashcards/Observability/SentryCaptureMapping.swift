@@ -36,6 +36,19 @@ extension SentryObservabilityAdapter {
 
     static func addBreadcrumb(_ event: IOSBreadcrumbEvent) {
         switch event {
+        case .appLifecycle(let observation):
+            self.writeLocalRecord(
+                kind: "breadcrumb",
+                feature: .appStartup,
+                action: observation.action.rawValue,
+                fields: self.appLifecycleFields(observation)
+            )
+            self.addSentryBreadcrumb(
+                category: "ios.app_startup",
+                level: .info,
+                message: observation.action.rawValue,
+                data: self.appLifecycleContext(observation)
+            )
         case .cloudFlow(let observation):
             self.logCloudFlow(observation)
             self.addSentryBreadcrumb(
@@ -607,6 +620,21 @@ extension SentryObservabilityAdapter {
 
     private static func cloudRetryFields(_ observation: CloudRetryObservation) -> [String: String] {
         stringifyContext(self.cloudRetryContext(observation))
+    }
+
+    private static func appLifecycleContext(_ observation: AppLifecycleObservation) -> [String: Any] {
+        var context: [String: Any] = self.scopeContext(observation.scope)
+        context["stage"] = observation.stage ?? ""
+        context["scene_phase"] = observation.scenePhase ?? ""
+        context["selected_tab"] = observation.selectedTab ?? ""
+        context["is_startup_ready"] = observation.isStartupReady.map { isStartupReady in String(isStartupReady) } ?? ""
+        context["is_recovery_gate_active"] = observation.isRecoveryGateActive.map { isRecoveryGateActive in String(isRecoveryGateActive) } ?? ""
+        context["message_summary"] = observation.messageSummary ?? ""
+        return context
+    }
+
+    private static func appLifecycleFields(_ observation: AppLifecycleObservation) -> [String: String] {
+        stringifyContext(self.appLifecycleContext(observation))
     }
 
     private static func aiChatLifecycleContext(_ observation: AIChatLifecycleObservation) -> [String: Any] {

@@ -36,7 +36,9 @@ func sanitizeSentryEvent(_ event: Event) -> Event? {
     if let exceptions: [Exception] = event.exceptions {
         for exception in exceptions {
             exception.value = exception.value.map(redactedString)
-            exception.type = exception.type.map(safeDiagnosticIdentifier)
+            exception.type = exception.type.map { type in
+                sanitizedExceptionType(type, mechanism: exception.mechanism)
+            }
             if let mechanism: Mechanism = exception.mechanism {
                 mechanism.desc = mechanism.desc.map(redactedString)
                 mechanism.data = sanitizedDictionary(mechanism.data)
@@ -44,6 +46,14 @@ func sanitizeSentryEvent(_ event: Event) -> Event? {
         }
     }
     return event
+}
+
+private func sanitizedExceptionType(_ value: String, mechanism: Mechanism?) -> String {
+    guard mechanism?.type == "AppHang" else {
+        return safeDiagnosticIdentifier(value)
+    }
+
+    return redactedString(value)
 }
 
 func sanitizeSentrySpan(_ span: any Span) -> (any Span)? {
