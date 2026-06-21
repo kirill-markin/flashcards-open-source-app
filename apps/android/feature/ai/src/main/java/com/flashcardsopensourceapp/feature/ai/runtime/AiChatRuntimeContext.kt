@@ -1,11 +1,14 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
+import com.flashcardsopensourceapp.data.local.network.isLikelyTransientNetworkIoException
+import com.flashcardsopensourceapp.data.local.network.isRetryableHttpStatusCode
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncRequest
@@ -18,6 +21,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.observability.AiChatWarnin
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.createAiChatRuntimeObservability
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.recordAiChatWarning
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
+import java.io.IOException
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
@@ -223,6 +227,9 @@ internal class AiChatRuntimeContext(
             throw error
         } catch (error: Exception) {
             releaseToolRunPostSyncInFlight()
+            if (isExpectedTransientToolRunPostSyncFailure(error = error)) {
+                return
+            }
             observability.recordAiChatWarning(
                 warning = AiChatWarning.PostRunSyncFailed(
                     workspaceId = origin.workspaceId,
@@ -305,6 +312,26 @@ internal class AiChatRuntimeContext(
             isToolRunPostSyncInFlight = false
         }
     }
+}
+
+private fun isExpectedTransientToolRunPostSyncFailure(error: Throwable): Boolean {
+    var currentError: Throwable? = error
+    while (currentError != null) {
+        if (
+            currentError is CloudRemoteException &&
+            isRetryableHttpStatusCode(statusCode = currentError.statusCode)
+        ) {
+            return true
+        }
+        if (
+            currentError is IOException &&
+            isLikelyTransientNetworkIoException(error = currentError)
+        ) {
+            return true
+        }
+        currentError = currentError.cause
+    }
+    return false
 }
 
 private fun AiChatRuntimeState.toDraftState(): AiChatDraftState {
