@@ -63,7 +63,7 @@ get:
               records across separate SQL statements or separate tool calls.
               Use
               https://api.flashcards-open-source-app.com/v1/agent/openapi.json
-              for the full contract. The SQL surface is intentionally limited
+              for the published external agent contract. The SQL surface is intentionally limited
               and is not full PostgreSQL.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json

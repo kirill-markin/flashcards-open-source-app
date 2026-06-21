@@ -5,5 +5,7 @@ required:
 properties:
   openapiUrl:
     type: string
+    description: URL for the curated published external AI-agent OpenAPI contract.
   swaggerUrl:
     type: string
+    description: Optional equivalent documentation alias returned by the auth bootstrap flow.

@@ -21,7 +21,7 @@ function loadProgressIndexSource(): string {
 test("published contract excludes progress endpoints while the API Gateway resource tree still predeclares the paths", () => {
   const openApiDocument = loadOpenApiDocument() as Readonly<{
     info?: Readonly<{ title?: string; description?: string }>;
-    paths?: Readonly<Record<string, unknown>>;
+    paths?: Readonly<Record<string, object>>;
   }>;
   assert.equal(openApiDocument.info?.title, "Flashcards Open Source App External AI-Agent API");
   assert.match(openApiDocument.info?.description ?? "", /external ai agents/i);
@@ -29,6 +29,8 @@ test("published contract excludes progress endpoints while the API Gateway resou
   assert.equal(openApiDocument.paths?.["/me/progress/summary"], undefined);
   assert.equal(openApiDocument.paths?.["/me/progress/review-schedule"], undefined);
   assert.equal(openApiDocument.paths?.["/me/progress/series"], undefined);
+  assert.equal(openApiDocument.paths?.["/me/progress/leaderboard"], undefined);
+  assert.equal(openApiDocument.paths?.["/me/progress/leaderboards/streak"], undefined);
 
   const apiGatewaySource = loadApiGatewaySource();
   assert.match(apiGatewaySource, /const meProgress = me\.addResource\("progress"\);/);
@@ -72,15 +74,20 @@ test("public progress streak loaders retry transient repeatable-read materializa
   );
 });
 
-test("published contract documents the progress leaderboard and the API Gateway predeclares it", () => {
+test("published contract omits progress leaderboards while the API Gateway predeclares them", () => {
   const openApiDocument = loadOpenApiDocument() as Readonly<{
-    paths?: Readonly<Record<string, unknown>>;
+    paths?: Readonly<Record<string, object>>;
   }>;
-  assert.notEqual(openApiDocument.paths?.["/me/progress/leaderboard"], undefined);
+  assert.equal(openApiDocument.paths?.["/me/progress/leaderboard"], undefined);
+  assert.equal(openApiDocument.paths?.["/me/progress/leaderboards/streak"], undefined);
 
   const apiGatewaySource = loadApiGatewaySource();
   assert.match(
     apiGatewaySource,
     /meProgress\.addResource\("leaderboard"\)\.addMethod\("GET", integration\);/,
+  );
+  assert.match(
+    apiGatewaySource,
+    /meProgressLeaderboards\.addResource\("streak"\)\.addMethod\("GET", integration\);/,
   );
 });
