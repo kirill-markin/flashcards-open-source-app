@@ -19,7 +19,6 @@ export function buildCardContextXml(part: CardContentPart): string {
   return [
     "<attached_card>",
     `<card_id>${escapeXmlText(part.cardId)}</card_id>`,
-    `<effort_level>${escapeXmlText(part.effortLevel)}</effort_level>`,
     "<front_text>",
     escapeXmlText(part.frontText),
     "</front_text>",

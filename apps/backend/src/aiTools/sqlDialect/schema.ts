@@ -43,15 +43,6 @@ const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze(
     description: "Card tags.",
   },
   {
-    columnName: "effort_level",
-    type: "string",
-    nullable: false,
-    readOnly: false,
-    filterable: true,
-    sortable: true,
-    description: "Card effort level.",
-  },
-  {
     columnName: "due_at",
     type: "datetime",
     nullable: true,
@@ -289,15 +280,6 @@ const SQL_RESOURCE_DESCRIPTORS: Readonly<Record<SqlResourceName, SqlResourceDesc
         description: "Deck filter tags.",
       },
       {
-        columnName: "effort_levels",
-        type: "string[]",
-        nullable: false,
-        readOnly: false,
-        filterable: true,
-        sortable: false,
-        description: "Deck filter effort levels.",
-      },
-      {
         columnName: "created_at",
         type: "datetime",
         nullable: false,
@@ -400,6 +382,33 @@ const SQL_RESOURCE_DESCRIPTORS: Readonly<Record<SqlResourceName, SqlResourceDesc
 
 const SQL_RESOURCE_NAMES = Object.freeze(Object.keys(SQL_RESOURCE_DESCRIPTORS) as SqlResourceName[]);
 
+const legacySqlMutationColumnDescriptors: Readonly<Record<"cards" | "decks", Readonly<Record<string, SqlColumnDescriptor>>>> = Object.freeze({
+  cards: {
+    // TODO(final-wire-drop): Remove hidden effort_level SQL write compatibility.
+    effort_level: {
+      columnName: "effort_level",
+      type: "string",
+      nullable: false,
+      readOnly: false,
+      filterable: false,
+      sortable: false,
+      description: "Legacy card effort input.",
+    },
+  },
+  decks: {
+    // TODO(final-wire-drop): Remove hidden effort_levels SQL write compatibility.
+    effort_levels: {
+      columnName: "effort_levels",
+      type: "string[]",
+      nullable: false,
+      readOnly: false,
+      filterable: false,
+      sortable: false,
+      description: "Legacy deck filter effort input.",
+    },
+  },
+});
+
 function getDescriptor(resourceName: SqlResourceName): SqlResourceDescriptor {
   return SQL_RESOURCE_DESCRIPTORS[resourceName];
 }
@@ -422,11 +431,18 @@ export function getSqlColumnDescriptor(
 ): SqlColumnDescriptor {
   const descriptor = getDescriptor(resourceName);
   const columnDescriptor = descriptor.columns.find((column) => column.columnName === columnName);
-  if (columnDescriptor === undefined) {
-    throw new Error(`Unknown column for ${resourceName}: ${columnName}`);
+  if (columnDescriptor !== undefined) {
+    return columnDescriptor;
   }
 
-  return columnDescriptor;
+  if (resourceName === "cards" || resourceName === "decks") {
+    const legacyColumnDescriptor = legacySqlMutationColumnDescriptors[resourceName][columnName];
+    if (legacyColumnDescriptor !== undefined) {
+      return legacyColumnDescriptor;
+    }
+  }
+
+  throw new Error(`Unknown column for ${resourceName}: ${columnName}`);
 }
 
 export function getSqlSourceColumnDescriptors(

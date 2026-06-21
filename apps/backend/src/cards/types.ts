@@ -1,4 +1,5 @@
 import type { LwwMetadata } from "../sync/conflicts/lww";
+import type { LegacyEffortLevel } from "../sync/contracts/legacyEffort";
 import type {
   FsrsCardState,
   ReviewRating,
@@ -7,11 +8,8 @@ import type {
 
 export type TimestampValue = Date | string;
 
-export type EffortLevel = "fast" | "medium" | "long";
-
 export type CardFilter = Readonly<{
   tags: ReadonlyArray<string>;
-  effort: ReadonlyArray<EffortLevel>;
 }>;
 
 export type CardRow = Readonly<{
@@ -19,7 +17,7 @@ export type CardRow = Readonly<{
   front_text: string;
   back_text: string;
   tags: ReadonlyArray<string>;
-  effort_level: EffortLevel;
+  effort_level: LegacyEffortLevel;
   due_at: TimestampValue | null;
   created_at: TimestampValue;
   reps: number;
@@ -78,7 +76,6 @@ export type Card = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: EffortLevel;
   dueAt: string | null;
   createdAt: string;
   reps: number;
@@ -100,7 +97,6 @@ export type CardQuerySortKey =
   | "frontText"
   | "backText"
   | "tags"
-  | "effortLevel"
   | "dueAt"
   | "reps"
   | "lapses"
@@ -148,7 +144,6 @@ export type CreateCardInput = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: EffortLevel;
 }>;
 
 export type BulkCreateCardItem = Readonly<{
@@ -160,7 +155,6 @@ export type UpdateCardInput = Readonly<{
   frontText?: string;
   backText?: string;
   tags?: ReadonlyArray<string>;
-  effortLevel?: EffortLevel;
 }>;
 
 export type BulkUpdateCardItem = Readonly<{
@@ -212,7 +206,6 @@ export type CardSnapshotInput = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: EffortLevel;
   dueAt: string | null;
   createdAt: string;
   reps: number;

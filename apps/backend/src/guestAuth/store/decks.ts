@@ -2,7 +2,10 @@ import {
   applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
 } from "../../database";
-import type { DeckFilterDefinition } from "../../decks";
+import {
+  parseDeckFilterDefinition,
+  type DeckFilterDefinition,
+} from "../../decks";
 
 type DeckRow = Readonly<{
   deck_id: string;
@@ -32,7 +35,7 @@ function mapGuestDeckRecord(row: DeckRow): GuestDeckRecord {
   return {
     deckId: row.deck_id,
     name: row.name,
-    filterDefinition: row.filter_definition as DeckFilterDefinition,
+    filterDefinition: parseDeckFilterDefinition(row.filter_definition),
     createdAt: row.created_at,
     clientUpdatedAt: row.client_updated_at,
     lastModifiedByReplicaId: row.last_modified_by_replica_id,

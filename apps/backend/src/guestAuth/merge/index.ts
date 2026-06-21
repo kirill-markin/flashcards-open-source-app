@@ -112,7 +112,6 @@ function createCardSnapshotInput(
     frontText: card.frontText,
     backText: card.backText,
     tags: card.tags,
-    effortLevel: card.effortLevel,
     dueAt: card.dueAt === null ? null : toIsoString(card.dueAt),
     createdAt: toIsoString(card.createdAt),
     reps: card.reps,

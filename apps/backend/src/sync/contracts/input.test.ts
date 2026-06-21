@@ -1,19 +1,24 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
-import type { CardSnapshotInput, EffortLevel } from "../../cards";
+import type { CardSnapshotInput } from "../../cards";
 import type { CardRow } from "../../cards/types";
 import type { DatabaseExecutor, SqlValue } from "../../database";
 import {
   parseDeckFilterDefinition,
   upsertDeckSnapshotInExecutor,
+  type DeckSnapshotInput,
   type DeckRow,
 } from "../../decks";
 import { HttpError } from "../../shared/errors";
 import { parseBootstrapEntryRow } from "../replication/bootstrap";
 import { buildHotChangesFromRows } from "../replication/hotPull";
 import { parseSyncPushInput } from "./input";
-import { toCardSnapshotInput } from "./snapshots";
+import {
+  toCardSnapshotInput,
+  toDeckSnapshotInput,
+} from "./snapshots";
+import type { LegacyEffortLevel } from "./legacyEffort";
 import type { BootstrapProjectionRow } from "./types";
 
 type ReviewEventTimestampFixture = Readonly<{
@@ -26,8 +31,8 @@ type CardDueAtFixture = Readonly<{
   dueAt: string | null;
 }>;
 
-type CardSyncPushPayload = Omit<CardSnapshotInput, "effortLevel"> & Readonly<{
-  effortLevel?: EffortLevel;
+type CardSyncPushPayload = CardSnapshotInput & Readonly<{
+  effortLevel?: LegacyEffortLevel;
 }>;
 
 type CardSyncPushOperation = Readonly<{
@@ -45,7 +50,33 @@ type CardSyncPushInput = Readonly<{
   operations: ReadonlyArray<CardSyncPushOperation>;
 }>;
 
+type DeckSyncFilterDefinition = Readonly<{
+  version: 2;
+  effortLevels?: ReadonlyArray<LegacyEffortLevel>;
+  tags: ReadonlyArray<string>;
+}>;
+
+type DeckSyncPushPayload = Omit<DeckSnapshotInput, "filterDefinition"> & Readonly<{
+  filterDefinition: DeckSyncFilterDefinition;
+}>;
+
+type DeckSyncPushOperation = Readonly<{
+  operationId: string;
+  entityType: "deck";
+  action: "upsert";
+  entityId: string;
+  clientUpdatedAt: string;
+  payload: DeckSyncPushPayload;
+}>;
+
+type DeckSyncPushInput = Readonly<{
+  installationId: string;
+  platform: "ios";
+  operations: ReadonlyArray<DeckSyncPushOperation>;
+}>;
+
 type CardBootstrapPayload = CardSnapshotInput & Readonly<{
+  effortLevel: LegacyEffortLevel;
   clientUpdatedAt: string;
   lastModifiedByReplicaId: string;
   lastOperationId: string;
@@ -104,7 +135,6 @@ function createCardSnapshotPayload(fixture: CardDueAtFixture): CardSnapshotInput
     frontText: "Question",
     backText: "Answer",
     tags: ["sync"],
-    effortLevel: "fast",
     dueAt: fixture.dueAt,
     createdAt: "2026-02-28T09:00:00.000Z",
     reps: hasDueAt ? 1 : 0,
@@ -140,15 +170,37 @@ function createCardSyncPushInputWithPayload(payload: CardSyncPushPayload): CardS
   };
 }
 
-function omitLegacyEffortLevel(payload: CardSnapshotInput): CardSyncPushPayload {
-  const { effortLevel, ...payloadWithoutEffortLevel } = payload;
-  assert.equal(effortLevel, "fast");
-  return payloadWithoutEffortLevel;
+function createDeckSnapshotPayload(filterDefinition: DeckSyncFilterDefinition): DeckSyncPushPayload {
+  return {
+    deckId: "deck-1",
+    name: "Study deck",
+    filterDefinition,
+    createdAt: "2026-02-28T09:00:00.000Z",
+    deletedAt: null,
+  };
+}
+
+function createDeckSyncPushInputWithPayload(payload: DeckSyncPushPayload): DeckSyncPushInput {
+  return {
+    installationId: "installation-1",
+    platform: "ios",
+    operations: [
+      {
+        operationId: "operation-deck-1",
+        entityType: "deck",
+        action: "upsert",
+        entityId: "deck-1",
+        clientUpdatedAt: "2026-02-28T09:30:00.000Z",
+        payload,
+      },
+    ],
+  };
 }
 
 function createCardBootstrapPayload(fixture: CardDueAtFixture): CardBootstrapPayload {
   return {
     ...createCardSnapshotPayload(fixture),
+    effortLevel: "fast",
     clientUpdatedAt: "2026-02-28T09:30:00.000Z",
     lastModifiedByReplicaId: "replica-1",
     lastOperationId: "operation-card-1",
@@ -175,7 +227,7 @@ function createQueryResult<Row extends pg.QueryResultRow>(rows: ReadonlyArray<Ro
   };
 }
 
-function createHotPullCardRow(effortLevel: EffortLevel): CardRow {
+function createHotPullCardRow(effortLevel: LegacyEffortLevel): CardRow {
   return {
     card_id: "card-1",
     front_text: "Question",
@@ -200,7 +252,7 @@ function createHotPullCardRow(effortLevel: EffortLevel): CardRow {
   };
 }
 
-function createHotPullCardExecutor(effortLevel: EffortLevel): DatabaseExecutor {
+function createHotPullCardExecutor(effortLevel: LegacyEffortLevel): DatabaseExecutor {
   return {
     query: async <Row extends pg.QueryResultRow>(
       text: string,
@@ -375,9 +427,9 @@ test("parseSyncPushInput accepts dueAt as a string or null without numeric publi
 });
 
 test("parseSyncPushInput accepts card operations without legacy effortLevel", () => {
-  const payload = omitLegacyEffortLevel(createCardSnapshotPayload({
+  const payload = createCardSnapshotPayload({
     dueAt: null,
-  }));
+  });
   const parsedInput = parseSyncPushInput(createCardSyncPushInputWithPayload(payload));
   const operation = parsedInput.operations[0];
   if (operation?.entityType !== "card") {
@@ -385,6 +437,35 @@ test("parseSyncPushInput accepts card operations without legacy effortLevel", ()
   }
 
   assert.equal(Object.prototype.hasOwnProperty.call(operation.payload, "effortLevel"), false);
+});
+
+test("parseSyncPushInput accepts deck operations without legacy effortLevels", () => {
+  const payload = createDeckSnapshotPayload({
+    version: 2,
+    tags: ["Study"],
+  });
+
+  const parsedInput = parseSyncPushInput(createDeckSyncPushInputWithPayload(payload));
+  const operation = parsedInput.operations[0];
+  if (operation?.entityType !== "deck") {
+    assert.fail("Expected the parsed sync operation to remain a deck");
+  }
+
+  assert.deepEqual(operation.payload.filterDefinition, {
+    version: 2,
+    tags: ["Study"],
+  });
+  assert.equal(Object.prototype.hasOwnProperty.call(operation.payload.filterDefinition, "effortLevels"), false);
+  assert.deepEqual(toDeckSnapshotInput(operation.payload), {
+    deckId: "deck-1",
+    name: "Study deck",
+    filterDefinition: {
+      version: 2,
+      tags: ["Study"],
+    },
+    createdAt: "2026-02-28T09:00:00.000Z",
+    deletedAt: null,
+  });
 });
 
 test("toCardSnapshotInput converts legacy medium and long effort into tags", () => {
@@ -399,9 +480,9 @@ test("toCardSnapshotInput converts legacy medium and long effort into tags", () 
   });
 
   assert.deepEqual(mediumSnapshot.tags, ["sync", "medium"]);
-  assert.equal(mediumSnapshot.effortLevel, "fast");
+  assert.equal(Object.prototype.hasOwnProperty.call(mediumSnapshot, "effortLevel"), false);
   assert.deepEqual(longSnapshot.tags, ["Long", "long"]);
-  assert.equal(longSnapshot.effortLevel, "fast");
+  assert.equal(Object.prototype.hasOwnProperty.call(longSnapshot, "effortLevel"), false);
 });
 
 test("parseDeckFilterDefinition converts legacy effortLevels into canonical tags", () => {
@@ -413,7 +494,6 @@ test("parseDeckFilterDefinition converts legacy effortLevels into canonical tags
 
   assert.deepEqual(filterDefinition, {
     version: 2,
-    effortLevels: [],
     tags: ["Study", "Long", "medium", "long"],
   });
 });
@@ -422,7 +502,7 @@ test("upsertDeckSnapshotInExecutor normalizes legacy sync effortLevels before pe
   const result = await upsertDeckSnapshotInExecutor(
     createDeckSnapshotExecutor(),
     "workspace-1",
-    {
+    toDeckSnapshotInput({
       deckId: "deck-1",
       name: "Legacy deck",
       filterDefinition: {
@@ -432,7 +512,7 @@ test("upsertDeckSnapshotInExecutor normalizes legacy sync effortLevels before pe
       },
       createdAt: "2026-02-28T09:00:00.000Z",
       deletedAt: null,
-    },
+    }),
     {
       clientUpdatedAt: "2026-02-28T09:30:00.000Z",
       lastModifiedByReplicaId: "replica-1",
@@ -443,7 +523,6 @@ test("upsertDeckSnapshotInExecutor normalizes legacy sync effortLevels before pe
   assert.equal(result.applied, true);
   assert.deepEqual(result.deck.filterDefinition, {
     version: 2,
-    effortLevels: [],
     tags: ["Long", "long"],
   });
 });

@@ -4,6 +4,7 @@ import type {
 } from "../../cards";
 import type { Deck } from "../../decks";
 import type { WorkspaceSchedulerSettings } from "../../scheduling/workspaceSettings";
+import type { LegacyEffortLevel } from "./legacyEffort";
 
 export type TimestampValue = Date | string;
 
@@ -75,18 +76,28 @@ export type SyncBootstrapCursor = Readonly<{
   entityId: string;
 }>;
 
+export type LegacySyncCardPayload = Card & Readonly<{
+  effortLevel: LegacyEffortLevel;
+}>;
+
+export type LegacySyncDeckPayload = Omit<Deck, "filterDefinition"> & Readonly<{
+  filterDefinition: Deck["filterDefinition"] & Readonly<{
+    effortLevels: ReadonlyArray<LegacyEffortLevel>;
+  }>;
+}>;
+
 export type SyncBootstrapEntry =
   | Readonly<{
     entityType: "card";
     entityId: string;
     action: "upsert";
-    payload: Card;
+    payload: LegacySyncCardPayload;
   }>
   | Readonly<{
     entityType: "deck";
     entityId: string;
     action: "upsert";
-    payload: Deck;
+    payload: LegacySyncDeckPayload;
   }>
   | Readonly<{
     entityType: "workspace_scheduler_settings";

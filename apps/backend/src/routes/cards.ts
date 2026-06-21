@@ -48,7 +48,6 @@ const allowedCardQuerySortKeys: ReadonlyArray<CardQuerySortKey> = [
   "frontText",
   "backText",
   "tags",
-  "effortLevel",
   "dueAt",
   "reps",
   "lapses",

@@ -6,7 +6,7 @@ import type { ContentPart } from "./types";
 
 type ChatConversationMessage = Readonly<{
   role: "user" | "assistant";
-  content: ReadonlyArray<ContentPart>;
+  content: ReadonlyArray<ChatWireContentPart>;
   timestamp: number;
   isError: boolean;
   isStopped: boolean;
@@ -108,7 +108,7 @@ export type ChatLiveEvent =
   | (ChatLiveEventMetadata & Readonly<{
     type: "assistant_message_done";
     itemId: string;
-    content: ReadonlyArray<ContentPart>;
+    content: ReadonlyArray<ChatWireContentPart>;
     isError: boolean;
     isStopped: boolean;
   }>)
@@ -204,13 +204,39 @@ export type ChatLiveEventPayload =
     isStopped?: boolean;
   }>;
 
+export type ChatWireContentPart =
+  | ContentPart
+  | (Extract<ContentPart, Readonly<{ type: "card" }>> & Readonly<{ effortLevel: "fast" }>);
+
 export function buildConversationScopeId(sessionId: string): string {
   return sessionId;
 }
 
+function toLegacyChatWireContentPart(part: ContentPart): ChatWireContentPart {
+  if (part.type === "card") {
+    return {
+      type: "card",
+      cardId: part.cardId,
+      frontText: part.frontText,
+      backText: part.backText,
+      tags: part.tags,
+      // TODO(final-wire-drop): Remove effortLevel after old mobile chat wire decoders are unsupported.
+      effortLevel: "fast",
+    };
+  }
+
+  return part;
+}
+
+export function toLegacyChatWireContentParts(
+  content: ReadonlyArray<ContentPart>,
+): ReadonlyArray<ChatWireContentPart> {
+  return content.map(toLegacyChatWireContentPart);
+}
+
 function sanitizeContent(
   content: ReadonlyArray<ContentPart>,
-): ReadonlyArray<ContentPart> {
+): ReadonlyArray<ChatWireContentPart> {
   return content.map((part) => {
     if (part.type === "image") {
       return {
@@ -229,7 +255,7 @@ function sanitizeContent(
       };
     }
 
-    return part;
+    return toLegacyChatWireContentPart(part);
   });
 }
 
@@ -364,14 +390,26 @@ export function createChatLiveEventSerializer(
   return (event: ChatLiveEventPayload): ChatLiveEvent => {
     sequenceNumber += 1;
 
-    return {
-      ...event,
+    const metadata = {
       sessionId: params.sessionId,
       conversationScopeId: params.conversationScopeId,
       runId: params.runId,
       cursor: event.cursor,
       sequenceNumber,
       streamEpoch: params.streamEpoch,
+    };
+
+    if (event.type === "assistant_message_done") {
+      return {
+        ...event,
+        ...metadata,
+        content: toLegacyChatWireContentParts(event.content),
+      };
+    }
+
+    return {
+      ...event,
+      ...metadata,
     };
   };
 }

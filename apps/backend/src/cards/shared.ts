@@ -7,12 +7,12 @@ import type {
   CardRow,
   DeckSummary,
   DeckSummaryRow,
-  EffortLevel,
   ReviewEvent,
   ReviewHistoryItem,
   ReviewHistoryRow,
   TimestampValue,
 } from "./types";
+import type { LegacyEffortLevel } from "../sync/contracts/legacyEffort";
 
 export const CARD_COLUMNS = [
   "card_id, front_text, back_text, tags, effort_level, due_at, created_at, reps, lapses,",
@@ -64,7 +64,7 @@ export function normalizeCardMutationMetadata(
 // TODO(old-mobile-cutoff): Remove this legacy effort shim during final sync wire-drop cleanup.
 export function appendLegacyEffortTag(
   tags: ReadonlyArray<string>,
-  legacyEffortLevel: EffortLevel | undefined,
+  legacyEffortLevel: LegacyEffortLevel | undefined,
 ): ReadonlyArray<string> {
   const dedupedTags: Array<string> = [];
   const existingTags = new Set<string>();
@@ -98,7 +98,6 @@ export function mapCard(row: CardRow): Card {
     frontText: row.front_text,
     backText: row.back_text,
     tags: row.tags,
-    effortLevel: row.effort_level,
     dueAt: row.due_at === null ? null : toIsoString(row.due_at),
     createdAt: toIsoString(row.created_at),
     reps: row.reps,

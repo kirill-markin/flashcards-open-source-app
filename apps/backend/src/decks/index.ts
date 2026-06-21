@@ -25,7 +25,8 @@ import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
 } from "../sync/conflicts/fork";
-import type { EffortLevel } from "../cards";
+import type { LegacyEffortLevel } from "../sync/contracts/legacyEffort";
+import { isLegacyEffortLevel } from "../sync/contracts/legacyEffort";
 import { appendLegacyEffortTag } from "../cards/shared";
 
 type TimestampValue = Date | string;
@@ -48,7 +49,6 @@ type RecordValue = Record<string, unknown>;
 
 export type DeckFilterDefinition = Readonly<{
   version: 2;
-  effortLevels: ReadonlyArray<EffortLevel>;
   tags: ReadonlyArray<string>;
 }>;
 
@@ -182,18 +182,22 @@ function expectNonEmptyString(
   return trimmedValue;
 }
 
-function normalizeDeckEffortLevels(
+function normalizeLegacyDeckEffortLevels(
   value: unknown,
   fieldName: string,
   errorFactory: ErrorFactory,
-): ReadonlyArray<EffortLevel> {
+): ReadonlyArray<LegacyEffortLevel> {
+  if (value === undefined) {
+    return [];
+  }
+
   if (!Array.isArray(value)) {
     return throwError(errorFactory, `${fieldName} must be an array`);
   }
 
-  const uniqueValues = new Set<EffortLevel>();
+  const uniqueValues = new Set<LegacyEffortLevel>();
   for (const item of value) {
-    if (item !== "fast" && item !== "medium" && item !== "long") {
+    if (isLegacyEffortLevel(item) === false) {
       throwError(errorFactory, `${fieldName} must contain only fast, medium, or long`);
     }
 
@@ -231,7 +235,7 @@ function normalizeDeckTags(
 
 function appendLegacyDeckEffortTags(
   tags: ReadonlyArray<string>,
-  effortLevels: ReadonlyArray<EffortLevel>,
+  effortLevels: ReadonlyArray<LegacyEffortLevel>,
 ): ReadonlyArray<string> {
   return effortLevels.reduce<ReadonlyArray<string>>(
     (dedupedTags, effortLevel) => appendLegacyEffortTag(dedupedTags, effortLevel),
@@ -241,12 +245,10 @@ function appendLegacyDeckEffortTags(
 
 function normalizeDeckFilterDefinitionValues(
   tags: ReadonlyArray<string>,
-  effortLevels: ReadonlyArray<EffortLevel>,
+  effortLevels: ReadonlyArray<LegacyEffortLevel>,
 ): DeckFilterDefinition {
   return {
     version: 2,
-    // TODO(old-mobile-cutoff): Remove legacy effortLevels output during final sync wire-drop cleanup.
-    effortLevels: [],
     tags: appendLegacyDeckEffortTags(tags, effortLevels),
   };
 }
@@ -262,9 +264,10 @@ function parseDeckFilterDefinitionWithFactory(
     throwError(errorFactory, "filterDefinition version must be 2");
   }
 
+  // TODO(old-mobile-cutoff): Remove legacy effortLevels parsing during final wire-drop cleanup.
   return normalizeDeckFilterDefinitionValues(
     normalizeDeckTags(record.tags, "filterDefinition tags", errorFactory),
-    normalizeDeckEffortLevels(record.effortLevels, "filterDefinition effortLevels", errorFactory),
+    normalizeLegacyDeckEffortLevels(record.effortLevels, "filterDefinition effortLevels", errorFactory),
   );
 }
 
@@ -362,11 +365,7 @@ function normalizeTypedDeckFilterDefinition(filterDefinition: DeckFilterDefiniti
       "filterDefinition tags",
       createRequestError,
     ),
-    normalizeDeckEffortLevels(
-      filterDefinition.effortLevels,
-      "filterDefinition effortLevels",
-      createRequestError,
-    ),
+    [],
   );
 }
 
@@ -546,7 +545,6 @@ export async function searchDecksPage(
   const searchClauseResult = buildTokenizedOrLikeClause(searchTokens, 1, [
     (paramIndex) => `lower(name) LIKE $${paramIndex}`,
     (paramIndex) => `EXISTS (SELECT 1 FROM jsonb_array_elements_text(filter_definition->'tags') AS tag WHERE lower(tag) LIKE $${paramIndex})`,
-    (paramIndex) => `EXISTS (SELECT 1 FROM jsonb_array_elements_text(filter_definition->'effortLevels') AS effort_level WHERE lower(effort_level) LIKE $${paramIndex})`,
   ]);
   const decodedCursor = input.cursor === null ? null : decodeDeckPageCursor(input.cursor);
   const cursorClause = decodedCursor === null

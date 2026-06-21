@@ -41,7 +41,6 @@ type ChatCardContentPart = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: "fast" | "medium" | "long";
 }>;
 
 type ChatToolCallContentPart = Readonly<{
@@ -226,18 +225,12 @@ function parseChatContentPart(value: unknown, context: string): ChatContentPart 
       throw new HttpError(400, `${context}.tags must be an array`);
     }
 
-    const effortLevel = expectNonEmptyString(body.effortLevel, `${context}.effortLevel`);
-    if (effortLevel !== "fast" && effortLevel !== "medium" && effortLevel !== "long") {
-      throw new HttpError(400, `${context}.effortLevel is invalid`);
-    }
-
     return {
       type: "card",
       cardId: expectNonEmptyString(body.cardId, `${context}.cardId`),
       frontText: expectString(body.frontText, `${context}.frontText`),
       backText: expectString(body.backText, `${context}.backText`),
       tags: tagsValue.map((tag, index) => expectNonEmptyString(tag, `${context}.tags[${index}]`)),
-      effortLevel,
     };
   }
 

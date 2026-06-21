@@ -7,6 +7,7 @@ import {
   type Card,
   type UpdateCardInput,
 } from "../../cards";
+import { appendLegacyEffortTag } from "../../cards/shared";
 import {
   createDeckInExecutor,
   deleteDeckInExecutor,
@@ -18,6 +19,8 @@ import {
 } from "../../decks";
 import { transactionWithWorkspaceScope } from "../../database";
 import { HttpError } from "../../shared/errors";
+import type { LegacyEffortLevel } from "../../sync/contracts/legacyEffort";
+import { isLegacyEffortLevel } from "../../sync/contracts/legacyEffort";
 import type { AgentToolOperationDependencies } from "./operations";
 import { executeSqlSelect } from "../sqlDialect";
 import {
@@ -99,12 +102,13 @@ function applyUpdatedDeckToState(
 }
 
 function buildCardUpdatePatch(
+  existingCard: Card,
   assignments: ReadonlyArray<AgentSqlMutationAssignment>,
 ): UpdateCardInput {
   let frontText: string | undefined;
   let backText: string | undefined;
   let tags: ReadonlyArray<string> | undefined;
-  let effortLevel: "fast" | "medium" | "long" | undefined;
+  let legacyEffortLevel: LegacyEffortLevel | undefined;
 
   for (const assignment of assignments) {
     if (assignment.columnName === "front_text") {
@@ -129,19 +133,40 @@ function buildCardUpdatePatch(
     }
 
     if (assignment.columnName === "effort_level") {
-      if (assignment.value !== "fast" && assignment.value !== "medium" && assignment.value !== "long") {
+      if (isLegacyEffortLevel(assignment.value) === false) {
         throw new HttpError(400, "effort_level must be fast, medium, or long", "QUERY_INVALID_SQL");
       }
-      effortLevel = assignment.value;
+      legacyEffortLevel = assignment.value;
     }
   }
 
   return {
     frontText,
     backText,
-    tags,
-    effortLevel,
+    tags: legacyEffortLevel === undefined
+      ? tags
+      : appendLegacyEffortTag(tags ?? existingCard.tags, legacyEffortLevel),
   };
+}
+
+function normalizeLegacyEffortLevels(value: ReadonlyArray<unknown>): ReadonlyArray<LegacyEffortLevel> {
+  return value.map((item) => {
+    if (isLegacyEffortLevel(item)) {
+      return item;
+    }
+
+    throw new HttpError(400, "effort_levels must contain only fast, medium, or long", "QUERY_INVALID_SQL");
+  });
+}
+
+function appendLegacyDeckEffortTags(
+  tags: ReadonlyArray<string>,
+  effortLevels: ReadonlyArray<LegacyEffortLevel>,
+): ReadonlyArray<string> {
+  return effortLevels.reduce<ReadonlyArray<string>>(
+    (result, effortLevel) => appendLegacyEffortTag(result, effortLevel),
+    tags,
+  );
 }
 
 function buildResolvedDeckUpdateInput(
@@ -149,8 +174,8 @@ function buildResolvedDeckUpdateInput(
   assignments: ReadonlyArray<AgentSqlMutationAssignment>,
 ): UpdateDeckInput {
   let name: string = existingDeck.name;
-  let effortLevels: ReadonlyArray<"fast" | "medium" | "long"> = existingDeck.filterDefinition.effortLevels;
   let tags: ReadonlyArray<string> = existingDeck.filterDefinition.tags;
+  let legacyEffortLevels: ReadonlyArray<LegacyEffortLevel> | undefined;
 
   for (const assignment of assignments) {
     if (assignment.columnName === "name") {
@@ -164,7 +189,7 @@ function buildResolvedDeckUpdateInput(
       if (Array.isArray(assignment.value) === false) {
         throw new HttpError(400, "effort_levels must be a string array", "QUERY_INVALID_SQL");
       }
-      effortLevels = assignment.value.filter((item): item is "fast" | "medium" | "long" => item === "fast" || item === "medium" || item === "long");
+      legacyEffortLevels = normalizeLegacyEffortLevels(assignment.value);
     }
 
     if (assignment.columnName === "tags") {
@@ -175,12 +200,15 @@ function buildResolvedDeckUpdateInput(
     }
   }
 
+  const resolvedTags = legacyEffortLevels === undefined
+    ? tags
+    : appendLegacyDeckEffortTags(tags, legacyEffortLevels);
+
   return {
     name,
     filterDefinition: {
       version: 2,
-      effortLevels,
-      tags,
+      tags: resolvedTags,
     } satisfies DeckFilterDefinition,
   };
 }
@@ -251,7 +279,6 @@ export async function executeSqlMutationBatch(
                 name: createDeckInput.name,
                 filterDefinition: {
                   version: 2,
-                  effortLevels: createDeckInput.effortLevels,
                   tags: createDeckInput.tags,
                 } satisfies DeckFilterDefinition,
               },
@@ -287,11 +314,16 @@ export async function executeSqlMutationBatch(
         if (statement.type === "update" && statement.resourceName === "cards") {
           const updatedCards: Array<Card> = [];
           for (const cardId of targetIds) {
+            const existingCard = state.cards.find((card) => card.cardId === cardId);
+            if (existingCard === undefined) {
+              throw new HttpError(404, `Card not found: ${cardId}`, "QUERY_INVALID_SQL");
+            }
+
             const updatedCard = await updateCardInExecutor(
               executor,
               context.workspaceId,
               cardId,
-              buildCardUpdatePatch(statement.assignments),
+              buildCardUpdatePatch(existingCard, statement.assignments),
               buildMutationMetadata(replicaId),
             );
             updatedCards.push(updatedCard);

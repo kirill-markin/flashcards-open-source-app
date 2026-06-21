@@ -139,6 +139,11 @@ const deckFilterDefinitionSchema = z.object({
   tags: z.array(z.string()),
 });
 
+const deckFilterDefinitionInputSchema = deckFilterDefinitionSchema.extend({
+  // TODO(old-mobile-cutoff): Remove legacy effortLevels input during final sync wire-drop cleanup.
+  effortLevels: z.array(effortLevelSchema).optional(),
+});
+
 const cardSnapshotSchema = z.object({
   cardId: z.string().min(1),
   frontText: z.string().min(1),
@@ -176,6 +181,10 @@ const deckSnapshotSchema = z.object({
   filterDefinition: deckFilterDefinitionSchema,
   createdAt: z.string().datetime(),
   deletedAt: z.string().datetime().nullable(),
+});
+
+const deckSnapshotInputSchema = deckSnapshotSchema.extend({
+  filterDefinition: deckFilterDefinitionInputSchema,
 });
 
 export const deckPayloadSchema = deckSnapshotSchema.extend({
@@ -222,7 +231,7 @@ const cardBootstrapPushPayloadSchema = cardSnapshotInputSchema.extend({
   updatedAt: z.string().datetime(),
 });
 
-const deckBootstrapPushPayloadSchema = deckSnapshotSchema.extend({
+const deckBootstrapPushPayloadSchema = deckSnapshotInputSchema.extend({
   workspaceId: z.string().min(1),
   clientUpdatedAt: z.string().datetime(),
   lastOperationId: z.string().min(1),
@@ -250,7 +259,7 @@ const cardOperationSchema = baseOperationSchema.extend({
 const deckOperationSchema = baseOperationSchema.extend({
   entityType: z.literal("deck"),
   action: z.literal("upsert"),
-  payload: deckSnapshotSchema,
+  payload: deckSnapshotInputSchema,
 });
 
 const workspaceSchedulerSettingsOperationSchema = baseOperationSchema.extend({
