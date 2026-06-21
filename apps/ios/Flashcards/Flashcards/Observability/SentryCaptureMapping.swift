@@ -44,6 +44,19 @@ extension SentryObservabilityAdapter {
                 message: "\(observation.phase.rawValue).\(observation.outcome.rawValue)",
                 data: self.cloudFlowContext(observation)
             )
+        case .cloudRetry(let observation):
+            self.writeLocalRecord(
+                kind: "breadcrumb",
+                feature: observation.scope.feature,
+                action: observation.action,
+                fields: self.cloudRetryFields(observation)
+            )
+            self.addSentryBreadcrumb(
+                category: "ios.cloud",
+                level: .info,
+                message: observation.action,
+                data: self.cloudRetryContext(observation)
+            )
         case .aiChatLifecycle(let observation):
             self.writeLocalRecord(
                 kind: "breadcrumb",
@@ -211,22 +224,6 @@ extension SentryObservabilityAdapter {
                 backendCode: observation.backendCode,
                 context: self.cloudFlowContext(observation),
                 localFields: self.cloudFlowFields(observation)
-            )
-        case .cloudRetry(let warning):
-            let context: [String: Any] = [
-                "attempt": warning.attempt,
-                "max_attempts": warning.maxAttempts,
-                "api_base_url": warning.apiBaseUrl ?? "",
-                "message_summary": warning.messageSummary ?? ""
-            ]
-            return ObservationPayload(
-                message: "iOS cloud retry: \(warning.action)",
-                action: warning.action,
-                scope: warning.scope,
-                statusCode: nil,
-                backendCode: nil,
-                context: context,
-                localFields: stringifyContext(context)
             )
         case .localDataRepair(let warning):
             let context: [String: Any] = [
@@ -597,6 +594,19 @@ extension SentryObservabilityAdapter {
 
     private static func cloudFlowFields(_ observation: CloudFlowObservation) -> [String: String] {
         stringifyContext(self.cloudFlowContext(observation))
+    }
+
+    private static func cloudRetryContext(_ observation: CloudRetryObservation) -> [String: Any] {
+        [
+            "attempt": observation.attempt,
+            "max_attempts": observation.maxAttempts,
+            "api_base_url": observation.apiBaseUrl ?? "",
+            "message_summary": observation.messageSummary ?? ""
+        ]
+    }
+
+    private static func cloudRetryFields(_ observation: CloudRetryObservation) -> [String: String] {
+        stringifyContext(self.cloudRetryContext(observation))
     }
 
     private static func aiChatLifecycleContext(_ observation: AIChatLifecycleObservation) -> [String: Any] {

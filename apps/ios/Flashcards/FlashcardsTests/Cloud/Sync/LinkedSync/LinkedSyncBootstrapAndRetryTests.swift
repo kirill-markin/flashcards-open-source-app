@@ -65,6 +65,67 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
         }
     }
 
+    func testCloudSyncTransportRetriesRetryableNetworkFailure() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [CloudSyncRunnerTestURLProtocol.self]
+        let transport = CloudSyncTransport(
+            session: URLSession(configuration: configuration),
+            decoder: makeFlashcardsRemoteJSONDecoder()
+        )
+        CloudSyncRunnerTestURLProtocol.requestHandler = { request in
+            CloudSyncRunnerTestURLProtocol.requestCount += 1
+            if CloudSyncRunnerTestURLProtocol.requestCount == 1 {
+                throw URLError(.networkConnectionLost)
+            }
+
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: [
+                        "Content-Type": "application/json",
+                        "X-Request-Id": "retry-success-request",
+                    ]
+                )
+            )
+            let responseBody = Data(
+                """
+                {
+                  "workspaces": [
+                    {
+                      "workspaceId": "workspace-1",
+                      "name": "Workspace",
+                      "createdAt": "2026-06-01T00:00:00.000Z",
+                      "isSelected": true
+                    }
+                  ],
+                  "nextCursor": null
+                }
+                """.utf8
+            )
+            return (response, responseBody)
+        }
+
+        let workspaces: [CloudWorkspaceSummary] = try await transport.listWorkspaces(
+            apiBaseUrl: "https://api.example.test/v1",
+            authorizationHeader: "Bearer id-token"
+        )
+
+        XCTAssertEqual(2, CloudSyncRunnerTestURLProtocol.requestCount)
+        XCTAssertEqual(
+            [
+                CloudWorkspaceSummary(
+                    workspaceId: "workspace-1",
+                    name: "Workspace",
+                    createdAt: "2026-06-01T00:00:00.000Z",
+                    isSelected: true
+                )
+            ],
+            workspaces
+        )
+    }
+
     func testLinkedSyncRetriesAfterPublicCardSyncConflictRecovery() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()

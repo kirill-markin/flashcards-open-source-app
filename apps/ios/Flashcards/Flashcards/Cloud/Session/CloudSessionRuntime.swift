@@ -463,9 +463,9 @@ final class CloudSessionRuntime {
                     self.clearActiveCloudSyncTaskIfCurrent(id: activeCloudSyncTask.id)
                     continue
                 }
-                FlashcardsObservability.captureWarning(
+                FlashcardsObservability.addBreadcrumb(
                     .cloudRetry(
-                        CloudRetryWarning(
+                        CloudRetryObservation(
                             action: "active_sync_settled_before_fresh_sync",
                             scope: IOSObservationScope(
                                 feature: .cloudSync,

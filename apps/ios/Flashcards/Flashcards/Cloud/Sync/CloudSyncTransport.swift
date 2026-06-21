@@ -225,9 +225,9 @@ struct CloudSyncTransport {
                     throw error
                 }
 
-                FlashcardsObservability.captureWarning(
+                FlashcardsObservability.addBreadcrumb(
                     .cloudRetry(
-                        CloudRetryWarning(
+                        CloudRetryObservation(
                             action: "cloud_sync_transport_retry",
                             scope: IOSObservationScope(
                                 feature: cloudObservationFeature(phase: phase),
