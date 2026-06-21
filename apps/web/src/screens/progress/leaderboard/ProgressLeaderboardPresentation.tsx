@@ -30,6 +30,7 @@ export type ProgressLeaderboardProfileDialogSeed = Readonly<{
   anonymousDisplayName: string;
   friendDisplayName?: string;
   displayName: string;
+  isViewer: boolean;
 }>;
 
 export function getProgressLeaderboardElapsedMinutes(snapshotGeneratedAt: string, now: Date): number {
@@ -125,6 +126,7 @@ export function ProgressLeaderboardRows(props: Readonly<{
                 anonymousDisplayName: row.anonymousDisplayName,
                 friendDisplayName: row.friendDisplayName,
                 displayName,
+                isViewer: row.kind === "viewer",
               })}
             >
               {rowContent}

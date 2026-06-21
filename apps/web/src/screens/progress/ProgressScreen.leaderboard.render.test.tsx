@@ -322,6 +322,48 @@ describe("ProgressScreen leaderboard", () => {
     expect(document.body.querySelector("[data-testid='progress-leaderboard-profile-dialog']")?.textContent).toContain("Mina");
   });
 
+  it("keeps the viewer title and shows the anonymous name for the rating leaderboard profile", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("ready", null));
+    const deferredProfile = createDeferredProfile();
+    apiMocks.loadProgressLeaderboardProfileMock.mockReturnValueOnce(deferredProfile.promise);
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+    const openButton = container.querySelector("[data-testid='progress-leaderboard-row-viewer-button']");
+    if (!(openButton instanceof HTMLButtonElement)) {
+      throw new Error("Rating leaderboard viewer profile button was not found");
+    }
+
+    await act(async () => {
+      openButton.click();
+    });
+
+    const loadingDialog = document.body.querySelector("[data-testid='progress-leaderboard-profile-dialog']");
+    if (!(loadingDialog instanceof HTMLElement)) {
+      throw new Error("Leaderboard viewer profile dialog was not opened");
+    }
+    expect(apiMocks.loadProgressLeaderboardProfileMock).toHaveBeenCalledWith("viewer-profile");
+    expect(loadingDialog.querySelector("[data-testid='progress-leaderboard-profile-title']")?.textContent).toBe("You");
+    expect(loadingDialog.querySelector(".progress-leaderboard-profile-anonymous-name")?.textContent).toBe("Quiet Maple Grove");
+
+    await act(async () => {
+      deferredProfile.resolve(createLeaderboardReadyProfile("viewer-profile", "Quiet Maple Grove", null));
+      await deferredProfile.promise;
+    });
+
+    const loadedDialog = document.body.querySelector("[data-testid='progress-leaderboard-profile-dialog']");
+    if (!(loadedDialog instanceof HTMLElement)) {
+      throw new Error("Loaded leaderboard viewer profile dialog was not found");
+    }
+    expect(loadedDialog.querySelector("[data-testid='progress-leaderboard-profile-title']")?.textContent).toBe("You");
+    expect(loadedDialog.querySelector(".progress-leaderboard-profile-anonymous-name")?.textContent).toBe("Quiet Maple Grove");
+    expect(loadedDialog.querySelector(".progress-leaderboard-profile-friend-label")).toBeNull();
+  });
+
   it("renders separate rating and streak leaderboard cards with streak day values", async () => {
     useAppDataMock.mockReturnValue({
       ...createAppData(),

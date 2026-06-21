@@ -69,11 +69,30 @@ function getProfileTitle(
   initialProfile: ProgressLeaderboardProfileDialogSeed,
   profile: ProgressLeaderboardProfile | null,
 ): string {
+  if (initialProfile.isViewer) {
+    return initialProfile.displayName;
+  }
+
   if (profile?.status === "ready") {
     return profile.friendDisplayName ?? profile.anonymousDisplayName;
   }
 
   return initialProfile.displayName;
+}
+
+function getProfileIdentityAnonymousName(
+  initialProfile: ProgressLeaderboardProfileDialogSeed,
+  profile: ProgressLeaderboardProfile | null,
+): string | null {
+  if (initialProfile.isViewer) {
+    return profile?.status === "ready" ? profile.anonymousDisplayName : initialProfile.anonymousDisplayName;
+  }
+
+  if (profile?.status === "ready" && profile.friendDisplayName !== undefined) {
+    return profile.anonymousDisplayName;
+  }
+
+  return null;
 }
 
 function getNonReadyMessage(status: ProgressLeaderboardProfile["status"], t: ReturnType<typeof useI18n>["t"]): string {
@@ -258,6 +277,10 @@ export function ProgressLeaderboardProfileDialog(props: ProgressLeaderboardProfi
     ? loadState.message
     : "";
   const dialogTitle = getProfileTitle(initialProfile, loadedProfile);
+  const identityAnonymousName = getProfileIdentityAnonymousName(initialProfile, loadedProfile);
+  const isFriendIdentity = initialProfile.isViewer === false
+    && loadedProfile?.status === "ready"
+    && loadedProfile.friendDisplayName !== undefined;
 
   return createPortal(
     <div className="progress-leaderboard-profile-backdrop" role="dialog" aria-modal="true" aria-labelledby="progress-leaderboard-profile-title">
@@ -267,16 +290,18 @@ export function ProgressLeaderboardProfileDialog(props: ProgressLeaderboardProfi
             <h2 id="progress-leaderboard-profile-title" className="panel-subtitle" data-testid="progress-leaderboard-profile-title">
               {dialogTitle}
             </h2>
-            {loadedProfile?.status === "ready" && loadedProfile.friendDisplayName !== undefined ? (
+            {identityAnonymousName === null ? null : (
               <div className="progress-leaderboard-profile-identity">
-                <span className="progress-leaderboard-profile-friend-label">
-                  {t("progressScreen.leaderboard.profile.friendLabel")}
-                </span>
+                {isFriendIdentity ? (
+                  <span className="progress-leaderboard-profile-friend-label">
+                    {t("progressScreen.leaderboard.profile.friendLabel")}
+                  </span>
+                ) : null}
                 <span className="progress-leaderboard-profile-anonymous-name">
-                  {loadedProfile.anonymousDisplayName}
+                  {identityAnonymousName}
                 </span>
               </div>
-            ) : null}
+            )}
           </div>
           <button
             className="ghost-btn progress-leaderboard-profile-close"
