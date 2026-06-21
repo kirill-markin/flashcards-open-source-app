@@ -57,7 +57,6 @@
     <string name="progress_leaderboard_rank_label">#%1$s</string>
     <string name="progress_leaderboard_gap_content_description">Hidden ranks</string>
     <string name="progress_leaderboard_empty_window">No qualified reviews in this period yet.</string>
-    <string name="progress_leaderboard_updated_label">Updated %1$d min ago</string>
     <string name="progress_leaderboard_sign_in_message">Sign up or sign in to see how your reviews rank on the rating leaderboard.</string>
     <string name="progress_leaderboard_sign_in_button">Sign in</string>
     <string name="progress_leaderboard_participation_disabled_message">Rating rankings are visible only while you participate in the rating leaderboard. Turn participation on in leaderboard settings.</string>
@@ -80,7 +79,7 @@
     <string name="progress_streak_leaderboard_title">Streak leaderboard</string>
     <string name="progress_streak_leaderboard_info_button_content_description">About the streak leaderboard</string>
     <string name="progress_streak_leaderboard_info_title">How streak ranking works</string>
-    <string name="progress_streak_leaderboard_info_fallback_body">Ranks use current streak days from the public daily snapshot. Public values can trail your live personal streak.</string>
+    <string name="progress_streak_leaderboard_info_fallback_body">Ranks use current streak days from the public daily snapshot. A streak day is any local day with at least one card review rated Again, Hard, Good, or Easy. Public values can trail your live personal streak.</string>
     <string name="progress_streak_leaderboard_empty">No streak leaderboard rows yet.</string>
     <string name="progress_streak_leaderboard_sign_in_message">Sign up or sign in to compare streaks with the community.</string>
     <string name="progress_streak_leaderboard_participation_disabled_message">Streak rankings are visible only while you participate in the streak leaderboard. Turn participation on in leaderboard settings.</string>
@@ -106,6 +105,22 @@
     <plurals name="progress_streak_leaderboard_day_count">
         <item quantity="one">%1$s day</item>
         <item quantity="other">%1$s days</item>
+    </plurals>
+    <plurals name="progress_leaderboard_updated_minute_label">
+        <item quantity="one">Updated %1$d minute ago</item>
+        <item quantity="other">Updated %1$d minutes ago</item>
+    </plurals>
+    <plurals name="progress_leaderboard_updated_hour_label">
+        <item quantity="one">Updated %1$d hour ago</item>
+        <item quantity="other">Updated %1$d hours ago</item>
+    </plurals>
+    <plurals name="progress_leaderboard_elapsed_minute_count">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <plurals name="progress_leaderboard_updated_hour_minute_label">
+        <item quantity="one">Updated %1$d hour %2$s ago</item>
+        <item quantity="other">Updated %1$d hours %2$s ago</item>
     </plurals>
     <plurals name="progress_leaderboard_profile_activity_total">
         <item quantity="one">%1$s review total</item>

@@ -63,6 +63,7 @@ class ProgressViewModelStreakLeaderboardTest {
         ) as ProgressStreakLeaderboardSectionUiState.Ready
 
         assertEquals(1, sectionUiState.participantCount)
+        assertTrue(checkNotNull(sectionUiState.metricDescription).contains("Again, Hard, Good, or Easy"))
         val viewerRow = sectionUiState.rows.single() as ProgressStreakLeaderboardRowUiState.Participant
         assertEquals(1, viewerRow.rank)
         assertEquals(12, viewerRow.streakDays)
