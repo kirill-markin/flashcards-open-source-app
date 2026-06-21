@@ -1,6 +1,14 @@
 import type {
   ProgressLeaderboard,
   ProgressLeaderboardMetric,
+  ProgressLeaderboardProfile,
+  ProgressLeaderboardProfileBestRatingPlacement,
+  ProgressLeaderboardProfileMetrics,
+  ProgressLeaderboardProfileReady,
+  ProgressLeaderboardProfileReviewActivity,
+  ProgressLeaderboardProfileReviewActivityDay,
+  ProgressLeaderboardProfileStats,
+  ProgressLeaderboardProfileStatus,
   ProgressLeaderboardRankingRow,
   ProgressLeaderboardRow,
   ProgressLeaderboardViewer,
@@ -19,6 +27,7 @@ import type {
 } from "../types";
 import {
   progressLeaderboardParticipantRowKinds,
+  progressLeaderboardProfileStatuses,
   progressLeaderboardRankingRowKinds,
   progressLeaderboardStatuses,
   progressLeaderboardWindowKeys,
@@ -56,6 +65,40 @@ function parseNonNegativeSafeInteger(value: unknown, endpoint: string, path: str
   }
 
   return numberValue;
+}
+
+function parseIsoTimestampString(value: unknown, endpoint: string, path: string): string {
+  const stringValue = parseString(value, endpoint, path);
+  const timestamp = Date.parse(stringValue);
+
+  if (stringValue.includes("T") === false || Number.isNaN(timestamp)) {
+    throw new ApiContractError(endpoint, describePath(path), "ISO timestamp string");
+  }
+
+  return stringValue;
+}
+
+function parseIsoLocalDateString(value: unknown, endpoint: string, path: string): string {
+  const stringValue = parseString(value, endpoint, path);
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(stringValue);
+
+  if (dateMatch === null) {
+    throw new ApiContractError(endpoint, describePath(path), "ISO local date string");
+  }
+
+  const year = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const day = Number(dateMatch[3]);
+  const dateValue = new Date(Date.UTC(year, month - 1, day));
+  if (
+    dateValue.getUTCFullYear() !== year
+    || dateValue.getUTCMonth() !== month - 1
+    || dateValue.getUTCDate() !== day
+  ) {
+    throw new ApiContractError(endpoint, describePath(path), "ISO local date string");
+  }
+
+  return stringValue;
 }
 
 function parseDailyReviewPoint(
@@ -479,6 +522,154 @@ export function parseProgressLeaderboardResponse(value: unknown, endpoint: strin
     defaultWindowKey: parseRequiredField(objectValue, "defaultWindowKey", endpoint, "", parseProgressLeaderboardWindowKey),
     windows: parseRequiredField(objectValue, "windows", endpoint, "", parseProgressLeaderboardWindowArray),
   };
+}
+
+function parseProgressLeaderboardProfileStatus(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressLeaderboardProfileStatus {
+  return parseEnum(value, endpoint, path, progressLeaderboardProfileStatuses);
+}
+
+function parseProgressLeaderboardProfileBestRatingPlacement(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressLeaderboardProfileBestRatingPlacement | null {
+  if (value === null) {
+    return null;
+  }
+
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    windowKey: parseRequiredField(objectValue, "windowKey", endpoint, path, parseProgressLeaderboardWindowKey),
+    rank: parseRequiredField(objectValue, "rank", endpoint, path, parseLeaderboardRank),
+  };
+}
+
+function parseProgressLeaderboardProfileMetrics(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressLeaderboardProfileMetrics {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    currentStreakDays: parseRequiredField(objectValue, "currentStreakDays", endpoint, path, parseNonNegativeSafeInteger),
+    bestRatingPlacement: parseRequiredField(
+      objectValue,
+      "bestRatingPlacement",
+      endpoint,
+      path,
+      parseProgressLeaderboardProfileBestRatingPlacement,
+    ),
+  };
+}
+
+function parseProgressLeaderboardProfileReviewActivityDay(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressLeaderboardProfileReviewActivityDay {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    date: parseRequiredField(objectValue, "date", endpoint, path, parseIsoLocalDateString),
+    reviewCount: parseRequiredField(objectValue, "reviewCount", endpoint, path, parseNonNegativeSafeInteger),
+  };
+}
+
+function parseProgressLeaderboardProfileReviewActivityDays(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressLeaderboardProfileReviewActivity["days"] {
+  const days = parseArray(value, endpoint, path, parseProgressLeaderboardProfileReviewActivityDay);
+
+  if (days.length !== 30) {
+    throw new ApiContractError(endpoint, describePath(path), "30 daily activity entries");
+  }
+
+  return days;
+}
+
+function parseProgressLeaderboardProfileReviewActivity(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressLeaderboardProfileReviewActivity {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    dateBasis: parseRequiredField(
+      objectValue,
+      "dateBasis",
+      endpoint,
+      path,
+      (dateBasis, dateBasisEndpoint, dateBasisPath): "profile_local_day_with_utc_fallback" => parseLiteral(
+        dateBasis,
+        dateBasisEndpoint,
+        dateBasisPath,
+        "profile_local_day_with_utc_fallback",
+      ),
+    ),
+    days: parseRequiredField(
+      objectValue,
+      "days",
+      endpoint,
+      path,
+      parseProgressLeaderboardProfileReviewActivityDays,
+    ),
+  };
+}
+
+function parseProgressLeaderboardProfileStats(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressLeaderboardProfileStats {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    joinedAt: parseRequiredField(objectValue, "joinedAt", endpoint, path, parseIsoTimestampString),
+    totalCards: parseRequiredField(objectValue, "totalCards", endpoint, path, parseNonNegativeSafeInteger),
+  };
+}
+
+function parseProgressLeaderboardProfileReadyResponse(
+  objectValue: JsonObject,
+  endpoint: string,
+): ProgressLeaderboardProfileReady {
+  return {
+    status: "ready",
+    publicProfileId: parseRequiredField(objectValue, "publicProfileId", endpoint, "", parseString),
+    anonymousDisplayName: parseRequiredField(objectValue, "anonymousDisplayName", endpoint, "", parseString),
+    friendDisplayName: parseOptionalField(objectValue, "friendDisplayName", endpoint, "", parseString),
+    isFriend: parseRequiredField(objectValue, "isFriend", endpoint, "", parseBoolean),
+    metrics: parseRequiredField(objectValue, "metrics", endpoint, "", parseProgressLeaderboardProfileMetrics),
+    reviewActivity: parseRequiredField(
+      objectValue,
+      "reviewActivity",
+      endpoint,
+      "",
+      parseProgressLeaderboardProfileReviewActivity,
+    ),
+    stats: parseRequiredField(objectValue, "stats", endpoint, "", parseProgressLeaderboardProfileStats),
+    generatedAt: parseRequiredField(objectValue, "generatedAt", endpoint, "", parseIsoTimestampString),
+  };
+}
+
+export function parseProgressLeaderboardProfileResponse(
+  value: unknown,
+  endpoint: string,
+): ProgressLeaderboardProfile {
+  const objectValue = parseObject(value, endpoint, "");
+  const status = parseProgressLeaderboardProfileStatus(objectValue.status, endpoint, "status");
+
+  if (status !== "ready") {
+    return {
+      status,
+    };
+  }
+
+  return parseProgressLeaderboardProfileReadyResponse(objectValue, endpoint);
 }
 
 function parseProgressStreakLeaderboardStatus(

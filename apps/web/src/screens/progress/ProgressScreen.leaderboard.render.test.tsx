@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type { ProgressLeaderboardProfile, ProgressLeaderboardProfileReady } from "../../types";
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -18,6 +19,79 @@ import {
   mockProgressSourceStateWithLeaderboard,
   useAppDataMock,
 } from "./ProgressScreenTestSupport";
+
+const apiMocks = vi.hoisted(() => ({
+  loadProgressLeaderboardProfileMock: vi.fn<(publicProfileId: string) => Promise<ProgressLeaderboardProfile>>(),
+}));
+
+vi.mock("../../api", async () => {
+  const actualApi = await vi.importActual<typeof import("../../api")>("../../api");
+
+  return {
+    ...actualApi,
+    loadProgressLeaderboardProfile: apiMocks.loadProgressLeaderboardProfileMock,
+  };
+});
+
+function createProfileActivityDays(): ProgressLeaderboardProfileReady["reviewActivity"]["days"] {
+  return Array.from({ length: 30 }, (_value, index) => ({
+    date: `2026-05-${String(index + 1).padStart(2, "0")}`,
+    reviewCount: index % 5,
+  }));
+}
+
+function createLeaderboardReadyProfile(
+  publicProfileId: string,
+  anonymousDisplayName: string,
+  friendDisplayName: string | null,
+): ProgressLeaderboardProfileReady {
+  const profile: ProgressLeaderboardProfileReady = {
+    status: "ready",
+    publicProfileId,
+    anonymousDisplayName,
+    isFriend: friendDisplayName !== null,
+    metrics: {
+      currentStreakDays: 6,
+      bestRatingPlacement: {
+        windowKey: "last_24_hours",
+        rank: 2,
+      },
+    },
+    reviewActivity: {
+      dateBasis: "profile_local_day_with_utc_fallback",
+      days: createProfileActivityDays(),
+    },
+    stats: {
+      joinedAt: "2026-04-01T08:00:00.000Z",
+      totalCards: 42,
+    },
+    generatedAt: "2026-06-10T12:00:05.000Z",
+  };
+
+  return friendDisplayName === null ? profile : {
+    ...profile,
+    friendDisplayName,
+  };
+}
+
+function createDeferredProfile(): Readonly<{
+  promise: Promise<ProgressLeaderboardProfile>;
+  resolve: (profile: ProgressLeaderboardProfile) => void;
+}> {
+  let resolvePromise: ((profile: ProgressLeaderboardProfile) => void) | null = null;
+  const promise = new Promise<ProgressLeaderboardProfile>((resolve) => {
+    resolvePromise = resolve;
+  });
+
+  if (resolvePromise === null) {
+    throw new Error("Deferred leaderboard profile promise was not initialized");
+  }
+
+  return {
+    promise,
+    resolve: resolvePromise,
+  };
+}
 
 describe("ProgressScreen leaderboard", () => {
   const progressScreen = createProgressScreenRenderTestContext();
@@ -188,6 +262,66 @@ describe("ProgressScreen leaderboard", () => {
     expect(bottomGapRow.querySelector("a")).toBeNull();
   });
 
+  it("opens and caches a rating leaderboard profile from a participant row", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("ready", null));
+    const deferredProfile = createDeferredProfile();
+    apiMocks.loadProgressLeaderboardProfileMock.mockReturnValueOnce(deferredProfile.promise);
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+    const openButton = container.querySelector("[data-testid='progress-leaderboard-row-top-button']");
+    if (!(openButton instanceof HTMLButtonElement)) {
+      throw new Error("Rating leaderboard profile button was not found");
+    }
+
+    await act(async () => {
+      openButton.click();
+    });
+
+    const loadingDialog = document.body.querySelector("[data-testid='progress-leaderboard-profile-dialog']");
+    if (!(loadingDialog instanceof HTMLElement)) {
+      throw new Error("Leaderboard profile dialog was not opened");
+    }
+    expect(loadingDialog.textContent).toContain("Silver Bright Harbor");
+    expect(loadingDialog.querySelector("[data-testid='progress-leaderboard-profile-loading']")).not.toBeNull();
+    expect(apiMocks.loadProgressLeaderboardProfileMock).toHaveBeenCalledWith("profile-1");
+
+    await act(async () => {
+      deferredProfile.resolve(createLeaderboardReadyProfile("profile-1", "Silver Bright Harbor", "Mina"));
+      await deferredProfile.promise;
+    });
+
+    const loadedDialog = document.body.querySelector("[data-testid='progress-leaderboard-profile-dialog']");
+    if (!(loadedDialog instanceof HTMLElement)) {
+      throw new Error("Loaded leaderboard profile dialog was not found");
+    }
+    expect(loadedDialog.textContent).toContain("Mina");
+    expect(loadedDialog.textContent).toContain("Friend");
+    expect(loadedDialog.textContent).toContain("Silver Bright Harbor");
+    expect(loadedDialog.querySelector("[data-testid='progress-leaderboard-profile-best-rating']")?.textContent).toBe("#2 in 24h");
+    expect(loadedDialog.querySelectorAll("[data-testid='progress-leaderboard-profile-activity-day']")).toHaveLength(30);
+    expect(loadedDialog.querySelector("[data-testid='progress-leaderboard-profile-total-cards']")?.textContent).toBe("42");
+
+    const closeButton = document.body.querySelector("[data-testid='progress-leaderboard-profile-close']");
+    if (!(closeButton instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard profile close button was not found");
+    }
+
+    await act(async () => {
+      closeButton.click();
+    });
+    await act(async () => {
+      openButton.click();
+    });
+
+    expect(apiMocks.loadProgressLeaderboardProfileMock).toHaveBeenCalledTimes(1);
+    expect(document.body.querySelector("[data-testid='progress-leaderboard-profile-dialog']")?.textContent).toContain("Mina");
+  });
+
   it("renders separate rating and streak leaderboard cards with streak day values", async () => {
     useAppDataMock.mockReturnValue({
       ...createAppData(),
@@ -225,6 +359,39 @@ describe("ProgressScreen leaderboard", () => {
     expect(streakCard.querySelector("[data-testid='progress-streak-leaderboard-row-viewer']")?.textContent).toContain("You");
   });
 
+  it("opens the same profile dialog from a streak leaderboard row", async () => {
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboards(
+      createLeaderboardSourceState("ready", null),
+      createStreakLeaderboardSourceState("ready"),
+    );
+    apiMocks.loadProgressLeaderboardProfileMock.mockResolvedValueOnce(
+      createLeaderboardReadyProfile("streak-profile-1", "Solar Clear Summit", null),
+    );
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+    const openButton = container.querySelector("[data-testid='progress-streak-leaderboard-row-top-button']");
+    if (!(openButton instanceof HTMLButtonElement)) {
+      throw new Error("Streak leaderboard profile button was not found");
+    }
+
+    await act(async () => {
+      openButton.click();
+    });
+
+    expect(apiMocks.loadProgressLeaderboardProfileMock).toHaveBeenCalledWith("streak-profile-1");
+    const dialog = document.body.querySelector("[data-testid='progress-leaderboard-profile-dialog']");
+    if (!(dialog instanceof HTMLElement)) {
+      throw new Error("Leaderboard profile dialog was not opened from the streak leaderboard");
+    }
+    expect(dialog.textContent).toContain("Solar Clear Summit");
+    expect(dialog.querySelector("[data-testid='progress-leaderboard-profile-current-streak']")?.textContent).toBe("6 days");
+  });
+
   it("renders the local viewer-only streak leaderboard row when the server snapshot is unavailable", async () => {
     useAppDataMock.mockReturnValue({
       ...createAppData(),
@@ -248,6 +415,13 @@ describe("ProgressScreen leaderboard", () => {
     expect(rows[0]?.getAttribute("data-kind")).toBe("viewer");
     expect(rows[0]?.textContent).toContain("#1");
     expect(rows[0]?.textContent).toContain("You");
+    expect(streakCard.querySelector("[data-testid='progress-streak-leaderboard-row-viewer-button']")).toBeNull();
+    expect(rows[0]?.querySelector("button")).toBeNull();
+    if (!(rows[0] instanceof HTMLElement)) {
+      throw new Error("Local-only streak leaderboard row was not an element");
+    }
+    rows[0].click();
+    expect(apiMocks.loadProgressLeaderboardProfileMock).not.toHaveBeenCalled();
     expect(streakCard.querySelector("[data-testid='progress-streak-leaderboard-streak-days-viewer']")?.textContent).toBe("2 days");
   });
 

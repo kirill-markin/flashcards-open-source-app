@@ -10,6 +10,7 @@ import type {
 import {
   getProgressLeaderboardElapsedMinutes,
   ProgressLeaderboardRows,
+  type ProgressLeaderboardProfileDialogSeed,
   type ProgressLeaderboardDisplayRow,
 } from "./ProgressLeaderboardPresentation";
 
@@ -18,6 +19,7 @@ type ProgressStreakLeaderboardSectionProps = Readonly<{
   canRenderServerBase: boolean;
   isInfoVisible: boolean;
   onToggleInfo: () => void;
+  onOpenProfile: (profile: ProgressLeaderboardProfileDialogSeed) => void;
 }>;
 
 function ProgressStreakLeaderboardSignInPlaceholder(): ReactElement {
@@ -65,9 +67,10 @@ function buildStreakLeaderboardRows(
 function ProgressStreakLeaderboardBody(props: Readonly<{
   sourceState: ProgressStreakLeaderboardSourceState;
   canRenderServerBase: boolean;
+  onOpenProfile: (profile: ProgressLeaderboardProfileDialogSeed) => void;
 }>): ReactElement {
   const { t, formatCount } = useI18n();
-  const { sourceState, canRenderServerBase } = props;
+  const { sourceState, canRenderServerBase, onOpenProfile } = props;
   const leaderboard = sourceState.renderedSnapshot;
 
   if (leaderboard === null) {
@@ -134,6 +137,7 @@ function ProgressStreakLeaderboardBody(props: Readonly<{
       rows={buildStreakLeaderboardRows(leaderboard, formatCount, t)}
       paddingRowCount={0}
       paddingRowTestId="progress-streak-leaderboard-row-padding"
+      onOpenProfile={leaderboard.source === "server" ? onOpenProfile : undefined}
     />
   );
 }
@@ -145,6 +149,7 @@ export function ProgressStreakLeaderboardSection(props: ProgressStreakLeaderboar
     canRenderServerBase,
     isInfoVisible,
     onToggleInfo,
+    onOpenProfile,
   } = props;
   const leaderboard = sourceState.renderedSnapshot;
   const infoUpdatedAt = leaderboard?.status === "ready" && leaderboard.snapshotGeneratedAt !== null
@@ -192,6 +197,7 @@ export function ProgressStreakLeaderboardSection(props: ProgressStreakLeaderboar
       <ProgressStreakLeaderboardBody
         sourceState={sourceState}
         canRenderServerBase={canRenderServerBase}
+        onOpenProfile={onOpenProfile}
       />
     </section>
   );
