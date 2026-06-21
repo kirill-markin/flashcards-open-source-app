@@ -12,6 +12,7 @@ struct ProgressLeaderboardSection: View {
     @Binding var selectedWindowKey: LeaderboardWindowKey?
     let onOpenCloudSignIn: () -> Void
     let onOpenFriendInvite: () -> Void
+    let onOpenProfile: (ProgressLeaderboardSelectedProfile) -> Void
 
     @State private var isInfoAlertPresented: Bool = false
 
@@ -165,7 +166,10 @@ struct ProgressLeaderboardSection: View {
                 ForEach(selectedWindow.rows) { row in
                     switch row {
                     case .participant(let participantRow):
-                        ProgressLeaderboardParticipantRowView(row: participantRow)
+                        ProgressLeaderboardParticipantRowView(
+                            row: participantRow,
+                            onOpenProfile: self.onOpenProfile
+                        )
                     case .gap(_):
                         ProgressLeaderboardGapRowView()
                     }
@@ -392,6 +396,7 @@ private func progressLeaderboardGapRowCount(
 
 private struct ProgressLeaderboardParticipantRowView: View {
     let row: ProgressLeaderboardParticipantRowState
+    let onOpenProfile: (ProgressLeaderboardSelectedProfile) -> Void
 
     private var isViewer: Bool {
         self.row.kind == .viewer
@@ -406,6 +411,20 @@ private struct ProgressLeaderboardParticipantRowView: View {
     }
 
     var body: some View {
+        Button {
+            self.onOpenProfile(self.selectedProfile)
+        } label: {
+            self.content
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityIdentifier(self.accessibilityIdentifier)
+        .accessibilityLabel(self.displayName)
+        .accessibilityValue(self.accessibilityValue)
+    }
+
+    private var content: some View {
         HStack(spacing: 10) {
             Text(self.row.rank.formatted())
                 .font(.subheadline.monospacedDigit())
@@ -430,9 +449,18 @@ private struct ProgressLeaderboardParticipantRowView: View {
                 .padding(.horizontal, -8)
                 .padding(.vertical, -4)
         )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(self.displayName)
-        .accessibilityValue(self.accessibilityValue)
+    }
+
+    private var selectedProfile: ProgressLeaderboardSelectedProfile {
+        ProgressLeaderboardSelectedProfile(
+            publicProfileId: self.row.publicProfileId,
+            anonymousDisplayName: self.row.anonymousDisplayName,
+            friendDisplayName: self.row.friendDisplayName
+        )
+    }
+
+    private var accessibilityIdentifier: String {
+        "\(UITestIdentifier.progressLeaderboardRowPrefix)\(self.row.rank).\(self.row.publicProfileId)"
     }
 
     private var accessibilityValue: String {

@@ -47,6 +47,11 @@ protocol CloudSyncServing {
         apiBaseUrl: String,
         authorizationHeader: String
     ) async throws -> UserProgressStreakLeaderboard
+    func loadProgressLeaderboardProfile(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        publicProfileId: String
+    ) async throws -> UserProgressLeaderboardProfile
     func loadCommunityPublicProfile(
         apiBaseUrl: String,
         authorizationHeader: String

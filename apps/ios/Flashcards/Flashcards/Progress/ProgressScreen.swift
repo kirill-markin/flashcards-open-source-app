@@ -18,6 +18,7 @@ struct ProgressScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @State private var selectedLeaderboardWindowKey: LeaderboardWindowKey?
+    @State private var selectedLeaderboardProfile: ProgressLeaderboardSelectedProfile?
     @State private var isCloudSignInPresented: Bool = false
     @State private var isFriendInvitePresented: Bool = false
 
@@ -96,7 +97,8 @@ struct ProgressScreen: View {
                                     leaderboardRefreshMessage: self.store.progressErrorState.leaderboardRefreshMessage,
                                     selectedWindowKey: self.$selectedLeaderboardWindowKey,
                                     onOpenCloudSignIn: self.openCloudSignInFlow,
-                                    onOpenFriendInvite: self.openFriendInviteFlow
+                                    onOpenFriendInvite: self.openFriendInviteFlow,
+                                    onOpenProfile: self.openLeaderboardProfile
                                 )
                             }
                             .id(ProgressScreenSectionID.leaderboard)
@@ -109,7 +111,8 @@ struct ProgressScreen: View {
                                 ProgressStreakLeaderboardSection(
                                     snapshot: streakLeaderboardSnapshot,
                                     isRefreshing: self.store.isProgressRefreshing,
-                                    streakLeaderboardRefreshMessage: self.store.progressErrorState.streakLeaderboardRefreshMessage
+                                    streakLeaderboardRefreshMessage: self.store.progressErrorState.streakLeaderboardRefreshMessage,
+                                    onOpenProfile: self.openLeaderboardProfile
                                 )
                             }
                             .id(ProgressScreenSectionID.streakLeaderboard)
@@ -186,6 +189,10 @@ struct ProgressScreen: View {
             ProgressFriendInviteSheet()
                 .environment(self.store)
         }
+        .sheet(item: self.$selectedLeaderboardProfile) { selectedProfile in
+            ProgressLeaderboardProfileSheet(selectedProfile: selectedProfile)
+                .environment(self.store)
+        }
     }
 
     private func openCloudSignInFlow() {
@@ -199,6 +206,10 @@ struct ProgressScreen: View {
         }
 
         self.isFriendInvitePresented = true
+    }
+
+    private func openLeaderboardProfile(_ selectedProfile: ProgressLeaderboardSelectedProfile) {
+        self.selectedLeaderboardProfile = selectedProfile
     }
 
     @MainActor

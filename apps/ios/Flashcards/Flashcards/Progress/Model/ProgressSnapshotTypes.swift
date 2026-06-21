@@ -166,6 +166,16 @@ struct ProgressLeaderboardParticipantRowState: Hashable, Sendable {
     let rank: Int
 }
 
+struct ProgressLeaderboardSelectedProfile: Hashable, Identifiable, Sendable {
+    let publicProfileId: String
+    let anonymousDisplayName: String
+    let friendDisplayName: String?
+
+    var id: String {
+        self.publicProfileId
+    }
+}
+
 struct ProgressStreakLeaderboardSnapshot: Hashable, Sendable {
     let scopeKey: ProgressLeaderboardScopeKey
     let state: ProgressStreakLeaderboardSnapshotState

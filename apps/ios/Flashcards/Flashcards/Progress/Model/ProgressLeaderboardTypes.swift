@@ -311,6 +311,139 @@ struct UserProgressStreakLeaderboard: Codable, Hashable, Sendable {
     }
 }
 
+enum ProgressLeaderboardProfileStatus: String, Codable, Hashable, Sendable {
+    case ready
+    case linkedAccountRequired = "linked_account_required"
+    case participationDisabled = "participation_disabled"
+    case profileUnavailable = "profile_unavailable"
+}
+
+enum ProgressLeaderboardProfileReviewActivityDateBasis: String, Codable, Hashable, Sendable {
+    case profileLocalDayWithUtcFallback = "profile_local_day_with_utc_fallback"
+}
+
+struct ProgressLeaderboardProfileBestRatingPlacement: Codable, Hashable, Sendable {
+    let windowKey: LeaderboardWindowKey
+    let rank: Int
+}
+
+struct ProgressLeaderboardProfileMetrics: Codable, Hashable, Sendable {
+    let currentStreakDays: Int
+    let bestRatingPlacement: ProgressLeaderboardProfileBestRatingPlacement?
+}
+
+struct ProgressLeaderboardProfileReviewActivityDay: Codable, Hashable, Sendable {
+    let date: String
+    let reviewCount: Int
+}
+
+struct ProgressLeaderboardProfileReviewActivity: Codable, Hashable, Sendable {
+    let dateBasis: ProgressLeaderboardProfileReviewActivityDateBasis
+    let days: [ProgressLeaderboardProfileReviewActivityDay]
+}
+
+struct ProgressLeaderboardProfileStats: Codable, Hashable, Sendable {
+    let joinedAt: String
+    let totalCards: Int
+}
+
+struct ProgressLeaderboardProfileReadyPayload: Codable, Hashable, Sendable {
+    let publicProfileId: String
+    let anonymousDisplayName: String
+    let friendDisplayName: String?
+    let isFriend: Bool
+    let metrics: ProgressLeaderboardProfileMetrics
+    let reviewActivity: ProgressLeaderboardProfileReviewActivity
+    let stats: ProgressLeaderboardProfileStats
+    let generatedAt: String
+}
+
+struct UserProgressLeaderboardProfile: Codable, Hashable, Sendable {
+    let status: ProgressLeaderboardProfileStatus
+    /// Present only when status is ready. Non-ready responses carry no profile details.
+    let readyPayload: ProgressLeaderboardProfileReadyPayload?
+
+    private enum CodingKeys: String, CodingKey {
+        case status
+        case publicProfileId
+        case anonymousDisplayName
+        case friendDisplayName
+        case isFriend
+        case metrics
+        case reviewActivity
+        case stats
+        case generatedAt
+    }
+
+    private static let readyPayloadCodingKeys: [CodingKeys] = [
+        .publicProfileId,
+        .anonymousDisplayName,
+        .friendDisplayName,
+        .isFriend,
+        .metrics,
+        .reviewActivity,
+        .stats,
+        .generatedAt,
+    ]
+
+    init(
+        status: ProgressLeaderboardProfileStatus,
+        readyPayload: ProgressLeaderboardProfileReadyPayload?
+    ) {
+        self.status = status
+        self.readyPayload = readyPayload
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let status = try container.decode(ProgressLeaderboardProfileStatus.self, forKey: .status)
+        let readyPayload: ProgressLeaderboardProfileReadyPayload?
+        if status == .ready {
+            readyPayload = ProgressLeaderboardProfileReadyPayload(
+                publicProfileId: try container.decode(String.self, forKey: .publicProfileId),
+                anonymousDisplayName: try container.decode(String.self, forKey: .anonymousDisplayName),
+                friendDisplayName: try container.decodeIfPresent(String.self, forKey: .friendDisplayName),
+                isFriend: try container.decode(Bool.self, forKey: .isFriend),
+                metrics: try container.decode(ProgressLeaderboardProfileMetrics.self, forKey: .metrics),
+                reviewActivity: try container.decode(
+                    ProgressLeaderboardProfileReviewActivity.self,
+                    forKey: .reviewActivity
+                ),
+                stats: try container.decode(ProgressLeaderboardProfileStats.self, forKey: .stats),
+                generatedAt: try container.decode(String.self, forKey: .generatedAt)
+            )
+        } else {
+            if let unexpectedKey = Self.readyPayloadCodingKeys.first(where: { key in container.contains(key) }) {
+                throw DecodingError.dataCorruptedError(
+                    forKey: unexpectedKey,
+                    in: container,
+                    debugDescription: "Non-ready leaderboard profile payload must not include \(unexpectedKey.stringValue)."
+                )
+            }
+            readyPayload = nil
+        }
+
+        self.init(status: status, readyPayload: readyPayload)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.status, forKey: .status)
+        guard let readyPayload else {
+            return
+        }
+
+        try container.encode(readyPayload.publicProfileId, forKey: .publicProfileId)
+        try container.encode(readyPayload.anonymousDisplayName, forKey: .anonymousDisplayName)
+        try container.encodeIfPresent(readyPayload.friendDisplayName, forKey: .friendDisplayName)
+        try container.encode(readyPayload.isFriend, forKey: .isFriend)
+        try container.encode(readyPayload.metrics, forKey: .metrics)
+        try container.encode(readyPayload.reviewActivity, forKey: .reviewActivity)
+        try container.encode(readyPayload.stats, forKey: .stats)
+        try container.encode(readyPayload.generatedAt, forKey: .generatedAt)
+    }
+}
+
 enum ProgressLeaderboardValidationError: LocalizedError {
     case unexpectedWindows(status: String, windowCount: Int)
     case invalidWindowKeys([String])
@@ -401,6 +534,59 @@ enum ProgressStreakLeaderboardValidationError: LocalizedError {
             return "Streak leaderboard rows did not contain exactly one viewer row matching the viewer."
         case .viewerRankingRowMismatch:
             return "Streak leaderboard ranking rows did not contain exactly one viewer row matching the viewer."
+        }
+    }
+}
+
+enum ProgressLeaderboardProfileValidationError: LocalizedError {
+    case missingReadyPayload
+    case unexpectedReadyPayload(status: String)
+    case publicProfileIdMismatch(expected: String, actual: String)
+    case emptyPublicProfileId
+    case emptyAnonymousDisplayName
+    case emptyFriendDisplayName
+    case negativeCurrentStreakDays(Int)
+    case invalidBestRatingRank(Int)
+    case invalidReviewActivityDayCount(Int)
+    case invalidReviewActivityDate(String)
+    case duplicateReviewActivityDate(String)
+    case negativeReviewCount(date: String, reviewCount: Int)
+    case invalidJoinedAt(String)
+    case negativeTotalCards(Int)
+    case invalidGeneratedAt(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .missingReadyPayload:
+            return "Leaderboard profile with ready status must contain a ready payload."
+        case .unexpectedReadyPayload(let status):
+            return "Leaderboard profile with status \(status) must not contain a ready payload."
+        case .publicProfileIdMismatch(let expected, let actual):
+            return "Leaderboard profile id mismatch. Expected \(expected), received \(actual)."
+        case .emptyPublicProfileId:
+            return "Leaderboard profile publicProfileId must not be empty."
+        case .emptyAnonymousDisplayName:
+            return "Leaderboard profile anonymousDisplayName must not be empty."
+        case .emptyFriendDisplayName:
+            return "Leaderboard profile friendDisplayName must not be empty when present."
+        case .negativeCurrentStreakDays(let currentStreakDays):
+            return "Leaderboard profile currentStreakDays must not be negative: \(currentStreakDays)."
+        case .invalidBestRatingRank(let rank):
+            return "Leaderboard profile best rating rank must be at least 1. Received \(rank)."
+        case .invalidReviewActivityDayCount(let dayCount):
+            return "Leaderboard profile reviewActivity.days must contain exactly 30 days. Received \(dayCount)."
+        case .invalidReviewActivityDate(let date):
+            return "Leaderboard profile review activity date is invalid: \(date)."
+        case .duplicateReviewActivityDate(let date):
+            return "Leaderboard profile review activity date is duplicated: \(date)."
+        case .negativeReviewCount(let date, let reviewCount):
+            return "Leaderboard profile review count for \(date) must not be negative: \(reviewCount)."
+        case .invalidJoinedAt(let joinedAt):
+            return "Leaderboard profile joinedAt timestamp is invalid: \(joinedAt)."
+        case .negativeTotalCards(let totalCards):
+            return "Leaderboard profile totalCards must not be negative: \(totalCards)."
+        case .invalidGeneratedAt(let generatedAt):
+            return "Leaderboard profile generatedAt timestamp is invalid: \(generatedAt)."
         }
     }
 }
@@ -708,6 +894,106 @@ private func validateProgressStreakLeaderboardReadyPayload(
         viewerRow.streakDays == readyPayload.viewer.streakDays
     else {
         throw ProgressStreakLeaderboardValidationError.viewerRowMismatch
+    }
+}
+
+func validateProgressLeaderboardProfile(
+    profile: UserProgressLeaderboardProfile,
+    expectedPublicProfileId: String
+) throws {
+    switch profile.status {
+    case .ready:
+        guard let readyPayload = profile.readyPayload else {
+            throw ProgressLeaderboardProfileValidationError.missingReadyPayload
+        }
+
+        try validateProgressLeaderboardProfileReadyPayload(
+            payload: readyPayload,
+            expectedPublicProfileId: expectedPublicProfileId
+        )
+    case .linkedAccountRequired, .participationDisabled, .profileUnavailable:
+        guard profile.readyPayload == nil else {
+            throw ProgressLeaderboardProfileValidationError.unexpectedReadyPayload(
+                status: profile.status.rawValue
+            )
+        }
+    }
+}
+
+private func validateProgressLeaderboardProfileReadyPayload(
+    payload: ProgressLeaderboardProfileReadyPayload,
+    expectedPublicProfileId: String
+) throws {
+    guard payload.publicProfileId == expectedPublicProfileId else {
+        throw ProgressLeaderboardProfileValidationError.publicProfileIdMismatch(
+            expected: expectedPublicProfileId,
+            actual: payload.publicProfileId
+        )
+    }
+
+    guard payload.publicProfileId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+        throw ProgressLeaderboardProfileValidationError.emptyPublicProfileId
+    }
+
+    guard payload.anonymousDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+        throw ProgressLeaderboardProfileValidationError.emptyAnonymousDisplayName
+    }
+
+    if let friendDisplayName = payload.friendDisplayName {
+        guard friendDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+            throw ProgressLeaderboardProfileValidationError.emptyFriendDisplayName
+        }
+    }
+
+    guard payload.metrics.currentStreakDays >= 0 else {
+        throw ProgressLeaderboardProfileValidationError.negativeCurrentStreakDays(
+            payload.metrics.currentStreakDays
+        )
+    }
+
+    if let bestRatingPlacement = payload.metrics.bestRatingPlacement {
+        guard bestRatingPlacement.rank >= 1 else {
+            throw ProgressLeaderboardProfileValidationError.invalidBestRatingRank(bestRatingPlacement.rank)
+        }
+    }
+
+    try validateProgressLeaderboardProfileReviewActivity(activity: payload.reviewActivity)
+
+    guard parseIsoTimestamp(value: payload.stats.joinedAt) != nil else {
+        throw ProgressLeaderboardProfileValidationError.invalidJoinedAt(payload.stats.joinedAt)
+    }
+
+    guard payload.stats.totalCards >= 0 else {
+        throw ProgressLeaderboardProfileValidationError.negativeTotalCards(payload.stats.totalCards)
+    }
+
+    guard parseIsoTimestamp(value: payload.generatedAt) != nil else {
+        throw ProgressLeaderboardProfileValidationError.invalidGeneratedAt(payload.generatedAt)
+    }
+}
+
+private func validateProgressLeaderboardProfileReviewActivity(
+    activity: ProgressLeaderboardProfileReviewActivity
+) throws {
+    guard activity.days.count == 30 else {
+        throw ProgressLeaderboardProfileValidationError.invalidReviewActivityDayCount(activity.days.count)
+    }
+
+    let calendar = Calendar(identifier: .gregorian)
+    var seenDates: Set<String> = []
+    for day in activity.days {
+        guard (try? progressDate(localDate: day.date, calendar: calendar)) != nil else {
+            throw ProgressLeaderboardProfileValidationError.invalidReviewActivityDate(day.date)
+        }
+        guard seenDates.insert(day.date).inserted else {
+            throw ProgressLeaderboardProfileValidationError.duplicateReviewActivityDate(day.date)
+        }
+        guard day.reviewCount >= 0 else {
+            throw ProgressLeaderboardProfileValidationError.negativeReviewCount(
+                date: day.date,
+                reviewCount: day.reviewCount
+            )
+        }
     }
 }
 

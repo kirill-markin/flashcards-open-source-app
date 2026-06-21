@@ -230,6 +230,20 @@ final class CloudSyncService: @unchecked Sendable {
         )
     }
 
+    func loadProgressLeaderboardProfile(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        publicProfileId: String
+    ) async throws -> UserProgressLeaderboardProfile {
+        try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: try self.transport.progressLeaderboardProfilePath(publicProfileId: publicProfileId),
+            method: "GET",
+            body: Optional<String>.none
+        )
+    }
+
     func loadCommunityPublicProfile(
         apiBaseUrl: String,
         authorizationHeader: String

@@ -371,6 +371,41 @@ extension FlashcardsStore {
         )
     }
 
+    func loadProgressLeaderboardProfile(
+        publicProfileId: String
+    ) async throws -> UserProgressLeaderboardProfile {
+        let requestedPublicProfileId = publicProfileId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard requestedPublicProfileId.isEmpty == false else {
+            throw LocalStoreError.validation("Progress leaderboard profile id must not be empty")
+        }
+
+        guard self.cloudSettings?.cloudState == .linked else {
+            return UserProgressLeaderboardProfile(status: .linkedAccountRequired, readyPayload: nil)
+        }
+
+        guard let activeSession = self.cloudRuntime.activeCloudSession() else {
+            throw LocalStoreError.validation(
+                "Progress leaderboard profile requires an active linked cloud session"
+            )
+        }
+
+        return try await self.withCloudSessionPreservingStableContext(linkedSession: activeSession) { refreshedSession in
+            let cloudSyncService = try requireCloudSyncService(
+                cloudSyncService: self.dependencies.cloudSyncService
+            )
+            let profile = try await cloudSyncService.loadProgressLeaderboardProfile(
+                apiBaseUrl: refreshedSession.apiBaseUrl,
+                authorizationHeader: refreshedSession.authorizationHeaderValue,
+                publicProfileId: requestedPublicProfileId
+            )
+            try validateProgressLeaderboardProfile(
+                profile: profile,
+                expectedPublicProfileId: requestedPublicProfileId
+            )
+            return profile
+        }
+    }
+
     func handleProgressContextDidChange(now: Date) {
         self.prepareProgressForCurrentVisibleTabAndRefreshIfNeeded(now: now)
     }
