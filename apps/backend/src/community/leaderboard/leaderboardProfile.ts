@@ -9,14 +9,14 @@ import {
   ensurePublicProfileForCurrentUserInExecutor,
 } from "../publicProfiles";
 import { getAnonymousDisplayNameWordPools } from "../anonymousDisplayNames";
-import { STREAK_LEADERBOARD_SNAPSHOT_METRIC_VERSION } from "./streakLeaderboardSnapshots";
+import { STREAK_LEADERBOARD_SNAPSHOT_METRIC_VERSION } from "./streak/streakLeaderboardSnapshots";
 import {
   LEADERBOARD_SNAPSHOT_METRIC_VERSION,
   resolveBestLeaderboardPlacement,
   assertLeaderboardWindowKey,
   type LeaderboardBestPlacement,
   type LeaderboardWindowKey,
-} from "./leaderboardWindows";
+} from "./progress/leaderboardWindows";
 
 const LEADERBOARD_PROFILE_ACTIVITY_DAY_COUNT = 30;
 const LEADERBOARD_PROFILE_REVIEW_ACTIVITY_DATE_BASIS = "profile_local_day_with_utc_fallback" as const;

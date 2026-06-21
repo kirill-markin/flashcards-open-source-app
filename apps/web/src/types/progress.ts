@@ -140,7 +140,7 @@ export type ProgressReviewScheduleSnapshot = ProgressReviewSchedule & Readonly<{
   isApproximate: boolean;
 }>;
 
-/** Canonical leaderboard window order for the period control and the runtime validation set for incoming window keys. Keep in sync with apps/backend/src/community/leaderboard/leaderboardWindows.ts. */
+/** Canonical leaderboard window order for the period control and the runtime validation set for incoming window keys. Keep in sync with apps/backend/src/community/leaderboard/progress/leaderboardWindows.ts. */
 export const progressLeaderboardWindowKeys = [
   "last_24_hours",
   "last_3_days",
@@ -151,7 +151,7 @@ export const progressLeaderboardWindowKeys = [
 
 export type ProgressLeaderboardWindowKey = typeof progressLeaderboardWindowKeys[number];
 
-/** Rolling window lower bounds in whole hours from the current instant; null means unbounded (all time). Keep in sync with apps/backend/src/community/leaderboard/leaderboardWindows.ts. */
+/** Rolling window lower bounds in whole hours from the current instant; null means unbounded (all time). Keep in sync with apps/backend/src/community/leaderboard/progress/leaderboardWindows.ts. */
 export const progressLeaderboardWindowLowerBoundHours: Readonly<Record<ProgressLeaderboardWindowKey, number | null>> = {
   last_24_hours: 24,
   last_3_days: 72,

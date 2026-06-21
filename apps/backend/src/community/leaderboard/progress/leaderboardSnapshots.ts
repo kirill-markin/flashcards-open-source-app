@@ -1,5 +1,5 @@
-import { unsafeRepeatableReadTransaction } from "../../database/unsafe";
-import { type DatabaseExecutor } from "../../database";
+import { unsafeRepeatableReadTransaction } from "../../../database/unsafe";
+import { type DatabaseExecutor } from "../../../database";
 import {
   LEADERBOARD_SNAPSHOT_METRIC_VERSION,
   LEADERBOARD_WINDOWS,

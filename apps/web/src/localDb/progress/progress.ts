@@ -459,7 +459,7 @@ async function loadWorkspaceReviewEvents(
 /**
  * Counts the viewer's local qualified reviews (rating !== 0, Again excluded) per
  * leaderboard window using rolling `(now - lowerBoundHours, now]` bounds on
- * `reviewedAtClient`, mirroring apps/backend/src/community/leaderboard/leaderboardWindows.ts.
+ * `reviewedAtClient`, mirroring apps/backend/src/community/leaderboard/progress/leaderboardWindows.ts.
  * Pending outbox review events are deduplicated against the local review event
  * store by `(workspaceId, reviewEventId)` because review submission writes both.
  */

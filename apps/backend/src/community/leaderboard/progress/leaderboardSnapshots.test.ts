@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 import type pg from "pg";
-import type { DatabaseExecutor, SqlValue } from "../../database";
+import type { DatabaseExecutor, SqlValue } from "../../../database";
 import {
   generateLeaderboardSnapshotsWithDependencies,
   refreshLeaderboardSnapshotInExecutor,
@@ -557,11 +557,11 @@ test("generateLeaderboardSnapshots rejects an unsupported metric version before 
 test("production leaderboard snapshot generation uses one repeatable-read transaction", () => {
   const sourcePath = resolve(
     process.cwd(),
-    "src/community/leaderboard/leaderboardSnapshots.ts",
+    "src/community/leaderboard/progress/leaderboardSnapshots.ts",
   );
   const source = readFileSync(sourcePath, "utf8").replace(/\s+/g, " ");
 
-  assert.match(source, /import \{ unsafeRepeatableReadTransaction \} from "\.\.\/\.\.\/database\/unsafe"/);
+  assert.match(source, /import \{ unsafeRepeatableReadTransaction \} from "\.\.\/\.\.\/\.\.\/database\/unsafe"/);
   assert.match(source, /withTransactionFn: unsafeRepeatableReadTransaction/);
 });
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
-import type { DatabaseExecutor, SqlValue } from "../../database";
+import type { DatabaseExecutor, SqlValue } from "../../../database";
 import { LEADERBOARD_WINDOW_KEYS } from "./leaderboardWindows";
 import {
   loadProgressLeaderboard,
