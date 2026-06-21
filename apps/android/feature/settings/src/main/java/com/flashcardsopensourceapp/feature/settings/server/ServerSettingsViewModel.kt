@@ -115,16 +115,73 @@ class ServerSettingsViewModel(
 
     suspend fun applyPreviewConfiguration() {
         val previewConfiguration = draftState.value.previewConfiguration
-        if (previewConfiguration == null) {
+        val customOrigin = previewConfiguration?.customOrigin
+        if (customOrigin == null) {
             draftState.update { state ->
                 state.copy(errorMessage = strings.get(R.string.settings_server_enter_valid_url))
             }
             return
         }
         draftState.update { state -> state.copy(isApplying = true, errorMessage = "") }
+        val validatedConfiguration = try {
+            cloudAccountRepository.validateCustomServer(customOrigin)
+        } catch (error: IllegalArgumentException) {
+            draftState.update { state ->
+                state.copy(
+                    isApplying = false,
+                    errorMessage = strings.get(R.string.settings_server_enter_valid_url)
+                )
+            }
+            return
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: CloudRemoteException) {
+            draftState.update { state ->
+                state.copy(
+                    isApplying = false,
+                    errorMessage = strings.get(R.string.settings_server_validate_failed)
+                )
+            }
+            return
+        } catch (error: CloudHealthValidationException) {
+            draftState.update { state ->
+                state.copy(
+                    isApplying = false,
+                    errorMessage = strings.get(R.string.settings_server_validate_failed)
+                )
+            }
+            return
+        } catch (error: IOException) {
+            draftState.update { state ->
+                state.copy(
+                    isApplying = false,
+                    errorMessage = strings.get(R.string.settings_server_validate_failed)
+                )
+            }
+            return
+        } catch (error: Exception) {
+            val errorMessage = strings.get(R.string.settings_server_validate_failed)
+            draftState.update { state ->
+                state.copy(
+                    isApplying = false,
+                    errorMessage = errorMessage
+                )
+            }
+            showTechnicalError(
+                message = errorMessage,
+                throwable = error
+            )
+            return
+        }
         try {
-            cloudAccountRepository.applyCustomServer(previewConfiguration)
-            draftState.update { state -> state.copy(isApplying = false, errorMessage = "") }
+            cloudAccountRepository.applyCustomServer(validatedConfiguration)
+            draftState.update { state ->
+                state.copy(
+                    previewConfiguration = validatedConfiguration,
+                    isApplying = false,
+                    errorMessage = ""
+                )
+            }
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {

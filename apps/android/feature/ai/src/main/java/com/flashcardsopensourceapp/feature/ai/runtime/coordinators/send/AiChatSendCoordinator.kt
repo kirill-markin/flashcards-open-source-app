@@ -140,6 +140,11 @@ internal class AiChatSendCoordinator(
             var requestSessionId = currentState.persistedState.chatSessionId
             var rollbackPersistedState = initialPersistedState
             try {
+                if (currentCloudState() == CloudAccountState.DISCONNECTED) {
+                    context.aiChatRepository.prepareSessionForAi(
+                        workspaceId = context.runtimeStateMutable.value.workspaceId
+                    )
+                }
                 // AI send is blocked on a direct sync so the backend run never starts
                 // from stale local writes that are still sitting in the outbox.
                 context.aiChatRepository.ensureReadyForSend(workspaceId = context.runtimeStateMutable.value.workspaceId)

@@ -8,6 +8,8 @@ import java.util.Locale
 
 private const val flashcardsOfficialApiBaseUrl: String = "https://api.flashcards-open-source-app.com/v1"
 private const val flashcardsOfficialAuthBaseUrl: String = "https://auth.flashcards-open-source-app.com"
+private const val customCloudApiHostPrefix: String = "api."
+private const val customCloudAuthHostPrefix: String = "auth."
 private val canonicalIsoTimestampFormatter: DateTimeFormatter = DateTimeFormatter
     .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
     .withZone(ZoneOffset.UTC)
@@ -75,7 +77,21 @@ fun normalizeCustomCloudOrigin(customOrigin: String): String {
         ":${parsedOrigin.port}"
     }
 
-    return "https://${parsedOrigin.host.lowercase(Locale.US)}$normalizedPort"
+    val canonicalHost = canonicalCustomCloudOriginHost(host = parsedOrigin.host)
+    require(canonicalHost.isNotBlank()) {
+        "Custom server must include a root host: $customOrigin"
+    }
+
+    return "https://$canonicalHost$normalizedPort"
+}
+
+private fun canonicalCustomCloudOriginHost(host: String): String {
+    val normalizedHost = host.lowercase(Locale.US)
+    return when {
+        normalizedHost.startsWith(customCloudApiHostPrefix) -> normalizedHost.removePrefix(customCloudApiHostPrefix)
+        normalizedHost.startsWith(customCloudAuthHostPrefix) -> normalizedHost.removePrefix(customCloudAuthHostPrefix)
+        else -> normalizedHost
+    }
 }
 
 fun shouldRefreshCloudIdToken(idTokenExpiresAtMillis: Long, nowMillis: Long): Boolean {
