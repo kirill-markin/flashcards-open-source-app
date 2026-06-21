@@ -30,6 +30,12 @@ import {
 // (next to the snapshot writer) but is re-exported here so every /me/progress/*
 // loader is imported from one place by the route layer.
 export {
+  loadLeaderboardProfile,
+  loadLeaderboardProfileInExecutor,
+  type LeaderboardProfile,
+  type LeaderboardProfileRequest,
+} from "../community/leaderboard/leaderboardProfile";
+export {
   loadProgressLeaderboard,
   loadProgressLeaderboardInExecutor,
   type ProgressLeaderboard,

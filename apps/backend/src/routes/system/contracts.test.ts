@@ -67,6 +67,7 @@ test("published OpenAPI exposes only the curated external agent contract", () =>
     "FriendInvitationCreateRequest",
     "ProgressLeaderboardResponse",
     "StreakLeaderboardResponse",
+    "LeaderboardProfileResponse",
   ]) {
     assert.equal(schemas[hiddenSchemaName], undefined, `OpenAPI must not publish ${hiddenSchemaName}`);
   }
@@ -128,5 +129,19 @@ test("API Gateway predeclares /me/progress/leaderboards/streak", () => {
   assert.match(
     apiGatewaySource,
     /meProgressLeaderboards\.addResource\("streak"\)\.addMethod\("GET", integration\);/,
+  );
+});
+
+test("API Gateway predeclares /me/progress/leaderboards/profiles/{publicProfileId}", () => {
+  const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
+  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+
+  assert.match(
+    apiGatewaySource,
+    /const meProgressLeaderboardProfiles = meProgressLeaderboards\.addResource\("profiles"\);/,
+  );
+  assert.match(
+    apiGatewaySource,
+    /meProgressLeaderboardProfiles\.addResource\("\{publicProfileId\}"\)\.addMethod\("GET", integration\);/,
   );
 });

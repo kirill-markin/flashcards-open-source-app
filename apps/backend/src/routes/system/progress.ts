@@ -1,5 +1,6 @@
 import type { Hono } from "hono";
 import {
+  loadLeaderboardProfile,
   loadProgressLeaderboard,
   loadStreakLeaderboard,
   loadUserProgressReviewSchedule,
@@ -8,6 +9,7 @@ import {
   parseProgressReviewScheduleInputFromRequest,
   parseProgressSeriesInputFromRequest,
   parseProgressSummaryInputFromRequest,
+  type LeaderboardProfile,
   type ProgressLeaderboard,
   type ProgressReviewSchedule,
   type ProgressSeries,
@@ -29,6 +31,7 @@ import {
 } from "./support";
 
 export {
+  loadLeaderboardProfile,
   loadProgressLeaderboard,
   loadUserProgressReviewSchedule,
   loadUserProgressSeries,
@@ -42,6 +45,7 @@ type ProgressRoutesOptions = Readonly<{
   loadUserProgressReviewScheduleFn: typeof loadUserProgressReviewSchedule;
   loadUserProgressSeriesFn: typeof loadUserProgressSeries;
   loadUserProgressSummaryFn: typeof loadUserProgressSummary;
+  loadLeaderboardProfileFn: typeof loadLeaderboardProfile;
   loadProgressLeaderboardFn: typeof loadProgressLeaderboard;
   loadStreakLeaderboardFn: typeof loadStreakLeaderboard;
 }>;
@@ -276,6 +280,66 @@ export function registerProgressRoutes(
         error,
         { action: "me_progress_leaderboard_error", error: normalizeCaughtError(error), scope, details },
         { action: "me_progress_leaderboard_error", scope, details },
+      );
+      throw error;
+    }
+  });
+
+  app.get("/me/progress/leaderboards/profiles/:publicProfileId", async (context) => {
+    const { requestContext } = await options.loadRequestContextFromRequestFn(
+      context.req.raw,
+      options.allowedOrigins,
+    );
+    const requestId = context.get("requestId");
+    const publicProfileId = context.req.param("publicProfileId");
+
+    try {
+      assertProgressHumanTransport(requestContext.transport);
+
+      const profile = await options.loadLeaderboardProfileFn({
+        userId: requestContext.userId,
+        transport: requestContext.transport,
+        localeHint: requestContext.locale,
+        publicProfileId,
+      });
+      const bestRatingPlacement = profile.status === "ready" ? profile.metrics.bestRatingPlacement : null;
+
+      addBackendBreadcrumb({
+        action: "me_progress_leaderboard_profile",
+        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId),
+        details: {
+          statusCode: 200,
+          authTransport: requestContext.transport,
+          status: profile.status,
+          isFriend: profile.status === "ready" ? profile.isFriend : null,
+          currentStreakDays: profile.status === "ready" ? profile.metrics.currentStreakDays : null,
+          bestRatingWindowKey: bestRatingPlacement?.windowKey ?? null,
+          bestRatingRank: bestRatingPlacement?.rank ?? null,
+          reviewActivityDayCount: profile.status === "ready" ? profile.reviewActivity.days.length : null,
+          totalCards: profile.status === "ready" ? profile.stats.totalCards : null,
+          generatedAt: profile.status === "ready" ? profile.generatedAt : null,
+        },
+      });
+
+      return context.json(profile satisfies LeaderboardProfile);
+    } catch (error) {
+      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId);
+      const details = {
+        authTransport: requestContext.transport,
+        status: null,
+        isFriend: null,
+        currentStreakDays: null,
+        bestRatingWindowKey: null,
+        bestRatingRank: null,
+        reviewActivityDayCount: null,
+        totalCards: null,
+        generatedAt: null,
+        ...createBackendFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "me_progress_leaderboard_profile_error", error: normalizeCaughtError(error), scope, details },
+        { action: "me_progress_leaderboard_profile_error", scope, details },
       );
       throw error;
     }

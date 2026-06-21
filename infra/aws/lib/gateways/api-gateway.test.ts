@@ -71,6 +71,20 @@ test("API Gateway predeclares /me/progress/leaderboards/streak", () => {
   );
 });
 
+test("API Gateway predeclares /me/progress/leaderboards/profiles/{publicProfileId}", () => {
+  const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
+  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+
+  assert.match(
+    apiGatewaySource,
+    /const meProgressLeaderboardProfiles = meProgressLeaderboards\.addResource\("profiles"\);/,
+  );
+  assert.match(
+    apiGatewaySource,
+    /meProgressLeaderboardProfiles\.addResource\("\{publicProfileId\}"\)\.addMethod\("GET", integration\);/,
+  );
+});
+
 test("global snapshot API Gateway mock preflight allows content type and Sentry trace headers", () => {
   const stack = new cdk.Stack();
   const restApi = new apigw.RestApi(stack, "Api");

@@ -631,6 +631,8 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   meProgress.addResource("series").addMethod("GET", integration);
   meProgress.addResource("leaderboard").addMethod("GET", integration);
   const meProgressLeaderboards = meProgress.addResource("leaderboards");
+  const meProgressLeaderboardProfiles = meProgressLeaderboards.addResource("profiles");
+  meProgressLeaderboardProfiles.addResource("{publicProfileId}").addMethod("GET", integration);
   meProgressLeaderboards.addResource("streak").addMethod("GET", integration);
   me.addResource("delete").addMethod("POST", integration);
 

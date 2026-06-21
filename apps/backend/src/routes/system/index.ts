@@ -26,6 +26,7 @@ import {
   registerFriendInvitationRoutes,
 } from "./friendInvitations";
 import {
+  loadLeaderboardProfile,
   loadProgressLeaderboard,
   loadStreakLeaderboard,
   loadUserProgressReviewSchedule,
@@ -41,6 +42,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   const loadUserProgressReviewScheduleFn = options.loadUserProgressReviewScheduleFn ?? loadUserProgressReviewSchedule;
   const loadUserProgressSeriesFn = options.loadUserProgressSeriesFn ?? loadUserProgressSeries;
   const loadUserProgressSummaryFn = options.loadUserProgressSummaryFn ?? loadUserProgressSummary;
+  const loadLeaderboardProfileFn = options.loadLeaderboardProfileFn ?? loadLeaderboardProfile;
   const loadProgressLeaderboardFn = options.loadProgressLeaderboardFn ?? loadProgressLeaderboard;
   const loadStreakLeaderboardFn = options.loadStreakLeaderboardFn ?? loadStreakLeaderboard;
   const updateAccountPreferencesFn = options.updateAccountPreferencesFn ?? updateAccountPreferences;
@@ -113,6 +115,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
     loadUserProgressReviewScheduleFn,
     loadUserProgressSeriesFn,
     loadUserProgressSummaryFn,
+    loadLeaderboardProfileFn,
     loadProgressLeaderboardFn,
     loadStreakLeaderboardFn,
   });

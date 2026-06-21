@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type {
+  LeaderboardProfile,
   ProgressLeaderboard,
   ProgressSummaryResponse,
   StreakLeaderboard,
 } from "../../progress";
 import type { RequestContext } from "../../server/requestContext";
 import {
+  createLeaderboardProfile,
   createProgressLeaderboard,
   createProgressReviewSchedule,
   createProgressSeries,
@@ -173,6 +175,60 @@ test("GET /me/progress/leaderboard rejects ApiKey authentication", async () => {
     },
   });
   const response = await app.request("http://localhost/me/progress/leaderboard");
+
+  assert.equal(called, false);
+  assert.equal(response.status, 403);
+  assert.deepEqual(await response.json(), {
+    error: "This endpoint requires Guest, Bearer, or Session authentication",
+    requestId: "request-1",
+    code: "PROGRESS_HUMAN_AUTH_REQUIRED",
+  });
+});
+
+test("GET /me/progress/leaderboards/profiles/{publicProfileId} returns the profile for Session and Bearer", async () => {
+  const transports: ReadonlyArray<RequestContext["transport"]> = ["session", "bearer"];
+  const publicProfileId = "a1d2c3b4-5e6f-4a8b-9c0d-1e2f3a4b5c6d";
+
+  for (const transport of transports) {
+    const app = createSystemTestApp({
+      transport,
+      locale: "es-MX",
+      loadLeaderboardProfileFn: async ({ userId, transport: requestTransport, localeHint, publicProfileId: targetId }) => {
+        assert.equal(userId, "user-1");
+        assert.equal(requestTransport, transport);
+        assert.equal(localeHint, "es-MX");
+        assert.equal(targetId, publicProfileId);
+        return createLeaderboardProfile();
+      },
+    });
+    const response = await app.request(`http://localhost/me/progress/leaderboards/profiles/${publicProfileId}`);
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), createLeaderboardProfile());
+  }
+});
+
+test("GET /me/progress/leaderboards/profiles/{publicProfileId} returns linked_account_required for Guest", async () => {
+  const publicProfileId = "a1d2c3b4-5e6f-4a8b-9c0d-1e2f3a4b5c6d";
+  const app = createSystemTestApp({ transport: "guest" });
+  const response = await app.request(`http://localhost/me/progress/leaderboards/profiles/${publicProfileId}`);
+  const payload = await response.json() as LeaderboardProfile;
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(payload, { status: "linked_account_required" });
+});
+
+test("GET /me/progress/leaderboards/profiles/{publicProfileId} rejects ApiKey authentication", async () => {
+  const publicProfileId = "a1d2c3b4-5e6f-4a8b-9c0d-1e2f3a4b5c6d";
+  let called = false;
+  const app = createSystemTestApp({
+    transport: "api_key",
+    loadLeaderboardProfileFn: async () => {
+      called = true;
+      return createLeaderboardProfile();
+    },
+  });
+  const response = await app.request(`http://localhost/me/progress/leaderboards/profiles/${publicProfileId}`);
 
   assert.equal(called, false);
   assert.equal(response.status, 403);
