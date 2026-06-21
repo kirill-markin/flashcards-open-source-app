@@ -95,33 +95,6 @@ internal fun ReviewFilterSheet(
                 }
             }
 
-            item {
-                Text(
-                    text = stringResource(id = R.string.review_effort_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-                )
-            }
-
-            items(availableEffortFilters.size) { index ->
-                val effortFilter = availableEffortFilters[index]
-                ReviewFilterOptionRow(
-                    title = stringResource(
-                        id = R.string.review_filter_title_with_count,
-                        bidiWrap(
-                            text = reviewEffortLabel(effortLevel = effortFilter.effortLevel),
-                            locale = locale
-                        ),
-                        effortFilter.totalCount
-                    ),
-                    subtitle = stringResource(id = R.string.review_virtual_effort_filter_subtitle),
-                    selected = selectedFilter == ReviewFilter.Effort(effortLevel = effortFilter.effortLevel),
-                    onClick = {
-                        onSelectFilter(ReviewFilter.Effort(effortLevel = effortFilter.effortLevel))
-                    }
-                )
-            }
-
             if (availableTagFilters.isNotEmpty()) {
                 item {
                     Text(
@@ -149,6 +122,33 @@ internal fun ReviewFilterSheet(
                         }
                     )
                 }
+            }
+
+            item {
+                Text(
+                    text = stringResource(id = R.string.review_effort_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                )
+            }
+
+            items(availableEffortFilters.size) { index ->
+                val effortFilter = availableEffortFilters[index]
+                ReviewFilterOptionRow(
+                    title = stringResource(
+                        id = R.string.review_filter_title_with_count,
+                        bidiWrap(
+                            text = reviewEffortLabel(effortLevel = effortFilter.effortLevel),
+                            locale = locale
+                        ),
+                        effortFilter.totalCount
+                    ),
+                    subtitle = stringResource(id = R.string.review_virtual_effort_filter_subtitle),
+                    selected = selectedFilter == ReviewFilter.Effort(effortLevel = effortFilter.effortLevel),
+                    onClick = {
+                        onSelectFilter(ReviewFilter.Effort(effortLevel = effortFilter.effortLevel))
+                    }
+                )
             }
 
             item {
