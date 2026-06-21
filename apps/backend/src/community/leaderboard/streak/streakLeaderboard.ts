@@ -123,39 +123,39 @@ const STREAK_LEADERBOARD_METRIC_COPY_BY_LOCALE: Readonly<
 > = {
   en: {
     title: "Current streak days",
-    description: "Ranks use current streak days from the public daily snapshot. Public values can trail your live personal streak.",
+    description: "A streak day is a local day with at least one card review rated Again, Hard, Good, or Easy. Ranks use current streak days from the public daily snapshot; public values can trail your live personal streak.",
   },
   ar: {
     title: "أيام السلسلة الحالية",
-    description: "يستخدم الترتيب أيام السلسلة الحالية من اللقطة العامة اليومية. قد تتأخر القيم العامة عن سلسلتك الشخصية المباشرة.",
+    description: "يوم السلسلة هو يوم محلي يحتوي على مراجعة بطاقة واحدة على الأقل بتقييم مرة أخرى أو صعب أو جيد أو سهل. يستخدم الترتيب أيام السلسلة الحالية من اللقطة العامة اليومية؛ قد تتأخر القيم العامة عن سلسلتك الشخصية المباشرة.",
   },
   "zh-Hans": {
     title: "当前连续天数",
-    description: "排名使用公共每日快照中的当前连续天数。公共数值可能落后于你的实时个人连续记录。",
+    description: "连续记录日是至少有一次卡片复习被评为重来、困难、良好或简单的本地日。排名使用公共每日快照中的当前连续天数；公共数值可能落后于你的实时个人连续记录。",
   },
   de: {
     title: "Aktuelle Serien-Tage",
-    description: "Ränge verwenden aktuelle Serien-Tage aus dem öffentlichen täglichen Snapshot. Öffentliche Werte können deiner live persönlichen Serie hinterherhinken.",
+    description: "Ein Serien-Tag ist ein lokaler Tag mit mindestens einer Kartenabfrage, die mit Nochmal, Schwer, Gut oder Leicht bewertet wurde. Ränge verwenden aktuelle Serien-Tage aus dem öffentlichen täglichen Snapshot; öffentliche Werte können deiner aktuellen persönlichen Serie hinterherhinken.",
   },
   hi: {
     title: "मौजूदा स्ट्रीक दिन",
-    description: "रैंक सार्वजनिक दैनिक स्नैपशॉट के मौजूदा स्ट्रीक दिनों का उपयोग करती है। सार्वजनिक मान आपकी लाइव निजी स्ट्रीक से पीछे रह सकते हैं।",
+    description: "स्ट्रीक दिन वह स्थानीय दिन है जिसमें कम से कम एक कार्ड समीक्षा को फिर से, कठिन, अच्छा या आसान रेट किया गया हो। रैंक सार्वजनिक दैनिक स्नैपशॉट के मौजूदा स्ट्रीक दिनों का उपयोग करती है; सार्वजनिक मान आपकी लाइव निजी स्ट्रीक से पीछे रह सकते हैं।",
   },
   ja: {
     title: "現在の連続日数",
-    description: "順位は公開の日次スナップショットの現在の連続日数を使います。公開値は個人の最新連続記録より遅れることがあります。",
+    description: "連続日とは、少なくとも1回のカード復習がもう一度、難しい、良い、簡単のいずれかで評価されたローカル日です。順位は公開の日次スナップショットの現在の連続日数を使います。公開値は個人の最新連続記録より遅れることがあります。",
   },
   ru: {
     title: "Текущая серия в днях",
-    description: "Рейтинг использует текущую серию в днях из публичного ежедневного снимка. Публичные значения могут отставать от вашей личной серии в реальном времени.",
+    description: "День серии считается локальным днем, когда хотя бы один повтор карточки был оценен как Снова, Трудно, Хорошо или Легко. Рейтинг использует текущую серию в днях из публичного ежедневного снимка; публичные значения могут отставать от вашей личной серии в реальном времени.",
   },
   "es-MX": {
     title: "Días de racha actual",
-    description: "La clasificación usa los días de racha actual de la captura pública diaria. Los valores públicos pueden ir detrás de tu racha personal en vivo.",
+    description: "Un día de racha es un día local con al menos un repaso de tarjeta calificado como Otra vez, Difícil, Bien o Fácil. La clasificación usa los días de racha actual de la captura pública diaria; los valores públicos pueden ir detrás de tu racha personal en vivo.",
   },
   "es-ES": {
     title: "Días de racha actual",
-    description: "La clasificación usa los días de racha actual de la captura pública diaria. Los valores públicos pueden ir por detrás de tu racha personal en vivo.",
+    description: "Un día de racha es un día local con al menos un repaso de tarjeta valorado como Otra vez, Difícil, Bien o Fácil. La clasificación usa los días de racha actual de la captura pública diaria; los valores públicos pueden ir por detrás de tu racha personal en vivo.",
   },
 };
 

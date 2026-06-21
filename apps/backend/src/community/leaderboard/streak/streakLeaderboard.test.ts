@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
+import { supportedAnonymousDisplayNameLocales } from "../../anonymousDisplayNames";
 import type { DatabaseExecutor, SqlValue } from "../../../database";
 import {
   loadStreakLeaderboard,
@@ -218,6 +219,27 @@ test("guest viewers receive linked_account_required with localized metric copy a
   assert.equal(leaderboard.metric.metricVersion, "streak_days_v1");
   assert.notEqual(leaderboard.metric.title, "Current streak days");
   assert.equal("rows" in leaderboard, false);
+});
+
+test("streak metric copy is populated for every supported locale and English defines streak days by any rating", async () => {
+  for (const localeHint of supportedAnonymousDisplayNameLocales) {
+    const leaderboard = await loadStreakLeaderboard({
+      userId: VIEWER_USER_ID,
+      transport: "guest",
+      localeHint,
+    });
+
+    assert.equal(leaderboard.status, "linked_account_required");
+    assert.notEqual(leaderboard.metric.title.trim(), "");
+    assert.notEqual(leaderboard.metric.description.trim(), "");
+
+    if (localeHint === "en") {
+      assert.match(
+        leaderboard.metric.description,
+        /local day with at least one card review rated Again, Hard, Good, or Easy/u,
+      );
+    }
+  }
 });
 
 test("opted-out viewers receive participation_disabled without reading snapshot data", async () => {
