@@ -257,7 +257,7 @@ export function createStreakLeaderboard(): StreakLeaderboard {
     metric: {
       metricVersion: "streak_days_v1",
       title: "Current streak days",
-      description: "Ranks use current streak days from the public daily snapshot. Public values can trail your live personal streak.",
+      description: "A streak day is a local day with at least one card review rated Again, Hard, Good, or Easy. Ranks use current streak days from the public daily snapshot; public values can trail your live personal streak.",
     },
     snapshotId: "3e6c0b88-5f5a-4db3-8c8c-9d6a3840a1e4",
     snapshotGeneratedAt: "2026-06-10T12:00:05.000Z",
