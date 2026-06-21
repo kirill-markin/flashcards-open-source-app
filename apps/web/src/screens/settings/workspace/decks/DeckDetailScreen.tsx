@@ -9,6 +9,7 @@ import { buildSettingsDeckEditRoute, reviewRoute, settingsDecksRoute } from "../
 import { loadCardsMatchingDeck } from "../../../../localDb/cards/cards";
 import { loadDeckById, loadDecksListSnapshot } from "../../../../localDb/cards/decks";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
+import { handleRefreshLocalDataError } from "../../../shared/refreshLocalDataError";
 import type { Card, DeckFilterDefinition, ReviewFilter } from "../../../../types";
 import { formatDeckFilterSummary, formatNullableDateTime, formatTagSummary } from "../../../shared/featureFormatting";
 
@@ -198,6 +199,27 @@ export function DeckDetailScreen(): ReactElement {
     navigate(reviewRoute);
   }
 
+  async function handleRefreshLocalData(): Promise<void> {
+    try {
+      await refreshLocalData();
+    } catch (error) {
+      handleRefreshLocalDataError({
+        error,
+        context: {
+          feature: "sync",
+          operation: "refresh_local_metadata",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace?.workspaceId ?? null,
+          installationId: cloudSettings?.installationId ?? null,
+          entityId: activeWorkspace?.workspaceId ?? null,
+        },
+        setErrorMessage: setScreenErrorMessage,
+        showCapturedTechnicalError,
+        technicalErrorMessage,
+      });
+    }
+  }
+
   if (isLoading) {
     return (
       <main className="container">
@@ -215,7 +237,7 @@ export function DeckDetailScreen(): ReactElement {
         <section className="panel">
           <h1 className="title">{t("deckDetail.title")}</h1>
           <p className="error-banner">{screenErrorMessage}</p>
-          <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
+          <button className="primary-btn" type="button" onClick={() => void handleRefreshLocalData()}>
             {t("common.retry")}
           </button>
         </section>

@@ -7,6 +7,7 @@ import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckDetailRoute, settingsDeckNewRoute } from "../../../../routes";
 import { loadDecksListSnapshot } from "../../../../localDb/cards/decks";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
+import { handleRefreshLocalDataError } from "../../../shared/refreshLocalDataError";
 import type { DeckCardStats, DecksListSnapshot } from "../../../../types";
 import { formatDeckFilterSummary } from "../../../shared/featureFormatting";
 
@@ -129,6 +130,27 @@ export function DecksScreen(): ReactElement {
 
   const deckListEntries = makeDeckListEntries(decksSnapshot);
 
+  async function handleRefreshLocalData(): Promise<void> {
+    try {
+      await refreshLocalData();
+    } catch (error) {
+      handleRefreshLocalDataError({
+        error,
+        context: {
+          feature: "sync",
+          operation: "refresh_local_metadata",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace?.workspaceId ?? null,
+          installationId: cloudSettings?.installationId ?? null,
+          entityId: activeWorkspace?.workspaceId ?? null,
+        },
+        setErrorMessage,
+        showCapturedTechnicalError,
+        technicalErrorMessage,
+      });
+    }
+  }
+
   if (isLoading) {
     return (
       <main className="container">
@@ -146,7 +168,7 @@ export function DecksScreen(): ReactElement {
         <section className="panel">
           <h1 className="title">{t("decksScreen.title")}</h1>
           <p className="error-banner">{errorMessage}</p>
-          <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
+          <button className="primary-btn" type="button" onClick={() => void handleRefreshLocalData()}>
             {t("common.retry")}
           </button>
         </section>

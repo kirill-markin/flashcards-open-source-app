@@ -6,6 +6,7 @@ import { useI18n } from "../../../i18n";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { reviewRoute } from "../../../routes";
+import { handleRefreshLocalDataError } from "../../shared/refreshLocalDataError";
 import type { ReviewFilter, WorkspaceTagsSummary } from "../../../types";
 
 const emptyTagsSummary: WorkspaceTagsSummary = {
@@ -98,6 +99,27 @@ export function TagsScreen(): ReactElement {
     navigate(reviewRoute);
   }
 
+  async function handleRefreshLocalData(): Promise<void> {
+    try {
+      await refreshLocalData();
+    } catch (error) {
+      handleRefreshLocalDataError({
+        error,
+        context: {
+          feature: "sync",
+          operation: "refresh_local_metadata",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace?.workspaceId ?? null,
+          installationId: cloudSettings?.installationId ?? null,
+          entityId: activeWorkspace?.workspaceId ?? null,
+        },
+        setErrorMessage,
+        showCapturedTechnicalError,
+        technicalErrorMessage,
+      });
+    }
+  }
+
   if (isLoading) {
     return (
       <main className="container">
@@ -115,7 +137,7 @@ export function TagsScreen(): ReactElement {
         <section className="panel tags-screen-panel">
           <h1 className="title">{t("tagsScreen.title")}</h1>
           <p className="error-banner">{errorMessage}</p>
-          <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
+          <button className="primary-btn" type="button" onClick={() => void handleRefreshLocalData()}>
             {t("common.retry")}
           </button>
         </section>
