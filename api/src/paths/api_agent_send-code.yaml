@@ -50,7 +50,7 @@ post:
                   immediately call send-code again. Next call POST
                   /api/agent/verify-code with the otpSessionToken, code, and
                   connection label. Read payload from data.* and use
-                  docs.openapiUrl for the full contract.
+                  docs.openapiUrl for the published external agent contract.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
                   swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json

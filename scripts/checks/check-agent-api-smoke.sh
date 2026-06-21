@@ -188,10 +188,6 @@ payload = json.load(open(sys.argv[1], encoding="utf-8"))
 required_paths = {
     "/",
     "/agent",
-    "/openapi.json",
-    "/swagger.json",
-    "/agent/openapi.json",
-    "/agent/swagger.json",
     "/api/agent/send-code",
     "/api/agent/verify-code",
     "/agent/me",
@@ -201,7 +197,9 @@ required_paths = {
 }
 assert payload["openapi"] == "3.1.0"
 missing_paths = sorted(required_paths.difference(payload["paths"].keys()))
+unexpected_paths = sorted(set(payload["paths"].keys()).difference(required_paths))
 assert missing_paths == [], missing_paths
+assert unexpected_paths == [], unexpected_paths
 PY
 
 request_json "GET" "${API_BASE_URL%/}/openapi.json" "" ""

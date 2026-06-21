@@ -34,7 +34,7 @@ get:
               introspection. For routine low-risk writes, a clear user request
               already counts as permission. Ask again only for risky or unclear
               actions. Read payload from data.* and use docs.openapiUrl for the
-              full contract.
+              published external agent contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
     '503':

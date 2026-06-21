@@ -61,7 +61,7 @@ post:
                   this query. LIMIT defaults to 100 and is capped at 100.
                   Prefer a stable ORDER BY clause when paginating. This
                   endpoint supports the published SQL dialect, not full
-                  PostgreSQL. Use docs.openapiUrl for the full contract.
+                  PostgreSQL. Use docs.openapiUrl for the published external agent contract.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
             showTables:
@@ -92,7 +92,7 @@ post:
                 instructions: >-
                   Read rows from data.rows. This endpoint supports the
                   published SQL dialect, not full PostgreSQL. Use
-                  docs.openapiUrl for the full contract.
+                  docs.openapiUrl for the published external agent contract.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
             aggregateTags:
@@ -121,7 +121,7 @@ post:
                   this query. LIMIT defaults to 100 and is capped at 100.
                   Prefer a stable ORDER BY clause when paginating. This
                   endpoint supports the published SQL dialect, not full
-                  PostgreSQL. Use docs.openapiUrl for the full contract.
+                  PostgreSQL. Use docs.openapiUrl for the published external agent contract.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
             projectedCards:
@@ -156,7 +156,7 @@ post:
                   this query. LIMIT defaults to 100 and is capped at 100.
                   Prefer a stable ORDER BY clause when paginating. This
                   endpoint supports the published SQL dialect, not full
-                  PostgreSQL. Use docs.openapiUrl for the full contract.
+                  PostgreSQL. Use docs.openapiUrl for the published external agent contract.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
             exactTagMatch:
@@ -189,7 +189,7 @@ post:
                   this query. LIMIT defaults to 100 and is capped at 100.
                   Prefer a stable ORDER BY clause when paginating. This
                   endpoint supports the published SQL dialect, not full
-                  PostgreSQL. Use docs.openapiUrl for the full contract.
+                  PostgreSQL. Use docs.openapiUrl for the published external agent contract.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
             exactTagMembership:
@@ -220,7 +220,7 @@ post:
                   this query. LIMIT defaults to 100 and is capped at 100.
                   Prefer a stable ORDER BY clause when paginating. This
                   endpoint supports the published SQL dialect, not full
-                  PostgreSQL. Use docs.openapiUrl for the full contract.
+                  PostgreSQL. Use docs.openapiUrl for the published external agent contract.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
             excludedTags:
@@ -255,7 +255,7 @@ post:
                   this query. LIMIT defaults to 100 and is capped at 100.
                   Prefer a stable ORDER BY clause when paginating. This
                   endpoint supports the published SQL dialect, not full
-                  PostgreSQL. Use docs.openapiUrl for the full contract.
+                  PostgreSQL. Use docs.openapiUrl for the published external agent contract.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
             randomCards:
@@ -286,7 +286,7 @@ post:
                   pagination. LIMIT defaults to 100 and is capped at 100.
                   Prefer a stable ORDER BY clause when paginating. This
                   endpoint supports the published SQL dialect, not full
-                  PostgreSQL. Use docs.openapiUrl for the full contract.
+                  PostgreSQL. Use docs.openapiUrl for the published external agent contract.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
             updateCards:
@@ -308,7 +308,7 @@ post:
                   summary. If you need the resulting rows, inspect data.rows or
                   run a follow-up SELECT query. This endpoint supports the
                   published SQL dialect, not full PostgreSQL. Use
-                  docs.openapiUrl for the full contract.
+                  docs.openapiUrl for the published external agent contract.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
             mutationBatch:
@@ -354,8 +354,8 @@ post:
                   The batch mutation succeeded. Read data.statements for
                   per-statement results and data.affectedCountTotal for the
                   summary. This endpoint supports the published SQL dialect,
-                  not full PostgreSQL. Use docs.openapiUrl for the full
-                  contract.
+                  not full PostgreSQL. Use docs.openapiUrl for the published
+                  external agent contract.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
     '503':

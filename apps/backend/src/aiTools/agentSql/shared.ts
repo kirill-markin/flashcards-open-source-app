@@ -314,26 +314,26 @@ export function buildDeckUpdateInput(
 
 export function buildReadInstructions(statementType: "show_tables" | "describe" | "select", hasMore: boolean): string {
   if (statementType === "show_tables" || statementType === "describe") {
-    return "Read rows from data.rows. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the full contract.";
+    return "Read rows from data.rows. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the published external agent contract.";
   }
 
   const paginationHint = hasMore
     ? "Repeat the same query with a larger OFFSET to continue pagination."
     : "No further rows are available for this query.";
 
-  return `${paginationHint} LIMIT defaults to 100 and is capped at 100. SELECT returns at most 100 rows per statement. Prefer a stable ORDER BY clause when paginating. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the full contract.`;
+  return `${paginationHint} LIMIT defaults to 100 and is capped at 100. SELECT returns at most 100 rows per statement. Prefer a stable ORDER BY clause when paginating. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the published external agent contract.`;
 }
 
 export function buildMutationInstructions(): string {
-  return "The mutation succeeded. Read data.affectedCount for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. If you need the resulting rows, inspect data.rows or run a follow-up SELECT query. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the full contract.";
+  return "The mutation succeeded. Read data.affectedCount for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. If you need the resulting rows, inspect data.rows or run a follow-up SELECT query. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the published external agent contract.";
 }
 
 export function buildBatchReadInstructions(): string {
-  return "Read rows from data.statements. Each entry preserves the single-statement payload shape. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the full contract.";
+  return "Read rows from data.statements. Each entry preserves the single-statement payload shape. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the published external agent contract.";
 }
 
 export function buildBatchMutationInstructions(): string {
-  return "The batch mutation succeeded. Read data.statements for per-statement results and data.affectedCountTotal for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the full contract.";
+  return "The batch mutation succeeded. Read data.statements for per-statement results and data.affectedCountTotal for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.openapiUrl for the published external agent contract.";
 }
 
 export function assertSqlMutationRecordLimit(
