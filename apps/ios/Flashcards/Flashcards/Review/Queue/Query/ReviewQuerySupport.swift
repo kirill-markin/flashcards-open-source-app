@@ -164,8 +164,6 @@ func resolveReviewFilter(
         }
 
         return .allCards
-    case .effort:
-        return reviewFilter
     case .tag(let tag):
         if let exactTagName = resolveExactStoredTagNames(
             requestedTagNames: [tag],
@@ -192,10 +190,6 @@ func cardsMatchingReviewFilter(reviewFilter: ReviewFilter, decks: [Deck], cards:
         }
 
         return cardsMatchingDeck(deck: deck, cards: cards)
-    case .effort(let level):
-        return deriveActiveCards(cards: cards).filter { card in
-            card.effortLevel == level
-        }
     case .tag(let tag):
         return deriveActiveCards(cards: cards).filter { card in
             hasTagMatchingRequest(storedTagNames: card.tags, requestedTagName: tag)
@@ -217,8 +211,6 @@ func reviewFilterTitle(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card])
         }
 
         return deck.name
-    case .effort(let level):
-        return level.title
     case .tag(let tag):
         return tag
     }
@@ -230,7 +222,7 @@ func shouldShowSwitchToAllCardsReviewAction(reviewFilter: ReviewFilter, decks: [
     switch resolvedReviewFilter {
     case .allCards:
         return false
-    case .deck, .effort, .tag:
+    case .deck, .tag:
         return true
     }
 }
@@ -258,8 +250,6 @@ private func cardMatchesResolvedReviewFilter(reviewFilter: ReviewFilter, decks: 
         }
 
         return matchesDeckFilterDefinition(filterDefinition: deck.filterDefinition, card: card)
-    case .effort(let level):
-        return card.effortLevel == level
     case .tag(let tag):
         return hasTagMatchingRequest(storedTagNames: card.tags, requestedTagName: tag)
     }
@@ -371,16 +361,6 @@ func resolveReviewQuery(
                 filterDefinition: resolveDeckFilterDefinitionTagNames(
                     filterDefinition: deck.filterDefinition,
                     storedTagNames: storedTagNames
-                )
-            )
-        )
-    case .effort(let level):
-        return ResolvedReviewQuery(
-            reviewFilter: resolvedReviewFilter,
-            queryDefinition: .deck(
-                filterDefinition: buildDeckFilterDefinition(
-                    effortLevels: [level],
-                    tags: []
                 )
             )
         )

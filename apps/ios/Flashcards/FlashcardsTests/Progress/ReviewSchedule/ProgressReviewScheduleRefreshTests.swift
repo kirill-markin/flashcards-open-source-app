@@ -319,7 +319,6 @@ final class ProgressReviewScheduleRefreshTests: ProgressStoreTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )

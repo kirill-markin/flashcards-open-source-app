@@ -10,6 +10,17 @@ private struct FsrsLastReviewedAtMillisMigrationRow {
     let fsrsLastReviewedAt: String
 }
 
+private struct LegacyEffortCardMigrationRow {
+    let cardId: String
+    let tagsJson: String
+    let effortLevel: String
+}
+
+private struct LegacyEffortDeckMigrationRow {
+    let deckId: String
+    let filterDefinitionJson: String
+}
+
 struct LocalDatabaseMigrator {
     let core: DatabaseCore
 
@@ -73,6 +84,9 @@ struct LocalDatabaseMigrator {
             case 17:
                 try self.migrateSchemaVersion17To18()
                 schemaVersion = 18
+            case 18:
+                try self.migrateSchemaVersion18To19()
+                schemaVersion = 19
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -582,6 +596,104 @@ struct LocalDatabaseMigrator {
             """,
             values: []
         )
+    }
+
+    private func migrateSchemaVersion18To19() throws {
+        if try self.core.columnExists(tableName: "cards", columnName: "effort_level") {
+            try self.appendLegacyEffortTagsToCards()
+            try self.core.execute(sql: "DROP INDEX IF EXISTS idx_cards_workspace_effort_created_active", values: [])
+            try self.core.execute(sql: "ALTER TABLE cards DROP COLUMN effort_level", values: [])
+        }
+
+        try self.rewriteLegacyDeckFilterDefinitions()
+        try self.rebuildCardTagsReadModel()
+    }
+
+    private func appendLegacyEffortTagsToCards() throws {
+        let rows = try self.core.query(
+            sql: """
+            SELECT card_id, tags_json, effort_level
+            FROM cards
+            ORDER BY card_id ASC
+            """,
+            values: []
+        ) { statement in
+            LegacyEffortCardMigrationRow(
+                cardId: DatabaseCore.columnText(statement: statement, index: 0),
+                tagsJson: DatabaseCore.columnText(statement: statement, index: 1),
+                effortLevel: DatabaseCore.columnText(statement: statement, index: 2)
+            )
+        }
+
+        for row in rows {
+            let tags: [String]
+            do {
+                tags = try self.core.decoder.decode([String].self, from: Data(row.tagsJson.utf8))
+            } catch {
+                throw LocalStoreError.database(
+                    "Stored card tags JSON is invalid for card \(row.cardId) during schema v18 to v19 migration: \(error)"
+                )
+            }
+
+            let nextTags = try tagsAppendingLegacyEffortTag(tags: tags, effortLevel: row.effortLevel)
+            guard nextTags != tags else {
+                continue
+            }
+
+            try self.core.execute(
+                sql: """
+                UPDATE cards
+                SET tags_json = ?
+                WHERE card_id = ?
+                """,
+                values: [
+                    .text(try self.core.encodeJsonString(value: nextTags)),
+                    .text(row.cardId)
+                ]
+            )
+        }
+    }
+
+    private func rewriteLegacyDeckFilterDefinitions() throws {
+        let rows = try self.core.query(
+            sql: """
+            SELECT deck_id, filter_definition_json
+            FROM decks
+            ORDER BY deck_id ASC
+            """,
+            values: []
+        ) { statement in
+            LegacyEffortDeckMigrationRow(
+                deckId: DatabaseCore.columnText(statement: statement, index: 0),
+                filterDefinitionJson: DatabaseCore.columnText(statement: statement, index: 1)
+            )
+        }
+
+        for row in rows {
+            let filterDefinition: DeckFilterDefinition
+            do {
+                filterDefinition = try self.core.decoder.decode(
+                    DeckFilterDefinition.self,
+                    from: Data(row.filterDefinitionJson.utf8)
+                )
+            } catch {
+                throw LocalStoreError.database(
+                    "Stored deck filter JSON is invalid for deck \(row.deckId) during schema v18 to v19 migration: \(error)"
+                )
+            }
+
+            try self.core.execute(
+                sql: """
+                UPDATE decks
+                SET filter_definition_json = ?
+                WHERE deck_id = ?
+                """,
+                values: [
+                    .text(try self.core.encodeJsonString(value: filterDefinition)),
+                    .text(row.deckId)
+                ]
+            )
+        }
     }
 
     private func populateDueAtMillisFromDueAtText() throws {

@@ -3,6 +3,52 @@ import XCTest
 @testable import Flashcards
 
 final class AIChatDraftPersistenceTests: XCTestCase {
+    func testLegacyCardPayloadEffortDecodingAddsCompatibilityTags() throws {
+        let attachment = try JSONDecoder().decode(
+            AIChatAttachment.self,
+            from: Data(
+                """
+                {
+                  "id": "attachment-1",
+                  "payload": {
+                    "type": "card",
+                    "cardId": "card-1",
+                    "frontText": "Front",
+                    "backText": "Back",
+                    "tags": ["existing"],
+                    "effortLevel": "medium"
+                  }
+                }
+                """.utf8
+            )
+        )
+        let contentPart = try JSONDecoder().decode(
+            AIChatContentPart.self,
+            from: Data(
+                """
+                {
+                  "type": "card",
+                  "cardId": "card-2",
+                  "frontText": "Front",
+                  "backText": "Back",
+                  "tags": ["topic"],
+                  "effortLevel": "long"
+                }
+                """.utf8
+            )
+        )
+
+        guard case .card(let attachmentCard) = attachment.payload else {
+            return XCTFail("Expected a card attachment.")
+        }
+        guard case .card(let contentCard) = contentPart else {
+            return XCTFail("Expected a card content part.")
+        }
+
+        XCTAssertEqual(attachmentCard.tags, ["existing", "medium"])
+        XCTAssertEqual(contentCard.tags, ["topic", "long"])
+    }
+
     func testAIChatMakeAttachmentFromFileNormalizesCsvMediaType() throws {
         let directoryUrl = FileManager.default.temporaryDirectory
             .appendingPathComponent("ai-chat-attachment-\(UUID().uuidString)", isDirectory: true)
@@ -68,7 +114,6 @@ final class AIChatDraftPersistenceTests: XCTestCase {
             frontText: "Front",
             backText: "Back",
             tags: ["tag-1"],
-            effortLevel: .medium
         )
         let pendingDraft = AIChatComposerDraft(
             inputText: "pending draft",
@@ -181,7 +226,6 @@ final class AIChatDraftPersistenceTests: XCTestCase {
                             frontText: "Front",
                             backText: "Back",
                             tags: [],
-                            effortLevel: .fast
                         )
                     )
                 )

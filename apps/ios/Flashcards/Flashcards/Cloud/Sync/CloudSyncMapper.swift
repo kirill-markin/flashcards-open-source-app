@@ -6,7 +6,6 @@ enum CloudSyncMapper {
             frontText: payload.frontText,
             backText: payload.backText,
             tags: payload.tags,
-            effortLevel: payload.effortLevel,
             dueAt: payload.dueAt,
             createdAt: payload.createdAt,
             reps: payload.reps,

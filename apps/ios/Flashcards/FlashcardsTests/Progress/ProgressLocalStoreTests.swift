@@ -150,7 +150,6 @@ final class ProgressLocalStoreTests: ProgressStoreTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -196,7 +195,6 @@ final class ProgressLocalStoreTests: ProgressStoreTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -215,7 +213,6 @@ final class ProgressLocalStoreTests: ProgressStoreTestCase {
                 frontText: "Updated question",
                 backText: "Updated answer",
                 tags: ["edited"],
-                effortLevel: .long
             ),
             cardId: createdCard.cardId
         )
@@ -294,7 +291,6 @@ final class ProgressLocalStoreTests: ProgressStoreTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )

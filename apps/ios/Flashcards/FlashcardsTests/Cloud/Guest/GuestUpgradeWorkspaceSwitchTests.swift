@@ -12,7 +12,6 @@ final class GuestUpgradeWorkspaceSwitchTests: LocalWorkspaceSyncTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: ["guest"],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -20,7 +19,7 @@ final class GuestUpgradeWorkspaceSwitchTests: LocalWorkspaceSyncTestCase {
             workspaceId: localWorkspace.workspaceId,
             input: DeckEditorInput(
                 name: "Deck",
-                filterDefinition: buildDeckFilterDefinition(effortLevels: [], tags: ["guest"])
+                filterDefinition: buildDeckFilterDefinition(tags: ["guest"])
             )
         )
         try database.updateWorkspaceSchedulerSettings(
@@ -100,7 +99,6 @@ final class GuestUpgradeWorkspaceSwitchTests: LocalWorkspaceSyncTestCase {
                 frontText: "Linked question",
                 backText: "Linked answer",
                 tags: ["linked"],
-                effortLevel: .medium
             ),
             cardId: nil
         )

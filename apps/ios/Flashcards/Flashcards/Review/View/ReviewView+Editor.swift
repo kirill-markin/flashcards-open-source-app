@@ -5,8 +5,7 @@ extension ReviewView {
         CardEditorInput(
             frontText: cardFormState.frontText.trimmingCharacters(in: .whitespacesAndNewlines),
             backText: cardFormState.backText.trimmingCharacters(in: .whitespacesAndNewlines),
-            tags: cardFormState.tags,
-            effortLevel: cardFormState.effortLevel
+            tags: cardFormState.tags
         )
     }
 
@@ -31,7 +30,6 @@ extension ReviewView {
         let normalizedInput = self.normalizedEditedCardInput()
         return normalizedInput.frontText != editingCard.frontText
             || normalizedInput.backText != editingCard.backText
-            || normalizedInput.effortLevel != editingCard.effortLevel
             || normalizedInput.tags != editingCard.tags
     }
 
@@ -53,8 +51,7 @@ extension ReviewView {
                 cardId: editingCardId,
                 frontText: normalizedInput.frontText,
                 backText: normalizedInput.backText,
-                tags: normalizedInput.tags,
-                effortLevel: normalizedInput.effortLevel
+                tags: normalizedInput.tags
             )
         } catch {
             if let inlineErrorMessage = cardEditorInlineErrorMessage(error: error) {
@@ -72,8 +69,7 @@ extension ReviewView {
         self.cardFormState = CardFormState(
             frontText: card.frontText,
             backText: card.backText,
-            tags: card.tags,
-            effortLevel: card.effortLevel
+            tags: card.tags
         )
         self.screenErrorMessage = ""
         self.isEditorPresented = true

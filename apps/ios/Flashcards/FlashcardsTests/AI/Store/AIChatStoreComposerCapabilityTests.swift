@@ -164,7 +164,6 @@ final class AIChatStoreComposerCapabilityTests: XCTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: ["tag"],
-                effortLevel: .medium
             )
         )
 
@@ -199,7 +198,6 @@ final class AIChatStoreComposerCapabilityTests: XCTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: ["tag"],
-                effortLevel: .medium
             )
         )
 

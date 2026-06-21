@@ -69,7 +69,6 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -101,7 +100,6 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )

@@ -20,8 +20,7 @@ extension CardStore {
         let normalizedInput = CardEditorInput(
             frontText: input.frontText.trimmingCharacters(in: .whitespacesAndNewlines),
             backText: input.backText.trimmingCharacters(in: .whitespacesAndNewlines),
-            tags: input.tags,
-            effortLevel: input.effortLevel
+            tags: input.tags
         )
         let tagsJson = try self.core.encodeJsonString(value: normalizedInput.tags)
 
@@ -29,14 +28,13 @@ extension CardStore {
             let updatedRows = try self.core.execute(
                 sql: """
                 UPDATE cards
-                SET front_text = ?, back_text = ?, tags_json = ?, effort_level = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?
+                SET front_text = ?, back_text = ?, tags_json = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?
                 WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
                 """,
                 values: [
                     .text(normalizedInput.frontText),
                     .text(normalizedInput.backText),
                     .text(tagsJson),
-                    .text(normalizedInput.effortLevel.rawValue),
                     .text(now),
                     .text(installationId),
                     .text(operationId),
@@ -68,7 +66,6 @@ extension CardStore {
                 front_text,
                 back_text,
                 tags_json,
-                effort_level,
                 due_at,
                 due_at_millis,
                 created_at,
@@ -87,7 +84,7 @@ extension CardStore {
                 updated_at,
                 deleted_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, ?, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, ?, ?, NULL)
+            VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, ?, ?, NULL)
             """,
             values: [
                 .text(newCardId),
@@ -95,7 +92,6 @@ extension CardStore {
                 .text(normalizedInput.frontText),
                 .text(normalizedInput.backText),
                 .text(tagsJson),
-                .text(normalizedInput.effortLevel.rawValue),
                 .text(now),
                 .text(now),
                 .text(installationId),

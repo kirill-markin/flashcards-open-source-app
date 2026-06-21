@@ -278,7 +278,8 @@ private struct BootstrapCardPayload: Encodable {
         try container.encode(self.snapshot.frontText, forKey: .frontText)
         try container.encode(self.snapshot.backText, forKey: .backText)
         try container.encode(self.snapshot.tags, forKey: .tags)
-        try container.encode(self.snapshot.effortLevel, forKey: .effortLevel)
+        // TODO(old-mobile-cutoff): Remove legacy effortLevel output during final sync wire-drop cleanup.
+        try container.encode(legacySyncFastEffortLevel, forKey: .effortLevel)
         try encodeNullableBootstrapValue(
             canonicalIsoTimestampForSync(cardId: self.snapshot.cardId, dueAt: self.snapshot.dueAt),
             forKey: .dueAt,
@@ -342,7 +343,10 @@ private struct BootstrapDeckPayload: Encodable {
         try container.encode(self.snapshot.deckId, forKey: .deckId)
         try container.encode(self.workspaceId, forKey: .workspaceId)
         try container.encode(self.snapshot.name, forKey: .name)
-        try container.encode(self.snapshot.filterDefinition, forKey: .filterDefinition)
+        try container.encode(
+            LegacyDeckFilterDefinitionSyncPayload(filterDefinition: self.snapshot.filterDefinition),
+            forKey: .filterDefinition
+        )
         try container.encode(self.snapshot.createdAt, forKey: .createdAt)
         try container.encode(self.clientUpdatedAt, forKey: .clientUpdatedAt)
         try container.encode(self.lastOperationId, forKey: .lastOperationId)
@@ -381,7 +385,6 @@ struct RemoteCardChangePayload: Decodable {
     let frontText: String
     let backText: String
     let tags: [String]
-    let effortLevel: EffortLevel
     let dueAt: String?
     let createdAt: String
     let reps: Int
@@ -426,8 +429,12 @@ struct RemoteCardChangePayload: Decodable {
         self.cardId = try container.decode(String.self, forKey: .cardId)
         self.frontText = try container.decode(String.self, forKey: .frontText)
         self.backText = try container.decode(String.self, forKey: .backText)
-        self.tags = try container.decode([String].self, forKey: .tags)
-        self.effortLevel = try container.decode(EffortLevel.self, forKey: .effortLevel)
+        let tags = try container.decode([String].self, forKey: .tags)
+        // TODO(old-mobile-cutoff): Remove legacy effortLevel decode during final sync wire-drop cleanup.
+        self.tags = try tagsAppendingLegacyEffortTag(
+            tags: tags,
+            effortLevel: try container.decodeIfPresent(String.self, forKey: .effortLevel)
+        )
         let decodedDueAt = try container.decodeIfPresent(String.self, forKey: .dueAt)
         if let decodedDueAt, parseStrictIsoTimestampEpochMillis(value: decodedDueAt) == nil {
             throw DecodingError.dataCorruptedError(

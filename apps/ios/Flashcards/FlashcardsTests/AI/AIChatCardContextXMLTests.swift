@@ -8,7 +8,6 @@ final class AIChatCardContextXMLTests: XCTestCase {
             frontText: "Q < 1 \"x\"",
             backText: "A & 2 'y' > 0",
             tags: ["alpha", "beta"],
-            effortLevel: .long
         )
 
         XCTAssertEqual(
@@ -16,7 +15,6 @@ final class AIChatCardContextXMLTests: XCTestCase {
             [
                 "<attached_card>",
                 "<card_id>card-1</card_id>",
-                "<effort_level>long</effort_level>",
                 "<front_text>",
                 "Q &lt; 1 &quot;x&quot;",
                 "</front_text>",

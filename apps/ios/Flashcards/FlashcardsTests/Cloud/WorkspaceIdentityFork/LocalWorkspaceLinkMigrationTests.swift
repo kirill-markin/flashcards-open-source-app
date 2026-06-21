@@ -12,7 +12,6 @@ final class LocalWorkspaceLinkMigrationTests: LocalWorkspaceSyncTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -65,7 +64,6 @@ final class LocalWorkspaceLinkMigrationTests: LocalWorkspaceSyncTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: ["tag"],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -73,7 +71,7 @@ final class LocalWorkspaceLinkMigrationTests: LocalWorkspaceSyncTestCase {
             workspaceId: localWorkspace.workspaceId,
             input: DeckEditorInput(
                 name: "Deck",
-                filterDefinition: buildDeckFilterDefinition(effortLevels: [], tags: ["tag"])
+                filterDefinition: buildDeckFilterDefinition(tags: ["tag"])
             )
         )
         _ = try database.submitReview(

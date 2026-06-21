@@ -77,6 +77,39 @@ func normalizeTags(values: [String], referenceTags: [String]) -> [String] {
     }
 }
 
+func legacyEffortTag(effortLevel: String) throws -> String? {
+    switch effortLevel.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+    case "fast":
+        return nil
+    case "medium":
+        return "medium"
+    case "long":
+        return "long"
+    default:
+        throw LocalStoreError.validation("Legacy effort level is invalid: \(effortLevel)")
+    }
+}
+
+func tagsAppendingLegacyEffortTag(tags: [String], effortLevel: String?) throws -> [String] {
+    guard let effortLevel, let tag = try legacyEffortTag(effortLevel: effortLevel) else {
+        return tags
+    }
+
+    if tags.contains(where: { existingTag in
+        normalizeTagKey(tag: existingTag) == normalizeTagKey(tag: tag)
+    }) {
+        return tags
+    }
+
+    return tags + [tag]
+}
+
+func tagsAppendingLegacyEffortTags(tags: [String], effortLevels: [String]) throws -> [String] {
+    try effortLevels.reduce(tags) { result, effortLevel in
+        try tagsAppendingLegacyEffortTag(tags: result, effortLevel: effortLevel)
+    }
+}
+
 private func tagSuggestionReferenceTags(suggestions: [TagSuggestion]) -> [String] {
     suggestions.map(\.tag)
 }

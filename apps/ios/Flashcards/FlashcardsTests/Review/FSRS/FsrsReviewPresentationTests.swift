@@ -11,28 +11,24 @@ final class FsrsReviewPresentationTests: XCTestCase {
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "active-new",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: nil,
                 updatedAt: "2026-03-09T08:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "active-due",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T08:30:00.000Z",
                 updatedAt: "2026-03-09T07:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "future",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T10:00:00.000Z",
                 updatedAt: "2026-03-09T06:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "malformed",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "not-an-iso-date",
                 updatedAt: "2026-03-09T05:00:00.000Z"
             )
@@ -53,31 +49,25 @@ final class FsrsReviewPresentationTests: XCTestCase {
             FsrsSchedulerTestSupport.makeDeck(
                 deckId: "biology",
                 name: "Biology",
-                filterDefinition: buildDeckFilterDefinition(
-                    effortLevels: [],
-                    tags: ["bio"]
-                )
+                filterDefinition: buildDeckFilterDefinition(tags: ["bio"])
             )
         ]
         let cards = [
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "matching-active",
                 tags: ["bio"],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T08:00:00.000Z",
                 updatedAt: "2026-03-09T08:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "matching-future",
                 tags: ["bio"],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T11:00:00.000Z",
                 updatedAt: "2026-03-09T07:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "other-active",
                 tags: ["math"],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T07:30:00.000Z",
                 updatedAt: "2026-03-09T06:00:00.000Z"
             )
@@ -106,21 +96,18 @@ final class FsrsReviewPresentationTests: XCTestCase {
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "matching-active",
                 tags: ["Éclair"],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T08:00:00.000Z",
                 updatedAt: "2026-03-09T08:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "matching-active-lowercase",
                 tags: ["éclair"],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T08:15:00.000Z",
                 updatedAt: "2026-03-09T07:30:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "other-active",
                 tags: ["plain"],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T07:30:00.000Z",
                 updatedAt: "2026-03-09T07:00:00.000Z"
             )
@@ -150,24 +137,19 @@ final class FsrsReviewPresentationTests: XCTestCase {
             FsrsSchedulerTestSupport.makeDeck(
                 deckId: "desserts",
                 name: "Desserts",
-                filterDefinition: buildDeckFilterDefinition(
-                    effortLevels: [],
-                    tags: ["éclair"]
-                )
+                filterDefinition: buildDeckFilterDefinition(tags: ["éclair"])
             )
         ]
         let cards = [
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "matching-active",
                 tags: ["Éclair"],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T08:00:00.000Z",
                 updatedAt: "2026-03-09T08:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "other-active",
                 tags: ["plain"],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T07:30:00.000Z",
                 updatedAt: "2026-03-09T07:00:00.000Z"
             )
@@ -188,54 +170,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
         XCTAssertEqual(reviewQueue.map(\.cardId), ["matching-active"])
         XCTAssertEqual(
             submissionContext.reviewQueryDefinition,
-            .deck(filterDefinition: buildDeckFilterDefinition(effortLevels: [], tags: ["Éclair"]))
-        )
-    }
-
-    func testMakeReviewTimelineForEffortFilterKeepsVirtualFilterActiveWithoutMatchingCards() throws {
-        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
-        let cards = [
-            FsrsSchedulerTestSupport.makeTestCard(
-                cardId: "fast-active",
-                tags: ["grammar"],
-                effortLevel: .fast,
-                dueAt: "2026-03-09T08:00:00.000Z",
-                updatedAt: "2026-03-09T08:30:00.000Z"
-            ),
-            FsrsSchedulerTestSupport.makeTestCard(
-                cardId: "medium-future",
-                tags: ["grammar"],
-                effortLevel: .medium,
-                dueAt: "2026-03-09T11:00:00.000Z",
-                updatedAt: "2026-03-09T07:30:00.000Z"
-            )
-        ]
-
-        let activeQueue = makeReviewQueue(
-            reviewFilter: .effort(level: .fast),
-            decks: [],
-            cards: cards,
-            now: now
-        )
-        let activeTimeline = makeReviewTimeline(
-            reviewFilter: .effort(level: .fast),
-            decks: [],
-            cards: cards,
-            now: now
-        )
-        let emptyTimeline = makeReviewTimeline(
-            reviewFilter: .effort(level: .long),
-            decks: [],
-            cards: cards,
-            now: now
-        )
-
-        XCTAssertEqual(activeQueue.map(\.cardId), ["fast-active"])
-        XCTAssertEqual(activeTimeline.map(\.cardId), ["fast-active"])
-        XCTAssertEqual(emptyTimeline, [])
-        XCTAssertEqual(
-            resolveReviewFilter(reviewFilter: .effort(level: .long), decks: [], cards: cards),
-            .effort(level: .long)
+            .deck(filterDefinition: buildDeckFilterDefinition(tags: ["Éclair"]))
         )
     }
 
@@ -245,28 +180,24 @@ final class FsrsReviewPresentationTests: XCTestCase {
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "current",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T08:00:00.000Z",
                 updatedAt: "2026-03-09T08:30:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "future-early",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T10:00:00.000Z",
                 updatedAt: "2026-03-09T06:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "future-tie-newer",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T11:00:00.000Z",
                 updatedAt: "2026-03-09T08:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "future-tie-older",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T11:00:00.000Z",
                 updatedAt: "2026-03-09T07:00:00.000Z"
             )
@@ -288,28 +219,24 @@ final class FsrsReviewPresentationTests: XCTestCase {
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "timed-tie-older",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T08:30:00.000Z",
                 updatedAt: "2026-03-09T06:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "timed-earlier",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T08:00:00.000Z",
                 updatedAt: "2026-03-09T08:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "timed-tie-newer",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T08:30:00.000Z",
                 updatedAt: "2026-03-09T07:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "nil-due",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: nil,
                 updatedAt: "2026-03-09T05:00:00.000Z"
             )
@@ -329,35 +256,30 @@ final class FsrsReviewPresentationTests: XCTestCase {
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "new-card",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: nil,
                 updatedAt: "2026-03-09T09:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "old-earlier",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T07:00:00.000Z",
                 updatedAt: "2026-03-09T08:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "old-tie-older",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T07:30:00.000Z",
                 updatedAt: "2026-03-09T06:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "old-tie-newer",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T07:30:00.000Z",
                 updatedAt: "2026-03-09T07:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "recent-cutoff",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T08:00:00.000Z",
                 fsrsLastReviewedAt: "2026-03-09T08:00:00.000Z",
                 updatedAt: "2026-03-09T05:00:00.000Z"
@@ -365,7 +287,6 @@ final class FsrsReviewPresentationTests: XCTestCase {
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "recent-tie-older",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T08:30:00.000Z",
                 fsrsLastReviewedAt: "2026-03-09T08:30:00.000Z",
                 updatedAt: "2026-03-09T04:00:00.000Z"
@@ -373,7 +294,6 @@ final class FsrsReviewPresentationTests: XCTestCase {
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "recent-tie-newer",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T08:30:00.000Z",
                 fsrsLastReviewedAt: "2026-03-09T08:30:00.000Z",
                 updatedAt: "2026-03-09T04:30:00.000Z"
@@ -381,7 +301,6 @@ final class FsrsReviewPresentationTests: XCTestCase {
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "recent-now",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T09:00:00.000Z",
                 fsrsLastReviewedAt: "2026-03-09T09:00:00.000Z",
                 updatedAt: "2026-03-09T03:00:00.000Z"
@@ -389,7 +308,6 @@ final class FsrsReviewPresentationTests: XCTestCase {
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "due-last-hour-old-review",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T08:15:00.000Z",
                 fsrsLastReviewedAt: "2026-03-09T07:59:59.999Z",
                 updatedAt: "2026-03-09T03:30:00.000Z"
@@ -397,7 +315,6 @@ final class FsrsReviewPresentationTests: XCTestCase {
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "future-one-millisecond",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T09:00:00.001Z",
                 fsrsLastReviewedAt: "2026-03-09T09:00:00.000Z",
                 updatedAt: "2026-03-09T02:00:00.000Z"
@@ -405,7 +322,6 @@ final class FsrsReviewPresentationTests: XCTestCase {
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "malformed-due",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "not-an-iso-date",
                 fsrsLastReviewedAt: "2026-03-09T09:00:00.000Z",
                 updatedAt: "2026-03-09T01:00:00.000Z"
@@ -450,14 +366,12 @@ final class FsrsReviewPresentationTests: XCTestCase {
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "future-new",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T12:00:00.000Z",
                 updatedAt: "2026-03-09T08:00:00.000Z"
             ),
             FsrsSchedulerTestSupport.makeTestCard(
                 cardId: "due-card",
                 tags: [],
-                effortLevel: .fast,
                 dueAt: "2026-03-09T08:00:00.000Z",
                 updatedAt: "2026-03-09T07:00:00.000Z"
             )
@@ -478,14 +392,12 @@ final class FsrsReviewPresentationTests: XCTestCase {
                 FsrsSchedulerTestSupport.makeTestCard(
                     cardId: "top-queue-card",
                     tags: [],
-                    effortLevel: .fast,
                     dueAt: "2026-03-09T08:00:00.000Z",
                     updatedAt: "2026-03-09T06:00:00.000Z"
                 ),
                 FsrsSchedulerTestSupport.makeTestCard(
                     cardId: "remotely-updated-card",
                     tags: [],
-                    effortLevel: .fast,
                     dueAt: "2026-03-09T08:30:00.000Z",
                     updatedAt: "2026-03-09T08:00:00.000Z"
                 )
@@ -506,14 +418,12 @@ final class FsrsReviewPresentationTests: XCTestCase {
                 FsrsSchedulerTestSupport.makeTestCard(
                     cardId: "top-queue-card",
                     tags: [],
-                    effortLevel: .fast,
                     dueAt: "2026-03-09T08:00:00.000Z",
                     updatedAt: "2026-03-09T06:00:00.000Z"
                 ),
                 FsrsSchedulerTestSupport.makeTestCard(
                     cardId: "second-queue-card",
                     tags: [],
-                    effortLevel: .fast,
                     dueAt: "2026-03-09T08:30:00.000Z",
                     updatedAt: "2026-03-09T08:00:00.000Z"
                 )

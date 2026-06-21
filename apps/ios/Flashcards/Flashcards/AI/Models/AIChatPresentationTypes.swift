@@ -10,7 +10,6 @@ struct AIChatCardReference: Hashable, Sendable {
     let frontText: String
     let backText: String
     let tags: [String]
-    let effortLevel: EffortLevel
 }
 
 func makeAIChatCardReference(card: Card) -> AIChatCardReference {
@@ -18,7 +17,6 @@ func makeAIChatCardReference(card: Card) -> AIChatCardReference {
         cardId: card.cardId,
         frontText: card.frontText,
         backText: card.backText,
-        tags: card.tags,
-        effortLevel: card.effortLevel
+        tags: card.tags
     )
 }

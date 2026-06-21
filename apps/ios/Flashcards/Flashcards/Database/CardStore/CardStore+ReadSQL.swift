@@ -6,7 +6,6 @@ let cardStoreSelectColumnsSQL: String = """
     front_text,
     back_text,
     tags_json,
-    effort_level,
     due_at,
     created_at,
     reps,
@@ -138,17 +137,6 @@ extension CardStore {
             var predicates: [String] = []
             var values: [SQLiteValue] = []
 
-            if filterDefinition.effortLevels.isEmpty == false {
-                let effortPlaceholders = Array(
-                    repeating: "?",
-                    count: filterDefinition.effortLevels.count
-                ).joined(separator: ", ")
-                predicates.append("cards.effort_level IN (\(effortPlaceholders))")
-                values.append(contentsOf: filterDefinition.effortLevels.map { effortLevel in
-                    .text(effortLevel.rawValue)
-                })
-            }
-
             if filterDefinition.tags.isEmpty == false {
                 let tagPlaceholders = Array(
                     repeating: "?",
@@ -197,14 +185,6 @@ extension CardStore {
             values.append(.text(pattern))
         }
 
-        if let filter, filter.effort.isEmpty == false {
-            let effortPlaceholders = Array(repeating: "?", count: filter.effort.count).joined(separator: ", ")
-            predicates.append("effort_level IN (\(effortPlaceholders))")
-            values.append(contentsOf: filter.effort.map { effortLevel in
-                .text(effortLevel.rawValue)
-            })
-        }
-
         if let filter, filter.tags.isEmpty == false {
             let exactTagNames = resolveExactStoredTagNames(
                 requestedTagNames: filter.tags,
@@ -248,14 +228,6 @@ extension CardStore {
     func makeDeckStatsQuerySQL(filterDefinition: DeckFilterDefinition) throws -> ReviewQuerySQL {
         var predicates: [String] = []
         var values: [SQLiteValue] = []
-
-        if filterDefinition.effortLevels.isEmpty == false {
-            let effortPlaceholders = Array(repeating: "?", count: filterDefinition.effortLevels.count).joined(separator: ", ")
-            predicates.append("effort_level IN (\(effortPlaceholders))")
-            values.append(contentsOf: filterDefinition.effortLevels.map { effortLevel in
-                .text(effortLevel.rawValue)
-            })
-        }
 
         if filterDefinition.tags.isEmpty == false {
             let tagPlaceholders = Array(repeating: "?", count: filterDefinition.tags.count).joined(separator: ", ")

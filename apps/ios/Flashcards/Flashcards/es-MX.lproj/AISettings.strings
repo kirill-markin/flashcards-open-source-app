@@ -605,11 +605,11 @@
 "settings.workspace.export.fileUnavailable" = "El archivo exportado no esta disponible.";
 "settings.workspace.export.workspaceUnavailable" = "El espacio de trabajo no esta disponible";
 
-"settings.workspace.decks.description" = "Los mazos son filtros inteligentes que incluyen tarjetas que coinciden con los niveles de esfuerzo y las etiquetas que elijas.";
+"settings.workspace.decks.description" = "Los mazos son filtros inteligentes que incluyen tarjetas que coinciden con las etiquetas que elijas.";
 "settings.workspace.decks.editorSmartFilterDescription" = "Un mazo es un filtro inteligente.";
-"settings.workspace.decks.editorMatchingRulesDescription" = "Las tarjetas coinciden con los niveles de esfuerzo y las etiquetas que selecciones. Puedes elegir el mazo desde el menú superior izquierdo en Repasar.";
+"settings.workspace.decks.editorMatchingRulesDescription" = "Las tarjetas coinciden con las etiquetas que selecciones. Puedes elegir el mazo desde el menú superior izquierdo en Repasar.";
 "settings.workspace.decks.emptyNameValidation" = "Ingresa un nombre para el mazo.";
-"settings.workspace.decks.emptyRuleValidation" = "Elige al menos un nivel de esfuerzo o una etiqueta, o usa Todas las tarjetas en Repasar.";
+"settings.workspace.decks.emptyRuleValidation" = "Elige al menos una etiqueta, o usa Todas las tarjetas en Repasar.";
 "settings.workspace.decks.loading" = "Cargando mazos...";
 "settings.workspace.decks.noMatching" = "No hay mazos coincidentes";
 "settings.workspace.decks.searchPrompt" = "Buscar mazos";
@@ -632,7 +632,6 @@
 "settings.workspace.decks.systemDeckCannotBeEdited" = "El mazo del sistema no se puede editar.";
 "settings.workspace.decks.section.name" = "Nombre";
 "settings.workspace.decks.deckName" = "Nombre del mazo";
-"settings.workspace.decks.section.effort" = "Esfuerzo";
 
 "settings.workspace.tags.description" = "Las etiquetas agrupan tarjetas en todo el espacio de trabajo. Los recuentos por etiqueta pueden solaparse cuando una tarjeta tiene varias etiquetas.";
 "settings.workspace.tags.loading" = "Cargando etiquetas...";

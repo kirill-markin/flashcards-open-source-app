@@ -1,53 +1,42 @@
 import Foundation
 
-// Keep in sync with apps/backend/src/cards/types.ts::EffortLevel,
-// apps/web/src/types.ts::EffortLevel, and
-// apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/scheduling/SchedulingModels.kt::EffortLevel.
-enum EffortLevel: String, CaseIterable, Codable, Hashable, Identifiable, Sendable {
-    case fast
-    case medium
-    case long
-
-    var id: String {
-        rawValue
-    }
-
-    var title: String {
-        switch self {
-        case .fast:
-            return String(
-                localized: "effort.fast.title",
-                table: "Foundation",
-                comment: "Fast effort level title"
-            )
-        case .medium:
-            return String(
-                localized: "effort.medium.title",
-                table: "Foundation",
-                comment: "Medium effort level title"
-            )
-        case .long:
-            return String(
-                localized: "effort.long.title",
-                table: "Foundation",
-                comment: "Long effort level title"
-            )
-        }
-    }
-}
-
 // Keep in sync with apps/backend/src/decks/index.ts::DeckFilterDefinition,
 // apps/web/src/types.ts::DeckFilterDefinition, and
 // apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/CardModels.kt::DeckFilterDefinition.
 struct DeckFilterDefinition: Codable, Hashable, Sendable {
     let version: Int
-    let effortLevels: [EffortLevel]
     let tags: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case version
+        case tags
+        case effortLevels
+    }
+
+    init(version: Int, tags: [String]) {
+        self.version = version
+        self.tags = tags
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let version = try container.decode(Int.self, forKey: .version)
+        let tags = try container.decode([String].self, forKey: .tags)
+        let legacyEffortLevels = try container.decodeIfPresent([String].self, forKey: .effortLevels) ?? []
+
+        self.version = version
+        self.tags = try tagsAppendingLegacyEffortTags(tags: tags, effortLevels: legacyEffortLevels)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.version, forKey: .version)
+        try container.encode(self.tags, forKey: .tags)
+    }
 }
 
 struct CardFilter: Codable, Hashable, Sendable {
     let tags: [String]
-    let effort: [EffortLevel]
 }
 
 // Keep in sync with apps/backend/src/cards/types.ts::Card, apps/web/src/types.ts::Card, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/CardModels.kt::CardSummary.
@@ -57,7 +46,6 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
     let frontText: String
     let backText: String
     let tags: [String]
-    let effortLevel: EffortLevel
     let dueAt: String?
     let createdAt: String
     let reps: Int

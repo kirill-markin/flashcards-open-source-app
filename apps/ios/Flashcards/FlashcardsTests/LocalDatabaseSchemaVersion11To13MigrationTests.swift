@@ -115,7 +115,6 @@ final class LocalDatabaseSchemaVersion11To13MigrationTests: LocalDatabaseTestCas
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -123,7 +122,7 @@ final class LocalDatabaseSchemaVersion11To13MigrationTests: LocalDatabaseTestCas
             workspaceId: workspace.workspaceId,
             input: DeckEditorInput(
                 name: "Deck",
-                filterDefinition: buildDeckFilterDefinition(effortLevels: [.medium], tags: [])
+                filterDefinition: buildDeckFilterDefinition(tags: ["medium"])
             )
         )
         try database.updateWorkspaceSchedulerSettings(
@@ -282,7 +281,7 @@ final class LocalDatabaseSchemaVersion11To13MigrationTests: LocalDatabaseTestCas
             front_text,
             back_text,
             tags_json,
-            effort_level,
+            'fast',
             due_at,
             created_at,
             reps,
@@ -389,4 +388,3 @@ final class LocalDatabaseSchemaVersion11To13MigrationTests: LocalDatabaseTestCas
         }
     }
 }
-

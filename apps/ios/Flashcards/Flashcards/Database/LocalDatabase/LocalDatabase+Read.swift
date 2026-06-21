@@ -141,16 +141,6 @@ extension LocalDatabase {
                     )
                 )
             )
-        case .effort(let level):
-            return ResolvedReviewQuery(
-                reviewFilter: .effort(level: level),
-                queryDefinition: .deck(
-                    filterDefinition: buildDeckFilterDefinition(
-                        effortLevels: [level],
-                        tags: []
-                    )
-                )
-            )
         case .tag(let tag):
             let storedTagNames = try loadStoredTagNames(database: self, workspaceId: workspaceId)
             guard let resolvedTagReviewQuery = resolveTagReviewQuery(
@@ -299,7 +289,7 @@ extension LocalDatabase {
         let decks = try self.deckStore.loadDecks(workspaceId: workspaceId)
         let allCardsStats = try self.cardStore.loadDeckCardStats(
             workspaceId: workspaceId,
-            filterDefinition: DeckFilterDefinition(version: 2, effortLevels: [], tags: []),
+            filterDefinition: DeckFilterDefinition(version: 2, tags: []),
             now: now
         )
         let hasDeckTagFilters = decks.contains { deck in

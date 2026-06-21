@@ -144,7 +144,6 @@ final class ReviewQueueSubmissionRollbackTests: XCTestCase {
             cardId: "current-card",
             workspaceId: "test-workspace",
             tags: ["Éclair"],
-            effortLevel: .fast,
             dueAt: "2026-03-09T08:00:00.000Z",
             updatedAt: "2026-03-09T07:00:00.000Z",
             deletedAt: nil
@@ -153,7 +152,6 @@ final class ReviewQueueSubmissionRollbackTests: XCTestCase {
             cardId: submittedCardSnapshot.cardId,
             workspaceId: submittedCardSnapshot.workspaceId,
             tags: ["Éclair"],
-            effortLevel: .fast,
             dueAt: "2026-03-09T08:30:00.000Z",
             updatedAt: "2026-03-09T08:45:00.000Z",
             deletedAt: nil
@@ -162,7 +160,6 @@ final class ReviewQueueSubmissionRollbackTests: XCTestCase {
             cardId: "next-card",
             workspaceId: submittedCardSnapshot.workspaceId,
             tags: ["plain"],
-            effortLevel: .fast,
             dueAt: nil,
             updatedAt: "2026-03-09T06:00:00.000Z",
             deletedAt: nil
@@ -170,7 +167,7 @@ final class ReviewQueueSubmissionRollbackTests: XCTestCase {
         let deck = Support.makeReviewDeck(
             deckId: "deck-1",
             workspaceId: submittedCardSnapshot.workspaceId,
-            filterDefinition: buildDeckFilterDefinition(effortLevels: [], tags: ["éclair"]),
+            filterDefinition: buildDeckFilterDefinition(tags: ["éclair"]),
             updatedAt: "2026-03-09T08:30:00.000Z"
         )
         let publishedState = Support.makePublishedState(
@@ -223,7 +220,6 @@ final class ReviewQueueSubmissionRollbackTests: XCTestCase {
             cardId: "current-card",
             workspaceId: "test-workspace",
             tags: [],
-            effortLevel: .fast,
             dueAt: "2026-03-09T08:00:00.000Z",
             updatedAt: "2026-03-09T07:00:00.000Z",
             deletedAt: nil
@@ -231,14 +227,13 @@ final class ReviewQueueSubmissionRollbackTests: XCTestCase {
         let nextCard = Support.makeReviewCard(
             cardId: "next-card",
             workspaceId: "test-workspace",
-            tags: [],
-            effortLevel: .medium,
+            tags: ["medium"],
             dueAt: nil,
             updatedAt: "2026-03-09T06:00:00.000Z",
             deletedAt: nil
         )
         let publishedState = Support.makePublishedState(
-            selectedReviewFilter: .effort(level: .medium),
+            selectedReviewFilter: .tag(tag: "medium"),
             reviewQueue: [nextCard],
             presentedReviewCard: nextCard,
             pendingReviewCardIds: [currentCard.cardId]
@@ -248,16 +243,13 @@ final class ReviewQueueSubmissionRollbackTests: XCTestCase {
             workspaceId: currentCard.workspaceId,
             cardId: currentCard.cardId,
             reviewContext: Support.makeReviewSubmissionContextForTest(
-                selectedReviewFilter: .effort(level: .medium),
+                selectedReviewFilter: .tag(tag: "medium"),
                 reviewQueryDefinition: .deck(
-                    filterDefinition: buildDeckFilterDefinition(
-                        effortLevels: [.medium],
-                        tags: []
-                    )
+                    filterDefinition: buildDeckFilterDefinition(tags: ["medium"])
                 )
             ),
             reviewSessionSignature: Support.makeReviewSubmissionSessionSignatureForTest(
-                selectedReviewFilter: .effort(level: .medium),
+                selectedReviewFilter: .tag(tag: "medium"),
                 reviewQueue: [nextCard]
             ),
             cardSnapshot: currentCard,
@@ -289,7 +281,6 @@ final class ReviewQueueSubmissionRollbackTests: XCTestCase {
             cardId: "current-card",
             workspaceId: "previous-workspace",
             tags: [],
-            effortLevel: .fast,
             dueAt: "2026-03-09T08:00:00.000Z",
             updatedAt: "2026-03-09T07:00:00.000Z",
             deletedAt: nil
@@ -298,7 +289,6 @@ final class ReviewQueueSubmissionRollbackTests: XCTestCase {
             cardId: "next-card",
             workspaceId: "current-workspace",
             tags: [],
-            effortLevel: .fast,
             dueAt: nil,
             updatedAt: "2026-03-09T06:00:00.000Z",
             deletedAt: nil
@@ -350,7 +340,6 @@ final class ReviewQueueSubmissionRollbackTests: XCTestCase {
             cardId: "current-card",
             workspaceId: "test-workspace",
             tags: [],
-            effortLevel: .fast,
             dueAt: "2026-03-09T08:00:00.000Z",
             updatedAt: "2026-03-09T07:00:00.000Z",
             deletedAt: nil
@@ -359,7 +348,6 @@ final class ReviewQueueSubmissionRollbackTests: XCTestCase {
             cardId: submittedCardSnapshot.cardId,
             workspaceId: submittedCardSnapshot.workspaceId,
             tags: [],
-            effortLevel: .fast,
             dueAt: "2026-03-10T08:00:00.000Z",
             updatedAt: "2026-03-09T08:30:00.000Z",
             deletedAt: nil
@@ -368,7 +356,6 @@ final class ReviewQueueSubmissionRollbackTests: XCTestCase {
             cardId: "next-card",
             workspaceId: "test-workspace",
             tags: [],
-            effortLevel: .fast,
             dueAt: nil,
             updatedAt: "2026-03-09T06:00:00.000Z",
             deletedAt: nil

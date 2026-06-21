@@ -176,7 +176,6 @@ final class ProgressReviewSchedulePendingOverlayTests: ProgressStoreTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -231,7 +230,6 @@ final class ProgressReviewSchedulePendingOverlayTests: ProgressStoreTestCase {
                 frontText: "Updated question",
                 backText: "Updated answer",
                 tags: ["edited"],
-                effortLevel: .long
             ),
             cardId: existingCard.cardId
         )
@@ -261,7 +259,6 @@ final class ProgressReviewSchedulePendingOverlayTests: ProgressStoreTestCase {
                 frontText: "New question",
                 backText: "New answer",
                 tags: [],
-                effortLevel: .fast
             ),
             cardId: nil
         )

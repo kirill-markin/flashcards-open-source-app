@@ -159,7 +159,6 @@ final class GuestCloudUpgradeMutationBlockingTests: XCTestCase {
                     frontText: "Blocked before drain finishes",
                     backText: "Blocked answer",
                     tags: [],
-                    effortLevel: .medium
                 ),
                 editingCardId: nil
             )
@@ -182,7 +181,6 @@ final class GuestCloudUpgradeMutationBlockingTests: XCTestCase {
                     frontText: "Blocked question",
                     backText: "Blocked answer",
                     tags: [],
-                    effortLevel: .medium
                 ),
                 editingCardId: nil
             )
@@ -210,7 +208,6 @@ final class GuestCloudUpgradeMutationBlockingTests: XCTestCase {
                 frontText: "Linked question",
                 backText: "Linked answer",
                 tags: [],
-                effortLevel: .medium
             ),
             editingCardId: nil
         )
@@ -344,7 +341,6 @@ final class GuestCloudUpgradeMutationBlockingTests: XCTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )

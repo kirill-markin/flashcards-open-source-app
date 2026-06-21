@@ -40,7 +40,6 @@ class ProgressStoreTestCase: XCTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )

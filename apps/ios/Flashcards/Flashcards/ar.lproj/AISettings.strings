@@ -605,11 +605,11 @@
 "settings.workspace.export.fileUnavailable" = "الملف الذي تم تصديره غير متوفر.";
 "settings.workspace.export.workspaceUnavailable" = "مساحة العمل غير متاحة";
 
-"settings.workspace.decks.description" = "التشكيلات مرشحات ذكية تضم البطاقات المطابقة لمستويات الجهد والوسوم التي تختارها.";
+"settings.workspace.decks.description" = "التشكيلات مرشحات ذكية تضم البطاقات المطابقة للوسوم التي تختارها.";
 "settings.workspace.decks.editorSmartFilterDescription" = "المجموعة مرشح ذكي.";
-"settings.workspace.decks.editorMatchingRulesDescription" = "تتطابق البطاقات حسب مستويات الجهد والوسوم التي تحددها. يمكنك اختيار المجموعة من القائمة العلوية اليسرى في المراجعة.";
+"settings.workspace.decks.editorMatchingRulesDescription" = "تتطابق البطاقات حسب الوسوم التي تحددها. يمكنك اختيار المجموعة من القائمة العلوية اليسرى في المراجعة.";
 "settings.workspace.decks.emptyNameValidation" = "أدخل اسمًا للمجموعة.";
-"settings.workspace.decks.emptyRuleValidation" = "اختر مستوى جهد واحدًا أو وسمًا واحدًا على الأقل، أو استخدم كل البطاقات في المراجعة.";
+"settings.workspace.decks.emptyRuleValidation" = "اختر وسمًا واحدًا على الأقل، أو استخدم كل البطاقات في المراجعة.";
 "settings.workspace.decks.loading" = "جارٍ تحميل التشكيلات...";
 "settings.workspace.decks.noMatching" = "لا توجد تشكيلات مطابقة";
 "settings.workspace.decks.searchPrompt" = "مجموعات البحث";
@@ -632,7 +632,6 @@
 "settings.workspace.decks.systemDeckCannotBeEdited" = "لا يمكن تحرير مجموعة النظام.";
 "settings.workspace.decks.section.name" = "الاسم";
 "settings.workspace.decks.deckName" = "اسم المجموعة";
-"settings.workspace.decks.section.effort" = "جهد";
 
 "settings.workspace.tags.description" = "قم بتسمية بطاقات المجموعة في جميع أنحاء مساحة العمل. قد يتداخل الأعداد لكل علامة عندما تحتوي البطاقة على علامات متعددة.";
 "settings.workspace.tags.loading" = "جارٍ تحميل العلامات...";
