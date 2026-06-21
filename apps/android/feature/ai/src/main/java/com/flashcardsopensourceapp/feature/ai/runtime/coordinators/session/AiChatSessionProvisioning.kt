@@ -105,7 +105,7 @@ internal suspend fun createNewAiChatSessionOnce(
     return snapshot
 }
 
-private suspend fun createNewAiChatSessionFromPreparedSessionOnce(
+internal suspend fun createNewAiChatSessionFromPreparedSessionOnce(
     context: AiChatRuntimeContext,
     preparedSession: AiChatPreparedRemoteSession,
     targetSessionId: String

@@ -18,6 +18,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurat
 import com.flashcardsopensourceapp.data.local.model.ai.buildAiChatRequestContent
 import com.flashcardsopensourceapp.data.local.model.ai.isSendableAiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.requireAiChatAttachmentSize
+import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPhase
@@ -140,8 +141,9 @@ internal class AiChatSendCoordinator(
             var requestSessionId = currentState.persistedState.chatSessionId
             var rollbackPersistedState = initialPersistedState
             try {
+                var preparedSession: AiChatPreparedRemoteSession? = null
                 if (currentCloudState() == CloudAccountState.DISCONNECTED) {
-                    context.aiChatRepository.prepareSessionForAi(
+                    preparedSession = context.aiChatRepository.prepareSessionForAi(
                         workspaceId = context.runtimeStateMutable.value.workspaceId
                     )
                 }
@@ -149,7 +151,8 @@ internal class AiChatSendCoordinator(
                 // from stale local writes that are still sitting in the outbox.
                 context.aiChatRepository.ensureReadyForSend(workspaceId = context.runtimeStateMutable.value.workspaceId)
                 val ensuredSession = sessionCoordinator.ensureSessionIdIfNeededPreservingDraft(
-                    draftState = durableDraftState
+                    draftState = durableDraftState,
+                    preparedSession = preparedSession
                 )
                 requestSessionId = ensuredSession.sessionId
                 rollbackPersistedState = context.runtimeStateMutable.value.persistedState

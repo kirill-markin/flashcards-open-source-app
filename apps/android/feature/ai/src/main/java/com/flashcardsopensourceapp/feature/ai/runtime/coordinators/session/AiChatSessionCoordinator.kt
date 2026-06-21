@@ -6,8 +6,10 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionProvisioningResult
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.repository.AiChatPreparedRemoteSession
 import com.flashcardsopensourceapp.feature.ai.emptyAiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntimeContext
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
@@ -91,6 +93,7 @@ internal class AiChatSessionCoordinator(
 
     suspend fun ensureSessionIdIfNeeded(): AiChatSessionProvisioningResult {
         return ensureSessionIdIfNeeded(
+            preparedSession = null,
             persistEnsuredSessionState = {
                 context.persistCurrentState()
             }
@@ -98,9 +101,11 @@ internal class AiChatSessionCoordinator(
     }
 
     suspend fun ensureSessionIdIfNeededPreservingDraft(
-        draftState: AiChatDraftState
+        draftState: AiChatDraftState,
+        preparedSession: AiChatPreparedRemoteSession?
     ): AiChatSessionProvisioningResult {
         return ensureSessionIdIfNeeded(
+            preparedSession = preparedSession,
             persistEnsuredSessionState = {
                 context.persistCurrentStatePreservingDraft(draftState = draftState)
             }
@@ -108,6 +113,7 @@ internal class AiChatSessionCoordinator(
     }
 
     private suspend fun ensureSessionIdIfNeeded(
+        preparedSession: AiChatPreparedRemoteSession?,
         persistEnsuredSessionState: () -> Unit
     ): AiChatSessionProvisioningResult {
         var currentState: AiChatRuntimeState = context.runtimeStateMutable.value
@@ -126,9 +132,9 @@ internal class AiChatSessionCoordinator(
             currentSessionId.isNotBlank()
             && currentState.persistedState.requiresRemoteSessionProvisioning
         ) {
-            val snapshot = createNewAiChatSessionOnce(
-                context = context,
-                workspaceId = currentState.workspaceId,
+            val snapshot = createSessionSnapshotForSend(
+                preparedSession = preparedSession,
+                currentState = currentState,
                 targetSessionId = currentSessionId
             )
             var didApplyProvisionedSession: Boolean = false
@@ -163,6 +169,19 @@ internal class AiChatSessionCoordinator(
                 snapshot = snapshot
             )
         }
+        if (currentSessionId.isNotBlank()) {
+            return AiChatSessionProvisioningResult(
+                sessionId = currentSessionId,
+                snapshot = null
+            )
+        }
+        if (preparedSession != null) {
+            return ensureNewSessionFromPreparedSession(
+                preparedSession = preparedSession,
+                currentState = currentState,
+                persistEnsuredSessionState = persistEnsuredSessionState
+            )
+        }
         val ensuredSession = context.aiChatRepository.ensureSessionId(
             workspaceId = currentState.workspaceId,
             persistedState = currentState.persistedState,
@@ -193,6 +212,70 @@ internal class AiChatSessionCoordinator(
             context.lastBootstrapFailureRetryable = false
         }
         return ensuredSession
+    }
+
+    private suspend fun createSessionSnapshotForSend(
+        preparedSession: AiChatPreparedRemoteSession?,
+        currentState: AiChatRuntimeState,
+        targetSessionId: String
+    ): AiChatSessionSnapshot {
+        if (preparedSession != null) {
+            return createNewAiChatSessionFromPreparedSessionOnce(
+                context = context,
+                preparedSession = preparedSession,
+                targetSessionId = targetSessionId
+            )
+        }
+        return createNewAiChatSessionOnce(
+            context = context,
+            workspaceId = currentState.workspaceId,
+            targetSessionId = targetSessionId
+        )
+    }
+
+    private suspend fun ensureNewSessionFromPreparedSession(
+        preparedSession: AiChatPreparedRemoteSession,
+        currentState: AiChatRuntimeState,
+        persistEnsuredSessionState: () -> Unit
+    ): AiChatSessionProvisioningResult {
+        val ensuredSessionId = context.aiChatRepository.makeExplicitSessionId()
+        val snapshot = createNewAiChatSessionFromPreparedSessionOnce(
+            context = context,
+            preparedSession = preparedSession,
+            targetSessionId = ensuredSessionId
+        )
+        var didApplyEnsuredSession: Boolean = false
+        context.runtimeStateMutable.update { state ->
+            if (
+                state.workspaceId != currentState.workspaceId
+                || state.persistedState.chatSessionId.isNotBlank()
+            ) {
+                return@update state
+            }
+            didApplyEnsuredSession = true
+            updateComposerSuggestions(
+                state = state.copy(
+                    persistedState = state.persistedState.copy(
+                        chatSessionId = ensuredSessionId,
+                        lastKnownChatConfig = snapshot.chatConfig,
+                        requiresRemoteSessionProvisioning = false
+                    ),
+                    conversationScopeId = snapshot.conversationScopeId,
+                    activeAlert = null,
+                    errorMessage = ""
+                ),
+                nextSuggestions = snapshot.composerSuggestions
+            )
+        }
+        if (didApplyEnsuredSession.not()) {
+            throw CancellationException("AI session provisioning was superseded.")
+        }
+        persistEnsuredSessionState()
+        context.lastBootstrapFailureRetryable = false
+        return AiChatSessionProvisioningResult(
+            sessionId = ensuredSessionId,
+            snapshot = snapshot
+        )
     }
 
     private suspend fun awaitActiveFreshSessionProvisioningIfNeeded(targetSessionId: String) {
