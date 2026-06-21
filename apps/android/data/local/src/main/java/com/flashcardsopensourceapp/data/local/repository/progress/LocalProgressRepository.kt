@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.repository.progress
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesSnapshot
@@ -33,7 +34,7 @@ class LocalProgressRepository(
     appScope: CoroutineScope,
     database: AppDatabase,
     preferencesStore: CloudPreferencesStore,
-    cloudAccountRepository: CloudAccountRepository,
+    private val cloudAccountRepository: CloudAccountRepository,
     syncRepository: SyncRepository,
     localProgressCacheStore: LocalProgressCacheStore,
     observability: AppObservability,
@@ -178,6 +179,10 @@ class LocalProgressRepository(
 
     override suspend fun refreshStreakLeaderboardManually() {
         streakLeaderboardOrchestration.refreshManually()
+    }
+
+    override suspend fun loadLeaderboardProfile(publicProfileId: String): CloudProgressLeaderboardProfile {
+        return cloudAccountRepository.loadProgressLeaderboardProfile(publicProfileId = publicProfileId)
     }
 
     private fun handleProgressInputs(

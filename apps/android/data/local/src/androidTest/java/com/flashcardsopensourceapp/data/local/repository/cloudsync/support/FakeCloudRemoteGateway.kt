@@ -24,6 +24,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationC
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
@@ -588,6 +589,14 @@ internal class FakeCloudRemoteGateway private constructor(
         return requireNotNull(progressStreakLeaderboardResponse) {
             "Fake progress streak leaderboard response was not configured."
         }
+    }
+
+    override suspend fun loadProgressLeaderboardProfile(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        publicProfileId: String
+    ): CloudProgressLeaderboardProfile {
+        throw UnsupportedOperationException()
     }
 
     override suspend fun loadCommunityProfile(

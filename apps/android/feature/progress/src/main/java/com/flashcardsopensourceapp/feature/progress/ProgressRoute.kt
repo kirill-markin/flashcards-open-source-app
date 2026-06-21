@@ -26,6 +26,7 @@ import com.flashcardsopensourceapp.feature.progress.sections.ErrorCard
 import com.flashcardsopensourceapp.feature.progress.sections.GuidanceCard
 import com.flashcardsopensourceapp.feature.progress.sections.LeaderboardSectionCard
 import com.flashcardsopensourceapp.feature.progress.sections.LoadingCard
+import com.flashcardsopensourceapp.feature.progress.sections.ProgressLeaderboardProfileSheet
 import com.flashcardsopensourceapp.feature.progress.sections.ReviewScheduleSectionCard
 import com.flashcardsopensourceapp.feature.progress.sections.ReviewsSectionCard
 import com.flashcardsopensourceapp.feature.progress.sections.StreakLeaderboardSectionCard
@@ -43,6 +44,9 @@ fun ProgressRoute(
     onScreenVisible: () -> Unit,
     onRetry: () -> Unit,
     onSelectLeaderboardWindow: (ProgressLeaderboardWindowKey) -> Unit,
+    onOpenLeaderboardProfile: (ProgressLeaderboardProfileIdentityUiState) -> Unit,
+    onRetryLeaderboardProfile: () -> Unit,
+    onDismissLeaderboardProfile: () -> Unit,
     onCreateFriendInvitation: (String) -> Unit,
     onClearFriendInvitationFailure: () -> Unit,
     onFriendInvitationShared: (Long) -> Unit,
@@ -163,6 +167,7 @@ fun ProgressRoute(
                             uiState = uiState.leaderboardSection,
                             friendInvitationUiState = friendInvitationUiState,
                             onSelectWindow = onSelectLeaderboardWindow,
+                            onOpenProfile = onOpenLeaderboardProfile,
                             onCreateFriendInvitation = onCreateFriendInvitation,
                             onClearFriendInvitationFailure = onClearFriendInvitationFailure,
                             onOpenSignIn = onOpenSignIn,
@@ -172,6 +177,7 @@ fun ProgressRoute(
                     item {
                         StreakLeaderboardSectionCard(
                             uiState = uiState.streakLeaderboardSection,
+                            onOpenProfile = onOpenLeaderboardProfile,
                             onOpenSignIn = onOpenSignIn,
                             onOpenLeaderboardSettings = onOpenLeaderboardSettings
                         )
@@ -191,6 +197,15 @@ fun ProgressRoute(
                     }
                 }
             }
+        }
+
+        val leaderboardProfileSheet = (uiState as? ProgressUiState.Loaded)?.leaderboardProfileSheet
+        if (leaderboardProfileSheet != null) {
+            ProgressLeaderboardProfileSheet(
+                uiState = leaderboardProfileSheet,
+                onDismiss = onDismissLeaderboardProfile,
+                onRetry = onRetryLeaderboardProfile
+            )
         }
     }
 }

@@ -49,6 +49,13 @@ internal fun buildProgressStreakLeaderboardCloudPath(): String {
     return "/me/progress/leaderboards/streak"
 }
 
+internal fun buildProgressLeaderboardProfileCloudPath(publicProfileId: String): String {
+    require(publicProfileId.isNotBlank()) {
+        "Progress leaderboard profile publicProfileId must not be blank."
+    }
+    return "/me/progress/leaderboards/profiles/${encodeCloudPathSegment(value = publicProfileId)}"
+}
+
 internal fun buildCommunityProfileCloudPath(): String {
     return "/me/community/profile"
 }
@@ -59,4 +66,9 @@ internal fun buildCommunityFriendInvitationsCloudPath(): String {
 
 private fun encodeCloudQueryValue(value: String): String {
     return URLEncoder.encode(value, StandardCharsets.UTF_8)
+}
+
+private fun encodeCloudPathSegment(value: String): String {
+    return URLEncoder.encode(value, StandardCharsets.UTF_8)
+        .replace(oldValue = "+", newValue = "%20")
 }

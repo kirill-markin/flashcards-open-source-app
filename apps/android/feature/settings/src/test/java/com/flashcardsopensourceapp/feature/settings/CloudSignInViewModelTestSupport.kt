@@ -23,6 +23,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
@@ -289,6 +290,10 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     }
 
     override suspend fun loadProgressStreakLeaderboard(): CloudProgressStreakLeaderboard {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun loadProgressLeaderboardProfile(publicProfileId: String): CloudProgressLeaderboardProfile {
         throw UnsupportedOperationException()
     }
 

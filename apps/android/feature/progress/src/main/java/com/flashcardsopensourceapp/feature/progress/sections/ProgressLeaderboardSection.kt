@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.progress.sections
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationDialog
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationUiState
+import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardProfileIdentityUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardRowUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardSectionUiState
 import com.flashcardsopensourceapp.feature.progress.R
@@ -62,6 +65,7 @@ internal fun LeaderboardSectionCard(
     uiState: ProgressLeaderboardSectionUiState,
     friendInvitationUiState: FriendInvitationUiState,
     onSelectWindow: (ProgressLeaderboardWindowKey) -> Unit,
+    onOpenProfile: (ProgressLeaderboardProfileIdentityUiState) -> Unit,
     onCreateFriendInvitation: (String) -> Unit,
     onClearFriendInvitationFailure: () -> Unit,
     onOpenSignIn: () -> Unit,
@@ -194,7 +198,8 @@ internal fun LeaderboardSectionCard(
                     ) {
                         LeaderboardReadyContent(
                             uiState = uiState,
-                            onSelectWindow = onSelectWindow
+                            onSelectWindow = onSelectWindow,
+                            onOpenProfile = onOpenProfile
                         )
                     }
                 }
@@ -267,7 +272,8 @@ internal fun ProgressLeaderboardResolvedContent(
 @Composable
 private fun LeaderboardReadyContent(
     uiState: ProgressLeaderboardSectionUiState.Ready,
-    onSelectWindow: (ProgressLeaderboardWindowKey) -> Unit
+    onSelectWindow: (ProgressLeaderboardWindowKey) -> Unit,
+    onOpenProfile: (ProgressLeaderboardProfileIdentityUiState) -> Unit
 ) {
     val configuration = LocalConfiguration.current
     val locale = if (configuration.locales.isEmpty) {
@@ -324,25 +330,42 @@ private fun LeaderboardReadyContent(
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            selectedWindow.rows.forEach { row ->
+            selectedWindow.rows.forEachIndexed { index, row ->
                 when (row) {
                     ProgressLeaderboardRowUiState.Gap -> ProgressLeaderboardGapRow(
                         contentDescription = stringResource(
                             id = R.string.progress_leaderboard_gap_content_description
                         ),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(progressLeaderboardGapRowTag(index = index))
                     )
-                    is ProgressLeaderboardRowUiState.Participant -> ProgressLeaderboardParticipantRow(
-                        rankLabel = countFormatter.format(row.rank.toLong()),
-                        displayName = if (row.isViewer) {
+                    is ProgressLeaderboardRowUiState.Participant -> {
+                        val displayName = if (row.isViewer) {
                             stringResource(id = R.string.progress_leaderboard_you)
                         } else {
                             row.displayName
-                        },
-                        metricLabel = countFormatter.format(row.qualifiedReviewCount.toLong()),
-                        isViewer = row.isViewer,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        }
+                        val contentDescription = stringResource(
+                            id = R.string.progress_leaderboard_profile_row_content_description,
+                            displayName
+                        )
+                        ProgressLeaderboardParticipantRow(
+                            rankLabel = countFormatter.format(row.rank.toLong()),
+                            displayName = displayName,
+                            metricLabel = countFormatter.format(row.qualifiedReviewCount.toLong()),
+                            isViewer = row.isViewer,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(progressLeaderboardParticipantRowTag(rank = row.rank))
+                                .semantics {
+                                    this.contentDescription = contentDescription
+                                }
+                                .clickable {
+                                    onOpenProfile(row.profileIdentity)
+                                }
+                        )
+                    }
                 }
             }
 

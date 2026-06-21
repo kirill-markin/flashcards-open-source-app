@@ -25,6 +25,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationC
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
+import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReviewSchedule
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreakLeaderboard
@@ -155,6 +156,7 @@ interface ProgressRepository {
     suspend fun refreshReviewScheduleManually()
     suspend fun refreshLeaderboardManually()
     suspend fun refreshStreakLeaderboardManually()
+    suspend fun loadLeaderboardProfile(publicProfileId: String): CloudProgressLeaderboardProfile
 }
 
 interface FeedbackRepository {
@@ -199,6 +201,7 @@ interface CloudAccountRepository {
     suspend fun loadProgressReviewSchedule(timeZone: String): CloudProgressReviewSchedule
     suspend fun loadProgressLeaderboard(): CloudProgressLeaderboard
     suspend fun loadProgressStreakLeaderboard(): CloudProgressStreakLeaderboard
+    suspend fun loadProgressLeaderboardProfile(publicProfileId: String): CloudProgressLeaderboardProfile
     suspend fun loadCommunityProfile(): CloudCommunityProfile
     suspend fun updateCommunityLeaderboardParticipation(
         leaderboardParticipationEnabled: Boolean
