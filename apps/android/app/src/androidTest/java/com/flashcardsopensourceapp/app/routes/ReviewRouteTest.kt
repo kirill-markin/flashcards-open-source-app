@@ -112,7 +112,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         openPreviewCalls += 1
                     },
                     onOpenCurrentCard = {},
-                    onOpenCurrentCardWithAi = { _, _, _, _, _ -> },
+                    onOpenCurrentCardWithAi = { _, _, _, _ -> },
                     onOpenDeckManagement = {},
                     onOpenLeaderboard = {
                         openLeaderboardCalls += 1
