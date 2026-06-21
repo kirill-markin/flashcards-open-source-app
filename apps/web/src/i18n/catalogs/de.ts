@@ -103,14 +103,8 @@ const deCatalog: TranslationCatalog = {
   filters: {
     allCards: "Alle Karten",
     and: "UND",
-    effortIn: "Aufwand in {{values}}",
     none: "Keine Filter",
     tagsAnyOf: "Tags beliebig aus {{values}}",
-  },
-  effortLevels: {
-    fast: "Schnell",
-    medium: "Mittel",
-    long: "Lang",
   },
   loading: {
     generic: "Lädt...",
@@ -602,7 +596,7 @@ const deCatalog: TranslationCatalog = {
     queueBadgeDueUpcoming: "{{due}} fällig | {{upcoming}} anstehend",
     scopeLabel: "Umfang",
     searchLabel: "Suchen",
-    searchPlaceholder: "Decks, Aufwand oder Tags suchen",
+    searchPlaceholder: "Decks oder Tags suchen",
   },
   reviewScreen: {
     actions: {
@@ -721,7 +715,6 @@ const deCatalog: TranslationCatalog = {
         clear: "Löschen",
       },
       ariaLabel: "Kartenfilter",
-      effort: "Aufwand",
       label: "Filter",
       tags: "Tags",
       trigger: "Filtern",
@@ -739,7 +732,6 @@ const deCatalog: TranslationCatalog = {
     table: {
       back: "Rückseite",
       due: "Fällig",
-      effort: "Aufwand",
       front: "Vorderseite",
       lapses: "Fehlversuche",
       open: "Öffnen",
@@ -765,7 +757,6 @@ const deCatalog: TranslationCatalog = {
     },
     fields: {
       back: "Rückseite",
-      effort: "Aufwand",
       front: "Vorderseite",
       tags: "Tags",
     },
@@ -806,7 +797,7 @@ const deCatalog: TranslationCatalog = {
       new: "neu",
       reviewed: "wiederholt",
     },
-    subtitle: "Decks sind intelligente Filter, keine Container. Sie finden Karten nach Aufwand und Tags.",
+    subtitle: "Decks sind intelligente Filter, keine Container. Sie finden Karten nach Tags.",
     title: "Decks",
   },
   deckDetail: {
@@ -848,7 +839,7 @@ const deCatalog: TranslationCatalog = {
     subtitle: "Prüfe Deck-Regeln, passende Karten und den Einstiegspunkt zur Wiederholung.",
     subtitles: {
       allCards: "Alle Karten ist der vollständige Wiederholungsumfang über alle Karten.",
-      smartFilter: "Dieses Deck ist ein gespeicherter intelligenter Filter nach Aufwand und Tags.",
+      smartFilter: "Dieses Deck ist ein gespeicherter intelligenter Filter nach Tags.",
     },
     title: "Deck",
     warnings: {
@@ -863,17 +854,16 @@ const deCatalog: TranslationCatalog = {
       saving: "Wird gespeichert...",
     },
     errors: {
-      emptyRules: "Wähle mindestens einen Aufwand oder Tag aus, oder verwende Alle Karten in der Wiederholung.",
+      emptyRules: "Wähle mindestens einen Tag aus, oder verwende Alle Karten in der Wiederholung.",
     },
     fields: {
-      effort: "Aufwand",
       name: "Name",
       summary: "Regeln",
       tags: "Tags",
     },
     filterPreview: "Regelvorschau",
     rulesPreviewHelp: "Diese Regeln bestimmen, welche Karten in diesem Deck erscheinen.",
-    smartFilterExplanation: "Du erstellst einen intelligenten Filter namens Deck. Er findet Karten nach Aufwand und Tags und kann dann im Wiederholungsfilter ausgewählt werden.",
+    smartFilterExplanation: "Du erstellst einen intelligenten Filter namens Deck. Er findet Karten nach Tags und kann dann im Wiederholungsfilter ausgewählt werden.",
     systemDeckReadonly: "System-Deck kann nicht bearbeitet werden.",
     subtitles: {
       edit: "Aktualisiere einen gespeicherten intelligenten Filter für passende Karten.",
@@ -968,9 +958,6 @@ const deCatalog: TranslationCatalog = {
       codeExecution: "Codeausführung",
       sql: "SQL",
       webSearch: "Websuche",
-    },
-    toolMeta: {
-      effort: "Aufwand {{value}}",
     },
   },
   accountSettings: {

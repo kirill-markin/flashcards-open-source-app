@@ -176,7 +176,6 @@ export function DecksScreen(): ReactElement {
               : formatDeckFilterSummary(
                 decksSnapshot.deckSummaries.find((deckSummary) => deckSummary.deckId === deck.id)?.filterDefinition ?? {
                   version: 2,
-                  effortLevels: [],
                   tags: [],
                 },
                 t,

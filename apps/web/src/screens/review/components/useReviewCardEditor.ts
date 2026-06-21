@@ -17,7 +17,6 @@ type UseReviewCardEditorParams = Readonly<{
     frontText: string;
     backText: string;
     tags: ReadonlyArray<string>;
-    effortLevel: Card["effortLevel"];
   }>) => Promise<Card>;
   userId: string | null;
   workspaceId: string | null;
@@ -79,7 +78,6 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
         frontText: editorFormState.frontText,
         backText: editorFormState.backText,
         tags: editorFormState.tags,
-        effortLevel: editorFormState.effortLevel,
       });
       setIsEditorPresented(false);
     } catch (error) {
@@ -119,7 +117,6 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
         frontText: editorFormState.frontText,
         backText: editorFormState.backText,
         tags: editorFormState.tags,
-        effortLevel: editorFormState.effortLevel,
       });
       return savedCard;
     } catch (error) {

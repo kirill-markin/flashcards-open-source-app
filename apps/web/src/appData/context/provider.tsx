@@ -60,15 +60,16 @@ function parsePersistedReviewFilter(value: string | null): ReviewFilter {
       && "kind" in parsedValue
       && parsedValue.kind === "effort"
       && "effortLevel" in parsedValue
-      && (
-        parsedValue.effortLevel === "fast"
-        || parsedValue.effortLevel === "medium"
-        || parsedValue.effortLevel === "long"
-      )
     ) {
+      if (parsedValue.effortLevel === "medium" || parsedValue.effortLevel === "long") {
+        return {
+          kind: "tag",
+          tag: parsedValue.effortLevel,
+        };
+      }
+
       return {
-        kind: "effort",
-        effortLevel: parsedValue.effortLevel,
+        kind: "allCards",
       };
     }
 

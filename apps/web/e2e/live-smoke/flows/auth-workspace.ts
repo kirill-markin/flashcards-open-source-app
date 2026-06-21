@@ -168,7 +168,6 @@ async function seedDeterministicWorkspaceData(session: LiveSmokeSession): Promis
           frontText: scenario.seededFrontText,
           backText: scenario.seededBackText,
           tags: [],
-          effortLevel: "medium",
           createdAt: seededCardCreatedAt,
           reviews: [
             {

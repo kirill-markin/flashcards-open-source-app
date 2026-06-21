@@ -103,14 +103,8 @@ export const ruCatalog = {
   filters: {
     allCards: "Все карточки",
     and: "AND",
-    effortIn: "сложность: {{values}}",
     none: "Без фильтров",
     tagsAnyOf: "теги: любой из {{values}}",
-  },
-  effortLevels: {
-    fast: "Быстро",
-    medium: "Средне",
-    long: "Долго",
   },
   loading: {
     generic: "Загрузка...",
@@ -602,7 +596,7 @@ export const ruCatalog = {
     queueBadgeDueUpcoming: "{{due}} к повторению | {{upcoming}} впереди",
     scopeLabel: "Область",
     searchLabel: "Поиск",
-    searchPlaceholder: "Искать колоды, сложность или теги",
+    searchPlaceholder: "Искать колоды или теги",
   },
   reviewScreen: {
     actions: {
@@ -721,7 +715,6 @@ export const ruCatalog = {
         clear: "Очистить",
       },
       ariaLabel: "Фильтры карточек",
-      effort: "Сложность",
       label: "Фильтры",
       tags: "Теги",
       trigger: "Фильтр",
@@ -739,7 +732,6 @@ export const ruCatalog = {
     table: {
       back: "Обратная сторона",
       due: "Срок",
-      effort: "Сложность",
       front: "Лицевая сторона",
       lapses: "Ошибки",
       open: "Открыть",
@@ -765,7 +757,6 @@ export const ruCatalog = {
     },
     fields: {
       back: "Обратная сторона",
-      effort: "Сложность",
       front: "Лицевая сторона",
       tags: "Теги",
     },
@@ -806,7 +797,7 @@ export const ruCatalog = {
       new: "новые",
       reviewed: "повторено",
     },
-    subtitle: "Колоды — это умные фильтры, а не контейнеры. Они подбирают карточки по сложности и тегам.",
+    subtitle: "Колоды — это умные фильтры, а не контейнеры. Они подбирают карточки по тегам.",
     title: "Колоды",
   },
   deckDetail: {
@@ -848,7 +839,7 @@ export const ruCatalog = {
     subtitle: "Просмотрите правила колоды, подходящие карточки и точку входа в повторение.",
     subtitles: {
       allCards: "Все карточки — это полный объем повторения для всех карточек.",
-      smartFilter: "Эта колода — сохраненный умный фильтр по сложности и тегам.",
+      smartFilter: "Эта колода — сохраненный умный фильтр по тегам.",
     },
     title: "Колода",
     warnings: {
@@ -863,17 +854,16 @@ export const ruCatalog = {
       saving: "Сохранение...",
     },
     errors: {
-      emptyRules: "Выберите хотя бы одну сложность или тег либо используйте Все карточки в повторении.",
+      emptyRules: "Выберите хотя бы один тег либо используйте Все карточки в повторении.",
     },
     fields: {
-      effort: "Сложность",
       name: "Название",
       summary: "Правила",
       tags: "Теги",
     },
     filterPreview: "Предпросмотр правил",
     rulesPreviewHelp: "Эти правила определяют, какие карточки появляются в этой колоде.",
-    smartFilterExplanation: "Вы создаете умный фильтр под названием колода. Он подбирает карточки по сложности и тегам, а затем его можно выбрать в фильтре повторения.",
+    smartFilterExplanation: "Вы создаете умный фильтр под названием колода. Он подбирает карточки по тегам, а затем его можно выбрать в фильтре повторения.",
     systemDeckReadonly: "Системную колоду нельзя редактировать.",
     subtitles: {
       edit: "Обновите сохраненный умный фильтр для подходящих карточек.",
@@ -968,9 +958,6 @@ export const ruCatalog = {
       codeExecution: "Выполнение кода",
       sql: "SQL",
       webSearch: "Веб-поиск",
-    },
-    toolMeta: {
-      effort: "Сложность {{value}}",
     },
   },
   accountSettings: {

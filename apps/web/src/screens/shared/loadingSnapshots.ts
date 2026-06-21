@@ -1,4 +1,6 @@
-import type { Card, EffortLevel, ReviewCounts, ReviewFilter } from "../../types";
+import type { Card, ReviewCounts, ReviewFilter } from "../../types";
+import type { LegacyEffortLevel } from "../../types/sync";
+import { appendLegacyEffortTag } from "../../legacyEffort";
 
 const SNAPSHOT_VERSION = 1;
 const REVIEW_LOADING_SNAPSHOT_KEY_PREFIX = "flashcards-review-loading-snapshot";
@@ -8,7 +10,6 @@ type ReviewLoadingCardPreview = Readonly<{
   cardId: string;
   frontText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: EffortLevel;
   dueAt: string | null;
 }>;
 
@@ -28,7 +29,6 @@ export type CardsLoadingRowPreview = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: EffortLevel;
   dueAt: string | null;
   reps: number;
   lapses: number;
@@ -61,12 +61,28 @@ function buildCardsLoadingSnapshotStorageKey(workspaceId: string): string {
   return `${CARDS_LOADING_SNAPSHOT_KEY_PREFIX}:${workspaceId}`;
 }
 
+function buildLegacyEffortReviewFilterKey(reviewFilter: ReviewFilter): string | null {
+  if (reviewFilter.kind !== "tag" || (reviewFilter.tag !== "medium" && reviewFilter.tag !== "long")) {
+    return null;
+  }
+
+  return `effort:${reviewFilter.tag}`;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
 function isStringArray(value: unknown): value is Array<string> {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function parseLegacySnapshotEffortLevel(value: unknown): LegacyEffortLevel | undefined {
+  if (value === "fast" || value === "medium" || value === "long") {
+    return value;
+  }
+
+  return undefined;
 }
 
 function readLocalStorageValue(key: string): string | null {
@@ -109,17 +125,17 @@ function parseReviewLoadingCardPreview(value: unknown): ReviewLoadingCardPreview
     || typeof value.cardId !== "string"
     || typeof value.frontText !== "string"
     || !isStringArray(value.tags)
-    || (value.effortLevel !== "fast" && value.effortLevel !== "medium" && value.effortLevel !== "long")
     || (value.dueAt !== null && typeof value.dueAt !== "string")
   ) {
     return null;
   }
 
+  const tags = appendLegacyEffortTag(value.tags, parseLegacySnapshotEffortLevel(value.effortLevel));
+
   return {
     cardId: value.cardId,
     frontText: value.frontText,
-    tags: value.tags,
-    effortLevel: value.effortLevel,
+    tags,
     dueAt: value.dueAt,
   };
 }
@@ -131,7 +147,6 @@ function parseCardsLoadingRowPreview(value: unknown): CardsLoadingRowPreview | n
     || typeof value.frontText !== "string"
     || typeof value.backText !== "string"
     || !isStringArray(value.tags)
-    || (value.effortLevel !== "fast" && value.effortLevel !== "medium" && value.effortLevel !== "long")
     || (value.dueAt !== null && typeof value.dueAt !== "string")
     || typeof value.reps !== "number"
     || typeof value.lapses !== "number"
@@ -140,12 +155,13 @@ function parseCardsLoadingRowPreview(value: unknown): CardsLoadingRowPreview | n
     return null;
   }
 
+  const tags = appendLegacyEffortTag(value.tags, parseLegacySnapshotEffortLevel(value.effortLevel));
+
   return {
     cardId: value.cardId,
     frontText: value.frontText,
     backText: value.backText,
-    tags: value.tags,
-    effortLevel: value.effortLevel,
+    tags,
     dueAt: value.dueAt,
     reps: value.reps,
     lapses: value.lapses,
@@ -254,10 +270,6 @@ export function serializeReviewFilterKey(reviewFilter: ReviewFilter): string {
     return `deck:${reviewFilter.deckId}`;
   }
 
-  if (reviewFilter.kind === "effort") {
-    return `effort:${reviewFilter.effortLevel}`;
-  }
-
   return `tag:${reviewFilter.tag}`;
 }
 
@@ -266,7 +278,6 @@ export function buildReviewLoadingCardPreview(card: Card): ReviewLoadingCardPrev
     cardId: card.cardId,
     frontText: card.frontText,
     tags: card.tags,
-    effortLevel: card.effortLevel,
     dueAt: card.dueAt,
   };
 }
@@ -277,7 +288,6 @@ export function buildCardsLoadingRowPreview(card: Card): CardsLoadingRowPreview 
     frontText: card.frontText,
     backText: card.backText,
     tags: card.tags,
-    effortLevel: card.effortLevel,
     dueAt: card.dueAt,
     reps: card.reps,
     lapses: card.lapses,
@@ -290,18 +300,53 @@ export function readReviewLoadingSnapshot(
   reviewFilter: ReviewFilter,
 ): ReviewLoadingSnapshot | null {
   const selectedReviewFilterKey = serializeReviewFilterKey(reviewFilter);
-  const storageKey = buildReviewLoadingSnapshotStorageKey(workspaceId, selectedReviewFilterKey);
+  const snapshot = readReviewLoadingSnapshotForStoredKey(
+    workspaceId,
+    selectedReviewFilterKey,
+    selectedReviewFilterKey,
+  );
+
+  if (snapshot !== null) {
+    return snapshot;
+  }
+
+  const legacyEffortReviewFilterKey = buildLegacyEffortReviewFilterKey(reviewFilter);
+  if (legacyEffortReviewFilterKey === null) {
+    return null;
+  }
+
+  // TODO: Remove this lookup when final client shim cleanup drops legacy effort filters.
+  return readReviewLoadingSnapshotForStoredKey(
+    workspaceId,
+    selectedReviewFilterKey,
+    legacyEffortReviewFilterKey,
+  );
+}
+
+function readReviewLoadingSnapshotForStoredKey(
+  workspaceId: string,
+  selectedReviewFilterKey: string,
+  storedReviewFilterKey: string,
+): ReviewLoadingSnapshot | null {
+  const storageKey = buildReviewLoadingSnapshotStorageKey(workspaceId, storedReviewFilterKey);
   const snapshot = parseReviewLoadingSnapshot(readLocalStorageValue(storageKey));
 
   if (
     snapshot === null
     || snapshot.workspaceId !== workspaceId
-    || snapshot.selectedReviewFilterKey !== selectedReviewFilterKey
+    || snapshot.selectedReviewFilterKey !== storedReviewFilterKey
   ) {
     return null;
   }
 
-  return snapshot;
+  if (snapshot.selectedReviewFilterKey === selectedReviewFilterKey) {
+    return snapshot;
+  }
+
+  return {
+    ...snapshot,
+    selectedReviewFilterKey,
+  };
 }
 
 export function writeReviewLoadingSnapshot(snapshot: ReviewLoadingSnapshot): void {

@@ -1,25 +1,11 @@
 import type { TranslationKey } from "../../i18n";
 import type { DateTimeValue, TranslationValues } from "../../i18n/types";
-import type { CardFilter, DeckFilterDefinition, EffortLevel } from "../../types";
+import type { CardFilter, DeckFilterDefinition } from "../../types";
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;
 type FormatDateTime = (value: DateTimeValue, options?: Readonly<Intl.DateTimeFormatOptions>) => string;
 
 const EMPTY_LIST_PLACEHOLDER = "\u2014";
-
-function effortLevelTranslationKey(
-  effortLevel: EffortLevel,
-): "effortLevels.fast" | "effortLevels.medium" | "effortLevels.long" {
-  if (effortLevel === "fast") {
-    return "effortLevels.fast";
-  }
-
-  if (effortLevel === "medium") {
-    return "effortLevels.medium";
-  }
-
-  return "effortLevels.long";
-}
 
 function joinFilterSummaryParts(parts: ReadonlyArray<string>, t: Translate): string {
   if (parts.length === 0) {
@@ -27,10 +13,6 @@ function joinFilterSummaryParts(parts: ReadonlyArray<string>, t: Translate): str
   }
 
   return parts.join(` ${t("filters.and")} `);
-}
-
-export function formatEffortLevelLabel(t: Translate, effortLevel: EffortLevel): string {
-  return t(effortLevelTranslationKey(effortLevel));
 }
 
 export function formatNullableDateTime(
@@ -59,12 +41,6 @@ export function formatDeckFilterSummary(
 ): string {
   const parts: Array<string> = [];
 
-  if (filterDefinition.effortLevels.length > 0) {
-    parts.push(t("filters.effortIn", {
-      values: filterDefinition.effortLevels.map((effortLevel) => formatEffortLevelLabel(t, effortLevel)).join(", "),
-    }));
-  }
-
   if (filterDefinition.tags.length > 0) {
     parts.push(t("filters.tagsAnyOf", {
       values: filterDefinition.tags.join(", "),
@@ -87,12 +63,6 @@ export function formatCardFilterSummary(
   }
 
   const parts: Array<string> = [];
-
-  if (filter.effort.length > 0) {
-    parts.push(t("filters.effortIn", {
-      values: filter.effort.map((effortLevel) => formatEffortLevelLabel(t, effortLevel)).join(", "),
-    }));
-  }
 
   if (filter.tags.length > 0) {
     parts.push(t("filters.tagsAnyOf", {

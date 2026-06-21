@@ -1,5 +1,6 @@
 import type { PendingAttachment } from "../attachments/FileAttachment";
-import type { EffortLevel } from "../../types";
+import type { LegacyEffortLevel } from "../../types";
+import { appendLegacyEffortTag } from "../../legacyEffort";
 
 export type ChatDraftContent = Readonly<{
   inputText: string;
@@ -55,7 +56,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && Array.isArray(value) === false;
 }
 
-function parseEffortLevel(value: unknown): EffortLevel | null {
+function parseLegacyEffortLevel(value: unknown): LegacyEffortLevel | null {
   if (value === "fast" || value === "medium" || value === "long") {
     return value;
   }
@@ -93,7 +94,6 @@ function parsePendingAttachment(value: unknown): PendingAttachment | null {
       || typeof value.frontText !== "string"
       || typeof value.backText !== "string"
       || Array.isArray(tagsValue) === false
-      || parseEffortLevel(value.effortLevel) === null
     ) {
       return null;
     }
@@ -109,8 +109,7 @@ function parsePendingAttachment(value: unknown): PendingAttachment | null {
       cardId: value.cardId,
       frontText: value.frontText,
       backText: value.backText,
-      tags,
-      effortLevel: parseEffortLevel(value.effortLevel) as EffortLevel,
+      tags: appendLegacyEffortTag(tags, parseLegacyEffortLevel(value.effortLevel) ?? undefined),
     };
   }
 
@@ -223,8 +222,7 @@ function arePendingAttachmentsEqual(
     && left.cardId === right.cardId
     && left.frontText === right.frontText
     && left.backText === right.backText
-    && areStringArraysEqual(left.tags, right.tags)
-    && left.effortLevel === right.effortLevel;
+    && areStringArraysEqual(left.tags, right.tags);
 }
 
 export function areChatDraftContentsEqual(

@@ -103,14 +103,8 @@ export const jaCatalog = {
   filters: {
     allCards: "すべてのカード",
     and: "AND",
-    effortIn: "学習負荷: {{values}}",
     none: "フィルターなし",
     tagsAnyOf: "タグ: {{values}} のいずれか",
-  },
-  effortLevels: {
-    fast: "短い",
-    medium: "普通",
-    long: "長い",
   },
   loading: {
     generic: "読み込み中...",
@@ -602,7 +596,7 @@ export const jaCatalog = {
     queueBadgeDueUpcoming: "{{due}} 件期限あり | {{upcoming}} 件予定",
     scopeLabel: "範囲",
     searchLabel: "検索",
-    searchPlaceholder: "デッキ、学習負荷、タグを検索",
+    searchPlaceholder: "デッキまたはタグを検索",
   },
   reviewScreen: {
     actions: {
@@ -721,7 +715,6 @@ export const jaCatalog = {
         clear: "クリア",
       },
       ariaLabel: "カードのフィルター",
-      effort: "学習負荷",
       label: "フィルター",
       tags: "タグ",
       trigger: "絞り込み",
@@ -739,7 +732,6 @@ export const jaCatalog = {
     table: {
       back: "裏面",
       due: "期限",
-      effort: "学習負荷",
       front: "表面",
       lapses: "失敗",
       open: "開く",
@@ -765,7 +757,6 @@ export const jaCatalog = {
     },
     fields: {
       back: "裏面",
-      effort: "学習負荷",
       front: "表面",
       tags: "タグ",
     },
@@ -806,7 +797,7 @@ export const jaCatalog = {
       new: "新規",
       reviewed: "復習済み",
     },
-    subtitle: "デッキはコンテナではなくスマートフィルターです。学習負荷とタグでカードに一致します。",
+    subtitle: "デッキはコンテナではなくスマートフィルターです。タグでカードに一致します。",
     title: "デッキ",
   },
   deckDetail: {
@@ -848,7 +839,7 @@ export const jaCatalog = {
     subtitle: "デッキルール、一致するカード、復習開始ポイントを確認します。",
     subtitles: {
       allCards: "すべてのカードは、全カードを対象にした完全な復習範囲です。",
-      smartFilter: "このデッキは、学習負荷とタグに基づく保存済みスマートフィルターです。",
+      smartFilter: "このデッキは、タグに基づく保存済みスマートフィルターです。",
     },
     title: "デッキ",
     warnings: {
@@ -863,17 +854,16 @@ export const jaCatalog = {
       saving: "保存しています...",
     },
     errors: {
-      emptyRules: "学習負荷またはタグを少なくとも 1 つ選ぶか、復習で「すべてのカード」を使用してください。",
+      emptyRules: "タグを少なくとも 1 つ選ぶか、復習で「すべてのカード」を使用してください。",
     },
     fields: {
-      effort: "学習負荷",
       name: "名前",
       summary: "ルール",
       tags: "タグ",
     },
     filterPreview: "ルールプレビュー",
     rulesPreviewHelp: "これらのルールにより、このデッキに表示されるカードが決まります。",
-    smartFilterExplanation: "デッキというスマートフィルターを作成しています。学習負荷とタグでカードに一致し、その後、復習フィルターから選択できます。",
+    smartFilterExplanation: "デッキというスマートフィルターを作成しています。タグでカードに一致し、その後、復習フィルターから選択できます。",
     systemDeckReadonly: "システムデッキは編集できません。",
     subtitles: {
       edit: "一致するカード用の保存済みスマートフィルターを更新します。",
@@ -968,9 +958,6 @@ export const jaCatalog = {
       codeExecution: "コード実行",
       sql: "SQL",
       webSearch: "Web 検索",
-    },
-    toolMeta: {
-      effort: "学習負荷 {{value}}",
     },
   },
   accountSettings: {

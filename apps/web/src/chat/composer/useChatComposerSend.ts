@@ -14,6 +14,7 @@ import {
 import {
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
   buildContentParts,
+  buildStartRunContentParts,
   toRequestBodySizeBytes,
 } from "../shared/chatHelpers";
 import type { ChatDictationState } from "./chatDictation";
@@ -255,7 +256,7 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
 
     const requestBody = {
       sessionId: currentSessionId ?? undefined,
-      content: contentParts,
+      content: buildStartRunContentParts(contentParts),
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     };
     if (toRequestBodySizeBytes(requestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {

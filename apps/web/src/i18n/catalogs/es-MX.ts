@@ -103,14 +103,8 @@ const esMxCatalog: TranslationCatalog = {
   filters: {
     allCards: "Todas las tarjetas",
     and: "Y",
-    effortIn: "esfuerzo en {{values}}",
     none: "Sin filtros",
     tagsAnyOf: "etiquetas con cualquiera de {{values}}",
-  },
-  effortLevels: {
-    fast: "Rápido",
-    medium: "Medio",
-    long: "Largo",
   },
   loading: {
     generic: "Cargando...",
@@ -602,7 +596,7 @@ const esMxCatalog: TranslationCatalog = {
     queueBadgeDueUpcoming: "{{due}} pendientes | {{upcoming}} próximas",
     scopeLabel: "Ámbito",
     searchLabel: "Buscar",
-    searchPlaceholder: "Buscar mazos, esfuerzo o etiquetas",
+    searchPlaceholder: "Buscar mazos o etiquetas",
   },
   reviewScreen: {
     actions: {
@@ -721,7 +715,6 @@ const esMxCatalog: TranslationCatalog = {
         clear: "Limpiar",
       },
       ariaLabel: "Filtros de tarjetas",
-      effort: "Esfuerzo",
       label: "Filtros",
       tags: "Etiquetas",
       trigger: "Filtrar",
@@ -739,7 +732,6 @@ const esMxCatalog: TranslationCatalog = {
     table: {
       back: "Reverso",
       due: "Pendiente",
-      effort: "Esfuerzo",
       front: "Frente",
       lapses: "Fallos",
       open: "Abrir",
@@ -765,7 +757,6 @@ const esMxCatalog: TranslationCatalog = {
     },
     fields: {
       back: "Reverso",
-      effort: "Esfuerzo",
       front: "Frente",
       tags: "Etiquetas",
     },
@@ -806,7 +797,7 @@ const esMxCatalog: TranslationCatalog = {
       new: "nuevas",
       reviewed: "repasadas",
     },
-    subtitle: "Los mazos son filtros inteligentes, no contenedores. Coinciden con tarjetas por esfuerzo y etiquetas.",
+    subtitle: "Los mazos son filtros inteligentes, no contenedores. Coinciden con tarjetas por etiquetas.",
     title: "Mazos",
   },
   deckDetail: {
@@ -848,7 +839,7 @@ const esMxCatalog: TranslationCatalog = {
     subtitle: "Consulta las reglas del mazo, las tarjetas coincidentes y el punto de entrada al repaso.",
     subtitles: {
       allCards: "Todas las tarjetas es el ámbito completo de repaso de todas las tarjetas.",
-      smartFilter: "Este mazo es un filtro inteligente guardado sobre esfuerzo y etiquetas.",
+      smartFilter: "Este mazo es un filtro inteligente guardado sobre etiquetas.",
     },
     title: "Mazo",
     warnings: {
@@ -863,17 +854,16 @@ const esMxCatalog: TranslationCatalog = {
       saving: "Guardando...",
     },
     errors: {
-      emptyRules: "Elige al menos un nivel de esfuerzo o una etiqueta, o usa Todas las tarjetas en Repaso.",
+      emptyRules: "Elige al menos una etiqueta, o usa Todas las tarjetas en Repaso.",
     },
     fields: {
-      effort: "Esfuerzo",
       name: "Nombre",
       summary: "Reglas",
       tags: "Etiquetas",
     },
     filterPreview: "Vista previa de reglas",
     rulesPreviewHelp: "Estas reglas deciden qué tarjetas aparecen en este mazo.",
-    smartFilterExplanation: "Estás creando un filtro inteligente llamado mazo. Coincide con tarjetas por esfuerzo y etiquetas, y luego se puede seleccionar desde el filtro de Repaso.",
+    smartFilterExplanation: "Estás creando un filtro inteligente llamado mazo. Coincide con tarjetas por etiquetas, y luego se puede seleccionar desde el filtro de Repaso.",
     systemDeckReadonly: "El mazo del sistema no se puede editar.",
     subtitles: {
       edit: "Actualiza un filtro inteligente guardado para tarjetas coincidentes.",
@@ -968,9 +958,6 @@ const esMxCatalog: TranslationCatalog = {
       codeExecution: "Ejecución de código",
       sql: "SQL",
       webSearch: "Búsqueda web",
-    },
-    toolMeta: {
-      effort: "Esfuerzo {{value}}",
     },
   },
   accountSettings: {

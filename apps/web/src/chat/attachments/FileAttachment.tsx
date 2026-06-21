@@ -1,6 +1,5 @@
 import { useRef, type ReactElement } from "react";
 import { useI18n } from "../../i18n";
-import type { EffortLevel } from "../../types";
 import {
   AI_CHAT_MAXIMUM_ATTACHMENT_BYTES,
   base64DataByteCount,
@@ -24,7 +23,6 @@ export type CardPendingAttachment = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: EffortLevel;
 }>;
 
 export type PendingAttachment = BinaryPendingAttachment | CardPendingAttachment;

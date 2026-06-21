@@ -1,14 +1,13 @@
 import { type ChangeEvent, type ReactElement } from "react";
 import { useI18n } from "../../../i18n";
 import { CardFormTagsField } from "./CardFormTagsField";
-import type { Card, EffortLevel, TagSuggestion } from "../../../types";
-import { formatEffortLevelLabel, formatNullableDateTime } from "../../shared/featureFormatting";
+import type { Card, TagSuggestion } from "../../../types";
+import { formatNullableDateTime } from "../../shared/featureFormatting";
 
 export type CardFormState = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: EffortLevel;
 }>;
 
 type Props = Readonly<{
@@ -26,7 +25,6 @@ export function toCardFormState(card: Card | null): CardFormState {
       frontText: "",
       backText: "",
       tags: [],
-      effortLevel: "fast",
     };
   }
 
@@ -34,7 +32,6 @@ export function toCardFormState(card: Card | null): CardFormState {
     frontText: card.frontText,
     backText: card.backText,
     tags: card.tags,
-    effortLevel: card.effortLevel,
   };
 }
 
@@ -42,7 +39,6 @@ export function isCardFormStateDirty(card: Card | null, formState: CardFormState
   const currentState = toCardFormState(card);
   return currentState.frontText !== formState.frontText
     || currentState.backText !== formState.backText
-    || currentState.effortLevel !== formState.effortLevel
     || currentState.tags.length !== formState.tags.length
     || currentState.tags.some((tag, index) => tag !== formState.tags[index]);
 }
@@ -53,7 +49,6 @@ export function CardFormFields(props: Props): ReactElement {
   const frontFieldId = `${formIdPrefix}-front-text`;
   const backFieldId = `${formIdPrefix}-back-text`;
   const tagsFieldId = `${formIdPrefix}-tags-input`;
-  const effortFieldId = `${formIdPrefix}-effort-level`;
 
   function updateField<Key extends keyof CardFormState>(key: Key, value: CardFormState[Key]): void {
     onChange({
@@ -105,21 +100,6 @@ export function CardFormFields(props: Props): ReactElement {
           />
         </div>
 
-        <label className="form-label content-card content-card-section" htmlFor={effortFieldId}>
-          <span>{t("cardForm.fields.effort")}</span>
-          <select
-            id={effortFieldId}
-            name="effortLevel"
-            className="settings-select"
-            value={formState.effortLevel}
-            data-testid="card-form-effort-select"
-            onChange={(event) => updateField("effortLevel", event.target.value as EffortLevel)}
-          >
-            <option value="fast">{formatEffortLevelLabel(t, "fast")}</option>
-            <option value="medium">{formatEffortLevelLabel(t, "medium")}</option>
-            <option value="long">{formatEffortLevelLabel(t, "long")}</option>
-          </select>
-        </label>
       </section>
 
       <aside className="card-meta-panel">

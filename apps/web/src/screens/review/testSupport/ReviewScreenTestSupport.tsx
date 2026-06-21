@@ -365,7 +365,6 @@ export function createCard(overrides?: Partial<Card>): Card {
     frontText: "Front",
     backText: "Back",
     tags: [],
-    effortLevel: "fast",
     dueAt: null,
     createdAt: "2026-03-10T09:00:00.000Z",
     reps: 0,
@@ -392,7 +391,6 @@ export function createDeck(overrides?: Partial<Deck>): Deck {
     name: "Grammar",
     filterDefinition: {
       version: 2,
-      effortLevels: ["fast"],
       tags: ["grammar"],
     },
     createdAt: "2026-03-10T09:00:00.000Z",

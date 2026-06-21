@@ -1,27 +1,20 @@
-import type { DeckFilterDefinition, EffortLevel } from "./types";
+import type { DeckFilterDefinition } from "./types";
 
-export const EFFORT_LEVELS: ReadonlyArray<EffortLevel> = ["fast", "medium", "long"];
 /** Label for the synthetic system deck that aggregates every active card. */
 export const ALL_CARDS_DECK_LABEL = "All cards";
 export const ALL_CARDS_DECK_SLUG = "all-cards";
 
 export function buildDeckFilterDefinition(
-  effortLevels: ReadonlyArray<EffortLevel>,
   tags: ReadonlyArray<string>,
 ): DeckFilterDefinition {
   return {
     version: 2,
-    effortLevels,
     tags,
   };
 }
 
 export function formatDeckFilterDefinition(filterDefinition: DeckFilterDefinition): string {
   const parts: Array<string> = [];
-
-  if (filterDefinition.effortLevels.length > 0) {
-    parts.push(`effort in ${filterDefinition.effortLevels.join(", ")}`);
-  }
 
   if (filterDefinition.tags.length > 0) {
     parts.push(`tags any of ${filterDefinition.tags.join(", ")}`);

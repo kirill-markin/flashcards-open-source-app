@@ -8,18 +8,6 @@ import { buildCardContextXml, formatCardAttachmentLabel } from "../attachments/c
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;
 type ChatMessageTechnicalErrorHandler = (error: unknown) => boolean;
 
-function formatEffortValue(value: "fast" | "medium" | "long", t: Translate): string {
-  if (value === "fast") {
-    return t("effortLevels.fast");
-  }
-
-  if (value === "medium") {
-    return t("effortLevels.medium");
-  }
-
-  return t("effortLevels.long");
-}
-
 /**
  * Maps machine-oriented tool names into short user-facing labels while keeping
  * unsupported or future tool names visible instead of dropping them.
@@ -143,7 +131,6 @@ function renderCardAttachment(
     frontText: string;
     backText: string;
     tags: ReadonlyArray<string>;
-    effortLevel: "fast" | "medium" | "long";
   }>,
   key: string,
   t: Translate,
@@ -159,7 +146,6 @@ function renderCardAttachment(
       <div className="chat-card-part-body">
         <div className="chat-card-part-meta">
           <span>{t("chatMessageContent.id", { value: card.cardId })}</span>
-          <span>{t("chatMessageContent.toolMeta.effort", { value: formatEffortValue(card.effortLevel, t) })}</span>
           <span>{card.tags.length === 0 ? t("chatMessageContent.noTags") : card.tags.join(", ")}</span>
         </div>
         <details className="chat-card-part-context">

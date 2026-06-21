@@ -28,7 +28,6 @@ import {
   type ReviewLoadingSnapshot,
   writeReviewLoadingSnapshot,
 } from "../../shared/loadingSnapshots";
-import { formatEffortLevelLabel } from "../../shared/featureFormatting";
 import { getExpectedCardMutationInlineErrorMessage } from "../../cards/cardMutationErrors";
 import {
   addPendingReviewSnapshot,
@@ -279,7 +278,6 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           nextResolvedReviewFilter,
           decksSnapshot.deckSummaries,
           t("filters.allCards"),
-          (effortLevel) => formatEffortLevelLabel(t, effortLevel),
         );
         const previousPresentedCard = shouldShowBlockingLoader ? null : presentedCardRef.current;
         const resolvedPresentedCard = await resolvePresentedCard(

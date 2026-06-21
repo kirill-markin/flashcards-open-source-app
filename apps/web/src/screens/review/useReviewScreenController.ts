@@ -185,7 +185,6 @@ export function useReviewScreenController(
     setReviewDeckSearchText,
     shouldShowReviewDeckSearch,
     visibleReviewDeckFilterMenuItems,
-    visibleReviewEffortFilterMenuItems,
     visibleReviewTagFilterMenuItems,
   } = useReviewFilterMenu({
     deckSummaries,
@@ -638,7 +637,6 @@ export function useReviewScreenController(
         setReviewDeckSearchText,
         shouldShowReviewDeckSearch,
         visibleReviewDeckFilterMenuItems,
-        visibleReviewEffortFilterMenuItems,
         visibleReviewTagFilterMenuItems,
       },
       hasLoadedReviewData,

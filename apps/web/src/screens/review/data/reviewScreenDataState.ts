@@ -56,14 +56,9 @@ export function resolveReviewFilterTitle(
   reviewFilter: ReviewFilter,
   deckSummaries: ReadonlyArray<DeckSummary>,
   allCardsLabel: string,
-  formatEffortLabel: (effortLevel: "fast" | "medium" | "long") => string,
 ): string {
   if (reviewFilter.kind === "allCards") {
     return allCardsLabel;
-  }
-
-  if (reviewFilter.kind === "effort") {
-    return formatEffortLabel(reviewFilter.effortLevel);
   }
 
   if (reviewFilter.kind === "tag") {
@@ -130,10 +125,6 @@ function matchesResolvedReviewFilterForPreservation(
     return deckSummary === undefined ? false : matchesDeckFilterDefinition(deckSummary.filterDefinition, card);
   }
 
-  if (resolvedReviewFilter.kind === "effort") {
-    return card.effortLevel === resolvedReviewFilter.effortLevel;
-  }
-
   const requestedTagKey = normalizeTagKey(resolvedReviewFilter.tag);
   return card.tags.some((tag) => normalizeTagKey(tag) === requestedTagKey);
 }
@@ -161,8 +152,7 @@ function isDeckFilterDefinitionEqual(
   left: DeckSummary["filterDefinition"],
   right: DeckSummary["filterDefinition"],
 ): boolean {
-  return isStringSetEqual(left.effortLevels, right.effortLevels)
-    && isStringSetEqual(left.tags, right.tags);
+  return isStringSetEqual(left.tags, right.tags);
 }
 
 function findDeckSummaryByReviewFilter(

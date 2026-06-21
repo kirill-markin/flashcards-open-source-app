@@ -103,14 +103,8 @@ export const zhHansCatalog = {
   filters: {
     allCards: "所有卡片",
     and: "AND",
-    effortIn: "难度：{{values}}",
     none: "无筛选条件",
     tagsAnyOf: "标签为以下任一项：{{values}}",
-  },
-  effortLevels: {
-    fast: "快",
-    medium: "中等",
-    long: "长",
   },
   loading: {
     generic: "正在加载...",
@@ -602,7 +596,7 @@ export const zhHansCatalog = {
     queueBadgeDueUpcoming: "{{due}} 到期 | {{upcoming}} 即将到期",
     scopeLabel: "范围",
     searchLabel: "搜索",
-    searchPlaceholder: "搜索牌组、难度或标签",
+    searchPlaceholder: "搜索牌组或标签",
   },
   reviewScreen: {
     actions: {
@@ -721,7 +715,6 @@ export const zhHansCatalog = {
         clear: "清除",
       },
       ariaLabel: "卡片筛选条件",
-      effort: "难度",
       label: "筛选条件",
       tags: "标签",
       trigger: "筛选",
@@ -739,7 +732,6 @@ export const zhHansCatalog = {
     table: {
       back: "背面",
       due: "到期",
-      effort: "难度",
       front: "正面",
       lapses: "失误",
       open: "打开",
@@ -765,7 +757,6 @@ export const zhHansCatalog = {
     },
     fields: {
       back: "背面",
-      effort: "难度",
       front: "正面",
       tags: "标签",
     },
@@ -806,7 +797,7 @@ export const zhHansCatalog = {
       new: "新建",
       reviewed: "已复习",
     },
-    subtitle: "牌组是智能筛选器，不是容器。它们会按难度和标签匹配卡片。",
+    subtitle: "牌组是智能筛选器，不是容器。它们会按标签匹配卡片。",
     title: "牌组",
   },
   deckDetail: {
@@ -848,7 +839,7 @@ export const zhHansCatalog = {
     subtitle: "查看牌组规则、匹配的卡片以及复习入口。",
     subtitles: {
       allCards: "所有卡片是涵盖每张卡片的完整复习范围。",
-      smartFilter: "这个牌组是按难度和标签保存的智能筛选器。",
+      smartFilter: "这个牌组是按标签保存的智能筛选器。",
     },
     title: "牌组",
     warnings: {
@@ -863,17 +854,16 @@ export const zhHansCatalog = {
       saving: "正在保存...",
     },
     errors: {
-      emptyRules: "请选择至少一个难度或标签，或者在复习中使用所有卡片。",
+      emptyRules: "请选择至少一个标签，或者在复习中使用所有卡片。",
     },
     fields: {
-      effort: "难度",
       name: "名称",
       summary: "规则",
       tags: "标签",
     },
     filterPreview: "规则预览",
     rulesPreviewHelp: "这些规则决定哪些卡片会出现在这个牌组中。",
-    smartFilterExplanation: "您正在创建一个名为牌组的智能筛选器。它会按难度和标签匹配卡片，然后可从复习筛选器中选择。",
+    smartFilterExplanation: "您正在创建一个名为牌组的智能筛选器。它会按标签匹配卡片，然后可从复习筛选器中选择。",
     systemDeckReadonly: "系统牌组不可编辑。",
     subtitles: {
       edit: "更新用于匹配卡片的已保存智能筛选器。",
@@ -968,9 +958,6 @@ export const zhHansCatalog = {
       codeExecution: "代码执行",
       sql: "SQL",
       webSearch: "网页搜索",
-    },
-    toolMeta: {
-      effort: "难度 {{value}}",
     },
   },
   accountSettings: {

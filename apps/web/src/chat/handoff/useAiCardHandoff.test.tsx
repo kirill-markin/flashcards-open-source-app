@@ -65,7 +65,6 @@ function createCard(overrides?: Partial<Card>): Card {
     frontText: "Question",
     backText: "Answer",
     tags: ["grammar"],
-    effortLevel: "medium",
     dueAt: null,
     createdAt: "2026-03-10T00:00:00.000Z",
     reps: 0,
@@ -176,7 +175,6 @@ describe("useAiCardHandoff", () => {
         frontText: "Question",
         backText: "Answer",
         tags: ["grammar"],
-        effortLevel: "medium",
       })],
     });
     expect(requestComposerFocus).toHaveBeenCalledTimes(1);
@@ -375,7 +373,6 @@ describe("useAiCardHandoff", () => {
           frontText: "Question",
           backText: "Answer",
           tags: ["grammar"],
-          effortLevel: "medium",
         }),
       ],
     });

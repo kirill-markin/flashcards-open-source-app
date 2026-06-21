@@ -3,11 +3,10 @@ import { Link } from "react-router-dom";
 import { useAppData } from "../../../appData";
 import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { getCardFilterActiveDimensionCount, normalizeCardFilter } from "../../../cardFilters";
-import { EFFORT_LEVELS } from "../../../deckFilters";
 import { useI18n } from "../../../i18n";
 import { CardTagsInput, type CardTagsInputHandle } from "../CardTagsInput";
 import { getExpectedCardMutationInlineErrorMessage } from "../cardMutationErrors";
-import { EditableCardEffortCell, EditableCardTagsCell, EditableCardTextCell } from "./CardsTableEditors";
+import { EditableCardTagsCell, EditableCardTextCell } from "./CardsTableEditors";
 import { queryLocalCardsPage } from "../../../localDb/cards/cards";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
@@ -17,7 +16,7 @@ import {
   readCardsLoadingSnapshot,
   writeCardsLoadingSnapshot,
 } from "../../shared/loadingSnapshots";
-import { formatCardFilterSummary, formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "../../shared/featureFormatting";
+import { formatCardFilterSummary, formatNullableDateTime, formatTagSummary } from "../../shared/featureFormatting";
 
 type CardsQueryState = Readonly<{
   items: ReadonlyArray<Card>;
@@ -53,19 +52,7 @@ function normalizeCardsSearchText(searchText: string): string | null {
 function createEmptyCardFilter(): CardFilter {
   return {
     tags: [],
-    effort: [],
   };
-}
-
-function toggleCardFilterEffort(
-  effortLevels: ReadonlyArray<Card["effortLevel"]>,
-  effortLevel: Card["effortLevel"],
-): ReadonlyArray<Card["effortLevel"]> {
-  if (effortLevels.includes(effortLevel)) {
-    return effortLevels.filter((value) => value !== effortLevel);
-  }
-
-  return [...effortLevels, effortLevel];
 }
 
 export function getDefaultCardSortDirection(sortKey: CardQuerySortKey): CardQuerySortDirection {
@@ -471,7 +458,6 @@ export function CardsScreen(): ReactElement {
       : filterTagsInputRef.current.flushDraft();
     const nextFilter = normalizeCardFilter({
       tags: nextTags,
-      effort: draftFilterValue.effort,
     });
     setCardFilter(nextFilter);
     setDraftCardFilter(nextFilter);
@@ -540,25 +526,6 @@ export function CardsScreen(): ReactElement {
                 aria-label={t("cardsScreen.filters.ariaLabel")}
               >
                 <div className="cards-filter-section">
-                  <span className="deck-form-label">{t("cardsScreen.filters.effort")}</span>
-                  <div className="deck-checkbox-list">
-                    {EFFORT_LEVELS.map((effortLevel) => (
-                      <label key={effortLevel} className="deck-checkbox-option">
-                        <input
-                          type="checkbox"
-                          checked={draftFilterValue.effort.includes(effortLevel)}
-                          onChange={() => setDraftCardFilter({
-                            tags: draftFilterValue.tags,
-                            effort: toggleCardFilterEffort(draftFilterValue.effort, effortLevel),
-                          })}
-                        />
-                        <span>{formatEffortLevelLabel(t, effortLevel)}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="cards-filter-section">
                   <span className="deck-form-label">{t("cardsScreen.filters.tags")}</span>
                   <CardTagsInput
                     ref={filterTagsInputRef}
@@ -568,7 +535,6 @@ export function CardsScreen(): ReactElement {
                     inputName="cards-filter-tags"
                     onChange={(nextTags) => setDraftCardFilter({
                       tags: nextTags,
-                      effort: draftFilterValue.effort,
                     })}
                     onEscape={handleFilterCancel}
                   />
@@ -594,7 +560,6 @@ export function CardsScreen(): ReactElement {
                 <th className="txn-th cards-header-th cards-col-front">{renderSortableHeaderCell("frontText", t("cardsScreen.table.front"))}</th>
                 <th className="txn-th cards-header-th cards-col-back">{renderSortableHeaderCell("backText", t("cardsScreen.table.back"))}</th>
                 <th className="txn-th cards-header-th cards-col-tags">{renderSortableHeaderCell("tags", t("cardsScreen.table.tags"))}</th>
-                <th className="txn-th cards-header-th cards-col-effort">{renderSortableHeaderCell("effortLevel", t("cardsScreen.table.effort"))}</th>
                 <th className="txn-th cards-header-th cards-col-due">{renderSortableHeaderCell("dueAt", t("cardsScreen.table.due"))}</th>
                 <th className="txn-th cards-header-th cards-col-reps">{renderSortableHeaderCell("reps", t("cardsScreen.table.reps"))}</th>
                 <th className="txn-th cards-header-th cards-col-lapses">{renderSortableHeaderCell("lapses", t("cardsScreen.table.lapses"))}</th>
@@ -618,7 +583,6 @@ export function CardsScreen(): ReactElement {
                       <td className="txn-cell cards-col-tags">
                         <span className="cards-loading-cell-text">{formatTagSummary(card.tags)}</span>
                       </td>
-                      <td className="txn-cell cards-col-effort">{formatEffortLevelLabel(t, card.effortLevel)}</td>
                       <td className="txn-cell txn-cell-mono cards-col-due">{formatNullableDateTime(card.dueAt, formatDateTime, t)}</td>
                       <td className="txn-cell txn-cell-mono cards-col-reps">{card.reps}</td>
                       <td className="txn-cell txn-cell-mono cards-col-lapses">{card.lapses}</td>
@@ -634,7 +598,6 @@ export function CardsScreen(): ReactElement {
                       <td className="txn-cell cards-col-front"><span className="cards-loading-line cards-loading-line-wide" /></td>
                       <td className="txn-cell cards-col-back"><span className="cards-loading-line cards-loading-line-wide" /></td>
                       <td className="txn-cell cards-col-tags"><span className="cards-loading-line cards-loading-line-medium" /></td>
-                      <td className="txn-cell cards-col-effort"><span className="cards-loading-line cards-loading-line-short" /></td>
                       <td className="txn-cell cards-col-due"><span className="cards-loading-line cards-loading-line-medium" /></td>
                       <td className="txn-cell cards-col-reps"><span className="cards-loading-line cards-loading-line-shortest" /></td>
                       <td className="txn-cell cards-col-lapses"><span className="cards-loading-line cards-loading-line-shortest" /></td>
@@ -678,12 +641,6 @@ export function CardsScreen(): ReactElement {
                       saving={isSaving}
                       onCommit={(nextValue) => handleInlineSave(card, { tags: nextValue })}
                     />
-                    <EditableCardEffortCell
-                      value={card.effortLevel}
-                      cellClassName="cards-col-effort"
-                      saving={isSaving}
-                      onCommit={(nextValue) => handleInlineSave(card, { effortLevel: nextValue })}
-                    />
                     <td className="txn-cell txn-cell-mono cards-col-due">{formatNullableDateTime(card.dueAt, formatDateTime, t)}</td>
                     <td className="txn-cell txn-cell-mono cards-col-reps">{card.reps}</td>
                     <td className="txn-cell txn-cell-mono cards-col-lapses">{card.lapses}</td>
@@ -693,7 +650,7 @@ export function CardsScreen(): ReactElement {
               })}
               {isInitialCardsLoad ? null : cardsQueryState.items.length === 0 ? (
                 <tr>
-                  <td className="txn-cell txn-empty" colSpan={9}>
+                  <td className="txn-cell txn-empty" colSpan={8}>
                     {cardsQueryState.totalCount === 0 && hasActiveSearchOrFilter === false
                       ? t("cardsScreen.empty.noCards")
                       : t("cardsScreen.empty.noMatches")}
@@ -702,7 +659,7 @@ export function CardsScreen(): ReactElement {
               ) : null}
               {cardsQueryState.nextCursor !== null ? (
                 <tr ref={loadMoreSentinelRef} className="cards-load-more-row" aria-hidden="true">
-                  <td className="txn-cell" colSpan={9}>
+                  <td className="txn-cell" colSpan={8}>
                     {cardsQueryState.isLoadingMore ? t("cardsScreen.loadingMore") : ""}
                   </td>
                 </tr>

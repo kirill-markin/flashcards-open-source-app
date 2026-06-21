@@ -1,7 +1,5 @@
 import type { Locale } from "../i18n/types";
 
-import type { EffortLevel } from "./study";
-
 export type ChatTranscriptionSource = "ios" | "web";
 
 export type ChatTranscriptionResponse = Readonly<{
@@ -143,7 +141,6 @@ export type CardContentPart = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: EffortLevel;
 }>;
 
 export type ToolCallContentPart = Readonly<{

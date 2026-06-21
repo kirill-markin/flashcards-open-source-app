@@ -2,9 +2,11 @@ import type {
   Card,
   Deck,
   DeckFilterDefinition,
+  LegacyEffortLevel,
   ReviewEvent,
   WorkspaceSchedulerSettings,
 } from "../types";
+import { appendLegacyEffortTag } from "../legacyEffort";
 import {
   joinPath,
   parseArray,
@@ -22,12 +24,12 @@ import {
   parseBoolean,
 } from "./core";
 
-export function parseEffortLevel(value: unknown, endpoint: string, path: string): "fast" | "medium" | "long" {
+export function parseLegacyEffortLevel(value: unknown, endpoint: string, path: string): LegacyEffortLevel {
   return parseEnum(value, endpoint, path, ["fast", "medium", "long"]);
 }
 
-function parseEffortLevels(value: unknown, endpoint: string, path: string): ReadonlyArray<"fast" | "medium" | "long"> {
-  return parseArray(value, endpoint, path, parseEffortLevel);
+function parseLegacyEffortLevels(value: unknown, endpoint: string, path: string): ReadonlyArray<LegacyEffortLevel> {
+  return parseArray(value, endpoint, path, parseLegacyEffortLevel);
 }
 
 function parseFsrsCardState(value: unknown, endpoint: string, path: string): "new" | "learning" | "review" | "relearning" {
@@ -40,21 +42,28 @@ export function parseReviewRating(value: unknown, endpoint: string, path: string
 
 function parseDeckFilterDefinition(value: unknown, endpoint: string, path: string): DeckFilterDefinition {
   const objectValue = parseObject(value, endpoint, path);
+  const tags = parseRequiredField(objectValue, "tags", endpoint, path, parseStringArray);
+  const legacyEffortLevels = parseOptionalField(objectValue, "effortLevels", endpoint, path, parseLegacyEffortLevels) ?? [];
+
   return {
     version: parseLiteral(parseRequiredField(objectValue, "version", endpoint, path, parseNumber), endpoint, joinPath(path, "version"), 2),
-    effortLevels: parseRequiredField(objectValue, "effortLevels", endpoint, path, parseEffortLevels),
-    tags: parseRequiredField(objectValue, "tags", endpoint, path, parseStringArray),
+    tags: legacyEffortLevels.reduce(
+      (currentTags, legacyEffortLevel) => appendLegacyEffortTag(currentTags, legacyEffortLevel),
+      tags,
+    ),
   };
 }
 
 export function parseCard(value: unknown, endpoint: string, path: string): Card {
   const objectValue = parseObject(value, endpoint, path);
+  const tags = parseRequiredField(objectValue, "tags", endpoint, path, parseStringArray);
+  const legacyEffortLevel = parseOptionalField(objectValue, "effortLevel", endpoint, path, parseLegacyEffortLevel);
+
   return {
     cardId: parseRequiredField(objectValue, "cardId", endpoint, path, parseString),
     frontText: parseRequiredField(objectValue, "frontText", endpoint, path, parseString),
     backText: parseRequiredField(objectValue, "backText", endpoint, path, parseString),
-    tags: parseRequiredField(objectValue, "tags", endpoint, path, parseStringArray),
-    effortLevel: parseRequiredField(objectValue, "effortLevel", endpoint, path, parseEffortLevel),
+    tags: appendLegacyEffortTag(tags, legacyEffortLevel),
     dueAt: parseRequiredField(objectValue, "dueAt", endpoint, path, parseNullableString),
     createdAt: parseRequiredField(objectValue, "createdAt", endpoint, path, parseString),
     reps: parseRequiredField(objectValue, "reps", endpoint, path, parseNumber),

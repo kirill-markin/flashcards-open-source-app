@@ -138,7 +138,6 @@ export function CardFormScreen(): ReactElement {
       frontText: formState.frontText,
       backText: formState.backText,
       tags: formState.tags,
-      effortLevel: formState.effortLevel,
     };
   }
 
@@ -196,7 +195,6 @@ export function CardFormScreen(): ReactElement {
           frontText: formState.frontText,
           backText: formState.backText,
           tags: formState.tags,
-          effortLevel: formState.effortLevel,
         };
         await createCardItem(payload);
       } else if (cardId !== undefined) {

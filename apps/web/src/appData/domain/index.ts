@@ -9,7 +9,6 @@ import type {
   CreateDeckInput,
   DeckFilterDefinition,
   Deck,
-  EffortLevel,
   ReviewFilter,
   ReviewEvent,
   SyncPushOperation,
@@ -118,10 +117,6 @@ export function isReviewFilterEqual(left: ReviewFilter, right: ReviewFilter): bo
     return left.deckId === right.deckId;
   }
 
-  if (left.kind === "effort" && right.kind === "effort") {
-    return left.effortLevel === right.effortLevel;
-  }
-
   if (left.kind === "tag" && right.kind === "tag") {
     return left.tag === right.tag;
   }
@@ -143,12 +138,8 @@ function findMatchingTag(tags: ReadonlyArray<string>, requestedTag: string): str
   return tags.find((tag) => normalizeTagKey(tag) === requestedTagKey)?.trim() ?? null;
 }
 
-/** Keep deck matching semantics aligned with apps/ios/Flashcards/Flashcards/Cards/List/CardFilterSupport.swift and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/FilterSupport.kt: effort is inclusive and tags match on any overlap. */
+/** Keep deck matching semantics aligned with apps/ios/Flashcards/Flashcards/Cards/List/CardFilterSupport.swift and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/FilterSupport.kt: tags match on any overlap. */
 export function matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: Card): boolean {
-  if (filterDefinition.effortLevels.length > 0 && filterDefinition.effortLevels.includes(card.effortLevel) === false) {
-    return false;
-  }
-
   if (filterDefinition.tags.length === 0) {
     return true;
   }
@@ -158,10 +149,6 @@ export function matchesDeckFilterDefinition(filterDefinition: DeckFilterDefiniti
 }
 
 export function matchesCardFilter(filter: CardFilter, card: Card): boolean {
-  if (filter.effort.length > 0 && filter.effort.includes(card.effortLevel) === false) {
-    return false;
-  }
-
   if (filter.tags.length === 0) {
     return true;
   }
@@ -225,10 +212,6 @@ function findActiveTag(tag: string, cards: ReadonlyArray<Card>): string | null {
   return null;
 }
 
-export function formatEffortLevelTitle(effortLevel: EffortLevel): string {
-  return effortLevel.charAt(0).toUpperCase() + effortLevel.slice(1);
-}
-
 export function resolveReviewFilter(
   reviewFilter: ReviewFilter,
   decks: ReadonlyArray<Deck>,
@@ -244,10 +227,6 @@ export function resolveReviewFilter(
       return ALL_CARDS_REVIEW_FILTER;
     }
 
-    return reviewFilter;
-  }
-
-  if (reviewFilter.kind === "effort") {
     return reviewFilter;
   }
 
@@ -281,10 +260,6 @@ export function cardsMatchingReviewFilter(
     return cardsMatchingDeck(deck, cards);
   }
 
-  if (resolvedReviewFilter.kind === "effort") {
-    return deriveActiveCards(cards).filter((card) => card.effortLevel === resolvedReviewFilter.effortLevel);
-  }
-
   return deriveActiveCards(cards).filter((card) => hasMatchingTag(card.tags, resolvedReviewFilter.tag));
 }
 
@@ -301,10 +276,6 @@ export function reviewFilterTitle(
   if (resolvedReviewFilter.kind === "deck") {
     const deck = deriveActiveDecks(decks).find((candidateDeck) => candidateDeck.deckId === resolvedReviewFilter.deckId);
     return deck?.name ?? ALL_CARDS_DECK_LABEL;
-  }
-
-  if (resolvedReviewFilter.kind === "effort") {
-    return formatEffortLevelTitle(resolvedReviewFilter.effortLevel);
   }
 
   return resolvedReviewFilter.tag;
@@ -510,7 +481,6 @@ export function buildInitialCard(
     frontText: input.frontText,
     backText: input.backText,
     tags: input.tags,
-    effortLevel: input.effortLevel,
     dueAt: null,
     createdAt: clientUpdatedAt,
     reps: 0,
@@ -547,7 +517,6 @@ export function normalizeCreateCardInput(input: CreateCardInput): CreateCardInpu
     frontText: normalizeRequiredCardText(input.frontText),
     backText: normalizeOptionalCardText(input.backText),
     tags: input.tags,
-    effortLevel: input.effortLevel,
   };
 }
 
@@ -574,7 +543,6 @@ function normalizeDeckFilterDefinition(filterDefinition: DeckFilterDefinition): 
 
   return {
     version: 2,
-    effortLevels: [...new Set(filterDefinition.effortLevels)],
     tags: normalizedTags,
   };
 }
@@ -598,7 +566,6 @@ export function normalizeUpdateCardInput(input: UpdateCardInput): UpdateCardInpu
     frontText: input.frontText === undefined ? undefined : normalizeRequiredCardText(input.frontText),
     backText: input.backText === undefined ? undefined : normalizeOptionalCardText(input.backText),
     tags: input.tags,
-    effortLevel: input.effortLevel,
   };
 }
 
@@ -614,7 +581,6 @@ export function buildUpdatedCard(
     frontText: input.frontText ?? card.frontText,
     backText: input.backText ?? card.backText,
     tags: input.tags ?? card.tags,
-    effortLevel: input.effortLevel ?? card.effortLevel,
     clientUpdatedAt,
     lastModifiedByReplicaId: installationId,
     lastOperationId: operationId,
@@ -791,7 +757,8 @@ export function buildCardUpsertOperation(card: Card): SyncPushOperation {
       frontText: card.frontText,
       backText: card.backText,
       tags: card.tags,
-      effortLevel: card.effortLevel,
+      // TODO: Remove this legacy fast effort once the backend sync wire contract drops effortLevel.
+      effortLevel: "fast",
       dueAt: canonicalizeDueAtForSync(card.cardId, card.dueAt),
       createdAt: card.createdAt,
       reps: card.reps,
@@ -817,7 +784,12 @@ export function buildDeckUpsertOperation(deck: Deck): SyncPushOperation {
     payload: {
       deckId: deck.deckId,
       name: deck.name,
-      filterDefinition: deck.filterDefinition,
+      // TODO: Remove effortLevels when the backend sync wire contract drops legacy deck effort filters.
+      filterDefinition: {
+        version: deck.filterDefinition.version,
+        effortLevels: [],
+        tags: deck.filterDefinition.tags,
+      },
       createdAt: deck.createdAt,
       deletedAt: deck.deletedAt,
     },

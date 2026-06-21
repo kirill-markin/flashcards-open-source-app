@@ -2,11 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { ALL_CARDS_REVIEW_FILTER } from "../../../appData/domain";
 import { useI18n } from "../../../i18n";
 import { settingsDecksRoute } from "../../../routes";
-import type { DeckSummary, EffortLevel, ReviewFilter, WorkspaceTagSummary } from "../../../types";
-import { formatEffortLevelLabel } from "../../shared/featureFormatting";
+import type { DeckSummary, ReviewFilter, WorkspaceTagSummary } from "../../../types";
 
 const REVIEW_FILTER_DECK_PREFIX = "deck:";
-const REVIEW_FILTER_EFFORT_PREFIX = "effort:";
 const REVIEW_FILTER_TAG_PREFIX = "tag:";
 
 export type ReviewFilterMenuItem = Readonly<{
@@ -45,7 +43,6 @@ export type UseReviewFilterMenuResult = Readonly<{
   setReviewDeckSearchText: (value: string) => void;
   shouldShowReviewDeckSearch: boolean;
   visibleReviewDeckFilterMenuItems: ReadonlyArray<ReviewFilterChoiceMenuItem>;
-  visibleReviewEffortFilterMenuItems: ReadonlyArray<ReviewFilterChoiceMenuItem>;
   visibleReviewTagFilterMenuItems: ReadonlyArray<ReviewFilterChoiceMenuItem>;
 }>;
 
@@ -58,31 +55,7 @@ function toReviewFilterMenuItemKey(reviewFilter: ReviewFilter): string {
     return `${REVIEW_FILTER_DECK_PREFIX}${reviewFilter.deckId}`;
   }
 
-  if (reviewFilter.kind === "effort") {
-    return `${REVIEW_FILTER_EFFORT_PREFIX}${reviewFilter.effortLevel}`;
-  }
-
   return `${REVIEW_FILTER_TAG_PREFIX}${reviewFilter.tag}`;
-}
-
-function buildReviewEffortFilterMenuItems(
-  selectedReviewFilter: ReviewFilter,
-  formatEffortLabel: (effortLevel: EffortLevel) => string,
-): Array<ReviewFilterChoiceMenuItem> {
-  return (["fast", "medium", "long"] as const satisfies ReadonlyArray<EffortLevel>).map((effortLevel) => {
-    const reviewFilter: ReviewFilter = {
-      kind: "effort",
-      effortLevel,
-    };
-
-    return {
-      key: toReviewFilterMenuItemKey(reviewFilter),
-      label: formatEffortLabel(effortLevel),
-      reviewFilter,
-      subtitle: null,
-      isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(reviewFilter),
-    };
-  });
 }
 
 function buildReviewDeckFilterMenuItems(
@@ -168,25 +141,19 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     t("filters.allCards"),
     t("reviewFilterMenu.deckSmartFilterLabel"),
   );
-  const reviewEffortFilterMenuItems = buildReviewEffortFilterMenuItems(selectedReviewFilter, (effortLevel) => formatEffortLevelLabel(t, effortLevel));
   const reviewTagFilterMenuItems = buildReviewTagFilterMenuItems(reviewTagSummaries, selectedReviewFilter);
   const reviewFilterMenuItems = buildReviewFilterMenuItems(t("reviewFilterMenu.editDecks"));
   const totalReviewFilterChoicesCount = reviewDeckFilterMenuItems.length
-    + reviewEffortFilterMenuItems.length
     + reviewTagFilterMenuItems.length;
   const shouldShowReviewDeckSearch = totalReviewFilterChoicesCount > 7;
   const normalizedReviewDeckSearchText = normalizeReviewFilterSearchText(reviewDeckSearchText);
   const visibleReviewDeckFilterMenuItems = shouldShowReviewDeckSearch
     ? reviewDeckFilterMenuItems.filter((item) => item.label.toLowerCase().includes(normalizedReviewDeckSearchText))
     : reviewDeckFilterMenuItems;
-  const visibleReviewEffortFilterMenuItems = shouldShowReviewDeckSearch
-    ? reviewEffortFilterMenuItems.filter((item) => item.label.toLowerCase().includes(normalizedReviewDeckSearchText))
-    : reviewEffortFilterMenuItems;
   const visibleReviewTagFilterMenuItems = shouldShowReviewDeckSearch
     ? reviewTagFilterMenuItems.filter((item) => item.label.toLowerCase().includes(normalizedReviewDeckSearchText))
     : reviewTagFilterMenuItems;
   const hasVisibleReviewFilterChoices = visibleReviewDeckFilterMenuItems.length > 0
-    || visibleReviewEffortFilterMenuItems.length > 0
     || visibleReviewTagFilterMenuItems.length > 0;
 
   useEffect(() => {
@@ -270,7 +237,6 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     setReviewDeckSearchText,
     shouldShowReviewDeckSearch,
     visibleReviewDeckFilterMenuItems,
-    visibleReviewEffortFilterMenuItems,
     visibleReviewTagFilterMenuItems,
   };
 }
