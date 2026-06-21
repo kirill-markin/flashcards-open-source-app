@@ -169,9 +169,8 @@ internal fun StreakLeaderboardSectionCard(
         val fallbackInfoBody = stringResource(id = R.string.progress_streak_leaderboard_info_fallback_body)
         val infoBody = readyState?.metricDescription ?: fallbackInfoBody
         val updatedText = readyState?.snapshotGeneratedAtMillis?.let { snapshotGeneratedAtMillis ->
-            stringResource(
-                id = R.string.progress_leaderboard_updated_label,
-                progressLeaderboardElapsedMinutes(
+            progressLeaderboardUpdatedLabel(
+                elapsedTime = progressLeaderboardElapsedTime(
                     snapshotGeneratedAtMillis = snapshotGeneratedAtMillis,
                     nowMillis = System.currentTimeMillis()
                 )

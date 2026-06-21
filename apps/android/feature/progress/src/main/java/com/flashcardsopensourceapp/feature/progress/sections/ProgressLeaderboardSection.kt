@@ -59,6 +59,7 @@ import java.util.Locale
 
 private const val leaderboardReservedGapRowCount: Int = 2
 private const val millisecondsPerMinute: Long = 60_000L
+private const val minutesPerHour: Int = 60
 
 @Composable
 internal fun LeaderboardSectionCard(
@@ -213,12 +214,11 @@ internal fun LeaderboardSectionCard(
         val infoBody = readyState?.metricDescription ?: fallbackInfoBody
         val selectedSnapshotGeneratedAtMillis = readyState?.selectedWindow?.snapshotGeneratedAtMillis
         val updatedText = selectedSnapshotGeneratedAtMillis?.let { snapshotGeneratedAtMillis ->
-                    stringResource(
-                        id = R.string.progress_leaderboard_updated_label,
-                        progressLeaderboardElapsedMinutes(
-                            snapshotGeneratedAtMillis = snapshotGeneratedAtMillis,
-                            nowMillis = System.currentTimeMillis()
-                        )
+            progressLeaderboardUpdatedLabel(
+                elapsedTime = progressLeaderboardElapsedTime(
+                    snapshotGeneratedAtMillis = snapshotGeneratedAtMillis,
+                    nowMillis = System.currentTimeMillis()
+                )
             )
         }
         AlertDialog(
@@ -383,8 +383,61 @@ private fun LeaderboardReadyContent(
     }
 }
 
-internal fun progressLeaderboardElapsedMinutes(snapshotGeneratedAtMillis: Long, nowMillis: Long): Long {
-    return maxOf(0L, nowMillis - snapshotGeneratedAtMillis) / millisecondsPerMinute
+internal data class ProgressLeaderboardElapsedTime(
+    val hours: Int,
+    val remainingMinutes: Int
+)
+
+internal fun progressLeaderboardElapsedTime(
+    snapshotGeneratedAtMillis: Long,
+    nowMillis: Long
+): ProgressLeaderboardElapsedTime {
+    val elapsedWholeMinutes: Long =
+        maxOf(0L, nowMillis - snapshotGeneratedAtMillis) / millisecondsPerMinute
+    require(elapsedWholeMinutes <= Int.MAX_VALUE) {
+        "Leaderboard snapshot elapsed freshness is too large to format: " +
+            "snapshotGeneratedAtMillis=$snapshotGeneratedAtMillis, nowMillis=$nowMillis, " +
+            "elapsedWholeMinutes=$elapsedWholeMinutes"
+    }
+    val elapsedWholeMinutesInt: Int = elapsedWholeMinutes.toInt()
+
+    return ProgressLeaderboardElapsedTime(
+        hours = elapsedWholeMinutesInt / minutesPerHour,
+        remainingMinutes = elapsedWholeMinutesInt % minutesPerHour
+    )
+}
+
+@Composable
+internal fun progressLeaderboardUpdatedLabel(
+    elapsedTime: ProgressLeaderboardElapsedTime
+): String {
+    if (elapsedTime.hours == 0) {
+        return pluralStringResource(
+            id = R.plurals.progress_leaderboard_updated_minute_label,
+            count = elapsedTime.remainingMinutes,
+            elapsedTime.remainingMinutes
+        )
+    }
+
+    if (elapsedTime.remainingMinutes == 0) {
+        return pluralStringResource(
+            id = R.plurals.progress_leaderboard_updated_hour_label,
+            count = elapsedTime.hours,
+            elapsedTime.hours
+        )
+    }
+
+    val remainingMinutesLabel: String = pluralStringResource(
+        id = R.plurals.progress_leaderboard_elapsed_minute_count,
+        count = elapsedTime.remainingMinutes,
+        elapsedTime.remainingMinutes
+    )
+    return pluralStringResource(
+        id = R.plurals.progress_leaderboard_updated_hour_minute_label,
+        count = elapsedTime.hours,
+        elapsedTime.hours,
+        remainingMinutesLabel
+    )
 }
 
 private data class LeaderboardReservedRows(

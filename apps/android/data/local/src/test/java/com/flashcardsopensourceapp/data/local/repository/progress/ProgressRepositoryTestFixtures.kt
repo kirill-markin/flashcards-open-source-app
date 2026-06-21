@@ -248,7 +248,7 @@ internal fun createProgressStreakLeaderboardForTest(
         metric = CloudProgressStreakLeaderboardMetric(
             metricVersion = "streak_days_v1",
             title = "Current streak days",
-            description = "Ranks use current streak days from the public daily snapshot. Public values can trail your live personal streak."
+            description = "Ranks use current streak days from the public daily snapshot. A streak day is any local day with at least one card review rated Again, Hard, Good, or Easy. Public values can trail your live personal streak."
         ),
         snapshotId = "snapshot-1",
         snapshotGeneratedAt = "2026-06-10T12:00:05.000Z",
