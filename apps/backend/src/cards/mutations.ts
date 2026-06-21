@@ -17,6 +17,7 @@ import { assertConsistentFsrsState } from "./fsrs";
 import {
   CARD_COLUMNS,
   CARD_SELECT,
+  appendLegacyEffortTag,
   mapCard,
   normalizeCardMutationMetadata,
   recordCardSyncChange,
@@ -56,8 +57,8 @@ function normalizeCreateCardInput(input: CreateCardInput): CreateCardInput {
   return {
     frontText: normalizeRequiredCardText(input.frontText, "frontText"),
     backText: normalizeOptionalCardText(input.backText),
-    tags: input.tags,
-    effortLevel: input.effortLevel,
+    tags: appendLegacyEffortTag(input.tags, input.effortLevel),
+    effortLevel: "fast",
   };
 }
 
@@ -67,9 +68,13 @@ function normalizeUpdateCardInput(input: UpdateCardInput): UpdateCardInput {
       ? undefined
       : normalizeRequiredCardText(input.frontText, "frontText"),
     backText: input.backText === undefined ? undefined : normalizeOptionalCardText(input.backText),
-    tags: input.tags,
-    effortLevel: input.effortLevel,
+    tags: input.tags === undefined ? undefined : appendLegacyEffortTag(input.tags, input.effortLevel),
+    effortLevel: input.effortLevel === undefined ? undefined : "fast",
   };
+}
+
+function updateRequiresExistingTagsForLegacyEffort(input: UpdateCardInput): boolean {
+  return input.tags === undefined && (input.effortLevel === "medium" || input.effortLevel === "long");
 }
 
 function buildCardUpdateQueryParts(input: UpdateCardInput): UpdateQueryParts {
@@ -121,8 +126,8 @@ function normalizeCardSnapshotInput(input: CardSnapshotInput): CardSnapshotInput
     cardId: input.cardId,
     frontText: normalizeRequiredCardText(input.frontText, "frontText"),
     backText: normalizeOptionalCardText(input.backText),
-    tags: input.tags,
-    effortLevel: input.effortLevel,
+    tags: appendLegacyEffortTag(input.tags, input.effortLevel),
+    effortLevel: "fast",
     dueAt: input.dueAt === null ? null : normalizeIsoTimestamp(input.dueAt, "dueAt"),
     createdAt: normalizeIsoTimestamp(input.createdAt, "createdAt"),
     reps: input.reps,
@@ -438,9 +443,22 @@ export async function updateCardInExecutor(
   input: UpdateCardInput,
   metadata: CardMutationMetadata,
 ): Promise<Card> {
-  const normalizedInput = normalizeUpdateCardInput(input);
-  const updateParts = buildCardUpdateQueryParts(normalizedInput);
+  let normalizedInput = normalizeUpdateCardInput(input);
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
+
+  if (updateRequiresExistingTagsForLegacyEffort(input)) {
+    const existingRow = await loadCardRowForMutation(executor, workspaceId, cardId);
+    if (existingRow === undefined || existingRow.deleted_at !== null) {
+      throw new HttpError(404, "Card not found");
+    }
+
+    normalizedInput = {
+      ...normalizedInput,
+      tags: appendLegacyEffortTag(existingRow.tags, input.effortLevel),
+    };
+  }
+
+  const updateParts = buildCardUpdateQueryParts(normalizedInput);
 
   if (updateParts.assignments.length === 0) {
     throw new HttpError(400, "At least one editable field must be provided");

@@ -1,5 +1,6 @@
 import type { CardRow } from "../../cards/types";
 import { mapCard } from "../../cards/shared";
+import type { Card } from "../../cards";
 import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
@@ -53,6 +54,14 @@ function toWorkspaceSchedulerSettings(row: WorkspaceSchedulerSettingsRow): Works
   };
 }
 
+// TODO(old-mobile-cutoff): Remove legacy effort output during final sync wire-drop cleanup.
+function toLegacySyncCardPayload(card: Card): Card {
+  return {
+    ...card,
+    effortLevel: "fast",
+  };
+}
+
 async function loadWorkspaceSchedulerSettingsInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
@@ -82,7 +91,7 @@ async function loadCardsByIdsInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
   cardIds: ReadonlyArray<string>,
-): Promise<ReadonlyMap<string, import("../../cards").Card>> {
+): Promise<ReadonlyMap<string, Card>> {
   if (cardIds.length === 0) {
     return new Map();
   }
@@ -157,7 +166,7 @@ export async function buildHotChangesFromRows(
         entityType: "card" as const,
         entityId: row.entity_id,
         action: "upsert" as const,
-        payload: card,
+        payload: toLegacySyncCardPayload(card),
       };
     }
 

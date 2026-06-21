@@ -53,6 +53,7 @@ type SyncRoutesOptions = Readonly<{
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
   assertUserHasWorkspaceAccessFn?: typeof assertUserHasWorkspaceAccess;
   processSyncBootstrapFn?: typeof processSyncBootstrap;
+  processSyncPushFn?: typeof processSyncPush;
   processSyncPullFn?: typeof processSyncPull;
   processSyncReviewHistoryPullFn?: typeof processSyncReviewHistoryPull;
   withTransientDatabaseRetryFn?: typeof withTransientDatabaseRetry;
@@ -78,6 +79,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
   const assertUserHasWorkspaceAccessFn = options.assertUserHasWorkspaceAccessFn ?? assertUserHasWorkspaceAccess;
   const processSyncBootstrapFn = options.processSyncBootstrapFn ?? processSyncBootstrap;
+  const processSyncPushFn = options.processSyncPushFn ?? processSyncPush;
   const processSyncPullFn = options.processSyncPullFn ?? processSyncPull;
   const processSyncReviewHistoryPullFn = options.processSyncReviewHistoryPullFn ?? processSyncReviewHistoryPull;
   const withTransientDatabaseRetryFn = options.withTransientDatabaseRetryFn ?? withTransientDatabaseRetry;
@@ -93,7 +95,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
     const entityTypes = [...new Set(input.operations.map((operation) => operation.entityType))];
 
     try {
-      const result = await processSyncPush(workspaceId, requestContext.userId, input);
+      const result = await processSyncPushFn(workspaceId, requestContext.userId, input);
       addBackendBreadcrumb({
         action: "sync_push",
         scope: createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),

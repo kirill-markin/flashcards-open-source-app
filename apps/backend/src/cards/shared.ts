@@ -7,6 +7,7 @@ import type {
   CardRow,
   DeckSummary,
   DeckSummaryRow,
+  EffortLevel,
   ReviewEvent,
   ReviewHistoryItem,
   ReviewHistoryRow,
@@ -58,6 +59,37 @@ export function normalizeCardMutationMetadata(
     lastModifiedByReplicaId: metadata.lastModifiedByReplicaId,
     lastOperationId: metadata.lastOperationId,
   };
+}
+
+// TODO(old-mobile-cutoff): Remove this legacy effort shim during final sync wire-drop cleanup.
+export function appendLegacyEffortTag(
+  tags: ReadonlyArray<string>,
+  legacyEffortLevel: EffortLevel | undefined,
+): ReadonlyArray<string> {
+  const dedupedTags: Array<string> = [];
+  const existingTags = new Set<string>();
+
+  for (const tag of tags) {
+    if (existingTags.has(tag)) {
+      continue;
+    }
+
+    existingTags.add(tag);
+    dedupedTags.push(tag);
+  }
+
+  if (
+    legacyEffortLevel !== "medium"
+    && legacyEffortLevel !== "long"
+  ) {
+    return dedupedTags;
+  }
+
+  if (!existingTags.has(legacyEffortLevel)) {
+    dedupedTags.push(legacyEffortLevel);
+  }
+
+  return dedupedTags;
 }
 
 export function mapCard(row: CardRow): Card {
