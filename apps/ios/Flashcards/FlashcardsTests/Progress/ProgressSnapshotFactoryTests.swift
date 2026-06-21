@@ -176,6 +176,72 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
         )
     }
 
+    private func expectedLeaderboardUpdatedText(elapsedText: String) -> String {
+        let localizedFormat = String(
+            localized: "progress.screen.leaderboard.updated_at",
+            defaultValue: "Updated %@ ago",
+            table: progressStringsTableName,
+            comment: "Progress leaderboard freshness text with localized elapsed time"
+        )
+        return String(format: localizedFormat, locale: Locale.current, elapsedText)
+    }
+
+    private func expectedLeaderboardElapsedHourText(hours: Int64) -> String {
+        if hours == 1 {
+            return String(
+                localized: "progress.screen.leaderboard.updated_at.hour.one",
+                defaultValue: "1 hour",
+                table: progressStringsTableName,
+                comment: "Progress leaderboard freshness singular elapsed hour"
+            )
+        }
+
+        let localizedFormat = String(
+            localized: "progress.screen.leaderboard.updated_at.hour.other",
+            defaultValue: "%lld hours",
+            table: progressStringsTableName,
+            comment: "Progress leaderboard freshness plural elapsed hours"
+        )
+        return String(format: localizedFormat, locale: Locale.current, hours)
+    }
+
+    private func expectedLeaderboardElapsedMinuteText(minutes: Int64) -> String {
+        if minutes == 1 {
+            return String(
+                localized: "progress.screen.leaderboard.updated_at.minute.one",
+                defaultValue: "1 minute",
+                table: progressStringsTableName,
+                comment: "Progress leaderboard freshness singular elapsed minute"
+            )
+        }
+
+        let localizedFormat = String(
+            localized: "progress.screen.leaderboard.updated_at.minute.other",
+            defaultValue: "%lld minutes",
+            table: progressStringsTableName,
+            comment: "Progress leaderboard freshness plural elapsed minutes"
+        )
+        return String(format: localizedFormat, locale: Locale.current, minutes)
+    }
+
+    private func expectedLeaderboardElapsedHoursMinutesText(
+        hours: Int64,
+        minutes: Int64
+    ) -> String {
+        let localizedFormat = String(
+            localized: "progress.screen.leaderboard.updated_at.elapsed.hours_minutes",
+            defaultValue: "%1$@ %2$@",
+            table: progressStringsTableName,
+            comment: "Progress leaderboard freshness elapsed time with hours and remaining minutes"
+        )
+        return String(
+            format: localizedFormat,
+            locale: Locale.current,
+            self.expectedLeaderboardElapsedHourText(hours: hours),
+            self.expectedLeaderboardElapsedMinuteText(minutes: minutes)
+        )
+    }
+
     func testStreakLeaderboardProjectionUsesPersonalStreakAndViewerWinsTies() throws {
         let leaderboard = makeReadyProgressStreakLeaderboardForTests(
             participantCount: 4,
@@ -714,6 +780,38 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
         }
     }
 
+    func testLeaderboardUpdatedTextFormatsElapsedFreshness() throws {
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-06-10T15:00:00.000Z"))
+
+        XCTAssertEqual(
+            self.expectedLeaderboardUpdatedText(
+                elapsedText: self.expectedLeaderboardElapsedMinuteText(minutes: 59)
+            ),
+            progressLeaderboardUpdatedText(snapshotGeneratedAt: "2026-06-10T14:00:30.000Z", now: now)
+        )
+        XCTAssertEqual(
+            self.expectedLeaderboardUpdatedText(
+                elapsedText: self.expectedLeaderboardElapsedHourText(hours: 1)
+            ),
+            progressLeaderboardUpdatedText(snapshotGeneratedAt: "2026-06-10T14:00:00.000Z", now: now)
+        )
+        XCTAssertEqual(
+            self.expectedLeaderboardUpdatedText(
+                elapsedText: self.expectedLeaderboardElapsedHoursMinutesText(hours: 1, minutes: 5)
+            ),
+            progressLeaderboardUpdatedText(snapshotGeneratedAt: "2026-06-10T13:55:00.000Z", now: now)
+        )
+        XCTAssertEqual(
+            self.expectedLeaderboardUpdatedText(
+                elapsedText: self.expectedLeaderboardElapsedMinuteText(minutes: 0)
+            ),
+            progressLeaderboardUpdatedText(snapshotGeneratedAt: "2026-06-10T15:01:00.000Z", now: now)
+        )
+        XCTAssertNil(
+            progressLeaderboardUpdatedText(snapshotGeneratedAt: "not-a-timestamp", now: now)
+        )
+    }
+
     // The info copy must mention the same localized rating names the review
     // buttons use, in whichever language the test bundle runs.
     func testInfoCopyIncludesAgainExclusion() {
@@ -726,6 +824,18 @@ final class ProgressSnapshotFactoryTests: XCTestCase {
         XCTAssertTrue(infoMessage.contains(ReviewRating.good.title))
         XCTAssertTrue(infoMessage.contains(ReviewRating.easy.title))
         XCTAssertTrue(infoMessage.contains(ReviewRating.again.title))
+    }
+
+    func testStreakInfoCopyIncludesAllReviewedRatingNames() {
+        let infoMessage = progressStreakLeaderboardInfoMessage(
+            snapshotGeneratedAt: nil,
+            now: Date()
+        )
+
+        XCTAssertTrue(infoMessage.contains(ReviewRating.again.title))
+        XCTAssertTrue(infoMessage.contains(ReviewRating.hard.title))
+        XCTAssertTrue(infoMessage.contains(ReviewRating.good.title))
+        XCTAssertTrue(infoMessage.contains(ReviewRating.easy.title))
     }
 
     func testLiveOverlayReranksOnlyViewerFromRankingRows() throws {
