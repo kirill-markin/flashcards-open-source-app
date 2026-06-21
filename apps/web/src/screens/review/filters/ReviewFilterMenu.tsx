@@ -162,27 +162,6 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
               <span className="review-filter-menu-item-label">{item.label}</span>
             </Link>
           ))}
-          {visibleReviewEffortFilterMenuItems.length > 0 ? (
-            <div className="review-filter-menu-divider" role="separator" />
-          ) : null}
-          {visibleReviewEffortFilterMenuItems.map((effortItem) => (
-            <button
-              key={effortItem.key}
-              className={`review-filter-menu-entry${effortItem.isSelected ? " review-filter-menu-entry-active" : ""}`}
-              type="button"
-              role="menuitemradio"
-              aria-checked={effortItem.isSelected}
-              data-review-filter-key={effortItem.key}
-              onClick={() => handleReviewFilterSelect(effortItem.reviewFilter)}
-            >
-              <span className="review-filter-menu-item-slot" aria-hidden="true">
-                <span className={`review-filter-menu-item-check${effortItem.isSelected ? " review-filter-menu-item-check-visible" : ""}`}>
-                  <ReviewFilterCheckIcon />
-                </span>
-              </span>
-              <span className="review-filter-menu-item-label">{effortItem.label}</span>
-            </button>
-          ))}
           {visibleReviewTagFilterMenuItems.length > 0 ? (
             <div className="review-filter-menu-divider" role="separator" />
           ) : null}
@@ -202,6 +181,27 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
                 </span>
               </span>
               <span className="review-filter-menu-item-label">{tagItem.label}</span>
+            </button>
+          ))}
+          {visibleReviewEffortFilterMenuItems.length > 0 ? (
+            <div className="review-filter-menu-divider" role="separator" />
+          ) : null}
+          {visibleReviewEffortFilterMenuItems.map((effortItem) => (
+            <button
+              key={effortItem.key}
+              className={`review-filter-menu-entry${effortItem.isSelected ? " review-filter-menu-entry-active" : ""}`}
+              type="button"
+              role="menuitemradio"
+              aria-checked={effortItem.isSelected}
+              data-review-filter-key={effortItem.key}
+              onClick={() => handleReviewFilterSelect(effortItem.reviewFilter)}
+            >
+              <span className="review-filter-menu-item-slot" aria-hidden="true">
+                <span className={`review-filter-menu-item-check${effortItem.isSelected ? " review-filter-menu-item-check-visible" : ""}`}>
+                  <ReviewFilterCheckIcon />
+                </span>
+              </span>
+              <span className="review-filter-menu-item-label">{effortItem.label}</span>
             </button>
           ))}
         </div>
