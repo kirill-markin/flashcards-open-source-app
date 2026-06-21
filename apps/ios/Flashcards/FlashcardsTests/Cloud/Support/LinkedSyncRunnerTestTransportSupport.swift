@@ -881,6 +881,7 @@ enum LinkedSyncRunnerTestTransportSupport {
 
 final class CloudSyncRunnerTestURLProtocol: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) static var requestHandler: (@Sendable (URLRequest) throws -> (HTTPURLResponse, Data))?
+    nonisolated(unsafe) static var requestCount: Int = 0
     nonisolated(unsafe) static var bootstrapPushCardIds: [String] = []
     nonisolated(unsafe) static var bootstrapPushEntryCounts: [Int] = []
     nonisolated(unsafe) static var pushEntityIds: [String] = []
@@ -919,6 +920,7 @@ final class CloudSyncRunnerTestURLProtocol: URLProtocol, @unchecked Sendable {
 
     static func reset() {
         self.requestHandler = nil
+        self.requestCount = 0
         self.bootstrapPushCardIds = []
         self.bootstrapPushEntryCounts = []
         self.pushEntityIds = []

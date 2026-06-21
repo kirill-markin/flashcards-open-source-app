@@ -40,6 +40,7 @@ struct IOSObservationScope: Sendable, Hashable {
 
 enum IOSBreadcrumbEvent: Sendable {
     case cloudFlow(CloudFlowObservation)
+    case cloudRetry(CloudRetryObservation)
     case aiChatLifecycle(AIChatLifecycleObservation)
     case aiLiveLifecycle(AILiveLifecycleObservation)
     case notificationTap(NotificationTapObservation)
@@ -50,7 +51,6 @@ enum IOSWarningEvent: Sendable {
     case aiLiveUnknownEvent(AILiveUnknownEventWarning)
     case aiLiveLifecycle(AILiveLifecycleObservation)
     case cloudFlow(CloudFlowObservation)
-    case cloudRetry(CloudRetryWarning)
     case localDataRepair(LocalDataRepairWarning)
     case invalidCardDueAt(InvalidCardDueAtWarning)
     case notificationSchedulingFailed(NotificationSchedulingFailureWarning)
@@ -278,7 +278,7 @@ struct NotificationSchedulingFailureWarning: Sendable, Hashable {
     let diagnostics: NotificationSchedulingDiagnostics
 }
 
-struct CloudRetryWarning: Sendable, Hashable {
+struct CloudRetryObservation: Sendable, Hashable {
     let action: String
     let scope: IOSObservationScope
     let attempt: Int

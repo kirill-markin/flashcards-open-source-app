@@ -114,9 +114,9 @@ final class GuestCloudAuthService {
                 lastError = error
 
                 if attempt < guestSessionDeleteMaxAttempts {
-                    FlashcardsObservability.captureWarning(
+                    FlashcardsObservability.addBreadcrumb(
                         .cloudRetry(
-                            CloudRetryWarning(
+                            CloudRetryObservation(
                                 action: "guest_session_delete_retry",
                                 scope: IOSObservationScope(
                                     feature: .cloudAuth,
