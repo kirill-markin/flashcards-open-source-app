@@ -67,6 +67,20 @@ internal fun makeRuntimeContext(
     repository: FakeAiChatRepository,
     autoSyncEventRepository: FakeAutoSyncEventRepository
 ): AiChatRuntimeContext {
+    return makeRuntimeContextWithObservability(
+        scope = scope,
+        repository = repository,
+        autoSyncEventRepository = autoSyncEventRepository,
+        observability = TestAppObservability
+    )
+}
+
+internal fun makeRuntimeContextWithObservability(
+    scope: TestScope,
+    repository: FakeAiChatRepository,
+    autoSyncEventRepository: FakeAutoSyncEventRepository,
+    observability: AppObservability
+): AiChatRuntimeContext {
     return AiChatRuntimeContext(
         scope = scope,
         aiChatRepository = repository,
@@ -79,7 +93,7 @@ internal fun makeRuntimeContext(
         currentServerConfiguration = { makeOfficialCloudServiceConfiguration() },
         currentSyncStatus = { SyncStatus.Idle },
         currentUiLocaleTag = { testUiLocaleTag },
-        observability = TestAppObservability
+        observability = observability
     )
 }
 
@@ -158,6 +172,7 @@ private object TestAppObservability : AppObservability {
 
 internal class RecordingAppObservability : AppObservability {
     val exceptionEvents: MutableList<AndroidExceptionIssueEvent> = mutableListOf()
+    val warningEvents: MutableList<AndroidWarningIssueEvent> = mutableListOf()
 
     override fun setCloudIdentity(identity: CloudObservationIdentity) {
     }
@@ -169,6 +184,7 @@ internal class RecordingAppObservability : AppObservability {
     }
 
     override fun captureWarning(event: AndroidWarningIssueEvent) {
+        warningEvents += event
     }
 
     override fun captureException(event: AndroidExceptionIssueEvent) {
