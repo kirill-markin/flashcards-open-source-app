@@ -219,7 +219,8 @@ private struct ProgressStreakLeaderboardParticipantRowView: View {
         return ProgressLeaderboardSelectedProfile(
             publicProfileId: publicProfileId,
             anonymousDisplayName: self.row.anonymousDisplayName,
-            friendDisplayName: self.row.friendDisplayName
+            friendDisplayName: self.row.friendDisplayName,
+            isViewer: self.row.kind == .viewer
         )
     }
 
