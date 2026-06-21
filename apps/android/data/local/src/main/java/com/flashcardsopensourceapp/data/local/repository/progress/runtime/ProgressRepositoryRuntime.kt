@@ -125,7 +125,7 @@ internal fun logProgressSyncBeforeRemoteLoadFailure(
     fields: List<Pair<String, String?>>,
     error: Throwable
 ): Unit {
-    if (isExpectedTransientProgressSyncBeforeRemoteLoadError(error = error)) {
+    if (isExpectedTransientProgressRefreshError(error = error)) {
         logProgressRepositoryWarning(
             event = event,
             fields = fields + listOf(
@@ -148,7 +148,39 @@ internal fun logProgressSyncBeforeRemoteLoadFailure(
     )
 }
 
-internal fun isExpectedTransientProgressSyncBeforeRemoteLoadError(error: Throwable): Boolean {
+internal fun logProgressRemoteLoadFailure(
+    observability: AppObservability,
+    observationVersions: ProgressObservationVersions,
+    event: String,
+    scopeId: String,
+    source: String,
+    fields: List<Pair<String, String?>>,
+    error: Throwable
+): Unit {
+    if (isExpectedTransientProgressRefreshError(error = error)) {
+        logProgressRepositoryWarning(
+            event = event,
+            fields = fields + listOf(
+                "sentryWarningSuppressed" to "true",
+                "suppressionReason" to "transient_remote_load_failure"
+            ),
+            error = error
+        )
+        return
+    }
+
+    logProgressRefreshWarning(
+        observability = observability,
+        observationVersions = observationVersions,
+        event = event,
+        scopeId = scopeId,
+        source = source,
+        fields = fields,
+        error = error
+    )
+}
+
+internal fun isExpectedTransientProgressRefreshError(error: Throwable): Boolean {
     var currentError: Throwable? = error
     while (currentError != null) {
         if (
