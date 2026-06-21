@@ -45,7 +45,7 @@ function buildAccountBootstrapInstructions(requestUrl: string): string {
     `After a workspace is selected, use POST ${apiBaseUrl}/agent/sql for reads, writes, and SQL introspection.`,
     buildPermissionGuidanceLine(),
     "If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls.",
-    "Read payload from data.* and use docs.openapiUrl for the full contract.",
+    "Read payload from data.* and use docs.openapiUrl for the published external agent contract.",
   ].join(" ");
 }
 
@@ -57,7 +57,7 @@ function buildNoWorkspaceInstructions(requestUrl: string): string {
     `After the workspace is created, use POST ${apiBaseUrl}/agent/sql for reads, writes, and SQL introspection.`,
     buildPermissionGuidanceLine(),
     "If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls.",
-    "Read payload from data.* and use docs.openapiUrl for the full contract.",
+    "Read payload from data.* and use docs.openapiUrl for the published external agent contract.",
   ].join(" ");
 }
 
@@ -69,7 +69,7 @@ function buildSelectWorkspaceInstructions(requestUrl: string): string {
     `After a workspace is selected, use POST ${apiBaseUrl}/agent/sql for reads, writes, and SQL introspection.`,
     buildPermissionGuidanceLine(),
     "If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls.",
-    "Read payload from data.* and use docs.openapiUrl for the full contract.",
+    "Read payload from data.* and use docs.openapiUrl for the published external agent contract.",
   ].join(" ");
 }
 
@@ -83,7 +83,7 @@ function buildWorkspaceReadyInstructions(requestUrl: string): string {
     "This endpoint accepts the published SQL dialect, not full PostgreSQL.",
     "SELECT returns at most 100 rows per statement, and INSERT, UPDATE, and DELETE may affect at most 100 rows per statement.",
     "If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls.",
-    "Read payload from data.* and use docs.openapiUrl for the full contract.",
+    "Read payload from data.* and use docs.openapiUrl for the published external agent contract.",
   ].join(" ");
 }
 

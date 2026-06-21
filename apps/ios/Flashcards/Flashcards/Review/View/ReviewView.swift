@@ -347,28 +347,7 @@ struct ReviewView: View {
 
             Divider()
 
-            Picker(
-                "",
-                selection: Binding(
-                    get: {
-                        store.selectedReviewFilter
-                    },
-                    set: { nextReviewFilter in
-                        store.selectReviewFilter(reviewFilter: nextReviewFilter)
-                    }
-                )
-            ) {
-                ForEach(EffortLevel.allCases) { level in
-                    let reviewFilter = ReviewFilter.effort(level: level)
-
-                    Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
-                        .tag(reviewFilter)
-                }
-            }
-
             if reviewTagSummaries.isEmpty == false {
-                Divider()
-
                 Picker(
                     "",
                     selection: Binding(
@@ -386,6 +365,27 @@ struct ReviewView: View {
                         Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
                             .tag(reviewFilter)
                     }
+                }
+
+                Divider()
+            }
+
+            Picker(
+                "",
+                selection: Binding(
+                    get: {
+                        store.selectedReviewFilter
+                    },
+                    set: { nextReviewFilter in
+                        store.selectReviewFilter(reviewFilter: nextReviewFilter)
+                    }
+                )
+            ) {
+                ForEach(EffortLevel.allCases) { level in
+                    let reviewFilter = ReviewFilter.effort(level: level)
+
+                    Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
+                        .tag(reviewFilter)
                 }
             }
         } label: {

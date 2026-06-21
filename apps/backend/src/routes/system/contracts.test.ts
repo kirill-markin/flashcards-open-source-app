@@ -4,11 +4,73 @@ import { resolve } from "node:path";
 import test from "node:test";
 import { loadOpenApiDocument } from "../../shared/openapi";
 
+const operationMethodNames = ["get", "post", "put", "patch", "delete", "options", "head", "trace"] as const;
+
+type OperationMethodName = (typeof operationMethodNames)[number];
+type PathItemForTest = Readonly<Partial<Record<OperationMethodName, object>>>;
+type OpenApiDocumentForTest = Readonly<{
+  info?: Readonly<{
+    title?: string;
+    description?: string;
+  }>;
+  paths?: Readonly<Record<string, PathItemForTest>>;
+  components?: Readonly<{
+    schemas?: Readonly<Record<string, object>>;
+    securitySchemes?: Readonly<Record<string, object>>;
+  }>;
+}>;
+
+const expectedPublishedExternalAgentMethods = {
+  "/": ["get"],
+  "/agent": ["get"],
+  "/api/agent/send-code": ["post"],
+  "/api/agent/verify-code": ["post"],
+  "/agent/me": ["get"],
+  "/agent/workspaces": ["get", "post"],
+  "/agent/workspaces/{workspaceId}/select": ["post"],
+  "/agent/sql": ["post"],
+} as const satisfies Readonly<Record<string, ReadonlyArray<OperationMethodName>>>;
+
+function loadPublishedOpenApiDocument(): OpenApiDocumentForTest {
+  return loadOpenApiDocument() as OpenApiDocumentForTest;
+}
+
+function listDocumentedMethods(pathItem: PathItemForTest): ReadonlyArray<OperationMethodName> {
+  return operationMethodNames.filter((method) => pathItem[method] !== undefined);
+}
+
 test("API Gateway predeclares PATCH /me/preferences", () => {
   const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
   const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
 
   assert.match(apiGatewaySource, /me\.addResource\("preferences"\)\.addMethod\("PATCH", integration\);/);
+});
+
+test("published OpenAPI exposes only the curated external agent contract", () => {
+  const openApiDocument = loadPublishedOpenApiDocument();
+  const paths = openApiDocument.paths ?? {};
+  const securitySchemes = openApiDocument.components?.securitySchemes ?? {};
+  const schemas = openApiDocument.components?.schemas ?? {};
+
+  assert.equal(openApiDocument.info?.title, "Flashcards Open Source App External AI-Agent API");
+  assert.match(openApiDocument.info?.description ?? "", /curated public api contract/i);
+  assert.deepEqual(Object.keys(paths), Object.keys(expectedPublishedExternalAgentMethods));
+  for (const [path, methods] of Object.entries(expectedPublishedExternalAgentMethods)) {
+    assert.deepEqual(listDocumentedMethods(paths[path] ?? {}), methods, `Unexpected OpenAPI methods for ${path}`);
+  }
+
+  assert.deepEqual(Object.keys(securitySchemes), ["ApiKeyHeader"]);
+  for (const hiddenSchemaName of [
+    "MeResponse",
+    "AccountPreferences",
+    "CommunityPublicProfileResponse",
+    "FriendInvitationCreateRequest",
+    "ProgressLeaderboardResponse",
+    "StreakLeaderboardResponse",
+    "LeaderboardProfileResponse",
+  ]) {
+    assert.equal(schemas[hiddenSchemaName], undefined, `OpenAPI must not publish ${hiddenSchemaName}`);
+  }
 });
 
 test("API Gateway predeclares /me/community/profile", () => {
@@ -21,29 +83,6 @@ test("API Gateway predeclares /me/community/profile", () => {
   );
   assert.match(apiGatewaySource, /meCommunityProfile\.addMethod\("GET", integration\);/);
   assert.match(apiGatewaySource, /meCommunityProfile\.addMethod\("PATCH", integration\);/);
-});
-
-test("published OpenAPI includes community profile endpoint without internal ids", () => {
-  const openApiDocument = loadOpenApiDocument() as Readonly<{
-    paths?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
-    components?: Readonly<{
-      schemas?: Readonly<Record<string, unknown>>;
-    }>;
-  }>;
-  const communityProfilePath = openApiDocument.paths?.["/me/community/profile"];
-  const profileSchema = openApiDocument.components?.schemas?.CommunityPublicProfileResponse;
-  const serializedSchema = JSON.stringify(profileSchema ?? null);
-
-  assert.notEqual(communityProfilePath?.get, undefined);
-  assert.notEqual(communityProfilePath?.patch, undefined);
-  assert.equal(serializedSchema.includes("publicProfileId"), true);
-  assert.equal(serializedSchema.includes("anonymousDisplayName"), true);
-  assert.equal(serializedSchema.includes("leaderboardParticipationEnabled"), true);
-  assert.equal(serializedSchema.includes("linkedAccountRequiredForLeaderboard"), true);
-  assert.equal(serializedSchema.includes("userId"), false);
-  assert.equal(serializedSchema.includes("workspaceId"), false);
-  assert.equal(serializedSchema.includes("replicaId"), false);
-  assert.equal(serializedSchema.includes("email"), false);
 });
 
 test("API Gateway predeclares friend invitation routes", () => {
@@ -67,38 +106,6 @@ test("API Gateway predeclares friend invitation routes", () => {
     apiGatewaySource,
     /communityFriendInvitations\.addResource\("\{inviteToken\}"\)\.addMethod\("GET", integration\);/,
   );
-});
-
-test("published OpenAPI documents friend invitations without internal ids", () => {
-  const openApiDocument = loadOpenApiDocument() as Readonly<{
-    paths?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
-    components?: Readonly<{ schemas?: Readonly<Record<string, unknown>> }>;
-  }>;
-  const createPath = openApiDocument.paths?.["/me/community/friend-invitations"];
-  const previewPath = openApiDocument.paths?.["/community/friend-invitations/{inviteToken}"];
-  const acceptPath = openApiDocument.paths?.["/me/community/friend-invitations/{inviteToken}/accept"];
-  const schemas = openApiDocument.components?.schemas ?? {};
-  const invitationSchemas = Object.fromEntries(
-    Object.entries(schemas).filter(([name]) => name.startsWith("FriendInvitation")),
-  );
-  const serializedContract = JSON.stringify({
-    createPath,
-    previewPath,
-    acceptPath,
-    invitationSchemas,
-  });
-  const serializedInvitationSchemas = JSON.stringify(invitationSchemas);
-
-  assert.notEqual(createPath?.post, undefined);
-  assert.notEqual(previewPath?.get, undefined);
-  assert.notEqual(acceptPath?.post, undefined);
-  assert.equal(serializedContract.includes("inviteUrl"), true);
-  assert.equal(serializedContract.includes("expiresAt"), true);
-  assert.equal(serializedContract.includes("existingFriendDisplayName"), true);
-  assert.equal(serializedInvitationSchemas.includes("publicProfileId"), false);
-  assert.equal(serializedInvitationSchemas.includes("userId"), false);
-  assert.equal(serializedInvitationSchemas.includes("email"), false);
-  assert.equal(serializedInvitationSchemas.includes("inviteeDisplayNameForInviter"), false);
 });
 
 test("API Gateway predeclares /me/progress/leaderboard", () => {
@@ -137,152 +144,4 @@ test("API Gateway predeclares /me/progress/leaderboards/profiles/{publicProfileI
     apiGatewaySource,
     /meProgressLeaderboardProfiles\.addResource\("\{publicProfileId\}"\)\.addMethod\("GET", integration\);/,
   );
-});
-
-test("published OpenAPI documents the progress leaderboard without internal ids", () => {
-  const openApiDocument = loadOpenApiDocument() as Readonly<{
-    paths?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
-    components?: Readonly<{ schemas?: Readonly<Record<string, unknown>> }>;
-  }>;
-  const leaderboardPath = openApiDocument.paths?.["/me/progress/leaderboard"];
-  const schemas = openApiDocument.components?.schemas ?? {};
-  const leaderboardSchemas = Object.fromEntries(
-    Object.entries(schemas).filter(([name]) => name.startsWith("ProgressLeaderboard") || name === "LeaderboardWindowKey"),
-  );
-  const serializedSchemas = JSON.stringify(leaderboardSchemas);
-
-  assert.notEqual(leaderboardPath?.get, undefined);
-  assert.notEqual(schemas.ProgressLeaderboardResponse, undefined);
-  for (const expectedField of [
-    "status",
-    "defaultWindowKey",
-    "metricVersion",
-    "anonymousDisplayName",
-    "friendDisplayName",
-    "publicProfileId",
-    "qualifiedReviewCount",
-    "rank",
-    "nextRefreshAfter",
-    "participantCount",
-    "rankingRows",
-  ]) {
-    assert.equal(serializedSchemas.includes(expectedField), true, `OpenAPI must document ${expectedField}`);
-  }
-  for (const internalField of [
-    "userId",
-    "friend_user_id",
-    "friendUserId",
-    "friend_public_profile_id",
-    "friendPublicProfileId",
-    "created_from_invitation_id",
-    "friendInvitationId",
-    "inviter_user_id",
-    "inviterUserId",
-    "createdFromInvitationId",
-    "baseSort",
-    "reviewed_by",
-    "reviewedBy",
-    "email",
-  ]) {
-    assert.equal(serializedSchemas.includes(internalField), false, `OpenAPI must not expose ${internalField}`);
-  }
-});
-
-test("published OpenAPI documents leaderboard profiles without internal ids or raw review timestamps", () => {
-  const openApiDocument = loadOpenApiDocument() as Readonly<{
-    paths?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
-    components?: Readonly<{ schemas?: Readonly<Record<string, unknown>> }>;
-  }>;
-  const profilePath = openApiDocument.paths?.["/me/progress/leaderboards/profiles/{publicProfileId}"];
-  const schemas = openApiDocument.components?.schemas ?? {};
-  const profileSchemas = Object.fromEntries(
-    Object.entries(schemas).filter(([name]) => name.startsWith("LeaderboardProfile")),
-  );
-  const serializedSchemas = JSON.stringify(profileSchemas);
-
-  assert.notEqual(profilePath?.get, undefined);
-  assert.notEqual(schemas.LeaderboardProfileResponse, undefined);
-  for (const expectedField of [
-    "publicProfileId",
-    "anonymousDisplayName",
-    "friendDisplayName",
-    "isFriend",
-    "currentStreakDays",
-    "bestRatingPlacement",
-    "reviewActivity",
-    "profile_local_day_with_utc_fallback",
-    "joinedAt",
-    "totalCards",
-  ]) {
-    assert.equal(serializedSchemas.includes(expectedField), true, `OpenAPI must document ${expectedField}`);
-  }
-  for (const internalField of [
-    "userId",
-    "workspaceId",
-    "deckId",
-    "cardId",
-    "email",
-    "timeZone",
-    "reviewedAt",
-    "reviewed_at",
-    "reviewTimestamp",
-    "friendUserId",
-  ]) {
-    assert.equal(serializedSchemas.includes(internalField), false, `OpenAPI must not expose ${internalField}`);
-  }
-});
-
-test("published OpenAPI documents the streak leaderboard without internal ids or rating fields", () => {
-  const openApiDocument = loadOpenApiDocument() as Readonly<{
-    paths?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
-    components?: Readonly<{ schemas?: Readonly<Record<string, unknown>> }>;
-  }>;
-  const leaderboardPath = openApiDocument.paths?.["/me/progress/leaderboards/streak"];
-  const schemas = openApiDocument.components?.schemas ?? {};
-  const leaderboardSchemas = Object.fromEntries(
-    Object.entries(schemas).filter(([name]) => name.startsWith("StreakLeaderboard")),
-  );
-  const serializedSchemas = JSON.stringify(leaderboardSchemas);
-
-  assert.notEqual(leaderboardPath?.get, undefined);
-  assert.notEqual(schemas.StreakLeaderboardResponse, undefined);
-  for (const expectedField of [
-    "status",
-    "metricVersion",
-    "streakDays",
-    "anonymousDisplayName",
-    "friendDisplayName",
-    "publicProfileId",
-    "rank",
-    "snapshotId",
-    "snapshotGeneratedAt",
-    "asOfUtcDate",
-    "nextRefreshAfter",
-    "participantCount",
-    "rankingRows",
-  ]) {
-    assert.equal(serializedSchemas.includes(expectedField), true, `OpenAPI must document ${expectedField}`);
-  }
-  for (const internalField of [
-    "defaultWindowKey",
-    "windowKey",
-    "windows",
-    "qualifiedReviewCount",
-    "userId",
-    "friend_user_id",
-    "friendUserId",
-    "friend_public_profile_id",
-    "friendPublicProfileId",
-    "created_from_invitation_id",
-    "friendInvitationId",
-    "inviter_user_id",
-    "inviterUserId",
-    "createdFromInvitationId",
-    "baseSort",
-    "reviewed_by",
-    "reviewedBy",
-    "email",
-  ]) {
-    assert.equal(serializedSchemas.includes(internalField), false, `OpenAPI must not expose ${internalField}`);
-  }
 });

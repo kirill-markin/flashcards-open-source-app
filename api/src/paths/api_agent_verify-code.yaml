@@ -78,7 +78,7 @@ post:
               is selected, use POST /v1/agent/sql for all data access. For
               routine low-risk writes, a clear user request already counts as
               permission. Ask again only for risky or unclear actions. Use
-              docs.openapiUrl for the full contract.
+              docs.openapiUrl for the published external agent contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
               swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
