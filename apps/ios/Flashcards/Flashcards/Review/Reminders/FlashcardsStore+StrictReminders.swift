@@ -243,9 +243,17 @@ extension FlashcardsStore {
         let appStateBeforeAdd: String = currentAppNotificationApplicationStateDiagnosticValue()
         var addFailure: Error?
         var failedRequestId: String?
+        var attemptedPayloads: [ScheduledStrictReminderPayload] = []
         for payload in payloads {
             guard Task.isCancelled == false else {
                 return
+            }
+            let addNow = Date()
+            guard isFutureNotificationPayload(
+                scheduledAtMillis: payload.scheduledAtMillis,
+                now: addNow
+            ) else {
+                continue
             }
             let content = UNMutableNotificationContent()
             content.title = appDisplayName()
@@ -253,15 +261,16 @@ extension FlashcardsStore {
             content.sound = .default
             content.userInfo = buildStrictReminderNotificationUserInfo(scope: notificationScope)
 
-            let interval = max(1, TimeInterval(payload.scheduledAtMillis) / 1_000 - request.now.timeIntervalSince1970)
-            let request = UNNotificationRequest(
+            let interval = max(1, TimeInterval(payload.scheduledAtMillis) / 1_000 - addNow.timeIntervalSince1970)
+            let notificationRequest = UNNotificationRequest(
                 identifier: payload.requestId,
                 content: content,
                 trigger: UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
             )
 
+            attemptedPayloads.append(payload)
             do {
-                try await center.add(request)
+                try await center.add(notificationRequest)
             } catch {
                 addFailure = error
                 failedRequestId = payload.requestId
@@ -282,17 +291,26 @@ extension FlashcardsStore {
             return
         }
         let appStateAfterReadback: String = currentAppNotificationApplicationStateDiagnosticValue()
-        let acceptedPayloads: [ScheduledStrictReminderPayload] = acceptedStrictReminderPayloads(
-            payloads: payloads,
+        let readbackNow = Date()
+        let expectedPayloads: [ScheduledStrictReminderPayload] = futureStrictReminderPayloads(
+            payloads: attemptedPayloads,
+            now: readbackNow
+        )
+        let acceptedAttemptedPayloads: [ScheduledStrictReminderPayload] = acceptedStrictReminderPayloads(
+            payloads: attemptedPayloads,
             pendingRequestIdentifiers: pendingAfterRequestIdentifiers
         )
-        let hasReadbackMismatch: Bool = addFailure == nil && acceptedPayloads.count != payloads.count
+        let acceptedExpectedPayloads: [ScheduledStrictReminderPayload] = acceptedStrictReminderPayloads(
+            payloads: expectedPayloads,
+            pendingRequestIdentifiers: pendingAfterRequestIdentifiers
+        )
+        let hasReadbackMismatch: Bool = addFailure == nil && acceptedExpectedPayloads.count != expectedPayloads.count
         var delayedReadback: DelayedNotificationSchedulingReadback?
         if hasReadbackMismatch {
             do {
                 delayedReadback = try await delayedNotificationSchedulingReadback(
                     center: center,
-                    plannedRequestIdentifiers: payloads.map(\.requestId),
+                    plannedRequestIdentifiers: expectedPayloads.map(\.requestId),
                     delayNanoseconds: notificationSchedulingDelayedReadbackNanoseconds
                 )
             } catch is CancellationError {
@@ -312,12 +330,18 @@ extension FlashcardsStore {
                 return
             }
         }
+        let diagnosticPayloads: [ScheduledStrictReminderPayload]
+        if addFailure == nil {
+            diagnosticPayloads = expectedPayloads
+        } else {
+            diagnosticPayloads = attemptedPayloads
+        }
         let diagnostics: NotificationSchedulingDiagnostics = makeNotificationSchedulingDiagnostics(
             trigger: strictRemindersReconcileTriggerDiagnosticValue(triggers: request.triggers),
-            scheduledAtMillisRange: strictReminderScheduledAtMillisRange(payloads: payloads),
+            scheduledAtMillisRange: strictReminderScheduledAtMillisRange(payloads: diagnosticPayloads),
             delaySecondsRange: strictReminderSchedulingDelaySecondsRange(
-                payloads: payloads,
-                now: request.now
+                payloads: diagnosticPayloads,
+                now: readbackNow
             ),
             pendingBeforeRequestIdentifiers: pendingBeforeRequestIdentifiers,
             pendingAfterRequestIdentifiers: pendingAfterRequestIdentifiers,
@@ -347,8 +371,8 @@ extension FlashcardsStore {
                         workspaceId: self.workspace?.workspaceId,
                         requestId: failedRequestId,
                         stage: "add",
-                        plannedCount: payloads.count,
-                        acceptedCount: acceptedPayloads.count,
+                        plannedCount: attemptedPayloads.count,
+                        acceptedCount: acceptedAttemptedPayloads.count,
                         diagnostics: diagnostics,
                         error: addFailure,
                         messageSummary: nil
@@ -375,8 +399,8 @@ extension FlashcardsStore {
                         workspaceId: self.workspace?.workspaceId,
                         requestId: nil,
                         stage: "readback",
-                        plannedCount: payloads.count,
-                        acceptedCount: acceptedPayloads.count,
+                        plannedCount: expectedPayloads.count,
+                        acceptedCount: acceptedExpectedPayloads.count,
                         diagnostics: diagnostics,
                         error: nil,
                         messageSummary: "Notification Center accepted fewer strict reminders than planned"
@@ -384,6 +408,6 @@ extension FlashcardsStore {
                 )
             )
         }
-        self.persistScheduledStrictReminders(payloads: acceptedPayloads)
+        self.persistScheduledStrictReminders(payloads: acceptedExpectedPayloads)
     }
 }

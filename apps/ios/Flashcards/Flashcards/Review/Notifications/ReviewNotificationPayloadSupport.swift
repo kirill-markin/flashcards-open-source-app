@@ -260,3 +260,15 @@ func acceptedReviewNotificationPayloads(
         pendingRequestIdentifierSet.contains(payload.requestId)
     }
 }
+
+func futureReviewNotificationPayloads(
+    payloads: [ScheduledReviewNotificationPayload],
+    now: Date
+) -> [ScheduledReviewNotificationPayload] {
+    payloads.filter { payload in
+        isFutureNotificationPayload(
+            scheduledAtMillis: payload.scheduledAtMillis,
+            now: now
+        )
+    }
+}
