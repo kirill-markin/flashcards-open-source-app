@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 import type pg from "pg";
-import type { DatabaseExecutor, SqlValue } from "../../database";
+import type { DatabaseExecutor, SqlValue } from "../../../database";
 import {
   STREAK_LEADERBOARD_SNAPSHOT_BATCH_SIZE,
   STREAK_LEADERBOARD_SNAPSHOT_METRIC_VERSION,
@@ -248,12 +248,12 @@ test("streak leaderboard executor helpers use the dedicated snapshot database fu
 test("production streak leaderboard snapshot generation uses one repeatable-read transaction", () => {
   const sourcePath = resolve(
     process.cwd(),
-    "src/community/leaderboard/streakLeaderboardSnapshots.ts",
+    "src/community/leaderboard/streak/streakLeaderboardSnapshots.ts",
   );
   const source = readFileSync(sourcePath, "utf8").replace(/\s+/g, " ");
 
   assert.equal(STREAK_LEADERBOARD_SNAPSHOT_BATCH_SIZE, 500);
-  assert.match(source, /import \{ unsafeRepeatableReadTransaction \} from "\.\.\/\.\.\/database\/unsafe"/);
+  assert.match(source, /import \{ unsafeRepeatableReadTransaction \} from "\.\.\/\.\.\/\.\.\/database\/unsafe"/);
   assert.match(source, /withTransactionFn: unsafeRepeatableReadTransaction/);
 });
 

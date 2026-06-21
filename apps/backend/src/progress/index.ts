@@ -40,13 +40,13 @@ export {
   loadProgressLeaderboardInExecutor,
   type ProgressLeaderboard,
   type ProgressLeaderboardRequest,
-} from "../community/leaderboard/progressLeaderboard";
+} from "../community/leaderboard/progress/progressLeaderboard";
 export {
   loadStreakLeaderboard,
   loadStreakLeaderboardInExecutor,
   type StreakLeaderboard,
   type StreakLeaderboardRequest,
-} from "../community/leaderboard/streakLeaderboard";
+} from "../community/leaderboard/streak/streakLeaderboard";
 
 export type ProgressSummaryInput = Readonly<{
   timeZone: string;

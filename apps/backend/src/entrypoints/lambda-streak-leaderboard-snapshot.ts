@@ -7,7 +7,7 @@ import {
   normalizeCaughtError,
   wrapBackendHandler,
 } from "../observability/sentry";
-import { STREAK_LEADERBOARD_SNAPSHOT_METRIC_VERSION } from "../community/leaderboard/streakLeaderboardSnapshots";
+import { STREAK_LEADERBOARD_SNAPSHOT_METRIC_VERSION } from "../community/leaderboard/streak/streakLeaderboardSnapshots";
 import { withTransientDatabaseRetry } from "../database/transient";
 
 initializeBackendSentry("streak-leaderboard-snapshot");
@@ -24,13 +24,13 @@ type StreakLeaderboardSnapshotResponse = Readonly<{
 }>;
 
 type StreakLeaderboardSnapshotRuntime = Readonly<{
-  generateStreakLeaderboardSnapshots: typeof import("../community/leaderboard/streakLeaderboardSnapshots").generateStreakLeaderboardSnapshots;
+  generateStreakLeaderboardSnapshots: typeof import("../community/leaderboard/streak/streakLeaderboardSnapshots").generateStreakLeaderboardSnapshots;
 }>;
 
 let streakLeaderboardSnapshotRuntimePromise: Promise<StreakLeaderboardSnapshotRuntime> | null = null;
 
 async function createStreakLeaderboardSnapshotRuntime(): Promise<StreakLeaderboardSnapshotRuntime> {
-  const { generateStreakLeaderboardSnapshots } = await import("../community/leaderboard/streakLeaderboardSnapshots");
+  const { generateStreakLeaderboardSnapshots } = await import("../community/leaderboard/streak/streakLeaderboardSnapshots");
   return {
     generateStreakLeaderboardSnapshots,
   };

@@ -1,18 +1,18 @@
 import {
   applyUserDatabaseScopeInExecutor,
   type DatabaseExecutor,
-} from "../../database";
-import { unsafeTransaction } from "../../database/unsafe";
-import type { AuthTransport } from "../../auth";
+} from "../../../database";
+import { unsafeTransaction } from "../../../database/unsafe";
+import type { AuthTransport } from "../../../auth";
 import {
   createAnonymousDisplayName,
   ensurePublicProfileForCurrentUserInExecutor,
-} from "../publicProfiles";
+} from "../../publicProfiles";
 import {
   getAnonymousDisplayNameWordPools,
   resolveAnonymousDisplayNameLocale,
   type AnonymousDisplayNameLocale,
-} from "../anonymousDisplayNames";
+} from "../../anonymousDisplayNames";
 import { STREAK_LEADERBOARD_SNAPSHOT_METRIC_VERSION } from "./streakLeaderboardSnapshots";
 
 /**
