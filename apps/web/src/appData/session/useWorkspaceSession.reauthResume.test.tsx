@@ -45,6 +45,7 @@ describe("useWorkspaceSession reauth resume", () => {
   });
 
   afterEach(async () => {
+    vi.useRealTimers();
     if (root !== null) {
       await act(async () => {
         root?.unmount();
@@ -115,6 +116,68 @@ describe("useWorkspaceSession reauth resume", () => {
     expect(latestState?.session?.userId).toBe("user-1");
     expect(latestState?.session?.csrfToken).toBe("csrf-resume");
     expect(isBrowserReauthRequired()).toBe(false);
+  });
+
+  it("catches rejecting focus resume tasks after surfacing the sync error", async () => {
+    seedBrowserStorage();
+    await seedIndexedDbState();
+
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-resume-1"))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-resume-2"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const resumeSyncError = Object.assign(new Error("Resume sync failed"), {
+      syncFailureWasCaptured: false,
+    });
+    const runSyncSilentlyMock = vi.fn(async (): Promise<void> => {
+      throw resumeSyncError;
+    });
+    const runSyncForWorkspaceMock = vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {});
+
+    await act(async () => {
+      root?.render(
+        <TestHarness
+          initialSessionLoadState="ready"
+          initialSessionVerificationState="unverified"
+          initialSession={seededSession}
+          initialActiveWorkspace={seededWorkspace}
+          initialAvailableWorkspaces={[seededWorkspace]}
+          onStateChange={(snapshot: HarnessSnapshot): void => {
+            latestState = snapshot;
+          }}
+          refreshWorkspaceViewMock={vi.fn(async (): Promise<void> => {})}
+          runSyncMock={vi.fn(async (): Promise<void> => {})}
+          runSyncSilentlyMock={runSyncSilentlyMock}
+          runSyncForWorkspaceMock={runSyncForWorkspaceMock}
+          discardWorkspaceSyncMock={vi.fn((_workspaceId: string): void => {})}
+          discardAllSyncWorkMock={createDiscardAllSyncWorkMock()}
+          resetUserScopedUiStateMock={vi.fn((): void => {})}
+          onActionsChange={null}
+        />,
+      );
+    });
+
+    await vi.waitFor(() => {
+      expect(latestState?.sessionVerificationState).toBe("verified");
+      expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
+    });
+    await flushEffects();
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    await vi.waitFor(() => {
+      expect(runSyncSilentlyMock).toHaveBeenCalledTimes(2);
+      expect(latestState?.errorMessage).toBe("Resume sync failed");
+    }, {
+      timeout: 2_000,
+    });
+
+    expect(latestState?.technicalError).toBeNull();
   });
 
   it("clears local data when resume confirms a different user", async () => {

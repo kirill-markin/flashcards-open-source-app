@@ -36,6 +36,7 @@ import { normalizeCaughtError } from "../../observability/webObservability";
 import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
 import { useTransientMessage } from "../../useTransientMessage";
 import type { Card, FeedbackPromptEventType, FeedbackSubmissionRequest } from "../../types";
+import { handleRefreshLocalDataError } from "../shared/refreshLocalDataError";
 import { isCardFormStateDirty } from "../cards/form/CardForm";
 import type { ReviewEditorModalProps } from "./components/ReviewEditorModal";
 import type { ReviewPaneProps } from "./components/ReviewPane";
@@ -497,8 +498,25 @@ export function useReviewScreenController(
     setIsAnswerVisible(true);
   }
 
-  function handleRetryReviewLoad(): void {
-    void refreshLocalData();
+  async function handleRetryReviewLoad(): Promise<void> {
+    try {
+      await refreshLocalData();
+    } catch (error) {
+      handleRefreshLocalDataError({
+        error,
+        context: {
+          feature: "sync",
+          operation: "refresh_local_metadata",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace?.workspaceId ?? null,
+          installationId: cloudSettings?.installationId ?? null,
+          entityId: activeWorkspace?.workspaceId ?? null,
+        },
+        setErrorMessage,
+        showCapturedTechnicalError,
+        technicalErrorMessage: t("appError.technicalError.message"),
+      });
+    }
   }
 
   function handleSwitchToAllCards(): void {

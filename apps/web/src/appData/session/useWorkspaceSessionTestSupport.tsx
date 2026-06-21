@@ -6,7 +6,12 @@ import { LOCALE_PREFERENCE_STORAGE_KEY } from "../../i18n/runtime";
 import { WARM_START_SNAPSHOT_STORAGE_KEY } from "./activation/warmStart";
 import { useWorkspaceSession } from "./useWorkspaceSession";
 import { putCloudSettings } from "../../localDb/sync/cloudSettings";
-import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../../types";
+import type {
+  CloudSettings,
+  ResetWorkspaceProgressResponse,
+  SessionInfo,
+  WorkspaceSummary,
+} from "../../types";
 import type { TranslationKey } from "../../i18n";
 import type { SessionLoadState } from "../context/types";
 import type { SessionVerificationState } from "./workspaceSessionTypes";
@@ -46,6 +51,10 @@ export type HarnessSnapshot = Readonly<{
 
 export type HarnessActions = Readonly<{
   deleteWorkspace: (workspaceId: string, confirmationText: string) => Promise<void>;
+  resetWorkspaceProgress: (
+    workspaceId: string,
+    confirmationText: string,
+  ) => Promise<ResetWorkspaceProgressResponse>;
 }>;
 
 export type CapturedWebBreadcrumb = Readonly<{
@@ -287,8 +296,9 @@ export function TestHarness(props: TestHarnessProps): ReactElement {
 
     onActionsChange({
       deleteWorkspace: actions.deleteWorkspace,
+      resetWorkspaceProgress: actions.resetWorkspaceProgress,
     });
-  }, [actions.deleteWorkspace, onActionsChange]);
+  }, [actions.deleteWorkspace, actions.resetWorkspaceProgress, onActionsChange]);
 
   useEffect(() => {
     onStateChange({

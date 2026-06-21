@@ -68,6 +68,7 @@ describe("useWorkspaceSession bootstrap", () => {
   });
 
   afterEach(async () => {
+    vi.useRealTimers();
     if (root !== null) {
       await act(async () => {
         root?.unmount();
@@ -249,6 +250,79 @@ describe("useWorkspaceSession bootstrap", () => {
     expect(observabilityMocks.captureWebExceptionMock).not.toHaveBeenCalled();
     expect(latestState?.sessionTechnicalError).toBeNull();
     expect(latestState?.technicalError).toBeNull();
+  });
+
+  it("catches rejecting visible interval sync tasks", async () => {
+    seedBrowserStorage();
+    await seedIndexedDbState();
+
+    let intervalHandler: (() => void) | null = null;
+    vi.spyOn(window, "setInterval").mockImplementation((handler: TimerHandler): number => {
+      if (typeof handler === "string") {
+        throw new Error("String interval handlers are not supported in this test");
+      }
+
+      intervalHandler = handler;
+      return 1;
+    });
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: (): DocumentVisibilityState => "visible",
+    });
+
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const intervalSyncError = new Error("Interval sync failed");
+    const runSyncMock = vi.fn(async (): Promise<void> => {
+      throw intervalSyncError;
+    });
+
+    await act(async () => {
+      root?.render(
+        <TestHarness
+          initialSessionLoadState="ready"
+          initialSessionVerificationState="unverified"
+          initialSession={seededSession}
+          initialActiveWorkspace={seededWorkspace}
+          initialAvailableWorkspaces={[seededWorkspace]}
+          onStateChange={(snapshot: HarnessSnapshot): void => {
+            latestState = snapshot;
+          }}
+          refreshWorkspaceViewMock={vi.fn(async (): Promise<void> => {})}
+          runSyncMock={runSyncMock}
+          runSyncSilentlyMock={vi.fn(async (): Promise<void> => {})}
+          runSyncForWorkspaceMock={vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {})}
+          discardWorkspaceSyncMock={vi.fn((_workspaceId: string): void => {})}
+          discardAllSyncWorkMock={createDiscardAllSyncWorkMock()}
+          resetUserScopedUiStateMock={vi.fn((): void => {})}
+          onActionsChange={null}
+        />,
+      );
+    });
+
+    await vi.waitFor(() => {
+      expect(latestState?.sessionLoadState).toBe("ready");
+      expect(latestState?.sessionVerificationState).toBe("verified");
+      expect(intervalHandler).not.toBeNull();
+    });
+
+    const visibleIntervalHandler = intervalHandler;
+    if (visibleIntervalHandler === null) {
+      throw new Error("Visible sync interval handler was not registered");
+    }
+
+    await act(async () => {
+      visibleIntervalHandler();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(runSyncMock).toHaveBeenCalledTimes(1);
+    expect(latestState?.sessionLoadState).toBe("ready");
+    expect(latestState?.sessionVerificationState).toBe("verified");
   });
 
   it("redirects after unrecoverable bootstrap auth failure, preserves local data, and skips the generic error state", async () => {

@@ -68,6 +68,10 @@ function isExpectedWorkspaceSessionApiError(error: Error): boolean {
   return false;
 }
 
+function runLifecycleTaskInBackground(task: Promise<void>): void {
+  void task.catch((): void => undefined);
+}
+
 export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): WorkspaceLifecycle {
   const {
     t,
@@ -358,12 +362,12 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
 
     const intervalId = window.setInterval(() => {
       if (document.visibilityState === "visible") {
-        void runSync();
+        runLifecycleTaskInBackground(runSync());
       }
     }, 60_000);
 
     const handleResume = (): void => {
-      void resumeInBackground();
+      runLifecycleTaskInBackground(resumeInBackground());
     };
 
     const handleFocus = (): void => {

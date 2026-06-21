@@ -38,6 +38,19 @@ function buildWorkspaceDeleteErrorResponse(message: string, code: string): Respo
   });
 }
 
+function buildResetWorkspaceProgressResponse(): Response {
+  return new Response(JSON.stringify({
+    ok: true,
+    workspaceId: "workspace-1",
+    cardsResetCount: 2,
+  }), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
 describe("useWorkspaceSession workspace deletion", () => {
   let container: HTMLDivElement | null = null;
   let root: ReactDOM.Root | null = null;
@@ -212,5 +225,82 @@ describe("useWorkspaceSession workspace deletion", () => {
     expect(latestState?.errorMessage).toBe(deleteErrorMessage);
     expect(latestState?.technicalError).toBeNull();
     expect(getObservabilityMocks().captureWebExceptionMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps reset progress post-sync failures in the background", async () => {
+    seedBrowserStorage();
+    await seedIndexedDbState();
+
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildResetWorkspaceProgressResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    const refreshWorkspaceViewMock = vi.fn(async (_workspaceId: string): Promise<void> => {});
+    const postResetSyncError = new Error("Post reset sync failed");
+    const runSyncMock = vi.fn(async (): Promise<void> => {
+      throw postResetSyncError;
+    });
+    const runSyncSilentlyMock = vi.fn(async (): Promise<void> => {});
+    const runSyncForWorkspaceMock = vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {});
+    const discardWorkspaceSyncMock = vi.fn((_workspaceId: string): void => {});
+    let latestActions: HarnessActions | null = null;
+
+    await act(async () => {
+      root?.render(
+        <TestHarness
+          initialSessionLoadState="ready"
+          initialSessionVerificationState="unverified"
+          initialSession={seededSession}
+          initialActiveWorkspace={seededWorkspace}
+          initialAvailableWorkspaces={[seededWorkspace]}
+          onStateChange={(snapshot: HarnessSnapshot): void => {
+            latestState = snapshot;
+          }}
+          refreshWorkspaceViewMock={refreshWorkspaceViewMock}
+          runSyncMock={runSyncMock}
+          runSyncSilentlyMock={runSyncSilentlyMock}
+          runSyncForWorkspaceMock={runSyncForWorkspaceMock}
+          discardWorkspaceSyncMock={discardWorkspaceSyncMock}
+          discardAllSyncWorkMock={createDiscardAllSyncWorkMock()}
+          resetUserScopedUiStateMock={vi.fn((): void => {})}
+          onActionsChange={(actions: HarnessActions): void => {
+            latestActions = actions;
+          }}
+        />,
+      );
+    });
+
+    await vi.waitFor(() => {
+      expect(latestState?.sessionLoadState).toBe("ready");
+      expect(latestState?.sessionVerificationState).toBe("verified");
+      expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
+    });
+    await flushEffects();
+
+    if (latestActions === null) {
+      throw new Error("Workspace session actions were not published");
+    }
+
+    let caughtError: unknown = null;
+    let resetResponseWorkspaceId: string | null = null;
+    await act(async () => {
+      try {
+        const resetResponse = await latestActions.resetWorkspaceProgress(
+          "workspace-1",
+          "reset all progress for all cards in this workspace",
+        );
+        resetResponseWorkspaceId = resetResponse.workspaceId;
+      } catch (error) {
+        caughtError = error;
+      }
+      await Promise.resolve();
+    });
+
+    expect(caughtError).toBeNull();
+    expect(resetResponseWorkspaceId).toBe("workspace-1");
+    expect(runSyncMock).toHaveBeenCalledTimes(1);
+    expect(latestState?.errorMessage).toBe("");
   });
  });

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { ApiError } from "../../../api";
 import type { Card } from "../../../types";
 import {
   clickElement,
@@ -147,6 +148,22 @@ describe("ReviewScreen controls", () => {
     expect(reviewPane.dataset.reviewPaneEmptyReason).toBe("no-cards");
     expect(getContainer().textContent).not.toContain("Cloud sync failed");
     expect(getContainer().querySelector(".error-banner")?.textContent).toContain("A technical error occurred.");
+
+    const expectedSyncError = new ApiError({
+      statusCode: 404,
+      message: "Workspace not found",
+      code: "WORKSPACE_NOT_FOUND",
+      requestId: "request-1",
+      endpoint: "POST /workspaces/workspace-1/sync/pull",
+      responseBodyKind: "json",
+    });
+    state.appData.refreshLocalData.mockRejectedValueOnce(expectedSyncError);
+
+    await clickElementAsync(retryButton);
+    await flushReviewScreenPromises();
+
+    expect(state.appData.refreshLocalData).toHaveBeenCalledTimes(1);
+    expect(state.appData.setErrorMessage).toHaveBeenCalledWith("Workspace not found");
   });
 
   it("renders compact review header controls with scope before streak", async () => {

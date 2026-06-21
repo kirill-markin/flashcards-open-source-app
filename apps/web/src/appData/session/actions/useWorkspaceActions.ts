@@ -80,6 +80,10 @@ function isExpectedWorkspaceActionApiError(error: Error): boolean {
     );
 }
 
+function runWorkspaceActionTaskInBackground(task: Promise<void>): void {
+  void task.catch((): void => undefined);
+}
+
 export function useWorkspaceActions(params: UseWorkspaceActionsParams): WorkspaceSessionCommands {
   const {
     t,
@@ -386,7 +390,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
     try {
       const response = await resetWorkspaceProgressRequest(workspaceId, confirmationText);
       if (activeWorkspace?.workspaceId === workspaceId) {
-        void runSync();
+        runWorkspaceActionTaskInBackground(runSync());
       }
       setErrorMessage("");
       return response;
