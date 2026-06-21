@@ -19,6 +19,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.SyncOperation
 import com.flashcardsopensourceapp.data.local.model.sync.SyncOperationPayload
 import com.flashcardsopensourceapp.data.local.model.sync.WorkspaceSchedulerSettingsSyncPayload
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinitionJsonObject
 import com.flashcardsopensourceapp.data.local.model.scheduling.decodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
