@@ -127,6 +127,7 @@ extension AIChatStore {
             messages: [],
             chatSessionId: self.chatSessionId,
             lastKnownChatFeatures: self.serverChatConfig.features,
+            composerSuggestions: [],
             pendingToolRunPostSync: false
         )
         self.conversationScopeId = self.chatSessionId
@@ -320,6 +321,7 @@ extension AIChatStore {
             inputText: restoredDraft.inputText,
             pendingAttachments: restoredDraft.pendingAttachments
         )
+        self.applyComposerSuggestions(persistedState.composerSuggestions)
         self.suppressDraftRestore = false
         if shouldSuppressDraftRestore {
             self.persistStateSynchronously(
@@ -327,6 +329,7 @@ extension AIChatStore {
                     messages: persistedState.messages,
                     chatSessionId: resolvedSessionId,
                     lastKnownChatFeatures: persistedState.lastKnownChatFeatures,
+                    composerSuggestions: persistedState.composerSuggestions,
                     pendingToolRunPostSync: persistedState.pendingToolRunPostSync,
                     requiresRemoteSessionProvisioning: persistedState.requiresRemoteSessionProvisioning,
                     suppressDraftRestore: false

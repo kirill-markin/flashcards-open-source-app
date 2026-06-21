@@ -355,6 +355,7 @@ extension AIChatStore {
 
         case .composerSuggestionsUpdated(metadata: _, suggestions: let suggestions):
             self.applyComposerSuggestions(suggestions)
+            self.schedulePersistCurrentState()
             logAIChatStoreEvent(
                 action: "ai_live_composer_suggestions_applied",
                 metadata: [

@@ -150,6 +150,7 @@ final class AIChatUnknownContentTests: XCTestCase {
             ],
             chatSessionId: "session-1",
             lastKnownChatFeatures: nil,
+            composerSuggestions: [],
             pendingToolRunPostSync: false
         )
 

@@ -129,6 +129,7 @@ extension AIChatStore {
         let preSendState = preSendSnapshot.persistedState
         self.messages = preSendState.messages
         self.serverChatConfig = aiChatServerConfig(lastKnownFeatures: preSendState.lastKnownChatFeatures)
+        self.applyComposerSuggestions(preSendState.composerSuggestions)
         self.requiresRemoteSessionProvisioning = preSendSnapshot.requiresRemoteSessionProvisioning
         self.runHadToolCalls = preSendState.pendingToolRunPostSync
         self.pendingToolRunPostSync = preSendState.pendingToolRunPostSync
