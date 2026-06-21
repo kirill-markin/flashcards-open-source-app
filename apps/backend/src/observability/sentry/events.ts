@@ -186,6 +186,19 @@ export type ProgressLeaderboardDetails = Readonly<{
   windowCount: number | null;
 }>;
 
+export type LeaderboardProfileDetails = Readonly<{
+  statusCode: number;
+  authTransport: string;
+  status: string | null;
+  isFriend: boolean | null;
+  currentStreakDays: number | null;
+  bestRatingWindowKey: string | null;
+  bestRatingRank: number | null;
+  reviewActivityDayCount: number | null;
+  totalCards: number | null;
+  generatedAt: string | null;
+}>;
+
 export type StreakLeaderboardDetails = Readonly<{
   statusCode: number;
   authTransport: string;
@@ -687,6 +700,8 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"me_progress_series_error", FailureDetailsFor<ProgressSeriesDetails>>
   | EventByAction<"me_progress_leaderboard", ProgressLeaderboardDetails>
   | EventByAction<"me_progress_leaderboard_error", FailureDetailsFor<ProgressLeaderboardDetails>>
+  | EventByAction<"me_progress_leaderboard_profile", LeaderboardProfileDetails>
+  | EventByAction<"me_progress_leaderboard_profile_error", FailureDetailsFor<LeaderboardProfileDetails>>
   | EventByAction<"me_progress_streak_leaderboard", StreakLeaderboardDetails>
   | EventByAction<"me_progress_streak_leaderboard_error", FailureDetailsFor<StreakLeaderboardDetails>>
   | EventByAction<"account_delete", AccountDeleteDetails>
@@ -806,6 +821,10 @@ export type BackendExceptionEvent =
   | (EventByAction<"me_progress_review_schedule_error", FailureDetailsFor<ProgressReviewScheduleDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"me_progress_series_error", FailureDetailsFor<ProgressSeriesDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"me_progress_leaderboard_error", FailureDetailsFor<ProgressLeaderboardDetails>> & Readonly<{ error: Error }>)
+  | (
+    EventByAction<"me_progress_leaderboard_profile_error", FailureDetailsFor<LeaderboardProfileDetails>>
+    & Readonly<{ error: Error }>
+  )
   | (
     EventByAction<"me_progress_streak_leaderboard_error", FailureDetailsFor<StreakLeaderboardDetails>>
     & Readonly<{ error: Error }>

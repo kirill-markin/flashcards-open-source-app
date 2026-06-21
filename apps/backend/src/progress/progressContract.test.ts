@@ -4,6 +4,8 @@ import path from "node:path";
 import test from "node:test";
 import { loadOpenApiDocument } from "../shared/openapi";
 import {
+  loadLeaderboardProfile,
+  loadLeaderboardProfileInExecutor,
   loadProgressLeaderboard,
   loadProgressLeaderboardInExecutor,
 } from "./index";
@@ -40,6 +42,7 @@ test("published contract excludes progress endpoints while the API Gateway resou
 
 test("progress barrel re-exports the community leaderboard loaders", async () => {
   assert.equal(typeof loadProgressLeaderboardInExecutor, "function");
+  assert.equal(typeof loadLeaderboardProfileInExecutor, "function");
 
   // The re-export resolves to the real loader: a guest returns the linked-account
   // state without opening a transaction, so this runs offline.
@@ -51,6 +54,15 @@ test("progress barrel re-exports the community leaderboard loaders", async () =>
 
   assert.equal(guestLeaderboard.status, "linked_account_required");
   assert.deepEqual(guestLeaderboard.windows, []);
+
+  const guestProfile = await loadLeaderboardProfile({
+    userId: "user-guest",
+    transport: "guest",
+    localeHint: "en",
+    publicProfileId: "00000000-0000-4000-8000-000000000001",
+  });
+
+  assert.deepEqual(guestProfile, { status: "linked_account_required" });
 });
 
 test("public progress streak loaders retry transient repeatable-read materialization failures", () => {
@@ -82,5 +94,18 @@ test("published contract documents the progress leaderboard and the API Gateway 
   assert.match(
     apiGatewaySource,
     /meProgress\.addResource\("leaderboard"\)\.addMethod\("GET", integration\);/,
+  );
+});
+
+test("published contract documents leaderboard profiles and the API Gateway predeclares them", () => {
+  const openApiDocument = loadOpenApiDocument() as Readonly<{
+    paths?: Readonly<Record<string, unknown>>;
+  }>;
+  assert.notEqual(openApiDocument.paths?.["/me/progress/leaderboards/profiles/{publicProfileId}"], undefined);
+
+  const apiGatewaySource = loadApiGatewaySource();
+  assert.match(
+    apiGatewaySource,
+    /meProgressLeaderboardProfiles\.addResource\("\{publicProfileId\}"\)\.addMethod\("GET", integration\);/,
   );
 });

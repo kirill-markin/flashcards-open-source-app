@@ -10,6 +10,8 @@ import type {
 } from "../../community/friendInvitations";
 import type { PublicProfile } from "../../community/publicProfiles";
 import type {
+  LeaderboardProfile,
+  LeaderboardProfileRequest,
   ProgressLeaderboard,
   ProgressLeaderboardRequest,
   ProgressReviewSchedule,
@@ -44,6 +46,7 @@ type SystemTestAppOptions = Readonly<{
   loadUserProgressReviewScheduleFn?: (args: ProgressReviewScheduleRequest) => Promise<ProgressReviewSchedule>;
   loadUserProgressSeriesFn?: (args: ProgressSeriesRequest) => Promise<ProgressSeries>;
   loadUserProgressSummaryFn?: (args: ProgressSummaryRequest) => Promise<ProgressSummaryResponse>;
+  loadLeaderboardProfileFn?: (args: LeaderboardProfileRequest) => Promise<LeaderboardProfile>;
   loadProgressLeaderboardFn?: (args: ProgressLeaderboardRequest) => Promise<ProgressLeaderboard>;
   loadStreakLeaderboardFn?: (args: StreakLeaderboardRequest) => Promise<StreakLeaderboard>;
 }>;
@@ -219,6 +222,35 @@ export function createProgressLeaderboard(): ProgressLeaderboard {
   };
 }
 
+export function createLeaderboardProfile(): LeaderboardProfile {
+  return {
+    status: "ready",
+    publicProfileId: "a1d2c3b4-5e6f-4a8b-9c0d-1e2f3a4b5c6d",
+    anonymousDisplayName: "Silver Bright Harbor",
+    friendDisplayName: "Pat",
+    isFriend: true,
+    metrics: {
+      currentStreakDays: 5,
+      bestRatingPlacement: {
+        windowKey: "last_24_hours",
+        rank: 1,
+      },
+    },
+    reviewActivity: {
+      dateBasis: "profile_local_day_with_utc_fallback",
+      days: [
+        { date: "2026-05-23", reviewCount: 0 },
+        { date: "2026-05-24", reviewCount: 2 },
+      ],
+    },
+    stats: {
+      joinedAt: "2026-05-01T10:00:00.000Z",
+      totalCards: 72,
+    },
+    generatedAt: "2026-06-21T12:34:56.000Z",
+  };
+}
+
 export function createStreakLeaderboard(): StreakLeaderboard {
   return {
     status: "ready",
@@ -325,6 +357,7 @@ export function createSystemTestApp(options: SystemTestAppOptions): Hono<AppEnv>
     loadUserProgressReviewScheduleFn: options.loadUserProgressReviewScheduleFn,
     loadUserProgressSeriesFn: options.loadUserProgressSeriesFn,
     loadUserProgressSummaryFn: options.loadUserProgressSummaryFn,
+    loadLeaderboardProfileFn: options.loadLeaderboardProfileFn,
     loadProgressLeaderboardFn: options.loadProgressLeaderboardFn,
     loadStreakLeaderboardFn: options.loadStreakLeaderboardFn,
   }));

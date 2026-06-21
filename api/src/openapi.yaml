@@ -540,6 +540,131 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /me/progress/leaderboards/profiles/{publicProfileId}:
+    get:
+      tags:
+        - bootstrap
+      summary: Load a public leaderboard profile summary
+      description: >-
+        Returns a privacy-limited aggregate profile summary for an opted-in
+        public profile that already participates in a public Progress
+        leaderboard, or for the viewer's own opted-in public profile. Guests
+        receive status linked_account_required and opted-out viewers receive
+        participation_disabled. Ineligible or unknown target profiles receive
+        profile_unavailable. Ready responses expose only the opaque public
+        profile id, locale-derived anonymous display name, optional
+        viewer-private friendDisplayName, aggregate leaderboard metrics, 30
+        zero-filled profile-local review activity days with UTC fallback for old
+        reviews, joinedAt, totalCards, and generatedAt. Timezone names, internal
+        user ids, emails, workspace ids, deck ids, card ids, and raw review
+        timestamps are never returned.
+      security:
+        - BearerAuth: []
+        - GuestAuthorizationHeader: []
+        - SessionCookie: []
+      parameters:
+        - name: publicProfileId
+          in: path
+          required: true
+          schema:
+            $ref: ./components/schemas/UuidString.yaml
+      responses:
+        '200':
+          description: Public leaderboard profile summary envelope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardProfileResponse'
+              example:
+                status: ready
+                publicProfileId: a1d2c3b4-5e6f-4a8b-9c0d-1e2f3a4b5c6d
+                anonymousDisplayName: Silver Bright Harbor
+                friendDisplayName: Pat
+                isFriend: true
+                metrics:
+                  currentStreakDays: 5
+                  bestRatingPlacement:
+                    windowKey: last_24_hours
+                    rank: 1
+                reviewActivity:
+                  dateBasis: profile_local_day_with_utc_fallback
+                  days:
+                    - date: '2026-05-23'
+                      reviewCount: 0
+                    - date: '2026-05-24'
+                      reviewCount: 2
+                    - date: '2026-05-25'
+                      reviewCount: 0
+                    - date: '2026-05-26'
+                      reviewCount: 0
+                    - date: '2026-05-27'
+                      reviewCount: 1
+                    - date: '2026-05-28'
+                      reviewCount: 0
+                    - date: '2026-05-29'
+                      reviewCount: 0
+                    - date: '2026-05-30'
+                      reviewCount: 3
+                    - date: '2026-05-31'
+                      reviewCount: 0
+                    - date: '2026-06-01'
+                      reviewCount: 5
+                    - date: '2026-06-02'
+                      reviewCount: 0
+                    - date: '2026-06-03'
+                      reviewCount: 0
+                    - date: '2026-06-04'
+                      reviewCount: 0
+                    - date: '2026-06-05'
+                      reviewCount: 4
+                    - date: '2026-06-06'
+                      reviewCount: 0
+                    - date: '2026-06-07'
+                      reviewCount: 0
+                    - date: '2026-06-08'
+                      reviewCount: 0
+                    - date: '2026-06-09'
+                      reviewCount: 2
+                    - date: '2026-06-10'
+                      reviewCount: 0
+                    - date: '2026-06-11'
+                      reviewCount: 0
+                    - date: '2026-06-12'
+                      reviewCount: 1
+                    - date: '2026-06-13'
+                      reviewCount: 0
+                    - date: '2026-06-14'
+                      reviewCount: 0
+                    - date: '2026-06-15'
+                      reviewCount: 0
+                    - date: '2026-06-16'
+                      reviewCount: 0
+                    - date: '2026-06-17'
+                      reviewCount: 3
+                    - date: '2026-06-18'
+                      reviewCount: 0
+                    - date: '2026-06-19'
+                      reviewCount: 0
+                    - date: '2026-06-20'
+                      reviewCount: 2
+                    - date: '2026-06-21'
+                      reviewCount: 1
+                stats:
+                  joinedAt: '2026-05-01T10:00:00.000Z'
+                  totalCards: 72
+                generatedAt: '2026-06-21T12:34:56.000Z'
+        '403':
+          description: Forbidden authentication transport
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        default:
+          description: Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /me/progress/leaderboards/streak:
     get:
       tags:
@@ -991,6 +1116,137 @@ components:
           description: Empty unless status is ready; otherwise one item per leaderboard window.
           items:
             $ref: '#/components/schemas/ProgressLeaderboardWindow'
+    LeaderboardProfileRatingPlacement:
+      type: object
+      additionalProperties: false
+      required:
+        - windowKey
+        - rank
+      properties:
+        windowKey:
+          $ref: '#/components/schemas/LeaderboardWindowKey'
+        rank:
+          type: integer
+          minimum: 1
+          description: Best rank from the latest public rating snapshots.
+    LeaderboardProfileMetrics:
+      type: object
+      additionalProperties: false
+      required:
+        - currentStreakDays
+        - bestRatingPlacement
+      properties:
+        currentStreakDays:
+          type: integer
+          minimum: 0
+          description: Latest public streak snapshot value for the profile, or 0 when absent.
+        bestRatingPlacement:
+          anyOf:
+            - $ref: '#/components/schemas/LeaderboardProfileRatingPlacement'
+            - type: 'null'
+          description: >-
+            Lowest rank from latest rating snapshots across all canonical
+            windows. Tied ranks prefer the shortest window order.
+    LeaderboardProfileReviewActivityDay:
+      type: object
+      additionalProperties: false
+      required:
+        - date
+        - reviewCount
+      properties:
+        date:
+          type: string
+          format: date
+        reviewCount:
+          type: integer
+          minimum: 0
+    LeaderboardProfileReviewActivity:
+      type: object
+      additionalProperties: false
+      required:
+        - dateBasis
+        - days
+      properties:
+        dateBasis:
+          type: string
+          enum:
+            - profile_local_day_with_utc_fallback
+          description: >-
+            Dates use stored profile-local review days when present and UTC
+            dates only for older review events without stored local dates.
+        days:
+          type: array
+          minItems: 30
+          maxItems: 30
+          items:
+            $ref: '#/components/schemas/LeaderboardProfileReviewActivityDay'
+    LeaderboardProfileStats:
+      type: object
+      additionalProperties: false
+      required:
+        - joinedAt
+        - totalCards
+      properties:
+        joinedAt:
+          type: string
+          format: date-time
+          description: Public profile creation timestamp.
+        totalCards:
+          type: integer
+          minimum: 0
+          description: Aggregate active card count across workspaces where the profile owner is a member.
+    LeaderboardProfileReadyResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - publicProfileId
+        - anonymousDisplayName
+        - isFriend
+        - metrics
+        - reviewActivity
+        - stats
+        - generatedAt
+      properties:
+        status:
+          type: string
+          enum:
+            - ready
+        publicProfileId:
+          $ref: ./components/schemas/UuidString.yaml
+        anonymousDisplayName:
+          type: string
+          description: Locale-aware anonymous display label derived from the public profile id.
+        friendDisplayName:
+          type: string
+          description: Viewer-private friend label shown only when this profile is a current opted-in friend.
+        isFriend:
+          type: boolean
+        metrics:
+          $ref: '#/components/schemas/LeaderboardProfileMetrics'
+        reviewActivity:
+          $ref: '#/components/schemas/LeaderboardProfileReviewActivity'
+        stats:
+          $ref: '#/components/schemas/LeaderboardProfileStats'
+        generatedAt:
+          type: string
+          format: date-time
+    LeaderboardProfileNonReadyResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - linked_account_required
+            - participation_disabled
+            - profile_unavailable
+    LeaderboardProfileResponse:
+      oneOf:
+        - $ref: '#/components/schemas/LeaderboardProfileReadyResponse'
+        - $ref: '#/components/schemas/LeaderboardProfileNonReadyResponse'
     StreakLeaderboardMetric:
       type: object
       additionalProperties: false

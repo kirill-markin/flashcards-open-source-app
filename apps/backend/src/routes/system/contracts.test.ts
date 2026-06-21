@@ -125,6 +125,20 @@ test("API Gateway predeclares /me/progress/leaderboards/streak", () => {
   );
 });
 
+test("API Gateway predeclares /me/progress/leaderboards/profiles/{publicProfileId}", () => {
+  const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
+  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+
+  assert.match(
+    apiGatewaySource,
+    /const meProgressLeaderboardProfiles = meProgressLeaderboards\.addResource\("profiles"\);/,
+  );
+  assert.match(
+    apiGatewaySource,
+    /meProgressLeaderboardProfiles\.addResource\("\{publicProfileId\}"\)\.addMethod\("GET", integration\);/,
+  );
+});
+
 test("published OpenAPI documents the progress leaderboard without internal ids", () => {
   const openApiDocument = loadOpenApiDocument() as Readonly<{
     paths?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
@@ -169,6 +183,50 @@ test("published OpenAPI documents the progress leaderboard without internal ids"
     "reviewed_by",
     "reviewedBy",
     "email",
+  ]) {
+    assert.equal(serializedSchemas.includes(internalField), false, `OpenAPI must not expose ${internalField}`);
+  }
+});
+
+test("published OpenAPI documents leaderboard profiles without internal ids or raw review timestamps", () => {
+  const openApiDocument = loadOpenApiDocument() as Readonly<{
+    paths?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+    components?: Readonly<{ schemas?: Readonly<Record<string, unknown>> }>;
+  }>;
+  const profilePath = openApiDocument.paths?.["/me/progress/leaderboards/profiles/{publicProfileId}"];
+  const schemas = openApiDocument.components?.schemas ?? {};
+  const profileSchemas = Object.fromEntries(
+    Object.entries(schemas).filter(([name]) => name.startsWith("LeaderboardProfile")),
+  );
+  const serializedSchemas = JSON.stringify(profileSchemas);
+
+  assert.notEqual(profilePath?.get, undefined);
+  assert.notEqual(schemas.LeaderboardProfileResponse, undefined);
+  for (const expectedField of [
+    "publicProfileId",
+    "anonymousDisplayName",
+    "friendDisplayName",
+    "isFriend",
+    "currentStreakDays",
+    "bestRatingPlacement",
+    "reviewActivity",
+    "profile_local_day_with_utc_fallback",
+    "joinedAt",
+    "totalCards",
+  ]) {
+    assert.equal(serializedSchemas.includes(expectedField), true, `OpenAPI must document ${expectedField}`);
+  }
+  for (const internalField of [
+    "userId",
+    "workspaceId",
+    "deckId",
+    "cardId",
+    "email",
+    "timeZone",
+    "reviewedAt",
+    "reviewed_at",
+    "reviewTimestamp",
+    "friendUserId",
   ]) {
     assert.equal(serializedSchemas.includes(internalField), false, `OpenAPI must not expose ${internalField}`);
   }

@@ -8,6 +8,7 @@ import type {
 } from "../../community/friendInvitations";
 import type { PublicProfile } from "../../community/publicProfiles";
 import type {
+  loadLeaderboardProfile,
   loadProgressLeaderboard,
   loadStreakLeaderboard,
   loadUserProgressReviewSchedule,
@@ -22,6 +23,7 @@ export type SystemRoutesOptions = Readonly<{
   loadUserProgressReviewScheduleFn?: typeof loadUserProgressReviewSchedule;
   loadUserProgressSeriesFn?: typeof loadUserProgressSeries;
   loadUserProgressSummaryFn?: typeof loadUserProgressSummary;
+  loadLeaderboardProfileFn?: typeof loadLeaderboardProfile;
   loadProgressLeaderboardFn?: typeof loadProgressLeaderboard;
   loadStreakLeaderboardFn?: typeof loadStreakLeaderboard;
   updateAccountPreferencesFn?: UpdateAccountPreferencesFn;
