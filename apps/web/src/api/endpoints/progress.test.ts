@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { ProgressReviewSchedule, StreakDay } from "../../types";
+import type { ProgressLeaderboardProfileReady, ProgressReviewSchedule, StreakDay } from "../../types";
 import { describe, expect, it, vi } from "vitest";
 import "./endpointsTestSupport";
 import {
@@ -10,6 +10,7 @@ import {
   swapFirstProgressReviewScheduleBuckets,
 } from "../ApiTestSupport";
 import {
+  loadProgressLeaderboardProfile,
   loadProgressReviewSchedule,
   loadProgressSeries,
   loadProgressStreakLeaderboard,
@@ -126,6 +127,39 @@ function createProgressStreakLeaderboardValue(): Readonly<{
       { kind: "participant", publicProfileId: "profile-1", anonymousDisplayName: "Silver Bright Harbor", streakDays: 5, rank: 1 },
       { kind: "viewer", publicProfileId: "viewer-profile", anonymousDisplayName: "Jade Swift River", streakDays: 3, rank: 2 },
     ],
+  };
+}
+
+function createProgressLeaderboardProfileActivityDays(): ProgressLeaderboardProfileReady["reviewActivity"]["days"] {
+  return Array.from({ length: 30 }, (_value, index) => ({
+    date: `2026-05-${String(index + 1).padStart(2, "0")}`,
+    reviewCount: index % 4,
+  }));
+}
+
+function createProgressLeaderboardProfileValue(publicProfileId: string): ProgressLeaderboardProfileReady {
+  return {
+    status: "ready",
+    publicProfileId,
+    anonymousDisplayName: "Silver Bright Harbor",
+    friendDisplayName: "Mina",
+    isFriend: true,
+    metrics: {
+      currentStreakDays: 6,
+      bestRatingPlacement: {
+        windowKey: "last_24_hours",
+        rank: 2,
+      },
+    },
+    reviewActivity: {
+      dateBasis: "profile_local_day_with_utc_fallback",
+      days: createProgressLeaderboardProfileActivityDays(),
+    },
+    stats: {
+      joinedAt: "2026-04-01T08:00:00.000Z",
+      totalCards: 42,
+    },
+    generatedAt: "2026-06-10T12:00:05.000Z",
   };
 }
 
@@ -460,6 +494,67 @@ describe("progress API endpoints", () => {
 
     await expect(loadProgressStreakLeaderboard()).rejects.toThrow(
       "Invalid API response for GET /me/progress/leaderboards/streak: rankingRows[2] must be the current viewer row before equal streak values",
+    );
+  });
+
+  it("decodes leaderboard profile responses from the encoded profile path", async () => {
+    const responseValue = createProgressLeaderboardProfileValue("profile/with space");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createJsonResponse({
+        ...responseValue,
+        ignoredField: "ignored",
+        metrics: {
+          ...responseValue.metrics,
+          ignoredMetric: true,
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressLeaderboardProfile("profile/with space")).resolves.toEqual(responseValue);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/v1/me/progress/leaderboards/profiles/profile%2Fwith%20space",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("decodes non-ready leaderboard profile responses", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createJsonResponse({
+        status: "profile_unavailable",
+        internalUserId: "ignored",
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressLeaderboardProfile("profile-1")).resolves.toEqual({
+      status: "profile_unavailable",
+    });
+  });
+
+  it("rejects leaderboard profile responses with invalid activity shape", async () => {
+    const responseValue = createProgressLeaderboardProfileValue("profile-1");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createJsonResponse({
+        ...responseValue,
+        reviewActivity: {
+          ...responseValue.reviewActivity,
+          days: responseValue.reviewActivity.days.slice(0, 29),
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressLeaderboardProfile("profile-1")).rejects.toThrow(
+      "Invalid API response for GET /me/progress/leaderboards/profiles/{publicProfileId}: reviewActivity.days must be 30 daily activity entries",
+    );
+  });
+
+  it("rejects leaderboard profile responses with a different public profile id", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createJsonResponse(createProgressLeaderboardProfileValue("profile-2")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressLeaderboardProfile("profile-1")).rejects.toThrow(
+      "Invalid API response for GET /me/progress/leaderboards/profiles/{publicProfileId}: publicProfileId must be \"profile-1\"",
     );
   });
 

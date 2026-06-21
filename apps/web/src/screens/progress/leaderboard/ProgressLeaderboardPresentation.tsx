@@ -25,6 +25,13 @@ export type ProgressLeaderboardDisplayRow =
   | ProgressLeaderboardDisplayGapRow
   | ProgressLeaderboardDisplayParticipantRow;
 
+export type ProgressLeaderboardProfileDialogSeed = Readonly<{
+  publicProfileId: string;
+  anonymousDisplayName: string;
+  friendDisplayName?: string;
+  displayName: string;
+}>;
+
 export function getProgressLeaderboardElapsedMinutes(snapshotGeneratedAt: string, now: Date): number {
   const snapshotTime = new Date(snapshotGeneratedAt).getTime();
   if (Number.isNaN(snapshotTime)) {
@@ -48,9 +55,10 @@ export function ProgressLeaderboardRows(props: Readonly<{
   rows: ReadonlyArray<ProgressLeaderboardDisplayRow>;
   paddingRowCount: number;
   paddingRowTestId: string;
+  onOpenProfile?: (profile: ProgressLeaderboardProfileDialogSeed) => void;
 }>): ReactElement {
   const { t, formatNumber } = useI18n();
-  const { rows, paddingRowCount, paddingRowTestId } = props;
+  const { rows, paddingRowCount, paddingRowTestId, onOpenProfile } = props;
 
   return (
     <ol className="progress-leaderboard-list">
@@ -72,15 +80,8 @@ export function ProgressLeaderboardRows(props: Readonly<{
         const displayName = row.kind === "viewer"
           ? t("progressScreen.leaderboard.you")
           : row.friendDisplayName ?? row.anonymousDisplayName;
-
-        return (
-          <li
-            key={`${row.publicProfileId}-${row.rank}`}
-            className={getParticipantRowClassName(row)}
-            data-kind={row.kind}
-            data-friend={row.friendDisplayName === undefined ? "false" : "true"}
-            data-testid={row.rowTestId}
-          >
+        const rowContent = (
+          <>
             <span className="progress-leaderboard-rank">
               {t("progressScreen.leaderboard.rankLabel", { rank: formatNumber(row.rank) })}
             </span>
@@ -90,6 +91,44 @@ export function ProgressLeaderboardRows(props: Readonly<{
             <span className="progress-leaderboard-count" data-testid={row.metricTestId}>
               {row.metricText}
             </span>
+          </>
+        );
+
+        if (onOpenProfile === undefined) {
+          return (
+            <li
+              key={`${row.publicProfileId}-${row.rank}`}
+              className={getParticipantRowClassName(row)}
+              data-kind={row.kind}
+              data-friend={row.friendDisplayName === undefined ? "false" : "true"}
+              data-testid={row.rowTestId}
+            >
+              {rowContent}
+            </li>
+          );
+        }
+
+        return (
+          <li
+            key={`${row.publicProfileId}-${row.rank}`}
+            className={`${getParticipantRowClassName(row)} progress-leaderboard-row-actionable`}
+            data-kind={row.kind}
+            data-friend={row.friendDisplayName === undefined ? "false" : "true"}
+            data-testid={row.rowTestId}
+          >
+            <button
+              type="button"
+              className="progress-leaderboard-row-button"
+              data-testid={`${row.rowTestId}-button`}
+              onClick={() => onOpenProfile({
+                publicProfileId: row.publicProfileId,
+                anonymousDisplayName: row.anonymousDisplayName,
+                friendDisplayName: row.friendDisplayName,
+                displayName,
+              })}
+            >
+              {rowContent}
+            </button>
           </li>
         );
       })}

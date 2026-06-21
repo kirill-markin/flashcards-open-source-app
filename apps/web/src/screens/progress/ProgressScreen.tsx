@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { useLocation } from "react-router-dom";
 import { useAppData } from "../../appData";
 import { useAppErrorDialog } from "../../appError/AppErrorContext";
@@ -13,9 +13,12 @@ import { resolveLocaleWeekContext, useI18n } from "../../i18n";
 import { progressLeaderboardHash, progressStreakHash } from "../../routes";
 import type {
   DailyReviewPoint,
+  ProgressLeaderboardProfile,
   ProgressLeaderboardWindowKey,
   ProgressReviewScheduleBucketKey,
 } from "../../types";
+import { ProgressLeaderboardProfileDialog } from "./leaderboard/ProgressLeaderboardProfileDialog";
+import type { ProgressLeaderboardProfileDialogSeed } from "./leaderboard/ProgressLeaderboardPresentation";
 import { ProgressLeaderboardSection } from "./leaderboard/ProgressLeaderboardSection";
 import { ProgressStreakLeaderboardSection } from "./leaderboard/ProgressStreakLeaderboardSection";
 import { ProgressReviewScheduleSection } from "./reviewSchedule/ProgressReviewScheduleSection";
@@ -82,6 +85,8 @@ export function ProgressScreen(): ReactElement {
   const [isStreakInfoVisible, setIsStreakInfoVisible] = useState<boolean>(false);
   const [isLeaderboardInfoVisible, setIsLeaderboardInfoVisible] = useState<boolean>(false);
   const [isStreakLeaderboardInfoVisible, setIsStreakLeaderboardInfoVisible] = useState<boolean>(false);
+  const [selectedLeaderboardProfile, setSelectedLeaderboardProfile] = useState<ProgressLeaderboardProfileDialogSeed | null>(null);
+  const [leaderboardProfileCache, setLeaderboardProfileCache] = useState<ReadonlyMap<string, ProgressLeaderboardProfile>>(() => new Map());
   const streakSectionRef = useRef<HTMLElement | null>(null);
   const leaderboardSectionRef = useRef<HTMLElement | null>(null);
   const shownTechnicalErrorRef = useRef<Error | null>(null);
@@ -139,6 +144,11 @@ export function ProgressScreen(): ReactElement {
       setSelectedLeaderboardWindowKey(null);
     }
   }, [location.hash, location.key]);
+
+  useEffect(() => {
+    setSelectedLeaderboardProfile(null);
+    setLeaderboardProfileCache(new Map());
+  }, [activeWorkspace?.workspaceId, cloudSettings?.linkedUserId]);
 
   useEffect(() => {
     if (progress === null) {
@@ -277,6 +287,19 @@ export function ProgressScreen(): ReactElement {
   const handleClearReviewScheduleSelection = (): void => {
     setSelectedReviewScheduleBucket(null);
   };
+  const handleOpenLeaderboardProfile = useCallback((profile: ProgressLeaderboardProfileDialogSeed): void => {
+    setSelectedLeaderboardProfile(profile);
+  }, []);
+  const handleLeaderboardProfileLoaded = useCallback((publicProfileId: string, profile: ProgressLeaderboardProfile): void => {
+    setLeaderboardProfileCache((previousCache) => {
+      const nextCache = new Map(previousCache);
+      nextCache.set(publicProfileId, profile);
+      return nextCache;
+    });
+  }, []);
+  const selectedLeaderboardCachedProfile = selectedLeaderboardProfile === null
+    ? null
+    : leaderboardProfileCache.get(selectedLeaderboardProfile.publicProfileId) ?? null;
 
   return (
     <main className="container">
@@ -323,6 +346,7 @@ export function ProgressScreen(): ReactElement {
               onSelectWindowKey={setSelectedLeaderboardWindowKey}
               isInfoVisible={isLeaderboardInfoVisible}
               onToggleInfo={() => setIsLeaderboardInfoVisible((previous) => previous === false)}
+              onOpenProfile={handleOpenLeaderboardProfile}
             />
 
             <ProgressStreakLeaderboardSection
@@ -330,6 +354,7 @@ export function ProgressScreen(): ReactElement {
               canRenderServerBase={canRenderLeaderboardServerBase}
               isInfoVisible={isStreakLeaderboardInfoVisible}
               onToggleInfo={() => setIsStreakLeaderboardInfoVisible((previous) => previous === false)}
+              onOpenProfile={handleOpenLeaderboardProfile}
             />
 
             <ProgressReviewsChartSection
@@ -363,6 +388,15 @@ export function ProgressScreen(): ReactElement {
             ) : null}
           </div>
         ) : null}
+
+        {selectedLeaderboardProfile === null ? null : (
+          <ProgressLeaderboardProfileDialog
+            initialProfile={selectedLeaderboardProfile}
+            cachedProfile={selectedLeaderboardCachedProfile}
+            onProfileLoaded={handleLeaderboardProfileLoaded}
+            onClose={() => setSelectedLeaderboardProfile(null)}
+          />
+        )}
       </section>
     </main>
   );

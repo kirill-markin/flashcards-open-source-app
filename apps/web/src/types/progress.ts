@@ -241,6 +241,60 @@ export type ProgressLeaderboardSnapshot = ProgressLeaderboard & Readonly<{
   isApproximate: boolean;
 }>;
 
+export const progressLeaderboardProfileStatuses = [
+  "ready",
+  "linked_account_required",
+  "participation_disabled",
+  "profile_unavailable",
+] as const;
+
+export type ProgressLeaderboardProfileStatus = typeof progressLeaderboardProfileStatuses[number];
+
+export type ProgressLeaderboardProfileBestRatingPlacement = Readonly<{
+  windowKey: ProgressLeaderboardWindowKey;
+  rank: number;
+}>;
+
+export type ProgressLeaderboardProfileMetrics = Readonly<{
+  currentStreakDays: number;
+  bestRatingPlacement: ProgressLeaderboardProfileBestRatingPlacement | null;
+}>;
+
+export type ProgressLeaderboardProfileReviewActivityDay = Readonly<{
+  date: string;
+  reviewCount: number;
+}>;
+
+export type ProgressLeaderboardProfileReviewActivity = Readonly<{
+  dateBasis: "profile_local_day_with_utc_fallback";
+  days: ReadonlyArray<ProgressLeaderboardProfileReviewActivityDay>;
+}>;
+
+export type ProgressLeaderboardProfileStats = Readonly<{
+  joinedAt: string;
+  totalCards: number;
+}>;
+
+export type ProgressLeaderboardProfileReady = Readonly<{
+  status: "ready";
+  publicProfileId: string;
+  anonymousDisplayName: string;
+  friendDisplayName?: string;
+  isFriend: boolean;
+  metrics: ProgressLeaderboardProfileMetrics;
+  reviewActivity: ProgressLeaderboardProfileReviewActivity;
+  stats: ProgressLeaderboardProfileStats;
+  generatedAt: string;
+}>;
+
+export type ProgressLeaderboardProfileNonReady = Readonly<{
+  status: Exclude<ProgressLeaderboardProfileStatus, "ready">;
+}>;
+
+export type ProgressLeaderboardProfile =
+  | ProgressLeaderboardProfileReady
+  | ProgressLeaderboardProfileNonReady;
+
 export const progressStreakLeaderboardStatuses = [
   "ready",
   "linked_account_required",

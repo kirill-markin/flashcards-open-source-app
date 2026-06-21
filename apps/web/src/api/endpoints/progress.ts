@@ -1,5 +1,6 @@
 import { ApiContractError } from "../../apiContracts/core";
 import {
+  parseProgressLeaderboardProfileResponse,
   parseProgressLeaderboardResponse,
   parseProgressReviewScheduleResponse,
   parseProgressSeriesResponse,
@@ -8,6 +9,7 @@ import {
 } from "../../apiContracts/progress";
 import type {
   ProgressLeaderboard,
+  ProgressLeaderboardProfile,
   ProgressReviewSchedule,
   ProgressReviewScheduleInput,
   ProgressSeries,
@@ -66,6 +68,24 @@ export async function loadProgressStreakLeaderboard(): Promise<ProgressStreakLea
     }, allowAuthRecoveryWithTransientNetworkRetry),
     "GET /me/progress/leaderboards/streak",
     parseProgressStreakLeaderboardResponse,
+  );
+}
+
+export async function loadProgressLeaderboardProfile(publicProfileId: string): Promise<ProgressLeaderboardProfile> {
+  const endpoint = "GET /me/progress/leaderboards/profiles/{publicProfileId}";
+  return parseContractResponse(
+    await requestJson(`/me/progress/leaderboards/profiles/${encodeURIComponent(publicProfileId)}`, {
+      method: "GET",
+    }, allowAuthRecoveryWithTransientNetworkRetry),
+    endpoint,
+    (value: unknown, parseEndpoint: string): ProgressLeaderboardProfile => {
+      const profile = parseProgressLeaderboardProfileResponse(value, parseEndpoint);
+      if (profile.status === "ready" && profile.publicProfileId !== publicProfileId) {
+        throw new ApiContractError(parseEndpoint, "publicProfileId", JSON.stringify(publicProfileId));
+      }
+
+      return profile;
+    },
   );
 }
 

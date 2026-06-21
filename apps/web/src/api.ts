@@ -46,6 +46,7 @@ export {
 } from "./api/endpoints/communityFriends";
 export {
   loadProgressLeaderboard,
+  loadProgressLeaderboardProfile,
   loadProgressReviewSchedule,
   loadProgressSeries,
   loadProgressStreakLeaderboard,

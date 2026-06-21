@@ -15,6 +15,7 @@ import { FriendInviteCreateDialog } from "../../friends/FriendInviteCreateDialog
 import {
   getProgressLeaderboardElapsedMinutes,
   ProgressLeaderboardRows,
+  type ProgressLeaderboardProfileDialogSeed,
   type ProgressLeaderboardDisplayRow,
 } from "./ProgressLeaderboardPresentation";
 
@@ -73,6 +74,7 @@ type ProgressLeaderboardBodyProps = Readonly<{
   canRenderServerBase: boolean;
   selectedWindowKey: ProgressLeaderboardWindowKey | null;
   onSelectWindowKey: (windowKey: ProgressLeaderboardWindowKey) => void;
+  onOpenProfile: (profile: ProgressLeaderboardProfileDialogSeed) => void;
 }>;
 
 type ProgressLeaderboardSectionProps = ProgressLeaderboardBodyProps & Readonly<{
@@ -129,7 +131,7 @@ function buildRatingLeaderboardRows(
 
 function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElement {
   const { t, formatNumber } = useI18n();
-  const { sourceState, canRenderServerBase, selectedWindowKey, onSelectWindowKey } = props;
+  const { sourceState, canRenderServerBase, selectedWindowKey, onSelectWindowKey, onOpenProfile } = props;
   const leaderboard = sourceState.renderedSnapshot;
 
   if (canRenderServerBase === false) {
@@ -214,6 +216,7 @@ function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElem
           rows={buildRatingLeaderboardRows(leaderboardWindow, formatNumber)}
           paddingRowCount={Math.max(0, reservedRowCount - leaderboardWindow.rows.length)}
           paddingRowTestId="progress-leaderboard-row-padding"
+          onOpenProfile={onOpenProfile}
         />
       )}
     </>
@@ -228,6 +231,7 @@ export function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProp
     canRenderServerBase,
     selectedWindowKey,
     onSelectWindowKey,
+    onOpenProfile,
     sectionId,
     sectionRef,
     isInfoVisible,
@@ -296,6 +300,7 @@ export function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProp
         canRenderServerBase={canRenderServerBase}
         selectedWindowKey={selectedWindowKey}
         onSelectWindowKey={onSelectWindowKey}
+        onOpenProfile={onOpenProfile}
       />
 
       {isInviteDialogOpen ? (
