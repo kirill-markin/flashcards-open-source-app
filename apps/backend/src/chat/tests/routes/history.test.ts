@@ -223,7 +223,6 @@ test("GET /chat preserves card content parts in snapshot history", async () => {
           frontText: "What is Rust?",
           backText: "A systems programming language.",
           tags: ["lang", "systems"],
-          effortLevel: "medium",
         }],
         timestamp: 1,
         isError: false,
@@ -252,7 +251,7 @@ test("GET /chat preserves card content parts in snapshot history", async () => {
             frontText: "What is Rust?",
             backText: "A systems programming language.",
             tags: ["lang", "systems"],
-            effortLevel: "medium",
+            effortLevel: "fast",
           }],
           timestamp: 1,
           isError: false,
@@ -351,4 +350,3 @@ test("GET /chat paginated history returns assistant item ids and sanitized conte
     activeRun: null,
   });
 });
-

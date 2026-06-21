@@ -33,7 +33,6 @@ export type CardContentPart = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: "fast" | "medium" | "long";
 }>;
 
 export type ToolCallContentPart = Readonly<{

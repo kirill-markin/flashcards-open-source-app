@@ -15,7 +15,6 @@ test("buildChatCompletionInput serializes card parts into deterministic XML befo
       frontText: "Q < 1",
       backText: "A & 2",
       tags: ["alpha", "beta"],
-      effortLevel: "long",
     },
     {
       type: "text",
@@ -33,7 +32,6 @@ test("buildChatCompletionInput serializes card parts into deterministic XML befo
       text: [
         "<attached_card>",
         "<card_id>card-1</card_id>",
-        "<effort_level>long</effort_level>",
         "<front_text>",
         "Q &lt; 1",
         "</front_text>",

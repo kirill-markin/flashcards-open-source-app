@@ -113,7 +113,7 @@ export async function executeSqlMutationStatement(
       userId: context.userId,
       connectionId: context.connectionId,
       actionName: "update_cards",
-      updates: targetIds.map((cardId) => buildCardUpdateInput(cardId, statement.assignments)),
+      updates: matchedRows.map((row) => buildCardUpdateInput(row, statement.assignments)),
     });
 
     return {
@@ -135,7 +135,7 @@ export async function executeSqlMutationStatement(
       userId: context.userId,
       connectionId: context.connectionId,
       actionName: "update_decks",
-      updates: targetIds.map((deckId) => buildDeckUpdateInput(deckId, statement.assignments)),
+      updates: matchedRows.map((row) => buildDeckUpdateInput(row, statement.assignments)),
     });
 
     return {

@@ -139,30 +139,30 @@ export function handleContentExecutorQuery<Row extends pg.QueryResultRow>(
       front_text: String(params[2]),
       back_text: String(params[3]),
       tags: Array.isArray(params[4]) ? params[4].map(String) : [],
-      effort_level: String(params[5]),
-      due_at: params[6] === null ? null : String(params[6]),
-      created_at: String(params[7]),
-      reps: Number(params[8]),
-      lapses: Number(params[9]),
-      fsrs_card_state: String(params[10]),
-      fsrs_step_index: params[11] === null ? null : Number(params[11]),
-      fsrs_stability: params[12] === null ? null : Number(params[12]),
-      fsrs_difficulty: params[13] === null ? null : Number(params[13]),
-      fsrs_last_reviewed_at: params[14] === null ? null : String(params[14]),
-      fsrs_scheduled_days: params[15] === null ? null : Number(params[15]),
-      client_updated_at: String(params[16]),
-      last_modified_by_replica_id: String(params[17]),
-      last_operation_id: String(params[18]),
-      updated_at: String(params[16]),
-      deleted_at: params[19] === null ? null : String(params[19]),
+      effort_level: "fast",
+      due_at: params[5] === null ? null : String(params[5]),
+      created_at: String(params[6]),
+      reps: Number(params[7]),
+      lapses: Number(params[8]),
+      fsrs_card_state: String(params[9]),
+      fsrs_step_index: params[10] === null ? null : Number(params[10]),
+      fsrs_stability: params[11] === null ? null : Number(params[11]),
+      fsrs_difficulty: params[12] === null ? null : Number(params[12]),
+      fsrs_last_reviewed_at: params[13] === null ? null : String(params[13]),
+      fsrs_scheduled_days: params[14] === null ? null : Number(params[14]),
+      client_updated_at: String(params[15]),
+      last_modified_by_replica_id: String(params[16]),
+      last_operation_id: String(params[17]),
+      updated_at: String(params[15]),
+      deleted_at: params[18] === null ? null : String(params[18]),
     };
     state.cards.push(insertedCard);
     return createQueryResult<Row>([createCardQueryRow(insertedCard) as unknown as Row]);
   }
 
   if (text.startsWith("UPDATE content.cards")) {
-    const workspaceId = String(params[17]);
-    const cardId = String(params[18]);
+    const workspaceId = String(params[16]);
+    const cardId = String(params[17]);
     const index = state.cards.findIndex((card) => card.workspace_id === workspaceId && card.card_id === cardId);
     if (index === -1) {
       return createQueryResult<Row>([]);
@@ -178,21 +178,21 @@ export function handleContentExecutorQuery<Row extends pg.QueryResultRow>(
       front_text: String(params[0]),
       back_text: String(params[1]),
       tags: Array.isArray(params[2]) ? params[2].map(String) : [],
-      effort_level: String(params[3]),
-      due_at: params[4] === null ? null : String(params[4]),
-      reps: Number(params[5]),
-      lapses: Number(params[6]),
-      fsrs_card_state: String(params[7]),
-      fsrs_step_index: params[8] === null ? null : Number(params[8]),
-      fsrs_stability: params[9] === null ? null : Number(params[9]),
-      fsrs_difficulty: params[10] === null ? null : Number(params[10]),
-      fsrs_last_reviewed_at: params[11] === null ? null : String(params[11]),
-      fsrs_scheduled_days: params[12] === null ? null : Number(params[12]),
-      deleted_at: params[13] === null ? null : String(params[13]),
-      client_updated_at: String(params[14]),
-      last_modified_by_replica_id: String(params[15]),
-      last_operation_id: String(params[16]),
-      updated_at: String(params[14]),
+      effort_level: "fast",
+      due_at: params[3] === null ? null : String(params[3]),
+      reps: Number(params[4]),
+      lapses: Number(params[5]),
+      fsrs_card_state: String(params[6]),
+      fsrs_step_index: params[7] === null ? null : Number(params[7]),
+      fsrs_stability: params[8] === null ? null : Number(params[8]),
+      fsrs_difficulty: params[9] === null ? null : Number(params[9]),
+      fsrs_last_reviewed_at: params[10] === null ? null : String(params[10]),
+      fsrs_scheduled_days: params[11] === null ? null : Number(params[11]),
+      deleted_at: params[12] === null ? null : String(params[12]),
+      client_updated_at: String(params[13]),
+      last_modified_by_replica_id: String(params[14]),
+      last_operation_id: String(params[15]),
+      updated_at: String(params[13]),
     };
     state.cards[index] = updatedCard;
     return createQueryResult<Row>([createCardQueryRow(updatedCard) as unknown as Row]);

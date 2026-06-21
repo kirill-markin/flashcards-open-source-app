@@ -17,7 +17,6 @@ import { assertConsistentFsrsState } from "./fsrs";
 import {
   CARD_COLUMNS,
   CARD_SELECT,
-  appendLegacyEffortTag,
   mapCard,
   normalizeCardMutationMetadata,
   recordCardSyncChange,
@@ -53,12 +52,27 @@ function normalizeOptionalCardText(value: string): string {
   return value.trim();
 }
 
+function dedupeCardTags(tags: ReadonlyArray<string>): ReadonlyArray<string> {
+  const dedupedTags: Array<string> = [];
+  const existingTags = new Set<string>();
+
+  for (const tag of tags) {
+    if (existingTags.has(tag)) {
+      continue;
+    }
+
+    existingTags.add(tag);
+    dedupedTags.push(tag);
+  }
+
+  return dedupedTags;
+}
+
 function normalizeCreateCardInput(input: CreateCardInput): CreateCardInput {
   return {
     frontText: normalizeRequiredCardText(input.frontText, "frontText"),
     backText: normalizeOptionalCardText(input.backText),
-    tags: appendLegacyEffortTag(input.tags, input.effortLevel),
-    effortLevel: "fast",
+    tags: dedupeCardTags(input.tags),
   };
 }
 
@@ -68,13 +82,8 @@ function normalizeUpdateCardInput(input: UpdateCardInput): UpdateCardInput {
       ? undefined
       : normalizeRequiredCardText(input.frontText, "frontText"),
     backText: input.backText === undefined ? undefined : normalizeOptionalCardText(input.backText),
-    tags: input.tags === undefined ? undefined : appendLegacyEffortTag(input.tags, input.effortLevel),
-    effortLevel: input.effortLevel === undefined ? undefined : "fast",
+    tags: input.tags === undefined ? undefined : dedupeCardTags(input.tags),
   };
-}
-
-function updateRequiresExistingTagsForLegacyEffort(input: UpdateCardInput): boolean {
-  return input.tags === undefined && (input.effortLevel === "medium" || input.effortLevel === "long");
 }
 
 function buildCardUpdateQueryParts(input: UpdateCardInput): UpdateQueryParts {
@@ -94,11 +103,6 @@ function buildCardUpdateQueryParts(input: UpdateCardInput): UpdateQueryParts {
   if (input.tags !== undefined) {
     assignments.push(`tags = $${assignments.length + 1}`);
     params.push(input.tags);
-  }
-
-  if (input.effortLevel !== undefined) {
-    assignments.push(`effort_level = $${assignments.length + 1}`);
-    params.push(input.effortLevel);
   }
 
   return { assignments, params };
@@ -126,8 +130,7 @@ function normalizeCardSnapshotInput(input: CardSnapshotInput): CardSnapshotInput
     cardId: input.cardId,
     frontText: normalizeRequiredCardText(input.frontText, "frontText"),
     backText: normalizeOptionalCardText(input.backText),
-    tags: appendLegacyEffortTag(input.tags, input.effortLevel),
-    effortLevel: "fast",
+    tags: dedupeCardTags(input.tags),
     dueAt: input.dueAt === null ? null : normalizeIsoTimestamp(input.dueAt, "dueAt"),
     createdAt: normalizeIsoTimestamp(input.createdAt, "createdAt"),
     reps: input.reps,
@@ -189,7 +192,7 @@ async function insertCardRowForSnapshotInExecutor(
       "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
       "client_updated_at, last_modified_by_replica_id, last_operation_id, deleted_at",
       ")",
-      "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)",
+      "VALUES ($1, $2, $3, $4, $5, 'fast', $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)",
       "ON CONFLICT DO NOTHING",
       "RETURNING",
       CARD_COLUMNS,
@@ -200,7 +203,6 @@ async function insertCardRowForSnapshotInExecutor(
       input.frontText,
       input.backText,
       input.tags,
-      input.effortLevel,
       input.dueAt,
       input.createdAt,
       input.reps,
@@ -304,11 +306,11 @@ export async function upsertCardSnapshotInExecutor(
   const updateResult = await executor.query<CardRow>(
     [
       "UPDATE content.cards",
-      "SET front_text = $1, back_text = $2, tags = $3, effort_level = $4, due_at = $5, reps = $6, lapses = $7,",
-      "fsrs_card_state = $8, fsrs_step_index = $9, fsrs_stability = $10, fsrs_difficulty = $11,",
-      "fsrs_last_reviewed_at = $12, fsrs_scheduled_days = $13, deleted_at = $14, client_updated_at = $15,",
-      "last_modified_by_replica_id = $16, last_operation_id = $17, updated_at = now()",
-      "WHERE workspace_id = $18 AND card_id = $19",
+      "SET front_text = $1, back_text = $2, tags = $3, effort_level = 'fast', due_at = $4, reps = $5, lapses = $6,",
+      "fsrs_card_state = $7, fsrs_step_index = $8, fsrs_stability = $9, fsrs_difficulty = $10,",
+      "fsrs_last_reviewed_at = $11, fsrs_scheduled_days = $12, deleted_at = $13, client_updated_at = $14,",
+      "last_modified_by_replica_id = $15, last_operation_id = $16, updated_at = now()",
+      "WHERE workspace_id = $17 AND card_id = $18",
       "RETURNING",
       CARD_COLUMNS,
     ].join(" "),
@@ -316,7 +318,6 @@ export async function upsertCardSnapshotInExecutor(
       normalizedInput.frontText,
       normalizedInput.backText,
       normalizedInput.tags,
-      normalizedInput.effortLevel,
       normalizedInput.dueAt,
       normalizedInput.reps,
       normalizedInput.lapses,
@@ -379,7 +380,7 @@ export async function createCardInExecutor(
       "reps, lapses, fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
       "client_updated_at, last_modified_by_replica_id, last_operation_id",
       ")",
-      "VALUES ($1, $2, $3, $4, $5, $6, NULL, $7, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, $8, $9, $10)",
+      "VALUES ($1, $2, $3, $4, $5, 'fast', NULL, $6, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, $7, $8, $9)",
       "RETURNING",
       CARD_COLUMNS,
     ].join(" "),
@@ -389,7 +390,6 @@ export async function createCardInExecutor(
       normalizedInput.frontText,
       normalizedInput.backText,
       normalizedInput.tags,
-      normalizedInput.effortLevel,
       createdAt,
       normalizedMetadata.clientUpdatedAt,
       normalizedMetadata.lastModifiedByReplicaId,
@@ -443,20 +443,8 @@ export async function updateCardInExecutor(
   input: UpdateCardInput,
   metadata: CardMutationMetadata,
 ): Promise<Card> {
-  let normalizedInput = normalizeUpdateCardInput(input);
+  const normalizedInput = normalizeUpdateCardInput(input);
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
-
-  if (updateRequiresExistingTagsForLegacyEffort(input)) {
-    const existingRow = await loadCardRowForMutation(executor, workspaceId, cardId);
-    if (existingRow === undefined || existingRow.deleted_at !== null) {
-      throw new HttpError(404, "Card not found");
-    }
-
-    normalizedInput = {
-      ...normalizedInput,
-      tags: appendLegacyEffortTag(existingRow.tags, input.effortLevel),
-    };
-  }
 
   const updateParts = buildCardUpdateQueryParts(normalizedInput);
 

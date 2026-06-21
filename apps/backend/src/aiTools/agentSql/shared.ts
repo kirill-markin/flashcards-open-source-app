@@ -1,6 +1,9 @@
 import type { Card, ReviewHistoryItem } from "../../cards";
+import { appendLegacyEffortTag } from "../../cards/shared";
 import type { Deck } from "../../decks";
 import { HttpError } from "../../shared/errors";
+import type { LegacyEffortLevel } from "../../sync/contracts/legacyEffort";
+import { isLegacyEffortLevel } from "../../sync/contracts/legacyEffort";
 import type {
   ParsedSqlStatement,
   SqlResourceName,
@@ -90,7 +93,6 @@ export function toCardRow(card: Card): SqlRow {
     front_text: card.frontText,
     back_text: card.backText,
     tags: card.tags,
-    effort_level: card.effortLevel,
     due_at: card.dueAt,
     created_at: card.createdAt,
     reps: card.reps,
@@ -111,7 +113,6 @@ export function toDeckRow(deck: Deck): SqlRow {
     deck_id: deck.deckId,
     name: deck.name,
     tags: deck.filterDefinition.tags,
-    effort_levels: deck.filterDefinition.effortLevels,
     created_at: deck.createdAt,
     updated_at: deck.updatedAt,
     deleted_at: deck.deletedAt,
@@ -130,6 +131,14 @@ export function toReviewEventRow(item: ReviewHistoryItem): SqlRow {
   };
 }
 
+function expectLegacyEffortLevel(value: unknown, columnName: string): LegacyEffortLevel {
+  if (isLegacyEffortLevel(value)) {
+    return value;
+  }
+
+  throw new HttpError(400, `${columnName} must contain only fast, medium, or long`, "QUERY_INVALID_SQL");
+}
+
 export function toCreatedCardRows(cards: ReadonlyArray<Card>): ReadonlyArray<SqlRow> {
   return cards.map(toCardRow);
 }
@@ -145,7 +154,6 @@ export function buildCreateCardInput(
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: "fast" | "medium" | "long";
 }> {
   const values = new Map(columnNames.map((columnName, index) => [columnName, row[index]] as const));
   const frontText = values.get("front_text");
@@ -161,15 +169,17 @@ export function buildCreateCardInput(
     throw new HttpError(400, "back_text is required for INSERT INTO cards", "QUERY_INVALID_SQL");
   }
 
-  if (effortLevel !== "fast" && effortLevel !== "medium" && effortLevel !== "long") {
+  if (effortLevel !== undefined && isLegacyEffortLevel(effortLevel) === false) {
     throw new HttpError(400, "effort_level must be fast, medium, or long", "QUERY_INVALID_SQL");
   }
 
   return {
     frontText,
     backText,
-    tags: Array.isArray(tags) ? tags.filter((item): item is string => typeof item === "string") : [],
-    effortLevel,
+    tags: appendLegacyEffortTag(
+      Array.isArray(tags) ? tags.filter((item): item is string => typeof item === "string") : [],
+      effortLevel,
+    ),
   };
 }
 
@@ -178,7 +188,6 @@ export function buildCreateDeckInput(
   row: ReadonlyArray<AgentSqlMutationAssignmentValue>,
 ): Readonly<{
   name: string;
-  effortLevels: ReadonlyArray<"fast" | "medium" | "long">;
   tags: ReadonlyArray<string>;
 }> {
   const values = new Map(columnNames.map((columnName, index) => [columnName, row[index]] as const));
@@ -190,12 +199,20 @@ export function buildCreateDeckInput(
     throw new HttpError(400, "name is required for INSERT INTO decks", "QUERY_INVALID_SQL");
   }
 
+  if (effortLevels !== undefined && Array.isArray(effortLevels) === false) {
+    throw new HttpError(400, "effort_levels must be a string array", "QUERY_INVALID_SQL");
+  }
+
+  const legacyEffortTags = (Array.isArray(effortLevels) ? effortLevels : []).map(
+    (item) => expectLegacyEffortLevel(item, "effort_levels"),
+  ).reduce<ReadonlyArray<string>>(
+    (result, item) => appendLegacyEffortTag(result, item),
+    Array.isArray(tags) ? tags.filter((item): item is string => typeof item === "string") : [],
+  );
+
   return {
     name,
-    effortLevels: Array.isArray(effortLevels)
-      ? effortLevels.filter((item): item is "fast" | "medium" | "long" => item === "fast" || item === "medium" || item === "long")
-      : [],
-    tags: Array.isArray(tags) ? tags.filter((item): item is string => typeof item === "string") : [],
+    tags: legacyEffortTags,
   };
 }
 
@@ -214,20 +231,43 @@ export function requireSqlMutationTargetIds(
   });
 }
 
+function getStringArrayRowValue(row: SqlRow, columnName: string): ReadonlyArray<string> {
+  const value = row[columnName];
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string");
+  }
+
+  return [];
+}
+
+function appendLegacyEffortTags(
+  tags: ReadonlyArray<string>,
+  effortLevels: ReadonlyArray<LegacyEffortLevel>,
+): ReadonlyArray<string> {
+  return effortLevels.reduce<ReadonlyArray<string>>(
+    (result, effortLevel) => appendLegacyEffortTag(result, effortLevel),
+    tags,
+  );
+}
+
 export function buildCardUpdateInput(
-  cardId: string,
+  row: SqlRow,
   assignments: ReadonlyArray<AgentSqlMutationAssignment>,
 ): Readonly<{
   cardId: string;
   frontText: string | null;
   backText: string | null;
   tags: ReadonlyArray<string> | null;
-  effortLevel: "fast" | "medium" | "long" | null;
 }> {
+  const cardId = row.card_id;
+  if (typeof cardId !== "string") {
+    throw new HttpError(400, "Expected card_id to be present", "QUERY_INVALID_SQL");
+  }
+
   let frontText: string | null = null;
   let backText: string | null = null;
   let tags: ReadonlyArray<string> | null = null;
-  let effortLevel: "fast" | "medium" | "long" | null = null;
+  let legacyEffortLevel: LegacyEffortLevel | null = null;
 
   for (const assignment of assignments) {
     if (assignment.columnName === "front_text") {
@@ -252,34 +292,41 @@ export function buildCardUpdateInput(
     }
 
     if (assignment.columnName === "effort_level") {
-      if (assignment.value !== "fast" && assignment.value !== "medium" && assignment.value !== "long") {
+      if (isLegacyEffortLevel(assignment.value) === false) {
         throw new HttpError(400, "effort_level must be fast, medium, or long", "QUERY_INVALID_SQL");
       }
-      effortLevel = assignment.value;
+      legacyEffortLevel = assignment.value;
     }
   }
+
+  const resolvedTags = legacyEffortLevel === null
+    ? tags
+    : appendLegacyEffortTag(tags ?? getStringArrayRowValue(row, "tags"), legacyEffortLevel);
 
   return {
     cardId,
     frontText,
     backText,
-    tags,
-    effortLevel,
+    tags: resolvedTags,
   };
 }
 
 export function buildDeckUpdateInput(
-  deckId: string,
+  row: SqlRow,
   assignments: ReadonlyArray<AgentSqlMutationAssignment>,
 ): Readonly<{
   deckId: string;
   name: string | null;
-  effortLevels: ReadonlyArray<"fast" | "medium" | "long"> | null;
   tags: ReadonlyArray<string> | null;
 }> {
+  const deckId = row.deck_id;
+  if (typeof deckId !== "string") {
+    throw new HttpError(400, "Expected deck_id to be present", "QUERY_INVALID_SQL");
+  }
+
   let name: string | null = null;
-  let effortLevels: ReadonlyArray<"fast" | "medium" | "long"> | null = null;
   let tags: ReadonlyArray<string> | null = null;
+  let legacyEffortLevels: ReadonlyArray<LegacyEffortLevel> | null = null;
 
   for (const assignment of assignments) {
     if (assignment.columnName === "name") {
@@ -293,7 +340,7 @@ export function buildDeckUpdateInput(
       if (Array.isArray(assignment.value) === false) {
         throw new HttpError(400, "effort_levels must be a string array", "QUERY_INVALID_SQL");
       }
-      effortLevels = assignment.value.filter((item): item is "fast" | "medium" | "long" => item === "fast" || item === "medium" || item === "long");
+      legacyEffortLevels = assignment.value.map((item) => expectLegacyEffortLevel(item, "effort_levels"));
     }
 
     if (assignment.columnName === "tags") {
@@ -304,11 +351,14 @@ export function buildDeckUpdateInput(
     }
   }
 
+  const resolvedTags = legacyEffortLevels === null
+    ? tags
+    : appendLegacyEffortTags(tags ?? getStringArrayRowValue(row, "tags"), legacyEffortLevels);
+
   return {
     deckId,
     name,
-    effortLevels,
-    tags,
+    tags: resolvedTags,
   };
 }
 

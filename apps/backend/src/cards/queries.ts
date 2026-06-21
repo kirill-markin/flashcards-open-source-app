@@ -53,7 +53,6 @@ const recentDuePriorityWindowMillis = 60 * 60 * 1000;
 const cardSearchExpressionFactories: ReadonlyArray<SearchTokenClauseFactory> = [
   (paramIndex) => `lower(front_text || ' ' || back_text) LIKE $${paramIndex}`,
   (paramIndex) => `EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE lower(tag) LIKE $${paramIndex})`,
-  (paramIndex) => `lower(effort_level) LIKE $${paramIndex}`,
 ];
 
 type CursorValue = string | number | null;
@@ -62,7 +61,6 @@ type QueryCardsRow = CardRow & Readonly<{
   sort_front_text: string;
   sort_back_text: string;
   sort_tags: string;
-  sort_effort_level: string;
   sort_due_at: Date | string | null;
   sort_created_at: Date | string;
   sort_reps: number;
@@ -105,11 +103,6 @@ const sortFieldByKey: Readonly<Record<CardQuerySortKey | "cardId", InternalSortF
   tags: {
     key: "tags",
     column: "sort_tags",
-    nullable: false,
-  },
-  effortLevel: {
-    key: "effortLevel",
-    column: "sort_effort_level",
     nullable: false,
   },
   dueAt: {
@@ -489,11 +482,6 @@ export function buildCardsQueryFilterClause(
     clauses.push(`tags && $${startIndex + params.length}::text[]`);
   }
 
-  if (filter.effort.length > 0) {
-    params.push(filter.effort);
-    clauses.push(`effort_level = ANY($${startIndex + params.length}::text[])`);
-  }
-
   if (clauses.length === 0) {
     return {
       clause: "",
@@ -515,8 +503,6 @@ function makeCursorValueFromRow(row: QueryCardsRow, sort: InternalSort): CursorV
     return row.sort_back_text;
   case "tags":
     return row.sort_tags;
-  case "effortLevel":
-    return row.sort_effort_level;
   case "dueAt":
     return row.sort_due_at === null ? null : toIsoString(row.sort_due_at);
   case "reps":
@@ -602,7 +588,6 @@ export async function queryCardsPage(
         ", lower(front_text) AS sort_front_text,",
         "lower(back_text) AS sort_back_text,",
         "lower(array_to_string(tags, ', ')) AS sort_tags,",
-        "effort_level AS sort_effort_level,",
         "due_at AS sort_due_at,",
         "created_at AS sort_created_at,",
         "reps AS sort_reps,",

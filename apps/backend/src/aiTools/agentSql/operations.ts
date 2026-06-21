@@ -24,7 +24,6 @@ import {
   type BulkUpdateCardItem,
   type CardFilter,
   type CreateCardInput,
-  type EffortLevel,
   type UpdateCardInput,
 } from "../../cards";
 import {
@@ -64,7 +63,6 @@ type AgentToolCreateCardBody = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: EffortLevel;
 }>;
 
 type AgentToolUpdateCardBody = Readonly<{
@@ -72,7 +70,6 @@ type AgentToolUpdateCardBody = Readonly<{
   frontText: string | null;
   backText: string | null;
   tags: ReadonlyArray<string> | null;
-  effortLevel: EffortLevel | null;
 }>;
 
 type AgentToolCreateCardsInput = Readonly<{
@@ -89,14 +86,12 @@ type AgentToolDeleteCardsInput = Readonly<{
 
 type AgentToolCreateDeckBody = Readonly<{
   name: string;
-  effortLevels: ReadonlyArray<EffortLevel>;
   tags: ReadonlyArray<string>;
 }>;
 
 type AgentToolUpdateDeckBody = Readonly<{
   deckId: string;
   name: string | null;
-  effortLevels: ReadonlyArray<EffortLevel> | null;
   tags: ReadonlyArray<string> | null;
 }>;
 
@@ -359,7 +354,6 @@ function toCreateCardInput(item: AgentToolCreateCardsInput["cards"][number]): Cr
     frontText: item.frontText,
     backText: item.backText,
     tags: item.tags,
-    effortLevel: item.effortLevel,
   };
 }
 
@@ -368,7 +362,6 @@ function toUpdateCardInput(item: AgentToolUpdateCardBody): UpdateCardInput {
     ...(item.frontText !== null ? { frontText: item.frontText } : {}),
     ...(item.backText !== null ? { backText: item.backText } : {}),
     ...(item.tags !== null ? { tags: item.tags } : {}),
-    ...(item.effortLevel !== null ? { effortLevel: item.effortLevel } : {}),
   };
 }
 
@@ -377,7 +370,6 @@ function toCreateDeckInput(item: AgentToolCreateDecksInput["decks"][number]): Cr
     name: item.name,
     filterDefinition: {
       version: 2,
-      effortLevels: item.effortLevels,
       tags: item.tags,
     },
   };
@@ -388,7 +380,6 @@ function toUpdateDeckInput(item: AgentToolUpdateDeckBody, currentDeck: Deck): Up
     name: item.name ?? currentDeck.name,
     filterDefinition: {
       version: 2,
-      effortLevels: item.effortLevels ?? currentDeck.filterDefinition.effortLevels,
       tags: item.tags ?? currentDeck.filterDefinition.tags,
     },
   };

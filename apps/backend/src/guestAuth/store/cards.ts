@@ -1,10 +1,10 @@
-import type { EffortLevel } from "../../cards";
 import { appendLegacyEffortTag } from "../../cards/shared";
 import {
   applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
 } from "../../database";
 import type { FsrsCardState } from "../../scheduling";
+import type { LegacyEffortLevel } from "../../sync/contracts/legacyEffort";
 
 type CardRow = Readonly<{
   card_id: string;
@@ -34,7 +34,6 @@ export type GuestCardRecord = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: EffortLevel;
   dueAt: Date | string | null;
   createdAt: Date | string;
   reps: number;
@@ -53,14 +52,13 @@ export type GuestCardRecord = Readonly<{
 }>;
 
 function mapGuestCardRecord(row: CardRow): GuestCardRecord {
-  const legacyEffortLevel = row.effort_level as EffortLevel;
+  const legacyEffortLevel = row.effort_level as LegacyEffortLevel;
 
   return {
     cardId: row.card_id,
     frontText: row.front_text,
     backText: row.back_text,
     tags: appendLegacyEffortTag(row.tags, legacyEffortLevel),
-    effortLevel: "fast",
     dueAt: row.due_at,
     createdAt: row.created_at,
     reps: row.reps,

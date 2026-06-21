@@ -21,7 +21,6 @@ export type {
   DeckSummary,
   QueryCardsInput,
   QueryCardsPage,
-  EffortLevel,
   ReviewEvent,
   ReviewEventAppendResult,
   ReviewHistoryItem,

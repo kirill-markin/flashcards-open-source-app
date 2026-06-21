@@ -1,6 +1,8 @@
 import { HttpError } from "../shared/errors";
 import { expectRecord } from "../server/requestParsing";
-import type { CardFilter, EffortLevel } from "./types";
+import type { LegacyEffortLevel } from "../sync/contracts/legacyEffort";
+import { isLegacyEffortLevel } from "../sync/contracts/legacyEffort";
+import type { CardFilter } from "./types";
 
 function normalizeCardFilterTags(tags: ReadonlyArray<string>): ReadonlyArray<string> {
   return tags.reduce<Array<string>>((result, tag) => {
@@ -15,17 +17,6 @@ function normalizeCardFilterTags(tags: ReadonlyArray<string>): ReadonlyArray<str
   }, []);
 }
 
-function normalizeCardFilterEffort(effort: ReadonlyArray<EffortLevel>): ReadonlyArray<EffortLevel> {
-  return effort.reduce<Array<EffortLevel>>((result, effortLevel) => {
-    if (result.includes(effortLevel)) {
-      return result;
-    }
-
-    result.push(effortLevel);
-    return result;
-  }, []);
-}
-
 export function normalizeCardFilter(filter: CardFilter | null): CardFilter | null {
   if (filter === null) {
     return null;
@@ -33,18 +24,17 @@ export function normalizeCardFilter(filter: CardFilter | null): CardFilter | nul
 
   const normalizedFilter: CardFilter = {
     tags: normalizeCardFilterTags(filter.tags),
-    effort: normalizeCardFilterEffort(filter.effort),
   };
 
-  if (normalizedFilter.tags.length === 0 && normalizedFilter.effort.length === 0) {
+  if (normalizedFilter.tags.length === 0) {
     return null;
   }
 
   return normalizedFilter;
 }
 
-function expectEffortLevel(value: unknown, fieldName: string): EffortLevel {
-  if (value === "fast" || value === "medium" || value === "long") {
+function expectLegacyEffortLevel(value: unknown, fieldName: string): LegacyEffortLevel {
+  if (isLegacyEffortLevel(value)) {
     return value;
   }
 
@@ -65,12 +55,16 @@ function expectStringArray(value: unknown, fieldName: string): ReadonlyArray<str
   });
 }
 
-function expectEffortArray(value: unknown, fieldName: string): ReadonlyArray<EffortLevel> {
+function expectLegacyEffortArray(value: unknown, fieldName: string): ReadonlyArray<LegacyEffortLevel> {
   if (Array.isArray(value) === false) {
     throw new HttpError(400, `${fieldName} must be an array`);
   }
 
-  return value.map((entry, index) => expectEffortLevel(entry, `${fieldName}[${index}]`));
+  return value.map((entry, index) => expectLegacyEffortLevel(entry, `${fieldName}[${index}]`));
+}
+
+function legacyEffortFilterToTags(effort: ReadonlyArray<LegacyEffortLevel>): ReadonlyArray<string> {
+  return effort.filter((effortLevel) => effortLevel === "medium" || effortLevel === "long");
 }
 
 export function parseCardFilterInput(value: unknown, fieldName: string): CardFilter | null {
@@ -85,9 +79,15 @@ export function parseCardFilterInput(value: unknown, fieldName: string): CardFil
     }
   }
 
+  // TODO(old-mobile-cutoff): Remove legacy effort filter parsing during final wire-drop cleanup.
+  const legacyEffortTags = record.effort === undefined
+    ? []
+    : legacyEffortFilterToTags(expectLegacyEffortArray(record.effort, `${fieldName}.effort`));
   const filter = normalizeCardFilter({
-    tags: record.tags === undefined ? [] : expectStringArray(record.tags, `${fieldName}.tags`),
-    effort: record.effort === undefined ? [] : expectEffortArray(record.effort, `${fieldName}.effort`),
+    tags: [
+      ...(record.tags === undefined ? [] : expectStringArray(record.tags, `${fieldName}.tags`)),
+      ...legacyEffortTags,
+    ],
   });
 
   return filter;

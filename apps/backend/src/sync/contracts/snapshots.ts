@@ -1,10 +1,10 @@
 import type {
   CardMutationMetadata,
   CardSnapshotInput,
-  EffortLevel,
 } from "../../cards";
 import { appendLegacyEffortTag } from "../../cards/shared";
 import type {
+  DeckFilterDefinition,
   DeckMutationMetadata,
   DeckSnapshotInput,
 } from "../../decks";
@@ -12,6 +12,7 @@ import type {
   WorkspaceSchedulerSettingsMutationMetadata,
   WorkspaceSchedulerSettingsSnapshotInput,
 } from "../../scheduling/workspaceSettings";
+import type { LegacyEffortLevel } from "./legacyEffort";
 
 type MutationMetadataInput = Readonly<{
   clientUpdatedAt: string;
@@ -20,7 +21,15 @@ type MutationMetadataInput = Readonly<{
 }>;
 
 type CardSnapshotPayload = Omit<CardSnapshotInput, "effortLevel"> & Readonly<{
-  effortLevel?: EffortLevel;
+  effortLevel?: LegacyEffortLevel;
+}>;
+
+type DeckFilterDefinitionPayload = DeckFilterDefinition & Readonly<{
+  effortLevels?: ReadonlyArray<LegacyEffortLevel>;
+}>;
+
+type DeckSnapshotPayload = Omit<DeckSnapshotInput, "filterDefinition"> & Readonly<{
+  filterDefinition: DeckFilterDefinitionPayload;
 }>;
 
 export function toCardSnapshotInput(payload: CardSnapshotPayload): CardSnapshotInput {
@@ -29,8 +38,6 @@ export function toCardSnapshotInput(payload: CardSnapshotPayload): CardSnapshotI
     frontText: payload.frontText,
     backText: payload.backText,
     tags: appendLegacyEffortTag(payload.tags, payload.effortLevel),
-    // TODO(old-mobile-cutoff): Remove legacy effort defaulting during final sync wire-drop cleanup.
-    effortLevel: "fast",
     dueAt: payload.dueAt,
     createdAt: payload.createdAt,
     reps: payload.reps,
@@ -45,11 +52,20 @@ export function toCardSnapshotInput(payload: CardSnapshotPayload): CardSnapshotI
   };
 }
 
-export function toDeckSnapshotInput(payload: DeckSnapshotInput): DeckSnapshotInput {
+export function toDeckSnapshotInput(payload: DeckSnapshotPayload): DeckSnapshotInput {
+  const legacyEffortTags = (payload.filterDefinition.effortLevels ?? []).reduce<ReadonlyArray<string>>(
+    (tags, effortLevel) => appendLegacyEffortTag(tags, effortLevel),
+    payload.filterDefinition.tags,
+  );
+
   return {
     deckId: payload.deckId,
     name: payload.name,
-    filterDefinition: payload.filterDefinition,
+    filterDefinition: {
+      version: payload.filterDefinition.version,
+      // TODO(old-mobile-cutoff): Remove legacy effortLevels input during final wire-drop cleanup.
+      tags: legacyEffortTags,
+    },
     createdAt: payload.createdAt,
     deletedAt: payload.deletedAt,
   };

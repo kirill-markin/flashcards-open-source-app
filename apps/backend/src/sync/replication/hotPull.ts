@@ -17,6 +17,8 @@ import type { WorkspaceSchedulerSettings } from "../../scheduling/workspaceSetti
 import type { SyncPullInput } from "../contracts/input";
 import type {
   HotChangeRow,
+  LegacySyncCardPayload,
+  LegacySyncDeckPayload,
   SyncBootstrapEntry,
   SyncPullResult,
   TimestampValue,
@@ -55,10 +57,21 @@ function toWorkspaceSchedulerSettings(row: WorkspaceSchedulerSettingsRow): Works
 }
 
 // TODO(old-mobile-cutoff): Remove legacy effort output during final sync wire-drop cleanup.
-function toLegacySyncCardPayload(card: Card): Card {
+function toLegacySyncCardPayload(card: Card): LegacySyncCardPayload {
   return {
     ...card,
     effortLevel: "fast",
+  };
+}
+
+// TODO(old-mobile-cutoff): Remove legacy effortLevels output during final sync wire-drop cleanup.
+function toLegacySyncDeckPayload(deck: Deck): LegacySyncDeckPayload {
+  return {
+    ...deck,
+    filterDefinition: {
+      ...deck.filterDefinition,
+      effortLevels: [],
+    },
   };
 }
 
@@ -181,7 +194,7 @@ export async function buildHotChangesFromRows(
         entityType: "deck" as const,
         entityId: row.entity_id,
         action: "upsert" as const,
-        payload: deck,
+        payload: toLegacySyncDeckPayload(deck),
       };
     }
 
