@@ -21,6 +21,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetPro
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.model.cloud.makeCustomCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
@@ -111,6 +112,11 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     private val completeCloudLinkResults = ArrayDeque<CompletableDeferred<CloudWorkspaceSummary>>()
     private val preparedLinkContexts = mutableMapOf<String, CompletableDeferred<CloudWorkspaceLinkContext>>()
     val completeCloudLinkSelections = mutableListOf<CloudWorkspaceLinkSelection>()
+    val validatedCustomOrigins = mutableListOf<String>()
+    val appliedCustomServerConfigurations = mutableListOf<CloudServiceConfiguration>()
+    var validateCustomServerError: Exception? = null
+    var applyCustomServerError: Exception? = null
+    var nextValidatedCustomServerConfiguration: CloudServiceConfiguration? = null
     var resetInvalidCloudCredentialRecoveryStateCalls: Int = 0
         private set
     var logoutCalls: Int = 0
@@ -334,19 +340,30 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     }
 
     override suspend fun currentServerConfiguration(): CloudServiceConfiguration {
-        return makeOfficialCloudServiceConfiguration()
+        return serverConfiguration.value
     }
 
     override suspend fun validateCustomServer(customOrigin: String): CloudServiceConfiguration {
-        throw UnsupportedOperationException()
+        validatedCustomOrigins += customOrigin
+        val error = validateCustomServerError
+        if (error != null) {
+            throw error
+        }
+        return nextValidatedCustomServerConfiguration
+            ?: makeCustomCloudServiceConfiguration(customOrigin = customOrigin)
     }
 
     override suspend fun applyCustomServer(configuration: CloudServiceConfiguration) {
-        throw UnsupportedOperationException()
+        val error = applyCustomServerError
+        if (error != null) {
+            throw error
+        }
+        appliedCustomServerConfigurations += configuration
+        serverConfiguration.value = configuration
     }
 
     override suspend fun resetToOfficialServer() {
-        throw UnsupportedOperationException()
+        serverConfiguration.value = makeOfficialCloudServiceConfiguration()
     }
 }
 
@@ -371,6 +388,14 @@ internal class TestSettingsStringResolver : SettingsStringResolver {
 
             R.string.settings_sign_in_verify_failed -> "Could not verify the code."
             R.string.settings_current_workspace_new_title -> "New workspace"
+            R.string.settings_loading -> "Loading..."
+            R.string.settings_technical_error_title -> "Something went wrong"
+            R.string.settings_server_mode_official -> "Official"
+            R.string.settings_server_mode_custom -> "Custom"
+            R.string.settings_server_enter_valid_url -> "Enter a valid custom server URL."
+            R.string.settings_server_apply_failed -> "Could not apply custom server."
+            R.string.settings_server_validate_failed -> "Custom server validation failed."
+            R.string.settings_server_reset_failed -> "Could not reset the official server."
             R.string.settings_logout -> "Log out"
             R.string.settings_current_workspace_create_new_title -> "Create new workspace"
             R.string.settings_current_workspace_create_new_summary -> {

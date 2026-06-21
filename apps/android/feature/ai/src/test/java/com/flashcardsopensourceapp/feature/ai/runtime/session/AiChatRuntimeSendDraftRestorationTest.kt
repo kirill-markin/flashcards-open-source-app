@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumAttachmentBy
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatMaximumStartRunRequestBytes
 import com.flashcardsopensourceapp.data.local.model.ai.makeDefaultAiChatPersistedState
 import java.io.IOException
+import java.net.MalformedURLException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -87,6 +88,55 @@ class AiChatRuntimeSendDraftRestorationTest {
         assertEquals("send-session-1", repository.lastStartRunState?.chatSessionId)
         assertEquals(testUiLocaleTag, repository.lastStartRunUiLocale)
         assertEquals("send-session-1", runtime.state.value.persistedState.chatSessionId)
+    }
+
+    @Test
+    fun disconnectedSendPreparesGuestAccessBeforeSyncWhenWarmUpFailed() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.nextEnsureSessionId = "send-session-1"
+        repository.prepareSessionErrors += MalformedURLException("bad guest auth URL")
+        repository.startRunResponse = makeAcceptedStartRunResponse(
+            sessionId = "send-session-1",
+            activeRun = null,
+            messages = listOf(
+                makeUserMessage(
+                    content = listOf(AiChatContentPart.Text(text = "Hello")),
+                    timestampMillis = 1L
+                ),
+                makeAssistantStatusMessage(timestampMillis = 2L)
+            ),
+            composerSuggestions = emptyList()
+        )
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.DISCONNECTED
+        )
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals(listOf(defaultTestWorkspaceId), repository.prepareSessionRequests)
+
+        runtime.updateDraftMessage(draftMessage = "Hello")
+        runtime.sendMessage()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(defaultTestWorkspaceId, defaultTestWorkspaceId),
+            repository.prepareSessionRequests
+        )
+        assertEquals(1, repository.ensureReadyForSendCalls)
+        assertEquals(1, repository.startRunCalls)
+        assertEquals("send-session-1", runtime.state.value.persistedState.chatSessionId)
+        assertEquals("", runtime.state.value.draftMessage)
+        assertTrue(runtime.state.value.pendingAttachments.isEmpty())
+        assertEquals(AiComposerPhase.IDLE, runtime.state.value.composerPhase)
     }
 
     @Test
