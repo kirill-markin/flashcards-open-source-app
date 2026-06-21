@@ -1,0 +1,72 @@
+@media (max-width: 768px) {
+  .chat-page {
+    padding-inline: 0;
+  }
+
+  .chat-layout-shell {
+    gap: 0;
+    padding-inline: var(--shell-frame-gap);
+  }
+
+  .chat-sidebar {
+    position: fixed;
+    top: var(--shell-frame-gap);
+    inset-inline-start: var(--shell-frame-gap);
+    width: calc(100% - (2 * var(--shell-frame-gap))) !important;
+    height: calc(100dvh - (2 * var(--shell-frame-gap)));
+    max-height: calc(100dvh - (2 * var(--shell-frame-gap)));
+    z-index: 100;
+    margin: 0;
+  }
+
+  .chat-sidebar-fullscreen {
+    max-width: none;
+  }
+
+  .chat-resize-handle {
+    display: none;
+  }
+
+  .chat-header {
+    padding-inline: 16px;
+  }
+
+  .chat-messages,
+  .chat-input-area {
+    padding-inline: 16px;
+  }
+
+  .chat-messages {
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    scroll-padding-block-end: max(24px, env(safe-area-inset-bottom));
+  }
+
+  .chat-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .chat-controls-right {
+    margin-inline-start: 0;
+    justify-content: stretch;
+  }
+
+  .chat-send-btn,
+  .chat-stop-btn,
+  .chat-mic-btn,
+  .chat-attach-btn {
+    width: 100%;
+  }
+
+  .chat-stop-btn {
+    width: 40px;
+  }
+
+  .chat-attach-btn {
+    width: 40px;
+  }
+
+  .chat-mic-btn {
+    width: 40px;
+  }
+}
