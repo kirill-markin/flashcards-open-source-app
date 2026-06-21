@@ -13,7 +13,8 @@ import type {
 import { progressLeaderboardWindowKeys } from "../../../types";
 import { FriendInviteCreateDialog } from "../../friends/FriendInviteCreateDialog";
 import {
-  getProgressLeaderboardElapsedMinutes,
+  formatProgressLeaderboardElapsedDuration,
+  getProgressLeaderboardElapsedDuration,
   ProgressLeaderboardRows,
   type ProgressLeaderboardProfileDialogSeed,
   type ProgressLeaderboardDisplayRow,
@@ -224,7 +225,7 @@ function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElem
 }
 
 export function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProps): ReactElement {
-  const { t, formatNumber } = useI18n();
+  const { locale, t, formatNumber } = useI18n();
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState<boolean>(false);
   const {
     sourceState,
@@ -241,7 +242,12 @@ export function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProp
   const infoUpdatedAt = leaderboardWindow === null
     ? null
     : t("progressScreen.leaderboard.updatedAt", {
-      minutes: formatNumber(getProgressLeaderboardElapsedMinutes(leaderboardWindow.snapshotGeneratedAt, new Date())),
+      duration: formatProgressLeaderboardElapsedDuration(
+        getProgressLeaderboardElapsedDuration(leaderboardWindow.snapshotGeneratedAt, new Date()),
+        locale,
+        formatNumber,
+        t,
+      ),
     });
 
   return (

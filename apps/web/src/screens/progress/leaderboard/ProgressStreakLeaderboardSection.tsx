@@ -8,7 +8,8 @@ import type {
   ProgressStreakLeaderboardSourceState,
 } from "../../../types";
 import {
-  getProgressLeaderboardElapsedMinutes,
+  formatProgressLeaderboardElapsedDuration,
+  getProgressLeaderboardElapsedDuration,
   ProgressLeaderboardRows,
   type ProgressLeaderboardProfileDialogSeed,
   type ProgressLeaderboardDisplayRow,
@@ -143,7 +144,7 @@ function ProgressStreakLeaderboardBody(props: Readonly<{
 }
 
 export function ProgressStreakLeaderboardSection(props: ProgressStreakLeaderboardSectionProps): ReactElement {
-  const { t, formatNumber } = useI18n();
+  const { locale, t, formatNumber } = useI18n();
   const {
     sourceState,
     canRenderServerBase,
@@ -154,7 +155,12 @@ export function ProgressStreakLeaderboardSection(props: ProgressStreakLeaderboar
   const leaderboard = sourceState.renderedSnapshot;
   const infoUpdatedAt = leaderboard?.status === "ready" && leaderboard.snapshotGeneratedAt !== null
     ? t("progressScreen.streakLeaderboard.updatedAt", {
-      minutes: formatNumber(getProgressLeaderboardElapsedMinutes(leaderboard.snapshotGeneratedAt, new Date())),
+      duration: formatProgressLeaderboardElapsedDuration(
+        getProgressLeaderboardElapsedDuration(leaderboard.snapshotGeneratedAt, new Date()),
+        locale,
+        formatNumber,
+        t,
+      ),
     })
     : null;
 

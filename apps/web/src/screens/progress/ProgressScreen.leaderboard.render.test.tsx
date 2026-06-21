@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
-import type { ProgressLeaderboardProfile, ProgressLeaderboardProfileReady } from "../../types";
+import type { ProgressLeaderboard, ProgressLeaderboardProfile, ProgressLeaderboardProfileReady } from "../../types";
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
   addFriendDisplayNameToRankingRows,
   addFriendDisplayNamesToRankingRows,
   createAppData,
+  createLeaderboard,
   createLeaderboardRankingRows,
   createLeaderboardSourceState,
   createLeaderboardSourceStateFromLeaderboard,
@@ -90,6 +91,18 @@ function createDeferredProfile(): Readonly<{
   return {
     promise,
     resolve: resolvePromise,
+  };
+}
+
+function createLeaderboardWithSnapshotGeneratedAt(snapshotGeneratedAt: string): ProgressLeaderboard {
+  const leaderboard = createLeaderboard("ready");
+
+  return {
+    ...leaderboard,
+    windows: leaderboard.windows.map((window) => ({
+      ...window,
+      snapshotGeneratedAt,
+    })),
   };
 }
 
@@ -513,8 +526,39 @@ describe("ProgressScreen leaderboard", () => {
     }
     expect(infoText.textContent).toContain("Hard, Good, or Easy count");
     expect(infoText.textContent).toContain("Again reviews are not counted.");
-    expect(infoText.textContent).toContain("Updated 35 min ago");
+    expect(infoText.textContent).toContain("Updated 35 minutes ago");
     expect(container.querySelector("[data-testid='progress-leaderboard-freshness']")).toBeNull();
+  });
+
+  it("formats leaderboard info freshness with hours and minutes after one hour", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-21T10:35:05.000Z"));
+    useAppDataMock.mockReturnValue({
+      ...createAppData(),
+      cloudSettings: linkedCloudSettings,
+    });
+    mockProgressSourceStateWithLeaderboard(createLeaderboardSourceStateFromLeaderboard(
+      createLeaderboardWithSnapshotGeneratedAt("2026-04-21T03:55:05.000Z"),
+      null,
+    ));
+
+    await progressScreen.renderProgressScreen();
+    const container = progressScreen.getContainer();
+
+    const infoToggle = container.querySelector("[data-testid='progress-leaderboard-info-toggle']");
+    if (!(infoToggle instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard info toggle was not found");
+    }
+
+    await act(async () => {
+      infoToggle.click();
+    });
+
+    const infoText = container.querySelector("[data-testid='progress-leaderboard-info']");
+    if (!(infoText instanceof HTMLParagraphElement)) {
+      throw new Error("Leaderboard info text was not found");
+    }
+    expect(infoText.textContent).toContain("Updated 6 hours and 40 minutes ago");
   });
 
   it("reveals the streak leaderboard info text with snapshot freshness", async () => {
@@ -546,7 +590,8 @@ describe("ProgressScreen leaderboard", () => {
       throw new Error("Streak leaderboard info text was not found");
     }
     expect(infoText.textContent).toContain("Current streak days determine your rank.");
-    expect(infoText.textContent).toContain("Updated 50 min ago");
+    expect(infoText.textContent).toContain("A streak day is any local day with at least one card review rated Again, Hard, Good, or Easy.");
+    expect(infoText.textContent).toContain("Updated 50 minutes ago");
   });
 
   it("reranks the viewer and renders new neighbors when the local qualified review count moves higher", async () => {
