@@ -87,25 +87,29 @@ extension AIChatStore {
     }
 
     var visibleComposerSuggestions: [AIChatComposerSuggestion] {
-        guard self.areComposerSuggestionsEnabled else {
-            return []
-        }
-        guard self.isChatInteractive else {
-            return []
-        }
-        guard self.composerPhase == .idle else {
-            return []
-        }
-        guard self.dictationState == .idle else {
-            return []
-        }
-        guard self.pendingAttachments.isEmpty else {
-            return []
-        }
-        guard self.trimmedInputText().isEmpty else {
+        guard self.canShowComposerSuggestions else {
             return []
         }
         return self.composerSuggestions
+    }
+
+    var canShowComposerSuggestions: Bool {
+        guard self.areComposerSuggestionsEnabled else {
+            return false
+        }
+        guard self.bootstrapPhase == .ready || self.bootstrapPhase == .loading else {
+            return false
+        }
+        guard self.composerPhase == .idle else {
+            return false
+        }
+        guard self.dictationState == .idle else {
+            return false
+        }
+        guard self.pendingAttachments.isEmpty else {
+            return false
+        }
+        return self.trimmedInputText().isEmpty
     }
 
     var isStreaming: Bool {
@@ -148,7 +152,7 @@ extension AIChatStore {
         guard self.areComposerSuggestionsEnabled else {
             return
         }
-        guard self.canEditDraft else {
+        guard self.canApplyComposerSuggestion else {
             return
         }
 
@@ -160,6 +164,14 @@ extension AIChatStore {
 
         let separator = self.inputText.hasSuffix(" ") ? "" : " "
         self.inputText += separator + suggestion.text
+    }
+
+    private var canApplyComposerSuggestion: Bool {
+        if self.canEditDraft {
+            return true
+        }
+
+        return self.canShowComposerSuggestions
     }
 
     func removeAttachment(id: String) {

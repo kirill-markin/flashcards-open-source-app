@@ -15,6 +15,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                 messages: [AIChatStoreTestSupport.makeAssistantTextMessage(itemId: "item-1")],
                 chatSessionId: "session-1",
                 lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                composerSuggestions: [],
                 pendingToolRunPostSync: true
             )
         )
@@ -158,6 +159,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                 messages: [AIChatStoreTestSupport.makeAssistantTextMessage(itemId: "item-1")],
                 chatSessionId: "session-1",
                 lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                composerSuggestions: [],
                 pendingToolRunPostSync: true
             )
         )
@@ -195,6 +197,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                 messages: [AIChatStoreTestSupport.makeAssistantTextMessage(itemId: "item-1")],
                 chatSessionId: "session-1",
                 lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                composerSuggestions: [],
                 pendingToolRunPostSync: true
             )
         )
@@ -606,6 +609,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                 ],
                 chatSessionId: "session-1",
                 lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                composerSuggestions: [],
                 pendingToolRunPostSync: false
             )
         )
@@ -679,6 +683,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                 messages: [AIChatStoreTestSupport.makeAssistantTextMessage(itemId: "item-1")],
                 chatSessionId: "session-1",
                 lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                composerSuggestions: [],
                 pendingToolRunPostSync: true
             )
         )
@@ -730,6 +735,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                 messages: [AIChatStoreTestSupport.makeAssistantTextMessage(itemId: "item-1")],
                 chatSessionId: "session-1",
                 lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                composerSuggestions: [],
                 pendingToolRunPostSync: true
             )
         )
@@ -740,6 +746,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                 messages: [AIChatStoreTestSupport.makeAssistantTextMessage(itemId: "item-2")],
                 chatSessionId: "session-2",
                 lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                composerSuggestions: [],
                 pendingToolRunPostSync: true
             )
         )
@@ -795,6 +802,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                 messages: [AIChatStoreTestSupport.makeAssistantTextMessage(itemId: "item-1")],
                 chatSessionId: "session-1",
                 lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                composerSuggestions: [],
                 pendingToolRunPostSync: true
             )
         )

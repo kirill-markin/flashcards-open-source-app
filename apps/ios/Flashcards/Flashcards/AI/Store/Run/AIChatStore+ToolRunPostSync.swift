@@ -90,6 +90,7 @@ extension AIChatStore {
             messages: persistedState.messages,
             chatSessionId: persistedState.chatSessionId,
             lastKnownChatFeatures: persistedState.lastKnownChatFeatures,
+            composerSuggestions: persistedState.composerSuggestions,
             pendingToolRunPostSync: false,
             requiresRemoteSessionProvisioning: persistedState.requiresRemoteSessionProvisioning,
             suppressDraftRestore: persistedState.suppressDraftRestore

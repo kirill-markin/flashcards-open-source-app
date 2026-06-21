@@ -509,6 +509,7 @@ final class AIChatStore {
             messages: self.messages,
             chatSessionId: self.chatSessionId,
             lastKnownChatFeatures: self.serverChatConfig.features,
+            composerSuggestions: self.composerSuggestions,
             pendingToolRunPostSync: self.pendingToolRunPostSync,
             requiresRemoteSessionProvisioning: self.requiresRemoteSessionProvisioning,
             suppressDraftRestore: self.suppressDraftRestore
@@ -582,7 +583,7 @@ final class AIChatStore {
         self.composerState = AIChatComposerState(
             inputText: "",
             pendingAttachments: [],
-            serverSuggestions: [],
+            serverSuggestions: persistedState.composerSuggestions,
             dictationState: .idle,
             completedDictationTranscript: nil
         )
@@ -635,7 +636,7 @@ final class AIChatStore {
         self.composerState = AIChatComposerState(
             inputText: initialDraft.inputText,
             pendingAttachments: initialDraft.pendingAttachments,
-            serverSuggestions: [],
+            serverSuggestions: persistedState.composerSuggestions,
             dictationState: .idle,
             completedDictationTranscript: nil
         )

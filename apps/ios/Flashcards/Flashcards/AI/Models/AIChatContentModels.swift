@@ -739,6 +739,7 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
     let messages: [AIChatMessage]
     let chatSessionId: String
     let lastKnownChatFeatures: AIChatFeatureFlags?
+    let composerSuggestions: [AIChatComposerSuggestion]
     let pendingToolRunPostSync: Bool
     let requiresRemoteSessionProvisioning: Bool
     let suppressDraftRestore: Bool
@@ -748,6 +749,7 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
         case chatSessionId
         case lastKnownChatFeatures
         case lastKnownChatConfig
+        case composerSuggestions
         case pendingToolRunPostSync
         case requiresRemoteSessionProvisioning
         case suppressDraftRestore
@@ -757,12 +759,14 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
         messages: [AIChatMessage],
         chatSessionId: String,
         lastKnownChatFeatures: AIChatFeatureFlags?,
+        composerSuggestions: [AIChatComposerSuggestion],
         pendingToolRunPostSync: Bool
     ) {
         self.init(
             messages: messages,
             chatSessionId: chatSessionId,
             lastKnownChatFeatures: lastKnownChatFeatures,
+            composerSuggestions: composerSuggestions,
             pendingToolRunPostSync: pendingToolRunPostSync,
             requiresRemoteSessionProvisioning: false,
             suppressDraftRestore: false
@@ -773,6 +777,7 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
         messages: [AIChatMessage],
         chatSessionId: String,
         lastKnownChatFeatures: AIChatFeatureFlags?,
+        composerSuggestions: [AIChatComposerSuggestion],
         pendingToolRunPostSync: Bool,
         requiresRemoteSessionProvisioning: Bool,
         suppressDraftRestore: Bool
@@ -780,6 +785,7 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
         self.messages = messages
         self.chatSessionId = chatSessionId
         self.lastKnownChatFeatures = lastKnownChatFeatures
+        self.composerSuggestions = composerSuggestions
         self.pendingToolRunPostSync = pendingToolRunPostSync
         self.requiresRemoteSessionProvisioning = requiresRemoteSessionProvisioning
         self.suppressDraftRestore = suppressDraftRestore
@@ -789,6 +795,7 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
         messages: [AIChatMessage],
         chatSessionId: String,
         lastKnownChatFeatures: AIChatFeatureFlags?,
+        composerSuggestions: [AIChatComposerSuggestion],
         pendingToolRunPostSync: Bool,
         suppressDraftRestore: Bool
     ) {
@@ -796,6 +803,7 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
             messages: messages,
             chatSessionId: chatSessionId,
             lastKnownChatFeatures: lastKnownChatFeatures,
+            composerSuggestions: composerSuggestions,
             pendingToolRunPostSync: pendingToolRunPostSync,
             requiresRemoteSessionProvisioning: false,
             suppressDraftRestore: suppressDraftRestore
@@ -807,6 +815,7 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
             messages: messages,
             chatSessionId: "",
             lastKnownChatFeatures: nil,
+            composerSuggestions: [],
             pendingToolRunPostSync: false
         )
     }
@@ -826,6 +835,10 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
                 forKey: .lastKnownChatConfig
             )?.features
         }
+        self.composerSuggestions = try container.decodeIfPresent(
+            [AIChatComposerSuggestion].self,
+            forKey: .composerSuggestions
+        ) ?? []
         self.pendingToolRunPostSync = try container.decodeIfPresent(
             Bool.self,
             forKey: .pendingToolRunPostSync
@@ -845,6 +858,7 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
         try container.encode(self.messages, forKey: .messages)
         try container.encode(self.chatSessionId, forKey: .chatSessionId)
         try container.encodeIfPresent(self.lastKnownChatFeatures, forKey: .lastKnownChatFeatures)
+        try container.encode(self.composerSuggestions, forKey: .composerSuggestions)
         try container.encode(self.pendingToolRunPostSync, forKey: .pendingToolRunPostSync)
         try container.encode(
             self.requiresRemoteSessionProvisioning,

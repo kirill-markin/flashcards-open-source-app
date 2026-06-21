@@ -39,6 +39,7 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
                 ],
                 chatSessionId: "session-restore",
                 lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                composerSuggestions: [],
                 pendingToolRunPostSync: false
             )
         )
@@ -86,6 +87,7 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
                 ],
                 chatSessionId: "session-restore",
                 lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                composerSuggestions: [],
                 pendingToolRunPostSync: false
             )
         )
@@ -166,6 +168,7 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
                 ],
                 chatSessionId: "session-restore",
                 lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                composerSuggestions: [],
                 pendingToolRunPostSync: false
             )
         )
@@ -273,6 +276,7 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
                 ],
                 chatSessionId: "session-restore",
                 lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                composerSuggestions: [],
                 pendingToolRunPostSync: false
             )
         )

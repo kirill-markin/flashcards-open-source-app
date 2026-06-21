@@ -67,6 +67,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
                     messages: baselineMessages,
                     chatSessionId: "session-1",
                     lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                    composerSuggestions: [],
                     pendingToolRunPostSync: false
                 ),
                 requiresRemoteSessionProvisioning: false,
@@ -176,6 +177,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
                     messages: baselineMessages,
                     chatSessionId: "session-1",
                     lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                    composerSuggestions: [],
                     pendingToolRunPostSync: false
                 ),
                 requiresRemoteSessionProvisioning: false,
@@ -294,6 +296,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
                     messages: baselineMessages,
                     chatSessionId: "session-1",
                     lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                    composerSuggestions: [],
                     pendingToolRunPostSync: false
                 ),
                 requiresRemoteSessionProvisioning: false,
@@ -424,6 +427,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
                     messages: baselineMessages,
                     chatSessionId: "session-1",
                     lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                    composerSuggestions: [],
                     pendingToolRunPostSync: false
                 ),
                 requiresRemoteSessionProvisioning: false,
@@ -541,6 +545,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
                     messages: baselineMessages,
                     chatSessionId: "session-1",
                     lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                    composerSuggestions: [],
                     pendingToolRunPostSync: false
                 ),
                 requiresRemoteSessionProvisioning: false,

@@ -129,6 +129,7 @@ final class AIChatStoreRunToolCallTrackingBootstrapTests: XCTestCase {
                 messages: [AIChatStoreTestSupport.makeAssistantTextMessage(itemId: "item-1")],
                 chatSessionId: "session-1",
                 lastKnownChatFeatures: aiChatDefaultServerConfig.features,
+                composerSuggestions: [],
                 pendingToolRunPostSync: false
             )
         )

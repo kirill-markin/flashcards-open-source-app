@@ -62,6 +62,7 @@ func storeAIChatHistoryStateSynchronously(
         messages: Array(state.messages.suffix(aiChatMaxMessages)),
         chatSessionId: state.chatSessionId,
         lastKnownChatFeatures: state.lastKnownChatFeatures,
+        composerSuggestions: state.composerSuggestions,
         pendingToolRunPostSync: state.pendingToolRunPostSync,
         requiresRemoteSessionProvisioning: state.requiresRemoteSessionProvisioning,
         suppressDraftRestore: state.suppressDraftRestore
@@ -154,6 +155,7 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
                 messages: [],
                 chatSessionId: "",
                 lastKnownChatFeatures: nil,
+                composerSuggestions: [],
                 pendingToolRunPostSync: false
             )
         }
@@ -173,6 +175,7 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
                 messages: trimmedMessages,
                 chatSessionId: state.chatSessionId,
                 lastKnownChatFeatures: state.lastKnownChatFeatures,
+                composerSuggestions: state.composerSuggestions,
                 pendingToolRunPostSync: state.pendingToolRunPostSync,
                 requiresRemoteSessionProvisioning: state.requiresRemoteSessionProvisioning,
                 suppressDraftRestore: state.suppressDraftRestore
@@ -190,6 +193,7 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
                 messages: [],
                 chatSessionId: "",
                 lastKnownChatFeatures: nil,
+                composerSuggestions: [],
                 pendingToolRunPostSync: false
             )
         }
