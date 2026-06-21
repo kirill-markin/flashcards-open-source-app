@@ -106,7 +106,8 @@ private fun ProgressLeaderboardProfileHeader(
             val selectedProfileLooksFriend = readyState == null &&
                 uiState.selectedProfile.friendDisplayName != null &&
                 uiState.selectedProfile.isViewer.not()
-            val isFriend = readyState?.profile?.isFriend == true || selectedProfileLooksFriend
+            val isFriend = uiState.selectedProfile.isViewer.not() &&
+                (readyState?.profile?.isFriend == true || selectedProfileLooksFriend)
             if (isFriend) {
                 Surface(
                     color = MaterialTheme.colorScheme.secondaryContainer,
@@ -120,6 +121,16 @@ private fun ProgressLeaderboardProfileHeader(
                     )
                 }
             }
+        }
+        leaderboardProfileAnonymousSubtitle(uiState = uiState)?.let { anonymousDisplayName ->
+            Text(
+                text = anonymousDisplayName,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
@@ -384,6 +395,17 @@ private fun leaderboardProfileDisplayName(
     return readyProfile?.friendDisplayName
         ?: readyProfile?.anonymousDisplayName
         ?: uiState.selectedProfile.displayName
+}
+
+private fun leaderboardProfileAnonymousSubtitle(
+    uiState: ProgressLeaderboardProfileSheetUiState
+): String? {
+    if (uiState.selectedProfile.isViewer.not()) {
+        return null
+    }
+
+    val readyProfile = (uiState as? ProgressLeaderboardProfileSheetUiState.Ready)?.profile
+    return readyProfile?.anonymousDisplayName ?: uiState.selectedProfile.anonymousDisplayName
 }
 
 @Composable
