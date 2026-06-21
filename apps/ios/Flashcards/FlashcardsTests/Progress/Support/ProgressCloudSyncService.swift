@@ -76,6 +76,7 @@ final class ProgressCloudSyncService: CloudSyncServing {
     var serverReviewSchedule: UserReviewSchedule
     var serverProgressLeaderboard: UserProgressLeaderboard
     var serverProgressStreakLeaderboard: UserProgressStreakLeaderboard
+    var serverProgressLeaderboardProfile: UserProgressLeaderboardProfile
     var serverCommunityPublicProfile: CommunityPublicProfile
     var updatedCommunityPublicProfile: CommunityPublicProfile
     var loadProgressSummaryError: Error?
@@ -83,6 +84,7 @@ final class ProgressCloudSyncService: CloudSyncServing {
     var loadProgressReviewScheduleError: Error?
     var loadProgressLeaderboardError: Error?
     var loadProgressStreakLeaderboardError: Error?
+    var loadProgressLeaderboardProfileError: Error?
     var loadCommunityPublicProfileError: Error?
     var updateCommunityLeaderboardParticipationError: Error?
     private(set) var lastLoadProgressSummaryRequest: ProgressSummaryLoadRequest?
@@ -94,6 +96,7 @@ final class ProgressCloudSyncService: CloudSyncServing {
     private(set) var loadProgressReviewScheduleCallCount: Int
     private(set) var loadProgressLeaderboardCallCount: Int
     private(set) var loadProgressStreakLeaderboardCallCount: Int
+    private(set) var loadProgressLeaderboardProfileCallCount: Int
     private(set) var loadCommunityPublicProfileCallCount: Int
     private(set) var updateCommunityLeaderboardParticipationCallCount: Int
     private(set) var lastUpdateCommunityLeaderboardParticipationEnabled: Bool?
@@ -109,6 +112,7 @@ final class ProgressCloudSyncService: CloudSyncServing {
         self.serverReviewSchedule = makeEmptyReviewScheduleForTests(timeZone: serverSeries.timeZone)
         self.serverProgressLeaderboard = makeNonReadyProgressLeaderboardForTests(status: .snapshotUnavailable)
         self.serverProgressStreakLeaderboard = makeNonReadyProgressStreakLeaderboardForTests(status: .snapshotUnavailable)
+        self.serverProgressLeaderboardProfile = UserProgressLeaderboardProfile(status: .profileUnavailable, readyPayload: nil)
         self.serverCommunityPublicProfile = makeCommunityPublicProfileForProgressTests(
             leaderboardParticipationEnabled: true
         )
@@ -120,6 +124,7 @@ final class ProgressCloudSyncService: CloudSyncServing {
         self.loadProgressReviewScheduleError = nil
         self.loadProgressLeaderboardError = nil
         self.loadProgressStreakLeaderboardError = nil
+        self.loadProgressLeaderboardProfileError = nil
         self.loadCommunityPublicProfileError = nil
         self.updateCommunityLeaderboardParticipationError = nil
         self.lastLoadProgressSummaryRequest = nil
@@ -131,6 +136,7 @@ final class ProgressCloudSyncService: CloudSyncServing {
         self.loadProgressReviewScheduleCallCount = 0
         self.loadProgressLeaderboardCallCount = 0
         self.loadProgressStreakLeaderboardCallCount = 0
+        self.loadProgressLeaderboardProfileCallCount = 0
         self.loadCommunityPublicProfileCallCount = 0
         self.updateCommunityLeaderboardParticipationCallCount = 0
         self.lastUpdateCommunityLeaderboardParticipationEnabled = nil
@@ -149,6 +155,7 @@ final class ProgressCloudSyncService: CloudSyncServing {
         self.serverReviewSchedule = serverReviewSchedule
         self.serverProgressLeaderboard = makeNonReadyProgressLeaderboardForTests(status: .snapshotUnavailable)
         self.serverProgressStreakLeaderboard = makeNonReadyProgressStreakLeaderboardForTests(status: .snapshotUnavailable)
+        self.serverProgressLeaderboardProfile = UserProgressLeaderboardProfile(status: .profileUnavailable, readyPayload: nil)
         self.serverCommunityPublicProfile = makeCommunityPublicProfileForProgressTests(
             leaderboardParticipationEnabled: true
         )
@@ -160,6 +167,7 @@ final class ProgressCloudSyncService: CloudSyncServing {
         self.loadProgressReviewScheduleError = loadProgressReviewScheduleError
         self.loadProgressLeaderboardError = nil
         self.loadProgressStreakLeaderboardError = nil
+        self.loadProgressLeaderboardProfileError = nil
         self.loadCommunityPublicProfileError = nil
         self.updateCommunityLeaderboardParticipationError = nil
         self.lastLoadProgressSummaryRequest = nil
@@ -171,6 +179,7 @@ final class ProgressCloudSyncService: CloudSyncServing {
         self.loadProgressReviewScheduleCallCount = 0
         self.loadProgressLeaderboardCallCount = 0
         self.loadProgressStreakLeaderboardCallCount = 0
+        self.loadProgressLeaderboardProfileCallCount = 0
         self.loadCommunityPublicProfileCallCount = 0
         self.updateCommunityLeaderboardParticipationCallCount = 0
         self.lastUpdateCommunityLeaderboardParticipationEnabled = nil
@@ -272,6 +281,22 @@ final class ProgressCloudSyncService: CloudSyncServing {
         }
 
         return self.serverProgressStreakLeaderboard
+    }
+
+    func loadProgressLeaderboardProfile(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        publicProfileId: String
+    ) async throws -> UserProgressLeaderboardProfile {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        _ = publicProfileId
+        self.loadProgressLeaderboardProfileCallCount += 1
+        if let loadProgressLeaderboardProfileError {
+            throw loadProgressLeaderboardProfileError
+        }
+
+        return self.serverProgressLeaderboardProfile
     }
 
     func loadCommunityPublicProfile(

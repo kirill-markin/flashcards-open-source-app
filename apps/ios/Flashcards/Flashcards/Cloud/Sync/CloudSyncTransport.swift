@@ -6,6 +6,12 @@ private let cloudSyncResponseDecodingFailedCode: String = "RESPONSE_DECODING_FAI
 private let cloudSyncResponseDecodingFailedMessage: String = "Failed to decode cloud sync response"
 private let cloudSyncTransportMaxAttempts: Int = 3
 private let cloudSyncTransportRetryDelayNanoseconds: UInt64 = 500_000_000
+private let progressLeaderboardProfileBasePath: String = "/me/progress/leaderboards/profiles"
+private let progressLeaderboardProfilePathSegmentAllowedCharacters: CharacterSet = {
+    var allowedCharacters = CharacterSet.alphanumerics
+    allowedCharacters.insert(charactersIn: "-._~")
+    return allowedCharacters
+}()
 
 private protocol CloudSyncBootstrapModeRequest {
     var mode: String { get }
@@ -109,6 +115,23 @@ struct CloudSyncTransport {
         }
 
         return path
+    }
+
+    func progressLeaderboardProfilePath(publicProfileId: String) throws -> String {
+        let normalizedPublicProfileId = publicProfileId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard normalizedPublicProfileId.isEmpty == false else {
+            throw LocalStoreError.validation("Progress leaderboard profile id must not be empty")
+        }
+
+        guard let encodedPublicProfileId = normalizedPublicProfileId.addingPercentEncoding(
+            withAllowedCharacters: progressLeaderboardProfilePathSegmentAllowedCharacters
+        ) else {
+            throw LocalStoreError.validation(
+                "Progress leaderboard profile id could not be encoded: \(publicProfileId)"
+            )
+        }
+
+        return "\(progressLeaderboardProfileBasePath)/\(encodedPublicProfileId)"
     }
 
     func request<Response: Decodable, Body: Encodable>(

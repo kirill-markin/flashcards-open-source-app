@@ -6,6 +6,7 @@ struct ProgressStreakLeaderboardSection: View {
     /// the local viewer row depends on the current Progress summary.
     let isRefreshing: Bool
     let streakLeaderboardRefreshMessage: String
+    let onOpenProfile: (ProgressLeaderboardSelectedProfile) -> Void
 
     @State private var isInfoAlertPresented: Bool = false
 
@@ -79,7 +80,10 @@ struct ProgressStreakLeaderboardSection: View {
             ForEach(readyState.rows) { row in
                 switch row {
                 case .participant(let participantRow):
-                    ProgressStreakLeaderboardParticipantRowView(row: participantRow)
+                    ProgressStreakLeaderboardParticipantRowView(
+                        row: participantRow,
+                        onOpenProfile: self.onOpenProfile
+                    )
                 case .gap(_):
                     ProgressStreakLeaderboardGapRowView()
                 }
@@ -144,6 +148,7 @@ struct ProgressStreakLeaderboardSection: View {
 
 private struct ProgressStreakLeaderboardParticipantRowView: View {
     let row: ProgressStreakLeaderboardParticipantRowState
+    let onOpenProfile: (ProgressLeaderboardSelectedProfile) -> Void
 
     private var isViewer: Bool {
         self.row.kind == .viewer
@@ -158,6 +163,28 @@ private struct ProgressStreakLeaderboardParticipantRowView: View {
     }
 
     var body: some View {
+        if let selectedProfile {
+            Button {
+                self.onOpenProfile(selectedProfile)
+            } label: {
+                self.content
+            }
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
+            .accessibilityElement(children: .ignore)
+            .accessibilityIdentifier(self.accessibilityIdentifier)
+            .accessibilityLabel(self.displayName)
+            .accessibilityValue(self.accessibilityValue)
+        } else {
+            self.content
+                .accessibilityElement(children: .ignore)
+                .accessibilityIdentifier(self.accessibilityIdentifier)
+                .accessibilityLabel(self.displayName)
+                .accessibilityValue(self.accessibilityValue)
+        }
+    }
+
+    private var content: some View {
         HStack(spacing: 10) {
             Text(self.row.rank.formatted())
                 .font(.subheadline.monospacedDigit())
@@ -182,10 +209,18 @@ private struct ProgressStreakLeaderboardParticipantRowView: View {
                 .padding(.horizontal, -8)
                 .padding(.vertical, -4)
         )
-        .accessibilityElement(children: .ignore)
-        .accessibilityIdentifier(self.accessibilityIdentifier)
-        .accessibilityLabel(self.displayName)
-        .accessibilityValue(self.accessibilityValue)
+    }
+
+    private var selectedProfile: ProgressLeaderboardSelectedProfile? {
+        guard let publicProfileId = self.row.publicProfileId else {
+            return nil
+        }
+
+        return ProgressLeaderboardSelectedProfile(
+            publicProfileId: publicProfileId,
+            anonymousDisplayName: self.row.anonymousDisplayName,
+            friendDisplayName: self.row.friendDisplayName
+        )
     }
 
     private var accessibilityIdentifier: String {

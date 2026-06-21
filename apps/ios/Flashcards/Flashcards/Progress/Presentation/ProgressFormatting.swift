@@ -376,6 +376,94 @@ func progressLeaderboardWindowTitle(key: LeaderboardWindowKey) -> String {
     }
 }
 
+func progressLeaderboardProfileDisplayName(
+    anonymousDisplayName: String,
+    friendDisplayName: String?
+) -> String {
+    friendDisplayName ?? anonymousDisplayName
+}
+
+func progressLeaderboardProfileFriendBadgeTitle() -> String {
+    String(
+        localized: "progress.leaderboard_profile.friend_badge",
+        defaultValue: "Friend",
+        table: progressStringsTableName,
+        comment: "Badge text shown on a leaderboard profile when the profile belongs to a friend"
+    )
+}
+
+func progressLeaderboardProfileBestRatingText(
+    placement: ProgressLeaderboardProfileBestRatingPlacement?
+) -> String {
+    guard let placement else {
+        return String(
+            localized: "progress.leaderboard_profile.best_rating.none",
+            defaultValue: "No rating yet",
+            table: progressStringsTableName,
+            comment: "Leaderboard profile best rating value when the profile has no rating placement"
+        )
+    }
+
+    let localizedFormat = String(
+        localized: "progress.leaderboard_profile.best_rating.format",
+        defaultValue: "#%1$lld in %2$@",
+        table: progressStringsTableName,
+        comment: "Leaderboard profile best rating value with rank and leaderboard window, for example #2 in 24h"
+    )
+    return String(
+        format: localizedFormat,
+        locale: Locale.current,
+        Int64(placement.rank),
+        progressLeaderboardWindowTitle(key: placement.windowKey)
+    )
+}
+
+func progressLeaderboardProfileJoinedDateText(joinedAt: String) -> String {
+    guard let joinedAtDate = parseIsoTimestamp(value: joinedAt) else {
+        preconditionFailure("Validated leaderboard profile joinedAt timestamp is invalid")
+    }
+
+    let formatter = DateFormatter()
+    formatter.calendar = Calendar.autoupdatingCurrent
+    formatter.locale = Locale.autoupdatingCurrent
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .none
+    return formatter.string(from: joinedAtDate)
+}
+
+func progressLeaderboardProfileCardCountText(totalCards: Int) -> String {
+    if totalCards == 1 {
+        return String(
+            localized: "progress.leaderboard_profile.card_count.one",
+            defaultValue: "1 card",
+            table: progressStringsTableName,
+            comment: "Leaderboard profile singular total card count"
+        )
+    }
+
+    let localizedFormat = String(
+        localized: "progress.leaderboard_profile.card_count.other",
+        defaultValue: "%lld cards",
+        table: progressStringsTableName,
+        comment: "Leaderboard profile plural total card count"
+    )
+    return String(format: localizedFormat, locale: Locale.current, Int64(totalCards))
+}
+
+func progressLeaderboardProfileActivityDateLabel(date: String) -> String {
+    let calendar = Calendar(identifier: .gregorian)
+    guard let parsedDate = try? progressDate(localDate: date, calendar: calendar) else {
+        preconditionFailure("Validated leaderboard profile activity date is invalid")
+    }
+
+    let formatter = DateFormatter()
+    formatter.calendar = calendar
+    formatter.locale = Locale.autoupdatingCurrent
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .none
+    return formatter.string(from: parsedDate)
+}
+
 func progressLeaderboardUpdatedText(snapshotGeneratedAt: String, now: Date) -> String? {
     guard let generatedAtDate = parseIsoTimestamp(value: snapshotGeneratedAt) else {
         return nil
