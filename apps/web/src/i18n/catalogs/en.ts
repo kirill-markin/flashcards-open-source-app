@@ -101,14 +101,8 @@ const enCatalog = {
   filters: {
     allCards: "All cards",
     and: "AND",
-    effortIn: "effort in {{values}}",
     none: "No filters",
     tagsAnyOf: "tags any of {{values}}",
-  },
-  effortLevels: {
-    fast: "Fast",
-    medium: "Medium",
-    long: "Long",
   },
   loading: {
     generic: "Loading...",
@@ -600,7 +594,7 @@ const enCatalog = {
     queueBadgeDueUpcoming: "{{due}} due | {{upcoming}} upcoming",
     scopeLabel: "Scope",
     searchLabel: "Search",
-    searchPlaceholder: "Search decks, effort, or tags",
+    searchPlaceholder: "Search decks or tags",
   },
   reviewScreen: {
     actions: {
@@ -719,7 +713,6 @@ const enCatalog = {
         clear: "Clear",
       },
       ariaLabel: "Cards filters",
-      effort: "Effort",
       label: "Filters",
       tags: "Tags",
       trigger: "Filter",
@@ -737,7 +730,6 @@ const enCatalog = {
     table: {
       back: "Back",
       due: "Due",
-      effort: "Effort",
       front: "Front",
       lapses: "Lapses",
       open: "Open",
@@ -763,7 +755,6 @@ const enCatalog = {
     },
     fields: {
       back: "Back",
-      effort: "Effort",
       front: "Front",
       tags: "Tags",
     },
@@ -804,7 +795,7 @@ const enCatalog = {
       new: "new",
       reviewed: "reviewed",
     },
-    subtitle: "Decks are smart filters, not containers. They match cards by effort level and tags.",
+    subtitle: "Decks are smart filters, not containers. They match cards by tags.",
     title: "Decks",
   },
   deckDetail: {
@@ -846,7 +837,7 @@ const enCatalog = {
     subtitle: "Inspect the deck rules, matching cards, and review entry point.",
     subtitles: {
       allCards: "All Cards is the full review scope across every card.",
-      smartFilter: "This deck is a saved smart filter over effort level and tags.",
+      smartFilter: "This deck is a saved smart filter over tags.",
     },
     title: "Deck",
     warnings: {
@@ -861,17 +852,16 @@ const enCatalog = {
       saving: "Saving...",
     },
     errors: {
-      emptyRules: "Choose at least one effort level or tag, or use All Cards on Review.",
+      emptyRules: "Choose at least one tag, or use All Cards on Review.",
     },
     fields: {
-      effort: "Effort",
       name: "Name",
       summary: "Rules",
       tags: "Tags",
     },
     filterPreview: "Rules preview",
     rulesPreviewHelp: "These rules decide which cards appear in this Deck.",
-    smartFilterExplanation: "You are creating a smart filter called a Deck. It matches cards by effort level and tags, then can be selected from the Review filter.",
+    smartFilterExplanation: "You are creating a smart filter called a Deck. It matches cards by tags, then can be selected from the Review filter.",
     systemDeckReadonly: "System deck cannot be edited.",
     subtitles: {
       edit: "Update a saved smart filter for matching cards.",
@@ -966,9 +956,6 @@ const enCatalog = {
       codeExecution: "Code execution",
       sql: "SQL",
       webSearch: "Web search",
-    },
-    toolMeta: {
-      effort: "Effort {{value}}",
     },
   },
   accountSettings: {

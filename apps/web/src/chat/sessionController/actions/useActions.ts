@@ -42,6 +42,7 @@ import type { ChatSessionSnapshotSync } from "../snapshotSync/useSnapshotSync";
 import {
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
   buildContentParts,
+  buildStartRunContentParts,
   toRequestBodySizeBytes,
 } from "../../shared/chatHelpers";
 import { binaryPendingAttachmentExceedsSizeLimit } from "../../attachments/FileAttachment";
@@ -710,7 +711,7 @@ export function useChatSessionActions(
       sessionId: requestSessionId,
       workspaceId,
       clientRequestId: sendParams.clientRequestId,
-      content: contentParts,
+      content: buildStartRunContentParts(contentParts),
       timezone,
       // Optional on the wire so older backend/client contract phases keep working.
       uiLocale,

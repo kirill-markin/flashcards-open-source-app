@@ -2,42 +2,29 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type ReactE
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../../../../appData";
 import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
-import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition, EFFORT_LEVELS } from "../../../../deckFilters";
+import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckDetailRoute, settingsDecksRoute } from "../../../../routes";
 import { CardFormTagsField } from "../../../cards/form/CardFormTagsField";
 import { loadWorkspaceTagsSummary } from "../../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
-import type { EffortLevel, TagSuggestion, UpdateDeckInput } from "../../../../types";
-import { formatDeckFilterSummary, formatEffortLevelLabel } from "../../../shared/featureFormatting";
+import type { TagSuggestion, UpdateDeckInput } from "../../../../types";
+import { formatDeckFilterSummary } from "../../../shared/featureFormatting";
 
 type FormState = Readonly<{
   name: string;
-  effortLevels: ReadonlyArray<EffortLevel>;
   tags: ReadonlyArray<string>;
 }>;
 
 function createInitialFormState(): FormState {
   return {
     name: "",
-    effortLevels: [],
     tags: [],
   };
 }
 
-function toggleEffortLevel(
-  effortLevels: ReadonlyArray<EffortLevel>,
-  effortLevel: EffortLevel,
-): ReadonlyArray<EffortLevel> {
-  if (effortLevels.includes(effortLevel)) {
-    return effortLevels.filter((value) => value !== effortLevel);
-  }
-
-  return [...effortLevels, effortLevel];
-}
-
 function hasDeckRules(formState: FormState): boolean {
-  return formState.effortLevels.length > 0 || formState.tags.length > 0;
+  return formState.tags.length > 0;
 }
 
 export function DeckFormScreen(): ReactElement {
@@ -68,7 +55,7 @@ export function DeckFormScreen(): ReactElement {
     userId: null,
     installationId: null,
   });
-  const filterDefinition = buildDeckFilterDefinition(formState.effortLevels, formState.tags);
+  const filterDefinition = buildDeckFilterDefinition(formState.tags);
   const nameFieldId = "deck-name";
   const tagsFieldId = "deck-tags-input";
   const isCreateMode = deckId === undefined;
@@ -109,7 +96,6 @@ export function DeckFormScreen(): ReactElement {
       } else {
         setFormState({
           name: loadedDeck.name,
-          effortLevels: loadedDeck.filterDefinition.effortLevels,
           tags: loadedDeck.filterDefinition.tags,
         });
       }
@@ -258,24 +244,6 @@ export function DeckFormScreen(): ReactElement {
                 onChange={(event: ChangeEvent<HTMLInputElement>) => updateField("name", event.target.value)}
               />
             </label>
-
-            <div className="form-label content-card content-card-section deck-form-fieldset">
-              <span className="deck-form-label">{t("deckForm.fields.effort")}</span>
-              <div className="deck-checkbox-list">
-                {EFFORT_LEVELS.map((effortLevel) => (
-                  <label key={effortLevel} className="deck-checkbox-option">
-                    <input
-                      id={`deck-effort-${effortLevel}`}
-                      name="effortLevels"
-                      type="checkbox"
-                      checked={formState.effortLevels.includes(effortLevel)}
-                      onChange={() => updateField("effortLevels", toggleEffortLevel(formState.effortLevels, effortLevel))}
-                    />
-                    <span>{formatEffortLevelLabel(t, effortLevel)}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
 
             <div className="form-label content-card content-card-section">
               <label htmlFor={tagsFieldId}>

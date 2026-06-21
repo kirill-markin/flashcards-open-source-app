@@ -42,7 +42,7 @@ vi.mock("../../../api", () => ({
   pushSyncOperations: apiMocks.pushSyncOperationsMock,
 }));
 
-const currentWebSyncDatabaseVersion = 14;
+const currentWebSyncDatabaseVersion = 15;
 
 function createRemoteSyncInput(): WorkspaceRemoteSyncInput {
   return {
@@ -103,7 +103,6 @@ function createDeckBootstrapEntry(workspaceId: string): SyncBootstrapEntry {
       name: "Deck",
       filterDefinition: {
         version: 2,
-        effortLevels: [],
         tags: [],
       },
       createdAt: timestamp,

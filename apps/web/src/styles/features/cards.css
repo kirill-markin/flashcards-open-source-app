@@ -121,7 +121,6 @@
   --cards-col-front-width: 360px;
   --cards-col-back-width: 360px;
   --cards-col-tags-width: 220px;
-  --cards-col-effort-width: 96px;
   --cards-col-due-width: 176px;
   --cards-col-reps-width: 72px;
   --cards-col-lapses-width: 72px;
@@ -131,7 +130,6 @@
     + var(--cards-col-front-width)
     + var(--cards-col-back-width)
     + var(--cards-col-tags-width)
-    + var(--cards-col-effort-width)
     + var(--cards-col-due-width)
     + var(--cards-col-reps-width)
     + var(--cards-col-lapses-width)
@@ -213,10 +211,6 @@
 
 .cards-table .cards-col-tags {
   width: var(--cards-col-tags-width);
-}
-
-.cards-table .cards-col-effort {
-  width: var(--cards-col-effort-width);
 }
 
 .cards-table .cards-col-due {

@@ -24,9 +24,7 @@ type CardCursorIndexName =
   | "workspaceId_updatedAt_cardId"
   | "workspaceId_dueAt_cardId"
   | "workspaceId_dueAtMillis_cardId"
-  | "workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_cardId"
-  | "workspaceId_effort_createdAt_cardId"
-  | "workspaceId_effort_updatedAt_cardId";
+  | "workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_cardId";
 
 export type LocalStoredCard = Readonly<Card & {
   dueAtMillis: number | null;
@@ -46,7 +44,6 @@ function toStoredCard(workspaceId: string, card: Card): StoredCard {
     frontText: card.frontText,
     backText: card.backText,
     tags: card.tags,
-    effortLevel: card.effortLevel,
     // TODO: Drop boundary-facing legacy dueAt after the domain/wire split.
     dueAt: card.dueAt,
     dueAtMillis: deriveDueAtMillis(card.dueAt),
@@ -75,7 +72,6 @@ function toCard(record: StoredCard): Card {
     frontText: record.frontText,
     backText: record.backText,
     tags: record.tags,
-    effortLevel: record.effortLevel,
     // TODO: Drop boundary-facing legacy dueAt after the domain/wire split.
     dueAt: record.dueAt ?? null,
     createdAt: record.createdAt,
@@ -455,142 +451,6 @@ export async function iterateLocalStoredCardsByFsrsLastReviewedAtMillisBetweenIn
   );
 }
 
-async function iterateCardsByEffortAndCreatedAtDesc(
-  database: IDBDatabase,
-  workspaceId: string,
-  effortLevel: Card["effortLevel"],
-  onCard: (card: Card) => boolean | void,
-): Promise<void> {
-  let currentCreatedAt: string | null | undefined;
-  let currentGroup: Array<Card> = [];
-  let shouldStop = false;
-
-  function flushCurrentGroup(): boolean {
-    const sortedGroup = [...currentGroup].sort((leftCard, rightCard) => leftCard.cardId.localeCompare(rightCard.cardId));
-    currentGroup = [];
-
-    for (const card of sortedGroup) {
-      if (onCard(card) === false) {
-        shouldStop = true;
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  await iterateCardsByIndex(
-    database,
-    workspaceId,
-    {
-      indexName: "workspaceId_effort_createdAt_cardId",
-      direction: "prev",
-      keyRange: makeWorkspaceKeyRange(workspaceId),
-    },
-    toCard,
-    (card) => {
-      if (card.effortLevel !== effortLevel) {
-        return true;
-      }
-
-      if (shouldStop) {
-        return false;
-      }
-
-      if (currentCreatedAt === undefined) {
-        currentCreatedAt = card.createdAt;
-        currentGroup = [card];
-        return true;
-      }
-
-      if (currentCreatedAt === card.createdAt) {
-        currentGroup.push(card);
-        return true;
-      }
-
-      if (flushCurrentGroup() === false) {
-        return false;
-      }
-
-      currentCreatedAt = card.createdAt;
-      currentGroup = [card];
-      return true;
-    },
-  );
-
-  if (shouldStop === false && currentGroup.length > 0) {
-    flushCurrentGroup();
-  }
-}
-
-async function iterateCardsByEffortAndUpdatedAtDesc(
-  database: IDBDatabase,
-  workspaceId: string,
-  effortLevel: Card["effortLevel"],
-  onCard: (card: Card) => boolean | void,
-): Promise<void> {
-  let currentUpdatedAt: string | null | undefined;
-  let currentGroup: Array<Card> = [];
-  let shouldStop = false;
-
-  function flushCurrentGroup(): boolean {
-    const sortedGroup = [...currentGroup].sort((leftCard, rightCard) => leftCard.cardId.localeCompare(rightCard.cardId));
-    currentGroup = [];
-
-    for (const card of sortedGroup) {
-      if (onCard(card) === false) {
-        shouldStop = true;
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  await iterateCardsByIndex(
-    database,
-    workspaceId,
-    {
-      indexName: "workspaceId_effort_updatedAt_cardId",
-      direction: "prev",
-      keyRange: makeWorkspaceKeyRange(workspaceId),
-    },
-    toCard,
-    (card) => {
-      if (card.effortLevel !== effortLevel) {
-        return true;
-      }
-
-      if (shouldStop) {
-        return false;
-      }
-
-      if (currentUpdatedAt === undefined) {
-        currentUpdatedAt = card.updatedAt;
-        currentGroup = [card];
-        return true;
-      }
-
-      if (currentUpdatedAt === card.updatedAt) {
-        currentGroup.push(card);
-        return true;
-      }
-
-      if (flushCurrentGroup() === false) {
-        return false;
-      }
-
-      currentUpdatedAt = card.updatedAt;
-      currentGroup = [card];
-      return true;
-    },
-  );
-
-  if (shouldStop === false && currentGroup.length > 0) {
-    flushCurrentGroup();
-  }
-}
-
 function isDefaultUpdatedAtDescendingSort(
   sorts: QueryCardsInput["sorts"],
 ): boolean {
@@ -682,8 +542,6 @@ function compareCardsForCardsQuery(
       difference = compareText(leftCard.backText, rightCard.backText, sort.direction);
     } else if (sort.key === "tags") {
       difference = compareText(leftCard.tags.join(","), rightCard.tags.join(","), sort.direction);
-    } else if (sort.key === "effortLevel") {
-      difference = compareText(leftCard.effortLevel, rightCard.effortLevel, sort.direction);
     } else if (sort.key === "dueAt") {
       difference = compareNullableText(leftCard.dueAt, rightCard.dueAt, sort.direction);
     } else if (sort.key === "reps") {
@@ -818,69 +676,37 @@ export async function queryLocalCardsPage(workspaceId: string, input: QueryCards
       let pageCards: Array<Card> = [];
       let hasMoreCards = false;
 
-      const iterateCards = input.filter !== null && input.filter.effort.length === 1
-        ? iterateCardsByEffortAndUpdatedAtDesc(database, workspaceId, input.filter.effort[0], (card) => {
-          if (card.deletedAt !== null) {
-            return true;
-          }
-          if (allowedTagCardIds !== null && allowedTagCardIds.has(card.cardId) === false) {
-            return true;
-          }
-          if (input.filter !== null && matchesCardFilter(input.filter, card) === false) {
-            return true;
-          }
-          if (matchesSearchText(card, normalizedSearchText) === false) {
-            return true;
-          }
-
-          matchingCount += 1;
-
-          if (hasReachedCursor === false) {
-            if (cursorPredicate.matches(card.cardId)) {
-              hasReachedCursor = true;
-            }
-            return true;
-          }
-
-          if (pageCards.length < input.limit) {
-            pageCards = [...pageCards, card];
-            return true;
-          }
-
-          hasMoreCards = true;
+      const iterateCards = iterateCardsByUpdatedAtDesc(database, workspaceId, (card) => {
+        if (card.deletedAt !== null) {
           return true;
-        })
-        : iterateCardsByUpdatedAtDesc(database, workspaceId, (card) => {
-          if (card.deletedAt !== null) {
-            return true;
-          }
-          if (allowedTagCardIds !== null && allowedTagCardIds.has(card.cardId) === false) {
-            return true;
-          }
-          if (input.filter !== null && matchesCardFilter(input.filter, card) === false) {
-            return true;
-          }
-          if (matchesSearchText(card, normalizedSearchText) === false) {
-            return true;
-          }
-
-          matchingCount += 1;
-
-          if (hasReachedCursor === false) {
-            if (cursorPredicate.matches(card.cardId)) {
-              hasReachedCursor = true;
-            }
-            return true;
-          }
-
-          if (pageCards.length < input.limit) {
-            pageCards = [...pageCards, card];
-            return true;
-          }
-
-          hasMoreCards = true;
+        }
+        if (allowedTagCardIds !== null && allowedTagCardIds.has(card.cardId) === false) {
           return true;
-        });
+        }
+        if (input.filter !== null && matchesCardFilter(input.filter, card) === false) {
+          return true;
+        }
+        if (matchesSearchText(card, normalizedSearchText) === false) {
+          return true;
+        }
+
+        matchingCount += 1;
+
+        if (hasReachedCursor === false) {
+          if (cursorPredicate.matches(card.cardId)) {
+            hasReachedCursor = true;
+          }
+          return true;
+        }
+
+        if (pageCards.length < input.limit) {
+          pageCards = [...pageCards, card];
+          return true;
+        }
+
+        hasMoreCards = true;
+        return true;
+      });
 
       await iterateCards;
 
@@ -1030,7 +856,6 @@ export async function loadCardsMatchingDeck(
   workspaceId: string,
   filterDefinition: Readonly<{
     version: 2;
-    effortLevels: ReadonlyArray<Card["effortLevel"]>;
     tags: ReadonlyArray<string>;
   }>,
 ): Promise<ReadonlyArray<Card>> {

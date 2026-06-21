@@ -1,11 +1,10 @@
-import type { Card, ContentPart, EffortLevel } from "../../types";
+import type { Card, ContentPart } from "../../types";
 
 export type ChatCardSnapshot = Readonly<{
   cardId: string;
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: EffortLevel;
 }>;
 
 export type CardPendingAttachment = Readonly<{
@@ -15,7 +14,6 @@ export type CardPendingAttachment = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: EffortLevel;
 }>;
 
 export function toChatCardSnapshot(card: Card): ChatCardSnapshot {
@@ -24,7 +22,6 @@ export function toChatCardSnapshot(card: Card): ChatCardSnapshot {
     frontText: card.frontText,
     backText: card.backText,
     tags: card.tags,
-    effortLevel: card.effortLevel,
   };
 }
 
@@ -36,7 +33,6 @@ export function makeCardPendingAttachment(card: ChatCardSnapshot): CardPendingAt
     frontText: card.frontText,
     backText: card.backText,
     tags: card.tags,
-    effortLevel: card.effortLevel,
   };
 }
 
@@ -55,7 +51,6 @@ export function buildCardContextXml(card: ChatCardSnapshot): string {
   return [
     "<attached_card>",
     `<card_id>${escapeXmlText(card.cardId)}</card_id>`,
-    `<effort_level>${escapeXmlText(card.effortLevel)}</effort_level>`,
     "<front_text>",
     escapeXmlText(card.frontText),
     "</front_text>",

@@ -25,7 +25,6 @@ function makeReviewOrderCard(
     frontText: cardId,
     backText: "Back",
     tags: [],
-    effortLevel: "fast",
     dueAt,
     createdAt,
     reps: 0,
@@ -201,7 +200,6 @@ describe("review order domain", () => {
       frontText: "Edited front",
       backText: "Edited back",
       tags: ["edited"],
-      effortLevel: "medium",
       clientUpdatedAt: "2026-03-10T10:00:00.000Z",
       lastOperationId: "operation-content-only-edit",
       updatedAt: "2026-03-10T10:00:00.000Z",
@@ -270,7 +268,6 @@ describe("review tag matching domain", () => {
 
     expect(matchesDeckFilterDefinition({
       version: 2,
-      effortLevels: [],
       tags: ["éclair"],
     }, card)).toBe(true);
   });
@@ -282,7 +279,6 @@ describe("review tag matching domain", () => {
     };
 
     expect(matchesCardFilter({
-      effort: [],
       tags: ["éclair"],
     }, card)).toBe(true);
   });

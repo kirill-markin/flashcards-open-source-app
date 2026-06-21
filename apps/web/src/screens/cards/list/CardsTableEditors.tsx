@@ -12,9 +12,8 @@ import {
 import { createPortal } from "react-dom";
 
 import { useI18n } from "../../../i18n";
-import type { EffortLevel, TagSuggestion } from "../../../types";
+import type { TagSuggestion } from "../../../types";
 import { areSameTags, CardTagsInput, type CardTagsInputHandle } from "../CardTagsInput";
-import { formatEffortLevelLabel } from "../../shared/featureFormatting";
 
 type OverlayRect = Readonly<{
   top: number;
@@ -32,24 +31,12 @@ type EditableTextCellProps = Readonly<{
   cellClassName: string;
 }>;
 
-type EditableEffortCellProps = Readonly<{
-  value: EffortLevel;
-  saving: boolean;
-  onCommit: (nextValue: EffortLevel) => Promise<void>;
-  cellClassName: string;
-}>;
-
 type EditableTagsCellProps = Readonly<{
   value: ReadonlyArray<string>;
   suggestions: ReadonlyArray<TagSuggestion>;
   saving: boolean;
   onCommit: (nextValue: ReadonlyArray<string>) => Promise<void>;
   cellClassName: string;
-}>;
-
-type EffortOption = Readonly<{
-  label: string;
-  value: EffortLevel;
 }>;
 
 function getOverlayRect(element: HTMLTableCellElement): OverlayRect {
@@ -72,18 +59,6 @@ function getTextOverlayStyle(rect: OverlayRect, multiline: boolean): CSSProperti
     left: Math.min(rect.left, maxLeft),
     width,
     height,
-  };
-}
-
-function getSelectOverlayStyle(rect: OverlayRect): CSSProperties {
-  const minWidth = Math.max(rect.width, 160);
-  const maxLeft = Math.max(window.innerWidth - minWidth - 12, 12);
-  const maxTop = Math.max(window.innerHeight - 220, 12);
-
-  return {
-    top: Math.min(rect.top, maxTop),
-    left: Math.min(rect.left, maxLeft),
-    minWidth,
   };
 }
 
@@ -251,143 +226,6 @@ export function EditableCardTextCell(props: EditableTextCellProps): ReactElement
             onKeyDown={handleKeyDown}
           />
         ),
-        document.body,
-      )}
-    </td>
-  );
-}
-
-export function EditableCardEffortCell(props: EditableEffortCellProps): ReactElement {
-  const { value, saving, onCommit, cellClassName } = props;
-  const { t } = useI18n();
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [overlayRect, setOverlayRect] = useState<OverlayRect | null>(null);
-  const [searchValue, setSearchValue] = useState<string>("");
-  const [highlightIndex, setHighlightIndex] = useState<number>(-1);
-  const cellRef = useRef<HTMLTableCellElement | null>(null);
-  const overlayRef = useRef<HTMLDivElement | null>(null);
-  const searchRef = useRef<HTMLInputElement | null>(null);
-  const effortOptions: ReadonlyArray<EffortOption> = [
-    { value: "fast", label: formatEffortLevelLabel(t, "fast") },
-    { value: "medium", label: formatEffortLevelLabel(t, "medium") },
-    { value: "long", label: formatEffortLevelLabel(t, "long") },
-  ];
-
-  useOverlayTracking(isOpen, cellRef, setOverlayRect);
-  useOutsidePointerClose(isOpen, overlayRef, handleClose);
-
-  useEffect(() => {
-    if (!isOpen || searchRef.current === null) {
-      return;
-    }
-
-    searchRef.current.focus();
-  }, [isOpen]);
-
-  function handleClose(): void {
-    setIsOpen(false);
-    setOverlayRect(null);
-    setSearchValue("");
-    setHighlightIndex(-1);
-  }
-
-  function handleOpen(): void {
-    if (saving || cellRef.current === null) {
-      return;
-    }
-
-    setOverlayRect(getOverlayRect(cellRef.current));
-    setIsOpen(true);
-  }
-
-  function handleSelect(nextValue: EffortLevel): void {
-    handleClose();
-    if (nextValue === value) {
-      return;
-    }
-
-    void onCommit(nextValue);
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-      handleClose();
-      return;
-    }
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setHighlightIndex((currentIndex) => (
-        currentIndex < filteredOptions.length - 1 ? currentIndex + 1 : 0
-      ));
-      return;
-    }
-
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setHighlightIndex((currentIndex) => (
-        currentIndex > 0 ? currentIndex - 1 : filteredOptions.length - 1
-      ));
-      return;
-    }
-
-    if (event.key === "Enter" && highlightIndex >= 0 && highlightIndex < filteredOptions.length) {
-      event.preventDefault();
-      handleSelect(filteredOptions[highlightIndex].value);
-    }
-  }
-
-  const normalizedSearchValue = searchValue.trim().toLowerCase();
-  const filteredOptions = effortOptions.filter((option) => option.label.toLowerCase().includes(normalizedSearchValue));
-  const className = `txn-cell ${cellClassName}${saving ? " cards-cell-disabled" : " drilldown-editable drilldown-editable-select"}`;
-  const overlayStyle = overlayRect === null ? null : getSelectOverlayStyle(overlayRect);
-
-  return (
-    <td ref={cellRef} className={className} onClick={saving ? undefined : handleOpen}>
-      {formatEffortLevelLabel(t, value)}
-      {isOpen && overlayStyle !== null && createPortal(
-        <div ref={overlayRef} className="cell-select-overlay" style={overlayStyle}>
-          <input
-            ref={searchRef}
-            name="card-effort-search"
-            className="cell-select-search"
-            type="text"
-            value={searchValue}
-            placeholder={t("cardsScreen.search.label")}
-            onChange={(event: ChangeEvent<HTMLInputElement>) => {
-              setSearchValue(event.target.value);
-              setHighlightIndex(-1);
-            }}
-            onKeyDown={handleKeyDown}
-          />
-          <div className="cell-select-options">
-            {filteredOptions.map((option, index) => {
-              const isActive = option.value === value;
-              const isHighlighted = index === highlightIndex;
-              const optionClassName = [
-                "cell-select-option",
-                isActive ? "cell-select-option-active" : "",
-                isHighlighted ? "cell-select-option-highlight" : "",
-              ]
-                .filter((item) => item.length > 0)
-                .join(" ");
-
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={optionClassName}
-                  onMouseEnter={() => setHighlightIndex(index)}
-                  onClick={() => handleSelect(option.value)}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>,
         document.body,
       )}
     </td>

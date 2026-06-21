@@ -4,7 +4,7 @@ import { parseDueAtMillis } from "../../../appData/domain/dueAt";
 import { useI18n } from "../../../i18n";
 import type { Card } from "../../../types";
 import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
-import { formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "../../shared/featureFormatting";
+import { formatNullableDateTime, formatTagSummary } from "../../shared/featureFormatting";
 
 export type ReviewQueuePanelProps = Readonly<{
   isInitialReviewLoad: boolean;
@@ -86,7 +86,6 @@ export function ReviewQueuePanel(props: ReviewQueuePanelProps): ReactElement {
                   <span className="review-queue-card-title">{card.frontText}</span>
                   <span className="review-queue-card-tags">{formatTagSummary(card.tags)}</span>
                   <span className="review-queue-card-meta">
-                    <span>{formatEffortLevelLabel(t, card.effortLevel)}</span>
                     <span>{formatNullableDateTime(card.dueAt, formatDateTime, t)}</span>
                     {isDue ? null : <span>{t("reviewScreen.queue.upcoming")}</span>}
                   </span>
@@ -124,7 +123,6 @@ export function ReviewQueuePanel(props: ReviewQueuePanelProps): ReactElement {
                 <span className="review-queue-card-title">{card.frontText}</span>
                 <span className="review-queue-card-tags">{formatTagSummary(card.tags)}</span>
                 <span className="review-queue-card-meta">
-                  <span>{formatEffortLevelLabel(t, card.effortLevel)}</span>
                   <span>{formatNullableDateTime(card.dueAt, formatDateTime, t)}</span>
                   {isDue ? null : <span>{t("reviewScreen.queue.upcoming")}</span>}
                 </span>

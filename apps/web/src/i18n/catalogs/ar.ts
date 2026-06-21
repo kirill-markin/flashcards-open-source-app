@@ -103,14 +103,8 @@ const arCatalog: TranslationCatalog = {
   filters: {
     allCards: "كل البطاقات",
     and: "و",
-    effortIn: "مستوى الجهد ضمن {{values}}",
     none: "بلا فلاتر",
     tagsAnyOf: "الوسوم بأي من {{values}}",
-  },
-  effortLevels: {
-    fast: "سريع",
-    medium: "متوسط",
-    long: "طويل",
   },
   loading: {
     generic: "جارٍ التحميل...",
@@ -602,7 +596,7 @@ const arCatalog: TranslationCatalog = {
     queueBadgeDueUpcoming: "{{due}} مستحقة | {{upcoming}} قادمة",
     scopeLabel: "النطاق",
     searchLabel: "بحث",
-    searchPlaceholder: "ابحث في المجموعات أو مستوى الجهد أو الوسوم",
+    searchPlaceholder: "ابحث في المجموعات أو الوسوم",
   },
   reviewScreen: {
     actions: {
@@ -721,7 +715,6 @@ const arCatalog: TranslationCatalog = {
         clear: "مسح",
       },
       ariaLabel: "فلاتر البطاقات",
-      effort: "الجهد",
       label: "الفلاتر",
       tags: "الوسوم",
       trigger: "فلترة",
@@ -739,7 +732,6 @@ const arCatalog: TranslationCatalog = {
     table: {
       back: "الخلف",
       due: "مستحق",
-      effort: "الجهد",
       front: "الأمام",
       lapses: "الإخفاقات",
       open: "فتح",
@@ -765,7 +757,6 @@ const arCatalog: TranslationCatalog = {
     },
     fields: {
       back: "الخلف",
-      effort: "الجهد",
       front: "الأمام",
       tags: "الوسوم",
     },
@@ -806,7 +797,7 @@ const arCatalog: TranslationCatalog = {
       new: "جديدة",
       reviewed: "تمت مراجعتها",
     },
-    subtitle: "المجموعات فلاتر ذكية وليست حاويات. تطابق البطاقات حسب مستوى الجهد والوسوم.",
+    subtitle: "المجموعات فلاتر ذكية وليست حاويات. تطابق البطاقات حسب الوسوم.",
     title: "المجموعات",
   },
   deckDetail: {
@@ -848,7 +839,7 @@ const arCatalog: TranslationCatalog = {
     subtitle: "افحص قواعد المجموعة والبطاقات المطابقة ونقطة الدخول إلى المراجعة.",
     subtitles: {
       allCards: "كل البطاقات هو نطاق المراجعة الكامل عبر كل بطاقة.",
-      smartFilter: "هذه المجموعة فلتر ذكي محفوظ حسب مستوى الجهد والوسوم.",
+      smartFilter: "هذه المجموعة فلتر ذكي محفوظ حسب الوسوم.",
     },
     title: "المجموعة",
     warnings: {
@@ -863,17 +854,16 @@ const arCatalog: TranslationCatalog = {
       saving: "جارٍ الحفظ...",
     },
     errors: {
-      emptyRules: "اختر مستوى جهد واحدًا أو وسمًا واحدًا على الأقل، أو استخدم كل البطاقات في المراجعة.",
+      emptyRules: "اختر وسمًا واحدًا على الأقل، أو استخدم كل البطاقات في المراجعة.",
     },
     fields: {
-      effort: "الجهد",
       name: "الاسم",
       summary: "القواعد",
       tags: "الوسوم",
     },
     filterPreview: "معاينة القواعد",
     rulesPreviewHelp: "تحدد هذه القواعد البطاقات التي تظهر في هذه المجموعة.",
-    smartFilterExplanation: "أنت تنشئ فلترًا ذكيًا يسمى مجموعة. يطابق البطاقات حسب مستوى الجهد والوسوم، ثم يمكن اختياره من فلتر المراجعة.",
+    smartFilterExplanation: "أنت تنشئ فلترًا ذكيًا يسمى مجموعة. يطابق البطاقات حسب الوسوم، ثم يمكن اختياره من فلتر المراجعة.",
     systemDeckReadonly: "لا يمكن تحرير مجموعة النظام.",
     subtitles: {
       edit: "حدّث فلترًا ذكيًا محفوظًا للبطاقات المطابقة.",
@@ -968,9 +958,6 @@ const arCatalog: TranslationCatalog = {
       codeExecution: "تنفيذ الكود",
       sql: "SQL",
       webSearch: "بحث الويب",
-    },
-    toolMeta: {
-      effort: "مستوى الجهد {{value}}",
     },
   },
   accountSettings: {

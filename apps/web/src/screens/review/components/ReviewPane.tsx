@@ -5,7 +5,7 @@ import { useI18n } from "../../../i18n";
 import { cardsRoute, chatRoute } from "../../../routes";
 import type { Card } from "../../../types";
 import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
-import { formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "../../shared/featureFormatting";
+import { formatNullableDateTime, formatTagSummary } from "../../shared/featureFormatting";
 import { ReviewCardSide, ReviewEditIcon } from "./ReviewCardSide";
 import type { ReviewButtonOption } from "./reviewRatingOptions";
 import type { ReviewSpeechSide } from "../speech/reviewSpeech";
@@ -89,7 +89,6 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
         <div className="review-pane-head-meta">
           {loadingReviewCurrentCard !== null ? (
             <>
-              <span className="badge">{formatEffortLevelLabel(t, loadingReviewCurrentCard.effortLevel)}</span>
               <span className="badge">{formatTagSummary(loadingReviewCurrentCard.tags)}</span>
             </>
           ) : (
@@ -254,7 +253,6 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     <>
       <div className="review-pane-head">
         <div className="review-pane-head-meta">
-          <span className="badge">{formatEffortLevelLabel(t, selectedCard.effortLevel)}</span>
           <span className="badge">{formatTagSummary(selectedCard.tags)}</span>
         </div>
         <div className="review-pane-head-actions">

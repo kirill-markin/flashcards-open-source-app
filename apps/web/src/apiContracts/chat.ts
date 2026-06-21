@@ -10,6 +10,7 @@ import type {
   StartChatRunResponse,
   StopChatRunResponse,
 } from "../types";
+import { appendLegacyEffortTag } from "../legacyEffort";
 import {
   ApiContractError,
   joinPath,
@@ -26,7 +27,7 @@ import {
   parseString,
   parseStringArray,
 } from "./core";
-import { parseEffortLevel } from "./studyData";
+import { parseLegacyEffortLevel } from "./studyData";
 
 function parseChatConfig(value: unknown, endpoint: string, path: string): ChatConfig {
   const objectValue = parseObject(value, endpoint, path);
@@ -186,13 +187,15 @@ function parseContentPart(value: unknown, endpoint: string, path: string): Conte
   }
 
   if (type === "card") {
+    const tags = parseRequiredField(objectValue, "tags", endpoint, path, parseStringArray);
+    const legacyEffortLevel = parseOptionalField(objectValue, "effortLevel", endpoint, path, parseLegacyEffortLevel);
+
     return {
       type,
       cardId: parseRequiredField(objectValue, "cardId", endpoint, path, parseString),
       frontText: parseRequiredField(objectValue, "frontText", endpoint, path, parseString),
       backText: parseRequiredField(objectValue, "backText", endpoint, path, parseString),
-      tags: parseRequiredField(objectValue, "tags", endpoint, path, parseStringArray),
-      effortLevel: parseRequiredField(objectValue, "effortLevel", endpoint, path, parseEffortLevel),
+      tags: appendLegacyEffortTag(tags, legacyEffortLevel),
     };
   }
 

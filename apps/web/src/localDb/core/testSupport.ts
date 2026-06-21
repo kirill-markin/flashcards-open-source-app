@@ -17,7 +17,6 @@ export function makeCard(input: Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: Card["effortLevel"];
   dueAt: string | null;
   createdAt: string;
   updatedAt?: string;
@@ -32,7 +31,6 @@ export function makeCard(input: Readonly<{
     frontText: input.frontText,
     backText: input.backText,
     tags: [...input.tags],
-    effortLevel: input.effortLevel,
     dueAt: input.dueAt,
     createdAt: input.createdAt,
     reps: input.reps ?? 0,
@@ -54,7 +52,6 @@ export function makeCard(input: Readonly<{
 export function makeDeck(input: Readonly<{
   deckId: string;
   name: string;
-  effortLevels: ReadonlyArray<Card["effortLevel"]>;
   tags: ReadonlyArray<string>;
   createdAt: string;
 }>): Deck {
@@ -64,7 +61,6 @@ export function makeDeck(input: Readonly<{
     name: input.name,
     filterDefinition: {
       version: 2,
-      effortLevels: [...input.effortLevels],
       tags: [...input.tags],
     },
     createdAt: input.createdAt,
@@ -134,8 +130,6 @@ function compareCardsForCardsQuery(
       difference = compareText(leftCard.backText, rightCard.backText, sort.direction);
     } else if (sort.key === "tags") {
       difference = compareText(leftCard.tags.join(","), rightCard.tags.join(","), sort.direction);
-    } else if (sort.key === "effortLevel") {
-      difference = compareText(leftCard.effortLevel, rightCard.effortLevel, sort.direction);
     } else if (sort.key === "dueAt") {
       difference = compareNullableText(leftCard.dueAt, rightCard.dueAt, sort.direction);
     } else if (sort.key === "reps") {
@@ -183,10 +177,6 @@ function resolveLegacyReviewFilter(
       : { kind: "allCards" };
   }
 
-  if (reviewFilter.kind === "effort") {
-    return reviewFilter;
-  }
-
   const requestedTagKey = normalizeTagKey(reviewFilter.tag);
   const matchingTag = cards
     .flatMap((card) => card.tags)
@@ -221,8 +211,6 @@ export function legacyReviewCards(
         const deck = decks.find((candidateDeck) => candidateDeck.deckId === resolvedReviewFilter.deckId);
         return deck === undefined ? true : matchesDeckFilterDefinition(deck.filterDefinition, card);
       })
-      : resolvedReviewFilter.kind === "effort"
-        ? activeCards.filter((card) => card.effortLevel === resolvedReviewFilter.effortLevel)
       : activeCards.filter((card) => {
         const requestedTagKey = normalizeTagKey(resolvedReviewFilter.tag);
         return card.tags.some((tag) => normalizeTagKey(tag) === requestedTagKey);
@@ -253,7 +241,6 @@ export function legacyQueryCards(
 export const deckFastGrammar = makeDeck({
   deckId: "deck-fast-grammar",
   name: "Fast grammar",
-  effortLevels: ["fast"],
   tags: ["grammar"],
   createdAt: "2025-01-01T00:00:00.000Z",
 });
@@ -261,7 +248,6 @@ export const deckFastGrammar = makeDeck({
 export const deckLongCode = makeDeck({
   deckId: "deck-long-code",
   name: "Long code",
-  effortLevels: ["long"],
   tags: ["code"],
   createdAt: "2025-01-02T00:00:00.000Z",
 });
@@ -272,7 +258,6 @@ export const sampleCards: ReadonlyArray<Card> = [
     frontText: "Null newer",
     backText: "back",
     tags: ["grammar"],
-    effortLevel: "fast",
     dueAt: null,
     createdAt: "2025-01-03T10:00:00.000Z",
   }),
@@ -281,7 +266,6 @@ export const sampleCards: ReadonlyArray<Card> = [
     frontText: "Null older",
     backText: "back",
     tags: ["grammar", "shared"],
-    effortLevel: "fast",
     dueAt: null,
     createdAt: "2025-01-03T09:00:00.000Z",
   }),
@@ -290,7 +274,6 @@ export const sampleCards: ReadonlyArray<Card> = [
     frontText: "Due same newer",
     backText: "search target",
     tags: ["code", "shared"],
-    effortLevel: "long",
     dueAt: "2025-01-04T10:00:00.000Z",
     createdAt: "2025-01-05T10:00:00.000Z",
     reps: 2,
@@ -300,7 +283,6 @@ export const sampleCards: ReadonlyArray<Card> = [
     frontText: "Due same older",
     backText: "search target older",
     tags: ["code"],
-    effortLevel: "long",
     dueAt: "2025-01-04T10:00:00.000Z",
     createdAt: "2025-01-05T09:00:00.000Z",
     reps: 1,
@@ -309,8 +291,7 @@ export const sampleCards: ReadonlyArray<Card> = [
     cardId: "due-other",
     frontText: "Due other",
     backText: "back",
-    tags: ["grammar"],
-    effortLevel: "medium",
+    tags: ["grammar", "medium"],
     dueAt: "2025-01-06T08:00:00.000Z",
     createdAt: "2025-01-06T09:00:00.000Z",
   }),
@@ -319,7 +300,6 @@ export const sampleCards: ReadonlyArray<Card> = [
     frontText: "Future A",
     backText: "future back",
     tags: ["grammar"],
-    effortLevel: "fast",
     dueAt: "2025-01-09T12:00:00.000Z",
     createdAt: "2025-01-07T09:00:00.000Z",
   }),
@@ -328,7 +308,6 @@ export const sampleCards: ReadonlyArray<Card> = [
     frontText: "Future B",
     backText: "future search",
     tags: ["code"],
-    effortLevel: "long",
     dueAt: "2025-01-10T12:00:00.000Z",
     createdAt: "2025-01-08T09:00:00.000Z",
   }),
@@ -337,7 +316,6 @@ export const sampleCards: ReadonlyArray<Card> = [
     frontText: "Deleted",
     backText: "back",
     tags: ["grammar"],
-    effortLevel: "fast",
     dueAt: null,
     createdAt: "2025-01-08T10:00:00.000Z",
     deletedAt: "2025-01-08T12:00:00.000Z",

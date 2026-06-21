@@ -10,7 +10,7 @@ import { loadCardsMatchingDeck } from "../../../../localDb/cards/cards";
 import { loadDeckById, loadDecksListSnapshot } from "../../../../localDb/cards/decks";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import type { Card, DeckFilterDefinition, ReviewFilter } from "../../../../types";
-import { formatDeckFilterSummary, formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "../../../shared/featureFormatting";
+import { formatDeckFilterSummary, formatNullableDateTime, formatTagSummary } from "../../../shared/featureFormatting";
 
 type DeckDetailState = Readonly<{
   title: string;
@@ -28,7 +28,7 @@ function buildDeckEditPath(deckId: string): string {
 }
 
 function hasDeckFilterRules(filterDefinition: DeckFilterDefinition): boolean {
-  return filterDefinition.effortLevels.length > 0 || filterDefinition.tags.length > 0;
+  return filterDefinition.tags.length > 0;
 }
 
 export function DeckDetailScreen(): ReactElement {
@@ -85,7 +85,6 @@ export function DeckDetailScreen(): ReactElement {
         const decksSnapshot = await loadDecksListSnapshot(activeWorkspace.workspaceId);
         const allCards = await loadCardsMatchingDeck(activeWorkspace.workspaceId, {
           version: 2,
-          effortLevels: [],
           tags: [],
         });
         setDetailState({
@@ -311,7 +310,6 @@ export function DeckDetailScreen(): ReactElement {
                   {detailState.cards.map((card) => (
                     <article key={card.cardId} className="content-card deck-detail-card">
                       <div className="deck-detail-card-head">
-                        <span className="badge">{formatEffortLevelLabel(t, card.effortLevel)}</span>
                         <span className="badge">{formatTagSummary(card.tags)}</span>
                       </div>
                       <h3 className="panel-subtitle">{card.frontText}</h3>

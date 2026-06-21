@@ -14,18 +14,15 @@
  * - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/scheduling/SchedulingModels.kt
  * - docs/fsrs-scheduling-logic.md
  */
-export type EffortLevel = "fast" | "medium" | "long";
 // Keep in sync with apps/backend/src/scheduling/index.ts::FsrsCardState, apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsTypes.swift::FsrsCardState, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/scheduling/SchedulingModels.kt::FsrsCardState.
 export type FsrsCardState = "new" | "learning" | "review" | "relearning";
 
 export type CardFilter = Readonly<{
   tags: ReadonlyArray<string>;
-  effort: ReadonlyArray<EffortLevel>;
 }>;
 
 export type DeckFilterDefinition = Readonly<{
   version: 2;
-  effortLevels: ReadonlyArray<EffortLevel>;
   tags: ReadonlyArray<string>;
 }>;
 
@@ -37,7 +34,6 @@ export type Card = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: EffortLevel;
   dueAt: string | null;
   createdAt: string;
   reps: number;
@@ -59,7 +55,6 @@ export type CardQuerySortKey =
   | "frontText"
   | "backText"
   | "tags"
-  | "effortLevel"
   | "dueAt"
   | "reps"
   | "lapses"
@@ -165,14 +160,12 @@ export type CreateCardInput = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: EffortLevel;
 }>;
 
 export type UpdateCardInput = Readonly<{
   frontText?: string;
   backText?: string;
   tags?: ReadonlyArray<string>;
-  effortLevel?: EffortLevel;
 }>;
 
 export type Deck = Readonly<{
@@ -205,10 +198,6 @@ export type ReviewFilter =
   | Readonly<{
     kind: "deck";
     deckId: string;
-  }>
-  | Readonly<{
-    kind: "effort";
-    effortLevel: EffortLevel;
   }>
   | Readonly<{
     kind: "tag";

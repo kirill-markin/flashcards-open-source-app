@@ -2,9 +2,12 @@ import type {
   Card,
   CloudSettings,
   Deck,
+  LegacyEffortLevel,
   ReviewEvent,
+  SyncPushOperation,
   WorkspaceSchedulerSettings,
 } from "../../types";
+import { appendLegacyEffortTag } from "../../legacyEffort";
 import { deriveDueAtBucketMillis, deriveDueAtMillis, parseDueAtMillis } from "../../appData/domain/dueAt";
 import {
   addWebBreadcrumb,
@@ -18,7 +21,6 @@ export type StoredCard = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: Card["effortLevel"];
   dueAt: string | null;
   dueAtMillis: number | null;
   dueAtBucketMillis: number;
@@ -99,7 +101,7 @@ export type IndexedDbOpenLifecycleSnapshot = Readonly<{
 }>;
 
 const databaseName = "flashcards-web-sync";
-const databaseVersion = 14;
+const databaseVersion = 15;
 const progressCacheStateKey = "progress_cache_state";
 const deleteDatabaseBlockedWaitMs = 3000;
 const activeDatabaseOperationPromises = new Set<Promise<unknown>>();
@@ -113,6 +115,32 @@ type StoredCardDueAtMigrationRecord = Omit<StoredCard, "dueAt" | "dueAtMillis" |
   dueAtMillis?: number | null;
   dueAtBucketMillis?: number;
   fsrsLastReviewedAtMillis?: number | null;
+}>;
+
+type StoredCardLegacyEffortMigrationRecord = StoredCardDueAtMigrationRecord & Readonly<{
+  effortLevel?: LegacyEffortLevel;
+}>;
+
+type StoredDeckLegacyEffortMigrationRecord = Omit<Deck, "filterDefinition"> & Readonly<{
+  filterDefinition: Readonly<{
+    version: 2;
+    effortLevels?: ReadonlyArray<LegacyEffortLevel>;
+    tags: ReadonlyArray<string>;
+  }>;
+}>;
+
+type CardUpsertLegacyEffortMigrationOperation = Extract<
+  SyncPushOperation,
+  Readonly<{ entityType: "card"; action: "upsert" }>
+>;
+
+type DeckUpsertLegacyEffortMigrationOperation = Extract<
+  SyncPushOperation,
+  Readonly<{ entityType: "deck"; action: "upsert" }>
+>;
+
+type StoredOutboxLegacyEffortMigrationRecord = Readonly<{
+  operation: SyncPushOperation;
 }>;
 
 function isQuotaExceededError(error: unknown): boolean {
@@ -221,6 +249,12 @@ function deleteExistingStore(database: IDBDatabase, storeName: string): void {
   }
 }
 
+function deleteExistingIndex(store: IDBObjectStore, indexName: string): void {
+  if (store.indexNames.contains(indexName)) {
+    store.deleteIndex(indexName);
+  }
+}
+
 function createReviewEventsIndexes(reviewEventsStore: IDBObjectStore): void {
   if (!reviewEventsStore.indexNames.contains("workspaceId_reviewedAtClient_reviewEventId")) {
     reviewEventsStore.createIndex(
@@ -234,9 +268,6 @@ function createReviewEventsIndexes(reviewEventsStore: IDBObjectStore): void {
 function createCardsUpdatedAtIndexes(cardsStore: IDBObjectStore): void {
   if (!cardsStore.indexNames.contains("workspaceId_updatedAt_cardId")) {
     cardsStore.createIndex("workspaceId_updatedAt_cardId", ["workspaceId", "updatedAt", "cardId"], { unique: false });
-  }
-  if (!cardsStore.indexNames.contains("workspaceId_effort_updatedAt_cardId")) {
-    cardsStore.createIndex("workspaceId_effort_updatedAt_cardId", ["workspaceId", "effortLevel", "updatedAt", "cardId"], { unique: false });
   }
 }
 
@@ -267,7 +298,6 @@ function createCardsStore(database: IDBDatabase): void {
   cardsStore.createIndex("workspaceId_createdAt_cardId", ["workspaceId", "createdAt", "cardId"], { unique: false });
   // TODO: Drop this legacy dueAt index after cards-list sorting no longer depends on the boundary string field.
   cardsStore.createIndex("workspaceId_dueAt_cardId", ["workspaceId", "dueAt", "cardId"], { unique: false });
-  cardsStore.createIndex("workspaceId_effort_createdAt_cardId", ["workspaceId", "effortLevel", "createdAt", "cardId"], { unique: false });
   createCardsDueAtMillisIndex(cardsStore);
   createCardsDueAtBucketMillisIndex(cardsStore);
   createCardsUpdatedAtIndexes(cardsStore);
@@ -373,6 +403,93 @@ function normalizeStoredCardDueAtDerivedFields(record: StoredCardDueAtMigrationR
   };
 }
 
+function normalizeStoredCardLegacyEffort(record: StoredCardLegacyEffortMigrationRecord): StoredCard {
+  const { effortLevel, ...storedCardRecord } = record;
+  return {
+    ...normalizeStoredCardDueAtDerivedFields(storedCardRecord),
+    tags: appendLegacyEffortTag(record.tags, effortLevel),
+  };
+}
+
+function appendLegacyEffortLevelsToTags(
+  tags: ReadonlyArray<string>,
+  effortLevels: ReadonlyArray<LegacyEffortLevel>,
+): ReadonlyArray<string> {
+  return effortLevels.reduce(
+    (currentTags, effortLevel) => appendLegacyEffortTag(currentTags, effortLevel),
+    tags,
+  );
+}
+
+function normalizeStoredDeckLegacyEffort(record: StoredDeckLegacyEffortMigrationRecord): Deck {
+  const {
+    filterDefinition,
+    ...storedDeckRecord
+  } = record;
+
+  return {
+    ...storedDeckRecord,
+    filterDefinition: {
+      version: filterDefinition.version,
+      tags: appendLegacyEffortLevelsToTags(filterDefinition.tags, filterDefinition.effortLevels ?? []),
+    },
+  };
+}
+
+function normalizeOutboxCardUpsertLegacyEffort(
+  operation: CardUpsertLegacyEffortMigrationOperation,
+): CardUpsertLegacyEffortMigrationOperation {
+  return {
+    ...operation,
+    payload: {
+      ...operation.payload,
+      tags: appendLegacyEffortTag(operation.payload.tags, operation.payload.effortLevel),
+      effortLevel: "fast",
+    },
+  };
+}
+
+function normalizeOutboxDeckUpsertLegacyEffort(
+  operation: DeckUpsertLegacyEffortMigrationOperation,
+): DeckUpsertLegacyEffortMigrationOperation {
+  return {
+    ...operation,
+    payload: {
+      ...operation.payload,
+      filterDefinition: {
+        version: operation.payload.filterDefinition.version,
+        effortLevels: [],
+        tags: appendLegacyEffortLevelsToTags(
+          operation.payload.filterDefinition.tags,
+          operation.payload.filterDefinition.effortLevels,
+        ),
+      },
+    },
+  };
+}
+
+function normalizeOutboxOperationLegacyEffort(operation: SyncPushOperation): SyncPushOperation {
+  if (operation.entityType === "card" && operation.action === "upsert") {
+    return normalizeOutboxCardUpsertLegacyEffort(operation);
+  }
+
+  if (operation.entityType === "deck" && operation.action === "upsert") {
+    return normalizeOutboxDeckUpsertLegacyEffort(operation);
+  }
+
+  return operation;
+}
+
+function normalizeStoredOutboxLegacyEffort(
+  record: StoredOutboxLegacyEffortMigrationRecord,
+): StoredOutboxLegacyEffortMigrationRecord {
+  return {
+    ...record,
+    // TODO: Remove this legacy outbox shim when the backend sync wire contract drops effort.
+    operation: normalizeOutboxOperationLegacyEffort(record.operation),
+  };
+}
+
 function normalizeStoredCardFsrsLastReviewedAtMillis(
   record: Pick<StoredCard, "fsrsLastReviewedAt"> & Readonly<{ fsrsLastReviewedAtMillis?: number | null }>,
 ): number | null {
@@ -454,6 +571,77 @@ function upgradeToVersion14(transaction: IDBTransaction): void {
       updatedAt: new Date().toISOString(),
     });
   };
+}
+
+function migrateCardsLegacyEffortTags(cardsStore: IDBObjectStore, cardTagsStore: IDBObjectStore): void {
+  const request = cardsStore.openCursor();
+  request.onerror = () => {
+    throw describeIndexedDbError("IndexedDB legacy effort migration failed", request.error);
+  };
+  request.onsuccess = () => {
+    const cursor = request.result;
+    if (cursor === null) {
+      return;
+    }
+
+    const migratedCard = normalizeStoredCardLegacyEffort(cursor.value as StoredCardLegacyEffortMigrationRecord);
+    cursor.update(migratedCard);
+    if (migratedCard.deletedAt === null) {
+      for (const tag of migratedCard.tags) {
+        if (tag === "") {
+          continue;
+        }
+
+        cardTagsStore.put({
+          workspaceId: migratedCard.workspaceId,
+          cardId: migratedCard.cardId,
+          tag,
+        });
+      }
+    }
+    cursor.continue();
+  };
+}
+
+function migrateDecksLegacyEffortTags(decksStore: IDBObjectStore): void {
+  const request = decksStore.openCursor();
+  request.onerror = () => {
+    throw describeIndexedDbError("IndexedDB legacy deck effort migration failed", request.error);
+  };
+  request.onsuccess = () => {
+    const cursor = request.result;
+    if (cursor === null) {
+      return;
+    }
+
+    cursor.update(normalizeStoredDeckLegacyEffort(cursor.value as StoredDeckLegacyEffortMigrationRecord));
+    cursor.continue();
+  };
+}
+
+function migrateOutboxLegacyEffortOperations(outboxStore: IDBObjectStore): void {
+  const request = outboxStore.openCursor();
+  request.onerror = () => {
+    throw describeIndexedDbError("IndexedDB legacy outbox effort migration failed", request.error);
+  };
+  request.onsuccess = () => {
+    const cursor = request.result;
+    if (cursor === null) {
+      return;
+    }
+
+    cursor.update(normalizeStoredOutboxLegacyEffort(cursor.value as StoredOutboxLegacyEffortMigrationRecord));
+    cursor.continue();
+  };
+}
+
+function upgradeToVersion15(transaction: IDBTransaction): void {
+  const cardsStore = transaction.objectStore("cards");
+  deleteExistingIndex(cardsStore, "workspaceId_effort_createdAt_cardId");
+  deleteExistingIndex(cardsStore, "workspaceId_effort_updatedAt_cardId");
+  migrateCardsLegacyEffortTags(cardsStore, transaction.objectStore("cardTags"));
+  migrateDecksLegacyEffortTags(transaction.objectStore("decks"));
+  migrateOutboxLegacyEffortOperations(transaction.objectStore("outbox"));
 }
 
 export function openDatabase(): Promise<IDBDatabase> {
@@ -548,6 +736,15 @@ export function openDatabase(): Promise<IDBDatabase> {
         }
 
         upgradeToVersion14(transaction);
+      }
+
+      if (oldVersion < 15) {
+        const transaction = request.transaction;
+        if (transaction === null) {
+          throw new Error("IndexedDB upgrade transaction is unavailable");
+        }
+
+        upgradeToVersion15(transaction);
       }
 
     };

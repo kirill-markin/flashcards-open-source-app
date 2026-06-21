@@ -1,7 +1,14 @@
-import type { Card, Deck, DeckFilterDefinition, EffortLevel, FsrsCardState, ReviewEvent, ReviewRating, WorkspaceSchedulerSettings } from "./study";
+import type { Card, Deck, FsrsCardState, ReviewEvent, ReviewRating, WorkspaceSchedulerSettings } from "./study";
 
 export type SyncEntityType = "card" | "deck" | "workspace_scheduler_settings" | "review_event";
 export type SyncAction = "upsert" | "append";
+export type LegacyEffortLevel = "fast" | "medium" | "long";
+
+export type LegacyDeckFilterDefinition = Readonly<{
+  version: 2;
+  effortLevels: ReadonlyArray<LegacyEffortLevel>;
+  tags: ReadonlyArray<string>;
+}>;
 
 export type SyncPushOperation =
   | Readonly<{
@@ -15,7 +22,7 @@ export type SyncPushOperation =
       frontText: string;
       backText: string;
       tags: ReadonlyArray<string>;
-      effortLevel: EffortLevel;
+      effortLevel: LegacyEffortLevel;
       dueAt: string | null;
       createdAt: string;
       reps: number;
@@ -38,7 +45,7 @@ export type SyncPushOperation =
     payload: Readonly<{
       deckId: string;
       name: string;
-      filterDefinition: DeckFilterDefinition;
+      filterDefinition: LegacyDeckFilterDefinition;
       createdAt: string;
       deletedAt: string | null;
     }>;

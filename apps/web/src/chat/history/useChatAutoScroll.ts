@@ -135,7 +135,6 @@ function areContentPartsEqual(
           || previousPart.cardId !== nextPart.cardId
           || previousPart.frontText !== nextPart.frontText
           || previousPart.backText !== nextPart.backText
-          || previousPart.effortLevel !== nextPart.effortLevel
           || previousPart.tags.length !== nextPart.tags.length
           || previousPart.tags.some((tag, tagIndex) => tag !== nextPart.tags[tagIndex])
         ) {

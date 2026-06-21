@@ -3,6 +3,7 @@ import {
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
   IMAGE_MEDIA_TYPE_PREFIX,
   buildContentParts,
+  buildStartRunContentParts,
   toRequestBodySizeBytes,
 } from "../shared/chatHelpers";
 import {
@@ -64,7 +65,7 @@ function buildDraftRequestBodyForAttachments(params: Readonly<{
 
   return {
     sessionId: currentSessionId ?? undefined,
-    content: draftContentParts,
+    content: buildStartRunContentParts(draftContentParts),
     timezone,
   };
 }

@@ -103,14 +103,8 @@ const hiCatalog: TranslationCatalog = {
   filters: {
     allCards: "सभी कार्ड",
     and: "और",
-    effortIn: "{{values}} में प्रयास",
     none: "कोई फ़िल्टर नहीं",
     tagsAnyOf: "{{values}} में कोई भी टैग",
-  },
-  effortLevels: {
-    fast: "तेज़",
-    medium: "मध्यम",
-    long: "लंबा",
   },
   loading: {
     generic: "लोड हो रहा है...",
@@ -602,7 +596,7 @@ const hiCatalog: TranslationCatalog = {
     queueBadgeDueUpcoming: "{{due}} बाकी | {{upcoming}} आने वाले",
     scopeLabel: "दायरा",
     searchLabel: "खोजें",
-    searchPlaceholder: "डेक, प्रयास या टैग खोजें",
+    searchPlaceholder: "डेक या टैग खोजें",
   },
   reviewScreen: {
     actions: {
@@ -721,7 +715,6 @@ const hiCatalog: TranslationCatalog = {
         clear: "साफ़ करें",
       },
       ariaLabel: "कार्ड फ़िल्टर",
-      effort: "प्रयास",
       label: "फ़िल्टर",
       tags: "टैग",
       trigger: "फ़िल्टर",
@@ -739,7 +732,6 @@ const hiCatalog: TranslationCatalog = {
     table: {
       back: "पीछे",
       due: "बाकी",
-      effort: "प्रयास",
       front: "सामने",
       lapses: "चूक",
       open: "खोलें",
@@ -765,7 +757,6 @@ const hiCatalog: TranslationCatalog = {
     },
     fields: {
       back: "पीछे",
-      effort: "प्रयास",
       front: "सामने",
       tags: "टैग",
     },
@@ -806,7 +797,7 @@ const hiCatalog: TranslationCatalog = {
       new: "नए",
       reviewed: "रिव्यू किए गए",
     },
-    subtitle: "डेक स्मार्ट फ़िल्टर हैं, कंटेनर नहीं। वे प्रयास स्तर और टैग से कार्ड मिलाते हैं।",
+    subtitle: "डेक स्मार्ट फ़िल्टर हैं, कंटेनर नहीं। वे टैग से कार्ड मिलाते हैं।",
     title: "डेक",
   },
   deckDetail: {
@@ -848,7 +839,7 @@ const hiCatalog: TranslationCatalog = {
     subtitle: "डेक नियम, मिलते-जुलते कार्ड और रिव्यू एंट्री पॉइंट देखें।",
     subtitles: {
       allCards: "सभी कार्ड हर कार्ड के लिए पूरा रिव्यू दायरा है।",
-      smartFilter: "यह डेक प्रयास स्तर और टैग पर आधारित सहेजा गया स्मार्ट फ़िल्टर है।",
+      smartFilter: "यह डेक टैग पर आधारित सहेजा गया स्मार्ट फ़िल्टर है।",
     },
     title: "डेक",
     warnings: {
@@ -863,17 +854,16 @@ const hiCatalog: TranslationCatalog = {
       saving: "सहेजा जा रहा है...",
     },
     errors: {
-      emptyRules: "कम से कम एक प्रयास स्तर या टैग चुनें, या रिव्यू में सभी कार्ड का उपयोग करें।",
+      emptyRules: "कम से कम एक टैग चुनें, या रिव्यू में सभी कार्ड का उपयोग करें।",
     },
     fields: {
-      effort: "प्रयास",
       name: "नाम",
       summary: "नियम",
       tags: "टैग",
     },
     filterPreview: "नियम पूर्वावलोकन",
     rulesPreviewHelp: "ये नियम तय करते हैं कि इस डेक में कौन से कार्ड दिखाई देंगे।",
-    smartFilterExplanation: "आप डेक नाम का स्मार्ट फ़िल्टर बना रहे हैं। यह प्रयास स्तर और टैग से कार्ड मिलाता है, फिर इसे रिव्यू फ़िल्टर से चुना जा सकता है।",
+    smartFilterExplanation: "आप डेक नाम का स्मार्ट फ़िल्टर बना रहे हैं। यह टैग से कार्ड मिलाता है, फिर इसे रिव्यू फ़िल्टर से चुना जा सकता है।",
     systemDeckReadonly: "सिस्टम डेक संपादित नहीं किया जा सकता।",
     subtitles: {
       edit: "मिलते-जुलते कार्डों के लिए सहेजा गया स्मार्ट फ़िल्टर अपडेट करें।",
@@ -968,9 +958,6 @@ const hiCatalog: TranslationCatalog = {
       codeExecution: "कोड निष्पादन",
       sql: "SQL",
       webSearch: "वेब खोज",
-    },
-    toolMeta: {
-      effort: "प्रयास {{value}}",
     },
   },
   accountSettings: {

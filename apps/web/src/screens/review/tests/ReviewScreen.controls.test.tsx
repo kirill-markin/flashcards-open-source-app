@@ -693,6 +693,7 @@ describe("ReviewScreen controls", () => {
     state.cards = [
       createCard({ cardId: "tag-1", tags: ["grammar"] }),
       createCard({ cardId: "tag-2", tags: ["verbs"] }),
+      createCard({ cardId: "tag-3", tags: ["medium"] }),
     ];
     state.reviewQueue = [state.cards[0] as (typeof state.cards)[number]];
     state.reviewTimeline = state.cards;
@@ -707,7 +708,7 @@ describe("ReviewScreen controls", () => {
 
     await setTextFieldValueAsync(searchInput, "med");
 
-    expect(getContainer().textContent).toContain("Medium");
+    expect(getContainer().textContent).toContain("medium");
     expect(getContainer().textContent).not.toContain("Alpha");
 
     await dispatchDocumentKeydown("Escape");
@@ -715,7 +716,7 @@ describe("ReviewScreen controls", () => {
 
     await openReviewFilterMenu();
     const mediumButton = [...getContainer().querySelectorAll("[data-review-filter-key]")]
-      .find((element) => element.getAttribute("data-review-filter-key") === "effort:medium");
+      .find((element) => element.getAttribute("data-review-filter-key") === "tag:medium");
     if (!(mediumButton instanceof HTMLButtonElement)) {
       throw new Error("Medium review filter option was not found");
     }
@@ -723,8 +724,8 @@ describe("ReviewScreen controls", () => {
     await clickElementAsync(mediumButton);
 
     expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({
-      kind: "effort",
-      effortLevel: "medium",
+      kind: "tag",
+      tag: "medium",
     });
   });
 
@@ -735,7 +736,6 @@ describe("ReviewScreen controls", () => {
       frontText: "Before",
       backText: "Existing back",
       tags: ["grammar"],
-      effortLevel: "medium",
     });
     state.cards = [card];
     state.reviewQueue = [card];
@@ -768,7 +768,6 @@ describe("ReviewScreen controls", () => {
       frontText: "After",
       backText: "Existing back",
       tags: ["grammar"],
-      effortLevel: "medium",
     });
   });
 

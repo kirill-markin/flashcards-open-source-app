@@ -117,7 +117,6 @@ export function areContentPartsEqual(
           || leftPart.cardId !== rightPart.cardId
           || leftPart.frontText !== rightPart.frontText
           || leftPart.backText !== rightPart.backText
-          || leftPart.effortLevel !== rightPart.effortLevel
           || leftPart.tags.length !== rightPart.tags.length
           || leftPart.tags.some((tag, index) => tag !== rightPart.tags[index])
         ) {

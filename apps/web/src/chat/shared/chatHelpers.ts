@@ -1,4 +1,4 @@
-import type { ContentPart } from "../../types";
+import type { CardContentPart, ContentPart } from "../../types";
 import type { PendingAttachment } from "../attachments/FileAttachment";
 import { isBinaryPendingAttachment } from "../attachments/FileAttachment";
 import {
@@ -51,7 +51,6 @@ export function buildContentParts(
         frontText: attachment.frontText,
         backText: attachment.backText,
         tags: attachment.tags,
-        effortLevel: attachment.effortLevel,
       });
       continue;
     }
@@ -74,6 +73,20 @@ export function buildContentParts(
   }
 
   return parts;
+}
+
+function buildStartRunCardContentPart(part: CardContentPart): ContentPart {
+  const legacyPart = {
+    ...part,
+    // TODO: Remove effortLevel when the backend chat wire contract drops legacy card effort.
+    effortLevel: "fast",
+  } satisfies CardContentPart & Readonly<{ effortLevel: "fast" }>;
+
+  return legacyPart;
+}
+
+export function buildStartRunContentParts(contentParts: ReadonlyArray<ContentPart>): ReadonlyArray<ContentPart> {
+  return contentParts.map((part) => part.type === "card" ? buildStartRunCardContentPart(part) : part);
 }
 
 /**
