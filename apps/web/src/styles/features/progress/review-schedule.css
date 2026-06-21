@@ -1,0 +1,156 @@
+.progress-review-schedule {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.progress-review-schedule-donut {
+  width: min(100%, 160px);
+  aspect-ratio: 1;
+  justify-self: center;
+  display: block;
+}
+
+svg.progress-review-schedule-donut {
+  overflow: visible;
+  filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.18));
+}
+
+.progress-review-schedule-donut-empty {
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 0 1px var(--panel-border);
+}
+
+.progress-donut-segment {
+  cursor: pointer;
+  transition: opacity 120ms ease, transform 120ms ease;
+  transform-origin: center;
+}
+
+.progress-donut-segment.is-dimmed {
+  opacity: 0.35;
+}
+
+.progress-donut-segment.is-selected {
+  stroke: var(--accent);
+  stroke-width: 2;
+  transform: scale(1.03);
+}
+
+.progress-review-schedule-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.progress-review-schedule-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--content-card-inner-radius, 8px);
+  transition: background-color 120ms ease, opacity 120ms ease;
+}
+
+.progress-review-schedule-row:last-child {
+  border-bottom: 0;
+}
+
+.progress-review-schedule-row.is-dimmed {
+  opacity: 0.35;
+}
+
+.progress-review-schedule-row.is-selected {
+  background: var(--accent-soft);
+  border-bottom-color: transparent;
+}
+
+.progress-review-schedule-row-button {
+  all: unset;
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  border-radius: var(--content-card-inner-radius, 8px);
+}
+
+.progress-review-schedule-row-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.progress-review-schedule-row-button:disabled {
+  cursor: default;
+}
+
+.progress-review-schedule-swatch {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+.progress-review-schedule-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress-review-schedule-values {
+  display: inline-grid;
+  grid-template-columns: minmax(3ch, auto) minmax(5ch, auto);
+  gap: 10px;
+  align-items: baseline;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.progress-review-schedule-count {
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.progress-review-schedule-percent {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 600;
+}
+
+
+@media (max-width: 768px) {
+  .progress-review-schedule {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .progress-review-schedule-donut {
+    max-width: 180px;
+  }
+}
+
+@container progress-section (max-width: 440px) {
+  .progress-review-schedule {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .progress-review-schedule-donut {
+    max-width: 140px;
+  }
+}

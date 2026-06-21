@@ -1,0 +1,202 @@
+.progress-streak-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.progress-streak-summary-badge {
+  min-height: 34px;
+}
+
+.progress-streak-summary-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.progress-streak-summary-label {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.progress-streak-summary-status {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.progress-streak-weeks {
+  display: grid;
+  gap: 8px;
+}
+
+.progress-streak-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.progress-streak-day {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 7px;
+  min-height: 58px;
+  aspect-ratio: 1;
+  padding: 7px 4px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--content-card-inner-radius, var(--radius-sm));
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.progress-streak-day-complete {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.progress-streak-day-today {
+  border-color: var(--accent-muted);
+  box-shadow: inset 0 0 0 1px var(--accent-soft);
+  background: var(--accent-soft);
+}
+
+.progress-streak-day-frozen {
+  border-color: rgba(125, 211, 252, 0.45);
+  background: rgba(125, 211, 252, 0.08);
+}
+
+.progress-streak-weekday {
+  color: var(--text-tertiary);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.progress-streak-day-complete .progress-streak-weekday {
+  color: rgba(255, 245, 242, 0.78);
+}
+
+.progress-streak-day-today .progress-streak-weekday {
+  color: var(--accent);
+}
+
+.progress-streak-day-frozen .progress-streak-weekday {
+  color: rgba(191, 234, 255, 0.86);
+}
+
+.progress-streak-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+}
+
+.progress-streak-day-complete .progress-streak-marker {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff5f2;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.progress-streak-day-today .progress-streak-marker {
+  border-color: rgba(196, 75, 45, 0.2);
+  background: rgba(196, 75, 45, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 0 0 3px var(--accent-soft);
+}
+
+.progress-streak-day-frozen .progress-streak-marker {
+  border-color: rgba(125, 211, 252, 0.9);
+  background: #ffffff;
+  color: #0284c7;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 0 0 3px rgba(125, 211, 252, 0.14);
+}
+
+.progress-streak-marker-flame,
+.progress-streak-marker-freeze,
+.progress-streak-marker-day-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.progress-streak-marker-flame .review-progress-badge-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.progress-streak-marker-freeze .review-progress-badge-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.progress-streak-marker-day-value {
+  min-width: 1ch;
+}
+
+@media (max-width: 768px) {
+  .progress-streak-week {
+    gap: 8px;
+  }
+
+  .progress-streak-day {
+    min-height: 54px;
+    gap: 6px;
+    padding: 10px 4px;
+  }
+}
+
+@container progress-section (max-width: 440px) {
+  .progress-streak-weeks,
+  .progress-streak-week {
+    gap: 6px;
+  }
+
+  .progress-streak-day {
+    min-height: 44px;
+    gap: 4px;
+    padding: 5px 3px;
+  }
+
+  .progress-streak-weekday {
+    font-size: 9px;
+  }
+
+  .progress-streak-marker {
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+  }
+
+  .progress-streak-marker-flame .review-progress-badge-icon {
+    width: 12px;
+    height: 12px;
+  }
+
+  .progress-streak-marker-freeze .review-progress-badge-icon {
+    width: 12px;
+    height: 12px;
+  }
+}
