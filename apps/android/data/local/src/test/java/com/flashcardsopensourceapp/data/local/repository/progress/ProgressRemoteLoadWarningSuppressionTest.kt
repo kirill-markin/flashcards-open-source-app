@@ -10,7 +10,7 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSou
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
-import com.flashcardsopensourceapp.data.local.repository.progress.runtime.isExpectedTransientProgressSyncBeforeRemoteLoadError
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.isExpectedTransientProgressRefreshError
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressReviewScheduleRemoteLoadWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressSeriesRemoteLoadWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressSummaryRemoteLoadWarning
@@ -24,9 +24,9 @@ import org.junit.Test
 
 class ProgressRemoteLoadWarningSuppressionTest {
     @Test
-    fun syncBeforeRemoteLoadWarningIsSuppressedOnlyForExpectedTransientFailures(): Unit {
+    fun progressRefreshWarningIsSuppressedOnlyForExpectedTransientFailures(): Unit {
         assertTrue(
-            isExpectedTransientProgressSyncBeforeRemoteLoadError(
+            isExpectedTransientProgressRefreshError(
                 error = CloudRemoteException(
                     message = "Gateway timeout",
                     statusCode = 504,
@@ -39,7 +39,7 @@ class ProgressRemoteLoadWarningSuppressionTest {
             )
         )
         assertTrue(
-            isExpectedTransientProgressSyncBeforeRemoteLoadError(
+            isExpectedTransientProgressRefreshError(
                 error = IllegalStateException(
                     "Wrapped network error",
                     UnknownHostException("Unable to resolve host")
@@ -47,7 +47,7 @@ class ProgressRemoteLoadWarningSuppressionTest {
             )
         )
         assertFalse(
-            isExpectedTransientProgressSyncBeforeRemoteLoadError(
+            isExpectedTransientProgressRefreshError(
                 error = CloudRemoteException(
                     message = "Invalid sync request",
                     statusCode = 400,
@@ -60,7 +60,7 @@ class ProgressRemoteLoadWarningSuppressionTest {
             )
         )
         assertFalse(
-            isExpectedTransientProgressSyncBeforeRemoteLoadError(
+            isExpectedTransientProgressRefreshError(
                 error = IllegalStateException("Progress sync invariant failed.")
             )
         )

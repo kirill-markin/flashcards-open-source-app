@@ -22,7 +22,7 @@ import com.flashcardsopensourceapp.data.local.repository.progress.runtime.Progre
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressRefreshReason
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressRemoteRefreshSyncMode
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.createProgressRemoteRefreshSyncMode
-import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressRefreshWarning
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressRemoteLoadFailure
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressSyncBeforeRemoteLoadFailure
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressSummaryRemoteLoadWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.supportsServerRefresh
@@ -286,7 +286,7 @@ internal class ProgressSummaryOrchestration(
             ) {
                 return
             }
-            logProgressRefreshWarning(
+            logProgressRemoteLoadFailure(
                 observability = observability,
                 observationVersions = observationVersions,
                 event = "progress_summary_remote_load_failed",
