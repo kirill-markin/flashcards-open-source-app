@@ -543,7 +543,7 @@ private func notificationDiagnosticsReviewFilterValue(reviewFilter: PersistedRev
     case .deck:
         return "deck:\(reviewFilter.deckId ?? "missing")"
     case .effort:
-        return "effort:\(reviewFilter.effortLevel?.rawValue ?? "missing")"
+        return "legacy_effort:\(reviewFilter.effortLevel ?? "missing")"
     case .tag:
         return "tag:\(reviewFilter.tag ?? "missing")"
     }

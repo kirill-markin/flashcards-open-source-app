@@ -96,8 +96,7 @@ struct CardsScreen: View {
     @State private var cardFormState: CardFormState = CardFormState(
         frontText: "",
         backText: "",
-        tags: [],
-        effortLevel: .fast
+        tags: []
     )
     @State private var screenErrorMessage: String = ""
     @State private var cardsLoadErrorMessage: String = ""
@@ -257,7 +256,7 @@ struct CardsScreen: View {
     }
 
     private var queryReloadKey: String {
-        "\(self.searchText)|\(self.committedFilter?.tags.joined(separator: ",") ?? "")|\(self.committedFilter?.effort.map(\.rawValue).joined(separator: ",") ?? "")|\(store.localReadVersion)"
+        "\(self.searchText)|\(self.committedFilter?.tags.joined(separator: ",") ?? "")|\(store.localReadVersion)"
     }
 
     private func beginCreating() {
@@ -265,8 +264,7 @@ struct CardsScreen: View {
         self.cardFormState = CardFormState(
             frontText: "",
             backText: "",
-            tags: [],
-            effortLevel: .fast
+            tags: []
         )
         self.screenErrorMessage = ""
         self.editorPresentation = .create
@@ -277,8 +275,7 @@ struct CardsScreen: View {
         self.cardFormState = CardFormState(
             frontText: card.frontText,
             backText: card.backText,
-            tags: card.tags,
-            effortLevel: card.effortLevel
+            tags: card.tags
         )
         self.screenErrorMessage = ""
         self.editorPresentation = .edit(cardId: card.cardId)
@@ -294,8 +291,7 @@ struct CardsScreen: View {
         CardEditorInput(
             frontText: self.cardFormState.frontText.trimmingCharacters(in: .whitespacesAndNewlines),
             backText: self.cardFormState.backText.trimmingCharacters(in: .whitespacesAndNewlines),
-            tags: self.cardFormState.tags,
-            effortLevel: self.cardFormState.effortLevel
+            tags: self.cardFormState.tags
         )
     }
 
@@ -320,7 +316,6 @@ struct CardsScreen: View {
         let normalizedInput = self.normalizedCardEditorInput()
         return normalizedInput.frontText != editingCard.frontText
             || normalizedInput.backText != editingCard.backText
-            || normalizedInput.effortLevel != editingCard.effortLevel
             || normalizedInput.tags != editingCard.tags
     }
 
@@ -345,8 +340,7 @@ struct CardsScreen: View {
                 cardId: editingCardId,
                 frontText: normalizedInput.frontText,
                 backText: normalizedInput.backText,
-                tags: normalizedInput.tags,
-                effortLevel: normalizedInput.effortLevel
+                tags: normalizedInput.tags
             )
         } catch {
             if let inlineErrorMessage = cardEditorInlineErrorMessage(error: error) {
@@ -376,8 +370,7 @@ struct CardsScreen: View {
                 cardId: editingCardId,
                 frontText: normalizedInput.frontText,
                 backText: normalizedInput.backText,
-                tags: normalizedInput.tags,
-                effortLevel: normalizedInput.effortLevel
+                tags: normalizedInput.tags
             )
         }
 
@@ -477,7 +470,6 @@ struct CardsScreen: View {
     private func applyFilters() {
         self.committedFilter = buildCardFilter(
             tags: self.draftFilter?.tags ?? [],
-            effort: self.draftFilter?.effort ?? [],
             referenceTags: self.availableTagSuggestions.map(\.tag)
         )
         self.draftFilter = self.committedFilter
@@ -545,48 +537,19 @@ private struct CardFiltersSheetView: View {
         draftFilter?.tags ?? []
     }
 
-    private var draftEffort: [EffortLevel] {
-        draftFilter?.effort ?? []
-    }
-
-    private func updateDraftFilter(tags: [String], effort: [EffortLevel]) {
-        self.draftFilter = buildCardFilter(tags: tags, effort: effort, referenceTags: suggestions.map(\.tag))
+    private func updateDraftFilter(tags: [String]) {
+        self.draftFilter = buildCardFilter(tags: tags, referenceTags: suggestions.map(\.tag))
     }
 
     var body: some View {
         Form {
-            Section {
-                ForEach(EffortLevel.allCases) { effortLevel in
-                    Toggle(
-                        localizedEffortTitle(effortLevel: effortLevel),
-                        isOn: Binding(
-                            get: {
-                                draftEffort.contains(effortLevel)
-                            },
-                            set: { isSelected in
-                                updateDraftFilter(
-                                    tags: draftTags,
-                                    effort: toggleCardFilterEffort(
-                                        effort: draftEffort,
-                                        effortLevel: effortLevel,
-                                        isSelected: isSelected
-                                    )
-                                )
-                            }
-                        )
-                    )
-                }
-            } header: {
-                Text(String(localized: "Effort", table: reviewCardsStringsTableName))
-            }
-
             Section {
                 NavigationLink {
                     TagPickerView(
                         selectedTags: draftTags,
                         suggestions: suggestions,
                         onSave: { nextTags in
-                            updateDraftFilter(tags: nextTags, effort: draftEffort)
+                            updateDraftFilter(tags: nextTags)
                         }
                     )
                 } label: {
@@ -605,7 +568,7 @@ private struct CardFiltersSheetView: View {
 
             Section {
                 Button(String(localized: "Clear filters", table: reviewCardsStringsTableName)) {
-                    updateDraftFilter(tags: [], effort: [])
+                    updateDraftFilter(tags: [])
                 }
                 .disabled(cardFilterActiveDimensionCount(filter: draftFilter) == 0)
             } header: {
@@ -625,24 +588,6 @@ private struct CardFiltersSheetView: View {
     }
 }
 
-private func toggleCardFilterEffort(
-    effort: [EffortLevel],
-    effortLevel: EffortLevel,
-    isSelected: Bool
-) -> [EffortLevel] {
-    if isSelected {
-        if effort.contains(effortLevel) {
-            return effort
-        }
-
-        return effort + [effortLevel]
-    }
-
-    return effort.filter { value in
-        value != effortLevel
-    }
-}
-
 struct CardRow: View {
     let card: Card
 
@@ -653,7 +598,6 @@ struct CardRow: View {
                 .foregroundStyle(.primary)
 
             HStack(spacing: 12) {
-                Label(localizedEffortTitle(effortLevel: card.effortLevel), systemImage: "timer")
                 Label(card.tags.isEmpty ? localizedNoTagsLabel() : formatTags(tags: card.tags), systemImage: "tag")
                 Label(localizedDueDateLabel(value: card.dueAt), systemImage: "clock")
             }

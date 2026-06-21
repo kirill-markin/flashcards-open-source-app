@@ -1,7 +1,7 @@
 import Foundation
 
 enum LocalDatabaseSchema {
-    static let currentVersion: Int = 18
+    static let currentVersion: Int = 19
 
     static var baseMigrationSQL: String {
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
@@ -37,7 +37,6 @@ enum LocalDatabaseSchema {
             front_text TEXT NOT NULL, -- prompt shown to the learner
             back_text TEXT NOT NULL, -- answer shown after reveal
             tags_json TEXT NOT NULL, -- JSON-encoded tag list used by local filtering and sync payload generation
-            effort_level TEXT NOT NULL CHECK (effort_level IN ('fast', 'medium', 'long')), -- effort classification mirrored from the backend card row
             due_at TEXT, -- TODO: remove after sync and UI no longer need the raw dueAt wire value
             due_at_millis INTEGER, -- strict UTC epoch-millisecond key used by local review scheduling; NULL for new or malformed due_at
             created_at TEXT NOT NULL, -- original card creation timestamp that must survive later edits, reviews, deletes, and sync merges
@@ -141,10 +140,6 @@ enum LocalDatabaseSchema {
         CREATE INDEX IF NOT EXISTS idx_cards_workspace_new_due_active
             ON cards(workspace_id, created_at DESC, card_id ASC)
             WHERE deleted_at IS NULL AND due_at IS NULL;
-
-        CREATE INDEX IF NOT EXISTS idx_cards_workspace_effort_created_active
-            ON cards(workspace_id, effort_level, created_at DESC, card_id ASC)
-            WHERE deleted_at IS NULL;
 
         CREATE INDEX IF NOT EXISTS idx_cards_workspace_fsrs_last_reviewed_at
             ON cards(workspace_id, fsrs_last_reviewed_at DESC)

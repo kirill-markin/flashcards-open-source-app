@@ -14,7 +14,6 @@ func buildAIChatCardContextXML(card: AIChatCardReference) -> String {
     return [
         "<attached_card>",
         "<card_id>\(escapeAIChatCardXMLValue(card.cardId))</card_id>",
-        "<effort_level>\(escapeAIChatCardXMLValue(card.effortLevel.rawValue))</effort_level>",
         "<front_text>",
         escapeAIChatCardXMLValue(card.frontText),
         "</front_text>",

@@ -10,7 +10,6 @@ class CloudCredentialRecoveryTestCase: LocalWorkspaceSyncTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: ["recovery"],
-                effortLevel: .medium
             ),
             cardId: nil
         )

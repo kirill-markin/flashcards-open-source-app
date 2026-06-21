@@ -605,11 +605,11 @@
 "settings.workspace.export.fileUnavailable" = "导出的文件不可用。";
 "settings.workspace.export.workspaceUnavailable" = "工作区不可用";
 
-"settings.workspace.decks.description" = "牌组是智能筛选器，会包含符合你选择的努力级别和标签的卡片。";
+"settings.workspace.decks.description" = "牌组是智能筛选器，会包含符合你选择的标签的卡片。";
 "settings.workspace.decks.editorSmartFilterDescription" = "牌组是智能筛选器。";
-"settings.workspace.decks.editorMatchingRulesDescription" = "卡片会按你选择的努力级别和标签匹配。你可以在“复习”左上角菜单中选择该牌组。";
+"settings.workspace.decks.editorMatchingRulesDescription" = "卡片会按你选择的标签匹配。你可以在“复习”左上角菜单中选择该牌组。";
 "settings.workspace.decks.emptyNameValidation" = "请输入卡组名称。";
-"settings.workspace.decks.emptyRuleValidation" = "请选择至少一个努力级别或标签，或在“复习”中使用“所有卡片”。";
+"settings.workspace.decks.emptyRuleValidation" = "请选择至少一个标签，或在“复习”中使用“所有卡片”。";
 "settings.workspace.decks.loading" = "正在加载牌组...";
 "settings.workspace.decks.noMatching" = "没有匹配的牌组";
 "settings.workspace.decks.searchPrompt" = "搜索套牌";
@@ -632,7 +632,6 @@
 "settings.workspace.decks.systemDeckCannotBeEdited" = "系统卡座无法编辑。";
 "settings.workspace.decks.section.name" = "名称";
 "settings.workspace.decks.deckName" = "卡组名称";
-"settings.workspace.decks.section.effort" = "努力";
 
 "settings.workspace.tags.description" = "在整个工作区中标记组卡。当一张卡有多个标签时，每个标签的计数可能会重叠。";
 "settings.workspace.tags.loading" = "正在加载标签...";

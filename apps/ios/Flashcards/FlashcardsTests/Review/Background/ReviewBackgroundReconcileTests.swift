@@ -427,7 +427,7 @@ final class ReviewBackgroundReconcileTests: ProgressStoreTestCase {
         store.decks = []
         let existingFailure = ReviewSubmissionFailure(id: "existing-failure", message: "Existing failure")
         let publishedState = ReviewQueuePublishedState(
-            selectedReviewFilter: .effort(level: .fast),
+            selectedReviewFilter: .allCards,
             reviewQueue: [currentCard],
             presentedReviewCard: currentCard,
             reviewCounts: ReviewCounts(dueCount: 7, totalCount: 9),
@@ -549,7 +549,7 @@ final class ReviewBackgroundReconcileTests: ProgressStoreTestCase {
         store.cards = [staleSubmittedCard, currentCard, otherPendingCard]
         store.decks = []
         let publishedState = ReviewQueuePublishedState(
-            selectedReviewFilter: .effort(level: .fast),
+            selectedReviewFilter: .allCards,
             reviewQueue: [currentCard],
             presentedReviewCard: currentCard,
             reviewCounts: ReviewCounts(dueCount: 7, totalCount: 9),
@@ -652,7 +652,6 @@ private func makePinnedRefreshCard(cardId: String, dueAt: String, updatedAt: Str
     FsrsSchedulerTestSupport.makeTestCard(
         cardId: cardId,
         tags: [],
-        effortLevel: .fast,
         dueAt: dueAt,
         updatedAt: updatedAt
     )

@@ -12,7 +12,6 @@ final class PublicSyncConflictLocalIdRepairTests: LocalWorkspaceSyncTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: ["tag"],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -82,7 +81,6 @@ final class PublicSyncConflictLocalIdRepairTests: LocalWorkspaceSyncTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -142,7 +140,7 @@ final class PublicSyncConflictLocalIdRepairTests: LocalWorkspaceSyncTestCase {
             workspaceId: workspace.workspaceId,
             input: DeckEditorInput(
                 name: "Deck",
-                filterDefinition: buildDeckFilterDefinition(effortLevels: [.medium], tags: ["tag"])
+                filterDefinition: buildDeckFilterDefinition(tags: ["tag", "medium"])
             )
         )
 

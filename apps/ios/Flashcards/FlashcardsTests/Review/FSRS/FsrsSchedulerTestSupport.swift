@@ -74,7 +74,6 @@ enum FsrsSchedulerTestSupport {
             frontText: "",
             backText: "",
             tags: [],
-            effortLevel: .fast,
             dueAt: nil,
             createdAt: "2026-03-08T00:00:00.000Z",
             reps: 0,
@@ -96,14 +95,12 @@ enum FsrsSchedulerTestSupport {
     static func makeTestCard(
         cardId: String,
         tags: [String],
-        effortLevel: EffortLevel,
         dueAt: String?,
         updatedAt: String
     ) -> Card {
         makeTestCard(
             cardId: cardId,
             tags: tags,
-            effortLevel: effortLevel,
             dueAt: dueAt,
             fsrsLastReviewedAt: nil,
             updatedAt: updatedAt
@@ -113,7 +110,6 @@ enum FsrsSchedulerTestSupport {
     static func makeTestCard(
         cardId: String,
         tags: [String],
-        effortLevel: EffortLevel,
         dueAt: String?,
         fsrsLastReviewedAt: String?,
         updatedAt: String
@@ -124,7 +120,6 @@ enum FsrsSchedulerTestSupport {
             frontText: "Front \(cardId)",
             backText: "Back \(cardId)",
             tags: tags,
-            effortLevel: effortLevel,
             dueAt: dueAt,
             createdAt: updatedAt,
             reps: 0,
@@ -169,7 +164,6 @@ enum FsrsSchedulerTestSupport {
             frontText: card.frontText,
             backText: card.backText,
             tags: card.tags,
-            effortLevel: card.effortLevel,
             dueAt: formatIsoTimestamp(date: schedule.dueAt),
             createdAt: card.createdAt,
             reps: schedule.reps,

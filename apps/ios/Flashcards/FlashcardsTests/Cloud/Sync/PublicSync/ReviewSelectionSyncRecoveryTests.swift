@@ -13,7 +13,6 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: ["tag"],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -106,7 +105,6 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: ["tag"],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -208,7 +206,6 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: ["tag"],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -289,7 +286,7 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
             workspaceId: workspace.workspaceId,
             input: DeckEditorInput(
                 name: "Deck",
-                filterDefinition: buildDeckFilterDefinition(effortLevels: [.medium], tags: [])
+                filterDefinition: buildDeckFilterDefinition(tags: ["medium"])
             )
         )
         let suiteName = "deck-filter-normal-change-\(UUID().uuidString.lowercased())"
@@ -322,7 +319,7 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
             deckId: savedDeck.deckId,
             input: DeckEditorInput(
                 name: "Renamed deck",
-                filterDefinition: buildDeckFilterDefinition(effortLevels: [.medium], tags: [])
+                filterDefinition: buildDeckFilterDefinition(tags: ["medium"])
             )
         )
 

@@ -605,11 +605,11 @@
 "settings.workspace.export.fileUnavailable" = "エクスポートされたファイルは利用できません。";
 "settings.workspace.export.workspaceUnavailable" = "ワークスペースが利用できません";
 
-"settings.workspace.decks.description" = "デッキはスマートフィルターです。選択した努力レベルとタグに一致するカードが含まれます。";
+"settings.workspace.decks.description" = "デッキはスマートフィルターです。選択したタグに一致するカードが含まれます。";
 "settings.workspace.decks.editorSmartFilterDescription" = "デッキはスマートフィルターです。";
-"settings.workspace.decks.editorMatchingRulesDescription" = "選択した努力レベルとタグでカードが一致します。復習の左上メニューからデッキを選択できます。";
+"settings.workspace.decks.editorMatchingRulesDescription" = "選択したタグでカードが一致します。復習の左上メニューからデッキを選択できます。";
 "settings.workspace.decks.emptyNameValidation" = "デッキ名を入力してください。";
-"settings.workspace.decks.emptyRuleValidation" = "少なくとも 1 つの努力レベルまたはタグを選択するか、復習ですべてのカードを使用してください。";
+"settings.workspace.decks.emptyRuleValidation" = "少なくとも 1 つのタグを選択するか、復習ですべてのカードを使用してください。";
 "settings.workspace.decks.loading" = "デッキをロード中...";
 "settings.workspace.decks.noMatching" = "一致するデッキがありません";
 "settings.workspace.decks.searchPrompt" = "デッキを検索";
@@ -632,7 +632,6 @@
 "settings.workspace.decks.systemDeckCannotBeEdited" = "システムデッキは編集できません。";
 "settings.workspace.decks.section.name" = "名前";
 "settings.workspace.decks.deckName" = "デッキ名";
-"settings.workspace.decks.section.effort" = "努力";
 
 "settings.workspace.tags.description" = "ワークスペース全体でグループ カードにラベルを付けます。カードに複数のタグがある場合、タグごとのカウントが重複する可能性があります。";
 "settings.workspace.tags.loading" = "タグを読み込んでいます...";

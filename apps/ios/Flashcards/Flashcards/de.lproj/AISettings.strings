@@ -605,11 +605,11 @@
 "settings.workspace.export.fileUnavailable" = "Die exportierte Datei ist nicht verfügbar.";
 "settings.workspace.export.workspaceUnavailable" = "Arbeitsbereich ist nicht verfügbar";
 
-"settings.workspace.decks.description" = "Decks sind intelligente Filter, die Karten einschließen, die den gewählten Aufwandsstufen und Tags entsprechen.";
+"settings.workspace.decks.description" = "Decks sind intelligente Filter, die Karten einschließen, die den gewählten Tags entsprechen.";
 "settings.workspace.decks.editorSmartFilterDescription" = "Ein Deck ist ein intelligenter Filter.";
-"settings.workspace.decks.editorMatchingRulesDescription" = "Karten werden über die Aufwandsstufen und Tags gefunden, die Sie auswählen. Sie können das Deck im Menü oben links unter „Wiederholen“ auswählen.";
+"settings.workspace.decks.editorMatchingRulesDescription" = "Karten werden über die Tags gefunden, die Sie auswählen. Sie können das Deck im Menü oben links unter „Wiederholen“ auswählen.";
 "settings.workspace.decks.emptyNameValidation" = "Geben Sie einen Decknamen ein.";
-"settings.workspace.decks.emptyRuleValidation" = "Wählen Sie mindestens eine Aufwandsstufe oder ein Tag aus, oder verwenden Sie „Alle Karten“ unter „Wiederholen“.";
+"settings.workspace.decks.emptyRuleValidation" = "Wählen Sie mindestens ein Tag aus, oder verwenden Sie „Alle Karten“ unter „Wiederholen“.";
 "settings.workspace.decks.loading" = "Ladedecks...";
 "settings.workspace.decks.noMatching" = "Keine passenden Decks";
 "settings.workspace.decks.searchPrompt" = "Decks durchsuchen";
@@ -632,7 +632,6 @@
 "settings.workspace.decks.systemDeckCannotBeEdited" = "Das Systemdeck kann nicht bearbeitet werden.";
 "settings.workspace.decks.section.name" = "Name";
 "settings.workspace.decks.deckName" = "Deckname";
-"settings.workspace.decks.section.effort" = "Aufwand";
 
 "settings.workspace.tags.description" = "Beschriftet Gruppenkarten im gesamten Arbeitsbereich. Die Zählungen pro Tag können sich überschneiden, wenn eine Karte mehrere Tags hat.";
 "settings.workspace.tags.loading" = "Tags werden geladen...";

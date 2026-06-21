@@ -219,7 +219,6 @@ final class AIChatStoreRunStartTests: XCTestCase {
                     frontText: "Front",
                     backText: "Back",
                     tags: ["tag-1"],
-                    effortLevel: .medium
                 )
             )
         )
@@ -622,7 +621,6 @@ final class AIChatStoreRunStartTests: XCTestCase {
                     frontText: "Front",
                     backText: "Back",
                     tags: ["tag-1"],
-                    effortLevel: .medium
                 )
             )
         )
@@ -744,7 +742,6 @@ final class AIChatStoreRunStartTests: XCTestCase {
                     frontText: "Front",
                     backText: "Back",
                     tags: ["tag-1"],
-                    effortLevel: .medium
                 )
             )
         )

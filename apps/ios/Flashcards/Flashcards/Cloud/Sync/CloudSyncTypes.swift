@@ -196,12 +196,26 @@ struct CloudSyncResult: Hashable, Sendable {
     }
 }
 
+let legacySyncFastEffortLevel: String = "fast"
+
+struct LegacyDeckFilterDefinitionSyncPayload: Encodable {
+    let version: Int
+    let effortLevels: [String]
+    let tags: [String]
+
+    init(filterDefinition: DeckFilterDefinition) {
+        self.version = filterDefinition.version
+        // TODO(old-mobile-cutoff): Remove legacy effortLevels output during final sync wire-drop cleanup.
+        self.effortLevels = []
+        self.tags = filterDefinition.tags
+    }
+}
+
 struct CardSyncPayload: Codable, Hashable {
     let cardId: String
     let frontText: String
     let backText: String
     let tags: [String]
-    let effortLevel: String
     let dueAt: String?
     let createdAt: String
     let reps: Int
@@ -233,13 +247,72 @@ struct CardSyncPayload: Codable, Hashable {
         case deletedAt
     }
 
+    init(
+        cardId: String,
+        frontText: String,
+        backText: String,
+        tags: [String],
+        dueAt: String?,
+        createdAt: String,
+        reps: Int,
+        lapses: Int,
+        fsrsCardState: String,
+        fsrsStepIndex: Int?,
+        fsrsStability: Double?,
+        fsrsDifficulty: Double?,
+        fsrsLastReviewedAt: String?,
+        fsrsScheduledDays: Int?,
+        deletedAt: String?
+    ) {
+        self.cardId = cardId
+        self.frontText = frontText
+        self.backText = backText
+        self.tags = tags
+        self.dueAt = dueAt
+        self.createdAt = createdAt
+        self.reps = reps
+        self.lapses = lapses
+        self.fsrsCardState = fsrsCardState
+        self.fsrsStepIndex = fsrsStepIndex
+        self.fsrsStability = fsrsStability
+        self.fsrsDifficulty = fsrsDifficulty
+        self.fsrsLastReviewedAt = fsrsLastReviewedAt
+        self.fsrsScheduledDays = fsrsScheduledDays
+        self.deletedAt = deletedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.cardId = try container.decode(String.self, forKey: .cardId)
+        self.frontText = try container.decode(String.self, forKey: .frontText)
+        self.backText = try container.decode(String.self, forKey: .backText)
+        let tags = try container.decode([String].self, forKey: .tags)
+        // TODO(old-mobile-cutoff): Remove legacy effortLevel decode during final sync wire-drop cleanup.
+        self.tags = try tagsAppendingLegacyEffortTag(
+            tags: tags,
+            effortLevel: try container.decodeIfPresent(String.self, forKey: .effortLevel)
+        )
+        self.dueAt = try container.decodeIfPresent(String.self, forKey: .dueAt)
+        self.createdAt = try container.decode(String.self, forKey: .createdAt)
+        self.reps = try container.decode(Int.self, forKey: .reps)
+        self.lapses = try container.decode(Int.self, forKey: .lapses)
+        self.fsrsCardState = try container.decode(String.self, forKey: .fsrsCardState)
+        self.fsrsStepIndex = try container.decodeIfPresent(Int.self, forKey: .fsrsStepIndex)
+        self.fsrsStability = try container.decodeIfPresent(Double.self, forKey: .fsrsStability)
+        self.fsrsDifficulty = try container.decodeIfPresent(Double.self, forKey: .fsrsDifficulty)
+        self.fsrsLastReviewedAt = try container.decodeIfPresent(String.self, forKey: .fsrsLastReviewedAt)
+        self.fsrsScheduledDays = try container.decodeIfPresent(Int.self, forKey: .fsrsScheduledDays)
+        self.deletedAt = try container.decodeIfPresent(String.self, forKey: .deletedAt)
+    }
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.cardId, forKey: .cardId)
         try container.encode(self.frontText, forKey: .frontText)
         try container.encode(self.backText, forKey: .backText)
         try container.encode(self.tags, forKey: .tags)
-        try container.encode(self.effortLevel, forKey: .effortLevel)
+        // TODO(old-mobile-cutoff): Remove legacy effortLevel output during final sync wire-drop cleanup.
+        try container.encode(legacySyncFastEffortLevel, forKey: .effortLevel)
 
         if let dueAt = try canonicalIsoTimestampForSync(cardId: self.cardId, dueAt: self.dueAt) {
             try container.encode(dueAt, forKey: .dueAt)
@@ -296,7 +369,6 @@ extension CardSyncPayload {
         self.frontText = card.frontText
         self.backText = card.backText
         self.tags = card.tags
-        self.effortLevel = card.effortLevel.rawValue
         self.dueAt = card.dueAt
         self.createdAt = card.createdAt
         self.reps = card.reps
@@ -330,7 +402,10 @@ struct DeckSyncPayload: Codable, Hashable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.deckId, forKey: .deckId)
         try container.encode(self.name, forKey: .name)
-        try container.encode(self.filterDefinition, forKey: .filterDefinition)
+        try container.encode(
+            LegacyDeckFilterDefinitionSyncPayload(filterDefinition: self.filterDefinition),
+            forKey: .filterDefinition
+        )
         try container.encode(self.createdAt, forKey: .createdAt)
 
         if let deletedAt = self.deletedAt {

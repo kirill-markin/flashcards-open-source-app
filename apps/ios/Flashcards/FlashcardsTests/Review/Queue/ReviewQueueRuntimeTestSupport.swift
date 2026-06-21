@@ -93,7 +93,6 @@ enum ReviewQueueRuntimeTestSupport {
         FsrsSchedulerTestSupport.makeTestCard(
             cardId: cardId,
             tags: [],
-            effortLevel: .fast,
             dueAt: dueAt,
             updatedAt: updatedAt
         )
@@ -103,7 +102,6 @@ enum ReviewQueueRuntimeTestSupport {
         cardId: String,
         workspaceId: String,
         tags: [String],
-        effortLevel: EffortLevel,
         dueAt: String?,
         updatedAt: String,
         deletedAt: String?
@@ -114,7 +112,6 @@ enum ReviewQueueRuntimeTestSupport {
             frontText: "Front \(cardId)",
             backText: "Back \(cardId)",
             tags: tags,
-            effortLevel: effortLevel,
             dueAt: dueAt,
             createdAt: updatedAt,
             reps: 0,

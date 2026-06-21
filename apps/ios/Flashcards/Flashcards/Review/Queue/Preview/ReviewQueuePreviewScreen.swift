@@ -278,7 +278,6 @@ private struct ReviewQueuePreviewCardRow: View {
 
             HStack(spacing: 12) {
                 Label(localizedDueDateLabel(value: card.dueAt), systemImage: "clock")
-                Label(localizedEffortTitle(effortLevel: card.effortLevel), systemImage: "timer")
                 Label(card.tags.isEmpty ? localizedNoTagsLabel() : formatTags(tags: card.tags), systemImage: "tag")
             }
             .font(.caption)

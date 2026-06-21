@@ -10,8 +10,7 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
         let submittedCard = Support.makeReviewCard(
             cardId: "submitted-card",
             workspaceId: "test-workspace",
-            tags: [],
-            effortLevel: .medium,
+            tags: ["medium"],
             dueAt: "2026-03-09T08:00:00.000Z",
             updatedAt: "2026-03-09T07:00:00.000Z",
             deletedAt: nil
@@ -19,8 +18,7 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
         let currentCard = Support.makeReviewCard(
             cardId: "current-card",
             workspaceId: "test-workspace",
-            tags: [],
-            effortLevel: .medium,
+            tags: ["medium"],
             dueAt: nil,
             updatedAt: "2026-03-09T06:00:00.000Z",
             deletedAt: nil
@@ -28,15 +26,14 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
         let otherPendingCard = Support.makeReviewCard(
             cardId: "other-pending-card",
             workspaceId: "test-workspace",
-            tags: [],
-            effortLevel: .medium,
+            tags: ["medium"],
             dueAt: nil,
             updatedAt: "2026-03-09T06:30:00.000Z",
             deletedAt: nil
         )
         let existingFailure = ReviewSubmissionFailure(id: "existing-failure", message: "Existing failure")
         let publishedState = ReviewQueuePublishedState(
-            selectedReviewFilter: .effort(level: .medium),
+            selectedReviewFilter: .tag(tag: "medium"),
             reviewQueue: [currentCard, submittedCard],
             presentedReviewCard: currentCard,
             reviewCounts: ReviewCounts(dueCount: 7, totalCount: 9),
@@ -93,7 +90,6 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
             cardId: "submitted-card",
             workspaceId: "test-workspace",
             tags: [],
-            effortLevel: .medium,
             dueAt: "2026-03-09T08:00:00.000Z",
             updatedAt: "2026-03-09T07:00:00.000Z",
             deletedAt: nil
@@ -101,14 +97,13 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
         let currentCard = Support.makeReviewCard(
             cardId: "current-card",
             workspaceId: "test-workspace",
-            tags: [],
-            effortLevel: .medium,
+            tags: ["medium"],
             dueAt: nil,
             updatedAt: "2026-03-09T06:00:00.000Z",
             deletedAt: nil
         )
         let publishedState = Support.makePublishedState(
-            selectedReviewFilter: .effort(level: .medium),
+            selectedReviewFilter: .tag(tag: "medium"),
             reviewQueue: [currentCard],
             presentedReviewCard: currentCard,
             pendingReviewCardIds: [submittedCard.cardId]
@@ -153,13 +148,12 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
     func testFailReviewSubmissionFromStaleDeckFilterDefinitionKeepsCurrentCanonicalQueue() throws {
         var runtime = Support.makeRuntime()
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
-        let oldFilterDefinition = buildDeckFilterDefinition(effortLevels: [], tags: ["old"])
-        let currentFilterDefinition = buildDeckFilterDefinition(effortLevels: [], tags: ["new"])
+        let oldFilterDefinition = buildDeckFilterDefinition(tags: ["old"])
+        let currentFilterDefinition = buildDeckFilterDefinition(tags: ["new"])
         let submittedCard = Support.makeReviewCard(
             cardId: "submitted-card",
             workspaceId: "test-workspace",
             tags: ["new"],
-            effortLevel: .medium,
             dueAt: "2026-03-09T08:00:00.000Z",
             updatedAt: "2026-03-09T07:00:00.000Z",
             deletedAt: nil
@@ -168,7 +162,6 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
             cardId: "current-card",
             workspaceId: "test-workspace",
             tags: ["new"],
-            effortLevel: .medium,
             dueAt: nil,
             updatedAt: "2026-03-09T06:00:00.000Z",
             deletedAt: nil
@@ -231,8 +224,7 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
         let submittedCard = Support.makeReviewCard(
             cardId: "submitted-card",
             workspaceId: "test-workspace",
-            tags: [],
-            effortLevel: .medium,
+            tags: ["medium"],
             dueAt: "2026-03-09T08:00:00.000Z",
             updatedAt: "2026-03-09T07:00:00.000Z",
             deletedAt: nil
@@ -240,8 +232,7 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
         let currentCard = Support.makeReviewCard(
             cardId: "current-card",
             workspaceId: "test-workspace",
-            tags: [],
-            effortLevel: .medium,
+            tags: ["medium"],
             dueAt: nil,
             updatedAt: "2026-03-09T06:00:00.000Z",
             deletedAt: nil
@@ -249,14 +240,13 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
         let otherPendingCard = Support.makeReviewCard(
             cardId: "other-pending-card",
             workspaceId: "test-workspace",
-            tags: [],
-            effortLevel: .medium,
+            tags: ["medium"],
             dueAt: nil,
             updatedAt: "2026-03-09T06:30:00.000Z",
             deletedAt: nil
         )
         let publishedState = ReviewQueuePublishedState(
-            selectedReviewFilter: .effort(level: .medium),
+            selectedReviewFilter: .tag(tag: "medium"),
             reviewQueue: [currentCard, submittedCard],
             presentedReviewCard: currentCard,
             reviewCounts: ReviewCounts(dueCount: 7, totalCount: 9),
@@ -314,7 +304,6 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
             cardId: "submitted-card",
             workspaceId: "test-workspace",
             tags: [],
-            effortLevel: .medium,
             dueAt: "2026-03-09T08:00:00.000Z",
             updatedAt: "2026-03-09T07:00:00.000Z",
             deletedAt: nil
@@ -323,7 +312,6 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
             cardId: "old-next-card",
             workspaceId: "test-workspace",
             tags: [],
-            effortLevel: .medium,
             dueAt: nil,
             updatedAt: "2026-03-09T06:00:00.000Z",
             deletedAt: nil
@@ -332,7 +320,6 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
             cardId: "current-card",
             workspaceId: "test-workspace",
             tags: [],
-            effortLevel: .medium,
             dueAt: nil,
             updatedAt: "2026-03-09T06:30:00.000Z",
             deletedAt: nil
@@ -341,7 +328,6 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
             cardId: "other-pending-card",
             workspaceId: "test-workspace",
             tags: [],
-            effortLevel: .medium,
             dueAt: nil,
             updatedAt: "2026-03-09T06:45:00.000Z",
             deletedAt: nil

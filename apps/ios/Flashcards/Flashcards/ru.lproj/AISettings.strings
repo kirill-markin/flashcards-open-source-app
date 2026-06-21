@@ -605,11 +605,11 @@
 "settings.workspace.export.fileUnavailable" = "Экспортированный файл недоступен.";
 "settings.workspace.export.workspaceUnavailable" = "Рабочая область недоступна";
 
-"settings.workspace.decks.description" = "Колоды — это умные фильтры, которые включают карточки, соответствующие выбранным уровням усилия и тегам.";
+"settings.workspace.decks.description" = "Колоды — это умные фильтры, которые включают карточки, соответствующие выбранным тегам.";
 "settings.workspace.decks.editorSmartFilterDescription" = "Колода — это умный фильтр.";
-"settings.workspace.decks.editorMatchingRulesDescription" = "Карточки подбираются по выбранным уровням усилия и тегам. Колоду можно выбрать в меню сверху слева на экране «Повторение».";
+"settings.workspace.decks.editorMatchingRulesDescription" = "Карточки подбираются по выбранным тегам. Колоду можно выбрать в меню сверху слева на экране «Повторение».";
 "settings.workspace.decks.emptyNameValidation" = "Введите название колоды.";
-"settings.workspace.decks.emptyRuleValidation" = "Выберите хотя бы один уровень усилия или тег либо используйте «Все карточки» на экране «Повторение».";
+"settings.workspace.decks.emptyRuleValidation" = "Выберите хотя бы один тег либо используйте «Все карточки» на экране «Повторение».";
 "settings.workspace.decks.loading" = "Загрузка колод...";
 "settings.workspace.decks.noMatching" = "Нет подходящих колод";
 "settings.workspace.decks.searchPrompt" = "Поиск колод";
@@ -632,7 +632,6 @@
 "settings.workspace.decks.systemDeckCannotBeEdited" = "Системную колоду нельзя редактировать.";
 "settings.workspace.decks.section.name" = "Имя";
 "settings.workspace.decks.deckName" = "Название колоды";
-"settings.workspace.decks.section.effort" = "Усилие";
 
 "settings.workspace.tags.description" = "Ярлыки группируют карточки по всему рабочему пространству. Количество тегов может перекрываться, если на карте имеется несколько тегов.";
 "settings.workspace.tags.loading" = "Загрузка тегов...";

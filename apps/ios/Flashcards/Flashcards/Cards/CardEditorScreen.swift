@@ -6,7 +6,6 @@ struct CardFormState {
     var frontText: String
     var backText: String
     var tags: [String]
-    var effortLevel: EffortLevel
 }
 
 func cardEditorInlineErrorMessage(error: Error) -> String? {
@@ -111,12 +110,6 @@ struct CardEditorScreen: View {
                 }
 
                 Section {
-                    Picker(String(localized: "Effort", table: reviewCardsStringsTableName), selection: $formState.effortLevel) {
-                        ForEach(EffortLevel.allCases) { effortLevel in
-                            Text(localizedEffortTitle(effortLevel: effortLevel)).tag(effortLevel)
-                        }
-                    }
-
                     NavigationLink {
                         TagPickerView(
                             selectedTags: formState.tags,

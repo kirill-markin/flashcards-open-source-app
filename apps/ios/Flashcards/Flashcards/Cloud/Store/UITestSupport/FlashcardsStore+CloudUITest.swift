@@ -821,8 +821,7 @@ extension FlashcardsStore {
         CardEditorInput(
             frontText: card.frontText,
             backText: card.backText,
-            tags: card.tags,
-            effortLevel: .medium
+            tags: card.tags
         )
     }
 }

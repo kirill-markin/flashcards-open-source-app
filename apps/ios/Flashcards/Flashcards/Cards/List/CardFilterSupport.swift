@@ -57,7 +57,7 @@ func searchCards(cards: [Card], searchText: String) -> [Card] {
 
     return cards.filter { card in
         matchesAllSearchTokens(
-            values: [card.frontText, card.backText] + card.tags + [card.effortLevel.rawValue],
+            values: [card.frontText, card.backText] + card.tags,
             searchTokens: searchTokens
         )
     }
@@ -104,10 +104,6 @@ func isCardReviewed(card: Card) -> Bool {
 
 func matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: Card) -> Bool {
     // Keep deck matching semantics aligned with apps/web/src/appData/domain/index.ts::matchesDeckFilterDefinition and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/FilterSupport.kt::matchesDeckFilterDefinition.
-    if filterDefinition.effortLevels.isEmpty == false && filterDefinition.effortLevels.contains(card.effortLevel) == false {
-        return false
-    }
-
     if filterDefinition.tags.isEmpty {
         return true
     }
@@ -121,10 +117,6 @@ func matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: C
 }
 
 func matchesCardFilter(filter: CardFilter, card: Card) -> Bool {
-    if filter.effort.isEmpty == false && filter.effort.contains(card.effortLevel) == false {
-        return false
-    }
-
     if filter.tags.isEmpty {
         return true
     }
@@ -137,21 +129,13 @@ func matchesCardFilter(filter: CardFilter, card: Card) -> Bool {
     }
 }
 
-func buildCardFilter(tags: [String], effort: [EffortLevel], referenceTags: [String]) -> CardFilter? {
+func buildCardFilter(tags: [String], referenceTags: [String]) -> CardFilter? {
     let normalizedTags = normalizeTags(values: tags, referenceTags: referenceTags)
-    let normalizedEffort = effort.reduce(into: [EffortLevel]()) { result, effortLevel in
-        if result.contains(effortLevel) {
-            return
-        }
-
-        result.append(effortLevel)
-    }
-
-    if normalizedTags.isEmpty && normalizedEffort.isEmpty {
+    if normalizedTags.isEmpty {
         return nil
     }
 
-    return CardFilter(tags: normalizedTags, effort: normalizedEffort)
+    return CardFilter(tags: normalizedTags)
 }
 
 func cardFilterActiveDimensionCount(filter: CardFilter?) -> Int {
@@ -159,18 +143,7 @@ func cardFilterActiveDimensionCount(filter: CardFilter?) -> Int {
         return 0
     }
 
-    return (filter.effort.isEmpty == false ? 1 : 0) + (filter.tags.isEmpty == false ? 1 : 0)
-}
-
-func localizedEffortTitle(effortLevel: EffortLevel) -> String {
-    switch effortLevel {
-    case .fast:
-        return String(localized: "Fast", table: reviewCardsStringsTableName)
-    case .medium:
-        return String(localized: "Medium", table: reviewCardsStringsTableName)
-    case .long:
-        return String(localized: "Long", table: reviewCardsStringsTableName)
-    }
+    return filter.tags.isEmpty == false ? 1 : 0
 }
 
 func localizedAllCardsLabel() -> String {
@@ -187,19 +160,6 @@ func formatCardFilterSummary(filter: CardFilter?) -> String {
     }
 
     var parts: [String] = []
-    if filter.effort.isEmpty == false {
-        let effortSummary = filter.effort.map { effortLevel in
-            localizedEffortTitle(effortLevel: effortLevel)
-        }.joined(separator: ", ")
-        parts.append(
-            String(
-                format: String(localized: "Effort: %@", table: reviewCardsStringsTableName),
-                locale: Locale.current,
-                effortSummary
-            )
-        )
-    }
-
     if filter.tags.isEmpty == false {
         parts.append(
             String(
@@ -230,13 +190,9 @@ func queryCards(cards: [Card], searchText: String, filter: CardFilter?) -> [Card
     return searchCards(cards: filteredCards, searchText: searchText)
 }
 
-func buildDeckFilterDefinition(
-    effortLevels: [EffortLevel],
-    tags: [String]
-) -> DeckFilterDefinition {
+func buildDeckFilterDefinition(tags: [String]) -> DeckFilterDefinition {
     return DeckFilterDefinition(
         version: 2,
-        effortLevels: effortLevels,
         tags: tags
     )
 }
@@ -259,17 +215,12 @@ func resolveDeckFilterDefinitionTagNames(
 
     return DeckFilterDefinition(
         version: filterDefinition.version,
-        effortLevels: filterDefinition.effortLevels,
         tags: exactTagNames
     )
 }
 
 func formatDeckFilterDefinition(filterDefinition: DeckFilterDefinition) -> String {
     var parts: [String] = []
-
-    if filterDefinition.effortLevels.isEmpty == false {
-        parts.append("effort in \(filterDefinition.effortLevels.map { value in value.rawValue }.joined(separator: ", "))")
-    }
 
     if filterDefinition.tags.isEmpty == false {
         parts.append("tags any of \(filterDefinition.tags.joined(separator: ", "))")

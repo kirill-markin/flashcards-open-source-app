@@ -5,7 +5,24 @@ private struct CardOutboxPayload: Codable {
     let frontText: String
     let backText: String
     let tags: [String]
-    let effortLevel: String
+    let dueAt: String?
+    let createdAt: String
+    let reps: Int
+    let lapses: Int
+    let fsrsCardState: String
+    let fsrsStepIndex: Int?
+    let fsrsStability: Double?
+    let fsrsDifficulty: Double?
+    let fsrsLastReviewedAt: String?
+    let fsrsScheduledDays: Int?
+    let deletedAt: String?
+}
+
+private struct LegacyCardOutboxPayload: Decodable {
+    let frontText: String
+    let backText: String
+    let tags: [String]
+    let effortLevel: String?
     let dueAt: String?
     let reps: Int
     let lapses: Int
@@ -15,6 +32,11 @@ private struct CardOutboxPayload: Codable {
     let fsrsDifficulty: Double?
     let fsrsLastReviewedAt: String?
     let fsrsScheduledDays: Int?
+    let deletedAt: String?
+}
+
+private struct PendingCardOutboxPayload: Decodable {
+    let cardId: String
     let deletedAt: String?
 }
 
@@ -478,8 +500,8 @@ struct OutboxStore {
                 frontText: card.frontText,
                 backText: card.backText,
                 tags: card.tags,
-                effortLevel: card.effortLevel.rawValue,
                 dueAt: card.dueAt,
+                createdAt: card.createdAt,
                 reps: card.reps,
                 lapses: card.lapses,
                 fsrsCardState: card.fsrsCardState.rawValue,
@@ -722,15 +744,17 @@ struct OutboxStore {
         do {
             return try self.core.decoder.decode(CardSyncPayload.self, from: payloadData)
         } catch DecodingError.keyNotFound(let missingKey, _) where missingKey.stringValue == "createdAt" {
-            let legacyPayload = try self.core.decoder.decode(CardOutboxPayload.self, from: payloadData)
+            let legacyPayload = try self.core.decoder.decode(LegacyCardOutboxPayload.self, from: payloadData)
             let createdAt = try self.loadCardCreatedAt(workspaceId: workspaceId, cardId: cardId)
 
             return CardSyncPayload(
                 cardId: cardId,
                 frontText: legacyPayload.frontText,
                 backText: legacyPayload.backText,
-                tags: legacyPayload.tags,
-                effortLevel: legacyPayload.effortLevel,
+                tags: try tagsAppendingLegacyEffortTag(
+                    tags: legacyPayload.tags,
+                    effortLevel: legacyPayload.effortLevel
+                ),
                 dueAt: legacyPayload.dueAt,
                 createdAt: createdAt,
                 reps: legacyPayload.reps,
@@ -750,7 +774,7 @@ struct OutboxStore {
         entry: PendingReviewScheduleCardTotalDeltaEntry
     ) throws -> PendingReviewScheduleCardTotalChange {
         let payload = try self.core.decoder.decode(
-            CardOutboxPayload.self,
+            PendingCardOutboxPayload.self,
             from: Data(entry.payloadJson.utf8)
         )
         guard payload.cardId == entry.entityId else {

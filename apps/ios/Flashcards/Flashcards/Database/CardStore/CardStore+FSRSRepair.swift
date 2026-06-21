@@ -112,7 +112,6 @@ func resetFsrsState(card: Card, updatedAt: String) -> Card {
         frontText: card.frontText,
         backText: card.backText,
         tags: card.tags,
-        effortLevel: card.effortLevel,
         dueAt: nil,
         createdAt: card.createdAt,
         reps: 0,

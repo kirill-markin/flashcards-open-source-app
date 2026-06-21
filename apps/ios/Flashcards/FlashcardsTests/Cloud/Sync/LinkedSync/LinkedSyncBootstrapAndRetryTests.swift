@@ -135,7 +135,6 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: ["tag"],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -181,7 +180,6 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                     frontText: "Question \(cardIndex)",
                     backText: "Answer \(cardIndex)",
                     tags: [],
-                    effortLevel: .medium
                 ),
                 cardId: nil
             )
@@ -222,7 +220,7 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
             workspaceId: workspace.workspaceId,
             input: DeckEditorInput(
                 name: "Deck",
-                filterDefinition: buildDeckFilterDefinition(effortLevels: [.medium], tags: ["tag"])
+                filterDefinition: buildDeckFilterDefinition(tags: ["tag", "medium"])
             )
         )
         try self.updateSyncState(
@@ -272,7 +270,6 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: ["tag"],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -280,7 +277,7 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
             workspaceId: workspace.workspaceId,
             input: DeckEditorInput(
                 name: "Deck",
-                filterDefinition: buildDeckFilterDefinition(effortLevels: [.medium], tags: ["tag"])
+                filterDefinition: buildDeckFilterDefinition(tags: ["tag", "medium"])
             )
         )
         try self.updateSyncState(
@@ -334,7 +331,6 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                 frontText: "Local dirty question",
                 backText: "Local dirty answer",
                 tags: ["local"],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -342,7 +338,7 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
             workspaceId: workspace.workspaceId,
             input: DeckEditorInput(
                 name: "Local dirty deck",
-                filterDefinition: buildDeckFilterDefinition(effortLevels: [.medium], tags: ["local"])
+                filterDefinition: buildDeckFilterDefinition(tags: ["local", "medium"])
             )
         )
         try database.updateWorkspaceSchedulerSettings(
@@ -401,7 +397,6 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                 frontText: "Local dirty question",
                 backText: "Local dirty answer",
                 tags: ["local"],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -428,7 +423,7 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
         let dirtyCard = try XCTUnwrap(cards.first { card in card.cardId == savedCard.cardId })
         let syncState = try XCTUnwrap(try self.loadSyncState(database: database, workspaceId: workspace.workspaceId))
         XCTAssertEqual("Remote winning question", dirtyCard.frontText)
-        XCTAssertEqual(["remote"], dirtyCard.tags)
+        XCTAssertEqual(["remote", "medium"], dirtyCard.tags)
         XCTAssertEqual(1, syncResult.acknowledgedOperationCount)
         XCTAssertEqual(0, try self.loadOutboxCount(database: database))
         XCTAssertEqual([0], CloudSyncRunnerTestURLProtocol.pullAfterHotChangeIds)
@@ -464,7 +459,7 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
         let dirtyCard = try XCTUnwrap(cards.first { card in card.cardId == dirtyCardId })
         let syncState = try XCTUnwrap(try self.loadSyncState(database: database, workspaceId: workspace.workspaceId))
         XCTAssertEqual("Remote winning question", dirtyCard.frontText)
-        XCTAssertEqual(["remote"], dirtyCard.tags)
+        XCTAssertEqual(["remote", "medium"], dirtyCard.tags)
         XCTAssertTrue(syncResult.changedEntityTypes.contains(.card))
         XCTAssertEqual(1, syncResult.acknowledgedOperationCount)
         XCTAssertEqual(0, try self.loadOutboxCount(database: database))
@@ -482,7 +477,6 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -539,7 +533,6 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -596,7 +589,6 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )

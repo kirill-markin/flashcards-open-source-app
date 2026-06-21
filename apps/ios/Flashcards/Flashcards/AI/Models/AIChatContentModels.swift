@@ -334,6 +334,26 @@ func logAIChatUnknownContentParts(
     }
 }
 
+private func decodeAIChatCardReference<Key: CodingKey>(
+    container: KeyedDecodingContainer<Key>,
+    cardIdKey: Key,
+    frontTextKey: Key,
+    backTextKey: Key,
+    tagsKey: Key,
+    legacyEffortLevelKey: Key
+) throws -> AIChatCardReference {
+    let tags = try container.decode([String].self, forKey: tagsKey)
+    // TODO(old-mobile-cutoff): Remove legacy AI effortLevel decode when old local payloads no longer need migration.
+    let legacyEffortLevel = try container.decodeIfPresent(String.self, forKey: legacyEffortLevelKey)
+
+    return AIChatCardReference(
+        cardId: try container.decode(String.self, forKey: cardIdKey),
+        frontText: try container.decode(String.self, forKey: frontTextKey),
+        backText: try container.decode(String.self, forKey: backTextKey),
+        tags: try tagsAppendingLegacyEffortTag(tags: tags, effortLevel: legacyEffortLevel)
+    )
+}
+
 struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
     let id: String
     let payload: Payload
@@ -372,12 +392,13 @@ struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
                 )
             case "card":
                 self = .card(
-                    AIChatCardReference(
-                        cardId: try container.decode(String.self, forKey: .cardId),
-                        frontText: try container.decode(String.self, forKey: .frontText),
-                        backText: try container.decode(String.self, forKey: .backText),
-                        tags: try container.decode([String].self, forKey: .tags),
-                        effortLevel: try container.decode(EffortLevel.self, forKey: .effortLevel)
+                    try decodeAIChatCardReference(
+                        container: container,
+                        cardIdKey: .cardId,
+                        frontTextKey: .frontText,
+                        backTextKey: .backText,
+                        tagsKey: .tags,
+                        legacyEffortLevelKey: .effortLevel
                     )
                 )
             case aiChatPersistedUnknownType:
@@ -413,7 +434,6 @@ struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
                 try container.encode(card.frontText, forKey: .frontText)
                 try container.encode(card.backText, forKey: .backText)
                 try container.encode(card.tags, forKey: .tags)
-                try container.encode(card.effortLevel, forKey: .effortLevel)
             case .unknown(let payload):
                 try container.encode(aiChatPersistedUnknownType, forKey: .type)
                 try container.encode(payload.originalType, forKey: .originalType)
@@ -452,7 +472,6 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
         case frontText
         case backText
         case tags
-        case effortLevel
         case id
         case name
         case status
@@ -492,7 +511,6 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
             try container.encode(card.frontText, forKey: .frontText)
             try container.encode(card.backText, forKey: .backText)
             try container.encode(card.tags, forKey: .tags)
-            try container.encode(card.effortLevel, forKey: .effortLevel)
         case .toolCall(let toolCall):
             try container.encode("tool_call", forKey: .type)
             try container.encode(toolCall.id, forKey: .id)
@@ -581,12 +599,13 @@ private func decodeAIChatContentPart(decoder: Decoder) throws -> AIChatContentPa
         )
     case "card":
         return .card(
-            AIChatCardReference(
-                cardId: try container.decode(String.self, forKey: .cardId),
-                frontText: try container.decode(String.self, forKey: .frontText),
-                backText: try container.decode(String.self, forKey: .backText),
-                tags: try container.decode([String].self, forKey: .tags),
-                effortLevel: try container.decode(EffortLevel.self, forKey: .effortLevel)
+            try decodeAIChatCardReference(
+                container: container,
+                cardIdKey: .cardId,
+                frontTextKey: .frontText,
+                backTextKey: .backText,
+                tagsKey: .tags,
+                legacyEffortLevelKey: .effortLevel
             )
         )
     case "tool_call":

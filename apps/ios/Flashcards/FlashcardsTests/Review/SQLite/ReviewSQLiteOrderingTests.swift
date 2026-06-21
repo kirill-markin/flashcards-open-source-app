@@ -314,7 +314,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
             workspaceId: workspace.workspaceId,
             input: DeckEditorInput(
                 name: "Desserts",
-                filterDefinition: buildDeckFilterDefinition(effortLevels: [], tags: ["éclair"])
+                filterDefinition: buildDeckFilterDefinition(tags: ["éclair"])
             )
         )
 
@@ -346,7 +346,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
         XCTAssertEqual(resolvedReviewQuery.reviewFilter, .deck(deckId: deck.deckId))
         XCTAssertEqual(
             resolvedReviewQuery.queryDefinition,
-            .deck(filterDefinition: buildDeckFilterDefinition(effortLevels: [], tags: ["Éclair"]))
+            .deck(filterDefinition: buildDeckFilterDefinition(tags: ["Éclair"]))
         )
         XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["unicode-deck-card"])
         XCTAssertEqual(reviewCounts, ReviewCounts(dueCount: 1, totalCount: 1))
@@ -388,12 +388,12 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
         let matchingSnapshot = try database.loadCardsListSnapshot(
             workspaceId: workspace.workspaceId,
             searchText: "",
-            filter: CardFilter(tags: ["éclair"], effort: [])
+            filter: CardFilter(tags: ["éclair"])
         )
         let missingSnapshot = try database.loadCardsListSnapshot(
             workspaceId: workspace.workspaceId,
             searchText: "",
-            filter: CardFilter(tags: ["missing"], effort: [])
+            filter: CardFilter(tags: ["missing"])
         )
 
         XCTAssertEqual(matchingSnapshot.cards.map(\.cardId), ["uppercase-tag-card", "lowercase-tag-card"])
@@ -890,7 +890,6 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
                 front_text,
                 back_text,
                 tags_json,
-                effort_level,
                 due_at,
                 due_at_millis,
                 created_at,
@@ -909,7 +908,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
                 updated_at,
                 deleted_at
             )
-            VALUES (?, ?, ?, ?, ?, 'fast', ?, ?, ?, 0, 0, 'new', NULL, NULL, NULL, ?, ?, NULL, ?, 'test-replica', ?, ?, NULL)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 'new', NULL, NULL, NULL, ?, ?, NULL, ?, 'test-replica', ?, ?, NULL)
             """,
             values: [
                 .text(cardId),

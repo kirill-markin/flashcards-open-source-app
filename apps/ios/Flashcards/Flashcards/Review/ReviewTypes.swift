@@ -65,7 +65,6 @@ enum ReviewRating: Int, CaseIterable, Codable, Hashable, Identifiable, Sendable 
 enum ReviewFilter: Hashable, Identifiable, Sendable {
     case allCards
     case deck(deckId: String)
-    case effort(level: EffortLevel)
     case tag(tag: String)
 
     var id: String {
@@ -74,8 +73,6 @@ enum ReviewFilter: Hashable, Identifiable, Sendable {
             return "system-all-cards"
         case .deck(let deckId):
             return "deck:\(deckId)"
-        case .effort(let level):
-            return "effort:\(level.rawValue)"
         case .tag(let tag):
             return "tag:\(tag)"
         }

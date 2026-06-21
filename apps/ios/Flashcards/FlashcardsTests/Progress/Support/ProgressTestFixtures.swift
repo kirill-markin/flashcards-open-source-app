@@ -6,7 +6,6 @@ func makeReviewCardForReconcileTest(cardId: String, updatedAt: String) -> Card {
     FsrsSchedulerTestSupport.makeTestCard(
         cardId: cardId,
         tags: [],
-        effortLevel: .fast,
         dueAt: "2026-04-18T07:00:00.000Z",
         updatedAt: updatedAt
     )

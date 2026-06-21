@@ -32,7 +32,7 @@ struct DecksScreen: View {
     var body: some View {
         List {
             Section {
-                Text(aiSettingsLocalized("settings.workspace.decks.description", "Decks are smart filters that include cards matching the effort levels and tags you choose."))
+                Text(aiSettingsLocalized("settings.workspace.decks.description", "Decks are smart filters that include cards matching the tags you choose."))
                     .foregroundStyle(.secondary)
             }
 
@@ -532,7 +532,7 @@ private struct DeckDetailScreen: View {
             switch self.destination {
             case .allCards:
                 let cards = try store.loadCardsMatchingDeck(
-                    filterDefinition: DeckFilterDefinition(version: 2, effortLevels: [], tags: [])
+                    filterDefinition: DeckFilterDefinition(version: 2, tags: [])
                 )
                 self.detailState = .allCards(
                     stats: makeDeckCardStats(cards: cards, now: Date()),
@@ -576,32 +576,12 @@ private struct DeckEditorView: View {
 
                 Section {
                     Text(aiSettingsLocalized("settings.workspace.decks.editorSmartFilterDescription", "A Deck is a smart filter."))
-                    Text(aiSettingsLocalized("settings.workspace.decks.editorMatchingRulesDescription", "Cards match by the effort levels and tags you select. You can select the Deck from the top-left menu on Review."))
+                    Text(aiSettingsLocalized("settings.workspace.decks.editorMatchingRulesDescription", "Cards match by the tags you select. You can select the Deck from the top-left menu on Review."))
                 }
                 .foregroundStyle(.secondary)
 
                 Section(aiSettingsLocalized("settings.workspace.decks.section.name", "Name")) {
                     TextField(aiSettingsLocalized("settings.workspace.decks.deckName", "Deck name"), text: $formState.name)
-                }
-
-                Section(aiSettingsLocalized("settings.workspace.decks.section.effort", "Effort")) {
-                    ForEach(EffortLevel.allCases) { effortLevel in
-                        Toggle(
-                            effortLevel.title,
-                            isOn: Binding(
-                                get: {
-                                    formState.selectedEffortLevels.contains(effortLevel)
-                                },
-                                set: { isSelected in
-                                    formState.selectedEffortLevels = toggleEffortLevel(
-                                        effortLevels: formState.selectedEffortLevels,
-                                        effortLevel: effortLevel,
-                                        isSelected: isSelected
-                                    )
-                                }
-                            )
-                        )
-                    }
                 }
 
                 Section(aiSettingsLocalized("settings.workspace.row.tags", "Tags")) {
@@ -620,7 +600,6 @@ private struct DeckEditorView: View {
                     Text(
                         formatDeckFilterDefinition(
                             filterDefinition: buildDeckFilterDefinition(
-                                effortLevels: formState.selectedEffortLevels,
                                 tags: formState.tags
                             )
                         )
@@ -644,14 +623,12 @@ private struct DeckEditorView: View {
 
 private struct DeckFormState {
     var name: String
-    var selectedEffortLevels: [EffortLevel]
     var tags: [String]
 }
 
 private func emptyDeckFormState() -> DeckFormState {
     DeckFormState(
         name: "",
-        selectedEffortLevels: [],
         tags: []
     )
 }
@@ -660,7 +637,6 @@ private func makeDeckEditorInput(formState: DeckFormState) -> DeckEditorInput {
     DeckEditorInput(
         name: formState.name.trimmingCharacters(in: .whitespacesAndNewlines),
         filterDefinition: buildDeckFilterDefinition(
-            effortLevels: formState.selectedEffortLevels,
             tags: formState.tags
         )
     )
@@ -669,7 +645,6 @@ private func makeDeckEditorInput(formState: DeckFormState) -> DeckEditorInput {
 private func makeDeckFormState(deck: Deck) throws -> DeckFormState {
     return DeckFormState(
         name: deck.name,
-        selectedEffortLevels: deck.filterDefinition.effortLevels,
         tags: deck.filterDefinition.tags
     )
 }
@@ -677,7 +652,6 @@ private func makeDeckFormState(deck: Deck) throws -> DeckFormState {
 private func deckFormStateHasFilterRules(formState: DeckFormState) -> Bool {
     deckFilterDefinitionHasRules(
         filterDefinition: buildDeckFilterDefinition(
-            effortLevels: formState.selectedEffortLevels,
             tags: formState.tags
         )
     )
@@ -697,7 +671,7 @@ private func deckEditorValidationMessage(formState: DeckFormState) -> String? {
 }
 
 private func deckFilterDefinitionHasRules(filterDefinition: DeckFilterDefinition) -> Bool {
-    filterDefinition.effortLevels.isEmpty == false || filterDefinition.tags.isEmpty == false
+    filterDefinition.tags.isEmpty == false
 }
 
 private func deckEditorEmptyNameValidationMessage() -> String {
@@ -710,7 +684,7 @@ private func deckEditorEmptyNameValidationMessage() -> String {
 private func deckEditorEmptyRulesValidationMessage() -> String {
     aiSettingsLocalized(
         "settings.workspace.decks.emptyRuleValidation",
-        "Choose at least one effort level or tag, or use All Cards on Review."
+        "Choose at least one tag, or use All Cards on Review."
     )
 }
 
@@ -750,22 +724,4 @@ private func makeAllCardsDeckScreenListItem(stats: DeckCardStats) -> DeckScreenL
         destination: .allCards,
         persistedDeckId: nil
     )
-}
-
-private func toggleEffortLevel(
-    effortLevels: [EffortLevel],
-    effortLevel: EffortLevel,
-    isSelected: Bool
-) -> [EffortLevel] {
-    if isSelected {
-        if effortLevels.contains(effortLevel) {
-            return effortLevels
-        }
-
-        return effortLevels + [effortLevel]
-    }
-
-    return effortLevels.filter { value in
-        value != effortLevel
-    }
 }

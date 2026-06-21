@@ -4,7 +4,6 @@ struct CardEditorInput: Hashable, Sendable {
     let frontText: String
     let backText: String
     let tags: [String]
-    let effortLevel: EffortLevel
 }
 
 struct CardUpdateInput: Hashable, Sendable {

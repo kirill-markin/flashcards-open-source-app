@@ -73,7 +73,6 @@ extension LocalDatabaseTestCase {
                 front_text,
                 back_text,
                 tags_json,
-                effort_level,
                 due_at,
                 due_at_millis,
                 created_at,
@@ -91,7 +90,7 @@ extension LocalDatabaseTestCase {
                 updated_at,
                 deleted_at
             )
-            VALUES (?, ?, ?, ?, '[]', 'fast', ?, ?, ?, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, ?, 'test-replica', ?, ?, NULL)
+            VALUES (?, ?, ?, ?, '[]', ?, ?, ?, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, ?, 'test-replica', ?, ?, NULL)
             """,
             values: [
                 .text(cardId),
@@ -128,4 +127,3 @@ extension LocalDatabaseTestCase {
         )
     }
 }
-

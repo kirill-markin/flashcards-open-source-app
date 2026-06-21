@@ -261,7 +261,6 @@ final class ReviewNotificationsSupportTests: XCTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -321,7 +320,6 @@ final class ReviewNotificationsSupportTests: XCTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -385,7 +383,6 @@ final class ReviewNotificationsSupportTests: XCTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )
@@ -617,7 +614,6 @@ final class ReviewNotificationsSupportTests: XCTestCase {
                 frontText: "Question",
                 backText: "Answer",
                 tags: [],
-                effortLevel: .medium
             ),
             cardId: nil
         )

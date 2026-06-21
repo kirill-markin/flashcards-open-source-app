@@ -30,8 +30,7 @@ struct ReviewView: View {
     @State var cardFormState: CardFormState = CardFormState(
         frontText: "",
         backText: "",
-        tags: [],
-        effortLevel: .fast
+        tags: []
     )
     @State var screenErrorMessage: String = ""
     @State var reviewTagSummaries: [WorkspaceTagSummary] = []
@@ -55,20 +54,8 @@ struct ReviewView: View {
             return self.reviewDeckSummaries.first(where: { deckSummary in
                 deckSummary.deckId == deckId
             })?.name ?? localizedAllCardsLabel()
-        case .effort(let level):
-            return localizedEffortTitle(effortLevel: level)
         case .tag(let tag):
             return tag
-        }
-    }
-
-    /// Effort filters are stable virtual review scopes, so all three stay visible even when a count is zero.
-    private var reviewEffortFilterCounts: [EffortLevel: Int] {
-        let activeCards = deriveActiveCards(cards: store.cards)
-        return EffortLevel.allCases.reduce(into: [EffortLevel: Int]()) { result, level in
-            result[level] = activeCards.count { card in
-                card.effortLevel == level
-            }
         }
     }
 
@@ -80,8 +67,6 @@ struct ReviewView: View {
             return self.reviewDeckSummaries.first(where: { deckSummary in
                 deckSummary.deckId == deckId
             })?.name ?? localizedAllCardsLabel()
-        case .effort(let level):
-            return "\(localizedEffortTitle(effortLevel: level)) (\((self.reviewEffortFilterCounts[level] ?? 0).formatted()))"
         case .tag(let tag):
             guard let tagSummary = reviewTagSummaries.first(where: { summary in
                 summary.tag == tag
@@ -224,8 +209,7 @@ struct ReviewView: View {
                                 cardId: editingCardId,
                                 frontText: normalizedInput.frontText,
                                 backText: normalizedInput.backText,
-                                tags: normalizedInput.tags,
-                                effortLevel: normalizedInput.effortLevel
+                                tags: normalizedInput.tags
                             )
                         } else {
                             cardReference = nil
@@ -369,25 +353,6 @@ struct ReviewView: View {
 
                 Divider()
             }
-
-            Picker(
-                "",
-                selection: Binding(
-                    get: {
-                        store.selectedReviewFilter
-                    },
-                    set: { nextReviewFilter in
-                        store.selectReviewFilter(reviewFilter: nextReviewFilter)
-                    }
-                )
-            ) {
-                ForEach(EffortLevel.allCases) { level in
-                    let reviewFilter = ReviewFilter.effort(level: level)
-
-                    Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
-                        .tag(reviewFilter)
-                }
-            }
         } label: {
             HStack(spacing: 4) {
                 Text(self.selectedReviewFilterTitle)
@@ -431,7 +396,6 @@ struct ReviewView: View {
 
             HStack(alignment: .top, spacing: 12) {
                 HStack(spacing: 12) {
-                    Label(localizedEffortTitle(effortLevel: card.effortLevel), systemImage: "timer")
                     Label(card.tags.isEmpty ? localizedNoTagsLabel() : formatTags(tags: card.tags), systemImage: "tag")
                 }
 
