@@ -8,6 +8,7 @@ import {
   clickElementAsync,
   createCard,
   createDecks,
+  dispatchKeydown,
   hasHydratedHotStateMock,
   loadReviewQueueSnapshotMock,
   reviewReactionLottieLoadAnimationMock,
@@ -59,6 +60,32 @@ async function pointerDownAndClickElementAsync(element: Element): Promise<void> 
     dispatchPointerDown(element);
     clickElement(element);
   });
+}
+
+async function keydownElementAsync(element: HTMLElement, key: string): Promise<void> {
+  await act(async () => {
+    dispatchKeydown(element, key);
+  });
+}
+
+async function composingKeydownElementAsync(element: HTMLElement, key: string): Promise<void> {
+  await act(async () => {
+    element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, isComposing: true }));
+  });
+}
+
+function getActiveReviewFilterOption(activeOptionOwner: HTMLElement): HTMLElement {
+  const activeOptionId = activeOptionOwner.getAttribute("aria-activedescendant");
+  if (activeOptionId === null) {
+    throw new Error("Review filter search input is missing aria-activedescendant");
+  }
+
+  const activeOption = document.getElementById(activeOptionId);
+  if (!(activeOption instanceof HTMLElement)) {
+    throw new Error(`Review filter active option was not found: ${activeOptionId}`);
+  }
+
+  return activeOption;
 }
 
 async function createStaleReviewReactionOnSecondCard(cards: ReadonlyArray<Card>): Promise<Card> {
@@ -723,27 +750,190 @@ describe("ReviewScreen controls", () => {
       throw new Error("Review filter search input was not found");
     }
 
+    expect(searchInput.getAttribute("role")).toBe("combobox");
+    expect(searchInput.getAttribute("aria-haspopup")).toBe("listbox");
+    expect(searchInput.getAttribute("aria-expanded")).toBe("true");
+
+    const listbox = getContainer().querySelector("[role='listbox']");
+    if (!(listbox instanceof HTMLElement)) {
+      throw new Error("Review filter listbox was not found");
+    }
+
+    expect(listbox.classList.contains("review-filter-listbox")).toBe(true);
+    expect(searchInput.getAttribute("aria-controls")).toBe(listbox.id);
+    expect(reviewStylesContain(
+      ".review-filter-menu",
+      "display: flex",
+      "flex-direction: column",
+      "overflow: hidden",
+      ".review-filter-listbox",
+      "flex: 1 1 auto",
+      "overflow-y: auto",
+    )).toBe(true);
+
+    const editDecksLink = getContainer().querySelector(".review-filter-menu-entry-action");
+    if (!(editDecksLink instanceof HTMLAnchorElement)) {
+      throw new Error("Review filter edit decks link was not found");
+    }
+
+    expect(editDecksLink.getAttribute("role")).not.toBe("option");
+    expect(editDecksLink.getAttribute("data-review-filter-key")).toBeNull();
+    expect(listbox.contains(editDecksLink)).toBe(false);
+
     await setTextFieldValueAsync(searchInput, "med");
 
-    expect(getContainer().textContent).toContain("medium");
-    expect(getContainer().textContent).not.toContain("Alpha");
+    expect([...listbox.querySelectorAll("[role='option']")].map((option) => (
+      option.getAttribute("data-review-filter-key")
+    ))).toEqual(["tag:medium"]);
+    expect(listbox.querySelector(".review-filter-menu-divider")).toBeNull();
 
+    await setTextFieldValueAsync(searchInput, "ta");
+
+    expect(getContainer().textContent).toContain("Beta");
+    expect(getContainer().textContent).toContain("Delta");
+    expect(getContainer().textContent).not.toContain("Alpha");
+    expect([...listbox.querySelectorAll("[role='option']")].map((option) => (
+      option.getAttribute("data-review-filter-key")
+    ))).toEqual(["deck:deck-2", "deck:deck-4", "deck:deck-6", "deck:deck-7"]);
+
+    await vi.waitFor(() => {
+      expect(getActiveReviewFilterOption(searchInput).getAttribute("data-review-filter-key")).toBe("deck:deck-2");
+    });
+    expect(getActiveReviewFilterOption(searchInput).classList.contains("review-filter-menu-entry-keyboard-active")).toBe(true);
+
+    await composingKeydownElementAsync(searchInput, "ArrowDown");
+    await composingKeydownElementAsync(searchInput, "Enter");
+
+    expect(getActiveReviewFilterOption(searchInput).getAttribute("data-review-filter-key")).toBe("deck:deck-2");
+    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
+    expect(getContainer().querySelector(".review-filter-menu")).not.toBeNull();
+
+    await keydownElementAsync(searchInput, "ArrowDown");
+    expect(getActiveReviewFilterOption(searchInput).getAttribute("data-review-filter-key")).toBe("deck:deck-4");
+
+    await keydownElementAsync(searchInput, "ArrowLeft");
+    await keydownElementAsync(searchInput, "ArrowRight");
+    await keydownElementAsync(searchInput, " ");
+
+    expect(getActiveReviewFilterOption(searchInput).getAttribute("data-review-filter-key")).toBe("deck:deck-4");
+    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
+    expect(getContainer().querySelector(".review-filter-menu")).not.toBeNull();
+
+    await keydownElementAsync(searchInput, "ArrowUp");
+    expect(getActiveReviewFilterOption(searchInput).getAttribute("data-review-filter-key")).toBe("deck:deck-2");
+
+    await keydownElementAsync(searchInput, "ArrowDown");
+    await keydownElementAsync(searchInput, "Enter");
+
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({
+      kind: "deck",
+      deckId: "deck-4",
+    });
+    expect(getContainer().querySelector(".review-filter-menu")).toBeNull();
+    const triggerAfterSearchKeyboardSelect = getContainer().querySelector(".review-filter-trigger");
+    if (!(triggerAfterSearchKeyboardSelect instanceof HTMLButtonElement)) {
+      throw new Error("Review filter trigger was not found after search keyboard selection");
+    }
+    expect(document.activeElement).toBe(triggerAfterSearchKeyboardSelect);
+
+    state.appData.selectReviewFilter.mockClear();
+    await openReviewFilterMenu();
     await dispatchDocumentKeydown("Escape");
     expect(getContainer().querySelector(".review-filter-menu")).toBeNull();
 
     await openReviewFilterMenu();
-    const mediumButton = [...getContainer().querySelectorAll("[data-review-filter-key]")]
+    const mediumOption = [...getContainer().querySelectorAll("[data-review-filter-key]")]
       .find((element) => element.getAttribute("data-review-filter-key") === "tag:medium");
-    if (!(mediumButton instanceof HTMLButtonElement)) {
+    if (!(mediumOption instanceof HTMLElement)) {
       throw new Error("Medium review filter option was not found");
     }
 
-    await clickElementAsync(mediumButton);
+    await clickElementAsync(mediumOption);
 
     expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({
       kind: "tag",
       tag: "medium",
     });
+  });
+
+  it("selects items by keyboard when the review filter menu has no search field", async () => {
+    const state = getState();
+    state.decks = createDecks(["Alpha", "Beta"]);
+    const card = createCard({
+      cardId: "card-no-search-filter",
+      frontText: "Front",
+      backText: "Back",
+    });
+    state.cards = [card];
+    state.reviewQueue = [card];
+    state.reviewTimeline = [card];
+
+    await renderReviewScreen();
+    await openReviewFilterMenu();
+
+    expect(getContainer().querySelector(".review-filter-search-input")).toBeNull();
+
+    const listbox = getContainer().querySelector("[role='listbox']");
+    if (!(listbox instanceof HTMLElement)) {
+      throw new Error("Review filter listbox was not found");
+    }
+    const editDecksLink = getContainer().querySelector(".review-filter-menu-entry-action");
+    if (!(editDecksLink instanceof HTMLAnchorElement)) {
+      throw new Error("Review filter edit decks link was not found");
+    }
+
+    expect(listbox.getAttribute("tabindex")).toBe("0");
+    expect(listbox.compareDocumentPosition(editDecksLink) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(listbox);
+    });
+    await vi.waitFor(() => {
+      expect(getActiveReviewFilterOption(listbox).getAttribute("data-review-filter-key")).toBe("allCards");
+    });
+
+    await keydownElementAsync(listbox, "ArrowDown");
+    expect(getActiveReviewFilterOption(listbox).getAttribute("data-review-filter-key")).toBe("deck:deck-1");
+
+    await keydownElementAsync(listbox, "ArrowDown");
+    expect(getActiveReviewFilterOption(listbox).getAttribute("data-review-filter-key")).toBe("deck:deck-2");
+
+    await keydownElementAsync(listbox, " ");
+
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({
+      kind: "deck",
+      deckId: "deck-2",
+    });
+    expect(getContainer().querySelector(".review-filter-menu")).toBeNull();
+    const triggerAfterListboxKeyboardSelect = getContainer().querySelector(".review-filter-trigger");
+    if (!(triggerAfterListboxKeyboardSelect instanceof HTMLButtonElement)) {
+      throw new Error("Review filter trigger was not found after listbox keyboard selection");
+    }
+    expect(document.activeElement).toBe(triggerAfterListboxKeyboardSelect);
+  });
+
+  it("keeps review filter option ids unique for similar tag text", async () => {
+    const state = getState();
+    state.cards = [
+      createCard({ cardId: "tag-slash", tags: ["a/b"] }),
+      createCard({ cardId: "tag-escaped", tags: ["a-2f-b"] }),
+    ];
+    state.reviewQueue = [state.cards[0] as (typeof state.cards)[number]];
+    state.reviewTimeline = state.cards;
+
+    await renderReviewScreen();
+    await openReviewFilterMenu();
+
+    const slashTagOption = getContainer().querySelector("[data-review-filter-key='tag:a/b']");
+    const escapedTagOption = getContainer().querySelector("[data-review-filter-key='tag:a-2f-b']");
+    if (!(slashTagOption instanceof HTMLElement) || !(escapedTagOption instanceof HTMLElement)) {
+      throw new Error("Review filter collision test options were not found");
+    }
+
+    expect(slashTagOption.id).not.toBe("");
+    expect(escapedTagOption.id).not.toBe("");
+    expect(slashTagOption.id).not.toBe(escapedTagOption.id);
+    expect(document.getElementById(slashTagOption.id)).toBe(slashTagOption);
+    expect(document.getElementById(escapedTagOption.id)).toBe(escapedTagOption);
   });
 
   it("saves card edits from the review editor", async () => {
