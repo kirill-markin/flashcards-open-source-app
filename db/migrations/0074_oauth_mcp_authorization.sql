@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS auth.oauth_authorization_codes (
   connection_id         UUID        NOT NULL REFERENCES auth.oauth_connections(connection_id) ON DELETE CASCADE,
   redirect_uri          TEXT        NOT NULL,
   code_challenge        TEXT        NOT NULL,
-  code_challenge_method TEXT        NOT NULL DEFAULT 'S256',
+  code_challenge_method TEXT        NOT NULL DEFAULT 'S256' CHECK (code_challenge_method IN ('S256')),
   scope                 TEXT,
   resource              TEXT        NOT NULL,
   expires_at            TIMESTAMPTZ NOT NULL,
