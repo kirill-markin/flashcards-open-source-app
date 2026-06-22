@@ -604,7 +604,7 @@ describe("API transport network retry", () => {
       workspaceId,
       "installation-1",
       "web",
-      "1.13.0",
+      "1.14.0",
       0,
       200,
     )).resolves.toEqual({
@@ -643,7 +643,7 @@ describe("API transport network retry", () => {
       workspaceId,
       "installation-1",
       "web",
-      "1.13.0",
+      "1.14.0",
       0,
       200,
     )).resolves.toEqual({
@@ -818,7 +818,7 @@ describe("API transport network retry", () => {
       workspaceId,
       "installation-1",
       "web",
-      "1.13.0",
+      "1.14.0",
       0,
       200,
     );
