@@ -9,6 +9,15 @@ export type WorkspaceSummary = Readonly<{
   isSelected: boolean;
 }>;
 
+export type WorkspaceSummaryWithStats = Readonly<{
+  workspaceId: string;
+  name: string;
+  createdAt: string;
+  isSelected: boolean;
+  cardCount: number;
+  lastActivityAt: string | null;
+}>;
+
 export type WorkspaceSummaryPage = Readonly<{
   workspaces: ReadonlyArray<WorkspaceSummary>;
   nextCursor: string | null;
