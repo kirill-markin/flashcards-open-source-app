@@ -170,6 +170,10 @@ export function createAuthorizeApp(now: () => number): Hono<AuthAppEnv> {
     // Authenticated consent page reflecting per-request parameters: never serve
     // it from a shared cache.
     c.header("Cache-Control", "no-store");
+    // Anti-clickjacking: the consent screen is a one-click persistent OAuth-grant
+    // target, so deny framing entirely.
+    c.header("X-Frame-Options", "DENY");
+    c.header("Content-Security-Policy", "frame-ancestors 'none'");
     return c.html(renderAuthorizePage(requestView, locale));
   });
 
