@@ -16,6 +16,10 @@ export interface McpGatewayProps {
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   baseDomain: string;
   mcpCertificateArn: string | undefined;
+  sentryDsnSecretArn: string | undefined;
+  sentryEnvironment: string | undefined;
+  sentryRelease: string | undefined;
+  sentryTracesSampleRate: string | undefined;
 }
 
 export interface McpGatewayResult {
@@ -36,6 +40,43 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
   },
 };
 
+function hasConfiguredValue(value: string | undefined): value is string {
+  return value !== undefined && value !== "";
+}
+
+function addOptionalSentryEnvironment(
+  scope: Construct,
+  fn: lambdaNodejs.NodejsFunction,
+  props: McpGatewayProps,
+): void {
+  if (!hasConfiguredValue(props.sentryDsnSecretArn)) {
+    return;
+  }
+  if (
+    !hasConfiguredValue(props.sentryEnvironment) ||
+    !hasConfiguredValue(props.sentryRelease) ||
+    !hasConfiguredValue(props.sentryTracesSampleRate)
+  ) {
+    throw new Error("sentryEnvironment, sentryRelease, and sentryTracesSampleRate are required when sentryDsnSecretArn is configured");
+  }
+
+  const tracesSampleRate = Number(props.sentryTracesSampleRate);
+  if (!Number.isFinite(tracesSampleRate) || tracesSampleRate < 0 || tracesSampleRate > 1) {
+    throw new Error("sentryTracesSampleRate must be a number between 0 and 1");
+  }
+
+  const secret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
+    scope,
+    "McpHandlerSentryDsnSecret",
+    props.sentryDsnSecretArn,
+  );
+  secret.grantRead(fn);
+  fn.addEnvironment("SENTRY_DSN", secret.secretValue.unsafeUnwrap());
+  fn.addEnvironment("SENTRY_ENVIRONMENT", props.sentryEnvironment);
+  fn.addEnvironment("SENTRY_RELEASE", props.sentryRelease);
+  fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
+}
+
 export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGatewayResult {
   const mcpFn = new lambdaNodejs.NodejsFunction(scope, "McpHandler", {
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-mcp.ts"),
@@ -54,10 +95,15 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
       MCP_BASE_DOMAIN: props.baseDomain,
+      // The MCP sql tool returns the shared agent envelope; pin the docs base to
+      // the public API host so `docs.openapiUrl` matches `/agent/sql` instead of
+      // resolving against the mcp.<domain> request host.
+      PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
     },
   });
 
   props.backendDbSecret.grantRead(mcpFn);
+  addOptionalSentryEnvironment(scope, mcpFn, props);
 
   const accessLogGroup = new logs.LogGroup(scope, "McpApiAccessLogGroup", {
     retention: logs.RetentionDays.ONE_WEEK,

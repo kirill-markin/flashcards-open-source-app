@@ -241,6 +241,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       backendDbSecret: dbResult.backendDbSecret,
       baseDomain,
       mcpCertificateArn,
+      ...sentryContext,
     });
     const migrationFn = migrationRunner(this, {
       vpc: net.vpc,
