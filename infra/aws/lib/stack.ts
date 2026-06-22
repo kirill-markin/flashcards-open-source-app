@@ -216,11 +216,12 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
         sshUsername: analyticsSshUsernameValue,
       });
     }
-    const preSignUpFn = preSignUp(this);
+    const preSignUpFn = preSignUp(this, { ...sentryContext });
     const authResult = auth(this, {
       preSignUpFn,
       resendApiKeySecretArn,
       resendSenderEmail,
+      ...sentryContext,
     });
     const authApi = authGateway(this, {
       vpc: net.vpc,
@@ -233,6 +234,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       demoPasswordSecretArn,
       userPoolId: authResult.userPool.userPoolId,
       userPoolClientId: authResult.userPoolClient.userPoolClientId,
+      ...sentryContext,
     });
     const mcpApi = mcpGateway(this, {
       vpc: net.vpc,

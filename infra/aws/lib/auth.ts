@@ -8,6 +8,10 @@ export interface AuthProps {
   preSignUpFn: lambda.Function;
   resendApiKeySecretArn: string | undefined;
   resendSenderEmail: string | undefined;
+  sentryDsnSecretArn: string | undefined;
+  sentryEnvironment: string | undefined;
+  sentryRelease: string | undefined;
+  sentryTracesSampleRate: string | undefined;
 }
 
 export interface AuthResult {
@@ -28,6 +32,10 @@ export function auth(scope: Construct, props: AuthProps): AuthResult {
   const sender = customEmailSender(scope, {
     resendApiKeySecretArn: props.resendApiKeySecretArn,
     resendSenderEmail: props.resendSenderEmail,
+    sentryDsnSecretArn: props.sentryDsnSecretArn,
+    sentryEnvironment: props.sentryEnvironment,
+    sentryRelease: props.sentryRelease,
+    sentryTracesSampleRate: props.sentryTracesSampleRate,
   });
 
   const userPool = new cognito.UserPool(scope, "UserPool", {
