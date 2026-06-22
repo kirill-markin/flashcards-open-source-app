@@ -6,6 +6,7 @@
  * Custom-domain auth traffic arrives without a stage prefix.
  */
 import { randomUUID } from "node:crypto";
+import * as Sentry from "@sentry/aws-serverless";
 import { type Context, Hono } from "hono";
 import type { MiddlewareHandler } from "hono";
 import health from "./routes/health.js";
@@ -241,6 +242,13 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
       statusCode: 500,
       code: "INTERNAL_ERROR",
       error: error instanceof Error ? error.message : String(error),
+    });
+
+    // Hono's onError swallows the error (returns a 500 response), so
+    // Sentry.wrapHandler never sees it. Capture explicitly here.
+    Sentry.captureException(error, {
+      tags: { service: "auth", route: c.req.path, code: "INTERNAL_ERROR" },
+      extra: { requestId },
     });
 
     if (routeKind === "agent" || routeKind === "api") {
