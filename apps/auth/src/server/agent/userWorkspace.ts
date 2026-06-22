@@ -55,21 +55,23 @@ async function createWorkspaceInExecutor(
   userId: string,
 ): Promise<string> {
   const workspaceId = randomUUID();
-  const bootstrapDeviceId = randomUUID();
+  const bootstrapReplicaId = randomUUID();
   const bootstrapTimestamp = new Date().toISOString();
   const bootstrapOperationId = `bootstrap-workspace-${workspaceId}`;
 
   await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
 
+  // The workspace row references the bootstrap replica via a deferred FK, so it
+  // is inserted first and validated against the replica row at commit.
   await executor.query(
     [
       "INSERT INTO org.workspaces",
       "(",
-      "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_device_id, fsrs_last_operation_id",
+      "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_replica_id, fsrs_last_operation_id",
       ")",
       "VALUES ($1, $2, $3, $4, $5)",
     ].join(" "),
-    [workspaceId, AUTO_CREATED_WORKSPACE_NAME, bootstrapTimestamp, bootstrapDeviceId, bootstrapOperationId],
+    [workspaceId, AUTO_CREATED_WORKSPACE_NAME, bootstrapTimestamp, bootstrapReplicaId, bootstrapOperationId],
   );
 
   await executor.query(
@@ -81,13 +83,18 @@ async function createWorkspaceInExecutor(
     [workspaceId, userId],
   );
 
+  // Seed the workspace replica that owns the bootstrap scheduler-settings row,
+  // mirroring the canonical backend workspace seed (org.workspaces ->
+  // sync.workspace_replicas as the LWW actor).
   await executor.query(
     [
-      "INSERT INTO sync.devices",
-      "(device_id, workspace_id, user_id, platform, app_version, last_seen_at)",
-      "VALUES ($1, $2, $3, 'ios', $4, now())",
+      "INSERT INTO sync.workspace_replicas",
+      "(",
+      "replica_id, workspace_id, user_id, actor_kind, actor_key, platform, app_version, last_seen_at",
+      ")",
+      "VALUES ($1, $2, $3, 'workspace_seed', 'workspace-seed', 'system', $4, now())",
     ].join(" "),
-    [bootstrapDeviceId, workspaceId, userId, "server-bootstrap"],
+    [bootstrapReplicaId, workspaceId, userId, "server-bootstrap"],
   );
 
   return workspaceId;
