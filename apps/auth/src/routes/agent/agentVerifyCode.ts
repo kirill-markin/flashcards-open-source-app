@@ -1,6 +1,12 @@
 /**
  * Agent-only OTP completion route. A short opaque OTP handle is resolved to
  * the server-side Cognito session, then exchanged for a long-lived API key.
+ *
+ * TODO(mcp-oauth): This bespoke email_otp_then_api_key agent flow (issuing a
+ * long-lived fca_ API key) is the precursor to the standardized OAuth 2.1
+ * /authorize + /token endpoints added for the MCP connector. Long term, MCP can
+ * become the single agent surface for both naive and smart clients, and this
+ * flow may fold into the standard OAuth path.
  */
 import { Hono } from "hono";
 import { type AuthAppEnv, getRequestId } from "../../server/apiErrors.js";

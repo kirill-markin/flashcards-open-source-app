@@ -35,6 +35,18 @@ get:
                 accountUrl: https://api.flashcards-open-source-app.com/v1/agent/me
                 workspacesUrl: https://api.flashcards-open-source-app.com/v1/agent/workspaces
                 sqlUrl: https://api.flashcards-open-source-app.com/v1/agent/sql
+              mcp:
+                url: https://mcp.flashcards-open-source-app.com/mcp
+                description: >-
+                  Remote MCP server for AI clients that connect through custom
+                  connectors (for example Claude.ai or ChatGPT). Add the url as a
+                  custom connector and authorize through OAuth, then use the sql
+                  tool to read and write cards and decks.
+                authorization:
+                  type: oauth2
+                  authorizationServer: https://auth.flashcards-open-source-app.com
+                  authorizationServerMetadataUrl: https://auth.flashcards-open-source-app.com/.well-known/oauth-authorization-server
+                  protectedResourceMetadataUrl: https://mcp.flashcards-open-source-app.com/.well-known/oauth-protected-resource
             instructions: >-
               Start with POST
               https://auth.flashcards-open-source-app.com/api/agent/send-code
