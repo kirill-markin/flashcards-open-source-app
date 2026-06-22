@@ -1,18 +1,18 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
-  applyWorkspaceDatabaseScopeInExecutor,
-  query,
   queryWithUserScope,
   transactionWithUserScope,
-  type DatabaseExecutor,
 } from "../../db.js";
 import { verifySessionTokenIdentity } from "../browserSession.js";
 import { createCrockfordToken } from "../otp/crockford.js";
+import {
+  ensureUserSettingsAndSelectWorkspace,
+  resolveCanonicalUserId,
+} from "./userWorkspace.js";
 
 const AGENT_API_KEY_PREFIX = "fca";
 const AGENT_API_KEY_ID_LENGTH = 8;
 const AGENT_API_KEY_SECRET_LENGTH = 26;
-const AUTO_CREATED_WORKSPACE_NAME = "Personal";
 
 type AgentApiKeyRow = Readonly<{
   connection_id: string;
@@ -23,14 +23,6 @@ type AgentApiKeyRow = Readonly<{
   created_at: Date | string;
   last_used_at: Date | string | null;
   revoked_at: Date | string | null;
-}>;
-
-type WorkspaceMembershipRow = Readonly<{
-  workspace_id: string;
-}>;
-
-type IdentityMappingRow = Readonly<{
-  user_id: string;
 }>;
 
 export type AgentApiKeyConnection = Readonly<{
@@ -87,58 +79,6 @@ function formatAgentApiKey(keyId: string, secret: string): string {
   return `${AGENT_API_KEY_PREFIX}_${keyId}_${secret}`;
 }
 
-const upsertUserSettingsSql = [
-  "INSERT INTO org.user_settings (user_id, email)",
-  "VALUES ($1, $2)",
-  "ON CONFLICT (user_id) DO UPDATE",
-  "SET email = EXCLUDED.email",
-  "WHERE org.user_settings.email IS NULL",
-  "AND EXCLUDED.email IS NOT NULL",
-].join(" ");
-
-async function createWorkspaceInExecutor(
-  executor: DatabaseExecutor,
-  userId: string,
-): Promise<string> {
-  const workspaceId = randomUUID();
-  const bootstrapDeviceId = randomUUID();
-  const bootstrapTimestamp = new Date().toISOString();
-  const bootstrapOperationId = `bootstrap-workspace-${workspaceId}`;
-
-  await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
-
-  await executor.query(
-    [
-      "INSERT INTO org.workspaces",
-      "(",
-      "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_device_id, fsrs_last_operation_id",
-      ")",
-      "VALUES ($1, $2, $3, $4, $5)",
-    ].join(" "),
-    [workspaceId, AUTO_CREATED_WORKSPACE_NAME, bootstrapTimestamp, bootstrapDeviceId, bootstrapOperationId],
-  );
-
-  await executor.query(
-    [
-      "INSERT INTO org.workspace_memberships",
-      "(workspace_id, user_id, role)",
-      "VALUES ($1, $2, 'owner')",
-    ].join(" "),
-    [workspaceId, userId],
-  );
-
-  await executor.query(
-    [
-      "INSERT INTO sync.devices",
-      "(device_id, workspace_id, user_id, platform, app_version, last_seen_at)",
-      "VALUES ($1, $2, $3, 'ios', $4, now())",
-    ].join(" "),
-    [bootstrapDeviceId, workspaceId, userId, "server-bootstrap"],
-  );
-
-  return workspaceId;
-}
-
 function mapConnection(row: AgentApiKeyRow): AgentApiKeyConnection {
   return {
     connectionId: row.connection_id,
@@ -147,20 +87,6 @@ function mapConnection(row: AgentApiKeyRow): AgentApiKeyConnection {
     lastUsedAt: toIsoString(row.last_used_at),
     revokedAt: toIsoString(row.revoked_at),
   };
-}
-
-async function resolveCanonicalUserId(providerSubject: string): Promise<string> {
-  const result = await query<IdentityMappingRow>(
-    [
-      "SELECT user_id",
-      "FROM auth.user_identities",
-      "WHERE provider_type = 'cognito' AND provider_subject = $1",
-      "LIMIT 1",
-    ].join(" "),
-    [providerSubject],
-  );
-
-  return result.rows[0]?.user_id ?? providerSubject;
 }
 
 /**
@@ -177,31 +103,11 @@ export async function createAgentApiKeyFromIdToken(idToken: string, label: strin
   const keyHash = hashKeySecret(keySecret);
 
   const result = await transactionWithUserScope({ userId }, async (executor) => {
-    await executor.query(
-      upsertUserSettingsSql,
-      [userId, identity.email],
+    const selectedWorkspaceId = await ensureUserSettingsAndSelectWorkspace(
+      executor,
+      userId,
+      identity.email,
     );
-    const membershipResult = await executor.query<WorkspaceMembershipRow>(
-      [
-        "SELECT workspace_id",
-        "FROM org.workspace_memberships",
-        "WHERE user_id = $1",
-        "ORDER BY created_at ASC, workspace_id ASC",
-      ].join(" "),
-      [userId],
-    );
-    let selectedWorkspaceId: string | null;
-    if (membershipResult.rows.length === 0) {
-      selectedWorkspaceId = await createWorkspaceInExecutor(executor, userId);
-    } else if (membershipResult.rows.length === 1) {
-      const onlyWorkspace = membershipResult.rows[0];
-      if (onlyWorkspace === undefined) {
-        throw new Error("Expected one workspace membership row");
-      }
-      selectedWorkspaceId = onlyWorkspace.workspace_id;
-    } else {
-      selectedWorkspaceId = null;
-    }
 
     const inserted = await executor.query<AgentApiKeyRow>(
       [

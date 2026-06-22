@@ -40,6 +40,28 @@ export function getPublicApiBaseUrl(requestUrl: string): string {
 }
 
 /**
+ * Resolves the canonical MCP protected-resource identifier
+ * (`https://mcp.<domain>/mcp`) that authorization codes and access tokens must
+ * be bound to. The backend validates `oauth_access_tokens.resource` against this
+ * exact value (apps/backend lambda-mcp.ts), so the /authorize endpoint binds the
+ * code to it. `MCP_RESOURCE` overrides; otherwise it is derived from the public
+ * auth origin by swapping the `auth.` subdomain for `mcp.` and appending `/mcp`.
+ */
+export function getMcpResource(requestUrl: string): string {
+  const configuredValue = process.env.MCP_RESOURCE;
+  if (configuredValue !== undefined && configuredValue !== "") {
+    return stripTrailingSlash(configuredValue);
+  }
+
+  const authBaseUrl = getPublicAuthBaseUrl(requestUrl);
+  const url = new URL(authBaseUrl);
+  url.hostname = url.hostname.startsWith("auth.")
+    ? `mcp.${url.hostname.slice("auth.".length)}`
+    : url.hostname;
+  return `${stripTrailingSlash(`${url.protocol}//${url.host}`)}/mcp`;
+}
+
+/**
  * Builds the public AI-agent documentation URLs served by the API host.
  */
 export function getPublicAgentDocs(requestUrl: string): Readonly<{

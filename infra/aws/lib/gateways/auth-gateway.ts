@@ -130,6 +130,10 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
       COOKIE_DOMAIN: props.baseDomain,
       PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
+      // Canonical MCP protected-resource identifier the /authorize endpoint binds
+      // authorization codes to; must match the backend MCP handler's resource
+      // (apps/backend lambda-mcp.ts: https://mcp.<domain>/mcp).
+      MCP_RESOURCE: `https://mcp.${props.baseDomain}/mcp`,
     },
   });
 
