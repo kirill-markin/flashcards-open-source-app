@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 import { unsafeQuery } from "../database/unsafe";
 import { HttpError } from "../shared/errors";
+import { normalizeCrockfordToken } from "../agent/crockford";
+
+const ACCESS_TOKEN_PREFIX = "FCO_";
 
 /**
  * Resolved MCP connection for one validated OAuth Bearer access token.
@@ -26,8 +29,34 @@ type McpAccessTokenRow = Readonly<{
 
 const MCP_TOKEN_INVALID_CODE = "MCP_ACCESS_TOKEN_INVALID";
 
+/**
+ * Hashes a presented Bearer access token to match the value the issuer stored.
+ *
+ * The issuer mints the access token with an `fco_` prefix
+ * (apps/auth/src/server/oauth/oauthStore.ts `formatToken`) but stores only the
+ * SHA-256 of the bare Crockford secret (`hashOpaqueToken`). This read path must
+ * therefore strip the prefix and hash just the normalized secret, mirroring
+ * `parseToken` in oauthStore.ts and `parseAgentApiKey` in
+ * apps/backend/src/agent/apiKeys.ts. A missing prefix or a non-Crockford secret
+ * is rejected with the same opaque 401 as any other invalid token.
+ */
 function hashAccessToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
+  const normalized = token.replace(/[\s-]/g, "").toUpperCase();
+  if (!normalized.startsWith(ACCESS_TOKEN_PREFIX)) {
+    throw new HttpError(401, "Invalid MCP access token", MCP_TOKEN_INVALID_CODE);
+  }
+
+  let secret: string;
+  try {
+    secret = normalizeCrockfordToken(
+      normalized.slice(ACCESS_TOKEN_PREFIX.length),
+      "MCP access token secret",
+    );
+  } catch {
+    throw new HttpError(401, "Invalid MCP access token", MCP_TOKEN_INVALID_CODE);
+  }
+
+  return createHash("sha256").update(secret).digest("hex");
 }
 
 function toTimestampMs(value: Date | string): number {
