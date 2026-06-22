@@ -16,6 +16,10 @@ export interface McpGatewayProps {
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   baseDomain: string;
   mcpCertificateArn: string | undefined;
+  sentryDsnSecretArn: string | undefined;
+  sentryEnvironment: string | undefined;
+  sentryRelease: string | undefined;
+  sentryTracesSampleRate: string | undefined;
 }
 
 export interface McpGatewayResult {
@@ -35,6 +39,43 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     ],
   },
 };
+
+function hasConfiguredValue(value: string | undefined): value is string {
+  return value !== undefined && value !== "";
+}
+
+function addOptionalSentryEnvironment(
+  scope: Construct,
+  fn: lambdaNodejs.NodejsFunction,
+  props: McpGatewayProps,
+): void {
+  if (!hasConfiguredValue(props.sentryDsnSecretArn)) {
+    return;
+  }
+  if (
+    !hasConfiguredValue(props.sentryEnvironment) ||
+    !hasConfiguredValue(props.sentryRelease) ||
+    !hasConfiguredValue(props.sentryTracesSampleRate)
+  ) {
+    throw new Error("sentryEnvironment, sentryRelease, and sentryTracesSampleRate are required when sentryDsnSecretArn is configured");
+  }
+
+  const tracesSampleRate = Number(props.sentryTracesSampleRate);
+  if (!Number.isFinite(tracesSampleRate) || tracesSampleRate < 0 || tracesSampleRate > 1) {
+    throw new Error("sentryTracesSampleRate must be a number between 0 and 1");
+  }
+
+  const secret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
+    scope,
+    "McpHandlerSentryDsnSecret",
+    props.sentryDsnSecretArn,
+  );
+  secret.grantRead(fn);
+  fn.addEnvironment("SENTRY_DSN", secret.secretValue.unsafeUnwrap());
+  fn.addEnvironment("SENTRY_ENVIRONMENT", props.sentryEnvironment);
+  fn.addEnvironment("SENTRY_RELEASE", props.sentryRelease);
+  fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
+}
 
 export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGatewayResult {
   const mcpFn = new lambdaNodejs.NodejsFunction(scope, "McpHandler", {
@@ -62,6 +103,7 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
   });
 
   props.backendDbSecret.grantRead(mcpFn);
+  addOptionalSentryEnvironment(scope, mcpFn, props);
 
   const accessLogGroup = new logs.LogGroup(scope, "McpApiAccessLogGroup", {
     retention: logs.RetentionDays.ONE_WEEK,
