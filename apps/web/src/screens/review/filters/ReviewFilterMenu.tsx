@@ -5,13 +5,20 @@ import type { ReviewFilter } from "../../../types";
 import type { ReviewFilterChoiceMenuItem, ReviewFilterMenuItem } from "./useReviewFilterMenu";
 
 type ReviewFilterMenuProps = Readonly<{
+  activeReviewFilterOptionId: string | null;
+  activeReviewFilterOptionKey: string | null;
+  getReviewFilterOptionId: (optionKey: string) => string;
   handleCloseMenu: () => void;
+  handleReviewFilterComboboxKeyDown: React.KeyboardEventHandler<HTMLInputElement>;
+  handleReviewFilterListboxKeyDown: React.KeyboardEventHandler<HTMLDivElement>;
   handleReviewFilterMenuToggle: () => void;
   handleReviewFilterSelect: (reviewFilter: ReviewFilter) => void;
   hasVisibleReviewFilterChoices: boolean;
   isReviewFilterMenuOpen: boolean;
   reviewDeckSearchInputRef: React.RefObject<HTMLInputElement | null>;
   reviewDeckSearchText: string;
+  reviewFilterListboxId: string;
+  reviewFilterListboxRef: React.RefObject<HTMLDivElement | null>;
   reviewFilterMenuItems: ReadonlyArray<ReviewFilterMenuItem>;
   reviewFilterMenuWrapRef: React.RefObject<HTMLDivElement | null>;
   reviewFilterTriggerRef: React.RefObject<HTMLButtonElement | null>;
@@ -64,15 +71,35 @@ function ReviewFilterCheckIcon(): ReactElement {
   );
 }
 
+function reviewFilterChoiceClassName(item: ReviewFilterChoiceMenuItem, activeReviewFilterOptionKey: string | null): string {
+  const classNames = ["review-filter-menu-entry"];
+  if (item.isSelected) {
+    classNames.push("review-filter-menu-entry-active");
+  }
+
+  if (activeReviewFilterOptionKey === item.key) {
+    classNames.push("review-filter-menu-entry-keyboard-active");
+  }
+
+  return classNames.join(" ");
+}
+
 export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
   const {
+    activeReviewFilterOptionId,
+    activeReviewFilterOptionKey,
+    getReviewFilterOptionId,
     handleCloseMenu,
+    handleReviewFilterComboboxKeyDown,
+    handleReviewFilterListboxKeyDown,
     handleReviewFilterMenuToggle,
     handleReviewFilterSelect,
     hasVisibleReviewFilterChoices,
     isReviewFilterMenuOpen,
     reviewDeckSearchInputRef,
     reviewDeckSearchText,
+    reviewFilterListboxId,
+    reviewFilterListboxRef,
     reviewFilterMenuItems,
     reviewFilterMenuWrapRef,
     reviewFilterTriggerRef,
@@ -92,7 +119,8 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
         className={`ghost-btn review-filter-trigger${isReviewFilterMenuOpen ? " review-filter-trigger-open" : ""}`}
         type="button"
         aria-expanded={isReviewFilterMenuOpen}
-        aria-haspopup="menu"
+        aria-controls={isReviewFilterMenuOpen ? reviewFilterListboxId : undefined}
+        aria-haspopup="listbox"
         aria-label={t("reviewFilterMenu.openAriaLabel")}
         onClick={handleReviewFilterMenuToggle}
         data-testid="review-filter-trigger"
@@ -101,57 +129,98 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
         <span className="review-filter-trigger-chevron" aria-hidden="true">▾</span>
       </button>
       {isReviewFilterMenuOpen ? (
-        <div className="review-filter-menu" role="menu" aria-label={t("reviewFilterMenu.menuAriaLabel")}>
+        <div className="review-filter-menu">
           {shouldShowReviewDeckSearch ? (
             <label className="review-filter-search-field">
               <span className="review-filter-search-label">{t("reviewFilterMenu.searchLabel")}</span>
               <input
                 ref={reviewDeckSearchInputRef}
                 type="search"
+                role="combobox"
                 name="review-filter-search"
                 className="review-filter-search-input"
                 placeholder={t("reviewFilterMenu.searchPlaceholder")}
                 value={reviewDeckSearchText}
+                aria-autocomplete="list"
+                aria-controls={reviewFilterListboxId}
+                aria-expanded={isReviewFilterMenuOpen}
+                aria-haspopup="listbox"
+                aria-activedescendant={activeReviewFilterOptionId ?? undefined}
                 onChange={(event) => setReviewDeckSearchText(event.target.value)}
+                onKeyDown={handleReviewFilterComboboxKeyDown}
               />
             </label>
           ) : null}
           {hasVisibleReviewFilterChoices === false ? (
             <div className="review-filter-menu-empty" aria-live="polite">{t("reviewFilterMenu.empty")}</div>
           ) : null}
-          {visibleReviewDeckFilterMenuItems.map((item) => (
-            <button
-              key={item.key}
-              className={`review-filter-menu-entry${item.isSelected ? " review-filter-menu-entry-active" : ""}`}
-              type="button"
-              role="menuitemradio"
-              aria-checked={item.isSelected}
-              aria-label={item.subtitle === null ? undefined : `${item.label}. ${item.subtitle}`}
-              data-review-filter-key={item.key}
-              onClick={() => handleReviewFilterSelect(item.reviewFilter)}
-            >
-              <span className="review-filter-menu-item-slot" aria-hidden="true">
-                <span className={`review-filter-menu-item-check${item.isSelected ? " review-filter-menu-item-check-visible" : ""}`}>
-                  <ReviewFilterCheckIcon />
+          <div
+            ref={reviewFilterListboxRef}
+            id={reviewFilterListboxId}
+            className="review-filter-listbox"
+            role="listbox"
+            tabIndex={shouldShowReviewDeckSearch ? undefined : 0}
+            aria-label={t("reviewFilterMenu.menuAriaLabel")}
+            aria-activedescendant={shouldShowReviewDeckSearch ? undefined : activeReviewFilterOptionId ?? undefined}
+            onKeyDown={shouldShowReviewDeckSearch ? undefined : handleReviewFilterListboxKeyDown}
+          >
+            {visibleReviewDeckFilterMenuItems.map((item) => (
+              <div
+                key={item.key}
+                id={getReviewFilterOptionId(item.key)}
+                className={reviewFilterChoiceClassName(item, activeReviewFilterOptionKey)}
+                role="option"
+                aria-selected={item.isSelected}
+                aria-label={item.subtitle === null ? undefined : `${item.label}. ${item.subtitle}`}
+                data-review-filter-key={item.key}
+                onClick={() => handleReviewFilterSelect(item.reviewFilter)}
+              >
+                <span className="review-filter-menu-item-slot" aria-hidden="true">
+                  <span className={`review-filter-menu-item-check${item.isSelected ? " review-filter-menu-item-check-visible" : ""}`}>
+                    <ReviewFilterCheckIcon />
+                  </span>
                 </span>
-              </span>
-              <span className="review-filter-menu-item-label">
-                <span>{item.label}</span>
-                {item.subtitle === null ? null : (
-                  <>
-                    <br />
-                    <span className="review-filter-label">{item.subtitle}</span>
-                  </>
-                )}
-              </span>
-            </button>
-          ))}
+                <span className="review-filter-menu-item-label">
+                  <span>{item.label}</span>
+                  {item.subtitle === null ? null : (
+                    <>
+                      <br />
+                      <span className="review-filter-label">{item.subtitle}</span>
+                    </>
+                  )}
+                </span>
+              </div>
+            ))}
+            {visibleReviewDeckFilterMenuItems.length > 0 && visibleReviewTagFilterMenuItems.length > 0 ? (
+              <div className="review-filter-menu-divider" aria-hidden="true" />
+            ) : null}
+            {visibleReviewTagFilterMenuItems.map((tagItem) => (
+              <div
+                key={tagItem.key}
+                id={getReviewFilterOptionId(tagItem.key)}
+                className={reviewFilterChoiceClassName(tagItem, activeReviewFilterOptionKey)}
+                role="option"
+                aria-selected={tagItem.isSelected}
+                data-review-filter-key={tagItem.key}
+                onClick={() => handleReviewFilterSelect(tagItem.reviewFilter)}
+              >
+                <span className="review-filter-menu-item-slot" aria-hidden="true">
+                  <span className={`review-filter-menu-item-check${tagItem.isSelected ? " review-filter-menu-item-check-visible" : ""}`}>
+                    <ReviewFilterCheckIcon />
+                  </span>
+                </span>
+                <span className="review-filter-menu-item-label">{tagItem.label}</span>
+              </div>
+            ))}
+          </div>
+          {reviewFilterMenuItems.length > 0 && hasVisibleReviewFilterChoices ? (
+            <div className="review-filter-menu-divider" aria-hidden="true" />
+          ) : null}
           {reviewFilterMenuItems.map((item) => (
             <Link
               key={item.key}
               className="review-filter-menu-entry review-filter-menu-entry-action"
               to={item.href}
-              role="menuitem"
               onClick={handleCloseMenu}
             >
               <span className="review-filter-menu-item-slot" aria-hidden="true">
@@ -159,27 +228,6 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
               </span>
               <span className="review-filter-menu-item-label">{item.label}</span>
             </Link>
-          ))}
-          {visibleReviewTagFilterMenuItems.length > 0 ? (
-            <div className="review-filter-menu-divider" role="separator" />
-          ) : null}
-          {visibleReviewTagFilterMenuItems.map((tagItem) => (
-            <button
-              key={tagItem.key}
-              className={`review-filter-menu-entry${tagItem.isSelected ? " review-filter-menu-entry-active" : ""}`}
-              type="button"
-              role="menuitemradio"
-              aria-checked={tagItem.isSelected}
-              data-review-filter-key={tagItem.key}
-              onClick={() => handleReviewFilterSelect(tagItem.reviewFilter)}
-            >
-              <span className="review-filter-menu-item-slot" aria-hidden="true">
-                <span className={`review-filter-menu-item-check${tagItem.isSelected ? " review-filter-menu-item-check-visible" : ""}`}>
-                  <ReviewFilterCheckIcon />
-                </span>
-              </span>
-              <span className="review-filter-menu-item-label">{tagItem.label}</span>
-            </button>
           ))}
         </div>
       ) : null}

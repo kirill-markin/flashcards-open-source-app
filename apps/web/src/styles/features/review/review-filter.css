@@ -54,7 +54,8 @@
   top: calc(100% + 10px);
   inset-inline-end: 0;
   z-index: 30;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 4px;
   min-width: 100%;
   width: min(320px, calc(100vw - 32px));
@@ -64,6 +65,12 @@
   border-radius: var(--review-filter-menu-radius);
   background: rgba(20, 20, 24, 0.98);
   box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.review-filter-listbox {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -126,6 +133,18 @@
 .review-filter-menu-entry-active {
   color: var(--accent-strong);
   background: var(--accent-soft);
+}
+
+.review-filter-menu-entry-keyboard-active {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.review-filter-menu-entry-active.review-filter-menu-entry-keyboard-active {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px rgba(196, 75, 45, 0.45);
 }
 
 .review-filter-menu-entry-action {
