@@ -473,6 +473,14 @@ export type ChatTranscriptionFailureDetails = Readonly<{
   errorMessage: string;
 }>;
 
+export type McpWorkspaceSelectionEnrichmentFailureDetails = Readonly<{
+  code: "WORKSPACE_SELECTION_REQUIRED";
+  enrichmentPath: "mcp_workspace_selection_details";
+  toolName: string;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
 export type LangfuseTelemetryFlushFailureDetails = Readonly<{
   errorClass: string;
   errorMessage: string;
@@ -772,6 +780,10 @@ export type BackendWarningEvent =
   | (EventByAction<
     "progress_active_days_backfill_candidate_failed",
     ProgressActiveDaysBackfillCandidateFailureDetails
+  > & Readonly<{ message: string }>)
+  | (EventByAction<
+    "mcp_workspace_selection_enrichment_failed",
+    McpWorkspaceSelectionEnrichmentFailureDetails
   > & Readonly<{ message: string }>)
   | EventByAction<"langfuse_telemetry_flush_failed", LangfuseTelemetryFlushFailureDetails>
   | EventByAction<"langfuse_chat_turn_export_failed", LangfuseChatTurnExportFailureDetails>

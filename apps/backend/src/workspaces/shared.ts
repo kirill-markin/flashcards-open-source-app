@@ -8,6 +8,7 @@ import {
   deleteWorkspaceConfirmationText,
   resetWorkspaceProgressConfirmationText,
   type WorkspaceSummary,
+  type WorkspaceSummaryWithStats,
 } from "./types";
 
 export type TimestampValue = Date | string;
@@ -47,6 +48,28 @@ export function mapWorkspaceSummary(
     name: row.name,
     createdAt: toIsoString(row.created_at),
     isSelected: selectedWorkspaceId === row.workspace_id,
+  };
+}
+
+export type WorkspaceSummaryWithStatsRow = Readonly<{
+  workspace_id: string;
+  name: string;
+  created_at: TimestampValue;
+  card_count: number;
+  last_activity_at: TimestampValue | null;
+}>;
+
+export function mapWorkspaceSummaryWithStats(
+  row: WorkspaceSummaryWithStatsRow,
+  selectedWorkspaceId: string | null,
+): WorkspaceSummaryWithStats {
+  return {
+    workspaceId: row.workspace_id,
+    name: row.name,
+    createdAt: toIsoString(row.created_at),
+    isSelected: selectedWorkspaceId === row.workspace_id,
+    cardCount: row.card_count,
+    lastActivityAt: row.last_activity_at === null ? null : toIsoString(row.last_activity_at),
   };
 }
 

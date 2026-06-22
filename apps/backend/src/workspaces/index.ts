@@ -8,11 +8,13 @@ export {
   type WorkspaceResetProgressPreview,
   type WorkspaceSummary,
   type WorkspaceSummaryPage,
+  type WorkspaceSummaryWithStats,
 } from "./types";
 
 export {
   listUserWorkspacesForSelectedWorkspace,
   listUserWorkspacesPageForSelectedWorkspace,
+  listUserWorkspacesWithStatsForSelectedWorkspace,
 } from "./queries";
 
 export {

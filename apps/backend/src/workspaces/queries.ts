@@ -1,5 +1,6 @@
 import {
   queryWithUserScope,
+  transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../database";
 import { HttpError } from "../shared/errors";
@@ -11,12 +12,14 @@ import {
   createWorkspaceInvariantError,
   decodeWorkspacePageCursor,
   mapWorkspaceSummary,
+  mapWorkspaceSummaryWithStats,
   toIsoString,
   type TimestampValue,
 } from "./shared";
 import type {
   WorkspaceSummary,
   WorkspaceSummaryPage,
+  WorkspaceSummaryWithStats,
 } from "./types";
 
 type WorkspaceSummaryRow = Readonly<{
@@ -53,7 +56,12 @@ type UserSettingsWorkspaceRow = Readonly<{
   workspace_id: string | null;
 }>;
 
+type WorkspaceLastActivityRow = Readonly<{
+  last_activity_at: TimestampValue | null;
+}>;
+
 const maximumWorkspacePageSize = 100;
+const maximumWorkspaceStatsCount = 100;
 
 function getResettableCardPredicateSql(): string {
   return [
@@ -216,6 +224,28 @@ export async function loadActiveCardCountInExecutor(
     : Number.parseInt(row.active_card_count, 10);
 }
 
+export async function loadWorkspaceLastActivityAtInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+): Promise<string | null> {
+  const result = await executor.query<WorkspaceLastActivityRow>(
+    [
+      "SELECT GREATEST(",
+      "(SELECT MAX(re.reviewed_at_server) FROM content.review_events re WHERE re.workspace_id = $1),",
+      "(SELECT MAX(c.updated_at) FROM content.cards c WHERE c.workspace_id = $1 AND c.deleted_at IS NULL)",
+      ") AS last_activity_at",
+    ].join(" "),
+    [workspaceId],
+  );
+
+  const row = result.rows[0];
+  if (row === undefined || row.last_activity_at === null) {
+    return null;
+  }
+
+  return toIsoString(row.last_activity_at);
+}
+
 export async function loadResettableCardCountInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
@@ -291,6 +321,53 @@ export async function listUserWorkspacesForSelectedWorkspace(
   );
 
   return result.rows.map((row) => mapWorkspaceSummary(row, selectedWorkspaceId));
+}
+
+/**
+ * Lists the caller's workspaces (capped at the first 100 by created_at) with
+ * per-workspace active card count and last-activity timestamp.
+ *
+ * `content.cards` and `content.review_events` enforce workspace-scoped RLS, so a
+ * user-scoped JOIN onto `content.*` returns zero rows. The membership/name set
+ * and `isSelected` come from the user-scoped org query; each stats aggregate
+ * then runs under that workspace's own scope so RLS admits the rows.
+ */
+export async function listUserWorkspacesWithStatsForSelectedWorkspace(
+  userId: string,
+  selectedWorkspaceId: string | null,
+): Promise<ReadonlyArray<WorkspaceSummaryWithStats>> {
+  const workspaces = await listUserWorkspacesForSelectedWorkspace(userId, selectedWorkspaceId);
+  const cappedWorkspaces = workspaces.slice(0, maximumWorkspaceStatsCount);
+
+  const workspacesWithStats: WorkspaceSummaryWithStats[] = [];
+  for (const workspace of cappedWorkspaces) {
+    const stats = await transactionWithWorkspaceScope(
+      { userId, workspaceId: workspace.workspaceId },
+      async (executor) => {
+        const cardCount = await loadActiveCardCountInExecutor(executor, workspace.workspaceId);
+        const lastActivityAt = await loadWorkspaceLastActivityAtInExecutor(
+          executor,
+          workspace.workspaceId,
+        );
+        return { cardCount, lastActivityAt };
+      },
+    );
+
+    workspacesWithStats.push(
+      mapWorkspaceSummaryWithStats(
+        {
+          workspace_id: workspace.workspaceId,
+          name: workspace.name,
+          created_at: workspace.createdAt,
+          card_count: stats.cardCount,
+          last_activity_at: stats.lastActivityAt,
+        },
+        selectedWorkspaceId,
+      ),
+    );
+  }
+
+  return workspacesWithStats;
 }
 
 export async function listUserWorkspacesPageForSelectedWorkspace(

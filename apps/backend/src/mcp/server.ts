@@ -7,7 +7,12 @@ import { resolveAccessibleMcpWorkspaceId } from "../server/requestContext";
 import { createAgentEnvelope, createAgentErrorEnvelope } from "../agent/envelope";
 import { createPublicHttpErrorDetails, HttpError } from "../shared/errors";
 import {
+  listUserWorkspacesWithStatsForSelectedWorkspace,
+  type WorkspaceSummaryWithStats,
+} from "../workspaces";
+import {
   captureBackendException,
+  captureBackendWarning,
   createBackendObservationScope,
   normalizeCaughtError,
 } from "../observability/sentry";
@@ -35,8 +40,12 @@ if (baseDescription === "") {
   throw new Error("OPENAI_SQL_TOOL.description must be set for the MCP sql tool");
 }
 const WORKSPACE_ID_ARGUMENT_HINT =
-  "Optional workspaceId targets a specific workspace you belong to; omit it to use your currently selected workspace.";
+  "Optional workspaceId targets a specific workspace you belong to; omit it to use your currently selected workspace. Call the list_workspaces tool to get the selectable workspace ids (and their card counts and last activity) for this workspaceId argument.";
 const SQL_TOOL_DESCRIPTION = `${baseDescription} ${FRONT_BACK_CONTRACT} ${WORKSPACE_ID_ARGUMENT_HINT}`;
+
+const LIST_WORKSPACES_TOOL_NAME = "list_workspaces";
+const LIST_WORKSPACES_TOOL_DESCRIPTION =
+  "Lists the workspaces you can access, each with its workspaceId, name, active card count, last activity timestamp, and an isSelected flag marking your current default workspace. Use the returned workspaceId values for the sql tool's workspaceId argument; pick the isSelected one to stay on the default.";
 
 function buildToolResultText(payload: unknown): string {
   return JSON.stringify(payload, null, 2);
@@ -68,7 +77,7 @@ function createMcpToolInstructions(code: string | null, statusCode: number): str
     case "QUERY_UNSUPPORTED_SYNTAX":
       return "Fix the sql string using error.message and any error.details.validationIssues, then call the sql tool again.";
     case "WORKSPACE_SELECTION_REQUIRED":
-      return "This OAuth connection has no selected workspace. Re-authorize/reconnect the connector to select one, then call the sql tool again.";
+      return "This connection has no selected workspace. Call the list_workspaces tool to see the workspaces you can access (also embedded under error.details.workspaces when available), then call the sql tool again with the workspaceId argument set to the one you want.";
     case "DATABASE_COMMIT_OUTCOME_UNKNOWN":
       return "The previous mutation's outcome could not be confirmed. Do not blindly re-run it: first SELECT to check whether the change already applied, and only call the sql tool again if the change is confirmed absent.";
     case "SERVICE_UNAVAILABLE":
@@ -86,6 +95,18 @@ function createMcpToolInstructions(code: string | null, statusCode: number): str
   return "Fix the request using error.message and any error.details.validationIssues, then call the sql tool again.";
 }
 
+// Loads the caller's accessible workspaces (with stats) to embed under
+// `error.details.workspaces` on WORKSPACE_SELECTION_REQUIRED.
+async function buildWorkspaceSelectionDetails(
+  connection: AuthenticatedMcpAccessToken,
+): Promise<{ workspaces: ReadonlyArray<WorkspaceSummaryWithStats> }> {
+  const workspaces = await listUserWorkspacesWithStatsForSelectedWorkspace(
+    connection.userId,
+    connection.selectedWorkspaceId,
+  );
+  return { workspaces };
+}
+
 /**
  * Mirrors the HTTP agent error contract (apps/backend/src/server/app.ts
  * `app.onError`) on the MCP surface: known `HttpError`s pass through their
@@ -95,12 +116,19 @@ function createMcpToolInstructions(code: string | null, statusCode: number): str
  * server-side. The generic-error branch reuses `app.onError`'s
  * `hasReportedBackendException` dedup guard so an Error a downstream layer
  * already captured-and-marked is not reported to Sentry twice.
+ *
+ * When the error is `WORKSPACE_SELECTION_REQUIRED`, the caller's accessible
+ * workspaces (with stats) are embedded under `error.details.workspaces` so the
+ * model can pick a `workspaceId` and retry the sql tool without a separate
+ * list_workspaces round-trip.
  */
-function buildToolErrorResult(
+async function buildToolErrorResult(
   error: unknown,
   resourceUrl: string,
-  userId: string,
-): CallToolResult {
+  connection: AuthenticatedMcpAccessToken,
+  toolName: string,
+): Promise<CallToolResult> {
+  const userId = connection.userId;
   if (error instanceof HttpError) {
     // Mirror app.onError's shouldCaptureRequestFailureException: report only
     // genuine 5xx HttpErrors (e.g. createWorkspaceInvariantError HttpError(500),
@@ -117,7 +145,7 @@ function buildToolErrorResult(
           scope: createBackendObservationScope(
             "backend-api",
             null,
-            "mcp/sql",
+            `mcp/${toolName}`,
             "POST",
             userId,
             null,
@@ -139,18 +167,76 @@ function buildToolErrorResult(
     }
 
     const code = error.code ?? "REQUEST_FAILED";
+    const errorEnvelope = createAgentErrorEnvelope(
+      resourceUrl,
+      code,
+      error.message,
+      createMcpToolInstructions(error.code, error.statusCode),
+      undefined,
+      createPublicHttpErrorDetails(error.details) ?? undefined,
+    );
+
+    if (error.code === "WORKSPACE_SELECTION_REQUIRED") {
+      // Best-effort enrichment: embed the caller's accessible workspaces so the
+      // model can retry without a list_workspaces round-trip. If this secondary
+      // lookup fails (transient DB error, pool exhaustion, a per-workspace
+      // scoped transaction throwing), fall through to the base
+      // WORKSPACE_SELECTION_REQUIRED envelope so the model still receives the
+      // correct code + remediation text instead of an unhandled rejection.
+      try {
+        const workspaceSelectionDetails = await buildWorkspaceSelectionDetails(connection);
+        return {
+          isError: true,
+          content: buildToolResult({
+            ...errorEnvelope,
+            error: {
+              ...errorEnvelope.error,
+              details: {
+                ...errorEnvelope.error.details,
+                ...workspaceSelectionDetails,
+              },
+            },
+          }).content,
+        };
+      } catch (enrichmentError) {
+        // Observe before discarding: a systematic enrichment failure (e.g. a
+        // real DB outage) would otherwise be invisible to operators since the
+        // user-facing envelope below is unchanged. Emit a low-severity
+        // structured warning (CloudWatch record + Sentry warning) so the
+        // failure is detectable without changing the client-facing result.
+        const normalizedEnrichmentError = normalizeCaughtError(enrichmentError);
+        captureBackendWarning({
+          action: "mcp_workspace_selection_enrichment_failed",
+          scope: createBackendObservationScope(
+            "backend-api",
+            null,
+            `mcp/${toolName}`,
+            "POST",
+            userId,
+            connection.selectedWorkspaceId,
+            null,
+            null,
+            null,
+          ),
+          message: "MCP WORKSPACE_SELECTION_REQUIRED workspace enrichment failed; returning base envelope without details.workspaces.",
+          details: {
+            code: "WORKSPACE_SELECTION_REQUIRED",
+            enrichmentPath: "mcp_workspace_selection_details",
+            toolName,
+            errorClass: normalizedEnrichmentError.name,
+            errorMessage: normalizedEnrichmentError.message,
+          },
+        });
+        return {
+          isError: true,
+          content: buildToolResult(errorEnvelope).content,
+        };
+      }
+    }
+
     return {
       isError: true,
-      content: buildToolResult(
-        createAgentErrorEnvelope(
-          resourceUrl,
-          code,
-          error.message,
-          createMcpToolInstructions(error.code, error.statusCode),
-          undefined,
-          createPublicHttpErrorDetails(error.details) ?? undefined,
-        ),
-      ).content,
+      content: buildToolResult(errorEnvelope).content,
     };
   }
 
@@ -162,7 +248,7 @@ function buildToolErrorResult(
       scope: createBackendObservationScope(
         "backend-api",
         null,
-        "mcp/sql",
+        `mcp/${toolName}`,
         "POST",
         userId,
         null,
@@ -192,13 +278,18 @@ function buildToolErrorResult(
   };
 }
 
+const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
+  "These are the workspaces you can access. Each workspace has a workspaceId, name, cardCount (active cards), lastActivityAt (most recent card edit or review, or null), and isSelected (your current default). To query a specific one, call the sql tool with its workspaceId; the isSelected workspace is used by default when you omit workspaceId. Prefer the most active workspace (highest cardCount or most recent lastActivityAt) when the user has not told you which to use.";
+
 /**
- * Builds a stateless MCP server exposing a single `sql` tool that forwards the
- * SQL string to the backend `executeAgentSql` 1:1 (full read + write), scoped
- * to the connection resolved from the OAuth Bearer access token.
+ * Builds a stateless MCP server exposing a `sql` tool that forwards the SQL
+ * string to the backend `executeAgentSql` 1:1 (full read + write) and a
+ * `list_workspaces` tool that returns the caller's accessible workspaces with
+ * stats, both scoped to the connection resolved from the OAuth Bearer access
+ * token.
  *
  * The connection is captured per request (the Lambda creates one server per
- * call) so the tool never reads ambient request state. `resourceUrl` is the
+ * call) so the tools never read ambient request state. `resourceUrl` is the
  * canonical MCP resource (`https://mcp.<domain>/mcp`) used to build the agent
  * envelope so the tool result shares one contract with `/agent/sql`.
  */
@@ -244,7 +335,34 @@ export function createMcpServer(
           createAgentEnvelope(resourceUrl, result.data, result.instructions),
         );
       } catch (error) {
-        return buildToolErrorResult(error, resourceUrl, connection.userId);
+        return buildToolErrorResult(error, resourceUrl, connection, SQL_TOOL_NAME);
+      }
+    },
+  );
+
+  server.registerTool(
+    LIST_WORKSPACES_TOOL_NAME,
+    {
+      title: "List flashcards workspaces",
+      description: LIST_WORKSPACES_TOOL_DESCRIPTION,
+      inputSchema: {},
+    },
+    async (): Promise<CallToolResult> => {
+      try {
+        const workspaces = await listUserWorkspacesWithStatsForSelectedWorkspace(
+          connection.userId,
+          connection.selectedWorkspaceId,
+        );
+
+        return buildToolResult(
+          createAgentEnvelope(
+            resourceUrl,
+            { workspaces },
+            LIST_WORKSPACES_RESULT_INSTRUCTIONS,
+          ),
+        );
+      } catch (error) {
+        return buildToolErrorResult(error, resourceUrl, connection, LIST_WORKSPACES_TOOL_NAME);
       }
     },
   );
