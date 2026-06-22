@@ -167,6 +167,9 @@ export function createAuthorizeApp(now: () => number): Hono<AuthAppEnv> {
     };
 
     const locale = resolveLoginPageLocale(c.req.query("locale"), c.req.header("accept-language"));
+    // Authenticated consent page reflecting per-request parameters: never serve
+    // it from a shared cache.
+    c.header("Cache-Control", "no-store");
     return c.html(renderAuthorizePage(requestView, locale));
   });
 

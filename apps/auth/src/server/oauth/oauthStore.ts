@@ -268,7 +268,10 @@ async function upsertConnectionInExecutor(
     await executor.query(
       [
         "UPDATE auth.oauth_connections",
-        "SET label = $2, selected_workspace_id = $3, revoked_at = NULL",
+        // COALESCE preserves an existing workspace binding when the resolver
+        // returns null (multi-workspace users), so reconnect does not clobber a
+        // previously selected workspace back to NULL.
+        "SET label = $2, selected_workspace_id = COALESCE($3, auth.oauth_connections.selected_workspace_id), revoked_at = NULL",
         "WHERE connection_id = $1",
       ].join(" "),
       [existingConnectionId, label, selectedWorkspaceId],

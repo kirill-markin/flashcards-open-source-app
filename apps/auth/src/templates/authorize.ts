@@ -20,8 +20,9 @@ const AUTH_FAVICON_URL =
 
 /**
  * The validated authorization request echoed into the page and posted back on
- * consent. All values are already validated by the GET handler; the JSON is
- * embedded with JSON.stringify so it is HTML-attribute and script safe.
+ * consent. Some fields (state, clientName) are attacker-influenced, so the JSON
+ * is serialized with toScriptJson, which escapes the characters that could
+ * terminate the inline <script> element or break the JS string literal.
  */
 export type AuthorizeRequestView = Readonly<{
   clientId: string;
@@ -32,6 +33,21 @@ export type AuthorizeRequestView = Readonly<{
   resource: string;
   clientName: string;
 }>;
+
+/**
+ * Serializes a value to JSON safe for embedding in an inline <script> body.
+ * JSON.stringify does not escape `<`, `>`, `&`, U+2028, or U+2029, so a string
+ * containing `</script>` (or a JS line separator) could break out of the script
+ * element or the surrounding statement. Escaping them as \uXXXX keeps the JSON
+ * valid while making breakout impossible.
+ */
+const toScriptJson = (value: unknown): string =>
+  JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 
 export const renderAuthorizePage = (
   request: AuthorizeRequestView,
@@ -246,8 +262,8 @@ export const renderAuthorizePage = (
 
   <script>
     (function() {
-      var request = ${JSON.stringify(request)};
-      var copy = ${JSON.stringify(copy)};
+      var request = ${toScriptJson(request)};
+      var copy = ${toScriptJson(copy)};
 
       var csrfToken = "";
 
