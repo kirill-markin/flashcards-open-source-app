@@ -1,4 +1,5 @@
 import { CommitmentPolicy, buildClient, KmsKeyringNode } from "@aws-crypto/client-node";
+import * as Sentry from "@sentry/aws-serverless";
 
 type TriggerSource =
   | "CustomEmailSender_Authentication"
@@ -52,6 +53,103 @@ type HandlerDependencies = Readonly<{
 }>;
 
 const { decrypt } = buildClient(CommitmentPolicy.REQUIRE_ENCRYPT_ALLOW_DECRYPT);
+
+const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
+const SENSITIVE_KEY_PATTERN = /code|otp|token|secret/i;
+
+type SentryInitFunction = typeof Sentry.init;
+type SentryInitOptions = NonNullable<Parameters<SentryInitFunction>[0]>;
+type SentryBeforeSend = NonNullable<SentryInitOptions["beforeSend"]>;
+type SentryErrorEvent = Parameters<SentryBeforeSend>[0];
+
+function isAwsLambdaRuntime(env: NodeJS.ProcessEnv): boolean {
+  return (env.AWS_EXECUTION_ENV ?? "").startsWith("AWS_Lambda_")
+    || (env.AWS_LAMBDA_FUNCTION_NAME ?? "") !== "";
+}
+
+function maskSensitiveText(value: string): string {
+  return value.replace(EMAIL_PATTERN, "<masked-email>");
+}
+
+function redactSensitiveKeys(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => redactSensitiveKeys(item));
+  }
+
+  if (value !== null && typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, nestedValue] of Object.entries(value as Record<string, unknown>)) {
+      result[key] = SENSITIVE_KEY_PATTERN.test(key)
+        ? "<redacted>"
+        : redactSensitiveKeys(nestedValue);
+    }
+    return result;
+  }
+
+  if (typeof value === "string") {
+    return maskSensitiveText(value);
+  }
+
+  return value;
+}
+
+function scrubCustomEmailSenderEvent(event: SentryErrorEvent): SentryErrorEvent {
+  if (event.request !== undefined) {
+    delete event.request.data;
+  }
+
+  if (event.message !== undefined) {
+    event.message = maskSensitiveText(event.message);
+  }
+
+  const exceptionValues = event.exception?.values;
+  if (exceptionValues !== undefined) {
+    for (const exceptionValue of exceptionValues) {
+      if (exceptionValue.value !== undefined) {
+        exceptionValue.value = maskSensitiveText(exceptionValue.value);
+      }
+    }
+  }
+
+  if (event.extra !== undefined) {
+    event.extra = redactSensitiveKeys(event.extra) as typeof event.extra;
+  }
+
+  if (event.contexts !== undefined) {
+    event.contexts = redactSensitiveKeys(event.contexts) as typeof event.contexts;
+  }
+
+  return event;
+}
+
+function initializeCustomEmailSenderSentryWithDeps(
+  env: NodeJS.ProcessEnv,
+  init: SentryInitFunction,
+): void {
+  const dsn = env.SENTRY_DSN;
+  if (dsn === undefined || dsn.trim() === "") {
+    if (isAwsLambdaRuntime(env)) {
+      throw new Error("SENTRY_DSN is required in AWS Lambda custom-email-sender runtime");
+    }
+
+    return;
+  }
+
+  const tracesSampleRateRaw = env.SENTRY_TRACES_SAMPLE_RATE;
+  init({
+    dsn: dsn.trim(),
+    environment: env.SENTRY_ENVIRONMENT,
+    release: env.SENTRY_RELEASE,
+    tracesSampleRate: tracesSampleRateRaw === undefined || tracesSampleRateRaw.trim() === ""
+      ? undefined
+      : Number.parseFloat(tracesSampleRateRaw),
+    sendDefaultPii: false,
+    beforeSend: (event) => scrubCustomEmailSenderEvent(event),
+  });
+  Sentry.setTag("service", "custom-email-sender");
+}
+
+initializeCustomEmailSenderSentryWithDeps(process.env, Sentry.init);
 
 function getRequiredEnvironmentValue(name: string): string {
   const value = process.env[name];
@@ -272,9 +370,10 @@ export async function handleCustomEmailSenderEvent(
   return event;
 }
 
-export async function handler(event: CustomEmailSenderEvent): Promise<CustomEmailSenderEvent> {
-  return handleCustomEmailSenderEvent(event, getEnvironment(), {
-    decryptCode: decryptSecretCode,
-    fetchFn: fetch,
-  });
-}
+export const handler = Sentry.wrapHandler(
+  async (event: CustomEmailSenderEvent): Promise<CustomEmailSenderEvent> =>
+    handleCustomEmailSenderEvent(event, getEnvironment(), {
+      decryptCode: decryptSecretCode,
+      fetchFn: fetch,
+    }),
+);
