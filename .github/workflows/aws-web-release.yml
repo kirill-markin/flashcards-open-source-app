@@ -168,6 +168,20 @@ jobs:
     if: ${{ needs.changes.outputs.aws_changed == 'true' }}
     runs-on: ubuntu-24.04
 
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: flashcards
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v6
 
@@ -198,6 +212,19 @@ jobs:
 
       - name: Bundle OpenAPI spec
         run: npm run bundle --prefix api
+
+      # Guards against workspace-bootstrap SQL drifting from the live schema
+      # (e.g. migration 0035 dropping sync.devices). Applies the full
+      # db/migrations chain to a throwaway Postgres, then runs both the auth and
+      # backend first-login bootstrap routines against it as their runtime roles.
+      - name: Bootstrap schema contract (auth + backend vs live migrations)
+        env:
+          BOOTSTRAP_CONTRACT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flashcards
+        run: |
+          : "${BOOTSTRAP_CONTRACT_DATABASE_URL:?bootstrap schema contract requires BOOTSTRAP_CONTRACT_DATABASE_URL; the contract tests must not silently skip in CI}"
+          node apps/backend/scripts/apply-schema-contract-db.mjs
+          ( cd apps/auth && node --test --import tsx src/server/agent/agentApiKeys.contract.test.ts )
+          ( cd apps/backend && node --test --import tsx src/workspaces/create.contract.test.ts )
 
       - name: Build auth app
         if: ${{ needs.changes.outputs.auth_changed == 'true' }}

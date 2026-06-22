@@ -8,6 +8,7 @@ import {
 } from "../../db.js";
 import { verifySessionTokenIdentity } from "../browserSession.js";
 import { createCrockfordToken } from "../otp/crockford.js";
+import { buildSystemWorkspaceReplicaId } from "../sync/workspaceReplicaId.js";
 
 const AGENT_API_KEY_PREFIX = "fca";
 const AGENT_API_KEY_ID_LENGTH = 8;
@@ -96,12 +97,26 @@ const upsertUserSettingsSql = [
   "AND EXCLUDED.email IS NOT NULL",
 ].join(" ");
 
-async function createWorkspaceInExecutor(
+/**
+ * Bootstraps the first workspace for a brand-new agent user.
+ *
+ * Writes the workspace row, the owner membership, and the deterministic
+ * `workspace_seed` sync replica that the workspace's
+ * `fsrs_last_modified_by_replica_id` foreign key points at. The workspace and
+ * replica rows form an intentional foreign-key cycle that is `DEFERRABLE
+ * INITIALLY DEFERRED` (db/migrations/0036, 0037), so both are written inside
+ * the caller's transaction and validate at commit time.
+ *
+ * This mirrors the canonical backend bootstrap in
+ * apps/backend/src/workspaces/create.ts; keep the two aligned. The bootstrap
+ * schema contract test exercises this against the live migration chain.
+ */
+export async function createWorkspaceInExecutor(
   executor: DatabaseExecutor,
   userId: string,
 ): Promise<string> {
   const workspaceId = randomUUID();
-  const bootstrapDeviceId = randomUUID();
+  const bootstrapReplicaId = buildSystemWorkspaceReplicaId(workspaceId, "workspace_seed", "workspace-seed");
   const bootstrapTimestamp = new Date().toISOString();
   const bootstrapOperationId = `bootstrap-workspace-${workspaceId}`;
 
@@ -111,11 +126,11 @@ async function createWorkspaceInExecutor(
     [
       "INSERT INTO org.workspaces",
       "(",
-      "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_device_id, fsrs_last_operation_id",
+      "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_replica_id, fsrs_last_operation_id",
       ")",
       "VALUES ($1, $2, $3, $4, $5)",
     ].join(" "),
-    [workspaceId, AUTO_CREATED_WORKSPACE_NAME, bootstrapTimestamp, bootstrapDeviceId, bootstrapOperationId],
+    [workspaceId, AUTO_CREATED_WORKSPACE_NAME, bootstrapTimestamp, bootstrapReplicaId, bootstrapOperationId],
   );
 
   await executor.query(
@@ -129,11 +144,14 @@ async function createWorkspaceInExecutor(
 
   await executor.query(
     [
-      "INSERT INTO sync.devices",
-      "(device_id, workspace_id, user_id, platform, app_version, last_seen_at)",
-      "VALUES ($1, $2, $3, 'ios', $4, now())",
+      "INSERT INTO sync.workspace_replicas",
+      "(",
+      "replica_id, workspace_id, user_id, actor_kind, installation_id, actor_key, platform, app_version, last_seen_at",
+      ")",
+      "VALUES ($1, $2, $3, 'workspace_seed', NULL, 'workspace-seed', 'system', $4, now())",
+      "ON CONFLICT (replica_id) DO NOTHING",
     ].join(" "),
-    [bootstrapDeviceId, workspaceId, userId, "server-bootstrap"],
+    [bootstrapReplicaId, workspaceId, userId, "server-bootstrap"],
   );
 
   return workspaceId;
