@@ -21,6 +21,12 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { authenticateMcpAccessToken } from "../auth/mcpTokens";
 import { createMcpServer } from "../mcp/server";
 import { HttpError } from "../shared/errors";
+import {
+  captureBackendException,
+  createBackendObservationScope,
+  normalizeCaughtError,
+} from "../observability/sentry";
+import { hasReportedBackendException } from "../observability/reporting";
 
 const supportedScopes = ["flashcards"] as const;
 
@@ -184,5 +190,42 @@ const app = new Hono();
 // Mount at `/` (custom domain root) and `/v1` (execute-api stage path).
 app.route("/", buildMcpRoutes(new Hono()));
 app.route("/", buildMcpRoutes(new Hono().basePath("/v1")));
+
+// Mirror the HTTP agent surface (apps/backend/src/server/app.ts `app.onError`):
+// errors that escape the tool try/catch -- transport-layer faults
+// (`server.connect`, `transport.handleRequest`, `transport.close`) and any
+// non-401 error rethrown from the `/mcp` auth catch -- must be shaped into a
+// generic sanitized 500 (no driver/stack internals) and captured to Sentry,
+// dedup-guarded, instead of falling through to Hono's default unreported 500.
+// The 401 Bearer challenge and tool-layer error handling are unchanged; this
+// only covers unexpected errors.
+app.onError((error, context) => {
+  const normalizedError = normalizeCaughtError(error);
+  if (hasReportedBackendException(normalizedError) === false) {
+    captureBackendException({
+      action: "request_failed",
+      error: normalizedError,
+      scope: createBackendObservationScope(
+        "backend-api",
+        null,
+        "mcp",
+        context.req.method,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ),
+      details: {
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        code: error instanceof HttpError ? (error.code ?? "INTERNAL_ERROR") : "INTERNAL_ERROR",
+        message: error instanceof Error ? error.message : String(error),
+        validationIssues: [],
+      },
+    });
+  }
+
+  return context.json({ error: "Internal Server Error", code: "INTERNAL_ERROR" }, 500);
+});
 
 export const handler = handle(app);

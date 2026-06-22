@@ -30,7 +30,11 @@ const FRONT_BACK_CONTRACT =
  * description so the MCP surface and the in-app AI agent stay on one contract,
  * then appends the card-side contract that all clients must follow.
  */
-const SQL_TOOL_DESCRIPTION = `${OPENAI_SQL_TOOL.description} ${FRONT_BACK_CONTRACT}`;
+const baseDescription = OPENAI_SQL_TOOL.description ?? "";
+if (baseDescription === "") {
+  throw new Error("OPENAI_SQL_TOOL.description must be set for the MCP sql tool");
+}
+const SQL_TOOL_DESCRIPTION = `${baseDescription} ${FRONT_BACK_CONTRACT}`;
 
 function buildToolResultText(payload: unknown): string {
   return JSON.stringify(payload, null, 2);
@@ -92,6 +96,42 @@ function buildToolErrorResult(
   userId: string,
 ): CallToolResult {
   if (error instanceof HttpError) {
+    // Mirror app.onError's shouldCaptureRequestFailureException: report only
+    // genuine 5xx HttpErrors (e.g. createWorkspaceInvariantError HttpError(500),
+    // DatabaseUnavailableError 503) to Sentry, dedup-guarded so a downstream
+    // layer that already captured-and-marked is not reported twice. 4xx
+    // HttpErrors stay un-reported on both surfaces. The client-facing envelope
+    // below is unchanged.
+    if (error.statusCode >= 500) {
+      const normalizedError = normalizeCaughtError(error);
+      if (hasReportedBackendException(normalizedError) === false) {
+        captureBackendException({
+          action: "request_failed",
+          error: normalizedError,
+          scope: createBackendObservationScope(
+            "backend-api",
+            null,
+            "mcp/sql",
+            "POST",
+            userId,
+            null,
+            null,
+            null,
+            null,
+          ),
+          details: {
+            statusCode: error.statusCode,
+            code: error.code ?? "INTERNAL_ERROR",
+            message: error.message,
+            validationIssues: (error.details?.validationIssues ?? []).map((issue) => ({
+              path: issue.path,
+              code: issue.code,
+            })),
+          },
+        });
+      }
+    }
+
     const code = error.code ?? "REQUEST_FAILED";
     return {
       isError: true,
