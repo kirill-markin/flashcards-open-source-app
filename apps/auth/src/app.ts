@@ -18,6 +18,9 @@ import refreshToken from "./routes/browser/refreshToken.js";
 import revokeToken from "./routes/browser/revokeToken.js";
 import logoutPage from "./routes/browser/logoutPage.js";
 import logoutLocalPage from "./routes/browser/logoutLocalPage.js";
+import oauthMetadata from "./routes/oauth/metadata.js";
+import oauthRegister from "./routes/oauth/register.js";
+import oauthToken from "./routes/oauth/token.js";
 import robots from "./routes/robots.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "./server/apiErrors.js";
 import { getDemoEmailAccessConfig } from "./server/demoEmailAccess.js";
@@ -107,6 +110,20 @@ function getApiRouteKind(path: string): ApiRouteKind {
   return "non-api";
 }
 
+// Public OAuth Authorization Server endpoints (RFC 8414 metadata, RFC 7591 DCR,
+// token). These are unauthenticated and credential-free, so browser-hosted MCP
+// clients reach them with a wildcard-origin CORS policy (NO credentials),
+// distinct from the cookie-bearing /api/* policy above.
+const oauthPublicPaths: ReadonlyArray<string> = [
+  "/.well-known/oauth-authorization-server",
+  "/register",
+  "/token",
+];
+
+function isOAuthPublicPath(path: string): boolean {
+  return oauthPublicPaths.includes(stripApiStagePrefix(path));
+}
+
 function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   getDemoEmailAccessConfig();
   const app = new Hono<AuthAppEnv>().basePath(basePath);
@@ -118,6 +135,22 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
     c.header("X-Request-Id", requestId);
     await next();
     c.header("X-Robots-Tag", "noindex, nofollow, noarchive");
+  });
+
+  // Public, credential-free CORS for the OAuth Authorization Server endpoints so
+  // browser-hosted MCP clients can run discovery -> DCR -> token exchange.
+  app.use("*", async (c, next) => {
+    if (!isOAuthPublicPath(c.req.path)) {
+      return next();
+    }
+
+    c.header("Access-Control-Allow-Origin", "*");
+    c.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    c.header("Access-Control-Allow-Headers", "content-type");
+    if (c.req.method === "OPTIONS") {
+      return c.body(null, 204);
+    }
+    await next();
   });
 
   // Deny cross-origin requests to API endpoints (defense-in-depth).
@@ -232,6 +265,9 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   app.route("/", revokeToken);
   app.route("/", logoutPage);
   app.route("/", logoutLocalPage);
+  app.route("/", oauthMetadata);
+  app.route("/", oauthRegister);
+  app.route("/", oauthToken);
 
   return app;
 }
