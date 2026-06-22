@@ -29,6 +29,7 @@ import { loadWorkspaceSummaryInExecutor } from "./queries";
 import {
   lockUserSettingsForWorkspaceLifecycleInExecutor,
   persistSelectedWorkspaceForApiKeyConnectionInExecutor,
+  persistSelectedWorkspaceForOAuthConnectionInExecutor,
   persistSelectedWorkspaceForUserInExecutor,
 } from "./state";
 import type { TimestampValue } from "./shared";
@@ -260,6 +261,35 @@ export async function createWorkspaceForApiKeyConnectionWithObservationScope(
 
     try {
       await persistSelectedWorkspaceForApiKeyConnectionInExecutor(executor, userId, connectionId, workspaceId);
+
+      stage = "load_workspace_summary";
+      return loadWorkspaceSummaryInExecutor(executor, userId, workspaceId, workspaceId);
+    } catch (error) {
+      handleWorkspaceCreateFailure(error, userId, workspaceId, stage, observationScope);
+    }
+  });
+}
+
+export async function createWorkspaceForOAuthConnection(
+  userId: string,
+  connectionId: string,
+  name: string,
+): Promise<WorkspaceSummary> {
+  return createWorkspaceForOAuthConnectionWithObservationScope(userId, connectionId, name, null);
+}
+
+export async function createWorkspaceForOAuthConnectionWithObservationScope(
+  userId: string,
+  connectionId: string,
+  name: string,
+  observationScope: BackendObservationScope | null,
+): Promise<WorkspaceSummary> {
+  return transactionWithUserScope({ userId }, async (executor) => {
+    const workspaceId = await createWorkspaceInExecutorWithObservationScope(executor, userId, name, observationScope);
+    let stage: WorkspaceCreateFailureStage = "select_workspace";
+
+    try {
+      await persistSelectedWorkspaceForOAuthConnectionInExecutor(executor, userId, connectionId, workspaceId);
 
       stage = "load_workspace_summary";
       return loadWorkspaceSummaryInExecutor(executor, userId, workspaceId, workspaceId);

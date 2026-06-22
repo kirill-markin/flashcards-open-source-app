@@ -6,6 +6,7 @@ import {
 import { HttpError } from "../shared/errors";
 import {
   createWorkspaceForApiKeyConnection,
+  createWorkspaceForOAuthConnection,
   createWorkspaceInExecutor,
 } from "./create";
 import {
@@ -18,6 +19,7 @@ import { createWorkspaceInvariantError } from "./shared";
 import {
   lockUserSettingsForWorkspaceLifecycleInExecutor,
   persistSelectedWorkspaceForApiKeyConnectionInExecutor,
+  persistSelectedWorkspaceForOAuthConnectionInExecutor,
   persistSelectedWorkspaceForUserInExecutor,
 } from "./state";
 import {
@@ -83,6 +85,34 @@ export async function setSelectedWorkspaceForApiKeyConnection(
 ): Promise<void> {
   await transactionWithUserScope({ userId }, async (executor) => {
     await setSelectedWorkspaceForApiKeyConnectionInExecutor(executor, userId, connectionId, selectedWorkspaceId);
+  });
+}
+
+export async function setSelectedWorkspaceForOAuthConnectionInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  connectionId: string,
+  selectedWorkspaceId: string | null,
+): Promise<void> {
+  if (selectedWorkspaceId !== null) {
+    await assertUserHasWorkspaceMembershipInExecutor(executor, userId, selectedWorkspaceId);
+  }
+
+  await persistSelectedWorkspaceForOAuthConnectionInExecutor(
+    executor,
+    userId,
+    connectionId,
+    selectedWorkspaceId,
+  );
+}
+
+export async function setSelectedWorkspaceForOAuthConnection(
+  userId: string,
+  connectionId: string,
+  selectedWorkspaceId: string | null,
+): Promise<void> {
+  await transactionWithUserScope({ userId }, async (executor) => {
+    await setSelectedWorkspaceForOAuthConnectionInExecutor(executor, userId, connectionId, selectedWorkspaceId);
   });
 }
 
@@ -156,6 +186,44 @@ export async function ensureApiKeyWorkspaceSelection(
 
   if (selectedWorkspaceId !== null) {
     await setSelectedWorkspaceForApiKeyConnection(userId, connectionId, null);
+  }
+
+  return null;
+}
+
+export async function ensureMcpConnectionWorkspaceSelection(
+  userId: string,
+  connectionId: string,
+  selectedWorkspaceId: string | null,
+): Promise<string | null> {
+  const workspaces = await listUserWorkspacesForSelectedWorkspace(userId, selectedWorkspaceId);
+  const selectedWorkspaceIsAccessible = selectedWorkspaceId !== null
+    && workspaces.some((workspace) => workspace.workspaceId === selectedWorkspaceId);
+
+  if (selectedWorkspaceIsAccessible) {
+    return selectedWorkspaceId;
+  }
+
+  if (workspaces.length === 0) {
+    const workspace = await createWorkspaceForOAuthConnection(userId, connectionId, AUTO_CREATED_WORKSPACE_NAME);
+    return workspace.workspaceId;
+  }
+
+  if (workspaces.length === 1) {
+    const onlyWorkspace = workspaces[0];
+    if (onlyWorkspace === undefined) {
+      throw createWorkspaceInvariantError(
+        "Workspace selection could not be recovered because no workspace was available.",
+        "WORKSPACE_SELECTION_RECOVERY_FAILED",
+      );
+    }
+
+    await setSelectedWorkspaceForOAuthConnection(userId, connectionId, onlyWorkspace.workspaceId);
+    return onlyWorkspace.workspaceId;
+  }
+
+  if (selectedWorkspaceId !== null) {
+    await setSelectedWorkspaceForOAuthConnection(userId, connectionId, null);
   }
 
   return null;
