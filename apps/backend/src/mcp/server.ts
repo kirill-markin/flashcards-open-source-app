@@ -67,6 +67,10 @@ function createMcpToolInstructions(code: string | null, statusCode: number): str
       return "Fix the sql string using error.message and any error.details.validationIssues, then call the sql tool again.";
     case "WORKSPACE_SELECTION_REQUIRED":
       return "This OAuth connection has no selected workspace. Re-authorize/reconnect the connector to select one, then call the sql tool again.";
+    case "DATABASE_COMMIT_OUTCOME_UNKNOWN":
+      return "The previous mutation's outcome could not be confirmed. Do not blindly re-run it: first SELECT to check whether the change already applied, and only call the sql tool again if the change is confirmed absent.";
+    case "SERVICE_UNAVAILABLE":
+      return "The service is temporarily unavailable. Retry the same sql tool call after a short delay without changing the request.";
   }
 
   if (statusCode >= 500) {

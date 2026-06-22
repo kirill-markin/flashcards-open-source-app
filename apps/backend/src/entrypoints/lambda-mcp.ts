@@ -24,9 +24,13 @@ import { HttpError } from "../shared/errors";
 import {
   captureBackendException,
   createBackendObservationScope,
+  initializeBackendSentry,
   normalizeCaughtError,
+  wrapBackendHandler,
 } from "../observability/sentry";
 import { hasReportedBackendException } from "../observability/reporting";
+
+initializeBackendSentry("backend-api");
 
 const supportedScopes = ["flashcards"] as const;
 
@@ -201,7 +205,14 @@ app.route("/", buildMcpRoutes(new Hono().basePath("/v1")));
 // only covers unexpected errors.
 app.onError((error, context) => {
   const normalizedError = normalizeCaughtError(error);
-  if (hasReportedBackendException(normalizedError) === false) {
+  // Mirror the HTTP surface's shouldCaptureRequestFailureException core rule
+  // (apps/backend/src/server/app.ts): only report unexpected/5xx errors. A
+  // future 4xx HttpError thrown from a /mcp PRM/transport path stays unreported,
+  // matching the HTTP agent surface. The benign-code exclusions there
+  // (AuthError, CHAT_LIVE_RESUME_CONTRACT_VIOLATION, ...) are not reachable on
+  // the MCP transport, so they are not replicated.
+  const shouldCapture = error instanceof HttpError ? error.statusCode >= 500 : true;
+  if (shouldCapture && hasReportedBackendException(normalizedError) === false) {
     captureBackendException({
       action: "request_failed",
       error: normalizedError,
@@ -228,4 +239,9 @@ app.onError((error, context) => {
   return context.json({ error: "Internal Server Error", code: "INTERNAL_ERROR" }, 500);
 });
 
-export const handler = handle(app);
+// Sentry.wrapHandler: performs the per-invocation flush before the Lambda
+// freezes, so the buffered captureBackendException events above (and the
+// mcp/server.ts 5xx/unexpected captures) are actually delivered. This is the
+// buffered-handler equivalent of lambda.ts:134 and matches how lambda.ts
+// delivers buffered events.
+export const handler = wrapBackendHandler(handle(app));
