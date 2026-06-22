@@ -133,7 +133,7 @@ async function handleRefreshTokenGrant(
     return tokenError(c, 400, "invalid_client", "Unknown client_id.");
   }
 
-  const tokens = await rotateRefreshToken(refreshToken, nowMs);
+  const tokens = await rotateRefreshToken(refreshToken, clientId, nowMs);
   if (tokens === null) {
     return tokenError(c, 400, "invalid_grant", "The refresh token is invalid, expired, or revoked.");
   }

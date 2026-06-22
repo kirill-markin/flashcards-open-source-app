@@ -11,9 +11,8 @@
  * db/migrations/0074), so reads/writes use the unscoped `query`/`transaction`
  * helpers rather than the RLS-scoped variants.
  */
-import { createHash } from "node:crypto";
 import { query, transaction, type DatabaseExecutor } from "../../db.js";
-import { createCrockfordToken, hashOpaqueToken } from "../otp/crockford.js";
+import { createCrockfordToken, hashOpaqueToken, normalizeCrockfordToken } from "../otp/crockford.js";
 
 const ACCESS_TOKEN_PREFIX = "fco";
 const REFRESH_TOKEN_PREFIX = "fcr";
@@ -89,12 +88,37 @@ function asMillis(value: Date | string): number {
   return (value instanceof Date ? value : new Date(value)).getTime();
 }
 
-function hashTokenSecret(secret: string): string {
-  return createHash("sha256").update(secret).digest("hex");
-}
-
 function formatToken(prefix: string, secret: string): string {
   return `${prefix}_${secret}`;
+}
+
+/**
+ * Parses an issued opaque token of the form `<prefix>_<secret>` back into its
+ * bare Crockford secret, mirroring parseAgentApiKey in
+ * apps/backend/src/agent/apiKeys.ts. Returns null on a malformed or
+ * prefix-mismatched token so callers can map it to invalid_grant.
+ *
+ * Hashing asymmetry (do not "fix" by hashing the full value):
+ *   - Authorization codes hash the full opaque value via hashOpaqueToken (no
+ *     prefix is ever added to a code), so store and read hash identical bytes.
+ *   - Access/refresh tokens are issued with a `fco_`/`fcr_` prefix but stored as
+ *     the hash of the bare secret only. The read path MUST parse off the prefix
+ *     and hash just the parsed secret, or storage and lookup hash different
+ *     strings and every grant fails.
+ */
+function parseToken(prefix: string, token: string): string | null {
+  const expectedPrefix = `${prefix.toUpperCase()}_`;
+  const normalized = token.replace(/[\s-]/g, "").toUpperCase();
+  if (!normalized.startsWith(expectedPrefix)) {
+    return null;
+  }
+
+  const secret = normalized.slice(expectedPrefix.length);
+  try {
+    return normalizeCrockfordToken(secret, "oauth token secret");
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -198,8 +222,10 @@ async function issueTokensInExecutor(
 ): Promise<IssuedTokens> {
   const accessSecret = createCrockfordToken(OAUTH_TOKEN_SECRET_LENGTH);
   const refreshSecret = createCrockfordToken(OAUTH_TOKEN_SECRET_LENGTH);
-  const accessHash = hashTokenSecret(accessSecret);
-  const refreshHash = hashTokenSecret(refreshSecret);
+  // Store the hash of the bare secret only; the read path parses the prefix off
+  // the presented token before hashing (see parseToken).
+  const accessHash = hashOpaqueToken(accessSecret);
+  const refreshHash = hashOpaqueToken(refreshSecret);
   const accessExpiresAt = new Date(nowMs + ACCESS_TOKEN_TTL_MS).toISOString();
 
   await executor.query(
@@ -247,6 +273,11 @@ export async function consumeAuthorizationCodeAndIssueTokens(
         "UPDATE auth.oauth_authorization_codes",
         "SET consumed_at = now()",
         "WHERE code_hash = $1 AND consumed_at IS NULL AND expires_at > now()",
+        // Gate minting on an active connection, matching the refresh path: a
+        // connection revoked between code issuance and redemption must not mint.
+        "AND connection_id IN (",
+        "SELECT connection_id FROM auth.oauth_connections WHERE revoked_at IS NULL",
+        ")",
         "RETURNING client_id, connection_id, redirect_uri, code_challenge, code_challenge_method,",
         "scope, resource, expires_at, consumed_at",
       ].join(" "),
@@ -269,14 +300,21 @@ export async function consumeAuthorizationCodeAndIssueTokens(
  * Rotates a refresh token: consumes the presented refresh token and issues a
  * fresh access/refresh pair on the same connection. Rotation makes a
  * stolen-and-replayed refresh token detectable and bounds its useful lifetime.
- * Returns null when the token is unknown, expired, or its connection is
- * revoked.
+ * Returns null when the token is malformed, unknown, expired, its connection is
+ * revoked, or it was not issued to the presenting client.
  */
 export async function rotateRefreshToken(
   refreshToken: string,
+  clientId: string,
   nowMs: number,
 ): Promise<IssuedTokens | null> {
-  const presentedHash = hashTokenSecret(refreshToken);
+  // Parse the prefix off the presented token and hash only the bare secret so
+  // the lookup hashes the same bytes that issuance stored (see parseToken).
+  const parsedSecret = parseToken(REFRESH_TOKEN_PREFIX, refreshToken);
+  if (parsedSecret === null) {
+    return null;
+  }
+  const presentedHash = hashOpaqueToken(parsedSecret);
 
   return transaction(async (executor) => {
     const deleted = await executor.query<GrantContextRow>(
@@ -285,11 +323,14 @@ export async function rotateRefreshToken(
         "USING auth.oauth_connections conn",
         "WHERE t.token_hash = $1",
         "AND t.connection_id = conn.connection_id",
+        // Bind the refresh token to the requesting client (RFC 6749 §6); a
+        // client_id mismatch is indistinguishable from an unknown token.
+        "AND conn.client_id = $2",
         "AND conn.revoked_at IS NULL",
         "AND (t.expires_at IS NULL OR t.expires_at > now())",
         "RETURNING t.connection_id, t.resource, t.scope",
       ].join(" "),
-      [presentedHash],
+      [presentedHash, clientId],
     );
     const row = deleted.rows[0];
     if (row === undefined) {

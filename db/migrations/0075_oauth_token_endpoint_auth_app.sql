@@ -22,9 +22,11 @@ ALTER TABLE auth.oauth_refresh_tokens
 --   - oauth_connections: SELECT (joined when rotating refresh tokens)
 --   - oauth_authorization_codes: SELECT + UPDATE (single-use consume)
 --   - oauth_access_tokens: INSERT (mint on token grant)
---   - oauth_refresh_tokens: INSERT + DELETE (mint + rotation)
+--   - oauth_refresh_tokens: SELECT + INSERT + DELETE (mint + rotation; SELECT is
+--     required because rotation runs DELETE ... RETURNING, and Postgres needs
+--     SELECT on every RETURNING column)
 GRANT SELECT, INSERT ON auth.oauth_clients TO auth_app;
 GRANT SELECT ON auth.oauth_connections TO auth_app;
 GRANT SELECT, UPDATE ON auth.oauth_authorization_codes TO auth_app;
 GRANT INSERT ON auth.oauth_access_tokens TO auth_app;
-GRANT INSERT, DELETE ON auth.oauth_refresh_tokens TO auth_app;
+GRANT SELECT, INSERT, DELETE ON auth.oauth_refresh_tokens TO auth_app;
