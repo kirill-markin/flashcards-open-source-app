@@ -99,15 +99,25 @@ function extractBearerToken(authorization: string | undefined): string | null {
  * transport per call, with `enableJsonResponse` so the buffered API Gateway
  * Lambda integration returns a single JSON-RPC response instead of an SSE
  * stream. The transport is closed after the response is produced.
+ *
+ * DNS-rebinding protection is enabled with the canonical MCP host on the
+ * allowlist (MCP spec recommendation for Streamable HTTP servers). Real client
+ * traffic arrives on the custom domain `mcp.<domain>` (API Gateway forwards the
+ * custom-domain Host to the Lambda); the non-canonical execute-api host is not
+ * used by real clients because issued tokens bind to the custom-domain
+ * `resource` and would 401 on any other host.
  */
 async function handleMcpTransportRequest(
   request: Request,
   connection: Awaited<ReturnType<typeof authenticateMcpAccessToken>>,
+  baseDomain: string,
 ): Promise<Response> {
-  const server = createMcpServer(connection);
+  const server = createMcpServer(connection, getResourceUrl(baseDomain));
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
+    enableDnsRebindingProtection: true,
+    allowedHosts: [`mcp.${baseDomain}`],
   });
 
   try {
@@ -149,7 +159,22 @@ function buildMcpRoutes(app: Hono): Hono {
       throw error;
     }
 
-    return handleMcpTransportRequest(c.req.raw, connection);
+    // Stateless JSON mode only services request/response POSTs. A GET would make
+    // the transport open a never-ending SSE stream that the buffered Lambda then
+    // closes empty, and DELETE has no session to terminate, so reject non-POST
+    // methods cleanly instead of routing them into the transport.
+    if (c.req.method !== "POST") {
+      return c.json(
+        {
+          error: "method_not_allowed",
+          error_description: "The MCP resource only accepts POST in stateless JSON mode.",
+        },
+        405,
+        { Allow: "POST" },
+      );
+    }
+
+    return handleMcpTransportRequest(c.req.raw, connection, baseDomain);
   });
 
   return app;

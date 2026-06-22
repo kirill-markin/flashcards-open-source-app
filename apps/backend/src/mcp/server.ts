@@ -4,6 +4,14 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { executeAgentSql } from "../aiTools/agentSql";
 import { OPENAI_SQL_TOOL, SQL_TOOL_NAME } from "../aiTools/toolContract/sqlToolContract";
 import { requireAccessibleSelectedWorkspaceId } from "../server/requestContext";
+import { createAgentEnvelope, createAgentErrorEnvelope } from "../agent/envelope";
+import { createAgentInstructions } from "../server/app";
+import { createPublicHttpErrorDetails, HttpError } from "../shared/errors";
+import {
+  captureBackendException,
+  createBackendObservationScope,
+  normalizeCaughtError,
+} from "../observability/sentry";
 import type { AuthenticatedMcpAccessToken } from "../auth/mcpTokens";
 
 const SERVER_NAME = "flashcards-open-source-app";
@@ -28,15 +36,92 @@ function buildToolResultText(payload: unknown): string {
   return JSON.stringify(payload, null, 2);
 }
 
+function buildToolResult(payload: unknown): CallToolResult {
+  return {
+    content: [
+      {
+        type: "text",
+        text: buildToolResultText(payload),
+      },
+    ],
+  };
+}
+
+/**
+ * Mirrors the HTTP agent error contract (apps/backend/src/server/app.ts
+ * `app.onError`) on the MCP surface: known `HttpError`s pass through their
+ * code/message/details and tailored remediation instructions so the model can
+ * self-correct exactly as it does against `/agent/sql`, while any unexpected
+ * error returns a generic envelope (no driver/stack internals leak) and is
+ * captured server-side.
+ */
+function buildToolErrorResult(error: unknown, resourceUrl: string): CallToolResult {
+  if (error instanceof HttpError) {
+    const code = error.code ?? "REQUEST_FAILED";
+    return {
+      isError: true,
+      content: buildToolResult(
+        createAgentErrorEnvelope(
+          resourceUrl,
+          code,
+          error.message,
+          createAgentInstructions(error.code, error.statusCode),
+          undefined,
+          createPublicHttpErrorDetails(error.details) ?? undefined,
+        ),
+      ).content,
+    };
+  }
+
+  captureBackendException({
+    action: "request_failed",
+    error: normalizeCaughtError(error),
+    scope: createBackendObservationScope(
+      "backend-api",
+      null,
+      "mcp/sql",
+      "POST",
+      null,
+      null,
+      null,
+      null,
+      null,
+    ),
+    details: {
+      statusCode: 500,
+      code: "INTERNAL_ERROR",
+      message: error instanceof Error ? error.message : String(error),
+      validationIssues: [],
+    },
+  });
+
+  return {
+    isError: true,
+    content: buildToolResult(
+      createAgentErrorEnvelope(
+        resourceUrl,
+        "INTERNAL_ERROR",
+        "Internal error executing SQL",
+        createAgentInstructions("INTERNAL_ERROR", 500),
+      ),
+    ).content,
+  };
+}
+
 /**
  * Builds a stateless MCP server exposing a single `sql` tool that forwards the
  * SQL string to the backend `executeAgentSql` 1:1 (full read + write), scoped
  * to the connection resolved from the OAuth Bearer access token.
  *
  * The connection is captured per request (the Lambda creates one server per
- * call) so the tool never reads ambient request state.
+ * call) so the tool never reads ambient request state. `resourceUrl` is the
+ * canonical MCP resource (`https://mcp.<domain>/mcp`) used to build the agent
+ * envelope so the tool result shares one contract with `/agent/sql`.
  */
-export function createMcpServer(connection: AuthenticatedMcpAccessToken): McpServer {
+export function createMcpServer(
+  connection: AuthenticatedMcpAccessToken,
+  resourceUrl: string,
+): McpServer {
   const server = new McpServer({
     name: SERVER_NAME,
     version: SERVER_VERSION,
@@ -52,28 +137,27 @@ export function createMcpServer(connection: AuthenticatedMcpAccessToken): McpSer
       },
     },
     async ({ sql }): Promise<CallToolResult> => {
-      const workspaceId = await requireAccessibleSelectedWorkspaceId({
-        userId: connection.userId,
-        selectedWorkspaceId: connection.selectedWorkspaceId,
-      });
-      const result = await executeAgentSql(
-        {
+      try {
+        const workspaceId = await requireAccessibleSelectedWorkspaceId({
           userId: connection.userId,
-          workspaceId,
           selectedWorkspaceId: connection.selectedWorkspaceId,
-          connectionId: connection.connectionId,
-        },
-        sql,
-      );
-
-      return {
-        content: [
+        });
+        const result = await executeAgentSql(
           {
-            type: "text",
-            text: buildToolResultText({ data: result.data, instructions: result.instructions }),
+            userId: connection.userId,
+            workspaceId,
+            selectedWorkspaceId: connection.selectedWorkspaceId,
+            connectionId: connection.connectionId,
           },
-        ],
-      };
+          sql,
+        );
+
+        return buildToolResult(
+          createAgentEnvelope(resourceUrl, result.data, result.instructions),
+        );
+      } catch (error) {
+        return buildToolErrorResult(error, resourceUrl);
+      }
     },
   );
 

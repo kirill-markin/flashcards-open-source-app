@@ -47,6 +47,13 @@ function toTimestampMs(value: Date | string): number {
  * Validation rejects a token when it is missing, expired, issued for a different
  * resource than `expectedResource`, or backed by a revoked connection. Every
  * failure returns the same opaque 401 so callers cannot probe token state.
+ *
+ * Scope is intentionally not enforced here: by current contract every issued MCP
+ * access token is full-access (the single `sql` tool is read + write), and scope
+ * issuance is owned by the OAuth authorization/consent items (03/06). The
+ * `auth.oauth_access_tokens.scope` column is therefore not read yet. When a
+ * future item issues narrower-scoped tokens (e.g. read-only), this resolver must
+ * start selecting and asserting that scope before granting tool access.
  */
 export async function authenticateMcpAccessToken(
   token: string,
