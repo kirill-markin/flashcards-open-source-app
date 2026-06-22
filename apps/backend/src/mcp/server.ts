@@ -5,13 +5,13 @@ import { executeAgentSql } from "../aiTools/agentSql";
 import { OPENAI_SQL_TOOL, SQL_TOOL_NAME } from "../aiTools/toolContract/sqlToolContract";
 import { requireAccessibleSelectedWorkspaceId } from "../server/requestContext";
 import { createAgentEnvelope, createAgentErrorEnvelope } from "../agent/envelope";
-import { createAgentInstructions } from "../server/app";
 import { createPublicHttpErrorDetails, HttpError } from "../shared/errors";
 import {
   captureBackendException,
   createBackendObservationScope,
   normalizeCaughtError,
 } from "../observability/sentry";
+import { hasReportedBackendException } from "../observability/reporting";
 import type { AuthenticatedMcpAccessToken } from "../auth/mcpTokens";
 
 const SERVER_NAME = "flashcards-open-source-app";
@@ -48,12 +48,43 @@ function buildToolResult(payload: unknown): CallToolResult {
 }
 
 /**
+ * MCP-surface remediation instructions. Unlike the HTTP agent surface
+ * (`createAgentInstructions` in apps/backend/src/server/app.ts), an MCP client
+ * authenticates via an OAuth Bearer token and only has the single `sql` tool:
+ * it cannot set an `ApiKey` Authorization header or call any `/v1/agent/*`
+ * route. So this phrases every remediation in terms the MCP client can act on
+ * (re-call the `sql` tool, or re-authorize the connector) instead of pointing
+ * at HTTP endpoints and ApiKey auth it has no way to use.
+ */
+function createMcpToolInstructions(code: string | null, statusCode: number): string {
+  switch (code) {
+    case "QUERY_INVALID_SQL":
+    case "QUERY_UNSUPPORTED_SYNTAX":
+      return "Fix the sql string using error.message and any error.details.validationIssues, then call the sql tool again.";
+    case "WORKSPACE_SELECTION_REQUIRED":
+      return "This OAuth connection has no selected workspace. Re-authorize/reconnect the connector to select one, then call the sql tool again.";
+  }
+
+  if (statusCode >= 500) {
+    return "Retry the sql tool once; if it fails again treat it as a server-side error and stop changing the request.";
+  }
+
+  if (statusCode >= 400) {
+    return "Fix the request using error.message and any error.details.validationIssues, then call the sql tool again.";
+  }
+
+  return "Fix the request using error.message and any error.details.validationIssues, then call the sql tool again.";
+}
+
+/**
  * Mirrors the HTTP agent error contract (apps/backend/src/server/app.ts
  * `app.onError`) on the MCP surface: known `HttpError`s pass through their
- * code/message/details and tailored remediation instructions so the model can
- * self-correct exactly as it does against `/agent/sql`, while any unexpected
- * error returns a generic envelope (no driver/stack internals leak) and is
- * captured server-side.
+ * code/message/details with MCP-appropriate remediation instructions so the
+ * model can self-correct over the `sql` tool, while any unexpected error
+ * returns a generic envelope (no driver/stack internals leak) and is captured
+ * server-side. The generic-error branch reuses `app.onError`'s
+ * `hasReportedBackendException` dedup guard so an Error a downstream layer
+ * already captured-and-marked is not reported to Sentry twice.
  */
 function buildToolErrorResult(
   error: unknown,
@@ -69,7 +100,7 @@ function buildToolErrorResult(
           resourceUrl,
           code,
           error.message,
-          createAgentInstructions(error.code, error.statusCode),
+          createMcpToolInstructions(error.code, error.statusCode),
           undefined,
           createPublicHttpErrorDetails(error.details) ?? undefined,
         ),
@@ -77,27 +108,30 @@ function buildToolErrorResult(
     };
   }
 
-  captureBackendException({
-    action: "request_failed",
-    error: normalizeCaughtError(error),
-    scope: createBackendObservationScope(
-      "backend-api",
-      null,
-      "mcp/sql",
-      "POST",
-      userId,
-      null,
-      null,
-      null,
-      null,
-    ),
-    details: {
-      statusCode: 500,
-      code: "INTERNAL_ERROR",
-      message: error instanceof Error ? error.message : String(error),
-      validationIssues: [],
-    },
-  });
+  const normalizedError = normalizeCaughtError(error);
+  if (hasReportedBackendException(normalizedError) === false) {
+    captureBackendException({
+      action: "request_failed",
+      error: normalizedError,
+      scope: createBackendObservationScope(
+        "backend-api",
+        null,
+        "mcp/sql",
+        "POST",
+        userId,
+        null,
+        null,
+        null,
+        null,
+      ),
+      details: {
+        statusCode: 500,
+        code: "INTERNAL_ERROR",
+        message: error instanceof Error ? error.message : String(error),
+        validationIssues: [],
+      },
+    });
+  }
 
   return {
     isError: true,
@@ -106,7 +140,7 @@ function buildToolErrorResult(
         resourceUrl,
         "INTERNAL_ERROR",
         "Internal error executing SQL",
-        createAgentInstructions("INTERNAL_ERROR", 500),
+        createMcpToolInstructions("INTERNAL_ERROR", 500),
       ),
     ).content,
   };
