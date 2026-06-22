@@ -24,6 +24,7 @@ export {
 export {
   assertUserHasWorkspaceAccess,
   ensureApiKeyWorkspaceSelection,
+  ensureMcpConnectionWorkspaceSelection,
   ensureUserSelectedWorkspaceInExecutor,
   selectWorkspaceForApiKeyConnection,
   selectWorkspaceForUser,

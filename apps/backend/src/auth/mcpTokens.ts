@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { unsafeQuery } from "../database/unsafe";
 import { HttpError } from "../shared/errors";
 import { normalizeCrockfordToken } from "../agent/crockford";
+import { ensureMcpConnectionWorkspaceSelection } from "../workspaces";
 
 const ACCESS_TOKEN_PREFIX = "FCO_";
 
@@ -126,9 +127,15 @@ export async function authenticateMcpAccessToken(
     throw new HttpError(401, "Invalid MCP access token", MCP_TOKEN_INVALID_CODE);
   }
 
+  const selectedWorkspaceId = await ensureMcpConnectionWorkspaceSelection(
+    row.user_id,
+    row.connection_id,
+    row.selected_workspace_id,
+  );
+
   return {
     userId: row.user_id,
     connectionId: row.connection_id,
-    selectedWorkspaceId: row.selected_workspace_id,
+    selectedWorkspaceId,
   };
 }
