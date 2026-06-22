@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { executeAgentSql } from "../aiTools/agentSql";
 import { OPENAI_SQL_TOOL, SQL_TOOL_NAME } from "../aiTools/toolContract/sqlToolContract";
-import { requireAccessibleSelectedWorkspaceId } from "../server/requestContext";
+import { resolveAccessibleMcpWorkspaceId } from "../server/requestContext";
 import { createAgentEnvelope, createAgentErrorEnvelope } from "../agent/envelope";
 import { createPublicHttpErrorDetails, HttpError } from "../shared/errors";
 import {
@@ -34,7 +34,9 @@ const baseDescription = OPENAI_SQL_TOOL.description ?? "";
 if (baseDescription === "") {
   throw new Error("OPENAI_SQL_TOOL.description must be set for the MCP sql tool");
 }
-const SQL_TOOL_DESCRIPTION = `${baseDescription} ${FRONT_BACK_CONTRACT}`;
+const WORKSPACE_ID_ARGUMENT_HINT =
+  "Optional workspaceId targets a specific workspace you belong to; omit it to use your currently selected workspace.";
+const SQL_TOOL_DESCRIPTION = `${baseDescription} ${FRONT_BACK_CONTRACT} ${WORKSPACE_ID_ARGUMENT_HINT}`;
 
 function buildToolResultText(payload: unknown): string {
   return JSON.stringify(payload, null, 2);
@@ -216,14 +218,18 @@ export function createMcpServer(
       description: SQL_TOOL_DESCRIPTION,
       inputSchema: {
         sql: z.string().trim().min(1),
+        workspaceId: z.string().uuid().optional(),
       },
     },
-    async ({ sql }): Promise<CallToolResult> => {
+    async ({ sql, workspaceId: requestedWorkspaceId }): Promise<CallToolResult> => {
       try {
-        const workspaceId = await requireAccessibleSelectedWorkspaceId({
-          userId: connection.userId,
-          selectedWorkspaceId: connection.selectedWorkspaceId,
-        });
+        const workspaceId = await resolveAccessibleMcpWorkspaceId(
+          {
+            userId: connection.userId,
+            selectedWorkspaceId: connection.selectedWorkspaceId,
+          },
+          requestedWorkspaceId,
+        );
         const result = await executeAgentSql(
           {
             userId: connection.userId,

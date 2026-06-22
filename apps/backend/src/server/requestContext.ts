@@ -58,6 +58,12 @@ const aiDictationWorkspaceRequiredError: WorkspaceSelectionErrorConfig = {
   code: "AI_WORKSPACE_REQUIRED",
 };
 
+const mcpWorkspaceSelectionRequiredError: WorkspaceSelectionErrorConfig = {
+  statusCode: 409,
+  message: "Select a workspace before using the sql tool, or pass the workspaceId argument.",
+  code: "WORKSPACE_SELECTION_REQUIRED",
+};
+
 export function getAllowedOrigins(): Array<string> {
   const raw = process.env.BACKEND_ALLOWED_ORIGINS ?? "http://localhost:3000,http://localhost:3001";
   return raw
@@ -213,6 +219,17 @@ export async function resolveAccessibleAiDictationWorkspaceId(
     requestContext,
     explicitWorkspaceId,
     aiDictationWorkspaceRequiredError,
+  );
+}
+
+export async function resolveAccessibleMcpWorkspaceId(
+  requestContext: WorkspaceRequestContext,
+  explicitWorkspaceId: string | undefined,
+): Promise<string> {
+  return resolveAccessibleWorkspaceIdWithLegacySelectedWorkspaceFallback(
+    requestContext,
+    explicitWorkspaceId,
+    mcpWorkspaceSelectionRequiredError,
   );
 }
 
