@@ -13,6 +13,7 @@ import { webApp } from "./web";
 import { adminApp } from "./admin";
 import { migrationRunner } from "./migration-runner";
 import { authGateway } from "./gateways/auth-gateway";
+import { mcpGateway } from "./gateways/mcp-gateway";
 import { analyticsAccess, type AnalyticsAccessResult } from "./analytics-access";
 import { globalMetrics } from "./global-metrics";
 import { communityLeaderboard } from "./community-leaderboard";
@@ -121,6 +122,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const githubRepo = this.node.tryGetContext("githubRepo") as string;
     const apiCertificateArn = getOptionalContextValue(this, "apiCertificateArn");
     const authCertificateArn = getOptionalContextValue(this, "authCertificateArn");
+    const mcpCertificateArn = getOptionalContextValue(this, "mcpCertificateArn");
     const webCertificateArnUsEast1 = getOptionalContextValue(this, "webCertificateArnUsEast1");
     const adminCertificateArnUsEast1 = getOptionalContextValue(this, "adminCertificateArnUsEast1");
     const apexRedirectCertificateArnUsEast1 = getOptionalContextValue(this, "apexRedirectCertificateArnUsEast1");
@@ -232,6 +234,14 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       userPoolId: authResult.userPool.userPoolId,
       userPoolClientId: authResult.userPoolClient.userPoolClientId,
     });
+    const mcpApi = mcpGateway(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      backendDbSecret: dbResult.backendDbSecret,
+      baseDomain,
+      mcpCertificateArn,
+    });
     const migrationFn = migrationRunner(this, {
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,
@@ -324,10 +334,12 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       alertTopic: mon.alertTopic,
       restApi: api.restApi,
       authRestApi: authApi.restApi,
+      mcpRestApi: mcpApi.restApi,
       backendFn: api.backendFn,
       chatWorkerFn: api.chatWorkerFn,
       chatLiveFn: api.chatLiveFn,
       authFn: authApi.authFn,
+      mcpFn: mcpApi.mcpFn,
       migrationFn,
       globalMetricsSnapshotFunction: globalMetricsResult.snapshotFunction,
       globalMetricsSnapshotFreshnessCheckerFunction: globalMetricsResult.snapshotFreshnessCheckerFunction,

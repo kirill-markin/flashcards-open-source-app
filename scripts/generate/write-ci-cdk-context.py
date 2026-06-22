@@ -119,6 +119,7 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         "apiCertificateArn": get_trimmed_env("CDK_CONTEXT_API_CERTIFICATE_ARN"),
         "apexRedirectCertificateArnUsEast1": get_trimmed_env("CDK_CONTEXT_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1"),
         "authCertificateArn": get_trimmed_env("CDK_CONTEXT_AUTH_CERTIFICATE_ARN"),
+        "mcpCertificateArn": get_trimmed_env("CDK_CONTEXT_MCP_CERTIFICATE_ARN"),
         "adminCertificateArnUsEast1": get_trimmed_env("CDK_CONTEXT_ADMIN_CERTIFICATE_ARN_US_EAST_1"),
         "adminEmails": get_trimmed_env("CDK_CONTEXT_ADMIN_EMAILS"),
         "demoEmailDostip": get_trimmed_env("CDK_CONTEXT_DEMO_EMAIL_DOSTIP"),

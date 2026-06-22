@@ -18,10 +18,12 @@ export interface OutputsProps {
   alertTopic: sns.Topic;
   restApi: apigw.RestApi;
   authRestApi: apigw.RestApi;
+  mcpRestApi: apigw.RestApi;
   backendFn: lambda.IFunction;
   chatWorkerFn: lambda.IFunction;
   chatLiveFn: lambda.IFunction;
   authFn: lambda.IFunction;
+  mcpFn: lambda.IFunction;
   migrationFn: lambda.IFunction;
   globalMetricsSnapshotFunction: lambda.IFunction;
   globalMetricsSnapshotFreshnessCheckerFunction: lambda.IFunction;
@@ -72,6 +74,26 @@ export function outputs(scope: Construct, props: OutputsProps): void {
   new cdk.CfnOutput(scope, "AuthGatewayId", {
     value: props.authRestApi.restApiId,
     description: "Auth REST API ID",
+  });
+
+  new cdk.CfnOutput(scope, "McpGatewayUrl", {
+    value: props.mcpRestApi.url,
+    description: "MCP API Gateway invoke URL",
+  });
+
+  new cdk.CfnOutput(scope, "McpPublicBase", {
+    value: `https://mcp.${props.baseDomain}`,
+    description: "Expected public MCP base URL when custom domain is configured",
+  });
+
+  new cdk.CfnOutput(scope, "McpGatewayId", {
+    value: props.mcpRestApi.restApiId,
+    description: "MCP REST API ID",
+  });
+
+  new cdk.CfnOutput(scope, "McpFunctionName", {
+    value: props.mcpFn.functionName,
+    description: "Lambda function name for MCP backend",
   });
 
   new cdk.CfnOutput(scope, "DbEndpoint", {
