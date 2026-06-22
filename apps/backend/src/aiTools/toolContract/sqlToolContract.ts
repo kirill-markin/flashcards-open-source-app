@@ -1,6 +1,6 @@
 import type { FunctionTool } from "openai/resources/responses/responses";
 import { z } from "zod";
-import { MAX_SQL_RECORD_LIMIT } from "./sqlToolLimits";
+import { MAX_SQL_BATCH_STATEMENT_COUNT, MAX_SQL_RECORD_LIMIT } from "./sqlToolLimits";
 
 export const SQL_TOOL_NAME = "sql";
 
@@ -38,6 +38,7 @@ export const OPENAI_SQL_TOOL: FunctionTool = {
     "Published resources: workspace, cards, decks, review_events.",
     "Supported statements: SHOW TABLES, DESCRIBE <resource>, SHOW COLUMNS FROM <resource>, SELECT, INSERT, UPDATE, DELETE.",
     "Multiple supported statements may be separated with semicolons in one sql string.",
+    `A batch may contain at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements.`,
     "A batch must contain only read statements or only mutation statements.",
     "Mutation batches are applied atomically: all statements succeed or the whole batch fails.",
     `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,

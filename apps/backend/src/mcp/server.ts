@@ -55,7 +55,11 @@ function buildToolResult(payload: unknown): CallToolResult {
  * error returns a generic envelope (no driver/stack internals leak) and is
  * captured server-side.
  */
-function buildToolErrorResult(error: unknown, resourceUrl: string): CallToolResult {
+function buildToolErrorResult(
+  error: unknown,
+  resourceUrl: string,
+  userId: string,
+): CallToolResult {
   if (error instanceof HttpError) {
     const code = error.code ?? "REQUEST_FAILED";
     return {
@@ -81,7 +85,7 @@ function buildToolErrorResult(error: unknown, resourceUrl: string): CallToolResu
       null,
       "mcp/sql",
       "POST",
-      null,
+      userId,
       null,
       null,
       null,
@@ -156,7 +160,7 @@ export function createMcpServer(
           createAgentEnvelope(resourceUrl, result.data, result.instructions),
         );
       } catch (error) {
-        return buildToolErrorResult(error, resourceUrl);
+        return buildToolErrorResult(error, resourceUrl, connection.userId);
       }
     },
   );
