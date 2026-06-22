@@ -10,6 +10,10 @@ import * as path from "path";
 export interface CustomEmailSenderProps {
   resendApiKeySecretArn: string;
   resendSenderEmail: string;
+  sentryDsnSecretArn: string | undefined;
+  sentryEnvironment: string | undefined;
+  sentryRelease: string | undefined;
+  sentryTracesSampleRate: string | undefined;
 }
 
 export interface CustomEmailSenderResult {
@@ -21,6 +25,43 @@ const bundling: lambdaNodejs.BundlingOptions = {
   minify: true,
   sourceMap: true,
 };
+
+function hasConfiguredValue(value: string | undefined): value is string {
+  return value !== undefined && value !== "";
+}
+
+function addOptionalSentryEnvironment(
+  scope: Construct,
+  fn: lambdaNodejs.NodejsFunction,
+  props: CustomEmailSenderProps,
+): void {
+  if (!hasConfiguredValue(props.sentryDsnSecretArn)) {
+    return;
+  }
+  if (
+    !hasConfiguredValue(props.sentryEnvironment) ||
+    !hasConfiguredValue(props.sentryRelease) ||
+    !hasConfiguredValue(props.sentryTracesSampleRate)
+  ) {
+    throw new Error("sentryEnvironment, sentryRelease, and sentryTracesSampleRate are required when sentryDsnSecretArn is configured");
+  }
+
+  const tracesSampleRate = Number(props.sentryTracesSampleRate);
+  if (!Number.isFinite(tracesSampleRate) || tracesSampleRate < 0 || tracesSampleRate > 1) {
+    throw new Error("sentryTracesSampleRate must be a number between 0 and 1");
+  }
+
+  const secret = secretsmanager.Secret.fromSecretCompleteArn(
+    scope,
+    "CustomEmailSenderSentryDsnSecret",
+    props.sentryDsnSecretArn,
+  );
+  secret.grantRead(fn);
+  fn.addEnvironment("SENTRY_DSN", secret.secretValue.unsafeUnwrap());
+  fn.addEnvironment("SENTRY_ENVIRONMENT", props.sentryEnvironment);
+  fn.addEnvironment("SENTRY_RELEASE", props.sentryRelease);
+  fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
+}
 
 export function customEmailSender(
   scope: Construct,
@@ -67,6 +108,8 @@ export function customEmailSender(
   );
   resendApiKeySecret.grantRead(fn);
   fn.addEnvironment("RESEND_API_KEY", resendApiKeySecret.secretValue.unsafeUnwrap());
+
+  addOptionalSentryEnvironment(scope, fn, props);
 
   return {
     fn,

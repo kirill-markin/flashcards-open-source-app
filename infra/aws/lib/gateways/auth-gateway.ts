@@ -20,6 +20,10 @@ export interface AuthGatewayProps {
   demoPasswordSecretArn: string | undefined;
   userPoolId: string;
   userPoolClientId: string;
+  sentryDsnSecretArn: string | undefined;
+  sentryEnvironment: string | undefined;
+  sentryRelease: string | undefined;
+  sentryTracesSampleRate: string | undefined;
 }
 
 export interface AuthGatewayResult {
@@ -82,6 +86,43 @@ function addLambdaSecretArnEnvironment(
   fn.addEnvironment(environmentVariableName, secret.secretArn);
 }
 
+function hasConfiguredValue(value: string | undefined): value is string {
+  return value !== undefined && value !== "";
+}
+
+function addOptionalSentryEnvironment(
+  scope: Construct,
+  fn: lambdaNodejs.NodejsFunction,
+  props: AuthGatewayProps,
+): void {
+  if (!hasConfiguredValue(props.sentryDsnSecretArn)) {
+    return;
+  }
+  if (
+    !hasConfiguredValue(props.sentryEnvironment) ||
+    !hasConfiguredValue(props.sentryRelease) ||
+    !hasConfiguredValue(props.sentryTracesSampleRate)
+  ) {
+    throw new Error("sentryEnvironment, sentryRelease, and sentryTracesSampleRate are required when sentryDsnSecretArn is configured");
+  }
+
+  const tracesSampleRate = Number(props.sentryTracesSampleRate);
+  if (!Number.isFinite(tracesSampleRate) || tracesSampleRate < 0 || tracesSampleRate > 1) {
+    throw new Error("sentryTracesSampleRate must be a number between 0 and 1");
+  }
+
+  const secret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
+    scope,
+    "AuthHandlerSentryDsnSecret",
+    props.sentryDsnSecretArn,
+  );
+  secret.grantRead(fn);
+  fn.addEnvironment("SENTRY_DSN", secret.secretValue.unsafeUnwrap());
+  fn.addEnvironment("SENTRY_ENVIRONMENT", props.sentryEnvironment);
+  fn.addEnvironment("SENTRY_RELEASE", props.sentryRelease);
+  fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
+}
+
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
   minify: true,
   sourceMap: true,
@@ -139,6 +180,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
 
   sessionEncryptionKey.grantRead(authFn);
   props.authDbSecret.grantRead(authFn);
+  addOptionalSentryEnvironment(scope, authFn, props);
   authFn.addEnvironment(
     "SESSION_ENCRYPTION_KEY",
     sessionEncryptionKey.secretValue.unsafeUnwrap(),
