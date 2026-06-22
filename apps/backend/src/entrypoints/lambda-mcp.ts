@@ -17,10 +17,12 @@
  */
 import { handle } from "hono/aws-lambda";
 import { type Context, Hono } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { authenticateMcpAccessToken } from "../auth/mcpTokens";
 import { createMcpServer } from "../mcp/server";
 import { HttpError } from "../shared/errors";
+import { getHttpErrorResponseHeaders } from "../server/app";
 import {
   captureBackendException,
   createBackendObservationScope,
@@ -198,11 +200,15 @@ app.route("/", buildMcpRoutes(new Hono().basePath("/v1")));
 // Mirror the HTTP agent surface (apps/backend/src/server/app.ts `app.onError`):
 // errors that escape the tool try/catch -- transport-layer faults
 // (`server.connect`, `transport.handleRequest`, `transport.close`) and any
-// non-401 error rethrown from the `/mcp` auth catch -- must be shaped into a
-// generic sanitized 500 (no driver/stack internals) and captured to Sentry,
+// non-401 error rethrown from the `/mcp` auth catch -- are captured to Sentry,
 // dedup-guarded, instead of falling through to Hono's default unreported 500.
-// The 401 Bearer challenge and tool-layer error handling are unchanged; this
-// only covers unexpected errors.
+// An HttpError preserves its real statusCode/code and the same Retry-After
+// header the HTTP surface emits (getHttpErrorResponseHeaders), so a transient
+// 503 SERVICE_UNAVAILABLE from the auth-layer DB boundary surfaces as a
+// retryable signal rather than an opaque 500, and a future 4xx HttpError keeps
+// its real status. Any non-HttpError/unknown failure collapses to a generic
+// sanitized 500 (no driver/stack internals). The 401 Bearer challenge and
+// tool-layer error handling are unchanged.
 app.onError((error, context) => {
   const normalizedError = normalizeCaughtError(error);
   // Mirror the HTTP surface's shouldCaptureRequestFailureException core rule
@@ -234,6 +240,14 @@ app.onError((error, context) => {
         validationIssues: [],
       },
     });
+  }
+
+  if (error instanceof HttpError) {
+    context.status(error.statusCode as ContentfulStatusCode);
+    for (const [name, value] of getHttpErrorResponseHeaders(error)) {
+      context.header(name, value);
+    }
+    return context.json({ error: error.message, code: error.code ?? "INTERNAL_ERROR" });
   }
 
   return context.json({ error: "Internal Server Error", code: "INTERNAL_ERROR" }, 500);
