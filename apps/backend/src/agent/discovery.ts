@@ -21,6 +21,16 @@ type AgentDiscoveryEnvelope = Readonly<{
       workspacesUrl: string;
       sqlUrl: string;
     }>;
+    mcp: Readonly<{
+      url: string;
+      description: string;
+      authorization: Readonly<{
+        type: "oauth2";
+        authorizationServer: string;
+        authorizationServerMetadataUrl: string;
+        protectedResourceMetadataUrl: string;
+      }>;
+    }>;
   }>;
   instructions: string;
   docs: Readonly<{
@@ -52,8 +62,24 @@ function buildAuthBaseUrl(requestUrl: string): string {
   return stripTrailingSlash(origin.replace("//api.", "//auth."));
 }
 
+function buildMcpBaseUrl(requestUrl: string): string {
+  const configuredBaseUrl = process.env.PUBLIC_MCP_BASE_URL;
+  if (configuredBaseUrl !== undefined && configuredBaseUrl !== "") {
+    return stripTrailingSlash(configuredBaseUrl);
+  }
+
+  const origin = toRequestOrigin(requestUrl);
+  const host = new URL(requestUrl).host;
+  if (host === "localhost:8080" || host === "127.0.0.1:8080") {
+    return "http://localhost:8082";
+  }
+
+  return stripTrailingSlash(origin.replace("//api.", "//mcp."));
+}
+
 export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscoveryEnvelope {
   const authBaseUrl = buildAuthBaseUrl(requestUrl);
+  const mcpBaseUrl = buildMcpBaseUrl(requestUrl);
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
   const docs = getPublicAgentDocs(requestUrl);
 
@@ -82,6 +108,17 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
         accountUrl: `${apiBaseUrl}/agent/me`,
         workspacesUrl: `${apiBaseUrl}/agent/workspaces`,
         sqlUrl: `${apiBaseUrl}/agent/sql`,
+      },
+      mcp: {
+        url: `${mcpBaseUrl}/mcp`,
+        description:
+          "Remote MCP server for AI clients that connect through custom connectors (for example Claude.ai or ChatGPT). Add the url as a custom connector and authorize through OAuth, then use the sql tool to read and write cards and decks.",
+        authorization: {
+          type: "oauth2",
+          authorizationServer: authBaseUrl,
+          authorizationServerMetadataUrl: `${authBaseUrl}/.well-known/oauth-authorization-server`,
+          protectedResourceMetadataUrl: `${mcpBaseUrl}/.well-known/oauth-protected-resource`,
+        },
       },
     },
     instructions:

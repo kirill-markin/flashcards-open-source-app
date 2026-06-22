@@ -7,6 +7,7 @@ required:
   - authBaseUrl
   - apiBaseUrl
   - surface
+  - mcp
 properties:
   service:
     type: object
@@ -62,3 +63,34 @@ properties:
         type: string
       sqlUrl:
         type: string
+  mcp:
+    type: object
+    additionalProperties: false
+    required:
+      - url
+      - description
+      - authorization
+    properties:
+      url:
+        type: string
+      description:
+        type: string
+      authorization:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+          - authorizationServer
+          - authorizationServerMetadataUrl
+          - protectedResourceMetadataUrl
+        properties:
+          type:
+            type: string
+            enum:
+              - oauth2
+          authorizationServer:
+            type: string
+          authorizationServerMetadataUrl:
+            type: string
+          protectedResourceMetadataUrl:
+            type: string
