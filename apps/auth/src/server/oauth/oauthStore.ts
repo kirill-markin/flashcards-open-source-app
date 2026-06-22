@@ -11,13 +11,24 @@
  * db/migrations/0074), so reads/writes use the unscoped `query`/`transaction`
  * helpers rather than the RLS-scoped variants.
  */
-import { query, transaction, type DatabaseExecutor } from "../../db.js";
+import { randomUUID } from "node:crypto";
+import { query, transaction, transactionWithUserScope, type DatabaseExecutor } from "../../db.js";
+import { verifySessionTokenIdentity } from "../browserSession.js";
+import {
+  ensureUserSettingsAndSelectWorkspace,
+  resolveCanonicalUserId,
+} from "../agent/userWorkspace.js";
 import { createCrockfordToken, hashOpaqueToken, normalizeCrockfordToken } from "../otp/crockford.js";
 
 const ACCESS_TOKEN_PREFIX = "fco";
 const REFRESH_TOKEN_PREFIX = "fcr";
 const OAUTH_TOKEN_SECRET_LENGTH = 40;
 const CLIENT_ID_LENGTH = 24;
+const AUTHORIZATION_CODE_SECRET_LENGTH = 40;
+// Authorization codes are short-lived: the client redeems them at the token
+// endpoint within seconds of the redirect (OAuth 2.1 recommends <= 10 minutes).
+export const AUTHORIZATION_CODE_TTL_SECONDS = 600;
+const AUTHORIZATION_CODE_TTL_MS = AUTHORIZATION_CODE_TTL_SECONDS * 1000;
 
 export const ACCESS_TOKEN_TTL_SECONDS = 3600;
 const ACCESS_TOKEN_TTL_MS = ACCESS_TOKEN_TTL_SECONDS * 1000;
@@ -213,6 +224,126 @@ export async function getActiveAuthorizationCode(
     scope: row.scope,
     resource: row.resource,
   };
+}
+
+/**
+ * The PKCE-bound authorization request fields the browser /authorize flow
+ * verified before the user approved consent. They are persisted on the
+ * single-use code so the token endpoint can re-check redirect_uri + PKCE and
+ * carry resource/scope through to the minted access token.
+ */
+export type AuthorizationGrantRequest = Readonly<{
+  clientId: string;
+  redirectUri: string;
+  codeChallenge: string;
+  scope: string | null;
+  resource: string;
+  connectionLabel: string;
+}>;
+
+async function upsertConnectionInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  clientId: string,
+  label: string,
+  selectedWorkspaceId: string | null,
+): Promise<string> {
+  // One active connection per (user, client): reuse the existing row on
+  // reconnect so revoking it stays a single, predictable action for the user.
+  // A connection revoked earlier is un-revoked here because the user is
+  // explicitly re-approving the same client.
+  const existing = await executor.query<{ connection_id: string }>(
+    [
+      "SELECT connection_id",
+      "FROM auth.oauth_connections",
+      "WHERE user_id = $1 AND client_id = $2",
+      "ORDER BY created_at DESC, connection_id DESC",
+      "LIMIT 1",
+    ].join(" "),
+    [userId, clientId],
+  );
+
+  const existingConnectionId = existing.rows[0]?.connection_id;
+  if (existingConnectionId !== undefined) {
+    await executor.query(
+      [
+        "UPDATE auth.oauth_connections",
+        // COALESCE preserves an existing workspace binding when the resolver
+        // returns null (multi-workspace users), so reconnect does not clobber a
+        // previously selected workspace back to NULL.
+        "SET label = $2, selected_workspace_id = COALESCE($3, auth.oauth_connections.selected_workspace_id), revoked_at = NULL",
+        "WHERE connection_id = $1",
+      ].join(" "),
+      [existingConnectionId, label, selectedWorkspaceId],
+    );
+    return existingConnectionId;
+  }
+
+  const connectionId = randomUUID();
+  await executor.query(
+    [
+      "INSERT INTO auth.oauth_connections",
+      "(connection_id, user_id, client_id, label, selected_workspace_id)",
+      "VALUES ($1, $2, $3, $4, $5)",
+    ].join(" "),
+    [connectionId, userId, clientId, label, selectedWorkspaceId],
+  );
+  return connectionId;
+}
+
+/**
+ * Approves an OAuth authorization request: resolves the user from a freshly
+ * verified Cognito ID token (mapping the subject to the canonical user and
+ * ensuring a workspace, exactly like createAgentApiKeyFromIdToken), upserts the
+ * (user, client) connection, and writes a single-use authorization code bound to
+ * that connection. Returns the opaque code; only its hash is persisted.
+ */
+export async function approveAuthorizationRequest(
+  idToken: string,
+  request: AuthorizationGrantRequest,
+  nowMs: number,
+): Promise<string> {
+  const identity = await verifySessionTokenIdentity(idToken);
+  const userId = await resolveCanonicalUserId(identity.userId);
+  const code = createCrockfordToken(AUTHORIZATION_CODE_SECRET_LENGTH);
+  const codeHash = hashOpaqueToken(code);
+  const expiresAt = new Date(nowMs + AUTHORIZATION_CODE_TTL_MS).toISOString();
+
+  await transactionWithUserScope({ userId }, async (executor) => {
+    const selectedWorkspaceId = await ensureUserSettingsAndSelectWorkspace(
+      executor,
+      userId,
+      identity.email,
+    );
+    const connectionId = await upsertConnectionInExecutor(
+      executor,
+      userId,
+      request.clientId,
+      request.connectionLabel,
+      selectedWorkspaceId,
+    );
+
+    await executor.query(
+      [
+        "INSERT INTO auth.oauth_authorization_codes",
+        "(code_hash, client_id, connection_id, redirect_uri, code_challenge,",
+        "code_challenge_method, scope, resource, expires_at)",
+        "VALUES ($1, $2, $3, $4, $5, 'S256', $6, $7, $8)",
+      ].join(" "),
+      [
+        codeHash,
+        request.clientId,
+        connectionId,
+        request.redirectUri,
+        request.codeChallenge,
+        request.scope,
+        request.resource,
+        expiresAt,
+      ],
+    );
+  });
+
+  return code;
 }
 
 async function issueTokensInExecutor(

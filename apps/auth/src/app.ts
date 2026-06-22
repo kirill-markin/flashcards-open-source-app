@@ -7,6 +7,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { type Context, Hono } from "hono";
+import type { MiddlewareHandler } from "hono";
 import health from "./routes/health.js";
 import agentSendCode from "./routes/agent/agentSendCode.js";
 import agentVerifyCode from "./routes/agent/agentVerifyCode.js";
@@ -21,6 +22,7 @@ import logoutLocalPage from "./routes/browser/logoutLocalPage.js";
 import oauthMetadata from "./routes/oauth/metadata.js";
 import oauthRegister from "./routes/oauth/register.js";
 import oauthToken from "./routes/oauth/token.js";
+import oauthAuthorize from "./routes/oauth/authorize.js";
 import robots from "./routes/robots.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "./server/apiErrors.js";
 import { getDemoEmailAccessConfig } from "./server/demoEmailAccess.js";
@@ -153,8 +155,9 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
     await next();
   });
 
-  // Deny cross-origin requests to API endpoints (defense-in-depth).
-  app.use("/api/*", async (c, next) => {
+  // Deny cross-origin requests to cookie-authenticated, state-changing
+  // endpoints (defense-in-depth). Shared by /api/* and the OAuth consent POST.
+  const denyCrossOrigin: MiddlewareHandler<AuthAppEnv> = async (c, next) => {
     const origin = c.req.header("origin");
     if (origin !== undefined) {
       const requestOrigin = new URL(c.req.url).origin;
@@ -181,7 +184,12 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
       return c.json({ error: "Cross-origin requests not allowed" }, 403);
     }
     await next();
-  });
+  };
+
+  app.use("/api/*", denyCrossOrigin);
+  // The OAuth consent POST is cookie-authenticated and state-changing but lives
+  // outside /api/*, so it gets the same cross-origin guard explicitly.
+  app.use("/authorize/consent", denyCrossOrigin);
 
   app.onError((error, c) => {
     const requestId = getRequestId(c);
@@ -268,6 +276,7 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   app.route("/", oauthMetadata);
   app.route("/", oauthRegister);
   app.route("/", oauthToken);
+  app.route("/", oauthAuthorize);
 
   return app;
 }

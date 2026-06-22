@@ -1,0 +1,223 @@
+/**
+ * Localized copy for the OAuth /authorize screen. The login half mirrors the
+ * browser login page copy (loginPageLocale.ts); this module adds the
+ * consent-specific strings shown after sign-in. Same locale set and resolution
+ * as the login page so the two auth surfaces stay aligned.
+ */
+import type { LoginPageLocale } from "../browser/loginPageLocale.js";
+
+export type AuthorizeConsentCopy = Readonly<{
+  pageTitle: string;
+  checkingSession: string;
+  signInTitle: string;
+  emailLabel: string;
+  sendCode: string;
+  sendingCode: string;
+  checkEmailForCode: string;
+  verificationCodeLabel: string;
+  verify: string;
+  verifying: string;
+  genericErrorPrefix: string;
+  // Consent step.
+  consentTitle: string;
+  // {client} is replaced client-side with the requesting application's name.
+  consentLead: string;
+  consentScopeAccess: string;
+  consentSignedInAs: string;
+  approve: string;
+  approving: string;
+  deny: string;
+  redirecting: string;
+}>;
+
+export const AUTHORIZE_CONSENT_COPY: Readonly<Record<LoginPageLocale, AuthorizeConsentCopy>> = {
+  en: {
+    pageTitle: "Authorize access",
+    checkingSession: "Checking session...",
+    signInTitle: "Sign in to continue",
+    emailLabel: "Email",
+    sendCode: "Send code",
+    sendingCode: "Sending...",
+    checkEmailForCode: "Check your email for an 8-digit code. If you don't see it, check your spam folder.",
+    verificationCodeLabel: "Verification code",
+    verify: "Verify",
+    verifying: "Verifying...",
+    genericErrorPrefix: "Error",
+    consentTitle: "Authorize access",
+    consentLead: "{client} wants to connect to your Flashcards account.",
+    consentScopeAccess: "It will be able to read and write your flashcards and review data through the API.",
+    consentSignedInAs: "Signed in as",
+    approve: "Allow access",
+    approving: "Authorizing...",
+    deny: "Cancel",
+    redirecting: "Redirecting...",
+  },
+  ar: {
+    pageTitle: "تفويض الوصول",
+    checkingSession: "جارٍ التحقق من الجلسة...",
+    signInTitle: "سجّل الدخول للمتابعة",
+    emailLabel: "البريد الإلكتروني",
+    sendCode: "إرسال الرمز",
+    sendingCode: "جارٍ الإرسال...",
+    checkEmailForCode: "تحقق من بريدك الإلكتروني للحصول على رمز مكوّن من 8 أرقام. إذا لم تجده، فتحقق من مجلد الرسائل غير المرغوب فيها.",
+    verificationCodeLabel: "رمز التحقق",
+    verify: "تحقق",
+    verifying: "جارٍ التحقق...",
+    genericErrorPrefix: "خطأ",
+    consentTitle: "تفويض الوصول",
+    consentLead: "يريد {client} الاتصال بحساب Flashcards الخاص بك.",
+    consentScopeAccess: "سيتمكن من قراءة بطاقاتك التعليمية وبيانات المراجعة والكتابة فيها عبر واجهة برمجة التطبيقات.",
+    consentSignedInAs: "تم تسجيل الدخول باسم",
+    approve: "السماح بالوصول",
+    approving: "جارٍ التفويض...",
+    deny: "إلغاء",
+    redirecting: "جارٍ إعادة التوجيه...",
+  },
+  "zh-Hans": {
+    pageTitle: "授权访问",
+    checkingSession: "正在检查会话...",
+    signInTitle: "登录以继续",
+    emailLabel: "电子邮件",
+    sendCode: "发送验证码",
+    sendingCode: "发送中...",
+    checkEmailForCode: "请查看电子邮件中的 8 位验证码。如果没有看到，请检查垃圾邮件文件夹。",
+    verificationCodeLabel: "验证码",
+    verify: "验证",
+    verifying: "验证中...",
+    genericErrorPrefix: "错误",
+    consentTitle: "授权访问",
+    consentLead: "{client} 想要连接到你的 Flashcards 账户。",
+    consentScopeAccess: "它将能够通过 API 读取和写入你的卡片及复习数据。",
+    consentSignedInAs: "登录身份",
+    approve: "允许访问",
+    approving: "授权中...",
+    deny: "取消",
+    redirecting: "正在跳转...",
+  },
+  de: {
+    pageTitle: "Zugriff autorisieren",
+    checkingSession: "Sitzung wird geprüft...",
+    signInTitle: "Zum Fortfahren anmelden",
+    emailLabel: "E-Mail",
+    sendCode: "Code senden",
+    sendingCode: "Wird gesendet...",
+    checkEmailForCode: "Prüfe deine E-Mail auf einen 8-stelligen Code. Wenn du ihn nicht siehst, prüfe den Spam-Ordner.",
+    verificationCodeLabel: "Bestätigungscode",
+    verify: "Bestätigen",
+    verifying: "Wird bestätigt...",
+    genericErrorPrefix: "Fehler",
+    consentTitle: "Zugriff autorisieren",
+    consentLead: "{client} möchte sich mit deinem Flashcards-Konto verbinden.",
+    consentScopeAccess: "Es kann deine Karten und Lerndaten über die API lesen und schreiben.",
+    consentSignedInAs: "Angemeldet als",
+    approve: "Zugriff erlauben",
+    approving: "Wird autorisiert...",
+    deny: "Abbrechen",
+    redirecting: "Weiterleitung...",
+  },
+  hi: {
+    pageTitle: "एक्सेस अधिकृत करें",
+    checkingSession: "सेशन जांचा जा रहा है...",
+    signInTitle: "जारी रखने के लिए साइन इन करें",
+    emailLabel: "ईमेल",
+    sendCode: "कोड भेजें",
+    sendingCode: "भेजा जा रहा है...",
+    checkEmailForCode: "8 अंकों का कोड पाने के लिए अपना ईमेल देखें। अगर यह न दिखे, तो स्पैम फ़ोल्डर देखें।",
+    verificationCodeLabel: "सत्यापन कोड",
+    verify: "सत्यापित करें",
+    verifying: "सत्यापित किया जा रहा है...",
+    genericErrorPrefix: "त्रुटि",
+    consentTitle: "एक्सेस अधिकृत करें",
+    consentLead: "{client} आपके Flashcards खाते से कनेक्ट करना चाहता है।",
+    consentScopeAccess: "यह API के ज़रिए आपके फ़्लैशकार्ड और समीक्षा डेटा को पढ़ और लिख सकेगा।",
+    consentSignedInAs: "इस रूप में साइन इन",
+    approve: "एक्सेस की अनुमति दें",
+    approving: "अधिकृत किया जा रहा है...",
+    deny: "रद्द करें",
+    redirecting: "रीडायरेक्ट किया जा रहा है...",
+  },
+  ja: {
+    pageTitle: "アクセスを許可",
+    checkingSession: "セッションを確認しています...",
+    signInTitle: "続行するにはサインイン",
+    emailLabel: "メールアドレス",
+    sendCode: "コードを送信",
+    sendingCode: "送信中...",
+    checkEmailForCode: "メールで 8 桁のコードを確認してください。見つからない場合は、迷惑メールフォルダを確認してください。",
+    verificationCodeLabel: "確認コード",
+    verify: "確認",
+    verifying: "確認中...",
+    genericErrorPrefix: "エラー",
+    consentTitle: "アクセスを許可",
+    consentLead: "{client} があなたの Flashcards アカウントへの接続を求めています。",
+    consentScopeAccess: "API を通じて、あなたのフラッシュカードと復習データの読み取りと書き込みができます。",
+    consentSignedInAs: "サインイン中のアカウント",
+    approve: "アクセスを許可",
+    approving: "許可しています...",
+    deny: "キャンセル",
+    redirecting: "リダイレクト中...",
+  },
+  ru: {
+    pageTitle: "Авторизация доступа",
+    checkingSession: "Проверяем сеанс...",
+    signInTitle: "Войдите, чтобы продолжить",
+    emailLabel: "Электронная почта",
+    sendCode: "Отправить код",
+    sendingCode: "Отправка...",
+    checkEmailForCode: "Проверьте почту: там есть 8-значный код. Если его нет, проверьте папку «Спам».",
+    verificationCodeLabel: "Код подтверждения",
+    verify: "Подтвердить",
+    verifying: "Проверка...",
+    genericErrorPrefix: "Ошибка",
+    consentTitle: "Авторизация доступа",
+    consentLead: "{client} хочет подключиться к вашему аккаунту Flashcards.",
+    consentScopeAccess: "Приложение сможет читать и изменять ваши карточки и данные повторений через API.",
+    consentSignedInAs: "Вы вошли как",
+    approve: "Разрешить доступ",
+    approving: "Авторизация...",
+    deny: "Отмена",
+    redirecting: "Перенаправление...",
+  },
+  "es-MX": {
+    pageTitle: "Autorizar acceso",
+    checkingSession: "Comprobando sesión...",
+    signInTitle: "Inicia sesión para continuar",
+    emailLabel: "Correo electrónico",
+    sendCode: "Enviar código",
+    sendingCode: "Enviando...",
+    checkEmailForCode: "Revisa tu correo para encontrar un código de 8 dígitos. Si no lo ves, revisa la carpeta de spam.",
+    verificationCodeLabel: "Código de verificación",
+    verify: "Verificar",
+    verifying: "Verificando...",
+    genericErrorPrefix: "Error",
+    consentTitle: "Autorizar acceso",
+    consentLead: "{client} quiere conectarse a tu cuenta de Flashcards.",
+    consentScopeAccess: "Podrá leer y escribir tus tarjetas y datos de repaso a través de la API.",
+    consentSignedInAs: "Sesión iniciada como",
+    approve: "Permitir acceso",
+    approving: "Autorizando...",
+    deny: "Cancelar",
+    redirecting: "Redirigiendo...",
+  },
+  "es-ES": {
+    pageTitle: "Autorizar acceso",
+    checkingSession: "Comprobando la sesión...",
+    signInTitle: "Inicia sesión para continuar",
+    emailLabel: "Correo electrónico",
+    sendCode: "Enviar código",
+    sendingCode: "Enviando...",
+    checkEmailForCode: "Revisa tu correo para encontrar un código de 8 dígitos. Si no lo ves, revisa la carpeta de spam.",
+    verificationCodeLabel: "Código de verificación",
+    verify: "Verificar",
+    verifying: "Verificando...",
+    genericErrorPrefix: "Error",
+    consentTitle: "Autorizar acceso",
+    consentLead: "{client} quiere conectarse a tu cuenta de Flashcards.",
+    consentScopeAccess: "Podrá leer y escribir tus tarjetas y datos de repaso a través de la API.",
+    consentSignedInAs: "Sesión iniciada como",
+    approve: "Permitir acceso",
+    approving: "Autorizando...",
+    deny: "Cancelar",
+    redirecting: "Redirigiendo...",
+  },
+};
