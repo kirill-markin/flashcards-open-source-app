@@ -18,6 +18,9 @@ import refreshToken from "./routes/browser/refreshToken.js";
 import revokeToken from "./routes/browser/revokeToken.js";
 import logoutPage from "./routes/browser/logoutPage.js";
 import logoutLocalPage from "./routes/browser/logoutLocalPage.js";
+import oauthMetadata from "./routes/oauth/metadata.js";
+import oauthRegister from "./routes/oauth/register.js";
+import oauthToken from "./routes/oauth/token.js";
 import robots from "./routes/robots.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "./server/apiErrors.js";
 import { getDemoEmailAccessConfig } from "./server/demoEmailAccess.js";
@@ -232,6 +235,9 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   app.route("/", revokeToken);
   app.route("/", logoutPage);
   app.route("/", logoutLocalPage);
+  app.route("/", oauthMetadata);
+  app.route("/", oauthRegister);
+  app.route("/", oauthToken);
 
   return app;
 }
