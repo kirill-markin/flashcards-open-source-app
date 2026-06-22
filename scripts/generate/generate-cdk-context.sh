@@ -55,6 +55,7 @@ PY
 
 API_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "api.${DOMAIN_NAME}" "api-domain")"
 AUTH_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "auth.${DOMAIN_NAME}" "auth-domain")"
+MCP_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "mcp.${DOMAIN_NAME}" "mcp-domain")"
 WEB_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "app.${DOMAIN_NAME}" "web-domain")"
 ADMIN_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "admin.${DOMAIN_NAME}" "admin-domain")"
 APEX_REDIRECT_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "${DOMAIN_NAME}" "apex-redirect-domain")"
@@ -93,6 +94,7 @@ export ALERT_EMAIL
 export GITHUB_REPO
 export API_CERTIFICATE_ARN
 export AUTH_CERTIFICATE_ARN
+export MCP_CERTIFICATE_ARN
 export WEB_CERTIFICATE_ARN
 export ADMIN_CERTIFICATE_ARN
 export APEX_REDIRECT_CERTIFICATE_ARN
@@ -127,6 +129,7 @@ values = {
     "githubRepo": os.environ["GITHUB_REPO"],
     "apiCertificateArn": os.environ.get("API_CERTIFICATE_ARN", ""),
     "authCertificateArn": os.environ.get("AUTH_CERTIFICATE_ARN", ""),
+    "mcpCertificateArn": os.environ.get("MCP_CERTIFICATE_ARN", ""),
     "webCertificateArnUsEast1": os.environ.get("WEB_CERTIFICATE_ARN", ""),
     "adminCertificateArnUsEast1": os.environ.get("ADMIN_CERTIFICATE_ARN", ""),
     "apexRedirectCertificateArnUsEast1": os.environ.get("APEX_REDIRECT_CERTIFICATE_ARN", ""),

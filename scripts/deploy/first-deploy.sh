@@ -58,6 +58,12 @@ if [[ -z "$(find_certificate_arn "$REGION" "auth.${DOMAIN}" "auth-domain")" ]]; 
     --region "$REGION"
 fi
 
+if [[ -z "$(find_certificate_arn "$REGION" "mcp.${DOMAIN}" "mcp-domain")" ]]; then
+  bash "${ROOT_DIR}/scripts/cloudflare/setup-mcp-domain.sh" \
+    --domain "$DOMAIN" \
+    --region "$REGION"
+fi
+
 if [[ -z "$(find_certificate_arn "us-east-1" "app.${DOMAIN}" "web-domain")" ]]; then
   bash "${ROOT_DIR}/scripts/cloudflare/setup-web-domain.sh" \
     --domain "$DOMAIN"

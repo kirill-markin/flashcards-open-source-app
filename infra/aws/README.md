@@ -66,7 +66,7 @@ That flow:
 
 - creates or updates the required AWS Secrets Manager secrets from root `.env`
 - stores optional AI and demo auth secrets when configured
-- requests ACM certificates for API, auth, web, and apex redirect when needed
+- requests ACM certificates for API, auth, MCP, web, and apex redirect when needed
 - requests the ACM certificate for `admin.<domain>` when needed
 - generates `infra/aws/cdk.context.local.json` for the local CDK invocation
 - bootstraps and deploys CDK
@@ -196,3 +196,13 @@ The supported deployed admin browser entrypoint is `https://admin.<domain>` only
 11. `POST https://auth.<domain>/api/refresh-token` exchanges refresh token for a new id token.
 12. `POST https://auth.<domain>/api/revoke-token` revokes the refresh token.
 13. `GET https://auth.<domain>/login?redirect_uri=...` serves the browser login page.
+
+## MCP host
+
+The MCP server is exposed on its own `mcp.<domain>` subdomain, backed by a dedicated API Gateway and Lambda (`apps/backend/src/entrypoints/lambda-mcp.ts`). The canonical MCP resource is `https://mcp.<domain>/mcp` (no `/v1` prefix on the custom domain).
+
+- `GET https://mcp.<domain>/.well-known/oauth-protected-resource` returns the OAuth Protected Resource Metadata, pointing at the authorization server `https://auth.<domain>`.
+- `https://mcp.<domain>/mcp` without a valid `Authorization: Bearer` token returns `401` with a `WWW-Authenticate: Bearer resource_metadata="..."` challenge.
+- `GET https://mcp.<domain>/health` returns `200`.
+
+Provision the certificate and DNS the same way as the other subdomains: `bash scripts/cloudflare/setup-mcp-domain.sh --domain <base-domain> --region <aws-region>` requests the ACM certificate (`first-deploy.sh` runs this when needed), and `bash scripts/cloudflare/setup-dns.sh` creates the `mcp.<domain>` Cloudflare CNAME from the `McpCustomDomainTarget` stack output.

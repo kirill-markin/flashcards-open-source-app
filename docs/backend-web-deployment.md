@@ -112,11 +112,14 @@ Public domains after deploy:
 - `https://admin.<domain>`
 - `https://api.<domain>/v1`
 - `https://auth.<domain>`
+- `https://mcp.<domain>/mcp`
 
-If the apex domain already points to an existing site, bootstrap leaves it untouched and manages only `app.<domain>`, `admin.<domain>`, `api.<domain>`, and `auth.<domain>`.
+If the apex domain already points to an existing site, bootstrap leaves it untouched and manages only `app.<domain>`, `admin.<domain>`, `api.<domain>`, `auth.<domain>`, and `mcp.<domain>`.
 
 For the admin app, the supported browser entrypoints are `http://localhost:3001` and `https://admin.<domain>`. Treat `admin.<domain>` as the only supported deployed browser entrypoint.
 For the first admin-domain rollout, treat `bash scripts/cloudflare/setup-admin-domain.sh --domain <domain>`, `bash scripts/setup/setup-github.sh`, a deploy, and then `bash scripts/cloudflare/setup-dns.sh --stack-name <stack-name> --domain <domain>` as one complete setup sequence. If the GitHub variables were created after a workflow had already started, run another deploy or rerun the workflow after the variables exist.
+
+The MCP host on `mcp.<domain>` follows the same per-subdomain rollout: `bash scripts/cloudflare/setup-mcp-domain.sh --domain <domain> --region <region>` requests the ACM certificate, then `bash scripts/setup/setup-github.sh`, a deploy, and `bash scripts/cloudflare/setup-dns.sh --stack-name <stack-name> --domain <domain>` to create the `mcp.<domain>` CNAME from the `McpCustomDomainTarget` output.
 
 ## Later secret updates
 
