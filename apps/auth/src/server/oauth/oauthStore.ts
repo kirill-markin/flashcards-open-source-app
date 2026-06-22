@@ -298,8 +298,14 @@ export async function consumeAuthorizationCodeAndIssueTokens(
 
 /**
  * Rotates a refresh token: consumes the presented refresh token and issues a
- * fresh access/refresh pair on the same connection. Rotation makes a
- * stolen-and-replayed refresh token detectable and bounds its useful lifetime.
+ * fresh access/refresh pair on the same connection. This is plain single-use
+ * rotation: each refresh token can be redeemed once, which bounds a leaked
+ * token's useful lifetime. It does NOT implement automatic reuse detection or
+ * token-family / connection-wide revocation (OAuth 2.1 / RFC 9700 §4.14.2):
+ * replaying an already-rotated token simply matches no active row and returns
+ * null (invalid_grant) without revoking the connection or its live tokens.
+ * Reuse-detection is deferred to a dedicated hardening item, so future code
+ * must not assume reuse-revocation exists here.
  * Returns null when the token is malformed, unknown, expired, its connection is
  * revoked, or it was not issued to the presenting client.
  */

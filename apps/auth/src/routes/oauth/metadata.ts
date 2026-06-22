@@ -4,8 +4,11 @@
  * following the protected-resource metadata served on the mcp.<domain> host.
  *
  * The issuer is the public auth origin (https://auth.<domain>) with no stage
- * prefix; the endpoints are derived from it so the discovery document is
- * correct on both the custom domain and the raw execute-api stage URL.
+ * prefix; the endpoints are derived from it. Correctness depends on
+ * PUBLIC_AUTH_BASE_URL being set to the custom domain (as auth-gateway.ts does
+ * in production). Without it, getPublicAuthBaseUrl falls back to the request
+ * origin, which on the raw execute-api stage URL omits the /v1 stage prefix and
+ * yields wrong endpoints; the custom-domain path is the supported config.
  */
 import { Hono } from "hono";
 import type { AuthAppEnv } from "../../server/apiErrors.js";

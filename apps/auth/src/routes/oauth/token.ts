@@ -20,7 +20,6 @@ import type { AuthAppEnv } from "../../server/apiErrors.js";
 import {
   consumeAuthorizationCodeAndIssueTokens,
   getActiveAuthorizationCode,
-  getClient,
   rotateRefreshToken,
   type IssuedTokens,
 } from "../../server/oauth/oauthStore.js";
@@ -29,7 +28,6 @@ import { verifyPkceS256 } from "../../server/oauth/pkce.js";
 type OAuthErrorCode =
   | "invalid_request"
   | "invalid_grant"
-  | "invalid_client"
   | "unsupported_grant_type";
 
 function tokenError(
@@ -128,11 +126,10 @@ async function handleRefreshTokenGrant(
     );
   }
 
-  const client = await getClient(clientId);
-  if (client === null) {
-    return tokenError(c, 400, "invalid_client", "Unknown client_id.");
-  }
-
+  // No separate client lookup: rotateRefreshToken binds the token to the
+  // requesting client via conn.client_id, so an unknown or mismatched
+  // client_id yields no active row and returns invalid_grant. This is also the
+  // correct anti-enumeration behavior (no distinct unknown-client signal).
   const tokens = await rotateRefreshToken(refreshToken, clientId, nowMs);
   if (tokens === null) {
     return tokenError(c, 400, "invalid_grant", "The refresh token is invalid, expired, or revoked.");

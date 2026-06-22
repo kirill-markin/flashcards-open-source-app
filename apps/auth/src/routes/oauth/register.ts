@@ -40,8 +40,10 @@ function isAllowedRedirectUri(value: string): boolean {
   }
 
   // Allow custom/private-use URI schemes (e.g. com.example.app:/callback) used
-  // by native clients per RFC 8252 §7.1.
-  return url.protocol.endsWith(":") && url.protocol !== "javascript:" && url.protocol !== "data:";
+  // by native clients per RFC 8252 §7.1. Require a reverse-DNS style scheme
+  // (must contain a dot) so file:, ftp:, vbscript:, javascript:, data:, and
+  // bare single-label schemes are rejected.
+  return /^[a-z][a-z0-9+.-]*:$/i.test(url.protocol) && url.protocol.includes(".");
 }
 
 function parseRedirectUris(value: unknown): ReadonlyArray<string> | null {
