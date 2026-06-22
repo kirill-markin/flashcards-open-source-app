@@ -84,7 +84,10 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
   // fail at the edge with MissingAuthenticationTokenException before Lambda
   // runs. Keep this list aligned with the routes in lambda-mcp.ts.
   const wellKnown = restApi.root.addResource(".well-known");
-  wellKnown.addResource("oauth-protected-resource").addMethod("GET", integration);
+  const protectedResource = wellKnown.addResource("oauth-protected-resource");
+  protectedResource.addMethod("GET", integration);
+  // RFC 9728 §3.1 path-aware PRM location for the `/mcp` resource path.
+  protectedResource.addResource("mcp").addMethod("GET", integration);
 
   restApi.root.addResource("mcp").addMethod("ANY", integration);
   restApi.root.addResource("health").addMethod("GET", integration);

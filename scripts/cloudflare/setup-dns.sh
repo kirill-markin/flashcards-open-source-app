@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Configure Cloudflare DNS for API, auth, web, and admin custom domains from stack outputs.
+# Configure Cloudflare DNS for API, auth, mcp, web, and admin custom domains from stack outputs.
 
 set -euo pipefail
 

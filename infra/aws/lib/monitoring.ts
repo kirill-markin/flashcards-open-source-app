@@ -28,8 +28,10 @@ export interface MonitoringProps {
   db: rds.DatabaseInstance;
   restApi: apigw.RestApi;
   authRestApi: apigw.RestApi;
+  mcpRestApi: apigw.RestApi;
   backendFn: lambda.IFunction;
   authFn: lambda.IFunction;
+  mcpFn: lambda.IFunction;
   authApiAccessLogGroup: logs.ILogGroup;
   customEmailSenderFn: lambda.IFunction;
   chatWorkerFn: lambda.IFunction;
@@ -111,6 +113,20 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
 
+  new cloudwatch.Alarm(scope, "McpApiGateway5xxAlarm", {
+    metric: new cloudwatch.Metric({
+      namespace: "AWS/ApiGateway",
+      metricName: "5XXError",
+      dimensionsMap: { ApiName: props.mcpRestApi.restApiName },
+      period: cdk.Duration.minutes(5),
+      statistic: "Sum",
+    }),
+    threshold: 3,
+    evaluationPeriods: 1,
+    alarmDescription: "MCP API Gateway returned 3+ server errors in 5 minutes",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
   const authApiAccessLog5xxMetricFilter = new logs.MetricFilter(scope, "AuthApiAccessLog5xxMetricFilter", {
     logGroup: props.authApiAccessLogGroup,
     filterPattern: createAuthApiAccessLog5xxFilterPattern(),
@@ -150,6 +166,17 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     threshold: 1,
     evaluationPeriods: 1,
     alarmDescription: "Auth Lambda had unhandled errors",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  new cloudwatch.Alarm(scope, "McpLambdaErrorAlarm", {
+    metric: props.mcpFn.metricErrors({
+      period: cdk.Duration.minutes(15),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "MCP Lambda had unhandled errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
 
