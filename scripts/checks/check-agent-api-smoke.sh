@@ -193,7 +193,8 @@ required_paths = {
     "/agent/me",
     "/agent/workspaces",
     "/agent/workspaces/{workspaceId}/select",
-    "/agent/sql",
+    "/agent/sql/query",
+    "/agent/sql/execute",
 }
 assert payload["openapi"] == "3.1.0"
 missing_paths = sorted(required_paths.difference(payload["paths"].keys()))
@@ -352,8 +353,8 @@ assert workspace["name"] == workspace_name
 assert workspace["isSelected"] is True
 PY
 
-request_json "POST" "${API_BASE_URL%/}/agent/sql" "{\"sql\":\"SHOW TABLES\"}" "authorization: ApiKey ${AGENT_API_KEY}"
-assert_status "200" "POST /v1/agent/sql SHOW TABLES"
+request_json "POST" "${API_BASE_URL%/}/agent/sql/query" "{\"sql\":\"SHOW TABLES\"}" "authorization: ApiKey ${AGENT_API_KEY}"
+assert_status "200" "POST /v1/agent/sql/query SHOW TABLES"
 python3 - <<'PY' "${LAST_BODY_FILE}"
 import json
 import sys
@@ -367,8 +368,8 @@ assert payload["data"]["resource"] is None
 assert {"workspace", "cards", "decks", "review_events"}.issubset(table_names)
 PY
 
-request_json "POST" "${API_BASE_URL%/}/agent/sql" "{\"sql\":\"INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('${CARD_FRONT_TEXT}', '${CARD_BACK_TEXT}', ('agent-smoke'), 'medium')\"}" "authorization: ApiKey ${AGENT_API_KEY}"
-assert_status "200" "POST /v1/agent/sql INSERT"
+request_json "POST" "${API_BASE_URL%/}/agent/sql/execute" "{\"sql\":\"INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('${CARD_FRONT_TEXT}', '${CARD_BACK_TEXT}', ('agent-smoke'), 'medium')\"}" "authorization: ApiKey ${AGENT_API_KEY}"
+assert_status "200" "POST /v1/agent/sql/execute INSERT"
 python3 - <<'PY' "${LAST_BODY_FILE}"
 import json
 import sys
@@ -380,8 +381,8 @@ assert payload["data"]["resource"] == "cards"
 assert payload["data"]["affectedCount"] == 1
 PY
 
-request_json "POST" "${API_BASE_URL%/}/agent/sql" "{\"sql\":\"SELECT card_id, front_text, back_text FROM cards WHERE LOWER(front_text) = '${CARD_FRONT_TEXT_LOWER}' ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0\"}" "authorization: ApiKey ${AGENT_API_KEY}"
-assert_status "200" "POST /v1/agent/sql SELECT"
+request_json "POST" "${API_BASE_URL%/}/agent/sql/query" "{\"sql\":\"SELECT card_id, front_text, back_text FROM cards WHERE LOWER(front_text) = '${CARD_FRONT_TEXT_LOWER}' ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0\"}" "authorization: ApiKey ${AGENT_API_KEY}"
+assert_status "200" "POST /v1/agent/sql/query SELECT"
 python3 - <<'PY' "${LAST_BODY_FILE}" "${CARD_FRONT_TEXT}" "${CARD_BACK_TEXT}"
 import json
 import sys
