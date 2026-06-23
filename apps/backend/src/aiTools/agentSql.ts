@@ -14,9 +14,10 @@ import {
   isSqlMutationStatement,
   isSqlReadStatement,
   type AgentSqlContext,
+  type AgentSqlExecutionResult,
 } from "./agentSql/shared";
 import { executeSqlMutationStatement } from "./agentSql/singleMutation";
-import { MAX_SQL_BATCH_STATEMENT_COUNT } from "./toolContract/sqlToolLimits";
+import { MAX_SQL_BATCH_STATEMENT_COUNT, MAX_SQL_RESULT_CHARS } from "./toolContract/sqlToolLimits";
 
 export type {
   AgentSqlExecutionResult,
@@ -88,6 +89,30 @@ function toStatementSqls(sql: string, statements: ReadonlyArray<ParsedSqlStateme
   return splitStatementSqls(sql);
 }
 
+/**
+ * Single source of truth for the agent SQL result-size budget shared by both
+ * the MCP surface (`sql_query` / `sql_execute`) and the REST surface
+ * (`POST /agent/sql/query` / `POST /agent/sql/execute`).
+ *
+ * The agent envelope serializes `result.data`, so the budget is measured
+ * against the serialized `data` payload. On overflow we fail with an actionable
+ * error (matching the repo's "clear, actionable errors / no silent fallbacks"
+ * principle) instead of returning a payload that exceeds the directory's
+ * tool-result token limit. The remedies are concrete: narrow the result set.
+ */
+function assertSqlResultWithinSizeBudget<T extends AgentSqlExecutionResult>(result: T): T {
+  const serializedLength = JSON.stringify(result.data).length;
+  if (serializedLength > MAX_SQL_RESULT_CHARS) {
+    throw new HttpError(
+      400,
+      `The result payload is too large (${serializedLength} characters, limit ${MAX_SQL_RESULT_CHARS}). Narrow the query and retry: add or lower LIMIT, SELECT fewer columns, or add WHERE filters to return fewer or smaller rows.`,
+      "QUERY_RESULT_TOO_LARGE",
+    );
+  }
+
+  return result;
+}
+
 export async function executeAgentSql(
   context: AgentSqlContext,
   sql: string,
@@ -153,10 +178,14 @@ export async function runSqlQuery(
 
   if (statements.every(isSqlReadStatement)) {
     if (statements.length === 1) {
-      return executeSqlReadStatement(dependencies, context, sql, statements[0]);
+      return assertSqlResultWithinSizeBudget(
+        await executeSqlReadStatement(dependencies, context, sql, statements[0]),
+      );
     }
 
-    return executeSqlReadBatch(dependencies, context, sql, statements, statementSqls);
+    return assertSqlResultWithinSizeBudget(
+      await executeSqlReadBatch(dependencies, context, sql, statements, statementSqls),
+    );
   }
 
   throw buildInvalidSqlError(
@@ -180,10 +209,14 @@ export async function runSqlExecute(
 
   if (statements.every(isSqlMutationStatement)) {
     if (statements.length === 1) {
-      return executeSqlMutationStatement(dependencies, context, sql, statements[0]);
+      return assertSqlResultWithinSizeBudget(
+        await executeSqlMutationStatement(dependencies, context, sql, statements[0]),
+      );
     }
 
-    return executeSqlMutationBatch(dependencies, context, sql, statements, statementSqls);
+    return assertSqlResultWithinSizeBudget(
+      await executeSqlMutationBatch(dependencies, context, sql, statements, statementSqls),
+    );
   }
 
   throw buildInvalidSqlError(
