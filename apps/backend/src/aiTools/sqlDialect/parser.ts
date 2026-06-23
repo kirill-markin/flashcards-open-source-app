@@ -448,9 +448,14 @@ function parsePredicateValue(value: string): SqlPredicateValue {
   return parseSqlLiteral(trimmedValue);
 }
 
-function parseStringArrayLiteralList(value: string): ReadonlyArray<string> {
+function parseStringArrayLiteralList(value: string, columnName: string): ReadonlyArray<string> {
   const trimmedValue = value.trim();
-  assert(trimmedValue.startsWith("(") && trimmedValue.endsWith(")"), "Expected a parenthesized value list");
+  if (!(trimmedValue.startsWith("(") && trimmedValue.endsWith(")"))) {
+    throw new Error(
+      `Array column "${columnName}" expects a parenthesized list like ('tag1','tag2'), or () for an empty list. Got: ${trimmedValue}`,
+    );
+  }
+
   const innerValue = trimmedValue.slice(1, -1).trim();
   if (innerValue === "") {
     return [];
@@ -459,7 +464,9 @@ function parseStringArrayLiteralList(value: string): ReadonlyArray<string> {
   return splitTopLevel(innerValue, ",").map((item) => {
     const parsedValue = parseSqlLiteral(item);
     if (typeof parsedValue !== "string") {
-      throw new Error("Expected only string literals in the list");
+      throw new Error(
+        `Array column "${columnName}" accepts only quoted string literals, e.g. ('a','b'). Got: ${trimmedValue}`,
+      );
     }
 
     return parsedValue;
@@ -573,7 +580,7 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
     return {
       type: "overlap",
       columnName,
-      values: parseStringArrayLiteralList(overlapPredicate[2] ?? ""),
+      values: parseStringArrayLiteralList(overlapPredicate[2] ?? "", columnName),
     };
   }
 
@@ -853,7 +860,9 @@ function parseDescribeStatement(normalizedSql: string): ParsedSqlStatement | nul
 function parseInsertStatement(normalizedSql: string): SqlInsertStatement {
   const match = normalizedSql.match(/^INSERT\s+INTO\s+([a-z_][a-z0-9_]*)\s*\((.+)\)\s+VALUES\s+([\s\S]+)$/i);
   if (match === null) {
-    throw new Error("Unsupported INSERT statement");
+    throw new Error(
+      "INSERT must list columns explicitly, e.g. INSERT INTO cards (front_text, back_text, tags) VALUES ('Q?', 'A', ('tag')). Array columns use a parenthesized list; () means empty.",
+    );
   }
 
   const resourceName = (match[1] ?? "").toLowerCase();
@@ -875,23 +884,30 @@ function parseInsertStatement(normalizedSql: string): SqlInsertStatement {
   assert(rows.length > 0, "INSERT must include at least one VALUES row");
 
   const parsedRows = rows.map((row) => {
-    assert(row.startsWith("(") && row.endsWith(")"), "Invalid VALUES row");
+    assert(
+      row.startsWith("(") && row.endsWith(")"),
+      `Invalid VALUES row: each row must be wrapped in parentheses, e.g. ('Q?', 'A', ('tag')). Got: ${row}`,
+    );
     const values = splitTopLevel(row.slice(1, -1), ",").map((value, index) => {
       const columnName = columnNames[index];
       if (columnName === undefined) {
-        throw new Error("VALUES row contains more values than columns");
+        throw new Error(
+          `VALUES row contains more values than the ${columnNames.length} declared column(s) (${columnNames.join(", ")}). Got: ${row}`,
+        );
       }
 
       const columnDescriptor = getSqlColumnDescriptor(resourceName, columnName);
       if (columnDescriptor.type === "string[]") {
-        return parseStringArrayLiteralList(value);
+        return parseStringArrayLiteralList(value, columnName);
       }
 
       return parseSqlLiteral(value);
     });
 
     if (values.length !== columnNames.length) {
-      throw new Error("VALUES row does not match the declared column count");
+      throw new Error(
+        `VALUES row does not match the ${columnNames.length} declared column(s) (${columnNames.join(", ")}); got ${values.length} value(s) in: ${row}`,
+      );
     }
 
     return values;
@@ -922,7 +938,7 @@ function parseAssignments(resourceName: "cards" | "decks", value: string): SqlUp
     return {
       columnName,
       value: columnDescriptor.type === "string[]"
-        ? parseStringArrayLiteralList(match[2] ?? "")
+        ? parseStringArrayLiteralList(match[2] ?? "", columnName)
         : parseSqlLiteral(match[2] ?? ""),
     };
   });
