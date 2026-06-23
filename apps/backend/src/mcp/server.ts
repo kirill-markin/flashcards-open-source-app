@@ -311,6 +311,11 @@ export function createMcpServer(
         sql: z.string().trim().min(1),
         workspaceId: z.string().uuid().optional(),
       },
+      // sql does full read+write on our own database. Spell out the
+      // (MCP-default) non-read-only + destructive hints explicitly so the
+      // contract is clear next to list_workspaces; openWorldHint is false
+      // because both tools act only within our own closed database domain.
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
     },
     async ({ sql, workspaceId: requestedWorkspaceId }): Promise<CallToolResult> => {
       try {
@@ -346,7 +351,7 @@ export function createMcpServer(
       title: "List flashcards workspaces",
       description: LIST_WORKSPACES_TOOL_DESCRIPTION,
       inputSchema: {},
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async (): Promise<CallToolResult> => {
       try {
