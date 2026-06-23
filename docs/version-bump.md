@@ -27,6 +27,12 @@ Update these package manifests together:
 
 For each of those packages, also update the matching top-level package version fields in the adjacent `package-lock.json`.
 
+Also update the MCP registry manifest at the repo root:
+
+- `server.json`
+
+`server.json` carries the published MCP registry manifest `version`, and it must move with the shared release version so the registry entry matches releases. There is no adjacent `package-lock.json` to update for it.
+
 If backend comments or compatibility notes explicitly describe the currently
 released first-party client version, update those references in the same
 change so the documented minimum-compatible client behavior stays accurate.
