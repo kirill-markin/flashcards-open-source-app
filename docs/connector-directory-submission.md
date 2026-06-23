@@ -17,10 +17,11 @@ URLs appear.
 - **Name:** Flashcards Open Source App
 - **Tagline (≤55 chars):** Read and write your flashcards over SQL
 - **Categories:** Productivity, Education
-- **Icon:** repository icon, vector source at `apps/web/public/icon.svg` with a
-  rasterized preview at `apps/web/public/icon-preview.png` (also published on the
-  marketing site). If a directory requires a PNG at a specific export size,
-  derive it from `icon.svg`.
+- **Icon:** repository icon, vector source at `apps/web/public/icon.svg`
+  (512×512 viewBox) with a 512×512 rasterized preview at
+  `apps/web/public/icon-preview.png` (also published on the marketing site).
+  If a directory requires a PNG at a larger export size, derive it from
+  `icon.svg`.
 - **Documentation URL:** https://flashcards-open-source-app.com/docs/
 - **Privacy URL:** https://flashcards-open-source-app.com/privacy/
 - **Support URL:** https://flashcards-open-source-app.com/support/
@@ -84,13 +85,17 @@ purpose.
 
 | Tool | Purpose | Annotations |
 | --- | --- | --- |
-| `sql_query` | Read-only access to cards and decks (`SHOW TABLES`, `DESCRIBE`, `SHOW COLUMNS`, `SELECT`); runs inside a Postgres `READ ONLY` transaction. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
+| `sql_query` | Read-only access to cards and decks (`SHOW TABLES`, `DESCRIBE`, `SHOW COLUMNS`, `SELECT`); every caller mutation is rejected at parse time by the statement-direction guard, so the only writes that can occur on this path are the system's own bounded FSRS repair-on-read, never anything the caller controls. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
 | `sql_execute` | Write access to cards and decks (`INSERT`, `UPDATE`, `DELETE`) as an atomic batch. | `readOnlyHint: false`, `destructiveHint: true`, `openWorldHint: false` |
 | `list_workspaces` | List the authenticated user's workspaces so the client can pick one before querying. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
 
 ## Reviewer test walkthrough
 
 ### Obtain access (email OTP flow)
+
+The reviewer demo email plus its placeholder code/password are supplied
+privately through each directory's submission portal and are never committed to
+this repository.
 
 1. Send a one-time code to the reviewer email:
    `POST https://auth.flashcards-open-source-app.com/api/agent/send-code` with
