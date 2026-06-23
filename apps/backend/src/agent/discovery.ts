@@ -19,7 +19,8 @@ type AgentDiscoveryEnvelope = Readonly<{
     surface: Readonly<{
       accountUrl: string;
       workspacesUrl: string;
-      sqlUrl: string;
+      sqlQueryUrl: string;
+      sqlExecuteUrl: string;
     }>;
     mcp: Readonly<{
       url: string;
@@ -106,19 +107,21 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
         "Load account context",
         "Select a workspace",
         "Inspect the published SQL surface through OpenAPI and SQL introspection",
-        "Read and write cards and decks through /agent/sql",
+        "Read cards and decks through POST /agent/sql/query (read-only)",
+        "Write cards and decks through POST /agent/sql/execute (INSERT, UPDATE, DELETE)",
       ],
       authBaseUrl,
       apiBaseUrl,
       surface: {
         accountUrl: `${apiBaseUrl}/agent/me`,
         workspacesUrl: `${apiBaseUrl}/agent/workspaces`,
-        sqlUrl: `${apiBaseUrl}/agent/sql`,
+        sqlQueryUrl: `${apiBaseUrl}/agent/sql/query`,
+        sqlExecuteUrl: `${apiBaseUrl}/agent/sql/execute`,
       },
       mcp: {
         url: `${mcpBaseUrl}/mcp`,
         description:
-          "Remote MCP server for AI clients that connect through custom connectors (for example Claude.ai or ChatGPT). Add the url as a custom connector and authorize through OAuth, then use the sql tool to read and write cards and decks. Headless or CLI clients may instead send Authorization: Bearer fca_… using the agent API key from email_otp_then_api_key login (the same key as the REST agent surface), with no OAuth or browser needed.",
+          "Remote MCP server for AI clients that connect through custom connectors (for example Claude.ai or ChatGPT). Add the url as a custom connector and authorize through OAuth, then use the sql_query tool to read and the sql_execute tool to write cards and decks. Headless or CLI clients may instead send Authorization: Bearer fca_… using the agent API key from email_otp_then_api_key login (the same key as the REST agent surface), with no OAuth or browser needed.",
         authorization: {
           type: "oauth2",
           authorizationServer: authBaseUrl,
@@ -135,7 +138,7 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
       },
     },
     instructions:
-      `Start with POST ${authBaseUrl}/api/agent/send-code using the user's email. After send-code, follow the returned instructions: normal accounts require the 8-digit email code, while configured review/demo accounts use a deterministic 8-digit placeholder and do not send email. Do not immediately replay send-code. Then POST ${authBaseUrl}/api/agent/verify-code with the otpSessionToken, code, and label to obtain an API key. After login, call GET ${apiBaseUrl}/agent/me, then GET ${apiBaseUrl}/agent/workspaces?limit=100. If no workspace is selected for this API key, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select or create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}. After workspace bootstrap, use POST ${apiBaseUrl}/agent/sql for all shared card and deck reads and writes. For routine low-risk writes, a clear user request already counts as permission. Ask again only for risky or unclear actions. SELECT returns at most 100 rows per statement, and INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls. Use ${docs.openapiUrl} for the published external agent contract. The SQL surface is intentionally limited and is not full PostgreSQL.`,
+      `Start with POST ${authBaseUrl}/api/agent/send-code using the user's email. After send-code, follow the returned instructions: normal accounts require the 8-digit email code, while configured review/demo accounts use a deterministic 8-digit placeholder and do not send email. Do not immediately replay send-code. Then POST ${authBaseUrl}/api/agent/verify-code with the otpSessionToken, code, and label to obtain an API key. After login, call GET ${apiBaseUrl}/agent/me, then GET ${apiBaseUrl}/agent/workspaces?limit=100. If no workspace is selected for this API key, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select or create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}. After workspace bootstrap, use POST ${apiBaseUrl}/agent/sql/query for all shared card and deck reads (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT) and POST ${apiBaseUrl}/agent/sql/execute for all writes (INSERT, UPDATE, DELETE). For routine low-risk writes, a clear user request already counts as permission. Ask again only for risky or unclear actions. SELECT returns at most 100 rows per statement, and INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls. Use ${docs.openapiUrl} for the published external agent contract. The SQL surface is intentionally limited and is not full PostgreSQL.`,
     docs,
   };
 }

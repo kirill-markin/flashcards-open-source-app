@@ -28,23 +28,26 @@ get:
                 - Load account context
                 - Select a workspace
                 - Inspect the published SQL surface through OpenAPI and SQL introspection
-                - Read and write cards and decks through /agent/sql
+                - Read cards and decks through POST /agent/sql/query (read-only)
+                - Write cards and decks through POST /agent/sql/execute (INSERT, UPDATE, DELETE)
               authBaseUrl: https://auth.flashcards-open-source-app.com
               apiBaseUrl: https://api.flashcards-open-source-app.com/v1
               surface:
                 accountUrl: https://api.flashcards-open-source-app.com/v1/agent/me
                 workspacesUrl: https://api.flashcards-open-source-app.com/v1/agent/workspaces
-                sqlUrl: https://api.flashcards-open-source-app.com/v1/agent/sql
+                sqlQueryUrl: https://api.flashcards-open-source-app.com/v1/agent/sql/query
+                sqlExecuteUrl: https://api.flashcards-open-source-app.com/v1/agent/sql/execute
               mcp:
                 url: https://mcp.flashcards-open-source-app.com/mcp
                 description: >-
                   Remote MCP server for AI clients that connect through custom
                   connectors (for example Claude.ai or ChatGPT). Add the url as a
-                  custom connector and authorize through OAuth, then use the sql
-                  tool to read and write cards and decks. Headless or CLI clients
-                  may instead send Authorization: Bearer fca_… using the agent
-                  API key from email_otp_then_api_key login (the same key as the
-                  REST agent surface), with no OAuth or browser needed.
+                  custom connector and authorize through OAuth, then use the
+                  sql_query tool to read and the sql_execute tool to write cards
+                  and decks. Headless or CLI clients may instead send
+                  Authorization: Bearer fca_… using the agent API key from
+                  email_otp_then_api_key login (the same key as the REST agent
+                  surface), with no OAuth or browser needed.
                 authorization:
                   type: oauth2
                   authorizationServer: https://auth.flashcards-open-source-app.com
@@ -75,8 +78,10 @@ get:
               or create one with POST
               https://api.flashcards-open-source-app.com/v1/agent/workspaces
               using {"name":"Personal"}. After workspace bootstrap, use POST
-              https://api.flashcards-open-source-app.com/v1/agent/sql for all
-              shared card and deck reads and writes. For routine low-risk
+              https://api.flashcards-open-source-app.com/v1/agent/sql/query for
+              shared card and deck reads and POST
+              https://api.flashcards-open-source-app.com/v1/agent/sql/execute
+              for writes. For routine low-risk
               writes, a clear user request already counts as permission. Ask
               again only for risky or unclear actions. SELECT returns at most
               100 rows per statement, and INSERT, UPDATE, and DELETE may affect

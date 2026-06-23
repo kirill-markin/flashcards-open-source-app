@@ -5,7 +5,7 @@ import {
   createAgentWorkspaceReadyEnvelope,
   createAgentWorkspacesEnvelope,
 } from "../agent/setup";
-import { executeAgentSql } from "../aiTools/agentSql";
+import { runSqlExecute, runSqlQuery } from "../aiTools/agentSql";
 import { loadOpenApiDocument } from "../shared/openapi";
 import { parseOptionalCursorQuery, parseRequiredPageLimit } from "../shared/pagination";
 import {
@@ -68,8 +68,9 @@ async function loadAgentRequest(
  * External-agent HTTP adapter.
  *
  * This file owns request auth, workspace bootstrap, request-body validation,
- * response envelopes, and the `/agent/sql` transport contract. SQL parsing
- * and execution planning live in `apps/backend/src/aiTools/agentSql.ts`.
+ * response envelopes, and the `/agent/sql/query` and `/agent/sql/execute`
+ * transport contracts. SQL parsing and execution planning live in
+ * `apps/backend/src/aiTools/agentSql.ts`.
  */
 export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
@@ -117,11 +118,25 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
     return context.json(createAgentWorkspaceReadyEnvelope(context.req.url, workspace));
   });
 
-  app.post("/agent/sql", async (context) => {
+  app.post("/agent/sql/query", async (context) => {
     const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
     const workspaceId = await requireAccessibleSelectedWorkspaceId(requestContext);
     const body = parseSqlBody(await parseJsonBody(context.req.raw));
-    const result = await executeAgentSql({
+    const result = await runSqlQuery({
+      userId: requestContext.userId,
+      workspaceId,
+      selectedWorkspaceId: requestContext.selectedWorkspaceId,
+      connectionId,
+    }, body.sql);
+
+    return context.json(createAgentEnvelope(context.req.url, result.data, result.instructions));
+  });
+
+  app.post("/agent/sql/execute", async (context) => {
+    const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
+    const workspaceId = await requireAccessibleSelectedWorkspaceId(requestContext);
+    const body = parseSqlBody(await parseJsonBody(context.req.raw));
+    const result = await runSqlExecute({
       userId: requestContext.userId,
       workspaceId,
       selectedWorkspaceId: requestContext.selectedWorkspaceId,

@@ -29,8 +29,9 @@ tags:
       authentication, including per-connection workspace selection.
   - name: sql
     description: >-
-      Single SQL entrypoint for the selected workspace. Internal sync mechanics
-      stay server-side and are not part of this public contract.
+      Split SQL surface for the selected workspace: a read-only query
+      entrypoint and a separate write entrypoint. Internal sync mechanics stay
+      server-side and are not part of this public contract.
 paths:
   /:
     $ref: paths/_.yaml
@@ -46,8 +47,10 @@ paths:
     $ref: paths/agent_workspaces.yaml
   /agent/workspaces/{workspaceId}/select:
     $ref: paths/agent_workspaces_{workspaceId}_select.yaml
-  /agent/sql:
-    $ref: paths/agent_sql.yaml
+  /agent/sql/query:
+    $ref: paths/agent_sql_query.yaml
+  /agent/sql/execute:
+    $ref: paths/agent_sql_execute.yaml
 components:
   securitySchemes:
     ApiKeyHeader:

@@ -75,7 +75,8 @@ post:
               /v1/agent/workspaces?limit=100. If exactly one workspace exists,
               select it if needed. If no workspace exists, create one with POST
               /v1/agent/workspaces using {"name":"Personal"}. After a workspace
-              is selected, use POST /v1/agent/sql for all data access. For
+              is selected, use POST /v1/agent/sql/query for reads and POST
+              /v1/agent/sql/execute for writes. For
               routine low-risk writes, a clear user request already counts as
               permission. Ask again only for risky or unclear actions. Use
               docs.openapiUrl for the published external agent contract.

@@ -95,9 +95,10 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
       MCP_BASE_DOMAIN: props.baseDomain,
-      // The MCP sql tool returns the shared agent envelope; pin the docs base to
-      // the public API host so `docs.openapiUrl` matches `/agent/sql` instead of
-      // resolving against the mcp.<domain> request host.
+      // The MCP sql_query and sql_execute tools return the shared agent
+      // envelope; pin the docs base to the public API host so `docs.openapiUrl`
+      // matches `/agent/sql/query` and `/agent/sql/execute` instead of resolving
+      // against the mcp.<domain> request host.
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
     },
   });

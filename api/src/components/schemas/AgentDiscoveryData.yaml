@@ -55,13 +55,16 @@ properties:
     required:
       - accountUrl
       - workspacesUrl
-      - sqlUrl
+      - sqlQueryUrl
+      - sqlExecuteUrl
     properties:
       accountUrl:
         type: string
       workspacesUrl:
         type: string
-      sqlUrl:
+      sqlQueryUrl:
+        type: string
+      sqlExecuteUrl:
         type: string
   mcp:
     type: object
