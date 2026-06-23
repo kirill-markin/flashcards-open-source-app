@@ -12,7 +12,8 @@ post:
     atomically. SELECT supports projected column lists, LIKE, case-insensitive
     exact string matches via LOWER(column) = 'value', LOWER(column) IN (...),
     and LOWER(column) NOT IN (...), aggregates, GROUP BY, NOW(), standalone
-    ORDER BY RANDOM(), and cards UNNEST tags AS tag.
+    ORDER BY RANDOM(), and cards UNNEST tags AS tag. Array columns (e.g. tags)
+    take a parenthesized list such as ('tag1', 'tag2'), or () for empty.
   security:
     - ApiKeyHeader: []
   requestBody:
@@ -21,8 +22,15 @@ post:
       application/json:
         schema:
           $ref: ../components/schemas/AgentSqlRequest.yaml
-        example:
-          sql: SELECT * FROM workspace LIMIT 1 OFFSET 0
+        examples:
+          selectWorkspace:
+            value:
+              sql: SELECT * FROM workspace LIMIT 1 OFFSET 0
+          insertCard:
+            value:
+              sql: >-
+                INSERT INTO cards (front_text, back_text, tags) VALUES
+                ('Question?', 'Answer', ('tag'))
   responses:
     '200':
       description: SQL executed successfully
