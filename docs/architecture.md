@@ -254,7 +254,7 @@ The machine-facing API is intentionally narrower than the human app API:
 - account context at `GET /v1/agent/me`
 - workspace listing and bootstrap at `GET/POST /v1/agent/workspaces`
 - workspace selection at `POST /v1/agent/workspaces/{workspaceId}/select`
-- SQL reads and writes at `POST /v1/agent/sql`
+- SQL reads at `POST /v1/agent/sql/query` (read-only) and SQL writes at `POST /v1/agent/sql/execute`
 - published docs at `GET /v1/agent/openapi.json` and `GET /v1/agent/swagger.json`
 
 The SQL dialect is not full PostgreSQL. It is a constrained contract implemented in `apps/backend/src/aiTools`.

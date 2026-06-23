@@ -1,0 +1,145 @@
+post:
+  tags:
+    - sql
+  summary: Run write published SQL against the selected workspace
+  description: >-
+    Executes write statements of the published Flashcards SQL dialect for the
+    currently selected workspace. This is not full PostgreSQL. Supported
+    statements are INSERT, UPDATE, and DELETE across published writable
+    resources only. This endpoint rejects SHOW TABLES, DESCRIBE, SHOW COLUMNS,
+    and SELECT; use POST /agent/sql/query for reads. Multiple write statements
+    may be separated with semicolons in one sql string and are executed
+    atomically: all statements succeed or the whole batch fails. INSERT,
+    UPDATE, and DELETE may affect at most 100 rows per statement. Array columns
+    (e.g. tags) take a parenthesized list such as ('tag1', 'tag2'), or () for
+    empty.
+  security:
+    - ApiKeyHeader: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/AgentSqlRequest.yaml
+        examples:
+          insertCard:
+            value:
+              sql: >-
+                INSERT INTO cards (front_text, back_text, tags) VALUES
+                ('Question?', 'Answer', ('tag'))
+          updateCard:
+            value:
+              sql: >-
+                UPDATE cards SET back_text = 'Updated answer' WHERE card_id =
+                '50b5b928-7f04-4cc8-878d-6cd0e8b98474'
+          mutationBatch:
+            value:
+              sql: >-
+                UPDATE cards SET back_text = 'First update' WHERE card_id =
+                '50b5b928-7f04-4cc8-878d-6cd0e8b98474'; UPDATE cards SET
+                back_text = 'Second update' WHERE card_id =
+                '60b5b928-7f04-4cc8-878d-6cd0e8b98475'
+  responses:
+    '200':
+      description: SQL write executed successfully
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentSqlEnvelope.yaml
+          examples:
+            updateCard:
+              value:
+                ok: true
+                data:
+                  statementType: update
+                  resource: cards
+                  sql: >-
+                    UPDATE cards SET back_text = 'Updated answer' WHERE card_id
+                    = '50b5b928-7f04-4cc8-878d-6cd0e8b98474'
+                  normalizedSql: >-
+                    UPDATE cards SET back_text = 'Updated answer' WHERE card_id
+                    = '50b5b928-7f04-4cc8-878d-6cd0e8b98474'
+                  rows: []
+                  affectedCount: 1
+                instructions: >-
+                  The mutation succeeded. Read data.affectedCount for the
+                  summary. If you need the resulting rows, inspect data.rows or
+                  run a follow-up SELECT query. This endpoint supports the
+                  published SQL dialect, not full PostgreSQL. Use
+                  docs.openapiUrl for the published external agent contract.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+            mutationBatch:
+              value:
+                ok: true
+                data:
+                  statementType: batch
+                  resource: null
+                  sql: >-
+                    UPDATE cards SET back_text = 'First update' WHERE card_id =
+                    '50b5b928-7f04-4cc8-878d-6cd0e8b98474'; UPDATE cards SET
+                    back_text = 'Second update' WHERE card_id =
+                    '60b5b928-7f04-4cc8-878d-6cd0e8b98475'
+                  normalizedSql: >-
+                    UPDATE cards SET back_text = 'First update' WHERE card_id =
+                    '50b5b928-7f04-4cc8-878d-6cd0e8b98474'; UPDATE cards SET
+                    back_text = 'Second update' WHERE card_id =
+                    '60b5b928-7f04-4cc8-878d-6cd0e8b98475'
+                  statements:
+                    - statementType: update
+                      resource: cards
+                      sql: >-
+                        UPDATE cards SET back_text = 'First update' WHERE
+                        card_id = '50b5b928-7f04-4cc8-878d-6cd0e8b98474'
+                      normalizedSql: >-
+                        UPDATE cards SET back_text = 'First update' WHERE
+                        card_id = '50b5b928-7f04-4cc8-878d-6cd0e8b98474'
+                      rows: []
+                      affectedCount: 1
+                    - statementType: update
+                      resource: cards
+                      sql: >-
+                        UPDATE cards SET back_text = 'Second update' WHERE
+                        card_id = '60b5b928-7f04-4cc8-878d-6cd0e8b98475'
+                      normalizedSql: >-
+                        UPDATE cards SET back_text = 'Second update' WHERE
+                        card_id = '60b5b928-7f04-4cc8-878d-6cd0e8b98475'
+                      rows: []
+                      affectedCount: 1
+                  statementCount: 2
+                  affectedCountTotal: 2
+                instructions: >-
+                  The batch mutation succeeded. Read data.statements for
+                  per-statement results and data.affectedCountTotal for the
+                  summary. This endpoint supports the published SQL dialect,
+                  not full PostgreSQL. Use docs.openapiUrl for the published
+                  external agent contract.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+    '503':
+      description: Service temporarily unavailable
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying the same SQL write request.
+          schema:
+            type: string
+          example: '1'
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml
+          example:
+            ok: false
+            data: {}
+            instructions: Wait for the Retry-After header before retrying the same request.
+            docs:
+              openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+            error:
+              code: SERVICE_UNAVAILABLE
+              message: Service is temporarily unavailable. Retry shortly.
+    default:
+      description: Agent error envelope
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

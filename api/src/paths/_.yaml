@@ -28,24 +28,27 @@ get:
               capabilitiesAfterLogin:
                 - Load account context
                 - Select a workspace
-                - Run SQL reads and writes
+                - Run SQL reads through POST /agent/sql/query
+                - Run SQL writes through POST /agent/sql/execute
                 - Inspect the published SQL surface
               authBaseUrl: https://auth.flashcards-open-source-app.com
               apiBaseUrl: https://api.flashcards-open-source-app.com/v1
               surface:
                 accountUrl: https://api.flashcards-open-source-app.com/v1/agent/me
                 workspacesUrl: https://api.flashcards-open-source-app.com/v1/agent/workspaces
-                sqlUrl: https://api.flashcards-open-source-app.com/v1/agent/sql
+                sqlQueryUrl: https://api.flashcards-open-source-app.com/v1/agent/sql/query
+                sqlExecuteUrl: https://api.flashcards-open-source-app.com/v1/agent/sql/execute
               mcp:
                 url: https://mcp.flashcards-open-source-app.com/mcp
                 description: >-
                   Remote MCP server for AI clients that connect through custom
                   connectors (for example Claude.ai or ChatGPT). Add the url as a
-                  custom connector and authorize through OAuth, then use the sql
-                  tool to read and write cards and decks. Headless or CLI clients
-                  may instead send Authorization: Bearer fca_… using the agent
-                  API key from email_otp_then_api_key login (the same key as the
-                  REST agent surface), with no OAuth or browser needed.
+                  custom connector and authorize through OAuth, then use the
+                  sql_query tool to read and the sql_execute tool to write cards
+                  and decks. Headless or CLI clients may instead send
+                  Authorization: Bearer fca_… using the agent API key from
+                  email_otp_then_api_key login (the same key as the REST agent
+                  surface), with no OAuth or browser needed.
                 authorization:
                   type: oauth2
                   authorizationServer: https://auth.flashcards-open-source-app.com
@@ -70,7 +73,8 @@ get:
               with the otpSessionToken, code, and label to obtain a long-lived
               API key. After login, call GET /v1/agent/me, then GET
               /v1/agent/workspaces?limit=100. If no workspace is selected,
-              select one before using POST /v1/agent/sql. For routine low-risk
+              select one before using POST /v1/agent/sql/query for reads or
+              POST /v1/agent/sql/execute for writes. For routine low-risk
               writes, a clear user request already counts as permission. Ask
               again only for risky or unclear actions. Use docs.openapiUrl for
               the published external agent contract.

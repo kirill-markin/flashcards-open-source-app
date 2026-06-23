@@ -28,7 +28,8 @@ const expectedPublishedExternalAgentMethods = {
   "/agent/me": ["get"],
   "/agent/workspaces": ["get", "post"],
   "/agent/workspaces/{workspaceId}/select": ["post"],
-  "/agent/sql": ["post"],
+  "/agent/sql/query": ["post"],
+  "/agent/sql/execute": ["post"],
 } as const satisfies Readonly<Record<string, ReadonlyArray<OperationMethodName>>>;
 
 function loadPublishedOpenApiDocument(): OpenApiDocumentForTest {

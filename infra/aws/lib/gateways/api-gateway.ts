@@ -706,7 +706,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   workspaceSyncReviewHistory.addResource("pull").addMethod("POST", integration);
   workspaceSyncReviewHistory.addResource("import").addMethod("POST", integration);
 
-  agent.addResource("sql").addMethod("POST", integration);
+  const agentSql = agent.addResource("sql");
+  agentSql.addResource("query").addMethod("POST", integration);
+  agentSql.addResource("execute").addMethod("POST", integration);
 
   const legacyAuth = restApi.root.addResource("auth");
   legacyAuth.addMethod("ANY", notFoundIntegration, notFoundMethodOptions);

@@ -30,8 +30,9 @@ get:
               continue with the same endpoint and cursor=data.nextCursor until
               it becomes null. If no workspace is selected, call POST
               /v1/agent/workspaces/{workspaceId}/select. After a workspace is
-              selected, use POST /v1/agent/sql for reads, writes, and SQL
-              introspection. For routine low-risk writes, a clear user request
+              selected, use POST /v1/agent/sql/query for reads and SQL
+              introspection and POST /v1/agent/sql/execute for writes. For
+              routine low-risk writes, a clear user request
               already counts as permission. Ask again only for risky or unclear
               actions. Read payload from data.* and use docs.openapiUrl for the
               published external agent contract.

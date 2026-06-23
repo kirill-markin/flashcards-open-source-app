@@ -42,10 +42,11 @@ get:
                   isSelected: true
               nextCursor: null
             instructions: >-
-              Workspace bootstrap is complete. Use POST /v1/agent/sql for
-              reads, writes, and SQL introspection. For example, query cards
-              with SELECT * FROM cards ORDER BY updated_at DESC LIMIT 20 OFFSET
-              0. For routine low-risk writes, a clear user request already
+              Workspace bootstrap is complete. Use POST /v1/agent/sql/query for
+              reads and SQL introspection and POST /v1/agent/sql/execute for
+              writes. For example, query cards with SELECT * FROM cards ORDER BY
+              updated_at DESC LIMIT 20 OFFSET 0 through POST /v1/agent/sql/query.
+              For routine low-risk writes, a clear user request already
               counts as permission. Ask again only for risky or unclear
               actions. Read payload from data.* and use docs.openapiUrl for the
               published external agent contract.
@@ -109,9 +110,10 @@ post:
                 createdAt: '2026-03-11T08:50:55.898Z'
                 isSelected: true
             instructions: >-
-              Workspace bootstrap is complete. Use POST /v1/agent/sql for
-              reads, writes, and SQL introspection. Start discovery with SHOW
-              TABLES or DESCRIBE cards when helpful. For routine low-risk
+              Workspace bootstrap is complete. Use POST /v1/agent/sql/query for
+              reads and SQL introspection and POST /v1/agent/sql/execute for
+              writes. Start discovery with SHOW TABLES or DESCRIBE cards through
+              POST /v1/agent/sql/query when helpful. For routine low-risk
               writes, a clear user request already counts as permission. Ask
               again only for risky or unclear actions. This endpoint accepts
               the published SQL dialect, not full PostgreSQL. Read payload from

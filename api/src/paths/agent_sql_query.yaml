@@ -1,0 +1,171 @@
+post:
+  tags:
+    - sql
+  summary: Run read-only published SQL against the selected workspace
+  description: >-
+    Executes read-only statements of the published Flashcards SQL dialect for
+    the currently selected workspace. This is not full PostgreSQL. Supported
+    statements are SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT across
+    published logical resources only. This endpoint rejects INSERT, UPDATE, and
+    DELETE; use POST /agent/sql/execute for writes. Multiple read statements may
+    be separated with semicolons in one sql string. SELECT supports projected
+    column lists, LIKE, case-insensitive exact string matches via
+    LOWER(column) = 'value', LOWER(column) IN (...), and LOWER(column) NOT IN
+    (...), aggregates, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards
+    UNNEST tags AS tag.
+  security:
+    - ApiKeyHeader: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/AgentSqlRequest.yaml
+        examples:
+          selectWorkspace:
+            value:
+              sql: SELECT * FROM workspace LIMIT 1 OFFSET 0
+          showTables:
+            value:
+              sql: SHOW TABLES
+          projectedCards:
+            value:
+              sql: >-
+                SELECT card_id, front_text, back_text, tags FROM cards WHERE
+                LOWER(front_text) LIKE '%example%' OR LOWER(back_text) LIKE
+                '%example%' ORDER BY created_at DESC, card_id ASC LIMIT 20
+                OFFSET 0
+  responses:
+    '200':
+      description: SQL query executed successfully
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentSqlEnvelope.yaml
+          examples:
+            selectWorkspace:
+              value:
+                ok: true
+                data:
+                  statementType: select
+                  resource: workspace
+                  sql: SELECT * FROM workspace LIMIT 1 OFFSET 0
+                  normalizedSql: SELECT * FROM workspace LIMIT 1 OFFSET 0
+                  rows:
+                    - workspace_id: 50b5b928-7f04-4cc8-878d-6cd0e8b98474
+                      name: Personal
+                      created_at: '2026-03-10T09:00:00.000Z'
+                      algorithm: fsrs-6
+                      desired_retention: 0.9
+                      learning_steps_minutes:
+                        - 1
+                        - 10
+                      relearning_steps_minutes:
+                        - 10
+                      maximum_interval_days: 36500
+                      enable_fuzz: true
+                  rowCount: 4
+                  limit: 1
+                  offset: 0
+                  hasMore: false
+                instructions: >-
+                  Read rows from data.rows. No further rows are available for
+                  this query. LIMIT defaults to 100 and is capped at 100.
+                  Prefer a stable ORDER BY clause when paginating. This
+                  endpoint supports the published SQL dialect, not full
+                  PostgreSQL. Use docs.openapiUrl for the published external agent contract.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+            showTables:
+              value:
+                ok: true
+                data:
+                  statementType: show_tables
+                  resource: null
+                  sql: SHOW TABLES
+                  normalizedSql: SHOW TABLES
+                  rows:
+                    - table_name: workspace
+                      writable: false
+                      description: Selected workspace identity and scheduler settings.
+                    - table_name: cards
+                      writable: true
+                      description: Cards in the selected workspace.
+                    - table_name: decks
+                      writable: true
+                      description: Decks in the selected workspace.
+                    - table_name: review_events
+                      writable: false
+                      description: Immutable review event rows.
+                  rowCount: 1
+                  limit: null
+                  offset: null
+                  hasMore: false
+                instructions: >-
+                  Read rows from data.rows. This endpoint supports the
+                  published SQL dialect, not full PostgreSQL. Use
+                  docs.openapiUrl for the published external agent contract.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+            projectedCards:
+              value:
+                ok: true
+                data:
+                  statementType: select
+                  resource: cards
+                  sql: >-
+                    SELECT card_id, front_text, back_text, tags FROM cards
+                    WHERE LOWER(front_text) LIKE '%example%' OR
+                    LOWER(back_text) LIKE '%example%' ORDER BY created_at DESC,
+                    card_id ASC LIMIT 20 OFFSET 0
+                  normalizedSql: >-
+                    SELECT card_id, front_text, back_text, tags FROM cards
+                    WHERE LOWER(front_text) LIKE '%example%' OR
+                    LOWER(back_text) LIKE '%example%' ORDER BY created_at DESC,
+                    card_id ASC LIMIT 20 OFFSET 0
+                  rows:
+                    - card_id: 50b5b928-7f04-4cc8-878d-6cd0e8b98474
+                      front_text: Example question
+                      back_text: Example answer
+                      tags:
+                        - english
+                        - examples
+                  rowCount: 1
+                  limit: 20
+                  offset: 0
+                  hasMore: false
+                instructions: >-
+                  Read rows from data.rows. No further rows are available for
+                  this query. LIMIT defaults to 100 and is capped at 100.
+                  Prefer a stable ORDER BY clause when paginating. This
+                  endpoint supports the published SQL dialect, not full
+                  PostgreSQL. Use docs.openapiUrl for the published external agent contract.
+                docs:
+                  openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+    '503':
+      description: Service temporarily unavailable
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying the same SQL query request.
+          schema:
+            type: string
+          example: '1'
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml
+          example:
+            ok: false
+            data: {}
+            instructions: Wait for the Retry-After header before retrying the same request.
+            docs:
+              openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+            error:
+              code: SERVICE_UNAVAILABLE
+              message: Service is temporarily unavailable. Retry shortly.
+    default:
+      description: Agent error envelope
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml
