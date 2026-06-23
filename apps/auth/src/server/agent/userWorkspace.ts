@@ -12,6 +12,7 @@ import {
   query,
   type DatabaseExecutor,
 } from "../../db.js";
+import { buildSystemWorkspaceReplicaId } from "../sync/workspaceReplicaId.js";
 
 const AUTO_CREATED_WORKSPACE_NAME = "Personal";
 
@@ -55,7 +56,11 @@ async function createWorkspaceInExecutor(
   userId: string,
 ): Promise<string> {
   const workspaceId = randomUUID();
-  const bootstrapReplicaId = randomUUID();
+  const bootstrapReplicaId = buildSystemWorkspaceReplicaId(
+    workspaceId,
+    "workspace_seed",
+    "workspace-seed",
+  );
   const bootstrapTimestamp = new Date().toISOString();
   const bootstrapOperationId = `bootstrap-workspace-${workspaceId}`;
 
@@ -93,6 +98,7 @@ async function createWorkspaceInExecutor(
       "replica_id, workspace_id, user_id, actor_kind, actor_key, platform, app_version, last_seen_at",
       ")",
       "VALUES ($1, $2, $3, 'workspace_seed', 'workspace-seed', 'system', $4, now())",
+      "ON CONFLICT (replica_id) DO NOTHING",
     ].join(" "),
     [bootstrapReplicaId, workspaceId, userId, "server-bootstrap"],
   );
