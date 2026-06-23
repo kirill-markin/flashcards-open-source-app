@@ -70,6 +70,7 @@ properties:
       - url
       - description
       - authorization
+      - apiKeyBearer
     properties:
       url:
         type: string
@@ -93,4 +94,27 @@ properties:
           authorizationServerMetadataUrl:
             type: string
           protectedResourceMetadataUrl:
+            type: string
+      apiKeyBearer:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+          - header
+          - scheme
+          - description
+        properties:
+          type:
+            type: string
+            enum:
+              - api_key
+          header:
+            type: string
+            enum:
+              - Authorization
+          scheme:
+            type: string
+            enum:
+              - Bearer
+          description:
             type: string
