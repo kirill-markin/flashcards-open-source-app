@@ -221,6 +221,21 @@ export function parseAgentApiKeyRevokeResponse(value: unknown, endpoint: string)
   };
 }
 
+export function parseAgentApiKeyCreateResponse(value: unknown, endpoint: string): Readonly<{
+  ok: true;
+  apiKey: string;
+  connection: AgentApiKeyConnection;
+  instructions: string;
+}> {
+  const objectValue = parseObject(value, endpoint, "");
+  return {
+    ok: parseLiteral(parseRequiredField(objectValue, "ok", endpoint, "", parseBoolean), endpoint, "ok", true),
+    apiKey: parseRequiredField(objectValue, "apiKey", endpoint, "", parseString),
+    connection: parseRequiredField(objectValue, "connection", endpoint, "", parseAgentApiKeyConnection),
+    instructions: parseRequiredField(objectValue, "instructions", endpoint, "", parseString),
+  };
+}
+
 export function parseDeleteAccountResponse(value: unknown, endpoint: string): Readonly<{ ok: true }> {
   const objectValue = parseObject(value, endpoint, "");
   return {

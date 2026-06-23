@@ -1,5 +1,6 @@
 import {
   parseAgentApiKeyConnectionsEnvelopeResponse,
+  parseAgentApiKeyCreateResponse,
   parseAgentApiKeyRevokeResponse,
   parseAccountPreferencesEnvelopeResponse,
   parseCommunityPublicProfileResponse,
@@ -10,6 +11,7 @@ import type {
   AccountPreferencesEnvelope,
   AgentApiKeyConnection,
   AgentApiKeyConnectionsResponse,
+  AgentApiKeyCreateResponse,
   AgentApiKeyRevokeResponse,
   CommunityProfilePatch,
   CommunityPublicProfile,
@@ -46,6 +48,17 @@ export async function listAgentApiKeys(): Promise<AgentApiKeyConnectionsResponse
     connections,
     instructions,
   };
+}
+
+export async function createAgentApiKey(label: string): Promise<AgentApiKeyCreateResponse> {
+  return parseContractResponse(
+    await requestJson("/agent-api-keys", {
+      method: "POST",
+      body: JSON.stringify({ label }),
+    }, allowAuthRecovery),
+    "POST /agent-api-keys",
+    parseAgentApiKeyCreateResponse,
+  );
 }
 
 export async function revokeAgentApiKey(connectionId: string): Promise<AgentApiKeyRevokeResponse> {

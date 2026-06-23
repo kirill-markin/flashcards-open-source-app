@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactElement } from "react";
-import { ApiContractError, listAgentApiKeys, revokeAgentApiKey } from "../../../api";
+import { ApiContractError, createAgentApiKey, listAgentApiKeys, revokeAgentApiKey } from "../../../api";
 import { useAppData } from "../../../appData";
 import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
@@ -17,11 +17,18 @@ export function AgentConnectionsScreen(): ReactElement {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [busyConnectionId, setBusyConnectionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(isSessionVerified);
+  const [newKeyLabel, setNewKeyLabel] = useState<string>("");
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [generatedApiKey, setGeneratedApiKey] = useState<string | null>(null);
+  const [isCopied, setIsCopied] = useState<boolean>(false);
   const technicalErrorMessage = t("appError.technicalError.message");
 
   useEffect(() => {
     if (isSessionVerified === false) {
       setIsLoading(false);
+      // Do not keep a one-time secret on screen across a session loss/redirect.
+      setGeneratedApiKey(null);
+      setIsCopied(false);
       return;
     }
 
@@ -63,6 +70,77 @@ export function AgentConnectionsScreen(): ReactElement {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  async function handleGenerate(): Promise<void> {
+    if (isSessionVerified === false || isGenerating) {
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const result = await createAgentApiKey(newKeyLabel.trim());
+      setGeneratedApiKey(result.apiKey);
+      setIsCopied(false);
+      setNewKeyLabel("");
+      setErrorMessage("");
+      await loadConnections();
+    } catch (error) {
+      const wasContractErrorCaptured = captureApiContractError(error, {
+        feature: "settings",
+        sourceAction: "agent_connection_create",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+      });
+      let wasCaptured = wasContractErrorCaptured;
+      if (error instanceof ApiContractError === false) {
+        wasCaptured = captureAppOperationError(error, {
+          feature: "settings",
+          operation: "agent_connection_create",
+          userId: session?.userId ?? null,
+          workspaceId: activeWorkspace?.workspaceId ?? null,
+          installationId: cloudSettings?.installationId ?? null,
+          entityId: null,
+        });
+      }
+      if (wasCaptured) {
+        showCapturedTechnicalError(error);
+        setErrorMessage(technicalErrorMessage);
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : t("agentConnections.generateError"));
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  async function handleCopyGeneratedKey(): Promise<void> {
+    if (generatedApiKey === null || typeof navigator.clipboard?.writeText !== "function") {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(generatedApiKey);
+      setIsCopied(true);
+    } catch (error) {
+      const wasCaptured = captureAppOperationError(error, {
+        feature: "settings",
+        operation: "agent_connection_copy_key",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+        entityId: null,
+      });
+      if (wasCaptured) {
+        showCapturedTechnicalError(error);
+      }
+    }
+  }
+
+  function dismissGeneratedKey(): void {
+    setGeneratedApiKey(null);
+    setIsCopied(false);
   }
 
   async function handleRevoke(connectionId: string): Promise<void> {
@@ -117,6 +195,70 @@ export function AgentConnectionsScreen(): ReactElement {
       {isSessionVerified === false ? <p className="subtitle">{t("agentConnections.restoringSession")}</p> : null}
       {errorMessage !== "" ? <p className="error-banner">{errorMessage}</p> : null}
       {instructions !== "" ? <p className="subtitle">{instructions}</p> : null}
+
+      <section className="content-card settings-generate-card">
+        <label className="cell-stack" htmlFor="agent-key-label">
+          <span className="cell-secondary">{t("agentConnections.generateTitle")}</span>
+          <input
+            id="agent-key-label"
+            data-testid="agent-key-label-input"
+            className="settings-input"
+            type="text"
+            value={newKeyLabel}
+            placeholder={t("agentConnections.labelPlaceholder")}
+            autoCapitalize="none"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            disabled={isSessionVerified === false || isGenerating}
+            onChange={(event) => {
+              setNewKeyLabel(event.target.value);
+            }}
+          />
+        </label>
+        <div className="screen-actions">
+          <button
+            className="primary-btn"
+            type="button"
+            data-testid="agent-key-generate-button"
+            onClick={() => void handleGenerate()}
+            disabled={isSessionVerified === false || isGenerating || newKeyLabel.trim() === ""}
+          >
+            {t("agentConnections.generate")}
+          </button>
+        </div>
+      </section>
+
+      {generatedApiKey !== null ? (
+        <section
+          className="content-card settings-generated-key-card"
+          data-testid="agent-key-generated-panel"
+        >
+          <div className="cell-stack">
+            <h2 className="panel-subtitle">{t("agentConnections.keyShownOnceTitle")}</h2>
+            <p className="error-banner settings-delete-warning">{t("agentConnections.keyShownOnceWarning")}</p>
+            <code className="settings-key-value" data-testid="agent-key-generated-value">{generatedApiKey}</code>
+          </div>
+          <div className="screen-actions">
+            <button
+              className="primary-btn"
+              type="button"
+              data-testid="agent-key-copy-button"
+              onClick={() => void handleCopyGeneratedKey()}
+            >
+              {isCopied ? t("agentConnections.copied") : t("agentConnections.copy")}
+            </button>
+            <button
+              className="ghost-btn"
+              type="button"
+              data-testid="agent-key-dismiss-button"
+              onClick={dismissGeneratedKey}
+            >
+              {t("agentConnections.done")}
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <div className="settings-connections-list">
         {isLoading ? <div className="content-card">{t("agentConnections.loading")}</div> : null}
