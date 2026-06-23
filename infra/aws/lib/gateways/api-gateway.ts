@@ -674,6 +674,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
 
   const agentApiKeys = restApi.root.addResource("agent-api-keys");
   agentApiKeys.addMethod("GET", integration);
+  agentApiKeys.addMethod("POST", integration);
   agentApiKeys
     .addResource("{connectionId}")
     .addResource("revoke")

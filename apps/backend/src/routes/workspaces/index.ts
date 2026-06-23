@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import {
+  createAgentConnectionCreateEnvelope,
   createAgentConnectionListEnvelope,
   createAgentConnectionRevokeEnvelope,
   createAgentWorkspaceReadyEnvelope,
@@ -8,7 +9,9 @@ import {
 } from "../../agent/setup";
 import {
   type AgentApiKeyConnection,
+  createAgentApiKeyForUser,
   listAgentApiKeyConnectionsPageForUser,
+  normalizeAgentApiKeyLabel,
   revokeAgentApiKeyConnectionForUser,
 } from "../../agent/apiKeys";
 import {
@@ -78,6 +81,13 @@ type WorkspaceResetProgressResponse = ResetWorkspaceProgressResult;
 type AgentApiKeyConnectionsPageResponse = Readonly<{
   connections: ReadonlyArray<AgentApiKeyConnection>;
   nextCursor: string | null;
+  instructions: string;
+}>;
+
+type AgentApiKeyCreateResponse = Readonly<{
+  ok: true;
+  apiKey: string;
+  connection: AgentApiKeyConnection;
   instructions: string;
 }>;
 
@@ -493,6 +503,24 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
       ...createAgentConnectionListEnvelope(connectionsPage.connections),
       nextCursor: connectionsPage.nextCursor,
     } satisfies AgentApiKeyConnectionsPageResponse);
+  });
+
+  app.post("/agent-api-keys", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
+    requireHumanManagedConnectionAccess(requestContext.transport);
+    const body = expectRecord(await parseJsonBody(context.req.raw));
+    if (typeof body.label !== "string") {
+      throw new HttpError(400, "label must be a string", "AGENT_API_KEY_LABEL_INVALID");
+    }
+
+    const { apiKey, connection } = await createAgentApiKeyForUser(
+      requestContext.userId,
+      normalizeAgentApiKeyLabel(body.label),
+    );
+    return context.json(
+      createAgentConnectionCreateEnvelope(apiKey, connection) satisfies AgentApiKeyCreateResponse,
+      201,
+    );
   });
 
   app.post("/agent-api-keys/:connectionId/revoke", async (context) => {

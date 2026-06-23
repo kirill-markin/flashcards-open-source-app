@@ -1,5 +1,5 @@
-import { createHash, timingSafeEqual } from "node:crypto";
-import { queryWithUserScope } from "../database";
+import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
+import { queryWithUserScope, transactionWithUserScope } from "../database";
 import { unsafeQuery } from "../database/unsafe";
 import { HttpError } from "../shared/errors";
 import {
@@ -7,12 +7,13 @@ import {
   encodeOpaqueCursor,
   type CursorPageInput,
 } from "../shared/pagination";
-import { normalizeCrockfordToken } from "./crockford";
+import { createCrockfordToken, normalizeCrockfordToken } from "./crockford";
 import { ensureApiKeyWorkspaceSelection } from "../workspaces";
 
 const AGENT_API_KEY_PREFIX = "fca";
 const AGENT_API_KEY_ID_LENGTH = 8;
 const AGENT_API_KEY_SECRET_LENGTH = 26;
+const AGENT_API_KEY_LABEL_MAX_LENGTH = 120;
 const LAST_USED_UPDATE_INTERVAL_MS = 5 * 60_000;
 
 type AgentApiKeyRow = Readonly<{
@@ -236,6 +237,66 @@ export async function listAgentApiKeyConnectionsPageForUser(
       toIsoString(nextRow.created_at) ?? "",
       nextRow.connection_id,
     ]),
+  };
+}
+
+/**
+ * Validates the human-readable label shown in settings for a long-lived agent
+ * connection before it is minted.
+ */
+export function normalizeAgentApiKeyLabel(label: string): string {
+  const trimmedLabel = label.trim();
+  if (trimmedLabel === "") {
+    throw new HttpError(400, "Connection label is required", "AGENT_API_KEY_LABEL_INVALID");
+  }
+
+  if (trimmedLabel.length > AGENT_API_KEY_LABEL_MAX_LENGTH) {
+    throw new HttpError(
+      400,
+      `Connection label must be at most ${AGENT_API_KEY_LABEL_MAX_LENGTH} characters`,
+      "AGENT_API_KEY_LABEL_INVALID",
+    );
+  }
+
+  return trimmedLabel;
+}
+
+/**
+ * Mints a new human-managed long-lived agent API key for the signed-in user.
+ * The key is returned once and only its hash is persisted. The selected
+ * workspace is left NULL so ensureApiKeyWorkspaceSelection self-heals it on
+ * first use.
+ */
+export async function createAgentApiKeyForUser(
+  userId: string,
+  label: string,
+): Promise<{ apiKey: string; connection: AgentApiKeyConnection }> {
+  const connectionId = randomUUID();
+  const keyId = createCrockfordToken(AGENT_API_KEY_ID_LENGTH);
+  const secret = createCrockfordToken(AGENT_API_KEY_SECRET_LENGTH);
+  const keyHash = hashSecret(secret);
+
+  const connection = await transactionWithUserScope({ userId }, async (executor) => {
+    const inserted = await executor.query<AgentApiKeyRow>(
+      [
+        "INSERT INTO auth.agent_api_keys",
+        "(connection_id, user_id, label, key_id, key_hash)",
+        "VALUES ($1, $2, $3, $4, $5)",
+        "RETURNING connection_id, user_id, label, key_id, key_hash, selected_workspace_id, created_at, last_used_at, revoked_at",
+      ].join(" "),
+      [connectionId, userId, label, keyId, keyHash],
+    );
+    const row = inserted.rows[0];
+    if (row === undefined) {
+      throw new HttpError(500, "Failed to create agent API key", "AGENT_API_KEY_CREATE_FAILED");
+    }
+
+    return mapConnection(row);
+  });
+
+  return {
+    apiKey: `${AGENT_API_KEY_PREFIX}_${keyId}_${secret}`,
+    connection,
   };
 }
 

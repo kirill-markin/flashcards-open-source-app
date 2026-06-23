@@ -215,3 +215,22 @@ export function createAgentConnectionRevokeEnvelope(connection: AgentApiKeyConne
     instructions: "This bot connection has been revoked. Its API key is no longer valid for future requests.",
   };
 }
+
+export type AgentConnectionCreateEnvelope = Readonly<{
+  ok: true;
+  apiKey: string;
+  connection: AgentApiKeyConnection;
+  instructions: string;
+}>;
+
+export function createAgentConnectionCreateEnvelope(
+  apiKey: string,
+  connection: AgentApiKeyConnection,
+): AgentConnectionCreateEnvelope {
+  return {
+    ok: true,
+    apiKey,
+    connection,
+    instructions: "Store this API key now. It is shown only once and cannot be retrieved again; if you lose it, revoke this connection and create a new one.",
+  };
+}
