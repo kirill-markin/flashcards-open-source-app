@@ -11,6 +11,7 @@ Flashcards Open Source App is an open-source AI-powered flashcards app built for
 - [iOS](https://apps.apple.com/us/app/flashcards-open-source-app/id6760538964)
 - [Android](https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&pcampaignid=web_share)
 - [Web](https://app.flashcards-open-source-app.com/review)
+- MCP server: https://mcp.flashcards-open-source-app.com/mcp
 - Agent API: https://api.flashcards-open-source-app.com/v1/
 
 ## Card scheduling
