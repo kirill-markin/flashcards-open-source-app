@@ -30,6 +30,12 @@ type AgentDiscoveryEnvelope = Readonly<{
         authorizationServerMetadataUrl: string;
         protectedResourceMetadataUrl: string;
       }>;
+      apiKeyBearer: Readonly<{
+        type: "api_key";
+        header: "Authorization";
+        scheme: "Bearer";
+        description: string;
+      }>;
     }>;
   }>;
   instructions: string;
@@ -112,12 +118,19 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
       mcp: {
         url: `${mcpBaseUrl}/mcp`,
         description:
-          "Remote MCP server for AI clients that connect through custom connectors (for example Claude.ai or ChatGPT). Add the url as a custom connector and authorize through OAuth, then use the sql tool to read and write cards and decks.",
+          "Remote MCP server for AI clients that connect through custom connectors (for example Claude.ai or ChatGPT). Add the url as a custom connector and authorize through OAuth, then use the sql tool to read and write cards and decks. Headless or CLI clients may instead send Authorization: Bearer fca_… using the agent API key from email_otp_then_api_key login (the same key as the REST agent surface), with no OAuth or browser needed.",
         authorization: {
           type: "oauth2",
           authorizationServer: authBaseUrl,
           authorizationServerMetadataUrl: `${authBaseUrl}/.well-known/oauth-authorization-server`,
           protectedResourceMetadataUrl: `${mcpBaseUrl}/.well-known/oauth-protected-resource`,
+        },
+        apiKeyBearer: {
+          type: "api_key",
+          header: "Authorization",
+          scheme: "Bearer",
+          description:
+            "Send the agent API key (fca_…) as a Bearer token for headless/CLI use; same key as the REST agent surface.",
         },
       },
     },
