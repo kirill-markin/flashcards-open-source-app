@@ -159,12 +159,13 @@ function splitTopLevel(value: string, separator: string): ReadonlyArray<string> 
   const parts: Array<string> = [];
   let current = "";
   let inString = false;
+  let inDoubleQuote = false;
   let depth = 0;
 
   for (let index = 0; index < value.length; index += 1) {
     const character = value[index];
     const nextCharacter = value[index + 1];
-    if (character === "'") {
+    if (character === "'" && inDoubleQuote === false) {
       current += character;
       if (inString && nextCharacter === "'") {
         current += nextCharacter;
@@ -180,13 +181,30 @@ function splitTopLevel(value: string, separator: string): ReadonlyArray<string> 
       continue;
     }
 
-    if (character === "(") {
+    // Double-quoted segments appear inside Postgres text-array literals ({"a,b"}).
+    // Track them so a comma inside a quoted element is not treated as a separator.
+    if (character === '"') {
+      current += character;
+      const isEscapedQuote = inDoubleQuote && value[index - 1] === "\\";
+      if (isEscapedQuote === false) {
+        inDoubleQuote = !inDoubleQuote;
+      }
+
+      continue;
+    }
+
+    if (inDoubleQuote) {
+      current += character;
+      continue;
+    }
+
+    if (character === "(" || character === "[" || character === "{") {
       depth += 1;
       current += character;
       continue;
     }
 
-    if (character === ")") {
+    if (character === ")" || character === "]" || character === "}") {
       depth -= 1;
       current += character;
       continue;
@@ -213,12 +231,13 @@ function splitTopLevelByKeyword(value: string, keyword: "AND" | "OR"): ReadonlyA
   const parts: Array<string> = [];
   let current = "";
   let inString = false;
+  let inDoubleQuote = false;
   let depth = 0;
 
   for (let index = 0; index < value.length; index += 1) {
     const character = value[index];
     const nextCharacter = value[index + 1];
-    if (character === "'") {
+    if (character === "'" && inDoubleQuote === false) {
       current += character;
       if (inString && nextCharacter === "'") {
         current += nextCharacter;
@@ -234,13 +253,30 @@ function splitTopLevelByKeyword(value: string, keyword: "AND" | "OR"): ReadonlyA
       continue;
     }
 
-    if (character === "(") {
+    // Double-quoted segments appear inside Postgres text-array literals ({"a,b"}).
+    // Track them so a keyword inside a quoted element is not treated as a separator.
+    if (character === '"') {
+      current += character;
+      const isEscapedQuote = inDoubleQuote && value[index - 1] === "\\";
+      if (isEscapedQuote === false) {
+        inDoubleQuote = !inDoubleQuote;
+      }
+
+      continue;
+    }
+
+    if (inDoubleQuote) {
+      current += character;
+      continue;
+    }
+
+    if (character === "(" || character === "[" || character === "{") {
       depth += 1;
       current += character;
       continue;
     }
 
-    if (character === ")") {
+    if (character === ")" || character === "]" || character === "}") {
       depth -= 1;
       current += character;
       continue;
@@ -448,15 +484,57 @@ function parsePredicateValue(value: string): SqlPredicateValue {
   return parseSqlLiteral(trimmedValue);
 }
 
+function parsePostgresTextArrayElement(item: string, columnName: string, trimmedValue: string): string {
+  const trimmedItem = item.trim();
+  if (trimmedItem.startsWith('"') && trimmedItem.endsWith('"') && trimmedItem.length >= 2) {
+    return trimmedItem.slice(1, -1).replaceAll('\\"', '"');
+  }
+
+  if (trimmedItem === "" || trimmedItem.includes('"')) {
+    throw new Error(
+      `Array column "${columnName}" accepts only string elements, e.g. {a,b} or {"a","b"}. Got: ${trimmedValue}`,
+    );
+  }
+
+  return trimmedItem;
+}
+
 function parseStringArrayLiteralList(value: string, columnName: string): ReadonlyArray<string> {
   const trimmedValue = value.trim();
-  if (!(trimmedValue.startsWith("(") && trimmedValue.endsWith(")"))) {
+
+  const arrayPrefixMatch = trimmedValue.match(/^ARRAY\s*\[([\s\S]*)\]$/i);
+  const bracketMatch = trimmedValue.startsWith("[") && trimmedValue.endsWith("]");
+  const parenMatch = trimmedValue.startsWith("(") && trimmedValue.endsWith(")");
+  const quotedBraceMatch = trimmedValue.startsWith("'{") && trimmedValue.endsWith("}'");
+  const braceMatch = trimmedValue.startsWith("{") && trimmedValue.endsWith("}");
+
+  // Postgres text-array literal: '{a,b}' or {a,b}, elements may be unquoted.
+  if (quotedBraceMatch || braceMatch) {
+    const innerValue = quotedBraceMatch ? trimmedValue.slice(2, -2).trim() : trimmedValue.slice(1, -1).trim();
+    if (innerValue === "") {
+      return [];
+    }
+
+    return splitTopLevel(innerValue, ",").map((item) =>
+      parsePostgresTextArrayElement(item, columnName, trimmedValue),
+    );
+  }
+
+  // Native ('a','b'), JSON-style ['a','b'], and ARRAY['a','b'] all unwrap to a
+  // comma-separated list of quoted string literals.
+  let innerValue: string | null = null;
+  if (arrayPrefixMatch !== null) {
+    innerValue = (arrayPrefixMatch[1] ?? "").trim();
+  } else if (bracketMatch || parenMatch) {
+    innerValue = trimmedValue.slice(1, -1).trim();
+  }
+
+  if (innerValue === null) {
     throw new Error(
       `Array column "${columnName}" expects a parenthesized list like ('tag1','tag2'), or () for an empty list. Got: ${trimmedValue}`,
     );
   }
 
-  const innerValue = trimmedValue.slice(1, -1).trim();
   if (innerValue === "") {
     return [];
   }
@@ -573,7 +651,7 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
     };
   }
 
-  const overlapPredicate = trimmedValue.match(/^([a-z_][a-z0-9_]*)\s+OVERLAP\s*(\(.+\))$/i);
+  const overlapPredicate = trimmedValue.match(/^([a-z_][a-z0-9_]*)\s+OVERLAP\s*(.+)$/i);
   if (overlapPredicate !== null) {
     const columnName = (overlapPredicate[1] ?? "").toLowerCase();
     ensureSqlSourceColumnExists(source, columnName);
