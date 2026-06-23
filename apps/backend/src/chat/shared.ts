@@ -2,7 +2,6 @@
  * Shared system-prompt builders for the backend-owned chat stack.
  * These helpers keep the new server-owned chat contract aligned across routes, runtime, and replay.
  */
-import { SQL_TOOL_PROMPT_EXAMPLE_LINES } from "../aiTools/toolContract/sqlToolContract";
 
 function joinLines(lines: ReadonlyArray<string>): string {
   return lines.join("\n");
@@ -86,13 +85,6 @@ function buildToolCallRulesSection(): string {
   ]);
 }
 
-function buildToolCallExamplesSection(): string {
-  return joinLines([
-    "Tool-call JSON examples:",
-    ...SQL_TOOL_PROMPT_EXAMPLE_LINES,
-  ]);
-}
-
 function buildRepairSection(): string {
   return joinLines([
     "If a previous tool call was rejected for invalid arguments, correct the tool call shape and continue without repeating earlier assistant text.",
@@ -130,7 +122,6 @@ export function buildSystemInstructions(timezone: string): string {
     buildPlainTextChatFormattingSection(),
     buildWritePolicySection(),
     buildToolCallRulesSection(),
-    buildToolCallExamplesSection(),
     buildRepairSection(),
     "Be concise, direct, and operational.",
     buildDatetimeSection(timezone),

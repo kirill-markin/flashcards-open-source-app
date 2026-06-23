@@ -22,6 +22,8 @@ export const SQL_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
   "- sql => {\"sql\": \"SELECT tag, COUNT(*) AS cards_count FROM cards UNNEST tags AS tag GROUP BY tag ORDER BY cards_count DESC LIMIT 100 OFFSET 0\"}",
   "- sql => {\"sql\": \"SELECT * FROM cards WHERE due_at IS NULL OR due_at <= NOW() ORDER BY due_at ASC, created_at DESC, card_id ASC LIMIT 20 OFFSET 0\"}",
   "- sql => {\"sql\": \"INSERT INTO cards (front_text, back_text, tags) VALUES ('Question?', 'Answer', ('tag'))\"}",
+  "- sql => {\"sql\": \"INSERT INTO cards (front_text, back_text, tags) VALUES ('Q?', 'A', ('grammar', 'a1'))\"}",
+  "- sql => {\"sql\": \"INSERT INTO cards (front_text, back_text, tags) VALUES ('Q?', 'A', ())\"}",
   "- sql => {\"sql\": \"UPDATE cards SET back_text = 'Updated answer' WHERE card_id = '00000000-0000-4000-8000-000000000000'\"}",
   "- sql => {\"sql\": \"UPDATE cards SET back_text = 'First update' WHERE card_id = '00000000-0000-4000-8000-000000000000'; UPDATE cards SET back_text = 'Second update' WHERE card_id = '00000000-0000-4000-8000-000000000001'\"}",
   "- sql => {\"sql\": \"DELETE FROM decks WHERE deck_id IN ('00000000-0000-4000-8000-000000000000')\"}",
@@ -45,6 +47,9 @@ export const OPENAI_SQL_TOOL: FunctionTool = {
     `INSERT, UPDATE, and DELETE may affect at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
     `If you need to create, update, or delete more than ${MAX_SQL_RECORD_LIMIT} records, split the work into multiple batches of at most ${MAX_SQL_RECORD_LIMIT} records across separate SQL statements or separate tool calls.`,
     "SELECT supports projected column lists, LIKE, LOWER(column) = 'value', LOWER(column) IN (...), and LOWER(column) NOT IN (...) for case-insensitive exact string matches, COUNT(*), SUM, AVG, MIN, MAX, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards UNNEST tags AS tag.",
+    "Array columns (e.g. tags) take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
+    "Examples (tool-call JSON):",
+    ...SQL_TOOL_PROMPT_EXAMPLE_LINES,
   ].join(" "),
   strict: false,
   parameters: {
