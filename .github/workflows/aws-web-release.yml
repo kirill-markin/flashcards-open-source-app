@@ -263,6 +263,7 @@ jobs:
           CDK_CONTEXT_SENTRY_ENVIRONMENT: ${{ vars.CDK_SENTRY_ENVIRONMENT }}
           CDK_CONTEXT_SENTRY_RELEASE: ${{ github.sha }}
           CDK_CONTEXT_SENTRY_TRACES_SAMPLE_RATE: ${{ vars.CDK_SENTRY_TRACES_SAMPLE_RATE }}
+          CDK_CONTEXT_SITE_BASE_URL: ${{ vars.CDK_SITE_BASE_URL }}
           CDK_CONTEXT_WEB_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_WEB_CERTIFICATE_ARN_US_EAST_1 }}
         run: |
           python3 ../../scripts/generate/write-ci-cdk-context.py \
@@ -359,6 +360,7 @@ jobs:
           CDK_CONTEXT_SENTRY_ENVIRONMENT: ${{ vars.CDK_SENTRY_ENVIRONMENT }}
           CDK_CONTEXT_SENTRY_RELEASE: ${{ github.sha }}
           CDK_CONTEXT_SENTRY_TRACES_SAMPLE_RATE: ${{ vars.CDK_SENTRY_TRACES_SAMPLE_RATE }}
+          CDK_CONTEXT_SITE_BASE_URL: ${{ vars.CDK_SITE_BASE_URL }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_BACKEND_PROJECT }}

@@ -78,5 +78,12 @@ get:
               writes, a clear user request already counts as permission. Ask
               again only for risky or unclear actions. Use docs.openapiUrl for
               the published external agent contract.
+            links:
+              websiteUrl: https://flashcards-open-source-app.com/
+              privacyUrl: https://flashcards-open-source-app.com/privacy/
+              termsUrl: https://flashcards-open-source-app.com/terms/
+              supportUrl: https://flashcards-open-source-app.com/support/
+              docsUrl: https://flashcards-open-source-app.com/docs/
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              docsUrl: https://flashcards-open-source-app.com/docs/

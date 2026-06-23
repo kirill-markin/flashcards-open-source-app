@@ -3,6 +3,7 @@ additionalProperties: false
 required:
   - ok
   - data
+  - links
   - instructions
   - docs
 properties:
@@ -12,6 +13,8 @@ properties:
       - true
   data:
     $ref: ./AgentDiscoveryData.yaml
+  links:
+    $ref: ./AgentLegalLinks.yaml
   instructions:
     type: string
   docs:

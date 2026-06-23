@@ -15,6 +15,7 @@ export interface McpGatewayProps {
   db: rds.DatabaseInstance;
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   baseDomain: string;
+  siteBaseUrl: string | undefined;
   mcpCertificateArn: string | undefined;
   sentryDsnSecretArn: string | undefined;
   sentryEnvironment: string | undefined;
@@ -100,6 +101,10 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
       // matches `/agent/sql/query` and `/agent/sql/execute` instead of resolving
       // against the mcp.<domain> request host.
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
+      // Public marketing-site origin surfaced in the MCP implementation
+      // metadata (websiteUrl). Defaults to the apex domain; an optional CDK
+      // `siteBaseUrl` context overrides it for self-host deployments.
+      PUBLIC_SITE_BASE_URL: props.siteBaseUrl ?? `https://${props.baseDomain}`,
     },
   });
 

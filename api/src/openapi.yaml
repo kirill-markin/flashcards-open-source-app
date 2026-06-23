@@ -8,6 +8,18 @@ info:
     intentionally omitted from this published specification. This document
     excludes internal sync transport, local chat runtime endpoints, and
     human-only agent connection management.
+  # These info URLs are static canonical reference values for the published
+  # spec, consistent with the static `servers:` block above. The env-driven,
+  # per-deploy public/legal links (self-hosters set their own domain) live in
+  # the discovery envelope `links` block, not here.
+  termsOfService: https://flashcards-open-source-app.com/terms/
+  contact:
+    name: Flashcards Open Source App support
+    url: https://flashcards-open-source-app.com/support/
+    email: support@flashcards-open-source-app.com
+  license:
+    name: MIT
+    url: https://github.com/kirill-markin/flashcards-open-source-app/blob/main/LICENSE
 servers:
   - url: https://api.flashcards-open-source-app.com/v1
     description: >-
@@ -55,3 +67,8 @@ components:
   securitySchemes:
     ApiKeyHeader:
       $ref: ./components/security-schemes/ApiKeyHeader.yaml
+    # OAuth2 documents the implemented remote-MCP authorization flow
+    # (mcp.<domain>/mcp). The REST endpoints below keep ApiKeyHeader; this scheme
+    # is published so the spec reflects how MCP custom-connector clients connect.
+    OAuth2:
+      $ref: ./components/security-schemes/OAuth2.yaml

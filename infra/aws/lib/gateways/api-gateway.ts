@@ -18,6 +18,7 @@ export interface ApiGatewayProps {
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   reportingDbSecret: cdk.aws_secretsmanager.ISecret;
   baseDomain: string;
+  siteBaseUrl: string | undefined;
   apiCertificateArn: string | undefined;
   openAiApiKeySecretArn: string | undefined;
   langfusePublicKeySecretArn: string | undefined;
@@ -51,6 +52,7 @@ interface BackendFunctionProps {
   constructId: string;
   entry: string;
   baseDomain: string;
+  siteBaseUrl: string | undefined;
   vpc: ec2.Vpc;
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
@@ -321,6 +323,9 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
       BACKEND_CHAT_LIVE_AUTH_SECRET_ARN: props.backendChatLiveAuthSecret.secretArn,
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
       PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
+      // Public marketing-site origin for the discovery legal links. Defaults to
+      // the apex domain; an optional CDK `siteBaseUrl` context overrides it.
+      PUBLIC_SITE_BASE_URL: props.siteBaseUrl ?? `https://${props.baseDomain}`,
       GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP: props.guestAiWeightedMonthlyTokenCap ?? "0",
       ...(langfuseConfig === null
         ? {}
@@ -419,6 +424,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     constructId: "BackendHandler",
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda.ts"),
     baseDomain: props.baseDomain,
+    siteBaseUrl: props.siteBaseUrl,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
     db: props.db,
@@ -455,6 +461,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     constructId: "ChatRunWorkerHandler",
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-chat-worker.ts"),
     baseDomain: props.baseDomain,
+    siteBaseUrl: props.siteBaseUrl,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
     db: props.db,
@@ -487,6 +494,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     constructId: "ChatLiveHandler",
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-chat-live.ts"),
     baseDomain: props.baseDomain,
+    siteBaseUrl: props.siteBaseUrl,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
     db: props.db,

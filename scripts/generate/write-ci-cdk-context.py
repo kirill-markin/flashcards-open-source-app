@@ -140,6 +140,7 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         "sentryEnvironment": get_trimmed_env("CDK_CONTEXT_SENTRY_ENVIRONMENT"),
         "sentryRelease": get_trimmed_env("CDK_CONTEXT_SENTRY_RELEASE"),
         "sentryTracesSampleRate": get_trimmed_env("CDK_CONTEXT_SENTRY_TRACES_SAMPLE_RATE"),
+        "siteBaseUrl": get_trimmed_env("CDK_CONTEXT_SITE_BASE_URL"),
         "webCertificateArnUsEast1": get_trimmed_env("CDK_CONTEXT_WEB_CERTIFICATE_ARN_US_EAST_1"),
     }
     validate_required_backend_sentry_context(values, aws_deploy_role_arn)

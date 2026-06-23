@@ -1,0 +1,28 @@
+type: object
+additionalProperties: false
+required:
+  - websiteUrl
+  - privacyUrl
+  - termsUrl
+  - supportUrl
+  - docsUrl
+description: >-
+  Public marketing-site, legal, and docs links for this deployment. The domain
+  is env-driven (`PUBLIC_SITE_BASE_URL`, defaulting to the apex origin derived
+  from the request); the paths are conventional trailing-slash constants.
+properties:
+  websiteUrl:
+    type: string
+    description: Public marketing-site landing page (apex domain, trailing slash).
+  privacyUrl:
+    type: string
+    description: Privacy policy page.
+  termsUrl:
+    type: string
+    description: Terms of service page.
+  supportUrl:
+    type: string
+    description: Support / contact page.
+  docsUrl:
+    type: string
+    description: Human-readable documentation landing page.

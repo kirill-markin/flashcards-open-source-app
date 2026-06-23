@@ -1,4 +1,4 @@
-import { getPublicAgentDocs, getPublicApiBaseUrl } from "../shared/publicUrls";
+import { getPublicAgentDocs, getPublicApiBaseUrl, getPublicLegalLinks } from "../shared/publicUrls";
 
 type AgentDiscoveryEnvelope = Readonly<{
   ok: true;
@@ -39,9 +39,17 @@ type AgentDiscoveryEnvelope = Readonly<{
       }>;
     }>;
   }>;
+  links: Readonly<{
+    websiteUrl: string;
+    privacyUrl: string;
+    termsUrl: string;
+    supportUrl: string;
+    docsUrl: string;
+  }>;
   instructions: string;
   docs: Readonly<{
     openapiUrl: string;
+    docsUrl: string;
   }>;
 }>;
 
@@ -88,7 +96,8 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
   const authBaseUrl = buildAuthBaseUrl(requestUrl);
   const mcpBaseUrl = buildMcpBaseUrl(requestUrl);
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
-  const docs = getPublicAgentDocs(requestUrl);
+  const links = getPublicLegalLinks(requestUrl);
+  const docs = { ...getPublicAgentDocs(requestUrl), docsUrl: links.docsUrl };
 
   return {
     ok: true,
@@ -137,6 +146,7 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
         },
       },
     },
+    links,
     instructions:
       `Start with POST ${authBaseUrl}/api/agent/send-code using the user's email. After send-code, follow the returned instructions: normal accounts require the 8-digit email code, while configured review/demo accounts use a deterministic 8-digit placeholder and do not send email. Do not immediately replay send-code. Then POST ${authBaseUrl}/api/agent/verify-code with the otpSessionToken, code, and label to obtain an API key. After login, call GET ${apiBaseUrl}/agent/me, then GET ${apiBaseUrl}/agent/workspaces?limit=100. If no workspace is selected for this API key, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select or create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}. After workspace bootstrap, use POST ${apiBaseUrl}/agent/sql/query for all shared card and deck reads (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT) and POST ${apiBaseUrl}/agent/sql/execute for all writes (INSERT, UPDATE, DELETE). For routine low-risk writes, a clear user request already counts as permission. Ask again only for risky or unclear actions. SELECT returns at most 100 rows per statement, and INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls. Use ${docs.openapiUrl} for the published external agent contract. The SQL surface is intentionally limited and is not full PostgreSQL.`,
     docs,

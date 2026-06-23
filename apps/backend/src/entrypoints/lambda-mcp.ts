@@ -54,6 +54,21 @@ function getResourceUrl(baseDomain: string): string {
   return `https://mcp.${baseDomain}/mcp`;
 }
 
+/**
+ * Resolves the public marketing-site origin surfaced in the MCP implementation
+ * metadata. Env-driven via `PUBLIC_SITE_BASE_URL` (self-hosters set their own
+ * domain, mirroring the discovery envelope's legal links); when unset it
+ * defaults to the apex origin derived from `MCP_BASE_DOMAIN`.
+ */
+function getWebsiteUrl(baseDomain: string): string {
+  const configuredValue = process.env.PUBLIC_SITE_BASE_URL;
+  if (configuredValue !== undefined && configuredValue.trim() !== "") {
+    return configuredValue.trim();
+  }
+
+  return `https://${baseDomain}`;
+}
+
 function getAuthorizationServerUrl(baseDomain: string): string {
   return `https://auth.${baseDomain}`;
 }
@@ -124,7 +139,7 @@ async function handleMcpTransportRequest(
   connection: Awaited<ReturnType<typeof authenticateMcpBearerToken>>,
   baseDomain: string,
 ): Promise<Response> {
-  const server = createMcpServer(connection, getResourceUrl(baseDomain));
+  const server = createMcpServer(connection, getResourceUrl(baseDomain), getWebsiteUrl(baseDomain));
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

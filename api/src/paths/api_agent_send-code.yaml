@@ -53,6 +53,7 @@ post:
                   docs.openapiUrl for the published external agent contract.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+                  docsUrl: https://flashcards-open-source-app.com/docs/
                   swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
             demo:
               summary: Configured review/demo account
@@ -84,6 +85,7 @@ post:
                   from instructions and confirm it with actions.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+                  docsUrl: https://flashcards-open-source-app.com/docs/
                   swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
     '503':
       description: >-
@@ -107,6 +109,7 @@ post:
                 instructions: Retry the same action shortly.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+                  docsUrl: https://flashcards-open-source-app.com/docs/
                   swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
                 error:
                   code: SERVICE_UNAVAILABLE
@@ -128,6 +131,7 @@ post:
                   latest otpSessionToken.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+                  docsUrl: https://flashcards-open-source-app.com/docs/
                   swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
                 error:
                   code: SERVICE_UNAVAILABLE
