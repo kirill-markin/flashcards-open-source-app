@@ -333,6 +333,27 @@
   word-break: break-word;
 }
 
+.settings-generate-card,
+.settings-generated-key-card {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-key-value {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-muted, rgba(255, 255, 255, 0.06));
+  user-select: all;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .settings-workspace-picker {
   display: grid;
   gap: 14px;

@@ -317,6 +317,8 @@ export type WebAppOperation =
   | "account_deletion_submit"
   | "access_permission_request"
   | "agent_connections_load"
+  | "agent_connection_create"
+  | "agent_connection_copy_key"
   | "agent_connection_revoke"
   | "account_preferences_refresh"
   | "account_preferences_update"

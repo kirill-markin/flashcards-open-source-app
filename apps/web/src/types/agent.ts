@@ -16,3 +16,10 @@ export type AgentApiKeyRevokeResponse = Readonly<{
   connection: AgentApiKeyConnection;
   instructions: string;
 }>;
+
+export type AgentApiKeyCreateResponse = Readonly<{
+  ok: true;
+  apiKey: string;
+  connection: AgentApiKeyConnection;
+  instructions: string;
+}>;

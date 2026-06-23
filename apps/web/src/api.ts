@@ -16,6 +16,7 @@ export type {
   ApiResponseBodyKind,
 } from "./api/transport/errors";
 export {
+  createAgentApiKey,
   deleteMyAccount,
   listAgentApiKeys,
   loadCommunityProfile,
