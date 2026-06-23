@@ -19,7 +19,7 @@ import { handle } from "hono/aws-lambda";
 import { type Context, Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { authenticateMcpAccessToken } from "../auth/mcpTokens";
+import { authenticateMcpBearerToken } from "../auth/mcpTokens";
 import { createMcpServer } from "../mcp/server";
 import { HttpError } from "../shared/errors";
 import { getHttpErrorResponseHeaders } from "../server/app";
@@ -121,7 +121,7 @@ function extractBearerToken(authorization: string | undefined): string | null {
  */
 async function handleMcpTransportRequest(
   request: Request,
-  connection: Awaited<ReturnType<typeof authenticateMcpAccessToken>>,
+  connection: Awaited<ReturnType<typeof authenticateMcpBearerToken>>,
   baseDomain: string,
 ): Promise<Response> {
   const server = createMcpServer(connection, getResourceUrl(baseDomain));
@@ -160,9 +160,9 @@ function buildMcpRoutes(app: Hono): Hono {
       return buildBearerChallenge(c, baseDomain);
     }
 
-    let connection: Awaited<ReturnType<typeof authenticateMcpAccessToken>>;
+    let connection: Awaited<ReturnType<typeof authenticateMcpBearerToken>>;
     try {
-      connection = await authenticateMcpAccessToken(token, getResourceUrl(baseDomain));
+      connection = await authenticateMcpBearerToken(token, getResourceUrl(baseDomain));
     } catch (error) {
       if (error instanceof HttpError && error.statusCode === 401) {
         return buildBearerChallenge(c, baseDomain);
