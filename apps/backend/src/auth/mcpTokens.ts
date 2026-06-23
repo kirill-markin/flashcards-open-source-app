@@ -2,7 +2,10 @@ import { createHash } from "node:crypto";
 import { unsafeQuery } from "../database/unsafe";
 import { HttpError } from "../shared/errors";
 import { normalizeCrockfordToken } from "../agent/crockford";
+import { authenticateAgentApiKey } from "../agent/apiKeys";
 import { ensureMcpConnectionWorkspaceSelection } from "../workspaces";
+
+const AGENT_API_KEY_PREFIX = "FCA_";
 
 const ACCESS_TOKEN_PREFIX = "FCO_";
 
@@ -138,4 +141,39 @@ export async function authenticateMcpAccessToken(
     connectionId: row.connection_id,
     selectedWorkspaceId,
   };
+}
+
+/**
+ * Authenticates a `/mcp` Bearer token, dispatching by normalized prefix to the
+ * matching resolver. Both resolvers return the same `{ userId, connectionId,
+ * selectedWorkspaceId }` shape, so the request handler is agnostic to which
+ * credential the caller presented.
+ *
+ * - `fca_` (agent API key) → `authenticateAgentApiKey`. This is a long-lived
+ *   full-access PAT and is intentionally NOT audience-bound: the same key
+ *   already grants identical `executeAgentSql` access on the REST `/agent`
+ *   surface, so accepting it on MCP is no new privilege. `expectedResource` is
+ *   therefore not consulted for this branch.
+ * - everything else (the OAuth `fco_` access token) → `authenticateMcpAccessToken`,
+ *   which is audience-bound and validates the token's `resource` against
+ *   `expectedResource`, and itself 401s on a non-`fco_`/invalid token.
+ *
+ * An empty token is rejected with the same opaque 401 as any other invalid
+ * token so callers cannot probe token state.
+ */
+export async function authenticateMcpBearerToken(
+  token: string,
+  expectedResource: string,
+): Promise<AuthenticatedMcpAccessToken> {
+  const trimmedToken = token.trim();
+  if (trimmedToken === "") {
+    throw new HttpError(401, "Invalid MCP access token", MCP_TOKEN_INVALID_CODE);
+  }
+
+  const normalizedPrefix = trimmedToken.replace(/[\s-]/g, "").toUpperCase();
+  if (normalizedPrefix.startsWith(AGENT_API_KEY_PREFIX)) {
+    return authenticateAgentApiKey(trimmedToken);
+  }
+
+  return authenticateMcpAccessToken(trimmedToken, expectedResource);
 }
