@@ -346,6 +346,7 @@ export function createMcpServer(
       title: "List flashcards workspaces",
       description: LIST_WORKSPACES_TOOL_DESCRIPTION,
       inputSchema: {},
+      annotations: { readOnlyHint: true },
     },
     async (): Promise<CallToolResult> => {
       try {
