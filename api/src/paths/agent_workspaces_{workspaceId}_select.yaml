@@ -39,6 +39,7 @@ post:
               data.* and use docs.openapiUrl for the published external agent contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              docsUrl: https://flashcards-open-source-app.com/docs/
     '503':
       description: Service temporarily unavailable
       headers:
@@ -57,6 +58,7 @@ post:
             instructions: Wait for the Retry-After header before retrying the same request.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              docsUrl: https://flashcards-open-source-app.com/docs/
             error:
               code: SERVICE_UNAVAILABLE
               message: Service is temporarily unavailable. Retry shortly.

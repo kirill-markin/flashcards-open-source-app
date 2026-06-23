@@ -131,6 +131,11 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const langfusePublicKeySecretArn = getOptionalContextValue(this, "langfusePublicKeySecretArn");
     const langfuseSecretKeySecretArn = getOptionalContextValue(this, "langfuseSecretKeySecretArn");
     const langfuseBaseUrl = getOptionalContextValue(this, "langfuseBaseUrl");
+    // Optional per-deploy override for the public marketing-site origin used by
+    // the discovery legal links and MCP implementation metadata. Defaults inside
+    // each gateway to `https://<baseDomain>` when unset, so prod works without
+    // setting the GitHub var.
+    const siteBaseUrl = getOptionalContextValue(this, "siteBaseUrl");
     const sentryContext = validateBackendSentryContext({
       sentryDsnSecretArn: getOptionalContextValue(this, "sentryDsnSecretArn"),
       sentryEnvironment: getOptionalContextValue(this, "sentryEnvironment"),
@@ -242,6 +247,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       db: dbResult.db,
       backendDbSecret: dbResult.backendDbSecret,
       baseDomain,
+      siteBaseUrl,
       mcpCertificateArn,
       ...sentryContext,
     });
@@ -263,6 +269,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       backendDbSecret: dbResult.backendDbSecret,
       reportingDbSecret: dbResult.reportingDbSecret,
       baseDomain,
+      siteBaseUrl,
       apiCertificateArn,
       openAiApiKeySecretArn,
       langfusePublicKeySecretArn,

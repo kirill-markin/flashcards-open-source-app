@@ -60,7 +60,10 @@ test("published OpenAPI exposes only the curated external agent contract", () =>
     assert.deepEqual(listDocumentedMethods(paths[path] ?? {}), methods, `Unexpected OpenAPI methods for ${path}`);
   }
 
-  assert.deepEqual(Object.keys(securitySchemes), ["ApiKeyHeader"]);
+  // ApiKeyHeader secures the REST agent surface; OAuth2 documents the
+  // implemented remote-MCP authorization-code flow (mcp.<domain>/mcp) in the
+  // published spec.
+  assert.deepEqual(Object.keys(securitySchemes), ["ApiKeyHeader", "OAuth2"]);
   for (const hiddenSchemaName of [
     "MeResponse",
     "AccountPreferences",

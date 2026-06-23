@@ -1,0 +1,14 @@
+type: oauth2
+description: >-
+  OAuth2 authorization-code flow with PKCE used by the remote MCP server
+  (mcp.<domain>/mcp). MCP clients that connect as custom connectors authorize
+  through the auth host; the REST agent surface itself uses the ApiKeyHeader
+  scheme instead. These authorization/token URLs are the canonical reference
+  deployment values, consistent with the static `servers:` block; per-deploy
+  hosts are advertised at runtime in the discovery envelope.
+flows:
+  authorizationCode:
+    authorizationUrl: https://auth.flashcards-open-source-app.com/authorize
+    tokenUrl: https://auth.flashcards-open-source-app.com/token
+    scopes:
+      flashcards: Read and write the authorized user's flashcards workspaces.

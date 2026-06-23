@@ -82,6 +82,7 @@ post:
               docs.openapiUrl for the published external agent contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              docsUrl: https://flashcards-open-source-app.com/docs/
               swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
     '503':
       description: >-
@@ -105,6 +106,7 @@ post:
                 instructions: Retry the same action shortly.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+                  docsUrl: https://flashcards-open-source-app.com/docs/
                   swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
                 error:
                   code: SERVICE_UNAVAILABLE
@@ -121,6 +123,7 @@ post:
                   otpSessionToken because the code may already be consumed.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+                  docsUrl: https://flashcards-open-source-app.com/docs/
                   swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
                 error:
                   code: SERVICE_UNAVAILABLE
@@ -140,6 +143,7 @@ post:
                   /api/agent/send-code.
                 docs:
                   openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+                  docsUrl: https://flashcards-open-source-app.com/docs/
                   swaggerUrl: https://api.flashcards-open-source-app.com/v1/agent/swagger.json
                 error:
                   code: SERVICE_UNAVAILABLE

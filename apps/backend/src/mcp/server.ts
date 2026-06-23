@@ -294,17 +294,20 @@ const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
  * call) so the tools never read ambient request state. `resourceUrl` is the
  * canonical MCP resource (`https://mcp.<domain>/mcp`) used to build the agent
  * envelope so the tool results share one contract with `/agent/sql/query` and
- * `/agent/sql/execute`.
+ * `/agent/sql/execute`. `websiteUrl` is the public marketing-site origin
+ * (env-driven, see lambda-mcp.ts) surfaced in the MCP implementation metadata.
  */
 export function createMcpServer(
   connection: AuthenticatedMcpAccessToken,
   resourceUrl: string,
+  websiteUrl: string,
 ): McpServer {
   const server = new McpServer(
     {
       name: SERVER_NAME,
       version: SERVER_VERSION,
       title: "Flashcards Open Source App",
+      websiteUrl,
     },
     {
       instructions: SERVER_INSTRUCTIONS,

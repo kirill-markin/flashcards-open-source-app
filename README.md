@@ -25,6 +25,7 @@ Card scheduling uses FSRS-based spaced repetition. Detailed scheduling rules liv
 - [Web app](apps/web/README.md)
 - [Architecture](docs/architecture.md)
 - [Backend and web deployment](docs/backend-web-deployment.md)
+- [Public site URLs (`PUBLIC_SITE_BASE_URL`)](docs/public-site-urls.md)
 - [Release gates and monitoring](docs/release-gates.md)
 - [iOS local setup](docs/ios-local-setup.md)
 - [iOS CI/CD](docs/ios-ci-cd.md)

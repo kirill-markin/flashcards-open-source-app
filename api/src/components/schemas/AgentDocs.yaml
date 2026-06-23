@@ -2,10 +2,16 @@ type: object
 additionalProperties: false
 required:
   - openapiUrl
+  - docsUrl
 properties:
   openapiUrl:
     type: string
     description: URL for the curated published external AI-agent OpenAPI contract.
+  docsUrl:
+    type: string
+    description: >-
+      Public human-readable documentation landing page on the marketing site
+      (apex domain, trailing slash). Env-driven per deployment.
   swaggerUrl:
     type: string
     description: Optional equivalent documentation alias returned by the auth bootstrap flow.

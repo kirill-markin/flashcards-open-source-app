@@ -6,3 +6,8 @@ rules:
   operation-4xx-response: off
   operation-operationId: off
   security-defined: off
+  # The OAuth2 security scheme is published purely to document the implemented
+  # remote-MCP authorization flow (mcp.<domain>/mcp). This REST spec contains no
+  # MCP-transport operation to attach it to, so it is intentionally defined
+  # without being referenced; disable no-unused-components to keep that conscious.
+  no-unused-components: off

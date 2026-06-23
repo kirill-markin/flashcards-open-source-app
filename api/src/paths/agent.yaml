@@ -92,5 +92,12 @@ get:
               https://api.flashcards-open-source-app.com/v1/agent/openapi.json
               for the published external agent contract. The SQL surface is intentionally limited
               and is not full PostgreSQL.
+            links:
+              websiteUrl: https://flashcards-open-source-app.com/
+              privacyUrl: https://flashcards-open-source-app.com/privacy/
+              termsUrl: https://flashcards-open-source-app.com/terms/
+              supportUrl: https://flashcards-open-source-app.com/support/
+              docsUrl: https://flashcards-open-source-app.com/docs/
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              docsUrl: https://flashcards-open-source-app.com/docs/
