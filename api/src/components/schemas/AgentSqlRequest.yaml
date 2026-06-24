@@ -5,3 +5,6 @@ required:
 properties:
   sql:
     type: string
+    description: >-
+      One or more statements in the published Flashcards SQL dialect, not full
+      PostgreSQL.
