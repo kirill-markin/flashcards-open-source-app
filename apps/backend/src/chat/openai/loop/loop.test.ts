@@ -260,6 +260,7 @@ function createDependencies(
 ): OpenAILoopDependencies {
   return {
     buildChatCompletionInput: async () => [],
+    buildChatCompletionInputWithBudget: async () => [],
     getObservedOpenAIClient: () => ({
       responses: {
         stream: (request: OpenAI.Responses.ResponseCreateParams) => streamFactory(request),
