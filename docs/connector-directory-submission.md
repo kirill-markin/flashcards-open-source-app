@@ -22,7 +22,7 @@ URLs appear.
   `apps/web/public/icon-preview.png` (also published on the marketing site).
   If a directory requires a PNG at a larger export size, derive it from
   `icon.svg`.
-- **Documentation URL:** https://flashcards-open-source-app.com/docs/
+- **Documentation URL:** https://flashcards-open-source-app.com/docs/api/
 - **Privacy URL:** https://flashcards-open-source-app.com/privacy/
 - **Support URL:** https://flashcards-open-source-app.com/support/
 - **Terms URL:** https://flashcards-open-source-app.com/terms/
@@ -88,6 +88,31 @@ purpose.
 | `sql_query` | Read-only access to cards and decks (`SHOW TABLES`, `DESCRIBE`, `SHOW COLUMNS`, `SELECT`); every caller mutation is rejected at parse time by the statement-direction guard, so the only writes that can occur on this path are the system's own bounded FSRS repair-on-read, never anything the caller controls. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
 | `sql_execute` | Write access to cards and decks (`INSERT`, `UPDATE`, `DELETE`) as an atomic batch. | `readOnlyHint: false`, `destructiveHint: true`, `openWorldHint: false` |
 | `list_workspaces` | List the authenticated user's workspaces so the client can pick one before querying. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
+
+### SQL DSL safety model
+
+The free-form SQL tools are safe to approve because the surface is a contained,
+parser-enforced DSL, not arbitrary database access:
+
+- **Closed statement allowlist.** `sql_query` accepts only `SHOW TABLES`,
+  `DESCRIBE`, `SHOW COLUMNS`, and `SELECT`; `sql_execute` accepts only `INSERT`,
+  `UPDATE`, and `DELETE`. Anything else is rejected at parse time.
+- **Only 4 published resources.** Statements can address just `workspace`,
+  `cards`, `decks`, and `review_events` — there is no path to other tables.
+- **Workspace-scoped.** Every statement is scoped to the caller's own workspace,
+  so there is no cross-tenant or arbitrary-table access.
+- **Parser-enforced dialect, not raw Postgres passthrough.** Input is parsed
+  against the limited dialect rather than forwarded to the database as raw SQL.
+- **Bounded caps.** At most 100 rows per statement, at most 50 statements per
+  batch, and a ~12k-token result-size cap; mutation batches are atomic.
+- **Contractual read/write split.** The split is encoded in the tool
+  annotations: `sql_query` and `list_workspaces` are `readOnlyHint`, while
+  `sql_execute` is `destructiveHint`, so a single tool never mixes safe and
+  destructive operations.
+
+Enforcement lives in `apps/backend/src/aiTools/agentSql.ts`,
+`apps/backend/src/aiTools/agentSql/shared.ts`, and
+`apps/backend/src/aiTools/toolContract/sqlToolLimits.ts`.
 
 ## Reviewer test walkthrough
 
