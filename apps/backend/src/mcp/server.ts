@@ -296,11 +296,15 @@ const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
  * envelope so the tool results share one contract with `/agent/sql/query` and
  * `/agent/sql/execute`. `websiteUrl` is the public marketing-site origin
  * (env-driven, see lambda-mcp.ts) surfaced in the MCP implementation metadata.
+ * `iconUrl` is the absolute https URL of the served branded SVG icon
+ * (`/icon.svg`), advertised as the server `icons` entry so spec-current MCP
+ * clients and auto-ingesting catalogs can render the brand.
  */
 export function createMcpServer(
   connection: AuthenticatedMcpAccessToken,
   resourceUrl: string,
   websiteUrl: string,
+  iconUrl: string,
 ): McpServer {
   const server = new McpServer(
     {
@@ -308,6 +312,7 @@ export function createMcpServer(
       version: SERVER_VERSION,
       title: "Flashcards Open Source App",
       websiteUrl,
+      icons: [{ src: iconUrl, mimeType: "image/svg+xml", sizes: ["any"] }],
     },
     {
       instructions: SERVER_INSTRUCTIONS,
