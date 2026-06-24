@@ -20,11 +20,25 @@ jobs:
     name: Publish server.json to MCP Registry
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
 
     steps:
       - uses: actions/checkout@v7
 
+      - name: Check for registry credential
+        id: credential
+        run: |
+          set -euo pipefail
+          if [ -z "${MCP_PRIVATE_KEY}" ]; then
+            echo "present=false" >> "${GITHUB_OUTPUT}"
+            echo "::notice::MCP_PRIVATE_KEY secret is not set; skipping MCP Registry publish until the DNS credential is provisioned."
+          else
+            echo "present=true" >> "${GITHUB_OUTPUT}"
+          fi
+
       - name: Install mcp-publisher CLI
+        if: steps.credential.outputs.present == 'true'
         run: |
           set -euo pipefail
           os="$(uname -s | tr '[:upper:]' '[:lower:]')"
@@ -32,11 +46,11 @@ jobs:
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${os}_${arch}.tar.gz" | tar xz mcp-publisher
 
       - name: Authenticate to MCP Registry (DNS namespace)
-        env:
-          MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
+        if: steps.credential.outputs.present == 'true'
         run: ./mcp-publisher login dns --domain flashcards-open-source-app.com --private-key "${MCP_PRIVATE_KEY}"
 
       - name: Publish server to MCP Registry
+        if: steps.credential.outputs.present == 'true'
         run: ./mcp-publisher publish
 
       - name: Summarize publish outcome
@@ -45,6 +59,11 @@ jobs:
           {
             echo "## MCP Registry publish"
             echo ""
-            echo "- Published SHA: \`${GITHUB_SHA}\`"
-            echo "- Manifest: \`server.json\`"
+            if [ "${{ steps.credential.outputs.present }}" = "true" ]; then
+              echo "- Published SHA: \`${GITHUB_SHA}\`"
+              echo "- Manifest: \`server.json\`"
+            else
+              echo "- Skipped: \`MCP_PRIVATE_KEY\` secret not configured."
+              echo "- Provision the DNS-verified ed25519 key as the \`MCP_PRIVATE_KEY\` repository secret to enable publishing."
+            fi
           } >> "${GITHUB_STEP_SUMMARY}"
