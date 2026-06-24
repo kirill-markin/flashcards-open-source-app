@@ -335,8 +335,20 @@ export function createMcpServer(
       title: "Flashcards SQL query (read-only)",
       description: SQL_QUERY_MCP_TOOL_DESCRIPTION,
       inputSchema: {
-        sql: z.string().trim().min(1),
-        workspaceId: z.string().uuid().optional(),
+        sql: z
+          .string()
+          .trim()
+          .min(1)
+          .describe(
+            "One or more read statements in the published Flashcards SQL dialect (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT).",
+          ),
+        workspaceId: z
+          .string()
+          .uuid()
+          .optional()
+          .describe(
+            "Optional workspace UUID from the list_workspaces tool; omit to use your currently selected default workspace.",
+          ),
       },
       // sql_query only reads our own database. openWorldHint is false because
       // it acts only within our own closed database domain; idempotentHint is
@@ -368,8 +380,20 @@ export function createMcpServer(
       title: "Flashcards SQL execute (write)",
       description: SQL_EXECUTE_MCP_TOOL_DESCRIPTION,
       inputSchema: {
-        sql: z.string().trim().min(1),
-        workspaceId: z.string().uuid().optional(),
+        sql: z
+          .string()
+          .trim()
+          .min(1)
+          .describe(
+            "One or more write statements in the published Flashcards SQL dialect (INSERT, UPDATE, DELETE).",
+          ),
+        workspaceId: z
+          .string()
+          .uuid()
+          .optional()
+          .describe(
+            "Optional workspace UUID from the list_workspaces tool; omit to use your currently selected default workspace.",
+          ),
       },
       // sql_execute mutates our own database. Spell out the (MCP-default)
       // non-read-only + destructive hints explicitly; openWorldHint is false
