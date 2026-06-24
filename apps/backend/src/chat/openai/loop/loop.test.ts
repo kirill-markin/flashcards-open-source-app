@@ -142,6 +142,66 @@ function createOutputTextDeltaEvent(text: string): OpenAI.Responses.ResponseText
   } as OpenAI.Responses.ResponseTextDeltaEvent;
 }
 
+function createResponseFailedEvent(
+  code: OpenAI.Responses.ResponseError["code"],
+  message: string,
+): OpenAI.Responses.ResponseFailedEvent {
+  return {
+    type: "response.failed",
+    sequence_number: 1,
+    response: {
+      ...createResponse([], ""),
+      status: "failed",
+      error: { code, message },
+    },
+  } as OpenAI.Responses.ResponseFailedEvent;
+}
+
+function createResponseIncompleteEvent(
+  reason: "max_output_tokens" | "content_filter",
+): OpenAI.Responses.ResponseIncompleteEvent {
+  return {
+    type: "response.incomplete",
+    sequence_number: 1,
+    response: {
+      ...createResponse([], ""),
+      status: "incomplete",
+      incomplete_details: { reason },
+    },
+  } as OpenAI.Responses.ResponseIncompleteEvent;
+}
+
+function createResponseErrorEvent(
+  code: string | null,
+  message: string,
+): OpenAI.Responses.ResponseErrorEvent {
+  return {
+    type: "error",
+    code,
+    message,
+    param: null,
+    sequence_number: 1,
+  };
+}
+
+function createTerminalEventStream(
+  event: OpenAI.Responses.ResponseStreamEvent,
+): OpenAIResponseStream {
+  return {
+    async *[Symbol.asyncIterator](): AsyncGenerator<OpenAI.Responses.ResponseStreamEvent> {
+      yield event;
+    },
+  };
+}
+
+function createStreamWithoutCompletedResponse(): OpenAIResponseStream {
+  return {
+    async *[Symbol.asyncIterator](): AsyncGenerator<OpenAI.Responses.ResponseStreamEvent> {
+      yield createOutputTextDeltaEvent("partial");
+    },
+  };
+}
+
 function createResponseStream(
   events: ReadonlyArray<OpenAI.Responses.ResponseStreamEvent>,
   finalResponse: OpenAI.Responses.Response,
@@ -743,6 +803,96 @@ test("startOpenAILoopWithDeps preserves replay items when a deadline aborts the 
     call_id: `call-${String(CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS)}`,
     output: `{"call":${String(CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS)}}`,
   });
+});
+
+test("startOpenAILoopWithDeps fails with a classified terminal error on response.failed", async () => {
+  await assert.rejects(
+    startOpenAILoopWithDeps(
+      createParams(),
+      async (): Promise<void> => undefined,
+      createDependencies(
+        () => createTerminalEventStream(
+          createResponseFailedEvent("server_error", "upstream model failure"),
+        ),
+        async () => {
+          throw new Error("runOneToolCall should not be called");
+        },
+      ),
+    ),
+    (error: unknown): boolean => {
+      assert(error instanceof Error);
+      assert.equal(error.name, "ChatProviderTerminalEventError");
+      assert.equal((error as { code?: string }).code, "server_error");
+      return true;
+    },
+  );
+});
+
+test("startOpenAILoopWithDeps fails with a classified terminal error on response.incomplete", async () => {
+  await assert.rejects(
+    startOpenAILoopWithDeps(
+      createParams(),
+      async (): Promise<void> => undefined,
+      createDependencies(
+        () => createTerminalEventStream(
+          createResponseIncompleteEvent("max_output_tokens"),
+        ),
+        async () => {
+          throw new Error("runOneToolCall should not be called");
+        },
+      ),
+    ),
+    (error: unknown): boolean => {
+      assert(error instanceof Error);
+      assert.equal(error.name, "ChatProviderTerminalEventError");
+      assert.equal((error as { code?: string }).code, "max_output_tokens");
+      return true;
+    },
+  );
+});
+
+test("startOpenAILoopWithDeps fails with a classified terminal error on an error event", async () => {
+  await assert.rejects(
+    startOpenAILoopWithDeps(
+      createParams(),
+      async (): Promise<void> => undefined,
+      createDependencies(
+        () => createTerminalEventStream(
+          createResponseErrorEvent("rate_limit_exceeded", "provider error event"),
+        ),
+        async () => {
+          throw new Error("runOneToolCall should not be called");
+        },
+      ),
+    ),
+    (error: unknown): boolean => {
+      assert(error instanceof Error);
+      assert.equal(error.name, "ChatProviderTerminalEventError");
+      assert.equal((error as { code?: string }).code, "rate_limit_exceeded");
+      return true;
+    },
+  );
+});
+
+test("startOpenAILoopWithDeps fails with a classified terminal error when the stream ends without a completed response", async () => {
+  await assert.rejects(
+    startOpenAILoopWithDeps(
+      createParams(),
+      async (): Promise<void> => undefined,
+      createDependencies(
+        () => createStreamWithoutCompletedResponse(),
+        async () => {
+          throw new Error("runOneToolCall should not be called");
+        },
+      ),
+    ),
+    (error: unknown): boolean => {
+      assert(error instanceof Error);
+      assert.equal(error.name, "ChatProviderTerminalEventError");
+      assert.equal((error as { code?: string }).code, "stream_closed_without_response");
+      return true;
+    },
+  );
 });
 
 test("startOpenAILoopWithDeps completes normally when no stop is requested", async () => {

@@ -4,6 +4,8 @@ import {
   isChatAttachmentUnsupportedTypeError,
 } from "../attachmentPolicy";
 import {
+  CHAT_PROVIDER_TERMINAL_EVENT_ERROR_NAME,
+  createProviderTerminalEventError,
   getAIProviderFailureMetadata,
 } from "../providerFailure";
 import {
@@ -50,7 +52,7 @@ function classifyProviderErrorCategory(error: unknown, providerStatus: number | 
     return "provider_abort";
   }
 
-  if (error instanceof Error && error.name === "ChatProviderTerminalEventError") {
+  if (error instanceof Error && error.name === CHAT_PROVIDER_TERMINAL_EVENT_ERROR_NAME) {
     return "provider_error";
   }
 
@@ -144,11 +146,7 @@ export function isHandledProviderFailure(error: unknown): boolean {
   return category !== null && category !== "runtime_error";
 }
 
-export function createProviderTerminalEventError(): Error {
-  const error = new Error("Chat provider emitted a terminal error event");
-  error.name = "ChatProviderTerminalEventError";
-  return error;
-}
+export { createProviderTerminalEventError } from "../providerFailure";
 
 export function isUserAbortError(error: unknown): boolean {
   return error instanceof OpenAI.APIUserAbortError

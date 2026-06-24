@@ -29,6 +29,7 @@ import {
 } from "../tools/tools";
 import { buildOpenAISafetyIdentifier } from "../safetyIdentifier";
 import type { ChatStreamEvent, ContentPart } from "../../types";
+import { createProviderTerminalEventError } from "../../providerFailure";
 import {
   CHAT_MODEL_REASONING_SUMMARY,
   type ChatRuntimeModelId,
@@ -178,6 +179,24 @@ function isResponseCompletedEvent(
   return event.type === "response.completed";
 }
 
+function isResponseFailedEvent(
+  event: OpenAI.Responses.ResponseStreamEvent,
+): event is OpenAI.Responses.ResponseFailedEvent {
+  return event.type === "response.failed";
+}
+
+function isResponseIncompleteEvent(
+  event: OpenAI.Responses.ResponseStreamEvent,
+): event is OpenAI.Responses.ResponseIncompleteEvent {
+  return event.type === "response.incomplete";
+}
+
+function isResponseErrorEvent(
+  event: OpenAI.Responses.ResponseStreamEvent,
+): event is OpenAI.Responses.ResponseErrorEvent {
+  return event.type === "error";
+}
+
 const OPENAI_STREAM_ABORT_ERROR_MESSAGE = "OpenAI response stream was aborted before a final response";
 
 class OpenAIStreamAbortError extends Error {
@@ -213,7 +232,10 @@ async function getFinalResponseFromStream(
     throw createOpenAIStreamAbortError();
   }
 
-  throw new Error("OpenAI response stream completed without a final response");
+  throw createProviderTerminalEventError({
+    code: "stream_closed_without_response",
+    message: "OpenAI response stream completed without a final response",
+  });
 }
 
 async function runOneToolCall(
@@ -378,6 +400,27 @@ async function runOneModelCall(
     if (isResponseCompletedEvent(event)) {
       completedResponse = event.response;
       continue;
+    }
+
+    if (isResponseFailedEvent(event)) {
+      throw createProviderTerminalEventError({
+        code: event.response.error?.code ?? null,
+        message: event.response.error?.message ?? null,
+      });
+    }
+
+    if (isResponseIncompleteEvent(event)) {
+      throw createProviderTerminalEventError({
+        code: event.response.incomplete_details?.reason ?? null,
+        message: null,
+      });
+    }
+
+    if (isResponseErrorEvent(event)) {
+      throw createProviderTerminalEventError({
+        code: event.code ?? null,
+        message: event.message,
+      });
     }
 
     if (isOutputTextDelta(event)) {

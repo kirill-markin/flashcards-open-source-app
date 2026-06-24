@@ -1,5 +1,49 @@
 import { HttpError } from "../shared/errors";
 
+export const CHAT_PROVIDER_TERMINAL_EVENT_ERROR_NAME = "ChatProviderTerminalEventError";
+
+export type ChatProviderTerminalEventDetail = Readonly<{
+  code?: string | null;
+  message?: string | null;
+}>;
+
+type ChatProviderTerminalEventError = Error & Readonly<{
+  code?: string;
+}>;
+
+function buildTerminalErrorMessage(detail: ChatProviderTerminalEventDetail | undefined): string {
+  const trimmedMessage = typeof detail?.message === "string" ? detail.message.trim() : "";
+  if (trimmedMessage !== "") {
+    return trimmedMessage;
+  }
+
+  const trimmedCode = typeof detail?.code === "string" ? detail.code.trim() : "";
+  if (trimmedCode !== "") {
+    return `Chat provider emitted a terminal error event (${trimmedCode})`;
+  }
+
+  return "Chat provider emitted a terminal error event";
+}
+
+/**
+ * Builds the shared terminal-event error so the OpenAI adapter and the runtime
+ * executor produce the same classified `provider_error` without depending on
+ * each other. The optional detail carries the real provider code/message; when
+ * `detail.code` is set it is exposed as an own `code` property so
+ * `createSafeProviderErrorDetails` can surface `providerErrorCode`.
+ */
+export function createProviderTerminalEventError(detail?: ChatProviderTerminalEventDetail): ChatProviderTerminalEventError {
+  const error: ChatProviderTerminalEventError = new Error(buildTerminalErrorMessage(detail));
+  error.name = CHAT_PROVIDER_TERMINAL_EVENT_ERROR_NAME;
+
+  const trimmedCode = typeof detail?.code === "string" ? detail.code.trim() : "";
+  if (trimmedCode !== "") {
+    return Object.assign(error, { code: trimmedCode });
+  }
+
+  return error;
+}
+
 export type AIProviderFailureMetadata = Readonly<{
   upstreamStatus: number | null;
   upstreamRequestId: string | null;
