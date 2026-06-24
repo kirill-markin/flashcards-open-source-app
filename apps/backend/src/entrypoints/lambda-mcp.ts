@@ -69,6 +69,21 @@ function getWebsiteUrl(baseDomain: string): string {
   return `https://${baseDomain}`;
 }
 
+/**
+ * Resolves the absolute https URL of the served branded SVG icon advertised in
+ * the MCP implementation `icons`. Derived from the same public site origin as
+ * `getWebsiteUrl` (env `PUBLIC_SITE_BASE_URL`, fallback to the apex origin from
+ * `MCP_BASE_DOMAIN`) and pointed at the served `/icon.svg`, so self-hosters
+ * advertise their own icon without extra configuration.
+ */
+function getIconUrl(baseDomain: string): string {
+  // Strip a trailing slash before appending the icon path so an operator who
+  // sets PUBLIC_SITE_BASE_URL with a trailing slash does not advertise a
+  // double-slash `//icon.svg` URL (mirrors stripTrailingSlash in
+  // src/shared/publicUrls.ts, the only other place this env value is consumed).
+  return `${getWebsiteUrl(baseDomain).replace(/\/+$/, "")}/icon.svg`;
+}
+
 function getAuthorizationServerUrl(baseDomain: string): string {
   return `https://auth.${baseDomain}`;
 }
@@ -139,7 +154,12 @@ async function handleMcpTransportRequest(
   connection: Awaited<ReturnType<typeof authenticateMcpBearerToken>>,
   baseDomain: string,
 ): Promise<Response> {
-  const server = createMcpServer(connection, getResourceUrl(baseDomain), getWebsiteUrl(baseDomain));
+  const server = createMcpServer(
+    connection,
+    getResourceUrl(baseDomain),
+    getWebsiteUrl(baseDomain),
+    getIconUrl(baseDomain),
+  );
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
