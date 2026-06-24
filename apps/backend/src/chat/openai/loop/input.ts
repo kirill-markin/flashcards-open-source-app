@@ -15,6 +15,7 @@ import {
   normalizeStoredOpenAIReplayItems,
   toOpenAIResponseInputItem,
   type ServerChatMessage,
+  type StoredOpenAIReplayItem,
 } from "../replayItems";
 
 type OpenAIInputItem = OpenAI.Responses.ResponseInputItem;
@@ -140,11 +141,33 @@ async function buildUserInputMessage(
   };
 }
 
-const HISTORY_CHARS_PER_TOKEN = 4;
-const HISTORY_ATTACHMENT_TOKEN_ESTIMATE = 1_500;
+const HISTORY_ASCII_CHARS_PER_TOKEN = 4;
+const HISTORY_NON_ASCII_CHARS_PER_TOKEN = 1.6;
+const HISTORY_ATTACHMENT_TOKEN_ESTIMATE = 3_000;
 
+/**
+ * Estimates provider tokens for a string without a real tokenizer.
+ *
+ * ASCII text averages ~4 chars/token, but non-Latin scripts (Cyrillic/CJK) and
+ * base64 reasoning blobs tokenize far denser in the o200k tokenizer. Counting
+ * non-ASCII code points at ~1.6 chars/token keeps the estimate honest (and
+ * intentionally conservative) for the multilingual flashcards content.
+ */
 function estimateTextTokens(text: string): number {
-  return Math.ceil(text.length / HISTORY_CHARS_PER_TOKEN);
+  let asciiChars = 0;
+  let nonAsciiChars = 0;
+  for (const char of text) {
+    if (char.codePointAt(0)! <= 0x7f) {
+      asciiChars += 1;
+      continue;
+    }
+    nonAsciiChars += 1;
+  }
+
+  return Math.ceil(
+    asciiChars / HISTORY_ASCII_CHARS_PER_TOKEN
+      + nonAsciiChars / HISTORY_NON_ASCII_CHARS_PER_TOKEN,
+  );
 }
 
 function estimateContentPartTokens(part: ContentPart): number {
@@ -186,6 +209,16 @@ function estimateMessageTokens(message: ServerChatMessage): number {
 }
 
 /**
+ * Estimates the provider token cost of a sequence of stored OpenAI replay items,
+ * mirroring how assistant history is sized. Exposed for within-run growth caps.
+ */
+export function estimateStoredReplayItemsTokens(
+  items: ReadonlyArray<StoredOpenAIReplayItem>,
+): number {
+  return estimateTextTokens(stringifyJson(items));
+}
+
+/**
  * Caps replayed history to a token budget by dropping the oldest messages.
  *
  * Only the provider input is windowed; full history stays in storage and in the
@@ -219,12 +252,18 @@ function windowHistoryToTokenBudget(
 }
 
 /**
- * Builds the complete OpenAI Responses input array for one backend-owned chat run.
+ * Builds the complete OpenAI Responses input array for one backend-owned chat run
+ * under an explicit replay token budget.
+ *
+ * The current turn is never truncated: its estimated tokens are reserved up front
+ * and the persisted history is windowed against the remaining budget (clamped at
+ * zero) so `history + current turn` stays within `budgetTokens`.
  */
-export async function buildChatCompletionInput(
+export async function buildChatCompletionInputWithBudget(
   localMessages: ReadonlyArray<ServerChatMessage>,
   turnInput: ReadonlyArray<ContentPart>,
   timezone: string,
+  budgetTokens: number,
 ): Promise<ReadonlyArray<OpenAIInputItem>> {
   const input: Array<OpenAIInputItem> = [{
     role: "system",
@@ -232,8 +271,14 @@ export async function buildChatCompletionInput(
     content: buildSystemInstructions(timezone),
   }];
 
+  const turnTokens = turnInput.reduce(
+    (total, part) => total + estimateContentPartTokens(part),
+    0,
+  );
+  const historyBudgetTokens = Math.max(budgetTokens - turnTokens, 0);
+
   const normalizedHistory = normalizeHistoryMessages(localMessages, turnInput);
-  const windowedHistory = windowHistoryToTokenBudget(normalizedHistory, CHAT_HISTORY_REPLAY_TOKEN_BUDGET);
+  const windowedHistory = windowHistoryToTokenBudget(normalizedHistory, historyBudgetTokens);
   for (const message of windowedHistory) {
     if (message.role === "assistant") {
       input.push(...buildAssistantHistoryItems(message));
@@ -249,4 +294,21 @@ export async function buildChatCompletionInput(
 
   input.push(await buildUserInputMessage(turnInput));
   return input;
+}
+
+/**
+ * Builds the complete OpenAI Responses input array for one backend-owned chat run
+ * using the default replay token budget.
+ */
+export async function buildChatCompletionInput(
+  localMessages: ReadonlyArray<ServerChatMessage>,
+  turnInput: ReadonlyArray<ContentPart>,
+  timezone: string,
+): Promise<ReadonlyArray<OpenAIInputItem>> {
+  return buildChatCompletionInputWithBudget(
+    localMessages,
+    turnInput,
+    timezone,
+    CHAT_HISTORY_REPLAY_TOKEN_BUDGET,
+  );
 }
