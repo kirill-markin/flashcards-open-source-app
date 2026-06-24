@@ -152,3 +152,7 @@ export function isUserAbortError(error: unknown): boolean {
   return error instanceof OpenAI.APIUserAbortError
     || (error instanceof Error && error.name === "AbortError");
 }
+
+export function isContextLengthExceededError(error: unknown): boolean {
+  return readErrorRecordStringField(error, "code") === "context_length_exceeded";
+}

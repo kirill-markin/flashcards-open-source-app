@@ -13,8 +13,13 @@ import {
   type FunctionToolCallRawItem,
   type ToolCallPosition,
 } from "../tools/toolCalls";
-import { buildChatCompletionInput } from "./input";
+import {
+  buildChatCompletionInput,
+  buildChatCompletionInputWithBudget,
+  estimateStoredReplayItemsTokens,
+} from "./input";
 import { getObservedOpenAIClient } from "../client";
+import { isContextLengthExceededError } from "../../runtime/providerErrors";
 import { runOneToolCall as runObservedToolCall } from "../tools/toolExecutor";
 import {
   toOpenAIResponseInputItem,
@@ -31,6 +36,8 @@ import { buildOpenAISafetyIdentifier } from "../safetyIdentifier";
 import type { ChatStreamEvent, ContentPart } from "../../types";
 import { createProviderTerminalEventError } from "../../providerFailure";
 import {
+  CHAT_HISTORY_REPLAY_TOKEN_BUDGET,
+  CHAT_MODEL_CONTEXT_WINDOW_TOKENS,
   CHAT_MODEL_REASONING_SUMMARY,
   type ChatRuntimeModelId,
   type ChatRuntimeReasoningEffort,
@@ -40,8 +47,27 @@ export const CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS = 30;
 const MAX_REASONING_ITEMS = 8;
 const TOOL_LIMIT_FALLBACK_ITEM_ID = "tool-limit-summary";
 
+/**
+ * Maximum estimated tokens of within-run continuation growth (model output plus
+ * tool-call replay items accumulated across tool rounds) before the loop diverts
+ * into the tool-limit summary turn instead of scheduling another tool-enabled
+ * call. Reserves the history-replay budget for the base input so the full
+ * `base input + continuation` stays under the model context window even when the
+ * character-based estimate under-counts dense content.
+ */
+const MAX_WITHIN_RUN_REPLAY_TOKENS = CHAT_MODEL_CONTEXT_WINDOW_TOKENS - CHAT_HISTORY_REPLAY_TOKEN_BUDGET;
+
+/**
+ * Tighter history-replay budget used to rebuild the base input when the first
+ * model call overflows the context window before anything streamed. Halving the
+ * default budget drops more of the oldest history while always preserving the
+ * current turn, which is reserved separately and never truncated.
+ */
+const REDUCED_HISTORY_REPLAY_TOKEN_BUDGET = Math.floor(CHAT_HISTORY_REPLAY_TOKEN_BUDGET / 2);
+
 type OpenAILoopDependencies = Readonly<{
   buildChatCompletionInput: typeof buildChatCompletionInput;
+  buildChatCompletionInputWithBudget: typeof buildChatCompletionInputWithBudget;
   getObservedOpenAIClient: typeof getObservedOpenAIClient;
   runOneToolCall: (params: Readonly<{
     item: OpenAI.Responses.ResponseFunctionToolCall;
@@ -251,6 +277,7 @@ async function runOneToolCall(
 
 const DEFAULT_OPENAI_LOOP_DEPENDENCIES: OpenAILoopDependencies = {
   buildChatCompletionInput,
+  buildChatCompletionInputWithBudget,
   getObservedOpenAIClient,
   runOneToolCall,
 };
@@ -620,13 +647,83 @@ async function completeToolLimitSummaryTurn(
   };
 }
 
+type FirstModelCallResult = Readonly<{
+  baseInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>;
+  modelCall: ModelCallResult;
+}>;
+
+/**
+ * Runs the very first model call of a run and, on a first-call
+ * `context_length_exceeded` (nothing streamed yet), rebuilds the base input with
+ * a tighter history-replay budget and retries exactly once. Any other failure,
+ * or a second overflow, propagates to the existing graceful terminal handling.
+ *
+ * The retry only fires before any tool output exists, so no streamed content or
+ * accumulated continuation items can be lost.
+ */
+async function runFirstModelCallWithOverflowRetry(
+  client: OpenAI,
+  params: StartOpenAILoopParams,
+  onEvent: OpenAILoopEventSink,
+  dependencies: OpenAILoopDependencies,
+  baseInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>,
+  firstCallIndex: number,
+): Promise<FirstModelCallResult> {
+  const buildFirstCallRequest = (
+    input: ReadonlyArray<OpenAI.Responses.ResponseInputItem>,
+  ): OpenAIResponsesRequest => buildOpenAIResponsesRequest({
+    baseInput: input,
+    continuationItems: [],
+    userId: params.userId,
+    sessionId: params.sessionId,
+    modelId: params.modelId,
+    reasoningEffort: params.reasoningEffort,
+    extraInput: [],
+    tools: OPENAI_CHAT_TOOLS,
+  });
+
+  try {
+    return {
+      baseInput,
+      modelCall: await runOneModelCallWithPhase(
+        client,
+        params,
+        onEvent,
+        buildFirstCallRequest(baseInput),
+        firstCallIndex,
+      ),
+    };
+  } catch (error) {
+    if (!isContextLengthExceededError(error)) {
+      throw error;
+    }
+
+    const reducedBaseInput = await dependencies.buildChatCompletionInputWithBudget(
+      params.localMessages,
+      params.turnInput,
+      params.timezone,
+      REDUCED_HISTORY_REPLAY_TOKEN_BUDGET,
+    );
+    return {
+      baseInput: reducedBaseInput,
+      modelCall: await runOneModelCallWithPhase(
+        client,
+        params,
+        onEvent,
+        buildFirstCallRequest(reducedBaseInput),
+        firstCallIndex,
+      ),
+    };
+  }
+}
+
 async function runLoopWithDeps(
   params: StartOpenAILoopParams,
   onEvent: OpenAILoopEventSink,
   dependencies: OpenAILoopDependencies,
 ): Promise<OpenAILoopCompletion> {
   const client = dependencies.getObservedOpenAIClient();
-  const baseInput = await dependencies.buildChatCompletionInput(
+  let baseInput = await dependencies.buildChatCompletionInput(
     params.localMessages,
     params.turnInput,
     params.timezone,
@@ -640,22 +737,35 @@ async function runLoopWithDeps(
 
     let modelCall: ModelCallResult;
     try {
-      modelCall = await runOneModelCallWithPhase(
-        client,
-        params,
-        onEvent,
-        buildOpenAIResponsesRequest({
+      if (callIndex === 1) {
+        const firstCall = await runFirstModelCallWithOverflowRetry(
+          client,
+          params,
+          onEvent,
+          dependencies,
           baseInput,
-          continuationItems,
-          userId: params.userId,
-          sessionId: params.sessionId,
-          modelId: params.modelId,
-          reasoningEffort: params.reasoningEffort,
-          extraInput: [],
-          tools: OPENAI_CHAT_TOOLS,
-        }),
-        callIndex,
-      );
+          callIndex,
+        );
+        baseInput = firstCall.baseInput;
+        modelCall = firstCall.modelCall;
+      } else {
+        modelCall = await runOneModelCallWithPhase(
+          client,
+          params,
+          onEvent,
+          buildOpenAIResponsesRequest({
+            baseInput,
+            continuationItems,
+            userId: params.userId,
+            sessionId: params.sessionId,
+            modelId: params.modelId,
+            reasoningEffort: params.reasoningEffort,
+            extraInput: [],
+            tools: OPENAI_CHAT_TOOLS,
+          }),
+          callIndex,
+        );
+      }
     } catch (error) {
       if (shouldStopForOpenAIAbort(params, error)) {
         return createStoppedBeforeNextStepCompletion(continuationItems);
@@ -720,7 +830,10 @@ async function runLoopWithDeps(
       }
     }
 
-    if (callIndex === CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS) {
+    const reachedToolCallLimit = callIndex === CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS;
+    const exceededWithinRunReplayBudget = estimateStoredReplayItemsTokens(continuationItems)
+      > MAX_WITHIN_RUN_REPLAY_TOKENS;
+    if (reachedToolCallLimit || exceededWithinRunReplayBudget) {
       return completeToolLimitSummaryTurn(
         params,
         onEvent,
