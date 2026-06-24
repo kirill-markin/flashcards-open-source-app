@@ -19,10 +19,10 @@
     "com.flashcards-open-source-app/listing": {
       "iconUrl": "https://flashcards-open-source-app.com/icon.svg",
       "categories": ["Productivity", "Education"],
-      "privacyPolicyUrl": "https://flashcards-open-source-app.com/privacy",
-      "termsOfServiceUrl": "https://flashcards-open-source-app.com/terms",
-      "supportUrl": "https://flashcards-open-source-app.com/support",
-      "documentationUrl": "https://flashcards-open-source-app.com/docs"
+      "privacyPolicyUrl": "https://flashcards-open-source-app.com/privacy/",
+      "termsOfServiceUrl": "https://flashcards-open-source-app.com/terms/",
+      "supportUrl": "https://flashcards-open-source-app.com/support/",
+      "documentationUrl": "https://flashcards-open-source-app.com/docs/api/"
     }
   }
 }
