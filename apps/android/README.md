@@ -23,6 +23,10 @@ We do not want an Android app that imitates iPhone UI. We want a modern Android 
 
 The development focus is Android 14, 15, and 16. We do not spend effort validating or polishing older Android versions.
 
+## Dependency Version Pin
+
+AndroidX and other dependency versions in `gradle/libs.versions.toml` must stay at the highest versions still compatible with `compileSdk = 36`, our stable baseline. Some newer releases — currently `androidx.core:core-ktx >= 1.19.0` and `androidx.lifecycle >= 2.11.0` — require `compileSdk = 37` (Android 17), which is not yet a stable SDK, so they fail the Android build at `:app:checkDebugAarMetadata`. Do not bump these past their `compileSdk 36`-compatible versions (`coreKtx = 1.18.0`, `lifecycle = 2.10.0`) until the whole app intentionally moves to `compileSdk 37`. Automated dependency-drift updates must respect this pin, because Gradle is not run during their validation and cannot catch the break locally.
+
 ## Design Rule
 
 Use Google-provided Android components and Android interaction patterns whenever they fit the problem.

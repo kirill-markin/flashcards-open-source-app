@@ -2,10 +2,13 @@
 agp = "9.2.1"
 kotlin = "2.3.21"
 ksp = "2.3.9"
-coreKtx = "1.19.0"
+# Pinned for compileSdk 36 (our stable baseline — see apps/android/README.md):
+# coreKtx >= 1.19.0 requires compileSdk 37 (Android 17, not yet stable) and breaks the Android build.
+coreKtx = "1.18.0"
 splashscreen = "1.2.0"
 activityCompose = "1.13.0"
-lifecycle = "2.11.0"
+# Pinned for compileSdk 36: lifecycle >= 2.11.0 requires compileSdk 37 (see coreKtx note above).
+lifecycle = "2.10.0"
 navigationCompose = "2.9.8"
 composeBom = "2026.06.00"
 lottieCompose = "6.7.1"
