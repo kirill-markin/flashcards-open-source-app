@@ -2,7 +2,9 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
   "name": "com.flashcards-open-source-app/flashcards",
   "description": "Read and write your open-source flashcards and decks over a remote MCP server, with split read-only and write SQL tools.",
+  "status": "active",
   "version": "1.14.0",
+  "website_url": "https://flashcards-open-source-app.com",
   "repository": {
     "url": "https://github.com/kirill-markin/flashcards-open-source-app",
     "source": "github"
@@ -12,5 +14,15 @@
       "type": "streamable-http",
       "url": "https://mcp.flashcards-open-source-app.com/mcp"
     }
-  ]
+  ],
+  "_meta": {
+    "com.flashcards-open-source-app/listing": {
+      "iconUrl": "https://flashcards-open-source-app.com/icon.svg",
+      "categories": ["Productivity", "Education"],
+      "privacyPolicyUrl": "https://flashcards-open-source-app.com/privacy",
+      "termsOfServiceUrl": "https://flashcards-open-source-app.com/terms",
+      "supportUrl": "https://flashcards-open-source-app.com/support",
+      "documentationUrl": "https://flashcards-open-source-app.com/docs"
+    }
+  }
 }
