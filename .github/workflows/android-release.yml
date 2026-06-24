@@ -46,7 +46,7 @@ jobs:
       android_play_release_name: ${{ steps.release-metadata.outputs.android_play_release_name }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'push' && github.sha || inputs.target_sha }}
           fetch-depth: 0
@@ -275,7 +275,7 @@ jobs:
             echo "device_descriptor=${device_descriptor}"
           } >> "${GITHUB_OUTPUT}"
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         if: ${{ steps.validate-config.outputs.submission_state == 'ready' }}
         with:
           ref: ${{ needs.preflight.outputs.target_sha }}
@@ -459,7 +459,7 @@ jobs:
       SENTRY_ANDROID_PROJECT: ${{ vars.SENTRY_ANDROID_PROJECT }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.preflight.outputs.target_sha }}
 
