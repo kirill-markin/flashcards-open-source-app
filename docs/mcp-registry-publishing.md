@@ -47,6 +47,42 @@ again. The remote URL only changes if the hosted MCP domain changes.
 
 ## Automating on release
 
-This can be automated later: a release job can run `mcp-publisher publish`
-after a successful deploy, using a stored DNS-verified credential, so the
-registry entry stays in sync with each release without a manual step.
+This is automated by the
+[`MCP Registry Publish`](../.github/workflows/mcp-registry-publish.yml)
+workflow. It runs on every push to `main` that changes `server.json` (and can be
+re-run manually via `workflow_dispatch`). The workflow installs `mcp-publisher`,
+authenticates against the DNS namespace, and runs `mcp-publisher publish` from
+the repo root, so the registry entry stays in sync with each release without a
+manual step.
+
+### Required GitHub secret
+
+The workflow authenticates with `mcp-publisher login dns --private-key`, which
+needs the Ed25519 private key for the `flashcards-open-source-app.com`
+namespace, stored as the `MCP_PRIVATE_KEY` repository secret.
+
+Generate the Ed25519 keypair with `openssl`:
+
+```sh
+openssl genpkey -algorithm Ed25519 -out key.pem
+```
+
+Derive the public key for the TXT record:
+
+```sh
+openssl pkey -in key.pem -pubout -outform DER | tail -c 32 | base64
+```
+
+Add the `v=MCPv1; k=ed25519; p=<PUBLIC_KEY>` TXT record on
+`flashcards-open-source-app.com` to verify the namespace, then extract the
+64-character hex private key:
+
+```sh
+openssl pkey -in key.pem -noout -text | grep -A3 "priv:" | tail -n +2 | tr -d ' :\n'
+```
+
+The command prints the 64-character hex value to store as the `MCP_PRIVATE_KEY`
+secret. The workflow runs
+`mcp-publisher login dns --domain flashcards-open-source-app.com --private-key "$MCP_PRIVATE_KEY"`
+to authenticate with that key. Provisioning that secret is a one-time
+operational step and is not committed to the repo.

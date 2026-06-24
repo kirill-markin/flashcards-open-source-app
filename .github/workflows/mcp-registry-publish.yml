@@ -1,0 +1,50 @@
+name: MCP Registry Publish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server.json'
+      - '.github/workflows/mcp-registry-publish.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: mcp-registry-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish server.json to MCP Registry
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install mcp-publisher CLI
+        run: |
+          set -euo pipefail
+          os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${os}_${arch}.tar.gz" | tar xz mcp-publisher
+
+      - name: Authenticate to MCP Registry (DNS namespace)
+        env:
+          MCP_PRIVATE_KEY: ${{ secrets.MCP_PRIVATE_KEY }}
+        run: ./mcp-publisher login dns --domain flashcards-open-source-app.com --private-key "${MCP_PRIVATE_KEY}"
+
+      - name: Publish server to MCP Registry
+        run: ./mcp-publisher publish
+
+      - name: Summarize publish outcome
+        if: always()
+        run: |
+          {
+            echo "## MCP Registry publish"
+            echo ""
+            echo "- Published SHA: \`${GITHUB_SHA}\`"
+            echo "- Manifest: \`server.json\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
