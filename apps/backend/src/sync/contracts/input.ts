@@ -217,7 +217,7 @@ const reviewEventPushPayloadSchema = z.object({
   clientEventId: z.string().min(1),
   rating: reviewRatingSchema,
   reviewedAtClient: z.string().datetime(),
-  reviewedTimeZone: z.string().superRefine(validateReviewedTimeZone).optional(),
+  reviewedTimeZone: z.preprocess((value) => value ?? undefined, z.string().superRefine(validateReviewedTimeZone).optional()),
 });
 
 const reviewEventImportPayloadSchema = reviewEventPushPayloadSchema.extend({

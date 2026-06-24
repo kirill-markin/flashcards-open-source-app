@@ -24,7 +24,7 @@ import type { BootstrapProjectionRow } from "./types";
 type ReviewEventTimestampFixture = Readonly<{
   clientUpdatedAt: string;
   reviewedAtClient: string;
-  reviewedTimeZone?: string;
+  reviewedTimeZone?: string | null;
 }>;
 
 type CardDueAtFixture = Readonly<{
@@ -100,7 +100,7 @@ function createSyncPushInput(
       clientEventId: string;
       rating: 2;
       reviewedAtClient: string;
-      reviewedTimeZone?: string;
+      reviewedTimeZone?: string | null;
     }>;
   }>>;
 }> {
@@ -342,6 +342,22 @@ test("parseSyncPushInput accepts optional reviewedTimeZone on review_event opera
     assert.fail("Expected the parsed sync operation to remain a review_event");
   }
   assert.equal(parsedInput.operations[0].payload.reviewedTimeZone, "Europe/Madrid");
+});
+
+test("parseSyncPushInput accepts null reviewedTimeZone on review_event operations", () => {
+  const input = createSyncPushInput({
+    clientUpdatedAt: "2018-02-03T04:05:06.000Z",
+    reviewedAtClient: "2018-02-03T04:05:06.000Z",
+    reviewedTimeZone: null,
+  });
+
+  const parsedInput = parseSyncPushInput(input);
+
+  assert.equal(parsedInput.operations[0]?.entityType, "review_event");
+  if (parsedInput.operations[0]?.entityType !== "review_event") {
+    assert.fail("Expected the parsed sync operation to remain a review_event");
+  }
+  assert.equal(parsedInput.operations[0].payload.reviewedTimeZone, undefined);
 });
 
 test("parseSyncPushInput rejects malformed reviewedTimeZone on review_event operations", () => {
