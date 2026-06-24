@@ -17,13 +17,25 @@ export const CHAT_MODEL_BADGE_LABEL = `${CHAT_MODEL_LABEL} · ${CHAT_MODEL_REASO
  * Maximum estimated token size of replayed chat history sent to the model.
  *
  * gpt-5.4 exposes a standard 272K-token context window (the ~1M window is an
- * experimental opt-in we do not enable). We keep replayed history well under
- * that so the system prompt, the current turn, within-run tool-call/reasoning
- * growth, and model output always fit. Full history stays in storage; only the
- * provider input is windowed. Token sizes are estimated from character length,
- * so this is a conservative cap rather than an exact token count.
+ * experimental opt-in we do not enable). Token sizes are estimated from
+ * character length, which under-counts dense/non-Latin/encrypted content
+ * (Cyrillic/CJK and base64 reasoning tokenize far denser than 4 chars/token),
+ * so this is a deliberately conservative cap rather than an exact token count.
+ *
+ * We keep replayed history well under the 272K window so that, even when the
+ * char-based estimate under-counts, the system prompt, the current turn (which
+ * is reserved separately and never truncated), within-run tool-call/reasoning
+ * growth, and model output still fit. Budgeting history at 110K leaves roughly
+ * 160K of headroom under 272K for that under-counting plus output. Full history
+ * stays in storage; only the provider input is windowed.
  */
-export const CHAT_HISTORY_REPLAY_TOKEN_BUDGET = 150_000 as const;
+export const CHAT_HISTORY_REPLAY_TOKEN_BUDGET = 110_000 as const;
+
+/**
+ * Total gpt-5.4 context window in tokens. Exposed so within-run caps and
+ * context-overflow retry logic can bound input against the real model window.
+ */
+export const CHAT_MODEL_CONTEXT_WINDOW_TOKENS = 272_000 as const;
 
 export type ChatRuntimeModelId =
   | typeof CHAT_MODEL_ID
