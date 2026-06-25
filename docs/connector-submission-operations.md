@@ -11,6 +11,53 @@ Reviewer credentials (the demo email and shared password) are never committed
 here; they are provided to each directory through its private submission portal
 only.
 
+## Pre-submit gate
+
+Do not submit to any directory until all checks pass.
+
+- `server.json` validates against the current official MCP Registry schema; use
+  the validation command in
+  [mcp-registry-publishing.md](mcp-registry-publishing.md#validate-the-manifest)
+  and record the schema URL used.
+- The official registry lookup returns the published entry:
+
+  ```bash
+  curl -fsS 'https://registry.modelcontextprotocol.io/v0.1/servers/com.flashcards-open-source-app%2Fflashcards/versions/latest'
+  ```
+
+  A JSON response for `com.flashcards-open-source-app/flashcards` is pass. A
+  `404 Server not found` response means the entry is not published yet, the
+  server name is wrong, or the publish failed.
+- Unauthenticated access to the MCP endpoint returns a standards-compatible
+  OAuth challenge:
+
+  ```bash
+  curl -isS https://mcp.flashcards-open-source-app.com/mcp
+  ```
+
+  Pass requires an unauthorized response with a `WWW-Authenticate` Bearer
+  challenge that points clients to the protected-resource metadata.
+- Protected-resource metadata returns valid JSON for both the root well-known
+  path and the `/mcp` path-aware variant, and the resource value is
+  `https://mcp.flashcards-open-source-app.com/mcp`:
+
+  ```bash
+  curl -fsS https://mcp.flashcards-open-source-app.com/.well-known/oauth-protected-resource | jq .
+  curl -fsS https://mcp.flashcards-open-source-app.com/.well-known/oauth-protected-resource/mcp | jq .
+  ```
+
+- Authorization-server metadata returns valid JSON with the expected OAuth and
+  Dynamic Client Registration endpoints:
+
+  ```bash
+  curl -fsS https://auth.flashcards-open-source-app.com/.well-known/oauth-authorization-server | jq .
+  ```
+
+- The review/demo account is enabled, can complete OAuth, and has a seeded
+  workspace with decks and cards suitable for the reviewer walkthrough.
+- Reviewer credentials stay out of the repository. Paste them only into private
+  submission portals or private reviewer communication channels.
+
 ## Reviewer demo account
 
 The insecure review/demo bypass lets a directory reviewer sign in to a synthetic
