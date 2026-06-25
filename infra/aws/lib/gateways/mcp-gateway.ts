@@ -1,12 +1,17 @@
 import * as cdk from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
+import * as apigwv2 from "aws-cdk-lib/aws-apigatewayv2";
+import * as apigwv2Integrations from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as rds from "aws-cdk-lib/aws-rds";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as logs from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
-import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
+import {
+  createSafeApiGatewayAccessLogFormat,
+  createSafeHttpApiAccessLogFormat,
+} from "./api-gateway-access-log";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
 
 export interface McpGatewayProps {
@@ -24,10 +29,35 @@ export interface McpGatewayProps {
 }
 
 export interface McpGatewayResult {
-  restApi: apigw.RestApi;
+  httpApi: apigwv2.HttpApi;
+  httpStage: apigwv2.HttpStage;
   mcpFn: lambdaNodejs.NodejsFunction;
   accessLogGroup: logs.LogGroup;
 }
+
+interface McpHttpApiMapping {
+  constructId: string;
+  apiMappingKey: string;
+}
+
+const mcpHttpApiMappings: ReadonlyArray<McpHttpApiMapping> = [
+  {
+    constructId: "McpHttpMcpApiMapping",
+    apiMappingKey: "mcp",
+  },
+  {
+    constructId: "McpHttpHealthApiMapping",
+    apiMappingKey: "health",
+  },
+  {
+    constructId: "McpHttpProtectedResourceApiMapping",
+    apiMappingKey: ".well-known/oauth-protected-resource",
+  },
+  {
+    constructId: "McpHttpProtectedResourceMcpApiMapping",
+    apiMappingKey: ".well-known/oauth-protected-resource/mcp",
+  },
+];
 
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
   minify: true,
@@ -76,6 +106,75 @@ function addOptionalSentryEnvironment(
   fn.addEnvironment("SENTRY_ENVIRONMENT", props.sentryEnvironment);
   fn.addEnvironment("SENTRY_RELEASE", props.sentryRelease);
   fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
+}
+
+function addHttpApiMapping(
+  scope: Construct,
+  domainName: string,
+  httpApi: apigwv2.HttpApi,
+  httpStage: apigwv2.HttpStage,
+  mapping: McpHttpApiMapping,
+  dependencies: ReadonlyArray<Construct>,
+): void {
+  const apiMapping = new apigwv2.CfnApiMapping(scope, mapping.constructId, {
+    domainName,
+    apiId: httpApi.httpApiId,
+    stage: httpStage.stageName,
+    apiMappingKey: mapping.apiMappingKey,
+  });
+  for (const dependency of dependencies) {
+    apiMapping.node.addDependency(dependency);
+  }
+}
+
+export function addMcpHttpApiMappings(
+  scope: Construct,
+  domainName: string,
+  httpApi: apigwv2.HttpApi,
+  httpStage: apigwv2.HttpStage,
+  dependencies: ReadonlyArray<Construct>,
+): void {
+  for (const mapping of mcpHttpApiMappings) {
+    addHttpApiMapping(scope, domainName, httpApi, httpStage, mapping, dependencies);
+  }
+}
+
+export function addMcpHttpApiRoutes(
+  scope: Construct,
+  httpApi: apigwv2.HttpApi,
+  integration: apigwv2.HttpRouteIntegration,
+): void {
+  // Path-specific custom-domain API mappings are stripped for HTTP API route
+  // selection. The Lambda payload stays format 1.0, so Hono still sees the
+  // public mapped path while this default route guarantees Lambda is invoked.
+  new apigwv2.HttpRoute(scope, "McpHttpDefaultRoute", {
+    httpApi,
+    routeKey: apigwv2.HttpRouteKey.DEFAULT,
+    integration,
+  });
+
+  // Keep explicit routes for raw execute-api/stage traffic and for readability
+  // in the API Gateway console.
+  httpApi.addRoutes({
+    path: "/.well-known/oauth-protected-resource",
+    methods: [apigwv2.HttpMethod.GET],
+    integration,
+  });
+  httpApi.addRoutes({
+    path: "/.well-known/oauth-protected-resource/mcp",
+    methods: [apigwv2.HttpMethod.GET],
+    integration,
+  });
+  httpApi.addRoutes({
+    path: "/mcp",
+    methods: [apigwv2.HttpMethod.ANY],
+    integration,
+  });
+  httpApi.addRoutes({
+    path: "/health",
+    methods: [apigwv2.HttpMethod.GET],
+    integration,
+  });
 }
 
 export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGatewayResult {
@@ -130,20 +229,36 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     },
   });
 
-  const integration = new apigw.LambdaIntegration(mcpFn);
+  const restIntegration = new apigw.LambdaIntegration(mcpFn);
 
-  // API Gateway must know each public path ahead of time, or requests will
-  // fail at the edge with MissingAuthenticationTokenException before Lambda
-  // runs. Keep this list aligned with the routes in lambda-mcp.ts.
+  // Keep the existing REST API and root custom-domain mapping during the HTTP
+  // API migration so CloudFormation does not create a duplicate mcp.<domain>
+  // custom domain. Path-specific HTTP API mappings below take precedence for
+  // the public MCP routes.
   const wellKnown = restApi.root.addResource(".well-known");
   const protectedResource = wellKnown.addResource("oauth-protected-resource");
-  protectedResource.addMethod("GET", integration);
-  // RFC 9728 §3.1 path-aware PRM location for the `/mcp` resource path.
-  protectedResource.addResource("mcp").addMethod("GET", integration);
+  protectedResource.addMethod("GET", restIntegration);
+  protectedResource.addResource("mcp").addMethod("GET", restIntegration);
 
-  restApi.root.addResource("mcp").addMethod("ANY", integration);
-  restApi.root.addResource("health").addMethod("GET", integration);
+  restApi.root.addResource("mcp").addMethod("ANY", restIntegration);
+  restApi.root.addResource("health").addMethod("GET", restIntegration);
 
+  const httpApi = new apigwv2.HttpApi(scope, "McpHttpApi", {
+    apiName: "flashcards-open-source-app-mcp-http",
+    description: "Public MCP API exposing OAuth Protected Resource Metadata and the MCP transport",
+    createDefaultStage: false,
+  });
+
+  const integration = new apigwv2Integrations.HttpLambdaIntegration("McpHttpLambdaIntegration", mcpFn, {
+    // Format 1.0 keeps the mapped custom-domain path in event.path, which the
+    // Hono Lambda adapter uses to match the public /mcp and /.well-known routes.
+    payloadFormatVersion: apigwv2.PayloadFormatVersion.VERSION_1_0,
+    timeout: cdk.Duration.seconds(29),
+  });
+
+  addMcpHttpApiRoutes(scope, httpApi, integration);
+
+  let customDomain: apigw.DomainName | undefined;
   if (props.mcpCertificateArn) {
     const mcpDomainName = `mcp.${props.baseDomain}`;
     const certificate = cdk.aws_certificatemanager.Certificate.fromCertificateArn(
@@ -152,19 +267,36 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
       props.mcpCertificateArn,
     );
 
-    // No base path mapping: the canonical resource is https://mcp.<domain>/mcp
-    // served directly from the custom domain root.
-    const domain = restApi.addDomainName("McpCustomDomain", {
+    customDomain = restApi.addDomainName("McpCustomDomain", {
       domainName: mcpDomainName,
       certificate,
       endpointType: apigw.EndpointType.REGIONAL,
     });
+  }
+
+  const httpStage = new apigwv2.HttpStage(scope, "McpHttpApiStage", {
+    httpApi,
+    stageName: "v1",
+    autoDeploy: true,
+    throttle: {
+      rateLimit: 20,
+      burstLimit: 40,
+    },
+    detailedMetricsEnabled: true,
+    accessLogSettings: {
+      destination: new apigwv2.LogGroupLogDestination(accessLogGroup),
+      format: createSafeHttpApiAccessLogFormat(),
+    },
+  });
+
+  if (customDomain !== undefined) {
+    addMcpHttpApiMappings(scope, customDomain.domainName, httpApi, httpStage, [customDomain, httpStage]);
 
     new cdk.CfnOutput(scope, "McpCustomDomainTarget", {
-      value: domain.domainNameAliasDomainName,
+      value: customDomain.domainNameAliasDomainName,
       description: "Create a Cloudflare CNAME for mcp.<domain> to this target",
     });
   }
 
-  return { restApi, mcpFn, accessLogGroup };
+  return { httpApi, httpStage, mcpFn, accessLogGroup };
 }

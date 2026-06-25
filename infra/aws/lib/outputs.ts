@@ -2,6 +2,7 @@ import * as cdk from "aws-cdk-lib";
 import * as rds from "aws-cdk-lib/aws-rds";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
+import * as apigwv2 from "aws-cdk-lib/aws-apigatewayv2";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as s3 from "aws-cdk-lib/aws-s3";
@@ -18,7 +19,8 @@ export interface OutputsProps {
   alertTopic: sns.Topic;
   restApi: apigw.RestApi;
   authRestApi: apigw.RestApi;
-  mcpRestApi: apigw.RestApi;
+  mcpHttpApi: apigwv2.HttpApi;
+  mcpHttpStage: apigwv2.HttpStage;
   backendFn: lambda.IFunction;
   chatWorkerFn: lambda.IFunction;
   chatLiveFn: lambda.IFunction;
@@ -77,7 +79,7 @@ export function outputs(scope: Construct, props: OutputsProps): void {
   });
 
   new cdk.CfnOutput(scope, "McpGatewayUrl", {
-    value: props.mcpRestApi.url,
+    value: props.mcpHttpStage.url,
     description: "MCP API Gateway invoke URL",
   });
 
@@ -87,8 +89,8 @@ export function outputs(scope: Construct, props: OutputsProps): void {
   });
 
   new cdk.CfnOutput(scope, "McpGatewayId", {
-    value: props.mcpRestApi.restApiId,
-    description: "MCP REST API ID",
+    value: props.mcpHttpApi.httpApiId,
+    description: "MCP HTTP API ID",
   });
 
   new cdk.CfnOutput(scope, "McpFunctionName", {
