@@ -2,6 +2,7 @@ import * as cdk from "aws-cdk-lib";
 import * as rds from "aws-cdk-lib/aws-rds";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
+import * as apigwv2 from "aws-cdk-lib/aws-apigatewayv2";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import * as cloudwatchActions from "aws-cdk-lib/aws-cloudwatch-actions";
 import * as logs from "aws-cdk-lib/aws-logs";
@@ -28,7 +29,7 @@ export interface MonitoringProps {
   db: rds.DatabaseInstance;
   restApi: apigw.RestApi;
   authRestApi: apigw.RestApi;
-  mcpRestApi: apigw.RestApi;
+  mcpHttpApi: apigwv2.HttpApi;
   backendFn: lambda.IFunction;
   authFn: lambda.IFunction;
   mcpFn: lambda.IFunction;
@@ -114,10 +115,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
 
   new cloudwatch.Alarm(scope, "McpApiGateway5xxAlarm", {
-    metric: new cloudwatch.Metric({
-      namespace: "AWS/ApiGateway",
-      metricName: "5XXError",
-      dimensionsMap: { ApiName: props.mcpRestApi.restApiName },
+    metric: props.mcpHttpApi.metricServerError({
       period: cdk.Duration.minutes(5),
       statistic: "Sum",
     }),
