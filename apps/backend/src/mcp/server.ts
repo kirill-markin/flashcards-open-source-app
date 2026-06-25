@@ -350,9 +350,11 @@ export function createMcpServer(
             "Optional workspace UUID from the list_workspaces tool; omit to use your currently selected default workspace.",
           ),
       },
-      // sql_query only reads our own database. openWorldHint is false because
-      // it acts only within our own closed database domain; idempotentHint is
-      // true because repeating the same read has no additional effect.
+      // sql_query rejects mutations before execution, and SELECT-backed reads
+      // run through read-only scoped database transactions. openWorldHint is
+      // false because it acts only within our own closed database domain;
+      // idempotentHint is true because repeating the same read has no
+      // additional effect.
       annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
     },
     async ({ sql, workspaceId: requestedWorkspaceId }): Promise<CallToolResult> => {

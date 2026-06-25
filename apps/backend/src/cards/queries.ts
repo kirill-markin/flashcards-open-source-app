@@ -1,6 +1,7 @@
 import {
-  queryWithWorkspaceScope,
-  transactionWithWorkspaceScope,
+  queryWithWorkspaceScopeReadOnly,
+  transactionWithWorkspaceScopeReadOnly,
+  type DatabaseExecutor,
   type SqlValue,
 } from "../database";
 import { HttpError } from "../shared/errors";
@@ -16,7 +17,6 @@ import {
 } from "../search/tokens";
 import type { SearchTokenClauseFactory } from "../search/tokens";
 import { normalizeCardFilter } from "./filters";
-import { validateOrResetCardRowForRead } from "./fsrs";
 import {
   CARD_COLUMNS,
   CARD_SELECT,
@@ -131,19 +131,6 @@ const sortFieldByKey: Readonly<Record<CardQuerySortKey | "cardId", InternalSortF
     nullable: false,
   },
 };
-
-async function validateOrResetCardRowsForRead(
-  executor: Parameters<typeof validateOrResetCardRowForRead>[0],
-  workspaceId: string,
-  rows: ReadonlyArray<CardRow>,
-): Promise<ReadonlyArray<CardRow>> {
-  const repairedRows: Array<CardRow> = [];
-  for (const row of rows) {
-    repairedRows.push(await validateOrResetCardRowForRead(executor, workspaceId, row));
-  }
-
-  return repairedRows;
-}
 
 function getReviewQueueRank(card: CardRow, nowTimestamp: number): number {
   if (card.due_at === null) {
@@ -521,7 +508,7 @@ export function getCardsQueryDefaultPageSize(): number {
 }
 
 export async function listCardsInExecutor(
-  executor: Parameters<typeof validateOrResetCardRowForRead>[0],
+  executor: DatabaseExecutor,
   workspaceId: string,
 ): Promise<ReadonlyArray<Card>> {
   const result = await executor.query<CardRow>(
@@ -533,12 +520,11 @@ export async function listCardsInExecutor(
     [workspaceId],
   );
 
-  const repairedRows = await validateOrResetCardRowsForRead(executor, workspaceId, result.rows);
-  return repairedRows.map(mapCard);
+  return result.rows.map(mapCard);
 }
 
 export async function listCards(userId: string, workspaceId: string): Promise<ReadonlyArray<Card>> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReadOnly({ userId, workspaceId }, async (executor) => {
     return listCardsInExecutor(executor, workspaceId);
   });
 }
@@ -555,7 +541,7 @@ export async function queryCardsPage(
   const effectiveSorts = buildEffectiveCardsQuerySorts(normalizedSorts);
   const decodedCursor = input.cursor === null ? null : decodeCardsQueryCursor(input.cursor);
 
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReadOnly({ userId, workspaceId }, async (executor) => {
     const filterClauseResult = buildCardsQueryFilterClause(normalizedFilter, 1);
     const searchClauseResult = buildCardsQuerySearchClause(
       normalizedSearchTokens,
@@ -616,7 +602,6 @@ export async function queryCardsPage(
 
     const hasMore = pageResult.rows.length > normalizedLimit;
     const rowsForPage = hasMore ? pageResult.rows.slice(0, normalizedLimit) : pageResult.rows;
-    const repairedRows = await validateOrResetCardRowsForRead(executor, workspaceId, rowsForPage);
     const nextCursor = hasMore
       ? encodeCardsQueryCursor(
         effectiveSorts.map((sort) => makeCursorValueFromRow(pageResult.rows[normalizedLimit - 1], sort)),
@@ -624,7 +609,7 @@ export async function queryCardsPage(
       : null;
 
     return {
-      cards: repairedRows.map(mapCard),
+      cards: rowsForPage.map(mapCard),
       nextCursor,
       totalCount: toNumber(countResult.rows[0]?.total_count ?? 0),
     };
@@ -632,7 +617,7 @@ export async function queryCardsPage(
 }
 
 export async function getCard(userId: string, workspaceId: string, cardId: string): Promise<Card> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReadOnly({ userId, workspaceId }, async (executor) => {
     const result = await executor.query<CardRow>(
       [
         CARD_SELECT,
@@ -646,7 +631,7 @@ export async function getCard(userId: string, workspaceId: string, cardId: strin
       throw new HttpError(404, "Card not found");
     }
 
-    return mapCard(await validateOrResetCardRowForRead(executor, workspaceId, row));
+    return mapCard(row);
   });
 }
 
@@ -655,7 +640,7 @@ export async function getCards(
   workspaceId: string,
   cardIds: ReadonlyArray<string>,
 ): Promise<ReadonlyArray<Card>> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReadOnly({ userId, workspaceId }, async (executor) => {
     const result = await executor.query<CardRow>(
       [
         CARD_SELECT,
@@ -664,8 +649,7 @@ export async function getCards(
       [workspaceId, cardIds],
     );
 
-    const repairedRows = await validateOrResetCardRowsForRead(executor, workspaceId, result.rows);
-    const cardsById = new Map(repairedRows.map((row) => {
+    const cardsById = new Map(result.rows.map((row) => {
       const card = mapCard(row);
       return [card.cardId, card] as const;
     }));
@@ -682,20 +666,20 @@ export async function getCards(
 }
 
 /**
- * Materializes the full repaired due-card order for internal callers that must
- * reason about the exact post-repair queue as one collection.
+ * Materializes the full due-card order for internal callers that must reason
+ * about the exact queue as one collection.
  *
  * Keep this helper because `listReviewQueuePage()` currently derives stable
- * cursor pagination from the repaired in-memory due order, which depends on
- * FSRS repair, null due dates, and `compareCardsForReviewQueue`. API-facing
- * reads should call `listReviewQueuePage()` instead.
+ * cursor pagination from the in-memory due order, which depends on null due
+ * dates and `compareCardsForReviewQueue`. API-facing reads should call
+ * `listReviewQueuePage()` instead.
  */
 export async function listReviewQueue(
   userId: string,
   workspaceId: string,
   limit: number,
 ): Promise<ReadonlyArray<Card>> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReadOnly({ userId, workspaceId }, async (executor) => {
     const now = new Date();
     const nowTimestamp = now.getTime();
     const result = await executor.query<CardRow>(
@@ -709,8 +693,7 @@ export async function listReviewQueue(
       [workspaceId, now],
     );
 
-    const repairedRows = await validateOrResetCardRowsForRead(executor, workspaceId, result.rows);
-    return repairedRows
+    return result.rows
       .filter((row) => row.due_at === null || toDate(row.due_at).getTime() <= nowTimestamp)
       .sort((leftRow, rightRow) => compareCardsForReviewQueue(leftRow, rightRow, nowTimestamp))
       .slice(0, limit)
@@ -767,7 +750,7 @@ export async function searchCards(
   const searchClauseResult = buildCardsQuerySearchClause(searchTokens, 1);
   const limitParamIndex = 1 + searchClauseResult.params.length + 1;
 
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReadOnly({ userId, workspaceId }, async (executor) => {
     const result = await executor.query<CardRow>(
       [
         CARD_SELECT,
@@ -780,8 +763,7 @@ export async function searchCards(
       [workspaceId, ...searchClauseResult.params, limit],
     );
 
-    const repairedRows = await validateOrResetCardRowsForRead(executor, workspaceId, result.rows);
-    return repairedRows.map(mapCard);
+    return result.rows.map(mapCard);
   });
 }
 
@@ -807,7 +789,7 @@ export async function listReviewHistoryPage(
     ? decodedCursor === null ? 2 : 4
     : decodedCursor === null ? 3 : 5;
 
-  const result = await queryWithWorkspaceScope<ReviewHistoryPageRow>(
+  const result = await queryWithWorkspaceScopeReadOnly<ReviewHistoryPageRow>(
     { userId, workspaceId },
     [
       "SELECT review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server, reviewed_time_zone",
@@ -835,7 +817,7 @@ export async function listReviewHistoryPage(
 }
 
 export async function summarizeDeckState(userId: string, workspaceId: string): Promise<DeckSummary> {
-  const result = await queryWithWorkspaceScope<DeckSummaryRow>(
+  const result = await queryWithWorkspaceScopeReadOnly<DeckSummaryRow>(
     { userId, workspaceId },
     [
       "SELECT",
@@ -860,7 +842,7 @@ export async function summarizeDeckState(userId: string, workspaceId: string): P
 }
 
 export async function listWorkspaceTagsSummary(userId: string, workspaceId: string): Promise<WorkspaceTagsSummary> {
-  const totalCardsResult = await queryWithWorkspaceScope<Readonly<{ total_cards: string | number }>>(
+  const totalCardsResult = await queryWithWorkspaceScopeReadOnly<Readonly<{ total_cards: string | number }>>(
     { userId, workspaceId },
     [
       "SELECT COUNT(*)::int AS total_cards",
@@ -874,7 +856,7 @@ export async function listWorkspaceTagsSummary(userId: string, workspaceId: stri
     throw new Error("Workspace tag summary count query did not return a row");
   }
 
-  const tagRowsResult = await queryWithWorkspaceScope<Readonly<{ tag: string; cards_count: string | number }>>(
+  const tagRowsResult = await queryWithWorkspaceScopeReadOnly<Readonly<{ tag: string; cards_count: string | number }>>(
     { userId, workspaceId },
     [
       "SELECT tag_counts.tag, tag_counts.cards_count",

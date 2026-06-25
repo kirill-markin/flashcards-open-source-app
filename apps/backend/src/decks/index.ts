@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
-  queryWithWorkspaceScope,
+  queryWithWorkspaceScopeReadOnly,
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../database";
@@ -428,7 +428,7 @@ export async function listDecksPage(
     : [workspaceId, new Date(decodedCursor.createdAt), decodedCursor.deckId, input.limit + 1];
   const limitParamIndex = decodedCursor === null ? 2 : 4;
 
-  const result = await queryWithWorkspaceScope<DeckRow>(
+  const result = await queryWithWorkspaceScopeReadOnly<DeckRow>(
     { userId, workspaceId },
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
@@ -474,7 +474,7 @@ export async function listDecksInExecutor(
 }
 
 export async function getDeck(userId: string, workspaceId: string, deckId: string): Promise<Deck> {
-  const result = await queryWithWorkspaceScope<DeckRow>(
+  const result = await queryWithWorkspaceScopeReadOnly<DeckRow>(
     { userId, workspaceId },
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
@@ -501,7 +501,7 @@ export async function getDecks(
   validateDeckBatchCount(deckIds.length);
   validateUniqueDeckIds(deckIds);
 
-  const result = await queryWithWorkspaceScope<DeckRow>(
+  const result = await queryWithWorkspaceScopeReadOnly<DeckRow>(
     { userId, workspaceId },
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
@@ -561,7 +561,7 @@ export async function searchDecksPage(
       input.limit + 1,
     ];
 
-  const result = await queryWithWorkspaceScope<DeckRow>(
+  const result = await queryWithWorkspaceScopeReadOnly<DeckRow>(
     { userId, workspaceId },
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",

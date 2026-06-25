@@ -12,7 +12,7 @@
  * Source-of-truth docs: docs/fsrs-scheduling-logic.md
  */
 import {
-  queryWithWorkspaceScope,
+  queryWithWorkspaceScopeReadOnly,
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../database";
@@ -202,7 +202,7 @@ export async function getWorkspaceSchedulerSettings(
   workspaceId: string,
 ): Promise<WorkspaceSchedulerSettings> {
   // Keep in sync with apps/ios/Flashcards/Flashcards/LocalDatabase.swift::loadWorkspaceSchedulerSettings(workspaceId:).
-  const result = await queryWithWorkspaceScope<WorkspaceSchedulerSettingsRow>(
+  const result = await queryWithWorkspaceScopeReadOnly<WorkspaceSchedulerSettingsRow>(
     { userId, workspaceId },
     [
       "SELECT",
