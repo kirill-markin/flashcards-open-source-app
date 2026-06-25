@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.flashcards-open-source-app/flashcards",
   "title": "Flashcards Open Source App",
-  "description": "Read and write open-source flashcards and decks through split read/write MCP tools.",
+  "description": "Read and write open-source flashcards through split read/write MCP tools.",
   "version": "1.14.0",
   "websiteUrl": "https://flashcards-open-source-app.com",
   "icons": [
@@ -10,6 +10,16 @@
       "src": "https://flashcards-open-source-app.com/icon.svg",
       "mimeType": "image/svg+xml",
       "sizes": ["any"]
+    },
+    {
+      "src": "https://flashcards-open-source-app.com/icon-preview.png",
+      "mimeType": "image/png",
+      "sizes": ["512x512"]
+    },
+    {
+      "src": "https://flashcards-open-source-app.com/logo-512.png",
+      "mimeType": "image/png",
+      "sizes": ["512x512"]
     }
   ],
   "repository": {
@@ -23,12 +33,41 @@
     }
   ],
   "_meta": {
-    "com.flashcards-open-source-app/listing": {
+    "io.modelcontextprotocol.registry/publisher-provided": {
       "categories": ["Productivity", "Education"],
+      "tags": ["flashcards", "spaced-repetition", "study", "education"],
+      "mcpServerUrl": "https://mcp.flashcards-open-source-app.com/mcp",
+      "documentationUrl": "https://flashcards-open-source-app.com/docs/mcp-connector/",
+      "apiDocumentationUrl": "https://flashcards-open-source-app.com/docs/api/",
       "privacyPolicyUrl": "https://flashcards-open-source-app.com/privacy/",
       "termsOfServiceUrl": "https://flashcards-open-source-app.com/terms/",
       "supportUrl": "https://flashcards-open-source-app.com/support/",
-      "documentationUrl": "https://flashcards-open-source-app.com/docs/api/"
+      "iconUrls": {
+        "svg": "https://flashcards-open-source-app.com/icon.svg",
+        "previewPng": "https://flashcards-open-source-app.com/icon-preview.png",
+        "logo512Png": "https://flashcards-open-source-app.com/logo-512.png"
+      },
+      "authentication": [
+        "OAuth 2.1 authorization code with PKCE and Dynamic Client Registration",
+        "fca_ Bearer token for headless clients"
+      ],
+      "tools": [
+        {
+          "name": "list_workspaces",
+          "description": "Lists the authenticated user's workspaces.",
+          "readOnly": true
+        },
+        {
+          "name": "sql_query",
+          "description": "Runs strictly read-only SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT statements.",
+          "readOnly": true
+        },
+        {
+          "name": "sql_execute",
+          "description": "Runs INSERT, UPDATE, and DELETE statements as an atomic write batch.",
+          "readOnly": false
+        }
+      ]
     }
   }
 }

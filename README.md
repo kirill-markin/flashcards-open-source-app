@@ -18,6 +18,17 @@ Flashcards Open Source App is an open-source AI-powered flashcards app built for
 
 Card scheduling uses FSRS-based spaced repetition. Detailed scheduling rules live in [docs/fsrs-scheduling-logic.md](docs/fsrs-scheduling-logic.md).
 
+## MCP connector
+
+The hosted MCP server is available at `https://mcp.flashcards-open-source-app.com/mcp` and is listed in MCP registries as `com.flashcards-open-source-app/flashcards`. It exposes three workspace-scoped tools: `list_workspaces`, `sql_query`, and `sql_execute`.
+
+Interactive clients authenticate with OAuth 2.1 authorization code + PKCE and Dynamic Client Registration. Headless clients can use an `fca_` Bearer token.
+
+- [MCP connector docs](https://flashcards-open-source-app.com/docs/mcp-connector/)
+- [Agent API docs](https://flashcards-open-source-app.com/docs/api/)
+- [Privacy](https://flashcards-open-source-app.com/privacy/)
+- [Support](https://flashcards-open-source-app.com/support/)
+
 ## Docs
 
 - [iOS app](apps/ios/README.md)
