@@ -16,11 +16,12 @@ Do not change `/v1` API paths, OpenAPI `info.version: v1`, or API Gateway stage 
 
 Even though we usually ship one shared project version, each platform still has its own checked-in source of truth and runtime wiring. Keep those sources aligned instead of introducing copied fallback literals.
 
-### Backend and backend-adjacent packages
+### Backend, admin, and backend-adjacent packages
 
 Update these package manifests together:
 
 - `apps/backend/package.json`
+- `apps/admin/package.json`
 - `api/package.json`
 - `apps/auth/package.json`
 - `infra/aws/package.json`
@@ -163,7 +164,7 @@ when the user-facing effect is unclear.
 
 1. Choose the next semantic version for the release.
 2. By default, treat that version as the shared project version for backend, web, Android, and iOS.
-3. Search the repo for the current version strings so you can see every manifest, runtime reader, and test expectation that still reports the old value for the release.
+3. Search the repo for the current version strings so you can see every manifest, runtime reader, test expectation, and newly added repo-owned version surface that still reports the old value for the release.
 4. Update all repo-owned version surfaces that participate in that release, and keep each platform's runtime-reported version aligned with its checked-in version source.
 5. Update version-coupled test fixtures, Android instrumentation support values, and compatibility comments that explicitly name the released first-party client version.
 6. Update release metadata only when that metadata actually names the current app version for the touched platform.
