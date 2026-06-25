@@ -140,9 +140,10 @@ Card invariants:
 - `review` cards must have full FSRS memory state and `fsrs_step_index = NULL`
 - `learning` and `relearning` cards must have full FSRS memory state and a non-null `fsrs_step_index`
 
-Runtime code must validate persisted scheduler state during normal reads and review submission.
-If a card is invalid, runtime code must log the error and reset that card to the canonical `new` scheduler state.
-The repair path must not rewrite or delete `review_events`.
+Existing invalid persisted scheduler state is repaired by migration or explicit maintenance outside normal read paths.
+Writes must preserve the card invariants above, and normal reads must remain pure reads without hidden repair.
+Review submission must fail when persisted card state is impossible.
+Any repair path must not rewrite or delete `review_events`.
 Elapsed days are computed from UTC calendar-day boundaries only.
 If `fsrs_last_reviewed_at` is later than the current review timestamp, even within the same UTC day, the scheduler must throw.
 
