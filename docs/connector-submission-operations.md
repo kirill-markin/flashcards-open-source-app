@@ -27,7 +27,10 @@ Do not submit to any directory until all checks pass.
 
   A JSON response for `com.flashcards-open-source-app/flashcards` is pass. A
   `404 Server not found` response means the entry is not published yet, the
-  server name is wrong, or the publish failed.
+  server name is wrong, or the publish failed. Use the credential setup and
+  publish flow in
+  [mcp-registry-publishing.md](mcp-registry-publishing.md#one-time-credential-setup)
+  before submitting to downstream directories.
 - Unauthenticated access to the MCP endpoint returns a standards-compatible
   OAuth challenge:
 
