@@ -22,7 +22,7 @@ import {
   releaseReviewReactionLottieRender,
   reserveReviewReactionLottieRender,
   reviewReactionLottieFallbackVariant,
-} from "./reviewReactionLottie";
+} from "./lottie/reviewReactionLottie";
 
 export type UseReviewRatingReactionsParams = Readonly<{
   reviewReactionAnimationsEnabled: boolean;

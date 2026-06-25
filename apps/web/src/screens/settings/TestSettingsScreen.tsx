@@ -25,7 +25,7 @@ import {
   reserveReviewReactionLottieRender,
   reviewReactionLottieFallbackVariant,
   startReviewReactionLottiePrewarm,
-} from "../review/reactions/reviewReactionLottie";
+} from "../review/reactions/lottie/reviewReactionLottie";
 import { SettingsActionCard, SettingsGroup, SettingsNavigationCard, SettingsShell } from "./SettingsShared";
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;

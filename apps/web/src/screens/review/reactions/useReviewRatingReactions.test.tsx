@@ -13,7 +13,7 @@ const {
   reserveReviewReactionLottieRenderMock: vi.fn(),
 }));
 
-vi.mock("./reviewReactionLottie", () => ({
+vi.mock("./lottie/reviewReactionLottie", () => ({
   isReviewReactionLottieAssetReady: (variant: string): boolean => readyLottieVariants.has(variant),
   isReviewReactionLottieVariant: (variant: string): boolean => variant !== "fallbackCrownBounce",
   releaseReviewReactionLottieRender: releaseReviewReactionLottieRenderMock,

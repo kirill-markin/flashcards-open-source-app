@@ -19,7 +19,7 @@ import {
 import {
   isReviewReactionLottieAssetReady,
   reviewReactionLottieVariants,
-} from "../reactions/reviewReactionLottie";
+} from "../reactions/lottie/reviewReactionLottie";
 
 const {
   dispatchDocumentKeydown,

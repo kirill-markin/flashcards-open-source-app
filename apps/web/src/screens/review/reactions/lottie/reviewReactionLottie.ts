@@ -37,7 +37,7 @@ import hardSnakeAnimationUrl from "./assets/review_hard_snake.json?url";
 import hardTRexAnimationUrl from "./assets/review_hard_t_rex.json?url";
 import hardTigerAnimationUrl from "./assets/review_hard_tiger.json?url";
 import hardVolcanoEruptionAnimationUrl from "./assets/review_hard_volcano.json?url";
-import type { ReviewReactionFallbackVariant, ReviewReactionRenderableVariant } from "./reviewReaction";
+import type { ReviewReactionFallbackVariant, ReviewReactionRenderableVariant } from "../reviewReaction";
 
 type ReviewReactionLottiePlayerModule = Readonly<{
   default: LottiePlayer;

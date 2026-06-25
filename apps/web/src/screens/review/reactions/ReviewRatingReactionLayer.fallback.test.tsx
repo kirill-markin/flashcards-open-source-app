@@ -16,7 +16,7 @@ import {
   loadReviewReactionLottieAssets,
   reviewReactionLottieFallbackVariant,
   resetReviewReactionLottieStateForTests,
-} from "./reviewReactionLottie";
+} from "./lottie/reviewReactionLottie";
 import {
   useReviewRatingReactions,
   type UseReviewRatingReactionsResult,
