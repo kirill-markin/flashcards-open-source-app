@@ -174,6 +174,36 @@ Three representative prompts and their expected outcomes.
    the question prompt and the back to the answer, then confirms one row was
    written. A follow-up `sql_query` can verify it.
 
+## Submission targets
+
+Submit in this order. The official MCP Registry comes first because it is the
+canonical source for MCP `server.json` metadata; PulseMCP builds on upstream
+registry entries and its ingestion/re-enrichment runs on daily/weekly cycles,
+so downstream discovery works best after the official entry is live.
+
+Verify the official registry entry before submitting to the other directories:
+
+```bash
+curl -fsS 'https://registry.modelcontextprotocol.io/v0.1/servers/com.flashcards-open-source-app%2Fflashcards/versions/latest'
+```
+
+Success means the command returns a JSON entry for
+`com.flashcards-open-source-app/flashcards`. Failure means the submission is not
+ready for downstream directories; a `404 Server not found` response means the
+entry is not published, the server name is wrong, or the registry publish failed.
+
+| Order | Target | Required URL | Auth / review notes | What to paste |
+| --- | --- | --- | --- | --- |
+| 1 | Official MCP Registry | https://registry.modelcontextprotocol.io/ | Publish and verify the root `server.json`; no reviewer credentials. | `server.json` metadata: name, title, description/tagline, version, website, icon, repository, and MCP server URL. |
+| 2 | Smithery | https://smithery.ai/new | Directory account / GitHub ownership as requested; no shared credentials unless review requires them. | Listing name, tagline, categories, icon, docs, privacy, support, terms, source URL, and MCP server URL from the metadata above. |
+| 3 | PulseMCP | https://www.pulsemcp.com/submit | Check whether the official registry entry has already been ingested before filing a manual submission. | Reuse the same listing metadata and point to the official registry entry when available. |
+| 4 | Glama | https://glama.ai/mcp/servers | Claim or submit the server using the public repository and hosted MCP URL. | Reuse the concise listing metadata; avoid duplicating the long description unless the form requires it. |
+| 5 | MCP.Directory | https://mcp.directory/submit | Submitter account and manual moderation may be required. | Reuse name, tagline, categories, icon, docs, privacy, support, terms, source URL, and MCP server URL. |
+| 6 | mcpservers.org | https://mcpservers.org/submit | Submitter account and manual moderation may be required. | Reuse the same listing metadata and source URL. |
+| 7 | mcp.so | https://mcp.so/ | Use the site's current submit/claim flow if available. | Reuse the same listing metadata and source URL. |
+| 8 | Anthropic Connectors Directory | https://claude.com/docs/connectors/building/submission | Review-heavy product directory: OAuth, tool annotations, policy checks, and reviewer access are evaluated. | Paste listing metadata, tool inventory, allowed links if requested, and private reviewer credentials only in the submission portal. |
+| 9 | OpenAI Apps Directory | https://developers.openai.com/apps-sdk/deploy/submission | Review-heavy product directory: dashboard review, verified organization, global data residency, OAuth, and live testing are evaluated. | Paste listing metadata, MCP server URL, tool information, test prompts, screenshots if requested, and private reviewer credentials only in the submission portal. |
+
 ## Per-directory submission checklist
 
 Single place for the human submitter to track directory-specific requirements.
