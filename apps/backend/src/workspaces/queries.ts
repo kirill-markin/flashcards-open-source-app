@@ -1,6 +1,6 @@
 import {
-  queryWithUserScope,
-  transactionWithWorkspaceScope,
+  queryWithUserScopeReadOnly,
+  transactionWithWorkspaceScopeReadOnly,
   type DatabaseExecutor,
 } from "../database";
 import { HttpError } from "../shared/errors";
@@ -305,7 +305,7 @@ export async function listUserWorkspacesForSelectedWorkspace(
   userId: string,
   selectedWorkspaceId: string | null,
 ): Promise<ReadonlyArray<WorkspaceSummary>> {
-  const result = await queryWithUserScope<WorkspaceSummaryRow>(
+  const result = await queryWithUserScopeReadOnly<WorkspaceSummaryRow>(
     { userId },
     [
       "SELECT",
@@ -341,7 +341,7 @@ export async function listUserWorkspacesWithStatsForSelectedWorkspace(
 
   const workspacesWithStats: WorkspaceSummaryWithStats[] = [];
   for (const workspace of cappedWorkspaces) {
-    const stats = await transactionWithWorkspaceScope(
+    const stats = await transactionWithWorkspaceScopeReadOnly(
       { userId, workspaceId: workspace.workspaceId },
       async (executor) => {
         const cardCount = await loadActiveCardCountInExecutor(executor, workspace.workspaceId);
@@ -388,7 +388,7 @@ export async function listUserWorkspacesPageForSelectedWorkspace(
     : [userId, new Date(decodedCursor.createdAt), decodedCursor.workspaceId, input.limit + 1];
   const limitParamIndex = decodedCursor === null ? 2 : 4;
 
-  const result = await queryWithUserScope<WorkspaceSummaryRow>(
+  const result = await queryWithUserScopeReadOnly<WorkspaceSummaryRow>(
     { userId },
     [
       "SELECT",

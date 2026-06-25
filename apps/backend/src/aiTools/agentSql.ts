@@ -146,27 +146,11 @@ export async function executeAgentSql(
  * mutation with an actionable error that points at `sql_execute`, then runs the
  * existing read executors.
  *
- * The statement-direction parser guard below (`isSqlReadStatement`) is the
- * enforcement boundary for `readOnlyHint: true`.
- *
- * Deliberate deviation from the plan step "wrap the query path in a
- * `BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY`, reusing the
- * `admin/reportingDb.ts` pattern" (defense-in-depth so read-only is enforced at
- * the DB layer, not just the parser). That pattern wraps a single dedicated
- * `pg.PoolClient`; it does NOT compose with this surface for two reasons, so it
- * is intentionally not applied here:
- *   1. The read executors flow through the per-operation repository layer
- *      (`listAgentCardsOperation`, `loadAgentWorkspaceOperation`, etc. in
- *      `agentSql/operations.ts`). Each repository call acquires its own pooled
- *      connection and runs its own transaction, so there is no single client to
- *      thread one enclosing `READ ONLY` transaction through.
- *   2. SELECT-backed reads perform legitimate FSRS repair-on-read writes
- *      (`queryCardsPage` -> `validateOrResetCardRowsForRead` -> `resetCardRow`
- *      issues `UPDATE content.cards`). A strict `READ ONLY` transaction would
- *      reject that repair with "cannot execute UPDATE in a read-only
- *      transaction" and break correct read behavior.
- * This comment is the record of that reviewed decision; enforcement therefore
- * stays at the parser-guard layer.
+ * The statement-direction parser guard below (`isSqlReadStatement`) rejects
+ * caller-authored writes. The repository read helpers reached from SELECT
+ * statements also open repeatable-read `READ ONLY` transactions, so the
+ * `readOnlyHint: true` annotation has a database-level guard as defense in
+ * depth.
  */
 export async function runSqlQuery(
   context: AgentSqlContext,

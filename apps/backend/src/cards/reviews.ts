@@ -16,7 +16,7 @@ import {
   findSyncConflictWorkspaceIdInExecutor,
 } from "../sync/conflicts/fork";
 import { getWorkspaceSchedulerConfig } from "../scheduling/workspaceSettings";
-import { validateOrResetReviewableCardRow } from "./fsrs";
+import { assertConsistentFsrsState } from "./fsrs";
 import {
   CARD_COLUMNS,
   REVIEWABLE_CARD_COLUMNS,
@@ -81,7 +81,18 @@ async function loadReviewableCardForUpdate(
     throw new HttpError(404, "Card not found");
   }
 
-  return validateOrResetReviewableCardRow(executor, workspaceId, existingCard);
+  try {
+    assertConsistentFsrsState(existingCard);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new HttpError(
+      500,
+      `Card ${cardId} has invalid persisted FSRS state and cannot be reviewed: ${message}`,
+      "CARD_FSRS_STATE_INVALID",
+    );
+  }
+
+  return existingCard;
 }
 
 async function loadProgressTimeZoneForUserInExecutor(

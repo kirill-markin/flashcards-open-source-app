@@ -222,6 +222,22 @@ test("unsafeTransaction classifies transaction failures and discards clients whe
       { text: "COMMIT", params: null },
     ]);
     assert.deepEqual(releaseArguments, [undefined]);
+
+    queries.length = 0;
+    releaseArguments.length = 0;
+
+    const repeatableReadReadOnlyResult = await dbCore.unsafeRepeatableReadReadOnlyTransaction(async (executor) => {
+      await executor.query("SELECT app.progress()", []);
+      return "ok";
+    });
+
+    assert.equal(repeatableReadReadOnlyResult, "ok");
+    assert.deepEqual(queries, [
+      { text: "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY", params: null },
+      { text: "SELECT app.progress()", params: [] },
+      { text: "COMMIT", params: null },
+    ]);
+    assert.deepEqual(releaseArguments, [undefined]);
   } finally {
     (pg as unknown as { Pool: typeof pg.Pool }).Pool = originalPool;
     console.warn = originalWarn;

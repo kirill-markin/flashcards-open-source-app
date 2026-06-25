@@ -38,8 +38,8 @@ export {
 } from "./filters";
 
 export {
+  assertConsistentFsrsState,
   getInvalidFsrsStateReason,
-  validateOrResetCardRowForRead,
 } from "./fsrs";
 
 export {

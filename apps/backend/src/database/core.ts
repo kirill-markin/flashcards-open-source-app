@@ -167,6 +167,15 @@ export async function unsafeRepeatableReadTransaction<Result>(
   );
 }
 
+export async function unsafeRepeatableReadReadOnlyTransaction<Result>(
+  callback: (executor: DatabaseExecutor) => Promise<Result>,
+): Promise<Result> {
+  return unsafeTransactionWithBeginStatement(
+    "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",
+    callback,
+  );
+}
+
 async function unsafeTransactionWithBeginStatement<Result>(
   beginStatement: string,
   callback: (executor: DatabaseExecutor) => Promise<Result>,
