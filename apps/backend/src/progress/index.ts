@@ -13,7 +13,7 @@ import {
   loadUserActiveReviewLocalDatesInExecutor,
   materializeMissingActiveReviewDaysForUserInExecutor,
   rememberProgressTimeZoneInExecutor,
-} from "./activeReviewDays";
+} from "./activeReviewDays/activeReviewDays";
 import {
   evaluateStreakFreeze,
   streakFreezePolicy,
