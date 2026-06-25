@@ -4,6 +4,11 @@ How to publish and refresh our entry in the official MCP Registry. The manifest
 lives in the repo root at [`server.json`](../server.json); this doc only covers
 the publish flow.
 
+The official registry entry for `com.flashcards-open-source-app/flashcards` is
+already live. Treat this as the maintenance flow for future metadata refreshes:
+validate the manifest, bump `server.json` `version` when publishing a changed
+registry entry, and use the workflow below to publish the new version.
+
 ## What is published
 
 `server.json` describes the hosted remote MCP server (a `streamable-http` remote

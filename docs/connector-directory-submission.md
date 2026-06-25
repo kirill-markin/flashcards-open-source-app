@@ -17,12 +17,13 @@ URLs appear.
 - **Name:** Flashcards Open Source App
 - **Tagline (≤55 chars):** Read and write your flashcards over SQL
 - **Categories:** Productivity, Education
-- **Icon:** repository icon, vector source at `apps/web/public/icon.svg`
-  (512×512 viewBox) with a 512×512 rasterized preview at
-  `apps/web/public/icon-preview.png` (also published on the marketing site).
-  If a directory requires a PNG at a larger export size, derive it from
-  `icon.svg`.
-- **Documentation URL:** https://flashcards-open-source-app.com/docs/api/
+- **Icon URLs:** https://flashcards-open-source-app.com/icon.svg,
+  https://flashcards-open-source-app.com/icon-preview.png, and
+  https://flashcards-open-source-app.com/logo-512.png. Local sources live under
+  `apps/web/public/`; derive larger PNG exports from `icon.svg` if a directory
+  requires them.
+- **Documentation URL:** https://flashcards-open-source-app.com/docs/mcp-connector/
+- **API documentation URL:** https://flashcards-open-source-app.com/docs/api/
 - **Privacy URL:** https://flashcards-open-source-app.com/privacy/
 - **Support URL:** https://flashcards-open-source-app.com/support/
 - **Terms URL:** https://flashcards-open-source-app.com/terms/
@@ -85,7 +86,7 @@ purpose.
 
 | Tool | Purpose | Annotations |
 | --- | --- | --- |
-| `sql_query` | Read-only access to cards and decks (`SHOW TABLES`, `DESCRIBE`, `SHOW COLUMNS`, `SELECT`); every caller mutation is rejected at parse time by the statement-direction guard, so the only writes that can occur on this path are the system's own bounded FSRS repair-on-read, never anything the caller controls. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
+| `sql_query` | Strictly read-only access to cards and decks (`SHOW TABLES`, `DESCRIBE`, `SHOW COLUMNS`, `SELECT`); every mutation is rejected at parse time and execution runs inside a read-only database scope. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
 | `sql_execute` | Write access to cards and decks (`INSERT`, `UPDATE`, `DELETE`) as an atomic batch. | `readOnlyHint: false`, `destructiveHint: true`, `openWorldHint: false` |
 | `list_workspaces` | List the authenticated user's workspaces so the client can pick one before querying. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
 
@@ -103,6 +104,8 @@ parser-enforced DSL, not arbitrary database access:
   so there is no cross-tenant or arbitrary-table access.
 - **Parser-enforced dialect, not raw Postgres passthrough.** Input is parsed
   against the limited dialect rather than forwarded to the database as raw SQL.
+- **Read-only database scope for reads.** `sql_query` runs in a read-only
+  database scope as a defense-in-depth guard behind the parser allowlist.
 - **Bounded caps.** At most 100 rows per statement, at most 50 statements per
   batch, and a ~12k-token result-size cap; mutation batches are atomic.
 - **Contractual read/write split.** The split is encoded in the tool
@@ -176,10 +179,11 @@ Three representative prompts and their expected outcomes.
 
 ## Submission targets
 
-Submit in this order. The official MCP Registry comes first because it is the
-canonical source for MCP `server.json` metadata; PulseMCP builds on upstream
-registry entries and its ingestion/re-enrichment runs on daily/weekly cycles,
-so downstream discovery works best after the official entry is live.
+The official MCP Registry entry is already published. For future updates,
+verify that entry first, then submit or refresh the remaining directories in
+this order. PulseMCP builds on upstream registry entries and its
+ingestion/re-enrichment runs on daily/weekly cycles, so downstream discovery
+works best after the official entry is live.
 
 Verify the official registry entry before submitting to the other directories:
 
@@ -194,15 +198,17 @@ entry is not published, the server name is wrong, or the registry publish failed
 
 | Order | Target | Required URL | Auth / review notes | What to paste |
 | --- | --- | --- | --- | --- |
-| 1 | Official MCP Registry | https://registry.modelcontextprotocol.io/ | Publish and verify the root `server.json`; no reviewer credentials. | `server.json` metadata: name, title, description/tagline, version, website, icon, repository, and MCP server URL. |
-| 2 | Smithery | https://smithery.ai/new | Directory account / GitHub ownership as requested; no shared credentials unless review requires them. | Listing name, tagline, categories, icon, docs, privacy, support, terms, source URL, and MCP server URL from the metadata above. |
-| 3 | PulseMCP | https://www.pulsemcp.com/submit | Check whether the official registry entry has already been ingested before filing a manual submission. | Reuse the same listing metadata and point to the official registry entry when available. |
-| 4 | Glama | https://glama.ai/mcp/servers | Claim or submit the server using the public repository and hosted MCP URL. | Reuse the concise listing metadata; avoid duplicating the long description unless the form requires it. |
-| 5 | MCP.Directory | https://mcp.directory/submit | Submitter account and manual moderation may be required. | Reuse name, tagline, categories, icon, docs, privacy, support, terms, source URL, and MCP server URL. |
-| 6 | mcpservers.org | https://mcpservers.org/submit | Submitter account and manual moderation may be required. | Reuse the same listing metadata and source URL. |
-| 7 | mcp.so | https://mcp.so/ | Use the site's current submit/claim flow if available. | Reuse the same listing metadata and source URL. |
-| 8 | Anthropic Connectors Directory | https://claude.com/docs/connectors/building/submission | Review-heavy product directory: OAuth, tool annotations, policy checks, and reviewer access are evaluated. | Paste listing metadata, tool inventory, allowed links if requested, and private reviewer credentials only in the submission portal. |
-| 9 | OpenAI Apps Directory | https://developers.openai.com/apps-sdk/deploy/submission | Review-heavy product directory: dashboard review, verified organization, global data residency, OAuth, and live testing are evaluated. | Paste listing metadata, MCP server URL, tool information, test prompts, screenshots if requested, and private reviewer credentials only in the submission portal. |
+| Published | Official MCP Registry | https://registry.modelcontextprotocol.io/ | Already published. For future changes, bump `server.json` `version`, publish, and verify; no reviewer credentials. | `server.json` metadata: name, title, description/tagline, version, website, icons, repository, and MCP server URL. |
+| 1 | GitHub MCP Registry | https://github.com/mcp | High-priority manual nomination / visibility request; GitHub may curate separately from the official registry. | Reuse the official registry name, source URL, hosted MCP URL, docs, icons, and concise value proposition. |
+| 2 | punkpeye/awesome-mcp-servers | https://github.com/punkpeye/awesome-mcp-servers | Submit a pull request following the repository's contribution format. | Add the repository link and a one-sentence description under the relevant education/productivity category. |
+| 3 | Smithery | https://smithery.ai/new | Directory account / GitHub ownership as requested; no shared credentials unless review requires them. | Listing name, tagline, categories, icon, docs, privacy, support, terms, source URL, and MCP server URL from the metadata above. |
+| 4 | PulseMCP | https://www.pulsemcp.com/submit | Check whether the official registry entry has already been ingested before filing a manual submission. | Reuse the same listing metadata and point to the official registry entry when available. |
+| 5 | Glama | https://glama.ai/mcp/servers | Claim or submit the server using the public repository and hosted MCP URL. | Reuse the concise listing metadata; avoid duplicating the long description unless the form requires it. |
+| 6 | MCP.Directory | https://mcp.directory/submit | Submitter account and manual moderation may be required. | Reuse name, tagline, categories, icon, docs, privacy, support, terms, source URL, and MCP server URL. |
+| 7 | mcpservers.org | https://mcpservers.org/submit | Submitter account and manual moderation may be required. | Reuse the same listing metadata and source URL. |
+| 8 | mcp.so | https://mcp.so/ | Use the site's current submit/claim flow if available. | Reuse the same listing metadata and source URL. |
+| 9 | Anthropic Connectors Directory | https://claude.com/docs/connectors/building/submission | Review-heavy product directory: OAuth, tool annotations, policy checks, and reviewer access are evaluated. | Paste listing metadata, tool inventory, allowed links if requested, and private reviewer credentials only in the submission portal. |
+| 10 | OpenAI Apps Directory | https://developers.openai.com/apps-sdk/deploy/submission | Review-heavy product directory: dashboard review, verified organization, global data residency, OAuth, and live testing are evaluated. | Paste listing metadata, MCP server URL, tool information, test prompts, screenshots if requested, and private reviewer credentials only in the submission portal. |
 
 ## Per-directory submission checklist
 
