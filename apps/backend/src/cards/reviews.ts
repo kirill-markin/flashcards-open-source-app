@@ -6,7 +6,7 @@ import {
   type CurrentUserPublicProfileResolver,
 } from "../community/reviewActivityFacts";
 import { HttpError } from "../shared/errors";
-import { storeActiveReviewDayForReviewEventInExecutor } from "../progress/activeReviewDays";
+import { storeActiveReviewDayForReviewEventInExecutor } from "../progress/activeReviewDays/activeReviewDays";
 import {
   computeReviewSchedule,
   type ReviewableCardScheduleState,

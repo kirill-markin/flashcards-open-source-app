@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
-import type { DatabaseExecutor, SqlValue } from "../database";
-import { createBackendObservationScope } from "../observability/sentry";
+import type { DatabaseExecutor, SqlValue } from "../../database";
+import { createBackendObservationScope } from "../../observability/sentry";
 import {
   backfillActiveReviewDaysWithDependencies,
   loadActiveReviewDaysBackfillCandidatePageInExecutor,

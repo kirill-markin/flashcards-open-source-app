@@ -30,7 +30,7 @@ type ProgressActiveDaysBackfillResponse = Readonly<{
 }>;
 
 type ProgressActiveDaysBackfillRuntime = Readonly<{
-  backfillActiveReviewDays: typeof import("../progress/activeReviewDaysBackfill").backfillActiveReviewDays;
+  backfillActiveReviewDays: typeof import("../progress/activeReviewDays/activeReviewDaysBackfill").backfillActiveReviewDays;
 }>;
 
 const scheduledBatchSize = 25;
@@ -41,7 +41,7 @@ const maximumMaxPages = 100;
 let progressActiveDaysBackfillRuntimePromise: Promise<ProgressActiveDaysBackfillRuntime> | null = null;
 
 async function createProgressActiveDaysBackfillRuntime(): Promise<ProgressActiveDaysBackfillRuntime> {
-  const { backfillActiveReviewDays } = await import("../progress/activeReviewDaysBackfill");
+  const { backfillActiveReviewDays } = await import("../progress/activeReviewDays/activeReviewDaysBackfill");
   return {
     backfillActiveReviewDays,
   };
