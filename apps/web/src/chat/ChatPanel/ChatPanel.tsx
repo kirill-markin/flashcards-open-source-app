@@ -3,7 +3,7 @@ import { useAppData } from "../../appData";
 import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import type { WebAppOperation } from "../../observability/webObservability";
-import { useChatDraft } from "../composer/ChatDraftContext";
+import { useChatDraft } from "../composer/drafts/ChatDraftContext";
 import { useChatLayout } from "../layout/ChatLayoutContext";
 import {
   FileAttachment,
@@ -27,7 +27,7 @@ import { useChatSession } from "../sessionController";
 import { useChatAttachments } from "../attachments/useChatAttachments";
 import { useChatComposerKeyboard } from "../composer/useChatComposerKeyboard";
 import { useChatComposerSend } from "../composer/useChatComposerSend";
-import { useChatDictationCapture } from "../composer/useChatDictationCapture";
+import { useChatDictationCapture } from "../composer/dictation/useChatDictationCapture";
 import { useChatSidebarResize } from "../layout/useChatSidebarResize";
 
 type Props = Readonly<{

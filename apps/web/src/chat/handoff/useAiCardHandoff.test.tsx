@@ -3,7 +3,7 @@ import { act, createElement } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Card } from "../../types";
-import type { ChatComposerSendPhase } from "../composer/ChatDraftContext";
+import type { ChatComposerSendPhase } from "../composer/drafts/ChatDraftContext";
 import type { PendingAttachment } from "../attachments/FileAttachment";
 
 const {
@@ -24,7 +24,7 @@ vi.mock("../../appData", () => ({
   }),
 }));
 
-vi.mock("../composer/ChatDraftContext", () => ({
+vi.mock("../composer/drafts/ChatDraftContext", () => ({
   useOptionalChatDraft: useOptionalChatDraftMock,
 }));
 

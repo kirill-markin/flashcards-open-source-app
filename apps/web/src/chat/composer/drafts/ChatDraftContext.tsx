@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, type MutableRefObject, type ReactElement, type ReactNode } from "react";
-import { useAppData } from "../../appData";
-import type { PendingAttachment } from "../attachments/FileAttachment";
+import { useAppData } from "../../../appData";
+import type { PendingAttachment } from "../../attachments/FileAttachment";
 import {
   areChatDraftContentsEqual,
   createChatDraftContent,
@@ -12,7 +12,7 @@ import {
   type ChatDraftContent,
   type StoredChatDraft,
 } from "./chatDraftStorage";
-import { useOptionalChatSession } from "../sessionController";
+import { useOptionalChatSession } from "../../sessionController";
 
 export type ChatDraft = Readonly<{
   workspaceId: string | null;

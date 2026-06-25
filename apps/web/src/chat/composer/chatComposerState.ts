@@ -1,6 +1,6 @@
-import type { ChatComposerSendPhase } from "./ChatDraftContext";
+import type { ChatComposerSendPhase } from "./drafts/ChatDraftContext";
 import type { PendingAttachment } from "../attachments/FileAttachment";
-import type { ChatDictationState } from "./chatDictation";
+import type { ChatDictationState } from "./dictation/chatDictation";
 import type { ChatComposerAction } from "../sessionController/state/runState";
 
 export type ChatComposerState = "idle" | "preparingSend" | "startingRun" | "running" | "stopping";

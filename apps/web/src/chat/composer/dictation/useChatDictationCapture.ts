@@ -3,13 +3,13 @@ import {
   ApiError,
   isAuthRedirectError,
   transcribeChatAudio,
-} from "../../api";
+} from "../../../api";
 import {
   explainBrowserMediaPermissionError,
   isExpectedBrowserMediaPermissionError,
   queryBrowserPermissionState,
-} from "../../access/browserAccess";
-import type { TranslationKey, TranslationValues } from "../../i18n";
+} from "../../../access/browserAccess";
+import type { TranslationKey, TranslationValues } from "../../../i18n";
 import {
   insertDictationTranscriptIntoDraft,
   type ChatDictationState,

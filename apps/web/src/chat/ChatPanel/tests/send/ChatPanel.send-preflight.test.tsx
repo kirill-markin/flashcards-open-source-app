@@ -17,7 +17,7 @@ import {
   loadChatDraftWorkspaceState,
   replaceChatDraftForSession,
   storeChatDraftWorkspaceState,
-} from "../../../composer/chatDraftStorage";
+} from "../../../composer/drafts/chatDraftStorage";
 
 const {
   flushAsync,
