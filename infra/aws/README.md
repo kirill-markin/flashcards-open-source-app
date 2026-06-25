@@ -159,17 +159,22 @@ The helper flow is:
 
 `DEMO_EMAIL_DOSTIP` configures the insecure review/demo allowlist in the auth Lambda, and the deployed auth Lambda reads the shared password from the AWS secret `flashcards-open-source-app/demo-password-dostip`.
 
+For MCP directory review, use `mcp-review@example.com` as the single synthetic review/demo account.
+
 These settings do not provision Cognito users. If review/demo bypass is enabled:
 
+- `DEMO_EMAIL_DOSTIP` should be `mcp-review@example.com`
 - every listed email must use `@example.com`
-- the matching Cognito users must be created manually
-- the Cognito user passwords must match the shared demo password stored in Secrets Manager
+- the matching Cognito user must be created manually
+- the Cognito user password must match the shared demo password stored in Secrets Manager
 
 Validate deployed state with:
 
 ```bash
 bash scripts/checks/check-demo-cognito-users.sh --stack-name FlashcardsOpenSourceApp --region eu-central-1
 ```
+
+After review completes, rotate the shared demo password and optionally remove `mcp-review@example.com` from the allowlist or disable/delete the matching Cognito user.
 
 ## Post-deploy
 
