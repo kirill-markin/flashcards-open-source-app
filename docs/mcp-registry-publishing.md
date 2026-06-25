@@ -22,6 +22,9 @@ which we can verify because we control `flashcards-open-source-app.com`.
   verification).
 - For GitHub Actions publishing, the Ed25519 namespace private key stored as
   the `MCP_PRIVATE_KEY` repository secret.
+- For one-time credential bootstrap, the local root `.env` must include
+  `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID`, and `GITHUB_REPO`, or pass the
+  repository explicitly to the setup script.
 
 ## Validate the manifest
 
@@ -33,25 +36,45 @@ curl -fsS 'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.sche
 npx --yes ajv-cli@5 validate -s /tmp/mcp-server-schema-2025-12-11.json -d server.json --strict=false
 ```
 
+## One-time credential setup
+
+Use the repo setup script to create the DNS namespace credential. It generates a
+fresh Ed25519 keypair, creates the root Cloudflare TXT record for the public key,
+stores the private key as the `MCP_PRIVATE_KEY` GitHub Actions secret, and then
+deletes the temporary local key file.
+
+```sh
+bash scripts/setup/setup-mcp-registry-credential.sh \
+  --domain flashcards-open-source-app.com \
+  --repo kirill-markin/flashcards-open-source-app
+```
+
+The script is idempotent when both the MCP Registry TXT record and
+`MCP_PRIVATE_KEY` already exist. If only one side exists, it fails with an
+explicit recovery message instead of silently rotating the namespace key.
+
 ## Publish flow
 
 1. From the repo root, validate `server.json`.
 
-2. Authenticate against the DNS namespace. `mcp-publisher`
-   prints a TXT record to add to `flashcards-open-source-app.com`; add it, then
-   complete login:
+2. Confirm the one-time credential setup is complete:
 
    ```sh
-   mcp-publisher login dns --domain flashcards-open-source-app.com
+   bash scripts/setup/setup-mcp-registry-credential.sh \
+     --domain flashcards-open-source-app.com \
+     --repo kirill-markin/flashcards-open-source-app
    ```
 
-3. Publish (or refresh) the entry from the root manifest:
+3. Run the GitHub Actions publisher:
 
    ```sh
-   mcp-publisher publish
+   gh workflow run mcp-registry-publish.yml \
+     --repo kirill-markin/flashcards-open-source-app \
+     --ref main
    ```
 
-   The CLI reads `server.json` from the current directory and submits it.
+   The workflow validates `server.json`, authenticates with
+   `mcp-publisher login dns --private-key`, and publishes the root manifest.
 
 4. Check the published entry through the official registry API:
 
@@ -61,6 +84,19 @@ npx --yes ajv-cli@5 validate -s /tmp/mcp-server-schema-2025-12-11.json -d server
 
    A `404 Server not found` response means the entry is not published or the
    publish failed.
+
+## Local manual publish fallback
+
+Use this only when debugging the publisher outside GitHub Actions. From the repo
+root, validate `server.json`, then authenticate with the private key already
+stored in `MCP_PRIVATE_KEY` and publish:
+
+```sh
+mcp-publisher login dns --domain flashcards-open-source-app.com --private-key "$MCP_PRIVATE_KEY"
+mcp-publisher publish
+```
+
+The CLI reads `server.json` from the current directory and submits it.
 
 ## Refreshing the entry
 
@@ -84,7 +120,9 @@ The workflow authenticates with `mcp-publisher login dns --private-key`, which
 needs the Ed25519 private key for the `flashcards-open-source-app.com`
 namespace, stored as the `MCP_PRIVATE_KEY` repository secret.
 
-Generate the Ed25519 keypair with `openssl`:
+Prefer
+[`scripts/setup/setup-mcp-registry-credential.sh`](../scripts/setup/setup-mcp-registry-credential.sh)
+for normal setup. The manual equivalent is:
 
 ```sh
 openssl genpkey -algorithm Ed25519 -out key.pem
