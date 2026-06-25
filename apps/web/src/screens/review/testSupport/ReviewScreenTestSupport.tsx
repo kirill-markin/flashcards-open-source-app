@@ -101,7 +101,7 @@ import {
   useReviewScreenData,
   type UseReviewScreenDataResult,
 } from "../data/useReviewScreenData";
-import { resetReviewReactionLottieStateForTests } from "../reactions/reviewReactionLottie";
+import { resetReviewReactionLottieStateForTests } from "../reactions/lottie/reviewReactionLottie";
 
 type Mutable<Type> = {
   -readonly [Key in keyof Type]: Type[Key];

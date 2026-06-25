@@ -12,7 +12,7 @@ import {
   reviewReactionLottieFallbackVariant,
   unmountReservedReviewReactionLottieRender,
   type ReviewReactionLottieVariant,
-} from "./reviewReactionLottie";
+} from "./lottie/reviewReactionLottie";
 
 type ReviewRatingReactionLayerProps = Readonly<{
   events: ReadonlyArray<ReviewReactionEvent>;

@@ -7,7 +7,7 @@ import { ReviewQueuePanel } from "./components/ReviewQueuePanel";
 import { ReviewScreenHeader } from "./components/ReviewScreenHeader";
 import { ReviewHardReminderDialog } from "./hardReminder/ReviewHardReminderDialog";
 import { ReviewRatingReactionLayer } from "./reactions/ReviewRatingReactionLayer";
-import { startReviewReactionLottiePrewarm } from "./reactions/reviewReactionLottie";
+import { startReviewReactionLottiePrewarm } from "./reactions/lottie/reviewReactionLottie";
 import { useReviewScreenController } from "./useReviewScreenController";
 
 export { normalizeReviewMarkdownForWeb } from "./components/ReviewCardSide";
