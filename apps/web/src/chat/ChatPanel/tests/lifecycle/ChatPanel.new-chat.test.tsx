@@ -19,7 +19,7 @@ import {
 import {
   loadChatDraftWorkspaceState,
   readChatDraftForSession,
-} from "../../../composer/chatDraftStorage";
+} from "../../../composer/drafts/chatDraftStorage";
 import {
   loadChatSessionWarmStartSnapshot,
   storeChatSessionWarmStartSnapshot,

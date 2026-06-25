@@ -1,6 +1,6 @@
-import type { PendingAttachment } from "../attachments/FileAttachment";
-import type { LegacyEffortLevel } from "../../types";
-import { appendLegacyEffortTag } from "../../legacyEffort";
+import type { PendingAttachment } from "../../attachments/FileAttachment";
+import type { LegacyEffortLevel } from "../../../types";
+import { appendLegacyEffortTag } from "../../../legacyEffort";
 
 export type ChatDraftContent = Readonly<{
   inputText: string;

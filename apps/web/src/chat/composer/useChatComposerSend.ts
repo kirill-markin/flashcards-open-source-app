@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { isCapturedSyncFailure } from "../../appData/sync/observation/syncErrorObservation";
 import { listOutboxRecords } from "../../localDb/sync/outbox";
-import type { ChatComposerSendPhase } from "./ChatDraftContext";
+import type { ChatComposerSendPhase } from "./drafts/ChatDraftContext";
 import {
   clearStoredChatDraftForSessionIfUnchanged,
   createChatDraftContent,
   type ChatDraftContent,
-} from "./chatDraftStorage";
+} from "./drafts/chatDraftStorage";
 import {
   binaryPendingAttachmentExceedsSizeLimit,
   type PendingAttachment,
@@ -17,7 +17,7 @@ import {
   buildStartRunContentParts,
   toRequestBodySizeBytes,
 } from "../shared/chatHelpers";
-import type { ChatDictationState } from "./chatDictation";
+import type { ChatDictationState } from "./dictation/chatDictation";
 import type {
   SendChatMessageParams,
   SendChatMessageResult,

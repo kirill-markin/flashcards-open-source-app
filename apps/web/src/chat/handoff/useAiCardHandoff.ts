@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useAppData } from "../../appData";
 import type { Card } from "../../types";
 import { makeCardPendingAttachment } from "../attachments/chatCardParts";
-import { useOptionalChatDraft } from "../composer/ChatDraftContext";
+import { useOptionalChatDraft } from "../composer/drafts/ChatDraftContext";
 import { useOptionalChatLayout } from "../layout/ChatLayoutContext";
 import { useOptionalChatSession } from "../sessionController";
 

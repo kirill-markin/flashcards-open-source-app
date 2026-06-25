@@ -19,7 +19,7 @@ import {
   deleteMyAccount,
   primeSessionCsrfToken,
 } from "./api";
-import { ChatDraftProvider } from "./chat/composer/ChatDraftContext";
+import { ChatDraftProvider } from "./chat/composer/drafts/ChatDraftContext";
 import { ChatLayoutProvider, useChatLayout } from "./chat/layout/ChatLayoutContext";
 import { ChatSessionControllerProvider } from "./chat/sessionController";
 import { ChatToggle } from "./chat/layout/ChatToggle";
