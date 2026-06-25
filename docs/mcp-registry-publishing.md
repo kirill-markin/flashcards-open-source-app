@@ -20,10 +20,24 @@ which we can verify because we control `flashcards-open-source-app.com`.
 - The `mcp-publisher` CLI (the official MCP Registry publisher tool).
 - Control of DNS for `flashcards-open-source-app.com` (for namespace
   verification).
+- For GitHub Actions publishing, the Ed25519 namespace private key stored as
+  the `MCP_PRIVATE_KEY` repository secret.
+
+## Validate the manifest
+
+Validate `server.json` against the official MCP Registry schema before
+publishing:
+
+```sh
+curl -fsS 'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json' > /tmp/mcp-server-schema-2025-12-11.json
+npx --yes ajv-cli@5 validate -s /tmp/mcp-server-schema-2025-12-11.json -d server.json --strict=false
+```
 
 ## Publish flow
 
-1. From the repo root, authenticate against the DNS namespace. `mcp-publisher`
+1. From the repo root, validate `server.json`.
+
+2. Authenticate against the DNS namespace. `mcp-publisher`
    prints a TXT record to add to `flashcards-open-source-app.com`; add it, then
    complete login:
 
@@ -31,13 +45,22 @@ which we can verify because we control `flashcards-open-source-app.com`.
    mcp-publisher login dns --domain flashcards-open-source-app.com
    ```
 
-2. Publish (or refresh) the entry from the root manifest:
+3. Publish (or refresh) the entry from the root manifest:
 
    ```sh
    mcp-publisher publish
    ```
 
    The CLI reads `server.json` from the current directory and submits it.
+
+4. Check the published entry through the official registry API:
+
+   ```sh
+   curl -fsS 'https://registry.modelcontextprotocol.io/v0.1/servers/com.flashcards-open-source-app%2Fflashcards/versions/latest'
+   ```
+
+   A `404 Server not found` response means the entry is not published or the
+   publish failed.
 
 ## Refreshing the entry
 
@@ -51,9 +74,9 @@ This is automated by the
 [`MCP Registry Publish`](../.github/workflows/mcp-registry-publish.yml)
 workflow. It runs on every push to `main` that changes `server.json` (and can be
 re-run manually via `workflow_dispatch`). The workflow installs `mcp-publisher`,
-authenticates against the DNS namespace, and runs `mcp-publisher publish` from
-the repo root, so the registry entry stays in sync with each release without a
-manual step.
+validates `server.json` against the official schema, authenticates against the
+DNS namespace, and runs `mcp-publisher publish` from the repo root, so the
+registry entry stays in sync with each release without a manual step.
 
 ### Required GitHub secret
 

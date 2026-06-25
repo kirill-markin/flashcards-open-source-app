@@ -45,6 +45,12 @@ jobs:
           arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${os}_${arch}.tar.gz" | tar xz mcp-publisher
 
+      - name: Validate MCP Registry manifest
+        run: |
+          set -euo pipefail
+          curl -fsS 'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json' > /tmp/mcp-server-schema-2025-12-11.json
+          npx --yes ajv-cli@5 validate -s /tmp/mcp-server-schema-2025-12-11.json -d server.json --strict=false
+
       - name: Authenticate to MCP Registry (DNS namespace)
         if: steps.credential.outputs.present == 'true'
         run: ./mcp-publisher login dns --domain flashcards-open-source-app.com --private-key "${MCP_PRIVATE_KEY}"
