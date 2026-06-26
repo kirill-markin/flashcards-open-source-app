@@ -219,11 +219,11 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
             offset: 0
         )
 
-        XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["truncated-now-newer", "canonical-now-older"])
+        XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["canonical-now-older", "truncated-now-newer"])
         XCTAssertFalse(reviewHead.hasMoreCards)
         XCTAssertEqual(
             timelinePage.cards.map(\.cardId),
-            ["truncated-now-newer", "canonical-now-older", "future-one-millisecond"]
+            ["canonical-now-older", "truncated-now-newer", "future-one-millisecond"]
         )
         XCTAssertEqual(
             timelinePage.cards.map(\.cardId),
@@ -285,8 +285,61 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
             return
         }
         XCTAssertEqual(Set<String>(exactTagNames), Set<String>(["Éclair", "éclair"]))
-        XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["uppercase-tag-card", "lowercase-tag-card"])
+        XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["lowercase-tag-card", "uppercase-tag-card"])
         XCTAssertEqual(reviewCounts, ReviewCounts(dueCount: 2, totalCount: 2))
+    }
+
+    func testSQLiteDeckReviewQueueOrdersNewCardsByCreatedAtAscending() throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "deck-matching-newer",
+            dueAt: nil,
+            createdAt: "2026-03-09T08:30:00.000Z",
+            tags: ["topic"]
+        )
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "deck-matching-older",
+            dueAt: nil,
+            createdAt: "2026-03-09T08:00:00.000Z",
+            tags: ["topic"]
+        )
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "deck-nonmatching-oldest",
+            dueAt: nil,
+            createdAt: "2026-03-09T07:00:00.000Z",
+            tags: ["other"]
+        )
+        let deck = try database.createDeck(
+            workspaceId: workspace.workspaceId,
+            input: DeckEditorInput(
+                name: "Topic",
+                filterDefinition: buildDeckFilterDefinition(tags: ["topic"])
+            )
+        )
+
+        let resolvedReviewQuery = try database.loadResolvedReviewQuery(
+            workspaceId: workspace.workspaceId,
+            reviewFilter: .deck(deckId: deck.deckId)
+        )
+        let reviewHead = try database.loadReviewHead(
+            workspaceId: workspace.workspaceId,
+            resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
+            reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
+            now: now,
+            limit: 8
+        )
+
+        XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["deck-matching-older", "deck-matching-newer"])
+        XCTAssertFalse(reviewHead.hasMoreCards)
     }
 
     func testSQLiteResolvedDeckReviewFilterMatchesUnicodeStoredTagName() throws {
@@ -402,7 +455,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
         XCTAssertEqual(missingSnapshot.totalCount, 0)
     }
 
-    func testSQLiteReviewTimelineOrdersMalformedDueAtByCreatedAtThenCardId() throws {
+    func testSQLiteReviewTimelineOrdersMalformedDueAtByOlderCreatedAtThenCardId() throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
@@ -448,7 +501,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
         XCTAssertFalse(reviewHead.hasMoreCards)
         XCTAssertEqual(
             timelinePage.cards.map(\.cardId),
-            ["malformed-newer-a", "malformed-newer-z", "malformed-older"]
+            ["malformed-older", "malformed-newer-a", "malformed-newer-z"]
         )
         XCTAssertFalse(timelinePage.hasMoreCards)
     }
@@ -522,11 +575,11 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
             timelinePage.cards.map(\.cardId),
             [
                 "recent-valid",
-                "invalid-calendar-day",
-                "invalid-non-leap-day",
-                "invalid-month",
+                "invalid-second",
                 "invalid-minute",
-                "invalid-second"
+                "invalid-month",
+                "invalid-non-leap-day",
+                "invalid-calendar-day"
             ]
         )
         XCTAssertFalse(timelinePage.hasMoreCards)
@@ -573,7 +626,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
         XCTAssertFalse(timelinePage.hasMoreCards)
     }
 
-    func testSQLiteReviewQueueAndTimelineOrderEquivalentDueTimesByCreatedAtDescending() throws {
+    func testSQLiteReviewQueueAndTimelineOrderEquivalentDueTimesByCreatedAtAscending() throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
@@ -608,9 +661,50 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
             offset: 0
         )
 
-        XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["same-due-newer", "same-due-older"])
+        XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["same-due-older", "same-due-newer"])
         XCTAssertFalse(reviewHead.hasMoreCards)
-        XCTAssertEqual(timelinePage.cards.map(\.cardId), ["same-due-newer", "same-due-older"])
+        XCTAssertEqual(timelinePage.cards.map(\.cardId), ["same-due-older", "same-due-newer"])
+        XCTAssertFalse(timelinePage.hasMoreCards)
+    }
+
+    func testSQLiteReviewQueueAndTimelineOrderNewCardsByCreatedAtAscending() throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "new-card-older",
+            dueAt: nil,
+            createdAt: "2026-03-09T07:00:00.000Z"
+        )
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "new-card-newer",
+            dueAt: nil,
+            createdAt: "2026-03-09T08:00:00.000Z"
+        )
+
+        let reviewHead = try database.loadReviewHead(
+            workspaceId: workspace.workspaceId,
+            resolvedReviewFilter: .allCards,
+            reviewQueryDefinition: .allCards,
+            now: now,
+            limit: 10
+        )
+        let timelinePage = try database.loadReviewTimelinePage(
+            workspaceId: workspace.workspaceId,
+            reviewQueryDefinition: .allCards,
+            now: now,
+            limit: 10,
+            offset: 0
+        )
+
+        XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["new-card-older", "new-card-newer"])
+        XCTAssertFalse(reviewHead.hasMoreCards)
+        XCTAssertEqual(timelinePage.cards.map(\.cardId), ["new-card-older", "new-card-newer"])
         XCTAssertFalse(timelinePage.hasMoreCards)
     }
 
@@ -705,7 +799,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
             excludedCardIds: []
         )
 
-        XCTAssertEqual(queueRows.map(\.cardId), ["fraction-a-newer", "fraction-b-newer"])
+        XCTAssertEqual(queueRows.map(\.cardId), ["fraction-d-oldest", "fraction-c-older"])
     }
 
     func testSQLiteReviewCountsUseActiveQueueDueEligibility() throws {
@@ -779,6 +873,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
     func testSQLiteActiveDueBucketOrderUsesDueAtIndexOrder() throws {
         XCTAssertFalse(cardStoreActiveDueBucketOrderSQL.lowercased().contains("julianday"))
         XCTAssertTrue(cardStoreActiveDueBucketOrderSQL.lowercased().contains("due_at_millis"))
+        XCTAssertTrue(cardStoreActiveDueBucketOrderSQL.lowercased().contains("created_at asc"))
 
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()

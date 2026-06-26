@@ -87,6 +87,9 @@ struct LocalDatabaseMigrator {
             case 18:
                 try self.migrateSchemaVersion18To19()
                 schemaVersion = 19
+            case 19:
+                try self.migrateSchemaVersion19To20()
+                schemaVersion = 20
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -609,6 +612,10 @@ struct LocalDatabaseMigrator {
         try self.rebuildCardTagsReadModel()
     }
 
+    private func migrateSchemaVersion19To20() throws {
+        try self.rebuildReviewOrderIndexesWithCreatedAtAscending()
+    }
+
     private func appendLegacyEffortTagsToCards() throws {
         let rows = try self.core.query(
             sql: """
@@ -731,22 +738,7 @@ struct LocalDatabaseMigrator {
     }
 
     private func createDueAtMillisIndexes() throws {
-        try self.core.execute(
-            sql: """
-            CREATE INDEX IF NOT EXISTS idx_cards_workspace_due_millis_active
-                ON cards(workspace_id, due_at_millis, created_at DESC, card_id ASC)
-                WHERE deleted_at IS NULL AND due_at_millis IS NOT NULL
-            """,
-            values: []
-        )
-        try self.core.execute(
-            sql: """
-            CREATE INDEX IF NOT EXISTS idx_cards_workspace_new_due_active
-                ON cards(workspace_id, created_at DESC, card_id ASC)
-                WHERE deleted_at IS NULL AND due_at IS NULL
-            """,
-            values: []
-        )
+        try self.createDueAtMillisReviewOrderIndexesWithCreatedAtAscending()
     }
 
     private func populateFsrsLastReviewedAtMillisFromText() throws {
@@ -785,10 +777,50 @@ struct LocalDatabaseMigrator {
     }
 
     private func createFsrsLastReviewedAtMillisIndex() throws {
+        try self.createFsrsLastReviewedAtMillisReviewOrderIndexWithCreatedAtAscending()
+    }
+
+    private func rebuildReviewOrderIndexesWithCreatedAtAscending() throws {
+        try self.core.execute(
+            sql: "DROP INDEX IF EXISTS idx_cards_workspace_due_millis_active",
+            values: []
+        )
+        try self.core.execute(
+            sql: "DROP INDEX IF EXISTS idx_cards_workspace_new_due_active",
+            values: []
+        )
+        try self.core.execute(
+            sql: "DROP INDEX IF EXISTS idx_cards_workspace_fsrs_last_reviewed_millis_due_active",
+            values: []
+        )
+        try self.createDueAtMillisReviewOrderIndexesWithCreatedAtAscending()
+        try self.createFsrsLastReviewedAtMillisReviewOrderIndexWithCreatedAtAscending()
+    }
+
+    private func createDueAtMillisReviewOrderIndexesWithCreatedAtAscending() throws {
+        try self.core.execute(
+            sql: """
+            CREATE INDEX IF NOT EXISTS idx_cards_workspace_due_millis_active
+                ON cards(workspace_id, due_at_millis, created_at ASC, card_id ASC)
+                WHERE deleted_at IS NULL AND due_at_millis IS NOT NULL
+            """,
+            values: []
+        )
+        try self.core.execute(
+            sql: """
+            CREATE INDEX IF NOT EXISTS idx_cards_workspace_new_due_active
+                ON cards(workspace_id, created_at ASC, card_id ASC)
+                WHERE deleted_at IS NULL AND due_at IS NULL
+            """,
+            values: []
+        )
+    }
+
+    private func createFsrsLastReviewedAtMillisReviewOrderIndexWithCreatedAtAscending() throws {
         try self.core.execute(
             sql: """
             CREATE INDEX IF NOT EXISTS idx_cards_workspace_fsrs_last_reviewed_millis_due_active
-                ON cards(workspace_id, fsrs_last_reviewed_at_millis, due_at_millis, created_at DESC, card_id ASC)
+                ON cards(workspace_id, fsrs_last_reviewed_at_millis, due_at_millis, created_at ASC, card_id ASC)
                 WHERE deleted_at IS NULL AND due_at_millis IS NOT NULL AND fsrs_last_reviewed_at_millis IS NOT NULL
             """,
             values: []

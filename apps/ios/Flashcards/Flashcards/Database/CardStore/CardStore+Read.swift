@@ -457,7 +457,7 @@ extension CardStore {
                     ELSE 3
                 END ASC,
                 due_at_millis ASC,
-                created_at DESC,
+                created_at ASC,
                 card_id ASC
             LIMIT ? OFFSET ?
             """,

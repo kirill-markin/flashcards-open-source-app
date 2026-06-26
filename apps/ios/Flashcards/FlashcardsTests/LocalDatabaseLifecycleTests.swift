@@ -25,6 +25,15 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
                 indexName: "idx_cards_workspace_due_millis_active"
             )
         )
+        XCTAssertEqual(
+            try self.loadIndexColumnOrder(database: database, indexName: "idx_cards_workspace_due_millis_active"),
+            [
+                SQLiteIndexColumnOrder(name: "workspace_id", isDescending: false),
+                SQLiteIndexColumnOrder(name: "due_at_millis", isDescending: false),
+                SQLiteIndexColumnOrder(name: "created_at", isDescending: false),
+                SQLiteIndexColumnOrder(name: "card_id", isDescending: false)
+            ]
+        )
         XCTAssertTrue(
             try self.hasIndex(
                 database: database,
@@ -32,12 +41,33 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
                 indexName: "idx_cards_workspace_new_due_active"
             )
         )
+        XCTAssertEqual(
+            try self.loadIndexColumnOrder(database: database, indexName: "idx_cards_workspace_new_due_active"),
+            [
+                SQLiteIndexColumnOrder(name: "workspace_id", isDescending: false),
+                SQLiteIndexColumnOrder(name: "created_at", isDescending: false),
+                SQLiteIndexColumnOrder(name: "card_id", isDescending: false)
+            ]
+        )
         XCTAssertTrue(
             try self.hasIndex(
                 database: database,
                 tableName: "cards",
                 indexName: "idx_cards_workspace_fsrs_last_reviewed_millis_due_active"
             )
+        )
+        XCTAssertEqual(
+            try self.loadIndexColumnOrder(
+                database: database,
+                indexName: "idx_cards_workspace_fsrs_last_reviewed_millis_due_active"
+            ),
+            [
+                SQLiteIndexColumnOrder(name: "workspace_id", isDescending: false),
+                SQLiteIndexColumnOrder(name: "fsrs_last_reviewed_at_millis", isDescending: false),
+                SQLiteIndexColumnOrder(name: "due_at_millis", isDescending: false),
+                SQLiteIndexColumnOrder(name: "created_at", isDescending: false),
+                SQLiteIndexColumnOrder(name: "card_id", isDescending: false)
+            ]
         )
         XCTAssertEqual(1, try self.countRows(database: database, tableName: "app_local_settings"))
         XCTAssertEqual(1, try self.countRows(database: database, tableName: "workspaces"))

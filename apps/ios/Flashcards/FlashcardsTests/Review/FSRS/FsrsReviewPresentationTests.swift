@@ -174,7 +174,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
         )
     }
 
-    func testMakeReviewTimelineAppendsFutureCardsSortedByDueAtAndCreatedAtDescending() throws {
+    func testMakeReviewTimelineAppendsFutureCardsSortedByDueAtAndCreatedAtAscending() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
         let cards = [
             FsrsSchedulerTestSupport.makeTestCard(
@@ -209,11 +209,11 @@ final class FsrsReviewPresentationTests: XCTestCase {
         XCTAssertEqual(reviewQueue.map(\.cardId), ["current"])
         XCTAssertEqual(
             reviewTimeline.map(\.cardId),
-            ["current", "future-early", "future-tie-newer", "future-tie-older"]
+            ["current", "future-early", "future-tie-older", "future-tie-newer"]
         )
     }
 
-    func testMakeReviewQueuePlacesTimedDueAtBeforeNilDueAtAndUsesCreatedAtDescendingAsFinalTiebreaker() throws {
+    func testMakeReviewQueuePlacesTimedDueAtBeforeNilDueAtAndUsesCreatedAtAscendingAsFinalTiebreaker() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
         let cards = [
             FsrsSchedulerTestSupport.makeTestCard(
@@ -244,7 +244,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
 
         XCTAssertEqual(
             makeReviewQueue(reviewFilter: .allCards, decks: [], cards: cards, now: now).map(\.cardId),
-            ["timed-earlier", "timed-tie-newer", "timed-tie-older", "nil-due"]
+            ["timed-earlier", "timed-tie-older", "timed-tie-newer", "nil-due"]
         )
     }
 
@@ -332,12 +332,12 @@ final class FsrsReviewPresentationTests: XCTestCase {
             makeReviewQueue(reviewFilter: .allCards, decks: [], cards: cards, now: now).map(\.cardId),
             [
                 "recent-cutoff",
-                "recent-tie-newer",
                 "recent-tie-older",
+                "recent-tie-newer",
                 "recent-now",
                 "old-earlier",
-                "old-tie-newer",
                 "old-tie-older",
+                "old-tie-newer",
                 "due-last-hour-old-review",
                 "new-card"
             ]
@@ -346,12 +346,12 @@ final class FsrsReviewPresentationTests: XCTestCase {
             makeReviewTimeline(reviewFilter: .allCards, decks: [], cards: cards, now: now).map(\.cardId),
             [
                 "recent-cutoff",
-                "recent-tie-newer",
                 "recent-tie-older",
+                "recent-tie-newer",
                 "recent-now",
                 "old-earlier",
-                "old-tie-newer",
                 "old-tie-older",
+                "old-tie-newer",
                 "due-last-hour-old-review",
                 "new-card",
                 "future-one-millisecond",
