@@ -14,6 +14,7 @@ import {
 } from "../../appData/domain";
 import { loadAllowedCardIdsForTag } from "../cards/tags";
 import {
+  iterateLocalStoredCardsByCreatedAtAsc,
   iterateLocalStoredCardsByCreatedAtDesc,
   iterateLocalStoredCardsByDueAtMillisAscAfter,
   iterateLocalStoredCardsByDueAtMillisAscBefore,
@@ -217,7 +218,7 @@ function compareLocalStoredCardsForReviewOrder(
   const leftCreatedAtTimestamp = getLocalReviewOrderCreatedTimestamp(leftCard);
   const rightCreatedAtTimestamp = getLocalReviewOrderCreatedTimestamp(rightCard);
   if (leftCreatedAtTimestamp !== rightCreatedAtTimestamp) {
-    return rightCreatedAtTimestamp - leftCreatedAtTimestamp;
+    return leftCreatedAtTimestamp - rightCreatedAtTimestamp;
   }
 
   return leftCard.cardId.localeCompare(rightCard.cardId);
@@ -376,7 +377,7 @@ async function iterateNullDueReviewCards(
     return true;
   }
 
-  await iterateLocalStoredCardsByCreatedAtDesc(database, workspaceId, (card) => {
+  await iterateLocalStoredCardsByCreatedAtAsc(database, workspaceId, (card) => {
     if (shouldStop) {
       return false;
     }

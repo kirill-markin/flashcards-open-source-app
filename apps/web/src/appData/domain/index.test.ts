@@ -124,24 +124,24 @@ describe("review order domain", () => {
     ]);
   });
 
-  it("keeps due bucket tie-breakers by dueAt, newer createdAt, then cardId", () => {
+  it("keeps due bucket tie-breakers by dueAt, older createdAt, then cardId", () => {
     const nowTimestamp = Date.parse("2026-03-10T12:00:00.000Z");
     const cards = [
       makeReviewOrderCard("recent-b", "2026-03-10T11:30:00.000Z", "2026-03-10T09:30:00.000Z", "2026-03-10T11:30:00.000Z"),
       makeReviewOrderCard("recent-a", "2026-03-10T11:30:00.000Z", "2026-03-10T09:30:00.000Z", "2026-03-10T11:30:00.000Z"),
-      makeReviewOrderCard("recent-newer", "2026-03-10T11:30:00.000Z", "2026-03-10T09:45:00.000Z", "2026-03-10T11:30:00.000Z"),
+      makeReviewOrderCard("recent-later", "2026-03-10T11:30:00.000Z", "2026-03-10T09:45:00.000Z", "2026-03-10T11:30:00.000Z"),
       makeReviewOrderCard("old-b", "2026-03-09T11:30:00.000Z", "2026-03-10T09:30:00.000Z", null),
       makeReviewOrderCard("old-a", "2026-03-09T11:30:00.000Z", "2026-03-10T09:30:00.000Z", null),
-      makeReviewOrderCard("old-newer", "2026-03-09T11:30:00.000Z", "2026-03-10T09:45:00.000Z", null),
+      makeReviewOrderCard("old-later", "2026-03-09T11:30:00.000Z", "2026-03-10T09:45:00.000Z", null),
     ];
 
     expect(sortCardsForReviewOrder(cards, nowTimestamp).map((card) => card.cardId)).toEqual([
-      "recent-newer",
       "recent-a",
       "recent-b",
-      "old-newer",
+      "recent-later",
       "old-a",
       "old-b",
+      "old-later",
     ]);
   });
 

@@ -322,7 +322,7 @@ function getReviewOrderCreatedTimestamp(card: Card): number {
  * window first, then other due cards, then null-due/new cards, then future cards,
  * then malformed dueAt cards.
  * Active queues include only recently reviewed due, other due, and null-due/new cards.
- * Within each bucket, earlier dueAt comes first, then newer createdAt, then cardId ascending.
+ * Within each bucket, earlier dueAt comes first, then older createdAt, then cardId ascending.
  * If this changes, mirror the same change across all three clients in the same change.
  */
 export function compareCardsForReviewOrder(leftCard: Card, rightCard: Card, nowTimestamp: number): number {
@@ -342,7 +342,7 @@ export function compareCardsForReviewOrder(leftCard: Card, rightCard: Card, nowT
   const leftCreatedAtTimestamp = getReviewOrderCreatedTimestamp(leftCard);
   const rightCreatedAtTimestamp = getReviewOrderCreatedTimestamp(rightCard);
   if (leftCreatedAtTimestamp !== rightCreatedAtTimestamp) {
-    return rightCreatedAtTimestamp - leftCreatedAtTimestamp;
+    return leftCreatedAtTimestamp - rightCreatedAtTimestamp;
   }
 
   return leftCard.cardId.localeCompare(rightCard.cardId);
