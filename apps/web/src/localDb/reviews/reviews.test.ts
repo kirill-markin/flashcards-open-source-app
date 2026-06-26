@@ -74,14 +74,14 @@ describe("localDb reviews", () => {
           { kind: "allCards" },
           initialSnapshot.nextCursor,
           2,
-          new Set(["null-newer"]),
+          new Set(["null-older"]),
         );
         const legacyDueCards = legacyReviewCards(
           { kind: "allCards" },
           sampleCards,
           [deckFastGrammar, deckLongCode],
           nowTimestamp,
-        ).filter((card) => isCardDueForTest(card, nowTimestamp) && card.cardId !== "null-newer");
+        ).filter((card) => isCardDueForTest(card, nowTimestamp) && card.cardId !== "null-older");
         const cursorCardId = initialSnapshot.cards[initialSnapshot.cards.length - 1]?.cardId;
         const startIndex = cursorCardId === undefined
           ? 0
@@ -166,10 +166,10 @@ describe("localDb reviews", () => {
         expect(result.cards.map((card) => card.cardId)).toEqual(legacyCards.slice(0, 4).map((card) => card.cardId));
         expect(result.hasMoreCards).toBe(true);
         expect(result.cards.slice(0, 4).map((card) => card.cardId)).toEqual([
-          "due-same-newer",
           "due-same-older",
+          "due-same-later",
           "due-other",
-          "null-newer",
+          "null-older",
         ]);
       } finally {
         Date.now = originalNow;
@@ -185,7 +185,7 @@ describe("localDb reviews", () => {
         await replaceCards(workspaceId, [
           makeCard({
             cardId: "card-b",
-            frontText: "Null newer B",
+            frontText: "Null later B",
             backText: "back",
             tags: ["grammar"],
             dueAt: null,
@@ -193,7 +193,7 @@ describe("localDb reviews", () => {
           }),
           makeCard({
             cardId: "card-a",
-            frontText: "Null newer A",
+            frontText: "Null later A",
             backText: "back",
             tags: ["grammar"],
             dueAt: null,
@@ -236,12 +236,12 @@ describe("localDb reviews", () => {
         const result = await loadReviewTimelinePage(workspaceId, { kind: "allCards" }, 6, 0);
 
         expect(result.cards.map((card) => card.cardId)).toEqual([
+          "due-same-older",
           "due-same-a",
           "due-same-b",
-          "due-same-older",
+          "null-older",
           "card-a",
           "card-b",
-          "null-older",
         ]);
       } finally {
         Date.now = originalNow;
@@ -686,18 +686,18 @@ describe("localDb reviews", () => {
 
         expect(queueCardIds).toEqual([
           "recent-cutoff-short-fraction",
-          "due-now-short-fraction",
-          "due-now-two-digit-fraction",
           "due-now-canonical",
+          "due-now-two-digit-fraction",
+          "due-now-short-fraction",
           "old-cutoff-second",
           "new-null",
         ]);
         expect(new Set(queueCardIds).size).toBe(queueCardIds.length);
         expect(timelinePage.cards.map((card) => card.cardId)).toEqual([
           "recent-cutoff-short-fraction",
-          "due-now-short-fraction",
-          "due-now-two-digit-fraction",
           "due-now-canonical",
+          "due-now-two-digit-fraction",
+          "due-now-short-fraction",
           "old-cutoff-second",
           "new-null",
           "future-one-ms",

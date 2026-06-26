@@ -254,8 +254,8 @@ export const deckLongCode = makeDeck({
 
 export const sampleCards: ReadonlyArray<Card> = [
   makeCard({
-    cardId: "null-newer",
-    frontText: "Null newer",
+    cardId: "null-later",
+    frontText: "Null later",
     backText: "back",
     tags: ["grammar"],
     dueAt: null,
@@ -270,8 +270,8 @@ export const sampleCards: ReadonlyArray<Card> = [
     createdAt: "2025-01-03T09:00:00.000Z",
   }),
   makeCard({
-    cardId: "due-same-newer",
-    frontText: "Due same newer",
+    cardId: "due-same-later",
+    frontText: "Due same later",
     backText: "search target",
     tags: ["code", "shared"],
     dueAt: "2025-01-04T10:00:00.000Z",

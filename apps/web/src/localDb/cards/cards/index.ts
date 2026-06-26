@@ -284,6 +284,69 @@ export async function iterateLocalStoredCardsByCreatedAtDesc(
   await iterateCardsByCreatedAtDescMapped(database, workspaceId, toLocalStoredCard, onCard);
 }
 
+export async function iterateLocalStoredCardsByCreatedAtAsc(
+  database: IDBDatabase,
+  workspaceId: string,
+  onCard: (card: LocalStoredCard) => boolean | void,
+): Promise<void> {
+  let currentCreatedAt: string | null | undefined;
+  let currentGroup: Array<LocalStoredCard> = [];
+  let shouldStop = false;
+
+  function flushCurrentGroup(): boolean {
+    const sortedGroup = [...currentGroup].sort((leftCard, rightCard) => leftCard.cardId.localeCompare(rightCard.cardId));
+    currentGroup = [];
+
+    for (const card of sortedGroup) {
+      if (onCard(card) === false) {
+        shouldStop = true;
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  await iterateCardsByIndex(
+    database,
+    workspaceId,
+    {
+      indexName: "workspaceId_createdAt_cardId",
+      direction: "next",
+      keyRange: makeWorkspaceKeyRange(workspaceId),
+    },
+    toLocalStoredCard,
+    (card) => {
+      if (shouldStop) {
+        return false;
+      }
+
+      if (currentCreatedAt === undefined) {
+        currentCreatedAt = card.createdAt;
+        currentGroup = [card];
+        return true;
+      }
+
+      if (currentCreatedAt === card.createdAt) {
+        currentGroup.push(card);
+        return true;
+      }
+
+      if (flushCurrentGroup() === false) {
+        return false;
+      }
+
+      currentCreatedAt = card.createdAt;
+      currentGroup = [card];
+      return true;
+    },
+  );
+
+  if (shouldStop === false && currentGroup.length > 0) {
+    flushCurrentGroup();
+  }
+}
+
 export async function iterateCardsByUpdatedAtDesc(
   database: IDBDatabase,
   workspaceId: string,
