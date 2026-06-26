@@ -18,7 +18,7 @@ interface ReviewCardSelectionDao {
             AND fsrsLastReviewedAtMillis IS NOT NULL
             AND fsrsLastReviewedAtMillis >= :cutoffMillis
             AND fsrsLastReviewedAtMillis <= :nowMillis
-        ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
+        ORDER BY dueAtMillis ASC, createdAtMillis ASC, cardId ASC
         LIMIT 1
         """
     )
@@ -46,7 +46,7 @@ interface ReviewCardSelectionDao {
                     AND tags.workspaceId = cards.workspaceId
                     AND tags.name IN (:tagNames)
             )
-        ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
+        ORDER BY dueAtMillis ASC, createdAtMillis ASC, cardId ASC
         LIMIT 1
         """
     )
@@ -69,7 +69,7 @@ interface ReviewCardSelectionDao {
                 OR fsrsLastReviewedAtMillis < :cutoffMillis
                 OR fsrsLastReviewedAtMillis > :nowMillis
             )
-        ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
+        ORDER BY dueAtMillis ASC, createdAtMillis ASC, cardId ASC
         LIMIT 1
         """
     )
@@ -99,7 +99,7 @@ interface ReviewCardSelectionDao {
                     AND tags.workspaceId = cards.workspaceId
                     AND tags.name IN (:tagNames)
             )
-        ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
+        ORDER BY dueAtMillis ASC, createdAtMillis ASC, cardId ASC
         LIMIT 1
         """
     )
@@ -116,7 +116,7 @@ interface ReviewCardSelectionDao {
         WHERE workspaceId = :workspaceId
             AND deletedAtMillis IS NULL
             AND dueAtMillis IS NULL
-        ORDER BY createdAtMillis DESC, cardId ASC
+        ORDER BY createdAtMillis ASC, cardId ASC
         LIMIT 1
         """
     )
@@ -136,7 +136,7 @@ interface ReviewCardSelectionDao {
                     AND tags.workspaceId = cards.workspaceId
                     AND tags.name IN (:tagNames)
             )
-        ORDER BY createdAtMillis DESC, cardId ASC
+        ORDER BY createdAtMillis ASC, cardId ASC
         LIMIT 1
         """
     )

@@ -8,16 +8,16 @@ import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagsSummary
 
-// Keep review queue ordering aligned with:
+// Android review queue ordering.
+// Cross-client maintenance: when this product contract changes, review related client implementations too:
 // - apps/ios/Flashcards/Flashcards/Review/Queue/Query/ReviewQuerySupport.swift::compareCardsForReviewOrder
 // - apps/ios/Flashcards/Flashcards/Database/CardStore/CardStore+ReadSQL.swift review queue ORDER BY
 // - apps/web/src/appData/domain/index.ts::compareCardsForReviewOrder
-// Active queue contract: recently reviewed due cards within the inclusive one-hour
+// Android active queue contract: recently reviewed due cards within the inclusive one-hour
 // fsrsLastReviewedAtMillis window first, then other due cards, then null due/new cards.
 // Future cards are excluded from the active queue and can appear later in timeline ordering;
 // malformed dueAt values are excluded in string-date clients and are not representable by Android dueAtMillis.
-// Within each bucket, earlier dueAt comes first, then newer createdAt, then cardId ascending.
-// If this changes, mirror the same change across all three clients in the same change.
+// Within each bucket, earlier dueAt comes first, then older createdAt, then cardId ascending.
 private const val recentReviewPriorityWindowMillis: Long = 60L * 60L * 1_000L
 
 private fun reviewOrderRank(card: CardSummary, nowMillis: Long): Int {
@@ -42,7 +42,7 @@ private fun sortCardsForReviewQueue(cards: List<CardSummary>, nowMillis: Long): 
             reviewOrderRank(card = card, nowMillis = nowMillis)
         }.thenBy { card ->
             card.dueAtMillis ?: Long.MIN_VALUE
-        }.thenByDescending { card ->
+        }.thenBy { card ->
             card.createdAtMillis
         }.thenBy { card ->
             card.cardId
