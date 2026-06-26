@@ -34,7 +34,7 @@ let cardStoreActiveReviewDueEligibilitySQL: String = """
 )
 """
 
-let cardStoreActiveDueBucketOrderSQL: String = "due_at_millis ASC, created_at DESC, card_id ASC"
+let cardStoreActiveDueBucketOrderSQL: String = "due_at_millis ASC, created_at ASC, card_id ASC"
 
 private enum ActiveReviewQueueSQLBucket {
     case recentDue(cutoffMillis: Int64, nowMillis: Int64)
@@ -91,7 +91,7 @@ private func makeActiveReviewQueueBucketOrderSQL(bucket: ActiveReviewQueueSQLBuc
     case .recentDue, .oldDue:
         return cardStoreActiveDueBucketOrderSQL
     case .new:
-        return "created_at DESC, card_id ASC"
+        return "created_at ASC, card_id ASC"
     }
 }
 
@@ -276,14 +276,13 @@ extension CardStore {
             excludedCardValues = excludedCardIds.sorted().map(SQLiteValue.text)
         }
 
-        // Keep review queue ordering aligned with:
+        // Keep SQLite review queue ordering aligned with:
         // - apps/ios/Flashcards/Flashcards/Review/Queue/Query/ReviewQuerySupport.swift::compareCardsForReviewOrder
-        // - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/review/ReviewSupport.kt::sortCardsForReviewQueue
-        // - apps/web/src/appData/domain/index.ts::compareCardsForReviewOrder
         // Ordering contract: recently reviewed due cards within the inclusive one-hour fsrsLastReviewedAt
         // window first, then other due cards, then nil dueAt new cards. Future and malformed dueAt
-        // values are excluded from the active queue.
-        // If this changes, mirror the same change across all three clients in the same change.
+        // values are excluded from the active queue. Cards in the same bucket and due-time position
+        // use older created_at first.
+        // When this contract changes, coordinate matching review-order updates for supported clients.
         let targetLimit = limit + 1
         let nowMillis = epochMillis(date: now)
         let cutoffMillis = epochMillis(date: now.addingTimeInterval(-recentDuePriorityWindow))

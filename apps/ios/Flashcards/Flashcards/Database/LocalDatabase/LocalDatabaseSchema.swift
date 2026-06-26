@@ -1,7 +1,7 @@
 import Foundation
 
 enum LocalDatabaseSchema {
-    static let currentVersion: Int = 19
+    static let currentVersion: Int = 20
 
     static var baseMigrationSQL: String {
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
@@ -134,11 +134,11 @@ enum LocalDatabaseSchema {
             ON cards(workspace_id, updated_at DESC, card_id ASC);
 
         CREATE INDEX IF NOT EXISTS idx_cards_workspace_due_millis_active
-            ON cards(workspace_id, due_at_millis, created_at DESC, card_id ASC)
+            ON cards(workspace_id, due_at_millis, created_at ASC, card_id ASC)
             WHERE deleted_at IS NULL AND due_at_millis IS NOT NULL;
 
         CREATE INDEX IF NOT EXISTS idx_cards_workspace_new_due_active
-            ON cards(workspace_id, created_at DESC, card_id ASC)
+            ON cards(workspace_id, created_at ASC, card_id ASC)
             WHERE deleted_at IS NULL AND due_at IS NULL;
 
         CREATE INDEX IF NOT EXISTS idx_cards_workspace_fsrs_last_reviewed_at
@@ -146,7 +146,7 @@ enum LocalDatabaseSchema {
             WHERE deleted_at IS NULL;
 
         CREATE INDEX IF NOT EXISTS idx_cards_workspace_fsrs_last_reviewed_millis_due_active
-            ON cards(workspace_id, fsrs_last_reviewed_at_millis, due_at_millis, created_at DESC, card_id ASC)
+            ON cards(workspace_id, fsrs_last_reviewed_at_millis, due_at_millis, created_at ASC, card_id ASC)
             WHERE deleted_at IS NULL AND due_at_millis IS NOT NULL AND fsrs_last_reviewed_at_millis IS NOT NULL;
 
         CREATE INDEX IF NOT EXISTS idx_decks_workspace_created_at

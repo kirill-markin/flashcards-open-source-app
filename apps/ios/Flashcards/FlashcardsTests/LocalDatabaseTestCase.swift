@@ -2,6 +2,11 @@ import Foundation
 import XCTest
 @testable import Flashcards
 
+struct SQLiteIndexColumnOrder: Equatable {
+    let name: String
+    let isDescending: Bool
+}
+
 class LocalDatabaseTestCase: XCTestCase {
     var databaseURL: URL?
     var database: LocalDatabase?
@@ -70,8 +75,28 @@ class LocalDatabaseTestCase: XCTestCase {
         try database.core.columnExists(tableName: tableName, columnName: columnName)
     }
 
+    func loadIndexColumnOrder(database: LocalDatabase, indexName: String) throws -> [SQLiteIndexColumnOrder] {
+        let columnOrder: [SQLiteIndexColumnOrder?] = try database.core.query(
+            sql: "PRAGMA index_xinfo(\(self.singleQuotedSQLIdentifier(identifier: indexName)))",
+            values: []
+        ) { statement in
+            let isKeyColumn = DatabaseCore.columnInt64(statement: statement, index: 5) == 1
+            guard isKeyColumn, let name = DatabaseCore.columnOptionalText(statement: statement, index: 2) else {
+                return nil
+            }
+
+            return SQLiteIndexColumnOrder(
+                name: name,
+                isDescending: DatabaseCore.columnInt64(statement: statement, index: 3) == 1
+            )
+        }
+
+        return columnOrder.compactMap { column in
+            column
+        }
+    }
+
     private func singleQuotedSQLIdentifier(identifier: String) -> String {
         "'\(identifier.replacingOccurrences(of: "'", with: "''"))'"
     }
 }
-
