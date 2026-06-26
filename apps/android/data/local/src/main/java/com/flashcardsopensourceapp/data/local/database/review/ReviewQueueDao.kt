@@ -19,7 +19,7 @@ interface ReviewQueueDao {
             AND fsrsLastReviewedAtMillis IS NOT NULL
             AND fsrsLastReviewedAtMillis >= :cutoffMillis
             AND fsrsLastReviewedAtMillis <= :nowMillis
-        ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
+        ORDER BY dueAtMillis ASC, createdAtMillis ASC, cardId ASC
         LIMIT :limit
         """
     )
@@ -49,7 +49,7 @@ interface ReviewQueueDao {
                     AND tags.workspaceId = cards.workspaceId
                     AND tags.name IN (:tagNames)
             )
-        ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
+        ORDER BY dueAtMillis ASC, createdAtMillis ASC, cardId ASC
         LIMIT :limit
         """
     )
@@ -74,7 +74,7 @@ interface ReviewQueueDao {
                 OR fsrsLastReviewedAtMillis < :cutoffMillis
                 OR fsrsLastReviewedAtMillis > :nowMillis
             )
-        ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
+        ORDER BY dueAtMillis ASC, createdAtMillis ASC, cardId ASC
         LIMIT :limit
         """
     )
@@ -106,7 +106,7 @@ interface ReviewQueueDao {
                     AND tags.workspaceId = cards.workspaceId
                     AND tags.name IN (:tagNames)
             )
-        ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
+        ORDER BY dueAtMillis ASC, createdAtMillis ASC, cardId ASC
         LIMIT :limit
         """
     )
@@ -125,7 +125,7 @@ interface ReviewQueueDao {
         WHERE workspaceId = :workspaceId
             AND deletedAtMillis IS NULL
             AND dueAtMillis IS NULL
-        ORDER BY createdAtMillis DESC, cardId ASC
+        ORDER BY createdAtMillis ASC, cardId ASC
         LIMIT :limit
         """
     )
@@ -149,7 +149,7 @@ interface ReviewQueueDao {
                     AND tags.workspaceId = cards.workspaceId
                     AND tags.name IN (:tagNames)
             )
-        ORDER BY createdAtMillis DESC, cardId ASC
+        ORDER BY createdAtMillis ASC, cardId ASC
         LIMIT :limit
         """
     )
@@ -174,7 +174,7 @@ interface ReviewQueueDao {
                     AND fsrsLastReviewedAtMillis IS NOT NULL
                     AND fsrsLastReviewedAtMillis >= :cutoffMillis
                     AND fsrsLastReviewedAtMillis <= :nowMillis
-                ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
+                ORDER BY dueAtMillis ASC, createdAtMillis ASC, cardId ASC
                 LIMIT :limit
             )
             UNION ALL
@@ -190,7 +190,7 @@ interface ReviewQueueDao {
                         OR fsrsLastReviewedAtMillis < :cutoffMillis
                         OR fsrsLastReviewedAtMillis > :nowMillis
                     )
-                ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
+                ORDER BY dueAtMillis ASC, createdAtMillis ASC, cardId ASC
                 LIMIT :limit
             )
             UNION ALL
@@ -200,11 +200,11 @@ interface ReviewQueueDao {
                 WHERE workspaceId = :workspaceId
                     AND deletedAtMillis IS NULL
                     AND dueAtMillis IS NULL
-                ORDER BY createdAtMillis DESC, cardId ASC
+                ORDER BY createdAtMillis ASC, cardId ASC
                 LIMIT :limit
             )
         )
-        ORDER BY activeQueueBucket ASC, dueAtMillis ASC, createdAtMillis DESC, cardId ASC
+        ORDER BY activeQueueBucket ASC, dueAtMillis ASC, createdAtMillis ASC, cardId ASC
         LIMIT :limit
         """
     )
@@ -238,7 +238,7 @@ interface ReviewQueueDao {
                             AND tags.workspaceId = cards.workspaceId
                             AND tags.name IN (:tagNames)
                     )
-                ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
+                ORDER BY dueAtMillis ASC, createdAtMillis ASC, cardId ASC
                 LIMIT :limit
             )
             UNION ALL
@@ -262,7 +262,7 @@ interface ReviewQueueDao {
                             AND tags.workspaceId = cards.workspaceId
                             AND tags.name IN (:tagNames)
                     )
-                ORDER BY dueAtMillis ASC, createdAtMillis DESC, cardId ASC
+                ORDER BY dueAtMillis ASC, createdAtMillis ASC, cardId ASC
                 LIMIT :limit
             )
             UNION ALL
@@ -280,11 +280,11 @@ interface ReviewQueueDao {
                             AND tags.workspaceId = cards.workspaceId
                             AND tags.name IN (:tagNames)
                     )
-                ORDER BY createdAtMillis DESC, cardId ASC
+                ORDER BY createdAtMillis ASC, cardId ASC
                 LIMIT :limit
             )
         )
-        ORDER BY activeQueueBucket ASC, dueAtMillis ASC, createdAtMillis DESC, cardId ASC
+        ORDER BY activeQueueBucket ASC, dueAtMillis ASC, createdAtMillis ASC, cardId ASC
         LIMIT :limit
         """
     )

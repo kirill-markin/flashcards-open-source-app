@@ -285,17 +285,17 @@ class LocalReviewQueueContractTest {
         ).first()
 
         assertEquals(8, sessionSnapshot.cards.size)
-        assertEquals("new-card-09", sessionSnapshot.presentedCard?.cardId)
+        assertEquals("new-card-00", sessionSnapshot.presentedCard?.cardId)
         assertEquals(
             listOf(
-                "new-card-09",
-                "new-card-08",
-                "new-card-07",
-                "new-card-06",
-                "new-card-05",
-                "new-card-04",
+                "new-card-00",
+                "new-card-01",
+                "new-card-02",
                 "new-card-03",
-                "new-card-02"
+                "new-card-04",
+                "new-card-05",
+                "new-card-06",
+                "new-card-07"
             ),
             sessionSnapshot.cards.map { card -> card.cardId }
         )
@@ -356,14 +356,14 @@ class LocalReviewQueueContractTest {
 
         assertEquals(
             listOf(
-                "recent-card-07",
-                "recent-card-06",
-                "recent-card-05",
-                "recent-card-04",
-                "recent-card-03",
-                "recent-card-02",
+                "recent-card-00",
                 "recent-card-01",
-                "recent-card-00"
+                "recent-card-02",
+                "recent-card-03",
+                "recent-card-04",
+                "recent-card-05",
+                "recent-card-06",
+                "recent-card-07"
             ),
             preservedSnapshot.cards.map { card -> card.cardId }
         )
@@ -371,7 +371,7 @@ class LocalReviewQueueContractTest {
         assertTrue(preservedSnapshot.answerOptionsByCardId.containsKey("old-presented-card"))
         assertEquals(9, preservedSnapshot.dueCount)
         assertEquals(10, preservedSnapshot.totalCount)
-        assertEquals("recent-card-07", futurePresentedSnapshot.presentedCard?.cardId)
+        assertEquals("recent-card-00", futurePresentedSnapshot.presentedCard?.cardId)
         assertFalse(futurePresentedSnapshot.answerOptionsByCardId.containsKey("future-presented-card"))
     }
 }

@@ -174,11 +174,11 @@ class CardDaoReviewQueueContractTest {
             tagNames = listOf("Future Only")
         ).first()
 
-        assertEquals("recent-cutoff-a", allCardsTop?.cardId)
-        assertEquals("recent-cutoff-a", tagTop?.cardId)
+        assertEquals("recent-cutoff-older-created", allCardsTop?.cardId)
+        assertEquals("recent-cutoff-older-created", tagTop?.cardId)
         assertNull(futureOnlyTagTop)
         assertEquals(
-            listOf("recent-cutoff-a", "recent-cutoff-b", "recent-cutoff-older-created", "old-boundary-card"),
+            listOf("recent-cutoff-older-created", "recent-cutoff-a", "recent-cutoff-b", "old-boundary-card"),
             boundedQueue
         )
         assertEquals(boundedQueue, priorityQueue)
@@ -186,5 +186,78 @@ class CardDaoReviewQueueContractTest {
         assertEquals(6, priorityTotalCount)
         assertEquals(0, futureOnlyDueCount)
         assertEquals(1, futureOnlyTotalCount)
+    }
+
+    @Test
+    fun newReviewCardQueriesUseOlderCreatedBeforeNewerAndCardIdAscending(): Unit = runBlocking {
+        val nowMillis = 12 * 60 * 60 * 1_000L
+        val workspaceId = bootstrapTestWorkspace(runtime = runtime, currentTimeMillis = nowMillis)
+        val reviewTag = TagEntity(
+            tagId = "tag-review",
+            workspaceId = workspaceId,
+            name = "Review"
+        )
+
+        database.cardDao().insertCards(
+            listOf(
+                makeNewReviewOrderingCardEntity(
+                    cardId = "new-equal-a",
+                    workspaceId = workspaceId,
+                    createdAtMillis = 100L,
+                    updatedAtMillis = 100L
+                ),
+                makeNewReviewOrderingCardEntity(
+                    cardId = "new-equal-b",
+                    workspaceId = workspaceId,
+                    createdAtMillis = 100L,
+                    updatedAtMillis = 100L
+                ),
+                makeNewReviewOrderingCardEntity(
+                    cardId = "new-newer-card",
+                    workspaceId = workspaceId,
+                    createdAtMillis = 200L,
+                    updatedAtMillis = 200L
+                )
+            )
+        )
+        database.tagDao().insertTags(tags = listOf(reviewTag))
+        database.tagDao().insertCardTags(
+            cardTags = listOf(
+                CardTagEntity(cardId = "new-equal-a", tagId = reviewTag.tagId),
+                CardTagEntity(cardId = "new-equal-b", tagId = reviewTag.tagId),
+                CardTagEntity(cardId = "new-newer-card", tagId = reviewTag.tagId)
+            )
+        )
+
+        val allCardsQueue = database.reviewQueueDao().observeNewReviewQueue(
+            workspaceId = workspaceId,
+            limit = 3
+        ).first().map { card ->
+            card.card.cardId
+        }
+        val tagQueue = database.reviewQueueDao().observeNewReviewQueueByAnyTags(
+            workspaceId = workspaceId,
+            tagNames = listOf("Review"),
+            limit = 3
+        ).first().map { card ->
+            card.card.cardId
+        }
+        val allCardsTop = loadTopActiveReviewCard(
+            reviewCardSelectionDao = database.reviewCardSelectionDao(),
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            tagNames = emptyList()
+        )
+        val tagTop = loadTopActiveReviewCard(
+            reviewCardSelectionDao = database.reviewCardSelectionDao(),
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            tagNames = listOf("Review")
+        )
+
+        assertEquals(listOf("new-equal-a", "new-equal-b", "new-newer-card"), allCardsQueue)
+        assertEquals(allCardsQueue, tagQueue)
+        assertEquals("new-equal-a", allCardsTop?.cardId)
+        assertEquals("new-equal-a", tagTop?.cardId)
     }
 }
