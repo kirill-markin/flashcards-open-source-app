@@ -642,7 +642,7 @@ describe("sync lifecycle observation", () => {
     const clock = installMutableDateNow(0);
     installPersistentStorageMockWithClock(clock, 0, 7, 0);
     apiMocks.bootstrapPullSyncStateMock.mockImplementation(async () => {
-      clock.advance(800);
+      clock.advance(8000);
       return createBootstrapPullResult({
         entries: [],
         bootstrapHotChangeId: 12,
@@ -662,13 +662,13 @@ describe("sync lifecycle observation", () => {
     expect(findCapturedWarning("sync_restore_slow")).toEqual(expect.objectContaining({
       action: "sync_restore_slow",
       details: expect.objectContaining({
-        durationMs: 2000,
+        durationMs: 9200,
         pageSize: 1000,
-        bootstrapPullDurationMs: 800,
+        bootstrapPullDurationMs: 8000,
         applyHotPagesDurationMs: 0,
         finalRefreshDurationMs: 1200,
         persistentStorageDurationMs: 7,
-        bootstrapPageDurationMs: [800],
+        bootstrapPageDurationMs: [8000],
       }),
     }));
   });
