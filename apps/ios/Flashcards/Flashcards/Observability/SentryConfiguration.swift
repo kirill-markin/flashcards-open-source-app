@@ -38,6 +38,12 @@ extension SentryObservabilityAdapter {
             options.releaseName = "\(configuration.bundleIdentifier)@\(configuration.marketingVersion)"
             options.dist = configuration.buildNumber
             options.environment = configuration.environment
+            // Report only fully-blocking app hangs. Non-fully-blocking "partial" hangs are
+            // dominated by throttled / low-memory / Low Power Mode device conditions and are not
+            // individually actionable (e.g. Sentry FLASHCARDS-IOS-40). Overall app-hang tracking
+            // stays on (SDK default) so genuine fully-blocking freezes are still captured.
+            options.enableReportNonFullyBlockingAppHangs = false
+            options.appHangTimeoutInterval = 3.0
             options.sampleRate = NSNumber(value: 1.0)
             options.tracesSampleRate = NSNumber(value: configuration.tracesSampleRate)
             options.sendDefaultPii = false
