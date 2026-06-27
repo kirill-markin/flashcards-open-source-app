@@ -1,0 +1,32 @@
+name: MCP Registry Validate
+
+on:
+  pull_request:
+    paths:
+      - 'server.json'
+      - '.github/workflows/mcp-registry-publish.yml'
+      - '.github/workflows/mcp-registry-validate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'server.json'
+      - '.github/workflows/mcp-registry-publish.yml'
+      - '.github/workflows/mcp-registry-validate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate server.json
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate MCP Registry manifest
+        run: |
+          set -euo pipefail
+          curl -fsS 'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json' > /tmp/mcp-server-schema-2025-12-11.json
+          npx --yes ajv-cli@5 validate -s /tmp/mcp-server-schema-2025-12-11.json -d server.json --strict=false
