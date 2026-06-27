@@ -270,6 +270,10 @@ struct RootTabView: View {
 
     @MainActor
     private func refreshSelectedTabIfNeeded(nextTab: AppTab) async {
+        guard self.store.isCloudSyncBlocked == false else {
+            return
+        }
+
         switch nextTab {
         case .review:
             await self.store.refreshReviewBadgesIfNeeded()
