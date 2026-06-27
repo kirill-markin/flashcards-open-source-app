@@ -19,6 +19,7 @@ import {
   observeLocalDbRecoverySucceeded,
   observePersistentStorageState,
   observeSlowHotBootstrap,
+  observeToleratedSlowHotBootstrap,
 } from "../observation/syncLifecycleObservation";
 import {
   loadSyncRestoreHistoryEntry,
@@ -26,6 +27,7 @@ import {
   type SyncRestoreHistoryEntry,
 } from "../restore/syncRestoreHistory";
 import {
+  slowHotBootstrapBreadcrumbThresholdMs,
   slowHotBootstrapWarningThresholdMs,
   syncBootstrapPageSize,
 } from "./constants";
@@ -71,6 +73,26 @@ function shouldObserveHotBootstrap(input: Readonly<{
   }
 
   return input.durationMs >= slowHotBootstrapWarningThresholdMs || input.pageCount > 1;
+}
+
+// Tolerated-slow band: a single-page, non-empty bootstrap that is slow enough to record
+// (>= the breadcrumb floor) but below the warning threshold. The warning gate
+// (shouldObserveHotBootstrap) takes precedence, so this stays mutually exclusive with it:
+// the >=8000ms or multi-page case warns, this band only breadcrumbs.
+function shouldBreadcrumbSlowHotBootstrap(input: Readonly<{
+  durationMs: number;
+  pageCount: number;
+  entriesCount: number;
+  localCardCountAfter: number;
+  remoteIsEmpty: boolean | null;
+}>): boolean {
+  if (isEmptyRemoteBootstrapNoise(input.remoteIsEmpty, input.entriesCount, input.localCardCountAfter)) {
+    return false;
+  }
+
+  return input.pageCount === 1
+    && input.durationMs >= slowHotBootstrapBreadcrumbThresholdMs
+    && input.durationMs < slowHotBootstrapWarningThresholdMs;
 }
 
 function determineLocalBootstrapState(
@@ -319,17 +341,15 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
     }
 
     recoveryFailurePhase = "slow_bootstrap_observation";
-    if (
-      isLocalDbRecovery === false
-      && shouldObserveHotBootstrap({
+    if (isLocalDbRecovery === false) {
+      const slowBootstrapObservation = {
         durationMs,
         pageCount,
         entriesCount,
         localCardCountAfter,
         remoteIsEmpty,
-      })
-    ) {
-      observeSlowHotBootstrap({
+      };
+      const slowHotBootstrapDetails = {
         userId: input.userId,
         workspaceId: input.workspaceId,
         installationId: input.installationId,
@@ -345,7 +365,15 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         nextHotChangeId,
         remoteIsEmpty,
         ...readBootstrapTimingDetails(),
-      });
+      };
+      // Warning wins: the >=8000ms or multi-page case raises a Sentry issue; the
+      // tolerated-slow single-page band only adds a silent breadcrumb. The two predicates
+      // never overlap, so at most one fires.
+      if (shouldObserveHotBootstrap(slowBootstrapObservation)) {
+        observeSlowHotBootstrap(slowHotBootstrapDetails);
+      } else if (shouldBreadcrumbSlowHotBootstrap(slowBootstrapObservation)) {
+        observeToleratedSlowHotBootstrap(slowHotBootstrapDetails);
+      }
     }
 
     return {

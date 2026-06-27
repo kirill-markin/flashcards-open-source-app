@@ -164,6 +164,35 @@ export function observeSlowHotBootstrap(input: HotBootstrapSlowObservationInput)
   });
 }
 
+// Tolerated-slow single-page bootstrap: slow enough to be worth recording (>= the
+// breadcrumb floor) but below the warning threshold. Mirrors observeSlowHotBootstrap
+// but emits a silent breadcrumb (no Sentry issue) so we keep "what was slow before this
+// failure" context without raising noise. The warning path stays mutually exclusive (see
+// bootstrapHotState).
+export function observeToleratedSlowHotBootstrap(input: HotBootstrapSlowObservationInput): void {
+  addWebBreadcrumb({
+    action: "sync_hot_bootstrap_tolerated_slow",
+    scope: buildSyncObservationScope(input.userId, input.workspaceId, input.installationId),
+    details: {
+      eventName: "sync_hot_bootstrap_tolerated_slow",
+      syncRunId: input.syncRunId,
+      workspaceId: input.workspaceId,
+      installationId: input.installationId,
+      durationMs: input.durationMs,
+      pageSize: input.pageSize,
+      pageCount: input.pageCount,
+      entriesCount: input.entriesCount,
+      localCardCountBefore: input.localCardCountBefore,
+      localCardCountAfter: input.localCardCountAfter,
+      localBootstrapState: input.localBootstrapState,
+      lastAppliedHotChangeIdBefore: input.lastAppliedHotChangeIdBefore,
+      nextHotChangeId: input.nextHotChangeId,
+      remoteIsEmpty: input.remoteIsEmpty,
+      ...buildSyncBootstrapTimingDetails(input),
+    },
+  });
+}
+
 // Expected, self-healing condition: the browser evicted the best-effort local
 // IndexedDB cache and we are about to transparently re-hydrate from the backend
 // (the source of truth). Emitted as a silent breadcrumb, not a warning, so it never

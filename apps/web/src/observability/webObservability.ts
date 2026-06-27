@@ -230,6 +230,11 @@ export type WebBreadcrumbEvent =
     details: SyncLocalDbRecoverySucceededBreadcrumbDetails;
   }>
   | Readonly<{
+    action: "sync_hot_bootstrap_tolerated_slow";
+    scope: WebObservationScope;
+    details: SyncRestoreToleratedSlowBreadcrumbDetails;
+  }>
+  | Readonly<{
     action: "stale_bundle_reload";
     scope: WebObservationScope;
     details: StaleBundleReloadBreadcrumbDetails;
@@ -478,6 +483,28 @@ export type SyncBootstrapTimingDetails = Readonly<{
 
 export type SyncRestoreWarningDetails = SyncBootstrapTimingDetails & Readonly<{
   eventName: "sync_hot_bootstrap_slow";
+  syncRunId: string;
+  workspaceId: string;
+  installationId: string;
+  durationMs: number;
+  pageSize: number;
+  pageCount: number;
+  entriesCount: number;
+  localCardCountBefore: number;
+  localCardCountAfter: number;
+  localBootstrapState: SyncRestoreLocalBootstrapState;
+  lastAppliedHotChangeIdBefore: number | null;
+  nextHotChangeId: number | null;
+  remoteIsEmpty: boolean | null;
+}>;
+
+// Single-page bootstraps slow enough to be interesting (>= the breadcrumb floor)
+// but below the warning threshold are a tolerated, expected condition (server/network
+// latency), so they are emitted as a silent breadcrumb for debugging context — never a
+// warning. The >= warning-threshold or multi-page case stays a warning (see
+// SyncRestoreWarningDetails); the two are mutually exclusive.
+export type SyncRestoreToleratedSlowBreadcrumbDetails = SyncBootstrapTimingDetails & Readonly<{
+  eventName: "sync_hot_bootstrap_tolerated_slow";
   syncRunId: string;
   workspaceId: string;
   installationId: string;
