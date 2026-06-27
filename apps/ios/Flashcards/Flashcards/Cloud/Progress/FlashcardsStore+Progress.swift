@@ -49,6 +49,10 @@ extension FlashcardsStore {
                 return
             }
 
+            guard self.isCloudSyncBlocked == false else {
+                return
+            }
+
             guard let activeSession = try await self.progressCloudSession(scopeKey: scopeKey) else {
                 return
             }
@@ -79,6 +83,10 @@ extension FlashcardsStore {
                 return
             }
 
+            if self.isCloudSyncBlocked {
+                return
+            }
+
             self.presentTechnicalError(error)
             self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
         }
@@ -101,6 +109,10 @@ extension FlashcardsStore {
                 return
             }
 
+            guard self.isCloudSyncBlocked == false else {
+                return
+            }
+
             guard let activeSession = try await self.progressCloudSession(scopeKey: scopeKey) else {
                 return
             }
@@ -111,6 +123,10 @@ extension FlashcardsStore {
             )
         } catch {
             if isRequestCancellationError(error: error) {
+                return
+            }
+
+            if self.isCloudSyncBlocked {
                 return
             }
 
@@ -136,6 +152,10 @@ extension FlashcardsStore {
                 return
             }
 
+            guard self.isCloudSyncBlocked == false else {
+                return
+            }
+
             guard let activeSession = try await self.progressCloudSession(scopeKey: scopeKey) else {
                 return
             }
@@ -146,6 +166,10 @@ extension FlashcardsStore {
             )
         } catch {
             if isRequestCancellationError(error: error) {
+                return
+            }
+
+            if self.isCloudSyncBlocked {
                 return
             }
 
@@ -179,6 +203,10 @@ extension FlashcardsStore {
                 || shouldRefreshReviewSchedule
                 || shouldRefreshLeaderboard
                 || shouldRefreshStreakLeaderboard else {
+                return
+            }
+
+            guard self.isCloudSyncBlocked == false else {
                 return
             }
 
@@ -240,6 +268,10 @@ extension FlashcardsStore {
                 return
             }
 
+            if self.isCloudSyncBlocked {
+                return
+            }
+
             self.presentTechnicalError(error)
             self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
         }
@@ -253,6 +285,10 @@ extension FlashcardsStore {
             let leaderboardScopeKey = self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
 
             self.invalidateProgress(scopeKey: scopeKey, summaryScopeKey: summaryScopeKey)
+            guard self.isCloudSyncBlocked == false else {
+                return
+            }
+
             guard let activeSession = try await self.progressCloudSession(scopeKey: scopeKey) else {
                 return
             }
@@ -289,6 +325,10 @@ extension FlashcardsStore {
             }
         } catch {
             if isRequestCancellationError(error: error) {
+                return
+            }
+
+            if self.isCloudSyncBlocked {
                 return
             }
 
