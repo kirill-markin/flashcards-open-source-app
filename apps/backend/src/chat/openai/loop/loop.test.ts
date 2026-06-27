@@ -8,6 +8,7 @@ import {
   type StartOpenAILoopParams,
 } from "./loop";
 import { buildOpenAISafetyIdentifier } from "../safetyIdentifier";
+import { CHAT_MAX_OUTPUT_TOKENS } from "../../config";
 
 type OpenAILoopDependencies = Parameters<typeof startOpenAILoopWithDeps>[2];
 type OpenAIResponseStream = AsyncIterable<OpenAI.Responses.ResponseStreamEvent> & Readonly<{
@@ -184,6 +185,20 @@ function createResponseErrorEvent(
   };
 }
 
+function createContextLengthExceededError(): Error {
+  return Object.assign(new Error("input exceeds the context window"), {
+    code: "context_length_exceeded",
+  });
+}
+
+function createContextLengthExceededStream(): OpenAIResponseStream {
+  return {
+    async *[Symbol.asyncIterator](): AsyncGenerator<OpenAI.Responses.ResponseStreamEvent> {
+      throw createContextLengthExceededError();
+    },
+  };
+}
+
 function createTerminalEventStream(
   event: OpenAI.Responses.ResponseStreamEvent,
 ): OpenAIResponseStream {
@@ -198,6 +213,45 @@ function createStreamWithoutCompletedResponse(): OpenAIResponseStream {
   return {
     async *[Symbol.asyncIterator](): AsyncGenerator<OpenAI.Responses.ResponseStreamEvent> {
       yield createOutputTextDeltaEvent("partial");
+    },
+  };
+}
+
+function createPartialThenIncompleteStream(
+  text: string,
+  reason: "max_output_tokens" | "content_filter",
+): OpenAIResponseStream {
+  return {
+    async *[Symbol.asyncIterator](): AsyncGenerator<OpenAI.Responses.ResponseStreamEvent> {
+      yield createOutputTextDeltaEvent(text);
+      yield createResponseIncompleteEvent(reason);
+    },
+  };
+}
+
+function createMaxOutputTokensIncompleteEventWithFunctionCall(
+  outputText: string,
+  functionCallItem: OpenAI.Responses.ResponseFunctionToolCall,
+): OpenAI.Responses.ResponseIncompleteEvent {
+  return {
+    type: "response.incomplete",
+    sequence_number: 1,
+    response: {
+      ...createResponse([functionCallItem], outputText),
+      status: "incomplete",
+      incomplete_details: { reason: "max_output_tokens" },
+    },
+  } as OpenAI.Responses.ResponseIncompleteEvent;
+}
+
+function createPartialThenIncompleteWithFunctionCallStream(
+  text: string,
+  functionCallItem: OpenAI.Responses.ResponseFunctionToolCall,
+): OpenAIResponseStream {
+  return {
+    async *[Symbol.asyncIterator](): AsyncGenerator<OpenAI.Responses.ResponseStreamEvent> {
+      yield createOutputTextDeltaEvent(text);
+      yield createMaxOutputTokensIncompleteEventWithFunctionCall(text, functionCallItem);
     },
   };
 }
@@ -305,6 +359,7 @@ test("startOpenAILoopWithDeps sends a hashed safety identifier on the initial mo
   assert.equal(requests.length, 1);
   assert.equal(requests[0].safety_identifier, buildOpenAISafetyIdentifier("user-1"));
   assert.equal(requests[0].prompt_cache_key, "session-1");
+  assert.equal(requests[0].max_output_tokens, CHAT_MAX_OUTPUT_TOKENS);
   assert.equal(Object.hasOwn(requests[0], "user"), false);
 });
 
@@ -829,14 +884,78 @@ test("startOpenAILoopWithDeps fails with a classified terminal error on response
   );
 });
 
-test("startOpenAILoopWithDeps fails with a classified terminal error on response.incomplete", async () => {
+test("startOpenAILoopWithDeps finishes gracefully with partial text on a max_output_tokens incomplete response", async () => {
+  const { sink, events } = collectEvents();
+
+  const result = await startOpenAILoopWithDeps(
+    createParams(),
+    sink,
+    createDependencies(
+      () => createPartialThenIncompleteStream("partial answer", "max_output_tokens"),
+      async () => {
+        throw new Error("runOneToolCall should not be called");
+      },
+    ),
+  );
+
+  assert.equal(result.terminationReason, "completed");
+  assert.deepEqual(events, [
+    {
+      type: "delta",
+      text: "partial answer",
+      itemId: "message-1",
+      responseIndex: 0,
+      outputIndex: 0,
+      contentIndex: 0,
+      sequenceNumber: 1,
+    },
+    { type: "done" },
+  ]);
+});
+
+test("startOpenAILoopWithDeps finishes with partial text and skips the tool call when a max_output_tokens response also carries a function call", async () => {
+  let toolCallCount = 0;
+  const { sink, events } = collectEvents();
+
+  const result = await startOpenAILoopWithDeps(
+    createParams(),
+    sink,
+    createDependencies(
+      () => createPartialThenIncompleteWithFunctionCallStream(
+        "partial answer",
+        createFunctionCallItem("completed"),
+      ),
+      async () => {
+        toolCallCount += 1;
+        return {
+          output: "{\"ok\":true}",
+          isMutating: false,
+          succeeded: true,
+        };
+      },
+    ),
+  );
+
+  assert.equal(toolCallCount, 0);
+  assert.equal(result.terminationReason, "completed");
+  assert.deepEqual(events.at(-1), { type: "done" });
+  // The truncated function_call must not be persisted: replaying an orphan
+  // function_call without a paired function_call_output makes the OpenAI
+  // Responses API reject every later turn in the session.
+  const unpairedFunctionCalls = result.openaiItems.filter(
+    (item) => item.type === "function_call",
+  );
+  assert.equal(unpairedFunctionCalls.length, 0);
+});
+
+test("startOpenAILoopWithDeps fails with a classified terminal error on a content_filter incomplete response", async () => {
   await assert.rejects(
     startOpenAILoopWithDeps(
       createParams(),
       async (): Promise<void> => undefined,
       createDependencies(
         () => createTerminalEventStream(
-          createResponseIncompleteEvent("max_output_tokens"),
+          createResponseIncompleteEvent("content_filter"),
         ),
         async () => {
           throw new Error("runOneToolCall should not be called");
@@ -846,7 +965,7 @@ test("startOpenAILoopWithDeps fails with a classified terminal error on response
     (error: unknown): boolean => {
       assert(error instanceof Error);
       assert.equal(error.name, "ChatProviderTerminalEventError");
-      assert.equal((error as { code?: string }).code, "max_output_tokens");
+      assert.equal((error as { code?: string }).code, "content_filter");
       return true;
     },
   );
@@ -918,4 +1037,81 @@ test("startOpenAILoopWithDeps completes normally when no stop is requested", asy
   assert.equal(streamCallCount, 1);
   assert.equal(result.terminationReason, "completed");
   assert.deepEqual(events, [{ type: "done" }]);
+});
+
+test("startOpenAILoopWithDeps retries a callIndex > 1 overflow once with the reduced history budget then succeeds", async () => {
+  let streamCallCount = 0;
+  let toolCallCount = 0;
+  let reducedBudgetRebuilds = 0;
+  const startedFunctionCallItem = createFunctionCallItem("in_progress");
+  const completedFunctionCallItem = createFunctionCallItem("completed");
+  const messageItem = createAssistantMessageItem("recovered");
+  const { sink, events } = collectEvents();
+
+  const dependencies: OpenAILoopDependencies = {
+    buildChatCompletionInput: async () => [],
+    buildChatCompletionInputWithBudget: async () => {
+      reducedBudgetRebuilds += 1;
+      return [];
+    },
+    getObservedOpenAIClient: () => ({
+      responses: {
+        stream: () => {
+          streamCallCount += 1;
+          if (streamCallCount === 1) {
+            return createResponseStream(
+              [createFunctionCallAddedEvent(startedFunctionCallItem)],
+              createResponse([completedFunctionCallItem], ""),
+            );
+          }
+
+          if (streamCallCount === 2) {
+            return createContextLengthExceededStream();
+          }
+
+          return createResponseStream([], createResponse([messageItem], "recovered"));
+        },
+      },
+    } as unknown as OpenAI),
+    runOneToolCall: async () => {
+      toolCallCount += 1;
+      return {
+        output: "{\"ok\":true}",
+        isMutating: false,
+        succeeded: true,
+      };
+    },
+  };
+
+  const result = await startOpenAILoopWithDeps(createParams(), sink, dependencies);
+
+  assert.equal(streamCallCount, 3);
+  assert.equal(toolCallCount, 1);
+  assert.equal(reducedBudgetRebuilds, 1);
+  assert.equal(result.terminationReason, "completed");
+  assert.deepEqual(events.at(-1), { type: "done" });
+  assert.deepEqual(result.openaiItems, [
+    {
+      type: "function_call",
+      call_id: "call-1",
+      name: "sql",
+      arguments: "{\"sql\":\"select 1\"}",
+      status: "completed",
+    },
+    {
+      type: "function_call_output",
+      call_id: "call-1",
+      output: "{\"ok\":true}",
+    },
+    {
+      type: "message",
+      role: "assistant",
+      status: "completed",
+      content: [{
+        type: "output_text",
+        text: "recovered",
+        annotations: [],
+      }],
+    },
+  ]);
 });

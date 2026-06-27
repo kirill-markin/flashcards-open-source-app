@@ -37,6 +37,7 @@ import type { ChatStreamEvent, ContentPart } from "../../types";
 import { createProviderTerminalEventError } from "../../providerFailure";
 import {
   CHAT_HISTORY_REPLAY_TOKEN_BUDGET,
+  CHAT_MAX_OUTPUT_TOKENS,
   CHAT_MODEL_CONTEXT_WINDOW_TOKENS,
   CHAT_MODEL_REASONING_SUMMARY,
   type ChatRuntimeModelId,
@@ -51,11 +52,15 @@ const TOOL_LIMIT_FALLBACK_ITEM_ID = "tool-limit-summary";
  * Maximum estimated tokens of within-run continuation growth (model output plus
  * tool-call replay items accumulated across tool rounds) before the loop diverts
  * into the tool-limit summary turn instead of scheduling another tool-enabled
- * call. Reserves the history-replay budget for the base input so the full
- * `base input + continuation` stays under the model context window even when the
- * character-based estimate under-counts dense content.
+ * call. Reserves the history-replay budget for the base input and the
+ * `max_output_tokens` headroom for the response, so the loop diverts into the
+ * summary turn before `base input + continuation + reserved output` can exceed
+ * the model context window even when the character-based estimate under-counts
+ * dense content.
  */
-const MAX_WITHIN_RUN_REPLAY_TOKENS = CHAT_MODEL_CONTEXT_WINDOW_TOKENS - CHAT_HISTORY_REPLAY_TOKEN_BUDGET;
+const MAX_WITHIN_RUN_REPLAY_TOKENS = CHAT_MODEL_CONTEXT_WINDOW_TOKENS
+  - CHAT_HISTORY_REPLAY_TOKEN_BUDGET
+  - CHAT_MAX_OUTPUT_TOKENS;
 
 /**
  * Tighter history-replay budget used to rebuild the base input when the first
@@ -100,6 +105,7 @@ type OpenAIResponsesRequest = Readonly<{
   include: ["reasoning.encrypted_content"];
   tools: Array<OpenAI.Responses.Tool>;
   input: Array<OpenAI.Responses.ResponseInputItem>;
+  max_output_tokens: number;
   reasoning: Readonly<{
     effort: ChatRuntimeReasoningEffort;
     summary: typeof CHAT_MODEL_REASONING_SUMMARY;
@@ -141,6 +147,10 @@ type ModelCallResult = Readonly<{
   replayItems: ReadonlyArray<StoredOpenAIReplayItem>;
   streamedText: string;
   toolStates: ReturnType<typeof createToolCallStateMap>;
+  // True when the response was capped at `max_output_tokens` after streaming a
+  // partial answer. The loop must finish with that partial text and never run
+  // any (possibly truncated) function call carried in the same output.
+  forceComplete: boolean;
 }>;
 
 function createToolCallPosition(
@@ -313,6 +323,42 @@ function buildToolLimitFallbackText(): string {
   return `I reached the tool-call limit for this turn (${String(CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS)}). Send another message such as continue and I will resume from the same chat session.`;
 }
 
+/**
+ * Drops the replay items that a `max_output_tokens`-capped response cannot persist
+ * safely alongside its partial streamed answer.
+ *
+ * The loop finishes with the partial text and never executes the truncated
+ * `function_call` items, so persisting them would leave orphan `function_call`
+ * items with no paired `function_call_output`. Dropping a trailing `function_call`
+ * can in turn orphan a `reasoning` item that immediately preceded it: a reasoning
+ * item replayed with no following same-turn output item is the same orphan class
+ * and the Responses API rejects it on the next turn. So a `reasoning` item is kept
+ * only when a later item in the same response output survives this filter; trailing
+ * reasoning items left unpaired by the dropped calls are dropped too. The
+ * user-visible answer is preserved via the streamed deltas regardless.
+ */
+function dropUnpairedFunctionCalls(
+  items: ReadonlyArray<StoredOpenAIReplayItem>,
+): ReadonlyArray<StoredOpenAIReplayItem> {
+  const withoutFunctionCalls = items.filter((item) => item.type !== "function_call");
+  const kept: Array<StoredOpenAIReplayItem> = [];
+
+  // Walk from the end so a `reasoning` item is kept only when a later item that
+  // survives the function-call drop follows it in the same response output.
+  let hasFollowingKeptItem = false;
+  for (let index = withoutFunctionCalls.length - 1; index >= 0; index -= 1) {
+    const item = withoutFunctionCalls[index];
+    if (item.type === "reasoning" && !hasFollowingKeptItem) {
+      continue;
+    }
+
+    kept.push(item);
+    hasFollowingKeptItem = true;
+  }
+
+  return kept.reverse();
+}
+
 function createAssistantReplayMessage(text: string): StoredOpenAIReplayMessage {
   return {
     type: "message",
@@ -373,6 +419,7 @@ function buildOpenAIResponsesRequest(params: BuildOpenAIResponsesRequestParams):
     include: ["reasoning.encrypted_content"],
     tools: [...params.tools],
     input: buildOpenAIInput(params.baseInput, params.continuationItems, params.extraInput),
+    max_output_tokens: CHAT_MAX_OUTPUT_TOKENS,
     reasoning: {
       effort: params.reasoningEffort,
       summary: CHAT_MODEL_REASONING_SUMMARY,
@@ -422,6 +469,7 @@ async function runOneModelCall(
   let toolStates = createToolCallStateMap();
   let completedResponse: OpenAI.Responses.Response | null = null;
   let streamedText = "";
+  let forceComplete = false;
 
   for await (const event of stream) {
     if (isResponseCompletedEvent(event)) {
@@ -437,6 +485,24 @@ async function runOneModelCall(
     }
 
     if (isResponseIncompleteEvent(event)) {
+      // A `max_output_tokens` incomplete response means the model hit the
+      // reserved output cap after streaming a partial answer. Treat it as a
+      // normal completion so the loop returns the partial text and emits `done`
+      // instead of failing the run, and mark it `forceComplete` so the loop
+      // finishes with that partial text and never runs a truncated function
+      // call that may also appear in the capped output. All other incomplete
+      // reasons (e.g. `content_filter`) still throw. An empty partial answer is
+      // never returned silently: it falls through to the stream-without-response
+      // throw below.
+      if (
+        event.response.incomplete_details?.reason === "max_output_tokens"
+        && streamedText.length > 0
+      ) {
+        completedResponse = event.response;
+        forceComplete = true;
+        continue;
+      }
+
       throw createProviderTerminalEventError({
         code: event.response.incomplete_details?.reason ?? null,
         message: null,
@@ -562,6 +628,7 @@ async function runOneModelCall(
     replayItems: finalResponse.output.map(toStoredOpenAIReplayItem),
     streamedText,
     toolStates,
+    forceComplete,
   };
 }
 
@@ -587,6 +654,7 @@ async function runOneModelCallWithPhase(
 async function completeToolLimitSummaryTurn(
   params: StartOpenAILoopParams,
   onEvent: OpenAILoopEventSink,
+  dependencies: OpenAILoopDependencies,
   client: OpenAI,
   baseInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>,
   continuationItems: Array<StoredOpenAIReplayItem>,
@@ -594,12 +662,14 @@ async function completeToolLimitSummaryTurn(
   const summaryCallIndex = CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS + 1;
   let summaryCall: ModelCallResult;
   try {
-    summaryCall = await runOneModelCallWithPhase(
+    const call = await runModelCallWithOverflowRetry(
       client,
       params,
       onEvent,
-      buildOpenAIResponsesRequest({
-        baseInput,
+      dependencies,
+      baseInput,
+      (input) => buildOpenAIResponsesRequest({
+        baseInput: input,
         continuationItems,
         userId: params.userId,
         sessionId: params.sessionId,
@@ -610,6 +680,7 @@ async function completeToolLimitSummaryTurn(
       }),
       summaryCallIndex,
     );
+    summaryCall = call.modelCall;
   } catch (error) {
     if (shouldStopForOpenAIAbort(params, error)) {
       return createStoppedBeforeNextStepCompletion(continuationItems);
@@ -623,8 +694,14 @@ async function completeToolLimitSummaryTurn(
     ? finalResponseText
     : summaryCall.streamedText.trim();
 
-  if (summaryCall.functionCalls.length === 0 && finalAssistantText.length > 0) {
-    continuationItems.push(...summaryCall.replayItems);
+  // A `max_output_tokens`-capped summary turn (`forceComplete`) keeps its
+  // partial answer even if the truncated output also carries a function call,
+  // so the user sees the real summary instead of the generic fallback text. The
+  // truncated call is dropped so it is never persisted as an orphan replay item.
+  if ((summaryCall.forceComplete || summaryCall.functionCalls.length === 0) && finalAssistantText.length > 0) {
+    continuationItems.push(...(summaryCall.forceComplete
+      ? dropUnpairedFunctionCalls(summaryCall.replayItems)
+      : summaryCall.replayItems));
     if (summaryCall.streamedText.length === 0) {
       await emitSyntheticAssistantDelta(onEvent, finalAssistantText, summaryCallIndex - 1);
     }
@@ -647,41 +724,35 @@ async function completeToolLimitSummaryTurn(
   };
 }
 
-type FirstModelCallResult = Readonly<{
+type ModelCallWithOverflowRetryResult = Readonly<{
   baseInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>;
   modelCall: ModelCallResult;
 }>;
 
+type BuildModelCallRequest = (
+  baseInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>,
+) => OpenAIResponsesRequest;
+
 /**
- * Runs the very first model call of a run and, on a first-call
- * `context_length_exceeded` (nothing streamed yet), rebuilds the base input with
- * a tighter history-replay budget and retries exactly once. Any other failure,
- * or a second overflow, propagates to the existing graceful terminal handling.
+ * Runs exactly one model call and, on a `context_length_exceeded` overflow,
+ * rebuilds only the history base input with a tighter history-replay budget and
+ * retries the same call once. Any other failure, or a second overflow,
+ * propagates to the existing graceful terminal handling.
  *
- * The retry only fires before any tool output exists, so no streamed content or
- * accumulated continuation items can be lost.
+ * The retry only shrinks the replayed history: the caller's already-accumulated
+ * continuation items are carried by `buildRequest` and are never dropped. The
+ * returned `baseInput` is the input actually sent (reduced when the retry fired),
+ * so later calls reuse the smaller history.
  */
-async function runFirstModelCallWithOverflowRetry(
+async function runModelCallWithOverflowRetry(
   client: OpenAI,
   params: StartOpenAILoopParams,
   onEvent: OpenAILoopEventSink,
   dependencies: OpenAILoopDependencies,
   baseInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>,
-  firstCallIndex: number,
-): Promise<FirstModelCallResult> {
-  const buildFirstCallRequest = (
-    input: ReadonlyArray<OpenAI.Responses.ResponseInputItem>,
-  ): OpenAIResponsesRequest => buildOpenAIResponsesRequest({
-    baseInput: input,
-    continuationItems: [],
-    userId: params.userId,
-    sessionId: params.sessionId,
-    modelId: params.modelId,
-    reasoningEffort: params.reasoningEffort,
-    extraInput: [],
-    tools: OPENAI_CHAT_TOOLS,
-  });
-
+  buildRequest: BuildModelCallRequest,
+  callIndex: number,
+): Promise<ModelCallWithOverflowRetryResult> {
   try {
     return {
       baseInput,
@@ -689,8 +760,8 @@ async function runFirstModelCallWithOverflowRetry(
         client,
         params,
         onEvent,
-        buildFirstCallRequest(baseInput),
-        firstCallIndex,
+        buildRequest(baseInput),
+        callIndex,
       ),
     };
   } catch (error) {
@@ -710,8 +781,8 @@ async function runFirstModelCallWithOverflowRetry(
         client,
         params,
         onEvent,
-        buildFirstCallRequest(reducedBaseInput),
-        firstCallIndex,
+        buildRequest(reducedBaseInput),
+        callIndex,
       ),
     };
   }
@@ -737,41 +808,47 @@ async function runLoopWithDeps(
 
     let modelCall: ModelCallResult;
     try {
-      if (callIndex === 1) {
-        const firstCall = await runFirstModelCallWithOverflowRetry(
-          client,
-          params,
-          onEvent,
-          dependencies,
-          baseInput,
-          callIndex,
-        );
-        baseInput = firstCall.baseInput;
-        modelCall = firstCall.modelCall;
-      } else {
-        modelCall = await runOneModelCallWithPhase(
-          client,
-          params,
-          onEvent,
-          buildOpenAIResponsesRequest({
-            baseInput,
-            continuationItems,
-            userId: params.userId,
-            sessionId: params.sessionId,
-            modelId: params.modelId,
-            reasoningEffort: params.reasoningEffort,
-            extraInput: [],
-            tools: OPENAI_CHAT_TOOLS,
-          }),
-          callIndex,
-        );
-      }
+      const call = await runModelCallWithOverflowRetry(
+        client,
+        params,
+        onEvent,
+        dependencies,
+        baseInput,
+        (input) => buildOpenAIResponsesRequest({
+          baseInput: input,
+          continuationItems,
+          userId: params.userId,
+          sessionId: params.sessionId,
+          modelId: params.modelId,
+          reasoningEffort: params.reasoningEffort,
+          extraInput: [],
+          tools: OPENAI_CHAT_TOOLS,
+        }),
+        callIndex,
+      );
+      baseInput = call.baseInput;
+      modelCall = call.modelCall;
     } catch (error) {
       if (shouldStopForOpenAIAbort(params, error)) {
         return createStoppedBeforeNextStepCompletion(continuationItems);
       }
 
       throw error;
+    }
+
+    // `forceComplete` wins over any function call: a `max_output_tokens`-capped
+    // response may carry a truncated function_call alongside the partial answer,
+    // and the loop must finish with that partial text instead of executing it.
+    // That unexecuted call, plus any reasoning item it orphans, is dropped here
+    // so neither is persisted as an unpaired replay item that the Responses API
+    // would reject on a later turn.
+    if (modelCall.forceComplete) {
+      continuationItems.push(...dropUnpairedFunctionCalls(modelCall.replayItems));
+      await onEvent({ type: "done" });
+      return {
+        openaiItems: continuationItems,
+        terminationReason: "completed",
+      };
     }
 
     continuationItems.push(...modelCall.replayItems);
@@ -837,6 +914,7 @@ async function runLoopWithDeps(
       return completeToolLimitSummaryTurn(
         params,
         onEvent,
+        dependencies,
         client,
         baseInput,
         continuationItems,

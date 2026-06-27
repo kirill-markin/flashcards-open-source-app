@@ -37,6 +37,28 @@ export const CHAT_HISTORY_REPLAY_TOKEN_BUDGET = 110_000 as const;
  */
 export const CHAT_MODEL_CONTEXT_WINDOW_TOKENS = 272_000 as const;
 
+/**
+ * Output headroom reserved on every model call via `max_output_tokens`.
+ *
+ * In the Responses API this cap covers reasoning tokens plus visible output
+ * combined. With `medium` reasoning effort a long multi-tool turn can spend
+ * tens of thousands of tokens on reasoning before any answer text streams, so
+ * the cap is sized to stay comfortably above that worst-case reasoning budget.
+ * If it fires, it should only ever fire after a substantial visible answer has
+ * already streamed, which the loop then finishes gracefully with the partial
+ * text instead of hard-failing the turn.
+ *
+ * `CHAT_HISTORY_REPLAY_TOKEN_BUDGET + CHAT_MAX_OUTPUT_TOKENS` (110K + 32K = 142K)
+ * stays well under `CHAT_MODEL_CONTEXT_WINDOW_TOKENS` (272K), so the input plus
+ * reserved output always fits the window with room to spare. Reserving output
+ * headroom turns oversized input into a fast, deterministic pre-flight
+ * `context_length_exceeded` rejection instead of a mid-generation failure ~30s
+ * in, and bounds within-run growth against the remaining window so the loop
+ * diverts into the summary turn before base input + continuation + reserved
+ * output can exceed the window.
+ */
+export const CHAT_MAX_OUTPUT_TOKENS = 32_000 as const;
+
 export type ChatRuntimeModelId =
   | typeof CHAT_MODEL_ID
   | typeof CHAT_LOW_COST_MODEL_ID;
