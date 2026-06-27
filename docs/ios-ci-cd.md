@@ -71,3 +71,11 @@ This keeps the login smoke path pinned to the intended review account instead of
 ## Monitoring expectations
 
 After pushing to `main`, watch Xcode Cloud separately through the full archive and distribution path. Do not assume the iOS release completed just because the GitHub-side AWS/Web release workflow is green.
+
+### Sentry environments
+
+iOS telemetry is bucketed by Sentry environment. The only one that reflects real user impact is `production` (shipped App Store builds); developer builds report as `local`, and automated XCUITest runs report under simulator environments such as `ci-simulator` and `marketing-screenshot-simulator`. When triaging iOS Sentry signal, filter to `environment:production`; the non-production environments are test or developer noise and must not be read as user impact.
+
+### App Hang policy
+
+The app reports only fully-blocking app hangs: `enableReportNonFullyBlockingAppHangs` is disabled and `appHangTimeoutInterval` is set explicitly in `apps/ios/Flashcards/Flashcards/Observability/SentryConfiguration.swift`. Non-fully-blocking "partial" hang samples are intentionally not reported, because on throttled, low-memory, or Low Power Mode devices they are dominated by device conditions rather than app code and are not individually actionable. CI-simulator app-hang events are additionally dropped client-side in `sanitizeSentryEvent` so test runs never create App Hang issues.
