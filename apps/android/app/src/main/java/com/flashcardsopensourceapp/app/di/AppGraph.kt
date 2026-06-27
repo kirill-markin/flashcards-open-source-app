@@ -105,6 +105,7 @@ sealed interface AppStartupState {
 }
 
 private class AppTechnicalErrorDetailsException(
+    val source: String,
     technicalDetails: String
 ) : IllegalStateException(technicalDetails)
 
@@ -494,6 +495,7 @@ class AppGraph(
     }
 
     fun showTechnicalErrorDialog(
+        source: String,
         reportId: String,
         title: String,
         message: String,
@@ -506,7 +508,10 @@ class AppGraph(
                 message = message,
                 technicalDetails = technicalDetails
             ),
-            throwable = AppTechnicalErrorDetailsException(technicalDetails = technicalDetails)
+            throwable = AppTechnicalErrorDetailsException(
+                source = source,
+                technicalDetails = technicalDetails
+            )
         )
     }
 
@@ -526,9 +531,12 @@ class AppGraph(
     }
 
     private fun captureTechnicalErrorDialogException(throwable: Throwable) {
+        val source = (throwable as? AppTechnicalErrorDetailsException)?.source ?: "unknown"
         observability.captureException(
             event = AndroidExceptionIssueEvent.AppTechnicalErrorDialogException(
                 throwable = throwable,
+                source = source,
+                detail = throwable.message,
                 appVersion = appPackageInfo.versionName,
                 clientVersion = appPackageInfo.versionName,
                 versionCode = appPackageInfo.longVersionCode.toInt()

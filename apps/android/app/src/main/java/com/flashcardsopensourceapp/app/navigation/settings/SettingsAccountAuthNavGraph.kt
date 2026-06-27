@@ -79,6 +79,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 },
                 onShowTechnicalDetails = { technicalDetails, reportId ->
                     appGraph.showTechnicalErrorDialog(
+                        source = "sign_in_email",
                         reportId = reportId,
                         title = technicalErrorDialogTitle,
                         message = technicalErrorDialogMessage,
@@ -125,6 +126,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 },
                 onShowTechnicalDetails = { technicalDetails, reportId ->
                     appGraph.showTechnicalErrorDialog(
+                        source = "sign_in_code",
                         reportId = reportId,
                         title = technicalErrorDialogTitle,
                         message = technicalErrorDialogMessage,
@@ -192,6 +194,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 },
                 onShowTechnicalDetails = { technicalDetails, reportId ->
                     appGraph.showTechnicalErrorDialog(
+                        source = "sign_in_post_auth",
                         reportId = reportId,
                         title = technicalErrorDialogTitle,
                         message = technicalErrorDialogMessage,

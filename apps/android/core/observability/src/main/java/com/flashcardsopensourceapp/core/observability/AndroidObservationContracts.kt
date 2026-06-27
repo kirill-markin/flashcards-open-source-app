@@ -595,6 +595,8 @@ sealed interface AndroidExceptionIssueEvent : AndroidObservationEvent {
 
     data class AppTechnicalErrorDialogException(
         override val throwable: Throwable,
+        val source: String,
+        val detail: String?,
         val appVersion: String?,
         val clientVersion: String?,
         val versionCode: Int?
@@ -606,7 +608,7 @@ sealed interface AndroidExceptionIssueEvent : AndroidObservationEvent {
             workspaceId = null,
             requestId = null,
             statusCode = null,
-            code = null,
+            code = source,
             appVersion = appVersion,
             clientVersion = clientVersion,
             versionCode = versionCode
