@@ -591,6 +591,7 @@ fun FlashcardsApp(
                     accountDeletionState = accountDeletionState,
                     onShowTechnicalDetails = { technicalDetails, reportId ->
                         appGraph.showTechnicalErrorDialog(
+                            source = "account_deletion",
                             reportId = reportId,
                             title = technicalErrorDialogTitle,
                             message = technicalErrorDialogMessage,

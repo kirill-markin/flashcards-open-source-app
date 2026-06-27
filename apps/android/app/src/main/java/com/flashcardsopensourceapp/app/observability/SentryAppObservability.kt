@@ -250,7 +250,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
             ai = null,
             progress = null,
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidWarningIssueEvent.HttpUnexpectedClientError -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -266,7 +267,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
             ai = null,
             progress = null,
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidWarningIssueEvent.AiRemoteError -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -300,7 +302,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
             ),
             progress = null,
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidWarningIssueEvent.AiLifecycleWarning -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -333,7 +336,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
             ),
             progress = null,
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidWarningIssueEvent.AiSendWarning -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -366,7 +370,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
             ),
             progress = null,
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidWarningIssueEvent.AiBootstrapWarning -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -399,7 +404,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
             ),
             progress = null,
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidWarningIssueEvent.ProgressRefreshWarning -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -413,7 +419,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
                 source = sanitizeSentryContextValue(fieldName = "source", value = event.source)
             ),
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidWarningIssueEvent.ProgressRepositoryWarning -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -427,7 +434,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
                 source = sanitizeSentryContextValue(fieldName = "source", value = event.source)
             ),
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidWarningIssueEvent.AiRuntimeWarning -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -460,7 +468,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
             ),
             progress = null,
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidWarningIssueEvent.NotificationSchedulingWarning -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -472,7 +481,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
                 diagnostic = event.diagnostic,
                 warningReason = event.warningReason
             ),
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
     }
 }
@@ -486,7 +496,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
             ai = null,
             progress = null,
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidExceptionIssueEvent.AppStartupException -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -495,7 +506,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
             ai = null,
             progress = null,
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidExceptionIssueEvent.AppTechnicalErrorDialogException -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -504,7 +516,11 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
             ai = null,
             progress = null,
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = SentryTechnicalErrorContext(
+                source = sanitizeSentryContextValue(fieldName = "source", value = event.source),
+                detail = sanitizeSentryContextValue(fieldName = "detail", value = event.detail)
+            )
         )
         is AndroidExceptionIssueEvent.AiStreamCrash -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -537,7 +553,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
             ),
             progress = null,
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidExceptionIssueEvent.AiLifecycleError -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -570,7 +587,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
             ),
             progress = null,
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidExceptionIssueEvent.AiSendError -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -603,7 +621,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
             ),
             progress = null,
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidExceptionIssueEvent.AiBootstrapError -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -636,7 +655,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
             ),
             progress = null,
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidExceptionIssueEvent.ProgressRefreshException -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -650,7 +670,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
                 source = sanitizeSentryContextValue(fieldName = "source", value = event.source)
             ),
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidExceptionIssueEvent.ProgressRepositoryException -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -664,7 +685,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
                 source = sanitizeSentryContextValue(fieldName = "source", value = event.source)
             ),
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidExceptionIssueEvent.AiRuntimeException -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -697,7 +719,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
             ),
             progress = null,
             notifications = null,
-            feedback = null
+            feedback = null,
+            technicalError = null
         )
         is AndroidExceptionIssueEvent.FeedbackPromptException -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
@@ -706,7 +729,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
             ai = null,
             progress = null,
             notifications = null,
-            feedback = feedbackPromptContext(event = event)
+            feedback = feedbackPromptContext(event = event),
+            technicalError = null
         )
     }
 }
@@ -893,6 +917,12 @@ internal fun exceptionIssueFingerprint(event: AndroidExceptionIssueEvent): List<
             sanitizeSentryTagValue(fieldName = "promptAction", value = event.promptAction.tagValue)
                 ?: "no_prompt_action"
         )
+        is AndroidExceptionIssueEvent.AppTechnicalErrorDialogException -> listOf(
+            "android",
+            event.feature.tagValue,
+            event.action.tagValue,
+            sanitizeSentryTagValue(fieldName = "source", value = event.source) ?: "no_source"
+        )
         else -> null
     }
 }
@@ -944,7 +974,8 @@ private data class SentryAndroidObservationContext(
     val ai: SentryAiContext?,
     val progress: SentryProgressContext?,
     val notifications: SentryNotificationSchedulingContext?,
-    val feedback: SentryFeedbackContext?
+    val feedback: SentryFeedbackContext?,
+    val technicalError: SentryTechnicalErrorContext?
 )
 
 private data class SentryHttpContext(
@@ -992,6 +1023,11 @@ private data class SentryProgressContext(
 internal data class SentryFeedbackContext(
     val promptAction: String?,
     val trigger: String?
+)
+
+internal data class SentryTechnicalErrorContext(
+    val source: String?,
+    val detail: String?
 )
 
 private data class SentryNotificationSchedulingContext(

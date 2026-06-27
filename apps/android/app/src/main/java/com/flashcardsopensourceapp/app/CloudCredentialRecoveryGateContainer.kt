@@ -157,6 +157,7 @@ internal fun CloudCredentialRecoveryGateContainer(
         },
         onShowTechnicalDetails = { technicalDetails, reportId ->
             appGraph.showTechnicalErrorDialog(
+                source = "cloud_credential_recovery",
                 reportId = reportId,
                 title = technicalErrorDialogTitle,
                 message = technicalErrorDialogMessage,

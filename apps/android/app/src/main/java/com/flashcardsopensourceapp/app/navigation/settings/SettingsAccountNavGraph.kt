@@ -178,6 +178,7 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
             },
             onShowTechnicalDetails = { technicalDetails, reportId ->
                 appGraph.showTechnicalErrorDialog(
+                    source = "account_danger_zone",
                     reportId = reportId,
                     title = technicalErrorDialogTitle,
                     message = technicalErrorDialogMessage,
