@@ -34,6 +34,8 @@ Also update the MCP registry manifest at the repo root:
 
 `server.json` carries the published MCP registry manifest `version`, and it must move with the shared release version so the registry entry matches releases. There is no adjacent `package-lock.json` to update for it.
 
+Publishing `server.json` to the MCP Registry is a separate manual release step. The registry accepts each manifest `version` only once, so trigger the manual publish workflow only after the shared product version is ready and `server.json.version` names a new, unpublished version.
+
 If backend comments or compatibility notes explicitly describe the currently
 released first-party client version, update those references in the same
 change so the documented minimum-compatible client behavior stays accurate.
@@ -170,6 +172,7 @@ when the user-facing effect is unclear.
 6. Update release metadata only when that metadata actually names the current app version for the touched platform.
 7. Re-run targeted searches to confirm the old app version strings are gone from the intended version surfaces and any version-coupled fixtures or comments you intended to update.
 8. Run the smallest useful verification commands for the touched platforms.
+9. If the release should refresh the official MCP Registry entry, run the manual `MCP Registry Publish` workflow after the version bump lands on `main`; do not publish a `server.json.version` that already exists in the registry.
 
 ## Minimum Verification
 

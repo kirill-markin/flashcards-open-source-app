@@ -7,7 +7,7 @@ the publish flow.
 The official registry entry for `com.flashcards-open-source-app/flashcards` is
 already live. Treat this as the maintenance flow for future metadata refreshes:
 validate the manifest, bump `server.json` `version` when publishing a changed
-registry entry, and use the workflow below to publish the new version.
+registry entry, and manually run the workflow below to publish the new version.
 
 ## What is published
 
@@ -41,6 +41,11 @@ curl -fsS 'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.sche
 npx --yes ajv-cli@5 validate -s /tmp/mcp-server-schema-2025-12-11.json -d server.json --strict=false
 ```
 
+The [`MCP Registry Validate`](../.github/workflows/mcp-registry-validate.yml)
+workflow runs the same validation automatically on pull requests and pushes to
+`main` that touch `server.json` or the MCP registry workflows. It does not need
+`MCP_PRIVATE_KEY` and never publishes.
+
 ## One-time credential setup
 
 Use the repo setup script to create the DNS namespace credential. It generates a
@@ -62,7 +67,13 @@ explicit recovery message instead of silently rotating the namespace key.
 
 1. From the repo root, validate `server.json`.
 
-2. Confirm the one-time credential setup is complete:
+2. Confirm `server.json.version` is the intended shared product release version
+   and has not already been published. MCP Registry versions are immutable; a
+   duplicate version publish fails. The manual workflow checks the exact
+   version endpoint before publishing and stops with an actionable error when
+   the version already exists.
+
+3. Confirm the one-time credential setup is complete:
 
    ```sh
    bash scripts/setup/setup-mcp-registry-credential.sh \
@@ -70,7 +81,7 @@ explicit recovery message instead of silently rotating the namespace key.
      --repo kirill-markin/flashcards-open-source-app
    ```
 
-3. Run the GitHub Actions publisher:
+4. Run the GitHub Actions publisher manually:
 
    ```sh
    gh workflow run mcp-registry-publish.yml \
@@ -78,23 +89,28 @@ explicit recovery message instead of silently rotating the namespace key.
      --ref main
    ```
 
-   The workflow validates `server.json`, authenticates with
-   `mcp-publisher login dns --private-key`, and publishes the root manifest.
+   The workflow validates `server.json`, checks that the exact `server.json`
+   `name` and `version` endpoint is not already published, installs
+   `mcp-publisher`, authenticates with `mcp-publisher login dns --private-key`,
+   publishes the root manifest, and verifies the exact published version
+   endpoint.
 
-4. Check the published entry through the official registry API:
+5. Check the published version through the official registry API:
 
    ```sh
-   curl -fsS 'https://registry.modelcontextprotocol.io/v0.1/servers/com.flashcards-open-source-app%2Fflashcards/versions/latest'
+   server_version="$(jq -r '.version' server.json)"
+   curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/com.flashcards-open-source-app%2Fflashcards/versions/${server_version}"
    ```
 
-   A `404 Server not found` response means the entry is not published or the
-   publish failed.
+   A `404 Server not found` response means that exact version is not published
+   or the publish failed.
 
 ## Local manual publish fallback
 
 Use this only when debugging the publisher outside GitHub Actions. From the repo
-root, validate `server.json`, then authenticate with the private key already
-stored in `MCP_PRIVATE_KEY` and publish:
+root, validate `server.json`, confirm the exact version is unpublished, then
+authenticate with the private key already stored in `MCP_PRIVATE_KEY` and
+publish:
 
 ```sh
 mcp-publisher login dns --domain flashcards-open-source-app.com --private-key "$MCP_PRIVATE_KEY"
@@ -105,19 +121,19 @@ The CLI reads `server.json` from the current directory and submits it.
 
 ## Refreshing the entry
 
-Bump `version` in `server.json` (keep it aligned with the backend/API package
-version per [version-bump.md](version-bump.md)) and run `mcp-publisher publish`
-again. The remote URL only changes if the hosted MCP domain changes.
-
-## Automating on release
-
-This is automated by the
+Bump `version` in `server.json` (keep it aligned with the shared product
+release version per [version-bump.md](version-bump.md)) and run the manual
 [`MCP Registry Publish`](../.github/workflows/mcp-registry-publish.yml)
-workflow. It runs on every push to `main` that changes `server.json` (and can be
-re-run manually via `workflow_dispatch`). The workflow installs `mcp-publisher`,
-validates `server.json` against the official schema, authenticates against the
-DNS namespace, and runs `mcp-publisher publish` from the repo root, so the
-registry entry stays in sync with each release without a manual step.
+workflow after the version bump is ready on `main`. The remote URL only changes
+if the hosted MCP domain changes.
+
+## Manual workflow
+
+`MCP Registry Publish` is intentionally manual-only through
+`workflow_dispatch`. It validates `server.json` against the official schema,
+checks the exact version endpoint for duplicates, installs `mcp-publisher`,
+authenticates against the DNS namespace, publishes from the repo root, and then
+verifies the exact published version endpoint.
 
 ### Required GitHub secret
 
