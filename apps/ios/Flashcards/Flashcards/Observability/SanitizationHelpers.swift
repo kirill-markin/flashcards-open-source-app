@@ -3,6 +3,8 @@ import Sentry
 
 let filteredDiagnosticValue: String = "[Filtered]"
 
+private let ciSimulatorEnvironment: String = "ci-simulator"
+
 func safeDiagnosticIdentifier(_ value: String) -> String {
     let trimmedValue: String = value.trimmingCharacters(in: .whitespacesAndNewlines)
     guard trimmedValue.isEmpty == false, trimmedValue.count <= 160 else {
@@ -22,6 +24,12 @@ func safeDiagnosticIdentifier(_ value: String) -> String {
 }
 
 func sanitizeSentryEvent(_ event: Event) -> Event? {
+    // Drop App Hang events from CI simulator smoke runs: these are debug-build
+    // automation hangs, not real user-facing issues, so they must not create issues.
+    if event.environment == ciSimulatorEnvironment,
+       event.exceptions?.contains(where: { $0.mechanism?.type == "AppHang" }) == true {
+        return nil
+    }
     if let request = event.request {
         request.headers = sanitizedHeaders(request.headers)
         request.cookies = nil
