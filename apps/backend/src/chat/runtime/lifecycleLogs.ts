@@ -8,6 +8,7 @@ import {
 } from "../worker/logging";
 import {
   createSafeProviderErrorDetails,
+  isContextLengthExceededError,
   isHandledProviderFailure,
 } from "./providerErrors";
 import type {
@@ -133,10 +134,15 @@ export function logTerminalStatePersisted(
     return;
   }
 
+  // Demote context_length_exceeded to a breadcrumb instead of a Sentry warning:
+  // it is an expected, user-actionable terminal already surfaced to the user with a
+  // clean "start a new chat" message, and the root cause is mitigated in the OpenAI loop,
+  // so it should not page as a warning. The payload (including providerErrorCode) is
+  // unchanged, so the event stays fully searchable in CloudWatch.
   logChatWorkerLifecycleEvent(
     "chat_worker_terminal_state_persisted",
     context,
     payload,
-    runStatus === "failed",
+    runStatus === "failed" && !isContextLengthExceededError(error),
   );
 }
