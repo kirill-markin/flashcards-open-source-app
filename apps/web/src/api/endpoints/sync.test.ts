@@ -2,9 +2,31 @@
 import { describe, expect, it, vi } from "vitest";
 import "./endpointsTestSupport";
 import { primeSessionCsrfToken } from "../transport/transport";
-import { pullReviewHistorySync } from "./sync";
+import { pullReviewHistorySync, pullSyncChanges } from "./sync";
 
 describe("sync API endpoints", () => {
+  it("opts incremental sync pulls into media asset registry metadata", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        changes: [],
+        nextHotChangeId: 42,
+        hasMore: false,
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await pullSyncChanges("workspace-1", "device-1", "web", "1.0.0", 41, 100, true);
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    const requestBody = JSON.parse(String(requestInit?.body)) as Readonly<{ includeMediaAssets?: unknown }>;
+    expect(requestBody.includeMediaAssets).toBe(true);
+  });
+
   it("decodes review-history events with optional reviewed timezone", async () => {
     primeSessionCsrfToken("csrf-token-1");
     const reviewEventWithTimeZone = {

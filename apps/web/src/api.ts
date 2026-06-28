@@ -54,6 +54,9 @@ export {
   loadProgressSummary,
 } from "./api/endpoints/progress";
 export {
+  loadMediaAssetDownloadUrl,
+} from "./api/endpoints/mediaAssets";
+export {
   bootstrapPullSyncState,
   bootstrapPushSyncState,
   importReviewHistorySync,

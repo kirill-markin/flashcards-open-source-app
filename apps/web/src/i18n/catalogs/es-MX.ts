@@ -698,6 +698,14 @@ const esMxCatalog: TranslationCatalog = {
       reviewQueue: "Cargando la cola de repaso...",
       snapshot: "Mostrando una instantánea local reciente...",
     },
+    media: {
+      attachmentLabel: "Adjunto",
+      audioLabel: "Adjunto de audio",
+      imageAlt: "Imagen gestionada",
+      loading: "Cargando archivo multimedia...",
+      unavailable: "Archivo multimedia no disponible",
+      videoLabel: "Adjunto de video",
+    },
     meta: {
       due: "Pendiente {{value}}",
       lapses: "Fallos {{count}}",

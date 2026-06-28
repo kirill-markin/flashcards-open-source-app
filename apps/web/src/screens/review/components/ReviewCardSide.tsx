@@ -1,5 +1,10 @@
 import type { ReactElement } from "react";
 import ReactMarkdown from "react-markdown";
+import {
+  ManagedMediaReference,
+  parseManagedMediaAssetId,
+  reviewMarkdownUrlTransform,
+} from "./ReviewManagedMedia";
 import { classifyReviewContentPresentation } from "./reviewContentPresentation";
 
 const REVIEW_MARKDOWN_FENCE_PATTERN = /^\s{0,3}(`{3,}|~{3,})/;
@@ -18,11 +23,13 @@ export type ReviewCardSideProps = Readonly<{
   showSpeechButton: boolean;
   speechButtonAriaLabel: string | null;
   speechButtonDisabled: boolean;
+  localReadVersion: number;
   surfaceCardId?: string;
   surfaceClassName?: string;
   surfaceFrontText?: string;
   surfaceTestId?: string;
   text: string;
+  workspaceId: string | null;
 }>;
 
 export type ReviewCardSpeechButtonProps = Readonly<{
@@ -95,12 +102,39 @@ export function normalizeReviewMarkdownForWeb(text: string): string {
   return normalizedLines.join("\n");
 }
 
-function ReviewCardMarkdown({ text }: Readonly<{ text: string }>): ReactElement {
+function ReviewCardMarkdown(props: Readonly<{
+  localReadVersion: number;
+  text: string;
+  workspaceId: string | null;
+}>): ReactElement {
+  const {
+    localReadVersion,
+    text,
+    workspaceId,
+  } = props;
   const normalizedText = normalizeReviewMarkdownForWeb(text);
 
   return (
     <ReactMarkdown
+      urlTransform={reviewMarkdownUrlTransform}
       components={{
+        a: ({ children, href, title }) => {
+          const mediaAssetId = parseManagedMediaAssetId(href);
+          if (mediaAssetId !== null) {
+            return (
+              <ManagedMediaReference
+                altText=""
+                localReadVersion={localReadVersion}
+                mediaAssetId={mediaAssetId}
+                workspaceId={workspaceId}
+              >
+                {children}
+              </ManagedMediaReference>
+            );
+          }
+
+          return <a className={reviewMarkdownClassName("a")} href={href} title={title}>{children}</a>;
+        },
         h1: ({ children }) => <h1 className={reviewMarkdownClassName("h1")}>{children}</h1>,
         h2: ({ children }) => <h2 className={reviewMarkdownClassName("h2")}>{children}</h2>,
         h3: ({ children }) => <h3 className={reviewMarkdownClassName("h3")}>{children}</h3>,
@@ -120,6 +154,32 @@ function ReviewCardMarkdown({ text }: Readonly<{ text: string }>): ReactElement 
         th: ({ children }) => <th className={reviewMarkdownClassName("th")}>{children}</th>,
         td: ({ children }) => <td className={reviewMarkdownClassName("td")}>{children}</td>,
         pre: ({ children }) => <pre className={reviewMarkdownClassName("pre")}>{children}</pre>,
+        img: ({ alt, src, title }) => {
+          const mediaAssetId = parseManagedMediaAssetId(src);
+          if (mediaAssetId !== null) {
+            return (
+              <ManagedMediaReference
+                altText={alt ?? ""}
+                localReadVersion={localReadVersion}
+                mediaAssetId={mediaAssetId}
+                workspaceId={workspaceId}
+              >
+                {alt ?? ""}
+              </ManagedMediaReference>
+            );
+          }
+
+          return (
+            <img
+              className="review-markdown-img"
+              src={src}
+              alt={alt ?? ""}
+              title={title}
+              loading="lazy"
+              decoding="async"
+            />
+          );
+        },
         code: ({ children, className }) => (
           <code className={`${reviewMarkdownClassName("code")}${className === undefined ? "" : ` ${className}`}`}>
             {children}
@@ -199,11 +259,13 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
     showSpeechButton,
     speechButtonAriaLabel,
     speechButtonDisabled,
+    localReadVersion,
     surfaceCardId,
     surfaceClassName,
     surfaceFrontText,
     surfaceTestId,
     text,
+    workspaceId,
   } = props;
   const presentationMode = classifyReviewContentPresentation(text);
 
@@ -225,7 +287,9 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
             ].join(" ")}
             data-presentation-mode={presentationMode}
           >
-            {presentationMode === "markdown" ? <ReviewCardMarkdown text={text} /> : text}
+            {presentationMode === "markdown" ? (
+              <ReviewCardMarkdown localReadVersion={localReadVersion} text={text} workspaceId={workspaceId} />
+            ) : text}
           </div>
         </div>
 

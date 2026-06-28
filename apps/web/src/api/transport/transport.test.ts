@@ -610,6 +610,7 @@ describe("API transport network retry", () => {
       TEST_APP_VERSION,
       0,
       200,
+      false,
     )).resolves.toEqual({
       changes: [],
       nextHotChangeId: 42,
@@ -649,6 +650,7 @@ describe("API transport network retry", () => {
       TEST_APP_VERSION,
       0,
       200,
+      false,
     )).resolves.toEqual({
       changes: [],
       nextHotChangeId: 42,
@@ -824,6 +826,7 @@ describe("API transport network retry", () => {
       TEST_APP_VERSION,
       0,
       200,
+      false,
     );
     refreshResponse.resolve(new Response(null, { status: 200 }));
 

@@ -698,6 +698,14 @@ const arCatalog: TranslationCatalog = {
       reviewQueue: "جارٍ تحميل قائمة انتظار المراجعة...",
       snapshot: "جارٍ عرض لقطة محلية حديثة...",
     },
+    media: {
+      attachmentLabel: "مرفق",
+      audioLabel: "مرفق صوتي",
+      imageAlt: "صورة مُدارة",
+      loading: "جارٍ تحميل الوسائط...",
+      unavailable: "الوسائط غير متاحة",
+      videoLabel: "مرفق فيديو",
+    },
     meta: {
       due: "مستحق {{value}}",
       lapses: "الإخفاقات {{count}}",

@@ -690,6 +690,7 @@ export function useReviewScreenController(
       isInitialReviewLoad,
       isSubmitting,
       lastSubmittedReview,
+      localReadVersion,
       loadingReviewCurrentCard,
       onAiHandoff: handoffCardToAi,
       onEditCard: handleOpenEditor,
@@ -705,6 +706,7 @@ export function useReviewScreenController(
       selectedCard,
       selectedFrontSpeakableText,
       shouldShowSwitchToAllCardsAction,
+      workspaceId: activeWorkspace?.workspaceId ?? null,
     },
     queuePanelProps: {
       isInitialReviewLoad,

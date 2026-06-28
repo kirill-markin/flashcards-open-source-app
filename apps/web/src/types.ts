@@ -4,5 +4,6 @@ export * from "./types/progress";
 export * from "./types/feedback";
 export * from "./types/agent";
 export * from "./types/chat";
+export * from "./types/mediaAssets";
 export * from "./types/study";
 export * from "./types/sync";

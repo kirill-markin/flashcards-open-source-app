@@ -698,6 +698,14 @@ const deCatalog: TranslationCatalog = {
       reviewQueue: "Wiederholungswarteschlange wird geladen...",
       snapshot: "Ein aktueller lokaler Schnappschuss wird angezeigt...",
     },
+    media: {
+      attachmentLabel: "Anhang",
+      audioLabel: "Audioanhang",
+      imageAlt: "Verwaltetes Bild",
+      loading: "Medien werden geladen...",
+      unavailable: "Medien nicht verfügbar",
+      videoLabel: "Videoanhang",
+    },
     meta: {
       due: "Fällig {{value}}",
       lapses: "Fehlversuche {{count}}",

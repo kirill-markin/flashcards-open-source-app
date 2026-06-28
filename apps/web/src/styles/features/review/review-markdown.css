@@ -35,8 +35,14 @@
 .review-markdown-p,
 .review-markdown-blockquote,
 .review-markdown-pre,
-.review-markdown-table {
+.review-markdown-table,
+.review-markdown-managed-media {
   margin: 0 0 0.75em;
+}
+
+.review-markdown-a {
+  color: var(--accent);
+  overflow-wrap: anywhere;
 }
 
 .review-markdown-ul,
@@ -111,4 +117,67 @@
   padding: 0.45rem 0.6rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   text-align: start;
+}
+
+.review-markdown-img,
+.review-markdown-media-image,
+.review-markdown-media-video {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 24rem;
+  border-radius: 8px;
+  background: rgba(7, 7, 10, 0.34);
+}
+
+.review-markdown-managed-media {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.review-markdown-media-audio,
+.review-markdown-media-video {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.review-markdown-media-control {
+  width: 100%;
+  max-width: 100%;
+}
+
+.review-markdown-media-label {
+  color: var(--muted);
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+.review-markdown-media-attachment,
+.review-markdown-media-fallback,
+.review-markdown-media-loading {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.48rem 0.62rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.review-markdown-media-attachment {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.review-markdown-media-attachment:hover {
+  text-decoration: underline;
+}
+
+.review-markdown-media-fallback,
+.review-markdown-media-loading {
+  color: var(--muted);
 }

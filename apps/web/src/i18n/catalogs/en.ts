@@ -696,6 +696,14 @@ const enCatalog = {
       reviewQueue: "Loading review queue...",
       snapshot: "Showing a recent local snapshot...",
     },
+    media: {
+      attachmentLabel: "Attachment",
+      audioLabel: "Audio attachment",
+      imageAlt: "Managed image",
+      loading: "Loading media...",
+      unavailable: "Media unavailable",
+      videoLabel: "Video attachment",
+    },
     meta: {
       due: "Due {{value}}",
       lapses: "Lapses {{count}}",
