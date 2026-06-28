@@ -17,11 +17,19 @@ export type ReviewCardSideProps = Readonly<{
   showAiButton: boolean;
   showSpeechButton: boolean;
   speechButtonAriaLabel: string | null;
+  speechButtonDisabled: boolean;
   surfaceCardId?: string;
   surfaceClassName?: string;
   surfaceFrontText?: string;
   surfaceTestId?: string;
   text: string;
+}>;
+
+export type ReviewCardSpeechButtonProps = Readonly<{
+  ariaLabel: string;
+  disabled: boolean;
+  isSpeaking: boolean;
+  onToggleSpeech: () => void;
 }>;
 
 function reviewMarkdownClassName(tagName: string): string {
@@ -145,6 +153,40 @@ export function ReviewEditIcon(): ReactElement {
   );
 }
 
+export function ReviewCardSpeechButton(props: ReviewCardSpeechButtonProps): ReactElement {
+  const {
+    ariaLabel,
+    disabled,
+    isSpeaking,
+    onToggleSpeech,
+  } = props;
+  const className = `review-card-speech-btn${isSpeaking && disabled === false ? " review-card-speech-btn-active" : ""}`;
+
+  function handleClick(): void {
+    if (disabled) {
+      return;
+    }
+
+    onToggleSpeech();
+  }
+
+  return (
+    <button
+      type="button"
+      className={className}
+      onClick={handleClick}
+      aria-label={ariaLabel}
+      disabled={disabled}
+    >
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M5 14H2V10H5L10 6V18L5 14Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M14 9C15.333 10.2 15.333 13.8 14 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M17.5 6.5C20.5 9.4 20.5 14.6 17.5 17.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
+
 export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
   const {
     aiButtonAriaLabel,
@@ -156,6 +198,7 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
     showAiButton,
     showSpeechButton,
     speechButtonAriaLabel,
+    speechButtonDisabled,
     surfaceCardId,
     surfaceClassName,
     surfaceFrontText,
@@ -189,18 +232,12 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
         {showSpeechButton || showAiButton ? (
           <div className="review-card-actions">
             {showSpeechButton ? (
-              <button
-                type="button"
-                className={`review-card-speech-btn${isSpeaking ? " review-card-speech-btn-active" : ""}`}
-                onClick={onToggleSpeech}
-                aria-label={speechButtonAriaLabel ?? label}
-              >
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M5 14H2V10H5L10 6V18L5 14Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M14 9C15.333 10.2 15.333 13.8 14 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M17.5 6.5C20.5 9.4 20.5 14.6 17.5 17.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+              <ReviewCardSpeechButton
+                ariaLabel={speechButtonAriaLabel ?? label}
+                disabled={speechButtonDisabled}
+                isSpeaking={isSpeaking}
+                onToggleSpeech={onToggleSpeech}
+              />
             ) : null}
             {showAiButton && onOpenAi !== null ? (
               <button

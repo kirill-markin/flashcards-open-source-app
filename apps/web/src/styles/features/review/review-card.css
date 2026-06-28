@@ -237,6 +237,14 @@
   border-color: rgba(255, 255, 255, 0.14);
 }
 
+.review-card-speech-btn:disabled,
+.review-card-speech-btn:disabled:hover {
+  color: var(--text-tertiary);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+  cursor: default;
+}
+
 .review-card-speech-btn svg {
   width: 16px;
   height: 16px;
