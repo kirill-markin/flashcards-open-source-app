@@ -401,12 +401,50 @@ export function sanitizeSentryBreadcrumbForPrivacy(breadcrumb: SentryBreadcrumb)
   return sanitizeUnknown(breadcrumb, null, []) as SentryBreadcrumb;
 }
 
+function getEventContextObject(event: SentryEvent, name: string): UnknownObject | null {
+  if (isPlainObject(event.contexts) === false) {
+    return null;
+  }
+
+  const context = event.contexts[name];
+  return isPlainObject(context) ? context : null;
+}
+
+function getEventMessage(event: SentryEvent): string | null {
+  if (typeof event.message === "string") {
+    return event.message;
+  }
+
+  if (isPlainObject(event.logentry) && typeof event.logentry.message === "string") {
+    return event.logentry.message;
+  }
+
+  return null;
+}
+
+function shouldDropNonActionableSentryEvent(event: SentryEvent): boolean {
+  if (getEventMessage(event) !== "web.progress_timezone_invalid") {
+    return false;
+  }
+
+  const warningContext = getEventContextObject(event, "web.warning");
+  return warningContext?.observedTimeZone === "Etc/Unknown";
+}
+
+export function prepareSentryEventForSend(event: SentryEvent): SentryEvent | null {
+  if (shouldDropNonActionableSentryEvent(event)) {
+    return null;
+  }
+
+  return sanitizeSentryEventForPrivacy(event);
+}
+
 const beforeBreadcrumb: SentryBeforeBreadcrumb = (breadcrumb: SentryBreadcrumb): SentryBreadcrumb | null => {
   return sanitizeSentryBreadcrumbForPrivacy(breadcrumb);
 };
 
-const beforeSend: SentryBeforeSend = (event: SentryEvent): SentryEvent => {
-  return sanitizeSentryEventForPrivacy(event);
+const beforeSend: SentryBeforeSend = (event: SentryEvent): SentryEvent | null => {
+  return prepareSentryEventForSend(event);
 };
 
 const beforeSendSpan: SentryBeforeSendSpan = (span: SentrySpan): SentrySpan => {

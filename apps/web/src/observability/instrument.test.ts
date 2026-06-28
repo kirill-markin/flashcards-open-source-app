@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 import { ApiNetworkError } from "../api";
-import { sanitizeSentryBreadcrumbForPrivacy, sanitizeSentryEventForPrivacy } from "./instrument";
+import {
+  prepareSentryEventForSend,
+  sanitizeSentryBreadcrumbForPrivacy,
+  sanitizeSentryEventForPrivacy,
+} from "./instrument";
 import {
   buildWebExceptionFingerprint,
   type WebExceptionEvent,
@@ -235,6 +239,72 @@ describe("Sentry privacy sanitizer", () => {
     expect(sanitizedEvent.extra?.messageCount).toBe(3);
     expect(serializeEvent(sanitizedEvent)).not.toContain(sensitiveCardText);
     expect(serializeEvent(sanitizedEvent)).not.toContain(sensitiveAiText);
+  });
+
+  it("drops non-actionable unknown progress timezone warnings", () => {
+    const event: SentryPrivacyEvent = {
+      message: "web.progress_timezone_invalid",
+      contexts: {
+        "web.warning": {
+          eventName: "progress_timezone_invalid",
+          observedTimeZone: "Etc/Unknown",
+          fallbackTimeZone: "UTC",
+          errorName: "RangeError",
+        },
+      },
+    };
+
+    expect(prepareSentryEventForSend(event)).toBeNull();
+  });
+
+  it("keeps unusual invalid timezone warnings and sanitizes sensitive fields", () => {
+    const event: SentryPrivacyEvent = {
+      message: "web.progress_timezone_invalid",
+      contexts: {
+        "web.warning": {
+          eventName: "progress_timezone_invalid",
+          observedTimeZone: "Invalid/Timezone",
+          fallbackTimeZone: "UTC",
+          errorName: "RangeError",
+        },
+      },
+      extra: {
+        cardFrontText: sensitiveCardText,
+      },
+    };
+
+    const preparedEvent = prepareSentryEventForSend(event);
+
+    if (preparedEvent === null) {
+      throw new Error("Expected unusual invalid timezone warning to be kept");
+    }
+
+    expect(preparedEvent.message).toBe("web.progress_timezone_invalid");
+    expect(preparedEvent.contexts?.["web.warning"]?.observedTimeZone).toBe("Invalid/Timezone");
+    expect(preparedEvent.extra?.cardFrontText).toBe("[Filtered]");
+    expect(serializeEvent(preparedEvent)).not.toContain(sensitiveCardText);
+  });
+
+  it("keeps unrelated errors and sanitizes them before send", () => {
+    const event: SentryPrivacyEvent = {
+      exception: {
+        values: [
+          {
+            type: "TypeError",
+            value: `Cannot read private card text: ${sensitiveCardText}`,
+          },
+        ],
+      },
+    };
+
+    const preparedEvent = prepareSentryEventForSend(event);
+
+    if (preparedEvent === null) {
+      throw new Error("Expected unrelated error event to be kept");
+    }
+
+    expect(preparedEvent.exception?.values?.[0]?.value).toBe("[Filtered exception value]");
+    expect(serializeEvent(preparedEvent)).not.toContain(sensitiveCardText);
   });
 
   it("groups API network errors by transport endpoint", () => {
