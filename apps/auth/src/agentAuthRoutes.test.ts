@@ -48,6 +48,7 @@ type AgentVerifyCodeResponse = Readonly<{
     url?: string;
     urlTemplate?: string;
   }>>;
+  instructions: string;
 }>;
 
 type AgentErrorResponse = Readonly<{
@@ -315,8 +316,15 @@ test("agent verify-code uses the OTP challenge for non-demo emails", async () =>
   assert.equal(payload.ok, true);
   assert.equal(payload.data.authorizationScheme, "ApiKey");
   assert.equal(payload.data.connection.label, "ci-agent");
-  assert.equal(payload.actions.map((action) => action.name).join(","), "load_account,list_workspaces,create_workspace,select_workspace");
+  assert.equal(payload.actions.map((action) => action.name).join(","), "load_discovery,load_account,list_workspaces,create_workspace,select_workspace");
+  assert.equal(payload.actions.find((action) => action.name === "load_discovery")?.url, "https://api.flashcards-open-source-app.com/v1/agent");
   assert.equal(payload.actions.find((action) => action.name === "list_workspaces")?.url, "https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100");
+  assert.match(payload.instructions, /GET https:\/\/api\.flashcards-open-source-app\.com\/v1\/agent/);
+  assert.match(payload.instructions, /media-capable discovery surface/);
+  assert.match(payload.instructions, /upload-intent/);
+  assert.match(payload.instructions, /download URL templates/);
+  assert.match(payload.instructions, /data\.agentWorkspaceReplicaId/);
+  assert.match(payload.instructions, /lastModifiedByReplicaId/);
   assert.equal(verifyEmailOtpCalled, true);
   assert.equal(signInWithPasswordCalled, false);
   assert.equal(createdKeyIdToken, "otp-id-token");

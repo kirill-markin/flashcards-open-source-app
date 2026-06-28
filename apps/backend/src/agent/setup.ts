@@ -5,6 +5,7 @@ import {
   type AgentEnvelope,
   type AgentErrorEnvelope,
 } from "./envelope";
+import { ensureAgentSyncReplica } from "./syncIdentity";
 import type { AuthTransport } from "../auth";
 import type { PublicHttpErrorDetails } from "../shared/errors";
 import { getPublicApiBaseUrl } from "../shared/publicUrls";
@@ -14,6 +15,7 @@ import type { WorkspaceSummary } from "../workspaces";
 type AccountData = Readonly<{
   userId: string;
   selectedWorkspaceId: string | null;
+  agentWorkspaceReplicaId: string | null;
   authTransport: AuthTransport;
   profile: Readonly<{
     email: string | null;
@@ -35,6 +37,11 @@ function buildPermissionGuidanceLine(): string {
   return "For routine low-risk writes, a clear user request already counts as permission. Ask again only for risky or unclear actions.";
 }
 
+function buildMediaDiscoveryGuidanceLine(requestUrl: string): string {
+  const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
+  return `Use GET ${apiBaseUrl}/agent for the full media-capable discovery surface, including workspace-scoped upload-intent, complete, metadata, and download URL templates. Before completing a media upload, call GET ${apiBaseUrl}/agent/me after workspace selection and use data.agentWorkspaceReplicaId as lastModifiedByReplicaId.`;
+}
+
 function buildAccountBootstrapInstructions(requestUrl: string): string {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
   return [
@@ -43,6 +50,7 @@ function buildAccountBootstrapInstructions(requestUrl: string): string {
     `If no workspace is selected, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select.`,
     `If no workspace exists, create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}.`,
     `After a workspace is selected, use POST ${apiBaseUrl}/agent/sql/query for reads and SQL introspection and POST ${apiBaseUrl}/agent/sql/execute for writes.`,
+    buildMediaDiscoveryGuidanceLine(requestUrl),
     buildPermissionGuidanceLine(),
     "If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls.",
     "Read payload from data.* and use docs.openapiUrl for the published external agent contract.",
@@ -55,6 +63,7 @@ function buildNoWorkspaceInstructions(requestUrl: string): string {
     `No workspace is currently available for this API key.`,
     `Create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}.`,
     `After the workspace is created, use POST ${apiBaseUrl}/agent/sql/query for reads and SQL introspection and POST ${apiBaseUrl}/agent/sql/execute for writes.`,
+    buildMediaDiscoveryGuidanceLine(requestUrl),
     buildPermissionGuidanceLine(),
     "If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls.",
     "Read payload from data.* and use docs.openapiUrl for the published external agent contract.",
@@ -67,6 +76,7 @@ function buildSelectWorkspaceInstructions(requestUrl: string): string {
     `Select a workspace with POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select.`,
     `If data.nextCursor is not null, continue listing with GET ${apiBaseUrl}/agent/workspaces?limit=100 and cursor=data.nextCursor until it becomes null.`,
     `After a workspace is selected, use POST ${apiBaseUrl}/agent/sql/query for reads and SQL introspection and POST ${apiBaseUrl}/agent/sql/execute for writes.`,
+    buildMediaDiscoveryGuidanceLine(requestUrl),
     buildPermissionGuidanceLine(),
     "If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls.",
     "Read payload from data.* and use docs.openapiUrl for the published external agent contract.",
@@ -79,6 +89,7 @@ function buildWorkspaceReadyInstructions(requestUrl: string): string {
     `Workspace bootstrap is complete.`,
     `Use POST ${apiBaseUrl}/agent/sql/query for reads and SQL introspection and POST ${apiBaseUrl}/agent/sql/execute for writes.`,
     `Start discovery with SHOW TABLES or DESCRIBE cards through POST ${apiBaseUrl}/agent/sql/query when helpful.`,
+    buildMediaDiscoveryGuidanceLine(requestUrl),
     buildPermissionGuidanceLine(),
     "This endpoint accepts the published SQL dialect, not full PostgreSQL.",
     "SELECT returns at most 100 rows per statement, and INSERT, UPDATE, and DELETE may affect at most 100 rows per statement.",
@@ -91,15 +102,33 @@ export function shouldUseAgentSetupEnvelope(transport: AuthTransport): boolean {
   return transport === "api_key";
 }
 
+export async function loadAgentWorkspaceReplicaIdForSetup(requestContext: RequestContext): Promise<string | null> {
+  if (requestContext.transport !== "api_key" || requestContext.selectedWorkspaceId === null) {
+    return null;
+  }
+
+  if (requestContext.connectionId === null) {
+    throw new Error("API key request context is missing connectionId");
+  }
+
+  return ensureAgentSyncReplica(
+    requestContext.selectedWorkspaceId,
+    requestContext.userId,
+    requestContext.connectionId,
+  );
+}
+
 export function createAgentAccountEnvelope(
   requestUrl: string,
   requestContext: RequestContext,
+  agentWorkspaceReplicaId: string | null,
 ): AgentEnvelope<AccountData> {
   return createAgentEnvelope(
     requestUrl,
     {
       userId: requestContext.userId,
       selectedWorkspaceId: requestContext.selectedWorkspaceId,
+      agentWorkspaceReplicaId,
       authTransport: requestContext.transport,
       profile: {
         email: requestContext.email,

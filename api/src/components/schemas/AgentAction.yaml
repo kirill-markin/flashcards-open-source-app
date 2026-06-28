@@ -9,6 +9,7 @@ properties:
     enum:
       - send_code
       - verify_code
+      - load_discovery
       - load_account
       - list_workspaces
       - create_workspace

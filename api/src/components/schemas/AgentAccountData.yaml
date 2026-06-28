@@ -3,12 +3,21 @@ additionalProperties: false
 required:
   - userId
   - selectedWorkspaceId
+  - agentWorkspaceReplicaId
   - authTransport
   - profile
 properties:
   userId:
     type: string
   selectedWorkspaceId:
+    anyOf:
+      - $ref: ./UuidString.yaml
+      - type: 'null'
+  agentWorkspaceReplicaId:
+    description: >-
+      Workspace replica id reserved for this API-key connection after workspace
+      selection. Use this as lastModifiedByReplicaId when completing media
+      asset uploads.
     anyOf:
       - $ref: ./UuidString.yaml
       - type: 'null'

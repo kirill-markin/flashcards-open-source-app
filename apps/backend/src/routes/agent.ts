@@ -4,6 +4,7 @@ import {
   createAgentAccountEnvelope,
   createAgentWorkspaceReadyEnvelope,
   createAgentWorkspacesEnvelope,
+  loadAgentWorkspaceReplicaIdForSetup,
 } from "../agent/setup";
 import { runSqlExecute, runSqlQuery } from "../aiTools/agentSql";
 import { loadOpenApiDocument } from "../shared/openapi";
@@ -80,7 +81,8 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
 
   app.get("/agent/me", async (context) => {
     const { requestContext } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
-    return context.json(createAgentAccountEnvelope(context.req.url, requestContext));
+    const agentWorkspaceReplicaId = await loadAgentWorkspaceReplicaIdForSetup(requestContext);
+    return context.json(createAgentAccountEnvelope(context.req.url, requestContext, agentWorkspaceReplicaId));
   });
 
   app.get("/agent/workspaces", async (context) => {

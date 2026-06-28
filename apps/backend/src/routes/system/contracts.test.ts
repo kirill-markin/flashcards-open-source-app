@@ -2,7 +2,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
+import { createAgentDiscoveryEnvelope } from "../../agent/discovery";
+import {
+  createAgentAccountEnvelope,
+  createAgentWorkspaceReadyEnvelope,
+  createAgentWorkspacesEnvelope,
+} from "../../agent/setup";
 import { loadOpenApiDocument } from "../../shared/openapi";
+import type { RequestContext } from "../../server/requestContext";
+import type { WorkspaceSummary } from "../../workspaces";
 
 const operationMethodNames = ["get", "post", "put", "patch", "delete", "options", "head", "trace"] as const;
 
@@ -17,6 +25,15 @@ type OpenApiDocumentForTest = Readonly<{
   components?: Readonly<{
     schemas?: Readonly<Record<string, object>>;
     securitySchemes?: Readonly<Record<string, object>>;
+  }>;
+}>;
+
+type AgentDiscoveryDataSchemaForTest = Readonly<{
+  properties?: Readonly<{
+    surface?: Readonly<{
+      required?: ReadonlyArray<string>;
+      properties?: Readonly<Record<string, object>>;
+    }>;
   }>;
 }>;
 
@@ -35,6 +52,41 @@ const expectedPublishedExternalAgentMethods = {
   "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete": ["post"],
   "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url": ["get"],
 } as const satisfies Readonly<Record<string, ReadonlyArray<OperationMethodName>>>;
+
+const expectedMediaDiscoverySurfaceTemplates = {
+  mediaAssetUploadIntentsUrlTemplate: "/workspaces/{workspaceId}/media-assets/upload-intents",
+  mediaAssetMetadataUrlTemplate: "/workspaces/{workspaceId}/media-assets/{mediaAssetId}",
+  mediaAssetCompleteUrlTemplate: "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete",
+  mediaAssetDownloadUrlTemplate: "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url",
+} as const;
+
+const testAgentRequestUrl = "https://api.flashcards-open-source-app.com/v1/agent";
+const testAgentWorkspaceReplicaId = "b4a0ec15-f875-5f9c-a8f8-9d6a9f42af39";
+const testWorkspaceSummary: WorkspaceSummary = {
+  workspaceId: "50b5b928-7f04-4cc8-878d-6cd0e8b98474",
+  name: "Personal",
+  createdAt: "2026-03-11T08:50:55.898Z",
+  isSelected: true,
+};
+const testUnselectedWorkspaceSummary: WorkspaceSummary = {
+  ...testWorkspaceSummary,
+  isSelected: false,
+};
+const testApiKeyRequestContext: RequestContext = {
+  userId: "user-1",
+  subjectUserId: "subject-user-1",
+  selectedWorkspaceId: testWorkspaceSummary.workspaceId,
+  email: "user@example.com",
+  locale: "en",
+  userSettingsCreatedAt: "2026-03-11T08:50:55.898Z",
+  preferences: {
+    reviewReactionAnimationsEnabled: true,
+  },
+  transport: "api_key",
+  connectionId: "connection-1",
+  guestSessionId: null,
+  guestPlatform: null,
+};
 
 function loadPublishedOpenApiDocument(): OpenApiDocumentForTest {
   return loadOpenApiDocument() as OpenApiDocumentForTest;
@@ -79,6 +131,67 @@ test("published OpenAPI exposes only the curated external agent and media transf
   ]) {
     assert.equal(schemas[hiddenSchemaName], undefined, `OpenAPI must not publish ${hiddenSchemaName}`);
   }
+});
+
+test("agent discovery advertises the published media transfer surface", () => {
+  const apiBaseUrl = "https://api.flashcards-open-source-app.com/v1";
+  const discoveryEnvelope = createAgentDiscoveryEnvelope(`${apiBaseUrl}/agent`);
+  const openApiDocument = loadPublishedOpenApiDocument();
+  const schemas = openApiDocument.components?.schemas ?? {};
+  const discoveryDataSchema = schemas.AgentDiscoveryData as AgentDiscoveryDataSchemaForTest | undefined;
+  const discoverySurfaceSchema = discoveryDataSchema?.properties?.surface;
+
+  assert.ok(discoverySurfaceSchema !== undefined);
+  for (const [surfaceKey, pathTemplate] of Object.entries(expectedMediaDiscoverySurfaceTemplates)) {
+    assert.equal(
+      discoveryEnvelope.data.surface[surfaceKey as keyof typeof expectedMediaDiscoverySurfaceTemplates],
+      `${apiBaseUrl}${pathTemplate}`,
+    );
+    assert.ok(
+      expectedPublishedExternalAgentMethods[pathTemplate] !== undefined,
+      `Discovery media template ${surfaceKey} must be published in OpenAPI paths`,
+    );
+    assert.ok(
+      discoverySurfaceSchema.required?.includes(surfaceKey),
+      `AgentDiscoveryData.surface must require ${surfaceKey}`,
+    );
+    assert.ok(
+      discoverySurfaceSchema.properties?.[surfaceKey] !== undefined,
+      `AgentDiscoveryData.surface must document ${surfaceKey}`,
+    );
+  }
+
+  assert.match(discoveryEnvelope.instructions, /media-assets\/upload-intents/);
+  assert.match(discoveryEnvelope.instructions, /media-assets\/\{mediaAssetId\}\/complete/);
+  assert.match(discoveryEnvelope.instructions, /media-assets\/\{mediaAssetId\}\/download-url/);
+  assert.match(discoveryEnvelope.instructions, /data\.agentWorkspaceReplicaId/);
+  assert.match(discoveryEnvelope.instructions, /lastModifiedByReplicaId/);
+});
+
+test("agent setup envelopes point API-key clients to the media-capable discovery surface", () => {
+  const accountEnvelope = createAgentAccountEnvelope(
+    testAgentRequestUrl,
+    testApiKeyRequestContext,
+    testAgentWorkspaceReplicaId,
+  );
+  const envelopes = [
+    accountEnvelope,
+    createAgentWorkspacesEnvelope(testAgentRequestUrl, [], null),
+    createAgentWorkspacesEnvelope(testAgentRequestUrl, [testUnselectedWorkspaceSummary], null),
+    createAgentWorkspacesEnvelope(testAgentRequestUrl, [testWorkspaceSummary], null),
+    createAgentWorkspaceReadyEnvelope(testAgentRequestUrl, testWorkspaceSummary),
+  ];
+
+  for (const envelope of envelopes) {
+    assert.match(envelope.instructions, /GET https:\/\/api\.flashcards-open-source-app\.com\/v1\/agent/);
+    assert.match(envelope.instructions, /media-capable discovery surface/);
+    assert.match(envelope.instructions, /upload-intent/);
+    assert.match(envelope.instructions, /download URL templates/);
+    assert.match(envelope.instructions, /data\.agentWorkspaceReplicaId/);
+    assert.match(envelope.instructions, /lastModifiedByReplicaId/);
+  }
+
+  assert.equal(accountEnvelope.data.agentWorkspaceReplicaId, testAgentWorkspaceReplicaId);
 });
 
 test("API Gateway predeclares /me/community/profile", () => {
