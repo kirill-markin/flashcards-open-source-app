@@ -977,6 +977,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
         tags: [String]
     ) throws {
         let tagsJson = try database.core.encodeJsonString(value: tags)
+        let metadataJson = try database.core.encodeJsonString(value: makeDefaultCardMetadata(createdAt: createdAt))
         try database.core.execute(
             sql: """
             INSERT INTO cards (
@@ -984,6 +985,8 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
                 workspace_id,
                 front_text,
                 back_text,
+                card_type,
+                metadata_json,
                 tags_json,
                 due_at,
                 due_at_millis,
@@ -1003,13 +1006,15 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
                 updated_at,
                 deleted_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 'new', NULL, NULL, NULL, ?, ?, NULL, ?, 'test-replica', ?, ?, NULL)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 'new', NULL, NULL, NULL, ?, ?, NULL, ?, 'test-replica', ?, ?, NULL)
             """,
             values: [
                 .text(cardId),
                 .text(workspaceId),
                 .text("Front \(cardId)"),
                 .text("Back \(cardId)"),
+                .text(basicCardType),
+                .text(metadataJson),
                 .text(tagsJson),
                 dueAt.map(SQLiteValue.text) ?? .null,
                 dueAt.flatMap(parseStrictIsoTimestampEpochMillis).map(SQLiteValue.integer) ?? .null,

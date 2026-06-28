@@ -5,6 +5,8 @@ let cardStoreSelectColumnsSQL: String = """
     workspace_id,
     front_text,
     back_text,
+    card_type,
+    metadata_json,
     tags_json,
     due_at,
     created_at,

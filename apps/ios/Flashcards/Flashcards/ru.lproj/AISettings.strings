@@ -599,7 +599,7 @@
 "settings.notifications.duration.minutes" = "%d минут";
 
 "settings.workspace.export.section.availableFormats" = "Доступные форматы";
-"settings.workspace.export.description" = "Экспортирует текст на лицевой стороне, на оборотной стороне и метки всех активных карточек в текущей рабочей области.";
+"settings.workspace.export.description" = "Экспортирует данные активных карточек из текущей рабочей области в файл CSV.";
 "settings.workspace.export.exportCsv" = "Экспорт CSV";
 "settings.workspace.export.exporting" = "Экспорт...";
 "settings.workspace.export.fileUnavailable" = "Экспортированный файл недоступен.";

@@ -599,7 +599,7 @@
 "settings.notifications.duration.minutes" = "%d 分";
 
 "settings.workspace.export.section.availableFormats" = "利用可能な形式";
-"settings.workspace.export.description" = "現在のワークスペース内のすべてのアクティブなカードのフロント テキスト、バック テキスト、ラベルをエクスポートします。";
+"settings.workspace.export.description" = "現在のワークスペースのアクティブなカードデータをCSVファイルとしてエクスポートします。";
 "settings.workspace.export.exportCsv" = "CSV のエクスポート";
 "settings.workspace.export.exporting" = "エクスポート中...";
 "settings.workspace.export.fileUnavailable" = "エクスポートされたファイルは利用できません。";

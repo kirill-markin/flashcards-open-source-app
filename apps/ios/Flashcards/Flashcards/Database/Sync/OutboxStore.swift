@@ -4,6 +4,8 @@ private struct CardOutboxPayload: Codable {
     let cardId: String
     let frontText: String
     let backText: String
+    let cardType: String
+    let metadata: CardMetadata
     let tags: [String]
     let dueAt: String?
     let createdAt: String
@@ -499,6 +501,8 @@ struct OutboxStore {
                 cardId: card.cardId,
                 frontText: card.frontText,
                 backText: card.backText,
+                cardType: card.cardType,
+                metadata: card.metadata,
                 tags: card.tags,
                 dueAt: card.dueAt,
                 createdAt: card.createdAt,
@@ -751,6 +755,8 @@ struct OutboxStore {
                 cardId: cardId,
                 frontText: legacyPayload.frontText,
                 backText: legacyPayload.backText,
+                cardType: basicCardType,
+                metadata: makeDefaultCardMetadata(createdAt: createdAt),
                 tags: try tagsAppendingLegacyEffortTag(
                     tags: legacyPayload.tags,
                     effortLevel: legacyPayload.effortLevel

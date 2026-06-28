@@ -1,7 +1,7 @@
 import Foundation
 
 enum LocalDatabaseSchema {
-    static let currentVersion: Int = 20
+    static let currentVersion: Int = 21
 
     static var baseMigrationSQL: String {
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
@@ -36,6 +36,8 @@ enum LocalDatabaseSchema {
             workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace ownership for isolation and pull scoping
             front_text TEXT NOT NULL, -- prompt shown to the learner
             back_text TEXT NOT NULL, -- answer shown after reveal
+            card_type TEXT NOT NULL DEFAULT '\(basicCardType)' CHECK (length(trim(card_type)) > 0), -- canonical card rendering type preserved across sync
+            metadata_json TEXT NOT NULL, -- JSON-encoded structured card metadata preserved across sync
             tags_json TEXT NOT NULL, -- JSON-encoded tag list used by local filtering and sync payload generation
             due_at TEXT, -- TODO: remove after sync and UI no longer need the raw dueAt wire value
             due_at_millis INTEGER, -- strict UTC epoch-millisecond key used by local review scheduling; NULL for new or malformed due_at

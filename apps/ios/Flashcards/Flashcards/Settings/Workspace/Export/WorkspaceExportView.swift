@@ -25,7 +25,7 @@ struct WorkspaceExportView: View {
                     Text(
                         aiSettingsLocalized(
                             "settings.workspace.export.description",
-                            "Exports front text, back text, and tags for all active cards in the current workspace."
+                            "Exports active card data from the current workspace as a CSV file."
                         )
                     )
                         .foregroundStyle(.secondary)

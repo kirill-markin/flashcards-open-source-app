@@ -1,12 +1,18 @@
 import Foundation
 
-func makeWorkspaceCardsCsv(cards: [Card]) -> String {
+func makeWorkspaceCardsCsv(cards: [Card]) throws -> String {
+    let encoder = JSONEncoder()
     let lines = [
-        "frontText,backText,tags"
-    ] + cards.map { card in
+        "frontText,backText,cardType,metadata,tags"
+    ] + try cards.map { card in
         [
             escapeWorkspaceExportCsvCell(value: card.frontText),
             escapeWorkspaceExportCsvCell(value: card.backText),
+            escapeWorkspaceExportCsvCell(value: card.cardType),
+            escapeWorkspaceExportCsvCell(value: try encodeWorkspaceExportCardMetadataJson(
+                metadata: card.metadata,
+                encoder: encoder
+            )),
             escapeWorkspaceExportCsvCell(value: card.tags.joined(separator: ", "))
         ].joined(separator: ",")
     }
@@ -36,7 +42,7 @@ func prepareWorkspaceCardsCsvExport(
         calendar: calendar
     )
     let fileURL = temporaryDirectory.appendingPathComponent(filename, isDirectory: false)
-    let csv = makeWorkspaceCardsCsv(cards: cards)
+    let csv = try makeWorkspaceCardsCsv(cards: cards)
     guard let csvData = csv.data(using: .utf8) else {
         throw LocalStoreError.validation("Workspace export could not be encoded as UTF-8 CSV")
     }
@@ -47,6 +53,15 @@ func prepareWorkspaceCardsCsvExport(
 
     try csvData.write(to: fileURL, options: .atomic)
     return fileURL
+}
+
+private func encodeWorkspaceExportCardMetadataJson(metadata: CardMetadata, encoder: JSONEncoder) throws -> String {
+    let data = try encoder.encode(metadata)
+    guard let json = String(data: data, encoding: .utf8) else {
+        throw LocalStoreError.validation("Workspace export card metadata could not be encoded as UTF-8 JSON")
+    }
+
+    return json
 }
 
 private func escapeWorkspaceExportCsvCell(value: String) -> String {

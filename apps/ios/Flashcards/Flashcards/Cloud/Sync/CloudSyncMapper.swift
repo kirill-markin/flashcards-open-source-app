@@ -5,6 +5,8 @@ enum CloudSyncMapper {
             workspaceId: workspaceId,
             frontText: payload.frontText,
             backText: payload.backText,
+            cardType: payload.cardType,
+            metadata: payload.metadata,
             tags: payload.tags,
             dueAt: payload.dueAt,
             createdAt: payload.createdAt,

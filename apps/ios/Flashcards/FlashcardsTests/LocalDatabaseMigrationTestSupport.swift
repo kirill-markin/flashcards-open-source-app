@@ -65,6 +65,7 @@ extension LocalDatabaseTestCase {
         dueAt: String?,
         createdAt: String
     ) throws {
+        let metadataJson = try database.core.encodeJsonString(value: makeDefaultCardMetadata(createdAt: createdAt))
         try database.core.execute(
             sql: """
             INSERT INTO cards (
@@ -72,6 +73,8 @@ extension LocalDatabaseTestCase {
                 workspace_id,
                 front_text,
                 back_text,
+                card_type,
+                metadata_json,
                 tags_json,
                 due_at,
                 due_at_millis,
@@ -90,13 +93,15 @@ extension LocalDatabaseTestCase {
                 updated_at,
                 deleted_at
             )
-            VALUES (?, ?, ?, ?, '[]', ?, ?, ?, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, ?, 'test-replica', ?, ?, NULL)
+            VALUES (?, ?, ?, ?, ?, ?, '[]', ?, ?, ?, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, ?, 'test-replica', ?, ?, NULL)
             """,
             values: [
                 .text(cardId),
                 .text(workspaceId),
                 .text("Front \(cardId)"),
                 .text("Back \(cardId)"),
+                .text(basicCardType),
+                .text(metadataJson),
                 dueAt.map(SQLiteValue.text) ?? .null,
                 dueAt.flatMap(parseStrictIsoTimestampEpochMillis).map(SQLiteValue.integer) ?? .null,
                 .text(createdAt),

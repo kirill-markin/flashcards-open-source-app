@@ -215,6 +215,8 @@ struct CardSyncPayload: Codable, Hashable {
     let cardId: String
     let frontText: String
     let backText: String
+    let cardType: String
+    let metadata: CardMetadata
     let tags: [String]
     let dueAt: String?
     let createdAt: String
@@ -232,6 +234,8 @@ struct CardSyncPayload: Codable, Hashable {
         case cardId
         case frontText
         case backText
+        case cardType
+        case metadata
         case tags
         case effortLevel
         case dueAt
@@ -251,6 +255,8 @@ struct CardSyncPayload: Codable, Hashable {
         cardId: String,
         frontText: String,
         backText: String,
+        cardType: String,
+        metadata: CardMetadata,
         tags: [String],
         dueAt: String?,
         createdAt: String,
@@ -267,6 +273,8 @@ struct CardSyncPayload: Codable, Hashable {
         self.cardId = cardId
         self.frontText = frontText
         self.backText = backText
+        self.cardType = normalizeCardType(cardType: cardType)
+        self.metadata = metadata
         self.tags = tags
         self.dueAt = dueAt
         self.createdAt = createdAt
@@ -281,11 +289,56 @@ struct CardSyncPayload: Codable, Hashable {
         self.deletedAt = deletedAt
     }
 
+    init(
+        cardId: String,
+        frontText: String,
+        backText: String,
+        tags: [String],
+        dueAt: String?,
+        createdAt: String,
+        reps: Int,
+        lapses: Int,
+        fsrsCardState: String,
+        fsrsStepIndex: Int?,
+        fsrsStability: Double?,
+        fsrsDifficulty: Double?,
+        fsrsLastReviewedAt: String?,
+        fsrsScheduledDays: Int?,
+        deletedAt: String?
+    ) {
+        self.init(
+            cardId: cardId,
+            frontText: frontText,
+            backText: backText,
+            cardType: basicCardType,
+            metadata: makeDefaultCardMetadata(createdAt: createdAt),
+            tags: tags,
+            dueAt: dueAt,
+            createdAt: createdAt,
+            reps: reps,
+            lapses: lapses,
+            fsrsCardState: fsrsCardState,
+            fsrsStepIndex: fsrsStepIndex,
+            fsrsStability: fsrsStability,
+            fsrsDifficulty: fsrsDifficulty,
+            fsrsLastReviewedAt: fsrsLastReviewedAt,
+            fsrsScheduledDays: fsrsScheduledDays,
+            deletedAt: deletedAt
+        )
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.cardId = try container.decode(String.self, forKey: .cardId)
         self.frontText = try container.decode(String.self, forKey: .frontText)
         self.backText = try container.decode(String.self, forKey: .backText)
+        let createdAt = try container.decode(String.self, forKey: .createdAt)
+        self.cardType = try decodeCardTypeWithLegacyDefault(from: container, forKey: .cardType)
+        self.metadata = try decodeCardMetadataWithLegacyDefault(
+            from: container,
+            forKey: .metadata,
+            createdAt: createdAt
+        )
         let tags = try container.decode([String].self, forKey: .tags)
         // TODO(old-mobile-cutoff): Remove legacy effortLevel decode during final sync wire-drop cleanup.
         self.tags = try tagsAppendingLegacyEffortTag(
@@ -293,7 +346,7 @@ struct CardSyncPayload: Codable, Hashable {
             effortLevel: try container.decodeIfPresent(String.self, forKey: .effortLevel)
         )
         self.dueAt = try container.decodeIfPresent(String.self, forKey: .dueAt)
-        self.createdAt = try container.decode(String.self, forKey: .createdAt)
+        self.createdAt = createdAt
         self.reps = try container.decode(Int.self, forKey: .reps)
         self.lapses = try container.decode(Int.self, forKey: .lapses)
         self.fsrsCardState = try container.decode(String.self, forKey: .fsrsCardState)
@@ -310,6 +363,8 @@ struct CardSyncPayload: Codable, Hashable {
         try container.encode(self.cardId, forKey: .cardId)
         try container.encode(self.frontText, forKey: .frontText)
         try container.encode(self.backText, forKey: .backText)
+        try container.encode(self.cardType, forKey: .cardType)
+        try container.encode(self.metadata, forKey: .metadata)
         try container.encode(self.tags, forKey: .tags)
         // TODO(old-mobile-cutoff): Remove legacy effortLevel output during final sync wire-drop cleanup.
         try container.encode(legacySyncFastEffortLevel, forKey: .effortLevel)
@@ -368,6 +423,8 @@ extension CardSyncPayload {
         self.cardId = card.cardId
         self.frontText = card.frontText
         self.backText = card.backText
+        self.cardType = card.cardType
+        self.metadata = card.metadata
         self.tags = card.tags
         self.dueAt = card.dueAt
         self.createdAt = card.createdAt

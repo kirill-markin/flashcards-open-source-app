@@ -21,6 +21,11 @@ private struct LegacyEffortDeckMigrationRow {
     let filterDefinitionJson: String
 }
 
+private struct CardMetadataMigrationRow {
+    let cardId: String
+    let createdAt: String
+}
+
 struct LocalDatabaseMigrator {
     let core: DatabaseCore
 
@@ -90,6 +95,9 @@ struct LocalDatabaseMigrator {
             case 19:
                 try self.migrateSchemaVersion19To20()
                 schemaVersion = 20
+            case 20:
+                try self.migrateSchemaVersion20To21()
+                schemaVersion = 21
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -614,6 +622,71 @@ struct LocalDatabaseMigrator {
 
     private func migrateSchemaVersion19To20() throws {
         try self.rebuildReviewOrderIndexesWithCreatedAtAscending()
+    }
+
+    private func migrateSchemaVersion20To21() throws {
+        if try self.core.columnExists(tableName: "cards", columnName: "card_type") == false {
+            try self.core.execute(
+                sql: """
+                ALTER TABLE cards
+                ADD COLUMN card_type TEXT NOT NULL DEFAULT '\(basicCardType)' CHECK (length(trim(card_type)) > 0)
+                """,
+                values: []
+            )
+        }
+
+        if try self.core.columnExists(tableName: "cards", columnName: "metadata_json") == false {
+            try self.core.execute(
+                sql: """
+                ALTER TABLE cards
+                ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{"version":1,"source":null}'
+                """,
+                values: []
+            )
+        }
+
+        try self.backfillCardMetadata()
+    }
+
+    private func backfillCardMetadata() throws {
+        try self.core.execute(
+            sql: """
+            UPDATE cards
+            SET card_type = '\(basicCardType)'
+            WHERE card_type IS NULL OR trim(card_type) = ''
+            """,
+            values: []
+        )
+
+        let rows = try self.core.query(
+            sql: """
+            SELECT card_id, created_at
+            FROM cards
+            WHERE metadata_json = '{"version":1,"source":null}'
+                OR metadata_json = ''
+            ORDER BY card_id ASC
+            """,
+            values: []
+        ) { statement in
+            CardMetadataMigrationRow(
+                cardId: DatabaseCore.columnText(statement: statement, index: 0),
+                createdAt: DatabaseCore.columnText(statement: statement, index: 1)
+            )
+        }
+
+        for row in rows {
+            try self.core.execute(
+                sql: """
+                UPDATE cards
+                SET metadata_json = ?
+                WHERE card_id = ?
+                """,
+                values: [
+                    .text(try self.core.encodeJsonString(value: makeDefaultCardMetadata(createdAt: row.createdAt))),
+                    .text(row.cardId)
+                ]
+            )
+        }
     }
 
     private func appendLegacyEffortTagsToCards() throws {
