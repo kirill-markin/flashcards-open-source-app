@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ChatLiveContractError,
+  ChatLiveTransportError,
   consumeChatLiveStream,
   parseChatLiveEvent,
 } from "./liveStream";
@@ -45,6 +46,19 @@ function createLiveStreamResponseWithHeaders(body: string, headers: HeadersInit)
 function createLiveStreamResponse(body: string): Response {
   return createLiveStreamResponseWithHeaders(body, {
     "Content-Type": "text/event-stream",
+  });
+}
+
+function createFailingLiveStreamResponse(streamError: Error, headers: HeadersInit): Response {
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      controller.error(streamError);
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers,
   });
 }
 
@@ -112,6 +126,99 @@ describe("parseChatLiveEvent", () => {
 describe("consumeChatLiveStream", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("wraps pre-response fetch failures as transport errors without response metadata", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("Network offline"));
+
+    const promise = consumeChatLiveStream({
+      liveStream: {
+        url: "https://chat-live.example.com",
+        authorization: "Live token",
+        expiresAt: Date.now() + 60_000,
+      },
+      sessionId: "session-1",
+      runId: "run-1",
+      afterCursor: null,
+      resumeAttemptId: null,
+      signal: new AbortController().signal,
+      onEvent: vi.fn(),
+    });
+
+    await expect(promise).rejects.toBeInstanceOf(ChatLiveTransportError);
+    await expect(promise).rejects.toMatchObject({
+      message: "AI live stream transport failed: Network offline",
+      requestId: null,
+      statusCode: null,
+      code: null,
+      originalErrorName: "TypeError",
+    } satisfies Partial<ChatLiveTransportError>);
+  });
+
+  it("wraps post-response body read failures as transport errors with response metadata", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(createFailingLiveStreamResponse(
+      new Error("Stream read failed"),
+      {
+        "Content-Type": "text/event-stream",
+        "X-Request-Id": "live-request-id",
+      },
+    ));
+
+    const promise = consumeChatLiveStream({
+      liveStream: {
+        url: "https://chat-live.example.com",
+        authorization: "Live token",
+        expiresAt: Date.now() + 60_000,
+      },
+      sessionId: "session-1",
+      runId: "run-1",
+      afterCursor: null,
+      resumeAttemptId: null,
+      signal: new AbortController().signal,
+      onEvent: vi.fn(),
+    });
+
+    await expect(promise).rejects.toBeInstanceOf(ChatLiveTransportError);
+    await expect(promise).rejects.toMatchObject({
+      message: "AI live stream transport failed: Stream read failed",
+      requestId: "live-request-id",
+      statusCode: 200,
+      code: null,
+      originalErrorName: "Error",
+    } satisfies Partial<ChatLiveTransportError>);
+  });
+
+  it("wraps missing response body failures as transport errors with response metadata", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/event-stream",
+        "X-Request-Id": "live-request-id",
+      },
+    }));
+
+    const promise = consumeChatLiveStream({
+      liveStream: {
+        url: "https://chat-live.example.com",
+        authorization: "Live token",
+        expiresAt: Date.now() + 60_000,
+      },
+      sessionId: "session-1",
+      runId: "run-1",
+      afterCursor: null,
+      resumeAttemptId: null,
+      signal: new AbortController().signal,
+      onEvent: vi.fn(),
+    });
+
+    await expect(promise).rejects.toBeInstanceOf(ChatLiveTransportError);
+    await expect(promise).rejects.toMatchObject({
+      message: "AI live stream transport failed: Successful AI live stream response body is missing.",
+      requestId: "live-request-id",
+      statusCode: 200,
+      code: null,
+      originalErrorName: "Error",
+    } satisfies Partial<ChatLiveTransportError>);
   });
 
   it("fails the stream when an SSE payload is malformed", async () => {
