@@ -130,6 +130,27 @@ export class ChatLiveHttpError extends Error {
   }
 }
 
+export class ChatLiveTransportError extends Error {
+  readonly requestId: string | null;
+  readonly statusCode: number | null;
+  readonly code: string | null;
+  readonly originalErrorName: string | null;
+
+  constructor(
+    message: string,
+    metadata: ChatLiveErrorMetadata,
+    originalErrorName: string | null,
+    cause: unknown,
+  ) {
+    super(message, { cause });
+    this.name = "ChatLiveTransportError";
+    this.requestId = metadata.requestId;
+    this.statusCode = metadata.statusCode;
+    this.code = metadata.code;
+    this.originalErrorName = originalErrorName;
+  }
+}
+
 function parseJsonObject(value: string): JsonObject | null {
   try {
     const parsed = JSON.parse(value) as unknown;
@@ -155,6 +176,36 @@ function readLivePayloadCode(payload: string): string | null {
 
 function normalizeMetadataString(value: string | null): string | null {
   return value === null || value.trim() === "" ? null : value;
+}
+
+function readThrownStringField(value: unknown, field: "message" | "name"): string | null {
+  if (typeof value !== "object" || value === null || !(field in value)) {
+    return null;
+  }
+
+  const fieldValue = (value as Readonly<Record<"message" | "name", unknown>>)[field];
+  return typeof fieldValue === "string" ? normalizeMetadataString(fieldValue) : null;
+}
+
+function readThrownMessage(value: unknown): string {
+  const message = readThrownStringField(value, "message");
+  if (message !== null) {
+    return message;
+  }
+
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : "Unknown browser transport error";
+}
+
+function normalizeChatLiveTransportError(
+  error: unknown,
+  metadata: ChatLiveErrorMetadata,
+): ChatLiveTransportError {
+  return new ChatLiveTransportError(
+    `AI live stream transport failed: ${readThrownMessage(error)}`,
+    metadata,
+    readThrownStringField(error, "name"),
+    error,
+  );
 }
 
 function enrichChatLiveContractError(
@@ -538,18 +589,28 @@ export async function consumeChatLiveStream(
     headers.set("X-Client-Platform", "web");
     headers.set("X-Client-Version", webAppVersion);
   }
+  const fetchFailureMetadata: ChatLiveErrorMetadata = {
+    requestId: null,
+    statusCode: null,
+    code: null,
+  };
 
-  const response = await fetch(buildLiveStreamUrl(
-    params.liveStream,
-    params.sessionId,
-    params.runId,
-    params.afterCursor,
-  ), {
-    method: "GET",
-    credentials: "omit",
-    headers,
-    signal: params.signal,
-  });
+  let response: Response;
+  try {
+    response = await fetch(buildLiveStreamUrl(
+      params.liveStream,
+      params.sessionId,
+      params.runId,
+      params.afterCursor,
+    ), {
+      method: "GET",
+      credentials: "omit",
+      headers,
+      signal: params.signal,
+    });
+  } catch (error) {
+    throw normalizeChatLiveTransportError(error, fetchFailureMetadata);
+  }
 
   if (response.ok === false) {
     throw buildLiveStreamHttpError(
@@ -559,15 +620,18 @@ export async function consumeChatLiveStream(
     );
   }
 
-  if (response.body === null) {
-    throw new Error("AI live stream response body is missing.");
-  }
-
   const responseMetadata: ChatLiveErrorMetadata = {
     requestId: normalizeMetadataString(response.headers.get("X-Request-Id")),
     statusCode: response.status,
     code: null,
   };
+  if (response.body === null) {
+    throw normalizeChatLiveTransportError(
+      new Error("Successful AI live stream response body is missing."),
+      responseMetadata,
+    );
+  }
+
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -575,12 +639,23 @@ export async function consumeChatLiveStream(
   let currentDataLines: string[] = [];
 
   while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
+    let readResult: ReadableStreamReadResult<Uint8Array>;
+    try {
+      readResult = await reader.read();
+    } catch (error) {
+      throw normalizeChatLiveTransportError(error, responseMetadata);
+    }
+
+    if (readResult.done) {
       break;
     }
 
-    buffer += decoder.decode(value, { stream: true });
+    try {
+      buffer += decoder.decode(readResult.value, { stream: true });
+    } catch (error) {
+      throw normalizeChatLiveTransportError(error, responseMetadata);
+    }
+
     const lines = buffer.split(/\r?\n/);
     buffer = lines.pop() ?? "";
 
@@ -607,7 +682,12 @@ export async function consumeChatLiveStream(
     }
   }
 
-  buffer += decoder.decode();
+  try {
+    buffer += decoder.decode();
+  } catch (error) {
+    throw normalizeChatLiveTransportError(error, responseMetadata);
+  }
+
   if (buffer !== "") {
     const trailingLines = buffer.split(/\r?\n/);
     for (const line of trailingLines) {
