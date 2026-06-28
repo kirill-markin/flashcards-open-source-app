@@ -195,6 +195,10 @@ required_paths = {
     "/agent/workspaces/{workspaceId}/select",
     "/agent/sql/query",
     "/agent/sql/execute",
+    "/workspaces/{workspaceId}/media-assets/upload-intents",
+    "/workspaces/{workspaceId}/media-assets/{mediaAssetId}",
+    "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete",
+    "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url",
 }
 assert payload["openapi"] == "3.1.0"
 missing_paths = sorted(required_paths.difference(payload["paths"].keys()))
@@ -272,7 +276,13 @@ assert payload["data"]["apiBaseUrl"] == api_base_url
 connection = payload["data"]["connection"]
 assert isinstance(connection["connectionId"], str) and connection["connectionId"] != ""
 assert connection["label"] == connection_label
-assert payload["actions"][0]["name"] == "load_account"
+assert [action["name"] for action in payload["actions"]] == [
+    "load_discovery",
+    "load_account",
+    "list_workspaces",
+    "create_workspace",
+    "select_workspace",
+]
 print(api_key)
 PY
 )"
