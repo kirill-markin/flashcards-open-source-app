@@ -431,6 +431,45 @@
   flex-wrap: wrap;
 }
 
+.workspace-export-format-card {
+  display: grid;
+  gap: 14px;
+}
+
+.workspace-export-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.workspace-import-tag-control {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.workspace-import-tag-control > input {
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.workspace-import-tag-control:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.workspace-import-tag-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
 @media (max-width: 900px) {
   .settings-summary-grid {
     grid-template-columns: 1fr;

@@ -1,5 +1,6 @@
 import { computeReviewSchedule, type ReviewRating } from "../../../../../backend/src/scheduling";
-import { loadCardById, putCard } from "../../../localDb/cards/cards";
+import { loadCardById, putCard, putCardInTransaction } from "../../../localDb/cards/cards";
+import { closeDatabaseAfterWrite, runReadwrite } from "../../../localDb/core/database";
 import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
 import { loadDeckById, putDeck } from "../../../localDb/cards/decks";
 import { putOutboxRecord, type PersistedOutboxRecord } from "../../../localDb/sync/outbox";
@@ -26,8 +27,8 @@ import {
   buildUpdatedCard,
   buildUpdatedDeck,
   doesCardMutationAffectReviewSchedule,
-  normalizeCreateCardInput,
   normalizeCreateDeckInput,
+  normalizeCreateCardInput,
   normalizeUpdateCardInput,
   normalizeUpdateDeckInput,
   toReviewableCardState,
@@ -36,6 +37,7 @@ import {
   loadRequiredCloudInstallationId,
   requireCloudInstallationId,
 } from "./syncCloudSettings";
+import type { FlashcardsPackageCardV1 } from "../../../workspacePackage";
 
 export type LocalReviewRating = 0 | 1 | 2 | 3;
 
@@ -49,6 +51,12 @@ export type LocalDeckMutationResult = Readonly<{
   deck: Deck;
 }>;
 
+export type LocalCardsMutationResult = Readonly<{
+  cards: ReadonlyArray<Card>;
+  didChangeProgressHistory: boolean;
+  didChangeReviewSchedule: boolean;
+}>;
+
 export type CreateCardLocallyInput = Readonly<{
   workspaceId: string;
   input: CreateCardInput;
@@ -58,6 +66,12 @@ export type CreateCardLocallyInput = Readonly<{
 export type CreateDeckLocallyInput = Readonly<{
   workspaceId: string;
   input: CreateDeckInput;
+  clientUpdatedAt: string;
+}>;
+
+export type ImportWorkspacePackageCardsLocallyInput = Readonly<{
+  workspaceId: string;
+  cards: ReadonlyArray<FlashcardsPackageCardV1>;
   clientUpdatedAt: string;
 }>;
 
@@ -135,6 +149,65 @@ export async function createCardLocally(input: CreateCardLocallyInput): Promise<
     card: nextCard,
     didChangeProgressHistory: false,
     didChangeReviewSchedule,
+  };
+}
+
+function buildImportedInitialCard(
+  packageCard: FlashcardsPackageCardV1,
+  clientUpdatedAt: string,
+  installationId: string,
+  operationId: string,
+): Card {
+  return {
+    ...buildInitialCard({
+      frontText: packageCard.frontText,
+      backText: packageCard.backText,
+      tags: packageCard.tags,
+    }, clientUpdatedAt, installationId, operationId),
+    cardType: packageCard.cardType,
+    metadata: packageCard.metadata,
+  };
+}
+
+export async function importWorkspacePackageCardsLocally(
+  input: ImportWorkspacePackageCardsLocallyInput,
+): Promise<LocalCardsMutationResult> {
+  const installationId = await loadRequiredCloudInstallationId();
+  const importedRecords = input.cards.map((packageCard) => {
+    const operationId = crypto.randomUUID().toLowerCase();
+    const card = buildImportedInitialCard(packageCard, input.clientUpdatedAt, installationId, operationId);
+    const outboxRecord: PersistedOutboxRecord = {
+      operationId,
+      workspaceId: input.workspaceId,
+      createdAt: input.clientUpdatedAt,
+      attemptCount: 0,
+      lastError: "",
+      affectsReviewSchedule: true,
+      operation: buildCardUpsertOperation(card),
+    };
+
+    return {
+      card,
+      outboxRecord,
+    };
+  });
+
+  await closeDatabaseAfterWrite(async (database) => {
+    await runReadwrite(database, ["cards", "cardTags", "outbox"], (transaction) => {
+      const outboxStore = transaction.objectStore("outbox");
+      for (const importedRecord of importedRecords) {
+        putCardInTransaction(transaction, input.workspaceId, importedRecord.card);
+        outboxStore.put(importedRecord.outboxRecord);
+      }
+
+      return null;
+    });
+  });
+
+  return {
+    cards: importedRecords.map((importedRecord) => importedRecord.card),
+    didChangeProgressHistory: false,
+    didChangeReviewSchedule: importedRecords.length > 0,
   };
 }
 

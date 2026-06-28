@@ -373,6 +373,7 @@ export type WebAppOperation =
   | "workspace_reset_preview_load"
   | "workspace_reset_execute"
   | "workspace_export"
+  | "workspace_import"
   | "refresh_local_metadata";
 
 export type WebAppOperationFailureDetails = Readonly<{
