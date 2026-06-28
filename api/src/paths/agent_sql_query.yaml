@@ -31,10 +31,10 @@ post:
           projectedCards:
             value:
               sql: >-
-                SELECT card_id, front_text, back_text, tags FROM cards WHERE
-                LOWER(front_text) LIKE '%example%' OR LOWER(back_text) LIKE
-                '%example%' ORDER BY created_at DESC, card_id ASC LIMIT 20
-                OFFSET 0
+                SELECT card_id, front_text, back_text, card_type, metadata,
+                tags FROM cards WHERE LOWER(front_text) LIKE '%example%' OR
+                LOWER(back_text) LIKE '%example%' ORDER BY created_at DESC,
+                card_id ASC LIMIT 20 OFFSET 0
   responses:
     '200':
       description: SQL query executed successfully
@@ -116,19 +116,29 @@ post:
                   statementType: select
                   resource: cards
                   sql: >-
-                    SELECT card_id, front_text, back_text, tags FROM cards
-                    WHERE LOWER(front_text) LIKE '%example%' OR
-                    LOWER(back_text) LIKE '%example%' ORDER BY created_at DESC,
-                    card_id ASC LIMIT 20 OFFSET 0
+                    SELECT card_id, front_text, back_text, card_type, metadata,
+                    tags FROM cards WHERE LOWER(front_text) LIKE '%example%'
+                    OR LOWER(back_text) LIKE '%example%' ORDER BY created_at
+                    DESC, card_id ASC LIMIT 20 OFFSET 0
                   normalizedSql: >-
-                    SELECT card_id, front_text, back_text, tags FROM cards
-                    WHERE LOWER(front_text) LIKE '%example%' OR
-                    LOWER(back_text) LIKE '%example%' ORDER BY created_at DESC,
-                    card_id ASC LIMIT 20 OFFSET 0
+                    SELECT card_id, front_text, back_text, card_type, metadata,
+                    tags FROM cards WHERE LOWER(front_text) LIKE '%example%'
+                    OR LOWER(back_text) LIKE '%example%' ORDER BY created_at
+                    DESC, card_id ASC LIMIT 20 OFFSET 0
                   rows:
                     - card_id: 50b5b928-7f04-4cc8-878d-6cd0e8b98474
                       front_text: Example question
                       back_text: Example answer
+                      card_type: basic
+                      metadata:
+                        version: 1
+                        source:
+                          label: null
+                          author: null
+                          comment: null
+                          createdAt: '2026-03-10T09:00:00.000Z'
+                          importedAt: null
+                          importId: null
                       tags:
                         - english
                         - examples

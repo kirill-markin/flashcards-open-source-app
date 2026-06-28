@@ -54,6 +54,18 @@ export type CardState = Readonly<{
   workspace_id: string;
   front_text: string;
   back_text: string;
+  card_type?: string;
+  metadata?: Readonly<{
+    version: 1;
+    source: Readonly<{
+      label: string | null;
+      author: string | null;
+      comment: string | null;
+      createdAt: string | null;
+      importedAt: string | null;
+      importId: string | null;
+    }> | null;
+  }>;
   tags: ReadonlyArray<string>;
   effort_level: string;
   due_at: string | null;

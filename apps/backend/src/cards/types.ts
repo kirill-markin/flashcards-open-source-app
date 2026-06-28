@@ -12,10 +12,26 @@ export type CardFilter = Readonly<{
   tags: ReadonlyArray<string>;
 }>;
 
+export type CardSourceMetadata = Readonly<{
+  label: string | null;
+  author: string | null;
+  comment: string | null;
+  createdAt: string | null;
+  importedAt: string | null;
+  importId: string | null;
+}>;
+
+export type CardMetadata = Readonly<{
+  version: 1;
+  source: CardSourceMetadata | null;
+}>;
+
 export type CardRow = Readonly<{
   card_id: string;
   front_text: string;
   back_text: string;
+  card_type: string;
+  metadata: CardMetadata;
   tags: ReadonlyArray<string>;
   effort_level: LegacyEffortLevel;
   due_at: TimestampValue | null;
@@ -75,6 +91,8 @@ export type Card = Readonly<{
   cardId: string;
   frontText: string;
   backText: string;
+  cardType: string;
+  metadata: CardMetadata;
   tags: ReadonlyArray<string>;
   dueAt: string | null;
   createdAt: string;
@@ -143,6 +161,8 @@ export type CardMutationMetadata = LwwMetadata;
 export type CreateCardInput = Readonly<{
   frontText: string;
   backText: string;
+  cardType?: string;
+  metadata?: CardMetadata;
   tags: ReadonlyArray<string>;
 }>;
 
@@ -154,6 +174,8 @@ export type BulkCreateCardItem = Readonly<{
 export type UpdateCardInput = Readonly<{
   frontText?: string;
   backText?: string;
+  cardType?: string;
+  metadata?: CardMetadata;
   tags?: ReadonlyArray<string>;
 }>;
 
@@ -205,6 +227,8 @@ export type CardSnapshotInput = Readonly<{
   cardId: string;
   frontText: string;
   backText: string;
+  cardType?: string;
+  metadata?: CardMetadata;
   tags: ReadonlyArray<string>;
   dueAt: string | null;
   createdAt: string;

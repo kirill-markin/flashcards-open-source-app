@@ -62,6 +62,7 @@ type SharedAiToolName =
 type AgentToolCreateCardBody = Readonly<{
   frontText: string;
   backText: string;
+  cardType?: string;
   tags: ReadonlyArray<string>;
 }>;
 
@@ -69,6 +70,7 @@ type AgentToolUpdateCardBody = Readonly<{
   cardId: string;
   frontText: string | null;
   backText: string | null;
+  cardType: string | null;
   tags: ReadonlyArray<string> | null;
 }>;
 
@@ -353,6 +355,7 @@ function toCreateCardInput(item: AgentToolCreateCardsInput["cards"][number]): Cr
   return {
     frontText: item.frontText,
     backText: item.backText,
+    ...(item.cardType !== undefined ? { cardType: item.cardType } : {}),
     tags: item.tags,
   };
 }
@@ -361,6 +364,7 @@ function toUpdateCardInput(item: AgentToolUpdateCardBody): UpdateCardInput {
   return {
     ...(item.frontText !== null ? { frontText: item.frontText } : {}),
     ...(item.backText !== null ? { backText: item.backText } : {}),
+    ...(item.cardType !== null ? { cardType: item.cardType } : {}),
     ...(item.tags !== null ? { tags: item.tags } : {}),
   };
 }

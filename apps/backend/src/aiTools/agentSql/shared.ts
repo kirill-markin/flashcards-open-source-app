@@ -92,6 +92,8 @@ export function toCardRow(card: Card): SqlRow {
     card_id: card.cardId,
     front_text: card.frontText,
     back_text: card.backText,
+    card_type: card.cardType,
+    metadata: card.metadata,
     tags: card.tags,
     due_at: card.dueAt,
     created_at: card.createdAt,
@@ -153,11 +155,13 @@ export function buildCreateCardInput(
 ): Readonly<{
   frontText: string;
   backText: string;
+  cardType?: string;
   tags: ReadonlyArray<string>;
 }> {
   const values = new Map(columnNames.map((columnName, index) => [columnName, row[index]] as const));
   const frontText = values.get("front_text");
   const backText = values.get("back_text");
+  const cardType = values.get("card_type");
   const tags = values.get("tags");
   const effortLevel = values.get("effort_level");
 
@@ -173,9 +177,14 @@ export function buildCreateCardInput(
     throw new HttpError(400, "effort_level must be fast, medium, or long", "QUERY_INVALID_SQL");
   }
 
+  if (cardType !== undefined && typeof cardType !== "string") {
+    throw new HttpError(400, "card_type must be a string", "QUERY_INVALID_SQL");
+  }
+
   return {
     frontText,
     backText,
+    ...(cardType !== undefined ? { cardType } : {}),
     tags: appendLegacyEffortTag(
       Array.isArray(tags) ? tags.filter((item): item is string => typeof item === "string") : [],
       effortLevel,
@@ -257,6 +266,7 @@ export function buildCardUpdateInput(
   cardId: string;
   frontText: string | null;
   backText: string | null;
+  cardType: string | null;
   tags: ReadonlyArray<string> | null;
 }> {
   const cardId = row.card_id;
@@ -266,6 +276,7 @@ export function buildCardUpdateInput(
 
   let frontText: string | null = null;
   let backText: string | null = null;
+  let cardType: string | null = null;
   let tags: ReadonlyArray<string> | null = null;
   let legacyEffortLevel: LegacyEffortLevel | null = null;
 
@@ -282,6 +293,13 @@ export function buildCardUpdateInput(
         throw new HttpError(400, "back_text must be a string", "QUERY_INVALID_SQL");
       }
       backText = assignment.value;
+    }
+
+    if (assignment.columnName === "card_type") {
+      if (typeof assignment.value !== "string") {
+        throw new HttpError(400, "card_type must be a string", "QUERY_INVALID_SQL");
+      }
+      cardType = assignment.value;
     }
 
     if (assignment.columnName === "tags") {
@@ -307,6 +325,7 @@ export function buildCardUpdateInput(
     cardId,
     frontText,
     backText,
+    cardType,
     tags: resolvedTags,
   };
 }

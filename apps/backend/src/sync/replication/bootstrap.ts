@@ -273,6 +273,8 @@ export async function processSyncBootstrap(
         "      'cardId', cards.card_id::text,",
         "      'frontText', cards.front_text,",
         "      'backText', cards.back_text,",
+        "      'cardType', CASE WHEN btrim(cards.card_type) = '' THEN 'basic' ELSE cards.card_type END,",
+        "      'metadata', cards.metadata,",
         "      'tags', cards.tags,",
         "      'effortLevel', 'fast',",
         "      'dueAt', CASE WHEN cards.due_at IS NULL THEN NULL ELSE to_char(date_trunc('milliseconds', cards.due_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') END,",

@@ -3,8 +3,10 @@ import { normalizeIsoTimestamp } from "../sync/conflicts/lww";
 import { insertSyncChange } from "../sync/replication/changes";
 import type {
   Card,
+  CardMetadata,
   CardMutationMetadata,
   CardRow,
+  CardSourceMetadata,
   DeckSummary,
   DeckSummaryRow,
   ReviewEvent,
@@ -15,7 +17,7 @@ import type {
 import type { LegacyEffortLevel } from "../sync/contracts/legacyEffort";
 
 export const CARD_COLUMNS = [
-  "card_id, front_text, back_text, tags, effort_level, due_at, created_at, reps, lapses,",
+  "card_id, front_text, back_text, card_type, metadata, tags, effort_level, due_at, created_at, reps, lapses,",
   "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
   "client_updated_at, last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
 ].join(" ");
@@ -61,6 +63,77 @@ export function normalizeCardMutationMetadata(
   };
 }
 
+export function normalizeCardType(cardType: string | undefined): string {
+  if (cardType === undefined) {
+    return "basic";
+  }
+
+  const trimmedCardType = cardType.trim();
+  return trimmedCardType === "" ? "basic" : trimmedCardType;
+}
+
+function expectCardMetadataRecord(value: unknown, context: string): Readonly<Record<string, unknown>> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error(`${context} must be a JSON object`);
+  }
+
+  return value as Readonly<Record<string, unknown>>;
+}
+
+function expectNullableCardMetadataString(value: unknown, fieldName: string): string | null {
+  if (value === null || typeof value === "string") {
+    return value;
+  }
+
+  throw new Error(`${fieldName} must be a string or null`);
+}
+
+function normalizeCardSourceMetadata(value: unknown): CardSourceMetadata | null {
+  if (value === null) {
+    return null;
+  }
+
+  const record = expectCardMetadataRecord(value, "metadata.source");
+  return {
+    label: expectNullableCardMetadataString(record.label, "metadata.source.label"),
+    author: expectNullableCardMetadataString(record.author, "metadata.source.author"),
+    comment: expectNullableCardMetadataString(record.comment, "metadata.source.comment"),
+    createdAt: expectNullableCardMetadataString(record.createdAt, "metadata.source.createdAt"),
+    importedAt: expectNullableCardMetadataString(record.importedAt, "metadata.source.importedAt"),
+    importId: expectNullableCardMetadataString(record.importId, "metadata.source.importId"),
+  };
+}
+
+export function normalizeCardMetadata(metadata: unknown): CardMetadata {
+  const record = expectCardMetadataRecord(metadata, "metadata");
+  if (record.version !== 1) {
+    throw new Error("metadata.version must be 1");
+  }
+
+  return {
+    version: 1,
+    source: normalizeCardSourceMetadata(record.source),
+  };
+}
+
+export function createDefaultCardSourceMetadata(createdAt: string): CardSourceMetadata {
+  return {
+    label: null,
+    author: null,
+    comment: null,
+    createdAt: normalizeIsoTimestamp(createdAt, "metadata.source.createdAt"),
+    importedAt: null,
+    importId: null,
+  };
+}
+
+export function createDefaultCardMetadata(createdAt: string): CardMetadata {
+  return {
+    version: 1,
+    source: createDefaultCardSourceMetadata(createdAt),
+  };
+}
+
 // TODO(old-mobile-cutoff): Remove this legacy effort shim during final sync wire-drop cleanup.
 export function appendLegacyEffortTag(
   tags: ReadonlyArray<string>,
@@ -97,6 +170,8 @@ export function mapCard(row: CardRow): Card {
     cardId: row.card_id,
     frontText: row.front_text,
     backText: row.back_text,
+    cardType: normalizeCardType(row.card_type),
+    metadata: normalizeCardMetadata(row.metadata),
     tags: row.tags,
     dueAt: row.due_at === null ? null : toIsoString(row.due_at),
     createdAt: toIsoString(row.created_at),

@@ -14,6 +14,7 @@ const fsrsCardStateSchema = z.enum(["new", "learning", "review", "relearning"]);
 const reviewRatingSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]);
 const platformSchema = z.enum(["ios", "android", "web"]);
 const isoTimestampStringSchema = z.string().datetime();
+const cardTypeSchema = z.string();
 const isoDatePrefixPattern = /^(\d{4})-(\d{2})-(\d{2})T/i;
 const syncIncrementalPullLimit = 500;
 const syncReviewHistoryPullLimit = 500;
@@ -133,6 +134,20 @@ function validateDueAtTimestamp(value: string, refinementContext: z.core.$Refine
 
 const dueAtTimestampSchema = z.string().superRefine(validateDueAtTimestamp);
 
+const cardSourceMetadataSchema = z.object({
+  label: z.string().nullable(),
+  author: z.string().nullable(),
+  comment: z.string().nullable(),
+  createdAt: z.string().nullable(),
+  importedAt: z.string().nullable(),
+  importId: z.string().nullable(),
+});
+
+export const cardMetadataSchema = z.object({
+  version: z.literal(1),
+  source: cardSourceMetadataSchema.nullable(),
+});
+
 const deckFilterDefinitionSchema = z.object({
   version: z.literal(2),
   effortLevels: z.array(effortLevelSchema),
@@ -148,6 +163,8 @@ const cardSnapshotSchema = z.object({
   cardId: z.string().min(1),
   frontText: z.string().min(1),
   backText: z.string(),
+  cardType: cardTypeSchema,
+  metadata: cardMetadataSchema,
   tags: z.array(z.string()),
   effortLevel: effortLevelSchema,
   dueAt: dueAtTimestampSchema.nullable(),
@@ -164,6 +181,8 @@ const cardSnapshotSchema = z.object({
 });
 
 const cardSnapshotInputSchema = cardSnapshotSchema.extend({
+  cardType: cardTypeSchema.optional(),
+  metadata: cardMetadataSchema.optional(),
   // TODO(old-mobile-cutoff): Remove legacy effort input during final sync wire-drop cleanup.
   effortLevel: effortLevelSchema.optional(),
 });
