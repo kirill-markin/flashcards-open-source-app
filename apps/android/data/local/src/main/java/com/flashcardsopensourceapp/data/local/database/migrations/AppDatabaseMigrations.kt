@@ -41,7 +41,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration23To24,
         migration24To25,
         migration25To26,
-        migration26To27
+        migration26To27,
+        migration27To28
     )
 }
 
@@ -880,7 +881,6 @@ val migration26To27: Migration = object : Migration(26, 27) {
                 mimeType TEXT NOT NULL,
                 sizeBytes INTEGER NOT NULL,
                 sha256 TEXT NOT NULL,
-                storageKey TEXT NOT NULL,
                 sourceUrl TEXT,
                 createdAtMillis INTEGER NOT NULL,
                 clientUpdatedAtMillis INTEGER NOT NULL,
@@ -893,7 +893,6 @@ val migration26To27: Migration = object : Migration(26, 27) {
             """.trimIndent()
         )
         db.execSQL("CREATE INDEX IF NOT EXISTS index_media_assets_workspaceId ON media_assets(workspaceId)")
-        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_media_assets_storageKey ON media_assets(storageKey)")
         db.execSQL(
             """
             CREATE INDEX IF NOT EXISTS index_media_assets_workspaceId_updatedAtMillis_mediaAssetId
@@ -912,6 +911,77 @@ val migration26To27: Migration = object : Migration(26, 27) {
             SET lastSyncCursor = NULL,
                 hasHydratedHotState = 0
             WHERE hasHydratedHotState = 1
+            """.trimIndent()
+        )
+    }
+}
+
+val migration27To28: Migration = object : Migration(27, 28) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS media_assets_v28 (
+                mediaAssetId TEXT NOT NULL PRIMARY KEY,
+                workspaceId TEXT NOT NULL,
+                mimeType TEXT NOT NULL,
+                sizeBytes INTEGER NOT NULL,
+                sha256 TEXT NOT NULL,
+                sourceUrl TEXT,
+                createdAtMillis INTEGER NOT NULL,
+                clientUpdatedAtMillis INTEGER NOT NULL,
+                lastModifiedByReplicaId TEXT NOT NULL,
+                lastOperationId TEXT NOT NULL,
+                updatedAtMillis INTEGER NOT NULL,
+                deletedAtMillis INTEGER,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO media_assets_v28 (
+                mediaAssetId,
+                workspaceId,
+                mimeType,
+                sizeBytes,
+                sha256,
+                sourceUrl,
+                createdAtMillis,
+                clientUpdatedAtMillis,
+                lastModifiedByReplicaId,
+                lastOperationId,
+                updatedAtMillis,
+                deletedAtMillis
+            )
+            SELECT
+                mediaAssetId,
+                workspaceId,
+                mimeType,
+                sizeBytes,
+                sha256,
+                sourceUrl,
+                createdAtMillis,
+                clientUpdatedAtMillis,
+                lastModifiedByReplicaId,
+                lastOperationId,
+                updatedAtMillis,
+                deletedAtMillis
+            FROM media_assets
+            """.trimIndent()
+        )
+        db.execSQL("DROP TABLE media_assets")
+        db.execSQL("ALTER TABLE media_assets_v28 RENAME TO media_assets")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_media_assets_workspaceId ON media_assets(workspaceId)")
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_media_assets_workspaceId_updatedAtMillis_mediaAssetId
+            ON media_assets(workspaceId, updatedAtMillis, mediaAssetId)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_media_assets_workspaceId_sha256_mediaAssetId
+            ON media_assets(workspaceId, sha256, mediaAssetId)
             """.trimIndent()
         )
     }

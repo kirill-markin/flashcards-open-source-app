@@ -721,7 +721,6 @@ private fun buildOperationPayload(payload: SyncOperationPayload): JSONObject {
             .put("mimeType", payload.payload.mimeType)
             .put("sizeBytes", payload.payload.sizeBytes)
             .put("sha256", payload.payload.sha256)
-            .put("storageKey", payload.payload.storageKey)
             .putNullableString("sourceUrl", payload.payload.sourceUrl)
             .put("createdAt", payload.payload.createdAt)
             .putNullableString("deletedAt", payload.payload.deletedAt)

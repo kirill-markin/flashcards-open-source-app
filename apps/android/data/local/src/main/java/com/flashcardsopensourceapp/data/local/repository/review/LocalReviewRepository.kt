@@ -468,7 +468,6 @@ private fun toMediaAsset(mediaAsset: MediaAssetEntity): MediaAsset {
         mimeType = mediaAsset.mimeType,
         sizeBytes = mediaAsset.sizeBytes,
         sha256 = mediaAsset.sha256,
-        storageKey = mediaAsset.storageKey,
         sourceUrl = mediaAsset.sourceUrl,
         createdAtMillis = mediaAsset.createdAtMillis,
         clientUpdatedAtMillis = mediaAsset.clientUpdatedAtMillis,
