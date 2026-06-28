@@ -18,6 +18,7 @@ import {
   settingsReviewAnimationsRoute,
   settingsSchedulerRoute,
   settingsServerRoute,
+  shareRoute,
 } from "../../routes";
 import type {
   Card,
@@ -59,6 +60,10 @@ type SettingsScreenTestHarness = Readonly<{
   getContainer: () => HTMLDivElement;
   renderSettingsScreen: () => Promise<void>;
 }>;
+
+type NavigatorWithOptionalShare = Navigator & {
+  share?: (data: ShareData) => Promise<void>;
+};
 
 function throwNotUsed(functionName: string): never {
   throw new Error(`${functionName} was not expected in this test`);
@@ -196,6 +201,10 @@ function setupSettingsScreenTest(): SettingsScreenTestHarness {
       configurable: true,
       value: createStorageMock(),
     });
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: undefined,
+    });
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
@@ -315,10 +324,12 @@ describe("SettingsScreen navigation", () => {
     await renderSettingsScreen();
 
     expect(textContent()).toContain("Account");
+    expect(textContent()).toContain("Share");
     expect(textContent()).toContain("General");
     expect(textContent()).toContain("Support");
     expect(textContent()).toContain("Advanced");
     expectGroupLabelNotClickable("Account");
+    expectGroupLabelNotClickable("Share");
     expectGroupLabelNotClickable("General");
     expectGroupLabelNotClickable("Support");
     expectGroupLabelNotClickable("Advanced");
@@ -348,8 +359,11 @@ describe("SettingsScreen navigation", () => {
       "settings-row-delete-account",
     ].forEach(expectRowVisible);
     expectRowVisible("settings-invite-open");
+    expectRowVisible("settings-share-app-open");
     expect(getContainer().querySelector("[data-testid='settings-invite-open']")?.textContent).toBe("Invite friend");
     expect(rowIndex("settings-invite-open")).toBeLessThan(rowIndex("settings-row-account-status"));
+    expect(rowIndex("settings-invite-open")).toBeLessThan(rowIndex("settings-share-app-open"));
+    expect(rowIndex("settings-share-app-open")).toBeLessThan(rowIndex("settings-row-account-status"));
     expect(rowIndex("settings-row-review-reminders")).toBeLessThan(rowIndex("settings-row-review-animations"));
     expect(rowIndex("settings-row-review-animations")).toBeLessThan(rowIndex("settings-row-ai-chat-suggestions"));
     expect(rowIndex("settings-row-ai-chat-suggestions")).toBeLessThan(rowIndex("settings-row-leaderboard-participation"));
@@ -385,6 +399,34 @@ describe("SettingsScreen navigation", () => {
     await clickButton("settings-invite-open");
 
     expect(document.body.querySelector("[data-testid='progress-leaderboard-invite-sign-in']")).not.toBeNull();
+  });
+
+  it("opens the native app share sheet from Settings", async () => {
+    const shareMock = vi.fn(async (_data: ShareData): Promise<void> => undefined);
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: shareMock,
+    });
+
+    await renderSettingsScreen();
+
+    await clickButton("settings-share-app-open");
+
+    expect(shareMock).toHaveBeenCalledWith({
+      title: "Study with Flashcards",
+      text: "Open Flashcards on iOS, Android, or the web.",
+      url: `${window.location.origin}${shareRoute}`,
+    });
+    expect(getContainer().querySelector("[data-testid='settings-share-app-status']")?.textContent).toBe("Share sheet opened.");
+  });
+
+  it("shows an explicit app share error when native sharing is unavailable", async () => {
+    await renderSettingsScreen();
+
+    await clickButton("settings-share-app-open");
+
+    expect((navigator as NavigatorWithOptionalShare).share).toBeUndefined();
+    expect(getContainer().querySelector("[data-testid='settings-share-app-error']")?.textContent).toBe("Sharing is not available in this browser.");
   });
 
   it("navigates representative root rows to their detail routes", async () => {

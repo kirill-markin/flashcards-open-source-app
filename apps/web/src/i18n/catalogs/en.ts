@@ -362,10 +362,20 @@ const enCatalog = {
       ariaLabel: "Create friend invite",
     },
     groups: {
+      share: "Share",
       account: "Account",
       general: "General",
       support: "Support",
       advanced: "Advanced",
+    },
+    shareApp: {
+      title: "Share app",
+      description: "Send an install or open link for iOS, Android, and the web.",
+      value: "Share",
+      shareTitle: "Study with Flashcards",
+      shareText: "Open Flashcards on iOS, Android, or the web.",
+      shared: "Share sheet opened.",
+      shareUnavailable: "Sharing is not available in this browser.",
     },
     currentWorkspace: {
       title: "Workspace",

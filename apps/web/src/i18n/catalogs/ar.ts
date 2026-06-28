@@ -364,10 +364,20 @@ const arCatalog: TranslationCatalog = {
       ariaLabel: "إنشاء دعوة صديق",
     },
     groups: {
+      share: "مشاركة",
       account: "الحساب",
       general: "عام",
       support: "الدعم",
       advanced: "متقدم",
+    },
+    shareApp: {
+      title: "مشاركة التطبيق",
+      description: "أرسل رابط تثبيت أو فتح لنظام iOS وAndroid والويب.",
+      value: "مشاركة",
+      shareTitle: "ادرس باستخدام Flashcards",
+      shareText: "افتح Flashcards على iOS أو Android أو الويب.",
+      shared: "تم فتح نافذة المشاركة.",
+      shareUnavailable: "المشاركة غير متاحة في هذا المتصفح.",
     },
     currentWorkspace: {
       title: "مساحة العمل",

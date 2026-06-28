@@ -364,10 +364,20 @@ export const zhHansCatalog = {
       ariaLabel: "创建好友邀请",
     },
     groups: {
+      share: "分享",
       account: "账户",
       general: "通用",
       support: "支持",
       advanced: "高级",
+    },
+    shareApp: {
+      title: "分享应用",
+      description: "发送可在 iOS、Android 和网页版安装或打开的链接。",
+      value: "分享",
+      shareTitle: "使用 Flashcards 学习",
+      shareText: "在 iOS、Android 或网页版打开 Flashcards。",
+      shared: "分享面板已打开。",
+      shareUnavailable: "此浏览器不支持分享。",
     },
     currentWorkspace: {
       title: "工作区",
