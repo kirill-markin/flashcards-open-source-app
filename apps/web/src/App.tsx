@@ -65,6 +65,7 @@ import {
   settingsTagsRoute,
   settingsTestAnimationsRoute,
   settingsTestRoute,
+  shareRoute,
 } from "./routes";
 import { isWorkspaceManagementLocked } from "./workspaceManagement";
 import { TestModeProvider, useTestMode } from "./testMode";
@@ -74,6 +75,7 @@ import { CardsScreen } from "./screens/cards/list/CardsScreen";
 import { FriendInviteScreen } from "./screens/invite/FriendInviteScreen";
 import { ProgressScreen } from "./screens/progress/ProgressScreen";
 import { ReviewScreen } from "./screens/review/ReviewScreen";
+import { ShareAppScreen } from "./screens/share/ShareAppScreen";
 
 const SentryRoutes = wrapRoutesComponent(RouterRoutes);
 
@@ -825,6 +827,7 @@ export default function App(): ReactElement {
                 element={renderDeferredRoute(<FriendInvitePreviewScreen />, "friendInvite.loading")}
               />
               <Route path={friendInviteRoutePattern} element={<FriendInviteScreen />} />
+              <Route path={shareRoute} element={<ShareAppScreen />} />
               <Route path="/*" element={<AuthenticatedApp />} />
             </SentryRoutes>
           </TestModeProvider>

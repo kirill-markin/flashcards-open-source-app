@@ -278,6 +278,15 @@ const hiCatalog: TranslationCatalog = {
       reviews: "रिव्यू",
     },
   },
+  shareApp: {
+    title: "Flashcards के साथ पढ़ें",
+    body: "चुनें कि आप ऐप कहां इस्तेमाल करना चाहते हैं। आपके कार्ड iOS, Android और वेब पर उपलब्ध रहते हैं।",
+    links: {
+      ios: "App Store में खोलें",
+      android: "Google Play में खोलें",
+      web: "वेब ऐप",
+    },
+  },
   friendInvite: {
     loading: "आमंत्रण लिंक जांचा जा रहा है...",
     inactiveTitle: "यह लिंक अब सक्रिय नहीं है",

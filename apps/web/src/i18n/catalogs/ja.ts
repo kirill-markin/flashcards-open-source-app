@@ -278,6 +278,15 @@ export const jaCatalog = {
       reviews: "復習回数",
     },
   },
+  shareApp: {
+    title: "Flashcardsで学習",
+    body: "アプリを使う場所を選択してください。カードはiOS、Android、Webで引き続き利用できます。",
+    links: {
+      ios: "App Store で開く",
+      android: "Google Play で開く",
+      web: "Web App",
+    },
+  },
   friendInvite: {
     loading: "招待リンクを確認しています...",
     inactiveTitle: "このリンクはもう有効ではありません",

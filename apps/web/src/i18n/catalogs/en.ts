@@ -276,6 +276,15 @@ const enCatalog = {
       reviews: "Reviews",
     },
   },
+  shareApp: {
+    title: "Study with Flashcards",
+    body: "Choose where you want to use the app. Your cards stay available across iOS, Android, and the web.",
+    links: {
+      ios: "Open in App Store",
+      android: "Open in Google Play",
+      web: "Web App",
+    },
+  },
   friendInvite: {
     loading: "Checking invite link...",
     inactiveTitle: "This link is no longer active",
