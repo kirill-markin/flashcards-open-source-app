@@ -8,7 +8,6 @@ struct MediaAsset: Codable, Identifiable, Hashable, Sendable {
     let mimeType: String
     let sizeBytes: Int64
     let sha256: String
-    let storageKey: String
     let sourceUrl: String?
     let createdAt: String
     let clientUpdatedAt: String
@@ -27,7 +26,6 @@ struct MediaAsset: Codable, Identifiable, Hashable, Sendable {
         mimeType: String,
         sizeBytes: Int64,
         sha256: String,
-        storageKey: String,
         sourceUrl: String?,
         createdAt: String,
         clientUpdatedAt: String,
@@ -41,7 +39,6 @@ struct MediaAsset: Codable, Identifiable, Hashable, Sendable {
         self.mimeType = mimeType
         self.sizeBytes = sizeBytes
         self.sha256 = sha256
-        self.storageKey = storageKey
         self.sourceUrl = sourceUrl
         self.createdAt = createdAt
         self.clientUpdatedAt = clientUpdatedAt

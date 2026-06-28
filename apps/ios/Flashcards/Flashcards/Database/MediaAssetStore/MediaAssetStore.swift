@@ -6,7 +6,6 @@ let mediaAssetStoreSelectColumnsSQL: String = """
     mime_type,
     size_bytes,
     sha256,
-    storage_key,
     source_url,
     created_at,
     client_updated_at,
@@ -64,14 +63,13 @@ struct MediaAssetStore {
             mimeType: DatabaseCore.columnText(statement: statement, index: 2),
             sizeBytes: DatabaseCore.columnInt64(statement: statement, index: 3),
             sha256: DatabaseCore.columnText(statement: statement, index: 4),
-            storageKey: DatabaseCore.columnText(statement: statement, index: 5),
-            sourceUrl: DatabaseCore.columnOptionalText(statement: statement, index: 6),
-            createdAt: DatabaseCore.columnText(statement: statement, index: 7),
-            clientUpdatedAt: DatabaseCore.columnText(statement: statement, index: 8),
-            lastModifiedByReplicaId: DatabaseCore.columnText(statement: statement, index: 9),
-            lastOperationId: DatabaseCore.columnText(statement: statement, index: 10),
-            updatedAt: DatabaseCore.columnText(statement: statement, index: 11),
-            deletedAt: DatabaseCore.columnOptionalText(statement: statement, index: 12)
+            sourceUrl: DatabaseCore.columnOptionalText(statement: statement, index: 5),
+            createdAt: DatabaseCore.columnText(statement: statement, index: 6),
+            clientUpdatedAt: DatabaseCore.columnText(statement: statement, index: 7),
+            lastModifiedByReplicaId: DatabaseCore.columnText(statement: statement, index: 8),
+            lastOperationId: DatabaseCore.columnText(statement: statement, index: 9),
+            updatedAt: DatabaseCore.columnText(statement: statement, index: 10),
+            deletedAt: DatabaseCore.columnOptionalText(statement: statement, index: 11)
         )
     }
 }

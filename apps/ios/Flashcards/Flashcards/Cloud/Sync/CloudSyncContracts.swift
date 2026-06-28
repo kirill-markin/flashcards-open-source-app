@@ -405,7 +405,6 @@ private struct BootstrapMediaAssetPayload: Encodable {
         case mimeType
         case sizeBytes
         case sha256
-        case storageKey
         case sourceUrl
         case createdAt
         case clientUpdatedAt
@@ -428,7 +427,6 @@ private struct BootstrapMediaAssetPayload: Encodable {
         try container.encode(self.snapshot.mimeType, forKey: .mimeType)
         try container.encode(self.snapshot.sizeBytes, forKey: .sizeBytes)
         try container.encode(self.snapshot.sha256, forKey: .sha256)
-        try container.encode(self.snapshot.storageKey, forKey: .storageKey)
         try encodeNullableBootstrapValue(self.snapshot.sourceUrl, forKey: .sourceUrl, in: &container)
         try container.encode(self.snapshot.createdAt, forKey: .createdAt)
         try container.encode(self.clientUpdatedAt, forKey: .clientUpdatedAt)
@@ -572,7 +570,6 @@ struct RemoteMediaAssetChangePayload: Decodable {
     let mimeType: String
     let sizeBytes: Int64
     let sha256: String
-    let storageKey: String
     let sourceUrl: String?
     let createdAt: String
     let clientUpdatedAt: String

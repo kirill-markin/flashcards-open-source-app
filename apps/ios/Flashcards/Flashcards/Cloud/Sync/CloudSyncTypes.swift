@@ -570,7 +570,6 @@ struct MediaAssetSyncPayload: Codable, Hashable {
     let mimeType: String
     let sizeBytes: Int64
     let sha256: String
-    let storageKey: String
     let sourceUrl: String?
     let createdAt: String
     let deletedAt: String?
@@ -581,7 +580,6 @@ struct MediaAssetSyncPayload: Codable, Hashable {
         case mimeType
         case sizeBytes
         case sha256
-        case storageKey
         case sourceUrl
         case createdAt
         case deletedAt
@@ -594,7 +592,6 @@ struct MediaAssetSyncPayload: Codable, Hashable {
         try container.encode(self.mimeType, forKey: .mimeType)
         try container.encode(self.sizeBytes, forKey: .sizeBytes)
         try container.encode(self.sha256, forKey: .sha256)
-        try container.encode(self.storageKey, forKey: .storageKey)
         if let sourceUrl = self.sourceUrl {
             try container.encode(sourceUrl, forKey: .sourceUrl)
         } else {
@@ -616,7 +613,6 @@ extension MediaAssetSyncPayload {
         self.mimeType = mediaAsset.mimeType
         self.sizeBytes = mediaAsset.sizeBytes
         self.sha256 = mediaAsset.sha256
-        self.storageKey = mediaAsset.storageKey
         self.sourceUrl = mediaAsset.sourceUrl
         self.createdAt = mediaAsset.createdAt
         self.deletedAt = mediaAsset.deletedAt

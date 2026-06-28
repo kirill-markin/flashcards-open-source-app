@@ -261,7 +261,7 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
         XCTAssertEqual(payload["mimeType"] as? String, mediaAsset.mimeType)
         XCTAssertEqual(payload["sizeBytes"] as? Int, Int(mediaAsset.sizeBytes))
         XCTAssertEqual(payload["sha256"] as? String, mediaAsset.sha256)
-        XCTAssertEqual(payload["storageKey"] as? String, mediaAsset.storageKey)
+        XCTAssertNil(payload["storageKey"])
         XCTAssertEqual(payload["clientUpdatedAt"] as? String, mediaAsset.clientUpdatedAt)
         XCTAssertEqual(payload["lastOperationId"] as? String, mediaAsset.lastOperationId)
         XCTAssertEqual(payload["updatedAt"] as? String, mediaAsset.updatedAt)
@@ -282,7 +282,6 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
                 "mimeType": "image/png",
                 "sizeBytes": 1234,
                 "sha256": "sha",
-                "storageKey": "workspaces/workspace-1/media/asset.png",
                 "sourceUrl": null,
                 "createdAt": "2026-04-24T10:00:00.000Z",
                 "clientUpdatedAt": "2026-04-24T10:00:01.000Z",
@@ -424,7 +423,6 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
             mimeType: "image/png",
             sizeBytes: 1234,
             sha256: "sha",
-            storageKey: "workspaces/workspace-1/media/asset.png",
             sourceUrl: nil,
             createdAt: "2026-04-24T10:00:00.000Z",
             clientUpdatedAt: "2026-04-24T10:00:01.000Z",

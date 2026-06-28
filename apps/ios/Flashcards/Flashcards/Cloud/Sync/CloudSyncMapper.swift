@@ -65,7 +65,6 @@ enum CloudSyncMapper {
             mimeType: payload.mimeType,
             sizeBytes: payload.sizeBytes,
             sha256: payload.sha256,
-            storageKey: payload.storageKey,
             sourceUrl: payload.sourceUrl,
             createdAt: payload.createdAt,
             clientUpdatedAt: payload.clientUpdatedAt,

@@ -101,6 +101,9 @@ struct LocalDatabaseMigrator {
             case 21:
                 try self.migrateSchemaVersion21To22()
                 schemaVersion = 22
+            case 22:
+                try self.migrateSchemaVersion22To23()
+                schemaVersion = 23
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -701,7 +704,6 @@ struct LocalDatabaseMigrator {
                 mime_type TEXT NOT NULL CHECK (length(trim(mime_type)) > 0),
                 size_bytes INTEGER NOT NULL CHECK (size_bytes >= 0),
                 sha256 TEXT NOT NULL CHECK (length(trim(sha256)) > 0),
-                storage_key TEXT NOT NULL CHECK (length(trim(storage_key)) > 0),
                 source_url TEXT,
                 created_at TEXT NOT NULL,
                 client_updated_at TEXT NOT NULL,
@@ -730,6 +732,20 @@ struct LocalDatabaseMigrator {
                 updated_at = ?
             """,
             values: [.text(nowIsoTimestamp())]
+        )
+    }
+
+    private func migrateSchemaVersion22To23() throws {
+        guard try self.core.columnExists(tableName: "media_assets", columnName: "storage_key") else {
+            return
+        }
+
+        try self.core.execute(
+            sql: """
+            ALTER TABLE media_assets
+            DROP COLUMN storage_key
+            """,
+            values: []
         )
     }
 
