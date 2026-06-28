@@ -18,6 +18,9 @@ const {
   ApiErrorMock,
   AuthRedirectErrorMock,
   ApiContractErrorMock,
+  ChatLiveContractErrorMock,
+  ChatLiveHttpErrorMock,
+  ChatLiveTransportErrorMock,
   addWebBreadcrumbMock,
   captureWebExceptionMock,
   captureWebWarningMock,
@@ -69,6 +72,60 @@ const {
       this.endpoint = endpoint;
       this.fieldPath = fieldPath;
       this.expected = expected;
+    }
+  },
+  ChatLiveContractErrorMock: class ChatLiveContractError extends Error {
+    readonly eventType: string | null;
+    readonly payloadSnippet: string;
+    requestId: string | null;
+    statusCode: number | null;
+    code: string | null;
+
+    constructor(message: string, eventType: string | null, payload: string) {
+      super(message);
+      this.name = "ChatLiveContractError";
+      this.eventType = eventType;
+      this.payloadSnippet = payload.trim().slice(0, 240);
+      this.requestId = null;
+      this.statusCode = null;
+      this.code = null;
+    }
+  },
+  ChatLiveHttpErrorMock: class ChatLiveHttpError extends Error {
+    readonly statusCode: number;
+    readonly requestId: string | null;
+    readonly code: string | null;
+
+    constructor(message: string, statusCode: number, requestId: string | null, code: string | null) {
+      super(message);
+      this.name = "ChatLiveHttpError";
+      this.statusCode = statusCode;
+      this.requestId = requestId;
+      this.code = code;
+    }
+  },
+  ChatLiveTransportErrorMock: class ChatLiveTransportError extends Error {
+    readonly requestId: string | null;
+    readonly statusCode: number | null;
+    readonly code: string | null;
+    readonly originalErrorName: string | null;
+
+    constructor(
+      message: string,
+      metadata: Readonly<{
+        requestId: string | null;
+        statusCode: number | null;
+        code: string | null;
+      }>,
+      originalErrorName: string | null,
+      cause: unknown,
+    ) {
+      super(message, { cause });
+      this.name = "ChatLiveTransportError";
+      this.requestId = metadata.requestId;
+      this.statusCode = metadata.statusCode;
+      this.code = metadata.code;
+      this.originalErrorName = originalErrorName;
     }
   },
   addWebBreadcrumbMock: vi.fn(),
@@ -136,6 +193,9 @@ vi.mock("../../../../localDb/sync/outbox", () => ({
 }));
 
 vi.mock("../../../streaming/liveStream", () => ({
+  ChatLiveContractError: ChatLiveContractErrorMock,
+  ChatLiveHttpError: ChatLiveHttpErrorMock,
+  ChatLiveTransportError: ChatLiveTransportErrorMock,
   consumeChatLiveStream: consumeChatLiveStreamMock,
 }));
 
@@ -224,6 +284,9 @@ export {
   ApiContractErrorMock,
   ApiErrorMock,
   AuthRedirectErrorMock,
+  ChatLiveContractErrorMock,
+  ChatLiveHttpErrorMock,
+  ChatLiveTransportErrorMock,
   addWebBreadcrumbMock,
   captureWebExceptionMock,
   captureWebWarningMock,

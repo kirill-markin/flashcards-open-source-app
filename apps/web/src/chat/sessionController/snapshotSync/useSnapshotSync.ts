@@ -53,6 +53,7 @@ type UseChatSessionSnapshotSyncParams = Readonly<{
 
 type SnapshotRequestTrigger =
   | "initial_hydration"
+  | "stream_transport_error"
   | "terminal_reconcile"
   | "unexpected_stream_end"
   | "visible_resume";
@@ -427,6 +428,7 @@ export function useChatSessionSnapshotSync(
   const lastSnapshotUpdatedAtRef = useRef<number | null>(initialLastSnapshotUpdatedAt);
   const snapshotRequestVersionRef = useRef<number>(0);
   const visibilityResumePromiseRef = useRef<Promise<void> | null>(null);
+  const streamTransportRecoveryPromiseRef = useRef<Promise<void> | null>(null);
   const activeToolRunPostSyncPromiseRef = useRef<Promise<void> | null>(null);
   const liveCursorRef = useRef<string | null>(null);
   const resumeAttemptCounterRef = useRef<number>(0);
@@ -717,6 +719,59 @@ export function useChatSessionSnapshotSync(
       })();
 
       visibilityResumePromiseRef.current = refreshPromise;
+    },
+    onRecoverableStreamError: (sessionId) => {
+      if (streamTransportRecoveryPromiseRef.current !== null) {
+        return;
+      }
+
+      const resumeAttemptId = nextResumeAttemptId();
+      let recoveryPromise: Promise<void> | null = null;
+      recoveryPromise = (async (): Promise<void> => {
+        try {
+          const snapshot = await loadAndApplySnapshot(
+            sessionId,
+            true,
+            "stream_transport_error",
+            resumeAttemptId,
+          );
+          if (snapshot === null) {
+            return;
+          }
+
+          const snapshotErrorMessage = extractAssistantErrorMessage(snapshot.conversation.messages);
+          if (snapshot.activeRun !== null) {
+            startLiveStream(
+              snapshot.sessionId,
+              snapshot.activeRun.runId,
+              snapshot.activeRun.live.stream,
+              snapshot.activeRun.live.cursor,
+              resumeAttemptId,
+            );
+            return;
+          }
+
+          detachLiveStream(snapshot.sessionId, null);
+          if (snapshotErrorMessage !== null) {
+            dispatch({
+              type: "run_interrupted",
+              message: snapshotErrorMessage,
+            });
+          }
+        } catch (error) {
+          detachLiveStream(null, null);
+          dispatch({
+            type: "run_interrupted",
+            message: `${uiMessages.refreshFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
+          });
+        } finally {
+          if (streamTransportRecoveryPromiseRef.current === recoveryPromise) {
+            streamTransportRecoveryPromiseRef.current = null;
+          }
+        }
+      })();
+
+      streamTransportRecoveryPromiseRef.current = recoveryPromise;
     },
     onLiveAttachConnected: () => {
       dispatch({ type: "live_attach_connected" });
