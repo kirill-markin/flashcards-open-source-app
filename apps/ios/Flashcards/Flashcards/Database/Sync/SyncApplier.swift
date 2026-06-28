@@ -326,7 +326,6 @@ struct SyncApplier {
                 mime_type,
                 size_bytes,
                 sha256,
-                storage_key,
                 source_url,
                 created_at,
                 client_updated_at,
@@ -335,12 +334,11 @@ struct SyncApplier {
                 updated_at,
                 deleted_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(workspace_id, media_asset_id) DO UPDATE SET
                 mime_type = excluded.mime_type,
                 size_bytes = excluded.size_bytes,
                 sha256 = excluded.sha256,
-                storage_key = excluded.storage_key,
                 source_url = excluded.source_url,
                 created_at = excluded.created_at,
                 client_updated_at = excluded.client_updated_at,
@@ -355,7 +353,6 @@ struct SyncApplier {
                 .text(mediaAsset.mimeType),
                 .integer(mediaAsset.sizeBytes),
                 .text(mediaAsset.sha256),
-                .text(mediaAsset.storageKey),
                 mediaAsset.sourceUrl.map(SQLiteValue.text) ?? .null,
                 .text(mediaAsset.createdAt),
                 .text(mediaAsset.clientUpdatedAt),

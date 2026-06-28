@@ -1,7 +1,7 @@
 import Foundation
 
 enum LocalDatabaseSchema {
-    static let currentVersion: Int = 22
+    static let currentVersion: Int = 23
 
     static var baseMigrationSQL: String {
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
@@ -77,7 +77,6 @@ enum LocalDatabaseSchema {
             mime_type TEXT NOT NULL CHECK (length(trim(mime_type)) > 0), -- backend-provided MIME type used for read-only rendering
             size_bytes INTEGER NOT NULL CHECK (size_bytes >= 0), -- byte size metadata only; media bytes are never stored in this table
             sha256 TEXT NOT NULL CHECK (length(trim(sha256)) > 0), -- content digest from the backend registry
-            storage_key TEXT NOT NULL CHECK (length(trim(storage_key)) > 0), -- opaque backend storage key used only by the server
             source_url TEXT, -- original external source URL when available
             created_at TEXT NOT NULL, -- original asset creation timestamp
             client_updated_at TEXT NOT NULL, -- client-side LWW timestamp for the most recent media registry winner

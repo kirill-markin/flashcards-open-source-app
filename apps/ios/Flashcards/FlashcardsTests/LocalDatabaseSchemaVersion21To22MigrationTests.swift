@@ -32,6 +32,7 @@ final class LocalDatabaseSchemaVersion21To22MigrationTests: LocalDatabaseTestCas
 
         XCTAssertEqual(LocalDatabaseSchema.currentVersion, try self.loadSchemaVersion(database: migratedDatabase))
         XCTAssertTrue(try self.hasColumn(database: migratedDatabase, tableName: "media_assets", columnName: "media_asset_id"))
+        XCTAssertFalse(try self.hasColumn(database: migratedDatabase, tableName: "media_assets", columnName: "storage_key"))
         XCTAssertEqual(syncState.lastAppliedHotChangeId, 0)
         XCTAssertFalse(syncState.hasHydratedHotState)
         XCTAssertEqual(syncState.lastAppliedReviewSequenceId, 456)

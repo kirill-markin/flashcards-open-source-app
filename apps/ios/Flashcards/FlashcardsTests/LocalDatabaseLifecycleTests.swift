@@ -173,6 +173,7 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let mediaAsset = self.makeMediaAsset(workspaceId: workspace.workspaceId, deletedAt: nil)
+        XCTAssertFalse(try self.hasColumn(database: database, tableName: "media_assets", columnName: "storage_key"))
 
         let applyResult = try database.applySyncBootstrapEntry(
             workspaceId: workspace.workspaceId,
@@ -235,7 +236,6 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
             mimeType: "image/png",
             sizeBytes: 1234,
             sha256: "sha",
-            storageKey: "workspaces/\(workspaceId)/media/asset.png",
             sourceUrl: nil,
             createdAt: "2026-04-24T10:00:00.000Z",
             clientUpdatedAt: deletedAt == nil ? "2026-04-24T10:00:01.000Z" : "2026-04-25T10:00:00.000Z",
