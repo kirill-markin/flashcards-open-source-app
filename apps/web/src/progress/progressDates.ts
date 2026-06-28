@@ -4,6 +4,7 @@ import type {
   ProgressSummaryInput,
 } from "../types";
 import {
+  addWebBreadcrumb,
   captureWebWarning,
   type WebObservationScope,
 } from "../observability/webObservability";
@@ -254,6 +255,10 @@ function observeInvalidProgressTimeZone(
   }
 }
 
+function isKnownNonActionableProgressTimeZone(timeZone: string | null): boolean {
+  return timeZone === "Etc/Unknown";
+}
+
 function assertUsableTimeZone(timeZone: string): void {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone,
@@ -310,6 +315,21 @@ function fallBackFromInvalidProgressTimeZone(
 ): string {
   const observedOffsetMinutes = readBrowserUtcOffsetMinutes();
   const fallbackTimeZone = resolveFallbackProgressTimeZone(observedOffsetMinutes);
+  if (isKnownNonActionableProgressTimeZone(observedTimeZone)) {
+    addWebBreadcrumb({
+      action: "progress_timezone_fallback",
+      scope: buildProgressObservationScope(),
+      details: {
+        eventName: "progress_timezone_fallback",
+        observedTimeZone,
+        observedOffsetMinutes,
+        fallbackTimeZone,
+        errorName,
+      },
+    });
+    return fallbackTimeZone;
+  }
+
   observeInvalidProgressTimeZone(
     observedTimeZone,
     errorName,

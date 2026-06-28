@@ -1,15 +1,17 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { INSTALLATION_ID_STORAGE_KEY } from "../clientIdentity";
-import type { WebWarningEvent } from "../observability/webObservability";
+import type { WebBreadcrumbEvent, WebWarningEvent } from "../observability/webObservability";
 
 const progressTimezoneWarningHistoryStorageKey = "flashcards-progress-timezone-warning-history-v1";
 
 const observabilityMocks = vi.hoisted(() => ({
+  addWebBreadcrumbMock: vi.fn(),
   captureWebWarningMock: vi.fn(),
 }));
 
 vi.mock("../observability/webObservability", () => ({
+  addWebBreadcrumb: observabilityMocks.addWebBreadcrumbMock,
   captureWebWarning: observabilityMocks.captureWebWarningMock,
 }));
 
@@ -65,6 +67,15 @@ function readCapturedWarning(callIndex: number): WebWarningEvent {
   return event;
 }
 
+function readCapturedBreadcrumb(callIndex: number): WebBreadcrumbEvent {
+  const event = observabilityMocks.addWebBreadcrumbMock.mock.calls[callIndex]?.[0] as WebBreadcrumbEvent | undefined;
+  if (event === undefined) {
+    throw new Error(`Expected captured breadcrumb at index ${callIndex}`);
+  }
+
+  return event;
+}
+
 describe("progress date context", () => {
   beforeEach(() => {
     Object.defineProperty(window, "localStorage", {
@@ -73,12 +84,14 @@ describe("progress date context", () => {
     });
     vi.resetModules();
     window.localStorage.clear();
+    observabilityMocks.addWebBreadcrumbMock.mockReset();
     observabilityMocks.captureWebWarningMock.mockReset();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     window.localStorage.clear();
+    observabilityMocks.addWebBreadcrumbMock.mockReset();
     observabilityMocks.captureWebWarningMock.mockReset();
   });
 
@@ -104,18 +117,19 @@ describe("progress date context", () => {
     });
   });
 
-  it("emits progress_timezone_invalid for the first invalid timezone", async () => {
+  it("emits progress_timezone_fallback breadcrumb for the known browser unknown timezone", async () => {
     mockBrowserTimeZone("Etc/Unknown");
     mockBrowserUtcOffset(180);
     const { buildProgressDateContext } = await loadProgressDatesModule();
 
     buildProgressDateContext(new Date("2026-06-04T12:00:00.000Z"));
 
-    expect(observabilityMocks.captureWebWarningMock).toHaveBeenCalledTimes(1);
-    expect(readCapturedWarning(0)).toEqual(expect.objectContaining({
-      action: "progress_timezone_invalid",
+    expect(observabilityMocks.captureWebWarningMock).not.toHaveBeenCalled();
+    expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledTimes(1);
+    expect(readCapturedBreadcrumb(0)).toEqual(expect.objectContaining({
+      action: "progress_timezone_fallback",
       details: {
-        eventName: "progress_timezone_invalid",
+        eventName: "progress_timezone_fallback",
         observedTimeZone: "Etc/Unknown",
         observedOffsetMinutes: 180,
         fallbackTimeZone: "Etc/GMT+3",
@@ -124,8 +138,29 @@ describe("progress date context", () => {
     }));
   });
 
+  it("emits progress_timezone_invalid for an unexpected invalid timezone", async () => {
+    mockBrowserTimeZone("Invalid/Timezone");
+    mockBrowserUtcOffset(180);
+    const { buildProgressDateContext } = await loadProgressDatesModule();
+
+    buildProgressDateContext(new Date("2026-06-04T12:00:00.000Z"));
+
+    expect(observabilityMocks.addWebBreadcrumbMock).not.toHaveBeenCalled();
+    expect(observabilityMocks.captureWebWarningMock).toHaveBeenCalledTimes(1);
+    expect(readCapturedWarning(0)).toEqual(expect.objectContaining({
+      action: "progress_timezone_invalid",
+      details: {
+        eventName: "progress_timezone_invalid",
+        observedTimeZone: "Invalid/Timezone",
+        observedOffsetMinutes: 180,
+        fallbackTimeZone: "Etc/GMT+3",
+        errorName: "RangeError",
+      },
+    }));
+  });
+
   it("does not emit a second invalid timezone warning within the throttle window after reload", async () => {
-    mockBrowserTimeZone("Etc/Unknown");
+    mockBrowserTimeZone("Invalid/Timezone");
     mockBrowserUtcOffset(180);
     const firstModule = await loadProgressDatesModule();
     firstModule.buildProgressDateContext(new Date("2026-06-04T12:00:00.000Z"));
@@ -142,7 +177,7 @@ describe("progress date context", () => {
   });
 
   it("emits a new first warning after localStorage is cleared across reloads", async () => {
-    mockBrowserTimeZone("Etc/Unknown");
+    mockBrowserTimeZone("Invalid/Timezone");
     mockBrowserUtcOffset(180);
     const firstModule = await loadProgressDatesModule();
     firstModule.buildProgressDateContext(new Date("2026-06-04T12:00:00.000Z"));
@@ -160,7 +195,7 @@ describe("progress date context", () => {
 
   it("includes installationId in the warning scope when localStorage is available", async () => {
     window.localStorage.setItem(INSTALLATION_ID_STORAGE_KEY, "installation-1");
-    mockBrowserTimeZone("Etc/Unknown");
+    mockBrowserTimeZone("Invalid/Timezone");
     mockBrowserUtcOffset(180);
     const { buildProgressDateContext } = await loadProgressDatesModule();
 
