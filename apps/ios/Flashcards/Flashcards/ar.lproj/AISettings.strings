@@ -601,7 +601,7 @@
 "settings.notifications.duration.minutes" = "دقائق %d";
 
 "settings.workspace.export.section.availableFormats" = "التنسيقات المتوفرة";
-"settings.workspace.export.description" = "يصدر النص الأمامي، والنص الخلفي، والتسميات لكل البطاقات النشطة في مساحة العمل الحالية.";
+"settings.workspace.export.description" = "يصدر بيانات البطاقات النشطة من مساحة العمل الحالية كملف CSV.";
 "settings.workspace.export.exportCsv" = "تصدير CSV";
 "settings.workspace.export.exporting" = "جارٍ التصدير...";
 "settings.workspace.export.fileUnavailable" = "الملف الذي تم تصديره غير متوفر.";

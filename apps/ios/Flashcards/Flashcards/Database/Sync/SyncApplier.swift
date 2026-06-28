@@ -105,6 +105,7 @@ struct SyncApplier {
         cardStore: CardStore
     ) throws {
         let tagsJson = try self.core.encodeJsonString(value: card.tags)
+        let metadataJson = try self.core.encodeJsonString(value: card.metadata)
         let existingCard = try cardStore.loadOptionalCardIncludingDeleted(workspaceId: workspaceId, cardId: card.cardId)
 
         if existingCard == nil {
@@ -115,6 +116,8 @@ struct SyncApplier {
                     workspace_id,
                     front_text,
                     back_text,
+                    card_type,
+                    metadata_json,
                     tags_json,
                     due_at,
                     due_at_millis,
@@ -134,13 +137,15 @@ struct SyncApplier {
                     updated_at,
                     deleted_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 values: [
                     .text(card.cardId),
                     .text(workspaceId),
                     .text(card.frontText),
                     .text(card.backText),
+                    .text(card.cardType),
+                    .text(metadataJson),
                     .text(tagsJson),
                     card.dueAt.map(SQLiteValue.text) ?? .null,
                     makeDueAtMillisSQLiteValue(dueAt: card.dueAt),
@@ -172,12 +177,14 @@ struct SyncApplier {
         _ = try self.core.execute(
             sql: """
             UPDATE cards
-            SET front_text = ?, back_text = ?, tags_json = ?, due_at = ?, due_at_millis = ?, created_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_last_reviewed_at_millis = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?, deleted_at = ?
+            SET front_text = ?, back_text = ?, card_type = ?, metadata_json = ?, tags_json = ?, due_at = ?, due_at_millis = ?, created_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_last_reviewed_at_millis = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?, deleted_at = ?
             WHERE workspace_id = ? AND card_id = ?
             """,
             values: [
                 .text(card.frontText),
                 .text(card.backText),
+                .text(card.cardType),
+                .text(metadataJson),
                 .text(tagsJson),
                 card.dueAt.map(SQLiteValue.text) ?? .null,
                 makeDueAtMillisSQLiteValue(dueAt: card.dueAt),

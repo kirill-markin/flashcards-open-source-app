@@ -601,7 +601,7 @@
 "settings.notifications.duration.minutes" = "%d minutos";
 
 "settings.workspace.export.section.availableFormats" = "Formatos disponibles";
-"settings.workspace.export.description" = "Exporta el texto frontal, el texto trasero y las etiquetas de todas las tarjetas activas del espacio de trabajo actual.";
+"settings.workspace.export.description" = "Exporta los datos de las tarjetas activas del espacio de trabajo actual como archivo CSV.";
 "settings.workspace.export.exportCsv" = "Exportar CSV";
 "settings.workspace.export.exporting" = "Exportando...";
 "settings.workspace.export.fileUnavailable" = "El archivo exportado no esta disponible.";

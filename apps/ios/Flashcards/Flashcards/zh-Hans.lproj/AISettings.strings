@@ -601,7 +601,7 @@
 "settings.notifications.duration.minutes" = "%d 分钟";
 
 "settings.workspace.export.section.availableFormats" = "可用格式";
-"settings.workspace.export.description" = "导出当前工作区中所有活动卡片的正面文本、背面文本和标签。";
+"settings.workspace.export.description" = "将当前工作区中的活动卡片数据导出为 CSV 文件。";
 "settings.workspace.export.exportCsv" = "导出 CSV";
 "settings.workspace.export.exporting" = "正在导出...";
 "settings.workspace.export.fileUnavailable" = "导出的文件不可用。";

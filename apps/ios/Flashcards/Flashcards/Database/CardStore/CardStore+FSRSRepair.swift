@@ -111,6 +111,8 @@ func resetFsrsState(card: Card, updatedAt: String) -> Card {
         workspaceId: card.workspaceId,
         frontText: card.frontText,
         backText: card.backText,
+        cardType: card.cardType,
+        metadata: card.metadata,
         tags: card.tags,
         dueAt: nil,
         createdAt: card.createdAt,

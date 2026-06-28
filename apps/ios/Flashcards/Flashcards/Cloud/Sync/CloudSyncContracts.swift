@@ -247,6 +247,8 @@ private struct BootstrapCardPayload: Encodable {
         case cardId
         case frontText
         case backText
+        case cardType
+        case metadata
         case tags
         case effortLevel
         case dueAt
@@ -277,6 +279,8 @@ private struct BootstrapCardPayload: Encodable {
         try container.encode(self.snapshot.cardId, forKey: .cardId)
         try container.encode(self.snapshot.frontText, forKey: .frontText)
         try container.encode(self.snapshot.backText, forKey: .backText)
+        try container.encode(self.snapshot.cardType, forKey: .cardType)
+        try container.encode(self.snapshot.metadata, forKey: .metadata)
         try container.encode(self.snapshot.tags, forKey: .tags)
         // TODO(old-mobile-cutoff): Remove legacy effortLevel output during final sync wire-drop cleanup.
         try container.encode(legacySyncFastEffortLevel, forKey: .effortLevel)
@@ -384,6 +388,8 @@ struct RemoteCardChangePayload: Decodable {
     let cardId: String
     let frontText: String
     let backText: String
+    let cardType: String
+    let metadata: CardMetadata
     let tags: [String]
     let dueAt: String?
     let createdAt: String
@@ -405,6 +411,8 @@ struct RemoteCardChangePayload: Decodable {
         case cardId
         case frontText
         case backText
+        case cardType
+        case metadata
         case tags
         case effortLevel
         case dueAt
@@ -429,6 +437,13 @@ struct RemoteCardChangePayload: Decodable {
         self.cardId = try container.decode(String.self, forKey: .cardId)
         self.frontText = try container.decode(String.self, forKey: .frontText)
         self.backText = try container.decode(String.self, forKey: .backText)
+        let createdAt = try container.decode(String.self, forKey: .createdAt)
+        self.cardType = try decodeCardTypeWithLegacyDefault(from: container, forKey: .cardType)
+        self.metadata = try decodeCardMetadataWithLegacyDefault(
+            from: container,
+            forKey: .metadata,
+            createdAt: createdAt
+        )
         let tags = try container.decode([String].self, forKey: .tags)
         // TODO(old-mobile-cutoff): Remove legacy effortLevel decode during final sync wire-drop cleanup.
         self.tags = try tagsAppendingLegacyEffortTag(
@@ -444,7 +459,7 @@ struct RemoteCardChangePayload: Decodable {
             )
         }
         self.dueAt = decodedDueAt
-        self.createdAt = try container.decode(String.self, forKey: .createdAt)
+        self.createdAt = createdAt
         self.reps = try container.decode(Int.self, forKey: .reps)
         self.lapses = try container.decode(Int.self, forKey: .lapses)
         self.fsrsCardState = try container.decode(FsrsCardState.self, forKey: .fsrsCardState)

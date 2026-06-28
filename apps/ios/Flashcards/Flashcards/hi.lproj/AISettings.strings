@@ -601,7 +601,7 @@
 "settings.notifications.duration.minutes" = "%d मिनट";
 
 "settings.workspace.export.section.availableFormats" = "उपलब्ध प्रारूप";
-"settings.workspace.export.description" = "वर्तमान कार्यक्षेत्र में सभी सक्रिय कार्डों के फ्रंट टेक्स्ट, बैक टेक्स्ट और लेबल को निर्यात करता है।";
+"settings.workspace.export.description" = "वर्तमान कार्यक्षेत्र से सक्रिय कार्ड डेटा को CSV फ़ाइल के रूप में निर्यात करता है।";
 "settings.workspace.export.exportCsv" = "निर्यात CSV";
 "settings.workspace.export.exporting" = "निर्यात...";
 "settings.workspace.export.fileUnavailable" = "निर्यात की गई फ़ाइल उपलब्ध नहीं है.";

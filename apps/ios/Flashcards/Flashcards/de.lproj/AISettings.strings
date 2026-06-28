@@ -601,7 +601,7 @@
 "settings.notifications.duration.minutes" = "%d Minuten";
 
 "settings.workspace.export.section.availableFormats" = "Verfügbare Formate";
-"settings.workspace.export.description" = "Exportiert den Vordertext, den Hintertext und die Beschriftungen aller aktiven Karten im aktuellen Arbeitsbereich.";
+"settings.workspace.export.description" = "Exportiert aktive Kartendaten aus dem aktuellen Arbeitsbereich als CSV-Datei.";
 "settings.workspace.export.exportCsv" = "CSV exportieren";
 "settings.workspace.export.exporting" = "Exportieren...";
 "settings.workspace.export.fileUnavailable" = "Die exportierte Datei ist nicht verfügbar.";

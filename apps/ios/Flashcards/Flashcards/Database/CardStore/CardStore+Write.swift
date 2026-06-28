@@ -58,6 +58,7 @@ extension CardStore {
         }
 
         let newCardId = UUID().uuidString.lowercased()
+        let metadataJson = try self.core.encodeJsonString(value: makeDefaultCardMetadata(createdAt: now))
         try self.core.execute(
             sql: """
             INSERT INTO cards (
@@ -65,6 +66,8 @@ extension CardStore {
                 workspace_id,
                 front_text,
                 back_text,
+                card_type,
+                metadata_json,
                 tags_json,
                 due_at,
                 due_at_millis,
@@ -84,13 +87,15 @@ extension CardStore {
                 updated_at,
                 deleted_at
             )
-            VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, ?, ?, NULL)
+            VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, ?, ?, NULL)
             """,
             values: [
                 .text(newCardId),
                 .text(workspaceId),
                 .text(normalizedInput.frontText),
                 .text(normalizedInput.backText),
+                .text(basicCardType),
+                .text(metadataJson),
                 .text(tagsJson),
                 .text(now),
                 .text(now),
