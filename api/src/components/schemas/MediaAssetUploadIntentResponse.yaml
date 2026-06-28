@@ -1,0 +1,41 @@
+type: object
+additionalProperties: false
+required:
+  - mediaAssetId
+  - workspaceId
+  - storageKey
+  - upload
+properties:
+  mediaAssetId:
+    $ref: ./UuidString.yaml
+  workspaceId:
+    $ref: ./UuidString.yaml
+  storageKey:
+    type: string
+  upload:
+    type: object
+    additionalProperties: false
+    required:
+      - method
+      - url
+      - expiresAt
+      - headers
+    properties:
+      method:
+        type: string
+        enum:
+          - PUT
+      url:
+        type: string
+        format: uri
+      expiresAt:
+        type: string
+        format: date-time
+      headers:
+        type: object
+        additionalProperties:
+          type: string
+        example:
+          content-type: image/png
+          if-none-match: '*'
+          x-amz-checksum-sha256: XohImNooBHFR0OVvjccpJ3NgPQ1qq73WKhHvch0VQtg=

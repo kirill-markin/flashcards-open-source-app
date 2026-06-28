@@ -19,6 +19,7 @@ import { globalMetrics } from "./global-metrics";
 import { communityLeaderboard } from "./community-leaderboard";
 import { streakLeaderboard } from "./streak-leaderboard";
 import { progressActiveDaysBackfill } from "./progress-active-days-backfill";
+import { mediaAssets } from "./media-assets";
 
 function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefined {
   const value = stack.node.tryGetContext(key);
@@ -191,6 +192,9 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       reportingDbSecret: dbResult.reportingDbSecret,
       ...sentryContext,
     });
+    const mediaAssetsResult = mediaAssets(this, {
+      baseDomain,
+    });
     let analyticsAccessResult: AnalyticsAccessResult | undefined;
     if (analyticsAccessRequested) {
       if (analyticsSshPublicKeysValue === undefined) {
@@ -283,6 +287,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       globalMetricsVisible,
       globalMetricsSnapshotBucket: globalMetricsResult.snapshotBucket,
       globalMetricsSnapshotObjectKey: globalMetricsResult.snapshotObjectKey,
+      mediaAssetsBucket: mediaAssetsResult.bucket,
       userPoolId: authResult.userPool.userPoolId,
       userPoolArn: authResult.userPool.userPoolArn,
       userPoolClientId: authResult.userPoolClient.userPoolClientId,
@@ -370,6 +375,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       adminCustomDomain: admin.customDomain,
       apexRedirectDistribution: web.apexRedirectDistribution,
       apexRedirectCustomDomain: web.apexRedirectCustomDomain,
+      mediaAssetsBucket: mediaAssetsResult.bucket,
       dbAccessInstance: analyticsAccessResult?.dbAccessInstance,
       reportingDbSecret: dbResult.reportingDbSecret,
       analyticsSshUsername: analyticsAccessResult?.sshUsername,

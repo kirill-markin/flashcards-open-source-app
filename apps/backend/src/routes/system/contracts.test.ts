@@ -30,6 +30,10 @@ const expectedPublishedExternalAgentMethods = {
   "/agent/workspaces/{workspaceId}/select": ["post"],
   "/agent/sql/query": ["post"],
   "/agent/sql/execute": ["post"],
+  "/workspaces/{workspaceId}/media-assets/upload-intents": ["post"],
+  "/workspaces/{workspaceId}/media-assets/{mediaAssetId}": ["get"],
+  "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete": ["post"],
+  "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url": ["get"],
 } as const satisfies Readonly<Record<string, ReadonlyArray<OperationMethodName>>>;
 
 function loadPublishedOpenApiDocument(): OpenApiDocumentForTest {
@@ -47,7 +51,7 @@ test("API Gateway predeclares PATCH /me/preferences", () => {
   assert.match(apiGatewaySource, /me\.addResource\("preferences"\)\.addMethod\("PATCH", integration\);/);
 });
 
-test("published OpenAPI exposes only the curated external agent contract", () => {
+test("published OpenAPI exposes only the curated external agent and media transfer contract", () => {
   const openApiDocument = loadPublishedOpenApiDocument();
   const paths = openApiDocument.paths ?? {};
   const securitySchemes = openApiDocument.components?.securitySchemes ?? {};

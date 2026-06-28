@@ -1,0 +1,39 @@
+type: object
+additionalProperties: false
+required:
+  - mimeType
+  - sizeBytes
+  - sha256
+  - createdAt
+  - clientUpdatedAt
+  - lastModifiedByReplicaId
+  - lastOperationId
+properties:
+  mimeType:
+    type: string
+    example: image/png
+  sizeBytes:
+    type: integer
+    format: int64
+    minimum: 0
+    maximum: 5368709120
+    example: 42817
+  sha256:
+    type: string
+    pattern: ^[0-9a-fA-F]{64}$
+    example: 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+  sourceUrl:
+    type:
+      - string
+      - 'null'
+    format: uri
+  createdAt:
+    type: string
+    format: date-time
+  clientUpdatedAt:
+    type: string
+    format: date-time
+  lastModifiedByReplicaId:
+    $ref: ./UuidString.yaml
+  lastOperationId:
+    type: string

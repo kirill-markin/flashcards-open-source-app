@@ -1,0 +1,35 @@
+post:
+  tags:
+    - media-assets
+  summary: Create a direct media asset upload intent
+  description: >-
+    Returns a presigned private S3 PUT URL for a workspace media object. This
+    does not create the registry row; call the complete endpoint after the
+    bytes are uploaded.
+  security:
+    - ApiKeyHeader: []
+  parameters:
+    - name: workspaceId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/MediaAssetUploadIntentInput.yaml
+  responses:
+    '201':
+      description: Upload intent created
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MediaAssetUploadIntentResponse.yaml
+    default:
+      description: Authenticated request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

@@ -1,0 +1,59 @@
+type: object
+additionalProperties: false
+required:
+  - mediaAssetId
+  - workspaceId
+  - mimeType
+  - sizeBytes
+  - sha256
+  - storageKey
+  - sourceUrl
+  - createdAt
+  - clientUpdatedAt
+  - lastModifiedByReplicaId
+  - lastOperationId
+  - updatedAt
+  - deletedAt
+properties:
+  mediaAssetId:
+    $ref: ./UuidString.yaml
+  workspaceId:
+    $ref: ./UuidString.yaml
+  mimeType:
+    type: string
+    example: image/png
+  sizeBytes:
+    type: integer
+    format: int64
+    minimum: 0
+    example: 42817
+  sha256:
+    type: string
+    pattern: ^[0-9a-f]{64}$
+    example: 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+  storageKey:
+    type: string
+    example: media-assets/workspaces/50b5b928-7f04-4cc8-878d-6cd0e8b98474/assets/43b7ec15-0a29-46f3-9cbb-c21fa4f4903f/5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+  sourceUrl:
+    type:
+      - string
+      - 'null'
+    format: uri
+  createdAt:
+    type: string
+    format: date-time
+  clientUpdatedAt:
+    type: string
+    format: date-time
+  lastModifiedByReplicaId:
+    $ref: ./UuidString.yaml
+  lastOperationId:
+    type: string
+  updatedAt:
+    type: string
+    format: date-time
+  deletedAt:
+    type:
+      - string
+      - 'null'
+    format: date-time

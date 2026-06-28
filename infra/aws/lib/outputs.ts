@@ -43,6 +43,7 @@ export interface OutputsProps {
   adminCustomDomain: string | undefined;
   apexRedirectDistribution: cloudfront.Distribution | undefined;
   apexRedirectCustomDomain: string | undefined;
+  mediaAssetsBucket: s3.IBucket;
   dbAccessInstance?: ec2.Instance;
   analyticsSshUsername?: string;
 }
@@ -244,6 +245,11 @@ export function outputs(scope: Construct, props: OutputsProps): void {
   new cdk.CfnOutput(scope, "AdminBucketName", {
     value: props.adminBucket.bucketName,
     description: "S3 bucket for deployed admin assets",
+  });
+
+  new cdk.CfnOutput(scope, "MediaAssetsBucketName", {
+    value: props.mediaAssetsBucket.bucketName,
+    description: "Private S3 bucket for media asset object bytes",
   });
 
   new cdk.CfnOutput(scope, "AdminDistributionId", {

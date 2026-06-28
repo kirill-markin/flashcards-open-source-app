@@ -1,0 +1,10 @@
+type: object
+additionalProperties: false
+required:
+  - mediaAsset
+  - applied
+properties:
+  mediaAsset:
+    $ref: ./MediaAsset.yaml
+  applied:
+    type: boolean

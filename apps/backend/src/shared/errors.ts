@@ -19,9 +19,21 @@ export type SyncConflictDetails = Readonly<{
   recoverable: true;
 }>;
 
+export type MediaAssetStorageErrorDetails = Readonly<{
+  operation: string;
+  workspaceId: string;
+  mediaAssetId: string;
+  storageKey: string;
+  bucketName: string;
+  s3StatusCode: number | null;
+  s3ErrorClass: string;
+  s3ErrorMessage: string;
+}>;
+
 export type HttpErrorDetails = Readonly<{
   validationIssues?: ReadonlyArray<ValidationIssueSummary>;
   syncConflict?: SyncConflictDetails;
+  mediaAssetStorage?: MediaAssetStorageErrorDetails;
 }>;
 
 export type PublicSyncConflictDetails = Readonly<{
@@ -36,6 +48,7 @@ export type PublicSyncConflictDetails = Readonly<{
 export type PublicHttpErrorDetails = Readonly<{
   validationIssues?: ReadonlyArray<ValidationIssueSummary>;
   syncConflict?: PublicSyncConflictDetails;
+  mediaAssetStorage?: MediaAssetStorageErrorDetails;
 }>;
 
 function createPublicSyncConflictDetails(details: SyncConflictDetails): PublicSyncConflictDetails {
@@ -56,13 +69,15 @@ export function createPublicHttpErrorDetails(details: HttpErrorDetails | null): 
 
   const validationIssues = details.validationIssues;
   const syncConflict = details.syncConflict;
-  if (validationIssues === undefined && syncConflict === undefined) {
+  const mediaAssetStorage = details.mediaAssetStorage;
+  if (validationIssues === undefined && syncConflict === undefined && mediaAssetStorage === undefined) {
     return null;
   }
 
   return {
     ...(validationIssues === undefined ? {} : { validationIssues }),
     ...(syncConflict === undefined ? {} : { syncConflict: createPublicSyncConflictDetails(syncConflict) }),
+    ...(mediaAssetStorage === undefined ? {} : { mediaAssetStorage }),
   };
 }
 

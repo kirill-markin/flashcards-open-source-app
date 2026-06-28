@@ -1,0 +1,26 @@
+type: object
+additionalProperties: false
+required:
+  - mediaAsset
+  - download
+properties:
+  mediaAsset:
+    $ref: ./MediaAsset.yaml
+  download:
+    type: object
+    additionalProperties: false
+    required:
+      - method
+      - url
+      - expiresAt
+    properties:
+      method:
+        type: string
+        enum:
+          - GET
+      url:
+        type: string
+        format: uri
+      expiresAt:
+        type: string
+        format: date-time

@@ -1,0 +1,23 @@
+type: object
+additionalProperties: false
+required:
+  - mediaAssetId
+  - mimeType
+  - sizeBytes
+  - sha256
+properties:
+  mediaAssetId:
+    $ref: ./UuidString.yaml
+  mimeType:
+    type: string
+    example: image/png
+  sizeBytes:
+    type: integer
+    format: int64
+    minimum: 0
+    maximum: 5368709120
+    example: 42817
+  sha256:
+    type: string
+    pattern: ^[0-9a-fA-F]{64}$
+    example: 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
