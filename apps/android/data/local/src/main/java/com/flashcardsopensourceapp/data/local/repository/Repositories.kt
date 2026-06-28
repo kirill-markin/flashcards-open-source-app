@@ -38,6 +38,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSele
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackTrigger
+import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
@@ -106,6 +107,8 @@ interface ReviewRepository {
         pendingReviewedCards: Set<PendingReviewedCard>,
         presentedCardId: String?
     ): Flow<ReviewSessionSnapshot>
+
+    fun observeReviewMediaAssets(): Flow<List<MediaAsset>>
 
     suspend fun loadReviewTimelinePage(
         selectedFilter: ReviewFilter,

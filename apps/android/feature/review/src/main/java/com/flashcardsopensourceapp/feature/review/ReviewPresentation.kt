@@ -8,18 +8,29 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.Audiotrack
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Movie
+import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.review.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCardQueueStatus
@@ -43,6 +54,11 @@ private val reviewHorizontalRuleRegex = Regex(pattern = """^\s{0,3}(?:-{3,}|\*{3
 private val reviewTableDelimiterRegex = Regex(
     pattern = """^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$"""
 )
+private val reviewManagedMediaReferenceRegex = Regex(
+    pattern = """(!)?\[([^\]]*)]\(([^)\s]+)(?:\s+"[^"]*")?\)"""
+)
+private const val reviewManagedMediaSchemePrefix: String = "fcasset:"
+private val reviewManagedMediaIconSize = 22.dp
 
 enum class ReviewContentPresentationMode {
     SHORT_PLAIN,
@@ -87,12 +103,30 @@ sealed interface ReviewRichBlock {
         val languageLabel: String?,
         val code: String
     ) : ReviewRichBlock
+
+    data class ManagedMedia(
+        val reference: ReviewManagedMediaReference
+    ) : ReviewRichBlock
 }
 
 data class ReviewInlineSegment(
     val text: String,
     val isCode: Boolean
 )
+
+data class ReviewManagedMediaReference(
+    val mediaAssetId: String,
+    val label: String?,
+    val isImageSyntax: Boolean,
+    val mediaAsset: MediaAsset?
+)
+
+private enum class ReviewManagedMediaCategory {
+    IMAGE,
+    AUDIO,
+    VIDEO,
+    ATTACHMENT
+}
 
 data class PreparedReviewAnswerOption(
     val rating: ReviewRating,
@@ -162,12 +196,18 @@ fun classifyReviewContentPresentation(text: String): ReviewContentPresentationMo
     return ReviewContentPresentationMode.SHORT_PLAIN
 }
 
-fun makeReviewRenderedContent(text: String): ReviewRenderedContent {
+fun makeReviewRenderedContent(
+    text: String,
+    mediaAssetsById: Map<String, MediaAsset>
+): ReviewRenderedContent {
     return when (classifyReviewContentPresentation(text = text)) {
         ReviewContentPresentationMode.SHORT_PLAIN -> ReviewRenderedContent.ShortPlain(text = text)
         ReviewContentPresentationMode.PARAGRAPH_PLAIN -> ReviewRenderedContent.ParagraphPlain(text = text)
         ReviewContentPresentationMode.RICH -> ReviewRenderedContent.Rich(
-            blocks = parseReviewRichBlocks(text = text)
+            blocks = parseReviewRichBlocks(
+                text = text,
+                mediaAssetsById = mediaAssetsById
+            )
         )
     }
 }
@@ -212,6 +252,7 @@ fun makeReviewSpeakableText(text: String): String {
 fun prepareReviewCardPresentation(
     card: ReviewCard,
     answerOptions: List<ReviewAnswerOption>,
+    mediaAssetsById: Map<String, MediaAsset>,
     textProvider: ReviewTextProvider
 ): PreparedReviewCardPresentation {
     val normalizedBackText = if (card.backText.trim().isEmpty()) {
@@ -226,8 +267,14 @@ fun prepareReviewCardPresentation(
         dueLabel = textProvider.dueLabel(dueAtMillis = card.dueAtMillis),
         repsLabel = textProvider.repsLabel(reps = card.reps),
         lapsesLabel = textProvider.lapsesLabel(lapses = card.lapses),
-        frontContent = makeReviewRenderedContent(text = card.frontText),
-        backContent = makeReviewRenderedContent(text = normalizedBackText),
+        frontContent = makeReviewRenderedContent(
+            text = card.frontText,
+            mediaAssetsById = mediaAssetsById
+        ),
+        backContent = makeReviewRenderedContent(
+            text = normalizedBackText,
+            mediaAssetsById = mediaAssetsById
+        ),
         frontSpeakableText = makeReviewSpeakableText(text = card.frontText),
         backSpeakableText = makeReviewSpeakableText(text = card.backText),
         answerOptions = answerOptions.map { option ->
@@ -238,6 +285,32 @@ fun prepareReviewCardPresentation(
                 )
             )
         }
+    )
+}
+
+fun refreshPreparedReviewCardPresentationMedia(
+    presentation: PreparedReviewCardPresentation,
+    mediaAssetsById: Map<String, MediaAsset>,
+    textProvider: ReviewTextProvider
+): PreparedReviewCardPresentation {
+    val card = presentation.card
+    val normalizedBackText = if (card.backText.trim().isEmpty()) {
+        textProvider.emptyBackTextPlaceholder()
+    } else {
+        card.backText
+    }
+
+    return presentation.copy(
+        frontContent = makeReviewRenderedContent(
+            text = card.frontText,
+            mediaAssetsById = mediaAssetsById
+        ),
+        backContent = makeReviewRenderedContent(
+            text = normalizedBackText,
+            mediaAssetsById = mediaAssetsById
+        ),
+        frontSpeakableText = makeReviewSpeakableText(text = card.frontText),
+        backSpeakableText = makeReviewSpeakableText(text = card.backText)
     )
 }
 
@@ -407,11 +480,142 @@ fun ReviewRenderedContentView(
                                     .horizontalScroll(state = rememberScrollState())
                             )
                         }
+
+                        is ReviewRichBlock.ManagedMedia -> ReviewManagedMediaPlaceholder(
+                            reference = block.reference
+                        )
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun ReviewManagedMediaPlaceholder(reference: ReviewManagedMediaReference) {
+    val mediaAsset = reference.mediaAsset
+    val category = classifyReviewManagedMediaCategory(
+        mimeType = mediaAsset?.mimeType,
+        isImageSyntax = reference.isImageSyntax
+    )
+    val isUnavailable = mediaAsset == null || mediaAsset.deletedAtMillis != null
+    val categoryLabel = stringResource(id = reviewManagedMediaCategoryLabelResId(category = category))
+    val label = reviewManagedMediaDisplayLabel(
+        reference = reference,
+        mediaAsset = mediaAsset,
+        categoryLabel = categoryLabel
+    )
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                shape = MaterialTheme.shapes.medium
+            )
+            .padding(12.dp)
+    ) {
+        Icon(
+            imageVector = if (isUnavailable) {
+                Icons.Outlined.WarningAmber
+            } else {
+                reviewManagedMediaCategoryIcon(category = category)
+            },
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(reviewManagedMediaIconSize)
+        )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.weight(weight = 1f)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = if (isUnavailable) {
+                    stringResource(id = R.string.review_media_unavailable)
+                } else {
+                    categoryLabel
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+private fun classifyReviewManagedMediaCategory(
+    mimeType: String?,
+    isImageSyntax: Boolean
+): ReviewManagedMediaCategory {
+    val normalizedMimeType = mimeType?.lowercase()
+    return when {
+        normalizedMimeType == null -> {
+            if (isImageSyntax) {
+                ReviewManagedMediaCategory.IMAGE
+            } else {
+                ReviewManagedMediaCategory.ATTACHMENT
+            }
+        }
+        normalizedMimeType.startsWith(prefix = "image/") -> ReviewManagedMediaCategory.IMAGE
+        normalizedMimeType.startsWith(prefix = "audio/") -> ReviewManagedMediaCategory.AUDIO
+        normalizedMimeType.startsWith(prefix = "video/") -> ReviewManagedMediaCategory.VIDEO
+        else -> ReviewManagedMediaCategory.ATTACHMENT
+    }
+}
+
+private fun reviewManagedMediaCategoryIcon(category: ReviewManagedMediaCategory): ImageVector {
+    return when (category) {
+        ReviewManagedMediaCategory.IMAGE -> Icons.Outlined.Image
+        ReviewManagedMediaCategory.AUDIO -> Icons.Outlined.Audiotrack
+        ReviewManagedMediaCategory.VIDEO -> Icons.Outlined.Movie
+        ReviewManagedMediaCategory.ATTACHMENT -> Icons.Outlined.AttachFile
+    }
+}
+
+private fun reviewManagedMediaCategoryLabelResId(category: ReviewManagedMediaCategory): Int {
+    return when (category) {
+        ReviewManagedMediaCategory.IMAGE -> R.string.review_media_image_label
+        ReviewManagedMediaCategory.AUDIO -> R.string.review_media_audio_label
+        ReviewManagedMediaCategory.VIDEO -> R.string.review_media_video_label
+        ReviewManagedMediaCategory.ATTACHMENT -> R.string.review_media_attachment_label
+    }
+}
+
+private fun reviewManagedMediaDisplayLabel(
+    reference: ReviewManagedMediaReference,
+    mediaAsset: MediaAsset?,
+    categoryLabel: String
+): String {
+    val explicitLabel = reference.label?.trim()
+    if (explicitLabel != null && explicitLabel.isNotEmpty()) {
+        return explicitLabel
+    }
+
+    val sourceUrl = mediaAsset?.sourceUrl
+    if (sourceUrl != null) {
+        val fileName = reviewManagedMediaFileName(sourceUrl = sourceUrl)
+        if (fileName != null) {
+            return fileName
+        }
+    }
+
+    return categoryLabel
+}
+
+private fun reviewManagedMediaFileName(sourceUrl: String): String? {
+    val lastPathComponent = sourceUrl
+        .substringBefore(delimiter = "?")
+        .substringBefore(delimiter = "#")
+        .substringAfterLast(delimiter = "/")
+        .trim()
+    return lastPathComponent.ifEmpty { null }
 }
 
 @Composable
@@ -448,6 +652,9 @@ private fun hasStrongRichCue(text: String): Boolean {
     if (text.isBlank()) {
         return false
     }
+    if (containsReviewManagedMediaReference(text = text)) {
+        return true
+    }
 
     return text.lineSequence().any { line ->
         reviewHeadingRegex.matches(line)
@@ -460,7 +667,38 @@ private fun hasStrongRichCue(text: String): Boolean {
     }
 }
 
-private fun parseReviewRichBlocks(text: String): List<ReviewRichBlock> {
+private fun containsReviewManagedMediaReference(text: String): Boolean {
+    return reviewManagedMediaReferenceRegex.findAll(input = text).any { match ->
+        val reference = match.groups[3]?.value ?: return@any false
+        parseReviewManagedMediaAssetId(reference = reference) != null
+    }
+}
+
+private fun parseReviewManagedMediaAssetId(reference: String): String? {
+    val trimmedReference = reference.trim()
+    if (trimmedReference.lowercase().startsWith(prefix = reviewManagedMediaSchemePrefix).not()) {
+        return null
+    }
+
+    var rawAssetId = trimmedReference.drop(n = reviewManagedMediaSchemePrefix.length)
+    while (rawAssetId.startsWith(prefix = "/")) {
+        rawAssetId = rawAssetId.drop(n = 1)
+    }
+
+    val fragmentOrQueryStart = rawAssetId.indexOfAny(chars = charArrayOf('?', '#'))
+    val mediaAssetId = if (fragmentOrQueryStart >= 0) {
+        rawAssetId.substring(startIndex = 0, endIndex = fragmentOrQueryStart)
+    } else {
+        rawAssetId
+    }.trim()
+
+    return mediaAssetId.ifEmpty { null }
+}
+
+private fun parseReviewRichBlocks(
+    text: String,
+    mediaAssetsById: Map<String, MediaAsset>
+): List<ReviewRichBlock> {
     val normalizedText = text.replace("\r\n", "\n").replace('\r', '\n')
     val lines = normalizedText.lines()
     var index = 0
@@ -494,6 +732,16 @@ private fun parseReviewRichBlocks(text: String): List<ReviewRichBlock> {
                 languageLabel = languageLabel,
                 code = codeLines.joinToString(separator = "\n")
             )
+            continue
+        }
+
+        val managedMediaBlocks = splitReviewManagedMediaLine(
+            line = line,
+            mediaAssetsById = mediaAssetsById
+        )
+        if (managedMediaBlocks != null) {
+            blocks += managedMediaBlocks
+            index += 1
             continue
         }
 
@@ -574,10 +822,70 @@ private fun shouldContinueParagraph(line: String): Boolean {
     }
 
     return reviewFenceRegex.matches(line).not()
+        && containsReviewManagedMediaReference(text = line).not()
         && reviewHeadingRegex.matches(line).not()
         && reviewQuoteRegex.matches(line).not()
         && reviewBulletRegex.matches(line).not()
         && reviewOrderedListRegex.matches(line).not()
+}
+
+private fun splitReviewManagedMediaLine(
+    line: String,
+    mediaAssetsById: Map<String, MediaAsset>
+): List<ReviewRichBlock>? {
+    val matches = reviewManagedMediaReferenceRegex.findAll(input = line).toList()
+    if (matches.isEmpty()) {
+        return null
+    }
+
+    val blocks = mutableListOf<ReviewRichBlock>()
+    var currentIndex = 0
+    var didFindManagedMedia = false
+
+    matches.forEach { match ->
+        val reference = match.groups[3]?.value ?: return@forEach
+        val mediaAssetId = parseReviewManagedMediaAssetId(reference = reference) ?: return@forEach
+        val matchStart = match.range.first
+        val matchEndExclusive = match.range.last + 1
+
+        appendReviewManagedMediaTextBlock(
+            text = line.substring(startIndex = currentIndex, endIndex = matchStart),
+            blocks = blocks
+        )
+        blocks += ReviewRichBlock.ManagedMedia(
+            reference = ReviewManagedMediaReference(
+                mediaAssetId = mediaAssetId,
+                label = match.groups[2]?.value?.trim()?.ifEmpty { null },
+                isImageSyntax = match.groups[1] != null,
+                mediaAsset = mediaAssetsById[mediaAssetId]
+            )
+        )
+        currentIndex = matchEndExclusive
+        didFindManagedMedia = true
+    }
+
+    if (didFindManagedMedia.not()) {
+        return null
+    }
+
+    appendReviewManagedMediaTextBlock(
+        text = line.substring(startIndex = currentIndex),
+        blocks = blocks
+    )
+    return blocks
+}
+
+private fun appendReviewManagedMediaTextBlock(
+    text: String,
+    blocks: MutableList<ReviewRichBlock>
+) {
+    if (text.trim().isEmpty()) {
+        return
+    }
+
+    blocks += ReviewRichBlock.Paragraph(
+        segments = parseInlineSegments(text = text)
+    )
 }
 
 private fun parseInlineSegments(text: String): List<ReviewInlineSegment> {
@@ -642,6 +950,7 @@ fun reviewRenderedContentDebugText(content: ReviewRenderedContent): String {
 
                 is ReviewRichBlock.Quote -> inlineSegmentsDebugText(block.segments)
                 is ReviewRichBlock.CodeBlock -> block.code
+                is ReviewRichBlock.ManagedMedia -> block.reference.label.orEmpty()
             }
         }
     }
@@ -694,8 +1003,27 @@ private fun normalizeReviewSpeakableText(lines: List<String>): String {
 }
 
 private fun normalizeReviewSpeakableInlineText(text: String): String {
-    return text.replace(oldValue = "`", newValue = "")
+    return reviewSpeakableTextReplacingManagedMediaReferences(text = text)
+        .replace(oldValue = "`", newValue = "")
         .replace(oldValue = "|", newValue = " ")
         .replace(regex = Regex(pattern = """\s+"""), replacement = " ")
         .trim()
+}
+
+private fun reviewSpeakableTextReplacingManagedMediaReferences(text: String): String {
+    var output = text
+    reviewManagedMediaReferenceRegex.findAll(input = text).toList().asReversed().forEach { match ->
+        val reference = match.groups[3]?.value ?: return@forEach
+        if (parseReviewManagedMediaAssetId(reference = reference) == null) {
+            return@forEach
+        }
+
+        val label = match.groups[2]?.value?.trim().orEmpty()
+        output = output.replaceRange(
+            range = match.range,
+            replacement = label
+        )
+    }
+
+    return output
 }

@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.review
 
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
+import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.review.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
@@ -73,8 +74,12 @@ internal fun mapToReviewUiState(
     appMetadata: AppMetadataSummary,
     progressSummarySnapshot: ProgressSummarySnapshot?,
     progressLeaderboardSnapshot: ProgressLeaderboardSnapshot?,
+    mediaAssets: List<MediaAsset>,
     textProvider: ReviewTextProvider
 ): ReviewUiState {
+    val mediaAssetsById = mediaAssets.associateBy { mediaAsset ->
+        mediaAsset.mediaAssetId
+    }
     val displayedCurrentCard = state.optimisticPreparedCurrentCard?.card
         ?: resolveDisplayedCurrentCard(
             sessionCards = sessionSnapshot.cards,
@@ -84,20 +89,29 @@ internal fun mapToReviewUiState(
         sessionCards = sessionSnapshot.cards,
         displayedCurrentCard = displayedCurrentCard
     )
-    val sessionPreparedCurrentCard = if (state.optimisticPreparedCurrentCard == null) {
+    val optimisticPreparedCurrentCard = state.optimisticPreparedCurrentCard?.let { presentation ->
+        refreshPreparedReviewCardPresentationMedia(
+            presentation = presentation,
+            mediaAssetsById = mediaAssetsById,
+            textProvider = textProvider
+        )
+    }
+    val sessionPreparedCurrentCard = if (optimisticPreparedCurrentCard == null) {
         prepareDisplayedSessionCardPresentation(
             displayedCard = displayedCurrentCard,
             answerOptionsByCardId = sessionSnapshot.answerOptionsByCardId,
+            mediaAssetsById = mediaAssetsById,
             textProvider = textProvider
         )
     } else {
         null
     }
-    val currentPreparedCard = state.optimisticPreparedCurrentCard ?: sessionPreparedCurrentCard
+    val currentPreparedCard = optimisticPreparedCurrentCard ?: sessionPreparedCurrentCard
     val displayedNextCard = displayedQueue.getOrNull(index = 1)
     val preparedNextCard = prepareDisplayedSessionCardPresentation(
         displayedCard = displayedNextCard,
         answerOptionsByCardId = sessionSnapshot.answerOptionsByCardId,
+        mediaAssetsById = mediaAssetsById,
         textProvider = textProvider
     )
     val emptyState = resolveReviewEmptyState(
@@ -206,6 +220,7 @@ internal fun resolveDisplayedSessionAnswerOptions(
 internal fun prepareDisplayedSessionCardPresentation(
     displayedCard: ReviewCard?,
     answerOptionsByCardId: Map<String, List<ReviewAnswerOption>>,
+    mediaAssetsById: Map<String, MediaAsset>,
     textProvider: ReviewTextProvider
 ): PreparedReviewCardPresentation? {
     val card = displayedCard ?: return null
@@ -224,6 +239,7 @@ internal fun prepareDisplayedSessionCardPresentation(
     return prepareReviewCardPresentation(
         card = card,
         answerOptions = answerOptions,
+        mediaAssetsById = mediaAssetsById,
         textProvider = textProvider
     )
 }

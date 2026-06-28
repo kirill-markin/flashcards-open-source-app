@@ -6,12 +6,14 @@ import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.CardWithRelations
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
+import com.flashcardsopensourceapp.data.local.database.entities.MediaAssetEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.feedback.FeedbackPromptReviewActivity
+import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCardQueueStatus
@@ -230,6 +232,21 @@ class LocalReviewRepository(
         }
     }
 
+    override fun observeReviewMediaAssets(): Flow<List<MediaAsset>> {
+        return observeCurrentWorkspace(
+            database = database,
+            preferencesStore = preferencesStore
+        ).flatMapLatest { workspace ->
+            if (workspace == null) {
+                return@flatMapLatest flowOf<List<MediaAsset>>(emptyList())
+            }
+
+            database.mediaAssetDao().observeMediaAssets(workspaceId = workspace.workspaceId).map { mediaAssets ->
+                mediaAssets.map(::toMediaAsset)
+            }
+        }
+    }
+
     override suspend fun loadReviewTimelinePage(
         selectedFilter: ReviewFilter,
         pendingReviewedCards: Set<PendingReviewedCard>,
@@ -442,4 +459,22 @@ class LocalReviewRepository(
             )
         }
     }
+}
+
+private fun toMediaAsset(mediaAsset: MediaAssetEntity): MediaAsset {
+    return MediaAsset(
+        mediaAssetId = mediaAsset.mediaAssetId,
+        workspaceId = mediaAsset.workspaceId,
+        mimeType = mediaAsset.mimeType,
+        sizeBytes = mediaAsset.sizeBytes,
+        sha256 = mediaAsset.sha256,
+        storageKey = mediaAsset.storageKey,
+        sourceUrl = mediaAsset.sourceUrl,
+        createdAtMillis = mediaAsset.createdAtMillis,
+        clientUpdatedAtMillis = mediaAsset.clientUpdatedAtMillis,
+        lastModifiedByReplicaId = mediaAsset.lastModifiedByReplicaId,
+        lastOperationId = mediaAsset.lastOperationId,
+        updatedAtMillis = mediaAsset.updatedAtMillis,
+        deletedAtMillis = mediaAsset.deletedAtMillis
+    )
 }
