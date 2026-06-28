@@ -2,7 +2,7 @@
 import { act } from "react";
 import ReactDOM from "react-dom/client";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../i18n";
 import { reviewRoute, shareRoute } from "../../routes";
 import { ShareAppScreen } from "./ShareAppScreen";
@@ -10,6 +10,7 @@ import { ShareAppScreen } from "./ShareAppScreen";
 const localePreferenceStorageKey: string = "flashcards-web-locale-preference";
 const shareAppIosHref: string = "https://apps.apple.com/app/apple-store/id6760538964?pt=128797295&ct=share_app&mt=8";
 const shareAppAndroidHref: string = "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&utm_source=flashcards_website&utm_medium=referral&utm_campaign=share_app";
+const expectedMcpServerUrl: string = "https://mcp.flashcards-open-source-app.com/mcp";
 
 function createStorageMock(): Storage {
   const state = new Map<string, string>();
@@ -45,6 +46,20 @@ function requireElement(container: HTMLElement, selector: string): HTMLElement {
   return element;
 }
 
+function setClipboardMock(writeText: (text: string) => Promise<void>): void {
+  Object.defineProperty(window.navigator, "clipboard", {
+    configurable: true,
+    value: { writeText },
+  });
+}
+
+function clearClipboardMock(): void {
+  Object.defineProperty(window.navigator, "clipboard", {
+    configurable: true,
+    value: undefined,
+  });
+}
+
 describe("ShareAppScreen", () => {
   let container: HTMLDivElement;
   let root: ReactDOM.Root;
@@ -68,6 +83,7 @@ describe("ShareAppScreen", () => {
     });
     container.remove();
     window.localStorage.clear();
+    clearClipboardMock();
   });
 
   async function renderShareRoute(): Promise<void> {
@@ -116,5 +132,66 @@ describe("ShareAppScreen", () => {
     expect(requireElement(container, "[data-testid='share-app-web-link-value']").textContent).toBe(
       `${window.location.origin}${reviewRoute}`,
     );
+
+    const platformGrid: HTMLElement = requireElement(container, "[data-testid='share-app-platform-links']");
+    const mcpOption: HTMLElement = requireElement(container, "[data-testid='share-app-mcp-option']");
+    expect(platformGrid.compareDocumentPosition(mcpOption) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(mcpOption.textContent).toContain("For AI Agent");
+    expect(requireElement(container, "[data-testid='share-app-mcp-url']").textContent).toBe(expectedMcpServerUrl);
+    expect(requireElement(container, "[data-testid='share-app-mcp-copy-button']").textContent).toBe("Copy");
+  });
+
+  it("copies the MCP server URL from the MCP option", async () => {
+    const writeText = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+    setClipboardMock(writeText);
+
+    await renderShareRoute();
+
+    const copyButton: HTMLElement = requireElement(container, "[data-testid='share-app-mcp-copy-button']");
+    await act(async () => {
+      copyButton.click();
+      await Promise.resolve();
+    });
+
+    expect(writeText).toHaveBeenCalledWith(expectedMcpServerUrl);
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(requireElement(container, "[data-testid='share-app-mcp-copy-button']").textContent).toBe("Copied");
+    expect(requireElement(container, "[data-testid='share-app-mcp-copy-status']").textContent).toBe("Copied");
+  });
+
+  it("shows the localized MCP copy failure state when clipboard write rejects", async () => {
+    const writeText = vi.fn<(text: string) => Promise<void>>().mockRejectedValue(
+      new DOMException("Clipboard write rejected.", "NotAllowedError"),
+    );
+    setClipboardMock(writeText);
+
+    await renderShareRoute();
+
+    const copyButton: HTMLElement = requireElement(container, "[data-testid='share-app-mcp-copy-button']");
+    await act(async () => {
+      copyButton.click();
+      await Promise.resolve();
+    });
+
+    expect(writeText).toHaveBeenCalledWith(expectedMcpServerUrl);
+    expect(requireElement(container, "[data-testid='share-app-mcp-copy-button']").textContent).toBe("Copy failed");
+    expect(requireElement(container, "[data-testid='share-app-mcp-copy-status']").textContent).toBe("Copy failed");
+  });
+
+  it("shows the localized MCP copy failure state when clipboard is unavailable", async () => {
+    clearClipboardMock();
+
+    await renderShareRoute();
+
+    const copyButton: HTMLElement = requireElement(container, "[data-testid='share-app-mcp-copy-button']");
+    await act(async () => {
+      copyButton.click();
+      await Promise.resolve();
+    });
+
+    expect(requireElement(container, "[data-testid='share-app-mcp-copy-button']").textContent).toBe("Copy failed");
+    expect(requireElement(container, "[data-testid='share-app-mcp-copy-status']").textContent).toBe("Copy failed");
   });
 });

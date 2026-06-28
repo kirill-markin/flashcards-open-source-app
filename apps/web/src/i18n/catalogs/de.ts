@@ -286,6 +286,15 @@ const deCatalog: TranslationCatalog = {
       android: "In Google Play öffnen",
       web: "Web App",
     },
+    mcp: {
+      label: "Für KI-Agenten",
+      title: "Mit MCP verbinden",
+      description: "KI-Agenten können sich per MCP verbinden, um Karten zu lesen, zu erstellen und zu bearbeiten.",
+      caption: "Füge diesen MCP-Server zu deinem KI-Client hinzu:",
+      copy: "Kopieren",
+      copied: "Kopiert",
+      copyFailed: "Kopieren fehlgeschlagen",
+    },
   },
   friendInvite: {
     loading: "Einladungslink wird geprüft...",

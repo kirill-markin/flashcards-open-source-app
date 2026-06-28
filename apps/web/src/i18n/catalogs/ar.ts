@@ -286,6 +286,15 @@ const arCatalog: TranslationCatalog = {
       android: "فتح في Google Play",
       web: "تطبيق الويب",
     },
+    mcp: {
+      label: "لوكيل الذكاء الاصطناعي",
+      title: "الاتصال عبر MCP",
+      description: "يمكن لوكلاء الذكاء الاصطناعي الاتصال عبر MCP لقراءة البطاقات وإنشائها وتعديلها.",
+      caption: "أضف خادم MCP هذا إلى عميل الذكاء الاصطناعي لديك:",
+      copy: "نسخ",
+      copied: "تم النسخ",
+      copyFailed: "فشل النسخ",
+    },
   },
   friendInvite: {
     loading: "جارٍ فحص رابط الدعوة...",
