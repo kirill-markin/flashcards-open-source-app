@@ -41,6 +41,13 @@ let cloudCredentialRecoveryStateUserDefaultsKey: String = "cloud-credential-reco
 let cloudCredentialRecoveryStateSilentFailureDigestUserDefaultsKey: String = "cloud-credential-recovery-state-silent-failure-digest"
 let guestLocalRecoveryWorkspaceCheckpointUserDefaultsKey: String = "guest-local-recovery-workspace-checkpoint"
 let flashcardsRepositoryUrl: String = "https://github.com/kirill-markin/flashcards-open-source-app"
+let flashcardsAppShareUrl: URL = {
+    let urlString: String = "https://app.flashcards-open-source-app.com/share"
+    guard let url = URL(string: urlString) else {
+        preconditionFailure("Flashcards app share URL is invalid: \(urlString)")
+    }
+    return url
+}()
 
 var flashcardsPrivacyPolicyUrl: String {
     flashcardsLegalSupportConfiguration.privacyPolicyUrl

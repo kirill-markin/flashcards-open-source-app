@@ -47,6 +47,7 @@ enum UITestIdentifier {
     static let cardsScreen: String = "cards.screen"
     static let settingsScreen: String = "settings.screen"
     static let settingsInviteFriendButton: String = "settings.inviteFriendButton"
+    static let settingsShareAppRow: String = "settings.shareAppRow"
     static let settingsAccountStatusRow: String = "settings.accountStatusRow"
     static let settingsCurrentWorkspaceRow: String = "settings.currentWorkspaceRow"
     static let settingsReviewRemindersRow: String = "settings.reviewRemindersRow"
