@@ -5,7 +5,8 @@ import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
 
-internal const val AI_CHAT_TEST_APP_VERSION: String = "1.15.0"
+// Frozen test input — intentionally not the real app version; do not bump on release (see docs/version-bump.md).
+internal const val AI_CHAT_TEST_APP_VERSION: String = "1.0.0"
 internal const val AI_CHAT_TEST_UI_LOCALE: String = "es-ES"
 internal const val AI_CHAT_TEST_WORKSPACE_ID: String = "workspace-1"
 

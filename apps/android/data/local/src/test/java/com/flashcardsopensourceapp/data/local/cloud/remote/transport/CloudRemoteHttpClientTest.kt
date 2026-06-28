@@ -19,6 +19,9 @@ import java.net.InetSocketAddress
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicInteger
 
+// Frozen test input — intentionally not the real app version; do not bump on release (see docs/version-bump.md).
+private const val testAppVersion: String = "1.0.0"
+
 class CloudRemoteHttpClientTest {
     @Test
     fun syncPullRetriesTransientGatewayTimeoutBeforeCapturingWarning() = runBlocking {
@@ -49,7 +52,7 @@ class CloudRemoteHttpClientTest {
             val client = CloudJsonHttpClient(
                 okHttpClient = OkHttpClient(),
                 observability = observability,
-                appVersion = "1.15.0",
+                appVersion = testAppVersion,
                 versionCode = 123
             )
             val response = client.postJson(
@@ -59,7 +62,7 @@ class CloudRemoteHttpClientTest {
                 body = JSONObject()
                     .put("installationId", "installation-1")
                     .put("platform", "android")
-                    .put("appVersion", "1.15.0")
+                    .put("appVersion", testAppVersion)
                     .put("afterHotChangeId", 0)
                     .put("limit", 200)
             )
@@ -102,7 +105,7 @@ class CloudRemoteHttpClientTest {
             val client = CloudJsonHttpClient(
                 okHttpClient = OkHttpClient(),
                 observability = observability,
-                appVersion = "1.15.0",
+                appVersion = testAppVersion,
                 versionCode = 123
             )
             var thrownError: CloudRemoteException? = null
@@ -115,7 +118,7 @@ class CloudRemoteHttpClientTest {
                         .put("mode", "push")
                         .put("installationId", "installation-1")
                         .put("platform", "android")
-                        .put("appVersion", "1.15.0")
+                        .put("appVersion", testAppVersion)
                         .put("entries", JSONArray())
                 )
             } catch (error: CloudRemoteException) {

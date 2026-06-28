@@ -9,6 +9,9 @@ import {
   submitFeedback,
 } from "./feedback";
 
+// Frozen test input — intentionally not the real app version; do not bump on release (see docs/version-bump.md).
+const TEST_APP_VERSION = "1.0.0";
+
 describe("feedback API endpoints", () => {
   const emptyFeedbackState = {
     automaticPromptCooldownDays: 30,
@@ -53,7 +56,7 @@ describe("feedback API endpoints", () => {
       workspaceId: "workspace-1",
       installationId: "installation-1",
       platform: "web" as const,
-      appVersion: "1.15.0",
+      appVersion: TEST_APP_VERSION,
       locale: "en" as const,
       timezone: "Europe/Madrid",
       eventType: "automatic_prompt_shown",
@@ -75,7 +78,7 @@ describe("feedback API endpoints", () => {
       workspaceId: "workspace-1",
       installationId: "installation-1",
       platform: "web" as const,
-      appVersion: "1.15.0",
+      appVersion: TEST_APP_VERSION,
       locale: "en" as const,
       timezone: "Europe/Madrid",
       trigger: "settings" as const,
@@ -111,7 +114,7 @@ describe("feedback API endpoints", () => {
       workspaceId: "workspace-1",
       installationId: "installation-1",
       platform: "web",
-      appVersion: "1.15.0",
+      appVersion: TEST_APP_VERSION,
       locale: "en",
       timezone: "Europe/Madrid",
       eventType: "automatic_prompt_dismissed",

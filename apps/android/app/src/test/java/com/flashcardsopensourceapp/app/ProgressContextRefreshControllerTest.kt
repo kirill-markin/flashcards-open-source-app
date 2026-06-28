@@ -168,7 +168,8 @@ class ProgressContextRefreshControllerTest {
     }
 }
 
-private const val testAppVersion: String = "1.15.0"
+// Frozen test input — intentionally not the real app version; do not bump on release (see docs/version-bump.md).
+private const val testAppVersion: String = "1.0.0"
 private const val testVersionCode: Int = 1
 
 private class TestAppObservability : AppObservability {
