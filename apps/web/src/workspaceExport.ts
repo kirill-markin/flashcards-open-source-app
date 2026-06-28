@@ -1,5 +1,6 @@
 import { loadAllActiveCardsForSql } from "./localDb/cards/cards";
 import type { Card } from "./types";
+import { createFlashcardsPackage, writeFlashcardsPackageZip } from "./workspacePackage";
 
 type WorkspaceExportUrlApi = Readonly<{
   createObjectURL: (object: Blob) => string;
@@ -13,10 +14,23 @@ type TriggerCsvDownloadParams = Readonly<{
   urlApi: WorkspaceExportUrlApi;
 }>;
 
+type TriggerBlobDownloadParams = Readonly<{
+  blob: Blob;
+  filename: string;
+  document: Document;
+  urlApi: WorkspaceExportUrlApi;
+}>;
+
 type ExportWorkspaceCardsCsvParams = Readonly<{
   workspaceId: string;
   workspaceName: string;
   now: Date;
+  document: Document;
+  urlApi: WorkspaceExportUrlApi;
+}>;
+
+type ExportWorkspaceCardsPackageParams = Readonly<{
+  workspaceId: string;
   document: Document;
   urlApi: WorkspaceExportUrlApi;
 }>;
@@ -69,13 +83,16 @@ export function makeWorkspaceExportFilename(workspaceName: string, now: Date): s
   return `${slugifyWorkspaceName(workspaceName)}-cards-export-${formatExportDate(now)}.csv`;
 }
 
-export function triggerCsvDownload(params: TriggerCsvDownloadParams): void {
-  const { content, filename, document, urlApi } = params;
+export function makeFlashcardsPackageExportFilename(): string {
+  return "flashcards.zip";
+}
+
+export function triggerBlobDownload(params: TriggerBlobDownloadParams): void {
+  const { blob, filename, document, urlApi } = params;
   if (document.body === null) {
-    throw new Error("Document body is unavailable for CSV download");
+    throw new Error(`Document body is unavailable for workspace download: filename=${filename}`);
   }
 
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
   const objectUrl = urlApi.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = objectUrl;
@@ -88,6 +105,16 @@ export function triggerCsvDownload(params: TriggerCsvDownloadParams): void {
   urlApi.revokeObjectURL(objectUrl);
 }
 
+export function triggerCsvDownload(params: TriggerCsvDownloadParams): void {
+  const { content, filename, document, urlApi } = params;
+  triggerBlobDownload({
+    blob: new Blob([content], { type: "text/csv;charset=utf-8" }),
+    filename,
+    document,
+    urlApi,
+  });
+}
+
 export async function exportWorkspaceCardsCsv(params: ExportWorkspaceCardsCsvParams): Promise<void> {
   const { workspaceId, workspaceName, now, document, urlApi } = params;
   const cards = await loadAllActiveCardsForSql(workspaceId);
@@ -96,6 +123,19 @@ export async function exportWorkspaceCardsCsv(params: ExportWorkspaceCardsCsvPar
   triggerCsvDownload({
     content,
     filename,
+    document,
+    urlApi,
+  });
+}
+
+export async function exportWorkspaceCardsPackage(params: ExportWorkspaceCardsPackageParams): Promise<void> {
+  const { workspaceId, document, urlApi } = params;
+  const cards = await loadAllActiveCardsForSql(workspaceId);
+  const packageData = createFlashcardsPackage(cards);
+  const zipBytes = writeFlashcardsPackageZip(packageData);
+  triggerBlobDownload({
+    blob: new Blob([zipBytes], { type: "application/zip" }),
+    filename: makeFlashcardsPackageExportFilename(),
     document,
     urlApi,
   });
