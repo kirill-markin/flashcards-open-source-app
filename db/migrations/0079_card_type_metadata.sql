@@ -25,6 +25,8 @@ SET metadata = jsonb_build_object(
 )
 WHERE cards.metadata IS NULL;
 
+SET CONSTRAINTS ALL IMMEDIATE;
+
 ALTER TABLE content.cards
   ALTER COLUMN card_type SET DEFAULT 'basic',
   ALTER COLUMN card_type SET NOT NULL,
