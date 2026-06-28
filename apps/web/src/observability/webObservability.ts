@@ -102,6 +102,14 @@ export type ProgressCacheMissBreadcrumbDetails = Readonly<{
   workspaceIds: ReadonlyArray<string>;
 }>;
 
+export type ProgressTimezoneFallbackBreadcrumbDetails = Readonly<{
+  eventName: "progress_timezone_fallback";
+  observedTimeZone: string | null;
+  observedOffsetMinutes: number | null;
+  fallbackTimeZone: string;
+  errorName: string;
+}>;
+
 export type LocalBrowserDataCleanupReason =
   | "logout_marker"
   | "account_deleted_marker"
@@ -203,6 +211,11 @@ export type WebBreadcrumbEvent =
     action: "progress_cache_miss";
     scope: WebObservationScope;
     details: ProgressCacheMissBreadcrumbDetails;
+  }>
+  | Readonly<{
+    action: "progress_timezone_fallback";
+    scope: WebObservationScope;
+    details: ProgressTimezoneFallbackBreadcrumbDetails;
   }>
   | Readonly<{
     action: "local_browser_data_cleanup";
