@@ -36,6 +36,9 @@ import {
 } from "./transport";
 import { listWorkspaces } from "../endpoints/workspaces";
 
+// Frozen test input — intentionally not the real app version; do not bump on release (see docs/version-bump.md).
+const TEST_APP_VERSION = "1.0.0";
+
 async function createTransportBackedChatSession(sessionId: string): Promise<NewChatSessionResponse> {
   return createNewChatSession(sessionId, "workspace-1", "en");
 }
@@ -604,7 +607,7 @@ describe("API transport network retry", () => {
       workspaceId,
       "installation-1",
       "web",
-      "1.15.0",
+      TEST_APP_VERSION,
       0,
       200,
     )).resolves.toEqual({
@@ -643,7 +646,7 @@ describe("API transport network retry", () => {
       workspaceId,
       "installation-1",
       "web",
-      "1.15.0",
+      TEST_APP_VERSION,
       0,
       200,
     )).resolves.toEqual({
@@ -818,7 +821,7 @@ describe("API transport network retry", () => {
       workspaceId,
       "installation-1",
       "web",
-      "1.15.0",
+      TEST_APP_VERSION,
       0,
       200,
     );

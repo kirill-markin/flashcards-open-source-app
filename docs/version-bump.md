@@ -69,14 +69,12 @@ The main Android consumers of that runtime value are:
 - `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/CloudGuestSessionCoordinator.kt`
 - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/AiChatRuntime.kt`
 
-Tests that assert the Android client version must stay aligned too, especially:
-
-- `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/ai/remote/AiChatRemoteTestFixtures.kt`
-- `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/ai/remote/AiChatRemoteTransportRequestTest.kt`
-
-Search for additional Android test fixtures or AndroidTest support files that
-embed the app version as request metadata or expected wire values, and keep
-them aligned in the same change.
+Test fixtures do not track the release version. Android and web unit tests
+that need an app-version string use a frozen dummy (`"1.0.0"`) as a
+self-referential input/output value, so they are intentionally not bumped on
+release. Each such fixture carries a "do not bump" comment in code. If you add
+a new fixture that embeds an app version, reuse the same frozen dummy instead
+of the real release version.
 
 Android `versionCode` is not bumped manually in the repo. Release builds receive `ANDROID_VERSION_CODE` from CI, and the workflow computes that value at release time.
 
@@ -166,9 +164,9 @@ when the user-facing effect is unclear.
 
 1. Choose the next semantic version for the release.
 2. By default, treat that version as the shared project version for backend, web, Android, and iOS.
-3. Search the repo for the current version strings so you can see every manifest, runtime reader, test expectation, and newly added repo-owned version surface that still reports the old value for the release.
+3. Search the repo for the current version strings so you can see every manifest, runtime reader, and newly added repo-owned version surface that still reports the old value for the release.
 4. Update all repo-owned version surfaces that participate in that release, and keep each platform's runtime-reported version aligned with its checked-in version source.
-5. Update version-coupled test fixtures, Android instrumentation support values, and compatibility comments that explicitly name the released first-party client version.
+5. Update compatibility comments that explicitly name the released first-party client version. Do not bump test fixtures: tests that need an app-version string use a frozen dummy (`"1.0.0"`) and are intentionally excluded from the release bump.
 6. Update release metadata only when that metadata actually names the current app version for the touched platform.
 7. Re-run targeted searches to confirm the old app version strings are gone from the intended version surfaces and any version-coupled fixtures or comments you intended to update.
 8. Run the smallest useful verification commands for the touched platforms.
@@ -179,7 +177,7 @@ when the user-facing effect is unclear.
 After a version bump, use targeted checks instead of broad test runs:
 
 - repo search for stale old-version literals in intended version surfaces
-- repo search for stale old-version literals in version-coupled test fixtures and compatibility comments when the repo uses them
+- repo search for stale old-version literals in compatibility comments when the repo uses them (test fixtures use a frozen `"1.0.0"` dummy and are not bumped)
 - `npm run build --prefix apps/web`
 - `./gradlew :app:assembleDebug` from `apps/android/`
 

@@ -47,7 +47,8 @@ internal class CloudIdentityTestEnvironment private constructor(
     val resetCoordinator: CloudIdentityResetCoordinator,
     val aiChatRemoteService: AiChatRemoteService
 ) {
-    private val appVersion: String = "1.15.0"
+    // Frozen test input — intentionally not the real app version; do not bump on release (see docs/version-bump.md).
+    private val appVersion: String = "1.0.0"
 
     companion object {
         suspend fun create(): CloudIdentityTestEnvironment {
