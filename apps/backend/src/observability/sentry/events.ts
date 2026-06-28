@@ -254,6 +254,7 @@ export type MediaAssetRouteDetails = Readonly<{
   statusCode: number;
   mediaAssetId: string | null;
   storageKey: string | null;
+  blobStorageKey?: string;
   mimeType?: string;
   sizeBytes?: number;
   sha256?: string;
@@ -665,7 +666,7 @@ export type GlobalMetricsS3RetryDetails = Readonly<{
 }>;
 
 export type MediaAssetStorageRetryDetails = Readonly<{
-  operation: "create_presigned_upload" | "create_presigned_download" | "head_object";
+  operation: "create_presigned_upload" | "create_presigned_download" | "head_object" | "copy_object";
   attempt: number;
   maxAttempts: number;
   bucketName: string;

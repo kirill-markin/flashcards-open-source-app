@@ -3,12 +3,16 @@ import {
   assertMediaAssetUploadIntentAvailableForWorkspace,
   completeMediaAssetUploadForWorkspace,
   loadMediaAssetForWorkspace,
+  loadMediaAssetWithBlobForWorkspace,
 } from "../mediaAssets";
-import { buildMediaAssetStorageKey } from "../mediaAssets/storageKeys";
 import {
-  assertMediaAssetObjectMatches,
+  buildMediaBlobStorageKey,
+  buildMediaUploadStagingStorageKey,
+} from "../mediaAssets/storageKeys";
+import {
   createPresignedMediaAssetDownload,
   createPresignedMediaAssetUpload,
+  promoteMediaAssetUploadToBlob,
 } from "../mediaAssets/storage";
 import {
   parseCompleteMediaAssetUploadInput,
@@ -81,7 +85,7 @@ export function createMediaAssetsRoutes(options: MediaAssetsRoutesOptions): Hono
       await assertUserHasWorkspaceAccess(loadedContext.requestContext.userId, workspaceId);
       const input = parseMediaAssetUploadIntentInput(await parseJsonBody(context.req.raw));
       mediaAssetId = input.mediaAssetId;
-      storageKey = buildMediaAssetStorageKey(workspaceId, input.mediaAssetId, input.sha256);
+      storageKey = buildMediaUploadStagingStorageKey(workspaceId, input.mediaAssetId, input.lastOperationId);
       await assertMediaAssetUploadIntentAvailableForWorkspace(
         loadedContext.requestContext.userId,
         workspaceId,
@@ -94,6 +98,7 @@ export function createMediaAssetsRoutes(options: MediaAssetsRoutesOptions): Hono
         storageKey,
         mimeType: input.mimeType,
         sha256: input.sha256,
+        lastOperationId: input.lastOperationId,
         observationScope: scope,
       });
 
@@ -112,7 +117,6 @@ export function createMediaAssetsRoutes(options: MediaAssetsRoutesOptions): Hono
       return context.json({
         mediaAssetId: input.mediaAssetId,
         workspaceId,
-        storageKey,
         upload,
       }, 201);
     } catch (error) {
@@ -145,16 +149,19 @@ export function createMediaAssetsRoutes(options: MediaAssetsRoutesOptions): Hono
       await assertUserHasWorkspaceAccess(loadedContext.requestContext.userId, workspaceId);
       mediaAssetId = parseMediaAssetIdParam(context.req.param("mediaAssetId"));
       const input = parseCompleteMediaAssetUploadInput(mediaAssetId, await parseJsonBody(context.req.raw));
-      storageKey = buildMediaAssetStorageKey(workspaceId, input.mediaAssetId, input.sha256);
+      storageKey = buildMediaUploadStagingStorageKey(workspaceId, input.mediaAssetId, input.lastOperationId);
+      const blobStorageKey = buildMediaBlobStorageKey(input.sha256);
       const scope = createMediaAssetsScope(requestId, context.req.path, context.req.method, loadedContext.requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
 
-      await assertMediaAssetObjectMatches({
+      await promoteMediaAssetUploadToBlob({
         workspaceId,
         mediaAssetId: input.mediaAssetId,
-        storageKey,
+        uploadStorageKey: storageKey,
+        blobStorageKey,
         mimeType: input.mimeType,
         sizeBytes: input.sizeBytes,
         sha256: input.sha256,
+        lastOperationId: input.lastOperationId,
         observationScope: scope,
       });
       const result = await completeMediaAssetUploadForWorkspace(
@@ -170,6 +177,7 @@ export function createMediaAssetsRoutes(options: MediaAssetsRoutesOptions): Hono
           statusCode: 200,
           mediaAssetId: input.mediaAssetId,
           storageKey,
+          blobStorageKey,
           mimeType: input.mimeType,
           sizeBytes: input.sizeBytes,
           sha256: input.sha256,
@@ -211,7 +219,6 @@ export function createMediaAssetsRoutes(options: MediaAssetsRoutesOptions): Hono
         workspaceId,
         mediaAssetId,
       );
-      storageKey = mediaAsset.storageKey;
       const scope = createMediaAssetsScope(requestId, context.req.path, context.req.method, loadedContext.requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
 
       addBackendBreadcrumb({
@@ -253,17 +260,17 @@ export function createMediaAssetsRoutes(options: MediaAssetsRoutesOptions): Hono
       workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
       await assertUserHasWorkspaceAccess(loadedContext.requestContext.userId, workspaceId);
       mediaAssetId = parseMediaAssetIdParam(context.req.param("mediaAssetId"));
-      const mediaAsset = await loadMediaAssetForWorkspace(
+      const { mediaAsset, mediaBlob } = await loadMediaAssetWithBlobForWorkspace(
         loadedContext.requestContext.userId,
         workspaceId,
         mediaAssetId,
       );
-      storageKey = mediaAsset.storageKey;
+      storageKey = mediaBlob.storageKey;
       const scope = createMediaAssetsScope(requestId, context.req.path, context.req.method, loadedContext.requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const download = await createPresignedMediaAssetDownload({
         workspaceId,
         mediaAssetId,
-        storageKey: mediaAsset.storageKey,
+        storageKey: mediaBlob.storageKey,
         observationScope: scope,
       });
 
@@ -273,7 +280,7 @@ export function createMediaAssetsRoutes(options: MediaAssetsRoutesOptions): Hono
         details: {
           statusCode: 200,
           mediaAssetId,
-          storageKey: mediaAsset.storageKey,
+          storageKey: mediaBlob.storageKey,
         },
       });
       return context.json({ mediaAsset, download });

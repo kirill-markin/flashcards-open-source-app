@@ -30,6 +30,14 @@ export type MediaAssetStorageErrorDetails = Readonly<{
   s3ErrorMessage: string;
 }>;
 
+export type PublicMediaAssetStorageErrorDetails = Readonly<{
+  operation: string;
+  workspaceId: string;
+  mediaAssetId: string;
+  s3StatusCode: number | null;
+  s3ErrorClass: string;
+}>;
+
 export type HttpErrorDetails = Readonly<{
   validationIssues?: ReadonlyArray<ValidationIssueSummary>;
   syncConflict?: SyncConflictDetails;
@@ -48,7 +56,7 @@ export type PublicSyncConflictDetails = Readonly<{
 export type PublicHttpErrorDetails = Readonly<{
   validationIssues?: ReadonlyArray<ValidationIssueSummary>;
   syncConflict?: PublicSyncConflictDetails;
-  mediaAssetStorage?: MediaAssetStorageErrorDetails;
+  mediaAssetStorage?: PublicMediaAssetStorageErrorDetails;
 }>;
 
 function createPublicSyncConflictDetails(details: SyncConflictDetails): PublicSyncConflictDetails {
@@ -77,7 +85,15 @@ export function createPublicHttpErrorDetails(details: HttpErrorDetails | null): 
   return {
     ...(validationIssues === undefined ? {} : { validationIssues }),
     ...(syncConflict === undefined ? {} : { syncConflict: createPublicSyncConflictDetails(syncConflict) }),
-    ...(mediaAssetStorage === undefined ? {} : { mediaAssetStorage }),
+    ...(mediaAssetStorage === undefined ? {} : {
+      mediaAssetStorage: {
+        operation: mediaAssetStorage.operation,
+        workspaceId: mediaAssetStorage.workspaceId,
+        mediaAssetId: mediaAssetStorage.mediaAssetId,
+        s3StatusCode: mediaAssetStorage.s3StatusCode,
+        s3ErrorClass: mediaAssetStorage.s3ErrorClass,
+      },
+    }),
   };
 }
 

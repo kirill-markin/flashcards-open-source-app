@@ -4,11 +4,8 @@ required:
   - operation
   - workspaceId
   - mediaAssetId
-  - storageKey
-  - bucketName
   - s3StatusCode
   - s3ErrorClass
-  - s3ErrorMessage
 properties:
   operation:
     type: string
@@ -17,10 +14,6 @@ properties:
     $ref: ./UuidString.yaml
   mediaAssetId:
     $ref: ./UuidString.yaml
-  storageKey:
-    type: string
-  bucketName:
-    type: string
   s3StatusCode:
     type:
       - integer
@@ -29,6 +22,3 @@ properties:
   s3ErrorClass:
     type: string
     example: NoSuchKey
-  s3ErrorMessage:
-    type: string
-    example: Not Found

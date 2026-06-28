@@ -4,7 +4,6 @@ import {
   type DatabaseExecutor,
 } from "../../database";
 import { upsertDeckSnapshotInExecutor } from "../../decks";
-import { upsertMediaAssetSnapshotInExecutor } from "../../mediaAssets";
 import { HttpError } from "../../shared/errors";
 import {
   decodeOpaqueCursor,
@@ -27,8 +26,6 @@ import {
   toCardSnapshotInput,
   toDeckMutationMetadata,
   toDeckSnapshotInput,
-  toMediaAssetMutationMetadata,
-  toMediaAssetSnapshotInput,
   toWorkspaceSchedulerSettingsMutationMetadata,
   toWorkspaceSchedulerSettingsSnapshotInput,
 } from "../contracts/snapshots";
@@ -41,6 +38,8 @@ import type {
   SyncBootstrapPullResult,
   SyncBootstrapPushResult,
 } from "../contracts/types";
+
+const mediaAssetSyncWriteRejectedMessage = "media_asset sync writes are not accepted; use the media upload API to create or update media assets.";
 
 function toNumber(value: string | number | null): number | null {
   if (value === null) {
@@ -243,18 +242,11 @@ export async function processSyncBootstrap(
               );
             }
 
-            await upsertMediaAssetSnapshotInExecutor(
-              executor,
-              workspaceId,
-              toMediaAssetSnapshotInput(entry.payload),
-              toMediaAssetMutationMetadata({
-                clientUpdatedAt: entry.payload.clientUpdatedAt,
-                lastModifiedByReplicaId: replicaId,
-                lastOperationId: entry.payload.lastOperationId,
-              }),
+            throw new HttpError(
+              400,
+              mediaAssetSyncWriteRejectedMessage,
+              "SYNC_MEDIA_ASSET_WRITE_REJECTED",
             );
-            appliedEntriesCount += 1;
-            continue;
           }
 
           await applyWorkspaceSchedulerSettingsSnapshotInExecutor(
@@ -387,10 +379,9 @@ export async function processSyncBootstrap(
         "    jsonb_build_object(",
         "      'mediaAssetId', media_assets.media_asset_id::text,",
         "      'workspaceId', media_assets.workspace_id::text,",
-        "      'mimeType', media_assets.mime_type,",
-        "      'sizeBytes', media_assets.size_bytes,",
-        "      'sha256', media_assets.sha256,",
-        "      'storageKey', media_assets.storage_key,",
+        "      'mimeType', media_blobs.mime_type,",
+        "      'sizeBytes', media_blobs.size_bytes,",
+        "      'sha256', media_blobs.sha256,",
         "      'sourceUrl', media_assets.source_url,",
         "      'createdAt', to_char(date_trunc('milliseconds', media_assets.created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),",
         "      'clientUpdatedAt', to_char(date_trunc('milliseconds', media_assets.client_updated_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),",
@@ -400,6 +391,8 @@ export async function processSyncBootstrap(
         "      'deletedAt', CASE WHEN media_assets.deleted_at IS NULL THEN NULL ELSE to_char(date_trunc('milliseconds', media_assets.deleted_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') END",
         "    ) AS payload",
         "  FROM content.media_assets AS media_assets",
+        "  INNER JOIN content.media_blobs AS media_blobs",
+        "  ON media_blobs.media_blob_id = media_assets.media_blob_id",
         "  WHERE media_assets.workspace_id = $1",
         "  AND $5::boolean",
         ")",

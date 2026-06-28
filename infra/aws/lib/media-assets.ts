@@ -17,6 +17,12 @@ export function mediaAssets(scope: Construct, props: MediaAssetsProps): MediaAss
     enforceSSL: true,
     removalPolicy: cdk.RemovalPolicy.RETAIN,
     autoDeleteObjects: false,
+    lifecycleRules: [
+      {
+        prefix: "media/uploads/",
+        expiration: cdk.Duration.days(7),
+      },
+    ],
     cors: [
       {
         allowedOrigins: [
