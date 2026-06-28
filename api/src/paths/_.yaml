@@ -20,7 +20,8 @@ get:
                 version: v1
                 description: >-
                   Offline-first flashcards service with user-owned workspaces
-                  and a compact SQL agent surface.
+                  and a compact SQL agent surface, and direct media transfer
+                  URLs.
               authentication:
                 type: email_otp_then_api_key
                 sendCodeUrl: https://auth.flashcards-open-source-app.com/api/agent/send-code
@@ -31,6 +32,8 @@ get:
                 - Run SQL reads through POST /agent/sql/query
                 - Run SQL writes through POST /agent/sql/execute
                 - Inspect the published SQL surface
+                - Upload and complete media assets through workspace-scoped direct transfer endpoints
+                - Read media asset metadata and create download URLs through workspace-scoped media endpoints
               authBaseUrl: https://auth.flashcards-open-source-app.com
               apiBaseUrl: https://api.flashcards-open-source-app.com/v1
               surface:
@@ -38,6 +41,10 @@ get:
                 workspacesUrl: https://api.flashcards-open-source-app.com/v1/agent/workspaces
                 sqlQueryUrl: https://api.flashcards-open-source-app.com/v1/agent/sql/query
                 sqlExecuteUrl: https://api.flashcards-open-source-app.com/v1/agent/sql/execute
+                mediaAssetUploadIntentsUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-intents
+                mediaAssetMetadataUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}
+                mediaAssetCompleteUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete
+                mediaAssetDownloadUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url
               mcp:
                 url: https://mcp.flashcards-open-source-app.com/mcp
                 description: >-
@@ -74,9 +81,20 @@ get:
               API key. After login, call GET /v1/agent/me, then GET
               /v1/agent/workspaces?limit=100. If no workspace is selected,
               select one before using POST /v1/agent/sql/query for reads or
-              POST /v1/agent/sql/execute for writes. For routine low-risk
+              POST /v1/agent/sql/execute for writes. After workspace selection,
+              call GET /v1/agent/me and use data.agentWorkspaceReplicaId as
+              lastModifiedByReplicaId when completing media uploads. For routine low-risk
               writes, a clear user request already counts as permission. Ask
-              again only for risky or unclear actions. Use docs.openapiUrl for
+              again only for risky or unclear actions. For media assets, create
+              an upload intent with POST
+              /v1/workspaces/{workspaceId}/media-assets/upload-intents, upload
+              bytes directly to the returned URL using the returned method and
+              headers, then register the completed object with POST
+              /v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete.
+              Use GET /v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}
+              for registry metadata and GET
+              /v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url
+              for a direct download URL. Use docs.openapiUrl for
               the published external agent contract.
             links:
               websiteUrl: https://flashcards-open-source-app.com/

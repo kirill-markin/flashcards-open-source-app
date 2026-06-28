@@ -1,7 +1,7 @@
 import { getPublicAgentDocs } from "../publicUrls.js";
 
 export type AgentAction = Readonly<{
-  name: "send_code" | "verify_code" | "load_account" | "list_workspaces" | "create_workspace" | "select_workspace";
+  name: "send_code" | "verify_code" | "load_discovery" | "load_account" | "list_workspaces" | "create_workspace" | "select_workspace";
   method: "GET" | "POST";
   url?: string;
   urlTemplate?: string;

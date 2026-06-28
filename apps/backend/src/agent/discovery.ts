@@ -21,6 +21,10 @@ type AgentDiscoveryEnvelope = Readonly<{
       workspacesUrl: string;
       sqlQueryUrl: string;
       sqlExecuteUrl: string;
+      mediaAssetUploadIntentsUrlTemplate: string;
+      mediaAssetMetadataUrlTemplate: string;
+      mediaAssetCompleteUrlTemplate: string;
+      mediaAssetDownloadUrlTemplate: string;
     }>;
     mcp: Readonly<{
       url: string;
@@ -98,6 +102,10 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
   const links = getPublicLegalLinks(requestUrl);
   const docs = { ...getPublicAgentDocs(requestUrl), docsUrl: links.docsUrl };
+  const mediaAssetUploadIntentsUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/media-assets/upload-intents`;
+  const mediaAssetMetadataUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/media-assets/{mediaAssetId}`;
+  const mediaAssetCompleteUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete`;
+  const mediaAssetDownloadUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url`;
 
   return {
     ok: true,
@@ -105,7 +113,8 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
       service: {
         name: "flashcards-open-source-app",
         version: "v1",
-        description: "Offline-first flashcards service with user-owned workspaces and a compact SQL agent surface.",
+        description:
+          "Offline-first flashcards service with user-owned workspaces, a compact SQL agent surface, and direct media transfer URLs.",
       },
       authentication: {
         type: "email_otp_then_api_key",
@@ -118,6 +127,8 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
         "Inspect the published SQL surface through OpenAPI and SQL introspection",
         "Read cards and decks through POST /agent/sql/query (read-only)",
         "Write cards and decks through POST /agent/sql/execute (INSERT, UPDATE, DELETE)",
+        "Upload and complete media assets through workspace-scoped direct transfer endpoints",
+        "Read media asset metadata and create download URLs through workspace-scoped media endpoints",
       ],
       authBaseUrl,
       apiBaseUrl,
@@ -126,6 +137,10 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
         workspacesUrl: `${apiBaseUrl}/agent/workspaces`,
         sqlQueryUrl: `${apiBaseUrl}/agent/sql/query`,
         sqlExecuteUrl: `${apiBaseUrl}/agent/sql/execute`,
+        mediaAssetUploadIntentsUrlTemplate,
+        mediaAssetMetadataUrlTemplate,
+        mediaAssetCompleteUrlTemplate,
+        mediaAssetDownloadUrlTemplate,
       },
       mcp: {
         url: `${mcpBaseUrl}/mcp`,
@@ -148,7 +163,7 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
     },
     links,
     instructions:
-      `Start with POST ${authBaseUrl}/api/agent/send-code using the user's email. After send-code, follow the returned instructions: normal accounts require the 8-digit email code, while configured review/demo accounts use a deterministic 8-digit placeholder and do not send email. Do not immediately replay send-code. Then POST ${authBaseUrl}/api/agent/verify-code with the otpSessionToken, code, and label to obtain an API key. After login, call GET ${apiBaseUrl}/agent/me, then GET ${apiBaseUrl}/agent/workspaces?limit=100. If no workspace is selected for this API key, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select or create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}. After workspace bootstrap, use POST ${apiBaseUrl}/agent/sql/query for all shared card and deck reads (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT) and POST ${apiBaseUrl}/agent/sql/execute for all writes (INSERT, UPDATE, DELETE). For routine low-risk writes, a clear user request already counts as permission. Ask again only for risky or unclear actions. SELECT returns at most 100 rows per statement, and INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls. Use ${docs.openapiUrl} for the published external agent contract. The SQL surface is intentionally limited and is not full PostgreSQL.`,
+      `Start with POST ${authBaseUrl}/api/agent/send-code using the user's email. After send-code, follow the returned instructions: normal accounts require the 8-digit email code, while configured review/demo accounts use a deterministic 8-digit placeholder and do not send email. Do not immediately replay send-code. Then POST ${authBaseUrl}/api/agent/verify-code with the otpSessionToken, code, and label to obtain an API key. After login, call GET ${apiBaseUrl}/agent/me, then GET ${apiBaseUrl}/agent/workspaces?limit=100. If no workspace is selected for this API key, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select or create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}. After workspace bootstrap, call GET ${apiBaseUrl}/agent/me and use data.agentWorkspaceReplicaId as lastModifiedByReplicaId when completing media uploads. Use POST ${apiBaseUrl}/agent/sql/query for all shared card and deck reads (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT) and POST ${apiBaseUrl}/agent/sql/execute for all writes (INSERT, UPDATE, DELETE). For media assets, create an upload intent with POST ${mediaAssetUploadIntentsUrlTemplate}, upload bytes directly to the returned URL using the returned method and headers, then register the completed object with POST ${mediaAssetCompleteUrlTemplate}. Use GET ${mediaAssetMetadataUrlTemplate} for registry metadata and GET ${mediaAssetDownloadUrlTemplate} for a direct download URL. For routine low-risk writes, a clear user request already counts as permission. Ask again only for risky or unclear actions. SELECT returns at most 100 rows per statement, and INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls. Use ${docs.openapiUrl} for the published external agent contract. The SQL surface is intentionally limited and is not full PostgreSQL.`,
     docs,
   };
 }

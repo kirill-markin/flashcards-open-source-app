@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { createAgentDiscoveryEnvelope } from "../../agent/discovery";
 import {
   createAgentAccountEnvelope,
+  loadAgentWorkspaceReplicaIdForSetup,
   shouldUseAgentSetupEnvelope,
 } from "../../agent/setup";
 import { unsafeQuery } from "../../database/unsafe";
@@ -72,7 +73,8 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
       options.allowedOrigins,
     );
     if (shouldUseAgentSetupEnvelope(requestContext.transport)) {
-      return context.json(createAgentAccountEnvelope(context.req.url, requestContext));
+      const agentWorkspaceReplicaId = await loadAgentWorkspaceReplicaIdForSetup(requestContext);
+      return context.json(createAgentAccountEnvelope(context.req.url, requestContext, agentWorkspaceReplicaId));
     }
 
     return context.json({

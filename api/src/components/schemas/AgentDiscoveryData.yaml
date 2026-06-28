@@ -57,6 +57,10 @@ properties:
       - workspacesUrl
       - sqlQueryUrl
       - sqlExecuteUrl
+      - mediaAssetUploadIntentsUrlTemplate
+      - mediaAssetMetadataUrlTemplate
+      - mediaAssetCompleteUrlTemplate
+      - mediaAssetDownloadUrlTemplate
     properties:
       accountUrl:
         type: string
@@ -65,6 +69,14 @@ properties:
       sqlQueryUrl:
         type: string
       sqlExecuteUrl:
+        type: string
+      mediaAssetUploadIntentsUrlTemplate:
+        type: string
+      mediaAssetMetadataUrlTemplate:
+        type: string
+      mediaAssetCompleteUrlTemplate:
+        type: string
+      mediaAssetDownloadUrlTemplate:
         type: string
   mcp:
     type: object
