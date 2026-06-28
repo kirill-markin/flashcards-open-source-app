@@ -43,6 +43,8 @@ import com.flashcardsopensourceapp.feature.settings.settingsReviewRemindersRowTa
 import com.flashcardsopensourceapp.feature.settings.settingsRootScreenTag
 import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsServerRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsShareAppRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsShareSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsSupportSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsSupportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
@@ -74,6 +76,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         )
 
         listOf(
+            settingsShareSectionTag,
             settingsAccountSectionTag,
             settingsGeneralSectionTag,
             settingsSupportSectionTag,
@@ -84,6 +87,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
 
         listOf(
             settingsInviteFriendButtonTag,
+            settingsShareAppRowTag,
             settingsAccountStatusRowTag,
             settingsCurrentWorkspaceRowTag,
             settingsReviewRemindersRowTag,
@@ -110,7 +114,15 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             assertRootRowVisible(rowTag = rowTag)
         }
         assertRootRowOrder(
+            firstRowTag = settingsShareSectionTag,
+            secondRowTag = settingsInviteFriendButtonTag
+        )
+        assertRootRowOrder(
             firstRowTag = settingsInviteFriendButtonTag,
+            secondRowTag = settingsShareAppRowTag
+        )
+        assertRootRowOrder(
+            firstRowTag = settingsShareAppRowTag,
             secondRowTag = settingsAccountSectionTag
         )
         assertRootRowOrder(
@@ -138,6 +150,11 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertRowClick(
             rowTag = settingsInviteFriendButtonTag,
             expectedClick = "friend_invite",
+            clickedRows = clickedRows
+        )
+        assertRowClick(
+            rowTag = settingsShareAppRowTag,
+            expectedClick = "share_app",
             clickedRows = clickedRows
         )
         assertRowClick(
@@ -267,6 +284,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         )
 
         assertRootRowVisible(rowTag = settingsInviteFriendButtonTag)
+        assertRootRowVisible(rowTag = settingsShareAppRowTag)
         composeRule.onNodeWithTag(settingsInviteFriendButtonTag).assertIsNotEnabled()
     }
 
@@ -296,6 +314,9 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     ),
                     onOpenFriendInvite = {
                         clickedRows += "friend_invite"
+                    },
+                    onShareApp = {
+                        clickedRows += "share_app"
                     },
                     onOpenAccountStatus = {
                         clickedRows += "account_status"

@@ -49,6 +49,7 @@ import com.flashcardsopensourceapp.feature.settings.notifications.NotificationDi
 import com.flashcardsopensourceapp.feature.settings.notifications.NotificationDiagnosticsUiState
 import com.flashcardsopensourceapp.feature.settings.review.ReviewAnimationsRoute
 import com.flashcardsopensourceapp.feature.settings.settingsInviteFriendDisplayNameFieldTag
+import com.flashcardsopensourceapp.feature.settings.shareFlashcardsApp
 import com.flashcardsopensourceapp.feature.settings.workspace.current.CurrentWorkspaceRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.current.createCurrentWorkspaceViewModelFactory
 import java.util.Locale
@@ -91,6 +92,15 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
         val friendInvitationUiState by friendInvitationViewModel.uiState.collectAsStateWithLifecycle()
         var isFriendInvitationDialogVisible by rememberSaveable { mutableStateOf(false) }
+        val shareUrl: String = stringResource(
+            id = com.flashcardsopensourceapp.feature.settings.R.string.flashcards_share_url
+        )
+        val shareChooserTitle: String = stringResource(
+            id = com.flashcardsopensourceapp.feature.settings.R.string.settings_share_app_chooser_title
+        )
+        val shareText: String = stringResource(
+            id = com.flashcardsopensourceapp.feature.settings.R.string.settings_share_app_text
+        )
 
         LaunchedEffect(settingsViewModel) {
             settingsViewModel.refreshAccountContextAsync()
@@ -116,6 +126,14 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
 
                     SettingsFriendInviteAvailability.LOADING -> Unit
                 }
+            },
+            onShareApp = {
+                shareFlashcardsApp(
+                    context = context,
+                    shareUrl = shareUrl,
+                    title = shareChooserTitle,
+                    text = shareText
+                )
             },
             onOpenAccountStatus = {
                 navController.navigate(route = SettingsAccountStatusDestination.route)
