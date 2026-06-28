@@ -43,6 +43,8 @@ function toStoredCard(workspaceId: string, card: Card): StoredCard {
     cardId: card.cardId,
     frontText: card.frontText,
     backText: card.backText,
+    cardType: card.cardType,
+    metadata: card.metadata,
     tags: card.tags,
     // TODO: Drop boundary-facing legacy dueAt after the domain/wire split.
     dueAt: card.dueAt,
@@ -71,6 +73,8 @@ function toCard(record: StoredCard): Card {
     cardId: record.cardId,
     frontText: record.frontText,
     backText: record.backText,
+    cardType: record.cardType,
+    metadata: record.metadata,
     tags: record.tags,
     // TODO: Drop boundary-facing legacy dueAt after the domain/wire split.
     dueAt: record.dueAt ?? null,

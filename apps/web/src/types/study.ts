@@ -28,11 +28,27 @@ export type DeckFilterDefinition = Readonly<{
 
 export type ReviewRating = 0 | 1 | 2 | 3;
 
+export type CardSourceMetadata = Readonly<{
+  label: string | null;
+  author: string | null;
+  comment: string | null;
+  createdAt: string | null;
+  importedAt: string | null;
+  importId: string | null;
+}>;
+
+export type CardMetadata = Readonly<{
+  version: 1;
+  source: CardSourceMetadata | null;
+}>;
+
 // Keep in sync with apps/backend/src/cards/types.ts::Card, apps/ios/Flashcards/Flashcards/Cards/Model/CardDeckTypes.swift::Card, and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/CardModels.kt::CardSummary.
 export type Card = Readonly<{
   cardId: string;
   frontText: string;
   backText: string;
+  cardType: string;
+  metadata: CardMetadata;
   tags: ReadonlyArray<string>;
   dueAt: string | null;
   createdAt: string;

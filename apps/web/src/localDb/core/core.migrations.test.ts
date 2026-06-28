@@ -16,7 +16,7 @@ import {
 import { listOutboxRecords, type PersistedOutboxRecord } from "../sync/outbox";
 import { loadReviewQueueSnapshot } from "../reviews/reviews";
 import { makeCard, workspaceId } from "./testSupport";
-import type { Card, Deck, LegacyEffortLevel } from "../../types";
+import type { Card, Deck, LegacyEffortLevel, SyncPushOperation } from "../../types";
 
 const observabilityMocks = vi.hoisted(() => ({
   addWebBreadcrumbMock: vi.fn(),
@@ -26,13 +26,16 @@ vi.mock("../../observability/webObservability", () => ({
   addWebBreadcrumb: observabilityMocks.addWebBreadcrumbMock,
 }));
 
-type LegacyStoredCard = Omit<StoredCard, "dueAt" | "dueAtMillis" | "dueAtBucketMillis" | "fsrsLastReviewedAtMillis"> & Readonly<{
+type LegacyStoredCard = Omit<
+  StoredCard,
+  "dueAt" | "dueAtMillis" | "dueAtBucketMillis" | "fsrsLastReviewedAtMillis" | "cardType" | "metadata"
+> & Readonly<{
   dueAt?: string | null;
   effortLevel?: LegacyEffortLevel;
 }>;
 
 const webSyncDatabaseName = "flashcards-web-sync";
-const currentWebSyncDatabaseVersion = 15;
+const currentWebSyncDatabaseVersion = 16;
 const legacyNullDueAtBucketMillis = -1;
 const legacyMalformedDueAtBucketMillis = -2;
 
@@ -49,6 +52,19 @@ type LegacyStoredDeck = Omit<Deck, "filterDefinition"> & Readonly<{
     effortLevels: ReadonlyArray<LegacyEffortLevel>;
     tags: ReadonlyArray<string>;
   }>;
+}>;
+
+type CardUpsertOperation = Extract<
+  SyncPushOperation,
+  Readonly<{ entityType: "card"; action: "upsert" }>
+>;
+
+type LegacyCardUpsertOperation = Omit<CardUpsertOperation, "payload"> & Readonly<{
+  payload: Omit<CardUpsertOperation["payload"], "cardType" | "metadata">;
+}>;
+
+type LegacyPersistedOutboxRecord = Omit<PersistedOutboxRecord, "operation"> & Readonly<{
+  operation: SyncPushOperation | LegacyCardUpsertOperation;
 }>;
 
 type DeferredVoid = Readonly<{
@@ -190,7 +206,7 @@ function putLegacyRecords(
   database: IDBDatabase,
   cards: ReadonlyArray<LegacyStoredCard>,
   decks: ReadonlyArray<LegacyStoredDeck>,
-  outboxRecords: ReadonlyArray<PersistedOutboxRecord>,
+  outboxRecords: ReadonlyArray<LegacyPersistedOutboxRecord>,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(["cards", "decks", "outbox"], "readwrite");
@@ -222,7 +238,7 @@ function putLegacyRecords(
 async function seedLegacyVersion9Database(
   cards: ReadonlyArray<LegacyStoredCard>,
   decks: ReadonlyArray<LegacyStoredDeck>,
-  outboxRecords: ReadonlyArray<PersistedOutboxRecord>,
+  outboxRecords: ReadonlyArray<LegacyPersistedOutboxRecord>,
 ): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const request = indexedDB.open(webSyncDatabaseName, 9);
@@ -578,6 +594,8 @@ describe("localDb core migrations", () => {
       const dueAtBucketMillisByCardId = new Map(storedCards.map((card) => [card.cardId, card.dueAtBucketMillis]));
       const fsrsLastReviewedAtMillisByCardId = new Map(storedCards.map((card) => [card.cardId, card.fsrsLastReviewedAtMillis]));
       const tagsByCardId = new Map(storedCards.map((card) => [card.cardId, card.tags]));
+      const cardTypeByCardId = new Map(storedCards.map((card) => [card.cardId, card.cardType]));
+      const metadataByCardId = new Map(storedCards.map((card) => [card.cardId, card.metadata]));
       const filterDefinitionByDeckId = new Map(storedDecks.map((deck) => [deck.deckId, deck.filterDefinition]));
       const migratedCalendarInvalidDueAt = storedCards.find((card) => card.cardId === "calendar-invalid-due");
       const migratedMissingDueAt = storedCards.find((card) => card.cardId === "missing-due-at");
@@ -599,6 +617,20 @@ describe("localDb core migrations", () => {
       expect(migratedMissingDueAt?.dueAt).toBeNull();
       expect(migratedMissingDueAt?.dueAtMillis).toBeNull();
       expect(migratedMissingDueAt?.dueAtBucketMillis).toBe(nullDueAtBucketMillis);
+      expect(cardTypeByCardId.get("canonical-due")).toBe("basic");
+      expect(metadataByCardId.get("canonical-due")).toEqual({
+        version: 1,
+        source: {
+          label: null,
+          author: null,
+          comment: null,
+          createdAt: "2026-03-10T09:00:00.000Z",
+          importedAt: null,
+          importId: null,
+        },
+      });
+      expect(cardTypeByCardId.get("missing-due-at")).toBe("basic");
+      expect(metadataByCardId.get("missing-due-at")?.source?.createdAt).toBe("2026-03-10T09:00:00.000Z");
       expect(tagsByCardId.get("legacy-medium-effort")).toEqual(["grammar", "medium"]);
       expect(filterDefinitionByDeckId.get("legacy-medium-effort-deck")).toEqual({
         version: 2,
@@ -631,6 +663,18 @@ describe("localDb core migrations", () => {
       }
       expect(pendingCardOperation.payload.tags).toEqual(["grammar", "medium"]);
       expect(pendingCardOperation.payload.effortLevel).toBe("fast");
+      expect(pendingCardOperation.payload.cardType).toBe("basic");
+      expect(pendingCardOperation.payload.metadata).toEqual({
+        version: 1,
+        source: {
+          label: null,
+          author: null,
+          comment: null,
+          createdAt: "2026-03-10T09:00:00.000Z",
+          importedAt: null,
+          importId: null,
+        },
+      });
       expect(pendingCardOperation.payload.dueAt).toBe("2026-03-10T12:00:00.000Z");
 
       const pendingDeckOutboxRecord = pendingOutboxRecords.find((record) => record.operationId === "pending-deck-upsert");
