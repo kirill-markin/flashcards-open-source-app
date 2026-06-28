@@ -88,6 +88,7 @@ internal fun SettingsScreenScaffold(
 fun SettingsRoute(
     uiState: SettingsUiState,
     onOpenFriendInvite: () -> Unit,
+    onShareApp: () -> Unit,
     onOpenAccountStatus: () -> Unit,
     onOpenCurrentWorkspace: () -> Unit,
     onOpenReviewReminders: () -> Unit,
@@ -125,9 +126,26 @@ fun SettingsRoute(
                 .testTag(tag = settingsRootScreenTag)
         ) {
             item {
+                SettingsRootSectionTitle(
+                    title = stringResource(R.string.settings_section_share),
+                    testTag = settingsShareSectionTag
+                )
+            }
+
+            item {
                 SettingsInviteFriendButton(
                     isEnabled = uiState.friendInviteAvailability != SettingsFriendInviteAvailability.LOADING,
                     onClick = onOpenFriendInvite
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_share_app_title),
+                    summary = stringResource(R.string.settings_share_app_summary),
+                    attentionCount = null,
+                    testTag = settingsShareAppRowTag,
+                    onClick = onShareApp
                 )
             }
 

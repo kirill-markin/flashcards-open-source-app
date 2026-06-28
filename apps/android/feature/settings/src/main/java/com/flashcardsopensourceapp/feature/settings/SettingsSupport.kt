@@ -30,6 +30,15 @@ fun sendSupportEmail(context: Context, emailAddress: String) {
     context.startActivity(intent)
 }
 
+fun shareFlashcardsApp(context: Context, shareUrl: String, title: String, text: String) {
+    val intent: Intent = Intent(Intent.ACTION_SEND)
+        .setType("text/plain")
+        .putExtra(Intent.EXTRA_TEXT, "$text\n$shareUrl")
+    val chooserIntent: Intent = Intent.createChooser(intent, title)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    context.startActivity(chooserIntent)
+}
+
 fun formatTimestampLabel(timestampMillis: Long?, strings: SettingsStringResolver): String {
     if (timestampMillis == null) {
         return strings.get(R.string.settings_never)
