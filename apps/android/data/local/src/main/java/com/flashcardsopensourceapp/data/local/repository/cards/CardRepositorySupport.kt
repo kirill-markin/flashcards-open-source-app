@@ -5,6 +5,8 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.CardWithRelations
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
+import com.flashcardsopensourceapp.data.local.model.cards.decodeCardMetadataJson
+import com.flashcardsopensourceapp.data.local.model.cards.normalizeCardType
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
 import java.util.UUID
 
@@ -14,6 +16,8 @@ internal fun toCardSummary(card: CardWithRelations): CardSummary {
         workspaceId = card.card.workspaceId,
         frontText = card.card.frontText,
         backText = card.card.backText,
+        cardType = normalizeCardType(rawValue = card.card.cardType),
+        metadata = decodeCardMetadataJson(metadataJson = card.card.metadataJson),
         tags = normalizeTags(
             values = card.tags.map { tag -> tag.name },
             referenceTags = emptyList()

@@ -9,10 +9,13 @@ import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntit
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
+import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
+import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
@@ -80,6 +83,8 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
                 workspaceId = localWorkspaceId,
                 frontText = "Keep Question",
                 backText = "Keep Answer",
+                cardType = defaultCardType,
+                metadataJson = encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(110L)),
                 dueAtMillis = null,
                 createdAtMillis = 110L,
                 updatedAtMillis = 110L,

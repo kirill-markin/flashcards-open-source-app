@@ -663,18 +663,8 @@ describe("localDb core migrations", () => {
       }
       expect(pendingCardOperation.payload.tags).toEqual(["grammar", "medium"]);
       expect(pendingCardOperation.payload.effortLevel).toBe("fast");
-      expect(pendingCardOperation.payload.cardType).toBe("basic");
-      expect(pendingCardOperation.payload.metadata).toEqual({
-        version: 1,
-        source: {
-          label: null,
-          author: null,
-          comment: null,
-          createdAt: "2026-03-10T09:00:00.000Z",
-          importedAt: null,
-          importId: null,
-        },
-      });
+      expect(pendingCardOperation.payload).not.toHaveProperty("cardType");
+      expect(pendingCardOperation.payload).not.toHaveProperty("metadata");
       expect(pendingCardOperation.payload.dueAt).toBe("2026-03-10T12:00:00.000Z");
 
       const pendingDeckOutboxRecord = pendingOutboxRecords.find((record) => record.operationId === "pending-deck-upsert");

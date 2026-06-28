@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.model.sync
 
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.cards.CardMetadata
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 
 enum class SyncEntityType {
@@ -55,6 +56,8 @@ data class CardSyncPayload(
     val cardId: String,
     val frontText: String,
     val backText: String,
+    val cardType: String,
+    val metadata: CardMetadata,
     val tags: List<String>,
     // TODO: Remove legacy effortLevel once the backend wire contract drops it.
     val effortLevel: String,

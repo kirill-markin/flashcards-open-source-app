@@ -278,6 +278,15 @@ export const ruCatalog = {
       reviews: "Повторения",
     },
   },
+  shareApp: {
+    title: "Учитесь с Flashcards",
+    body: "Выберите, где использовать приложение. Ваши карточки доступны на iOS, Android и в веб-версии.",
+    links: {
+      ios: "Открыть в App Store",
+      android: "Открыть в Google Play",
+      web: "Веб-приложение",
+    },
+  },
   friendInvite: {
     loading: "Проверяем ссылку-приглашение...",
     inactiveTitle: "Эта ссылка больше не активна",
@@ -355,10 +364,20 @@ export const ruCatalog = {
       ariaLabel: "Создать приглашение для друга",
     },
     groups: {
+      share: "Поделиться",
       account: "Аккаунт",
       general: "Общие",
       support: "Поддержка",
       advanced: "Расширенные",
+    },
+    shareApp: {
+      title: "Поделиться приложением",
+      description: "Отправьте ссылку для установки или открытия на iOS, Android и в вебе.",
+      value: "Поделиться",
+      shareTitle: "Учитесь с Flashcards",
+      shareText: "Откройте Flashcards на iOS, Android или в вебе.",
+      shared: "Окно отправки открыто.",
+      shareUnavailable: "Отправка недоступна в этом браузере.",
     },
     currentWorkspace: {
       title: "Рабочее пространство",

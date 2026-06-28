@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapPullResponse
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.cloud.identity.syncWorkspaceForkRequiredErrorCode
+import com.flashcardsopensourceapp.data.local.model.cards.buildCardMetadataJsonObject
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.sync.PersistedOutboxEntry
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
@@ -678,6 +679,8 @@ private fun buildOperationPayload(payload: SyncOperationPayload): JSONObject {
             .put("cardId", payload.payload.cardId)
             .put("frontText", payload.payload.frontText)
             .put("backText", payload.payload.backText)
+            .put("cardType", payload.payload.cardType)
+            .put("metadata", buildCardMetadataJsonObject(metadata = payload.payload.metadata))
             .put("tags", JSONArray(payload.payload.tags))
             // TODO: Remove legacy effortLevel once the backend wire contract drops it.
             .put("effortLevel", payload.payload.effortLevel)

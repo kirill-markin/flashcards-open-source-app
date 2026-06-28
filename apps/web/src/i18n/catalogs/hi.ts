@@ -278,6 +278,15 @@ const hiCatalog: TranslationCatalog = {
       reviews: "रिव्यू",
     },
   },
+  shareApp: {
+    title: "Flashcards के साथ पढ़ें",
+    body: "चुनें कि आप ऐप कहां इस्तेमाल करना चाहते हैं। आपके कार्ड iOS, Android और वेब पर उपलब्ध रहते हैं।",
+    links: {
+      ios: "App Store में खोलें",
+      android: "Google Play में खोलें",
+      web: "वेब ऐप",
+    },
+  },
   friendInvite: {
     loading: "आमंत्रण लिंक जांचा जा रहा है...",
     inactiveTitle: "यह लिंक अब सक्रिय नहीं है",
@@ -355,10 +364,20 @@ const hiCatalog: TranslationCatalog = {
       ariaLabel: "दोस्त का आमंत्रण बनाएं",
     },
     groups: {
+      share: "शेयर करें",
       account: "खाता",
       general: "सामान्य",
       support: "सहायता",
       advanced: "उन्नत",
+    },
+    shareApp: {
+      title: "ऐप शेयर करें",
+      description: "iOS, Android और वेब के लिए इंस्टॉल या ओपन लिंक भेजें।",
+      value: "शेयर करें",
+      shareTitle: "Flashcards के साथ पढ़ें",
+      shareText: "Flashcards को iOS, Android या वेब पर खोलें।",
+      shared: "शेयर शीट खुल गई।",
+      shareUnavailable: "इस ब्राउज़र में शेयरिंग उपलब्ध नहीं है।",
     },
     currentWorkspace: {
       title: "वर्कस्पेस",

@@ -1,6 +1,9 @@
 package com.flashcardsopensourceapp.feature.review
 
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
+import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
+import com.flashcardsopensourceapp.data.local.model.cards.makeDefaultCardMetadata
+import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
@@ -161,6 +164,8 @@ private fun makePinnedReviewCardSummary(
         workspaceId = pinnedReviewWorkspaceId,
         frontText = "Front $cardId",
         backText = "Back $cardId",
+        cardType = defaultCardType,
+        metadata = makeDefaultCardMetadata(createdAt = formatIsoTimestamp(createdAtMillis)),
         tags = emptyList(),
         dueAtMillis = dueAtMillis,
         createdAtMillis = createdAtMillis,

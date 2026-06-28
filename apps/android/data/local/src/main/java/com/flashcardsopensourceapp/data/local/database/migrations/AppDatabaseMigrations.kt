@@ -5,6 +5,7 @@ import androidx.sqlite.db.SimpleSQLiteQuery
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.cardsRecentlyReviewedDueIndexName
 import com.flashcardsopensourceapp.data.local.database.entities.cardsReviewQueueIndexName
+import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import java.util.UUID
 import org.json.JSONArray
 import org.json.JSONException
@@ -38,7 +39,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration21To22,
         migration22To23,
         migration23To24,
-        migration24To25
+        migration24To25,
+        migration25To26
     )
 }
 
@@ -854,10 +856,28 @@ val migration24To25: Migration = object : Migration(24, 25) {
     }
 }
 
+val migration25To26: Migration = object : Migration(25, 26) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE cards ADD COLUMN cardType TEXT NOT NULL DEFAULT 'basic'")
+        db.execSQL(
+            """
+            ALTER TABLE cards
+            ADD COLUMN metadataJson TEXT NOT NULL DEFAULT '{"version":1,"source":null}'
+            """.trimIndent()
+        )
+        backfillCardMetadataJson(db = db)
+    }
+}
+
 private data class LegacyCardEffortRow(
     val cardId: String,
     val workspaceId: String,
     val effortTag: String
+)
+
+private data class CardMetadataBackfillRow(
+    val cardId: String,
+    val createdAtMillis: Long
 )
 
 private data class LegacyDeckFilterRow(
@@ -1225,4 +1245,48 @@ private fun rebuildCardsWithoutLegacyEffort(db: SupportSQLiteDatabase) {
     db.execSQL("CREATE INDEX IF NOT EXISTS index_review_logs_cardId ON review_logs(cardId)")
     db.execSQL("CREATE INDEX IF NOT EXISTS index_review_logs_reviewedAtMillis ON review_logs(reviewedAtMillis)")
     db.execSQL("DROP TABLE review_logs_v25_backup")
+}
+
+private fun backfillCardMetadataJson(db: SupportSQLiteDatabase) {
+    loadCardMetadataBackfillRows(db = db).forEach { row ->
+        db.execSQL(
+            "UPDATE cards SET metadataJson = ? WHERE cardId = ?",
+            arrayOf(buildDefaultCardMetadataJson(createdAt = formatIsoTimestamp(row.createdAtMillis)), row.cardId)
+        )
+    }
+}
+
+private fun loadCardMetadataBackfillRows(db: SupportSQLiteDatabase): List<CardMetadataBackfillRow> {
+    return db.query(SimpleSQLiteQuery("SELECT cardId, createdAtMillis FROM cards")).use { cursor ->
+        val cardIdIndex = cursor.getColumnIndexOrThrow("cardId")
+        val createdAtMillisIndex = cursor.getColumnIndexOrThrow("createdAtMillis")
+        val rows = mutableListOf<CardMetadataBackfillRow>()
+
+        while (cursor.moveToNext()) {
+            rows.add(
+                CardMetadataBackfillRow(
+                    cardId = cursor.getString(cardIdIndex),
+                    createdAtMillis = cursor.getLong(createdAtMillisIndex)
+                )
+            )
+        }
+
+        rows.toList()
+    }
+}
+
+private fun buildDefaultCardMetadataJson(createdAt: String): String {
+    return JSONObject()
+        .put("version", 1)
+        .put(
+            "source",
+            JSONObject()
+                .put("label", JSONObject.NULL)
+                .put("author", JSONObject.NULL)
+                .put("comment", JSONObject.NULL)
+                .put("createdAt", createdAt)
+                .put("importedAt", JSONObject.NULL)
+                .put("importId", JSONObject.NULL)
+        )
+        .toString()
 }

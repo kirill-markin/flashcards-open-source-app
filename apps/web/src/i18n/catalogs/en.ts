@@ -276,6 +276,15 @@ const enCatalog = {
       reviews: "Reviews",
     },
   },
+  shareApp: {
+    title: "Study with Flashcards",
+    body: "Choose where you want to use the app. Your cards stay available across iOS, Android, and the web.",
+    links: {
+      ios: "Open in App Store",
+      android: "Open in Google Play",
+      web: "Web App",
+    },
+  },
   friendInvite: {
     loading: "Checking invite link...",
     inactiveTitle: "This link is no longer active",
@@ -353,10 +362,20 @@ const enCatalog = {
       ariaLabel: "Create friend invite",
     },
     groups: {
+      share: "Share",
       account: "Account",
       general: "General",
       support: "Support",
       advanced: "Advanced",
+    },
+    shareApp: {
+      title: "Share app",
+      description: "Send an install or open link for iOS, Android, and the web.",
+      value: "Share",
+      shareTitle: "Study with Flashcards",
+      shareText: "Open Flashcards on iOS, Android, or the web.",
+      shared: "Share sheet opened.",
+      shareUnavailable: "Sharing is not available in this browser.",
     },
     currentWorkspace: {
       title: "Workspace",

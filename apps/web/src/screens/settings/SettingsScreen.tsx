@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactElement } from "react";
 import { isAuthRedirectError } from "../../api";
 import { useAppData } from "../../appData";
 import { canLoadProgressServerBase } from "../../appData/progress/progressSource";
+import { getAppConfig } from "../../config";
 import {
   autoLocalePreference,
   type Locale,
@@ -33,11 +34,13 @@ import {
   settingsServerRoute,
   settingsTagsRoute,
   settingsTestRoute,
+  shareRoute,
 } from "../../routes";
 import { useAIChatPreferences } from "../../chat/preferences/AIChatPreferencesContext";
 import { useTestMode } from "../../testMode";
 import { FriendInviteCreateDialog } from "../friends/FriendInviteCreateDialog";
 import {
+  SettingsActionCard,
   SettingsGroup,
   SettingsNavigationCard,
   SettingsShell,
@@ -68,6 +71,14 @@ function formatLocalePreferenceLabel(
   return t(localeNameKey(localePreference));
 }
 
+function formatShareErrorMessage(error: unknown, unavailableMessage: string): string {
+  if (error instanceof Error && error.message !== "") {
+    return error.message;
+  }
+
+  return unavailableMessage;
+}
+
 export function SettingsScreen(): ReactElement {
   const {
     activeWorkspace,
@@ -83,11 +94,14 @@ export function SettingsScreen(): ReactElement {
   const { aiChatComposerSuggestionsEnabled } = useAIChatPreferences();
   const { isTestModeEnabled } = useTestMode();
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState<boolean>(false);
+  const [shareStatusMessage, setShareStatusMessage] = useState<string>("");
+  const [shareErrorMessage, setShareErrorMessage] = useState<string>("");
   const currentWorkspaceName = activeWorkspace?.name ?? t("common.unavailable");
   const accountStatus = accountStatusValue(cloudSettings?.linkedEmail ?? session?.profile.email ?? null, t("common.unavailable"));
   const languagePreferenceLabel = formatLocalePreferenceLabel(localePreference, t);
   const schedulerValue = workspaceSettings === null ? t("common.unavailable") : workspaceSettings.algorithm.toUpperCase();
   const canCreateInvite = canLoadProgressServerBase(sessionVerificationState, cloudSettings);
+  const appShareUrl = `${getAppConfig().appBaseUrl}${shareRoute}`;
 
   useEffect(() => {
     if (session === null || isSessionVerified === false) {
@@ -103,23 +117,71 @@ export function SettingsScreen(): ReactElement {
     });
   }, [isSessionVerified, refreshAccountPreferences, session?.userId, setErrorMessage]);
 
+  async function shareApp(): Promise<void> {
+    setShareStatusMessage("");
+    setShareErrorMessage("");
+
+    if (typeof navigator.share !== "function") {
+      setShareErrorMessage(t("settingsHome.shareApp.shareUnavailable"));
+      return;
+    }
+
+    try {
+      await navigator.share({
+        title: t("settingsHome.shareApp.shareTitle"),
+        text: t("settingsHome.shareApp.shareText"),
+        url: appShareUrl,
+      });
+      setShareStatusMessage(t("settingsHome.shareApp.shared"));
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      setShareErrorMessage(formatShareErrorMessage(error, t("settingsHome.shareApp.shareUnavailable")));
+    }
+  }
+
   return (
     <SettingsShell
       title={t("settingsHome.title")}
       subtitle={t("settingsHome.subtitle")}
       activeTab="general"
     >
-      <div className="settings-invite-row">
-        <button
-          className="primary-btn settings-invite-btn"
-          type="button"
-          aria-label={t("settingsHome.inviteFriend.ariaLabel")}
-          onClick={() => setIsInviteDialogOpen(true)}
-          data-testid="settings-invite-open"
-        >
-          {t("settingsHome.inviteFriend.actionText")}
-        </button>
-      </div>
+      <SettingsGroup title={t("settingsHome.groups.share")}>
+        <div className="settings-nav-list">
+          <div className="settings-invite-row">
+            <button
+              className="primary-btn settings-invite-btn"
+              type="button"
+              aria-label={t("settingsHome.inviteFriend.ariaLabel")}
+              onClick={() => setIsInviteDialogOpen(true)}
+              data-testid="settings-invite-open"
+            >
+              {t("settingsHome.inviteFriend.actionText")}
+            </button>
+          </div>
+          <SettingsActionCard
+            title={t("settingsHome.shareApp.title")}
+            description={t("settingsHome.shareApp.description")}
+            value={t("settingsHome.shareApp.value")}
+            onClick={() => {
+              void shareApp();
+            }}
+            testId="settings-share-app-open"
+          />
+        </div>
+        {shareStatusMessage === "" ? null : (
+          <p className="settings-temporary-banner" role="status" data-testid="settings-share-app-status">
+            {shareStatusMessage}
+          </p>
+        )}
+        {shareErrorMessage === "" ? null : (
+          <p className="error-banner" role="alert" data-testid="settings-share-app-error">
+            {shareErrorMessage}
+          </p>
+        )}
+      </SettingsGroup>
 
       <SettingsGroup title={t("settingsHome.groups.account")}>
         <div className="settings-nav-list">

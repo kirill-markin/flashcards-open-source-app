@@ -163,6 +163,10 @@ type StoredOutboxLegacyEffortMigrationRecord = Readonly<{
   operation: SyncPushOperation;
 }>;
 
+function hasOwnProperty(objectValue: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(objectValue, key);
+}
+
 function isQuotaExceededError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "QuotaExceededError";
 }
@@ -467,12 +471,23 @@ function normalizeStoredDeckLegacyEffort(record: StoredDeckLegacyEffortMigration
 function normalizeOutboxCardUpsertLegacyEffort(
   operation: CardUpsertLegacyEffortMigrationOperation,
 ): CardUpsertOperation {
+  const { cardType, metadata, ...payloadWithoutMetadataFields } = operation.payload;
+  const metadataFields: {
+    cardType?: NonNullable<CardUpsertOperation["payload"]["cardType"]>;
+    metadata?: NonNullable<CardUpsertOperation["payload"]["metadata"]>;
+  } = {};
+  if (hasOwnProperty(operation.payload, "cardType")) {
+    metadataFields.cardType = normalizeCardType(cardType);
+  }
+  if (hasOwnProperty(operation.payload, "metadata")) {
+    metadataFields.metadata = normalizeCardMetadata(metadata, operation.payload.createdAt);
+  }
+
   return {
     ...operation,
     payload: {
-      ...operation.payload,
-      cardType: normalizeCardType(operation.payload.cardType),
-      metadata: normalizeCardMetadata(operation.payload.metadata, operation.payload.createdAt),
+      ...payloadWithoutMetadataFields,
+      ...metadataFields,
       tags: appendLegacyEffortTag(operation.payload.tags, operation.payload.effortLevel),
       effortLevel: "fast",
     },

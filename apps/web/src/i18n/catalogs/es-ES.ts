@@ -278,6 +278,15 @@ const esEsCatalog: TranslationCatalog = {
       reviews: "Repasos",
     },
   },
+  shareApp: {
+    title: "Estudia con Flashcards",
+    body: "Elige dónde quieres usar la app. Tus tarjetas siguen disponibles en iOS, Android y la web.",
+    links: {
+      ios: "Abrir en App Store",
+      android: "Abrir en Google Play",
+      web: "Web App",
+    },
+  },
   friendInvite: {
     loading: "Comprobando enlace de invitación...",
     inactiveTitle: "Este enlace ya no está activo",
@@ -355,10 +364,20 @@ const esEsCatalog: TranslationCatalog = {
       ariaLabel: "Crear invitación de amigo",
     },
     groups: {
+      share: "Compartir",
       account: "Cuenta",
       general: "General",
       support: "Soporte",
       advanced: "Avanzado",
+    },
+    shareApp: {
+      title: "Compartir app",
+      description: "Envía un enlace para instalar o abrir la app en iOS, Android y la web.",
+      value: "Compartir",
+      shareTitle: "Estudia con Flashcards",
+      shareText: "Abre Flashcards en iOS, Android o la web.",
+      shared: "Hoja para compartir abierta.",
+      shareUnavailable: "La opción de compartir no está disponible en este navegador.",
     },
     currentWorkspace: {
       title: "Espacio de trabajo",

@@ -4,10 +4,13 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
+import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
+import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
+import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.cloudCredentialRecoveryRequiredMessage
@@ -187,6 +190,8 @@ class LocalSyncRepositoryDisconnectedStateTest {
                 workspaceId = localWorkspaceId,
                 frontText = "Question",
                 backText = "Answer",
+                cardType = defaultCardType,
+                metadataJson = encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(100L)),
                 dueAtMillis = null,
                 createdAtMillis = 100L,
                 updatedAtMillis = 100L,

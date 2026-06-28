@@ -8,6 +8,9 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
+import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
+import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
+import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
@@ -140,6 +143,8 @@ internal fun makeDueReviewOrderingCardEntity(
         workspaceId = workspaceId,
         frontText = cardId,
         backText = "Back",
+        cardType = defaultCardType,
+        metadataJson = encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(createdAtMillis)),
         dueAtMillis = dueAtMillis,
         createdAtMillis = createdAtMillis,
         updatedAtMillis = updatedAtMillis,
@@ -166,6 +171,8 @@ internal fun makeNewReviewOrderingCardEntity(
         workspaceId = workspaceId,
         frontText = cardId,
         backText = "Back",
+        cardType = defaultCardType,
+        metadataJson = encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(createdAtMillis)),
         dueAtMillis = null,
         createdAtMillis = createdAtMillis,
         updatedAtMillis = updatedAtMillis,

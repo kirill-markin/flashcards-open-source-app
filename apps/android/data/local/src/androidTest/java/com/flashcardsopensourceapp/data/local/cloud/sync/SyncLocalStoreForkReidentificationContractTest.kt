@@ -7,6 +7,9 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
+import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
+import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
+import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
@@ -57,6 +60,8 @@ class SyncLocalStoreForkReidentificationContractTest {
             workspaceId = syncLocalStoreContractWorkspaceId,
             frontText = "Front",
             backText = "Back",
+            cardType = defaultCardType,
+            metadataJson = encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(1L)),
             dueAtMillis = null,
             createdAtMillis = 1L,
             updatedAtMillis = 2L,

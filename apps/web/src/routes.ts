@@ -11,6 +11,7 @@ export const progressStreakHash: string = "streak";
 export const progressStreakRoute: string = `${progressRoute}#${progressStreakHash}`;
 export const progressLeaderboardHash: string = "leaderboard";
 export const progressLeaderboardRoute: string = `${progressRoute}#${progressLeaderboardHash}`;
+export const shareRoute: string = "/share";
 export const friendInviteRoutePrefix: string = "/invite";
 export const friendInviteRoutePattern: string = `${friendInviteRoutePrefix}/:token`;
 export const devPreviewsRoutePrefix: string = "/dev/previews";

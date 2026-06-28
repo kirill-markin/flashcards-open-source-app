@@ -21,8 +21,8 @@ export type SyncPushOperation =
       cardId: string;
       frontText: string;
       backText: string;
-      cardType: string;
-      metadata: CardMetadata;
+      cardType?: string;
+      metadata?: CardMetadata;
       tags: ReadonlyArray<string>;
       effortLevel: LegacyEffortLevel;
       dueAt: string | null;

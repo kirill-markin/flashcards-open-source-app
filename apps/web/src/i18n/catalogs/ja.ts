@@ -278,6 +278,15 @@ export const jaCatalog = {
       reviews: "復習回数",
     },
   },
+  shareApp: {
+    title: "Flashcardsで学習",
+    body: "アプリを使う場所を選択してください。カードはiOS、Android、Webで引き続き利用できます。",
+    links: {
+      ios: "App Store で開く",
+      android: "Google Play で開く",
+      web: "Web App",
+    },
+  },
   friendInvite: {
     loading: "招待リンクを確認しています...",
     inactiveTitle: "このリンクはもう有効ではありません",
@@ -355,10 +364,20 @@ export const jaCatalog = {
       ariaLabel: "友だち招待を作成",
     },
     groups: {
+      share: "共有",
       account: "アカウント",
       general: "一般",
       support: "サポート",
       advanced: "詳細",
+    },
+    shareApp: {
+      title: "アプリを共有",
+      description: "iOS、Android、Web でインストールまたは開くためのリンクを送信します。",
+      value: "共有",
+      shareTitle: "Flashcards で学習",
+      shareText: "Flashcards を iOS、Android、または Web で開きます。",
+      shared: "共有シートを開きました。",
+      shareUnavailable: "このブラウザでは共有を利用できません。",
     },
     currentWorkspace: {
       title: "ワークスペース",

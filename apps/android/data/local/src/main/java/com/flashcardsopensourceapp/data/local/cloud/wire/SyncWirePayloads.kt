@@ -7,10 +7,13 @@ import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntit
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
+import com.flashcardsopensourceapp.data.local.model.cards.CardMetadata
+import com.flashcardsopensourceapp.data.local.model.cards.CardSourceMetadata
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.sync.CardSyncPayload
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.sync.DeckSyncPayload
+import com.flashcardsopensourceapp.data.local.model.cards.buildCardMetadataJsonObject
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.ReviewEventSyncPayload
 import com.flashcardsopensourceapp.data.local.model.sync.SyncAction
@@ -20,6 +23,10 @@ import com.flashcardsopensourceapp.data.local.model.sync.SyncOperationPayload
 import com.flashcardsopensourceapp.data.local.model.sync.WorkspaceSchedulerSettingsSyncPayload
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinitionJsonObject
+import com.flashcardsopensourceapp.data.local.model.cards.decodeCardMetadataJson
+import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
+import com.flashcardsopensourceapp.data.local.model.cards.makeDefaultCardMetadata
+import com.flashcardsopensourceapp.data.local.model.cards.normalizeCardType
 import com.flashcardsopensourceapp.data.local.model.scheduling.decodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
@@ -43,6 +50,8 @@ internal fun buildCardOutboxPayloadJson(card: CardEntity, tags: List<String>): J
         .put("cardId", card.cardId)
         .put("frontText", card.frontText)
         .put("backText", card.backText)
+        .put("cardType", normalizeCardType(rawValue = card.cardType))
+        .put("metadata", buildCardMetadataJsonObject(metadata = decodeCardMetadataJson(metadataJson = card.metadataJson)))
         .put("tags", JSONArray(tags))
         // TODO: Remove legacy effortLevel once the backend wire contract drops it.
         .put("effortLevel", legacyFastEffortWireValue)
@@ -111,6 +120,8 @@ internal fun buildCardBootstrapEntryJson(
                 .put("cardId", card.cardId)
                 .put("frontText", card.frontText)
                 .put("backText", card.backText)
+                .put("cardType", card.cardType)
+                .put("metadata", buildCardMetadataJsonObject(metadata = card.metadata))
                 .put("tags", JSONArray(card.tags))
                 // TODO: Remove legacy effortLevel once the backend wire contract drops it.
                 .put("effortLevel", legacyFastEffortWireValue)
@@ -212,6 +223,12 @@ internal fun decodeOutboxOperation(entry: OutboxEntryEntity): SyncOperation {
                     cardId = payloadJson.requireCloudString("cardId", "outbox.card.cardId"),
                     frontText = payloadJson.requireCloudString("frontText", "outbox.card.frontText"),
                     backText = payloadJson.requireCloudString("backText", "outbox.card.backText"),
+                    cardType = parseCardPayloadCardType(payloadJson = payloadJson, fieldPath = "outbox.card"),
+                    metadata = parseCardPayloadMetadata(
+                        payloadJson = payloadJson,
+                        createdAt = payloadJson.requireCloudString("createdAt", "outbox.card.createdAt"),
+                        fieldPath = "outbox.card"
+                    ),
                     tags = parseCardOutboxTags(payloadJson = payloadJson, fieldPath = "outbox.card"),
                     effortLevel = legacyFastEffortWireValue,
                     dueAt = payloadJson.requireCloudNullableString("dueAt", "outbox.card.dueAt"),
@@ -317,6 +334,56 @@ internal fun parseSyncAction(rawValue: String): SyncAction {
     }
 }
 
+internal fun parseCardPayloadCardType(payloadJson: JSONObject, fieldPath: String): String {
+    if (payloadJson.has("cardType").not()) {
+        return defaultCardType
+    }
+    return normalizeCardType(rawValue = payloadJson.requireCloudString("cardType", "$fieldPath.cardType"))
+}
+
+internal fun parseCardPayloadMetadata(
+    payloadJson: JSONObject,
+    createdAt: String,
+    fieldPath: String
+): CardMetadata {
+    if (payloadJson.has("metadata").not()) {
+        return makeDefaultCardMetadata(createdAt = createdAt)
+    }
+    val metadataObject = payloadJson.requireCloudObject("metadata", "$fieldPath.metadata")
+    val version: Int = metadataObject.requireCloudInt("version", "$fieldPath.metadata.version")
+    if (version != 1) {
+        throw CloudContractMismatchException(
+            "Cloud contract mismatch for $fieldPath.metadata.version: expected 1, got $version"
+        )
+    }
+    if (metadataObject.has("source").not()) {
+        throw CloudContractMismatchException(
+            "Cloud contract mismatch for $fieldPath.metadata.source: expected present value, got missing"
+        )
+    }
+
+    return CardMetadata(
+        version = version,
+        source = metadataObject.optCloudObjectOrNull("source", "$fieldPath.metadata.source")?.let { sourceObject ->
+            parseCardSourceMetadata(
+                metadataObject = sourceObject,
+                fieldPath = "$fieldPath.metadata.source"
+            )
+        }
+    )
+}
+
+private fun parseCardSourceMetadata(metadataObject: JSONObject, fieldPath: String): CardSourceMetadata {
+    return CardSourceMetadata(
+        label = metadataObject.requireCloudNullableString("label", "$fieldPath.label"),
+        author = metadataObject.requireCloudNullableString("author", "$fieldPath.author"),
+        comment = metadataObject.requireCloudNullableString("comment", "$fieldPath.comment"),
+        createdAt = metadataObject.requireCloudNullableString("createdAt", "$fieldPath.createdAt"),
+        importedAt = metadataObject.requireCloudNullableString("importedAt", "$fieldPath.importedAt"),
+        importId = metadataObject.requireCloudNullableString("importId", "$fieldPath.importId")
+    )
+}
+
 internal fun SyncEntityType.toRemoteValue(): String {
     return when (this) {
         SyncEntityType.CARD -> "card"
@@ -410,6 +477,8 @@ internal fun toCardSummary(card: CardWithRelations): CardSummary {
         workspaceId = card.card.workspaceId,
         frontText = card.card.frontText,
         backText = card.card.backText,
+        cardType = normalizeCardType(rawValue = card.card.cardType),
+        metadata = decodeCardMetadataJson(metadataJson = card.card.metadataJson),
         tags = normalizeTags(card.tags.map(TagEntity::name), emptyList()),
         dueAtMillis = card.card.dueAtMillis,
         createdAtMillis = card.card.createdAtMillis,

@@ -7,10 +7,13 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapP
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapPushResponse
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
+import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
+import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
@@ -475,6 +478,8 @@ private fun createBlockedGuestUpgradeCard(workspaceId: String): CardEntity {
         workspaceId = workspaceId,
         frontText = "Blocked Question",
         backText = "Blocked Answer",
+        cardType = defaultCardType,
+        metadataJson = encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(500L)),
         dueAtMillis = null,
         createdAtMillis = 500L,
         updatedAtMillis = 500L,
