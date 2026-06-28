@@ -203,8 +203,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
             aiComposerFocusStateOrNull() == true
         )
 
-        composeRule.onNodeWithTag(aiConversationSurfaceTag).performClick()
-        waitUntilComposerIsNotFocused()
+        dismissComposerFocusBySurfaceTapAndWaitUntilNotFocused()
         assertTrue(
             "Expected tapping the AI conversation surface to clear the composer focus.",
             aiComposerFocusStateOrNull() == false
@@ -574,11 +573,27 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         }
     }
 
-    private fun waitUntilComposerIsNotFocused() {
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            countNodesWithTagInAnySemanticsTree(tag = aiComposerMessageFieldTag) > 0 &&
+    private fun dismissComposerFocusBySurfaceTapAndWaitUntilNotFocused() {
+        val deadlineMillis: Long = SystemClock.elapsedRealtime() + uiTimeoutMillis
+        while (SystemClock.elapsedRealtime() < deadlineMillis) {
+            try {
+                composeRule.onNodeWithTag(aiConversationSurfaceTag).performClick()
+            } catch (_: AssertionError) {
+                // performClick can fail to inject the tap while the soft-keyboard
+                // show/hide animation is still settling on slow managed devices
+                // ("Failed to inject touch input."); retry until the surface is stable.
+            }
+            composeRule.waitForIdle()
+            if (
+                countNodesWithTagInAnySemanticsTree(tag = aiComposerMessageFieldTag) > 0 &&
                 aiComposerFocusStateOrNull() == false
+            ) {
+                return
+            }
         }
+        throw AssertionError(
+            "Tapping the AI conversation surface did not clear the composer focus."
+        )
     }
 
     private fun waitForAiConversationReady() {
