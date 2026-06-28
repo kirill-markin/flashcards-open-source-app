@@ -21,7 +21,6 @@ export function parseMediaAsset(value: unknown, endpoint: string, path: string):
     mimeType: parseRequiredField(objectValue, "mimeType", endpoint, path, parseString),
     sizeBytes: parseRequiredField(objectValue, "sizeBytes", endpoint, path, parseNumber),
     sha256: parseRequiredField(objectValue, "sha256", endpoint, path, parseString),
-    storageKey: parseRequiredField(objectValue, "storageKey", endpoint, path, parseString),
     sourceUrl: parseRequiredField(objectValue, "sourceUrl", endpoint, path, parseNullableString),
     createdAt: parseRequiredField(objectValue, "createdAt", endpoint, path, parseString),
     clientUpdatedAt: parseRequiredField(objectValue, "clientUpdatedAt", endpoint, path, parseString),

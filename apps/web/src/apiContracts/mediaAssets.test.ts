@@ -8,7 +8,6 @@ const mediaAssetFixture: MediaAsset = {
   mimeType: "image/png",
   sizeBytes: 42817,
   sha256: "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
-  storageKey: "media-assets/workspaces/11111111-1111-4111-8111-111111111111/assets/22222222-2222-4222-8222-222222222222/5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
   sourceUrl: null,
   createdAt: "2026-03-10T09:00:00.000Z",
   clientUpdatedAt: "2026-03-10T09:00:01.000Z",

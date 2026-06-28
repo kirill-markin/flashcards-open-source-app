@@ -4,7 +4,6 @@ export type MediaAsset = Readonly<{
   mimeType: string;
   sizeBytes: number;
   sha256: string;
-  storageKey: string;
   sourceUrl: string | null;
   createdAt: string;
   clientUpdatedAt: string;
@@ -20,7 +19,6 @@ export type MediaAssetSnapshotPayload = Readonly<{
   mimeType: string;
   sizeBytes: number;
   sha256: string;
-  storageKey: string;
   sourceUrl: string | null;
   createdAt: string;
   deletedAt: string | null;
