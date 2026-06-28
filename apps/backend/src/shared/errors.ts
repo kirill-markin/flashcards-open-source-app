@@ -4,7 +4,7 @@ export type ValidationIssueSummary = Readonly<{
   message: string;
 }>;
 
-export type SyncConflictEntityType = "card" | "deck" | "review_event";
+export type SyncConflictEntityType = "card" | "deck" | "review_event" | "media_asset";
 
 export type SyncConflictDetails = Readonly<{
   phase: string;

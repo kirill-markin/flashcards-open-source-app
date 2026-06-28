@@ -11,6 +11,7 @@ import {
   type DatabaseExecutor,
 } from "../../database";
 import { upsertDeckSnapshotInExecutor } from "../../decks";
+import { upsertMediaAssetSnapshotInExecutor } from "../../mediaAssets";
 import { normalizeIsoTimestamp } from "../conflicts/lww";
 import { ensureWorkspaceReplicaInExecutor } from "../identity/replica";
 import { ensureWorkspaceSyncMetadataInExecutor } from "./changes";
@@ -24,6 +25,8 @@ import {
   toCardSnapshotInput,
   toDeckMutationMetadata,
   toDeckSnapshotInput,
+  toMediaAssetMutationMetadata,
+  toMediaAssetSnapshotInput,
   toWorkspaceSchedulerSettingsMutationMetadata,
   toWorkspaceSchedulerSettingsSnapshotInput,
 } from "../contracts/snapshots";
@@ -167,6 +170,41 @@ export async function processOperationInExecutor(
       workspaceId,
       toWorkspaceSchedulerSettingsSnapshotInput(operation.payload),
       toWorkspaceSchedulerSettingsMutationMetadata({
+        clientUpdatedAt: operation.clientUpdatedAt,
+        lastModifiedByReplicaId: replicaId,
+        lastOperationId: operation.operationId,
+      }),
+    );
+    status = mutation.applied ? "applied" : "ignored";
+    resultingHotChangeId = mutation.changeId;
+  } else if (operation.entityType === "media_asset") {
+    if (operation.entityId !== operation.payload.mediaAssetId) {
+      return {
+        operationId: operation.operationId,
+        entityType: operation.entityType,
+        entityId: operation.entityId,
+        status: "rejected",
+        resultingHotChangeId: null,
+        error: "media_asset entityId must match payload.mediaAssetId",
+      };
+    }
+
+    if (operation.payload.workspaceId !== workspaceId) {
+      return {
+        operationId: operation.operationId,
+        entityType: operation.entityType,
+        entityId: operation.entityId,
+        status: "rejected",
+        resultingHotChangeId: null,
+        error: "media_asset payload.workspaceId must match the authenticated workspaceId",
+      };
+    }
+
+    const mutation = await upsertMediaAssetSnapshotInExecutor(
+      executor,
+      workspaceId,
+      toMediaAssetSnapshotInput(operation.payload),
+      toMediaAssetMutationMetadata({
         clientUpdatedAt: operation.clientUpdatedAt,
         lastModifiedByReplicaId: replicaId,
         lastOperationId: operation.operationId,

@@ -4,6 +4,7 @@ import {
   type DatabaseExecutor,
 } from "../../database";
 import { upsertDeckSnapshotInExecutor } from "../../decks";
+import { upsertMediaAssetSnapshotInExecutor } from "../../mediaAssets";
 import { HttpError } from "../../shared/errors";
 import {
   decodeOpaqueCursor,
@@ -16,7 +17,9 @@ import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../../schedul
 import {
   cardPayloadSchema,
   deckPayloadSchema,
+  mediaAssetPayloadSchema,
   type SyncBootstrapInput,
+  type SyncBootstrapPushEntry,
   workspaceSchedulerSettingsPayloadSchema,
 } from "../contracts/input";
 import {
@@ -24,6 +27,8 @@ import {
   toCardSnapshotInput,
   toDeckMutationMetadata,
   toDeckSnapshotInput,
+  toMediaAssetMutationMetadata,
+  toMediaAssetSnapshotInput,
   toWorkspaceSchedulerSettingsMutationMetadata,
   toWorkspaceSchedulerSettingsSnapshotInput,
 } from "../contracts/snapshots";
@@ -66,16 +71,18 @@ async function loadCurrentMaxHotChangeId(
   return toNumber(row.max_change_id) ?? 0;
 }
 
-async function loadRemoteEmptyState(
+export async function loadRemoteEmptyState(
   executor: DatabaseExecutor,
   workspaceId: string,
+  includeMediaAssets: boolean,
 ): Promise<boolean> {
   const result = await executor.query<RemoteEmptyRow>(
     [
       "SELECT",
       "EXISTS (SELECT 1 FROM content.cards WHERE workspace_id = $1) AS has_cards,",
       "EXISTS (SELECT 1 FROM content.decks WHERE workspace_id = $1) AS has_decks,",
-      "EXISTS (SELECT 1 FROM content.review_events WHERE workspace_id = $1) AS has_review_events",
+      "EXISTS (SELECT 1 FROM content.review_events WHERE workspace_id = $1) AS has_review_events,",
+      "EXISTS (SELECT 1 FROM content.media_assets WHERE workspace_id = $1) AS has_media_assets",
     ].join(" "),
     [workspaceId],
   );
@@ -85,7 +92,10 @@ async function loadRemoteEmptyState(
     throw new Error("Failed to determine remote bootstrap state");
   }
 
-  return row.has_cards === false && row.has_decks === false && row.has_review_events === false;
+  return row.has_cards === false
+    && row.has_decks === false
+    && row.has_review_events === false
+    && (includeMediaAssets === false || row.has_media_assets === false);
 }
 
 export function encodeBootstrapCursor(cursor: SyncBootstrapCursor): string {
@@ -135,12 +145,32 @@ export function parseBootstrapEntryRow(row: BootstrapProjectionRow): SyncBootstr
     };
   }
 
+  if (row.entity_type === "media_asset") {
+    return {
+      entityType: "media_asset",
+      entityId: row.entity_id,
+      action: "upsert",
+      payload: mediaAssetPayloadSchema.parse(row.payload),
+    };
+  }
+
   return {
     entityType: "workspace_scheduler_settings",
     entityId: row.entity_id,
     action: "upsert",
     payload: workspaceSchedulerSettingsPayloadSchema.parse(row.payload),
   };
+}
+
+type BootstrapPushMediaAwarenessInput = Readonly<{
+  includeMediaAssets?: boolean;
+  entries: ReadonlyArray<Pick<SyncBootstrapPushEntry, "entityType">>,
+}>;
+
+export function bootstrapPushIncludesMediaAssets(
+  input: BootstrapPushMediaAwarenessInput,
+): boolean {
+  return input.includeMediaAssets === true || input.entries.some((entry) => entry.entityType === "media_asset");
 }
 
 export async function processSyncBootstrap(
@@ -158,7 +188,11 @@ export async function processSyncBootstrap(
         appVersion: input.appVersion ?? null,
       });
       await ensureWorkspaceSyncMetadataInExecutor(executor, workspaceId);
-      const remoteIsEmpty = await loadRemoteEmptyState(executor, workspaceId);
+      const remoteIsEmpty = await loadRemoteEmptyState(
+        executor,
+        workspaceId,
+        bootstrapPushIncludesMediaAssets(input),
+      );
       if (remoteIsEmpty === false) {
         throw new HttpError(409, "Cloud bootstrap requires an empty remote workspace", "SYNC_BOOTSTRAP_NOT_EMPTY");
       }
@@ -187,6 +221,33 @@ export async function processSyncBootstrap(
               workspaceId,
               toDeckSnapshotInput(entry.payload),
               toDeckMutationMetadata({
+                clientUpdatedAt: entry.payload.clientUpdatedAt,
+                lastModifiedByReplicaId: replicaId,
+                lastOperationId: entry.payload.lastOperationId,
+              }),
+            );
+            appliedEntriesCount += 1;
+            continue;
+          }
+
+          if (entry.entityType === "media_asset") {
+            if (entry.entityId !== entry.payload.mediaAssetId) {
+              throw new HttpError(400, "media_asset entityId must match payload.mediaAssetId", "SYNC_INVALID_INPUT");
+            }
+
+            if (entry.payload.workspaceId !== workspaceId) {
+              throw new HttpError(
+                400,
+                "media_asset payload.workspaceId must match the authenticated workspaceId",
+                "SYNC_INVALID_INPUT",
+              );
+            }
+
+            await upsertMediaAssetSnapshotInExecutor(
+              executor,
+              workspaceId,
+              toMediaAssetSnapshotInput(entry.payload),
+              toMediaAssetMutationMetadata({
                 clientUpdatedAt: entry.payload.clientUpdatedAt,
                 lastModifiedByReplicaId: replicaId,
                 lastOperationId: entry.payload.lastOperationId,
@@ -240,7 +301,7 @@ export async function processSyncBootstrap(
         entityId: "",
       }
       : decodeBootstrapCursor(input.cursor);
-    const remoteIsEmpty = await loadRemoteEmptyState(executor, workspaceId);
+    const remoteIsEmpty = await loadRemoteEmptyState(executor, workspaceId, input.includeMediaAssets === true);
 
     // TODO(old-mobile-cutoff): Remove legacy effort fields during final sync wire-drop cleanup.
     const result = await executor.query<BootstrapProjectionRow>(
@@ -318,6 +379,29 @@ export async function processSyncBootstrap(
         "    ) AS payload",
         "  FROM content.decks AS decks",
         "  WHERE decks.workspace_id = $1",
+        "  UNION ALL",
+        "  SELECT",
+        "    3 AS entity_rank,",
+        "    'media_asset'::text AS entity_type,",
+        "    media_assets.media_asset_id::text AS entity_id,",
+        "    jsonb_build_object(",
+        "      'mediaAssetId', media_assets.media_asset_id::text,",
+        "      'workspaceId', media_assets.workspace_id::text,",
+        "      'mimeType', media_assets.mime_type,",
+        "      'sizeBytes', media_assets.size_bytes,",
+        "      'sha256', media_assets.sha256,",
+        "      'storageKey', media_assets.storage_key,",
+        "      'sourceUrl', media_assets.source_url,",
+        "      'createdAt', to_char(date_trunc('milliseconds', media_assets.created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),",
+        "      'clientUpdatedAt', to_char(date_trunc('milliseconds', media_assets.client_updated_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),",
+        "      'lastModifiedByReplicaId', media_assets.last_modified_by_replica_id::text,",
+        "      'lastOperationId', media_assets.last_operation_id,",
+        "      'updatedAt', to_char(date_trunc('milliseconds', media_assets.updated_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),",
+        "      'deletedAt', CASE WHEN media_assets.deleted_at IS NULL THEN NULL ELSE to_char(date_trunc('milliseconds', media_assets.deleted_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') END",
+        "    ) AS payload",
+        "  FROM content.media_assets AS media_assets",
+        "  WHERE media_assets.workspace_id = $1",
+        "  AND $5::boolean",
         ")",
         "SELECT entity_rank, entity_type, entity_id, payload",
         "FROM bootstrap_entries",
@@ -325,7 +409,7 @@ export async function processSyncBootstrap(
         "ORDER BY entity_rank ASC, entity_id ASC",
         "LIMIT $4",
       ].join(" "),
-      [workspaceId, cursor.entityRank, cursor.entityId, input.limit + 1],
+      [workspaceId, cursor.entityRank, cursor.entityId, input.limit + 1, input.includeMediaAssets === true],
     );
 
     const hasMore = result.rows.length > input.limit;

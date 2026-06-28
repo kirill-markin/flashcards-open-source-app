@@ -168,6 +168,7 @@ test("submitReview fails invalid persisted fsrs state without repairing the card
         text === "BEGIN"
         || text === "ROLLBACK"
         || text.includes("set_config")
+        || text.includes("INSERT INTO sync.workspace_sync_metadata")
       ) {
         return {
           command: "SELECT",
@@ -175,6 +176,16 @@ test("submitReview fails invalid persisted fsrs state without repairing the card
           oid: 0,
           fields: [],
           rows: [],
+        };
+      }
+
+      if (text === "SELECT workspace_id FROM sync.workspace_sync_metadata WHERE workspace_id = $1 FOR UPDATE") {
+        return {
+          command: "SELECT",
+          rowCount: 1,
+          oid: 0,
+          fields: [],
+          rows: [{ workspace_id: params?.[0] }],
         };
       }
 
@@ -241,6 +252,8 @@ test("submitReview fails invalid persisted fsrs state without repairing the card
     assert.deepEqual(queries.map((query) => query.text), [
       "BEGIN",
       "SELECT set_config('app.user_id', $1, true), set_config('app.workspace_id', $2, true)",
+      "INSERT INTO sync.workspace_sync_metadata (workspace_id, min_available_hot_change_id, updated_at) VALUES ($1, 0, now()) ON CONFLICT (workspace_id) DO NOTHING",
+      "SELECT workspace_id FROM sync.workspace_sync_metadata WHERE workspace_id = $1 FOR UPDATE",
       [
         "SELECT",
         "card_id, front_text, back_text, due_at, reps, lapses, fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days",

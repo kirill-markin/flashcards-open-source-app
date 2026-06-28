@@ -14,10 +14,16 @@ import {
   type DeckSnapshotInput,
   type DeckRow,
 } from "../../decks";
+import { buildMediaAssetStorageKey } from "../../mediaAssets/storageKeys";
+import type { MediaAssetRow } from "../../mediaAssets/types";
 import { HttpError } from "../../shared/errors";
 import { parseBootstrapEntryRow } from "../replication/bootstrap";
 import { buildHotChangesFromRows } from "../replication/hotPull";
-import { parseSyncPushInput } from "./input";
+import {
+  parseSyncBootstrapInput,
+  parseSyncPullInput,
+  parseSyncPushInput,
+} from "./input";
 import {
   toCardSnapshotInput,
   toDeckSnapshotInput,
@@ -88,6 +94,25 @@ type CardBootstrapPayload = CardSnapshotInput & Readonly<{
   lastOperationId: string;
   updatedAt: string;
 }>;
+
+type MediaAssetPayload = Readonly<{
+  mediaAssetId: string;
+  workspaceId: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+  storageKey: string;
+  sourceUrl: string | null;
+  createdAt: string;
+  clientUpdatedAt: string;
+  lastModifiedByReplicaId: string;
+  lastOperationId: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}>;
+
+const mediaAssetId = "22222222-2222-4222-8222-222222222222";
+const mediaAssetSha256 = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8";
 
 function createSyncPushInput(
   fixture: ReviewEventTimestampFixture,
@@ -253,6 +278,33 @@ function createCardBootstrapProjectionRow(fixture: CardDueAtFixture): BootstrapP
   };
 }
 
+function createMediaAssetPayload(deletedAt: string | null): MediaAssetPayload {
+  return {
+    mediaAssetId,
+    workspaceId: "workspace-1",
+    mimeType: "image/png",
+    sizeBytes: 42,
+    sha256: mediaAssetSha256,
+    storageKey: buildMediaAssetStorageKey("workspace-1", mediaAssetId, mediaAssetSha256),
+    sourceUrl: "https://example.com/source.png",
+    createdAt: "2026-02-28T09:00:00.000Z",
+    clientUpdatedAt: "2026-02-28T09:30:00.000Z",
+    lastModifiedByReplicaId: "replica-1",
+    lastOperationId: "operation-media-1",
+    updatedAt: "2026-02-28T09:30:00.000Z",
+    deletedAt,
+  };
+}
+
+function createMediaAssetBootstrapProjectionRow(deletedAt: string | null): BootstrapProjectionRow {
+  return {
+    entity_rank: 3,
+    entity_type: "media_asset",
+    entity_id: mediaAssetId,
+    payload: createMediaAssetPayload(deletedAt),
+  };
+}
+
 function createQueryResult<Row extends pg.QueryResultRow>(rows: ReadonlyArray<Row>): pg.QueryResult<Row> {
   return {
     command: "SELECT",
@@ -299,6 +351,38 @@ function createHotPullCardExecutor(effortLevel: LegacyEffortLevel): DatabaseExec
       assert.match(text, /FROM content\.cards/);
       assert.deepEqual(params, ["workspace-1", ["card-1"]]);
       return createQueryResult([createHotPullCardRow(effortLevel) as unknown as Row]);
+    },
+  };
+}
+
+function createHotPullMediaAssetRow(deletedAt: string | null): MediaAssetRow {
+  const payload = createMediaAssetPayload(deletedAt);
+  return {
+    media_asset_id: payload.mediaAssetId,
+    workspace_id: payload.workspaceId,
+    mime_type: payload.mimeType,
+    size_bytes: payload.sizeBytes,
+    sha256: payload.sha256,
+    storage_key: payload.storageKey,
+    source_url: payload.sourceUrl,
+    created_at: payload.createdAt,
+    client_updated_at: payload.clientUpdatedAt,
+    last_modified_by_replica_id: payload.lastModifiedByReplicaId,
+    last_operation_id: payload.lastOperationId,
+    updated_at: payload.updatedAt,
+    deleted_at: payload.deletedAt,
+  };
+}
+
+function createHotPullMediaAssetExecutor(deletedAt: string | null): DatabaseExecutor {
+  return {
+    query: async <Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> => {
+      assert.match(text, /FROM content\.media_assets/);
+      assert.deepEqual(params, ["workspace-1", [mediaAssetId]]);
+      return createQueryResult([createHotPullMediaAssetRow(deletedAt) as unknown as Row]);
     },
   };
 }
@@ -364,6 +448,13 @@ function createLegacyCardUpdateExecutor(
         return createQueryResult<Row>([]);
       }
 
+      if (
+        text
+          === "SELECT workspace_id FROM sync.workspace_sync_metadata WHERE workspace_id = $1 FOR UPDATE"
+      ) {
+        return createQueryResult<Row>([{ workspace_id: String(params[0]) } as unknown as Row]);
+      }
+
       if (text.includes("INSERT INTO sync.hot_changes")) {
         return createQueryResult<Row>([{
           change_id: 9,
@@ -409,6 +500,13 @@ function createDeckSnapshotExecutor(): DatabaseExecutor {
 
       if (text.includes("INSERT INTO sync.workspace_sync_metadata")) {
         return createQueryResult<Row>([]);
+      }
+
+      if (
+        text
+          === "SELECT workspace_id FROM sync.workspace_sync_metadata WHERE workspace_id = $1 FOR UPDATE"
+      ) {
+        return createQueryResult<Row>([{ workspace_id: String(params[0]) } as unknown as Row]);
       }
 
       if (text.includes("INSERT INTO sync.hot_changes")) {
@@ -672,6 +770,173 @@ test("parseSyncPushInput accepts deck operations without legacy effortLevels", (
   });
 });
 
+test("parseSyncPushInput accepts media_asset metadata operations", () => {
+  const parsedInput = parseSyncPushInput({
+    installationId: "installation-1",
+    platform: "ios",
+    operations: [
+      {
+        operationId: "operation-media-1",
+        entityType: "media_asset",
+        action: "upsert",
+        entityId: mediaAssetId,
+        clientUpdatedAt: "2026-02-28T09:30:00.000Z",
+        payload: {
+          mediaAssetId,
+          workspaceId: "workspace-1",
+          mimeType: "image/png",
+          sizeBytes: 42,
+          sha256: mediaAssetSha256,
+          storageKey: buildMediaAssetStorageKey("workspace-1", mediaAssetId, mediaAssetSha256),
+          sourceUrl: " https://example.com/source image.png ",
+          createdAt: "2026-02-28T09:00:00.000Z",
+          deletedAt: "2026-02-28T09:30:00.000Z",
+        },
+      },
+    ],
+  });
+
+  const operation = parsedInput.operations[0];
+  if (operation?.entityType !== "media_asset") {
+    assert.fail("Expected the parsed sync operation to remain a media_asset");
+  }
+
+  assert.equal(operation.payload.mediaAssetId, mediaAssetId);
+  assert.equal(operation.payload.sourceUrl, "https://example.com/source%20image.png");
+  assert.equal(operation.payload.deletedAt, "2026-02-28T09:30:00.000Z");
+  assert.equal(Object.prototype.hasOwnProperty.call(operation.payload, "bytes"), false);
+});
+
+test("parseSyncPushInput rejects non-http media_asset source URLs", () => {
+  assert.throws(
+    () => parseSyncPushInput({
+      installationId: "installation-1",
+      platform: "ios",
+      operations: [
+        {
+          operationId: "operation-media-1",
+          entityType: "media_asset",
+          action: "upsert",
+          entityId: mediaAssetId,
+          clientUpdatedAt: "2026-02-28T09:30:00.000Z",
+          payload: {
+            mediaAssetId,
+            workspaceId: "workspace-1",
+            mimeType: "image/png",
+            sizeBytes: 42,
+            sha256: mediaAssetSha256,
+            storageKey: buildMediaAssetStorageKey("workspace-1", mediaAssetId, mediaAssetSha256),
+            sourceUrl: "file:///tmp/source.png",
+            createdAt: "2026-02-28T09:00:00.000Z",
+            deletedAt: null,
+          },
+        },
+      ],
+    }),
+    (error: unknown) => {
+      if (!(error instanceof HttpError)) {
+        assert.fail("Expected parseSyncPushInput to throw HttpError");
+      }
+
+      assert.equal(error.statusCode, 400);
+      assert.equal(error.code, "SYNC_INVALID_INPUT");
+      assert.deepEqual(error.details?.validationIssues, [
+        {
+          path: "operations.0.payload.sourceUrl",
+          code: "custom",
+          message: "sourceUrl must be an absolute HTTP or HTTPS URL",
+        },
+      ]);
+
+      return true;
+    },
+  );
+});
+
+test("parseSyncPullInput accepts media asset opt-in without requiring it", () => {
+  const legacyInput = parseSyncPullInput({
+    installationId: "installation-1",
+    platform: "ios",
+    afterHotChangeId: 0,
+    limit: 100,
+  });
+  const mediaInput = parseSyncPullInput({
+    installationId: "installation-1",
+    platform: "ios",
+    afterHotChangeId: 0,
+    limit: 100,
+    includeMediaAssets: true,
+  });
+
+  assert.equal(legacyInput.includeMediaAssets, undefined);
+  assert.equal(mediaInput.includeMediaAssets, true);
+});
+
+test("parseSyncBootstrapInput accepts media asset opt-in for pull", () => {
+  const input = parseSyncBootstrapInput({
+    mode: "pull",
+    installationId: "installation-1",
+    platform: "ios",
+    cursor: null,
+    limit: 100,
+    includeMediaAssets: true,
+  });
+
+  if (input.mode !== "pull") {
+    assert.fail("Expected parsed bootstrap input to remain pull mode");
+  }
+
+  assert.equal(input.includeMediaAssets, true);
+});
+
+test("parseSyncBootstrapInput accepts media asset opt-in for push with empty entries", () => {
+  const input = parseSyncBootstrapInput({
+    mode: "push",
+    installationId: "installation-1",
+    platform: "ios",
+    includeMediaAssets: true,
+    entries: [],
+  });
+
+  if (input.mode !== "push") {
+    assert.fail("Expected parsed bootstrap input to remain push mode");
+  }
+
+  assert.equal(input.includeMediaAssets, true);
+  assert.deepEqual(input.entries, []);
+});
+
+test("parseSyncBootstrapInput accepts media_asset metadata entries for push", () => {
+  const input = parseSyncBootstrapInput({
+    mode: "push",
+    installationId: "installation-1",
+    platform: "ios",
+    entries: [
+      {
+        entityType: "media_asset",
+        entityId: mediaAssetId,
+        action: "upsert",
+        payload: {
+          ...createMediaAssetPayload(null),
+          lastModifiedByReplicaId: undefined,
+        },
+      },
+    ],
+  });
+
+  if (input.mode !== "push") {
+    assert.fail("Expected parsed bootstrap input to remain push mode");
+  }
+
+  const entry = input.entries[0];
+  if (entry?.entityType !== "media_asset") {
+    assert.fail("Expected parsed bootstrap entry to remain a media_asset");
+  }
+
+  assert.equal(Object.prototype.hasOwnProperty.call(entry.payload, "lastModifiedByReplicaId"), false);
+  assert.equal(entry.payload.mediaAssetId, mediaAssetId);
+});
+
 test("toCardSnapshotInput converts legacy medium and long effort into tags", () => {
   const mediumSnapshot = toCardSnapshotInput({
     ...createCardSnapshotPayload({ dueAt: null }),
@@ -793,6 +1058,18 @@ test("parseBootstrapEntryRow keeps outbound card dueAt as a string or null witho
   assert.equal(Object.prototype.hasOwnProperty.call(entryWithoutDueAt.payload, "dueAtMillis"), false);
 });
 
+test("parseBootstrapEntryRow accepts media_asset metadata tombstones", () => {
+  const entry = parseBootstrapEntryRow(createMediaAssetBootstrapProjectionRow("2026-02-28T09:30:00.000Z"));
+  if (entry.entityType !== "media_asset") {
+    assert.fail("Expected the bootstrap entry to remain a media_asset");
+  }
+
+  assert.equal(entry.entityId, mediaAssetId);
+  assert.equal(entry.payload.mediaAssetId, mediaAssetId);
+  assert.equal(entry.payload.deletedAt, "2026-02-28T09:30:00.000Z");
+  assert.equal(Object.prototype.hasOwnProperty.call(entry.payload, "bytes"), false);
+});
+
 test("buildHotChangesFromRows keeps outbound card effortLevel as fast", async () => {
   const changes = await buildHotChangesFromRows(
     createHotPullCardExecutor("long"),
@@ -814,4 +1091,28 @@ test("buildHotChangesFromRows keeps outbound card effortLevel as fast", async ()
   assert.equal(change.payload.effortLevel, "fast");
   assert.equal(change.payload.cardType, "basic");
   assert.deepEqual(change.payload.metadata, createCardMetadata("2026-02-28T09:00:00.000Z"));
+});
+
+test("buildHotChangesFromRows emits media_asset metadata tombstones", async () => {
+  const changes = await buildHotChangesFromRows(
+    createHotPullMediaAssetExecutor("2026-02-28T09:30:00.000Z"),
+    "workspace-1",
+    [
+      {
+        change_id: 8,
+        entity_type: "media_asset",
+        entity_id: mediaAssetId,
+      },
+    ],
+  );
+
+  const change = changes[0];
+  if (change?.entityType !== "media_asset") {
+    assert.fail("Expected the hot pull entry to remain a media_asset");
+  }
+
+  assert.equal(change.changeId, 8);
+  assert.equal(change.payload.mediaAssetId, mediaAssetId);
+  assert.equal(change.payload.deletedAt, "2026-02-28T09:30:00.000Z");
+  assert.equal(Object.prototype.hasOwnProperty.call(change.payload, "bytes"), false);
 });

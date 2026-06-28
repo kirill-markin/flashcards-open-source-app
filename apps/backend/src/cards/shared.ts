@@ -1,6 +1,6 @@
 import type { DatabaseExecutor } from "../database";
 import { normalizeIsoTimestamp } from "../sync/conflicts/lww";
-import { insertSyncChange } from "../sync/replication/changes";
+import { insertSyncChange, type HotChangeWriteLock } from "../sync/replication/changes";
 import type {
   Card,
   CardMetadata,
@@ -218,11 +218,13 @@ export function toCardLwwMetadata(card: Card): CardMutationMetadata {
 export async function recordCardSyncChange(
   executor: DatabaseExecutor,
   workspaceId: string,
+  hotChangeWriteLock: HotChangeWriteLock,
   card: Card,
 ): Promise<number> {
   return insertSyncChange(
     executor,
     workspaceId,
+    hotChangeWriteLock,
     "card",
     card.cardId,
     "upsert",

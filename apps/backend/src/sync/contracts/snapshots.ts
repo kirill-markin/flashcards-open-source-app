@@ -10,6 +10,10 @@ import type {
   DeckSnapshotInput,
 } from "../../decks";
 import type {
+  MediaAssetMutationMetadata,
+  MediaAssetSnapshotInput,
+} from "../../mediaAssets/types";
+import type {
   WorkspaceSchedulerSettingsMutationMetadata,
   WorkspaceSchedulerSettingsSnapshotInput,
 } from "../../scheduling/workspaceSettings";
@@ -33,6 +37,10 @@ type DeckFilterDefinitionPayload = DeckFilterDefinition & Readonly<{
 
 type DeckSnapshotPayload = Omit<DeckSnapshotInput, "filterDefinition"> & Readonly<{
   filterDefinition: DeckFilterDefinitionPayload;
+}>;
+
+type MediaAssetSnapshotPayload = MediaAssetSnapshotInput & Readonly<{
+  workspaceId: string;
 }>;
 
 export function toCardSnapshotInput(payload: CardSnapshotPayload): CardSnapshotInput {
@@ -89,6 +97,19 @@ export function toWorkspaceSchedulerSettingsSnapshotInput(
   };
 }
 
+export function toMediaAssetSnapshotInput(payload: MediaAssetSnapshotPayload): MediaAssetSnapshotInput {
+  return {
+    mediaAssetId: payload.mediaAssetId,
+    mimeType: payload.mimeType,
+    sizeBytes: payload.sizeBytes,
+    sha256: payload.sha256,
+    storageKey: payload.storageKey,
+    sourceUrl: payload.sourceUrl,
+    createdAt: payload.createdAt,
+    deletedAt: payload.deletedAt,
+  };
+}
+
 export function toCardMutationMetadata(input: MutationMetadataInput): CardMutationMetadata {
   return {
     clientUpdatedAt: input.clientUpdatedAt,
@@ -108,6 +129,14 @@ export function toDeckMutationMetadata(input: MutationMetadataInput): DeckMutati
 export function toWorkspaceSchedulerSettingsMutationMetadata(
   input: MutationMetadataInput,
 ): WorkspaceSchedulerSettingsMutationMetadata {
+  return {
+    clientUpdatedAt: input.clientUpdatedAt,
+    lastModifiedByReplicaId: input.lastModifiedByReplicaId,
+    lastOperationId: input.lastOperationId,
+  };
+}
+
+export function toMediaAssetMutationMetadata(input: MutationMetadataInput): MediaAssetMutationMetadata {
   return {
     clientUpdatedAt: input.clientUpdatedAt,
     lastModifiedByReplicaId: input.lastModifiedByReplicaId,

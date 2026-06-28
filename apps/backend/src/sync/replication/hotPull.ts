@@ -10,6 +10,14 @@ import type {
   DeckRow,
 } from "../../decks";
 import { mapDeck } from "../../decks";
+import {
+  MEDIA_ASSET_COLUMNS,
+  mapMediaAssetRow,
+} from "../../mediaAssets";
+import type {
+  MediaAsset,
+  MediaAssetRow,
+} from "../../mediaAssets/types";
 import { HttpError } from "../../shared/errors";
 import { ensureWorkspaceReplicaInExecutor } from "../identity/replica";
 import { ensureWorkspaceSyncMetadataInExecutor, loadMinAvailableHotChangeId } from "./changes";
@@ -24,6 +32,13 @@ import type {
   TimestampValue,
   WorkspaceSchedulerSettingsRow,
 } from "../contracts/types";
+
+type HotPullProjectionRow = Readonly<{
+  change_id: string | number | null;
+  entity_type: HotChangeRow["entity_type"] | null;
+  entity_id: string | null;
+  current_max_hot_change_id: string | number | null;
+}>;
 
 function toNumber(value: string | number | null): number | null {
   if (value === null) {
@@ -145,6 +160,77 @@ async function loadDecksByIdsInExecutor(
   return new Map(result.rows.map((row) => [row.deck_id, mapDeck(row)]));
 }
 
+async function loadMediaAssetsByIdsInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  mediaAssetIds: ReadonlyArray<string>,
+): Promise<ReadonlyMap<string, MediaAsset>> {
+  if (mediaAssetIds.length === 0) {
+    return new Map();
+  }
+
+  const result = await executor.query<MediaAssetRow>(
+    [
+      "SELECT",
+      MEDIA_ASSET_COLUMNS,
+      "FROM content.media_assets",
+      "WHERE workspace_id = $1 AND media_asset_id = ANY($2::uuid[])",
+    ].join(" "),
+    [workspaceId, [...mediaAssetIds]],
+  );
+
+  return new Map(result.rows.map((row) => [row.media_asset_id, mapMediaAssetRow(row)]));
+}
+
+export function resolveNextHotChangeId(
+  afterHotChangeId: number,
+  changes: ReadonlyArray<Readonly<{ changeId: number }>>,
+  currentMaxHotChangeId: number | null,
+  hasMore: boolean,
+): number {
+  if (changes.length > 0) {
+    const lastVisibleChangeId = changes[changes.length - 1]?.changeId ?? afterHotChangeId;
+    if (hasMore || currentMaxHotChangeId === null) {
+      return lastVisibleChangeId;
+    }
+
+    return Math.max(lastVisibleChangeId, currentMaxHotChangeId);
+  }
+
+  if (hasMore) {
+    return afterHotChangeId;
+  }
+
+  return currentMaxHotChangeId === null ? afterHotChangeId : Math.max(afterHotChangeId, currentMaxHotChangeId);
+}
+
+function readCurrentMaxHotChangeId(rows: ReadonlyArray<HotPullProjectionRow>): number {
+  const row = rows[0];
+  if (row === undefined) {
+    throw new Error("Failed to load current hot change id");
+  }
+
+  return toNumber(row.current_max_hot_change_id) ?? 0;
+}
+
+function toVisibleHotChangeRows(rows: ReadonlyArray<HotPullProjectionRow>): ReadonlyArray<HotChangeRow> {
+  return rows.flatMap((row) => {
+    if (row.change_id === null && row.entity_type === null && row.entity_id === null) {
+      return [];
+    }
+
+    if (row.change_id === null || row.entity_type === null || row.entity_id === null) {
+      throw new Error("Hot pull projection row must include a complete visible change");
+    }
+
+    return [{
+      change_id: row.change_id,
+      entity_type: row.entity_type,
+      entity_id: row.entity_id,
+    }];
+  });
+}
+
 export async function buildHotChangesFromRows(
   executor: DatabaseExecutor,
   workspaceId: string,
@@ -152,11 +238,13 @@ export async function buildHotChangesFromRows(
 ): Promise<ReadonlyArray<Readonly<SyncBootstrapEntry & { changeId: number }>>> {
   const cardIds = rows.filter((row) => row.entity_type === "card").map((row) => row.entity_id);
   const deckIds = rows.filter((row) => row.entity_type === "deck").map((row) => row.entity_id);
+  const mediaAssetIds = rows.filter((row) => row.entity_type === "media_asset").map((row) => row.entity_id);
   const workspaceSettingsNeeded = rows.some((row) => row.entity_type === "workspace_scheduler_settings");
 
-  const [cardsById, decksById, workspaceSchedulerSettings] = await Promise.all([
+  const [cardsById, decksById, mediaAssetsById, workspaceSchedulerSettings] = await Promise.all([
     loadCardsByIdsInExecutor(executor, workspaceId, cardIds),
     loadDecksByIdsInExecutor(executor, workspaceId, deckIds),
+    loadMediaAssetsByIdsInExecutor(executor, workspaceId, mediaAssetIds),
     workspaceSettingsNeeded ? loadWorkspaceSchedulerSettingsInExecutor(executor, workspaceId) : Promise.resolve(null),
   ]);
 
@@ -193,6 +281,21 @@ export async function buildHotChangesFromRows(
         entityId: row.entity_id,
         action: "upsert" as const,
         payload: toLegacySyncDeckPayload(deck),
+      };
+    }
+
+    if (row.entity_type === "media_asset") {
+      const mediaAsset = mediaAssetsById.get(row.entity_id);
+      if (mediaAsset === undefined) {
+        throw new Error(`Hot sync media asset ${row.entity_id} is missing`);
+      }
+
+      return {
+        changeId,
+        entityType: "media_asset" as const,
+        entityId: row.entity_id,
+        action: "upsert" as const,
+        payload: mediaAsset,
       };
     }
 
@@ -233,29 +336,44 @@ export async function processSyncPull(
       );
     }
 
-    const result = await executor.query<HotChangeRow>(
+    const result = await executor.query<HotPullProjectionRow>(
       [
-        "WITH latest_changes AS (",
+        "WITH current_max AS (",
+        "  SELECT COALESCE(MAX(change_id), 0) AS current_max_hot_change_id",
+        "  FROM sync.hot_changes",
+        "  WHERE workspace_id = $1",
+        "),",
+        "latest_changes AS (",
         "  SELECT DISTINCT ON (entity_type, entity_id)",
         "    change_id, entity_type, entity_id",
         "  FROM sync.hot_changes",
         "  WHERE workspace_id = $1 AND change_id > $2",
+        "  AND ($4::boolean OR entity_type <> 'media_asset')",
         "  ORDER BY entity_type ASC, entity_id ASC, change_id DESC",
+        "),",
+        "visible_page AS (",
+        "  SELECT change_id, entity_type, entity_id",
+        "  FROM latest_changes",
+        "  ORDER BY change_id ASC",
+        "  LIMIT $3",
         ")",
-        "SELECT change_id, entity_type, entity_id",
-        "FROM latest_changes",
-        "ORDER BY change_id ASC",
-        "LIMIT $3",
+        "SELECT visible_page.change_id, visible_page.entity_type, visible_page.entity_id,",
+        "current_max.current_max_hot_change_id",
+        "FROM current_max",
+        "LEFT JOIN visible_page ON TRUE",
+        "ORDER BY visible_page.change_id ASC NULLS LAST",
       ].join(" "),
-      [workspaceId, input.afterHotChangeId, input.limit + 1],
+      [workspaceId, input.afterHotChangeId, input.limit + 1, input.includeMediaAssets === true],
     );
 
-    const hasMore = result.rows.length > input.limit;
-    const visibleRows = hasMore ? result.rows.slice(0, input.limit) : result.rows;
+    const visibleProjectionRows = toVisibleHotChangeRows(result.rows);
+    const hasMore = visibleProjectionRows.length > input.limit;
+    const visibleRows = hasMore ? visibleProjectionRows.slice(0, input.limit) : visibleProjectionRows;
     const changes = await buildHotChangesFromRows(executor, workspaceId, visibleRows);
-    const nextHotChangeId = changes.length === 0
-      ? input.afterHotChangeId
-      : changes[changes.length - 1].changeId;
+    const currentMaxHotChangeId = input.includeMediaAssets !== true && hasMore === false
+      ? readCurrentMaxHotChangeId(result.rows)
+      : null;
+    const nextHotChangeId = resolveNextHotChangeId(input.afterHotChangeId, changes, currentMaxHotChangeId, hasMore);
 
     return {
       changes,

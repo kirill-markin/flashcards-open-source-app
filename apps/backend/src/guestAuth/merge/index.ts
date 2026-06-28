@@ -29,7 +29,10 @@ import {
   type DeckMutationMetadata,
   type DeckSnapshotInput,
 } from "../../decks";
-import { insertSyncChange } from "../../sync/replication/changes";
+import {
+  insertSyncChange,
+  lockWorkspaceSyncMetadataForHotChangesInExecutor,
+} from "../../sync/replication/changes";
 import {
   ensureSystemWorkspaceReplicaInExecutor,
   ensureWorkspaceReplicaInExecutor,
@@ -58,8 +61,10 @@ import type {
 } from "../types";
 import { toIsoString } from "../shared";
 
+type GuestMergeEntityType = Exclude<SyncConflictEntityType, "media_asset">;
+
 type GuestMergeWriteInput = Readonly<{
-  entityType: SyncConflictEntityType;
+  entityType: GuestMergeEntityType;
   entityId: string;
   sourceGuestWorkspaceId: string;
   targetWorkspaceId: string;
@@ -231,7 +236,7 @@ function createGuestMergeDroppedEntitiesAccumulator(): GuestMergeDroppedEntities
 }
 
 function createGuestMergeSourceCleanupInvariantError(
-  entityType: SyncConflictEntityType,
+  entityType: GuestMergeEntityType,
   entityId: string,
   sourceGuestWorkspaceId: string,
 ): Error {
@@ -243,7 +248,7 @@ function createGuestMergeSourceCleanupInvariantError(
 
 function recordDroppedGuestMergeEntity(
   droppedEntities: GuestMergeDroppedEntitiesAccumulator,
-  entityType: SyncConflictEntityType,
+  entityType: GuestMergeEntityType,
   entityId: string,
 ): void {
   if (entityType === "card") {
@@ -278,7 +283,7 @@ function finalizeGuestMergeDroppedEntities(
 }
 
 function createGuestMergeDroppedEntitiesUnsupportedError(
-  entityType: SyncConflictEntityType,
+  entityType: GuestMergeEntityType,
   entityId: string,
   conflictingWorkspaceId: string,
 ): HttpError {
@@ -325,7 +330,7 @@ function createGuestMergeDedupedReviewEventUnsupportedError(
 
 function resolveGuestMergeThirdWorkspaceConflict(
   error: unknown,
-  entityType: SyncConflictEntityType,
+  entityType: GuestMergeEntityType,
   entityId: string,
   sourceGuestWorkspaceId: string,
   targetWorkspaceId: string,
@@ -367,7 +372,7 @@ function resolveGuestMergeThirdWorkspaceConflict(
 }
 
 function logGuestMergeDroppedEntity(
-  entityType: SyncConflictEntityType,
+  entityType: GuestMergeEntityType,
   entityId: string,
   sourceGuestWorkspaceId: string,
   targetWorkspaceId: string,
@@ -701,6 +706,7 @@ async function maybeApplyGuestSchedulerInExecutor(
   }
 
   const targetReplicaId = requireMappedReplicaId(replicaIdMap, guestScheduler.lastModifiedByReplicaId);
+  const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, targetWorkspaceId);
   await updateWorkspaceSchedulerFromGuestInExecutor(
     executor,
     targetUserId,
@@ -711,6 +717,7 @@ async function maybeApplyGuestSchedulerInExecutor(
   await insertSyncChange(
     executor,
     targetWorkspaceId,
+    hotChangeWriteLock,
     "workspace_scheduler_settings",
     targetWorkspaceId,
     "upsert",

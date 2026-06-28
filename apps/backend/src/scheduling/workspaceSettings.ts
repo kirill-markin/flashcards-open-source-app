@@ -22,7 +22,12 @@ import {
   normalizeIsoTimestamp,
   type LwwMetadata,
 } from "../sync/conflicts/lww";
-import { findLatestSyncChangeId, insertSyncChange } from "../sync/replication/changes";
+import {
+  findLatestSyncChangeId,
+  insertSyncChange,
+  lockWorkspaceSyncMetadataForHotChangesInExecutor,
+  type HotChangeWriteLock,
+} from "../sync/replication/changes";
 import {
   defaultWorkspaceSchedulerConfig,
   type SchedulerAlgorithm,
@@ -142,11 +147,13 @@ function toWorkspaceSchedulerLwwMetadata(
 async function recordWorkspaceSchedulerSyncChange(
   executor: DatabaseExecutor,
   workspaceId: string,
+  hotChangeWriteLock: HotChangeWriteLock,
   settings: WorkspaceSchedulerSettings,
 ): Promise<number> {
   return insertSyncChange(
     executor,
     workspaceId,
+    hotChangeWriteLock,
     "workspace_scheduler_settings",
     workspaceId,
     "upsert",
@@ -286,6 +293,7 @@ export async function applyWorkspaceSchedulerSettingsSnapshotInExecutor(
   input: WorkspaceSchedulerSettingsSnapshotInput,
   metadata: WorkspaceSchedulerSettingsMutationMetadata,
 ): Promise<WorkspaceSchedulerSettingsMutationResult> {
+  const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
   if (input.algorithm !== "fsrs-6") {
     throw new HttpError(400, "algorithm must be fsrs-6");
   }
@@ -357,7 +365,12 @@ export async function applyWorkspaceSchedulerSettingsSnapshotInExecutor(
   }
 
   const updatedSettings = mapWorkspaceSchedulerSettings(updatedRow);
-  const changeId = await recordWorkspaceSchedulerSyncChange(executor, workspaceId, updatedSettings);
+  const changeId = await recordWorkspaceSchedulerSyncChange(
+    executor,
+    workspaceId,
+    hotChangeWriteLock,
+    updatedSettings,
+  );
 
   return {
     settings: updatedSettings,

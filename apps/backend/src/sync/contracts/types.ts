@@ -3,13 +3,14 @@ import type {
   ReviewEvent,
 } from "../../cards";
 import type { Deck } from "../../decks";
+import type { MediaAsset } from "../../mediaAssets/types";
 import type { WorkspaceSchedulerSettings } from "../../scheduling/workspaceSettings";
 import type { LegacyEffortLevel } from "./legacyEffort";
 
 export type TimestampValue = Date | string;
 
-export type SyncEntityType = "card" | "deck" | "workspace_scheduler_settings" | "review_event";
-export type HotSyncEntityType = "card" | "deck" | "workspace_scheduler_settings";
+export type SyncEntityType = "card" | "deck" | "workspace_scheduler_settings" | "review_event" | "media_asset";
+export type HotSyncEntityType = "card" | "deck" | "workspace_scheduler_settings" | "media_asset";
 export type SyncAction = "upsert" | "append";
 
 export type WorkspaceSchedulerSettingsRow = Readonly<{
@@ -44,6 +45,7 @@ export type RemoteEmptyRow = Readonly<{
   has_cards: boolean;
   has_decks: boolean;
   has_review_events: boolean;
+  has_media_assets: boolean;
 }>;
 
 export type ReviewSequenceRow = Readonly<{
@@ -104,6 +106,12 @@ export type SyncBootstrapEntry =
     entityId: string;
     action: "upsert";
     payload: WorkspaceSchedulerSettings;
+  }>
+  | Readonly<{
+    entityType: "media_asset";
+    entityId: string;
+    action: "upsert";
+    payload: MediaAsset;
   }>;
 
 export type SyncPushOperationResult = Readonly<{

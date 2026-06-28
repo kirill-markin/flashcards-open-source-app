@@ -16,6 +16,7 @@ import {
 } from "../observability/sentry";
 import { markBackendExceptionWrapperAsReported } from "../observability/reporting";
 import { ensureSystemWorkspaceReplicaInExecutor } from "../sync/identity/replica";
+import { lockWorkspaceSyncMetadataForHotChangesInExecutor } from "../sync/replication/changes";
 import { lockWorkspaceAccessLifecycleInExecutor } from "./accessLocks";
 import { createWorkspaceInExecutorWithObservationScope } from "./create";
 import {
@@ -181,6 +182,7 @@ async function resetCardProgressInExecutor(
   replicaId: string,
   cardId: string,
 ): Promise<CardRow> {
+  const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
   const clientUpdatedAt = new Date().toISOString();
   const operationId = randomUUID();
 
@@ -203,7 +205,7 @@ async function resetCardProgressInExecutor(
   }
 
   const updatedCard = mapCard(updatedCardRow);
-  await recordCardSyncChange(executor, workspaceId, updatedCard);
+  await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, updatedCard);
   return updatedCardRow;
 }
 

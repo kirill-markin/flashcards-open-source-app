@@ -18,7 +18,10 @@ import {
   buildSystemWorkspaceReplicaId,
   ensureBootstrapSystemWorkspaceReplicaInExecutor,
 } from "../sync/identity/replica";
-import { insertSyncChange } from "../sync/replication/changes";
+import {
+  insertSyncChange,
+  lockWorkspaceSyncMetadataForHotChangesInExecutor,
+} from "../sync/replication/changes";
 import {
   createWorkspaceCreateFailedError,
   createWorkspaceInvariantError,
@@ -198,9 +201,11 @@ export async function createWorkspaceInExecutorWithObservationScope(
     }
 
     stage = "seed_scheduler_change";
+    const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
     await insertSyncChange(
       executor,
       workspaceId,
+      hotChangeWriteLock,
       "workspace_scheduler_settings",
       workspaceId,
       "upsert",

@@ -1,7 +1,7 @@
 import type { DatabaseExecutor } from "../../database";
 import { normalizeIsoTimestamp } from "../conflicts/lww";
 
-export type SyncEntityType = "card" | "deck" | "workspace_scheduler_settings";
+export type SyncEntityType = "card" | "deck" | "workspace_scheduler_settings" | "media_asset";
 export type SyncChangeAction = "upsert";
 
 type ChangeIdRow = Readonly<{
@@ -10,6 +10,17 @@ type ChangeIdRow = Readonly<{
 
 type WorkspaceSyncMetadataRow = Readonly<{
   min_available_hot_change_id: string | number;
+}>;
+
+type WorkspaceSyncMetadataLockRow = Readonly<{
+  workspace_id: string;
+}>;
+
+const hotChangeWriteLockBrand: unique symbol = Symbol("hotChangeWriteLock");
+
+export type HotChangeWriteLock = Readonly<{
+  workspaceId: string;
+  [hotChangeWriteLockBrand]: true;
 }>;
 
 function toNumber(value: string | number): number {
@@ -35,6 +46,32 @@ export async function ensureWorkspaceSyncMetadataInExecutor(
   );
 }
 
+export async function lockWorkspaceSyncMetadataForHotChangesInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+): Promise<HotChangeWriteLock> {
+  await ensureWorkspaceSyncMetadataInExecutor(executor, workspaceId);
+
+  const result = await executor.query<WorkspaceSyncMetadataLockRow>(
+    [
+      "SELECT workspace_id",
+      "FROM sync.workspace_sync_metadata",
+      "WHERE workspace_id = $1",
+      "FOR UPDATE",
+    ].join(" "),
+    [workspaceId],
+  );
+
+  if (result.rows[0] === undefined) {
+    throw new Error("Workspace sync metadata row is missing");
+  }
+
+  return {
+    workspaceId,
+    [hotChangeWriteLockBrand]: true,
+  };
+}
+
 /**
  * Records one mutable-root winner in the compact hot-state change log. Review
  * history is intentionally excluded from this lane and syncs through its own
@@ -43,6 +80,7 @@ export async function ensureWorkspaceSyncMetadataInExecutor(
 export async function insertSyncChange(
   executor: DatabaseExecutor,
   workspaceId: string,
+  hotChangeWriteLock: HotChangeWriteLock,
   entityType: SyncEntityType,
   entityId: string,
   action: SyncChangeAction,
@@ -50,7 +88,9 @@ export async function insertSyncChange(
   operationId: string,
   clientUpdatedAt: string,
 ): Promise<number> {
-  await ensureWorkspaceSyncMetadataInExecutor(executor, workspaceId);
+  if (hotChangeWriteLock.workspaceId !== workspaceId) {
+    throw new Error("Hot sync change lock does not match workspace");
+  }
 
   const result = await executor.query<ChangeIdRow>(
     [

@@ -7,6 +7,7 @@ import { createPublicHttpErrorBody } from "../../server/app";
 import { upsertCardSnapshotInExecutor } from "../../cards";
 import type { DatabaseExecutor } from "../../database";
 import { upsertDeckSnapshotInExecutor } from "../../decks";
+import { upsertMediaAssetSnapshotInExecutor } from "../../mediaAssets";
 import { HttpError } from "../../shared/errors";
 import {
   annotateSyncConflictHttpError,
@@ -16,7 +17,7 @@ import {
 } from "./fork";
 import { processSyncReviewHistoryImportInExecutor } from "../replication/reviewHistory";
 
-type EntityType = "card" | "deck" | "review_event";
+type EntityType = "card" | "deck" | "review_event" | "media_asset";
 
 type RecordedQuery = Readonly<{
   text: string;
@@ -89,6 +90,16 @@ function createConflictExecutor(
         } as unknown as Row]);
       }
 
+      if (text.includes("INSERT INTO sync.workspace_sync_metadata")) {
+        return createQueryResult<Row>([]);
+      }
+
+      if (text === "SELECT workspace_id FROM sync.workspace_sync_metadata WHERE workspace_id = $1 FOR UPDATE") {
+        return createQueryResult<Row>([{
+          workspace_id: String(params[0]),
+        } as unknown as Row]);
+      }
+
       if (
         options.entityType === "card"
         && text.includes("FROM content.cards")
@@ -129,6 +140,23 @@ function createConflictExecutor(
         return createQueryResult<Row>([]);
       }
 
+      if (
+        options.entityType === "media_asset"
+        && text.includes("FROM content.media_assets")
+        && text.includes("WHERE workspace_id = $1")
+        && text.includes("AND media_asset_id = $2")
+      ) {
+        return createQueryResult<Row>([]);
+      }
+
+      if (
+        options.entityType === "media_asset"
+        && text.includes("INSERT INTO content.media_assets")
+        && text.includes("ON CONFLICT DO NOTHING")
+      ) {
+        return createQueryResult<Row>([]);
+      }
+
       throw new Error(`Unexpected query: ${text}`);
     },
   };
@@ -159,9 +187,9 @@ test("findSyncConflictWorkspaceIdInExecutor resolves conflicts without membershi
   );
 });
 
-test("0048 sync conflict lookup casts target ids once and compares UUID columns directly", () => {
+test("canonical sync conflict lookup casts target ids once and compares UUID columns directly", () => {
   const migration = readFileSync(
-    join(__dirname, "../../../../../db/migrations/0048_sync_conflict_lookup.sql"),
+    join(__dirname, "../../../../../db/migrations/0081_media_assets_sync_contract.sql"),
     "utf8",
   );
 
@@ -171,6 +199,7 @@ test("0048 sync conflict lookup casts target ids once and compares UUID columns 
   assert.match(migration, /cards\.card_id = target_entity_uuid/);
   assert.match(migration, /decks\.deck_id = target_entity_uuid/);
   assert.match(migration, /review_events\.review_event_id = target_entity_uuid/);
+  assert.match(migration, /media_assets\.media_asset_id = target_entity_uuid/);
 });
 
 test("upsertCardSnapshotInExecutor returns a typed cross-workspace fork error", async () => {
@@ -277,6 +306,56 @@ test("upsertDeckSnapshotInExecutor returns a typed cross-workspace fork error", 
         constraint: "decks_pkey",
         sqlState: "23505",
         table: "decks",
+        recoverable: true,
+      });
+      return true;
+    },
+  );
+});
+
+test("upsertMediaAssetSnapshotInExecutor returns a typed cross-workspace fork error", async () => {
+  const mediaAssetId = "media-asset-conflict-1";
+  const { executor } = createConflictExecutor({
+    currentUserId: "user-1",
+    currentWorkspaceId: "workspace-current",
+    conflictingWorkspaceId: "workspace-other",
+    entityType: "media_asset",
+  });
+
+  await assert.rejects(
+    upsertMediaAssetSnapshotInExecutor(
+      executor,
+      "workspace-current",
+      {
+        mediaAssetId,
+        mimeType: "image/png",
+        sizeBytes: 42,
+        sha256: "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+        storageKey: "media-assets/workspaces/workspace-current/assets/media-asset-conflict-1/5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+        sourceUrl: null,
+        createdAt: "2026-04-24T10:00:00.000Z",
+        deletedAt: null,
+      },
+      {
+        clientUpdatedAt: "2026-04-24T10:00:00.000Z",
+        lastModifiedByReplicaId: "replica-1",
+        lastOperationId: "op-1",
+      },
+    ),
+    (error: unknown): boolean => {
+      if (!(error instanceof HttpError)) {
+        return false;
+      }
+      assert.equal(error.statusCode, 409);
+      assert.equal(error.code, SYNC_WORKSPACE_FORK_REQUIRED);
+      assert.deepEqual(error.details?.syncConflict, {
+        phase: "sync_write",
+        entityType: "media_asset",
+        entityId: mediaAssetId,
+        conflictingWorkspaceId: "workspace-other",
+        constraint: "media_assets_pkey",
+        sqlState: "23505",
+        table: "media_assets",
         recoverable: true,
       });
       return true;

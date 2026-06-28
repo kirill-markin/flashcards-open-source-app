@@ -51,9 +51,32 @@ export type CompleteMediaAssetUploadInput = Readonly<{
   lastOperationId: string;
 }>;
 
+export type MediaAssetMutationMetadata = Readonly<{
+  clientUpdatedAt: string;
+  lastModifiedByReplicaId: string;
+  lastOperationId: string;
+}>;
+
+export type MediaAssetSnapshotInput = Readonly<{
+  mediaAssetId: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+  storageKey: string;
+  sourceUrl: string | null;
+  createdAt: string;
+  deletedAt: string | null;
+}>;
+
 export type MediaAssetMutationResult = Readonly<{
   mediaAsset: MediaAsset;
   applied: boolean;
+}>;
+
+export type MediaAssetSyncMutationResult = Readonly<{
+  mediaAsset: MediaAsset;
+  applied: boolean;
+  changeId: number | null;
 }>;
 
 export type PresignedMediaAssetUpload = Readonly<{
