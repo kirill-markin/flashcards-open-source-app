@@ -278,6 +278,15 @@ const esEsCatalog: TranslationCatalog = {
       reviews: "Repasos",
     },
   },
+  shareApp: {
+    title: "Estudia con Flashcards",
+    body: "Elige dónde quieres usar la app. Tus tarjetas siguen disponibles en iOS, Android y la web.",
+    links: {
+      ios: "Abrir en App Store",
+      android: "Abrir en Google Play",
+      web: "Web App",
+    },
+  },
   friendInvite: {
     loading: "Comprobando enlace de invitación...",
     inactiveTitle: "Este enlace ya no está activo",

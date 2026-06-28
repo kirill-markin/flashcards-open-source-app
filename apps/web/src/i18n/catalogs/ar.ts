@@ -278,6 +278,15 @@ const arCatalog: TranslationCatalog = {
       reviews: "المراجعات",
     },
   },
+  shareApp: {
+    title: "ادرس باستخدام Flashcards",
+    body: "اختر أين تريد استخدام التطبيق. ستظل بطاقاتك متاحة على iOS وAndroid والويب.",
+    links: {
+      ios: "فتح في App Store",
+      android: "فتح في Google Play",
+      web: "تطبيق الويب",
+    },
+  },
   friendInvite: {
     loading: "جارٍ فحص رابط الدعوة...",
     inactiveTitle: "هذا الرابط لم يعد نشطًا",

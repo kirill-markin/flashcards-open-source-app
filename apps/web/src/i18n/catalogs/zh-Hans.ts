@@ -278,6 +278,15 @@ export const zhHansCatalog = {
       reviews: "复习次数",
     },
   },
+  shareApp: {
+    title: "用 Flashcards 学习",
+    body: "选择你想在哪里使用应用。你的卡片可在 iOS、Android 和网页版中继续使用。",
+    links: {
+      ios: "在 App Store 打开",
+      android: "在 Google Play 打开",
+      web: "Web App",
+    },
+  },
   friendInvite: {
     loading: "正在检查邀请链接...",
     inactiveTitle: "此链接已不再有效",

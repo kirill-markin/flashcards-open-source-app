@@ -278,6 +278,15 @@ export const ruCatalog = {
       reviews: "Повторения",
     },
   },
+  shareApp: {
+    title: "Учитесь с Flashcards",
+    body: "Выберите, где использовать приложение. Ваши карточки доступны на iOS, Android и в веб-версии.",
+    links: {
+      ios: "Открыть в App Store",
+      android: "Открыть в Google Play",
+      web: "Веб-приложение",
+    },
+  },
   friendInvite: {
     loading: "Проверяем ссылку-приглашение...",
     inactiveTitle: "Эта ссылка больше не активна",

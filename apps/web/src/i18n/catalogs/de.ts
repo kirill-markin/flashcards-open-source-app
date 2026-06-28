@@ -278,6 +278,15 @@ const deCatalog: TranslationCatalog = {
       reviews: "Wiederholungen",
     },
   },
+  shareApp: {
+    title: "Mit Flashcards lernen",
+    body: "Wähle, wo du die App nutzen möchtest. Deine Karten bleiben auf iOS, Android und im Web verfügbar.",
+    links: {
+      ios: "Im App Store öffnen",
+      android: "In Google Play öffnen",
+      web: "Web App",
+    },
+  },
   friendInvite: {
     loading: "Einladungslink wird geprüft...",
     inactiveTitle: "Dieser Link ist nicht mehr aktiv",
