@@ -2,11 +2,13 @@
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../api";
-import type { Card } from "../../../types";
+import type { Card, ReviewQueueSnapshot } from "../../../types";
+import { buildReviewLoadingCardPreview, writeReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
 import {
   clickElement,
   clickElementAsync,
   createCard,
+  createDeferredPromise,
   createDecks,
   dispatchKeydown,
   hasHydratedHotStateMock,
@@ -149,7 +151,77 @@ describe("ReviewScreen controls", () => {
 
     expect(reviewPane.dataset.reviewPaneState).toBe("loading");
     expect(reviewPane.dataset.reviewPaneEmptyReason).toBe("none");
+    expect(reviewPane.querySelector(".review-card-answer")).toBeNull();
+    const speechButton = reviewPane.querySelector(".review-card-surface-front .review-card-speech-btn");
+    if (!(speechButton instanceof HTMLButtonElement)) {
+      throw new Error("Review loading front speech button was not found");
+    }
+
+    expect(speechButton.disabled).toBe(true);
     expect(getContainer().textContent).not.toContain("No Cards Yet");
+  });
+
+  it("keeps a loading snapshot preview on the unrevealed front card surface", async () => {
+    const state = getState();
+    const snapshotCard = createCard({
+      cardId: "card-loading-preview",
+      frontText: "Snapshot front prompt",
+      backText: "Snapshot back answer",
+      tags: ["grammar"],
+      dueAt: "2026-03-10T12:30:00.000Z",
+    });
+    state.cards = [snapshotCard];
+    state.reviewQueue = [snapshotCard];
+    state.reviewTimeline = [snapshotCard];
+    writeReviewLoadingSnapshot({
+      version: 1,
+      workspaceId: "workspace-1",
+      selectedReviewFilterKey: "allCards",
+      resolvedReviewFilterTitle: "All Cards",
+      reviewCounts: {
+        dueCount: 1,
+        totalCount: 1,
+      },
+      currentCard: buildReviewLoadingCardPreview(snapshotCard),
+      queuePreview: [buildReviewLoadingCardPreview(snapshotCard)],
+      savedAt: "2026-03-10T12:00:00.000Z",
+    });
+    const pendingReviewQueueSnapshot = createDeferredPromise<ReviewQueueSnapshot>();
+    loadReviewQueueSnapshotMock.mockImplementation((): Promise<ReviewQueueSnapshot> => pendingReviewQueueSnapshot.promise);
+
+    await renderReviewScreen();
+
+    const reviewPane = getContainer().querySelector("[data-testid='review-pane']");
+    if (!(reviewPane instanceof HTMLElement)) {
+      throw new Error("Review pane was not found");
+    }
+    const frontCard = reviewPane.querySelector("[data-testid='review-current-front-card']");
+    if (!(frontCard instanceof HTMLElement)) {
+      throw new Error("Review loading front card was not found");
+    }
+    const speechButton = reviewPane.querySelector(".review-card-surface-front .review-card-speech-btn");
+    if (!(speechButton instanceof HTMLButtonElement)) {
+      throw new Error("Review loading front speech button was not found");
+    }
+
+    expect(reviewPane.dataset.reviewPaneState).toBe("loading");
+    expect(reviewPane.querySelector(".review-card-answer")).toBeNull();
+    expect(frontCard.textContent).toContain("Snapshot front prompt");
+    expect(speechButton.disabled).toBe(true);
+
+    await act(async () => {
+      pendingReviewQueueSnapshot.resolve({
+        resolvedReviewFilter: state.appData.selectedReviewFilter,
+        cards: [snapshotCard],
+        nextCursor: null,
+        reviewCounts: {
+          dueCount: 1,
+          totalCount: 1,
+        },
+      });
+      await pendingReviewQueueSnapshot.promise;
+    });
+    await flushReviewScreenPromises();
   });
 
   it("shows a retry path instead of staying in cold empty loading after sync fails", async () => {

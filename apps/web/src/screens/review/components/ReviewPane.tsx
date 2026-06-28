@@ -6,7 +6,7 @@ import { cardsRoute, chatRoute } from "../../../routes";
 import type { Card } from "../../../types";
 import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
 import { formatNullableDateTime, formatTagSummary } from "../../shared/featureFormatting";
-import { ReviewCardSide, ReviewEditIcon } from "./ReviewCardSide";
+import { ReviewCardSide, ReviewCardSpeechButton, ReviewEditIcon } from "./ReviewCardSide";
 import type { ReviewButtonOption } from "./reviewRatingOptions";
 import type { ReviewSpeechSide } from "../speech/reviewSpeech";
 import {
@@ -82,6 +82,10 @@ function handleDisabledSpeechToggle(): void {
 function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
   const { loadingReviewCurrentCard, reviewLoadingSnapshot } = props;
   const { t } = useI18n();
+  const frontSideLabel = t("reviewScreen.sides.front");
+  const frontSpeechButtonAriaLabel = t("reviewScreen.speakAriaLabel.start", {
+    side: frontSideLabel.toLowerCase(),
+  });
 
   return (
     <>
@@ -113,7 +117,7 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
       <div className="review-card-stack">
         {loadingReviewCurrentCard !== null ? (
           <ReviewCardSide
-            label={t("reviewScreen.sides.front")}
+            label={frontSideLabel}
             aiButtonAriaLabel={null}
             text={loadingReviewCurrentCard.frontText}
             contentClassName="review-front"
@@ -121,8 +125,9 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
             onOpenAi={null}
             onToggleSpeech={handleDisabledSpeechToggle}
             showAiButton={false}
-            showSpeechButton={false}
-            speechButtonAriaLabel={null}
+            showSpeechButton={true}
+            speechButtonAriaLabel={frontSpeechButtonAriaLabel}
+            speechButtonDisabled={true}
             surfaceCardId={loadingReviewCurrentCard.cardId}
             surfaceClassName="review-card-surface review-card-surface-front"
             surfaceFrontText={loadingReviewCurrentCard.frontText}
@@ -130,26 +135,24 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
           />
         ) : (
           <div className="review-card-surface review-card-surface-front review-loading-card-surface" aria-hidden="true">
-            <div className="review-label">{t("reviewScreen.sides.front")}</div>
+            <div className="review-label">{frontSideLabel}</div>
             <div className="review-card-body">
               <div className="review-loading-card-lines">
                 <span className="review-loading-line review-loading-line-title" />
                 <span className="review-loading-line" />
                 <span className="review-loading-line review-loading-line-short" />
               </div>
+              <div className="review-card-actions">
+                <ReviewCardSpeechButton
+                  ariaLabel={frontSpeechButtonAriaLabel}
+                  disabled={true}
+                  isSpeaking={false}
+                  onToggleSpeech={handleDisabledSpeechToggle}
+                />
+              </div>
             </div>
           </div>
         )}
-        <div className="review-card-surface review-card-answer review-loading-card-surface" aria-hidden="true">
-          <div className="review-label">{t("reviewScreen.sides.back")}</div>
-          <div className="review-card-body">
-            <div className="review-loading-card-lines">
-              <span className="review-loading-line" />
-              <span className="review-loading-line review-loading-line-short" />
-              <span className="review-loading-line review-loading-line-shorter" />
-            </div>
-          </div>
-        </div>
       </div>
       <div className="review-meta review-meta-loading">
         <span>{reviewLoadingSnapshot === null ? t("reviewScreen.loading.reviewQueue") : t("reviewScreen.loading.snapshot")}</span>
@@ -281,6 +284,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
           speechButtonAriaLabel={t(activeSpeechSide === "front" ? "reviewScreen.speakAriaLabel.stop" : "reviewScreen.speakAriaLabel.start", {
             side: frontSideLabel.toLowerCase(),
           })}
+          speechButtonDisabled={false}
           surfaceCardId={selectedCard.cardId}
           surfaceClassName="review-card-surface review-card-surface-front"
           surfaceFrontText={selectedCard.frontText}
@@ -303,6 +307,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
             speechButtonAriaLabel={t(activeSpeechSide === "back" ? "reviewScreen.speakAriaLabel.stop" : "reviewScreen.speakAriaLabel.start", {
               side: backSideLabel.toLowerCase(),
             })}
+            speechButtonDisabled={false}
             surfaceClassName="review-card-surface review-card-answer"
           />
         ) : null}
