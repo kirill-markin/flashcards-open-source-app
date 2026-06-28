@@ -1,5 +1,5 @@
 import { AuthError, authVerificationTemporarilyUnavailableCode } from "../auth";
-import { HttpError } from "../shared/errors";
+import { HttpError, type MediaAssetStorageErrorDetails } from "../shared/errors";
 import { sanitizeBackendTelemetryValue } from "../observability/sanitizer";
 import {
   addBackendBreadcrumb,
@@ -85,12 +85,22 @@ function getRequestErrorCode(error: AuthError | HttpError | unknown): string | n
   return "INTERNAL_ERROR";
 }
 
+function getMediaAssetStorageErrorDetails(error: AuthError | HttpError | unknown): MediaAssetStorageErrorDetails | undefined {
+  if (error instanceof HttpError) {
+    return error.details?.mediaAssetStorage;
+  }
+
+  return undefined;
+}
+
 export function createBackendFailureDetails(error: AuthError | HttpError | unknown): BackendFailureDetails {
+  const mediaAssetStorage = getMediaAssetStorageErrorDetails(error);
   return {
     statusCode: getRequestErrorStatusCode(error),
     code: getRequestErrorCode(error),
     message: getInternalErrorMessage(error),
     validationIssues: summarizeValidationIssues(error),
+    ...(mediaAssetStorage === undefined ? {} : { mediaAssetStorage }),
   };
 }
 
@@ -109,6 +119,7 @@ function createErrorLevelRequestErrorDetails(
     statusCode: details.statusCode,
     code: details.code,
     validationIssues: details.validationIssues,
+    ...(details.mediaAssetStorage === undefined ? {} : { mediaAssetStorage: details.mediaAssetStorage }),
     sqlState: details.sqlState,
     errorClass: details.errorClass,
     errorMessage: details.errorMessage,

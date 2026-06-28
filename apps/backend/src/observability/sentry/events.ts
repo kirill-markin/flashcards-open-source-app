@@ -1,3 +1,5 @@
+import type { MediaAssetStorageErrorDetails } from "../../shared/errors";
+
 export type BackendService =
   | "backend-api"
   | "chat-worker"
@@ -46,6 +48,7 @@ export type BackendFailureDetails = Readonly<{
   code: string | null;
   message: string | null;
   validationIssues: ReadonlyArray<BackendValidationIssueDetail>;
+  mediaAssetStorage?: MediaAssetStorageErrorDetails;
 }>;
 
 export type RequestErrorDetails = BackendFailureDetails & BackendErrorLogDetails & Readonly<{
@@ -245,6 +248,16 @@ export type CardsQueryDetails = Readonly<{
   resultsCount: number | null;
   totalCount: number | null;
   hasMore: boolean | null;
+}>;
+
+export type MediaAssetRouteDetails = Readonly<{
+  statusCode: number;
+  mediaAssetId: string | null;
+  storageKey: string | null;
+  mimeType?: string;
+  sizeBytes?: number;
+  sha256?: string;
+  applied?: boolean;
 }>;
 
 export type GuestUpgradeCompleteDetails = Readonly<{
@@ -651,6 +664,19 @@ export type GlobalMetricsS3RetryDetails = Readonly<{
   errorMessage: string;
 }>;
 
+export type MediaAssetStorageRetryDetails = Readonly<{
+  operation: "create_presigned_upload" | "create_presigned_download" | "head_object";
+  attempt: number;
+  maxAttempts: number;
+  bucketName: string;
+  workspaceId: string;
+  mediaAssetId: string;
+  storageKey: string;
+  statusCode: number | null;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
 export type FeedbackEmailRetryDetails = Readonly<{
   feedbackSubmissionId: string;
   attempt: number;
@@ -692,6 +718,7 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"progress_active_days_backfill_completed", ProgressActiveDaysBackfillCompletedDetails>
   | EventByAction<"database_transient_retry", DatabaseTransientRetryDetails>
   | EventByAction<"global_metrics_s3_retry", GlobalMetricsS3RetryDetails>
+  | EventByAction<"media_asset_storage_retry", MediaAssetStorageRetryDetails>
   | EventByAction<"sync_push", SyncPushDetails>
   | EventByAction<"sync_push_error", SyncConflictFailureDetailsFor<SyncPushDetails>>
   | EventByAction<"sync_pull", SyncPullDetails>
@@ -726,6 +753,14 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"workspace_tags_list_error", FailureDetailsFor<WorkspaceTagsListDetails>>
   | EventByAction<"cards_query", CardsQueryDetails>
   | EventByAction<"cards_query_error", FailureDetailsFor<CardsQueryDetails>>
+  | EventByAction<"media_asset_upload_intent_create", MediaAssetRouteDetails>
+  | EventByAction<"media_asset_upload_intent_create_error", FailureDetailsFor<MediaAssetRouteDetails>>
+  | EventByAction<"media_asset_upload_complete", MediaAssetRouteDetails>
+  | EventByAction<"media_asset_upload_complete_error", FailureDetailsFor<MediaAssetRouteDetails>>
+  | EventByAction<"media_asset_get", MediaAssetRouteDetails>
+  | EventByAction<"media_asset_get_error", FailureDetailsFor<MediaAssetRouteDetails>>
+  | EventByAction<"media_asset_download_url_create", MediaAssetRouteDetails>
+  | EventByAction<"media_asset_download_url_create_error", FailureDetailsFor<MediaAssetRouteDetails>>
   | EventByAction<"guest_upgrade_complete", GuestUpgradeCompleteDetails>
   | EventByAction<"guest_upgrade_complete_error", FailureDetailsFor<GuestUpgradeCompleteDetails>>
   | EventByAction<"workspaces_list", WorkspacesListDetails>
@@ -849,6 +884,22 @@ export type BackendExceptionEvent =
   | (EventByAction<"feedback_submission_error", FailureDetailsFor<FeedbackSubmissionDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"workspace_tags_list_error", FailureDetailsFor<WorkspaceTagsListDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"cards_query_error", FailureDetailsFor<CardsQueryDetails>> & Readonly<{ error: Error }>)
+  | (
+    EventByAction<"media_asset_upload_intent_create_error", FailureDetailsFor<MediaAssetRouteDetails>>
+    & Readonly<{ error: Error }>
+  )
+  | (
+    EventByAction<"media_asset_upload_complete_error", FailureDetailsFor<MediaAssetRouteDetails>>
+    & Readonly<{ error: Error }>
+  )
+  | (
+    EventByAction<"media_asset_get_error", FailureDetailsFor<MediaAssetRouteDetails>>
+    & Readonly<{ error: Error }>
+  )
+  | (
+    EventByAction<"media_asset_download_url_create_error", FailureDetailsFor<MediaAssetRouteDetails>>
+    & Readonly<{ error: Error }>
+  )
   | (EventByAction<"guest_upgrade_complete_error", FailureDetailsFor<GuestUpgradeCompleteDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"workspaces_list_error", FailureDetailsFor<WorkspacesListDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"workspace_create_error", FailureDetailsFor<WorkspaceIdDetails>> & Readonly<{ error: Error }>)

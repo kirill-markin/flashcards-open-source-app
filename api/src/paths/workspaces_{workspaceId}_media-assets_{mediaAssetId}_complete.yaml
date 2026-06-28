@@ -1,0 +1,40 @@
+post:
+  tags:
+    - media-assets
+  summary: Complete a direct media asset upload
+  description: >-
+    Verifies the uploaded S3 object size, content type, and SHA-256 checksum,
+    then creates or idempotently updates the workspace media asset registry
+    metadata row for the same bytes.
+  security:
+    - ApiKeyHeader: []
+  parameters:
+    - name: workspaceId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+    - name: mediaAssetId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CompleteMediaAssetUploadInput.yaml
+  responses:
+    '200':
+      description: Media asset upload completed
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MediaAssetMutationResponse.yaml
+    default:
+      description: Authenticated request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

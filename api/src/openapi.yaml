@@ -44,6 +44,10 @@ tags:
       Split SQL surface for the selected workspace: a read-only query
       entrypoint and a separate write entrypoint. Internal sync mechanics stay
       server-side and are not part of this public contract.
+  - name: media-assets
+    description: >-
+      Workspace-scoped media asset registry metadata and direct private object
+      transfer URLs.
 paths:
   /:
     $ref: paths/_.yaml
@@ -63,6 +67,14 @@ paths:
     $ref: paths/agent_sql_query.yaml
   /agent/sql/execute:
     $ref: paths/agent_sql_execute.yaml
+  /workspaces/{workspaceId}/media-assets/upload-intents:
+    $ref: paths/workspaces_{workspaceId}_media-assets_upload-intents.yaml
+  /workspaces/{workspaceId}/media-assets/{mediaAssetId}:
+    $ref: paths/workspaces_{workspaceId}_media-assets_{mediaAssetId}.yaml
+  /workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete:
+    $ref: paths/workspaces_{workspaceId}_media-assets_{mediaAssetId}_complete.yaml
+  /workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url:
+    $ref: paths/workspaces_{workspaceId}_media-assets_{mediaAssetId}_download-url.yaml
 components:
   securitySchemes:
     ApiKeyHeader:

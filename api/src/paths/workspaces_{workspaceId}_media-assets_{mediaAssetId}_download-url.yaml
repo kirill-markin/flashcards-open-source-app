@@ -1,0 +1,33 @@
+get:
+  tags:
+    - media-assets
+  summary: Create a direct media asset download URL
+  description: >-
+    Returns a presigned private S3 GET URL for the stored object. Clients may
+    use normal HTTP Range requests against the returned URL for partial reads.
+  security:
+    - ApiKeyHeader: []
+  parameters:
+    - name: workspaceId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+    - name: mediaAssetId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+  responses:
+    '200':
+      description: Download URL created
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MediaAssetDownloadUrlResponse.yaml
+    default:
+      description: Authenticated request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

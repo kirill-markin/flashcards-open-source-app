@@ -35,6 +35,7 @@ export interface ApiGatewayProps {
   globalMetricsVisible: boolean;
   globalMetricsSnapshotBucket: s3.IBucket;
   globalMetricsSnapshotObjectKey: string;
+  mediaAssetsBucket: s3.IBucket;
   userPoolId: string;
   userPoolArn: string;
   userPoolClientId: string;
@@ -74,6 +75,7 @@ interface BackendFunctionProps {
   demoEmailDostip: string | undefined;
   guestAiWeightedMonthlyTokenCap: string | undefined;
   globalMetricsConfig: GlobalMetricsConfig | undefined;
+  mediaAssetsBucket: s3.IBucket | undefined;
   memorySize: number;
 }
 
@@ -242,6 +244,20 @@ function addGlobalMetricsEnvironment(
   }));
 }
 
+function addMediaAssetsEnvironment(
+  fn: lambdaNodejs.NodejsFunction,
+  bucket: s3.IBucket,
+): void {
+  fn.addEnvironment("MEDIA_ASSETS_S3_BUCKET_NAME", bucket.bucketName);
+  fn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+    actions: [
+      "s3:GetObject",
+      "s3:PutObject",
+    ],
+    resources: [bucket.arnForObjects("media-assets/*")],
+  }));
+}
+
 function hasConfiguredValue(value: string | undefined): value is string {
   return value !== undefined && value !== "";
 }
@@ -382,6 +398,9 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
   if (props.globalMetricsConfig !== undefined) {
     addGlobalMetricsEnvironment(fn, props.globalMetricsConfig);
   }
+  if (props.mediaAssetsBucket !== undefined) {
+    addMediaAssetsEnvironment(fn, props.mediaAssetsBucket);
+  }
 
   return fn;
 }
@@ -455,6 +474,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       snapshotBucket: props.globalMetricsSnapshotBucket,
       snapshotObjectKey: props.globalMetricsSnapshotObjectKey,
     },
+    mediaAssetsBucket: props.mediaAssetsBucket,
     memorySize: 256,
   });
   const chatWorkerFn = createBackendFunction(scope, {
@@ -488,6 +508,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: undefined,
+    mediaAssetsBucket: undefined,
     memorySize: 512,
   });
   const chatLiveFn = createBackendFunction(scope, {
@@ -521,6 +542,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: undefined,
+    mediaAssetsBucket: undefined,
     memorySize: 256,
   });
   const chatLiveFunctionUrl = chatLiveFn.addFunctionUrl({
@@ -705,6 +727,14 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     .addResource("cards")
     .addResource("query")
     .addMethod("POST", integration);
+  const workspaceMediaAssets = workspaceById.addResource("media-assets");
+  workspaceMediaAssets
+    .addResource("upload-intents")
+    .addMethod("POST", integration);
+  const workspaceMediaAssetById = workspaceMediaAssets.addResource("{mediaAssetId}");
+  workspaceMediaAssetById.addMethod("GET", integration);
+  workspaceMediaAssetById.addResource("complete").addMethod("POST", integration);
+  workspaceMediaAssetById.addResource("download-url").addMethod("GET", integration);
 
   const workspaceSync = workspaceById.addResource("sync");
   workspaceSync.addResource("push").addMethod("POST", integration);
