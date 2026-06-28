@@ -252,6 +252,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         webAppVersion,
         bootstrapCursor,
         syncBootstrapPageSize,
+        true,
       );
       const bootstrapPullElapsedMs = Date.now() - bootstrapPullStartedAtMs;
       bootstrapPullDurationMs += bootstrapPullElapsedMs;

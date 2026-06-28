@@ -3,6 +3,7 @@ import type {
   CloudSettings,
   Deck,
   LegacyEffortLevel,
+  MediaAsset,
   ReviewEvent,
   SyncPushOperation,
   WorkspaceSchedulerSettings,
@@ -49,6 +50,8 @@ export type WorkspaceSettingsRecord = Readonly<{
   settings: WorkspaceSchedulerSettings;
 }>;
 
+export type StoredMediaAsset = MediaAsset;
+
 export type WorkspaceSyncStateRecord = Readonly<{
   workspaceId: string;
   lastAppliedHotChangeId: number;
@@ -86,6 +89,7 @@ export type DatabaseStores =
   | "cards"
   | "cardTags"
   | "decks"
+  | "mediaAssets"
   | "progressDailyCounts"
   | "reviewEvents"
   | "workspaceSettings"
@@ -104,7 +108,7 @@ export type IndexedDbOpenLifecycleSnapshot = Readonly<{
 }>;
 
 const databaseName = "flashcards-web-sync";
-const databaseVersion = 16;
+const databaseVersion = 17;
 const progressCacheStateKey = "progress_cache_state";
 const deleteDatabaseBlockedWaitMs = 3000;
 const activeDatabaseOperationPromises = new Set<Promise<unknown>>();
@@ -337,6 +341,11 @@ function createCardTagsStore(database: IDBDatabase): void {
 function createDecksStore(database: IDBDatabase): void {
   const decksStore = database.createObjectStore("decks", { keyPath: ["workspaceId", "deckId"] });
   decksStore.createIndex("workspaceId_createdAt_deckId", ["workspaceId", "createdAt", "deckId"], { unique: false });
+}
+
+function createMediaAssetsStore(database: IDBDatabase): void {
+  const mediaAssetsStore = database.createObjectStore("mediaAssets", { keyPath: ["workspaceId", "mediaAssetId"] });
+  mediaAssetsStore.createIndex("workspaceId_updatedAt_mediaAssetId", ["workspaceId", "updatedAt", "mediaAssetId"], { unique: false });
 }
 
 function createReviewEventsStore(database: IDBDatabase): void {
@@ -726,6 +735,12 @@ function upgradeToVersion16(transaction: IDBTransaction): void {
   migrateOutboxCardMetadataOperations(transaction.objectStore("outbox"));
 }
 
+function upgradeToVersion17(database: IDBDatabase): void {
+  if (database.objectStoreNames.contains("mediaAssets") === false) {
+    createMediaAssetsStore(database);
+  }
+}
+
 export function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(databaseName, databaseVersion);
@@ -838,6 +853,9 @@ export function openDatabase(): Promise<IDBDatabase> {
         upgradeToVersion16(transaction);
       }
 
+      if (oldVersion < 17) {
+        upgradeToVersion17(request.result);
+      }
     };
 
     request.onsuccess = () => {

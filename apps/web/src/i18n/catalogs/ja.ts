@@ -698,6 +698,14 @@ export const jaCatalog = {
       reviewQueue: "復習キューを読み込んでいます...",
       snapshot: "最近のローカルスナップショットを表示しています...",
     },
+    media: {
+      attachmentLabel: "添付ファイル",
+      audioLabel: "音声添付",
+      imageAlt: "管理対象画像",
+      loading: "メディアを読み込み中...",
+      unavailable: "メディアを利用できません",
+      videoLabel: "動画添付",
+    },
     meta: {
       due: "期限 {{value}}",
       lapses: "失敗 {{count}}",

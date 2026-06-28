@@ -26,6 +26,7 @@ export type ReviewPaneProps = Readonly<{
   isInitialReviewLoad: boolean;
   isSubmitting: boolean;
   lastSubmittedReview: LastSubmittedReview | null;
+  localReadVersion: number;
   loadingReviewCurrentCard: ReviewLoadingSnapshot["currentCard"];
   onAiHandoff: (card: Card) => Promise<boolean>;
   onEditCard: (card: Card) => void;
@@ -41,11 +42,14 @@ export type ReviewPaneProps = Readonly<{
   selectedCard: Card | null;
   selectedFrontSpeakableText: string;
   shouldShowSwitchToAllCardsAction: boolean;
+  workspaceId: string | null;
 }>;
 
 type ReviewLoadingPaneProps = Readonly<{
+  localReadVersion: number;
   loadingReviewCurrentCard: ReviewLoadingSnapshot["currentCard"];
   reviewLoadingSnapshot: ReviewLoadingSnapshot | null;
+  workspaceId: string | null;
 }>;
 
 type ReviewEmptyPaneProps = Readonly<{
@@ -58,6 +62,7 @@ type ReviewActiveCardPaneProps = Readonly<{
   activeSpeechSide: ReviewSpeechSide | null;
   isAnswerVisible: boolean;
   isSubmitting: boolean;
+  localReadVersion: number;
   onAiHandoff: (card: Card) => Promise<boolean>;
   onEditCard: (card: Card) => void;
   onRevealAnswer: () => void;
@@ -68,6 +73,7 @@ type ReviewActiveCardPaneProps = Readonly<{
   selectedBackSpeakableText: string;
   selectedCard: Card;
   selectedFrontSpeakableText: string;
+  workspaceId: string | null;
 }>;
 
 type ReviewRatingButtonColumnProps = Readonly<{
@@ -80,7 +86,12 @@ function handleDisabledSpeechToggle(): void {
 }
 
 function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
-  const { loadingReviewCurrentCard, reviewLoadingSnapshot } = props;
+  const {
+    localReadVersion,
+    loadingReviewCurrentCard,
+    reviewLoadingSnapshot,
+    workspaceId,
+  } = props;
   const { t } = useI18n();
   const frontSideLabel = t("reviewScreen.sides.front");
   const frontSpeechButtonAriaLabel = t("reviewScreen.speakAriaLabel.start", {
@@ -128,10 +139,12 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
             showSpeechButton={true}
             speechButtonAriaLabel={frontSpeechButtonAriaLabel}
             speechButtonDisabled={true}
+            localReadVersion={localReadVersion}
             surfaceCardId={loadingReviewCurrentCard.cardId}
             surfaceClassName="review-card-surface review-card-surface-front"
             surfaceFrontText={loadingReviewCurrentCard.frontText}
             surfaceTestId="review-current-front-card"
+            workspaceId={workspaceId}
           />
         ) : (
           <div className="review-card-surface review-card-surface-front review-loading-card-surface" aria-hidden="true">
@@ -235,6 +248,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     activeSpeechSide,
     isAnswerVisible,
     isSubmitting,
+    localReadVersion,
     onAiHandoff,
     onEditCard,
     onRevealAnswer,
@@ -245,6 +259,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     selectedBackSpeakableText,
     selectedCard,
     selectedFrontSpeakableText,
+    workspaceId,
   } = props;
   const { t, formatDateTime, formatNumber } = useI18n();
   const frontSideLabel = t("reviewScreen.sides.front");
@@ -285,10 +300,12 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
             side: frontSideLabel.toLowerCase(),
           })}
           speechButtonDisabled={false}
+          localReadVersion={localReadVersion}
           surfaceCardId={selectedCard.cardId}
           surfaceClassName="review-card-surface review-card-surface-front"
           surfaceFrontText={selectedCard.frontText}
           surfaceTestId="review-current-front-card"
+          workspaceId={workspaceId}
         />
 
         {isAnswerVisible ? (
@@ -308,7 +325,9 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
               side: backSideLabel.toLowerCase(),
             })}
             speechButtonDisabled={false}
+            localReadVersion={localReadVersion}
             surfaceClassName="review-card-surface review-card-answer"
+            workspaceId={workspaceId}
           />
         ) : null}
       </div>
@@ -364,6 +383,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
     isInitialReviewLoad,
     isSubmitting,
     lastSubmittedReview,
+    localReadVersion,
     loadingReviewCurrentCard,
     onAiHandoff,
     onEditCard,
@@ -379,6 +399,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
     selectedCard,
     selectedFrontSpeakableText,
     shouldShowSwitchToAllCardsAction,
+    workspaceId,
   } = props;
   const reviewPaneState = resolveReviewPaneState(isInitialReviewLoad, selectedCard);
   const reviewPaneEmptyReason = resolveReviewPaneEmptyReason(isInitialReviewLoad, selectedCard, hasCards);
@@ -396,8 +417,10 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
     >
       {reviewPaneState === "loading" ? (
         <ReviewLoadingPane
+          localReadVersion={localReadVersion}
           loadingReviewCurrentCard={loadingReviewCurrentCard}
           reviewLoadingSnapshot={reviewLoadingSnapshot}
+          workspaceId={workspaceId}
         />
       ) : null}
       {reviewPaneState === "empty" ? (
@@ -412,6 +435,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
           activeSpeechSide={activeSpeechSide}
           isAnswerVisible={isAnswerVisible}
           isSubmitting={isSubmitting}
+          localReadVersion={localReadVersion}
           onAiHandoff={onAiHandoff}
           onEditCard={onEditCard}
           onRevealAnswer={onRevealAnswer}
@@ -422,6 +446,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
           selectedBackSpeakableText={selectedBackSpeakableText}
           selectedCard={selectedCard}
           selectedFrontSpeakableText={selectedFrontSpeakableText}
+          workspaceId={workspaceId}
         />
       ) : null}
     </section>

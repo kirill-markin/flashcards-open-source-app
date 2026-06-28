@@ -1,6 +1,7 @@
+import type { MediaAsset, MediaAssetSnapshotPayload } from "./mediaAssets";
 import type { Card, CardMetadata, Deck, FsrsCardState, ReviewEvent, ReviewRating, WorkspaceSchedulerSettings } from "./study";
 
-export type SyncEntityType = "card" | "deck" | "workspace_scheduler_settings" | "review_event";
+export type SyncEntityType = "card" | "deck" | "workspace_scheduler_settings" | "review_event" | "media_asset";
 export type SyncAction = "upsert" | "append";
 export type LegacyEffortLevel = "fast" | "medium" | "long";
 
@@ -69,6 +70,14 @@ export type SyncPushOperation =
   }>
   | Readonly<{
     operationId: string;
+    entityType: "media_asset";
+    entityId: string;
+    action: "upsert";
+    clientUpdatedAt: string;
+    payload: MediaAssetSnapshotPayload;
+  }>
+  | Readonly<{
+    operationId: string;
     entityType: "review_event";
     entityId: string;
     action: "append";
@@ -112,6 +121,12 @@ export type SyncBootstrapEntry =
     entityId: string;
     action: "upsert";
     payload: WorkspaceSchedulerSettings;
+  }>
+  | Readonly<{
+    entityType: "media_asset";
+    entityId: string;
+    action: "upsert";
+    payload: MediaAsset;
   }>;
 
 export type SyncChange = SyncBootstrapEntry & Readonly<{

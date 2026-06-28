@@ -49,6 +49,7 @@ export async function pullSyncChanges(
   appVersion: string,
   afterHotChangeId: number,
   limit: number,
+  includeMediaAssets: boolean,
 ): Promise<SyncPullResult> {
   return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/sync/pull`, {
     method: "POST",
@@ -58,6 +59,7 @@ export async function pullSyncChanges(
       appVersion,
       afterHotChangeId,
       limit,
+      includeMediaAssets,
     }),
   }, allowAuthRecoveryWithTransientNetworkRetry), `POST /workspaces/${workspaceId}/sync/pull`, parseSyncPullResultResponse);
 }
@@ -69,6 +71,7 @@ export async function bootstrapPullSyncState(
   appVersion: string,
   cursor: string | null,
   limit: number,
+  includeMediaAssets: boolean,
 ): Promise<SyncBootstrapPullResult> {
   return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/sync/bootstrap`, {
     method: "POST",
@@ -79,6 +82,7 @@ export async function bootstrapPullSyncState(
       appVersion,
       cursor,
       limit,
+      includeMediaAssets,
     }),
   }, allowAuthRecoveryWithTransientNetworkRetry), `POST /workspaces/${workspaceId}/sync/bootstrap`, parseSyncBootstrapPullResultResponse);
 }
@@ -89,6 +93,7 @@ export async function bootstrapPushSyncState(
   platform: "web",
   appVersion: string,
   entries: ReadonlyArray<SyncBootstrapEntry>,
+  includeMediaAssets: boolean,
 ): Promise<SyncBootstrapPushResult> {
   return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/sync/bootstrap`, {
     method: "POST",
@@ -98,6 +103,7 @@ export async function bootstrapPushSyncState(
       platform,
       appVersion,
       entries,
+      includeMediaAssets,
     }),
   }, allowAuthRecovery), `POST /workspaces/${workspaceId}/sync/bootstrap`, parseSyncBootstrapPushResultResponse);
 }

@@ -42,7 +42,7 @@ vi.mock("../../../api", () => ({
   pushSyncOperations: apiMocks.pushSyncOperationsMock,
 }));
 
-const currentWebSyncDatabaseVersion = 16;
+const currentWebSyncDatabaseVersion = 17;
 
 function createRemoteSyncInput(): WorkspaceRemoteSyncInput {
   return {
@@ -357,6 +357,7 @@ describe("sync lifecycle observation", () => {
       webAppVersion,
       null,
       1000,
+      true,
     );
     expect(apiMocks.pullSyncChangesMock).toHaveBeenCalledWith(
       "workspace-1",
@@ -365,6 +366,7 @@ describe("sync lifecycle observation", () => {
       webAppVersion,
       12,
       500,
+      true,
     );
     expect(apiMocks.pullReviewHistorySyncMock).toHaveBeenCalledWith(
       "workspace-1",

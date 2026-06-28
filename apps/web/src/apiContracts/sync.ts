@@ -28,13 +28,14 @@ import {
   parseReviewEvent,
   parseWorkspaceSchedulerSettings,
 } from "./studyData";
+import { parseMediaAsset } from "./mediaAssets";
 
 function parseSyncBootstrapEntityType(
   value: unknown,
   endpoint: string,
   path: string,
-): "card" | "deck" | "workspace_scheduler_settings" {
-  return parseEnum(value, endpoint, path, ["card", "deck", "workspace_scheduler_settings"]);
+): "card" | "deck" | "workspace_scheduler_settings" | "media_asset" {
+  return parseEnum(value, endpoint, path, ["card", "deck", "workspace_scheduler_settings", "media_asset"]);
 }
 
 function parseSyncBootstrapEntry(value: unknown, endpoint: string, path: string): SyncBootstrapEntry {
@@ -62,6 +63,15 @@ function parseSyncBootstrapEntry(value: unknown, endpoint: string, path: string)
       entityId: parseRequiredField(objectValue, "entityId", endpoint, path, parseString),
       action,
       payload: parseRequiredField(objectValue, "payload", endpoint, path, parseDeck),
+    };
+  }
+
+  if (entityType === "media_asset") {
+    return {
+      entityType,
+      entityId: parseRequiredField(objectValue, "entityId", endpoint, path, parseString),
+      action,
+      payload: parseRequiredField(objectValue, "payload", endpoint, path, parseMediaAsset),
     };
   }
 
@@ -105,6 +115,16 @@ function parseSyncChange(value: unknown, endpoint: string, path: string): SyncCh
     };
   }
 
+  if (entityType === "media_asset") {
+    return {
+      changeId,
+      entityType,
+      entityId,
+      action,
+      payload: parseRequiredField(objectValue, "payload", endpoint, path, parseMediaAsset),
+    };
+  }
+
   return {
     changeId,
     entityType,
@@ -120,7 +140,7 @@ function parseSyncPushOperationResults(
   path: string,
 ): ReadonlyArray<Readonly<{
   operationId: string;
-  entityType: "card" | "deck" | "workspace_scheduler_settings" | "review_event";
+  entityType: "card" | "deck" | "workspace_scheduler_settings" | "review_event" | "media_asset";
   entityId: string;
   status: "applied" | "ignored" | "duplicate" | "rejected";
   resultingHotChangeId: number | null;
@@ -135,7 +155,7 @@ function parseSyncPushOperationResult(
   path: string,
 ): Readonly<{
   operationId: string;
-  entityType: "card" | "deck" | "workspace_scheduler_settings" | "review_event";
+  entityType: "card" | "deck" | "workspace_scheduler_settings" | "review_event" | "media_asset";
   entityId: string;
   status: "applied" | "ignored" | "duplicate" | "rejected";
   resultingHotChangeId: number | null;
@@ -156,8 +176,8 @@ function parseSyncPushResultEntityType(
   value: unknown,
   endpoint: string,
   path: string,
-): "card" | "deck" | "workspace_scheduler_settings" | "review_event" {
-  return parseEnum(value, endpoint, path, ["card", "deck", "workspace_scheduler_settings", "review_event"]);
+): "card" | "deck" | "workspace_scheduler_settings" | "review_event" | "media_asset" {
+  return parseEnum(value, endpoint, path, ["card", "deck", "workspace_scheduler_settings", "review_event", "media_asset"]);
 }
 
 function parseSyncPushStatus(

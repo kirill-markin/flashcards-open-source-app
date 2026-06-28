@@ -28,6 +28,7 @@ export async function pullHotChanges(input: WorkspaceRemoteSyncInput): Promise<R
       webAppVersion,
       afterHotChangeId,
       syncIncrementalPageSize,
+      true,
     );
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
 

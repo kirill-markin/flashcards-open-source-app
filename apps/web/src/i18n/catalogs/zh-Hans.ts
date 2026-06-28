@@ -698,6 +698,14 @@ export const zhHansCatalog = {
       reviewQueue: "正在加载复习队列...",
       snapshot: "正在显示最近的本地快照...",
     },
+    media: {
+      attachmentLabel: "附件",
+      audioLabel: "音频附件",
+      imageAlt: "托管图片",
+      loading: "正在加载媒体...",
+      unavailable: "媒体不可用",
+      videoLabel: "视频附件",
+    },
     meta: {
       due: "到期 {{value}}",
       lapses: "失误 {{count}}",

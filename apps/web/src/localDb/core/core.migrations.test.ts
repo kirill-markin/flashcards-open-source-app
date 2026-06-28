@@ -35,7 +35,7 @@ type LegacyStoredCard = Omit<
 }>;
 
 const webSyncDatabaseName = "flashcards-web-sync";
-const currentWebSyncDatabaseVersion = 16;
+const currentWebSyncDatabaseVersion = 17;
 const legacyNullDueAtBucketMillis = -1;
 const legacyMalformedDueAtBucketMillis = -2;
 
@@ -332,6 +332,23 @@ async function loadCardsStoreIndexNamesForTest(): Promise<ReadonlyArray<string>>
   }
 }
 
+async function loadObjectStoreNamesForTest(): Promise<ReadonlyArray<string>> {
+  const database = await openDatabase();
+  try {
+    const result: Array<string> = [];
+    for (let index = 0; index < database.objectStoreNames.length; index += 1) {
+      const storeName = database.objectStoreNames.item(index);
+      if (storeName === null) {
+        throw new Error(`IndexedDB object store name is missing at position ${index}`);
+      }
+      result.push(storeName);
+    }
+    return result;
+  } finally {
+    database.close();
+  }
+}
+
 describe("localDb core migrations", () => {
   it("adds IndexedDB open metadata and breadcrumb when opening database fails", async () => {
     const sourceError = new DOMException("Open failed", "InvalidStateError");
@@ -422,6 +439,15 @@ describe("localDb core migrations", () => {
       databaseUpgraded: false,
     }));
 
+    await clearWebSyncCache();
+  });
+
+  it("creates the media asset registry metadata store", async () => {
+    await clearWebSyncCache();
+
+    const storeNames = await loadObjectStoreNamesForTest();
+
+    expect(storeNames).toContain("mediaAssets");
     await clearWebSyncCache();
   });
 

@@ -18,6 +18,7 @@ import {
 import { putDeckInTransaction } from "../decks";
 import { loadProgressCacheState, markProgressCacheDirtyInTransaction } from "../../progress/progress";
 import { putReviewEventInTransaction } from "../../reviews/reviews";
+import { putMediaAssetInTransaction } from "../../mediaAssets";
 
 type HotSyncStateUpdate = Readonly<{
   lastAppliedHotChangeId: number;
@@ -112,8 +113,8 @@ function putWorkspaceSyncStateInTransaction(
 
 function createHotSyncStoreNames(syncStateUpdate: HotSyncStateUpdate | null): ReadonlyArray<DatabaseStores> {
   return syncStateUpdate === null
-    ? ["cards", "cardTags", "decks", "workspaceSettings"]
-    : ["cards", "cardTags", "decks", "workspaceSettings", "workspaceSyncState"];
+    ? ["cards", "cardTags", "decks", "mediaAssets", "workspaceSettings"]
+    : ["cards", "cardTags", "decks", "mediaAssets", "workspaceSettings", "workspaceSyncState"];
 }
 
 function createReviewSyncStoreNames(): ReadonlyArray<DatabaseStores> {
@@ -189,6 +190,15 @@ export async function applyHotSyncPage(
           }
 
           putDeckInTransaction(transaction, entry.payload);
+          continue;
+        }
+
+        if (entry.entityType === "media_asset") {
+          if (entry.payload.workspaceId !== workspaceId) {
+            throw new Error(`Media asset sync payload workspace mismatch: ${entry.payload.workspaceId}`);
+          }
+
+          putMediaAssetInTransaction(transaction, entry.payload);
           continue;
         }
 

@@ -698,6 +698,14 @@ export const ruCatalog = {
       reviewQueue: "Загрузка очереди повторения...",
       snapshot: "Показываем недавний локальный снимок...",
     },
+    media: {
+      attachmentLabel: "Вложение",
+      audioLabel: "Аудиовложение",
+      imageAlt: "Управляемое изображение",
+      loading: "Загрузка медиа...",
+      unavailable: "Медиа недоступно",
+      videoLabel: "Видеовложение",
+    },
     meta: {
       due: "Срок {{value}}",
       lapses: "Ошибки {{count}}",

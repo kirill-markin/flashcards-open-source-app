@@ -698,6 +698,14 @@ const hiCatalog: TranslationCatalog = {
       reviewQueue: "रिव्यू कतार लोड हो रही है...",
       snapshot: "हाल का स्थानीय स्नैपशॉट दिखाया जा रहा है...",
     },
+    media: {
+      attachmentLabel: "अटैचमेंट",
+      audioLabel: "ऑडियो अटैचमेंट",
+      imageAlt: "प्रबंधित छवि",
+      loading: "मीडिया लोड हो रहा है...",
+      unavailable: "मीडिया उपलब्ध नहीं है",
+      videoLabel: "वीडियो अटैचमेंट",
+    },
     meta: {
       due: "बाकी {{value}}",
       lapses: "चूक {{count}}",
