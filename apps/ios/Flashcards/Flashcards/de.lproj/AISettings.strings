@@ -127,6 +127,8 @@
 
 "settings.title" = "Einstellungen";
 "settings.inviteFriend.button" = "Freund einladen";
+"settings.section.share" = "Teilen";
+"settings.row.shareApp" = "Flashcards teilen";
 "settings.section.account" = "Konto";
 "settings.section.general" = "Allgemein";
 "settings.section.support" = "Support";

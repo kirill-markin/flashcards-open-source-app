@@ -127,6 +127,8 @@
 
 "settings.title" = "الإعدادات";
 "settings.inviteFriend.button" = "دعوة صديق";
+"settings.section.share" = "مشاركة";
+"settings.row.shareApp" = "مشاركة Flashcards";
 "settings.section.account" = "الحساب";
 "settings.section.general" = "عام";
 "settings.section.support" = "الدعم";

@@ -50,8 +50,18 @@ struct SettingsView: View {
 
     var body: some View {
         List {
-            Section {
+            Section(aiSettingsLocalized("settings.section.share", "Share")) {
                 self.friendInviteButton
+
+                ShareLink(item: flashcardsAppShareUrl) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.shareApp", "Share Flashcards"),
+                        value: nil,
+                        systemImage: "square.and.arrow.up",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsShareAppRow)
             }
 
             Section(aiSettingsLocalized("settings.section.account", "Account")) {

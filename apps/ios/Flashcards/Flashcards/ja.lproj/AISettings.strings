@@ -127,6 +127,8 @@
 
 "settings.title" = "設定";
 "settings.inviteFriend.button" = "友達を招待";
+"settings.section.share" = "共有";
+"settings.row.shareApp" = "Flashcardsを共有";
 "settings.section.account" = "アカウント";
 "settings.section.general" = "一般";
 "settings.section.support" = "サポート";
