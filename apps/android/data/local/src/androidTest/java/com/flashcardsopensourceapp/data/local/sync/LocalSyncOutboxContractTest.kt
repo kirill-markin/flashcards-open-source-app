@@ -4,6 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
+import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.support.LocalDatabaseTestRuntime
@@ -75,6 +76,15 @@ class LocalSyncOutboxContractTest {
         assertEquals(3, entries.size)
         assertTrue(entries.all { entry -> entry.entityType == "card" })
         assertTrue(entries.all { entry -> entry.operationType == "upsert" })
+        assertTrue(entries.all { entry ->
+            JSONObject(entry.payloadJson).getString("cardType") == defaultCardType
+        })
+        assertTrue(entries.all { entry ->
+            val payload = JSONObject(entry.payloadJson)
+            payload.getJSONObject("metadata")
+                .getJSONObject("source")
+                .getString("createdAt") == payload.getString("createdAt")
+        })
         assertTrue(entries.any { entry ->
             JSONObject(entry.payloadJson).getString("frontText") == "What is a repository pattern?"
         })

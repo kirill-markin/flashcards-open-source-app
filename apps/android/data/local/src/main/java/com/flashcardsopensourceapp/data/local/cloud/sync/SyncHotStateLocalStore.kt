@@ -12,6 +12,9 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.legacyEffortTag
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudDoubleOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudIntOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseCardPayloadCardType
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseCardPayloadMetadata
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseCloudIsoTimestamp
 import com.flashcardsopensourceapp.data.local.cloud.wire.parseLegacyEffortLevel
 import com.flashcardsopensourceapp.data.local.cloud.wire.parseDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.cloud.wire.parseFsrsCardState
@@ -27,6 +30,7 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.toCloudIntList
 import com.flashcardsopensourceapp.data.local.cloud.wire.toCloudStringList
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
+import com.flashcardsopensourceapp.data.local.model.cards.encodeCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cards.encodeDeckFilterDefinitionJson
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
 import org.json.JSONObject
@@ -68,13 +72,22 @@ internal class SyncHotStateLocalStore(
     }
 
     private suspend fun applyRemoteCard(workspaceId: String, payload: JSONObject, fieldPath: String) {
+        val createdAt: String = payload.requireCloudString("createdAt", "$fieldPath.createdAt")
         val card = CardEntity(
             cardId = payload.requireCloudString("cardId", "$fieldPath.cardId"),
             workspaceId = workspaceId,
             frontText = payload.requireCloudString("frontText", "$fieldPath.frontText"),
             backText = payload.requireCloudString("backText", "$fieldPath.backText"),
+            cardType = parseCardPayloadCardType(payloadJson = payload, fieldPath = fieldPath),
+            metadataJson = encodeCardMetadataJson(
+                metadata = parseCardPayloadMetadata(
+                    payloadJson = payload,
+                    createdAt = createdAt,
+                    fieldPath = fieldPath
+                )
+            ),
             dueAtMillis = payload.requireCloudNullableIsoTimestampMillis("dueAt", "$fieldPath.dueAt"),
-            createdAtMillis = payload.requireCloudIsoTimestampMillis("createdAt", "$fieldPath.createdAt"),
+            createdAtMillis = parseCloudIsoTimestamp(value = createdAt, fieldPath = "$fieldPath.createdAt"),
             updatedAtMillis = payload.requireCloudIsoTimestampMillis("clientUpdatedAt", "$fieldPath.clientUpdatedAt"),
             reps = payload.requireCloudInt("reps", "$fieldPath.reps"),
             lapses = payload.requireCloudInt("lapses", "$fieldPath.lapses"),

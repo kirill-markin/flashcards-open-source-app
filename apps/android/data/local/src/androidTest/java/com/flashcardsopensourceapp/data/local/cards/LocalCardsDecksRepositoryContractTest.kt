@@ -6,6 +6,9 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
+import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
+import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
+import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.support.LocalDatabaseTestRuntime
@@ -100,6 +103,8 @@ class LocalCardsDecksRepositoryContractTest {
             workspaceId = workspaceId,
             frontText = "Older",
             backText = "Back",
+            cardType = defaultCardType,
+            metadataJson = encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(100L)),
             dueAtMillis = null,
             createdAtMillis = 100L,
             updatedAtMillis = 100L,
@@ -118,6 +123,8 @@ class LocalCardsDecksRepositoryContractTest {
             workspaceId = workspaceId,
             frontText = "Newer",
             backText = "Back",
+            cardType = defaultCardType,
+            metadataJson = encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(200L)),
             dueAtMillis = null,
             createdAtMillis = 200L,
             updatedAtMillis = 200L,

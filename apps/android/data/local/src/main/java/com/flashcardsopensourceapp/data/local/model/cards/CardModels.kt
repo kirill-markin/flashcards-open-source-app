@@ -25,12 +25,30 @@ data class DeckSummary(
     val updatedAtMillis: Long
 )
 
+const val defaultCardType: String = "basic"
+
+data class CardSourceMetadata(
+    val label: String?,
+    val author: String?,
+    val comment: String?,
+    val createdAt: String?,
+    val importedAt: String?,
+    val importId: String?
+)
+
+data class CardMetadata(
+    val version: Int,
+    val source: CardSourceMetadata?
+)
+
 // Keep in sync with apps/backend/src/cards/types.ts::Card, apps/web/src/types.ts::Card, and apps/ios/Flashcards/Flashcards/Cards/Model/CardDeckTypes.swift::Card.
 data class CardSummary(
     val cardId: String,
     val workspaceId: String,
     val frontText: String,
     val backText: String,
+    val cardType: String,
+    val metadata: CardMetadata,
     val tags: List<String>,
     val dueAtMillis: Long?,
     val createdAtMillis: Long,

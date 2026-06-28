@@ -162,9 +162,9 @@ interface ReviewQueueDao {
     @Transaction
     @Query(
         """
-        SELECT cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+        SELECT cardId, workspaceId, frontText, backText, cardType, metadataJson, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
         FROM (
-            SELECT 0 AS activeQueueBucket, cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+            SELECT 0 AS activeQueueBucket, cardId, workspaceId, frontText, backText, cardType, metadataJson, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
             FROM (
                 SELECT * FROM cards INDEXED BY index_cards_workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_createdAtMillis_cardId
                 WHERE workspaceId = :workspaceId
@@ -178,7 +178,7 @@ interface ReviewQueueDao {
                 LIMIT :limit
             )
             UNION ALL
-            SELECT 1 AS activeQueueBucket, cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+            SELECT 1 AS activeQueueBucket, cardId, workspaceId, frontText, backText, cardType, metadataJson, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
             FROM (
                 SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
                 WHERE workspaceId = :workspaceId
@@ -194,7 +194,7 @@ interface ReviewQueueDao {
                 LIMIT :limit
             )
             UNION ALL
-            SELECT 2 AS activeQueueBucket, cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+            SELECT 2 AS activeQueueBucket, cardId, workspaceId, frontText, backText, cardType, metadataJson, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
             FROM (
                 SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
                 WHERE workspaceId = :workspaceId
@@ -218,9 +218,9 @@ interface ReviewQueueDao {
     @Transaction
     @Query(
         """
-        SELECT cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+        SELECT cardId, workspaceId, frontText, backText, cardType, metadataJson, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
         FROM (
-            SELECT 0 AS activeQueueBucket, cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+            SELECT 0 AS activeQueueBucket, cardId, workspaceId, frontText, backText, cardType, metadataJson, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
             FROM (
                 SELECT * FROM cards INDEXED BY index_cards_workspaceId_fsrsLastReviewedAtMillis_dueAtMillis_createdAtMillis_cardId
                 WHERE workspaceId = :workspaceId
@@ -242,7 +242,7 @@ interface ReviewQueueDao {
                 LIMIT :limit
             )
             UNION ALL
-            SELECT 1 AS activeQueueBucket, cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+            SELECT 1 AS activeQueueBucket, cardId, workspaceId, frontText, backText, cardType, metadataJson, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
             FROM (
                 SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
                 WHERE workspaceId = :workspaceId
@@ -266,7 +266,7 @@ interface ReviewQueueDao {
                 LIMIT :limit
             )
             UNION ALL
-            SELECT 2 AS activeQueueBucket, cardId, workspaceId, frontText, backText, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
+            SELECT 2 AS activeQueueBucket, cardId, workspaceId, frontText, backText, cardType, metadataJson, dueAtMillis, createdAtMillis, updatedAtMillis, reps, lapses, fsrsCardState, fsrsStepIndex, fsrsStability, fsrsDifficulty, fsrsLastReviewedAtMillis, fsrsScheduledDays, deletedAtMillis
             FROM (
                 SELECT * FROM cards INDEXED BY index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId
                 WHERE workspaceId = :workspaceId
