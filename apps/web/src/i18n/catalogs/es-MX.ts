@@ -286,6 +286,15 @@ const esMxCatalog: TranslationCatalog = {
       android: "Abrir en Google Play",
       web: "Web App",
     },
+    mcp: {
+      label: "Para agentes de IA",
+      title: "Conecta con MCP",
+      description: "Los agentes de IA pueden conectarse por MCP para leer, crear y editar tarjetas.",
+      caption: "Agrega este servidor MCP a tu cliente de IA:",
+      copy: "Copiar",
+      copied: "Copiado",
+      copyFailed: "No se pudo copiar",
+    },
   },
   friendInvite: {
     loading: "Revisando enlace de invitación...",

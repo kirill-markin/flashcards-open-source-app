@@ -3,6 +3,7 @@ import { getAppConfig } from "../../config";
 import { useI18n } from "../../i18n";
 import { reviewRoute } from "../../routes";
 import { AppPlatformLinks, type AppPlatformStoreLinks } from "./AppPlatformLinks";
+import { ShareMcpOption } from "./ShareMcpOption";
 
 const shareAppStoreLinks: AppPlatformStoreLinks = {
   ios: "https://apps.apple.com/app/apple-store/id6760538964?pt=128797295&ct=share_app&mt=8",
@@ -30,6 +31,7 @@ export function ShareAppScreen(): ReactElement {
           gridTestId="share-app-platform-links"
           webHrefTestId="share-app-web-link-value"
         />
+        <ShareMcpOption />
       </section>
     </main>
   );

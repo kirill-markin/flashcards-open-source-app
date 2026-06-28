@@ -284,6 +284,15 @@ const enCatalog = {
       android: "Open in Google Play",
       web: "Web App",
     },
+    mcp: {
+      label: "For AI Agent",
+      title: "Connect with MCP",
+      description: "AI agents can connect over MCP to read, create, and edit cards.",
+      caption: "Add this MCP server to your AI client:",
+      copy: "Copy",
+      copied: "Copied",
+      copyFailed: "Copy failed",
+    },
   },
   friendInvite: {
     loading: "Checking invite link...",

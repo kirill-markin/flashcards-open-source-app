@@ -286,6 +286,15 @@ export const zhHansCatalog = {
       android: "在 Google Play 打开",
       web: "Web App",
     },
+    mcp: {
+      label: "面向 AI 代理",
+      title: "通过 MCP 连接",
+      description: "AI 代理可以通过 MCP 连接，以读取、创建和编辑卡片。",
+      caption: "将此 MCP 服务器添加到你的 AI 客户端：",
+      copy: "复制",
+      copied: "已复制",
+      copyFailed: "复制失败",
+    },
   },
   friendInvite: {
     loading: "正在检查邀请链接...",

@@ -286,6 +286,15 @@ const hiCatalog: TranslationCatalog = {
       android: "Google Play में खोलें",
       web: "वेब ऐप",
     },
+    mcp: {
+      label: "AI एजेंट के लिए",
+      title: "MCP से कनेक्ट करें",
+      description: "AI एजेंट MCP के जरिए कार्ड पढ़ने, बनाने और संपादित करने के लिए कनेक्ट कर सकते हैं।",
+      caption: "इस MCP सर्वर को अपने AI क्लाइंट में जोड़ें:",
+      copy: "कॉपी करें",
+      copied: "कॉपी हो गया",
+      copyFailed: "कॉपी नहीं हो सका",
+    },
   },
   friendInvite: {
     loading: "आमंत्रण लिंक जांचा जा रहा है...",

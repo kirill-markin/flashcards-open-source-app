@@ -286,6 +286,15 @@ export const jaCatalog = {
       android: "Google Play で開く",
       web: "Web App",
     },
+    mcp: {
+      label: "AIエージェント向け",
+      title: "MCP で接続",
+      description: "AI エージェントは MCP 経由で接続し、カードの読み取り、作成、編集ができます。",
+      caption: "この MCP サーバーを AI クライアントに追加してください:",
+      copy: "コピー",
+      copied: "コピー済み",
+      copyFailed: "コピーできませんでした",
+    },
   },
   friendInvite: {
     loading: "招待リンクを確認しています...",
