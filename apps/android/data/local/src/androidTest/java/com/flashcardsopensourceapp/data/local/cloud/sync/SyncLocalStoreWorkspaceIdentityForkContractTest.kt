@@ -258,7 +258,7 @@ class SyncLocalStoreWorkspaceIdentityForkContractTest {
             assertEquals(
                 "Cannot fork workspace identity from workspace '$syncLocalStoreContractWorkspaceId' to " +
                     "'workspace-2' because the source workspace has 1 media asset registry row(s). " +
-                    "Android cannot reassign workspace-scoped media storage keys in this sync/storage split.",
+                    "Android cannot reassign managed media assets in this sync/storage split.",
                 error.message
             )
         }
@@ -301,7 +301,7 @@ class SyncLocalStoreWorkspaceIdentityForkContractTest {
             assertEquals(
                 "Cannot fork workspace identity from workspace '$syncLocalStoreContractWorkspaceId' to " +
                     "'workspace-2' because the destination workspace has 1 media asset registry row(s). " +
-                    "Android cannot delete or reassign workspace-scoped media storage keys in this sync/storage split.",
+                    "Android cannot delete or reassign managed media assets in this sync/storage split.",
                 error.message
             )
         }
@@ -503,7 +503,6 @@ private fun createMediaAssetEntity(
         mimeType = "image/png",
         sizeBytes = 12L,
         sha256 = sha256,
-        storageKey = "media-assets/workspaces/$workspaceId/assets/$mediaAssetId/$sha256",
         sourceUrl = null,
         createdAtMillis = 1L,
         clientUpdatedAtMillis = 2L,

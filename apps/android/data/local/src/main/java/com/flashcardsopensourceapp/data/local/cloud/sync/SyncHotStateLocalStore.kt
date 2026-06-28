@@ -187,7 +187,6 @@ internal class SyncHotStateLocalStore(
                 mimeType = payload.requireCloudString("mimeType", "$fieldPath.mimeType"),
                 sizeBytes = payload.requireCloudLong("sizeBytes", "$fieldPath.sizeBytes"),
                 sha256 = payload.requireCloudString("sha256", "$fieldPath.sha256"),
-                storageKey = payload.requireCloudString("storageKey", "$fieldPath.storageKey"),
                 sourceUrl = payload.requireCloudNullableString("sourceUrl", "$fieldPath.sourceUrl"),
                 createdAtMillis = payload.requireCloudIsoTimestampMillis("createdAt", "$fieldPath.createdAt"),
                 clientUpdatedAtMillis = payload.requireCloudIsoTimestampMillis(

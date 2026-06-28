@@ -294,7 +294,7 @@ internal class WorkspaceIdentityLocalStore(
         require(mediaAssetCount == 0) {
             "Cannot fork workspace identity from workspace '$currentLocalWorkspaceId' to " +
                 "'${destinationWorkspace.workspaceId}' because the source workspace has $mediaAssetCount media asset " +
-                "registry row(s). Android cannot reassign workspace-scoped media storage keys in this sync/storage split."
+                "registry row(s). Android cannot reassign managed media assets in this sync/storage split."
         }
         val snapshot = loadWorkspaceForkSnapshot(workspaceId = currentLocalWorkspaceId)
         val forkMappings = buildWorkspaceForkIdMappings(
@@ -312,7 +312,7 @@ internal class WorkspaceIdentityLocalStore(
                 "Cannot fork workspace identity from workspace '$currentLocalWorkspaceId' to " +
                     "'${destinationWorkspace.workspaceId}' because the destination workspace has " +
                     "$destinationMediaAssetCount media asset registry row(s). Android cannot delete or reassign " +
-                    "workspace-scoped media storage keys in this sync/storage split."
+                    "managed media assets in this sync/storage split."
             }
         }
 

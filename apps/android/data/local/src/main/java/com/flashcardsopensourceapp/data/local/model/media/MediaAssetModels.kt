@@ -6,7 +6,6 @@ data class MediaAsset(
     val mimeType: String,
     val sizeBytes: Long,
     val sha256: String,
-    val storageKey: String,
     val sourceUrl: String?,
     val createdAtMillis: Long,
     val clientUpdatedAtMillis: Long,

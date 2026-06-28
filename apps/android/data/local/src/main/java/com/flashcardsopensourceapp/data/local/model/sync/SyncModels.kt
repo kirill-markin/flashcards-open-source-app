@@ -107,7 +107,6 @@ data class MediaAssetSyncPayload(
     val mimeType: String,
     val sizeBytes: Long,
     val sha256: String,
-    val storageKey: String,
     val sourceUrl: String?,
     val createdAt: String,
     val deletedAt: String?

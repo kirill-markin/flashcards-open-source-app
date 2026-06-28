@@ -17,7 +17,6 @@ import androidx.room.PrimaryKey
     ],
     indices = [
         Index("workspaceId"),
-        Index(value = ["storageKey"], unique = true),
         Index(value = ["workspaceId", "updatedAtMillis", "mediaAssetId"]),
         Index(value = ["workspaceId", "sha256", "mediaAssetId"])
     ]
@@ -28,7 +27,6 @@ data class MediaAssetEntity(
     val mimeType: String,
     val sizeBytes: Long,
     val sha256: String,
-    val storageKey: String,
     val sourceUrl: String?,
     val createdAtMillis: Long,
     val clientUpdatedAtMillis: Long,

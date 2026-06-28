@@ -115,7 +115,6 @@ internal fun buildMediaAssetOutboxPayloadJson(mediaAsset: MediaAssetEntity): JSO
         .put("mimeType", mediaAsset.mimeType)
         .put("sizeBytes", mediaAsset.sizeBytes)
         .put("sha256", mediaAsset.sha256)
-        .put("storageKey", mediaAsset.storageKey)
         .putNullableString("sourceUrl", mediaAsset.sourceUrl)
         .put("createdAt", formatIsoTimestamp(mediaAsset.createdAtMillis))
         .putNullableString("deletedAt", mediaAsset.deletedAtMillis?.let(::formatIsoTimestamp))
@@ -320,7 +319,6 @@ internal fun decodeOutboxOperation(entry: OutboxEntryEntity): SyncOperation {
                     mimeType = payloadJson.requireCloudString("mimeType", "outbox.mediaAsset.mimeType"),
                     sizeBytes = payloadJson.requireCloudLong("sizeBytes", "outbox.mediaAsset.sizeBytes"),
                     sha256 = payloadJson.requireCloudString("sha256", "outbox.mediaAsset.sha256"),
-                    storageKey = payloadJson.requireCloudString("storageKey", "outbox.mediaAsset.storageKey"),
                     sourceUrl = payloadJson.requireCloudNullableString("sourceUrl", "outbox.mediaAsset.sourceUrl"),
                     createdAt = payloadJson.requireCloudString("createdAt", "outbox.mediaAsset.createdAt"),
                     deletedAt = payloadJson.requireCloudNullableString("deletedAt", "outbox.mediaAsset.deletedAt")
