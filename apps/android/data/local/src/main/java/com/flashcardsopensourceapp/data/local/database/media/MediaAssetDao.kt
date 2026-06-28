@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.flashcardsopensourceapp.data.local.database.entities.MediaAssetEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MediaAssetDao {
@@ -16,6 +17,9 @@ interface MediaAssetDao {
 
     @Query("SELECT * FROM media_assets WHERE workspaceId = :workspaceId ORDER BY createdAtMillis ASC, mediaAssetId ASC")
     suspend fun loadMediaAssets(workspaceId: String): List<MediaAssetEntity>
+
+    @Query("SELECT * FROM media_assets WHERE workspaceId = :workspaceId ORDER BY createdAtMillis ASC, mediaAssetId ASC")
+    fun observeMediaAssets(workspaceId: String): Flow<List<MediaAssetEntity>>
 
     @Query("SELECT COUNT(*) FROM media_assets WHERE workspaceId = :workspaceId")
     suspend fun countMediaAssets(workspaceId: String): Int

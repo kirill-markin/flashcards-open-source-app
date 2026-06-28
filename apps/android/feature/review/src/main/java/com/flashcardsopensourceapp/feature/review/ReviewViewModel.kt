@@ -101,6 +101,21 @@ class ReviewViewModel(
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = initialReviewAppMetadataSummary(textProvider = textProvider)
     )
+    private val progressBadgeInputsState = combine(
+        progressRepository.observeSummarySnapshot(),
+        progressRepository.observeLeaderboardSnapshot()
+    ) { progressSummarySnapshot, progressLeaderboardSnapshot ->
+        progressSummarySnapshot to progressLeaderboardSnapshot
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        initialValue = null to null
+    )
+    private val reviewMediaAssetsState = reviewRepository.observeReviewMediaAssets().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        initialValue = emptyList()
+    )
 
     private var pendingAutoSyncRequestId: String? = null
     private var visibleAutoSyncChangeSignatureAtStart: VisibleAutoSyncChangeSignature? = null
@@ -120,15 +135,16 @@ class ReviewViewModel(
         reviewSessionState,
         draftState,
         appMetadataState,
-        progressRepository.observeSummarySnapshot(),
-        progressRepository.observeLeaderboardSnapshot()
-    ) { reviewSessionState, state, appMetadata, progressSummarySnapshot, progressLeaderboardSnapshot ->
+        progressBadgeInputsState,
+        reviewMediaAssetsState
+    ) { reviewSessionState, state, appMetadata, progressBadgeInputs, mediaAssets ->
         mapToReviewUiState(
             sessionSnapshot = reviewSessionState.sessionSnapshot,
             state = state,
             appMetadata = appMetadata,
-            progressSummarySnapshot = progressSummarySnapshot,
-            progressLeaderboardSnapshot = progressLeaderboardSnapshot,
+            progressSummarySnapshot = progressBadgeInputs.first,
+            progressLeaderboardSnapshot = progressBadgeInputs.second,
+            mediaAssets = mediaAssets,
             textProvider = textProvider
         )
     }.stateIn(
@@ -733,6 +749,9 @@ class ReviewViewModel(
         val preparedCurrentCardAfterSync = prepareDisplayedSessionCardPresentation(
             displayedCard = displayedCurrentCardAfterSync,
             answerOptionsByCardId = sessionSnapshot.answerOptionsByCardId,
+            mediaAssetsById = reviewMediaAssetsState.value.associateBy { mediaAsset ->
+                mediaAsset.mediaAssetId
+            },
             textProvider = textProvider
         )
         val nextVisibleChangeSignature = makeVisibleAutoSyncChangeSignature(
