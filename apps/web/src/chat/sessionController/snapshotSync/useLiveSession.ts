@@ -3,6 +3,7 @@ import type { ChatLiveStream } from "../../../types";
 import {
   ChatLiveContractError,
   ChatLiveHttpError,
+  ChatLiveTransportError,
   consumeChatLiveStream,
   type ChatLiveEvent,
 } from "../../streaming/liveStream";
@@ -24,6 +25,12 @@ type UseChatLiveSessionParams = Readonly<{
   applyLiveEvent: (event: ChatLiveEvent) => void;
   finalizeInterruptedRun: (message: string) => void;
   onVisibleResumeRequested: () => void;
+  onRecoverableStreamError: (
+    sessionId: string,
+    runId: string,
+    error: ChatLiveTransportError,
+    previousResumeAttemptId: number | null,
+  ) => void;
   onUnexpectedStreamEnd: (sessionId: string, runId: string) => void;
   onLiveAttachConnected: (sessionId: string, runId: string, resumeAttemptId: number | null) => void;
 }>;
@@ -59,15 +66,27 @@ function getCurrentRoute(): string | null {
 }
 
 function getLiveErrorRequestId(error: Error): string | null {
-  return error instanceof ChatLiveContractError || error instanceof ChatLiveHttpError ? error.requestId : null;
+  return error instanceof ChatLiveContractError
+    || error instanceof ChatLiveHttpError
+    || error instanceof ChatLiveTransportError
+    ? error.requestId
+    : null;
 }
 
 function getLiveErrorStatusCode(error: Error): number | null {
-  return error instanceof ChatLiveContractError || error instanceof ChatLiveHttpError ? error.statusCode : null;
+  return error instanceof ChatLiveContractError
+    || error instanceof ChatLiveHttpError
+    || error instanceof ChatLiveTransportError
+    ? error.statusCode
+    : null;
 }
 
 function getLiveErrorCode(error: Error): string | null {
-  return error instanceof ChatLiveContractError || error instanceof ChatLiveHttpError ? error.code : null;
+  return error instanceof ChatLiveContractError
+    || error instanceof ChatLiveHttpError
+    || error instanceof ChatLiveTransportError
+    ? error.code
+    : null;
 }
 
 function buildChatLiveScope(error: Error): WebObservationScope {
@@ -118,6 +137,10 @@ function captureLiveStreamError(
   });
 }
 
+function isRecoverableLiveTransportError(error: unknown): error is ChatLiveTransportError {
+  return error instanceof ChatLiveTransportError && error.statusCode === 200;
+}
+
 /**
  * Owns the browser-side live SSE lifecycle for one visible chat surface.
  * Snapshot loading remains outside this hook. On resume, callers must refresh
@@ -130,6 +153,7 @@ export function useChatLiveSession(
     applyLiveEvent,
     finalizeInterruptedRun,
     onVisibleResumeRequested,
+    onRecoverableStreamError,
     onUnexpectedStreamEnd,
     onLiveAttachConnected,
   } = params;
@@ -139,6 +163,12 @@ export function useChatLiveSession(
   const applyLiveEventRef = useRef<(event: ChatLiveEvent) => void>(applyLiveEvent);
   const finalizeInterruptedRunRef = useRef<(message: string) => void>(finalizeInterruptedRun);
   const onVisibleResumeRequestedRef = useRef<() => void>(onVisibleResumeRequested);
+  const onRecoverableStreamErrorRef = useRef<(
+    sessionId: string,
+    runId: string,
+    error: ChatLiveTransportError,
+    previousResumeAttemptId: number | null,
+  ) => void>(onRecoverableStreamError);
   const onUnexpectedStreamEndRef = useRef<(sessionId: string, runId: string) => void>(onUnexpectedStreamEnd);
   const onLiveAttachConnectedRef = useRef<(sessionId: string, runId: string, resumeAttemptId: number | null) => void>(
     onLiveAttachConnected,
@@ -175,6 +205,10 @@ export function useChatLiveSession(
   useEffect(() => {
     onVisibleResumeRequestedRef.current = onVisibleResumeRequested;
   }, [onVisibleResumeRequested]);
+
+  useEffect(() => {
+    onRecoverableStreamErrorRef.current = onRecoverableStreamError;
+  }, [onRecoverableStreamError]);
 
   useEffect(() => {
     onUnexpectedStreamEndRef.current = onUnexpectedStreamEnd;
@@ -267,6 +301,11 @@ export function useChatLiveSession(
 
       activeLiveConnectionRef.current = null;
       setIsLiveStreamConnected(false);
+      if (isRecoverableLiveTransportError(error)) {
+        onRecoverableStreamErrorRef.current(sessionId, runId, error, resumeAttemptId);
+        return;
+      }
+
       const normalizedError = normalizeCaughtError(error);
       captureLiveStreamError(normalizedError, sessionId, runId, resumeAttemptId);
       finalizeInterruptedRunRef.current(normalizedError.message);
