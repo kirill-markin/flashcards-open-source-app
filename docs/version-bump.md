@@ -2,6 +2,29 @@
 
 Use this guide when bumping release versions in the repository.
 
+## Required Release Reminder
+
+When a user asks for release notes, a release, or a version bump, proactively
+remind them that the full release sequence has four parts:
+
+1. Summarize the user-visible changes since the previous released tag.
+2. Ask for explicit user approval to publish the GitHub tag and GitHub Release
+   for the version that is currently ready to ship, using human-readable release
+   notes instead of a commit list.
+3. Ask the user to manually start or finish the platform release actions for
+   Android, Apple iOS, and the MCP server.
+4. Bump the repo-owned version surfaces to the next version only after those
+   release actions have started, finished, or been explicitly skipped.
+
+Creating or pushing a git tag and publishing a GitHub Release are remote write
+actions. Never do them from a reminder, recommendation, or assumption; wait for
+an explicit user approval such as "yes, publish it" or "create the tag and
+release."
+
+Do not go directly from release-note drafting to a version bump unless the user
+explicitly confirms that the tag, GitHub Release, and manual platform release
+actions for the current version are already handled.
+
 ## Scope
 
 The repository has separate version surfaces for backend-related Node packages, the web app, Android, and iOS, but the default release policy is to use one shared semantic version across the whole project most of the time.
@@ -34,7 +57,7 @@ Also update the MCP registry manifest at the repo root:
 
 `server.json` carries the published MCP registry manifest `version`, and it must move with the shared release version so the registry entry matches releases. There is no adjacent `package-lock.json` to update for it.
 
-Publishing `server.json` to the MCP Registry is a separate manual release step. The registry accepts each manifest `version` only once, so trigger the manual publish workflow only after the shared product version is ready and `server.json.version` names a new, unpublished version.
+Publishing `server.json` to the MCP Registry is a separate manual release step. The registry accepts each manifest `version` only once, so trigger the manual publish workflow only after the shared product version is ready, the GitHub tag/release for that version is published, and `server.json.version` names a new, unpublished version. Do this before bumping the repository to the next version.
 
 If backend comments or compatibility notes explicitly describe the currently
 released first-party client version, update those references in the same
@@ -112,10 +135,11 @@ Versioned metadata examples, when present, include:
 
 - `docs/google-play-store-metadata.md`
 
-## App Store release notes
+## User-Facing Release Notes
 
-When preparing iOS App Store release notes for a new version, compare the new
-release against the previous version that was actually released to users.
+When preparing GitHub Release notes, iOS App Store release notes, or any other
+user-facing release description for a new version, compare the new release
+against the previous version that was actually released to users.
 
 Do not write the notes from branch history, technical implementation detail, or
 internal infrastructure changes alone. Start from the commit range between the
@@ -129,6 +153,15 @@ The preferred tone is short, plain English from the user's point of view:
   `performance improvements`
 - omit internal refactors, test-only work, CI/CD changes, and backend-only
   plumbing unless users would notice the result directly
+
+For GitHub Releases, do not publish the raw auto-generated list of commits,
+pull requests, or contributors as the release body. GitHub-generated notes may
+be used as an input checklist, but the published release body should use the
+same concise, user-facing bullets as the App Store notes.
+
+When the same release needs both GitHub Release notes and localized store notes,
+reuse the same user-facing bullet strings for each locale when they fit. For an
+English-only GitHub Release, use the `English (U.S.)` copy.
 
 When generating the final output for App Store release notes in this repository,
 return one fenced `text` code block per locale instead of prose outside code
@@ -160,17 +193,82 @@ For this repository, a `git log` review of commit titles across the version rang
 is usually enough for a first draft, and deeper code inspection is only needed
 when the user-facing effect is unclear.
 
+## Release Tag And Manual Platform Releases
+
+After sending the user-facing change summary or App Store release notes, pause
+before changing version files and recommend publishing the current version. Ask
+for explicit user approval before creating or pushing a tag or publishing a
+GitHub Release.
+
+For the GitHub release:
+
+- after explicit approval, create or verify the tag for the version that is
+  currently ready to ship
+- target the commit whose checked-in version surfaces still report that release
+  version
+- prefer an annotated tag when creating a missing tag manually
+- create the GitHub Release from that tag with curated human-readable notes, not
+  the raw GitHub-generated commit or pull request list
+- do not move an existing published tag unless the user explicitly asks for a
+  tag correction
+
+If the next-version bump has already landed before the tag was created, backfill
+the missed release by targeting the last commit before the bump merge where the
+repo still reports the old release version. For a merge commit that bumps the
+version, that is usually the first parent of the bump merge.
+
+Before bumping the repository to the next version, ask the user to manually run
+or complete these release actions:
+
+- Android release
+- Apple iOS release
+- MCP server release, through the manual `MCP Registry Publish` workflow when
+  the release should refresh the official MCP Registry entry
+
+These platform release actions are intentionally manual. Do not treat a GitHub
+Release alone as proof that Android, Apple iOS, or the MCP server release has
+been launched or finished.
+
 ## Expected Flow
 
-1. Choose the next semantic version for the release.
-2. By default, treat that version as the shared project version for backend, web, Android, and iOS.
-3. Search the repo for the current version strings so you can see every manifest, runtime reader, and newly added repo-owned version surface that still reports the old value for the release.
-4. Update all repo-owned version surfaces that participate in that release, and keep each platform's runtime-reported version aligned with its checked-in version source.
-5. Update compatibility comments that explicitly name the released first-party client version. Do not bump test fixtures: tests that need an app-version string use a frozen dummy (`"1.0.0"`) and are intentionally excluded from the release bump.
-6. Update release metadata only when that metadata actually names the current app version for the touched platform.
-7. Re-run targeted searches to confirm the old app version strings are gone from the intended version surfaces and any version-coupled fixtures or comments you intended to update.
-8. Run the smallest useful verification commands for the touched platforms.
-9. If the release should refresh the official MCP Registry entry, run the manual `MCP Registry Publish` workflow after the version bump lands on `main`; do not publish a `server.json.version` that already exists in the registry.
+1. Identify the version that is currently ready to release and the previous
+   released tag.
+2. Summarize the user-visible changes between the previous released tag and the
+   current release target.
+3. Send the release notes in the requested format. For GitHub Release notes,
+   use concise human-readable bullets instead of a commit list. For iOS App
+   Store notes, use the locale and formatting rules above. Reuse the same
+   user-facing wording across GitHub and store notes when it fits.
+4. Recommend publishing the GitHub tag and GitHub Release for the current
+   version before editing version files. Ask for explicit approval before any
+   tag or release write. If the user explicitly approves, create or verify the
+   tag at the correct commit, then create the GitHub Release with the curated
+   release notes.
+5. Ask the user to manually start or finish the Android release, Apple iOS
+   release, and MCP server release when applicable. The MCP server release uses
+   the manual `MCP Registry Publish` workflow and must not reuse a
+   `server.json.version` that already exists in the registry.
+6. Only after the current version's tag, GitHub Release, and manual platform
+   release actions have started, finished, or been explicitly skipped, choose
+   the next semantic version for the repository.
+7. By default, treat that next version as the shared project version for
+   backend, web, Android, and iOS.
+8. Search the repo for the current version strings so you can see every
+   manifest, runtime reader, and newly added repo-owned version surface that
+   still reports the old value for the next release.
+9. Update all repo-owned version surfaces that participate in that next
+   release, and keep each platform's runtime-reported version aligned with its
+   checked-in version source.
+10. Update compatibility comments that explicitly name the released first-party
+    client version. Do not bump test fixtures: tests that need an app-version
+    string use a frozen dummy (`"1.0.0"`) and are intentionally excluded from
+    the release bump.
+11. Update release metadata only when that metadata actually names the current
+    app version for the touched platform.
+12. Re-run targeted searches to confirm the old app version strings are gone
+    from the intended version surfaces and any version-coupled fixtures or
+    comments you intended to update.
+13. Run the smallest useful verification commands for the touched platforms.
 
 ## Minimum Verification
 
