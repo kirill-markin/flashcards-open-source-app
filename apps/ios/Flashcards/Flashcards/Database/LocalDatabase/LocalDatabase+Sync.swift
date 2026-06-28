@@ -221,6 +221,14 @@ extension LocalDatabase {
                 payload: .deck(deck)
             )
         }
+        let mediaAssets = try self.mediaAssetStore.loadMediaAssetsIncludingDeleted(workspaceId: workspaceId).map { mediaAsset in
+            SyncBootstrapEntry(
+                entityType: .mediaAsset,
+                entityId: mediaAsset.mediaAssetId,
+                action: .upsert,
+                payload: .mediaAsset(mediaAsset)
+            )
+        }
         let schedulerSettings = try self.workspaceSettingsStore.loadWorkspaceSchedulerSettings(workspaceId: workspaceId)
         let schedulerEntry = SyncBootstrapEntry(
             entityType: .workspaceSchedulerSettings,
@@ -229,7 +237,14 @@ extension LocalDatabase {
             payload: .workspaceSchedulerSettings(schedulerSettings)
         )
 
-        return cards + decks + [schedulerEntry]
+        return cards + decks + mediaAssets + [schedulerEntry]
+    }
+
+    func loadOptionalMediaAssetIncludingDeleted(workspaceId: String, mediaAssetId: String) throws -> MediaAsset? {
+        try self.mediaAssetStore.loadOptionalMediaAssetIncludingDeleted(
+            workspaceId: workspaceId,
+            mediaAssetId: mediaAssetId
+        )
     }
 
     /// Applies one bootstrap entry from the hot current-state lane.

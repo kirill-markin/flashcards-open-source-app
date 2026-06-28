@@ -244,6 +244,21 @@ final class CloudSyncService: @unchecked Sendable {
         )
     }
 
+    func loadMediaAssetDownloadURL(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        mediaAssetId: String
+    ) async throws -> MediaAssetDownloadURLResponse {
+        try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: try self.transport.mediaAssetDownloadURLPath(workspaceId: workspaceId, mediaAssetId: mediaAssetId),
+            method: "GET",
+            body: Optional<String>.none
+        )
+    }
+
     func loadCommunityPublicProfile(
         apiBaseUrl: String,
         authorizationHeader: String
@@ -503,7 +518,8 @@ final class CloudSyncService: @unchecked Sendable {
                 platform: "ios",
                 appVersion: self.transport.appVersion(),
                 cursor: nil,
-                limit: 1
+                limit: 1,
+                includeMediaAssets: true
             )
         )
 

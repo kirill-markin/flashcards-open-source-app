@@ -125,7 +125,7 @@ struct WorkspaceOutboxRewriter {
                     sourceCardId: sourceCardId,
                     replacementCardId: replacementCardId
                 )
-            case .deck, .workspaceSchedulerSettings:
+            case .deck, .mediaAsset, .workspaceSchedulerSettings:
                 break
             }
         }
@@ -202,6 +202,10 @@ struct WorkspaceOutboxRewriter {
             return try forkMappings.cardIdsBySourceId.requireMappedId(entityType: "card", sourceId: row.entityId)
         case .deck:
             return try forkMappings.deckIdsBySourceId.requireMappedId(entityType: "deck", sourceId: row.entityId)
+        case .mediaAsset:
+            throw LocalStoreError.database(
+                "Workspace identity fork cannot rewrite pending media_asset operation \(row.operationId)"
+            )
         case .workspaceSchedulerSettings:
             return destinationWorkspaceId
         case .reviewEvent:
@@ -231,6 +235,10 @@ struct WorkspaceOutboxRewriter {
             let sourceDeckId = try payload.requireString(fieldName: "deckId", context: "fork.outbox.deck.deckId")
             payload["deckId"] = .string(
                 try forkMappings.deckIdsBySourceId.requireMappedId(entityType: "deck", sourceId: sourceDeckId)
+            )
+        case .mediaAsset:
+            throw LocalStoreError.database(
+                "Workspace identity fork cannot rewrite pending media_asset operation \(row.operationId)"
             )
         case .workspaceSchedulerSettings:
             break

@@ -42,7 +42,7 @@ extension CloudSyncRunner {
         entityId: String
     ) -> PendingLocalHotEntityKey? {
         switch entityType {
-        case .card, .deck, .workspaceSchedulerSettings:
+        case .card, .deck, .mediaAsset, .workspaceSchedulerSettings:
             return PendingLocalHotEntityKey(entityType: entityType, entityId: entityId)
         case .reviewEvent:
             return nil
@@ -71,7 +71,8 @@ extension CloudSyncRunner {
                     platform: "ios",
                     appVersion: self.transport.appVersion(),
                     afterHotChangeId: afterHotChangeId,
-                    limit: 200
+                    limit: 200,
+                    includeMediaAssets: true
                 )
             )
 

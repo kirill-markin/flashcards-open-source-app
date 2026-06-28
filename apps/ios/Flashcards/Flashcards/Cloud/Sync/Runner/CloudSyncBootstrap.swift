@@ -33,7 +33,8 @@ extension CloudSyncRunner {
                 platform: "ios",
                 appVersion: self.transport.appVersion(),
                 cursor: nil,
-                limit: 200
+                limit: 200,
+                includeMediaAssets: true
             )
         )
 
@@ -148,7 +149,8 @@ extension CloudSyncRunner {
                     platform: "ios",
                     appVersion: self.transport.appVersion(),
                     cursor: nextCursor,
-                    limit: 200
+                    limit: 200,
+                    includeMediaAssets: true
                 )
             )
         }
@@ -211,6 +213,7 @@ extension CloudSyncRunner {
                     installationId: installationId,
                     platform: "ios",
                     appVersion: self.transport.appVersion(),
+                    includeMediaAssets: true,
                     entries: bootstrapEntries.map { entry in
                         SyncBootstrapEntryEnvelope(entry: entry)
                     }

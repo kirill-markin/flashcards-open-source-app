@@ -58,6 +58,24 @@ enum CloudSyncMapper {
         )
     }
 
+    static func makeMediaAsset(workspaceId: String, payload: RemoteMediaAssetChangePayload) -> MediaAsset {
+        MediaAsset(
+            mediaAssetId: payload.mediaAssetId,
+            workspaceId: workspaceId,
+            mimeType: payload.mimeType,
+            sizeBytes: payload.sizeBytes,
+            sha256: payload.sha256,
+            storageKey: payload.storageKey,
+            sourceUrl: payload.sourceUrl,
+            createdAt: payload.createdAt,
+            clientUpdatedAt: payload.clientUpdatedAt,
+            lastModifiedByReplicaId: payload.lastModifiedByReplicaId,
+            lastOperationId: payload.lastOperationId,
+            updatedAt: payload.updatedAt,
+            deletedAt: payload.deletedAt
+        )
+    }
+
     static func makeReviewEvent(workspaceId: String, payload: RemoteReviewEventChangePayload) -> ReviewEvent {
         ReviewEvent(
             reviewEventId: payload.reviewEventId,
@@ -105,6 +123,13 @@ enum CloudSyncMapper {
                 action: entry.action,
                 payload: .deck(Self.makeDeck(workspaceId: workspaceId, payload: payload))
             )
+        case .mediaAsset(let payload):
+            return SyncBootstrapEntry(
+                entityType: entry.entityType,
+                entityId: entry.entityId,
+                action: entry.action,
+                payload: .mediaAsset(Self.makeMediaAsset(workspaceId: workspaceId, payload: payload))
+            )
         case .workspaceSchedulerSettings(let payload):
             return SyncBootstrapEntry(
                 entityType: entry.entityType,
@@ -136,6 +161,14 @@ enum CloudSyncMapper {
                 entityId: change.entityId,
                 action: change.action,
                 payload: .deck(Self.makeDeck(workspaceId: workspaceId, payload: payload))
+            )
+        case .mediaAsset(let payload):
+            return SyncChange(
+                changeId: change.changeId,
+                entityType: change.entityType,
+                entityId: change.entityId,
+                action: change.action,
+                payload: .mediaAsset(Self.makeMediaAsset(workspaceId: workspaceId, payload: payload))
             )
         case .workspaceSchedulerSettings(let payload):
             return SyncChange(

@@ -22,6 +22,7 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
             installationId: "installation-1",
             platform: "ios",
             appVersion: "1.0",
+            includeMediaAssets: true,
             entries: [
                 SyncBootstrapEntryEnvelope(
                     entry: SyncBootstrapEntry(
@@ -68,6 +69,7 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
             installationId: "installation-1",
             platform: "ios",
             appVersion: "1.0",
+            includeMediaAssets: true,
             entries: [
                 SyncBootstrapEntryEnvelope(
                     entry: SyncBootstrapEntry(
@@ -193,6 +195,118 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
         )
     }
 
+    func testHotSyncRequestsOptIntoMediaAssets() throws {
+        let pullRequest = PullRequest(
+            installationId: "installation-1",
+            platform: "ios",
+            appVersion: "1.0",
+            afterHotChangeId: 42,
+            limit: 200,
+            includeMediaAssets: true
+        )
+        let bootstrapPullRequest = BootstrapPullRequest(
+            mode: "pull",
+            installationId: "installation-1",
+            platform: "ios",
+            appVersion: "1.0",
+            cursor: nil,
+            limit: 200,
+            includeMediaAssets: true
+        )
+
+        let pullObject = try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: JSONEncoder().encode(pullRequest)) as? [String: Any]
+        )
+        let bootstrapPullObject = try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: JSONEncoder().encode(bootstrapPullRequest)) as? [String: Any]
+        )
+
+        XCTAssertEqual(pullObject["includeMediaAssets"] as? Bool, true)
+        XCTAssertEqual(bootstrapPullObject["includeMediaAssets"] as? Bool, true)
+        self.assertExplicitNull(key: "cursor", payload: bootstrapPullObject)
+    }
+
+    func testBootstrapPushEncodesMediaAssetMetadataAndExplicitNulls() throws {
+        let mediaAsset = self.makeMediaAsset(deletedAt: nil)
+        let request = BootstrapPushRequest(
+            mode: "push",
+            installationId: "installation-1",
+            platform: "ios",
+            appVersion: "1.0",
+            includeMediaAssets: true,
+            entries: [
+                SyncBootstrapEntryEnvelope(
+                    entry: SyncBootstrapEntry(
+                        entityType: .mediaAsset,
+                        entityId: mediaAsset.mediaAssetId,
+                        action: .upsert,
+                        payload: .mediaAsset(mediaAsset)
+                    )
+                )
+            ]
+        )
+
+        let requestObject = try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: Any]
+        )
+        XCTAssertEqual(requestObject["includeMediaAssets"] as? Bool, true)
+
+        let entries = try XCTUnwrap(requestObject["entries"] as? [[String: Any]])
+        let entry = try XCTUnwrap(entries.first)
+        XCTAssertEqual(entry["entityType"] as? String, "media_asset")
+
+        let payload = try XCTUnwrap(entry["payload"] as? [String: Any])
+        XCTAssertEqual(payload["mediaAssetId"] as? String, mediaAsset.mediaAssetId)
+        XCTAssertEqual(payload["workspaceId"] as? String, mediaAsset.workspaceId)
+        XCTAssertEqual(payload["mimeType"] as? String, mediaAsset.mimeType)
+        XCTAssertEqual(payload["sizeBytes"] as? Int, Int(mediaAsset.sizeBytes))
+        XCTAssertEqual(payload["sha256"] as? String, mediaAsset.sha256)
+        XCTAssertEqual(payload["storageKey"] as? String, mediaAsset.storageKey)
+        XCTAssertEqual(payload["clientUpdatedAt"] as? String, mediaAsset.clientUpdatedAt)
+        XCTAssertEqual(payload["lastOperationId"] as? String, mediaAsset.lastOperationId)
+        XCTAssertEqual(payload["updatedAt"] as? String, mediaAsset.updatedAt)
+        self.assertExplicitNull(key: "sourceUrl", payload: payload)
+        self.assertExplicitNull(key: "deletedAt", payload: payload)
+    }
+
+    func testRemoteMediaAssetHotChangeDecodes() throws {
+        let json = """
+        {
+            "changeId": 12,
+            "entityType": "media_asset",
+            "entityId": "00000000-0000-4000-8000-000000000001",
+            "action": "upsert",
+            "payload": {
+                "mediaAssetId": "00000000-0000-4000-8000-000000000001",
+                "workspaceId": "workspace-1",
+                "mimeType": "image/png",
+                "sizeBytes": 1234,
+                "sha256": "sha",
+                "storageKey": "workspaces/workspace-1/media/asset.png",
+                "sourceUrl": null,
+                "createdAt": "2026-04-24T10:00:00.000Z",
+                "clientUpdatedAt": "2026-04-24T10:00:01.000Z",
+                "lastModifiedByReplicaId": "replica-1",
+                "lastOperationId": "operation-media-1",
+                "updatedAt": "2026-04-24T10:00:02.000Z",
+                "deletedAt": null
+            }
+        }
+        """
+
+        let envelope = try JSONDecoder().decode(RemoteSyncChangeEnvelope.self, from: Data(json.utf8))
+        let change = CloudSyncMapper.makeSyncChange(workspaceId: "workspace-1", change: envelope)
+
+        XCTAssertEqual(change.entityType, .mediaAsset)
+        guard case .mediaAsset(let mediaAsset) = change.payload else {
+            XCTFail("Expected media asset payload")
+            return
+        }
+        XCTAssertEqual(mediaAsset.mediaAssetId, "00000000-0000-4000-8000-000000000001")
+        XCTAssertEqual(mediaAsset.mimeType, "image/png")
+        XCTAssertEqual(mediaAsset.sizeBytes, 1234)
+    }
+
     private func assertExplicitNull(key: String, payload: [String: Any]) {
         XCTAssertTrue(payload.keys.contains(key))
         XCTAssertTrue(payload[key] is NSNull)
@@ -300,6 +414,24 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
             lastOperationId: "operation-1",
             updatedAt: "2026-04-24T10:00:00.000Z",
             deletedAt: nil
+        )
+    }
+
+    private func makeMediaAsset(deletedAt: String?) -> MediaAsset {
+        MediaAsset(
+            mediaAssetId: "00000000-0000-4000-8000-000000000001",
+            workspaceId: "workspace-1",
+            mimeType: "image/png",
+            sizeBytes: 1234,
+            sha256: "sha",
+            storageKey: "workspaces/workspace-1/media/asset.png",
+            sourceUrl: nil,
+            createdAt: "2026-04-24T10:00:00.000Z",
+            clientUpdatedAt: "2026-04-24T10:00:01.000Z",
+            lastModifiedByReplicaId: "replica-1",
+            lastOperationId: "operation-media-1",
+            updatedAt: "2026-04-24T10:00:02.000Z",
+            deletedAt: deletedAt
         )
     }
 }

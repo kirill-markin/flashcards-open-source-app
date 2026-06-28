@@ -37,6 +37,10 @@ struct PublicSyncConflictRepairer {
                 sourceDeckId: syncConflict.entityId,
                 replacementDeckId: replacementEntityId
             )
+        case .mediaAsset:
+            throw LocalStoreError.validation(
+                "Public sync conflict recovery cannot re-id media assets for workspace \(workspaceId)"
+            )
         case .reviewEvent:
             try self.rewriteLocalReviewEventIdForPublicSyncConflict(
                 workspaceId: workspaceId,
@@ -82,6 +86,11 @@ struct PublicSyncConflictRepairer {
         case .deck:
             return try self.core.scalarInt(
                 sql: "SELECT COUNT(*) FROM decks WHERE deck_id = ?",
+                values: [.text(entityId)]
+            ) > 0
+        case .mediaAsset:
+            return try self.core.scalarInt(
+                sql: "SELECT COUNT(*) FROM media_assets WHERE media_asset_id = ?",
                 values: [.text(entityId)]
             ) > 0
         case .reviewEvent:

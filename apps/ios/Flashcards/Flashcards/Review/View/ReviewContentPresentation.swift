@@ -21,6 +21,32 @@ enum ReviewRenderedContent {
     case shortPlain(String)
     case paragraphPlain(String)
     case markdown(MarkdownContent)
+    case managedMarkdown(ReviewManagedMarkdownContent)
+}
+
+struct ReviewManagedMarkdownContent {
+    let blocks: [ReviewManagedMarkdownBlock]
+
+    init(blocks: [ReviewManagedMarkdownBlock]) {
+        self.blocks = blocks
+    }
+}
+
+enum ReviewManagedMarkdownBlock {
+    case markdown(MarkdownContent)
+    case managedMedia(ReviewManagedMediaReference)
+}
+
+struct ReviewManagedMediaReference: Hashable {
+    let mediaAssetId: String
+    let label: String?
+    let isImageSyntax: Bool
+
+    init(mediaAssetId: String, label: String?, isImageSyntax: Bool) {
+        self.mediaAssetId = mediaAssetId
+        self.label = label
+        self.isImageSyntax = isImageSyntax
+    }
 }
 
 private let reviewShortPlainWordLimit: Int = 4
@@ -41,6 +67,10 @@ private let reviewContentUnorderedListExpression = makeReviewContentRegularExpre
 private let reviewContentOrderedListExpression = makeReviewContentRegularExpression(pattern: #"^\s{0,3}\d+\.\s+"#)
 private let reviewContentThematicBreakExpression = makeReviewContentRegularExpression(pattern: #"^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$"#)
 private let reviewContentTableSeparatorExpression = makeReviewContentRegularExpression(pattern: #"^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$"#)
+private let reviewManagedMediaReferenceExpression = makeReviewContentRegularExpression(
+    pattern: #"(!)?\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)"#
+)
+private let reviewManagedMediaSchemePrefix: String = "fcasset:"
 
 func classifyReviewContentPresentation(text: String) -> ReviewContentPresentationMode {
     let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -78,6 +108,10 @@ func makeReviewMarkdownContent(text: String) -> MarkdownContent {
 }
 
 func makeReviewRenderedContent(text: String) -> ReviewRenderedContent {
+    if let managedMarkdownContent = makeReviewManagedMarkdownContent(text: text) {
+        return .managedMarkdown(managedMarkdownContent)
+    }
+
     switch classifyReviewContentPresentation(text: text) {
     case .shortPlain:
         return .shortPlain(text)
@@ -86,6 +120,28 @@ func makeReviewRenderedContent(text: String) -> ReviewRenderedContent {
     case .markdown:
         return .markdown(makeReviewMarkdownContent(text: text))
     }
+}
+
+func parseManagedMediaAssetId(reference: String) -> String? {
+    let trimmedReference = reference.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedReference.lowercased().hasPrefix(reviewManagedMediaSchemePrefix) else {
+        return nil
+    }
+
+    var rawAssetId = String(trimmedReference.dropFirst(reviewManagedMediaSchemePrefix.count))
+    while rawAssetId.hasPrefix("/") {
+        rawAssetId.removeFirst()
+    }
+
+    let fragmentOrQueryStart = rawAssetId.firstIndex { character in
+        character == "?" || character == "#"
+    }
+    if let fragmentOrQueryStart {
+        rawAssetId = String(rawAssetId[..<fragmentOrQueryStart])
+    }
+
+    let mediaAssetId = rawAssetId.trimmingCharacters(in: .whitespacesAndNewlines)
+    return mediaAssetId.isEmpty ? nil : mediaAssetId
 }
 
 func makeReviewSpeakableText(text: String) -> String {
@@ -170,10 +226,147 @@ private func normalizeReviewSpeakableLines(lines: [String]) -> String {
 }
 
 private func normalizeReviewSpeakableInlineText(text: String) -> String {
-    text.replacingOccurrences(of: "`", with: "")
+    reviewSpeakableTextReplacingManagedMediaReferences(text: text)
+        .replacingOccurrences(of: "`", with: "")
         .replacingOccurrences(of: "|", with: " ")
         .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
         .trimmingCharacters(in: .whitespacesAndNewlines)
+}
+
+private func makeReviewManagedMarkdownContent(text: String) -> ReviewManagedMarkdownContent? {
+    var activeFenceMarker: String? = nil
+    var pendingMarkdownLines: [String] = []
+    var blocks: [ReviewManagedMarkdownBlock] = []
+    var didFindManagedMedia = false
+
+    for line in text.components(separatedBy: .newlines) {
+        let fenceMarker = reviewFenceMarker(line: line)
+
+        if let currentFenceMarker = activeFenceMarker {
+            pendingMarkdownLines.append(line)
+            if fenceMarker == currentFenceMarker {
+                activeFenceMarker = nil
+            }
+            continue
+        }
+
+        if let fenceMarker {
+            activeFenceMarker = fenceMarker
+            pendingMarkdownLines.append(line)
+            continue
+        }
+
+        let lineBlocks = splitReviewManagedMediaLine(line: line)
+        if lineBlocks.contains(where: { block in
+            if case .managedMedia = block {
+                return true
+            }
+            return false
+        }) == false {
+            pendingMarkdownLines.append(line)
+            continue
+        }
+
+        appendReviewPendingMarkdownBlocks(lines: &pendingMarkdownLines, blocks: &blocks)
+        blocks.append(contentsOf: lineBlocks)
+        didFindManagedMedia = true
+    }
+
+    appendReviewPendingMarkdownBlocks(lines: &pendingMarkdownLines, blocks: &blocks)
+    guard didFindManagedMedia else {
+        return nil
+    }
+
+    return ReviewManagedMarkdownContent(blocks: blocks)
+}
+
+private func splitReviewManagedMediaLine(line: String) -> [ReviewManagedMarkdownBlock] {
+    let fullRange = NSRange(line.startIndex..<line.endIndex, in: line)
+    let matches = reviewManagedMediaReferenceExpression.matches(in: line, options: [], range: fullRange)
+    guard matches.isEmpty == false else {
+        return [.markdown(makeReviewMarkdownContent(text: line))]
+    }
+
+    var blocks: [ReviewManagedMarkdownBlock] = []
+    var currentIndex = line.startIndex
+    var didFindManagedMedia = false
+
+    for match in matches {
+        guard let urlRange = Range(match.range(at: 3), in: line),
+              let matchRange = Range(match.range, in: line),
+              let mediaAssetId = parseManagedMediaAssetId(reference: String(line[urlRange])) else {
+            continue
+        }
+
+        let precedingText = String(line[currentIndex..<matchRange.lowerBound])
+        appendReviewMarkdownBlock(text: precedingText, blocks: &blocks)
+
+        let label = reviewManagedMediaLabel(line: line, match: match)
+        let isImageSyntax = match.range(at: 1).location != NSNotFound
+        blocks.append(
+            .managedMedia(
+                ReviewManagedMediaReference(
+                    mediaAssetId: mediaAssetId,
+                    label: label,
+                    isImageSyntax: isImageSyntax
+                )
+            )
+        )
+        currentIndex = matchRange.upperBound
+        didFindManagedMedia = true
+    }
+
+    guard didFindManagedMedia else {
+        return [.markdown(makeReviewMarkdownContent(text: line))]
+    }
+
+    appendReviewMarkdownBlock(text: String(line[currentIndex..<line.endIndex]), blocks: &blocks)
+    return blocks
+}
+
+private func appendReviewPendingMarkdownBlocks(
+    lines: inout [String],
+    blocks: inout [ReviewManagedMarkdownBlock]
+) {
+    let markdownText = lines.joined(separator: "\n")
+    lines.removeAll()
+    appendReviewMarkdownBlock(text: markdownText, blocks: &blocks)
+}
+
+private func appendReviewMarkdownBlock(text: String, blocks: inout [ReviewManagedMarkdownBlock]) {
+    guard text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+        return
+    }
+
+    blocks.append(.markdown(makeReviewMarkdownContent(text: text)))
+}
+
+private func reviewManagedMediaLabel(line: String, match: NSTextCheckingResult) -> String? {
+    guard let labelRange = Range(match.range(at: 2), in: line) else {
+        return nil
+    }
+
+    let label = String(line[labelRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+    return label.isEmpty ? nil : label
+}
+
+private func reviewSpeakableTextReplacingManagedMediaReferences(text: String) -> String {
+    let fullRange = NSRange(text.startIndex..<text.endIndex, in: text)
+    let matches = reviewManagedMediaReferenceExpression.matches(in: text, options: [], range: fullRange).reversed()
+    var output = text
+
+    for match in matches {
+        guard let urlRange = Range(match.range(at: 3), in: output),
+              parseManagedMediaAssetId(reference: String(output[urlRange])) != nil,
+              let matchRange = Range(match.range, in: output) else {
+            continue
+        }
+
+        let label = reviewManagedMediaLabel(line: output, match: match) ?? ""
+        output.replaceSubrange(matchRange, with: label)
+    }
+
+    return output
 }
 
 private func makeReviewContentRegularExpression(pattern: String) -> NSRegularExpression {

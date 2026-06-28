@@ -111,6 +111,25 @@ struct ReviewCardSideView: View {
                 surfaceStyle: surfaceStyle
             )
             .frame(maxWidth: .infinity, alignment: .topLeading)
+        case .managedMarkdown(let managedMarkdownContent):
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(managedMarkdownContent.blocks.indices, id: \.self) { index in
+                    switch managedMarkdownContent.blocks[index] {
+                    case .markdown(let markdownContent):
+                        ReviewMarkdownText(
+                            markdownContent: markdownContent,
+                            surfaceStyle: surfaceStyle
+                        )
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                    case .managedMedia(let reference):
+                        ReviewManagedMediaView(
+                            reference: reference,
+                            surfaceStyle: surfaceStyle
+                        )
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
     }
 

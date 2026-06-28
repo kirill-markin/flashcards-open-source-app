@@ -7,6 +7,11 @@ private let cloudSyncResponseDecodingFailedMessage: String = "Failed to decode c
 private let cloudSyncTransportMaxAttempts: Int = 3
 private let cloudSyncTransportRetryDelayNanoseconds: UInt64 = 500_000_000
 private let progressLeaderboardProfileBasePath: String = "/me/progress/leaderboards/profiles"
+private let mediaAssetDownloadURLPathSegmentAllowedCharacters: CharacterSet = {
+    var allowedCharacters = CharacterSet.alphanumerics
+    allowedCharacters.insert(charactersIn: "-._~")
+    return allowedCharacters
+}()
 private let progressLeaderboardProfilePathSegmentAllowedCharacters: CharacterSet = {
     var allowedCharacters = CharacterSet.alphanumerics
     allowedCharacters.insert(charactersIn: "-._~")
@@ -132,6 +137,30 @@ struct CloudSyncTransport {
         }
 
         return "\(progressLeaderboardProfileBasePath)/\(encodedPublicProfileId)"
+    }
+
+    func mediaAssetDownloadURLPath(workspaceId: String, mediaAssetId: String) throws -> String {
+        let normalizedWorkspaceId = workspaceId.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedMediaAssetId = mediaAssetId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard normalizedWorkspaceId.isEmpty == false else {
+            throw LocalStoreError.validation("Media asset download URL path requires a workspace id")
+        }
+        guard normalizedMediaAssetId.isEmpty == false else {
+            throw LocalStoreError.validation("Media asset download URL path requires a media asset id")
+        }
+
+        guard let encodedWorkspaceId = normalizedWorkspaceId.addingPercentEncoding(
+            withAllowedCharacters: mediaAssetDownloadURLPathSegmentAllowedCharacters
+        ) else {
+            throw LocalStoreError.validation("Media asset workspace id could not be encoded: \(workspaceId)")
+        }
+        guard let encodedMediaAssetId = normalizedMediaAssetId.addingPercentEncoding(
+            withAllowedCharacters: mediaAssetDownloadURLPathSegmentAllowedCharacters
+        ) else {
+            throw LocalStoreError.validation("Media asset id could not be encoded: \(mediaAssetId)")
+        }
+
+        return "/workspaces/\(encodedWorkspaceId)/media-assets/\(encodedMediaAssetId)/download-url"
     }
 
     func request<Response: Decodable, Body: Encodable>(
