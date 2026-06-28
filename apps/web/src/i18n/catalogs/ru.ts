@@ -364,10 +364,20 @@ export const ruCatalog = {
       ariaLabel: "Создать приглашение для друга",
     },
     groups: {
+      share: "Поделиться",
       account: "Аккаунт",
       general: "Общие",
       support: "Поддержка",
       advanced: "Расширенные",
+    },
+    shareApp: {
+      title: "Поделиться приложением",
+      description: "Отправьте ссылку для установки или открытия на iOS, Android и в вебе.",
+      value: "Поделиться",
+      shareTitle: "Учитесь с Flashcards",
+      shareText: "Откройте Flashcards на iOS, Android или в вебе.",
+      shared: "Окно отправки открыто.",
+      shareUnavailable: "Отправка недоступна в этом браузере.",
     },
     currentWorkspace: {
       title: "Рабочее пространство",

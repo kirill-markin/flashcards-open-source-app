@@ -364,10 +364,20 @@ export const jaCatalog = {
       ariaLabel: "友だち招待を作成",
     },
     groups: {
+      share: "共有",
       account: "アカウント",
       general: "一般",
       support: "サポート",
       advanced: "詳細",
+    },
+    shareApp: {
+      title: "アプリを共有",
+      description: "iOS、Android、Web でインストールまたは開くためのリンクを送信します。",
+      value: "共有",
+      shareTitle: "Flashcards で学習",
+      shareText: "Flashcards を iOS、Android、または Web で開きます。",
+      shared: "共有シートを開きました。",
+      shareUnavailable: "このブラウザでは共有を利用できません。",
     },
     currentWorkspace: {
       title: "ワークスペース",

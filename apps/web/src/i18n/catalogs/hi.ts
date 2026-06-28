@@ -364,10 +364,20 @@ const hiCatalog: TranslationCatalog = {
       ariaLabel: "दोस्त का आमंत्रण बनाएं",
     },
     groups: {
+      share: "शेयर करें",
       account: "खाता",
       general: "सामान्य",
       support: "सहायता",
       advanced: "उन्नत",
+    },
+    shareApp: {
+      title: "ऐप शेयर करें",
+      description: "iOS, Android और वेब के लिए इंस्टॉल या ओपन लिंक भेजें।",
+      value: "शेयर करें",
+      shareTitle: "Flashcards के साथ पढ़ें",
+      shareText: "Flashcards को iOS, Android या वेब पर खोलें।",
+      shared: "शेयर शीट खुल गई।",
+      shareUnavailable: "इस ब्राउज़र में शेयरिंग उपलब्ध नहीं है।",
     },
     currentWorkspace: {
       title: "वर्कस्पेस",

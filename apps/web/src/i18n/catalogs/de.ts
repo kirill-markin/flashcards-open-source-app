@@ -364,10 +364,20 @@ const deCatalog: TranslationCatalog = {
       ariaLabel: "Freundes-Einladung erstellen",
     },
     groups: {
+      share: "Teilen",
       account: "Konto",
       general: "Allgemein",
       support: "Support",
       advanced: "Erweitert",
+    },
+    shareApp: {
+      title: "App teilen",
+      description: "Sende einen Link zum Installieren oder Öffnen für iOS, Android und Web.",
+      value: "Teilen",
+      shareTitle: "Mit Flashcards lernen",
+      shareText: "Öffne Flashcards auf iOS, Android oder im Web.",
+      shared: "Teilen-Dialog geöffnet.",
+      shareUnavailable: "Teilen ist in diesem Browser nicht verfügbar.",
     },
     currentWorkspace: {
       title: "Arbeitsbereich",
