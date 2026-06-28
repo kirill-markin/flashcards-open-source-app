@@ -1,5 +1,6 @@
 import {
   compareCardsForReviewOrder,
+  makeDefaultCardMetadata,
   matchesCardFilter,
   matchesDeckFilterDefinition,
   normalizeTagKey,
@@ -8,7 +9,7 @@ import { parseDueAtMillis } from "../../appData/domain/dueAt";
 import { clearWebSyncCache } from "./cache";
 import { replaceCards } from "../cards/cards";
 import { replaceDecks } from "../cards/decks";
-import type { Card, Deck, QueryCardsInput, ReviewFilter } from "../../types";
+import type { Card, CardMetadata, Deck, QueryCardsInput, ReviewFilter } from "../../types";
 
 export const workspaceId = "workspace-1";
 
@@ -16,6 +17,8 @@ export function makeCard(input: Readonly<{
   cardId: string;
   frontText: string;
   backText: string;
+  cardType?: string;
+  metadata?: CardMetadata;
   tags: ReadonlyArray<string>;
   dueAt: string | null;
   createdAt: string;
@@ -30,6 +33,8 @@ export function makeCard(input: Readonly<{
     cardId: input.cardId,
     frontText: input.frontText,
     backText: input.backText,
+    cardType: input.cardType ?? "basic",
+    metadata: input.metadata ?? makeDefaultCardMetadata(input.createdAt),
     tags: [...input.tags],
     dueAt: input.dueAt,
     createdAt: input.createdAt,

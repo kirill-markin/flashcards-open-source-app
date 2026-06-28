@@ -1,4 +1,4 @@
-import type { Card, Deck, FsrsCardState, ReviewEvent, ReviewRating, WorkspaceSchedulerSettings } from "./study";
+import type { Card, CardMetadata, Deck, FsrsCardState, ReviewEvent, ReviewRating, WorkspaceSchedulerSettings } from "./study";
 
 export type SyncEntityType = "card" | "deck" | "workspace_scheduler_settings" | "review_event";
 export type SyncAction = "upsert" | "append";
@@ -21,6 +21,8 @@ export type SyncPushOperation =
       cardId: string;
       frontText: string;
       backText: string;
+      cardType?: string;
+      metadata?: CardMetadata;
       tags: ReadonlyArray<string>;
       effortLevel: LegacyEffortLevel;
       dueAt: string | null;

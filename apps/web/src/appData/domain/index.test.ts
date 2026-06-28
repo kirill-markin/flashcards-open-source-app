@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { Card } from "../../types";
 import {
   buildCardUpsertOperation,
+  buildInitialCard,
+  makeDefaultCardMetadata,
   buildReviewEvent,
   buildReviewEventAppendOperation,
+  buildUpdatedCard,
   cardsMatchingReviewFilter,
   compareCardsForReviewOrder,
   doesCardMutationAffectReviewSchedule,
@@ -24,6 +27,8 @@ function makeReviewOrderCard(
     cardId,
     frontText: cardId,
     backText: "Back",
+    cardType: "basic",
+    metadata: makeDefaultCardMetadata(createdAt),
     tags: [],
     dueAt,
     createdAt,
@@ -149,8 +154,49 @@ describe("review order domain", () => {
     const card = makeReviewOrderCard("reviewed-card", "2026-03-10T12:00:00.1Z", "2026-03-10T09:00:00.000Z", null);
     const operation = buildCardUpsertOperation(card);
 
+    expect(operation.payload.cardType).toBe("basic");
+    expect(operation.payload.metadata).toEqual(makeDefaultCardMetadata("2026-03-10T09:00:00.000Z"));
     expect(operation.payload.dueAt).toBe("2026-03-10T12:00:00.100Z");
     expect(operation.payload).not.toHaveProperty("dueAtMillis");
+  });
+
+  it("creates default metadata and preserves existing metadata through content edits", () => {
+    const createdAt = "2026-03-10T09:00:00.000Z";
+    const initialCard = buildInitialCard({
+      frontText: "Front",
+      backText: "Back",
+      tags: ["grammar"],
+    }, createdAt, "device-1", "operation-create");
+    const importedMetadata = {
+      version: 1,
+      source: {
+        label: "Imported deck",
+        author: "Author",
+        comment: "Original import",
+        createdAt: "2026-03-01T00:00:00.000Z",
+        importedAt: "2026-03-10T09:00:00.000Z",
+        importId: "import-1",
+      },
+    } as const;
+    const importedCard: Card = {
+      ...initialCard,
+      cardType: "imported-basic",
+      metadata: importedMetadata,
+    };
+
+    const updatedCard = buildUpdatedCard(importedCard, {
+      frontText: "Edited front",
+      backText: "Edited back",
+      tags: ["edited"],
+    }, "2026-03-10T10:00:00.000Z", "device-1", "operation-update");
+    const operation = buildCardUpsertOperation(updatedCard);
+
+    expect(initialCard.cardType).toBe("basic");
+    expect(initialCard.metadata).toEqual(makeDefaultCardMetadata(createdAt));
+    expect(updatedCard.cardType).toBe("imported-basic");
+    expect(updatedCard.metadata).toEqual(importedMetadata);
+    expect(operation.payload.cardType).toBe("imported-basic");
+    expect(operation.payload.metadata).toEqual(importedMetadata);
   });
 
   it("rejects malformed card dueAt during sync upsert serialization", () => {

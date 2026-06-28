@@ -1,11 +1,14 @@
 import type {
   Card,
+  CardMetadata,
+  CardSourceMetadata,
   Deck,
   DeckFilterDefinition,
   LegacyEffortLevel,
   ReviewEvent,
   WorkspaceSchedulerSettings,
 } from "../types";
+import { makeDefaultCardMetadata } from "../appData/domain/cardMetadata";
 import { appendLegacyEffortTag } from "../legacyEffort";
 import {
   joinPath,
@@ -36,6 +39,35 @@ function parseFsrsCardState(value: unknown, endpoint: string, path: string): "ne
   return parseEnum(value, endpoint, path, ["new", "learning", "review", "relearning"]);
 }
 
+function parseCardType(value: unknown, endpoint: string, path: string): string {
+  const cardType = parseString(value, endpoint, path).trim();
+  return cardType === "" ? "basic" : cardType;
+}
+
+function parseCardSourceMetadata(value: unknown, endpoint: string, path: string): CardSourceMetadata | null {
+  if (value === null) {
+    return null;
+  }
+
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    label: parseRequiredField(objectValue, "label", endpoint, path, parseNullableString),
+    author: parseRequiredField(objectValue, "author", endpoint, path, parseNullableString),
+    comment: parseRequiredField(objectValue, "comment", endpoint, path, parseNullableString),
+    createdAt: parseRequiredField(objectValue, "createdAt", endpoint, path, parseNullableString),
+    importedAt: parseRequiredField(objectValue, "importedAt", endpoint, path, parseNullableString),
+    importId: parseRequiredField(objectValue, "importId", endpoint, path, parseNullableString),
+  };
+}
+
+function parseCardMetadata(value: unknown, endpoint: string, path: string): CardMetadata {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    version: parseLiteral(parseRequiredField(objectValue, "version", endpoint, path, parseNumber), endpoint, joinPath(path, "version"), 1),
+    source: parseRequiredField(objectValue, "source", endpoint, path, parseCardSourceMetadata),
+  };
+}
+
 export function parseReviewRating(value: unknown, endpoint: string, path: string): 0 | 1 | 2 | 3 {
   return parseEnum(value, endpoint, path, [0, 1, 2, 3]);
 }
@@ -58,14 +90,17 @@ export function parseCard(value: unknown, endpoint: string, path: string): Card 
   const objectValue = parseObject(value, endpoint, path);
   const tags = parseRequiredField(objectValue, "tags", endpoint, path, parseStringArray);
   const legacyEffortLevel = parseOptionalField(objectValue, "effortLevel", endpoint, path, parseLegacyEffortLevel);
+  const createdAt = parseRequiredField(objectValue, "createdAt", endpoint, path, parseString);
 
   return {
     cardId: parseRequiredField(objectValue, "cardId", endpoint, path, parseString),
     frontText: parseRequiredField(objectValue, "frontText", endpoint, path, parseString),
     backText: parseRequiredField(objectValue, "backText", endpoint, path, parseString),
+    cardType: parseOptionalField(objectValue, "cardType", endpoint, path, parseCardType) ?? "basic",
+    metadata: parseOptionalField(objectValue, "metadata", endpoint, path, parseCardMetadata) ?? makeDefaultCardMetadata(createdAt),
     tags: appendLegacyEffortTag(tags, legacyEffortLevel),
     dueAt: parseRequiredField(objectValue, "dueAt", endpoint, path, parseNullableString),
-    createdAt: parseRequiredField(objectValue, "createdAt", endpoint, path, parseString),
+    createdAt,
     reps: parseRequiredField(objectValue, "reps", endpoint, path, parseNumber),
     lapses: parseRequiredField(objectValue, "lapses", endpoint, path, parseNumber),
     fsrsCardState: parseRequiredField(objectValue, "fsrsCardState", endpoint, path, parseFsrsCardState),

@@ -14,12 +14,15 @@ import {
   type IndexedDbOperation,
   type WebObservationScope,
 } from "../../observability/webObservability";
+import { normalizeCardMetadata, normalizeCardType } from "../../appData/domain/cardMetadata";
 
 export type StoredCard = Readonly<{
   workspaceId: string;
   cardId: string;
   frontText: string;
   backText: string;
+  cardType: string;
+  metadata: Card["metadata"];
   tags: ReadonlyArray<string>;
   dueAt: string | null;
   dueAtMillis: number | null;
@@ -101,7 +104,7 @@ export type IndexedDbOpenLifecycleSnapshot = Readonly<{
 }>;
 
 const databaseName = "flashcards-web-sync";
-const databaseVersion = 15;
+const databaseVersion = 16;
 const progressCacheStateKey = "progress_cache_state";
 const deleteDatabaseBlockedWaitMs = 3000;
 const activeDatabaseOperationPromises = new Set<Promise<unknown>>();
@@ -110,7 +113,17 @@ let activeDatabaseDeletePromise: Promise<void> | null = null;
 let lastIndexedDbOpenLifecycleSnapshot: IndexedDbOpenLifecycleSnapshot | null = null;
 let lastIndexedDbVersionChangeLifecycleSnapshot: IndexedDbOpenLifecycleSnapshot | null = null;
 
-type StoredCardDueAtMigrationRecord = Omit<StoredCard, "dueAt" | "dueAtMillis" | "dueAtBucketMillis" | "fsrsLastReviewedAtMillis"> & Readonly<{
+type StoredCardMetadataMigrationFields = Readonly<{
+  cardType?: unknown;
+  metadata?: unknown;
+}>;
+
+type StoredCardMetadataMigrationRecord = Omit<StoredCard, "cardType" | "metadata"> & StoredCardMetadataMigrationFields;
+
+type StoredCardDueAtMigrationRecord = Omit<
+  StoredCard,
+  "dueAt" | "dueAtMillis" | "dueAtBucketMillis" | "fsrsLastReviewedAtMillis" | "cardType" | "metadata"
+> & StoredCardMetadataMigrationFields & Readonly<{
   dueAt?: string | null;
   dueAtMillis?: number | null;
   dueAtBucketMillis?: number;
@@ -129,10 +142,17 @@ type StoredDeckLegacyEffortMigrationRecord = Omit<Deck, "filterDefinition"> & Re
   }>;
 }>;
 
-type CardUpsertLegacyEffortMigrationOperation = Extract<
+type CardUpsertOperation = Extract<
   SyncPushOperation,
   Readonly<{ entityType: "card"; action: "upsert" }>
 >;
+
+type CardUpsertLegacyEffortMigrationOperation = Omit<CardUpsertOperation, "payload"> & Readonly<{
+  payload: Omit<CardUpsertOperation["payload"], "cardType" | "metadata"> & Readonly<{
+    cardType?: unknown;
+    metadata?: unknown;
+  }>;
+}>;
 
 type DeckUpsertLegacyEffortMigrationOperation = Extract<
   SyncPushOperation,
@@ -142,6 +162,10 @@ type DeckUpsertLegacyEffortMigrationOperation = Extract<
 type StoredOutboxLegacyEffortMigrationRecord = Readonly<{
   operation: SyncPushOperation;
 }>;
+
+function hasOwnProperty(objectValue: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(objectValue, key);
+}
 
 function isQuotaExceededError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "QuotaExceededError";
@@ -392,15 +416,23 @@ function upgradeToVersion9(database: IDBDatabase): void {
   }
 }
 
+function normalizeStoredCardMetadataFields(record: StoredCardMetadataMigrationRecord): StoredCard {
+  return {
+    ...record,
+    cardType: normalizeCardType(record.cardType),
+    metadata: normalizeCardMetadata(record.metadata, record.createdAt),
+  };
+}
+
 function normalizeStoredCardDueAtDerivedFields(record: StoredCardDueAtMigrationRecord): StoredCard {
   const dueAt = record.dueAt ?? null;
-  return {
+  return normalizeStoredCardMetadataFields({
     ...record,
     dueAt,
     dueAtMillis: deriveDueAtMillis(dueAt),
     dueAtBucketMillis: deriveDueAtBucketMillis(dueAt),
     fsrsLastReviewedAtMillis: normalizeStoredCardFsrsLastReviewedAtMillis(record),
-  };
+  });
 }
 
 function normalizeStoredCardLegacyEffort(record: StoredCardLegacyEffortMigrationRecord): StoredCard {
@@ -438,11 +470,24 @@ function normalizeStoredDeckLegacyEffort(record: StoredDeckLegacyEffortMigration
 
 function normalizeOutboxCardUpsertLegacyEffort(
   operation: CardUpsertLegacyEffortMigrationOperation,
-): CardUpsertLegacyEffortMigrationOperation {
+): CardUpsertOperation {
+  const { cardType, metadata, ...payloadWithoutMetadataFields } = operation.payload;
+  const metadataFields: {
+    cardType?: NonNullable<CardUpsertOperation["payload"]["cardType"]>;
+    metadata?: NonNullable<CardUpsertOperation["payload"]["metadata"]>;
+  } = {};
+  if (hasOwnProperty(operation.payload, "cardType")) {
+    metadataFields.cardType = normalizeCardType(cardType);
+  }
+  if (hasOwnProperty(operation.payload, "metadata")) {
+    metadataFields.metadata = normalizeCardMetadata(metadata, operation.payload.createdAt);
+  }
+
   return {
     ...operation,
     payload: {
-      ...operation.payload,
+      ...payloadWithoutMetadataFields,
+      ...metadataFields,
       tags: appendLegacyEffortTag(operation.payload.tags, operation.payload.effortLevel),
       effortLevel: "fast",
     },
@@ -644,6 +689,43 @@ function upgradeToVersion15(transaction: IDBTransaction): void {
   migrateOutboxLegacyEffortOperations(transaction.objectStore("outbox"));
 }
 
+function migrateCardsMetadataFields(cardsStore: IDBObjectStore): void {
+  const request = cardsStore.openCursor();
+  request.onerror = () => {
+    throw describeIndexedDbError("IndexedDB card metadata migration failed", request.error);
+  };
+  request.onsuccess = () => {
+    const cursor = request.result;
+    if (cursor === null) {
+      return;
+    }
+
+    cursor.update(normalizeStoredCardLegacyEffort(cursor.value as StoredCardLegacyEffortMigrationRecord));
+    cursor.continue();
+  };
+}
+
+function migrateOutboxCardMetadataOperations(outboxStore: IDBObjectStore): void {
+  const request = outboxStore.openCursor();
+  request.onerror = () => {
+    throw describeIndexedDbError("IndexedDB outbox card metadata migration failed", request.error);
+  };
+  request.onsuccess = () => {
+    const cursor = request.result;
+    if (cursor === null) {
+      return;
+    }
+
+    cursor.update(normalizeStoredOutboxLegacyEffort(cursor.value as StoredOutboxLegacyEffortMigrationRecord));
+    cursor.continue();
+  };
+}
+
+function upgradeToVersion16(transaction: IDBTransaction): void {
+  migrateCardsMetadataFields(transaction.objectStore("cards"));
+  migrateOutboxCardMetadataOperations(transaction.objectStore("outbox"));
+}
+
 export function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(databaseName, databaseVersion);
@@ -745,6 +827,15 @@ export function openDatabase(): Promise<IDBDatabase> {
         }
 
         upgradeToVersion15(transaction);
+      }
+
+      if (oldVersion < 16) {
+        const transaction = request.transaction;
+        if (transaction === null) {
+          throw new Error("IndexedDB upgrade transaction is unavailable");
+        }
+
+        upgradeToVersion16(transaction);
       }
 
     };

@@ -60,13 +60,26 @@ function TestHarness(props: TestHarnessProps) {
 }
 
 function createCard(overrides?: Partial<Card>): Card {
+  const createdAt = "2026-03-10T00:00:00.000Z";
   return {
     cardId: "card-1",
     frontText: "Question",
     backText: "Answer",
+    cardType: "basic",
+    metadata: {
+      version: 1,
+      source: {
+        label: null,
+        author: null,
+        comment: null,
+        createdAt,
+        importedAt: null,
+        importId: null,
+      },
+    },
     tags: ["grammar"],
     dueAt: null,
-    createdAt: "2026-03-10T00:00:00.000Z",
+    createdAt,
     reps: 0,
     lapses: 0,
     fsrsCardState: "new",
@@ -75,10 +88,10 @@ function createCard(overrides?: Partial<Card>): Card {
     fsrsDifficulty: null,
     fsrsLastReviewedAt: null,
     fsrsScheduledDays: null,
-    clientUpdatedAt: "2026-03-10T00:00:00.000Z",
+    clientUpdatedAt: createdAt,
     lastModifiedByReplicaId: "replica-1",
     lastOperationId: "operation-1",
-    updatedAt: "2026-03-10T00:00:00.000Z",
+    updatedAt: createdAt,
     deletedAt: null,
     ...overrides,
   };

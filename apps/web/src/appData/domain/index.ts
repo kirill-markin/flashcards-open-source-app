@@ -2,6 +2,7 @@ import type {
   ReviewableCardScheduleState,
 } from "../../../../backend/src/scheduling";
 import { canonicalizeDueAtForSync, parseDueAtMillis } from "./dueAt";
+import { makeDefaultCardMetadata } from "./cardMetadata";
 import type {
   Card,
   CardFilter,
@@ -19,6 +20,13 @@ import type {
   WorkspaceSummary,
 } from "../../types";
 import { ALL_CARDS_DECK_LABEL } from "../../deckFilters";
+
+export {
+  makeDefaultCardMetadata,
+  normalizeCardMetadata,
+  normalizeCardType,
+  resolveCardRendererType,
+} from "./cardMetadata";
 
 type LastWriteWinsRecord = Readonly<{
   clientUpdatedAt: string;
@@ -480,6 +488,8 @@ export function buildInitialCard(
     cardId: crypto.randomUUID().toLowerCase(),
     frontText: input.frontText,
     backText: input.backText,
+    cardType: "basic",
+    metadata: makeDefaultCardMetadata(clientUpdatedAt),
     tags: input.tags,
     dueAt: null,
     createdAt: clientUpdatedAt,
@@ -756,6 +766,8 @@ export function buildCardUpsertOperation(card: Card): SyncPushOperation {
       cardId: card.cardId,
       frontText: card.frontText,
       backText: card.backText,
+      cardType: card.cardType,
+      metadata: card.metadata,
       tags: card.tags,
       // TODO: Remove this legacy fast effort once the backend sync wire contract drops effortLevel.
       effortLevel: "fast",

@@ -88,6 +88,18 @@ describe("localDb progress", () => {
           cardId: "due-other",
           frontText: "Front",
           backText: "Back",
+          cardType: "basic",
+          metadata: {
+            version: 1,
+            source: {
+              label: null,
+              author: null,
+              comment: null,
+              createdAt: "2025-01-08T10:00:00.000Z",
+              importedAt: null,
+              importId: null,
+            },
+          },
           tags: [],
           effortLevel: "fast",
           dueAt: null,

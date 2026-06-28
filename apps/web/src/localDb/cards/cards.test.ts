@@ -2,7 +2,7 @@
 
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { queryLocalCardsPage, replaceCards } from "./cards";
+import { loadCardById, queryLocalCardsPage, replaceCards } from "./cards";
 import { clearWebSyncCache } from "../core/cache";
 import { legacyQueryCards, makeCard, workspaceId } from "../core/testSupport";
 import type { Card, QueryCardsInput } from "../../types";
@@ -24,6 +24,43 @@ function makeQueryInput(input: Readonly<{
 describe("localDb cards", () => {
   beforeEach(async () => {
     await clearWebSyncCache();
+  });
+
+  it("roundtrips card type and metadata through local storage", async () => {
+    const card = makeCard({
+      cardId: "metadata-card",
+      frontText: "Metadata",
+      backText: "back",
+      cardType: "custom-source",
+      metadata: {
+        version: 1,
+        source: {
+          label: "Starter deck",
+          author: "Maintainer",
+          comment: "Imported from fixture",
+          createdAt: "2025-01-01T00:00:00.000Z",
+          importedAt: "2025-01-02T00:00:00.000Z",
+          importId: "import-1",
+        },
+      },
+      tags: ["grammar"],
+      dueAt: null,
+      createdAt: "2025-01-01T00:00:00.000Z",
+      updatedAt: "2025-01-05T00:00:00.000Z",
+    });
+    await replaceCards(workspaceId, [card]);
+
+    const loadedCard = await loadCardById(workspaceId, "metadata-card");
+    const page = await queryLocalCardsPage(workspaceId, makeQueryInput({
+      cursor: null,
+      limit: 10,
+      sorts: [],
+    }));
+
+    expect(loadedCard?.cardType).toBe("custom-source");
+    expect(loadedCard?.metadata).toEqual(card.metadata);
+    expect(page.cards[0]?.cardType).toBe("custom-source");
+    expect(page.cards[0]?.metadata).toEqual(card.metadata);
   });
 
   it("orders cards by updatedAt descending by default", async () => {
