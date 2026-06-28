@@ -60,6 +60,8 @@ export function createSyncScope(
   method: string,
   userId: string | null,
   workspaceId: string | null,
+  clientAppVersion: string | null,
+  clientPlatform: string | null,
 ): BackendObservationScope {
   return createBackendObservationScope(
     "backend-api",
@@ -71,5 +73,7 @@ export function createSyncScope(
     null,
     null,
     null,
+    clientAppVersion,
+    clientPlatform,
   );
 }

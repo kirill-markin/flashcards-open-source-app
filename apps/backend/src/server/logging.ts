@@ -158,6 +158,8 @@ export function logRequestError(
         null,
         null,
         null,
+        null,
+        null,
       ),
       details,
     });
@@ -186,6 +188,8 @@ export function logAdminQueryEvent(
     payload.requestId,
     "/admin/reports/query",
     "POST",
+    null,
+    null,
     null,
     null,
     null,

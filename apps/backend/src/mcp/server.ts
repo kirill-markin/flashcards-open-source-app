@@ -153,6 +153,8 @@ async function buildToolErrorResult(
             null,
             null,
             null,
+            null,
+            null,
           ),
           details: {
             statusCode: error.statusCode,
@@ -218,6 +220,8 @@ async function buildToolErrorResult(
             null,
             null,
             null,
+            null,
+            null,
           ),
           message: "MCP WORKSPACE_SELECTION_REQUIRED workspace enrichment failed; returning base envelope without details.workspaces.",
           details: {
@@ -252,6 +256,8 @@ async function buildToolErrorResult(
         `mcp/${toolName}`,
         "POST",
         userId,
+        null,
+        null,
         null,
         null,
         null,

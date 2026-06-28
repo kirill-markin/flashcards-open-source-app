@@ -55,6 +55,8 @@ const communityLeaderboardSnapshotHandler: Handler<
     null,
     null,
     null,
+    null,
+    null,
   );
   try {
     const runtime = await getCommunityLeaderboardSnapshotRuntime();

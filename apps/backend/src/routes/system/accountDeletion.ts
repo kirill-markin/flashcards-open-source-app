@@ -61,7 +61,7 @@ export function registerAccountDeletionRoute(
       });
       addBackendBreadcrumb({
         action: "account_delete",
-        scope: createSystemScope(requestId, context.req.path, context.req.method, auth.userId),
+        scope: createSystemScope(requestId, context.req.path, context.req.method, auth.userId, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: {
           statusCode: 200,
           transport: auth.transport,
@@ -69,7 +69,7 @@ export function registerAccountDeletionRoute(
       });
       return context.json({ ok: true } as const);
     } catch (error) {
-      const scope = createSystemScope(requestId, context.req.path, context.req.method, auth.userId);
+      const scope = createSystemScope(requestId, context.req.path, context.req.method, auth.userId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         transport: auth.transport,
         ...createBackendFailureDetails(error),

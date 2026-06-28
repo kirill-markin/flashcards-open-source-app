@@ -39,6 +39,8 @@ function createChatWorkerScope(context: ChatWorkerLogContext): BackendObservatio
     context.chatRequestId,
     context.runId,
     context.sessionId,
+    null,
+    null,
   );
 }
 

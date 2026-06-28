@@ -249,6 +249,8 @@ test("Langfuse flush no-ops before telemetry starts", async () => {
       null,
       null,
       null,
+      null,
+      null,
     ));
   } finally {
     resetLangfuseTelemetryForTests();
@@ -276,6 +278,8 @@ test("Langfuse flush force-flushes the isolated provider", async () => {
 
     await flushLangfuseTelemetry(createBackendObservationScope(
       "backend-api",
+      null,
+      null,
       null,
       null,
       null,
@@ -330,6 +334,8 @@ test("Langfuse flush logs and swallows force-flush failures", async () => {
       "chat-request-1",
       "run-1",
       "session-1",
+      null,
+      null,
     ));
 
     assert.deepEqual(warningRecords, [
@@ -345,6 +351,8 @@ test("Langfuse flush logs and swallows force-flush failures", async () => {
         chatRequestId: "chat-request-1",
         runId: "run-1",
         sessionId: "session-1",
+        clientAppVersion: null,
+        clientPlatform: null,
         errorClass: "Error",
         errorMessage: "Langfuse export failed",
         telemetryStarted: true,

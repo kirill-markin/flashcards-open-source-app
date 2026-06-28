@@ -146,6 +146,8 @@ function logGuestMergeFsrsStateReset(
       null,
       null,
       null,
+      null,
+      null,
     ),
     details: {
       workspaceId,
@@ -384,6 +386,8 @@ function logGuestMergeDroppedEntity(
       null,
       null,
       null,
+      null,
+      null,
     ),
     details: {
       entityType,
@@ -412,6 +416,8 @@ function logGuestMergeDroppedReviewEventForMissingCard(
       null,
       null,
       targetWorkspaceId,
+      null,
+      null,
       null,
       null,
       null,

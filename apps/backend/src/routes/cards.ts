@@ -60,6 +60,8 @@ function createCardsScope(
   method: string,
   userId: string,
   workspaceId: string,
+  clientAppVersion: string | null,
+  clientPlatform: string | null,
 ): BackendObservationScope {
   return createBackendObservationScope(
     "backend-api",
@@ -71,6 +73,8 @@ function createCardsScope(
     null,
     null,
     null,
+    clientAppVersion,
+    clientPlatform,
   );
 }
 
@@ -137,7 +141,7 @@ export function createCardsRoutes(options: CardsRoutesOptions): Hono<AppEnv> {
       const result = await listWorkspaceTagsSummary(requestContext.userId, workspaceId);
       addBackendBreadcrumb({
         action: "workspace_tags_list",
-        scope: createCardsScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
+        scope: createCardsScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: {
           statusCode: 200,
           tagsCount: result.tags.length,
@@ -146,7 +150,7 @@ export function createCardsRoutes(options: CardsRoutesOptions): Hono<AppEnv> {
       });
       return context.json(result satisfies WorkspaceTagsSummaryResponse);
     } catch (error) {
-      const scope = createCardsScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const scope = createCardsScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         tagsCount: null,
         totalCards: null,
@@ -172,7 +176,7 @@ export function createCardsRoutes(options: CardsRoutesOptions): Hono<AppEnv> {
       const result = await queryCardsPage(requestContext.userId, workspaceId, body);
       addBackendBreadcrumb({
         action: "cards_query",
-        scope: createCardsScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
+        scope: createCardsScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: {
           statusCode: 200,
           limit: body.limit,
@@ -186,7 +190,7 @@ export function createCardsRoutes(options: CardsRoutesOptions): Hono<AppEnv> {
       });
       return context.json(result);
     } catch (error) {
-      const scope = createCardsScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const scope = createCardsScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         limit: body.limit,
         sortsCount: body.sorts.length,

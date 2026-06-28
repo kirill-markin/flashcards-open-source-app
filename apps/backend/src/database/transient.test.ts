@@ -104,6 +104,8 @@ test("retryTransientDatabaseOperationWithDependencies retries transient DB error
     null,
     null,
     null,
+    null,
+    null,
   );
 
   console.log = (message?: unknown): void => {
@@ -153,6 +155,8 @@ test("retryTransientDatabaseOperationWithDependencies retries transient DB error
       chatRequestId: null,
       runId: null,
       sessionId: null,
+      clientAppVersion: null,
+      clientPlatform: null,
       attempt: 1,
       maxAttempts: 3,
       delayMs: 50,
@@ -173,6 +177,8 @@ test("retryTransientDatabaseOperationWithDependencies retries transient DB error
       chatRequestId: null,
       runId: null,
       sessionId: null,
+      clientAppVersion: null,
+      clientPlatform: null,
       attempt: 2,
       maxAttempts: 3,
       delayMs: 100,
@@ -195,6 +201,8 @@ test("retryTransientDatabaseOperationWithDependencies does not retry non-transie
       },
       () => createBackendObservationScope(
         "backend-api",
+        null,
+        null,
         null,
         null,
         null,

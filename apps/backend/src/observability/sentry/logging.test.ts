@@ -58,6 +58,8 @@ test("backend breadcrumb serialization keeps CloudWatch JSON shape", () => {
         "chat-request-1",
         "run-1",
         null,
+        null,
+        null,
       ),
       details,
     });
@@ -76,6 +78,8 @@ test("backend breadcrumb serialization keeps CloudWatch JSON shape", () => {
     chatRequestId: "chat-request-1",
     runId: "run-1",
     sessionId: null,
+    clientAppVersion: null,
+    clientPlatform: null,
     lambdaRequestId: "lambda-request-1",
     abortReason: null,
     signalAborted: false,
@@ -116,6 +120,8 @@ test("backend warning and exception serialization include typed details", () => 
         null,
         null,
         null,
+        null,
+        null,
       ),
       details: {
         statusCode: 503,
@@ -140,6 +146,8 @@ test("backend warning and exception serialization include typed details", () => 
         "workspace-1",
         null,
         "run-1",
+        null,
+        null,
         null,
       ),
       details: {
@@ -192,6 +200,8 @@ test("backend warnings create Sentry warning issues", () => {
           null,
           null,
           null,
+          null,
+          null,
         ),
         details: {
           statusCode: 503,
@@ -223,6 +233,8 @@ test("backend runtime exception serialization includes chat worker failure conte
         "chat-request-1",
         "run-1",
         "session-1",
+        null,
+        null,
       ),
       details: {
         lambdaRequestId: "lambda-request-1",
@@ -273,6 +285,8 @@ test("backend runtime exception serialization includes global metrics failure co
         null,
         null,
         null,
+        null,
+        null,
       ),
       details: {
         bucketName: "metrics-bucket",
@@ -302,6 +316,8 @@ test("backend runtime exception serialization includes migration failure context
       scope: createBackendObservationScope(
         "migration",
         "lambda-request-3",
+        null,
+        null,
         null,
         null,
         null,

@@ -18,6 +18,8 @@ export type BackendObservationScope = Readonly<{
   chatRequestId: string | null;
   runId: string | null;
   sessionId: string | null;
+  clientAppVersion: string | null;
+  clientPlatform: string | null;
 }>;
 
 export type BackendTraceCarrier = Readonly<{

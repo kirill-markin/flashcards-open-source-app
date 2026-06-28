@@ -166,6 +166,8 @@ function createGuestUpgradeScope(
   route: string,
   method: string,
   userId: string,
+  clientAppVersion: string | null,
+  clientPlatform: string | null,
 ): BackendObservationScope {
   return createBackendObservationScope(
     "backend-api",
@@ -177,6 +179,8 @@ function createGuestUpgradeScope(
     null,
     null,
     null,
+    clientAppVersion,
+    clientPlatform,
   );
 }
 
@@ -245,7 +249,7 @@ export function createGuestAuthRoutes(options: GuestAuthRoutesOptions = {}): Hon
       const result = await completeGuestUpgradeFn(guestToken, auth.subjectUserId, selection, capabilities);
       addBackendBreadcrumb({
         action: "guest_upgrade_complete",
-        scope: createGuestUpgradeScope(requestId, context.req.path, context.req.method, result.targetUserId),
+        scope: createGuestUpgradeScope(requestId, context.req.path, context.req.method, result.targetUserId, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: {
           statusCode: 200,
           selectionType: selection.type,
@@ -270,7 +274,7 @@ export function createGuestAuthRoutes(options: GuestAuthRoutesOptions = {}): Hon
         };
       return context.json(response);
     } catch (error) {
-      const scope = createGuestUpgradeScope(requestId, context.req.path, context.req.method, auth.userId);
+      const scope = createGuestUpgradeScope(requestId, context.req.path, context.req.method, auth.userId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         selectionType: selection.type,
         guestWorkspaceSyncedAndOutboxDrained: capabilities.guestWorkspaceSyncedAndOutboxDrained,

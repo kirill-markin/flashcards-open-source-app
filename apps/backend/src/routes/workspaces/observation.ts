@@ -14,6 +14,8 @@ export function createWorkspaceRouteScope(
   method: string,
   userId: string | null,
   workspaceId: string | null,
+  clientAppVersion: string | null,
+  clientPlatform: string | null,
 ): BackendObservationScope {
   return createBackendObservationScope(
     "backend-api",
@@ -25,5 +27,7 @@ export function createWorkspaceRouteScope(
     null,
     null,
     null,
+    clientAppVersion,
+    clientPlatform,
   );
 }

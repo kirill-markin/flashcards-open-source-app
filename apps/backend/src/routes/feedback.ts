@@ -43,6 +43,8 @@ function createFeedbackRouteScope(
   method: string,
   userId: string | null,
   workspaceId: string | null,
+  clientAppVersion: string | null,
+  clientPlatform: string | null,
 ): BackendObservationScope {
   return createBackendObservationScope(
     "backend-api",
@@ -54,6 +56,8 @@ function createFeedbackRouteScope(
     null,
     null,
     null,
+    clientAppVersion,
+    clientPlatform,
   );
 }
 
@@ -101,7 +105,7 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
           assertFeedbackTransport(loadedContext.requestContext);
           return loadFeedbackStateForRequest(
             toFeedbackRequestUser(loadedContext.requestContext),
-            createFeedbackRouteScope(requestId, context.req.path, context.req.method, loadedContext.requestContext.userId, null),
+            createFeedbackRouteScope(requestId, context.req.path, context.req.method, loadedContext.requestContext.userId, null, context.get("clientAppVersion"), context.get("clientPlatform")),
             withTransientDatabaseRetryFn,
             dependencies,
           );
@@ -112,6 +116,8 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
           context.req.method,
           getRequestContextUserId(requestContext),
           null,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
         ),
       );
 
@@ -123,6 +129,8 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
           context.req.method,
           getRequestContextUserId(requestContext),
           null,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
         ),
         details: {
           statusCode: 200,
@@ -136,6 +144,8 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
         context.req.method,
         getRequestContextUserId(requestContext),
         null,
+        context.get("clientAppVersion"),
+        context.get("clientPlatform"),
       );
       const details = {
         ...createBackendFailureDetails(error),
@@ -168,6 +178,8 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
           context.req.method,
           getRequestContextUserId(requestContext),
           null,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
         ),
       );
       input = parseFeedbackPromptEventInput(await parseFeedbackJsonBody(context.req.raw));
@@ -181,6 +193,8 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
           context.req.method,
           loadedContext.requestContext.userId,
           input.workspaceId,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
         ),
         withTransientDatabaseRetryFn,
         dependencies,
@@ -194,6 +208,8 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
           context.req.method,
           getRequestContextUserId(requestContext),
           input?.workspaceId ?? null,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
         ),
         details: {
           statusCode: 200,
@@ -209,6 +225,8 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
         context.req.method,
         getRequestContextUserId(requestContext),
         input?.workspaceId ?? null,
+        context.get("clientAppVersion"),
+        context.get("clientPlatform"),
       );
       const details = {
         platform: input?.platform ?? null,
@@ -243,6 +261,8 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
           context.req.method,
           getRequestContextUserId(requestContext),
           null,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
         ),
       );
       input = parseFeedbackSubmissionInput(await parseFeedbackJsonBody(context.req.raw));
@@ -257,6 +277,8 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
           context.req.method,
           loadedContext.requestContext.userId,
           input.workspaceId,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
         ),
         withTransientDatabaseRetryFn,
         dependencies,
@@ -270,6 +292,8 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
           context.req.method,
           loadedContext.requestContext.userId,
           input.workspaceId,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
         ),
         details: {
           statusCode: 200,
@@ -285,6 +309,8 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
         context.req.method,
         getRequestContextUserId(requestContext),
         input?.workspaceId ?? null,
+        context.get("clientAppVersion"),
+        context.get("clientPlatform"),
       );
       const details = {
         platform: input?.platform ?? null,

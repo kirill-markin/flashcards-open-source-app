@@ -195,6 +195,8 @@ test("unsafeTransaction classifies transaction failures and discards clients whe
         chatRequestId: null,
         runId: null,
         sessionId: null,
+        clientAppVersion: null,
+        clientPlatform: null,
         originalSqlState: "23514",
         originalErrorCode: "23514",
         originalErrorClass: "Error",

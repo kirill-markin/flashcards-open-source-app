@@ -155,6 +155,8 @@ test("invalid chat transcription audio failures create a breadcrumb without a Se
       chatRequestId: null,
       runId: null,
       sessionId: "session-1",
+      clientAppVersion: null,
+      clientPlatform: null,
       source: "web",
       provider: "openai",
       fileSize: 5,

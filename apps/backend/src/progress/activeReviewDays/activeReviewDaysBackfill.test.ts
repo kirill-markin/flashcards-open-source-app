@@ -121,6 +121,8 @@ function createTestObservationScope() {
     null,
     null,
     null,
+    null,
+    null,
   );
 }
 

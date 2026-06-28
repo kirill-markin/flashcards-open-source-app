@@ -267,6 +267,8 @@ app.onError((error, context) => {
         null,
         null,
         null,
+        null,
+        null,
       ),
       details: {
         statusCode: error instanceof HttpError ? error.statusCode : 500,

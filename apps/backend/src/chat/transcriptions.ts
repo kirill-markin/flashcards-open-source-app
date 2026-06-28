@@ -197,6 +197,8 @@ function logChatTranscriptionFailure(details: ChatTranscriptionFailureDetails): 
       null,
       null,
       details.sessionId,
+      null,
+      null,
     ),
     details,
   });
@@ -218,6 +220,8 @@ function logChatTranscriptionInvalidAudio(details: ChatTranscriptionFailureDetai
       null,
       null,
       details.sessionId,
+      null,
+      null,
     ),
     details,
   });

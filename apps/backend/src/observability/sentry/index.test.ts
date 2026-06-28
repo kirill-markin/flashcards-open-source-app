@@ -131,6 +131,8 @@ test("backend Sentry facade exports the public observability API", () => {
     null,
     null,
     null,
+    null,
+    null,
   );
   const normalizedError = normalizeCaughtError("failed");
   const typeSample = createFacadeTypeSample(scope, normalizedError);

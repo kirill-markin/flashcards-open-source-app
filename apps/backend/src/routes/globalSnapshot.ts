@@ -67,6 +67,8 @@ export function createGlobalSnapshotRoutes(options: GlobalSnapshotRoutesOptions)
       null,
       null,
       null,
+      context.get("clientAppVersion") ?? null,
+      context.get("clientPlatform") ?? null,
     );
     try {
       const response = context.json(await loadGlobalMetricsSnapshotFn(observationScope));

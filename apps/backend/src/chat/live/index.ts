@@ -177,6 +177,8 @@ function createChatLiveObservationScope(
     params.clientRequestId ?? null,
     params.runId,
     params.sessionId,
+    params.clientVersion ?? null,
+    params.clientPlatform ?? null,
   );
 }
 
