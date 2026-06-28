@@ -19,7 +19,7 @@ import type {
   FriendInvitationPreviewResponse,
   SessionInfo,
 } from "../../types";
-import { AppPlatformLinks } from "../share/AppPlatformLinks";
+import { AppPlatformLinks, defaultAppPlatformStoreLinks } from "../share/AppPlatformLinks";
 import { validateFriendInvitationDisplayName } from "./friendInvitationDisplayName";
 
 type InviteLoadState = "loading" | "inactive" | "error" | "signed_out" | "ready" | "success";
@@ -85,6 +85,7 @@ function InviteSuccessLinks(): ReactElement {
         android: t("friendInvite.links.android"),
         web: t("friendInvite.links.web"),
       }}
+      storeLinks={defaultAppPlatformStoreLinks}
       webRoute={progressLeaderboardRoute}
       webHref={webHref}
       gridTestId="friend-invite-success-links"

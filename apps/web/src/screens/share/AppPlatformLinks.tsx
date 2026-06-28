@@ -1,10 +1,18 @@
 import type { ReactElement } from "react";
 import { Link } from "react-router-dom";
 
-const iosAppLink: string = "https://apps.apple.com/us/app/flashcards-open-source-app/id6760538964";
-const androidAppLink: string = "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&pcampaignid=web_share";
 const appStoreBadgeSrc: string = "/home/app-store-badge.svg";
 const googlePlayLockupSrc: string = "/home/google-play-lockup.png";
+
+export type AppPlatformStoreLinks = Readonly<{
+  ios: string;
+  android: string;
+}>;
+
+export const defaultAppPlatformStoreLinks: AppPlatformStoreLinks = {
+  ios: "https://apps.apple.com/us/app/flashcards-open-source-app/id6760538964",
+  android: "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&pcampaignid=web_share",
+};
 
 export type AppPlatformLinkLabels = Readonly<{
   ios: string;
@@ -14,6 +22,7 @@ export type AppPlatformLinkLabels = Readonly<{
 
 type AppPlatformLinksProps = Readonly<{
   labels: AppPlatformLinkLabels;
+  storeLinks: AppPlatformStoreLinks;
   webRoute: string;
   webHref: string;
   gridTestId: string;
@@ -41,6 +50,7 @@ function WebAppIcon(): ReactElement {
 
 export function AppPlatformLinks({
   labels,
+  storeLinks,
   webRoute,
   webHref,
   gridTestId,
@@ -50,7 +60,7 @@ export function AppPlatformLinks({
     <div className="invite-link-grid" data-testid={gridTestId}>
       <a
         className="invite-platform-link"
-        href={iosAppLink}
+        href={storeLinks.ios}
         rel="noreferrer"
         target="_blank"
         aria-label={labels.ios}
@@ -66,7 +76,7 @@ export function AppPlatformLinks({
       </a>
       <a
         className="invite-platform-link"
-        href={androidAppLink}
+        href={storeLinks.android}
         rel="noreferrer"
         target="_blank"
         aria-label={labels.android}

@@ -8,6 +8,8 @@ import { reviewRoute, shareRoute } from "../../routes";
 import { ShareAppScreen } from "./ShareAppScreen";
 
 const localePreferenceStorageKey: string = "flashcards-web-locale-preference";
+const shareAppIosHref: string = "https://apps.apple.com/app/apple-store/id6760538964?pt=128797295&ct=share_app&mt=8";
+const shareAppAndroidHref: string = "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&utm_source=flashcards_website&utm_medium=referral&utm_campaign=share_app";
 
 function createStorageMock(): Storage {
   const state = new Map<string, string>();
@@ -105,6 +107,10 @@ describe("ShareAppScreen", () => {
       "app-platform-link-web",
     ]);
 
+    const iosLink: HTMLElement = requireElement(container, "[data-testid='app-platform-link-ios']");
+    expect(iosLink.getAttribute("href")).toBe(shareAppIosHref);
+    const androidLink: HTMLElement = requireElement(container, "[data-testid='app-platform-link-android']");
+    expect(androidLink.getAttribute("href")).toBe(shareAppAndroidHref);
     const webLink: HTMLElement = requireElement(container, "[data-testid='app-platform-link-web']");
     expect(webLink.getAttribute("href")).toBe(reviewRoute);
     expect(requireElement(container, "[data-testid='share-app-web-link-value']").textContent).toBe(
