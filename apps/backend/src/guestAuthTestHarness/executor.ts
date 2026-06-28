@@ -340,6 +340,7 @@ export function isGuestUpgradeMergeOnlyExecutorQuery(text: string): boolean {
     || text === "SELECT community.transfer_guest_public_profile($1, $2)"
     || text === "UPDATE auth.guest_sessions SET revoked_at = now() WHERE session_id = $1"
     || text === "SELECT workspace_id FROM sync.find_conflicting_workspace_id($1, $2) LIMIT 1"
+    || text === "SELECT workspace_id FROM sync.workspace_sync_metadata WHERE workspace_id = $1 FOR UPDATE"
     || text.includes("FROM sync.hot_changes")
     || text.includes("INSERT INTO sync.hot_changes")
     || text === "SELECT progress_time_zone FROM org.user_settings WHERE user_id = $1 LIMIT 1"

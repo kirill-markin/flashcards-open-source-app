@@ -8,7 +8,7 @@ import {
   incomingLwwMetadataWins,
   normalizeIsoTimestamp,
 } from "../sync/conflicts/lww";
-import { findLatestSyncChangeId } from "../sync/replication/changes";
+import { findLatestSyncChangeId, lockWorkspaceSyncMetadataForHotChangesInExecutor } from "../sync/replication/changes";
 import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
@@ -286,6 +286,7 @@ export async function upsertCardSnapshotInExecutor(
   input: CardSnapshotInput,
   metadata: CardMutationMetadata,
 ): Promise<CardMutationResult> {
+  const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
   const normalizedInput = normalizeCardSnapshotInput(input);
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
 
@@ -307,7 +308,7 @@ export async function upsertCardSnapshotInExecutor(
       );
     } else {
       const insertedCard = mapCard(insertedRow);
-      const changeId = await recordCardSyncChange(executor, workspaceId, insertedCard);
+      const changeId = await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, insertedCard);
 
       return {
         card: insertedCard,
@@ -367,7 +368,7 @@ export async function upsertCardSnapshotInExecutor(
   }
 
   const updatedCard = mapCard(updatedRow);
-  const changeId = await recordCardSyncChange(executor, workspaceId, updatedCard);
+  const changeId = await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, updatedCard);
 
   return {
     card: updatedCard,
@@ -393,6 +394,7 @@ export async function createCardInExecutor(
   input: CreateCardInput,
   metadata: CardMutationMetadata,
 ): Promise<Card> {
+  const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
   const normalizedInput = normalizeCreateCardInput(input);
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
   const createdAt = normalizeIsoTimestamp(normalizedMetadata.clientUpdatedAt, "clientUpdatedAt");
@@ -430,7 +432,7 @@ export async function createCardInExecutor(
   }
 
   const card = mapCard(row);
-  await recordCardSyncChange(executor, workspaceId, card);
+  await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, card);
   return card;
 }
 
@@ -470,6 +472,7 @@ export async function updateCardInExecutor(
   input: UpdateCardInput,
   metadata: CardMutationMetadata,
 ): Promise<Card> {
+  const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
   const normalizedInput = normalizeUpdateCardInput(input);
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
 
@@ -506,7 +509,7 @@ export async function updateCardInExecutor(
   }
 
   const card = mapCard(row);
-  await recordCardSyncChange(executor, workspaceId, card);
+  await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, card);
   return card;
 }
 
@@ -549,6 +552,7 @@ export async function deleteCardInExecutor(
   cardId: string,
   metadata: CardMutationMetadata,
 ): Promise<Card> {
+  const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
 
   const result = await executor.query<CardRow>(
@@ -575,7 +579,7 @@ export async function deleteCardInExecutor(
   }
 
   const card = mapCard(row);
-  await recordCardSyncChange(executor, workspaceId, card);
+  await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, card);
   return card;
 }
 

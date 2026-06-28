@@ -15,6 +15,7 @@ import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
 } from "../sync/conflicts/fork";
+import { lockWorkspaceSyncMetadataForHotChangesInExecutor } from "../sync/replication/changes";
 import { getWorkspaceSchedulerConfig } from "../scheduling/workspaceSettings";
 import { assertConsistentFsrsState } from "./fsrs";
 import {
@@ -233,6 +234,7 @@ export async function submitReview(
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
 
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+    const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
     const existingCard = await loadReviewableCardForUpdate(executor, workspaceId, input.cardId);
     const schedulerConfig = await getWorkspaceSchedulerConfig(executor, workspaceId);
     const schedule = computeReviewSchedule(
@@ -294,7 +296,7 @@ export async function submitReview(
     }
 
     const mappedCard = mapCard(updatedCard);
-    await recordCardSyncChange(executor, workspaceId, mappedCard);
+    await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, mappedCard);
 
     return {
       card: mappedCard,

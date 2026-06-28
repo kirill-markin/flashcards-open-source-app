@@ -210,6 +210,7 @@ Implemented sync behavior:
   - `clientUpdatedAt`
   - `lastModifiedByDeviceId`
   - `lastOperationId`
+- Media asset registry metadata and tombstones use the same hot-state sync lane when clients opt into `includeMediaAssets`; bootstrap push also treats `media_asset` entries as media-aware for compatibility. File bytes still move only through the media upload/download URL APIs.
 - Review events are append-only and deduplicated by `(workspace_id, device_id, client_event_id)`.
 - Review events use the normal `POST /v1/workspaces/:workspaceId/sync/push` contract for both live and historical submissions. For `review_event` operations, `clientUpdatedAt` must equal `payload.reviewedAtClient`.
 - Mutable state and review history are synchronized through separate lanes:

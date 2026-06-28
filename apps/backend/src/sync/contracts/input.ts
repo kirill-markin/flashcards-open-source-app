@@ -6,6 +6,7 @@ import type {
 } from "../../shared/errors";
 import { normalizeIsoTimestamp } from "../conflicts/lww";
 import { validateIanaTimeZone } from "../../progress/timeZone";
+import { expectMediaAssetSourceUrl } from "../../mediaAssets/validators";
 
 type Platform = "ios" | "android" | "web";
 
@@ -15,6 +16,8 @@ const reviewRatingSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.
 const platformSchema = z.enum(["ios", "android", "web"]);
 const isoTimestampStringSchema = z.string().datetime();
 const cardTypeSchema = z.string();
+const mediaAssetMimeTypePattern = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/i;
+const mediaAssetSha256Pattern = /^[0-9a-f]{64}$/;
 const isoDatePrefixPattern = /^(\d{4})-(\d{2})-(\d{2})T/i;
 const syncIncrementalPullLimit = 500;
 const syncReviewHistoryPullLimit = 500;
@@ -46,6 +49,22 @@ function validateReviewedTimeZone(value: string, refinementContext: z.core.$Refi
       ? "reviewedTimeZone is required when provided"
       : "reviewedTimeZone must be a valid IANA timezone",
   });
+}
+
+function transformMediaAssetSourceUrl(value: string | null, context: z.core.$RefinementCtx): string | null {
+  try {
+    return expectMediaAssetSourceUrl(value, "sourceUrl");
+  } catch (error) {
+    if (error instanceof HttpError) {
+      context.addIssue({
+        code: "custom",
+        message: error.message,
+      });
+      return z.NEVER;
+    }
+
+    throw error;
+  }
 }
 
 type IsoDateParts = Readonly<{
@@ -214,6 +233,25 @@ export const deckPayloadSchema = deckSnapshotSchema.extend({
   updatedAt: z.string().datetime(),
 });
 
+const mediaAssetSnapshotSchema = z.object({
+  mediaAssetId: z.string().min(1),
+  workspaceId: z.string().min(1),
+  mimeType: z.string().regex(mediaAssetMimeTypePattern),
+  sizeBytes: z.number().int().nonnegative(),
+  sha256: z.string().regex(mediaAssetSha256Pattern),
+  storageKey: z.string().min(1),
+  sourceUrl: z.union([z.string(), z.null()]).transform(transformMediaAssetSourceUrl),
+  createdAt: z.string().datetime(),
+  deletedAt: z.string().datetime().nullable(),
+});
+
+export const mediaAssetPayloadSchema = mediaAssetSnapshotSchema.extend({
+  clientUpdatedAt: z.string().datetime(),
+  lastModifiedByReplicaId: z.string().min(1),
+  lastOperationId: z.string().min(1),
+  updatedAt: z.string().datetime(),
+});
+
 const workspaceSchedulerSettingsSnapshotSchema = z.object({
   algorithm: z.literal("fsrs-6"),
   desiredRetention: z.number().gt(0).lt(1),
@@ -263,6 +301,12 @@ const workspaceSchedulerSettingsBootstrapPushPayloadSchema = workspaceSchedulerS
   updatedAt: z.string().datetime(),
 });
 
+const mediaAssetBootstrapPushPayloadSchema = mediaAssetSnapshotSchema.extend({
+  clientUpdatedAt: z.string().datetime(),
+  lastOperationId: z.string().min(1),
+  updatedAt: z.string().datetime(),
+});
+
 const baseOperationSchema = z.object({
   operationId: z.string().min(1),
   entityId: z.string().min(1),
@@ -287,6 +331,12 @@ const workspaceSchedulerSettingsOperationSchema = baseOperationSchema.extend({
   payload: workspaceSchedulerSettingsSnapshotSchema,
 });
 
+const mediaAssetOperationSchema = baseOperationSchema.extend({
+  entityType: z.literal("media_asset"),
+  action: z.literal("upsert"),
+  payload: mediaAssetSnapshotSchema,
+});
+
 const reviewEventOperationSchema = baseOperationSchema.extend({
   entityType: z.literal("review_event"),
   action: z.literal("append"),
@@ -297,6 +347,7 @@ const syncPushOperationSchema = z.discriminatedUnion("entityType", [
   cardOperationSchema,
   deckOperationSchema,
   workspaceSchedulerSettingsOperationSchema,
+  mediaAssetOperationSchema,
   reviewEventOperationSchema,
 ]);
 
@@ -340,6 +391,7 @@ const syncPullInputSchema = z.object({
   appVersion: z.string().min(1).nullable().optional(),
   afterHotChangeId: z.number().int().nonnegative(),
   limit: z.number().int().positive().max(syncIncrementalPullLimit),
+  includeMediaAssets: z.boolean().optional(),
 });
 
 const syncBootstrapPullInputSchema = z.object({
@@ -349,6 +401,7 @@ const syncBootstrapPullInputSchema = z.object({
   appVersion: z.string().min(1).nullable().optional(),
   cursor: z.string().min(1).nullable(),
   limit: z.number().int().positive().max(syncBootstrapPullLimit),
+  includeMediaAssets: z.boolean().optional(),
 });
 
 const syncBootstrapPushInputSchema = z.object({
@@ -356,6 +409,7 @@ const syncBootstrapPushInputSchema = z.object({
   installationId: z.string().min(1),
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
+  includeMediaAssets: z.boolean().optional(),
   entries: z.array(
     z.discriminatedUnion("entityType", [
       z.object({
@@ -375,6 +429,12 @@ const syncBootstrapPushInputSchema = z.object({
         entityId: z.string().min(1),
         action: z.literal("upsert"),
         payload: workspaceSchedulerSettingsBootstrapPushPayloadSchema,
+      }),
+      z.object({
+        entityType: z.literal("media_asset"),
+        entityId: z.string().min(1),
+        action: z.literal("upsert"),
+        payload: mediaAssetBootstrapPushPayloadSchema,
       }),
     ]),
   ),

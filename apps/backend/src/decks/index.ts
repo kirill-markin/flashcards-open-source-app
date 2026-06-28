@@ -20,7 +20,12 @@ import {
   encodeOpaqueCursor,
   type CursorPageInput,
 } from "../shared/pagination";
-import { findLatestSyncChangeId, insertSyncChange } from "../sync/replication/changes";
+import {
+  findLatestSyncChangeId,
+  insertSyncChange,
+  lockWorkspaceSyncMetadataForHotChangesInExecutor,
+  type HotChangeWriteLock,
+} from "../sync/replication/changes";
 import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
@@ -326,11 +331,13 @@ function toDeckLwwMetadata(deck: Deck): DeckMutationMetadata {
 async function recordDeckSyncChange(
   executor: DatabaseExecutor,
   workspaceId: string,
+  hotChangeWriteLock: HotChangeWriteLock,
   deck: Deck,
 ): Promise<number> {
   return insertSyncChange(
     executor,
     workspaceId,
+    hotChangeWriteLock,
     "deck",
     deck.deckId,
     "upsert",
@@ -608,6 +615,7 @@ export async function upsertDeckSnapshotInExecutor(
   input: DeckSnapshotInput,
   metadata: DeckMutationMetadata,
 ): Promise<DeckMutationResult> {
+  const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
   const normalizedInput = normalizeDeckSnapshotInput(input);
   const normalizedMetadata = normalizeDeckMutationMetadata(metadata);
 
@@ -652,7 +660,7 @@ export async function upsertDeckSnapshotInExecutor(
     const insertedRow = insertResult.rows[0];
     if (insertedRow !== undefined) {
       const insertedDeck = mapDeck(insertedRow);
-      const changeId = await recordDeckSyncChange(executor, workspaceId, insertedDeck);
+      const changeId = await recordDeckSyncChange(executor, workspaceId, hotChangeWriteLock, insertedDeck);
 
       return {
         deck: insertedDeck,
@@ -734,7 +742,7 @@ export async function upsertDeckSnapshotInExecutor(
   }
 
   const updatedDeck = mapDeck(updatedRow);
-  const changeId = await recordDeckSyncChange(executor, workspaceId, updatedDeck);
+  const changeId = await recordDeckSyncChange(executor, workspaceId, hotChangeWriteLock, updatedDeck);
 
   return {
     deck: updatedDeck,
@@ -838,6 +846,7 @@ export async function deleteDeckInExecutor(
   deckId: string,
   metadata: DeckMutationMetadata,
 ): Promise<Deck> {
+  await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
   const existingResult = await executor.query<DeckRow>(
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",

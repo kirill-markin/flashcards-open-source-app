@@ -206,6 +206,17 @@ test("executeSqlMutationBatch appends legacy deck effort tags after final tags a
         return createQueryResult<Row>([]);
       }
 
+      if (
+        text
+          === "SELECT workspace_id FROM sync.workspace_sync_metadata WHERE workspace_id = $1 FOR UPDATE"
+      ) {
+        if (params === undefined) {
+          throw new Error("Workspace sync metadata lock params are required");
+        }
+
+        return createQueryResult<Row>([{ workspace_id: String(params[0]) } as unknown as Row]);
+      }
+
       if (text.includes("INSERT INTO sync.hot_changes")) {
         const row = {
           change_id: nextChangeId,

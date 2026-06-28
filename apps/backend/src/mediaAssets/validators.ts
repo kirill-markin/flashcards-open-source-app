@@ -75,7 +75,7 @@ function expectIsoTimestamp(value: unknown, fieldName: string): string {
   return parsedTimestamp.toISOString();
 }
 
-function expectSourceUrl(value: unknown, fieldName: string): string | null {
+export function expectMediaAssetSourceUrl(value: unknown, fieldName: string): string | null {
   if (value === undefined || value === null) {
     return null;
   }
@@ -128,7 +128,7 @@ export function parseCompleteMediaAssetUploadInput(
     mimeType: expectMimeType(record.mimeType, "mimeType"),
     sizeBytes: expectSizeBytes(record.sizeBytes, "sizeBytes"),
     sha256: expectSha256(record.sha256, "sha256"),
-    sourceUrl: expectSourceUrl(record.sourceUrl, "sourceUrl"),
+    sourceUrl: expectMediaAssetSourceUrl(record.sourceUrl, "sourceUrl"),
     createdAt: expectIsoTimestamp(record.createdAt, "createdAt"),
     clientUpdatedAt: expectIsoTimestamp(record.clientUpdatedAt, "clientUpdatedAt"),
     lastModifiedByReplicaId: expectUuidString(record.lastModifiedByReplicaId, "lastModifiedByReplicaId"),

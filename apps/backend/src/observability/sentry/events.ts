@@ -64,7 +64,7 @@ export type BackendDatabaseDetails = Readonly<{
 
 export type BackendSyncConflictDetails = Readonly<{
   syncConflictPhase: string | null;
-  syncConflictEntityType: "card" | "deck" | "review_event" | null;
+  syncConflictEntityType: "card" | "deck" | "review_event" | "media_asset" | null;
   syncConflictEntityId: string | null;
   conflictingWorkspaceId: string | null;
   constraint: string | null;

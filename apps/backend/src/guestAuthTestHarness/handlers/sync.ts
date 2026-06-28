@@ -159,6 +159,15 @@ export function handleSyncExecutorQuery<Row extends pg.QueryResultRow>(
 
   if (
     text
+      === "SELECT workspace_id FROM sync.workspace_sync_metadata WHERE workspace_id = $1 FOR UPDATE"
+  ) {
+    return createQueryResult<Row>([{
+      workspace_id: String(params[0]),
+    } as unknown as Row]);
+  }
+
+  if (
+    text
       === "INSERT INTO sync.hot_changes ( workspace_id, entity_type, entity_id, action, replica_id, operation_id, client_updated_at ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING change_id"
   ) {
     const changeId = state.nextHotChangeId;
