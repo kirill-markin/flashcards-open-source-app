@@ -28,7 +28,6 @@ function makeMediaAsset(mediaAssetId: string, mimeType: string): MediaAsset {
     mimeType,
     sizeBytes: 128,
     sha256: "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
-    storageKey: `media-assets/workspaces/workspace-1/assets/${mediaAssetId}/5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8`,
     sourceUrl: null,
     createdAt: "2026-03-10T09:00:00.000Z",
     clientUpdatedAt: "2026-03-10T09:00:00.000Z",
