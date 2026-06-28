@@ -1,5 +1,5 @@
 import type { CardRow } from "../../cards/types";
-import { mapCard } from "../../cards/shared";
+import { CARD_COLUMNS, mapCard } from "../../cards/shared";
 import type { Card } from "../../cards";
 import {
   transactionWithWorkspaceScope,
@@ -112,9 +112,7 @@ async function loadCardsByIdsInExecutor(
   const result = await executor.query<CardRow>(
     [
       "SELECT",
-      "card_id, front_text, back_text, tags, effort_level, due_at, created_at, reps, lapses,",
-      "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
-      "client_updated_at, last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
+      CARD_COLUMNS,
       "FROM content.cards",
       "WHERE workspace_id = $1 AND card_id = ANY($2::uuid[])",
     ].join(" "),

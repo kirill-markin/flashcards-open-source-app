@@ -17,8 +17,11 @@ import { assertConsistentFsrsState } from "./fsrs";
 import {
   CARD_COLUMNS,
   CARD_SELECT,
+  createDefaultCardMetadata,
   mapCard,
+  normalizeCardMetadata,
   normalizeCardMutationMetadata,
+  normalizeCardType,
   recordCardSyncChange,
   toCardLwwMetadata,
 } from "./shared";
@@ -72,6 +75,8 @@ function normalizeCreateCardInput(input: CreateCardInput): CreateCardInput {
   return {
     frontText: normalizeRequiredCardText(input.frontText, "frontText"),
     backText: normalizeOptionalCardText(input.backText),
+    cardType: input.cardType === undefined ? undefined : normalizeCardType(input.cardType),
+    metadata: input.metadata === undefined ? undefined : normalizeCardMetadata(input.metadata),
     tags: dedupeCardTags(input.tags),
   };
 }
@@ -82,6 +87,8 @@ function normalizeUpdateCardInput(input: UpdateCardInput): UpdateCardInput {
       ? undefined
       : normalizeRequiredCardText(input.frontText, "frontText"),
     backText: input.backText === undefined ? undefined : normalizeOptionalCardText(input.backText),
+    cardType: input.cardType === undefined ? undefined : normalizeCardType(input.cardType),
+    metadata: input.metadata === undefined ? undefined : normalizeCardMetadata(input.metadata),
     tags: input.tags === undefined ? undefined : dedupeCardTags(input.tags),
   };
 }
@@ -98,6 +105,16 @@ function buildCardUpdateQueryParts(input: UpdateCardInput): UpdateQueryParts {
   if (input.backText !== undefined) {
     assignments.push(`back_text = $${assignments.length + 1}`);
     params.push(input.backText);
+  }
+
+  if (input.cardType !== undefined) {
+    assignments.push(`card_type = $${assignments.length + 1}`);
+    params.push(input.cardType);
+  }
+
+  if (input.metadata !== undefined) {
+    assignments.push(`metadata = $${assignments.length + 1}::jsonb`);
+    params.push(JSON.stringify(input.metadata));
   }
 
   if (input.tags !== undefined) {
@@ -130,6 +147,8 @@ function normalizeCardSnapshotInput(input: CardSnapshotInput): CardSnapshotInput
     cardId: input.cardId,
     frontText: normalizeRequiredCardText(input.frontText, "frontText"),
     backText: normalizeOptionalCardText(input.backText),
+    ...(input.cardType === undefined ? {} : { cardType: normalizeCardType(input.cardType) }),
+    ...(input.metadata === undefined ? {} : { metadata: normalizeCardMetadata(input.metadata) }),
     tags: dedupeCardTags(input.tags),
     dueAt: input.dueAt === null ? null : normalizeIsoTimestamp(input.dueAt, "dueAt"),
     createdAt: normalizeIsoTimestamp(input.createdAt, "createdAt"),
@@ -184,15 +203,17 @@ async function insertCardRowForSnapshotInExecutor(
   input: CardSnapshotInput,
   metadata: CardMutationMetadata,
 ): Promise<CardRow | null> {
+  const cardType = input.cardType ?? "basic";
+  const cardMetadata = input.metadata ?? createDefaultCardMetadata(input.createdAt);
   const result = await executor.query<CardRow>(
     [
       "INSERT INTO content.cards",
       "(",
-      "card_id, workspace_id, front_text, back_text, tags, effort_level, due_at, created_at, reps, lapses,",
+      "card_id, workspace_id, front_text, back_text, card_type, metadata, tags, effort_level, due_at, created_at, reps, lapses,",
       "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
       "client_updated_at, last_modified_by_replica_id, last_operation_id, deleted_at",
       ")",
-      "VALUES ($1, $2, $3, $4, $5, 'fast', $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)",
+      "VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, 'fast', $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)",
       "ON CONFLICT DO NOTHING",
       "RETURNING",
       CARD_COLUMNS,
@@ -202,6 +223,8 @@ async function insertCardRowForSnapshotInExecutor(
       workspaceId,
       input.frontText,
       input.backText,
+      cardType,
+      JSON.stringify(cardMetadata),
       input.tags,
       input.dueAt,
       input.createdAt,
@@ -306,17 +329,19 @@ export async function upsertCardSnapshotInExecutor(
   const updateResult = await executor.query<CardRow>(
     [
       "UPDATE content.cards",
-      "SET front_text = $1, back_text = $2, tags = $3, effort_level = 'fast', due_at = $4, reps = $5, lapses = $6,",
-      "fsrs_card_state = $7, fsrs_step_index = $8, fsrs_stability = $9, fsrs_difficulty = $10,",
-      "fsrs_last_reviewed_at = $11, fsrs_scheduled_days = $12, deleted_at = $13, client_updated_at = $14,",
-      "last_modified_by_replica_id = $15, last_operation_id = $16, updated_at = now()",
-      "WHERE workspace_id = $17 AND card_id = $18",
+      "SET front_text = $1, back_text = $2, card_type = $3, metadata = $4::jsonb, tags = $5, effort_level = 'fast', due_at = $6, reps = $7, lapses = $8,",
+      "fsrs_card_state = $9, fsrs_step_index = $10, fsrs_stability = $11, fsrs_difficulty = $12,",
+      "fsrs_last_reviewed_at = $13, fsrs_scheduled_days = $14, deleted_at = $15, client_updated_at = $16,",
+      "last_modified_by_replica_id = $17, last_operation_id = $18, updated_at = now()",
+      "WHERE workspace_id = $19 AND card_id = $20",
       "RETURNING",
       CARD_COLUMNS,
     ].join(" "),
     [
       normalizedInput.frontText,
       normalizedInput.backText,
+      normalizedInput.cardType ?? existingCard.cardType,
+      JSON.stringify(normalizedInput.metadata ?? existingCard.metadata),
       normalizedInput.tags,
       normalizedInput.dueAt,
       normalizedInput.reps,
@@ -376,11 +401,11 @@ export async function createCardInExecutor(
     [
       "INSERT INTO content.cards",
       "(",
-      "card_id, workspace_id, front_text, back_text, tags, effort_level, due_at, created_at,",
+      "card_id, workspace_id, front_text, back_text, card_type, metadata, tags, effort_level, due_at, created_at,",
       "reps, lapses, fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
       "client_updated_at, last_modified_by_replica_id, last_operation_id",
       ")",
-      "VALUES ($1, $2, $3, $4, $5, 'fast', NULL, $6, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, $7, $8, $9)",
+      "VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, 'fast', NULL, $8, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, $9, $10, $11)",
       "RETURNING",
       CARD_COLUMNS,
     ].join(" "),
@@ -389,6 +414,8 @@ export async function createCardInExecutor(
       workspaceId,
       normalizedInput.frontText,
       normalizedInput.backText,
+      normalizedInput.cardType ?? "basic",
+      JSON.stringify(normalizedInput.metadata ?? createDefaultCardMetadata(createdAt)),
       normalizedInput.tags,
       createdAt,
       normalizedMetadata.clientUpdatedAt,

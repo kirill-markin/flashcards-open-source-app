@@ -77,6 +77,10 @@ function normalizeSearchableText(value: SqlRowValue | undefined): string {
     return "";
   }
 
+  if (typeof value === "object") {
+    return JSON.stringify(value).toLowerCase();
+  }
+
   return String(value).toLowerCase();
 }
 
@@ -99,6 +103,10 @@ function compareRowValues(left: SqlRowValue | undefined, right: SqlRowValue | un
     return leftText.localeCompare(rightText);
   }
 
+  if (typeof left === "object" || typeof right === "object") {
+    return JSON.stringify(left).localeCompare(JSON.stringify(right));
+  }
+
   if (typeof left === "number" && typeof right === "number") {
     return left - right;
   }
@@ -119,7 +127,7 @@ function valuesEqual(left: SqlRowValue | undefined, right: SqlLiteral): boolean 
 }
 
 function compareScalarValues(left: SqlRowValue | undefined, right: SqlLiteral): number | null {
-  if (left === undefined || left === null || Array.isArray(left) || right === null) {
+  if (left === undefined || left === null || Array.isArray(left) || typeof left === "object" || right === null) {
     return null;
   }
 

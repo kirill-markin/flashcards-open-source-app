@@ -107,6 +107,7 @@ function buildCardUpdatePatch(
 ): UpdateCardInput {
   let frontText: string | undefined;
   let backText: string | undefined;
+  let cardType: string | undefined;
   let tags: ReadonlyArray<string> | undefined;
   let legacyEffortLevel: LegacyEffortLevel | undefined;
 
@@ -123,6 +124,13 @@ function buildCardUpdatePatch(
         throw new HttpError(400, "back_text must be a string", "QUERY_INVALID_SQL");
       }
       backText = assignment.value;
+    }
+
+    if (assignment.columnName === "card_type") {
+      if (typeof assignment.value !== "string") {
+        throw new HttpError(400, "card_type must be a string", "QUERY_INVALID_SQL");
+      }
+      cardType = assignment.value;
     }
 
     if (assignment.columnName === "tags") {
@@ -143,6 +151,7 @@ function buildCardUpdatePatch(
   return {
     frontText,
     backText,
+    cardType,
     tags: legacyEffortLevel === undefined
       ? tags
       : appendLegacyEffortTag(tags ?? existingCard.tags, legacyEffortLevel),

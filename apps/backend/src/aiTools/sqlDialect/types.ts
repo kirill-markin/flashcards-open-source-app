@@ -14,7 +14,8 @@ export type SqlColumnType =
   | "integer"
   | "number"
   | "boolean"
-  | "datetime";
+  | "datetime"
+  | "json";
 
 export type SqlColumnDescriptor = Readonly<{
   columnName: string;
@@ -36,7 +37,12 @@ export type SqlResourceDescriptor = Readonly<{
 export type SqlLiteral = string | number | boolean | null;
 export type SqlPredicateValue = SqlLiteral | Readonly<{ type: "now" }>;
 export type SqlRowScalar = string | number | boolean | null;
-export type SqlRowValue = SqlRowScalar | ReadonlyArray<string> | ReadonlyArray<number>;
+export interface SqlJsonObject {
+  readonly [key: string]: SqlJsonValue;
+}
+export interface SqlJsonArray extends ReadonlyArray<SqlJsonValue> {}
+export type SqlJsonValue = SqlRowScalar | SqlJsonArray | SqlJsonObject;
+export type SqlRowValue = SqlRowScalar | ReadonlyArray<string> | ReadonlyArray<number> | SqlJsonValue;
 export type SqlRow = Readonly<Record<string, SqlRowValue>>;
 export type SqlComparisonOperator = "=" | "<" | "<=" | ">" | ">=";
 

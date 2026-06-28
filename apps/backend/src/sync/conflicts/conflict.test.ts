@@ -23,6 +23,18 @@ type RecordedQuery = Readonly<{
   params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>;
 }>;
 
+const testCardMetadata = {
+  version: 1,
+  source: {
+    label: null,
+    author: null,
+    comment: null,
+    createdAt: "2026-04-24T10:00:00.000Z",
+    importedAt: null,
+    importId: null,
+  },
+} as const;
+
 type ConflictExecutorOptions = Readonly<{
   currentUserId: string;
   currentWorkspaceId: string;
@@ -178,6 +190,8 @@ test("upsertCardSnapshotInExecutor returns a typed cross-workspace fork error", 
         cardId,
         frontText: "Front",
         backText: "Back",
+        cardType: "basic",
+        metadata: testCardMetadata,
         tags: ["tag"],
         dueAt: null,
         createdAt: "2026-04-24T10:00:00.000Z",

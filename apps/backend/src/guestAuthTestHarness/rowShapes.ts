@@ -4,11 +4,27 @@ import type {
   ReviewEventState,
 } from "./models";
 
+function createDefaultCardMetadata(createdAt: string): NonNullable<CardState["metadata"]> {
+  return {
+    version: 1,
+    source: {
+      label: null,
+      author: null,
+      comment: null,
+      createdAt,
+      importedAt: null,
+      importId: null,
+    },
+  };
+}
+
 export function createCardQueryRow(card: CardState): Readonly<Record<string, unknown>> {
   return {
     card_id: card.card_id,
     front_text: card.front_text,
     back_text: card.back_text,
+    card_type: card.card_type ?? "basic",
+    metadata: card.metadata ?? createDefaultCardMetadata(card.created_at),
     tags: card.tags,
     effort_level: card.effort_level,
     due_at: card.due_at,

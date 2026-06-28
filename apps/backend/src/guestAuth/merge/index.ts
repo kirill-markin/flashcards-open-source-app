@@ -111,6 +111,8 @@ function createCardSnapshotInput(
     cardId: card.cardId,
     frontText: card.frontText,
     backText: card.backText,
+    cardType: card.cardType,
+    metadata: card.metadata,
     tags: card.tags,
     dueAt: card.dueAt === null ? null : toIsoString(card.dueAt),
     createdAt: toIsoString(card.createdAt),

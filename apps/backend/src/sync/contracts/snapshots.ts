@@ -1,8 +1,9 @@
 import type {
+  CardMetadata,
   CardMutationMetadata,
   CardSnapshotInput,
 } from "../../cards";
-import { appendLegacyEffortTag } from "../../cards/shared";
+import { appendLegacyEffortTag, normalizeCardType } from "../../cards/shared";
 import type {
   DeckFilterDefinition,
   DeckMutationMetadata,
@@ -20,7 +21,9 @@ type MutationMetadataInput = Readonly<{
   lastOperationId: string;
 }>;
 
-type CardSnapshotPayload = Omit<CardSnapshotInput, "effortLevel"> & Readonly<{
+type CardSnapshotPayload = Omit<CardSnapshotInput, "cardType" | "metadata"> & Readonly<{
+  cardType?: string;
+  metadata?: CardMetadata;
   effortLevel?: LegacyEffortLevel;
 }>;
 
@@ -37,6 +40,8 @@ export function toCardSnapshotInput(payload: CardSnapshotPayload): CardSnapshotI
     cardId: payload.cardId,
     frontText: payload.frontText,
     backText: payload.backText,
+    ...(payload.cardType === undefined ? {} : { cardType: normalizeCardType(payload.cardType) }),
+    ...(payload.metadata === undefined ? {} : { metadata: payload.metadata }),
     tags: appendLegacyEffortTag(payload.tags, payload.effortLevel),
     dueAt: payload.dueAt,
     createdAt: payload.createdAt,

@@ -8,12 +8,26 @@ import {
   listCardsInExecutor,
   submitReview,
 } from "./index";
-import type { CardRow, ReviewableCardRow } from "./types";
+import type { CardMetadata, CardRow, ReviewableCardRow } from "./types";
 
 type QueryRecord = Readonly<{
   text: string;
   params: ReadonlyArray<unknown> | null;
 }>;
+
+function createCardMetadata(createdAt: string): CardMetadata {
+  return {
+    version: 1,
+    source: {
+      label: null,
+      author: null,
+      comment: null,
+      createdAt,
+      importedAt: null,
+      importId: null,
+    },
+  };
+}
 
 test("getInvalidFsrsStateReason rejects a new card with persisted fsrs values", () => {
   assert.equal(
@@ -71,6 +85,8 @@ test("listCardsInExecutor maps invalid persisted fsrs rows without repairing the
     card_id: "broken-card",
     front_text: "front",
     back_text: "back",
+    card_type: "basic",
+    metadata: createCardMetadata("2026-03-08T09:00:00.000Z"),
     tags: ["tag"],
     effort_level: "fast" as const,
     due_at: "2026-03-16T09:00:00.000Z",

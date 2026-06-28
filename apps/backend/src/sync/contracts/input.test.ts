@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
-import type { CardSnapshotInput } from "../../cards";
+import {
+  upsertCardSnapshotInExecutor,
+  type CardMetadata,
+  type CardSnapshotInput,
+} from "../../cards";
 import type { CardRow } from "../../cards/types";
 import type { DatabaseExecutor, SqlValue } from "../../database";
 import {
@@ -31,7 +35,9 @@ type CardDueAtFixture = Readonly<{
   dueAt: string | null;
 }>;
 
-type CardSyncPushPayload = CardSnapshotInput & Readonly<{
+type CardSyncPushPayload = Omit<CardSnapshotInput, "cardType" | "metadata"> & Readonly<{
+  cardType?: string;
+  metadata?: CardMetadata;
   effortLevel?: LegacyEffortLevel;
 }>;
 
@@ -134,6 +140,8 @@ function createCardSnapshotPayload(fixture: CardDueAtFixture): CardSnapshotInput
     cardId: "card-1",
     frontText: "Question",
     backText: "Answer",
+    cardType: "basic",
+    metadata: createCardMetadata("2026-02-28T09:00:00.000Z"),
     tags: ["sync"],
     dueAt: fixture.dueAt,
     createdAt: "2026-02-28T09:00:00.000Z",
@@ -146,6 +154,34 @@ function createCardSnapshotPayload(fixture: CardDueAtFixture): CardSnapshotInput
     fsrsLastReviewedAt: hasDueAt ? "2026-02-28T09:00:00.000Z" : null,
     fsrsScheduledDays: hasDueAt ? 1 : null,
     deletedAt: null,
+  };
+}
+
+function createCardMetadata(createdAt: string): CardMetadata {
+  return {
+    version: 1,
+    source: {
+      label: null,
+      author: null,
+      comment: null,
+      createdAt,
+      importedAt: null,
+      importId: null,
+    },
+  };
+}
+
+function createImportedCardMetadata(): CardMetadata {
+  return {
+    version: 1,
+    source: {
+      label: "Imported deck",
+      author: "Author",
+      comment: "Original import metadata",
+      createdAt: "2026-02-27T08:00:00.000Z",
+      importedAt: "2026-02-28T08:00:00.000Z",
+      importId: "import-1",
+    },
   };
 }
 
@@ -232,6 +268,8 @@ function createHotPullCardRow(effortLevel: LegacyEffortLevel): CardRow {
     card_id: "card-1",
     front_text: "Question",
     back_text: "Answer",
+    card_type: "basic",
+    metadata: createCardMetadata("2026-02-28T09:00:00.000Z"),
     tags: ["sync"],
     effort_level: effortLevel,
     due_at: null,
@@ -261,6 +299,78 @@ function createHotPullCardExecutor(effortLevel: LegacyEffortLevel): DatabaseExec
       assert.match(text, /FROM content\.cards/);
       assert.deepEqual(params, ["workspace-1", ["card-1"]]);
       return createQueryResult([createHotPullCardRow(effortLevel) as unknown as Row]);
+    },
+  };
+}
+
+function createLegacyCardUpdateExecutor(
+  existingMetadata: CardMetadata,
+): DatabaseExecutor {
+  const existingRow: CardRow = {
+    card_id: "card-1",
+    front_text: "Original question",
+    back_text: "Original answer",
+    card_type: "cloze",
+    metadata: existingMetadata,
+    tags: ["original"],
+    effort_level: "fast",
+    due_at: null,
+    created_at: "2026-02-28T09:00:00.000Z",
+    reps: 0,
+    lapses: 0,
+    fsrs_card_state: "new",
+    fsrs_step_index: null,
+    fsrs_stability: null,
+    fsrs_difficulty: null,
+    fsrs_last_reviewed_at: null,
+    fsrs_scheduled_days: null,
+    client_updated_at: "2026-02-28T09:00:00.000Z",
+    last_modified_by_replica_id: "replica-old",
+    last_operation_id: "operation-old",
+    updated_at: "2026-02-28T09:00:00.000Z",
+    deleted_at: null,
+  };
+
+  return {
+    query: async <Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> => {
+      if (text.includes("FROM content.cards") && text.includes("FOR UPDATE")) {
+        assert.deepEqual(params, ["workspace-1", "card-1"]);
+        return createQueryResult([existingRow as unknown as Row]);
+      }
+
+      if (text.startsWith("UPDATE content.cards")) {
+        assert.equal(params[2], "cloze");
+        assert.deepEqual(JSON.parse(String(params[3])), existingMetadata);
+        assert.equal(params[18], "workspace-1");
+        assert.equal(params[19], "card-1");
+        return createQueryResult([{
+          ...existingRow,
+          front_text: params[0],
+          back_text: params[1],
+          card_type: params[2],
+          metadata: JSON.parse(String(params[3])),
+          tags: params[4],
+          client_updated_at: params[15],
+          last_modified_by_replica_id: params[16],
+          last_operation_id: params[17],
+          updated_at: "2026-02-28T10:00:00.000Z",
+        } as CardRow as unknown as Row]);
+      }
+
+      if (text.includes("INSERT INTO sync.workspace_sync_metadata")) {
+        return createQueryResult<Row>([]);
+      }
+
+      if (text.includes("INSERT INTO sync.hot_changes")) {
+        return createQueryResult<Row>([{
+          change_id: 9,
+        } as unknown as Row]);
+      }
+
+      throw new Error(`Unexpected query: ${text}`);
     },
   };
 }
@@ -455,6 +565,84 @@ test("parseSyncPushInput accepts card operations without legacy effortLevel", ()
   assert.equal(Object.prototype.hasOwnProperty.call(operation.payload, "effortLevel"), false);
 });
 
+test("parseSyncPushInput accepts card operations without cardType and metadata", () => {
+  const payload = createCardSnapshotPayload({
+    dueAt: null,
+  });
+  const legacyPayload: CardSyncPushPayload = {
+    cardId: payload.cardId,
+    frontText: payload.frontText,
+    backText: payload.backText,
+    tags: payload.tags,
+    dueAt: payload.dueAt,
+    createdAt: payload.createdAt,
+    reps: payload.reps,
+    lapses: payload.lapses,
+    fsrsCardState: payload.fsrsCardState,
+    fsrsStepIndex: payload.fsrsStepIndex,
+    fsrsStability: payload.fsrsStability,
+    fsrsDifficulty: payload.fsrsDifficulty,
+    fsrsLastReviewedAt: payload.fsrsLastReviewedAt,
+    fsrsScheduledDays: payload.fsrsScheduledDays,
+    deletedAt: payload.deletedAt,
+  };
+  const parsedInput = parseSyncPushInput(createCardSyncPushInputWithPayload(legacyPayload));
+  const operation = parsedInput.operations[0];
+  if (operation?.entityType !== "card") {
+    assert.fail("Expected the parsed sync operation to remain a card");
+  }
+
+  assert.equal(Object.prototype.hasOwnProperty.call(operation.payload, "cardType"), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(operation.payload, "metadata"), false);
+  const snapshotInput = toCardSnapshotInput(operation.payload);
+  assert.equal(Object.prototype.hasOwnProperty.call(snapshotInput, "cardType"), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(snapshotInput, "metadata"), false);
+  assert.deepEqual(snapshotInput, legacyPayload);
+});
+
+test("legacy sync card update preserves existing cardType and metadata", async () => {
+  const existingMetadata = createImportedCardMetadata();
+  const payload = createCardSnapshotPayload({
+    dueAt: null,
+  });
+  const legacyPayload: CardSyncPushPayload = {
+    cardId: payload.cardId,
+    frontText: "Updated question",
+    backText: "Updated answer",
+    tags: ["sync", "legacy"],
+    dueAt: payload.dueAt,
+    createdAt: payload.createdAt,
+    reps: payload.reps,
+    lapses: payload.lapses,
+    fsrsCardState: payload.fsrsCardState,
+    fsrsStepIndex: payload.fsrsStepIndex,
+    fsrsStability: payload.fsrsStability,
+    fsrsDifficulty: payload.fsrsDifficulty,
+    fsrsLastReviewedAt: payload.fsrsLastReviewedAt,
+    fsrsScheduledDays: payload.fsrsScheduledDays,
+    deletedAt: payload.deletedAt,
+  };
+
+  const result = await upsertCardSnapshotInExecutor(
+    createLegacyCardUpdateExecutor(existingMetadata),
+    "workspace-1",
+    toCardSnapshotInput(legacyPayload),
+    {
+      clientUpdatedAt: "2026-02-28T10:00:00.000Z",
+      lastModifiedByReplicaId: "replica-new",
+      lastOperationId: "operation-new",
+    },
+  );
+
+  assert.equal(result.applied, true);
+  assert.equal(result.changeId, 9);
+  assert.equal(result.card.frontText, "Updated question");
+  assert.equal(result.card.backText, "Updated answer");
+  assert.deepEqual(result.card.tags, ["sync", "legacy"]);
+  assert.equal(result.card.cardType, "cloze");
+  assert.deepEqual(result.card.metadata, existingMetadata);
+});
+
 test("parseSyncPushInput accepts deck operations without legacy effortLevels", () => {
   const payload = createDeckSnapshotPayload({
     version: 2,
@@ -587,6 +775,8 @@ test("parseBootstrapEntryRow keeps outbound card dueAt as a string or null witho
 
   assert.equal(entryWithDueAt.payload.dueAt, validDueAt);
   assert.equal(entryWithDueAt.payload.effortLevel, "fast");
+  assert.equal(entryWithDueAt.payload.cardType, "basic");
+  assert.deepEqual(entryWithDueAt.payload.metadata, createCardMetadata("2026-02-28T09:00:00.000Z"));
   assert.equal(Object.prototype.hasOwnProperty.call(entryWithDueAt.payload, "dueAtMillis"), false);
 
   const entryWithoutDueAt = parseBootstrapEntryRow(createCardBootstrapProjectionRow({
@@ -598,6 +788,8 @@ test("parseBootstrapEntryRow keeps outbound card dueAt as a string or null witho
 
   assert.equal(entryWithoutDueAt.payload.dueAt, null);
   assert.equal(entryWithoutDueAt.payload.effortLevel, "fast");
+  assert.equal(entryWithoutDueAt.payload.cardType, "basic");
+  assert.deepEqual(entryWithoutDueAt.payload.metadata, createCardMetadata("2026-02-28T09:00:00.000Z"));
   assert.equal(Object.prototype.hasOwnProperty.call(entryWithoutDueAt.payload, "dueAtMillis"), false);
 });
 
@@ -620,4 +812,6 @@ test("buildHotChangesFromRows keeps outbound card effortLevel as fast", async ()
   }
 
   assert.equal(change.payload.effortLevel, "fast");
+  assert.equal(change.payload.cardType, "basic");
+  assert.deepEqual(change.payload.metadata, createCardMetadata("2026-02-28T09:00:00.000Z"));
 });
