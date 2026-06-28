@@ -78,6 +78,7 @@ struct PullRequest: Encodable {
     let appVersion: String
     let afterHotChangeId: Int64
     let limit: Int
+    let includeMediaAssets: Bool
 }
 
 /// Wire contract for `POST /sync/bootstrap` pull pages.
@@ -93,6 +94,7 @@ struct BootstrapPullRequest: Encodable {
     let appVersion: String
     let cursor: String?
     let limit: Int
+    let includeMediaAssets: Bool
 
     enum CodingKeys: String, CodingKey {
         case mode
@@ -101,6 +103,7 @@ struct BootstrapPullRequest: Encodable {
         case appVersion
         case cursor
         case limit
+        case includeMediaAssets
     }
 
     /// Encodes `cursor` explicitly as JSON `null` on the first bootstrap page.
@@ -119,6 +122,7 @@ struct BootstrapPullRequest: Encodable {
             try container.encodeNil(forKey: .cursor)
         }
         try container.encode(self.limit, forKey: .limit)
+        try container.encode(self.includeMediaAssets, forKey: .includeMediaAssets)
     }
 }
 
@@ -132,6 +136,7 @@ struct BootstrapPushRequest: Encodable {
     let installationId: String
     let platform: String
     let appVersion: String
+    let includeMediaAssets: Bool
     let entries: [SyncBootstrapEntryEnvelope]
 }
 
@@ -199,6 +204,8 @@ struct SyncOperationEnvelope: Encodable {
             try container.encode(payload, forKey: .payload)
         case .deck(let payload):
             try container.encode(payload, forKey: .payload)
+        case .mediaAsset(let payload):
+            try container.encode(payload, forKey: .payload)
         case .workspaceSchedulerSettings(let payload):
             try container.encode(payload, forKey: .payload)
         case .reviewEvent(let payload):
@@ -229,6 +236,8 @@ struct SyncBootstrapEntryEnvelope: Encodable {
             try container.encode(BootstrapCardPayload(card: payload), forKey: .payload)
         case .deck(let payload):
             try container.encode(BootstrapDeckPayload(deck: payload), forKey: .payload)
+        case .mediaAsset(let payload):
+            try container.encode(BootstrapMediaAssetPayload(mediaAsset: payload), forKey: .payload)
         case .workspaceSchedulerSettings(let payload):
             try container.encode(BootstrapWorkspaceSchedulerSettingsPayload(settings: payload), forKey: .payload)
         }
@@ -384,6 +393,51 @@ private struct BootstrapWorkspaceSchedulerSettingsPayload: Encodable {
     }
 }
 
+private struct BootstrapMediaAssetPayload: Encodable {
+    let snapshot: MediaAssetSyncPayload
+    let clientUpdatedAt: String
+    let lastOperationId: String
+    let updatedAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case mediaAssetId
+        case workspaceId
+        case mimeType
+        case sizeBytes
+        case sha256
+        case storageKey
+        case sourceUrl
+        case createdAt
+        case clientUpdatedAt
+        case lastOperationId
+        case updatedAt
+        case deletedAt
+    }
+
+    init(mediaAsset: MediaAsset) {
+        self.snapshot = MediaAssetSyncPayload(mediaAsset: mediaAsset)
+        self.clientUpdatedAt = mediaAsset.clientUpdatedAt
+        self.lastOperationId = mediaAsset.lastOperationId
+        self.updatedAt = mediaAsset.updatedAt
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.snapshot.mediaAssetId, forKey: .mediaAssetId)
+        try container.encode(self.snapshot.workspaceId, forKey: .workspaceId)
+        try container.encode(self.snapshot.mimeType, forKey: .mimeType)
+        try container.encode(self.snapshot.sizeBytes, forKey: .sizeBytes)
+        try container.encode(self.snapshot.sha256, forKey: .sha256)
+        try container.encode(self.snapshot.storageKey, forKey: .storageKey)
+        try encodeNullableBootstrapValue(self.snapshot.sourceUrl, forKey: .sourceUrl, in: &container)
+        try container.encode(self.snapshot.createdAt, forKey: .createdAt)
+        try container.encode(self.clientUpdatedAt, forKey: .clientUpdatedAt)
+        try container.encode(self.lastOperationId, forKey: .lastOperationId)
+        try container.encode(self.updatedAt, forKey: .updatedAt)
+        try encodeNullableBootstrapValue(self.snapshot.deletedAt, forKey: .deletedAt, in: &container)
+    }
+}
+
 struct RemoteCardChangePayload: Decodable {
     let cardId: String
     let frontText: String
@@ -512,9 +566,26 @@ struct RemoteReviewEventChangePayload: Decodable {
     let reviewedAtServer: String
 }
 
+struct RemoteMediaAssetChangePayload: Decodable {
+    let mediaAssetId: String
+    let workspaceId: String
+    let mimeType: String
+    let sizeBytes: Int64
+    let sha256: String
+    let storageKey: String
+    let sourceUrl: String?
+    let createdAt: String
+    let clientUpdatedAt: String
+    let lastModifiedByReplicaId: String
+    let lastOperationId: String
+    let updatedAt: String
+    let deletedAt: String?
+}
+
 enum RemoteSyncBootstrapEntryPayload {
     case card(RemoteCardChangePayload)
     case deck(RemoteDeckChangePayload)
+    case mediaAsset(RemoteMediaAssetChangePayload)
     case workspaceSchedulerSettings(RemoteWorkspaceSchedulerSettingsChangePayload)
 }
 
@@ -542,6 +613,8 @@ struct RemoteSyncBootstrapEntryEnvelope: Decodable {
             self.payload = .card(try container.decode(RemoteCardChangePayload.self, forKey: .payload))
         case .deck:
             self.payload = .deck(try container.decode(RemoteDeckChangePayload.self, forKey: .payload))
+        case .mediaAsset:
+            self.payload = .mediaAsset(try container.decode(RemoteMediaAssetChangePayload.self, forKey: .payload))
         case .workspaceSchedulerSettings:
             self.payload = .workspaceSchedulerSettings(
                 try container.decode(RemoteWorkspaceSchedulerSettingsChangePayload.self, forKey: .payload)
@@ -579,6 +652,8 @@ struct RemoteSyncChangeEnvelope: Decodable {
             self.payload = .card(try container.decode(RemoteCardChangePayload.self, forKey: .payload))
         case .deck:
             self.payload = .deck(try container.decode(RemoteDeckChangePayload.self, forKey: .payload))
+        case .mediaAsset:
+            self.payload = .mediaAsset(try container.decode(RemoteMediaAssetChangePayload.self, forKey: .payload))
         case .workspaceSchedulerSettings:
             self.payload = .workspaceSchedulerSettings(
                 try container.decode(RemoteWorkspaceSchedulerSettingsChangePayload.self, forKey: .payload)
@@ -623,6 +698,17 @@ struct RemoteReviewHistoryImportResponseEnvelope: Decodable {
     let importedCount: Int
     let duplicateCount: Int
     let nextReviewSequenceId: Int64?
+}
+
+struct MediaAssetDownloadURLResponse: Decodable, Hashable, Sendable {
+    let mediaAsset: MediaAsset
+    let download: MediaAssetDownloadURL
+}
+
+struct MediaAssetDownloadURL: Decodable, Hashable, Sendable {
+    let method: String
+    let url: String
+    let expiresAt: String
 }
 
 /// Pulled review events are already stamped by the backend with immutable

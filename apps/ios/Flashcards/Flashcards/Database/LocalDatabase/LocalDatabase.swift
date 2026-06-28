@@ -18,6 +18,7 @@ final class LocalDatabase {
     let core: DatabaseCore
     let cardStore: CardStore
     let deckStore: DeckStore
+    let mediaAssetStore: MediaAssetStore
     let outboxStore: OutboxStore
     let syncApplier: SyncApplier
     let workspaceSettingsStore: WorkspaceSettingsStore
@@ -28,6 +29,7 @@ final class LocalDatabase {
         self.core = core
         self.cardStore = CardStore(core: core)
         self.deckStore = DeckStore(core: core)
+        self.mediaAssetStore = MediaAssetStore(core: core)
         self.outboxStore = OutboxStore(core: core)
         self.syncApplier = SyncApplier(core: core)
         self.workspaceSettingsStore = WorkspaceSettingsStore(core: core)
@@ -39,6 +41,7 @@ final class LocalDatabase {
         self.core = core
         self.cardStore = CardStore(core: core)
         self.deckStore = DeckStore(core: core)
+        self.mediaAssetStore = MediaAssetStore(core: core)
         self.outboxStore = OutboxStore(core: core)
         self.syncApplier = SyncApplier(core: core)
         self.workspaceSettingsStore = WorkspaceSettingsStore(core: core)

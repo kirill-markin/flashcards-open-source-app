@@ -717,6 +717,15 @@ struct OutboxStore {
                 clientUpdatedAt: clientUpdatedAt,
                 payload: .deck(try self.core.decoder.decode(DeckSyncPayload.self, from: payloadData))
             )
+        case .mediaAsset:
+            return SyncOperation(
+                operationId: operationId,
+                entityType: entityType,
+                entityId: entityId,
+                action: action,
+                clientUpdatedAt: clientUpdatedAt,
+                payload: .mediaAsset(try self.core.decoder.decode(MediaAssetSyncPayload.self, from: payloadData))
+            )
         case .workspaceSchedulerSettings:
             return SyncOperation(
                 operationId: operationId,

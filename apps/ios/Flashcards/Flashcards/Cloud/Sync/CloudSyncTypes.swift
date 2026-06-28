@@ -3,6 +3,7 @@ import Foundation
 enum SyncEntityType: String, Codable, Hashable {
     case card
     case deck
+    case mediaAsset = "media_asset"
     case workspaceSchedulerSettings = "workspace_scheduler_settings"
     case reviewEvent = "review_event"
 }
@@ -155,6 +156,7 @@ struct CloudSyncResult: Hashable, Sendable {
     var reviewDataChanged: Bool {
         self.changedEntityTypes.contains(.card)
             || self.changedEntityTypes.contains(.deck)
+            || self.changedEntityTypes.contains(.mediaAsset)
             || self.changedEntityTypes.contains(.workspaceSchedulerSettings)
             || self.changedEntityTypes.contains(.reviewEvent)
     }
@@ -562,9 +564,69 @@ struct ReviewEventSyncPayload: Codable, Hashable {
     }
 }
 
+struct MediaAssetSyncPayload: Codable, Hashable {
+    let mediaAssetId: String
+    let workspaceId: String
+    let mimeType: String
+    let sizeBytes: Int64
+    let sha256: String
+    let storageKey: String
+    let sourceUrl: String?
+    let createdAt: String
+    let deletedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case mediaAssetId
+        case workspaceId
+        case mimeType
+        case sizeBytes
+        case sha256
+        case storageKey
+        case sourceUrl
+        case createdAt
+        case deletedAt
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.mediaAssetId, forKey: .mediaAssetId)
+        try container.encode(self.workspaceId, forKey: .workspaceId)
+        try container.encode(self.mimeType, forKey: .mimeType)
+        try container.encode(self.sizeBytes, forKey: .sizeBytes)
+        try container.encode(self.sha256, forKey: .sha256)
+        try container.encode(self.storageKey, forKey: .storageKey)
+        if let sourceUrl = self.sourceUrl {
+            try container.encode(sourceUrl, forKey: .sourceUrl)
+        } else {
+            try container.encodeNil(forKey: .sourceUrl)
+        }
+        try container.encode(self.createdAt, forKey: .createdAt)
+        if let deletedAt = self.deletedAt {
+            try container.encode(deletedAt, forKey: .deletedAt)
+        } else {
+            try container.encodeNil(forKey: .deletedAt)
+        }
+    }
+}
+
+extension MediaAssetSyncPayload {
+    init(mediaAsset: MediaAsset) {
+        self.mediaAssetId = mediaAsset.mediaAssetId
+        self.workspaceId = mediaAsset.workspaceId
+        self.mimeType = mediaAsset.mimeType
+        self.sizeBytes = mediaAsset.sizeBytes
+        self.sha256 = mediaAsset.sha256
+        self.storageKey = mediaAsset.storageKey
+        self.sourceUrl = mediaAsset.sourceUrl
+        self.createdAt = mediaAsset.createdAt
+        self.deletedAt = mediaAsset.deletedAt
+    }
+}
+
 enum SyncOperationPayload: Hashable {
     case card(CardSyncPayload)
     case deck(DeckSyncPayload)
+    case mediaAsset(MediaAssetSyncPayload)
     case workspaceSchedulerSettings(WorkspaceSchedulerSettingsSyncPayload)
     case reviewEvent(ReviewEventSyncPayload)
 }
@@ -597,6 +659,7 @@ struct SyncPushResponse: Codable, Hashable {
 enum SyncBootstrapEntryPayload: Hashable {
     case card(Card)
     case deck(Deck)
+    case mediaAsset(MediaAsset)
     case workspaceSchedulerSettings(WorkspaceSchedulerSettings)
 }
 
@@ -612,6 +675,7 @@ struct SyncBootstrapEntry: Hashable {
 enum SyncChangePayload: Hashable {
     case card(Card)
     case deck(Deck)
+    case mediaAsset(MediaAsset)
     case workspaceSchedulerSettings(WorkspaceSchedulerSettings)
 }
 

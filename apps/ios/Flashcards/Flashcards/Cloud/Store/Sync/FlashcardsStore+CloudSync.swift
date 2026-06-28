@@ -354,7 +354,9 @@ extension FlashcardsStore {
                 bootstrapRefreshOutcome: bootstrapRefreshOutcome
             )
         }
-        if bootstrapRefreshOutcome.didChange || didRefreshReviewState {
+        if bootstrapRefreshOutcome.didChange
+            || didRefreshReviewState
+            || syncResult.changedEntityTypes.contains(.mediaAsset) {
             self.localReadVersion += 1
         }
         if bootstrapRefreshOutcome.homeSnapshotChanged {

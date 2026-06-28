@@ -132,6 +132,12 @@ protocol CloudSyncServing {
     func deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String) async throws
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult
     func runGuestLocalRecoveryLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult
+    func loadMediaAssetDownloadURL(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        mediaAssetId: String
+    ) async throws -> MediaAssetDownloadURLResponse
 }
 
 @MainActor
@@ -167,6 +173,19 @@ extension CloudSyncServing {
         _ = authorizationHeader
         _ = preferences
         throw LocalStoreError.validation("Account preferences update is unavailable")
+    }
+
+    func loadMediaAssetDownloadURL(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        mediaAssetId: String
+    ) async throws -> MediaAssetDownloadURLResponse {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        _ = workspaceId
+        _ = mediaAssetId
+        throw LocalStoreError.validation("Media asset download URL loading is unavailable")
     }
 
     func createFriendInvitation(

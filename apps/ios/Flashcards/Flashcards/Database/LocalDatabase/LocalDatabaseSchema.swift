@@ -1,7 +1,7 @@
 import Foundation
 
 enum LocalDatabaseSchema {
-    static let currentVersion: Int = 21
+    static let currentVersion: Int = 22
 
     static var baseMigrationSQL: String {
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
@@ -69,6 +69,23 @@ enum LocalDatabaseSchema {
             last_operation_id TEXT NOT NULL, -- client-generated operation identifier used as the deterministic final LWW tie-break
             updated_at TEXT NOT NULL, -- last time the local mirror row was written or merged
             deleted_at TEXT -- tombstone timestamp; non-NULL means the deck is deleted but must still sync
+        );
+
+        CREATE TABLE IF NOT EXISTS media_assets (
+            media_asset_id TEXT NOT NULL, -- managed media identifier referenced by fcasset: Markdown links
+            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace ownership for isolation and pull scoping
+            mime_type TEXT NOT NULL CHECK (length(trim(mime_type)) > 0), -- backend-provided MIME type used for read-only rendering
+            size_bytes INTEGER NOT NULL CHECK (size_bytes >= 0), -- byte size metadata only; media bytes are never stored in this table
+            sha256 TEXT NOT NULL CHECK (length(trim(sha256)) > 0), -- content digest from the backend registry
+            storage_key TEXT NOT NULL CHECK (length(trim(storage_key)) > 0), -- opaque backend storage key used only by the server
+            source_url TEXT, -- original external source URL when available
+            created_at TEXT NOT NULL, -- original asset creation timestamp
+            client_updated_at TEXT NOT NULL, -- client-side LWW timestamp for the most recent media registry winner
+            last_modified_by_replica_id TEXT NOT NULL, -- replica that produced the currently winning registry row
+            last_operation_id TEXT NOT NULL, -- client-generated operation identifier used as the deterministic final LWW tie-break
+            updated_at TEXT NOT NULL, -- last time the local mirror row was written or merged
+            deleted_at TEXT, -- tombstone timestamp; non-NULL means the asset is unavailable but must still sync
+            PRIMARY KEY (workspace_id, media_asset_id)
         );
 
         CREATE TABLE IF NOT EXISTS review_events (
@@ -154,6 +171,9 @@ enum LocalDatabaseSchema {
         CREATE INDEX IF NOT EXISTS idx_decks_workspace_created_at
             ON decks(workspace_id, created_at DESC, deck_id DESC);
 
+        CREATE INDEX IF NOT EXISTS idx_media_assets_workspace_updated_at
+            ON media_assets(workspace_id, updated_at DESC, media_asset_id ASC);
+
         CREATE INDEX IF NOT EXISTS idx_card_tags_workspace_tag_card
             ON card_tags(workspace_id, tag, card_id);
 
@@ -175,6 +195,7 @@ enum LocalDatabaseSchema {
     DROP TABLE IF EXISTS outbox;
     DROP TABLE IF EXISTS sync_state;
     DROP TABLE IF EXISTS review_events;
+    DROP TABLE IF EXISTS media_assets;
     DROP TABLE IF EXISTS decks;
     DROP TABLE IF EXISTS card_tags;
     DROP TABLE IF EXISTS cards;

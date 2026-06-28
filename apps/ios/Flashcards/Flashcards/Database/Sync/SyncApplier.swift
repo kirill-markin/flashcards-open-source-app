@@ -34,6 +34,7 @@ struct SyncApplier {
     func applySyncBootstrapEntry(workspaceId: String, entry: SyncBootstrapEntry) throws -> SyncApplyResult {
         let cardStore = CardStore(core: self.core)
         let deckStore = DeckStore(core: self.core)
+        let mediaAssetStore = MediaAssetStore(core: self.core)
         let workspaceSettingsStore = WorkspaceSettingsStore(core: self.core)
 
         switch entry.payload {
@@ -53,6 +54,17 @@ struct SyncApplier {
             }
 
             try self.upsertRemoteDeck(workspaceId: workspaceId, deck: deck, deckStore: deckStore)
+            return SyncApplyResult(didApply: true, reviewScheduleImpact: false)
+        case .mediaAsset(let mediaAsset):
+            let existingMediaAsset = try mediaAssetStore.loadOptionalMediaAssetIncludingDeleted(
+                workspaceId: workspaceId,
+                mediaAssetId: mediaAsset.mediaAssetId
+            )
+            if let existingMediaAsset, compareLwwMediaAsset(left: existingMediaAsset, right: mediaAsset) > 0 {
+                return .skipped
+            }
+
+            try self.upsertRemoteMediaAsset(workspaceId: workspaceId, mediaAsset: mediaAsset)
             return SyncApplyResult(didApply: true, reviewScheduleImpact: false)
         case .workspaceSchedulerSettings(let settings):
             let existingSettings = try workspaceSettingsStore.loadWorkspaceSchedulerSettings(workspaceId: workspaceId)
@@ -78,6 +90,8 @@ struct SyncApplier {
             entryPayload = .card(card)
         case .deck(let deck):
             entryPayload = .deck(deck)
+        case .mediaAsset(let mediaAsset):
+            entryPayload = .mediaAsset(mediaAsset)
         case .workspaceSchedulerSettings(let settings):
             entryPayload = .workspaceSchedulerSettings(settings)
         }
@@ -303,6 +317,56 @@ struct SyncApplier {
         )
     }
 
+    private func upsertRemoteMediaAsset(workspaceId: String, mediaAsset: MediaAsset) throws {
+        try self.core.execute(
+            sql: """
+            INSERT INTO media_assets (
+                media_asset_id,
+                workspace_id,
+                mime_type,
+                size_bytes,
+                sha256,
+                storage_key,
+                source_url,
+                created_at,
+                client_updated_at,
+                last_modified_by_replica_id,
+                last_operation_id,
+                updated_at,
+                deleted_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(workspace_id, media_asset_id) DO UPDATE SET
+                mime_type = excluded.mime_type,
+                size_bytes = excluded.size_bytes,
+                sha256 = excluded.sha256,
+                storage_key = excluded.storage_key,
+                source_url = excluded.source_url,
+                created_at = excluded.created_at,
+                client_updated_at = excluded.client_updated_at,
+                last_modified_by_replica_id = excluded.last_modified_by_replica_id,
+                last_operation_id = excluded.last_operation_id,
+                updated_at = excluded.updated_at,
+                deleted_at = excluded.deleted_at
+            """,
+            values: [
+                .text(mediaAsset.mediaAssetId),
+                .text(workspaceId),
+                .text(mediaAsset.mimeType),
+                .integer(mediaAsset.sizeBytes),
+                .text(mediaAsset.sha256),
+                .text(mediaAsset.storageKey),
+                mediaAsset.sourceUrl.map(SQLiteValue.text) ?? .null,
+                .text(mediaAsset.createdAt),
+                .text(mediaAsset.clientUpdatedAt),
+                .text(mediaAsset.lastModifiedByReplicaId),
+                .text(mediaAsset.lastOperationId),
+                .text(mediaAsset.updatedAt),
+                mediaAsset.deletedAt.map(SQLiteValue.text) ?? .null
+            ]
+        )
+    }
+
     private func insertRemoteReviewEvent(workspaceId: String, reviewEvent: ReviewEvent) throws {
         _ = try self.core.execute(
             sql: """
@@ -376,6 +440,17 @@ private func compareLwwCard(left: Card, right: Card) -> Int {
 }
 
 private func compareLwwDeck(left: Deck, right: Deck) -> Int {
+    compareLwwTuple(
+        leftClientUpdatedAt: left.clientUpdatedAt,
+        leftDeviceId: left.lastModifiedByReplicaId,
+        leftOperationId: left.lastOperationId,
+        rightClientUpdatedAt: right.clientUpdatedAt,
+        rightDeviceId: right.lastModifiedByReplicaId,
+        rightOperationId: right.lastOperationId
+    )
+}
+
+private func compareLwwMediaAsset(left: MediaAsset, right: MediaAsset) -> Int {
     compareLwwTuple(
         leftClientUpdatedAt: left.clientUpdatedAt,
         leftDeviceId: left.lastModifiedByReplicaId,

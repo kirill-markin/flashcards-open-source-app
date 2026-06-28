@@ -98,6 +98,9 @@ struct LocalDatabaseMigrator {
             case 20:
                 try self.migrateSchemaVersion20To21()
                 schemaVersion = 21
+            case 21:
+                try self.migrateSchemaVersion21To22()
+                schemaVersion = 22
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -687,6 +690,47 @@ struct LocalDatabaseMigrator {
                 ]
             )
         }
+    }
+
+    private func migrateSchemaVersion21To22() throws {
+        try self.core.execute(
+            sql: """
+            CREATE TABLE IF NOT EXISTS media_assets (
+                media_asset_id TEXT NOT NULL,
+                workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE,
+                mime_type TEXT NOT NULL CHECK (length(trim(mime_type)) > 0),
+                size_bytes INTEGER NOT NULL CHECK (size_bytes >= 0),
+                sha256 TEXT NOT NULL CHECK (length(trim(sha256)) > 0),
+                storage_key TEXT NOT NULL CHECK (length(trim(storage_key)) > 0),
+                source_url TEXT,
+                created_at TEXT NOT NULL,
+                client_updated_at TEXT NOT NULL,
+                last_modified_by_replica_id TEXT NOT NULL,
+                last_operation_id TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                deleted_at TEXT,
+                PRIMARY KEY (workspace_id, media_asset_id)
+            )
+            """,
+            values: []
+        )
+        try self.core.execute(
+            sql: """
+            CREATE INDEX IF NOT EXISTS idx_media_assets_workspace_updated_at
+            ON media_assets(workspace_id, updated_at DESC, media_asset_id ASC)
+            """,
+            values: []
+        )
+        try self.core.execute(
+            sql: """
+            UPDATE sync_state
+            SET
+                last_applied_hot_change_id = 0,
+                has_hydrated_hot_state = 0,
+                updated_at = ?
+            """,
+            values: [.text(nowIsoTimestamp())]
+        )
     }
 
     private func appendLegacyEffortTagsToCards() throws {
