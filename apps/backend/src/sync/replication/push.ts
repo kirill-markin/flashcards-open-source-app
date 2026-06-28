@@ -11,7 +11,6 @@ import {
   type DatabaseExecutor,
 } from "../../database";
 import { upsertDeckSnapshotInExecutor } from "../../decks";
-import { upsertMediaAssetSnapshotInExecutor } from "../../mediaAssets";
 import { normalizeIsoTimestamp } from "../conflicts/lww";
 import { ensureWorkspaceReplicaInExecutor } from "../identity/replica";
 import { ensureWorkspaceSyncMetadataInExecutor } from "./changes";
@@ -25,8 +24,6 @@ import {
   toCardSnapshotInput,
   toDeckMutationMetadata,
   toDeckSnapshotInput,
-  toMediaAssetMutationMetadata,
-  toMediaAssetSnapshotInput,
   toWorkspaceSchedulerSettingsMutationMetadata,
   toWorkspaceSchedulerSettingsSnapshotInput,
 } from "../contracts/snapshots";
@@ -35,6 +32,8 @@ import type {
   SyncPushOperationResult,
   SyncPushResult,
 } from "../contracts/types";
+
+const mediaAssetSyncWriteRejectedMessage = "media_asset sync writes are not accepted; use the media upload API to create or update media assets.";
 
 function toNumber(value: string | number | null): number | null {
   if (value === null) {
@@ -200,18 +199,14 @@ export async function processOperationInExecutor(
       };
     }
 
-    const mutation = await upsertMediaAssetSnapshotInExecutor(
-      executor,
-      workspaceId,
-      toMediaAssetSnapshotInput(operation.payload),
-      toMediaAssetMutationMetadata({
-        clientUpdatedAt: operation.clientUpdatedAt,
-        lastModifiedByReplicaId: replicaId,
-        lastOperationId: operation.operationId,
-      }),
-    );
-    status = mutation.applied ? "applied" : "ignored";
-    resultingHotChangeId = mutation.changeId;
+    return {
+      operationId: operation.operationId,
+      entityType: operation.entityType,
+      entityId: operation.entityId,
+      status: "rejected",
+      resultingHotChangeId: null,
+      error: mediaAssetSyncWriteRejectedMessage,
+    };
   } else {
     if (operation.entityId !== operation.payload.reviewEventId) {
       return {

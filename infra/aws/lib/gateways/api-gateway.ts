@@ -244,18 +244,25 @@ function addGlobalMetricsEnvironment(
   }));
 }
 
+export function createMediaAssetsObjectPolicyStatement(bucket: s3.IBucket): cdk.aws_iam.PolicyStatement {
+  return new cdk.aws_iam.PolicyStatement({
+    actions: [
+      "s3:GetObject",
+      "s3:PutObject",
+    ],
+    resources: [
+      bucket.arnForObjects("media/blobs/*"),
+      bucket.arnForObjects("media/uploads/*"),
+    ],
+  });
+}
+
 function addMediaAssetsEnvironment(
   fn: lambdaNodejs.NodejsFunction,
   bucket: s3.IBucket,
 ): void {
   fn.addEnvironment("MEDIA_ASSETS_S3_BUCKET_NAME", bucket.bucketName);
-  fn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
-    actions: [
-      "s3:GetObject",
-      "s3:PutObject",
-    ],
-    resources: [bucket.arnForObjects("media-assets/*")],
-  }));
+  fn.addToRolePolicy(createMediaAssetsObjectPolicyStatement(bucket));
 }
 
 function hasConfiguredValue(value: string | undefined): value is string {

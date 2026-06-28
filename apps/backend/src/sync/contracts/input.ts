@@ -239,7 +239,6 @@ const mediaAssetSnapshotSchema = z.object({
   mimeType: z.string().regex(mediaAssetMimeTypePattern),
   sizeBytes: z.number().int().nonnegative(),
   sha256: z.string().regex(mediaAssetSha256Pattern),
-  storageKey: z.string().min(1),
   sourceUrl: z.union([z.string(), z.null()]).transform(transformMediaAssetSourceUrl),
   createdAt: z.string().datetime(),
   deletedAt: z.string().datetime().nullable(),

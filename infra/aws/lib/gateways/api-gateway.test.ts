@@ -5,8 +5,10 @@ import test from "node:test";
 import * as cdk from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as s3 from "aws-cdk-lib/aws-s3";
 import { Template } from "aws-cdk-lib/assertions";
 import {
+  createMediaAssetsObjectPolicyStatement,
   createChatLiveFunctionUrlCorsOptions,
   createGatewayErrorResponseHeaders,
   globalMetricsCorsPreflightOptions,
@@ -152,6 +154,26 @@ test("chat live Lambda Function URL CORS exposes request id header", () => {
       ExposeHeaders: ["x-request-id"],
     },
   });
+});
+
+test("media asset object IAM covers blob and staging upload prefixes", () => {
+  const stack = new cdk.Stack();
+  const bucket = new s3.Bucket(stack, "MediaAssetsBucket");
+  const fn = new lambda.Function(stack, "BackendHandler", {
+    runtime: lambda.Runtime.NODEJS_24_X,
+    handler: "index.handler",
+    code: lambda.Code.fromInline("exports.handler = async () => ({ statusCode: 200 });"),
+  });
+  fn.addToRolePolicy(createMediaAssetsObjectPolicyStatement(bucket));
+
+  const template = Template.fromStack(stack);
+  const policyJson = JSON.stringify(template.findResources("AWS::IAM::Policy"));
+
+  assert.match(policyJson, /s3:GetObject/);
+  assert.match(policyJson, /s3:PutObject/);
+  assert.match(policyJson, /media\/blobs\/\*/);
+  assert.match(policyJson, /media\/uploads\/\*/);
+  assert.doesNotMatch(policyJson, /media-assets\/\*/);
 });
 
 test("default API Gateway generated errors expose supported request id headers", () => {

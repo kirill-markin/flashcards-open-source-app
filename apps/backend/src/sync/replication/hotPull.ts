@@ -12,6 +12,7 @@ import type {
 import { mapDeck } from "../../decks";
 import {
   MEDIA_ASSET_COLUMNS,
+  MEDIA_ASSET_JOIN_CLAUSE,
   mapMediaAssetRow,
 } from "../../mediaAssets";
 import type {
@@ -173,8 +174,9 @@ async function loadMediaAssetsByIdsInExecutor(
     [
       "SELECT",
       MEDIA_ASSET_COLUMNS,
-      "FROM content.media_assets",
-      "WHERE workspace_id = $1 AND media_asset_id = ANY($2::uuid[])",
+      "FROM",
+      MEDIA_ASSET_JOIN_CLAUSE,
+      "WHERE media_assets.workspace_id = $1 AND media_assets.media_asset_id = ANY($2::uuid[])",
     ].join(" "),
     [workspaceId, [...mediaAssetIds]],
   );

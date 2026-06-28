@@ -87,10 +87,12 @@ get:
               writes, a clear user request already counts as permission. Ask
               again only for risky or unclear actions. For media assets, create
               an upload intent with POST
-              /v1/workspaces/{workspaceId}/media-assets/upload-intents, upload
-              bytes directly to the returned URL using the returned method and
-              headers, then register the completed object with POST
+              /v1/workspaces/{workspaceId}/media-assets/upload-intents, include
+              a stable lastOperationId in that request, upload bytes directly
+              to the returned URL using the returned method and headers, then
+              register the completed object with POST
               /v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete.
+              Use the same lastOperationId in the complete request.
               Use GET /v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}
               for registry metadata and GET
               /v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url

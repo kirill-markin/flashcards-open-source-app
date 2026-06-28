@@ -103,7 +103,6 @@ export function toMediaAssetSnapshotInput(payload: MediaAssetSnapshotPayload): M
     mimeType: payload.mimeType,
     sizeBytes: payload.sizeBytes,
     sha256: payload.sha256,
-    storageKey: payload.storageKey,
     sourceUrl: payload.sourceUrl,
     createdAt: payload.createdAt,
     deletedAt: payload.deletedAt,

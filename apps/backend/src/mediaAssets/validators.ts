@@ -115,6 +115,7 @@ export function parseMediaAssetUploadIntentInput(value: unknown): MediaAssetUplo
     mimeType: expectMimeType(record.mimeType, "mimeType"),
     sizeBytes: expectSizeBytes(record.sizeBytes, "sizeBytes"),
     sha256: expectSha256(record.sha256, "sha256"),
+    lastOperationId: expectLastOperationId(record.lastOperationId, "lastOperationId"),
   };
 }
 

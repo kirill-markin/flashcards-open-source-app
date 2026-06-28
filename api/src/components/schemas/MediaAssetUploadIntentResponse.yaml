@@ -3,15 +3,12 @@ additionalProperties: false
 required:
   - mediaAssetId
   - workspaceId
-  - storageKey
   - upload
 properties:
   mediaAssetId:
     $ref: ./UuidString.yaml
   workspaceId:
     $ref: ./UuidString.yaml
-  storageKey:
-    type: string
   upload:
     type: object
     additionalProperties: false
@@ -39,3 +36,7 @@ properties:
           content-type: image/png
           if-none-match: '*'
           x-amz-checksum-sha256: XohImNooBHFR0OVvjccpJ3NgPQ1qq73WKhHvch0VQtg=
+          x-amz-meta-flashcards-workspace-id: 50b5b928-7f04-4cc8-878d-6cd0e8b98474
+          x-amz-meta-flashcards-media-asset-id: 43b7ec15-0a29-46f3-9cbb-c21fa4f4903f
+          x-amz-meta-flashcards-last-operation-id-sha256: ec4dfe74c258274b2ae35f65d9843c8f636eaf57573edf5501d69ce756f04e3f
+          x-amz-meta-flashcards-sha256: 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8

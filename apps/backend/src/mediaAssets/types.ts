@@ -3,10 +3,13 @@ export type TimestampValue = Date | string;
 export type MediaAssetRow = Readonly<{
   media_asset_id: string;
   workspace_id: string;
+  media_blob_id: string;
   mime_type: string;
   size_bytes: string | number;
   sha256: string;
   storage_key: string;
+  blob_created_at: TimestampValue;
+  blob_updated_at: TimestampValue;
   source_url: string | null;
   created_at: TimestampValue;
   client_updated_at: TimestampValue;
@@ -22,7 +25,6 @@ export type MediaAsset = Readonly<{
   mimeType: string;
   sizeBytes: number;
   sha256: string;
-  storageKey: string;
   sourceUrl: string | null;
   createdAt: string;
   clientUpdatedAt: string;
@@ -32,11 +34,37 @@ export type MediaAsset = Readonly<{
   deletedAt: string | null;
 }>;
 
+export type MediaBlob = Readonly<{
+  mediaBlobId: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+  storageKey: string;
+  createdAt: string;
+  updatedAt: string;
+}>;
+
+export type MediaBlobRow = Readonly<{
+  media_blob_id: string;
+  mime_type: string;
+  size_bytes: string | number;
+  sha256: string;
+  storage_key: string;
+  created_at: TimestampValue;
+  updated_at: TimestampValue;
+}>;
+
+export type MediaAssetWithBlob = Readonly<{
+  mediaAsset: MediaAsset;
+  mediaBlob: MediaBlob;
+}>;
+
 export type MediaAssetUploadIntentInput = Readonly<{
   mediaAssetId: string;
   mimeType: string;
   sizeBytes: number;
   sha256: string;
+  lastOperationId: string;
 }>;
 
 export type CompleteMediaAssetUploadInput = Readonly<{
@@ -62,7 +90,6 @@ export type MediaAssetSnapshotInput = Readonly<{
   mimeType: string;
   sizeBytes: number;
   sha256: string;
-  storageKey: string;
   sourceUrl: string | null;
   createdAt: string;
   deletedAt: string | null;
@@ -96,4 +123,10 @@ export type MediaAssetObjectMetadata = Readonly<{
   sizeBytes: number | null;
   mimeType: string | null;
   checksumSha256: string | null;
+  uploadProof: Readonly<{
+    workspaceId: string | null;
+    mediaAssetId: string | null;
+    lastOperationIdSha256: string | null;
+    sha256: string | null;
+  }>;
 }>;

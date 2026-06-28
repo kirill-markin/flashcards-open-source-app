@@ -142,11 +142,27 @@ function createConflictExecutor(
 
       if (
         options.entityType === "media_asset"
-        && text.includes("FROM content.media_assets")
-        && text.includes("WHERE workspace_id = $1")
-        && text.includes("AND media_asset_id = $2")
+        && text.includes("FROM content.media_assets AS media_assets")
+        && text.includes("WHERE media_assets.workspace_id = $1")
+        && text.includes("AND media_assets.media_asset_id = $2")
       ) {
         return createQueryResult<Row>([]);
+      }
+
+      if (
+        options.entityType === "media_asset"
+        && text.includes("INSERT INTO content.media_blobs")
+        && text.includes("ON CONFLICT (sha256) DO NOTHING")
+      ) {
+        return createQueryResult<Row>([{
+          media_blob_id: "44444444-4444-4444-8444-444444444444",
+          sha256: String(params[0]),
+          mime_type: String(params[1]),
+          size_bytes: Number(params[2]),
+          storage_key: String(params[3]),
+          created_at: "2026-04-24T10:00:00.000Z",
+          updated_at: "2026-04-24T10:00:00.000Z",
+        } as unknown as Row]);
       }
 
       if (
@@ -331,7 +347,6 @@ test("upsertMediaAssetSnapshotInExecutor returns a typed cross-workspace fork er
         mimeType: "image/png",
         sizeBytes: 42,
         sha256: "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
-        storageKey: "media-assets/workspaces/workspace-current/assets/media-asset-conflict-1/5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
         sourceUrl: null,
         createdAt: "2026-04-24T10:00:00.000Z",
         deletedAt: null,

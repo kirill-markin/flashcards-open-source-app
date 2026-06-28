@@ -5,6 +5,7 @@ required:
   - mimeType
   - sizeBytes
   - sha256
+  - lastOperationId
 properties:
   mediaAssetId:
     $ref: ./UuidString.yaml
@@ -21,3 +22,8 @@ properties:
     type: string
     pattern: ^[0-9a-fA-F]{64}$
     example: 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+  lastOperationId:
+    type: string
+    minLength: 1
+    maxLength: 1024
+    example: import-media-asset-43b7ec15

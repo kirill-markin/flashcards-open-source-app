@@ -14,7 +14,7 @@ import {
   type DeckSnapshotInput,
   type DeckRow,
 } from "../../decks";
-import { buildMediaAssetStorageKey } from "../../mediaAssets/storageKeys";
+import { buildMediaBlobStorageKey } from "../../mediaAssets/storageKeys";
 import type { MediaAssetRow } from "../../mediaAssets/types";
 import { HttpError } from "../../shared/errors";
 import { parseBootstrapEntryRow } from "../replication/bootstrap";
@@ -101,7 +101,6 @@ type MediaAssetPayload = Readonly<{
   mimeType: string;
   sizeBytes: number;
   sha256: string;
-  storageKey: string;
   sourceUrl: string | null;
   createdAt: string;
   clientUpdatedAt: string;
@@ -285,7 +284,6 @@ function createMediaAssetPayload(deletedAt: string | null): MediaAssetPayload {
     mimeType: "image/png",
     sizeBytes: 42,
     sha256: mediaAssetSha256,
-    storageKey: buildMediaAssetStorageKey("workspace-1", mediaAssetId, mediaAssetSha256),
     sourceUrl: "https://example.com/source.png",
     createdAt: "2026-02-28T09:00:00.000Z",
     clientUpdatedAt: "2026-02-28T09:30:00.000Z",
@@ -360,10 +358,13 @@ function createHotPullMediaAssetRow(deletedAt: string | null): MediaAssetRow {
   return {
     media_asset_id: payload.mediaAssetId,
     workspace_id: payload.workspaceId,
+    media_blob_id: "33333333-3333-4333-8333-333333333333",
     mime_type: payload.mimeType,
     size_bytes: payload.sizeBytes,
     sha256: payload.sha256,
-    storage_key: payload.storageKey,
+    storage_key: buildMediaBlobStorageKey(payload.sha256),
+    blob_created_at: payload.createdAt,
+    blob_updated_at: payload.updatedAt,
     source_url: payload.sourceUrl,
     created_at: payload.createdAt,
     client_updated_at: payload.clientUpdatedAt,
@@ -787,7 +788,6 @@ test("parseSyncPushInput accepts media_asset metadata operations", () => {
           mimeType: "image/png",
           sizeBytes: 42,
           sha256: mediaAssetSha256,
-          storageKey: buildMediaAssetStorageKey("workspace-1", mediaAssetId, mediaAssetSha256),
           sourceUrl: " https://example.com/source image.png ",
           createdAt: "2026-02-28T09:00:00.000Z",
           deletedAt: "2026-02-28T09:30:00.000Z",
@@ -805,6 +805,7 @@ test("parseSyncPushInput accepts media_asset metadata operations", () => {
   assert.equal(operation.payload.sourceUrl, "https://example.com/source%20image.png");
   assert.equal(operation.payload.deletedAt, "2026-02-28T09:30:00.000Z");
   assert.equal(Object.prototype.hasOwnProperty.call(operation.payload, "bytes"), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(operation.payload, "storageKey"), false);
 });
 
 test("parseSyncPushInput rejects non-http media_asset source URLs", () => {
@@ -825,7 +826,6 @@ test("parseSyncPushInput rejects non-http media_asset source URLs", () => {
             mimeType: "image/png",
             sizeBytes: 42,
             sha256: mediaAssetSha256,
-            storageKey: buildMediaAssetStorageKey("workspace-1", mediaAssetId, mediaAssetSha256),
             sourceUrl: "file:///tmp/source.png",
             createdAt: "2026-02-28T09:00:00.000Z",
             deletedAt: null,
@@ -1068,6 +1068,7 @@ test("parseBootstrapEntryRow accepts media_asset metadata tombstones", () => {
   assert.equal(entry.payload.mediaAssetId, mediaAssetId);
   assert.equal(entry.payload.deletedAt, "2026-02-28T09:30:00.000Z");
   assert.equal(Object.prototype.hasOwnProperty.call(entry.payload, "bytes"), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(entry.payload, "storageKey"), false);
 });
 
 test("buildHotChangesFromRows keeps outbound card effortLevel as fast", async () => {
@@ -1115,4 +1116,5 @@ test("buildHotChangesFromRows emits media_asset metadata tombstones", async () =
   assert.equal(change.payload.mediaAssetId, mediaAssetId);
   assert.equal(change.payload.deletedAt, "2026-02-28T09:30:00.000Z");
   assert.equal(Object.prototype.hasOwnProperty.call(change.payload, "bytes"), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(change.payload, "storageKey"), false);
 });

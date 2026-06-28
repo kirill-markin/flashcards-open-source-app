@@ -19,10 +19,13 @@ import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
 } from "../sync/conflicts/fork";
-import { buildMediaAssetStorageKey } from "./storageKeys";
+import { buildMediaBlobStorageKey } from "./storageKeys";
 import type {
   CompleteMediaAssetUploadInput,
   MediaAsset,
+  MediaAssetWithBlob,
+  MediaBlob,
+  MediaBlobRow,
   MediaAssetMutationMetadata,
   MediaAssetMutationResult,
   MediaAssetRow,
@@ -33,23 +36,42 @@ import type {
 import { expectMediaAssetSourceUrl } from "./validators";
 
 export const MEDIA_ASSET_COLUMNS = [
-  "media_asset_id",
-  "workspace_id",
+  "media_assets.media_asset_id AS media_asset_id",
+  "media_assets.workspace_id AS workspace_id",
+  "media_assets.media_blob_id AS media_blob_id",
+  "media_blobs.mime_type AS mime_type",
+  "media_blobs.size_bytes AS size_bytes",
+  "media_blobs.sha256 AS sha256",
+  "media_blobs.storage_key AS storage_key",
+  "media_blobs.created_at AS blob_created_at",
+  "media_blobs.updated_at AS blob_updated_at",
+  "media_assets.source_url AS source_url",
+  "media_assets.created_at AS created_at",
+  "media_assets.client_updated_at AS client_updated_at",
+  "media_assets.last_modified_by_replica_id AS last_modified_by_replica_id",
+  "media_assets.last_operation_id AS last_operation_id",
+  "media_assets.updated_at AS updated_at",
+  "media_assets.deleted_at AS deleted_at",
+].join(", ");
+
+export const MEDIA_ASSET_JOIN_CLAUSE = [
+  "content.media_assets AS media_assets",
+  "INNER JOIN content.media_blobs AS media_blobs",
+  "ON media_blobs.media_blob_id = media_assets.media_blob_id",
+].join(" ");
+
+const MEDIA_BLOB_COLUMNS = [
+  "media_blob_id",
   "mime_type",
   "size_bytes",
   "sha256",
   "storage_key",
-  "source_url",
   "created_at",
-  "client_updated_at",
-  "last_modified_by_replica_id",
-  "last_operation_id",
   "updated_at",
-  "deleted_at",
 ].join(", ");
 
 type ExistingMediaAssetIntentRow = Readonly<{
-  storage_key: string;
+  ok: number;
 }>;
 
 function toIsoString(value: TimestampValue): string {
@@ -80,7 +102,6 @@ export function mapMediaAssetRow(row: MediaAssetRow): MediaAsset {
     mimeType: row.mime_type,
     sizeBytes: toSafeNumber(row.size_bytes, "size_bytes"),
     sha256: row.sha256,
-    storageKey: row.storage_key,
     sourceUrl: row.source_url,
     createdAt: toIsoString(row.created_at),
     clientUpdatedAt: toIsoString(row.client_updated_at),
@@ -88,6 +109,33 @@ export function mapMediaAssetRow(row: MediaAssetRow): MediaAsset {
     lastOperationId: row.last_operation_id,
     updatedAt: toIsoString(row.updated_at),
     deletedAt: toOptionalIsoString(row.deleted_at),
+  };
+}
+
+export function mapMediaBlobRow(row: MediaBlobRow): MediaBlob {
+  return {
+    mediaBlobId: row.media_blob_id,
+    mimeType: row.mime_type,
+    sizeBytes: toSafeNumber(row.size_bytes, "size_bytes"),
+    sha256: row.sha256,
+    storageKey: row.storage_key,
+    createdAt: toIsoString(row.created_at),
+    updatedAt: toIsoString(row.updated_at),
+  };
+}
+
+function mapMediaAssetWithBlobRow(row: MediaAssetRow): MediaAssetWithBlob {
+  return {
+    mediaAsset: mapMediaAssetRow(row),
+    mediaBlob: {
+      mediaBlobId: row.media_blob_id,
+      mimeType: row.mime_type,
+      sizeBytes: toSafeNumber(row.size_bytes, "size_bytes"),
+      sha256: row.sha256,
+      storageKey: row.storage_key,
+      createdAt: toIsoString(row.blob_created_at),
+      updatedAt: toIsoString(row.blob_updated_at),
+    },
   };
 }
 
@@ -99,7 +147,7 @@ export async function assertMediaAssetUploadIntentAvailableForWorkspace(
   const result = await queryWithWorkspaceScopeReadOnly<ExistingMediaAssetIntentRow>(
     { userId, workspaceId },
     [
-      "SELECT storage_key",
+      "SELECT 1 AS ok",
       "FROM content.media_assets",
       "WHERE workspace_id = $1",
       "AND media_asset_id = $2",
@@ -119,7 +167,6 @@ export async function assertMediaAssetUploadIntentAvailableForWorkspace(
       "Media asset is already registered; create a new mediaAssetId before requesting another upload intent.",
       `workspaceId=${workspaceId}`,
       `mediaAssetId=${mediaAssetId}`,
-      `storageKey=${existingRow.storage_key}`,
     ].join(" "),
     "MEDIA_ASSET_ALREADY_REGISTERED",
   );
@@ -185,9 +232,10 @@ async function findMediaAssetRowForUpdateInExecutor(
     [
       "SELECT",
       MEDIA_ASSET_COLUMNS,
-      "FROM content.media_assets",
-      "WHERE workspace_id = $1",
-      "AND media_asset_id = $2",
+      "FROM",
+      MEDIA_ASSET_JOIN_CLAUSE,
+      "WHERE media_assets.workspace_id = $1",
+      "AND media_assets.media_asset_id = $2",
       "FOR UPDATE",
     ].join(" "),
     [workspaceId, mediaAssetId],
@@ -206,33 +254,10 @@ function normalizeMediaAssetSnapshotInput(input: MediaAssetSnapshotInput): Media
     mimeType: input.mimeType.trim().toLowerCase(),
     sizeBytes: input.sizeBytes,
     sha256: input.sha256.toLowerCase(),
-    storageKey: input.storageKey,
     sourceUrl: expectMediaAssetSourceUrl(input.sourceUrl, "sourceUrl"),
     createdAt: normalizeIsoTimestamp(input.createdAt, "createdAt"),
     deletedAt: input.deletedAt === null ? null : normalizeIsoTimestamp(input.deletedAt, "deletedAt"),
   };
-}
-
-function assertMediaAssetStorageKeyMatchesSnapshot(
-  workspaceId: string,
-  input: MediaAssetSnapshotInput,
-): void {
-  const expectedStorageKey = buildMediaAssetStorageKey(workspaceId, input.mediaAssetId, input.sha256);
-  if (input.storageKey === expectedStorageKey) {
-    return;
-  }
-
-  throw new HttpError(
-    400,
-    [
-      "media_asset payload.storageKey must match the backend media asset storage key.",
-      `workspaceId=${workspaceId}`,
-      `mediaAssetId=${input.mediaAssetId}`,
-      `expectedStorageKey=${expectedStorageKey}`,
-      `receivedStorageKey=${input.storageKey}`,
-    ].join(" "),
-    "MEDIA_ASSET_STORAGE_KEY_INVALID",
-  );
 }
 
 function assertExistingMediaAssetMatchesSnapshot(
@@ -243,7 +268,6 @@ function assertExistingMediaAssetMatchesSnapshot(
     existingRow.mime_type !== input.mimeType
     || toSafeNumber(existingRow.size_bytes, "size_bytes") !== input.sizeBytes
     || existingRow.sha256 !== input.sha256
-    || existingRow.storage_key !== input.storageKey
   ) {
     throw new HttpError(
       409,
@@ -251,12 +275,87 @@ function assertExistingMediaAssetMatchesSnapshot(
         "mediaAssetId is already registered with different file metadata",
         `workspaceId=${existingRow.workspace_id}`,
         `mediaAssetId=${existingRow.media_asset_id}`,
-        `existingStorageKey=${existingRow.storage_key}`,
-        `requestedStorageKey=${input.storageKey}`,
+        `existingSha256=${existingRow.sha256}`,
+        `requestedSha256=${input.sha256}`,
+        `existingMimeType=${existingRow.mime_type}`,
+        `requestedMimeType=${input.mimeType}`,
+        `existingSizeBytes=${toSafeNumber(existingRow.size_bytes, "size_bytes")}`,
+        `requestedSizeBytes=${input.sizeBytes}`,
       ].join(" "),
       "MEDIA_ASSET_ID_CONFLICT",
     );
   }
+}
+
+function assertMediaBlobMatchesInput(row: MediaBlobRow, input: MediaAssetSnapshotInput): void {
+  const existingSizeBytes = toSafeNumber(row.size_bytes, "size_bytes");
+  const expectedStorageKey = buildMediaBlobStorageKey(input.sha256);
+  if (
+    row.mime_type === input.mimeType
+    && existingSizeBytes === input.sizeBytes
+    && row.sha256 === input.sha256
+    && row.storage_key === expectedStorageKey
+  ) {
+    return;
+  }
+
+  throw new HttpError(
+    409,
+    [
+      "Media blob SHA-256 is already registered with different metadata.",
+      `sha256=${input.sha256}`,
+      `existingMimeType=${row.mime_type}`,
+      `requestedMimeType=${input.mimeType}`,
+      `existingSizeBytes=${existingSizeBytes}`,
+      `requestedSizeBytes=${input.sizeBytes}`,
+    ].join(" "),
+    "MEDIA_BLOB_METADATA_CONFLICT",
+  );
+}
+
+async function findMediaBlobRowBySha256InExecutor(
+  executor: DatabaseExecutor,
+  sha256: string,
+): Promise<MediaBlobRow | null> {
+  const result = await executor.query<MediaBlobRow>(
+    [
+      "SELECT",
+      MEDIA_BLOB_COLUMNS,
+      "FROM content.media_blobs",
+      "WHERE sha256 = $1",
+      "LIMIT 1",
+    ].join(" "),
+    [sha256],
+  );
+
+  return result.rows[0] ?? null;
+}
+
+async function upsertMediaBlobRowInExecutor(
+  executor: DatabaseExecutor,
+  input: MediaAssetSnapshotInput,
+): Promise<MediaBlobRow> {
+  const storageKey = buildMediaBlobStorageKey(input.sha256);
+  const insertResult = await executor.query<MediaBlobRow>(
+    [
+      "INSERT INTO content.media_blobs",
+      "(media_blob_id, sha256, mime_type, size_bytes, storage_key)",
+      "VALUES (gen_random_uuid(), $1, $2, $3, $4)",
+      "ON CONFLICT (sha256) DO NOTHING",
+      "RETURNING",
+      MEDIA_BLOB_COLUMNS,
+    ].join(" "),
+    [input.sha256, input.mimeType, input.sizeBytes, storageKey],
+  );
+
+  const insertedRow = insertResult.rows[0];
+  const row = insertedRow ?? await findMediaBlobRowBySha256InExecutor(executor, input.sha256);
+  if (row === null) {
+    throw new Error(`Media blob insert conflicted but sha256=${input.sha256} was not found`);
+  }
+
+  assertMediaBlobMatchesInput(row, input);
+  return row;
 }
 
 async function insertMediaAssetSnapshotRowInExecutor(
@@ -264,26 +363,31 @@ async function insertMediaAssetSnapshotRowInExecutor(
   workspaceId: string,
   input: MediaAssetSnapshotInput,
   metadata: MediaAssetMutationMetadata,
+  mediaBlobId: string,
 ): Promise<MediaAssetRow | null> {
   const result = await executor.query<MediaAssetRow>(
     [
+      "WITH inserted_media_asset AS (",
       "INSERT INTO content.media_assets",
       "(",
-      "media_asset_id, workspace_id, mime_type, size_bytes, sha256, storage_key, source_url, created_at,",
+      "media_asset_id, workspace_id, media_blob_id, source_url, created_at,",
       "client_updated_at, last_modified_by_replica_id, last_operation_id, deleted_at",
       ")",
-      "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+      "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
       "ON CONFLICT DO NOTHING",
-      "RETURNING",
+      "RETURNING media_asset_id",
+      ")",
+      "SELECT",
       MEDIA_ASSET_COLUMNS,
+      "FROM",
+      MEDIA_ASSET_JOIN_CLAUSE,
+      "INNER JOIN inserted_media_asset",
+      "ON inserted_media_asset.media_asset_id = media_assets.media_asset_id",
     ].join(" "),
     [
       input.mediaAssetId,
       workspaceId,
-      input.mimeType,
-      input.sizeBytes,
-      input.sha256,
-      input.storageKey,
+      mediaBlobId,
       input.sourceUrl,
       input.createdAt,
       metadata.clientUpdatedAt,
@@ -338,6 +442,7 @@ async function updateExistingMediaAssetSnapshotRowInExecutor(
 ): Promise<MediaAssetRow> {
   const result = await executor.query<MediaAssetRow>(
     [
+      "WITH updated_media_asset AS (",
       "UPDATE content.media_assets",
       "SET source_url = $3,",
       "created_at = $4,",
@@ -348,8 +453,14 @@ async function updateExistingMediaAssetSnapshotRowInExecutor(
       "updated_at = now()",
       "WHERE workspace_id = $1",
       "AND media_asset_id = $2",
-      "RETURNING",
+      "RETURNING media_asset_id",
+      ")",
+      "SELECT",
       MEDIA_ASSET_COLUMNS,
+      "FROM",
+      MEDIA_ASSET_JOIN_CLAUSE,
+      "INNER JOIN updated_media_asset",
+      "ON updated_media_asset.media_asset_id = media_assets.media_asset_id",
     ].join(" "),
     [
       workspaceId,
@@ -403,15 +514,16 @@ export async function upsertMediaAssetSnapshotInExecutor(
   const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
   const normalizedInput = normalizeMediaAssetSnapshotInput(input);
   const normalizedMetadata = normalizeMediaAssetMutationMetadata(metadata);
-  assertMediaAssetStorageKeyMatchesSnapshot(workspaceId, normalizedInput);
 
   let existingRow = await findMediaAssetRowForUpdateInExecutor(executor, workspaceId, normalizedInput.mediaAssetId);
   if (existingRow === null) {
+    const mediaBlobRow = await upsertMediaBlobRowInExecutor(executor, normalizedInput);
     const insertedRow = await insertMediaAssetSnapshotRowInExecutor(
       executor,
       workspaceId,
       normalizedInput,
       normalizedMetadata,
+      mediaBlobRow.media_blob_id,
     );
 
     if (insertedRow === null) {
@@ -462,7 +574,6 @@ export async function completeMediaAssetUploadForWorkspace(
 ): Promise<MediaAssetMutationResult> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     await assertReplicaBelongsToWorkspaceInExecutor(executor, workspaceId, input.lastModifiedByReplicaId);
-    const storageKey = buildMediaAssetStorageKey(workspaceId, input.mediaAssetId, input.sha256);
     const result = await upsertMediaAssetSnapshotInExecutor(
       executor,
       workspaceId,
@@ -471,7 +582,6 @@ export async function completeMediaAssetUploadForWorkspace(
         mimeType: input.mimeType,
         sizeBytes: input.sizeBytes,
         sha256: input.sha256,
-        storageKey,
         sourceUrl: input.sourceUrl,
         createdAt: input.createdAt,
         deletedAt: null,
@@ -500,10 +610,11 @@ export async function loadMediaAssetForWorkspace(
     [
       "SELECT",
       MEDIA_ASSET_COLUMNS,
-      "FROM content.media_assets",
-      "WHERE workspace_id = $1",
-      "AND media_asset_id = $2",
-      "AND deleted_at IS NULL",
+      "FROM",
+      MEDIA_ASSET_JOIN_CLAUSE,
+      "WHERE media_assets.workspace_id = $1",
+      "AND media_assets.media_asset_id = $2",
+      "AND media_assets.deleted_at IS NULL",
       "LIMIT 1",
     ].join(" "),
     [workspaceId, mediaAssetId],
@@ -515,4 +626,32 @@ export async function loadMediaAssetForWorkspace(
   }
 
   return mapMediaAssetRow(row);
+}
+
+export async function loadMediaAssetWithBlobForWorkspace(
+  userId: string,
+  workspaceId: string,
+  mediaAssetId: string,
+): Promise<MediaAssetWithBlob> {
+  const result = await queryWithWorkspaceScopeReadOnly<MediaAssetRow>(
+    { userId, workspaceId },
+    [
+      "SELECT",
+      MEDIA_ASSET_COLUMNS,
+      "FROM",
+      MEDIA_ASSET_JOIN_CLAUSE,
+      "WHERE media_assets.workspace_id = $1",
+      "AND media_assets.media_asset_id = $2",
+      "AND media_assets.deleted_at IS NULL",
+      "LIMIT 1",
+    ].join(" "),
+    [workspaceId, mediaAssetId],
+  );
+
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new HttpError(404, "Media asset not found.", "MEDIA_ASSET_NOT_FOUND");
+  }
+
+  return mapMediaAssetWithBlobRow(row);
 }
