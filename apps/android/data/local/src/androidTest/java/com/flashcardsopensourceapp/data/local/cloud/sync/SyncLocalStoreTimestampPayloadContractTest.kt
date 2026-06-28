@@ -6,6 +6,8 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapE
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
+import com.flashcardsopensourceapp.data.local.model.cards.decodeCardMetadataJson
+import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.sync.SyncOperationPayload
 import kotlinx.coroutines.runBlocking
@@ -94,6 +96,11 @@ class SyncLocalStoreTimestampPayloadContractTest {
 
         requireNotNull(card)
         requireNotNull(deck)
+        assertEquals(defaultCardType, card.cardType)
+        assertEquals(
+            "2026-03-27T19:00:00Z",
+            decodeCardMetadataJson(metadataJson = card.metadataJson).source?.createdAt
+        )
         assertNull(card.dueAtMillis)
         assertNull(card.fsrsLastReviewedAtMillis)
         assertNull(card.deletedAtMillis)
@@ -189,6 +196,8 @@ class SyncLocalStoreTimestampPayloadContractTest {
         val outboxEntries = syncLocalStore.loadOutboxEntries(workspaceId = syncLocalStoreContractWorkspaceId)
         val payload = (outboxEntries.single().operation.payload as SyncOperationPayload.Card).payload
 
+        assertEquals(defaultCardType, payload.cardType)
+        assertEquals("2026-03-27T19:00:00Z", payload.metadata.source?.createdAt)
         assertNull(payload.dueAt)
         assertNull(payload.fsrsLastReviewedAt)
         assertNull(payload.deletedAt)

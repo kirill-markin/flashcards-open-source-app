@@ -7,6 +7,11 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
+import com.flashcardsopensourceapp.data.local.model.cards.buildCardMetadataJsonObject
+import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
+import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
+import com.flashcardsopensourceapp.data.local.model.cards.makeDefaultCardMetadata
+import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import kotlinx.coroutines.flow.first
@@ -50,6 +55,8 @@ class SyncLocalStoreHotRowPreservationContractTest {
             workspaceId = syncLocalStoreContractWorkspaceId,
             frontText = "Local front",
             backText = "Local back",
+            cardType = defaultCardType,
+            metadataJson = encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(1L)),
             dueAtMillis = null,
             createdAtMillis = 1L,
             updatedAtMillis = 2L,
@@ -161,6 +168,13 @@ private fun remoteCardBootstrapEntry(
             .put("cardId", cardId)
             .put("frontText", frontText)
             .put("backText", backText)
+            .put("cardType", defaultCardType)
+            .put(
+                "metadata",
+                buildCardMetadataJsonObject(
+                    metadata = makeDefaultCardMetadata(createdAt = "2026-03-27T19:00:00Z")
+                )
+            )
             .put("tags", JSONArray(tags))
             .put("effortLevel", "fast")
             .put("dueAt", JSONObject.NULL)

@@ -9,12 +9,15 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteReviewHist
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
+import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
+import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
@@ -344,6 +347,8 @@ private fun createPendingGuestUpgradeBlockedCard(workspaceId: String): CardEntit
         workspaceId = workspaceId,
         frontText = "Blocked Question",
         backText = "Blocked Answer",
+        cardType = defaultCardType,
+        metadataJson = encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(500L)),
         dueAtMillis = null,
         createdAtMillis = 500L,
         updatedAtMillis = 500L,

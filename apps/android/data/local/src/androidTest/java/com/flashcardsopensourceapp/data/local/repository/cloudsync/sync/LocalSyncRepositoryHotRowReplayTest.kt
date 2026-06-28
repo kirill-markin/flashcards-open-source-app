@@ -10,6 +10,12 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemotePushRespon
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteSyncChange
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
+import com.flashcardsopensourceapp.data.local.model.cards.buildCardMetadataJsonObject
+import com.flashcardsopensourceapp.data.local.model.cards.decodeCardMetadataJson
+import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
+import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
+import com.flashcardsopensourceapp.data.local.model.cards.makeDefaultCardMetadata
+import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
@@ -50,6 +56,8 @@ class LocalSyncRepositoryHotRowReplayTest {
             workspaceId = workspaceId,
             frontText = "Local pending front",
             backText = "Local pending back",
+            cardType = defaultCardType,
+            metadataJson = encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(100L)),
             dueAtMillis = null,
             createdAtMillis = 100L,
             updatedAtMillis = 200L,
@@ -420,6 +428,11 @@ class LocalSyncRepositoryHotRowReplayTest {
         assertEquals(listOf(5L), hotPullCursors)
         assertEquals("Remote unseen front", remoteCard.frontText)
         assertEquals("Remote unseen back", remoteCard.backText)
+        assertEquals(defaultCardType, remoteCard.cardType)
+        assertEquals(
+            "2026-04-02T15:50:57.000Z",
+            decodeCardMetadataJson(metadataJson = remoteCard.metadataJson).source?.createdAt
+        )
         assertEquals(0, environment.database.outboxDao().countOutboxEntries())
         assertEquals("100", persistedSyncState.lastSyncCursor)
         assertTrue(baseGateway.bootstrapPullWorkspaceIds.isEmpty())
@@ -437,6 +450,13 @@ private fun createRemoteCardHotPayload(
         .put("cardId", cardId)
         .put("frontText", frontText)
         .put("backText", backText)
+        .put("cardType", defaultCardType)
+        .put(
+            "metadata",
+            buildCardMetadataJsonObject(
+                metadata = makeDefaultCardMetadata(createdAt = "2026-04-02T15:50:57.000Z")
+            )
+        )
         .put("tags", JSONArray(tags))
         .put("effortLevel", "fast")
         .put("dueAt", JSONObject.NULL)

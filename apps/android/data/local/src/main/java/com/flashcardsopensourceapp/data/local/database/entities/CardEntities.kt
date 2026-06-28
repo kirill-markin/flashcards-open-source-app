@@ -65,6 +65,8 @@ data class CardEntity(
     val workspaceId: String,
     val frontText: String,
     val backText: String,
+    val cardType: String,
+    val metadataJson: String,
     val dueAtMillis: Long?,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,

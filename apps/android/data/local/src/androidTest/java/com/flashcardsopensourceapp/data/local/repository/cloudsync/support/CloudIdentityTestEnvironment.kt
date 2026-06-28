@@ -20,6 +20,9 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
+import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
+import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
+import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
@@ -299,6 +302,8 @@ internal class CloudIdentityTestEnvironment private constructor(
                 workspaceId = workspaceId,
                 frontText = "Question",
                 backText = "Answer",
+                cardType = defaultCardType,
+                metadataJson = encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(100L)),
                 dueAtMillis = null,
                 createdAtMillis = 100L,
                 updatedAtMillis = 100L,

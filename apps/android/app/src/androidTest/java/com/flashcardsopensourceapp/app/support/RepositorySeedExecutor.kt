@@ -10,8 +10,11 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.CardWithRelations
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
+import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
+import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
@@ -142,6 +145,8 @@ internal class RepositorySeedExecutor(
             workspaceId = workspaceId,
             frontText = seedCard.frontText,
             backText = seedCard.backText,
+            cardType = defaultCardType,
+            metadataJson = encodeDefaultCardMetadataJson(createdAt = formatIsoTimestamp(createdAtMillis)),
             dueAtMillis = null,
             createdAtMillis = createdAtMillis,
             updatedAtMillis = createdAtMillis,
