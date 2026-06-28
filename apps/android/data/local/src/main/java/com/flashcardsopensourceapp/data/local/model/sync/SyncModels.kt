@@ -8,6 +8,7 @@ enum class SyncEntityType {
     CARD,
     DECK,
     WORKSPACE_SCHEDULER_SETTINGS,
+    MEDIA_ASSET,
     REVIEW_EVENT
 }
 
@@ -100,6 +101,18 @@ data class ReviewEventSyncPayload(
     val reviewedTimeZone: String?
 )
 
+data class MediaAssetSyncPayload(
+    val mediaAssetId: String,
+    val workspaceId: String,
+    val mimeType: String,
+    val sizeBytes: Long,
+    val sha256: String,
+    val storageKey: String,
+    val sourceUrl: String?,
+    val createdAt: String,
+    val deletedAt: String?
+)
+
 sealed interface SyncOperationPayload {
     data class Card(
         val payload: CardSyncPayload
@@ -111,6 +124,10 @@ sealed interface SyncOperationPayload {
 
     data class WorkspaceSchedulerSettings(
         val payload: WorkspaceSchedulerSettingsSyncPayload
+    ) : SyncOperationPayload
+
+    data class MediaAsset(
+        val payload: MediaAssetSyncPayload
     ) : SyncOperationPayload
 
     data class ReviewEvent(

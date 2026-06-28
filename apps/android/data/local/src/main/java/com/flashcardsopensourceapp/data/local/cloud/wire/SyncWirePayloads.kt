@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.cloud.wire
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.CardWithRelations
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
+import com.flashcardsopensourceapp.data.local.database.entities.MediaAssetEntity
 import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
@@ -15,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.sync.DeckSyncPayload
 import com.flashcardsopensourceapp.data.local.model.cards.buildCardMetadataJsonObject
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
+import com.flashcardsopensourceapp.data.local.model.sync.MediaAssetSyncPayload
 import com.flashcardsopensourceapp.data.local.model.sync.ReviewEventSyncPayload
 import com.flashcardsopensourceapp.data.local.model.sync.SyncAction
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
@@ -104,6 +106,19 @@ internal fun buildReviewEventOutboxPayloadJson(reviewLog: ReviewLogEntity): JSON
         .put("rating", reviewLog.rating.ordinal)
         .put("reviewedAtClient", formatIsoTimestamp(reviewLog.reviewedAtMillis))
         .putNullableString("reviewedTimeZone", reviewLog.reviewedTimeZone)
+}
+
+internal fun buildMediaAssetOutboxPayloadJson(mediaAsset: MediaAssetEntity): JSONObject {
+    return JSONObject()
+        .put("mediaAssetId", mediaAsset.mediaAssetId)
+        .put("workspaceId", mediaAsset.workspaceId)
+        .put("mimeType", mediaAsset.mimeType)
+        .put("sizeBytes", mediaAsset.sizeBytes)
+        .put("sha256", mediaAsset.sha256)
+        .put("storageKey", mediaAsset.storageKey)
+        .putNullableString("sourceUrl", mediaAsset.sourceUrl)
+        .put("createdAt", formatIsoTimestamp(mediaAsset.createdAtMillis))
+        .putNullableString("deletedAt", mediaAsset.deletedAtMillis?.let(::formatIsoTimestamp))
 }
 
 internal fun buildCardBootstrapEntryJson(
@@ -196,6 +211,23 @@ internal fun buildWorkspaceSchedulerSettingsBootstrapEntryJson(
         )
 }
 
+internal fun buildMediaAssetBootstrapEntryJson(
+    mediaAsset: MediaAssetEntity,
+    lastOperationId: String
+): JSONObject {
+    return JSONObject()
+        .put("entityType", "media_asset")
+        .put("entityId", mediaAsset.mediaAssetId)
+        .put("action", "upsert")
+        .put(
+            "payload",
+            buildMediaAssetBootstrapPayloadJson(
+                mediaAsset = mediaAsset,
+                lastOperationId = lastOperationId
+            )
+        )
+}
+
 internal fun buildReviewHistoryImportEventJson(reviewLog: ReviewLogEntity): JSONObject {
     return JSONObject()
         .put("reviewEventId", reviewLog.reviewLogId)
@@ -281,6 +313,20 @@ internal fun decodeOutboxOperation(entry: OutboxEntryEntity): SyncOperation {
                 )
             )
 
+            SyncEntityType.MEDIA_ASSET -> SyncOperationPayload.MediaAsset(
+                MediaAssetSyncPayload(
+                    mediaAssetId = payloadJson.requireCloudString("mediaAssetId", "outbox.mediaAsset.mediaAssetId"),
+                    workspaceId = payloadJson.requireCloudString("workspaceId", "outbox.mediaAsset.workspaceId"),
+                    mimeType = payloadJson.requireCloudString("mimeType", "outbox.mediaAsset.mimeType"),
+                    sizeBytes = payloadJson.requireCloudLong("sizeBytes", "outbox.mediaAsset.sizeBytes"),
+                    sha256 = payloadJson.requireCloudString("sha256", "outbox.mediaAsset.sha256"),
+                    storageKey = payloadJson.requireCloudString("storageKey", "outbox.mediaAsset.storageKey"),
+                    sourceUrl = payloadJson.requireCloudNullableString("sourceUrl", "outbox.mediaAsset.sourceUrl"),
+                    createdAt = payloadJson.requireCloudString("createdAt", "outbox.mediaAsset.createdAt"),
+                    deletedAt = payloadJson.requireCloudNullableString("deletedAt", "outbox.mediaAsset.deletedAt")
+                )
+            )
+
             SyncEntityType.REVIEW_EVENT -> SyncOperationPayload.ReviewEvent(
                 ReviewEventSyncPayload(
                     reviewEventId = payloadJson.requireCloudString("reviewEventId", "outbox.reviewEvent.reviewEventId"),
@@ -321,6 +367,7 @@ internal fun parseSyncEntityType(rawValue: String): SyncEntityType {
         "card" -> SyncEntityType.CARD
         "deck" -> SyncEntityType.DECK
         "workspace_scheduler_settings" -> SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS
+        "media_asset" -> SyncEntityType.MEDIA_ASSET
         "review_event" -> SyncEntityType.REVIEW_EVENT
         else -> throw IllegalArgumentException("Unsupported sync entity type: $rawValue")
     }
@@ -389,6 +436,7 @@ internal fun SyncEntityType.toRemoteValue(): String {
         SyncEntityType.CARD -> "card"
         SyncEntityType.DECK -> "deck"
         SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> "workspace_scheduler_settings"
+        SyncEntityType.MEDIA_ASSET -> "media_asset"
         SyncEntityType.REVIEW_EVENT -> "review_event"
     }
 }
@@ -493,4 +541,15 @@ internal fun toCardSummary(card: CardWithRelations): CardSummary {
         fsrsScheduledDays = card.card.fsrsScheduledDays,
         deletedAtMillis = card.card.deletedAtMillis
     )
+}
+
+private fun buildMediaAssetBootstrapPayloadJson(
+    mediaAsset: MediaAssetEntity,
+    lastOperationId: String
+): JSONObject {
+    return buildMediaAssetOutboxPayloadJson(mediaAsset = mediaAsset)
+        .put("clientUpdatedAt", formatIsoTimestamp(mediaAsset.clientUpdatedAtMillis))
+        .put("lastModifiedByReplicaId", mediaAsset.lastModifiedByReplicaId)
+        .put("lastOperationId", lastOperationId)
+        .put("updatedAt", formatIsoTimestamp(mediaAsset.updatedAtMillis))
 }

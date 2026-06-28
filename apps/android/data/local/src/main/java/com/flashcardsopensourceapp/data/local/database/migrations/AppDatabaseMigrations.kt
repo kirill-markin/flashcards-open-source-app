@@ -40,7 +40,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration22To23,
         migration23To24,
         migration24To25,
-        migration25To26
+        migration25To26,
+        migration26To27
     )
 }
 
@@ -866,6 +867,53 @@ val migration25To26: Migration = object : Migration(25, 26) {
             """.trimIndent()
         )
         backfillCardMetadataJson(db = db)
+    }
+}
+
+val migration26To27: Migration = object : Migration(26, 27) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS media_assets (
+                mediaAssetId TEXT NOT NULL PRIMARY KEY,
+                workspaceId TEXT NOT NULL,
+                mimeType TEXT NOT NULL,
+                sizeBytes INTEGER NOT NULL,
+                sha256 TEXT NOT NULL,
+                storageKey TEXT NOT NULL,
+                sourceUrl TEXT,
+                createdAtMillis INTEGER NOT NULL,
+                clientUpdatedAtMillis INTEGER NOT NULL,
+                lastModifiedByReplicaId TEXT NOT NULL,
+                lastOperationId TEXT NOT NULL,
+                updatedAtMillis INTEGER NOT NULL,
+                deletedAtMillis INTEGER,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_media_assets_workspaceId ON media_assets(workspaceId)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_media_assets_storageKey ON media_assets(storageKey)")
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_media_assets_workspaceId_updatedAtMillis_mediaAssetId
+            ON media_assets(workspaceId, updatedAtMillis, mediaAssetId)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_media_assets_workspaceId_sha256_mediaAssetId
+            ON media_assets(workspaceId, sha256, mediaAssetId)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            UPDATE sync_state
+            SET lastSyncCursor = NULL,
+                hasHydratedHotState = 0
+            WHERE hasHydratedHotState = 1
+            """.trimIndent()
+        )
     }
 }
 

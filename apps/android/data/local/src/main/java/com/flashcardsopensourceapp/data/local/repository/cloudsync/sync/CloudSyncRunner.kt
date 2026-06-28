@@ -123,6 +123,7 @@ internal suspend fun runCloudSyncCore(
                         .put("appVersion", appVersion)
                         .put("afterHotChangeId", lastHotCursor)
                         .put("limit", syncPullPageLimit)
+                        .put("includeMediaAssets", true)
                 )
                 syncLocalStore.applyPullChanges(workspaceId, pullResponse.changes)
                 lastHotCursor = pullResponse.nextHotChangeId
@@ -276,6 +277,7 @@ private suspend fun runBootstrapHydrationWithForkRecovery(
                                 .put("installationId", cloudSettings.installationId)
                                 .put("platform", androidClientPlatform)
                                 .put("appVersion", appVersion)
+                                .put("includeMediaAssets", true)
                                 .put("entries", bootstrapEntries)
                         )
                         lastHotCursor = bootstrapPushResponse.bootstrapHotChangeId ?: lastHotCursor
@@ -604,6 +606,7 @@ private fun buildInitialBootstrapPullRequest(
         .put("appVersion", appVersion)
         .put("cursor", JSONObject.NULL)
         .put("limit", limit)
+        .put("includeMediaAssets", true)
 }
 
 private fun buildPagedBootstrapPullRequest(
@@ -619,6 +622,7 @@ private fun buildPagedBootstrapPullRequest(
         .put("appVersion", appVersion)
         .put("cursor", cursor)
         .put("limit", limit)
+        .put("includeMediaAssets", true)
 }
 
 private fun buildWorkspaceForkBlockedMessage(
@@ -711,6 +715,17 @@ private fun buildOperationPayload(payload: SyncOperationPayload): JSONObject {
             .put("maximumIntervalDays", payload.payload.maximumIntervalDays)
             .put("enableFuzz", payload.payload.enableFuzz)
 
+        is SyncOperationPayload.MediaAsset -> JSONObject()
+            .put("mediaAssetId", payload.payload.mediaAssetId)
+            .put("workspaceId", payload.payload.workspaceId)
+            .put("mimeType", payload.payload.mimeType)
+            .put("sizeBytes", payload.payload.sizeBytes)
+            .put("sha256", payload.payload.sha256)
+            .put("storageKey", payload.payload.storageKey)
+            .putNullableString("sourceUrl", payload.payload.sourceUrl)
+            .put("createdAt", payload.payload.createdAt)
+            .putNullableString("deletedAt", payload.payload.deletedAt)
+
         is SyncOperationPayload.ReviewEvent -> JSONObject()
             .put("reviewEventId", payload.payload.reviewEventId)
             .put("cardId", payload.payload.cardId)
@@ -730,6 +745,7 @@ private fun com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType.toR
         com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType.CARD -> "card"
         com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType.DECK -> "deck"
         com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> "workspace_scheduler_settings"
+        com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType.MEDIA_ASSET -> "media_asset"
         com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType.REVIEW_EVENT -> "review_event"
     }
 }

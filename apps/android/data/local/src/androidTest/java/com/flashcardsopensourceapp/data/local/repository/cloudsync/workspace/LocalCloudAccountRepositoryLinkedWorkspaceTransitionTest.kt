@@ -121,6 +121,7 @@ class LocalCloudAccountRepositoryLinkedWorkspaceTransitionTest {
         assertEquals(linkedWorkspace.workspaceId, environment.database.workspaceDao().loadAnyWorkspace()?.workspaceId)
         assertNotNull(environment.cloudPreferencesStore.loadCredentials())
         assertEquals(linkedWorkspace.workspaceId, remoteGateway.renameWorkspaceIds.single())
+        assertEquals(true, remoteGateway.bootstrapPullBodies.single().getBoolean("includeMediaAssets"))
         assertEquals("Renamed Linked Workspace", renamedWorkspace.name)
     }
 

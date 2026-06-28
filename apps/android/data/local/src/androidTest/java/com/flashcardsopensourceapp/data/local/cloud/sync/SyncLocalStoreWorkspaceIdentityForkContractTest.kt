@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
+import com.flashcardsopensourceapp.data.local.database.entities.MediaAssetEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
@@ -229,6 +230,88 @@ class SyncLocalStoreWorkspaceIdentityForkContractTest {
     }
 
     @Test
+    fun forkWorkspaceIdentityBlocksWhenWorkspaceHasMediaAssets(): Unit = runBlocking {
+        insertSyncContractWorkspaceShell(
+            database = database,
+            workspaceId = syncLocalStoreContractWorkspaceId
+        )
+        database.mediaAssetDao().insertMediaAsset(
+            createMediaAssetEntity(
+                mediaAssetId = "media-1",
+                workspaceId = syncLocalStoreContractWorkspaceId
+            )
+        )
+
+        try {
+            syncLocalStore.forkWorkspaceIdentity(
+                currentLocalWorkspaceId = syncLocalStoreContractWorkspaceId,
+                sourceWorkspaceId = syncLocalStoreContractWorkspaceId,
+                destinationWorkspace = CloudWorkspaceSummary(
+                    workspaceId = "workspace-2",
+                    name = "Forked",
+                    createdAtMillis = 2_000L,
+                    isSelected = true
+                )
+            )
+            throw AssertionError("Expected media asset registry rows to block workspace identity fork.")
+        } catch (error: IllegalArgumentException) {
+            assertEquals(
+                "Cannot fork workspace identity from workspace '$syncLocalStoreContractWorkspaceId' to " +
+                    "'workspace-2' because the source workspace has 1 media asset registry row(s). " +
+                    "Android cannot reassign workspace-scoped media storage keys in this sync/storage split.",
+                error.message
+            )
+        }
+
+        assertEquals(syncLocalStoreContractWorkspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertNotNull(database.mediaAssetDao().loadMediaAsset(mediaAssetId = "media-1"))
+        assertNull(database.workspaceDao().loadWorkspaceById(workspaceId = "workspace-2"))
+    }
+
+    @Test
+    fun forkWorkspaceIdentityBlocksWhenDestinationWorkspaceHasMediaAssets(): Unit = runBlocking {
+        insertSyncContractWorkspaceShell(
+            database = database,
+            workspaceId = syncLocalStoreContractWorkspaceId
+        )
+        insertSyncContractWorkspaceShell(
+            database = database,
+            workspaceId = "workspace-2"
+        )
+        database.mediaAssetDao().insertMediaAsset(
+            createMediaAssetEntity(
+                mediaAssetId = "media-destination-1",
+                workspaceId = "workspace-2"
+            )
+        )
+
+        try {
+            syncLocalStore.forkWorkspaceIdentity(
+                currentLocalWorkspaceId = syncLocalStoreContractWorkspaceId,
+                sourceWorkspaceId = syncLocalStoreContractWorkspaceId,
+                destinationWorkspace = CloudWorkspaceSummary(
+                    workspaceId = "workspace-2",
+                    name = "Forked",
+                    createdAtMillis = 2_000L,
+                    isSelected = true
+                )
+            )
+            throw AssertionError("Expected destination media asset registry rows to block workspace identity fork.")
+        } catch (error: IllegalArgumentException) {
+            assertEquals(
+                "Cannot fork workspace identity from workspace '$syncLocalStoreContractWorkspaceId' to " +
+                    "'workspace-2' because the destination workspace has 1 media asset registry row(s). " +
+                    "Android cannot delete or reassign workspace-scoped media storage keys in this sync/storage split.",
+                error.message
+            )
+        }
+
+        assertNotNull(database.workspaceDao().loadWorkspaceById(workspaceId = syncLocalStoreContractWorkspaceId))
+        assertNotNull(database.workspaceDao().loadWorkspaceById(workspaceId = "workspace-2"))
+        assertNotNull(database.mediaAssetDao().loadMediaAsset(mediaAssetId = "media-destination-1"))
+    }
+
+    @Test
     fun forkWorkspaceIdentityRewritesCurrentLocalShellUsingSourceNamespace(): Unit = runBlocking {
         insertSyncContractWorkspaceShell(
             database = database,
@@ -407,4 +490,26 @@ class SyncLocalStoreWorkspaceIdentityForkContractTest {
             outboxEntries.map { entry -> entry.operation.entityId }.toSet()
         )
     }
+}
+
+private fun createMediaAssetEntity(
+    mediaAssetId: String,
+    workspaceId: String
+): MediaAssetEntity {
+    val sha256 = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8"
+    return MediaAssetEntity(
+        mediaAssetId = mediaAssetId,
+        workspaceId = workspaceId,
+        mimeType = "image/png",
+        sizeBytes = 12L,
+        sha256 = sha256,
+        storageKey = "media-assets/workspaces/$workspaceId/assets/$mediaAssetId/$sha256",
+        sourceUrl = null,
+        createdAtMillis = 1L,
+        clientUpdatedAtMillis = 2L,
+        lastModifiedByReplicaId = "replica-1",
+        lastOperationId = "operation-1",
+        updatedAtMillis = 3L,
+        deletedAtMillis = null
+    )
 }

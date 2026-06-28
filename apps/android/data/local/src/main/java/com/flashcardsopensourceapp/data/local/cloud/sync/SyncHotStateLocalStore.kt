@@ -5,9 +5,11 @@ import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
+import com.flashcardsopensourceapp.data.local.database.entities.MediaAssetEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteSyncChange
+import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.cloud.wire.legacyEffortTag
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudDoubleOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudIntOrNull
@@ -23,7 +25,9 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudDouble
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudIsoTimestampMillis
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudLong
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableIsoTimestampMillis
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.cloud.wire.toCloudIntList
@@ -67,6 +71,11 @@ internal class SyncHotStateLocalStore(
                 fieldPath = fieldPath
             )
 
+            SyncEntityType.MEDIA_ASSET -> applyRemoteMediaAsset(
+                workspaceId = workspaceId,
+                payload = payload,
+                fieldPath = fieldPath
+            )
             SyncEntityType.REVIEW_EVENT -> error("Hot-state payload unexpectedly contained review event.")
         }
     }
@@ -159,6 +168,39 @@ internal class SyncHotStateLocalStore(
                 maximumIntervalDays = payload.requireCloudInt("maximumIntervalDays", "$fieldPath.maximumIntervalDays"),
                 enableFuzz = payload.requireCloudBoolean("enableFuzz", "$fieldPath.enableFuzz"),
                 updatedAtMillis = payload.requireCloudIsoTimestampMillis("clientUpdatedAt", "$fieldPath.clientUpdatedAt")
+            )
+        )
+    }
+
+    private suspend fun applyRemoteMediaAsset(workspaceId: String, payload: JSONObject, fieldPath: String) {
+        val payloadWorkspaceId = payload.requireCloudString("workspaceId", "$fieldPath.workspaceId")
+        if (payloadWorkspaceId != workspaceId) {
+            throw CloudContractMismatchException(
+                "Cloud contract mismatch for $fieldPath.workspaceId: expected \"$workspaceId\", got \"$payloadWorkspaceId\""
+            )
+        }
+
+        database.mediaAssetDao().insertMediaAsset(
+            mediaAsset = MediaAssetEntity(
+                mediaAssetId = payload.requireCloudString("mediaAssetId", "$fieldPath.mediaAssetId"),
+                workspaceId = payloadWorkspaceId,
+                mimeType = payload.requireCloudString("mimeType", "$fieldPath.mimeType"),
+                sizeBytes = payload.requireCloudLong("sizeBytes", "$fieldPath.sizeBytes"),
+                sha256 = payload.requireCloudString("sha256", "$fieldPath.sha256"),
+                storageKey = payload.requireCloudString("storageKey", "$fieldPath.storageKey"),
+                sourceUrl = payload.requireCloudNullableString("sourceUrl", "$fieldPath.sourceUrl"),
+                createdAtMillis = payload.requireCloudIsoTimestampMillis("createdAt", "$fieldPath.createdAt"),
+                clientUpdatedAtMillis = payload.requireCloudIsoTimestampMillis(
+                    "clientUpdatedAt",
+                    "$fieldPath.clientUpdatedAt"
+                ),
+                lastModifiedByReplicaId = payload.requireCloudString(
+                    "lastModifiedByReplicaId",
+                    "$fieldPath.lastModifiedByReplicaId"
+                ),
+                lastOperationId = payload.requireCloudString("lastOperationId", "$fieldPath.lastOperationId"),
+                updatedAtMillis = payload.requireCloudIsoTimestampMillis("updatedAt", "$fieldPath.updatedAt"),
+                deletedAtMillis = payload.requireCloudNullableIsoTimestampMillis("deletedAt", "$fieldPath.deletedAt")
             )
         )
     }

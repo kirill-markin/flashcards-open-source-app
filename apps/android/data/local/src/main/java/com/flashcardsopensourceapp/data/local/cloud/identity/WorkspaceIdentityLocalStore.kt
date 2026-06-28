@@ -66,7 +66,8 @@ internal class WorkspaceIdentityLocalStore(
                     reviewEventId = entityId
                 )
 
-                SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> throw IllegalArgumentException(
+                SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS,
+                SyncEntityType.MEDIA_ASSET -> throw IllegalArgumentException(
                     "Cannot recover workspace fork conflict for unsupported entity type " +
                         "'${entityType.toRemoteValue()}' in workspace '$workspaceId'."
                 )
@@ -289,6 +290,12 @@ internal class WorkspaceIdentityLocalStore(
         ) {
             "Cannot fork workspace identity because current local workspace '$currentLocalWorkspaceId' does not exist."
         }
+        val mediaAssetCount = database.mediaAssetDao().countMediaAssets(workspaceId = currentLocalWorkspaceId)
+        require(mediaAssetCount == 0) {
+            "Cannot fork workspace identity from workspace '$currentLocalWorkspaceId' to " +
+                "'${destinationWorkspace.workspaceId}' because the source workspace has $mediaAssetCount media asset " +
+                "registry row(s). Android cannot reassign workspace-scoped media storage keys in this sync/storage split."
+        }
         val snapshot = loadWorkspaceForkSnapshot(workspaceId = currentLocalWorkspaceId)
         val forkMappings = buildWorkspaceForkIdMappings(
             sourceWorkspaceId = sourceWorkspaceId,
@@ -298,6 +305,16 @@ internal class WorkspaceIdentityLocalStore(
             reviewLogs = snapshot.reviewLogs
         )
         val destinationMatchesCurrentWorkspace = currentLocalWorkspaceId == destinationWorkspace.workspaceId
+        if (destinationMatchesCurrentWorkspace.not()) {
+            val destinationMediaAssetCount = database.mediaAssetDao()
+                .countMediaAssets(workspaceId = destinationWorkspace.workspaceId)
+            require(destinationMediaAssetCount == 0) {
+                "Cannot fork workspace identity from workspace '$currentLocalWorkspaceId' to " +
+                    "'${destinationWorkspace.workspaceId}' because the destination workspace has " +
+                    "$destinationMediaAssetCount media asset registry row(s). Android cannot delete or reassign " +
+                    "workspace-scoped media storage keys in this sync/storage split."
+            }
+        }
 
         if (destinationMatchesCurrentWorkspace) {
             database.workspaceDao().updateWorkspace(
