@@ -876,9 +876,10 @@ private fun parseSyncConflictEntityType(rawValue: String, fieldPath: String): Sy
     return when (rawValue) {
         "card" -> SyncEntityType.CARD
         "deck" -> SyncEntityType.DECK
+        "media_asset" -> SyncEntityType.MEDIA_ASSET
         "review_event" -> SyncEntityType.REVIEW_EVENT
         else -> throw CloudContractMismatchException(
-            "Cloud contract mismatch for $fieldPath: expected one of [card, deck, review_event], got invalid string \"$rawValue\""
+            "Cloud contract mismatch for $fieldPath: expected one of [card, deck, media_asset, review_event], got invalid string \"$rawValue\""
         )
     }
 }

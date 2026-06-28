@@ -18,6 +18,7 @@ internal fun createSyncWorkspaceForkRequiredError(
     val remoteEntityType = when (entityType) {
         SyncEntityType.CARD -> "card"
         SyncEntityType.DECK -> "deck"
+        SyncEntityType.MEDIA_ASSET -> "media_asset"
         SyncEntityType.REVIEW_EVENT -> "review_event"
         SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> "workspace_scheduler_settings"
     }

@@ -485,6 +485,7 @@ class CloudGuestSessionCoordinator(
                 .put("appVersion", appVersion)
                 .put("cursor", org.json.JSONObject.NULL)
                 .put("limit", 1)
+                .put("includeMediaAssets", true)
         )
     }
 

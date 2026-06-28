@@ -549,6 +549,7 @@ class CloudGuestSessionCoordinatorTest {
 
         assertEquals(0, remoteGateway.completeGuestUpgradeCalls)
         assertEquals(listOf(linkedWorkspace.workspaceId), remoteGateway.bootstrapPullWorkspaceIds)
+        assertEquals(true, remoteGateway.bootstrapPullBodies.single().getBoolean("includeMediaAssets"))
         assertEquals(
             CloudAccountState.LINKED,
             restartedRuntime.cloudPreferencesStore.currentCloudSettings().cloudState

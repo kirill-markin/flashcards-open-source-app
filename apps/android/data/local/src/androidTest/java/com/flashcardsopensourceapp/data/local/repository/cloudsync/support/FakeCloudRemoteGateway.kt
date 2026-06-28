@@ -377,6 +377,7 @@ internal class FakeCloudRemoteGateway private constructor(
     val pullBodies = mutableListOf<JSONObject>()
     val pullReviewHistoryBodies = mutableListOf<JSONObject>()
     val bootstrapPullWorkspaceIds = mutableListOf<String>()
+    val bootstrapPullBodies = mutableListOf<JSONObject>()
     val bootstrapPushBodies = mutableListOf<JSONObject>()
     val importReviewHistoryBodies = mutableListOf<JSONObject>()
     val createdWorkspaceId: String = createdWorkspace.workspaceId
@@ -713,6 +714,7 @@ internal class FakeCloudRemoteGateway private constructor(
         }
         syncRequestEvents += "bootstrap_pull"
         bootstrapPullWorkspaceIds += workspaceId
+        bootstrapPullBodies += JSONObject(body.toString())
         return RemoteBootstrapPullResponse(
             entries = emptyList(),
             nextCursor = null,

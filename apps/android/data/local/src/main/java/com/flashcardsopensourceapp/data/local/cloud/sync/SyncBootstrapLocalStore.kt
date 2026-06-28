@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapEntry
 import com.flashcardsopensourceapp.data.local.cloud.wire.buildCardBootstrapEntryJson
 import com.flashcardsopensourceapp.data.local.cloud.wire.buildDeckBootstrapEntryJson
+import com.flashcardsopensourceapp.data.local.cloud.wire.buildMediaAssetBootstrapEntryJson
 import com.flashcardsopensourceapp.data.local.cloud.wire.buildReviewHistoryImportEventJson
 import com.flashcardsopensourceapp.data.local.cloud.wire.buildWorkspaceSchedulerSettingsBootstrapEntryJson
 import com.flashcardsopensourceapp.data.local.cloud.wire.toCardSummary
@@ -49,6 +50,16 @@ internal class SyncBootstrapLocalStore(
                     buildDeckBootstrapEntryJson(
                         deck = deck,
                         lastOperationId = UUID.randomUUID().toString()
+                    )
+                )
+            }
+
+        database.mediaAssetDao().loadMediaAssets(workspaceId = workspaceId)
+            .forEach { mediaAsset ->
+                entries.put(
+                    buildMediaAssetBootstrapEntryJson(
+                        mediaAsset = mediaAsset,
+                        lastOperationId = mediaAsset.lastOperationId
                     )
                 )
             }
@@ -130,7 +141,8 @@ internal fun SyncEntityType.toPendingLocalHotEntityKey(entityId: String): Pendin
     return when (this) {
         SyncEntityType.CARD,
         SyncEntityType.DECK,
-        SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> PendingLocalHotEntityKey(
+        SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS,
+        SyncEntityType.MEDIA_ASSET -> PendingLocalHotEntityKey(
             entityType = this,
             entityId = entityId
         )

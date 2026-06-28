@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.AppLocalSettings
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
+import com.flashcardsopensourceapp.data.local.database.entities.MediaAssetEntity
 import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressLeaderboardCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ProgressLocalCacheStateEntity
@@ -29,6 +30,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.database.migrations.createAppDatabaseMigrations
+import com.flashcardsopensourceapp.data.local.database.media.MediaAssetDao
 import com.flashcardsopensourceapp.data.local.database.progress.ProgressCardDao
 import com.flashcardsopensourceapp.data.local.database.progress.ProgressLocalCacheDao
 import com.flashcardsopensourceapp.data.local.database.progress.ProgressRemoteCacheDao
@@ -47,6 +49,7 @@ private const val appDatabaseName: String = "flashcards-android.db"
         WorkspaceEntity::class,
         WorkspaceSchedulerSettingsEntity::class,
         DeckEntity::class,
+        MediaAssetEntity::class,
         CardEntity::class,
         TagEntity::class,
         CardTagEntity::class,
@@ -62,7 +65,7 @@ private const val appDatabaseName: String = "flashcards-android.db"
         ProgressReviewHistoryStateEntity::class,
         ProgressLocalCacheStateEntity::class
     ],
-    version = 26,
+    version = 27,
     exportSchema = false
 )
 @TypeConverters(DatabaseTypeConverters::class)
@@ -71,6 +74,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workspaceDao(): WorkspaceDao
     abstract fun workspaceSchedulerSettingsDao(): WorkspaceSchedulerSettingsDao
     abstract fun deckDao(): DeckDao
+    abstract fun mediaAssetDao(): MediaAssetDao
     abstract fun cardDao(): CardDao
     abstract fun reviewQueueDao(): ReviewQueueDao
     abstract fun reviewCardSelectionDao(): ReviewCardSelectionDao

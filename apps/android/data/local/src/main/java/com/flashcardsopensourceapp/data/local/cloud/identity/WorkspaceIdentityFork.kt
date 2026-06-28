@@ -153,6 +153,10 @@ internal fun rewriteOutboxEntryForFork(
             entityType = "review_event",
             sourceId = entry.entityId
         )
+
+        SyncEntityType.MEDIA_ASSET -> throw IllegalArgumentException(
+            "Cannot rewrite media_asset outbox entry '${entry.outboxEntryId}' during workspace identity fork."
+        )
     }
     when (entityType) {
         SyncEntityType.CARD -> {
@@ -196,6 +200,10 @@ internal fun rewriteOutboxEntryForFork(
                 )
             )
         }
+
+        SyncEntityType.MEDIA_ASSET -> throw IllegalArgumentException(
+            "Cannot rewrite media_asset outbox entry '${entry.outboxEntryId}' during workspace identity fork."
+        )
     }
     return entry.copy(
         workspaceId = destinationWorkspaceId,
@@ -267,6 +275,7 @@ internal fun rewriteOutboxEntryForWorkspaceForkEntityReId(
         }
 
         SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> Unit
+        SyncEntityType.MEDIA_ASSET -> Unit
     }
 
     return if (changed) {

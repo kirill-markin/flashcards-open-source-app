@@ -329,9 +329,10 @@ private fun parseRemoteSyncEntityType(rawValue: String, fieldPath: String): Sync
         "card" -> SyncEntityType.CARD
         "deck" -> SyncEntityType.DECK
         "workspace_scheduler_settings" -> SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS
+        "media_asset" -> SyncEntityType.MEDIA_ASSET
         "review_event" -> SyncEntityType.REVIEW_EVENT
         else -> throw CloudContractMismatchException(
-            "Cloud contract mismatch for $fieldPath: expected one of [card, deck, workspace_scheduler_settings, review_event], got invalid string \"$rawValue\""
+            "Cloud contract mismatch for $fieldPath: expected one of [card, deck, workspace_scheduler_settings, media_asset, review_event], got invalid string \"$rawValue\""
         )
     }
 }

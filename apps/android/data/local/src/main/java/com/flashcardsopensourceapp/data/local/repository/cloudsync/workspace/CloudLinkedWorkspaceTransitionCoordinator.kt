@@ -282,6 +282,7 @@ internal class CloudLinkedWorkspaceTransitionCoordinator(
                 .put("appVersion", appVersion)
                 .put("cursor", JSONObject.NULL)
                 .put("limit", 1)
+                .put("includeMediaAssets", true)
         ).remoteIsEmpty
     }
 
