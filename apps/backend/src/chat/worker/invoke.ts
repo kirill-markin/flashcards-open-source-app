@@ -147,6 +147,8 @@ function createChatWorkerDispatchFailedEvent(
       payload.chatRequestId ?? null,
       payload.runId,
       payload.sessionId ?? null,
+      null,
+      null,
     ),
     details: {
       message,

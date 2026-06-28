@@ -521,6 +521,8 @@ export async function executeAdminQuery(
     null,
     null,
     null,
+    null,
+    null,
   );
   const sqlFingerprint = getAdminQueryFingerprint(params.sql);
   const startedAt = Date.now();

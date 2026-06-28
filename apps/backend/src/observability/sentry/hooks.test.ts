@@ -103,6 +103,8 @@ test("backend Sentry beforeSend drops automatic recaptures of manually captured 
         null,
         "run-1",
         null,
+        null,
+        null,
       ),
       details: {
         lambdaRequestId: "lambda-request-1",
@@ -488,6 +490,8 @@ test("backend Sentry scope preserves raw backend identifiers before capture", ()
       safeChatRequestId,
       "run-1",
       "session-1",
+      null,
+      null,
     ),
   );
 
@@ -528,6 +532,8 @@ test("backend Sentry scope preserves raw backend identifiers before capture", ()
       safeRequestId,
       "/v1/cards",
       "POST",
+      null,
+      null,
       null,
       null,
       null,

@@ -25,6 +25,8 @@ export function setSentryScope(scope: Sentry.Scope, observationScope: BackendObs
   const chatRequestId = getScopeTagValue(observationScope.chatRequestId);
   const runId = getScopeTagValue(observationScope.runId);
   const sessionId = getScopeTagValue(observationScope.sessionId);
+  const clientAppVersion = getScopeTagValue(observationScope.clientAppVersion);
+  const clientPlatform = getScopeTagValue(observationScope.clientPlatform);
 
   if (requestId !== undefined) scope.setTag("requestId", requestId);
   if (route !== undefined) scope.setTag("route", route);
@@ -34,6 +36,8 @@ export function setSentryScope(scope: Sentry.Scope, observationScope: BackendObs
   if (chatRequestId !== undefined) scope.setTag("chatRequestId", chatRequestId);
   if (runId !== undefined) scope.setTag("runId", runId);
   if (sessionId !== undefined) scope.setTag("sessionId", sessionId);
+  if (clientAppVersion !== undefined) scope.setTag("clientAppVersion", clientAppVersion);
+  if (clientPlatform !== undefined) scope.setTag("clientPlatform", clientPlatform);
   if (userId !== undefined) scope.setUser({ id: userId });
 
   scope.setContext(
@@ -62,6 +66,8 @@ export function createBackendObservationScope(
   chatRequestId: string | null,
   runId: string | null,
   sessionId: string | null,
+  clientAppVersion: string | null,
+  clientPlatform: string | null,
 ): BackendObservationScope {
   return {
     service,
@@ -73,6 +79,8 @@ export function createBackendObservationScope(
     chatRequestId,
     runId,
     sessionId,
+    clientAppVersion,
+    clientPlatform,
   };
 }
 
@@ -84,6 +92,8 @@ export function createBackendRuntimeObservationScope(): BackendObservationScope 
 
   return createBackendObservationScope(
     currentBackendService,
+    null,
+    null,
     null,
     null,
     null,

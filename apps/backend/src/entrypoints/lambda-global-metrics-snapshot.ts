@@ -80,6 +80,8 @@ const globalMetricsSnapshotHandler: Handler<
     null,
     null,
     null,
+    null,
+    null,
   );
   try {
     const runtime = await getGlobalMetricsSnapshotRuntime();

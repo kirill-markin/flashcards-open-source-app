@@ -99,6 +99,8 @@ test("withReportingReadOnlyTransaction preserves original error when rollback cl
       chatRequestId: null,
       runId: null,
       sessionId: null,
+      clientAppVersion: null,
+      clientPlatform: null,
       originalSqlState: "42601",
       originalErrorCode: "42601",
       originalErrorClass: "Error",

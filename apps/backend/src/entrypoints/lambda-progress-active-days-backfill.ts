@@ -133,6 +133,8 @@ const progressActiveDaysBackfillHandler: Handler<
     null,
     null,
     null,
+    null,
+    null,
   );
   let request: Readonly<{ batchSize: number; maxPages: number }> | null = null;
   try {

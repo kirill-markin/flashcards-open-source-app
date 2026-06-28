@@ -94,6 +94,8 @@ const backendApiBootstrapHandler: BackendApiHandler = async (event, context) => 
     null,
     null,
     null,
+    null,
+    null,
   );
   let runtime: BackendApiRuntime | null = null;
   try {

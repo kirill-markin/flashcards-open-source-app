@@ -98,7 +98,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
       const result = await processSyncPushFn(workspaceId, requestContext.userId, input);
       addBackendBreadcrumb({
         action: "sync_push",
-        scope: createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
+        scope: createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: {
           statusCode: 200,
           installationId: input.installationId,
@@ -110,7 +110,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
       });
       return context.json(result);
     } catch (error) {
-      const scope = createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const scope = createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         installationId: input.installationId,
         platform: input.platform,
@@ -169,6 +169,8 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
           context.req.method,
           getRequestContextUserId(requestContext),
           workspaceId,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
         ),
       );
       addBackendBreadcrumb({
@@ -179,6 +181,8 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
           context.req.method,
           routeState.requestContext.userId,
           routeState.workspaceId,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
         ),
         details: {
           statusCode: 200,
@@ -198,6 +202,8 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         context.req.method,
         getRequestContextUserId(requestContext),
         workspaceId,
+        context.get("clientAppVersion"),
+        context.get("clientPlatform"),
       );
       const details = {
         ...getSyncPullInputDetails(input),
@@ -228,13 +234,13 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
       const durationMs = Date.now() - startedAtMs;
       addBackendBreadcrumb({
         action: "sync_bootstrap",
-        scope: createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
+        scope: createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: buildSyncBootstrapDetails(input, result, durationMs),
       });
       return context.json(result);
     } catch (error) {
       const durationMs = Date.now() - startedAtMs;
-      const scope = createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const scope = createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         ...getSyncBootstrapFailureInputDetails(input, durationMs),
         ...createBackendFailureDetails(error),
@@ -289,6 +295,8 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
           context.req.method,
           getRequestContextUserId(requestContext),
           workspaceId,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
         ),
       );
       addBackendBreadcrumb({
@@ -299,6 +307,8 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
           context.req.method,
           routeState.requestContext.userId,
           routeState.workspaceId,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
         ),
         details: {
           statusCode: 200,
@@ -318,6 +328,8 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         context.req.method,
         getRequestContextUserId(requestContext),
         workspaceId,
+        context.get("clientAppVersion"),
+        context.get("clientPlatform"),
       );
       const details = {
         ...getSyncReviewHistoryPullInputDetails(input),
@@ -346,7 +358,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
       const result = await processSyncReviewHistoryImport(workspaceId, requestContext.userId, input);
       addBackendBreadcrumb({
         action: "sync_review_history_import",
-        scope: createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
+        scope: createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: {
           statusCode: 200,
           installationId: input.installationId,
@@ -359,7 +371,7 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
       });
       return context.json(result);
     } catch (error) {
-      const scope = createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const scope = createSyncScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         installationId: input.installationId,
         platform: input.platform,

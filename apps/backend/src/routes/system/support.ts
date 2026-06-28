@@ -157,6 +157,8 @@ export function createSystemScope(
   route: string,
   method: string,
   userId: string,
+  clientAppVersion: string | null,
+  clientPlatform: string | null,
 ): BackendObservationScope {
   return createBackendObservationScope(
     "backend-api",
@@ -168,5 +170,7 @@ export function createSystemScope(
     null,
     null,
     null,
+    clientAppVersion,
+    clientPlatform,
   );
 }

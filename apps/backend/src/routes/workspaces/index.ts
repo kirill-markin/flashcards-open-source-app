@@ -124,7 +124,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
         );
       addBackendBreadcrumb({
         action: "workspaces_list",
-        scope: createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, null),
+        scope: createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, null, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: {
           statusCode: 200,
           selectedWorkspaceId: requestContext.selectedWorkspaceId,
@@ -145,7 +145,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
         nextCursor: workspacesPage.nextCursor,
       } satisfies WorkspacesPageResponse);
     } catch (error) {
-      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, null);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, null, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         selectedWorkspaceId: requestContext.selectedWorkspaceId,
         workspacesCount: null,
@@ -189,6 +189,8 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
             context.req.method,
             currentRequestContext.userId,
             null,
+            context.get("clientAppVersion"),
+            context.get("clientPlatform"),
           );
           const workspace = shouldUseAgentSetupEnvelope(currentRequestContext.transport)
             ? await createWorkspaceForApiKeyConnectionWithObservationScopeFn(
@@ -210,6 +212,8 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
           context.req.method,
           getRequestContextUserId(requestContext),
           null,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
         ),
       );
       addBackendBreadcrumb({
@@ -220,6 +224,8 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
           context.req.method,
           routeState.requestContext.userId,
           routeState.workspace.workspaceId,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
         ),
         details: {
           statusCode: 201,
@@ -236,6 +242,8 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
         context.req.method,
         getRequestContextUserId(requestContext),
         null,
+        context.get("clientAppVersion"),
+        context.get("clientPlatform"),
       );
       const details = {
         ...createBackendFailureDetails(error),
@@ -264,7 +272,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
         : await selectWorkspaceForUser(requestContext.userId, workspaceId);
       addBackendBreadcrumb({
         action: "workspace_select",
-        scope: createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
+        scope: createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: {
           statusCode: 200,
         },
@@ -274,7 +282,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
       }
       return context.json({ workspace });
     } catch (error) {
-      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         ...createBackendFailureDetails(error),
       };
@@ -304,14 +312,14 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
       );
       addBackendBreadcrumb({
         action: "workspace_rename",
-        scope: createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId),
+        scope: createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: {
           statusCode: 200,
         },
       });
       return context.json({ workspace });
     } catch (error) {
-      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         ...createBackendFailureDetails(error),
       };
@@ -331,7 +339,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
     const requestId = context.get("requestId");
 
     try {
-      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const preview = await loadWorkspaceDeletePreviewForUserWithObservationScope(
         requestContext.userId,
         workspaceId,
@@ -347,7 +355,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
       });
       return context.json(preview satisfies WorkspaceDeletePreview);
     } catch (error) {
-      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         cardsCount: null,
         ...createBackendFailureDetails(error),
@@ -377,7 +385,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
     }
 
     try {
-      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const response = await deleteWorkspaceForUserWithObservationScope(
         requestContext.userId,
         workspaceId,
@@ -395,7 +403,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
       });
       return context.json(response satisfies WorkspaceDeleteResponse);
     } catch (error) {
-      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         deletedCardsCount: null,
         nextWorkspaceId: null,
@@ -417,7 +425,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
     const requestId = context.get("requestId");
 
     try {
-      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const preview = await loadWorkspaceResetProgressPreviewForUserWithObservationScope(
         requestContext.userId,
         workspaceId,
@@ -433,7 +441,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
       });
       return context.json(preview satisfies WorkspaceResetProgressPreviewResponse);
     } catch (error) {
-      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         cardsCount: null,
         ...createBackendFailureDetails(error),
@@ -463,7 +471,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
     }
 
     try {
-      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const response = await resetWorkspaceProgressForUserWithObservationScope(
         requestContext.userId,
         workspaceId,
@@ -480,7 +488,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
       });
       return context.json(response satisfies WorkspaceResetProgressResponse);
     } catch (error) {
-      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId);
+      const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         cardsResetCount: null,
         ...createBackendFailureDetails(error),

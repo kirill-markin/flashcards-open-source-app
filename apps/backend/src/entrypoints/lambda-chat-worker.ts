@@ -81,6 +81,8 @@ const chatWorkerHandler: Handler<ChatWorkerEvent, void> = async (event, context)
     event.chatRequestId ?? null,
     event.runId,
     event.sessionId ?? null,
+    null,
+    null,
   );
   let runtimeHttpError: HttpErrorClass | null = null;
   let runtime: ChatWorkerRuntime | null = null;

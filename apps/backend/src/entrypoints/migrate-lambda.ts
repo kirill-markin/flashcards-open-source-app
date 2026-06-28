@@ -70,6 +70,8 @@ const migrationHandler: Handler<unknown, MigrationLambdaResult> = async (_event,
         null,
         null,
         null,
+        null,
+        null,
       ),
       details: createMigrationFailureDetails(normalizedError),
     });

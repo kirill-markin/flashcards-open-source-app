@@ -154,6 +154,8 @@ function logSuspiciousGuestUpgradeReplay(
       null,
       null,
       guestSessionId,
+      null,
+      null,
     ),
     details: {
       reason,

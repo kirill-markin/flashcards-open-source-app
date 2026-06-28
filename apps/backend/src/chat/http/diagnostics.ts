@@ -67,6 +67,8 @@ export function logChatResumeContractViolation(
       null,
       null,
       details.sessionId,
+      diagnostics.clientVersion,
+      diagnostics.clientPlatform,
     ),
     details: {
       path,
@@ -97,6 +99,7 @@ export function captureUnexpectedChatLiveEnvelopeError(
   error: unknown,
 ): void {
   const path = new URL(request.url).pathname;
+  const diagnostics = readChatResumeDiagnosticsHeaders(request);
   captureBackendException({
     action: "request_failed",
     error: normalizeCaughtError(error),
@@ -110,6 +113,8 @@ export function captureUnexpectedChatLiveEnvelopeError(
       null,
       runId,
       sessionId,
+      diagnostics.clientVersion,
+      diagnostics.clientPlatform,
     ),
     details: {
       statusCode: 500,

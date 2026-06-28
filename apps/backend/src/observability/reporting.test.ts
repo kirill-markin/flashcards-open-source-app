@@ -50,6 +50,8 @@ test("backend reporting records auth errors as breadcrumbs", () => {
       null,
       null,
       null,
+      null,
+      null,
     );
     const details = {
       installationId: null,
@@ -95,6 +97,8 @@ test("backend reporting keeps non-server http errors as breadcrumbs", () => {
       null,
       null,
       null,
+      null,
+      null,
     );
     const details = createBackendFailureDetails(error);
     const breadcrumbMessages = withCapturedConsole("log", () => {
@@ -131,6 +135,8 @@ test("backend reporting does not recapture already captured exceptions", () => {
       "workspace-1",
       null,
       "run-1",
+      null,
+      null,
       null,
     );
     const event = {
@@ -189,6 +195,8 @@ test("backend reporting recognizes repeated normalized non-Error throws", () => 
       "POST",
       "user-2",
       "workspace-2",
+      null,
+      null,
       null,
       null,
       null,
@@ -267,6 +275,8 @@ test("backend reporting treats temporary auth verification failures as expected"
       "POST",
       "user-3",
       "workspace-1",
+      null,
+      null,
       null,
       null,
       null,

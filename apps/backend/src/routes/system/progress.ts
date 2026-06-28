@@ -74,7 +74,7 @@ export function registerProgressRoutes(
 
       addBackendBreadcrumb({
         action: "me_progress_summary",
-        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId),
+        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: {
           statusCode: 200,
           authTransport: requestContext.transport,
@@ -97,7 +97,7 @@ export function registerProgressRoutes(
 
       return context.json(progress satisfies ProgressSummaryResponse);
     } catch (error) {
-      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId);
+      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         authTransport: requestContext.transport,
         timeZone: requestedParameters.timeZone,
@@ -145,7 +145,7 @@ export function registerProgressRoutes(
 
       addBackendBreadcrumb({
         action: "me_progress_review_schedule",
-        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId),
+        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: {
           statusCode: 200,
           authTransport: requestContext.transport,
@@ -158,7 +158,7 @@ export function registerProgressRoutes(
 
       return context.json(progress satisfies ProgressReviewSchedule);
     } catch (error) {
-      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId);
+      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         authTransport: requestContext.transport,
         timeZone: requestedParameters.timeZone,
@@ -199,7 +199,7 @@ export function registerProgressRoutes(
 
       addBackendBreadcrumb({
         action: "me_progress_series",
-        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId),
+        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: {
           statusCode: 200,
           authTransport: requestContext.transport,
@@ -214,7 +214,7 @@ export function registerProgressRoutes(
 
       return context.json(progress satisfies ProgressSeries);
     } catch (error) {
-      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId);
+      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         authTransport: requestContext.transport,
         timeZone: requestedParameters.timeZone,
@@ -254,7 +254,7 @@ export function registerProgressRoutes(
 
       addBackendBreadcrumb({
         action: "me_progress_leaderboard",
-        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId),
+        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: {
           statusCode: 200,
           authTransport: requestContext.transport,
@@ -267,7 +267,7 @@ export function registerProgressRoutes(
 
       return context.json(leaderboard satisfies ProgressLeaderboard);
     } catch (error) {
-      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId);
+      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         authTransport: requestContext.transport,
         status: null,
@@ -306,7 +306,7 @@ export function registerProgressRoutes(
 
       addBackendBreadcrumb({
         action: "me_progress_leaderboard_profile",
-        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId),
+        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: {
           statusCode: 200,
           authTransport: requestContext.transport,
@@ -323,7 +323,7 @@ export function registerProgressRoutes(
 
       return context.json(profile satisfies LeaderboardProfile);
     } catch (error) {
-      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId);
+      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         authTransport: requestContext.transport,
         status: null,
@@ -363,7 +363,7 @@ export function registerProgressRoutes(
 
       addBackendBreadcrumb({
         action: "me_progress_streak_leaderboard",
-        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId),
+        scope: createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId, context.get("clientAppVersion"), context.get("clientPlatform")),
         details: {
           statusCode: 200,
           authTransport: requestContext.transport,
@@ -375,7 +375,7 @@ export function registerProgressRoutes(
 
       return context.json(leaderboard satisfies StreakLeaderboard);
     } catch (error) {
-      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId);
+      const scope = createSystemScope(requestId, context.req.path, context.req.method, requestContext.userId, context.get("clientAppVersion"), context.get("clientPlatform"));
       const details = {
         authTransport: requestContext.transport,
         status: null,

@@ -192,6 +192,8 @@ test("GET /v1/global/snapshot returns the snapshot when visible", async () => {
     chatRequestId: null,
     runId: null,
     sessionId: null,
+    clientAppVersion: null,
+    clientPlatform: null,
   });
 });
 

@@ -244,6 +244,8 @@ function logChatTurnExportFailure(
       null,
       null,
       params.sessionId,
+      null,
+      null,
     ),
     details,
   });
@@ -275,6 +277,8 @@ function logChatTurnStartFailure(
       null,
       null,
       params.sessionId,
+      null,
+      null,
     ),
     details,
   });
@@ -306,6 +310,8 @@ function logChatTranscriptionExportFailure(
       null,
       null,
       params.sessionId,
+      null,
+      null,
     ),
     details,
   });
@@ -337,6 +343,8 @@ function logChatTranscriptionStartFailure(
       null,
       null,
       params.sessionId,
+      null,
+      null,
     ),
     details,
   });

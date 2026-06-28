@@ -157,6 +157,8 @@ export function createWorkspaceTransactionScope(
     observationScope?.chatRequestId ?? null,
     observationScope?.runId ?? null,
     observationScope?.sessionId ?? null,
+    observationScope?.clientAppVersion ?? null,
+    observationScope?.clientPlatform ?? null,
   );
 }
 

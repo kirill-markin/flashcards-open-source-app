@@ -286,6 +286,8 @@ async function liveStreamHandler(
     clientRequestId,
     url.searchParams.get("runId"),
     url.searchParams.get("sessionId"),
+    clientVersion,
+    clientPlatform,
   );
 
   let params: LiveStreamParams;
@@ -342,6 +344,8 @@ async function liveStreamHandler(
     params.clientRequestId ?? null,
     params.runId,
     params.sessionId,
+    clientVersion,
+    clientPlatform,
   );
 
   const metadata = {
@@ -427,6 +431,8 @@ const chatLiveStreamHandler: StreamifyHandler<APIGatewayProxyEventV2, void> = as
     const normalizedError = normalizeCaughtError(error);
     const requestId = getLiveRequestId(event);
     const clientRequestId = readOptionalChatRequestIdHeader(event.headers ?? {}) ?? null;
+    const clientPlatform = readApiGatewayHeader(event.headers, "x-client-platform");
+    const clientVersion = readApiGatewayHeader(event.headers, "x-client-version");
     const observationScope = createBackendObservationScope(
       "chat-live",
       requestId,
@@ -437,6 +443,8 @@ const chatLiveStreamHandler: StreamifyHandler<APIGatewayProxyEventV2, void> = as
       clientRequestId,
       null,
       null,
+      clientVersion,
+      clientPlatform,
     );
     captureBackendException({
       action: "chat_live_bootstrap_failed",

@@ -38,6 +38,8 @@ import { hasReportedBackendException } from "../observability/reporting";
 export type AppEnv = {
   Variables: {
     requestId: string;
+    clientAppVersion: string | null;
+    clientPlatform: string | null;
   };
 };
 
@@ -198,6 +200,8 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.use("*", async (context, next) => {
     const requestId = crypto.randomUUID();
     context.set("requestId", requestId);
+    context.set("clientAppVersion", context.req.header("x-client-version") ?? null);
+    context.set("clientPlatform", context.req.header("x-client-platform") ?? null);
     context.header("X-Request-Id", requestId);
     await next();
   });
@@ -256,6 +260,8 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
           null,
           null,
           null,
+          context.get("clientAppVersion"),
+          context.get("clientPlatform"),
         ),
         details: {
           statusCode: error instanceof HttpError ? error.statusCode : 500,
