@@ -139,6 +139,17 @@ export const ruCatalog = {
     streakTitle: "Серия",
     streakInfoToggleLabel: "О заморозках серии",
     streakInfo: "Запас заморозок {{available}}/{{capacity}}. Следующее пополнение {{progress}}/{{required}}.",
+    streakDayReviewCount: {
+      one: "повторение",
+      other: "повторений",
+    },
+    streakDayAria: {
+      reviewed: "{{date}}, повторено, {{reviewCount}}.",
+      frozen: "{{date}}, защищено заморозкой серии, {{reviewCount}}.",
+      pending: "{{date}}, ожидает повторения, {{reviewCount}}.",
+      missed: "{{date}}, пропущено, {{reviewCount}}.",
+      future: "{{date}}, будущий день.",
+    },
     reviewsTitle: "Повторения",
     lastThirtyDays: "Последние 30 дней",
     empty: "За этот 30-дневный период повторения не были записаны.",

@@ -139,6 +139,17 @@ export const jaCatalog = {
     streakTitle: "連続日数",
     streakInfoToggleLabel: "連続フリーズについて",
     streakInfo: "フリーズ残数 {{available}}/{{capacity}}。次の回復 {{progress}}/{{required}}。",
+    streakDayReviewCount: {
+      one: "回の復習",
+      other: "回の復習",
+    },
+    streakDayAria: {
+      reviewed: "{{date}}、復習済み、{{reviewCount}}。",
+      frozen: "{{date}}、連続フリーズで保護済み、{{reviewCount}}。",
+      pending: "{{date}}、未完了、{{reviewCount}}。",
+      missed: "{{date}}、未達成、{{reviewCount}}。",
+      future: "{{date}}、未来の日。",
+    },
     reviewsTitle: "復習回数",
     lastThirtyDays: "過去30日間",
     empty: "この30日間では復習が記録されていません。",

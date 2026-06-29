@@ -1,9 +1,11 @@
 import SwiftUI
 
-private let progressCalendarColumnCount: Int = 7
 private let progressReviewCardsStringsTableName: String = "ReviewCards"
 private let progressStreakBadgeSize: CGFloat = 34
 private let progressStreakBadgeHorizontalPadding: CGFloat = 8
+private let progressStreakCalendarColumnSpacing: CGFloat = 10
+private let progressStreakCalendarHeaderSpacing: CGFloat = 10
+private let progressStreakCalendarWeekSpacing: CGFloat = 12
 private let progressFrozenStreakBorderColor = Color(red: 0x9D / 255, green: 0xD8 / 255, blue: 0xFF / 255)
 private let progressFrozenStreakContentColor = Color(red: 0x2A / 255, green: 0x7F / 255, blue: 0xC2 / 255)
 
@@ -15,16 +17,8 @@ struct ProgressStreakSection: View {
 
     @State private var isFreezeInfoAlertPresented: Bool = false
 
-    private var columns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .center), count: progressCalendarColumnCount)
-    }
-
     private var headerDays: [ProgressCalendarDay] {
         self.weeks.first?.days ?? []
-    }
-
-    private var streakDays: [ProgressCalendarDay] {
-        self.weeks.flatMap(\.days)
     }
 
     var body: some View {
@@ -40,20 +34,11 @@ struct ProgressStreakSection: View {
                 Spacer(minLength: 0)
             }
 
-            LazyVGrid(columns: self.columns, spacing: 12) {
-                ForEach(self.headerDays) { day in
-                    Text(progressWeekdayLabel(date: day.date, calendar: self.calendar))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
-                        .accessibilityHidden(true)
-                }
-
-                ForEach(self.streakDays) { day in
-                    ProgressStreakDayCell(day: day, calendar: self.calendar)
-                        .frame(maxWidth: .infinity)
-                }
-            }
+            ProgressStreakCalendarGrid(
+                headerDays: self.headerDays,
+                weeks: self.weeks,
+                calendar: self.calendar
+            )
         }
         .padding(.vertical, 4)
         .alert(
@@ -97,6 +82,50 @@ struct ProgressStreakSection: View {
             self.streakFreeze.nextCreditProgressUnits.formatted(),
             self.streakFreeze.nextCreditRequiredUnits.formatted()
         )
+    }
+}
+
+private struct ProgressStreakCalendarGrid: View {
+    let headerDays: [ProgressCalendarDay]
+    let weeks: [ProgressCalendarWeek]
+    let calendar: Calendar
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: progressStreakCalendarHeaderSpacing) {
+            HStack(spacing: progressStreakCalendarColumnSpacing) {
+                ForEach(self.headerDays) { day in
+                    Text(progressWeekdayLabel(date: day.date, calendar: self.calendar))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: progressStreakCalendarWeekSpacing) {
+                ForEach(self.weeks) { week in
+                    ProgressStreakWeekRow(week: week, calendar: self.calendar)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct ProgressStreakWeekRow: View {
+    let week: ProgressCalendarWeek
+    let calendar: Calendar
+
+    var body: some View {
+        HStack(spacing: progressStreakCalendarColumnSpacing) {
+            ForEach(self.week.days) { day in
+                ProgressStreakDayCell(day: day, calendar: self.calendar)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -235,11 +264,7 @@ private struct ProgressStreakDayCell: View {
             Circle()
                 .stroke(self.borderColor, lineWidth: self.borderLineWidth)
 
-            if self.day.isFuturePlaceholder {
-                Circle()
-                    .fill(Color(uiColor: .tertiarySystemGroupedBackground))
-                    .frame(width: 8, height: 8)
-            } else if self.isActiveFlameDay {
+            if self.isActiveFlameDay {
                 Image(systemName: "flame.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(self.foregroundColor)
@@ -256,7 +281,6 @@ private struct ProgressStreakDayCell: View {
         }
         .frame(width: 38, height: 38)
         .accessibilityElement(children: .ignore)
-        .accessibilityHidden(self.day.isFuturePlaceholder)
         .accessibilityLabel(self.accessibilityLabel)
     }
 
@@ -330,7 +354,15 @@ private struct ProgressStreakDayCell: View {
 
     private var accessibilityLabel: String {
         if self.day.isFuturePlaceholder {
-            return ""
+            let dateTitle = progressCompleteDateLabel(date: self.day.date, calendar: self.calendar)
+            let futureTitle = String(
+                localized: "progress.screen.streak.future_day.accessibility",
+                defaultValue: "Future day",
+                table: progressStringsTableName,
+                comment: "Accessibility label component for a future streak calendar day"
+            )
+
+            return [dateTitle, futureTitle].joined(separator: ", ")
         }
 
         let dateTitle = progressCompleteDateLabel(date: self.day.date, calendar: self.calendar)

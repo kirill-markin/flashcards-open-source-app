@@ -766,12 +766,12 @@ private fun createStreakWeeks(
 
                 if (date.isAfter(today)) {
                     return@map ProgressStreakDayUiState(
-                        date = null,
-                        dayOfMonthLabel = null,
+                        date = date,
+                        dayOfMonthLabel = date.dayOfMonth.toString(),
                         reviewCount = 0,
-                        state = null,
+                        state = CloudProgressStreakDayState.PENDING,
                         isToday = false,
-                        isPlaceholder = true
+                        isFuture = true
                     )
                 }
 
@@ -788,7 +788,7 @@ private fun createStreakWeeks(
                         reviewCount = reviewCount
                     ),
                     isToday = date == today,
-                    isPlaceholder = false
+                    isFuture = false
                 )
             }
         )

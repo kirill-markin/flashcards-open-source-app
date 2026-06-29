@@ -139,6 +139,17 @@ const esEsCatalog: TranslationCatalog = {
     streakTitle: "Racha",
     streakInfoToggleLabel: "Acerca de las congelaciones de racha",
     streakInfo: "Banco de congelaciones {{available}}/{{capacity}}. Próxima recarga {{progress}}/{{required}}.",
+    streakDayReviewCount: {
+      one: "repaso",
+      other: "repasos",
+    },
+    streakDayAria: {
+      reviewed: "{{date}}, repasado, {{reviewCount}}.",
+      frozen: "{{date}}, protegido por una congelación de racha, {{reviewCount}}.",
+      pending: "{{date}}, pendiente, {{reviewCount}}.",
+      missed: "{{date}}, perdido, {{reviewCount}}.",
+      future: "{{date}}, día futuro.",
+    },
     reviewsTitle: "Repasos",
     lastThirtyDays: "Últimos 30 días",
     empty: "No se registraron repasos en este rango de 30 días.",

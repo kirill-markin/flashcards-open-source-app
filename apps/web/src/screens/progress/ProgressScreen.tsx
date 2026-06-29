@@ -41,7 +41,7 @@ import {
   type ProgressReviewsChartSelection,
 } from "./reviewsChart/progressReviewsChartModel";
 import { ProgressStreakSection, type ProgressStreakSummaryView } from "./streak/ProgressStreakSection";
-import { buildStreakWeeks } from "./streak/progressStreakModel";
+import { buildStreakWeeks, type StreakDay } from "./streak/progressStreakModel";
 
 function sortDailyReviews(dailyReviews: ReadonlyArray<DailyReviewPoint>): ReadonlyArray<DailyReviewPoint> {
   return [...dailyReviews].sort((leftDay, rightDay) => leftDay.date.localeCompare(rightDay.date));
@@ -77,7 +77,7 @@ export function ProgressScreen(): ReactElement {
       includeLeaderboard: true,
     },
   });
-  const { locale, matchedBrowserLanguageTag, direction, t, formatDate, formatNumber } = useI18n();
+  const { locale, matchedBrowserLanguageTag, direction, t, formatDate, formatNumber, formatCount } = useI18n();
   const [selectedPageStartLocalDate, setSelectedPageStartLocalDate] = useState<string | null>(null);
   const [reviewsChartSelection, setReviewsChartSelection] = useState<ProgressReviewsChartSelection>({ kind: "none" });
   const [selectedReviewScheduleBucket, setSelectedReviewScheduleBucket] = useState<ProgressReviewScheduleBucketKey | null>(null);
@@ -177,6 +177,42 @@ export function ProgressScreen(): ReactElement {
   const today = progress === null ? "" : progress.to;
   const weekContext = resolveLocaleWeekContext(matchedBrowserLanguageTag ?? locale, locale);
   const streakWeeks = progress === null ? [] : buildStreakWeeks(dailyReviews, progress.streakDays, today, formatDate, weekContext);
+  const formatStreakReviewCount = (reviewCount: number): string => formatCount(reviewCount, {
+    one: t("progressScreen.streakDayReviewCount.one"),
+    other: t("progressScreen.streakDayReviewCount.other"),
+  });
+  const formatProgressStreakDayAriaLabel = (day: StreakDay): string => {
+    if (day.isFuture) {
+      return t("progressScreen.streakDayAria.future", {
+        date: day.title,
+      });
+    }
+
+    const reviewCount = formatStreakReviewCount(day.reviewCount);
+
+    switch (day.state) {
+      case "reviewed":
+        return t("progressScreen.streakDayAria.reviewed", {
+          date: day.title,
+          reviewCount,
+        });
+      case "frozen":
+        return t("progressScreen.streakDayAria.frozen", {
+          date: day.title,
+          reviewCount,
+        });
+      case "pending":
+        return t("progressScreen.streakDayAria.pending", {
+          date: day.title,
+          reviewCount,
+        });
+      case "missed":
+        return t("progressScreen.streakDayAria.missed", {
+          date: day.title,
+          reviewCount,
+        });
+    }
+  };
   const selectedReviewsChartRatingKey = reviewsChartSelection.kind === "rating"
     ? reviewsChartSelection.ratingKey
     : null;
@@ -233,8 +269,6 @@ export function ProgressScreen(): ReactElement {
   const progressStreakSummary: ProgressStreakSummaryView | null = progressSummary === null
     ? null
     : {
-      label: t("reviewScreen.progressBadge.title"),
-      status: reviewProgressBadgeTodayStatus,
       hasReviewedToday: reviewProgressBadge.hasReviewedToday,
       ariaLabel: reviewProgressBadgeAriaLabel,
       formattedStreakValue: formatReviewProgressBadgeValue(reviewProgressBadge.streakDays),
@@ -335,6 +369,7 @@ export function ProgressScreen(): ReactElement {
               isInfoVisible={isStreakInfoVisible}
               onToggleInfo={() => setIsStreakInfoVisible((previous) => previous === false)}
               streakWeeks={streakWeeks}
+              formatDayAriaLabel={formatProgressStreakDayAriaLabel}
             />
 
             <ProgressLeaderboardSection
