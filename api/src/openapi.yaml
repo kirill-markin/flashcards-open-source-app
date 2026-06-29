@@ -71,6 +71,8 @@ paths:
     $ref: paths/agent_sql_query.yaml
   /agent/sql/execute:
     $ref: paths/agent_sql_execute.yaml
+  /workspaces/{workspaceId}/media-assets/images:
+    $ref: paths/workspaces_{workspaceId}_media-assets_images.yaml
   /workspaces/{workspaceId}/media-assets/upload-sessions:
     $ref: paths/workspaces_{workspaceId}_media-assets_upload-sessions.yaml
   /workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts:

@@ -73,6 +73,17 @@ type PresignMultipartMediaAssetUploadPartsInput = Readonly<{
   observationScope: BackendObservationScope;
 }>;
 
+type StoreMediaAssetBlobBytesInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  storageKey: string;
+  mimeType: string;
+  sha256: string;
+  lastOperationId: string;
+  bytes: Buffer;
+  observationScope: BackendObservationScope;
+}>;
+
 type AssertMediaAssetObjectInput = Readonly<{
   workspaceId: string;
   mediaAssetId: string;
@@ -127,7 +138,8 @@ type MediaAssetStorageOperation =
   | "abort_multipart_upload"
   | "head_object"
   | "get_object"
-  | "copy_object";
+  | "copy_object"
+  | "put_object";
 
 type MediaAssetStorageDependencies = Readonly<{
   s3Client: S3Client;
@@ -812,6 +824,79 @@ async function copyMediaAssetObjectIfAbsentWithDependencies(
   }
 }
 
+async function assertStoredMediaAssetBlobObjectContentMatchesWithDependencies(
+  input: StoreMediaAssetBlobBytesInput,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<void> {
+  const blobObjectInput: AssertMediaAssetObjectInput = {
+    workspaceId: input.workspaceId,
+    mediaAssetId: input.mediaAssetId,
+    storageKey: input.storageKey,
+    mimeType: input.mimeType,
+    sizeBytes: input.bytes.byteLength,
+    sha256: input.sha256,
+    lastOperationId: input.lastOperationId,
+    observationScope: input.observationScope,
+  };
+  const objectMetadata = await loadMediaAssetObjectMetadataWithDependencies(blobObjectInput, dependencies);
+  assertMediaAssetObjectContentMatches(blobObjectInput, objectMetadata);
+}
+
+export async function storeMediaAssetBlobBytesIfAbsentWithDependencies(
+  input: StoreMediaAssetBlobBytesInput,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<void> {
+  const config = dependencies.getMediaAssetsStorageConfigFn();
+  const context: MediaAssetStorageContext = {
+    workspaceId: input.workspaceId,
+    mediaAssetId: input.mediaAssetId,
+    storageKey: input.storageKey,
+    observationScope: input.observationScope,
+  };
+  const checksumSha256 = toBase64Sha256Digest(input.sha256);
+
+  try {
+    const stored = await runMediaAssetStorageOperationWithRetries(
+      context,
+      "put_object",
+      async () => {
+        try {
+          await dependencies.s3Client.send(new PutObjectCommand({
+            Bucket: config.bucketName,
+            Key: input.storageKey,
+            Body: input.bytes,
+            ContentType: input.mimeType,
+            ChecksumSHA256: checksumSha256,
+            IfNoneMatch: "*",
+            Metadata: {
+              [uploadProofSha256Key]: input.sha256,
+            },
+          }));
+          return true;
+        } catch (error) {
+          if (isCopyObjectIfNoneMatchFailure(error)) {
+            return false;
+          }
+
+          throw error;
+        }
+      },
+    );
+
+    if (stored) {
+      return;
+    }
+
+    await assertStoredMediaAssetBlobObjectContentMatchesWithDependencies(input, dependencies);
+  } catch (error) {
+    if (error instanceof HttpError && error.code === "MEDIA_ASSET_UPLOAD_MISMATCH") {
+      throw error;
+    }
+
+    throw createMediaAssetStorageError(context, "put_object", error);
+  }
+}
+
 async function promoteVerifiedMediaAssetUploadToBlobWithDependencies(
   input: PromoteMediaAssetUploadInput,
   dependencies: MediaAssetStorageDependencies,
@@ -1008,6 +1093,15 @@ export async function createPresignedMediaAssetDownload(
   input: PresignMediaAssetDownloadInput,
 ): Promise<PresignedMediaAssetDownload> {
   return createPresignedMediaAssetDownloadWithDependencies(input, {
+    s3Client: getMediaAssetsS3Client(),
+    getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
+  });
+}
+
+export async function storeMediaAssetBlobBytesIfAbsent(
+  input: StoreMediaAssetBlobBytesInput,
+): Promise<void> {
+  return storeMediaAssetBlobBytesIfAbsentWithDependencies(input, {
     s3Client: getMediaAssetsS3Client(),
     getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
   });

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import {
+  assertImageMediaAssetIngestionPreconditionsForWorkspace,
   assertMediaAssetUploadSessionPartNumbersInRange,
   beginMediaAssetUploadSessionAbortForWorkspace,
   beginMediaAssetUploadSessionCompletionForWorkspace,
@@ -13,6 +14,7 @@ import {
   recordMediaAssetUploadSessionForWorkspace,
   recoverMediaAssetUploadSessionCompletionForWorkspace,
 } from "../mediaAssets";
+import { ingestImageMediaAsset } from "../mediaAssets/ingestion";
 import {
   buildMediaBlobStorageKey,
   buildMediaMultipartUploadStagingStorageKey,
@@ -26,10 +28,12 @@ import {
 } from "../mediaAssets/storage";
 import {
   parseCompleteMediaAssetUploadSessionInput,
+  parseMediaAssetImageIngestionMetadataHeaders,
   parseMediaAssetIdParam,
   parseMediaAssetUploadSessionCreateInput,
   parseMediaAssetUploadSessionIdParam,
   parseMediaAssetUploadSessionPartUrlsInput,
+  readMediaAssetImageIngestionBytes,
 } from "../mediaAssets/validators";
 import { assertUserHasWorkspaceAccess } from "../workspaces";
 import {
@@ -116,6 +120,61 @@ function createUploadSessionCompletionRecoveryError(
 
 export function createMediaAssetsRoutes(options: MediaAssetsRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+
+  app.post("/workspaces/:workspaceId/media-assets/images", async (context) => {
+    const requestId = context.get("requestId");
+    let requestContext: RequestContext | null = null;
+    let workspaceId: string | null = null;
+    let mediaAssetId: string | null = null;
+
+    try {
+      const loadedContext = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+      requestContext = loadedContext.requestContext;
+      workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+      await assertUserHasWorkspaceAccess(loadedContext.requestContext.userId, workspaceId);
+      const metadata = parseMediaAssetImageIngestionMetadataHeaders(context.req.raw.headers);
+      mediaAssetId = metadata.mediaAssetId;
+      await assertImageMediaAssetIngestionPreconditionsForWorkspace(
+        loadedContext.requestContext.userId,
+        workspaceId,
+        metadata,
+      );
+      const imageBytes = await readMediaAssetImageIngestionBytes(context.req.raw);
+      const scope = createMediaAssetsScope(requestId, context.req.path, context.req.method, loadedContext.requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
+      const result = await ingestImageMediaAsset({
+        userId: loadedContext.requestContext.userId,
+        workspaceId,
+        metadata,
+        imageBytes,
+        observationScope: scope,
+      });
+
+      addBackendBreadcrumb({
+        action: "media_asset_image_ingest",
+        scope,
+        details: {
+          statusCode: 200,
+          mediaAssetId,
+          mimeType: result.mediaAsset.mimeType,
+          sizeBytes: result.mediaAsset.sizeBytes,
+          applied: result.applied,
+        },
+      });
+      return context.json(result);
+    } catch (error) {
+      const scope = createMediaAssetsScope(requestId, context.req.path, context.req.method, getRequestContextUserId(requestContext), workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
+      const details = {
+        mediaAssetId,
+        ...createBackendFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "media_asset_image_ingest_error", error: normalizeCaughtError(error), scope, details },
+        { action: "media_asset_image_ingest_error", scope, details },
+      );
+      throw error;
+    }
+  });
 
   app.post("/workspaces/:workspaceId/media-assets/upload-sessions", async (context) => {
     const requestId = context.get("requestId");

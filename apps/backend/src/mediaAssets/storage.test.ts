@@ -7,6 +7,7 @@ import {
   CreateMultipartUploadCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 import { createBackendObservationScope } from "../observability/sentry";
@@ -19,6 +20,7 @@ import {
   createPresignedMediaAssetUploadPartsWithDependencies,
   loadMediaAssetObjectMetadataWithDependencies,
   promoteMediaAssetUploadToBlobWithDependencies,
+  storeMediaAssetBlobBytesIfAbsentWithDependencies,
 } from "./storage";
 import {
   buildMediaBlobStorageKey,
@@ -240,6 +242,103 @@ test("createPresignedMediaAssetUploadPartsWithDependencies signs per-part checks
   const signedHeaders = new URL(partUrl?.url ?? "").searchParams.get("X-Amz-SignedHeaders");
   assert.notEqual(signedHeaders, null);
   assert.ok(new Set(signedHeaders?.split(";") ?? []).has("x-amz-checksum-sha256"));
+});
+
+test("storeMediaAssetBlobBytesIfAbsentWithDependencies writes content-addressed bytes directly", async () => {
+  const sentCommands: Array<string> = [];
+  const client = createTestS3Client();
+  client.send = (async (command: unknown) => {
+    if (command instanceof PutObjectCommand) {
+      sentCommands.push([
+        "put",
+        String(command.input.Key),
+        String(command.input.ContentType),
+        String(command.input.ChecksumSHA256),
+        String(command.input.IfNoneMatch),
+        String(command.input.Metadata?.["flashcards-sha256"]),
+      ].join(":"));
+      assert.deepEqual(command.input.Body, testObjectBytes);
+      return {};
+    }
+
+    throw new Error(`Unexpected S3 command ${getUnexpectedS3CommandName(command)}`);
+  }) as S3Client["send"];
+
+  await storeMediaAssetBlobBytesIfAbsentWithDependencies(
+    {
+      workspaceId: testWorkspaceId,
+      mediaAssetId: testMediaAssetId,
+      storageKey: testBlobStorageKey,
+      mimeType: "image/jpeg",
+      sha256: testSha256,
+      lastOperationId: testLastOperationId,
+      bytes: testObjectBytes,
+      observationScope: testObservationScope,
+    },
+    {
+      s3Client: client,
+      getMediaAssetsStorageConfigFn: () => ({
+        bucketName: "test-media-assets-bucket",
+      }),
+    },
+  );
+
+  assert.deepEqual(sentCommands, [
+    [
+      "put",
+      testBlobStorageKey,
+      "image/jpeg",
+      Buffer.from(testSha256, "hex").toString("base64"),
+      "*",
+      testSha256,
+    ].join(":"),
+  ]);
+});
+
+test("storeMediaAssetBlobBytesIfAbsentWithDependencies verifies an existing conditional-write winner", async () => {
+  const sentCommands: Array<string> = [];
+  const client = createTestS3Client();
+  client.send = (async (command: unknown) => {
+    if (command instanceof PutObjectCommand) {
+      sentCommands.push(`put:${String(command.input.Key)}`);
+      throw createS3Error(412, "PreconditionFailed", "Object already exists");
+    }
+
+    if (command instanceof HeadObjectCommand) {
+      sentCommands.push(`head:${String(command.input.Key)}`);
+      return createHeadObjectResponse({
+        sizeBytes: testObjectBytes.byteLength,
+        mimeType: "image/jpeg",
+        sha256: testSha256,
+      });
+    }
+
+    throw new Error(`Unexpected S3 command ${getUnexpectedS3CommandName(command)}`);
+  }) as S3Client["send"];
+
+  await storeMediaAssetBlobBytesIfAbsentWithDependencies(
+    {
+      workspaceId: testWorkspaceId,
+      mediaAssetId: testMediaAssetId,
+      storageKey: testBlobStorageKey,
+      mimeType: "image/jpeg",
+      sha256: testSha256,
+      lastOperationId: testLastOperationId,
+      bytes: testObjectBytes,
+      observationScope: testObservationScope,
+    },
+    {
+      s3Client: client,
+      getMediaAssetsStorageConfigFn: () => ({
+        bucketName: "test-media-assets-bucket",
+      }),
+    },
+  );
+
+  assert.deepEqual(sentCommands, [
+    `put:${testBlobStorageKey}`,
+    `head:${testBlobStorageKey}`,
+  ]);
 });
 
 test("loadMediaAssetObjectMetadataWithDependencies treats HeadObject 403 as upload not found", async () => {

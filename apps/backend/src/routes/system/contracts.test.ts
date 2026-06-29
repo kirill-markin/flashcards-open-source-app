@@ -9,6 +9,7 @@ import {
   createAgentWorkspacesEnvelope,
 } from "../../agent/setup";
 import { loadOpenApiDocument } from "../../shared/openapi";
+import { maximumImageIngestionOriginalBytes } from "../../mediaAssets/validators";
 import type { RequestContext } from "../../server/requestContext";
 import type { WorkspaceSummary } from "../../workspaces";
 
@@ -16,6 +17,21 @@ const operationMethodNames = ["get", "post", "put", "patch", "delete", "options"
 
 type OperationMethodName = (typeof operationMethodNames)[number];
 type PathItemForTest = Readonly<Partial<Record<OperationMethodName, object>>>;
+type OpenApiBinarySchemaForTest = Readonly<{
+  type?: string;
+  format?: string;
+  maxLength?: number;
+}>;
+type OpenApiMediaTypeForTest = Readonly<{
+  schema?: OpenApiBinarySchemaForTest;
+}>;
+type OpenApiRequestBodyForTest = Readonly<{
+  content?: Readonly<Record<string, OpenApiMediaTypeForTest>>;
+}>;
+type OpenApiOperationForTest = Readonly<{
+  description?: string;
+  requestBody?: OpenApiRequestBodyForTest;
+}>;
 type OpenApiDocumentForTest = Readonly<{
   info?: Readonly<{
     title?: string;
@@ -47,6 +63,7 @@ const expectedPublishedApiMethods = {
   "/agent/workspaces/{workspaceId}/select": ["post"],
   "/agent/sql/query": ["post"],
   "/agent/sql/execute": ["post"],
+  "/workspaces/{workspaceId}/media-assets/images": ["post"],
   "/workspaces/{workspaceId}/media-assets/upload-sessions": ["post"],
   "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts": ["post"],
   "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/complete": ["post"],
@@ -67,6 +84,7 @@ const expectedPublishedApiMethods = {
 } as const satisfies Readonly<Record<string, ReadonlyArray<OperationMethodName>>>;
 
 const expectedMediaDiscoverySurfaceTemplates = {
+  mediaAssetImageIngestionUrlTemplate: "/workspaces/{workspaceId}/media-assets/images",
   mediaAssetUploadSessionCreateUrlTemplate: "/workspaces/{workspaceId}/media-assets/upload-sessions",
   mediaAssetUploadSessionPartsUrlTemplate: "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts",
   mediaAssetUploadSessionCompleteUrlTemplate: "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/complete",
@@ -74,6 +92,13 @@ const expectedMediaDiscoverySurfaceTemplates = {
   mediaAssetMetadataUrlTemplate: "/workspaces/{workspaceId}/media-assets/{mediaAssetId}",
   mediaAssetDownloadUrlTemplate: "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url",
 } as const;
+const supportedImageIngestionOpenApiContentTypes = [
+  "application/octet-stream",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+const maximumLambdaProxySafeImageIngestionOriginalBytes = 4_000_000;
 
 const testAgentRequestUrl = "https://api.flashcards-open-source-app.com/v1/agent";
 const testAgentWorkspaceReplicaId = "b4a0ec15-f875-5f9c-a8f8-9d6a9f42af39";
@@ -115,11 +140,24 @@ function assertDoesNotAdvertiseUploadIntentFlow(value: string, label: string): v
   assert.doesNotMatch(value, /upload[-\s]?intents?/i, `${label} must not advertise the legacy upload intent flow`);
 }
 
+function loadMediaAssetImageIngestionOperation(openApiDocument: OpenApiDocumentForTest): OpenApiOperationForTest {
+  const operation = openApiDocument.paths?.["/workspaces/{workspaceId}/media-assets/images"]?.post;
+  assert.ok(operation !== undefined);
+  return operation as OpenApiOperationForTest;
+}
+
 test("API Gateway predeclares PATCH /me/preferences", () => {
   const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
   const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
 
   assert.match(apiGatewaySource, /me\.addResource\("preferences"\)\.addMethod\("PATCH", integration\);/);
+});
+
+test("API Gateway predeclares POST /workspaces/{workspaceId}/media-assets/images", () => {
+  const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
+  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+
+  assert.match(apiGatewaySource, /workspaceMediaAssets\.addResource\("images"\)\.addMethod\("POST", integration\);/);
 });
 
 test("published OpenAPI exposes the curated agent, media transfer, and admin catalog contract", () => {
@@ -187,6 +225,7 @@ test("agent discovery advertises the published media transfer surface", () => {
     );
   }
 
+  assert.match(discoveryEnvelope.instructions, /media-assets\/images/);
   assert.match(discoveryEnvelope.instructions, /media-assets\/upload-sessions/);
   assert.match(discoveryEnvelope.instructions, /media-assets\/upload-sessions\/\{sessionId\}\/parts/);
   assert.match(discoveryEnvelope.instructions, /media-assets\/upload-sessions\/\{sessionId\}\/complete/);
@@ -195,6 +234,30 @@ test("agent discovery advertises the published media transfer surface", () => {
   assert.match(discoveryEnvelope.instructions, /media-assets\/\{mediaAssetId\}\/download-url/);
   assert.match(discoveryEnvelope.instructions, /data\.agentWorkspaceReplicaId/);
   assert.match(discoveryEnvelope.instructions, /lastModifiedByReplicaId/);
+});
+
+test("media asset image ingestion publishes the transport-safe original body limit", () => {
+  assert.ok(maximumImageIngestionOriginalBytes <= maximumLambdaProxySafeImageIngestionOriginalBytes);
+
+  const apiBaseUrl = "https://api.flashcards-open-source-app.com/v1";
+  const discoveryEnvelope = createAgentDiscoveryEnvelope(`${apiBaseUrl}/agent`);
+  const openApiDocument = loadPublishedOpenApiDocument();
+  const operation = loadMediaAssetImageIngestionOperation(openApiDocument);
+  const requestBodyContent = operation.requestBody?.content ?? {};
+
+  assert.match(operation.description ?? "", new RegExp(`${maximumImageIngestionOriginalBytes} bytes`));
+  assert.match(discoveryEnvelope.instructions, new RegExp(`up to ${maximumImageIngestionOriginalBytes} bytes`));
+  for (const contentType of supportedImageIngestionOpenApiContentTypes) {
+    assert.equal(requestBodyContent[contentType]?.schema?.maxLength, maximumImageIngestionOriginalBytes);
+  }
+  assert.match(
+    JSON.stringify(openApiDocument.paths?.["/"] ?? {}),
+    new RegExp(`up to ${maximumImageIngestionOriginalBytes} bytes`),
+  );
+  assert.match(
+    JSON.stringify(openApiDocument.paths?.["/agent"] ?? {}),
+    new RegExp(`up to ${maximumImageIngestionOriginalBytes} bytes`),
+  );
 });
 
 test("agent setup envelopes point API-key clients to the media-capable discovery surface", () => {

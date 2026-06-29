@@ -7,6 +7,7 @@ import {
 import type {
   CompleteMediaAssetUploadInput,
   CompleteMediaAssetUploadSessionInput,
+  MediaAssetImageIngestionMetadataInput,
   MediaAssetUploadIntentInput,
   MediaAssetUploadSessionCreateInput,
   MediaAssetUploadSessionPartUrlsInput,
@@ -23,6 +24,23 @@ export const maximumMultipartPartSizeBytes = 5_368_709_120;
 export const maximumMultipartUploadPartCount = 10_000;
 export const maximumMultipartUploadBytes = maximumSinglePutUploadBytes;
 export const maximumMultipartPartUrlBatchCount = 100;
+export const maximumImageIngestionOriginalBytes = 4_000_000;
+
+export const mediaAssetImageIngestionHeaderNames = {
+  mediaAssetId: "x-media-asset-id",
+  sourceUrl: "x-media-source-url",
+  createdAt: "x-media-created-at",
+  clientUpdatedAt: "x-media-client-updated-at",
+  lastModifiedByReplicaId: "x-media-last-modified-by-replica-id",
+  lastOperationId: "x-media-last-operation-id",
+} as const;
+
+const supportedImageIngestionContentTypes = [
+  "application/octet-stream",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
 
 export function parseMediaAssetIdParam(value: string | undefined): string {
   if (value === undefined) {
@@ -235,6 +253,68 @@ function expectETag(value: unknown, fieldName: string): string {
   return eTag;
 }
 
+function expectRequiredHeader(headers: Headers, headerName: string, fieldName: string): string {
+  const value = headers.get(headerName);
+  if (value === null) {
+    throw new HttpError(400, `${fieldName} header is required`, "MEDIA_ASSET_IMAGE_HEADER_REQUIRED");
+  }
+
+  return expectNonEmptyString(value, fieldName);
+}
+
+function normalizeContentType(value: string | null): string {
+  if (value === null) {
+    return "";
+  }
+
+  return value.split(";")[0]?.trim().toLowerCase() ?? "";
+}
+
+function assertImageIngestionContentType(headers: Headers): void {
+  const contentType = normalizeContentType(headers.get("content-type"));
+  if (supportedImageIngestionContentTypes.some((supportedType) => supportedType === contentType)) {
+    return;
+  }
+
+  throw new HttpError(
+    415,
+    `content-type must be one of ${supportedImageIngestionContentTypes.join(", ")}`,
+    "MEDIA_ASSET_IMAGE_CONTENT_TYPE_UNSUPPORTED",
+  );
+}
+
+function parseContentLength(headers: Headers): number | null {
+  const contentLengthHeader = headers.get("content-length");
+  if (contentLengthHeader === null) {
+    return null;
+  }
+
+  if (/^\d+$/.test(contentLengthHeader) === false) {
+    throw new HttpError(400, "content-length must be a non-negative safe integer", "CONTENT_LENGTH_INVALID");
+  }
+
+  const contentLength = Number.parseInt(contentLengthHeader, 10);
+  if (Number.isSafeInteger(contentLength) === false) {
+    throw new HttpError(400, "content-length must be a non-negative safe integer", "CONTENT_LENGTH_INVALID");
+  }
+
+  return contentLength;
+}
+
+function assertImageIngestionByteLengthInRange(byteLength: number): void {
+  if (byteLength === 0) {
+    throw new HttpError(400, "Image request body must not be empty", "MEDIA_ASSET_IMAGE_EMPTY");
+  }
+
+  if (byteLength > maximumImageIngestionOriginalBytes) {
+    throw new HttpError(
+      413,
+      `Image request body must be at most ${maximumImageIngestionOriginalBytes} bytes`,
+      "MEDIA_ASSET_IMAGE_BYTES_TOO_LARGE",
+    );
+  }
+}
+
 function expectRecordArray(value: unknown, fieldName: string): ReadonlyArray<Readonly<Record<string, unknown>>> {
   if (Array.isArray(value) === false) {
     throw new HttpError(400, `${fieldName} must be an array`);
@@ -310,6 +390,53 @@ export function parseCompleteMediaAssetUploadInput(
     clientUpdatedAt: expectIsoTimestamp(record.clientUpdatedAt, "clientUpdatedAt"),
     lastModifiedByReplicaId: expectUuidString(record.lastModifiedByReplicaId, "lastModifiedByReplicaId"),
     lastOperationId: expectLastOperationId(record.lastOperationId, "lastOperationId"),
+  };
+}
+
+export async function readMediaAssetImageIngestionBytes(request: Request): Promise<Buffer> {
+  assertImageIngestionContentType(request.headers);
+  const contentLength = parseContentLength(request.headers);
+  if (contentLength !== null) {
+    assertImageIngestionByteLengthInRange(contentLength);
+  }
+
+  const bytes = Buffer.from(await request.arrayBuffer());
+  assertImageIngestionByteLengthInRange(bytes.byteLength);
+  return bytes;
+}
+
+export function parseMediaAssetImageIngestionMetadataHeaders(
+  headers: Headers,
+): MediaAssetImageIngestionMetadataInput {
+  return {
+    mediaAssetId: expectUuidString(
+      expectRequiredHeader(headers, mediaAssetImageIngestionHeaderNames.mediaAssetId, "mediaAssetId"),
+      "mediaAssetId",
+    ),
+    sourceUrl: expectMediaAssetSourceUrl(
+      headers.get(mediaAssetImageIngestionHeaderNames.sourceUrl),
+      "sourceUrl",
+    ),
+    createdAt: expectIsoTimestamp(
+      expectRequiredHeader(headers, mediaAssetImageIngestionHeaderNames.createdAt, "createdAt"),
+      "createdAt",
+    ),
+    clientUpdatedAt: expectIsoTimestamp(
+      expectRequiredHeader(headers, mediaAssetImageIngestionHeaderNames.clientUpdatedAt, "clientUpdatedAt"),
+      "clientUpdatedAt",
+    ),
+    lastModifiedByReplicaId: expectUuidString(
+      expectRequiredHeader(
+        headers,
+        mediaAssetImageIngestionHeaderNames.lastModifiedByReplicaId,
+        "lastModifiedByReplicaId",
+      ),
+      "lastModifiedByReplicaId",
+    ),
+    lastOperationId: expectLastOperationId(
+      expectRequiredHeader(headers, mediaAssetImageIngestionHeaderNames.lastOperationId, "lastOperationId"),
+      "lastOperationId",
+    ),
   };
 }
 

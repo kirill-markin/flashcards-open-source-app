@@ -87,6 +87,35 @@ test("API Gateway predeclares /me/progress/leaderboards/profiles/{publicProfileI
   );
 });
 
+test("API Gateway predeclares media asset image ingestion and binary image bodies", () => {
+  const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
+  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+
+  assert.match(apiGatewaySource, /workspaceMediaAssets\.addResource\("images"\)\.addMethod\("POST", integration\);/);
+  assert.match(
+    apiGatewaySource,
+    /binaryMediaTypes: \["application\/octet-stream", "image\/jpeg", "image\/png", "image\/webp", "multipart\/form-data"\]/,
+  );
+});
+
+test("Backend API Lambda packages sharp with ARM64 Docker bundling only on the API handler", () => {
+  const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
+  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+
+  assert.match(
+    apiGatewaySource,
+    /constructId: "BackendHandler"[\s\S]*architecture: lambda\.Architecture\.ARM_64[\s\S]*nodeModules: \["sharp"\][\s\S]*forceDockerBundling: true/,
+  );
+  assert.doesNotMatch(
+    apiGatewaySource,
+    /constructId: "ChatRunWorkerHandler"[\s\S]*nodeModules: \["sharp"\]/,
+  );
+  assert.doesNotMatch(
+    apiGatewaySource,
+    /constructId: "ChatLiveHandler"[\s\S]*nodeModules: \["sharp"\]/,
+  );
+});
+
 test("API Gateway browser CORS allows PUT for admin updates", () => {
   const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
   const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
@@ -155,6 +184,12 @@ test("chat live Lambda Function URL CORS exposes request id header", () => {
         "x-chat-resume-attempt-id",
         "x-client-platform",
         "x-client-version",
+        "x-media-asset-id",
+        "x-media-source-url",
+        "x-media-created-at",
+        "x-media-client-updated-at",
+        "x-media-last-modified-by-replica-id",
+        "x-media-last-operation-id",
       ],
       AllowMethods: ["GET"],
       AllowOrigins: ["https://app.example.test"],
@@ -219,6 +254,12 @@ test("default API Gateway generated errors expose supported request id headers",
     "x-chat-resume-attempt-id",
     "x-client-platform",
     "x-client-version",
+    "x-media-asset-id",
+    "x-media-source-url",
+    "x-media-created-at",
+    "x-media-client-updated-at",
+    "x-media-last-modified-by-replica-id",
+    "x-media-last-operation-id",
   ].join(",");
   const responseParameters = {
     "gatewayresponse.header.Access-Control-Allow-Credentials": "'true'",
