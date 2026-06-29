@@ -30,6 +30,7 @@ get:
                 - Inspect the published SQL surface through OpenAPI and SQL introspection
                 - Read cards and decks through POST /agent/sql/query (read-only)
                 - Write cards and decks through POST /agent/sql/execute (INSERT, UPDATE, DELETE)
+                - Ingest JPEG, PNG, and WebP media images through the workspace-scoped image endpoint
                 - Upload and complete media assets through workspace-scoped direct transfer endpoints
                 - Read media asset metadata and create download URLs through workspace-scoped media endpoints
               authBaseUrl: https://auth.flashcards-open-source-app.com
@@ -39,6 +40,7 @@ get:
                 workspacesUrl: https://api.flashcards-open-source-app.com/v1/agent/workspaces
                 sqlQueryUrl: https://api.flashcards-open-source-app.com/v1/agent/sql/query
                 sqlExecuteUrl: https://api.flashcards-open-source-app.com/v1/agent/sql/execute
+                mediaAssetImageIngestionUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/images
                 mediaAssetUploadSessionCreateUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions
                 mediaAssetUploadSessionPartsUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts
                 mediaAssetUploadSessionCompleteUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/complete
@@ -94,8 +96,10 @@ get:
               https://api.flashcards-open-source-app.com/v1/agent/sql/execute
               for writes. For routine low-risk
               writes, a clear user request already counts as permission. Ask
-              again only for risky or unclear actions. For media assets, create
-              a multipart upload session with POST
+              again only for risky or unclear actions. Create JPEG, PNG, or
+              WebP image assets up to 4000000 bytes with POST
+              https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/images.
+              For other media assets, create a multipart upload session with POST
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions.
               If status is already_available, use the returned mediaAsset and
               skip byte upload. If status is upload_required, request signed

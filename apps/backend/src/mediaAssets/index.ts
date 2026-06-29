@@ -1,6 +1,7 @@
 import {
   queryWithWorkspaceScopeReadOnly,
   transactionWithWorkspaceScope,
+  transactionWithWorkspaceScopeReadOnly,
   type DatabaseExecutor,
 } from "../database";
 import { HttpError } from "../shared/errors";
@@ -21,6 +22,8 @@ import {
 } from "../sync/conflicts/fork";
 import { buildMediaBlobStorageKey } from "./storageKeys";
 import {
+  imageJpegCardMediaBlobMimeType,
+  imageJpegCardMediaBlobNormalizationVersion,
   mediaBlobNormalizationVersions,
   passthroughMediaBlobNormalizationVersion,
 } from "./types";
@@ -44,6 +47,8 @@ import type {
   MediaAssetUploadSessionRow,
   MediaAssetUploadSessionState,
   TimestampValue,
+  MediaAssetImageIngestionMetadataInput,
+  NormalizedImageMediaAssetInput,
 } from "./types";
 import { expectMediaAssetSourceUrl } from "./validators";
 
@@ -363,7 +368,14 @@ function assertExistingMediaAssetMatchesSnapshot(
   }
 }
 
-function assertMediaBlobMatchesInput(row: MediaBlobRow, input: MediaAssetSnapshotInput): void {
+function assertMediaBlobMatchesMetadata(
+  row: MediaBlobRow,
+  input: Readonly<{
+    mimeType: string;
+    sizeBytes: number;
+    sha256: string;
+  }>,
+): void {
   const existingSizeBytes = toSafeNumber(row.size_bytes, "size_bytes");
   const expectedStorageKey = buildMediaBlobStorageKey(input.sha256);
   if (
@@ -383,6 +395,14 @@ function assertMediaBlobMatchesInput(row: MediaBlobRow, input: MediaAssetSnapsho
     ].join(" "),
     "MEDIA_BLOB_METADATA_CONFLICT",
   );
+}
+
+function assertMediaBlobMatchesInput(row: MediaBlobRow, input: MediaAssetSnapshotInput): void {
+  assertMediaBlobMatchesMetadata(row, {
+    mimeType: input.mimeType,
+    sizeBytes: input.sizeBytes,
+    sha256: input.sha256,
+  });
 }
 
 async function findMediaBlobRowBySha256InExecutor(
@@ -491,6 +511,7 @@ async function findReachableMediaBlobForUploadSessionCreateInExecutor(
 async function upsertMediaBlobRowInExecutor(
   executor: DatabaseExecutor,
   input: MediaAssetSnapshotInput,
+  normalizationVersion: MediaBlobNormalizationVersion,
 ): Promise<MediaBlobRow> {
   const storageKey = buildMediaBlobStorageKey(input.sha256);
   const insertResult = await executor.query<MediaBlobRow>(
@@ -502,7 +523,7 @@ async function upsertMediaBlobRowInExecutor(
       "RETURNING",
       MEDIA_BLOB_COLUMNS,
     ].join(" "),
-    [input.sha256, input.mimeType, input.sizeBytes, storageKey, passthroughMediaBlobNormalizationVersion],
+    [input.sha256, input.mimeType, input.sizeBytes, storageKey, normalizationVersion],
   );
 
   const insertedRow = insertResult.rows[0];
@@ -662,11 +683,12 @@ async function recordMediaAssetSyncChange(
   );
 }
 
-export async function upsertMediaAssetSnapshotInExecutor(
+async function upsertMediaAssetSnapshotWithBlobNormalizationInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
   input: MediaAssetSnapshotInput,
   metadata: MediaAssetMutationMetadata,
+  normalizationVersion: MediaBlobNormalizationVersion,
 ): Promise<MediaAssetSyncMutationResult> {
   const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
   const normalizedInput = normalizeMediaAssetSnapshotInput(input);
@@ -674,7 +696,7 @@ export async function upsertMediaAssetSnapshotInExecutor(
 
   let existingRow = await findMediaAssetRowForUpdateInExecutor(executor, workspaceId, normalizedInput.mediaAssetId);
   if (existingRow === null) {
-    const mediaBlobRow = await upsertMediaBlobRowInExecutor(executor, normalizedInput);
+    const mediaBlobRow = await upsertMediaBlobRowInExecutor(executor, normalizedInput, normalizationVersion);
     const insertedRow = await insertMediaAssetSnapshotRowInExecutor(
       executor,
       workspaceId,
@@ -724,6 +746,21 @@ export async function upsertMediaAssetSnapshotInExecutor(
   };
 }
 
+export async function upsertMediaAssetSnapshotInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  input: MediaAssetSnapshotInput,
+  metadata: MediaAssetMutationMetadata,
+): Promise<MediaAssetSyncMutationResult> {
+  return upsertMediaAssetSnapshotWithBlobNormalizationInExecutor(
+    executor,
+    workspaceId,
+    input,
+    metadata,
+    passthroughMediaBlobNormalizationVersion,
+  );
+}
+
 export async function completeMediaAssetUploadForWorkspace(
   userId: string,
   workspaceId: string,
@@ -748,6 +785,83 @@ export async function completeMediaAssetUploadForWorkspace(
         lastModifiedByReplicaId: input.lastModifiedByReplicaId,
         lastOperationId: input.lastOperationId,
       },
+    );
+
+    return {
+      mediaAsset: result.mediaAsset,
+      applied: result.applied,
+    };
+  });
+}
+
+function toMediaAssetSnapshotInputFromNormalizedImage(
+  input: NormalizedImageMediaAssetInput,
+): MediaAssetSnapshotInput {
+  return {
+    mediaAssetId: input.mediaAssetId,
+    mimeType: imageJpegCardMediaBlobMimeType,
+    sizeBytes: input.sizeBytes,
+    sha256: input.sha256,
+    sourceUrl: input.sourceUrl,
+    createdAt: input.createdAt,
+    deletedAt: null,
+  };
+}
+
+function toMediaAssetMutationMetadataFromNormalizedImage(
+  input: NormalizedImageMediaAssetInput,
+): MediaAssetMutationMetadata {
+  return {
+    clientUpdatedAt: input.clientUpdatedAt,
+    lastModifiedByReplicaId: input.lastModifiedByReplicaId,
+    lastOperationId: input.lastOperationId,
+  };
+}
+
+export async function assertImageMediaAssetIngestionPreconditionsForWorkspace(
+  userId: string,
+  workspaceId: string,
+  input: MediaAssetImageIngestionMetadataInput,
+): Promise<void> {
+  await transactionWithWorkspaceScopeReadOnly({ userId, workspaceId }, async (executor) => {
+    await assertReplicaBelongsToWorkspaceInExecutor(executor, workspaceId, input.lastModifiedByReplicaId);
+  });
+}
+
+export async function loadReusableImageMediaBlobForWorkspace(
+  userId: string,
+  workspaceId: string,
+  input: NormalizedImageMediaAssetInput,
+): Promise<MediaBlob | null> {
+  const normalizedInput = normalizeMediaAssetSnapshotInput(toMediaAssetSnapshotInputFromNormalizedImage(input));
+  return transactionWithWorkspaceScopeReadOnly({ userId, workspaceId }, async (executor) => {
+    const row = await findMediaBlobRowBySha256InExecutor(executor, normalizedInput.sha256);
+    if (row === null) {
+      return null;
+    }
+
+    assertMediaBlobMatchesMetadata(row, {
+      mimeType: normalizedInput.mimeType,
+      sizeBytes: normalizedInput.sizeBytes,
+      sha256: normalizedInput.sha256,
+    });
+    return mapMediaBlobRow(row);
+  });
+}
+
+export async function createImageNormalizedMediaAssetForWorkspace(
+  userId: string,
+  workspaceId: string,
+  input: NormalizedImageMediaAssetInput,
+): Promise<MediaAssetMutationResult> {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+    await assertReplicaBelongsToWorkspaceInExecutor(executor, workspaceId, input.lastModifiedByReplicaId);
+    const result = await upsertMediaAssetSnapshotWithBlobNormalizationInExecutor(
+      executor,
+      workspaceId,
+      toMediaAssetSnapshotInputFromNormalizedImage(input),
+      toMediaAssetMutationMetadataFromNormalizedImage(input),
+      imageJpegCardMediaBlobNormalizationVersion,
     );
 
     return {

@@ -77,6 +77,8 @@ interface BackendFunctionProps {
   globalMetricsConfig: GlobalMetricsConfig | undefined;
   mediaAssetsBucket: s3.IBucket | undefined;
   memorySize: number;
+  architecture: lambda.Architecture;
+  bundling: lambdaNodejs.BundlingOptions;
 }
 
 interface GlobalMetricsConfig {
@@ -120,6 +122,12 @@ const browserCorsAllowHeaders = [
   "x-chat-resume-attempt-id",
   "x-client-platform",
   "x-client-version",
+  "x-media-asset-id",
+  "x-media-source-url",
+  "x-media-created-at",
+  "x-media-client-updated-at",
+  "x-media-last-modified-by-replica-id",
+  "x-media-last-operation-id",
 ] as const;
 
 const browserCorsExposeHeaders = [
@@ -171,20 +179,29 @@ export function createGatewayErrorResponseHeaders(): GatewayErrorResponseHeaders
   };
 }
 
-const lambdaBundling: lambdaNodejs.BundlingOptions = {
-  minify: true,
-  sourceMap: true,
-  commandHooks: {
-    beforeBundling: () => [],
-    beforeInstall: () => [],
-    afterBundling: (_inputDir: string, outputDir: string) => [
-      `curl -sfo ${outputDir}/rds-global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem`,
-      `mkdir -p ${outputDir}/api/dist`,
-      `cp ${resolveFromRepoRoot("api", "dist", "openapi.json")} ${outputDir}/api/dist/openapi.json`,
-      createSentrySourceMapUploadCommand(outputDir),
-    ],
-  },
-};
+function createLambdaBundling(
+  input: Readonly<{
+    nodeModules: ReadonlyArray<string>;
+    forceDockerBundling: boolean;
+  }>,
+): lambdaNodejs.BundlingOptions {
+  return {
+    minify: true,
+    sourceMap: true,
+    ...(input.nodeModules.length === 0 ? {} : { nodeModules: [...input.nodeModules] }),
+    ...(input.forceDockerBundling ? { forceDockerBundling: true } : {}),
+    commandHooks: {
+      beforeBundling: () => [],
+      beforeInstall: () => [],
+      afterBundling: (_inputDir: string, outputDir: string) => [
+        `curl -sfo ${outputDir}/rds-global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem`,
+        `mkdir -p ${outputDir}/api/dist`,
+        `cp ${resolveFromRepoRoot("api", "dist", "openapi.json")} ${outputDir}/api/dist/openapi.json`,
+        createSentrySourceMapUploadCommand(outputDir),
+      ],
+    },
+  };
+}
 
 function getLangfuseSecretConfig(
   props: Readonly<{
@@ -326,13 +343,14 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
     entry: props.entry,
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
+    architecture: props.architecture,
     timeout: cdk.Duration.minutes(15),
     memorySize: props.memorySize,
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
     ...backendNodejsProjectPaths,
-    bundling: lambdaBundling,
+    bundling: props.bundling,
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
       DB_SECRET_ARN: props.backendDbSecret.secretArn,
@@ -485,6 +503,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     },
     mediaAssetsBucket: props.mediaAssetsBucket,
     memorySize: 256,
+    architecture: lambda.Architecture.ARM_64,
+    bundling: createLambdaBundling({
+      nodeModules: ["sharp"],
+      forceDockerBundling: true,
+    }),
   });
   const chatWorkerFn = createBackendFunction(scope, {
     constructId: "ChatRunWorkerHandler",
@@ -519,6 +542,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     globalMetricsConfig: undefined,
     mediaAssetsBucket: undefined,
     memorySize: 512,
+    architecture: lambda.Architecture.X86_64,
+    bundling: createLambdaBundling({
+      nodeModules: [],
+      forceDockerBundling: false,
+    }),
   });
   const chatLiveFn = createBackendFunction(scope, {
     constructId: "ChatLiveHandler",
@@ -553,6 +581,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     globalMetricsConfig: undefined,
     mediaAssetsBucket: undefined,
     memorySize: 256,
+    architecture: lambda.Architecture.X86_64,
+    bundling: createLambdaBundling({
+      nodeModules: [],
+      forceDockerBundling: false,
+    }),
   });
   const chatLiveFunctionUrl = chatLiveFn.addFunctionUrl({
     authType: lambda.FunctionUrlAuthType.NONE,
@@ -570,7 +603,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const restApi = new apigw.RestApi(scope, "Api", {
     restApiName: "flashcards-open-source-app-api",
     description: "Public API for flashcards mobile clients",
-    binaryMediaTypes: ["multipart/form-data"],
+    binaryMediaTypes: ["application/octet-stream", "image/jpeg", "image/png", "image/webp", "multipart/form-data"],
     deployOptions: {
       stageName: "v1",
       throttlingRateLimit: 50,
@@ -754,6 +787,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     .addResource("query")
     .addMethod("POST", integration);
   const workspaceMediaAssets = workspaceById.addResource("media-assets");
+  workspaceMediaAssets.addResource("images").addMethod("POST", integration);
   const workspaceMediaAssetUploadSessions = workspaceMediaAssets.addResource("upload-sessions");
   workspaceMediaAssetUploadSessions.addMethod("POST", integration);
   const workspaceMediaAssetUploadSessionById = workspaceMediaAssetUploadSessions.addResource("{sessionId}");

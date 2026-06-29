@@ -39,7 +39,7 @@ function buildPermissionGuidanceLine(): string {
 
 function buildMediaDiscoveryGuidanceLine(requestUrl: string): string {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
-  return `Use GET ${apiBaseUrl}/agent for the full media-capable discovery surface, including workspace-scoped multipart upload session, part URL, complete, abort, metadata, and download URL templates. Before creating a media upload session, call GET ${apiBaseUrl}/agent/me after workspace selection and use data.agentWorkspaceReplicaId as lastModifiedByReplicaId.`;
+  return `Use GET ${apiBaseUrl}/agent for the full media-capable discovery surface, including workspace-scoped image ingestion, multipart upload session, part URL, complete, abort, metadata, and download URL templates. Before creating a media asset, call GET ${apiBaseUrl}/agent/me after workspace selection and use data.agentWorkspaceReplicaId as lastModifiedByReplicaId.`;
 }
 
 function buildAccountBootstrapInstructions(requestUrl: string): string {

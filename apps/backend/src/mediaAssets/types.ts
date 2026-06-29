@@ -1,5 +1,6 @@
 export type TimestampValue = Date | string;
 
+export const imageJpegCardMediaBlobMimeType = "image/jpeg";
 export const passthroughMediaBlobNormalizationVersion = "passthrough-v1";
 export const imageJpegCardMediaBlobNormalizationVersion = "image-jpeg-card-v1";
 
@@ -90,6 +91,20 @@ export type CompleteMediaAssetUploadInput = Readonly<{
   clientUpdatedAt: string;
   lastModifiedByReplicaId: string;
   lastOperationId: string;
+}>;
+
+export type MediaAssetImageIngestionMetadataInput = Readonly<{
+  mediaAssetId: string;
+  sourceUrl: string | null;
+  createdAt: string;
+  clientUpdatedAt: string;
+  lastModifiedByReplicaId: string;
+  lastOperationId: string;
+}>;
+
+export type NormalizedImageMediaAssetInput = MediaAssetImageIngestionMetadataInput & Readonly<{
+  sizeBytes: number;
+  sha256: string;
 }>;
 
 export type MediaAssetUploadSessionCreateInput = Readonly<{

@@ -17,10 +17,14 @@ import {
 } from "./storageKeys";
 import { passthroughMediaBlobNormalizationVersion } from "./types";
 import {
+  maximumImageIngestionOriginalBytes,
   maximumMultipartUploadBytes,
   maximumSinglePutUploadBytes,
+  mediaAssetImageIngestionHeaderNames,
+  parseMediaAssetImageIngestionMetadataHeaders,
   parseMediaAssetUploadIntentInput,
   parseMediaAssetUploadSessionCreateInput,
+  readMediaAssetImageIngestionBytes,
 } from "./validators";
 import type {
   MediaAssetRow,
@@ -36,6 +40,7 @@ const testMediaBlobId = "44444444-4444-4444-8444-444444444444";
 const testUploadSessionId = "55555555-5555-4555-8555-555555555555";
 const testSha256 = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8";
 const testStorageKey = buildMediaBlobStorageKey(testSha256);
+const maximumTransportSafeImageIngestionOriginalBytes = 4_000_000;
 
 type MediaAssetMutationFixture = Readonly<{
   sourceUrl: string | null;
@@ -562,6 +567,63 @@ test("media asset upload validators keep direct uploads compatible and cap multi
       assert.ok(error instanceof HttpError);
       assert.equal(error.statusCode, 400);
       assert.equal(error.code, "MEDIA_ASSET_SIZE_TOO_LARGE");
+      return true;
+    },
+  );
+});
+
+test("media asset image ingestion validators parse metadata headers and reject oversized originals", async () => {
+  assert.ok(maximumImageIngestionOriginalBytes <= maximumTransportSafeImageIngestionOriginalBytes);
+
+  const headers = new Headers({
+    [mediaAssetImageIngestionHeaderNames.mediaAssetId]: testMediaAssetId,
+    [mediaAssetImageIngestionHeaderNames.sourceUrl]: " https://example.com/source image.png ",
+    [mediaAssetImageIngestionHeaderNames.createdAt]: "2026-02-28T09:00:00.000Z",
+    [mediaAssetImageIngestionHeaderNames.clientUpdatedAt]: "2026-02-28T10:00:00.000Z",
+    [mediaAssetImageIngestionHeaderNames.lastModifiedByReplicaId]: "66666666-6666-4666-8666-666666666666",
+    [mediaAssetImageIngestionHeaderNames.lastOperationId]: "operation-image-1",
+  });
+  const metadata = parseMediaAssetImageIngestionMetadataHeaders(headers);
+
+  assert.deepEqual(metadata, {
+    mediaAssetId: testMediaAssetId,
+    sourceUrl: "https://example.com/source%20image.png",
+    createdAt: "2026-02-28T09:00:00.000Z",
+    clientUpdatedAt: "2026-02-28T10:00:00.000Z",
+    lastModifiedByReplicaId: "66666666-6666-4666-8666-666666666666",
+    lastOperationId: "operation-image-1",
+  });
+
+  await assert.rejects(
+    async () => readMediaAssetImageIngestionBytes(new Request("https://example.com/media", {
+      method: "POST",
+      headers: {
+        "content-type": "image/png",
+        "content-length": String(maximumImageIngestionOriginalBytes + 1),
+      },
+      body: "x",
+    })),
+    (error: unknown): boolean => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.statusCode, 413);
+      assert.equal(error.code, "MEDIA_ASSET_IMAGE_BYTES_TOO_LARGE");
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    async () => readMediaAssetImageIngestionBytes(new Request("https://example.com/media", {
+      method: "POST",
+      headers: {
+        "content-type": "image/png",
+        "content-length": "12x",
+      },
+      body: "x",
+    })),
+    (error: unknown): boolean => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.statusCode, 400);
+      assert.equal(error.code, "CONTENT_LENGTH_INVALID");
       return true;
     },
   );

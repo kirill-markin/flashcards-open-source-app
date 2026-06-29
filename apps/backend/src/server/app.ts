@@ -55,6 +55,12 @@ const browserCorsAllowHeaders = [
   "x-chat-resume-attempt-id",
   "x-client-platform",
   "x-client-version",
+  "x-media-asset-id",
+  "x-media-source-url",
+  "x-media-created-at",
+  "x-media-client-updated-at",
+  "x-media-last-modified-by-replica-id",
+  "x-media-last-operation-id",
 ] as const;
 
 const globalSnapshotCorsAllowHeaders = [

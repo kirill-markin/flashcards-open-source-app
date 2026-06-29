@@ -57,6 +57,7 @@ properties:
       - workspacesUrl
       - sqlQueryUrl
       - sqlExecuteUrl
+      - mediaAssetImageIngestionUrlTemplate
       - mediaAssetUploadSessionCreateUrlTemplate
       - mediaAssetUploadSessionPartsUrlTemplate
       - mediaAssetUploadSessionCompleteUrlTemplate
@@ -71,6 +72,8 @@ properties:
       sqlQueryUrl:
         type: string
       sqlExecuteUrl:
+        type: string
+      mediaAssetImageIngestionUrlTemplate:
         type: string
       mediaAssetUploadSessionCreateUrlTemplate:
         type: string

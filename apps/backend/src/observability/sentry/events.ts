@@ -675,7 +675,8 @@ export type MediaAssetStorageRetryDetails = Readonly<{
     | "abort_multipart_upload"
     | "head_object"
     | "get_object"
-    | "copy_object";
+    | "copy_object"
+    | "put_object";
   attempt: number;
   maxAttempts: number;
   workspaceId: string;
@@ -760,6 +761,8 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"workspace_tags_list_error", FailureDetailsFor<WorkspaceTagsListDetails>>
   | EventByAction<"cards_query", CardsQueryDetails>
   | EventByAction<"cards_query_error", FailureDetailsFor<CardsQueryDetails>>
+  | EventByAction<"media_asset_image_ingest", MediaAssetRouteDetails>
+  | EventByAction<"media_asset_image_ingest_error", FailureDetailsFor<MediaAssetRouteDetails>>
   | EventByAction<"media_asset_upload_session_media_reuse", MediaAssetRouteDetails>
   | EventByAction<"media_asset_upload_session_concurrent_media_reuse", MediaAssetRouteDetails>
   | EventByAction<"media_asset_upload_session_create", MediaAssetRouteDetails>
@@ -897,6 +900,10 @@ export type BackendExceptionEvent =
   | (EventByAction<"feedback_submission_error", FailureDetailsFor<FeedbackSubmissionDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"workspace_tags_list_error", FailureDetailsFor<WorkspaceTagsListDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"cards_query_error", FailureDetailsFor<CardsQueryDetails>> & Readonly<{ error: Error }>)
+  | (
+    EventByAction<"media_asset_image_ingest_error", FailureDetailsFor<MediaAssetRouteDetails>>
+    & Readonly<{ error: Error }>
+  )
   | (
     EventByAction<"media_asset_upload_session_create_error", FailureDetailsFor<MediaAssetRouteDetails>>
     & Readonly<{ error: Error }>
