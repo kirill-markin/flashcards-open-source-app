@@ -29,3 +29,20 @@ export function buildMediaUploadStagingStorageKey(
     lastOperationIdSha256,
   ].join("/");
 }
+
+export function buildMediaMultipartUploadStagingStorageKey(
+  workspaceId: string,
+  mediaAssetId: string,
+  sessionId: string,
+): string {
+  return [
+    "media",
+    "uploads",
+    "workspaces",
+    workspaceId.toLowerCase(),
+    "assets",
+    mediaAssetId.toLowerCase(),
+    "sessions",
+    sessionId.toLowerCase(),
+  ].join("/");
+}

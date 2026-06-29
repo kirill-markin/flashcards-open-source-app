@@ -1,9 +1,13 @@
 import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
   CopyObjectCommand,
+  CreateMultipartUploadCommand,
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
+  UploadPartCommand,
 } from "@aws-sdk/client-s3";
 import { createHash } from "node:crypto";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -13,9 +17,13 @@ import {
   type BackendObservationScope,
 } from "../observability/sentry";
 import type {
+  CompleteMediaAssetUploadPartInput,
+  CreatedMultipartMediaAssetUpload,
   MediaAssetObjectMetadata,
   PresignedMediaAssetDownload,
   PresignedMediaAssetUpload,
+  PresignedMediaAssetUploadPart,
+  MediaAssetUploadSessionPartRequest,
 } from "./types";
 
 export type MediaAssetsStorageConfig = Readonly<{
@@ -46,6 +54,25 @@ type PresignMediaAssetDownloadInput = Readonly<{
   observationScope: BackendObservationScope;
 }>;
 
+type CreateMultipartMediaAssetUploadInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  stagingStorageKey: string;
+  mimeType: string;
+  sha256: string;
+  lastOperationId: string;
+  observationScope: BackendObservationScope;
+}>;
+
+type PresignMultipartMediaAssetUploadPartsInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  stagingStorageKey: string;
+  s3UploadId: string;
+  parts: ReadonlyArray<MediaAssetUploadSessionPartRequest>;
+  observationScope: BackendObservationScope;
+}>;
+
 type AssertMediaAssetObjectInput = Readonly<{
   workspaceId: string;
   mediaAssetId: string;
@@ -54,6 +81,28 @@ type AssertMediaAssetObjectInput = Readonly<{
   sizeBytes: number;
   sha256: string;
   lastOperationId: string;
+  observationScope: BackendObservationScope;
+}>;
+
+type CompleteMultipartMediaAssetUploadInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  stagingStorageKey: string;
+  blobStorageKey: string;
+  s3UploadId: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+  lastOperationId: string;
+  parts: ReadonlyArray<CompleteMediaAssetUploadPartInput>;
+  observationScope: BackendObservationScope;
+}>;
+
+type AbortMultipartMediaAssetUploadInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  stagingStorageKey: string;
+  s3UploadId: string;
   observationScope: BackendObservationScope;
 }>;
 
@@ -72,7 +121,12 @@ type PromoteMediaAssetUploadInput = Readonly<{
 type MediaAssetStorageOperation =
   | "create_presigned_upload"
   | "create_presigned_download"
+  | "create_multipart_upload"
+  | "create_presigned_part_upload"
+  | "complete_multipart_upload"
+  | "abort_multipart_upload"
   | "head_object"
+  | "get_object"
   | "copy_object";
 
 type MediaAssetStorageDependencies = Readonly<{
@@ -83,6 +137,7 @@ type MediaAssetStorageDependencies = Readonly<{
 const maxS3AttemptCount = 3;
 const uploadUrlExpiresSeconds = 15 * 60;
 const downloadUrlExpiresSeconds = 60 * 60;
+const multipartUploadExpiresSeconds = 24 * 60 * 60;
 const uploadProofWorkspaceIdKey = "flashcards-workspace-id";
 const uploadProofMediaAssetIdKey = "flashcards-media-asset-id";
 const uploadProofLastOperationIdSha256Key = "flashcards-last-operation-id-sha256";
@@ -140,6 +195,14 @@ function isHeadObjectUploadNotAvailableStatusCode(statusCode: number | null): bo
   return statusCode === 403 || statusCode === 404;
 }
 
+function isUploadNotAvailableStorageError(operation: MediaAssetStorageOperation, statusCode: number | null): boolean {
+  if (operation === "head_object") {
+    return isHeadObjectUploadNotAvailableStatusCode(statusCode);
+  }
+
+  return operation === "get_object" && statusCode === 404;
+}
+
 function createExpiresAt(expiresSeconds: number): string {
   return new Date(Date.now() + expiresSeconds * 1_000).toISOString();
 }
@@ -154,6 +217,23 @@ function toHexSha256Digest(checksumSha256: string | undefined): string | null {
   }
 
   return Buffer.from(checksumSha256, "base64").toString("hex");
+}
+
+type MediaAssetObjectBodyChunk = Uint8Array | string;
+
+type MediaAssetObjectBody = AsyncIterable<MediaAssetObjectBodyChunk>;
+
+type MediaAssetObjectContentHash = Readonly<{
+  sizeBytes: number;
+  sha256: string;
+}>;
+
+function isMediaAssetObjectBody(value: unknown): value is MediaAssetObjectBody {
+  return typeof value === "object" && value !== null && Symbol.asyncIterator in value;
+}
+
+function toMediaAssetObjectBodyChunkBytes(chunk: MediaAssetObjectBodyChunk): Uint8Array {
+  return typeof chunk === "string" ? Buffer.from(chunk) : chunk;
 }
 
 function createCopySource(bucketName: string, storageKey: string): string {
@@ -246,10 +326,10 @@ function createMediaAssetStorageError(
     s3ErrorClass: getS3ErrorName(error),
     s3ErrorMessage: getS3ErrorMessage(error),
   };
-  if (operation === "head_object" && isHeadObjectUploadNotAvailableStatusCode(details.s3StatusCode)) {
+  if (isUploadNotAvailableStorageError(operation, details.s3StatusCode)) {
     return new HttpError(
       409,
-      `Uploaded media asset is not available in object storage for ${publicLocation}. Upload the file through a fresh media upload intent, then retry completion.`,
+      `Completed media blob is not available in object storage for ${publicLocation}. Upload the file through a fresh media upload session, then retry completion.`,
       "MEDIA_ASSET_UPLOAD_NOT_FOUND",
       { mediaAssetStorage: details },
     );
@@ -284,6 +364,25 @@ function createMediaAssetUploadMismatchError(
   );
 }
 
+function createMediaAssetUploadContentHashMismatchError(
+  input: AssertMediaAssetObjectInput,
+  objectContent: MediaAssetObjectContentHash,
+): HttpError {
+  return new HttpError(
+    409,
+    [
+      "Uploaded media asset bytes do not match declared metadata",
+      `workspaceId=${input.workspaceId}`,
+      `mediaAssetId=${input.mediaAssetId}`,
+      `expectedSizeBytes=${input.sizeBytes}`,
+      `actualSizeBytes=${objectContent.sizeBytes}`,
+      `expectedSha256=${input.sha256}`,
+      `actualSha256=${objectContent.sha256}`,
+    ].join(" "),
+    "MEDIA_ASSET_UPLOAD_MISMATCH",
+  );
+}
+
 function createMediaAssetUploadProofMismatchError(
   input: AssertMediaAssetObjectInput,
   objectMetadata: MediaAssetObjectMetadata,
@@ -307,12 +406,33 @@ function assertMediaAssetObjectContentMatches(
   input: AssertMediaAssetObjectInput,
   objectMetadata: MediaAssetObjectMetadata,
 ): void {
+  assertMediaAssetObjectShapeMatches(input, objectMetadata);
+  if (objectMetadata.checksumSha256 !== input.sha256) {
+    throw createMediaAssetUploadMismatchError(input, objectMetadata);
+  }
+}
+
+function assertMediaAssetObjectShapeMatches(
+  input: AssertMediaAssetObjectInput,
+  objectMetadata: MediaAssetObjectMetadata,
+): void {
   if (
     objectMetadata.sizeBytes !== input.sizeBytes
     || objectMetadata.mimeType !== input.mimeType
-    || objectMetadata.checksumSha256 !== input.sha256
   ) {
     throw createMediaAssetUploadMismatchError(input, objectMetadata);
+  }
+}
+
+function assertMediaAssetObjectContentHashMatches(
+  input: AssertMediaAssetObjectInput,
+  objectContent: MediaAssetObjectContentHash,
+): void {
+  if (
+    objectContent.sizeBytes !== input.sizeBytes
+    || objectContent.sha256 !== input.sha256
+  ) {
+    throw createMediaAssetUploadContentHashMismatchError(input, objectContent);
   }
 }
 
@@ -337,6 +457,18 @@ function assertMediaAssetObjectMetadataMatches(
 ): void {
   assertMediaAssetObjectContentMatches(input, objectMetadata);
   assertMediaAssetObjectUploadProofMatches(input, objectMetadata);
+}
+
+function assertMediaAssetObjectShapeAndProofMatches(
+  input: AssertMediaAssetObjectInput,
+  objectMetadata: MediaAssetObjectMetadata,
+): void {
+  assertMediaAssetObjectShapeMatches(input, objectMetadata);
+  assertMediaAssetObjectUploadProofMatches(input, objectMetadata);
+}
+
+function isNoSuchMultipartUploadError(error: unknown): boolean {
+  return getS3ErrorStatusCode(error) === 404 && getS3ErrorName(error) === "NoSuchUpload";
 }
 
 function isMediaAssetObjectNotFoundError(error: unknown): boolean {
@@ -407,6 +539,100 @@ export async function createPresignedMediaAssetUploadWithDependencies(
   }
 }
 
+export async function createMultipartMediaAssetUploadWithDependencies(
+  input: CreateMultipartMediaAssetUploadInput,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<CreatedMultipartMediaAssetUpload> {
+  const config = dependencies.getMediaAssetsStorageConfigFn();
+  const context: MediaAssetStorageContext = {
+    workspaceId: input.workspaceId,
+    mediaAssetId: input.mediaAssetId,
+    storageKey: input.stagingStorageKey,
+    observationScope: input.observationScope,
+  };
+  const uploadProofMetadata = createUploadProofMetadata(input);
+
+  try {
+    const response = await runMediaAssetStorageOperationWithRetries(
+      context,
+      "create_multipart_upload",
+      config.bucketName,
+      async () => dependencies.s3Client.send(new CreateMultipartUploadCommand({
+        Bucket: config.bucketName,
+        Key: input.stagingStorageKey,
+        ContentType: input.mimeType,
+        ChecksumAlgorithm: "SHA256",
+        Metadata: uploadProofMetadata,
+      })),
+    );
+    if (response.UploadId === undefined || response.UploadId.trim() === "") {
+      throw new Error(
+        `S3 create_multipart_upload did not return UploadId for workspaceId=${input.workspaceId} mediaAssetId=${input.mediaAssetId} s3://${config.bucketName}/${input.stagingStorageKey}.`,
+      );
+    }
+
+    return {
+      storageKey: input.stagingStorageKey,
+      s3UploadId: response.UploadId,
+      expiresAt: createExpiresAt(multipartUploadExpiresSeconds),
+    };
+  } catch (error) {
+    throw createMediaAssetStorageError(context, config.bucketName, "create_multipart_upload", error);
+  }
+}
+
+export async function createPresignedMediaAssetUploadPartsWithDependencies(
+  input: PresignMultipartMediaAssetUploadPartsInput,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<ReadonlyArray<PresignedMediaAssetUploadPart>> {
+  const config = dependencies.getMediaAssetsStorageConfigFn();
+  const context: MediaAssetStorageContext = {
+    workspaceId: input.workspaceId,
+    mediaAssetId: input.mediaAssetId,
+    storageKey: input.stagingStorageKey,
+    observationScope: input.observationScope,
+  };
+
+  try {
+    return await runMediaAssetStorageOperationWithRetries(
+      context,
+      "create_presigned_part_upload",
+      config.bucketName,
+      async () => Promise.all(input.parts.map(async (part) => {
+        const checksumSha256 = toBase64Sha256Digest(part.sha256);
+        const requiredUploadHeaders = {
+          "x-amz-checksum-sha256": checksumSha256,
+        };
+        const url = await getSignedUrl(
+          dependencies.s3Client,
+          new UploadPartCommand({
+            Bucket: config.bucketName,
+            Key: input.stagingStorageKey,
+            UploadId: input.s3UploadId,
+            PartNumber: part.partNumber,
+            ChecksumSHA256: checksumSha256,
+          }),
+          {
+            expiresIn: uploadUrlExpiresSeconds,
+            signableHeaders: new Set(Object.keys(requiredUploadHeaders)),
+            unhoistableHeaders: new Set(Object.keys(requiredUploadHeaders)),
+          },
+        );
+
+        return {
+          partNumber: part.partNumber,
+          method: "PUT",
+          url,
+          expiresAt: createExpiresAt(uploadUrlExpiresSeconds),
+          headers: requiredUploadHeaders,
+        };
+      })),
+    );
+  } catch (error) {
+    throw createMediaAssetStorageError(context, config.bucketName, "create_presigned_part_upload", error);
+  }
+}
+
 export async function createPresignedMediaAssetDownloadWithDependencies(
   input: PresignMediaAssetDownloadInput,
   dependencies: MediaAssetStorageDependencies,
@@ -472,6 +698,7 @@ export async function loadMediaAssetObjectMetadataWithDependencies(
       sizeBytes: typeof response.ContentLength === "number" ? response.ContentLength : null,
       mimeType: typeof response.ContentType === "string" ? response.ContentType : null,
       checksumSha256: toHexSha256Digest(response.ChecksumSHA256),
+      checksumType: response.ChecksumType ?? null,
       uploadProof: {
         workspaceId: response.Metadata?.[uploadProofWorkspaceIdKey] ?? null,
         mediaAssetId: response.Metadata?.[uploadProofMediaAssetIdKey] ?? null,
@@ -490,6 +717,52 @@ export async function assertMediaAssetObjectMatchesWithDependencies(
 ): Promise<void> {
   const objectMetadata = await loadMediaAssetObjectMetadataWithDependencies(input, dependencies);
   assertMediaAssetObjectMetadataMatches(input, objectMetadata);
+}
+
+async function hashMediaAssetObjectContentWithDependencies(
+  input: AssertMediaAssetObjectInput,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<MediaAssetObjectContentHash> {
+  const config = dependencies.getMediaAssetsStorageConfigFn();
+  const context: MediaAssetStorageContext = {
+    workspaceId: input.workspaceId,
+    mediaAssetId: input.mediaAssetId,
+    storageKey: input.storageKey,
+    observationScope: input.observationScope,
+  };
+
+  try {
+    const response = await runMediaAssetStorageOperationWithRetries(
+      context,
+      "get_object",
+      config.bucketName,
+      async () => dependencies.s3Client.send(new GetObjectCommand({
+        Bucket: config.bucketName,
+        Key: input.storageKey,
+      })),
+    );
+    const body = response.Body;
+    if (isMediaAssetObjectBody(body) === false) {
+      throw new Error(
+        `S3 get_object did not return a readable body for workspaceId=${input.workspaceId} mediaAssetId=${input.mediaAssetId} s3://${config.bucketName}/${input.storageKey}.`,
+      );
+    }
+
+    const hash = createHash("sha256");
+    let sizeBytes = 0;
+    for await (const chunk of body) {
+      const bytes = toMediaAssetObjectBodyChunkBytes(chunk);
+      sizeBytes += bytes.byteLength;
+      hash.update(bytes);
+    }
+
+    return {
+      sizeBytes,
+      sha256: hash.digest("hex"),
+    };
+  } catch (error) {
+    throw createMediaAssetStorageError(context, config.bucketName, "get_object", error);
+  }
 }
 
 async function copyMediaAssetObjectIfAbsentWithDependencies(
@@ -545,7 +818,7 @@ async function copyMediaAssetObjectIfAbsentWithDependencies(
   }
 }
 
-export async function promoteMediaAssetUploadToBlobWithDependencies(
+async function promoteVerifiedMediaAssetUploadToBlobWithDependencies(
   input: PromoteMediaAssetUploadInput,
   dependencies: MediaAssetStorageDependencies,
 ): Promise<void> {
@@ -559,9 +832,6 @@ export async function promoteMediaAssetUploadToBlobWithDependencies(
     lastOperationId: input.lastOperationId,
     observationScope: input.observationScope,
   };
-  const uploadObjectMetadata = await loadMediaAssetObjectMetadataWithDependencies(uploadObjectInput, dependencies);
-  assertMediaAssetObjectMetadataMatches(uploadObjectInput, uploadObjectMetadata);
-
   const blobObjectInput: AssertMediaAssetObjectInput = {
     ...uploadObjectInput,
     storageKey: input.blobStorageKey,
@@ -593,10 +863,150 @@ export async function promoteMediaAssetUploadToBlobWithDependencies(
   }
 }
 
+export async function promoteMediaAssetUploadToBlobWithDependencies(
+  input: PromoteMediaAssetUploadInput,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<void> {
+  const uploadObjectInput: AssertMediaAssetObjectInput = {
+    workspaceId: input.workspaceId,
+    mediaAssetId: input.mediaAssetId,
+    storageKey: input.uploadStorageKey,
+    mimeType: input.mimeType,
+    sizeBytes: input.sizeBytes,
+    sha256: input.sha256,
+    lastOperationId: input.lastOperationId,
+    observationScope: input.observationScope,
+  };
+  const uploadObjectMetadata = await loadMediaAssetObjectMetadataWithDependencies(uploadObjectInput, dependencies);
+  assertMediaAssetObjectMetadataMatches(uploadObjectInput, uploadObjectMetadata);
+
+  await promoteVerifiedMediaAssetUploadToBlobWithDependencies(input, dependencies);
+}
+
+export async function completeMultipartMediaAssetUploadWithDependencies(
+  input: CompleteMultipartMediaAssetUploadInput,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<void> {
+  const config = dependencies.getMediaAssetsStorageConfigFn();
+  const context: MediaAssetStorageContext = {
+    workspaceId: input.workspaceId,
+    mediaAssetId: input.mediaAssetId,
+    storageKey: input.stagingStorageKey,
+    observationScope: input.observationScope,
+  };
+  const completedParts = [...input.parts]
+    .sort((left, right) => left.partNumber - right.partNumber)
+    .map((part) => ({
+      PartNumber: part.partNumber,
+      ETag: part.eTag,
+      ChecksumSHA256: toBase64Sha256Digest(part.sha256),
+    }));
+
+  try {
+    await runMediaAssetStorageOperationWithRetries(
+      context,
+      "complete_multipart_upload",
+      config.bucketName,
+      async () => dependencies.s3Client.send(new CompleteMultipartUploadCommand({
+        Bucket: config.bucketName,
+        Key: input.stagingStorageKey,
+        UploadId: input.s3UploadId,
+        MultipartUpload: {
+          Parts: completedParts,
+        },
+      })),
+    );
+  } catch (error) {
+    if (isNoSuchMultipartUploadError(error) === false) {
+      throw createMediaAssetStorageError(context, config.bucketName, "complete_multipart_upload", error);
+    }
+  }
+
+  const stagingObjectInput: AssertMediaAssetObjectInput = {
+    workspaceId: input.workspaceId,
+    mediaAssetId: input.mediaAssetId,
+    storageKey: input.stagingStorageKey,
+    mimeType: input.mimeType,
+    sizeBytes: input.sizeBytes,
+    sha256: input.sha256,
+    lastOperationId: input.lastOperationId,
+    observationScope: input.observationScope,
+  };
+  const stagingObjectMetadata = await loadMediaAssetObjectMetadataWithDependencies(stagingObjectInput, dependencies);
+  assertMediaAssetObjectShapeAndProofMatches(stagingObjectInput, stagingObjectMetadata);
+  const stagingObjectContent = await hashMediaAssetObjectContentWithDependencies(stagingObjectInput, dependencies);
+  assertMediaAssetObjectContentHashMatches(stagingObjectInput, stagingObjectContent);
+
+  await promoteVerifiedMediaAssetUploadToBlobWithDependencies(
+    {
+      workspaceId: input.workspaceId,
+      mediaAssetId: input.mediaAssetId,
+      uploadStorageKey: input.stagingStorageKey,
+      blobStorageKey: input.blobStorageKey,
+      mimeType: input.mimeType,
+      sizeBytes: input.sizeBytes,
+      sha256: input.sha256,
+      lastOperationId: input.lastOperationId,
+      observationScope: input.observationScope,
+    },
+    dependencies,
+  );
+}
+
+export async function abortMultipartMediaAssetUploadWithDependencies(
+  input: AbortMultipartMediaAssetUploadInput,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<void> {
+  const config = dependencies.getMediaAssetsStorageConfigFn();
+  const context: MediaAssetStorageContext = {
+    workspaceId: input.workspaceId,
+    mediaAssetId: input.mediaAssetId,
+    storageKey: input.stagingStorageKey,
+    observationScope: input.observationScope,
+  };
+
+  try {
+    await runMediaAssetStorageOperationWithRetries(
+      context,
+      "abort_multipart_upload",
+      config.bucketName,
+      async () => dependencies.s3Client.send(new AbortMultipartUploadCommand({
+        Bucket: config.bucketName,
+        Key: input.stagingStorageKey,
+        UploadId: input.s3UploadId,
+      })),
+    );
+  } catch (error) {
+    if (isNoSuchMultipartUploadError(error)) {
+      return;
+    }
+
+    throw createMediaAssetStorageError(context, config.bucketName, "abort_multipart_upload", error);
+  }
+}
+
+export async function createMultipartMediaAssetUpload(
+  input: CreateMultipartMediaAssetUploadInput,
+): Promise<CreatedMultipartMediaAssetUpload> {
+  return createMultipartMediaAssetUploadWithDependencies(input, {
+    s3Client: getMediaAssetsS3Client(),
+    getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
+  });
+}
+
 export async function createPresignedMediaAssetUpload(
   input: PresignMediaAssetUploadInput,
 ): Promise<PresignedMediaAssetUpload> {
   return createPresignedMediaAssetUploadWithDependencies(input, {
+    s3Client: getMediaAssetsS3Client(),
+    getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
+  });
+}
+
+export async function createPresignedMediaAssetUploadParts(
+  input: PresignMultipartMediaAssetUploadPartsInput,
+): Promise<ReadonlyArray<PresignedMediaAssetUploadPart>> {
+  return createPresignedMediaAssetUploadPartsWithDependencies(input, {
     s3Client: getMediaAssetsS3Client(),
     getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
   });
@@ -624,6 +1034,24 @@ export async function promoteMediaAssetUploadToBlob(
   input: PromoteMediaAssetUploadInput,
 ): Promise<void> {
   return promoteMediaAssetUploadToBlobWithDependencies(input, {
+    s3Client: getMediaAssetsS3Client(),
+    getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
+  });
+}
+
+export async function completeMultipartMediaAssetUpload(
+  input: CompleteMultipartMediaAssetUploadInput,
+): Promise<void> {
+  return completeMultipartMediaAssetUploadWithDependencies(input, {
+    s3Client: getMediaAssetsS3Client(),
+    getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
+  });
+}
+
+export async function abortMultipartMediaAssetUpload(
+  input: AbortMultipartMediaAssetUploadInput,
+): Promise<void> {
+  return abortMultipartMediaAssetUploadWithDependencies(input, {
     s3Client: getMediaAssetsS3Client(),
     getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
   });
