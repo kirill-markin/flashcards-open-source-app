@@ -1,0 +1,9 @@
+type: object
+additionalProperties: false
+required:
+  - note
+properties:
+  note:
+    type:
+      - string
+      - 'null'

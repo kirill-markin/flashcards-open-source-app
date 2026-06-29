@@ -141,7 +141,7 @@ export const globalMetricsCorsPreflightOptions: apigw.CorsOptions = {
 function createBrowserCorsPreflightOptions(allowedOrigins: string[]): apigw.CorsOptions {
   return {
     allowOrigins: allowedOrigins,
-    allowMethods: ["GET", "POST", "PATCH", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "OPTIONS"],
     allowHeaders: [...browserCorsAllowHeaders],
     allowCredentials: true,
   };
@@ -164,7 +164,7 @@ export function createGatewayErrorResponseHeaders(): GatewayErrorResponseHeaders
     "Access-Control-Allow-Origin": "method.request.header.Origin",
     "Vary": "'Origin'",
     "Access-Control-Allow-Headers": `'${browserCorsAllowHeaders.join(",")}'`,
-    "Access-Control-Allow-Methods": "'GET,POST,PATCH,OPTIONS'",
+    "Access-Control-Allow-Methods": "'GET,POST,PUT,PATCH,OPTIONS'",
     "Access-Control-Allow-Credentials": "'true'",
     "Access-Control-Expose-Headers": `'${gatewayErrorCorsExposeHeaders.join(",")}'`,
     "X-Request-Id": "context.requestId",
@@ -686,6 +686,23 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   admin.addResource("session").addMethod("GET", integration);
   const adminReports = admin.addResource("reports");
   adminReports.addResource("query").addMethod("POST", integration);
+  const adminCatalog = admin.addResource("catalog");
+  const adminCatalogAuthors = adminCatalog.addResource("authors");
+  adminCatalogAuthors.addMethod("POST", integration);
+  adminCatalogAuthors.addResource("{authorId}").addMethod("PUT", integration);
+  const adminCatalogPackages = adminCatalog.addResource("packages");
+  adminCatalogPackages.addMethod("POST", integration);
+  const adminCatalogPackageById = adminCatalogPackages.addResource("{packageId}");
+  adminCatalogPackageById.addMethod("GET", integration);
+  adminCatalogPackageById.addResource("draft").addMethod("PUT", integration);
+  adminCatalogPackageById.addResource("media-assets").addMethod("POST", integration);
+  const adminCatalogPackageVersions = adminCatalogPackageById.addResource("versions");
+  adminCatalogPackageVersions.addMethod("POST", integration);
+  adminCatalogPackageVersions.addResource("from-workspace").addMethod("POST", integration);
+  const adminCatalogPackageVersionById = adminCatalog.addResource("package-versions").addResource("{packageVersionId}");
+  adminCatalogPackageVersionById.addResource("review-status").addMethod("POST", integration);
+  adminCatalogPackageVersionById.addResource("publish").addMethod("POST", integration);
+  adminCatalogPackageVersionById.addResource("delist").addMethod("POST", integration);
 
   const chat = restApi.root.addResource("chat");
   chat.addMethod("GET", integration);

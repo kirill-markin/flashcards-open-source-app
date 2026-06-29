@@ -1,0 +1,21 @@
+type: object
+additionalProperties: false
+required:
+  - slug
+  - displayName
+  - bio
+  - websiteUrl
+properties:
+  slug:
+    type: string
+  displayName:
+    type: string
+  bio:
+    type:
+      - string
+      - 'null'
+  websiteUrl:
+    type:
+      - string
+      - 'null'
+    format: uri

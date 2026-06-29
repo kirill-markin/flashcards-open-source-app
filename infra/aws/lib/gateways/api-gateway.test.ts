@@ -87,6 +87,13 @@ test("API Gateway predeclares /me/progress/leaderboards/profiles/{publicProfileI
   );
 });
 
+test("API Gateway browser CORS allows PUT for admin updates", () => {
+  const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
+  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+
+  assert.match(apiGatewaySource, /allowMethods: \["GET", "POST", "PUT", "PATCH", "OPTIONS"\]/);
+});
+
 test("global snapshot API Gateway mock preflight allows content type and Sentry trace headers", () => {
   const stack = new cdk.Stack();
   const restApi = new apigw.RestApi(stack, "Api");
@@ -214,7 +221,7 @@ test("default API Gateway generated errors expose supported request id headers",
   const responseParameters = {
     "gatewayresponse.header.Access-Control-Allow-Credentials": "'true'",
     "gatewayresponse.header.Access-Control-Allow-Headers": `'${allowHeaders}'`,
-    "gatewayresponse.header.Access-Control-Allow-Methods": "'GET,POST,PATCH,OPTIONS'",
+    "gatewayresponse.header.Access-Control-Allow-Methods": "'GET,POST,PUT,PATCH,OPTIONS'",
     "gatewayresponse.header.Access-Control-Allow-Origin": "method.request.header.Origin",
     "gatewayresponse.header.Access-Control-Expose-Headers": "'x-request-id,x-amzn-requestid,x-amz-apigw-id'",
     "gatewayresponse.header.Vary": "'Origin'",

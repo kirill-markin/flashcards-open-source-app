@@ -1,0 +1,12 @@
+type: object
+additionalProperties: false
+required:
+  - catalogPackage
+  - mediaAssets
+properties:
+  catalogPackage:
+    $ref: ./CatalogPackage.yaml
+  mediaAssets:
+    type: array
+    items:
+      $ref: ./CatalogPackageMediaAsset.yaml

@@ -1,0 +1,7 @@
+type: string
+enum:
+  - draft
+  - submitted
+  - needs_changes
+  - approved
+  - rejected

@@ -1,0 +1,12 @@
+type: object
+additionalProperties: false
+required:
+  - status
+  - note
+properties:
+  status:
+    $ref: ./CatalogPackageReviewStatus.yaml
+  note:
+    type:
+      - string
+      - 'null'

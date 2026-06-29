@@ -19,6 +19,7 @@ import { createMediaAssetsRoutes } from "../routes/mediaAssets";
 import { createSyncRoutes } from "../routes/sync/index";
 import { createSystemRoutes } from "../routes/system";
 import { createAdminRoutes } from "../routes/admin";
+import { createCatalogAdminRoutes } from "../routes/catalogAdmin";
 import { createGuestAuthRoutes } from "../routes/guestAuth";
 import { createWorkspaceRoutes } from "../routes/workspaces/index";
 import {
@@ -371,6 +372,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createAgentRoutes({ allowedOrigins }));
   app.route("/", createWorkspaceRoutes({ allowedOrigins }));
   app.route("/", createAdminRoutes({ allowedOrigins }));
+  app.route("/", createCatalogAdminRoutes({ allowedOrigins }));
   app.route("/", createCardsRoutes({ allowedOrigins }));
   app.route("/", createFeedbackRoutes({ allowedOrigins }));
   app.route("/", createMediaAssetsRoutes({ allowedOrigins }));
