@@ -98,13 +98,21 @@ test("API Gateway predeclares media asset image ingestion and binary image bodie
   );
 });
 
-test("Backend API Lambda packages sharp with Docker bundling only on the API handler", () => {
+test("Backend API Lambda packages sharp with ARM64 Docker bundling only on the API handler", () => {
   const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
   const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
 
   assert.match(
     apiGatewaySource,
-    /constructId: "BackendHandler"[\s\S]*architecture: lambda\.Architecture\.X86_64[\s\S]*nodeModules: \["sharp"\][\s\S]*forceDockerBundling: true/,
+    /constructId: "BackendHandler"[\s\S]*architecture: lambda\.Architecture\.ARM_64[\s\S]*nodeModules: \["sharp"\][\s\S]*forceDockerBundling: true/,
+  );
+  assert.match(
+    apiGatewaySource,
+    /hostPath: resolveFromRepoRoot\(\)[\s\S]*containerPath: dockerBundlingRepoRootPath/,
+  );
+  assert.match(
+    apiGatewaySource,
+    /SENTRY_BACKEND_CLI_PATH: `\$\{dockerBundlingRepoRootPath\}\/apps\/backend\/node_modules\/\.bin\/sentry-cli`/,
   );
   assert.doesNotMatch(
     apiGatewaySource,
