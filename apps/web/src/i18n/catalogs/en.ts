@@ -137,6 +137,17 @@ const enCatalog = {
     streakTitle: "Streak",
     streakInfoToggleLabel: "About streak freezes",
     streakInfo: "Freeze bank {{available}}/{{capacity}}. Next recharge {{progress}}/{{required}}.",
+    streakDayReviewCount: {
+      one: "review",
+      other: "reviews",
+    },
+    streakDayAria: {
+      reviewed: "{{date}}, reviewed, {{reviewCount}}.",
+      frozen: "{{date}}, protected by a streak freeze, {{reviewCount}}.",
+      pending: "{{date}}, pending, {{reviewCount}}.",
+      missed: "{{date}}, missed, {{reviewCount}}.",
+      future: "{{date}}, future day.",
+    },
     reviewsTitle: "Reviews",
     lastThirtyDays: "Last 30 days",
     empty: "No reviews were recorded for this 30-day range.",

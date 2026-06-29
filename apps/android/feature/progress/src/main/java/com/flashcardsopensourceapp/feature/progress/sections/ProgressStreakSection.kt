@@ -286,15 +286,8 @@ private fun StreakDayCell(
     day: ProgressStreakDayUiState,
     modifier: Modifier
 ) {
-    if (day.isPlaceholder) {
-        Box(
-            modifier = modifier.aspectRatio(1f)
-        )
-        return
-    }
-
-    val state = day.state ?: CloudProgressStreakDayState.MISSED
-    val date = checkNotNull(day.date)
+    val state = day.state
+    val date = day.date
     val highlightColor = when {
         state == CloudProgressStreakDayState.REVIEWED -> Color.Transparent
         state == CloudProgressStreakDayState.FROZEN -> Color.Transparent
@@ -304,26 +297,34 @@ private fun StreakDayCell(
     val markerColor = MaterialTheme.colorScheme.primary
     val markerContentColor = MaterialTheme.colorScheme.onPrimary
     val dateTextColor = when {
+        day.isFuture -> MaterialTheme.colorScheme.onSurfaceVariant
         day.isToday -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.onSurface
     }
-    val contentDescription = when (state) {
-        CloudProgressStreakDayState.REVIEWED -> stringResource(
-            id = R.string.progress_streak_day_reviewed_content_description,
+    val contentDescription = if (day.isFuture) {
+        stringResource(
+            id = R.string.progress_streak_day_future_content_description,
             date.toString()
         )
-        CloudProgressStreakDayState.FROZEN -> stringResource(
-            id = R.string.progress_streak_day_frozen_content_description,
-            date.toString()
-        )
-        CloudProgressStreakDayState.PENDING -> stringResource(
-            id = R.string.progress_streak_day_pending_content_description,
-            date.toString()
-        )
-        CloudProgressStreakDayState.MISSED -> stringResource(
-            id = R.string.progress_streak_day_missed_content_description,
-            date.toString()
-        )
+    } else {
+        when (state) {
+            CloudProgressStreakDayState.REVIEWED -> stringResource(
+                id = R.string.progress_streak_day_reviewed_content_description,
+                date.toString()
+            )
+            CloudProgressStreakDayState.FROZEN -> stringResource(
+                id = R.string.progress_streak_day_frozen_content_description,
+                date.toString()
+            )
+            CloudProgressStreakDayState.PENDING -> stringResource(
+                id = R.string.progress_streak_day_pending_content_description,
+                date.toString()
+            )
+            CloudProgressStreakDayState.MISSED -> stringResource(
+                id = R.string.progress_streak_day_missed_content_description,
+                date.toString()
+            )
+        }
     }
 
     Box(
@@ -415,14 +416,12 @@ private fun DateStreakMarker(
             .then(todayOutlineModifier),
         contentAlignment = Alignment.Center
     ) {
-        day.dayOfMonthLabel?.let { dayOfMonthLabel ->
-            Text(
-                text = dayOfMonthLabel,
-                color = dateTextColor,
-                fontWeight = if (day.isToday) FontWeight.SemiBold else FontWeight.Normal,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
+        Text(
+            text = day.dayOfMonthLabel,
+            color = dateTextColor,
+            fontWeight = if (day.isToday) FontWeight.SemiBold else FontWeight.Normal,
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 

@@ -20,6 +20,7 @@
     <string name="progress_streak_freeze_bank_info_dismiss">OK</string>
     <string name="progress_streak_day_reviewed_content_description">%1$s reviewed.</string>
     <string name="progress_streak_day_frozen_content_description">%1$s protected by a streak freeze.</string>
+    <string name="progress_streak_day_future_content_description">%1$s future day.</string>
     <string name="progress_streak_day_pending_content_description">%1$s pending.</string>
     <string name="progress_streak_day_missed_content_description">%1$s missed.</string>
     <string name="progress_reviews_title">Reviews</string>

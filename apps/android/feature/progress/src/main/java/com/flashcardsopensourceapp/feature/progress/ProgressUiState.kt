@@ -27,12 +27,12 @@ data class ProgressReviewPageUiState(
 )
 
 data class ProgressStreakDayUiState(
-    val date: LocalDate?,
-    val dayOfMonthLabel: String?,
+    val date: LocalDate,
+    val dayOfMonthLabel: String,
     val reviewCount: Int,
-    val state: CloudProgressStreakDayState?,
+    val state: CloudProgressStreakDayState,
     val isToday: Boolean,
-    val isPlaceholder: Boolean
+    val isFuture: Boolean
 )
 
 data class ProgressStreakWeekUiState(

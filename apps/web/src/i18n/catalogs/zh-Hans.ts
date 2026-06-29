@@ -139,6 +139,17 @@ export const zhHansCatalog = {
     streakTitle: "连续天数",
     streakInfoToggleLabel: "关于连续冻结",
     streakInfo: "冻结额度 {{available}}/{{capacity}}。下次补充 {{progress}}/{{required}}。",
+    streakDayReviewCount: {
+      one: "次复习",
+      other: "次复习",
+    },
+    streakDayAria: {
+      reviewed: "{{date}}，已复习，{{reviewCount}}。",
+      frozen: "{{date}}，已用连续冻结保护，{{reviewCount}}。",
+      pending: "{{date}}，待完成，{{reviewCount}}。",
+      missed: "{{date}}，已错过，{{reviewCount}}。",
+      future: "{{date}}，未来日期。",
+    },
     reviewsTitle: "复习次数",
     lastThirtyDays: "最近 30 天",
     empty: "在这 30 天范围内没有记录到任何复习。",

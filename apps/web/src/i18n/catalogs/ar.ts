@@ -139,6 +139,17 @@ const arCatalog: TranslationCatalog = {
     streakTitle: "السلسلة",
     streakInfoToggleLabel: "حول تجميد السلسلة",
     streakInfo: "رصيد التجميد {{available}}/{{capacity}}. الشحن التالي {{progress}}/{{required}}.",
+    streakDayReviewCount: {
+      one: "مراجعة",
+      other: "مراجعات",
+    },
+    streakDayAria: {
+      reviewed: "{{date}}، تمت المراجعة، {{reviewCount}}.",
+      frozen: "{{date}}، محمي بتجميد السلسلة، {{reviewCount}}.",
+      pending: "{{date}}، قيد الانتظار، {{reviewCount}}.",
+      missed: "{{date}}، فائت، {{reviewCount}}.",
+      future: "{{date}}، يوم مستقبلي.",
+    },
     reviewsTitle: "المراجعات",
     lastThirtyDays: "آخر 30 يومًا",
     empty: "لم تُسجَّل أي مراجعات خلال نطاق الثلاثين يومًا هذا.",

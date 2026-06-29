@@ -139,6 +139,17 @@ const deCatalog: TranslationCatalog = {
     streakTitle: "Serie",
     streakInfoToggleLabel: "Über Serien-Frost",
     streakInfo: "Frostbank {{available}}/{{capacity}}. Nächste Aufladung {{progress}}/{{required}}.",
+    streakDayReviewCount: {
+      one: "Wiederholung",
+      other: "Wiederholungen",
+    },
+    streakDayAria: {
+      reviewed: "{{date}}, wiederholt, {{reviewCount}}.",
+      frozen: "{{date}}, durch Serien-Frost geschützt, {{reviewCount}}.",
+      pending: "{{date}}, ausstehend, {{reviewCount}}.",
+      missed: "{{date}}, verpasst, {{reviewCount}}.",
+      future: "{{date}}, zukünftiger Tag.",
+    },
     reviewsTitle: "Wiederholungen",
     lastThirtyDays: "Letzte 30 Tage",
     empty: "Für diesen 30-Tage-Zeitraum wurden keine Wiederholungen erfasst.",

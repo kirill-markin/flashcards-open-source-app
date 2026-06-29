@@ -139,6 +139,17 @@ const hiCatalog: TranslationCatalog = {
     streakTitle: "स्ट्रीक",
     streakInfoToggleLabel: "स्ट्रीक फ़्रीज़ के बारे में",
     streakInfo: "फ़्रीज़ बैंक {{available}}/{{capacity}}। अगला रीचार्ज {{progress}}/{{required}}।",
+    streakDayReviewCount: {
+      one: "रिव्यू",
+      other: "रिव्यू",
+    },
+    streakDayAria: {
+      reviewed: "{{date}}, रिव्यू किया गया, {{reviewCount}}.",
+      frozen: "{{date}}, स्ट्रीक फ़्रीज़ से सुरक्षित, {{reviewCount}}.",
+      pending: "{{date}}, लंबित, {{reviewCount}}.",
+      missed: "{{date}}, छूटा हुआ, {{reviewCount}}.",
+      future: "{{date}}, भविष्य का दिन.",
+    },
     reviewsTitle: "रिव्यू",
     lastThirtyDays: "पिछले 30 दिन",
     empty: "इन 30 दिनों की अवधि में कोई रिव्यू दर्ज नहीं किया गया।",
