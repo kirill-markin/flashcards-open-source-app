@@ -231,6 +231,11 @@ jobs:
         if: ${{ needs.changes.outputs.infra_changed == 'true' }}
         run: npm run test --prefix infra/aws
 
+      - name: Set up Docker QEMU for CDK bundling
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Synthesize infra
         working-directory: infra/aws
         env:

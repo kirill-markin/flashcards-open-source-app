@@ -133,6 +133,15 @@ const browserCorsAllowHeaders = [
 const browserCorsExposeHeaders = [
   "x-request-id",
 ] as const;
+const dockerBundlingRepoRootPath = "/asset-repo-root";
+type DockerBundlingEnvironmentVariableName =
+  | "GITHUB_ACTIONS"
+  | "SENTRY_AUTH_TOKEN"
+  | "SENTRY_BACKEND_CLI_PATH"
+  | "SENTRY_ORG"
+  | "SENTRY_PROJECT"
+  | "SENTRY_RELEASE"
+  | "SENTRY_UPLOAD_BACKEND_SOURCEMAPS";
 
 const gatewayErrorCorsExposeHeaders = [
   ...browserCorsExposeHeaders,
@@ -179,24 +188,52 @@ export function createGatewayErrorResponseHeaders(): GatewayErrorResponseHeaders
   };
 }
 
+function createDockerBundlingEnvironment(): Record<DockerBundlingEnvironmentVariableName, string> {
+  return {
+    GITHUB_ACTIONS: process.env.GITHUB_ACTIONS ?? "",
+    SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN ?? "",
+    SENTRY_BACKEND_CLI_PATH: `${dockerBundlingRepoRootPath}/apps/backend/node_modules/.bin/sentry-cli`,
+    SENTRY_ORG: process.env.SENTRY_ORG ?? "",
+    SENTRY_PROJECT: process.env.SENTRY_PROJECT ?? "",
+    SENTRY_RELEASE: process.env.SENTRY_RELEASE ?? "",
+    SENTRY_UPLOAD_BACKEND_SOURCEMAPS: process.env.SENTRY_UPLOAD_BACKEND_SOURCEMAPS ?? "",
+  };
+}
+
 function createLambdaBundling(
   input: Readonly<{
     nodeModules: ReadonlyArray<string>;
     forceDockerBundling: boolean;
   }>,
 ): lambdaNodejs.BundlingOptions {
+  const openApiDocumentPath = input.forceDockerBundling
+    ? `${dockerBundlingRepoRootPath}/api/dist/openapi.json`
+    : resolveFromRepoRoot("api", "dist", "openapi.json");
+
   return {
     minify: true,
     sourceMap: true,
     ...(input.nodeModules.length === 0 ? {} : { nodeModules: [...input.nodeModules] }),
-    ...(input.forceDockerBundling ? { forceDockerBundling: true } : {}),
+    ...(input.forceDockerBundling
+      ? {
+          forceDockerBundling: true,
+          volumes: [
+            {
+              hostPath: resolveFromRepoRoot(),
+              containerPath: dockerBundlingRepoRootPath,
+              consistency: cdk.DockerVolumeConsistency.CONSISTENT,
+            },
+          ],
+          environment: createDockerBundlingEnvironment(),
+        }
+      : {}),
     commandHooks: {
       beforeBundling: () => [],
       beforeInstall: () => [],
       afterBundling: (_inputDir: string, outputDir: string) => [
         `curl -sfo ${outputDir}/rds-global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem`,
         `mkdir -p ${outputDir}/api/dist`,
-        `cp ${resolveFromRepoRoot("api", "dist", "openapi.json")} ${outputDir}/api/dist/openapi.json`,
+        `cp ${openApiDocumentPath} ${outputDir}/api/dist/openapi.json`,
         createSentrySourceMapUploadCommand(outputDir),
       ],
     },
@@ -503,7 +540,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     },
     mediaAssetsBucket: props.mediaAssetsBucket,
     memorySize: 256,
-    architecture: lambda.Architecture.X86_64,
+    architecture: lambda.Architecture.ARM_64,
     bundling: createLambdaBundling({
       nodeModules: ["sharp"],
       forceDockerBundling: true,
