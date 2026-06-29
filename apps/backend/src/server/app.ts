@@ -4,7 +4,6 @@ import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import {
   AuthError,
-  authVerificationRetryAfterSeconds,
   authVerificationTemporarilyUnavailableCode,
 } from "../auth";
 import { getAuthConfig } from "../auth/config";
@@ -36,6 +35,9 @@ import {
   normalizeCaughtError,
 } from "../observability/sentry";
 import { hasReportedBackendException } from "../observability/reporting";
+import { getHttpErrorResponseHeaders } from "./httpErrorResponseHeaders";
+
+export { getHttpErrorResponseHeaders } from "./httpErrorResponseHeaders";
 
 export type AppEnv = {
   Variables: {
@@ -136,18 +138,6 @@ export function createAgentInstructions(code: string | null, statusCode: number)
   }
 
   return "If the issue persists, reload account context from GET /v1/agent/me or restart from GET /v1/agent.";
-}
-
-export function getHttpErrorResponseHeaders(error: HttpError): ReadonlyArray<readonly [string, string]> {
-  if (error.statusCode === 503 && error.code === "SERVICE_UNAVAILABLE") {
-    return [["Retry-After", "1"]];
-  }
-
-  if (error.statusCode === 503 && error.code === authVerificationTemporarilyUnavailableCode) {
-    return [["Retry-After", authVerificationRetryAfterSeconds.toString()]];
-  }
-
-  return [];
 }
 
 function applyHttpErrorResponseHeaders(
