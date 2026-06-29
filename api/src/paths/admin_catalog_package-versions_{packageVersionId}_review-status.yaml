@@ -1,0 +1,39 @@
+post:
+  tags:
+    - admin-catalog
+  summary: Update package version review status
+  description: Moves a package version through draft review states before publication.
+  security:
+    - AdminSessionCookie: []
+      CsrfTokenHeader: []
+  parameters:
+    - name: packageVersionId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateCatalogPackageVersionStatusInput.yaml
+  responses:
+    '200':
+      description: Catalog package version status updated
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required:
+              - packageVersion
+            properties:
+              packageVersion:
+                $ref: ../components/schemas/CatalogPackageVersion.yaml
+    default:
+      description: Admin request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AdminErrorEnvelope.yaml

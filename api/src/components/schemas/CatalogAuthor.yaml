@@ -1,0 +1,33 @@
+type: object
+additionalProperties: false
+required:
+  - authorId
+  - slug
+  - displayName
+  - bio
+  - websiteUrl
+  - createdAt
+  - updatedAt
+properties:
+  authorId:
+    $ref: ./UuidString.yaml
+  slug:
+    type: string
+    pattern: ^[a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?$
+  displayName:
+    type: string
+  bio:
+    type:
+      - string
+      - 'null'
+  websiteUrl:
+    type:
+      - string
+      - 'null'
+    format: uri
+  createdAt:
+    type: string
+    format: date-time
+  updatedAt:
+    type: string
+    format: date-time

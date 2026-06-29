@@ -48,6 +48,10 @@ tags:
     description: >-
       Workspace-scoped media asset registry metadata and direct private object
       transfer URLs.
+  - name: admin-catalog
+    description: >-
+      Admin-only catalog authoring surface for marketplace authors, packages,
+      media references, review states, and immutable package versions.
 paths:
   /:
     $ref: paths/_.yaml
@@ -75,10 +79,36 @@ paths:
     $ref: paths/workspaces_{workspaceId}_media-assets_{mediaAssetId}_complete.yaml
   /workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url:
     $ref: paths/workspaces_{workspaceId}_media-assets_{mediaAssetId}_download-url.yaml
+  /admin/catalog/authors:
+    $ref: paths/admin_catalog_authors.yaml
+  /admin/catalog/authors/{authorId}:
+    $ref: paths/admin_catalog_authors_{authorId}.yaml
+  /admin/catalog/packages:
+    $ref: paths/admin_catalog_packages.yaml
+  /admin/catalog/packages/{packageId}:
+    $ref: paths/admin_catalog_packages_{packageId}.yaml
+  /admin/catalog/packages/{packageId}/draft:
+    $ref: paths/admin_catalog_packages_{packageId}_draft.yaml
+  /admin/catalog/packages/{packageId}/media-assets:
+    $ref: paths/admin_catalog_packages_{packageId}_media-assets.yaml
+  /admin/catalog/packages/{packageId}/versions:
+    $ref: paths/admin_catalog_packages_{packageId}_versions.yaml
+  /admin/catalog/packages/{packageId}/versions/from-workspace:
+    $ref: paths/admin_catalog_packages_{packageId}_versions_from-workspace.yaml
+  /admin/catalog/package-versions/{packageVersionId}/review-status:
+    $ref: paths/admin_catalog_package-versions_{packageVersionId}_review-status.yaml
+  /admin/catalog/package-versions/{packageVersionId}/publish:
+    $ref: paths/admin_catalog_package-versions_{packageVersionId}_publish.yaml
+  /admin/catalog/package-versions/{packageVersionId}/delist:
+    $ref: paths/admin_catalog_package-versions_{packageVersionId}_delist.yaml
 components:
   securitySchemes:
     ApiKeyHeader:
       $ref: ./components/security-schemes/ApiKeyHeader.yaml
+    AdminSessionCookie:
+      $ref: ./components/security-schemes/AdminSessionCookie.yaml
+    CsrfTokenHeader:
+      $ref: ./components/security-schemes/CsrfTokenHeader.yaml
     # OAuth2 documents the implemented remote-MCP authorization flow
     # (mcp.<domain>/mcp). The REST endpoints below keep ApiKeyHeader; this scheme
     # is published so the spec reflects how MCP custom-connector clients connect.

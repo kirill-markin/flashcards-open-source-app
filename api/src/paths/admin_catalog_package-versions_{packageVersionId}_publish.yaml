@@ -1,0 +1,39 @@
+post:
+  tags:
+    - admin-catalog
+  summary: Publish a package version
+  description: Publishes an approved package version and makes its snapshot immutable.
+  security:
+    - AdminSessionCookie: []
+      CsrfTokenHeader: []
+  parameters:
+    - name: packageVersionId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CatalogNoteInput.yaml
+  responses:
+    '200':
+      description: Catalog package version published
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required:
+              - packageVersion
+            properties:
+              packageVersion:
+                $ref: ../components/schemas/CatalogPackageVersion.yaml
+    default:
+      description: Admin request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AdminErrorEnvelope.yaml

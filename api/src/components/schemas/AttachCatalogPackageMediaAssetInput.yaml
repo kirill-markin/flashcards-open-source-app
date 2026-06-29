@@ -1,0 +1,28 @@
+type: object
+additionalProperties: false
+required:
+  - packageMediaAssetId
+  - packageMediaKey
+  - mediaBlobId
+  - altText
+  - credit
+  - license
+properties:
+  packageMediaAssetId:
+    $ref: ./UuidString.yaml
+  packageMediaKey:
+    type: string
+  mediaBlobId:
+    $ref: ./UuidString.yaml
+  altText:
+    type:
+      - string
+      - 'null'
+  credit:
+    type:
+      - string
+      - 'null'
+  license:
+    type:
+      - string
+      - 'null'

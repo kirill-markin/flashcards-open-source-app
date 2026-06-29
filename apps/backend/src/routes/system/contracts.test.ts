@@ -37,7 +37,7 @@ type AgentDiscoveryDataSchemaForTest = Readonly<{
   }>;
 }>;
 
-const expectedPublishedExternalAgentMethods = {
+const expectedPublishedApiMethods = {
   "/": ["get"],
   "/agent": ["get"],
   "/api/agent/send-code": ["post"],
@@ -51,6 +51,17 @@ const expectedPublishedExternalAgentMethods = {
   "/workspaces/{workspaceId}/media-assets/{mediaAssetId}": ["get"],
   "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete": ["post"],
   "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url": ["get"],
+  "/admin/catalog/authors": ["post"],
+  "/admin/catalog/authors/{authorId}": ["put"],
+  "/admin/catalog/packages": ["post"],
+  "/admin/catalog/packages/{packageId}": ["get"],
+  "/admin/catalog/packages/{packageId}/draft": ["put"],
+  "/admin/catalog/packages/{packageId}/media-assets": ["post"],
+  "/admin/catalog/packages/{packageId}/versions": ["post"],
+  "/admin/catalog/packages/{packageId}/versions/from-workspace": ["post"],
+  "/admin/catalog/package-versions/{packageVersionId}/review-status": ["post"],
+  "/admin/catalog/package-versions/{packageVersionId}/publish": ["post"],
+  "/admin/catalog/package-versions/{packageVersionId}/delist": ["post"],
 } as const satisfies Readonly<Record<string, ReadonlyArray<OperationMethodName>>>;
 
 const expectedMediaDiscoverySurfaceTemplates = {
@@ -103,7 +114,7 @@ test("API Gateway predeclares PATCH /me/preferences", () => {
   assert.match(apiGatewaySource, /me\.addResource\("preferences"\)\.addMethod\("PATCH", integration\);/);
 });
 
-test("published OpenAPI exposes only the curated external agent and media transfer contract", () => {
+test("published OpenAPI exposes the curated agent, media transfer, and admin catalog contract", () => {
   const openApiDocument = loadPublishedOpenApiDocument();
   const paths = openApiDocument.paths ?? {};
   const securitySchemes = openApiDocument.components?.securitySchemes ?? {};
@@ -111,15 +122,21 @@ test("published OpenAPI exposes only the curated external agent and media transf
 
   assert.equal(openApiDocument.info?.title, "Flashcards Open Source App External AI-Agent API");
   assert.match(openApiDocument.info?.description ?? "", /curated public api contract/i);
-  assert.deepEqual(Object.keys(paths), Object.keys(expectedPublishedExternalAgentMethods));
-  for (const [path, methods] of Object.entries(expectedPublishedExternalAgentMethods)) {
+  assert.deepEqual(Object.keys(paths), Object.keys(expectedPublishedApiMethods));
+  for (const [path, methods] of Object.entries(expectedPublishedApiMethods)) {
     assert.deepEqual(listDocumentedMethods(paths[path] ?? {}), methods, `Unexpected OpenAPI methods for ${path}`);
   }
 
   // ApiKeyHeader secures the REST agent surface; OAuth2 documents the
   // implemented remote-MCP authorization-code flow (mcp.<domain>/mcp) in the
-  // published spec.
-  assert.deepEqual(Object.keys(securitySchemes), ["ApiKeyHeader", "OAuth2"]);
+  // published spec. AdminSessionCookie and CsrfTokenHeader secure the
+  // browser-only admin catalog routes.
+  assert.deepEqual(Object.keys(securitySchemes), [
+    "ApiKeyHeader",
+    "AdminSessionCookie",
+    "CsrfTokenHeader",
+    "OAuth2",
+  ]);
   for (const hiddenSchemaName of [
     "MeResponse",
     "AccountPreferences",
@@ -148,7 +165,7 @@ test("agent discovery advertises the published media transfer surface", () => {
       `${apiBaseUrl}${pathTemplate}`,
     );
     assert.ok(
-      expectedPublishedExternalAgentMethods[pathTemplate] !== undefined,
+      expectedPublishedApiMethods[pathTemplate] !== undefined,
       `Discovery media template ${surfaceKey} must be published in OpenAPI paths`,
     );
     assert.ok(

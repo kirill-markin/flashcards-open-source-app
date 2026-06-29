@@ -1,0 +1,39 @@
+put:
+  tags:
+    - admin-catalog
+  summary: Update a catalog author
+  description: Replaces catalog author metadata for an existing author.
+  security:
+    - AdminSessionCookie: []
+      CsrfTokenHeader: []
+  parameters:
+    - name: authorId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateCatalogAuthorInput.yaml
+  responses:
+    '200':
+      description: Catalog author updated
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required:
+              - author
+            properties:
+              author:
+                $ref: ../components/schemas/CatalogAuthor.yaml
+    default:
+      description: Admin request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AdminErrorEnvelope.yaml

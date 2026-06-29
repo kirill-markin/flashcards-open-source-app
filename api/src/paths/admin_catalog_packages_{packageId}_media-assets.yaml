@@ -1,0 +1,39 @@
+post:
+  tags:
+    - admin-catalog
+  summary: Attach package draft media
+  description: Adds a package-local media key that resolves to an existing content.media_blobs row.
+  security:
+    - AdminSessionCookie: []
+      CsrfTokenHeader: []
+  parameters:
+    - name: packageId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/AttachCatalogPackageMediaAssetInput.yaml
+  responses:
+    '201':
+      description: Catalog package media asset attached
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required:
+              - mediaAsset
+            properties:
+              mediaAsset:
+                $ref: ../components/schemas/CatalogPackageMediaAsset.yaml
+    default:
+      description: Admin request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AdminErrorEnvelope.yaml

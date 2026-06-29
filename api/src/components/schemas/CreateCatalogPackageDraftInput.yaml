@@ -1,0 +1,41 @@
+type: object
+additionalProperties: false
+required:
+  - packageId
+  - authorId
+  - slug
+  - title
+  - summary
+  - description
+  - languageTags
+  - topicTags
+  - license
+  - contentWarning
+properties:
+  packageId:
+    $ref: ./UuidString.yaml
+  authorId:
+    $ref: ./UuidString.yaml
+  slug:
+    type: string
+  title:
+    type: string
+  summary:
+    type: string
+  description:
+    type: string
+  languageTags:
+    type: array
+    minItems: 1
+    items:
+      type: string
+  topicTags:
+    type: array
+    items:
+      type: string
+  license:
+    type: string
+  contentWarning:
+    type:
+      - string
+      - 'null'
