@@ -15,6 +15,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackPromptEventRequest
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackSubmissionRequest
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeReconciliation
@@ -612,6 +613,15 @@ internal class FakeCloudRemoteGateway private constructor(
         authorizationHeader: String,
         leaderboardParticipationEnabled: Boolean
     ): CloudCommunityProfile {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun loadMediaAssetDownloadUrl(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        mediaAssetId: String
+    ): MediaAssetDownloadUrl {
         throw UnsupportedOperationException()
     }
 

@@ -72,6 +72,7 @@ import com.flashcardsopensourceapp.data.local.repository.decks.LocalDecksReposit
 import com.flashcardsopensourceapp.data.local.repository.feedback.LocalFeedbackRepository
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressRepository
+import com.flashcardsopensourceapp.data.local.repository.review.CloudReviewMediaAssetDownloadUrlLoader
 import com.flashcardsopensourceapp.data.local.repository.review.LocalReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.LocalSyncRepository
 import com.flashcardsopensourceapp.data.local.repository.workspace.LocalWorkspaceRepository
@@ -313,7 +314,14 @@ class AppGraph(
         preferencesStore = cloudPreferencesStore,
         syncLocalStore = syncLocalStore,
         localProgressCacheStore = localProgressCacheStore,
-        timeProvider = SystemTimeProvider
+        timeProvider = SystemTimeProvider,
+        mediaAssetDownloadUrlLoader = CloudReviewMediaAssetDownloadUrlLoader(
+            preferencesStore = cloudPreferencesStore,
+            remoteService = cloudRemoteService,
+            operationCoordinator = cloudOperationCoordinator,
+            guestSessionStore = guestAiSessionStore,
+            resetCoordinator = cloudIdentityResetCoordinator
+        )
     )
     val feedbackRepository: FeedbackRepository = LocalFeedbackRepository(
         database = database,

@@ -14,3 +14,9 @@ data class MediaAsset(
     val updatedAtMillis: Long,
     val deletedAtMillis: Long?
 )
+
+data class MediaAssetDownloadUrl(
+    val mediaAsset: MediaAsset,
+    val url: String,
+    val expiresAtMillis: Long
+)

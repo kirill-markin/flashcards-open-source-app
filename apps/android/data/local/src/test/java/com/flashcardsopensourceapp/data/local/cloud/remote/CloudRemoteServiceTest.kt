@@ -4,6 +4,7 @@ import com.flashcardsopensourceapp.data.local.cloud.identity.syncWorkspaceForkRe
 import com.flashcardsopensourceapp.data.local.cloud.remote.community.buildCloudFriendInvitationCreateRequest
 import com.flashcardsopensourceapp.data.local.cloud.remote.community.parseCloudFriendInvitationCreateResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.guest.buildGuestUpgradeCompleteRequest
+import com.flashcardsopensourceapp.data.local.cloud.remote.media.parseMediaAssetDownloadUrlResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressLeaderboard
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressReviewScheduleResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.parseCloudProgressSeriesResponse
@@ -26,6 +27,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
 
 class CloudRemoteServiceTest {
     @Test
@@ -96,6 +98,47 @@ class CloudRemoteServiceTest {
         assertEquals(1, parsedResponse.operations.size)
         assertEquals("operation-ignored", parsedResponse.operations.single().operationId)
         assertEquals(null, parsedResponse.operations.single().resultingHotChangeId)
+    }
+
+    @Test
+    fun parseMediaAssetDownloadUrlResponseReadsSignedGetUrl() {
+        val response = JSONObject(
+            """
+            {
+              "mediaAsset": {
+                "mediaAssetId": "media-asset-1",
+                "workspaceId": "workspace-1",
+                "mimeType": "image/png",
+                "sizeBytes": 128,
+                "sha256": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+                "sourceUrl": null,
+                "createdAt": "2026-03-10T09:00:00.000Z",
+                "clientUpdatedAt": "2026-03-10T09:01:00.000Z",
+                "lastModifiedByReplicaId": "device-1",
+                "lastOperationId": "operation-1",
+                "updatedAt": "2026-03-10T09:02:00.000Z",
+                "deletedAt": null
+              },
+              "download": {
+                "method": "GET",
+                "url": "https://media.example.test/media-asset-1",
+                "expiresAt": "2026-03-10T10:00:00.000Z",
+                "rangeRequests": true
+              }
+            }
+            """.trimIndent()
+        )
+
+        val parsedResponse = parseMediaAssetDownloadUrlResponse(
+            response = response,
+            fieldPath = "mediaAssetDownloadUrl"
+        )
+
+        assertEquals("media-asset-1", parsedResponse.mediaAsset.mediaAssetId)
+        assertEquals("workspace-1", parsedResponse.mediaAsset.workspaceId)
+        assertEquals("image/png", parsedResponse.mediaAsset.mimeType)
+        assertEquals("https://media.example.test/media-asset-1", parsedResponse.url)
+        assertEquals(Instant.parse("2026-03-10T10:00:00.000Z").toEpochMilli(), parsedResponse.expiresAtMillis)
     }
 
     @Test

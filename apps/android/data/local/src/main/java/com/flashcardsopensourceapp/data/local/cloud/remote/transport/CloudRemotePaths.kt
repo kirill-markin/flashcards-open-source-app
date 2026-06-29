@@ -64,6 +64,20 @@ internal fun buildCommunityFriendInvitationsCloudPath(): String {
     return "/me/community/friend-invitations"
 }
 
+internal fun buildMediaAssetDownloadUrlCloudPath(
+    workspaceId: String,
+    mediaAssetId: String
+): String {
+    require(workspaceId.isNotBlank()) {
+        "Media asset download URL path requires a workspace id."
+    }
+    require(mediaAssetId.isNotBlank()) {
+        "Media asset download URL path requires a media asset id."
+    }
+    return "/workspaces/${encodeCloudPathSegment(value = workspaceId)}" +
+        "/media-assets/${encodeCloudPathSegment(value = mediaAssetId)}/download-url"
+}
+
 private fun encodeCloudQueryValue(value: String): String {
     return URLEncoder.encode(value, StandardCharsets.UTF_8)
 }

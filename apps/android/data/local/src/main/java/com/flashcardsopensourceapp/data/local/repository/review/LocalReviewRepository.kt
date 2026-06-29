@@ -14,6 +14,7 @@ import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.feedback.FeedbackPromptReviewActivity
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCardQueueStatus
@@ -60,7 +61,8 @@ class LocalReviewRepository(
     private val preferencesStore: CloudPreferencesStore,
     private val syncLocalStore: SyncLocalStore,
     private val localProgressCacheStore: LocalProgressCacheStore,
-    private val timeProvider: TimeProvider
+    private val timeProvider: TimeProvider,
+    private val mediaAssetDownloadUrlLoader: ReviewMediaAssetDownloadUrlLoader
 ) : ReviewRepository {
     override fun observeReviewSession(
         selectedFilter: ReviewFilter,
@@ -245,6 +247,44 @@ class LocalReviewRepository(
                 mediaAssets.map(::toMediaAsset)
             }
         }
+    }
+
+    override suspend fun loadReviewMediaAssetDownloadUrl(mediaAssetId: String): MediaAssetDownloadUrl {
+        val normalizedMediaAssetId = mediaAssetId.trim()
+        require(normalizedMediaAssetId.isNotEmpty()) {
+            "Managed media download requires a media asset id."
+        }
+
+        val workspace: WorkspaceEntity = requireNotNull(
+            loadCurrentWorkspaceOrNull(
+                database = database,
+                preferencesStore = preferencesStore
+            )
+        ) {
+            "Managed media download requires an active workspace."
+        }
+        val mediaAsset: MediaAssetEntity = requireNotNull(
+            database.mediaAssetDao().loadMediaAsset(mediaAssetId = normalizedMediaAssetId)
+        ) {
+            "Cannot load download URL for missing media asset: $normalizedMediaAssetId"
+        }
+        require(mediaAsset.workspaceId == workspace.workspaceId) {
+            "Cannot load media asset '${mediaAsset.mediaAssetId}' from workspace '${mediaAsset.workspaceId}' " +
+                "while current workspace is '${workspace.workspaceId}'."
+        }
+        require(mediaAsset.deletedAtMillis == null) {
+            "Cannot load download URL for deleted media asset: ${mediaAsset.mediaAssetId}"
+        }
+
+        val downloadUrl: MediaAssetDownloadUrl = mediaAssetDownloadUrlLoader.loadMediaAssetDownloadUrl(
+            workspaceId = workspace.workspaceId,
+            mediaAssetId = mediaAsset.mediaAssetId
+        )
+        return validateReviewMediaAssetDownloadUrl(
+            downloadUrl = downloadUrl,
+            mediaAsset = mediaAsset,
+            workspaceId = workspace.workspaceId
+        )
     }
 
     override suspend fun loadReviewTimelinePage(
@@ -476,4 +516,25 @@ private fun toMediaAsset(mediaAsset: MediaAssetEntity): MediaAsset {
         updatedAtMillis = mediaAsset.updatedAtMillis,
         deletedAtMillis = mediaAsset.deletedAtMillis
     )
+}
+
+private fun validateReviewMediaAssetDownloadUrl(
+    downloadUrl: MediaAssetDownloadUrl,
+    mediaAsset: MediaAssetEntity,
+    workspaceId: String
+): MediaAssetDownloadUrl {
+    val responseMediaAsset: MediaAsset = downloadUrl.mediaAsset
+    check(responseMediaAsset.mediaAssetId == mediaAsset.mediaAssetId) {
+        "Media asset download URL response asset mismatch: expected '${mediaAsset.mediaAssetId}' " +
+            "but received '${responseMediaAsset.mediaAssetId}'."
+    }
+    check(responseMediaAsset.workspaceId == workspaceId) {
+        "Media asset download URL response workspace mismatch for asset '${mediaAsset.mediaAssetId}': " +
+            "expected '$workspaceId' but received '${responseMediaAsset.workspaceId}'."
+    }
+    check(responseMediaAsset.deletedAtMillis == null) {
+        "Media asset download URL response returned deleted media asset '${responseMediaAsset.mediaAssetId}' " +
+            "with deletedAtMillis=${responseMediaAsset.deletedAtMillis}."
+    }
+    return downloadUrl.copy(mediaAsset = toMediaAsset(mediaAsset = mediaAsset))
 }

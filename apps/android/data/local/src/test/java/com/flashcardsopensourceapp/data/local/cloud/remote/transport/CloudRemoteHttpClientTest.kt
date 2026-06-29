@@ -139,6 +139,50 @@ class CloudRemoteHttpClientTest {
             server.stop(0)
         }
     }
+
+    @Test
+    fun mediaAssetDownloadUrlFailureRedactsEndpointIds() = runBlocking {
+        val observability = RecordingCloudHttpObservability()
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/workspaces/workspace-1/media-assets/media-asset-1/download-url") { exchange ->
+            writeCloudTestResponse(
+                exchange = exchange,
+                statusCode = 400,
+                body = """{"code":"MEDIA_TEST_UNEXPECTED","message":"Invalid media test request."}""",
+                headers = mapOf("X-Request-Id" to "request-1")
+            )
+        }
+        server.start()
+
+        try {
+            val client = CloudJsonHttpClient(
+                okHttpClient = OkHttpClient(),
+                observability = observability,
+                appVersion = testAppVersion,
+                versionCode = 123
+            )
+            var thrownError: CloudRemoteException? = null
+            try {
+                client.getJson(
+                    baseUrl = "http://127.0.0.1:${server.address.port}",
+                    path = "/workspaces/workspace-1/media-assets/media-asset-1/download-url",
+                    authorizationHeader = null
+                )
+            } catch (error: CloudRemoteException) {
+                thrownError = error
+            }
+
+            val error = thrownError ?: throw AssertionError("Expected CloudRemoteException")
+            assertEquals(400, error.statusCode)
+            val warning = observability.warnings.single()
+            assertTrue(warning is AndroidWarningIssueEvent.HttpUnexpectedClientError)
+            warning as AndroidWarningIssueEvent.HttpUnexpectedClientError
+            assertEquals("/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url", warning.endpointName)
+            assertEquals("request-1", warning.requestId)
+        } finally {
+            server.stop(0)
+        }
+    }
 }
 
 private class RecordingCloudHttpObservability : AppObservability {
