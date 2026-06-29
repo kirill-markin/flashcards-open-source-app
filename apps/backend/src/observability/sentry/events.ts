@@ -254,12 +254,8 @@ export type MediaAssetRouteDetails = Readonly<{
   statusCode: number;
   mediaAssetId: string | null;
   sessionId?: string | null;
-  storageKey: string | null;
-  blobStorageKey?: string | null;
-  s3UploadId?: string | null;
   mimeType?: string;
   sizeBytes?: number;
-  sha256?: string;
   partSizeBytes?: number;
   partCount?: number;
   applied?: boolean;
@@ -682,13 +678,10 @@ export type MediaAssetStorageRetryDetails = Readonly<{
     | "copy_object";
   attempt: number;
   maxAttempts: number;
-  bucketName: string;
   workspaceId: string;
   mediaAssetId: string;
-  storageKey: string;
   statusCode: number | null;
   errorClass: string;
-  errorMessage: string;
 }>;
 
 export type FeedbackEmailRetryDetails = Readonly<{
@@ -767,12 +760,8 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"workspace_tags_list_error", FailureDetailsFor<WorkspaceTagsListDetails>>
   | EventByAction<"cards_query", CardsQueryDetails>
   | EventByAction<"cards_query_error", FailureDetailsFor<CardsQueryDetails>>
-  | EventByAction<"media_asset_upload_intent_create", MediaAssetRouteDetails>
-  | EventByAction<"media_asset_upload_intent_create_error", FailureDetailsFor<MediaAssetRouteDetails>>
-  | EventByAction<"media_asset_upload_complete", MediaAssetRouteDetails>
-  | EventByAction<"media_asset_upload_complete_error", FailureDetailsFor<MediaAssetRouteDetails>>
-  | EventByAction<"media_asset_upload_session_blob_reuse", MediaAssetRouteDetails>
-  | EventByAction<"media_asset_upload_session_concurrent_blob_reuse", MediaAssetRouteDetails>
+  | EventByAction<"media_asset_upload_session_media_reuse", MediaAssetRouteDetails>
+  | EventByAction<"media_asset_upload_session_concurrent_media_reuse", MediaAssetRouteDetails>
   | EventByAction<"media_asset_upload_session_create", MediaAssetRouteDetails>
   | EventByAction<"media_asset_upload_session_create_error", FailureDetailsFor<MediaAssetRouteDetails>>
   | EventByAction<"media_asset_upload_session_part_urls_create", MediaAssetRouteDetails>
@@ -908,14 +897,6 @@ export type BackendExceptionEvent =
   | (EventByAction<"feedback_submission_error", FailureDetailsFor<FeedbackSubmissionDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"workspace_tags_list_error", FailureDetailsFor<WorkspaceTagsListDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"cards_query_error", FailureDetailsFor<CardsQueryDetails>> & Readonly<{ error: Error }>)
-  | (
-    EventByAction<"media_asset_upload_intent_create_error", FailureDetailsFor<MediaAssetRouteDetails>>
-    & Readonly<{ error: Error }>
-  )
-  | (
-    EventByAction<"media_asset_upload_complete_error", FailureDetailsFor<MediaAssetRouteDetails>>
-    & Readonly<{ error: Error }>
-  )
   | (
     EventByAction<"media_asset_upload_session_create_error", FailureDetailsFor<MediaAssetRouteDetails>>
     & Readonly<{ error: Error }>

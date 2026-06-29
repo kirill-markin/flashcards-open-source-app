@@ -195,9 +195,11 @@ required_paths = {
     "/agent/workspaces/{workspaceId}/select",
     "/agent/sql/query",
     "/agent/sql/execute",
-    "/workspaces/{workspaceId}/media-assets/upload-intents",
+    "/workspaces/{workspaceId}/media-assets/upload-sessions",
+    "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts",
+    "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/complete",
+    "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/abort",
     "/workspaces/{workspaceId}/media-assets/{mediaAssetId}",
-    "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete",
     "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url",
 }
 assert payload["openapi"] == "3.1.0"

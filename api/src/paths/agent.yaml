@@ -39,9 +39,11 @@ get:
                 workspacesUrl: https://api.flashcards-open-source-app.com/v1/agent/workspaces
                 sqlQueryUrl: https://api.flashcards-open-source-app.com/v1/agent/sql/query
                 sqlExecuteUrl: https://api.flashcards-open-source-app.com/v1/agent/sql/execute
-                mediaAssetUploadIntentsUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-intents
+                mediaAssetUploadSessionCreateUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions
+                mediaAssetUploadSessionPartsUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts
+                mediaAssetUploadSessionCompleteUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/complete
+                mediaAssetUploadSessionAbortUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/abort
                 mediaAssetMetadataUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}
-                mediaAssetCompleteUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete
                 mediaAssetDownloadUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url
               mcp:
                 url: https://mcp.flashcards-open-source-app.com/mcp
@@ -86,25 +88,29 @@ get:
               using {"name":"Personal"}. After workspace bootstrap, call GET
               https://api.flashcards-open-source-app.com/v1/agent/me and use
               data.agentWorkspaceReplicaId as lastModifiedByReplicaId when
-              completing media uploads. Use POST
+              creating media upload sessions. Use POST
               https://api.flashcards-open-source-app.com/v1/agent/sql/query for
               shared card and deck reads and POST
               https://api.flashcards-open-source-app.com/v1/agent/sql/execute
               for writes. For routine low-risk
               writes, a clear user request already counts as permission. Ask
               again only for risky or unclear actions. For media assets, create
-              an upload intent with POST
-              https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-intents,
-              include a stable lastOperationId in that request, upload bytes
-              directly to the returned URL using the returned method and
-              headers, then register the completed object with POST
-              https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete.
-              Use the same lastOperationId in the complete request.
+              a multipart upload session with POST
+              https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions.
+              If status is already_available, use the returned mediaAsset and
+              skip byte upload. If status is upload_required, request signed
+              part URLs with POST
+              https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts,
+              upload each part with the returned signed URL, method, and
+              headers, then complete the upload with POST
+              https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/complete.
+              Abort unused sessions with POST
+              https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/abort.
               Use GET
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}
               for registry metadata and GET
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url
-              for a direct download URL. SELECT returns at most
+              for a range-capable direct download URL. SELECT returns at most
               100 rows per statement, and INSERT, UPDATE, and DELETE may affect
               at most 100 rows per statement. If you need more than 100
               writes, split the work into multiple batches of at most 100

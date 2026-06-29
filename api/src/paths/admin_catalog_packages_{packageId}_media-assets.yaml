@@ -2,7 +2,7 @@ post:
   tags:
     - admin-catalog
   summary: Attach package draft media
-  description: Adds a package-local media key that resolves to an existing content.media_blobs row.
+  description: Adds a package-local media key that resolves to existing media bytes.
   security:
     - AdminSessionCookie: []
       CsrfTokenHeader: []

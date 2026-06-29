@@ -13,6 +13,7 @@ properties:
       - method
       - url
       - expiresAt
+      - rangeRequests
     properties:
       method:
         type: string
@@ -24,3 +25,7 @@ properties:
       expiresAt:
         type: string
         format: date-time
+      rangeRequests:
+        type: boolean
+        const: true
+        description: Clients may send HTTP Range requests to this signed URL while it is valid.

@@ -83,11 +83,11 @@ post:
               is selected, use POST /v1/agent/sql/query for reads and POST
               /v1/agent/sql/execute for writes. For
               media assets, use GET /v1/agent for the full media-capable
-              discovery surface, including workspace-scoped upload-intent,
-              complete, metadata, and download URL templates. After workspace
-              selection, call GET /v1/agent/me and use
-              data.agentWorkspaceReplicaId as lastModifiedByReplicaId when
-              completing media uploads. For
+              discovery surface, including workspace-scoped multipart upload
+              session, part URL, complete, abort, metadata, and download URL
+              templates. After workspace selection, call GET /v1/agent/me and
+              use data.agentWorkspaceReplicaId as lastModifiedByReplicaId when
+              creating media upload sessions. For
               routine low-risk writes, a clear user request already counts as
               permission. Ask again only for risky or unclear actions. Use
               docs.openapiUrl for the published external agent contract.

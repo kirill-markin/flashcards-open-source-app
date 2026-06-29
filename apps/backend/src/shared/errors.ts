@@ -5,6 +5,7 @@ export type ValidationIssueSummary = Readonly<{
 }>;
 
 export type SyncConflictEntityType = "card" | "deck" | "review_event" | "media_asset";
+export type MediaAssetStoragePublicReason = "upload_not_available" | "storage_temporarily_unavailable";
 
 export type SyncConflictDetails = Readonly<{
   phase: string;
@@ -23,19 +24,17 @@ export type MediaAssetStorageErrorDetails = Readonly<{
   operation: string;
   workspaceId: string;
   mediaAssetId: string;
-  storageKey: string;
-  bucketName: string;
   s3StatusCode: number | null;
   s3ErrorClass: string;
-  s3ErrorMessage: string;
+  reason: MediaAssetStoragePublicReason;
+  retryable: boolean;
 }>;
 
 export type PublicMediaAssetStorageErrorDetails = Readonly<{
-  operation: string;
   workspaceId: string;
   mediaAssetId: string;
-  s3StatusCode: number | null;
-  s3ErrorClass: string;
+  reason: MediaAssetStoragePublicReason;
+  retryable: boolean;
 }>;
 
 export type HttpErrorDetails = Readonly<{
@@ -87,11 +86,10 @@ export function createPublicHttpErrorDetails(details: HttpErrorDetails | null): 
     ...(syncConflict === undefined ? {} : { syncConflict: createPublicSyncConflictDetails(syncConflict) }),
     ...(mediaAssetStorage === undefined ? {} : {
       mediaAssetStorage: {
-        operation: mediaAssetStorage.operation,
         workspaceId: mediaAssetStorage.workspaceId,
         mediaAssetId: mediaAssetStorage.mediaAssetId,
-        s3StatusCode: mediaAssetStorage.s3StatusCode,
-        s3ErrorClass: mediaAssetStorage.s3ErrorClass,
+        reason: mediaAssetStorage.reason,
+        retryable: mediaAssetStorage.retryable,
       },
     }),
   };

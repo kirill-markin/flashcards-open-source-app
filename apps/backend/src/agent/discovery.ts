@@ -21,9 +21,11 @@ type AgentDiscoveryEnvelope = Readonly<{
       workspacesUrl: string;
       sqlQueryUrl: string;
       sqlExecuteUrl: string;
-      mediaAssetUploadIntentsUrlTemplate: string;
+      mediaAssetUploadSessionCreateUrlTemplate: string;
+      mediaAssetUploadSessionPartsUrlTemplate: string;
+      mediaAssetUploadSessionCompleteUrlTemplate: string;
+      mediaAssetUploadSessionAbortUrlTemplate: string;
       mediaAssetMetadataUrlTemplate: string;
-      mediaAssetCompleteUrlTemplate: string;
       mediaAssetDownloadUrlTemplate: string;
     }>;
     mcp: Readonly<{
@@ -102,9 +104,11 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
   const links = getPublicLegalLinks(requestUrl);
   const docs = { ...getPublicAgentDocs(requestUrl), docsUrl: links.docsUrl };
-  const mediaAssetUploadIntentsUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/media-assets/upload-intents`;
+  const mediaAssetUploadSessionCreateUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/media-assets/upload-sessions`;
+  const mediaAssetUploadSessionPartsUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts`;
+  const mediaAssetUploadSessionCompleteUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/complete`;
+  const mediaAssetUploadSessionAbortUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/abort`;
   const mediaAssetMetadataUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/media-assets/{mediaAssetId}`;
-  const mediaAssetCompleteUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete`;
   const mediaAssetDownloadUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url`;
 
   return {
@@ -137,9 +141,11 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
         workspacesUrl: `${apiBaseUrl}/agent/workspaces`,
         sqlQueryUrl: `${apiBaseUrl}/agent/sql/query`,
         sqlExecuteUrl: `${apiBaseUrl}/agent/sql/execute`,
-        mediaAssetUploadIntentsUrlTemplate,
+        mediaAssetUploadSessionCreateUrlTemplate,
+        mediaAssetUploadSessionPartsUrlTemplate,
+        mediaAssetUploadSessionCompleteUrlTemplate,
+        mediaAssetUploadSessionAbortUrlTemplate,
         mediaAssetMetadataUrlTemplate,
-        mediaAssetCompleteUrlTemplate,
         mediaAssetDownloadUrlTemplate,
       },
       mcp: {
@@ -163,7 +169,7 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
     },
     links,
     instructions:
-      `Start with POST ${authBaseUrl}/api/agent/send-code using the user's email. After send-code, follow the returned instructions: normal accounts require the 8-digit email code, while configured review/demo accounts use a deterministic 8-digit placeholder and do not send email. Do not immediately replay send-code. Then POST ${authBaseUrl}/api/agent/verify-code with the otpSessionToken, code, and label to obtain an API key. After login, call GET ${apiBaseUrl}/agent/me, then GET ${apiBaseUrl}/agent/workspaces?limit=100. If no workspace is selected for this API key, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select or create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}. After workspace bootstrap, call GET ${apiBaseUrl}/agent/me and use data.agentWorkspaceReplicaId as lastModifiedByReplicaId when completing media uploads. Use POST ${apiBaseUrl}/agent/sql/query for all shared card and deck reads (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT) and POST ${apiBaseUrl}/agent/sql/execute for all writes (INSERT, UPDATE, DELETE). For media assets, create an upload intent with POST ${mediaAssetUploadIntentsUrlTemplate}; include a stable lastOperationId in that request, upload bytes directly to the returned URL using the returned method and headers, then register the completed object with POST ${mediaAssetCompleteUrlTemplate} using the same lastOperationId. Use GET ${mediaAssetMetadataUrlTemplate} for registry metadata and GET ${mediaAssetDownloadUrlTemplate} for a direct download URL. For routine low-risk writes, a clear user request already counts as permission. Ask again only for risky or unclear actions. SELECT returns at most 100 rows per statement, and INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls. Use ${docs.openapiUrl} for the published external agent contract. The SQL surface is intentionally limited and is not full PostgreSQL.`,
+      `Start with POST ${authBaseUrl}/api/agent/send-code using the user's email. After send-code, follow the returned instructions: normal accounts require the 8-digit email code, while configured review/demo accounts use a deterministic 8-digit placeholder and do not send email. Do not immediately replay send-code. Then POST ${authBaseUrl}/api/agent/verify-code with the otpSessionToken, code, and label to obtain an API key. After login, call GET ${apiBaseUrl}/agent/me, then GET ${apiBaseUrl}/agent/workspaces?limit=100. If no workspace is selected for this API key, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select or create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}. After workspace bootstrap, call GET ${apiBaseUrl}/agent/me and use data.agentWorkspaceReplicaId as lastModifiedByReplicaId when creating media upload sessions. Use POST ${apiBaseUrl}/agent/sql/query for all shared card and deck reads (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT) and POST ${apiBaseUrl}/agent/sql/execute for all writes (INSERT, UPDATE, DELETE). For media assets, create a multipart upload session with POST ${mediaAssetUploadSessionCreateUrlTemplate}; if status is already_available, use the returned mediaAsset and skip byte upload. If status is upload_required, request signed part URLs with POST ${mediaAssetUploadSessionPartsUrlTemplate}, upload each part with the returned signed URL, method, and headers, then complete the upload with POST ${mediaAssetUploadSessionCompleteUrlTemplate}. Abort unused sessions with POST ${mediaAssetUploadSessionAbortUrlTemplate}. Use GET ${mediaAssetMetadataUrlTemplate} for registry metadata and GET ${mediaAssetDownloadUrlTemplate} for a range-capable direct download URL. For routine low-risk writes, a clear user request already counts as permission. Ask again only for risky or unclear actions. SELECT returns at most 100 rows per statement, and INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls. Use ${docs.openapiUrl} for the published external agent contract. The SQL surface is intentionally limited and is not full PostgreSQL.`,
     docs,
   };
 }

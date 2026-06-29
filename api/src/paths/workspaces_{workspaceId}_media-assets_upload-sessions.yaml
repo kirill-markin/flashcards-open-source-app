@@ -1,0 +1,43 @@
+post:
+  tags:
+    - media-assets
+  summary: Create a multipart media asset upload session
+  description: >-
+    Creates or reuses the logical media asset for final normalized bytes. If
+    matching media bytes are already available, the response is already_available
+    and no byte upload is needed. Otherwise, the backend creates a short-lived
+    multipart transfer session and returns a backend session id for part URL
+    requests.
+  security:
+    - ApiKeyHeader: []
+  parameters:
+    - name: workspaceId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/MediaAssetUploadSessionCreateInput.yaml
+  responses:
+    '200':
+      description: Matching media bytes already available and logical asset registered
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MediaAssetUploadSessionCreateResponse.yaml
+    '201':
+      description: Multipart upload session created
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MediaAssetUploadSessionCreateResponse.yaml
+    default:
+      description: Authenticated request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

@@ -1,24 +1,19 @@
 type: object
 additionalProperties: false
 required:
-  - operation
   - workspaceId
   - mediaAssetId
-  - s3StatusCode
-  - s3ErrorClass
+  - reason
+  - retryable
 properties:
-  operation:
-    type: string
-    example: head_object
   workspaceId:
     $ref: ./UuidString.yaml
   mediaAssetId:
     $ref: ./UuidString.yaml
-  s3StatusCode:
-    type:
-      - integer
-      - 'null'
-    example: 404
-  s3ErrorClass:
+  reason:
     type: string
-    example: NoSuchKey
+    enum:
+      - upload_not_available
+      - storage_temporarily_unavailable
+  retryable:
+    type: boolean

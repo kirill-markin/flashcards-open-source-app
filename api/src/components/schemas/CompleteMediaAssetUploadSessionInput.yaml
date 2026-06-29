@@ -1,0 +1,31 @@
+type: object
+additionalProperties: false
+required:
+  - parts
+properties:
+  parts:
+    type: array
+    minItems: 1
+    maxItems: 10000
+    description: Must contain every uploaded part from 1 through the session partCount.
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - partNumber
+        - eTag
+        - sha256
+      properties:
+        partNumber:
+          type: integer
+          minimum: 1
+          maximum: 10000
+        eTag:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: ETag returned after uploading this part.
+        sha256:
+          type: string
+          pattern: ^[0-9a-fA-F]{64}$
+          description: SHA-256 digest of this individual part, matching the part URL request.

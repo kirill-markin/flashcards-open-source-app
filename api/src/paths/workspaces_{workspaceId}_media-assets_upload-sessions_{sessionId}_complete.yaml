@@ -1,15 +1,20 @@
 post:
   tags:
     - media-assets
-  summary: Create a direct media asset upload intent
+  summary: Complete a multipart media asset upload session
   description: >-
-    Returns a presigned private S3 PUT URL for a workspace media object. This
-    does not create the registry row; call the complete endpoint after the
-    bytes are uploaded.
+    Completes the backend-controlled multipart upload, validates the stored
+    object metadata, and creates or idempotently updates the workspace logical
+    media asset.
   security:
     - ApiKeyHeader: []
   parameters:
     - name: workspaceId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+    - name: sessionId
       in: path
       required: true
       schema:
@@ -19,14 +24,14 @@ post:
     content:
       application/json:
         schema:
-          $ref: ../components/schemas/MediaAssetUploadIntentInput.yaml
+          $ref: ../components/schemas/CompleteMediaAssetUploadSessionInput.yaml
   responses:
-    '201':
-      description: Upload intent created
+    '200':
+      description: Media asset upload completed
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/MediaAssetUploadIntentResponse.yaml
+            $ref: ../components/schemas/MediaAssetMutationResponse.yaml
     default:
       description: Authenticated request error
       content:

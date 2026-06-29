@@ -267,23 +267,22 @@ test("loadMediaAssetObjectMetadataWithDependencies treats HeadObject 403 as uplo
       assert.equal(error.statusCode, 409);
       assert.equal(error.code, "MEDIA_ASSET_UPLOAD_NOT_FOUND");
       assert.doesNotMatch(error.message, /Forbidden|media\/blobs|s3:\/\//);
+      assert.doesNotMatch(error.message, /get_object|complete_multipart_upload|head_object|s3StatusCode|s3ErrorClass/);
       assert.deepEqual(error.details?.mediaAssetStorage, {
         operation: "head_object",
         workspaceId: testWorkspaceId,
         mediaAssetId: testMediaAssetId,
-        storageKey: testStagingStorageKey,
-        bucketName: "test-media-assets-bucket",
         s3StatusCode: 403,
         s3ErrorClass: "Forbidden",
-        s3ErrorMessage: `Forbidden for s3://test-media-assets-bucket/${testStagingStorageKey}`,
+        reason: "upload_not_available",
+        retryable: false,
       });
       assert.deepEqual(createPublicHttpErrorDetails(error.details), {
         mediaAssetStorage: {
-          operation: "head_object",
           workspaceId: testWorkspaceId,
           mediaAssetId: testMediaAssetId,
-          s3StatusCode: 403,
-          s3ErrorClass: "Forbidden",
+          reason: "upload_not_available",
+          retryable: false,
         },
       });
       return true;
@@ -353,7 +352,9 @@ test("assertMediaAssetObjectMatchesWithDependencies rejects existing blobs witho
       assert.ok(error instanceof HttpError);
       assert.equal(error.statusCode, 409);
       assert.equal(error.code, "MEDIA_ASSET_UPLOAD_PROOF_MISMATCH");
-      assert.doesNotMatch(error.message, /storageKey|media\/blobs|s3:\/\//);
+      assert.match(error.message, /mismatchedProofFields=workspaceId,mediaAssetId,lastOperationId/);
+      assert.doesNotMatch(error.message, /storageKey|media\/blobs|s3:\/\/|Sha256=|sha256=/);
+      assert.doesNotMatch(error.message, new RegExp(testSha256));
       return true;
     },
   );
@@ -552,7 +553,9 @@ test("completeMultipartMediaAssetUploadWithDependencies rejects a streamed stagi
       assert.ok(error instanceof HttpError);
       assert.equal(error.statusCode, 409);
       assert.equal(error.code, "MEDIA_ASSET_UPLOAD_MISMATCH");
-      assert.doesNotMatch(error.message, /storageKey|media\/blobs|s3:\/\//);
+      assert.match(error.message, /mismatchedFields=sizeBytes,sha256/);
+      assert.doesNotMatch(error.message, /storageKey|media\/blobs|s3:\/\/|Sha256=|sha256=/);
+      assert.doesNotMatch(error.message, new RegExp(testSha256));
       return true;
     },
   );
@@ -625,19 +628,18 @@ test("completeMultipartMediaAssetUploadWithDependencies treats GetObject 403 as 
         operation: "get_object",
         workspaceId: testWorkspaceId,
         mediaAssetId: testMediaAssetId,
-        storageKey: testStagingStorageKey,
-        bucketName: "test-media-assets-bucket",
         s3StatusCode: 403,
         s3ErrorClass: "Forbidden",
-        s3ErrorMessage: `Forbidden for s3://test-media-assets-bucket/${testStagingStorageKey}`,
+        reason: "storage_temporarily_unavailable",
+        retryable: true,
       });
+      assert.doesNotMatch(error.message, /get_object|complete_multipart_upload|head_object|Forbidden|InternalError|s3StatusCode|s3ErrorClass/);
       assert.deepEqual(createPublicHttpErrorDetails(error.details), {
         mediaAssetStorage: {
-          operation: "get_object",
           workspaceId: testWorkspaceId,
           mediaAssetId: testMediaAssetId,
-          s3StatusCode: 403,
-          s3ErrorClass: "Forbidden",
+          reason: "storage_temporarily_unavailable",
+          retryable: true,
         },
       });
       return true;
@@ -689,19 +691,18 @@ test("completeMultipartMediaAssetUploadWithDependencies exposes multipart storag
         operation: "complete_multipart_upload",
         workspaceId: testWorkspaceId,
         mediaAssetId: testMediaAssetId,
-        storageKey: testStagingStorageKey,
-        bucketName: "test-media-assets-bucket",
         s3StatusCode: 500,
         s3ErrorClass: "InternalError",
-        s3ErrorMessage: `Failed complete for s3://test-media-assets-bucket/${testStagingStorageKey}`,
+        reason: "storage_temporarily_unavailable",
+        retryable: true,
       });
+      assert.doesNotMatch(error.message, /get_object|complete_multipart_upload|head_object|Forbidden|InternalError|s3StatusCode|s3ErrorClass/);
       assert.deepEqual(createPublicHttpErrorDetails(error.details), {
         mediaAssetStorage: {
-          operation: "complete_multipart_upload",
           workspaceId: testWorkspaceId,
           mediaAssetId: testMediaAssetId,
-          s3StatusCode: 500,
-          s3ErrorClass: "InternalError",
+          reason: "storage_temporarily_unavailable",
+          retryable: true,
         },
       });
       return true;

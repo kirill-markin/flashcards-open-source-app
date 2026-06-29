@@ -1,0 +1,11 @@
+type: object
+additionalProperties: false
+required:
+  - sessionId
+  - abortedAt
+properties:
+  sessionId:
+    $ref: ./UuidString.yaml
+  abortedAt:
+    type: string
+    format: date-time

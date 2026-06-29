@@ -163,7 +163,7 @@ test("chat live Lambda Function URL CORS exposes request id header", () => {
   });
 });
 
-test("media asset object IAM covers blob and staging upload prefixes", () => {
+test("media asset object IAM covers blob multipart transfer permissions", () => {
   const stack = new cdk.Stack();
   const bucket = new s3.Bucket(stack, "MediaAssetsBucket");
   const fn = new lambda.Function(stack, "BackendHandler", {
@@ -178,6 +178,8 @@ test("media asset object IAM covers blob and staging upload prefixes", () => {
 
   assert.match(policyJson, /s3:GetObject/);
   assert.match(policyJson, /s3:PutObject/);
+  assert.match(policyJson, /s3:AbortMultipartUpload/);
+  assert.match(policyJson, /s3:ListMultipartUploadParts/);
   assert.match(policyJson, /media\/blobs\/\*/);
   assert.match(policyJson, /media\/uploads\/\*/);
   assert.doesNotMatch(policyJson, /media-assets\/\*/);
