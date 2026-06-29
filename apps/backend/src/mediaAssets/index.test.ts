@@ -6,6 +6,7 @@ import { HttpError } from "../shared/errors";
 import {
   beginMediaAssetUploadSessionCompletionInExecutor,
   mapMediaAssetRow,
+  mapMediaBlobRow,
   recoverMediaAssetUploadSessionCompletionInExecutor,
   upsertMediaAssetSnapshotInExecutor,
 } from ".";
@@ -14,6 +15,7 @@ import {
   buildMediaMultipartUploadStagingStorageKey,
   buildMediaUploadStagingStorageKey,
 } from "./storageKeys";
+import { passthroughMediaBlobNormalizationVersion } from "./types";
 import {
   maximumMultipartUploadBytes,
   maximumSinglePutUploadBytes,
@@ -67,6 +69,7 @@ function createMediaBlobRow(fixture: Readonly<{
     size_bytes: fixture.sizeBytes,
     sha256: fixture.sha256,
     storage_key: fixture.storageKey,
+    normalization_version: passthroughMediaBlobNormalizationVersion,
     created_at: "2026-02-28T09:00:00.000Z",
     updated_at: "2026-02-28T09:00:00.000Z",
   };
@@ -84,6 +87,7 @@ function createMediaAssetRow(fixture: MediaAssetMutationFixture & Readonly<{
     size_bytes: fixture.mediaBlob.size_bytes,
     sha256: fixture.mediaBlob.sha256,
     storage_key: fixture.mediaBlob.storage_key,
+    blob_normalization_version: fixture.mediaBlob.normalization_version,
     blob_created_at: fixture.mediaBlob.created_at,
     blob_updated_at: fixture.mediaBlob.updated_at,
     source_url: fixture.sourceUrl,
@@ -376,12 +380,14 @@ function createDuplicateBlobExecutor(): Readonly<{
       }
 
       if (text.startsWith("INSERT INTO content.media_blobs")) {
+        assert.match(text, /normalization_version/);
         const sha256 = String(params[0]);
         const existingBlob = blobRowsBySha256.get(sha256);
         if (existingBlob !== undefined) {
           return createQueryResult<Row>([]);
         }
 
+        assert.equal(params[4], passthroughMediaBlobNormalizationVersion);
         const mediaBlob = createMediaBlobRow({
           mediaBlobId: testMediaBlobId,
           mimeType: String(params[1]),
@@ -584,6 +590,19 @@ test("mapMediaAssetRow omits backend-only blob storage fields from public media 
   assert.equal(mediaAsset.sha256, testSha256);
   assert.equal(Object.prototype.hasOwnProperty.call(mediaAsset, "storageKey"), false);
   assert.equal(Object.prototype.hasOwnProperty.call(mediaAsset, "mediaBlobId"), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(mediaAsset, "normalizationVersion"), false);
+});
+
+test("mapMediaBlobRow exposes backend-only blob normalization version", () => {
+  const mediaBlob = mapMediaBlobRow(createMediaBlobRow({
+    mediaBlobId: testMediaBlobId,
+    mimeType: "image/png",
+    sizeBytes: 42,
+    sha256: testSha256,
+    storageKey: testStorageKey,
+  }));
+
+  assert.equal(mediaBlob.normalizationVersion, passthroughMediaBlobNormalizationVersion);
 });
 
 test("upsertMediaAssetSnapshotInExecutor reuses one blob row for duplicate logical assets", async () => {

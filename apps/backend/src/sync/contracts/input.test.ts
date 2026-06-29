@@ -30,6 +30,7 @@ import {
 } from "./snapshots";
 import type { LegacyEffortLevel } from "./legacyEffort";
 import type { BootstrapProjectionRow } from "./types";
+import { passthroughMediaBlobNormalizationVersion } from "../../mediaAssets/types";
 
 type ReviewEventTimestampFixture = Readonly<{
   clientUpdatedAt: string;
@@ -363,6 +364,7 @@ function createHotPullMediaAssetRow(deletedAt: string | null): MediaAssetRow {
     size_bytes: payload.sizeBytes,
     sha256: payload.sha256,
     storage_key: buildMediaBlobStorageKey(payload.sha256),
+    blob_normalization_version: passthroughMediaBlobNormalizationVersion,
     blob_created_at: payload.createdAt,
     blob_updated_at: payload.updatedAt,
     source_url: payload.sourceUrl,
