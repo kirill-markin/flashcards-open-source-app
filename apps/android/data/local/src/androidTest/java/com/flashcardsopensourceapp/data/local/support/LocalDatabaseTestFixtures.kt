@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
 import com.flashcardsopensourceapp.data.local.model.cards.encodeDefaultCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
@@ -20,6 +21,7 @@ import com.flashcardsopensourceapp.data.local.repository.cards.LocalCardsReposit
 import com.flashcardsopensourceapp.data.local.repository.decks.LocalDecksRepository
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.review.LocalReviewRepository
+import com.flashcardsopensourceapp.data.local.repository.review.ReviewMediaAssetDownloadUrlLoader
 import com.flashcardsopensourceapp.data.local.repository.workspace.LocalWorkspaceRepository
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
@@ -127,8 +129,21 @@ internal fun createTestReviewRepository(runtime: LocalDatabaseTestRuntime): Revi
             database = runtime.database,
             timeProvider = SystemTimeProvider
         ),
-        timeProvider = SystemTimeProvider
+        timeProvider = SystemTimeProvider,
+        mediaAssetDownloadUrlLoader = UnsupportedTestReviewMediaAssetDownloadUrlLoader
     )
+}
+
+private object UnsupportedTestReviewMediaAssetDownloadUrlLoader : ReviewMediaAssetDownloadUrlLoader {
+    override suspend fun loadMediaAssetDownloadUrl(
+        workspaceId: String,
+        mediaAssetId: String
+    ): MediaAssetDownloadUrl {
+        throw UnsupportedOperationException(
+            "Test review repository does not support managed media download URLs. " +
+                "workspaceId=$workspaceId mediaAssetId=$mediaAssetId"
+        )
+    }
 }
 
 internal fun makeDueReviewOrderingCardEntity(

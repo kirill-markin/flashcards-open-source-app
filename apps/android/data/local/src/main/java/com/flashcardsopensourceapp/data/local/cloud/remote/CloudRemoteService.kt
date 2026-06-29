@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudAuthRemoteA
 import com.flashcardsopensourceapp.data.local.cloud.remote.community.CloudCommunityProfileRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.feedback.CloudFeedbackRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.guest.CloudGuestUpgradeRemoteApi
+import com.flashcardsopensourceapp.data.local.cloud.remote.media.CloudMediaAssetRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.progress.CloudProgressRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.CloudSyncRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapPullResponse
@@ -25,6 +26,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackPromptEventRequest
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackSubmissionRequest
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
@@ -90,6 +92,7 @@ class CloudRemoteService private constructor(
     private val progressApi = CloudProgressRemoteApi(httpClient = httpClient)
     private val communityProfileApi = CloudCommunityProfileRemoteApi(httpClient = httpClient)
     private val feedbackApi = CloudFeedbackRemoteApi(httpClient = httpClient)
+    private val mediaAssetApi = CloudMediaAssetRemoteApi(httpClient = httpClient)
     private val agentConnectionApi = CloudAgentConnectionRemoteApi(httpClient = httpClient)
     private val syncApi = CloudSyncRemoteApi(httpClient = httpClient)
 
@@ -405,6 +408,20 @@ class CloudRemoteService private constructor(
             apiBaseUrl = apiBaseUrl,
             authorizationHeader = authorizationHeader,
             request = request
+        )
+    }
+
+    override suspend fun loadMediaAssetDownloadUrl(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        mediaAssetId: String
+    ): MediaAssetDownloadUrl {
+        return mediaAssetApi.loadMediaAssetDownloadUrl(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            workspaceId = workspaceId,
+            mediaAssetId = mediaAssetId
         )
     }
 

@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 
 private val reviewShowAnswerContentBottomPadding = 120.dp
 private val reviewAnswerGridContentBottomPadding = 184.dp
@@ -78,6 +79,7 @@ internal fun ReviewContent(
     onCreateCard: () -> Unit,
     onCreateCardWithAi: () -> Unit,
     onSwitchToAllCards: () -> Unit,
+    onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     onToggleFrontSpeech: () -> Unit,
     onToggleBackSpeech: () -> Unit,
     contentPadding: PaddingValues
@@ -129,6 +131,7 @@ internal fun ReviewContent(
                                 card.tags
                             )
                         },
+                        onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                         onToggleFrontSpeech = onToggleFrontSpeech,
                         onToggleBackSpeech = onToggleBackSpeech
                     )
@@ -222,6 +225,7 @@ private fun ReviewCardContent(
     activeSpeechSide: ReviewSpeechSide?,
     onOpenCurrentCard: () -> Unit,
     onOpenCurrentCardWithAi: () -> Unit,
+    onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     onToggleFrontSpeech: () -> Unit,
     onToggleBackSpeech: () -> Unit
 ) {
@@ -284,6 +288,7 @@ private fun ReviewCardContent(
                     label = stringResource(id = R.string.review_front_label),
                     content = currentCard.frontContent,
                     contentModifier = Modifier.testTag(reviewCurrentCardFrontContentTag),
+                    onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                     isSpeechPlaying = activeSpeechSide == ReviewSpeechSide.FRONT,
                     onToggleSpeech = onToggleFrontSpeech,
                     showSpeechButton = currentCard.frontSpeakableText.isNotEmpty(),
@@ -296,6 +301,7 @@ private fun ReviewCardContent(
                         label = stringResource(id = R.string.review_back_label),
                         content = currentCard.backContent,
                         contentModifier = Modifier,
+                        onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                         isSpeechPlaying = activeSpeechSide == ReviewSpeechSide.BACK,
                         onToggleSpeech = onToggleBackSpeech,
                         showSpeechButton = currentCard.backSpeakableText.isNotEmpty(),
@@ -338,6 +344,7 @@ private fun ReviewCardSideSection(
     label: String,
     content: ReviewRenderedContent,
     contentModifier: Modifier,
+    onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     isSpeechPlaying: Boolean,
     onToggleSpeech: () -> Unit,
     showSpeechButton: Boolean,
@@ -358,6 +365,7 @@ private fun ReviewCardSideSection(
         )
         ReviewRenderedContentView(
             content = content,
+            onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
             modifier = contentModifier
         )
         if (showSpeechButton || showAiButton) {

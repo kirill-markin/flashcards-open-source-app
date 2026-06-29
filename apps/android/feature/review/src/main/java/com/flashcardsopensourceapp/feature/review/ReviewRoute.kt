@@ -28,6 +28,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionEvent
@@ -58,6 +59,7 @@ fun ReviewRoute(
     onCreateCard: () -> Unit,
     onCreateCardWithAi: () -> Unit,
     onSwitchToAllCards: () -> Unit,
+    onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     onRevealAnswer: () -> Unit,
     onRateAgain: () -> Unit,
     onRateHard: () -> Unit,
@@ -229,6 +231,7 @@ fun ReviewRoute(
                 onCreateCard = onCreateCard,
                 onCreateCardWithAi = onCreateCardWithAi,
                 onSwitchToAllCards = onSwitchToAllCards,
+                onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                 onToggleFrontSpeech = {
                     uiState.preparedCurrentCard?.let { currentCard ->
                         reviewSpeechController.toggleSpeech(

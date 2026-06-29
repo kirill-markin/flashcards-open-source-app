@@ -91,6 +91,34 @@ private val expectedCloudHttpFailureCodes: Set<String> = setOf(
     "GUEST_WEB_SYNC_UNSUPPORTED",
     "INVALID_EMAIL",
     "INVALID_REQUEST",
+    "MEDIA_ASSET_ALREADY_REGISTERED",
+    "MEDIA_ASSET_DUPLICATE_PART_NUMBER",
+    "MEDIA_ASSET_ID_CONFLICT",
+    "MEDIA_ASSET_ID_INVALID",
+    "MEDIA_ASSET_ID_REQUIRED",
+    "MEDIA_ASSET_NOT_FOUND",
+    "MEDIA_ASSET_PART_COUNT_INVALID",
+    "MEDIA_ASSET_PART_COUNT_MISMATCH",
+    "MEDIA_ASSET_PART_NUMBER_INVALID",
+    "MEDIA_ASSET_PART_NUMBER_OUT_OF_RANGE",
+    "MEDIA_ASSET_PART_SEQUENCE_INVALID",
+    "MEDIA_ASSET_PART_SIZE_TOO_LARGE",
+    "MEDIA_ASSET_PARTS_REQUIRED",
+    "MEDIA_ASSET_PART_URL_BATCH_TOO_LARGE",
+    "MEDIA_ASSET_REPLICA_INVALID",
+    "MEDIA_ASSET_SIZE_INVALID",
+    "MEDIA_ASSET_SIZE_TOO_LARGE",
+    "MEDIA_ASSET_UPLOAD_MISMATCH",
+    "MEDIA_ASSET_UPLOAD_NOT_FOUND",
+    "MEDIA_ASSET_UPLOAD_PROOF_MISMATCH",
+    "MEDIA_ASSET_UPLOAD_SESSION_ABORTED",
+    "MEDIA_ASSET_UPLOAD_SESSION_COMPLETED",
+    "MEDIA_ASSET_UPLOAD_SESSION_EXPIRED",
+    "MEDIA_ASSET_UPLOAD_SESSION_ID_INVALID",
+    "MEDIA_ASSET_UPLOAD_SESSION_ID_REQUIRED",
+    "MEDIA_ASSET_UPLOAD_SESSION_NOT_FOUND",
+    "MEDIA_ASSET_UPLOAD_SESSION_RECOVERY_FAILED",
+    "MEDIA_ASSET_UPLOAD_SESSION_STATE_CONFLICT",
     "OTP_CHALLENGE_CONSUMED",
     "OTP_CODE_INVALID",
     "OTP_SESSION_EXPIRED",
@@ -677,6 +705,7 @@ private fun cloudObservationEndpointName(path: String): String {
     val normalizedSegments = segments.mapIndexed { index, segment ->
         when {
             index > 0 && segments[index - 1] == "workspaces" -> "{workspaceId}"
+            index > 0 && segments[index - 1] == "media-assets" -> "{mediaAssetId}"
             index > 0 && segments[index - 1] == "agent-api-keys" -> "{connectionId}"
             else -> segment
         }
