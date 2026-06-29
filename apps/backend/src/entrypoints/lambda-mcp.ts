@@ -22,7 +22,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { authenticateMcpBearerToken } from "../auth/mcpTokens";
 import { createMcpServer } from "../mcp/server";
 import { HttpError } from "../shared/errors";
-import { getHttpErrorResponseHeaders } from "../server/app";
+import { getHttpErrorResponseHeaders } from "../server/httpErrorResponseHeaders";
 import {
   captureBackendException,
   createBackendObservationScope,
