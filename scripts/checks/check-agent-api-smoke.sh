@@ -195,6 +195,7 @@ required_paths = {
     "/agent/workspaces/{workspaceId}/select",
     "/agent/sql/query",
     "/agent/sql/execute",
+    "/workspaces/{workspaceId}/media-assets/images",
     "/workspaces/{workspaceId}/media-assets/upload-sessions",
     "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts",
     "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/complete",
