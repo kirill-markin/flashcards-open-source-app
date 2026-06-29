@@ -8,6 +8,7 @@ import { upsertCardSnapshotInExecutor } from "../../cards";
 import type { DatabaseExecutor } from "../../database";
 import { upsertDeckSnapshotInExecutor } from "../../decks";
 import { upsertMediaAssetSnapshotInExecutor } from "../../mediaAssets";
+import { passthroughMediaBlobNormalizationVersion } from "../../mediaAssets/types";
 import { HttpError } from "../../shared/errors";
 import {
   annotateSyncConflictHttpError,
@@ -160,6 +161,7 @@ function createConflictExecutor(
           mime_type: String(params[1]),
           size_bytes: Number(params[2]),
           storage_key: String(params[3]),
+          normalization_version: passthroughMediaBlobNormalizationVersion,
           created_at: "2026-04-24T10:00:00.000Z",
           updated_at: "2026-04-24T10:00:00.000Z",
         } as unknown as Row]);

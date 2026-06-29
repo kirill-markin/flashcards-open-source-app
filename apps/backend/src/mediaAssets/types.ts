@@ -1,5 +1,15 @@
 export type TimestampValue = Date | string;
 
+export const passthroughMediaBlobNormalizationVersion = "passthrough-v1";
+export const imageJpegCardMediaBlobNormalizationVersion = "image-jpeg-card-v1";
+
+export const mediaBlobNormalizationVersions = [
+  passthroughMediaBlobNormalizationVersion,
+  imageJpegCardMediaBlobNormalizationVersion,
+] as const;
+
+export type MediaBlobNormalizationVersion = typeof mediaBlobNormalizationVersions[number];
+
 export type MediaAssetRow = Readonly<{
   media_asset_id: string;
   workspace_id: string;
@@ -8,6 +18,7 @@ export type MediaAssetRow = Readonly<{
   size_bytes: string | number;
   sha256: string;
   storage_key: string;
+  blob_normalization_version: string;
   blob_created_at: TimestampValue;
   blob_updated_at: TimestampValue;
   source_url: string | null;
@@ -40,6 +51,7 @@ export type MediaBlob = Readonly<{
   sizeBytes: number;
   sha256: string;
   storageKey: string;
+  normalizationVersion: MediaBlobNormalizationVersion;
   createdAt: string;
   updatedAt: string;
 }>;
@@ -50,6 +62,7 @@ export type MediaBlobRow = Readonly<{
   size_bytes: string | number;
   sha256: string;
   storage_key: string;
+  normalization_version: string;
   created_at: TimestampValue;
   updated_at: TimestampValue;
 }>;

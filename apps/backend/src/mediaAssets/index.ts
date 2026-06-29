@@ -20,11 +20,16 @@ import {
   findSyncConflictWorkspaceIdInExecutor,
 } from "../sync/conflicts/fork";
 import { buildMediaBlobStorageKey } from "./storageKeys";
+import {
+  mediaBlobNormalizationVersions,
+  passthroughMediaBlobNormalizationVersion,
+} from "./types";
 import type {
   CompleteMediaAssetUploadInput,
   MediaAsset,
   MediaAssetWithBlob,
   MediaBlob,
+  MediaBlobNormalizationVersion,
   MediaBlobRow,
   MediaAssetMutationMetadata,
   MediaAssetMutationResult,
@@ -50,6 +55,7 @@ export const MEDIA_ASSET_COLUMNS = [
   "media_blobs.size_bytes AS size_bytes",
   "media_blobs.sha256 AS sha256",
   "media_blobs.storage_key AS storage_key",
+  "media_blobs.normalization_version AS blob_normalization_version",
   "media_blobs.created_at AS blob_created_at",
   "media_blobs.updated_at AS blob_updated_at",
   "media_assets.source_url AS source_url",
@@ -73,6 +79,7 @@ const MEDIA_BLOB_COLUMNS = [
   "size_bytes",
   "sha256",
   "storage_key",
+  "normalization_version",
   "created_at",
   "updated_at",
 ].join(", ");
@@ -126,6 +133,15 @@ function toSafeNumber(value: string | number, fieldName: string): number {
   return parsedValue;
 }
 
+function expectMediaBlobNormalizationVersion(value: string): MediaBlobNormalizationVersion {
+  const version = mediaBlobNormalizationVersions.find((knownVersion) => knownVersion === value);
+  if (version === undefined) {
+    throw new Error(`normalization_version is unsupported: ${value}`);
+  }
+
+  return version;
+}
+
 export function mapMediaAssetRow(row: MediaAssetRow): MediaAsset {
   return {
     mediaAssetId: row.media_asset_id,
@@ -150,6 +166,7 @@ export function mapMediaBlobRow(row: MediaBlobRow): MediaBlob {
     sizeBytes: toSafeNumber(row.size_bytes, "size_bytes"),
     sha256: row.sha256,
     storageKey: row.storage_key,
+    normalizationVersion: expectMediaBlobNormalizationVersion(row.normalization_version),
     createdAt: toIsoString(row.created_at),
     updatedAt: toIsoString(row.updated_at),
   };
@@ -190,6 +207,7 @@ function mapMediaAssetWithBlobRow(row: MediaAssetRow): MediaAssetWithBlob {
       sizeBytes: toSafeNumber(row.size_bytes, "size_bytes"),
       sha256: row.sha256,
       storageKey: row.storage_key,
+      normalizationVersion: expectMediaBlobNormalizationVersion(row.blob_normalization_version),
       createdAt: toIsoString(row.blob_created_at),
       updatedAt: toIsoString(row.blob_updated_at),
     },
@@ -448,6 +466,7 @@ async function findReachableMediaBlobForUploadSessionCreateInExecutor(
         "media_blobs.size_bytes AS size_bytes",
         "media_blobs.sha256 AS sha256",
         "media_blobs.storage_key AS storage_key",
+        "media_blobs.normalization_version AS normalization_version",
         "media_blobs.created_at AS created_at",
         "media_blobs.updated_at AS updated_at",
       ].join(", "),
@@ -477,13 +496,13 @@ async function upsertMediaBlobRowInExecutor(
   const insertResult = await executor.query<MediaBlobRow>(
     [
       "INSERT INTO content.media_blobs",
-      "(media_blob_id, sha256, mime_type, size_bytes, storage_key)",
-      "VALUES (gen_random_uuid(), $1, $2, $3, $4)",
+      "(media_blob_id, sha256, mime_type, size_bytes, storage_key, normalization_version)",
+      "VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)",
       "ON CONFLICT (sha256) DO NOTHING",
       "RETURNING",
       MEDIA_BLOB_COLUMNS,
     ].join(" "),
-    [input.sha256, input.mimeType, input.sizeBytes, storageKey],
+    [input.sha256, input.mimeType, input.sizeBytes, storageKey, passthroughMediaBlobNormalizationVersion],
   );
 
   const insertedRow = insertResult.rows[0];
