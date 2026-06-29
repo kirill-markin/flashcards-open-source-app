@@ -503,7 +503,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     },
     mediaAssetsBucket: props.mediaAssetsBucket,
     memorySize: 256,
-    architecture: lambda.Architecture.ARM_64,
+    architecture: lambda.Architecture.X86_64,
     bundling: createLambdaBundling({
       nodeModules: ["sharp"],
       forceDockerBundling: true,
