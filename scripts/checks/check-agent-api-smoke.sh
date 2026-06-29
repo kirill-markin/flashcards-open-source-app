@@ -201,6 +201,17 @@ required_paths = {
     "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/abort",
     "/workspaces/{workspaceId}/media-assets/{mediaAssetId}",
     "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url",
+    "/admin/catalog/authors",
+    "/admin/catalog/authors/{authorId}",
+    "/admin/catalog/package-versions/{packageVersionId}/delist",
+    "/admin/catalog/package-versions/{packageVersionId}/publish",
+    "/admin/catalog/package-versions/{packageVersionId}/review-status",
+    "/admin/catalog/packages",
+    "/admin/catalog/packages/{packageId}",
+    "/admin/catalog/packages/{packageId}/draft",
+    "/admin/catalog/packages/{packageId}/media-assets",
+    "/admin/catalog/packages/{packageId}/versions",
+    "/admin/catalog/packages/{packageId}/versions/from-workspace",
 }
 assert payload["openapi"] == "3.1.0"
 missing_paths = sorted(required_paths.difference(payload["paths"].keys()))
