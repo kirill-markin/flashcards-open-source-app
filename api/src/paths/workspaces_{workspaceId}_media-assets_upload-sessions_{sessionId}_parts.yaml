@@ -1,0 +1,40 @@
+post:
+  tags:
+    - media-assets
+  summary: Create presigned upload URLs for media parts
+  description: >-
+    Returns presigned PUT URLs for one or more multipart upload parts. The
+    returned headers must be sent with each PUT so object storage validates the
+    declared per-part SHA-256 checksum.
+  security:
+    - ApiKeyHeader: []
+  parameters:
+    - name: workspaceId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+    - name: sessionId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/MediaAssetUploadPartUrlsInput.yaml
+  responses:
+    '200':
+      description: Part upload URLs created
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MediaAssetUploadPartUrlsResponse.yaml
+    default:
+      description: Authenticated request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

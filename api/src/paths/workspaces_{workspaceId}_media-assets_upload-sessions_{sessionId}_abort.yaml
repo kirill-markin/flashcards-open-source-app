@@ -1,11 +1,10 @@
 post:
   tags:
     - media-assets
-  summary: Complete a direct media asset upload
+  summary: Abort a multipart media asset upload session
   description: >-
-    Verifies the uploaded S3 object size, content type, and SHA-256 checksum,
-    then creates or idempotently updates the workspace media asset registry
-    metadata row for the same bytes.
+    Aborts the backend-controlled multipart upload and marks the upload session
+    aborted. No logical media asset is created by this call.
   security:
     - ApiKeyHeader: []
   parameters:
@@ -14,24 +13,18 @@ post:
       required: true
       schema:
         $ref: ../components/schemas/UuidString.yaml
-    - name: mediaAssetId
+    - name: sessionId
       in: path
       required: true
       schema:
         $ref: ../components/schemas/UuidString.yaml
-  requestBody:
-    required: true
-    content:
-      application/json:
-        schema:
-          $ref: ../components/schemas/CompleteMediaAssetUploadInput.yaml
   responses:
     '200':
-      description: Media asset upload completed
+      description: Upload session aborted
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/MediaAssetMutationResponse.yaml
+            $ref: ../components/schemas/MediaAssetUploadSessionAbortResponse.yaml
     default:
       description: Authenticated request error
       content:

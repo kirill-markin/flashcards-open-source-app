@@ -221,7 +221,7 @@ export async function assertMediaAssetUploadIntentAvailableForWorkspace(
   throw new HttpError(
     409,
     [
-      "Media asset is already registered; create a new mediaAssetId before requesting another upload intent.",
+      "Media asset is already registered; create a new mediaAssetId before requesting another upload session.",
       `workspaceId=${workspaceId}`,
       `mediaAssetId=${mediaAssetId}`,
     ].join(" "),
@@ -321,9 +321,15 @@ function assertExistingMediaAssetMatchesSnapshot(
   existingRow: MediaAssetRow,
   input: MediaAssetSnapshotInput,
 ): void {
+  const existingSizeBytes = toSafeNumber(existingRow.size_bytes, "size_bytes");
+  const conflictingFields = [
+    ...(existingRow.mime_type === input.mimeType ? [] : ["mimeType"]),
+    ...(existingSizeBytes === input.sizeBytes ? [] : ["sizeBytes"]),
+    ...(existingRow.sha256 === input.sha256 ? [] : ["sha256"]),
+  ];
   if (
     existingRow.mime_type !== input.mimeType
-    || toSafeNumber(existingRow.size_bytes, "size_bytes") !== input.sizeBytes
+    || existingSizeBytes !== input.sizeBytes
     || existingRow.sha256 !== input.sha256
   ) {
     throw new HttpError(
@@ -332,12 +338,7 @@ function assertExistingMediaAssetMatchesSnapshot(
         "mediaAssetId is already registered with different file metadata",
         `workspaceId=${existingRow.workspace_id}`,
         `mediaAssetId=${existingRow.media_asset_id}`,
-        `existingSha256=${existingRow.sha256}`,
-        `requestedSha256=${input.sha256}`,
-        `existingMimeType=${existingRow.mime_type}`,
-        `requestedMimeType=${input.mimeType}`,
-        `existingSizeBytes=${toSafeNumber(existingRow.size_bytes, "size_bytes")}`,
-        `requestedSizeBytes=${input.sizeBytes}`,
+        `conflictingFields=${conflictingFields.join(",")}`,
       ].join(" "),
       "MEDIA_ASSET_ID_CONFLICT",
     );
@@ -359,12 +360,8 @@ function assertMediaBlobMatchesInput(row: MediaBlobRow, input: MediaAssetSnapsho
   throw new HttpError(
     409,
     [
-      "Media blob SHA-256 is already registered with different metadata.",
-      `sha256=${input.sha256}`,
-      `existingMimeType=${row.mime_type}`,
-      `requestedMimeType=${input.mimeType}`,
-      `existingSizeBytes=${existingSizeBytes}`,
-      `requestedSizeBytes=${input.sizeBytes}`,
+      "Media bytes are already registered with different metadata.",
+      "conflictingFields=mimeType,sizeBytes,sha256",
     ].join(" "),
     "MEDIA_BLOB_METADATA_CONFLICT",
   );
@@ -492,7 +489,7 @@ async function upsertMediaBlobRowInExecutor(
   const insertedRow = insertResult.rows[0];
   const row = insertedRow ?? await findMediaBlobRowBySha256InExecutor(executor, input.sha256);
   if (row === null) {
-    throw new Error(`Media blob insert conflicted but sha256=${input.sha256} was not found`);
+    throw new Error("Media bytes insert conflicted but no row was found");
   }
 
   assertMediaBlobMatchesInput(row, input);
@@ -1040,52 +1037,108 @@ export async function beginMediaAssetUploadSessionCompletionForWorkspace(
   userId: string,
   workspaceId: string,
   sessionId: string,
+  parts: ReadonlyArray<Readonly<{ partNumber: number }>>,
 ): Promise<MediaAssetUploadSessionCompletionStartResult> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
-    const row = await findMediaAssetUploadSessionRowForUpdateInExecutor(executor, workspaceId, sessionId);
-    if (row === null) {
-      throw createMediaAssetUploadSessionNotFoundError(sessionId);
-    }
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
+    beginMediaAssetUploadSessionCompletionInExecutor(executor, workspaceId, sessionId, parts));
+}
 
-    const session = mapMediaAssetUploadSessionRow(row);
-    if (session.state === "completed") {
-      return {
-        status: "already_completed",
-        mediaAsset: await findMediaAssetFromSessionInExecutor(executor, workspaceId, session),
-        applied: false,
-      };
-    }
+export async function beginMediaAssetUploadSessionCompletionInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  sessionId: string,
+  parts: ReadonlyArray<Readonly<{ partNumber: number }>>,
+): Promise<MediaAssetUploadSessionCompletionStartResult> {
+  const row = await findMediaAssetUploadSessionRowForUpdateInExecutor(executor, workspaceId, sessionId);
+  if (row === null) {
+    throw createMediaAssetUploadSessionNotFoundError(sessionId);
+  }
 
-    assertMediaAssetUploadSessionCanComplete(session);
-    if (session.state === "completing") {
-      return {
-        status: "complete_required",
-        uploadSession: session,
-      };
-    }
+  const session = mapMediaAssetUploadSessionRow(row);
+  if (session.state === "completed") {
+    return {
+      status: "already_completed",
+      mediaAsset: await findMediaAssetFromSessionInExecutor(executor, workspaceId, session),
+      applied: false,
+    };
+  }
 
-    const result = await executor.query<MediaAssetUploadSessionRow>(
-      [
-        "UPDATE content.media_upload_sessions",
-        "SET state = 'completing'",
-        "WHERE workspace_id = $1",
-        "AND media_upload_session_id = $2",
-        "AND state = 'active'",
-        "RETURNING",
-        MEDIA_UPLOAD_SESSION_COLUMNS,
-      ].join(" "),
-      [workspaceId, sessionId],
-    );
-    const updatedRow = result.rows[0];
-    if (updatedRow === undefined) {
-      throw new Error(`Media asset upload session completing update did not return a row. sessionId=${sessionId}`);
-    }
-
+  assertMediaAssetUploadSessionCanComplete(session);
+  assertMediaAssetUploadSessionCompletionPartsMatch(session, parts);
+  if (session.state === "completing") {
     return {
       status: "complete_required",
-      uploadSession: mapMediaAssetUploadSessionRow(updatedRow),
+      uploadSession: session,
     };
-  });
+  }
+
+  const result = await executor.query<MediaAssetUploadSessionRow>(
+    [
+      "UPDATE content.media_upload_sessions",
+      "SET state = 'completing'",
+      "WHERE workspace_id = $1",
+      "AND media_upload_session_id = $2",
+      "AND state = 'active'",
+      "RETURNING",
+      MEDIA_UPLOAD_SESSION_COLUMNS,
+    ].join(" "),
+    [workspaceId, sessionId],
+  );
+  const updatedRow = result.rows[0];
+  if (updatedRow === undefined) {
+    throw new Error(`Media asset upload session completing update did not return a row. sessionId=${sessionId}`);
+  }
+
+  return {
+    status: "complete_required",
+    uploadSession: mapMediaAssetUploadSessionRow(updatedRow),
+  };
+}
+
+export async function recoverMediaAssetUploadSessionCompletionForWorkspace(
+  userId: string,
+  workspaceId: string,
+  sessionId: string,
+): Promise<MediaAssetUploadSession> {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
+    recoverMediaAssetUploadSessionCompletionInExecutor(executor, workspaceId, sessionId));
+}
+
+export async function recoverMediaAssetUploadSessionCompletionInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  sessionId: string,
+): Promise<MediaAssetUploadSession> {
+  const row = await findMediaAssetUploadSessionRowForUpdateInExecutor(executor, workspaceId, sessionId);
+  if (row === null) {
+    throw createMediaAssetUploadSessionNotFoundError(sessionId);
+  }
+
+  const session = mapMediaAssetUploadSessionRow(row);
+  if (session.state === "active" || session.state === "completed") {
+    return session;
+  }
+
+  assertMediaAssetUploadSessionState(session, "completing");
+  const result = await executor.query<MediaAssetUploadSessionRow>(
+    [
+      "UPDATE content.media_upload_sessions",
+      "SET state = 'active'",
+      "WHERE workspace_id = $1",
+      "AND media_upload_session_id = $2",
+      "AND state = 'completing'",
+      "RETURNING",
+      MEDIA_UPLOAD_SESSION_COLUMNS,
+    ].join(" "),
+    [workspaceId, sessionId],
+  );
+
+  const updatedRow = result.rows[0];
+  if (updatedRow === undefined) {
+    throw new Error(`Media asset upload session completion recovery did not return a row. sessionId=${sessionId}`);
+  }
+
+  return mapMediaAssetUploadSessionRow(updatedRow);
 }
 
 export async function completeMediaAssetUploadSessionForWorkspace(

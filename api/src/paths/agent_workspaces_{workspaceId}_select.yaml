@@ -34,10 +34,11 @@ post:
               writes. Start discovery with SHOW TABLES or DESCRIBE cards through
               POST /v1/agent/sql/query when helpful. For
               media assets, use GET /v1/agent for the full media-capable
-              discovery surface, including workspace-scoped upload-intent,
-              complete, metadata, and download URL templates. Before completing
-              a media upload, call GET /v1/agent/me after workspace selection
-              and use data.agentWorkspaceReplicaId as lastModifiedByReplicaId. For routine low-risk
+              discovery surface, including workspace-scoped multipart upload
+              session, part URL, complete, abort, metadata, and download URL
+              templates. Before creating a media upload session, call GET
+              /v1/agent/me after workspace selection and use
+              data.agentWorkspaceReplicaId as lastModifiedByReplicaId. For routine low-risk
               writes, a clear user request already counts as permission. Ask
               again only for risky or unclear actions. This endpoint accepts
               the published SQL dialect, not full PostgreSQL. Read payload from

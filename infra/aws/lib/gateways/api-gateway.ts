@@ -247,7 +247,9 @@ function addGlobalMetricsEnvironment(
 export function createMediaAssetsObjectPolicyStatement(bucket: s3.IBucket): cdk.aws_iam.PolicyStatement {
   return new cdk.aws_iam.PolicyStatement({
     actions: [
+      "s3:AbortMultipartUpload",
       "s3:GetObject",
+      "s3:ListMultipartUploadParts",
       "s3:PutObject",
     ],
     resources: [
@@ -752,12 +754,14 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     .addResource("query")
     .addMethod("POST", integration);
   const workspaceMediaAssets = workspaceById.addResource("media-assets");
-  workspaceMediaAssets
-    .addResource("upload-intents")
-    .addMethod("POST", integration);
+  const workspaceMediaAssetUploadSessions = workspaceMediaAssets.addResource("upload-sessions");
+  workspaceMediaAssetUploadSessions.addMethod("POST", integration);
+  const workspaceMediaAssetUploadSessionById = workspaceMediaAssetUploadSessions.addResource("{sessionId}");
+  workspaceMediaAssetUploadSessionById.addResource("parts").addMethod("POST", integration);
+  workspaceMediaAssetUploadSessionById.addResource("complete").addMethod("POST", integration);
+  workspaceMediaAssetUploadSessionById.addResource("abort").addMethod("POST", integration);
   const workspaceMediaAssetById = workspaceMediaAssets.addResource("{mediaAssetId}");
   workspaceMediaAssetById.addMethod("GET", integration);
-  workspaceMediaAssetById.addResource("complete").addMethod("POST", integration);
   workspaceMediaAssetById.addResource("download-url").addMethod("GET", integration);
 
   const workspaceSync = workspaceById.addResource("sync");

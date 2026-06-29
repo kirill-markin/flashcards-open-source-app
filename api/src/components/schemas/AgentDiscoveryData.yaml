@@ -57,9 +57,11 @@ properties:
       - workspacesUrl
       - sqlQueryUrl
       - sqlExecuteUrl
-      - mediaAssetUploadIntentsUrlTemplate
+      - mediaAssetUploadSessionCreateUrlTemplate
+      - mediaAssetUploadSessionPartsUrlTemplate
+      - mediaAssetUploadSessionCompleteUrlTemplate
+      - mediaAssetUploadSessionAbortUrlTemplate
       - mediaAssetMetadataUrlTemplate
-      - mediaAssetCompleteUrlTemplate
       - mediaAssetDownloadUrlTemplate
     properties:
       accountUrl:
@@ -70,11 +72,15 @@ properties:
         type: string
       sqlExecuteUrl:
         type: string
-      mediaAssetUploadIntentsUrlTemplate:
+      mediaAssetUploadSessionCreateUrlTemplate:
+        type: string
+      mediaAssetUploadSessionPartsUrlTemplate:
+        type: string
+      mediaAssetUploadSessionCompleteUrlTemplate:
+        type: string
+      mediaAssetUploadSessionAbortUrlTemplate:
         type: string
       mediaAssetMetadataUrlTemplate:
-        type: string
-      mediaAssetCompleteUrlTemplate:
         type: string
       mediaAssetDownloadUrlTemplate:
         type: string

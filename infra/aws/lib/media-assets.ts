@@ -21,6 +21,7 @@ export function mediaAssets(scope: Construct, props: MediaAssetsProps): MediaAss
       {
         prefix: "media/uploads/",
         expiration: cdk.Duration.days(7),
+        abortIncompleteMultipartUploadAfter: cdk.Duration.days(1),
       },
     ],
     cors: [
@@ -41,7 +42,10 @@ export function mediaAssets(scope: Construct, props: MediaAssetsProps): MediaAss
           "Content-Length",
           "Content-Range",
           "ETag",
+          "x-amz-checksum-crc32",
+          "x-amz-checksum-crc32c",
           "x-amz-checksum-sha256",
+          "x-amz-checksum-type",
         ],
         maxAge: 3_600,
       },

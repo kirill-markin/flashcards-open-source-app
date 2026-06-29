@@ -1,27 +1,45 @@
 type: object
 additionalProperties: false
 required:
+  - mediaAssetId
   - mimeType
   - sizeBytes
   - sha256
+  - partSizeBytes
+  - partCount
   - createdAt
   - clientUpdatedAt
   - lastModifiedByReplicaId
   - lastOperationId
 properties:
+  mediaAssetId:
+    $ref: ./UuidString.yaml
   mimeType:
     type: string
     example: image/png
   sizeBytes:
     type: integer
     format: int64
-    minimum: 0
+    minimum: 1
     maximum: 5368709120
     example: 42817
   sha256:
     type: string
     pattern: ^[0-9a-fA-F]{64}$
     example: 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+  partSizeBytes:
+    type: integer
+    format: int64
+    minimum: 1
+    maximum: 5368709120
+    description: Must be at least 5242880 bytes when partCount is greater than 1.
+    example: 8388608
+  partCount:
+    type: integer
+    minimum: 1
+    maximum: 10000
+    description: Must equal ceil(sizeBytes / partSizeBytes).
+    example: 1
   sourceUrl:
     type:
       - string
@@ -37,3 +55,6 @@ properties:
     $ref: ./UuidString.yaml
   lastOperationId:
     type: string
+    minLength: 1
+    maxLength: 1024
+    example: import-media-asset-43b7ec15

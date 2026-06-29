@@ -321,10 +321,13 @@ test("agent verify-code uses the OTP challenge for non-demo emails", async () =>
   assert.equal(payload.actions.find((action) => action.name === "list_workspaces")?.url, "https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100");
   assert.match(payload.instructions, /GET https:\/\/api\.flashcards-open-source-app\.com\/v1\/agent/);
   assert.match(payload.instructions, /media-capable discovery surface/);
-  assert.match(payload.instructions, /upload-intent/);
+  assert.match(payload.instructions, /multipart upload session/);
+  assert.match(payload.instructions, /part URL/);
+  assert.match(payload.instructions, /abort/);
   assert.match(payload.instructions, /download URL templates/);
   assert.match(payload.instructions, /data\.agentWorkspaceReplicaId/);
   assert.match(payload.instructions, /lastModifiedByReplicaId/);
+  assert.doesNotMatch(payload.instructions, /upload[-\s]?intents?/i);
   assert.equal(verifyEmailOtpCalled, true);
   assert.equal(signInWithPasswordCalled, false);
   assert.equal(createdKeyIdToken, "otp-id-token");

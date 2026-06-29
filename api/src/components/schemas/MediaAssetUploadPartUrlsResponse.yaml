@@ -1,0 +1,41 @@
+type: object
+additionalProperties: false
+required:
+  - sessionId
+  - partUrls
+properties:
+  sessionId:
+    $ref: ./UuidString.yaml
+  partUrls:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - partNumber
+        - method
+        - url
+        - expiresAt
+        - headers
+      properties:
+        partNumber:
+          type: integer
+          minimum: 1
+          maximum: 10000
+        method:
+          type: string
+          enum:
+            - PUT
+        url:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            x-amz-checksum-sha256: XohImNooBHFR0OVvjccpJ3NgPQ1qq73WKhHvch0VQtg=

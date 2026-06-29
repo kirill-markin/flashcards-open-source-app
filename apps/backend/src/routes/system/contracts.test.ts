@@ -47,9 +47,11 @@ const expectedPublishedApiMethods = {
   "/agent/workspaces/{workspaceId}/select": ["post"],
   "/agent/sql/query": ["post"],
   "/agent/sql/execute": ["post"],
-  "/workspaces/{workspaceId}/media-assets/upload-intents": ["post"],
+  "/workspaces/{workspaceId}/media-assets/upload-sessions": ["post"],
+  "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts": ["post"],
+  "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/complete": ["post"],
+  "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/abort": ["post"],
   "/workspaces/{workspaceId}/media-assets/{mediaAssetId}": ["get"],
-  "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete": ["post"],
   "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url": ["get"],
   "/admin/catalog/authors": ["post"],
   "/admin/catalog/authors/{authorId}": ["put"],
@@ -65,9 +67,11 @@ const expectedPublishedApiMethods = {
 } as const satisfies Readonly<Record<string, ReadonlyArray<OperationMethodName>>>;
 
 const expectedMediaDiscoverySurfaceTemplates = {
-  mediaAssetUploadIntentsUrlTemplate: "/workspaces/{workspaceId}/media-assets/upload-intents",
+  mediaAssetUploadSessionCreateUrlTemplate: "/workspaces/{workspaceId}/media-assets/upload-sessions",
+  mediaAssetUploadSessionPartsUrlTemplate: "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts",
+  mediaAssetUploadSessionCompleteUrlTemplate: "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/complete",
+  mediaAssetUploadSessionAbortUrlTemplate: "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/abort",
   mediaAssetMetadataUrlTemplate: "/workspaces/{workspaceId}/media-assets/{mediaAssetId}",
-  mediaAssetCompleteUrlTemplate: "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/complete",
   mediaAssetDownloadUrlTemplate: "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url",
 } as const;
 
@@ -107,6 +111,10 @@ function listDocumentedMethods(pathItem: PathItemForTest): ReadonlyArray<Operati
   return operationMethodNames.filter((method) => pathItem[method] !== undefined);
 }
 
+function assertDoesNotAdvertiseUploadIntentFlow(value: string, label: string): void {
+  assert.doesNotMatch(value, /upload[-\s]?intents?/i, `${label} must not advertise the legacy upload intent flow`);
+}
+
 test("API Gateway predeclares PATCH /me/preferences", () => {
   const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
   const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
@@ -123,6 +131,7 @@ test("published OpenAPI exposes the curated agent, media transfer, and admin cat
   assert.equal(openApiDocument.info?.title, "Flashcards Open Source App External AI-Agent API");
   assert.match(openApiDocument.info?.description ?? "", /curated public api contract/i);
   assert.deepEqual(Object.keys(paths), Object.keys(expectedPublishedApiMethods));
+  assertDoesNotAdvertiseUploadIntentFlow(JSON.stringify(openApiDocument), "Published OpenAPI");
   for (const [path, methods] of Object.entries(expectedPublishedApiMethods)) {
     assert.deepEqual(listDocumentedMethods(paths[path] ?? {}), methods, `Unexpected OpenAPI methods for ${path}`);
   }
@@ -178,8 +187,11 @@ test("agent discovery advertises the published media transfer surface", () => {
     );
   }
 
-  assert.match(discoveryEnvelope.instructions, /media-assets\/upload-intents/);
-  assert.match(discoveryEnvelope.instructions, /media-assets\/\{mediaAssetId\}\/complete/);
+  assert.match(discoveryEnvelope.instructions, /media-assets\/upload-sessions/);
+  assert.match(discoveryEnvelope.instructions, /media-assets\/upload-sessions\/\{sessionId\}\/parts/);
+  assert.match(discoveryEnvelope.instructions, /media-assets\/upload-sessions\/\{sessionId\}\/complete/);
+  assert.match(discoveryEnvelope.instructions, /media-assets\/upload-sessions\/\{sessionId\}\/abort/);
+  assertDoesNotAdvertiseUploadIntentFlow(discoveryEnvelope.instructions, "Agent discovery instructions");
   assert.match(discoveryEnvelope.instructions, /media-assets\/\{mediaAssetId\}\/download-url/);
   assert.match(discoveryEnvelope.instructions, /data\.agentWorkspaceReplicaId/);
   assert.match(discoveryEnvelope.instructions, /lastModifiedByReplicaId/);
@@ -202,10 +214,11 @@ test("agent setup envelopes point API-key clients to the media-capable discovery
   for (const envelope of envelopes) {
     assert.match(envelope.instructions, /GET https:\/\/api\.flashcards-open-source-app\.com\/v1\/agent/);
     assert.match(envelope.instructions, /media-capable discovery surface/);
-    assert.match(envelope.instructions, /upload-intent/);
+    assert.match(envelope.instructions, /multipart upload session/);
     assert.match(envelope.instructions, /download URL templates/);
     assert.match(envelope.instructions, /data\.agentWorkspaceReplicaId/);
     assert.match(envelope.instructions, /lastModifiedByReplicaId/);
+    assertDoesNotAdvertiseUploadIntentFlow(envelope.instructions, "Agent setup instructions");
   }
 
   assert.equal(accountEnvelope.data.agentWorkspaceReplicaId, testAgentWorkspaceReplicaId);

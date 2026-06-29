@@ -187,10 +187,6 @@ function getS3ErrorName(error: unknown): string {
   return error instanceof Error ? error.name : "UnknownError";
 }
 
-function getS3ErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 function isHeadObjectUploadNotAvailableStatusCode(statusCode: number | null): boolean {
   return statusCode === 403 || statusCode === 404;
 }
@@ -267,7 +263,6 @@ function createUploadProofHeaders(metadata: Readonly<Record<string, string>>): R
 async function runMediaAssetStorageOperationWithRetries<Result>(
   context: MediaAssetStorageContext,
   operation: MediaAssetStorageOperation,
-  bucketName: string,
   run: () => Promise<Result>,
 ): Promise<Result> {
   let lastError: unknown = null;
@@ -288,13 +283,10 @@ async function runMediaAssetStorageOperationWithRetries<Result>(
           operation,
           attempt,
           maxAttempts: maxS3AttemptCount,
-          bucketName,
           workspaceId: context.workspaceId,
           mediaAssetId: context.mediaAssetId,
-          storageKey: context.storageKey,
           statusCode: getS3ErrorStatusCode(error),
           errorClass: getS3ErrorName(error),
-          errorMessage: getS3ErrorMessage(error),
         },
       });
     }
@@ -302,7 +294,7 @@ async function runMediaAssetStorageOperationWithRetries<Result>(
 
   if (lastError === null) {
     throw new Error(
-      `S3 ${operation} failed without an error for workspaceId=${context.workspaceId} mediaAssetId=${context.mediaAssetId} s3://${bucketName}/${context.storageKey}.`,
+      `S3 ${operation} failed without an error for workspaceId=${context.workspaceId} mediaAssetId=${context.mediaAssetId}.`,
     );
   }
 
@@ -311,25 +303,25 @@ async function runMediaAssetStorageOperationWithRetries<Result>(
 
 function createMediaAssetStorageError(
   context: MediaAssetStorageContext,
-  bucketName: string,
   operation: MediaAssetStorageOperation,
   error: unknown,
 ): HttpError {
   const publicLocation = `workspaceId=${context.workspaceId} mediaAssetId=${context.mediaAssetId}`;
+  const s3StatusCode = getS3ErrorStatusCode(error);
+  const isUploadNotAvailable = isUploadNotAvailableStorageError(operation, s3StatusCode);
   const details: MediaAssetStorageErrorDetails = {
     operation,
     workspaceId: context.workspaceId,
     mediaAssetId: context.mediaAssetId,
-    storageKey: context.storageKey,
-    bucketName,
-    s3StatusCode: getS3ErrorStatusCode(error),
+    s3StatusCode,
     s3ErrorClass: getS3ErrorName(error),
-    s3ErrorMessage: getS3ErrorMessage(error),
+    reason: isUploadNotAvailable ? "upload_not_available" : "storage_temporarily_unavailable",
+    retryable: isUploadNotAvailable === false,
   };
-  if (isUploadNotAvailableStorageError(operation, details.s3StatusCode)) {
+  if (isUploadNotAvailable) {
     return new HttpError(
       409,
-      `Completed media blob is not available in object storage for ${publicLocation}. Upload the file through a fresh media upload session, then retry completion.`,
+      `Completed media upload is not available for ${publicLocation}. Upload the file through a fresh media upload session, then retry completion.`,
       "MEDIA_ASSET_UPLOAD_NOT_FOUND",
       { mediaAssetStorage: details },
     );
@@ -337,7 +329,7 @@ function createMediaAssetStorageError(
 
   return new HttpError(
     503,
-    `Media asset storage ${operation} failed for ${publicLocation}. Retry shortly and use requestId if the failure persists.`,
+    `Media asset transfer is temporarily unavailable for ${publicLocation}. Retry shortly and use requestId if the failure persists.`,
     "MEDIA_ASSET_STORAGE_UNAVAILABLE",
     { mediaAssetStorage: details },
   );
@@ -347,18 +339,19 @@ function createMediaAssetUploadMismatchError(
   input: AssertMediaAssetObjectInput,
   objectMetadata: MediaAssetObjectMetadata,
 ): HttpError {
+  const mismatchedFields = [
+    ...(objectMetadata.sizeBytes === input.sizeBytes ? [] : ["sizeBytes"]),
+    ...(objectMetadata.mimeType === input.mimeType ? [] : ["mimeType"]),
+    ...(objectMetadata.checksumSha256 === input.sha256 ? [] : ["sha256"]),
+  ];
+
   return new HttpError(
     409,
     [
       "Uploaded media asset does not match declared metadata",
       `workspaceId=${input.workspaceId}`,
       `mediaAssetId=${input.mediaAssetId}`,
-      `expectedSizeBytes=${input.sizeBytes}`,
-      `actualSizeBytes=${objectMetadata.sizeBytes ?? "unknown"}`,
-      `expectedMimeType=${input.mimeType}`,
-      `actualMimeType=${objectMetadata.mimeType ?? "unknown"}`,
-      `expectedSha256=${input.sha256}`,
-      `actualSha256=${objectMetadata.checksumSha256 ?? "unknown"}`,
+      `mismatchedFields=${mismatchedFields.join(",")}`,
     ].join(" "),
     "MEDIA_ASSET_UPLOAD_MISMATCH",
   );
@@ -368,16 +361,18 @@ function createMediaAssetUploadContentHashMismatchError(
   input: AssertMediaAssetObjectInput,
   objectContent: MediaAssetObjectContentHash,
 ): HttpError {
+  const mismatchedFields = [
+    ...(objectContent.sizeBytes === input.sizeBytes ? [] : ["sizeBytes"]),
+    ...(objectContent.sha256 === input.sha256 ? [] : ["sha256"]),
+  ];
+
   return new HttpError(
     409,
     [
       "Uploaded media asset bytes do not match declared metadata",
       `workspaceId=${input.workspaceId}`,
       `mediaAssetId=${input.mediaAssetId}`,
-      `expectedSizeBytes=${input.sizeBytes}`,
-      `actualSizeBytes=${objectContent.sizeBytes}`,
-      `expectedSha256=${input.sha256}`,
-      `actualSha256=${objectContent.sha256}`,
+      `mismatchedFields=${mismatchedFields.join(",")}`,
     ].join(" "),
     "MEDIA_ASSET_UPLOAD_MISMATCH",
   );
@@ -387,16 +382,21 @@ function createMediaAssetUploadProofMismatchError(
   input: AssertMediaAssetObjectInput,
   objectMetadata: MediaAssetObjectMetadata,
 ): HttpError {
+  const expectedLastOperationIdSha256 = hashUploadProofValue(input.lastOperationId);
+  const mismatchedProofFields = [
+    ...(objectMetadata.uploadProof.workspaceId === input.workspaceId ? [] : ["workspaceId"]),
+    ...(objectMetadata.uploadProof.mediaAssetId === input.mediaAssetId ? [] : ["mediaAssetId"]),
+    ...(objectMetadata.uploadProof.lastOperationIdSha256 === expectedLastOperationIdSha256 ? [] : ["lastOperationId"]),
+    ...(objectMetadata.uploadProof.sha256 === input.sha256 ? [] : ["sha256"]),
+  ];
+
   return new HttpError(
     409,
     [
-      "Uploaded media asset proof does not match the authenticated upload intent",
+      "Uploaded media asset proof does not match the authenticated upload session",
       `workspaceId=${input.workspaceId}`,
       `mediaAssetId=${input.mediaAssetId}`,
-      `expectedSha256=${input.sha256}`,
-      `actualProofSha256=${objectMetadata.uploadProof.sha256 ?? "unknown"}`,
-      `actualProofWorkspaceId=${objectMetadata.uploadProof.workspaceId ?? "unknown"}`,
-      `actualProofMediaAssetId=${objectMetadata.uploadProof.mediaAssetId ?? "unknown"}`,
+      `mismatchedProofFields=${mismatchedProofFields.join(",")}`,
     ].join(" "),
     "MEDIA_ASSET_UPLOAD_PROOF_MISMATCH",
   );
@@ -506,7 +506,6 @@ export async function createPresignedMediaAssetUploadWithDependencies(
     const url = await runMediaAssetStorageOperationWithRetries(
       context,
       "create_presigned_upload",
-      config.bucketName,
       async () => getSignedUrl(
         dependencies.s3Client,
         new PutObjectCommand({
@@ -535,7 +534,7 @@ export async function createPresignedMediaAssetUploadWithDependencies(
       headers: requiredUploadHeaders,
     };
   } catch (error) {
-    throw createMediaAssetStorageError(context, config.bucketName, "create_presigned_upload", error);
+    throw createMediaAssetStorageError(context, "create_presigned_upload", error);
   }
 }
 
@@ -556,7 +555,6 @@ export async function createMultipartMediaAssetUploadWithDependencies(
     const response = await runMediaAssetStorageOperationWithRetries(
       context,
       "create_multipart_upload",
-      config.bucketName,
       async () => dependencies.s3Client.send(new CreateMultipartUploadCommand({
         Bucket: config.bucketName,
         Key: input.stagingStorageKey,
@@ -567,7 +565,7 @@ export async function createMultipartMediaAssetUploadWithDependencies(
     );
     if (response.UploadId === undefined || response.UploadId.trim() === "") {
       throw new Error(
-        `S3 create_multipart_upload did not return UploadId for workspaceId=${input.workspaceId} mediaAssetId=${input.mediaAssetId} s3://${config.bucketName}/${input.stagingStorageKey}.`,
+        `S3 create_multipart_upload did not return UploadId for workspaceId=${input.workspaceId} mediaAssetId=${input.mediaAssetId}.`,
       );
     }
 
@@ -577,7 +575,7 @@ export async function createMultipartMediaAssetUploadWithDependencies(
       expiresAt: createExpiresAt(multipartUploadExpiresSeconds),
     };
   } catch (error) {
-    throw createMediaAssetStorageError(context, config.bucketName, "create_multipart_upload", error);
+    throw createMediaAssetStorageError(context, "create_multipart_upload", error);
   }
 }
 
@@ -597,7 +595,6 @@ export async function createPresignedMediaAssetUploadPartsWithDependencies(
     return await runMediaAssetStorageOperationWithRetries(
       context,
       "create_presigned_part_upload",
-      config.bucketName,
       async () => Promise.all(input.parts.map(async (part) => {
         const checksumSha256 = toBase64Sha256Digest(part.sha256);
         const requiredUploadHeaders = {
@@ -629,7 +626,7 @@ export async function createPresignedMediaAssetUploadPartsWithDependencies(
       })),
     );
   } catch (error) {
-    throw createMediaAssetStorageError(context, config.bucketName, "create_presigned_part_upload", error);
+    throw createMediaAssetStorageError(context, "create_presigned_part_upload", error);
   }
 }
 
@@ -649,7 +646,6 @@ export async function createPresignedMediaAssetDownloadWithDependencies(
     const url = await runMediaAssetStorageOperationWithRetries(
       context,
       "create_presigned_download",
-      config.bucketName,
       async () => getSignedUrl(
         dependencies.s3Client,
         new GetObjectCommand({
@@ -664,9 +660,10 @@ export async function createPresignedMediaAssetDownloadWithDependencies(
       method: "GET",
       url,
       expiresAt: createExpiresAt(downloadUrlExpiresSeconds),
+      rangeRequests: true,
     };
   } catch (error) {
-    throw createMediaAssetStorageError(context, config.bucketName, "create_presigned_download", error);
+    throw createMediaAssetStorageError(context, "create_presigned_download", error);
   }
 }
 
@@ -686,7 +683,6 @@ export async function loadMediaAssetObjectMetadataWithDependencies(
     const response = await runMediaAssetStorageOperationWithRetries(
       context,
       "head_object",
-      config.bucketName,
       async () => dependencies.s3Client.send(new HeadObjectCommand({
         Bucket: config.bucketName,
         Key: input.storageKey,
@@ -707,7 +703,7 @@ export async function loadMediaAssetObjectMetadataWithDependencies(
       },
     };
   } catch (error) {
-    throw createMediaAssetStorageError(context, config.bucketName, "head_object", error);
+    throw createMediaAssetStorageError(context, "head_object", error);
   }
 }
 
@@ -735,7 +731,6 @@ async function hashMediaAssetObjectContentWithDependencies(
     const response = await runMediaAssetStorageOperationWithRetries(
       context,
       "get_object",
-      config.bucketName,
       async () => dependencies.s3Client.send(new GetObjectCommand({
         Bucket: config.bucketName,
         Key: input.storageKey,
@@ -744,7 +739,7 @@ async function hashMediaAssetObjectContentWithDependencies(
     const body = response.Body;
     if (isMediaAssetObjectBody(body) === false) {
       throw new Error(
-        `S3 get_object did not return a readable body for workspaceId=${input.workspaceId} mediaAssetId=${input.mediaAssetId} s3://${config.bucketName}/${input.storageKey}.`,
+        `S3 get_object did not return a readable body for workspaceId=${input.workspaceId} mediaAssetId=${input.mediaAssetId}.`,
       );
     }
 
@@ -761,7 +756,7 @@ async function hashMediaAssetObjectContentWithDependencies(
       sha256: hash.digest("hex"),
     };
   } catch (error) {
-    throw createMediaAssetStorageError(context, config.bucketName, "get_object", error);
+    throw createMediaAssetStorageError(context, "get_object", error);
   }
 }
 
@@ -789,7 +784,6 @@ async function copyMediaAssetObjectIfAbsentWithDependencies(
     await runMediaAssetStorageOperationWithRetries(
       context,
       "copy_object",
-      config.bucketName,
       async () => {
         try {
           await dependencies.s3Client.send(new CopyObjectCommand({
@@ -814,7 +808,7 @@ async function copyMediaAssetObjectIfAbsentWithDependencies(
       },
     );
   } catch (error) {
-    throw createMediaAssetStorageError(context, config.bucketName, "copy_object", error);
+    throw createMediaAssetStorageError(context, "copy_object", error);
   }
 }
 
@@ -906,7 +900,6 @@ export async function completeMultipartMediaAssetUploadWithDependencies(
     await runMediaAssetStorageOperationWithRetries(
       context,
       "complete_multipart_upload",
-      config.bucketName,
       async () => dependencies.s3Client.send(new CompleteMultipartUploadCommand({
         Bucket: config.bucketName,
         Key: input.stagingStorageKey,
@@ -918,7 +911,7 @@ export async function completeMultipartMediaAssetUploadWithDependencies(
     );
   } catch (error) {
     if (isNoSuchMultipartUploadError(error) === false) {
-      throw createMediaAssetStorageError(context, config.bucketName, "complete_multipart_upload", error);
+      throw createMediaAssetStorageError(context, "complete_multipart_upload", error);
     }
   }
 
@@ -969,7 +962,6 @@ export async function abortMultipartMediaAssetUploadWithDependencies(
     await runMediaAssetStorageOperationWithRetries(
       context,
       "abort_multipart_upload",
-      config.bucketName,
       async () => dependencies.s3Client.send(new AbortMultipartUploadCommand({
         Bucket: config.bucketName,
         Key: input.stagingStorageKey,
@@ -981,7 +973,7 @@ export async function abortMultipartMediaAssetUploadWithDependencies(
       return;
     }
 
-    throw createMediaAssetStorageError(context, config.bucketName, "abort_multipart_upload", error);
+    throw createMediaAssetStorageError(context, "abort_multipart_upload", error);
   }
 }
 
