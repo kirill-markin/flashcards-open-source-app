@@ -9,8 +9,15 @@ import {
 } from ".";
 import {
   buildMediaBlobStorageKey,
+  buildMediaMultipartUploadStagingStorageKey,
   buildMediaUploadStagingStorageKey,
 } from "./storageKeys";
+import {
+  maximumMultipartUploadBytes,
+  maximumSinglePutUploadBytes,
+  parseMediaAssetUploadIntentInput,
+  parseMediaAssetUploadSessionCreateInput,
+} from "./validators";
 import type {
   MediaAssetRow,
   MediaAssetSnapshotInput,
@@ -358,6 +365,69 @@ test("buildMediaUploadStagingStorageKey scopes temporary uploads by workspace as
       testMediaAssetId,
       "operations/e12febdf2c87aabeb4f0594f67409b7ec07fe532eb25e0c9e9f8f4f3febb0d6d",
     ].join("/"),
+  );
+});
+
+test("buildMediaMultipartUploadStagingStorageKey scopes temporary multipart uploads by session", () => {
+  assert.equal(
+    buildMediaMultipartUploadStagingStorageKey(
+      testWorkspaceId,
+      testMediaAssetId,
+      "33333333-3333-4333-8333-333333333333",
+    ),
+    [
+      "media/uploads/workspaces",
+      testWorkspaceId,
+      "assets",
+      testMediaAssetId,
+      "sessions/33333333-3333-4333-8333-333333333333",
+    ].join("/"),
+  );
+});
+
+test("media asset upload validators keep direct uploads compatible and cap multipart promotion size", () => {
+  assert.equal(maximumMultipartUploadBytes, maximumSinglePutUploadBytes);
+  assert.equal(parseMediaAssetUploadIntentInput({
+    mediaAssetId: testMediaAssetId,
+    mimeType: "image/png",
+    sizeBytes: 0,
+    sha256: testSha256,
+    lastOperationId: "operation-direct-zero",
+  }).sizeBytes, 0);
+  assert.equal(parseMediaAssetUploadSessionCreateInput({
+    mediaAssetId: testMediaAssetId,
+    mimeType: "image/png",
+    sizeBytes: maximumMultipartUploadBytes,
+    sha256: testSha256,
+    partSizeBytes: maximumMultipartUploadBytes,
+    partCount: 1,
+    sourceUrl: null,
+    createdAt: "2026-02-28T09:00:00.000Z",
+    clientUpdatedAt: "2026-02-28T10:00:00.000Z",
+    lastModifiedByReplicaId: "55555555-5555-4555-8555-555555555555",
+    lastOperationId: "operation-multipart-max",
+  }).sizeBytes, maximumMultipartUploadBytes);
+
+  assert.throws(
+    () => parseMediaAssetUploadSessionCreateInput({
+      mediaAssetId: testMediaAssetId,
+      mimeType: "image/png",
+      sizeBytes: maximumMultipartUploadBytes + 1,
+      sha256: testSha256,
+      partSizeBytes: maximumMultipartUploadBytes,
+      partCount: 2,
+      sourceUrl: null,
+      createdAt: "2026-02-28T09:00:00.000Z",
+      clientUpdatedAt: "2026-02-28T10:00:00.000Z",
+      lastModifiedByReplicaId: "55555555-5555-4555-8555-555555555555",
+      lastOperationId: "operation-multipart-too-large",
+    }),
+    (error: unknown): boolean => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.statusCode, 400);
+      assert.equal(error.code, "MEDIA_ASSET_SIZE_TOO_LARGE");
+      return true;
+    },
   );
 });
 

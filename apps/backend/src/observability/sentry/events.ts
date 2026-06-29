@@ -253,11 +253,15 @@ export type CardsQueryDetails = Readonly<{
 export type MediaAssetRouteDetails = Readonly<{
   statusCode: number;
   mediaAssetId: string | null;
+  sessionId?: string | null;
   storageKey: string | null;
-  blobStorageKey?: string;
+  blobStorageKey?: string | null;
+  s3UploadId?: string | null;
   mimeType?: string;
   sizeBytes?: number;
   sha256?: string;
+  partSizeBytes?: number;
+  partCount?: number;
   applied?: boolean;
 }>;
 
@@ -666,7 +670,16 @@ export type GlobalMetricsS3RetryDetails = Readonly<{
 }>;
 
 export type MediaAssetStorageRetryDetails = Readonly<{
-  operation: "create_presigned_upload" | "create_presigned_download" | "head_object" | "copy_object";
+  operation:
+    | "create_presigned_upload"
+    | "create_presigned_download"
+    | "create_multipart_upload"
+    | "create_presigned_part_upload"
+    | "complete_multipart_upload"
+    | "abort_multipart_upload"
+    | "head_object"
+    | "get_object"
+    | "copy_object";
   attempt: number;
   maxAttempts: number;
   bucketName: string;
@@ -758,6 +771,16 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"media_asset_upload_intent_create_error", FailureDetailsFor<MediaAssetRouteDetails>>
   | EventByAction<"media_asset_upload_complete", MediaAssetRouteDetails>
   | EventByAction<"media_asset_upload_complete_error", FailureDetailsFor<MediaAssetRouteDetails>>
+  | EventByAction<"media_asset_upload_session_blob_reuse", MediaAssetRouteDetails>
+  | EventByAction<"media_asset_upload_session_concurrent_blob_reuse", MediaAssetRouteDetails>
+  | EventByAction<"media_asset_upload_session_create", MediaAssetRouteDetails>
+  | EventByAction<"media_asset_upload_session_create_error", FailureDetailsFor<MediaAssetRouteDetails>>
+  | EventByAction<"media_asset_upload_session_part_urls_create", MediaAssetRouteDetails>
+  | EventByAction<"media_asset_upload_session_part_urls_create_error", FailureDetailsFor<MediaAssetRouteDetails>>
+  | EventByAction<"media_asset_upload_session_complete", MediaAssetRouteDetails>
+  | EventByAction<"media_asset_upload_session_complete_error", FailureDetailsFor<MediaAssetRouteDetails>>
+  | EventByAction<"media_asset_upload_session_abort", MediaAssetRouteDetails>
+  | EventByAction<"media_asset_upload_session_abort_error", FailureDetailsFor<MediaAssetRouteDetails>>
   | EventByAction<"media_asset_get", MediaAssetRouteDetails>
   | EventByAction<"media_asset_get_error", FailureDetailsFor<MediaAssetRouteDetails>>
   | EventByAction<"media_asset_download_url_create", MediaAssetRouteDetails>
@@ -891,6 +914,22 @@ export type BackendExceptionEvent =
   )
   | (
     EventByAction<"media_asset_upload_complete_error", FailureDetailsFor<MediaAssetRouteDetails>>
+    & Readonly<{ error: Error }>
+  )
+  | (
+    EventByAction<"media_asset_upload_session_create_error", FailureDetailsFor<MediaAssetRouteDetails>>
+    & Readonly<{ error: Error }>
+  )
+  | (
+    EventByAction<"media_asset_upload_session_part_urls_create_error", FailureDetailsFor<MediaAssetRouteDetails>>
+    & Readonly<{ error: Error }>
+  )
+  | (
+    EventByAction<"media_asset_upload_session_complete_error", FailureDetailsFor<MediaAssetRouteDetails>>
+    & Readonly<{ error: Error }>
+  )
+  | (
+    EventByAction<"media_asset_upload_session_abort_error", FailureDetailsFor<MediaAssetRouteDetails>>
     & Readonly<{ error: Error }>
   )
   | (
