@@ -57,6 +57,10 @@ export {
   loadMediaAssetDownloadUrl,
 } from "./api/endpoints/mediaAssets";
 export {
+  confirmWorkspacePackageImport,
+  previewWorkspacePackageImport,
+} from "./api/endpoints/workspacePackageImport";
+export {
   bootstrapPullSyncState,
   bootstrapPushSyncState,
   importReviewHistorySync,
