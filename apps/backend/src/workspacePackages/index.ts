@@ -52,6 +52,10 @@ export {
 } from "./importMediaAssets";
 
 export {
+  persistWorkspacePackageImportCards,
+} from "./importCards";
+
+export {
   planWorkspacePackageImport,
 } from "./importPlan";
 
@@ -95,6 +99,12 @@ export type {
   WorkspacePackageImportMediaAssetIngestionInput,
   WorkspacePackageImportMediaAssetIngestionResult,
 } from "./importMediaAssets";
+
+export type {
+  WorkspacePackageImportCardPersistenceInput,
+  WorkspacePackageImportCardPersistenceResult,
+  WorkspacePackageImportCardPersistenceSummary,
+} from "./importCards";
 
 export type {
   WorkspacePackageImportPlan,
