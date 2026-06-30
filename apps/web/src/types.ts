@@ -7,3 +7,4 @@ export * from "./types/chat";
 export * from "./types/mediaAssets";
 export * from "./types/study";
 export * from "./types/sync";
+export * from "./types/workspacePackageImport";
