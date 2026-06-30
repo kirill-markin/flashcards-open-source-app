@@ -82,6 +82,15 @@ export function parseNumber(value: unknown, endpoint: string, path: string): num
   return value;
 }
 
+export function parseNonNegativeInteger(value: unknown, endpoint: string, path: string): number {
+  const parsedValue = parseNumber(value, endpoint, path);
+  if (Number.isInteger(parsedValue) === false || parsedValue < 0) {
+    throw new ApiContractError(endpoint, describePath(path), "non-negative integer");
+  }
+
+  return parsedValue;
+}
+
 export function parseNullableNumber(value: unknown, endpoint: string, path: string): number | null {
   if (value === null) {
     return null;

@@ -30,6 +30,7 @@ import {
   allowAuthRecovery,
   getSession,
   primeSessionCsrfToken,
+  requestBlob,
   requestJson,
   resetApiClientStateForTests,
   setNavigationHandlerForTests,
@@ -896,5 +897,38 @@ describe("API transport network retry", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(consoleWarnSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("API transport binary responses", () => {
+  it("converts non-OK JSON errors into ApiError metadata", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        error: "Workspace package export failed.",
+        code: "WORKSPACE_PACKAGE_EXPORT_FAILED",
+        requestId: "body-request-id",
+      }), {
+        status: 413,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": "header-request-id",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(requestBlob("/workspaces/workspace-1/packages/export", {
+      method: "POST",
+      body: JSON.stringify({ ok: true }),
+    }, allowAuthRecovery)).rejects.toMatchObject({
+      statusCode: 413,
+      message: "Workspace package export failed.",
+      code: "WORKSPACE_PACKAGE_EXPORT_FAILED",
+      requestId: "header-request-id",
+      endpoint: "POST /workspaces/workspace-1/packages/export",
+      responseBodyKind: "json",
+    } satisfies Partial<ApiError>);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

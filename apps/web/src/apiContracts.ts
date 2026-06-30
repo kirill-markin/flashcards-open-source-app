@@ -36,6 +36,10 @@ export {
   parseFeedbackSubmissionResponse,
 } from "./apiContracts/feedback";
 export {
+  parseWorkspacePackageExportDownloadMetadata,
+  parseWorkspacePackageExportPreviewResponse,
+} from "./apiContracts/workspacePackageExport";
+export {
   parseWorkspacePackageImportConfirmResponse,
   parseWorkspacePackageImportPreviewResponse,
 } from "./apiContracts/workspacePackageImport";

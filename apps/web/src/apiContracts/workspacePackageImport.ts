@@ -9,13 +9,11 @@ import type {
   WorkspacePackageImportPreviewWarning,
 } from "../types";
 import {
-  ApiContractError,
-  describePath,
   parseArray,
   parseBoolean,
   parseLiteral,
+  parseNonNegativeInteger,
   parseNullableString,
-  parseNumber,
   parseObject,
   parseRequiredField,
   parseString,
@@ -23,15 +21,6 @@ import {
 } from "./core";
 import { parseMediaAsset } from "./mediaAssets";
 import { parseCard } from "./studyData";
-
-function parseNonNegativeInteger(value: unknown, endpoint: string, path: string): number {
-  const parsedValue = parseNumber(value, endpoint, path);
-  if (Number.isInteger(parsedValue) === false || parsedValue < 0) {
-    throw new ApiContractError(endpoint, describePath(path), "non-negative integer");
-  }
-
-  return parsedValue;
-}
 
 function parseWorkspacePackageImportPreviewMetadata(
   value: unknown,
