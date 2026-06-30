@@ -48,6 +48,10 @@ export {
 } from "./importMedia";
 
 export {
+  ingestWorkspacePackageImportMediaAssets,
+} from "./importMediaAssets";
+
+export {
   planWorkspacePackageImport,
 } from "./importPlan";
 
@@ -85,6 +89,12 @@ export type {
   WorkspacePackageImportReferencedMediaLimits,
   WorkspacePackageImportReferencedMediaLoadResult,
 } from "./importMedia";
+
+export type {
+  WorkspacePackageImportedMediaAsset,
+  WorkspacePackageImportMediaAssetIngestionInput,
+  WorkspacePackageImportMediaAssetIngestionResult,
+} from "./importMediaAssets";
 
 export type {
   WorkspacePackageImportPlan,
