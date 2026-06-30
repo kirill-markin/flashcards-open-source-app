@@ -3,9 +3,12 @@ import {
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { createHash } from "node:crypto";
+import { HttpError } from "../../shared/errors";
 import type { MediaAssetObjectMetadata } from "../types";
 import type {
   AssertMediaAssetObjectInput,
+  LoadedMediaAssetObjectBytes,
+  LoadMediaAssetObjectBytesInput,
   MediaAssetObjectContentHash,
   MediaAssetStorageContext,
   MediaAssetStorageDependencies,
@@ -33,6 +36,82 @@ function isMediaAssetObjectBody(value: unknown): value is MediaAssetObjectBody {
 
 function toMediaAssetObjectBodyChunkBytes(chunk: MediaAssetObjectBodyChunk): Uint8Array {
   return typeof chunk === "string" ? Buffer.from(chunk) : chunk;
+}
+
+function assertMediaAssetObjectBytesLoadInput(input: LoadMediaAssetObjectBytesInput): void {
+  if (Number.isSafeInteger(input.maxByteSize) === false || input.maxByteSize < 0) {
+    throw new Error(
+      `maxByteSize must be a non-negative safe integer for media asset object byte load workspaceId=${input.workspaceId} mediaAssetId=${input.mediaAssetId}.`,
+    );
+  }
+
+  if (
+    input.sizeBytes !== null
+    && (Number.isSafeInteger(input.sizeBytes) === false || input.sizeBytes < 0)
+  ) {
+    throw new Error(
+      `sizeBytes must be a non-negative safe integer for media asset object byte load workspaceId=${input.workspaceId} mediaAssetId=${input.mediaAssetId}.`,
+    );
+  }
+}
+
+function createMediaAssetObjectBytesTooLargeError(
+  input: LoadMediaAssetObjectBytesInput,
+  actualSizeBytes: number,
+): HttpError {
+  return new HttpError(
+    413,
+    [
+      "Media asset object is too large to load",
+      `workspaceId=${input.workspaceId}`,
+      `mediaAssetId=${input.mediaAssetId}`,
+      `maxByteSize=${input.maxByteSize}`,
+      `actualSizeBytes=${actualSizeBytes}`,
+    ].join(" "),
+    "MEDIA_ASSET_OBJECT_BYTES_TOO_LARGE",
+  );
+}
+
+function assertMediaAssetObjectBytesWithinLimit(
+  input: LoadMediaAssetObjectBytesInput,
+  actualSizeBytes: number,
+): void {
+  if (actualSizeBytes > input.maxByteSize) {
+    throw createMediaAssetObjectBytesTooLargeError(input, actualSizeBytes);
+  }
+}
+
+function createMediaAssetObjectBytesMismatchError(
+  input: LoadMediaAssetObjectBytesInput,
+  objectBytes: LoadedMediaAssetObjectBytes,
+): HttpError {
+  const mismatchedFields = [
+    ...(input.sizeBytes === null || objectBytes.sizeBytes === input.sizeBytes ? [] : ["sizeBytes"]),
+    ...(input.sha256 === null || objectBytes.sha256 === input.sha256 ? [] : ["sha256"]),
+  ];
+
+  return new HttpError(
+    409,
+    [
+      "Media asset object bytes do not match expected metadata",
+      `workspaceId=${input.workspaceId}`,
+      `mediaAssetId=${input.mediaAssetId}`,
+      `mismatchedFields=${mismatchedFields.join(",")}`,
+    ].join(" "),
+    "MEDIA_ASSET_OBJECT_BYTES_MISMATCH",
+  );
+}
+
+function assertLoadedMediaAssetObjectBytesMatch(
+  input: LoadMediaAssetObjectBytesInput,
+  objectBytes: LoadedMediaAssetObjectBytes,
+): void {
+  if (
+    (input.sizeBytes !== null && objectBytes.sizeBytes !== input.sizeBytes)
+    || (input.sha256 !== null && objectBytes.sha256 !== input.sha256)
+  ) {
+    throw createMediaAssetObjectBytesMismatchError(input, objectBytes);
+  }
 }
 
 export async function loadMediaAssetObjectMetadataWithDependencies(
@@ -72,6 +151,73 @@ export async function loadMediaAssetObjectMetadataWithDependencies(
     };
   } catch (error) {
     throw createMediaAssetStorageError(context, "head_object", error);
+  }
+}
+
+export async function loadMediaAssetObjectBytesWithDependencies(
+  input: LoadMediaAssetObjectBytesInput,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<LoadedMediaAssetObjectBytes> {
+  assertMediaAssetObjectBytesLoadInput(input);
+  if (input.sizeBytes !== null) {
+    assertMediaAssetObjectBytesWithinLimit(input, input.sizeBytes);
+  }
+
+  const config = dependencies.getMediaAssetsStorageConfigFn();
+  const context: MediaAssetStorageContext = {
+    workspaceId: input.workspaceId,
+    mediaAssetId: input.mediaAssetId,
+    storageKey: input.storageKey,
+    observationScope: input.observationScope,
+  };
+
+  try {
+    const response = await runMediaAssetStorageOperationWithRetries(
+      context,
+      "get_object",
+      async () => dependencies.s3Client.send(new GetObjectCommand({
+        Bucket: config.bucketName,
+        Key: input.storageKey,
+      })),
+    );
+
+    if (typeof response.ContentLength === "number") {
+      assertMediaAssetObjectBytesWithinLimit(input, response.ContentLength);
+    }
+
+    const body = response.Body;
+    if (isMediaAssetObjectBody(body) === false) {
+      throw new Error(
+        `S3 get_object did not return a readable body for workspaceId=${input.workspaceId} mediaAssetId=${input.mediaAssetId}.`,
+      );
+    }
+
+    const hash = createHash("sha256");
+    const chunks: Array<Uint8Array> = [];
+    let sizeBytes = 0;
+    for await (const chunk of body) {
+      const bytes = toMediaAssetObjectBodyChunkBytes(chunk);
+      sizeBytes += bytes.byteLength;
+      assertMediaAssetObjectBytesWithinLimit(input, sizeBytes);
+      chunks.push(bytes);
+      hash.update(bytes);
+    }
+
+    const objectBytes: LoadedMediaAssetObjectBytes = {
+      bytes: Buffer.concat(chunks, sizeBytes),
+      mimeType: input.mimeType,
+      sizeBytes,
+      sha256: hash.digest("hex"),
+    };
+    assertLoadedMediaAssetObjectBytesMatch(input, objectBytes);
+
+    return objectBytes;
+  } catch (error) {
+    if (error instanceof HttpError) {
+      throw error;
+    }
+
+    throw createMediaAssetStorageError(context, "get_object", error);
   }
 }
 

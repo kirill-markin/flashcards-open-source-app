@@ -71,6 +71,24 @@ export type AssertMediaAssetObjectInput = Readonly<{
   observationScope: BackendObservationScope;
 }>;
 
+export type LoadMediaAssetObjectBytesInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  storageKey: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  sha256: string | null;
+  maxByteSize: number;
+  observationScope: BackendObservationScope;
+}>;
+
+export type LoadedMediaAssetObjectBytes = Readonly<{
+  bytes: Buffer;
+  mimeType: string | null;
+  sizeBytes: number;
+  sha256: string;
+}>;
+
 export type CompleteMultipartMediaAssetUploadInput = Readonly<{
   workspaceId: string;
   mediaAssetId: string;
