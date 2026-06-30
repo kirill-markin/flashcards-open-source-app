@@ -50,7 +50,7 @@ tags:
       transfer URLs.
   - name: workspace-packages
     description: >-
-      Workspace-scoped package export preview and portable ZIP download.
+      Workspace-scoped package export, import preview, and portable ZIP download.
   - name: admin-catalog
     description: >-
       Admin-only catalog authoring surface for marketplace authors, packages,
@@ -92,6 +92,8 @@ paths:
     $ref: paths/workspaces_{workspaceId}_packages_export_preview.yaml
   /workspaces/{workspaceId}/packages/export:
     $ref: paths/workspaces_{workspaceId}_packages_export.yaml
+  /workspaces/{workspaceId}/packages/import/preview:
+    $ref: paths/workspaces_{workspaceId}_packages_import_preview.yaml
   /admin/catalog/authors:
     $ref: paths/admin_catalog_authors.yaml
   /admin/catalog/authors/{authorId}:

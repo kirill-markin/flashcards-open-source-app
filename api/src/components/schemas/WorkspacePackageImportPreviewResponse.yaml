@@ -1,0 +1,96 @@
+type: object
+additionalProperties: false
+required:
+  - sourceKind
+  - packageMetadata
+  - cardCount
+  - tagCounts
+  - referencedMediaCount
+  - packageMediaFileCount
+  - warnings
+  - defaultOptions
+properties:
+  sourceKind:
+    type: string
+    enum:
+      - zip
+  packageMetadata:
+    type: object
+    additionalProperties: false
+    required:
+      - label
+      - author
+      - comment
+      - createdAt
+      - sourceUrl
+    properties:
+      label:
+        type:
+          - string
+          - 'null'
+      author:
+        type:
+          - string
+          - 'null'
+      comment:
+        type:
+          - string
+          - 'null'
+      createdAt:
+        type:
+          - string
+          - 'null'
+      sourceUrl:
+        type:
+          - string
+          - 'null'
+  cardCount:
+    type: integer
+    minimum: 0
+  tagCounts:
+    type: array
+    items:
+      $ref: ./WorkspacePackageExportTagCount.yaml
+  referencedMediaCount:
+    type: integer
+    minimum: 0
+  packageMediaFileCount:
+    type: integer
+    minimum: 0
+  warnings:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - message
+        - mediaPath
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        mediaPath:
+          type: string
+  defaultOptions:
+    type: object
+    additionalProperties: false
+    required:
+      - addImportTag
+      - suggestedImportTag
+      - keptTags
+      - removedTags
+    properties:
+      addImportTag:
+        type: boolean
+      suggestedImportTag:
+        type: string
+      keptTags:
+        type: array
+        items:
+          type: string
+      removedTags:
+        type: array
+        items:
+          type: string

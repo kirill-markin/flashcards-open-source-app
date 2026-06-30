@@ -10,6 +10,7 @@ import {
 } from "../../agent/setup";
 import { loadOpenApiDocument } from "../../shared/openapi";
 import { maximumImageIngestionOriginalBytes } from "../../mediaAssets/validators";
+import { workspacePackageImportPreviewRouteMaxZipBytes } from "../workspacePackages";
 import type { RequestContext } from "../../server/requestContext";
 import type { WorkspaceSummary } from "../../workspaces";
 
@@ -72,6 +73,7 @@ const expectedPublishedApiMethods = {
   "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url": ["get"],
   "/workspaces/{workspaceId}/packages/export/preview": ["post"],
   "/workspaces/{workspaceId}/packages/export": ["post"],
+  "/workspaces/{workspaceId}/packages/import/preview": ["post"],
   "/admin/catalog/authors": ["post"],
   "/admin/catalog/authors/{authorId}": ["put"],
   "/admin/catalog/packages": ["post"],
@@ -95,6 +97,7 @@ const expectedMediaDiscoverySurfaceTemplates = {
   mediaAssetDownloadUrlTemplate: "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url",
   workspacePackageExportPreviewUrlTemplate: "/workspaces/{workspaceId}/packages/export/preview",
   workspacePackageExportUrlTemplate: "/workspaces/{workspaceId}/packages/export",
+  workspacePackageImportPreviewUrlTemplate: "/workspaces/{workspaceId}/packages/import/preview",
 } as const;
 const supportedImageIngestionOpenApiContentTypes = [
   "application/octet-stream",
@@ -150,6 +153,12 @@ function loadMediaAssetImageIngestionOperation(openApiDocument: OpenApiDocumentF
   return operation as OpenApiOperationForTest;
 }
 
+function loadWorkspacePackageImportPreviewOperation(openApiDocument: OpenApiDocumentForTest): OpenApiOperationForTest {
+  const operation = openApiDocument.paths?.["/workspaces/{workspaceId}/packages/import/preview"]?.post;
+  assert.ok(operation !== undefined);
+  return operation as OpenApiOperationForTest;
+}
+
 test("API Gateway predeclares PATCH /me/preferences", () => {
   const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
   const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
@@ -164,13 +173,17 @@ test("API Gateway predeclares POST /workspaces/{workspaceId}/media-assets/images
   assert.match(apiGatewaySource, /workspaceMediaAssets\.addResource\("images"\)\.addMethod\("POST", integration\);/);
 });
 
-test("API Gateway predeclares package export routes and ZIP binary media", () => {
+test("API Gateway predeclares package export and import preview routes and ZIP binary media", () => {
   const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
   const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
 
   assert.match(apiGatewaySource, /binaryMediaTypes: \[[^\]]*"application\/zip"/);
   assert.match(apiGatewaySource, /workspacePackageExport\.addMethod\("POST", integration\);/);
   assert.match(apiGatewaySource, /workspacePackageExport\.addResource\("preview"\)\.addMethod\("POST", integration\);/);
+  assert.match(
+    apiGatewaySource,
+    /workspacePackages\s*\.addResource\("import"\)\s*\.addResource\("preview"\)\s*\.addMethod\("POST", integration\);/,
+  );
 });
 
 test("published OpenAPI exposes the curated agent, media transfer, and admin catalog contract", () => {
@@ -247,6 +260,7 @@ test("agent discovery advertises the published media transfer surface", () => {
   assert.match(discoveryEnvelope.instructions, /media-assets\/\{mediaAssetId\}\/download-url/);
   assert.match(discoveryEnvelope.instructions, /packages\/export\/preview/);
   assert.match(discoveryEnvelope.instructions, /packages\/export/);
+  assert.match(discoveryEnvelope.instructions, /packages\/import\/preview/);
   assert.match(discoveryEnvelope.instructions, /data\.agentWorkspaceReplicaId/);
   assert.match(discoveryEnvelope.instructions, /lastModifiedByReplicaId/);
 });
@@ -272,6 +286,31 @@ test("media asset image ingestion publishes the transport-safe original body lim
   assert.match(
     JSON.stringify(openApiDocument.paths?.["/agent"] ?? {}),
     new RegExp(`up to ${maximumImageIngestionOriginalBytes} bytes`),
+  );
+});
+
+test("workspace package import preview publishes the direct route body limit", () => {
+  assert.ok(workspacePackageImportPreviewRouteMaxZipBytes <= maximumLambdaProxySafeImageIngestionOriginalBytes);
+
+  const apiBaseUrl = "https://api.flashcards-open-source-app.com/v1";
+  const discoveryEnvelope = createAgentDiscoveryEnvelope(`${apiBaseUrl}/agent`);
+  const openApiDocument = loadPublishedOpenApiDocument();
+  const operation = loadWorkspacePackageImportPreviewOperation(openApiDocument);
+  const requestBodyContent = operation.requestBody?.content ?? {};
+
+  assert.match(operation.description ?? "", new RegExp(`${workspacePackageImportPreviewRouteMaxZipBytes} bytes`));
+  assert.match(discoveryEnvelope.instructions, new RegExp(`up to ${workspacePackageImportPreviewRouteMaxZipBytes} bytes`));
+  assert.equal(
+    requestBodyContent["application/zip"]?.schema?.maxLength,
+    workspacePackageImportPreviewRouteMaxZipBytes,
+  );
+  assert.match(
+    JSON.stringify(openApiDocument.paths?.["/"] ?? {}),
+    new RegExp(`up to ${workspacePackageImportPreviewRouteMaxZipBytes} bytes`),
+  );
+  assert.match(
+    JSON.stringify(openApiDocument.paths?.["/agent"] ?? {}),
+    new RegExp(`up to ${workspacePackageImportPreviewRouteMaxZipBytes} bytes`),
   );
 });
 
