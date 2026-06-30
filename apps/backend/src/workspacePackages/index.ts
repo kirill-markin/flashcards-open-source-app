@@ -59,6 +59,10 @@ export {
   planWorkspacePackageImport,
 } from "./importPlan";
 
+export {
+  confirmWorkspacePackageImport,
+} from "./importConfirm";
+
 export type {
   WorkspacePackageExportCardSelection,
   WorkspacePackageExportMetadataInput,
@@ -113,6 +117,12 @@ export type {
   WorkspacePackageImportPlanSummary,
   WorkspacePackageImportPlannedCard,
 } from "./importPlan";
+
+export type {
+  WorkspacePackageImportConfirmInput,
+  WorkspacePackageImportConfirmResult,
+  WorkspacePackageImportConfirmSummary,
+} from "./importConfirm";
 
 export {
   normalizeWorkspacePackageCardMetadataV1,
