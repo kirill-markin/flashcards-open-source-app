@@ -1,0 +1,128 @@
+import type { S3Client } from "@aws-sdk/client-s3";
+import type { BackendObservationScope } from "../../observability/sentry";
+import type {
+  CompleteMediaAssetUploadPartInput,
+  MediaAssetUploadSessionPartRequest,
+} from "../types";
+import type { getMediaAssetsStorageConfig } from "./config";
+
+export type MediaAssetStorageContext = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  storageKey: string;
+  observationScope: BackendObservationScope;
+}>;
+
+export type PresignMediaAssetUploadInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  storageKey: string;
+  mimeType: string;
+  sha256: string;
+  lastOperationId: string;
+  observationScope: BackendObservationScope;
+}>;
+
+export type PresignMediaAssetDownloadInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  storageKey: string;
+  observationScope: BackendObservationScope;
+}>;
+
+export type CreateMultipartMediaAssetUploadInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  stagingStorageKey: string;
+  mimeType: string;
+  sha256: string;
+  lastOperationId: string;
+  observationScope: BackendObservationScope;
+}>;
+
+export type PresignMultipartMediaAssetUploadPartsInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  stagingStorageKey: string;
+  s3UploadId: string;
+  parts: ReadonlyArray<MediaAssetUploadSessionPartRequest>;
+  observationScope: BackendObservationScope;
+}>;
+
+export type StoreMediaAssetBlobBytesInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  storageKey: string;
+  mimeType: string;
+  sha256: string;
+  lastOperationId: string;
+  bytes: Buffer;
+  observationScope: BackendObservationScope;
+}>;
+
+export type AssertMediaAssetObjectInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  storageKey: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+  lastOperationId: string;
+  observationScope: BackendObservationScope;
+}>;
+
+export type CompleteMultipartMediaAssetUploadInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  stagingStorageKey: string;
+  blobStorageKey: string;
+  s3UploadId: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+  lastOperationId: string;
+  parts: ReadonlyArray<CompleteMediaAssetUploadPartInput>;
+  observationScope: BackendObservationScope;
+}>;
+
+export type AbortMultipartMediaAssetUploadInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  stagingStorageKey: string;
+  s3UploadId: string;
+  observationScope: BackendObservationScope;
+}>;
+
+export type PromoteMediaAssetUploadInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  uploadStorageKey: string;
+  blobStorageKey: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+  lastOperationId: string;
+  observationScope: BackendObservationScope;
+}>;
+
+export type MediaAssetStorageOperation =
+  | "create_presigned_upload"
+  | "create_presigned_download"
+  | "create_multipart_upload"
+  | "create_presigned_part_upload"
+  | "complete_multipart_upload"
+  | "abort_multipart_upload"
+  | "head_object"
+  | "get_object"
+  | "copy_object"
+  | "put_object";
+
+export type MediaAssetObjectContentHash = Readonly<{
+  sizeBytes: number;
+  sha256: string;
+}>;
+
+export type MediaAssetStorageDependencies = Readonly<{
+  s3Client: S3Client;
+  getMediaAssetsStorageConfigFn: typeof getMediaAssetsStorageConfig;
+}>;
