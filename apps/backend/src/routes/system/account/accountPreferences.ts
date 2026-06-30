@@ -1,14 +1,14 @@
 import type { Hono } from "hono";
-import { queryWithUserScope } from "../../database";
-import type { AccountPreferences } from "../../auth/ensureUser";
-import type { AppEnv } from "../../server/app";
-import type { loadRequestContextFromRequest } from "../../server/requestContext";
-import { expectRecord, parseJsonBody } from "../../server/requestParsing";
+import { queryWithUserScope } from "../../../database";
+import type { AccountPreferences } from "../../../auth/ensureUser";
+import type { AppEnv } from "../../../server/app";
+import type { loadRequestContextFromRequest } from "../../../server/requestContext";
+import { expectRecord, parseJsonBody } from "../../../server/requestParsing";
 import {
   assertAccountPreferencesHumanTransport,
   parseAccountPreferencesInput,
-} from "./support";
-import type { UpdateAccountPreferencesFn } from "./types";
+} from "../support";
+import type { UpdateAccountPreferencesFn } from "../types";
 
 type AccountPreferencesRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;

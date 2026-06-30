@@ -6,22 +6,22 @@ import {
   type FriendInvitationAcceptResponse,
   type FriendInvitationCreateResponse,
   type FriendInvitationPreviewResponse,
-} from "../../community/friendInvitations";
-import type { AppEnv } from "../../server/app";
-import type { loadRequestContextFromRequest } from "../../server/requestContext";
-import { expectRecord, parseJsonBody } from "../../server/requestParsing";
+} from "../../../community/friendInvitations";
+import type { AppEnv } from "../../../server/app";
+import type { loadRequestContextFromRequest } from "../../../server/requestContext";
+import { expectRecord, parseJsonBody } from "../../../server/requestParsing";
 import {
   assertFriendInvitationHumanTransport,
   assertFriendInvitationPublicPreviewTransport,
   parseFriendInvitationAcceptInput,
   parseFriendInvitationCreateInput,
   parseInviteTokenParam,
-} from "./support";
+} from "../support";
 import type {
   AcceptFriendInvitationFn,
   CreateFriendInvitationFn,
   PreviewFriendInvitationFn,
-} from "./types";
+} from "../types";
 
 export { acceptFriendInvitation, createFriendInvitation, previewFriendInvitation };
 

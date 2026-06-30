@@ -13,19 +13,19 @@ import type { AppEnv } from "../../server/app";
 import {
   registerAccountPreferencesRoutes,
   updateAccountPreferences,
-} from "./accountPreferences";
-import { registerAccountDeletionRoute } from "./accountDeletion";
+} from "./account/accountPreferences";
+import { registerAccountDeletionRoute } from "./account/accountDeletion";
 import {
   ensurePublicProfileForUser,
   registerCommunityProfileRoutes,
   updateLeaderboardParticipation,
-} from "./communityProfile";
+} from "./community/communityProfile";
 import {
   acceptFriendInvitation,
   createFriendInvitation,
   previewFriendInvitation,
   registerFriendInvitationRoutes,
-} from "./friendInvitations";
+} from "./community/friendInvitations";
 import {
   loadLeaderboardProfile,
   loadProgressLeaderboard,
@@ -34,7 +34,7 @@ import {
   loadUserProgressSeries,
   loadUserProgressSummary,
   registerProgressRoutes,
-} from "./progress";
+} from "./progress/progress";
 import type { SystemRoutesOptions } from "./types";
 
 export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {

@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
-import type { AccountPreferences } from "../../auth/ensureUser";
+import type { AccountPreferences } from "../../../auth/ensureUser";
 import {
   createDefaultAccountPreferences,
   createSystemTestApp,
-} from "./systemTestSupport";
+} from "../systemTestSupport";
 
 test("GET /me includes account preferences", async () => {
   const app = createSystemTestApp({

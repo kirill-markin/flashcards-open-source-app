@@ -1,21 +1,21 @@
 import type { Hono } from "hono";
-import { authenticateRequest } from "../../auth";
-import { deleteAccountForAuthenticatedUser } from "../../auth/accountDeletion";
+import { authenticateRequest } from "../../../auth";
+import { deleteAccountForAuthenticatedUser } from "../../../auth/accountDeletion";
 import {
   enforceSessionCsrfProtection,
   extractRequestAuthInputs,
   toAuthRequest,
-} from "../../auth/requestSecurity";
-import { createBackendFailureDetails } from "../../server/logging";
-import { expectRecord, parseJsonBody } from "../../server/requestParsing";
+} from "../../../auth/requestSecurity";
+import { createBackendFailureDetails } from "../../../server/logging";
+import { expectRecord, parseJsonBody } from "../../../server/requestParsing";
 import {
   addBackendBreadcrumb,
   normalizeCaughtError,
-} from "../../observability/sentry";
-import { reportBackendExceptionOrBreadcrumb } from "../../observability/reporting";
-import type { AppEnv } from "../../server/app";
-import { HttpError } from "../../shared/errors";
-import { createSystemScope } from "./support";
+} from "../../../observability/sentry";
+import { reportBackendExceptionOrBreadcrumb } from "../../../observability/reporting";
+import type { AppEnv } from "../../../server/app";
+import { HttpError } from "../../../shared/errors";
+import { createSystemScope } from "../support";
 
 type AccountDeletionRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
