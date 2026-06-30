@@ -43,6 +43,11 @@ export {
 } from "./importPreview";
 
 export {
+  loadWorkspacePackageImportReferencedMedia,
+  loadWorkspacePackageImportReferencedMediaWithLimits,
+} from "./importMedia";
+
+export {
   planWorkspacePackageImport,
 } from "./importPlan";
 
@@ -73,6 +78,13 @@ export type {
   WorkspacePackageImportTagPolicy,
   WorkspacePackageImportTagPolicyInput,
 } from "./importPreview";
+
+export type {
+  WorkspacePackageImportReferencedMediaFile,
+  WorkspacePackageImportReferencedMediaInput,
+  WorkspacePackageImportReferencedMediaLimits,
+  WorkspacePackageImportReferencedMediaLoadResult,
+} from "./importMedia";
 
 export type {
   WorkspacePackageImportPlan,
