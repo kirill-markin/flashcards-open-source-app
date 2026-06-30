@@ -14,6 +14,19 @@ export type {
 } from "./markdownMedia";
 
 export {
+  previewWorkspacePackageExport,
+} from "./exportPreview";
+
+export type {
+  WorkspacePackageExportCardSelection,
+  WorkspacePackageExportMetadataInput,
+  WorkspacePackageExportPreview,
+  WorkspacePackageExportPreviewInput,
+  WorkspacePackageExportPreviewTagCount,
+  WorkspacePackageExportTagPolicyInput,
+} from "./exportPreview";
+
+export {
   normalizeWorkspacePackageCardMetadataV1,
   parseWorkspacePackageCardsJsonV1,
   toPortableWorkspacePackageCard,
