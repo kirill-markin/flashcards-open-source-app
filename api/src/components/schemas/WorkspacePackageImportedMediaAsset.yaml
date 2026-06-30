@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+required:
+  - portablePath
+  - mediaAsset
+  - applied
+properties:
+  portablePath:
+    type: string
+  mediaAsset:
+    $ref: ./MediaAsset.yaml
+  applied:
+    type: boolean

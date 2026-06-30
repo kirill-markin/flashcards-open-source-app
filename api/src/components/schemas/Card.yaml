@@ -1,0 +1,98 @@
+type: object
+additionalProperties: false
+required:
+  - cardId
+  - frontText
+  - backText
+  - cardType
+  - metadata
+  - tags
+  - dueAt
+  - createdAt
+  - reps
+  - lapses
+  - fsrsCardState
+  - fsrsStepIndex
+  - fsrsStability
+  - fsrsDifficulty
+  - fsrsLastReviewedAt
+  - fsrsScheduledDays
+  - clientUpdatedAt
+  - lastModifiedByReplicaId
+  - lastOperationId
+  - updatedAt
+  - deletedAt
+properties:
+  cardId:
+    $ref: ./UuidString.yaml
+  frontText:
+    type: string
+  backText:
+    type: string
+  cardType:
+    type: string
+  metadata:
+    $ref: ./CatalogCardMetadata.yaml
+  tags:
+    type: array
+    items:
+      type: string
+  dueAt:
+    type:
+      - string
+      - 'null'
+    format: date-time
+  createdAt:
+    type: string
+    format: date-time
+  reps:
+    type: integer
+    minimum: 0
+  lapses:
+    type: integer
+    minimum: 0
+  fsrsCardState:
+    type: string
+    enum:
+      - new
+      - learning
+      - review
+      - relearning
+  fsrsStepIndex:
+    type:
+      - integer
+      - 'null'
+    minimum: 0
+  fsrsStability:
+    type:
+      - number
+      - 'null'
+  fsrsDifficulty:
+    type:
+      - number
+      - 'null'
+  fsrsLastReviewedAt:
+    type:
+      - string
+      - 'null'
+    format: date-time
+  fsrsScheduledDays:
+    type:
+      - integer
+      - 'null'
+    minimum: 0
+  clientUpdatedAt:
+    type: string
+    format: date-time
+  lastModifiedByReplicaId:
+    $ref: ./UuidString.yaml
+  lastOperationId:
+    type: string
+  updatedAt:
+    type: string
+    format: date-time
+  deletedAt:
+    type:
+      - string
+      - 'null'
+    format: date-time

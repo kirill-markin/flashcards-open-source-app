@@ -67,6 +67,7 @@ properties:
       - workspacePackageExportPreviewUrlTemplate
       - workspacePackageExportUrlTemplate
       - workspacePackageImportPreviewUrlTemplate
+      - workspacePackageImportUrlTemplate
     properties:
       accountUrl:
         type: string
@@ -95,6 +96,8 @@ properties:
       workspacePackageExportUrlTemplate:
         type: string
       workspacePackageImportPreviewUrlTemplate:
+        type: string
+      workspacePackageImportUrlTemplate:
         type: string
   mcp:
     type: object

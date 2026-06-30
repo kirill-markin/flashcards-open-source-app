@@ -1,0 +1,17 @@
+type: object
+additionalProperties: false
+required:
+  - cards
+  - importedMediaAssets
+  - summary
+properties:
+  cards:
+    type: array
+    items:
+      $ref: ./Card.yaml
+  importedMediaAssets:
+    type: array
+    items:
+      $ref: ./WorkspacePackageImportedMediaAsset.yaml
+  summary:
+    $ref: ./WorkspacePackageImportConfirmSummary.yaml

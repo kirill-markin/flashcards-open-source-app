@@ -7,6 +7,7 @@ import {
   type MediaAsset,
 } from "../mediaAssets/types";
 import type { BackendObservationScope } from "../observability/sentry";
+import { HttpError } from "../shared/errors";
 import {
   confirmWorkspacePackageImportWithDependencies,
   type WorkspacePackageImportConfirmDependencies,
@@ -23,6 +24,7 @@ import {
   type WorkspacePackageImportReferencedMediaFile,
   type WorkspacePackageImportReferencedMediaInput,
 } from "./index";
+import { validateWorkspacePackageImportPlanPreflight } from "./importPlan";
 
 const testUserId = "user-1";
 const testWorkspaceId = "11111111-1111-4111-8111-111111111111";
@@ -212,6 +214,16 @@ function createConfirmHarness(cardsJson: WorkspacePackageCardsJsonV1): ConfirmHa
           ]),
         };
       },
+      assertReplicaBelongsToWorkspaceFn: async (userId, workspaceId, replicaId) => {
+        order.push("replica");
+        assert.equal(userId, testUserId);
+        assert.equal(workspaceId, testWorkspaceId);
+        assert.equal(replicaId, testReplicaId);
+      },
+      validatePlanPreflightFn: (input) => {
+        order.push("preflight");
+        validateWorkspacePackageImportPlanPreflight(input);
+      },
       planImportFn: (input) => {
         order.push("plan");
         planInputs.push(input);
@@ -239,7 +251,7 @@ test("workspace package import confirmation orchestrates media load, ingestion, 
 
   const result = await confirmWorkspacePackageImportWithDependencies(input, harness.dependencies);
 
-  assert.deepEqual(harness.calls.order, ["load", "ingest", "plan", "persist"]);
+  assert.deepEqual(harness.calls.order, ["replica", "load", "preflight", "ingest", "plan", "persist"]);
   assert.deepEqual(harness.calls.loadInputs, [{ packageBytes }]);
   assert.equal(harness.calls.ingestInputs.length, 1);
   const ingestInput = harness.calls.ingestInputs[0];
@@ -294,6 +306,70 @@ test("workspace package import confirmation lets persistence failures surface wi
     () => confirmWorkspacePackageImportWithDependencies(createConfirmInput(), dependencies),
     (error: unknown): boolean => error === expectedError,
   );
-  assert.deepEqual(harness.calls.order, ["load", "ingest", "plan", "persist"]);
+  assert.deepEqual(harness.calls.order, ["replica", "load", "preflight", "ingest", "plan", "persist"]);
   assert.equal(harness.calls.persistInputs.length, 1);
+});
+
+test("workspace package import confirmation rejects wrong workspace replica before media ingestion", async () => {
+  const harness = createConfirmHarness(createCardsJson());
+  const expectedError = new HttpError(
+    400,
+    "lastModifiedByReplicaId must reference a workspace replica for this workspace.",
+    "WORKSPACE_PACKAGE_IMPORT_REPLICA_INVALID",
+  );
+  const dependencies: WorkspacePackageImportConfirmDependencies = {
+    ...harness.dependencies,
+    assertReplicaBelongsToWorkspaceFn: async () => {
+      harness.calls.order.push("replica");
+      throw expectedError;
+    },
+    loadReferencedMediaFn: async (input) => {
+      harness.calls.order.push("load");
+      harness.calls.loadInputs.push(input);
+      throw new Error("ZIP import media loader must not be called when replica ownership is invalid.");
+    },
+    ingestMediaAssetsFn: async (input) => {
+      harness.calls.order.push("ingest");
+      harness.calls.ingestInputs.push(input);
+      throw new Error("Media ingestion must not be called when replica ownership is invalid.");
+    },
+    persistCardsFn: async (input) => {
+      harness.calls.order.push("persist");
+      harness.calls.persistInputs.push(input);
+      throw new Error("Card persistence must not be called when replica ownership is invalid.");
+    },
+  };
+
+  await assert.rejects(
+    () => confirmWorkspacePackageImportWithDependencies(createConfirmInput(), dependencies),
+    (error: unknown): boolean => error === expectedError,
+  );
+  assert.deepEqual(harness.calls.order, ["replica"]);
+  assert.equal(harness.calls.ingestInputs.length, 0);
+  assert.equal(harness.calls.persistInputs.length, 0);
+});
+
+test("workspace package import confirmation validates semantic options before media ingestion", async () => {
+  const harness = createConfirmHarness(createCardsJson());
+  const baseInput = createConfirmInput();
+  const input: WorkspacePackageImportConfirmInput = {
+    ...baseInput,
+    options: {
+      ...baseInput.options,
+      removeTags: ["unknown-tag"],
+    },
+  };
+
+  await assert.rejects(
+    () => confirmWorkspacePackageImportWithDependencies(input, harness.dependencies),
+    (error: unknown): boolean => (
+      error instanceof HttpError
+      && error.statusCode === 400
+      && error.code === "WORKSPACE_PACKAGE_IMPORT_INPUT_INVALID"
+      && /unknown-tag/.test(error.message)
+    ),
+  );
+  assert.deepEqual(harness.calls.order, ["replica", "load", "preflight"]);
+  assert.equal(harness.calls.ingestInputs.length, 0);
+  assert.equal(harness.calls.persistInputs.length, 0);
 });

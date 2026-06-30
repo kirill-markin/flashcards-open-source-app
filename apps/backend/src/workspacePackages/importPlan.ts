@@ -24,6 +24,11 @@ export type WorkspacePackageImportPlanInput = Readonly<{
   mediaAssetIdsByPortablePath: ReadonlyMap<string, string>;
 }>;
 
+export type WorkspacePackageImportPlanPreflightInput = Readonly<{
+  cardsJson: WorkspacePackageCardsJsonV1;
+  options: WorkspacePackageImportPlanOptions;
+}>;
+
 export type WorkspacePackageImportPlannedCard = Readonly<{
   frontText: string;
   backText: string;
@@ -313,4 +318,12 @@ export function planWorkspacePackageImport(input: WorkspacePackageImportPlanInpu
       referencedMediaCount: referencedMediaPaths.size,
     },
   };
+}
+
+export function validateWorkspacePackageImportPlanPreflight(
+  input: WorkspacePackageImportPlanPreflightInput,
+): void {
+  const cardsJson = normalizeImportPlanCardsJson(input.cardsJson);
+  const options = normalizeImportPlanOptions(input.options);
+  buildImportPlanTagPolicy(cardsJson.cards, options);
 }

@@ -33,7 +33,7 @@ get:
                 - Ingest JPEG, PNG, and WebP media images through the workspace-scoped image endpoint
                 - Upload and complete media assets through workspace-scoped direct transfer endpoints
                 - Read media asset metadata and create download URLs through workspace-scoped media endpoints
-                - Preview and download portable workspace package ZIP exports, and preview ZIP imports
+                - Preview and download portable workspace package ZIP exports, and preview or confirm ZIP imports
               authBaseUrl: https://auth.flashcards-open-source-app.com
               apiBaseUrl: https://api.flashcards-open-source-app.com/v1
               surface:
@@ -51,6 +51,7 @@ get:
                 workspacePackageExportPreviewUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/export/preview
                 workspacePackageExportUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/export
                 workspacePackageImportPreviewUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/import/preview
+                workspacePackageImportUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/import
               mcp:
                 url: https://mcp.flashcards-open-source-app.com/mcp
                 description: >-
@@ -125,7 +126,10 @@ get:
               to download the ZIP. Use POST
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/import/preview
               with application/zip bytes up to 4000000 bytes to preview a
-              portable workspace package import. SELECT returns at most
+              portable workspace package import. Confirm with POST
+              https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/import
+              as multipart/form-data with file ZIP bytes up to 4000000 bytes
+              and an options JSON string. SELECT returns at most
               100 rows per statement, and INSERT, UPDATE, and DELETE may affect
               at most 100 rows per statement. If you need more than 100
               writes, split the work into multiple batches of at most 100

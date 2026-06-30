@@ -10,7 +10,10 @@ import {
 } from "../../agent/setup";
 import { loadOpenApiDocument } from "../../shared/openapi";
 import { maximumImageIngestionOriginalBytes } from "../../mediaAssets/validators";
-import { workspacePackageImportPreviewRouteMaxZipBytes } from "../workspacePackages";
+import {
+  workspacePackageImportConfirmRouteMaxZipBytes,
+  workspacePackageImportPreviewRouteMaxZipBytes,
+} from "../workspacePackages";
 import type { RequestContext } from "../../server/requestContext";
 import type { WorkspaceSummary } from "../../workspaces";
 
@@ -22,6 +25,7 @@ type OpenApiBinarySchemaForTest = Readonly<{
   type?: string;
   format?: string;
   maxLength?: number;
+  properties?: Readonly<Record<string, OpenApiBinarySchemaForTest>>;
 }>;
 type OpenApiMediaTypeForTest = Readonly<{
   schema?: OpenApiBinarySchemaForTest;
@@ -74,6 +78,7 @@ const expectedPublishedApiMethods = {
   "/workspaces/{workspaceId}/packages/export/preview": ["post"],
   "/workspaces/{workspaceId}/packages/export": ["post"],
   "/workspaces/{workspaceId}/packages/import/preview": ["post"],
+  "/workspaces/{workspaceId}/packages/import": ["post"],
   "/admin/catalog/authors": ["post"],
   "/admin/catalog/authors/{authorId}": ["put"],
   "/admin/catalog/packages": ["post"],
@@ -98,6 +103,7 @@ const expectedMediaDiscoverySurfaceTemplates = {
   workspacePackageExportPreviewUrlTemplate: "/workspaces/{workspaceId}/packages/export/preview",
   workspacePackageExportUrlTemplate: "/workspaces/{workspaceId}/packages/export",
   workspacePackageImportPreviewUrlTemplate: "/workspaces/{workspaceId}/packages/import/preview",
+  workspacePackageImportUrlTemplate: "/workspaces/{workspaceId}/packages/import",
 } as const;
 const supportedImageIngestionOpenApiContentTypes = [
   "application/octet-stream",
@@ -159,6 +165,12 @@ function loadWorkspacePackageImportPreviewOperation(openApiDocument: OpenApiDocu
   return operation as OpenApiOperationForTest;
 }
 
+function loadWorkspacePackageImportOperation(openApiDocument: OpenApiDocumentForTest): OpenApiOperationForTest {
+  const operation = openApiDocument.paths?.["/workspaces/{workspaceId}/packages/import"]?.post;
+  assert.ok(operation !== undefined);
+  return operation as OpenApiOperationForTest;
+}
+
 test("API Gateway predeclares PATCH /me/preferences", () => {
   const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
   const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
@@ -180,10 +192,8 @@ test("API Gateway predeclares package export and import preview routes and ZIP b
   assert.match(apiGatewaySource, /binaryMediaTypes: \[[^\]]*"application\/zip"/);
   assert.match(apiGatewaySource, /workspacePackageExport\.addMethod\("POST", integration\);/);
   assert.match(apiGatewaySource, /workspacePackageExport\.addResource\("preview"\)\.addMethod\("POST", integration\);/);
-  assert.match(
-    apiGatewaySource,
-    /workspacePackages\s*\.addResource\("import"\)\s*\.addResource\("preview"\)\s*\.addMethod\("POST", integration\);/,
-  );
+  assert.match(apiGatewaySource, /workspacePackageImport\.addMethod\("POST", integration\);/);
+  assert.match(apiGatewaySource, /workspacePackageImport\.addResource\("preview"\)\.addMethod\("POST", integration\);/);
 });
 
 test("published OpenAPI exposes the curated agent, media transfer, and admin catalog contract", () => {
@@ -261,6 +271,7 @@ test("agent discovery advertises the published media transfer surface", () => {
   assert.match(discoveryEnvelope.instructions, /packages\/export\/preview/);
   assert.match(discoveryEnvelope.instructions, /packages\/export/);
   assert.match(discoveryEnvelope.instructions, /packages\/import\/preview/);
+  assert.match(discoveryEnvelope.instructions, /packages\/import/);
   assert.match(discoveryEnvelope.instructions, /data\.agentWorkspaceReplicaId/);
   assert.match(discoveryEnvelope.instructions, /lastModifiedByReplicaId/);
 });
@@ -311,6 +322,31 @@ test("workspace package import preview publishes the direct route body limit", (
   assert.match(
     JSON.stringify(openApiDocument.paths?.["/agent"] ?? {}),
     new RegExp(`up to ${workspacePackageImportPreviewRouteMaxZipBytes} bytes`),
+  );
+});
+
+test("workspace package import confirm publishes the direct route file limit", () => {
+  assert.ok(workspacePackageImportConfirmRouteMaxZipBytes <= maximumLambdaProxySafeImageIngestionOriginalBytes);
+
+  const apiBaseUrl = "https://api.flashcards-open-source-app.com/v1";
+  const discoveryEnvelope = createAgentDiscoveryEnvelope(`${apiBaseUrl}/agent`);
+  const openApiDocument = loadPublishedOpenApiDocument();
+  const operation = loadWorkspacePackageImportOperation(openApiDocument);
+  const requestBodyContent = operation.requestBody?.content ?? {};
+
+  assert.match(operation.description ?? "", new RegExp(`${workspacePackageImportConfirmRouteMaxZipBytes} bytes`));
+  assert.match(discoveryEnvelope.instructions, new RegExp(`up to ${workspacePackageImportConfirmRouteMaxZipBytes} bytes`));
+  assert.equal(
+    requestBodyContent["multipart/form-data"]?.schema?.properties?.file?.maxLength,
+    workspacePackageImportConfirmRouteMaxZipBytes,
+  );
+  assert.match(
+    JSON.stringify(openApiDocument.paths?.["/"] ?? {}),
+    new RegExp(`up to ${workspacePackageImportConfirmRouteMaxZipBytes} bytes`),
+  );
+  assert.match(
+    JSON.stringify(openApiDocument.paths?.["/agent"] ?? {}),
+    new RegExp(`up to ${workspacePackageImportConfirmRouteMaxZipBytes} bytes`),
   );
 });
 

@@ -1,6 +1,13 @@
 import type { Buffer } from "node:buffer";
 import type { Card } from "../cards";
+import {
+  transactionWithWorkspaceScopeReadOnly,
+  type DatabaseExecutor,
+  type WorkspaceDatabaseScope,
+} from "../database";
+import { assertReplicaBelongsToWorkspaceInExecutor } from "../mediaAssets/workspaceReplicas";
 import type { BackendObservationScope } from "../observability/sentry";
+import { HttpError } from "../shared/errors";
 import {
   ingestWorkspacePackageImportMediaAssets,
   type WorkspacePackageImportedMediaAsset,
@@ -19,9 +26,11 @@ import {
 } from "./importCards";
 import {
   planWorkspacePackageImport,
+  validateWorkspacePackageImportPlanPreflight,
   type WorkspacePackageImportPlan,
   type WorkspacePackageImportPlanInput,
   type WorkspacePackageImportPlanOptions,
+  type WorkspacePackageImportPlanPreflightInput,
 } from "./importPlan";
 
 export type WorkspacePackageImportConfirmInput = Readonly<{
@@ -60,6 +69,12 @@ export type WorkspacePackageImportConfirmDependencies = Readonly<{
   ingestMediaAssetsFn: (
     input: WorkspacePackageImportMediaAssetIngestionInput,
   ) => Promise<WorkspacePackageImportMediaAssetIngestionResult>;
+  assertReplicaBelongsToWorkspaceFn: (
+    userId: string,
+    workspaceId: string,
+    replicaId: string,
+  ) => Promise<void>;
+  validatePlanPreflightFn: (input: WorkspacePackageImportPlanPreflightInput) => void;
   planImportFn: (input: WorkspacePackageImportPlanInput) => WorkspacePackageImportPlan;
   persistCardsFn: (
     input: WorkspacePackageImportCardPersistenceInput,
@@ -91,6 +106,16 @@ function createImportPlanInput(
     cardsJson: mediaLoadResult.cardsJson,
     options: input.options,
     mediaAssetIdsByPortablePath: mediaAssetIngestionResult.mediaAssetIdsByPortablePath,
+  };
+}
+
+function createImportPlanPreflightInput(
+  input: WorkspacePackageImportConfirmInput,
+  mediaLoadResult: WorkspacePackageImportReferencedMediaLoadResult,
+): WorkspacePackageImportPlanPreflightInput {
+  return {
+    cardsJson: mediaLoadResult.cardsJson,
+    options: input.options,
   };
 }
 
@@ -135,13 +160,77 @@ function createConfirmResult(
   };
 }
 
+function toWorkspacePackageImportInputError(error: unknown): Error {
+  if (error instanceof TypeError && error.message.startsWith("Invalid workspace package import plan input:")) {
+    return new HttpError(400, error.message, "WORKSPACE_PACKAGE_IMPORT_INPUT_INVALID");
+  }
+
+  return error instanceof Error ? error : new Error(String(error));
+}
+
+function toWorkspacePackageImportReplicaError(error: unknown): Error {
+  if (error instanceof HttpError && error.code === "MEDIA_ASSET_REPLICA_INVALID") {
+    return new HttpError(
+      400,
+      "lastModifiedByReplicaId must reference a workspace replica for this workspace.",
+      "WORKSPACE_PACKAGE_IMPORT_REPLICA_INVALID",
+      error.details ?? undefined,
+    );
+  }
+
+  return error instanceof Error ? error : new Error(String(error));
+}
+
+function validatePlanPreflight(
+  input: WorkspacePackageImportPlanPreflightInput,
+  validatePlanPreflightFn: (preflightInput: WorkspacePackageImportPlanPreflightInput) => void,
+): void {
+  try {
+    validatePlanPreflightFn(input);
+  } catch (error) {
+    throw toWorkspacePackageImportInputError(error);
+  }
+}
+
+async function assertImportReplicaBelongsToWorkspaceInTransaction(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  replicaId: string,
+): Promise<void> {
+  await assertReplicaBelongsToWorkspaceInExecutor(executor, workspaceId, replicaId);
+}
+
+async function assertImportReplicaBelongsToWorkspace(
+  userId: string,
+  workspaceId: string,
+  replicaId: string,
+): Promise<void> {
+  try {
+    await transactionWithWorkspaceScopeReadOnly(
+      { userId, workspaceId } satisfies WorkspaceDatabaseScope,
+      async (executor) => assertImportReplicaBelongsToWorkspaceInTransaction(executor, workspaceId, replicaId),
+    );
+  } catch (error) {
+    throw toWorkspacePackageImportReplicaError(error);
+  }
+}
+
 export async function confirmWorkspacePackageImportWithDependencies(
   input: WorkspacePackageImportConfirmInput,
   dependencies: WorkspacePackageImportConfirmDependencies,
 ): Promise<WorkspacePackageImportConfirmResult> {
+  await dependencies.assertReplicaBelongsToWorkspaceFn(
+    input.userId,
+    input.workspaceId,
+    input.lastModifiedByReplicaId,
+  );
   const mediaLoadResult = await dependencies.loadReferencedMediaFn({
     packageBytes: input.packageBytes,
   });
+  validatePlanPreflight(
+    createImportPlanPreflightInput(input, mediaLoadResult),
+    dependencies.validatePlanPreflightFn,
+  );
   const mediaAssetIngestionResult = await dependencies.ingestMediaAssetsFn(
     createMediaAssetIngestionInput(input, mediaLoadResult),
   );
@@ -157,6 +246,8 @@ export async function confirmWorkspacePackageImport(
   return confirmWorkspacePackageImportWithDependencies(input, {
     loadReferencedMediaFn: loadWorkspacePackageImportReferencedMedia,
     ingestMediaAssetsFn: ingestWorkspacePackageImportMediaAssets,
+    assertReplicaBelongsToWorkspaceFn: assertImportReplicaBelongsToWorkspace,
+    validatePlanPreflightFn: validateWorkspacePackageImportPlanPreflight,
     planImportFn: planWorkspacePackageImport,
     persistCardsFn: persistWorkspacePackageImportCards,
   });
