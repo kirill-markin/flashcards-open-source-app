@@ -42,6 +42,10 @@ export {
   workspacePackageImportPreviewDefaultMaxZipBytes,
 } from "./importPreview";
 
+export {
+  planWorkspacePackageImport,
+} from "./importPlan";
+
 export type {
   WorkspacePackageExportCardSelection,
   WorkspacePackageExportMetadataInput,
@@ -69,6 +73,14 @@ export type {
   WorkspacePackageImportTagPolicy,
   WorkspacePackageImportTagPolicyInput,
 } from "./importPreview";
+
+export type {
+  WorkspacePackageImportPlan,
+  WorkspacePackageImportPlanInput,
+  WorkspacePackageImportPlanOptions,
+  WorkspacePackageImportPlanSummary,
+  WorkspacePackageImportPlannedCard,
+} from "./importPlan";
 
 export {
   normalizeWorkspacePackageCardMetadataV1,
