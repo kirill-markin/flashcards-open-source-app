@@ -828,6 +828,10 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const workspacePackageExport = workspacePackages.addResource("export");
   workspacePackageExport.addMethod("POST", integration);
   workspacePackageExport.addResource("preview").addMethod("POST", integration);
+  workspacePackages
+    .addResource("import")
+    .addResource("preview")
+    .addMethod("POST", integration);
   const workspaceMediaAssets = workspaceById.addResource("media-assets");
   workspaceMediaAssets.addResource("images").addMethod("POST", integration);
   const workspaceMediaAssetUploadSessions = workspaceMediaAssets.addResource("upload-sessions");

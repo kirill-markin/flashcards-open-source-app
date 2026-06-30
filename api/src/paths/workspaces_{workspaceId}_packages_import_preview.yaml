@@ -1,0 +1,39 @@
+post:
+  tags:
+    - workspace-packages
+  summary: Preview a workspace package import
+  description: >-
+    Reads a portable workspace package ZIP and returns the import preview JSON
+    without creating cards, media assets, or persistent import state. Direct
+    request bodies are limited to 4000000 bytes for the buffered API transport.
+    The path workspaceId is authoritative for workspace access and existing tag
+    context.
+  security:
+    - ApiKeyHeader: []
+  parameters:
+    - name: workspaceId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+  requestBody:
+    required: true
+    content:
+      application/zip:
+        schema:
+          type: string
+          format: binary
+          maxLength: 4000000
+  responses:
+    '200':
+      description: Workspace package import preview
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/WorkspacePackageImportPreviewResponse.yaml
+    default:
+      description: Authenticated request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

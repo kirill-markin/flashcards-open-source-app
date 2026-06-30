@@ -66,6 +66,7 @@ properties:
       - mediaAssetDownloadUrlTemplate
       - workspacePackageExportPreviewUrlTemplate
       - workspacePackageExportUrlTemplate
+      - workspacePackageImportPreviewUrlTemplate
     properties:
       accountUrl:
         type: string
@@ -92,6 +93,8 @@ properties:
       workspacePackageExportPreviewUrlTemplate:
         type: string
       workspacePackageExportUrlTemplate:
+        type: string
+      workspacePackageImportPreviewUrlTemplate:
         type: string
   mcp:
     type: object

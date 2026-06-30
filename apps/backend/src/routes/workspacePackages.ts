@@ -1,8 +1,11 @@
+import { Buffer } from "node:buffer";
 import { Hono } from "hono";
 import { z } from "zod";
+import { listWorkspaceTagsSummary } from "../cards";
 import {
   exportWorkspacePackage,
   previewWorkspacePackageExport,
+  previewWorkspacePackageZipImport,
   type WorkspacePackageExportCardSelection,
   type WorkspacePackageExportMetadataInput,
   type WorkspacePackageExportPackage,
@@ -10,6 +13,7 @@ import {
   type WorkspacePackageExportPreview,
   type WorkspacePackageExportPreviewInput,
   type WorkspacePackageExportTagPolicyInput,
+  type WorkspacePackageImportPreview,
 } from "../workspacePackages";
 import { assertUserHasWorkspaceAccess } from "../workspaces";
 import {
@@ -35,6 +39,8 @@ type WorkspacePackageRoutesOptions = Readonly<{
   assertUserHasWorkspaceAccessFn?: typeof assertUserHasWorkspaceAccess;
   previewWorkspacePackageExportFn?: typeof previewWorkspacePackageExport;
   exportWorkspacePackageFn?: typeof exportWorkspacePackage;
+  listWorkspaceTagsSummaryFn?: typeof listWorkspaceTagsSummary;
+  previewWorkspacePackageZipImportFn?: typeof previewWorkspacePackageZipImport;
 }>;
 
 type WorkspacePackageExportRouteInput = Readonly<{
@@ -44,6 +50,9 @@ type WorkspacePackageExportRouteInput = Readonly<{
 }>;
 
 type WorkspacePackageExportPreviewResponse = WorkspacePackageExportPreview;
+type WorkspacePackageImportPreviewResponse = WorkspacePackageImportPreview;
+
+export const workspacePackageImportPreviewRouteMaxZipBytes = 4_000_000;
 
 const allActiveCardsSelectionSchema = z.object({
   kind: z.literal("allActiveCards"),
@@ -194,12 +203,81 @@ function createContentDispositionHeader(packageExport: WorkspacePackageExportPac
   return `attachment; filename="${packageExport.fileName}"`;
 }
 
+function assertWorkspacePackageImportPreviewContentType(headers: Headers): void {
+  const contentTypeHeader = headers.get("content-type");
+  const contentType = contentTypeHeader?.split(";")[0]?.trim().toLowerCase() ?? "";
+  if (contentType !== "application/zip") {
+    throw new HttpError(
+      415,
+      "content-type must be application/zip",
+      "WORKSPACE_PACKAGE_IMPORT_PREVIEW_CONTENT_TYPE_UNSUPPORTED",
+    );
+  }
+}
+
+function assertWorkspacePackageImportPreviewZipBytesNotEmpty(byteLength: number): void {
+  if (byteLength === 0) {
+    throw new HttpError(
+      400,
+      "Workspace package ZIP request body must not be empty",
+      "WORKSPACE_PACKAGE_IMPORT_PREVIEW_ZIP_EMPTY",
+    );
+  }
+}
+
+function createWorkspacePackageImportPreviewBodyTooLargeError(byteLength: number): HttpError {
+  return new HttpError(
+    413,
+    `Direct workspace package import preview ZIP is too large for this endpoint. zipBytes=${byteLength} maxZipBytes=${workspacePackageImportPreviewRouteMaxZipBytes}`,
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_BODY_TOO_LARGE",
+  );
+}
+
+function assertWorkspacePackageImportPreviewZipBytesWithinRouteLimit(byteLength: number): void {
+  if (byteLength > workspacePackageImportPreviewRouteMaxZipBytes) {
+    throw createWorkspacePackageImportPreviewBodyTooLargeError(byteLength);
+  }
+}
+
+function parseWorkspacePackageImportPreviewContentLength(headers: Headers): number | null {
+  const contentLengthHeader = headers.get("content-length");
+  if (contentLengthHeader === null) {
+    return null;
+  }
+
+  if (/^\d+$/.test(contentLengthHeader) === false) {
+    throw new HttpError(400, "content-length must be a non-negative safe integer", "CONTENT_LENGTH_INVALID");
+  }
+
+  const contentLength = Number.parseInt(contentLengthHeader, 10);
+  if (Number.isSafeInteger(contentLength) === false) {
+    throw new HttpError(400, "content-length must be a non-negative safe integer", "CONTENT_LENGTH_INVALID");
+  }
+
+  return contentLength;
+}
+
+async function readWorkspacePackageImportPreviewZipBytes(request: Request): Promise<Buffer> {
+  assertWorkspacePackageImportPreviewContentType(request.headers);
+  const contentLength = parseWorkspacePackageImportPreviewContentLength(request.headers);
+  if (contentLength !== null) {
+    assertWorkspacePackageImportPreviewZipBytesWithinRouteLimit(contentLength);
+  }
+
+  const bytes = Buffer.from(await request.arrayBuffer());
+  assertWorkspacePackageImportPreviewZipBytesNotEmpty(bytes.byteLength);
+  assertWorkspacePackageImportPreviewZipBytesWithinRouteLimit(bytes.byteLength);
+  return bytes;
+}
+
 export function createWorkspacePackageRoutes(options: WorkspacePackageRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
   const assertUserHasWorkspaceAccessFn = options.assertUserHasWorkspaceAccessFn ?? assertUserHasWorkspaceAccess;
   const previewWorkspacePackageExportFn = options.previewWorkspacePackageExportFn ?? previewWorkspacePackageExport;
   const exportWorkspacePackageFn = options.exportWorkspacePackageFn ?? exportWorkspacePackage;
+  const listWorkspaceTagsSummaryFn = options.listWorkspaceTagsSummaryFn ?? listWorkspaceTagsSummary;
+  const previewWorkspacePackageZipImportFn = options.previewWorkspacePackageZipImportFn ?? previewWorkspacePackageZipImport;
 
   app.post("/workspaces/:workspaceId/packages/export/preview", async (context) => {
     const requestId = context.get("requestId");
@@ -282,6 +360,57 @@ export function createWorkspacePackageRoutes(options: WorkspacePackageRoutesOpti
         error,
         { action: "workspace_package_export_error", error: normalizeCaughtError(error), scope, details },
         { action: "workspace_package_export_error", scope, details },
+      );
+      throw error;
+    }
+  });
+
+  app.post("/workspaces/:workspaceId/packages/import/preview", async (context) => {
+    const requestId = context.get("requestId");
+    let requestContext: RequestContext | null = null;
+    let workspaceId: string | null = null;
+
+    try {
+      const loadedContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
+      requestContext = loadedContext.requestContext;
+      workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+      await assertUserHasWorkspaceAccessFn(requestContext.userId, workspaceId);
+      const packageBytes = await readWorkspacePackageImportPreviewZipBytes(context.req.raw);
+      const existingWorkspaceTags = (await listWorkspaceTagsSummaryFn(requestContext.userId, workspaceId))
+        .tags
+        .map((tagSummary) => tagSummary.tag);
+      const preview = await previewWorkspacePackageZipImportFn({
+        packageBytes,
+        generatedAt: new Date().toISOString(),
+        existingWorkspaceTags,
+      });
+      const scope = createWorkspacePackageScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
+      addBackendBreadcrumb({
+        action: "workspace_package_import_preview",
+        scope,
+        details: {
+          statusCode: 200,
+          bytesCount: packageBytes.byteLength,
+          cardCount: preview.cardCount,
+          referencedMediaCount: preview.referencedMediaCount,
+          packageMediaFileCount: preview.packageMediaFileCount,
+        },
+      });
+
+      return context.json(preview satisfies WorkspacePackageImportPreviewResponse);
+    } catch (error) {
+      const scope = createWorkspacePackageScope(requestId, context.req.path, context.req.method, getRequestContextUserId(requestContext), workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
+      const details = {
+        bytesCount: null,
+        cardCount: null,
+        referencedMediaCount: null,
+        packageMediaFileCount: null,
+        ...createBackendFailureDetails(error),
+      };
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "workspace_package_import_preview_error", error: normalizeCaughtError(error), scope, details },
+        { action: "workspace_package_import_preview_error", scope, details },
       );
       throw error;
     }
