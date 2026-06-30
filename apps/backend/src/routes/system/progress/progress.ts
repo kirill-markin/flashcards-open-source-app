@@ -15,20 +15,20 @@ import {
   type ProgressSeries,
   type ProgressSummaryResponse,
   type StreakLeaderboard,
-} from "../../progress";
+} from "../../../progress";
 import {
   addBackendBreadcrumb,
   normalizeCaughtError,
-} from "../../observability/sentry";
-import { reportBackendExceptionOrBreadcrumb } from "../../observability/reporting";
-import { createBackendFailureDetails } from "../../server/logging";
-import type { AppEnv } from "../../server/app";
-import type { loadRequestContextFromRequest } from "../../server/requestContext";
+} from "../../../observability/sentry";
+import { reportBackendExceptionOrBreadcrumb } from "../../../observability/reporting";
+import { createBackendFailureDetails } from "../../../server/logging";
+import type { AppEnv } from "../../../server/app";
+import type { loadRequestContextFromRequest } from "../../../server/requestContext";
 import {
   assertProgressHumanTransport,
   createSystemScope,
   readRequestedProgressParameters,
-} from "./support";
+} from "../support";
 
 export {
   loadLeaderboardProfile,

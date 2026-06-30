@@ -3,20 +3,20 @@ import {
   ensurePublicProfileForUser,
   updateLeaderboardParticipation,
   type PublicProfile,
-} from "../../community/publicProfiles";
-import type { AppEnv } from "../../server/app";
-import type { loadRequestContextFromRequest } from "../../server/requestContext";
-import { expectRecord, parseJsonBody } from "../../server/requestParsing";
+} from "../../../community/publicProfiles";
+import type { AppEnv } from "../../../server/app";
+import type { loadRequestContextFromRequest } from "../../../server/requestContext";
+import { expectRecord, parseJsonBody } from "../../../server/requestParsing";
 import {
   assertCommunityProfileHumanTransport,
   parseCommunityProfileInput,
-} from "./support";
+} from "../support";
 import type {
   CommunityPublicProfileResponse,
   EnsurePublicProfileForUserFn,
   UpdateLeaderboardParticipationFn,
-} from "./types";
-import type { AuthTransport } from "../../auth";
+} from "../types";
+import type { AuthTransport } from "../../../auth";
 
 export { ensurePublicProfileForUser, updateLeaderboardParticipation };
 

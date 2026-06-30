@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   createPublicProfile,
   createSystemTestApp,
-} from "./systemTestSupport";
+} from "../systemTestSupport";
 
 test("GET /me/community/profile ensures a public profile without returning internal ids", async () => {
   let ensureCalled = false;

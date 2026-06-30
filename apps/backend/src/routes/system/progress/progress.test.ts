@@ -5,8 +5,8 @@ import type {
   ProgressLeaderboard,
   ProgressSummaryResponse,
   StreakLeaderboard,
-} from "../../progress";
-import type { RequestContext } from "../../server/requestContext";
+} from "../../../progress";
+import type { RequestContext } from "../../../server/requestContext";
 import {
   createLeaderboardProfile,
   createProgressLeaderboard,
@@ -15,7 +15,7 @@ import {
   createProgressSummaryResponse,
   createStreakLeaderboard,
   createSystemTestApp,
-} from "./systemTestSupport";
+} from "../systemTestSupport";
 
 test("GET /me/progress/summary returns 200 for Session, Bearer, and Guest authentication", async () => {
   const transports: ReadonlyArray<RequestContext["transport"]> = [

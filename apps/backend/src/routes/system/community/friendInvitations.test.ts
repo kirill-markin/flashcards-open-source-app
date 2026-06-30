@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { RequestContext } from "../../server/requestContext";
-import { HttpError } from "../../shared/errors";
-import { createSystemTestApp } from "./systemTestSupport";
+import type { RequestContext } from "../../../server/requestContext";
+import { HttpError } from "../../../shared/errors";
+import { createSystemTestApp } from "../systemTestSupport";
 
 test("POST /me/community/friend-invitations creates an invite link for signed-in humans", async () => {
   let createCalled = false;
