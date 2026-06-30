@@ -1,0 +1,35 @@
+post:
+  tags:
+    - workspace-packages
+  summary: Preview a workspace package export
+  description: >-
+    Returns counts, removable tag choices, referenced media totals, and the
+    normalized package metadata that would be used for a portable workspace
+    package export. The path workspaceId is authoritative for selection scope.
+  security:
+    - ApiKeyHeader: []
+  parameters:
+    - name: workspaceId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/WorkspacePackageExportRequest.yaml
+  responses:
+    '200':
+      description: Workspace package export preview
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/WorkspacePackageExportPreviewResponse.yaml
+    default:
+      description: Authenticated request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

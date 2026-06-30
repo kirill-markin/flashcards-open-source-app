@@ -1,0 +1,21 @@
+type: object
+additionalProperties: false
+required:
+  - label
+  - createdAt
+properties:
+  label:
+    type: string
+    minLength: 1
+  author:
+    type: string
+    minLength: 1
+  comment:
+    type: string
+    minLength: 1
+  createdAt:
+    type: string
+    format: date-time
+  sourceUrl:
+    type: string
+    format: uri

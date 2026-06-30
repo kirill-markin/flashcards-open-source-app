@@ -1,0 +1,30 @@
+type: object
+additionalProperties: false
+required:
+  - selectedCardCount
+  - availableTagCounts
+  - tagsSelectedForRemoval
+  - referencedMediaCount
+  - approximateReferencedMediaBytes
+  - defaultPackageMetadata
+properties:
+  selectedCardCount:
+    type: integer
+    minimum: 0
+  availableTagCounts:
+    type: array
+    items:
+      $ref: ./WorkspacePackageExportTagCount.yaml
+  tagsSelectedForRemoval:
+    type: array
+    items:
+      $ref: ./WorkspacePackageExportTagCount.yaml
+  referencedMediaCount:
+    type: integer
+    minimum: 0
+  approximateReferencedMediaBytes:
+    type: integer
+    format: int64
+    minimum: 0
+  defaultPackageMetadata:
+    $ref: ./WorkspacePackageMetadata.yaml

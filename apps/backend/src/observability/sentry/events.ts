@@ -250,6 +250,17 @@ export type CardsQueryDetails = Readonly<{
   hasMore: boolean | null;
 }>;
 
+export type WorkspacePackageExportPreviewDetails = Readonly<{
+  statusCode: number;
+  selectedCardCount: number | null;
+  referencedMediaCount: number | null;
+}>;
+
+export type WorkspacePackageExportDetails = Readonly<{
+  statusCode: number;
+  bytesCount: number | null;
+}>;
+
 export type MediaAssetRouteDetails = Readonly<{
   statusCode: number;
   mediaAssetId: string | null;
@@ -761,6 +772,10 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"workspace_tags_list_error", FailureDetailsFor<WorkspaceTagsListDetails>>
   | EventByAction<"cards_query", CardsQueryDetails>
   | EventByAction<"cards_query_error", FailureDetailsFor<CardsQueryDetails>>
+  | EventByAction<"workspace_package_export_preview", WorkspacePackageExportPreviewDetails>
+  | EventByAction<"workspace_package_export_preview_error", FailureDetailsFor<WorkspacePackageExportPreviewDetails>>
+  | EventByAction<"workspace_package_export", WorkspacePackageExportDetails>
+  | EventByAction<"workspace_package_export_error", FailureDetailsFor<WorkspacePackageExportDetails>>
   | EventByAction<"media_asset_image_ingest", MediaAssetRouteDetails>
   | EventByAction<"media_asset_image_ingest_error", FailureDetailsFor<MediaAssetRouteDetails>>
   | EventByAction<"media_asset_upload_session_media_reuse", MediaAssetRouteDetails>
@@ -900,6 +915,14 @@ export type BackendExceptionEvent =
   | (EventByAction<"feedback_submission_error", FailureDetailsFor<FeedbackSubmissionDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"workspace_tags_list_error", FailureDetailsFor<WorkspaceTagsListDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"cards_query_error", FailureDetailsFor<CardsQueryDetails>> & Readonly<{ error: Error }>)
+  | (
+    EventByAction<"workspace_package_export_preview_error", FailureDetailsFor<WorkspacePackageExportPreviewDetails>>
+    & Readonly<{ error: Error }>
+  )
+  | (
+    EventByAction<"workspace_package_export_error", FailureDetailsFor<WorkspacePackageExportDetails>>
+    & Readonly<{ error: Error }>
+  )
   | (
     EventByAction<"media_asset_image_ingest_error", FailureDetailsFor<MediaAssetRouteDetails>>
     & Readonly<{ error: Error }>

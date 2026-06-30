@@ -1,0 +1,41 @@
+post:
+  tags:
+    - workspace-packages
+  summary: Export a workspace package ZIP
+  description: >-
+    Assembles the selected active cards and referenced media into a portable
+    workspace package ZIP. Backend media blob identifiers, storage keys, and
+    object URLs are not exposed in the response.
+  security:
+    - ApiKeyHeader: []
+  parameters:
+    - name: workspaceId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/WorkspacePackageExportRequest.yaml
+  responses:
+    '200':
+      description: Portable workspace package ZIP
+      headers:
+        Content-Disposition:
+          schema:
+            type: string
+            example: attachment; filename="flashcards.zip"
+      content:
+        application/zip:
+          schema:
+            type: string
+            format: binary
+    default:
+      description: Authenticated request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

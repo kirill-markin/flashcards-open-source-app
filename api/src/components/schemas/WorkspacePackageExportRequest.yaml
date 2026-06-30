@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+required:
+  - selection
+  - tagPolicy
+  - packageMetadata
+properties:
+  selection:
+    $ref: ./WorkspacePackageExportSelection.yaml
+  tagPolicy:
+    $ref: ./WorkspacePackageExportTagPolicyInput.yaml
+  packageMetadata:
+    $ref: ./WorkspacePackageExportMetadataInput.yaml
