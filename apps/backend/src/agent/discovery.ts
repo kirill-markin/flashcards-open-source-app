@@ -29,6 +29,8 @@ type AgentDiscoveryEnvelope = Readonly<{
       mediaAssetUploadSessionAbortUrlTemplate: string;
       mediaAssetMetadataUrlTemplate: string;
       mediaAssetDownloadUrlTemplate: string;
+      workspacePackageExportPreviewUrlTemplate: string;
+      workspacePackageExportUrlTemplate: string;
     }>;
     mcp: Readonly<{
       url: string;
@@ -113,6 +115,8 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
   const mediaAssetUploadSessionAbortUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/abort`;
   const mediaAssetMetadataUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/media-assets/{mediaAssetId}`;
   const mediaAssetDownloadUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url`;
+  const workspacePackageExportPreviewUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/packages/export/preview`;
+  const workspacePackageExportUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/packages/export`;
 
   return {
     ok: true,
@@ -137,6 +141,7 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
         "Ingest JPEG, PNG, and WebP image bytes through the workspace-scoped image media endpoint",
         "Upload and complete media assets through workspace-scoped direct transfer endpoints",
         "Read media asset metadata and create download URLs through workspace-scoped media endpoints",
+        "Preview and download portable workspace package ZIP exports",
       ],
       authBaseUrl,
       apiBaseUrl,
@@ -152,6 +157,8 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
         mediaAssetUploadSessionAbortUrlTemplate,
         mediaAssetMetadataUrlTemplate,
         mediaAssetDownloadUrlTemplate,
+        workspacePackageExportPreviewUrlTemplate,
+        workspacePackageExportUrlTemplate,
       },
       mcp: {
         url: `${mcpBaseUrl}/mcp`,
@@ -174,7 +181,7 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
     },
     links,
     instructions:
-      `Start with POST ${authBaseUrl}/api/agent/send-code using the user's email. After send-code, follow the returned instructions: normal accounts require the 8-digit email code, while configured review/demo accounts use a deterministic 8-digit placeholder and do not send email. Do not immediately replay send-code. Then POST ${authBaseUrl}/api/agent/verify-code with the otpSessionToken, code, and label to obtain an API key. After login, call GET ${apiBaseUrl}/agent/me, then GET ${apiBaseUrl}/agent/workspaces?limit=100. If no workspace is selected for this API key, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select or create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}. After workspace bootstrap, call GET ${apiBaseUrl}/agent/me and use data.agentWorkspaceReplicaId as lastModifiedByReplicaId when creating media assets. Use POST ${apiBaseUrl}/agent/sql/query for all shared card and deck reads (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT) and POST ${apiBaseUrl}/agent/sql/execute for all writes (INSERT, UPDATE, DELETE). For JPEG, PNG, or WebP images up to ${maximumImageIngestionOriginalBytes} bytes, prefer POST ${mediaAssetImageIngestionUrlTemplate} with the image bytes as the request body and x-media-asset-id, x-media-created-at, x-media-client-updated-at, x-media-last-modified-by-replica-id, and x-media-last-operation-id headers; the backend normalizes to canonical JPEG bytes and returns the mediaAsset. For other media assets, create a multipart upload session with POST ${mediaAssetUploadSessionCreateUrlTemplate}; if status is already_available, use the returned mediaAsset and skip byte upload. If status is upload_required, request signed part URLs with POST ${mediaAssetUploadSessionPartsUrlTemplate}, upload each part with the returned signed URL, method, and headers, then complete the upload with POST ${mediaAssetUploadSessionCompleteUrlTemplate}. Abort unused sessions with POST ${mediaAssetUploadSessionAbortUrlTemplate}. Use GET ${mediaAssetMetadataUrlTemplate} for registry metadata and GET ${mediaAssetDownloadUrlTemplate} for a range-capable direct download URL. For routine low-risk writes, a clear user request already counts as permission. Ask again only for risky or unclear actions. SELECT returns at most 100 rows per statement, and INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls. Use ${docs.openapiUrl} for the published external agent contract. The SQL surface is intentionally limited and is not full PostgreSQL.`,
+      `Start with POST ${authBaseUrl}/api/agent/send-code using the user's email. After send-code, follow the returned instructions: normal accounts require the 8-digit email code, while configured review/demo accounts use a deterministic 8-digit placeholder and do not send email. Do not immediately replay send-code. Then POST ${authBaseUrl}/api/agent/verify-code with the otpSessionToken, code, and label to obtain an API key. After login, call GET ${apiBaseUrl}/agent/me, then GET ${apiBaseUrl}/agent/workspaces?limit=100. If no workspace is selected for this API key, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select or create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}. After workspace bootstrap, call GET ${apiBaseUrl}/agent/me and use data.agentWorkspaceReplicaId as lastModifiedByReplicaId when creating media assets. Use POST ${apiBaseUrl}/agent/sql/query for all shared card and deck reads (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT) and POST ${apiBaseUrl}/agent/sql/execute for all writes (INSERT, UPDATE, DELETE). For JPEG, PNG, or WebP images up to ${maximumImageIngestionOriginalBytes} bytes, prefer POST ${mediaAssetImageIngestionUrlTemplate} with the image bytes as the request body and x-media-asset-id, x-media-created-at, x-media-client-updated-at, x-media-last-modified-by-replica-id, and x-media-last-operation-id headers; the backend normalizes to canonical JPEG bytes and returns the mediaAsset. For other media assets, create a multipart upload session with POST ${mediaAssetUploadSessionCreateUrlTemplate}; if status is already_available, use the returned mediaAsset and skip byte upload. If status is upload_required, request signed part URLs with POST ${mediaAssetUploadSessionPartsUrlTemplate}, upload each part with the returned signed URL, method, and headers, then complete the upload with POST ${mediaAssetUploadSessionCompleteUrlTemplate}. Abort unused sessions with POST ${mediaAssetUploadSessionAbortUrlTemplate}. Use GET ${mediaAssetMetadataUrlTemplate} for registry metadata and GET ${mediaAssetDownloadUrlTemplate} for a range-capable direct download URL. Use POST ${workspacePackageExportPreviewUrlTemplate} to preview a portable workspace package export, then POST ${workspacePackageExportUrlTemplate} to download the ZIP. For routine low-risk writes, a clear user request already counts as permission. Ask again only for risky or unclear actions. SELECT returns at most 100 rows per statement, and INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls. Use ${docs.openapiUrl} for the published external agent contract. The SQL surface is intentionally limited and is not full PostgreSQL.`,
     docs,
   };
 }

@@ -64,6 +64,8 @@ properties:
       - mediaAssetUploadSessionAbortUrlTemplate
       - mediaAssetMetadataUrlTemplate
       - mediaAssetDownloadUrlTemplate
+      - workspacePackageExportPreviewUrlTemplate
+      - workspacePackageExportUrlTemplate
     properties:
       accountUrl:
         type: string
@@ -86,6 +88,10 @@ properties:
       mediaAssetMetadataUrlTemplate:
         type: string
       mediaAssetDownloadUrlTemplate:
+        type: string
+      workspacePackageExportPreviewUrlTemplate:
+        type: string
+      workspacePackageExportUrlTemplate:
         type: string
   mcp:
     type: object

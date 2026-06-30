@@ -131,6 +131,7 @@ const browserCorsAllowHeaders = [
 ] as const;
 
 const browserCorsExposeHeaders = [
+  "content-disposition",
   "x-request-id",
 ] as const;
 const dockerBundlingRepoRootPath = "/asset-repo-root";
@@ -640,7 +641,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const restApi = new apigw.RestApi(scope, "Api", {
     restApiName: "flashcards-open-source-app-api",
     description: "Public API for flashcards mobile clients",
-    binaryMediaTypes: ["application/octet-stream", "image/jpeg", "image/png", "image/webp", "multipart/form-data"],
+    binaryMediaTypes: ["application/octet-stream", "application/zip", "image/jpeg", "image/png", "image/webp", "multipart/form-data"],
     deployOptions: {
       stageName: "v1",
       throttlingRateLimit: 50,
@@ -823,6 +824,10 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     .addResource("cards")
     .addResource("query")
     .addMethod("POST", integration);
+  const workspacePackages = workspaceById.addResource("packages");
+  const workspacePackageExport = workspacePackages.addResource("export");
+  workspacePackageExport.addMethod("POST", integration);
+  workspacePackageExport.addResource("preview").addMethod("POST", integration);
   const workspaceMediaAssets = workspaceById.addResource("media-assets");
   workspaceMediaAssets.addResource("images").addMethod("POST", integration);
   const workspaceMediaAssetUploadSessions = workspaceMediaAssets.addResource("upload-sessions");

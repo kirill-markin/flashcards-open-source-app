@@ -15,6 +15,7 @@ import { createCardsRoutes } from "../routes/cards";
 import { createFeedbackRoutes } from "../routes/feedback";
 import { createGlobalSnapshotRoutes, globalSnapshotPath } from "../routes/globalSnapshot";
 import { createMediaAssetsRoutes } from "../routes/mediaAssets";
+import { createWorkspacePackageRoutes } from "../routes/workspacePackages";
 import { createSyncRoutes } from "../routes/sync/index";
 import { createSystemRoutes } from "../routes/system";
 import { createAdminRoutes } from "../routes/admin";
@@ -63,6 +64,19 @@ const browserCorsAllowHeaders = [
   "x-media-client-updated-at",
   "x-media-last-modified-by-replica-id",
   "x-media-last-operation-id",
+] as const;
+
+const browserCorsExposeHeaders = [
+  "cache-control",
+  "content-disposition",
+  "content-encoding",
+  "content-length",
+  "content-type",
+  "x-request-id",
+  "x-amz-apigw-id",
+  "x-amzn-requestid",
+  "x-chat-request-id",
+  "retry-after",
 ] as const;
 
 const globalSnapshotCorsAllowHeaders = [
@@ -223,17 +237,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
     origin: allowedOrigins,
     allowMethods: ["GET", "POST", "PATCH", "PUT", "OPTIONS"],
     allowHeaders: [...browserCorsAllowHeaders],
-    exposeHeaders: [
-      "cache-control",
-      "content-encoding",
-      "content-length",
-      "content-type",
-      "x-request-id",
-      "x-amz-apigw-id",
-      "x-amzn-requestid",
-      "x-chat-request-id",
-      "retry-after",
-    ],
+    exposeHeaders: [...browserCorsExposeHeaders],
     credentials: true,
   }));
 
@@ -371,6 +375,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createCatalogAdminRoutes({ allowedOrigins }));
   app.route("/", createCardsRoutes({ allowedOrigins }));
   app.route("/", createFeedbackRoutes({ allowedOrigins }));
+  app.route("/", createWorkspacePackageRoutes({ allowedOrigins }));
   app.route("/", createMediaAssetsRoutes({ allowedOrigins }));
   app.route("/", createGlobalSnapshotRoutes({}));
   app.route("/", createGuestAuthRoutes());

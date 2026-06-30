@@ -1,0 +1,21 @@
+type: object
+additionalProperties: false
+required:
+  - kind
+  - includeTags
+  - excludeTags
+properties:
+  kind:
+    type: string
+    enum:
+      - tagFilters
+  includeTags:
+    type: array
+    items:
+      type: string
+      minLength: 1
+  excludeTags:
+    type: array
+    items:
+      type: string
+      minLength: 1

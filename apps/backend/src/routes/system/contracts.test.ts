@@ -70,6 +70,8 @@ const expectedPublishedApiMethods = {
   "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/abort": ["post"],
   "/workspaces/{workspaceId}/media-assets/{mediaAssetId}": ["get"],
   "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url": ["get"],
+  "/workspaces/{workspaceId}/packages/export/preview": ["post"],
+  "/workspaces/{workspaceId}/packages/export": ["post"],
   "/admin/catalog/authors": ["post"],
   "/admin/catalog/authors/{authorId}": ["put"],
   "/admin/catalog/packages": ["post"],
@@ -91,6 +93,8 @@ const expectedMediaDiscoverySurfaceTemplates = {
   mediaAssetUploadSessionAbortUrlTemplate: "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/abort",
   mediaAssetMetadataUrlTemplate: "/workspaces/{workspaceId}/media-assets/{mediaAssetId}",
   mediaAssetDownloadUrlTemplate: "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url",
+  workspacePackageExportPreviewUrlTemplate: "/workspaces/{workspaceId}/packages/export/preview",
+  workspacePackageExportUrlTemplate: "/workspaces/{workspaceId}/packages/export",
 } as const;
 const supportedImageIngestionOpenApiContentTypes = [
   "application/octet-stream",
@@ -158,6 +162,15 @@ test("API Gateway predeclares POST /workspaces/{workspaceId}/media-assets/images
   const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
 
   assert.match(apiGatewaySource, /workspaceMediaAssets\.addResource\("images"\)\.addMethod\("POST", integration\);/);
+});
+
+test("API Gateway predeclares package export routes and ZIP binary media", () => {
+  const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
+  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+
+  assert.match(apiGatewaySource, /binaryMediaTypes: \[[^\]]*"application\/zip"/);
+  assert.match(apiGatewaySource, /workspacePackageExport\.addMethod\("POST", integration\);/);
+  assert.match(apiGatewaySource, /workspacePackageExport\.addResource\("preview"\)\.addMethod\("POST", integration\);/);
 });
 
 test("published OpenAPI exposes the curated agent, media transfer, and admin catalog contract", () => {
@@ -232,6 +245,8 @@ test("agent discovery advertises the published media transfer surface", () => {
   assert.match(discoveryEnvelope.instructions, /media-assets\/upload-sessions\/\{sessionId\}\/abort/);
   assertDoesNotAdvertiseUploadIntentFlow(discoveryEnvelope.instructions, "Agent discovery instructions");
   assert.match(discoveryEnvelope.instructions, /media-assets\/\{mediaAssetId\}\/download-url/);
+  assert.match(discoveryEnvelope.instructions, /packages\/export\/preview/);
+  assert.match(discoveryEnvelope.instructions, /packages\/export/);
   assert.match(discoveryEnvelope.instructions, /data\.agentWorkspaceReplicaId/);
   assert.match(discoveryEnvelope.instructions, /lastModifiedByReplicaId/);
 });

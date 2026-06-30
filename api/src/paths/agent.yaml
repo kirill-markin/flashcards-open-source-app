@@ -33,6 +33,7 @@ get:
                 - Ingest JPEG, PNG, and WebP media images through the workspace-scoped image endpoint
                 - Upload and complete media assets through workspace-scoped direct transfer endpoints
                 - Read media asset metadata and create download URLs through workspace-scoped media endpoints
+                - Preview and download portable workspace package ZIP exports
               authBaseUrl: https://auth.flashcards-open-source-app.com
               apiBaseUrl: https://api.flashcards-open-source-app.com/v1
               surface:
@@ -47,6 +48,8 @@ get:
                 mediaAssetUploadSessionAbortUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/abort
                 mediaAssetMetadataUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}
                 mediaAssetDownloadUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url
+                workspacePackageExportPreviewUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/export/preview
+                workspacePackageExportUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/export
               mcp:
                 url: https://mcp.flashcards-open-source-app.com/mcp
                 description: >-
@@ -114,7 +117,11 @@ get:
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}
               for registry metadata and GET
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url
-              for a range-capable direct download URL. SELECT returns at most
+              for a range-capable direct download URL. Use POST
+              https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/export/preview
+              to preview a portable workspace package export, then POST
+              https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/export
+              to download the ZIP. SELECT returns at most
               100 rows per statement, and INSERT, UPDATE, and DELETE may affect
               at most 100 rows per statement. If you need more than 100
               writes, split the work into multiple batches of at most 100

@@ -48,6 +48,9 @@ tags:
     description: >-
       Workspace-scoped media asset registry metadata and direct private object
       transfer URLs.
+  - name: workspace-packages
+    description: >-
+      Workspace-scoped package export preview and portable ZIP download.
   - name: admin-catalog
     description: >-
       Admin-only catalog authoring surface for marketplace authors, packages,
@@ -85,6 +88,10 @@ paths:
     $ref: paths/workspaces_{workspaceId}_media-assets_{mediaAssetId}.yaml
   /workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url:
     $ref: paths/workspaces_{workspaceId}_media-assets_{mediaAssetId}_download-url.yaml
+  /workspaces/{workspaceId}/packages/export/preview:
+    $ref: paths/workspaces_{workspaceId}_packages_export_preview.yaml
+  /workspaces/{workspaceId}/packages/export:
+    $ref: paths/workspaces_{workspaceId}_packages_export.yaml
   /admin/catalog/authors:
     $ref: paths/admin_catalog_authors.yaml
   /admin/catalog/authors/{authorId}:

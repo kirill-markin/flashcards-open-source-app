@@ -94,7 +94,7 @@ test("API Gateway predeclares media asset image ingestion and binary image bodie
   assert.match(apiGatewaySource, /workspaceMediaAssets\.addResource\("images"\)\.addMethod\("POST", integration\);/);
   assert.match(
     apiGatewaySource,
-    /binaryMediaTypes: \["application\/octet-stream", "image\/jpeg", "image\/png", "image\/webp", "multipart\/form-data"\]/,
+    /binaryMediaTypes: \["application\/octet-stream", "application\/zip", "image\/jpeg", "image\/png", "image\/webp", "multipart\/form-data"\]/,
   );
 });
 
@@ -201,7 +201,7 @@ test("chat live Lambda Function URL CORS exposes request id header", () => {
       ],
       AllowMethods: ["GET"],
       AllowOrigins: ["https://app.example.test"],
-      ExposeHeaders: ["x-request-id"],
+      ExposeHeaders: ["content-disposition", "x-request-id"],
     },
   });
 });
@@ -274,7 +274,7 @@ test("default API Gateway generated errors expose supported request id headers",
     "gatewayresponse.header.Access-Control-Allow-Headers": `'${allowHeaders}'`,
     "gatewayresponse.header.Access-Control-Allow-Methods": "'GET,POST,PUT,PATCH,OPTIONS'",
     "gatewayresponse.header.Access-Control-Allow-Origin": "method.request.header.Origin",
-    "gatewayresponse.header.Access-Control-Expose-Headers": "'x-request-id,x-amzn-requestid,x-amz-apigw-id'",
+    "gatewayresponse.header.Access-Control-Expose-Headers": "'content-disposition,x-request-id,x-amzn-requestid,x-amz-apigw-id'",
     "gatewayresponse.header.Vary": "'Origin'",
     "gatewayresponse.header.X-Request-Id": "context.requestId",
   };

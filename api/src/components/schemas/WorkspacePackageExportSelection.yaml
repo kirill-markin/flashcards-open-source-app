@@ -1,0 +1,10 @@
+oneOf:
+  - $ref: ./WorkspacePackageExportAllActiveCardsSelection.yaml
+  - $ref: ./WorkspacePackageExportTagFiltersSelection.yaml
+  - $ref: ./WorkspacePackageExportExplicitCardIdsSelection.yaml
+discriminator:
+  propertyName: kind
+  mapping:
+    allActiveCards: ./WorkspacePackageExportAllActiveCardsSelection.yaml
+    tagFilters: ./WorkspacePackageExportTagFiltersSelection.yaml
+    explicitCardIds: ./WorkspacePackageExportExplicitCardIdsSelection.yaml
