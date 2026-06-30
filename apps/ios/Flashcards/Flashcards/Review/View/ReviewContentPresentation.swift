@@ -8,7 +8,7 @@ import MarkdownUI
 /*
  Keep review content presentation heuristics aligned with:
  - apps/web/src/screens/reviewContentPresentation.ts
- - apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/ReviewPresentation.kt
+ - apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/presentation/ReviewContentParser.kt
  */
 
 enum ReviewContentPresentationMode: Equatable {
