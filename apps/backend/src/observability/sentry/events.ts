@@ -269,6 +269,15 @@ export type WorkspacePackageImportPreviewDetails = Readonly<{
   packageMediaFileCount: number | null;
 }>;
 
+export type WorkspacePackageImportDetails = Readonly<{
+  statusCode: number;
+  bytesCount: number | null;
+  cardCount: number | null;
+  referencedMediaCount: number | null;
+  importedMediaAssetCount: number | null;
+  appliedMediaAssetCount: number | null;
+}>;
+
 export type MediaAssetRouteDetails = Readonly<{
   statusCode: number;
   mediaAssetId: string | null;
@@ -786,6 +795,8 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"workspace_package_export_error", FailureDetailsFor<WorkspacePackageExportDetails>>
   | EventByAction<"workspace_package_import_preview", WorkspacePackageImportPreviewDetails>
   | EventByAction<"workspace_package_import_preview_error", FailureDetailsFor<WorkspacePackageImportPreviewDetails>>
+  | EventByAction<"workspace_package_import", WorkspacePackageImportDetails>
+  | EventByAction<"workspace_package_import_error", FailureDetailsFor<WorkspacePackageImportDetails>>
   | EventByAction<"media_asset_image_ingest", MediaAssetRouteDetails>
   | EventByAction<"media_asset_image_ingest_error", FailureDetailsFor<MediaAssetRouteDetails>>
   | EventByAction<"media_asset_upload_session_media_reuse", MediaAssetRouteDetails>
@@ -935,6 +946,10 @@ export type BackendExceptionEvent =
   )
   | (
     EventByAction<"workspace_package_import_preview_error", FailureDetailsFor<WorkspacePackageImportPreviewDetails>>
+    & Readonly<{ error: Error }>
+  )
+  | (
+    EventByAction<"workspace_package_import_error", FailureDetailsFor<WorkspacePackageImportDetails>>
     & Readonly<{ error: Error }>
   )
   | (

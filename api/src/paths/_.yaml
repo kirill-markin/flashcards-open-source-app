@@ -35,7 +35,7 @@ get:
                 - Ingest JPEG, PNG, and WebP media images through the workspace-scoped image endpoint
                 - Upload and complete media assets through workspace-scoped direct transfer endpoints
                 - Read media asset metadata and create download URLs through workspace-scoped media endpoints
-                - Preview and download portable workspace package ZIP exports, and preview ZIP imports
+                - Preview and download portable workspace package ZIP exports, and preview or confirm ZIP imports
               authBaseUrl: https://auth.flashcards-open-source-app.com
               apiBaseUrl: https://api.flashcards-open-source-app.com/v1
               surface:
@@ -53,6 +53,7 @@ get:
                 workspacePackageExportPreviewUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/export/preview
                 workspacePackageExportUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/export
                 workspacePackageImportPreviewUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/import/preview
+                workspacePackageImportUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/import
               mcp:
                 url: https://mcp.flashcards-open-source-app.com/mcp
                 description: >-
@@ -117,7 +118,10 @@ get:
               Use POST
               /v1/workspaces/{workspaceId}/packages/import/preview with
               application/zip bytes up to 4000000 bytes to preview a portable
-              workspace package import.
+              workspace package import. Confirm with POST
+              /v1/workspaces/{workspaceId}/packages/import as
+              multipart/form-data with file ZIP bytes up to 4000000 bytes and
+              an options JSON string.
               Use docs.openapiUrl for the published external agent contract.
             links:
               websiteUrl: https://flashcards-open-source-app.com/

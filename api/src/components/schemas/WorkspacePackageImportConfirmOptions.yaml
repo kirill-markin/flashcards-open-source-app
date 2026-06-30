@@ -1,0 +1,36 @@
+type: object
+additionalProperties: false
+required:
+  - addImportTag
+  - importTag
+  - removeTags
+  - importedAt
+  - importId
+  - clientUpdatedAt
+  - lastModifiedByReplicaId
+  - operationIdPrefix
+properties:
+  addImportTag:
+    type: boolean
+  importTag:
+    type: string
+    minLength: 1
+  removeTags:
+    type: array
+    items:
+      type: string
+      minLength: 1
+  importedAt:
+    type: string
+    format: date-time
+  importId:
+    type: string
+    minLength: 1
+  clientUpdatedAt:
+    type: string
+    format: date-time
+  lastModifiedByReplicaId:
+    $ref: ./UuidString.yaml
+  operationIdPrefix:
+    type: string
+    minLength: 1
