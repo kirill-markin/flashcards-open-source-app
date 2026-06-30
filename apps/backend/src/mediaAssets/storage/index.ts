@@ -13,6 +13,8 @@ import type {
   AssertMediaAssetObjectInput,
   CompleteMultipartMediaAssetUploadInput,
   CreateMultipartMediaAssetUploadInput,
+  LoadedMediaAssetObjectBytes,
+  LoadMediaAssetObjectBytesInput,
   PresignMediaAssetDownloadInput,
   PresignMediaAssetUploadInput,
   PresignMultipartMediaAssetUploadPartsInput,
@@ -26,6 +28,7 @@ import {
 } from "./multipart";
 import {
   assertMediaAssetObjectMatchesWithDependencies,
+  loadMediaAssetObjectBytesWithDependencies,
   loadMediaAssetObjectMetadataWithDependencies,
 } from "./objects";
 import {
@@ -45,6 +48,8 @@ export type {
   AssertMediaAssetObjectInput,
   CompleteMultipartMediaAssetUploadInput,
   CreateMultipartMediaAssetUploadInput,
+  LoadedMediaAssetObjectBytes,
+  LoadMediaAssetObjectBytesInput,
   MediaAssetStorageDependencies,
   PresignMediaAssetDownloadInput,
   PresignMediaAssetUploadInput,
@@ -59,6 +64,7 @@ export {
 } from "./multipart";
 export {
   assertMediaAssetObjectMatchesWithDependencies,
+  loadMediaAssetObjectBytesWithDependencies,
   loadMediaAssetObjectMetadataWithDependencies,
 } from "./objects";
 export {
@@ -120,6 +126,15 @@ export async function assertMediaAssetObjectMatches(
   input: AssertMediaAssetObjectInput,
 ): Promise<void> {
   return assertMediaAssetObjectMatchesWithDependencies(input, {
+    s3Client: getMediaAssetsS3Client(),
+    getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
+  });
+}
+
+export async function loadMediaAssetObjectBytes(
+  input: LoadMediaAssetObjectBytesInput,
+): Promise<LoadedMediaAssetObjectBytes> {
+  return loadMediaAssetObjectBytesWithDependencies(input, {
     s3Client: getMediaAssetsS3Client(),
     getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
   });
