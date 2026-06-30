@@ -57,6 +57,10 @@ export {
   loadMediaAssetDownloadUrl,
 } from "./api/endpoints/mediaAssets";
 export {
+  downloadWorkspacePackageExport,
+  previewWorkspacePackageExport,
+} from "./api/endpoints/workspacePackageExport";
+export {
   confirmWorkspacePackageImport,
   previewWorkspacePackageImport,
 } from "./api/endpoints/workspacePackageImport";

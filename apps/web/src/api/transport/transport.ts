@@ -18,6 +18,11 @@ export type AuthRecoveryMode = "allow" | "skip";
 export type NetworkRetryMode = "none" | "transient";
 type NavigateToUrl = (url: string) => void;
 type PrepareForAuthRedirect = () => void;
+export type BlobResponsePayload = Readonly<{
+  blob: Blob;
+  headers: Headers;
+  statusCode: number;
+}>;
 export type RequestOptions = Readonly<{
   authRecoveryMode: AuthRecoveryMode;
   networkRetryMode: NetworkRetryMode;
@@ -620,6 +625,25 @@ export async function requestJson(
 ): Promise<ParsedResponsePayload> {
   const response = await requestResponse(pathname, init, options);
   return parseJsonPayload(response, buildRequestEndpoint(pathname, init));
+}
+
+export async function requestBlob(
+  pathname: string,
+  init: RequestInit,
+  options: RequestOptions,
+): Promise<BlobResponsePayload> {
+  const response = await requestResponse(pathname, init, options);
+  const endpoint = buildRequestEndpoint(pathname, init);
+  if (!response.ok) {
+    await parseJsonPayload(response, endpoint);
+    throw new Error(`Non-OK blob response for ${endpoint} did not raise an API error`);
+  }
+
+  return {
+    blob: await response.blob(),
+    headers: response.headers,
+    statusCode: response.status,
+  };
 }
 
 /**
