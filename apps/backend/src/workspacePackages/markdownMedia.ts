@@ -22,6 +22,7 @@ export type PortableMediaAssetIdResolver = (portableMediaPath: string) => string
 
 const fcAssetUrlPattern = /^fcasset:([A-Za-z0-9][A-Za-z0-9._-]*)$/;
 const absoluteUrlPattern = /^[A-Za-z][A-Za-z0-9+.-]*:/;
+const localMediaPathWithLeadingDotSegmentsPattern = /^(?:\.\.?[\\/])+media(?:[\\/]|$)/;
 const portableMediaPathSegmentPattern = /^[A-Za-z0-9._-]+$/;
 
 function matchFcAssetId(url: string): string | null {
@@ -384,7 +385,19 @@ function getPortableMediaPathDuplicateKey(portableMediaPath: string): string {
 }
 
 function isPortableMediaPathCandidate(url: string): boolean {
-  return url === "media" || url.startsWith("media/");
+  if (absoluteUrlPattern.test(url)) {
+    return false;
+  }
+
+  return (
+    url === "media"
+    || url.startsWith("media/")
+    || url === "/media"
+    || url.startsWith("/media/")
+    || url.startsWith("/media\\")
+    || url.startsWith("media\\")
+    || localMediaPathWithLeadingDotSegmentsPattern.test(url)
+  );
 }
 
 export function validatePortableMediaPath(portableMediaPath: string): string {
@@ -455,6 +468,27 @@ export function extractMarkdownFcAssetIds(markdown: string): ReadonlyArray<strin
   }
 
   return assetIds;
+}
+
+export function extractMarkdownPortableMediaPaths(markdown: string): ReadonlyArray<string> {
+  const portableMediaPaths: Array<string> = [];
+  const seenPortableMediaPaths = new Set<string>();
+
+  for (const linkDestination of listMarkdownLinkDestinations(markdown)) {
+    if (!isPortableMediaPathCandidate(linkDestination.destination)) {
+      continue;
+    }
+
+    const portableMediaPath = validatePortableMediaPath(linkDestination.destination);
+    if (seenPortableMediaPaths.has(portableMediaPath)) {
+      continue;
+    }
+
+    seenPortableMediaPaths.add(portableMediaPath);
+    portableMediaPaths.push(portableMediaPath);
+  }
+
+  return portableMediaPaths;
 }
 
 export function rewriteMarkdownFcAssetUrlsToPortablePaths(

@@ -29,6 +29,7 @@
     "openai": "^6.44.0",
     "pg": "^8.22.0",
     "sharp": "^0.35.2",
+    "yauzl": "^3.4.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -36,6 +37,7 @@
     "@types/aws-lambda": "^8.10.162",
     "@types/node": "^24.13.2",
     "@types/pg": "^8.20.0",
+    "@types/yauzl": "^3.4.0",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   },
