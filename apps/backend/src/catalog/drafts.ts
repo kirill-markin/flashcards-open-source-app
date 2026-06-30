@@ -1,0 +1,197 @@
+import type { DatabaseExecutor } from "../database";
+import { unsafeTransaction } from "../database/core";
+import { HttpError } from "../shared/errors";
+import {
+  normalizeNonEmptyString,
+  normalizeNullableString,
+  normalizePackageMediaKey,
+  normalizeSlug,
+  normalizeTextArray,
+} from "./common";
+import { assertDraftMediaKeysExistInExecutor } from "./draftMedia";
+import { rethrowCatalogPersistenceError } from "./errors";
+import {
+  catalogPackageColumns,
+  catalogPackageMediaAssetColumns,
+  mapCatalogPackageMediaAssetRow,
+  mapCatalogPackageRow,
+} from "./rows";
+import type {
+  CatalogPackage,
+  CatalogPackageDraft,
+  CatalogPackageMediaAssetRow,
+  CatalogPackageRow,
+  CreateCatalogPackageDraftInput,
+  UpdateCatalogPackageDraftInput,
+} from "./types";
+
+function normalizeCreateCatalogPackageDraftInput(
+  input: CreateCatalogPackageDraftInput,
+): CreateCatalogPackageDraftInput {
+  return {
+    packageId: input.packageId,
+    authorId: input.authorId,
+    slug: normalizeSlug(input.slug, "slug"),
+    title: normalizeNonEmptyString(input.title, "title"),
+    summary: normalizeNonEmptyString(input.summary, "summary"),
+    description: normalizeNonEmptyString(input.description, "description"),
+    languageTags: normalizeTextArray(input.languageTags, "languageTags", true),
+    topicTags: normalizeTextArray(input.topicTags, "topicTags", false),
+    license: normalizeNonEmptyString(input.license, "license"),
+    contentWarning: normalizeNullableString(input.contentWarning, "contentWarning"),
+  };
+}
+
+function normalizeUpdateCatalogPackageDraftInput(
+  input: UpdateCatalogPackageDraftInput,
+): UpdateCatalogPackageDraftInput {
+  return {
+    ...normalizeCreateCatalogPackageDraftInput(input),
+    coverPackageMediaKey: input.coverPackageMediaKey === null
+      ? null
+      : normalizePackageMediaKey(input.coverPackageMediaKey, "coverPackageMediaKey"),
+  };
+}
+
+export async function createCatalogPackageDraftInExecutor(
+  executor: DatabaseExecutor,
+  input: CreateCatalogPackageDraftInput,
+): Promise<CatalogPackage> {
+  const normalizedInput = normalizeCreateCatalogPackageDraftInput(input);
+  try {
+    const result = await executor.query<CatalogPackageRow>(
+      [
+        "INSERT INTO catalog.packages",
+        "(",
+        "package_id, author_id, slug, title, summary, description, language_tags, topic_tags,",
+        "license, content_warning",
+        ")",
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+        "RETURNING",
+        catalogPackageColumns,
+      ].join(" "),
+      [
+        normalizedInput.packageId,
+        normalizedInput.authorId,
+        normalizedInput.slug,
+        normalizedInput.title,
+        normalizedInput.summary,
+        normalizedInput.description,
+        normalizedInput.languageTags,
+        normalizedInput.topicTags,
+        normalizedInput.license,
+        normalizedInput.contentWarning,
+      ],
+    );
+    const row = result.rows[0];
+    if (row === undefined) {
+      throw new Error("Expected catalog package insert to return a row");
+    }
+
+    return mapCatalogPackageRow(row);
+  } catch (error) {
+    rethrowCatalogPersistenceError(error);
+  }
+}
+
+export async function updateCatalogPackageDraftInExecutor(
+  executor: DatabaseExecutor,
+  input: UpdateCatalogPackageDraftInput,
+): Promise<CatalogPackage> {
+  const normalizedInput = normalizeUpdateCatalogPackageDraftInput(input);
+  try {
+    await assertDraftMediaKeysExistInExecutor(
+      executor,
+      normalizedInput.packageId,
+      normalizedInput.coverPackageMediaKey === null ? [] : [normalizedInput.coverPackageMediaKey],
+    );
+    const result = await executor.query<CatalogPackageRow>(
+      [
+        "UPDATE catalog.packages",
+        "SET author_id = $2, slug = $3, title = $4, summary = $5, description = $6,",
+        "language_tags = $7, topic_tags = $8, license = $9, content_warning = $10,",
+        "cover_package_media_key = $11",
+        "WHERE package_id = $1",
+        "RETURNING",
+        catalogPackageColumns,
+      ].join(" "),
+      [
+        normalizedInput.packageId,
+        normalizedInput.authorId,
+        normalizedInput.slug,
+        normalizedInput.title,
+        normalizedInput.summary,
+        normalizedInput.description,
+        normalizedInput.languageTags,
+        normalizedInput.topicTags,
+        normalizedInput.license,
+        normalizedInput.contentWarning,
+        normalizedInput.coverPackageMediaKey,
+      ],
+    );
+    const row = result.rows[0];
+    if (row === undefined) {
+      throw new HttpError(
+        404,
+        `Catalog package not found. packageId=${normalizedInput.packageId}`,
+        "CATALOG_PACKAGE_NOT_FOUND",
+      );
+    }
+
+    return mapCatalogPackageRow(row);
+  } catch (error) {
+    rethrowCatalogPersistenceError(error);
+  }
+}
+
+export async function loadCatalogPackageDraftInExecutor(
+  executor: DatabaseExecutor,
+  packageId: string,
+): Promise<CatalogPackageDraft> {
+  const packageResult = await executor.query<CatalogPackageRow>(
+    [
+      "SELECT",
+      catalogPackageColumns,
+      "FROM catalog.packages",
+      "WHERE package_id = $1",
+    ].join(" "),
+    [packageId],
+  );
+  const packageRow = packageResult.rows[0];
+  if (packageRow === undefined) {
+    throw new HttpError(404, `Catalog package not found. packageId=${packageId}`, "CATALOG_PACKAGE_NOT_FOUND");
+  }
+
+  const mediaResult = await executor.query<CatalogPackageMediaAssetRow>(
+    [
+      "SELECT",
+      catalogPackageMediaAssetColumns,
+      "FROM catalog.package_media_assets",
+      "WHERE package_id = $1",
+      "AND package_version_id IS NULL",
+      "ORDER BY package_media_key ASC",
+    ].join(" "),
+    [packageId],
+  );
+
+  return {
+    catalogPackage: mapCatalogPackageRow(packageRow),
+    mediaAssets: mediaResult.rows.map((row: CatalogPackageMediaAssetRow) => mapCatalogPackageMediaAssetRow(row)),
+  };
+}
+
+export async function createCatalogPackageDraft(
+  input: CreateCatalogPackageDraftInput,
+): Promise<CatalogPackage> {
+  return unsafeTransaction(async (executor) => createCatalogPackageDraftInExecutor(executor, input));
+}
+
+export async function updateCatalogPackageDraft(
+  input: UpdateCatalogPackageDraftInput,
+): Promise<CatalogPackage> {
+  return unsafeTransaction(async (executor) => updateCatalogPackageDraftInExecutor(executor, input));
+}
+
+export async function loadCatalogPackageDraft(packageId: string): Promise<CatalogPackageDraft> {
+  return unsafeTransaction(async (executor) => loadCatalogPackageDraftInExecutor(executor, packageId));
+}
