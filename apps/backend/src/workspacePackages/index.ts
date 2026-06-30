@@ -2,6 +2,7 @@ export {
   extractMarkdownFcAssetIds,
   rewriteMarkdownFcAssetUrlsToPortablePaths,
   rewriteMarkdownFcAssetUrlsToPortablePathsFromMap,
+  rewriteMarkdownFcAssetUrlsToSharedPortablePaths,
   rewriteMarkdownPortableMediaUrlsToFcAssets,
   rewriteMarkdownPortableMediaUrlsToFcAssetsFromMap,
   validatePortableMediaPath,
@@ -17,6 +18,15 @@ export {
   previewWorkspacePackageExport,
 } from "./exportPreview";
 
+export {
+  exportWorkspacePackage,
+  exportWorkspacePackageInExecutor,
+  workspacePackageExportPackageDefaultMaxMediaFiles,
+  workspacePackageExportPackageDefaultMaxSelectedCards,
+  workspacePackageExportPackageDefaultMaxSingleMediaBytes,
+  workspacePackageExportPackageDefaultMaxTotalMediaBytes,
+} from "./exportPackage";
+
 export type {
   WorkspacePackageExportCardSelection,
   WorkspacePackageExportMetadataInput,
@@ -25,6 +35,13 @@ export type {
   WorkspacePackageExportPreviewTagCount,
   WorkspacePackageExportTagPolicyInput,
 } from "./exportPreview";
+
+export type {
+  WorkspacePackageExportPackage,
+  WorkspacePackageExportPackageDependencies,
+  WorkspacePackageExportPackageInput,
+  WorkspacePackageExportPackageLimits,
+} from "./exportPackage";
 
 export {
   normalizeWorkspacePackageCardMetadataV1,

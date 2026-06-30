@@ -61,10 +61,12 @@ export type WorkspacePackageExportPreviewLimits = Readonly<{
   maxSelectedCards: number;
 }>;
 
-type WorkspacePackageExportPreviewCardRow = Readonly<{
+export type WorkspacePackageExportSelectedCardRow = Readonly<{
   card_id: string;
   front_text: string;
   back_text: string;
+  card_type: string;
+  metadata: unknown;
   tags: ReadonlyArray<string>;
 }>;
 
@@ -74,7 +76,7 @@ type WorkspacePackageExportPreviewMediaRow = Readonly<{
   size_bytes: string | number;
 }>;
 
-type SelectedCardsQuery = Readonly<{
+export type WorkspacePackageExportSelectedCardsQuery = Readonly<{
   text: string;
   params: ReadonlyArray<SqlValue>;
   explicitCardIds: ReadonlyArray<string> | null;
@@ -152,7 +154,7 @@ function normalizeUniqueUuidValues(
   return normalizedValues;
 }
 
-function normalizeCardSelection(
+export function normalizeWorkspacePackageExportCardSelection(
   selection: WorkspacePackageExportCardSelection,
 ): WorkspacePackageExportCardSelection {
   switch (selection.kind) {
@@ -184,15 +186,16 @@ function normalizePreviewLimits(limits: WorkspacePackageExportPreviewLimits): Wo
   return limits;
 }
 
-function normalizePackageMetadata(
+export function normalizeWorkspacePackageExportMetadata(
   input: WorkspacePackageExportMetadataInput,
   generatedAt: string,
 ): WorkspacePackageMetadataV1 {
   const label = normalizeNullableText(input.label, "packageMetadata.label") ?? workspacePackageExportMetadataDefaultLabel;
   const author = normalizeNullableText(input.author, "packageMetadata.author");
   const comment = normalizeNullableText(input.comment, "packageMetadata.comment");
+  const defaultCreatedAt = normalizeIsoTimestamp(generatedAt, "generatedAt");
   const createdAt = input.createdAt === null
-    ? generatedAt
+    ? defaultCreatedAt
     : normalizeIsoTimestamp(input.createdAt, "packageMetadata.createdAt");
   const sourceUrl = normalizeNullableText(input.sourceUrl, "packageMetadata.sourceUrl");
 
@@ -205,18 +208,18 @@ function normalizePackageMetadata(
   };
 }
 
-function buildSelectedCardsQuery(
+export function buildWorkspacePackageExportSelectedCardsQuery(
   workspaceId: string,
   selection: WorkspacePackageExportCardSelection,
   maxSelectedCards: number,
-): SelectedCardsQuery {
+): WorkspacePackageExportSelectedCardsQuery {
   const rowLimit = maxSelectedCards + 1;
 
   switch (selection.kind) {
   case "allActiveCards":
     return {
       text: [
-        "SELECT card_id, front_text, back_text, tags",
+        "SELECT card_id, front_text, back_text, card_type, metadata, tags",
         "FROM content.cards",
         "WHERE workspace_id = $1",
         "AND deleted_at IS NULL",
@@ -246,7 +249,7 @@ function buildSelectedCardsQuery(
     params.push(rowLimit);
     return {
       text: [
-        "SELECT card_id, front_text, back_text, tags",
+        "SELECT card_id, front_text, back_text, card_type, metadata, tags",
         "FROM content.cards",
         clauses.join(" "),
         "ORDER BY created_at DESC, card_id ASC",
@@ -259,7 +262,7 @@ function buildSelectedCardsQuery(
   case "explicitCardIds":
     return {
       text: [
-        "SELECT card_id, front_text, back_text, tags",
+        "SELECT card_id, front_text, back_text, card_type, metadata, tags",
         "FROM content.cards",
         "WHERE workspace_id = $1",
         "AND card_id = ANY($2::uuid[])",
@@ -289,7 +292,7 @@ function assertSelectionWithinLimit(
 }
 
 function assertExplicitCardsFound(
-  rows: ReadonlyArray<WorkspacePackageExportPreviewCardRow>,
+  rows: ReadonlyArray<WorkspacePackageExportSelectedCardRow>,
   explicitCardIds: ReadonlyArray<string> | null,
 ): void {
   if (explicitCardIds === null) {
@@ -309,18 +312,18 @@ function assertExplicitCardsFound(
   );
 }
 
-async function loadSelectedCardsInExecutor(
+export async function loadSelectedWorkspacePackageExportCardsInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
   selection: WorkspacePackageExportCardSelection,
   limits: WorkspacePackageExportPreviewLimits,
-): Promise<ReadonlyArray<WorkspacePackageExportPreviewCardRow>> {
+): Promise<ReadonlyArray<WorkspacePackageExportSelectedCardRow>> {
   if (selection.kind === "explicitCardIds") {
     assertSelectionWithinLimit(selection.cardIds.length, limits.maxSelectedCards);
   }
 
-  const query = buildSelectedCardsQuery(workspaceId, selection, limits.maxSelectedCards);
-  const result = await executor.query<WorkspacePackageExportPreviewCardRow>(query.text, query.params);
+  const query = buildWorkspacePackageExportSelectedCardsQuery(workspaceId, selection, limits.maxSelectedCards);
+  const result = await executor.query<WorkspacePackageExportSelectedCardRow>(query.text, query.params);
   assertSelectionWithinLimit(result.rows.length, limits.maxSelectedCards);
   assertExplicitCardsFound(result.rows, query.explicitCardIds);
 
@@ -353,8 +356,8 @@ function compareTagCounts(
   return left.tag.localeCompare(right.tag);
 }
 
-function buildAvailableTagCounts(
-  cards: ReadonlyArray<WorkspacePackageExportPreviewCardRow>,
+export function buildAvailableWorkspacePackageExportTagCounts(
+  cards: ReadonlyArray<WorkspacePackageExportSelectedCardRow>,
 ): ReadonlyArray<WorkspacePackageExportPreviewTagCount> {
   const tagCounts = new Map<string, number>();
 
@@ -369,7 +372,7 @@ function buildAvailableTagCounts(
     .sort(compareTagCounts);
 }
 
-function buildTagsSelectedForRemoval(
+export function buildWorkspacePackageExportTagsSelectedForRemoval(
   availableTagCounts: ReadonlyArray<WorkspacePackageExportPreviewTagCount>,
   tagPolicy: WorkspacePackageExportTagPolicyInput,
 ): ReadonlyArray<WorkspacePackageExportPreviewTagCount> {
@@ -381,7 +384,9 @@ function buildTagsSelectedForRemoval(
   ));
 }
 
-function normalizeTagPolicy(tagPolicy: WorkspacePackageExportTagPolicyInput): WorkspacePackageExportTagPolicyInput {
+export function normalizeWorkspacePackageExportTagPolicy(
+  tagPolicy: WorkspacePackageExportTagPolicyInput,
+): WorkspacePackageExportTagPolicyInput {
   return {
     additionalRemovedTags: normalizeUniqueTextValues(
       tagPolicy.additionalRemovedTags,
@@ -390,8 +395,8 @@ function normalizeTagPolicy(tagPolicy: WorkspacePackageExportTagPolicyInput): Wo
   };
 }
 
-function extractReferencedMediaAssetIds(
-  cards: ReadonlyArray<WorkspacePackageExportPreviewCardRow>,
+export function extractReferencedWorkspacePackageExportMediaAssetIds(
+  cards: ReadonlyArray<WorkspacePackageExportSelectedCardRow>,
 ): ReadonlyArray<string> {
   const mediaAssetIds = new Set<string>();
 
@@ -496,24 +501,24 @@ export async function previewWorkspacePackageExportInExecutor(
   limits: WorkspacePackageExportPreviewLimits,
 ): Promise<WorkspacePackageExportPreview> {
   const normalizedGeneratedAt = normalizeIsoTimestamp(input.generatedAt, "generatedAt");
-  const normalizedSelection = normalizeCardSelection(input.selection);
-  const normalizedTagPolicy = normalizeTagPolicy(input.tagPolicy);
-  const defaultPackageMetadata = normalizePackageMetadata(input.packageMetadata, normalizedGeneratedAt);
+  const normalizedSelection = normalizeWorkspacePackageExportCardSelection(input.selection);
+  const normalizedTagPolicy = normalizeWorkspacePackageExportTagPolicy(input.tagPolicy);
+  const defaultPackageMetadata = normalizeWorkspacePackageExportMetadata(input.packageMetadata, normalizedGeneratedAt);
   const normalizedLimits = normalizePreviewLimits(limits);
-  const cards = await loadSelectedCardsInExecutor(
+  const cards = await loadSelectedWorkspacePackageExportCardsInExecutor(
     executor,
     workspaceId,
     normalizedSelection,
     normalizedLimits,
   );
-  const availableTagCounts = buildAvailableTagCounts(cards);
-  const referencedMediaAssetIds = extractReferencedMediaAssetIds(cards);
+  const availableTagCounts = buildAvailableWorkspacePackageExportTagCounts(cards);
+  const referencedMediaAssetIds = extractReferencedWorkspacePackageExportMediaAssetIds(cards);
   const mediaRows = await loadReferencedMediaRowsInExecutor(executor, workspaceId, referencedMediaAssetIds);
 
   return {
     selectedCardCount: cards.length,
     availableTagCounts,
-    tagsSelectedForRemoval: buildTagsSelectedForRemoval(availableTagCounts, normalizedTagPolicy),
+    tagsSelectedForRemoval: buildWorkspacePackageExportTagsSelectedForRemoval(availableTagCounts, normalizedTagPolicy),
     referencedMediaCount: mediaRows.length,
     approximateReferencedMediaBytes: sumReferencedMediaBytes(mediaRows),
     defaultPackageMetadata,

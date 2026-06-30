@@ -502,6 +502,34 @@ export function rewriteMarkdownFcAssetUrlsToPortablePathsFromMap(
   });
 }
 
+export function rewriteMarkdownFcAssetUrlsToSharedPortablePathsFromMap(
+  markdown: string,
+  portablePathsByAssetId: ReadonlyMap<string, string>,
+): string {
+  return rewriteMarkdownFcAssetUrlsToSharedPortablePaths(markdown, (assetId) => {
+    const portablePath = portablePathsByAssetId.get(assetId);
+    if (portablePath === undefined) {
+      throw new Error(`Missing portable media path for fcasset id: ${assetId}`);
+    }
+
+    return portablePath;
+  });
+}
+
+export function rewriteMarkdownFcAssetUrlsToSharedPortablePaths(
+  markdown: string,
+  resolvePortablePath: FcAssetPortablePathResolver,
+): string {
+  return rewriteMarkdownUrls(markdown, (url) => {
+    const assetId = matchFcAssetId(url);
+    if (assetId === null) {
+      return null;
+    }
+
+    return validatePortableMediaPath(resolvePortablePath(assetId));
+  });
+}
+
 export function rewriteMarkdownPortableMediaUrlsToFcAssets(
   markdown: string,
   resolveAssetId: PortableMediaAssetIdResolver,
