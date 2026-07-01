@@ -10,6 +10,9 @@ import type {
   Deck,
   ResetWorkspaceProgressResponse,
   ReviewFilter,
+  WorkspacePackageExportDownloadResult,
+  WorkspacePackageExportPreviewResponse,
+  WorkspacePackageExportRequest,
   WorkspacePackageImportConfirmOptions,
   WorkspacePackageImportConfirmResponse,
   WorkspacePackageImportPreviewResponse,
@@ -17,8 +20,13 @@ import type {
 } from "../../../types";
 import { WorkspaceExportScreen } from "./WorkspaceExportScreen";
 
+type ExportWorkspaceCardsCsvParams = Parameters<typeof import("../../../workspaceExport").exportWorkspaceCardsCsv>[0];
+
 const {
   confirmWorkspacePackageImportMock,
+  downloadWorkspacePackageExportMock,
+  exportWorkspaceCardsCsvMock,
+  previewWorkspacePackageExportMock,
   previewWorkspacePackageImportMock,
   useAppDataMock,
 } = vi.hoisted(() => ({
@@ -27,6 +35,15 @@ const {
     file: File,
     options: WorkspacePackageImportConfirmOptions,
   ) => Promise<WorkspacePackageImportConfirmResponse>>(),
+  downloadWorkspacePackageExportMock: vi.fn<(
+    workspaceId: string,
+    request: WorkspacePackageExportRequest,
+  ) => Promise<WorkspacePackageExportDownloadResult>>(),
+  exportWorkspaceCardsCsvMock: vi.fn<(params: ExportWorkspaceCardsCsvParams) => Promise<void>>(),
+  previewWorkspacePackageExportMock: vi.fn<(
+    workspaceId: string,
+    request: WorkspacePackageExportRequest,
+  ) => Promise<WorkspacePackageExportPreviewResponse>>(),
   previewWorkspacePackageImportMock: vi.fn<(
     workspaceId: string,
     fileOrBlob: Blob,
@@ -39,7 +56,17 @@ vi.mock("../../../api", async (importOriginal) => {
   return {
     ...actual,
     confirmWorkspacePackageImport: confirmWorkspacePackageImportMock,
+    downloadWorkspacePackageExport: downloadWorkspacePackageExportMock,
+    previewWorkspacePackageExport: previewWorkspacePackageExportMock,
     previewWorkspacePackageImport: previewWorkspacePackageImportMock,
+  };
+});
+
+vi.mock("../../../workspaceExport", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../workspaceExport")>();
+  return {
+    ...actual,
+    exportWorkspaceCardsCsv: exportWorkspaceCardsCsvMock,
   };
 });
 
@@ -59,6 +86,45 @@ type WorkspaceExportScreenHarness = Readonly<{
 
 function throwNotUsed(functionName: string): never {
   throw new Error(`${functionName} was not expected in this test`);
+}
+
+function createExportPreviewResponse(): WorkspacePackageExportPreviewResponse {
+  return {
+    selectedCardCount: 3,
+    availableTagCounts: [
+      { tag: "geography", cardsCount: 2 },
+      { tag: "temporary", cardsCount: 1 },
+    ],
+    tagsSelectedForRemoval: [
+      { tag: "temporary", cardsCount: 1 },
+    ],
+    referencedMediaCount: 2,
+    approximateReferencedMediaBytes: 1536,
+    defaultPackageMetadata: {
+      label: "Primary export",
+      author: "Export author",
+      comment: "Export comment",
+      createdAt: "2026-04-01T09:00:00.000Z",
+      sourceUrl: "https://example.com/export",
+    },
+  };
+}
+
+function createExportPreviewResponseWithMetadata(
+  defaultPackageMetadata: WorkspacePackageExportPreviewResponse["defaultPackageMetadata"],
+): WorkspacePackageExportPreviewResponse {
+  return {
+    ...createExportPreviewResponse(),
+    defaultPackageMetadata,
+  };
+}
+
+function createExportDownloadResult(): WorkspacePackageExportDownloadResult {
+  return {
+    blob: new Blob([new Uint8Array([80, 75, 3, 4])], { type: "application/zip" }),
+    filename: "backend-flashcards.zip",
+    contentType: "application/zip",
+  };
 }
 
 function createPreviewResponse(): WorkspacePackageImportPreviewResponse {
@@ -203,13 +269,27 @@ function setupWorkspaceExportScreen(): WorkspaceExportScreenHarness {
   beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     useAppDataMock.mockReset();
+    previewWorkspacePackageExportMock.mockReset();
+    downloadWorkspacePackageExportMock.mockReset();
+    exportWorkspaceCardsCsvMock.mockReset();
     previewWorkspacePackageImportMock.mockReset();
     confirmWorkspacePackageImportMock.mockReset();
     appData = createAppData();
     useAppDataMock.mockReturnValue(appData);
+    previewWorkspacePackageExportMock.mockResolvedValue(createExportPreviewResponse());
+    downloadWorkspacePackageExportMock.mockResolvedValue(createExportDownloadResult());
+    exportWorkspaceCardsCsvMock.mockResolvedValue(undefined);
     previewWorkspacePackageImportMock.mockResolvedValue(createPreviewResponse());
     confirmWorkspacePackageImportMock.mockResolvedValue(createConfirmResponse());
     vi.spyOn(crypto, "randomUUID").mockReturnValue("11111111-1111-4111-8111-111111111111");
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: vi.fn((_blob: Blob): string => "blob:workspace-package-export"),
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: vi.fn((_objectUrl: string): void => undefined),
+    });
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
@@ -329,10 +409,38 @@ async function waitForPreview(): Promise<void> {
   ));
 }
 
+async function waitForExportPreview(): Promise<void> {
+  await waitForCondition("Package export preview did not finish", () => (
+    previewWorkspacePackageExportMock.mock.calls.length > 0
+      && getContainer().querySelector("[data-testid='workspace-package-export-preview']") !== null
+  ));
+}
+
 async function waitForConfirm(): Promise<void> {
   await waitForCondition("Package import confirm did not finish", () => (
     confirmWorkspacePackageImportMock.mock.calls.length > 0
   ));
+}
+
+async function waitForExportDownload(): Promise<void> {
+  await waitForCondition("Package export download did not finish", () => (
+    downloadWorkspacePackageExportMock.mock.calls.length > 0
+  ));
+}
+
+async function waitForCsvExport(): Promise<void> {
+  await waitForCondition("CSV export did not finish", () => (
+    exportWorkspaceCardsCsvMock.mock.calls.length > 0
+  ));
+}
+
+function readExportDownloadRequest(): WorkspacePackageExportRequest {
+  const request = downloadWorkspacePackageExportMock.mock.calls[0]?.[1];
+  if (request === undefined) {
+    throw new Error("Package export download request was not captured");
+  }
+
+  return request;
 }
 
 function readConfirmOptions(): WorkspacePackageImportConfirmOptions {
@@ -343,6 +451,135 @@ function readConfirmOptions(): WorkspacePackageImportConfirmOptions {
 
   return options;
 }
+
+describe("WorkspaceExportScreen package export", () => {
+  it("previews all active cards with default options and displays export details", async () => {
+    await renderScreen();
+    await clickElement(requireElement("[data-testid='workspace-package-export-button']", HTMLButtonElement));
+    await waitForExportPreview();
+
+    expect(previewWorkspacePackageExportMock).toHaveBeenCalledWith("workspace-1", {
+      selection: {
+        kind: "allActiveCards",
+      },
+      tagPolicy: {
+        additionalRemovedTags: [],
+      },
+      packageMetadata: {
+        label: null,
+        author: null,
+        comment: null,
+        createdAt: null,
+        sourceUrl: null,
+      },
+    });
+    expect(requireElement("[data-testid='workspace-package-export-preview-card-count']", HTMLElement).textContent).toBe("3");
+    expect(requireElement("[data-testid='workspace-package-export-preview-referenced-media-count']", HTMLElement).textContent).toBe("2");
+    expect(requireElement("[data-testid='workspace-package-export-preview-referenced-media-bytes']", HTMLElement).textContent).toBe("1.5 KB");
+    expect(requireElement("[data-testid='workspace-package-export-preview-metadata']", HTMLElement).textContent).toContain("Primary export");
+    expect(requireElement("[data-testid='workspace-package-export-preview-metadata']", HTMLElement).textContent).toContain("Export author");
+    expect(requireElement("[data-testid='workspace-package-export-preview-metadata']", HTMLElement).textContent).toContain("Export comment");
+    expect(requireElement("[data-testid='workspace-package-export-preview-metadata']", HTMLElement).textContent).toContain("https://example.com/export");
+    expect(requireElement(
+      "[data-testid='workspace-package-export-remove-tag-checkbox'][data-tag='temporary']",
+      HTMLInputElement,
+    ).checked).toBe(true);
+    expect(requireElement(
+      "[data-testid='workspace-package-export-remove-tag-checkbox'][data-tag='geography']",
+      HTMLInputElement,
+    ).checked).toBe(false);
+    expect(downloadWorkspacePackageExportMock).not.toHaveBeenCalled();
+  });
+
+  it("uses the current export tag removal checkbox state when downloading", async () => {
+    await renderScreen();
+    await clickElement(requireElement("[data-testid='workspace-package-export-button']", HTMLButtonElement));
+    await waitForExportPreview();
+
+    await clickElement(requireElement(
+      "[data-testid='workspace-package-export-remove-tag-checkbox'][data-tag='geography']",
+      HTMLInputElement,
+    ));
+    await clickElement(requireElement("[data-testid='workspace-package-export-confirm-button']", HTMLButtonElement));
+    await waitForExportDownload();
+
+    expect(readExportDownloadRequest().tagPolicy.additionalRemovedTags).toEqual(["temporary", "geography"]);
+  });
+
+  it("downloads the backend ZIP with default metadata and returned filename", async () => {
+    const downloadResult = createExportDownloadResult();
+    let clickedDownloadName = "";
+    let clickedHref = "";
+    previewWorkspacePackageExportMock.mockResolvedValueOnce(createExportPreviewResponseWithMetadata({
+      label: "Backend default label",
+      author: "Backend author",
+      createdAt: "2026-04-02T10:00:00.000Z",
+    }));
+    downloadWorkspacePackageExportMock.mockResolvedValueOnce(downloadResult);
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function handleClick(this: HTMLAnchorElement): void {
+      clickedDownloadName = this.download;
+      clickedHref = this.href;
+    });
+
+    await renderScreen();
+    await clickElement(requireElement("[data-testid='workspace-package-export-button']", HTMLButtonElement));
+    await waitForExportPreview();
+    await clickElement(requireElement("[data-testid='workspace-package-export-confirm-button']", HTMLButtonElement));
+    await waitForCondition("Package export success was not shown", () => (
+      getContainer().querySelector("[data-testid='workspace-export-success']") !== null
+    ));
+
+    expect(downloadWorkspacePackageExportMock).toHaveBeenCalledWith("workspace-1", {
+      selection: {
+        kind: "allActiveCards",
+      },
+      tagPolicy: {
+        additionalRemovedTags: ["temporary"],
+      },
+      packageMetadata: {
+        label: "Backend default label",
+        author: "Backend author",
+        comment: null,
+        createdAt: "2026-04-02T10:00:00.000Z",
+        sourceUrl: null,
+      },
+    });
+    expect(URL.createObjectURL).toHaveBeenCalledWith(downloadResult.blob);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:workspace-package-export");
+    expect(clickedDownloadName).toBe("backend-flashcards.zip");
+    expect(clickedHref).toBe("blob:workspace-package-export");
+    expect(requireElement("[data-testid='workspace-export-success']", HTMLParagraphElement).textContent).toContain("flashcards.zip download started.");
+  });
+
+  it("surfaces export preview errors through the existing error UI", async () => {
+    previewWorkspacePackageExportMock.mockRejectedValueOnce(new Error("Export preview failed"));
+
+    await renderScreen();
+    await clickElement(requireElement("[data-testid='workspace-package-export-button']", HTMLButtonElement));
+    await waitForCondition("Package export preview error was not shown", () => (
+      getContainer().querySelector("[data-testid='workspace-export-error']") !== null
+    ));
+
+    expect(requireElement("[data-testid='workspace-export-error']", HTMLParagraphElement).textContent).toContain("A technical error occurred.");
+    expect(getContainer().querySelector("[data-testid='workspace-package-export-preview']")).toBeNull();
+    expect(downloadWorkspacePackageExportMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps CSV export on the existing CSV helper path", async () => {
+    await renderScreen();
+    await clickElement(requireElement("[data-testid='workspace-csv-export-button']", HTMLButtonElement));
+    await waitForCsvExport();
+
+    expect(exportWorkspaceCardsCsvMock).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId: "workspace-1",
+      workspaceName: "Primary",
+      document: window.document,
+      urlApi: URL,
+    }));
+    expect(previewWorkspacePackageExportMock).not.toHaveBeenCalled();
+    expect(downloadWorkspacePackageExportMock).not.toHaveBeenCalled();
+  });
+});
 
 describe("WorkspaceExportScreen package import", () => {
   it("initializes the import tag option from preview defaults", async () => {
