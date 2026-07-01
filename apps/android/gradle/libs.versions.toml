@@ -28,8 +28,8 @@ testOrchestrator = "1.6.1"
 securityCrypto = "1.1.0"
 json = "20260522"
 okhttp = "5.4.0"
-sentry = "8.44.1"
-sentryAndroidGradlePlugin = "6.12.0"
+sentry = "8.46.0"
+sentryAndroidGradlePlugin = "6.13.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
