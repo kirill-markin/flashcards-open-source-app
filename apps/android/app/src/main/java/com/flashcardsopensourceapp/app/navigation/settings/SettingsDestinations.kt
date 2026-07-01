@@ -80,6 +80,10 @@ data object SettingsWorkspaceExportDestination {
     const val route: String = "settings/export"
 }
 
+data object SettingsWorkspaceImportDestination {
+    const val route: String = "settings/import"
+}
+
 data object SettingsWorkspaceResetStudyProgressDestination {
     const val route: String = "settings/workspace/reset-study-progress"
 }

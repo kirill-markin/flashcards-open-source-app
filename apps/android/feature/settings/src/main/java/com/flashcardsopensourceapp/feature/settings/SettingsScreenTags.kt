@@ -13,6 +13,7 @@ const val settingsLanguageRowTag: String = "settings_row_language"
 const val settingsAccessRowTag: String = "settings_row_access"
 const val settingsDecksRowTag: String = "settings_row_decks"
 const val settingsTagsRowTag: String = "settings_row_tags"
+const val settingsImportRowTag: String = "settings_row_import"
 const val settingsExportRowTag: String = "settings_row_export"
 const val settingsFeedbackRowTag: String = "settings_row_feedback"
 const val settingsLegalRowTag: String = "settings_row_legal"
@@ -40,3 +41,13 @@ const val notificationDiagnosticsScreenTag: String = "notification_diagnostics_s
 const val settingsReviewAnimationsToggleTag: String = "settings_review_animations_toggle"
 const val settingsAiChatSuggestionsToggleTag: String = "settings_ai_chat_suggestions_toggle"
 const val settingsLeaderboardParticipationToggleTag: String = "settings_leaderboard_participation_toggle"
+const val workspaceImportScreenTag: String = "workspace_import_screen"
+const val workspaceImportChooseFileButtonTag: String = "workspace_import_choose_file_button"
+const val workspaceImportAddImportTagToggleTag: String = "workspace_import_add_import_tag_toggle"
+const val workspaceImportConfirmButtonTag: String = "workspace_import_confirm_button"
+const val workspaceImportErrorMessageTag: String = "workspace_import_error_message"
+const val workspaceImportTagToggleTagPrefix: String = "workspace_import_tag_toggle:"
+
+fun workspaceImportTagToggleTag(tag: String): String {
+    return workspaceImportTagToggleTagPrefix + tag
+}

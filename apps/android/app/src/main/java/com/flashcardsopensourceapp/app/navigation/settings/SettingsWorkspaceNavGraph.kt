@@ -30,6 +30,8 @@ import com.flashcardsopensourceapp.feature.settings.scheduler.createSchedulerSet
 import com.flashcardsopensourceapp.feature.settings.workspace.delete.DeleteCurrentWorkspaceRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.export.WorkspaceExportRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.export.createWorkspaceExportViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.workspace.importing.WorkspaceImportRoute
+import com.flashcardsopensourceapp.feature.settings.workspace.importing.createWorkspaceImportViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.workspace.overview.createWorkspaceOverviewViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.workspace.reset.ResetStudyProgressRoute
 import com.flashcardsopensourceapp.feature.settings.workspace.settings.createWorkspaceSettingsViewModelFactory
@@ -431,6 +433,24 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
         WorkspaceExportRoute(
             viewModel = workspaceExportViewModel,
             technicalErrorController = appGraph.appMessageBus,
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+
+    composable(route = SettingsWorkspaceImportDestination.route) {
+        val context = LocalContext.current
+        val workspaceImportViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.importing.WorkspaceImportViewModel>(
+            factory = createWorkspaceImportViewModelFactory(
+                cloudAccountRepository = appGraph.cloudAccountRepository,
+                technicalErrorController = appGraph.appMessageBus,
+                applicationContext = context.applicationContext
+            )
+        )
+
+        WorkspaceImportRoute(
+            viewModel = workspaceImportViewModel,
             onBack = {
                 navController.popBackStack()
             }

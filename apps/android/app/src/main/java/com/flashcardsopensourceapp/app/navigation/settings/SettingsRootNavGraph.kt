@@ -165,6 +165,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             onOpenTags = {
                 navController.navigate(route = SettingsWorkspaceTagsDestination.route)
             },
+            onOpenImport = {
+                navController.navigate(route = SettingsWorkspaceImportDestination.route)
+            },
             onOpenExport = {
                 navController.navigate(route = SettingsWorkspaceExportDestination.route)
             },

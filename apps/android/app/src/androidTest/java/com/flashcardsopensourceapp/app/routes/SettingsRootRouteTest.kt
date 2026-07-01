@@ -32,6 +32,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsDeviceDiagnosticsRow
 import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsFeedbackRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsGeneralSectionTag
+import com.flashcardsopensourceapp.feature.settings.settingsImportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsInviteFriendButtonTag
 import com.flashcardsopensourceapp.feature.settings.settingsLanguageRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLeaderboardParticipationRowTag
@@ -98,6 +99,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             settingsAccessRowTag,
             settingsDecksRowTag,
             settingsTagsRowTag,
+            settingsImportRowTag,
             settingsExportRowTag,
             settingsFeedbackRowTag,
             settingsSupportRowTag,
@@ -132,6 +134,10 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertRootRowOrder(
             firstRowTag = settingsReviewAnimationsRowTag,
             secondRowTag = settingsAiChatSuggestionsRowTag
+        )
+        assertRootRowOrder(
+            firstRowTag = settingsImportRowTag,
+            secondRowTag = settingsExportRowTag
         )
         assertRootRowOrder(
             firstRowTag = settingsAiChatSuggestionsRowTag,
@@ -195,6 +201,11 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertRowClick(
             rowTag = settingsServerRowTag,
             expectedClick = "server",
+            clickedRows = clickedRows
+        )
+        assertRowClick(
+            rowTag = settingsImportRowTag,
+            expectedClick = "import",
             clickedRows = clickedRows
         )
         assertRowClick(
@@ -347,6 +358,9 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     },
                     onOpenTags = {
                         clickedRows += "tags"
+                    },
+                    onOpenImport = {
+                        clickedRows += "import"
                     },
                     onOpenExport = {
                         clickedRows += "export"

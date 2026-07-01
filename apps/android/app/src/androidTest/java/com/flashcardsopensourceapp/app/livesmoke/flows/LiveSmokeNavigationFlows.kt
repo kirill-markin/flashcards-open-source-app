@@ -40,6 +40,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsDeviceDiagnosticsRow
 import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsFeedbackRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsGeneralSectionTag
+import com.flashcardsopensourceapp.feature.settings.settingsImportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLanguageRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLeaderboardParticipationRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLegalRowTag
@@ -134,6 +135,7 @@ internal fun LiveSmokeContext.assertSettingsInformationArchitecture() {
         settingsAccessRowTag to "Access",
         settingsDecksRowTag to "Decks",
         settingsTagsRowTag to "Tags",
+        settingsImportRowTag to "Import",
         settingsExportRowTag to "Export",
         settingsFeedbackRowTag to "Send feedback",
         settingsSupportRowTag to "Support",
