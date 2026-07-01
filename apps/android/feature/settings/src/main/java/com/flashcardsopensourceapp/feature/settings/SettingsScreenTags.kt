@@ -41,6 +41,18 @@ const val notificationDiagnosticsScreenTag: String = "notification_diagnostics_s
 const val settingsReviewAnimationsToggleTag: String = "settings_review_animations_toggle"
 const val settingsAiChatSuggestionsToggleTag: String = "settings_ai_chat_suggestions_toggle"
 const val settingsLeaderboardParticipationToggleTag: String = "settings_leaderboard_participation_toggle"
+const val workspaceExportScreenTag: String = "workspace_export_screen"
+const val workspaceExportCsvButtonTag: String = "workspace_export_csv_button"
+const val workspacePackageExportPreviewButtonTag: String = "workspace_package_export_preview_button"
+const val workspacePackageExportSaveButtonTag: String = "workspace_package_export_save_button"
+const val workspacePackageExportShareButtonTag: String = "workspace_package_export_share_button"
+const val workspacePackageExportErrorMessageTag: String = "workspace_package_export_error_message"
+const val workspacePackageExportMetadataLabelFieldTag: String = "workspace_package_export_metadata_label_field"
+const val workspacePackageExportMetadataAuthorFieldTag: String = "workspace_package_export_metadata_author_field"
+const val workspacePackageExportMetadataCreatedAtFieldTag: String = "workspace_package_export_metadata_created_at_field"
+const val workspacePackageExportMetadataSourceUrlFieldTag: String = "workspace_package_export_metadata_source_url_field"
+const val workspacePackageExportMetadataCommentFieldTag: String = "workspace_package_export_metadata_comment_field"
+const val workspacePackageExportTagToggleTagPrefix: String = "workspace_package_export_tag_toggle:"
 const val workspaceImportScreenTag: String = "workspace_import_screen"
 const val workspaceImportChooseFileButtonTag: String = "workspace_import_choose_file_button"
 const val workspaceImportAddImportTagToggleTag: String = "workspace_import_add_import_tag_toggle"
@@ -50,4 +62,8 @@ const val workspaceImportTagToggleTagPrefix: String = "workspace_import_tag_togg
 
 fun workspaceImportTagToggleTag(tag: String): String {
     return workspaceImportTagToggleTagPrefix + tag
+}
+
+fun workspacePackageExportTagToggleTag(tag: String): String {
+    return workspacePackageExportTagToggleTagPrefix + tag
 }

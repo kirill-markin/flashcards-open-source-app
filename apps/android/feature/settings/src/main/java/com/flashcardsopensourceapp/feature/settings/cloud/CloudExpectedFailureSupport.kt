@@ -45,6 +45,23 @@ private val expectedWorkspacePackageImportCloudFailureCodes: Set<String> = expec
     "WORKSPACE_PACKAGE_IMPORT_REPLICA_INVALID"
 )
 
+private val expectedWorkspacePackageExportCloudFailureCodes: Set<String> = expectedWorkspaceCloudFailureCodes + setOf(
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_CARD_NOT_FOUND",
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_INPUT_INVALID",
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_MEDIA_ASSET_ID_INVALID",
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_MEDIA_ASSET_UNAVAILABLE",
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_MEDIA_FILE_COUNT_TOO_LARGE",
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_SELECTION_TOO_LARGE",
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_SINGLE_MEDIA_TOO_LARGE",
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_TOTAL_MEDIA_TOO_LARGE",
+    "WORKSPACE_PACKAGE_EXPORT_PREVIEW_CARD_NOT_FOUND",
+    "WORKSPACE_PACKAGE_EXPORT_PREVIEW_INPUT_INVALID",
+    "WORKSPACE_PACKAGE_EXPORT_PREVIEW_MEDIA_ASSET_ID_INVALID",
+    "WORKSPACE_PACKAGE_EXPORT_PREVIEW_MEDIA_ASSET_UNAVAILABLE",
+    "WORKSPACE_PACKAGE_EXPORT_PREVIEW_SELECTION_TOO_LARGE",
+    "WORKSPACE_PACKAGE_EXPORT_REQUEST_INVALID"
+)
+
 private val expectedAgentCloudFailureCodes: Set<String> = setOf(
     "ACCOUNT_SIGN_IN_REQUIRED",
     "AGENT_API_KEY_INVALID",
@@ -76,6 +93,18 @@ internal fun expectedWorkspacePackageImportCloudFailureMessage(
     expectedSettingsFailureMessage(
         error = error,
         expectedCloudFailureCodes = expectedWorkspacePackageImportCloudFailureCodes,
+        fallbackMessage = fallbackMessage
+    )?.let { message -> return message }
+    return null
+}
+
+internal fun expectedWorkspacePackageExportCloudFailureMessage(
+    error: Throwable,
+    fallbackMessage: String
+): String? {
+    expectedSettingsFailureMessage(
+        error = error,
+        expectedCloudFailureCodes = expectedWorkspacePackageExportCloudFailureCodes,
         fallbackMessage = fallbackMessage
     )?.let { message -> return message }
     return null
