@@ -470,6 +470,99 @@
   min-width: 0;
 }
 
+.workspace-import-preview {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--content-card-inner-radius, var(--radius-sm));
+  background: var(--surface-muted);
+}
+
+.workspace-import-preview-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.workspace-import-preview-stat {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.workspace-import-preview-stat > strong {
+  font-size: 1rem;
+}
+
+.workspace-import-preview-metadata {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.workspace-import-preview-metadata-row {
+  display: grid;
+  grid-template-columns: minmax(90px, max-content) minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.workspace-import-preview-metadata-row > dt {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.workspace-import-preview-metadata-row > dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.workspace-import-preview-warnings {
+  display: grid;
+  gap: 6px;
+}
+
+.workspace-import-preview-warnings > ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-inline-start: 18px;
+}
+
+.workspace-import-preview-tags {
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-import-preview-tag-list {
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-import-preview-tag-control {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.workspace-import-preview-tag-control > input {
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.workspace-import-preview-tag-control:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
 @media (max-width: 900px) {
   .settings-summary-grid {
     grid-template-columns: 1fr;
@@ -482,5 +575,10 @@
   .settings-toggle-card {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .workspace-import-preview-stats,
+  .workspace-import-preview-metadata-row {
+    grid-template-columns: 1fr;
   }
 }
