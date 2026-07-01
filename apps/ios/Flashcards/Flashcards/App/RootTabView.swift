@@ -620,6 +620,8 @@ struct RootTabView: View {
             SchedulerSettingsDetailView()
         case .workspaceExport:
             WorkspaceExportView()
+        case .workspaceImport:
+            WorkspaceImportView()
         case .workspaceDecks:
             DecksScreen()
         case .workspaceTags:

@@ -7,7 +7,13 @@ private let cloudSyncResponseDecodingFailedMessage: String = "Failed to decode c
 private let cloudSyncTransportMaxAttempts: Int = 3
 private let cloudSyncTransportRetryDelayNanoseconds: UInt64 = 500_000_000
 private let progressLeaderboardProfileBasePath: String = "/me/progress/leaderboards/profiles"
+private let workspacePackageImportFileName: String = "flashcards.zip"
 private let mediaAssetDownloadURLPathSegmentAllowedCharacters: CharacterSet = {
+    var allowedCharacters = CharacterSet.alphanumerics
+    allowedCharacters.insert(charactersIn: "-._~")
+    return allowedCharacters
+}()
+private let workspacePackagePathSegmentAllowedCharacters: CharacterSet = {
     var allowedCharacters = CharacterSet.alphanumerics
     allowedCharacters.insert(charactersIn: "-._~")
     return allowedCharacters
@@ -163,6 +169,74 @@ struct CloudSyncTransport {
         return "/workspaces/\(encodedWorkspaceId)/media-assets/\(encodedMediaAssetId)/download-url"
     }
 
+    func workspacePackageImportPreviewPath(workspaceId: String) throws -> String {
+        let encodedWorkspaceId = try self.encodedWorkspacePackagePathWorkspaceId(workspaceId: workspaceId)
+        return "/workspaces/\(encodedWorkspaceId)/packages/import/preview"
+    }
+
+    func workspacePackageImportPath(workspaceId: String) throws -> String {
+        let encodedWorkspaceId = try self.encodedWorkspacePackagePathWorkspaceId(workspaceId: workspaceId)
+        return "/workspaces/\(encodedWorkspaceId)/packages/import"
+    }
+
+    func previewWorkspacePackageImport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        packageBytes: Data
+    ) async throws -> WorkspacePackageImportPreviewResponse {
+        let path = try self.workspacePackageImportPreviewPath(workspaceId: workspaceId)
+        var request = URLRequest(url: try self.makeUrl(apiBaseUrl: apiBaseUrl, path: path))
+        request.httpMethod = "POST"
+        request.setValue("application/zip", forHTTPHeaderField: "Content-Type")
+        request.setValue(authorizationHeader, forHTTPHeaderField: "Authorization")
+        request.setValue(cloudSyncClientPlatform, forHTTPHeaderField: "X-Client-Platform")
+        request.setValue(self.appVersion(), forHTTPHeaderField: "X-Client-Version")
+        request.httpBody = packageBytes
+
+        return try await self.sendAndDecode(
+            request: request,
+            phase: .cloudSyncRequest,
+            apiBaseUrl: apiBaseUrl,
+            allowsRetry: true
+        )
+    }
+
+    func confirmWorkspacePackageImport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        packageBytes: Data,
+        options: WorkspacePackageImportConfirmOptions
+    ) async throws -> WorkspacePackageImportConfirmResponse {
+        let path = try self.workspacePackageImportPath(workspaceId: workspaceId)
+        let boundary = "Boundary-\(UUID().uuidString.lowercased())"
+        let optionsData = try JSONEncoder().encode(options)
+        guard let optionsJson = String(data: optionsData, encoding: .utf8) else {
+            throw LocalStoreError.validation("Workspace package import options could not be encoded as UTF-8 JSON")
+        }
+
+        var request = URLRequest(url: try self.makeUrl(apiBaseUrl: apiBaseUrl, path: path))
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.setValue(authorizationHeader, forHTTPHeaderField: "Authorization")
+        request.setValue(cloudSyncClientPlatform, forHTTPHeaderField: "X-Client-Platform")
+        request.setValue(self.appVersion(), forHTTPHeaderField: "X-Client-Version")
+        request.httpBody = makeWorkspacePackageImportMultipartBody(
+            boundary: boundary,
+            fileName: workspacePackageImportFileName,
+            packageBytes: packageBytes,
+            optionsJson: optionsJson
+        )
+
+        return try await self.sendAndDecode(
+            request: request,
+            phase: .cloudSyncRequest,
+            apiBaseUrl: apiBaseUrl,
+            allowsRetry: false
+        )
+    }
+
     func request<Response: Decodable, Body: Encodable>(
         apiBaseUrl: String,
         authorizationHeader: String,
@@ -182,6 +256,35 @@ struct CloudSyncTransport {
         }
 
         let phase = self.phase(for: path, method: method, body: body)
+        return try await self.sendAndDecode(
+            request: request,
+            phase: phase,
+            apiBaseUrl: apiBaseUrl,
+            allowsRetry: self.allowsRetry(path: path, method: method, body: body)
+        )
+    }
+
+    private func encodedWorkspacePackagePathWorkspaceId(workspaceId: String) throws -> String {
+        let normalizedWorkspaceId = workspaceId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard normalizedWorkspaceId.isEmpty == false else {
+            throw LocalStoreError.validation("Workspace package path requires a workspace id")
+        }
+
+        guard let encodedWorkspaceId = normalizedWorkspaceId.addingPercentEncoding(
+            withAllowedCharacters: workspacePackagePathSegmentAllowedCharacters
+        ) else {
+            throw LocalStoreError.validation("Workspace package workspace id could not be encoded: \(workspaceId)")
+        }
+
+        return encodedWorkspaceId
+    }
+
+    private func sendAndDecode<Response: Decodable>(
+        request: URLRequest,
+        phase: CloudFlowPhase,
+        apiBaseUrl: String,
+        allowsRetry: Bool
+    ) async throws -> Response {
         logCloudFlowPhase(phase: phase, outcome: "start")
         let data: Data
         let response: URLResponse
@@ -190,7 +293,7 @@ struct CloudSyncTransport {
                 request: request,
                 phase: phase,
                 apiBaseUrl: apiBaseUrl,
-                allowsRetry: self.allowsRetry(path: path, method: method, body: body)
+                allowsRetry: allowsRetry
             )
         } catch {
             if isRequestCancellationError(error: error) {
@@ -397,4 +500,24 @@ private func makeCloudSyncResponseDecodingErrorDetails(
         code: cloudSyncResponseDecodingFailedCode,
         syncConflict: nil
     )
+}
+
+private func makeWorkspacePackageImportMultipartBody(
+    boundary: String,
+    fileName: String,
+    packageBytes: Data,
+    optionsJson: String
+) -> Data {
+    var body = Data()
+    body.append(Data("--\(boundary)\r\n".utf8))
+    body.append(Data("Content-Disposition: form-data; name=\"options\"\r\n".utf8))
+    body.append(Data("Content-Type: application/json\r\n\r\n".utf8))
+    body.append(Data(optionsJson.utf8))
+    body.append(Data("\r\n".utf8))
+    body.append(Data("--\(boundary)\r\n".utf8))
+    body.append(Data("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".utf8))
+    body.append(Data("Content-Type: application/zip\r\n\r\n".utf8))
+    body.append(packageBytes)
+    body.append(Data("\r\n--\(boundary)--\r\n".utf8))
+    return body
 }

@@ -178,6 +178,16 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsExportRow)
+
+                NavigationLink(value: SettingsNavigationDestination.workspaceImport) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.import", "Import"),
+                        value: aiSettingsLocalized("settings.row.import.value", "ZIP"),
+                        systemImage: "square.and.arrow.down",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsImportRow)
             }
 
             Section(aiSettingsLocalized("settings.section.support", "Support")) {
