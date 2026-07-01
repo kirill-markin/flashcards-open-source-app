@@ -12,14 +12,14 @@
     "test:e2e:prod": "FLASHCARDS_E2E_TARGET=prod playwright test"
   },
   "dependencies": {
-    "@sentry/react": "^10.60.0",
+    "@sentry/react": "^10.62.0",
     "fflate": "^0.8.3",
     "heic-to": "^1.5.2",
     "lottie-web": "^5.13.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^7.18.0"
+    "react-router-dom": "^7.18.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
@@ -30,7 +30,7 @@
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.1.1",
     "typescript": "^6.0.3",
-    "vite": "^8.1.0",
+    "vite": "^8.1.2",
     "vitest": "^4.1.9"
   },
   "overrides": {

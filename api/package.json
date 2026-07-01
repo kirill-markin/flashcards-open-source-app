@@ -7,7 +7,7 @@
     "lint": "redocly lint src/openapi.yaml"
   },
   "devDependencies": {
-    "@redocly/cli": "^2.34.0"
+    "@redocly/cli": "^2.36.0"
   },
   "overrides": {
     "fast-xml-parser": "5.8.0",
