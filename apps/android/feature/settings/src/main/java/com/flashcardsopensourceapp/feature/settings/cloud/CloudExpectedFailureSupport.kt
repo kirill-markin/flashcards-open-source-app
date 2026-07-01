@@ -23,6 +23,28 @@ private val expectedWorkspaceCloudFailureCodes: Set<String> = setOf(
     "WORKSPACE_SELECTION_REQUIRED"
 )
 
+private val expectedWorkspacePackageImportCloudFailureCodes: Set<String> = expectedWorkspaceCloudFailureCodes + setOf(
+    "WORKSPACE_PACKAGE_IMPORT_CONTENT_TYPE_UNSUPPORTED",
+    "WORKSPACE_PACKAGE_IMPORT_FILE_EMPTY",
+    "WORKSPACE_PACKAGE_IMPORT_FILE_REQUIRED",
+    "WORKSPACE_PACKAGE_IMPORT_FILE_TOO_LARGE",
+    "WORKSPACE_PACKAGE_IMPORT_INPUT_INVALID",
+    "WORKSPACE_PACKAGE_IMPORT_MEDIA_TYPE_UNSUPPORTED",
+    "WORKSPACE_PACKAGE_IMPORT_MULTIPART_INVALID",
+    "WORKSPACE_PACKAGE_IMPORT_OPTIONS_INVALID",
+    "WORKSPACE_PACKAGE_IMPORT_OPTIONS_INVALID_JSON",
+    "WORKSPACE_PACKAGE_IMPORT_OPTIONS_REQUIRED",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_BODY_TOO_LARGE",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_CARDS_JSON_INVALID",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_CARDS_JSON_MALFORMED",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_CONTENT_TYPE_UNSUPPORTED",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_INPUT_INVALID",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_TOO_LARGE",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_ZIP_EMPTY",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_ZIP_INVALID",
+    "WORKSPACE_PACKAGE_IMPORT_REPLICA_INVALID"
+)
+
 private val expectedAgentCloudFailureCodes: Set<String> = setOf(
     "ACCOUNT_SIGN_IN_REQUIRED",
     "AGENT_API_KEY_INVALID",
@@ -42,6 +64,18 @@ internal fun expectedWorkspaceCloudFailureMessage(
     expectedSettingsFailureMessage(
         error = error,
         expectedCloudFailureCodes = expectedWorkspaceCloudFailureCodes,
+        fallbackMessage = fallbackMessage
+    )?.let { message -> return message }
+    return null
+}
+
+internal fun expectedWorkspacePackageImportCloudFailureMessage(
+    error: Throwable,
+    fallbackMessage: String
+): String? {
+    expectedSettingsFailureMessage(
+        error = error,
+        expectedCloudFailureCodes = expectedWorkspacePackageImportCloudFailureCodes,
         fallbackMessage = fallbackMessage
     )?.let { message -> return message }
     return null
