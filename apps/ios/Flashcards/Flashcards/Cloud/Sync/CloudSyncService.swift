@@ -259,6 +259,34 @@ final class CloudSyncService: @unchecked Sendable {
         )
     }
 
+    func previewWorkspacePackageExport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: WorkspacePackageExportRequest
+    ) async throws -> WorkspacePackageExportPreviewResponse {
+        try await self.transport.previewWorkspacePackageExport(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            workspaceId: workspaceId,
+            requestBody: request
+        )
+    }
+
+    func exportWorkspacePackage(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: WorkspacePackageExportRequest
+    ) async throws -> WorkspacePackageExportDownloadResponse {
+        try await self.transport.exportWorkspacePackage(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            workspaceId: workspaceId,
+            requestBody: request
+        )
+    }
+
     func previewWorkspacePackageImport(
         apiBaseUrl: String,
         authorizationHeader: String,

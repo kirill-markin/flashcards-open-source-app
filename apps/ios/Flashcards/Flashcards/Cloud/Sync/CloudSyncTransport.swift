@@ -2,11 +2,15 @@ import Foundation
 
 private let collectionPageLimit: Int = 100
 private let cloudSyncClientPlatform: String = "ios"
+private let cloudSyncPackageExportContentTypeInvalidCode: String = "WORKSPACE_PACKAGE_EXPORT_CONTENT_TYPE_INVALID"
+private let cloudSyncPackageExportContentDispositionInvalidCode: String =
+    "WORKSPACE_PACKAGE_EXPORT_CONTENT_DISPOSITION_INVALID"
 private let cloudSyncResponseDecodingFailedCode: String = "RESPONSE_DECODING_FAILED"
 private let cloudSyncResponseDecodingFailedMessage: String = "Failed to decode cloud sync response"
 private let cloudSyncTransportMaxAttempts: Int = 3
 private let cloudSyncTransportRetryDelayNanoseconds: UInt64 = 500_000_000
 private let progressLeaderboardProfileBasePath: String = "/me/progress/leaderboards/profiles"
+private let workspacePackageExportContentType: String = "application/zip"
 private let workspacePackageImportFileName: String = "flashcards.zip"
 private let mediaAssetDownloadURLPathSegmentAllowedCharacters: CharacterSet = {
     var allowedCharacters = CharacterSet.alphanumerics
@@ -174,9 +178,66 @@ struct CloudSyncTransport {
         return "/workspaces/\(encodedWorkspaceId)/packages/import/preview"
     }
 
+    func workspacePackageExportPreviewPath(workspaceId: String) throws -> String {
+        let encodedWorkspaceId = try self.encodedWorkspacePackagePathWorkspaceId(workspaceId: workspaceId)
+        return "/workspaces/\(encodedWorkspaceId)/packages/export/preview"
+    }
+
+    func workspacePackageExportPath(workspaceId: String) throws -> String {
+        let encodedWorkspaceId = try self.encodedWorkspacePackagePathWorkspaceId(workspaceId: workspaceId)
+        return "/workspaces/\(encodedWorkspaceId)/packages/export"
+    }
+
     func workspacePackageImportPath(workspaceId: String) throws -> String {
         let encodedWorkspaceId = try self.encodedWorkspacePackagePathWorkspaceId(workspaceId: workspaceId)
         return "/workspaces/\(encodedWorkspaceId)/packages/import"
+    }
+
+    func previewWorkspacePackageExport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        requestBody: WorkspacePackageExportRequest
+    ) async throws -> WorkspacePackageExportPreviewResponse {
+        let path = try self.workspacePackageExportPreviewPath(workspaceId: workspaceId)
+        var request = URLRequest(url: try self.makeUrl(apiBaseUrl: apiBaseUrl, path: path))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(authorizationHeader, forHTTPHeaderField: "Authorization")
+        request.setValue(cloudSyncClientPlatform, forHTTPHeaderField: "X-Client-Platform")
+        request.setValue(self.appVersion(), forHTTPHeaderField: "X-Client-Version")
+        request.httpBody = try JSONEncoder().encode(requestBody)
+
+        return try await self.sendAndDecode(
+            request: request,
+            phase: .cloudSyncRequest,
+            apiBaseUrl: apiBaseUrl,
+            allowsRetry: true
+        )
+    }
+
+    func exportWorkspacePackage(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        requestBody: WorkspacePackageExportRequest
+    ) async throws -> WorkspacePackageExportDownloadResponse {
+        let path = try self.workspacePackageExportPath(workspaceId: workspaceId)
+        var request = URLRequest(url: try self.makeUrl(apiBaseUrl: apiBaseUrl, path: path))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(workspacePackageExportContentType, forHTTPHeaderField: "Accept")
+        request.setValue(authorizationHeader, forHTTPHeaderField: "Authorization")
+        request.setValue(cloudSyncClientPlatform, forHTTPHeaderField: "X-Client-Platform")
+        request.setValue(self.appVersion(), forHTTPHeaderField: "X-Client-Version")
+        request.httpBody = try JSONEncoder().encode(requestBody)
+
+        return try await self.sendAndReadWorkspacePackageExport(
+            request: request,
+            phase: .cloudSyncRequest,
+            apiBaseUrl: apiBaseUrl
+        )
     }
 
     func previewWorkspacePackageImport(
@@ -348,6 +409,82 @@ struct CloudSyncTransport {
         }
     }
 
+    private func sendAndReadWorkspacePackageExport(
+        request: URLRequest,
+        phase: CloudFlowPhase,
+        apiBaseUrl: String
+    ) async throws -> WorkspacePackageExportDownloadResponse {
+        logCloudFlowPhase(phase: phase, outcome: "start")
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await self.sendRequestWithRetry(
+                request: request,
+                phase: phase,
+                apiBaseUrl: apiBaseUrl,
+                allowsRetry: true
+            )
+        } catch {
+            if isRequestCancellationError(error: error) {
+                throw error
+            }
+            logCloudFlowPhase(
+                phase: phase,
+                outcome: "failure",
+                errorMessage: Flashcards.errorMessage(error: error)
+            )
+            throw error
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            logCloudFlowPhase(
+                phase: phase,
+                outcome: "failure",
+                errorMessage: "Workspace package export did not receive an HTTP response"
+            )
+            throw LocalStoreError.database("Workspace package export did not receive an HTTP response")
+        }
+
+        let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
+        if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
+            let errorDetails = decodeCloudApiErrorDetails(data: data, requestId: requestId)
+            logCloudFlowPhase(
+                phase: phase,
+                outcome: "failure",
+                requestId: errorDetails.requestId,
+                code: errorDetails.code,
+                statusCode: httpResponse.statusCode
+            )
+            throw CloudSyncError.invalidResponse(errorDetails, httpResponse.statusCode)
+        }
+
+        do {
+            let contentType = try workspacePackageExportResponseContentType(
+                httpResponse: httpResponse,
+                requestId: requestId
+            )
+            let fileName = try workspacePackageExportResponseFileName(
+                httpResponse: httpResponse,
+                requestId: requestId
+            )
+            logCloudFlowPhase(phase: phase, outcome: "success", requestId: requestId)
+            return WorkspacePackageExportDownloadResponse(
+                packageBytes: data,
+                fileName: fileName,
+                contentType: contentType
+            )
+        } catch {
+            logCloudFlowPhase(
+                phase: phase,
+                outcome: "failure",
+                requestId: requestId,
+                statusCode: httpResponse.statusCode,
+                errorMessage: Flashcards.errorMessage(error: error)
+            )
+            throw error
+        }
+    }
+
     private func makeUrl(apiBaseUrl: String, path: String) throws -> URL {
         let trimmedBaseUrl = apiBaseUrl.hasSuffix("/") ? String(apiBaseUrl.dropLast()) : apiBaseUrl
         guard let url = URL(string: "\(trimmedBaseUrl)\(path)") else {
@@ -500,6 +637,89 @@ private func makeCloudSyncResponseDecodingErrorDetails(
         code: cloudSyncResponseDecodingFailedCode,
         syncConflict: nil
     )
+}
+
+private func workspacePackageExportResponseContentType(
+    httpResponse: HTTPURLResponse,
+    requestId: String?
+) throws -> String {
+    let responseContentType = httpResponse.value(forHTTPHeaderField: "Content-Type") ?? ""
+    let normalizedContentType = responseContentType
+        .split(separator: ";", maxSplits: 1)
+        .first?
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .lowercased() ?? ""
+    guard normalizedContentType == workspacePackageExportContentType else {
+        throw CloudSyncError.invalidResponse(
+            CloudApiErrorDetails(
+                message: "Workspace package export returned Content-Type '\(responseContentType)' instead of application/zip.",
+                requestId: requestId,
+                code: cloudSyncPackageExportContentTypeInvalidCode,
+                syncConflict: nil
+            ),
+            httpResponse.statusCode
+        )
+    }
+
+    return responseContentType
+}
+
+private func workspacePackageExportResponseFileName(
+    httpResponse: HTTPURLResponse,
+    requestId: String?
+) throws -> String {
+    let contentDisposition = httpResponse.value(forHTTPHeaderField: "Content-Disposition") ?? ""
+    let fileName = workspacePackageExportContentDispositionFileName(contentDisposition: contentDisposition)
+    guard let fileName, workspacePackageExportFileNameIsSafe(fileName: fileName) else {
+        throw CloudSyncError.invalidResponse(
+            CloudApiErrorDetails(
+                message: "Workspace package export returned an invalid Content-Disposition header.",
+                requestId: requestId,
+                code: cloudSyncPackageExportContentDispositionInvalidCode,
+                syncConflict: nil
+            ),
+            httpResponse.statusCode
+        )
+    }
+
+    return fileName
+}
+
+private func workspacePackageExportContentDispositionFileName(contentDisposition: String) -> String? {
+    for parameter in contentDisposition.components(separatedBy: ";").dropFirst() {
+        let parts = parameter.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count == 2 else {
+            continue
+        }
+        let key = parts[0].trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard key == "filename" else {
+            continue
+        }
+
+        let value = parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
+        return workspacePackageExportUnquotedContentDispositionValue(value: value)
+    }
+
+    return nil
+}
+
+private func workspacePackageExportUnquotedContentDispositionValue(value: String) -> String {
+    guard value.hasPrefix("\""), value.hasSuffix("\""), value.count >= 2 else {
+        return value
+    }
+
+    let unquotedValue = value.dropFirst().dropLast()
+    return unquotedValue
+        .replacingOccurrences(of: "\\\"", with: "\"")
+        .replacingOccurrences(of: "\\\\", with: "\\")
+}
+
+private func workspacePackageExportFileNameIsSafe(fileName: String) -> Bool {
+    let trimmedFileName = fileName.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmedFileName.isEmpty == false
+        && trimmedFileName.rangeOfCharacter(from: .controlCharacters) == nil
+        && trimmedFileName.contains("/") == false
+        && trimmedFileName.contains("\\") == false
 }
 
 private func makeWorkspacePackageImportMultipartBody(

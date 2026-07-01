@@ -138,6 +138,18 @@ protocol CloudSyncServing {
         workspaceId: String,
         mediaAssetId: String
     ) async throws -> MediaAssetDownloadURLResponse
+    func previewWorkspacePackageExport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: WorkspacePackageExportRequest
+    ) async throws -> WorkspacePackageExportPreviewResponse
+    func exportWorkspacePackage(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: WorkspacePackageExportRequest
+    ) async throws -> WorkspacePackageExportDownloadResponse
     func previewWorkspacePackageImport(
         apiBaseUrl: String,
         authorizationHeader: String,
@@ -199,6 +211,32 @@ extension CloudSyncServing {
         _ = workspaceId
         _ = mediaAssetId
         throw LocalStoreError.validation("Media asset download URL loading is unavailable")
+    }
+
+    func previewWorkspacePackageExport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: WorkspacePackageExportRequest
+    ) async throws -> WorkspacePackageExportPreviewResponse {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        _ = workspaceId
+        _ = request
+        throw LocalStoreError.validation("Workspace package export preview is unavailable")
+    }
+
+    func exportWorkspacePackage(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: WorkspacePackageExportRequest
+    ) async throws -> WorkspacePackageExportDownloadResponse {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        _ = workspaceId
+        _ = request
+        throw LocalStoreError.validation("Workspace package export is unavailable")
     }
 
     func previewWorkspacePackageImport(
