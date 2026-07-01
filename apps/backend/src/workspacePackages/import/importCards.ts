@@ -4,13 +4,13 @@ import {
   type Card,
   type CardMutationMetadata,
   type CreateCardInput,
-} from "../cards";
+} from "../../cards";
 import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
-} from "../database";
-import { HttpError } from "../shared/errors";
+} from "../../database";
+import { HttpError } from "../../shared/errors";
 import type { WorkspacePackageImportPlannedCard } from "./importPlan";
 
 const workspacePackageImportCardPersistenceBatchSize = 100;

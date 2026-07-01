@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import test from "node:test";
-import { HttpError } from "../shared/errors";
+import { HttpError } from "../../shared/errors";
 import {
   buildSuggestedWorkspacePackageImportTag,
   createDefaultWorkspacePackageImportTagPolicy,
@@ -12,7 +12,7 @@ import {
   type WorkspacePackageCardMetadataV1,
   type WorkspacePackageCardsJsonV1,
   type WorkspacePackageImportPreviewInput,
-} from "./index";
+} from "../index";
 import {
   createCardsJsonBuffer,
   createDeflatedZipEntry,

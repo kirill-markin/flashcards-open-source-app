@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import test from "node:test";
-import { HttpError } from "../shared/errors";
+import { HttpError } from "../../shared/errors";
 import {
   loadWorkspacePackageImportReferencedMedia,
   loadWorkspacePackageImportReferencedMediaWithLimits,
@@ -10,7 +10,7 @@ import {
   type WorkspacePackageCardsJsonV1,
   type WorkspacePackageImportReferencedMediaInput,
   type WorkspacePackageImportReferencedMediaLimits,
-} from "./index";
+} from "../index";
 import {
   createPackageZip,
   createStoredZip,

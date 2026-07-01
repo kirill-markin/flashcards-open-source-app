@@ -14,7 +14,7 @@ import {
   type CollectedWorkspacePackageZip,
   type WorkspacePackageImportZipLimits,
 } from "./importZip";
-import type { WorkspacePackageCardsJsonV1 } from "./types";
+import type { WorkspacePackageCardsJsonV1 } from "../types";
 
 export type WorkspacePackageImportReferencedMediaInput = Readonly<{
   packageBytes: Buffer | Uint8Array;

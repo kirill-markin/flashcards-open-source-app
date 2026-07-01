@@ -22,7 +22,7 @@ import {
 import type {
   PortableWorkspacePackageCardV1,
   WorkspacePackageCardsJsonV1,
-} from "./types";
+} from "../types";
 
 export const workspacePackageImportPreviewDefaultMaxZipBytes = workspacePackageImportZipDefaultMaxZipBytes;
 export const workspacePackageImportPreviewDefaultMaxEntries = workspacePackageImportZipDefaultMaxEntries;

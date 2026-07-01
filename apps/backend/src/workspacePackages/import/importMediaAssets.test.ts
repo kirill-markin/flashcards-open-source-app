@@ -4,13 +4,13 @@ import test from "node:test";
 import {
   imageJpegCardMediaBlobMimeType,
   type MediaAsset,
-} from "../mediaAssets/types";
+} from "../../mediaAssets/types";
 import type {
   ImageMediaAssetIngestionInput,
   ImageMediaAssetIngestionResult,
-} from "../mediaAssets/ingestion";
-import type { BackendObservationScope } from "../observability/sentry";
-import { HttpError } from "../shared/errors";
+} from "../../mediaAssets/ingestion";
+import type { BackendObservationScope } from "../../observability/sentry";
+import { HttpError } from "../../shared/errors";
 import {
   ingestWorkspacePackageImportMediaAssetsWithDependencies,
   type WorkspacePackageImportMediaAssetIngestionDependencies,
@@ -21,7 +21,7 @@ import {
   type WorkspacePackageCardMetadataV1,
   type WorkspacePackageImportMediaAssetIngestionInput,
   type WorkspacePackageImportReferencedMediaFile,
-} from "./index";
+} from "../index";
 
 const testUserId = "user-1";
 const testWorkspaceId = "11111111-1111-4111-8111-111111111111";

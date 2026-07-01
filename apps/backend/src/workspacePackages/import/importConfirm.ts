@@ -1,13 +1,13 @@
 import type { Buffer } from "node:buffer";
-import type { Card } from "../cards";
+import type { Card } from "../../cards";
 import {
   transactionWithWorkspaceScopeReadOnly,
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
-} from "../database";
-import { assertReplicaBelongsToWorkspaceInExecutor } from "../mediaAssets/workspaceReplicas";
-import type { BackendObservationScope } from "../observability/sentry";
-import { HttpError } from "../shared/errors";
+} from "../../database";
+import { assertReplicaBelongsToWorkspaceInExecutor } from "../../mediaAssets/workspaceReplicas";
+import type { BackendObservationScope } from "../../observability/sentry";
+import { HttpError } from "../../shared/errors";
 import {
   ingestWorkspacePackageImportMediaAssets,
   type WorkspacePackageImportedMediaAsset,
