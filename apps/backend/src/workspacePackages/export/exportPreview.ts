@@ -2,11 +2,11 @@ import {
   transactionWithWorkspaceScopeReadOnly,
   type DatabaseExecutor,
   type SqlValue,
-} from "../database";
-import { MEDIA_ASSET_JOIN_CLAUSE } from "../mediaAssets";
-import { HttpError } from "../shared/errors";
-import { extractMarkdownFcAssetIds } from "./markdownMedia";
-import type { WorkspacePackageMetadataV1 } from "./types";
+} from "../../database";
+import { MEDIA_ASSET_JOIN_CLAUSE } from "../../mediaAssets";
+import { HttpError } from "../../shared/errors";
+import { extractMarkdownFcAssetIds } from "../markdownMedia";
+import type { WorkspacePackageMetadataV1 } from "../types";
 
 export const workspacePackageExportPreviewDefaultMaxSelectedCards = 5_000;
 
