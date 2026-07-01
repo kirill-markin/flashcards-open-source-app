@@ -36,6 +36,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetPro
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
 import org.json.JSONObject
 
 class CloudHealthValidationException(
@@ -107,6 +110,21 @@ interface CloudRemoteGateway {
         workspaceId: String,
         confirmationText: String
     ): CloudWorkspaceResetProgressResult
+    suspend fun previewWorkspacePackageImport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        packageBytes: ByteArray
+    ): WorkspacePackageImportPreview
+    suspend fun confirmWorkspacePackageImport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        fileName: String,
+        packageBytes: ByteArray,
+        lastModifiedByReplicaId: String,
+        options: WorkspacePackageImportConfirmOptions
+    ): WorkspacePackageImportConfirmResult
     suspend fun loadProgressSummary(
         apiBaseUrl: String,
         authorizationHeader: String,

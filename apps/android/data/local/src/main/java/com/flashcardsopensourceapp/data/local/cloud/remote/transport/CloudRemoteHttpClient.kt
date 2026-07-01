@@ -24,10 +24,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.job
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.Response
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
@@ -48,6 +50,7 @@ private const val cloudHealthValidationPath: String = "/health"
 private const val officialCloudApiHost: String = "api.flashcards-open-source-app.com"
 private const val officialCloudAuthHost: String = "auth.flashcards-open-source-app.com"
 private val cloudJsonMediaType = "application/json".toMediaType()
+private val cloudZipMediaType = "application/zip".toMediaType()
 private val transientCloudHttpStatusCodes: Set<Int> = setOf(408, 429, 500, 502, 503, 504)
 private val expectedCloudHttpFailureCodes: Set<String> = setOf(
     "AGENT_API_KEY_INVALID",
@@ -147,6 +150,25 @@ private val expectedCloudHttpFailureCodes: Set<String> = setOf(
     "WORKSPACE_ID_REQUIRED",
     "WORKSPACE_NOT_FOUND",
     "WORKSPACE_OWNER_REQUIRED",
+    "WORKSPACE_PACKAGE_IMPORT_CONTENT_TYPE_UNSUPPORTED",
+    "WORKSPACE_PACKAGE_IMPORT_FILE_EMPTY",
+    "WORKSPACE_PACKAGE_IMPORT_FILE_REQUIRED",
+    "WORKSPACE_PACKAGE_IMPORT_FILE_TOO_LARGE",
+    "WORKSPACE_PACKAGE_IMPORT_INPUT_INVALID",
+    "WORKSPACE_PACKAGE_IMPORT_MEDIA_TYPE_UNSUPPORTED",
+    "WORKSPACE_PACKAGE_IMPORT_MULTIPART_INVALID",
+    "WORKSPACE_PACKAGE_IMPORT_OPTIONS_INVALID",
+    "WORKSPACE_PACKAGE_IMPORT_OPTIONS_INVALID_JSON",
+    "WORKSPACE_PACKAGE_IMPORT_OPTIONS_REQUIRED",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_BODY_TOO_LARGE",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_CARDS_JSON_INVALID",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_CARDS_JSON_MALFORMED",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_CONTENT_TYPE_UNSUPPORTED",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_INPUT_INVALID",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_TOO_LARGE",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_ZIP_EMPTY",
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_ZIP_INVALID",
+    "WORKSPACE_PACKAGE_IMPORT_REPLICA_INVALID",
     "WORKSPACE_RESET_PROGRESS_CONFIRMATION_INVALID",
     "WORKSPACE_DELETE_SHARED",
     "WORKSPACE_RESET_SHARED",
@@ -276,6 +298,78 @@ internal class CloudJsonHttpClient(
         )
     }
 
+    suspend fun postZipForJson(
+        baseUrl: String,
+        path: String,
+        authorizationHeader: String?,
+        zipBytes: ByteArray
+    ): JSONObject {
+        require(zipBytes.isNotEmpty()) {
+            "Cloud ZIP request body must not be empty."
+        }
+        return executeBuiltJsonRequest(
+            request = buildCloudRequest(
+                baseUrl = baseUrl,
+                path = path,
+                method = CloudHttpMethod.POST,
+                authorizationHeader = authorizationHeader,
+                requestBody = zipBytes.toRequestBody(cloudZipMediaType),
+                contentTypeHeader = "application/zip"
+            ),
+            path = path,
+            method = CloudHttpMethod.POST,
+            retryEligible = false
+        )
+    }
+
+    suspend fun postMultipartZipForJson(
+        baseUrl: String,
+        path: String,
+        authorizationHeader: String?,
+        fileFieldName: String,
+        fileName: String,
+        zipBytes: ByteArray,
+        jsonFieldName: String,
+        jsonFieldValue: JSONObject
+    ): JSONObject {
+        require(fileFieldName.isNotBlank()) {
+            "Cloud multipart ZIP request file field name must not be blank."
+        }
+        require(fileName.isNotBlank()) {
+            "Cloud multipart ZIP request file name must not be blank."
+        }
+        require(zipBytes.isNotEmpty()) {
+            "Cloud multipart ZIP request file must not be empty."
+        }
+        require(jsonFieldName.isNotBlank()) {
+            "Cloud multipart ZIP request JSON field name must not be blank."
+        }
+
+        val requestBody = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart(
+                fileFieldName,
+                fileName,
+                zipBytes.toRequestBody(cloudZipMediaType)
+            )
+            .addFormDataPart(jsonFieldName, jsonFieldValue.toString())
+            .build()
+
+        return executeBuiltJsonRequest(
+            request = buildCloudRequest(
+                baseUrl = baseUrl,
+                path = path,
+                method = CloudHttpMethod.POST,
+                authorizationHeader = authorizationHeader,
+                requestBody = requestBody,
+                contentTypeHeader = null
+            ),
+            path = path,
+            method = CloudHttpMethod.POST,
+            retryEligible = false
+        )
+    }
+
     suspend fun patchJson(
         baseUrl: String,
         path: String,
@@ -291,26 +385,39 @@ internal class CloudJsonHttpClient(
         )
     }
 
-    @OptIn(InternalCoroutinesApi::class)
     private suspend fun executeJsonRequest(
         baseUrl: String,
         path: String,
         method: CloudHttpMethod,
         authorizationHeader: String?,
         body: JSONObject?
+    ): JSONObject {
+        return executeBuiltJsonRequest(
+            request = buildCloudRequest(
+                baseUrl = baseUrl,
+                path = path,
+                method = method,
+                authorizationHeader = authorizationHeader,
+                requestBody = buildJsonRequestBody(method = method, body = body),
+                contentTypeHeader = "application/json"
+            ),
+            path = path,
+            method = method,
+            retryEligible = isTransientCloudHttpRetryEligible(
+                path = path,
+                method = method,
+                body = body
+            )
+        )
+    }
+
+    @OptIn(InternalCoroutinesApi::class)
+    private suspend fun executeBuiltJsonRequest(
+        request: Request,
+        path: String,
+        method: CloudHttpMethod,
+        retryEligible: Boolean
     ): JSONObject = withContext(Dispatchers.IO) {
-        val request = buildCloudRequest(
-            baseUrl = baseUrl,
-            path = path,
-            method = method,
-            authorizationHeader = authorizationHeader,
-            body = body
-        )
-        val retryEligible = isTransientCloudHttpRetryEligible(
-            path = path,
-            method = method,
-            body = body
-        )
         var attemptNumber = 1
         var completedResponse: JSONObject? = null
 
@@ -475,29 +582,39 @@ internal class CloudJsonHttpClient(
         path: String,
         method: CloudHttpMethod,
         authorizationHeader: String?,
-        body: JSONObject?
+        requestBody: RequestBody?,
+        contentTypeHeader: String?
     ): Request {
         val normalizedBaseUrl = if (baseUrl.endsWith("/")) {
             baseUrl.dropLast(1)
         } else {
             baseUrl
         }
-        val requestBody = when (method) {
-            CloudHttpMethod.GET -> null
-            CloudHttpMethod.POST,
-            CloudHttpMethod.PATCH -> body?.toString()?.toRequestBody(cloudJsonMediaType)
-                ?: ByteArray(size = 0).toRequestBody(cloudJsonMediaType)
-        }
         val requestBuilder = Request.Builder()
             .url("$normalizedBaseUrl$path")
             .method(method.requestMethod, requestBody)
-            .header("Content-Type", "application/json")
+
+        if (contentTypeHeader != null) {
+            requestBuilder.header("Content-Type", contentTypeHeader)
+        }
 
         if (authorizationHeader != null) {
             requestBuilder.header("Authorization", authorizationHeader)
         }
 
         return requestBuilder.build()
+    }
+
+    private fun buildJsonRequestBody(
+        method: CloudHttpMethod,
+        body: JSONObject?
+    ): RequestBody? {
+        return when (method) {
+            CloudHttpMethod.GET -> null
+            CloudHttpMethod.POST,
+            CloudHttpMethod.PATCH -> body?.toString()?.toRequestBody(cloudJsonMediaType)
+                ?: ByteArray(size = 0).toRequestBody(cloudJsonMediaType)
+        }
     }
 
     private fun readCloudResponseBody(response: Response): String {

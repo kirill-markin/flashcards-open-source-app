@@ -63,6 +63,9 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceExportData
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceOverviewSummary
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
 import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagsSummary
@@ -202,6 +205,12 @@ interface CloudAccountRepository {
     suspend fun deleteCurrentWorkspace(confirmationText: String): CloudWorkspaceDeleteResult
     suspend fun loadCurrentWorkspaceResetProgressPreview(): CloudWorkspaceResetProgressPreview
     suspend fun resetCurrentWorkspaceProgress(confirmationText: String): CloudWorkspaceResetProgressResult
+    suspend fun previewCurrentWorkspacePackageImport(packageBytes: ByteArray): WorkspacePackageImportPreview
+    suspend fun confirmCurrentWorkspacePackageImport(
+        fileName: String,
+        packageBytes: ByteArray,
+        options: WorkspacePackageImportConfirmOptions
+    ): WorkspacePackageImportConfirmResult
     suspend fun loadProgressSummary(timeZone: String): CloudProgressSummary
     suspend fun loadProgressSeries(timeZone: String, from: String, to: String): CloudProgressSeries
     suspend fun loadProgressReviewSchedule(timeZone: String): CloudProgressReviewSchedule

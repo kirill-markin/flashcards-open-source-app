@@ -20,6 +20,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHt
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.NoopCloudHttpObservability
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.createCloudHttpObservationVersions
 import com.flashcardsopensourceapp.data.local.cloud.remote.workspace.CloudAccountWorkspaceRemoteApi
+import com.flashcardsopensourceapp.data.local.cloud.remote.workspace.CloudWorkspacePackageRemoteApi
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
@@ -48,6 +49,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetPro
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
 import okhttp3.OkHttpClient
 import org.json.JSONObject
 
@@ -95,6 +99,7 @@ class CloudRemoteService private constructor(
     private val mediaAssetApi = CloudMediaAssetRemoteApi(httpClient = httpClient)
     private val agentConnectionApi = CloudAgentConnectionRemoteApi(httpClient = httpClient)
     private val syncApi = CloudSyncRemoteApi(httpClient = httpClient)
+    private val workspacePackageApi = CloudWorkspacePackageRemoteApi(httpClient = httpClient)
 
     override suspend fun validateConfiguration(configuration: CloudServiceConfiguration) {
         requireAuthHealthResponse(
@@ -268,6 +273,40 @@ class CloudRemoteService private constructor(
             bearerToken = bearerToken,
             workspaceId = workspaceId,
             confirmationText = confirmationText
+        )
+    }
+
+    override suspend fun previewWorkspacePackageImport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        packageBytes: ByteArray
+    ): WorkspacePackageImportPreview {
+        return workspacePackageApi.previewWorkspacePackageImport(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            workspaceId = workspaceId,
+            packageBytes = packageBytes
+        )
+    }
+
+    override suspend fun confirmWorkspacePackageImport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        fileName: String,
+        packageBytes: ByteArray,
+        lastModifiedByReplicaId: String,
+        options: WorkspacePackageImportConfirmOptions
+    ): WorkspacePackageImportConfirmResult {
+        return workspacePackageApi.confirmWorkspacePackageImport(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            workspaceId = workspaceId,
+            fileName = fileName,
+            packageBytes = packageBytes,
+            lastModifiedByReplicaId = lastModifiedByReplicaId,
+            options = options
         )
     }
 

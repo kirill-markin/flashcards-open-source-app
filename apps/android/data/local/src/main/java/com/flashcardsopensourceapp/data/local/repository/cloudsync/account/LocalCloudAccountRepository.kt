@@ -34,6 +34,9 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreak
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.loadActiveGuestSessionOrNull
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.progress.CloudProgressRemoteReader
@@ -275,6 +278,24 @@ class LocalCloudAccountRepository(
         confirmationText: String
     ): CloudWorkspaceResetProgressResult {
         return workspaceOperationsCoordinator.resetCurrentWorkspaceProgress(confirmationText = confirmationText)
+    }
+
+    override suspend fun previewCurrentWorkspacePackageImport(
+        packageBytes: ByteArray
+    ): WorkspacePackageImportPreview {
+        return workspaceOperationsCoordinator.previewCurrentWorkspacePackageImport(packageBytes = packageBytes)
+    }
+
+    override suspend fun confirmCurrentWorkspacePackageImport(
+        fileName: String,
+        packageBytes: ByteArray,
+        options: WorkspacePackageImportConfirmOptions
+    ): WorkspacePackageImportConfirmResult {
+        return workspaceOperationsCoordinator.confirmCurrentWorkspacePackageImport(
+            fileName = fileName,
+            packageBytes = packageBytes,
+            options = options
+        )
     }
 
     override suspend fun loadProgressSeries(
