@@ -454,6 +454,18 @@
     <string name="settings_export_csv_header_back">backText</string>
     <string name="settings_export_csv_header_tags">tags</string>
 
+    <string name="settings_import_cloud_required">Media ZIP import requires a linked cloud workspace in this version.</string>
+    <string name="settings_import_workspace_unavailable">Workspace is unavailable. Reload the current workspace and try again.</string>
+    <string name="settings_import_invalid_file">Choose a Flashcards ZIP package.</string>
+    <string name="settings_import_file_too_large">Choose a ZIP package up to %1$d MB.</string>
+    <string name="settings_import_file_empty">The selected ZIP package is empty.</string>
+    <string name="settings_import_file_name_unavailable">The selected package file name is unavailable.</string>
+    <string name="settings_import_file_read_failed">Android could not read the selected package.</string>
+    <string name="settings_import_preview_failed">Package preview failed.</string>
+    <string name="settings_import_confirm_failed">Package import failed.</string>
+    <string name="settings_import_preview_required">Preview a package before importing.</string>
+    <string name="settings_import_missing_import_tag">Package preview did not include an import tag.</string>
+
     <string name="settings_device_title">Device</string>
     <string name="settings_device_workspace_name_label">Workspace name</string>
     <string name="settings_device_workspace_id_label">Workspace ID</string>
@@ -652,6 +664,14 @@
     <plurals name="settings_tags_count">
         <item quantity="one">%d tag</item>
         <item quantity="other">%d tags</item>
+    </plurals>
+    <plurals name="settings_import_success">
+        <item quantity="one">Imported %1$d card.</item>
+        <item quantity="other">Imported %1$d cards.</item>
+    </plurals>
+    <plurals name="settings_import_success_with_tag">
+        <item quantity="one">Imported %1$d card with tag %2$s.</item>
+        <item quantity="other">Imported %1$d cards with tag %2$s.</item>
     </plurals>
     <plurals name="settings_workspace_deck_card_summary">
         <item quantity="one">%1$d card</item>

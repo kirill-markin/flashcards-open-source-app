@@ -92,6 +92,17 @@ internal fun makeRecoveryState(): CloudCredentialRecoveryState {
     )
 }
 
+internal data class CapturedWorkspacePackageImportConfirm(
+    val fileName: String,
+    val packageBytes: ByteArray,
+    val options: WorkspacePackageImportConfirmOptions
+)
+
+internal data class QueuedWorkspacePackageImportPreview(
+    val gate: CompletableDeferred<Unit>,
+    val preview: WorkspacePackageImportPreview
+)
+
 internal class FakeCloudAccountRepository : CloudAccountRepository {
     private val cloudSettings = MutableStateFlow(
         CloudSettings(
@@ -114,12 +125,18 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     private val completeCloudLinkErrors = ArrayDeque<Exception>()
     private val completeCloudLinkResults = ArrayDeque<CompletableDeferred<CloudWorkspaceSummary>>()
     private val preparedLinkContexts = mutableMapOf<String, CompletableDeferred<CloudWorkspaceLinkContext>>()
+    private val queuedWorkspacePackageImportPreviews = ArrayDeque<QueuedWorkspacePackageImportPreview>()
     val completeCloudLinkSelections = mutableListOf<CloudWorkspaceLinkSelection>()
     val validatedCustomOrigins = mutableListOf<String>()
     val appliedCustomServerConfigurations = mutableListOf<CloudServiceConfiguration>()
+    val previewedWorkspacePackageImportBytes = mutableListOf<ByteArray>()
+    val confirmedWorkspacePackageImports = mutableListOf<CapturedWorkspacePackageImportConfirm>()
     var validateCustomServerError: Exception? = null
     var applyCustomServerError: Exception? = null
     var nextValidatedCustomServerConfiguration: CloudServiceConfiguration? = null
+    var nextWorkspacePackageImportPreview: WorkspacePackageImportPreview? = null
+    var nextWorkspacePackageImportConfirmGate: CompletableDeferred<Unit>? = null
+    var nextWorkspacePackageImportConfirmResult: WorkspacePackageImportConfirmResult? = null
     var resetInvalidCloudCredentialRecoveryStateCalls: Int = 0
         private set
     var logoutCalls: Int = 0
@@ -145,11 +162,27 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
         completeCloudLinkResults.addLast(result)
     }
 
+    fun setCloudSettings(settings: CloudSettings) {
+        cloudSettings.value = settings
+    }
+
     fun enqueuePreparedLinkContext(
         idToken: String,
         result: CompletableDeferred<CloudWorkspaceLinkContext>
     ) {
         preparedLinkContexts[idToken] = result
+    }
+
+    fun enqueueWorkspacePackageImportPreview(
+        gate: CompletableDeferred<Unit>,
+        preview: WorkspacePackageImportPreview
+    ) {
+        queuedWorkspacePackageImportPreviews.addLast(
+            QueuedWorkspacePackageImportPreview(
+                gate = gate,
+                preview = preview
+            )
+        )
     }
 
     override fun observeCloudSettings(): Flow<CloudSettings> {
@@ -283,7 +316,15 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     }
 
     override suspend fun previewCurrentWorkspacePackageImport(packageBytes: ByteArray): WorkspacePackageImportPreview {
-        throw UnsupportedOperationException()
+        previewedWorkspacePackageImportBytes += packageBytes.copyOf()
+        if (queuedWorkspacePackageImportPreviews.isNotEmpty()) {
+            val queuedPreview: QueuedWorkspacePackageImportPreview = queuedWorkspacePackageImportPreviews.removeFirst()
+            queuedPreview.gate.await()
+            return queuedPreview.preview
+        }
+        return requireNotNull(nextWorkspacePackageImportPreview) {
+            "Missing workspace package import preview test result."
+        }
     }
 
     override suspend fun confirmCurrentWorkspacePackageImport(
@@ -291,7 +332,15 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
         packageBytes: ByteArray,
         options: WorkspacePackageImportConfirmOptions
     ): WorkspacePackageImportConfirmResult {
-        throw UnsupportedOperationException()
+        confirmedWorkspacePackageImports += CapturedWorkspacePackageImportConfirm(
+            fileName = fileName,
+            packageBytes = packageBytes.copyOf(),
+            options = options
+        )
+        nextWorkspacePackageImportConfirmGate?.await()
+        return requireNotNull(nextWorkspacePackageImportConfirmResult) {
+            "Missing workspace package import confirm test result."
+        }
     }
 
     override suspend fun loadProgressSummary(timeZone: String): CloudProgressSummary {
@@ -411,6 +460,18 @@ internal class TestSettingsStringResolver : SettingsStringResolver {
             R.string.settings_server_apply_failed -> "Could not apply custom server."
             R.string.settings_server_validate_failed -> "Custom server validation failed."
             R.string.settings_server_reset_failed -> "Could not reset the official server."
+            R.string.settings_import_cloud_required -> {
+                "Media ZIP import requires a linked cloud workspace in this version."
+            }
+
+            R.string.settings_import_workspace_unavailable -> {
+                "Workspace is unavailable. Reload the current workspace and try again."
+            }
+
+            R.string.settings_import_preview_failed -> "Package preview failed."
+            R.string.settings_import_confirm_failed -> "Package import failed."
+            R.string.settings_import_preview_required -> "Preview a package before importing."
+            R.string.settings_import_missing_import_tag -> "Package preview did not include an import tag."
             R.string.settings_logout -> "Log out"
             R.string.settings_current_workspace_create_new_title -> "Create new workspace"
             R.string.settings_current_workspace_create_new_summary -> {
@@ -479,7 +540,22 @@ internal class TestSettingsStringResolver : SettingsStringResolver {
     }
 
     override fun getQuantity(pluralsResId: Int, quantity: Int, vararg formatArgs: Any): String {
-        error("Unexpected plurals resource id in CloudSignInViewModelTest: $pluralsResId")
+        val pattern = when (pluralsResId) {
+            R.plurals.settings_import_success -> {
+                if (quantity == 1) "Imported %1\$d card." else "Imported %1\$d cards."
+            }
+
+            R.plurals.settings_import_success_with_tag -> {
+                if (quantity == 1) {
+                    "Imported %1\$d card with tag %2\$s."
+                } else {
+                    "Imported %1\$d cards with tag %2\$s."
+                }
+            }
+
+            else -> error("Unexpected plurals resource id in CloudSignInViewModelTest: $pluralsResId")
+        }
+        return String.format(Locale.ENGLISH, pattern, *formatArgs)
     }
 
     override fun locale(): Locale {
