@@ -226,6 +226,73 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
         self.assertExplicitNull(key: "cursor", payload: bootstrapPullObject)
     }
 
+    func testWorkspacePackageExportRequestEncodesRequiredNullMetadataFields() throws {
+        let request = WorkspacePackageExportRequest(
+            selection: .allActiveCards,
+            tagPolicy: WorkspacePackageExportTagPolicyInput(additionalRemovedTags: ["import:2026-07-01"]),
+            packageMetadata: WorkspacePackageExportMetadataInput(
+                label: nil,
+                author: nil,
+                comment: nil,
+                createdAt: nil,
+                sourceUrl: nil
+            )
+        )
+
+        let requestObject = try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: Any]
+        )
+        let selection = try XCTUnwrap(requestObject["selection"] as? [String: Any])
+        XCTAssertEqual(selection["kind"] as? String, "allActiveCards")
+
+        let tagPolicy = try XCTUnwrap(requestObject["tagPolicy"] as? [String: Any])
+        XCTAssertEqual(tagPolicy["additionalRemovedTags"] as? [String], ["import:2026-07-01"])
+
+        let packageMetadata = try XCTUnwrap(requestObject["packageMetadata"] as? [String: Any])
+        self.assertExplicitNull(key: "label", payload: packageMetadata)
+        self.assertExplicitNull(key: "author", payload: packageMetadata)
+        self.assertExplicitNull(key: "comment", payload: packageMetadata)
+        self.assertExplicitNull(key: "createdAt", payload: packageMetadata)
+        self.assertExplicitNull(key: "sourceUrl", payload: packageMetadata)
+    }
+
+    func testWorkspacePackageExportPreviewDecodesCountsTagPolicyAndMetadata() throws {
+        let json = """
+        {
+            "selectedCardCount": 3,
+            "availableTagCounts": [
+                {"tag": "geography", "cardsCount": 2},
+                {"tag": "import:2026-07-01", "cardsCount": 1}
+            ],
+            "tagsSelectedForRemoval": [
+                {"tag": "import:2026-07-01", "cardsCount": 1}
+            ],
+            "referencedMediaCount": 2,
+            "approximateReferencedMediaBytes": 1536,
+            "defaultPackageMetadata": {
+                "label": "Workspace export",
+                "author": "Export author",
+                "comment": "Export comment",
+                "createdAt": "2026-07-01T10:00:00.000Z",
+                "sourceUrl": "https://example.com/export"
+            }
+        }
+        """
+
+        let preview = try JSONDecoder().decode(WorkspacePackageExportPreviewResponse.self, from: Data(json.utf8))
+
+        XCTAssertEqual(preview.selectedCardCount, 3)
+        XCTAssertEqual(preview.availableTagCounts.map(\.tag), ["geography", "import:2026-07-01"])
+        XCTAssertEqual(preview.tagsSelectedForRemoval.map(\.tag), ["import:2026-07-01"])
+        XCTAssertEqual(preview.referencedMediaCount, 2)
+        XCTAssertEqual(preview.approximateReferencedMediaBytes, 1536)
+        XCTAssertEqual(preview.defaultPackageMetadata.label, "Workspace export")
+        XCTAssertEqual(preview.defaultPackageMetadata.author, "Export author")
+        XCTAssertEqual(preview.defaultPackageMetadata.comment, "Export comment")
+        XCTAssertEqual(preview.defaultPackageMetadata.createdAt, "2026-07-01T10:00:00.000Z")
+        XCTAssertEqual(preview.defaultPackageMetadata.sourceUrl, "https://example.com/export")
+    }
+
     func testBootstrapPushEncodesMediaAssetMetadataAndExplicitNulls() throws {
         let mediaAsset = self.makeMediaAsset(deletedAt: nil)
         let request = BootstrapPushRequest(

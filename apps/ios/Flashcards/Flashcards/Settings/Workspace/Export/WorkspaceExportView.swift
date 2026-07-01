@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct WorkspaceExportView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
@@ -16,6 +15,8 @@ struct WorkspaceExportView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+
+            WorkspacePackageExportSection()
 
             Section(aiSettingsLocalized("settings.workspace.export.section.availableFormats", "Available Formats")) {
                 VStack(alignment: .leading, spacing: 12) {
@@ -110,16 +111,6 @@ struct WorkspaceExportView: View {
         self.exportedFileURL = nil
         return true
     }
-}
-
-private struct WorkspaceExportActivitySheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 #Preview {

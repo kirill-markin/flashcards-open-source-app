@@ -1,6 +1,6 @@
 import Foundation
 
-private struct WorkspacePackageImportCloudContext {
+private struct WorkspacePackageCloudContext {
     let session: CloudLinkedSession
     let workspaceId: String
 }
@@ -255,6 +255,73 @@ extension FlashcardsStore {
         return preview
     }
 
+    func previewCurrentWorkspacePackageExport(
+        request: WorkspacePackageExportRequest
+    ) async throws -> WorkspacePackageExportPreviewResponse {
+        let trigger = self.technicalErrorModalCloudSyncTrigger(now: Date())
+        var exportContext = try await self.prepareWorkspacePackageExportCloudContext(trigger: trigger)
+        let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+        self.syncStatus = .syncing
+
+        do {
+            let syncResult = try await self.runLinkedSyncPreservingSessionContext(linkedSession: exportContext.session)
+            try await self.applySyncResultWithoutBlockingReset(
+                syncResult: syncResult,
+                now: Date(),
+                trigger: trigger
+            )
+            exportContext = try await self.prepareWorkspacePackageExportCloudContext(trigger: trigger)
+            let preview = try await cloudSyncService.previewWorkspacePackageExport(
+                apiBaseUrl: exportContext.session.apiBaseUrl,
+                authorizationHeader: exportContext.session.authorizationHeaderValue,
+                workspaceId: exportContext.workspaceId,
+                request: request
+            )
+            self.globalErrorMessage = ""
+            return preview
+        } catch {
+            let didCapture = self.captureCloudSyncFailureIfNeeded(
+                error: error,
+                linkedSession: exportContext.session,
+                fallbackCloudState: self.cloudSettings?.cloudState,
+                trigger: trigger,
+                action: "workspace_package_export_preview"
+            )
+            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error, trigger: trigger)
+            self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            throw didCapture ? markTechnicalErrorObserved(error: error) : error
+        }
+    }
+
+    func exportCurrentWorkspacePackage(
+        request: WorkspacePackageExportRequest
+    ) async throws -> WorkspacePackageExportDownloadResponse {
+        let trigger = self.technicalErrorModalCloudSyncTrigger(now: Date())
+        let exportContext = try await self.prepareWorkspacePackageExportCloudContext(trigger: trigger)
+        let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+
+        do {
+            let response = try await cloudSyncService.exportWorkspacePackage(
+                apiBaseUrl: exportContext.session.apiBaseUrl,
+                authorizationHeader: exportContext.session.authorizationHeaderValue,
+                workspaceId: exportContext.workspaceId,
+                request: request
+            )
+            self.globalErrorMessage = ""
+            return response
+        } catch {
+            let didCapture = self.captureCloudSyncFailureIfNeeded(
+                error: error,
+                linkedSession: exportContext.session,
+                fallbackCloudState: self.cloudSettings?.cloudState,
+                trigger: trigger,
+                action: "workspace_package_export"
+            )
+            self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            throw didCapture ? markTechnicalErrorObserved(error: error) : error
+        }
+    }
+
     func previewCurrentWorkspacePackageImport(packageBytes: Data) async throws -> WorkspacePackageImportPreviewResponse {
         let trigger = self.technicalErrorModalCloudSyncTrigger(now: Date())
         let importContext = try await self.prepareWorkspacePackageImportCloudContext(trigger: trigger)
@@ -435,7 +502,7 @@ extension FlashcardsStore {
 
     private func prepareWorkspacePackageImportCloudContext(
         trigger: CloudSyncTrigger
-    ) async throws -> WorkspacePackageImportCloudContext {
+    ) async throws -> WorkspacePackageCloudContext {
         let session: CloudLinkedSession
         switch self.cloudSettings?.cloudState {
         case .linked:
@@ -464,6 +531,40 @@ extension FlashcardsStore {
             )
         }
 
-        return WorkspacePackageImportCloudContext(session: session, workspaceId: workspaceId)
+        return WorkspacePackageCloudContext(session: session, workspaceId: workspaceId)
+    }
+
+    private func prepareWorkspacePackageExportCloudContext(
+        trigger: CloudSyncTrigger
+    ) async throws -> WorkspacePackageCloudContext {
+        let session: CloudLinkedSession
+        switch self.cloudSettings?.cloudState {
+        case .linked:
+            if self.cloudRuntime.activeCloudSession() == nil {
+                try await self.restoreCloudLinkFromStoredCredentials(trigger: trigger)
+            }
+            session = try await self.withAuthenticatedCloudSession { cloudSession in
+                cloudSession
+            }
+        case .guest:
+            let restoreResult = try await self.restoreGuestCloudSessionIfNeeded(trigger: trigger)
+            session = restoreResult.session
+        case .disconnected, .linkingReady, nil:
+            throw LocalStoreError.validation(
+                aiSettingsLocalized(
+                    "settings.workspace.export.cloudRequired",
+                    "Media package export requires a cloud account in this version."
+                )
+            )
+        }
+
+        let workspaceId = try requireWorkspaceId(workspace: self.workspace)
+        guard workspaceId == session.workspaceId else {
+            throw LocalStoreError.validation(
+                "Workspace package export requires the current workspace to match the active cloud session."
+            )
+        }
+
+        return WorkspacePackageCloudContext(session: session, workspaceId: workspaceId)
     }
 }

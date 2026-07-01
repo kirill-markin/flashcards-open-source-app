@@ -1,4 +1,6 @@
 import Foundation
+import SwiftUI
+import UIKit
 
 func makeWorkspaceCardsCsv(cards: [Card]) throws -> String {
     let encoder = JSONEncoder()
@@ -85,4 +87,14 @@ private func slugifyWorkspaceExportWorkspaceName(workspaceName: String) -> Strin
     }
 
     return slug
+}
+
+struct WorkspaceExportActivitySheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
