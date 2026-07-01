@@ -6,11 +6,15 @@ import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.AuthenticatedCloudSession
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudSessionProvider
@@ -101,7 +105,8 @@ internal class CloudWorkspaceOperationsCoordinator(
     }
 
     suspend fun loadCurrentWorkspaceResetProgressPreview(): CloudWorkspaceResetProgressPreview {
-        require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
+        val cloudSettings: CloudSettings = preferencesStore.currentCloudSettings()
+        require(cloudSettings.cloudState == CloudAccountState.LINKED) {
             "Workspace progress reset is available only for linked cloud workspaces."
         }
         return operationCoordinator.runExclusive {
@@ -111,9 +116,10 @@ internal class CloudWorkspaceOperationsCoordinator(
                 preferencesStore = preferencesStore,
                 missingWorkspaceMessage = "Workspace progress reset requires a current local workspace."
             ).workspaceId
-            runLinkedWorkspaceSyncForProgressReset(
+            runLinkedWorkspaceSync(
                 authenticatedSession = authenticatedSession,
-                workspaceId = workspaceId
+                workspaceId = workspaceId,
+                cloudSettings = cloudSettings
             )
             remoteService.loadWorkspaceResetProgressPreview(
                 apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
@@ -125,7 +131,8 @@ internal class CloudWorkspaceOperationsCoordinator(
 
     suspend fun resetCurrentWorkspaceProgress(confirmationText: String): CloudWorkspaceResetProgressResult {
         return operationCoordinator.runExclusive {
-            require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
+            val cloudSettings: CloudSettings = preferencesStore.currentCloudSettings()
+            require(cloudSettings.cloudState == CloudAccountState.LINKED) {
                 "Workspace progress reset is available only for linked cloud workspaces."
             }
             val authenticatedSession: AuthenticatedCloudSession = sessionProvider.authenticatedSession()
@@ -134,9 +141,10 @@ internal class CloudWorkspaceOperationsCoordinator(
                 preferencesStore = preferencesStore,
                 missingWorkspaceMessage = "Workspace progress reset requires a current local workspace."
             ).workspaceId
-            runLinkedWorkspaceSyncForProgressReset(
+            runLinkedWorkspaceSync(
                 authenticatedSession = authenticatedSession,
-                workspaceId = currentWorkspaceId
+                workspaceId = currentWorkspaceId,
+                cloudSettings = cloudSettings
             )
             val result: CloudWorkspaceResetProgressResult = remoteService.resetWorkspaceProgress(
                 apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
@@ -144,9 +152,77 @@ internal class CloudWorkspaceOperationsCoordinator(
                 workspaceId = currentWorkspaceId,
                 confirmationText = confirmationText
             )
-            runLinkedWorkspaceSyncForProgressReset(
+            runLinkedWorkspaceSync(
                 authenticatedSession = authenticatedSession,
-                workspaceId = currentWorkspaceId
+                workspaceId = currentWorkspaceId,
+                cloudSettings = cloudSettings
+            )
+            result
+        }
+    }
+
+    suspend fun previewCurrentWorkspacePackageImport(packageBytes: ByteArray): WorkspacePackageImportPreview {
+        return operationCoordinator.runExclusive {
+            require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
+                "Workspace package import is available only for linked cloud workspaces."
+            }
+            val authenticatedSession: AuthenticatedCloudSession = sessionProvider.authenticatedSession()
+            val workspaceId: String = requireCurrentWorkspace(
+                database = database,
+                preferencesStore = preferencesStore,
+                missingWorkspaceMessage = "Workspace package import requires a current local workspace."
+            ).workspaceId
+            remoteService.previewWorkspacePackageImport(
+                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}",
+                workspaceId = workspaceId,
+                packageBytes = packageBytes
+            )
+        }
+    }
+
+    suspend fun confirmCurrentWorkspacePackageImport(
+        fileName: String,
+        packageBytes: ByteArray,
+        options: WorkspacePackageImportConfirmOptions
+    ): WorkspacePackageImportConfirmResult {
+        return operationCoordinator.runExclusive {
+            val cloudSettings: CloudSettings = preferencesStore.currentCloudSettings()
+            require(cloudSettings.cloudState == CloudAccountState.LINKED) {
+                "Workspace package import is available only for linked cloud workspaces."
+            }
+            val trimmedFileName = fileName.trim()
+            require(trimmedFileName.isNotEmpty()) {
+                "Workspace package import requires a selected ZIP file name."
+            }
+            val authenticatedSession: AuthenticatedCloudSession = sessionProvider.authenticatedSession()
+            val workspaceId: String = requireCurrentWorkspace(
+                database = database,
+                preferencesStore = preferencesStore,
+                missingWorkspaceMessage = "Workspace package import requires a current local workspace."
+            ).workspaceId
+            runLinkedWorkspaceSync(
+                authenticatedSession = authenticatedSession,
+                workspaceId = workspaceId,
+                cloudSettings = cloudSettings
+            )
+            val lastModifiedByReplicaId: String = buildClientWorkspaceReplicaId(
+                workspaceId = workspaceId,
+                installationId = cloudSettings.installationId
+            )
+            val result: WorkspacePackageImportConfirmResult = remoteService.confirmWorkspacePackageImport(
+                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}",
+                workspaceId = workspaceId,
+                fileName = trimmedFileName,
+                packageBytes = packageBytes,
+                lastModifiedByReplicaId = lastModifiedByReplicaId,
+                options = options
+            )
+            runLinkedWorkspaceSync(
+                authenticatedSession = authenticatedSession,
+                workspaceId = workspaceId,
+                cloudSettings = cloudSettings
             )
             result
         }
@@ -160,12 +236,13 @@ internal class CloudWorkspaceOperationsCoordinator(
         )
     }
 
-    private suspend fun runLinkedWorkspaceSyncForProgressReset(
+    private suspend fun runLinkedWorkspaceSync(
         authenticatedSession: AuthenticatedCloudSession,
-        workspaceId: String
+        workspaceId: String,
+        cloudSettings: CloudSettings
     ) {
         runCloudSyncCore(
-            cloudSettings = preferencesStore.currentCloudSettings(),
+            cloudSettings = cloudSettings,
             workspaceId = workspaceId,
             syncSession = CloudSyncSession(
                 apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,

@@ -33,6 +33,9 @@ import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import java.util.Locale
@@ -276,6 +279,18 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     }
 
     override suspend fun resetCurrentWorkspaceProgress(confirmationText: String): CloudWorkspaceResetProgressResult {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun previewCurrentWorkspacePackageImport(packageBytes: ByteArray): WorkspacePackageImportPreview {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun confirmCurrentWorkspacePackageImport(
+        fileName: String,
+        packageBytes: ByteArray,
+        options: WorkspacePackageImportConfirmOptions
+    ): WorkspacePackageImportConfirmResult {
         throw UnsupportedOperationException()
     }
 

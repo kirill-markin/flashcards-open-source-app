@@ -38,6 +38,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetPro
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
 import kotlinx.coroutines.CompletableDeferred
 import org.json.JSONObject
 
@@ -546,6 +549,27 @@ internal class FakeCloudRemoteGateway private constructor(
         workspaceId: String,
         confirmationText: String
     ): CloudWorkspaceResetProgressResult {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun previewWorkspacePackageImport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        packageBytes: ByteArray
+    ): WorkspacePackageImportPreview {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun confirmWorkspacePackageImport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        fileName: String,
+        packageBytes: ByteArray,
+        lastModifiedByReplicaId: String,
+        options: WorkspacePackageImportConfirmOptions
+    ): WorkspacePackageImportConfirmResult {
         throw UnsupportedOperationException()
     }
 

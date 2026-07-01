@@ -78,6 +78,20 @@ internal fun buildMediaAssetDownloadUrlCloudPath(
         "/media-assets/${encodeCloudPathSegment(value = mediaAssetId)}/download-url"
 }
 
+internal fun buildWorkspacePackageImportPreviewCloudPath(workspaceId: String): String {
+    require(workspaceId.isNotBlank()) {
+        "Workspace package import preview path requires a workspace id."
+    }
+    return "/workspaces/${encodeCloudPathSegment(value = workspaceId)}/packages/import/preview"
+}
+
+internal fun buildWorkspacePackageImportCloudPath(workspaceId: String): String {
+    require(workspaceId.isNotBlank()) {
+        "Workspace package import path requires a workspace id."
+    }
+    return "/workspaces/${encodeCloudPathSegment(value = workspaceId)}/packages/import"
+}
+
 private fun encodeCloudQueryValue(value: String): String {
     return URLEncoder.encode(value, StandardCharsets.UTF_8)
 }
