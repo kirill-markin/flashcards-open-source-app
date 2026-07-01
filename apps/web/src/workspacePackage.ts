@@ -4,7 +4,7 @@ import {
   normalizeCardType,
   normalizeTagKey,
 } from "./appData/domain";
-import type { Card, CardMetadata, CardSourceMetadata } from "./types";
+import type { CardMetadata, CardSourceMetadata } from "./types";
 
 const packageCardsJsonFilename = "cards.json";
 const unsupportedAssetReferencePrefix = "fcasset:";
@@ -156,21 +156,6 @@ export function validateFlashcardsPackage(value: unknown): FlashcardsPackageV1 {
   return {
     formatVersion: 1,
     cards: record.cards.map(validateFlashcardsPackageCard),
-  };
-}
-
-export function createFlashcardsPackage(
-  cards: ReadonlyArray<Pick<Card, "frontText" | "backText" | "tags" | "cardType" | "metadata">>,
-): FlashcardsPackageV1 {
-  return {
-    formatVersion: 1,
-    cards: cards.map((card) => ({
-      frontText: card.frontText,
-      backText: card.backText,
-      tags: card.tags,
-      cardType: card.cardType,
-      metadata: card.metadata,
-    })),
   };
 }
 
