@@ -99,6 +99,7 @@ fun SettingsRoute(
     onOpenAccess: () -> Unit,
     onOpenDecks: () -> Unit,
     onOpenTags: () -> Unit,
+    onOpenImport: () -> Unit,
     onOpenExport: () -> Unit,
     onOpenFeedback: () -> Unit,
     onOpenLegal: () -> Unit,
@@ -270,6 +271,16 @@ fun SettingsRoute(
                     attentionCount = null,
                     testTag = settingsTagsRowTag,
                     onClick = onOpenTags
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_import_title),
+                    summary = stringResource(R.string.settings_import_zip_summary),
+                    attentionCount = null,
+                    testTag = settingsImportRowTag,
+                    onClick = onOpenImport
                 )
             }
 

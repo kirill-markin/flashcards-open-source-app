@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -57,6 +58,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsDecksRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteAccountRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeviceDiagnosticsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsImportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsRootScreenTag
 import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
@@ -69,6 +71,8 @@ import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerSaveButto
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceNameTag
 import com.flashcardsopensourceapp.feature.settings.workspace.export.workspaceExportCsvButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspace.export.workspaceExportScreenTag
+import com.flashcardsopensourceapp.feature.settings.workspaceImportChooseFileButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspaceImportScreenTag
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagCardsCountTag
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagRowTag
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagsSearchFieldTag
@@ -457,6 +461,16 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         waitForTagToExist(tag = workspaceExportCsvButtonTag)
         waitForTextToExist(text = settingsString(SettingsR.string.settings_export_csv_title))
         waitForTextToExist(text = settingsString(SettingsR.string.settings_export_csv_summary))
+    }
+
+    @Test
+    fun workspaceImportShowsCloudRequiredStateFromEmptyState() {
+        waitForCardsEmptyState()
+
+        openSettingsRow(rowTag = settingsImportRowTag, destinationTag = workspaceImportScreenTag)
+        waitForTagToExist(tag = workspaceImportChooseFileButtonTag)
+        composeRule.onNodeWithTag(workspaceImportChooseFileButtonTag).assertIsNotEnabled()
+        waitForTextToExist(text = settingsString(SettingsR.string.settings_import_cloud_required))
     }
 
     @Test

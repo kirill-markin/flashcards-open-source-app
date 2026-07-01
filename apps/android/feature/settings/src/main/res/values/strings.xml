@@ -454,6 +454,16 @@
     <string name="settings_export_csv_header_back">backText</string>
     <string name="settings_export_csv_header_tags">tags</string>
 
+    <string name="settings_import_title">Import</string>
+    <string name="settings_import_zip_summary">Import a Flashcards ZIP package</string>
+    <string name="settings_import_package_section">Package</string>
+    <string name="settings_import_package_body">Choose a portable Flashcards ZIP package to preview before importing.</string>
+    <string name="settings_import_choose_package">Choose ZIP package</string>
+    <string name="settings_import_previewing">Previewing...</string>
+    <string name="settings_import_importing">Importing...</string>
+    <string name="settings_import_confirm_button">Import package</string>
+    <string name="settings_import_dismiss_error">Dismiss error</string>
+    <string name="settings_import_selected_file">File: %1$s</string>
     <string name="settings_import_cloud_required">Media ZIP import requires a linked cloud workspace in this version.</string>
     <string name="settings_import_workspace_unavailable">Workspace is unavailable. Reload the current workspace and try again.</string>
     <string name="settings_import_invalid_file">Choose a Flashcards ZIP package.</string>
@@ -465,6 +475,29 @@
     <string name="settings_import_confirm_failed">Package import failed.</string>
     <string name="settings_import_preview_required">Preview a package before importing.</string>
     <string name="settings_import_missing_import_tag">Package preview did not include an import tag.</string>
+    <string name="settings_import_source_section">Source</string>
+    <string name="settings_import_source_kind">Type</string>
+    <string name="settings_import_source_title">Title</string>
+    <string name="settings_import_source_zip">ZIP package</string>
+    <string name="settings_import_metadata_section">Metadata</string>
+    <string name="settings_import_metadata_label">Label</string>
+    <string name="settings_import_metadata_author">Author</string>
+    <string name="settings_import_metadata_created">Created</string>
+    <string name="settings_import_metadata_source_url">Source URL</string>
+    <string name="settings_import_metadata_comment">Comment</string>
+    <string name="settings_import_metadata_empty">No package metadata.</string>
+    <string name="settings_import_contents_section">Contents</string>
+    <string name="settings_import_cards">Cards</string>
+    <string name="settings_import_referenced_media">Referenced media</string>
+    <string name="settings_import_package_media">Package media files</string>
+    <string name="settings_import_options_section">Options</string>
+    <string name="settings_import_add_import_tag">Add import tag</string>
+    <string name="settings_import_add_import_tag_body">Adds a unique import tag to this package import.</string>
+    <string name="settings_import_import_tag">Import tag</string>
+    <string name="settings_import_keep_tag">Keep %1$s</string>
+    <string name="settings_import_warnings_section">Warnings</string>
+    <string name="settings_import_warnings_empty">No warnings.</string>
+    <string name="settings_import_warning_with_path">%1$s: %2$s</string>
 
     <string name="settings_device_title">Device</string>
     <string name="settings_device_workspace_name_label">Workspace name</string>
