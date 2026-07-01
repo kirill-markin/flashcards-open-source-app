@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import test from "node:test";
-import type { Card } from "../cards";
+import type { Card } from "../../cards";
 import {
   imageJpegCardMediaBlobMimeType,
   type MediaAsset,
-} from "../mediaAssets/types";
-import type { BackendObservationScope } from "../observability/sentry";
-import { HttpError } from "../shared/errors";
+} from "../../mediaAssets/types";
+import type { BackendObservationScope } from "../../observability/sentry";
+import { HttpError } from "../../shared/errors";
 import {
   confirmWorkspacePackageImportWithDependencies,
   type WorkspacePackageImportConfirmDependencies,
@@ -23,7 +23,7 @@ import {
   type WorkspacePackageImportPlanInput,
   type WorkspacePackageImportReferencedMediaFile,
   type WorkspacePackageImportReferencedMediaInput,
-} from "./index";
+} from "../index";
 import { validateWorkspacePackageImportPlanPreflight } from "./importPlan";
 
 const testUserId = "user-1";

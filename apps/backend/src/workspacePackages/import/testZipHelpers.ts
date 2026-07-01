@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import { deflateRawSync } from "node:zlib";
 import type {
   WorkspacePackageCardsJsonV1,
-} from "./types";
+} from "../types";
 
 export type TestZipEntry = Readonly<{
   path: string;

@@ -5,17 +5,17 @@ import {
   type Entry as ZipEntry,
   type ZipFile,
 } from "yauzl";
-import { HttpError } from "../shared/errors";
+import { HttpError } from "../../shared/errors";
 import {
   extractMarkdownPortableMediaPaths,
   validatePortableMediaPath,
   validateUniquePortableMediaPaths,
-} from "./markdownMedia";
+} from "../markdownMedia";
 import {
   parseWorkspacePackageCardsJsonV1,
   type PortableWorkspacePackageCardV1,
   type WorkspacePackageCardsJsonV1,
-} from "./types";
+} from "../types";
 
 export const workspacePackageImportZipDefaultMaxZipBytes = 80 * 1024 * 1024;
 export const workspacePackageImportZipDefaultMaxEntries = 10_001;

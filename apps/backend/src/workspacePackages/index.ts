@@ -40,28 +40,28 @@ export {
   workspacePackageImportPreviewDefaultMaxSingleMediaBytes,
   workspacePackageImportPreviewDefaultMaxTotalMediaBytes,
   workspacePackageImportPreviewDefaultMaxZipBytes,
-} from "./importPreview";
+} from "./import/importPreview";
 
 export {
   loadWorkspacePackageImportReferencedMedia,
   loadWorkspacePackageImportReferencedMediaWithLimits,
-} from "./importMedia";
+} from "./import/importMedia";
 
 export {
   ingestWorkspacePackageImportMediaAssets,
-} from "./importMediaAssets";
+} from "./import/importMediaAssets";
 
 export {
   persistWorkspacePackageImportCards,
-} from "./importCards";
+} from "./import/importCards";
 
 export {
   planWorkspacePackageImport,
-} from "./importPlan";
+} from "./import/importPlan";
 
 export {
   confirmWorkspacePackageImport,
-} from "./importConfirm";
+} from "./import/importConfirm";
 
 export type {
   WorkspacePackageExportCardSelection,
@@ -89,26 +89,26 @@ export type {
   WorkspacePackageImportPreviewWarning,
   WorkspacePackageImportTagPolicy,
   WorkspacePackageImportTagPolicyInput,
-} from "./importPreview";
+} from "./import/importPreview";
 
 export type {
   WorkspacePackageImportReferencedMediaFile,
   WorkspacePackageImportReferencedMediaInput,
   WorkspacePackageImportReferencedMediaLimits,
   WorkspacePackageImportReferencedMediaLoadResult,
-} from "./importMedia";
+} from "./import/importMedia";
 
 export type {
   WorkspacePackageImportedMediaAsset,
   WorkspacePackageImportMediaAssetIngestionInput,
   WorkspacePackageImportMediaAssetIngestionResult,
-} from "./importMediaAssets";
+} from "./import/importMediaAssets";
 
 export type {
   WorkspacePackageImportCardPersistenceInput,
   WorkspacePackageImportCardPersistenceResult,
   WorkspacePackageImportCardPersistenceSummary,
-} from "./importCards";
+} from "./import/importCards";
 
 export type {
   WorkspacePackageImportPlan,
@@ -116,13 +116,13 @@ export type {
   WorkspacePackageImportPlanOptions,
   WorkspacePackageImportPlanSummary,
   WorkspacePackageImportPlannedCard,
-} from "./importPlan";
+} from "./import/importPlan";
 
 export type {
   WorkspacePackageImportConfirmInput,
   WorkspacePackageImportConfirmResult,
   WorkspacePackageImportConfirmSummary,
-} from "./importConfirm";
+} from "./import/importConfirm";
 
 export {
   normalizeWorkspacePackageCardMetadataV1,

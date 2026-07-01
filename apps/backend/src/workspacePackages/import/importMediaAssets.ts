@@ -3,11 +3,11 @@ import {
   ingestImageMediaAsset,
   type ImageMediaAssetIngestionInput,
   type ImageMediaAssetIngestionResult,
-} from "../mediaAssets/ingestion";
-import type { MediaAsset } from "../mediaAssets/types";
-import type { BackendObservationScope } from "../observability/sentry";
-import { HttpError } from "../shared/errors";
-import { validateUniquePortableMediaPaths } from "./markdownMedia";
+} from "../../mediaAssets/ingestion";
+import type { MediaAsset } from "../../mediaAssets/types";
+import type { BackendObservationScope } from "../../observability/sentry";
+import { HttpError } from "../../shared/errors";
+import { validateUniquePortableMediaPaths } from "../markdownMedia";
 import type { WorkspacePackageImportReferencedMediaFile } from "./importMedia";
 
 export type WorkspacePackageImportMediaAssetIngestionInput = Readonly<{
