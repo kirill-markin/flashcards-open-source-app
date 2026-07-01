@@ -62,6 +62,8 @@ import com.flashcardsopensourceapp.feature.settings.settingsImportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsRootScreenTag
 import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
+import com.flashcardsopensourceapp.feature.settings.workspaceExportCsvButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspaceExportScreenTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerApplyButtonTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerDesiredRetentionFieldTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerLearningStepsFieldTag
@@ -69,8 +71,6 @@ import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerMaximumIn
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerRelearningStepsFieldTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerSaveButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceNameTag
-import com.flashcardsopensourceapp.feature.settings.workspace.export.workspaceExportCsvButtonTag
-import com.flashcardsopensourceapp.feature.settings.workspace.export.workspaceExportScreenTag
 import com.flashcardsopensourceapp.feature.settings.workspaceImportChooseFileButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspaceImportScreenTag
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagCardsCountTag

@@ -101,6 +101,11 @@ internal data class CapturedWorkspacePackageImportConfirm(
     val options: WorkspacePackageImportConfirmOptions
 )
 
+internal data class QueuedWorkspacePackageExportPreview(
+    val gate: CompletableDeferred<Unit>,
+    val preview: WorkspacePackageExportPreview
+)
+
 internal data class QueuedWorkspacePackageImportPreview(
     val gate: CompletableDeferred<Unit>,
     val preview: WorkspacePackageImportPreview
@@ -128,15 +133,20 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     private val completeCloudLinkErrors = ArrayDeque<Exception>()
     private val completeCloudLinkResults = ArrayDeque<CompletableDeferred<CloudWorkspaceSummary>>()
     private val preparedLinkContexts = mutableMapOf<String, CompletableDeferred<CloudWorkspaceLinkContext>>()
+    private val queuedWorkspacePackageExportPreviews = ArrayDeque<QueuedWorkspacePackageExportPreview>()
     private val queuedWorkspacePackageImportPreviews = ArrayDeque<QueuedWorkspacePackageImportPreview>()
     val completeCloudLinkSelections = mutableListOf<CloudWorkspaceLinkSelection>()
     val validatedCustomOrigins = mutableListOf<String>()
     val appliedCustomServerConfigurations = mutableListOf<CloudServiceConfiguration>()
+    val previewedWorkspacePackageExportRequests = mutableListOf<WorkspacePackageExportRequest>()
+    val exportedWorkspacePackageRequests = mutableListOf<WorkspacePackageExportRequest>()
     val previewedWorkspacePackageImportBytes = mutableListOf<ByteArray>()
     val confirmedWorkspacePackageImports = mutableListOf<CapturedWorkspacePackageImportConfirm>()
     var validateCustomServerError: Exception? = null
     var applyCustomServerError: Exception? = null
     var nextValidatedCustomServerConfiguration: CloudServiceConfiguration? = null
+    var nextWorkspacePackageExportPreview: WorkspacePackageExportPreview? = null
+    var nextWorkspacePackageExportDownloadResponse: WorkspacePackageExportDownloadResponse? = null
     var nextWorkspacePackageImportPreview: WorkspacePackageImportPreview? = null
     var nextWorkspacePackageImportConfirmGate: CompletableDeferred<Unit>? = null
     var nextWorkspacePackageImportConfirmResult: WorkspacePackageImportConfirmResult? = null
@@ -174,6 +184,18 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
         result: CompletableDeferred<CloudWorkspaceLinkContext>
     ) {
         preparedLinkContexts[idToken] = result
+    }
+
+    fun enqueueWorkspacePackageExportPreview(
+        gate: CompletableDeferred<Unit>,
+        preview: WorkspacePackageExportPreview
+    ) {
+        queuedWorkspacePackageExportPreviews.addLast(
+            QueuedWorkspacePackageExportPreview(
+                gate = gate,
+                preview = preview
+            )
+        )
     }
 
     fun enqueueWorkspacePackageImportPreview(
@@ -321,13 +343,24 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     override suspend fun previewCurrentWorkspacePackageExport(
         request: WorkspacePackageExportRequest
     ): WorkspacePackageExportPreview {
-        throw UnsupportedOperationException()
+        previewedWorkspacePackageExportRequests += request
+        if (queuedWorkspacePackageExportPreviews.isNotEmpty()) {
+            val queuedPreview: QueuedWorkspacePackageExportPreview = queuedWorkspacePackageExportPreviews.removeFirst()
+            queuedPreview.gate.await()
+            return queuedPreview.preview
+        }
+        return requireNotNull(nextWorkspacePackageExportPreview) {
+            "Missing workspace package export preview test result."
+        }
     }
 
     override suspend fun exportCurrentWorkspacePackage(
         request: WorkspacePackageExportRequest
     ): WorkspacePackageExportDownloadResponse {
-        throw UnsupportedOperationException()
+        exportedWorkspacePackageRequests += request
+        return requireNotNull(nextWorkspacePackageExportDownloadResponse) {
+            "Missing workspace package export download test result."
+        }
     }
 
     override suspend fun previewCurrentWorkspacePackageImport(packageBytes: ByteArray): WorkspacePackageImportPreview {
@@ -487,6 +520,19 @@ internal class TestSettingsStringResolver : SettingsStringResolver {
             R.string.settings_import_confirm_failed -> "Package import failed."
             R.string.settings_import_preview_required -> "Preview a package before importing."
             R.string.settings_import_missing_import_tag -> "Package preview did not include an import tag."
+            R.string.settings_export_package_cloud_required -> {
+                "Media ZIP export requires a linked cloud workspace in this version."
+            }
+
+            R.string.settings_export_package_workspace_unavailable -> {
+                "Workspace is unavailable. Reload the current workspace and try again."
+            }
+
+            R.string.settings_export_package_preview_failed -> "Package export preview failed."
+            R.string.settings_export_package_download_failed -> "Package export failed."
+            R.string.settings_export_package_preview_required -> "Preview this package export before saving."
+            R.string.settings_export_unavailable -> "Workspace export is unavailable."
+            R.string.settings_export_prepare_failed -> "Android export could not be prepared."
             R.string.settings_logout -> "Log out"
             R.string.settings_current_workspace_create_new_title -> "Create new workspace"
             R.string.settings_current_workspace_create_new_summary -> {
