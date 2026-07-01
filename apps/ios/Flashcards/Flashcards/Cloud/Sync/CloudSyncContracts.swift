@@ -57,6 +57,213 @@ struct UpdateAccountPreferencesResponse: Decodable {
     let preferences: AccountPreferences
 }
 
+enum WorkspacePackageImportSourceKind: String, Codable, Hashable, Sendable {
+    case zip
+}
+
+struct WorkspacePackageImportPreviewMetadata: Codable, Hashable, Sendable {
+    let label: String?
+    let author: String?
+    let comment: String?
+    let createdAt: String?
+    let sourceUrl: String?
+}
+
+private func decodeNonNegativeWorkspacePackageImportInt<Key: CodingKey>(
+    from container: KeyedDecodingContainer<Key>,
+    forKey key: Key
+) throws -> Int {
+    let value = try container.decode(Int.self, forKey: key)
+    guard value >= 0 else {
+        throw DecodingError.dataCorruptedError(
+            forKey: key,
+            in: container,
+            debugDescription: "\(key.stringValue) must be non-negative"
+        )
+    }
+
+    return value
+}
+
+struct WorkspacePackageImportTagCount: Codable, Hashable, Identifiable, Sendable {
+    let tag: String
+    let cardsCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case tag
+        case cardsCount
+    }
+
+    var id: String {
+        tag
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.tag = try container.decode(String.self, forKey: .tag)
+        self.cardsCount = try decodeNonNegativeWorkspacePackageImportInt(from: container, forKey: .cardsCount)
+    }
+}
+
+struct WorkspacePackageImportWarning: Codable, Hashable, Identifiable, Sendable {
+    let code: String
+    let message: String
+    let mediaPath: String
+
+    var id: String {
+        "\(code):\(mediaPath):\(message)"
+    }
+}
+
+struct WorkspacePackageImportDefaultOptions: Codable, Hashable, Sendable {
+    let addImportTag: Bool
+    let suggestedImportTag: String
+    let keptTags: [String]
+    let removedTags: [String]
+}
+
+struct WorkspacePackageImportPreviewResponse: Codable, Hashable, Sendable {
+    let sourceKind: WorkspacePackageImportSourceKind
+    let packageMetadata: WorkspacePackageImportPreviewMetadata
+    let cardCount: Int
+    let tagCounts: [WorkspacePackageImportTagCount]
+    let referencedMediaCount: Int
+    let packageMediaFileCount: Int
+    let warnings: [WorkspacePackageImportWarning]
+    let defaultOptions: WorkspacePackageImportDefaultOptions
+
+    enum CodingKeys: String, CodingKey {
+        case sourceKind
+        case packageMetadata
+        case cardCount
+        case tagCounts
+        case referencedMediaCount
+        case packageMediaFileCount
+        case warnings
+        case defaultOptions
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.sourceKind = try container.decode(WorkspacePackageImportSourceKind.self, forKey: .sourceKind)
+        self.packageMetadata = try container.decode(
+            WorkspacePackageImportPreviewMetadata.self,
+            forKey: .packageMetadata
+        )
+        self.cardCount = try decodeNonNegativeWorkspacePackageImportInt(from: container, forKey: .cardCount)
+        self.tagCounts = try container.decode([WorkspacePackageImportTagCount].self, forKey: .tagCounts)
+        self.referencedMediaCount = try decodeNonNegativeWorkspacePackageImportInt(
+            from: container,
+            forKey: .referencedMediaCount
+        )
+        self.packageMediaFileCount = try decodeNonNegativeWorkspacePackageImportInt(
+            from: container,
+            forKey: .packageMediaFileCount
+        )
+        self.warnings = try container.decode([WorkspacePackageImportWarning].self, forKey: .warnings)
+        self.defaultOptions = try container.decode(
+            WorkspacePackageImportDefaultOptions.self,
+            forKey: .defaultOptions
+        )
+    }
+}
+
+struct WorkspacePackageImportConfirmOptions: Codable, Hashable, Sendable {
+    let addImportTag: Bool
+    let importTag: String
+    let removeTags: [String]
+    let importedAt: String
+    let importId: String
+    let clientUpdatedAt: String
+    let lastModifiedByReplicaId: String
+    let operationIdPrefix: String
+}
+
+struct WorkspacePackageImportedCard: Codable, Hashable, Sendable {
+    let cardId: String
+    let frontText: String
+    let backText: String
+    let cardType: String
+    let metadata: CardMetadata
+    let tags: [String]
+    let dueAt: String?
+    let createdAt: String
+    let reps: Int
+    let lapses: Int
+    let fsrsCardState: FsrsCardState
+    let fsrsStepIndex: Int?
+    let fsrsStability: Double?
+    let fsrsDifficulty: Double?
+    let fsrsLastReviewedAt: String?
+    let fsrsScheduledDays: Int?
+    let clientUpdatedAt: String
+    let lastModifiedByReplicaId: String
+    let lastOperationId: String
+    let updatedAt: String
+    let deletedAt: String?
+}
+
+struct WorkspacePackageImportedMediaAsset: Codable, Hashable, Sendable {
+    let portablePath: String
+    let mediaAsset: MediaAsset
+    let applied: Bool
+}
+
+struct WorkspacePackageImportConfirmSummary: Codable, Hashable, Sendable {
+    let cardCount: Int
+    let cardBatchCount: Int
+    let referencedMediaCount: Int
+    let importedMediaAssetCount: Int
+    let appliedMediaAssetCount: Int
+    let keptTagCount: Int
+    let removedTagCount: Int
+    let importTag: String?
+
+    enum CodingKeys: String, CodingKey {
+        case cardCount
+        case cardBatchCount
+        case referencedMediaCount
+        case importedMediaAssetCount
+        case appliedMediaAssetCount
+        case keptTagCount
+        case removedTagCount
+        case importTag
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.cardCount = try decodeNonNegativeWorkspacePackageImportInt(from: container, forKey: .cardCount)
+        self.cardBatchCount = try decodeNonNegativeWorkspacePackageImportInt(
+            from: container,
+            forKey: .cardBatchCount
+        )
+        self.referencedMediaCount = try decodeNonNegativeWorkspacePackageImportInt(
+            from: container,
+            forKey: .referencedMediaCount
+        )
+        self.importedMediaAssetCount = try decodeNonNegativeWorkspacePackageImportInt(
+            from: container,
+            forKey: .importedMediaAssetCount
+        )
+        self.appliedMediaAssetCount = try decodeNonNegativeWorkspacePackageImportInt(
+            from: container,
+            forKey: .appliedMediaAssetCount
+        )
+        self.keptTagCount = try decodeNonNegativeWorkspacePackageImportInt(from: container, forKey: .keptTagCount)
+        self.removedTagCount = try decodeNonNegativeWorkspacePackageImportInt(
+            from: container,
+            forKey: .removedTagCount
+        )
+        self.importTag = try container.decodeIfPresent(String.self, forKey: .importTag)
+    }
+}
+
+struct WorkspacePackageImportConfirmResponse: Codable, Hashable, Sendable {
+    let cards: [WorkspacePackageImportedCard]
+    let importedMediaAssets: [WorkspacePackageImportedMediaAsset]
+    let summary: WorkspacePackageImportConfirmSummary
+}
+
 /// Wire contract for `POST /sync/push`.
 ///
 /// Keep this request aligned with `apps/backend/src/sync/contracts/input.ts`

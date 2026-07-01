@@ -259,6 +259,36 @@ final class CloudSyncService: @unchecked Sendable {
         )
     }
 
+    func previewWorkspacePackageImport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        packageBytes: Data
+    ) async throws -> WorkspacePackageImportPreviewResponse {
+        try await self.transport.previewWorkspacePackageImport(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            workspaceId: workspaceId,
+            packageBytes: packageBytes
+        )
+    }
+
+    func confirmWorkspacePackageImport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        packageBytes: Data,
+        options: WorkspacePackageImportConfirmOptions
+    ) async throws -> WorkspacePackageImportConfirmResponse {
+        try await self.transport.confirmWorkspacePackageImport(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            workspaceId: workspaceId,
+            packageBytes: packageBytes,
+            options: options
+        )
+    }
+
     func loadCommunityPublicProfile(
         apiBaseUrl: String,
         authorizationHeader: String

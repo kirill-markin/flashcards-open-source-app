@@ -1,5 +1,10 @@
 import Foundation
 
+private struct WorkspacePackageImportCloudContext {
+    let session: CloudLinkedSession
+    let workspaceId: String
+}
+
 @MainActor
 extension FlashcardsStore {
     func workspaceOperationGuidanceMessage(error: Error) -> String? {
@@ -250,6 +255,69 @@ extension FlashcardsStore {
         return preview
     }
 
+    func previewCurrentWorkspacePackageImport(packageBytes: Data) async throws -> WorkspacePackageImportPreviewResponse {
+        let trigger = self.technicalErrorModalCloudSyncTrigger(now: Date())
+        let importContext = try await self.prepareWorkspacePackageImportCloudContext(trigger: trigger)
+        let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+        return try await cloudSyncService.previewWorkspacePackageImport(
+            apiBaseUrl: importContext.session.apiBaseUrl,
+            authorizationHeader: importContext.session.authorizationHeaderValue,
+            workspaceId: importContext.workspaceId,
+            packageBytes: packageBytes
+        )
+    }
+
+    func confirmCurrentWorkspacePackageImport(
+        packageBytes: Data,
+        options: WorkspacePackageImportConfirmOptions
+    ) async throws -> WorkspacePackageImportConfirmResponse {
+        let trigger = self.technicalErrorModalCloudSyncTrigger(now: Date())
+        var importContext = try await self.prepareWorkspacePackageImportCloudContext(trigger: trigger)
+        let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+        self.syncStatus = .syncing
+
+        do {
+            let preConfirmSyncResult = try await self.runLinkedSyncPreservingSessionContext(
+                linkedSession: importContext.session
+            )
+            try await self.applySyncResultWithoutBlockingReset(
+                syncResult: preConfirmSyncResult,
+                now: Date(),
+                trigger: trigger
+            )
+            importContext = try await self.prepareWorkspacePackageImportCloudContext(trigger: trigger)
+            self.syncStatus = .syncing
+
+            let response = try await cloudSyncService.confirmWorkspacePackageImport(
+                apiBaseUrl: importContext.session.apiBaseUrl,
+                authorizationHeader: importContext.session.authorizationHeaderValue,
+                workspaceId: importContext.workspaceId,
+                packageBytes: packageBytes,
+                options: options
+            )
+            let postConfirmSyncResult = try await self.runLinkedSyncPreservingSessionContext(
+                linkedSession: importContext.session
+            )
+            try await self.applySyncResultWithoutBlockingReset(
+                syncResult: postConfirmSyncResult,
+                now: Date(),
+                trigger: trigger
+            )
+            return response
+        } catch {
+            let didCapture = self.captureCloudSyncFailureIfNeeded(
+                error: error,
+                linkedSession: importContext.session,
+                fallbackCloudState: self.cloudSettings?.cloudState,
+                trigger: trigger,
+                action: "workspace_package_import"
+            )
+            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error, trigger: trigger)
+            self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            throw didCapture ? markTechnicalErrorObserved(error: error) : error
+        }
+    }
+
     func deleteCurrentWorkspace(confirmationText: String) async throws {
         guard self.cloudSettings?.cloudState == .linked else {
             throw LocalStoreError.validation("Workspace deletion is available only for linked cloud workspaces")
@@ -363,5 +431,39 @@ extension FlashcardsStore {
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
             throw didCapture ? markTechnicalErrorObserved(error: error) : error
         }
+    }
+
+    private func prepareWorkspacePackageImportCloudContext(
+        trigger: CloudSyncTrigger
+    ) async throws -> WorkspacePackageImportCloudContext {
+        let session: CloudLinkedSession
+        switch self.cloudSettings?.cloudState {
+        case .linked:
+            if self.cloudRuntime.activeCloudSession() == nil {
+                try await self.restoreCloudLinkFromStoredCredentials(trigger: trigger)
+            }
+            session = try await self.withAuthenticatedCloudSession { cloudSession in
+                cloudSession
+            }
+        case .guest:
+            let restoreResult = try await self.restoreGuestCloudSessionIfNeeded(trigger: trigger)
+            session = restoreResult.session
+        case .disconnected, .linkingReady, nil:
+            throw LocalStoreError.validation(
+                aiSettingsLocalized(
+                    "settings.workspace.import.cloudRequired",
+                    "Media ZIP import requires a cloud account in this version."
+                )
+            )
+        }
+
+        let workspaceId = try requireWorkspaceId(workspace: self.workspace)
+        guard workspaceId == session.workspaceId else {
+            throw LocalStoreError.validation(
+                "Workspace package import requires the current workspace to match the active cloud session."
+            )
+        }
+
+        return WorkspacePackageImportCloudContext(session: session, workspaceId: workspaceId)
     }
 }

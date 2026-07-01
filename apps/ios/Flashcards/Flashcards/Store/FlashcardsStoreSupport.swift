@@ -138,6 +138,19 @@ protocol CloudSyncServing {
         workspaceId: String,
         mediaAssetId: String
     ) async throws -> MediaAssetDownloadURLResponse
+    func previewWorkspacePackageImport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        packageBytes: Data
+    ) async throws -> WorkspacePackageImportPreviewResponse
+    func confirmWorkspacePackageImport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        packageBytes: Data,
+        options: WorkspacePackageImportConfirmOptions
+    ) async throws -> WorkspacePackageImportConfirmResponse
 }
 
 @MainActor
@@ -186,6 +199,34 @@ extension CloudSyncServing {
         _ = workspaceId
         _ = mediaAssetId
         throw LocalStoreError.validation("Media asset download URL loading is unavailable")
+    }
+
+    func previewWorkspacePackageImport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        packageBytes: Data
+    ) async throws -> WorkspacePackageImportPreviewResponse {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        _ = workspaceId
+        _ = packageBytes
+        throw LocalStoreError.validation("Workspace package import preview is unavailable")
+    }
+
+    func confirmWorkspacePackageImport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        packageBytes: Data,
+        options: WorkspacePackageImportConfirmOptions
+    ) async throws -> WorkspacePackageImportConfirmResponse {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        _ = workspaceId
+        _ = packageBytes
+        _ = options
+        throw LocalStoreError.validation("Workspace package import is unavailable")
     }
 
     func createFriendInvitation(
