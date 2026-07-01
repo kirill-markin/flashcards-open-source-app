@@ -150,6 +150,20 @@ private val expectedCloudHttpFailureCodes: Set<String> = setOf(
     "WORKSPACE_ID_REQUIRED",
     "WORKSPACE_NOT_FOUND",
     "WORKSPACE_OWNER_REQUIRED",
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_CARD_NOT_FOUND",
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_INPUT_INVALID",
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_MEDIA_ASSET_ID_INVALID",
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_MEDIA_ASSET_UNAVAILABLE",
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_MEDIA_FILE_COUNT_TOO_LARGE",
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_SELECTION_TOO_LARGE",
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_SINGLE_MEDIA_TOO_LARGE",
+    "WORKSPACE_PACKAGE_EXPORT_PACKAGE_TOTAL_MEDIA_TOO_LARGE",
+    "WORKSPACE_PACKAGE_EXPORT_PREVIEW_CARD_NOT_FOUND",
+    "WORKSPACE_PACKAGE_EXPORT_PREVIEW_INPUT_INVALID",
+    "WORKSPACE_PACKAGE_EXPORT_PREVIEW_MEDIA_ASSET_ID_INVALID",
+    "WORKSPACE_PACKAGE_EXPORT_PREVIEW_MEDIA_ASSET_UNAVAILABLE",
+    "WORKSPACE_PACKAGE_EXPORT_PREVIEW_SELECTION_TOO_LARGE",
+    "WORKSPACE_PACKAGE_EXPORT_REQUEST_INVALID",
     "WORKSPACE_PACKAGE_IMPORT_CONTENT_TYPE_UNSUPPORTED",
     "WORKSPACE_PACKAGE_IMPORT_FILE_EMPTY",
     "WORKSPACE_PACKAGE_IMPORT_FILE_REQUIRED",
@@ -202,6 +216,12 @@ internal data class CloudHttpObservationVersions(
     val appVersion: String?,
     val clientVersion: String?,
     val versionCode: Int?
+)
+
+internal data class CloudBinaryHttpResponse(
+    val bodyBytes: ByteArray,
+    val contentType: String?,
+    val contentDisposition: String?
 )
 
 internal object NoopCloudHttpObservability : AppObservability {
@@ -295,6 +315,38 @@ internal class CloudJsonHttpClient(
             method = CloudHttpMethod.POST,
             authorizationHeader = authorizationHeader,
             body = body
+        )
+    }
+
+    suspend fun postJsonForBytes(
+        baseUrl: String,
+        path: String,
+        authorizationHeader: String?,
+        body: JSONObject,
+        acceptHeader: String
+    ): CloudBinaryHttpResponse {
+        require(acceptHeader.isNotBlank()) {
+            "Cloud binary request Accept header must not be blank."
+        }
+        return executeBuiltBytesRequest(
+            request = buildCloudRequest(
+                baseUrl = baseUrl,
+                path = path,
+                method = CloudHttpMethod.POST,
+                authorizationHeader = authorizationHeader,
+                requestBody = buildJsonRequestBody(method = CloudHttpMethod.POST, body = body),
+                contentTypeHeader = "application/json"
+            )
+                .newBuilder()
+                .header("Accept", acceptHeader)
+                .build(),
+            path = path,
+            method = CloudHttpMethod.POST,
+            retryEligible = isTransientCloudHttpRetryEligible(
+                path = path,
+                method = CloudHttpMethod.POST,
+                body = body
+            )
         )
     }
 
@@ -577,6 +629,164 @@ internal class CloudJsonHttpClient(
         completedResponse ?: throw IllegalStateException("Cloud request retry loop exited without a response.")
     }
 
+    @OptIn(InternalCoroutinesApi::class)
+    private suspend fun executeBuiltBytesRequest(
+        request: Request,
+        path: String,
+        method: CloudHttpMethod,
+        retryEligible: Boolean
+    ): CloudBinaryHttpResponse = withContext(Dispatchers.IO) {
+        var attemptNumber = 1
+        var completedResponse: CloudBinaryHttpResponse? = null
+
+        while (completedResponse == null) {
+            val call = httpClient.newCall(request)
+            val coroutineJob = currentCoroutineContext().job
+            val cancellationRequested = AtomicBoolean(false)
+            val cancellationHandle = coroutineJob.invokeOnCompletion(
+                onCancelling = true,
+                invokeImmediately = true
+            ) { cause ->
+                if (cause != null) {
+                    cancellationRequested.set(true)
+                    call.cancel()
+                }
+            }
+            var retryDelayMs: Long? = null
+            var successfulResponse: CloudBinaryHttpResponse? = null
+
+            try {
+                call.awaitOkHttpResponse().use { response ->
+                    val statusCode = response.code
+                    val requestId = readCloudResponseRequestId(response = response)
+                    val responseContentType = response.body.contentType()
+                        ?.toString()
+                        ?.trim()
+                        ?.ifEmpty { null }
+                    val responseContentDisposition = response.header("Content-Disposition")
+                        ?.trim()
+                        ?.ifEmpty { null }
+                    val responseBodyBytes = readCloudResponseBytes(response = response)
+                    if (response.isSuccessful.not()) {
+                        val responseBody = String(responseBodyBytes, StandardCharsets.UTF_8)
+                        val parsedError = parseCloudErrorPayloadWithHeaderRequestId(
+                            responseBody = responseBody,
+                            requestId = requestId
+                        )
+                        if (
+                            shouldRetryTransientCloudHttpResponse(
+                                retryEligible = retryEligible,
+                                statusCode = statusCode,
+                                attemptNumber = attemptNumber
+                            )
+                        ) {
+                            val delayMs = calculateCloudHttpTransientRetryDelayMs(attemptNumber)
+                            captureCloudHttpTransientRetryObservation(
+                                observability = observability,
+                                observationVersions = observationVersions,
+                                request = request,
+                                path = path,
+                                method = method.requestMethod,
+                                requestId = parsedError?.requestId,
+                                statusCode = statusCode,
+                                code = parsedError?.code,
+                                stage = cloudHttpRetryHttpResponseStage,
+                                attemptNumber = attemptNumber,
+                                delayMs = delayMs
+                            )
+                            retryDelayMs = delayMs
+                        } else {
+                            val androidObservationAlreadyCaptured = captureCloudHttpFailureObservation(
+                                observability = observability,
+                                observationVersions = observationVersions,
+                                request = request,
+                                path = path,
+                                method = method.requestMethod,
+                                requestId = parsedError?.requestId,
+                                statusCode = statusCode,
+                                code = parsedError?.code,
+                                syncConflict = parsedError?.syncConflict
+                            )
+                            throw CloudRemoteException(
+                                message = formatCloudRemoteErrorMessage(
+                                    parsedError = parsedError,
+                                    responseBody = responseBody,
+                                    responseMetadata = CloudErrorResponseMetadata(
+                                        statusCode = statusCode,
+                                        path = cloudObservationEndpointName(path = path),
+                                        requestId = parsedError?.requestId,
+                                        responseBodyLengthBytes = responseBodyBytes.size,
+                                        responseContentType = responseContentType
+                                    )
+                                ),
+                                statusCode = statusCode,
+                                responseBody = responseBody,
+                                errorCode = parsedError?.code,
+                                requestId = parsedError?.requestId,
+                                syncConflict = parsedError?.syncConflict,
+                                androidObservationAlreadyCaptured = androidObservationAlreadyCaptured
+                            )
+                        }
+                    } else {
+                        successfulResponse = CloudBinaryHttpResponse(
+                            bodyBytes = responseBodyBytes,
+                            contentType = responseContentType,
+                            contentDisposition = responseContentDisposition
+                        )
+                    }
+                }
+            } catch (error: IOException) {
+                if (cancellationRequested.get() || coroutineJob.isCancelled) {
+                    throw cancellationException(
+                        message = "Cloud request was cancelled.",
+                        cause = error
+                    )
+                }
+                if (
+                    shouldRetryTransientCloudIOException(
+                        retryEligible = retryEligible,
+                        attemptNumber = attemptNumber
+                    )
+                ) {
+                    val delayMs = calculateCloudHttpTransientRetryDelayMs(attemptNumber)
+                    captureCloudHttpTransientRetryObservation(
+                        observability = observability,
+                        observationVersions = observationVersions,
+                        request = request,
+                        path = path,
+                        method = method.requestMethod,
+                        requestId = null,
+                        statusCode = null,
+                        code = null,
+                        stage = cloudHttpRetryIoExceptionStage,
+                        attemptNumber = attemptNumber,
+                        delayMs = delayMs
+                    )
+                    retryDelayMs = delayMs
+                } else {
+                    throw error
+                }
+            } finally {
+                cancellationHandle.dispose()
+            }
+
+            val attemptResponse = successfulResponse
+            completedResponse = attemptResponse
+
+            if (attemptResponse == null) {
+                val delayMs = retryDelayMs
+                if (delayMs != null) {
+                    delay(delayMs)
+                    attemptNumber += 1
+                    continue
+                }
+
+                throw IllegalStateException("Cloud binary request attempt finished without a response or retry decision.")
+            }
+        }
+        completedResponse ?: throw IllegalStateException("Cloud binary request retry loop exited without a response.")
+    }
+
     private fun buildCloudRequest(
         baseUrl: String,
         path: String,
@@ -622,6 +832,10 @@ internal class CloudJsonHttpClient(
             reader.readText()
         }
     }
+
+    private fun readCloudResponseBytes(response: Response): ByteArray {
+        return response.body.bytes()
+    }
 }
 
 private fun readCloudResponseRequestId(response: Response): String? {
@@ -651,6 +865,8 @@ private fun isTransientCloudHttpRetryEligible(
         pathOnly.endsWith(suffix = "/sync/pull") -> true
         pathOnly.endsWith(suffix = "/sync/review-history/pull") -> true
         pathOnly.endsWith(suffix = "/sync/bootstrap") -> body?.optString("mode") == "pull"
+        pathOnly.endsWith(suffix = "/packages/export/preview") -> true
+        pathOnly.endsWith(suffix = "/packages/export") -> true
         else -> false
     }
 }

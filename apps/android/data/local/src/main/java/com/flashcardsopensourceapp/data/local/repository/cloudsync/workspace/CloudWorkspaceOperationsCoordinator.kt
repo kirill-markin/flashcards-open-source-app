@@ -12,6 +12,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteRe
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
@@ -158,6 +161,56 @@ internal class CloudWorkspaceOperationsCoordinator(
                 cloudSettings = cloudSettings
             )
             result
+        }
+    }
+
+    suspend fun previewCurrentWorkspacePackageExport(
+        request: WorkspacePackageExportRequest
+    ): WorkspacePackageExportPreview {
+        return operationCoordinator.runExclusive {
+            val cloudSettings: CloudSettings = preferencesStore.currentCloudSettings()
+            require(cloudSettings.cloudState == CloudAccountState.LINKED) {
+                "Workspace package export is available only for linked cloud workspaces."
+            }
+            val authenticatedSession: AuthenticatedCloudSession = sessionProvider.authenticatedSession()
+            val workspaceId: String = requireCurrentWorkspace(
+                database = database,
+                preferencesStore = preferencesStore,
+                missingWorkspaceMessage = "Workspace package export requires a current local workspace."
+            ).workspaceId
+            runLinkedWorkspaceSync(
+                authenticatedSession = authenticatedSession,
+                workspaceId = workspaceId,
+                cloudSettings = cloudSettings
+            )
+            remoteService.previewWorkspacePackageExport(
+                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}",
+                workspaceId = workspaceId,
+                request = request
+            )
+        }
+    }
+
+    suspend fun exportCurrentWorkspacePackage(
+        request: WorkspacePackageExportRequest
+    ): WorkspacePackageExportDownloadResponse {
+        return operationCoordinator.runExclusive {
+            require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
+                "Workspace package export is available only for linked cloud workspaces."
+            }
+            val authenticatedSession: AuthenticatedCloudSession = sessionProvider.authenticatedSession()
+            val workspaceId: String = requireCurrentWorkspace(
+                database = database,
+                preferencesStore = preferencesStore,
+                missingWorkspaceMessage = "Workspace package export requires a current local workspace."
+            ).workspaceId
+            remoteService.exportWorkspacePackage(
+                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}",
+                workspaceId = workspaceId,
+                request = request
+            )
         }
     }
 

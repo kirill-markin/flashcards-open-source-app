@@ -63,6 +63,9 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceExportData
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceOverviewSummary
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
@@ -205,6 +208,12 @@ interface CloudAccountRepository {
     suspend fun deleteCurrentWorkspace(confirmationText: String): CloudWorkspaceDeleteResult
     suspend fun loadCurrentWorkspaceResetProgressPreview(): CloudWorkspaceResetProgressPreview
     suspend fun resetCurrentWorkspaceProgress(confirmationText: String): CloudWorkspaceResetProgressResult
+    suspend fun previewCurrentWorkspacePackageExport(
+        request: WorkspacePackageExportRequest
+    ): WorkspacePackageExportPreview
+    suspend fun exportCurrentWorkspacePackage(
+        request: WorkspacePackageExportRequest
+    ): WorkspacePackageExportDownloadResponse
     suspend fun previewCurrentWorkspacePackageImport(packageBytes: ByteArray): WorkspacePackageImportPreview
     suspend fun confirmCurrentWorkspacePackageImport(
         fileName: String,

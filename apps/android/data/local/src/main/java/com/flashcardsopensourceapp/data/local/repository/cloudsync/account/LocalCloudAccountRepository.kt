@@ -34,6 +34,9 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressStreak
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
@@ -278,6 +281,18 @@ class LocalCloudAccountRepository(
         confirmationText: String
     ): CloudWorkspaceResetProgressResult {
         return workspaceOperationsCoordinator.resetCurrentWorkspaceProgress(confirmationText = confirmationText)
+    }
+
+    override suspend fun previewCurrentWorkspacePackageExport(
+        request: WorkspacePackageExportRequest
+    ): WorkspacePackageExportPreview {
+        return workspaceOperationsCoordinator.previewCurrentWorkspacePackageExport(request = request)
+    }
+
+    override suspend fun exportCurrentWorkspacePackage(
+        request: WorkspacePackageExportRequest
+    ): WorkspacePackageExportDownloadResponse {
+        return workspaceOperationsCoordinator.exportCurrentWorkspacePackage(request = request)
     }
 
     override suspend fun previewCurrentWorkspacePackageImport(

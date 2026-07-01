@@ -92,6 +92,20 @@ internal fun buildWorkspacePackageImportCloudPath(workspaceId: String): String {
     return "/workspaces/${encodeCloudPathSegment(value = workspaceId)}/packages/import"
 }
 
+internal fun buildWorkspacePackageExportPreviewCloudPath(workspaceId: String): String {
+    require(workspaceId.isNotBlank()) {
+        "Workspace package export preview path requires a workspace id."
+    }
+    return "/workspaces/${encodeCloudPathSegment(value = workspaceId)}/packages/export/preview"
+}
+
+internal fun buildWorkspacePackageExportCloudPath(workspaceId: String): String {
+    require(workspaceId.isNotBlank()) {
+        "Workspace package export path requires a workspace id."
+    }
+    return "/workspaces/${encodeCloudPathSegment(value = workspaceId)}/packages/export"
+}
+
 private fun encodeCloudQueryValue(value: String): String {
     return URLEncoder.encode(value, StandardCharsets.UTF_8)
 }

@@ -33,6 +33,9 @@ import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
@@ -312,6 +315,18 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     }
 
     override suspend fun resetCurrentWorkspaceProgress(confirmationText: String): CloudWorkspaceResetProgressResult {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun previewCurrentWorkspacePackageExport(
+        request: WorkspacePackageExportRequest
+    ): WorkspacePackageExportPreview {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun exportCurrentWorkspacePackage(
+        request: WorkspacePackageExportRequest
+    ): WorkspacePackageExportDownloadResponse {
         throw UnsupportedOperationException()
     }
 
