@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import pg from "pg";
-import type { DatabaseExecutor, SqlValue } from "../database";
-import { HttpError } from "../shared/errors";
+import type { DatabaseExecutor, SqlValue } from "../../database";
+import { HttpError } from "../../shared/errors";
 import {
   previewWorkspacePackageExportInExecutor,
   type WorkspacePackageExportPreviewInput,

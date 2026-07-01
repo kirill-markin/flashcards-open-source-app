@@ -2,20 +2,20 @@ import { Buffer } from "node:buffer";
 import {
   transactionWithWorkspaceScopeReadOnly,
   type DatabaseExecutor,
-} from "../database";
-import { MEDIA_ASSET_JOIN_CLAUSE } from "../mediaAssets";
+} from "../../database";
+import { MEDIA_ASSET_JOIN_CLAUSE } from "../../mediaAssets";
 import {
   loadMediaAssetObjectBytes,
   type LoadedMediaAssetObjectBytes,
   type LoadMediaAssetObjectBytesInput,
-} from "../mediaAssets/storage";
-import type { BackendObservationScope } from "../observability/sentry";
-import { normalizeCardMetadata } from "../cards/shared";
-import { HttpError } from "../shared/errors";
+} from "../../mediaAssets/storage";
+import type { BackendObservationScope } from "../../observability/sentry";
+import { normalizeCardMetadata } from "../../cards/shared";
+import { HttpError } from "../../shared/errors";
 import {
   rewriteMarkdownFcAssetUrlsToSharedPortablePaths,
   validatePortableMediaPath,
-} from "./markdownMedia";
+} from "../markdownMedia";
 import {
   buildAvailableWorkspacePackageExportTagCounts,
   buildWorkspacePackageExportSelectedCardsQuery,
@@ -35,7 +35,7 @@ import {
   workspacePackageFormatVersion,
   type PortableWorkspacePackageCardV1,
   type WorkspacePackageCardsJsonV1,
-} from "./types";
+} from "../types";
 
 export const workspacePackageExportPackageDefaultMaxSelectedCards = 5_000;
 export const workspacePackageExportPackageDefaultMaxMediaFiles = 10_000;

@@ -2,21 +2,23 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
-import type { DatabaseExecutor, SqlValue } from "../database";
+import type { DatabaseExecutor, SqlValue } from "../../database";
 import type {
   LoadedMediaAssetObjectBytes,
   LoadMediaAssetObjectBytesInput,
-} from "../mediaAssets/storage";
-import type { BackendObservationScope } from "../observability/sentry";
-import { HttpError } from "../shared/errors";
+} from "../../mediaAssets/storage";
+import type { BackendObservationScope } from "../../observability/sentry";
+import { HttpError } from "../../shared/errors";
 import {
   exportWorkspacePackageInExecutor,
+  type WorkspacePackageExportPackageInput,
+  type WorkspacePackageExportPackageLimits,
+} from "./exportPackage";
+import {
   parseWorkspacePackageCardsJsonV1,
   type WorkspacePackageCardsJsonV1,
   type WorkspacePackageCardMetadataV1,
-  type WorkspacePackageExportPackageInput,
-  type WorkspacePackageExportPackageLimits,
-} from "./index";
+} from "../types";
 
 type TestCardRow = Readonly<{
   card_id: string;

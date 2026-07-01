@@ -17,7 +17,7 @@ export type {
 
 export {
   previewWorkspacePackageExport,
-} from "./exportPreview";
+} from "./export/exportPreview";
 
 export {
   exportWorkspacePackage,
@@ -26,7 +26,7 @@ export {
   workspacePackageExportPackageDefaultMaxSelectedCards,
   workspacePackageExportPackageDefaultMaxSingleMediaBytes,
   workspacePackageExportPackageDefaultMaxTotalMediaBytes,
-} from "./exportPackage";
+} from "./export/exportPackage";
 
 export {
   buildSuggestedWorkspacePackageImportTag,
@@ -70,14 +70,14 @@ export type {
   WorkspacePackageExportPreviewInput,
   WorkspacePackageExportPreviewTagCount,
   WorkspacePackageExportTagPolicyInput,
-} from "./exportPreview";
+} from "./export/exportPreview";
 
 export type {
   WorkspacePackageExportPackage,
   WorkspacePackageExportPackageDependencies,
   WorkspacePackageExportPackageInput,
   WorkspacePackageExportPackageLimits,
-} from "./exportPackage";
+} from "./export/exportPackage";
 
 export type {
   WorkspacePackageImportDefaultOptions,
