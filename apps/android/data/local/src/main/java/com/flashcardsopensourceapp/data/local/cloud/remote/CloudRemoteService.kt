@@ -49,6 +49,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetPro
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
@@ -273,6 +276,34 @@ class CloudRemoteService private constructor(
             bearerToken = bearerToken,
             workspaceId = workspaceId,
             confirmationText = confirmationText
+        )
+    }
+
+    override suspend fun previewWorkspacePackageExport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: WorkspacePackageExportRequest
+    ): WorkspacePackageExportPreview {
+        return workspacePackageApi.previewWorkspacePackageExport(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            workspaceId = workspaceId,
+            request = request
+        )
+    }
+
+    override suspend fun exportWorkspacePackage(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: WorkspacePackageExportRequest
+    ): WorkspacePackageExportDownloadResponse {
+        return workspacePackageApi.exportWorkspacePackage(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            workspaceId = workspaceId,
+            request = request
         )
     }
 

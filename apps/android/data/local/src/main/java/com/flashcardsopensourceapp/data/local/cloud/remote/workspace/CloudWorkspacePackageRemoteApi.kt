@@ -1,17 +1,31 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote.workspace
 
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudBinaryHttpResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildWorkspacePackageExportCloudPath
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildWorkspacePackageExportPreviewCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildWorkspacePackageImportCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildWorkspacePackageImportPreviewCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
+import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudStringOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudLong
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.cloud.wire.toCloudStringList
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDefaultPackageMetadata
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportMetadataInput
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportSelection
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportTagCount
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportTagPolicyInput
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmOptions
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmSummary
@@ -23,13 +37,53 @@ import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageIm
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportWarning
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Locale
 
+private const val workspacePackageExportContentType: String = "application/zip"
+private const val workspacePackageExportFilenameFieldPath: String = "workspacePackageExport.fileName"
 private const val workspacePackageImportFileFieldName: String = "file"
 private const val workspacePackageImportOptionsFieldName: String = "options"
 
 internal class CloudWorkspacePackageRemoteApi(
     private val httpClient: CloudJsonHttpClient
 ) {
+    suspend fun previewWorkspacePackageExport(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: WorkspacePackageExportRequest
+    ): WorkspacePackageExportPreview {
+        val response = httpClient.postJson(
+            baseUrl = apiBaseUrl,
+            path = buildWorkspacePackageExportPreviewCloudPath(workspaceId = workspaceId),
+            authorizationHeader = authorizationHeader,
+            body = buildWorkspacePackageExportRequestBody(request = request)
+        )
+        return parseWorkspacePackageExportPreviewResponse(
+            response = response,
+            fieldPath = "workspacePackageExportPreview"
+        )
+    }
+
+    suspend fun exportWorkspacePackage(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: WorkspacePackageExportRequest
+    ): WorkspacePackageExportDownloadResponse {
+        val response = httpClient.postJsonForBytes(
+            baseUrl = apiBaseUrl,
+            path = buildWorkspacePackageExportCloudPath(workspaceId = workspaceId),
+            authorizationHeader = authorizationHeader,
+            body = buildWorkspacePackageExportRequestBody(request = request),
+            acceptHeader = workspacePackageExportContentType
+        )
+        return parseWorkspacePackageExportDownloadResponse(
+            response = response,
+            fieldPath = "workspacePackageExport"
+        )
+    }
+
     suspend fun previewWorkspacePackageImport(
         apiBaseUrl: String,
         authorizationHeader: String,
@@ -77,6 +131,232 @@ internal class CloudWorkspacePackageRemoteApi(
             )
         )
     }
+}
+
+internal fun buildWorkspacePackageExportRequestBody(request: WorkspacePackageExportRequest): JSONObject {
+    return JSONObject()
+        .put("selection", buildWorkspacePackageExportSelection(selection = request.selection))
+        .put("tagPolicy", buildWorkspacePackageExportTagPolicy(tagPolicy = request.tagPolicy))
+        .put("packageMetadata", buildWorkspacePackageExportMetadata(metadata = request.packageMetadata))
+}
+
+private fun buildWorkspacePackageExportSelection(selection: WorkspacePackageExportSelection): JSONObject {
+    return when (selection) {
+        WorkspacePackageExportSelection.AllActiveCards -> JSONObject()
+            .put("kind", "allActiveCards")
+
+        is WorkspacePackageExportSelection.TagFilters -> JSONObject()
+            .put("kind", "tagFilters")
+            .put("includeTags", JSONArray(selection.includeTags))
+            .put("excludeTags", JSONArray(selection.excludeTags))
+
+        is WorkspacePackageExportSelection.ExplicitCardIds -> JSONObject()
+            .put("kind", "explicitCardIds")
+            .put("cardIds", JSONArray(selection.cardIds))
+    }
+}
+
+private fun buildWorkspacePackageExportTagPolicy(
+    tagPolicy: WorkspacePackageExportTagPolicyInput
+): JSONObject {
+    return JSONObject()
+        .put("additionalRemovedTags", JSONArray(tagPolicy.additionalRemovedTags))
+}
+
+private fun buildWorkspacePackageExportMetadata(metadata: WorkspacePackageExportMetadataInput): JSONObject {
+    return JSONObject()
+        .putNullableString("label", metadata.label)
+        .putNullableString("author", metadata.author)
+        .putNullableString("comment", metadata.comment)
+        .putNullableString("createdAt", metadata.createdAt)
+        .putNullableString("sourceUrl", metadata.sourceUrl)
+}
+
+internal fun parseWorkspacePackageExportPreviewResponse(
+    response: JSONObject,
+    fieldPath: String
+): WorkspacePackageExportPreview {
+    val defaultPackageMetadata = response.requireCloudObject(
+        "defaultPackageMetadata",
+        "$fieldPath.defaultPackageMetadata"
+    )
+    return WorkspacePackageExportPreview(
+        selectedCardCount = response.requireWorkspacePackageExportNonNegativeInt(
+            key = "selectedCardCount",
+            fieldPath = "$fieldPath.selectedCardCount"
+        ),
+        availableTagCounts = parseWorkspacePackageExportTagCounts(
+            tagCounts = response.requireCloudArray("availableTagCounts", "$fieldPath.availableTagCounts"),
+            fieldPath = "$fieldPath.availableTagCounts"
+        ),
+        tagsSelectedForRemoval = parseWorkspacePackageExportTagCounts(
+            tagCounts = response.requireCloudArray("tagsSelectedForRemoval", "$fieldPath.tagsSelectedForRemoval"),
+            fieldPath = "$fieldPath.tagsSelectedForRemoval"
+        ),
+        referencedMediaCount = response.requireWorkspacePackageExportNonNegativeInt(
+            key = "referencedMediaCount",
+            fieldPath = "$fieldPath.referencedMediaCount"
+        ),
+        approximateReferencedMediaBytes = response.requireWorkspacePackageExportNonNegativeLong(
+            key = "approximateReferencedMediaBytes",
+            fieldPath = "$fieldPath.approximateReferencedMediaBytes"
+        ),
+        defaultPackageMetadata = WorkspacePackageExportDefaultPackageMetadata(
+            label = defaultPackageMetadata.requireCloudString(
+                "label",
+                "$fieldPath.defaultPackageMetadata.label"
+            ),
+            author = defaultPackageMetadata.optCloudStringOrNull(
+                "author",
+                "$fieldPath.defaultPackageMetadata.author"
+            ),
+            comment = defaultPackageMetadata.optCloudStringOrNull(
+                "comment",
+                "$fieldPath.defaultPackageMetadata.comment"
+            ),
+            createdAt = defaultPackageMetadata.requireCloudString(
+                "createdAt",
+                "$fieldPath.defaultPackageMetadata.createdAt"
+            ),
+            sourceUrl = defaultPackageMetadata.optCloudStringOrNull(
+                "sourceUrl",
+                "$fieldPath.defaultPackageMetadata.sourceUrl"
+            )
+        )
+    )
+}
+
+internal fun parseWorkspacePackageExportDownloadResponse(
+    response: CloudBinaryHttpResponse,
+    fieldPath: String
+): WorkspacePackageExportDownloadResponse {
+    requireWorkspacePackageExportZipContentType(
+        contentType = response.contentType,
+        fieldPath = "$fieldPath.contentType"
+    )
+    return WorkspacePackageExportDownloadResponse(
+        packageBytes = response.bodyBytes,
+        fileName = parseWorkspacePackageExportContentDispositionFileName(
+            contentDisposition = response.contentDisposition,
+            fieldPath = workspacePackageExportFilenameFieldPath
+        ),
+        contentType = response.contentType ?: throw CloudContractMismatchException(
+            "Cloud contract mismatch for $fieldPath.contentType: expected application/zip, got missing header"
+        )
+    )
+}
+
+private fun parseWorkspacePackageExportTagCounts(
+    tagCounts: JSONArray,
+    fieldPath: String
+): List<WorkspacePackageExportTagCount> {
+    return buildList {
+        for (index in 0 until tagCounts.length()) {
+            val tagCount = tagCounts.requireCloudObject(index = index, fieldPath = "$fieldPath[$index]")
+            add(
+                WorkspacePackageExportTagCount(
+                    tag = tagCount.requireCloudString("tag", "$fieldPath[$index].tag"),
+                    cardsCount = tagCount.requireWorkspacePackageExportNonNegativeInt(
+                        key = "cardsCount",
+                        fieldPath = "$fieldPath[$index].cardsCount"
+                    )
+                )
+            )
+        }
+    }
+}
+
+private fun JSONObject.requireWorkspacePackageExportNonNegativeInt(
+    key: String,
+    fieldPath: String
+): Int {
+    val value = requireCloudInt(key = key, fieldPath = fieldPath)
+    if (value < 0) {
+        throw CloudContractMismatchException(
+            "Cloud contract mismatch for $fieldPath: expected non-negative integer, got $value"
+        )
+    }
+    return value
+}
+
+private fun JSONObject.requireWorkspacePackageExportNonNegativeLong(
+    key: String,
+    fieldPath: String
+): Long {
+    val value = requireCloudLong(key = key, fieldPath = fieldPath)
+    if (value < 0L) {
+        throw CloudContractMismatchException(
+            "Cloud contract mismatch for $fieldPath: expected non-negative integer, got $value"
+        )
+    }
+    return value
+}
+
+private fun requireWorkspacePackageExportZipContentType(
+    contentType: String?,
+    fieldPath: String
+) {
+    val normalizedContentType = contentType
+        ?.substringBefore(delimiter = ";")
+        ?.trim()
+        ?.lowercase(Locale.US)
+    if (normalizedContentType != workspacePackageExportContentType) {
+        throw CloudContractMismatchException(
+            "Cloud contract mismatch for $fieldPath: expected application/zip, got ${contentType ?: "missing header"}"
+        )
+    }
+}
+
+private fun parseWorkspacePackageExportContentDispositionFileName(
+    contentDisposition: String?,
+    fieldPath: String
+): String {
+    if (contentDisposition.isNullOrBlank()) {
+        throw CloudContractMismatchException(
+            "Cloud contract mismatch for $fieldPath: expected Content-Disposition filename, got missing header"
+        )
+    }
+
+    for (parameter in contentDisposition.split(";").drop(1)) {
+        val separatorIndex = parameter.indexOf("=")
+        if (separatorIndex < 0) {
+            continue
+        }
+        val key = parameter.substring(startIndex = 0, endIndex = separatorIndex).trim().lowercase(Locale.US)
+        if (key != "filename") {
+            continue
+        }
+        val rawFileName = parameter.substring(startIndex = separatorIndex + 1)
+        val fileName = unquoteWorkspacePackageExportContentDispositionValue(value = rawFileName.trim()).trim()
+        if (workspacePackageExportFileNameIsSafe(fileName = fileName)) {
+            return fileName
+        }
+        throw CloudContractMismatchException(
+            "Cloud contract mismatch for $fieldPath: expected safe filename, got invalid string \"$fileName\""
+        )
+    }
+
+    throw CloudContractMismatchException(
+        "Cloud contract mismatch for $fieldPath: expected Content-Disposition filename, got missing parameter"
+    )
+}
+
+private fun unquoteWorkspacePackageExportContentDispositionValue(value: String): String {
+    if (value.length < 2 || value.startsWith("\"").not() || value.endsWith("\"").not()) {
+        return value
+    }
+
+    return value.drop(1)
+        .dropLast(1)
+        .replace(oldValue = "\\\"", newValue = "\"")
+        .replace(oldValue = "\\\\", newValue = "\\")
+}
+
+private fun workspacePackageExportFileNameIsSafe(fileName: String): Boolean {
+    return fileName.isNotBlank() &&
+        fileName.contains("/") == false &&
+        fileName.contains("\\") == false &&
+        fileName.any { character -> character.code < 32 || character.code == 127 } == false
 }
 
 private fun encodeWorkspacePackageImportConfirmOptions(

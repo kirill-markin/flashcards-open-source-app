@@ -12,6 +12,7 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import org.json.JSONArray
 import org.json.JSONObject
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -141,6 +142,112 @@ class CloudRemoteHttpClientTest {
     }
 
     @Test
+    fun postJsonForBytesSendsJsonAndReadsBinaryResponse() = runBlocking {
+        val zipBytes = byteArrayOf(0x50.toByte(), 0x4b.toByte(), 0x03.toByte(), 0x04.toByte())
+        var requestAcceptHeader: String? = null
+        var requestContentTypeHeader: String? = null
+        var requestBody: String? = null
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/workspaces/workspace-1/packages/export") { exchange ->
+            requestAcceptHeader = exchange.requestHeaders.getFirst("Accept")
+            requestContentTypeHeader = exchange.requestHeaders.getFirst("Content-Type")
+            requestBody = String(exchange.requestBody.readBytes(), StandardCharsets.UTF_8)
+            writeCloudTestBinaryResponse(
+                exchange = exchange,
+                statusCode = 200,
+                body = zipBytes,
+                headers = mapOf(
+                    "Content-Type" to "application/zip",
+                    "Content-Disposition" to "attachment; filename=\"flashcards.zip\""
+                )
+            )
+        }
+        server.start()
+
+        try {
+            val client = CloudJsonHttpClient(okHttpClient = OkHttpClient())
+            val response = client.postJsonForBytes(
+                baseUrl = "http://127.0.0.1:${server.address.port}",
+                path = "/workspaces/workspace-1/packages/export",
+                authorizationHeader = "Bearer token-1",
+                body = JSONObject()
+                    .put("selection", JSONObject().put("kind", "allActiveCards")),
+                acceptHeader = "application/zip"
+            )
+
+            assertEquals("application/zip", requestAcceptHeader)
+            assertEquals("application/json", requestContentTypeHeader)
+            assertEquals("""{"selection":{"kind":"allActiveCards"}}""", requestBody)
+            assertArrayEquals(zipBytes, response.bodyBytes)
+            assertEquals("application/zip", response.contentType)
+            assertEquals("attachment; filename=\"flashcards.zip\"", response.contentDisposition)
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun postJsonForBytesRetriesPackageExportTransientGatewayTimeout() = runBlocking {
+        val requestCount = AtomicInteger(0)
+        val observability = RecordingCloudHttpObservability()
+        val zipBytes = byteArrayOf(0x50.toByte(), 0x4b.toByte())
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/workspaces/workspace-1/packages/export") { exchange ->
+            val currentRequestCount = requestCount.incrementAndGet()
+            if (currentRequestCount == 1) {
+                writeCloudTestResponse(
+                    exchange = exchange,
+                    statusCode = 504,
+                    body = "",
+                    headers = mapOf("X-Request-Id" to "request-1")
+                )
+            } else {
+                writeCloudTestBinaryResponse(
+                    exchange = exchange,
+                    statusCode = 200,
+                    body = zipBytes,
+                    headers = mapOf(
+                        "Content-Type" to "application/zip",
+                        "Content-Disposition" to "attachment; filename=\"flashcards.zip\""
+                    )
+                )
+            }
+        }
+        server.start()
+
+        try {
+            val client = CloudJsonHttpClient(
+                okHttpClient = OkHttpClient(),
+                observability = observability,
+                appVersion = testAppVersion,
+                versionCode = 123
+            )
+            val response = client.postJsonForBytes(
+                baseUrl = "http://127.0.0.1:${server.address.port}",
+                path = "/workspaces/workspace-1/packages/export",
+                authorizationHeader = null,
+                body = JSONObject()
+                    .put("selection", JSONObject().put("kind", "allActiveCards")),
+                acceptHeader = "application/zip"
+            )
+
+            assertArrayEquals(zipBytes, response.bodyBytes)
+            assertEquals(2, requestCount.get())
+            assertTrue(observability.warnings.isEmpty())
+            val retryEvent = observability.breadcrumbs.single()
+            assertTrue(retryEvent is AndroidBreadcrumbEvent.HttpTransientRetry)
+            retryEvent as AndroidBreadcrumbEvent.HttpTransientRetry
+            assertEquals("/workspaces/{workspaceId}/packages/export", retryEvent.endpointName)
+            assertEquals("POST", retryEvent.method)
+            assertEquals("request-1", retryEvent.requestId)
+            assertEquals(504, retryEvent.statusCode)
+            assertEquals("http_response", retryEvent.stage)
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
     fun mediaAssetDownloadUrlFailureRedactsEndpointIds() = runBlocking {
         val observability = RecordingCloudHttpObservability()
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
@@ -182,6 +289,21 @@ class CloudRemoteHttpClientTest {
         } finally {
             server.stop(0)
         }
+    }
+}
+
+private fun writeCloudTestBinaryResponse(
+    exchange: HttpExchange,
+    statusCode: Int,
+    body: ByteArray,
+    headers: Map<String, String>
+) {
+    headers.forEach { (name, value) ->
+        exchange.responseHeaders.add(name, value)
+    }
+    exchange.sendResponseHeaders(statusCode, body.size.toLong())
+    exchange.responseBody.use { output ->
+        output.write(body)
     }
 }
 
