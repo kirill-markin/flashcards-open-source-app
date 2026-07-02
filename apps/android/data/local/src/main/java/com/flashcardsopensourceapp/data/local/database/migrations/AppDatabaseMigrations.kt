@@ -42,7 +42,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration24To25,
         migration25To26,
         migration26To27,
-        migration27To28
+        migration27To28,
+        migration28To29
     )
 }
 
@@ -984,6 +985,72 @@ val migration27To28: Migration = object : Migration(27, 28) {
             ON media_assets(workspaceId, sha256, mediaAssetId)
             """.trimIndent()
         )
+    }
+}
+
+val migration28To29: Migration = object : Migration(28, 29) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS media_blob_cache (
+                sha256 TEXT NOT NULL PRIMARY KEY,
+                mimeType TEXT NOT NULL,
+                sizeBytes INTEGER NOT NULL,
+                localRelativePath TEXT NOT NULL,
+                createdAtMillis INTEGER NOT NULL,
+                lastAccessedAtMillis INTEGER NOT NULL,
+                sourceMediaAssetId TEXT
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS index_media_blob_cache_localRelativePath
+            ON media_blob_cache(localRelativePath)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_media_blob_cache_sourceMediaAssetId
+            ON media_blob_cache(sourceMediaAssetId)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_media_blob_cache_lastAccessedAtMillis
+            ON media_blob_cache(lastAccessedAtMillis)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS media_transfer_queue (
+                transferId TEXT NOT NULL PRIMARY KEY,
+                workspaceId TEXT NOT NULL,
+                mediaAssetId TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                status TEXT NOT NULL,
+                sha256 TEXT NOT NULL,
+                mimeType TEXT NOT NULL,
+                sizeBytes INTEGER NOT NULL,
+                localRelativePath TEXT NOT NULL,
+                attemptCount INTEGER NOT NULL,
+                nextAttemptAtMillis INTEGER NOT NULL,
+                lastError TEXT,
+                createdAtMillis INTEGER NOT NULL,
+                updatedAtMillis INTEGER NOT NULL,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_media_transfer_queue_workspaceId ON media_transfer_queue(workspaceId)")
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_media_transfer_queue_workspaceId_status_nextAttemptAtMillis_createdAtMillis
+            ON media_transfer_queue(workspaceId, status, nextAttemptAtMillis, createdAtMillis)
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_media_transfer_queue_sha256 ON media_transfer_queue(sha256)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_media_transfer_queue_mediaAssetId ON media_transfer_queue(mediaAssetId)")
     }
 }
 
