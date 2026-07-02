@@ -8,6 +8,8 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Template } from "aws-cdk-lib/assertions";
 import {
+  addTextContentHandlingToMockOptionsMethods,
+  createLegacyAuthNotFoundIntegration,
   createMediaAssetsObjectPolicyStatement,
   createChatLiveFunctionUrlCorsOptions,
   createGatewayErrorResponseHeaders,
@@ -93,6 +95,7 @@ test("global snapshot API Gateway mock preflight allows content type and Sentry 
   globalResource.addResource("snapshot", {
     defaultCorsPreflightOptions: globalMetricsCorsPreflightOptions,
   });
+  addTextContentHandlingToMockOptionsMethods(restApi);
 
   const template = Template.fromStack(stack);
   const methods = template.findResources("AWS::ApiGateway::Method", {
@@ -103,6 +106,11 @@ test("global snapshot API Gateway mock preflight allows content type and Sentry 
   const optionsMethods = Object.values(methods);
 
   assert.equal(optionsMethods.length, 1);
+  assert.equal(optionsMethods[0]?.Properties?.Integration?.ContentHandling, "CONVERT_TO_TEXT");
+  assert.equal(
+    optionsMethods[0]?.Properties?.Integration?.IntegrationResponses?.[0]?.ContentHandling,
+    "CONVERT_TO_TEXT",
+  );
   assert.deepEqual(optionsMethods[0]?.Properties?.Integration?.IntegrationResponses?.[0]?.ResponseParameters, {
     "method.response.header.Access-Control-Allow-Headers": "'content-type,authorization,sentry-trace,baggage'",
     "method.response.header.Access-Control-Allow-Methods": "'GET,OPTIONS'",
@@ -114,6 +122,49 @@ test("global snapshot API Gateway mock preflight allows content type and Sentry 
     ],
     true,
   );
+});
+
+test("legacy auth tombstone API Gateway mock response converts text under binary media types", () => {
+  const stack = new cdk.Stack();
+  const restApi = new apigw.RestApi(stack, "Api", {
+    binaryMediaTypes: ["*/*"],
+  });
+  const legacyAuth = restApi.root.addResource("auth");
+
+  legacyAuth.addMethod("ANY", createLegacyAuthNotFoundIntegration(), {
+    methodResponses: [
+      {
+        statusCode: "404",
+      },
+    ],
+  });
+
+  const template = Template.fromStack(stack);
+
+  template.hasResourceProperties("AWS::ApiGateway::Method", {
+    HttpMethod: "ANY",
+    Integration: {
+      Type: "MOCK",
+      ContentHandling: "CONVERT_TO_TEXT",
+      IntegrationResponses: [
+        {
+          StatusCode: "404",
+          ContentHandling: "CONVERT_TO_TEXT",
+          ResponseTemplates: {
+            "application/json": "{\"error\":\"Not found\"}",
+          },
+        },
+      ],
+      RequestTemplates: {
+        "application/json": "{\"statusCode\": 404}",
+      },
+    },
+    MethodResponses: [
+      {
+        StatusCode: "404",
+      },
+    ],
+  });
 });
 
 test("chat live Lambda Function URL CORS exposes request id header", () => {
