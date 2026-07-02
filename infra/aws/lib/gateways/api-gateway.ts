@@ -755,6 +755,18 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   feedback.addResource("prompt-events").addMethod("POST", integration);
   feedback.addResource("submissions").addMethod("POST", integration);
 
+  const catalog = restApi.root.addResource("catalog");
+  const catalogPackages = catalog.addResource("packages");
+  catalogPackages.addMethod("GET", integration);
+  catalogPackages.addResource("{packageSlug}").addMethod("GET", integration);
+  const catalogPackageVersionById = catalog.addResource("package-versions").addResource("{packageVersionId}");
+  catalogPackageVersionById.addResource("cards").addMethod("GET", integration);
+  const catalogPackageVersionMediaByKey = catalogPackageVersionById
+    .addResource("media-assets")
+    .addResource("{packageMediaKey}");
+  catalogPackageVersionMediaByKey.addResource("download-url").addMethod("GET", integration);
+  catalogPackageVersionMediaByKey.addResource("download").addMethod("GET", integration);
+
   const admin = restApi.root.addResource("admin");
   admin.addResource("session").addMethod("GET", integration);
   const adminReports = admin.addResource("reports");

@@ -1,0 +1,27 @@
+get:
+  tags:
+    - public-catalog
+  summary: Read a published catalog package
+  description: >-
+    Returns public package detail for a package slug from its latest published
+    version snapshot, including public package media metadata.
+  parameters:
+    - name: packageSlug
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?$'
+  responses:
+    '200':
+      description: Published catalog package detail
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/CatalogPublicPackageDetailResponse.yaml
+    default:
+      description: Public catalog request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PublicErrorEnvelope.yaml

@@ -1,0 +1,57 @@
+type: object
+additionalProperties: false
+required:
+  - packageId
+  - slug
+  - title
+  - summary
+  - description
+  - languageTags
+  - topicTags
+  - license
+  - contentWarning
+  - coverPackageMediaKey
+  - status
+  - author
+  - latestVersion
+  - mediaAssets
+properties:
+  packageId:
+    $ref: ./UuidString.yaml
+  slug:
+    type: string
+  title:
+    type: string
+  summary:
+    type: string
+  description:
+    type: string
+  languageTags:
+    type: array
+    items:
+      type: string
+  topicTags:
+    type: array
+    items:
+      type: string
+  license:
+    type: string
+  contentWarning:
+    type:
+      - string
+      - 'null'
+  coverPackageMediaKey:
+    type:
+      - string
+      - 'null'
+  status:
+    type: string
+    const: published
+  author:
+    $ref: ./CatalogPublicAuthor.yaml
+  latestVersion:
+    $ref: ./CatalogPublicPackageVersionSummary.yaml
+  mediaAssets:
+    type: array
+    items:
+      $ref: ./CatalogPublicPackageMediaAsset.yaml

@@ -1,0 +1,65 @@
+type: object
+additionalProperties: false
+required:
+  - packageVersionId
+  - packageId
+  - versionNumber
+  - status
+  - slug
+  - title
+  - summary
+  - description
+  - languageTags
+  - topicTags
+  - license
+  - contentWarning
+  - coverPackageMediaKey
+  - cardCount
+  - updatedAt
+  - publishedAt
+properties:
+  packageVersionId:
+    $ref: ./UuidString.yaml
+  packageId:
+    $ref: ./UuidString.yaml
+  versionNumber:
+    type: integer
+    minimum: 1
+  status:
+    type: string
+    const: published
+  slug:
+    type: string
+  title:
+    type: string
+  summary:
+    type: string
+  description:
+    type: string
+  languageTags:
+    type: array
+    items:
+      type: string
+  topicTags:
+    type: array
+    items:
+      type: string
+  license:
+    type: string
+  contentWarning:
+    type:
+      - string
+      - 'null'
+  coverPackageMediaKey:
+    type:
+      - string
+      - 'null'
+  cardCount:
+    type: integer
+    minimum: 0
+  updatedAt:
+    type: string
+    format: date-time
+  publishedAt:
+    type: string
+    format: date-time

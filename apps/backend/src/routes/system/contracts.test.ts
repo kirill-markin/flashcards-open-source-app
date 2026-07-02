@@ -79,6 +79,11 @@ const expectedPublishedApiMethods = {
   "/workspaces/{workspaceId}/packages/export": ["post"],
   "/workspaces/{workspaceId}/packages/import/preview": ["post"],
   "/workspaces/{workspaceId}/packages/import": ["post"],
+  "/catalog/packages": ["get"],
+  "/catalog/packages/{packageSlug}": ["get"],
+  "/catalog/package-versions/{packageVersionId}/cards": ["get"],
+  "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download-url": ["get"],
+  "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download": ["get"],
   "/admin/catalog/authors": ["post"],
   "/admin/catalog/authors/{authorId}": ["put"],
   "/admin/catalog/packages": ["post"],
@@ -194,6 +199,22 @@ test("API Gateway predeclares package export and import preview routes and ZIP b
   assert.match(apiGatewaySource, /workspacePackageExport\.addResource\("preview"\)\.addMethod\("POST", integration\);/);
   assert.match(apiGatewaySource, /workspacePackageImport\.addMethod\("POST", integration\);/);
   assert.match(apiGatewaySource, /workspacePackageImport\.addResource\("preview"\)\.addMethod\("POST", integration\);/);
+});
+
+test("API Gateway predeclares public catalog routes", () => {
+  const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
+  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+
+  assert.match(apiGatewaySource, /const catalog = restApi\.root\.addResource\("catalog"\);/);
+  assert.match(apiGatewaySource, /catalogPackages\.addMethod\("GET", integration\);/);
+  assert.match(apiGatewaySource, /catalogPackages\.addResource\("\{packageSlug\}"\)\.addMethod\("GET", integration\);/);
+  assert.match(apiGatewaySource, /catalogPackageVersionById\.addResource\("cards"\)\.addMethod\("GET", integration\);/);
+  assert.match(
+    apiGatewaySource,
+    /const catalogPackageVersionMediaByKey = catalogPackageVersionById\s*\.addResource\("media-assets"\)\s*\.addResource\("\{packageMediaKey\}"\);/,
+  );
+  assert.match(apiGatewaySource, /catalogPackageVersionMediaByKey\.addResource\("download-url"\)\.addMethod\("GET", integration\);/);
+  assert.match(apiGatewaySource, /catalogPackageVersionMediaByKey\.addResource\("download"\)\.addMethod\("GET", integration\);/);
 });
 
 test("published OpenAPI exposes the curated agent, media transfer, and admin catalog contract", () => {

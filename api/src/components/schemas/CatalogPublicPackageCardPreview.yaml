@@ -1,0 +1,27 @@
+type: object
+additionalProperties: false
+required:
+  - ordinal
+  - frontText
+  - backText
+  - cardType
+  - tags
+  - mediaAssetKeys
+properties:
+  ordinal:
+    type: integer
+    minimum: 1
+  frontText:
+    type: string
+  backText:
+    type: string
+  cardType:
+    type: string
+  tags:
+    type: array
+    items:
+      type: string
+  mediaAssetKeys:
+    type: array
+    items:
+      type: string

@@ -1,0 +1,45 @@
+get:
+  tags:
+    - public-catalog
+  summary: List published catalog packages
+  description: >-
+    Returns published, non-delisted package summaries using the latest published
+    version snapshot for each package. Draft, submitted, rejected, and delisted
+    packages are not included.
+  parameters:
+    - name: limit
+      in: query
+      required: false
+      schema:
+        $ref: ../components/schemas/PageLimit.yaml
+    - name: q
+      in: query
+      required: false
+      schema:
+        type: string
+        minLength: 1
+    - name: languageTag
+      in: query
+      required: false
+      schema:
+        type: string
+        minLength: 1
+    - name: topicTag
+      in: query
+      required: false
+      schema:
+        type: string
+        minLength: 1
+  responses:
+    '200':
+      description: Published catalog package summaries
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/CatalogPublicPackageListResponse.yaml
+    default:
+      description: Public catalog request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PublicErrorEnvelope.yaml

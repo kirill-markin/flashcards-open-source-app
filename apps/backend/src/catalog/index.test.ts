@@ -2,22 +2,31 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
+import { Hono } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type pg from "pg";
 import type { DatabaseExecutor, SqlValue } from "../database";
+import type { AppEnv } from "../server/app";
 import { HttpError } from "../shared/errors";
 import {
   attachCatalogPackageDraftMediaAssetInExecutor,
   createCatalogPackageDraftInExecutor,
   createCatalogPackageVersionFromWorkspaceSelectionInExecutor,
   isCatalogPackageVersionStatusTransitionAllowed,
+  listPublicCatalogPackagesInExecutor,
+  loadPublicCatalogPackageDetailInExecutor,
+  loadPublicCatalogPackageMediaForDownloadInExecutor,
+  loadPublicCatalogPackageVersionCardPreviewInExecutor,
   publishCatalogPackageVersionInExecutor,
   updateCatalogPackageDraftInExecutor,
 } from ".";
+import { createCatalogPublicRoutes } from "../routes/catalogPublic";
 import type {
   CatalogPackageMediaAssetRow,
   CatalogPackageRow,
   CatalogPackageStatus,
   CatalogPackageVersionRow,
+  CatalogPublicPackageMediaDownloadSource,
   CreateCatalogPackageDraftInput,
   UpdateCatalogPackageDraftInput,
 } from "./types";
@@ -95,6 +104,65 @@ function createPackageVersionRow(status: CatalogPackageStatus): CatalogPackageVe
     published_at: null,
     delisted_at: null,
   };
+}
+
+function createPublicPackageRow(): Readonly<Record<string, unknown>> {
+  return {
+    package_id: testPackageId,
+    author_id: testAuthorId,
+    author_slug: "open-authors",
+    author_display_name: "Open Authors",
+    author_bio: null,
+    author_website_url: "https://example.com",
+    package_version_id: testPackageVersionId,
+    version_number: 1,
+    status: "published",
+    slug: "spanish-basics",
+    title: "Spanish Basics",
+    summary: "Core Spanish prompts.",
+    description: "Core Spanish flashcards for beginners.",
+    language_tags: ["en", "es"],
+    topic_tags: ["language"],
+    license: "CC-BY-4.0",
+    content_warning: null,
+    cover_package_media_key: "cover",
+    card_count: 1,
+    updated_at: testTimestamp,
+    published_at: testTimestamp,
+  };
+}
+
+function createPublicMediaAssetRow(): Readonly<Record<string, unknown>> {
+  return {
+    package_version_id: testPackageVersionId,
+    package_media_key: "cover",
+    alt_text: "Cover image",
+    credit: null,
+    license: "CC-BY-4.0",
+    mime_type: "image/jpeg",
+    size_bytes: 1234,
+  };
+}
+
+function createPublicCatalogRouteTestApp(route: Hono<AppEnv>): Hono<AppEnv> {
+  const app = new Hono<AppEnv>();
+  app.use("*", async (context, next) => {
+    context.set("requestId", "request-1");
+    context.set("clientAppVersion", null);
+    context.set("clientPlatform", null);
+    await next();
+  });
+  app.onError((error, context) => {
+    if (error instanceof HttpError) {
+      context.status(error.statusCode as ContentfulStatusCode);
+      return context.json({ error: error.message, code: error.code });
+    }
+
+    context.status(500);
+    return context.json({ error: "internal" });
+  });
+  app.route("/", route);
+  return app;
 }
 
 function createPackageDraftInput(): CreateCatalogPackageDraftInput {
@@ -721,4 +789,258 @@ test("workspace-selected catalog versions reject invalid managed media reference
     },
   );
   assert.equal(queries.length, 2);
+});
+
+test("public catalog list reads only published, non-delisted package snapshots", async () => {
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> {
+      assert.match(text, /FROM catalog\.package_versions/);
+      assert.match(text, /WHERE status = 'published'/);
+      assert.match(text, /AND delisted_at IS NULL/);
+      assert.match(text, /packages\.status = 'published'/);
+      assert.match(text, /packages\.delisted_at IS NULL/);
+      assert.match(text, /packages\.slug AS slug/);
+      assert.match(text, /lower\(packages\.slug\)/);
+      assert.doesNotMatch(text, /versions\.slug AS slug/);
+      assert.doesNotMatch(text, /lower\(versions\.slug\)/);
+      assert.doesNotMatch(text, /\bmedia_blob_id\b/);
+      assert.doesNotMatch(text, /\bstorage_key\b/);
+      assert.doesNotMatch(text, /\bsha256\b/);
+      assert.deepEqual(params, ["%spanish%", "es", "language", 10]);
+      return createQueryResult([createPublicPackageRow() as unknown as Row]);
+    },
+  };
+
+  const catalogPackages = await listPublicCatalogPackagesInExecutor(executor, {
+    limit: 10,
+    search: "Spanish",
+    languageTag: "ES",
+    topicTag: "Language",
+  });
+
+  assert.equal(catalogPackages.length, 1);
+  assert.equal(catalogPackages[0]?.status, "published");
+  assert.equal(catalogPackages[0]?.latestVersion.status, "published");
+  assert.equal(catalogPackages[0]?.latestVersion.packageVersionId, testPackageVersionId);
+  assert.doesNotMatch(JSON.stringify(catalogPackages), /mediaBlobId|storageKey|sha256|createdByAdminEmail|sourceWorkspaceId/);
+});
+
+test("public catalog detail resolves by package slug and excludes unpublished or delisted snapshots", async () => {
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> {
+      assert.match(text, /packages\.slug = \$1/);
+      assert.doesNotMatch(text, /versions\.slug = \$1/);
+      assert.match(text, /packages\.status = 'published'/);
+      assert.match(text, /packages\.delisted_at IS NULL/);
+      assert.deepEqual(params, ["spanish-basics"]);
+      return createQueryResult([]);
+    },
+  };
+
+  await assert.rejects(
+    loadPublicCatalogPackageDetailInExecutor(executor, "spanish-basics"),
+    (error: unknown) => {
+      assert.equal(error instanceof HttpError, true);
+      assert.equal((error as HttpError).statusCode, 404);
+      assert.equal((error as HttpError).code, "CATALOG_PUBLIC_PACKAGE_NOT_FOUND");
+      return true;
+    },
+  );
+});
+
+test("public catalog card previews omit source card identifiers", async () => {
+  const queries: Array<string> = [];
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> {
+      queries.push(text);
+
+      if (text.includes("FROM catalog.package_versions AS versions")) {
+        assert.match(text, /versions\.status = 'published'/);
+        assert.match(text, /packages\.status = 'published'/);
+        assert.deepEqual(params, [testPackageVersionId]);
+        return createQueryResult([{ package_version_id: testPackageVersionId } as unknown as Row]);
+      }
+
+      if (text.includes("FROM catalog.package_cards")) {
+        assert.doesNotMatch(text, /\bpackage_card_id\b/);
+        assert.doesNotMatch(text, /\bstable_card_key\b/);
+        assert.deepEqual(params, [testPackageVersionId, 5]);
+        return createQueryResult([{
+          ordinal: 1,
+          front_text: "Hola",
+          back_text: "Hello",
+          card_type: "basic",
+          tags: ["language"],
+          media_asset_keys: ["cover"],
+        } as unknown as Row]);
+      }
+
+      throw new Error(`Unexpected query: ${text}`);
+    },
+  };
+
+  const cards = await loadPublicCatalogPackageVersionCardPreviewInExecutor(executor, {
+    packageVersionId: testPackageVersionId,
+    limit: 5,
+  });
+
+  assert.deepEqual(cards, [
+    {
+      ordinal: 1,
+      frontText: "Hola",
+      backText: "Hello",
+      cardType: "basic",
+      tags: ["language"],
+      mediaAssetKeys: ["cover"],
+    },
+  ]);
+  assert.equal(queries.length, 2);
+  assert.doesNotMatch(JSON.stringify(cards), /packageCardId|stableCardKey/);
+});
+
+test("public catalog media download lookup authorizes by package media key and keeps storage internal", async () => {
+  const realisticBlobSha256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const realisticBlobStorageKey = `media/blobs/sha256/aa/aa/${realisticBlobSha256}`;
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> {
+      assert.match(text, /media_assets\.package_version_id = \$1/);
+      assert.match(text, /media_assets\.package_media_key = \$2/);
+      assert.match(text, /versions\.status = 'published'/);
+      assert.match(text, /packages\.status = 'published'/);
+      assert.deepEqual(params, [testPackageVersionId, "cover"]);
+      return createQueryResult([{
+        ...createPublicMediaAssetRow(),
+        storage_key: realisticBlobStorageKey,
+      } as unknown as Row]);
+    },
+  };
+
+  const mediaDownloadSource = await loadPublicCatalogPackageMediaForDownloadInExecutor(
+    executor,
+    testPackageVersionId,
+    "cover",
+  );
+
+  assert.equal(mediaDownloadSource.storageKey, realisticBlobStorageKey);
+  assert.deepEqual(mediaDownloadSource.mediaAsset, {
+    packageVersionId: testPackageVersionId,
+    packageMediaKey: "cover",
+    altText: "Cover image",
+    credit: null,
+    license: "CC-BY-4.0",
+    mimeType: "image/jpeg",
+    sizeBytes: 1234,
+    downloadUrlPath: `/catalog/package-versions/${testPackageVersionId}/media-assets/cover/download-url`,
+  });
+  assert.doesNotMatch(JSON.stringify(mediaDownloadSource.mediaAsset), /mediaBlobId|storageKey|storage_key|sha256/);
+});
+
+test("public catalog media download URL route returns only a backend API URL without storage internals", async () => {
+  const realisticBlobSha256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const realisticBlobStorageKey = `media/blobs/sha256/aa/aa/${realisticBlobSha256}`;
+  const oldLeakySignedS3Url = `https://media-bucket.s3.amazonaws.com/${realisticBlobStorageKey}?X-Amz-Signature=abc`;
+  let requestedPackageMediaKey: string | null = null;
+  const mediaDownloadSource: CatalogPublicPackageMediaDownloadSource = {
+    mediaAsset: {
+      packageVersionId: testPackageVersionId,
+      packageMediaKey: "cover",
+      altText: "Cover image",
+      credit: null,
+      license: "CC-BY-4.0",
+      mimeType: "image/jpeg",
+      sizeBytes: 1234,
+      downloadUrlPath: `/catalog/package-versions/${testPackageVersionId}/media-assets/cover/download-url`,
+    },
+    storageKey: realisticBlobStorageKey,
+  };
+  const app = createPublicCatalogRouteTestApp(createCatalogPublicRoutes({
+    loadPublicCatalogPackageMediaForDownloadFn: async (packageVersionId, packageMediaKey) => {
+      assert.equal(packageVersionId, testPackageVersionId);
+      requestedPackageMediaKey = packageMediaKey;
+      return mediaDownloadSource;
+    },
+  }));
+
+  const response = await app.request(
+    `http://localhost/catalog/package-versions/${testPackageVersionId}/media-assets/cover/download-url`,
+  );
+  const payload = await response.json() as Readonly<Record<string, unknown>>;
+
+  assert.equal(response.status, 200);
+  assert.equal(requestedPackageMediaKey, "cover");
+  const payloadJson = JSON.stringify(payload);
+  assert.doesNotMatch(payloadJson, /media\/blobs|storageKey|storage_key|mediaBlobId|sha256/);
+  assert.doesNotMatch(payloadJson, new RegExp(realisticBlobSha256));
+  assert.doesNotMatch(payloadJson, new RegExp(oldLeakySignedS3Url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.deepEqual(payload, {
+    mediaAsset: mediaDownloadSource.mediaAsset,
+    download: {
+      method: "GET",
+      url: `http://localhost/catalog/package-versions/${testPackageVersionId}/media-assets/cover/download`,
+      expiresAt: null,
+      rangeRequests: false,
+    },
+  });
+});
+
+test("public catalog media download route serves bytes through the backend", async () => {
+  const realisticBlobSha256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const realisticBlobStorageKey = `media/blobs/sha256/aa/aa/${realisticBlobSha256}`;
+  let loadedStorageKey: string | null = null;
+  const mediaDownloadSource: CatalogPublicPackageMediaDownloadSource = {
+    mediaAsset: {
+      packageVersionId: testPackageVersionId,
+      packageMediaKey: "cover",
+      altText: "Cover image",
+      credit: null,
+      license: "CC-BY-4.0",
+      mimeType: "image/jpeg",
+      sizeBytes: 3,
+      downloadUrlPath: `/catalog/package-versions/${testPackageVersionId}/media-assets/cover/download-url`,
+    },
+    storageKey: realisticBlobStorageKey,
+  };
+  const app = createPublicCatalogRouteTestApp(createCatalogPublicRoutes({
+    loadPublicCatalogPackageMediaForDownloadFn: async (packageVersionId, packageMediaKey) => {
+      assert.equal(packageVersionId, testPackageVersionId);
+      assert.equal(packageMediaKey, "cover");
+      return mediaDownloadSource;
+    },
+    loadMediaAssetObjectBytesFn: async (input) => {
+      loadedStorageKey = input.storageKey;
+      assert.equal(input.workspaceId, testPackageVersionId);
+      assert.equal(input.mediaAssetId, "cover");
+      assert.equal(input.mimeType, "image/jpeg");
+      assert.equal(input.sizeBytes, 3);
+      assert.equal(input.sha256, null);
+      return {
+        bytes: Buffer.from([1, 2, 3]),
+        mimeType: "image/jpeg",
+        sizeBytes: 3,
+        sha256: realisticBlobSha256,
+      };
+    },
+  }));
+
+  const response = await app.request(
+    `http://localhost/catalog/package-versions/${testPackageVersionId}/media-assets/cover/download`,
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(loadedStorageKey, realisticBlobStorageKey);
+  assert.equal(response.headers.get("content-type"), "image/jpeg");
+  assert.equal(response.headers.get("content-length"), "3");
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), Buffer.from([1, 2, 3]));
 });

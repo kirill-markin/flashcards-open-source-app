@@ -1,0 +1,36 @@
+type: object
+additionalProperties: false
+required:
+  - packageVersionId
+  - packageMediaKey
+  - altText
+  - credit
+  - license
+  - mimeType
+  - sizeBytes
+  - downloadUrlPath
+properties:
+  packageVersionId:
+    $ref: ./UuidString.yaml
+  packageMediaKey:
+    type: string
+  altText:
+    type:
+      - string
+      - 'null'
+  credit:
+    type:
+      - string
+      - 'null'
+  license:
+    type:
+      - string
+      - 'null'
+  mimeType:
+    type: string
+  sizeBytes:
+    type: integer
+    minimum: 0
+  downloadUrlPath:
+    type: string
+    description: Relative API path for requesting a signed download URL.
