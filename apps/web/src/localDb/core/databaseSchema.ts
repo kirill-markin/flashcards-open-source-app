@@ -3,6 +3,8 @@ export type DatabaseStores =
   | "cardTags"
   | "decks"
   | "mediaAssets"
+  | "mediaBlobCache"
+  | "mediaTransferQueue"
   | "progressDailyCounts"
   | "reviewEvents"
   | "workspaceSettings"
@@ -11,7 +13,7 @@ export type DatabaseStores =
   | "meta";
 
 export const databaseName = "flashcards-web-sync";
-export const databaseVersion = 17;
+export const databaseVersion = 18;
 export const progressCacheStateKey = "progress_cache_state";
 
 export const version4DatabaseStoreNames: ReadonlyArray<DatabaseStores> = [
@@ -101,6 +103,22 @@ export function createDecksStore(database: IDBDatabase): void {
 export function createMediaAssetsStore(database: IDBDatabase): void {
   const mediaAssetsStore = database.createObjectStore("mediaAssets", { keyPath: ["workspaceId", "mediaAssetId"] });
   mediaAssetsStore.createIndex("workspaceId_updatedAt_mediaAssetId", ["workspaceId", "updatedAt", "mediaAssetId"], { unique: false });
+}
+
+export function createMediaBlobCacheStore(database: IDBDatabase): void {
+  database.createObjectStore("mediaBlobCache", { keyPath: "sha256" });
+}
+
+export function createMediaTransferQueueStore(database: IDBDatabase): void {
+  const mediaTransferQueueStore = database.createObjectStore("mediaTransferQueue", { keyPath: "transferId" });
+  mediaTransferQueueStore.createIndex("workspaceId_status_nextAttemptAt", ["workspaceId", "status", "nextAttemptAt"], { unique: false });
+  mediaTransferQueueStore.createIndex(
+    "workspaceId_status_nextAttemptAt_createdAt_transferId",
+    ["workspaceId", "status", "nextAttemptAt", "createdAt", "transferId"],
+    { unique: false },
+  );
+  mediaTransferQueueStore.createIndex("workspaceId_mediaAssetId", ["workspaceId", "mediaAssetId"], { unique: false });
+  mediaTransferQueueStore.createIndex("sha256", "sha256", { unique: false });
 }
 
 export function createReviewEventsStore(database: IDBDatabase): void {

@@ -11,6 +11,7 @@ import {
   openDatabase,
   readIndexedDbOpenLifecycleSnapshotForDiagnostics,
   readLastIndexedDbOpenLifecycleSnapshot,
+  type DatabaseStores,
   type StoredCard,
 } from "./database";
 import { listOutboxRecords, type PersistedOutboxRecord } from "../sync/outbox";
@@ -35,7 +36,7 @@ type LegacyStoredCard = Omit<
 }>;
 
 const webSyncDatabaseName = "flashcards-web-sync";
-const currentWebSyncDatabaseVersion = 17;
+const currentWebSyncDatabaseVersion = 18;
 const legacyNullDueAtBucketMillis = -1;
 const legacyMalformedDueAtBucketMillis = -2;
 
@@ -332,6 +333,25 @@ async function loadCardsStoreIndexNamesForTest(): Promise<ReadonlyArray<string>>
   }
 }
 
+async function loadStoreIndexNamesForTest(storeName: DatabaseStores): Promise<ReadonlyArray<string>> {
+  const database = await openDatabase();
+  try {
+    const transaction = database.transaction([storeName], "readonly");
+    const indexNames = transaction.objectStore(storeName).indexNames;
+    const result: Array<string> = [];
+    for (let index = 0; index < indexNames.length; index += 1) {
+      const indexName = indexNames.item(index);
+      if (indexName === null) {
+        throw new Error(`IndexedDB ${storeName} index name is missing at position ${index}`);
+      }
+      result.push(indexName);
+    }
+    return result;
+  } finally {
+    database.close();
+  }
+}
+
 async function loadObjectStoreNamesForTest(): Promise<ReadonlyArray<string>> {
   const database = await openDatabase();
   try {
@@ -448,6 +468,27 @@ describe("localDb core migrations", () => {
     const storeNames = await loadObjectStoreNamesForTest();
 
     expect(storeNames).toContain("mediaAssets");
+    await clearWebSyncCache();
+  });
+
+  it("creates the managed media cache and transfer queue stores without changing outbox", async () => {
+    await clearWebSyncCache();
+
+    const storeNames = await loadObjectStoreNamesForTest();
+    const transferQueueIndexNames = await loadStoreIndexNamesForTest("mediaTransferQueue");
+    const outboxIndexNames = await loadStoreIndexNamesForTest("outbox");
+
+    expect(storeNames).toEqual(expect.arrayContaining([
+      "mediaBlobCache",
+      "mediaTransferQueue",
+    ]));
+    expect(transferQueueIndexNames).toEqual(expect.arrayContaining([
+      "workspaceId_status_nextAttemptAt",
+      "workspaceId_status_nextAttemptAt_createdAt_transferId",
+      "workspaceId_mediaAssetId",
+      "sha256",
+    ]));
+    expect(outboxIndexNames).toEqual(["workspaceId_createdAt"]);
     await clearWebSyncCache();
   });
 

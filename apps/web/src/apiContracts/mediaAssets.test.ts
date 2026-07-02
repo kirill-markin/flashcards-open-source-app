@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { MediaAsset } from "../types";
+import {
+  parseMediaAssetUploadSessionAbortResponse,
+  parseMediaAssetUploadSessionCompleteResponse,
+  parseMediaAssetUploadSessionCreateResponse,
+  parseMediaAssetUploadSessionPartUrlsResponse,
+} from "./mediaAssets";
 import { parseSyncPullResultResponse } from "./sync";
 
 const mediaAssetFixture: MediaAsset = {
@@ -40,5 +46,130 @@ describe("media asset API contracts", () => {
     }
 
     expect(change.payload).toEqual(mediaAssetFixture);
+  });
+
+  it("parses upload-session reuse responses without backend-only blob fields", () => {
+    const result = parseMediaAssetUploadSessionCreateResponse({
+      workspaceId: mediaAssetFixture.workspaceId,
+      mediaAssetId: mediaAssetFixture.mediaAssetId,
+      status: "already_available",
+      mediaAsset: {
+        ...mediaAssetFixture,
+        storageKey: "private/backend/object",
+        mediaBlobId: "blob-1",
+      },
+      uploadSession: null,
+    }, "POST /workspaces/workspace-1/media-assets/upload-sessions");
+
+    expect(result).toEqual({
+      workspaceId: mediaAssetFixture.workspaceId,
+      mediaAssetId: mediaAssetFixture.mediaAssetId,
+      status: "already_available",
+      mediaAsset: mediaAssetFixture,
+      uploadSession: null,
+    });
+    expect(result.mediaAsset).not.toHaveProperty("storageKey");
+    expect(result.mediaAsset).not.toHaveProperty("mediaBlobId");
+  });
+
+  it("parses upload-session creation responses", () => {
+    const result = parseMediaAssetUploadSessionCreateResponse({
+      workspaceId: mediaAssetFixture.workspaceId,
+      mediaAssetId: mediaAssetFixture.mediaAssetId,
+      status: "upload_required",
+      mediaAsset: null,
+      uploadSession: {
+        sessionId: "55555555-5555-4555-8555-555555555555",
+        expiresAt: "2026-03-10T10:00:00.000Z",
+        partSizeBytes: 8388608,
+        partCount: 2,
+        storageKey: "private/backend/staging",
+      },
+    }, "POST /workspaces/workspace-1/media-assets/upload-sessions");
+
+    expect(result).toEqual({
+      workspaceId: mediaAssetFixture.workspaceId,
+      mediaAssetId: mediaAssetFixture.mediaAssetId,
+      status: "upload_required",
+      mediaAsset: null,
+      uploadSession: {
+        sessionId: "55555555-5555-4555-8555-555555555555",
+        expiresAt: "2026-03-10T10:00:00.000Z",
+        partSizeBytes: 8388608,
+        partCount: 2,
+      },
+    });
+    expect(result.uploadSession).not.toHaveProperty("storageKey");
+  });
+
+  it("parses upload part URL responses", () => {
+    const result = parseMediaAssetUploadSessionPartUrlsResponse({
+      sessionId: "55555555-5555-4555-8555-555555555555",
+      partUrls: [
+        {
+          partNumber: 1,
+          method: "PUT",
+          url: "https://uploads.example.test/part-1",
+          expiresAt: "2026-03-10T10:00:00.000Z",
+          headers: {
+            "x-amz-checksum-sha256": "checksum-1",
+            "content-type": "image/png",
+          },
+        },
+      ],
+    }, "POST /workspaces/workspace-1/media-assets/upload-sessions/session-1/parts");
+
+    expect(result).toEqual({
+      sessionId: "55555555-5555-4555-8555-555555555555",
+      partUrls: [
+        {
+          partNumber: 1,
+          method: "PUT",
+          url: "https://uploads.example.test/part-1",
+          expiresAt: "2026-03-10T10:00:00.000Z",
+          headers: {
+            "x-amz-checksum-sha256": "checksum-1",
+            "content-type": "image/png",
+          },
+        },
+      ],
+    });
+  });
+
+  it("parses upload completion and abort responses", () => {
+    expect(parseMediaAssetUploadSessionCompleteResponse({
+      mediaAsset: mediaAssetFixture,
+      applied: true,
+    }, "POST /workspaces/workspace-1/media-assets/upload-sessions/session-1/complete")).toEqual({
+      mediaAsset: mediaAssetFixture,
+      applied: true,
+    });
+
+    expect(parseMediaAssetUploadSessionAbortResponse({
+      sessionId: "55555555-5555-4555-8555-555555555555",
+      abortedAt: "2026-03-10T10:05:00.000Z",
+    }, "POST /workspaces/workspace-1/media-assets/upload-sessions/session-1/abort")).toEqual({
+      sessionId: "55555555-5555-4555-8555-555555555555",
+      abortedAt: "2026-03-10T10:05:00.000Z",
+    });
+  });
+
+  it("reports endpoint and field path for invalid upload part URL headers", () => {
+    expect(() => parseMediaAssetUploadSessionPartUrlsResponse({
+      sessionId: "55555555-5555-4555-8555-555555555555",
+      partUrls: [
+        {
+          partNumber: 1,
+          method: "PUT",
+          url: "https://uploads.example.test/part-1",
+          expiresAt: "2026-03-10T10:00:00.000Z",
+          headers: {
+            "x-amz-checksum-sha256": 123,
+          },
+        },
+      ],
+    }, "POST /workspaces/workspace-1/media-assets/upload-sessions/session-1/parts")).toThrow(
+      "Invalid API response for POST /workspaces/workspace-1/media-assets/upload-sessions/session-1/parts: partUrls[0].headers.x-amz-checksum-sha256 must be string",
+    );
   });
 });
