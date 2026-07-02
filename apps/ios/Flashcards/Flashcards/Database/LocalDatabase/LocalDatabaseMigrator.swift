@@ -104,6 +104,9 @@ struct LocalDatabaseMigrator {
             case 22:
                 try self.migrateSchemaVersion22To23()
                 schemaVersion = 23
+            case 23:
+                try self.migrateSchemaVersion23To24()
+                schemaVersion = 24
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -744,6 +747,94 @@ struct LocalDatabaseMigrator {
             sql: """
             ALTER TABLE media_assets
             DROP COLUMN storage_key
+            """,
+            values: []
+        )
+    }
+
+    private func migrateSchemaVersion23To24() throws {
+        try self.core.execute(
+            sql: """
+            CREATE TABLE IF NOT EXISTS media_blob_cache (
+                sha256 TEXT PRIMARY KEY CHECK (length(trim(sha256)) = 64),
+                mime_type TEXT NOT NULL CHECK (length(trim(mime_type)) > 0),
+                size_bytes INTEGER NOT NULL CHECK (size_bytes >= 0),
+                local_relative_path TEXT NOT NULL UNIQUE CHECK (length(trim(local_relative_path)) > 0),
+                created_at TEXT NOT NULL,
+                last_accessed_at TEXT NOT NULL,
+                source_media_asset_id TEXT
+            )
+            """,
+            values: []
+        )
+        try self.core.execute(
+            sql: """
+            CREATE TABLE IF NOT EXISTS media_transfer_queue (
+                transfer_id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE,
+                media_asset_id TEXT NOT NULL CHECK (length(trim(media_asset_id)) > 0),
+                kind TEXT NOT NULL CHECK (kind IN ('upload', 'download')),
+                status TEXT NOT NULL CHECK (status IN ('pending', 'in_progress', 'succeeded', 'failed')),
+                sha256 TEXT NOT NULL CHECK (length(trim(sha256)) = 64),
+                mime_type TEXT NOT NULL CHECK (length(trim(mime_type)) > 0),
+                size_bytes INTEGER NOT NULL CHECK (size_bytes >= 0),
+                local_relative_path TEXT NOT NULL CHECK (length(trim(local_relative_path)) > 0),
+                attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+                next_attempt_at TEXT,
+                claimed_at TEXT,
+                last_error TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                CHECK (
+                    (status = 'in_progress' AND claimed_at IS NOT NULL)
+                    OR (status IN ('pending', 'failed', 'succeeded') AND claimed_at IS NULL)
+                )
+            )
+            """,
+            values: []
+        )
+        try self.core.execute(
+            sql: """
+            CREATE INDEX IF NOT EXISTS idx_media_blob_cache_last_accessed_at
+            ON media_blob_cache(last_accessed_at ASC, sha256 ASC)
+            """,
+            values: []
+        )
+        try self.core.execute(
+            sql: """
+            CREATE INDEX IF NOT EXISTS idx_media_blob_cache_source_media_asset_id
+            ON media_blob_cache(source_media_asset_id)
+            WHERE source_media_asset_id IS NOT NULL
+            """,
+            values: []
+        )
+        try self.core.execute(
+            sql: """
+            CREATE INDEX IF NOT EXISTS idx_media_transfer_queue_due
+            ON media_transfer_queue(status, next_attempt_at, created_at ASC, transfer_id ASC)
+            WHERE status IN ('pending', 'failed')
+            """,
+            values: []
+        )
+        try self.core.execute(
+            sql: """
+            CREATE INDEX IF NOT EXISTS idx_media_transfer_queue_stale_claim
+            ON media_transfer_queue(status, claimed_at, updated_at ASC, transfer_id ASC)
+            WHERE status = 'in_progress'
+            """,
+            values: []
+        )
+        try self.core.execute(
+            sql: """
+            CREATE INDEX IF NOT EXISTS idx_media_transfer_queue_workspace_status
+            ON media_transfer_queue(workspace_id, status, updated_at DESC, transfer_id ASC)
+            """,
+            values: []
+        )
+        try self.core.execute(
+            sql: """
+            CREATE INDEX IF NOT EXISTS idx_media_transfer_queue_media_asset
+            ON media_transfer_queue(workspace_id, media_asset_id, status)
             """,
             values: []
         )
