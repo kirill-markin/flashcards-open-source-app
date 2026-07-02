@@ -12,6 +12,8 @@ import {
   createCardsUpdatedAtIndexes,
   createDecksStore,
   createMediaAssetsStore,
+  createMediaBlobCacheStore,
+  createMediaTransferQueueStore,
   createMetaStore,
   createOutboxStore,
   createProgressDailyCountsStore,
@@ -464,6 +466,16 @@ function upgradeToVersion17(database: IDBDatabase): void {
   }
 }
 
+function upgradeToVersion18(database: IDBDatabase): void {
+  if (database.objectStoreNames.contains("mediaBlobCache") === false) {
+    createMediaBlobCacheStore(database);
+  }
+
+  if (database.objectStoreNames.contains("mediaTransferQueue") === false) {
+    createMediaTransferQueueStore(database);
+  }
+}
+
 export function upgradeDatabase(
   database: IDBDatabase,
   oldVersion: number,
@@ -524,5 +536,9 @@ export function upgradeDatabase(
 
   if (shouldRunVersionUpgrade(oldVersion, newVersion, 17)) {
     upgradeToVersion17(database);
+  }
+
+  if (shouldRunVersionUpgrade(oldVersion, newVersion, 18)) {
+    upgradeToVersion18(database);
   }
 }

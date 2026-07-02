@@ -36,6 +36,13 @@ export {
   parseFeedbackSubmissionResponse,
 } from "./apiContracts/feedback";
 export {
+  parseMediaAssetDownloadUrlResponse,
+  parseMediaAssetUploadSessionAbortResponse,
+  parseMediaAssetUploadSessionCompleteResponse,
+  parseMediaAssetUploadSessionCreateResponse,
+  parseMediaAssetUploadSessionPartUrlsResponse,
+} from "./apiContracts/mediaAssets";
+export {
   parseWorkspacePackageExportDownloadMetadata,
   parseWorkspacePackageExportPreviewResponse,
 } from "./apiContracts/workspacePackageExport";

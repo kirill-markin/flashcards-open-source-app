@@ -54,6 +54,10 @@ export {
   loadProgressSummary,
 } from "./api/endpoints/progress";
 export {
+  abortMediaAssetUploadSession,
+  completeMediaAssetUploadSession,
+  createMediaAssetUploadPartUrls,
+  createMediaAssetUploadSession,
   loadMediaAssetDownloadUrl,
 } from "./api/endpoints/mediaAssets";
 export {

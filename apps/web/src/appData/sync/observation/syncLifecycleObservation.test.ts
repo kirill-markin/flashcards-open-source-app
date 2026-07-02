@@ -42,7 +42,7 @@ vi.mock("../../../api", () => ({
   pushSyncOperations: apiMocks.pushSyncOperationsMock,
 }));
 
-const currentWebSyncDatabaseVersion = 17;
+const currentWebSyncDatabaseVersion = 18;
 
 function createRemoteSyncInput(): WorkspaceRemoteSyncInput {
   return {
