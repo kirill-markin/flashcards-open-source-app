@@ -20,3 +20,14 @@ data class MediaAssetDownloadUrl(
     val url: String,
     val expiresAtMillis: Long
 )
+
+data class ReviewMediaAssetFile(
+    val mediaAsset: MediaAsset,
+    val uri: String
+) {
+    init {
+        require(uri.isNotBlank()) {
+            "Review media asset file URI must not be blank."
+        }
+    }
+}

@@ -21,10 +21,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
+import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 
 @Composable
 fun ReviewRenderedContentView(
     content: ReviewRenderedContent,
+    onLoadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     modifier: Modifier
 ) {
@@ -144,6 +146,7 @@ fun ReviewRenderedContentView(
 
                         is ReviewRichBlock.ManagedMedia -> ReviewManagedMediaContent(
                             reference = block.reference,
+                            onLoadManagedMediaFile = onLoadManagedMediaFile,
                             onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl
                         )
                     }

@@ -40,6 +40,7 @@ import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackTrigger
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
+import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
@@ -116,6 +117,8 @@ interface ReviewRepository {
     ): Flow<ReviewSessionSnapshot>
 
     fun observeReviewMediaAssets(): Flow<List<MediaAsset>>
+
+    suspend fun loadReviewMediaAssetFile(mediaAssetId: String): ReviewMediaAssetFile
 
     suspend fun loadReviewMediaAssetDownloadUrl(mediaAssetId: String): MediaAssetDownloadUrl
 

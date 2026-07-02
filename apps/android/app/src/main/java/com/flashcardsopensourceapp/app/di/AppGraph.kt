@@ -74,6 +74,7 @@ import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalPro
 import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.review.CloudReviewMediaAssetDownloadUrlLoader
 import com.flashcardsopensourceapp.data.local.repository.review.LocalReviewRepository
+import com.flashcardsopensourceapp.data.local.repository.review.OkHttpReviewMediaAssetDownloader
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.LocalSyncRepository
 import com.flashcardsopensourceapp.data.local.repository.workspace.LocalWorkspaceRepository
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
@@ -315,13 +316,15 @@ class AppGraph(
         syncLocalStore = syncLocalStore,
         localProgressCacheStore = localProgressCacheStore,
         timeProvider = SystemTimeProvider,
+        mediaAssetFileCacheRootDirectory = context.filesDir,
         mediaAssetDownloadUrlLoader = CloudReviewMediaAssetDownloadUrlLoader(
             preferencesStore = cloudPreferencesStore,
             remoteService = cloudRemoteService,
             operationCoordinator = cloudOperationCoordinator,
             guestSessionStore = guestAiSessionStore,
             resetCoordinator = cloudIdentityResetCoordinator
-        )
+        ),
+        mediaAssetDownloader = OkHttpReviewMediaAssetDownloader(okHttpClient = okHttpClient)
     )
     val feedbackRepository: FeedbackRepository = LocalFeedbackRepository(
         database = database,
