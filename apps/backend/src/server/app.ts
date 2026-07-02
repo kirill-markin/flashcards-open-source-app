@@ -20,6 +20,7 @@ import { createSyncRoutes } from "../routes/sync/index";
 import { createSystemRoutes } from "../routes/system";
 import { createAdminRoutes } from "../routes/admin";
 import { createCatalogAdminRoutes } from "../routes/catalogAdmin";
+import { createCatalogPublicRoutes } from "../routes/catalogPublic";
 import { createCatalogInstallRoutes } from "../routes/catalogInstall";
 import { createGuestAuthRoutes } from "../routes/guestAuth";
 import { createWorkspaceRoutes } from "../routes/workspaces/index";
@@ -30,6 +31,7 @@ import {
 import { getGuestAiWeightedMonthlyTokenCap } from "../guestAiQuota/config";
 import { logRequestError } from "./logging";
 import { getAllowedOrigins } from "./requestContext";
+import { getPublicSiteBaseUrl } from "../shared/publicUrls";
 import {
   captureBackendException,
   continueBackendTrace,
@@ -85,6 +87,24 @@ const globalSnapshotCorsAllowHeaders = [
   "authorization",
   "sentry-trace",
   "baggage",
+] as const;
+const publicCatalogCorsAllowHeaders = [
+  "content-type",
+  "sentry-trace",
+  "baggage",
+  "x-client-platform",
+  "x-client-version",
+] as const;
+const publicCatalogCorsExposeHeaders = [
+  "cache-control",
+  "content-length",
+  "content-type",
+  "x-request-id",
+  "retry-after",
+] as const;
+const localPublicCatalogOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
 ] as const;
 
 export function getRouteMountPaths(basePath: string): ReadonlyArray<string> {
@@ -208,8 +228,37 @@ function shouldCaptureRequestFailureException(error: unknown): boolean {
   return true;
 }
 
+function isPublicCatalogPath(path: string): boolean {
+  return path.startsWith("/catalog/") || path.startsWith("/v1/catalog/");
+}
+
+function getPublicCatalogCorsOrigin(origin: string, requestUrl: string): string | null {
+  if (origin === "") {
+    return null;
+  }
+
+  const allowedOrigins = [
+    getPublicSiteBaseUrl(requestUrl),
+    ...localPublicCatalogOrigins,
+  ];
+  return allowedOrigins.includes(origin) ? origin : null;
+}
+
 function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono<AppEnv> {
   const app = new Hono<AppEnv>({ strict: false }).basePath(basePath);
+  const publicCatalogCorsMiddleware = cors({
+    origin: (origin, context) => getPublicCatalogCorsOrigin(origin, context.req.url),
+    allowMethods: ["GET", "OPTIONS"],
+    allowHeaders: [...publicCatalogCorsAllowHeaders],
+    exposeHeaders: [...publicCatalogCorsExposeHeaders],
+  });
+  const browserCorsMiddleware = cors({
+    origin: allowedOrigins,
+    allowMethods: ["GET", "POST", "PATCH", "PUT", "OPTIONS"],
+    allowHeaders: [...browserCorsAllowHeaders],
+    exposeHeaders: [...browserCorsExposeHeaders],
+    credentials: true,
+  });
   app.use("*", async (context, next) => {
     const requestId = crypto.randomUUID();
     context.set("requestId", requestId);
@@ -228,19 +277,27 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
       await next();
     });
   });
+  app.use("*", async (context, next) => {
+    if (isPublicCatalogPath(context.req.path)) {
+      return publicCatalogCorsMiddleware(context, next);
+    }
+
+    await next();
+  });
   app.use(globalSnapshotPath, cors({
     origin: "*",
     allowMethods: ["GET", "OPTIONS"],
     allowHeaders: [...globalSnapshotCorsAllowHeaders],
     exposeHeaders: ["retry-after"],
   }));
-  app.use("*", cors({
-    origin: allowedOrigins,
-    allowMethods: ["GET", "POST", "PATCH", "PUT", "OPTIONS"],
-    allowHeaders: [...browserCorsAllowHeaders],
-    exposeHeaders: [...browserCorsExposeHeaders],
-    credentials: true,
-  }));
+  app.use("*", async (context, next) => {
+    if (isPublicCatalogPath(context.req.path)) {
+      await next();
+      return;
+    }
+
+    return browserCorsMiddleware(context, next);
+  });
 
   app.onError((error, context) => {
     const requestId = context.get("requestId");
@@ -281,9 +338,17 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
     }
     const apiKeyRequest = usesApiKeyAuthorizationHeader(context.req.raw);
     const agentConnectionManagementRequest = isAgentConnectionManagementPath(context.req.path);
+    const publicCatalogRequest = isPublicCatalogPath(context.req.path);
 
     if (error instanceof AuthError) {
       context.status(error.statusCode as ContentfulStatusCode);
+      if (publicCatalogRequest) {
+        return context.json({
+          error: "Authentication failed. Sign in again.",
+          requestId,
+          code: "AUTH_UNAUTHORIZED",
+        });
+      }
       if (apiKeyRequest) {
         return context.json(
           createAgentSetupErrorEnvelope(
@@ -315,6 +380,9 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
     if (error instanceof HttpError) {
       context.status(error.statusCode as ContentfulStatusCode);
       applyHttpErrorResponseHeaders(context, error);
+      if (publicCatalogRequest) {
+        return context.json(createPublicHttpErrorBody(error, requestId));
+      }
       if (apiKeyRequest) {
         return context.json(
           createAgentSetupErrorEnvelope(
@@ -341,6 +409,13 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
     }
 
     context.status(500);
+    if (publicCatalogRequest) {
+      return context.json({
+        error: "Request failed. Try again.",
+        requestId,
+        code: "INTERNAL_ERROR",
+      });
+    }
     if (apiKeyRequest) {
       return context.json(
         createAgentSetupErrorEnvelope(
@@ -374,6 +449,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createWorkspaceRoutes({ allowedOrigins }));
   app.route("/", createAdminRoutes({ allowedOrigins }));
   app.route("/", createCatalogAdminRoutes({ allowedOrigins }));
+  app.route("/", createCatalogPublicRoutes({}));
   app.route("/", createCatalogInstallRoutes({ allowedOrigins }));
   app.route("/", createCardsRoutes({ allowedOrigins }));
   app.route("/", createFeedbackRoutes({ allowedOrigins }));

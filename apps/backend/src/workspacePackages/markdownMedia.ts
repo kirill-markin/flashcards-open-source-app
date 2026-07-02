@@ -303,6 +303,43 @@ function listMarkdownLinkDestinations(markdown: string): ReadonlyArray<MarkdownL
   return destinations;
 }
 
+export function extractMarkdownNonCodeTextSegments(markdown: string): ReadonlyArray<string> {
+  const segments: Array<string> = [];
+  let cursorIndex = 0;
+  let segmentStartIndex = 0;
+
+  while (cursorIndex < markdown.length) {
+    const openingFence = parseFenceAtLineStart(markdown, cursorIndex);
+    if (openingFence !== null) {
+      if (segmentStartIndex < cursorIndex) {
+        segments.push(markdown.slice(segmentStartIndex, cursorIndex));
+      }
+
+      cursorIndex = findFencedCodeBlockEndIndex(markdown, openingFence);
+      segmentStartIndex = cursorIndex;
+      continue;
+    }
+
+    if (markdown[cursorIndex] === "`") {
+      if (segmentStartIndex < cursorIndex) {
+        segments.push(markdown.slice(segmentStartIndex, cursorIndex));
+      }
+
+      cursorIndex = findInlineCodeSpanEndIndex(markdown, cursorIndex);
+      segmentStartIndex = cursorIndex;
+      continue;
+    }
+
+    cursorIndex += 1;
+  }
+
+  if (segmentStartIndex < markdown.length) {
+    segments.push(markdown.slice(segmentStartIndex));
+  }
+
+  return segments.filter((segment) => segment.trim() !== "");
+}
+
 function rewriteMarkdownUrls(
   markdown: string,
   buildRewrite: (url: string) => string | null,
@@ -469,6 +506,10 @@ export function extractMarkdownFcAssetIds(markdown: string): ReadonlyArray<strin
   }
 
   return assetIds;
+}
+
+export function extractMarkdownLinkDestinationUrls(markdown: string): ReadonlyArray<string> {
+  return listMarkdownLinkDestinations(markdown).map((linkDestination) => linkDestination.destination);
 }
 
 export function extractMarkdownPortableMediaPaths(markdown: string): ReadonlyArray<string> {

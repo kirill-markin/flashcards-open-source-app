@@ -1,0 +1,65 @@
+get:
+  tags:
+    - public-catalog
+  summary: Download public package media bytes
+  description: >-
+    Verifies that the package version is published and that the package-local
+    media key belongs to that version, then streams the media bytes through the
+    backend without exposing private object-storage keys. This backend-proxy
+    endpoint only serves media up to 4500000 bytes and supported public
+    download MIME types; larger public media needs a future CDN or streaming
+    path.
+  parameters:
+    - name: packageVersionId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+    - name: packageMediaKey
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9][a-z0-9._-]{0,127}$'
+  responses:
+    '200':
+      description: Public package media bytes
+      content:
+        application/pdf:
+          schema:
+            type: string
+            format: binary
+        audio/mpeg:
+          schema:
+            type: string
+            format: binary
+        image/jpeg:
+          schema:
+            type: string
+            format: binary
+        image/png:
+          schema:
+            type: string
+            format: binary
+        image/webp:
+          schema:
+            type: string
+            format: binary
+    '413':
+      description: Public package media is too large for backend proxy delivery
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PublicErrorEnvelope.yaml
+    '415':
+      description: Public package media MIME type is not supported for backend proxy delivery
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PublicErrorEnvelope.yaml
+    default:
+      description: Public catalog request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PublicErrorEnvelope.yaml

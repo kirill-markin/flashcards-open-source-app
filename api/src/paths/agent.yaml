@@ -24,6 +24,8 @@ get:
                 type: email_otp_then_api_key
                 sendCodeUrl: https://auth.flashcards-open-source-app.com/api/agent/send-code
                 verifyCodeUrl: https://auth.flashcards-open-source-app.com/api/agent/verify-code
+              capabilitiesBeforeLogin:
+                - Read the public published package catalog, package detail, card previews, and package media download URLs
               capabilitiesAfterLogin:
                 - Load account context
                 - Select a workspace
@@ -53,6 +55,11 @@ get:
                 workspacePackageExportUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/export
                 workspacePackageImportPreviewUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/import/preview
                 workspacePackageImportUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/import
+                catalogPackagesUrl: https://api.flashcards-open-source-app.com/v1/catalog/packages
+                catalogPackageDetailUrlTemplate: https://api.flashcards-open-source-app.com/v1/catalog/packages/{packageSlug}
+                catalogPackageVersionCardsUrlTemplate: https://api.flashcards-open-source-app.com/v1/catalog/package-versions/{packageVersionId}/cards
+                catalogPackageMediaDownloadUrlTemplate: https://api.flashcards-open-source-app.com/v1/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download-url
+                catalogPackageMediaDownloadTemplate: https://api.flashcards-open-source-app.com/v1/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download
                 catalogPackageInstallPreviewUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install/preview
                 catalogPackageInstallUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install
               mcp:
@@ -79,7 +86,18 @@ get:
                     Send the agent API key (fca_…) as a Bearer token for
                     headless/CLI use; same key as the REST agent surface.
             instructions: >-
-              Start with POST
+              Public catalog reads do not require authentication: use GET
+              https://api.flashcards-open-source-app.com/v1/catalog/packages to
+              list or search published packages, GET
+              https://api.flashcards-open-source-app.com/v1/catalog/packages/{packageSlug}
+              for detail, GET
+              https://api.flashcards-open-source-app.com/v1/catalog/package-versions/{packageVersionId}/cards
+              for card previews, GET
+              https://api.flashcards-open-source-app.com/v1/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download-url
+              for a backend-controlled media download URL, and GET
+              https://api.flashcards-open-source-app.com/v1/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download
+              for the media bytes. For authenticated workspace operations, start
+              with POST
               https://auth.flashcards-open-source-app.com/api/agent/send-code
               using the user's email. After send-code, follow the returned
               instructions: normal accounts require the 8-digit email code,

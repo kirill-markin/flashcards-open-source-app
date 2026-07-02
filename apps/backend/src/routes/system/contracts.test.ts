@@ -33,9 +33,13 @@ type OpenApiMediaTypeForTest = Readonly<{
 type OpenApiRequestBodyForTest = Readonly<{
   content?: Readonly<Record<string, OpenApiMediaTypeForTest>>;
 }>;
+type OpenApiResponseForTest = Readonly<{
+  content?: Readonly<Record<string, OpenApiMediaTypeForTest>>;
+}>;
 type OpenApiOperationForTest = Readonly<{
   description?: string;
   requestBody?: OpenApiRequestBodyForTest;
+  responses?: Readonly<Record<string, OpenApiResponseForTest>>;
 }>;
 type OpenApiDocumentForTest = Readonly<{
   info?: Readonly<{
@@ -50,7 +54,9 @@ type OpenApiDocumentForTest = Readonly<{
 }>;
 
 type AgentDiscoveryDataSchemaForTest = Readonly<{
+  required?: ReadonlyArray<string>;
   properties?: Readonly<{
+    capabilitiesBeforeLogin?: object;
     surface?: Readonly<{
       required?: ReadonlyArray<string>;
       properties?: Readonly<Record<string, object>>;
@@ -79,6 +85,11 @@ const expectedPublishedApiMethods = {
   "/workspaces/{workspaceId}/packages/export": ["post"],
   "/workspaces/{workspaceId}/packages/import/preview": ["post"],
   "/workspaces/{workspaceId}/packages/import": ["post"],
+  "/catalog/packages": ["get"],
+  "/catalog/packages/{packageSlug}": ["get"],
+  "/catalog/package-versions/{packageVersionId}/cards": ["get"],
+  "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download-url": ["get"],
+  "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download": ["get"],
   "/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install/preview": ["post"],
   "/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install": ["post"],
   "/admin/catalog/authors": ["post"],
@@ -94,7 +105,7 @@ const expectedPublishedApiMethods = {
   "/admin/catalog/package-versions/{packageVersionId}/delist": ["post"],
 } as const satisfies Readonly<Record<string, ReadonlyArray<OperationMethodName>>>;
 
-const expectedMediaDiscoverySurfaceTemplates = {
+const expectedAgentDiscoverySurfaceTemplates = {
   mediaAssetImageIngestionUrlTemplate: "/workspaces/{workspaceId}/media-assets/images",
   mediaAssetUploadSessionCreateUrlTemplate: "/workspaces/{workspaceId}/media-assets/upload-sessions",
   mediaAssetUploadSessionPartsUrlTemplate: "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts",
@@ -106,6 +117,11 @@ const expectedMediaDiscoverySurfaceTemplates = {
   workspacePackageExportUrlTemplate: "/workspaces/{workspaceId}/packages/export",
   workspacePackageImportPreviewUrlTemplate: "/workspaces/{workspaceId}/packages/import/preview",
   workspacePackageImportUrlTemplate: "/workspaces/{workspaceId}/packages/import",
+  catalogPackagesUrl: "/catalog/packages",
+  catalogPackageDetailUrlTemplate: "/catalog/packages/{packageSlug}",
+  catalogPackageVersionCardsUrlTemplate: "/catalog/package-versions/{packageVersionId}/cards",
+  catalogPackageMediaDownloadUrlTemplate: "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download-url",
+  catalogPackageMediaDownloadTemplate: "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download",
   catalogPackageInstallPreviewUrlTemplate: "/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install/preview",
   catalogPackageInstallUrlTemplate: "/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install",
 } as const;
@@ -193,11 +209,35 @@ test("API Gateway proxies backend-owned browser and workspace routes", () => {
   assertApiGatewayUsesBackendProxy(apiGatewaySource);
 });
 
-test("API Gateway proxy accepts package export and import preview routes and ZIP binary media", () => {
+test("API Gateway proxy accepts package export and import preview routes with browser-safe binary media", () => {
   const apiGatewaySource = loadApiGatewaySource();
 
   assertApiGatewayUsesBackendProxy(apiGatewaySource);
-  assert.match(apiGatewaySource, /binaryMediaTypes: \[[^\]]*"application\/zip"/);
+  assert.match(apiGatewaySource, /binaryMediaTypes: \["\*\/\*"\]/);
+});
+
+test("API Gateway proxy accepts public catalog browser-safe binary media", () => {
+  const apiGatewaySource = loadApiGatewaySource();
+
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
+  assert.match(apiGatewaySource, /binaryMediaTypes: \["\*\/\*"\]/);
+});
+
+test("API Gateway proxy forwards public catalog routes", () => {
+  const apiGatewaySource = loadApiGatewaySource();
+
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
+});
+
+test("API Gateway allows the public website origin for catalog browser reads", () => {
+  const apiGatewaySource = loadApiGatewaySource();
+
+  assert.match(apiGatewaySource, /const publicSiteOrigin = props\.siteBaseUrl \?\? `https:\/\/\$\{props\.baseDomain\}`;/);
+  assert.match(apiGatewaySource, /const publicCatalogAllowedOrigins = \[\s*publicSiteOrigin,/);
+  assert.match(apiGatewaySource, /const allowedOrigins = \[\s*`https:\/\/app\.\$\{props\.baseDomain\}`/);
+  assert.match(apiGatewaySource, /createPublicCatalogCorsPreflightOptions\(publicCatalogAllowedOrigins\)/);
+  assert.match(apiGatewaySource, /\.addResource\("\{proxy\+}", \{\s*defaultCorsPreflightOptions: createPublicCatalogCorsPreflightOptions\(publicCatalogAllowedOrigins\),\s*\}\)\s*\.addMethod\("GET", integration\);/);
+  assert.match(apiGatewaySource, /BACKEND_ALLOWED_ORIGINS: props\.allowedOrigins\.join\(","\)/);
 });
 
 test("published OpenAPI exposes the curated agent, media transfer, and admin catalog contract", () => {
@@ -235,9 +275,25 @@ test("published OpenAPI exposes the curated agent, media transfer, and admin cat
   ]) {
     assert.equal(schemas[hiddenSchemaName], undefined, `OpenAPI must not publish ${hiddenSchemaName}`);
   }
+
+  const publicCatalogDownloadOperation = paths[
+    "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download"
+  ]?.get as OpenApiOperationForTest | undefined;
+  const publicCatalogDownloadContent = publicCatalogDownloadOperation?.responses?.["200"]?.content ?? {};
+  assert.ok(publicCatalogDownloadContent["application/pdf"] !== undefined);
+  assert.ok(publicCatalogDownloadContent["audio/mpeg"] !== undefined);
+  assert.ok(publicCatalogDownloadContent["image/jpeg"] !== undefined);
+  assert.ok(publicCatalogDownloadContent["image/png"] !== undefined);
+  assert.ok(publicCatalogDownloadContent["image/webp"] !== undefined);
+  assert.equal(publicCatalogDownloadContent["application/octet-stream"], undefined);
+  assert.ok(publicCatalogDownloadOperation?.responses?.["415"] !== undefined);
+  const publicCatalogDownloadUrlOperation = paths[
+    "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download-url"
+  ]?.get as OpenApiOperationForTest | undefined;
+  assert.ok(publicCatalogDownloadUrlOperation?.responses?.["415"] !== undefined);
 });
 
-test("agent discovery advertises the published media transfer surface", () => {
+test("agent discovery advertises the published media, package, and catalog surface", () => {
   const apiBaseUrl = "https://api.flashcards-open-source-app.com/v1";
   const discoveryEnvelope = createAgentDiscoveryEnvelope(`${apiBaseUrl}/agent`);
   const openApiDocument = loadPublishedOpenApiDocument();
@@ -246,14 +302,27 @@ test("agent discovery advertises the published media transfer surface", () => {
   const discoverySurfaceSchema = discoveryDataSchema?.properties?.surface;
 
   assert.ok(discoverySurfaceSchema !== undefined);
-  for (const [surfaceKey, pathTemplate] of Object.entries(expectedMediaDiscoverySurfaceTemplates)) {
+  assert.ok(discoveryDataSchema?.required?.includes("capabilitiesBeforeLogin"));
+  assert.ok(discoveryDataSchema?.properties?.capabilitiesBeforeLogin !== undefined);
+  assert.deepEqual(discoveryEnvelope.data.capabilitiesBeforeLogin, [
+    "Read the public published package catalog, package detail, card previews, and package media download URLs",
+  ]);
+  assert.equal(
+    discoveryEnvelope.data.capabilitiesAfterLogin.some((capability) => /public published package catalog/.test(capability)),
+    false,
+  );
+  assert.ok(
+    discoveryEnvelope.instructions.indexOf("Public catalog reads do not require authentication")
+      < discoveryEnvelope.instructions.indexOf("For authenticated workspace operations"),
+  );
+  for (const [surfaceKey, pathTemplate] of Object.entries(expectedAgentDiscoverySurfaceTemplates)) {
     assert.equal(
-      discoveryEnvelope.data.surface[surfaceKey as keyof typeof expectedMediaDiscoverySurfaceTemplates],
+      discoveryEnvelope.data.surface[surfaceKey as keyof typeof expectedAgentDiscoverySurfaceTemplates],
       `${apiBaseUrl}${pathTemplate}`,
     );
     assert.ok(
       expectedPublishedApiMethods[pathTemplate] !== undefined,
-      `Discovery media template ${surfaceKey} must be published in OpenAPI paths`,
+      `Discovery surface template ${surfaceKey} must be published in OpenAPI paths`,
     );
     assert.ok(
       discoverySurfaceSchema.required?.includes(surfaceKey),
@@ -276,6 +345,11 @@ test("agent discovery advertises the published media transfer surface", () => {
   assert.match(discoveryEnvelope.instructions, /packages\/export/);
   assert.match(discoveryEnvelope.instructions, /packages\/import\/preview/);
   assert.match(discoveryEnvelope.instructions, /packages\/import/);
+  assert.match(discoveryEnvelope.instructions, /catalog\/packages/);
+  assert.match(discoveryEnvelope.instructions, /catalog\/packages\/\{packageSlug\}/);
+  assert.match(discoveryEnvelope.instructions, /catalog\/package-versions\/\{packageVersionId\}\/cards/);
+  assert.match(discoveryEnvelope.instructions, /catalog\/package-versions\/\{packageVersionId\}\/media-assets\/\{packageMediaKey\}\/download-url/);
+  assert.match(discoveryEnvelope.instructions, /catalog\/package-versions\/\{packageVersionId\}\/media-assets\/\{packageMediaKey\}\/download/);
   assert.match(discoveryEnvelope.instructions, /catalog\/package-versions\/\{packageVersionId\}\/install\/preview/);
   assert.match(discoveryEnvelope.instructions, /catalog\/package-versions\/\{packageVersionId\}\/install/);
   assert.match(discoveryEnvelope.instructions, /data\.agentWorkspaceReplicaId/);

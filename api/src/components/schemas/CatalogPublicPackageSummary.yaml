@@ -1,0 +1,53 @@
+type: object
+additionalProperties: false
+required:
+  - packageId
+  - slug
+  - title
+  - summary
+  - description
+  - languageTags
+  - topicTags
+  - license
+  - contentWarning
+  - coverPackageMediaKey
+  - status
+  - author
+  - latestVersion
+properties:
+  packageId:
+    $ref: ./UuidString.yaml
+  slug:
+    type: string
+  title:
+    type: string
+  summary:
+    type: string
+  description:
+    type: string
+  languageTags:
+    type: array
+    items:
+      type: string
+  topicTags:
+    type: array
+    items:
+      type: string
+  license:
+    type: string
+  contentWarning:
+    type:
+      - string
+      - 'null'
+  coverPackageMediaKey:
+    type:
+      - string
+      - 'null'
+    description: Opaque package-local cover media key, not a workspace media asset id.
+  status:
+    type: string
+    const: published
+  author:
+    $ref: ./CatalogPublicAuthor.yaml
+  latestVersion:
+    $ref: ./CatalogPublicPackageVersionSummary.yaml

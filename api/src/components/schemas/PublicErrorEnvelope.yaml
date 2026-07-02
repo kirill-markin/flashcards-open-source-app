@@ -1,0 +1,18 @@
+type: object
+additionalProperties: false
+required:
+  - error
+  - requestId
+  - code
+properties:
+  error:
+    type: string
+  requestId:
+    type: string
+  code:
+    type:
+      - string
+      - 'null'
+  details:
+    type: object
+    additionalProperties: true

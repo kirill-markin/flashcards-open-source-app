@@ -3,6 +3,7 @@ additionalProperties: false
 required:
   - service
   - authentication
+  - capabilitiesBeforeLogin
   - capabilitiesAfterLogin
   - authBaseUrl
   - apiBaseUrl
@@ -45,6 +46,10 @@ properties:
     type: array
     items:
       type: string
+  capabilitiesBeforeLogin:
+    type: array
+    items:
+      type: string
   authBaseUrl:
     type: string
   apiBaseUrl:
@@ -68,6 +73,11 @@ properties:
       - workspacePackageExportUrlTemplate
       - workspacePackageImportPreviewUrlTemplate
       - workspacePackageImportUrlTemplate
+      - catalogPackagesUrl
+      - catalogPackageDetailUrlTemplate
+      - catalogPackageVersionCardsUrlTemplate
+      - catalogPackageMediaDownloadUrlTemplate
+      - catalogPackageMediaDownloadTemplate
       - catalogPackageInstallPreviewUrlTemplate
       - catalogPackageInstallUrlTemplate
     properties:
@@ -100,6 +110,16 @@ properties:
       workspacePackageImportPreviewUrlTemplate:
         type: string
       workspacePackageImportUrlTemplate:
+        type: string
+      catalogPackagesUrl:
+        type: string
+      catalogPackageDetailUrlTemplate:
+        type: string
+      catalogPackageVersionCardsUrlTemplate:
+        type: string
+      catalogPackageMediaDownloadUrlTemplate:
+        type: string
+      catalogPackageMediaDownloadTemplate:
         type: string
       catalogPackageInstallPreviewUrlTemplate:
         type: string

@@ -52,6 +52,10 @@ tags:
     description: >-
       Workspace-scoped package export, import preview, import confirmation, and
       portable ZIP download.
+  - name: public-catalog
+    description: >-
+      Public published package catalog snapshots for the website and other
+      unauthenticated read-only catalog consumers.
   - name: catalog-install
     description: >-
       Workspace-scoped installation of published catalog package versions into
@@ -101,6 +105,16 @@ paths:
     $ref: paths/workspaces_{workspaceId}_packages_import_preview.yaml
   /workspaces/{workspaceId}/packages/import:
     $ref: paths/workspaces_{workspaceId}_packages_import.yaml
+  /catalog/packages:
+    $ref: paths/catalog_packages.yaml
+  /catalog/packages/{packageSlug}:
+    $ref: paths/catalog_packages_{packageSlug}.yaml
+  /catalog/package-versions/{packageVersionId}/cards:
+    $ref: paths/catalog_package-versions_{packageVersionId}_cards.yaml
+  /catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download-url:
+    $ref: paths/catalog_package-versions_{packageVersionId}_media-assets_{packageMediaKey}_download-url.yaml
+  /catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download:
+    $ref: paths/catalog_package-versions_{packageVersionId}_media-assets_{packageMediaKey}_download.yaml
   /workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install/preview:
     $ref: paths/workspaces_{workspaceId}_catalog_package-versions_{packageVersionId}_install_preview.yaml
   /workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install:

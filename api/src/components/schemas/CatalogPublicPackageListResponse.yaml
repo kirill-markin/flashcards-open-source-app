@@ -1,0 +1,9 @@
+type: object
+additionalProperties: false
+required:
+  - catalogPackages
+properties:
+  catalogPackages:
+    type: array
+    items:
+      $ref: ./CatalogPublicPackageSummary.yaml

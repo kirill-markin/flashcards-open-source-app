@@ -43,13 +43,13 @@ test("API Gateway keeps global snapshot and legacy auth as explicit edge routes"
   assert.match(apiGatewaySource, /legacyAuth\.addMethod\("ANY", notFoundIntegration, notFoundMethodOptions\);/);
 });
 
-test("API Gateway proxy accepts media asset image ingestion and binary image bodies", () => {
+test("API Gateway proxy accepts browser-safe binary bodies", () => {
   const apiGatewaySource = loadApiGatewaySource();
 
   assertApiGatewayUsesBackendProxy(apiGatewaySource);
   assert.match(
     apiGatewaySource,
-    /binaryMediaTypes: \["application\/octet-stream", "application\/zip", "image\/jpeg", "image\/png", "image\/webp", "multipart\/form-data"\]/,
+    /binaryMediaTypes: \["\*\/\*"\]/,
   );
 });
 

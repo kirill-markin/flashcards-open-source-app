@@ -16,6 +16,7 @@ import { resetGuestAiQuotaConfigForTests } from "../guestAiQuota/config";
 const originalAuthMode = process.env.AUTH_MODE;
 const originalAllowInsecureLocalAuth = process.env.ALLOW_INSECURE_LOCAL_AUTH;
 const originalBackendAllowedOrigins = process.env.BACKEND_ALLOWED_ORIGINS;
+const originalPublicSiteBaseUrl = process.env.PUBLIC_SITE_BASE_URL;
 
 function restoreBackendAppTestEnvironment(): void {
   if (originalAuthMode === undefined) {
@@ -34,6 +35,12 @@ function restoreBackendAppTestEnvironment(): void {
     delete process.env.BACKEND_ALLOWED_ORIGINS;
   } else {
     process.env.BACKEND_ALLOWED_ORIGINS = originalBackendAllowedOrigins;
+  }
+
+  if (originalPublicSiteBaseUrl === undefined) {
+    delete process.env.PUBLIC_SITE_BASE_URL;
+  } else {
+    process.env.PUBLIC_SITE_BASE_URL = originalPublicSiteBaseUrl;
   }
 }
 
@@ -182,4 +189,69 @@ test("app browser CORS preflight allows chat metadata headers", async () => {
   assert.ok(parsedAllowHeaders.includes("x-chat-resume-attempt-id"));
   assert.ok(parsedAllowHeaders.includes("x-client-platform"));
   assert.ok(parsedAllowHeaders.includes("x-client-version"));
+});
+
+test("app public catalog CORS allows website reads without credentialed backend access", async () => {
+  process.env.AUTH_MODE = "none";
+  process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
+  process.env.BACKEND_ALLOWED_ORIGINS = "https://app.flashcards-open-source-app.com";
+  process.env.PUBLIC_SITE_BASE_URL = "https://flashcards-open-source-app.com";
+  resetAuthConfigForTests();
+  resetGuestAiQuotaConfigForTests();
+
+  const app = createApp("/v1");
+  const catalogResponse = await app.request("https://api.flashcards-open-source-app.com/v1/catalog/packages", {
+    method: "OPTIONS",
+    headers: {
+      origin: "https://flashcards-open-source-app.com",
+      "access-control-request-method": "GET",
+      "access-control-request-headers": "sentry-trace,x-client-version",
+    },
+  });
+  const accountResponse = await app.request("https://api.flashcards-open-source-app.com/v1/agent/me", {
+    method: "OPTIONS",
+    headers: {
+      origin: "https://flashcards-open-source-app.com",
+      "access-control-request-method": "GET",
+    },
+  });
+
+  assert.equal(catalogResponse.status, 204);
+  assert.equal(catalogResponse.headers.get("access-control-allow-origin"), "https://flashcards-open-source-app.com");
+  assert.equal(catalogResponse.headers.get("access-control-allow-credentials"), null);
+  assert.equal(catalogResponse.headers.get("access-control-allow-methods"), "GET,OPTIONS");
+  assert.equal(accountResponse.status, 204);
+  assert.equal(accountResponse.headers.get("access-control-allow-origin"), null);
+});
+
+test("app public catalog errors keep the public envelope when an API key header is present", async () => {
+  process.env.AUTH_MODE = "none";
+  process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
+  resetAuthConfigForTests();
+  resetGuestAiQuotaConfigForTests();
+
+  const app = createApp("/v1");
+  const response = await app.request("http://localhost/v1/catalog/package-versions/not-a-uuid/cards", {
+    headers: {
+      authorization: "ApiKey test-key",
+    },
+  });
+  const payload = await response.json() as Readonly<{
+    error: string;
+    code: string | null;
+    requestId: string;
+    ok?: boolean;
+    data?: unknown;
+    instructions?: unknown;
+    docs?: unknown;
+  }>;
+
+  assert.equal(response.status, 400);
+  assert.equal(payload.error, "packageVersionId must be a UUID");
+  assert.equal(payload.code, "CATALOG_PUBLIC_PARAM_INVALID");
+  assert.notEqual(payload.requestId, "");
+  assert.equal(payload.ok, undefined);
+  assert.equal(payload.data, undefined);
+  assert.equal(payload.instructions, undefined);
+  assert.equal(payload.docs, undefined);
 });

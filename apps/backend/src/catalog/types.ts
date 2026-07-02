@@ -199,6 +199,91 @@ export type CatalogPackageVersion = Readonly<{
   delistedAt: string | null;
 }>;
 
+export type CatalogPublicAuthor = Readonly<{
+  authorId: string;
+  slug: string;
+  displayName: string;
+  bio: string | null;
+  websiteUrl: string | null;
+}>;
+
+export type CatalogPublicPackageVersionSummary = Readonly<{
+  packageVersionId: string;
+  packageId: string;
+  versionNumber: number;
+  status: "published";
+  slug: string;
+  title: string;
+  summary: string;
+  description: string;
+  languageTags: ReadonlyArray<string>;
+  topicTags: ReadonlyArray<string>;
+  license: string;
+  contentWarning: string | null;
+  coverPackageMediaKey: string | null;
+  cardCount: number;
+  updatedAt: string;
+  publishedAt: string;
+}>;
+
+export type CatalogPublicPackageSummary = Readonly<{
+  packageId: string;
+  slug: string;
+  title: string;
+  summary: string;
+  description: string;
+  languageTags: ReadonlyArray<string>;
+  topicTags: ReadonlyArray<string>;
+  license: string;
+  contentWarning: string | null;
+  coverPackageMediaKey: string | null;
+  status: "published";
+  author: CatalogPublicAuthor;
+  latestVersion: CatalogPublicPackageVersionSummary;
+}>;
+
+export type CatalogPublicPackageMediaAsset = Readonly<{
+  packageVersionId: string;
+  packageMediaKey: string;
+  altText: string | null;
+  credit: string | null;
+  license: string | null;
+  mimeType: string;
+  sizeBytes: number;
+  downloadUrlPath: string;
+}>;
+
+export type CatalogPublicPackageDetail = CatalogPublicPackageSummary & Readonly<{
+  mediaAssets: ReadonlyArray<CatalogPublicPackageMediaAsset>;
+}>;
+
+export type CatalogPublicPackageCardPreview = Readonly<{
+  ordinal: number;
+  frontText: string;
+  backText: string;
+  cardType: string;
+  tags: ReadonlyArray<string>;
+  mediaAssetKeys: ReadonlyArray<string>;
+}>;
+
+export type CatalogPublicPackageListInput = Readonly<{
+  limit: number;
+  search: string | null;
+  languageTag: string | null;
+  topicTag: string | null;
+}>;
+
+export type CatalogPublicPackageCardPreviewInput = Readonly<{
+  packageVersionId: string;
+  limit: number;
+}>;
+
+export type CatalogPublicPackageMediaDownloadSource = Readonly<{
+  mediaAsset: CatalogPublicPackageMediaAsset;
+  storageKey: string;
+  sha256: string;
+}>;
+
 export type CatalogPackageDraft = Readonly<{
   catalogPackage: CatalogPackage;
   mediaAssets: ReadonlyArray<CatalogPackageMediaAsset>;

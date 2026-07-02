@@ -1,0 +1,32 @@
+get:
+  tags:
+    - public-catalog
+  summary: Preview published package version cards
+  description: >-
+    Returns card previews for a published package version. The response contains
+    card text and package-local media keys only; it does not expose source
+    workspace card IDs or media asset IDs.
+  parameters:
+    - name: packageVersionId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+    - name: limit
+      in: query
+      required: false
+      schema:
+        $ref: ../components/schemas/PageLimit.yaml
+  responses:
+    '200':
+      description: Published package version card previews
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/CatalogPublicPackageCardPreviewResponse.yaml
+    default:
+      description: Public catalog request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PublicErrorEnvelope.yaml

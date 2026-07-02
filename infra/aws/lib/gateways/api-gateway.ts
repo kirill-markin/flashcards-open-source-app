@@ -165,6 +165,14 @@ function createBrowserCorsPreflightOptions(allowedOrigins: string[]): apigw.Cors
   };
 }
 
+function createPublicCatalogCorsPreflightOptions(allowedOrigins: string[]): apigw.CorsOptions {
+  return {
+    allowOrigins: allowedOrigins,
+    allowMethods: ["GET", "OPTIONS"],
+    allowHeaders: ["content-type", "sentry-trace", "baggage", "x-client-platform", "x-client-version"],
+  };
+}
+
 export function createChatLiveFunctionUrlCorsOptions(
   allowedOrigins: readonly string[],
 ): lambda.FunctionUrlCorsOptions {
@@ -476,6 +484,12 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
  * under the per-stack resource limit.
  */
 export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGatewayResult {
+  const publicSiteOrigin = props.siteBaseUrl ?? `https://${props.baseDomain}`;
+  const publicCatalogAllowedOrigins = [
+    publicSiteOrigin,
+    "http://localhost:3000",
+    "http://localhost:3001",
+  ];
   const allowedOrigins = [
     `https://app.${props.baseDomain}`,
     `https://admin.${props.baseDomain}`,
@@ -642,7 +656,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const restApi = new apigw.RestApi(scope, "Api", {
     restApiName: "flashcards-open-source-app-api",
     description: "Public API for flashcards mobile clients",
-    binaryMediaTypes: ["application/octet-stream", "application/zip", "image/jpeg", "image/png", "image/webp", "multipart/form-data"],
+    binaryMediaTypes: ["*/*"],
     deployOptions: {
       stageName: "v1",
       throttlingRateLimit: 50,
@@ -708,6 +722,15 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     defaultCorsPreflightOptions: globalMetricsCorsPreflightOptions,
   });
   globalSnapshot.addMethod("GET", integration);
+
+  const catalog = restApi.root.addResource("catalog", {
+    defaultCorsPreflightOptions: createPublicCatalogCorsPreflightOptions(publicCatalogAllowedOrigins),
+  });
+  catalog
+    .addResource("{proxy+}", {
+      defaultCorsPreflightOptions: createPublicCatalogCorsPreflightOptions(publicCatalogAllowedOrigins),
+    })
+    .addMethod("GET", integration);
 
   const legacyAuth = restApi.root.addResource("auth");
   legacyAuth.addMethod("ANY", notFoundIntegration, notFoundMethodOptions);
