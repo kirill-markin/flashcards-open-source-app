@@ -1,0 +1,31 @@
+type: object
+additionalProperties: false
+required:
+  - installId
+  - installedAt
+  - clientUpdatedAt
+  - lastModifiedByReplicaId
+  - operationIdPrefix
+properties:
+  installId:
+    type: string
+    minLength: 1
+    maxLength: 128
+    description: >-
+      Caller-generated import/install id. The backend rejects reuse in the same
+      workspace instead of silently deduplicating.
+  installedAt:
+    type: string
+    format: date-time
+  clientUpdatedAt:
+    type: string
+    format: date-time
+  lastModifiedByReplicaId:
+    $ref: ./UuidString.yaml
+  operationIdPrefix:
+    type: string
+    minLength: 1
+    maxLength: 160
+    description: >-
+      Prefix used to derive per-card and per-media sync operation ids. The
+      backend rejects conflicts with existing workspace operation ids.

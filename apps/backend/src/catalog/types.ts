@@ -240,3 +240,73 @@ export type CatalogWorkspaceCardRow = Readonly<{
   metadata: CardMetadata;
   tags: ReadonlyArray<string>;
 }>;
+
+export type CatalogPackageInstallAuthor = Readonly<{
+  authorId: string;
+  slug: string;
+  displayName: string;
+}>;
+
+export type CatalogPackageInstallPackageVersion = Readonly<{
+  packageVersionId: string;
+  packageId: string;
+  versionNumber: number;
+  slug: string;
+  title: string;
+  summary: string;
+  description: string;
+  languageTags: ReadonlyArray<string>;
+  topicTags: ReadonlyArray<string>;
+  license: string;
+  contentWarning: string | null;
+  coverPackageMediaKey: string | null;
+  cardCount: number;
+  createdAt: string;
+  publishedAt: string | null;
+  author: CatalogPackageInstallAuthor;
+}>;
+
+export type CatalogPackageInstallPreviewSummary = Readonly<{
+  cardCount: number;
+  mediaAssetCount: number;
+}>;
+
+export type CatalogPackageInstallPreview = Readonly<{
+  packageVersion: CatalogPackageInstallPackageVersion;
+  summary: CatalogPackageInstallPreviewSummary;
+}>;
+
+export type CatalogPackageInstallConfirmInput = Readonly<{
+  installId: string;
+  installedAt: string;
+  clientUpdatedAt: string;
+  lastModifiedByReplicaId: string;
+  operationIdPrefix: string;
+}>;
+
+export type CatalogInstalledCard = Readonly<{
+  packageCardId: string;
+  stableCardKey: string;
+  ordinal: number;
+  cardId: string;
+}>;
+
+export type CatalogInstalledMediaAsset = Readonly<{
+  packageMediaAssetId: string;
+  packageMediaKey: string;
+  mediaAssetId: string;
+}>;
+
+export type CatalogPackageInstallResultSummary = Readonly<{
+  cardCount: number;
+  mediaAssetCount: number;
+  installId: string;
+  installedAt: string;
+}>;
+
+export type CatalogPackageInstallResult = Readonly<{
+  packageVersion: CatalogPackageInstallPackageVersion;
+  installedCards: ReadonlyArray<CatalogInstalledCard>;
+  installedMediaAssets: ReadonlyArray<CatalogInstalledMediaAsset>;
+  summary: CatalogPackageInstallResultSummary;
+}>;
