@@ -79,6 +79,8 @@ const expectedPublishedApiMethods = {
   "/workspaces/{workspaceId}/packages/export": ["post"],
   "/workspaces/{workspaceId}/packages/import/preview": ["post"],
   "/workspaces/{workspaceId}/packages/import": ["post"],
+  "/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install/preview": ["post"],
+  "/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install": ["post"],
   "/admin/catalog/authors": ["post"],
   "/admin/catalog/authors/{authorId}": ["put"],
   "/admin/catalog/packages": ["post"],
@@ -104,6 +106,8 @@ const expectedMediaDiscoverySurfaceTemplates = {
   workspacePackageExportUrlTemplate: "/workspaces/{workspaceId}/packages/export",
   workspacePackageImportPreviewUrlTemplate: "/workspaces/{workspaceId}/packages/import/preview",
   workspacePackageImportUrlTemplate: "/workspaces/{workspaceId}/packages/import",
+  catalogPackageInstallPreviewUrlTemplate: "/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install/preview",
+  catalogPackageInstallUrlTemplate: "/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install",
 } as const;
 const supportedImageIngestionOpenApiContentTypes = [
   "application/octet-stream",
@@ -272,6 +276,8 @@ test("agent discovery advertises the published media transfer surface", () => {
   assert.match(discoveryEnvelope.instructions, /packages\/export/);
   assert.match(discoveryEnvelope.instructions, /packages\/import\/preview/);
   assert.match(discoveryEnvelope.instructions, /packages\/import/);
+  assert.match(discoveryEnvelope.instructions, /catalog\/package-versions\/\{packageVersionId\}\/install\/preview/);
+  assert.match(discoveryEnvelope.instructions, /catalog\/package-versions\/\{packageVersionId\}\/install/);
   assert.match(discoveryEnvelope.instructions, /data\.agentWorkspaceReplicaId/);
   assert.match(discoveryEnvelope.instructions, /lastModifiedByReplicaId/);
 });

@@ -30,3 +30,9 @@ export {
   updateCatalogPackageVersionReviewStatus,
   updateCatalogPackageVersionReviewStatusInExecutor,
 } from "./versions";
+export {
+  installCatalogPackageVersion,
+  installCatalogPackageVersionInExecutor,
+  previewCatalogPackageInstall,
+  previewCatalogPackageInstallInExecutor,
+} from "./install";

@@ -20,6 +20,7 @@ import { createSyncRoutes } from "../routes/sync/index";
 import { createSystemRoutes } from "../routes/system";
 import { createAdminRoutes } from "../routes/admin";
 import { createCatalogAdminRoutes } from "../routes/catalogAdmin";
+import { createCatalogInstallRoutes } from "../routes/catalogInstall";
 import { createGuestAuthRoutes } from "../routes/guestAuth";
 import { createWorkspaceRoutes } from "../routes/workspaces/index";
 import {
@@ -373,6 +374,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createWorkspaceRoutes({ allowedOrigins }));
   app.route("/", createAdminRoutes({ allowedOrigins }));
   app.route("/", createCatalogAdminRoutes({ allowedOrigins }));
+  app.route("/", createCatalogInstallRoutes({ allowedOrigins }));
   app.route("/", createCardsRoutes({ allowedOrigins }));
   app.route("/", createFeedbackRoutes({ allowedOrigins }));
   app.route("/", createWorkspacePackageRoutes({ allowedOrigins }));

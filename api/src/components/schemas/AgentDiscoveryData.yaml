@@ -68,6 +68,8 @@ properties:
       - workspacePackageExportUrlTemplate
       - workspacePackageImportPreviewUrlTemplate
       - workspacePackageImportUrlTemplate
+      - catalogPackageInstallPreviewUrlTemplate
+      - catalogPackageInstallUrlTemplate
     properties:
       accountUrl:
         type: string
@@ -98,6 +100,10 @@ properties:
       workspacePackageImportPreviewUrlTemplate:
         type: string
       workspacePackageImportUrlTemplate:
+        type: string
+      catalogPackageInstallPreviewUrlTemplate:
+        type: string
+      catalogPackageInstallUrlTemplate:
         type: string
   mcp:
     type: object
