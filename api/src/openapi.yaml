@@ -56,6 +56,10 @@ tags:
     description: >-
       Public published package catalog snapshots for the website and other
       unauthenticated read-only catalog consumers.
+  - name: catalog-install
+    description: >-
+      Workspace-scoped installation of published catalog package versions into
+      normal workspace cards and logical media assets.
   - name: admin-catalog
     description: >-
       Admin-only catalog authoring surface for marketplace authors, packages,
@@ -111,6 +115,10 @@ paths:
     $ref: paths/catalog_package-versions_{packageVersionId}_media-assets_{packageMediaKey}_download-url.yaml
   /catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download:
     $ref: paths/catalog_package-versions_{packageVersionId}_media-assets_{packageMediaKey}_download.yaml
+  /workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install/preview:
+    $ref: paths/workspaces_{workspaceId}_catalog_package-versions_{packageVersionId}_install_preview.yaml
+  /workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install:
+    $ref: paths/workspaces_{workspaceId}_catalog_package-versions_{packageVersionId}_install.yaml
   /admin/catalog/authors:
     $ref: paths/admin_catalog_authors.yaml
   /admin/catalog/authors/{authorId}:

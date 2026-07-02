@@ -2,12 +2,19 @@ import type { DatabaseExecutor, SqlValue } from "../database";
 import { unsafeRepeatableReadReadOnlyTransaction } from "../database/core";
 import { HttpError } from "../shared/errors";
 import {
+  containsUnsafePublicPackageMediaReference,
+  isUnsafePublicPackageMediaDestination,
+  isUnsafePublicPackageMediaKey,
   normalizeNonEmptyString,
   normalizePackageMediaKey,
   normalizeSlug,
   toIsoString,
   toSafeNumber,
 } from "./common";
+import {
+  extractMarkdownLinkDestinationUrls,
+  extractMarkdownNonCodeTextSegments,
+} from "../workspacePackages";
 import type {
   CatalogPublicAuthor,
   CatalogPublicPackageCardPreview,
@@ -112,6 +119,47 @@ const latestPublishedVersionsCte = [
 
 function buildCatalogPackageMediaDownloadUrlPath(packageVersionId: string, packageMediaKey: string): string {
   return `/catalog/package-versions/${packageVersionId}/media-assets/${packageMediaKey}/download-url`;
+}
+
+function assertPublicPackageMediaKeySafe(
+  packageVersionId: string,
+  packageMediaKey: string | null,
+): void {
+  if (packageMediaKey === null || isUnsafePublicPackageMediaKey(packageMediaKey) === false) {
+    return;
+  }
+
+  throw new HttpError(
+    409,
+    `Published catalog package contains a non-public media key. packageVersionId=${packageVersionId}`,
+    "CATALOG_PUBLIC_MEDIA_KEY_NOT_PUBLIC",
+  );
+}
+
+function assertPublicCardMarkdownSafe(packageVersionId: string, markdown: string): void {
+  for (const destination of extractMarkdownLinkDestinationUrls(markdown)) {
+    if (isUnsafePublicPackageMediaDestination(destination) === false) {
+      continue;
+    }
+
+    throw new HttpError(
+      409,
+      `Published catalog package card contains a non-public media reference. packageVersionId=${packageVersionId}`,
+      "CATALOG_PUBLIC_MEDIA_KEY_NOT_PUBLIC",
+    );
+  }
+
+  for (const segment of extractMarkdownNonCodeTextSegments(markdown)) {
+    if (containsUnsafePublicPackageMediaReference(segment) === false) {
+      continue;
+    }
+
+    throw new HttpError(
+      409,
+      `Published catalog package card contains a non-public media reference. packageVersionId=${packageVersionId}`,
+      "CATALOG_PUBLIC_MEDIA_KEY_NOT_PUBLIC",
+    );
+  }
 }
 
 function normalizeOptionalSearch(value: string | null): string | null {
@@ -229,6 +277,8 @@ function mapCatalogPublicAuthor(row: CatalogPublicPackageRow): CatalogPublicAuth
 }
 
 function mapCatalogPublicPackageVersionSummary(row: CatalogPublicPackageRow): CatalogPublicPackageVersionSummary {
+  assertPublicPackageMediaKeySafe(row.package_version_id, row.cover_package_media_key);
+
   return {
     packageVersionId: row.package_version_id,
     packageId: row.package_id,
@@ -271,6 +321,8 @@ function mapCatalogPublicPackageSummary(row: CatalogPublicPackageRow): CatalogPu
 function mapCatalogPublicPackageMediaAsset(
   row: CatalogPublicPackageMediaAssetRow,
 ): CatalogPublicPackageMediaAsset {
+  assertPublicPackageMediaKeySafe(row.package_version_id, row.package_media_key);
+
   return {
     packageVersionId: row.package_version_id,
     packageMediaKey: row.package_media_key,
@@ -284,8 +336,15 @@ function mapCatalogPublicPackageMediaAsset(
 }
 
 function mapCatalogPublicPackageCardPreview(
+  packageVersionId: string,
   row: CatalogPublicPackageCardPreviewRow,
 ): CatalogPublicPackageCardPreview {
+  assertPublicCardMarkdownSafe(packageVersionId, row.front_text);
+  assertPublicCardMarkdownSafe(packageVersionId, row.back_text);
+  for (const packageMediaKey of row.media_asset_keys) {
+    assertPublicPackageMediaKeySafe(packageVersionId, packageMediaKey);
+  }
+
   return {
     ordinal: toSafeNumber(row.ordinal, "ordinal"),
     frontText: row.front_text,
@@ -430,7 +489,7 @@ export async function loadPublicCatalogPackageVersionCardPreviewInExecutor(
   );
 
   return result.rows.map((row: CatalogPublicPackageCardPreviewRow) => (
-    mapCatalogPublicPackageCardPreview(row)
+    mapCatalogPublicPackageCardPreview(normalizedInput.packageVersionId, row)
   ));
 }
 
@@ -440,6 +499,7 @@ export async function loadPublicCatalogPackageMediaForDownloadInExecutor(
   packageMediaKey: string,
 ): Promise<CatalogPublicPackageMediaDownloadSource> {
   const normalizedPackageMediaKey = normalizePackageMediaKey(packageMediaKey, "packageMediaKey");
+  assertPublicPackageMediaKeySafe(packageVersionId, normalizedPackageMediaKey);
   const result = await executor.query<CatalogPublicPackageMediaDownloadRow>(
     [
       "SELECT",

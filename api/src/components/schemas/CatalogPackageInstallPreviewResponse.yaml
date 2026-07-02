@@ -1,0 +1,10 @@
+type: object
+additionalProperties: false
+required:
+  - packageVersion
+  - summary
+properties:
+  packageVersion:
+    $ref: ./CatalogPackageInstallPackageVersion.yaml
+  summary:
+    $ref: ./CatalogPackageInstallPreviewSummary.yaml

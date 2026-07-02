@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+required:
+  - packageMediaAssetId
+  - packageMediaKey
+  - mediaAssetId
+properties:
+  packageMediaAssetId:
+    $ref: ./UuidString.yaml
+  packageMediaKey:
+    type: string
+  mediaAssetId:
+    $ref: ./UuidString.yaml

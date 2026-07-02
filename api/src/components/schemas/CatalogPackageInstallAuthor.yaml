@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+required:
+  - authorId
+  - slug
+  - displayName
+properties:
+  authorId:
+    $ref: ./UuidString.yaml
+  slug:
+    type: string
+  displayName:
+    type: string

@@ -1,0 +1,17 @@
+type: object
+additionalProperties: false
+required:
+  - packageCardId
+  - stableCardKey
+  - ordinal
+  - cardId
+properties:
+  packageCardId:
+    $ref: ./UuidString.yaml
+  stableCardKey:
+    type: string
+  ordinal:
+    type: integer
+    minimum: 1
+  cardId:
+    $ref: ./UuidString.yaml

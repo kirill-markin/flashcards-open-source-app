@@ -50,7 +50,9 @@ type OpenApiDocumentForTest = Readonly<{
 }>;
 
 type AgentDiscoveryDataSchemaForTest = Readonly<{
+  required?: ReadonlyArray<string>;
   properties?: Readonly<{
+    capabilitiesBeforeLogin?: object;
     surface?: Readonly<{
       required?: ReadonlyArray<string>;
       properties?: Readonly<Record<string, object>>;
@@ -84,6 +86,8 @@ const expectedPublishedApiMethods = {
   "/catalog/package-versions/{packageVersionId}/cards": ["get"],
   "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download-url": ["get"],
   "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download": ["get"],
+  "/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install/preview": ["post"],
+  "/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install": ["post"],
   "/admin/catalog/authors": ["post"],
   "/admin/catalog/authors/{authorId}": ["put"],
   "/admin/catalog/packages": ["post"],
@@ -97,7 +101,7 @@ const expectedPublishedApiMethods = {
   "/admin/catalog/package-versions/{packageVersionId}/delist": ["post"],
 } as const satisfies Readonly<Record<string, ReadonlyArray<OperationMethodName>>>;
 
-const expectedMediaDiscoverySurfaceTemplates = {
+const expectedAgentDiscoverySurfaceTemplates = {
   mediaAssetImageIngestionUrlTemplate: "/workspaces/{workspaceId}/media-assets/images",
   mediaAssetUploadSessionCreateUrlTemplate: "/workspaces/{workspaceId}/media-assets/upload-sessions",
   mediaAssetUploadSessionPartsUrlTemplate: "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts",
@@ -109,6 +113,13 @@ const expectedMediaDiscoverySurfaceTemplates = {
   workspacePackageExportUrlTemplate: "/workspaces/{workspaceId}/packages/export",
   workspacePackageImportPreviewUrlTemplate: "/workspaces/{workspaceId}/packages/import/preview",
   workspacePackageImportUrlTemplate: "/workspaces/{workspaceId}/packages/import",
+  catalogPackagesUrl: "/catalog/packages",
+  catalogPackageDetailUrlTemplate: "/catalog/packages/{packageSlug}",
+  catalogPackageVersionCardsUrlTemplate: "/catalog/package-versions/{packageVersionId}/cards",
+  catalogPackageMediaDownloadUrlTemplate: "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download-url",
+  catalogPackageMediaDownloadTemplate: "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download",
+  catalogPackageInstallPreviewUrlTemplate: "/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install/preview",
+  catalogPackageInstallUrlTemplate: "/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install",
 } as const;
 const supportedImageIngestionOpenApiContentTypes = [
   "application/octet-stream",
@@ -176,45 +187,46 @@ function loadWorkspacePackageImportOperation(openApiDocument: OpenApiDocumentFor
   return operation as OpenApiOperationForTest;
 }
 
-test("API Gateway predeclares PATCH /me/preferences", () => {
+function loadApiGatewaySource(): string {
   const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+  return readFileSync(apiGatewayPath, "utf8");
+}
 
-  assert.match(apiGatewaySource, /me\.addResource\("preferences"\)\.addMethod\("PATCH", integration\);/);
-});
-
-test("API Gateway predeclares POST /workspaces/{workspaceId}/media-assets/images", () => {
-  const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
-
-  assert.match(apiGatewaySource, /workspaceMediaAssets\.addResource\("images"\)\.addMethod\("POST", integration\);/);
-});
-
-test("API Gateway predeclares package export and import preview routes and ZIP binary media", () => {
-  const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
-
-  assert.match(apiGatewaySource, /binaryMediaTypes: \[[^\]]*"application\/zip"/);
-  assert.match(apiGatewaySource, /workspacePackageExport\.addMethod\("POST", integration\);/);
-  assert.match(apiGatewaySource, /workspacePackageExport\.addResource\("preview"\)\.addMethod\("POST", integration\);/);
-  assert.match(apiGatewaySource, /workspacePackageImport\.addMethod\("POST", integration\);/);
-  assert.match(apiGatewaySource, /workspacePackageImport\.addResource\("preview"\)\.addMethod\("POST", integration\);/);
-});
-
-test("API Gateway predeclares public catalog routes", () => {
-  const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
-
-  assert.match(apiGatewaySource, /const catalog = restApi\.root\.addResource\("catalog"\);/);
-  assert.match(apiGatewaySource, /catalogPackages\.addMethod\("GET", integration\);/);
-  assert.match(apiGatewaySource, /catalogPackages\.addResource\("\{packageSlug\}"\)\.addMethod\("GET", integration\);/);
-  assert.match(apiGatewaySource, /catalogPackageVersionById\.addResource\("cards"\)\.addMethod\("GET", integration\);/);
+function assertApiGatewayUsesBackendProxy(apiGatewaySource: string): void {
   assert.match(
     apiGatewaySource,
-    /const catalogPackageVersionMediaByKey = catalogPackageVersionById\s*\.addResource\("media-assets"\)\s*\.addResource\("\{packageMediaKey\}"\);/,
+    /restApi\.root\.addResource\("\{proxy\+}"\)\.addMethod\("ANY", integration\);/,
   );
-  assert.match(apiGatewaySource, /catalogPackageVersionMediaByKey\.addResource\("download-url"\)\.addMethod\("GET", integration\);/);
-  assert.match(apiGatewaySource, /catalogPackageVersionMediaByKey\.addResource\("download"\)\.addMethod\("GET", integration\);/);
+}
+
+test("API Gateway proxies backend-owned browser and workspace routes", () => {
+  const apiGatewaySource = loadApiGatewaySource();
+
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
+});
+
+test("API Gateway proxy accepts package export and import preview routes and ZIP binary media", () => {
+  const apiGatewaySource = loadApiGatewaySource();
+
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
+  assert.match(apiGatewaySource, /binaryMediaTypes: \[[^\]]*"application\/zip"/);
+});
+
+test("API Gateway proxy forwards public catalog routes", () => {
+  const apiGatewaySource = loadApiGatewaySource();
+
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
+});
+
+test("API Gateway allows the public website origin for catalog browser reads", () => {
+  const apiGatewaySource = loadApiGatewaySource();
+
+  assert.match(apiGatewaySource, /const publicSiteOrigin = props\.siteBaseUrl \?\? `https:\/\/\$\{props\.baseDomain\}`;/);
+  assert.match(apiGatewaySource, /const publicCatalogAllowedOrigins = \[\s*publicSiteOrigin,/);
+  assert.match(apiGatewaySource, /const allowedOrigins = \[\s*`https:\/\/app\.\$\{props\.baseDomain\}`/);
+  assert.match(apiGatewaySource, /createPublicCatalogCorsPreflightOptions\(publicCatalogAllowedOrigins\)/);
+  assert.match(apiGatewaySource, /\.addResource\("\{proxy\+}", \{\s*defaultCorsPreflightOptions: createPublicCatalogCorsPreflightOptions\(publicCatalogAllowedOrigins\),\s*\}\)\s*\.addMethod\("GET", integration\);/);
+  assert.match(apiGatewaySource, /BACKEND_ALLOWED_ORIGINS: props\.allowedOrigins\.join\(","\)/);
 });
 
 test("published OpenAPI exposes the curated agent, media transfer, and admin catalog contract", () => {
@@ -254,7 +266,7 @@ test("published OpenAPI exposes the curated agent, media transfer, and admin cat
   }
 });
 
-test("agent discovery advertises the published media transfer surface", () => {
+test("agent discovery advertises the published media, package, and catalog surface", () => {
   const apiBaseUrl = "https://api.flashcards-open-source-app.com/v1";
   const discoveryEnvelope = createAgentDiscoveryEnvelope(`${apiBaseUrl}/agent`);
   const openApiDocument = loadPublishedOpenApiDocument();
@@ -263,14 +275,27 @@ test("agent discovery advertises the published media transfer surface", () => {
   const discoverySurfaceSchema = discoveryDataSchema?.properties?.surface;
 
   assert.ok(discoverySurfaceSchema !== undefined);
-  for (const [surfaceKey, pathTemplate] of Object.entries(expectedMediaDiscoverySurfaceTemplates)) {
+  assert.ok(discoveryDataSchema?.required?.includes("capabilitiesBeforeLogin"));
+  assert.ok(discoveryDataSchema?.properties?.capabilitiesBeforeLogin !== undefined);
+  assert.deepEqual(discoveryEnvelope.data.capabilitiesBeforeLogin, [
+    "Read the public published package catalog, package detail, card previews, and package media download URLs",
+  ]);
+  assert.equal(
+    discoveryEnvelope.data.capabilitiesAfterLogin.some((capability) => /public published package catalog/.test(capability)),
+    false,
+  );
+  assert.ok(
+    discoveryEnvelope.instructions.indexOf("Public catalog reads do not require authentication")
+      < discoveryEnvelope.instructions.indexOf("For authenticated workspace operations"),
+  );
+  for (const [surfaceKey, pathTemplate] of Object.entries(expectedAgentDiscoverySurfaceTemplates)) {
     assert.equal(
-      discoveryEnvelope.data.surface[surfaceKey as keyof typeof expectedMediaDiscoverySurfaceTemplates],
+      discoveryEnvelope.data.surface[surfaceKey as keyof typeof expectedAgentDiscoverySurfaceTemplates],
       `${apiBaseUrl}${pathTemplate}`,
     );
     assert.ok(
       expectedPublishedApiMethods[pathTemplate] !== undefined,
-      `Discovery media template ${surfaceKey} must be published in OpenAPI paths`,
+      `Discovery surface template ${surfaceKey} must be published in OpenAPI paths`,
     );
     assert.ok(
       discoverySurfaceSchema.required?.includes(surfaceKey),
@@ -293,6 +318,13 @@ test("agent discovery advertises the published media transfer surface", () => {
   assert.match(discoveryEnvelope.instructions, /packages\/export/);
   assert.match(discoveryEnvelope.instructions, /packages\/import\/preview/);
   assert.match(discoveryEnvelope.instructions, /packages\/import/);
+  assert.match(discoveryEnvelope.instructions, /catalog\/packages/);
+  assert.match(discoveryEnvelope.instructions, /catalog\/packages\/\{packageSlug\}/);
+  assert.match(discoveryEnvelope.instructions, /catalog\/package-versions\/\{packageVersionId\}\/cards/);
+  assert.match(discoveryEnvelope.instructions, /catalog\/package-versions\/\{packageVersionId\}\/media-assets\/\{packageMediaKey\}\/download-url/);
+  assert.match(discoveryEnvelope.instructions, /catalog\/package-versions\/\{packageVersionId\}\/media-assets\/\{packageMediaKey\}\/download/);
+  assert.match(discoveryEnvelope.instructions, /catalog\/package-versions\/\{packageVersionId\}\/install\/preview/);
+  assert.match(discoveryEnvelope.instructions, /catalog\/package-versions\/\{packageVersionId\}\/install/);
   assert.match(discoveryEnvelope.instructions, /data\.agentWorkspaceReplicaId/);
   assert.match(discoveryEnvelope.instructions, /lastModifiedByReplicaId/);
 });
@@ -398,75 +430,32 @@ test("agent setup envelopes point API-key clients to the media-capable discovery
   assert.equal(accountEnvelope.data.agentWorkspaceReplicaId, testAgentWorkspaceReplicaId);
 });
 
-test("API Gateway predeclares /me/community/profile", () => {
-  const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+test("API Gateway proxy forwards /me/community/profile", () => {
+  const apiGatewaySource = loadApiGatewaySource();
 
-  assert.match(
-    apiGatewaySource,
-    /const meCommunityProfile = meCommunity\.addResource\("profile"\);/,
-  );
-  assert.match(apiGatewaySource, /meCommunityProfile\.addMethod\("GET", integration\);/);
-  assert.match(apiGatewaySource, /meCommunityProfile\.addMethod\("PATCH", integration\);/);
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
 });
 
-test("API Gateway predeclares friend invitation routes", () => {
-  const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+test("API Gateway proxy forwards friend invitation routes", () => {
+  const apiGatewaySource = loadApiGatewaySource();
 
-  assert.match(
-    apiGatewaySource,
-    /const meCommunityFriendInvitations = meCommunity\.addResource\("friend-invitations"\);/,
-  );
-  assert.match(apiGatewaySource, /meCommunityFriendInvitations\.addMethod\("POST", integration\);/);
-  assert.match(
-    apiGatewaySource,
-    /meCommunityFriendInvitations\s*\.addResource\("\{inviteToken\}"\)\s*\.addResource\("accept"\)\s*\.addMethod\("POST", integration\);/,
-  );
-  assert.match(
-    apiGatewaySource,
-    /const communityFriendInvitations = community\.addResource\("friend-invitations"\);/,
-  );
-  assert.match(
-    apiGatewaySource,
-    /communityFriendInvitations\.addResource\("\{inviteToken\}"\)\.addMethod\("GET", integration\);/,
-  );
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
 });
 
-test("API Gateway predeclares /me/progress/leaderboard", () => {
-  const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+test("API Gateway proxy forwards /me/progress/leaderboard", () => {
+  const apiGatewaySource = loadApiGatewaySource();
 
-  assert.match(
-    apiGatewaySource,
-    /meProgress\.addResource\("leaderboard"\)\.addMethod\("GET", integration\);/,
-  );
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
 });
 
-test("API Gateway predeclares /me/progress/leaderboards/streak", () => {
-  const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+test("API Gateway proxy forwards /me/progress/leaderboards/streak", () => {
+  const apiGatewaySource = loadApiGatewaySource();
 
-  assert.match(
-    apiGatewaySource,
-    /const meProgressLeaderboards = meProgress\.addResource\("leaderboards"\);/,
-  );
-  assert.match(
-    apiGatewaySource,
-    /meProgressLeaderboards\.addResource\("streak"\)\.addMethod\("GET", integration\);/,
-  );
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
 });
 
-test("API Gateway predeclares /me/progress/leaderboards/profiles/{publicProfileId}", () => {
-  const apiGatewayPath = resolve(process.cwd(), "../../infra/aws/lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+test("API Gateway proxy forwards /me/progress/leaderboards/profiles/{publicProfileId}", () => {
+  const apiGatewaySource = loadApiGatewaySource();
 
-  assert.match(
-    apiGatewaySource,
-    /const meProgressLeaderboardProfiles = meProgressLeaderboards\.addResource\("profiles"\);/,
-  );
-  assert.match(
-    apiGatewaySource,
-    /meProgressLeaderboardProfiles\.addResource\("\{publicProfileId\}"\)\.addMethod\("GET", integration\);/,
-  );
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
 });

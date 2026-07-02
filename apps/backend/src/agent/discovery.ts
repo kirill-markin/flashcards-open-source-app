@@ -18,6 +18,7 @@ type AgentDiscoveryEnvelope = Readonly<{
       sendCodeUrl: string;
       verifyCodeUrl: string;
     }>;
+    capabilitiesBeforeLogin: ReadonlyArray<string>;
     capabilitiesAfterLogin: ReadonlyArray<string>;
     authBaseUrl: string;
     apiBaseUrl: string;
@@ -37,6 +38,13 @@ type AgentDiscoveryEnvelope = Readonly<{
       workspacePackageExportUrlTemplate: string;
       workspacePackageImportPreviewUrlTemplate: string;
       workspacePackageImportUrlTemplate: string;
+      catalogPackagesUrl: string;
+      catalogPackageDetailUrlTemplate: string;
+      catalogPackageVersionCardsUrlTemplate: string;
+      catalogPackageMediaDownloadUrlTemplate: string;
+      catalogPackageMediaDownloadTemplate: string;
+      catalogPackageInstallPreviewUrlTemplate: string;
+      catalogPackageInstallUrlTemplate: string;
     }>;
     mcp: Readonly<{
       url: string;
@@ -125,6 +133,13 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
   const workspacePackageExportUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/packages/export`;
   const workspacePackageImportPreviewUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/packages/import/preview`;
   const workspacePackageImportUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/packages/import`;
+  const catalogPackagesUrl = `${apiBaseUrl}/catalog/packages`;
+  const catalogPackageDetailUrlTemplate = `${apiBaseUrl}/catalog/packages/{packageSlug}`;
+  const catalogPackageVersionCardsUrlTemplate = `${apiBaseUrl}/catalog/package-versions/{packageVersionId}/cards`;
+  const catalogPackageMediaDownloadUrlTemplate = `${apiBaseUrl}/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download-url`;
+  const catalogPackageMediaDownloadTemplate = `${apiBaseUrl}/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download`;
+  const catalogPackageInstallPreviewUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install/preview`;
+  const catalogPackageInstallUrlTemplate = `${apiBaseUrl}/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install`;
 
   return {
     ok: true,
@@ -140,6 +155,9 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
         sendCodeUrl: `${authBaseUrl}/api/agent/send-code`,
         verifyCodeUrl: `${authBaseUrl}/api/agent/verify-code`,
       },
+      capabilitiesBeforeLogin: [
+        "Read the public published package catalog, package detail, card previews, and package media download URLs",
+      ],
       capabilitiesAfterLogin: [
         "Load account context",
         "Select a workspace",
@@ -150,6 +168,7 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
         "Upload and complete media assets through workspace-scoped direct transfer endpoints",
         "Read media asset metadata and create download URLs through workspace-scoped media endpoints",
         "Preview and download portable workspace package ZIP exports, and preview or confirm ZIP imports",
+        "Preview and install published catalog package versions into a workspace",
       ],
       authBaseUrl,
       apiBaseUrl,
@@ -169,6 +188,13 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
         workspacePackageExportUrlTemplate,
         workspacePackageImportPreviewUrlTemplate,
         workspacePackageImportUrlTemplate,
+        catalogPackagesUrl,
+        catalogPackageDetailUrlTemplate,
+        catalogPackageVersionCardsUrlTemplate,
+        catalogPackageMediaDownloadUrlTemplate,
+        catalogPackageMediaDownloadTemplate,
+        catalogPackageInstallPreviewUrlTemplate,
+        catalogPackageInstallUrlTemplate,
       },
       mcp: {
         url: `${mcpBaseUrl}/mcp`,
@@ -191,7 +217,7 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
     },
     links,
     instructions:
-      `Start with POST ${authBaseUrl}/api/agent/send-code using the user's email. After send-code, follow the returned instructions: normal accounts require the 8-digit email code, while configured review/demo accounts use a deterministic 8-digit placeholder and do not send email. Do not immediately replay send-code. Then POST ${authBaseUrl}/api/agent/verify-code with the otpSessionToken, code, and label to obtain an API key. After login, call GET ${apiBaseUrl}/agent/me, then GET ${apiBaseUrl}/agent/workspaces?limit=100. If no workspace is selected for this API key, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select or create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}. After workspace bootstrap, call GET ${apiBaseUrl}/agent/me and use data.agentWorkspaceReplicaId as lastModifiedByReplicaId when creating media assets. Use POST ${apiBaseUrl}/agent/sql/query for all shared card and deck reads (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT) and POST ${apiBaseUrl}/agent/sql/execute for all writes (INSERT, UPDATE, DELETE). For JPEG, PNG, or WebP images up to ${maximumImageIngestionOriginalBytes} bytes, prefer POST ${mediaAssetImageIngestionUrlTemplate} with the image bytes as the request body and x-media-asset-id, x-media-created-at, x-media-client-updated-at, x-media-last-modified-by-replica-id, and x-media-last-operation-id headers; the backend normalizes to canonical JPEG bytes and returns the mediaAsset. For other media assets, create a multipart upload session with POST ${mediaAssetUploadSessionCreateUrlTemplate}; if status is already_available, use the returned mediaAsset and skip byte upload. If status is upload_required, request signed part URLs with POST ${mediaAssetUploadSessionPartsUrlTemplate}, upload each part with the returned signed URL, method, and headers, then complete the upload with POST ${mediaAssetUploadSessionCompleteUrlTemplate}. Abort unused sessions with POST ${mediaAssetUploadSessionAbortUrlTemplate}. Use GET ${mediaAssetMetadataUrlTemplate} for registry metadata and GET ${mediaAssetDownloadUrlTemplate} for a range-capable direct download URL. Use POST ${workspacePackageExportPreviewUrlTemplate} to preview a portable workspace package export, then POST ${workspacePackageExportUrlTemplate} to download the ZIP. Use POST ${workspacePackageImportPreviewUrlTemplate} with application/zip bytes up to ${workspacePackageImportPreviewRouteMaxZipBytes} bytes to preview a portable workspace package import; confirm with POST ${workspacePackageImportUrlTemplate} as multipart/form-data with file ZIP bytes up to ${workspacePackageImportConfirmRouteMaxZipBytes} bytes and an options JSON string. For routine low-risk writes, a clear user request already counts as permission. Ask again only for risky or unclear actions. SELECT returns at most 100 rows per statement, and INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls. Use ${docs.openapiUrl} for the published external agent contract. The SQL surface is intentionally limited and is not full PostgreSQL.`,
+      `Public catalog reads do not require authentication: use GET ${catalogPackagesUrl} to list or search published packages, GET ${catalogPackageDetailUrlTemplate} for package detail, GET ${catalogPackageVersionCardsUrlTemplate} for card previews, GET ${catalogPackageMediaDownloadUrlTemplate} for a backend-controlled media download URL, and GET ${catalogPackageMediaDownloadTemplate} for the media bytes. For authenticated workspace operations, start with POST ${authBaseUrl}/api/agent/send-code using the user's email. After send-code, follow the returned instructions: normal accounts require the 8-digit email code, while configured review/demo accounts use a deterministic 8-digit placeholder and do not send email. Do not immediately replay send-code. Then POST ${authBaseUrl}/api/agent/verify-code with the otpSessionToken, code, and label to obtain an API key. After login, call GET ${apiBaseUrl}/agent/me, then GET ${apiBaseUrl}/agent/workspaces?limit=100. If no workspace is selected for this API key, call POST ${apiBaseUrl}/agent/workspaces/{workspaceId}/select or create one with POST ${apiBaseUrl}/agent/workspaces using {"name":"Personal"}. After workspace bootstrap, call GET ${apiBaseUrl}/agent/me and use data.agentWorkspaceReplicaId as lastModifiedByReplicaId when creating media assets and catalog installs. Use POST ${apiBaseUrl}/agent/sql/query for all shared card and deck reads (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT) and POST ${apiBaseUrl}/agent/sql/execute for all writes (INSERT, UPDATE, DELETE). For JPEG, PNG, or WebP images up to ${maximumImageIngestionOriginalBytes} bytes, prefer POST ${mediaAssetImageIngestionUrlTemplate} with the image bytes as the request body and x-media-asset-id, x-media-created-at, x-media-client-updated-at, x-media-last-modified-by-replica-id, and x-media-last-operation-id headers; the backend normalizes to canonical JPEG bytes and returns the mediaAsset. For other media assets, create a multipart upload session with POST ${mediaAssetUploadSessionCreateUrlTemplate}; if status is already_available, use the returned mediaAsset and skip byte upload. If status is upload_required, request signed part URLs with POST ${mediaAssetUploadSessionPartsUrlTemplate}, upload each part with the returned signed URL, method, and headers, then complete the upload with POST ${mediaAssetUploadSessionCompleteUrlTemplate}. Abort unused sessions with POST ${mediaAssetUploadSessionAbortUrlTemplate}. Use GET ${mediaAssetMetadataUrlTemplate} for registry metadata and GET ${mediaAssetDownloadUrlTemplate} for a range-capable direct download URL. Use POST ${workspacePackageExportPreviewUrlTemplate} to preview a portable workspace package export, then POST ${workspacePackageExportUrlTemplate} to download the ZIP. Use POST ${workspacePackageImportPreviewUrlTemplate} with application/zip bytes up to ${workspacePackageImportPreviewRouteMaxZipBytes} bytes to preview a portable workspace package import; confirm with POST ${workspacePackageImportUrlTemplate} as multipart/form-data with file ZIP bytes up to ${workspacePackageImportConfirmRouteMaxZipBytes} bytes and an options JSON string. Use POST ${catalogPackageInstallPreviewUrlTemplate} to preview installing a published catalog package version, then POST ${catalogPackageInstallUrlTemplate} with a unique installId and operationIdPrefix to create normal cards and logical media assets without copying object-storage bytes. For routine low-risk writes, a clear user request already counts as permission. Ask again only for risky or unclear actions. SELECT returns at most 100 rows per statement, and INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls. Use ${docs.openapiUrl} for the published external agent contract. The SQL surface is intentionally limited and is not full PostgreSQL.`,
     docs,
   };
 }

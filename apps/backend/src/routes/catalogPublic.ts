@@ -6,6 +6,7 @@ import {
   loadPublicCatalogPackageVersionCardPreview,
 } from "../catalog";
 import {
+  isUnsafePublicPackageMediaKey,
   normalizePackageMediaKey,
   normalizeSlug,
 } from "../catalog/common";
@@ -28,6 +29,7 @@ import {
 import type { AppEnv } from "../server/app";
 import { expectUuidString } from "../server/requestParsing";
 import { HttpError } from "../shared/errors";
+import { getPublicApiBaseUrl } from "../shared/publicUrls";
 
 type CatalogPublicRoutesOptions = Readonly<{
   listPublicCatalogPackagesFn?: (
@@ -49,7 +51,7 @@ type CatalogPublicRoutesOptions = Readonly<{
 const defaultPackageListLimit = 50;
 const defaultCardPreviewLimit = 25;
 const maximumPublicCatalogLimit = 100;
-const maximumPublicCatalogMediaDownloadBytes = 25_000_000;
+const maximumPublicCatalogMediaDownloadBytes = 4_500_000;
 
 function parseLimitQuery(
   value: string | undefined,
@@ -115,7 +117,16 @@ function parsePackageMediaKeyParam(value: string | undefined): string {
     throw new HttpError(400, "packageMediaKey is required", "CATALOG_PUBLIC_PARAM_REQUIRED");
   }
 
-  return normalizePackageMediaKey(value, "packageMediaKey");
+  const packageMediaKey = normalizePackageMediaKey(value, "packageMediaKey");
+  if (isUnsafePublicPackageMediaKey(packageMediaKey)) {
+    throw new HttpError(
+      400,
+      "packageMediaKey must be a public catalog media key",
+      "CATALOG_PUBLIC_PARAM_INVALID",
+    );
+  }
+
+  return packageMediaKey;
 }
 
 function createCatalogPublicScope(
@@ -140,11 +151,37 @@ function createCatalogPublicScope(
   );
 }
 
-function createBackendDownloadUrl(requestUrl: string): string {
-  const url = new URL(requestUrl);
-  url.pathname = url.pathname.replace(/\/download-url$/u, "/download");
-  url.search = "";
-  return url.toString();
+function createBackendDownloadUrl(
+  requestUrl: string,
+  packageVersionId: string,
+  packageMediaKey: string,
+): string {
+  return [
+    getPublicApiBaseUrl(requestUrl),
+    "catalog",
+    "package-versions",
+    packageVersionId,
+    "media-assets",
+    packageMediaKey,
+    "download",
+  ].join("/");
+}
+
+function assertPublicCatalogMediaProxySafe(mediaDownloadSource: CatalogPublicPackageMediaDownloadSource): void {
+  if (mediaDownloadSource.mediaAsset.sizeBytes <= maximumPublicCatalogMediaDownloadBytes) {
+    return;
+  }
+
+  // TODO: Route public package media through CDN or streaming delivery before raising this proxy cap.
+  throw new HttpError(
+    413,
+    [
+      "Public catalog package media is too large for backend proxy download.",
+      `sizeBytes=${mediaDownloadSource.mediaAsset.sizeBytes}`,
+      `maxBytes=${maximumPublicCatalogMediaDownloadBytes}`,
+    ].join(" "),
+    "CATALOG_PUBLIC_MEDIA_DOWNLOAD_TOO_LARGE",
+  );
 }
 
 export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): Hono<AppEnv> {
@@ -192,9 +229,10 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
       packageVersionId,
       packageMediaKey,
     );
+    assertPublicCatalogMediaProxySafe(mediaDownloadSource);
     const download = {
       method: "GET",
-      url: createBackendDownloadUrl(context.req.url),
+      url: createBackendDownloadUrl(context.req.url, packageVersionId, packageMediaKey),
       expiresAt: null,
       rangeRequests: false,
     } as const;
@@ -218,6 +256,7 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
       packageVersionId,
       packageMediaKey,
     );
+    assertPublicCatalogMediaProxySafe(mediaDownloadSource);
     const objectBytes = await loadMediaAssetObjectBytesFn({
       workspaceId: packageVersionId,
       mediaAssetId: mediaDownloadSource.mediaAsset.packageMediaKey,
@@ -232,7 +271,6 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
     context.header("Content-Type", objectBytes.mimeType ?? mediaDownloadSource.mediaAsset.mimeType);
     context.header("Content-Length", objectBytes.sizeBytes.toString());
     context.header("Cache-Control", "public, max-age=3600");
-    // TODO: Route public package media through a CDN when the catalog has a public cache layer.
     return context.body(new Uint8Array(objectBytes.bytes), 200);
   });
 

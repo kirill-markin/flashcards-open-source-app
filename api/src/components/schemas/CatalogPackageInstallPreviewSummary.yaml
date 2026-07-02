@@ -1,0 +1,12 @@
+type: object
+additionalProperties: false
+required:
+  - cardCount
+  - mediaAssetCount
+properties:
+  cardCount:
+    type: integer
+    minimum: 0
+  mediaAssetCount:
+    type: integer
+    minimum: 0

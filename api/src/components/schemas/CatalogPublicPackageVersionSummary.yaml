@@ -54,6 +54,7 @@ properties:
     type:
       - string
       - 'null'
+    description: Opaque package-local cover media key, not a workspace media asset id.
   cardCount:
     type: integer
     minimum: 0

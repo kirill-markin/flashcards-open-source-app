@@ -1,0 +1,19 @@
+type: object
+additionalProperties: false
+required:
+  - cardCount
+  - mediaAssetCount
+  - installId
+  - installedAt
+properties:
+  cardCount:
+    type: integer
+    minimum: 0
+  mediaAssetCount:
+    type: integer
+    minimum: 0
+  installId:
+    type: string
+  installedAt:
+    type: string
+    format: date-time

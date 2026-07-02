@@ -165,6 +165,14 @@ function createBrowserCorsPreflightOptions(allowedOrigins: string[]): apigw.Cors
   };
 }
 
+function createPublicCatalogCorsPreflightOptions(allowedOrigins: string[]): apigw.CorsOptions {
+  return {
+    allowOrigins: allowedOrigins,
+    allowMethods: ["GET", "OPTIONS"],
+    allowHeaders: ["content-type", "sentry-trace", "baggage", "x-client-platform", "x-client-version"],
+  };
+}
+
 export function createChatLiveFunctionUrlCorsOptions(
   allowedOrigins: readonly string[],
 ): lambda.FunctionUrlCorsOptions {
@@ -471,10 +479,17 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
 }
 
 /**
- * Builds the public REST API resources that API Gateway must know about ahead
- * of time, including chat subpaths that are handled dynamically inside Hono.
+ * Builds the public REST API edge. The backend Hono app remains the route
+ * source of truth behind a greedy proxy so the CloudFormation template stays
+ * under the per-stack resource limit.
  */
 export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGatewayResult {
+  const publicSiteOrigin = props.siteBaseUrl ?? `https://${props.baseDomain}`;
+  const publicCatalogAllowedOrigins = [
+    publicSiteOrigin,
+    "http://localhost:3000",
+    "http://localhost:3001",
+  ];
   const allowedOrigins = [
     `https://app.${props.baseDomain}`,
     `https://admin.${props.baseDomain}`,
@@ -702,174 +717,27 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     ],
   };
 
-  restApi.root.addMethod("GET", integration);
-
-  const agent = restApi.root.addResource("agent");
-  agent.addMethod("GET", integration);
-  agent.addResource("openapi.json").addMethod("GET", integration);
-  agent.addResource("swagger.json").addMethod("GET", integration);
-  agent.addResource("me").addMethod("GET", integration);
-
-  restApi.root.addResource("openapi.json").addMethod("GET", integration);
-  restApi.root.addResource("swagger.json").addMethod("GET", integration);
-
-  const health = restApi.root.addResource("health");
-  health.addMethod("GET", integration);
-
   const global = restApi.root.addResource("global");
   const globalSnapshot = global.addResource("snapshot", {
     defaultCorsPreflightOptions: globalMetricsCorsPreflightOptions,
   });
   globalSnapshot.addMethod("GET", integration);
 
-  const me = restApi.root.addResource("me");
-  me.addMethod("GET", integration);
-  me.addResource("preferences").addMethod("PATCH", integration);
-  const meCommunity = me.addResource("community");
-  const meCommunityProfile = meCommunity.addResource("profile");
-  meCommunityProfile.addMethod("GET", integration);
-  meCommunityProfile.addMethod("PATCH", integration);
-  const meCommunityFriendInvitations = meCommunity.addResource("friend-invitations");
-  meCommunityFriendInvitations.addMethod("POST", integration);
-  meCommunityFriendInvitations
-    .addResource("{inviteToken}")
-    .addResource("accept")
-    .addMethod("POST", integration);
-  const meProgress = me.addResource("progress");
-  meProgress.addResource("summary").addMethod("GET", integration);
-  meProgress.addResource("review-schedule").addMethod("GET", integration);
-  meProgress.addResource("series").addMethod("GET", integration);
-  meProgress.addResource("leaderboard").addMethod("GET", integration);
-  const meProgressLeaderboards = meProgress.addResource("leaderboards");
-  const meProgressLeaderboardProfiles = meProgressLeaderboards.addResource("profiles");
-  meProgressLeaderboardProfiles.addResource("{publicProfileId}").addMethod("GET", integration);
-  meProgressLeaderboards.addResource("streak").addMethod("GET", integration);
-  me.addResource("delete").addMethod("POST", integration);
-
-  const community = restApi.root.addResource("community");
-  const communityFriendInvitations = community.addResource("friend-invitations");
-  communityFriendInvitations.addResource("{inviteToken}").addMethod("GET", integration);
-
-  const feedback = restApi.root.addResource("feedback");
-  feedback.addResource("state").addMethod("GET", integration);
-  feedback.addResource("prompt-events").addMethod("POST", integration);
-  feedback.addResource("submissions").addMethod("POST", integration);
-
-  const catalog = restApi.root.addResource("catalog");
-  const catalogPackages = catalog.addResource("packages");
-  catalogPackages.addMethod("GET", integration);
-  catalogPackages.addResource("{packageSlug}").addMethod("GET", integration);
-  const catalogPackageVersionById = catalog.addResource("package-versions").addResource("{packageVersionId}");
-  catalogPackageVersionById.addResource("cards").addMethod("GET", integration);
-  const catalogPackageVersionMediaByKey = catalogPackageVersionById
-    .addResource("media-assets")
-    .addResource("{packageMediaKey}");
-  catalogPackageVersionMediaByKey.addResource("download-url").addMethod("GET", integration);
-  catalogPackageVersionMediaByKey.addResource("download").addMethod("GET", integration);
-
-  const admin = restApi.root.addResource("admin");
-  admin.addResource("session").addMethod("GET", integration);
-  const adminReports = admin.addResource("reports");
-  adminReports.addResource("query").addMethod("POST", integration);
-  const adminCatalog = admin.addResource("catalog");
-  const adminCatalogAuthors = adminCatalog.addResource("authors");
-  adminCatalogAuthors.addMethod("POST", integration);
-  adminCatalogAuthors.addResource("{authorId}").addMethod("PUT", integration);
-  const adminCatalogPackages = adminCatalog.addResource("packages");
-  adminCatalogPackages.addMethod("POST", integration);
-  const adminCatalogPackageById = adminCatalogPackages.addResource("{packageId}");
-  adminCatalogPackageById.addMethod("GET", integration);
-  adminCatalogPackageById.addResource("draft").addMethod("PUT", integration);
-  adminCatalogPackageById.addResource("media-assets").addMethod("POST", integration);
-  const adminCatalogPackageVersions = adminCatalogPackageById.addResource("versions");
-  adminCatalogPackageVersions.addMethod("POST", integration);
-  adminCatalogPackageVersions.addResource("from-workspace").addMethod("POST", integration);
-  const adminCatalogPackageVersionById = adminCatalog.addResource("package-versions").addResource("{packageVersionId}");
-  adminCatalogPackageVersionById.addResource("review-status").addMethod("POST", integration);
-  adminCatalogPackageVersionById.addResource("publish").addMethod("POST", integration);
-  adminCatalogPackageVersionById.addResource("delist").addMethod("POST", integration);
-
-  const chat = restApi.root.addResource("chat");
-  chat.addMethod("GET", integration);
-  chat.addMethod("POST", integration);
-  chat.addResource("new").addMethod("POST", integration);
-  chat.addResource("stop").addMethod("POST", integration);
-  chat.addResource("transcriptions").addMethod("POST", integration);
-
-  const guestAuth = restApi.root.addResource("guest-auth");
-  const guestSession = guestAuth.addResource("session");
-  guestSession.addMethod("POST", integration);
-  guestSession.addResource("delete").addMethod("POST", integration);
-  const guestUpgrade = guestAuth.addResource("upgrade");
-  guestUpgrade.addResource("prepare").addMethod("POST", integration);
-  guestUpgrade.addResource("complete").addMethod("POST", integration);
-
-  const workspaces = restApi.root.addResource("workspaces");
-  workspaces.addMethod("GET", integration);
-  workspaces.addMethod("POST", integration);
-  const agentWorkspaces = agent.addResource("workspaces");
-  agentWorkspaces.addMethod("GET", integration);
-  agentWorkspaces.addMethod("POST", integration);
-
-  const agentApiKeys = restApi.root.addResource("agent-api-keys");
-  agentApiKeys.addMethod("GET", integration);
-  agentApiKeys.addMethod("POST", integration);
-  agentApiKeys
-    .addResource("{connectionId}")
-    .addResource("revoke")
-    .addMethod("POST", integration);
-
-  // Keep this manual resource list aligned with apps/backend/src/routes/*.ts.
-  // API Gateway must know each public path ahead of time, or requests will fail
-  // at the edge with MissingAuthenticationTokenException before Lambda runs.
-  const workspaceById = workspaces.addResource("{workspaceId}");
-  const agentWorkspaceById = agentWorkspaces.addResource("{workspaceId}");
-  workspaceById.addResource("select").addMethod("POST", integration);
-  workspaceById.addResource("rename").addMethod("POST", integration);
-  workspaceById.addResource("delete-preview").addMethod("GET", integration);
-  workspaceById.addResource("delete").addMethod("POST", integration);
-  workspaceById.addResource("reset-progress-preview").addMethod("GET", integration);
-  workspaceById.addResource("reset-progress").addMethod("POST", integration);
-  agentWorkspaceById.addResource("select").addMethod("POST", integration);
-  workspaceById.addResource("tags").addMethod("GET", integration);
-  workspaceById
-    .addResource("cards")
-    .addResource("query")
-    .addMethod("POST", integration);
-  const workspacePackages = workspaceById.addResource("packages");
-  const workspacePackageExport = workspacePackages.addResource("export");
-  workspacePackageExport.addMethod("POST", integration);
-  workspacePackageExport.addResource("preview").addMethod("POST", integration);
-  const workspacePackageImport = workspacePackages.addResource("import");
-  workspacePackageImport.addMethod("POST", integration);
-  workspacePackageImport.addResource("preview").addMethod("POST", integration);
-  const workspaceMediaAssets = workspaceById.addResource("media-assets");
-  workspaceMediaAssets.addResource("images").addMethod("POST", integration);
-  const workspaceMediaAssetUploadSessions = workspaceMediaAssets.addResource("upload-sessions");
-  workspaceMediaAssetUploadSessions.addMethod("POST", integration);
-  const workspaceMediaAssetUploadSessionById = workspaceMediaAssetUploadSessions.addResource("{sessionId}");
-  workspaceMediaAssetUploadSessionById.addResource("parts").addMethod("POST", integration);
-  workspaceMediaAssetUploadSessionById.addResource("complete").addMethod("POST", integration);
-  workspaceMediaAssetUploadSessionById.addResource("abort").addMethod("POST", integration);
-  const workspaceMediaAssetById = workspaceMediaAssets.addResource("{mediaAssetId}");
-  workspaceMediaAssetById.addMethod("GET", integration);
-  workspaceMediaAssetById.addResource("download-url").addMethod("GET", integration);
-
-  const workspaceSync = workspaceById.addResource("sync");
-  workspaceSync.addResource("push").addMethod("POST", integration);
-  workspaceSync.addResource("pull").addMethod("POST", integration);
-  workspaceSync.addResource("bootstrap").addMethod("POST", integration);
-  const workspaceSyncReviewHistory = workspaceSync.addResource("review-history");
-  workspaceSyncReviewHistory.addResource("pull").addMethod("POST", integration);
-  workspaceSyncReviewHistory.addResource("import").addMethod("POST", integration);
-
-  const agentSql = agent.addResource("sql");
-  agentSql.addResource("query").addMethod("POST", integration);
-  agentSql.addResource("execute").addMethod("POST", integration);
+  const catalog = restApi.root.addResource("catalog", {
+    defaultCorsPreflightOptions: createPublicCatalogCorsPreflightOptions(publicCatalogAllowedOrigins),
+  });
+  catalog
+    .addResource("{proxy+}", {
+      defaultCorsPreflightOptions: createPublicCatalogCorsPreflightOptions(publicCatalogAllowedOrigins),
+    })
+    .addMethod("GET", integration);
 
   const legacyAuth = restApi.root.addResource("auth");
   legacyAuth.addMethod("ANY", notFoundIntegration, notFoundMethodOptions);
   legacyAuth.addResource("{proxy+}").addMethod("ANY", notFoundIntegration, notFoundMethodOptions);
+
+  restApi.root.addMethod("GET", integration);
+  restApi.root.addResource("{proxy+}").addMethod("ANY", integration);
 
   if (props.apiCertificateArn) {
     const apiDomainName = `api.${props.baseDomain}`;

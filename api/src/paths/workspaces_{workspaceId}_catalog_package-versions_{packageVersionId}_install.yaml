@@ -1,0 +1,46 @@
+post:
+  tags:
+    - catalog-install
+  summary: Install a catalog package version
+  description: >-
+    Installs a published catalog package version into the target workspace by
+    creating normal workspace cards and fresh logical workspace media assets.
+    Workspace media assets point to the existing catalog media blob ids; this
+    route does not copy physical object-storage bytes. The backend rewrites
+    package-local fcasset media keys in card markdown to the newly created
+    workspace mediaAssetId values and records normal hot-sync changes for the
+    created cards and media assets. The route is intentionally not silently
+    idempotent: installId and derived operation ids must be unique in the
+    workspace, and conflicts return a 409 error.
+  security:
+    - ApiKeyHeader: []
+  parameters:
+    - name: workspaceId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+    - name: packageVersionId
+      in: path
+      required: true
+      schema:
+        $ref: ../components/schemas/UuidString.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CatalogPackageInstallConfirmInput.yaml
+  responses:
+    '200':
+      description: Catalog package install result
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/CatalogPackageInstallConfirmResponse.yaml
+    default:
+      description: Authenticated request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml

@@ -20,7 +20,14 @@ function loadProgressIndexSource(): string {
   return fs.readFileSync(progressIndexPath, "utf8").replace(/\s+/g, " ");
 }
 
-test("published contract excludes progress endpoints while the API Gateway resource tree still predeclares the paths", () => {
+function assertApiGatewayUsesBackendProxy(apiGatewaySource: string): void {
+  assert.match(
+    apiGatewaySource,
+    /restApi\.root\.addResource\("\{proxy\+}"\)\.addMethod\("ANY", integration\);/,
+  );
+}
+
+test("published contract excludes progress endpoints while API Gateway proxies backend routes", () => {
   const openApiDocument = loadOpenApiDocument() as Readonly<{
     info?: Readonly<{ title?: string; description?: string }>;
     paths?: Readonly<Record<string, object>>;
@@ -36,11 +43,7 @@ test("published contract excludes progress endpoints while the API Gateway resou
   assert.equal(openApiDocument.paths?.["/me/progress/leaderboards/profiles/{publicProfileId}"], undefined);
 
   const apiGatewaySource = loadApiGatewaySource();
-  assert.match(apiGatewaySource, /const meProgress = me\.addResource\("progress"\);/);
-  assert.doesNotMatch(apiGatewaySource, /meProgress\.addMethod\("GET", integration\);/);
-  assert.match(apiGatewaySource, /meProgress\.addResource\("summary"\)\.addMethod\("GET", integration\);/);
-  assert.match(apiGatewaySource, /meProgress\.addResource\("review-schedule"\)\.addMethod\("GET", integration\);/);
-  assert.match(apiGatewaySource, /meProgress\.addResource\("series"\)\.addMethod\("GET", integration\);/);
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
 });
 
 test("progress barrel re-exports the community leaderboard loaders", async () => {
@@ -87,7 +90,7 @@ test("public progress streak loaders retry transient repeatable-read materializa
   );
 });
 
-test("published contract omits progress leaderboards while the API Gateway predeclares them", () => {
+test("published contract omits progress leaderboards while API Gateway proxies backend routes", () => {
   const openApiDocument = loadOpenApiDocument() as Readonly<{
     paths?: Readonly<Record<string, object>>;
   }>;
@@ -96,16 +99,5 @@ test("published contract omits progress leaderboards while the API Gateway prede
   assert.equal(openApiDocument.paths?.["/me/progress/leaderboards/profiles/{publicProfileId}"], undefined);
 
   const apiGatewaySource = loadApiGatewaySource();
-  assert.match(
-    apiGatewaySource,
-    /meProgress\.addResource\("leaderboard"\)\.addMethod\("GET", integration\);/,
-  );
-  assert.match(
-    apiGatewaySource,
-    /meProgressLeaderboards\.addResource\("streak"\)\.addMethod\("GET", integration\);/,
-  );
-  assert.match(
-    apiGatewaySource,
-    /meProgressLeaderboardProfiles\.addResource\("\{publicProfileId\}"\)\.addMethod\("GET", integration\);/,
-  );
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
 });

@@ -14,6 +14,7 @@ properties:
     $ref: ./UuidString.yaml
   packageMediaKey:
     type: string
+    description: Opaque package-local media key, not a workspace media asset id.
   altText:
     type:
       - string
@@ -33,4 +34,4 @@ properties:
     minimum: 0
   downloadUrlPath:
     type: string
-    description: Relative API path for requesting a signed download URL.
+    description: Relative API path for requesting a backend-controlled download URL.

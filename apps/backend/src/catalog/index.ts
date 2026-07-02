@@ -40,3 +40,9 @@ export {
   loadPublicCatalogPackageVersionCardPreview,
   loadPublicCatalogPackageVersionCardPreviewInExecutor,
 } from "./public";
+export {
+  installCatalogPackageVersion,
+  installCatalogPackageVersionInExecutor,
+  previewCatalogPackageInstall,
+  previewCatalogPackageInstallInExecutor,
+} from "./install";

@@ -468,8 +468,8 @@ function getWorkspaceCardsMediaAssetIds(rows: ReadonlyArray<CatalogWorkspaceCard
   ]));
 }
 
-function buildPackageMediaKeyFromWorkspaceMediaAssetId(mediaAssetId: string): string {
-  return normalizePackageMediaKey(`w-${mediaAssetId.toLowerCase()}`, "workspaceMediaAssetId");
+function buildPackageMediaKeyFromWorkspaceMediaAssetOrdinal(index: number): string {
+  return normalizePackageMediaKey(`media-${index + 1}`, "workspaceMediaAssetOrdinal");
 }
 
 function buildCollisionFreePackageMediaKey(
@@ -493,9 +493,9 @@ function buildWorkspacePackageMediaKeyMap(
   reservedPackageMediaKeys: ReadonlySet<string>,
 ): ReadonlyMap<string, string> {
   const usedPackageMediaKeys = new Set(reservedPackageMediaKeys);
-  return new Map(rows.map((row) => {
+  return new Map(rows.map((row, index) => {
     const packageMediaKey = buildCollisionFreePackageMediaKey(
-      buildPackageMediaKeyFromWorkspaceMediaAssetId(row.media_asset_id),
+      buildPackageMediaKeyFromWorkspaceMediaAssetOrdinal(index),
       usedPackageMediaKeys,
     );
     usedPackageMediaKeys.add(packageMediaKey);

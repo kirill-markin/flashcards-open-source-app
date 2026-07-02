@@ -625,7 +625,8 @@ check_api_route_absent() {
   local response_file
   local headers_file
   local http_status
-  local error_type
+  local allow_origin
+  local request_id
 
   response_file=$(mktemp)
   headers_file=$(mktemp)
@@ -636,7 +637,8 @@ check_api_route_absent() {
     "$url" \
     -w "%{http_code}")
 
-  error_type=$(get_header_value "$headers_file" "x-amzn-errortype")
+  allow_origin=$(get_header_value "$headers_file" "access-control-allow-origin")
+  request_id=$(get_header_value "$headers_file" "x-request-id")
 
   if [[ "$http_status" == "200" ]]; then
     echo "ERROR: ${description} unexpectedly returned 200: ${url}" >&2
@@ -651,15 +653,28 @@ check_api_route_absent() {
     return 1
   fi
 
-  if [[ "$http_status" == "403" && "$error_type" == MissingAuthenticationTokenException* ]]; then
-    echo "Public API route absence check passed: ${description} (${url}) returned ${http_status}"
-    return 0
+  if [[ "$http_status" != "404" ]]; then
+    echo "ERROR: ${description} returned unexpected status ${http_status}: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
   fi
 
-  echo "ERROR: ${description} did not return API Gateway MissingAuthenticationTokenException: status ${http_status}, error type ${error_type}, url ${url}" >&2
-  cat "$headers_file" >&2 || true
-  cat "$response_file" >&2 || true
-  return 1
+  if [[ "$allow_origin" != "$origin" ]]; then
+    echo "ERROR: ${description} did not return the expected CORS origin header: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ -z "$request_id" ]]; then
+    echo "ERROR: ${description} did not return X-Request-Id: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  echo "Public API route absence check passed: ${description} (${url}) returned ${http_status}"
 }
 
 check_redirect_url() {

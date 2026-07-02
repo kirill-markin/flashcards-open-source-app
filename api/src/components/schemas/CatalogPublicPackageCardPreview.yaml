@@ -23,5 +23,6 @@ properties:
       type: string
   mediaAssetKeys:
     type: array
+    description: Opaque package-local media keys referenced by this preview card.
     items:
       type: string
