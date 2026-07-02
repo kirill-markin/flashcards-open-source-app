@@ -144,7 +144,7 @@ class WorkspaceImportViewModel(
         return previewRequestId
     }
 
-    fun previewSelectedFile(selectedFile: WorkspaceImportSelectedFile) {
+    internal fun previewSelectedFile(selectedFile: WorkspaceImportSelectedFile) {
         val previewRequestId: Long = beginPreviewRequest()
         previewSelectedFile(
             previewRequestId = previewRequestId,
@@ -152,7 +152,7 @@ class WorkspaceImportViewModel(
         )
     }
 
-    fun previewSelectedFile(
+    internal fun previewSelectedFile(
         previewRequestId: Long,
         selectedFile: WorkspaceImportSelectedFile
     ) {

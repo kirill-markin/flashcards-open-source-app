@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.runBlocking
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import org.json.JSONArray
 import org.json.JSONObject
@@ -176,7 +177,10 @@ class CloudRemoteHttpClientTest {
             )
 
             assertEquals("application/zip", requestAcceptHeader)
-            assertEquals("application/json", requestContentTypeHeader)
+            val requestContentType = requestContentTypeHeader?.toMediaType()
+                ?: throw AssertionError("Expected JSON request Content-Type header.")
+            assertEquals("application", requestContentType.type)
+            assertEquals("json", requestContentType.subtype)
             assertEquals("""{"selection":{"kind":"allActiveCards"}}""", requestBody)
             assertArrayEquals(zipBytes, response.bodyBytes)
             assertEquals("application/zip", response.contentType)
