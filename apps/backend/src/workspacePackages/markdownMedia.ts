@@ -18,6 +18,7 @@ type MarkdownFence = Readonly<{
 }>;
 
 export type FcAssetPortablePathResolver = (assetId: string) => string;
+export type FcAssetIdResolver = (assetId: string) => string;
 export type PortableMediaAssetIdResolver = (portableMediaPath: string) => string;
 
 const fcAssetUrlPattern = /^fcasset:([A-Za-z0-9][A-Za-z0-9._-]*)$/;
@@ -561,6 +562,20 @@ export function rewriteMarkdownFcAssetUrlsToSharedPortablePaths(
     }
 
     return validatePortableMediaPath(resolvePortablePath(assetId));
+  });
+}
+
+export function rewriteMarkdownFcAssetUrlsToFcAssets(
+  markdown: string,
+  resolveAssetId: FcAssetIdResolver,
+): string {
+  return rewriteMarkdownUrls(markdown, (url) => {
+    const assetId = matchFcAssetId(url);
+    if (assetId === null) {
+      return null;
+    }
+
+    return `fcasset:${assertFcAssetId(resolveAssetId(assetId), "Resolved fcasset id")}`;
   });
 }
 

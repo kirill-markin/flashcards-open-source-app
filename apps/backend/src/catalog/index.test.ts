@@ -29,33 +29,14 @@ const testMediaBlobId = "44444444-4444-4444-8444-444444444444";
 const testPackageMediaAssetId = "55555555-5555-4555-8555-555555555555";
 const testWorkspaceId = "66666666-6666-4666-8666-666666666666";
 const testWorkspaceCardId = "77777777-7777-4777-8777-777777777777";
+const testWorkspaceMediaAssetId = "88888888-8888-4888-8888-888888888888";
+const testSecondWorkspaceMediaAssetId = "99999999-9999-4999-8999-999999999999";
+const testSecondMediaBlobId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const testTimestamp = "2026-04-18T10:00:00.000Z";
 
-const managedMediaReferenceExamples: ReadonlyArray<Readonly<{
-  name: string;
-  frontText: string;
-  backText: string;
-  expectedField: "frontText" | "backText";
-}>> = [
-  {
-    name: "UUID refs",
-    frontText: "Question",
-    backText: `![audio](fcasset:${testMediaBlobId})`,
-    expectedField: "backText",
-  },
-  {
-    name: "non-UUID refs",
-    frontText: "![image](fcasset:image-asset)",
-    backText: "Answer",
-    expectedField: "frontText",
-  },
-  {
-    name: "URL-like refs",
-    frontText: "Question",
-    backText: `![audio](FCASSET://${testMediaBlobId}?download=1)`,
-    expectedField: "backText",
-  },
-];
+const testPackageMediaKey = `w-${testWorkspaceMediaAssetId}`;
+const testCollisionSafePackageMediaKey = `${testPackageMediaKey}.1`;
+const testSecondPackageMediaKey = `w-${testSecondWorkspaceMediaAssetId}`;
 
 function createQueryResult<Row extends pg.QueryResultRow>(rows: ReadonlyArray<Row>): pg.QueryResult<Row> {
   return {
@@ -486,57 +467,258 @@ test("workspace-selected catalog versions generate fresh package card ids", asyn
   assert.notEqual(insertedPackageCardId, null);
 });
 
-for (const example of managedMediaReferenceExamples) {
-  test(`workspace-selected catalog versions reject managed media references in ${example.name}`, async () => {
-    const queries: Array<string> = [];
-    const executor: DatabaseExecutor = {
-      async query<Row extends pg.QueryResultRow>(
-        text: string,
-        params: ReadonlyArray<SqlValue>,
-      ): Promise<pg.QueryResult<Row>> {
-        queries.push(text);
-        if (text.includes("set_config('app.user_id'")) {
-          assert.deepEqual(params, ["admin-user-id", testWorkspaceId]);
+test("workspace-selected catalog versions preserve managed media as package media", async () => {
+  const versionMediaInsertParams: Array<ReadonlyArray<SqlValue>> = [];
+  let insertedPackageCardId: string | null = null;
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("set_config('app.user_id'")) {
+        assert.deepEqual(params, ["admin-user-id", testWorkspaceId]);
+        return createQueryResult([]);
+      }
+
+      if (text.includes("FROM content.cards")) {
+        assert.deepEqual(params, [testWorkspaceId, [testWorkspaceCardId]]);
+        return createQueryResult([{
+          card_id: testWorkspaceCardId,
+          front_text: `Prompt ![diagram](fcasset:${testWorkspaceMediaAssetId})`,
+          back_text: `Answer [audio](fcasset:${testSecondWorkspaceMediaAssetId}) and again ![same](fcasset:${testWorkspaceMediaAssetId})`,
+          card_type: "basic",
+          metadata: { version: 1, source: null },
+          tags: ["media"],
+        } as unknown as Row]);
+      }
+
+      if (text.includes("FROM content.media_assets AS media_assets")) {
+        assert.match(text, /INNER JOIN content\.media_blobs AS media_blobs/);
+        assert.doesNotMatch(text, /\bstorage_key\b/);
+        assert.doesNotMatch(text, /\bsha256\b/);
+        assert.doesNotMatch(text, /\bsource_url\b/);
+        assert.deepEqual(params, [testWorkspaceId, [
+          testWorkspaceMediaAssetId,
+          testSecondWorkspaceMediaAssetId,
+        ]]);
+        return createQueryResult([
+          {
+            media_asset_id: testWorkspaceMediaAssetId,
+            media_blob_id: testMediaBlobId,
+          } as unknown as Row,
+          {
+            media_asset_id: testSecondWorkspaceMediaAssetId,
+            media_blob_id: testSecondMediaBlobId,
+          } as unknown as Row,
+        ]);
+      }
+
+      if (text.includes("FROM catalog.packages") && text.includes("FOR UPDATE")) {
+        assert.deepEqual(params, [testPackageId]);
+        return createQueryResult([createPackageRow() as unknown as Row]);
+      }
+
+      if (text.includes("SELECT package_media_key")) {
+        assert.deepEqual(params, [testPackageId]);
+        return createQueryResult([{
+          package_media_key: testPackageMediaKey,
+        } as unknown as Row]);
+      }
+
+      if (text.includes("FROM catalog.package_versions") && text.includes("status IN")) {
+        assert.deepEqual(params, [testPackageId]);
+        return createQueryResult([]);
+      }
+
+      if (text.includes("FROM catalog.package_versions") && text.includes("ORDER BY version_number DESC")) {
+        assert.deepEqual(params, [testPackageId]);
+        return createQueryResult([]);
+      }
+
+      if (text.includes("INSERT INTO catalog.package_versions")) {
+        assert.equal(params[0], testPackageVersionId);
+        assert.equal(params[12], testWorkspaceId);
+        return createQueryResult([{
+          ...createPackageVersionRow("draft"),
+          source_workspace_id: testWorkspaceId,
+        } as unknown as Row]);
+      }
+
+      if (text.includes("INSERT INTO catalog.package_media_assets")) {
+        assert.doesNotMatch(text, /\bstorage_key\b/);
+        assert.doesNotMatch(text, /\bsha256\b/);
+        assert.doesNotMatch(text, /\bsource_url\b/);
+
+        if (text.includes("SELECT gen_random_uuid(), package_id")) {
+          assert.deepEqual(params, [testPackageId, testPackageVersionId]);
           return createQueryResult([]);
         }
 
-        if (text.includes("FROM content.cards")) {
-          assert.deepEqual(params, [testWorkspaceId, [testWorkspaceCardId]]);
-          return createQueryResult([{
-            card_id: testWorkspaceCardId,
-            front_text: example.frontText,
-            back_text: example.backText,
-            card_type: "basic",
-            metadata: { version: 1, source: null },
-            tags: [],
-          } as unknown as Row]);
-        }
+        versionMediaInsertParams.push(params);
+        return createQueryResult([]);
+      }
 
-        throw new Error(`Unexpected query: ${text}`);
-      },
-    };
+      if (text.includes("INSERT INTO catalog.package_cards")) {
+        insertedPackageCardId = String(params[0]);
+        assert.notEqual(insertedPackageCardId, testWorkspaceCardId);
+        assert.match(insertedPackageCardId, /^[0-9a-f-]{36}$/);
+        assert.deepEqual(params.slice(1), [
+          testPackageVersionId,
+          testWorkspaceCardId,
+          1,
+          `Prompt ![diagram](fcasset:${testCollisionSafePackageMediaKey})`,
+          `Answer [audio](fcasset:${testSecondPackageMediaKey}) and again ![same](fcasset:${testCollisionSafePackageMediaKey})`,
+          "basic",
+          JSON.stringify({ version: 1, source: null }),
+          ["media"],
+          [testCollisionSafePackageMediaKey, testSecondPackageMediaKey],
+        ]);
+        return createQueryResult([]);
+      }
 
-    await assert.rejects(
-      createCatalogPackageVersionFromWorkspaceSelectionInExecutor(
-        executor,
-        testPackageId,
-        {
-          packageVersionId: testPackageVersionId,
-          workspaceId: testWorkspaceId,
-          cardIds: [testWorkspaceCardId],
-        },
-        "admin-user-id",
-        "admin@example.com",
-      ),
-      (error: unknown) => {
-        assert.equal(error instanceof HttpError, true);
-        assert.equal((error as HttpError).statusCode, 400);
-        assert.equal((error as HttpError).code, "CATALOG_WORKSPACE_CARD_MEDIA_REFERENCE_UNSUPPORTED");
-        assert.match((error as HttpError).message, new RegExp(`cardId=${testWorkspaceCardId}`));
-        assert.match((error as HttpError).message, new RegExp(`field=${example.expectedField}`));
-        return true;
+      if (text.includes("INSERT INTO catalog.package_review_events")) {
+        assert.deepEqual(params, [
+          testPackageId,
+          testPackageVersionId,
+          null,
+          "draft",
+          "admin@example.com",
+          null,
+        ]);
+        return createQueryResult([]);
+      }
+
+      throw new Error(`Unexpected query: ${text}`);
+    },
+  };
+
+  const packageVersion = await createCatalogPackageVersionFromWorkspaceSelectionInExecutor(
+    executor,
+    testPackageId,
+    {
+      packageVersionId: testPackageVersionId,
+      workspaceId: testWorkspaceId,
+      cardIds: [testWorkspaceCardId],
+    },
+    "admin-user-id",
+    "admin@example.com",
+  );
+
+  assert.equal(packageVersion.packageVersionId, testPackageVersionId);
+  assert.equal(packageVersion.sourceWorkspaceId, testWorkspaceId);
+  assert.notEqual(insertedPackageCardId, null);
+  assert.deepEqual(versionMediaInsertParams, [
+    [testPackageId, testPackageVersionId, testCollisionSafePackageMediaKey, testMediaBlobId],
+    [testPackageId, testPackageVersionId, testSecondPackageMediaKey, testSecondMediaBlobId],
+  ]);
+});
+
+test("workspace-selected catalog versions fail when referenced media is missing", async () => {
+  const queries: Array<string> = [];
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> {
+      queries.push(text);
+      if (text.includes("set_config('app.user_id'")) {
+        assert.deepEqual(params, ["admin-user-id", testWorkspaceId]);
+        return createQueryResult([]);
+      }
+
+      if (text.includes("FROM content.cards")) {
+        assert.deepEqual(params, [testWorkspaceId, [testWorkspaceCardId]]);
+        return createQueryResult([{
+          card_id: testWorkspaceCardId,
+          front_text: `Prompt ![diagram](fcasset:${testWorkspaceMediaAssetId})`,
+          back_text: "Answer",
+          card_type: "basic",
+          metadata: { version: 1, source: null },
+          tags: [],
+        } as unknown as Row]);
+      }
+
+      if (text.includes("FROM content.media_assets AS media_assets")) {
+        assert.deepEqual(params, [testWorkspaceId, [testWorkspaceMediaAssetId]]);
+        return createQueryResult([]);
+      }
+
+      throw new Error(`Unexpected query: ${text}`);
+    },
+  };
+
+  await assert.rejects(
+    createCatalogPackageVersionFromWorkspaceSelectionInExecutor(
+      executor,
+      testPackageId,
+      {
+        packageVersionId: testPackageVersionId,
+        workspaceId: testWorkspaceId,
+        cardIds: [testWorkspaceCardId],
       },
-    );
-    assert.equal(queries.length, 2);
-  });
-}
+      "admin-user-id",
+      "admin@example.com",
+    ),
+    (error: unknown) => {
+      assert.equal(error instanceof HttpError, true);
+      assert.equal((error as HttpError).statusCode, 400);
+      assert.equal((error as HttpError).code, "CATALOG_WORKSPACE_MEDIA_ASSET_NOT_FOUND");
+      assert.match((error as HttpError).message, new RegExp(`workspaceId=${testWorkspaceId}`));
+      assert.match((error as HttpError).message, new RegExp(`missingMediaAssetIds=${testWorkspaceMediaAssetId}`));
+      return true;
+    },
+  );
+  assert.equal(queries.length, 3);
+});
+
+test("workspace-selected catalog versions reject invalid managed media references", async () => {
+  const queries: Array<string> = [];
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> {
+      queries.push(text);
+      if (text.includes("set_config('app.user_id'")) {
+        assert.deepEqual(params, ["admin-user-id", testWorkspaceId]);
+        return createQueryResult([]);
+      }
+
+      if (text.includes("FROM content.cards")) {
+        assert.deepEqual(params, [testWorkspaceId, [testWorkspaceCardId]]);
+        return createQueryResult([{
+          card_id: testWorkspaceCardId,
+          front_text: "Prompt ![diagram](fcasset:not-a-uuid)",
+          back_text: "Answer",
+          card_type: "basic",
+          metadata: { version: 1, source: null },
+          tags: [],
+        } as unknown as Row]);
+      }
+
+      throw new Error(`Unexpected query: ${text}`);
+    },
+  };
+
+  await assert.rejects(
+    createCatalogPackageVersionFromWorkspaceSelectionInExecutor(
+      executor,
+      testPackageId,
+      {
+        packageVersionId: testPackageVersionId,
+        workspaceId: testWorkspaceId,
+        cardIds: [testWorkspaceCardId],
+      },
+      "admin-user-id",
+      "admin@example.com",
+    ),
+    (error: unknown) => {
+      assert.equal(error instanceof HttpError, true);
+      assert.equal((error as HttpError).statusCode, 400);
+      assert.equal((error as HttpError).code, "CATALOG_WORKSPACE_MEDIA_ASSET_ID_INVALID");
+      assert.match((error as HttpError).message, /mediaAssetIds=not-a-uuid/);
+      return true;
+    },
+  );
+  assert.equal(queries.length, 2);
+});
