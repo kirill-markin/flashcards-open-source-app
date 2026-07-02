@@ -78,6 +78,55 @@ internal fun buildMediaAssetDownloadUrlCloudPath(
         "/media-assets/${encodeCloudPathSegment(value = mediaAssetId)}/download-url"
 }
 
+internal fun buildMediaAssetUploadSessionCreateCloudPath(workspaceId: String): String {
+    require(workspaceId.isNotBlank()) {
+        "Media asset upload session create path requires a workspace id."
+    }
+    return "/workspaces/${encodeCloudPathSegment(value = workspaceId)}/media-assets/upload-sessions"
+}
+
+internal fun buildMediaAssetUploadSessionPartsCloudPath(
+    workspaceId: String,
+    sessionId: String
+): String {
+    require(workspaceId.isNotBlank()) {
+        "Media asset upload session parts path requires a workspace id."
+    }
+    require(sessionId.isNotBlank()) {
+        "Media asset upload session parts path requires a session id."
+    }
+    return "/workspaces/${encodeCloudPathSegment(value = workspaceId)}" +
+        "/media-assets/upload-sessions/${encodeCloudPathSegment(value = sessionId)}/parts"
+}
+
+internal fun buildMediaAssetUploadSessionCompleteCloudPath(
+    workspaceId: String,
+    sessionId: String
+): String {
+    require(workspaceId.isNotBlank()) {
+        "Media asset upload session complete path requires a workspace id."
+    }
+    require(sessionId.isNotBlank()) {
+        "Media asset upload session complete path requires a session id."
+    }
+    return "/workspaces/${encodeCloudPathSegment(value = workspaceId)}" +
+        "/media-assets/upload-sessions/${encodeCloudPathSegment(value = sessionId)}/complete"
+}
+
+internal fun buildMediaAssetUploadSessionAbortCloudPath(
+    workspaceId: String,
+    sessionId: String
+): String {
+    require(workspaceId.isNotBlank()) {
+        "Media asset upload session abort path requires a workspace id."
+    }
+    require(sessionId.isNotBlank()) {
+        "Media asset upload session abort path requires a session id."
+    }
+    return "/workspaces/${encodeCloudPathSegment(value = workspaceId)}" +
+        "/media-assets/upload-sessions/${encodeCloudPathSegment(value = sessionId)}/abort"
+}
+
 internal fun buildWorkspacePackageImportPreviewCloudPath(workspaceId: String): String {
     require(workspaceId.isNotBlank()) {
         "Workspace package import preview path requires a workspace id."

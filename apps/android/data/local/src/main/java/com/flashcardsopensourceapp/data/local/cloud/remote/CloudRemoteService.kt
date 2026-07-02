@@ -27,7 +27,14 @@ import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackPromptEventRequest
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackSubmissionRequest
+import com.flashcardsopensourceapp.data.local.model.media.CompleteMediaAssetUploadSessionRequest
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadCompletion
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadPartUrlsRequest
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadPartUrlsResponse
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionAbort
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionCreateRequest
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionCreateResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
@@ -492,6 +499,66 @@ class CloudRemoteService private constructor(
             authorizationHeader = authorizationHeader,
             workspaceId = workspaceId,
             mediaAssetId = mediaAssetId
+        )
+    }
+
+    override suspend fun createMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: MediaAssetUploadSessionCreateRequest
+    ): MediaAssetUploadSessionCreateResponse {
+        return mediaAssetApi.createMediaAssetUploadSession(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            workspaceId = workspaceId,
+            request = request
+        )
+    }
+
+    override suspend fun createMediaAssetUploadPartUrls(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String,
+        request: MediaAssetUploadPartUrlsRequest
+    ): MediaAssetUploadPartUrlsResponse {
+        return mediaAssetApi.createMediaAssetUploadPartUrls(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            workspaceId = workspaceId,
+            sessionId = sessionId,
+            request = request
+        )
+    }
+
+    override suspend fun completeMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String,
+        request: CompleteMediaAssetUploadSessionRequest
+    ): MediaAssetUploadCompletion {
+        return mediaAssetApi.completeMediaAssetUploadSession(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            workspaceId = workspaceId,
+            sessionId = sessionId,
+            request = request
+        )
+    }
+
+    override suspend fun abortMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String
+    ): MediaAssetUploadSessionAbort {
+        return mediaAssetApi.abortMediaAssetUploadSession(
+            apiBaseUrl = apiBaseUrl,
+            authorizationHeader = authorizationHeader,
+            workspaceId = workspaceId,
+            sessionId = sessionId
         )
     }
 

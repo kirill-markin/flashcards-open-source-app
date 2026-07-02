@@ -15,7 +15,14 @@ import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackPromptEventRequest
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackSubmissionRequest
+import com.flashcardsopensourceapp.data.local.model.media.CompleteMediaAssetUploadSessionRequest
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadCompletion
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadPartUrlsRequest
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadPartUrlsResponse
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionAbort
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionCreateRequest
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionCreateResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeReconciliation
@@ -667,6 +674,44 @@ internal class FakeCloudRemoteGateway private constructor(
         workspaceId: String,
         mediaAssetId: String
     ): MediaAssetDownloadUrl {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun createMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: MediaAssetUploadSessionCreateRequest
+    ): MediaAssetUploadSessionCreateResponse {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun createMediaAssetUploadPartUrls(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String,
+        request: MediaAssetUploadPartUrlsRequest
+    ): MediaAssetUploadPartUrlsResponse {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun completeMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String,
+        request: CompleteMediaAssetUploadSessionRequest
+    ): MediaAssetUploadCompletion {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun abortMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String
+    ): MediaAssetUploadSessionAbort {
         throw UnsupportedOperationException()
     }
 

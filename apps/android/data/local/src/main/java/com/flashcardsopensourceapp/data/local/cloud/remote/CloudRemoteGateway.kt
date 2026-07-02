@@ -13,7 +13,14 @@ import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackPromptEventRequest
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackSubmissionRequest
+import com.flashcardsopensourceapp.data.local.model.media.CompleteMediaAssetUploadSessionRequest
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadCompletion
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadPartUrlsRequest
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadPartUrlsResponse
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionAbort
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionCreateRequest
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionCreateResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
@@ -201,6 +208,32 @@ interface CloudRemoteGateway {
         workspaceId: String,
         mediaAssetId: String
     ): MediaAssetDownloadUrl
+    suspend fun createMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: MediaAssetUploadSessionCreateRequest
+    ): MediaAssetUploadSessionCreateResponse
+    suspend fun createMediaAssetUploadPartUrls(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String,
+        request: MediaAssetUploadPartUrlsRequest
+    ): MediaAssetUploadPartUrlsResponse
+    suspend fun completeMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String,
+        request: CompleteMediaAssetUploadSessionRequest
+    ): MediaAssetUploadCompletion
+    suspend fun abortMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String
+    ): MediaAssetUploadSessionAbort
 
     suspend fun deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String)
     suspend fun listAgentConnections(apiBaseUrl: String, bearerToken: String): AgentApiKeyConnectionsResult
