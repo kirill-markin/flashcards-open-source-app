@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
+import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
@@ -263,6 +264,10 @@ class ReviewViewModel(
 
     suspend fun loadManagedMediaDownloadUrl(mediaAssetId: String): MediaAssetDownloadUrl {
         return reviewRepository.loadReviewMediaAssetDownloadUrl(mediaAssetId = mediaAssetId)
+    }
+
+    suspend fun loadManagedMediaFile(mediaAssetId: String): ReviewMediaAssetFile {
+        return reviewRepository.loadReviewMediaAssetFile(mediaAssetId = mediaAssetId)
     }
 
     fun handleNotificationPermissionGranted() {

@@ -20,7 +20,9 @@ import com.flashcardsopensourceapp.data.local.repository.DecksRepository
 import com.flashcardsopensourceapp.data.local.repository.cards.LocalCardsRepository
 import com.flashcardsopensourceapp.data.local.repository.decks.LocalDecksRepository
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
+import com.flashcardsopensourceapp.data.local.repository.review.DownloadedReviewMediaAsset
 import com.flashcardsopensourceapp.data.local.repository.review.LocalReviewRepository
+import com.flashcardsopensourceapp.data.local.repository.review.ReviewMediaAssetDownloader
 import com.flashcardsopensourceapp.data.local.repository.review.ReviewMediaAssetDownloadUrlLoader
 import com.flashcardsopensourceapp.data.local.repository.workspace.LocalWorkspaceRepository
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
@@ -31,6 +33,7 @@ import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPref
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.io.File
 
 internal data class LocalDatabaseTestRuntime(
     val context: Context,
@@ -130,7 +133,9 @@ internal fun createTestReviewRepository(runtime: LocalDatabaseTestRuntime): Revi
             timeProvider = SystemTimeProvider
         ),
         timeProvider = SystemTimeProvider,
-        mediaAssetDownloadUrlLoader = UnsupportedTestReviewMediaAssetDownloadUrlLoader
+        mediaAssetFileCacheRootDirectory = File(runtime.context.filesDir, "managed-media-test-cache"),
+        mediaAssetDownloadUrlLoader = UnsupportedTestReviewMediaAssetDownloadUrlLoader,
+        mediaAssetDownloader = UnsupportedTestReviewMediaAssetDownloader
     )
 }
 
@@ -142,6 +147,21 @@ private object UnsupportedTestReviewMediaAssetDownloadUrlLoader : ReviewMediaAss
         throw UnsupportedOperationException(
             "Test review repository does not support managed media download URLs. " +
                 "workspaceId=$workspaceId mediaAssetId=$mediaAssetId"
+        )
+    }
+}
+
+private object UnsupportedTestReviewMediaAssetDownloader : ReviewMediaAssetDownloader {
+    override suspend fun downloadMediaAsset(
+        url: String,
+        targetFile: File,
+        expectedSizeBytes: Long,
+        expectedSha256: String
+    ): DownloadedReviewMediaAsset {
+        throw UnsupportedOperationException(
+            "Test review repository does not support managed media file downloads. " +
+                "url=$url targetFile=${targetFile.absolutePath} expectedSizeBytes=$expectedSizeBytes " +
+                "expectedSha256=$expectedSha256"
         )
     }
 }

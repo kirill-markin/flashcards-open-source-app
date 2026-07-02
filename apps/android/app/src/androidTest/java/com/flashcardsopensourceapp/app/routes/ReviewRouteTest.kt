@@ -123,6 +123,11 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onCreateCard = {},
                     onCreateCardWithAi = {},
                     onSwitchToAllCards = {},
+                    onLoadManagedMediaFile = { mediaAssetId ->
+                        throw UnsupportedOperationException(
+                            "ReviewRouteTest does not load managed media files. mediaAssetId=$mediaAssetId"
+                        )
+                    },
                     onLoadManagedMediaDownloadUrl = { mediaAssetId ->
                         throw UnsupportedOperationException(
                             "ReviewRouteTest does not load managed media. mediaAssetId=$mediaAssetId"

@@ -1,11 +1,13 @@
 package com.flashcardsopensourceapp.data.local.repository.review
 
+import android.net.Uri
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.CardWithRelations
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
+import com.flashcardsopensourceapp.data.local.database.entities.MediaBlobCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.MediaAssetEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
@@ -15,6 +17,9 @@ import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.feedback.FeedbackPromptReviewActivity
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
+import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
+import com.flashcardsopensourceapp.data.local.model.media.buildMediaBlobCacheRelativePath
+import com.flashcardsopensourceapp.data.local.model.media.normalizeMediaSha256
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCardQueueStatus
@@ -53,6 +58,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.io.File
+import java.io.IOException
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -62,8 +74,13 @@ class LocalReviewRepository(
     private val syncLocalStore: SyncLocalStore,
     private val localProgressCacheStore: LocalProgressCacheStore,
     private val timeProvider: TimeProvider,
-    private val mediaAssetDownloadUrlLoader: ReviewMediaAssetDownloadUrlLoader
+    private val mediaAssetFileCacheRootDirectory: File,
+    private val mediaAssetDownloadUrlLoader: ReviewMediaAssetDownloadUrlLoader,
+    private val mediaAssetDownloader: ReviewMediaAssetDownloader
 ) : ReviewRepository {
+    private val mediaAssetDownloadLocksMutex = Mutex()
+    private val mediaAssetDownloadLocks: MutableMap<String, Mutex> = mutableMapOf()
+
     override fun observeReviewSession(
         selectedFilter: ReviewFilter,
         pendingReviewedCards: Set<PendingReviewedCard>,
@@ -250,6 +267,42 @@ class LocalReviewRepository(
     }
 
     override suspend fun loadReviewMediaAssetDownloadUrl(mediaAssetId: String): MediaAssetDownloadUrl {
+        val reviewMediaAsset: ReviewMediaAssetLookup = loadActiveReviewMediaAsset(mediaAssetId = mediaAssetId)
+
+        val downloadUrl: MediaAssetDownloadUrl = mediaAssetDownloadUrlLoader.loadMediaAssetDownloadUrl(
+            workspaceId = reviewMediaAsset.workspaceId,
+            mediaAssetId = reviewMediaAsset.mediaAsset.mediaAssetId
+        )
+        return validateReviewMediaAssetDownloadUrl(
+            downloadUrl = downloadUrl,
+            mediaAsset = reviewMediaAsset.mediaAsset,
+            workspaceId = reviewMediaAsset.workspaceId
+        )
+    }
+
+    override suspend fun loadReviewMediaAssetFile(mediaAssetId: String): ReviewMediaAssetFile {
+        val reviewMediaAsset: ReviewMediaAssetLookup = loadActiveReviewMediaAsset(mediaAssetId = mediaAssetId)
+        val mediaAsset: MediaAssetEntity = reviewMediaAsset.mediaAsset
+        val sha256: String = normalizeMediaSha256(rawSha256 = mediaAsset.sha256)
+        val localFile: File = mediaDownloadLock(sha256 = sha256).withLock {
+            loadUsableCachedReviewMediaFile(
+                mediaAsset = mediaAsset,
+                sha256 = sha256,
+                nowMillis = System.currentTimeMillis()
+            ) ?: downloadReviewMediaFile(
+                mediaAsset = mediaAsset,
+                workspaceId = reviewMediaAsset.workspaceId,
+                sha256 = sha256
+            )
+        }
+
+        return ReviewMediaAssetFile(
+            mediaAsset = toMediaAsset(mediaAsset = mediaAsset),
+            uri = Uri.fromFile(localFile).toString()
+        )
+    }
+
+    private suspend fun loadActiveReviewMediaAsset(mediaAssetId: String): ReviewMediaAssetLookup {
         val normalizedMediaAssetId = mediaAssetId.trim()
         require(normalizedMediaAssetId.isNotEmpty()) {
             "Managed media download requires a media asset id."
@@ -266,25 +319,121 @@ class LocalReviewRepository(
         val mediaAsset: MediaAssetEntity = requireNotNull(
             database.mediaAssetDao().loadMediaAsset(mediaAssetId = normalizedMediaAssetId)
         ) {
-            "Cannot load download URL for missing media asset: $normalizedMediaAssetId"
+            "Cannot load managed media asset: $normalizedMediaAssetId"
         }
         require(mediaAsset.workspaceId == workspace.workspaceId) {
             "Cannot load media asset '${mediaAsset.mediaAssetId}' from workspace '${mediaAsset.workspaceId}' " +
                 "while current workspace is '${workspace.workspaceId}'."
         }
         require(mediaAsset.deletedAtMillis == null) {
-            "Cannot load download URL for deleted media asset: ${mediaAsset.mediaAssetId}"
+            "Cannot load deleted media asset: ${mediaAsset.mediaAssetId}"
         }
 
-        val downloadUrl: MediaAssetDownloadUrl = mediaAssetDownloadUrlLoader.loadMediaAssetDownloadUrl(
+        return ReviewMediaAssetLookup(
             workspaceId = workspace.workspaceId,
-            mediaAssetId = mediaAsset.mediaAssetId
+            mediaAsset = mediaAsset
         )
-        return validateReviewMediaAssetDownloadUrl(
-            downloadUrl = downloadUrl,
+    }
+
+    private suspend fun mediaDownloadLock(sha256: String): Mutex {
+        return mediaAssetDownloadLocksMutex.withLock {
+            mediaAssetDownloadLocks.getOrPut(sha256) {
+                Mutex()
+            }
+        }
+    }
+
+    private suspend fun loadUsableCachedReviewMediaFile(
+        mediaAsset: MediaAssetEntity,
+        sha256: String,
+        nowMillis: Long
+    ): File? {
+        val mediaBlobCache: MediaBlobCacheEntity = database.mediaTransferDao()
+            .loadMediaBlobCache(sha256 = sha256)
+            ?: return null
+        validateReviewMediaBlobCache(
+            mediaBlobCache = mediaBlobCache,
             mediaAsset = mediaAsset,
-            workspaceId = workspace.workspaceId
+            sha256 = sha256
         )
+
+        val cachedFile: File = resolveMediaBlobCacheFile(localRelativePath = mediaBlobCache.localRelativePath)
+        if (isUsableCachedReviewMediaFile(
+                cachedFile = cachedFile,
+                mediaBlobCache = mediaBlobCache
+            )
+        ) {
+            database.mediaTransferDao().updateMediaBlobCacheLastAccessed(
+                sha256 = sha256,
+                lastAccessedAtMillis = nowMillis
+            )
+            return cachedFile
+        }
+
+        database.mediaTransferDao().deleteMediaBlobCache(sha256 = sha256)
+        deleteInvalidReviewMediaFile(cachedFile = cachedFile)
+        return null
+    }
+
+    private suspend fun downloadReviewMediaFile(
+        mediaAsset: MediaAssetEntity,
+        workspaceId: String,
+        sha256: String
+    ): File {
+        val downloadUrl: MediaAssetDownloadUrl = validateReviewMediaAssetDownloadUrl(
+            downloadUrl = mediaAssetDownloadUrlLoader.loadMediaAssetDownloadUrl(
+                workspaceId = workspaceId,
+                mediaAssetId = mediaAsset.mediaAssetId
+            ),
+            mediaAsset = mediaAsset,
+            workspaceId = workspaceId
+        )
+        val localRelativePath: String = buildMediaBlobCacheRelativePath(sha256 = sha256)
+        val targetFile: File = resolveMediaBlobCacheFile(localRelativePath = localRelativePath)
+        val parentDirectory: File = requireNotNull(targetFile.parentFile) {
+            "Managed media cache target file must have a parent directory: ${targetFile.absolutePath}"
+        }
+        if (parentDirectory.exists().not() && parentDirectory.mkdirs().not()) {
+            throw IOException("Cannot create managed media cache directory: ${parentDirectory.absolutePath}")
+        }
+        val temporaryFile = File(
+            parentDirectory,
+            "${targetFile.name}.download"
+        )
+
+        try {
+            val downloadedMediaAsset: DownloadedReviewMediaAsset = mediaAssetDownloader.downloadMediaAsset(
+                url = downloadUrl.url,
+                targetFile = temporaryFile,
+                expectedSizeBytes = mediaAsset.sizeBytes,
+                expectedSha256 = sha256
+            )
+            validateDownloadedReviewMediaAsset(
+                downloadedMediaAsset = downloadedMediaAsset,
+                mediaAsset = mediaAsset,
+                sha256 = sha256
+            )
+            moveReviewMediaFileIntoCacheAtomically(
+                temporaryFile = temporaryFile,
+                targetFile = targetFile
+            )
+            val nowMillis = System.currentTimeMillis()
+            database.mediaTransferDao().upsertMediaBlobCache(
+                mediaBlobCache = MediaBlobCacheEntity(
+                    sha256 = sha256,
+                    mimeType = mediaAsset.mimeType,
+                    sizeBytes = mediaAsset.sizeBytes,
+                    localRelativePath = localRelativePath,
+                    createdAtMillis = nowMillis,
+                    lastAccessedAtMillis = nowMillis,
+                    sourceMediaAssetId = mediaAsset.mediaAssetId
+                )
+            )
+            return targetFile
+        } catch (error: Throwable) {
+            deleteTemporaryReviewMediaFile(temporaryFile = temporaryFile, cause = error)
+            throw error
+        }
     }
 
     override suspend fun loadReviewTimelinePage(
@@ -499,7 +648,116 @@ class LocalReviewRepository(
             )
         }
     }
+
+    private fun resolveMediaBlobCacheFile(localRelativePath: String): File {
+        val cacheRootDirectory = mediaAssetFileCacheRootDirectory.canonicalFile
+        val cacheFile = File(cacheRootDirectory, localRelativePath).canonicalFile
+        val cacheRootPath = cacheRootDirectory.path
+        val cacheFilePath = cacheFile.path
+        require(cacheFilePath == cacheRootPath || cacheFilePath.startsWith(prefix = "$cacheRootPath${File.separator}")) {
+            "Managed media cache path escapes cache root: root='$cacheRootPath' relativePath='$localRelativePath'."
+        }
+        return cacheFile
+    }
+
+    private fun validateReviewMediaBlobCache(
+        mediaBlobCache: MediaBlobCacheEntity,
+        mediaAsset: MediaAssetEntity,
+        sha256: String
+    ): Unit {
+        check(mediaBlobCache.sha256 == sha256) {
+            "Managed media cache SHA-256 mismatch: expected '$sha256' but found '${mediaBlobCache.sha256}'."
+        }
+        check(mediaBlobCache.localRelativePath == buildMediaBlobCacheRelativePath(sha256 = sha256)) {
+            "Managed media cache path mismatch for sha256 '$sha256': " +
+                "expected '${buildMediaBlobCacheRelativePath(sha256 = sha256)}' " +
+                "but found '${mediaBlobCache.localRelativePath}'."
+        }
+        check(mediaBlobCache.sizeBytes == mediaAsset.sizeBytes) {
+            "Managed media cache size mismatch for asset '${mediaAsset.mediaAssetId}' sha256 '$sha256': " +
+                "asset sizeBytes=${mediaAsset.sizeBytes} cache sizeBytes=${mediaBlobCache.sizeBytes}."
+        }
+    }
+
+    private fun isUsableCachedReviewMediaFile(
+        cachedFile: File,
+        mediaBlobCache: MediaBlobCacheEntity
+    ): Boolean {
+        if (cachedFile.exists().not()) {
+            return false
+        }
+        if (cachedFile.isFile.not()) {
+            return false
+        }
+        return cachedFile.length() == mediaBlobCache.sizeBytes
+    }
+
+    private fun deleteInvalidReviewMediaFile(cachedFile: File): Unit {
+        if (cachedFile.exists().not()) {
+            return
+        }
+        if (cachedFile.deleteRecursively().not()) {
+            throw IOException("Cannot delete invalid managed media cache file: ${cachedFile.absolutePath}")
+        }
+    }
+
+    private fun validateDownloadedReviewMediaAsset(
+        downloadedMediaAsset: DownloadedReviewMediaAsset,
+        mediaAsset: MediaAssetEntity,
+        sha256: String
+    ): Unit {
+        check(downloadedMediaAsset.sizeBytes == mediaAsset.sizeBytes) {
+            "Managed media download size mismatch for asset '${mediaAsset.mediaAssetId}': " +
+                "expected ${mediaAsset.sizeBytes} byte(s) but received ${downloadedMediaAsset.sizeBytes} byte(s)."
+        }
+        check(downloadedMediaAsset.sha256 == sha256) {
+            "Managed media download SHA-256 mismatch for asset '${mediaAsset.mediaAssetId}': " +
+                "expected '$sha256' but received '${downloadedMediaAsset.sha256}'."
+        }
+    }
+
+    private fun moveReviewMediaFileIntoCacheAtomically(
+        temporaryFile: File,
+        targetFile: File
+    ): Unit {
+        if (targetFile.exists() && targetFile.deleteRecursively().not()) {
+            throw IOException("Cannot replace existing managed media cache file: ${targetFile.absolutePath}")
+        }
+
+        try {
+            Files.move(
+                temporaryFile.toPath(),
+                targetFile.toPath(),
+                StandardCopyOption.ATOMIC_MOVE
+            )
+        } catch (error: AtomicMoveNotSupportedException) {
+            throw IOException(
+                "Atomic managed media cache move is not supported from temporary file " +
+                    "'${temporaryFile.absolutePath}' to '${targetFile.absolutePath}'.",
+                error
+            )
+        }
+    }
+
+    private fun deleteTemporaryReviewMediaFile(
+        temporaryFile: File,
+        cause: Throwable
+    ): Unit {
+        if (temporaryFile.exists().not()) {
+            return
+        }
+        if (temporaryFile.delete().not()) {
+            cause.addSuppressed(
+                IOException("Cannot delete temporary managed media download file: ${temporaryFile.absolutePath}")
+            )
+        }
+    }
 }
+
+private data class ReviewMediaAssetLookup(
+    val workspaceId: String,
+    val mediaAsset: MediaAssetEntity
+)
 
 private fun toMediaAsset(mediaAsset: MediaAssetEntity): MediaAsset {
     return MediaAsset(

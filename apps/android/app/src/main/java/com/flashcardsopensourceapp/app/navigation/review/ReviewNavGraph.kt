@@ -178,6 +178,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 onSwitchToAllCards = {
                     reviewViewModel.selectFilter(reviewFilter = ReviewFilter.AllCards)
                 },
+                onLoadManagedMediaFile = reviewViewModel::loadManagedMediaFile,
                 onLoadManagedMediaDownloadUrl = reviewViewModel::loadManagedMediaDownloadUrl,
                 onRevealAnswer = reviewViewModel::revealAnswer,
                 onRateAgain = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.AGAIN) },

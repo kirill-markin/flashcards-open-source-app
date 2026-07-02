@@ -49,6 +49,7 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
+import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
@@ -67,14 +68,14 @@ private enum class ReviewManagedMediaCategory {
     ATTACHMENT
 }
 
-private sealed interface ReviewManagedMediaDownloadState {
-    data object Loading : ReviewManagedMediaDownloadState
+private sealed interface ReviewManagedMediaFileState {
+    data object Loading : ReviewManagedMediaFileState
 
     data class Ready(
-        val downloadUrl: MediaAssetDownloadUrl
-    ) : ReviewManagedMediaDownloadState
+        val mediaFile: ReviewMediaAssetFile
+    ) : ReviewManagedMediaFileState
 
-    data object Unavailable : ReviewManagedMediaDownloadState
+    data object Unavailable : ReviewManagedMediaFileState
 }
 
 private enum class ReviewManagedMediaAttachmentActionState {
@@ -87,6 +88,7 @@ private enum class ReviewManagedMediaAttachmentActionState {
 @Composable
 internal fun ReviewManagedMediaContent(
     reference: ReviewManagedMediaReference,
+    onLoadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl
 ) {
     val mediaAsset = reference.mediaAsset
@@ -111,12 +113,10 @@ internal fun ReviewManagedMediaContent(
     }
 
     when (category) {
-        ReviewManagedMediaCategory.IMAGE -> ReviewDownloadableManagedMedia(
+        ReviewManagedMediaCategory.IMAGE -> ReviewManagedMediaImageFile(
             mediaAsset = checkNotNull(mediaAsset),
-            category = category,
-            categoryLabel = categoryLabel,
             label = label,
-            onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl
+            onLoadManagedMediaFile = onLoadManagedMediaFile
         )
 
         ReviewManagedMediaCategory.ATTACHMENT -> ReviewManagedMediaAttachment(
@@ -136,77 +136,59 @@ internal fun ReviewManagedMediaContent(
 }
 
 @Composable
-private fun ReviewDownloadableManagedMedia(
+private fun ReviewManagedMediaImageFile(
     mediaAsset: MediaAsset,
-    category: ReviewManagedMediaCategory,
-    categoryLabel: String,
     label: String,
-    onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl
+    onLoadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile
 ) {
-    val currentLoadManagedMediaDownloadUrl = rememberUpdatedState(newValue = onLoadManagedMediaDownloadUrl)
-    val downloadState by produceState<ReviewManagedMediaDownloadState>(
-        initialValue = ReviewManagedMediaDownloadState.Loading,
+    val currentLoadManagedMediaFile = rememberUpdatedState(newValue = onLoadManagedMediaFile)
+    val mediaFileState by produceState<ReviewManagedMediaFileState>(
+        initialValue = ReviewManagedMediaFileState.Loading,
         key1 = mediaAsset.mediaAssetId,
         key2 = mediaAsset.updatedAtMillis,
         key3 = mediaAsset.deletedAtMillis
     ) {
         value = try {
-            ReviewManagedMediaDownloadState.Ready(
-                downloadUrl = currentLoadManagedMediaDownloadUrl.value(mediaAsset.mediaAssetId)
+            ReviewManagedMediaFileState.Ready(
+                mediaFile = currentLoadManagedMediaFile.value(mediaAsset.mediaAssetId)
             )
         } catch (error: Throwable) {
             if (error is CancellationException) {
                 throw error
             }
-            ReviewManagedMediaDownloadState.Unavailable
+            ReviewManagedMediaFileState.Unavailable
         }
     }
 
-    when (val state = downloadState) {
-        ReviewManagedMediaDownloadState.Loading -> ReviewManagedMediaPlaceholderRow(
+    when (val state = mediaFileState) {
+        ReviewManagedMediaFileState.Loading -> ReviewManagedMediaPlaceholderRow(
             label = label,
             supportingText = stringResource(id = R.string.review_media_loading),
-            icon = reviewManagedMediaCategoryIcon(category = category)
+            icon = Icons.Outlined.Image
         )
 
-        ReviewManagedMediaDownloadState.Unavailable -> ReviewManagedMediaPlaceholderRow(
+        ReviewManagedMediaFileState.Unavailable -> ReviewManagedMediaPlaceholderRow(
             label = label,
             supportingText = stringResource(id = R.string.review_media_unavailable),
             icon = Icons.Outlined.WarningAmber
         )
 
-        is ReviewManagedMediaDownloadState.Ready -> when (category) {
-            ReviewManagedMediaCategory.IMAGE -> ReviewManagedMediaImage(
-                label = label,
-                url = state.downloadUrl.url
-            )
-
-            ReviewManagedMediaCategory.ATTACHMENT -> ReviewManagedMediaAttachment(
-                mediaAssetId = mediaAsset.mediaAssetId,
-                label = label,
-                categoryLabel = categoryLabel,
-                onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl
-            )
-
-            ReviewManagedMediaCategory.AUDIO,
-            ReviewManagedMediaCategory.VIDEO -> ReviewManagedMediaPlaceholderRow(
-                label = label,
-                supportingText = categoryLabel,
-                icon = reviewManagedMediaCategoryIcon(category = category)
-            )
-        }
+        is ReviewManagedMediaFileState.Ready -> ReviewManagedMediaImage(
+            label = label,
+            uri = state.mediaFile.uri
+        )
     }
 }
 
 @Composable
 private fun ReviewManagedMediaImage(
     label: String,
-    url: String
+    uri: String
 ) {
     val context = LocalContext.current
-    val imageRequest = remember(context, url) {
+    val imageRequest = remember(context, uri) {
         ImageRequest.Builder(context)
-            .data(url)
+            .data(uri)
             .diskCachePolicy(CachePolicy.DISABLED)
             .build()
     }
