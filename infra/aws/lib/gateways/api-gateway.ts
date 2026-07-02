@@ -197,6 +197,86 @@ export function createGatewayErrorResponseHeaders(): GatewayErrorResponseHeaders
   };
 }
 
+function isConcreteIntegration(
+  integration: apigw.CfnMethod.IntegrationProperty | cdk.IResolvable | undefined,
+): integration is apigw.CfnMethod.IntegrationProperty {
+  return integration !== undefined && !cdk.Token.isUnresolved(integration);
+}
+
+function isConcreteIntegrationResponse(
+  response: apigw.CfnMethod.IntegrationResponseProperty | cdk.IResolvable,
+): response is apigw.CfnMethod.IntegrationResponseProperty {
+  return !cdk.Token.isUnresolved(response);
+}
+
+function addTextContentHandlingToIntegrationResponses(
+  responses: Array<apigw.CfnMethod.IntegrationResponseProperty | cdk.IResolvable> | cdk.IResolvable | undefined,
+  methodNodePath: string,
+): Array<apigw.CfnMethod.IntegrationResponseProperty | cdk.IResolvable> {
+  if (!Array.isArray(responses)) {
+    throw new Error(`Expected API Gateway mock integration responses to be concrete for ${methodNodePath}`);
+  }
+
+  return responses.map((response) => {
+    if (!isConcreteIntegrationResponse(response)) {
+      throw new Error(`Expected API Gateway mock integration response to be concrete for ${methodNodePath}`);
+    }
+
+    return {
+      ...response,
+      contentHandling: apigw.ContentHandling.CONVERT_TO_TEXT,
+    };
+  });
+}
+
+export function addTextContentHandlingToMockOptionsMethods(restApi: apigw.RestApi): void {
+  const latestDeployment = restApi.latestDeployment;
+
+  if (latestDeployment === undefined) {
+    throw new Error("API Gateway mock content handling requires a deployed RestApi so the stage is redeployed");
+  }
+
+  for (const node of restApi.node.findAll()) {
+    if (!apigw.CfnMethod.isCfnMethod(node) || node.httpMethod !== "OPTIONS") {
+      continue;
+    }
+
+    const integration = node.integration;
+
+    if (!isConcreteIntegration(integration) || integration.type !== apigw.IntegrationType.MOCK) {
+      continue;
+    }
+
+    node.integration = {
+      ...integration,
+      contentHandling: apigw.ContentHandling.CONVERT_TO_TEXT,
+      integrationResponses: addTextContentHandlingToIntegrationResponses(integration.integrationResponses, node.node.path),
+    };
+  }
+
+  latestDeployment.addToLogicalId({
+    apiGatewayMockOptionsContentHandling: apigw.ContentHandling.CONVERT_TO_TEXT,
+  });
+}
+
+export function createLegacyAuthNotFoundIntegration(): apigw.MockIntegration {
+  return new apigw.MockIntegration({
+    contentHandling: apigw.ContentHandling.CONVERT_TO_TEXT,
+    requestTemplates: {
+      "application/json": '{"statusCode": 404}',
+    },
+    integrationResponses: [
+      {
+        statusCode: "404",
+        contentHandling: apigw.ContentHandling.CONVERT_TO_TEXT,
+        responseTemplates: {
+          "application/json": '{"error":"Not found"}',
+        },
+      },
+    ],
+  });
+}
+
 function createDockerBundlingEnvironment(): Record<DockerBundlingEnvironmentVariableName, string> {
   return {
     GITHUB_ACTIONS: process.env.GITHUB_ACTIONS ?? "",
@@ -696,19 +776,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     scopePermissionToMethod: false,
   });
 
-  const notFoundIntegration = new apigw.MockIntegration({
-    requestTemplates: {
-      "application/json": '{"statusCode": 404}',
-    },
-    integrationResponses: [
-      {
-        statusCode: "404",
-        responseTemplates: {
-          "application/json": '{"error":"Not found"}',
-        },
-      },
-    ],
-  });
+  const notFoundIntegration = createLegacyAuthNotFoundIntegration();
   const notFoundMethodOptions: apigw.MethodOptions = {
     methodResponses: [
       {
@@ -738,6 +806,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
 
   restApi.root.addMethod("GET", integration);
   restApi.root.addResource("{proxy+}").addMethod("ANY", integration);
+  addTextContentHandlingToMockOptionsMethods(restApi);
 
   if (props.apiCertificateArn) {
     const apiDomainName = `api.${props.baseDomain}`;
