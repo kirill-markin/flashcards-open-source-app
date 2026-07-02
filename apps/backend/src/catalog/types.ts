@@ -281,6 +281,7 @@ export type CatalogPublicPackageCardPreviewInput = Readonly<{
 export type CatalogPublicPackageMediaDownloadSource = Readonly<{
   mediaAsset: CatalogPublicPackageMediaAsset;
   storageKey: string;
+  sha256: string;
 }>;
 
 export type CatalogPackageDraft = Readonly<{

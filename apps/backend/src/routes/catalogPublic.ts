@@ -52,6 +52,13 @@ const defaultPackageListLimit = 50;
 const defaultCardPreviewLimit = 25;
 const maximumPublicCatalogLimit = 100;
 const maximumPublicCatalogMediaDownloadBytes = 4_500_000;
+const publicCatalogMediaDownloadMimeTypes = [
+  "application/pdf",
+  "audio/mpeg",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
 
 function parseLimitQuery(
   value: string | undefined,
@@ -184,6 +191,31 @@ function assertPublicCatalogMediaProxySafe(mediaDownloadSource: CatalogPublicPac
   );
 }
 
+function isPublicCatalogMediaDownloadMimeTypeSupported(mimeType: string): boolean {
+  return publicCatalogMediaDownloadMimeTypes.some((supportedMimeType) => supportedMimeType === mimeType);
+}
+
+function assertPublicCatalogMediaDownloadMimeTypeSupported(
+  mediaDownloadSource: CatalogPublicPackageMediaDownloadSource,
+): void {
+  if (isPublicCatalogMediaDownloadMimeTypeSupported(mediaDownloadSource.mediaAsset.mimeType)) {
+    return;
+  }
+
+  throw new HttpError(
+    415,
+    `Public catalog package media type is not supported for backend proxy download. mimeType=${mediaDownloadSource.mediaAsset.mimeType}`,
+    "CATALOG_PUBLIC_MEDIA_DOWNLOAD_UNSUPPORTED_TYPE",
+  );
+}
+
+function assertPublicCatalogMediaDownloadSupported(
+  mediaDownloadSource: CatalogPublicPackageMediaDownloadSource,
+): void {
+  assertPublicCatalogMediaProxySafe(mediaDownloadSource);
+  assertPublicCatalogMediaDownloadMimeTypeSupported(mediaDownloadSource);
+}
+
 export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const listPublicCatalogPackagesFn = options.listPublicCatalogPackagesFn ?? listPublicCatalogPackages;
@@ -229,7 +261,7 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
       packageVersionId,
       packageMediaKey,
     );
-    assertPublicCatalogMediaProxySafe(mediaDownloadSource);
+    assertPublicCatalogMediaDownloadSupported(mediaDownloadSource);
     const download = {
       method: "GET",
       url: createBackendDownloadUrl(context.req.url, packageVersionId, packageMediaKey),
@@ -256,14 +288,14 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
       packageVersionId,
       packageMediaKey,
     );
-    assertPublicCatalogMediaProxySafe(mediaDownloadSource);
+    assertPublicCatalogMediaDownloadSupported(mediaDownloadSource);
     const objectBytes = await loadMediaAssetObjectBytesFn({
       workspaceId: packageVersionId,
       mediaAssetId: mediaDownloadSource.mediaAsset.packageMediaKey,
       storageKey: mediaDownloadSource.storageKey,
       mimeType: mediaDownloadSource.mediaAsset.mimeType,
       sizeBytes: mediaDownloadSource.mediaAsset.sizeBytes,
-      sha256: null,
+      sha256: mediaDownloadSource.sha256,
       maxByteSize: maximumPublicCatalogMediaDownloadBytes,
       observationScope: scope,
     });

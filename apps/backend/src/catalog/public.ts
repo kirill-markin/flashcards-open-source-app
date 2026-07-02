@@ -69,6 +69,7 @@ type CatalogPublicPackageMediaAssetRow = Readonly<{
 
 type CatalogPublicPackageMediaDownloadRow = CatalogPublicPackageMediaAssetRow & Readonly<{
   storage_key: string;
+  sha256: string;
 }>;
 
 type CatalogPublicPackageCardPreviewRow = Readonly<{
@@ -159,6 +160,30 @@ function assertPublicCardMarkdownSafe(packageVersionId: string, markdown: string
       `Published catalog package card contains a non-public media reference. packageVersionId=${packageVersionId}`,
       "CATALOG_PUBLIC_MEDIA_KEY_NOT_PUBLIC",
     );
+  }
+}
+
+function assertPublicCatalogTextSafe(
+  packageVersionId: string,
+  value: string | null,
+): void {
+  if (value === null || containsUnsafePublicPackageMediaReference(value) === false) {
+    return;
+  }
+
+  throw new HttpError(
+    409,
+    `Published catalog package contains a non-public media reference. packageVersionId=${packageVersionId}`,
+    "CATALOG_PUBLIC_MEDIA_KEY_NOT_PUBLIC",
+  );
+}
+
+function assertPublicCatalogTextArraySafe(
+  packageVersionId: string,
+  values: ReadonlyArray<string>,
+): void {
+  for (const value of values) {
+    assertPublicCatalogTextSafe(packageVersionId, value);
   }
 }
 
@@ -267,6 +292,10 @@ function buildPublicPackageDetailQuery(packageSlug: string): PublicCatalogQuery 
 }
 
 function mapCatalogPublicAuthor(row: CatalogPublicPackageRow): CatalogPublicAuthor {
+  assertPublicCatalogTextSafe(row.package_version_id, row.author_display_name);
+  assertPublicCatalogTextSafe(row.package_version_id, row.author_bio);
+  assertPublicCatalogTextSafe(row.package_version_id, row.author_website_url);
+
   return {
     authorId: row.author_id,
     slug: row.author_slug,
@@ -278,6 +307,13 @@ function mapCatalogPublicAuthor(row: CatalogPublicPackageRow): CatalogPublicAuth
 
 function mapCatalogPublicPackageVersionSummary(row: CatalogPublicPackageRow): CatalogPublicPackageVersionSummary {
   assertPublicPackageMediaKeySafe(row.package_version_id, row.cover_package_media_key);
+  assertPublicCatalogTextSafe(row.package_version_id, row.title);
+  assertPublicCatalogTextSafe(row.package_version_id, row.summary);
+  assertPublicCatalogTextSafe(row.package_version_id, row.description);
+  assertPublicCatalogTextArraySafe(row.package_version_id, row.language_tags);
+  assertPublicCatalogTextArraySafe(row.package_version_id, row.topic_tags);
+  assertPublicCatalogTextSafe(row.package_version_id, row.license);
+  assertPublicCatalogTextSafe(row.package_version_id, row.content_warning);
 
   return {
     packageVersionId: row.package_version_id,
@@ -322,6 +358,10 @@ function mapCatalogPublicPackageMediaAsset(
   row: CatalogPublicPackageMediaAssetRow,
 ): CatalogPublicPackageMediaAsset {
   assertPublicPackageMediaKeySafe(row.package_version_id, row.package_media_key);
+  assertPublicCatalogTextSafe(row.package_version_id, row.alt_text);
+  assertPublicCatalogTextSafe(row.package_version_id, row.credit);
+  assertPublicCatalogTextSafe(row.package_version_id, row.license);
+  assertPublicCatalogTextSafe(row.package_version_id, row.mime_type);
 
   return {
     packageVersionId: row.package_version_id,
@@ -341,6 +381,8 @@ function mapCatalogPublicPackageCardPreview(
 ): CatalogPublicPackageCardPreview {
   assertPublicCardMarkdownSafe(packageVersionId, row.front_text);
   assertPublicCardMarkdownSafe(packageVersionId, row.back_text);
+  assertPublicCatalogTextSafe(packageVersionId, row.card_type);
+  assertPublicCatalogTextArraySafe(packageVersionId, row.tags);
   for (const packageMediaKey of row.media_asset_keys) {
     assertPublicPackageMediaKeySafe(packageVersionId, packageMediaKey);
   }
@@ -510,7 +552,8 @@ export async function loadPublicCatalogPackageMediaForDownloadInExecutor(
       "media_assets.license AS license,",
       "media_blobs.mime_type AS mime_type,",
       "media_blobs.size_bytes AS size_bytes,",
-      "media_blobs.storage_key AS storage_key",
+      "media_blobs.storage_key AS storage_key,",
+      "media_blobs.sha256 AS sha256",
       "FROM catalog.package_media_assets AS media_assets",
       "INNER JOIN catalog.package_versions AS versions",
       "ON versions.package_version_id = media_assets.package_version_id",
@@ -540,6 +583,7 @@ export async function loadPublicCatalogPackageMediaForDownloadInExecutor(
   return {
     mediaAsset: mapCatalogPublicPackageMediaAsset(row),
     storageKey: row.storage_key,
+    sha256: row.sha256,
   };
 }
 

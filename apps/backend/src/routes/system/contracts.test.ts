@@ -33,9 +33,13 @@ type OpenApiMediaTypeForTest = Readonly<{
 type OpenApiRequestBodyForTest = Readonly<{
   content?: Readonly<Record<string, OpenApiMediaTypeForTest>>;
 }>;
+type OpenApiResponseForTest = Readonly<{
+  content?: Readonly<Record<string, OpenApiMediaTypeForTest>>;
+}>;
 type OpenApiOperationForTest = Readonly<{
   description?: string;
   requestBody?: OpenApiRequestBodyForTest;
+  responses?: Readonly<Record<string, OpenApiResponseForTest>>;
 }>;
 type OpenApiDocumentForTest = Readonly<{
   info?: Readonly<{
@@ -205,11 +209,18 @@ test("API Gateway proxies backend-owned browser and workspace routes", () => {
   assertApiGatewayUsesBackendProxy(apiGatewaySource);
 });
 
-test("API Gateway proxy accepts package export and import preview routes and ZIP binary media", () => {
+test("API Gateway proxy accepts package export and import preview routes with browser-safe binary media", () => {
   const apiGatewaySource = loadApiGatewaySource();
 
   assertApiGatewayUsesBackendProxy(apiGatewaySource);
-  assert.match(apiGatewaySource, /binaryMediaTypes: \[[^\]]*"application\/zip"/);
+  assert.match(apiGatewaySource, /binaryMediaTypes: \["\*\/\*"\]/);
+});
+
+test("API Gateway proxy accepts public catalog browser-safe binary media", () => {
+  const apiGatewaySource = loadApiGatewaySource();
+
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
+  assert.match(apiGatewaySource, /binaryMediaTypes: \["\*\/\*"\]/);
 });
 
 test("API Gateway proxy forwards public catalog routes", () => {
@@ -264,6 +275,22 @@ test("published OpenAPI exposes the curated agent, media transfer, and admin cat
   ]) {
     assert.equal(schemas[hiddenSchemaName], undefined, `OpenAPI must not publish ${hiddenSchemaName}`);
   }
+
+  const publicCatalogDownloadOperation = paths[
+    "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download"
+  ]?.get as OpenApiOperationForTest | undefined;
+  const publicCatalogDownloadContent = publicCatalogDownloadOperation?.responses?.["200"]?.content ?? {};
+  assert.ok(publicCatalogDownloadContent["application/pdf"] !== undefined);
+  assert.ok(publicCatalogDownloadContent["audio/mpeg"] !== undefined);
+  assert.ok(publicCatalogDownloadContent["image/jpeg"] !== undefined);
+  assert.ok(publicCatalogDownloadContent["image/png"] !== undefined);
+  assert.ok(publicCatalogDownloadContent["image/webp"] !== undefined);
+  assert.equal(publicCatalogDownloadContent["application/octet-stream"], undefined);
+  assert.ok(publicCatalogDownloadOperation?.responses?.["415"] !== undefined);
+  const publicCatalogDownloadUrlOperation = paths[
+    "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download-url"
+  ]?.get as OpenApiOperationForTest | undefined;
+  assert.ok(publicCatalogDownloadUrlOperation?.responses?.["415"] !== undefined);
 });
 
 test("agent discovery advertises the published media, package, and catalog surface", () => {

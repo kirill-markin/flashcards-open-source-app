@@ -7,7 +7,8 @@ get:
     media key belongs to that version, then returns a backend-controlled API URL
     for downloading the media bytes. The response never exposes private
     object-storage keys or signed object-storage URLs. This backend-controlled
-    URL is only returned for media up to 4500000 bytes.
+    URL is only returned for media up to 4500000 bytes and for supported
+    public download MIME types.
   parameters:
     - name: packageVersionId
       in: path
@@ -29,6 +30,12 @@ get:
             $ref: ../components/schemas/CatalogPublicPackageMediaDownloadUrlResponse.yaml
     '413':
       description: Public package media is too large for backend proxy delivery
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PublicErrorEnvelope.yaml
+    '415':
+      description: Public package media MIME type is not supported for backend proxy delivery
       content:
         application/json:
           schema:
