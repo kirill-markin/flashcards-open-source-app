@@ -14,84 +14,39 @@ import {
   globalMetricsCorsPreflightOptions,
 } from "./api-gateway";
 
-test("API Gateway predeclares /me/community/profile", () => {
+function loadApiGatewaySource(): string {
   const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+  return readFileSync(apiGatewayPath, "utf8");
+}
 
+function assertApiGatewayUsesBackendProxy(apiGatewaySource: string): void {
   assert.match(
     apiGatewaySource,
-    /const meCommunityProfile = meCommunity\.addResource\("profile"\);/,
+    /restApi\.root\.addResource\("\{proxy\+}"\)\.addMethod\("ANY", integration\);/,
   );
-  assert.match(apiGatewaySource, /meCommunityProfile\.addMethod\("GET", integration\);/);
-  assert.match(apiGatewaySource, /meCommunityProfile\.addMethod\("PATCH", integration\);/);
+}
+
+test("API Gateway routes backend paths through the greedy proxy", () => {
+  const apiGatewaySource = loadApiGatewaySource();
+
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
+  assert.match(apiGatewaySource, /restApi\.root\.addMethod\("GET", integration\);/);
+  assert.doesNotMatch(apiGatewaySource, /const meProgress = me\.addResource\("progress"\);/);
 });
 
-test("API Gateway predeclares friend invitation routes", () => {
-  const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+test("API Gateway keeps global snapshot and legacy auth as explicit edge routes", () => {
+  const apiGatewaySource = loadApiGatewaySource();
 
-  assert.match(
-    apiGatewaySource,
-    /const meCommunityFriendInvitations = meCommunity\.addResource\("friend-invitations"\);/,
-  );
-  assert.match(apiGatewaySource, /meCommunityFriendInvitations\.addMethod\("POST", integration\);/);
-  assert.match(
-    apiGatewaySource,
-    /meCommunityFriendInvitations\s*\.addResource\("\{inviteToken\}"\)\s*\.addResource\("accept"\)\s*\.addMethod\("POST", integration\);/,
-  );
-  assert.match(
-    apiGatewaySource,
-    /const communityFriendInvitations = community\.addResource\("friend-invitations"\);/,
-  );
-  assert.match(
-    apiGatewaySource,
-    /communityFriendInvitations\.addResource\("\{inviteToken\}"\)\.addMethod\("GET", integration\);/,
-  );
+  assert.match(apiGatewaySource, /const global = restApi\.root\.addResource\("global"\);/);
+  assert.match(apiGatewaySource, /defaultCorsPreflightOptions: globalMetricsCorsPreflightOptions/);
+  assert.match(apiGatewaySource, /const legacyAuth = restApi\.root\.addResource\("auth"\);/);
+  assert.match(apiGatewaySource, /legacyAuth\.addMethod\("ANY", notFoundIntegration, notFoundMethodOptions\);/);
 });
 
-test("API Gateway predeclares /me/progress/leaderboard", () => {
-  const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+test("API Gateway proxy accepts media asset image ingestion and binary image bodies", () => {
+  const apiGatewaySource = loadApiGatewaySource();
 
-  assert.match(
-    apiGatewaySource,
-    /meProgress\.addResource\("leaderboard"\)\.addMethod\("GET", integration\);/,
-  );
-});
-
-test("API Gateway predeclares /me/progress/leaderboards/streak", () => {
-  const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
-
-  assert.match(
-    apiGatewaySource,
-    /const meProgressLeaderboards = meProgress\.addResource\("leaderboards"\);/,
-  );
-  assert.match(
-    apiGatewaySource,
-    /meProgressLeaderboards\.addResource\("streak"\)\.addMethod\("GET", integration\);/,
-  );
-});
-
-test("API Gateway predeclares /me/progress/leaderboards/profiles/{publicProfileId}", () => {
-  const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
-
-  assert.match(
-    apiGatewaySource,
-    /const meProgressLeaderboardProfiles = meProgressLeaderboards\.addResource\("profiles"\);/,
-  );
-  assert.match(
-    apiGatewaySource,
-    /meProgressLeaderboardProfiles\.addResource\("\{publicProfileId\}"\)\.addMethod\("GET", integration\);/,
-  );
-});
-
-test("API Gateway predeclares media asset image ingestion and binary image bodies", () => {
-  const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
-
-  assert.match(apiGatewaySource, /workspaceMediaAssets\.addResource\("images"\)\.addMethod\("POST", integration\);/);
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
   assert.match(
     apiGatewaySource,
     /binaryMediaTypes: \["application\/octet-stream", "application\/zip", "image\/jpeg", "image\/png", "image\/webp", "multipart\/form-data"\]/,
