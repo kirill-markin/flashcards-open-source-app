@@ -8,15 +8,27 @@ import { defaultUrlTransform } from "react-markdown";
 import { loadMediaAssetDownloadUrl } from "../../../api";
 import { useI18n } from "../../../i18n";
 import { loadMediaAssetRecord } from "../../../localDb/mediaAssets";
+import {
+  loadMediaBlobCacheRecord,
+  writeMediaBlobCacheRecord,
+  type MediaBlobCacheRecord,
+} from "../../../localDb/mediaTransfers";
 import type { MediaAsset } from "../../../types";
 
 const FCASSET_URL_PREFIX = "fcasset:";
+const MANAGED_MEDIA_DOWNLOAD_ATTEMPT_COUNT = 2;
 
 type ManagedMediaKind = "image" | "audio" | "video" | "attachment";
 type ManagedMediaLoadState =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "unavailable"; mediaAsset: MediaAsset | null }>
   | Readonly<{ status: "ready"; mediaAsset: MediaAsset; url: string }>;
+type ManagedMediaBlobLoadResult = Readonly<{
+  mediaAsset: MediaAsset;
+  cacheRecord: MediaBlobCacheRecord;
+}>;
+
+const activeManagedMediaDownloadPromises = new Map<string, Promise<MediaBlobCacheRecord>>();
 
 export function parseManagedMediaAssetId(url: string | null | undefined): string | null {
   if (url === null || url === undefined) {
@@ -60,6 +72,208 @@ function warnManagedMediaUnavailable(workspaceId: string, mediaAssetId: string, 
     errorName: readErrorName(error),
     errorMessage: readErrorMessage(error),
   });
+}
+
+function warnManagedMediaDownloadRetry(
+  workspaceId: string,
+  mediaAssetId: string,
+  sha256: string,
+  attemptNumber: number,
+  error: unknown,
+): void {
+  console.warn("Managed media signed URL download retrying", {
+    workspaceId,
+    mediaAssetId,
+    sha256,
+    attemptNumber,
+    errorName: readErrorName(error),
+    errorMessage: readErrorMessage(error),
+  });
+}
+
+function requireSha256Digest(): SubtleCrypto {
+  const cryptoApi = globalThis.crypto;
+  if (cryptoApi?.subtle === undefined) {
+    throw new Error("Managed media verification failed: Web Crypto SHA-256 digest is unavailable");
+  }
+
+  return cryptoApi.subtle;
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function calculateSha256Hex(bytes: ArrayBuffer): Promise<string> {
+  const digest = await requireSha256Digest().digest("SHA-256", bytes);
+  return bytesToHex(new Uint8Array(digest));
+}
+
+async function readDownloadFailureBody(response: Response): Promise<string> {
+  try {
+    return await response.text();
+  } catch (error) {
+    return `failed to read response body: ${readErrorMessage(error)}`;
+  }
+}
+
+async function fetchManagedMediaBytes(
+  mediaAsset: MediaAsset,
+  downloadMethod: "GET",
+  downloadUrl: string,
+): Promise<ArrayBuffer> {
+  let response: Response;
+  try {
+    response = await fetch(downloadUrl, { method: downloadMethod });
+  } catch (error) {
+    throw new Error(`Managed media download request failed: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, error=${readErrorMessage(error)}`);
+  }
+
+  if (response.ok === false) {
+    const responseBody = await readDownloadFailureBody(response);
+    throw new Error(`Managed media download failed: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, status=${response.status}, statusText=${response.statusText}, responseBody=${responseBody}`);
+  }
+
+  return response.arrayBuffer();
+}
+
+async function verifyManagedMediaBytes(mediaAsset: MediaAsset, bytes: ArrayBuffer): Promise<Blob> {
+  if (bytes.byteLength !== mediaAsset.sizeBytes) {
+    throw new Error(`Managed media download size mismatch: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, expectedSizeBytes=${mediaAsset.sizeBytes}, actualSizeBytes=${bytes.byteLength}`);
+  }
+
+  const actualSha256 = await calculateSha256Hex(bytes);
+  if (actualSha256 !== mediaAsset.sha256) {
+    throw new Error(`Managed media download sha256 mismatch: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, expectedSha256=${mediaAsset.sha256}, actualSha256=${actualSha256}`);
+  }
+
+  return new Blob([bytes], { type: mediaAsset.mimeType });
+}
+
+function assertUsableMediaBlobCacheRecord(
+  mediaAsset: MediaAsset,
+  cacheRecord: MediaBlobCacheRecord,
+): void {
+  if (cacheRecord.sha256 !== mediaAsset.sha256) {
+    throw new Error(`Managed media cache sha256 mismatch: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, expectedSha256=${mediaAsset.sha256}, actualSha256=${cacheRecord.sha256}`);
+  }
+
+  if (cacheRecord.sizeBytes !== mediaAsset.sizeBytes) {
+    throw new Error(`Managed media cache size metadata mismatch: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, expectedSizeBytes=${mediaAsset.sizeBytes}, actualSizeBytes=${cacheRecord.sizeBytes}`);
+  }
+
+  if (cacheRecord.blob.size !== mediaAsset.sizeBytes) {
+    throw new Error(`Managed media cache blob size mismatch: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, expectedSizeBytes=${mediaAsset.sizeBytes}, actualSizeBytes=${cacheRecord.blob.size}`);
+  }
+}
+
+function assertDownloadMediaAssetMatchesLocal(localMediaAsset: MediaAsset, downloadMediaAsset: MediaAsset): void {
+  if (downloadMediaAsset.workspaceId !== localMediaAsset.workspaceId) {
+    throw new Error(`Managed media download asset workspace mismatch: expectedWorkspaceId=${localMediaAsset.workspaceId}, actualWorkspaceId=${downloadMediaAsset.workspaceId}, mediaAssetId=${localMediaAsset.mediaAssetId}`);
+  }
+
+  if (downloadMediaAsset.mediaAssetId !== localMediaAsset.mediaAssetId) {
+    throw new Error(`Managed media download asset id mismatch: workspaceId=${localMediaAsset.workspaceId}, expectedMediaAssetId=${localMediaAsset.mediaAssetId}, actualMediaAssetId=${downloadMediaAsset.mediaAssetId}`);
+  }
+
+  if (downloadMediaAsset.sha256 !== localMediaAsset.sha256) {
+    throw new Error(`Managed media download asset sha256 mismatch: workspaceId=${localMediaAsset.workspaceId}, mediaAssetId=${localMediaAsset.mediaAssetId}, expectedSha256=${localMediaAsset.sha256}, actualSha256=${downloadMediaAsset.sha256}`);
+  }
+
+  if (downloadMediaAsset.sizeBytes !== localMediaAsset.sizeBytes) {
+    throw new Error(`Managed media download asset size mismatch: workspaceId=${localMediaAsset.workspaceId}, mediaAssetId=${localMediaAsset.mediaAssetId}, expectedSizeBytes=${localMediaAsset.sizeBytes}, actualSizeBytes=${downloadMediaAsset.sizeBytes}`);
+  }
+
+  if (downloadMediaAsset.deletedAt !== null) {
+    throw new Error(`Managed media download asset is deleted: workspaceId=${localMediaAsset.workspaceId}, mediaAssetId=${localMediaAsset.mediaAssetId}, deletedAt=${downloadMediaAsset.deletedAt}`);
+  }
+}
+
+async function downloadVerifiedMediaBlob(mediaAsset: MediaAsset): Promise<Blob> {
+  let lastError: unknown = null;
+  for (let attemptNumber = 1; attemptNumber <= MANAGED_MEDIA_DOWNLOAD_ATTEMPT_COUNT; attemptNumber += 1) {
+    const downloadResult = await loadMediaAssetDownloadUrl(mediaAsset.workspaceId, mediaAsset.mediaAssetId);
+    assertDownloadMediaAssetMatchesLocal(mediaAsset, downloadResult.mediaAsset);
+    let bytes: ArrayBuffer;
+    try {
+      bytes = await fetchManagedMediaBytes(mediaAsset, downloadResult.download.method, downloadResult.download.url);
+    } catch (error) {
+      lastError = error;
+      if (attemptNumber >= MANAGED_MEDIA_DOWNLOAD_ATTEMPT_COUNT) {
+        break;
+      }
+
+      warnManagedMediaDownloadRetry(
+        mediaAsset.workspaceId,
+        mediaAsset.mediaAssetId,
+        mediaAsset.sha256,
+        attemptNumber,
+        error,
+      );
+      continue;
+    }
+
+    return verifyManagedMediaBytes(mediaAsset, bytes);
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
+async function downloadMediaBlobCacheRecord(mediaAsset: MediaAsset): Promise<MediaBlobCacheRecord> {
+  const activeDownloadPromise = activeManagedMediaDownloadPromises.get(mediaAsset.sha256);
+  if (activeDownloadPromise !== undefined) {
+    return activeDownloadPromise;
+  }
+
+  const downloadPromise = (async (): Promise<MediaBlobCacheRecord> => {
+    const downloadedBlob = await downloadVerifiedMediaBlob(mediaAsset);
+    const now = new Date().toISOString();
+    const cacheRecord: MediaBlobCacheRecord = {
+      sha256: mediaAsset.sha256,
+      mimeType: mediaAsset.mimeType,
+      sizeBytes: mediaAsset.sizeBytes,
+      blob: downloadedBlob,
+      createdAt: now,
+      lastAccessedAt: now,
+      sourceMediaAssetId: mediaAsset.mediaAssetId,
+    };
+    await writeMediaBlobCacheRecord(cacheRecord);
+    return cacheRecord;
+  })().finally(() => {
+    activeManagedMediaDownloadPromises.delete(mediaAsset.sha256);
+  });
+  activeManagedMediaDownloadPromises.set(mediaAsset.sha256, downloadPromise);
+  return downloadPromise;
+}
+
+async function loadMediaBlobForReview(mediaAsset: MediaAsset): Promise<MediaBlobCacheRecord> {
+  const cacheRecord = await loadMediaBlobCacheRecord(mediaAsset.sha256);
+  if (cacheRecord !== null) {
+    assertUsableMediaBlobCacheRecord(mediaAsset, cacheRecord);
+    const accessedRecord: MediaBlobCacheRecord = {
+      ...cacheRecord,
+      lastAccessedAt: new Date().toISOString(),
+    };
+    await writeMediaBlobCacheRecord(accessedRecord);
+    return accessedRecord;
+  }
+
+  return downloadMediaBlobCacheRecord(mediaAsset);
+}
+
+async function loadManagedMediaBlob(
+  workspaceId: string,
+  mediaAssetId: string,
+): Promise<ManagedMediaBlobLoadResult | null> {
+  const mediaAsset = await loadMediaAssetRecord(workspaceId, mediaAssetId);
+  if (mediaAsset === null || mediaAsset.deletedAt !== null) {
+    return null;
+  }
+
+  return {
+    mediaAsset,
+    cacheRecord: await loadMediaBlobForReview(mediaAsset),
+  };
 }
 
 function classifyManagedMediaKind(mimeType: string): ManagedMediaKind {
@@ -152,6 +366,7 @@ export function ManagedMediaReference(props: Readonly<{
 
   useEffect(() => {
     let isCancelled = false;
+    let objectUrlToRevoke: string | null = null;
 
     async function loadManagedMedia(): Promise<void> {
       if (workspaceId === null) {
@@ -160,9 +375,9 @@ export function ManagedMediaReference(props: Readonly<{
       }
 
       setLoadState({ status: "loading" });
-      let mediaAsset: MediaAsset | null;
+      let loadResult: ManagedMediaBlobLoadResult | null;
       try {
-        mediaAsset = await loadMediaAssetRecord(workspaceId, mediaAssetId);
+        loadResult = await loadManagedMediaBlob(workspaceId, mediaAssetId);
       } catch (error) {
         if (isCancelled) {
           return;
@@ -177,36 +392,39 @@ export function ManagedMediaReference(props: Readonly<{
         return;
       }
 
-      if (mediaAsset === null || mediaAsset.deletedAt !== null) {
-        setLoadState({ status: "unavailable", mediaAsset });
+      if (loadResult === null) {
+        setLoadState({ status: "unavailable", mediaAsset: null });
         return;
       }
 
+      let objectUrl: string;
       try {
-        const downloadResult = await loadMediaAssetDownloadUrl(workspaceId, mediaAssetId);
-        if (isCancelled) {
-          return;
-        }
-
-        setLoadState({
-          status: "ready",
-          mediaAsset: downloadResult.mediaAsset,
-          url: downloadResult.download.url,
-        });
+        objectUrl = URL.createObjectURL(loadResult.cacheRecord.blob);
       } catch (error) {
-        if (isCancelled) {
-          return;
-        }
-
         warnManagedMediaUnavailable(workspaceId, mediaAssetId, error);
-        setLoadState({ status: "unavailable", mediaAsset });
+        setLoadState({ status: "unavailable", mediaAsset: loadResult.mediaAsset });
+        return;
       }
+
+      if (isCancelled) {
+        URL.revokeObjectURL(objectUrl);
+        return;
+      }
+      objectUrlToRevoke = objectUrl;
+      setLoadState({
+        status: "ready",
+        mediaAsset: loadResult.mediaAsset,
+        url: objectUrl,
+      });
     }
 
     void loadManagedMedia();
 
     return () => {
       isCancelled = true;
+      if (objectUrlToRevoke !== null) {
+        URL.revokeObjectURL(objectUrlToRevoke);
+      }
     };
   }, [localReadVersion, mediaAssetId, workspaceId]);
 
