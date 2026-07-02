@@ -142,6 +142,11 @@ export type AttachCatalogPackageMediaAssetInput = Readonly<{
   license: string | null;
 }>;
 
+export type CatalogPackageVersionMediaAssetInput = Readonly<{
+  packageMediaKey: string;
+  mediaBlobId: string;
+}>;
+
 export type CatalogPackageVersionRow = Readonly<{
   package_version_id: string;
   package_id: string;

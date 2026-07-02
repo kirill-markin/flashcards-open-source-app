@@ -3,6 +3,7 @@ export {
   extractMarkdownPortableMediaPaths,
   rewriteMarkdownFcAssetUrlsToPortablePaths,
   rewriteMarkdownFcAssetUrlsToPortablePathsFromMap,
+  rewriteMarkdownFcAssetUrlsToFcAssets,
   rewriteMarkdownFcAssetUrlsToSharedPortablePaths,
   rewriteMarkdownPortableMediaUrlsToFcAssets,
   rewriteMarkdownPortableMediaUrlsToFcAssetsFromMap,
@@ -11,6 +12,7 @@ export {
 } from "./markdownMedia";
 
 export type {
+  FcAssetIdResolver,
   FcAssetPortablePathResolver,
   PortableMediaAssetIdResolver,
 } from "./markdownMedia";

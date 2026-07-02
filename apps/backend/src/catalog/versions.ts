@@ -13,17 +13,26 @@ import {
   normalizeTextArray,
   toSafeNumber,
 } from "./common";
-import { assertDraftMediaKeysExistInExecutor } from "./draftMedia";
+import {
+  assertDraftMediaKeysExistInExecutor,
+  insertCatalogPackageVersionMediaAssetsInExecutor,
+  loadCatalogPackageDraftMediaKeysInExecutor,
+} from "./draftMedia";
 import { rethrowCatalogPersistenceError } from "./errors";
 import {
   catalogPackageVersionColumns,
   lockCatalogPackageInExecutor,
   mapCatalogPackageVersionRow,
 } from "./rows";
+import {
+  extractMarkdownFcAssetIds,
+  rewriteMarkdownFcAssetUrlsToFcAssets,
+} from "../workspacePackages";
 import type {
   CatalogPackageCardSnapshotInput,
   CatalogPackageStatus,
   CatalogPackageVersion,
+  CatalogPackageVersionMediaAssetInput,
   CatalogPackageVersionRow,
   CatalogWorkspaceCardRow,
   CreateCatalogPackageVersionFromWorkspaceInput,
@@ -38,7 +47,12 @@ const reviewStatusRouteTargets: ReadonlySet<CatalogPackageStatus> = new Set([
   "approved",
   "rejected",
 ]);
-const managedMediaReferencePattern = /fcasset:/iu;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+
+type CatalogWorkspaceMediaAssetRow = Readonly<{
+  media_asset_id: string;
+  media_blob_id: string;
+}>;
 
 export function isCatalogPackageVersionStatusTransitionAllowed(
   fromStatus: CatalogPackageStatus,
@@ -154,6 +168,27 @@ function assertUniqueCardSnapshots(cards: ReadonlyArray<CatalogPackageCardSnapsh
 
 function getAllCardMediaAssetKeys(cards: ReadonlyArray<CatalogPackageCardSnapshotInput>): ReadonlyArray<string> {
   return [...new Set(cards.flatMap((card) => card.mediaAssetKeys))];
+}
+
+function getVersionMediaAssetKeys(
+  versionMediaAssets: ReadonlyArray<CatalogPackageVersionMediaAssetInput>,
+): ReadonlySet<string> {
+  return new Set(versionMediaAssets.map((mediaAsset) => (
+    normalizePackageMediaKey(mediaAsset.packageMediaKey, "versionMediaAssets.packageMediaKey")
+  )));
+}
+
+function getDraftMediaAssetKeysForPackageVersion(
+  coverPackageMediaKey: string | null,
+  cards: ReadonlyArray<CatalogPackageCardSnapshotInput>,
+  versionMediaAssetKeys: ReadonlySet<string>,
+): ReadonlyArray<string> {
+  return [
+    ...(coverPackageMediaKey === null ? [] : [coverPackageMediaKey]),
+    ...getAllCardMediaAssetKeys(cards).filter((mediaAssetKey) => (
+      versionMediaAssetKeys.has(mediaAssetKey) === false
+    )),
+  ];
 }
 
 async function loadPackageVersionForUpdateInExecutor(
@@ -314,16 +349,19 @@ async function createPackageVersionFromNormalizedCardsInExecutor(
   input: CreateCatalogPackageVersionInput,
   sourceWorkspaceId: string | null,
   adminEmail: string,
+  versionMediaAssets: ReadonlyArray<CatalogPackageVersionMediaAssetInput>,
 ): Promise<CatalogPackageVersion> {
   const catalogPackage = await lockCatalogPackageInExecutor(executor, packageId);
   await assertNoMutablePackageVersionInExecutor(executor, packageId);
+  const versionMediaAssetKeys = getVersionMediaAssetKeys(versionMediaAssets);
   await assertDraftMediaKeysExistInExecutor(
     executor,
     packageId,
-    [
-      ...(catalogPackage.cover_package_media_key === null ? [] : [catalogPackage.cover_package_media_key]),
-      ...getAllCardMediaAssetKeys(input.cards),
-    ],
+    getDraftMediaAssetKeysForPackageVersion(
+      catalogPackage.cover_package_media_key,
+      input.cards,
+      versionMediaAssetKeys,
+    ),
   );
   const versionNumber = await getNextPackageVersionNumberInExecutor(executor, packageId);
   const result = await executor.query<CatalogPackageVersionRow>(
@@ -362,6 +400,12 @@ async function createPackageVersionFromNormalizedCardsInExecutor(
   }
 
   await copyDraftMediaAssetsToPackageVersionInExecutor(executor, packageId, input.packageVersionId);
+  await insertCatalogPackageVersionMediaAssetsInExecutor(
+    executor,
+    packageId,
+    input.packageVersionId,
+    versionMediaAssets,
+  );
   await insertPackageCardsInExecutor(executor, input.packageVersionId, input.cards);
   await insertPackageVersionStatusEventInExecutor(executor, {
     packageId,
@@ -394,38 +438,126 @@ function normalizeWorkspaceVersionInput(
   };
 }
 
+function normalizeWorkspaceMediaAssetIds(mediaAssetIds: ReadonlyArray<string>): ReadonlyArray<string> {
+  const normalizedMediaAssetIds = mediaAssetIds.map((mediaAssetId) => mediaAssetId.toLowerCase());
+  const invalidMediaAssetIds = normalizedMediaAssetIds.filter((mediaAssetId) => (
+    uuidPattern.test(mediaAssetId) === false
+  ));
+  if (invalidMediaAssetIds.length !== 0) {
+    throw new HttpError(
+      400,
+      `Workspace catalog version source references invalid media asset ids. mediaAssetIds=${invalidMediaAssetIds.join(",")}`,
+      "CATALOG_WORKSPACE_MEDIA_ASSET_ID_INVALID",
+    );
+  }
+
+  return [...new Set(normalizedMediaAssetIds)];
+}
+
+function getWorkspaceCardMediaAssetIds(row: CatalogWorkspaceCardRow): ReadonlyArray<string> {
+  return normalizeWorkspaceMediaAssetIds([
+    ...extractMarkdownFcAssetIds(row.front_text),
+    ...extractMarkdownFcAssetIds(row.back_text),
+  ]);
+}
+
+function getWorkspaceCardsMediaAssetIds(rows: ReadonlyArray<CatalogWorkspaceCardRow>): ReadonlyArray<string> {
+  return normalizeWorkspaceMediaAssetIds(rows.flatMap((row) => [
+    ...extractMarkdownFcAssetIds(row.front_text),
+    ...extractMarkdownFcAssetIds(row.back_text),
+  ]));
+}
+
+function buildPackageMediaKeyFromWorkspaceMediaAssetId(mediaAssetId: string): string {
+  return normalizePackageMediaKey(`w-${mediaAssetId.toLowerCase()}`, "workspaceMediaAssetId");
+}
+
+function buildCollisionFreePackageMediaKey(
+  basePackageMediaKey: string,
+  reservedPackageMediaKeys: ReadonlySet<string>,
+): string {
+  if (reservedPackageMediaKeys.has(basePackageMediaKey) === false) {
+    return basePackageMediaKey;
+  }
+
+  let suffix = 1;
+  while (reservedPackageMediaKeys.has(`${basePackageMediaKey}.${suffix}`)) {
+    suffix += 1;
+  }
+
+  return `${basePackageMediaKey}.${suffix}`;
+}
+
+function buildWorkspacePackageMediaKeyMap(
+  rows: ReadonlyArray<CatalogWorkspaceMediaAssetRow>,
+  reservedPackageMediaKeys: ReadonlySet<string>,
+): ReadonlyMap<string, string> {
+  const usedPackageMediaKeys = new Set(reservedPackageMediaKeys);
+  return new Map(rows.map((row) => {
+    const packageMediaKey = buildCollisionFreePackageMediaKey(
+      buildPackageMediaKeyFromWorkspaceMediaAssetId(row.media_asset_id),
+      usedPackageMediaKeys,
+    );
+    usedPackageMediaKeys.add(packageMediaKey);
+
+    return [
+      row.media_asset_id.toLowerCase(),
+      packageMediaKey,
+    ];
+  }));
+}
+
+function resolveWorkspacePackageMediaKey(
+  packageMediaKeysByWorkspaceMediaAssetId: ReadonlyMap<string, string>,
+  workspaceMediaAssetId: string,
+): string {
+  const packageMediaKey = packageMediaKeysByWorkspaceMediaAssetId.get(workspaceMediaAssetId.toLowerCase());
+  if (packageMediaKey === undefined) {
+    throw new Error(`Workspace media asset package key was not loaded. mediaAssetId=${workspaceMediaAssetId}`);
+  }
+
+  return packageMediaKey;
+}
+
+function rewriteWorkspaceCardTextMediaKeys(
+  markdown: string,
+  packageMediaKeysByWorkspaceMediaAssetId: ReadonlyMap<string, string>,
+): string {
+  return rewriteMarkdownFcAssetUrlsToFcAssets(markdown, (workspaceMediaAssetId) => (
+    resolveWorkspacePackageMediaKey(packageMediaKeysByWorkspaceMediaAssetId, workspaceMediaAssetId)
+  ));
+}
+
 function mapWorkspaceCardsToSnapshots(
   rows: ReadonlyArray<CatalogWorkspaceCardRow>,
+  packageMediaKeysByWorkspaceMediaAssetId: ReadonlyMap<string, string>,
 ): ReadonlyArray<CatalogPackageCardSnapshotInput> {
   return rows.map((row, index) => ({
     packageCardId: randomUUID(),
     stableCardKey: row.card_id,
     ordinal: index + 1,
-    frontText: row.front_text,
-    backText: row.back_text,
+    frontText: rewriteWorkspaceCardTextMediaKeys(row.front_text, packageMediaKeysByWorkspaceMediaAssetId),
+    backText: rewriteWorkspaceCardTextMediaKeys(row.back_text, packageMediaKeysByWorkspaceMediaAssetId),
     cardType: row.card_type,
     metadata: row.metadata,
     tags: [...row.tags],
-    mediaAssetKeys: [],
+    mediaAssetKeys: getWorkspaceCardMediaAssetIds(row).map((mediaAssetId) => (
+      resolveWorkspacePackageMediaKey(packageMediaKeysByWorkspaceMediaAssetId, mediaAssetId)
+    )),
   }));
 }
 
-function assertWorkspaceCardHasNoManagedMediaReferences(row: CatalogWorkspaceCardRow): void {
-  if (managedMediaReferencePattern.test(row.front_text)) {
-    throw new HttpError(
-      400,
-      `Workspace card contains a managed media reference that cannot be copied into a catalog package yet. cardId=${row.card_id} field=frontText`,
-      "CATALOG_WORKSPACE_CARD_MEDIA_REFERENCE_UNSUPPORTED",
-    );
-  }
-
-  if (managedMediaReferencePattern.test(row.back_text)) {
-    throw new HttpError(
-      400,
-      `Workspace card contains a managed media reference that cannot be copied into a catalog package yet. cardId=${row.card_id} field=backText`,
-      "CATALOG_WORKSPACE_CARD_MEDIA_REFERENCE_UNSUPPORTED",
-    );
-  }
+function mapWorkspaceMediaRowsToPackageVersionMediaAssets(
+  rows: ReadonlyArray<CatalogWorkspaceMediaAssetRow>,
+  packageMediaKeysByWorkspaceMediaAssetId: ReadonlyMap<string, string>,
+): ReadonlyArray<CatalogPackageVersionMediaAssetInput> {
+  return rows.map((row) => ({
+    packageMediaKey: resolveWorkspacePackageMediaKey(
+      packageMediaKeysByWorkspaceMediaAssetId,
+      row.media_asset_id,
+    ),
+    mediaBlobId: row.media_blob_id,
+  }));
 }
 
 async function loadWorkspaceCardsForCatalogVersionInExecutor(
@@ -454,8 +586,46 @@ async function loadWorkspaceCardsForCatalogVersionInExecutor(
     );
   }
 
-  for (const row of result.rows) {
-    assertWorkspaceCardHasNoManagedMediaReferences(row);
+  return result.rows;
+}
+
+async function loadWorkspaceMediaAssetsForCatalogVersionInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  mediaAssetIds: ReadonlyArray<string>,
+): Promise<ReadonlyArray<CatalogWorkspaceMediaAssetRow>> {
+  const normalizedMediaAssetIds = normalizeWorkspaceMediaAssetIds(mediaAssetIds);
+  if (normalizedMediaAssetIds.length === 0) {
+    return [];
+  }
+
+  const result = await executor.query<CatalogWorkspaceMediaAssetRow>(
+    [
+      "SELECT",
+      "media_assets.media_asset_id AS media_asset_id,",
+      "media_blobs.media_blob_id AS media_blob_id",
+      "FROM content.media_assets AS media_assets",
+      "INNER JOIN content.media_blobs AS media_blobs",
+      "ON media_blobs.media_blob_id = media_assets.media_blob_id",
+      "WHERE media_assets.workspace_id = $1",
+      "AND media_assets.media_asset_id = ANY($2::uuid[])",
+      "AND media_assets.deleted_at IS NULL",
+      "ORDER BY array_position($2::uuid[], media_assets.media_asset_id)",
+    ].join(" "),
+    [workspaceId, normalizedMediaAssetIds],
+  );
+  const returnedMediaAssetIds = new Set(result.rows.map((row: CatalogWorkspaceMediaAssetRow) => (
+    row.media_asset_id.toLowerCase()
+  )));
+  const missingMediaAssetIds = normalizedMediaAssetIds.filter((mediaAssetId) => (
+    returnedMediaAssetIds.has(mediaAssetId) === false
+  ));
+  if (missingMediaAssetIds.length !== 0) {
+    throw new HttpError(
+      400,
+      `Workspace catalog version source is missing media assets. workspaceId=${workspaceId} missingMediaAssetIds=${missingMediaAssetIds.join(",")}`,
+      "CATALOG_WORKSPACE_MEDIA_ASSET_NOT_FOUND",
+    );
   }
 
   return result.rows;
@@ -476,6 +646,7 @@ export async function createCatalogPackageVersionFromCardsInExecutor(
       normalizedInput,
       null,
       normalizedAdminEmail,
+      [],
     );
   } catch (error) {
     rethrowCatalogPersistenceError(error);
@@ -501,9 +672,24 @@ export async function createCatalogPackageVersionFromWorkspaceSelectionInExecuto
       normalizedInput.workspaceId,
       normalizedInput.cardIds,
     );
+    const workspaceMediaAssets = await loadWorkspaceMediaAssetsForCatalogVersionInExecutor(
+      executor,
+      normalizedInput.workspaceId,
+      getWorkspaceCardsMediaAssetIds(workspaceCards),
+    );
+    if (workspaceMediaAssets.length !== 0) {
+      await lockCatalogPackageInExecutor(executor, packageId);
+    }
+    const reservedPackageMediaKeys = workspaceMediaAssets.length === 0
+      ? new Set<string>()
+      : await loadCatalogPackageDraftMediaKeysInExecutor(executor, packageId);
+    const packageMediaKeysByWorkspaceMediaAssetId = buildWorkspacePackageMediaKeyMap(
+      workspaceMediaAssets,
+      reservedPackageMediaKeys,
+    );
     const packageVersionInput = normalizeCreatePackageVersionInput({
       packageVersionId: normalizedInput.packageVersionId,
-      cards: mapWorkspaceCardsToSnapshots(workspaceCards),
+      cards: mapWorkspaceCardsToSnapshots(workspaceCards, packageMediaKeysByWorkspaceMediaAssetId),
     });
 
     return await createPackageVersionFromNormalizedCardsInExecutor(
@@ -512,6 +698,10 @@ export async function createCatalogPackageVersionFromWorkspaceSelectionInExecuto
       packageVersionInput,
       normalizedInput.workspaceId,
       normalizedAdminEmail,
+      mapWorkspaceMediaRowsToPackageVersionMediaAssets(
+        workspaceMediaAssets,
+        packageMediaKeysByWorkspaceMediaAssetId,
+      ),
     );
   } catch (error) {
     rethrowCatalogPersistenceError(error);
