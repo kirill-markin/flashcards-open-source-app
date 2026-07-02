@@ -150,27 +150,101 @@ struct CloudSyncTransport {
     }
 
     func mediaAssetDownloadURLPath(workspaceId: String, mediaAssetId: String) throws -> String {
-        let normalizedWorkspaceId = workspaceId.trimmingCharacters(in: .whitespacesAndNewlines)
-        let normalizedMediaAssetId = mediaAssetId.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard normalizedWorkspaceId.isEmpty == false else {
-            throw LocalStoreError.validation("Media asset download URL path requires a workspace id")
-        }
-        guard normalizedMediaAssetId.isEmpty == false else {
-            throw LocalStoreError.validation("Media asset download URL path requires a media asset id")
-        }
-
-        guard let encodedWorkspaceId = normalizedWorkspaceId.addingPercentEncoding(
-            withAllowedCharacters: mediaAssetDownloadURLPathSegmentAllowedCharacters
-        ) else {
-            throw LocalStoreError.validation("Media asset workspace id could not be encoded: \(workspaceId)")
-        }
-        guard let encodedMediaAssetId = normalizedMediaAssetId.addingPercentEncoding(
-            withAllowedCharacters: mediaAssetDownloadURLPathSegmentAllowedCharacters
-        ) else {
-            throw LocalStoreError.validation("Media asset id could not be encoded: \(mediaAssetId)")
-        }
+        let encodedWorkspaceId = try self.encodedMediaAssetPathSegment(
+            value: workspaceId,
+            fieldName: "workspace id"
+        )
+        let encodedMediaAssetId = try self.encodedMediaAssetPathSegment(
+            value: mediaAssetId,
+            fieldName: "media asset id"
+        )
 
         return "/workspaces/\(encodedWorkspaceId)/media-assets/\(encodedMediaAssetId)/download-url"
+    }
+
+    func mediaAssetUploadSessionsPath(workspaceId: String) throws -> String {
+        let encodedWorkspaceId = try self.encodedMediaAssetPathSegment(
+            value: workspaceId,
+            fieldName: "workspace id"
+        )
+        return "/workspaces/\(encodedWorkspaceId)/media-assets/upload-sessions"
+    }
+
+    func mediaAssetUploadSessionPartsPath(workspaceId: String, sessionId: String) throws -> String {
+        let basePath = try self.mediaAssetUploadSessionPath(workspaceId: workspaceId, sessionId: sessionId)
+        return "\(basePath)/parts"
+    }
+
+    func mediaAssetUploadSessionCompletePath(workspaceId: String, sessionId: String) throws -> String {
+        let basePath = try self.mediaAssetUploadSessionPath(workspaceId: workspaceId, sessionId: sessionId)
+        return "\(basePath)/complete"
+    }
+
+    func mediaAssetUploadSessionAbortPath(workspaceId: String, sessionId: String) throws -> String {
+        let basePath = try self.mediaAssetUploadSessionPath(workspaceId: workspaceId, sessionId: sessionId)
+        return "\(basePath)/abort"
+    }
+
+    func createMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        requestBody: MediaAssetUploadSessionCreateRequest
+    ) async throws -> MediaAssetUploadSessionCreateResponse {
+        try await self.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: try self.mediaAssetUploadSessionsPath(workspaceId: workspaceId),
+            method: "POST",
+            body: requestBody
+        )
+    }
+
+    func loadMediaAssetUploadPartURLs(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String,
+        requestBody: MediaAssetUploadPartURLsRequest
+    ) async throws -> MediaAssetUploadPartURLsResponse {
+        try await self.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: try self.mediaAssetUploadSessionPartsPath(workspaceId: workspaceId, sessionId: sessionId),
+            method: "POST",
+            body: requestBody
+        )
+    }
+
+    func completeMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String,
+        requestBody: MediaAssetUploadSessionCompleteRequest
+    ) async throws -> MediaAssetUploadSessionCompleteResponse {
+        try await self.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: try self.mediaAssetUploadSessionCompletePath(workspaceId: workspaceId, sessionId: sessionId),
+            method: "POST",
+            body: requestBody
+        )
+    }
+
+    func abortMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String
+    ) async throws -> MediaAssetUploadSessionAbortResponse {
+        try await self.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: try self.mediaAssetUploadSessionAbortPath(workspaceId: workspaceId, sessionId: sessionId),
+            method: "POST",
+            body: Optional<String>.none
+        )
     }
 
     func workspacePackageImportPreviewPath(workspaceId: String) throws -> String {
@@ -338,6 +412,33 @@ struct CloudSyncTransport {
         }
 
         return encodedWorkspaceId
+    }
+
+    private func mediaAssetUploadSessionPath(workspaceId: String, sessionId: String) throws -> String {
+        let encodedWorkspaceId = try self.encodedMediaAssetPathSegment(
+            value: workspaceId,
+            fieldName: "workspace id"
+        )
+        let encodedSessionId = try self.encodedMediaAssetPathSegment(
+            value: sessionId,
+            fieldName: "upload session id"
+        )
+        return "/workspaces/\(encodedWorkspaceId)/media-assets/upload-sessions/\(encodedSessionId)"
+    }
+
+    private func encodedMediaAssetPathSegment(value: String, fieldName: String) throws -> String {
+        let normalizedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard normalizedValue.isEmpty == false else {
+            throw LocalStoreError.validation("Media asset path requires a \(fieldName)")
+        }
+
+        guard let encodedValue = normalizedValue.addingPercentEncoding(
+            withAllowedCharacters: mediaAssetDownloadURLPathSegmentAllowedCharacters
+        ) else {
+            throw LocalStoreError.validation("Media asset \(fieldName) could not be encoded: \(value)")
+        }
+
+        return encodedValue
     }
 
     private func sendAndDecode<Response: Decodable>(

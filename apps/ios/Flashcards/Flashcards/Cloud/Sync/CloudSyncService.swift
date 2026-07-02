@@ -259,6 +259,66 @@ final class CloudSyncService: @unchecked Sendable {
         )
     }
 
+    func createMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: MediaAssetUploadSessionCreateRequest
+    ) async throws -> MediaAssetUploadSessionCreateResponse {
+        try await self.transport.createMediaAssetUploadSession(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            workspaceId: workspaceId,
+            requestBody: request
+        )
+    }
+
+    func loadMediaAssetUploadPartURLs(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String,
+        request: MediaAssetUploadPartURLsRequest
+    ) async throws -> MediaAssetUploadPartURLsResponse {
+        try await self.transport.loadMediaAssetUploadPartURLs(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            workspaceId: workspaceId,
+            sessionId: sessionId,
+            requestBody: request
+        )
+    }
+
+    func completeMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String,
+        request: MediaAssetUploadSessionCompleteRequest
+    ) async throws -> MediaAssetUploadSessionCompleteResponse {
+        try await self.transport.completeMediaAssetUploadSession(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            workspaceId: workspaceId,
+            sessionId: sessionId,
+            requestBody: request
+        )
+    }
+
+    func abortMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String
+    ) async throws -> MediaAssetUploadSessionAbortResponse {
+        try await self.transport.abortMediaAssetUploadSession(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            workspaceId: workspaceId,
+            sessionId: sessionId
+        )
+    }
+
     func previewWorkspacePackageExport(
         apiBaseUrl: String,
         authorizationHeader: String,

@@ -656,6 +656,145 @@ struct MediaAssetDownloadURL: Decodable, Hashable, Sendable {
     let expiresAt: String
 }
 
+/// Wire contract for `POST /workspaces/{workspaceId}/media-assets/upload-sessions`.
+struct MediaAssetUploadSessionCreateRequest: Encodable, Hashable, Sendable {
+    let mediaAssetId: String
+    let mimeType: String
+    let sizeBytes: Int64
+    let sha256: String
+    let partSizeBytes: Int64
+    let partCount: Int
+    let sourceUrl: String?
+    let createdAt: String
+    let clientUpdatedAt: String
+    let lastModifiedByReplicaId: String
+    let lastOperationId: String
+}
+
+enum MediaAssetUploadSessionCreateStatus: String, Codable, Hashable, Sendable {
+    case alreadyAvailable = "already_available"
+    case uploadRequired = "upload_required"
+}
+
+struct MediaAssetUploadSessionMetadata: Decodable, Hashable, Sendable {
+    let sessionId: String
+    let expiresAt: String
+    let partSizeBytes: Int64
+    let partCount: Int
+}
+
+struct MediaAssetUploadSessionCreateResponse: Decodable, Hashable, Sendable {
+    let workspaceId: String
+    let mediaAssetId: String
+    let status: MediaAssetUploadSessionCreateStatus
+    let mediaAsset: MediaAsset?
+    let uploadSession: MediaAssetUploadSessionMetadata?
+
+    enum CodingKeys: String, CodingKey {
+        case workspaceId
+        case mediaAssetId
+        case status
+        case mediaAsset
+        case uploadSession
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.workspaceId = try container.decode(String.self, forKey: .workspaceId)
+        self.mediaAssetId = try container.decode(String.self, forKey: .mediaAssetId)
+        self.status = try container.decode(MediaAssetUploadSessionCreateStatus.self, forKey: .status)
+        self.mediaAsset = try container.decode(MediaAsset?.self, forKey: .mediaAsset)
+        self.uploadSession = try container.decode(MediaAssetUploadSessionMetadata?.self, forKey: .uploadSession)
+
+        switch self.status {
+        case .alreadyAvailable:
+            guard self.mediaAsset != nil, self.uploadSession == nil else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .status,
+                    in: container,
+                    debugDescription: "already_available upload session responses require mediaAsset and null uploadSession"
+                )
+            }
+        case .uploadRequired:
+            guard self.mediaAsset == nil, self.uploadSession != nil else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .status,
+                    in: container,
+                    debugDescription: "upload_required upload session responses require null mediaAsset and uploadSession"
+                )
+            }
+        }
+    }
+}
+
+struct MediaAssetUploadPartURLRequestPart: Encodable, Hashable, Sendable {
+    let partNumber: Int
+    let sha256: String
+}
+
+/// Wire contract for `POST /workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts`.
+struct MediaAssetUploadPartURLsRequest: Encodable, Hashable, Sendable {
+    let parts: [MediaAssetUploadPartURLRequestPart]
+}
+
+struct MediaAssetUploadPartURL: Decodable, Sendable {
+    let partNumber: Int
+    let method: String
+    let url: String
+    let expiresAt: String
+    let headers: [String: String]
+
+    enum CodingKeys: String, CodingKey {
+        case partNumber
+        case method
+        case url
+        case expiresAt
+        case headers
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.partNumber = try container.decode(Int.self, forKey: .partNumber)
+        self.method = try container.decode(String.self, forKey: .method)
+        guard self.method == "PUT" else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .method,
+                in: container,
+                debugDescription: "Media asset upload part URLs must use PUT"
+            )
+        }
+        self.url = try container.decode(String.self, forKey: .url)
+        self.expiresAt = try container.decode(String.self, forKey: .expiresAt)
+        self.headers = try container.decode([String: String].self, forKey: .headers)
+    }
+}
+
+struct MediaAssetUploadPartURLsResponse: Decodable, Sendable {
+    let sessionId: String
+    let partUrls: [MediaAssetUploadPartURL]
+}
+
+struct CompletedMediaAssetUploadPart: Encodable, Hashable, Sendable {
+    let partNumber: Int
+    let eTag: String
+    let sha256: String
+}
+
+/// Wire contract for `POST /workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/complete`.
+struct MediaAssetUploadSessionCompleteRequest: Encodable, Hashable, Sendable {
+    let parts: [CompletedMediaAssetUploadPart]
+}
+
+struct MediaAssetUploadSessionCompleteResponse: Decodable, Hashable, Sendable {
+    let mediaAsset: MediaAsset
+    let applied: Bool
+}
+
+struct MediaAssetUploadSessionAbortResponse: Decodable, Hashable, Sendable {
+    let sessionId: String
+    let abortedAt: String
+}
+
 /// Pulled review events are already stamped by the backend with immutable
 /// workspace replica ids. The client must not invent or mutate these ids.
 struct RemoteReviewEventEnvelope: Decodable {
