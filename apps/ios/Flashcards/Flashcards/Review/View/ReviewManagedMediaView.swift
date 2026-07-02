@@ -1,5 +1,6 @@
 import AVKit
 import SwiftUI
+import UIKit
 
 private let reviewManagedMediaStringsTableName: String = "ReviewCards"
 private let reviewManagedMediaCornerRadius: CGFloat = 12
@@ -59,8 +60,8 @@ struct ReviewManagedMediaView: View {
                 loadingView
             } else if let loadResult,
                       let mediaAsset = loadResult.mediaAsset,
-                      let downloadURL = loadResult.downloadURL {
-                readyView(mediaAsset: mediaAsset, downloadURL: downloadURL)
+                      let mediaURL = loadResult.mediaURL {
+                readyView(mediaAsset: mediaAsset, mediaURL: mediaURL)
             } else {
                 unavailableView(mediaAsset: loadResult?.mediaAsset)
             }
@@ -91,7 +92,7 @@ struct ReviewManagedMediaView: View {
         .background(mediaBackgroundStyle, in: RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
     }
 
-    private func readyView(mediaAsset: MediaAsset, downloadURL: URL) -> some View {
+    private func readyView(mediaAsset: MediaAsset, mediaURL: URL) -> some View {
         let category = ReviewManagedMediaCategory(
             mimeType: mediaAsset.mimeType,
             isImageSyntax: reference.isImageSyntax
@@ -100,37 +101,55 @@ struct ReviewManagedMediaView: View {
         return Group {
             switch category {
             case .image:
-                AsyncImage(url: downloadURL) { phase in
-                    switch phase {
-                    case .empty:
-                        loadingView
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: .infinity, maxHeight: reviewManagedImageMaxHeight, alignment: .center)
-                            .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
-                            .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .image))
-                    case .failure:
-                        unavailableView(mediaAsset: mediaAsset)
-                    @unknown default:
-                        unavailableView(mediaAsset: mediaAsset)
-                    }
-                }
+                imageView(mediaAsset: mediaAsset, mediaURL: mediaURL)
             case .audio:
-                ReviewManagedMediaPlayerView(url: downloadURL, height: reviewManagedAudioHeight)
+                ReviewManagedMediaPlayerView(url: mediaURL, height: reviewManagedAudioHeight)
                     .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .audio))
             case .video:
-                ReviewManagedMediaPlayerView(url: downloadURL, height: reviewManagedVideoMinHeight)
+                ReviewManagedMediaPlayerView(url: mediaURL, height: reviewManagedVideoMinHeight)
                     .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .video))
             case .attachment:
-                Link(destination: downloadURL) {
+                Link(destination: mediaURL) {
                     Label(displayLabel(mediaAsset: mediaAsset, category: .attachment), systemImage: "paperclip")
                         .font(.subheadline.weight(.medium))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(12)
                 }
                 .background(mediaBackgroundStyle, in: RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func imageView(mediaAsset: MediaAsset, mediaURL: URL) -> some View {
+        if mediaURL.isFileURL {
+            if let image = UIImage(contentsOfFile: mediaURL.path) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: reviewManagedImageMaxHeight, alignment: .center)
+                    .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
+                    .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .image))
+            } else {
+                unavailableView(mediaAsset: mediaAsset)
+            }
+        } else {
+            AsyncImage(url: mediaURL) { phase in
+                switch phase {
+                case .empty:
+                    loadingView
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: reviewManagedImageMaxHeight, alignment: .center)
+                        .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
+                        .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .image))
+                case .failure:
+                    unavailableView(mediaAsset: mediaAsset)
+                @unknown default:
+                    unavailableView(mediaAsset: mediaAsset)
+                }
             }
         }
     }
