@@ -112,6 +112,7 @@ class FlashcardsApplication : Application(), Configuration.Provider {
             appGraphHolder = appGraph
             appGraphStateMutable.value = appGraph
         }
+        enqueueMediaUploadWorker(context = this, initialDelayMillis = 0L)
     }
 
     private fun createAppGraph(): AppGraph {
