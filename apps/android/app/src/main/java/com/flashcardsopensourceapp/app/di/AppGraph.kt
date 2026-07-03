@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import com.flashcardsopensourceapp.app.AutoSyncController
 import com.flashcardsopensourceapp.app.TestTechnicalErrorDialogPreviewController
+import com.flashcardsopensourceapp.app.enqueueMediaUploadWorker
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.loadPackageInfo
 import com.flashcardsopensourceapp.app.ProgressContextRefreshController
@@ -45,6 +46,7 @@ import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.core.buildAppDatabase
 import com.flashcardsopensourceapp.data.local.database.core.closeAppDatabase
+import com.flashcardsopensourceapp.data.local.network.OkHttpSignedPutUploader
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.notifications.SharedPreferencesReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
@@ -70,6 +72,7 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.Local
 import com.flashcardsopensourceapp.data.local.repository.cards.LocalCardsRepository
 import com.flashcardsopensourceapp.data.local.repository.decks.LocalDecksRepository
 import com.flashcardsopensourceapp.data.local.repository.feedback.LocalFeedbackRepository
+import com.flashcardsopensourceapp.data.local.repository.media.LocalMediaUploadTransferRepository
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.review.CloudReviewMediaAssetDownloadUrlLoader
@@ -120,6 +123,7 @@ class AppGraph(
     val observability: AppObservability,
     private val okHttpClient: OkHttpClient
 ) {
+    private val applicationContext: Context = context.applicationContext
     private val appJob = SupervisorJob()
     // Backstop for any uncaught exception escaping an appScope.launch site so the
     // process never crashes on a missed try/catch. Coroutine machinery filters
@@ -266,6 +270,17 @@ class AppGraph(
         guestSessionCreator = aiChatRemoteService,
         appVersion = appPackageInfo.versionName
     )
+    val mediaUploadTransferRepository = LocalMediaUploadTransferRepository(
+        database = database,
+        preferencesStore = cloudPreferencesStore,
+        remoteService = cloudRemoteService,
+        operationCoordinator = cloudOperationCoordinator,
+        resetCoordinator = cloudIdentityResetCoordinator,
+        guestSessionStore = guestAiSessionStore,
+        mediaFileRootDirectory = applicationContext.filesDir,
+        signedPutUploader = OkHttpSignedPutUploader(okHttpClient = okHttpClient),
+        timeProvider = SystemTimeProvider
+    )
 
     val cloudAccountRepository: CloudAccountRepository = LocalCloudAccountRepository(
         database = database,
@@ -402,6 +417,12 @@ class AppGraph(
                     observability.clearCloudIdentity()
                 } else {
                     observability.setCloudIdentity(identity = identity)
+                }
+                if (
+                    cloudSettings.cloudState == CloudAccountState.GUEST ||
+                    cloudSettings.cloudState == CloudAccountState.LINKED
+                ) {
+                    enqueueMediaUploadWorker(context = applicationContext, initialDelayMillis = 0L)
                 }
             }
         }

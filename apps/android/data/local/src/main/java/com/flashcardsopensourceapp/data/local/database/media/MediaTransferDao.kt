@@ -67,19 +67,80 @@ interface MediaTransferDao {
 
     @Query(
         """
+        SELECT * FROM media_transfer_queue
+        WHERE workspaceId = :workspaceId
+            AND kind = :kind
+            AND status = :status
+            AND nextAttemptAtMillis <= :nowMillis
+        ORDER BY nextAttemptAtMillis ASC, createdAtMillis ASC, transferId ASC
+        LIMIT :limit
+        """
+    )
+    suspend fun loadDueMediaTransfersByKind(
+        workspaceId: String,
+        kind: String,
+        status: String,
+        nowMillis: Long,
+        limit: Int
+    ): List<MediaTransferQueueEntity>
+
+    @Query(
+        """
+        SELECT MIN(nextAttemptAtMillis) FROM media_transfer_queue
+        WHERE workspaceId = :workspaceId
+            AND kind = :kind
+            AND status = :status
+        """
+    )
+    suspend fun loadNextMediaTransferAttemptAtMillis(
+        workspaceId: String,
+        kind: String,
+        status: String
+    ): Long?
+
+    @Query(
+        """
         UPDATE media_transfer_queue
         SET status = :claimedStatus,
             updatedAtMillis = :updatedAtMillis
-        WHERE transferId IN (:transferIds)
+        WHERE transferId = :transferId
+            AND workspaceId = :workspaceId
+            AND kind = :kind
             AND status = :expectedStatus
+            AND nextAttemptAtMillis <= :nowMillis
         """
     )
-    suspend fun markMediaTransfersClaimed(
-        transferIds: List<String>,
+    suspend fun claimDueMediaTransfer(
+        transferId: String,
+        workspaceId: String,
+        kind: String,
         expectedStatus: String,
         claimedStatus: String,
+        nowMillis: Long,
         updatedAtMillis: Long
+    ): Int
+
+    @Query(
+        """
+        UPDATE media_transfer_queue
+        SET status = :queuedStatus,
+            nextAttemptAtMillis = :nextAttemptAtMillis,
+            lastError = :lastError,
+            updatedAtMillis = :updatedAtMillis
+        WHERE workspaceId = :workspaceId
+            AND kind = :kind
+            AND status = :inProgressStatus
+        """
     )
+    suspend fun resetInProgressMediaTransfersByKind(
+        workspaceId: String,
+        kind: String,
+        inProgressStatus: String,
+        queuedStatus: String,
+        nextAttemptAtMillis: Long,
+        lastError: String,
+        updatedAtMillis: Long
+    ): Int
 
     @Query(
         """
