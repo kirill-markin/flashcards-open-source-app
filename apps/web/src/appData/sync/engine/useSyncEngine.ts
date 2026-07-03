@@ -12,6 +12,9 @@ import {
   loadCloudSettings,
 } from "../../../localDb/sync/cloudSettings";
 import {
+  loadNextPendingMediaTransferAttemptAtByKind,
+} from "../../../localDb/mediaTransfers";
+import {
   loadWorkspaceSettings,
 } from "../../../localDb/cards/workspace";
 import type {
@@ -69,6 +72,9 @@ import {
   runWorkspaceRemoteSync,
 } from "../remote/syncRemote";
 import {
+  processDueMediaUploadTransfersForWorkspace,
+} from "../mediaUploadTransferRunner";
+import {
   ensureWorkspaceSeedReady,
   seedWorkspaceLocally,
   validateSeedRequest,
@@ -115,6 +121,8 @@ type SyncFailureReport = Readonly<{
   wasCaptured: boolean;
 }>;
 
+const maximumMediaUploadRetryTimerDelayMs = 2_147_483_647;
+
 function createSyncRunId(): string {
   const cryptoValue = globalThis.crypto;
   if (typeof cryptoValue?.randomUUID === "function") {
@@ -134,6 +142,49 @@ function runSyncInBackground(syncTask: Promise<void>): void {
   void syncTask.catch((): void => undefined);
 }
 
+function calculateMediaUploadRetryTimerDelayMs(nextAttemptAt: string, nowMs: number): number | null {
+  const nextAttemptTime = Date.parse(nextAttemptAt);
+  if (Number.isFinite(nextAttemptTime) === false) {
+    throw new Error(`Media upload retry scheduling failed: invalid nextAttemptAt=${nextAttemptAt}`);
+  }
+
+  const delayMs = Math.max(0, nextAttemptTime - nowMs);
+  return delayMs > maximumMediaUploadRetryTimerDelayMs ? null : delayMs;
+}
+
+function isBrowserOnline(): boolean {
+  return typeof navigator === "undefined" || navigator.onLine !== false;
+}
+
+function isLinkedMediaUploadCloudSettings(
+  cloudSettings: CloudSettings | null,
+  session: SessionInfo,
+  workspaceId: string,
+): boolean {
+  return cloudSettings !== null
+    && cloudSettings.cloudState === "linked"
+    && cloudSettings.linkedUserId === session.userId
+    && cloudSettings.linkedWorkspaceId === workspaceId
+    && cloudSettings.installationId.trim() !== "";
+}
+
+function runMediaUploadTransfersInBackground(
+  mediaUploadTask: Promise<void>,
+  userId: string,
+  workspaceId: string,
+): void {
+  void mediaUploadTask.catch((error: unknown): void => {
+    captureAppOperationError(error, {
+      feature: "sync",
+      operation: "media_upload_transfers",
+      userId,
+      workspaceId,
+      installationId: null,
+      entityId: null,
+    });
+  });
+}
+
 export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const {
     sessionLoadState,
@@ -151,12 +202,28 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const syncPromisesRef = useRef<Map<string, Promise<void>>>(new Map());
   const localReadPromisesRef = useRef<Set<Promise<unknown>>>(new Set());
   const localMutationPromisesRef = useRef<Set<Promise<unknown>>>(new Set());
+  const mediaUploadPromisesRef = useRef<Map<string, Promise<void>>>(new Map());
+  const mediaUploadNeedsRunWorkspaceIdsRef = useRef<Set<string>>(new Set());
+  const mediaUploadRetryTimerIdsRef = useRef<Map<string, number>>(new Map());
+  const runMediaUploadTransfersForWorkspaceRef = useRef<(workspace: WorkspaceSummary) => void>(() => undefined);
+  const isSyncEngineMountedRef = useRef<boolean>(true);
+  const mediaUploadLifecycleGenerationRef = useRef<number>(0);
+  const sessionLoadStateRef = useRef<SessionLoadState>(sessionLoadState);
+  const sessionRef = useRef<SessionInfo | null>(session);
+  const sessionVerificationStateRef = useRef<SessionVerificationState>(sessionVerificationState);
   const needsResyncWorkspaceIdsRef = useRef<Set<string>>(new Set());
   const syncingWorkspaceIdsRef = useRef<Set<string>>(new Set());
   const discardedSyncWorkspaceIdsRef = useRef<Set<string>>(new Set());
   const syncGenerationRef = useRef<number>(0);
   const isDiscardingAllSyncWorkRef = useRef<boolean>(false);
   const discardAllSyncWorkPromiseRef = useRef<Promise<void> | null>(null);
+  const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
+
+  useEffect(() => {
+    sessionLoadStateRef.current = sessionLoadState;
+    sessionRef.current = session;
+    sessionVerificationStateRef.current = sessionVerificationState;
+  }, [session, sessionLoadState, sessionVerificationState]);
 
   useEffect(() => {
     activeWorkspaceRef.current = activeWorkspace;
@@ -176,12 +243,32 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     setIsSyncing(currentWorkspace !== null && syncingWorkspaceIdsRef.current.has(currentWorkspace.workspaceId));
   }, [setIsSyncing]);
 
+  const clearMediaUploadRetryTimer = useCallback(function clearMediaUploadRetryTimer(workspaceId: string): void {
+    const timerId = mediaUploadRetryTimerIdsRef.current.get(workspaceId);
+    if (timerId === undefined) {
+      return;
+    }
+
+    window.clearTimeout(timerId);
+    mediaUploadRetryTimerIdsRef.current.delete(workspaceId);
+  }, []);
+
+  const clearAllMediaUploadRetryTimers = useCallback(function clearAllMediaUploadRetryTimers(): void {
+    for (const timerId of mediaUploadRetryTimerIdsRef.current.values()) {
+      window.clearTimeout(timerId);
+    }
+
+    mediaUploadRetryTimerIdsRef.current.clear();
+  }, []);
+
   const discardWorkspaceSync = useCallback(function discardWorkspaceSync(workspaceId: string): void {
     discardedSyncWorkspaceIdsRef.current.add(workspaceId);
+    clearMediaUploadRetryTimer(workspaceId);
+    mediaUploadNeedsRunWorkspaceIdsRef.current.delete(workspaceId);
     needsResyncWorkspaceIdsRef.current.delete(workspaceId);
     syncingWorkspaceIdsRef.current.delete(workspaceId);
     refreshSyncIndicator();
-  }, [refreshSyncIndicator]);
+  }, [clearMediaUploadRetryTimer, refreshSyncIndicator]);
 
   const discardAllSyncWork = useCallback(async function discardAllSyncWork(
     runWhileDiscarding: () => Promise<void>,
@@ -196,15 +283,25 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       const activeSyncTasks = [...syncPromisesRef.current.values()];
       const activeLocalReadTasks = [...localReadPromisesRef.current.values()];
       const activeLocalMutationTasks = [...localMutationPromisesRef.current.values()];
+      const activeMediaUploadTasks = [...mediaUploadPromisesRef.current.values()];
       syncGenerationRef.current += 1;
+      mediaUploadLifecycleGenerationRef.current += 1;
       syncPromisesRef.current.clear();
+      mediaUploadPromisesRef.current.clear();
+      mediaUploadNeedsRunWorkspaceIdsRef.current.clear();
+      clearAllMediaUploadRetryTimers();
       needsResyncWorkspaceIdsRef.current.clear();
       syncingWorkspaceIdsRef.current.clear();
       discardedSyncWorkspaceIdsRef.current.clear();
       refreshSyncIndicator();
 
       try {
-        await Promise.allSettled([...activeSyncTasks, ...activeLocalReadTasks, ...activeLocalMutationTasks]);
+        await Promise.allSettled([
+          ...activeSyncTasks,
+          ...activeLocalReadTasks,
+          ...activeLocalMutationTasks,
+          ...activeMediaUploadTasks,
+        ]);
         await runWhileDiscarding();
       } finally {
         discardAllSyncWorkPromiseRef.current = null;
@@ -213,7 +310,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     })();
     discardAllSyncWorkPromiseRef.current = discardTask;
     return discardTask;
-  }, [refreshSyncIndicator]);
+  }, [clearAllMediaUploadRetryTimers, refreshSyncIndicator]);
 
   const requireWorkspaceSyncNotDiscarded = useCallback(function requireWorkspaceSyncNotDiscarded(
     workspaceId: string,
@@ -302,6 +399,152 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const ignoreSyncError = useCallback(function ignoreSyncError(_report: SyncFailureReport): void {
   }, []);
 
+  const readCurrentRunnableMediaUploadSession = useCallback(function readCurrentRunnableMediaUploadSession(
+    workspace: WorkspaceSummary,
+  ): SessionInfo | null {
+    const currentSession = sessionRef.current;
+    if (
+      isDiscardingAllSyncWorkRef.current
+      || isSyncEngineMountedRef.current === false
+      || sessionLoadStateRef.current !== "ready"
+      || currentSession === null
+      || sessionVerificationStateRef.current !== "verified"
+      || isBrowserOnline() === false
+      || activeWorkspaceRef.current?.workspaceId !== workspace.workspaceId
+      || discardedSyncWorkspaceIdsRef.current.has(workspace.workspaceId)
+    ) {
+      return null;
+    }
+
+    return currentSession;
+  }, []);
+
+  const loadRunnableMediaUploadSession = useCallback(async function loadRunnableMediaUploadSession(
+    workspace: WorkspaceSummary,
+  ): Promise<SessionInfo | null> {
+    const currentSession = readCurrentRunnableMediaUploadSession(workspace);
+    if (currentSession === null) {
+      return null;
+    }
+
+    const cloudSettings = await loadCloudSettings();
+    const verifiedSession = readCurrentRunnableMediaUploadSession(workspace);
+    if (
+      verifiedSession === null
+      || isLinkedMediaUploadCloudSettings(cloudSettings, verifiedSession, workspace.workspaceId) === false
+    ) {
+      return null;
+    }
+
+    return verifiedSession;
+  }, [readCurrentRunnableMediaUploadSession]);
+
+  const scheduleMediaUploadRetryTimerForWorkspace = useCallback(async function scheduleMediaUploadRetryTimerForWorkspace(
+    workspace: WorkspaceSummary,
+  ): Promise<void> {
+    const mediaUploadLifecycleGeneration = mediaUploadLifecycleGenerationRef.current;
+    if (await loadRunnableMediaUploadSession(workspace) === null) {
+      return;
+    }
+
+    const nextAttemptAt = await loadNextPendingMediaTransferAttemptAtByKind(workspace.workspaceId, "upload");
+    if (
+      mediaUploadLifecycleGeneration !== mediaUploadLifecycleGenerationRef.current
+      || nextAttemptAt === null
+      || await loadRunnableMediaUploadSession(workspace) === null
+    ) {
+      return;
+    }
+
+    const delayMs = calculateMediaUploadRetryTimerDelayMs(nextAttemptAt, Date.now());
+    if (delayMs === null) {
+      return;
+    }
+
+    clearMediaUploadRetryTimer(workspace.workspaceId);
+    const timerId = window.setTimeout((): void => {
+      if (mediaUploadLifecycleGeneration !== mediaUploadLifecycleGenerationRef.current) {
+        return;
+      }
+
+      mediaUploadRetryTimerIdsRef.current.delete(workspace.workspaceId);
+      runMediaUploadTransfersForWorkspaceRef.current(workspace);
+    }, delayMs);
+    mediaUploadRetryTimerIdsRef.current.set(workspace.workspaceId, timerId);
+  }, [clearMediaUploadRetryTimer, loadRunnableMediaUploadSession]);
+
+  const runMediaUploadTransfersForWorkspace = useCallback(function runMediaUploadTransfersForWorkspace(
+    workspace: WorkspaceSummary,
+  ): void {
+    clearMediaUploadRetryTimer(workspace.workspaceId);
+    const currentSession = readCurrentRunnableMediaUploadSession(workspace);
+    if (currentSession === null) {
+      return;
+    }
+
+    const activeMediaUploadTask = mediaUploadPromisesRef.current.get(workspace.workspaceId);
+    if (activeMediaUploadTask !== undefined) {
+      mediaUploadNeedsRunWorkspaceIdsRef.current.add(workspace.workspaceId);
+      return;
+    }
+
+    const mediaUploadLifecycleGeneration = mediaUploadLifecycleGenerationRef.current;
+    const mediaUploadTask = (async (): Promise<void> => {
+      if (await loadRunnableMediaUploadSession(workspace) === null) {
+        return;
+      }
+
+      await processDueMediaUploadTransfersForWorkspace(workspace.workspaceId);
+    })().finally(() => {
+      if (
+        mediaUploadLifecycleGeneration === mediaUploadLifecycleGenerationRef.current
+        && mediaUploadPromisesRef.current.get(workspace.workspaceId) === mediaUploadTask
+      ) {
+        mediaUploadPromisesRef.current.delete(workspace.workspaceId);
+        const needsAnotherRun = mediaUploadNeedsRunWorkspaceIdsRef.current.has(workspace.workspaceId);
+        mediaUploadNeedsRunWorkspaceIdsRef.current.delete(workspace.workspaceId);
+        if (needsAnotherRun && discardedSyncWorkspaceIdsRef.current.has(workspace.workspaceId) === false) {
+          runMediaUploadTransfersForWorkspaceRef.current(workspace);
+          return;
+        }
+
+        runMediaUploadTransfersInBackground(
+          scheduleMediaUploadRetryTimerForWorkspace(workspace),
+          currentSession.userId,
+          workspace.workspaceId,
+        );
+      }
+    });
+    mediaUploadPromisesRef.current.set(workspace.workspaceId, mediaUploadTask);
+    runMediaUploadTransfersInBackground(mediaUploadTask, currentSession.userId, workspace.workspaceId);
+  }, [
+    clearMediaUploadRetryTimer,
+    loadRunnableMediaUploadSession,
+    readCurrentRunnableMediaUploadSession,
+    scheduleMediaUploadRetryTimerForWorkspace,
+  ]);
+
+  useEffect(() => {
+    runMediaUploadTransfersForWorkspaceRef.current = runMediaUploadTransfersForWorkspace;
+  }, [runMediaUploadTransfersForWorkspace]);
+
+  useEffect(() => {
+    isSyncEngineMountedRef.current = true;
+    return () => {
+      isSyncEngineMountedRef.current = false;
+      mediaUploadLifecycleGenerationRef.current += 1;
+      mediaUploadPromisesRef.current.clear();
+      mediaUploadNeedsRunWorkspaceIdsRef.current.clear();
+      clearAllMediaUploadRetryTimers();
+    };
+  }, [clearAllMediaUploadRetryTimers]);
+
+  useEffect(() => () => {
+    if (activeWorkspaceId !== null) {
+      clearMediaUploadRetryTimer(activeWorkspaceId);
+    }
+  }, [activeWorkspaceId, clearMediaUploadRetryTimer]);
+
   const waitForWorkspaceSyncToSettle = useCallback(async function waitForWorkspaceSyncToSettle(
     workspaceId: string,
   ): Promise<void> {
@@ -383,6 +626,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           invalidateLocalReviewSchedule();
         }
         setErrorMessage("");
+        runMediaUploadTransfersForWorkspace(workspace);
       } catch (error) {
         if (syncGeneration !== syncGenerationRef.current) {
           return;
@@ -444,6 +688,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     refreshSyncIndicator,
     refreshWorkspaceView,
     requireWorkspaceSyncNotDiscarded,
+    runMediaUploadTransfersForWorkspace,
     session,
     sessionVerificationState,
     isStaleWorkspaceNotFoundError,
@@ -487,7 +732,31 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       });
     });
     runSyncInBackground(runSyncForWorkspace(activeWorkspace));
-  }, [activeWorkspace, refreshLocalMetadata, runSyncForWorkspace, session, sessionLoadState, sessionVerificationState]);
+    runMediaUploadTransfersForWorkspace(activeWorkspace);
+  }, [
+    activeWorkspace,
+    refreshLocalMetadata,
+    runMediaUploadTransfersForWorkspace,
+    runSyncForWorkspace,
+    session,
+    sessionLoadState,
+    sessionVerificationState,
+  ]);
+
+  useEffect(() => {
+    if (sessionLoadState !== "ready" || sessionVerificationState !== "verified" || session === null || activeWorkspace === null) {
+      return;
+    }
+
+    const handleOnline = (): void => {
+      runMediaUploadTransfersForWorkspace(activeWorkspace);
+    };
+
+    window.addEventListener("online", handleOnline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [activeWorkspace, runMediaUploadTransfersForWorkspace, session, sessionLoadState, sessionVerificationState]);
 
   const refreshLocalData = useCallback(async function refreshLocalData(): Promise<void> {
     if (activeWorkspace === null) {
@@ -514,8 +783,6 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     return runLocalDataRead(() => requireDeck(activeWorkspace.workspaceId, deckId));
   }, [activeWorkspace, runLocalDataRead]);
-
-  const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
 
   const requireLocalWorkspaceMutationReady = useCallback(function requireLocalWorkspaceMutationReady(): void {
     if (isDiscardingAllSyncWorkRef.current) {
