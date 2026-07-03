@@ -55,6 +55,7 @@
 }
 
 .mobile-app-promo-dialog {
+  --panel-padding: 28px;
   width: min(780px, 100%);
   max-height: calc(100vh - 48px);
   overflow: auto;
@@ -107,25 +108,29 @@
 
 .mobile-app-promo-badge-link {
   width: fit-content;
-  min-height: 44px;
+  height: 44px;
   border-radius: 8px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  text-decoration: none;
 }
 
 .mobile-app-promo-close:focus-visible,
-.mobile-app-promo-badge-link:focus-visible,
-.mobile-app-promo-url:focus-visible {
+.mobile-app-promo-badge-link:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
-.mobile-app-promo-url {
-  color: var(--accent-strong);
-  font-size: 0.85rem;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+.mobile-app-promo-badge-link .invite-platform-badge {
+  width: auto;
+  max-width: 100%;
+  height: 40px;
+  object-fit: contain;
+}
+
+.mobile-app-promo-badge-link .invite-platform-badge-google-play {
+  max-height: 40px;
 }
 
 .mobile-app-promo-qr-frame {
@@ -155,6 +160,10 @@
 @media (max-width: 720px) {
   .mobile-app-promo-overlay {
     padding: 16px;
+  }
+
+  .mobile-app-promo-dialog {
+    --panel-padding: 22px;
   }
 
   .mobile-app-promo-header {
