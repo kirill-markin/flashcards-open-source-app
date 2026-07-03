@@ -424,7 +424,6 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
         val context = LocalContext.current
         val workspaceExportViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.export.WorkspaceExportViewModel>(
             factory = createWorkspaceExportViewModelFactory(
-                workspaceRepository = appGraph.workspaceRepository,
                 cloudAccountRepository = appGraph.cloudAccountRepository,
                 technicalErrorController = appGraph.appMessageBus,
                 applicationContext = context.applicationContext

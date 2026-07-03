@@ -287,7 +287,7 @@ fun SettingsRoute(
             item {
                 SettingsRootRow(
                     title = stringResource(R.string.settings_workspace_export_title),
-                    summary = stringResource(R.string.settings_export_csv_summary),
+                    summary = stringResource(R.string.settings_export_package_summary),
                     attentionCount = null,
                     testTag = settingsExportRowTag,
                     onClick = onOpenExport

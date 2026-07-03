@@ -54,21 +54,16 @@ class LocalWorkspaceBootstrapContractTest {
     }
 
     @Test
-    fun workspaceRepositoryExposesDeviceDiagnosticsAndExportDataForEmptyWorkspace(): Unit = runBlocking {
+    fun workspaceRepositoryExposesDeviceDiagnosticsForEmptyWorkspace(): Unit = runBlocking {
         val workspaceId = bootstrapTestWorkspace(runtime = runtime, currentTimeMillis = 100L)
         val workspaceRepository = createTestWorkspaceRepository(runtime = runtime)
 
         val diagnostics = workspaceRepository.observeDeviceDiagnostics().first()
-        val exportData = workspaceRepository.loadWorkspaceExportData()
 
         assertEquals(workspaceId, diagnostics?.workspaceId)
         assertEquals(localWorkspaceName, diagnostics?.workspaceName)
         assertEquals(0, diagnostics?.outboxEntriesCount)
         assertEquals(null, diagnostics?.lastSyncCursor)
         assertEquals(null, diagnostics?.lastSyncAttemptAtMillis)
-
-        assertEquals(workspaceId, exportData?.workspaceId)
-        assertEquals(localWorkspaceName, exportData?.workspaceName)
-        assertTrue(exportData?.cards?.isEmpty() == true)
     }
 }

@@ -26,15 +26,3 @@ data class WorkspaceOverviewSummary(
     val newCount: Int,
     val reviewedCount: Int
 )
-
-data class WorkspaceExportCard(
-    val frontText: String,
-    val backText: String,
-    val tags: List<String>
-)
-
-data class WorkspaceExportData(
-    val workspaceId: String,
-    val workspaceName: String,
-    val cards: List<WorkspaceExportCard>
-)

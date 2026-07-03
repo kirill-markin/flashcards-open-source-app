@@ -4,7 +4,6 @@ import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
-import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceExportData
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDefaultPackageMetadata
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportMetadataInput
@@ -14,7 +13,6 @@ import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageEx
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportTagPolicyInput
 import com.flashcardsopensourceapp.data.local.model.workspace.isWorkspacePackageExportGeneratedImportTag
 import java.io.File
-import java.time.LocalDate
 
 private const val workspacePackageExportShareDirectoryName: String = "workspace-package-export"
 
@@ -32,29 +30,6 @@ internal data class WorkspacePackageExportTagOptionUiState(
     val isRemoved: Boolean,
     val isAlwaysRemoved: Boolean
 )
-
-fun makeWorkspaceExportFilename(workspaceName: String, date: LocalDate): String {
-    val slug = workspaceName
-        .trim()
-        .lowercase()
-        .replace(Regex("[^a-z0-9]+"), "-")
-        .replace(Regex("^-+|-+$"), "")
-        .ifEmpty { "workspace" }
-
-    return "$slug-cards-export-$date.csv"
-}
-
-fun makeWorkspaceCardsCsv(exportData: WorkspaceExportData): String {
-    val lines = listOf("frontText,backText,tags") + exportData.cards.map { card ->
-        listOf(
-            escapeWorkspaceExportCsvCell(card.frontText),
-            escapeWorkspaceExportCsvCell(card.backText),
-            escapeWorkspaceExportCsvCell(card.tags.joinToString(separator = ", "))
-        ).joinToString(separator = ",")
-    }
-
-    return lines.joinToString(separator = "\r\n") + "\r\n"
-}
 
 fun makeDefaultWorkspacePackageExportPreviewRequest(): WorkspacePackageExportRequest {
     return WorkspacePackageExportRequest(
@@ -126,21 +101,6 @@ internal fun makeWorkspacePackageExportTagOptions(
             isRemoved = isAlwaysRemoved || removedTags.contains(tagCount.tag),
             isAlwaysRemoved = isAlwaysRemoved
         )
-    }
-}
-
-fun writeWorkspaceExportCsv(
-    contentResolver: ContentResolver,
-    uri: Uri,
-    csv: String
-) {
-    val outputStream = requireNotNull(contentResolver.openOutputStream(uri, "wt")) {
-        "Android export destination is unavailable for writing."
-    }
-
-    outputStream.bufferedWriter(charset = Charsets.UTF_8).use { writer ->
-        writer.write(csv)
-        writer.flush()
     }
 }
 
@@ -218,18 +178,4 @@ private fun requireSafeWorkspacePackageExportFileName(fileName: String): String 
         "Android package export share filename must not contain control characters: $trimmedFileName"
     }
     return trimmedFileName
-}
-
-private fun escapeWorkspaceExportCsvCell(value: String): String {
-    val escapedValue = value.replace(oldValue = "\"", newValue = "\"\"")
-    if (
-        escapedValue.contains(",")
-        || escapedValue.contains("\"")
-        || escapedValue.contains("\n")
-        || escapedValue.contains("\r")
-    ) {
-        return "\"$escapedValue\""
-    }
-
-    return escapedValue
 }

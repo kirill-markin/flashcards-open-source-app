@@ -42,7 +42,6 @@ const val settingsReviewAnimationsToggleTag: String = "settings_review_animation
 const val settingsAiChatSuggestionsToggleTag: String = "settings_ai_chat_suggestions_toggle"
 const val settingsLeaderboardParticipationToggleTag: String = "settings_leaderboard_participation_toggle"
 const val workspaceExportScreenTag: String = "workspace_export_screen"
-const val workspaceExportCsvButtonTag: String = "workspace_export_csv_button"
 const val workspacePackageExportPreviewButtonTag: String = "workspace_package_export_preview_button"
 const val workspacePackageExportSaveButtonTag: String = "workspace_package_export_save_button"
 const val workspacePackageExportShareButtonTag: String = "workspace_package_export_share_button"

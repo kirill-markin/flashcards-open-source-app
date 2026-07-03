@@ -3,9 +3,6 @@ package com.flashcardsopensourceapp.feature.settings.workspace.export
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 
 data class WorkspaceExportUiState(
-    val workspaceName: String,
-    val activeCardsCount: Int,
-    val isExporting: Boolean,
     val packagePreview: WorkspacePackageExportPreview?,
     val packageMetadataDraft: WorkspacePackageExportMetadataDraft,
     val packageRemovedTags: Set<String>,
@@ -15,7 +12,7 @@ data class WorkspaceExportUiState(
     val errorMessage: String
 ) {
     val isBusy: Boolean
-        get() = isExporting || isPackagePreviewing || isPackageExporting
+        get() = isPackagePreviewing || isPackageExporting
 
     val canPreviewPackageExport: Boolean
         get() = packageAvailabilityMessage.isEmpty() && isBusy.not()

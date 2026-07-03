@@ -440,19 +440,8 @@
     <string name="settings_scheduler_steps_invalid_positive">%1$s must contain positive integers.</string>
 
     <string name="settings_export_title">Export</string>
-    <string name="settings_export_csv_title">Export CSV</string>
-    <string name="settings_export_csv_summary">CSV export</string>
-    <string name="settings_export_csv_workspace_summary">%1$d active cards from %2$s</string>
-    <string name="settings_export_file_picker_title">Save CSV export</string>
-    <string name="settings_export_unavailable">Workspace export is unavailable.</string>
-    <string name="settings_export_prepare_failed">Android export could not be prepared.</string>
-    <string name="settings_export_write_failed">Android export could not be written.</string>
-    <string name="settings_export_preparing">Preparing export...</string>
+    <string name="settings_export_package_summary">Export a Flashcards ZIP package</string>
     <string name="settings_export_dismiss_error">Dismiss error</string>
-    <string name="settings_export_file_name">cards-export</string>
-    <string name="settings_export_csv_header_front">frontText</string>
-    <string name="settings_export_csv_header_back">backText</string>
-    <string name="settings_export_csv_header_tags">tags</string>
     <string name="settings_export_package_section">flashcards.zip package</string>
     <string name="settings_export_package_body">Export all active cards, tags, and referenced media as a portable ZIP package.</string>
     <string name="settings_export_package_preview">Preview package export</string>

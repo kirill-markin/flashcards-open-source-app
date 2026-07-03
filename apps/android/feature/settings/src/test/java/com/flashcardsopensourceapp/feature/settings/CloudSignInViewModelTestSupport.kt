@@ -531,8 +531,7 @@ internal class TestSettingsStringResolver : SettingsStringResolver {
             R.string.settings_export_package_preview_failed -> "Package export preview failed."
             R.string.settings_export_package_download_failed -> "Package export failed."
             R.string.settings_export_package_preview_required -> "Preview this package export before saving."
-            R.string.settings_export_unavailable -> "Workspace export is unavailable."
-            R.string.settings_export_prepare_failed -> "Android export could not be prepared."
+            R.string.settings_export_package_summary -> "Export a Flashcards ZIP package"
             R.string.settings_logout -> "Log out"
             R.string.settings_current_workspace_create_new_title -> "Create new workspace"
             R.string.settings_current_workspace_create_new_summary -> {

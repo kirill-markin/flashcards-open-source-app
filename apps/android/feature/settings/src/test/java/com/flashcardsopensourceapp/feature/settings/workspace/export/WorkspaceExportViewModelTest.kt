@@ -4,25 +4,15 @@ import com.flashcardsopensourceapp.core.ui.AppTechnicalError
 import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSummary
-import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
-import com.flashcardsopensourceapp.data.local.model.sync.DeviceDiagnosticsSummary
-import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceExportData
-import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceOverviewSummary
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDefaultPackageMetadata
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportSelection
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportTagCount
-import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceSummary
-import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagsSummary
-import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.FakeCloudAccountRepository
 import com.flashcardsopensourceapp.feature.settings.TestSettingsStringResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -116,7 +106,6 @@ class WorkspaceExportViewModelTest {
 
     private fun workspaceExportViewModel(cloudRepository: FakeCloudAccountRepository): WorkspaceExportViewModel {
         return WorkspaceExportViewModel(
-            workspaceRepository = FakeWorkspaceRepository(),
             cloudAccountRepository = cloudRepository,
             technicalErrorController = RecordingTechnicalErrorController(),
             strings = TestSettingsStringResolver()
@@ -169,59 +158,6 @@ private fun workspacePackageExportPreview(): WorkspacePackageExportPreview {
             sourceUrl = "https://example.com/export"
         )
     )
-}
-
-private class FakeWorkspaceRepository : WorkspaceRepository {
-    private val workspaceOverview = MutableStateFlow(
-        WorkspaceOverviewSummary(
-            workspaceId = "workspace-local",
-            workspaceName = "Personal",
-            totalCards = 3,
-            deckCount = 1,
-            tagsCount = 3,
-            dueCount = 0,
-            newCount = 0,
-            reviewedCount = 0
-        )
-    )
-
-    override fun observeWorkspace(): Flow<WorkspaceSummary?> {
-        throw UnsupportedOperationException()
-    }
-
-    override fun observeAppMetadata(): Flow<AppMetadataSummary> {
-        throw UnsupportedOperationException()
-    }
-
-    override fun observeWorkspaceOverview(): Flow<WorkspaceOverviewSummary?> {
-        return workspaceOverview
-    }
-
-    override fun observeWorkspaceSchedulerSettings(): Flow<WorkspaceSchedulerSettings?> {
-        throw UnsupportedOperationException()
-    }
-
-    override fun observeWorkspaceTagsSummary(): Flow<WorkspaceTagsSummary> {
-        throw UnsupportedOperationException()
-    }
-
-    override fun observeDeviceDiagnostics(): Flow<DeviceDiagnosticsSummary?> {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun loadWorkspaceExportData(): WorkspaceExportData? {
-        throw UnsupportedOperationException()
-    }
-
-    override suspend fun updateWorkspaceSchedulerSettings(
-        desiredRetention: Double,
-        learningStepsMinutes: List<Int>,
-        relearningStepsMinutes: List<Int>,
-        maximumIntervalDays: Int,
-        enableFuzz: Boolean
-    ) {
-        throw UnsupportedOperationException()
-    }
 }
 
 private class RecordingTechnicalErrorController : AppTechnicalErrorController {
