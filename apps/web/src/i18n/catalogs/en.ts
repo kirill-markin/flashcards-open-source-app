@@ -784,6 +784,21 @@ const enCatalog = {
     dismiss: "Got it",
     title: "Quick reminder",
   },
+  mobileAppPromo: {
+    title: "Review on your phone",
+    body: "Install the iOS or Android app to keep reviewing quickly with offline access.",
+    close: "Close",
+    ios: {
+      title: "iOS",
+      storeLinkLabel: "Open iOS app in the App Store",
+      qrLabel: "QR code for the iOS app link",
+    },
+    android: {
+      title: "Android",
+      storeLinkLabel: "Open Android app in Google Play",
+      qrLabel: "QR code for the Android app link",
+    },
+  },
   feedback: {
     title: "Have an idea for Flashcards?",
     body: "Share what would make the app better. The creator reads every message personally.",

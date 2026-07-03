@@ -14,6 +14,30 @@ export const defaultAppPlatformStoreLinks: AppPlatformStoreLinks = {
   android: "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&pcampaignid=web_share",
 };
 
+export function AppStoreBadge(): ReactElement {
+  return (
+    <img
+      alt=""
+      className="invite-platform-badge invite-platform-badge-app-store"
+      height={40}
+      src={appStoreBadgeSrc}
+      width={120}
+    />
+  );
+}
+
+export function GooglePlayBadge(): ReactElement {
+  return (
+    <img
+      alt=""
+      className="invite-platform-badge invite-platform-badge-google-play"
+      height={61}
+      src={googlePlayLockupSrc}
+      width={300}
+    />
+  );
+}
+
 export type AppPlatformLinkLabels = Readonly<{
   ios: string;
   android: string;
@@ -66,13 +90,7 @@ export function AppPlatformLinks({
         aria-label={labels.ios}
         data-testid="app-platform-link-ios"
       >
-        <img
-          alt=""
-          className="invite-platform-badge invite-platform-badge-app-store"
-          height={40}
-          src={appStoreBadgeSrc}
-          width={120}
-        />
+        <AppStoreBadge />
       </a>
       <a
         className="invite-platform-link"
@@ -82,13 +100,7 @@ export function AppPlatformLinks({
         aria-label={labels.android}
         data-testid="app-platform-link-android"
       >
-        <img
-          alt=""
-          className="invite-platform-badge invite-platform-badge-google-play"
-          height={61}
-          src={googlePlayLockupSrc}
-          width={300}
-        />
+        <GooglePlayBadge />
       </a>
       <Link
         className="invite-platform-link"

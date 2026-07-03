@@ -786,6 +786,21 @@ export const jaCatalog = {
     dismiss: "了解",
     title: "クイックリマインダー",
   },
+  mobileAppPromo: {
+    title: "スマートフォンで復習",
+    body: "iOS または Android アプリをインストールして、オフラインでもすばやく復習できます。",
+    close: "閉じる",
+    ios: {
+      title: "iOS",
+      storeLinkLabel: "App Store で iOS アプリを開く",
+      qrLabel: "iOS アプリリンクの QR コード",
+    },
+    android: {
+      title: "Android",
+      storeLinkLabel: "Google Play で Android アプリを開く",
+      qrLabel: "Android アプリリンクの QR コード",
+    },
+  },
   feedback: {
     title: "Flashcards へのアイデアがありますか？",
     body: "アプリをより良くするための意見を共有してください。作成者がすべてのメッセージを直接読みます。",

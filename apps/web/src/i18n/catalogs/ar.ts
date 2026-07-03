@@ -786,6 +786,21 @@ const arCatalog: TranslationCatalog = {
     dismiss: "فهمت",
     title: "تذكير سريع",
   },
+  mobileAppPromo: {
+    title: "راجع على هاتفك",
+    body: "ثبّت تطبيق iOS أو Android لمتابعة المراجعة بسرعة مع الوصول دون اتصال.",
+    close: "إغلاق",
+    ios: {
+      title: "iOS",
+      storeLinkLabel: "افتح تطبيق iOS في App Store",
+      qrLabel: "رمز QR لرابط تطبيق iOS",
+    },
+    android: {
+      title: "Android",
+      storeLinkLabel: "افتح تطبيق Android في Google Play",
+      qrLabel: "رمز QR لرابط تطبيق Android",
+    },
+  },
   feedback: {
     title: "هل لديك فكرة لـ Flashcards؟",
     body: "شارك ما قد يجعل التطبيق أفضل. يقرأ المنشئ كل رسالة شخصيًا.",

@@ -786,6 +786,21 @@ export const zhHansCatalog = {
     dismiss: "知道了",
     title: "快速提醒",
   },
+  mobileAppPromo: {
+    title: "在手机上复习",
+    body: "安装 iOS 或 Android 应用，在离线时也能快速继续复习。",
+    close: "关闭",
+    ios: {
+      title: "iOS",
+      storeLinkLabel: "在 App Store 打开 iOS 应用",
+      qrLabel: "iOS 应用链接的二维码",
+    },
+    android: {
+      title: "Android",
+      storeLinkLabel: "在 Google Play 打开 Android 应用",
+      qrLabel: "Android 应用链接的二维码",
+    },
+  },
   feedback: {
     title: "对 Flashcards 有想法吗？",
     body: "告诉我们什么能让应用更好。创建者会亲自阅读每条消息。",

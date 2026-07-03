@@ -786,6 +786,21 @@ const hiCatalog: TranslationCatalog = {
     dismiss: "समझ गया",
     title: "त्वरित याद दिलाना",
   },
+  mobileAppPromo: {
+    title: "अपने फोन पर रिव्यू करें",
+    body: "ऑफलाइन एक्सेस के साथ तेजी से रिव्यू जारी रखने के लिए iOS या Android ऐप इंस्टॉल करें.",
+    close: "बंद करें",
+    ios: {
+      title: "iOS",
+      storeLinkLabel: "App Store में iOS ऐप खोलें",
+      qrLabel: "iOS ऐप लिंक का QR कोड",
+    },
+    android: {
+      title: "Android",
+      storeLinkLabel: "Google Play में Android ऐप खोलें",
+      qrLabel: "Android ऐप लिंक का QR कोड",
+    },
+  },
   feedback: {
     title: "Flashcards के लिए कोई विचार है?",
     body: "ऐप को बेहतर बनाने वाली बात साझा करें। निर्माता हर संदेश खुद पढ़ता है।",
