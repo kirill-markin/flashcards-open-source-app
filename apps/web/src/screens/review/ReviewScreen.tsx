@@ -6,6 +6,7 @@ import { ReviewPane } from "./components/ReviewPane";
 import { ReviewQueuePanel } from "./components/ReviewQueuePanel";
 import { ReviewScreenHeader } from "./components/ReviewScreenHeader";
 import { ReviewHardReminderDialog } from "./hardReminder/ReviewHardReminderDialog";
+import { MobileAppPromotionDialog } from "./mobileAppPromo/MobileAppPromotionDialog";
 import { ReviewRatingReactionLayer } from "./reactions/ReviewRatingReactionLayer";
 import { startReviewReactionLottiePrewarm } from "./reactions/lottie/reviewReactionLottie";
 import { useReviewScreenController } from "./useReviewScreenController";
@@ -21,6 +22,7 @@ export function ReviewScreen(): ReactElement {
     feedbackDialogProps,
     hardReminderDialogProps,
     headerProps,
+    mobileAppPromotionDialogProps,
     paneProps,
     queuePanelProps,
     reviewReactionFallbackHandler,
@@ -62,6 +64,7 @@ export function ReviewScreen(): ReactElement {
       <ReviewEditorModal {...editorModalProps} />
       <FeedbackDialog {...feedbackDialogProps} />
       <ReviewHardReminderDialog {...hardReminderDialogProps} />
+      <MobileAppPromotionDialog {...mobileAppPromotionDialogProps} />
     </main>
   );
 }

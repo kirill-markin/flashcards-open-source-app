@@ -54,6 +54,9 @@ export {
   loadProgressSummary,
 } from "./api/endpoints/progress";
 export {
+  loadReviewPlatformSummary,
+} from "./api/endpoints/reviewPlatformSummary";
+export {
   abortMediaAssetUploadSession,
   completeMediaAssetUploadSession,
   createMediaAssetUploadPartUrls,
