@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, type ReactElement } from "react";
+import { act } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppDataContextValue } from "../../../appData";
@@ -13,41 +13,23 @@ import type {
   WorkspacePackageExportDownloadResult,
   WorkspacePackageExportPreviewResponse,
   WorkspacePackageExportRequest,
-  WorkspacePackageImportConfirmOptions,
-  WorkspacePackageImportConfirmResponse,
-  WorkspacePackageImportPreviewResponse,
   WorkspaceResetProgressPreview,
 } from "../../../types";
 import { WorkspaceExportScreen } from "./WorkspaceExportScreen";
 
-type ExportWorkspaceCardsCsvParams = Parameters<typeof import("../../../workspaceExport").exportWorkspaceCardsCsv>[0];
-
 const {
-  confirmWorkspacePackageImportMock,
   downloadWorkspacePackageExportMock,
-  exportWorkspaceCardsCsvMock,
   previewWorkspacePackageExportMock,
-  previewWorkspacePackageImportMock,
   useAppDataMock,
 } = vi.hoisted(() => ({
-  confirmWorkspacePackageImportMock: vi.fn<(
-    workspaceId: string,
-    file: File,
-    options: WorkspacePackageImportConfirmOptions,
-  ) => Promise<WorkspacePackageImportConfirmResponse>>(),
   downloadWorkspacePackageExportMock: vi.fn<(
     workspaceId: string,
     request: WorkspacePackageExportRequest,
   ) => Promise<WorkspacePackageExportDownloadResult>>(),
-  exportWorkspaceCardsCsvMock: vi.fn<(params: ExportWorkspaceCardsCsvParams) => Promise<void>>(),
   previewWorkspacePackageExportMock: vi.fn<(
     workspaceId: string,
     request: WorkspacePackageExportRequest,
   ) => Promise<WorkspacePackageExportPreviewResponse>>(),
-  previewWorkspacePackageImportMock: vi.fn<(
-    workspaceId: string,
-    fileOrBlob: Blob,
-  ) => Promise<WorkspacePackageImportPreviewResponse>>(),
   useAppDataMock: vi.fn<() => AppDataContextValue>(),
 }));
 
@@ -55,18 +37,8 @@ vi.mock("../../../api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../api")>();
   return {
     ...actual,
-    confirmWorkspacePackageImport: confirmWorkspacePackageImportMock,
     downloadWorkspacePackageExport: downloadWorkspacePackageExportMock,
     previewWorkspacePackageExport: previewWorkspacePackageExportMock,
-    previewWorkspacePackageImport: previewWorkspacePackageImportMock,
-  };
-});
-
-vi.mock("../../../workspaceExport", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../../workspaceExport")>();
-  return {
-    ...actual,
-    exportWorkspaceCardsCsv: exportWorkspaceCardsCsvMock,
   };
 });
 
@@ -125,69 +97,6 @@ function createExportDownloadResult(): WorkspacePackageExportDownloadResult {
     filename: "backend-flashcards.zip",
     contentType: "application/zip",
   };
-}
-
-function createPreviewResponse(): WorkspacePackageImportPreviewResponse {
-  return {
-    sourceKind: "zip",
-    packageMetadata: {
-      label: "Shared deck",
-      author: "Package author",
-      comment: "Package comment",
-      createdAt: "2026-04-01T09:00:00.000Z",
-      sourceUrl: "https://example.com/package",
-    },
-    cardCount: 3,
-    tagCounts: [
-      { tag: "geography", cardsCount: 2 },
-      { tag: "temporary", cardsCount: 1 },
-    ],
-    referencedMediaCount: 2,
-    packageMediaFileCount: 4,
-    warnings: [
-      {
-        code: "MEDIA_NOT_REFERENCED",
-        message: "Unused media file will be skipped.",
-        mediaPath: "media/unused.png",
-      },
-    ],
-    defaultOptions: {
-      addImportTag: true,
-      suggestedImportTag: "import:2026-07-01",
-      keptTags: ["geography"],
-      removedTags: ["temporary"],
-    },
-  };
-}
-
-function createPreviewResponseWithMetadata(
-  packageMetadata: WorkspacePackageImportPreviewResponse["packageMetadata"],
-): WorkspacePackageImportPreviewResponse {
-  return {
-    ...createPreviewResponse(),
-    packageMetadata,
-  };
-}
-
-function createConfirmResponse(): WorkspacePackageImportConfirmResponse {
-  return {
-    cards: [],
-    importedMediaAssets: [],
-    summary: {
-      cardCount: 2,
-      cardBatchCount: 1,
-      referencedMediaCount: 2,
-      importedMediaAssetCount: 1,
-      appliedMediaAssetCount: 1,
-      keptTagCount: 1,
-      removedTagCount: 1,
-      importTag: "import:2026-07-01",
-    },
-  };
-}
-
-function createZipFile(fileName: string): File {
-  return new File([new Uint8Array([80, 75, 3, 4])], fileName, { type: "application/zip" });
 }
 
 function createAppData(): Mutable<AppDataContextValue> {
@@ -271,17 +180,10 @@ function setupWorkspaceExportScreen(): WorkspaceExportScreenHarness {
     useAppDataMock.mockReset();
     previewWorkspacePackageExportMock.mockReset();
     downloadWorkspacePackageExportMock.mockReset();
-    exportWorkspaceCardsCsvMock.mockReset();
-    previewWorkspacePackageImportMock.mockReset();
-    confirmWorkspacePackageImportMock.mockReset();
     appData = createAppData();
     useAppDataMock.mockReturnValue(appData);
     previewWorkspacePackageExportMock.mockResolvedValue(createExportPreviewResponse());
     downloadWorkspacePackageExportMock.mockResolvedValue(createExportDownloadResult());
-    exportWorkspaceCardsCsvMock.mockResolvedValue(undefined);
-    previewWorkspacePackageImportMock.mockResolvedValue(createPreviewResponse());
-    confirmWorkspacePackageImportMock.mockResolvedValue(createConfirmResponse());
-    vi.spyOn(crypto, "randomUUID").mockReturnValue("11111111-1111-4111-8111-111111111111");
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,
       value: vi.fn((_blob: Blob): string => "blob:workspace-package-export"),
@@ -365,13 +267,6 @@ function requireElement<ElementType extends Element>(
   return element;
 }
 
-function setInputFiles(input: HTMLInputElement, files: ReadonlyArray<File>): void {
-  Object.defineProperty(input, "files", {
-    configurable: true,
-    value: files,
-  });
-}
-
 async function waitForCondition(description: string, predicate: () => boolean): Promise<void> {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     if (predicate()) {
@@ -388,25 +283,10 @@ async function waitForCondition(description: string, predicate: () => boolean): 
   throw new Error(description);
 }
 
-async function choosePackageFile(file: File): Promise<void> {
-  const input = requireElement("[data-testid='workspace-package-import-file-input']", HTMLInputElement);
-  setInputFiles(input, [file]);
-  await act(async () => {
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-  });
-}
-
 async function clickElement(element: HTMLElement): Promise<void> {
   await act(async () => {
     element.click();
   });
-}
-
-async function waitForPreview(): Promise<void> {
-  await waitForCondition("Package preview did not finish", () => (
-    previewWorkspacePackageImportMock.mock.calls.length > 0
-      && getContainer().querySelector("[data-testid='workspace-package-import-preview']") !== null
-  ));
 }
 
 async function waitForExportPreview(): Promise<void> {
@@ -416,21 +296,9 @@ async function waitForExportPreview(): Promise<void> {
   ));
 }
 
-async function waitForConfirm(): Promise<void> {
-  await waitForCondition("Package import confirm did not finish", () => (
-    confirmWorkspacePackageImportMock.mock.calls.length > 0
-  ));
-}
-
 async function waitForExportDownload(): Promise<void> {
   await waitForCondition("Package export download did not finish", () => (
     downloadWorkspacePackageExportMock.mock.calls.length > 0
-  ));
-}
-
-async function waitForCsvExport(): Promise<void> {
-  await waitForCondition("CSV export did not finish", () => (
-    exportWorkspaceCardsCsvMock.mock.calls.length > 0
   ));
 }
 
@@ -441,15 +309,6 @@ function readExportDownloadRequest(): WorkspacePackageExportRequest {
   }
 
   return request;
-}
-
-function readConfirmOptions(): WorkspacePackageImportConfirmOptions {
-  const options = confirmWorkspacePackageImportMock.mock.calls[0]?.[2];
-  if (options === undefined) {
-    throw new Error("Package import confirm options were not captured");
-  }
-
-  return options;
 }
 
 describe("WorkspaceExportScreen package export", () => {
@@ -565,114 +424,10 @@ describe("WorkspaceExportScreen package export", () => {
     expect(downloadWorkspacePackageExportMock).not.toHaveBeenCalled();
   });
 
-  it("keeps CSV export on the existing CSV helper path", async () => {
+  it("resets the preview when the active workspace changes before download", async () => {
     await renderScreen();
-    await clickElement(requireElement("[data-testid='workspace-csv-export-button']", HTMLButtonElement));
-    await waitForCsvExport();
-
-    expect(exportWorkspaceCardsCsvMock).toHaveBeenCalledWith(expect.objectContaining({
-      workspaceId: "workspace-1",
-      workspaceName: "Primary",
-      document: window.document,
-      urlApi: URL,
-    }));
-    expect(previewWorkspacePackageExportMock).not.toHaveBeenCalled();
-    expect(downloadWorkspacePackageExportMock).not.toHaveBeenCalled();
-  });
-});
-
-describe("WorkspaceExportScreen package import", () => {
-  it("initializes the import tag option from preview defaults", async () => {
-    const file = createZipFile("flashcards.zip");
-
-    await renderScreen();
-    await choosePackageFile(file);
-    await waitForPreview();
-
-    const checkbox = requireElement("[data-testid='workspace-package-import-tag-checkbox']", HTMLInputElement);
-    const importTag = requireElement("[data-testid='workspace-package-import-preview-import-tag']", HTMLParagraphElement);
-
-    expect(checkbox.checked).toBe(true);
-    expect(importTag.textContent).toContain("import:2026-07-01");
-  });
-
-  it("previews a chosen ZIP and displays package counts and details", async () => {
-    const file = createZipFile("flashcards.zip");
-
-    await renderScreen();
-    await choosePackageFile(file);
-    await waitForPreview();
-
-    expect(previewWorkspacePackageImportMock).toHaveBeenCalledWith("workspace-1", file);
-    expect(requireElement("[data-testid='workspace-package-import-preview-card-count']", HTMLElement).textContent).toBe("3");
-    expect(requireElement("[data-testid='workspace-package-import-preview-referenced-media-count']", HTMLElement).textContent).toBe("2");
-    expect(requireElement("[data-testid='workspace-package-import-preview-package-media-count']", HTMLElement).textContent).toBe("4");
-    expect(requireElement("[data-testid='workspace-package-import-preview-metadata']", HTMLElement).textContent).toContain("Shared deck");
-    expect(requireElement("[data-testid='workspace-package-import-preview-metadata']", HTMLElement).textContent).toContain("Package author");
-    expect(requireElement("[data-testid='workspace-package-import-preview-metadata']", HTMLElement).textContent).toContain("Package comment");
-    expect(requireElement("[data-testid='workspace-package-import-preview-metadata']", HTMLElement).textContent).toContain("https://example.com/package");
-    expect(requireElement("[data-testid='workspace-package-import-preview-warnings']", HTMLElement).textContent).toContain("Unused media file will be skipped.");
-  });
-
-  it("renders unsafe package source URLs as plain text", async () => {
-    const file = createZipFile("flashcards.zip");
-    previewWorkspacePackageImportMock.mockResolvedValueOnce(createPreviewResponseWithMetadata({
-      ...createPreviewResponse().packageMetadata,
-      sourceUrl: "javascript:alert(1)",
-    }));
-
-    await renderScreen();
-    await choosePackageFile(file);
-    await waitForPreview();
-
-    const metadata = requireElement("[data-testid='workspace-package-import-preview-metadata']", HTMLElement);
-    const sourceLink = Array.from(metadata.querySelectorAll("a")).find((link) => link.textContent === "javascript:alert(1)");
-
-    expect(metadata.textContent).toContain("javascript:alert(1)");
-    expect(sourceLink).toBeUndefined();
-  });
-
-  it("renders malformed package created dates as plain text", async () => {
-    const file = createZipFile("flashcards.zip");
-    previewWorkspacePackageImportMock.mockResolvedValueOnce(createPreviewResponseWithMetadata({
-      ...createPreviewResponse().packageMetadata,
-      createdAt: "not-a-date",
-    }));
-
-    await renderScreen();
-    await choosePackageFile(file);
-    await waitForPreview();
-
-    expect(requireElement("[data-testid='workspace-package-import-preview-metadata']", HTMLElement).textContent).toContain("not-a-date");
-    expect(getContainer().querySelector("[data-testid='workspace-export-error']")).toBeNull();
-  });
-
-  it("uses the current tag removal checkbox state when confirming import", async () => {
-    const file = createZipFile("flashcards.zip");
-
-    await renderScreen();
-    await choosePackageFile(file);
-    await waitForPreview();
-
-    const geographyCheckbox = requireElement(
-      "[data-testid='workspace-package-remove-tag-checkbox'][data-tag='geography']",
-      HTMLInputElement,
-    );
-    expect(geographyCheckbox.checked).toBe(false);
-
-    await clickElement(geographyCheckbox);
-    await clickElement(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement));
-    await waitForConfirm();
-
-    expect(readConfirmOptions().removeTags).toEqual(["temporary", "geography"]);
-  });
-
-  it("resets the preview when the active workspace changes before confirm", async () => {
-    const file = createZipFile("flashcards.zip");
-
-    await renderScreen();
-    await choosePackageFile(file);
-    await waitForPreview();
+    await clickElement(requireElement("[data-testid='workspace-package-export-button']", HTMLButtonElement));
+    await waitForExportPreview();
 
     getAppData().activeWorkspace = {
       workspaceId: "workspace-2",
@@ -681,123 +436,11 @@ describe("WorkspaceExportScreen package import", () => {
       isSelected: true,
     };
     await renderScreen();
-    await waitForCondition("Package preview was not reset after workspace change", () => (
-      getContainer().querySelector("[data-testid='workspace-package-import-preview']") === null
+    await waitForCondition("Package export preview was not reset after workspace change", () => (
+      getContainer().querySelector("[data-testid='workspace-package-export-preview']") === null
     ));
 
-    expect(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement).disabled).toBe(true);
-    expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
-  });
-
-  it("resets the preview when the installation id changes before confirm", async () => {
-    const file = createZipFile("flashcards.zip");
-    const appData = getAppData();
-
-    await renderScreen();
-    await choosePackageFile(file);
-    await waitForPreview();
-
-    if (appData.cloudSettings === null) {
-      throw new Error("Cloud settings fixture is not ready");
-    }
-
-    appData.cloudSettings = {
-      ...appData.cloudSettings,
-      installationId: "00000000-0000-4000-8000-000000000002",
-    };
-    await renderScreen();
-    await waitForCondition("Package preview was not reset after installation change", () => (
-      getContainer().querySelector("[data-testid='workspace-package-import-preview']") === null
-    ));
-
-    expect(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement).disabled).toBe(true);
-    expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
-  });
-
-  it("does not start package preview when installation id is missing", async () => {
-    const appData = getAppData();
-
-    if (appData.cloudSettings === null) {
-      throw new Error("Cloud settings fixture is not ready");
-    }
-
-    appData.cloudSettings = {
-      ...appData.cloudSettings,
-      installationId: "",
-    };
-
-    await renderScreen();
-    await clickElement(requireElement("[data-testid='workspace-package-import-button']", HTMLButtonElement));
-
-    expect(requireElement("[data-testid='workspace-package-import-button']", HTMLButtonElement).disabled).toBe(true);
-    expect(requireElement("[data-testid='workspace-package-import-file-input']", HTMLInputElement).disabled).toBe(true);
-    expect(requireElement("[data-testid='workspace-package-import-unavailable']", HTMLParagraphElement).textContent).toContain("Workspace is unavailable");
-    expect(previewWorkspacePackageImportMock).not.toHaveBeenCalled();
-    expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
-  });
-
-  it("confirms import with generated options, refreshes local data, and shows tagged success", async () => {
-    const file = createZipFile("flashcards.zip");
-
-    await renderScreen();
-    await choosePackageFile(file);
-    await waitForPreview();
-    await clickElement(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement));
-    await waitForCondition("Package import success was not shown", () => (
-      getContainer().querySelector("[data-testid='workspace-export-success']") !== null
-    ));
-
-    const options = readConfirmOptions();
-    expect(confirmWorkspacePackageImportMock).toHaveBeenCalledWith("workspace-1", file, expect.objectContaining({
-      addImportTag: true,
-      importId: "11111111-1111-4111-8111-111111111111",
-      importTag: "import:2026-07-01",
-      lastModifiedByReplicaId: "00000000-0000-4000-8000-000000000001",
-      operationIdPrefix: "11111111-1111-4111-8111-111111111111",
-      removeTags: ["temporary"],
-    }));
-    expect(options.clientUpdatedAt).toBe(options.importedAt);
-    expect(Date.parse(options.importedAt)).not.toBeNaN();
-    expect(getAppData().refreshLocalData).toHaveBeenCalledTimes(1);
-    expect(requireElement("[data-testid='workspace-export-success']", HTMLParagraphElement).textContent).toContain("Imported 2 cards with tag import:2026-07-01.");
-  });
-
-  it("surfaces refresh failures after confirm without showing success", async () => {
-    const file = createZipFile("flashcards.zip");
-    getAppData().refreshLocalData = vi.fn(async (): Promise<void> => {
-      throw new Error("Refresh failed");
-    });
-
-    await renderScreen();
-    await choosePackageFile(file);
-    await waitForPreview();
-    await clickElement(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement));
-    await waitForCondition("Package refresh error was not shown", () => (
-      getContainer().querySelector("[data-testid='workspace-export-error']") !== null
-    ));
-
-    expect(confirmWorkspacePackageImportMock).toHaveBeenCalledTimes(1);
-    expect(requireElement("[data-testid='workspace-export-error']", HTMLParagraphElement).textContent).toContain("A technical error occurred.");
-    expect(getContainer().querySelector("[data-testid='workspace-export-success']")).toBeNull();
-    expect(getContainer().querySelector("[data-testid='workspace-package-import-preview']")).toBeNull();
-
-    await clickElement(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement));
-
-    expect(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement).disabled).toBe(true);
-    expect(confirmWorkspacePackageImportMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("surfaces preview errors through the existing error UI", async () => {
-    const file = createZipFile("flashcards.zip");
-    previewWorkspacePackageImportMock.mockRejectedValueOnce(new Error("Preview failed"));
-
-    await renderScreen();
-    await choosePackageFile(file);
-    await waitForCondition("Package preview error was not shown", () => (
-      getContainer().querySelector("[data-testid='workspace-export-error']") !== null
-    ));
-
-    expect(requireElement("[data-testid='workspace-export-error']", HTMLParagraphElement).textContent).toContain("A technical error occurred.");
-    expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
+    expect(getContainer().querySelector("[data-testid='workspace-package-export-confirm-button']")).toBeNull();
+    expect(downloadWorkspacePackageExportMock).not.toHaveBeenCalled();
   });
 });

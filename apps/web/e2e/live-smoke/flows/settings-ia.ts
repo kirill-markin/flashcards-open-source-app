@@ -88,6 +88,7 @@ const rootRowTestIds: ReadonlyArray<string> = [
   "settings-row-access",
   "settings-row-decks",
   "settings-row-tags",
+  "settings-row-import",
   "settings-row-export",
   "settings-row-feedback",
   "settings-row-support",

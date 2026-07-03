@@ -35,6 +35,7 @@ export const settingsTestRoute: string = "/settings/test";
 export const settingsTestAnimationsRoute: string = "/settings/test/animations";
 export const settingsSchedulerRoute: string = "/settings/scheduling";
 export const settingsNotificationsRoute: string = "/settings/review-reminders";
+export const settingsImportRoute: string = "/settings/import";
 export const settingsExportRoute: string = "/settings/export";
 export const settingsAccessDetailRoutePattern: string = "/settings/access/:accessKind";
 export const settingsDecksRoute: string = "/settings/decks";
