@@ -146,6 +146,7 @@
 "settings.row.workspaceScoped.value" = "工作空间";
 "settings.row.tags" = "标签";
 "settings.row.export" = "导出";
+"settings.row.export.value" = "flashcards.zip";
 "settings.row.legal" = "法律";
 "settings.row.support" = "支持";
 "settings.row.openSource" = "开源";
@@ -600,12 +601,7 @@
 "settings.notifications.duration.hours" = "%d 小时";
 "settings.notifications.duration.minutes" = "%d 分钟";
 
-"settings.workspace.export.section.availableFormats" = "可用格式";
-"settings.workspace.export.description" = "将当前工作区中的活动卡片数据导出为 CSV 文件。";
-"settings.workspace.export.exportCsv" = "导出 CSV";
-"settings.workspace.export.exporting" = "正在导出...";
 "settings.workspace.export.fileUnavailable" = "导出的文件不可用。";
-"settings.workspace.export.workspaceUnavailable" = "工作区不可用";
 "settings.workspace.export.cloudRequired" = "此版本导出媒体包需要云账户。";
 "settings.workspace.export.package.section" = "flashcards.zip 包";
 "settings.workspace.export.package.description" = "将活动卡片、标签和引用的媒体导出为 flashcards.zip。";

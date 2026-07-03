@@ -146,6 +146,7 @@
 "settings.row.workspaceScoped.value" = "مساحة العمل";
 "settings.row.tags" = "الوسوم";
 "settings.row.export" = "تصدير";
+"settings.row.export.value" = "flashcards.zip";
 "settings.row.legal" = "الشؤون القانونية";
 "settings.row.support" = "الدعم";
 "settings.row.openSource" = "مفتوح المصدر";
@@ -600,12 +601,7 @@
 "settings.notifications.duration.hours" = "ساعات %d";
 "settings.notifications.duration.minutes" = "دقائق %d";
 
-"settings.workspace.export.section.availableFormats" = "التنسيقات المتوفرة";
-"settings.workspace.export.description" = "يصدر بيانات البطاقات النشطة من مساحة العمل الحالية كملف CSV.";
-"settings.workspace.export.exportCsv" = "تصدير CSV";
-"settings.workspace.export.exporting" = "جارٍ التصدير...";
 "settings.workspace.export.fileUnavailable" = "الملف الذي تم تصديره غير متوفر.";
-"settings.workspace.export.workspaceUnavailable" = "مساحة العمل غير متاحة";
 "settings.workspace.export.cloudRequired" = "يتطلب تصدير حزمة الوسائط حسابًا سحابيًا في هذا الإصدار.";
 "settings.workspace.export.package.section" = "حزمة flashcards.zip";
 "settings.workspace.export.package.description" = "صدّر البطاقات النشطة والوسوم والوسائط المشار إليها كملف flashcards.zip.";

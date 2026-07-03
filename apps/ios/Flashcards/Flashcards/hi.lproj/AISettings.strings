@@ -146,6 +146,7 @@
 "settings.row.workspaceScoped.value" = "कार्यस्थान";
 "settings.row.tags" = "टैग";
 "settings.row.export" = "निर्यात";
+"settings.row.export.value" = "flashcards.zip";
 "settings.row.legal" = "कानूनी";
 "settings.row.support" = "समर्थन";
 "settings.row.openSource" = "ओपन सोर्स";
@@ -600,12 +601,7 @@
 "settings.notifications.duration.hours" = "%d घंटे";
 "settings.notifications.duration.minutes" = "%d मिनट";
 
-"settings.workspace.export.section.availableFormats" = "उपलब्ध प्रारूप";
-"settings.workspace.export.description" = "वर्तमान कार्यक्षेत्र से सक्रिय कार्ड डेटा को CSV फ़ाइल के रूप में निर्यात करता है।";
-"settings.workspace.export.exportCsv" = "निर्यात CSV";
-"settings.workspace.export.exporting" = "निर्यात...";
 "settings.workspace.export.fileUnavailable" = "निर्यात की गई फ़ाइल उपलब्ध नहीं है.";
-"settings.workspace.export.workspaceUnavailable" = "कार्यस्थल उपलब्ध नहीं है";
 "settings.workspace.export.cloudRequired" = "इस संस्करण में मीडिया पैकेज निर्यात के लिए क्लाउड खाते की आवश्यकता है.";
 "settings.workspace.export.package.section" = "flashcards.zip पैकेज";
 "settings.workspace.export.package.description" = "सक्रिय कार्ड, टैग और संदर्भित मीडिया को flashcards.zip के रूप में निर्यात करें.";
