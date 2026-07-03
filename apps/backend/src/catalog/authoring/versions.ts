@@ -2,9 +2,9 @@ import { randomUUID } from "node:crypto";
 import {
   applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
-} from "../database";
-import { unsafeTransaction } from "../database/core";
-import { HttpError } from "../shared/errors";
+} from "../../database";
+import { unsafeTransaction } from "../../database/core";
+import { HttpError } from "../../shared/errors";
 import {
   normalizeAdminEmail,
   normalizeNonEmptyString,
@@ -12,22 +12,22 @@ import {
   normalizePackageMediaKey,
   normalizeTextArray,
   toSafeNumber,
-} from "./common";
+} from "../common";
 import {
   assertDraftMediaKeysExistInExecutor,
   insertCatalogPackageVersionMediaAssetsInExecutor,
   loadCatalogPackageDraftMediaKeysInExecutor,
 } from "./draftMedia";
-import { rethrowCatalogPersistenceError } from "./errors";
+import { rethrowCatalogPersistenceError } from "../errors";
 import {
   catalogPackageVersionColumns,
   lockCatalogPackageInExecutor,
   mapCatalogPackageVersionRow,
-} from "./rows";
+} from "../rows";
 import {
   extractMarkdownFcAssetIds,
   rewriteMarkdownFcAssetUrlsToFcAssets,
-} from "../workspacePackages";
+} from "../../workspacePackages";
 import type {
   CatalogPackageCardSnapshotInput,
   CatalogPackageStatus,
@@ -38,7 +38,7 @@ import type {
   CreateCatalogPackageVersionFromWorkspaceInput,
   CreateCatalogPackageVersionInput,
   UpdateCatalogPackageVersionStatusInput,
-} from "./types";
+} from "../types";
 
 const reviewStatusRouteTargets: ReadonlySet<CatalogPackageStatus> = new Set([
   "draft",

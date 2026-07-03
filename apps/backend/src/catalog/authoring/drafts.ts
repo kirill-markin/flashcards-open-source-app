@@ -1,21 +1,21 @@
-import type { DatabaseExecutor } from "../database";
-import { unsafeTransaction } from "../database/core";
-import { HttpError } from "../shared/errors";
+import type { DatabaseExecutor } from "../../database";
+import { unsafeTransaction } from "../../database/core";
+import { HttpError } from "../../shared/errors";
 import {
   normalizeNonEmptyString,
   normalizeNullableString,
   normalizePackageMediaKey,
   normalizeSlug,
   normalizeTextArray,
-} from "./common";
+} from "../common";
 import { assertDraftMediaKeysExistInExecutor } from "./draftMedia";
-import { rethrowCatalogPersistenceError } from "./errors";
+import { rethrowCatalogPersistenceError } from "../errors";
 import {
   catalogPackageColumns,
   catalogPackageMediaAssetColumns,
   mapCatalogPackageMediaAssetRow,
   mapCatalogPackageRow,
-} from "./rows";
+} from "../rows";
 import type {
   CatalogPackage,
   CatalogPackageDraft,
@@ -23,7 +23,7 @@ import type {
   CatalogPackageRow,
   CreateCatalogPackageDraftInput,
   UpdateCatalogPackageDraftInput,
-} from "./types";
+} from "../types";
 
 function normalizeCreateCatalogPackageDraftInput(
   input: CreateCatalogPackageDraftInput,

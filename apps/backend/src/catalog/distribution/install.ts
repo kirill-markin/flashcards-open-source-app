@@ -3,24 +3,24 @@ import {
   transactionWithWorkspaceScope,
   transactionWithWorkspaceScopeReadOnly,
   type DatabaseExecutor,
-} from "../database";
-import type { CardMetadata, CardSourceMetadata } from "../cards/types";
-import { normalizeCardMetadata } from "../cards/shared";
-import { assertReplicaBelongsToWorkspaceInExecutor } from "../mediaAssets/workspaceReplicas";
-import { HttpError } from "../shared/errors";
-import { normalizeIsoTimestamp } from "../sync/conflicts/lww";
+} from "../../database";
+import type { CardMetadata, CardSourceMetadata } from "../../cards/types";
+import { normalizeCardMetadata } from "../../cards/shared";
+import { assertReplicaBelongsToWorkspaceInExecutor } from "../../mediaAssets/workspaceReplicas";
+import { HttpError } from "../../shared/errors";
+import { normalizeIsoTimestamp } from "../../sync/conflicts/lww";
 import {
   insertSyncChange,
   lockWorkspaceSyncMetadataForHotChangesInExecutor,
   type HotChangeWriteLock,
-} from "../sync/replication/changes";
-import { rewriteMarkdownFcAssetUrlsToFcAssets } from "../workspacePackages";
+} from "../../sync/replication/changes";
+import { rewriteMarkdownFcAssetUrlsToFcAssets } from "../../workspacePackages";
 import {
   normalizeNonEmptyString,
   toIsoString,
   toOptionalIsoString,
   toSafeNumber,
-} from "./common";
+} from "../common";
 import type {
   CatalogPackageStatus,
   TimestampValue,
@@ -30,7 +30,7 @@ import type {
   CatalogPackageInstallPackageVersion,
   CatalogInstalledCard,
   CatalogInstalledMediaAsset,
-} from "./types";
+} from "../types";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
