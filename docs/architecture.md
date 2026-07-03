@@ -220,6 +220,16 @@ Implemented sync behavior:
 - Local sync state keeps separate cursors for hot state and review history instead of one global checkpoint.
 - Progress, streaks, and chart day buckets are derived from `content.review_events.reviewed_at_client` in the requested timezone, not from server ingest time.
 
+### Client media transfer
+
+Client card content and media byte transfer are intentionally separate:
+
+- Card Markdown references media as `fcasset:<mediaAssetId>`.
+- Clients sync logical `media_assets` rows through the normal sync/bootstrap reads, but create or update media assets through the media upload API instead of the JSON sync outbox.
+- File bytes do not move through the JSON sync outbox. Clients use local upload/download queue rows as operational state, request backend-authorized signed upload/download URLs from the media API, and transfer bytes through those transient URLs.
+- Signed URLs are short-lived transport credentials, not persisted user content. Public CDN delivery remains a future optimization; current first-party clients request authorized signed URLs from the backend.
+- Each client may keep a local device cache keyed by blob `sha256`. Queue rows and cache entries are local operational state and are not synced as user content.
+
 ## Scheduling architecture
 
 - FSRS scheduling is persisted on the card row and workspace scheduler settings.
