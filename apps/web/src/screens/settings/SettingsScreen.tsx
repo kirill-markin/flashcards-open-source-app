@@ -25,6 +25,7 @@ import {
   settingsDeviceRoute,
   settingsExportRoute,
   settingsFeedbackRoute,
+  settingsImportRoute,
   settingsLanguageRoute,
   settingsLeaderboardParticipationRoute,
   settingsNotificationsRoute,
@@ -259,6 +260,13 @@ export function SettingsScreen(): ReactElement {
             value={t("common.open")}
             to={settingsTagsRoute}
             testId="settings-row-tags"
+          />
+          <SettingsNavigationCard
+            title={t("settingsWorkspace.import.title")}
+            description={t("settingsWorkspace.import.description")}
+            value={t("settingsWorkspace.import.value")}
+            to={settingsImportRoute}
+            testId="settings-row-import"
           />
           <SettingsNavigationCard
             title={t("settingsWorkspace.export.title")}

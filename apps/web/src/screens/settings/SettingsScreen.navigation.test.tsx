@@ -12,7 +12,9 @@ import {
   accountStatusRoute,
   settingsAIChatSuggestionsRoute,
   settingsCurrentWorkspaceRoute,
+  settingsExportRoute,
   settingsFeedbackRoute,
+  settingsImportRoute,
   settingsLanguageRoute,
   settingsLeaderboardParticipationRoute,
   settingsReviewAnimationsRoute,
@@ -345,6 +347,7 @@ describe("SettingsScreen navigation", () => {
       "settings-row-access",
       "settings-row-decks",
       "settings-row-tags",
+      "settings-row-import",
       "settings-row-export",
       "settings-row-feedback",
       "settings-row-support",
@@ -368,6 +371,7 @@ describe("SettingsScreen navigation", () => {
     expect(rowIndex("settings-row-review-animations")).toBeLessThan(rowIndex("settings-row-ai-chat-suggestions"));
     expect(rowIndex("settings-row-ai-chat-suggestions")).toBeLessThan(rowIndex("settings-row-leaderboard-participation"));
     expect(rowIndex("settings-row-leaderboard-participation")).toBeLessThan(rowIndex("settings-row-language"));
+    expect(rowIndex("settings-row-import")).toBeLessThan(rowIndex("settings-row-export"));
     expect(rowIndex("settings-row-support")).toBeLessThan(rowIndex("settings-row-legal"));
     expect(getContainer().querySelector("[data-testid='settings-row-test']")).toBeNull();
   });
@@ -452,6 +456,12 @@ describe("SettingsScreen navigation", () => {
 
     await clickRow("settings-row-scheduling");
     expect(currentPathname()).toBe(settingsSchedulerRoute);
+
+    await clickRow("settings-row-import");
+    expect(currentPathname()).toBe(settingsImportRoute);
+
+    await clickRow("settings-row-export");
+    expect(currentPathname()).toBe(settingsExportRoute);
 
     await clickRow("settings-row-server");
     expect(currentPathname()).toBe(settingsServerRoute);

@@ -55,6 +55,7 @@ import {
   settingsExportRoute,
   settingsFeedbackRoute,
   settingsHubRoute,
+  settingsImportRoute,
   settingsLanguageRoute,
   settingsLeaderboardParticipationRoute,
   settingsNotificationsRoute,
@@ -179,6 +180,9 @@ const WorkspaceSchedulerScreen = lazy(async () => import("./screens/settings/wor
 })));
 const WorkspaceExportScreen = lazy(async () => import("./screens/settings/workspace/WorkspaceExportScreen").then((module) => ({
   default: module.WorkspaceExportScreen,
+})));
+const WorkspaceImportScreen = lazy(async () => import("./screens/settings/workspace/WorkspaceImportScreen").then((module) => ({
+  default: module.WorkspaceImportScreen,
 })));
 
 function RouteContentFallback(props: Readonly<{ messageKey: TranslationKey }>): ReactElement {
@@ -742,6 +746,7 @@ export function RoutedShell(): ReactElement {
           <Route path={settingsReviewAnimationsRoute} element={renderDeferredRoute(<ReviewAnimationsSettingsScreen />, "loading.settings")} />
           <Route path={settingsAIChatSuggestionsRoute} element={renderDeferredRoute(<AIChatSuggestionsSettingsScreen />, "loading.settings")} />
           <Route path={settingsSchedulerRoute} element={renderDeferredRoute(<WorkspaceSchedulerScreen />, "loading.schedulerSettings")} />
+          <Route path={settingsImportRoute} element={renderDeferredRoute(<WorkspaceImportScreen />, "loading.importSettings")} />
           <Route path={settingsExportRoute} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />
           <Route path={settingsResetStudyProgressRoute} element={renderDeferredRoute(<ResetStudyProgressScreen />, "loading.settings")} />
           <Route path={settingsDeleteCurrentWorkspaceRoute} element={renderDeferredRoute(<DeleteCurrentWorkspaceScreen />, "loading.currentWorkspace")} />
