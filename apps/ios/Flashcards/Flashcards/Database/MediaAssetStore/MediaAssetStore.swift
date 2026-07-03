@@ -56,6 +56,53 @@ struct MediaAssetStore {
         return mediaAssets.first
     }
 
+    func upsertMediaAsset(workspaceId: String, mediaAsset: MediaAsset) throws {
+        try self.core.execute(
+            sql: """
+            INSERT INTO media_assets (
+                media_asset_id,
+                workspace_id,
+                mime_type,
+                size_bytes,
+                sha256,
+                source_url,
+                created_at,
+                client_updated_at,
+                last_modified_by_replica_id,
+                last_operation_id,
+                updated_at,
+                deleted_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(workspace_id, media_asset_id) DO UPDATE SET
+                mime_type = excluded.mime_type,
+                size_bytes = excluded.size_bytes,
+                sha256 = excluded.sha256,
+                source_url = excluded.source_url,
+                created_at = excluded.created_at,
+                client_updated_at = excluded.client_updated_at,
+                last_modified_by_replica_id = excluded.last_modified_by_replica_id,
+                last_operation_id = excluded.last_operation_id,
+                updated_at = excluded.updated_at,
+                deleted_at = excluded.deleted_at
+            """,
+            values: [
+                .text(mediaAsset.mediaAssetId),
+                .text(workspaceId),
+                .text(mediaAsset.mimeType),
+                .integer(mediaAsset.sizeBytes),
+                .text(mediaAsset.sha256),
+                mediaAsset.sourceUrl.map(SQLiteValue.text) ?? .null,
+                .text(mediaAsset.createdAt),
+                .text(mediaAsset.clientUpdatedAt),
+                .text(mediaAsset.lastModifiedByReplicaId),
+                .text(mediaAsset.lastOperationId),
+                .text(mediaAsset.updatedAt),
+                mediaAsset.deletedAt.map(SQLiteValue.text) ?? .null
+            ]
+        )
+    }
+
     func mapMediaAsset(statement: OpaquePointer) -> MediaAsset {
         MediaAsset(
             mediaAssetId: DatabaseCore.columnText(statement: statement, index: 0),

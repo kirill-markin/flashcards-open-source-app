@@ -138,6 +138,36 @@ protocol CloudSyncServing {
         workspaceId: String,
         mediaAssetId: String
     ) async throws -> MediaAssetDownloadURLResponse
+    func createMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: MediaAssetUploadSessionCreateRequest
+    ) async throws -> MediaAssetUploadSessionCreateResponse
+    func loadMediaAssetUploadPartURLs(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String,
+        request: MediaAssetUploadPartURLsRequest
+    ) async throws -> MediaAssetUploadPartURLsResponse
+    func completeMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String,
+        request: MediaAssetUploadSessionCompleteRequest
+    ) async throws -> MediaAssetUploadSessionCompleteResponse
+    func abortMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String
+    ) async throws -> MediaAssetUploadSessionAbortResponse
+    func uploadMediaAssetPart(
+        partURL: MediaAssetUploadPartURL,
+        body: Data
+    ) async throws -> String
     func previewWorkspacePackageExport(
         apiBaseUrl: String,
         authorizationHeader: String,
@@ -211,6 +241,71 @@ extension CloudSyncServing {
         _ = workspaceId
         _ = mediaAssetId
         throw LocalStoreError.validation("Media asset download URL loading is unavailable")
+    }
+
+    func createMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        request: MediaAssetUploadSessionCreateRequest
+    ) async throws -> MediaAssetUploadSessionCreateResponse {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        _ = workspaceId
+        _ = request
+        throw LocalStoreError.validation("Media asset upload session creation is unavailable")
+    }
+
+    func loadMediaAssetUploadPartURLs(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String,
+        request: MediaAssetUploadPartURLsRequest
+    ) async throws -> MediaAssetUploadPartURLsResponse {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        _ = workspaceId
+        _ = sessionId
+        _ = request
+        throw LocalStoreError.validation("Media asset upload part URL loading is unavailable")
+    }
+
+    func completeMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String,
+        request: MediaAssetUploadSessionCompleteRequest
+    ) async throws -> MediaAssetUploadSessionCompleteResponse {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        _ = workspaceId
+        _ = sessionId
+        _ = request
+        throw LocalStoreError.validation("Media asset upload session completion is unavailable")
+    }
+
+    func abortMediaAssetUploadSession(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        sessionId: String
+    ) async throws -> MediaAssetUploadSessionAbortResponse {
+        _ = apiBaseUrl
+        _ = authorizationHeader
+        _ = workspaceId
+        _ = sessionId
+        throw LocalStoreError.validation("Media asset upload session abort is unavailable")
+    }
+
+    func uploadMediaAssetPart(
+        partURL: MediaAssetUploadPartURL,
+        body: Data
+    ) async throws -> String {
+        _ = partURL
+        _ = body
+        throw LocalStoreError.validation("Media asset upload part PUT is unavailable")
     }
 
     func previewWorkspacePackageExport(

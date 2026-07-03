@@ -319,6 +319,13 @@ final class CloudSyncService: @unchecked Sendable {
         )
     }
 
+    func uploadMediaAssetPart(
+        partURL: MediaAssetUploadPartURL,
+        body: Data
+    ) async throws -> String {
+        try await self.transport.uploadMediaAssetPart(partURL: partURL, body: body)
+    }
+
     func previewWorkspacePackageExport(
         apiBaseUrl: String,
         authorizationHeader: String,
