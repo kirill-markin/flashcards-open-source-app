@@ -35,6 +35,10 @@ import {
   loadUserProgressSummary,
   registerProgressRoutes,
 } from "./progress/progress";
+import {
+  loadReviewPlatformSummary,
+  registerMobileReviewStatusRoute,
+} from "./mobileReviewStatus";
 import type { SystemRoutesOptions } from "./types";
 
 export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
@@ -46,6 +50,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   const loadLeaderboardProfileFn = options.loadLeaderboardProfileFn ?? loadLeaderboardProfile;
   const loadProgressLeaderboardFn = options.loadProgressLeaderboardFn ?? loadProgressLeaderboard;
   const loadStreakLeaderboardFn = options.loadStreakLeaderboardFn ?? loadStreakLeaderboard;
+  const loadReviewPlatformSummaryFn = options.loadReviewPlatformSummaryFn ?? loadReviewPlatformSummary;
   const updateAccountPreferencesFn = options.updateAccountPreferencesFn ?? updateAccountPreferences;
   const ensurePublicProfileForUserFn = options.ensurePublicProfileForUserFn ?? ensurePublicProfileForUser;
   const updateLeaderboardParticipationFn = options.updateLeaderboardParticipationFn ?? updateLeaderboardParticipation;
@@ -120,6 +125,11 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
     loadLeaderboardProfileFn,
     loadProgressLeaderboardFn,
     loadStreakLeaderboardFn,
+  });
+  registerMobileReviewStatusRoute(app, {
+    allowedOrigins: options.allowedOrigins,
+    loadRequestContextFromRequestFn,
+    loadReviewPlatformSummaryFn,
   });
   registerAccountDeletionRoute(app, {
     allowedOrigins: options.allowedOrigins,

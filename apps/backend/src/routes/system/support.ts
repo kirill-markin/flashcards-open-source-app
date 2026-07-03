@@ -27,6 +27,16 @@ export function assertProgressHumanTransport(transport: AuthTransport): void {
   }
 }
 
+export function assertReviewPlatformSummaryHumanTransport(transport: AuthTransport): void {
+  if (transport === "api_key") {
+    throw new HttpError(
+      403,
+      "This endpoint requires Guest, Bearer, or Session authentication",
+      "REVIEW_PLATFORM_SUMMARY_HUMAN_AUTH_REQUIRED",
+    );
+  }
+}
+
 export function assertAccountPreferencesHumanTransport(transport: AuthTransport): void {
   if (transport !== "session" && transport !== "bearer" && transport !== "guest") {
     throw new HttpError(
