@@ -1,6 +1,6 @@
 import type pg from "pg";
-import type { DatabaseExecutor, SqlValue } from "../database";
-import { streakFreezePolicy } from "./streakFreeze";
+import type { DatabaseExecutor, SqlValue } from "../../database";
+import { streakFreezePolicy } from "../streakFreeze";
 
 type QueryResultRow = pg.QueryResultRow;
 
