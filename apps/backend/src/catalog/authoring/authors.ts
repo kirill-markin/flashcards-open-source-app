@@ -1,21 +1,21 @@
-import type { DatabaseExecutor } from "../database";
-import { unsafeTransaction } from "../database/core";
-import { HttpError } from "../shared/errors";
+import type { DatabaseExecutor } from "../../database";
+import { unsafeTransaction } from "../../database/core";
+import { HttpError } from "../../shared/errors";
 import {
   normalizeNonEmptyString,
   normalizeNullableString,
   normalizeSlug,
-} from "./common";
-import { rethrowCatalogPersistenceError } from "./errors";
+} from "../common";
+import { rethrowCatalogPersistenceError } from "../errors";
 import {
   catalogAuthorColumns,
   mapCatalogAuthorRow,
-} from "./rows";
+} from "../rows";
 import type {
   CatalogAuthor,
   CatalogAuthorRow,
   UpsertCatalogAuthorInput,
-} from "./types";
+} from "../types";
 
 function normalizeCatalogAuthorInput(input: UpsertCatalogAuthorInput): UpsertCatalogAuthorInput {
   return {

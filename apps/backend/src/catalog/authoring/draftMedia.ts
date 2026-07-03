@@ -1,22 +1,22 @@
-import type { DatabaseExecutor } from "../database";
-import { unsafeTransaction } from "../database/core";
-import { HttpError } from "../shared/errors";
+import type { DatabaseExecutor } from "../../database";
+import { unsafeTransaction } from "../../database/core";
+import { HttpError } from "../../shared/errors";
 import {
   normalizeNullableString,
   normalizePackageMediaKey,
-} from "./common";
-import { rethrowCatalogPersistenceError } from "./errors";
+} from "../common";
+import { rethrowCatalogPersistenceError } from "../errors";
 import {
   catalogPackageMediaAssetColumns,
   lockCatalogPackageInExecutor,
   mapCatalogPackageMediaAssetRow,
-} from "./rows";
+} from "../rows";
 import type {
   AttachCatalogPackageMediaAssetInput,
   CatalogPackageMediaAsset,
   CatalogPackageMediaAssetRow,
   CatalogPackageVersionMediaAssetInput,
-} from "./types";
+} from "../types";
 
 type PackageMediaKeyRow = Readonly<{ package_media_key: string }>;
 

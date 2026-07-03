@@ -3,11 +3,11 @@ export {
   createCatalogAuthorInExecutor,
   updateCatalogAuthor,
   updateCatalogAuthorInExecutor,
-} from "./authors";
+} from "./authoring/authors";
 export {
   attachCatalogPackageDraftMediaAsset,
   attachCatalogPackageDraftMediaAssetInExecutor,
-} from "./draftMedia";
+} from "./authoring/draftMedia";
 export {
   createCatalogPackageDraft,
   createCatalogPackageDraftInExecutor,
@@ -15,7 +15,7 @@ export {
   loadCatalogPackageDraftInExecutor,
   updateCatalogPackageDraft,
   updateCatalogPackageDraftInExecutor,
-} from "./drafts";
+} from "./authoring/drafts";
 export {
   assertCatalogPackageVersionStatusTransitionAllowed,
   createCatalogPackageVersionFromCards,
@@ -29,7 +29,7 @@ export {
   publishCatalogPackageVersionInExecutor,
   updateCatalogPackageVersionReviewStatus,
   updateCatalogPackageVersionReviewStatusInExecutor,
-} from "./versions";
+} from "./authoring/versions";
 export {
   listPublicCatalogPackages,
   listPublicCatalogPackagesInExecutor,
@@ -39,10 +39,10 @@ export {
   loadPublicCatalogPackageMediaForDownloadInExecutor,
   loadPublicCatalogPackageVersionCardPreview,
   loadPublicCatalogPackageVersionCardPreviewInExecutor,
-} from "./public";
+} from "./distribution/public";
 export {
   installCatalogPackageVersion,
   installCatalogPackageVersionInExecutor,
   previewCatalogPackageInstall,
   previewCatalogPackageInstallInExecutor,
-} from "./install";
+} from "./distribution/install";

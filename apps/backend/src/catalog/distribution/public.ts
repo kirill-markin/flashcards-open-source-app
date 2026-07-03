@@ -1,6 +1,6 @@
-import type { DatabaseExecutor, SqlValue } from "../database";
-import { unsafeRepeatableReadReadOnlyTransaction } from "../database/core";
-import { HttpError } from "../shared/errors";
+import type { DatabaseExecutor, SqlValue } from "../../database";
+import { unsafeRepeatableReadReadOnlyTransaction } from "../../database/core";
+import { HttpError } from "../../shared/errors";
 import {
   containsUnsafePublicPackageMediaReference,
   isUnsafePublicPackageMediaDestination,
@@ -10,11 +10,11 @@ import {
   normalizeSlug,
   toIsoString,
   toSafeNumber,
-} from "./common";
+} from "../common";
 import {
   extractMarkdownLinkDestinationUrls,
   extractMarkdownNonCodeTextSegments,
-} from "../workspacePackages";
+} from "../../workspacePackages";
 import type {
   CatalogPublicAuthor,
   CatalogPublicPackageCardPreview,
@@ -26,7 +26,7 @@ import type {
   CatalogPublicPackageSummary,
   CatalogPublicPackageVersionSummary,
   TimestampValue,
-} from "./types";
+} from "../types";
 
 type PublicCatalogQuery = Readonly<{
   text: string;
