@@ -387,6 +387,7 @@ export type WebAppOperation =
   | "workspace_reset_execute"
   | "workspace_export"
   | "workspace_import"
+  | "media_upload_transfers"
   | "refresh_local_metadata";
 
 export type WebAppOperationFailureDetails = Readonly<{
