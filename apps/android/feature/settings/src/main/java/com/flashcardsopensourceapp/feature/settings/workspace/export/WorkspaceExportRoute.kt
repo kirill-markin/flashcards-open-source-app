@@ -45,14 +45,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
-import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceExportData
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsScreenScaffold
 import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
-import com.flashcardsopensourceapp.feature.settings.workspaceExportCsvButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspaceExportScreenTag
 import com.flashcardsopensourceapp.feature.settings.workspacePackageExportErrorMessageTag
 import com.flashcardsopensourceapp.feature.settings.workspacePackageExportMetadataAuthorFieldTag
@@ -64,7 +62,6 @@ import com.flashcardsopensourceapp.feature.settings.workspacePackageExportPrevie
 import com.flashcardsopensourceapp.feature.settings.workspacePackageExportSaveButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspacePackageExportShareButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspacePackageExportTagToggleTag
-import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -79,46 +76,8 @@ fun WorkspaceExportRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    var pendingExportData by remember {
-        mutableStateOf<WorkspaceExportData?>(value = null)
-    }
     var pendingPackageExport by remember {
         mutableStateOf<WorkspacePackageExportDownloadResponse?>(value = null)
-    }
-    val createCsvDocumentLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("text/csv")
-    ) { uri ->
-        val exportData = pendingExportData
-        if (uri == null || exportData == null) {
-            viewModel.finishExport()
-            pendingExportData = null
-            return@rememberLauncherForActivityResult
-        }
-
-        coroutineScope.launch {
-            try {
-                writeWorkspaceExportCsv(
-                    contentResolver = context.contentResolver,
-                    uri = uri,
-                    csv = makeWorkspaceCardsCsv(exportData = exportData)
-                )
-                viewModel.finishExport()
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                val errorMessage = context.getString(R.string.settings_export_write_failed)
-                viewModel.showExportError(message = errorMessage)
-                technicalErrorController.showTechnicalError(
-                    error = makeAppTechnicalError(
-                        title = context.getString(R.string.settings_technical_error_title),
-                        message = errorMessage,
-                        throwable = error
-                    ),
-                    throwable = error
-                )
-            }
-            pendingExportData = null
-        }
     }
     val createPackageDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/zip")
@@ -176,44 +135,6 @@ fun WorkspaceExportRoute(
                         message = uiState.errorMessage,
                         color = MaterialTheme.colorScheme.error,
                         testTag = workspacePackageExportErrorMessageTag
-                    )
-                }
-            }
-
-            item {
-                WorkspaceExportCsvCard(uiState = uiState)
-            }
-
-            item {
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            viewModel.clearErrorMessage()
-                            val exportData = viewModel.prepareExportData()
-                            if (exportData == null) {
-                                return@launch
-                            }
-
-                            pendingExportData = exportData
-                            createCsvDocumentLauncher.launch(
-                                makeWorkspaceExportFilename(
-                                    workspaceName = exportData.workspaceName,
-                                    date = LocalDate.now()
-                                )
-                            )
-                        }
-                    },
-                    enabled = uiState.isBusy.not(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag(tag = workspaceExportCsvButtonTag)
-                ) {
-                    Text(
-                        if (uiState.isExporting) {
-                            stringResource(R.string.settings_export_preparing)
-                        } else {
-                            stringResource(R.string.settings_export_csv_title)
-                        }
                     )
                 }
             }
@@ -355,32 +276,6 @@ private fun MessageCard(
             modifier = Modifier
                 .padding(20.dp)
                 .testTag(tag = testTag)
-        )
-    }
-}
-
-@Composable
-private fun WorkspaceExportCsvCard(uiState: WorkspaceExportUiState) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        ListItem(
-            headlineContent = {
-                Text(stringResource(R.string.settings_export_csv_summary))
-            },
-            supportingContent = {
-                Text(
-                    stringResource(
-                        R.string.settings_export_csv_workspace_summary,
-                        uiState.activeCardsCount,
-                        uiState.workspaceName
-                    )
-                )
-            },
-            leadingContent = {
-                Icon(
-                    imageVector = Icons.Outlined.SaveAlt,
-                    contentDescription = null
-                )
-            }
         )
     }
 }

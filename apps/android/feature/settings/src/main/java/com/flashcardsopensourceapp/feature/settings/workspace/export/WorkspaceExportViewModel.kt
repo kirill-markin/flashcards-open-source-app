@@ -10,13 +10,11 @@ import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceExportData
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.isWorkspacePackageExportGeneratedImportTag
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
-import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.cloud.expectedWorkspacePackageExportCloudFailureMessage
@@ -38,7 +36,6 @@ private data class WorkspacePackageExportPreviewIdentity(
 )
 
 private data class WorkspaceExportDraftState(
-    val isExporting: Boolean,
     val packagePreview: WorkspacePackageExportPreview?,
     val packagePreviewIdentity: WorkspacePackageExportPreviewIdentity?,
     val packageMetadataDraft: WorkspacePackageExportMetadataDraft,
@@ -49,7 +46,6 @@ private data class WorkspaceExportDraftState(
 )
 
 class WorkspaceExportViewModel(
-    private val workspaceRepository: WorkspaceRepository,
     private val cloudAccountRepository: CloudAccountRepository,
     private val technicalErrorController: AppTechnicalErrorController,
     private val strings: SettingsStringResolver
@@ -69,7 +65,6 @@ class WorkspaceExportViewModel(
     )
     private val draftState = MutableStateFlow(
         value = WorkspaceExportDraftState(
-            isExporting = false,
             packagePreview = null,
             packagePreviewIdentity = null,
             packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
@@ -83,19 +78,15 @@ class WorkspaceExportViewModel(
     private val latestPackagePreviewRequestId = AtomicLong(0L)
 
     val uiState: StateFlow<WorkspaceExportUiState> = combine(
-        workspaceRepository.observeWorkspaceOverview(),
         cloudSettingsState,
         draftState
-    ) { overview, cloudSettings, draft ->
+    ) { cloudSettings, draft ->
         val currentIdentity: WorkspacePackageExportPreviewIdentity? = makePackagePreviewIdentity(
             cloudSettings = cloudSettings
         )
         val isPackagePreviewCurrent: Boolean = draft.packagePreview != null &&
             draft.packagePreviewIdentity == currentIdentity
         WorkspaceExportUiState(
-            workspaceName = overview?.workspaceName ?: strings.get(R.string.settings_unavailable),
-            activeCardsCount = overview?.totalCards ?: 0,
-            isExporting = draft.isExporting,
             packagePreview = if (isPackagePreviewCurrent) draft.packagePreview else null,
             packageMetadataDraft = if (isPackagePreviewCurrent) {
                 draft.packageMetadataDraft
@@ -115,9 +106,6 @@ class WorkspaceExportViewModel(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = WorkspaceExportUiState(
-            workspaceName = strings.get(R.string.settings_loading),
-            activeCardsCount = 0,
-            isExporting = false,
             packagePreview = null,
             packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
             packageRemovedTags = emptySet(),
@@ -127,47 +115,6 @@ class WorkspaceExportViewModel(
             errorMessage = ""
         )
     )
-
-    suspend fun prepareExportData(): WorkspaceExportData? {
-        draftState.update { state ->
-            state.copy(
-                isExporting = true,
-                errorMessage = ""
-            )
-        }
-
-        return try {
-            val exportData = workspaceRepository.loadWorkspaceExportData()
-            if (exportData == null) {
-                draftState.update { state ->
-                    state.copy(
-                        isExporting = false,
-                        errorMessage = strings.get(R.string.settings_export_unavailable)
-                    )
-                }
-            }
-            exportData
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            val errorMessage = strings.get(R.string.settings_export_prepare_failed)
-            draftState.update { state ->
-                state.copy(
-                    isExporting = false,
-                    errorMessage = errorMessage
-                )
-            }
-            technicalErrorController.showTechnicalError(
-                error = makeAppTechnicalError(
-                    title = strings.get(R.string.settings_technical_error_title),
-                    message = errorMessage,
-                    throwable = error
-                ),
-                throwable = error
-            )
-            null
-        }
-    }
 
     fun previewPackageExport() {
         val previewRequestId: Long = latestPackagePreviewRequestId.incrementAndGet()
@@ -385,12 +332,6 @@ class WorkspaceExportViewModel(
         }
     }
 
-    fun finishExport() {
-        draftState.update { state ->
-            state.copy(isExporting = false)
-        }
-    }
-
     fun finishPackageExport() {
         draftState.update { state ->
             state.copy(isPackageExporting = false)
@@ -400,7 +341,6 @@ class WorkspaceExportViewModel(
     fun showExportError(message: String) {
         draftState.update { state ->
             state.copy(
-                isExporting = false,
                 isPackageExporting = false,
                 errorMessage = message
             )
@@ -528,7 +468,6 @@ private fun workspacePackageExportAvailabilityMessage(
 }
 
 fun createWorkspaceExportViewModelFactory(
-    workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
     technicalErrorController: AppTechnicalErrorController,
     applicationContext: Context
@@ -536,7 +475,6 @@ fun createWorkspaceExportViewModelFactory(
     return viewModelFactory {
         initializer {
             WorkspaceExportViewModel(
-                workspaceRepository = workspaceRepository,
                 cloudAccountRepository = cloudAccountRepository,
                 technicalErrorController = technicalErrorController,
                 strings = createSettingsStringResolver(context = applicationContext)

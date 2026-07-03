@@ -62,8 +62,8 @@ import com.flashcardsopensourceapp.feature.settings.settingsImportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsRootScreenTag
 import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
-import com.flashcardsopensourceapp.feature.settings.workspaceExportCsvButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspaceExportScreenTag
+import com.flashcardsopensourceapp.feature.settings.workspacePackageExportPreviewButtonTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerApplyButtonTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerDesiredRetentionFieldTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerLearningStepsFieldTag
@@ -454,13 +454,13 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     @Test
-    fun workspaceExportShowsCsvActionFromEmptyState() {
+    fun workspaceExportShowsPackagePreviewFromEmptyState() {
         waitForCardsEmptyState()
 
         openSettingsRow(rowTag = settingsExportRowTag, destinationTag = workspaceExportScreenTag)
-        waitForTagToExist(tag = workspaceExportCsvButtonTag)
-        waitForTextToExist(text = settingsString(SettingsR.string.settings_export_csv_title))
-        waitForTextToExist(text = settingsString(SettingsR.string.settings_export_csv_summary))
+        waitForTagToExist(tag = workspacePackageExportPreviewButtonTag)
+        composeRule.onNodeWithTag(workspacePackageExportPreviewButtonTag).assertIsNotEnabled()
+        waitForTextToExist(text = settingsString(SettingsR.string.settings_export_package_cloud_required))
     }
 
     @Test

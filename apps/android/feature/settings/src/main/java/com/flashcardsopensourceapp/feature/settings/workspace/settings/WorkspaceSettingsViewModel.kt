@@ -83,7 +83,7 @@ class WorkspaceSettingsViewModel(
             schedulerSummary = schedulerSettings?.let { settings ->
                 formatWorkspaceSchedulerSummary(settings = settings, strings = strings)
             } ?: strings.get(R.string.settings_unavailable),
-            exportSummary = strings.get(R.string.settings_export_csv_summary),
+            exportSummary = strings.get(R.string.settings_export_package_summary),
             isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
             errorMessage = draft.errorMessage,
             successMessage = draft.successMessage,
@@ -104,7 +104,7 @@ class WorkspaceSettingsViewModel(
             tagCount = 0,
             notificationsSummary = strings.get(R.string.settings_loading),
             schedulerSummary = strings.get(R.string.settings_loading),
-            exportSummary = strings.get(R.string.settings_export_csv_summary),
+            exportSummary = strings.get(R.string.settings_export_package_summary),
             isLinked = false,
             errorMessage = "",
             successMessage = "",

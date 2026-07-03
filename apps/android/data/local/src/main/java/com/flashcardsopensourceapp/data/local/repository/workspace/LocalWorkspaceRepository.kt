@@ -12,8 +12,6 @@ import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.sync.DeviceDiagnosticsSummary
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
-import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceExportCard
-import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceExportData
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceOverviewSummary
 import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceSummary
@@ -26,14 +24,12 @@ import com.flashcardsopensourceapp.data.local.model.scheduling.validateWorkspace
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.data.local.repository.cards.toCardSummary
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.observeCurrentWorkspace
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.requireCurrentWorkspace
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runLocalOutboxMutationTransaction
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -199,30 +195,6 @@ class LocalWorkspaceRepository(
                 )
             }
         }
-    }
-
-    override suspend fun loadWorkspaceExportData(): WorkspaceExportData? {
-        val workspace: WorkspaceEntity = loadCurrentWorkspaceOrNull(
-            database = database,
-            preferencesStore = preferencesStore
-        ) ?: return null
-        val cards: List<CardSummary> = database.cardDao().observeCardsWithRelations().first().map(::toCardSummary)
-        val activeCards: List<CardSummary> = cards.filter { card ->
-            card.workspaceId == workspace.workspaceId &&
-                card.deletedAtMillis == null
-        }
-
-        return WorkspaceExportData(
-            workspaceId = workspace.workspaceId,
-            workspaceName = workspace.name,
-            cards = activeCards.map { card ->
-                WorkspaceExportCard(
-                    frontText = card.frontText,
-                    backText = card.backText,
-                    tags = card.tags
-                )
-            }
-        )
     }
 
     override suspend fun updateWorkspaceSchedulerSettings(
