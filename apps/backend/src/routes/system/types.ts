@@ -20,6 +20,7 @@ import type { loadRequestContextFromRequest } from "../../server/requestContext"
 export type SystemRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
+  loadReviewPlatformSummaryFn?: LoadReviewPlatformSummaryFn;
   loadUserProgressReviewScheduleFn?: typeof loadUserProgressReviewSchedule;
   loadUserProgressSeriesFn?: typeof loadUserProgressSeries;
   loadUserProgressSummaryFn?: typeof loadUserProgressSummary;
@@ -33,6 +34,12 @@ export type SystemRoutesOptions = Readonly<{
   previewFriendInvitationFn?: PreviewFriendInvitationFn;
   acceptFriendInvitationFn?: AcceptFriendInvitationFn;
 }>;
+
+export type ReviewPlatformSummary = Readonly<{
+  hasMobileReviewEvent: boolean;
+}>;
+
+export type LoadReviewPlatformSummaryFn = (userId: string) => Promise<ReviewPlatformSummary>;
 
 export type ProgressRequestedParameters = Readonly<{
   timeZone: string | null;

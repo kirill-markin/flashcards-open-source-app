@@ -27,6 +27,7 @@ import type { AppEnv } from "../../server/app";
 import type { RequestContext } from "../../server/requestContext";
 import { HttpError } from "../../shared/errors";
 import { createSystemRoutes } from "./index";
+import type { LoadReviewPlatformSummaryFn } from "./types";
 
 type SystemTestAppOptions = Readonly<{
   transport: RequestContext["transport"];
@@ -43,6 +44,7 @@ type SystemTestAppOptions = Readonly<{
   createFriendInvitationFn?: (input: FriendInvitationCreateInput) => Promise<FriendInvitationCreateResponse>;
   previewFriendInvitationFn?: (rawInviteToken: string) => Promise<FriendInvitationPreviewResponse>;
   acceptFriendInvitationFn?: (input: FriendInvitationAcceptInput) => Promise<FriendInvitationAcceptResponse>;
+  loadReviewPlatformSummaryFn?: LoadReviewPlatformSummaryFn;
   loadUserProgressReviewScheduleFn?: (args: ProgressReviewScheduleRequest) => Promise<ProgressReviewSchedule>;
   loadUserProgressSeriesFn?: (args: ProgressSeriesRequest) => Promise<ProgressSeries>;
   loadUserProgressSummaryFn?: (args: ProgressSummaryRequest) => Promise<ProgressSummaryResponse>;
@@ -354,6 +356,7 @@ export function createSystemTestApp(options: SystemTestAppOptions): Hono<AppEnv>
     createFriendInvitationFn: options.createFriendInvitationFn,
     previewFriendInvitationFn: options.previewFriendInvitationFn,
     acceptFriendInvitationFn: options.acceptFriendInvitationFn,
+    loadReviewPlatformSummaryFn: options.loadReviewPlatformSummaryFn,
     loadUserProgressReviewScheduleFn: options.loadUserProgressReviewScheduleFn,
     loadUserProgressSeriesFn: options.loadUserProgressSeriesFn,
     loadUserProgressSummaryFn: options.loadUserProgressSummaryFn,
