@@ -181,6 +181,53 @@ struct MediaTransferStore {
         staleClaimedBefore: String,
         limit: Int
     ) throws -> [MediaTransferQueueEntry] {
+        try self.claimDueTransfersMatchingKind(
+            workspaceId: nil,
+            kind: nil,
+            now: now,
+            staleClaimedBefore: staleClaimedBefore,
+            limit: limit
+        )
+    }
+
+    func claimDueTransfers(
+        kind: MediaTransferKind,
+        now: String,
+        staleClaimedBefore: String,
+        limit: Int
+    ) throws -> [MediaTransferQueueEntry] {
+        try self.claimDueTransfersMatchingKind(
+            workspaceId: nil,
+            kind: kind,
+            now: now,
+            staleClaimedBefore: staleClaimedBefore,
+            limit: limit
+        )
+    }
+
+    func claimDueTransfers(
+        workspaceId: String,
+        kind: MediaTransferKind,
+        now: String,
+        staleClaimedBefore: String,
+        limit: Int
+    ) throws -> [MediaTransferQueueEntry] {
+        try self.claimDueTransfersMatchingKind(
+            workspaceId: workspaceId,
+            kind: kind,
+            now: now,
+            staleClaimedBefore: staleClaimedBefore,
+            limit: limit
+        )
+    }
+
+    private func claimDueTransfersMatchingKind(
+        workspaceId: String?,
+        kind: MediaTransferKind?,
+        now: String,
+        staleClaimedBefore: String,
+        limit: Int
+    ) throws -> [MediaTransferQueueEntry] {
         guard limit > 0 else {
             throw LocalStoreError.validation("Media transfer claim limit must be greater than zero")
         }
@@ -190,19 +237,26 @@ struct MediaTransferStore {
             value: staleClaimedBefore,
             fieldName: "Media transfer stale claimed-before timestamp"
         )
+        let normalizedWorkspaceId = try workspaceId.map { value in
+            try nonEmptyMediaTransferText(value: value, fieldName: "Media transfer workspaceId")
+        }
         return try self.core.inTransaction {
             let transferIds = try self.core.query(
                 sql: """
                 SELECT transfer_id
                 FROM media_transfer_queue
-                WHERE (
-                    status IN ('pending', 'failed')
-                    AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
-                ) OR (
-                    status = 'in_progress'
-                    AND claimed_at IS NOT NULL
-                    AND claimed_at <= ?
-                )
+                WHERE (? IS NULL OR workspace_id = ?)
+                    AND (? IS NULL OR kind = ?)
+                    AND (
+                        (
+                            status IN ('pending', 'failed')
+                            AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
+                        ) OR (
+                            status = 'in_progress'
+                            AND claimed_at IS NOT NULL
+                            AND claimed_at <= ?
+                        )
+                    )
                 ORDER BY
                     CASE WHEN status = 'in_progress' THEN 0 ELSE 1 END ASC,
                     COALESCE(claimed_at, next_attempt_at, created_at) ASC,
@@ -211,6 +265,10 @@ struct MediaTransferStore {
                 LIMIT ?
                 """,
                 values: [
+                    mediaTransferOptionalTextValue(value: normalizedWorkspaceId),
+                    mediaTransferOptionalTextValue(value: normalizedWorkspaceId),
+                    mediaTransferOptionalTextValue(value: kind?.rawValue),
+                    mediaTransferOptionalTextValue(value: kind?.rawValue),
                     .text(normalizedNow),
                     .text(normalizedStaleClaimedBefore),
                     .integer(Int64(limit))
@@ -229,6 +287,8 @@ struct MediaTransferStore {
                         next_attempt_at = NULL,
                         updated_at = ?
                     WHERE transfer_id = ?
+                        AND (? IS NULL OR workspace_id = ?)
+                        AND (? IS NULL OR kind = ?)
                         AND (
                             (
                                 status IN ('pending', 'failed')
@@ -244,6 +304,10 @@ struct MediaTransferStore {
                         .text(normalizedNow),
                         .text(normalizedNow),
                         .text(transferId),
+                        mediaTransferOptionalTextValue(value: normalizedWorkspaceId),
+                        mediaTransferOptionalTextValue(value: normalizedWorkspaceId),
+                        mediaTransferOptionalTextValue(value: kind?.rawValue),
+                        mediaTransferOptionalTextValue(value: kind?.rawValue),
                         .text(normalizedNow),
                         .text(normalizedStaleClaimedBefore)
                     ]
@@ -283,6 +347,45 @@ struct MediaTransferStore {
             values: [
                 .text(normalizedUpdatedAt),
                 .text(normalizedTransferId),
+                .text(normalizedClaimedAt)
+            ]
+        )
+        guard updatedRows > 0 else {
+            try self.throwMissingActiveClaimError(transferId: normalizedTransferId)
+        }
+
+        return try self.loadTransfer(transferId: normalizedTransferId)
+    }
+
+    func renewTransferClaim(
+        transferId: String,
+        workspaceId: String,
+        kind: MediaTransferKind,
+        claimedAt: String,
+        renewedAt: String
+    ) throws -> MediaTransferQueueEntry {
+        let normalizedTransferId = try nonEmptyMediaTransferText(value: transferId, fieldName: "Media transfer id")
+        let normalizedWorkspaceId = try nonEmptyMediaTransferText(value: workspaceId, fieldName: "Media transfer workspaceId")
+        let normalizedClaimedAt = try nonEmptyMediaTransferText(value: claimedAt, fieldName: "Media transfer claimedAt")
+        let normalizedRenewedAt = try nonEmptyMediaTransferText(value: renewedAt, fieldName: "Media transfer renewedAt")
+        let updatedRows = try self.core.execute(
+            sql: """
+            UPDATE media_transfer_queue
+            SET
+                claimed_at = ?,
+                updated_at = ?
+            WHERE transfer_id = ?
+                AND workspace_id = ?
+                AND kind = ?
+                AND status = 'in_progress'
+                AND claimed_at = ?
+            """,
+            values: [
+                .text(normalizedRenewedAt),
+                .text(normalizedRenewedAt),
+                .text(normalizedTransferId),
+                .text(normalizedWorkspaceId),
+                .text(kind.rawValue),
                 .text(normalizedClaimedAt)
             ]
         )

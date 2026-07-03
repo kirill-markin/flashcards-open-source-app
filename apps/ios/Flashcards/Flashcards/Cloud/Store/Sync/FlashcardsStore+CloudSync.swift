@@ -113,6 +113,7 @@ extension FlashcardsStore {
                 now: now,
                 trigger: trigger
             )
+            await self.processMediaUploadTransfersAfterCloudSync(linkedSession: activeSession)
         } catch {
             if isRequestCancellationError(error: error) {
                 self.syncStatus = .idle
@@ -655,6 +656,55 @@ extension FlashcardsStore {
         }
 
         self.enqueueTransientBanner(banner: makeCardsUpdatedFromCloudBanner())
+    }
+
+    private func processMediaUploadTransfersAfterCloudSync(linkedSession: CloudLinkedSession) async {
+        guard let database = self.database,
+              let cloudSyncService = self.dependencies.cloudSyncService,
+              self.workspace?.workspaceId == linkedSession.workspaceId else {
+            return
+        }
+
+        do {
+            try await self.withCloudSessionPreservingStableContext(linkedSession: linkedSession) { refreshedSession in
+                try await MediaUploadTransferRunner(
+                    database: database,
+                    cloudSyncService: cloudSyncService
+                ).processDueUploads(linkedSession: refreshedSession, now: Date())
+            }
+        } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
+            self.captureMediaUploadTransferProcessingFailure(error: error, linkedSession: linkedSession)
+        }
+    }
+
+    private func captureMediaUploadTransferProcessingFailure(error: Error, linkedSession: CloudLinkedSession) {
+        if isRetryableNetworkTransportFailure(error: error) {
+            return
+        }
+
+        let diagnostics = cloudSyncFailureDiagnostics(error: error)
+        FlashcardsObservability.captureSilentFailure(
+            error: error,
+            scope: IOSObservationScope(
+                feature: .cloudSync,
+                userId: linkedSession.userId,
+                workspaceId: linkedSession.workspaceId,
+                requestId: diagnostics.requestId,
+                clientRequestId: nil,
+                sessionId: nil,
+                runId: nil,
+                cloudState: self.cloudSettings?.cloudState,
+                configurationMode: linkedSession.configurationMode
+            ),
+            action: "media_upload_transfer_process",
+            stage: "after_cloud_sync",
+            statusCode: diagnostics.statusCode,
+            backendCode: diagnostics.backendCode,
+            requestId: diagnostics.requestId
+        )
     }
 }
 

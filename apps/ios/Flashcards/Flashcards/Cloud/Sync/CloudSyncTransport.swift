@@ -7,6 +7,9 @@ private let cloudSyncPackageExportContentDispositionInvalidCode: String =
     "WORKSPACE_PACKAGE_EXPORT_CONTENT_DISPOSITION_INVALID"
 private let cloudSyncResponseDecodingFailedCode: String = "RESPONSE_DECODING_FAILED"
 private let cloudSyncResponseDecodingFailedMessage: String = "Failed to decode cloud sync response"
+private let mediaAssetUploadPartPutMaxAttempts: Int = 3
+private let mediaAssetUploadPartPutRetryDelayNanoseconds: UInt64 = 500_000_000
+private let mediaAssetUploadPartPutResponseBodyMaxBytes: Int = 2_048
 private let cloudSyncTransportMaxAttempts: Int = 3
 private let cloudSyncTransportRetryDelayNanoseconds: UInt64 = 500_000_000
 private let progressLeaderboardProfileBasePath: String = "/me/progress/leaderboards/profiles"
@@ -34,6 +37,28 @@ private protocol CloudSyncBootstrapModeRequest {
 
 extension BootstrapPullRequest: CloudSyncBootstrapModeRequest {}
 extension BootstrapPushRequest: CloudSyncBootstrapModeRequest {}
+
+struct MediaAssetUploadPartHTTPError: LocalizedError, Sendable {
+    let partNumber: Int
+    let statusCode: Int
+    let responseBody: String
+
+    var errorDescription: String? {
+        "Media asset upload part PUT failed with status \(self.statusCode) for partNumber=\(self.partNumber) responseBody=\(self.responseBody)"
+    }
+}
+
+private func mediaAssetUploadPartPutStatusIsRetryable(statusCode: Int) -> Bool {
+    statusCode == 408 || statusCode == 429 || (statusCode >= 500 && statusCode <= 599)
+}
+
+private func mediaAssetUploadPartPutResponseBodySummary(data: Data) -> String {
+    guard data.isEmpty == false else {
+        return ""
+    }
+
+    return String(decoding: data.prefix(mediaAssetUploadPartPutResponseBodyMaxBytes), as: UTF8.self)
+}
 
 struct CloudSyncTransport {
     private let session: URLSession
@@ -245,6 +270,42 @@ struct CloudSyncTransport {
             method: "POST",
             body: Optional<String>.none
         )
+    }
+
+    func uploadMediaAssetPart(
+        partURL: MediaAssetUploadPartURL,
+        body: Data
+    ) async throws -> String {
+        guard let uploadURL = URL(string: partURL.url),
+              uploadURL.scheme?.isEmpty == false,
+              uploadURL.host?.isEmpty == false else {
+            throw LocalStoreError.validation(
+                "Media asset upload part URL is invalid for partNumber=\(partURL.partNumber)"
+            )
+        }
+
+        var request = URLRequest(url: uploadURL)
+        request.httpMethod = partURL.method
+        request.httpShouldHandleCookies = false
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        for (headerName, headerValue) in partURL.headers {
+            request.setValue(headerValue, forHTTPHeaderField: headerName)
+        }
+
+        let response = try await self.sendMediaAssetUploadPartWithRetry(
+            request: request,
+            body: body,
+            partNumber: partURL.partNumber
+        )
+        let eTag = response.value(forHTTPHeaderField: "ETag")?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let eTag, eTag.isEmpty == false else {
+            throw LocalStoreError.validation(
+                "Media asset upload part PUT response was missing ETag for partNumber=\(partURL.partNumber)"
+            )
+        }
+
+        return eTag
     }
 
     func workspacePackageImportPreviewPath(workspaceId: String) throws -> String {
@@ -648,6 +709,84 @@ struct CloudSyncTransport {
             throw LocalStoreError.database("Cloud sync transport retry failed without an error")
         }
         throw lastError
+    }
+
+    private func sendMediaAssetUploadPartWithRetry(
+        request: URLRequest,
+        body: Data,
+        partNumber: Int
+    ) async throws -> HTTPURLResponse {
+        var lastError: Error?
+        for attempt in 1...mediaAssetUploadPartPutMaxAttempts {
+            do {
+                let (data, response) = try await self.session.upload(for: request, from: body)
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw LocalStoreError.database(
+                        "Media asset upload part PUT did not receive an HTTP response for partNumber=\(partNumber)"
+                    )
+                }
+                if httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 {
+                    return httpResponse
+                }
+
+                let statusError = MediaAssetUploadPartHTTPError(
+                    partNumber: partNumber,
+                    statusCode: httpResponse.statusCode,
+                    responseBody: mediaAssetUploadPartPutResponseBodySummary(data: data)
+                )
+                lastError = statusError
+                guard mediaAssetUploadPartPutStatusIsRetryable(statusCode: httpResponse.statusCode),
+                      attempt < mediaAssetUploadPartPutMaxAttempts else {
+                    throw statusError
+                }
+
+                try await self.retryMediaAssetUploadPartPut(error: statusError, attempt: attempt)
+            } catch let error as CancellationError {
+                throw error
+            } catch {
+                if isRequestCancellationError(error: error) {
+                    throw error
+                }
+                lastError = error
+                guard isRetryableNetworkTransportFailure(error: error),
+                      attempt < mediaAssetUploadPartPutMaxAttempts else {
+                    throw error
+                }
+
+                try await self.retryMediaAssetUploadPartPut(error: error, attempt: attempt)
+            }
+        }
+
+        guard let lastError else {
+            throw LocalStoreError.database("Media asset upload part PUT retry failed without an error")
+        }
+        throw lastError
+    }
+
+    private func retryMediaAssetUploadPartPut(error: Error, attempt: Int) async throws {
+        FlashcardsObservability.addBreadcrumb(
+            .cloudRetry(
+                CloudRetryObservation(
+                    action: "media_asset_upload_part_put_retry",
+                    scope: IOSObservationScope(
+                        feature: .cloudSync,
+                        userId: nil,
+                        workspaceId: nil,
+                        requestId: nil,
+                        clientRequestId: nil,
+                        sessionId: nil,
+                        runId: nil,
+                        cloudState: nil,
+                        configurationMode: nil
+                    ),
+                    attempt: attempt,
+                    maxAttempts: mediaAssetUploadPartPutMaxAttempts,
+                    apiBaseUrl: nil,
+                    messageSummary: Flashcards.errorMessage(error: error)
+                )
+            )
+        )
+        try await Task.sleep(nanoseconds: mediaAssetUploadPartPutRetryDelayNanoseconds)
     }
 
     private func phase<Body: Encodable>(for path: String, method: String, body: Body?) -> CloudFlowPhase {
