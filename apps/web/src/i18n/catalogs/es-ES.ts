@@ -498,6 +498,11 @@ const esEsCatalog: TranslationCatalog = {
       description: "Previsualiza el diálogo compartido de error técnico.",
       value: "Vista previa",
     },
+    mobileAppPromo: {
+      title: "Diálogo de promoción móvil",
+      description: "Previsualiza el aviso de instalación para iOS y Android.",
+      value: "Vista previa",
+    },
   },
   settingsWorkspace: {
     decks: {

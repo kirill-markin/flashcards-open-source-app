@@ -498,6 +498,11 @@ export const jaCatalog = {
       description: "共通の技術エラーダイアログをプレビューします。",
       value: "プレビュー",
     },
+    mobileAppPromo: {
+      title: "モバイルアプリ案内ダイアログ",
+      description: "iOS と Android のインストール案内をプレビューします。",
+      value: "プレビュー",
+    },
   },
   settingsWorkspace: {
     decks: {

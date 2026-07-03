@@ -498,6 +498,11 @@ const deCatalog: TranslationCatalog = {
       description: "Zeige eine Vorschau des gemeinsamen Dialogs für technische Fehler.",
       value: "Vorschau",
     },
+    mobileAppPromo: {
+      title: "Dialog für App-Werbung",
+      description: "Zeige die iOS- und Android-Installationsaufforderung.",
+      value: "Vorschau",
+    },
   },
   settingsWorkspace: {
     decks: {

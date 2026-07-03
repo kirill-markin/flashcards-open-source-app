@@ -496,6 +496,11 @@ const enCatalog = {
       description: "Preview the shared technical-error dialog.",
       value: "Preview",
     },
+    mobileAppPromo: {
+      title: "Mobile app promo dialog",
+      description: "Preview the iOS and Android install prompt.",
+      value: "Preview",
+    },
   },
   settingsWorkspace: {
     decks: {
