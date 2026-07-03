@@ -63,6 +63,38 @@ export type EnqueueMediaTransferUploadInput = Readonly<{
 
 type ClaimableMediaTransferStatus = "queued" | "failed";
 
+export type RecoverStaleInProgressMediaTransfersByKindInput = Readonly<{
+  workspaceId: string;
+  kind: MediaTransferKind;
+  staleClaimedBefore: string;
+  recoveredAt: string;
+  nextAttemptAt: string;
+  lastError: string;
+}>;
+
+export type RenewInProgressMediaTransferClaimInput = Readonly<{
+  transferId: string;
+  kind: MediaTransferKind;
+  expectedClaimedAt: string;
+  renewedAt: string;
+}>;
+
+export type MarkClaimedMediaTransferSucceededInput = Readonly<{
+  transferId: string;
+  kind: MediaTransferKind;
+  expectedClaimedAt: string;
+  completedAt: string;
+}>;
+
+export type MarkClaimedMediaTransferFailedInput = Readonly<{
+  transferId: string;
+  kind: MediaTransferKind;
+  expectedClaimedAt: string;
+  failedAt: string;
+  lastError: string;
+  nextAttemptAt: string;
+}>;
+
 function createQueuedMediaTransferRecord(
   input: EnqueueMediaTransferDownloadInput | EnqueueMediaTransferUploadInput,
   kind: MediaTransferKind,
@@ -96,10 +128,18 @@ function makeDueTransferRange(
   return IDBKeyRange.bound([workspaceId, status, ""], [workspaceId, status, dueAt, [], []]);
 }
 
-function readFirstRecord(
-  records: ReadonlyArray<MediaTransferQueueRecord>,
-): MediaTransferQueueRecord | null {
-  return records[0] ?? null;
+function makePendingTransferRange(
+  workspaceId: string,
+  status: ClaimableMediaTransferStatus,
+): IDBKeyRange {
+  return IDBKeyRange.bound([workspaceId, status, ""], [workspaceId, status, []]);
+}
+
+function makeStatusTransferRange(
+  workspaceId: string,
+  status: MediaTransferStatus,
+): IDBKeyRange {
+  return IDBKeyRange.bound([workspaceId, status, ""], [workspaceId, status, []]);
 }
 
 function compareMediaTransferClaimPriority(
@@ -169,6 +209,17 @@ export async function loadMediaBlobCacheRecord(sha256: string): Promise<MediaBlo
   return record ?? null;
 }
 
+export async function loadMediaTransferQueueRecord(
+  transferId: string,
+): Promise<MediaTransferQueueRecord | null> {
+  const record = await closeDatabaseAfter((database) => getFromStore<MediaTransferQueueRecord>(
+    database,
+    "mediaTransferQueue",
+    transferId,
+  ));
+  return record ?? null;
+}
+
 export async function writeMediaBlobCacheRecord(record: MediaBlobCacheRecord): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
     await runReadwrite(database, ["mediaBlobCache"], (transaction) => (
@@ -209,16 +260,17 @@ export async function enqueueMediaTransferUpload(
   return record;
 }
 
-export async function claimNextDueMediaTransfer(
+async function claimNextDueMediaTransferWithSelector(
   workspaceId: string,
   claimedAt: string,
+  shouldClaimRecord: (record: MediaTransferQueueRecord) => boolean,
 ): Promise<MediaTransferQueueRecord | null> {
   return closeDatabaseAfter(async (database) => new Promise<MediaTransferQueueRecord | null>((resolve, reject) => {
     const transaction = database.transaction(["mediaTransferQueue"], "readwrite");
     const store = transaction.objectStore("mediaTransferQueue");
     const index = store.index("workspaceId_status_nextAttemptAt_createdAt_transferId");
-    const queuedRequest = index.getAll(makeDueTransferRange(workspaceId, "queued", claimedAt), 1);
-    const failedRequest = index.getAll(makeDueTransferRange(workspaceId, "failed", claimedAt), 1);
+    const queuedRequest = index.openCursor(makeDueTransferRange(workspaceId, "queued", claimedAt));
+    const failedRequest = index.openCursor(makeDueTransferRange(workspaceId, "failed", claimedAt));
     let queuedRecord: MediaTransferQueueRecord | null = null;
     let failedRecord: MediaTransferQueueRecord | null = null;
     let pendingReadCount = 2;
@@ -256,16 +308,40 @@ export async function claimNextDueMediaTransfer(
       rejectOnce(describeIndexedDbError("IndexedDB media transfer queued claim lookup failed", queuedRequest.error));
     };
     queuedRequest.onsuccess = () => {
-      queuedRecord = readFirstRecord(queuedRequest.result as ReadonlyArray<MediaTransferQueueRecord>);
-      claimAfterReadsComplete();
+      const cursor = queuedRequest.result;
+      if (cursor === null) {
+        claimAfterReadsComplete();
+        return;
+      }
+
+      const record = cursor.value as MediaTransferQueueRecord;
+      if (shouldClaimRecord(record)) {
+        queuedRecord = record;
+        claimAfterReadsComplete();
+        return;
+      }
+
+      cursor.continue();
     };
 
     failedRequest.onerror = () => {
       rejectOnce(describeIndexedDbError("IndexedDB media transfer failed claim lookup failed", failedRequest.error));
     };
     failedRequest.onsuccess = () => {
-      failedRecord = readFirstRecord(failedRequest.result as ReadonlyArray<MediaTransferQueueRecord>);
-      claimAfterReadsComplete();
+      const cursor = failedRequest.result;
+      if (cursor === null) {
+        claimAfterReadsComplete();
+        return;
+      }
+
+      const record = cursor.value as MediaTransferQueueRecord;
+      if (shouldClaimRecord(record)) {
+        failedRecord = record;
+        claimAfterReadsComplete();
+        return;
+      }
+
+      cursor.continue();
     };
 
     transaction.onerror = () => {
@@ -282,6 +358,308 @@ export async function claimNextDueMediaTransfer(
       resolve(claimedRecord);
     };
   }));
+}
+
+export async function claimNextDueMediaTransfer(
+  workspaceId: string,
+  claimedAt: string,
+): Promise<MediaTransferQueueRecord | null> {
+  return claimNextDueMediaTransferWithSelector(workspaceId, claimedAt, () => true);
+}
+
+export async function claimNextDueMediaTransferByKind(
+  workspaceId: string,
+  kind: MediaTransferKind,
+  claimedAt: string,
+): Promise<MediaTransferQueueRecord | null> {
+  return claimNextDueMediaTransferWithSelector(
+    workspaceId,
+    claimedAt,
+    (record) => record.kind === kind,
+  );
+}
+
+async function loadNextPendingMediaTransferByStatusAndKind(
+  workspaceId: string,
+  status: ClaimableMediaTransferStatus,
+  kind: MediaTransferKind,
+): Promise<MediaTransferQueueRecord | null> {
+  return closeDatabaseAfter(async (database) => new Promise<MediaTransferQueueRecord | null>((resolve, reject) => {
+    const transaction = database.transaction(["mediaTransferQueue"], "readonly");
+    const index = transaction.objectStore("mediaTransferQueue").index("workspaceId_status_nextAttemptAt_createdAt_transferId");
+    const request = index.openCursor(makePendingTransferRange(workspaceId, status));
+    let matchingRecord: MediaTransferQueueRecord | null = null;
+    let didReject = false;
+
+    const rejectOnce = (error: Error): void => {
+      if (didReject) {
+        return;
+      }
+
+      didReject = true;
+      rejectIndexedDbTransaction(transaction, reject, error);
+    };
+
+    request.onerror = () => {
+      rejectOnce(describeIndexedDbError("IndexedDB pending media transfer lookup failed", request.error));
+    };
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (cursor === null || matchingRecord !== null) {
+        return;
+      }
+
+      const record = cursor.value as MediaTransferQueueRecord;
+      if (record.kind === kind) {
+        matchingRecord = record;
+        return;
+      }
+
+      cursor.continue();
+    };
+
+    transaction.onerror = () => {
+      if (didReject === false) {
+        reject(describeIndexedDbError("IndexedDB pending media transfer lookup failed", transaction.error));
+      }
+    };
+    transaction.onabort = () => {
+      if (didReject === false) {
+        reject(describeIndexedDbError("IndexedDB pending media transfer lookup aborted", transaction.error));
+      }
+    };
+    transaction.oncomplete = () => {
+      resolve(matchingRecord);
+    };
+  }));
+}
+
+export async function loadNextPendingMediaTransferAttemptAtByKind(
+  workspaceId: string,
+  kind: MediaTransferKind,
+): Promise<string | null> {
+  const [queuedRecord, failedRecord] = await Promise.all([
+    loadNextPendingMediaTransferByStatusAndKind(workspaceId, "queued", kind),
+    loadNextPendingMediaTransferByStatusAndKind(workspaceId, "failed", kind),
+  ]);
+  return selectNextDueTransfer(queuedRecord, failedRecord)?.nextAttemptAt ?? null;
+}
+
+export async function recoverStaleInProgressMediaTransfersByKind(
+  input: RecoverStaleInProgressMediaTransfersByKindInput,
+): Promise<number> {
+  return closeDatabaseAfter(async (database) => new Promise<number>((resolve, reject) => {
+    const transaction = database.transaction(["mediaTransferQueue"], "readwrite");
+    const store = transaction.objectStore("mediaTransferQueue");
+    const index = store.index("workspaceId_status_nextAttemptAt_createdAt_transferId");
+    const request = index.openCursor(makeStatusTransferRange(input.workspaceId, "in_progress"));
+    let recoveredCount = 0;
+    let didReject = false;
+
+    const rejectOnce = (error: Error): void => {
+      if (didReject) {
+        return;
+      }
+
+      didReject = true;
+      rejectIndexedDbTransaction(transaction, reject, error);
+    };
+
+    request.onerror = () => {
+      rejectOnce(describeIndexedDbError("IndexedDB stale media transfer recovery lookup failed", request.error));
+    };
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (cursor === null || didReject) {
+        return;
+      }
+
+      const record = cursor.value as MediaTransferQueueRecord;
+      if (
+        record.kind === input.kind
+        && record.claimedAt !== null
+        && record.claimedAt <= input.staleClaimedBefore
+      ) {
+        const updateRequest = cursor.update({
+          ...record,
+          status: "failed",
+          attemptCount: record.attemptCount + 1,
+          nextAttemptAt: input.nextAttemptAt,
+          lastError: input.lastError,
+          updatedAt: input.recoveredAt,
+          claimedAt: null,
+          completedAt: null,
+        } satisfies MediaTransferQueueRecord);
+        recoveredCount += 1;
+        updateRequest.onerror = () => {
+          rejectOnce(describeIndexedDbError("IndexedDB stale media transfer recovery write failed", updateRequest.error));
+        };
+      }
+
+      cursor.continue();
+    };
+
+    transaction.onerror = () => {
+      if (didReject === false) {
+        reject(describeIndexedDbError("IndexedDB stale media transfer recovery failed", transaction.error));
+      }
+    };
+    transaction.onabort = () => {
+      if (didReject === false) {
+        reject(describeIndexedDbError("IndexedDB stale media transfer recovery aborted", transaction.error));
+      }
+    };
+    transaction.oncomplete = () => {
+      resolve(recoveredCount);
+    };
+  }));
+}
+
+function assertClaimedMediaTransferMatchesToken(
+  record: MediaTransferQueueRecord,
+  kind: MediaTransferKind,
+  expectedClaimedAt: string,
+  errorPrefix: string,
+): void {
+  if (record.kind !== kind) {
+    throw new Error(`${errorPrefix}: transfer kind mismatch. transferId=${record.transferId}, expectedKind=${kind}, actualKind=${record.kind}`);
+  }
+
+  if (record.status !== "in_progress") {
+    throw new Error(`${errorPrefix}: transfer is not in progress. transferId=${record.transferId}, status=${record.status}`);
+  }
+
+  if (record.claimedAt !== expectedClaimedAt) {
+    throw new Error(`${errorPrefix}: transfer claim token mismatch. transferId=${record.transferId}, expectedClaimedAt=${expectedClaimedAt}, actualClaimedAt=${record.claimedAt ?? "none"}`);
+  }
+}
+
+async function updateClaimedMediaTransferQueueRecord(
+  transferId: string,
+  kind: MediaTransferKind,
+  expectedClaimedAt: string,
+  updatedAt: string,
+  updateRecord: (record: MediaTransferQueueRecord) => MediaTransferQueueRecord,
+  errorPrefix: string,
+): Promise<MediaTransferQueueRecord> {
+  return closeDatabaseAfter(async (database) => new Promise<MediaTransferQueueRecord>((resolve, reject) => {
+    const transaction = database.transaction(["mediaTransferQueue"], "readwrite");
+    const store = transaction.objectStore("mediaTransferQueue");
+    const request = store.get(transferId);
+    let updatedRecord: MediaTransferQueueRecord | null = null;
+    let didReject = false;
+
+    const rejectOnce = (error: Error): void => {
+      if (didReject) {
+        return;
+      }
+
+      didReject = true;
+      rejectIndexedDbTransaction(transaction, reject, error);
+    };
+
+    request.onerror = () => {
+      rejectOnce(describeIndexedDbError(`${errorPrefix} lookup failed`, request.error));
+    };
+    request.onsuccess = () => {
+      const record = request.result as MediaTransferQueueRecord | undefined;
+      if (record === undefined) {
+        rejectOnce(new Error(`${errorPrefix}: transfer not found. transferId=${transferId}`));
+        return;
+      }
+
+      try {
+        assertClaimedMediaTransferMatchesToken(record, kind, expectedClaimedAt, errorPrefix);
+        updatedRecord = updateRecord({
+          ...record,
+          updatedAt,
+        });
+      } catch (error) {
+        rejectOnce(error instanceof Error ? error : new Error(`${errorPrefix}: transfer update failed`));
+        return;
+      }
+
+      const putRequest = store.put(updatedRecord);
+      putRequest.onerror = () => {
+        rejectOnce(describeIndexedDbError(`${errorPrefix} write failed`, putRequest.error));
+      };
+    };
+
+    transaction.onerror = () => {
+      if (didReject === false) {
+        reject(describeIndexedDbError(errorPrefix, transaction.error));
+      }
+    };
+    transaction.onabort = () => {
+      if (didReject === false) {
+        reject(describeIndexedDbError(`${errorPrefix} aborted`, transaction.error));
+      }
+    };
+    transaction.oncomplete = () => {
+      if (updatedRecord === null) {
+        reject(new Error(`${errorPrefix}: update did not complete. transferId=${transferId}`));
+        return;
+      }
+
+      resolve(updatedRecord);
+    };
+  }));
+}
+
+export async function renewInProgressMediaTransferClaim(
+  input: RenewInProgressMediaTransferClaimInput,
+): Promise<MediaTransferQueueRecord> {
+  return updateClaimedMediaTransferQueueRecord(
+    input.transferId,
+    input.kind,
+    input.expectedClaimedAt,
+    input.renewedAt,
+    (record) => ({
+      ...record,
+      claimedAt: input.renewedAt,
+    }),
+    "IndexedDB media transfer claim renewal failed",
+  );
+}
+
+export async function markClaimedMediaTransferSucceeded(
+  input: MarkClaimedMediaTransferSucceededInput,
+): Promise<void> {
+  await updateClaimedMediaTransferQueueRecord(
+    input.transferId,
+    input.kind,
+    input.expectedClaimedAt,
+    input.completedAt,
+    (record) => ({
+      ...record,
+      status: "completed",
+      lastError: null,
+      claimedAt: null,
+      completedAt: input.completedAt,
+    }),
+    "IndexedDB claimed media transfer success update failed",
+  );
+}
+
+export async function markClaimedMediaTransferFailed(
+  input: MarkClaimedMediaTransferFailedInput,
+): Promise<void> {
+  await updateClaimedMediaTransferQueueRecord(
+    input.transferId,
+    input.kind,
+    input.expectedClaimedAt,
+    input.failedAt,
+    (record) => ({
+      ...record,
+      status: "failed",
+      attemptCount: record.attemptCount + 1,
+      nextAttemptAt: input.nextAttemptAt,
+      lastError: input.lastError,
+      claimedAt: null,
+      completedAt: null,
+    }),
+    "IndexedDB claimed media transfer failure update failed",
+  );
 }
 
 async function updateMediaTransferQueueRecord(
