@@ -146,6 +146,7 @@
 "settings.row.workspaceScoped.value" = "Arbeitsbereich";
 "settings.row.tags" = "Tags";
 "settings.row.export" = "Export";
+"settings.row.export.value" = "flashcards.zip";
 "settings.row.legal" = "Rechtliches";
 "settings.row.support" = "Support";
 "settings.row.openSource" = "Open Source";
@@ -600,12 +601,7 @@
 "settings.notifications.duration.hours" = "%d Stunden";
 "settings.notifications.duration.minutes" = "%d Minuten";
 
-"settings.workspace.export.section.availableFormats" = "Verfügbare Formate";
-"settings.workspace.export.description" = "Exportiert aktive Kartendaten aus dem aktuellen Arbeitsbereich als CSV-Datei.";
-"settings.workspace.export.exportCsv" = "CSV exportieren";
-"settings.workspace.export.exporting" = "Exportieren...";
 "settings.workspace.export.fileUnavailable" = "Die exportierte Datei ist nicht verfügbar.";
-"settings.workspace.export.workspaceUnavailable" = "Arbeitsbereich ist nicht verfügbar";
 "settings.workspace.export.cloudRequired" = "Medienpaket-Export erfordert in dieser Version ein Cloud-Konto.";
 "settings.workspace.export.package.section" = "flashcards.zip-Paket";
 "settings.workspace.export.package.description" = "Exportiert aktive Karten, Tags und referenzierte Medien als flashcards.zip.";

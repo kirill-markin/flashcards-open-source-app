@@ -146,6 +146,7 @@
 "settings.row.workspaceScoped.value" = "ワークスペース";
 "settings.row.tags" = "タグ";
 "settings.row.export" = "エクスポート";
+"settings.row.export.value" = "flashcards.zip";
 "settings.row.legal" = "法務";
 "settings.row.support" = "サポート";
 "settings.row.openSource" = "オープンソース";
@@ -600,12 +601,7 @@
 "settings.notifications.duration.hours" = "%d 時間";
 "settings.notifications.duration.minutes" = "%d 分";
 
-"settings.workspace.export.section.availableFormats" = "利用可能な形式";
-"settings.workspace.export.description" = "現在のワークスペースのアクティブなカードデータをCSVファイルとしてエクスポートします。";
-"settings.workspace.export.exportCsv" = "CSV のエクスポート";
-"settings.workspace.export.exporting" = "エクスポート中...";
 "settings.workspace.export.fileUnavailable" = "エクスポートされたファイルは利用できません。";
-"settings.workspace.export.workspaceUnavailable" = "ワークスペースが利用できません";
 "settings.workspace.export.cloudRequired" = "このバージョンでメディアパッケージをエクスポートするにはクラウドアカウントが必要です。";
 "settings.workspace.export.package.section" = "flashcards.zip パッケージ";
 "settings.workspace.export.package.description" = "有効なカード、タグ、参照メディアを flashcards.zip としてエクスポートします。";

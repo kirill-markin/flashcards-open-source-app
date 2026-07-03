@@ -169,16 +169,6 @@ struct SettingsView: View {
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsTagsRow)
 
-                NavigationLink(value: SettingsNavigationDestination.workspaceExport) {
-                    SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.export", "Export"),
-                        value: "CSV",
-                        systemImage: "square.and.arrow.up",
-                        attentionCount: nil
-                    )
-                }
-                .accessibilityIdentifier(UITestIdentifier.settingsExportRow)
-
                 NavigationLink(value: SettingsNavigationDestination.workspaceImport) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.row.import", "Import"),
@@ -188,6 +178,16 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsImportRow)
+
+                NavigationLink(value: SettingsNavigationDestination.workspaceExport) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.export", "Export"),
+                        value: aiSettingsLocalized("settings.row.export.value", "flashcards.zip"),
+                        systemImage: "square.and.arrow.up",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsExportRow)
             }
 
             Section(aiSettingsLocalized("settings.section.support", "Support")) {

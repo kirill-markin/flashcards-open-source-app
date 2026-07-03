@@ -146,6 +146,7 @@
 "settings.row.workspaceScoped.value" = "Espacio de trabajo";
 "settings.row.tags" = "Etiquetas";
 "settings.row.export" = "Exportar";
+"settings.row.export.value" = "flashcards.zip";
 "settings.row.legal" = "Legal";
 "settings.row.support" = "Soporte";
 "settings.row.openSource" = "Codigo abierto";
@@ -600,12 +601,7 @@
 "settings.notifications.duration.hours" = "%d horas";
 "settings.notifications.duration.minutes" = "%d minutos";
 
-"settings.workspace.export.section.availableFormats" = "Formatos disponibles";
-"settings.workspace.export.description" = "Exporta los datos de las tarjetas activas del espacio de trabajo actual como archivo CSV.";
-"settings.workspace.export.exportCsv" = "Exportar CSV";
-"settings.workspace.export.exporting" = "Exportando...";
 "settings.workspace.export.fileUnavailable" = "El archivo exportado no esta disponible.";
-"settings.workspace.export.workspaceUnavailable" = "El espacio de trabajo no esta disponible";
 "settings.workspace.export.cloudRequired" = "La exportación de paquetes con medios requiere una cuenta en la nube en esta versión.";
 "settings.workspace.export.package.section" = "Paquete flashcards.zip";
 "settings.workspace.export.package.description" = "Exporta tarjetas activas, etiquetas y medios referenciados como flashcards.zip.";

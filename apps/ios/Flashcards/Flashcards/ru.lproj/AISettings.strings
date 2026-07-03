@@ -146,6 +146,7 @@
 "settings.row.workspaceScoped.value" = "Рабочая область";
 "settings.row.tags" = "Теги";
 "settings.row.export" = "Экспорт";
+"settings.row.export.value" = "flashcards.zip";
 "settings.row.legal" = "Юридическая информация";
 "settings.row.support" = "Поддержка";
 "settings.row.openSource" = "Открытый код";
@@ -600,12 +601,7 @@
 "settings.notifications.duration.hours" = "%d часов";
 "settings.notifications.duration.minutes" = "%d минут";
 
-"settings.workspace.export.section.availableFormats" = "Доступные форматы";
-"settings.workspace.export.description" = "Экспортирует данные активных карточек из текущей рабочей области в файл CSV.";
-"settings.workspace.export.exportCsv" = "Экспорт CSV";
-"settings.workspace.export.exporting" = "Экспорт...";
 "settings.workspace.export.fileUnavailable" = "Экспортированный файл недоступен.";
-"settings.workspace.export.workspaceUnavailable" = "Рабочая область недоступна";
 "settings.workspace.export.cloudRequired" = "Для экспорта пакета с медиа в этой версии требуется облачный аккаунт.";
 "settings.workspace.export.package.section" = "Пакет flashcards.zip";
 "settings.workspace.export.package.description" = "Экспортирует активные карточки, теги и связанные медиа в flashcards.zip.";
