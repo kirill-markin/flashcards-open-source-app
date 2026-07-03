@@ -15,9 +15,9 @@ function loadApiGatewaySource(): string {
   return fs.readFileSync(apiGatewayPath, "utf8");
 }
 
-function loadProgressIndexSource(): string {
-  const progressIndexPath = path.resolve(process.cwd(), "src/progress/index.ts");
-  return fs.readFileSync(progressIndexPath, "utf8").replace(/\s+/g, " ");
+function loadProgressReportsIndexSource(): string {
+  const progressReportsIndexPath = path.resolve(process.cwd(), "src/progress/reports/index.ts");
+  return fs.readFileSync(progressReportsIndexPath, "utf8").replace(/\s+/g, " ");
 }
 
 function assertApiGatewayUsesBackendProxy(apiGatewaySource: string): void {
@@ -72,10 +72,10 @@ test("progress barrel re-exports the community leaderboard loaders", async () =>
 });
 
 test("public progress streak loaders retry transient repeatable-read materialization failures", () => {
-  const source = loadProgressIndexSource();
+  const source = loadProgressReportsIndexSource();
 
-  assert.match(source, /import \{ withTransientDatabaseRetry \} from "\.\.\/database\/transient";/);
-  assert.match(source, /import \{ createBackendRuntimeObservationScope \} from "\.\.\/observability\/sentry";/);
+  assert.match(source, /import \{ withTransientDatabaseRetry \} from "\.\.\/\.\.\/database\/transient";/);
+  assert.match(source, /import \{ createBackendRuntimeObservationScope \} from "\.\.\/\.\.\/observability\/sentry";/);
   assert.match(
     source,
     /export async function loadUserProgressSummary\(request: ProgressSummaryRequest\): Promise<ProgressSummaryResponse> \{ return withTransientDatabaseRetry\( \(\) => unsafeRepeatableReadTransaction\( async \(executor\) => loadUserProgressSummaryInExecutor\(executor, request\), \), createBackendRuntimeObservationScope, \); \}/,

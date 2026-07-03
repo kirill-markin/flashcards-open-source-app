@@ -11,7 +11,7 @@ import {
   formatDateAsTimeZoneLocalDate,
   shiftLocalDate,
 } from "./progressTestSupport";
-import { streakFreezePolicy } from "./streakFreeze";
+import { streakFreezePolicy } from "../streakFreeze";
 
 test("loadUserProgressSummaryInExecutor returns zero summary metrics for an empty history", async () => {
   const { executor } = createProgressExecutor({
