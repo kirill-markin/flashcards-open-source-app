@@ -786,6 +786,21 @@ const deCatalog: TranslationCatalog = {
     dismiss: "Verstanden",
     title: "Kurze Erinnerung",
   },
+  mobileAppPromo: {
+    title: "Auf dem Smartphone wiederholen",
+    body: "Installiere die iOS- oder Android-App, um schnell mit Offline-Zugriff weiterzulernen.",
+    close: "Schließen",
+    ios: {
+      title: "iOS",
+      storeLinkLabel: "iOS-App im App Store öffnen",
+      qrLabel: "QR-Code für den iOS-App-Link",
+    },
+    android: {
+      title: "Android",
+      storeLinkLabel: "Android-App in Google Play öffnen",
+      qrLabel: "QR-Code für den Android-App-Link",
+    },
+  },
   feedback: {
     title: "Hast du eine Idee für Flashcards?",
     body: "Teile, was die App besser machen würde. Der Ersteller liest jede Nachricht persönlich.",

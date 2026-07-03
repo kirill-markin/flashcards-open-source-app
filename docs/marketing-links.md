@@ -11,6 +11,7 @@ Current campaign buckets:
 | `share_app` | Future app share pages. |
 | `share_deck` | Future deck share pages, grouped across decks. |
 | `marketplace` | Future deck marketplace surfaces. |
+| `web_review_mobile_prompt` | Web review mobile app promotion prompt. |
 
 ## Google Play
 

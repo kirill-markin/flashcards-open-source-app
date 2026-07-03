@@ -786,6 +786,21 @@ export const ruCatalog = {
     dismiss: "Понятно",
     title: "Короткое напоминание",
   },
+  mobileAppPromo: {
+    title: "Повторяйте на телефоне",
+    body: "Установите приложение для iOS или Android, чтобы быстро повторять карточки с офлайн-доступом.",
+    close: "Закрыть",
+    ios: {
+      title: "iOS",
+      storeLinkLabel: "Открыть приложение для iOS в App Store",
+      qrLabel: "QR-код для ссылки на приложение iOS",
+    },
+    android: {
+      title: "Android",
+      storeLinkLabel: "Открыть приложение для Android в Google Play",
+      qrLabel: "QR-код для ссылки на приложение Android",
+    },
+  },
   feedback: {
     title: "Есть идея для Flashcards?",
     body: "Расскажите, что сделало бы приложение лучше. Создатель лично читает каждое сообщение.",

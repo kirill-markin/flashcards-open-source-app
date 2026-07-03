@@ -43,10 +43,136 @@
   justify-content: flex-end;
 }
 
+.mobile-app-promo-overlay {
+  position: fixed;
+  inset: 0;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.58);
+  display: grid;
+  place-items: center;
+  z-index: 220;
+  backdrop-filter: blur(14px);
+}
+
+.mobile-app-promo-dialog {
+  width: min(780px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  display: grid;
+  gap: 22px;
+}
+
+.mobile-app-promo-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.mobile-app-promo-body {
+  max-width: 60ch;
+}
+
+.mobile-app-promo-close {
+  flex: 0 0 auto;
+}
+
+.mobile-app-promo-platforms {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.mobile-app-promo-platform {
+  min-width: 0;
+}
+
+.mobile-app-promo-platform-content {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.mobile-app-promo-platform + .mobile-app-promo-platform {
+  padding-inline-start: 24px;
+  border-inline-start: 1px solid var(--panel-border);
+}
+
+.mobile-app-promo-platform-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.mobile-app-promo-badge-link {
+  width: fit-content;
+  min-height: 44px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.mobile-app-promo-close:focus-visible,
+.mobile-app-promo-badge-link:focus-visible,
+.mobile-app-promo-url:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.mobile-app-promo-url {
+  color: var(--accent-strong);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mobile-app-promo-qr-frame {
+  width: 180px;
+  height: 180px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.mobile-app-promo-qr-code {
+  display: block;
+  width: 164px;
+  height: 164px;
+}
+
 .review-editor-delete-btn {
   color: #ffaea9;
 }
 
 .review-editor-ai-btn {
   color: var(--accent-strong);
+}
+
+@media (max-width: 720px) {
+  .mobile-app-promo-overlay {
+    padding: 16px;
+  }
+
+  .mobile-app-promo-header {
+    display: grid;
+  }
+
+  .mobile-app-promo-platforms {
+    grid-template-columns: 1fr;
+  }
+
+  .mobile-app-promo-platform + .mobile-app-promo-platform {
+    padding-block-start: 20px;
+    padding-inline-start: 0;
+    border-block-start: 1px solid var(--panel-border);
+    border-inline-start: 0;
+  }
+
+  .mobile-app-promo-close {
+    width: 100%;
+  }
 }

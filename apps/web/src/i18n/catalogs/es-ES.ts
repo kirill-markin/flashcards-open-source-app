@@ -786,6 +786,21 @@ const esEsCatalog: TranslationCatalog = {
     dismiss: "Entendido",
     title: "Recordatorio rápido",
   },
+  mobileAppPromo: {
+    title: "Repasa en tu móvil",
+    body: "Instala la app para iOS o Android para seguir repasando rápido con acceso sin conexión.",
+    close: "Cerrar",
+    ios: {
+      title: "iOS",
+      storeLinkLabel: "Abrir la app de iOS en App Store",
+      qrLabel: "Código QR para el enlace de la app de iOS",
+    },
+    android: {
+      title: "Android",
+      storeLinkLabel: "Abrir la app de Android en Google Play",
+      qrLabel: "Código QR para el enlace de la app de Android",
+    },
+  },
   feedback: {
     title: "¿Tienes una idea para Flashcards?",
     body: "Comparte qué mejoraría la app. El creador lee personalmente cada mensaje.",
