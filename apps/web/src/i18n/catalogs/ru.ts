@@ -498,6 +498,11 @@ export const ruCatalog = {
       description: "Предпросмотр общего диалога технической ошибки.",
       value: "Предпросмотр",
     },
+    mobileAppPromo: {
+      title: "Диалог продвижения приложения",
+      description: "Предпросмотр предложения установить iOS- и Android-приложение.",
+      value: "Предпросмотр",
+    },
   },
   settingsWorkspace: {
     decks: {

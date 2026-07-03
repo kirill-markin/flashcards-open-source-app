@@ -498,6 +498,11 @@ const arCatalog: TranslationCatalog = {
       description: "عاين مربع حوار الأخطاء التقنية المشترك.",
       value: "معاينة",
     },
+    mobileAppPromo: {
+      title: "مربع حوار ترويج التطبيق",
+      description: "عاين مطالبة تثبيت iOS وAndroid.",
+      value: "معاينة",
+    },
   },
   settingsWorkspace: {
     decks: {

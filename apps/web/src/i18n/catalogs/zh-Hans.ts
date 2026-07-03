@@ -498,6 +498,11 @@ export const zhHansCatalog = {
       description: "预览共享技术错误对话框。",
       value: "预览",
     },
+    mobileAppPromo: {
+      title: "移动应用推广对话框",
+      description: "预览 iOS 和 Android 安装提示。",
+      value: "预览",
+    },
   },
   settingsWorkspace: {
     decks: {

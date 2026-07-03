@@ -3,6 +3,10 @@ import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../i18n";
 import { settingsTestAnimationsRoute } from "../../routes";
 import {
+  MobileAppPromotionDialog,
+  webReviewMobilePromptStoreLinks,
+} from "../review/mobileAppPromo/MobileAppPromotionDialog";
+import {
   appendReviewReactionEvent,
   matchesReducedReviewReactionMotion,
   reviewReactionCleanupDelayMillis,
@@ -38,6 +42,7 @@ const probabilityFormatOptions: Readonly<Intl.NumberFormatOptions> = {
 export function TestSettingsScreen(): ReactElement {
   const { t } = useI18n();
   const { showTechnicalErrorPreview } = useAppErrorDialog();
+  const [isMobileAppPromotionDialogOpen, setIsMobileAppPromotionDialogOpen] = useState<boolean>(false);
 
   return (
     <SettingsShell
@@ -62,9 +67,21 @@ export function TestSettingsScreen(): ReactElement {
               onClick={showTechnicalErrorPreview}
               testId="test-settings-technical-error-row"
             />
+            <SettingsActionCard
+              title={t("settingsTest.mobileAppPromo.title")}
+              description={t("settingsTest.mobileAppPromo.description")}
+              value={t("settingsTest.mobileAppPromo.value")}
+              onClick={() => setIsMobileAppPromotionDialogOpen(true)}
+              testId="test-settings-mobile-app-promo-row"
+            />
           </div>
         </SettingsGroup>
       </div>
+      <MobileAppPromotionDialog
+        isOpen={isMobileAppPromotionDialogOpen}
+        onDismiss={() => setIsMobileAppPromotionDialogOpen(false)}
+        storeLinks={webReviewMobilePromptStoreLinks}
+      />
     </SettingsShell>
   );
 }

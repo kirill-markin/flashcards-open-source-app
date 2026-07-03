@@ -498,6 +498,11 @@ const hiCatalog: TranslationCatalog = {
       description: "साझा तकनीकी-त्रुटि डायलॉग का प्रीव्यू देखें।",
       value: "प्रीव्यू",
     },
+    mobileAppPromo: {
+      title: "मोबाइल ऐप प्रोमो डायलॉग",
+      description: "iOS और Android इंस्टॉल प्रॉम्प्ट का प्रीव्यू देखें।",
+      value: "प्रीव्यू",
+    },
   },
   settingsWorkspace: {
     decks: {
