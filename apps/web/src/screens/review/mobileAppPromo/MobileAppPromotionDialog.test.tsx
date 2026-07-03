@@ -168,15 +168,15 @@ describe("MobileAppPromotionDialog", () => {
     });
 
     const closeButton = requireElement(container, "[data-testid='mobile-app-promo-close']");
-    const androidVisibleUrl = requireAnchor(container, "[data-testid='mobile-app-promo-url-android']");
+    const androidBadgeLink = requireAnchor(container, "[data-testid='mobile-app-promo-badge-android']");
 
-    androidVisibleUrl.focus();
+    androidBadgeLink.focus();
     await dispatchWindowKeyDown("Tab", false);
     expect(document.activeElement).toBe(closeButton);
 
     closeButton.focus();
     await dispatchWindowKeyDown("Tab", true);
-    expect(document.activeElement).toBe(androidVisibleUrl);
+    expect(document.activeElement).toBe(androidBadgeLink);
   });
 
   it("renders store links, platform test ids, and QR output for each platform", async () => {
@@ -209,15 +209,11 @@ describe("MobileAppPromotionDialog", () => {
 
     const iosBadgeLink = requireAnchor(container, "[data-testid='mobile-app-promo-badge-ios']");
     const androidBadgeLink = requireAnchor(container, "[data-testid='mobile-app-promo-badge-android']");
-    const iosVisibleUrl = requireAnchor(container, "[data-testid='mobile-app-promo-url-ios']");
-    const androidVisibleUrl = requireAnchor(container, "[data-testid='mobile-app-promo-url-android']");
 
     expect(iosBadgeLink.href).toBe(webReviewMobilePromptStoreLinks.ios);
     expect(androidBadgeLink.href).toBe(webReviewMobilePromptStoreLinks.android);
-    expect(iosVisibleUrl.href).toBe(webReviewMobilePromptStoreLinks.ios);
-    expect(androidVisibleUrl.href).toBe(webReviewMobilePromptStoreLinks.android);
-    expect(iosVisibleUrl.textContent).toBe(webReviewMobilePromptStoreLinks.ios);
-    expect(androidVisibleUrl.textContent).toBe(webReviewMobilePromptStoreLinks.android);
+    expect(container.querySelector("[data-testid='mobile-app-promo-url-ios']")).toBeNull();
+    expect(container.querySelector("[data-testid='mobile-app-promo-url-android']")).toBeNull();
 
     const iosQr = requireSvg(container, "[data-testid='mobile-app-promo-qr-ios']");
     const androidQr = requireSvg(container, "[data-testid='mobile-app-promo-qr-android']");
@@ -246,16 +242,12 @@ describe("MobileAppPromotionDialog", () => {
     const androidPlatform = requireElement(container, "[data-testid='mobile-app-promo-platform-android']");
     const iosPlatformContent = requireElement(container, "[data-testid='mobile-app-promo-content-ios']");
     const androidPlatformContent = requireElement(container, "[data-testid='mobile-app-promo-content-android']");
-    const iosVisibleUrl = requireAnchor(container, "[data-testid='mobile-app-promo-url-ios']");
-    const androidVisibleUrl = requireAnchor(container, "[data-testid='mobile-app-promo-url-android']");
 
     expect(platformGrid.getAttribute("dir")).toBe("ltr");
     expect(iosPlatform.getAttribute("dir")).toBe("ltr");
     expect(androidPlatform.getAttribute("dir")).toBe("ltr");
     expect(iosPlatformContent.getAttribute("dir")).toBe("rtl");
     expect(androidPlatformContent.getAttribute("dir")).toBe("rtl");
-    expect(iosVisibleUrl.getAttribute("dir")).toBe("ltr");
-    expect(androidVisibleUrl.getAttribute("dir")).toBe("ltr");
     expect(iosPlatform.compareDocumentPosition(androidPlatform) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );

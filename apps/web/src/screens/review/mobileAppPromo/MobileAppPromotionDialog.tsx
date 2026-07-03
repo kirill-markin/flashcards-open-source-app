@@ -171,16 +171,6 @@ export function MobileAppPromotionDialog(props: MobileAppPromotionDialogProps): 
               >
                 <AppStoreBadge />
               </a>
-              <a
-                className="mobile-app-promo-url"
-                href={storeLinks.ios}
-                rel="noreferrer"
-                target="_blank"
-                dir="ltr"
-                data-testid="mobile-app-promo-url-ios"
-              >
-                {storeLinks.ios}
-              </a>
               <div className="mobile-app-promo-qr-frame">
                 <MobileAppQrCode
                   title={t("mobileAppPromo.ios.qrLabel")}
@@ -214,16 +204,6 @@ export function MobileAppPromotionDialog(props: MobileAppPromotionDialogProps): 
                 data-testid="mobile-app-promo-badge-android"
               >
                 <GooglePlayBadge />
-              </a>
-              <a
-                className="mobile-app-promo-url"
-                href={storeLinks.android}
-                rel="noreferrer"
-                target="_blank"
-                dir="ltr"
-                data-testid="mobile-app-promo-url-android"
-              >
-                {storeLinks.android}
               </a>
               <div className="mobile-app-promo-qr-frame">
                 <MobileAppQrCode
