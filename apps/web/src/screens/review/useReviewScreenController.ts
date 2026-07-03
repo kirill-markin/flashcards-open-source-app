@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ReviewRating } from "../../../../backend/src/scheduling";
 import {
   loadFeedbackState,
+  loadReviewPlatformSummary,
   recordFeedbackPromptEvent,
   submitFeedback,
 } from "../../api";
@@ -31,6 +32,13 @@ import {
   storeFetchedFeedbackState,
   type FeedbackPromptState,
 } from "../../localDb/feedback/feedback";
+import {
+  clearMobileAppPromotionPromptShownIfCurrent,
+  loadMobileAppPromotionState,
+  storeKnownMobileReviewEvent,
+  storeMobileAppPromotionPromptShown,
+  type MobileAppPromotionState,
+} from "../../localDb/mobileAppPromotion/mobileAppPromotion";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import { normalizeCaughtError } from "../../observability/webObservability";
 import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
@@ -55,6 +63,16 @@ import {
   shouldShowReviewHardReminder,
 } from "./hardReminder/reviewHardReminder";
 import { useReviewKeyboardShortcuts } from "./input/useReviewKeyboardShortcuts";
+import {
+  evaluateMobileAppPromotionEligibility,
+  loadMobileAppPromotionReviewActivity,
+  mobileAppPromotionMinimumReviewCount,
+  type MobileAppPromotionReviewActivity,
+} from "./mobileAppPromo/mobileAppPromotionEligibility";
+import {
+  type MobileAppPromotionDialogProps,
+  webReviewMobilePromptStoreLinks,
+} from "./mobileAppPromo/MobileAppPromotionDialog";
 import { useReviewRatingReactions, type UseReviewRatingReactionsResult } from "./reactions/useReviewRatingReactions";
 import { makeReviewSpeakableText, useReviewSpeech } from "./speech/reviewSpeech";
 
@@ -64,6 +82,7 @@ export type UseReviewScreenControllerResult = Readonly<{
   feedbackDialogProps: FeedbackDialogProps;
   hardReminderDialogProps: ReviewHardReminderDialogProps;
   headerProps: ReviewScreenHeaderProps;
+  mobileAppPromotionDialogProps: MobileAppPromotionDialogProps;
   paneProps: ReviewPaneProps;
   queuePanelProps: ReviewQueuePanelProps;
   reviewReactionFallbackHandler: UseReviewRatingReactionsResult["handleReactionEventFallback"];
@@ -78,7 +97,24 @@ type AutomaticFeedbackPromptUiState = Readonly<{
   isEditorPresented: boolean;
   isFeedbackDialogOpen: boolean;
   isHardReminderVisible: boolean;
+  isMobileAppPromotionDialogOpen: boolean;
   isReviewFilterMenuOpen: boolean;
+}>;
+
+type MobileAppPromotionPromptContext = Readonly<{
+  generation: number;
+  identityKey: string;
+  isMounted: boolean;
+  workspaceId: string | null;
+}>;
+
+type MobileAppPromotionPromptDecision = Readonly<{
+  kind: "cancelled" | "opened" | "skipped";
+}>;
+
+type MobileAppPromotionInFlightCheck = Readonly<{
+  context: MobileAppPromotionPromptContext;
+  promise: Promise<MobileAppPromotionPromptDecision>;
 }>;
 
 export function useReviewScreenController(
@@ -115,14 +151,23 @@ export function useReviewScreenController(
   const [feedbackMessage, setFeedbackMessage] = useState<string>("");
   const [feedbackErrorMessage, setFeedbackErrorMessage] = useState<string>("");
   const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState<boolean>(false);
+  const [isMobileAppPromotionDialogOpen, setIsMobileAppPromotionDialogOpen] = useState<boolean>(false);
   const [isReviewQueuePanelOpen, setIsReviewQueuePanelOpen] = useState<boolean>(false);
   const [hardReminderLastShownAt, setHardReminderLastShownAt] = useState<number | null>(() => loadReviewHardReminderLastShownAt());
   const automaticFeedbackPromptUiStateRef = useRef<AutomaticFeedbackPromptUiState>({
     isEditorPresented: false,
     isFeedbackDialogOpen: false,
     isHardReminderVisible: false,
+    isMobileAppPromotionDialogOpen: false,
     isReviewFilterMenuOpen: false,
   });
+  const mobileAppPromotionPromptContextRef = useRef<MobileAppPromotionPromptContext>({
+    generation: 0,
+    identityKey: "",
+    isMounted: true,
+    workspaceId: null,
+  });
+  const mobileAppPromotionCheckInFlightRef = useRef<MobileAppPromotionInFlightCheck | null>(null);
   const recentReviewRatingsRef = useRef<Array<ReviewRating>>([]);
   const lastCapturedReviewButtonErrorKeyRef = useRef<string>("");
   const { message: reviewSpeechMessage, showMessage: showReviewSpeechMessage } = useTransientMessage(3000);
@@ -228,6 +273,7 @@ export function useReviewScreenController(
     isEditorPresented,
     isFeedbackDialogOpen,
     isHardReminderVisible,
+    isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
   };
   const nowTimestamp = Date.now();
@@ -239,6 +285,19 @@ export function useReviewScreenController(
     sessionUserId: session?.userId ?? null,
     linkedUserId: cloudSettings?.linkedUserId ?? null,
   });
+  const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
+  const currentMobileAppPromotionPromptContext = mobileAppPromotionPromptContextRef.current;
+  if (
+    currentMobileAppPromotionPromptContext.workspaceId !== activeWorkspaceId
+    || currentMobileAppPromotionPromptContext.identityKey !== feedbackPromptIdentityKey
+  ) {
+    mobileAppPromotionPromptContextRef.current = {
+      generation: currentMobileAppPromotionPromptContext.generation + 1,
+      identityKey: feedbackPromptIdentityKey,
+      isMounted: true,
+      workspaceId: activeWorkspaceId,
+    };
+  }
   const loadingReviewCurrentCard = reviewLoadingSnapshot?.currentCard ?? reviewLoadingSnapshot?.queuePreview[0] ?? null;
   const visibleSelectedReviewFilterTitle = isInitialReviewLoad && reviewLoadingSnapshot !== null
     ? reviewLoadingSnapshot.resolvedReviewFilterTitle
@@ -266,12 +325,57 @@ export function useReviewScreenController(
     });
   }
 
-  function isAutomaticFeedbackPromptUiBlocked(): boolean {
+  function captureMobileAppPromotionOperationError(
+    error: unknown,
+    operation:
+      | "mobile_app_promo_activity_load"
+      | "mobile_app_promo_state_load"
+      | "mobile_app_promo_status_load"
+      | "mobile_app_promo_state_save",
+    entityId: string | null,
+  ): void {
+    captureAppOperationError(error, {
+      feature: "mobile_app_promo",
+      operation,
+      userId: session?.userId ?? null,
+      workspaceId: activeWorkspace?.workspaceId ?? null,
+      installationId: cloudSettings?.installationId ?? null,
+      entityId,
+    });
+  }
+
+  function isReviewPromptUiBlocked(): boolean {
     const uiState = automaticFeedbackPromptUiStateRef.current;
     return uiState.isEditorPresented
       || uiState.isFeedbackDialogOpen
       || uiState.isHardReminderVisible
+      || uiState.isMobileAppPromotionDialogOpen
       || uiState.isReviewFilterMenuOpen;
+  }
+
+  function isMobileAppPromotionPromptContextCurrent(context: MobileAppPromotionPromptContext): boolean {
+    const currentContext = mobileAppPromotionPromptContextRef.current;
+    return currentContext.isMounted
+      && currentContext.generation === context.generation
+      && currentContext.workspaceId === context.workspaceId
+      && currentContext.identityKey === context.identityKey;
+  }
+
+  function isSameMobileAppPromotionPromptContext(
+    leftContext: MobileAppPromotionPromptContext,
+    rightContext: MobileAppPromotionPromptContext,
+  ): boolean {
+    return leftContext.generation === rightContext.generation
+      && leftContext.workspaceId === rightContext.workspaceId
+      && leftContext.identityKey === rightContext.identityKey;
+  }
+
+  function buildSkippedMobileAppPromotionDecision(
+    promptContext: MobileAppPromotionPromptContext,
+  ): MobileAppPromotionPromptDecision {
+    return isMobileAppPromotionPromptContextCurrent(promptContext)
+      ? { kind: "skipped" }
+      : { kind: "cancelled" };
   }
 
   function handleReviewQueueShortcutClick(): void {
@@ -303,7 +407,7 @@ export function useReviewScreenController(
 
   async function maybeOpenAutomaticFeedbackPrompt(): Promise<void> {
     const workspaceId = activeWorkspace?.workspaceId ?? null;
-    if (workspaceId === null || isAutomaticFeedbackPromptUiBlocked()) {
+    if (workspaceId === null || isReviewPromptUiBlocked()) {
       return;
     }
 
@@ -354,7 +458,7 @@ export function useReviewScreenController(
         return;
       }
 
-      if (isAutomaticFeedbackPromptUiBlocked()) {
+      if (isReviewPromptUiBlocked()) {
         return;
       }
 
@@ -374,6 +478,182 @@ export function useReviewScreenController(
     }
   }
 
+  async function runMobileAppPromotionCheck(promptContext: MobileAppPromotionPromptContext): Promise<MobileAppPromotionPromptDecision> {
+    const workspaceId = promptContext.workspaceId;
+    if (
+      workspaceId === null
+      || isReviewPromptUiBlocked()
+    ) {
+      return { kind: "skipped" };
+    }
+
+    if (isMobileAppPromotionPromptContextCurrent(promptContext) === false) {
+      return { kind: "cancelled" };
+    }
+
+    try {
+      const now = new Date();
+      let reviewActivity: MobileAppPromotionReviewActivity;
+      try {
+        reviewActivity = await loadMobileAppPromotionReviewActivity(workspaceId, now);
+      } catch (error) {
+        captureMobileAppPromotionOperationError(error, "mobile_app_promo_activity_load", null);
+        return buildSkippedMobileAppPromotionDecision(promptContext);
+      }
+
+      if (isMobileAppPromotionPromptContextCurrent(promptContext) === false) {
+        return { kind: "cancelled" };
+      }
+
+      if (reviewActivity.todayReviewCount < mobileAppPromotionMinimumReviewCount) {
+        return { kind: "skipped" };
+      }
+
+      if (isMobileAppPromotionPromptContextCurrent(promptContext) === false) {
+        return { kind: "cancelled" };
+      }
+
+      let promptState: MobileAppPromotionState;
+      try {
+        promptState = await loadMobileAppPromotionState(promptContext.identityKey);
+      } catch (error) {
+        captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_load", null);
+        return buildSkippedMobileAppPromotionDecision(promptContext);
+      }
+
+      if (isMobileAppPromotionPromptContextCurrent(promptContext) === false) {
+        return { kind: "cancelled" };
+      }
+
+      const localEligibility = evaluateMobileAppPromotionEligibility({
+        reviewActivity,
+        promptState,
+        hasMobileReviewEvent: false,
+      });
+      if (localEligibility.isEligible === false) {
+        return { kind: "skipped" };
+      }
+
+      let hasMobileReviewEvent: boolean;
+      try {
+        hasMobileReviewEvent = (await loadReviewPlatformSummary()).hasMobileReviewEvent;
+      } catch (error) {
+        captureMobileAppPromotionOperationError(error, "mobile_app_promo_status_load", null);
+        return buildSkippedMobileAppPromotionDecision(promptContext);
+      }
+
+      if (isMobileAppPromotionPromptContextCurrent(promptContext) === false) {
+        return { kind: "cancelled" };
+      }
+
+      if (hasMobileReviewEvent) {
+        try {
+          await storeKnownMobileReviewEvent({
+            identityKey: promptContext.identityKey,
+          });
+        } catch (error) {
+          captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_save", null);
+        }
+        return buildSkippedMobileAppPromotionDecision(promptContext);
+      }
+
+      try {
+        promptState = await loadMobileAppPromotionState(promptContext.identityKey);
+      } catch (error) {
+        captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_load", null);
+        return buildSkippedMobileAppPromotionDecision(promptContext);
+      }
+
+      if (isMobileAppPromotionPromptContextCurrent(promptContext) === false) {
+        return { kind: "cancelled" };
+      }
+
+      const remoteEligibility = evaluateMobileAppPromotionEligibility({
+        reviewActivity,
+        promptState,
+        hasMobileReviewEvent,
+      });
+      if (remoteEligibility.isEligible === false || isReviewPromptUiBlocked()) {
+        return { kind: "skipped" };
+      }
+
+      if (isMobileAppPromotionPromptContextCurrent(promptContext) === false) {
+        return { kind: "cancelled" };
+      }
+
+      const shownAt = new Date();
+      const shownAtIso = shownAt.toISOString();
+      try {
+        await storeMobileAppPromotionPromptShown({
+          identityKey: promptContext.identityKey,
+          localDate: reviewActivity.today,
+          shownAt: shownAtIso,
+        });
+      } catch (error) {
+        captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_save", null);
+        return buildSkippedMobileAppPromotionDecision(promptContext);
+      }
+
+      const isStaleAfterSave = isMobileAppPromotionPromptContextCurrent(promptContext) === false;
+      if (isReviewPromptUiBlocked() || isStaleAfterSave) {
+        try {
+          await clearMobileAppPromotionPromptShownIfCurrent({
+            identityKey: promptContext.identityKey,
+            localDate: reviewActivity.today,
+            shownAt: shownAtIso,
+          });
+        } catch (error) {
+          captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_save", null);
+        }
+        return buildSkippedMobileAppPromotionDecision(promptContext);
+      }
+
+      setIsMobileAppPromotionDialogOpen(true);
+      return { kind: "opened" };
+    } catch (error) {
+      captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_load", null);
+      return buildSkippedMobileAppPromotionDecision(promptContext);
+    }
+  }
+
+  async function maybeOpenMobileAppPromotion(
+    promptContext: MobileAppPromotionPromptContext,
+  ): Promise<MobileAppPromotionPromptDecision> {
+    const currentCheck = mobileAppPromotionCheckInFlightRef.current;
+    if (
+      currentCheck !== null
+      && isSameMobileAppPromotionPromptContext(currentCheck.context, promptContext)
+      && isMobileAppPromotionPromptContextCurrent(currentCheck.context)
+    ) {
+      return currentCheck.promise;
+    }
+
+    const nextPromise = runMobileAppPromotionCheck(promptContext);
+    const nextCheck: MobileAppPromotionInFlightCheck = {
+      context: promptContext,
+      promise: nextPromise,
+    };
+    mobileAppPromotionCheckInFlightRef.current = nextCheck;
+    try {
+      return await nextPromise;
+    } finally {
+      if (mobileAppPromotionCheckInFlightRef.current === nextCheck) {
+        mobileAppPromotionCheckInFlightRef.current = null;
+      }
+    }
+  }
+
+  async function maybeOpenPostReviewPrompt(): Promise<void> {
+    const promptContext = mobileAppPromotionPromptContextRef.current;
+    const mobileAppPromotionDecision = await maybeOpenMobileAppPromotion(promptContext);
+    if (
+      mobileAppPromotionDecision.kind === "skipped"
+      && isMobileAppPromotionPromptContextCurrent(promptContext)
+    ) {
+      await maybeOpenAutomaticFeedbackPrompt();
+    }
+  }
+
   function closeFeedbackDialog(): void {
     setIsFeedbackDialogOpen(false);
     setFeedbackMessage("");
@@ -383,6 +663,10 @@ export function useReviewScreenController(
   function dismissAutomaticFeedbackDialog(): void {
     closeFeedbackDialog();
     void postAutomaticFeedbackPromptEvent("automatic_prompt_dismissed");
+  }
+
+  function dismissMobileAppPromotionDialog(): void {
+    setIsMobileAppPromotionDialogOpen(false);
   }
 
   async function submitAutomaticFeedback(): Promise<void> {
@@ -462,7 +746,7 @@ export function useReviewScreenController(
       }
 
       if (didShowHardReminder === false) {
-        void maybeOpenAutomaticFeedbackPrompt();
+        void maybeOpenPostReviewPrompt();
       }
     } finally {
       setIsSubmitting(false);
@@ -542,7 +826,19 @@ export function useReviewScreenController(
     setFeedbackMessage("");
     setFeedbackErrorMessage("");
     setIsFeedbackSubmitting(false);
+    setIsMobileAppPromotionDialogOpen(false);
   }, [activeWorkspace?.workspaceId]);
+
+  useEffect(() => {
+    return () => {
+      const currentContext = mobileAppPromotionPromptContextRef.current;
+      mobileAppPromotionPromptContextRef.current = {
+        ...currentContext,
+        generation: currentContext.generation + 1,
+        isMounted: false,
+      };
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -558,6 +854,7 @@ export function useReviewScreenController(
     isEditorPresented,
     isFeedbackDialogOpen,
     isHardReminderVisible,
+    isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
     isSubmitting,
     onShortcutInputStart: dismissReviewReactions,
@@ -645,6 +942,11 @@ export function useReviewScreenController(
     hardReminderDialogProps: {
       isOpen: isHardReminderVisible,
       onDismiss: handleDismissHardReminder,
+    },
+    mobileAppPromotionDialogProps: {
+      isOpen: isMobileAppPromotionDialogOpen,
+      onDismiss: dismissMobileAppPromotionDialog,
+      storeLinks: webReviewMobilePromptStoreLinks,
     },
     headerProps: {
       filterMenuProps: {

@@ -7,6 +7,7 @@ type UseReviewKeyboardShortcutsParams = Readonly<{
   isEditorPresented: boolean;
   isFeedbackDialogOpen: boolean;
   isHardReminderVisible: boolean;
+  isMobileAppPromotionDialogOpen: boolean;
   isReviewFilterMenuOpen: boolean;
   isSubmitting: boolean;
   onShortcutInputStart: () => void;
@@ -42,6 +43,7 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
     isEditorPresented,
     isFeedbackDialogOpen,
     isHardReminderVisible,
+    isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
     isSubmitting,
     onShortcutInputStart,
@@ -56,6 +58,7 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
       || isEditorPresented
       || isFeedbackDialogOpen
       || isHardReminderVisible
+      || isMobileAppPromotionDialogOpen
       || isReviewFilterMenuOpen
       || isEditableKeyboardTarget(event.target)
     ) {

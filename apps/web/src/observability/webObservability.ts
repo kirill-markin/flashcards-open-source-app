@@ -12,6 +12,7 @@ export type WebObservationFeature =
   | "cards"
   | "review"
   | "feedback"
+  | "mobile_app_promo"
   | "progress"
   | "settings";
 
@@ -363,6 +364,10 @@ export type WebAppOperation =
   | "feedback_state_load"
   | "feedback_prompt_event"
   | "feedback_submit"
+  | "mobile_app_promo_activity_load"
+  | "mobile_app_promo_state_load"
+  | "mobile_app_promo_status_load"
+  | "mobile_app_promo_state_save"
   | "friend_invitation_accept"
   | "friend_invitation_copy"
   | "friend_invitation_create"

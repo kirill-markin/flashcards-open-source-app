@@ -102,6 +102,10 @@ export type ReviewCounts = Readonly<{
   totalCount: number;
 }>;
 
+export type ReviewPlatformSummary = Readonly<{
+  hasMobileReviewEvent: boolean;
+}>;
+
 export type ReviewQueueSnapshot = Readonly<{
   resolvedReviewFilter: ReviewFilter;
   cards: ReadonlyArray<Card>;
