@@ -9,6 +9,7 @@ import {
   replaceChatDraftForSession,
   storeChatDraftWorkspaceState,
   subscribeToChatDraftWorkspaceStateChanges,
+  toPersistableChatDraftContent,
   type ChatDraftContent,
   type StoredChatDraft,
 } from "./chatDraftStorage";
@@ -247,7 +248,7 @@ export function ChatDraftProvider(props: Props): ReactElement {
       && sourceDraft !== null
       && sourceDraftUpdatedAt !== null
       && sourceDraft.updatedAt === sourceDraftUpdatedAt
-      && areChatDraftContentsEqual(sourceDraft, nextDraft);
+      && areChatDraftContentsEqual(sourceDraft, toPersistableChatDraftContent(nextDraft));
     const nextDraftsBySessionId = shouldClearSourceDraft === false
       ? targetDraftsBySessionId
       : replaceChatDraftForSession(

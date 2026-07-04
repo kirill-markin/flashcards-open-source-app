@@ -1,4 +1,4 @@
-import type { PendingAttachment } from "../../attachments/FileAttachment";
+import type { CardPendingAttachment, PendingAttachment } from "../../attachments/FileAttachment";
 import type { LegacyEffortLevel } from "../../../types";
 import { appendLegacyEffortTag } from "../../../legacyEffort";
 
@@ -70,20 +70,7 @@ function parsePendingAttachment(value: unknown): PendingAttachment | null {
   }
 
   if (value.type === "binary") {
-    if (
-      typeof value.fileName !== "string"
-      || typeof value.mediaType !== "string"
-      || typeof value.base64Data !== "string"
-    ) {
-      return null;
-    }
-
-    return {
-      type: "binary",
-      fileName: value.fileName,
-      mediaType: value.mediaType,
-      base64Data: value.base64Data,
-    };
+    return null;
   }
 
   if (value.type === "card") {
@@ -131,6 +118,21 @@ function parseChatDraftContent(value: unknown): ChatDraftContent | null {
   };
 }
 
+function hasPersistedBinaryPendingAttachment(value: unknown): boolean {
+  if (isRecord(value) === false || isRecord(value.draftsBySessionId) === false) {
+    return false;
+  }
+
+  return Object.values(value.draftsBySessionId).some((draftValue) => {
+    if (isRecord(draftValue) === false || Array.isArray(draftValue.pendingAttachments) === false) {
+      return false;
+    }
+
+    return draftValue.pendingAttachments.some((attachmentValue) =>
+      isRecord(attachmentValue) && attachmentValue.type === "binary");
+  });
+}
+
 function parseStoredChatDraftWorkspaceState(value: unknown): StoredChatDraftWorkspaceState | null {
   if (isRecord(value) === false || value.version !== CHAT_DRAFT_STORAGE_VERSION) {
     return null;
@@ -151,9 +153,14 @@ function parseStoredChatDraftWorkspaceState(value: unknown): StoredChatDraftWork
       continue;
     }
 
+    const persistableDraft = toPersistableChatDraftContent(parsedDraft);
+    if (isDraftEmpty(persistableDraft)) {
+      continue;
+    }
+
     draftsBySessionId[sessionId] = {
-      inputText: parsedDraft.inputText,
-      pendingAttachments: parsedDraft.pendingAttachments,
+      inputText: persistableDraft.inputText,
+      pendingAttachments: persistableDraft.pendingAttachments,
       updatedAt: draftValue.updatedAt,
     };
   }
@@ -187,6 +194,41 @@ function normalizeWorkspaceId(workspaceId: string | null): string | null {
 
 function isDraftEmpty(draft: ChatDraftContent): boolean {
   return draft.inputText.trim() === "" && draft.pendingAttachments.length === 0;
+}
+
+function isPersistablePendingAttachment(attachment: PendingAttachment): attachment is CardPendingAttachment {
+  return attachment.type === "card";
+}
+
+export function toPersistableChatDraftContent(draft: ChatDraftContent): ChatDraftContent {
+  return {
+    inputText: draft.inputText,
+    pendingAttachments: draft.pendingAttachments.filter(isPersistablePendingAttachment),
+  };
+}
+
+function toPersistableDraftsBySessionId(
+  draftsBySessionId: Readonly<Record<string, StoredChatDraft>>,
+): Record<string, StoredChatDraft> {
+  const nextDraftsBySessionId: Record<string, StoredChatDraft> = {};
+  for (const [sessionId, draft] of Object.entries(draftsBySessionId)) {
+    const persistableDraft = toPersistableChatDraftContent(draft);
+    if (isDraftEmpty(persistableDraft)) {
+      continue;
+    }
+
+    nextDraftsBySessionId[sessionId] = {
+      inputText: persistableDraft.inputText,
+      pendingAttachments: persistableDraft.pendingAttachments,
+      updatedAt: draft.updatedAt,
+    };
+  }
+
+  return nextDraftsBySessionId;
+}
+
+function isQuotaExceededError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "QuotaExceededError";
 }
 
 function createNextDraftUpdatedAt(): number {
@@ -285,7 +327,8 @@ function loadWorkspaceDraftState(workspaceId: string | null): StoredChatDraftWor
     };
   }
 
-  const rawValue = storage.getItem(resolveWorkspaceStorageKey(normalizedWorkspaceId));
+  const storageKey = resolveWorkspaceStorageKey(normalizedWorkspaceId);
+  const rawValue = storage.getItem(storageKey);
   if (rawValue === null) {
     return {
       version: CHAT_DRAFT_STORAGE_VERSION,
@@ -293,25 +336,31 @@ function loadWorkspaceDraftState(workspaceId: string | null): StoredChatDraftWor
     };
   }
 
+  let parsedValue: unknown;
   try {
-    const parsedValue = JSON.parse(rawValue) as unknown;
-    const parsedState = parseStoredChatDraftWorkspaceState(parsedValue);
-    if (parsedState === null) {
-      storage.removeItem(resolveWorkspaceStorageKey(normalizedWorkspaceId));
-      return {
-        version: CHAT_DRAFT_STORAGE_VERSION,
-        draftsBySessionId: {},
-      };
-    }
-
-    return parsedState;
+    parsedValue = JSON.parse(rawValue) as unknown;
   } catch {
-    storage.removeItem(resolveWorkspaceStorageKey(normalizedWorkspaceId));
+    storage.removeItem(storageKey);
     return {
       version: CHAT_DRAFT_STORAGE_VERSION,
       draftsBySessionId: {},
     };
   }
+
+  const parsedState = parseStoredChatDraftWorkspaceState(parsedValue);
+  if (parsedState === null) {
+    storage.removeItem(storageKey);
+    return {
+      version: CHAT_DRAFT_STORAGE_VERSION,
+      draftsBySessionId: {},
+    };
+  }
+
+  if (hasPersistedBinaryPendingAttachment(parsedValue)) {
+    storeWorkspaceDraftState(normalizedWorkspaceId, parsedState);
+  }
+
+  return parsedState;
 }
 
 function storeWorkspaceDraftState(
@@ -328,27 +377,29 @@ function storeWorkspaceDraftState(
     return;
   }
 
-  const nextDraftsBySessionId: Record<string, StoredChatDraft> = {};
-  for (const [sessionId, draft] of Object.entries(state.draftsBySessionId)) {
-    if (isDraftEmpty(draft)) {
-      continue;
-    }
-
-    nextDraftsBySessionId[sessionId] = draft;
-  }
+  const storageKey = resolveWorkspaceStorageKey(normalizedWorkspaceId);
+  const nextDraftsBySessionId = toPersistableDraftsBySessionId(state.draftsBySessionId);
 
   if (Object.keys(nextDraftsBySessionId).length === 0) {
-    storage.removeItem(resolveWorkspaceStorageKey(normalizedWorkspaceId));
+    storage.removeItem(storageKey);
     return;
   }
 
-  storage.setItem(
-    resolveWorkspaceStorageKey(normalizedWorkspaceId),
-    JSON.stringify({
-      version: CHAT_DRAFT_STORAGE_VERSION,
-      draftsBySessionId: nextDraftsBySessionId,
-    }),
-  );
+  try {
+    storage.setItem(
+      storageKey,
+      JSON.stringify({
+        version: CHAT_DRAFT_STORAGE_VERSION,
+        draftsBySessionId: nextDraftsBySessionId,
+      }),
+    );
+  } catch (error) {
+    if (isQuotaExceededError(error) === false) {
+      throw error;
+    }
+
+    storage.removeItem(storageKey);
+  }
 }
 
 export function buildChatDraftSessionKey(sessionId: string | null): string {
@@ -400,10 +451,11 @@ export function clearStoredChatDraftForSessionIfUnchanged(
 
   const currentState = loadWorkspaceDraftState(workspaceId);
   const currentDraft = readStoredChatDraftForSession(currentState.draftsBySessionId, sessionId);
+  const persistableExpectedDraft = toPersistableChatDraftContent(expectedDraft);
   if (
     currentDraft === null
     || currentDraft.updatedAt !== expectedUpdatedAt
-    || areChatDraftContentsEqual(currentDraft, expectedDraft) === false
+    || areChatDraftContentsEqual(currentDraft, persistableExpectedDraft) === false
   ) {
     return;
   }
