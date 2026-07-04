@@ -697,7 +697,8 @@ struct CloudSyncTransport {
                             attempt: attempt,
                             maxAttempts: cloudSyncTransportMaxAttempts,
                             apiBaseUrl: apiBaseUrl,
-                            messageSummary: Flashcards.errorMessage(error: error)
+                            messageSummary: Flashcards.errorMessage(error: error),
+                            transportDiagnostics: nil
                         )
                     )
                 )
@@ -782,7 +783,8 @@ struct CloudSyncTransport {
                     attempt: attempt,
                     maxAttempts: mediaAssetUploadPartPutMaxAttempts,
                     apiBaseUrl: nil,
-                    messageSummary: Flashcards.errorMessage(error: error)
+                    messageSummary: Flashcards.errorMessage(error: error),
+                    transportDiagnostics: nil
                 )
             )
         )

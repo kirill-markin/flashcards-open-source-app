@@ -132,7 +132,8 @@ final class GuestCloudAuthService {
                                 attempt: attempt,
                                 maxAttempts: guestSessionDeleteMaxAttempts,
                                 apiBaseUrl: apiBaseUrl,
-                                messageSummary: Flashcards.errorMessage(error: error)
+                                messageSummary: Flashcards.errorMessage(error: error),
+                                transportDiagnostics: nil
                             )
                         )
                     )

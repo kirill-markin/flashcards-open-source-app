@@ -519,13 +519,16 @@ extension SentryObservabilityAdapter {
                 )
             )
         case .silentFailure(let error, let scope, let details):
-            let context: [String: Any] = [
-                "stage": details.stage ?? "",
-                "status_code": details.statusCode.map { statusCode in String(statusCode) } ?? "",
-                "backend_code": details.backendCode ?? "",
-                "request_id": details.requestId ?? "",
-                "message_summary": details.messageSummary ?? ""
-            ]
+            let context: [String: Any] = self.contextWithTransportDiagnostics(
+                context: [
+                    "stage": details.stage ?? "",
+                    "status_code": details.statusCode.map { statusCode in String(statusCode) } ?? "",
+                    "backend_code": details.backendCode ?? "",
+                    "request_id": details.requestId ?? "",
+                    "message_summary": details.messageSummary ?? ""
+                ],
+                transportDiagnostics: details.transportDiagnostics
+            )
             return ExceptionPayload(
                 error: error,
                 observation: ObservationPayload(
@@ -610,12 +613,15 @@ extension SentryObservabilityAdapter {
     }
 
     private static func cloudRetryContext(_ observation: CloudRetryObservation) -> [String: Any] {
-        [
-            "attempt": observation.attempt,
-            "max_attempts": observation.maxAttempts,
-            "api_base_url": observation.apiBaseUrl ?? "",
-            "message_summary": observation.messageSummary ?? ""
-        ]
+        self.contextWithTransportDiagnostics(
+            context: [
+                "attempt": observation.attempt,
+                "max_attempts": observation.maxAttempts,
+                "api_base_url": observation.apiBaseUrl ?? "",
+                "message_summary": observation.messageSummary ?? ""
+            ],
+            transportDiagnostics: observation.transportDiagnostics
+        )
     }
 
     private static func cloudRetryFields(_ observation: CloudRetryObservation) -> [String: String] {
@@ -737,6 +743,38 @@ extension SentryObservabilityAdapter {
             "decoder_summary_length": diagnostics.decoderSummary.map { decoderSummary in String(decoderSummary.count) } ?? "",
             "continuation_attempt": diagnostics.continuationAttempt.map { continuationAttempt in String(continuationAttempt) } ?? "",
             "continuation_tool_call_count": String(diagnostics.continuationToolCallIds.count)
+        ]
+    }
+
+    private static func contextWithTransportDiagnostics(
+        context: [String: Any],
+        transportDiagnostics: IOSNetworkTransportDiagnostics?
+    ) -> [String: Any] {
+        guard let transportDiagnostics else {
+            return context
+        }
+
+        var enrichedContext: [String: Any] = context
+        for (key, value) in self.transportDiagnosticsContext(transportDiagnostics) {
+            enrichedContext[key] = value
+        }
+        return enrichedContext
+    }
+
+    private static func transportDiagnosticsContext(
+        _ diagnostics: IOSNetworkTransportDiagnostics
+    ) -> [String: Any] {
+        [
+            "url_error_code": diagnostics.urlErrorCode.map { urlErrorCode in String(urlErrorCode) } ?? "",
+            "url_error_name": diagnostics.urlErrorName ?? "",
+            "ns_error_domain": diagnostics.nsErrorDomain ?? "",
+            "ns_error_code": diagnostics.nsErrorCode.map { nsErrorCode in String(nsErrorCode) } ?? "",
+            "cf_stream_error_domain": diagnostics.cfStreamErrorDomain.map { cfStreamErrorDomain in String(cfStreamErrorDomain) } ?? "",
+            "cf_stream_error_code": diagnostics.cfStreamErrorCode.map { cfStreamErrorCode in String(cfStreamErrorCode) } ?? "",
+            "http_method": diagnostics.httpMethod ?? "",
+            "endpoint_path": diagnostics.endpointPath ?? "",
+            "api_host_kind": diagnostics.apiHostKind ?? "",
+            "api_host": diagnostics.apiHost ?? ""
         ]
     }
 

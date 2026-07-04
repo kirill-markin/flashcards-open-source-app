@@ -304,6 +304,19 @@ struct NotificationSchedulingFailureWarning: Sendable, Hashable {
     let diagnostics: NotificationSchedulingDiagnostics
 }
 
+struct IOSNetworkTransportDiagnostics: Sendable, Hashable {
+    let nsErrorDomain: String?
+    let nsErrorCode: Int?
+    let urlErrorCode: Int?
+    let urlErrorName: String?
+    let cfStreamErrorDomain: Int?
+    let cfStreamErrorCode: Int?
+    let httpMethod: String?
+    let endpointPath: String?
+    let apiHostKind: String?
+    let apiHost: String?
+}
+
 struct CloudRetryObservation: Sendable, Hashable {
     let action: String
     let scope: IOSObservationScope
@@ -311,6 +324,7 @@ struct CloudRetryObservation: Sendable, Hashable {
     let maxAttempts: Int
     let apiBaseUrl: String?
     let messageSummary: String?
+    let transportDiagnostics: IOSNetworkTransportDiagnostics?
 }
 
 struct LocalDataRepairWarning: Sendable, Hashable {
@@ -410,4 +424,5 @@ struct SilentFailureDetails: Sendable, Hashable {
     let backendCode: String?
     let requestId: String?
     let messageSummary: String?
+    let transportDiagnostics: IOSNetworkTransportDiagnostics?
 }
