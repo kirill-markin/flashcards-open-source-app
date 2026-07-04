@@ -1,10 +1,75 @@
 import Foundation
 
+struct ProgressOperationRefreshNeeds: Sendable, Hashable {
+    let summary: Bool?
+    let series: Bool?
+    let reviewSchedule: Bool?
+    let leaderboard: Bool?
+    let streakLeaderboard: Bool?
+}
+
 /// Store-owned progress lifecycle:
 /// prepare a scope snapshot from local state, render immediately from cached/local data,
 /// then refresh summary and series independently and re-render whenever the latest response still matches the latest token.
 @MainActor
 extension FlashcardsStore {
+    func addProgressForegroundOperationBreadcrumb(
+        action: ForegroundOperationAction,
+        phase: ForegroundOperationPhase,
+        startedAt: Date?,
+        cloudState: CloudAccountState?,
+        refreshNeeds: ProgressOperationRefreshNeeds,
+        errorSummary: String?
+    ) {
+        let durationMilliseconds = startedAt.map { startDate in
+            iosObservationDurationMilliseconds(startedAt: startDate, finishedAt: Date())
+        }
+        let scope = IOSObservationScope(
+            feature: .progress,
+            userId: self.cloudSettings?.linkedUserId,
+            workspaceId: self.workspace?.workspaceId,
+            requestId: nil,
+            clientRequestId: nil,
+            sessionId: nil,
+            runId: nil,
+            cloudState: cloudState,
+            configurationMode: try? self.currentCloudServiceConfiguration().mode
+        )
+
+        FlashcardsObservability.addBreadcrumb(
+            .foregroundOperation(
+                ForegroundOperationObservation(
+                    scope: scope,
+                    action: action,
+                    phase: phase,
+                    durationMilliseconds: durationMilliseconds,
+                    selectedTab: nil,
+                    scenePhase: nil,
+                    isStartupReady: nil,
+                    isRecoveryGateActive: nil,
+                    cardCount: self.cards.count,
+                    deckCount: self.decks.count,
+                    pendingOutboxOperationCount: nil,
+                    reviewQueueCount: nil,
+                    reviewDueCount: nil,
+                    reviewNewCount: nil,
+                    reviewPendingCount: nil,
+                    reviewTotalCount: nil,
+                    reviewFilterKind: nil,
+                    reviewRefreshMode: nil,
+                    reviewLoadKind: nil,
+                    progressSummaryRefreshNeeded: refreshNeeds.summary,
+                    progressSeriesRefreshNeeded: refreshNeeds.series,
+                    progressReviewScheduleRefreshNeeded: refreshNeeds.reviewSchedule,
+                    progressLeaderboardRefreshNeeded: refreshNeeds.leaderboard,
+                    progressStreakLeaderboardRefreshNeeded: refreshNeeds.streakLeaderboard,
+                    cloudSyncBlocked: self.isCloudSyncBlocked,
+                    errorSummary: errorSummary
+                )
+            )
+        )
+    }
+
     func prepareVisibleTabForPresentation(
         tab: AppTab,
         now: Date
@@ -31,6 +96,22 @@ extension FlashcardsStore {
     }
 
     func refreshReviewBadgesIfNeeded(now: Date) async {
+        let startedAt = Date()
+        var refreshNeeds = ProgressOperationRefreshNeeds(
+            summary: nil,
+            series: nil,
+            reviewSchedule: nil,
+            leaderboard: nil,
+            streakLeaderboard: nil
+        )
+        self.addProgressForegroundOperationBreadcrumb(
+            action: .progressBadgeRefresh,
+            phase: .start,
+            startedAt: nil,
+            cloudState: self.cloudSettings?.cloudState,
+            refreshNeeds: refreshNeeds,
+            errorSummary: nil
+        )
         do {
             let scopeKey = try self.prepareProgressScope(now: now)
             try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
@@ -45,15 +126,54 @@ extension FlashcardsStore {
             let shouldRefreshSummary = self.shouldRefreshProgressSummary(scopeKey: summaryScopeKey)
             let shouldRefreshLeaderboard = leaderboardScopeKey.cloudState == .linked
                 && self.shouldRefreshProgressLeaderboard(scopeKey: leaderboardScopeKey, now: now)
+            refreshNeeds = ProgressOperationRefreshNeeds(
+                summary: shouldRefreshSummary,
+                series: false,
+                reviewSchedule: false,
+                leaderboard: shouldRefreshLeaderboard,
+                streakLeaderboard: false
+            )
+            self.addProgressForegroundOperationBreadcrumb(
+                action: .progressBadgeRefresh,
+                phase: .start,
+                startedAt: nil,
+                cloudState: scopeKey.cloudState,
+                refreshNeeds: refreshNeeds,
+                errorSummary: nil
+            )
             guard shouldRefreshSummary || shouldRefreshLeaderboard else {
+                self.addProgressForegroundOperationBreadcrumb(
+                    action: .progressBadgeRefresh,
+                    phase: .success,
+                    startedAt: startedAt,
+                    cloudState: scopeKey.cloudState,
+                    refreshNeeds: refreshNeeds,
+                    errorSummary: nil
+                )
                 return
             }
 
             guard self.isCloudSyncBlocked == false else {
+                self.addProgressForegroundOperationBreadcrumb(
+                    action: .progressBadgeRefresh,
+                    phase: .success,
+                    startedAt: startedAt,
+                    cloudState: scopeKey.cloudState,
+                    refreshNeeds: refreshNeeds,
+                    errorSummary: nil
+                )
                 return
             }
 
             guard let activeSession = try await self.progressCloudSession(scopeKey: scopeKey) else {
+                self.addProgressForegroundOperationBreadcrumb(
+                    action: .progressBadgeRefresh,
+                    phase: .success,
+                    startedAt: startedAt,
+                    cloudState: scopeKey.cloudState,
+                    refreshNeeds: refreshNeeds,
+                    errorSummary: nil
+                )
                 return
             }
 
@@ -78,15 +198,40 @@ extension FlashcardsStore {
                     linkedSession: activeSession
                 )
             }
+            self.addProgressForegroundOperationBreadcrumb(
+                action: .progressBadgeRefresh,
+                phase: .success,
+                startedAt: startedAt,
+                cloudState: scopeKey.cloudState,
+                refreshNeeds: refreshNeeds,
+                errorSummary: nil
+            )
         } catch {
             if isRequestCancellationError(error: error) {
                 return
             }
 
             if self.isCloudSyncBlocked {
+                self.addProgressForegroundOperationBreadcrumb(
+                    action: .progressBadgeRefresh,
+                    phase: .success,
+                    startedAt: startedAt,
+                    cloudState: self.cloudSettings?.cloudState,
+                    refreshNeeds: refreshNeeds,
+                    errorSummary: nil
+                )
                 return
             }
 
+            let errorMessage = Flashcards.errorMessage(error: error)
+            self.addProgressForegroundOperationBreadcrumb(
+                action: .progressBadgeRefresh,
+                phase: .failure,
+                startedAt: startedAt,
+                cloudState: self.cloudSettings?.cloudState,
+                refreshNeeds: refreshNeeds,
+                errorSummary: errorMessage
+            )
             if self.isNonCriticalProgressRefreshTransportFailure(error: error) {
                 return
             }
@@ -199,6 +344,22 @@ extension FlashcardsStore {
     }
 
     func refreshProgressIfNeeded(now: Date) async {
+        let startedAt = Date()
+        var refreshNeeds = ProgressOperationRefreshNeeds(
+            summary: nil,
+            series: nil,
+            reviewSchedule: nil,
+            leaderboard: nil,
+            streakLeaderboard: nil
+        )
+        self.addProgressForegroundOperationBreadcrumb(
+            action: .progressRefresh,
+            phase: .start,
+            startedAt: nil,
+            cloudState: self.cloudSettings?.cloudState,
+            refreshNeeds: refreshNeeds,
+            errorSummary: nil
+        )
         do {
             let scopeKey = try self.prepareProgressSnapshot(now: now)
             let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
@@ -215,20 +376,59 @@ extension FlashcardsStore {
                 scopeKey: leaderboardScopeKey,
                 now: now
             )
+            refreshNeeds = ProgressOperationRefreshNeeds(
+                summary: shouldRefreshSummary,
+                series: shouldRefreshSeries,
+                reviewSchedule: shouldRefreshReviewSchedule,
+                leaderboard: shouldRefreshLeaderboard,
+                streakLeaderboard: shouldRefreshStreakLeaderboard
+            )
+            self.addProgressForegroundOperationBreadcrumb(
+                action: .progressRefresh,
+                phase: .start,
+                startedAt: nil,
+                cloudState: scopeKey.cloudState,
+                refreshNeeds: refreshNeeds,
+                errorSummary: nil
+            )
 
             guard shouldRefreshSummary
                 || shouldRefreshSeries
                 || shouldRefreshReviewSchedule
                 || shouldRefreshLeaderboard
                 || shouldRefreshStreakLeaderboard else {
+                self.addProgressForegroundOperationBreadcrumb(
+                    action: .progressRefresh,
+                    phase: .success,
+                    startedAt: startedAt,
+                    cloudState: scopeKey.cloudState,
+                    refreshNeeds: refreshNeeds,
+                    errorSummary: nil
+                )
                 return
             }
 
             guard self.isCloudSyncBlocked == false else {
+                self.addProgressForegroundOperationBreadcrumb(
+                    action: .progressRefresh,
+                    phase: .success,
+                    startedAt: startedAt,
+                    cloudState: scopeKey.cloudState,
+                    refreshNeeds: refreshNeeds,
+                    errorSummary: nil
+                )
                 return
             }
 
             guard let activeSession = try await self.progressCloudSession(scopeKey: scopeKey) else {
+                self.addProgressForegroundOperationBreadcrumb(
+                    action: .progressRefresh,
+                    phase: .success,
+                    startedAt: startedAt,
+                    cloudState: scopeKey.cloudState,
+                    refreshNeeds: refreshNeeds,
+                    errorSummary: nil
+                )
                 return
             }
 
@@ -281,15 +481,40 @@ extension FlashcardsStore {
                     now: now
                 )
             }
+            self.addProgressForegroundOperationBreadcrumb(
+                action: .progressRefresh,
+                phase: .success,
+                startedAt: startedAt,
+                cloudState: scopeKey.cloudState,
+                refreshNeeds: refreshNeeds,
+                errorSummary: nil
+            )
         } catch {
             if isRequestCancellationError(error: error) {
                 return
             }
 
             if self.isCloudSyncBlocked {
+                self.addProgressForegroundOperationBreadcrumb(
+                    action: .progressRefresh,
+                    phase: .success,
+                    startedAt: startedAt,
+                    cloudState: self.cloudSettings?.cloudState,
+                    refreshNeeds: refreshNeeds,
+                    errorSummary: nil
+                )
                 return
             }
 
+            let errorMessage = Flashcards.errorMessage(error: error)
+            self.addProgressForegroundOperationBreadcrumb(
+                action: .progressRefresh,
+                phase: .failure,
+                startedAt: startedAt,
+                cloudState: self.cloudSettings?.cloudState,
+                refreshNeeds: refreshNeeds,
+                errorSummary: errorMessage
+            )
             if self.isNonCriticalProgressRefreshTransportFailure(error: error) {
                 return
             }
@@ -302,18 +527,66 @@ extension FlashcardsStore {
     }
 
     func refreshProgressManually(now: Date) async {
+        let startedAt = Date()
+        var refreshNeeds = ProgressOperationRefreshNeeds(
+            summary: nil,
+            series: nil,
+            reviewSchedule: nil,
+            leaderboard: nil,
+            streakLeaderboard: nil
+        )
+        self.addProgressForegroundOperationBreadcrumb(
+            action: .progressManualRefresh,
+            phase: .start,
+            startedAt: nil,
+            cloudState: self.cloudSettings?.cloudState,
+            refreshNeeds: refreshNeeds,
+            errorSummary: nil
+        )
         do {
             let scopeKey = try self.prepareProgressSnapshot(now: now)
             let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
             let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
             let leaderboardScopeKey = self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
+            let shouldRefreshLeaderboard = leaderboardScopeKey.cloudState == .linked
+            refreshNeeds = ProgressOperationRefreshNeeds(
+                summary: true,
+                series: true,
+                reviewSchedule: true,
+                leaderboard: shouldRefreshLeaderboard,
+                streakLeaderboard: shouldRefreshLeaderboard
+            )
+            self.addProgressForegroundOperationBreadcrumb(
+                action: .progressManualRefresh,
+                phase: .start,
+                startedAt: nil,
+                cloudState: scopeKey.cloudState,
+                refreshNeeds: refreshNeeds,
+                errorSummary: nil
+            )
 
             self.invalidateProgress(scopeKey: scopeKey, summaryScopeKey: summaryScopeKey)
             guard self.isCloudSyncBlocked == false else {
+                self.addProgressForegroundOperationBreadcrumb(
+                    action: .progressManualRefresh,
+                    phase: .success,
+                    startedAt: startedAt,
+                    cloudState: scopeKey.cloudState,
+                    refreshNeeds: refreshNeeds,
+                    errorSummary: nil
+                )
                 return
             }
 
             guard let activeSession = try await self.progressCloudSession(scopeKey: scopeKey) else {
+                self.addProgressForegroundOperationBreadcrumb(
+                    action: .progressManualRefresh,
+                    phase: .success,
+                    startedAt: startedAt,
+                    cloudState: scopeKey.cloudState,
+                    refreshNeeds: refreshNeeds,
+                    errorSummary: nil
+                )
                 return
             }
 
@@ -347,15 +620,40 @@ extension FlashcardsStore {
                     now: now
                 )
             }
+            self.addProgressForegroundOperationBreadcrumb(
+                action: .progressManualRefresh,
+                phase: .success,
+                startedAt: startedAt,
+                cloudState: scopeKey.cloudState,
+                refreshNeeds: refreshNeeds,
+                errorSummary: nil
+            )
         } catch {
             if isRequestCancellationError(error: error) {
                 return
             }
 
             if self.isCloudSyncBlocked {
+                self.addProgressForegroundOperationBreadcrumb(
+                    action: .progressManualRefresh,
+                    phase: .success,
+                    startedAt: startedAt,
+                    cloudState: self.cloudSettings?.cloudState,
+                    refreshNeeds: refreshNeeds,
+                    errorSummary: nil
+                )
                 return
             }
 
+            let errorMessage = Flashcards.errorMessage(error: error)
+            self.addProgressForegroundOperationBreadcrumb(
+                action: .progressManualRefresh,
+                phase: .failure,
+                startedAt: startedAt,
+                cloudState: self.cloudSettings?.cloudState,
+                refreshNeeds: refreshNeeds,
+                errorSummary: errorMessage
+            )
             if self.isNonCriticalProgressRefreshTransportFailure(error: error) {
                 return
             }
