@@ -561,6 +561,51 @@ function createStreakDays(
   });
 }
 
+function validateProgressSeriesDayInvariant(
+  progressSeries: ProgressSeries,
+  request: ProgressSeriesRequest,
+): void {
+  const dailyReviewsByDate: ReadonlyMap<string, DailyReviewPoint> = new Map(
+    progressSeries.dailyReviews.map((dailyReview) => [dailyReview.date, dailyReview]),
+  );
+  const streakStatesByDate: ReadonlyMap<string, StreakDayState> = new Map(
+    progressSeries.streakDays.map((streakDay) => [streakDay.date, streakDay.state]),
+  );
+
+  for (const dailyReview of dailyReviewsByDate.values()) {
+    const streakState = streakStatesByDate.get(dailyReview.date);
+    if (streakState === undefined) {
+      throw new Error(
+        [
+          "Progress series day invariant failed",
+          `userId=${request.userId}`,
+          `timeZone=${request.timeZone}`,
+          `from=${request.from}`,
+          `to=${request.to}`,
+          `date=${dailyReview.date}`,
+          `reviewCount=${dailyReview.reviewCount}`,
+          "streakState=missing",
+        ].join("; "),
+      );
+    }
+
+    if ((dailyReview.reviewCount > 0) !== (streakState === "reviewed")) {
+      throw new Error(
+        [
+          "Progress series day invariant failed",
+          `userId=${request.userId}`,
+          `timeZone=${request.timeZone}`,
+          `from=${request.from}`,
+          `to=${request.to}`,
+          `date=${dailyReview.date}`,
+          `reviewCount=${dailyReview.reviewCount}`,
+          `streakState=${streakState}`,
+        ].join("; "),
+      );
+    }
+  }
+}
+
 async function loadReviewHistoryWatermarksInExecutor(
   executor: DatabaseExecutor,
   workspaceIds: ReadonlyArray<string>,
@@ -821,8 +866,7 @@ async function buildUserProgressSeriesInExecutor(
     today,
     streakFreezePolicy,
   );
-
-  return {
+  const progressSeries: ProgressSeries = {
     timeZone: request.timeZone,
     from: request.from,
     to: request.to,
@@ -839,6 +883,9 @@ async function buildUserProgressSeriesInExecutor(
     generatedAt: generatedAtDate.toISOString(),
     reviewHistoryWatermarks: sortReviewHistoryWatermarks(reviewHistoryWatermarks),
   };
+  validateProgressSeriesDayInvariant(progressSeries, request);
+
+  return progressSeries;
 }
 
 export async function loadUserProgressSummaryInExecutor(

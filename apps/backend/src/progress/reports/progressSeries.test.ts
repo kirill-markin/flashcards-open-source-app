@@ -219,7 +219,11 @@ test("loadUserProgressSeriesInExecutor counts reviews by canonical reviewed_loca
         },
       ],
     },
-    activeReviewDateRowsByUser: {},
+    activeReviewDateRowsByUser: {
+      "user-1": [
+        { review_date: "2026-04-11" },
+      ],
+    },
     reviewScheduleRowsByRequest: {},
     reviewSequenceIdsByWorkspaceId: {
       "workspace-1": 1,
@@ -300,6 +304,47 @@ test("loadUserProgressSeriesInExecutor counts reviews by canonical reviewed_loca
   );
 });
 
+test("loadUserProgressSeriesInExecutor rejects daily review counts without matching reviewed streak state", async () => {
+  const { executor } = createProgressExecutor({
+    workspaceIdsByUser: {
+      "user-1": ["workspace-1"],
+    },
+    reviewRowsByRequest: {
+      "workspace-1|user-1|2026-04-26|2026-04-26": [
+        {
+          review_date: "2026-04-26",
+          review_count: 9,
+          again_count: 1,
+          hard_count: 2,
+          good_count: 3,
+          easy_count: 3,
+        },
+      ],
+    },
+    activeReviewDateRowsByUser: {},
+    reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 9,
+    },
+  });
+
+  await assert.rejects(
+    async () => loadUserProgressSeriesInExecutor(executor, {
+      userId: "user-1",
+      timeZone: "Europe/Madrid",
+      from: "2026-04-26",
+      to: "2026-04-26",
+    }),
+    (error: unknown): boolean => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /date=2026-04-26/);
+      assert.match(error.message, /reviewCount=9/);
+      assert.match(error.message, /streakState=missed/);
+      return true;
+    },
+  );
+});
+
 test("loadUserProgressSeriesInExecutor applies user scope for memberships and workspace scope for each review query", async () => {
   const { executor, recordedQueries } = createProgressExecutor({
     workspaceIdsByUser: {
@@ -327,7 +372,12 @@ test("loadUserProgressSeriesInExecutor applies user scope for memberships and wo
         },
       ],
     },
-    activeReviewDateRowsByUser: {},
+    activeReviewDateRowsByUser: {
+      "user-1": [
+        { review_date: "2026-04-11" },
+        { review_date: "2026-04-14" },
+      ],
+    },
     reviewScheduleRowsByRequest: {},
     reviewSequenceIdsByWorkspaceId: {
       "workspace-1": 3,
