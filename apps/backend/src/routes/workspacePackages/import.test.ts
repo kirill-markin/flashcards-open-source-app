@@ -408,6 +408,45 @@ test("POST /workspaces/:workspaceId/packages/import parses multipart ZIP bytes a
   assert.equal(confirmCalls, 1);
 });
 
+test("POST /workspaces/:workspaceId/packages/import accepts blank importTag when import tagging is disabled", async () => {
+  const zipBytes = createWorkspacePackageZipBytes();
+  let confirmCalls = 0;
+  const app = createWorkspacePackageTestApp(createWorkspacePackageRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    assertUserHasWorkspaceAccessFn: async () => undefined,
+    confirmWorkspacePackageImportFn: async (input) => {
+      confirmCalls += 1;
+      assert.deepEqual(Buffer.from(input.packageBytes), zipBytes);
+      assert.deepEqual(input.options, {
+        addImportTag: false,
+        importTag: "",
+        removeTags: [],
+        importedAt,
+        importId,
+      });
+      return createWorkspacePackageImportConfirmResult();
+    },
+  }));
+  const options = {
+    ...createWorkspacePackageImportConfirmOptions(),
+    addImportTag: false,
+    importTag: "",
+    removeTags: [],
+  };
+
+  const response = await app.request(`http://localhost/workspaces/${workspaceId}/packages/import`, {
+    method: "POST",
+    body: createWorkspacePackageImportConfirmFormData(zipBytes, options),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(confirmCalls, 1);
+});
+
 test("POST /workspaces/:workspaceId/packages/import uses path workspace instead of selected workspace", async () => {
   const zipBytes = createWorkspacePackageZipBytes();
   const requestedWorkspaceIds: Array<string> = [];
@@ -588,6 +627,20 @@ test("POST /workspaces/:workspaceId/packages/import rejects malformed multipart,
       expectedCode: "WORKSPACE_PACKAGE_IMPORT_OPTIONS_INVALID",
       errorPattern: /options are invalid/,
       detailsPattern: /removeTags/,
+    },
+    {
+      name: "blank import tag when enabled",
+      createRequestInit: () => ({
+        method: "POST",
+        body: createWorkspacePackageImportConfirmFormData(zipBytes, {
+          ...validOptions,
+          importTag: "   ",
+        }),
+      }),
+      expectedStatus: 400,
+      expectedCode: "WORKSPACE_PACKAGE_IMPORT_OPTIONS_INVALID",
+      errorPattern: /options are invalid/,
+      detailsPattern: /importTag/,
     },
     {
       name: "invalid options timestamp",

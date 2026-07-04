@@ -72,6 +72,32 @@ test("workspace package import plan applies the import tag when enabled", () => 
   });
 });
 
+test("workspace package import plan rejects a blank enabled import tag", () => {
+  assert.throws(
+    () => planWorkspacePackageImport({
+      cardsJson: createCardsJson([
+        createTestCard("Prompt", "Answer", ["biology"], "basic", null),
+      ]),
+      options: createImportOptions(true, "   ", []),
+      mediaAssetIdsByPortablePath: new Map(),
+    }),
+    /options\.importTag must not be empty/u,
+  );
+});
+
+test("workspace package import plan accepts a blank import tag when disabled", () => {
+  const plan = planWorkspacePackageImport({
+    cardsJson: createCardsJson([
+      createTestCard("Prompt", "Answer", ["biology"], "basic", null),
+    ]),
+    options: createImportOptions(false, "   ", []),
+    mediaAssetIdsByPortablePath: new Map(),
+  });
+
+  assert.deepEqual(plan.cards[0]?.tags, ["biology"]);
+  assert.equal(plan.summary.importTag, null);
+});
+
 test("workspace package import plan removes exact tags without partial matches", () => {
   const plan = planWorkspacePackageImport({
     cardsJson: createCardsJson([
