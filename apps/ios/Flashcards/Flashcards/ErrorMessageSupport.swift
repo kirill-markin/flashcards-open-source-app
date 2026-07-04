@@ -173,9 +173,9 @@ private struct IOSNetworkTransportCFStreamErrorDiagnostics {
 
 func makeIOSNetworkTransportDiagnostics(
     error: Error,
-    httpMethod: String,
-    endpointPath: String,
-    apiBaseUrl: String
+    httpMethod: String?,
+    endpointPath: String?,
+    apiBaseUrl: String?
 ) -> IOSNetworkTransportDiagnostics {
     let nsError: NSError = error as NSError
     let urlErrorCode: URLError.Code? = flashcardsURLErrorCode(
@@ -188,7 +188,7 @@ func makeIOSNetworkTransportDiagnostics(
     )
     let apiHost: IOSNetworkTransportAPIHostDiagnostics = iosNetworkTransportAPIHostDiagnostics(
         apiBaseUrl: apiBaseUrl
-    )
+    ) ?? IOSNetworkTransportAPIHostDiagnostics(kind: nil, host: nil)
 
     return IOSNetworkTransportDiagnostics(
         nsErrorDomain: safeIOSNetworkTransportIdentifier(nsError.domain),
@@ -197,8 +197,8 @@ func makeIOSNetworkTransportDiagnostics(
         urlErrorName: urlErrorCode.flatMap { code in iosNetworkTransportURLErrorName(code: code) },
         cfStreamErrorDomain: cfStreamError.domain,
         cfStreamErrorCode: cfStreamError.code,
-        httpMethod: safeIOSNetworkTransportHTTPMethod(httpMethod),
-        endpointPath: safeIOSNetworkTransportEndpointPath(endpointPath),
+        httpMethod: httpMethod.flatMap { method in safeIOSNetworkTransportHTTPMethod(method) },
+        endpointPath: endpointPath.flatMap { path in safeIOSNetworkTransportEndpointPath(path) },
         apiHostKind: apiHost.kind,
         apiHost: apiHost.host
     )
@@ -361,12 +361,15 @@ private func shouldRedactIOSNetworkTransportEndpointPathSegment(_ segment: Strin
 }
 
 private func iosNetworkTransportAPIHostDiagnostics(
-    apiBaseUrl: String
-) -> IOSNetworkTransportAPIHostDiagnostics {
+    apiBaseUrl: String?
+) -> IOSNetworkTransportAPIHostDiagnostics? {
+    guard let apiBaseUrl else {
+        return nil
+    }
     let trimmedBaseUrl: String = apiBaseUrl.trimmingCharacters(in: .whitespacesAndNewlines)
     guard let components = URLComponents(string: trimmedBaseUrl),
           let rawHost = components.host else {
-        return IOSNetworkTransportAPIHostDiagnostics(kind: nil, host: nil)
+        return nil
     }
 
     let normalizedHost: String = rawHost.lowercased()

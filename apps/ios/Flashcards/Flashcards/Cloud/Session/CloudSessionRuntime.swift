@@ -482,7 +482,12 @@ final class CloudSessionRuntime {
                             maxAttempts: 1,
                             apiBaseUrl: self.state.activeCloudSession?.apiBaseUrl,
                             messageSummary: Flashcards.errorMessage(error: error),
-                            transportDiagnostics: nil
+                            transportDiagnostics: makeIOSNetworkTransportDiagnostics(
+                                error: error,
+                                httpMethod: nil,
+                                endpointPath: nil,
+                                apiBaseUrl: self.state.activeCloudSession?.apiBaseUrl
+                            )
                         )
                     )
                 )
