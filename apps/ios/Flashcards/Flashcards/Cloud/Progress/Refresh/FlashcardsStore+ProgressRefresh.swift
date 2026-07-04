@@ -19,7 +19,7 @@ extension FlashcardsStore {
             return false
         }
 
-        if isRetryableNetworkTransportFailure(error: error) {
+        if self.isNonCriticalProgressRefreshTransportFailure(error: error) {
             return false
         }
 
@@ -133,6 +133,10 @@ extension FlashcardsStore {
                 return
             }
 
+            if self.isNonCriticalProgressRefreshTransportFailure(error: error) {
+                return
+            }
+
             self.presentProgressRefreshTechnicalError(
                 error: error,
                 refreshKind: "progress_summary_refresh_failed",
@@ -198,6 +202,10 @@ extension FlashcardsStore {
             }
 
             guard self.isCurrentProgressSeriesRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+                return
+            }
+
+            if self.isNonCriticalProgressRefreshTransportFailure(error: error) {
                 return
             }
 
@@ -276,6 +284,10 @@ extension FlashcardsStore {
                 return
             }
 
+            if self.isNonCriticalProgressRefreshTransportFailure(error: error) {
+                return
+            }
+
             self.presentProgressRefreshTechnicalError(
                 error: error,
                 refreshKind: "progress_review_schedule_refresh_failed",
@@ -346,6 +358,10 @@ extension FlashcardsStore {
             }
 
             guard self.isCurrentProgressLeaderboardRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+                return
+            }
+
+            if self.isNonCriticalProgressRefreshTransportFailure(error: error) {
                 return
             }
 
@@ -423,6 +439,10 @@ extension FlashcardsStore {
             }
 
             guard self.isCurrentProgressStreakLeaderboardRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
+                return
+            }
+
+            if self.isNonCriticalProgressRefreshTransportFailure(error: error) {
                 return
             }
 
@@ -823,5 +843,9 @@ extension FlashcardsStore {
         self.progressActiveStreakLeaderboardRefreshScopeKey == scopeKey
             && self.progressActiveStreakLeaderboardRefreshToken == refreshToken
             && self.progressStreakLeaderboardRefreshToken == refreshToken
+    }
+
+    func isNonCriticalProgressRefreshTransportFailure(error: Error) -> Bool {
+        isRetryableNetworkTransportFailure(error: error)
     }
 }
