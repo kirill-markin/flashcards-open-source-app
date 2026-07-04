@@ -12,6 +12,7 @@ import {
   type WebExceptionEvent,
   type WebObservationScope,
 } from "./webObservability";
+import { captureAppOperationError } from "./appOperationObservation";
 
 vi.mock("@sentry/react", () => {
   const createScope = () => ({
@@ -376,6 +377,29 @@ describe("Sentry privacy sanitizer", () => {
 
     captureWebException(event);
 
+    expect(Sentry.withScope).not.toHaveBeenCalled();
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it("treats browser API network app operation errors as expected", () => {
+    const wasCaptured = captureAppOperationError(
+      new ApiNetworkError({
+        endpoint: "GET /me",
+        originalErrorName: "TypeError",
+        originalErrorMessage: "Failed to fetch",
+        attemptCount: 3,
+      }),
+      {
+        feature: "app",
+        operation: "cards_page_load",
+        userId: "user-1",
+        workspaceId: "workspace-1",
+        installationId: "installation-1",
+        entityId: null,
+      },
+    );
+
+    expect(wasCaptured).toBe(false);
     expect(Sentry.withScope).not.toHaveBeenCalled();
     expect(Sentry.captureException).not.toHaveBeenCalled();
   });
