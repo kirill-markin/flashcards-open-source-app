@@ -5,12 +5,14 @@ import XCTest
 @MainActor
 final class ProgressCloudAuthService: CloudAuthServing {
     let refreshedToken: CloudIdentityToken
+    var refreshIdTokenError: Error?
     private(set) var refreshIdTokenCallCount: Int
     private(set) var lastRefreshToken: String?
     private(set) var lastAuthBaseUrl: String?
 
     init(refreshedToken: CloudIdentityToken) {
         self.refreshedToken = refreshedToken
+        self.refreshIdTokenError = nil
         self.refreshIdTokenCallCount = 0
         self.lastRefreshToken = nil
         self.lastAuthBaseUrl = nil
@@ -37,6 +39,9 @@ final class ProgressCloudAuthService: CloudAuthServing {
         self.refreshIdTokenCallCount += 1
         self.lastRefreshToken = refreshToken
         self.lastAuthBaseUrl = authBaseUrl
+        if let refreshIdTokenError {
+            throw refreshIdTokenError
+        }
         return self.refreshedToken
     }
 

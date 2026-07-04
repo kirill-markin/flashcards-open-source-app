@@ -820,7 +820,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
     }
 
     @MainActor
-    func testRefreshProgressIfNeededKeepsRetryableSummaryRefreshFailureInline() async throws {
+    func testRefreshProgressIfNeededKeepsRetryableSummaryRefreshFailureSilent() async throws {
         let database = try self.makeDatabase()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
@@ -856,7 +856,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         await context.store.refreshProgressIfNeeded(now: now)
 
         XCTAssertNil(context.store.presentedTechnicalError)
-        XCTAssertFalse(context.store.progressErrorState.summaryRefreshMessage.isEmpty)
+        XCTAssertTrue(context.store.progressErrorState.summaryRefreshMessage.isEmpty)
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
     }
 

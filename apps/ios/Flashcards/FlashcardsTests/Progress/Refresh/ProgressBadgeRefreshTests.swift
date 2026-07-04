@@ -439,7 +439,7 @@ final class ProgressBadgeRefreshTests: ProgressStoreTestCase {
     }
 
     @MainActor
-    func testProgressLeaderboardRetryableNetworkRefreshErrorsStayInline() async throws {
+    func testProgressLeaderboardRetryableNetworkRefreshErrorsStaySilent() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
@@ -488,7 +488,7 @@ final class ProgressBadgeRefreshTests: ProgressStoreTestCase {
             linkedSession: linkedSession
         )
         XCTAssertNil(context.store.presentedTechnicalError)
-        XCTAssertFalse(context.store.progressErrorState.leaderboardRefreshMessage.isEmpty)
+        XCTAssertTrue(context.store.progressErrorState.leaderboardRefreshMessage.isEmpty)
         XCTAssertTrue(context.store.progressErrorState.streakLeaderboardRefreshMessage.isEmpty)
 
         context.store.clearProgressLeaderboardRefreshErrorMessage()
@@ -500,7 +500,7 @@ final class ProgressBadgeRefreshTests: ProgressStoreTestCase {
         )
         XCTAssertNil(context.store.presentedTechnicalError)
         XCTAssertTrue(context.store.progressErrorState.leaderboardRefreshMessage.isEmpty)
-        XCTAssertFalse(context.store.progressErrorState.streakLeaderboardRefreshMessage.isEmpty)
+        XCTAssertTrue(context.store.progressErrorState.streakLeaderboardRefreshMessage.isEmpty)
     }
 
     @MainActor

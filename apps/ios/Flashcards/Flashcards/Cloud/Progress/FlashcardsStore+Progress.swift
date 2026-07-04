@@ -87,6 +87,10 @@ extension FlashcardsStore {
                 return
             }
 
+            if self.isNonCriticalProgressRefreshTransportFailure(error: error) {
+                return
+            }
+
             if self.shouldPresentProgressRefreshTechnicalError(error: error) {
                 self.presentTechnicalError(error)
             }
@@ -132,6 +136,10 @@ extension FlashcardsStore {
                 return
             }
 
+            if self.isNonCriticalProgressRefreshTransportFailure(error: error) {
+                return
+            }
+
             if self.shouldPresentProgressRefreshTechnicalError(error: error) {
                 self.presentTechnicalError(error)
             }
@@ -174,6 +182,10 @@ extension FlashcardsStore {
             }
 
             if self.isCloudSyncBlocked {
+                return
+            }
+
+            if self.isNonCriticalProgressRefreshTransportFailure(error: error) {
                 return
             }
 
@@ -278,6 +290,10 @@ extension FlashcardsStore {
                 return
             }
 
+            if self.isNonCriticalProgressRefreshTransportFailure(error: error) {
+                return
+            }
+
             if self.shouldPresentProgressRefreshTechnicalError(error: error) {
                 self.presentTechnicalError(error)
             }
@@ -337,6 +353,10 @@ extension FlashcardsStore {
             }
 
             if self.isCloudSyncBlocked {
+                return
+            }
+
+            if self.isNonCriticalProgressRefreshTransportFailure(error: error) {
                 return
             }
 
