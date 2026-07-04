@@ -357,7 +357,13 @@ private func downloadReviewManagedMediaBlob(
                 try await retryReviewManagedMediaDownload(
                     messageSummary: Flashcards.errorMessage(error: statusError),
                     attempt: attempt,
-                    retryScope: retryScope
+                    retryScope: retryScope,
+                    transportDiagnostics: makeIOSNetworkTransportDiagnostics(
+                        error: statusError,
+                        httpMethod: "GET",
+                        endpointPath: downloadURL.path,
+                        apiBaseUrl: nil
+                    )
                 )
                 continue
             }
@@ -382,7 +388,13 @@ private func downloadReviewManagedMediaBlob(
             try await retryReviewManagedMediaDownload(
                 messageSummary: Flashcards.errorMessage(error: safeError),
                 attempt: attempt,
-                retryScope: retryScope
+                retryScope: retryScope,
+                transportDiagnostics: makeIOSNetworkTransportDiagnostics(
+                    error: error,
+                    httpMethod: "GET",
+                    endpointPath: downloadURL.path,
+                    apiBaseUrl: nil
+                )
             )
         }
     }
@@ -396,7 +408,8 @@ private func downloadReviewManagedMediaBlob(
 private func retryReviewManagedMediaDownload(
     messageSummary: String,
     attempt: Int,
-    retryScope: IOSObservationScope
+    retryScope: IOSObservationScope,
+    transportDiagnostics: IOSNetworkTransportDiagnostics?
 ) async throws {
     FlashcardsObservability.addBreadcrumb(
         .cloudRetry(
@@ -407,7 +420,7 @@ private func retryReviewManagedMediaDownload(
                 maxAttempts: reviewManagedMediaDownloadMaxAttempts,
                 apiBaseUrl: nil,
                 messageSummary: messageSummary,
-                transportDiagnostics: nil
+                transportDiagnostics: transportDiagnostics
             )
         )
     )

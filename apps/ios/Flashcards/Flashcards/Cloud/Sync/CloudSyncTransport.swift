@@ -698,7 +698,12 @@ struct CloudSyncTransport {
                             maxAttempts: cloudSyncTransportMaxAttempts,
                             apiBaseUrl: apiBaseUrl,
                             messageSummary: Flashcards.errorMessage(error: error),
-                            transportDiagnostics: nil
+                            transportDiagnostics: makeIOSNetworkTransportDiagnostics(
+                                error: error,
+                                httpMethod: request.httpMethod,
+                                endpointPath: request.url?.path,
+                                apiBaseUrl: apiBaseUrl
+                            )
                         )
                     )
                 )
@@ -741,7 +746,11 @@ struct CloudSyncTransport {
                     throw statusError
                 }
 
-                try await self.retryMediaAssetUploadPartPut(error: statusError, attempt: attempt)
+                try await self.retryMediaAssetUploadPartPut(
+                    error: statusError,
+                    request: request,
+                    attempt: attempt
+                )
             } catch let error as CancellationError {
                 throw error
             } catch {
@@ -754,7 +763,11 @@ struct CloudSyncTransport {
                     throw error
                 }
 
-                try await self.retryMediaAssetUploadPartPut(error: error, attempt: attempt)
+                try await self.retryMediaAssetUploadPartPut(
+                    error: error,
+                    request: request,
+                    attempt: attempt
+                )
             }
         }
 
@@ -764,7 +777,7 @@ struct CloudSyncTransport {
         throw lastError
     }
 
-    private func retryMediaAssetUploadPartPut(error: Error, attempt: Int) async throws {
+    private func retryMediaAssetUploadPartPut(error: Error, request: URLRequest, attempt: Int) async throws {
         FlashcardsObservability.addBreadcrumb(
             .cloudRetry(
                 CloudRetryObservation(
@@ -784,7 +797,12 @@ struct CloudSyncTransport {
                     maxAttempts: mediaAssetUploadPartPutMaxAttempts,
                     apiBaseUrl: nil,
                     messageSummary: Flashcards.errorMessage(error: error),
-                    transportDiagnostics: nil
+                    transportDiagnostics: makeIOSNetworkTransportDiagnostics(
+                        error: error,
+                        httpMethod: request.httpMethod,
+                        endpointPath: request.url?.path,
+                        apiBaseUrl: nil
+                    )
                 )
             )
         )
