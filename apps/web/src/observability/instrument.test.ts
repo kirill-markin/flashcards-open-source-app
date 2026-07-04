@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
+import * as Sentry from "@sentry/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiNetworkError } from "../api";
 import {
   prepareSentryEventForSend,
@@ -7,10 +8,43 @@ import {
   sanitizeSentryEventForPrivacy,
 } from "./instrument";
 import {
-  buildWebExceptionFingerprint,
+  captureWebException,
   type WebExceptionEvent,
   type WebObservationScope,
 } from "./webObservability";
+
+vi.mock("@sentry/react", () => {
+  const createScope = () => ({
+    setContext: vi.fn(),
+    setFingerprint: vi.fn(),
+    setLevel: vi.fn(),
+    setTag: vi.fn(),
+    setUser: vi.fn(),
+  });
+
+  return {
+    addBreadcrumb: vi.fn(),
+    captureException: vi.fn(),
+    captureMessage: vi.fn(),
+    ErrorBoundary: vi.fn(),
+    init: vi.fn(),
+    reactErrorHandler: vi.fn(),
+    reactRouterV7BrowserTracingIntegration: vi.fn(() => ({ name: "mock.react_router" })),
+    setUser: vi.fn(),
+    withScope: vi.fn((callback: (scope: ReturnType<typeof createScope>) => void): void => {
+      callback(createScope());
+    }),
+    withSentryReactRouterV7Routing: vi.fn((routes: unknown): unknown => routes),
+  };
+});
+
+vi.mock("./instrument", async () => {
+  const actual = await vi.importActual<typeof import("./instrument")>("./instrument");
+  return {
+    ...actual,
+    isWebSentryEnabled: true,
+  };
+});
 
 type SentryPrivacyEvent = Parameters<typeof sanitizeSentryEventForPrivacy>[0];
 type SentryPrivacyBreadcrumb = Parameters<typeof sanitizeSentryBreadcrumbForPrivacy>[0];
@@ -24,6 +58,10 @@ const sensitiveMessageText = "User message contains the backText private answer.
 function serializeEvent(event: SentryPrivacyEvent): string {
   return JSON.stringify(event);
 }
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe("Sentry privacy sanitizer", () => {
   it("scrubs automatic event message, logentry message, and exception values", () => {
@@ -307,7 +345,7 @@ describe("Sentry privacy sanitizer", () => {
     expect(serializeEvent(preparedEvent)).not.toContain(sensitiveCardText);
   });
 
-  it("groups API network errors by transport endpoint", () => {
+  it("does not capture browser API network errors as Sentry exceptions", () => {
     const scope: WebObservationScope = {
       app: "web",
       feature: "chat",
@@ -336,6 +374,37 @@ describe("Sentry privacy sanitizer", () => {
       },
     };
 
-    expect(buildWebExceptionFingerprint(event)).toEqual(["{{ default }}", "api_network_failed", "GET /chat"]);
+    captureWebException(event);
+
+    expect(Sentry.withScope).not.toHaveBeenCalled();
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it("captures non-network exceptions as Sentry exceptions", () => {
+    const scope: WebObservationScope = {
+      app: "web",
+      feature: "app",
+      userId: "user-1",
+      workspaceId: "workspace-1",
+      installationId: "installation-1",
+      route: "/settings",
+      requestId: null,
+      statusCode: null,
+      code: null,
+    };
+    const event: WebExceptionEvent = {
+      action: "app_operation_failed",
+      error: new Error("IndexedDB open failed"),
+      scope,
+      details: {
+        operation: "cards_page_load",
+        entityId: null,
+      },
+    };
+
+    captureWebException(event);
+
+    expect(Sentry.withScope).toHaveBeenCalledTimes(1);
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
   });
 });

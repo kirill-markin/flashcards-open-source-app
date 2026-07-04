@@ -132,7 +132,13 @@ final class GuestCloudAuthService {
                                 attempt: attempt,
                                 maxAttempts: guestSessionDeleteMaxAttempts,
                                 apiBaseUrl: apiBaseUrl,
-                                messageSummary: Flashcards.errorMessage(error: error)
+                                messageSummary: Flashcards.errorMessage(error: error),
+                                transportDiagnostics: makeIOSNetworkTransportDiagnostics(
+                                    error: error,
+                                    httpMethod: "POST",
+                                    endpointPath: "/guest-auth/session/delete",
+                                    apiBaseUrl: apiBaseUrl
+                                )
                             )
                         )
                     )

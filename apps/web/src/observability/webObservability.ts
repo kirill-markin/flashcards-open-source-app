@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/react";
 import type { Scope } from "@sentry/react";
-import { ApiNetworkError } from "../api";
+import { isBrowserApiNetworkError } from "./apiNetworkErrorPolicy";
 import { isWebSentryEnabled } from "./instrument";
 
 export type WebObservationFeature =
@@ -806,18 +806,16 @@ export function captureWebWarning(event: WebWarningEvent): void {
 }
 
 export function captureWebException(event: WebExceptionEvent): void {
+  if (isBrowserApiNetworkError(event.error)) {
+    return;
+  }
+
   if (isWebSentryEnabled === false) {
     return;
   }
 
   Sentry.withScope((scope: Scope): void => {
     applyObservationScope(scope, event.scope, event.action);
-    // Network-level failures are environmental (offline, captive portal,
-    // blocked API host), not app defects; keep them out of the error level.
-    if (event.error instanceof ApiNetworkError) {
-      scope.setLevel("warning");
-    }
-
     scope.setFingerprint(buildWebExceptionFingerprint(event));
     scope.setContext("web.exception", detailsToContext(event.details));
     scope.setContext("web.error", errorMetadataToContext(readErrorMetadata(event.error)));
@@ -826,10 +824,6 @@ export function captureWebException(event: WebExceptionEvent): void {
 }
 
 export function buildWebExceptionFingerprint(event: WebExceptionEvent): Array<string> {
-  if (event.error instanceof ApiNetworkError) {
-    return ["{{ default }}", "api_network_failed", event.error.endpoint];
-  }
-
   if (event.action === "app_operation_failed") {
     return ["{{ default }}", event.action, event.details.operation];
   }

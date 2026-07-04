@@ -49,6 +49,19 @@ extension SentryObservabilityAdapter {
                 message: observation.action.rawValue,
                 data: self.appLifecycleContext(observation)
             )
+        case .foregroundOperation(let observation):
+            self.writeLocalRecord(
+                kind: "breadcrumb",
+                feature: observation.scope.feature,
+                action: observation.action.rawValue,
+                fields: self.foregroundOperationFields(observation)
+            )
+            self.addSentryBreadcrumb(
+                category: "ios.foreground_operation",
+                level: .info,
+                message: "\(observation.action.rawValue).\(observation.phase.rawValue)",
+                data: self.foregroundOperationContext(observation)
+            )
         case .cloudFlow(let observation):
             self.logCloudFlow(observation)
             self.addSentryBreadcrumb(
@@ -519,13 +532,16 @@ extension SentryObservabilityAdapter {
                 )
             )
         case .silentFailure(let error, let scope, let details):
-            let context: [String: Any] = [
-                "stage": details.stage ?? "",
-                "status_code": details.statusCode.map { statusCode in String(statusCode) } ?? "",
-                "backend_code": details.backendCode ?? "",
-                "request_id": details.requestId ?? "",
-                "message_summary": details.messageSummary ?? ""
-            ]
+            let context: [String: Any] = self.contextWithTransportDiagnostics(
+                context: [
+                    "stage": details.stage ?? "",
+                    "status_code": details.statusCode.map { statusCode in String(statusCode) } ?? "",
+                    "backend_code": details.backendCode ?? "",
+                    "request_id": details.requestId ?? "",
+                    "message_summary": details.messageSummary ?? ""
+                ],
+                transportDiagnostics: details.transportDiagnostics
+            )
             return ExceptionPayload(
                 error: error,
                 observation: ObservationPayload(
@@ -610,12 +626,15 @@ extension SentryObservabilityAdapter {
     }
 
     private static func cloudRetryContext(_ observation: CloudRetryObservation) -> [String: Any] {
-        [
-            "attempt": observation.attempt,
-            "max_attempts": observation.maxAttempts,
-            "api_base_url": observation.apiBaseUrl ?? "",
-            "message_summary": observation.messageSummary ?? ""
-        ]
+        self.contextWithTransportDiagnostics(
+            context: [
+                "attempt": observation.attempt,
+                "max_attempts": observation.maxAttempts,
+                "api_base_url": observation.apiBaseUrl ?? "",
+                "message_summary": observation.messageSummary ?? ""
+            ],
+            transportDiagnostics: observation.transportDiagnostics
+        )
     }
 
     private static func cloudRetryFields(_ observation: CloudRetryObservation) -> [String: String] {
@@ -635,6 +654,29 @@ extension SentryObservabilityAdapter {
 
     private static func appLifecycleFields(_ observation: AppLifecycleObservation) -> [String: String] {
         stringifyContext(self.appLifecycleContext(observation))
+    }
+
+    private static func foregroundOperationContext(_ observation: ForegroundOperationObservation) -> [String: Any] {
+        var context: [String: Any] = self.scopeContext(observation.scope)
+        context["action"] = observation.action.rawValue
+        context["phase"] = observation.phase.rawValue
+        context["duration_milliseconds"] = observation.durationMilliseconds.map { durationMilliseconds in String(durationMilliseconds) } ?? ""
+        context["selected_tab"] = observation.selectedTab ?? ""
+        context["scene_phase"] = observation.scenePhase ?? ""
+        context["is_startup_ready"] = observation.isStartupReady.map { isStartupReady in String(isStartupReady) } ?? ""
+        context["is_recovery_gate_active"] = observation.isRecoveryGateActive.map { isRecoveryGateActive in String(isRecoveryGateActive) } ?? ""
+        context["card_count"] = observation.cardCount.map { cardCount in String(cardCount) } ?? ""
+        context["deck_count"] = observation.deckCount.map { deckCount in String(deckCount) } ?? ""
+        context["pending_outbox_operation_count"] = observation.pendingOutboxOperationCount.map { pendingOutboxOperationCount in String(pendingOutboxOperationCount) } ?? ""
+        context["review_queue_count"] = observation.reviewQueueCount.map { reviewQueueCount in String(reviewQueueCount) } ?? ""
+        context["review_due_count"] = observation.reviewDueCount.map { reviewDueCount in String(reviewDueCount) } ?? ""
+        context["cloud_sync_blocked"] = observation.cloudSyncBlocked.map { cloudSyncBlocked in String(cloudSyncBlocked) } ?? ""
+        context["error_summary"] = observation.errorSummary ?? ""
+        return context
+    }
+
+    private static func foregroundOperationFields(_ observation: ForegroundOperationObservation) -> [String: String] {
+        stringifyContext(self.foregroundOperationContext(observation))
     }
 
     private static func aiChatLifecycleContext(_ observation: AIChatLifecycleObservation) -> [String: Any] {
@@ -737,6 +779,38 @@ extension SentryObservabilityAdapter {
             "decoder_summary_length": diagnostics.decoderSummary.map { decoderSummary in String(decoderSummary.count) } ?? "",
             "continuation_attempt": diagnostics.continuationAttempt.map { continuationAttempt in String(continuationAttempt) } ?? "",
             "continuation_tool_call_count": String(diagnostics.continuationToolCallIds.count)
+        ]
+    }
+
+    private static func contextWithTransportDiagnostics(
+        context: [String: Any],
+        transportDiagnostics: IOSNetworkTransportDiagnostics?
+    ) -> [String: Any] {
+        guard let transportDiagnostics else {
+            return context
+        }
+
+        var enrichedContext: [String: Any] = context
+        for (key, value) in self.transportDiagnosticsContext(transportDiagnostics) {
+            enrichedContext[key] = value
+        }
+        return enrichedContext
+    }
+
+    private static func transportDiagnosticsContext(
+        _ diagnostics: IOSNetworkTransportDiagnostics
+    ) -> [String: Any] {
+        [
+            "url_error_code": diagnostics.urlErrorCode.map { urlErrorCode in String(urlErrorCode) } ?? "",
+            "url_error_name": diagnostics.urlErrorName ?? "",
+            "ns_error_domain": diagnostics.nsErrorDomain ?? "",
+            "ns_error_code": diagnostics.nsErrorCode.map { nsErrorCode in String(nsErrorCode) } ?? "",
+            "cf_stream_error_domain": diagnostics.cfStreamErrorDomain.map { cfStreamErrorDomain in String(cfStreamErrorDomain) } ?? "",
+            "cf_stream_error_code": diagnostics.cfStreamErrorCode.map { cfStreamErrorCode in String(cfStreamErrorCode) } ?? "",
+            "http_method": diagnostics.httpMethod ?? "",
+            "endpoint_path": diagnostics.endpointPath ?? "",
+            "api_host_kind": diagnostics.apiHostKind ?? "",
+            "api_host": diagnostics.apiHost ?? ""
         ]
     }
 

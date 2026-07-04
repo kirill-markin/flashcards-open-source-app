@@ -533,7 +533,6 @@
 "settings.workspace.resetConfirmation.title" = "تأكيد إعادة الضبط";
 "settings.workspace.resetConfirmation.warning" = "تحذير: هذا الإجراء دائم. سيؤدي إلى مسح تقدم الدراسة لكل بطاقة في مساحة العمل هذه.";
 "settings.workspace.resetConfirmation.description" = "ستبقى البطاقات في مكانها. سيعود تقدم دراستك إلى الجديد.";
-"settings.workspace.resetConfirmation.placeholder" = "إعادة تعيين كل التقدم لجميع البطاقات في مساحة العمل هذه";
 "settings.workspace.resetConfirmation.loadingPreview" = "جارٍ تحميل معاينة إعادة التعيين...";
 "settings.workspace.resetConfirmation.previewWarning" = "تحذير: هذا الإجراء دائم. سيتم إعادة تعيين بطاقات %d إلى %@.";
 "settings.workspace.resetConfirmation.previewDescription" = "ستبقى البطاقات في مساحة العمل. سيتم حذف تقدم دراستك فقط.";
@@ -617,13 +616,15 @@
 "settings.workspace.export.package.cards" = "البطاقات";
 "settings.workspace.export.package.referencedMedia" = "وسائط مشار إليها";
 "settings.workspace.export.package.mediaSize" = "حجم الوسائط";
-"settings.workspace.export.package.tags.section" = "الوسوم";
-"settings.workspace.export.package.tags.empty" = "لا توجد وسوم.";
+"settings.workspace.export.package.cardSelection.section" = "البطاقات";
+"settings.workspace.export.package.cardSelection.allCards" = "كل البطاقات";
+"settings.workspace.export.package.cardSelection.tags.empty" = "لا توجد وسوم.";
+"settings.workspace.export.package.includedTags.section" = "الوسوم المضمنة";
+"settings.workspace.export.package.includedTags.empty" = "لا توجد وسوم حزمة لتضمينها.";
 "settings.workspace.export.package.tag.oneCard" = "بطاقة %d";
 "settings.workspace.export.package.tag.multipleCards" = "بطاقات %d";
-"settings.workspace.export.package.removeTag" = "إزالة %@";
-"settings.workspace.export.package.alwaysRemoveTag" = "إزالة %@ دائمًا";
-"settings.workspace.export.package.generatedImportTagAlwaysRemoved" = "تتم إزالة وسوم الاستيراد المنشأة دائمًا من عمليات تصدير الحزم.";
+"settings.workspace.export.package.includeTag" = "تضمين %@";
+"settings.workspace.export.package.generatedImportTagNotIncluded" = "لا يتم تضمين وسوم الاستيراد المنشأة في عمليات تصدير الحزم.";
 "settings.workspace.export.package.exporting" = "جارٍ التصدير...";
 "settings.workspace.export.package.export" = "تصدير flashcards.zip";
 "settings.workspace.export.package.previewRequired" = "عاين تصدير الحزمة قبل تنزيلها.";
@@ -634,7 +635,7 @@
 "settings.workspace.import.cloudRequired" = "يتطلب استيراد ملف ZIP للوسائط حسابًا سحابيًا في هذا الإصدار.";
 "settings.workspace.import.invalidFile" = "اختر حزمة Flashcards بصيغة ZIP.";
 "settings.workspace.import.fileTooLarge" = "اختر حزمة ZIP بحجم لا يتجاوز %d ميغابايت.";
-"settings.workspace.import.missingImportTag" = "لم تتضمن معاينة استيراد الحزمة وسم استيراد.";
+"settings.workspace.import.missingImportTag" = "أدخل وسم استيراد قبل الاستيراد.";
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "تم استيراد %d بطاقة مع الوسم %@.";
 "settings.workspace.import.success" = "تم استيراد %d بطاقة.";

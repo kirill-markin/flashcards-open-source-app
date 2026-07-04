@@ -533,7 +533,6 @@
 "settings.workspace.resetConfirmation.title" = "リセットを確認";
 "settings.workspace.resetConfirmation.warning" = "警告: このアクションは永続的です。このワークスペース内の各カードの学習の進行状況をクリアします。";
 "settings.workspace.resetConfirmation.description" = "カードはそのまま残ります。学習の進捗状況が新しい状態に戻ります。";
-"settings.workspace.resetConfirmation.placeholder" = "このワークスペース内のすべてのカードの進行状況をすべてリセット";
 "settings.workspace.resetConfirmation.loadingPreview" = "リセット プレビューを読み込んでいます...";
 "settings.workspace.resetConfirmation.previewWarning" = "警告: このアクションは永続的です。 %d カードを %@ にリセットします。";
 "settings.workspace.resetConfirmation.previewDescription" = "カードはワークスペースに残ります。学習の進行状況のみが削除されます。";
@@ -617,13 +616,15 @@
 "settings.workspace.export.package.cards" = "カード";
 "settings.workspace.export.package.referencedMedia" = "参照メディア";
 "settings.workspace.export.package.mediaSize" = "メディアサイズ";
-"settings.workspace.export.package.tags.section" = "タグ";
-"settings.workspace.export.package.tags.empty" = "タグはありません。";
+"settings.workspace.export.package.cardSelection.section" = "カード";
+"settings.workspace.export.package.cardSelection.allCards" = "すべてのカード";
+"settings.workspace.export.package.cardSelection.tags.empty" = "タグはありません。";
+"settings.workspace.export.package.includedTags.section" = "含めるタグ";
+"settings.workspace.export.package.includedTags.empty" = "含めるパッケージタグはありません。";
 "settings.workspace.export.package.tag.oneCard" = "%d 枚のカード";
 "settings.workspace.export.package.tag.multipleCards" = "%d 枚のカード";
-"settings.workspace.export.package.removeTag" = "%@ を削除";
-"settings.workspace.export.package.alwaysRemoveTag" = "%@ を常に削除";
-"settings.workspace.export.package.generatedImportTagAlwaysRemoved" = "生成されたインポートタグは、パッケージエクスポートから常に削除されます。";
+"settings.workspace.export.package.includeTag" = "%@ を含める";
+"settings.workspace.export.package.generatedImportTagNotIncluded" = "生成されたインポートタグはパッケージエクスポートに含まれません。";
 "settings.workspace.export.package.exporting" = "エクスポートしています...";
 "settings.workspace.export.package.export" = "flashcards.zip をエクスポート";
 "settings.workspace.export.package.previewRequired" = "ダウンロードする前にこのパッケージエクスポートをプレビューしてください。";
@@ -634,7 +635,7 @@
 "settings.workspace.import.cloudRequired" = "このバージョンでメディア ZIP をインポートするにはクラウドアカウントが必要です。";
 "settings.workspace.import.invalidFile" = "Flashcards の ZIP パッケージを選択してください。";
 "settings.workspace.import.fileTooLarge" = "%d MB 以下の ZIP パッケージを選択してください。";
-"settings.workspace.import.missingImportTag" = "パッケージインポートのプレビューにインポートタグが含まれていません。";
+"settings.workspace.import.missingImportTag" = "インポートする前にインポートタグを入力してください。";
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "%d 枚のカードをタグ %@ 付きでインポートしました。";
 "settings.workspace.import.success" = "%d 枚のカードをインポートしました。";

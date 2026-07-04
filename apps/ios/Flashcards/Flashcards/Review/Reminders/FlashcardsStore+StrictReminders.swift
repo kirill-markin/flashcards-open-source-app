@@ -255,17 +255,10 @@ extension FlashcardsStore {
             ) else {
                 continue
             }
-            let content = UNMutableNotificationContent()
-            content.title = appDisplayName()
-            content.body = payload.notificationBodyText
-            content.sound = .default
-            content.userInfo = buildStrictReminderNotificationUserInfo(scope: notificationScope)
-
-            let interval = max(1, TimeInterval(payload.scheduledAtMillis) / 1_000 - addNow.timeIntervalSince1970)
-            let notificationRequest = UNNotificationRequest(
-                identifier: payload.requestId,
-                content: content,
-                trigger: UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+            let notificationRequest = makeStrictReminderNotificationRequest(
+                payload: payload,
+                notificationScope: notificationScope,
+                addNow: addNow
             )
 
             attemptedPayloads.append(payload)
@@ -281,37 +274,83 @@ extension FlashcardsStore {
             return
         }
 
-        let pendingAfterRequestIdentifiers: [String] = await pendingAppNotificationRequestIdentifiers(center: center)
-        guard Task.isCancelled == false else {
-            return
-        }
-        let permissionStatusAfterReadback: ReviewNotificationPermissionStatus =
-            await resolveReviewNotificationPermissionStatus()
-        guard Task.isCancelled == false else {
-            return
-        }
-        let appStateAfterReadback: String = currentAppNotificationApplicationStateDiagnosticValue()
         let readbackNow = Date()
         let expectedPayloads: [ScheduledStrictReminderPayload] = futureStrictReminderPayloads(
             payloads: attemptedPayloads,
             now: readbackNow
         )
-        let acceptedAttemptedPayloads: [ScheduledStrictReminderPayload] = acceptedStrictReminderPayloads(
-            payloads: attemptedPayloads,
-            pendingRequestIdentifiers: pendingAfterRequestIdentifiers
-        )
-        let acceptedExpectedPayloads: [ScheduledStrictReminderPayload] = acceptedStrictReminderPayloads(
-            payloads: expectedPayloads,
-            pendingRequestIdentifiers: pendingAfterRequestIdentifiers
-        )
-        let hasReadbackMismatch: Bool = addFailure == nil && acceptedExpectedPayloads.count != expectedPayloads.count
-        var delayedReadback: DelayedNotificationSchedulingReadback?
-        if hasReadbackMismatch {
+        var finalExpectedPayloads: [ScheduledStrictReminderPayload] = expectedPayloads
+        var readbackResult: NotificationSchedulingReadbackResult
+        let initialReadbackRetryDelayNanoseconds: [UInt64] = addFailure == nil
+            ? notificationSchedulingReadbackRetryDelayNanoseconds
+            : []
+        do {
+            readbackResult = try await notificationSchedulingReadback(
+                center: center,
+                plannedRequestIdentifiers: expectedPayloads.map(\.requestId),
+                retryDelayNanoseconds: initialReadbackRetryDelayNanoseconds
+            )
+        } catch is CancellationError {
+            return
+        } catch {
+            captureStrictRemindersSilentFailure(
+                error: error,
+                action: "strict_reminders_delayed_readback",
+                stage: "readback",
+                cloudSettings: self.cloudSettings,
+                workspaceId: self.workspace?.workspaceId,
+                configurationMode: try? self.currentCloudServiceConfiguration().mode
+            )
+            return
+        }
+        guard Task.isCancelled == false else {
+            return
+        }
+
+        if addFailure == nil && readbackResult.isComplete == false {
+            let missingPayloads: [ScheduledStrictReminderPayload] = missingStrictReminderPayloads(
+                payloads: expectedPayloads,
+                pendingRequestIdentifiers: readbackResult.pendingRequestIdentifiers
+            )
+            for payload in missingPayloads {
+                guard Task.isCancelled == false else {
+                    return
+                }
+                let addNow = Date()
+                guard isFutureNotificationPayload(
+                    scheduledAtMillis: payload.scheduledAtMillis,
+                    now: addNow
+                ) else {
+                    continue
+                }
+                let notificationRequest = makeStrictReminderNotificationRequest(
+                    payload: payload,
+                    notificationScope: notificationScope,
+                    addNow: addNow
+                )
+                do {
+                    try await center.add(notificationRequest)
+                } catch {
+                    addFailure = error
+                    failedRequestId = payload.requestId
+                    break
+                }
+            }
+            guard Task.isCancelled == false else {
+                return
+            }
+            finalExpectedPayloads = futureStrictReminderPayloads(
+                payloads: expectedPayloads,
+                now: Date()
+            )
+            let finalReadbackRetryDelayNanoseconds: [UInt64] = addFailure == nil
+                ? notificationSchedulingReadbackRetryDelayNanoseconds
+                : []
             do {
-                delayedReadback = try await delayedNotificationSchedulingReadback(
+                readbackResult = try await notificationSchedulingReadback(
                     center: center,
-                    plannedRequestIdentifiers: expectedPayloads.map(\.requestId),
-                    delayNanoseconds: notificationSchedulingDelayedReadbackNanoseconds
+                    plannedRequestIdentifiers: finalExpectedPayloads.map(\.requestId),
+                    retryDelayNanoseconds: finalReadbackRetryDelayNanoseconds
                 )
             } catch is CancellationError {
                 return
@@ -330,9 +369,27 @@ extension FlashcardsStore {
                 return
             }
         }
+
+        let pendingAfterRequestIdentifiers: [String] = readbackResult.pendingRequestIdentifiers
+        let permissionStatusAfterReadback: ReviewNotificationPermissionStatus =
+            await resolveReviewNotificationPermissionStatus()
+        guard Task.isCancelled == false else {
+            return
+        }
+        let appStateAfterReadback: String = currentAppNotificationApplicationStateDiagnosticValue()
+        let acceptedAttemptedPayloads: [ScheduledStrictReminderPayload] = acceptedStrictReminderPayloads(
+            payloads: attemptedPayloads,
+            pendingRequestIdentifiers: pendingAfterRequestIdentifiers
+        )
+        let acceptedExpectedPayloads: [ScheduledStrictReminderPayload] = acceptedStrictReminderPayloads(
+            payloads: finalExpectedPayloads,
+            pendingRequestIdentifiers: pendingAfterRequestIdentifiers
+        )
+        let hasReadbackMismatch: Bool = addFailure == nil && readbackResult.isComplete == false
+        let delayedReadback: DelayedNotificationSchedulingReadback? = readbackResult.delayedReadback
         let diagnosticPayloads: [ScheduledStrictReminderPayload]
         if addFailure == nil {
-            diagnosticPayloads = expectedPayloads
+            diagnosticPayloads = finalExpectedPayloads
         } else {
             diagnosticPayloads = attemptedPayloads
         }
@@ -399,7 +456,7 @@ extension FlashcardsStore {
                         workspaceId: self.workspace?.workspaceId,
                         requestId: nil,
                         stage: "readback",
-                        plannedCount: expectedPayloads.count,
+                        plannedCount: finalExpectedPayloads.count,
                         acceptedCount: acceptedExpectedPayloads.count,
                         diagnostics: diagnostics,
                         error: nil,
@@ -410,4 +467,23 @@ extension FlashcardsStore {
         }
         self.persistScheduledStrictReminders(payloads: acceptedExpectedPayloads)
     }
+}
+
+private func makeStrictReminderNotificationRequest(
+    payload: ScheduledStrictReminderPayload,
+    notificationScope: String,
+    addNow: Date
+) -> UNNotificationRequest {
+    let content = UNMutableNotificationContent()
+    content.title = appDisplayName()
+    content.body = payload.notificationBodyText
+    content.sound = .default
+    content.userInfo = buildStrictReminderNotificationUserInfo(scope: notificationScope)
+
+    let interval = max(1, TimeInterval(payload.scheduledAtMillis) / 1_000 - addNow.timeIntervalSince1970)
+    return UNNotificationRequest(
+        identifier: payload.requestId,
+        content: content,
+        trigger: UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+    )
 }

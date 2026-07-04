@@ -172,9 +172,12 @@ type WorkspaceProgressReviewScheduleRequest = Readonly<{
 }>;
 
 type WorkspaceProgressSeriesRequest = Readonly<{
-  userId: string;
   workspaceId: string;
-}> & ProgressSeriesInput;
+  userId: string;
+  timeZone: string;
+  from: string;
+  to: string;
+}>;
 
 const maximumInclusiveProgressRangeDays = 366;
 const localDatePattern = /^\d{4}-\d{2}-\d{2}$/;
@@ -559,6 +562,51 @@ function createStreakDays(
   });
 }
 
+function validateProgressSeriesDayInvariant(
+  progressSeries: ProgressSeries,
+  request: ProgressSeriesRequest,
+): void {
+  const dailyReviewsByDate: ReadonlyMap<string, DailyReviewPoint> = new Map(
+    progressSeries.dailyReviews.map((dailyReview) => [dailyReview.date, dailyReview]),
+  );
+  const streakStatesByDate: ReadonlyMap<string, StreakDayState> = new Map(
+    progressSeries.streakDays.map((streakDay) => [streakDay.date, streakDay.state]),
+  );
+
+  for (const dailyReview of dailyReviewsByDate.values()) {
+    const streakState = streakStatesByDate.get(dailyReview.date);
+    if (streakState === undefined) {
+      throw new Error(
+        [
+          "Progress series day invariant failed",
+          `userId=${request.userId}`,
+          `timeZone=${request.timeZone}`,
+          `from=${request.from}`,
+          `to=${request.to}`,
+          `date=${dailyReview.date}`,
+          `reviewCount=${dailyReview.reviewCount}`,
+          "streakState=missing",
+        ].join("; "),
+      );
+    }
+
+    if ((dailyReview.reviewCount > 0) !== (streakState === "reviewed")) {
+      throw new Error(
+        [
+          "Progress series day invariant failed",
+          `userId=${request.userId}`,
+          `timeZone=${request.timeZone}`,
+          `from=${request.from}`,
+          `to=${request.to}`,
+          `date=${dailyReview.date}`,
+          `reviewCount=${dailyReview.reviewCount}`,
+          `streakState=${streakState}`,
+        ].join("; "),
+      );
+    }
+  }
+}
+
 async function loadReviewHistoryWatermarksInExecutor(
   executor: DatabaseExecutor,
   workspaceIds: ReadonlyArray<string>,
@@ -596,10 +644,10 @@ async function loadDailyReviewCountRowsInExecutor(
 ): Promise<ReadonlyArray<DailyReviewCountRow>> {
   const queryParams: ReadonlyArray<SqlValue> = [
     request.workspaceId,
+    request.userId,
     request.timeZone,
     request.from,
     request.to,
-    request.userId,
   ];
   // Three days covers the full IANA offset spread when row and request time zones differ.
   const result = await executor.query<DailyReviewCountRow>(
@@ -608,14 +656,14 @@ async function loadDailyReviewCountRowsInExecutor(
       "SELECT",
       "COALESCE(",
       "review_events.reviewed_local_date,",
-      "timezone(COALESCE(review_events.reviewed_time_zone, $2), review_events.reviewed_at_client)::date",
+      "timezone(COALESCE(review_events.reviewed_time_zone, $3), review_events.reviewed_at_client)::date",
       ") AS review_date,",
       "review_events.rating",
       "FROM content.review_events AS review_events",
       "WHERE review_events.workspace_id = $1",
-      "AND review_events.reviewed_by_user_id = $5",
-      "AND review_events.reviewed_at_client >= (($3::date - 3)::timestamp AT TIME ZONE $2)",
-      "AND review_events.reviewed_at_client < (($4::date + 3)::timestamp AT TIME ZONE $2)",
+      "AND review_events.reviewed_by_user_id = $2",
+      "AND review_events.reviewed_at_client >= (($4::date - 3)::timestamp AT TIME ZONE $3)",
+      "AND review_events.reviewed_at_client < (($5::date + 3)::timestamp AT TIME ZONE $3)",
       ")",
       "SELECT",
       "to_char(review_event_local_dates.review_date, 'YYYY-MM-DD') AS review_date,",
@@ -625,7 +673,7 @@ async function loadDailyReviewCountRowsInExecutor(
       "COUNT(*) FILTER (WHERE review_event_local_dates.rating = 2)::int AS good_count,",
       "COUNT(*) FILTER (WHERE review_event_local_dates.rating = 3)::int AS easy_count",
       "FROM review_event_local_dates",
-      "WHERE review_event_local_dates.review_date BETWEEN $3::date AND $4::date",
+      "WHERE review_event_local_dates.review_date BETWEEN $4::date AND $5::date",
       "GROUP BY review_event_local_dates.review_date",
       "ORDER BY review_event_local_dates.review_date ASC",
     ].join(" "),
@@ -714,17 +762,13 @@ async function buildUserProgressSummaryInExecutor(
       userId: request.userId,
       workspaceId,
     });
-    await materializeMissingActiveReviewDaysForUserInExecutor(
-      executor,
-      request.userId,
-      workspaceId,
-      request.timeZone,
-    );
     reviewHistoryWatermarks = reviewHistoryWatermarks.concat(
       await loadReviewHistoryWatermarksInExecutor(executor, [workspaceId]),
     );
   }
 
+  // Active-day materialization is owned by review writes and the scheduled
+  // backfill; progress reads intentionally do not repair historical rows.
   const activeReviewLocalDates = await loadUserActiveReviewLocalDatesInExecutor(executor, request.userId);
   const activeReviewDateSet = new Set(activeReviewLocalDates);
   const lastReviewedOn = activeReviewLocalDates.at(-1) ?? null;
@@ -795,15 +839,15 @@ async function buildUserProgressSeriesInExecutor(
 ): Promise<ProgressSeries> {
   let dailyReviewCounts: ReadonlyMap<string, DailyReviewCounts> = new Map<string, DailyReviewCounts>();
   await applyUserDatabaseScopeInExecutor(executor, { userId: request.userId });
-  // Daily review counts stay on the bounded workspace query, while streak
-  // state comes from the user-wide materialized active-day table below.
+  // Daily review counts and streak state both use materialized canonical
+  // local review days, with review_events reads still bounded by workspace RLS.
   const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
   await rememberProgressTimeZoneInExecutor(executor, request.userId, request.timeZone);
   let reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark> = [];
 
   for (const workspaceId of workspaceIds) {
-    // review_events reads are workspace-scoped by RLS, so aggregate one
-    // workspace at a time after resolving the user's accessible memberships.
+    // review_events reads are workspace-scoped by RLS, so materialize and
+    // aggregate one workspace at a time after resolving memberships.
     await applyWorkspaceDatabaseScopeInExecutor(executor, {
       userId: request.userId,
       workspaceId,
@@ -815,8 +859,8 @@ async function buildUserProgressSeriesInExecutor(
       request.timeZone,
     );
     const rows = await loadDailyReviewCountRowsInExecutor(executor, {
-      userId: request.userId,
       workspaceId,
+      userId: request.userId,
       timeZone: request.timeZone,
       from: request.from,
       to: request.to,
@@ -837,7 +881,7 @@ async function buildUserProgressSeriesInExecutor(
     streakFreezePolicy,
   );
 
-  return {
+  const progressSeries: ProgressSeries = {
     timeZone: request.timeZone,
     from: request.from,
     to: request.to,
@@ -854,6 +898,9 @@ async function buildUserProgressSeriesInExecutor(
     generatedAt: generatedAtDate.toISOString(),
     reviewHistoryWatermarks: sortReviewHistoryWatermarks(reviewHistoryWatermarks),
   };
+  validateProgressSeriesDayInvariant(progressSeries, request);
+
+  return progressSeries;
 }
 
 export async function loadUserProgressSummaryInExecutor(

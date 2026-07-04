@@ -1,3 +1,6 @@
+description: >-
+  Selects which stored workspace cards are included in the export package. This
+  is separate from deciding which tags remain on the exported package cards.
 oneOf:
   - $ref: ./WorkspacePackageExportAllActiveCardsSelection.yaml
   - $ref: ./WorkspacePackageExportTagFiltersSelection.yaml

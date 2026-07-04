@@ -533,7 +533,6 @@
 "settings.workspace.resetConfirmation.title" = "Confirmar restablecimiento";
 "settings.workspace.resetConfirmation.warning" = "Advertencia: esta accion es permanente. Borrara el progreso de estudio de cada tarjeta de este espacio de trabajo.";
 "settings.workspace.resetConfirmation.description" = "Las tarjetas permaneceran en su sitio. Su progreso de estudio volvera a nuevo.";
-"settings.workspace.resetConfirmation.placeholder" = "reset all progress for all cards in this workspace";
 "settings.workspace.resetConfirmation.loadingPreview" = "Cargando vista previa del restablecimiento...";
 "settings.workspace.resetConfirmation.previewWarning" = "Advertencia: esta accion es permanente. Restablecera %d tarjetas en %@.";
 "settings.workspace.resetConfirmation.previewDescription" = "Las tarjetas permaneceran en el espacio de trabajo. Solo se borrara su progreso de estudio.";
@@ -617,13 +616,15 @@
 "settings.workspace.export.package.cards" = "Tarjetas";
 "settings.workspace.export.package.referencedMedia" = "Medios referenciados";
 "settings.workspace.export.package.mediaSize" = "Tamaño multimedia";
-"settings.workspace.export.package.tags.section" = "Etiquetas";
-"settings.workspace.export.package.tags.empty" = "No hay etiquetas.";
+"settings.workspace.export.package.cardSelection.section" = "Tarjetas";
+"settings.workspace.export.package.cardSelection.allCards" = "Todas las tarjetas";
+"settings.workspace.export.package.cardSelection.tags.empty" = "No hay etiquetas.";
+"settings.workspace.export.package.includedTags.section" = "Etiquetas incluidas";
+"settings.workspace.export.package.includedTags.empty" = "No hay etiquetas del paquete para incluir.";
 "settings.workspace.export.package.tag.oneCard" = "%d tarjeta";
 "settings.workspace.export.package.tag.multipleCards" = "%d tarjetas";
-"settings.workspace.export.package.removeTag" = "Quitar %@";
-"settings.workspace.export.package.alwaysRemoveTag" = "Quitar %@ siempre";
-"settings.workspace.export.package.generatedImportTagAlwaysRemoved" = "Las etiquetas de importación generadas siempre se quitan de las exportaciones de paquetes.";
+"settings.workspace.export.package.includeTag" = "Incluir %@";
+"settings.workspace.export.package.generatedImportTagNotIncluded" = "Las etiquetas de importación generadas no se incluyen en las exportaciones de paquetes.";
 "settings.workspace.export.package.exporting" = "Exportando...";
 "settings.workspace.export.package.export" = "Exportar flashcards.zip";
 "settings.workspace.export.package.previewRequired" = "Previsualiza esta exportación de paquete antes de descargarla.";
@@ -634,7 +635,7 @@
 "settings.workspace.import.cloudRequired" = "La importación de ZIP con medios requiere una cuenta en la nube en esta versión.";
 "settings.workspace.import.invalidFile" = "Elige un paquete ZIP de Flashcards.";
 "settings.workspace.import.fileTooLarge" = "Elige un paquete ZIP de hasta %d MB.";
-"settings.workspace.import.missingImportTag" = "La vista previa de importación del paquete no incluyó una etiqueta de importación.";
+"settings.workspace.import.missingImportTag" = "Ingresa una etiqueta de importación antes de importar.";
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "Se importaron %d tarjetas con la etiqueta %@.";
 "settings.workspace.import.success" = "Se importaron %d tarjetas.";

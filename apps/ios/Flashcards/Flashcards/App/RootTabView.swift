@@ -265,7 +265,16 @@ struct RootTabView: View {
             return
         }
 
-        self.store.prepareVisibleTabForPresentation(tab: nextTab, now: Date())
+        let previousTab = self.store.currentVisibleTab
+        prepareVisibleTabForPresentationWithBreadcrumb(
+            store: self.store,
+            selectedTab: nextTab,
+            previousTab: previousTab,
+            scenePhase: self.scenePhase,
+            isStartupReady: nil,
+            isRecoveryGateActive: self.store.cloudCredentialRecoveryState != nil,
+            now: Date()
+        )
     }
 
     @MainActor
@@ -321,7 +330,16 @@ struct RootTabView: View {
                 navigation.selectedTab
             },
             set: { nextTab in
-                self.store.prepareVisibleTabForPresentation(tab: nextTab, now: Date())
+                let previousTab = navigation.selectedTab
+                prepareVisibleTabForPresentationWithBreadcrumb(
+                    store: self.store,
+                    selectedTab: nextTab,
+                    previousTab: previousTab,
+                    scenePhase: self.scenePhase,
+                    isStartupReady: nil,
+                    isRecoveryGateActive: self.store.cloudCredentialRecoveryState != nil,
+                    now: Date()
+                )
                 navigation.selectedTab = nextTab
             }
         )
@@ -339,7 +357,16 @@ struct RootTabView: View {
         self.tabRootBase
         .tabBarMinimizeBehavior(.never)
         .task {
-            store.prepareVisibleTabForPresentation(tab: self.navigation.selectedTab, now: Date())
+            let previousTab = store.currentVisibleTab
+            prepareVisibleTabForPresentationWithBreadcrumb(
+                store: self.store,
+                selectedTab: self.navigation.selectedTab,
+                previousTab: previousTab,
+                scenePhase: self.scenePhase,
+                isStartupReady: nil,
+                isRecoveryGateActive: self.store.cloudCredentialRecoveryState != nil,
+                now: Date()
+            )
             self.reconcileGuestSignInAfterReviewPrompt()
         }
         .task(id: self.guestSignInAfterReviewPromptRecheckTaskID) {

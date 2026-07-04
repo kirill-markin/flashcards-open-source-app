@@ -303,9 +303,33 @@ test("preview selects explicit active card ids", async () => {
 
 test("preview applies include and exclude tag filters", async () => {
   const { executor } = createTestExecutor([
-    createCardRow(cardIdA, workspaceId, "A", "A answer", ["science"], "2026-06-01T00:00:00.000Z", null),
-    createCardRow(cardIdB, workspaceId, "B", "B answer", ["science", "draft"], "2026-06-02T00:00:00.000Z", null),
-    createCardRow(cardIdC, workspaceId, "C", "C answer", ["history"], "2026-06-03T00:00:00.000Z", null),
+    createCardRow(
+      cardIdA,
+      workspaceId,
+      "A",
+      "A answer",
+      ["science", "shared", "import:2026-07-04-0"],
+      "2026-06-01T00:00:00.000Z",
+      null,
+    ),
+    createCardRow(
+      cardIdB,
+      workspaceId,
+      "B",
+      "B answer",
+      ["science", "draft", "import:2026-07-04-1"],
+      "2026-06-02T00:00:00.000Z",
+      null,
+    ),
+    createCardRow(
+      cardIdC,
+      workspaceId,
+      "C",
+      "C answer",
+      ["history", "outside"],
+      "2026-06-03T00:00:00.000Z",
+      null,
+    ),
   ], []);
 
   const preview = await previewWorkspacePackageExportInExecutor(
@@ -321,7 +345,12 @@ test("preview applies include and exclude tag filters", async () => {
 
   assert.equal(preview.selectedCardCount, 1);
   assert.deepEqual(preview.availableTagCounts, [
+    { tag: "import:2026-07-04-0", cardsCount: 1 },
     { tag: "science", cardsCount: 1 },
+    { tag: "shared", cardsCount: 1 },
+  ]);
+  assert.deepEqual(preview.tagsSelectedForRemoval, [
+    { tag: "import:2026-07-04-0", cardsCount: 1 },
   ]);
 });
 

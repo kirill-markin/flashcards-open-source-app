@@ -191,6 +191,13 @@ export function WorkspaceImportScreen(): ReactElement {
       return;
     }
 
+    const confirmedPackageImportTag = packageImportTag.trim();
+    if (shouldTagPackageImport && confirmedPackageImportTag === "") {
+      setErrorMessage(t("workspaceImport.importTagRequired"));
+      setSuccessMessage("");
+      return;
+    }
+
     setIsPackageImporting(true);
     setErrorMessage("");
     setSuccessMessage("");
@@ -200,7 +207,7 @@ export function WorkspaceImportScreen(): ReactElement {
       const importedAt = new Date().toISOString();
       const options: WorkspacePackageImportConfirmOptions = {
         addImportTag: shouldTagPackageImport,
-        importTag: packageImportTag,
+        importTag: confirmedPackageImportTag,
         removeTags: packageImportRemoveTags,
         importedAt,
         importId,
@@ -240,6 +247,14 @@ export function WorkspaceImportScreen(): ReactElement {
     void previewPackageImportFile(file);
   }
 
+  function updateShouldTagPackageImport(shouldTagImport: boolean): void {
+    if (shouldTagImport && packageImportTag.trim() === "" && packageImportPreview !== null) {
+      setPackageImportTag(packageImportPreview.defaultOptions.suggestedImportTag);
+    }
+
+    setShouldTagPackageImport(shouldTagImport);
+  }
+
   function togglePackageImportRemovedTag(tag: string): void {
     setPackageImportRemoveTags((currentTags) => (
       currentTags.includes(tag)
@@ -266,7 +281,7 @@ export function WorkspaceImportScreen(): ReactElement {
               checked={shouldTagPackageImport}
               disabled={isPackageImportControlDisabled}
               data-testid="workspace-package-import-tag-checkbox"
-              onChange={(event) => setShouldTagPackageImport(event.currentTarget.checked)}
+              onChange={(event) => updateShouldTagPackageImport(event.currentTarget.checked)}
             />
             <span className="workspace-import-tag-copy">
               <span>{t("workspaceImport.importTagLabel")}</span>
@@ -304,10 +319,18 @@ export function WorkspaceImportScreen(): ReactElement {
                   <strong data-testid="workspace-package-import-preview-package-media-count">{formatNumber(packageImportPreview.packageMediaFileCount)}</strong>
                 </div>
               </div>
-              {shouldTagPackageImport && packageImportTag !== "" ? (
-                <p className="subtitle" data-testid="workspace-package-import-preview-import-tag">
-                  {t("workspaceImport.previewImportTag", { tag: packageImportTag })}
-                </p>
+              {shouldTagPackageImport ? (
+                <label className="workspace-import-tag-field" htmlFor="workspace-package-import-tag-input">
+                  <span>{t("workspaceImport.importTagValueLabel")}</span>
+                  <input
+                    id="workspace-package-import-tag-input"
+                    type="text"
+                    value={packageImportTag}
+                    disabled={isPackageImportControlDisabled}
+                    data-testid="workspace-package-import-tag-input"
+                    onChange={(event) => setPackageImportTag(event.currentTarget.value)}
+                  />
+                </label>
               ) : null}
               {packageImportMetadataRows.length === 0 ? null : (
                 <dl className="workspace-import-preview-metadata" data-testid="workspace-package-import-preview-metadata">

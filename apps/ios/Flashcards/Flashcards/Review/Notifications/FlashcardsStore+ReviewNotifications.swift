@@ -532,21 +532,9 @@ extension FlashcardsStore {
             ) else {
                 continue
             }
-            let content = UNMutableNotificationContent()
-            content.title = appDisplayName()
-            content.body = payload.notificationBodyText
-            content.sound = .default
-            content.userInfo = buildAppNotificationUserInfo(notificationType: .reviewReminder)
-            if self.reviewNotificationsSettings.showAppIconBadge {
-                content.badge = NSNumber(value: 1)
-            }
-
-            let interval = max(1, TimeInterval(payload.scheduledAtMillis) / 1_000 - addNow.timeIntervalSince1970)
-            let notificationTrigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
-            let request = UNNotificationRequest(
-                identifier: payload.requestId,
-                content: content,
-                trigger: notificationTrigger
+            let request = self.makeReviewNotificationRequest(
+                payload: payload,
+                addNow: addNow
             )
             attemptedPayloads.append(payload)
             do {
@@ -565,43 +553,82 @@ extension FlashcardsStore {
             return
         }
 
-        let pendingAfterRequestIdentifiers: [String] = await pendingAppNotificationRequestIdentifiers(center: center)
-        guard self.reviewNotificationsRescheduleGeneration == generation else {
-            return
-        }
-        guard Task.isCancelled == false else {
-            return
-        }
-        let permissionStatusAfterReadback: ReviewNotificationPermissionStatus =
-            await resolveReviewNotificationPermissionStatus()
-        guard self.reviewNotificationsRescheduleGeneration == generation else {
-            return
-        }
-        guard Task.isCancelled == false else {
-            return
-        }
-        let appStateAfterReadback: String = currentAppNotificationApplicationStateDiagnosticValue()
         let readbackNow = Date()
         let expectedPayloads: [ScheduledReviewNotificationPayload] = futureReviewNotificationPayloads(
             payloads: attemptedPayloads,
             now: readbackNow
         )
-        let acceptedAttemptedPayloads: [ScheduledReviewNotificationPayload] = acceptedReviewNotificationPayloads(
-            payloads: attemptedPayloads,
-            pendingRequestIdentifiers: pendingAfterRequestIdentifiers
-        )
-        let acceptedExpectedPayloads: [ScheduledReviewNotificationPayload] = acceptedReviewNotificationPayloads(
-            payloads: expectedPayloads,
-            pendingRequestIdentifiers: pendingAfterRequestIdentifiers
-        )
-        let hasReadbackMismatch: Bool = addFailure == nil && acceptedExpectedPayloads.count != expectedPayloads.count
-        var delayedReadback: DelayedNotificationSchedulingReadback?
-        if hasReadbackMismatch {
+        let plannedRequestIdentifiers: [String] = expectedPayloads.map(\.requestId)
+        let initialReadback: NotificationSchedulingReadbackResult
+        do {
+            initialReadback = try await notificationSchedulingReadback(
+                center: center,
+                plannedRequestIdentifiers: plannedRequestIdentifiers,
+                retryDelayNanoseconds: notificationSchedulingReadbackRetryDelayNanoseconds
+            )
+        } catch is CancellationError {
+            return
+        } catch {
+            captureReviewNotificationsSilentFailure(
+                error: error,
+                action: "review_notifications_delayed_readback",
+                stage: "readback",
+                cloudSettings: self.cloudSettings,
+                workspaceId: workspaceId,
+                configurationMode: try? self.currentCloudServiceConfiguration().mode
+            )
+            return
+        }
+        guard self.reviewNotificationsRescheduleGeneration == generation else {
+            return
+        }
+        guard Task.isCancelled == false else {
+            return
+        }
+
+        var finalReadback: NotificationSchedulingReadbackResult = initialReadback
+        if addFailure == nil && initialReadback.isComplete == false {
+            let missingPayloads: [ScheduledReviewNotificationPayload] = missingReviewNotificationPayloads(
+                payloads: expectedPayloads,
+                pendingRequestIdentifiers: initialReadback.pendingRequestIdentifiers
+            )
+            for payload in missingPayloads {
+                guard self.reviewNotificationsRescheduleGeneration == generation else {
+                    return
+                }
+                guard Task.isCancelled == false else {
+                    return
+                }
+                let retryAddNow = Date()
+                guard isFutureNotificationPayload(
+                    scheduledAtMillis: payload.scheduledAtMillis,
+                    now: retryAddNow
+                ) else {
+                    continue
+                }
+                let request = self.makeReviewNotificationRequest(
+                    payload: payload,
+                    addNow: retryAddNow
+                )
+                do {
+                    try await center.add(request)
+                } catch {
+                    addFailure = error
+                    failedRequestId = payload.requestId
+                    break
+                }
+            }
+            guard self.reviewNotificationsRescheduleGeneration == generation else {
+                return
+            }
+            guard Task.isCancelled == false else {
+                return
+            }
             do {
-                delayedReadback = try await delayedNotificationSchedulingReadback(
+                finalReadback = try await notificationSchedulingReadback(
                     center: center,
-                    plannedRequestIdentifiers: expectedPayloads.map(\.requestId),
-                    delayNanoseconds: notificationSchedulingDelayedReadbackNanoseconds
+                    plannedRequestIdentifiers: plannedRequestIdentifiers,
+                    retryDelayNanoseconds: notificationSchedulingReadbackRetryDelayNanoseconds
                 )
             } catch is CancellationError {
                 return
@@ -623,6 +650,27 @@ extension FlashcardsStore {
                 return
             }
         }
+
+        let pendingAfterRequestIdentifiers: [String] = finalReadback.pendingRequestIdentifiers
+        let permissionStatusAfterReadback: ReviewNotificationPermissionStatus =
+            await resolveReviewNotificationPermissionStatus()
+        guard self.reviewNotificationsRescheduleGeneration == generation else {
+            return
+        }
+        guard Task.isCancelled == false else {
+            return
+        }
+        let appStateAfterReadback: String = currentAppNotificationApplicationStateDiagnosticValue()
+        let acceptedAttemptedPayloads: [ScheduledReviewNotificationPayload] = acceptedReviewNotificationPayloads(
+            payloads: attemptedPayloads,
+            pendingRequestIdentifiers: pendingAfterRequestIdentifiers
+        )
+        let acceptedExpectedPayloads: [ScheduledReviewNotificationPayload] = acceptedReviewNotificationPayloads(
+            payloads: expectedPayloads,
+            pendingRequestIdentifiers: pendingAfterRequestIdentifiers
+        )
+        let hasReadbackMismatch: Bool = addFailure == nil && finalReadback.isComplete == false
+        let delayedReadback: DelayedNotificationSchedulingReadback? = finalReadback.delayedReadback
         let diagnosticPayloads: [ScheduledReviewNotificationPayload]
         if addFailure == nil {
             diagnosticPayloads = expectedPayloads
@@ -743,5 +791,27 @@ extension FlashcardsStore {
             )
             self.userDefaults.removeObject(forKey: makeScheduledReviewNotificationsUserDefaultsKey(workspaceId: workspaceId))
         }
+    }
+
+    private func makeReviewNotificationRequest(
+        payload: ScheduledReviewNotificationPayload,
+        addNow: Date
+    ) -> UNNotificationRequest {
+        let content = UNMutableNotificationContent()
+        content.title = appDisplayName()
+        content.body = payload.notificationBodyText
+        content.sound = .default
+        content.userInfo = buildAppNotificationUserInfo(notificationType: .reviewReminder)
+        if self.reviewNotificationsSettings.showAppIconBadge {
+            content.badge = NSNumber(value: 1)
+        }
+
+        let interval = max(1, TimeInterval(payload.scheduledAtMillis) / 1_000 - addNow.timeIntervalSince1970)
+        let notificationTrigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+        return UNNotificationRequest(
+            identifier: payload.requestId,
+            content: content,
+            trigger: notificationTrigger
+        )
     }
 }

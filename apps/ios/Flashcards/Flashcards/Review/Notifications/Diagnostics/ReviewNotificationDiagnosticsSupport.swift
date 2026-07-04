@@ -4,6 +4,18 @@ import UserNotifications
 
 let appNotificationPendingRequestsLimit: Int = 64
 let notificationSchedulingDelayedReadbackNanoseconds: UInt64 = 350_000_000
+let notificationSchedulingReadbackRetryDelayNanoseconds: [UInt64] = [
+    350_000_000,
+    1_000_000_000,
+    2_000_000_000
+]
+
+struct NotificationSchedulingReadbackResult: Sendable, Hashable {
+    let pendingRequestIdentifiers: [String]
+    let delayedReadback: DelayedNotificationSchedulingReadback?
+    let isComplete: Bool
+    let attemptCount: Int
+}
 
 func appNotificationPendingRequestBreakdown(
     identifiers: [String]
@@ -175,12 +187,61 @@ func makeDelayedNotificationSchedulingReadback(
     pendingRequestIdentifiers: [String],
     plannedRequestIdentifiers: [String]
 ) -> DelayedNotificationSchedulingReadback {
-    let pendingRequestIdentifierSet: Set<String> = Set(pendingRequestIdentifiers)
     return DelayedNotificationSchedulingReadback(
         pending: appNotificationPendingRequestBreakdown(identifiers: pendingRequestIdentifiers),
-        recovered: plannedRequestIdentifiers.allSatisfy { requestIdentifier in
-            pendingRequestIdentifierSet.contains(requestIdentifier)
+        recovered: isCompleteNotificationSchedulingReadback(
+            pendingRequestIdentifiers: pendingRequestIdentifiers,
+            plannedRequestIdentifiers: plannedRequestIdentifiers
+        )
+    )
+}
+
+func isCompleteNotificationSchedulingReadback(
+    pendingRequestIdentifiers: [String],
+    plannedRequestIdentifiers: [String]
+) -> Bool {
+    let pendingRequestIdentifierSet: Set<String> = Set(pendingRequestIdentifiers)
+    return plannedRequestIdentifiers.allSatisfy { requestIdentifier in
+        pendingRequestIdentifierSet.contains(requestIdentifier)
+    }
+}
+
+func notificationSchedulingReadback(
+    center: UNUserNotificationCenter,
+    plannedRequestIdentifiers: [String],
+    retryDelayNanoseconds: [UInt64]
+) async throws -> NotificationSchedulingReadbackResult {
+    var pendingRequestIdentifiers: [String] = await pendingAppNotificationRequestIdentifiers(center: center)
+    var isComplete: Bool = isCompleteNotificationSchedulingReadback(
+        pendingRequestIdentifiers: pendingRequestIdentifiers,
+        plannedRequestIdentifiers: plannedRequestIdentifiers
+    )
+    var attemptCount: Int = 1
+    var delayedReadback: DelayedNotificationSchedulingReadback?
+
+    for delayNanoseconds in retryDelayNanoseconds {
+        guard isComplete == false else {
+            break
         }
+
+        try await Task.sleep(nanoseconds: delayNanoseconds)
+        pendingRequestIdentifiers = await pendingAppNotificationRequestIdentifiers(center: center)
+        attemptCount += 1
+        isComplete = isCompleteNotificationSchedulingReadback(
+            pendingRequestIdentifiers: pendingRequestIdentifiers,
+            plannedRequestIdentifiers: plannedRequestIdentifiers
+        )
+        delayedReadback = makeDelayedNotificationSchedulingReadback(
+            pendingRequestIdentifiers: pendingRequestIdentifiers,
+            plannedRequestIdentifiers: plannedRequestIdentifiers
+        )
+    }
+
+    return NotificationSchedulingReadbackResult(
+        pendingRequestIdentifiers: pendingRequestIdentifiers,
+        delayedReadback: delayedReadback,
+        isComplete: isComplete,
+        attemptCount: attemptCount
     )
 }
 

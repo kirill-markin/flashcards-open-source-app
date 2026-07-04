@@ -439,6 +439,71 @@ final class ProgressBadgeRefreshTests: ProgressStoreTestCase {
     }
 
     @MainActor
+    func testProgressLeaderboardRetryableNetworkRefreshErrorsStaySilent() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-06-10T12:30:00.000Z"))
+        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: timeZone,
+            dayCount: 140
+        )
+        let serverSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [:],
+            generatedAt: "2026-06-10T12:00:00.000Z"
+        )
+        let serverSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: [],
+            generatedAt: "2026-06-10T12:00:00.000Z"
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: serverSummary,
+            serverSeries: serverSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .linked
+        )
+        defer { context.tearDown() }
+
+        let linkedUserId = try XCTUnwrap(context.store.cloudSettings?.linkedUserId)
+        let linkedSession = makeProgressLinkedSessionForBadgeTests(
+            userId: linkedUserId,
+            workspaceId: workspace.workspaceId,
+            apiBaseUrl: context.apiBaseUrl
+        )
+        let scopeKey = try context.store.prepareProgressScope(now: now)
+        let leaderboardScopeKey = context.store.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
+
+        context.cloudSyncService.loadProgressLeaderboardError = URLError(.notConnectedToInternet)
+        await context.store.refreshProgressLeaderboardServerBase(
+            scopeKey: leaderboardScopeKey,
+            linkedSession: linkedSession
+        )
+        XCTAssertNil(context.store.presentedTechnicalError)
+        XCTAssertTrue(context.store.progressErrorState.leaderboardRefreshMessage.isEmpty)
+        XCTAssertTrue(context.store.progressErrorState.streakLeaderboardRefreshMessage.isEmpty)
+
+        context.store.clearProgressLeaderboardRefreshErrorMessage()
+        context.cloudSyncService.loadProgressLeaderboardError = nil
+        context.cloudSyncService.loadProgressStreakLeaderboardError = URLError(.networkConnectionLost)
+        await context.store.refreshProgressStreakLeaderboardServerBase(
+            scopeKey: leaderboardScopeKey,
+            linkedSession: linkedSession
+        )
+        XCTAssertNil(context.store.presentedTechnicalError)
+        XCTAssertTrue(context.store.progressErrorState.leaderboardRefreshMessage.isEmpty)
+        XCTAssertTrue(context.store.progressErrorState.streakLeaderboardRefreshMessage.isEmpty)
+    }
+
+    @MainActor
     func testLeaderboardParticipationChangeClearsRatingAndStreakCaches() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()

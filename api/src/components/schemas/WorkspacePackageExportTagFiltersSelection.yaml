@@ -1,4 +1,7 @@
 type: object
+description: >-
+  Selects stored workspace cards by their current tags before packaging. Use
+  tagPolicy.additionalRemovedTags to exclude tags from package card metadata.
 additionalProperties: false
 required:
   - kind
@@ -11,11 +14,15 @@ properties:
       - tagFilters
   includeTags:
     type: array
+    description: >-
+      Stored card tags that select cards for the package. A card is selected
+      when it has at least one include tag and no exclude tag.
     items:
       type: string
       minLength: 1
   excludeTags:
     type: array
+    description: Stored card tags that remove matching cards from this tag-filtered package selection.
     items:
       type: string
       minLength: 1

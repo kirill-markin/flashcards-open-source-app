@@ -104,11 +104,19 @@ function normalizeImportPlanOptions(
 ): WorkspacePackageImportPlanNormalizedOptions {
   return {
     addImportTag: options.addImportTag,
-    importTag: normalizeRequiredText(options.importTag, "options.importTag"),
+    importTag: normalizeImportTag(options.addImportTag, options.importTag),
     removeTags: normalizeRequiredUniqueTextValues(options.removeTags, "options.removeTags"),
     importedAt: normalizeRequiredIsoTimestamp(options.importedAt, "options.importedAt"),
     importId: normalizeRequiredText(options.importId, "options.importId"),
   };
+}
+
+function normalizeImportTag(addImportTag: boolean, importTag: string): string {
+  if (addImportTag) {
+    return normalizeRequiredText(importTag, "options.importTag");
+  }
+
+  return importTag.trim();
 }
 
 function normalizeImportPlanCardsJson(cardsJson: WorkspacePackageCardsJsonV1): WorkspacePackageCardsJsonV1 {

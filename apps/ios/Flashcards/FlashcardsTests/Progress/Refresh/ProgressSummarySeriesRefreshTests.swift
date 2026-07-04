@@ -820,6 +820,88 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
     }
 
     @MainActor
+    func testRefreshProgressIfNeededKeepsRetryableSummaryRefreshFailureSilent() async throws {
+        let database = try self.makeDatabase()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: TimeZone.current,
+            dayCount: 140
+        )
+        let serverSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [:],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let serverSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: [],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: serverSummary,
+            serverSeries: serverSeries,
+            loadProgressSummaryError: URLError(.notConnectedToInternet),
+            loadProgressSeriesError: nil,
+            cloudState: .guest
+        )
+        defer { context.tearDown() }
+
+        await context.store.refreshProgressIfNeeded(now: now)
+
+        XCTAssertNil(context.store.presentedTechnicalError)
+        XCTAssertTrue(context.store.progressErrorState.summaryRefreshMessage.isEmpty)
+        XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
+    }
+
+    @MainActor
+    func testRefreshProgressIfNeededPresentsTechnicalErrorForUnexpectedSummaryRefreshFailure() async throws {
+        let database = try self.makeDatabase()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: TimeZone.current,
+            dayCount: 140
+        )
+        let serverSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [:],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let serverSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: [],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: serverSummary,
+            serverSeries: serverSeries,
+            loadProgressSummaryError: LocalStoreError.validation("Summary refresh failed"),
+            loadProgressSeriesError: nil,
+            cloudState: .guest
+        )
+        defer { context.tearDown() }
+
+        await context.store.refreshProgressIfNeeded(now: now)
+
+        XCTAssertNotNil(context.store.presentedTechnicalError)
+        XCTAssertFalse(context.store.progressErrorState.summaryRefreshMessage.isEmpty)
+        XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
+    }
+
+    @MainActor
     func testRefreshProgressIfNeededUpdatesRemoteSummaryWhenSeriesRefreshFails() async throws {
         let database = try self.makeDatabase()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()

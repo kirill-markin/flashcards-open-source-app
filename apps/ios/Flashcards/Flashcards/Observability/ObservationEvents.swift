@@ -22,6 +22,7 @@ enum IOSObservationFeature: String, Sendable {
     case notifications = "notifications"
     case localData = "local_data"
     case prompts = "prompts"
+    case technicalError = "technical_error"
     case progress = "progress"
     case storeReview = "store_review"
 }
@@ -40,6 +41,7 @@ struct IOSObservationScope: Sendable, Hashable {
 
 enum IOSBreadcrumbEvent: Sendable {
     case appLifecycle(AppLifecycleObservation)
+    case foregroundOperation(ForegroundOperationObservation)
     case cloudFlow(CloudFlowObservation)
     case cloudRetry(CloudRetryObservation)
     case aiChatLifecycle(AIChatLifecycleObservation)
@@ -94,6 +96,40 @@ struct AppLifecycleObservation: Sendable, Hashable {
     let isStartupReady: Bool?
     let isRecoveryGateActive: Bool?
     let messageSummary: String?
+}
+
+enum ForegroundOperationAction: String, Sendable, Hashable {
+    case initialStartup = "initial_startup"
+    case initialProgressContextRefresh = "initial_progress_context_refresh"
+    case initialNotificationReconcile = "initial_notification_reconcile"
+    case visibleTabPresentation = "visible_tab_presentation"
+    case reviewProgressRefresh = "review_progress_refresh"
+    case cloudSync = "cloud_sync"
+    case notificationReconciliation = "notification_reconciliation"
+}
+
+enum ForegroundOperationPhase: String, Sendable, Hashable {
+    case start
+    case success
+    case failure
+}
+
+struct ForegroundOperationObservation: Sendable, Hashable {
+    let scope: IOSObservationScope
+    let action: ForegroundOperationAction
+    let phase: ForegroundOperationPhase
+    let durationMilliseconds: Int?
+    let selectedTab: String?
+    let scenePhase: String?
+    let isStartupReady: Bool?
+    let isRecoveryGateActive: Bool?
+    let cardCount: Int?
+    let deckCount: Int?
+    let pendingOutboxOperationCount: Int?
+    let reviewQueueCount: Int?
+    let reviewDueCount: Int?
+    let cloudSyncBlocked: Bool?
+    let errorSummary: String?
 }
 
 struct CloudFlowObservation: Sendable, Hashable {
@@ -304,6 +340,19 @@ struct NotificationSchedulingFailureWarning: Sendable, Hashable {
     let diagnostics: NotificationSchedulingDiagnostics
 }
 
+struct IOSNetworkTransportDiagnostics: Sendable, Hashable {
+    let nsErrorDomain: String?
+    let nsErrorCode: Int?
+    let urlErrorCode: Int?
+    let urlErrorName: String?
+    let cfStreamErrorDomain: Int?
+    let cfStreamErrorCode: Int?
+    let httpMethod: String?
+    let endpointPath: String?
+    let apiHostKind: String?
+    let apiHost: String?
+}
+
 struct CloudRetryObservation: Sendable, Hashable {
     let action: String
     let scope: IOSObservationScope
@@ -311,6 +360,7 @@ struct CloudRetryObservation: Sendable, Hashable {
     let maxAttempts: Int
     let apiBaseUrl: String?
     let messageSummary: String?
+    let transportDiagnostics: IOSNetworkTransportDiagnostics?
 }
 
 struct LocalDataRepairWarning: Sendable, Hashable {
@@ -410,4 +460,5 @@ struct SilentFailureDetails: Sendable, Hashable {
     let backendCode: String?
     let requestId: String?
     let messageSummary: String?
+    let transportDiagnostics: IOSNetworkTransportDiagnostics?
 }
