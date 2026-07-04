@@ -51,10 +51,12 @@ const val workspacePackageExportMetadataAuthorFieldTag: String = "workspace_pack
 const val workspacePackageExportMetadataCreatedAtFieldTag: String = "workspace_package_export_metadata_created_at_field"
 const val workspacePackageExportMetadataSourceUrlFieldTag: String = "workspace_package_export_metadata_source_url_field"
 const val workspacePackageExportMetadataCommentFieldTag: String = "workspace_package_export_metadata_comment_field"
-const val workspacePackageExportTagToggleTagPrefix: String = "workspace_package_export_tag_toggle:"
+const val workspacePackageExportCardSelectionTagToggleTagPrefix: String = "workspace_package_export_card_selection_tag_toggle:"
+const val workspacePackageExportIncludedTagToggleTagPrefix: String = "workspace_package_export_included_tag_toggle:"
 const val workspaceImportScreenTag: String = "workspace_import_screen"
 const val workspaceImportChooseFileButtonTag: String = "workspace_import_choose_file_button"
 const val workspaceImportAddImportTagToggleTag: String = "workspace_import_add_import_tag_toggle"
+const val workspaceImportTagFieldTag: String = "workspace_import_tag_field"
 const val workspaceImportConfirmButtonTag: String = "workspace_import_confirm_button"
 const val workspaceImportErrorMessageTag: String = "workspace_import_error_message"
 const val workspaceImportTagToggleTagPrefix: String = "workspace_import_tag_toggle:"
@@ -63,6 +65,10 @@ fun workspaceImportTagToggleTag(tag: String): String {
     return workspaceImportTagToggleTagPrefix + tag
 }
 
-fun workspacePackageExportTagToggleTag(tag: String): String {
-    return workspacePackageExportTagToggleTagPrefix + tag
+fun workspacePackageExportCardSelectionTagToggleTag(tag: String): String {
+    return workspacePackageExportCardSelectionTagToggleTagPrefix + tag
+}
+
+fun workspacePackageExportIncludedTagToggleTag(tag: String): String {
+    return workspacePackageExportIncludedTagToggleTagPrefix + tag
 }

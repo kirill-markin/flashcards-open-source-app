@@ -59,13 +59,15 @@ class WorkspaceExportViewModelTest {
         assertSame(preview, viewModel.uiState.value.packagePreview)
         assertEquals("Primary export", viewModel.uiState.value.packageMetadataDraft.label)
         assertEquals("Export author", viewModel.uiState.value.packageMetadataDraft.author)
-        assertEquals(setOf("temporary", "import:old"), viewModel.uiState.value.packageRemovedTags)
+        assertEquals(emptySet<String>(), viewModel.uiState.value.packageCardSelectionTags)
+        assertEquals(preview.availableTagCounts, viewModel.uiState.value.packageCardSelectionTagCounts)
+        assertEquals(setOf("geography", "temporary"), viewModel.uiState.value.packageIncludedTags)
 
         stateJob.cancel()
     }
 
     @Test
-    fun preparePackageExportDownloadSendsEditedMetadataAndRemovedTags() = runTest(dispatcher) {
+    fun preparePackageExportDownloadSendsAllCardsSelectionAndIncludedTags() = runTest(dispatcher) {
         Dispatchers.setMain(dispatcher)
         val cloudRepository = FakeCloudAccountRepository()
         cloudRepository.setCloudSettings(settings = linkedCloudSettings())
@@ -88,18 +90,168 @@ class WorkspaceExportViewModelTest {
         viewModel.updatePackageCreatedAt(createdAt = "2026-07-01T10:00:00.000Z")
         viewModel.updatePackageSourceUrl(sourceUrl = "https://example.com/edited")
         viewModel.updatePackageComment(comment = "Edited comment")
-        viewModel.togglePackageRemovedTag(tag = "geography")
+        viewModel.togglePackageIncludedTag(tag = "geography")
         advanceUntilIdle()
         val response = viewModel.preparePackageExportDownload()
 
         val request = cloudRepository.exportedWorkspacePackageRequests.single()
         assertArrayEquals(byteArrayOf(80, 75, 3, 4), response?.packageBytes)
-        assertEquals(listOf("geography", "temporary", "import:old"), request.tagPolicy.additionalRemovedTags)
+        assertEquals(WorkspacePackageExportSelection.AllActiveCards, request.selection)
+        assertEquals(listOf("geography"), request.tagPolicy.additionalRemovedTags)
         assertEquals("Edited export", request.packageMetadata.label)
         assertEquals("Edited author", request.packageMetadata.author)
         assertEquals("Edited comment", request.packageMetadata.comment)
         assertEquals("2026-07-01T10:00:00.000Z", request.packageMetadata.createdAt)
         assertEquals("https://example.com/edited", request.packageMetadata.sourceUrl)
+
+        stateJob.cancel()
+    }
+
+    @Test
+    fun preparePackageExportDownloadPreservesDraftAfterCardSelectionRefresh() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val cloudRepository = FakeCloudAccountRepository()
+        cloudRepository.setCloudSettings(settings = linkedCloudSettings())
+        cloudRepository.nextWorkspacePackageExportPreview = workspacePackageExportPreview()
+        cloudRepository.nextWorkspacePackageExportDownloadResponse = WorkspacePackageExportDownloadResponse(
+            packageBytes = byteArrayOf(80, 75, 3, 4),
+            fileName = "flashcards.zip",
+            contentType = "application/zip"
+        )
+        val viewModel = workspaceExportViewModel(cloudRepository = cloudRepository)
+        val stateJob = backgroundScope.launch {
+            viewModel.uiState.collect()
+        }
+        advanceUntilIdle()
+
+        viewModel.previewPackageExport()
+        advanceUntilIdle()
+        viewModel.updatePackageLabel(label = "Filtered export")
+        viewModel.updatePackageAuthor(author = "Filtered author")
+        viewModel.updatePackageCreatedAt(createdAt = "2026-07-02T10:00:00.000Z")
+        viewModel.updatePackageSourceUrl(sourceUrl = "https://example.com/filtered")
+        viewModel.updatePackageComment(comment = "Filtered comment")
+        viewModel.togglePackageIncludedTag(tag = "geography")
+        advanceUntilIdle()
+        viewModel.togglePackageCardSelectionTag(tag = "geography")
+        advanceUntilIdle()
+        val response = viewModel.preparePackageExportDownload()
+
+        val request = cloudRepository.exportedWorkspacePackageRequests.single()
+        assertArrayEquals(byteArrayOf(80, 75, 3, 4), response?.packageBytes)
+        assertEquals(
+            WorkspacePackageExportSelection.TagFilters(
+                includeTags = listOf("geography"),
+                excludeTags = emptyList()
+            ),
+            cloudRepository.previewedWorkspacePackageExportRequests.last().selection
+        )
+        assertEquals(
+            WorkspacePackageExportSelection.TagFilters(
+                includeTags = listOf("geography"),
+                excludeTags = emptyList()
+            ),
+            request.selection
+        )
+        assertEquals(listOf("geography"), request.tagPolicy.additionalRemovedTags)
+        assertEquals("Filtered export", request.packageMetadata.label)
+        assertEquals("Filtered author", request.packageMetadata.author)
+        assertEquals("Filtered comment", request.packageMetadata.comment)
+        assertEquals("2026-07-02T10:00:00.000Z", request.packageMetadata.createdAt)
+        assertEquals("https://example.com/filtered", request.packageMetadata.sourceUrl)
+
+        stateJob.cancel()
+    }
+
+    @Test
+    fun cardSelectionRefreshPreservesOnlyExplicitlyExcludedPackageTags() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val cloudRepository = FakeCloudAccountRepository()
+        cloudRepository.setCloudSettings(settings = linkedCloudSettings())
+        cloudRepository.nextWorkspacePackageExportPreview = workspacePackageExportPreview()
+        cloudRepository.nextWorkspacePackageExportDownloadResponse = WorkspacePackageExportDownloadResponse(
+            packageBytes = byteArrayOf(80, 75, 3, 4),
+            fileName = "flashcards.zip",
+            contentType = "application/zip"
+        )
+        val viewModel = workspaceExportViewModel(cloudRepository = cloudRepository)
+        val stateJob = backgroundScope.launch {
+            viewModel.uiState.collect()
+        }
+        advanceUntilIdle()
+
+        viewModel.previewPackageExport()
+        advanceUntilIdle()
+        viewModel.togglePackageIncludedTag(tag = "geography")
+        advanceUntilIdle()
+        cloudRepository.nextWorkspacePackageExportPreview = workspacePackageExportPreviewWithoutTemporary()
+        viewModel.togglePackageCardSelectionTag(tag = "geography")
+        advanceUntilIdle()
+        cloudRepository.nextWorkspacePackageExportPreview = workspacePackageExportPreview()
+        viewModel.togglePackageCardSelectionTag(tag = "geography")
+        advanceUntilIdle()
+        val response = viewModel.preparePackageExportDownload()
+
+        val request = cloudRepository.exportedWorkspacePackageRequests.single()
+        assertArrayEquals(byteArrayOf(80, 75, 3, 4), response?.packageBytes)
+        assertEquals(WorkspacePackageExportSelection.AllActiveCards, request.selection)
+        assertEquals(listOf("geography"), request.tagPolicy.additionalRemovedTags)
+        assertEquals(setOf("temporary"), viewModel.uiState.value.packageIncludedTags)
+
+        stateJob.cancel()
+    }
+
+    @Test
+    fun failedCardSelectionRefreshRestoresPreviousDraft() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val cloudRepository = FakeCloudAccountRepository()
+        cloudRepository.setCloudSettings(settings = linkedCloudSettings())
+        cloudRepository.nextWorkspacePackageExportPreview = workspacePackageExportPreview()
+        cloudRepository.nextWorkspacePackageExportDownloadResponse = WorkspacePackageExportDownloadResponse(
+            packageBytes = byteArrayOf(80, 75, 3, 4),
+            fileName = "flashcards.zip",
+            contentType = "application/zip"
+        )
+        val viewModel = workspaceExportViewModel(cloudRepository = cloudRepository)
+        val stateJob = backgroundScope.launch {
+            viewModel.uiState.collect()
+        }
+        advanceUntilIdle()
+
+        viewModel.previewPackageExport()
+        advanceUntilIdle()
+        viewModel.updatePackageLabel(label = "Recoverable export")
+        viewModel.updatePackageAuthor(author = "Recoverable author")
+        viewModel.updatePackageCreatedAt(createdAt = "2026-07-03T10:00:00.000Z")
+        viewModel.updatePackageSourceUrl(sourceUrl = "https://example.com/recoverable")
+        viewModel.updatePackageComment(comment = "Recoverable comment")
+        viewModel.togglePackageIncludedTag(tag = "geography")
+        advanceUntilIdle()
+        cloudRepository.nextWorkspacePackageExportPreview = null
+        viewModel.togglePackageCardSelectionTag(tag = "geography")
+        advanceUntilIdle()
+
+        assertEquals("Package export preview failed.", viewModel.uiState.value.errorMessage)
+        assertEquals(
+            WorkspacePackageExportSelection.TagFilters(
+                includeTags = listOf("geography"),
+                excludeTags = emptyList()
+            ),
+            cloudRepository.previewedWorkspacePackageExportRequests.last().selection
+        )
+        assertEquals(emptySet<String>(), viewModel.uiState.value.packageCardSelectionTags)
+        assertEquals(setOf("temporary"), viewModel.uiState.value.packageIncludedTags)
+        val response = viewModel.preparePackageExportDownload()
+
+        val request = cloudRepository.exportedWorkspacePackageRequests.single()
+        assertArrayEquals(byteArrayOf(80, 75, 3, 4), response?.packageBytes)
+        assertEquals(WorkspacePackageExportSelection.AllActiveCards, request.selection)
+        assertEquals(listOf("geography"), request.tagPolicy.additionalRemovedTags)
+        assertEquals("Recoverable export", request.packageMetadata.label)
+        assertEquals("Recoverable author", request.packageMetadata.author)
+        assertEquals("Recoverable comment", request.packageMetadata.comment)
+        assertEquals("2026-07-03T10:00:00.000Z", request.packageMetadata.createdAt)
+        assertEquals("https://example.com/recoverable", request.packageMetadata.sourceUrl)
 
         stateJob.cancel()
     }
@@ -126,8 +278,7 @@ private fun linkedCloudSettings(): CloudSettings {
 }
 
 private fun workspacePackageExportPreview(): WorkspacePackageExportPreview {
-    return WorkspacePackageExportPreview(
-        selectedCardCount = 3,
+    return workspacePackageExportPreviewWithAvailableTags(
         availableTagCounts = listOf(
             WorkspacePackageExportTagCount(
                 tag = "geography",
@@ -141,10 +292,34 @@ private fun workspacePackageExportPreview(): WorkspacePackageExportPreview {
                 tag = "import:old",
                 cardsCount = 1
             )
-        ),
+        )
+    )
+}
+
+private fun workspacePackageExportPreviewWithoutTemporary(): WorkspacePackageExportPreview {
+    return workspacePackageExportPreviewWithAvailableTags(
+        availableTagCounts = listOf(
+            WorkspacePackageExportTagCount(
+                tag = "geography",
+                cardsCount = 2
+            ),
+            WorkspacePackageExportTagCount(
+                tag = "import:old",
+                cardsCount = 1
+            )
+        )
+    )
+}
+
+private fun workspacePackageExportPreviewWithAvailableTags(
+    availableTagCounts: List<WorkspacePackageExportTagCount>
+): WorkspacePackageExportPreview {
+    return WorkspacePackageExportPreview(
+        selectedCardCount = 3,
+        availableTagCounts = availableTagCounts,
         tagsSelectedForRemoval = listOf(
             WorkspacePackageExportTagCount(
-                tag = "temporary",
+                tag = "import:old",
                 cardsCount = 1
             )
         ),

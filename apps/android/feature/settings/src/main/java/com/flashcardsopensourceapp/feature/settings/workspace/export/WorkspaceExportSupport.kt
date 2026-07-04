@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageEx
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportRequest
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportSelection
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportTagCount
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportTagPolicyInput
 import com.flashcardsopensourceapp.data.local.model.workspace.isWorkspacePackageExportGeneratedImportTag
 import java.io.File
@@ -27,13 +28,12 @@ data class WorkspacePackageExportMetadataDraft(
 internal data class WorkspacePackageExportTagOptionUiState(
     val tag: String,
     val cardsCount: Int,
-    val isRemoved: Boolean,
-    val isAlwaysRemoved: Boolean
+    val isSelected: Boolean
 )
 
-fun makeDefaultWorkspacePackageExportPreviewRequest(): WorkspacePackageExportRequest {
+fun makeWorkspacePackageExportPreviewRequest(selectedCardTags: Set<String>): WorkspacePackageExportRequest {
     return WorkspacePackageExportRequest(
-        selection = WorkspacePackageExportSelection.AllActiveCards,
+        selection = makeWorkspacePackageExportSelection(selectedCardTags = selectedCardTags),
         tagPolicy = WorkspacePackageExportTagPolicyInput(additionalRemovedTags = emptyList()),
         packageMetadata = WorkspacePackageExportMetadataInput(
             label = null,
@@ -57,26 +57,27 @@ fun makeWorkspacePackageExportMetadataDraft(
     )
 }
 
-fun makeWorkspacePackageExportInitialRemovedTags(preview: WorkspacePackageExportPreview): Set<String> {
-    return (
-        preview.tagsSelectedForRemoval.map { tagCount -> tagCount.tag } +
-            preview.availableTagCounts
-                .map { tagCount -> tagCount.tag }
-                .filter { tag -> isWorkspacePackageExportGeneratedImportTag(tag = tag) }
-        ).toSet()
+fun makeWorkspacePackageExportIncludedTags(
+    preview: WorkspacePackageExportPreview,
+    excludedTags: Set<String>
+): Set<String> {
+    return makeWorkspacePackageExportAvailableRegularTags(preview = preview)
+        .filter { tag -> excludedTags.contains(tag).not() }
+        .toSet()
 }
 
 fun makeWorkspacePackageExportRequest(
     preview: WorkspacePackageExportPreview,
     metadataDraft: WorkspacePackageExportMetadataDraft,
-    removedTags: Set<String>
+    selectedCardTags: Set<String>,
+    excludedTags: Set<String>
 ): WorkspacePackageExportRequest {
     return WorkspacePackageExportRequest(
-        selection = WorkspacePackageExportSelection.AllActiveCards,
+        selection = makeWorkspacePackageExportSelection(selectedCardTags = selectedCardTags),
         tagPolicy = WorkspacePackageExportTagPolicyInput(
-            additionalRemovedTags = makeWorkspacePackageExportRemovedTags(
+            additionalRemovedTags = makeWorkspacePackageExportAdditionalRemovedTags(
                 preview = preview,
-                removedTags = removedTags
+                excludedTags = excludedTags
             )
         ),
         packageMetadata = WorkspacePackageExportMetadataInput(
@@ -89,19 +90,32 @@ fun makeWorkspacePackageExportRequest(
     )
 }
 
-internal fun makeWorkspacePackageExportTagOptions(
-    preview: WorkspacePackageExportPreview,
-    removedTags: Set<String>
+internal fun makeWorkspacePackageExportCardSelectionTagOptions(
+    tagCounts: List<WorkspacePackageExportTagCount>,
+    selectedTags: Set<String>
 ): List<WorkspacePackageExportTagOptionUiState> {
-    return preview.availableTagCounts.map { tagCount ->
-        val isAlwaysRemoved: Boolean = isWorkspacePackageExportGeneratedImportTag(tag = tagCount.tag)
+    return tagCounts.map { tagCount ->
         WorkspacePackageExportTagOptionUiState(
             tag = tagCount.tag,
             cardsCount = tagCount.cardsCount,
-            isRemoved = isAlwaysRemoved || removedTags.contains(tagCount.tag),
-            isAlwaysRemoved = isAlwaysRemoved
+            isSelected = selectedTags.contains(tagCount.tag)
         )
     }
+}
+
+internal fun makeWorkspacePackageExportIncludedTagOptions(
+    preview: WorkspacePackageExportPreview,
+    includedTags: Set<String>
+): List<WorkspacePackageExportTagOptionUiState> {
+    return preview.availableTagCounts
+        .filter { tagCount -> isWorkspacePackageExportGeneratedImportTag(tag = tagCount.tag).not() }
+        .map { tagCount ->
+            WorkspacePackageExportTagOptionUiState(
+                tag = tagCount.tag,
+                cardsCount = tagCount.cardsCount,
+                isSelected = includedTags.contains(tagCount.tag)
+            )
+        }
 }
 
 fun writeWorkspacePackageExportZip(
@@ -151,14 +165,35 @@ fun prepareWorkspacePackageExportShareUri(
     )
 }
 
-private fun makeWorkspacePackageExportRemovedTags(
+private fun makeWorkspacePackageExportSelection(selectedCardTags: Set<String>): WorkspacePackageExportSelection {
+    val normalizedSelectedCardTags: List<String> = selectedCardTags
+        .map { tag -> tag.trim() }
+        .filter { tag -> tag.isNotEmpty() }
+        .distinct()
+        .sorted()
+    if (normalizedSelectedCardTags.isEmpty()) {
+        return WorkspacePackageExportSelection.AllActiveCards
+    }
+    return WorkspacePackageExportSelection.TagFilters(
+        includeTags = normalizedSelectedCardTags,
+        excludeTags = emptyList()
+    )
+}
+
+private fun makeWorkspacePackageExportAvailableRegularTags(preview: WorkspacePackageExportPreview): List<String> {
+    return preview.availableTagCounts
+        .map { tagCount -> tagCount.tag }
+        .filter { tag -> isWorkspacePackageExportGeneratedImportTag(tag = tag).not() }
+}
+
+private fun makeWorkspacePackageExportAdditionalRemovedTags(
     preview: WorkspacePackageExportPreview,
-    removedTags: Set<String>
+    excludedTags: Set<String>
 ): List<String> {
     return preview.availableTagCounts
         .map { tagCount -> tagCount.tag }
         .filter { tag ->
-            isWorkspacePackageExportGeneratedImportTag(tag = tag) || removedTags.contains(tag)
+            isWorkspacePackageExportGeneratedImportTag(tag = tag).not() && excludedTags.contains(tag)
         }
 }
 

@@ -47,12 +47,15 @@ import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
+import com.flashcardsopensourceapp.data.local.model.workspace.isWorkspacePackageExportGeneratedImportTag
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsScreenScaffold
 import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 import com.flashcardsopensourceapp.feature.settings.workspaceExportScreenTag
+import com.flashcardsopensourceapp.feature.settings.workspacePackageExportCardSelectionTagToggleTag
 import com.flashcardsopensourceapp.feature.settings.workspacePackageExportErrorMessageTag
+import com.flashcardsopensourceapp.feature.settings.workspacePackageExportIncludedTagToggleTag
 import com.flashcardsopensourceapp.feature.settings.workspacePackageExportMetadataAuthorFieldTag
 import com.flashcardsopensourceapp.feature.settings.workspacePackageExportMetadataCommentFieldTag
 import com.flashcardsopensourceapp.feature.settings.workspacePackageExportMetadataCreatedAtFieldTag
@@ -61,7 +64,6 @@ import com.flashcardsopensourceapp.feature.settings.workspacePackageExportMetada
 import com.flashcardsopensourceapp.feature.settings.workspacePackageExportPreviewButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspacePackageExportSaveButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspacePackageExportShareButtonTag
-import com.flashcardsopensourceapp.feature.settings.workspacePackageExportTagToggleTag
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -163,11 +165,21 @@ fun WorkspaceExportRoute(
                     )
                 }
                 item {
-                    WorkspacePackageExportTagsCard(
-                        preview = packagePreview,
-                        removedTags = uiState.packageRemovedTags,
+                    WorkspacePackageExportCardSelectionCard(
+                        tagOptions = makeWorkspacePackageExportCardSelectionTagOptions(
+                            tagCounts = uiState.packageCardSelectionTagCounts,
+                            selectedTags = uiState.packageCardSelectionTags
+                        ),
                         isBusy = uiState.isBusy,
-                        onToggleRemovedTag = viewModel::togglePackageRemovedTag
+                        onToggleSelectionTag = viewModel::togglePackageCardSelectionTag
+                    )
+                }
+                item {
+                    WorkspacePackageExportIncludedTagsCard(
+                        preview = packagePreview,
+                        includedTags = uiState.packageIncludedTags,
+                        isBusy = uiState.isBusy,
+                        onToggleIncludedTag = viewModel::togglePackageIncludedTag
                     )
                 }
                 item {
@@ -445,48 +457,101 @@ private fun WorkspacePackageExportMetadataCard(
 }
 
 @Composable
-private fun WorkspacePackageExportTagsCard(
-    preview: WorkspacePackageExportPreview,
-    removedTags: Set<String>,
+private fun WorkspacePackageExportCardSelectionCard(
+    tagOptions: List<WorkspacePackageExportTagOptionUiState>,
     isBusy: Boolean,
-    onToggleRemovedTag: (String) -> Unit
+    onToggleSelectionTag: (String) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            SectionHeader(title = stringResource(R.string.settings_export_package_card_selection_section))
+            if (tagOptions.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.settings_export_package_card_selection_all_active),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                )
+            } else {
+                if (tagOptions.none { tagOption -> tagOption.isSelected }) {
+                    Text(
+                        text = stringResource(R.string.settings_export_package_card_selection_all_active),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    )
+                }
+                tagOptions.forEach { tagOption ->
+                    ToggleListItem(
+                        title = stringResource(R.string.settings_export_package_select_cards_with_tag, tagOption.tag),
+                        supportingText = pluralStringResource(
+                            R.plurals.settings_tag_cards_count,
+                            tagOption.cardsCount,
+                            tagOption.cardsCount
+                        ),
+                        checked = tagOption.isSelected,
+                        enabled = isBusy.not(),
+                        testTag = workspacePackageExportCardSelectionTagToggleTag(tag = tagOption.tag),
+                        onCheckedChange = {
+                            onToggleSelectionTag(tagOption.tag)
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkspacePackageExportIncludedTagsCard(
+    preview: WorkspacePackageExportPreview,
+    includedTags: Set<String>,
+    isBusy: Boolean,
+    onToggleIncludedTag: (String) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(vertical = 8.dp)) {
             SectionHeader(title = stringResource(R.string.settings_export_package_tags_section))
-            val tagOptions: List<WorkspacePackageExportTagOptionUiState> = makeWorkspacePackageExportTagOptions(
+            val tagOptions: List<WorkspacePackageExportTagOptionUiState> = makeWorkspacePackageExportIncludedTagOptions(
                 preview = preview,
-                removedTags = removedTags
+                includedTags = includedTags
             )
+            val hasGeneratedImportTags: Boolean = preview.availableTagCounts.any { tagCount ->
+                isWorkspacePackageExportGeneratedImportTag(tag = tagCount.tag)
+            }
             if (tagOptions.isEmpty()) {
                 Text(
                     text = stringResource(R.string.settings_export_package_tags_empty),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                 )
+                if (hasGeneratedImportTags) {
+                    Text(
+                        text = stringResource(R.string.settings_export_package_generated_import_tag_removed),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    )
+                }
             } else {
                 tagOptions.forEach { tagOption ->
                     ToggleListItem(
-                        title = if (tagOption.isAlwaysRemoved) {
-                            stringResource(R.string.settings_export_package_always_remove_tag, tagOption.tag)
-                        } else {
-                            stringResource(R.string.settings_export_package_remove_tag, tagOption.tag)
-                        },
-                        supportingText = if (tagOption.isAlwaysRemoved) {
-                            stringResource(R.string.settings_export_package_generated_import_tag_removed)
-                        } else {
-                            pluralStringResource(
-                                R.plurals.settings_tag_cards_count,
-                                tagOption.cardsCount,
-                                tagOption.cardsCount
-                            )
-                        },
-                        checked = tagOption.isRemoved,
-                        enabled = isBusy.not() && tagOption.isAlwaysRemoved.not(),
-                        testTag = workspacePackageExportTagToggleTag(tag = tagOption.tag),
+                        title = stringResource(R.string.settings_export_package_include_tag, tagOption.tag),
+                        supportingText = pluralStringResource(
+                            R.plurals.settings_tag_cards_count,
+                            tagOption.cardsCount,
+                            tagOption.cardsCount
+                        ),
+                        checked = tagOption.isSelected,
+                        enabled = isBusy.not(),
+                        testTag = workspacePackageExportIncludedTagToggleTag(tag = tagOption.tag),
                         onCheckedChange = {
-                            onToggleRemovedTag(tagOption.tag)
+                            onToggleIncludedTag(tagOption.tag)
                         }
+                    )
+                }
+                if (hasGeneratedImportTags) {
+                    Text(
+                        text = stringResource(R.string.settings_export_package_generated_import_tag_removed),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                     )
                 }
             }
