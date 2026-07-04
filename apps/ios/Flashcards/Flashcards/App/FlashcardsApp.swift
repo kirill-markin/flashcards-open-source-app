@@ -8,6 +8,43 @@ private let flashcardsUITestAIHandoffCardEnvironmentKey: String = "FLASHCARDS_UI
 @MainActor
 private var hasConsumedFlashcardsUITestAppNotificationTapEnvironment: Bool = false
 
+@MainActor
+private func runAppBackgroundTask(
+    name: String,
+    operation: @escaping @MainActor () async -> Void
+) {
+    var backgroundTaskIdentifier: UIBackgroundTaskIdentifier = .invalid
+    var operationTask: Task<Void, Never>?
+    var hasBackgroundTaskExpired: Bool = false
+
+    func endBackgroundTaskIfNeeded() {
+        let identifier = backgroundTaskIdentifier
+        backgroundTaskIdentifier = .invalid
+        guard identifier != .invalid else {
+            return
+        }
+
+        UIApplication.shared.endBackgroundTask(identifier)
+    }
+
+    backgroundTaskIdentifier = UIApplication.shared.beginBackgroundTask(withName: name) {
+        hasBackgroundTaskExpired = true
+        operationTask?.cancel()
+        endBackgroundTaskIfNeeded()
+    }
+
+    operationTask = Task { @MainActor in
+        defer {
+            endBackgroundTaskIfNeeded()
+        }
+        guard hasBackgroundTaskExpired == false else {
+            return
+        }
+
+        await operation()
+    }
+}
+
 private enum FlashcardsUITestSelectedTab: String {
     case review
     case progress
@@ -512,8 +549,10 @@ struct FlashcardsApp: App {
                         store.reconcileReviewNotifications(trigger: .appActive, now: now)
                         store.reconcileStrictReminders(trigger: .appActive, now: now)
                     } else if nextPhase == .background {
-                        store.reconcileReviewNotifications(trigger: .appBackground, now: Date())
-                        store.reconcileStrictReminders(trigger: .appBackground, now: Date())
+                        let now = Date()
+                        runAppBackgroundTask(name: "AppBackgroundNotificationReconcile") {
+                            await store.reconcileAppBackgroundNotifications(now: now)
+                        }
                     }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
