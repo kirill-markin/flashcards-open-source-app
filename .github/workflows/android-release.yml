@@ -25,6 +25,11 @@ on:
         required: true
         default: false
         type: boolean
+      run_firebase_test_lab:
+        description: Submit Firebase Test Lab app instrumentation after Android CI succeeds
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -168,6 +173,8 @@ jobs:
           } >> "${GITHUB_OUTPUT}"
 
       - name: Summarize preflight
+        env:
+          PLAY_UPLOAD_REQUESTED: ${{ github.event_name == 'push' || inputs.upload_to_play_draft }}
         run: |
           {
             echo "## Android release preflight"
@@ -181,8 +188,13 @@ jobs:
             echo "- Release ID: \`${{ steps.release-metadata.outputs.android_release_id }}\`"
             echo "- Play release name: \`${{ steps.release-metadata.outputs.android_play_release_name }}\`"
             echo "- Event: \`${{ github.event_name }}\`"
-            echo "- Upload draft to Play: \`${{ github.event_name == 'push' || inputs.upload_to_play_draft }}\`"
-            echo "- Play publish mode: \`draft production release uploaded by CI; final publish happens later in Play Console\`"
+            echo "- Upload draft to Play: \`${PLAY_UPLOAD_REQUESTED}\`"
+            echo "- Run Firebase Test Lab: \`${{ github.event_name == 'workflow_dispatch' && inputs.run_firebase_test_lab }}\`"
+            if [[ "${PLAY_UPLOAD_REQUESTED}" == "true" ]]; then
+              echo "- Play publish mode: \`draft production release uploaded by CI; final publish happens later in Play Console\`"
+            else
+              echo "- Play publish mode: \`not requested; no Play draft upload in this run\`"
+            fi
           } >> "${GITHUB_STEP_SUMMARY}"
 
   android_ci:
@@ -203,7 +215,7 @@ jobs:
     needs:
       - preflight
       - android_ci
-    if: ${{ needs.android_ci.result == 'success' }}
+    if: ${{ needs.android_ci.result == 'success' && github.event_name == 'workflow_dispatch' && inputs.run_firebase_test_lab }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     permissions:
@@ -622,7 +634,7 @@ jobs:
             echo "- GitHub run: \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`"
             echo "- GitHub run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo "- Upload state: \`draft\`"
-            echo "- Firebase Test Lab submission runs in parallel after the fast Android gate."
+            echo "- Firebase Test Lab: \`manual-only through run_firebase_test_lab on Android Release workflow_dispatch runs\`"
             echo "- Next step: review Play App strings translations in Play Console, then publish the release manually."
           } >> "${GITHUB_STEP_SUMMARY}"
 
@@ -638,6 +650,8 @@ jobs:
 
     steps:
       - name: Summarize Android release outcome
+        env:
+          PLAY_UPLOAD_REQUESTED: ${{ github.event_name == 'push' || inputs.upload_to_play_draft }}
         run: |
           {
             echo "## Android release summary"
@@ -649,12 +663,18 @@ jobs:
             echo "- Release ID: \`${{ needs.preflight.outputs.android_release_id || 'n/a' }}\`"
             echo "- Play release name: \`${{ needs.preflight.outputs.android_play_release_name || 'n/a' }}\`"
             echo "- Android CI result: \`${{ needs.android_ci.result }}\`"
+            echo "- Firebase Test Lab requested: \`${{ github.event_name == 'workflow_dispatch' && inputs.run_firebase_test_lab }}\`"
             echo "- Firebase Test Lab submission result: \`${{ needs.firebase_test_lab_submission.result }}\`"
+            echo "- Play draft upload requested: \`${PLAY_UPLOAD_REQUESTED}\`"
             echo "- Android Play draft upload result: \`${{ needs.publish_android.result }}\`"
             echo "- Firebase Test Lab submission: \`${{ needs.firebase_test_lab_submission.outputs.submission_state || 'n/a' }}\`"
             echo "- Firebase Test Lab matrix ID: \`${{ needs.firebase_test_lab_submission.outputs.matrix_id || 'n/a' }}\`"
             echo "- Firebase Test Lab results path: \`${{ needs.firebase_test_lab_submission.outputs.results_path || 'n/a' }}\`"
             echo "- Firebase Test Lab device: \`${{ needs.firebase_test_lab_submission.outputs.device_descriptor || 'n/a' }}\`"
-            echo "- Play publish mode: \`CI uploads a production-track draft only; Play Console publication remains manual\`"
+            if [[ "${PLAY_UPLOAD_REQUESTED}" == "true" ]]; then
+              echo "- Play publish mode: \`CI uploads a production-track draft only; Play Console publication remains manual\`"
+            else
+              echo "- Play publish mode: \`not requested; no Play draft upload in this run\`"
+            fi
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"
