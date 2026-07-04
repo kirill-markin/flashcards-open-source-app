@@ -49,6 +49,19 @@ extension SentryObservabilityAdapter {
                 message: observation.action.rawValue,
                 data: self.appLifecycleContext(observation)
             )
+        case .foregroundOperation(let observation):
+            self.writeLocalRecord(
+                kind: "breadcrumb",
+                feature: observation.scope.feature,
+                action: observation.action.rawValue,
+                fields: self.foregroundOperationFields(observation)
+            )
+            self.addSentryBreadcrumb(
+                category: "ios.foreground_operation",
+                level: .info,
+                message: "\(observation.action.rawValue).\(observation.phase.rawValue)",
+                data: self.foregroundOperationContext(observation)
+            )
         case .cloudFlow(let observation):
             self.logCloudFlow(observation)
             self.addSentryBreadcrumb(
@@ -635,6 +648,29 @@ extension SentryObservabilityAdapter {
 
     private static func appLifecycleFields(_ observation: AppLifecycleObservation) -> [String: String] {
         stringifyContext(self.appLifecycleContext(observation))
+    }
+
+    private static func foregroundOperationContext(_ observation: ForegroundOperationObservation) -> [String: Any] {
+        var context: [String: Any] = self.scopeContext(observation.scope)
+        context["action"] = observation.action.rawValue
+        context["phase"] = observation.phase.rawValue
+        context["duration_milliseconds"] = observation.durationMilliseconds.map { durationMilliseconds in String(durationMilliseconds) } ?? ""
+        context["selected_tab"] = observation.selectedTab ?? ""
+        context["scene_phase"] = observation.scenePhase ?? ""
+        context["is_startup_ready"] = observation.isStartupReady.map { isStartupReady in String(isStartupReady) } ?? ""
+        context["is_recovery_gate_active"] = observation.isRecoveryGateActive.map { isRecoveryGateActive in String(isRecoveryGateActive) } ?? ""
+        context["card_count"] = observation.cardCount.map { cardCount in String(cardCount) } ?? ""
+        context["deck_count"] = observation.deckCount.map { deckCount in String(deckCount) } ?? ""
+        context["pending_outbox_operation_count"] = observation.pendingOutboxOperationCount.map { pendingOutboxOperationCount in String(pendingOutboxOperationCount) } ?? ""
+        context["review_queue_count"] = observation.reviewQueueCount.map { reviewQueueCount in String(reviewQueueCount) } ?? ""
+        context["review_due_count"] = observation.reviewDueCount.map { reviewDueCount in String(reviewDueCount) } ?? ""
+        context["cloud_sync_blocked"] = observation.cloudSyncBlocked.map { cloudSyncBlocked in String(cloudSyncBlocked) } ?? ""
+        context["error_summary"] = observation.errorSummary ?? ""
+        return context
+    }
+
+    private static func foregroundOperationFields(_ observation: ForegroundOperationObservation) -> [String: String] {
+        stringifyContext(self.foregroundOperationContext(observation))
     }
 
     private static func aiChatLifecycleContext(_ observation: AIChatLifecycleObservation) -> [String: Any] {
