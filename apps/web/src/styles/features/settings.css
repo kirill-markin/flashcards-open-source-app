@@ -470,6 +470,33 @@
   min-width: 0;
 }
 
+.workspace-import-tag-field {
+  display: grid;
+  gap: 6px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.workspace-import-tag-field > input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.workspace-import-tag-field > input:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  outline-offset: 2px;
+}
+
+.workspace-import-tag-field:has(input:disabled) {
+  opacity: 0.68;
+}
+
 .workspace-import-preview {
   display: grid;
   gap: 12px;

@@ -66,9 +66,10 @@ function createExportPreviewResponse(): WorkspacePackageExportPreviewResponse {
     availableTagCounts: [
       { tag: "geography", cardsCount: 2 },
       { tag: "temporary", cardsCount: 1 },
+      { tag: "import:2026-07-01", cardsCount: 1 },
     ],
     tagsSelectedForRemoval: [
-      { tag: "temporary", cardsCount: 1 },
+      { tag: "import:2026-07-01", cardsCount: 1 },
     ],
     referencedMediaCount: 2,
     approximateReferencedMediaBytes: 1536,
@@ -88,6 +89,21 @@ function createExportPreviewResponseWithMetadata(
   return {
     ...createExportPreviewResponse(),
     defaultPackageMetadata,
+  };
+}
+
+function createTagFilteredExportPreviewResponse(): WorkspacePackageExportPreviewResponse {
+  return {
+    ...createExportPreviewResponse(),
+    selectedCardCount: 2,
+    availableTagCounts: [
+      { tag: "geography", cardsCount: 2 },
+      { tag: "shared", cardsCount: 1 },
+      { tag: "import:2026-07-01", cardsCount: 1 },
+    ],
+    tagsSelectedForRemoval: [
+      { tag: "import:2026-07-01", cardsCount: 1 },
+    ],
   };
 }
 
@@ -296,6 +312,13 @@ async function waitForExportPreview(): Promise<void> {
   ));
 }
 
+async function waitForExportPreviewCallCount(callCount: number): Promise<void> {
+  await waitForCondition(`Package export preview did not reach ${callCount} calls`, () => (
+    previewWorkspacePackageExportMock.mock.calls.length >= callCount
+      && getContainer().querySelector("[data-testid='workspace-package-export-preview']") !== null
+  ));
+}
+
 async function waitForExportDownload(): Promise<void> {
   await waitForCondition("Package export download did not finish", () => (
     downloadWorkspacePackageExportMock.mock.calls.length > 0
@@ -339,30 +362,80 @@ describe("WorkspaceExportScreen package export", () => {
     expect(requireElement("[data-testid='workspace-package-export-preview-metadata']", HTMLElement).textContent).toContain("Export author");
     expect(requireElement("[data-testid='workspace-package-export-preview-metadata']", HTMLElement).textContent).toContain("Export comment");
     expect(requireElement("[data-testid='workspace-package-export-preview-metadata']", HTMLElement).textContent).toContain("https://example.com/export");
+    expect(requireElement("[data-testid='workspace-package-export-all-cards-radio']", HTMLInputElement).checked).toBe(true);
     expect(requireElement(
-      "[data-testid='workspace-package-export-remove-tag-checkbox'][data-tag='temporary']",
+      "[data-testid='workspace-package-export-card-selection-tag-checkbox'][data-tag='geography']",
+      HTMLInputElement,
+    ).checked).toBe(false);
+    expect(requireElement(
+      "[data-testid='workspace-package-export-included-tag-checkbox'][data-tag='temporary']",
       HTMLInputElement,
     ).checked).toBe(true);
     expect(requireElement(
-      "[data-testid='workspace-package-export-remove-tag-checkbox'][data-tag='geography']",
+      "[data-testid='workspace-package-export-included-tag-checkbox'][data-tag='geography']",
       HTMLInputElement,
-    ).checked).toBe(false);
+    ).checked).toBe(true);
+    expect(getContainer().querySelector(
+      "[data-testid='workspace-package-export-included-tag-checkbox'][data-tag='import:2026-07-01']",
+    )).toBeNull();
     expect(downloadWorkspacePackageExportMock).not.toHaveBeenCalled();
   });
 
-  it("uses the current export tag removal checkbox state when downloading", async () => {
+  it("previews a tag-filter card selection when a card tag is selected", async () => {
+    previewWorkspacePackageExportMock.mockImplementation(async (_workspaceId, request): Promise<WorkspacePackageExportPreviewResponse> => (
+      request.selection.kind === "tagFilters"
+        ? createTagFilteredExportPreviewResponse()
+        : createExportPreviewResponse()
+    ));
+
+    await renderScreen();
+    await clickElement(requireElement("[data-testid='workspace-package-export-button']", HTMLButtonElement));
+    await waitForExportPreviewCallCount(1);
+    await clickElement(requireElement(
+      "[data-testid='workspace-package-export-card-selection-tag-checkbox'][data-tag='geography']",
+      HTMLInputElement,
+    ));
+    await waitForExportPreviewCallCount(2);
+
+    expect(previewWorkspacePackageExportMock.mock.calls[1]?.[1].selection).toEqual({
+      kind: "tagFilters",
+      includeTags: ["geography"],
+      excludeTags: [],
+    });
+    expect(requireElement("[data-testid='workspace-package-export-preview-card-count']", HTMLElement).textContent).toBe("2");
+    expect(requireElement(
+      "[data-testid='workspace-package-export-card-selection-tag-checkbox'][data-tag='geography']",
+      HTMLInputElement,
+    ).checked).toBe(true);
+    expect(requireElement(
+      "[data-testid='workspace-package-export-included-tag-checkbox'][data-tag='shared']",
+      HTMLInputElement,
+    ).checked).toBe(true);
+    expect(getContainer().querySelector(
+      "[data-testid='workspace-package-export-included-tag-checkbox'][data-tag='temporary']",
+    )).toBeNull();
+  });
+
+  it("maps excluded package tags to additional removed tags when downloading", async () => {
     await renderScreen();
     await clickElement(requireElement("[data-testid='workspace-package-export-button']", HTMLButtonElement));
     await waitForExportPreview();
 
     await clickElement(requireElement(
-      "[data-testid='workspace-package-export-remove-tag-checkbox'][data-tag='geography']",
+      "[data-testid='workspace-package-export-included-tag-checkbox'][data-tag='geography']",
       HTMLInputElement,
     ));
     await clickElement(requireElement("[data-testid='workspace-package-export-confirm-button']", HTMLButtonElement));
     await waitForExportDownload();
 
-    expect(readExportDownloadRequest().tagPolicy.additionalRemovedTags).toEqual(["temporary", "geography"]);
+    expect(readExportDownloadRequest()).toMatchObject({
+      selection: {
+        kind: "allActiveCards",
+      },
+      tagPolicy: {
+        additionalRemovedTags: ["geography"],
+      },
+    });
   });
 
   it("downloads the backend ZIP with default metadata and returned filename", async () => {
@@ -393,7 +466,7 @@ describe("WorkspaceExportScreen package export", () => {
         kind: "allActiveCards",
       },
       tagPolicy: {
-        additionalRemovedTags: ["temporary"],
+        additionalRemovedTags: [],
       },
       packageMetadata: {
         label: "Backend default label",
