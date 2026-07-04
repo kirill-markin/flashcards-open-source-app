@@ -183,7 +183,7 @@ test("loadUserProgressSeriesInExecutor fills gaps and merges rating breakdowns a
   ]);
 });
 
-test("loadUserProgressSeriesInExecutor buckets review counts by reviewed_at_client in the requested timezone", async () => {
+test("loadUserProgressSeriesInExecutor buckets review counts by reviewed_at_client and reads materialized active days", async () => {
   const { executor, recordedQueries } = createProgressExecutor({
     workspaceIdsByUser: {
       "user-1": ["workspace-1"],
@@ -234,19 +234,11 @@ test("loadUserProgressSeriesInExecutor buckets review counts by reviewed_at_clie
     "2026-04-12",
   ]);
 
-  const materializationQuery = recordedQueries.find((query) => query.text.includes("WITH target_review_events AS"));
-  if (materializationQuery === undefined) {
-    assert.fail("Expected an active review day materialization query to be recorded");
-  }
-  assert.match(materializationQuery.text, /INSERT INTO progress\.user_active_review_days/);
-  assert.match(materializationQuery.text, /WHERE review_events\.reviewed_by_user_id = \$1/);
-  assert.match(materializationQuery.text, /AND review_events\.workspace_id = \$3/);
-  assert.doesNotMatch(materializationQuery.text, /review_events\.rating/);
-  assert.deepEqual(materializationQuery.params, [
-    "user-1",
-    "America/Los_Angeles",
-    "workspace-1",
-  ]);
+  const materializationQueries = recordedQueries.filter((query) => (
+    query.text.includes("WITH target_review_events AS")
+    && query.text.includes("INSERT INTO progress.user_active_review_days")
+  ));
+  assert.equal(materializationQueries.length, 0);
 
   const activeDayQuery = recordedQueries.find((query) => (
     query.text.includes("FROM progress.user_active_review_days AS active_days")
@@ -312,16 +304,9 @@ test("loadUserProgressSeriesInExecutor applies user scope for memberships and wo
 
   const materializationQueries = recordedQueries.filter((query) => (
     query.text.includes("WITH target_review_events AS")
+    && query.text.includes("INSERT INTO progress.user_active_review_days")
   ));
-  assert.equal(materializationQueries.length, 2);
-  assert.ok(materializationQueries.every((query) => (
-    query.text.includes("WHERE review_events.reviewed_by_user_id = $1")
-    && query.text.includes("AND review_events.workspace_id = $3")
-  )));
-  assert.deepEqual(materializationQueries.map((query) => query.params), [
-    ["user-1", "Europe/Madrid", "workspace-1"],
-    ["user-1", "Europe/Madrid", "workspace-2"],
-  ]);
+  assert.equal(materializationQueries.length, 0);
 
   const activeDayQueries = recordedQueries.filter((query) => (
     query.text.includes("FROM progress.user_active_review_days AS active_days")
