@@ -539,7 +539,14 @@ private struct DeckDetailScreen: View {
                     cards: cards
                 )
             case .deck(let deckId):
-                let deck = try store.loadDeck(deckId: deckId)
+                let deck: Deck
+                do {
+                    deck = try store.loadDeck(deckId: deckId)
+                } catch LocalStoreError.notFound(_) {
+                    self.detailState = nil
+                    return
+                }
+
                 let cards = try store.loadCardsMatchingDeck(filterDefinition: deck.filterDefinition)
                 self.detailState = .deck(
                     deckItem: makeDeckListItem(deck: deck, cards: cards, now: Date()),
