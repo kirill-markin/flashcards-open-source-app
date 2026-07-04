@@ -647,7 +647,7 @@ final class FlashcardsStore {
         FlashcardsObservability.captureSilentFailure(
             error: error,
             scope: IOSObservationScope(
-                feature: .prompts,
+                feature: .technicalError,
                 userId: self.cloudSettings?.linkedUserId,
                 workspaceId: self.workspace?.workspaceId,
                 requestId: nil,

@@ -22,6 +22,7 @@ enum IOSObservationFeature: String, Sendable {
     case notifications = "notifications"
     case localData = "local_data"
     case prompts = "prompts"
+    case technicalError = "technical_error"
     case progress = "progress"
     case storeReview = "store_review"
 }
