@@ -95,11 +95,26 @@ describe("ChatPanel send recovered drafts", () => {
     expect(recoveredSessionId).not.toBe(staleSessionId);
     expect(createNewChatSessionMock).toHaveBeenCalledTimes(2);
     expect(startChatRunMock).toHaveBeenCalledTimes(2);
+    expect(startChatRunMock.mock.calls[1]?.[0]).toEqual(expect.objectContaining({
+      sessionId: recoveredSessionId,
+      content: [
+        {
+          type: "file",
+          mediaType: "text/plain",
+          base64Data: "YXR0YWNoZWQ=",
+          fileName: "attached.txt",
+        },
+        {
+          type: "text",
+          text: "keep this draft after retry failure",
+        },
+      ],
+    }));
     expect(textarea?.value).toBe("keep this draft after retry failure");
     expect(readStoredDraftInputText("workspace-1", staleSessionId as string)).toBeNull();
     expect(readStoredDraftInputText("workspace-1", recoveredSessionId as string)).toBe("keep this draft after retry failure");
     expect(readStoredDraftPendingAttachmentCount("workspace-1", staleSessionId as string)).toBe(0);
-    expect(readStoredDraftPendingAttachmentCount("workspace-1", recoveredSessionId as string)).toBe(1);
+    expect(readStoredDraftPendingAttachmentCount("workspace-1", recoveredSessionId as string)).toBe(0);
     expect(getContainer().querySelector(".chat-msg")).toBeNull();
     expect(getContainer().querySelector('[role="dialog"]')).not.toBeNull();
     expect(getContainer().textContent).toContain("Chat request failed.");
