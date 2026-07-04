@@ -33,6 +33,8 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
         return [.workspaceScheduler]
     case .workspaceExport:
         return [.workspaceExport]
+    case .workspaceImport:
+        return [.workspaceImport]
     case .workspaceDecks:
         return [.workspaceDecks]
     case .workspaceTags:

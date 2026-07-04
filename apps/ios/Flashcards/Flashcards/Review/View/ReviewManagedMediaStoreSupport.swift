@@ -217,7 +217,7 @@ extension FlashcardsStore {
             defer {
                 session.invalidateAndCancel()
             }
-            try await downloadReviewManagedMediaBlobFileToCache(
+            return try await downloadReviewManagedMediaBlobFileToCache(
                 downloadURL: downloadURL,
                 databaseURL: databaseURL,
                 mediaAsset: mediaAsset,
