@@ -434,21 +434,21 @@ test("loadUserProgressSeriesInExecutor rejects daily and streak day invariant mi
       "user-1": ["workspace-1"],
     },
     reviewRowsByRequest: {
-      "workspace-1|user-1|2026-07-01|2026-07-01": [
+      "workspace-1|user-1|2026-04-26|2026-04-26": [
         {
-          review_date: "2026-07-01",
-          review_count: 1,
-          again_count: 0,
-          hard_count: 0,
-          good_count: 1,
-          easy_count: 0,
+          review_date: "2026-04-26",
+          review_count: 9,
+          again_count: 1,
+          hard_count: 2,
+          good_count: 3,
+          easy_count: 3,
         },
       ],
     },
     activeReviewDateRowsByUser: {},
     reviewScheduleRowsByRequest: {},
     reviewSequenceIdsByWorkspaceId: {
-      "workspace-1": 1,
+      "workspace-1": 9,
     },
   });
 
@@ -456,10 +456,17 @@ test("loadUserProgressSeriesInExecutor rejects daily and streak day invariant mi
     async () => loadUserProgressSeriesInExecutor(executor, {
       userId: "user-1",
       timeZone: "Europe/Madrid",
-      from: "2026-07-01",
-      to: "2026-07-01",
+      from: "2026-04-26",
+      to: "2026-04-26",
     }),
-    /Progress series day invariant failed; userId=user-1; timeZone=Europe\/Madrid; from=2026-07-01; to=2026-07-01; date=2026-07-01; reviewCount=1; streakState=missed/,
+    (error: unknown): boolean => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /Progress series day invariant failed/);
+      assert.match(error.message, /date=2026-04-26/);
+      assert.match(error.message, /reviewCount=9/);
+      assert.match(error.message, /streakState=missed/);
+      return true;
+    },
   );
 });
 

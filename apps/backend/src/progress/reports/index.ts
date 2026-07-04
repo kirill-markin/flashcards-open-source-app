@@ -880,7 +880,6 @@ async function buildUserProgressSeriesInExecutor(
     today,
     streakFreezePolicy,
   );
-
   const progressSeries: ProgressSeries = {
     timeZone: request.timeZone,
     from: request.from,
