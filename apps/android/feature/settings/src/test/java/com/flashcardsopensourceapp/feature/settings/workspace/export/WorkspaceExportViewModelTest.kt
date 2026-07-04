@@ -164,7 +164,7 @@ class WorkspaceExportViewModelTest {
     }
 
     @Test
-    fun cardSelectionRefreshPreservesOnlyExplicitlyExcludedPackageTags() = runTest(dispatcher) {
+    fun cardSelectionRefreshPreservesIncludedPackageTags() = runTest(dispatcher) {
         Dispatchers.setMain(dispatcher)
         val cloudRepository = FakeCloudAccountRepository()
         cloudRepository.setCloudSettings(settings = linkedCloudSettings())
@@ -197,6 +197,47 @@ class WorkspaceExportViewModelTest {
         assertEquals(WorkspacePackageExportSelection.AllActiveCards, request.selection)
         assertEquals(listOf("geography"), request.tagPolicy.additionalRemovedTags)
         assertEquals(setOf("temporary"), viewModel.uiState.value.packageIncludedTags)
+
+        stateJob.cancel()
+    }
+
+    @Test
+    fun cardSelectionRefreshIncludesNewPackageTagsByDefault() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val cloudRepository = FakeCloudAccountRepository()
+        cloudRepository.setCloudSettings(settings = linkedCloudSettings())
+        cloudRepository.nextWorkspacePackageExportPreview = workspacePackageExportPreview()
+        cloudRepository.nextWorkspacePackageExportDownloadResponse = WorkspacePackageExportDownloadResponse(
+            packageBytes = byteArrayOf(80, 75, 3, 4),
+            fileName = "flashcards.zip",
+            contentType = "application/zip"
+        )
+        val viewModel = workspaceExportViewModel(cloudRepository = cloudRepository)
+        val stateJob = backgroundScope.launch {
+            viewModel.uiState.collect()
+        }
+        advanceUntilIdle()
+
+        viewModel.previewPackageExport()
+        advanceUntilIdle()
+        viewModel.togglePackageIncludedTag(tag = "geography")
+        advanceUntilIdle()
+        cloudRepository.nextWorkspacePackageExportPreview = workspacePackageExportPreviewWithSharedTag()
+        viewModel.togglePackageCardSelectionTag(tag = "geography")
+        advanceUntilIdle()
+        val response = viewModel.preparePackageExportDownload()
+
+        val request = cloudRepository.exportedWorkspacePackageRequests.single()
+        assertArrayEquals(byteArrayOf(80, 75, 3, 4), response?.packageBytes)
+        assertEquals(
+            WorkspacePackageExportSelection.TagFilters(
+                includeTags = listOf("geography"),
+                excludeTags = emptyList()
+            ),
+            request.selection
+        )
+        assertEquals(listOf("geography"), request.tagPolicy.additionalRemovedTags)
+        assertEquals(setOf("temporary", "shared"), viewModel.uiState.value.packageIncludedTags)
 
         stateJob.cancel()
     }
@@ -302,6 +343,29 @@ private fun workspacePackageExportPreviewWithoutTemporary(): WorkspacePackageExp
             WorkspacePackageExportTagCount(
                 tag = "geography",
                 cardsCount = 2
+            ),
+            WorkspacePackageExportTagCount(
+                tag = "import:old",
+                cardsCount = 1
+            )
+        )
+    )
+}
+
+private fun workspacePackageExportPreviewWithSharedTag(): WorkspacePackageExportPreview {
+    return workspacePackageExportPreviewWithAvailableTags(
+        availableTagCounts = listOf(
+            WorkspacePackageExportTagCount(
+                tag = "geography",
+                cardsCount = 2
+            ),
+            WorkspacePackageExportTagCount(
+                tag = "temporary",
+                cardsCount = 1
+            ),
+            WorkspacePackageExportTagCount(
+                tag = "shared",
+                cardsCount = 1
             ),
             WorkspacePackageExportTagCount(
                 tag = "import:old",

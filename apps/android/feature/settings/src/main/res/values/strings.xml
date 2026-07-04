@@ -473,7 +473,7 @@
     <string name="settings_export_package_tags_section">Package tags</string>
     <string name="settings_export_package_tags_empty">No package tags.</string>
     <string name="settings_export_package_include_tag">Include %1$s</string>
-    <string name="settings_export_package_generated_import_tag_removed">Generated import tags are not included in package exports.</string>
+    <string name="settings_export_package_generated_import_tag_not_included">Generated import tags are not included in package exports.</string>
 
     <string name="settings_import_title">Import</string>
     <string name="settings_import_zip_summary">Import a Flashcards ZIP package</string>

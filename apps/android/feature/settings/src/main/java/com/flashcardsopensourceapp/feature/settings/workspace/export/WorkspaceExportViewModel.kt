@@ -42,7 +42,8 @@ private data class WorkspacePackageExportPreservedDraft(
     val metadataDraft: WorkspacePackageExportMetadataDraft,
     val cardSelectionTags: Set<String>,
     val cardSelectionTagCounts: List<WorkspacePackageExportTagCount>,
-    val excludedTags: Set<String>
+    val knownRegularTags: Set<String>,
+    val includedTags: Set<String>
 )
 
 private data class WorkspaceExportDraftState(
@@ -51,7 +52,8 @@ private data class WorkspaceExportDraftState(
     val packageMetadataDraft: WorkspacePackageExportMetadataDraft,
     val packageCardSelectionTags: Set<String>,
     val packageCardSelectionTagCounts: List<WorkspacePackageExportTagCount>,
-    val packageExcludedTags: Set<String>,
+    val packageKnownRegularTags: Set<String>,
+    val packageIncludedTags: Set<String>,
     val isPackagePreviewing: Boolean,
     val isPackageExporting: Boolean,
     val errorMessage: String
@@ -82,7 +84,8 @@ class WorkspaceExportViewModel(
             packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
             packageCardSelectionTags = emptySet(),
             packageCardSelectionTagCounts = emptyList(),
-            packageExcludedTags = emptySet(),
+            packageKnownRegularTags = emptySet(),
+            packageIncludedTags = emptySet(),
             isPackagePreviewing = false,
             isPackageExporting = false,
             errorMessage = ""
@@ -119,10 +122,7 @@ class WorkspaceExportViewModel(
                 emptyList()
             },
             packageIncludedTags = if (currentPackagePreview != null) {
-                makeWorkspacePackageExportIncludedTags(
-                    preview = currentPackagePreview,
-                    excludedTags = draft.packageExcludedTags
-                )
+                draft.packageIncludedTags
             } else {
                 emptySet()
             },
@@ -194,7 +194,8 @@ class WorkspaceExportViewModel(
                     packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
                     packageCardSelectionTags = emptySet(),
                     packageCardSelectionTagCounts = emptyList(),
-                    packageExcludedTags = emptySet(),
+                    packageKnownRegularTags = emptySet(),
+                    packageIncludedTags = emptySet(),
                     isPackagePreviewing = false,
                     isPackageExporting = false,
                     errorMessage = workspacePackageExportAvailabilityMessage(
@@ -213,7 +214,8 @@ class WorkspaceExportViewModel(
                 packageMetadataDraft = preservedDraft?.metadataDraft ?: emptyWorkspacePackageExportMetadataDraft(),
                 packageCardSelectionTags = selectedCardTags,
                 packageCardSelectionTagCounts = preservedCardSelectionTagCounts,
-                packageExcludedTags = preservedDraft?.excludedTags ?: emptySet(),
+                packageKnownRegularTags = preservedDraft?.knownRegularTags ?: emptySet(),
+                packageIncludedTags = preservedDraft?.includedTags ?: emptySet(),
                 isPackagePreviewing = true,
                 isPackageExporting = false,
                 errorMessage = ""
@@ -232,13 +234,24 @@ class WorkspaceExportViewModel(
                 }
                 val nextMetadataDraft: WorkspacePackageExportMetadataDraft = preservedDraft?.metadataDraft
                     ?: makeWorkspacePackageExportMetadataDraft(defaultPackageMetadata = preview.defaultPackageMetadata)
+                val nextKnownRegularTags: Set<String> = makeWorkspacePackageExportKnownRegularTags(preview = preview)
+                val nextIncludedTags: Set<String> = preservedDraft?.let { draft ->
+                    makeWorkspacePackageExportRefreshedIncludedTags(
+                        knownRegularTags = draft.knownRegularTags,
+                        includedTags = draft.includedTags,
+                        refreshedPreview = preview
+                    )
+                } ?: makeWorkspacePackageExportInitialIncludedTags(preview = preview)
                 state.copy(
                     packagePreview = preview,
                     packagePreviewIdentity = previewIdentity,
                     packageMetadataDraft = nextMetadataDraft,
                     packageCardSelectionTags = selectedCardTags,
                     packageCardSelectionTagCounts = nextCardSelectionTagCounts,
-                    packageExcludedTags = preservedDraft?.excludedTags ?: emptySet(),
+                    packageKnownRegularTags = preservedDraft?.knownRegularTags
+                        ?.plus(nextKnownRegularTags)
+                        ?: nextKnownRegularTags,
+                    packageIncludedTags = nextIncludedTags,
                     isPackagePreviewing = false,
                     errorMessage = ""
                 )
@@ -290,7 +303,8 @@ class WorkspaceExportViewModel(
                     packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
                     packageCardSelectionTags = emptySet(),
                     packageCardSelectionTagCounts = emptyList(),
-                    packageExcludedTags = emptySet(),
+                    packageKnownRegularTags = emptySet(),
+                    packageIncludedTags = emptySet(),
                     errorMessage = currentUiState.packageAvailabilityMessage
                 )
             }
@@ -310,7 +324,7 @@ class WorkspaceExportViewModel(
                     preview = preview,
                     metadataDraft = currentUiState.packageMetadataDraft,
                     selectedCardTags = currentUiState.packageCardSelectionTags,
-                    excludedTags = draftState.value.packageExcludedTags
+                    includedTags = currentUiState.packageIncludedTags
                 )
             )
         } catch (error: CancellationException) {
@@ -400,7 +414,8 @@ class WorkspaceExportViewModel(
                 metadataDraft = currentState.packageMetadataDraft,
                 cardSelectionTags = currentState.packageCardSelectionTags,
                 cardSelectionTagCounts = currentState.packageCardSelectionTagCounts,
-                excludedTags = currentState.packageExcludedTags
+                knownRegularTags = currentState.packageKnownRegularTags,
+                includedTags = currentState.packageIncludedTags
             )
         )
     }
@@ -413,16 +428,16 @@ class WorkspaceExportViewModel(
             "Workspace package export tag toggle requires an existing preview tag."
         }
         require(isWorkspacePackageExportGeneratedImportTag(tag = tag).not()) {
-            "Workspace package export generated import tags cannot be kept."
+            "Workspace package export generated import tags cannot be included."
         }
         draftState.update { state ->
-            val nextExcludedTags: Set<String> = if (state.packageExcludedTags.contains(tag)) {
-                state.packageExcludedTags - tag
+            val nextIncludedTags: Set<String> = if (state.packageIncludedTags.contains(tag)) {
+                state.packageIncludedTags - tag
             } else {
-                state.packageExcludedTags + tag
+                state.packageIncludedTags + tag
             }
             state.copy(
-                packageExcludedTags = nextExcludedTags,
+                packageIncludedTags = nextIncludedTags,
                 errorMessage = ""
             )
         }
@@ -547,7 +562,8 @@ private fun restoreWorkspacePackageExportDraftAfterPreviewFailure(
             packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
             packageCardSelectionTags = emptySet(),
             packageCardSelectionTagCounts = emptyList(),
-            packageExcludedTags = emptySet(),
+            packageKnownRegularTags = emptySet(),
+            packageIncludedTags = emptySet(),
             isPackagePreviewing = false,
             isPackageExporting = false,
             errorMessage = errorMessage
@@ -559,7 +575,8 @@ private fun restoreWorkspacePackageExportDraftAfterPreviewFailure(
         packageMetadataDraft = preservedDraft.metadataDraft,
         packageCardSelectionTags = preservedDraft.cardSelectionTags,
         packageCardSelectionTagCounts = preservedDraft.cardSelectionTagCounts,
-        packageExcludedTags = preservedDraft.excludedTags,
+        packageKnownRegularTags = preservedDraft.knownRegularTags,
+        packageIncludedTags = preservedDraft.includedTags,
         isPackagePreviewing = false,
         isPackageExporting = false,
         errorMessage = errorMessage

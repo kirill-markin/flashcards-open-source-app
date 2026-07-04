@@ -57,27 +57,38 @@ fun makeWorkspacePackageExportMetadataDraft(
     )
 }
 
-fun makeWorkspacePackageExportIncludedTags(
-    preview: WorkspacePackageExportPreview,
-    excludedTags: Set<String>
+fun makeWorkspacePackageExportInitialIncludedTags(preview: WorkspacePackageExportPreview): Set<String> {
+    return makeWorkspacePackageExportKnownRegularTags(preview = preview)
+}
+
+fun makeWorkspacePackageExportKnownRegularTags(preview: WorkspacePackageExportPreview): Set<String> {
+    return makeWorkspacePackageExportAvailableRegularTags(preview = preview).toSet()
+}
+
+fun makeWorkspacePackageExportRefreshedIncludedTags(
+    knownRegularTags: Set<String>,
+    includedTags: Set<String>,
+    refreshedPreview: WorkspacePackageExportPreview
 ): Set<String> {
-    return makeWorkspacePackageExportAvailableRegularTags(preview = preview)
-        .filter { tag -> excludedTags.contains(tag).not() }
+    val excludedKnownTags: Set<String> = knownRegularTags - includedTags
+    val includedRefreshedTags: Set<String> = makeWorkspacePackageExportAvailableRegularTags(preview = refreshedPreview)
+        .filter { tag -> excludedKnownTags.contains(tag).not() }
         .toSet()
+    return includedTags + includedRefreshedTags
 }
 
 fun makeWorkspacePackageExportRequest(
     preview: WorkspacePackageExportPreview,
     metadataDraft: WorkspacePackageExportMetadataDraft,
     selectedCardTags: Set<String>,
-    excludedTags: Set<String>
+    includedTags: Set<String>
 ): WorkspacePackageExportRequest {
     return WorkspacePackageExportRequest(
         selection = makeWorkspacePackageExportSelection(selectedCardTags = selectedCardTags),
         tagPolicy = WorkspacePackageExportTagPolicyInput(
             additionalRemovedTags = makeWorkspacePackageExportAdditionalRemovedTags(
                 preview = preview,
-                excludedTags = excludedTags
+                includedTags = includedTags
             )
         ),
         packageMetadata = WorkspacePackageExportMetadataInput(
@@ -188,12 +199,12 @@ private fun makeWorkspacePackageExportAvailableRegularTags(preview: WorkspacePac
 
 private fun makeWorkspacePackageExportAdditionalRemovedTags(
     preview: WorkspacePackageExportPreview,
-    excludedTags: Set<String>
+    includedTags: Set<String>
 ): List<String> {
     return preview.availableTagCounts
         .map { tagCount -> tagCount.tag }
         .filter { tag ->
-            isWorkspacePackageExportGeneratedImportTag(tag = tag).not() && excludedTags.contains(tag)
+            isWorkspacePackageExportGeneratedImportTag(tag = tag).not() && includedTags.contains(tag).not()
         }
 }
 
