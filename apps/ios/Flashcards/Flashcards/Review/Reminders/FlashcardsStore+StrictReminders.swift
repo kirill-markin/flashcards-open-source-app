@@ -45,6 +45,17 @@ extension FlashcardsStore {
         }
     }
 
+    func reconcileAppBackgroundNotifications(now: Date) async {
+        self.reconcileReviewNotifications(trigger: .appBackground, now: now)
+        self.reconcileStrictReminders(trigger: .appBackground, now: now)
+        await self.waitForReviewNotificationsReconcileToSettle()
+        guard Task.isCancelled == false else {
+            return
+        }
+
+        await self.waitForStrictRemindersReconcileToSettle()
+    }
+
     private func reconcileNotificationsAfterStrictRemindersSettingsChanged(now: Date) {
         guard self.strictRemindersSettings.isEnabled else {
             self.reconcileStrictReminders(trigger: .settingsChanged, now: now)
