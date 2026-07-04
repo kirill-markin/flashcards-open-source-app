@@ -5,6 +5,7 @@ import {
   isAuthRedirectError,
 } from "../../../../api";
 import { captureApiContractError } from "../../../../observability/apiContractObservation";
+import { isBrowserApiNetworkError } from "../../../../observability/apiNetworkErrorPolicy";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import {
   captureWebException,
@@ -138,6 +139,10 @@ function shouldCaptureProgressServerLoadError(error: Error): boolean {
   }
 
   if (isAuthRedirectError(error)) {
+    return false;
+  }
+
+  if (isBrowserApiNetworkError(error)) {
     return false;
   }
 

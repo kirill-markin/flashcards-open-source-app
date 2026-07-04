@@ -1,4 +1,5 @@
 import { ApiContractError, ApiError, AuthRedirectError } from "../api";
+import { isBrowserApiNetworkError } from "./apiNetworkErrorPolicy";
 import {
   captureWebException,
   normalizeCaughtError,
@@ -109,6 +110,10 @@ function isExpectedAppOperationError(error: Error, context: AppOperationObservat
   }
 
   if (error instanceof AuthRedirectError) {
+    return true;
+  }
+
+  if (isBrowserApiNetworkError(error)) {
     return true;
   }
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { ApiError } from "../../../api";
+import { ApiError, ApiNetworkError } from "../../../api";
 import type {
   ProgressSeries,
   ProgressSummaryPayload,
@@ -133,6 +133,30 @@ describe("useProgressSource lifecycle", () => {
 
     expect(harness.getApi().progressSourceState.summary.errorMessage).toBe("Authentication required.");
     expect(harness.getApi().progressSourceState.summary.technicalError).toBeNull();
+    expect(captureWebExceptionMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps leaderboard API network failures inline without technical capture", async () => {
+    const networkError = new ApiNetworkError({
+      endpoint: "GET /me/progress/leaderboard",
+      originalErrorName: "TypeError",
+      originalErrorMessage: "Failed to fetch",
+      attemptCount: 3,
+    });
+    loadProgressLeaderboardMock.mockRejectedValueOnce(networkError);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: leaderboardOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.leaderboard.errorMessage).toBe(networkError.message);
+    expect(harness.getApi().progressSourceState.leaderboard.technicalError).toBeNull();
+    expect(harness.getApi().progressSourceState.leaderboard.isNetworkError).toBe(true);
     expect(captureWebExceptionMock).not.toHaveBeenCalled();
   });
 
