@@ -12,7 +12,10 @@ struct WorkspacePackageExportSection: View {
         createdAt: "",
         sourceUrl: ""
     )
-    @State private var removedTags: Set<String> = []
+    @State private var selectedCardTags: Set<String> = []
+    @State private var previewSelectedCardTags: Set<String> = []
+    @State private var cardSelectionTagOptions: [WorkspacePackageExportTagCount] = []
+    @State private var includedPackageTags: Set<String> = []
     @State private var isPreviewing: Bool = false
     @State private var isExporting: Bool = false
     @State private var errorMessage: String = ""
@@ -30,6 +33,9 @@ struct WorkspacePackageExportSection: View {
 
     private var currentPreview: WorkspacePackageExportPreviewResponse? {
         guard self.previewWorkspaceId == self.currentWorkspaceId else {
+            return nil
+        }
+        guard self.previewSelectedCardTags == self.selectedCardTags else {
             return nil
         }
 
@@ -68,14 +74,17 @@ struct WorkspacePackageExportSection: View {
             }
 
             if let currentPreview {
+                self.cardSelectionSection
                 self.contentsSection(preview: currentPreview)
                 self.metadataSection
                 self.tagsSection(preview: currentPreview)
                 self.confirmSection(preview: currentPreview)
+            } else if self.cardSelectionTagOptions.isEmpty == false {
+                self.cardSelectionSection
             }
         }
         .onChange(of: self.currentWorkspaceId) { _, _ in
-            self.resetPreview()
+            self.resetWorkspaceExportState()
         }
         .sheet(
             isPresented: self.$isShareSheetPresented,
@@ -191,29 +200,77 @@ struct WorkspacePackageExportSection: View {
         }
     }
 
-    private func tagsSection(preview: WorkspacePackageExportPreviewResponse) -> some View {
-        Section(aiSettingsLocalized("settings.workspace.export.package.tags.section", "Tags")) {
-            if preview.availableTagCounts.isEmpty {
-                Text(aiSettingsLocalized("settings.workspace.export.package.tags.empty", "No tags."))
+    private var cardSelectionSection: some View {
+        Section(aiSettingsLocalized("settings.workspace.export.package.cardSelection.section", "Cards")) {
+            Button {
+                self.selectAllCardsForExport()
+            } label: {
+                HStack {
+                    Label(
+                        aiSettingsLocalized("settings.workspace.export.package.cardSelection.allCards", "All cards"),
+                        systemImage: "rectangle.stack"
+                    )
+                    .foregroundStyle(.primary)
+
+                    Spacer()
+
+                    if self.selectedCardTags.isEmpty {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(.tint)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(self.isBusy)
+            .accessibilityIdentifier(UITestIdentifier.workspacePackageExportCardSelectionAllCardsButton)
+
+            if self.cardSelectionTagOptions.isEmpty {
+                Text(aiSettingsLocalized("settings.workspace.export.package.cardSelection.tags.empty", "No tags."))
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(makeWorkspacePackageExportTagOptions(preview: preview, removedTags: self.removedTags)) { tagOption in
-                    Toggle(isOn: self.removeTagBinding(tag: tagOption.tag, isAlwaysRemoved: tagOption.isAlwaysRemoved)) {
+                ForEach(self.cardSelectionTagOptions) { tagOption in
+                    Toggle(isOn: self.selectedCardTagBinding(tag: tagOption.tag)) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(self.removeTagTitle(tagOption: tagOption))
+                            Text(tagOption.tag)
                             Text(self.tagCardsCountTitle(cardsCount: tagOption.cardsCount))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            if tagOption.isAlwaysRemoved {
-                                Text(self.generatedImportTagRemovalMessage)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
                         }
                     }
-                    .disabled(self.isBusy || tagOption.isAlwaysRemoved)
+                    .disabled(self.isBusy)
+                    .accessibilityIdentifier(
+                        UITestIdentifier.workspacePackageExportCardSelectionTagTogglePrefix + tagOption.tag
+                    )
+                }
+            }
+        }
+    }
+
+    private func tagsSection(preview: WorkspacePackageExportPreviewResponse) -> some View {
+        Section(aiSettingsLocalized("settings.workspace.export.package.includedTags.section", "Included Tags")) {
+            let tagOptions = makeWorkspacePackageExportTagOptions(preview: preview)
+            if tagOptions.isEmpty {
+                Text(aiSettingsLocalized("settings.workspace.export.package.includedTags.empty", "No package tags to include."))
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(tagOptions) { tagOption in
+                    Toggle(isOn: self.includePackageTagBinding(tag: tagOption.tag)) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(self.includeTagTitle(tag: tagOption.tag))
+                            Text(self.tagCardsCountTitle(cardsCount: tagOption.cardsCount))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .disabled(self.isBusy)
                     .accessibilityIdentifier(UITestIdentifier.workspacePackageExportTagTogglePrefix + tagOption.tag)
                 }
+            }
+
+            if workspacePackageExportHasGeneratedImportTags(preview: preview) {
+                Text(self.generatedImportTagExclusionMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -237,23 +294,49 @@ struct WorkspacePackageExportSection: View {
         }
     }
 
-    private func removeTagBinding(tag: String, isAlwaysRemoved: Bool) -> Binding<Bool> {
+    private func selectedCardTagBinding(tag: String) -> Binding<Bool> {
         Binding(
             get: {
-                isAlwaysRemoved || self.removedTags.contains(tag)
+                self.selectedCardTags.contains(tag)
             },
-            set: { isRemoved in
-                if isAlwaysRemoved {
-                    self.removedTags.insert(tag)
-                    return
-                }
-                if isRemoved {
-                    self.removedTags.insert(tag)
+            set: { isSelected in
+                if isSelected {
+                    self.selectedCardTags.insert(tag)
                 } else {
-                    self.removedTags.remove(tag)
+                    self.selectedCardTags.remove(tag)
                 }
+                self.resetPreview()
+                self.errorMessage = ""
+                self.successMessage = ""
             }
         )
+    }
+
+    private func includePackageTagBinding(tag: String) -> Binding<Bool> {
+        Binding(
+            get: {
+                self.includedPackageTags.contains(tag)
+            },
+            set: { isIncluded in
+                if isIncluded {
+                    self.includedPackageTags.insert(tag)
+                } else {
+                    self.includedPackageTags.remove(tag)
+                }
+                self.errorMessage = ""
+            }
+        )
+    }
+
+    private func selectAllCardsForExport() {
+        guard self.selectedCardTags.isEmpty == false else {
+            return
+        }
+
+        self.selectedCardTags = []
+        self.resetPreview()
+        self.errorMessage = ""
+        self.successMessage = ""
     }
 
     private func tagCardsCountTitle(cardsCount: Int) -> String {
@@ -268,23 +351,15 @@ struct WorkspacePackageExportSection: View {
         )
     }
 
-    private var generatedImportTagRemovalMessage: String {
+    private var generatedImportTagExclusionMessage: String {
         aiSettingsLocalized(
-            "settings.workspace.export.package.generatedImportTagAlwaysRemoved",
-            "Generated import tags are always removed from package exports."
+            "settings.workspace.export.package.generatedImportTagNotIncluded",
+            "Generated import tags are not included in package exports."
         )
     }
 
-    private func removeTagTitle(tagOption: WorkspacePackageExportTagOption) -> String {
-        if tagOption.isAlwaysRemoved {
-            return aiSettingsLocalizedFormat(
-                "settings.workspace.export.package.alwaysRemoveTag",
-                "Always remove %@",
-                tagOption.tag
-            )
-        }
-
-        return aiSettingsLocalizedFormat("settings.workspace.export.package.removeTag", "Remove %@", tagOption.tag)
+    private func includeTagTitle(tag: String) -> String {
+        aiSettingsLocalizedFormat("settings.workspace.export.package.includeTag", "Include %@", tag)
     }
 
     @MainActor
@@ -296,18 +371,32 @@ struct WorkspacePackageExportSection: View {
         self.isPreviewing = true
         self.errorMessage = ""
         self.successMessage = ""
+        let selectedCardTags = self.selectedCardTags
+        let additionalRemovedTags = Set(self.currentPreview.map { preview in
+            makeWorkspacePackageExportAdditionalRemovedTags(
+                preview: preview,
+                includedTags: self.includedPackageTags
+            )
+        } ?? [])
         self.resetPreview()
 
         do {
             let preview = try await self.store.previewCurrentWorkspacePackageExport(
-                request: makeDefaultWorkspacePackageExportPreviewRequest()
+                request: makeWorkspacePackageExportPreviewRequest(
+                    selectedCardTags: selectedCardTags,
+                    additionalRemovedTags: additionalRemovedTags
+                )
             )
             self.preview = preview
             self.previewWorkspaceId = self.currentWorkspaceId
+            self.previewSelectedCardTags = selectedCardTags
             self.metadataDraft = WorkspacePackageExportMetadataDraft(
                 defaultPackageMetadata: preview.defaultPackageMetadata
             )
-            self.removedTags = Set(preview.tagsSelectedForRemoval.map(\.tag))
+            self.includedPackageTags = makeWorkspacePackageExportInitialIncludedTags(preview: preview)
+            if selectedCardTags.isEmpty || self.cardSelectionTagOptions.isEmpty {
+                self.cardSelectionTagOptions = preview.availableTagCounts
+            }
         } catch {
             if isRequestCancellationError(error: error) {
                 self.isPreviewing = false
@@ -321,7 +410,8 @@ struct WorkspacePackageExportSection: View {
 
     @MainActor
     private func exportPackage(preview: WorkspacePackageExportPreviewResponse) async {
-        guard self.previewWorkspaceId == self.currentWorkspaceId else {
+        guard self.previewWorkspaceId == self.currentWorkspaceId,
+              self.previewSelectedCardTags == self.selectedCardTags else {
             self.resetPreview()
             self.errorMessage = aiSettingsLocalized(
                 "settings.workspace.export.package.previewRequired",
@@ -342,7 +432,8 @@ struct WorkspacePackageExportSection: View {
                 request: makeWorkspacePackageExportRequest(
                     preview: preview,
                     metadataDraft: self.metadataDraft,
-                    removedTags: self.removedTags
+                    selectedCardTags: self.selectedCardTags,
+                    includedTags: self.includedPackageTags
                 )
             )
             let fileManager = FileManager.default
@@ -367,11 +458,17 @@ struct WorkspacePackageExportSection: View {
         self.isExporting = false
     }
 
-    @MainActor
     private func resetPreview() {
         self.preview = nil
         self.previewWorkspaceId = ""
-        self.removedTags = []
+        self.previewSelectedCardTags = []
+        self.includedPackageTags = []
+    }
+
+    private func resetWorkspaceExportState() {
+        self.resetPreview()
+        self.selectedCardTags = []
+        self.cardSelectionTagOptions = []
     }
 
     @MainActor

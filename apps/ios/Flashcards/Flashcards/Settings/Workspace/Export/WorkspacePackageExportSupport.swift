@@ -31,17 +31,19 @@ struct WorkspacePackageExportMetadataDraft: Hashable, Sendable {
 struct WorkspacePackageExportTagOption: Hashable, Identifiable, Sendable {
     let tag: String
     let cardsCount: Int
-    let isAlwaysRemoved: Bool
 
     var id: String {
         tag
     }
 }
 
-func makeDefaultWorkspacePackageExportPreviewRequest() -> WorkspacePackageExportRequest {
+func makeWorkspacePackageExportPreviewRequest(
+    selectedCardTags: Set<String>,
+    additionalRemovedTags: Set<String>
+) -> WorkspacePackageExportRequest {
     WorkspacePackageExportRequest(
-        selection: .allActiveCards,
-        tagPolicy: WorkspacePackageExportTagPolicyInput(additionalRemovedTags: []),
+        selection: makeWorkspacePackageExportSelection(selectedCardTags: selectedCardTags),
+        tagPolicy: WorkspacePackageExportTagPolicyInput(additionalRemovedTags: additionalRemovedTags.sorted()),
         packageMetadata: WorkspacePackageExportMetadataInput(
             label: nil,
             author: nil,
@@ -55,12 +57,16 @@ func makeDefaultWorkspacePackageExportPreviewRequest() -> WorkspacePackageExport
 func makeWorkspacePackageExportRequest(
     preview: WorkspacePackageExportPreviewResponse,
     metadataDraft: WorkspacePackageExportMetadataDraft,
-    removedTags: Set<String>
+    selectedCardTags: Set<String>,
+    includedTags: Set<String>
 ) -> WorkspacePackageExportRequest {
     WorkspacePackageExportRequest(
-        selection: .allActiveCards,
+        selection: makeWorkspacePackageExportSelection(selectedCardTags: selectedCardTags),
         tagPolicy: WorkspacePackageExportTagPolicyInput(
-            additionalRemovedTags: makeWorkspacePackageExportRemovedTags(preview: preview, removedTags: removedTags)
+            additionalRemovedTags: makeWorkspacePackageExportAdditionalRemovedTags(
+                preview: preview,
+                includedTags: includedTags
+            )
         ),
         packageMetadata: WorkspacePackageExportMetadataInput(
             label: optionalWorkspacePackageExportMetadataText(value: metadataDraft.label),
@@ -72,29 +78,43 @@ func makeWorkspacePackageExportRequest(
     )
 }
 
-func makeWorkspacePackageExportTagOptions(
-    preview: WorkspacePackageExportPreviewResponse,
-    removedTags: Set<String>
-) -> [WorkspacePackageExportTagOption] {
-    preview.availableTagCounts.map { tagCount in
-        let isAlwaysRemoved = isWorkspacePackageExportGeneratedImportTag(tag: tagCount.tag)
-        WorkspacePackageExportTagOption(
-            tag: tagCount.tag,
-            cardsCount: tagCount.cardsCount,
-            isAlwaysRemoved: isAlwaysRemoved
-        )
-    }
+func makeWorkspacePackageExportTagOptions(preview: WorkspacePackageExportPreviewResponse) -> [WorkspacePackageExportTagOption] {
+    preview.availableTagCounts
+        .filter { tagCount in
+            isWorkspacePackageExportGeneratedImportTag(tag: tagCount.tag) == false
+        }
+        .map { tagCount in
+            WorkspacePackageExportTagOption(
+                tag: tagCount.tag,
+                cardsCount: tagCount.cardsCount
+            )
+        }
 }
 
-func makeWorkspacePackageExportRemovedTags(
+func makeWorkspacePackageExportInitialIncludedTags(preview: WorkspacePackageExportPreviewResponse) -> Set<String> {
+    let removedTags = Set(preview.tagsSelectedForRemoval.map(\.tag))
+    return Set(preview.availableTagCounts
+        .map(\.tag)
+        .filter { tag in
+            isWorkspacePackageExportGeneratedImportTag(tag: tag) == false && removedTags.contains(tag) == false
+        })
+}
+
+func makeWorkspacePackageExportAdditionalRemovedTags(
     preview: WorkspacePackageExportPreviewResponse,
-    removedTags: Set<String>
+    includedTags: Set<String>
 ) -> [String] {
     preview.availableTagCounts
         .map(\.tag)
         .filter { tag in
-            isWorkspacePackageExportGeneratedImportTag(tag: tag) || removedTags.contains(tag)
+            isWorkspacePackageExportGeneratedImportTag(tag: tag) == false && includedTags.contains(tag) == false
         }
+}
+
+func workspacePackageExportHasGeneratedImportTags(preview: WorkspacePackageExportPreviewResponse) -> Bool {
+    preview.availableTagCounts.contains { tagCount in
+        isWorkspacePackageExportGeneratedImportTag(tag: tagCount.tag)
+    }
 }
 
 func formatWorkspacePackageExportByteCount(byteCount: Int64) -> String {
@@ -132,7 +152,16 @@ private func optionalWorkspacePackageExportMetadataText(value: String) -> String
     return normalizedValue
 }
 
-private func isWorkspacePackageExportGeneratedImportTag(tag: String) -> Bool {
+private func makeWorkspacePackageExportSelection(selectedCardTags: Set<String>) -> WorkspacePackageExportSelection {
+    let selectedTags = selectedCardTags.sorted()
+    if selectedTags.isEmpty {
+        return .allActiveCards
+    }
+
+    return .tagFilters(includeTags: selectedTags, excludeTags: [])
+}
+
+func isWorkspacePackageExportGeneratedImportTag(tag: String) -> Bool {
     tag.hasPrefix(workspacePackageExportGeneratedImportTagPrefix)
 }
 
