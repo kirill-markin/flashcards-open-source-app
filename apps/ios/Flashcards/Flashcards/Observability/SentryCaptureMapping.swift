@@ -661,6 +661,8 @@ extension SentryObservabilityAdapter {
         context["action"] = observation.action.rawValue
         context["phase"] = observation.phase.rawValue
         context["duration_milliseconds"] = observation.durationMilliseconds.map { durationMilliseconds in String(durationMilliseconds) } ?? ""
+        context["operation_stage"] = observation.operationStage ?? ""
+        context["operation_trigger"] = observation.operationTrigger ?? ""
         context["selected_tab"] = observation.selectedTab ?? ""
         context["scene_phase"] = observation.scenePhase ?? ""
         context["is_startup_ready"] = observation.isStartupReady.map { isStartupReady in String(isStartupReady) } ?? ""
@@ -682,6 +684,23 @@ extension SentryObservabilityAdapter {
         context["progress_leaderboard_refresh_needed"] = observation.progressLeaderboardRefreshNeeded.map { progressLeaderboardRefreshNeeded in String(progressLeaderboardRefreshNeeded) } ?? ""
         context["progress_streak_leaderboard_refresh_needed"] = observation.progressStreakLeaderboardRefreshNeeded.map { progressStreakLeaderboardRefreshNeeded in String(progressStreakLeaderboardRefreshNeeded) } ?? ""
         context["cloud_sync_blocked"] = observation.cloudSyncBlocked.map { cloudSyncBlocked in String(cloudSyncBlocked) } ?? ""
+        context["cloud_sync_extends_fast_polling"] = observation.cloudSyncExtendsFastPolling.map { extendsFastPolling in String(extendsFastPolling) } ?? ""
+        context["cloud_sync_uses_immediate_start_debounce"] = observation.cloudSyncUsesImmediateStartDebounce.map { usesImmediateStartDebounce in String(usesImmediateStartDebounce) } ?? ""
+        context["cloud_sync_immediate_start_skipped"] = observation.cloudSyncImmediateStartSkipped.map { immediateStartSkipped in String(immediateStartSkipped) } ?? ""
+        context["cloud_sync_skip_reason"] = observation.cloudSyncSkipReason ?? ""
+        context["cloud_sync_had_active_task"] = observation.cloudSyncHadActiveTask.map { hadActiveTask in String(hadActiveTask) } ?? ""
+        context["cloud_sync_pending_resync"] = observation.cloudSyncPendingResync.map { pendingResync in String(pendingResync) } ?? ""
+        context["cloud_sync_wait_outcome"] = observation.cloudSyncWaitOutcome ?? ""
+        context["cloud_sync_acknowledged_operation_count"] = observation.cloudSyncAcknowledgedOperationCount.map { acknowledgedOperationCount in String(acknowledgedOperationCount) } ?? ""
+        context["cloud_sync_applied_pull_change_count"] = observation.cloudSyncAppliedPullChangeCount.map { appliedPullChangeCount in String(appliedPullChangeCount) } ?? ""
+        context["cloud_sync_changed_entity_type_count"] = observation.cloudSyncChangedEntityTypeCount.map { changedEntityTypeCount in String(changedEntityTypeCount) } ?? ""
+        context["cloud_sync_local_id_repair_entity_type_count"] = observation.cloudSyncLocalIdRepairEntityTypeCount.map { localIdRepairEntityTypeCount in String(localIdRepairEntityTypeCount) } ?? ""
+        context["cloud_sync_review_schedule_impacting_pull_change_count"] = observation.cloudSyncReviewScheduleImpactingPullChangeCount.map { reviewScheduleImpactingPullChangeCount in String(reviewScheduleImpactingPullChangeCount) } ?? ""
+        context["cloud_sync_acknowledged_review_event_operation_count"] = observation.cloudSyncAcknowledgedReviewEventOperationCount.map { acknowledgedReviewEventOperationCount in String(acknowledgedReviewEventOperationCount) } ?? ""
+        context["cloud_sync_acknowledged_review_schedule_impacting_operation_count"] = observation.cloudSyncAcknowledgedReviewScheduleImpactingOperationCount.map { acknowledgedReviewScheduleImpactingOperationCount in String(acknowledgedReviewScheduleImpactingOperationCount) } ?? ""
+        context["cloud_sync_cleaned_up_operation_count"] = observation.cloudSyncCleanedUpOperationCount.map { cleanedUpOperationCount in String(cleanedUpOperationCount) } ?? ""
+        context["cloud_sync_cleaned_up_review_schedule_impacting_operation_count"] = observation.cloudSyncCleanedUpReviewScheduleImpactingOperationCount.map { cleanedUpReviewScheduleImpactingOperationCount in String(cleanedUpReviewScheduleImpactingOperationCount) } ?? ""
+        context["cloud_sync_cleaned_up_review_event_operation_count"] = observation.cloudSyncCleanedUpReviewEventOperationCount.map { cleanedUpReviewEventOperationCount in String(cleanedUpReviewEventOperationCount) } ?? ""
         context["error_summary"] = observation.errorSummary ?? ""
         return context
     }

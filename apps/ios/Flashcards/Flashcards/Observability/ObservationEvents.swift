@@ -126,6 +126,8 @@ struct ForegroundOperationObservation: Sendable, Hashable {
     let action: ForegroundOperationAction
     let phase: ForegroundOperationPhase
     let durationMilliseconds: Int?
+    let operationStage: String?
+    let operationTrigger: String?
     let selectedTab: String?
     let scenePhase: String?
     let isStartupReady: Bool?
@@ -147,10 +149,104 @@ struct ForegroundOperationObservation: Sendable, Hashable {
     let progressLeaderboardRefreshNeeded: Bool?
     let progressStreakLeaderboardRefreshNeeded: Bool?
     let cloudSyncBlocked: Bool?
+    let cloudSyncExtendsFastPolling: Bool?
+    let cloudSyncUsesImmediateStartDebounce: Bool?
+    let cloudSyncImmediateStartSkipped: Bool?
+    let cloudSyncSkipReason: String?
+    let cloudSyncHadActiveTask: Bool?
+    let cloudSyncPendingResync: Bool?
+    let cloudSyncWaitOutcome: String?
+    let cloudSyncAcknowledgedOperationCount: Int?
+    let cloudSyncAppliedPullChangeCount: Int?
+    let cloudSyncChangedEntityTypeCount: Int?
+    let cloudSyncLocalIdRepairEntityTypeCount: Int?
+    let cloudSyncReviewScheduleImpactingPullChangeCount: Int?
+    let cloudSyncAcknowledgedReviewEventOperationCount: Int?
+    let cloudSyncAcknowledgedReviewScheduleImpactingOperationCount: Int?
+    let cloudSyncCleanedUpOperationCount: Int?
+    let cloudSyncCleanedUpReviewScheduleImpactingOperationCount: Int?
+    let cloudSyncCleanedUpReviewEventOperationCount: Int?
     let errorSummary: String?
 }
 
 extension ForegroundOperationObservation {
+    init(
+        scope: IOSObservationScope,
+        action: ForegroundOperationAction,
+        phase: ForegroundOperationPhase,
+        durationMilliseconds: Int?,
+        selectedTab: String?,
+        scenePhase: String?,
+        isStartupReady: Bool?,
+        isRecoveryGateActive: Bool?,
+        cardCount: Int?,
+        deckCount: Int?,
+        pendingOutboxOperationCount: Int?,
+        reviewQueueCount: Int?,
+        reviewDueCount: Int?,
+        reviewNewCount: Int?,
+        reviewPendingCount: Int?,
+        reviewTotalCount: Int?,
+        reviewFilterKind: String?,
+        reviewRefreshMode: String?,
+        reviewLoadKind: String?,
+        progressSummaryRefreshNeeded: Bool?,
+        progressSeriesRefreshNeeded: Bool?,
+        progressReviewScheduleRefreshNeeded: Bool?,
+        progressLeaderboardRefreshNeeded: Bool?,
+        progressStreakLeaderboardRefreshNeeded: Bool?,
+        cloudSyncBlocked: Bool?,
+        errorSummary: String?
+    ) {
+        self.init(
+            scope: scope,
+            action: action,
+            phase: phase,
+            durationMilliseconds: durationMilliseconds,
+            operationStage: nil,
+            operationTrigger: nil,
+            selectedTab: selectedTab,
+            scenePhase: scenePhase,
+            isStartupReady: isStartupReady,
+            isRecoveryGateActive: isRecoveryGateActive,
+            cardCount: cardCount,
+            deckCount: deckCount,
+            pendingOutboxOperationCount: pendingOutboxOperationCount,
+            reviewQueueCount: reviewQueueCount,
+            reviewDueCount: reviewDueCount,
+            reviewNewCount: reviewNewCount,
+            reviewPendingCount: reviewPendingCount,
+            reviewTotalCount: reviewTotalCount,
+            reviewFilterKind: reviewFilterKind,
+            reviewRefreshMode: reviewRefreshMode,
+            reviewLoadKind: reviewLoadKind,
+            progressSummaryRefreshNeeded: progressSummaryRefreshNeeded,
+            progressSeriesRefreshNeeded: progressSeriesRefreshNeeded,
+            progressReviewScheduleRefreshNeeded: progressReviewScheduleRefreshNeeded,
+            progressLeaderboardRefreshNeeded: progressLeaderboardRefreshNeeded,
+            progressStreakLeaderboardRefreshNeeded: progressStreakLeaderboardRefreshNeeded,
+            cloudSyncBlocked: cloudSyncBlocked,
+            cloudSyncExtendsFastPolling: nil,
+            cloudSyncUsesImmediateStartDebounce: nil,
+            cloudSyncImmediateStartSkipped: nil,
+            cloudSyncSkipReason: nil,
+            cloudSyncHadActiveTask: nil,
+            cloudSyncPendingResync: nil,
+            cloudSyncWaitOutcome: nil,
+            cloudSyncAcknowledgedOperationCount: nil,
+            cloudSyncAppliedPullChangeCount: nil,
+            cloudSyncChangedEntityTypeCount: nil,
+            cloudSyncLocalIdRepairEntityTypeCount: nil,
+            cloudSyncReviewScheduleImpactingPullChangeCount: nil,
+            cloudSyncAcknowledgedReviewEventOperationCount: nil,
+            cloudSyncAcknowledgedReviewScheduleImpactingOperationCount: nil,
+            cloudSyncCleanedUpOperationCount: nil,
+            cloudSyncCleanedUpReviewScheduleImpactingOperationCount: nil,
+            cloudSyncCleanedUpReviewEventOperationCount: nil,
+            errorSummary: errorSummary
+        )
+    }
+
     init(
         scope: IOSObservationScope,
         action: ForegroundOperationAction,
@@ -173,6 +269,8 @@ extension ForegroundOperationObservation {
             action: action,
             phase: phase,
             durationMilliseconds: durationMilliseconds,
+            operationStage: nil,
+            operationTrigger: nil,
             selectedTab: selectedTab,
             scenePhase: scenePhase,
             isStartupReady: isStartupReady,
@@ -194,6 +292,23 @@ extension ForegroundOperationObservation {
             progressLeaderboardRefreshNeeded: nil,
             progressStreakLeaderboardRefreshNeeded: nil,
             cloudSyncBlocked: cloudSyncBlocked,
+            cloudSyncExtendsFastPolling: nil,
+            cloudSyncUsesImmediateStartDebounce: nil,
+            cloudSyncImmediateStartSkipped: nil,
+            cloudSyncSkipReason: nil,
+            cloudSyncHadActiveTask: nil,
+            cloudSyncPendingResync: nil,
+            cloudSyncWaitOutcome: nil,
+            cloudSyncAcknowledgedOperationCount: nil,
+            cloudSyncAppliedPullChangeCount: nil,
+            cloudSyncChangedEntityTypeCount: nil,
+            cloudSyncLocalIdRepairEntityTypeCount: nil,
+            cloudSyncReviewScheduleImpactingPullChangeCount: nil,
+            cloudSyncAcknowledgedReviewEventOperationCount: nil,
+            cloudSyncAcknowledgedReviewScheduleImpactingOperationCount: nil,
+            cloudSyncCleanedUpOperationCount: nil,
+            cloudSyncCleanedUpReviewScheduleImpactingOperationCount: nil,
+            cloudSyncCleanedUpReviewEventOperationCount: nil,
             errorSummary: errorSummary
         )
     }

@@ -38,6 +38,27 @@ enum CloudSyncTriggerSource: Hashable, Sendable {
             return false
         }
     }
+
+    var diagnosticValue: String {
+        switch self {
+        case .appLaunch:
+            return "app_launch"
+        case .appForeground:
+            return "app_foreground"
+        case .reviewTabSelected:
+            return "review_tab_selected"
+        case .cardsTabSelected:
+            return "cards_tab_selected"
+        case .polling:
+            return "polling"
+        case .localMutation:
+            return "local_mutation"
+        case .manualSyncNow:
+            return "manual_sync_now"
+        case .postAuth:
+            return "post_auth"
+        }
+    }
 }
 
 struct CloudSyncTrigger: Hashable, Sendable {

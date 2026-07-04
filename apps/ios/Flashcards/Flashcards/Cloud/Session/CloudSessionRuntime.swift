@@ -410,7 +410,43 @@ final class CloudSessionRuntime {
     ) async throws -> CloudSyncResult {
         if let activeCloudSyncTask = self.state.activeCloudSyncTask {
             self.state.pendingCloudResync = true
-            return try await activeCloudSyncTask.task.value
+            let startedAt = Date()
+            self.addCloudSyncRuntimeBreadcrumb(
+                stage: "wait_active_sync",
+                phase: .start,
+                startedAt: nil,
+                hadActiveTask: true,
+                pendingResync: self.state.pendingCloudResync,
+                waitOutcome: nil,
+                syncResult: nil,
+                error: nil
+            )
+            do {
+                let syncResult = try await activeCloudSyncTask.task.value
+                self.addCloudSyncRuntimeBreadcrumb(
+                    stage: "wait_active_sync",
+                    phase: .success,
+                    startedAt: startedAt,
+                    hadActiveTask: true,
+                    pendingResync: self.state.pendingCloudResync,
+                    waitOutcome: "success",
+                    syncResult: syncResult,
+                    error: nil
+                )
+                return syncResult
+            } catch {
+                self.addCloudSyncRuntimeBreadcrumb(
+                    stage: "wait_active_sync",
+                    phase: .failure,
+                    startedAt: startedAt,
+                    hadActiveTask: true,
+                    pendingResync: self.state.pendingCloudResync,
+                    waitOutcome: isRequestCancellationError(error: error) ? "cancellation" : "failure",
+                    syncResult: nil,
+                    error: error
+                )
+                throw error
+            }
         }
 
         return try await self.startCloudSyncTask(operation: operation)
@@ -419,6 +455,17 @@ final class CloudSessionRuntime {
     private func startCloudSyncTask(
         operation: @escaping @MainActor () async throws -> CloudSyncResult
     ) async throws -> CloudSyncResult {
+        let startedAt = Date()
+        self.addCloudSyncRuntimeBreadcrumb(
+            stage: "start_active_sync_task",
+            phase: .start,
+            startedAt: nil,
+            hadActiveTask: self.state.activeCloudSyncTask != nil,
+            pendingResync: self.state.pendingCloudResync,
+            waitOutcome: nil,
+            syncResult: nil,
+            error: nil
+        )
         let syncOperation = CloudSyncOperationState(
             id: UUID().uuidString.lowercased(),
             task: Task { @MainActor in
@@ -429,9 +476,29 @@ final class CloudSessionRuntime {
 
         do {
             let syncResult = try await syncOperation.task.value
+            self.addCloudSyncRuntimeBreadcrumb(
+                stage: "start_active_sync_task",
+                phase: .success,
+                startedAt: startedAt,
+                hadActiveTask: true,
+                pendingResync: self.state.pendingCloudResync,
+                waitOutcome: nil,
+                syncResult: syncResult,
+                error: nil
+            )
             self.clearActiveCloudSyncTaskIfCurrent(id: syncOperation.id)
             return syncResult
         } catch {
+            self.addCloudSyncRuntimeBreadcrumb(
+                stage: "start_active_sync_task",
+                phase: .failure,
+                startedAt: startedAt,
+                hadActiveTask: true,
+                pendingResync: self.state.pendingCloudResync,
+                waitOutcome: isRequestCancellationError(error: error) ? "cancellation" : "failure",
+                syncResult: nil,
+                error: error
+            )
             self.clearActiveCloudSyncTaskIfCurrent(id: syncOperation.id)
             throw error
         }
@@ -456,13 +523,54 @@ final class CloudSessionRuntime {
 
     private func waitForActiveCloudSyncToSettle() async {
         while let activeCloudSyncTask = self.state.activeCloudSyncTask {
+            let startedAt = Date()
+            self.addCloudSyncRuntimeBreadcrumb(
+                stage: "wait_active_sync_to_settle",
+                phase: .start,
+                startedAt: nil,
+                hadActiveTask: true,
+                pendingResync: self.state.pendingCloudResync,
+                waitOutcome: nil,
+                syncResult: nil,
+                error: nil
+            )
             do {
-                _ = try await activeCloudSyncTask.task.value
+                let syncResult = try await activeCloudSyncTask.task.value
+                self.addCloudSyncRuntimeBreadcrumb(
+                    stage: "wait_active_sync_to_settle",
+                    phase: .success,
+                    startedAt: startedAt,
+                    hadActiveTask: true,
+                    pendingResync: self.state.pendingCloudResync,
+                    waitOutcome: "success",
+                    syncResult: syncResult,
+                    error: nil
+                )
             } catch {
                 if isRequestCancellationError(error: error) {
+                    self.addCloudSyncRuntimeBreadcrumb(
+                        stage: "wait_active_sync_to_settle",
+                        phase: .success,
+                        startedAt: startedAt,
+                        hadActiveTask: true,
+                        pendingResync: self.state.pendingCloudResync,
+                        waitOutcome: "cancellation",
+                        syncResult: nil,
+                        error: nil
+                    )
                     self.clearActiveCloudSyncTaskIfCurrent(id: activeCloudSyncTask.id)
                     continue
                 }
+                self.addCloudSyncRuntimeBreadcrumb(
+                    stage: "wait_active_sync_to_settle",
+                    phase: .success,
+                    startedAt: startedAt,
+                    hadActiveTask: true,
+                    pendingResync: self.state.pendingCloudResync,
+                    waitOutcome: "swallowed_error",
+                    syncResult: nil,
+                    error: error
+                )
                 FlashcardsObservability.addBreadcrumb(
                     .cloudRetry(
                         CloudRetryObservation(
@@ -501,8 +609,122 @@ final class CloudSessionRuntime {
             return
         }
 
+        self.addCloudSyncRuntimeBreadcrumb(
+            stage: "clear_active_sync_task",
+            phase: .success,
+            startedAt: nil,
+            hadActiveTask: true,
+            pendingResync: self.state.pendingCloudResync,
+            waitOutcome: nil,
+            syncResult: nil,
+            error: nil
+        )
         self.state.activeCloudSyncTask = nil
         self.state.pendingCloudResync = false
+    }
+
+    private func cancelAndClearActiveCloudSyncTask(stage: String) {
+        guard let activeCloudSyncTask = self.state.activeCloudSyncTask else {
+            self.state.pendingCloudResync = false
+            return
+        }
+
+        activeCloudSyncTask.task.cancel()
+        self.addCloudSyncRuntimeBreadcrumb(
+            stage: stage,
+            phase: .success,
+            startedAt: nil,
+            hadActiveTask: true,
+            pendingResync: self.state.pendingCloudResync,
+            waitOutcome: "cancellation",
+            syncResult: nil,
+            error: nil
+        )
+        self.state.activeCloudSyncTask = nil
+        self.state.pendingCloudResync = false
+    }
+
+    private func addCloudSyncRuntimeBreadcrumb(
+        stage: String,
+        phase: ForegroundOperationPhase,
+        startedAt: Date?,
+        hadActiveTask: Bool?,
+        pendingResync: Bool?,
+        waitOutcome: String?,
+        syncResult: CloudSyncResult?,
+        error: Error?
+    ) {
+        let activeCloudSession = self.state.activeCloudSession
+        let durationMilliseconds = startedAt.map { startDate in
+            iosObservationDurationMilliseconds(startedAt: startDate, finishedAt: Date())
+        }
+        let cloudState: CloudAccountState?
+        if let activeCloudSession {
+            cloudState = activeCloudSession.authorization.isGuest ? .guest : .linked
+        } else {
+            cloudState = nil
+        }
+        FlashcardsObservability.addBreadcrumb(
+            .foregroundOperation(
+                ForegroundOperationObservation(
+                    scope: IOSObservationScope(
+                        feature: .cloudSync,
+                        userId: activeCloudSession?.userId,
+                        workspaceId: activeCloudSession?.workspaceId,
+                        requestId: nil,
+                        clientRequestId: nil,
+                        sessionId: nil,
+                        runId: nil,
+                        cloudState: cloudState,
+                        configurationMode: activeCloudSession?.configurationMode
+                    ),
+                    action: .cloudSync,
+                    phase: phase,
+                    durationMilliseconds: durationMilliseconds,
+                    operationStage: stage,
+                    operationTrigger: nil,
+                    selectedTab: nil,
+                    scenePhase: nil,
+                    isStartupReady: nil,
+                    isRecoveryGateActive: nil,
+                    cardCount: nil,
+                    deckCount: nil,
+                    pendingOutboxOperationCount: nil,
+                    reviewQueueCount: nil,
+                    reviewDueCount: nil,
+                    reviewNewCount: nil,
+                    reviewPendingCount: nil,
+                    reviewTotalCount: nil,
+                    reviewFilterKind: nil,
+                    reviewRefreshMode: nil,
+                    reviewLoadKind: nil,
+                    progressSummaryRefreshNeeded: nil,
+                    progressSeriesRefreshNeeded: nil,
+                    progressReviewScheduleRefreshNeeded: nil,
+                    progressLeaderboardRefreshNeeded: nil,
+                    progressStreakLeaderboardRefreshNeeded: nil,
+                    cloudSyncBlocked: nil,
+                    cloudSyncExtendsFastPolling: nil,
+                    cloudSyncUsesImmediateStartDebounce: nil,
+                    cloudSyncImmediateStartSkipped: nil,
+                    cloudSyncSkipReason: nil,
+                    cloudSyncHadActiveTask: hadActiveTask,
+                    cloudSyncPendingResync: pendingResync,
+                    cloudSyncWaitOutcome: waitOutcome,
+                    cloudSyncAcknowledgedOperationCount: syncResult?.acknowledgedOperationCount,
+                    cloudSyncAppliedPullChangeCount: syncResult?.appliedPullChangeCount,
+                    cloudSyncChangedEntityTypeCount: syncResult?.changedEntityTypes.count,
+                    cloudSyncLocalIdRepairEntityTypeCount: syncResult?.localIdRepairEntityTypes.count,
+                    cloudSyncReviewScheduleImpactingPullChangeCount: syncResult?.reviewScheduleImpactingPullChangeCount,
+                    cloudSyncAcknowledgedReviewEventOperationCount: syncResult?.acknowledgedReviewEventOperationCount,
+                    cloudSyncAcknowledgedReviewScheduleImpactingOperationCount: syncResult?.acknowledgedReviewScheduleImpactingOperationCount,
+                    cloudSyncCleanedUpOperationCount: syncResult?.cleanedUpOperationCount,
+                    cloudSyncCleanedUpReviewScheduleImpactingOperationCount: syncResult?.cleanedUpReviewScheduleImpactingOperationCount,
+                    cloudSyncCleanedUpReviewEventOperationCount: syncResult?.cleanedUpReviewEventOperationCount,
+                    errorSummary: error.map { operationError in Flashcards.errorMessage(error: operationError) }
+                )
+            )
+        )
     }
 
     func isCloudAuthorizationError(_ error: Error) -> Bool {
@@ -536,9 +758,7 @@ final class CloudSessionRuntime {
     }
 
     func cancelForWorkspaceSwitch() {
-        self.state.activeCloudSyncTask?.task.cancel()
-        self.state.activeCloudSyncTask = nil
-        self.state.pendingCloudResync = false
+        self.cancelAndClearActiveCloudSyncTask(stage: "clear_active_sync_task_workspace_switch")
         self.state.activeAIChatSessionPreparation?.task.cancel()
         self.state.activeAIChatSessionPreparation = nil
         self.state.activeGuestCloudSessionPreparation?.task.cancel()
@@ -548,9 +768,7 @@ final class CloudSessionRuntime {
     func cancelForAccountDeletion() {
         self.state.activeCloudLinkTask?.task.cancel()
         self.state.activeCloudLinkTask = nil
-        self.state.activeCloudSyncTask?.task.cancel()
-        self.state.activeCloudSyncTask = nil
-        self.state.pendingCloudResync = false
+        self.cancelAndClearActiveCloudSyncTask(stage: "clear_active_sync_task_account_deletion")
         self.state.activeAIChatSessionPreparation?.task.cancel()
         self.state.activeAIChatSessionPreparation = nil
         self.state.activeGuestCloudSessionPreparation?.task.cancel()

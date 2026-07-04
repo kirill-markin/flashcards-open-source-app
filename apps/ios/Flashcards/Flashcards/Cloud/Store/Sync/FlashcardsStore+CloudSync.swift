@@ -62,9 +62,109 @@ extension FlashcardsStore {
         self.currentVisibleTab = tab
     }
 
+    private func addCloudSyncForegroundOperationBreadcrumb(
+        stage: String,
+        phase: ForegroundOperationPhase,
+        trigger: CloudSyncTrigger,
+        startedAt: Date?,
+        immediateStartSkipped: Bool?,
+        skipReason: String?,
+        syncResult: CloudSyncResult?,
+        error: Error?
+    ) {
+        let durationMilliseconds = startedAt.map { startDate in
+            iosObservationDurationMilliseconds(startedAt: startDate, finishedAt: Date())
+        }
+        let scope = IOSObservationScope(
+            feature: .cloudSync,
+            userId: self.cloudSettings?.linkedUserId,
+            workspaceId: self.workspace?.workspaceId,
+            requestId: nil,
+            clientRequestId: nil,
+            sessionId: nil,
+            runId: nil,
+            cloudState: self.cloudSettings?.cloudState,
+            configurationMode: try? self.currentCloudServiceConfiguration().mode
+        )
+
+        FlashcardsObservability.addBreadcrumb(
+            .foregroundOperation(
+                ForegroundOperationObservation(
+                    scope: scope,
+                    action: .cloudSync,
+                    phase: phase,
+                    durationMilliseconds: durationMilliseconds,
+                    operationStage: stage,
+                    operationTrigger: trigger.source.diagnosticValue,
+                    selectedTab: nil,
+                    scenePhase: nil,
+                    isStartupReady: nil,
+                    isRecoveryGateActive: nil,
+                    cardCount: self.cards.count,
+                    deckCount: self.decks.count,
+                    pendingOutboxOperationCount: nil,
+                    reviewQueueCount: nil,
+                    reviewDueCount: nil,
+                    reviewNewCount: nil,
+                    reviewPendingCount: nil,
+                    reviewTotalCount: nil,
+                    reviewFilterKind: nil,
+                    reviewRefreshMode: nil,
+                    reviewLoadKind: nil,
+                    progressSummaryRefreshNeeded: nil,
+                    progressSeriesRefreshNeeded: nil,
+                    progressReviewScheduleRefreshNeeded: nil,
+                    progressLeaderboardRefreshNeeded: nil,
+                    progressStreakLeaderboardRefreshNeeded: nil,
+                    cloudSyncBlocked: self.isCloudSyncBlocked,
+                    cloudSyncExtendsFastPolling: trigger.extendsFastPolling,
+                    cloudSyncUsesImmediateStartDebounce: trigger.source.usesImmediateStartDebounce,
+                    cloudSyncImmediateStartSkipped: immediateStartSkipped,
+                    cloudSyncSkipReason: skipReason,
+                    cloudSyncHadActiveTask: nil,
+                    cloudSyncPendingResync: nil,
+                    cloudSyncWaitOutcome: nil,
+                    cloudSyncAcknowledgedOperationCount: syncResult?.acknowledgedOperationCount,
+                    cloudSyncAppliedPullChangeCount: syncResult?.appliedPullChangeCount,
+                    cloudSyncChangedEntityTypeCount: syncResult?.changedEntityTypes.count,
+                    cloudSyncLocalIdRepairEntityTypeCount: syncResult?.localIdRepairEntityTypes.count,
+                    cloudSyncReviewScheduleImpactingPullChangeCount: syncResult?.reviewScheduleImpactingPullChangeCount,
+                    cloudSyncAcknowledgedReviewEventOperationCount: syncResult?.acknowledgedReviewEventOperationCount,
+                    cloudSyncAcknowledgedReviewScheduleImpactingOperationCount: syncResult?.acknowledgedReviewScheduleImpactingOperationCount,
+                    cloudSyncCleanedUpOperationCount: syncResult?.cleanedUpOperationCount,
+                    cloudSyncCleanedUpReviewScheduleImpactingOperationCount: syncResult?.cleanedUpReviewScheduleImpactingOperationCount,
+                    cloudSyncCleanedUpReviewEventOperationCount: syncResult?.cleanedUpReviewEventOperationCount,
+                    errorSummary: error.map { operationError in Flashcards.errorMessage(error: operationError) }
+                )
+            )
+        )
+    }
+
     func syncCloudNow(trigger: CloudSyncTrigger) async throws {
+        let startedAt = Date()
+        self.addCloudSyncForegroundOperationBreadcrumb(
+            stage: "sync_now",
+            phase: .start,
+            trigger: trigger,
+            startedAt: nil,
+            immediateStartSkipped: nil,
+            skipReason: nil,
+            syncResult: nil,
+            error: nil
+        )
+        do {
         try self.throwIfInvalidStoredCloudCredentialRecoveryRequired()
         if try await self.resumePendingGuestUpgradeIfNeeded(trigger: trigger) {
+            self.addCloudSyncForegroundOperationBreadcrumb(
+                stage: "sync_now",
+                phase: .success,
+                trigger: trigger,
+                startedAt: startedAt,
+                immediateStartSkipped: nil,
+                skipReason: "guest_upgrade_resumed",
+                syncResult: nil,
+                error: nil
+            )
             return
         }
         try self.throwIfCloudCredentialRecoveryRequired()
@@ -72,6 +172,16 @@ extension FlashcardsStore {
             try self.throwIfCloudCredentialRecoveryRequired()
         }
         if try await self.cloudRuntime.waitForActiveCloudCompletionIfNeeded() {
+            self.addCloudSyncForegroundOperationBreadcrumb(
+                stage: "sync_now",
+                phase: .success,
+                trigger: trigger,
+                startedAt: startedAt,
+                immediateStartSkipped: nil,
+                skipReason: "active_cloud_completion_waited",
+                syncResult: nil,
+                error: nil
+            )
             return
         }
         if case .blocked(let message) = self.syncStatus {
@@ -81,10 +191,30 @@ extension FlashcardsStore {
             if self.cloudSettings?.cloudState == .guest {
                 let restoredGuestSession = try await self.restoreGuestCloudSessionIfNeeded(trigger: trigger)
                 if restoredGuestSession.didRunSync {
+                    self.addCloudSyncForegroundOperationBreadcrumb(
+                        stage: "sync_now",
+                        phase: .success,
+                        trigger: trigger,
+                        startedAt: startedAt,
+                        immediateStartSkipped: nil,
+                        skipReason: "guest_session_restore_ran_sync",
+                        syncResult: nil,
+                        error: nil
+                    )
                     return
                 }
             } else {
                 try await self.restoreCloudLinkFromStoredCredentials(trigger: trigger)
+                self.addCloudSyncForegroundOperationBreadcrumb(
+                    stage: "sync_now",
+                    phase: .success,
+                    trigger: trigger,
+                    startedAt: startedAt,
+                    immediateStartSkipped: nil,
+                    skipReason: "cloud_link_restored",
+                    syncResult: nil,
+                    error: nil
+                )
                 return
             }
         }
@@ -114,6 +244,16 @@ extension FlashcardsStore {
                 trigger: trigger
             )
             await self.processMediaUploadTransfersAfterCloudSync(linkedSession: activeSession)
+            self.addCloudSyncForegroundOperationBreadcrumb(
+                stage: "sync_now",
+                phase: .success,
+                trigger: trigger,
+                startedAt: startedAt,
+                immediateStartSkipped: nil,
+                skipReason: nil,
+                syncResult: syncResult,
+                error: nil
+            )
         } catch {
             if isRequestCancellationError(error: error) {
                 self.syncStatus = .idle
@@ -161,23 +301,87 @@ extension FlashcardsStore {
             }
             throw didCapture ? markTechnicalErrorObserved(error: failureError) : failureError
         }
+        } catch {
+            self.addCloudSyncForegroundOperationBreadcrumb(
+                stage: "sync_now",
+                phase: .failure,
+                trigger: trigger,
+                startedAt: startedAt,
+                immediateStartSkipped: nil,
+                skipReason: nil,
+                syncResult: nil,
+                error: error
+            )
+            throw error
+        }
     }
 
     func syncCloudIfLinked(trigger: CloudSyncTrigger) async {
+        let startedAt = Date()
+        self.addCloudSyncForegroundOperationBreadcrumb(
+            stage: "sync_if_linked",
+            phase: .start,
+            trigger: trigger,
+            startedAt: nil,
+            immediateStartSkipped: nil,
+            skipReason: nil,
+            syncResult: nil,
+            error: nil
+        )
         if self.userDefaults.bool(forKey: accountDeletionPendingUserDefaultsKey) {
             await self.resumePendingAccountDeletionIfNeeded()
+            self.addCloudSyncForegroundOperationBreadcrumb(
+                stage: "sync_if_linked",
+                phase: .success,
+                trigger: trigger,
+                startedAt: startedAt,
+                immediateStartSkipped: nil,
+                skipReason: "account_deletion_pending",
+                syncResult: nil,
+                error: nil
+            )
             return
         }
 
         do {
             try self.throwIfInvalidStoredCloudCredentialRecoveryRequired()
             if try await self.resumePendingGuestUpgradeIfNeeded(trigger: trigger) {
+                self.addCloudSyncForegroundOperationBreadcrumb(
+                    stage: "sync_if_linked",
+                    phase: .success,
+                    trigger: trigger,
+                    startedAt: startedAt,
+                    immediateStartSkipped: nil,
+                    skipReason: "guest_upgrade_resumed",
+                    syncResult: nil,
+                    error: nil
+                )
                 return
             }
             if self.blockCloudSyncForCredentialRecoveryIfNeeded() {
+                self.addCloudSyncForegroundOperationBreadcrumb(
+                    stage: "sync_if_linked",
+                    phase: .success,
+                    trigger: trigger,
+                    startedAt: startedAt,
+                    immediateStartSkipped: nil,
+                    skipReason: "credential_recovery_block",
+                    syncResult: nil,
+                    error: nil
+                )
                 return
             }
             if self.isCloudSyncBlocked {
+                self.addCloudSyncForegroundOperationBreadcrumb(
+                    stage: "sync_if_linked",
+                    phase: .success,
+                    trigger: trigger,
+                    startedAt: startedAt,
+                    immediateStartSkipped: nil,
+                    skipReason: "sync_blocked",
+                    syncResult: nil,
+                    error: nil
+                )
                 return
             }
 
@@ -189,10 +393,30 @@ extension FlashcardsStore {
                 hasStoredCredentials = resolvedHasStoredCredentials
                 hasStoredGuestSession = resolvedHasStoredGuestSession
             case .stopSync:
+                self.addCloudSyncForegroundOperationBreadcrumb(
+                    stage: "sync_if_linked",
+                    phase: .success,
+                    trigger: trigger,
+                    startedAt: startedAt,
+                    immediateStartSkipped: nil,
+                    skipReason: "persisted_cloud_state_reconciled",
+                    syncResult: nil,
+                    error: nil
+                )
                 return
             }
 
             if try await self.cloudRuntime.waitForActiveCloudCompletionIfNeeded() {
+                self.addCloudSyncForegroundOperationBreadcrumb(
+                    stage: "sync_if_linked",
+                    phase: .success,
+                    trigger: trigger,
+                    startedAt: startedAt,
+                    immediateStartSkipped: nil,
+                    skipReason: "active_cloud_completion_waited",
+                    syncResult: nil,
+                    error: nil
+                )
                 return
             }
 
@@ -203,22 +427,72 @@ extension FlashcardsStore {
                     try self.logoutCloudAccount()
                 }
 
+                self.addCloudSyncForegroundOperationBreadcrumb(
+                    stage: "sync_if_linked",
+                    phase: .success,
+                    trigger: trigger,
+                    startedAt: startedAt,
+                    immediateStartSkipped: nil,
+                    skipReason: "no_stored_cloud_session",
+                    syncResult: nil,
+                    error: nil
+                )
                 return
             }
 
             try await self.syncCloudNow(trigger: trigger)
+            self.addCloudSyncForegroundOperationBreadcrumb(
+                stage: "sync_if_linked",
+                phase: .success,
+                trigger: trigger,
+                startedAt: startedAt,
+                immediateStartSkipped: nil,
+                skipReason: nil,
+                syncResult: nil,
+                error: nil
+            )
         } catch {
             if isRequestCancellationError(error: error) {
+                self.addCloudSyncForegroundOperationBreadcrumb(
+                    stage: "sync_if_linked",
+                    phase: .success,
+                    trigger: trigger,
+                    startedAt: startedAt,
+                    immediateStartSkipped: nil,
+                    skipReason: "cancelled",
+                    syncResult: nil,
+                    error: nil
+                )
                 return
             }
             if self.isCloudAccountDeletedError(error) {
                 self.handleRemoteAccountDeletedCleanup()
+                self.addCloudSyncForegroundOperationBreadcrumb(
+                    stage: "sync_if_linked",
+                    phase: .success,
+                    trigger: trigger,
+                    startedAt: startedAt,
+                    immediateStartSkipped: nil,
+                    skipReason: "remote_account_deleted",
+                    syncResult: nil,
+                    error: nil
+                )
                 return
             }
 
             if trigger.surfacesGlobalErrorMessage {
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
+            self.addCloudSyncForegroundOperationBreadcrumb(
+                stage: "sync_if_linked",
+                phase: .failure,
+                trigger: trigger,
+                startedAt: startedAt,
+                immediateStartSkipped: nil,
+                skipReason: nil,
+                syncResult: nil,
+                error: error
+            )
         }
     }
 
@@ -623,7 +897,18 @@ extension FlashcardsStore {
         if trigger.extendsFastPolling {
             self.extendCloudSyncFastPolling(now: trigger.now)
         }
-        if self.shouldSkipImmediateCloudSyncStart(trigger: trigger) {
+        let immediateStartSkipped = self.shouldSkipImmediateCloudSyncStart(trigger: trigger)
+        self.addCloudSyncForegroundOperationBreadcrumb(
+            stage: "trigger_received",
+            phase: .start,
+            trigger: trigger,
+            startedAt: nil,
+            immediateStartSkipped: immediateStartSkipped,
+            skipReason: immediateStartSkipped ? "immediate_start_debounce" : nil,
+            syncResult: nil,
+            error: nil
+        )
+        if immediateStartSkipped {
             return
         }
         Task { @MainActor in
