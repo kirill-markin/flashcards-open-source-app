@@ -43,34 +43,72 @@ extension FlashcardsStore {
     }
 
     func prepareProgressSnapshot(now: Date) throws -> ProgressScopeKey {
-        let scopeKey = try self.prepareProgressScope(now: now)
-        let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
-        let leaderboardScopeKey = self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
+        let startedAt = Date()
+        let refreshNeeds = ProgressOperationRefreshNeeds(
+            summary: nil,
+            series: nil,
+            reviewSchedule: nil,
+            leaderboard: nil,
+            streakLeaderboard: nil
+        )
+        var observedCloudState = self.cloudSettings?.cloudState
+        self.addProgressForegroundOperationBreadcrumb(
+            action: .progressSnapshotPrepare,
+            phase: .start,
+            startedAt: nil,
+            cloudState: observedCloudState,
+            refreshNeeds: refreshNeeds,
+            errorSummary: nil
+        )
+        do {
+            let scopeKey = try self.prepareProgressScope(now: now)
+            observedCloudState = scopeKey.cloudState
+            let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
+            let leaderboardScopeKey = self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
 
-        if self.progressSnapshot?.scopeKey != scopeKey {
-            try self.publishProgressSnapshot(scopeKey: scopeKey)
-        }
-        if self.reviewScheduleSnapshot?.scopeKey != scheduleScopeKey
-            || self.progressReviewScheduleInvalidatedScopeKeys.contains(scheduleScopeKey) {
-            self.publishReviewScheduleSnapshotIsolatingErrors(scopeKey: scheduleScopeKey)
-        }
-        // Republish on scope rotation, and also when local review data changed
-        // while the leaderboard publish was skipped (for example a sync pull that
-        // completed on the Review tab), so the viewer overlay never lags the chart.
-        if self.progressLeaderboardSnapshot?.scopeKey != leaderboardScopeKey
-            || self.progressLeaderboardPublishedClientRevision != self.progressReviewedAtClientRevision {
-            self.publishProgressLeaderboardSnapshotIsolatingErrors(scopeKey: leaderboardScopeKey, now: now)
-        }
-        if self.progressStreakLeaderboardSnapshot?.scopeKey != leaderboardScopeKey
-            || self.progressStreakLeaderboardPublishedClientRevision != self.progressReviewedAtClientRevision {
-            self.publishProgressStreakLeaderboardSnapshotIsolatingErrors(
-                scopeKey: leaderboardScopeKey,
-                seriesScopeKey: scopeKey,
-                now: now
+            if self.progressSnapshot?.scopeKey != scopeKey {
+                try self.publishProgressSnapshot(scopeKey: scopeKey)
+            }
+            if self.reviewScheduleSnapshot?.scopeKey != scheduleScopeKey
+                || self.progressReviewScheduleInvalidatedScopeKeys.contains(scheduleScopeKey) {
+                self.publishReviewScheduleSnapshotIsolatingErrors(scopeKey: scheduleScopeKey)
+            }
+            // Republish on scope rotation, and also when local review data changed
+            // while the leaderboard publish was skipped (for example a sync pull that
+            // completed on the Review tab), so the viewer overlay never lags the chart.
+            if self.progressLeaderboardSnapshot?.scopeKey != leaderboardScopeKey
+                || self.progressLeaderboardPublishedClientRevision != self.progressReviewedAtClientRevision {
+                self.publishProgressLeaderboardSnapshotIsolatingErrors(scopeKey: leaderboardScopeKey, now: now)
+            }
+            if self.progressStreakLeaderboardSnapshot?.scopeKey != leaderboardScopeKey
+                || self.progressStreakLeaderboardPublishedClientRevision != self.progressReviewedAtClientRevision {
+                self.publishProgressStreakLeaderboardSnapshotIsolatingErrors(
+                    scopeKey: leaderboardScopeKey,
+                    seriesScopeKey: scopeKey,
+                    now: now
+                )
+            }
+
+            self.addProgressForegroundOperationBreadcrumb(
+                action: .progressSnapshotPrepare,
+                phase: .success,
+                startedAt: startedAt,
+                cloudState: observedCloudState,
+                refreshNeeds: refreshNeeds,
+                errorSummary: nil
             )
+            return scopeKey
+        } catch {
+            self.addProgressForegroundOperationBreadcrumb(
+                action: .progressSnapshotPrepare,
+                phase: .failure,
+                startedAt: startedAt,
+                cloudState: observedCloudState,
+                refreshNeeds: refreshNeeds,
+                errorSummary: Flashcards.errorMessage(error: error)
+            )
+            throw error
         }
-
-        return scopeKey
     }
 
     func publishProgressSnapshot(scopeKey: ProgressScopeKey) throws {

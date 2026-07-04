@@ -6,6 +6,101 @@ private enum ReviewStateReconcileTrigger {
     case localReview
 }
 
+private enum ReviewOperationLoadKind: String {
+    case head
+    case chunk
+}
+
+private func reviewOperationFilterKind(reviewFilter: ReviewFilter) -> String {
+    switch reviewFilter {
+    case .allCards:
+        return "all_cards"
+    case .deck:
+        return "deck"
+    case .tag:
+        return "tag"
+    }
+}
+
+private func reviewOperationRefreshModeName(mode: ReviewRefreshMode) -> String {
+    switch mode {
+    case .blockingReset:
+        return "blocking_reset"
+    case .backgroundReconcileSilently:
+        return "background_reconcile_silently"
+    case .backgroundReconcileWithVisibleChangeBanner:
+        return "background_reconcile_with_visible_change_banner"
+    }
+}
+
+@MainActor
+private func addReviewForegroundOperationBreadcrumb(
+    store: FlashcardsStore,
+    action: ForegroundOperationAction,
+    phase: ForegroundOperationPhase,
+    startedAt: Date?,
+    requestId: String?,
+    reviewFilter: ReviewFilter,
+    reviewRefreshMode: ReviewRefreshMode?,
+    reviewLoadKind: ReviewOperationLoadKind?,
+    publishedState: ReviewQueuePublishedState,
+    errorSummary: String?
+) {
+    let durationMilliseconds = startedAt.map { startDate in
+        iosObservationDurationMilliseconds(startedAt: startDate, finishedAt: Date())
+    }
+    let reviewQueueCount = store.reviewRuntime.effectiveReviewQueue(publishedState: publishedState).count
+    let reviewPendingCount = store.reviewRuntime.pendingReviewCount(
+        publishedState: publishedState,
+        cards: store.cards,
+        decks: store.decks
+    )
+    let scope = IOSObservationScope(
+        feature: .storeReview,
+        userId: store.cloudSettings?.linkedUserId,
+        workspaceId: store.workspace?.workspaceId,
+        requestId: requestId,
+        clientRequestId: nil,
+        sessionId: nil,
+        runId: nil,
+        cloudState: store.cloudSettings?.cloudState,
+        configurationMode: try? store.currentCloudServiceConfiguration().mode
+    )
+
+    FlashcardsObservability.addBreadcrumb(
+        .foregroundOperation(
+            ForegroundOperationObservation(
+                scope: scope,
+                action: action,
+                phase: phase,
+                durationMilliseconds: durationMilliseconds,
+                selectedTab: nil,
+                scenePhase: nil,
+                isStartupReady: nil,
+                isRecoveryGateActive: nil,
+                cardCount: store.cards.count,
+                deckCount: store.decks.count,
+                pendingOutboxOperationCount: nil,
+                reviewQueueCount: reviewQueueCount,
+                reviewDueCount: publishedState.reviewCounts.dueCount,
+                reviewNewCount: nil,
+                reviewPendingCount: reviewPendingCount,
+                reviewTotalCount: publishedState.reviewCounts.totalCount,
+                reviewFilterKind: reviewOperationFilterKind(reviewFilter: reviewFilter),
+                reviewRefreshMode: reviewRefreshMode.map(reviewOperationRefreshModeName),
+                reviewLoadKind: reviewLoadKind?.rawValue,
+                progressSummaryRefreshNeeded: nil,
+                progressSeriesRefreshNeeded: nil,
+                progressReviewScheduleRefreshNeeded: nil,
+                progressLeaderboardRefreshNeeded: nil,
+                progressStreakLeaderboardRefreshNeeded: nil,
+                cloudSyncBlocked: store.isCloudSyncBlocked,
+                errorSummary: errorSummary
+            )
+        )
+    )
+}
+
 @MainActor
 extension FlashcardsStore {
     func selectReviewFilter(reviewFilter: ReviewFilter) {
@@ -14,14 +109,15 @@ extension FlashcardsStore {
         self.reconcileReviewNotifications(trigger: .filterChanged, now: Date())
     }
 
-    func startReviewLoad(reviewFilter: ReviewFilter, now: Date) {
+    @discardableResult
+    func startReviewLoad(reviewFilter: ReviewFilter, now: Date) -> Bool {
         guard let database = self.database else {
             self.globalErrorMessage = "Local database is unavailable"
-            return
+            return false
         }
         guard let workspaceId = self.workspace?.workspaceId else {
             self.globalErrorMessage = "Workspace is unavailable"
-            return
+            return false
         }
 
         let resolvedReviewQuery: ResolvedReviewQuery
@@ -32,7 +128,7 @@ extension FlashcardsStore {
             )
         } catch {
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
-            return
+            return false
         }
 
         let plan = self.reviewRuntime.startReviewLoad(
@@ -48,6 +144,19 @@ extension FlashcardsStore {
 
         self.startReviewCountsLoad(request: plan.countsRequest)
 
+        let headLoadStartedAt = Date()
+        addReviewForegroundOperationBreadcrumb(
+            store: self,
+            action: .reviewQueueLoad,
+            phase: .start,
+            startedAt: nil,
+            requestId: plan.headRequest.requestId,
+            reviewFilter: plan.headRequest.resolvedReviewFilter,
+            reviewRefreshMode: nil,
+            reviewLoadKind: .head,
+            publishedState: plan.publishedState,
+            errorSummary: nil
+        )
         let headTask = Task { @MainActor in
             do {
                 let reviewHeadState = try await self.dependencies.reviewHeadLoader(
@@ -67,6 +176,18 @@ extension FlashcardsStore {
                     return
                 }
 
+                addReviewForegroundOperationBreadcrumb(
+                    store: self,
+                    action: .reviewQueueLoad,
+                    phase: .success,
+                    startedAt: headLoadStartedAt,
+                    requestId: plan.headRequest.requestId,
+                    reviewFilter: nextReviewState.selectedReviewFilter,
+                    reviewRefreshMode: nil,
+                    reviewLoadKind: .head,
+                    publishedState: nextReviewState,
+                    errorSummary: nil
+                )
                 self.applyReviewPublishedState(reviewState: nextReviewState)
                 self.persistSelectedReviewFilter(reviewFilter: nextReviewState.selectedReviewFilter)
                 self.startReviewQueueChunkLoadIfNeeded(now: plan.headRequest.now)
@@ -81,6 +202,18 @@ extension FlashcardsStore {
                     return
                 }
 
+                addReviewForegroundOperationBreadcrumb(
+                    store: self,
+                    action: .reviewQueueLoad,
+                    phase: .failure,
+                    startedAt: headLoadStartedAt,
+                    requestId: plan.headRequest.requestId,
+                    reviewFilter: nextReviewState.selectedReviewFilter,
+                    reviewRefreshMode: nil,
+                    reviewLoadKind: .head,
+                    publishedState: nextReviewState,
+                    errorSummary: Flashcards.errorMessage(error: error)
+                )
                 self.applyReviewPublishedState(reviewState: nextReviewState)
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
@@ -89,32 +222,129 @@ extension FlashcardsStore {
             task: headTask,
             requestId: plan.headRequest.requestId
         )
+        return true
     }
 
     func refreshReviewState(now: Date) {
-        self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
+        let startedAt = Date()
+        let startState = self.currentReviewPublishedState()
+        addReviewForegroundOperationBreadcrumb(
+            store: self,
+            action: .reviewStateRefresh,
+            phase: .start,
+            startedAt: nil,
+            requestId: nil,
+            reviewFilter: startState.selectedReviewFilter,
+            reviewRefreshMode: nil,
+            reviewLoadKind: nil,
+            publishedState: startState,
+            errorSummary: nil
+        )
+        let didStart = self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
+        addReviewForegroundOperationBreadcrumb(
+            store: self,
+            action: .reviewStateRefresh,
+            phase: didStart ? .success : .failure,
+            startedAt: startedAt,
+            requestId: nil,
+            reviewFilter: self.selectedReviewFilter,
+            reviewRefreshMode: nil,
+            reviewLoadKind: nil,
+            publishedState: self.currentReviewPublishedState(),
+            errorSummary: didStart ? nil : self.globalErrorMessage
+        )
     }
 
     func refreshReviewState(now: Date, mode: ReviewRefreshMode) async throws -> Bool {
-        switch mode {
-        case .blockingReset:
-            self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
-            return true
-        case .backgroundReconcileSilently:
-            return try await self.reconcileReviewState(
-                now: now,
-                trigger: .cloudSyncSilently
+        let startedAt = Date()
+        let startState = self.currentReviewPublishedState()
+        addReviewForegroundOperationBreadcrumb(
+            store: self,
+            action: .reviewStateRefresh,
+            phase: .start,
+            startedAt: nil,
+            requestId: nil,
+            reviewFilter: startState.selectedReviewFilter,
+            reviewRefreshMode: mode,
+            reviewLoadKind: nil,
+            publishedState: startState,
+            errorSummary: nil
+        )
+        do {
+            let didRefresh: Bool
+            switch mode {
+            case .blockingReset:
+                let didStart = self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
+                addReviewForegroundOperationBreadcrumb(
+                    store: self,
+                    action: .reviewStateRefresh,
+                    phase: didStart ? .success : .failure,
+                    startedAt: startedAt,
+                    requestId: nil,
+                    reviewFilter: self.selectedReviewFilter,
+                    reviewRefreshMode: mode,
+                    reviewLoadKind: nil,
+                    publishedState: self.currentReviewPublishedState(),
+                    errorSummary: didStart ? nil : self.globalErrorMessage
+                )
+                return true
+            case .backgroundReconcileSilently:
+                didRefresh = try await self.reconcileReviewState(
+                    now: now,
+                    trigger: .cloudSyncSilently
+                )
+            case .backgroundReconcileWithVisibleChangeBanner:
+                didRefresh = try await self.reconcileReviewState(
+                    now: now,
+                    trigger: .cloudSyncWithVisibleChangeBanner
+                )
+            }
+            addReviewForegroundOperationBreadcrumb(
+                store: self,
+                action: .reviewStateRefresh,
+                phase: .success,
+                startedAt: startedAt,
+                requestId: nil,
+                reviewFilter: self.selectedReviewFilter,
+                reviewRefreshMode: mode,
+                reviewLoadKind: nil,
+                publishedState: self.currentReviewPublishedState(),
+                errorSummary: nil
             )
-        case .backgroundReconcileWithVisibleChangeBanner:
-            return try await self.reconcileReviewState(
-                now: now,
-                trigger: .cloudSyncWithVisibleChangeBanner
+            return didRefresh
+        } catch {
+            addReviewForegroundOperationBreadcrumb(
+                store: self,
+                action: .reviewStateRefresh,
+                phase: .failure,
+                startedAt: startedAt,
+                requestId: nil,
+                reviewFilter: self.selectedReviewFilter,
+                reviewRefreshMode: mode,
+                reviewLoadKind: nil,
+                publishedState: self.currentReviewPublishedState(),
+                errorSummary: Flashcards.errorMessage(error: error)
             )
+            throw error
         }
     }
 
     func startReviewCountsLoad(request: ReviewCountsLoadRequest) {
         self.reviewRuntime.startReviewCountsLoad(request: request)
+        let countsLoadStartedAt = Date()
+        let startState = self.currentReviewPublishedState()
+        addReviewForegroundOperationBreadcrumb(
+            store: self,
+            action: .reviewCountsLoad,
+            phase: .start,
+            startedAt: nil,
+            requestId: request.requestId,
+            reviewFilter: startState.selectedReviewFilter,
+            reviewRefreshMode: nil,
+            reviewLoadKind: nil,
+            publishedState: startState,
+            errorSummary: nil
+        )
         let countsTask = Task { @MainActor in
             do {
                 let reviewCounts = try await self.dependencies.reviewCountsLoader(
@@ -132,6 +362,18 @@ extension FlashcardsStore {
                     return
                 }
 
+                addReviewForegroundOperationBreadcrumb(
+                    store: self,
+                    action: .reviewCountsLoad,
+                    phase: .success,
+                    startedAt: countsLoadStartedAt,
+                    requestId: request.requestId,
+                    reviewFilter: nextReviewState.selectedReviewFilter,
+                    reviewRefreshMode: nil,
+                    reviewLoadKind: nil,
+                    publishedState: nextReviewState,
+                    errorSummary: nil
+                )
                 self.applyReviewPublishedState(reviewState: nextReviewState)
             } catch is CancellationError {
                 return
@@ -144,6 +386,18 @@ extension FlashcardsStore {
                     return
                 }
 
+                addReviewForegroundOperationBreadcrumb(
+                    store: self,
+                    action: .reviewCountsLoad,
+                    phase: .failure,
+                    startedAt: countsLoadStartedAt,
+                    requestId: request.requestId,
+                    reviewFilter: nextReviewState.selectedReviewFilter,
+                    reviewRefreshMode: nil,
+                    reviewLoadKind: nil,
+                    publishedState: nextReviewState,
+                    errorSummary: Flashcards.errorMessage(error: error)
+                )
                 self.applyReviewPublishedState(reviewState: nextReviewState)
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
@@ -185,6 +439,19 @@ extension FlashcardsStore {
             requestId: request.requestId
         )
         self.applyReviewPublishedState(reviewState: loadingReviewState)
+        let queueChunkLoadStartedAt = Date()
+        addReviewForegroundOperationBreadcrumb(
+            store: self,
+            action: .reviewQueueLoad,
+            phase: .start,
+            startedAt: nil,
+            requestId: request.requestId,
+            reviewFilter: loadingReviewState.selectedReviewFilter,
+            reviewRefreshMode: nil,
+            reviewLoadKind: .chunk,
+            publishedState: loadingReviewState,
+            errorSummary: nil
+        )
         let queueChunkTask = Task { @MainActor in
             do {
                 let queueChunkLoadState = try await self.dependencies.reviewQueueChunkLoader(
@@ -204,6 +471,18 @@ extension FlashcardsStore {
                     return
                 }
 
+                addReviewForegroundOperationBreadcrumb(
+                    store: self,
+                    action: .reviewQueueLoad,
+                    phase: .success,
+                    startedAt: queueChunkLoadStartedAt,
+                    requestId: request.requestId,
+                    reviewFilter: nextReviewState.selectedReviewFilter,
+                    reviewRefreshMode: nil,
+                    reviewLoadKind: .chunk,
+                    publishedState: nextReviewState,
+                    errorSummary: nil
+                )
                 self.applyReviewPublishedState(reviewState: nextReviewState)
                 self.startReviewQueueChunkLoadIfNeeded(now: request.now)
             } catch is CancellationError {
@@ -217,6 +496,18 @@ extension FlashcardsStore {
                     return
                 }
 
+                addReviewForegroundOperationBreadcrumb(
+                    store: self,
+                    action: .reviewQueueLoad,
+                    phase: .failure,
+                    startedAt: queueChunkLoadStartedAt,
+                    requestId: request.requestId,
+                    reviewFilter: nextReviewState.selectedReviewFilter,
+                    reviewRefreshMode: nil,
+                    reviewLoadKind: .chunk,
+                    publishedState: nextReviewState,
+                    errorSummary: Flashcards.errorMessage(error: error)
+                )
                 self.applyReviewPublishedState(reviewState: nextReviewState)
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }

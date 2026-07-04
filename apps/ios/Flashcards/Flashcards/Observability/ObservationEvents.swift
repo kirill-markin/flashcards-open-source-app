@@ -104,6 +104,13 @@ enum ForegroundOperationAction: String, Sendable, Hashable {
     case initialNotificationReconcile = "initial_notification_reconcile"
     case visibleTabPresentation = "visible_tab_presentation"
     case reviewProgressRefresh = "review_progress_refresh"
+    case reviewStateRefresh = "review_state_refresh"
+    case reviewCountsLoad = "review_counts_load"
+    case reviewQueueLoad = "review_queue_load"
+    case progressBadgeRefresh = "progress_badge_refresh"
+    case progressRefresh = "progress_refresh"
+    case progressManualRefresh = "progress_manual_refresh"
+    case progressSnapshotPrepare = "progress_snapshot_prepare"
     case cloudSync = "cloud_sync"
     case notificationReconciliation = "notification_reconciliation"
 }
@@ -128,8 +135,73 @@ struct ForegroundOperationObservation: Sendable, Hashable {
     let pendingOutboxOperationCount: Int?
     let reviewQueueCount: Int?
     let reviewDueCount: Int?
+    let reviewNewCount: Int?
+    let reviewPendingCount: Int?
+    let reviewTotalCount: Int?
+    let reviewFilterKind: String?
+    let reviewRefreshMode: String?
+    let reviewLoadKind: String?
+    let progressSummaryRefreshNeeded: Bool?
+    let progressSeriesRefreshNeeded: Bool?
+    let progressReviewScheduleRefreshNeeded: Bool?
+    let progressLeaderboardRefreshNeeded: Bool?
+    let progressStreakLeaderboardRefreshNeeded: Bool?
     let cloudSyncBlocked: Bool?
     let errorSummary: String?
+}
+
+extension ForegroundOperationObservation {
+    init(
+        scope: IOSObservationScope,
+        action: ForegroundOperationAction,
+        phase: ForegroundOperationPhase,
+        durationMilliseconds: Int?,
+        selectedTab: String?,
+        scenePhase: String?,
+        isStartupReady: Bool?,
+        isRecoveryGateActive: Bool?,
+        cardCount: Int?,
+        deckCount: Int?,
+        pendingOutboxOperationCount: Int?,
+        reviewQueueCount: Int?,
+        reviewDueCount: Int?,
+        cloudSyncBlocked: Bool?,
+        errorSummary: String?
+    ) {
+        self.init(
+            scope: scope,
+            action: action,
+            phase: phase,
+            durationMilliseconds: durationMilliseconds,
+            selectedTab: selectedTab,
+            scenePhase: scenePhase,
+            isStartupReady: isStartupReady,
+            isRecoveryGateActive: isRecoveryGateActive,
+            cardCount: cardCount,
+            deckCount: deckCount,
+            pendingOutboxOperationCount: pendingOutboxOperationCount,
+            reviewQueueCount: reviewQueueCount,
+            reviewDueCount: reviewDueCount,
+            reviewNewCount: nil,
+            reviewPendingCount: nil,
+            reviewTotalCount: nil,
+            reviewFilterKind: nil,
+            reviewRefreshMode: nil,
+            reviewLoadKind: nil,
+            progressSummaryRefreshNeeded: nil,
+            progressSeriesRefreshNeeded: nil,
+            progressReviewScheduleRefreshNeeded: nil,
+            progressLeaderboardRefreshNeeded: nil,
+            progressStreakLeaderboardRefreshNeeded: nil,
+            cloudSyncBlocked: cloudSyncBlocked,
+            errorSummary: errorSummary
+        )
+    }
+}
+
+func iosObservationDurationMilliseconds(startedAt: Date, finishedAt: Date) -> Int {
+    let elapsedMilliseconds = (finishedAt.timeIntervalSince(startedAt) * 1_000).rounded()
+    return max(0, Int(elapsedMilliseconds))
 }
 
 struct CloudFlowObservation: Sendable, Hashable {
