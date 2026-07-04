@@ -533,7 +533,6 @@
 "settings.workspace.resetConfirmation.title" = "确认重置";
 "settings.workspace.resetConfirmation.warning" = "警告：此操作是永久性的。它将清除该工作区中每张卡的学习进度。";
 "settings.workspace.resetConfirmation.description" = "卡片将保留在原处。您的学习进度将恢复新的。";
-"settings.workspace.resetConfirmation.placeholder" = "重置此工作区中所有卡片的所有进度";
 "settings.workspace.resetConfirmation.loadingPreview" = "正在加载重置预览...";
 "settings.workspace.resetConfirmation.previewWarning" = "警告：此操作是永久性的。将 %d 卡重置为 %@。";
 "settings.workspace.resetConfirmation.previewDescription" = "这些卡片将保留在工作区中。仅删除您的学习进度。";

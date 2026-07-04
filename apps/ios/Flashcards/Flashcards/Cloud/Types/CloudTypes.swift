@@ -1,10 +1,7 @@
 import Foundation
 
-let workspaceResetProgressConfirmationText: String = String(
-    localized: "workspace.reset_progress_confirmation_text",
-    table: "Foundation",
-    comment: "Confirmation phrase for resetting all workspace card progress"
-)
+// Backend validates this exact destructive-action phrase; do not localize it.
+let workspaceResetProgressConfirmationText: String = "reset all progress for all cards in this workspace"
 
 enum CloudAccountState: String, CaseIterable, Codable, Hashable, Identifiable, Sendable {
     case disconnected

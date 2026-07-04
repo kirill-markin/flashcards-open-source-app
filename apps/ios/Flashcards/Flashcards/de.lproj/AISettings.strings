@@ -533,7 +533,6 @@
 "settings.workspace.resetConfirmation.title" = "Bestätigen Sie das Zurücksetzen";
 "settings.workspace.resetConfirmation.warning" = "Achtung: Diese Aktion ist dauerhaft. Dadurch wird der Lernfortschritt jeder Karte in diesem Arbeitsbereich gelöscht.";
 "settings.workspace.resetConfirmation.description" = "Die Karten bleiben an Ort und Stelle. Ihr Lernfortschritt wird wieder auf den neuesten Stand gebracht.";
-"settings.workspace.resetConfirmation.placeholder" = "Setzen Sie den gesamten Fortschritt für alle Karten in diesem Arbeitsbereich zurück";
 "settings.workspace.resetConfirmation.loadingPreview" = "Vorschau zum Zurücksetzen wird geladen...";
 "settings.workspace.resetConfirmation.previewWarning" = "Achtung: Diese Aktion ist dauerhaft. Setzt %d-Karten auf %@ zurück.";
 "settings.workspace.resetConfirmation.previewDescription" = "Die Karten bleiben im Arbeitsbereich. Nur Ihr Lernfortschritt wird gelöscht.";

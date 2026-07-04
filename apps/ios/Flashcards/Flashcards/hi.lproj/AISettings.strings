@@ -533,7 +533,6 @@
 "settings.workspace.resetConfirmation.title" = "रीसेट की पुष्टि करें";
 "settings.workspace.resetConfirmation.warning" = "चेतावनी: यह क्रिया स्थायी है. यह इस कार्यक्षेत्र में प्रत्येक कार्ड की अध्ययन प्रगति को स्पष्ट कर देगा।";
 "settings.workspace.resetConfirmation.description" = "कार्ड यथावत रहेंगे. आपकी अध्ययन प्रगति नई हो जाएगी";
-"settings.workspace.resetConfirmation.placeholder" = "इस कार्यक्षेत्र में सभी कार्डों के लिए सभी प्रगति रीसेट करें";
 "settings.workspace.resetConfirmation.loadingPreview" = "रीसेट पूर्वावलोकन लोड हो रहा है...";
 "settings.workspace.resetConfirmation.previewWarning" = "चेतावनी: यह क्रिया स्थायी है. %d कार्ड को %@ पर रीसेट कर दिया जाएगा।";
 "settings.workspace.resetConfirmation.previewDescription" = "कार्ड कार्यक्षेत्र में ही रहेंगे. केवल आपकी अध्ययन प्रगति हटा दी जाएगी.";

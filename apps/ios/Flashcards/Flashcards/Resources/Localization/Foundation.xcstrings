@@ -11918,65 +11918,6 @@
           }
         }
       }
-    },
-    "workspace.reset_progress_confirmation_text" : {
-      "comment" : "Confirmation phrase for resetting all workspace card progress",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "إعادة تعيين كل التقدم لجميع البطاقات في مساحة العمل هذه"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "den gesamten Fortschritt aller Karten in diesem Arbeitsbereich zurücksetzen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "reset all progress for all cards in this workspace"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "restablecer todo el progreso de todas las tarjetas de este espacio de trabajo"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "restablecer todo el progreso de todas las tarjetas de este espacio de trabajo"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "इस वर्कस्पेस में सभी कार्डों की पूरी प्रगति रीसेट करें"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このワークスペース内のすべてのカードの進捗をすべてリセットする"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "сбросить весь прогресс по всем карточкам в этом рабочем пространстве"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重置此工作区中所有卡片的全部进度"
-          }
-        }
-      }
     }
   },
   "version" : "1.0"

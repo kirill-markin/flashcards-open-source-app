@@ -83,10 +83,7 @@ struct ResetWorkspaceProgressConfirmationView: View {
         }
 
         TextField(
-            aiSettingsLocalized(
-                "settings.workspace.resetConfirmation.placeholder",
-                "reset all progress for all cards in this workspace"
-            ),
+            workspaceResetProgressConfirmationText,
             text: self.$confirmationText
         )
             .textInputAutocapitalization(.never)

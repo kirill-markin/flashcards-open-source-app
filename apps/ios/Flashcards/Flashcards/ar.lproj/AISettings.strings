@@ -533,7 +533,6 @@
 "settings.workspace.resetConfirmation.title" = "تأكيد إعادة الضبط";
 "settings.workspace.resetConfirmation.warning" = "تحذير: هذا الإجراء دائم. سيؤدي إلى مسح تقدم الدراسة لكل بطاقة في مساحة العمل هذه.";
 "settings.workspace.resetConfirmation.description" = "ستبقى البطاقات في مكانها. سيعود تقدم دراستك إلى الجديد.";
-"settings.workspace.resetConfirmation.placeholder" = "إعادة تعيين كل التقدم لجميع البطاقات في مساحة العمل هذه";
 "settings.workspace.resetConfirmation.loadingPreview" = "جارٍ تحميل معاينة إعادة التعيين...";
 "settings.workspace.resetConfirmation.previewWarning" = "تحذير: هذا الإجراء دائم. سيتم إعادة تعيين بطاقات %d إلى %@.";
 "settings.workspace.resetConfirmation.previewDescription" = "ستبقى البطاقات في مساحة العمل. سيتم حذف تقدم دراستك فقط.";
