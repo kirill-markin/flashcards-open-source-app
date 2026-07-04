@@ -525,7 +525,7 @@ private fun WorkspacePackageExportIncludedTagsCard(
                 )
                 if (hasGeneratedImportTags) {
                     Text(
-                        text = stringResource(R.string.settings_export_package_generated_import_tag_removed),
+                        text = stringResource(R.string.settings_export_package_generated_import_tag_not_included),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                     )
@@ -549,7 +549,7 @@ private fun WorkspacePackageExportIncludedTagsCard(
                 }
                 if (hasGeneratedImportTags) {
                     Text(
-                        text = stringResource(R.string.settings_export_package_generated_import_tag_removed),
+                        text = stringResource(R.string.settings_export_package_generated_import_tag_not_included),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                     )
