@@ -3,20 +3,20 @@
 This repository uses one reusable Android validation workflow plus one dedicated Android release entry workflow:
 
 - GitHub Actions is the primary Android CI/CD entrypoint on `main`
-- Firebase Test Lab runs instrumentation tests on Google-managed devices
+- Firebase Test Lab is available as a manual instrumentation runner on Google-managed devices
 - `.github/workflows/android-ci-reusable.yml` contains the actual Android CI implementation
 - `.github/workflows/android-release.yml` is the canonical Android workflow for `push main` and manual runs
 - Android release is fully independent from the AWS/Web release workflow on `main`
 - the Android release workflow uploads a production-track draft release to Google Play; final publication still happens later in Play Console
 - `cloudbuild.android.yaml` is the Google-native entrypoint for Cloud Build triggers in the Google Cloud console
 
-This setup keeps repository-native checks in GitHub while still using Google-managed device testing and avoiding long-lived Google service account keys.
+This setup keeps repository-native checks in GitHub while still allowing Google-managed device testing and avoiding long-lived Google service account keys.
 We treat the managed-device app instrumentation suite as the closest CI signal to production behavior, while GitHub-hosted jobs keep the fast unit/build/lint checks and the smaller `data:local` instrumentation gate.
 For release runs, the workflow resolves one shared `ANDROID_VERSION_CODE` and one manager-readable Android release identifier once, then reuses them across Android build artifacts, the Play draft release name, and Firebase Test Lab result correlation for that same SHA. The current release identifier format is `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`.
 
 ## Required GitHub repository variables
 
-The Android GitHub Actions workflow depends on these repository variables:
+The manual Firebase Test Lab job depends on these repository variables:
 
 - `GCP_PROJECT_ID`
 - `GCP_WORKLOAD_IDENTITY_PROVIDER`
@@ -26,8 +26,10 @@ The Android GitHub Actions workflow depends on these repository variables:
 - `ANDROID_FTL_RESULTS_BUCKET`
 - `ANDROID_FTL_RESULTS_DIR`
 
-The Android Google Play release workflow also depends on these repository variables:
+The Android Google Play release workflow depends on these repository variables:
 
+- `GCP_PROJECT_ID`
+- `GCP_WORKLOAD_IDENTITY_PROVIDER`
 - `GCP_PLAY_SERVICE_ACCOUNT_EMAIL`
 - `ANDROID_PLAY_PACKAGE_NAME`
 - `ANDROID_SENTRY_DSN`
@@ -74,8 +76,8 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 
 Top-level release workflow Firebase job: `.github/workflows/android-release.yml` job `firebase_test_lab_submission`
 
-- Starts only after `android_ci` succeeds
-- Runs in parallel with `publish_android`
+- Starts only on manual `workflow_dispatch` runs when `run_firebase_test_lab=true` and `android_ci` succeeds
+- Runs outside the Play draft critical path; when a manual run also sets `upload_to_play_draft=true`, it runs in parallel with `publish_android`
 - Validates Firebase Test Lab configuration, authenticates to Google Cloud, downloads the debug APK artifacts, and submits the full app instrumentation package `com.flashcardsopensourceapp.app`, excluding `com.flashcardsopensourceapp.app.ManualOnlyAndroidTest`
 - Reuses the shared release identifier `vc<versionCode>-r<runId>a<attempt>-s<shortSha>` in Firebase result naming and traces results under `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>`
 - Surfaces Firebase submission outcomes such as configuration, auth, setup, artifact, or submission failures as summary/output states instead of failing the Android release gate by default
@@ -85,21 +87,21 @@ The Android release flow is:
 1. `android-release.yml` resolves the target SHA, one shared `ANDROID_VERSION_CODE`, and one shared Android release identifier for the run
 2. Android unit tests, debug builds, and lint run in GitHub Actions
 3. `data:local` Android instrumentation runs on a GitHub-hosted Android 16 emulator
-4. After that fast GitHub-hosted gate succeeds, `publish_android` uploads the Google Play production-track draft and `firebase_test_lab_submission` submits Firebase Test Lab app instrumentation in parallel for the same SHA and release metadata
-5. Firebase Test Lab continues outside the Play draft upload critical path; review its results before publishing from Play Console
+4. After that fast GitHub-hosted gate succeeds, push-triggered runs upload the Google Play production-track draft automatically; manual runs upload a Play draft only with `upload_to_play_draft=true` and submit Firebase Test Lab app instrumentation only with `run_firebase_test_lab=true`
+5. When requested, Firebase Test Lab continues outside the Play draft upload critical path; review its results before publishing from Play Console
 
 After pushing to `main`, watch `Android Release` separately when Android-impacting files changed.
 
-`Android Release` runs independently on `push main` for Android-impacting changes and on manual `workflow_dispatch` with an explicit target SHA. Push runs upload a Play draft automatically after the GitHub-hosted Android gate succeeds. Manual runs execute the same GitHub-hosted gate, still start Firebase Test Lab app instrumentation for the target SHA, and upload a Play draft only when `upload_to_play_draft` is explicitly enabled.
+`Android Release` runs independently on `push main` for Android-impacting changes and on manual `workflow_dispatch` with an explicit target SHA. Push-triggered runs upload a Play draft automatically after the GitHub-hosted Android gate succeeds and do not start Firebase Test Lab. Manual runs execute the same GitHub-hosted gate, upload a Play draft only when `upload_to_play_draft=true`, and submit Firebase Test Lab app instrumentation only when `run_firebase_test_lab=true`. Those manual inputs are independent, so Firebase can run for a specific `target_sha` while `upload_to_play_draft=false`.
 
-For Android, a green `Android Release` run always means the GitHub-hosted Android gate passed for that SHA. On `push main` runs and manual runs with `upload_to_play_draft=true`, it also means CI uploaded the Play draft successfully. On manual runs with `upload_to_play_draft=false`, the workflow can still finish green with the Play draft upload intentionally skipped. A non-green `Android Release` run means the GitHub-hosted gate failed, or the Play draft upload failed in a run that was supposed to upload it. It does not mean Firebase Test Lab has already finished, and Firebase Test Lab submission or completion is no longer part of the Play draft upload critical path. Firebase submission/configuration problems now surface through the Firebase summary/output state instead of failing the Android release gate by default. It also does not mean the release is already live.
+For Android, a green `Android Release` run always means the GitHub-hosted Android gate passed for that SHA. On `push main` runs and manual runs with `upload_to_play_draft=true`, it also means CI uploaded the Play draft successfully. On manual runs with `upload_to_play_draft=false`, the workflow can still finish green with the Play draft upload intentionally skipped. It does not mean Firebase Test Lab was requested, submitted, finished, or passed. Firebase Test Lab submission or completion is not part of the Play draft upload critical path, and Firebase submission/configuration problems surface through the Firebase summary/output state instead of failing the Android release gate by default. A non-green `Android Release` run means the GitHub-hosted gate failed, or the Play draft upload failed in a run that was supposed to upload it. It also does not mean the release is already live.
 
-To match a Play draft to the exact SHA, GitHub run, and Firebase results:
+To match a Play draft or manual Firebase submission to the exact SHA and GitHub run:
 
 - use the `Android release preflight` summary to get the target SHA, shared `ANDROID_VERSION_CODE`, and shared release identifier `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`
-- use the `Android Play draft upload` summary to get the Play draft release name `main-draft-<releaseIdentifier>` and version code
+- when a Play draft was uploaded, use the `Android Play draft upload` summary to get the Play draft release name `main-draft-<releaseIdentifier>` and version code
 - use the `Run details` link in the release summary to open the exact GitHub Actions run
-- use the Firebase summaries to get the Google-assigned matrix ID and the Firebase results path `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>` in the configured results bucket
+- when `run_firebase_test_lab=true`, use the Firebase summaries to get the Google-assigned matrix ID and the Firebase results path `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>` in the configured results bucket
 - correlate everything by the shared release identifier, GitHub run id and attempt, and target SHA; the Firebase matrix ID is useful for lookup after submission but it is not the manager-readable release identifier
 
 ## Local Firebase Test Lab diagnostics
@@ -321,7 +323,7 @@ Then set:
 
 ## GitHub repository variables
 
-Set the required repository variables listed above before expecting the Firebase Test Lab job to run in GitHub Actions.
+Set the required repository variables listed above before requesting the Firebase Test Lab job in GitHub Actions.
 
 Set the Google Play release variables and secrets before expecting `.github/workflows/android-release.yml` to upload a draft release successfully.
 
