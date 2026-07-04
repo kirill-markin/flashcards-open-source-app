@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ApiErrorMock,
+  ApiNetworkErrorMock,
   AuthRedirectErrorMock,
   captureWebExceptionMock,
   setupChatPanelTest,
@@ -97,6 +98,24 @@ describe("ChatPanel error observation", () => {
     await renderChatPanel();
     await flushAsync();
     await sendMessage("expired session");
+    await flushAsync();
+    await flushAsync();
+
+    expect(captureWebExceptionMock).not.toHaveBeenCalled();
+    expect(getContainer().textContent).toContain("Chat request failed.");
+  });
+
+  it("does not capture exhausted API network chat request failures", async () => {
+    startChatRunMock.mockRejectedValue(new ApiNetworkErrorMock({
+      endpoint: "POST /chat/new",
+      originalErrorName: "TypeError",
+      originalErrorMessage: "Failed to fetch",
+      attemptCount: 4,
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+    await sendMessage("network unavailable");
     await flushAsync();
     await flushAsync();
 

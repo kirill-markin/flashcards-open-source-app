@@ -16,6 +16,7 @@ import {
 
 const {
   ApiErrorMock,
+  ApiNetworkErrorMock,
   AuthRedirectErrorMock,
   ApiContractErrorMock,
   ChatLiveContractErrorMock,
@@ -51,6 +52,34 @@ const {
       this.statusCode = statusCode;
       this.code = code;
       this.requestId = null;
+    }
+  },
+  ApiNetworkErrorMock: class ApiNetworkError extends Error {
+    readonly statusCode: number;
+    readonly code: string;
+    readonly requestId: string | null;
+    readonly endpoint: string;
+    readonly responseBodyKind: "empty";
+    readonly originalErrorName: string;
+    readonly originalErrorMessage: string;
+    readonly attemptCount: number;
+
+    constructor(params: Readonly<{
+      endpoint: string;
+      originalErrorName: string;
+      originalErrorMessage: string;
+      attemptCount: number;
+    }>) {
+      super(`The API is unavailable. Try again. (${params.endpoint}; ${params.originalErrorName}: ${params.originalErrorMessage})`);
+      this.name = "ApiNetworkError";
+      this.statusCode = 0;
+      this.code = "API_NETWORK_ERROR";
+      this.requestId = null;
+      this.endpoint = params.endpoint;
+      this.responseBodyKind = "empty";
+      this.originalErrorName = params.originalErrorName;
+      this.originalErrorMessage = params.originalErrorMessage;
+      this.attemptCount = params.attemptCount;
     }
   },
   AuthRedirectErrorMock: class AuthRedirectError extends Error {
@@ -164,6 +193,7 @@ vi.mock("../../../layout/ChatLayoutContext", () => ({
 
 vi.mock("../../../../api", () => ({
   ApiError: ApiErrorMock,
+  ApiNetworkError: ApiNetworkErrorMock,
   AuthRedirectError: AuthRedirectErrorMock,
   ApiContractError: ApiContractErrorMock,
   getChatSnapshot: getChatSnapshotMock,
@@ -283,6 +313,7 @@ export type MessagesScrollerMetrics = Readonly<{
 export {
   ApiContractErrorMock,
   ApiErrorMock,
+  ApiNetworkErrorMock,
   AuthRedirectErrorMock,
   ChatLiveContractErrorMock,
   ChatLiveHttpErrorMock,

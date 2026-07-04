@@ -13,6 +13,7 @@ import {
   type ChatRunRequestFailureDetails,
   type WebObservationScope,
 } from "../../../observability/webObservability";
+import { isBrowserApiNetworkError } from "../../../observability/apiNetworkErrorPolicy";
 import type { Locale } from "../../../i18n/types";
 import type {
   NewChatSessionResponse,
@@ -121,6 +122,10 @@ function shouldCaptureChatRunRequestError(error: Error): boolean {
   }
 
   if (error instanceof AuthRedirectError) {
+    return false;
+  }
+
+  if (isBrowserApiNetworkError(error)) {
     return false;
   }
 
