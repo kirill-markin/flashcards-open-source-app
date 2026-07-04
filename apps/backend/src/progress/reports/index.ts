@@ -11,7 +11,6 @@ import { HttpError } from "../../shared/errors";
 import { listUserWorkspaceIdsInExecutor } from "../../workspaces/queries";
 import {
   loadUserActiveReviewLocalDatesInExecutor,
-  materializeMissingActiveReviewDaysForUserInExecutor,
   rememberProgressTimeZoneInExecutor,
 } from "../activeReviewDays/activeReviewDays";
 import {
@@ -700,17 +699,13 @@ async function buildUserProgressSummaryInExecutor(
       userId: request.userId,
       workspaceId,
     });
-    await materializeMissingActiveReviewDaysForUserInExecutor(
-      executor,
-      request.userId,
-      workspaceId,
-      request.timeZone,
-    );
     reviewHistoryWatermarks = reviewHistoryWatermarks.concat(
       await loadReviewHistoryWatermarksInExecutor(executor, [workspaceId]),
     );
   }
 
+  // Active-day materialization is owned by review writes and the scheduled
+  // backfill; progress reads intentionally do not repair historical rows.
   const activeReviewLocalDates = await loadUserActiveReviewLocalDatesInExecutor(executor, request.userId);
   const activeReviewDateSet = new Set(activeReviewLocalDates);
   const lastReviewedOn = activeReviewLocalDates.at(-1) ?? null;
@@ -801,18 +796,14 @@ async function buildUserProgressSeriesInExecutor(
       to: request.to,
     });
     dailyReviewCounts = addDailyReviewCountRows(dailyReviewCounts, rows);
-    await materializeMissingActiveReviewDaysForUserInExecutor(
-      executor,
-      request.userId,
-      workspaceId,
-      request.timeZone,
-    );
     reviewHistoryWatermarks = reviewHistoryWatermarks.concat(
       await loadReviewHistoryWatermarksInExecutor(executor, [workspaceId]),
     );
   }
 
   const range = createInclusiveLocalDateRange(request.from, request.to);
+  // Active-day materialization is owned by review writes and the scheduled
+  // backfill; progress reads intentionally do not repair historical rows.
   const activeReviewLocalDates = await loadUserActiveReviewLocalDatesInExecutor(executor, request.userId);
   const activeReviewDateSet = new Set(activeReviewLocalDates);
   const today = formatDateAsTimeZoneLocalDate(generatedAtDate, request.timeZone);

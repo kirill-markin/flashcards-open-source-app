@@ -71,7 +71,7 @@ test("progress barrel re-exports the community leaderboard loaders", async () =>
   assert.deepEqual(guestProfile, { status: "linked_account_required" });
 });
 
-test("public progress streak loaders retry transient repeatable-read materialization failures", () => {
+test("public progress streak loaders retry transient repeatable-read failures", () => {
   const source = loadProgressReportsIndexSource();
 
   assert.match(source, /import \{ withTransientDatabaseRetry \} from "\.\.\/\.\.\/database\/transient";/);
