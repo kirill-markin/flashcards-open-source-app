@@ -1,5 +1,13 @@
 import Foundation
 
+private let progressRefreshHTTPMethod: String = "GET"
+private let progressRefreshStage: String = "server_base_refresh"
+private let progressSummaryRefreshEndpointPath: String = "/me/progress/summary"
+private let progressSeriesRefreshEndpointPath: String = "/me/progress/series"
+private let progressReviewScheduleRefreshEndpointPath: String = "/me/progress/review-schedule"
+private let progressLeaderboardRefreshEndpointPath: String = "/me/progress/leaderboard"
+private let progressStreakLeaderboardRefreshEndpointPath: String = "/me/progress/leaderboards/streak"
+
 @MainActor
 extension FlashcardsStore {
     func shouldPresentProgressRefreshTechnicalError(error: Error) -> Bool {
@@ -16,6 +24,47 @@ extension FlashcardsStore {
         }
 
         return true
+    }
+
+    private func presentProgressRefreshTechnicalError(
+        error: Error,
+        refreshKind: String,
+        endpointPath: String,
+        method: String,
+        linkedSession: CloudLinkedSession
+    ) {
+        guard self.shouldPresentProgressRefreshTechnicalError(error: error) else {
+            return
+        }
+
+        let scope: IOSObservationScope = IOSObservationScope(
+            feature: .progress,
+            userId: linkedSession.userId,
+            workspaceId: linkedSession.workspaceId,
+            requestId: nil,
+            clientRequestId: nil,
+            sessionId: nil,
+            runId: nil,
+            cloudState: self.cloudSettings?.cloudState,
+            configurationMode: linkedSession.configurationMode
+        )
+        let transportDiagnostics: IOSNetworkTransportDiagnostics = makeIOSNetworkTransportDiagnostics(
+            error: error,
+            httpMethod: method,
+            endpointPath: endpointPath,
+            apiBaseUrl: linkedSession.apiBaseUrl
+        )
+        FlashcardsObservability.captureSilentFailure(
+            error: error,
+            scope: scope,
+            action: refreshKind,
+            stage: progressRefreshStage,
+            statusCode: nil,
+            backendCode: nil,
+            requestId: nil,
+            transportDiagnostics: transportDiagnostics
+        )
+        self.presentTechnicalError(markTechnicalErrorObserved(error: error))
     }
 
     func refreshProgressSummaryServerBase(
@@ -84,9 +133,13 @@ extension FlashcardsStore {
                 return
             }
 
-            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
-                self.presentTechnicalError(error)
-            }
+            self.presentProgressRefreshTechnicalError(
+                error: error,
+                refreshKind: "progress_summary_refresh_failed",
+                endpointPath: progressSummaryRefreshEndpointPath,
+                method: progressRefreshHTTPMethod,
+                linkedSession: linkedSession
+            )
             self.replaceProgressSummaryRefreshErrorMessage(
                 message: localizedProgressSummaryRefreshErrorMessage()
             )
@@ -148,9 +201,13 @@ extension FlashcardsStore {
                 return
             }
 
-            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
-                self.presentTechnicalError(error)
-            }
+            self.presentProgressRefreshTechnicalError(
+                error: error,
+                refreshKind: "progress_series_refresh_failed",
+                endpointPath: progressSeriesRefreshEndpointPath,
+                method: progressRefreshHTTPMethod,
+                linkedSession: linkedSession
+            )
             self.replaceProgressSeriesRefreshErrorMessage(
                 message: localizedProgressSeriesRefreshErrorMessage()
             )
@@ -219,9 +276,13 @@ extension FlashcardsStore {
                 return
             }
 
-            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
-                self.presentTechnicalError(error)
-            }
+            self.presentProgressRefreshTechnicalError(
+                error: error,
+                refreshKind: "progress_review_schedule_refresh_failed",
+                endpointPath: progressReviewScheduleRefreshEndpointPath,
+                method: progressRefreshHTTPMethod,
+                linkedSession: linkedSession
+            )
             self.replaceProgressReviewScheduleRefreshErrorMessage(
                 message: localizedProgressReviewScheduleRefreshErrorMessage()
             )
@@ -288,9 +349,13 @@ extension FlashcardsStore {
                 return
             }
 
-            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
-                self.presentTechnicalError(error)
-            }
+            self.presentProgressRefreshTechnicalError(
+                error: error,
+                refreshKind: "progress_leaderboard_refresh_failed",
+                endpointPath: progressLeaderboardRefreshEndpointPath,
+                method: progressRefreshHTTPMethod,
+                linkedSession: linkedSession
+            )
             self.replaceProgressLeaderboardRefreshErrorMessage(
                 message: localizedProgressLeaderboardRefreshErrorMessage()
             )
@@ -361,9 +426,13 @@ extension FlashcardsStore {
                 return
             }
 
-            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
-                self.presentTechnicalError(error)
-            }
+            self.presentProgressRefreshTechnicalError(
+                error: error,
+                refreshKind: "progress_streak_leaderboard_refresh_failed",
+                endpointPath: progressStreakLeaderboardRefreshEndpointPath,
+                method: progressRefreshHTTPMethod,
+                linkedSession: linkedSession
+            )
             self.replaceProgressStreakLeaderboardRefreshErrorMessage(
                 message: localizedProgressStreakLeaderboardRefreshErrorMessage()
             )
