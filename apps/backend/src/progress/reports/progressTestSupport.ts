@@ -228,6 +228,19 @@ function isStringArray(value: SqlValue | undefined): value is ReadonlyArray<stri
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
+function assertDailyReviewCountQueryUsesCanonicalLocalDate(text: string): void {
+  const usesCanonicalLocalDate = text.includes("review_events.reviewed_local_date")
+    && text.includes("timezone(COALESCE(review_events.reviewed_time_zone, $3), review_events.reviewed_at_client)::date")
+    && text.includes("review_events.reviewed_by_user_id = $2")
+    && text.includes("review_events.reviewed_at_client >= (($4::date - 3)::timestamp AT TIME ZONE $3)")
+    && text.includes("review_events.reviewed_at_client < (($5::date + 3)::timestamp AT TIME ZONE $3)")
+    && text.includes("review_event_local_dates.review_date BETWEEN $4::date AND $5::date");
+
+  if (!usesCanonicalLocalDate) {
+    throw new Error("Daily review count query must group and filter by canonical review local date, user, and client-time bounds");
+  }
+}
+
 export function createProgressExecutor(
   fixture: ProgressExecutorFixture,
 ): Readonly<{
@@ -361,10 +374,11 @@ export function createProgressExecutor(
         text.includes("FROM content.review_events AS review_events")
         && text.includes("COUNT(*)::int AS review_count")
       ) {
+        assertDailyReviewCountQueryUsesCanonicalLocalDate(text);
         const workspaceId = typeof params[0] === "string" ? params[0] : String(params[0]);
         const userId = typeof params[1] === "string" ? params[1] : String(params[1]);
-        const from = typeof params[2] === "string" ? params[2] : String(params[2]);
-        const to = typeof params[3] === "string" ? params[3] : String(params[3]);
+        const from = typeof params[3] === "string" ? params[3] : String(params[3]);
+        const to = typeof params[4] === "string" ? params[4] : String(params[4]);
         if (scope.userId !== userId || scope.workspaceId !== workspaceId) {
           throw new Error("Review history query requires matching user and workspace scope");
         }
