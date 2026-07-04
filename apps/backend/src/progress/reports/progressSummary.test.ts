@@ -121,7 +121,7 @@ test("loadUserProgressSummaryInExecutor resets a gap larger than available freez
       "user-1": ["workspace-1"],
     },
     reviewRowsByRequest: {
-      [`workspace-1|${timeZone}|${sixDaysAgo}|${today}`]: [
+      [`workspace-1|${timeZone}|${sixDaysAgo}|${today}|user-1`]: [
         {
           review_date: sixDaysAgo,
           review_count: 1,

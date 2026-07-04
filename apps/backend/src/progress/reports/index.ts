@@ -172,6 +172,7 @@ type WorkspaceProgressReviewScheduleRequest = Readonly<{
 }>;
 
 type WorkspaceProgressSeriesRequest = Readonly<{
+  userId: string;
   workspaceId: string;
 }> & ProgressSeriesInput;
 
@@ -598,22 +599,35 @@ async function loadDailyReviewCountRowsInExecutor(
     request.timeZone,
     request.from,
     request.to,
+    request.userId,
   ];
+  // Three days covers the full IANA offset spread when row and request time zones differ.
   const result = await executor.query<DailyReviewCountRow>(
     [
+      "WITH review_event_local_dates AS (",
       "SELECT",
-      "to_char(timezone($2, review_events.reviewed_at_client)::date, 'YYYY-MM-DD') AS review_date,",
-      "COUNT(*)::int AS review_count,",
-      "COUNT(*) FILTER (WHERE review_events.rating = 0)::int AS again_count,",
-      "COUNT(*) FILTER (WHERE review_events.rating = 1)::int AS hard_count,",
-      "COUNT(*) FILTER (WHERE review_events.rating = 2)::int AS good_count,",
-      "COUNT(*) FILTER (WHERE review_events.rating = 3)::int AS easy_count",
+      "COALESCE(",
+      "review_events.reviewed_local_date,",
+      "timezone(COALESCE(review_events.reviewed_time_zone, $2), review_events.reviewed_at_client)::date",
+      ") AS review_date,",
+      "review_events.rating",
       "FROM content.review_events AS review_events",
       "WHERE review_events.workspace_id = $1",
-      "AND review_events.reviewed_at_client >= (($3::date)::timestamp AT TIME ZONE $2)",
-      "AND review_events.reviewed_at_client < (((($4::date) + 1)::timestamp) AT TIME ZONE $2)",
-      "GROUP BY review_date",
-      "ORDER BY review_date ASC",
+      "AND review_events.reviewed_by_user_id = $5",
+      "AND review_events.reviewed_at_client >= (($3::date - 3)::timestamp AT TIME ZONE $2)",
+      "AND review_events.reviewed_at_client < (($4::date + 3)::timestamp AT TIME ZONE $2)",
+      ")",
+      "SELECT",
+      "to_char(review_event_local_dates.review_date, 'YYYY-MM-DD') AS review_date,",
+      "COUNT(*)::int AS review_count,",
+      "COUNT(*) FILTER (WHERE review_event_local_dates.rating = 0)::int AS again_count,",
+      "COUNT(*) FILTER (WHERE review_event_local_dates.rating = 1)::int AS hard_count,",
+      "COUNT(*) FILTER (WHERE review_event_local_dates.rating = 2)::int AS good_count,",
+      "COUNT(*) FILTER (WHERE review_event_local_dates.rating = 3)::int AS easy_count",
+      "FROM review_event_local_dates",
+      "WHERE review_event_local_dates.review_date BETWEEN $3::date AND $4::date",
+      "GROUP BY review_event_local_dates.review_date",
+      "ORDER BY review_event_local_dates.review_date ASC",
     ].join(" "),
     queryParams,
   );
@@ -781,7 +795,7 @@ async function buildUserProgressSeriesInExecutor(
 ): Promise<ProgressSeries> {
   let dailyReviewCounts: ReadonlyMap<string, DailyReviewCounts> = new Map<string, DailyReviewCounts>();
   await applyUserDatabaseScopeInExecutor(executor, { userId: request.userId });
-  // Daily review counts stay on the bounded raw range query, while streak
+  // Daily review counts stay on the bounded workspace query, while streak
   // state comes from the user-wide materialized active-day table below.
   const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
   await rememberProgressTimeZoneInExecutor(executor, request.userId, request.timeZone);
@@ -794,19 +808,20 @@ async function buildUserProgressSeriesInExecutor(
       userId: request.userId,
       workspaceId,
     });
-    const rows = await loadDailyReviewCountRowsInExecutor(executor, {
-      workspaceId,
-      timeZone: request.timeZone,
-      from: request.from,
-      to: request.to,
-    });
-    dailyReviewCounts = addDailyReviewCountRows(dailyReviewCounts, rows);
     await materializeMissingActiveReviewDaysForUserInExecutor(
       executor,
       request.userId,
       workspaceId,
       request.timeZone,
     );
+    const rows = await loadDailyReviewCountRowsInExecutor(executor, {
+      userId: request.userId,
+      workspaceId,
+      timeZone: request.timeZone,
+      from: request.from,
+      to: request.to,
+    });
+    dailyReviewCounts = addDailyReviewCountRows(dailyReviewCounts, rows);
     reviewHistoryWatermarks = reviewHistoryWatermarks.concat(
       await loadReviewHistoryWatermarksInExecutor(executor, [workspaceId]),
     );
