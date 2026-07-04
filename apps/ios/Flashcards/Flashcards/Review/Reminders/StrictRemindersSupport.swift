@@ -481,6 +481,16 @@ func acceptedStrictReminderPayloads(
     }
 }
 
+func missingStrictReminderPayloads(
+    payloads: [ScheduledStrictReminderPayload],
+    pendingRequestIdentifiers: [String]
+) -> [ScheduledStrictReminderPayload] {
+    let pendingRequestIdentifierSet: Set<String> = Set(pendingRequestIdentifiers)
+    return payloads.filter { payload in
+        pendingRequestIdentifierSet.contains(payload.requestId) == false
+    }
+}
+
 func futureStrictReminderPayloads(
     payloads: [ScheduledStrictReminderPayload],
     now: Date
