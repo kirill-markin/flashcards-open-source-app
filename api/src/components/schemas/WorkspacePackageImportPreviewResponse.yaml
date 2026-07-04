@@ -84,13 +84,20 @@ properties:
     properties:
       addImportTag:
         type: boolean
+        description: Whether clients should add an import-session tag when confirming with the default options.
       suggestedImportTag:
         type: string
+        description: >-
+          Concrete default import tag suggested for this preview. Pass this
+          value, or another explicit client-chosen tag, as importTag when
+          confirming with addImportTag true.
       keptTags:
         type: array
+        description: Package card tags kept by the default import tag policy.
         items:
           type: string
       removedTags:
         type: array
+        description: Package card tags removed by the default import tag policy.
         items:
           type: string

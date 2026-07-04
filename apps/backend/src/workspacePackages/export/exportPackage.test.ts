@@ -441,6 +441,47 @@ test("package ZIP for text-only cards contains valid cards.json", async () => {
   assert.equal(byteLoader.calls.length, 0);
 });
 
+test("package export applies tag filters to selected cards and strips generated import tags", async () => {
+  const executor = createTestExecutor([
+    createCardRow(
+      cardIdA,
+      workspaceId,
+      "Science prompt",
+      "Science answer",
+      ["science", "keep", "import:2026-07-04-0"],
+      "2026-06-01T00:00:00.000Z",
+      null,
+    ),
+    createCardRow(
+      cardIdB,
+      workspaceId,
+      "Draft prompt",
+      "Draft answer",
+      ["science", "draft", "import:2026-07-04-1"],
+      "2026-06-02T00:00:00.000Z",
+      null,
+    ),
+  ], []);
+  const byteLoader = createByteLoader(new Map());
+  const packageExport = await exportWorkspacePackageInExecutor(
+    executor,
+    workspaceId,
+    createBasePackageInput({
+      kind: "tagFilters",
+      includeTags: ["science"],
+      excludeTags: ["draft"],
+    }),
+    createPackageLimits(10, 10, 1024, 1024),
+    byteLoader,
+  );
+
+  const cardsJson = parseCardsJson(parseStoredZipEntries(packageExport.bytes));
+  assert.equal(cardsJson.cards.length, 1);
+  assert.equal(cardsJson.cards[0]?.frontText, "Science prompt");
+  assert.deepEqual(cardsJson.cards[0]?.tags, ["science", "keep"]);
+  assert.equal(byteLoader.calls.length, 0);
+});
+
 test("package ZIP rewrites media references to portable media paths", async () => {
   const imageBytes = Buffer.from("image-a");
   const mediaRow = createMediaAssetRow(
@@ -793,17 +834,16 @@ test("package export rejects media size limits before loading objects", async ()
 });
 
 test("package export preserves default import-tag removal and additional tag removals", async () => {
-  const executor = createTestExecutor([
-    createCardRow(
-      cardIdA,
-      workspaceId,
-      "Prompt",
-      "Answer",
-      ["keep", "custom-remove", "import:2026-06-01-0"],
-      "2026-06-01T00:00:00.000Z",
-      null,
-    ),
-  ], []);
+  const sourceCard = createCardRow(
+    cardIdA,
+    workspaceId,
+    "Prompt",
+    "Answer",
+    ["keep", "custom-remove", "import:2026-06-01-0"],
+    "2026-06-01T00:00:00.000Z",
+    null,
+  );
+  const executor = createTestExecutor([sourceCard], []);
   const byteLoader = createByteLoader(new Map());
   const input = createBasePackageInput({ kind: "allActiveCards" });
   const packageExport = await exportWorkspacePackageInExecutor(
@@ -821,4 +861,5 @@ test("package export preserves default import-tag removal and additional tag rem
 
   const entries = parseStoredZipEntries(packageExport.bytes);
   assert.deepEqual(parseCardsJson(entries).cards[0]?.tags, ["keep"]);
+  assert.deepEqual(sourceCard.tags, ["keep", "custom-remove", "import:2026-06-01-0"]);
 });

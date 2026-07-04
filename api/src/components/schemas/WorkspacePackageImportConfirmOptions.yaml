@@ -12,11 +12,16 @@ required:
 properties:
   addImportTag:
     type: boolean
+    description: When true, the backend appends importTag to every imported card after applying removeTags.
   importTag:
     type: string
-    minLength: 1
+    description: >-
+      Explicit tag chosen by the client for this import. Required to be
+      non-blank when addImportTag is true, and ignored when addImportTag is
+      false.
   removeTags:
     type: array
+    description: Exact package card tags to remove from imported cards before the optional importTag is added.
     items:
       type: string
       minLength: 1

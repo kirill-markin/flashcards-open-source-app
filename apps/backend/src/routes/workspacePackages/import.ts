@@ -64,14 +64,20 @@ const workspacePackageImportConfirmUuidSchema = z.string().uuid().transform(
 
 const workspacePackageImportConfirmRouteOptionsSchema = z.object({
   addImportTag: z.boolean(),
-  importTag: z.string().min(1),
+  importTag: z.string(),
   removeTags: z.array(z.string().min(1)),
   importedAt: workspacePackageImportConfirmTimestampSchema,
   importId: z.string().min(1),
   clientUpdatedAt: workspacePackageImportConfirmTimestampSchema,
   lastModifiedByReplicaId: workspacePackageImportConfirmUuidSchema,
   operationIdPrefix: z.string().min(1),
-}).transform((input): WorkspacePackageImportConfirmRouteOptions => ({
+}).refine(
+  (input): boolean => input.addImportTag === false || input.importTag.trim() !== "",
+  {
+    message: "importTag must not be empty when addImportTag is true",
+    path: ["importTag"],
+  },
+).transform((input): WorkspacePackageImportConfirmRouteOptions => ({
   addImportTag: input.addImportTag,
   importTag: input.importTag,
   removeTags: input.removeTags,

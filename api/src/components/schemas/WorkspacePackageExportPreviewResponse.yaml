@@ -11,12 +11,23 @@ properties:
   selectedCardCount:
     type: integer
     minimum: 0
+    description: >-
+      Number of stored workspace cards selected by the export selection before
+      package tag removal.
   availableTagCounts:
     type: array
+    description: >-
+      Tag counts from the selected cards only, before package tag removal. For
+      tag-filtered selections this does not include tags from unselected
+      workspace cards.
     items:
       $ref: ./WorkspacePackageExportTagCount.yaml
   tagsSelectedForRemoval:
     type: array
+    description: >-
+      Tags that will be removed from exported package card metadata, including
+      generated import tags and tagPolicy.additionalRemovedTags present on
+      selected cards.
     items:
       $ref: ./WorkspacePackageExportTagCount.yaml
   referencedMediaCount:
