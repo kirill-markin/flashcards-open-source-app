@@ -28,12 +28,17 @@ import {
   isBrowserReauthRequired,
   markBrowserReauthRequired,
 } from "../../accountDeletion";
+import { ApiNetworkError } from "../../api";
 import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "../../i18n/runtime";
 import { loadCloudSettings } from "../../localDb/sync/cloudSettings";
 import type { WorkspaceSummary } from "../../types";
 import { loadWarmStartSnapshot, WARM_START_SNAPSHOT_STORAGE_KEY } from "./activation/warmStart";
 import { captureWorkspaceTransitionError } from "./observation/workspaceSessionObservation";
+import {
+  attachSyncFailureObservation,
+  observeSyncFailure,
+} from "../sync/observation/syncErrorObservation";
 
 const observabilityMocks = getObservabilityMocks();
 
@@ -205,6 +210,66 @@ describe("useWorkspaceSession bootstrap", () => {
     });
 
     expect(observabilityMocks.captureWebExceptionMock).not.toHaveBeenCalled();
+    expect(latestState?.sessionTechnicalError).toBeNull();
+    expect(latestState?.technicalError).toBeNull();
+  });
+
+  it("does not capture exhausted API network sync failures", async () => {
+    seedBrowserStorage();
+    await seedIndexedDbState();
+
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const networkSyncError = new ApiNetworkError({
+      endpoint: "POST /sync/push",
+      originalErrorName: "TypeError",
+      originalErrorMessage: "Failed to fetch",
+      attemptCount: 4,
+    });
+    const runSyncForWorkspaceMock = vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {
+      const wasCaptured = observeSyncFailure({
+        error: networkSyncError,
+        userId: seededSession.userId,
+        workspaceId: seededWorkspace.workspaceId,
+        installationId: seededCloudSettings.installationId,
+      });
+      throw attachSyncFailureObservation(networkSyncError, wasCaptured);
+    });
+
+    await act(async () => {
+      root?.render(
+        <TestHarness
+          initialSessionLoadState="ready"
+          initialSessionVerificationState="unverified"
+          initialSession={seededSession}
+          initialActiveWorkspace={seededWorkspace}
+          initialAvailableWorkspaces={[seededWorkspace]}
+          onStateChange={(snapshot: HarnessSnapshot): void => {
+            latestState = snapshot;
+          }}
+          refreshWorkspaceViewMock={vi.fn(async (): Promise<void> => {})}
+          runSyncMock={vi.fn(async (): Promise<void> => {})}
+          runSyncSilentlyMock={vi.fn(async (): Promise<void> => {})}
+          runSyncForWorkspaceMock={runSyncForWorkspaceMock}
+          discardWorkspaceSyncMock={vi.fn((_workspaceId: string): void => {})}
+          discardAllSyncWorkMock={createDiscardAllSyncWorkMock()}
+          resetUserScopedUiStateMock={vi.fn((): void => {})}
+          onActionsChange={null}
+        />,
+      );
+    });
+
+    await vi.waitFor(() => {
+      expect(latestState?.sessionErrorMessage).toBe(networkSyncError.message);
+    });
+
+    expect(observabilityMocks.captureWebExceptionMock).not.toHaveBeenCalled();
+    expect(networkSyncError).toEqual(expect.objectContaining({
+      syncFailureWasCaptured: false,
+    }));
     expect(latestState?.sessionTechnicalError).toBeNull();
     expect(latestState?.technicalError).toBeNull();
   });

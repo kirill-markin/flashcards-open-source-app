@@ -8,6 +8,7 @@ import {
   captureWebException,
   type WebObservationScope,
 } from "../../../observability/webObservability";
+import { isBrowserApiNetworkError } from "../../../observability/apiNetworkErrorPolicy";
 
 const workspaceNotFoundErrorCode = "WORKSPACE_NOT_FOUND";
 const workspaceSyncDiscardedErrorName = "WorkspaceSyncDiscardedError";
@@ -136,6 +137,10 @@ function shouldCaptureUnexpectedSyncError(error: Error): boolean {
   }
 
   if (isAuthRedirectError(error)) {
+    return false;
+  }
+
+  if (isBrowserApiNetworkError(error)) {
     return false;
   }
 
