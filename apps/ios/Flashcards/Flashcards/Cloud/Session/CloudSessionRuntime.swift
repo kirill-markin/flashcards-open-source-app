@@ -481,7 +481,8 @@ final class CloudSessionRuntime {
                             attempt: 1,
                             maxAttempts: 1,
                             apiBaseUrl: self.state.activeCloudSession?.apiBaseUrl,
-                            messageSummary: Flashcards.errorMessage(error: error)
+                            messageSummary: Flashcards.errorMessage(error: error),
+                            transportDiagnostics: nil
                         )
                     )
                 )

@@ -156,6 +156,241 @@ func flashcardsURLErrorCode(error: Error, remainingDepth: Int) -> URLError.Code?
     return flashcardsURLErrorCode(error: underlyingError, remainingDepth: remainingDepth - 1)
 }
 
+private let iosNetworkTransportDiagnosticsUnderlyingErrorDepth: Int = 4
+private let iosNetworkTransportOfficialAPIHost: String = "api.flashcards-open-source-app.com"
+private let cfStreamErrorDomainUserInfoKey: String = "_kCFStreamErrorDomainKey"
+private let cfStreamErrorCodeUserInfoKey: String = "_kCFStreamErrorCodeKey"
+
+private struct IOSNetworkTransportAPIHostDiagnostics {
+    let kind: String?
+    let host: String?
+}
+
+private struct IOSNetworkTransportCFStreamErrorDiagnostics {
+    let domain: Int?
+    let code: Int?
+}
+
+func makeIOSNetworkTransportDiagnostics(
+    error: Error,
+    httpMethod: String,
+    endpointPath: String,
+    apiBaseUrl: String
+) -> IOSNetworkTransportDiagnostics {
+    let nsError: NSError = error as NSError
+    let urlErrorCode: URLError.Code? = flashcardsURLErrorCode(
+        error: error,
+        remainingDepth: iosNetworkTransportDiagnosticsUnderlyingErrorDepth
+    )
+    let cfStreamError: IOSNetworkTransportCFStreamErrorDiagnostics = iosNetworkTransportCFStreamErrorDiagnostics(
+        error: error,
+        remainingDepth: iosNetworkTransportDiagnosticsUnderlyingErrorDepth
+    )
+    let apiHost: IOSNetworkTransportAPIHostDiagnostics = iosNetworkTransportAPIHostDiagnostics(
+        apiBaseUrl: apiBaseUrl
+    )
+
+    return IOSNetworkTransportDiagnostics(
+        nsErrorDomain: safeIOSNetworkTransportIdentifier(nsError.domain),
+        nsErrorCode: nsError.code,
+        urlErrorCode: urlErrorCode?.rawValue,
+        urlErrorName: urlErrorCode.flatMap { code in iosNetworkTransportURLErrorName(code: code) },
+        cfStreamErrorDomain: cfStreamError.domain,
+        cfStreamErrorCode: cfStreamError.code,
+        httpMethod: safeIOSNetworkTransportHTTPMethod(httpMethod),
+        endpointPath: safeIOSNetworkTransportEndpointPath(endpointPath),
+        apiHostKind: apiHost.kind,
+        apiHost: apiHost.host
+    )
+}
+
+private func iosNetworkTransportURLErrorName(code: URLError.Code) -> String? {
+    switch code {
+    case .timedOut:
+        return "timed_out"
+    case .cannotFindHost:
+        return "cannot_find_host"
+    case .cannotConnectToHost:
+        return "cannot_connect_to_host"
+    case .dnsLookupFailed:
+        return "dns_lookup_failed"
+    case .networkConnectionLost:
+        return "network_connection_lost"
+    case .notConnectedToInternet:
+        return "not_connected_to_internet"
+    case .internationalRoamingOff:
+        return "international_roaming_off"
+    case .callIsActive:
+        return "call_is_active"
+    case .dataNotAllowed:
+        return "data_not_allowed"
+    case .cannotLoadFromNetwork:
+        return "cannot_load_from_network"
+    case .cancelled:
+        return "cancelled"
+    default:
+        return nil
+    }
+}
+
+private func iosNetworkTransportCFStreamErrorDiagnostics(
+    error: Error,
+    remainingDepth: Int
+) -> IOSNetworkTransportCFStreamErrorDiagnostics {
+    let nsError: NSError = error as NSError
+    let domain: Int? = iosNetworkTransportUserInfoInteger(
+        nsError.userInfo[cfStreamErrorDomainUserInfoKey]
+    )
+    let code: Int? = iosNetworkTransportUserInfoInteger(
+        nsError.userInfo[cfStreamErrorCodeUserInfoKey]
+    )
+    if domain != nil || code != nil {
+        return IOSNetworkTransportCFStreamErrorDiagnostics(domain: domain, code: code)
+    }
+
+    guard remainingDepth > 0 else {
+        return IOSNetworkTransportCFStreamErrorDiagnostics(domain: nil, code: nil)
+    }
+
+    guard let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? Error else {
+        return IOSNetworkTransportCFStreamErrorDiagnostics(domain: nil, code: nil)
+    }
+
+    return iosNetworkTransportCFStreamErrorDiagnostics(
+        error: underlyingError,
+        remainingDepth: remainingDepth - 1
+    )
+}
+
+private func iosNetworkTransportUserInfoInteger(_ value: Any?) -> Int? {
+    if let intValue = value as? Int {
+        return intValue
+    }
+    if let numberValue = value as? NSNumber {
+        return numberValue.intValue
+    }
+    if let stringValue = value as? String {
+        return Int(stringValue.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+    return nil
+}
+
+private func safeIOSNetworkTransportHTTPMethod(_ httpMethod: String) -> String? {
+    let normalizedMethod: String = httpMethod
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .uppercased()
+    return safeIOSNetworkTransportIdentifier(normalizedMethod)
+}
+
+private func safeIOSNetworkTransportEndpointPath(_ endpointPath: String) -> String? {
+    let trimmedPath: String = endpointPath.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedPath.isEmpty == false else {
+        return nil
+    }
+
+    let rawPath: String
+    if let components = URLComponents(string: trimmedPath) {
+        if components.path.isEmpty == false {
+            rawPath = components.path
+        } else if components.scheme != nil || components.host != nil {
+            return nil
+        } else {
+            rawPath = fallbackIOSNetworkTransportEndpointPath(trimmedPath)
+        }
+    } else {
+        guard trimmedPath.contains("://") == false else {
+            return nil
+        }
+        rawPath = fallbackIOSNetworkTransportEndpointPath(trimmedPath)
+    }
+    let normalizedPath: String = rawPath.hasPrefix("/") ? rawPath : "/\(rawPath)"
+    guard normalizedPath.count <= 240 else {
+        return nil
+    }
+
+    let redactedPath: String = normalizedPath
+        .split(separator: "/", omittingEmptySubsequences: false)
+        .map { segment in
+            let segmentValue: String = String(segment)
+            guard shouldRedactIOSNetworkTransportEndpointPathSegment(segmentValue) else {
+                return segmentValue
+            }
+            return filteredDiagnosticValue
+        }
+        .joined(separator: "/")
+    guard redactedPath.rangeOfCharacter(from: iosNetworkTransportEndpointPathAllowedCharacters.inverted) == nil else {
+        return nil
+    }
+    return redactedPath
+}
+
+private func fallbackIOSNetworkTransportEndpointPath(_ endpointPath: String) -> String {
+    let queryStrippedPath: String = endpointPath
+        .split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false)
+        .first
+        .map(String.init) ?? ""
+    return queryStrippedPath
+        .split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false)
+        .first
+        .map(String.init) ?? ""
+}
+
+private let iosNetworkTransportEndpointPathAllowedCharacters: CharacterSet = CharacterSet(
+    charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._~:/-%[]"
+)
+
+private func shouldRedactIOSNetworkTransportEndpointPathSegment(_ segment: String) -> Bool {
+    let decodedSegment: String = segment.removingPercentEncoding ?? segment
+    guard decodedSegment.isEmpty == false else {
+        return false
+    }
+
+    if decodedSegment.range(
+        of: #"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"#,
+        options: .regularExpression
+    ) != nil {
+        return true
+    }
+
+    if decodedSegment.count >= 20,
+       decodedSegment.range(of: #"^[A-Za-z0-9_-]+$"#, options: .regularExpression) != nil {
+        return true
+    }
+
+    return safeIOSNetworkTransportIdentifier(decodedSegment) == nil
+}
+
+private func iosNetworkTransportAPIHostDiagnostics(
+    apiBaseUrl: String
+) -> IOSNetworkTransportAPIHostDiagnostics {
+    let trimmedBaseUrl: String = apiBaseUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let components = URLComponents(string: trimmedBaseUrl),
+          let rawHost = components.host else {
+        return IOSNetworkTransportAPIHostDiagnostics(kind: nil, host: nil)
+    }
+
+    let normalizedHost: String = rawHost.lowercased()
+    if normalizedHost == iosNetworkTransportOfficialAPIHost {
+        return IOSNetworkTransportAPIHostDiagnostics(
+            kind: "official",
+            host: iosNetworkTransportOfficialAPIHost
+        )
+    }
+
+    return IOSNetworkTransportAPIHostDiagnostics(
+        kind: "custom",
+        host: safeIOSNetworkTransportIdentifier(normalizedHost)
+    )
+}
+
+private func safeIOSNetworkTransportIdentifier(_ value: String) -> String? {
+    let candidate: String = safeDiagnosticIdentifier(value)
+    guard candidate != filteredDiagnosticValue else {
+        return nil
+    }
+    return candidate
+}
+
 func isRetryableNetworkTransportFailure(error: Error) -> Bool {
     guard let urlErrorCode: URLError.Code = flashcardsURLErrorCode(error: error, remainingDepth: 4) else {
         return false

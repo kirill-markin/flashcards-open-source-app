@@ -30,6 +30,50 @@ enum FlashcardsObservability {
         backendCode: String?,
         requestId: String?
     ) {
+        self.captureSilentFailure(
+            error: error,
+            scope: scope,
+            action: action,
+            stage: stage,
+            statusCode: statusCode,
+            backendCode: backendCode,
+            requestId: requestId,
+            transportDiagnostics: nil
+        )
+    }
+
+    static func captureSilentFailure(
+        error: Error,
+        scope: IOSObservationScope,
+        action: String,
+        stage: String?,
+        statusCode: Int?,
+        backendCode: String?,
+        requestId: String?,
+        transportDiagnostics: IOSNetworkTransportDiagnostics
+    ) {
+        self.captureSilentFailure(
+            error: error,
+            scope: scope,
+            action: action,
+            stage: stage,
+            statusCode: statusCode,
+            backendCode: backendCode,
+            requestId: requestId,
+            transportDiagnostics: .some(transportDiagnostics)
+        )
+    }
+
+    private static func captureSilentFailure(
+        error: Error,
+        scope: IOSObservationScope,
+        action: String,
+        stage: String?,
+        statusCode: Int?,
+        backendCode: String?,
+        requestId: String?,
+        transportDiagnostics: IOSNetworkTransportDiagnostics?
+    ) {
         self.captureException(
             .silentFailure(
                 error: error,
@@ -40,7 +84,8 @@ enum FlashcardsObservability {
                     statusCode: statusCode,
                     backendCode: backendCode,
                     requestId: requestId,
-                    messageSummary: Flashcards.errorMessage(error: error)
+                    messageSummary: Flashcards.errorMessage(error: error),
+                    transportDiagnostics: transportDiagnostics
                 )
             )
         )

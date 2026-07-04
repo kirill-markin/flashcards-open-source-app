@@ -406,7 +406,8 @@ private func retryReviewManagedMediaDownload(
                 attempt: attempt,
                 maxAttempts: reviewManagedMediaDownloadMaxAttempts,
                 apiBaseUrl: nil,
-                messageSummary: messageSummary
+                messageSummary: messageSummary,
+                transportDiagnostics: nil
             )
         )
     )
