@@ -166,6 +166,23 @@ struct ForegroundOperationObservation: Sendable, Hashable {
     let cloudSyncCleanedUpOperationCount: Int?
     let cloudSyncCleanedUpReviewScheduleImpactingOperationCount: Int?
     let cloudSyncCleanedUpReviewEventOperationCount: Int?
+    let notificationKind: String?
+    let notificationAuthorizationStatus: String?
+    let notificationPendingBeforeTotalCount: Int?
+    let notificationPendingBeforeReviewCount: Int?
+    let notificationPendingBeforeStrictCount: Int?
+    let notificationPendingBeforeOtherCount: Int?
+    let notificationPendingAfterTotalCount: Int?
+    let notificationPendingAfterReviewCount: Int?
+    let notificationPendingAfterStrictCount: Int?
+    let notificationPendingAfterOtherCount: Int?
+    let notificationDeliveredBeforeCount: Int?
+    let notificationDeliveredRemovedCount: Int?
+    let notificationPlannedCount: Int?
+    let notificationAttemptedCount: Int?
+    let notificationAcceptedCount: Int?
+    let notificationReadbackCompleted: Bool?
+    let notificationReadbackAttemptCount: Int?
     let errorSummary: String?
 }
 
@@ -243,6 +260,23 @@ extension ForegroundOperationObservation {
             cloudSyncCleanedUpOperationCount: nil,
             cloudSyncCleanedUpReviewScheduleImpactingOperationCount: nil,
             cloudSyncCleanedUpReviewEventOperationCount: nil,
+            notificationKind: nil,
+            notificationAuthorizationStatus: nil,
+            notificationPendingBeforeTotalCount: nil,
+            notificationPendingBeforeReviewCount: nil,
+            notificationPendingBeforeStrictCount: nil,
+            notificationPendingBeforeOtherCount: nil,
+            notificationPendingAfterTotalCount: nil,
+            notificationPendingAfterReviewCount: nil,
+            notificationPendingAfterStrictCount: nil,
+            notificationPendingAfterOtherCount: nil,
+            notificationDeliveredBeforeCount: nil,
+            notificationDeliveredRemovedCount: nil,
+            notificationPlannedCount: nil,
+            notificationAttemptedCount: nil,
+            notificationAcceptedCount: nil,
+            notificationReadbackCompleted: nil,
+            notificationReadbackAttemptCount: nil,
             errorSummary: errorSummary
         )
     }
@@ -309,6 +343,23 @@ extension ForegroundOperationObservation {
             cloudSyncCleanedUpOperationCount: nil,
             cloudSyncCleanedUpReviewScheduleImpactingOperationCount: nil,
             cloudSyncCleanedUpReviewEventOperationCount: nil,
+            notificationKind: nil,
+            notificationAuthorizationStatus: nil,
+            notificationPendingBeforeTotalCount: nil,
+            notificationPendingBeforeReviewCount: nil,
+            notificationPendingBeforeStrictCount: nil,
+            notificationPendingBeforeOtherCount: nil,
+            notificationPendingAfterTotalCount: nil,
+            notificationPendingAfterReviewCount: nil,
+            notificationPendingAfterStrictCount: nil,
+            notificationPendingAfterOtherCount: nil,
+            notificationDeliveredBeforeCount: nil,
+            notificationDeliveredRemovedCount: nil,
+            notificationPlannedCount: nil,
+            notificationAttemptedCount: nil,
+            notificationAcceptedCount: nil,
+            notificationReadbackCompleted: nil,
+            notificationReadbackAttemptCount: nil,
             errorSummary: errorSummary
         )
     }

@@ -17,6 +17,225 @@ struct NotificationSchedulingReadbackResult: Sendable, Hashable {
     let attemptCount: Int
 }
 
+struct NotificationForegroundOperationCounts: Sendable, Hashable {
+    let pendingBefore: AppNotificationPendingRequestBreakdown?
+    let pendingAfter: AppNotificationPendingRequestBreakdown?
+    let deliveredBeforeCount: Int?
+    let deliveredRemovedCount: Int?
+    let plannedCount: Int?
+    let attemptedCount: Int?
+    let acceptedCount: Int?
+    let readbackCompleted: Bool?
+    let readbackAttemptCount: Int?
+}
+
+func emptyNotificationForegroundOperationCounts() -> NotificationForegroundOperationCounts {
+    NotificationForegroundOperationCounts(
+        pendingBefore: nil,
+        pendingAfter: nil,
+        deliveredBeforeCount: nil,
+        deliveredRemovedCount: nil,
+        plannedCount: nil,
+        attemptedCount: nil,
+        acceptedCount: nil,
+        readbackCompleted: nil,
+        readbackAttemptCount: nil
+    )
+}
+
+func notificationCleanupForegroundOperationCounts(
+    pendingBefore: AppNotificationPendingRequestBreakdown,
+    deliveredBeforeCount: Int?,
+    deliveredRemovedCount: Int?
+) -> NotificationForegroundOperationCounts {
+    NotificationForegroundOperationCounts(
+        pendingBefore: pendingBefore,
+        pendingAfter: nil,
+        deliveredBeforeCount: deliveredBeforeCount,
+        deliveredRemovedCount: deliveredRemovedCount,
+        plannedCount: nil,
+        attemptedCount: nil,
+        acceptedCount: nil,
+        readbackCompleted: nil,
+        readbackAttemptCount: nil
+    )
+}
+
+func notificationPlannedForegroundOperationCounts(
+    plannedCount: Int
+) -> NotificationForegroundOperationCounts {
+    NotificationForegroundOperationCounts(
+        pendingBefore: nil,
+        pendingAfter: nil,
+        deliveredBeforeCount: nil,
+        deliveredRemovedCount: nil,
+        plannedCount: plannedCount,
+        attemptedCount: nil,
+        acceptedCount: nil,
+        readbackCompleted: nil,
+        readbackAttemptCount: nil
+    )
+}
+
+func notificationPendingBeforeForegroundOperationCounts(
+    pendingBefore: AppNotificationPendingRequestBreakdown,
+    plannedCount: Int
+) -> NotificationForegroundOperationCounts {
+    NotificationForegroundOperationCounts(
+        pendingBefore: pendingBefore,
+        pendingAfter: nil,
+        deliveredBeforeCount: nil,
+        deliveredRemovedCount: nil,
+        plannedCount: plannedCount,
+        attemptedCount: nil,
+        acceptedCount: nil,
+        readbackCompleted: nil,
+        readbackAttemptCount: nil
+    )
+}
+
+func notificationAddForegroundOperationCounts(
+    pendingBefore: AppNotificationPendingRequestBreakdown,
+    plannedCount: Int,
+    attemptedCount: Int
+) -> NotificationForegroundOperationCounts {
+    NotificationForegroundOperationCounts(
+        pendingBefore: pendingBefore,
+        pendingAfter: nil,
+        deliveredBeforeCount: nil,
+        deliveredRemovedCount: nil,
+        plannedCount: plannedCount,
+        attemptedCount: attemptedCount,
+        acceptedCount: nil,
+        readbackCompleted: nil,
+        readbackAttemptCount: nil
+    )
+}
+
+func notificationReadbackForegroundOperationCounts(
+    pendingBefore: AppNotificationPendingRequestBreakdown,
+    pendingAfter: AppNotificationPendingRequestBreakdown?,
+    deliveredBeforeCount: Int?,
+    deliveredRemovedCount: Int?,
+    plannedCount: Int,
+    attemptedCount: Int,
+    acceptedCount: Int?,
+    readbackCompleted: Bool?,
+    readbackAttemptCount: Int?
+) -> NotificationForegroundOperationCounts {
+    NotificationForegroundOperationCounts(
+        pendingBefore: pendingBefore,
+        pendingAfter: pendingAfter,
+        deliveredBeforeCount: deliveredBeforeCount,
+        deliveredRemovedCount: deliveredRemovedCount,
+        plannedCount: plannedCount,
+        attemptedCount: attemptedCount,
+        acceptedCount: acceptedCount,
+        readbackCompleted: readbackCompleted,
+        readbackAttemptCount: readbackAttemptCount
+    )
+}
+
+@MainActor
+extension FlashcardsStore {
+    func addNotificationForegroundOperationBreadcrumb(
+        notificationKind: AppNotificationTapType,
+        stage: String,
+        phase: ForegroundOperationPhase,
+        trigger: String,
+        startedAt: Date?,
+        authorizationStatus: ReviewNotificationPermissionStatus?,
+        counts: NotificationForegroundOperationCounts,
+        errorSummary: String?
+    ) {
+        let durationMilliseconds = startedAt.map { startDate in
+            iosObservationDurationMilliseconds(startedAt: startDate, finishedAt: Date())
+        }
+        let scope = IOSObservationScope(
+            feature: .notifications,
+            userId: self.cloudSettings?.linkedUserId,
+            workspaceId: self.workspace?.workspaceId,
+            requestId: nil,
+            clientRequestId: nil,
+            sessionId: nil,
+            runId: nil,
+            cloudState: self.cloudSettings?.cloudState,
+            configurationMode: try? self.currentCloudServiceConfiguration().mode
+        )
+
+        FlashcardsObservability.addBreadcrumb(
+            .foregroundOperation(
+                ForegroundOperationObservation(
+                    scope: scope,
+                    action: .notificationReconciliation,
+                    phase: phase,
+                    durationMilliseconds: durationMilliseconds,
+                    operationStage: stage,
+                    operationTrigger: trigger,
+                    selectedTab: nil,
+                    scenePhase: nil,
+                    isStartupReady: nil,
+                    isRecoveryGateActive: nil,
+                    cardCount: nil,
+                    deckCount: nil,
+                    pendingOutboxOperationCount: nil,
+                    reviewQueueCount: nil,
+                    reviewDueCount: nil,
+                    reviewNewCount: nil,
+                    reviewPendingCount: nil,
+                    reviewTotalCount: nil,
+                    reviewFilterKind: nil,
+                    reviewRefreshMode: nil,
+                    reviewLoadKind: nil,
+                    progressSummaryRefreshNeeded: nil,
+                    progressSeriesRefreshNeeded: nil,
+                    progressReviewScheduleRefreshNeeded: nil,
+                    progressLeaderboardRefreshNeeded: nil,
+                    progressStreakLeaderboardRefreshNeeded: nil,
+                    cloudSyncBlocked: nil,
+                    cloudSyncExtendsFastPolling: nil,
+                    cloudSyncUsesImmediateStartDebounce: nil,
+                    cloudSyncImmediateStartSkipped: nil,
+                    cloudSyncSkipReason: nil,
+                    cloudSyncHadActiveTask: nil,
+                    cloudSyncPendingResync: nil,
+                    cloudSyncWaitOutcome: nil,
+                    cloudSyncAcknowledgedOperationCount: nil,
+                    cloudSyncAppliedPullChangeCount: nil,
+                    cloudSyncChangedEntityTypeCount: nil,
+                    cloudSyncLocalIdRepairEntityTypeCount: nil,
+                    cloudSyncReviewScheduleImpactingPullChangeCount: nil,
+                    cloudSyncAcknowledgedReviewEventOperationCount: nil,
+                    cloudSyncAcknowledgedReviewScheduleImpactingOperationCount: nil,
+                    cloudSyncCleanedUpOperationCount: nil,
+                    cloudSyncCleanedUpReviewScheduleImpactingOperationCount: nil,
+                    cloudSyncCleanedUpReviewEventOperationCount: nil,
+                    notificationKind: notificationKind.rawValue,
+                    notificationAuthorizationStatus: authorizationStatus.map { status in
+                        reviewNotificationPermissionStatusDiagnosticValue(status: status)
+                    },
+                    notificationPendingBeforeTotalCount: counts.pendingBefore?.totalCount,
+                    notificationPendingBeforeReviewCount: counts.pendingBefore?.reviewCount,
+                    notificationPendingBeforeStrictCount: counts.pendingBefore?.strictCount,
+                    notificationPendingBeforeOtherCount: counts.pendingBefore?.otherCount,
+                    notificationPendingAfterTotalCount: counts.pendingAfter?.totalCount,
+                    notificationPendingAfterReviewCount: counts.pendingAfter?.reviewCount,
+                    notificationPendingAfterStrictCount: counts.pendingAfter?.strictCount,
+                    notificationPendingAfterOtherCount: counts.pendingAfter?.otherCount,
+                    notificationDeliveredBeforeCount: counts.deliveredBeforeCount,
+                    notificationDeliveredRemovedCount: counts.deliveredRemovedCount,
+                    notificationPlannedCount: counts.plannedCount,
+                    notificationAttemptedCount: counts.attemptedCount,
+                    notificationAcceptedCount: counts.acceptedCount,
+                    notificationReadbackCompleted: counts.readbackCompleted,
+                    notificationReadbackAttemptCount: counts.readbackAttemptCount,
+                    errorSummary: errorSummary
+                )
+            )
+        )
+    }
+}
+
 func appNotificationPendingRequestBreakdown(
     identifiers: [String]
 ) -> AppNotificationPendingRequestBreakdown {
@@ -178,15 +397,17 @@ func deliveredReviewReminderAttentionStates(
 
 /// Removes delivered review reminders from Notification Center.
 @MainActor
+@discardableResult
 func removeDeliveredReviewNotifications(
     center: UNUserNotificationCenter
-) async {
+) async -> Int {
     let deliveredRequestIdentifiers = await deliveredReviewNotificationRequestIdentifiers(center: center)
     guard deliveredRequestIdentifiers.isEmpty == false else {
-        return
+        return 0
     }
 
     center.removeDeliveredNotifications(withIdentifiers: deliveredRequestIdentifiers)
+    return deliveredRequestIdentifiers.count
 }
 
 func makeDelayedNotificationSchedulingReadback(

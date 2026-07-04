@@ -535,27 +535,33 @@ func pendingStrictReminderRequestIdentifiers(
     }
 }
 
+@discardableResult
 func removePendingStrictReminders(
     center: UNUserNotificationCenter
-) async {
+) async -> Int {
     await removePendingStrictReminders(center: center, userDefaults: .standard)
 }
 
+@discardableResult
 func removePendingStrictReminders(
     center: UNUserNotificationCenter,
     userDefaults: UserDefaults
-) async {
+) async -> Int {
+    var removedCount = 0
     for removalScope in strictReminderRemovalScopes(
         currentScope: storedStrictReminderNotificationScope(userDefaults: userDefaults)
     ) {
-        await removePendingStrictReminders(center: center, removalScope: removalScope)
+        let removalScopeRemovedCount = await removePendingStrictReminders(center: center, removalScope: removalScope)
+        removedCount += removalScopeRemovedCount
     }
+    return removedCount
 }
 
+@discardableResult
 func removePendingStrictReminders(
     center: UNUserNotificationCenter,
     removalScope: String?
-) async {
+) async -> Int {
     let pendingRequestIdentifiers = await withCheckedContinuation { continuation in
         center.getPendingNotificationRequests { requests in
             let matchingIdentifiers: [String] = requests.compactMap { request -> String? in
@@ -577,10 +583,11 @@ func removePendingStrictReminders(
         }
     }
     guard pendingRequestIdentifiers.isEmpty == false else {
-        return
+        return 0
     }
 
     center.removePendingNotificationRequests(withIdentifiers: pendingRequestIdentifiers)
+    return pendingRequestIdentifiers.count
 }
 
 func deliveredStrictReminderRequestIdentifiers(
@@ -623,61 +630,137 @@ func deliveredStrictReminderRequestIdentifiers(
     }
 }
 
-func removeDeliveredStrictReminders(
-    center: UNUserNotificationCenter
-) async {
-    await removeDeliveredStrictReminders(center: center, userDefaults: .standard)
-}
-
-func removeDeliveredStrictReminders(
+func deliveredStrictReminderRequestIdentifiers(
     center: UNUserNotificationCenter,
-    userDefaults: UserDefaults
-) async {
-    for removalScope in strictReminderRemovalScopes(
-        currentScope: storedStrictReminderNotificationScope(userDefaults: userDefaults)
-    ) {
-        await removeDeliveredStrictReminders(center: center, removalScope: removalScope)
+    removalScopes: [String?]
+) async -> [String] {
+    return await withCheckedContinuation { continuation in
+        center.getDeliveredNotifications { notifications in
+            var matchingIdentifiers: [String] = []
+            var matchingIdentifierSet: Set<String> = []
+            for notification in notifications {
+                let identifier = notification.request.identifier
+                guard isStrictReminderRequestIdentifier(identifier: identifier) else {
+                    continue
+                }
+                let shouldRemoveNotification = removalScopes.contains { removalScope in
+                    shouldRemoveStrictReminderNotification(
+                        userInfo: notification.request.content.userInfo,
+                        removalScope: removalScope
+                    )
+                }
+                guard shouldRemoveNotification else {
+                    continue
+                }
+                guard matchingIdentifierSet.insert(identifier).inserted else {
+                    continue
+                }
+
+                matchingIdentifiers.append(identifier)
+            }
+            continuation.resume(
+                returning: matchingIdentifiers
+            )
+        }
     }
 }
 
+@discardableResult
+func removeDeliveredStrictReminders(
+    center: UNUserNotificationCenter
+) async -> Int {
+    await removeDeliveredStrictReminders(center: center, userDefaults: .standard)
+}
+
+@discardableResult
+func removeDeliveredStrictReminders(
+    center: UNUserNotificationCenter,
+    userDefaults: UserDefaults
+) async -> Int {
+    await removeDeliveredStrictReminders(
+        center: center,
+        removalScopes: strictReminderRemovalScopes(
+            currentScope: storedStrictReminderNotificationScope(userDefaults: userDefaults)
+        )
+    )
+}
+
+@discardableResult
+func removeDeliveredStrictReminders(
+    center: UNUserNotificationCenter,
+    removalScopes: [String?]
+) async -> Int {
+    let deliveredRequestIdentifiers = await deliveredStrictReminderRequestIdentifiers(
+        center: center,
+        removalScopes: removalScopes
+    )
+    return removeDeliveredStrictReminders(
+        center: center,
+        requestIdentifiers: deliveredRequestIdentifiers
+    )
+}
+
+@discardableResult
+func removeDeliveredStrictReminders(
+    center: UNUserNotificationCenter,
+    requestIdentifiers: [String]
+) -> Int {
+    guard requestIdentifiers.isEmpty == false else {
+        return 0
+    }
+
+    center.removeDeliveredNotifications(withIdentifiers: requestIdentifiers)
+    return requestIdentifiers.count
+}
+
+@discardableResult
+func removePendingAndDeliveredStrictReminders(
+    center: UNUserNotificationCenter
+) async -> Int {
+    await removePendingAndDeliveredStrictReminders(center: center, userDefaults: .standard)
+}
+
+@discardableResult
+func removePendingAndDeliveredStrictReminders(
+    center: UNUserNotificationCenter,
+    userDefaults: UserDefaults
+) async -> Int {
+    let removalScopes = strictReminderRemovalScopes(
+        currentScope: storedStrictReminderNotificationScope(userDefaults: userDefaults)
+    )
+    var removedCount = 0
+    for removalScope in removalScopes {
+        removedCount += await removePendingStrictReminders(center: center, removalScope: removalScope)
+    }
+    removedCount += await removeDeliveredStrictReminders(center: center, removalScopes: removalScopes)
+    return removedCount
+}
+
+@discardableResult
 func removeDeliveredStrictReminders(
     center: UNUserNotificationCenter,
     removalScope: String?
-) async {
+) async -> Int {
     let deliveredRequestIdentifiers = await deliveredStrictReminderRequestIdentifiers(
         center: center,
         removalScope: removalScope
     )
     guard deliveredRequestIdentifiers.isEmpty == false else {
-        return
+        return 0
     }
 
     center.removeDeliveredNotifications(withIdentifiers: deliveredRequestIdentifiers)
+    return deliveredRequestIdentifiers.count
 }
 
-func removePendingAndDeliveredStrictReminders(
-    center: UNUserNotificationCenter
-) async {
-    await removePendingAndDeliveredStrictReminders(center: center, userDefaults: .standard)
-}
-
-func removePendingAndDeliveredStrictReminders(
-    center: UNUserNotificationCenter,
-    userDefaults: UserDefaults
-) async {
-    for removalScope in strictReminderRemovalScopes(
-        currentScope: storedStrictReminderNotificationScope(userDefaults: userDefaults)
-    ) {
-        await removePendingAndDeliveredStrictReminders(center: center, removalScope: removalScope)
-    }
-}
-
+@discardableResult
 func removePendingAndDeliveredStrictReminders(
     center: UNUserNotificationCenter,
     removalScope: String?
-) async {
-    await removePendingStrictReminders(center: center, removalScope: removalScope)
-    await removeDeliveredStrictReminders(center: center, removalScope: removalScope)
+) async -> Int {
+    let pendingRemovedCount = await removePendingStrictReminders(center: center, removalScope: removalScope)
+    let deliveredRemovedCount = await removeDeliveredStrictReminders(center: center, removalScope: removalScope)
+    return pendingRemovedCount + deliveredRemovedCount
 }
 
 func buildStrictReminderPayloads(

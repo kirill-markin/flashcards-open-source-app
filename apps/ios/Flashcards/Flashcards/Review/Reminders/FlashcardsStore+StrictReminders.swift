@@ -151,39 +151,144 @@ extension FlashcardsStore {
             return
         }
 
+        let triggerDiagnosticValue = strictRemindersReconcileTriggerDiagnosticValue(triggers: request.triggers)
+        let reconcileStartedAt = Date()
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .strictReminder,
+            stage: "strict_reconcile",
+            phase: .start,
+            trigger: triggerDiagnosticValue,
+            startedAt: nil,
+            authorizationStatus: nil,
+            counts: emptyNotificationForegroundOperationCounts(),
+            errorSummary: nil
+        )
         let center = UNUserNotificationCenter.current()
         let removalScopes = strictReminderRemovalScopes(
             currentScope: storedStrictReminderNotificationScope(userDefaults: self.userDefaults)
         )
+        let cleanupStartedAt = Date()
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .strictReminder,
+            stage: "strict_notification_center_cleanup",
+            phase: .start,
+            trigger: triggerDiagnosticValue,
+            startedAt: nil,
+            authorizationStatus: nil,
+            counts: emptyNotificationForegroundOperationCounts(),
+            errorSummary: nil
+        )
+        let pendingBeforeCleanupRequestIdentifiers = await pendingAppNotificationRequestIdentifiers(center: center)
+        let cleanupPendingBefore = appNotificationPendingRequestBreakdown(
+            identifiers: pendingBeforeCleanupRequestIdentifiers
+        )
+        let deliveredBeforeCleanupRequestIdentifiersToRemove: [String]?
+        if request.shouldClearDeliveredStrictReminders {
+            deliveredBeforeCleanupRequestIdentifiersToRemove = await deliveredStrictReminderRequestIdentifiers(
+                center: center,
+                removalScopes: removalScopes
+            )
+        } else {
+            deliveredBeforeCleanupRequestIdentifiersToRemove = nil
+        }
         for removalScope in removalScopes {
             await removePendingStrictReminders(center: center, removalScope: removalScope)
         }
         guard Task.isCancelled == false else {
             return
         }
-        if request.shouldClearDeliveredStrictReminders {
-            for removalScope in removalScopes {
-                await removeDeliveredStrictReminders(center: center, removalScope: removalScope)
-            }
+        var deliveredRemovedCount: Int?
+        if let deliveredBeforeCleanupRequestIdentifiersToRemove {
+            deliveredRemovedCount = removeDeliveredStrictReminders(
+                center: center,
+                requestIdentifiers: deliveredBeforeCleanupRequestIdentifiersToRemove
+            )
         }
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .strictReminder,
+            stage: "strict_notification_center_cleanup",
+            phase: .success,
+            trigger: triggerDiagnosticValue,
+            startedAt: cleanupStartedAt,
+            authorizationStatus: nil,
+            counts: notificationCleanupForegroundOperationCounts(
+                pendingBefore: cleanupPendingBefore,
+                deliveredBeforeCount: nil,
+                deliveredRemovedCount: deliveredRemovedCount
+            ),
+            errorSummary: nil
+        )
         guard Task.isCancelled == false else {
             return
         }
 
         guard self.strictRemindersSettings.isEnabled else {
             self.persistScheduledStrictReminders(payloads: [])
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .strictReminder,
+                stage: "strict_reconcile_skipped_disabled",
+                phase: .success,
+                trigger: triggerDiagnosticValue,
+                startedAt: reconcileStartedAt,
+                authorizationStatus: nil,
+                counts: emptyNotificationForegroundOperationCounts(),
+                errorSummary: nil
+            )
             return
         }
-        guard await resolveReviewNotificationPermissionStatus() == .allowed else {
+        let permissionStatus = await resolveReviewNotificationPermissionStatus()
+        guard permissionStatus == .allowed else {
             self.persistScheduledStrictReminders(payloads: [])
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .strictReminder,
+                stage: "strict_reconcile_skipped_permission",
+                phase: .success,
+                trigger: triggerDiagnosticValue,
+                startedAt: reconcileStartedAt,
+                authorizationStatus: permissionStatus,
+                counts: emptyNotificationForegroundOperationCounts(),
+                errorSummary: nil
+            )
             return
         }
+        let waitStartedAt = Date()
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .strictReminder,
+            stage: "strict_wait_review_notifications",
+            phase: .start,
+            trigger: triggerDiagnosticValue,
+            startedAt: nil,
+            authorizationStatus: permissionStatus,
+            counts: emptyNotificationForegroundOperationCounts(),
+            errorSummary: nil
+        )
         await self.waitForReviewNotificationsReconcileToSettle()
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .strictReminder,
+            stage: "strict_wait_review_notifications",
+            phase: .success,
+            trigger: triggerDiagnosticValue,
+            startedAt: waitStartedAt,
+            authorizationStatus: permissionStatus,
+            counts: emptyNotificationForegroundOperationCounts(),
+            errorSummary: nil
+        )
         guard Task.isCancelled == false else {
             return
         }
 
         let payloads: [ScheduledStrictReminderPayload]
+        let payloadLoadStartedAt = Date()
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .strictReminder,
+            stage: "strict_payload_load",
+            phase: .start,
+            trigger: triggerDiagnosticValue,
+            startedAt: nil,
+            authorizationStatus: permissionStatus,
+            counts: emptyNotificationForegroundOperationCounts(),
+            errorSummary: nil
+        )
         do {
             let calendar = Calendar.autoupdatingCurrent
             let persistedCompletedDayStartMillis = loadStrictReminderCompletedDayStartMillis(
@@ -217,7 +322,40 @@ extension FlashcardsStore {
                     completedDayStartMillis: completedDayResolution.completedDayStartMillis
                 )
             )
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .strictReminder,
+                stage: "strict_payload_load",
+                phase: .success,
+                trigger: triggerDiagnosticValue,
+                startedAt: payloadLoadStartedAt,
+                authorizationStatus: permissionStatus,
+                counts: notificationPlannedForegroundOperationCounts(
+                    plannedCount: payloads.count
+                ),
+                errorSummary: nil
+            )
         } catch {
+            let errorSummary = Flashcards.errorMessage(error: error)
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .strictReminder,
+                stage: "strict_payload_load",
+                phase: .failure,
+                trigger: triggerDiagnosticValue,
+                startedAt: payloadLoadStartedAt,
+                authorizationStatus: permissionStatus,
+                counts: emptyNotificationForegroundOperationCounts(),
+                errorSummary: errorSummary
+            )
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .strictReminder,
+                stage: "strict_reconcile",
+                phase: .failure,
+                trigger: triggerDiagnosticValue,
+                startedAt: reconcileStartedAt,
+                authorizationStatus: permissionStatus,
+                counts: emptyNotificationForegroundOperationCounts(),
+                errorSummary: errorSummary
+            )
             FlashcardsObservability.captureWarning(
                 .localDataRepair(
                     LocalDataRepairWarning(
@@ -235,7 +373,7 @@ extension FlashcardsStore {
                         ),
                         workspaceId: self.workspace?.workspaceId,
                         cardId: nil,
-                        reason: Flashcards.errorMessage(error: error),
+                        reason: errorSummary,
                         repair: "clear_scheduled_strict_reminders"
                     )
                 )
@@ -248,13 +386,56 @@ extension FlashcardsStore {
         }
 
         let notificationScope = loadStrictReminderNotificationScope(userDefaults: self.userDefaults)
+        let pendingReadStartedAt = Date()
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .strictReminder,
+            stage: "strict_pending_read_before",
+            phase: .start,
+            trigger: triggerDiagnosticValue,
+            startedAt: nil,
+            authorizationStatus: permissionStatus,
+            counts: notificationPlannedForegroundOperationCounts(
+                plannedCount: payloads.count
+            ),
+            errorSummary: nil
+        )
         let pendingBeforeRequestIdentifiers: [String] = await pendingAppNotificationRequestIdentifiers(center: center)
         let permissionStatusBeforeAdd: ReviewNotificationPermissionStatus =
             await resolveReviewNotificationPermissionStatus()
         let appStateBeforeAdd: String = currentAppNotificationApplicationStateDiagnosticValue()
+        let pendingBeforeBreakdown = appNotificationPendingRequestBreakdown(
+            identifiers: pendingBeforeRequestIdentifiers
+        )
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .strictReminder,
+            stage: "strict_pending_read_before",
+            phase: .success,
+            trigger: triggerDiagnosticValue,
+            startedAt: pendingReadStartedAt,
+            authorizationStatus: permissionStatusBeforeAdd,
+            counts: notificationPendingBeforeForegroundOperationCounts(
+                pendingBefore: pendingBeforeBreakdown,
+                plannedCount: payloads.count
+            ),
+            errorSummary: nil
+        )
         var addFailure: Error?
-        var failedRequestId: String?
         var attemptedPayloads: [ScheduledStrictReminderPayload] = []
+        var attemptedAddCount = 0
+        let addStartedAt = Date()
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .strictReminder,
+            stage: "strict_add_requests",
+            phase: .start,
+            trigger: triggerDiagnosticValue,
+            startedAt: nil,
+            authorizationStatus: permissionStatusBeforeAdd,
+            counts: notificationPendingBeforeForegroundOperationCounts(
+                pendingBefore: pendingBeforeBreakdown,
+                plannedCount: payloads.count
+            ),
+            errorSummary: nil
+        )
         for payload in payloads {
             guard Task.isCancelled == false else {
                 return
@@ -274,13 +455,29 @@ extension FlashcardsStore {
 
             attemptedPayloads.append(payload)
             do {
+                attemptedAddCount += 1
                 try await center.add(notificationRequest)
             } catch {
                 addFailure = error
-                failedRequestId = payload.requestId
                 break
             }
         }
+        let addErrorSummary = addFailure.map { error in Flashcards.errorMessage(error: error) }
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .strictReminder,
+            stage: "strict_add_requests",
+            phase: addFailure == nil ? .success : .failure,
+            trigger: triggerDiagnosticValue,
+            startedAt: addStartedAt,
+            authorizationStatus: permissionStatusBeforeAdd,
+            counts: notificationAddForegroundOperationCounts(
+                pendingBefore: pendingBeforeBreakdown,
+                plannedCount: payloads.count,
+                attemptedCount: attemptedAddCount
+            ),
+            errorSummary: addErrorSummary
+        )
+        let didLogAddFailureBreadcrumb = addFailure != nil
         guard Task.isCancelled == false else {
             return
         }
@@ -295,6 +492,21 @@ extension FlashcardsStore {
         let initialReadbackRetryDelayNanoseconds: [UInt64] = addFailure == nil
             ? notificationSchedulingReadbackRetryDelayNanoseconds
             : []
+        let readbackStartedAt = Date()
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .strictReminder,
+            stage: "strict_readback",
+            phase: .start,
+            trigger: triggerDiagnosticValue,
+            startedAt: nil,
+            authorizationStatus: permissionStatusBeforeAdd,
+            counts: notificationAddForegroundOperationCounts(
+                pendingBefore: pendingBeforeBreakdown,
+                plannedCount: expectedPayloads.count,
+                attemptedCount: attemptedAddCount
+            ),
+            errorSummary: nil
+        )
         do {
             readbackResult = try await notificationSchedulingReadback(
                 center: center,
@@ -304,6 +516,41 @@ extension FlashcardsStore {
         } catch is CancellationError {
             return
         } catch {
+            let errorSummary = Flashcards.errorMessage(error: error)
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .strictReminder,
+                stage: "strict_readback",
+                phase: .failure,
+                trigger: triggerDiagnosticValue,
+                startedAt: readbackStartedAt,
+                authorizationStatus: permissionStatusBeforeAdd,
+                counts: notificationAddForegroundOperationCounts(
+                    pendingBefore: pendingBeforeBreakdown,
+                    plannedCount: expectedPayloads.count,
+                    attemptedCount: attemptedAddCount
+                ),
+                errorSummary: errorSummary
+            )
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .strictReminder,
+                stage: "strict_reconcile",
+                phase: .failure,
+                trigger: triggerDiagnosticValue,
+                startedAt: reconcileStartedAt,
+                authorizationStatus: permissionStatusBeforeAdd,
+                counts: notificationReadbackForegroundOperationCounts(
+                    pendingBefore: pendingBeforeBreakdown,
+                    pendingAfter: nil,
+                    deliveredBeforeCount: nil,
+                    deliveredRemovedCount: deliveredRemovedCount,
+                    plannedCount: expectedPayloads.count,
+                    attemptedCount: attemptedAddCount,
+                    acceptedCount: nil,
+                    readbackCompleted: nil,
+                    readbackAttemptCount: nil
+                ),
+                errorSummary: errorSummary
+            )
             captureStrictRemindersSilentFailure(
                 error: error,
                 action: "strict_reminders_delayed_readback",
@@ -317,8 +564,10 @@ extension FlashcardsStore {
         guard Task.isCancelled == false else {
             return
         }
+        var readbackAttemptCount: Int = readbackResult.attemptCount
 
         if addFailure == nil && readbackResult.isComplete == false {
+            let initialReadbackResult = readbackResult
             let missingPayloads: [ScheduledStrictReminderPayload] = missingStrictReminderPayloads(
                 payloads: expectedPayloads,
                 pendingRequestIdentifiers: readbackResult.pendingRequestIdentifiers
@@ -340,10 +589,10 @@ extension FlashcardsStore {
                     addNow: addNow
                 )
                 do {
+                    attemptedAddCount += 1
                     try await center.add(notificationRequest)
                 } catch {
                     addFailure = error
-                    failedRequestId = payload.requestId
                     break
                 }
             }
@@ -363,9 +612,55 @@ extension FlashcardsStore {
                     plannedRequestIdentifiers: finalExpectedPayloads.map(\.requestId),
                     retryDelayNanoseconds: finalReadbackRetryDelayNanoseconds
                 )
+                readbackAttemptCount += readbackResult.attemptCount
             } catch is CancellationError {
                 return
             } catch {
+                let errorSummary = Flashcards.errorMessage(error: error)
+                self.addNotificationForegroundOperationBreadcrumb(
+                    notificationKind: .strictReminder,
+                    stage: "strict_readback",
+                    phase: .failure,
+                    trigger: triggerDiagnosticValue,
+                    startedAt: readbackStartedAt,
+                    authorizationStatus: permissionStatusBeforeAdd,
+                    counts: notificationReadbackForegroundOperationCounts(
+                        pendingBefore: pendingBeforeBreakdown,
+                        pendingAfter: appNotificationPendingRequestBreakdown(
+                            identifiers: initialReadbackResult.pendingRequestIdentifiers
+                        ),
+                        deliveredBeforeCount: nil,
+                        deliveredRemovedCount: nil,
+                        plannedCount: finalExpectedPayloads.count,
+                        attemptedCount: attemptedAddCount,
+                        acceptedCount: nil,
+                        readbackCompleted: initialReadbackResult.isComplete,
+                        readbackAttemptCount: readbackAttemptCount
+                    ),
+                    errorSummary: errorSummary
+                )
+                self.addNotificationForegroundOperationBreadcrumb(
+                    notificationKind: .strictReminder,
+                    stage: "strict_reconcile",
+                    phase: .failure,
+                    trigger: triggerDiagnosticValue,
+                    startedAt: reconcileStartedAt,
+                    authorizationStatus: permissionStatusBeforeAdd,
+                    counts: notificationReadbackForegroundOperationCounts(
+                        pendingBefore: pendingBeforeBreakdown,
+                        pendingAfter: appNotificationPendingRequestBreakdown(
+                            identifiers: initialReadbackResult.pendingRequestIdentifiers
+                        ),
+                        deliveredBeforeCount: nil,
+                        deliveredRemovedCount: deliveredRemovedCount,
+                        plannedCount: finalExpectedPayloads.count,
+                        attemptedCount: attemptedAddCount,
+                        acceptedCount: nil,
+                        readbackCompleted: initialReadbackResult.isComplete,
+                        readbackAttemptCount: readbackAttemptCount
+                    ),
+                    errorSummary: errorSummary
+                )
                 captureStrictRemindersSilentFailure(
                     error: error,
                     action: "strict_reminders_delayed_readback",
@@ -405,7 +700,7 @@ extension FlashcardsStore {
             diagnosticPayloads = attemptedPayloads
         }
         let diagnostics: NotificationSchedulingDiagnostics = makeNotificationSchedulingDiagnostics(
-            trigger: strictRemindersReconcileTriggerDiagnosticValue(triggers: request.triggers),
+            trigger: triggerDiagnosticValue,
             scheduledAtMillisRange: strictReminderScheduledAtMillisRange(payloads: diagnosticPayloads),
             delaySecondsRange: strictReminderSchedulingDelaySecondsRange(
                 payloads: diagnosticPayloads,
@@ -419,6 +714,54 @@ extension FlashcardsStore {
             appStateAfterReadback: appStateAfterReadback,
             delayedReadback: delayedReadback
         )
+        let readbackMismatchSummary: String? = hasReadbackMismatch
+            ? "Notification Center accepted fewer strict reminders than planned"
+            : nil
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .strictReminder,
+            stage: "strict_readback",
+            phase: hasReadbackMismatch ? .failure : .success,
+            trigger: triggerDiagnosticValue,
+            startedAt: readbackStartedAt,
+            authorizationStatus: permissionStatusAfterReadback,
+            counts: notificationReadbackForegroundOperationCounts(
+                pendingBefore: diagnostics.pendingBefore,
+                pendingAfter: diagnostics.pendingAfter,
+                deliveredBeforeCount: nil,
+                deliveredRemovedCount: nil,
+                plannedCount: finalExpectedPayloads.count,
+                attemptedCount: attemptedAddCount,
+                acceptedCount: acceptedExpectedPayloads.count,
+                readbackCompleted: readbackResult.isComplete,
+                readbackAttemptCount: readbackAttemptCount
+            ),
+            errorSummary: readbackMismatchSummary
+        )
+        let reconcileErrorSummary: String? = addFailure.map { error in
+            Flashcards.errorMessage(error: error)
+        } ?? readbackMismatchSummary
+        if let addFailure, didLogAddFailureBreadcrumb == false {
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .strictReminder,
+                stage: "strict_add_requests",
+                phase: .failure,
+                trigger: triggerDiagnosticValue,
+                startedAt: nil,
+                authorizationStatus: permissionStatusAfterReadback,
+                counts: notificationReadbackForegroundOperationCounts(
+                    pendingBefore: diagnostics.pendingBefore,
+                    pendingAfter: diagnostics.pendingAfter,
+                    deliveredBeforeCount: nil,
+                    deliveredRemovedCount: nil,
+                    plannedCount: payloads.count,
+                    attemptedCount: attemptedAddCount,
+                    acceptedCount: acceptedAttemptedPayloads.count,
+                    readbackCompleted: readbackResult.isComplete,
+                    readbackAttemptCount: readbackAttemptCount
+                ),
+                errorSummary: Flashcards.errorMessage(error: addFailure)
+            )
+        }
         if let addFailure {
             FlashcardsObservability.captureWarning(
                 .notificationSchedulingFailed(
@@ -437,7 +780,7 @@ extension FlashcardsStore {
                         ),
                         notificationKind: .strictReminder,
                         workspaceId: self.workspace?.workspaceId,
-                        requestId: failedRequestId,
+                        requestId: nil,
                         stage: "add",
                         plannedCount: attemptedPayloads.count,
                         acceptedCount: acceptedAttemptedPayloads.count,
@@ -471,12 +814,32 @@ extension FlashcardsStore {
                         acceptedCount: acceptedExpectedPayloads.count,
                         diagnostics: diagnostics,
                         error: nil,
-                        messageSummary: "Notification Center accepted fewer strict reminders than planned"
+                        messageSummary: readbackMismatchSummary
                     )
                 )
             )
         }
         self.persistScheduledStrictReminders(payloads: acceptedExpectedPayloads)
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .strictReminder,
+            stage: "strict_reconcile",
+            phase: reconcileErrorSummary == nil ? .success : .failure,
+            trigger: triggerDiagnosticValue,
+            startedAt: reconcileStartedAt,
+            authorizationStatus: permissionStatusAfterReadback,
+            counts: notificationReadbackForegroundOperationCounts(
+                pendingBefore: diagnostics.pendingBefore,
+                pendingAfter: diagnostics.pendingAfter,
+                deliveredBeforeCount: nil,
+                deliveredRemovedCount: deliveredRemovedCount,
+                plannedCount: finalExpectedPayloads.count,
+                attemptedCount: attemptedAddCount,
+                acceptedCount: acceptedExpectedPayloads.count,
+                readbackCompleted: readbackResult.isComplete,
+                readbackAttemptCount: readbackAttemptCount
+            ),
+            errorSummary: reconcileErrorSummary
+        )
     }
 }
 
