@@ -107,6 +107,7 @@ func currentAppNotificationApplicationStateDiagnosticValue() -> String {
     )
 }
 
+@MainActor
 func pendingAppNotificationRequestIdentifiers(
     center: UNUserNotificationCenter
 ) async -> [String] {
@@ -117,6 +118,7 @@ func pendingAppNotificationRequestIdentifiers(
     }
 }
 
+@MainActor
 func deliveredAppNotificationRequestIdentifiers(
     center: UNUserNotificationCenter
 ) async -> [String] {
@@ -128,6 +130,7 @@ func deliveredAppNotificationRequestIdentifiers(
 }
 
 /// Returns the identifiers of pending review reminders queued by the app.
+@MainActor
 func pendingReviewNotificationRequestIdentifiers(
     center: UNUserNotificationCenter
 ) async -> [String] {
@@ -143,6 +146,7 @@ func pendingReviewNotificationRequestIdentifiers(
 }
 
 /// Returns the identifiers of delivered review reminders currently shown by Notification Center.
+@MainActor
 func deliveredReviewNotificationRequestIdentifiers(
     center: UNUserNotificationCenter
 ) async -> [String] {
@@ -157,6 +161,7 @@ func deliveredReviewNotificationRequestIdentifiers(
     }
 }
 
+@MainActor
 func deliveredReviewReminderAttentionStates(
     center: UNUserNotificationCenter
 ) async -> [ReviewReminderAttentionState] {
@@ -172,6 +177,7 @@ func deliveredReviewReminderAttentionStates(
 }
 
 /// Removes delivered review reminders from Notification Center.
+@MainActor
 func removeDeliveredReviewNotifications(
     center: UNUserNotificationCenter
 ) async {
@@ -206,6 +212,7 @@ func isCompleteNotificationSchedulingReadback(
     }
 }
 
+@MainActor
 func notificationSchedulingReadback(
     center: UNUserNotificationCenter,
     plannedRequestIdentifiers: [String],
@@ -245,6 +252,7 @@ func notificationSchedulingReadback(
     )
 }
 
+@MainActor
 func delayedNotificationSchedulingReadback(
     center: UNUserNotificationCenter,
     plannedRequestIdentifiers: [String],
