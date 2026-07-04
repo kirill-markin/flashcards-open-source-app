@@ -261,6 +261,16 @@ func acceptedReviewNotificationPayloads(
     }
 }
 
+func missingReviewNotificationPayloads(
+    payloads: [ScheduledReviewNotificationPayload],
+    pendingRequestIdentifiers: [String]
+) -> [ScheduledReviewNotificationPayload] {
+    let pendingRequestIdentifierSet: Set<String> = Set(pendingRequestIdentifiers)
+    return payloads.filter { payload in
+        pendingRequestIdentifierSet.contains(payload.requestId) == false
+    }
+}
+
 func futureReviewNotificationPayloads(
     payloads: [ScheduledReviewNotificationPayload],
     now: Date
