@@ -87,7 +87,9 @@ extension FlashcardsStore {
                 return
             }
 
-            self.presentTechnicalError(error)
+            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
+                self.presentTechnicalError(error)
+            }
             self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
         }
     }
@@ -130,7 +132,9 @@ extension FlashcardsStore {
                 return
             }
 
-            self.presentTechnicalError(error)
+            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
+                self.presentTechnicalError(error)
+            }
             self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
         }
     }
@@ -173,7 +177,9 @@ extension FlashcardsStore {
                 return
             }
 
-            self.presentTechnicalError(error)
+            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
+                self.presentTechnicalError(error)
+            }
             self.replaceProgressLeaderboardRefreshErrorMessage(
                 message: localizedProgressLeaderboardRefreshErrorMessage()
             )
@@ -272,7 +278,9 @@ extension FlashcardsStore {
                 return
             }
 
-            self.presentTechnicalError(error)
+            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
+                self.presentTechnicalError(error)
+            }
             self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
         }
     }
@@ -332,7 +340,9 @@ extension FlashcardsStore {
                 return
             }
 
-            self.presentTechnicalError(error)
+            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
+                self.presentTechnicalError(error)
+            }
             self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
         }
     }
@@ -618,7 +628,13 @@ extension FlashcardsStore {
                 return
             }
 
-            self.presentTechnicalError(error)
+            if self.isCloudSyncBlocked {
+                return
+            }
+
+            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
+                self.presentTechnicalError(error)
+            }
             self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
         }
     }

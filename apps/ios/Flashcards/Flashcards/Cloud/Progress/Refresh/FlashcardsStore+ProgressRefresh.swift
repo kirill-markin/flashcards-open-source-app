@@ -2,6 +2,22 @@ import Foundation
 
 @MainActor
 extension FlashcardsStore {
+    func shouldPresentProgressRefreshTechnicalError(error: Error) -> Bool {
+        if isRequestCancellationError(error: error) {
+            return false
+        }
+
+        if self.isCloudSyncBlocked {
+            return false
+        }
+
+        if isRetryableNetworkTransportFailure(error: error) {
+            return false
+        }
+
+        return true
+    }
+
     func refreshProgressSummaryServerBase(
         scopeKey: ProgressSummaryScopeKey,
         linkedSession: CloudLinkedSession
@@ -68,7 +84,9 @@ extension FlashcardsStore {
                 return
             }
 
-            self.presentTechnicalError(error)
+            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
+                self.presentTechnicalError(error)
+            }
             self.replaceProgressSummaryRefreshErrorMessage(
                 message: localizedProgressSummaryRefreshErrorMessage()
             )
@@ -130,7 +148,9 @@ extension FlashcardsStore {
                 return
             }
 
-            self.presentTechnicalError(error)
+            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
+                self.presentTechnicalError(error)
+            }
             self.replaceProgressSeriesRefreshErrorMessage(
                 message: localizedProgressSeriesRefreshErrorMessage()
             )
@@ -199,7 +219,9 @@ extension FlashcardsStore {
                 return
             }
 
-            self.presentTechnicalError(error)
+            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
+                self.presentTechnicalError(error)
+            }
             self.replaceProgressReviewScheduleRefreshErrorMessage(
                 message: localizedProgressReviewScheduleRefreshErrorMessage()
             )
@@ -266,7 +288,9 @@ extension FlashcardsStore {
                 return
             }
 
-            self.presentTechnicalError(error)
+            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
+                self.presentTechnicalError(error)
+            }
             self.replaceProgressLeaderboardRefreshErrorMessage(
                 message: localizedProgressLeaderboardRefreshErrorMessage()
             )
@@ -337,7 +361,9 @@ extension FlashcardsStore {
                 return
             }
 
-            self.presentTechnicalError(error)
+            if self.shouldPresentProgressRefreshTechnicalError(error: error) {
+                self.presentTechnicalError(error)
+            }
             self.replaceProgressStreakLeaderboardRefreshErrorMessage(
                 message: localizedProgressStreakLeaderboardRefreshErrorMessage()
             )
