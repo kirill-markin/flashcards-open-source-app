@@ -13,6 +13,7 @@ let emptyBackTextPlaceholder: String = String(localized: "No back text", table: 
 private let reviewQueuePreviewPageSize: Int = 50
 
 struct ReviewView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(FlashcardsStore.self) var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
 
@@ -519,13 +520,26 @@ struct ReviewView: View {
         )
     }
 
+    @MainActor
+    private func openProgressWithPresentationBreadcrumb(target: ProgressPresentationTarget) {
+        prepareVisibleTabForPresentationWithBreadcrumb(
+            store: self.store,
+            selectedTab: .progress,
+            previousTab: self.navigation.selectedTab,
+            scenePhase: self.scenePhase,
+            isStartupReady: nil,
+            isRecoveryGateActive: self.store.cloudCredentialRecoveryState != nil,
+            now: Date()
+        )
+        self.navigation.openProgress(target: target)
+    }
+
     private var reviewProgressBadgeButton: some View {
         let badgeState = self.store.reviewProgressBadgeState
         let badgePresentation = makeReviewProgressBadgePresentation(badgeState: badgeState)
 
         return Button {
-            self.store.prepareVisibleTabForPresentation(tab: .progress, now: Date())
-            self.navigation.openProgress(target: .streak)
+            self.openProgressWithPresentationBreadcrumb(target: .streak)
         } label: {
             HStack(spacing: reviewToolbarBadgeSpacing) {
                 Image(systemName: badgePresentation.iconSystemName)
@@ -554,8 +568,7 @@ struct ReviewView: View {
         let badgeState = self.store.reviewLeaderboardBadgeState
 
         return Button {
-            self.store.prepareVisibleTabForPresentation(tab: .progress, now: Date())
-            self.navigation.openProgress(target: .leaderboard)
+            self.openProgressWithPresentationBreadcrumb(target: .leaderboard)
         } label: {
             if let rank = badgeState.rank {
                 HStack(spacing: reviewToolbarBadgeSpacing) {
