@@ -13,6 +13,7 @@ struct WorkspaceImportView: View {
     @State private var selectedFile: WorkspacePackageImportSelectedFile?
     @State private var preview: WorkspacePackageImportPreviewResponse?
     @State private var addImportTag: Bool = true
+    @State private var importTag: String = ""
     @State private var removedTags: Set<String> = []
     @State private var isFileImporterPresented: Bool = false
     @State private var isPreviewing: Bool = false
@@ -218,10 +219,11 @@ struct WorkspaceImportView: View {
             .accessibilityIdentifier(UITestIdentifier.workspaceImportAddImportTagToggle)
 
             if self.addImportTag {
-                LabeledContent(aiSettingsLocalized("settings.workspace.import.importTag", "Import Tag")) {
-                    Text(preview.defaultOptions.suggestedImportTag)
-                        .multilineTextAlignment(.trailing)
-                }
+                TextField(aiSettingsLocalized("settings.workspace.import.importTag", "Import Tag"), text: self.$importTag)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .disabled(self.isBusy)
+                    .accessibilityIdentifier(UITestIdentifier.workspaceImportImportTagField)
             }
 
             if preview.tagCounts.isEmpty == false {
@@ -339,6 +341,7 @@ struct WorkspaceImportView: View {
         self.preview = nil
         self.selectedFile = nil
         self.removedTags = []
+        self.importTag = ""
 
         do {
             let selectedFile = try readWorkspacePackageImportSelectedFile(url: url)
@@ -348,6 +351,7 @@ struct WorkspaceImportView: View {
             self.selectedFile = selectedFile
             self.preview = preview
             self.addImportTag = preview.defaultOptions.addImportTag
+            self.importTag = preview.defaultOptions.suggestedImportTag
             self.removedTags = Set(preview.defaultOptions.removedTags)
         } catch {
             if isRequestCancellationError(error: error) {
@@ -390,6 +394,7 @@ struct WorkspaceImportView: View {
             let options = try makeWorkspacePackageImportConfirmOptions(
                 preview: preview,
                 addImportTag: self.addImportTag,
+                importTag: self.importTag,
                 removedTags: self.removedTags,
                 lastModifiedByReplicaId: lastModifiedByReplicaId,
                 now: Date()
@@ -402,6 +407,7 @@ struct WorkspaceImportView: View {
             self.preview = nil
             self.selectedFile = nil
             self.removedTags = []
+            self.importTag = ""
         } catch {
             if isRequestCancellationError(error: error) {
                 self.isImporting = false

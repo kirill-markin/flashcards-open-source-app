@@ -110,16 +110,17 @@ func workspacePackageImportReplicaId(workspaceId: String, installationId: String
 func makeWorkspacePackageImportConfirmOptions(
     preview: WorkspacePackageImportPreviewResponse,
     addImportTag: Bool,
+    importTag: String,
     removedTags: Set<String>,
     lastModifiedByReplicaId: String,
     now: Date
 ) throws -> WorkspacePackageImportConfirmOptions {
-    let importTag = preview.defaultOptions.suggestedImportTag.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard importTag.isEmpty == false else {
+    let normalizedImportTag = importTag.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard addImportTag == false || normalizedImportTag.isEmpty == false else {
         throw LocalStoreError.validation(
             aiSettingsLocalized(
                 "settings.workspace.import.missingImportTag",
-                "Workspace package import preview did not include an import tag."
+                "Enter an import tag before importing."
             )
         )
     }
@@ -128,7 +129,7 @@ func makeWorkspacePackageImportConfirmOptions(
     let importedAt = formatIsoTimestamp(date: now)
     return WorkspacePackageImportConfirmOptions(
         addImportTag: addImportTag,
-        importTag: importTag,
+        importTag: normalizedImportTag,
         removeTags: makeWorkspacePackageImportRemovedTags(preview: preview, removedTags: removedTags),
         importedAt: importedAt,
         importId: importId,
