@@ -41,6 +41,7 @@ private data class WorkspaceImportDraftState(
     val preview: WorkspacePackageImportPreview?,
     val previewIdentity: WorkspaceImportPreviewIdentity?,
     val addImportTag: Boolean,
+    val importTag: String,
     val removedTags: Set<String>,
     val isPreviewing: Boolean,
     val isImporting: Boolean,
@@ -74,6 +75,7 @@ class WorkspaceImportViewModel(
             preview = null,
             previewIdentity = null,
             addImportTag = true,
+            importTag = "",
             removedTags = emptySet(),
             isPreviewing = false,
             isImporting = false,
@@ -100,6 +102,7 @@ class WorkspaceImportViewModel(
             },
             preview = if (isPreviewCurrent) draft.preview else null,
             addImportTag = draft.addImportTag,
+            importTag = draft.importTag,
             removedTags = draft.removedTags,
             isPreviewing = draft.isPreviewing,
             isImporting = draft.isImporting,
@@ -117,6 +120,7 @@ class WorkspaceImportViewModel(
             selectedFileName = null,
             preview = null,
             addImportTag = true,
+            importTag = "",
             removedTags = emptySet(),
             isPreviewing = false,
             isImporting = false,
@@ -134,6 +138,7 @@ class WorkspaceImportViewModel(
                 preview = null,
                 previewIdentity = null,
                 addImportTag = true,
+                importTag = "",
                 removedTags = emptySet(),
                 isPreviewing = true,
                 isImporting = false,
@@ -178,6 +183,7 @@ class WorkspaceImportViewModel(
                     selectedFile = null,
                     preview = null,
                     previewIdentity = null,
+                    importTag = "",
                     isPreviewing = false,
                     isImporting = false,
                     errorMessage = workspaceImportAvailabilityMessage(
@@ -196,6 +202,7 @@ class WorkspaceImportViewModel(
                 preview = null,
                 previewIdentity = previewIdentity,
                 addImportTag = true,
+                importTag = "",
                 removedTags = emptySet(),
                 isPreviewing = true,
                 isImporting = false,
@@ -214,6 +221,7 @@ class WorkspaceImportViewModel(
                     preview = preview,
                     previewIdentity = previewIdentity,
                     addImportTag = preview.defaultOptions.addImportTag,
+                    importTag = preview.defaultOptions.suggestedImportTag,
                     removedTags = preview.defaultOptions.removedTags.toSet(),
                     isPreviewing = false,
                     errorMessage = "",
@@ -228,6 +236,7 @@ class WorkspaceImportViewModel(
                     selectedFile = null,
                     preview = null,
                     previewIdentity = null,
+                    importTag = "",
                     isPreviewing = false,
                     errorMessage = strings.get(R.string.settings_account_status_sync_blocked_body),
                     successMessage = ""
@@ -251,6 +260,7 @@ class WorkspaceImportViewModel(
                 selectedFile = null,
                 preview = null,
                 previewIdentity = null,
+                importTag = "",
                 isPreviewing = false,
                 isImporting = false,
                 errorMessage = message,
@@ -263,6 +273,16 @@ class WorkspaceImportViewModel(
         draftState.update { state ->
             state.copy(
                 addImportTag = isEnabled,
+                errorMessage = "",
+                successMessage = ""
+            )
+        }
+    }
+
+    fun updateImportTag(importTag: String) {
+        draftState.update { state ->
+            state.copy(
+                importTag = importTag,
                 errorMessage = "",
                 successMessage = ""
             )
@@ -323,6 +343,7 @@ class WorkspaceImportViewModel(
                     preview = null,
                     selectedFile = null,
                     previewIdentity = null,
+                    importTag = "",
                     errorMessage = currentUiState.availabilityMessage,
                     successMessage = ""
                 )
@@ -336,6 +357,7 @@ class WorkspaceImportViewModel(
             makeWorkspaceImportConfirmOptions(
                 preview = preview,
                 addImportTag = currentUiState.addImportTag,
+                importTag = currentUiState.importTag,
                 removedTags = currentUiState.removedTags,
                 importedAtMillis = importedAtMillis,
                 importId = importId,
@@ -371,6 +393,7 @@ class WorkspaceImportViewModel(
                     preview = null,
                     previewIdentity = null,
                     addImportTag = true,
+                    importTag = "",
                     removedTags = emptySet(),
                     isImporting = false,
                     errorMessage = "",
@@ -421,6 +444,7 @@ class WorkspaceImportViewModel(
                 selectedFile = null,
                 preview = null,
                 previewIdentity = null,
+                importTag = "",
                 isPreviewing = false,
                 isImporting = false,
                 errorMessage = expectedErrorMessage ?: fallbackMessage,
@@ -453,6 +477,7 @@ class WorkspaceImportViewModel(
                 selectedFile = if (isPreviewing) null else state.selectedFile,
                 preview = if (isPreviewing) null else state.preview,
                 previewIdentity = if (isPreviewing) null else state.previewIdentity,
+                importTag = if (isPreviewing) "" else state.importTag,
                 isPreviewing = false,
                 isImporting = false,
                 errorMessage = expectedErrorMessage ?: fallbackMessage,

@@ -6,6 +6,7 @@ data class WorkspaceImportUiState(
     val selectedFileName: String?,
     val preview: WorkspacePackageImportPreview?,
     val addImportTag: Boolean,
+    val importTag: String,
     val removedTags: Set<String>,
     val isPreviewing: Boolean,
     val isImporting: Boolean,

@@ -443,7 +443,7 @@
     <string name="settings_export_package_summary">Export a Flashcards ZIP package</string>
     <string name="settings_export_dismiss_error">Dismiss error</string>
     <string name="settings_export_package_section">flashcards.zip package</string>
-    <string name="settings_export_package_body">Export all active cards, tags, and referenced media as a portable ZIP package.</string>
+    <string name="settings_export_package_body">Export active cards, included tags, and referenced media as a portable ZIP package.</string>
     <string name="settings_export_package_preview">Preview package export</string>
     <string name="settings_export_package_previewing">Previewing...</string>
     <string name="settings_export_package_exporting">Exporting...</string>
@@ -467,11 +467,13 @@
     <string name="settings_export_package_metadata_created_at">Created</string>
     <string name="settings_export_package_metadata_source_url">Source URL</string>
     <string name="settings_export_package_metadata_comment">Comment</string>
-    <string name="settings_export_package_tags_section">Tags</string>
-    <string name="settings_export_package_tags_empty">No tags.</string>
-    <string name="settings_export_package_remove_tag">Remove %1$s</string>
-    <string name="settings_export_package_always_remove_tag">Always remove %1$s</string>
-    <string name="settings_export_package_generated_import_tag_removed">Generated import tags are always removed from package exports.</string>
+    <string name="settings_export_package_card_selection_section">Cards to export</string>
+    <string name="settings_export_package_card_selection_all_active">All active cards will be exported.</string>
+    <string name="settings_export_package_select_cards_with_tag">Cards tagged %1$s</string>
+    <string name="settings_export_package_tags_section">Package tags</string>
+    <string name="settings_export_package_tags_empty">No package tags.</string>
+    <string name="settings_export_package_include_tag">Include %1$s</string>
+    <string name="settings_export_package_generated_import_tag_removed">Generated import tags are not included in package exports.</string>
 
     <string name="settings_import_title">Import</string>
     <string name="settings_import_zip_summary">Import a Flashcards ZIP package</string>
@@ -493,7 +495,7 @@
     <string name="settings_import_preview_failed">Package preview failed.</string>
     <string name="settings_import_confirm_failed">Package import failed.</string>
     <string name="settings_import_preview_required">Preview a package before importing.</string>
-    <string name="settings_import_missing_import_tag">Package preview did not include an import tag.</string>
+    <string name="settings_import_missing_import_tag">Enter an import tag.</string>
     <string name="settings_import_source_section">Source</string>
     <string name="settings_import_source_kind">Type</string>
     <string name="settings_import_source_title">Title</string>

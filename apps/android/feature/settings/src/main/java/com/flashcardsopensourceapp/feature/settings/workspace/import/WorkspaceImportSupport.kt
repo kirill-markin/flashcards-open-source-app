@@ -135,13 +135,14 @@ internal fun makeWorkspaceImportTagOptions(
 internal fun makeWorkspaceImportConfirmOptions(
     preview: WorkspacePackageImportPreview,
     addImportTag: Boolean,
+    importTag: String,
     removedTags: Set<String>,
     importedAtMillis: Long,
     importId: String,
     missingImportTagMessage: String
 ): WorkspacePackageImportConfirmOptions {
-    val importTag: String = preview.defaultOptions.suggestedImportTag.trim()
-    if (importTag.isEmpty()) {
+    val normalizedImportTag: String = importTag.trim()
+    if (addImportTag && normalizedImportTag.isEmpty()) {
         throw WorkspaceImportUserException(
             message = missingImportTagMessage,
             cause = null
@@ -150,7 +151,7 @@ internal fun makeWorkspaceImportConfirmOptions(
 
     return WorkspacePackageImportConfirmOptions(
         addImportTag = addImportTag,
-        importTag = importTag,
+        importTag = normalizedImportTag,
         removeTags = makeWorkspaceImportRemovedTags(
             preview = preview,
             removedTags = removedTags

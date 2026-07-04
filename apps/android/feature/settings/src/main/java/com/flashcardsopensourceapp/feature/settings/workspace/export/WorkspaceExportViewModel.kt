@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportDownloadResponse
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportPreview
+import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageExportTagCount
 import com.flashcardsopensourceapp.data.local.model.workspace.isWorkspacePackageExportGeneratedImportTag
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
@@ -35,11 +36,22 @@ private data class WorkspacePackageExportPreviewIdentity(
     val installationId: String
 )
 
+private data class WorkspacePackageExportPreservedDraft(
+    val preview: WorkspacePackageExportPreview,
+    val previewIdentity: WorkspacePackageExportPreviewIdentity,
+    val metadataDraft: WorkspacePackageExportMetadataDraft,
+    val cardSelectionTags: Set<String>,
+    val cardSelectionTagCounts: List<WorkspacePackageExportTagCount>,
+    val excludedTags: Set<String>
+)
+
 private data class WorkspaceExportDraftState(
     val packagePreview: WorkspacePackageExportPreview?,
     val packagePreviewIdentity: WorkspacePackageExportPreviewIdentity?,
     val packageMetadataDraft: WorkspacePackageExportMetadataDraft,
-    val packageRemovedTags: Set<String>,
+    val packageCardSelectionTags: Set<String>,
+    val packageCardSelectionTagCounts: List<WorkspacePackageExportTagCount>,
+    val packageExcludedTags: Set<String>,
     val isPackagePreviewing: Boolean,
     val isPackageExporting: Boolean,
     val errorMessage: String
@@ -68,7 +80,9 @@ class WorkspaceExportViewModel(
             packagePreview = null,
             packagePreviewIdentity = null,
             packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
-            packageRemovedTags = emptySet(),
+            packageCardSelectionTags = emptySet(),
+            packageCardSelectionTagCounts = emptyList(),
+            packageExcludedTags = emptySet(),
             isPackagePreviewing = false,
             isPackageExporting = false,
             errorMessage = ""
@@ -86,14 +100,32 @@ class WorkspaceExportViewModel(
         )
         val isPackagePreviewCurrent: Boolean = draft.packagePreview != null &&
             draft.packagePreviewIdentity == currentIdentity
+        val currentPackagePreview: WorkspacePackageExportPreview? = if (isPackagePreviewCurrent) {
+            draft.packagePreview
+        } else {
+            null
+        }
         WorkspaceExportUiState(
-            packagePreview = if (isPackagePreviewCurrent) draft.packagePreview else null,
-            packageMetadataDraft = if (isPackagePreviewCurrent) {
+            packagePreview = currentPackagePreview,
+            packageMetadataDraft = if (currentPackagePreview != null) {
                 draft.packageMetadataDraft
             } else {
                 emptyWorkspacePackageExportMetadataDraft()
             },
-            packageRemovedTags = if (isPackagePreviewCurrent) draft.packageRemovedTags else emptySet(),
+            packageCardSelectionTags = if (currentPackagePreview != null) draft.packageCardSelectionTags else emptySet(),
+            packageCardSelectionTagCounts = if (currentPackagePreview != null) {
+                draft.packageCardSelectionTagCounts
+            } else {
+                emptyList()
+            },
+            packageIncludedTags = if (currentPackagePreview != null) {
+                makeWorkspacePackageExportIncludedTags(
+                    preview = currentPackagePreview,
+                    excludedTags = draft.packageExcludedTags
+                )
+            } else {
+                emptySet()
+            },
             isPackagePreviewing = draft.isPackagePreviewing,
             isPackageExporting = draft.isPackageExporting,
             packageAvailabilityMessage = workspacePackageExportAvailabilityMessage(
@@ -108,7 +140,9 @@ class WorkspaceExportViewModel(
         initialValue = WorkspaceExportUiState(
             packagePreview = null,
             packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
-            packageRemovedTags = emptySet(),
+            packageCardSelectionTags = emptySet(),
+            packageCardSelectionTagCounts = emptyList(),
+            packageIncludedTags = emptySet(),
             isPackagePreviewing = false,
             isPackageExporting = false,
             packageAvailabilityMessage = strings.get(R.string.settings_export_package_cloud_required),
@@ -117,13 +151,35 @@ class WorkspaceExportViewModel(
     )
 
     fun previewPackageExport() {
+        requestPackageExportPreview(
+            selectedCardTags = emptySet(),
+            preservedCardSelectionTagCounts = emptyList(),
+            preservedDraft = null
+        )
+    }
+
+    private fun requestPackageExportPreview(
+        selectedCardTags: Set<String>,
+        preservedCardSelectionTagCounts: List<WorkspacePackageExportTagCount>,
+        preservedDraft: WorkspacePackageExportPreservedDraft?
+    ) {
         val previewRequestId: Long = latestPackagePreviewRequestId.incrementAndGet()
         viewModelScope.launch {
-            previewPackageExportAsync(previewRequestId = previewRequestId)
+            previewPackageExportAsync(
+                previewRequestId = previewRequestId,
+                selectedCardTags = selectedCardTags,
+                preservedCardSelectionTagCounts = preservedCardSelectionTagCounts,
+                preservedDraft = preservedDraft
+            )
         }
     }
 
-    private suspend fun previewPackageExportAsync(previewRequestId: Long) {
+    private suspend fun previewPackageExportAsync(
+        previewRequestId: Long,
+        selectedCardTags: Set<String>,
+        preservedCardSelectionTagCounts: List<WorkspacePackageExportTagCount>,
+        preservedDraft: WorkspacePackageExportPreservedDraft?
+    ) {
         val previewIdentity: WorkspacePackageExportPreviewIdentity? = makePackagePreviewIdentity(
             cloudSettings = cloudSettingsState.value
         )
@@ -136,7 +192,9 @@ class WorkspaceExportViewModel(
                     packagePreview = null,
                     packagePreviewIdentity = null,
                     packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
-                    packageRemovedTags = emptySet(),
+                    packageCardSelectionTags = emptySet(),
+                    packageCardSelectionTagCounts = emptyList(),
+                    packageExcludedTags = emptySet(),
                     isPackagePreviewing = false,
                     isPackageExporting = false,
                     errorMessage = workspacePackageExportAvailabilityMessage(
@@ -152,8 +210,10 @@ class WorkspaceExportViewModel(
             state.copy(
                 packagePreview = null,
                 packagePreviewIdentity = previewIdentity,
-                packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
-                packageRemovedTags = emptySet(),
+                packageMetadataDraft = preservedDraft?.metadataDraft ?: emptyWorkspacePackageExportMetadataDraft(),
+                packageCardSelectionTags = selectedCardTags,
+                packageCardSelectionTagCounts = preservedCardSelectionTagCounts,
+                packageExcludedTags = preservedDraft?.excludedTags ?: emptySet(),
                 isPackagePreviewing = true,
                 isPackageExporting = false,
                 errorMessage = ""
@@ -162,16 +222,23 @@ class WorkspaceExportViewModel(
 
         try {
             val preview: WorkspacePackageExportPreview = cloudAccountRepository.previewCurrentWorkspacePackageExport(
-                request = makeDefaultWorkspacePackageExportPreviewRequest()
+                request = makeWorkspacePackageExportPreviewRequest(selectedCardTags = selectedCardTags)
             )
             updateDraftStateForPackagePreviewRequest(previewRequestId = previewRequestId) { state ->
+                val nextCardSelectionTagCounts: List<WorkspacePackageExportTagCount> = if (selectedCardTags.isEmpty()) {
+                    preview.availableTagCounts
+                } else {
+                    preservedCardSelectionTagCounts.ifEmpty { preview.availableTagCounts }
+                }
+                val nextMetadataDraft: WorkspacePackageExportMetadataDraft = preservedDraft?.metadataDraft
+                    ?: makeWorkspacePackageExportMetadataDraft(defaultPackageMetadata = preview.defaultPackageMetadata)
                 state.copy(
                     packagePreview = preview,
                     packagePreviewIdentity = previewIdentity,
-                    packageMetadataDraft = makeWorkspacePackageExportMetadataDraft(
-                        defaultPackageMetadata = preview.defaultPackageMetadata
-                    ),
-                    packageRemovedTags = makeWorkspacePackageExportInitialRemovedTags(preview = preview),
+                    packageMetadataDraft = nextMetadataDraft,
+                    packageCardSelectionTags = selectedCardTags,
+                    packageCardSelectionTagCounts = nextCardSelectionTagCounts,
+                    packageExcludedTags = preservedDraft?.excludedTags ?: emptySet(),
                     isPackagePreviewing = false,
                     errorMessage = ""
                 )
@@ -180,12 +247,9 @@ class WorkspaceExportViewModel(
             throw error
         } catch (error: SyncBlockedException) {
             updateDraftStateForPackagePreviewRequest(previewRequestId = previewRequestId) { state ->
-                state.copy(
-                    packagePreview = null,
-                    packagePreviewIdentity = null,
-                    packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
-                    packageRemovedTags = emptySet(),
-                    isPackagePreviewing = false,
+                restoreWorkspacePackageExportDraftAfterPreviewFailure(
+                    state = state,
+                    preservedDraft = preservedDraft,
                     errorMessage = strings.get(R.string.settings_account_status_sync_blocked_body)
                 )
             }
@@ -193,7 +257,8 @@ class WorkspaceExportViewModel(
             handlePackageExportFailureForPreviewRequest(
                 error = error,
                 fallbackMessage = strings.get(R.string.settings_export_package_preview_failed),
-                previewRequestId = previewRequestId
+                previewRequestId = previewRequestId,
+                preservedDraft = preservedDraft
             )
         }
     }
@@ -223,7 +288,9 @@ class WorkspaceExportViewModel(
                     packagePreview = null,
                     packagePreviewIdentity = null,
                     packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
-                    packageRemovedTags = emptySet(),
+                    packageCardSelectionTags = emptySet(),
+                    packageCardSelectionTagCounts = emptyList(),
+                    packageExcludedTags = emptySet(),
                     errorMessage = currentUiState.packageAvailabilityMessage
                 )
             }
@@ -242,7 +309,8 @@ class WorkspaceExportViewModel(
                 request = makeWorkspacePackageExportRequest(
                     preview = preview,
                     metadataDraft = currentUiState.packageMetadataDraft,
-                    removedTags = currentUiState.packageRemovedTags
+                    selectedCardTags = currentUiState.packageCardSelectionTags,
+                    excludedTags = draftState.value.packageExcludedTags
                 )
             )
         } catch (error: CancellationException) {
@@ -309,7 +377,35 @@ class WorkspaceExportViewModel(
         }
     }
 
-    fun togglePackageRemovedTag(tag: String) {
+    fun togglePackageCardSelectionTag(tag: String) {
+        val currentState: WorkspaceExportDraftState = draftState.value
+        require(currentState.packageCardSelectionTagCounts.any { tagCount -> tagCount.tag == tag }) {
+            "Workspace package export card selection tag toggle requires an existing preview tag."
+        }
+        val nextSelectedTags: Set<String> = if (currentState.packageCardSelectionTags.contains(tag)) {
+            currentState.packageCardSelectionTags - tag
+        } else {
+            currentState.packageCardSelectionTags + tag
+        }
+        requestPackageExportPreview(
+            selectedCardTags = nextSelectedTags,
+            preservedCardSelectionTagCounts = currentState.packageCardSelectionTagCounts,
+            preservedDraft = WorkspacePackageExportPreservedDraft(
+                preview = requireNotNull(currentState.packagePreview) {
+                    "Workspace package export card selection refresh requires a current preview."
+                },
+                previewIdentity = requireNotNull(currentState.packagePreviewIdentity) {
+                    "Workspace package export card selection refresh requires a current preview identity."
+                },
+                metadataDraft = currentState.packageMetadataDraft,
+                cardSelectionTags = currentState.packageCardSelectionTags,
+                cardSelectionTagCounts = currentState.packageCardSelectionTagCounts,
+                excludedTags = currentState.packageExcludedTags
+            )
+        )
+    }
+
+    fun togglePackageIncludedTag(tag: String) {
         val preview: WorkspacePackageExportPreview = requireNotNull(uiState.value.packagePreview) {
             "Workspace package export tag toggles require a current preview."
         }
@@ -320,13 +416,13 @@ class WorkspaceExportViewModel(
             "Workspace package export generated import tags cannot be kept."
         }
         draftState.update { state ->
-            val nextRemovedTags: Set<String> = if (state.packageRemovedTags.contains(tag)) {
-                state.packageRemovedTags - tag
+            val nextExcludedTags: Set<String> = if (state.packageExcludedTags.contains(tag)) {
+                state.packageExcludedTags - tag
             } else {
-                state.packageRemovedTags + tag
+                state.packageExcludedTags + tag
             }
             state.copy(
-                packageRemovedTags = nextRemovedTags,
+                packageExcludedTags = nextExcludedTags,
                 errorMessage = ""
             )
         }
@@ -356,7 +452,8 @@ class WorkspaceExportViewModel(
     private fun handlePackageExportFailureForPreviewRequest(
         error: Exception,
         fallbackMessage: String,
-        previewRequestId: Long
+        previewRequestId: Long,
+        preservedDraft: WorkspacePackageExportPreservedDraft?
     ) {
         val expectedErrorMessage: String? = expectedWorkspacePackageExportCloudFailureMessage(
             error = error,
@@ -365,13 +462,9 @@ class WorkspaceExportViewModel(
         var didHandleCurrentRequest = false
         updateDraftStateForPackagePreviewRequest(previewRequestId = previewRequestId) { state ->
             didHandleCurrentRequest = true
-            state.copy(
-                packagePreview = null,
-                packagePreviewIdentity = null,
-                packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
-                packageRemovedTags = emptySet(),
-                isPackagePreviewing = false,
-                isPackageExporting = false,
+            restoreWorkspacePackageExportDraftAfterPreviewFailure(
+                state = state,
+                preservedDraft = preservedDraft,
                 errorMessage = expectedErrorMessage ?: fallbackMessage
             )
         }
@@ -439,6 +532,37 @@ private fun emptyWorkspacePackageExportMetadataDraft(): WorkspacePackageExportMe
         comment = "",
         createdAt = "",
         sourceUrl = ""
+    )
+}
+
+private fun restoreWorkspacePackageExportDraftAfterPreviewFailure(
+    state: WorkspaceExportDraftState,
+    preservedDraft: WorkspacePackageExportPreservedDraft?,
+    errorMessage: String
+): WorkspaceExportDraftState {
+    if (preservedDraft == null) {
+        return state.copy(
+            packagePreview = null,
+            packagePreviewIdentity = null,
+            packageMetadataDraft = emptyWorkspacePackageExportMetadataDraft(),
+            packageCardSelectionTags = emptySet(),
+            packageCardSelectionTagCounts = emptyList(),
+            packageExcludedTags = emptySet(),
+            isPackagePreviewing = false,
+            isPackageExporting = false,
+            errorMessage = errorMessage
+        )
+    }
+    return state.copy(
+        packagePreview = preservedDraft.preview,
+        packagePreviewIdentity = preservedDraft.previewIdentity,
+        packageMetadataDraft = preservedDraft.metadataDraft,
+        packageCardSelectionTags = preservedDraft.cardSelectionTags,
+        packageCardSelectionTagCounts = preservedDraft.cardSelectionTagCounts,
+        packageExcludedTags = preservedDraft.excludedTags,
+        isPackagePreviewing = false,
+        isPackageExporting = false,
+        errorMessage = errorMessage
     )
 }
 

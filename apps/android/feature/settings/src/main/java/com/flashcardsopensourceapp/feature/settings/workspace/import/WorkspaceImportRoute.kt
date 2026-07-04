@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,6 +49,7 @@ import com.flashcardsopensourceapp.feature.settings.workspaceImportChooseFileBut
 import com.flashcardsopensourceapp.feature.settings.workspaceImportConfirmButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspaceImportErrorMessageTag
 import com.flashcardsopensourceapp.feature.settings.workspaceImportScreenTag
+import com.flashcardsopensourceapp.feature.settings.workspaceImportTagFieldTag
 import com.flashcardsopensourceapp.feature.settings.workspaceImportTagToggleTag
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -152,9 +154,11 @@ fun WorkspaceImportRoute(
                     WorkspaceImportOptionsCard(
                         preview = preview,
                         addImportTag = uiState.addImportTag,
+                        importTag = uiState.importTag,
                         removedTags = uiState.removedTags,
                         isBusy = uiState.isBusy,
                         onAddImportTagChange = viewModel::updateAddImportTag,
+                        onImportTagChange = viewModel::updateImportTag,
                         onToggleTag = viewModel::toggleTag
                     )
                 }
@@ -362,9 +366,11 @@ private fun WorkspaceImportCountsCard(preview: WorkspacePackageImportPreview) {
 private fun WorkspaceImportOptionsCard(
     preview: WorkspacePackageImportPreview,
     addImportTag: Boolean,
+    importTag: String,
     removedTags: Set<String>,
     isBusy: Boolean,
     onAddImportTagChange: (Boolean) -> Unit,
+    onImportTagChange: (String) -> Unit,
     onToggleTag: (String) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -379,9 +385,18 @@ private fun WorkspaceImportOptionsCard(
                 onCheckedChange = onAddImportTagChange
             )
             if (addImportTag) {
-                MetadataListItem(
-                    label = stringResource(R.string.settings_import_import_tag),
-                    value = preview.defaultOptions.suggestedImportTag
+                OutlinedTextField(
+                    value = importTag,
+                    onValueChange = onImportTagChange,
+                    enabled = isBusy.not(),
+                    singleLine = true,
+                    label = {
+                        Text(stringResource(R.string.settings_import_import_tag))
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .testTag(tag = workspaceImportTagFieldTag)
                 )
             }
             makeWorkspaceImportTagOptions(

@@ -519,7 +519,7 @@ internal class TestSettingsStringResolver : SettingsStringResolver {
             R.string.settings_import_preview_failed -> "Package preview failed."
             R.string.settings_import_confirm_failed -> "Package import failed."
             R.string.settings_import_preview_required -> "Preview a package before importing."
-            R.string.settings_import_missing_import_tag -> "Package preview did not include an import tag."
+            R.string.settings_import_missing_import_tag -> "Enter an import tag."
             R.string.settings_export_package_cloud_required -> {
                 "Media ZIP export requires a linked cloud workspace in this version."
             }

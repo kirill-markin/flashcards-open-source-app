@@ -64,6 +64,7 @@ class WorkspaceImportViewModelTest {
         assertSame(preview, viewModel.uiState.value.preview)
         assertEquals("flashcards.zip", viewModel.uiState.value.selectedFileName)
         assertEquals(preview.defaultOptions.addImportTag, viewModel.uiState.value.addImportTag)
+        assertEquals("import-tag", viewModel.uiState.value.importTag)
         assertEquals(setOf("drop"), viewModel.uiState.value.removedTags)
 
         stateJob.cancel()
@@ -157,6 +158,7 @@ class WorkspaceImportViewModelTest {
             )
         )
         advanceUntilIdle()
+        viewModel.updateImportTag(importTag = "edited-import-tag")
         viewModel.updateAddImportTag(isEnabled = false)
         viewModel.toggleTag(tag = "keep")
         advanceUntilIdle()
@@ -171,7 +173,7 @@ class WorkspaceImportViewModelTest {
         assertEquals("flashcards.zip", confirmedImport.fileName)
         assertArrayEquals(byteArrayOf(4, 5, 6), confirmedImport.packageBytes)
         assertEquals(false, confirmedImport.options.addImportTag)
-        assertEquals("import-tag", confirmedImport.options.importTag)
+        assertEquals("edited-import-tag", confirmedImport.options.importTag)
         assertEquals(listOf("keep", "drop"), confirmedImport.options.removeTags)
         assertEquals(123_456L, confirmedImport.options.importedAtMillis)
         assertEquals(123_456L, confirmedImport.options.clientUpdatedAtMillis)
@@ -179,6 +181,35 @@ class WorkspaceImportViewModelTest {
         assertEquals("import-id-1", confirmedImport.options.operationIdPrefix)
         assertNull(viewModel.uiState.value.preview)
         assertEquals("Imported 1 card.", viewModel.uiState.value.successMessage)
+
+        stateJob.cancel()
+    }
+
+    @Test
+    fun confirmImportRejectsBlankImportTagWhenEnabled() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        repository.setCloudSettings(settings = linkedCloudSettings())
+        repository.nextWorkspacePackageImportPreview = workspacePackageImportPreview()
+        val viewModel = workspaceImportViewModel(repository = repository)
+        val stateJob = backgroundScope.launch {
+            viewModel.uiState.collect()
+        }
+        advanceUntilIdle()
+
+        viewModel.previewSelectedFile(
+            selectedFile = WorkspaceImportSelectedFile(
+                fileName = "flashcards.zip",
+                packageBytes = byteArrayOf(7, 8, 9)
+            )
+        )
+        advanceUntilIdle()
+        viewModel.updateImportTag(importTag = " ")
+        viewModel.confirmImport()
+        advanceUntilIdle()
+
+        assertEquals(0, repository.confirmedWorkspacePackageImports.size)
+        assertEquals("Enter an import tag.", viewModel.uiState.value.errorMessage)
 
         stateJob.cancel()
     }
