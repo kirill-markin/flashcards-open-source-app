@@ -37,6 +37,8 @@ type TriggerBlobDownloadParams = Readonly<{
   urlApi: WorkspaceExportUrlApi;
 }>;
 
+const workspacePackageGeneratedImportTagPrefix = "import:";
+
 function triggerBlobDownload(params: TriggerBlobDownloadParams): void {
   const { blob, filename, document, urlApi } = params;
   if (document.body === null) {
@@ -55,11 +57,31 @@ function triggerBlobDownload(params: TriggerBlobDownloadParams): void {
   urlApi.revokeObjectURL(objectUrl);
 }
 
-function buildDefaultWorkspacePackageExportPreviewRequest(): WorkspacePackageExportRequest {
-  return {
-    selection: {
+function isWorkspacePackageGeneratedImportTag(tag: string): boolean {
+  return tag.startsWith(workspacePackageGeneratedImportTagPrefix);
+}
+
+function buildWorkspacePackageExportSelection(
+  selectedCardTags: ReadonlyArray<string>,
+): WorkspacePackageExportRequest["selection"] {
+  if (selectedCardTags.length === 0) {
+    return {
       kind: "allActiveCards",
-    },
+    };
+  }
+
+  return {
+    kind: "tagFilters",
+    includeTags: selectedCardTags,
+    excludeTags: [],
+  };
+}
+
+function buildWorkspacePackageExportPreviewRequest(
+  selectedCardTags: ReadonlyArray<string>,
+): WorkspacePackageExportRequest {
+  return {
+    selection: buildWorkspacePackageExportSelection(selectedCardTags),
     tagPolicy: {
       additionalRemovedTags: [],
     },
@@ -75,14 +97,18 @@ function buildDefaultWorkspacePackageExportPreviewRequest(): WorkspacePackageExp
 
 function buildWorkspacePackageExportDownloadRequest(
   preview: WorkspacePackageExportPreviewResponse,
-  removedTags: ReadonlyArray<string>,
+  selectedCardTags: ReadonlyArray<string>,
+  includedTags: ReadonlyArray<string>,
 ): WorkspacePackageExportRequest {
+  const includedTagSet = new Set(includedTags);
+  const additionalRemovedTags = preview.availableTagCounts
+    .map((tagCount) => tagCount.tag)
+    .filter((tag) => !isWorkspacePackageGeneratedImportTag(tag) && !includedTagSet.has(tag));
+
   return {
-    selection: {
-      kind: "allActiveCards",
-    },
+    selection: buildWorkspacePackageExportSelection(selectedCardTags),
     tagPolicy: {
-      additionalRemovedTags: removedTags,
+      additionalRemovedTags,
     },
     packageMetadata: {
       label: preview.defaultPackageMetadata.label,
@@ -92,6 +118,33 @@ function buildWorkspacePackageExportDownloadRequest(
       sourceUrl: preview.defaultPackageMetadata.sourceUrl ?? null,
     },
   };
+}
+
+function buildWorkspacePackageIncludedTags(
+  preview: WorkspacePackageExportPreviewResponse,
+): ReadonlyArray<string> {
+  return preview.availableTagCounts
+    .map((tagCount) => tagCount.tag)
+    .filter((tag) => !isWorkspacePackageGeneratedImportTag(tag));
+}
+
+function mergeWorkspacePackageExportTagCounts(
+  baseTagCounts: ReadonlyArray<WorkspacePackageExportPreviewResponse["availableTagCounts"][number]>,
+  nextTagCounts: ReadonlyArray<WorkspacePackageExportPreviewResponse["availableTagCounts"][number]>,
+): ReadonlyArray<WorkspacePackageExportPreviewResponse["availableTagCounts"][number]> {
+  const mergedTagCounts: Array<WorkspacePackageExportPreviewResponse["availableTagCounts"][number]> = [];
+  const mergedTags = new Set<string>();
+
+  [...baseTagCounts, ...nextTagCounts].forEach((tagCount) => {
+    if (mergedTags.has(tagCount.tag)) {
+      return;
+    }
+
+    mergedTags.add(tagCount.tag);
+    mergedTagCounts.push(tagCount);
+  });
+
+  return mergedTagCounts;
 }
 
 function buildSafeMetadataHttpUrl(value: string): string | null {
@@ -143,7 +196,9 @@ export function WorkspaceExportScreen(): ReactElement {
   const [isPackageExportPreviewing, setIsPackageExportPreviewing] = useState<boolean>(false);
   const [packageExportPreview, setPackageExportPreview] = useState<WorkspacePackageExportPreviewResponse | null>(null);
   const [packageExportPreviewIdentity, setPackageExportPreviewIdentity] = useState<PackageExportPreviewIdentity | null>(null);
-  const [packageExportRemoveTags, setPackageExportRemoveTags] = useState<ReadonlyArray<string>>([]);
+  const [packageExportSelectedCardTags, setPackageExportSelectedCardTags] = useState<ReadonlyArray<string>>([]);
+  const [packageExportCardSelectionTagCounts, setPackageExportCardSelectionTagCounts] = useState<WorkspacePackageExportPreviewResponse["availableTagCounts"]>([]);
+  const [packageExportIncludedTags, setPackageExportIncludedTags] = useState<ReadonlyArray<string>>([]);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
   const technicalErrorMessage = t("appError.technicalError.message");
@@ -154,6 +209,9 @@ export function WorkspaceExportScreen(): ReactElement {
     && activeWorkspaceId !== null
     && packageExportPreviewIdentity.workspaceId === activeWorkspaceId;
   const currentPackageExportPreview = isPackageExportPreviewCurrent ? packageExportPreview : null;
+  const packageExportIncludedTagCounts = currentPackageExportPreview === null
+    ? []
+    : currentPackageExportPreview.availableTagCounts.filter((tagCount) => !isWorkspacePackageGeneratedImportTag(tagCount.tag));
   const packageExportMetadataRows: ReadonlyArray<PackageMetadataRow> = currentPackageExportPreview === null
     ? []
     : [
@@ -198,7 +256,13 @@ export function WorkspaceExportScreen(): ReactElement {
   function resetPackageExportPreview(): void {
     setPackageExportPreview(null);
     setPackageExportPreviewIdentity(null);
-    setPackageExportRemoveTags([]);
+    setPackageExportIncludedTags([]);
+  }
+
+  function resetPackageExportState(): void {
+    resetPackageExportPreview();
+    setPackageExportSelectedCardTags([]);
+    setPackageExportCardSelectionTagCounts([]);
   }
 
   useEffect(() => {
@@ -207,11 +271,11 @@ export function WorkspaceExportScreen(): ReactElement {
     }
 
     if (packageExportPreviewIdentity.workspaceId !== activeWorkspaceId) {
-      resetPackageExportPreview();
+      resetPackageExportState();
     }
   }, [activeWorkspaceId, packageExportPreviewIdentity]);
 
-  async function previewPackageExport(): Promise<void> {
+  async function previewPackageExportWithSelection(selectedCardTags: ReadonlyArray<string>): Promise<void> {
     if (activeWorkspace === null) {
       setErrorMessage(t("workspaceExport.workspaceUnavailable"));
       setSuccessMessage("");
@@ -226,13 +290,18 @@ export function WorkspaceExportScreen(): ReactElement {
     try {
       const preview = await previewWorkspacePackageExport(
         activeWorkspace.workspaceId,
-        buildDefaultWorkspacePackageExportPreviewRequest(),
+        buildWorkspacePackageExportPreviewRequest(selectedCardTags),
       );
       setPackageExportPreview(preview);
       setPackageExportPreviewIdentity({
         workspaceId: activeWorkspace.workspaceId,
       });
-      setPackageExportRemoveTags(preview.tagsSelectedForRemoval.map((tagCount) => tagCount.tag));
+      setPackageExportCardSelectionTagCounts((currentTagCounts) => (
+        selectedCardTags.length === 0
+          ? preview.availableTagCounts
+          : mergeWorkspacePackageExportTagCounts(currentTagCounts, preview.availableTagCounts)
+      ));
+      setPackageExportIncludedTags(buildWorkspacePackageIncludedTags(preview));
     } catch (error) {
       const wasCaptured = captureWorkspaceExportError(error);
       if (wasCaptured) {
@@ -244,6 +313,10 @@ export function WorkspaceExportScreen(): ReactElement {
     } finally {
       setIsPackageExportPreviewing(false);
     }
+  }
+
+  async function previewPackageExport(): Promise<void> {
+    await previewPackageExportWithSelection(packageExportSelectedCardTags);
   }
 
   async function downloadPackageExport(): Promise<void> {
@@ -262,7 +335,7 @@ export function WorkspaceExportScreen(): ReactElement {
     try {
       const result = await downloadWorkspacePackageExport(
         activeWorkspace.workspaceId,
-        buildWorkspacePackageExportDownloadRequest(currentPreview, packageExportRemoveTags),
+        buildWorkspacePackageExportDownloadRequest(currentPreview, packageExportSelectedCardTags, packageExportIncludedTags),
       );
       triggerBlobDownload({
         blob: result.blob,
@@ -284,8 +357,22 @@ export function WorkspaceExportScreen(): ReactElement {
     }
   }
 
-  function togglePackageExportRemovedTag(tag: string): void {
-    setPackageExportRemoveTags((currentTags) => (
+  function selectAllPackageExportCards(): void {
+    setPackageExportSelectedCardTags([]);
+    void previewPackageExportWithSelection([]);
+  }
+
+  function togglePackageExportCardSelectionTag(tag: string): void {
+    const selectedCardTags = packageExportSelectedCardTags.includes(tag)
+      ? packageExportSelectedCardTags.filter((currentTag) => currentTag !== tag)
+      : [...packageExportSelectedCardTags, tag];
+
+    setPackageExportSelectedCardTags(selectedCardTags);
+    void previewPackageExportWithSelection(selectedCardTags);
+  }
+
+  function togglePackageExportIncludedTag(tag: string): void {
+    setPackageExportIncludedTags((currentTags) => (
       currentTags.includes(tag)
         ? currentTags.filter((currentTag) => currentTag !== tag)
         : [...currentTags, tag]
@@ -340,21 +427,56 @@ export function WorkspaceExportScreen(): ReactElement {
                   ))}
                 </dl>
               )}
-              {currentPackageExportPreview.availableTagCounts.length === 0 ? null : (
+              {packageExportCardSelectionTagCounts.length === 0 ? null : (
                 <div className="workspace-import-preview-tags">
-                  <strong>{t("workspaceExport.exportPreviewTagsTitle")}</strong>
+                  <strong>{t("workspaceExport.cardSelectionTitle")}</strong>
+                  <p className="subtitle">{t("workspaceExport.cardSelectionDescription")}</p>
                   <div className="workspace-import-preview-tag-list">
-                    {currentPackageExportPreview.availableTagCounts.map((tagCount) => (
+                    <label className="workspace-import-preview-tag-control">
+                      <input
+                        type="radio"
+                        checked={packageExportSelectedCardTags.length === 0}
+                        disabled={isPackageExportBusy}
+                        data-testid="workspace-package-export-all-cards-radio"
+                        onChange={selectAllPackageExportCards}
+                      />
+                      <span>{t("workspaceExport.cardSelectionAllCardsLabel")}</span>
+                    </label>
+                    {packageExportCardSelectionTagCounts.map((tagCount) => (
                       <label key={tagCount.tag} className="workspace-import-preview-tag-control">
                         <input
                           type="checkbox"
-                          checked={packageExportRemoveTags.includes(tagCount.tag)}
+                          checked={packageExportSelectedCardTags.includes(tagCount.tag)}
                           disabled={isPackageExportBusy}
-                          data-testid="workspace-package-export-remove-tag-checkbox"
+                          data-testid="workspace-package-export-card-selection-tag-checkbox"
                           data-tag={tagCount.tag}
-                          onChange={() => togglePackageExportRemovedTag(tagCount.tag)}
+                          onChange={() => togglePackageExportCardSelectionTag(tagCount.tag)}
                         />
-                        <span>{t("workspaceExport.exportPreviewRemoveTagLabel", {
+                        <span>{t("workspaceExport.cardSelectionTagLabel", {
+                          tag: tagCount.tag,
+                          count: tagCount.cardsCount,
+                        })}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {packageExportIncludedTagCounts.length === 0 ? null : (
+                <div className="workspace-import-preview-tags">
+                  <strong>{t("workspaceExport.includedTagsTitle")}</strong>
+                  <p className="subtitle">{t("workspaceExport.includedTagsDescription")}</p>
+                  <div className="workspace-import-preview-tag-list">
+                    {packageExportIncludedTagCounts.map((tagCount) => (
+                      <label key={tagCount.tag} className="workspace-import-preview-tag-control">
+                        <input
+                          type="checkbox"
+                          checked={packageExportIncludedTags.includes(tagCount.tag)}
+                          disabled={isPackageExportBusy}
+                          data-testid="workspace-package-export-included-tag-checkbox"
+                          data-tag={tagCount.tag}
+                          onChange={() => togglePackageExportIncludedTag(tagCount.tag)}
+                        />
+                        <span>{t("workspaceExport.includedTagLabel", {
                           tag: tagCount.tag,
                           count: tagCount.cardsCount,
                         })}</span>

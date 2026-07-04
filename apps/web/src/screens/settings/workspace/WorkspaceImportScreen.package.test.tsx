@@ -322,6 +322,18 @@ async function clickElement(element: HTMLElement): Promise<void> {
   });
 }
 
+async function setTextInputValue(input: HTMLInputElement, value: string): Promise<void> {
+  const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  if (valueSetter === undefined) {
+    throw new Error("HTML input value setter is unavailable");
+  }
+
+  await act(async () => {
+    valueSetter.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
 async function waitForPreview(): Promise<void> {
   await waitForCondition("Package preview did not finish", () => (
     previewWorkspacePackageImportMock.mock.calls.length > 0
@@ -345,7 +357,7 @@ function readConfirmOptions(): WorkspacePackageImportConfirmOptions {
 }
 
 describe("WorkspaceImportScreen package import", () => {
-  it("initializes the import tag option from preview defaults", async () => {
+  it("initializes the editable import tag option from preview defaults", async () => {
     const file = createZipFile("flashcards.zip");
 
     await renderScreen();
@@ -353,10 +365,10 @@ describe("WorkspaceImportScreen package import", () => {
     await waitForPreview();
 
     const checkbox = requireElement("[data-testid='workspace-package-import-tag-checkbox']", HTMLInputElement);
-    const importTag = requireElement("[data-testid='workspace-package-import-preview-import-tag']", HTMLParagraphElement);
+    const importTagInput = requireElement("[data-testid='workspace-package-import-tag-input']", HTMLInputElement);
 
     expect(checkbox.checked).toBe(true);
-    expect(importTag.textContent).toContain("import:2026-07-01");
+    expect(importTagInput.value).toBe("import:2026-07-01");
   });
 
   it("previews a chosen ZIP and displays package counts and details", async () => {
@@ -429,6 +441,38 @@ describe("WorkspaceImportScreen package import", () => {
     await waitForConfirm();
 
     expect(readConfirmOptions().removeTags).toEqual(["temporary", "geography"]);
+  });
+
+  it("sends the edited import tag when confirming import", async () => {
+    const file = createZipFile("flashcards.zip");
+
+    await renderScreen();
+    await choosePackageFile(file);
+    await waitForPreview();
+    await setTextInputValue(
+      requireElement("[data-testid='workspace-package-import-tag-input']", HTMLInputElement),
+      "custom-import-tag",
+    );
+    await clickElement(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement));
+    await waitForConfirm();
+
+    expect(readConfirmOptions().importTag).toBe("custom-import-tag");
+  });
+
+  it("blocks confirm when enabled import tagging has a blank tag", async () => {
+    const file = createZipFile("flashcards.zip");
+
+    await renderScreen();
+    await choosePackageFile(file);
+    await waitForPreview();
+    await setTextInputValue(
+      requireElement("[data-testid='workspace-package-import-tag-input']", HTMLInputElement),
+      "   ",
+    );
+    await clickElement(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement));
+
+    expect(requireElement("[data-testid='workspace-import-error']", HTMLParagraphElement).textContent).toContain("Enter an import tag");
+    expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
   });
 
   it("resets the preview when the active workspace changes before confirm", async () => {
