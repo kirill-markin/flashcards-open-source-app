@@ -533,7 +533,6 @@
 "settings.workspace.resetConfirmation.title" = "Подтвердить сброс";
 "settings.workspace.resetConfirmation.warning" = "Внимание: это действие является постоянным. Это очистит прогресс изучения каждой карты в этом рабочем пространстве.";
 "settings.workspace.resetConfirmation.description" = "Карты останутся на месте. Ваш прогресс в учебе вернется к новому.";
-"settings.workspace.resetConfirmation.placeholder" = "сбросить весь прогресс для всех карточек в этом рабочем пространстве";
 "settings.workspace.resetConfirmation.loadingPreview" = "Загрузка предварительного просмотра сброса...";
 "settings.workspace.resetConfirmation.previewWarning" = "Внимание: это действие является постоянным. Карты %d сбросятся на %@.";
 "settings.workspace.resetConfirmation.previewDescription" = "Карты останутся в рабочей области. Будет удален только ваш прогресс в учебе.";

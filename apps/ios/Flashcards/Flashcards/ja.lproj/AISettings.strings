@@ -533,7 +533,6 @@
 "settings.workspace.resetConfirmation.title" = "リセットを確認";
 "settings.workspace.resetConfirmation.warning" = "警告: このアクションは永続的です。このワークスペース内の各カードの学習の進行状況をクリアします。";
 "settings.workspace.resetConfirmation.description" = "カードはそのまま残ります。学習の進捗状況が新しい状態に戻ります。";
-"settings.workspace.resetConfirmation.placeholder" = "このワークスペース内のすべてのカードの進行状況をすべてリセット";
 "settings.workspace.resetConfirmation.loadingPreview" = "リセット プレビューを読み込んでいます...";
 "settings.workspace.resetConfirmation.previewWarning" = "警告: このアクションは永続的です。 %d カードを %@ にリセットします。";
 "settings.workspace.resetConfirmation.previewDescription" = "カードはワークスペースに残ります。学習の進行状況のみが削除されます。";

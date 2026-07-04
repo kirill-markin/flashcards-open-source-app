@@ -533,7 +533,6 @@
 "settings.workspace.resetConfirmation.title" = "Confirmar restablecimiento";
 "settings.workspace.resetConfirmation.warning" = "Advertencia: esta accion es permanente. Borrara el progreso de estudio de cada tarjeta de este espacio de trabajo.";
 "settings.workspace.resetConfirmation.description" = "Las tarjetas permaneceran en su sitio. Su progreso de estudio volvera a nuevo.";
-"settings.workspace.resetConfirmation.placeholder" = "reset all progress for all cards in this workspace";
 "settings.workspace.resetConfirmation.loadingPreview" = "Cargando vista previa del restablecimiento...";
 "settings.workspace.resetConfirmation.previewWarning" = "Advertencia: esta accion es permanente. Restablecera %d tarjetas en %@.";
 "settings.workspace.resetConfirmation.previewDescription" = "Las tarjetas permaneceran en el espacio de trabajo. Solo se borrara su progreso de estudio.";
