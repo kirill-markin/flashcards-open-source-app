@@ -423,10 +423,40 @@ extension FlashcardsStore {
             return
         }
 
+        let reconcileStartedAt = Date()
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .reviewReminder,
+            stage: "review_reconcile",
+            phase: .start,
+            trigger: trigger.diagnosticValue,
+            startedAt: nil,
+            authorizationStatus: nil,
+            counts: emptyNotificationForegroundOperationCounts(),
+            errorSummary: nil
+        )
         let center = UNUserNotificationCenter.current()
-        let pendingRequestIdentifiers = await pendingReviewNotificationRequestIdentifiers(center: center)
+        let cleanupStartedAt = Date()
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .reviewReminder,
+            stage: "review_notification_center_cleanup",
+            phase: .start,
+            trigger: trigger.diagnosticValue,
+            startedAt: nil,
+            authorizationStatus: nil,
+            counts: emptyNotificationForegroundOperationCounts(),
+            errorSummary: nil
+        )
+        let pendingBeforeCleanupRequestIdentifiers = await pendingAppNotificationRequestIdentifiers(center: center)
+        let cleanupPendingBefore = appNotificationPendingRequestBreakdown(
+            identifiers: pendingBeforeCleanupRequestIdentifiers
+        )
+        let pendingRequestIdentifiers = filterReviewNotificationRequestIdentifiers(
+            identifiers: pendingBeforeCleanupRequestIdentifiers
+        )
+        var deliveredBeforeCount: Int?
         if trigger.shouldClearDeliveredReviewNotifications {
             let deliveredReviewReminderStates = await deliveredReviewReminderAttentionStates(center: center)
+            deliveredBeforeCount = deliveredReviewReminderStates.count
             self.markReviewReminderAttentionFromDeliveredStates(
                 states: deliveredReviewReminderStates,
                 workspaceId: workspaceId
@@ -436,16 +466,52 @@ extension FlashcardsStore {
         if pendingRequestIdentifiers.isEmpty == false {
             center.removePendingNotificationRequests(withIdentifiers: pendingRequestIdentifiers)
         }
+        var deliveredRemovedCount: Int?
         if trigger.shouldClearDeliveredReviewNotifications {
-            await removeDeliveredReviewNotifications(center: center)
+            deliveredRemovedCount = await removeDeliveredReviewNotifications(center: center)
         }
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .reviewReminder,
+            stage: "review_notification_center_cleanup",
+            phase: .success,
+            trigger: trigger.diagnosticValue,
+            startedAt: cleanupStartedAt,
+            authorizationStatus: nil,
+            counts: notificationCleanupForegroundOperationCounts(
+                pendingBefore: cleanupPendingBefore,
+                deliveredBeforeCount: deliveredBeforeCount,
+                deliveredRemovedCount: deliveredRemovedCount
+            ),
+            errorSummary: nil
+        )
 
         guard self.reviewNotificationsSettings.isEnabled else {
             self.persistScheduledReviewNotifications(payloads: [])
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .reviewReminder,
+                stage: "review_reconcile_skipped_disabled",
+                phase: .success,
+                trigger: trigger.diagnosticValue,
+                startedAt: reconcileStartedAt,
+                authorizationStatus: nil,
+                counts: emptyNotificationForegroundOperationCounts(),
+                errorSummary: nil
+            )
             return
         }
-        guard await resolveReviewNotificationPermissionStatus() == .allowed else {
+        let permissionStatus = await resolveReviewNotificationPermissionStatus()
+        guard permissionStatus == .allowed else {
             self.persistScheduledReviewNotifications(payloads: [])
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .reviewReminder,
+                stage: "review_reconcile_skipped_permission",
+                phase: .success,
+                trigger: trigger.diagnosticValue,
+                startedAt: reconcileStartedAt,
+                authorizationStatus: permissionStatus,
+                counts: emptyNotificationForegroundOperationCounts(),
+                errorSummary: nil
+            )
             return
         }
         guard self.reviewNotificationsRescheduleGeneration == generation else {
@@ -474,9 +540,53 @@ extension FlashcardsStore {
         )
 
         let loadResult: ScheduledReviewNotificationLoadResult
+        let payloadLoadStartedAt = Date()
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .reviewReminder,
+            stage: "review_payload_load",
+            phase: .start,
+            trigger: trigger.diagnosticValue,
+            startedAt: nil,
+            authorizationStatus: permissionStatus,
+            counts: emptyNotificationForegroundOperationCounts(),
+            errorSummary: nil
+        )
         do {
             loadResult = try await loadScheduledReviewNotificationPayloads(snapshot: snapshot)
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .reviewReminder,
+                stage: "review_payload_load",
+                phase: .success,
+                trigger: trigger.diagnosticValue,
+                startedAt: payloadLoadStartedAt,
+                authorizationStatus: permissionStatus,
+                counts: notificationPlannedForegroundOperationCounts(
+                    plannedCount: loadResult.payloads.count
+                ),
+                errorSummary: nil
+            )
         } catch {
+            let errorSummary = Flashcards.errorMessage(error: error)
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .reviewReminder,
+                stage: "review_payload_load",
+                phase: .failure,
+                trigger: trigger.diagnosticValue,
+                startedAt: payloadLoadStartedAt,
+                authorizationStatus: permissionStatus,
+                counts: emptyNotificationForegroundOperationCounts(),
+                errorSummary: errorSummary
+            )
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .reviewReminder,
+                stage: "review_reconcile",
+                phase: .failure,
+                trigger: trigger.diagnosticValue,
+                startedAt: reconcileStartedAt,
+                authorizationStatus: permissionStatus,
+                counts: emptyNotificationForegroundOperationCounts(),
+                errorSummary: errorSummary
+            )
             FlashcardsObservability.captureWarning(
                 .localDataRepair(
                     LocalDataRepairWarning(
@@ -494,7 +604,7 @@ extension FlashcardsStore {
                         ),
                         workspaceId: workspaceId,
                         cardId: nil,
-                        reason: Flashcards.errorMessage(error: error),
+                        reason: errorSummary,
                         repair: "clear_scheduled_review_notifications"
                     )
                 )
@@ -510,14 +620,57 @@ extension FlashcardsStore {
         }
 
         let payloads = loadResult.payloads
+        let pendingReadStartedAt = Date()
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .reviewReminder,
+            stage: "review_pending_read_before",
+            phase: .start,
+            trigger: trigger.diagnosticValue,
+            startedAt: nil,
+            authorizationStatus: permissionStatus,
+            counts: notificationPlannedForegroundOperationCounts(
+                plannedCount: payloads.count
+            ),
+            errorSummary: nil
+        )
         let pendingBeforeRequestIdentifiers: [String] = await pendingAppNotificationRequestIdentifiers(center: center)
         let permissionStatusBeforeAdd: ReviewNotificationPermissionStatus =
             await resolveReviewNotificationPermissionStatus()
         let appStateBeforeAdd: String = currentAppNotificationApplicationStateDiagnosticValue()
+        let pendingBeforeBreakdown = appNotificationPendingRequestBreakdown(
+            identifiers: pendingBeforeRequestIdentifiers
+        )
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .reviewReminder,
+            stage: "review_pending_read_before",
+            phase: .success,
+            trigger: trigger.diagnosticValue,
+            startedAt: pendingReadStartedAt,
+            authorizationStatus: permissionStatusBeforeAdd,
+            counts: notificationPendingBeforeForegroundOperationCounts(
+                pendingBefore: pendingBeforeBreakdown,
+                plannedCount: payloads.count
+            ),
+            errorSummary: nil
+        )
         var addFailure: Error?
-        var failedRequestId: String?
         var attemptedPayloads: [ScheduledReviewNotificationPayload] = []
+        var attemptedAddCount = 0
 
+        let addStartedAt = Date()
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .reviewReminder,
+            stage: "review_add_requests",
+            phase: .start,
+            trigger: trigger.diagnosticValue,
+            startedAt: nil,
+            authorizationStatus: permissionStatusBeforeAdd,
+            counts: notificationPendingBeforeForegroundOperationCounts(
+                pendingBefore: pendingBeforeBreakdown,
+                plannedCount: payloads.count
+            ),
+            errorSummary: nil
+        )
         for payload in payloads {
             guard self.reviewNotificationsRescheduleGeneration == generation else {
                 return
@@ -538,13 +691,29 @@ extension FlashcardsStore {
             )
             attemptedPayloads.append(payload)
             do {
+                attemptedAddCount += 1
                 try await center.add(request)
             } catch {
                 addFailure = error
-                failedRequestId = payload.requestId
                 break
             }
         }
+        let addErrorSummary = addFailure.map { error in Flashcards.errorMessage(error: error) }
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .reviewReminder,
+            stage: "review_add_requests",
+            phase: addFailure == nil ? .success : .failure,
+            trigger: trigger.diagnosticValue,
+            startedAt: addStartedAt,
+            authorizationStatus: permissionStatusBeforeAdd,
+            counts: notificationAddForegroundOperationCounts(
+                pendingBefore: pendingBeforeBreakdown,
+                plannedCount: payloads.count,
+                attemptedCount: attemptedAddCount
+            ),
+            errorSummary: addErrorSummary
+        )
+        let didLogAddFailureBreadcrumb = addFailure != nil
 
         guard self.reviewNotificationsRescheduleGeneration == generation else {
             return
@@ -560,6 +729,21 @@ extension FlashcardsStore {
         )
         let plannedRequestIdentifiers: [String] = expectedPayloads.map(\.requestId)
         let initialReadback: NotificationSchedulingReadbackResult
+        let readbackStartedAt = Date()
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .reviewReminder,
+            stage: "review_readback",
+            phase: .start,
+            trigger: trigger.diagnosticValue,
+            startedAt: nil,
+            authorizationStatus: permissionStatusBeforeAdd,
+            counts: notificationAddForegroundOperationCounts(
+                pendingBefore: pendingBeforeBreakdown,
+                plannedCount: expectedPayloads.count,
+                attemptedCount: attemptedAddCount
+            ),
+            errorSummary: nil
+        )
         do {
             initialReadback = try await notificationSchedulingReadback(
                 center: center,
@@ -569,6 +753,41 @@ extension FlashcardsStore {
         } catch is CancellationError {
             return
         } catch {
+            let errorSummary = Flashcards.errorMessage(error: error)
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .reviewReminder,
+                stage: "review_readback",
+                phase: .failure,
+                trigger: trigger.diagnosticValue,
+                startedAt: readbackStartedAt,
+                authorizationStatus: permissionStatusBeforeAdd,
+                counts: notificationAddForegroundOperationCounts(
+                    pendingBefore: pendingBeforeBreakdown,
+                    plannedCount: expectedPayloads.count,
+                    attemptedCount: attemptedAddCount
+                ),
+                errorSummary: errorSummary
+            )
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .reviewReminder,
+                stage: "review_reconcile",
+                phase: .failure,
+                trigger: trigger.diagnosticValue,
+                startedAt: reconcileStartedAt,
+                authorizationStatus: permissionStatusBeforeAdd,
+                counts: notificationReadbackForegroundOperationCounts(
+                    pendingBefore: pendingBeforeBreakdown,
+                    pendingAfter: nil,
+                    deliveredBeforeCount: deliveredBeforeCount,
+                    deliveredRemovedCount: deliveredRemovedCount,
+                    plannedCount: expectedPayloads.count,
+                    attemptedCount: attemptedAddCount,
+                    acceptedCount: nil,
+                    readbackCompleted: nil,
+                    readbackAttemptCount: nil
+                ),
+                errorSummary: errorSummary
+            )
             captureReviewNotificationsSilentFailure(
                 error: error,
                 action: "review_notifications_delayed_readback",
@@ -587,6 +806,7 @@ extension FlashcardsStore {
         }
 
         var finalReadback: NotificationSchedulingReadbackResult = initialReadback
+        var readbackAttemptCount: Int = initialReadback.attemptCount
         if addFailure == nil && initialReadback.isComplete == false {
             let missingPayloads: [ScheduledReviewNotificationPayload] = missingReviewNotificationPayloads(
                 payloads: expectedPayloads,
@@ -611,10 +831,10 @@ extension FlashcardsStore {
                     addNow: retryAddNow
                 )
                 do {
+                    attemptedAddCount += 1
                     try await center.add(request)
                 } catch {
                     addFailure = error
-                    failedRequestId = payload.requestId
                     break
                 }
             }
@@ -630,9 +850,55 @@ extension FlashcardsStore {
                     plannedRequestIdentifiers: plannedRequestIdentifiers,
                     retryDelayNanoseconds: notificationSchedulingReadbackRetryDelayNanoseconds
                 )
+                readbackAttemptCount += finalReadback.attemptCount
             } catch is CancellationError {
                 return
             } catch {
+                let errorSummary = Flashcards.errorMessage(error: error)
+                self.addNotificationForegroundOperationBreadcrumb(
+                    notificationKind: .reviewReminder,
+                    stage: "review_readback",
+                    phase: .failure,
+                    trigger: trigger.diagnosticValue,
+                    startedAt: readbackStartedAt,
+                    authorizationStatus: permissionStatusBeforeAdd,
+                    counts: notificationReadbackForegroundOperationCounts(
+                        pendingBefore: pendingBeforeBreakdown,
+                        pendingAfter: appNotificationPendingRequestBreakdown(
+                            identifiers: initialReadback.pendingRequestIdentifiers
+                        ),
+                        deliveredBeforeCount: nil,
+                        deliveredRemovedCount: nil,
+                        plannedCount: expectedPayloads.count,
+                        attemptedCount: attemptedAddCount,
+                        acceptedCount: nil,
+                        readbackCompleted: initialReadback.isComplete,
+                        readbackAttemptCount: readbackAttemptCount
+                    ),
+                    errorSummary: errorSummary
+                )
+                self.addNotificationForegroundOperationBreadcrumb(
+                    notificationKind: .reviewReminder,
+                    stage: "review_reconcile",
+                    phase: .failure,
+                    trigger: trigger.diagnosticValue,
+                    startedAt: reconcileStartedAt,
+                    authorizationStatus: permissionStatusBeforeAdd,
+                    counts: notificationReadbackForegroundOperationCounts(
+                        pendingBefore: pendingBeforeBreakdown,
+                        pendingAfter: appNotificationPendingRequestBreakdown(
+                            identifiers: initialReadback.pendingRequestIdentifiers
+                        ),
+                        deliveredBeforeCount: deliveredBeforeCount,
+                        deliveredRemovedCount: deliveredRemovedCount,
+                        plannedCount: expectedPayloads.count,
+                        attemptedCount: attemptedAddCount,
+                        acceptedCount: nil,
+                        readbackCompleted: initialReadback.isComplete,
+                        readbackAttemptCount: readbackAttemptCount
+                    ),
+                    errorSummary: errorSummary
+                )
                 captureReviewNotificationsSilentFailure(
                     error: error,
                     action: "review_notifications_delayed_readback",
@@ -692,6 +958,54 @@ extension FlashcardsStore {
             appStateAfterReadback: appStateAfterReadback,
             delayedReadback: delayedReadback
         )
+        let readbackMismatchSummary: String? = hasReadbackMismatch
+            ? "Notification Center accepted fewer review reminders than planned"
+            : nil
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .reviewReminder,
+            stage: "review_readback",
+            phase: hasReadbackMismatch ? .failure : .success,
+            trigger: trigger.diagnosticValue,
+            startedAt: readbackStartedAt,
+            authorizationStatus: permissionStatusAfterReadback,
+            counts: notificationReadbackForegroundOperationCounts(
+                pendingBefore: diagnostics.pendingBefore,
+                pendingAfter: diagnostics.pendingAfter,
+                deliveredBeforeCount: nil,
+                deliveredRemovedCount: nil,
+                plannedCount: expectedPayloads.count,
+                attemptedCount: attemptedAddCount,
+                acceptedCount: acceptedExpectedPayloads.count,
+                readbackCompleted: finalReadback.isComplete,
+                readbackAttemptCount: readbackAttemptCount
+            ),
+            errorSummary: readbackMismatchSummary
+        )
+        let reconcileErrorSummary: String? = addFailure.map { error in
+            Flashcards.errorMessage(error: error)
+        } ?? readbackMismatchSummary
+        if let addFailure, didLogAddFailureBreadcrumb == false {
+            self.addNotificationForegroundOperationBreadcrumb(
+                notificationKind: .reviewReminder,
+                stage: "review_add_requests",
+                phase: .failure,
+                trigger: trigger.diagnosticValue,
+                startedAt: nil,
+                authorizationStatus: permissionStatusAfterReadback,
+                counts: notificationReadbackForegroundOperationCounts(
+                    pendingBefore: diagnostics.pendingBefore,
+                    pendingAfter: diagnostics.pendingAfter,
+                    deliveredBeforeCount: nil,
+                    deliveredRemovedCount: nil,
+                    plannedCount: payloads.count,
+                    attemptedCount: attemptedAddCount,
+                    acceptedCount: acceptedAttemptedPayloads.count,
+                    readbackCompleted: finalReadback.isComplete,
+                    readbackAttemptCount: readbackAttemptCount
+                ),
+                errorSummary: Flashcards.errorMessage(error: addFailure)
+            )
+        }
         if let addFailure {
             FlashcardsObservability.captureWarning(
                 .notificationSchedulingFailed(
@@ -710,7 +1024,7 @@ extension FlashcardsStore {
                         ),
                         notificationKind: .reviewReminder,
                         workspaceId: workspaceId,
-                        requestId: failedRequestId,
+                        requestId: nil,
                         stage: "add",
                         plannedCount: attemptedPayloads.count,
                         acceptedCount: acceptedAttemptedPayloads.count,
@@ -744,12 +1058,32 @@ extension FlashcardsStore {
                         acceptedCount: acceptedExpectedPayloads.count,
                         diagnostics: diagnostics,
                         error: nil,
-                        messageSummary: "Notification Center accepted fewer review reminders than planned"
+                        messageSummary: readbackMismatchSummary
                     )
                 )
             )
         }
         self.persistScheduledReviewNotifications(payloads: acceptedExpectedPayloads)
+        self.addNotificationForegroundOperationBreadcrumb(
+            notificationKind: .reviewReminder,
+            stage: "review_reconcile",
+            phase: reconcileErrorSummary == nil ? .success : .failure,
+            trigger: trigger.diagnosticValue,
+            startedAt: reconcileStartedAt,
+            authorizationStatus: permissionStatusAfterReadback,
+            counts: notificationReadbackForegroundOperationCounts(
+                pendingBefore: diagnostics.pendingBefore,
+                pendingAfter: diagnostics.pendingAfter,
+                deliveredBeforeCount: deliveredBeforeCount,
+                deliveredRemovedCount: deliveredRemovedCount,
+                plannedCount: expectedPayloads.count,
+                attemptedCount: attemptedAddCount,
+                acceptedCount: acceptedExpectedPayloads.count,
+                readbackCompleted: finalReadback.isComplete,
+                readbackAttemptCount: readbackAttemptCount
+            ),
+            errorSummary: reconcileErrorSummary
+        )
     }
 
     private func markReviewReminderAttentionFromDeliveredStates(

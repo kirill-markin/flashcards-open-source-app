@@ -721,6 +721,23 @@ final class CloudSessionRuntime {
                     cloudSyncCleanedUpOperationCount: syncResult?.cleanedUpOperationCount,
                     cloudSyncCleanedUpReviewScheduleImpactingOperationCount: syncResult?.cleanedUpReviewScheduleImpactingOperationCount,
                     cloudSyncCleanedUpReviewEventOperationCount: syncResult?.cleanedUpReviewEventOperationCount,
+                    notificationKind: nil,
+                    notificationAuthorizationStatus: nil,
+                    notificationPendingBeforeTotalCount: nil,
+                    notificationPendingBeforeReviewCount: nil,
+                    notificationPendingBeforeStrictCount: nil,
+                    notificationPendingBeforeOtherCount: nil,
+                    notificationPendingAfterTotalCount: nil,
+                    notificationPendingAfterReviewCount: nil,
+                    notificationPendingAfterStrictCount: nil,
+                    notificationPendingAfterOtherCount: nil,
+                    notificationDeliveredBeforeCount: nil,
+                    notificationDeliveredRemovedCount: nil,
+                    notificationPlannedCount: nil,
+                    notificationAttemptedCount: nil,
+                    notificationAcceptedCount: nil,
+                    notificationReadbackCompleted: nil,
+                    notificationReadbackAttemptCount: nil,
                     errorSummary: error.map { operationError in Flashcards.errorMessage(error: operationError) }
                 )
             )
