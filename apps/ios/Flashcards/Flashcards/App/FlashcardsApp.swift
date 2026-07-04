@@ -72,7 +72,7 @@ private func nextProgressContextRolloverDate(now: Date) -> Date {
     return nextDay
 }
 
-private func appLifecycleTabName(tab: AppTab) -> String {
+func appForegroundOperationTabName(tab: AppTab) -> String {
     switch tab {
     case .review:
         return "review"
@@ -87,6 +87,10 @@ private func appLifecycleTabName(tab: AppTab) -> String {
     }
 }
 
+private func appLifecycleTabName(tab: AppTab) -> String {
+    appForegroundOperationTabName(tab: tab)
+}
+
 private func appLifecycleScenePhaseName(scenePhase: ScenePhase) -> String {
     switch scenePhase {
     case .active:
@@ -98,6 +102,20 @@ private func appLifecycleScenePhaseName(scenePhase: ScenePhase) -> String {
     @unknown default:
         return "unknown"
     }
+}
+
+func appForegroundOperationSelectionName(selectedTab: AppTab, previousTab: AppTab?) -> String {
+    let selectedTabName = appForegroundOperationTabName(tab: selectedTab)
+    guard let previousTab,
+          previousTab != selectedTab else {
+        return selectedTabName
+    }
+
+    return "\(appForegroundOperationTabName(tab: previousTab))->\(selectedTabName)"
+}
+
+func appForegroundOperationDurationMilliseconds(startedAt: Date, finishedAt: Date) -> Int {
+    max(0, Int((finishedAt.timeIntervalSince(startedAt) * 1_000).rounded()))
 }
 
 @MainActor
@@ -119,6 +137,112 @@ private func makeAppLifecycleScope(store: FlashcardsStore?) -> IOSObservationSco
         runId: nil,
         cloudState: store?.cloudSettings?.cloudState,
         configurationMode: configurationMode
+    )
+}
+
+@MainActor
+func makeAppForegroundOperationScope(store: FlashcardsStore) -> IOSObservationScope {
+    IOSObservationScope(
+        feature: .appStartup,
+        userId: store.cloudSettings?.linkedUserId,
+        workspaceId: store.workspace?.workspaceId,
+        requestId: nil,
+        clientRequestId: nil,
+        sessionId: nil,
+        runId: nil,
+        cloudState: store.cloudSettings?.cloudState,
+        configurationMode: try? store.currentCloudServiceConfiguration().mode
+    )
+}
+
+@MainActor
+func logAppForegroundOperationBreadcrumb(
+    action: ForegroundOperationAction,
+    phase: ForegroundOperationPhase,
+    store: FlashcardsStore,
+    selectedTab: AppTab,
+    previousTab: AppTab?,
+    scenePhase: ScenePhase?,
+    isStartupReady: Bool?,
+    isRecoveryGateActive: Bool?,
+    startedAt: Date?,
+    finishedAt: Date?,
+    error: Error?
+) {
+    let scenePhaseName: String?
+    if let scenePhase {
+        scenePhaseName = appLifecycleScenePhaseName(scenePhase: scenePhase)
+    } else {
+        scenePhaseName = nil
+    }
+
+    let durationMilliseconds: Int?
+    if let startedAt,
+       let finishedAt {
+        durationMilliseconds = appForegroundOperationDurationMilliseconds(startedAt: startedAt, finishedAt: finishedAt)
+    } else {
+        durationMilliseconds = nil
+    }
+
+    FlashcardsObservability.addBreadcrumb(
+        .foregroundOperation(
+            ForegroundOperationObservation(
+                scope: makeAppForegroundOperationScope(store: store),
+                action: action,
+                phase: phase,
+                durationMilliseconds: durationMilliseconds,
+                selectedTab: appForegroundOperationSelectionName(selectedTab: selectedTab, previousTab: previousTab),
+                scenePhase: scenePhaseName,
+                isStartupReady: isStartupReady,
+                isRecoveryGateActive: isRecoveryGateActive,
+                cardCount: store.cards.count,
+                deckCount: store.decks.count,
+                pendingOutboxOperationCount: nil,
+                reviewQueueCount: store.reviewQueue.count,
+                reviewDueCount: store.homeSnapshot.dueCount,
+                cloudSyncBlocked: store.isCloudSyncBlocked,
+                errorSummary: error.map { operationError in Flashcards.errorMessage(error: operationError) }
+            )
+        )
+    )
+}
+
+@MainActor
+func prepareVisibleTabForPresentationWithBreadcrumb(
+    store: FlashcardsStore,
+    selectedTab: AppTab,
+    previousTab: AppTab?,
+    scenePhase: ScenePhase?,
+    isStartupReady: Bool?,
+    isRecoveryGateActive: Bool?,
+    now: Date
+) {
+    logAppForegroundOperationBreadcrumb(
+        action: .visibleTabPresentation,
+        phase: .start,
+        store: store,
+        selectedTab: selectedTab,
+        previousTab: previousTab,
+        scenePhase: scenePhase,
+        isStartupReady: isStartupReady,
+        isRecoveryGateActive: isRecoveryGateActive,
+        startedAt: nil,
+        finishedAt: nil,
+        error: nil
+    )
+    store.prepareVisibleTabForPresentation(tab: selectedTab, now: now)
+    logAppForegroundOperationBreadcrumb(
+        action: .visibleTabPresentation,
+        phase: .success,
+        store: store,
+        selectedTab: selectedTab,
+        previousTab: previousTab,
+        scenePhase: scenePhase,
+        isStartupReady: isStartupReady,
+        isRecoveryGateActive: isRecoveryGateActive,
+        startedAt: now,
+        finishedAt: Date(),
+        error: nil
     )
 }
 
@@ -307,7 +431,15 @@ struct FlashcardsApp: App {
                 isRecoveryGateActive: false,
                 messageSummary: nil
             )
-            store.prepareVisibleTabForPresentation(tab: selectedTab, now: Date())
+            prepareVisibleTabForPresentationWithBreadcrumb(
+                store: store,
+                selectedTab: selectedTab,
+                previousTab: nil,
+                scenePhase: nil,
+                isStartupReady: false,
+                isRecoveryGateActive: false,
+                now: Date()
+            )
             logAppLifecycleBreadcrumb(
                 action: .visibleTabPrepareSuccess,
                 store: store,
@@ -469,6 +601,20 @@ struct FlashcardsApp: App {
             return
         }
 
+        let initialStartupStartedAt = Date()
+        logAppForegroundOperationBreadcrumb(
+            action: .initialStartup,
+            phase: .start,
+            store: self.store,
+            selectedTab: self.navigation.selectedTab,
+            previousTab: nil,
+            scenePhase: self.scenePhase,
+            isStartupReady: self.isStartupReadyForBackgroundWork,
+            isRecoveryGateActive: self.isCloudCredentialRecoveryGateActive,
+            startedAt: nil,
+            finishedAt: nil,
+            error: nil
+        )
         self.hasRunInitialStartup = true
         self.isStartupReadyForBackgroundWork = false
 
@@ -490,7 +636,34 @@ struct FlashcardsApp: App {
                 isRecoveryGateActive: self.isCloudCredentialRecoveryGateActive,
                 messageSummary: nil
             )
+            let progressContextRefreshStartedAt = Date()
+            logAppForegroundOperationBreadcrumb(
+                action: .initialProgressContextRefresh,
+                phase: .start,
+                store: self.store,
+                selectedTab: self.navigation.selectedTab,
+                previousTab: nil,
+                scenePhase: self.scenePhase,
+                isStartupReady: self.isStartupReadyForBackgroundWork,
+                isRecoveryGateActive: self.isCloudCredentialRecoveryGateActive,
+                startedAt: nil,
+                finishedAt: nil,
+                error: nil
+            )
             self.refreshProgressContext(now: now, restartWatcher: false)
+            logAppForegroundOperationBreadcrumb(
+                action: .initialProgressContextRefresh,
+                phase: .success,
+                store: self.store,
+                selectedTab: self.navigation.selectedTab,
+                previousTab: nil,
+                scenePhase: self.scenePhase,
+                isStartupReady: self.isStartupReadyForBackgroundWork,
+                isRecoveryGateActive: self.isCloudCredentialRecoveryGateActive,
+                startedAt: progressContextRefreshStartedAt,
+                finishedAt: Date(),
+                error: nil
+            )
             if self.uiTestLaunchScenario == nil {
                 logAppLifecycleBreadcrumb(
                     action: .launchCloudSyncTriggered,
@@ -524,8 +697,35 @@ struct FlashcardsApp: App {
                 isRecoveryGateActive: self.isCloudCredentialRecoveryGateActive,
                 messageSummary: nil
             )
+            let notificationReconcileStartedAt = Date()
+            logAppForegroundOperationBreadcrumb(
+                action: .initialNotificationReconcile,
+                phase: .start,
+                store: self.store,
+                selectedTab: self.navigation.selectedTab,
+                previousTab: nil,
+                scenePhase: self.scenePhase,
+                isStartupReady: self.isStartupReadyForBackgroundWork,
+                isRecoveryGateActive: self.isCloudCredentialRecoveryGateActive,
+                startedAt: nil,
+                finishedAt: nil,
+                error: nil
+            )
             self.store.reconcileReviewNotifications(trigger: .appActive, now: now)
             self.store.reconcileStrictReminders(trigger: .appActive, now: now)
+            logAppForegroundOperationBreadcrumb(
+                action: .initialNotificationReconcile,
+                phase: .success,
+                store: self.store,
+                selectedTab: self.navigation.selectedTab,
+                previousTab: nil,
+                scenePhase: self.scenePhase,
+                isStartupReady: self.isStartupReadyForBackgroundWork,
+                isRecoveryGateActive: self.isCloudCredentialRecoveryGateActive,
+                startedAt: notificationReconcileStartedAt,
+                finishedAt: Date(),
+                error: nil
+            )
 
             if let launchScenario = self.uiTestLaunchScenario {
                 self.store.uiTestLaunchPreparationStatus = .ready(launchScenario: launchScenario)
@@ -541,6 +741,19 @@ struct FlashcardsApp: App {
                 isRecoveryGateActive: self.isCloudCredentialRecoveryGateActive,
                 messageSummary: nil
             )
+            logAppForegroundOperationBreadcrumb(
+                action: .initialStartup,
+                phase: .success,
+                store: self.store,
+                selectedTab: self.navigation.selectedTab,
+                previousTab: nil,
+                scenePhase: self.scenePhase,
+                isStartupReady: self.isStartupReadyForBackgroundWork,
+                isRecoveryGateActive: self.isCloudCredentialRecoveryGateActive,
+                startedAt: initialStartupStartedAt,
+                finishedAt: Date(),
+                error: nil
+            )
         } catch {
             self.store.globalErrorMessage = Flashcards.errorMessage(error: error)
             logAppLifecycleBreadcrumb(
@@ -552,6 +765,19 @@ struct FlashcardsApp: App {
                 isStartupReady: self.isStartupReadyForBackgroundWork,
                 isRecoveryGateActive: self.isCloudCredentialRecoveryGateActive,
                 messageSummary: Flashcards.errorMessage(error: error)
+            )
+            logAppForegroundOperationBreadcrumb(
+                action: .initialStartup,
+                phase: .failure,
+                store: self.store,
+                selectedTab: self.navigation.selectedTab,
+                previousTab: nil,
+                scenePhase: self.scenePhase,
+                isStartupReady: self.isStartupReadyForBackgroundWork,
+                isRecoveryGateActive: self.isCloudCredentialRecoveryGateActive,
+                startedAt: initialStartupStartedAt,
+                finishedAt: Date(),
+                error: error
             )
             if let launchScenario = self.uiTestLaunchScenario {
                 self.store.uiTestLaunchPreparationStatus = .failed(

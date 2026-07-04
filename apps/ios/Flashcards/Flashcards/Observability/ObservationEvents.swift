@@ -100,6 +100,8 @@ struct AppLifecycleObservation: Sendable, Hashable {
 
 enum ForegroundOperationAction: String, Sendable, Hashable {
     case initialStartup = "initial_startup"
+    case initialProgressContextRefresh = "initial_progress_context_refresh"
+    case initialNotificationReconcile = "initial_notification_reconcile"
     case visibleTabPresentation = "visible_tab_presentation"
     case reviewProgressRefresh = "review_progress_refresh"
     case cloudSync = "cloud_sync"
