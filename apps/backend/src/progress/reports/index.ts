@@ -11,6 +11,7 @@ import { HttpError } from "../../shared/errors";
 import { listUserWorkspaceIdsInExecutor } from "../../workspaces/queries";
 import {
   loadUserActiveReviewLocalDatesInExecutor,
+  materializeMissingActiveReviewDaysForUserInExecutor,
   rememberProgressTimeZoneInExecutor,
 } from "../activeReviewDays/activeReviewDays";
 import {
@@ -172,7 +173,10 @@ type WorkspaceProgressReviewScheduleRequest = Readonly<{
 
 type WorkspaceProgressSeriesRequest = Readonly<{
   workspaceId: string;
-}> & ProgressSeriesInput;
+  userId: string;
+  from: string;
+  to: string;
+}>;
 
 const maximumInclusiveProgressRangeDays = 366;
 const localDatePattern = /^\d{4}-\d{2}-\d{2}$/;
@@ -594,14 +598,14 @@ async function loadDailyReviewCountRowsInExecutor(
 ): Promise<ReadonlyArray<DailyReviewCountRow>> {
   const queryParams: ReadonlyArray<SqlValue> = [
     request.workspaceId,
-    request.timeZone,
+    request.userId,
     request.from,
     request.to,
   ];
   const result = await executor.query<DailyReviewCountRow>(
     [
       "SELECT",
-      "to_char(timezone($2, review_events.reviewed_at_client)::date, 'YYYY-MM-DD') AS review_date,",
+      "to_char(review_events.reviewed_local_date, 'YYYY-MM-DD') AS review_date,",
       "COUNT(*)::int AS review_count,",
       "COUNT(*) FILTER (WHERE review_events.rating = 0)::int AS again_count,",
       "COUNT(*) FILTER (WHERE review_events.rating = 1)::int AS hard_count,",
@@ -609,10 +613,11 @@ async function loadDailyReviewCountRowsInExecutor(
       "COUNT(*) FILTER (WHERE review_events.rating = 3)::int AS easy_count",
       "FROM content.review_events AS review_events",
       "WHERE review_events.workspace_id = $1",
-      "AND review_events.reviewed_at_client >= (($3::date)::timestamp AT TIME ZONE $2)",
-      "AND review_events.reviewed_at_client < (((($4::date) + 1)::timestamp) AT TIME ZONE $2)",
-      "GROUP BY review_date",
-      "ORDER BY review_date ASC",
+      "AND review_events.reviewed_by_user_id = $2",
+      "AND review_events.reviewed_local_date >= $3::date",
+      "AND review_events.reviewed_local_date <= $4::date",
+      "GROUP BY review_events.reviewed_local_date",
+      "ORDER BY review_events.reviewed_local_date ASC",
     ].join(" "),
     queryParams,
   );
@@ -776,22 +781,28 @@ async function buildUserProgressSeriesInExecutor(
 ): Promise<ProgressSeries> {
   let dailyReviewCounts: ReadonlyMap<string, DailyReviewCounts> = new Map<string, DailyReviewCounts>();
   await applyUserDatabaseScopeInExecutor(executor, { userId: request.userId });
-  // Daily review counts stay on the bounded raw range query, while streak
-  // state comes from the user-wide materialized active-day table below.
+  // Daily review counts and streak state both use materialized canonical
+  // local review days, with review_events reads still bounded by workspace RLS.
   const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
   await rememberProgressTimeZoneInExecutor(executor, request.userId, request.timeZone);
   let reviewHistoryWatermarks: ReadonlyArray<ProgressReviewHistoryWatermark> = [];
 
   for (const workspaceId of workspaceIds) {
-    // review_events reads are workspace-scoped by RLS, so aggregate one
-    // workspace at a time after resolving the user's accessible memberships.
+    // review_events reads are workspace-scoped by RLS, so materialize and
+    // aggregate one workspace at a time after resolving memberships.
     await applyWorkspaceDatabaseScopeInExecutor(executor, {
       userId: request.userId,
       workspaceId,
     });
+    await materializeMissingActiveReviewDaysForUserInExecutor(
+      executor,
+      request.userId,
+      workspaceId,
+      request.timeZone,
+    );
     const rows = await loadDailyReviewCountRowsInExecutor(executor, {
       workspaceId,
-      timeZone: request.timeZone,
+      userId: request.userId,
       from: request.from,
       to: request.to,
     });
@@ -802,8 +813,6 @@ async function buildUserProgressSeriesInExecutor(
   }
 
   const range = createInclusiveLocalDateRange(request.from, request.to);
-  // Active-day materialization is owned by review writes and the scheduled
-  // backfill; progress reads intentionally do not repair historical rows.
   const activeReviewLocalDates = await loadUserActiveReviewLocalDatesInExecutor(executor, request.userId);
   const activeReviewDateSet = new Set(activeReviewLocalDates);
   const today = formatDateAsTimeZoneLocalDate(generatedAtDate, request.timeZone);

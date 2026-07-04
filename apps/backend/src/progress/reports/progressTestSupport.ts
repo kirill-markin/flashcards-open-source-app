@@ -362,14 +362,14 @@ export function createProgressExecutor(
         && text.includes("COUNT(*)::int AS review_count")
       ) {
         const workspaceId = typeof params[0] === "string" ? params[0] : String(params[0]);
-        const timeZone = typeof params[1] === "string" ? params[1] : String(params[1]);
+        const userId = typeof params[1] === "string" ? params[1] : String(params[1]);
         const from = typeof params[2] === "string" ? params[2] : String(params[2]);
         const to = typeof params[3] === "string" ? params[3] : String(params[3]);
-        if (scope.userId === null || scope.workspaceId !== workspaceId) {
-          throw new Error("Review history query requires matching workspace scope");
+        if (scope.userId !== userId || scope.workspaceId !== workspaceId) {
+          throw new Error("Review history query requires matching user and workspace scope");
         }
 
-        const key = `${workspaceId}|${timeZone}|${from}|${to}`;
+        const key = `${workspaceId}|${userId}|${from}|${to}`;
         return createQueryResult<DailyReviewCountRow>(
           fixture.reviewRowsByRequest[key] ?? [],
         ) as unknown as pg.QueryResult<Row>;
