@@ -41,6 +41,7 @@ struct IOSObservationScope: Sendable, Hashable {
 
 enum IOSBreadcrumbEvent: Sendable {
     case appLifecycle(AppLifecycleObservation)
+    case foregroundOperation(ForegroundOperationObservation)
     case cloudFlow(CloudFlowObservation)
     case cloudRetry(CloudRetryObservation)
     case aiChatLifecycle(AIChatLifecycleObservation)
@@ -95,6 +96,38 @@ struct AppLifecycleObservation: Sendable, Hashable {
     let isStartupReady: Bool?
     let isRecoveryGateActive: Bool?
     let messageSummary: String?
+}
+
+enum ForegroundOperationAction: String, Sendable, Hashable {
+    case initialStartup = "initial_startup"
+    case visibleTabPresentation = "visible_tab_presentation"
+    case reviewProgressRefresh = "review_progress_refresh"
+    case cloudSync = "cloud_sync"
+    case notificationReconciliation = "notification_reconciliation"
+}
+
+enum ForegroundOperationPhase: String, Sendable, Hashable {
+    case start
+    case success
+    case failure
+}
+
+struct ForegroundOperationObservation: Sendable, Hashable {
+    let scope: IOSObservationScope
+    let action: ForegroundOperationAction
+    let phase: ForegroundOperationPhase
+    let durationMilliseconds: Int?
+    let selectedTab: String?
+    let scenePhase: String?
+    let isStartupReady: Bool?
+    let isRecoveryGateActive: Bool?
+    let cardCount: Int?
+    let deckCount: Int?
+    let pendingOutboxOperationCount: Int?
+    let reviewQueueCount: Int?
+    let reviewDueCount: Int?
+    let cloudSyncBlocked: Bool?
+    let errorSummary: String?
 }
 
 struct CloudFlowObservation: Sendable, Hashable {
