@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import XCTest
 @testable import Flashcards
@@ -169,7 +170,7 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
         XCTAssertEqual(workspace.workspaceId, userSettings.workspaceId)
     }
 
-    func testMediaAssetRegistryMetadataPersistsAndExportsHotBootstrapEntry() throws {
+    func testMediaAssetRegistryMetadataPersistsWithoutHotBootstrapExport() throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let mediaAsset = self.makeMediaAsset(workspaceId: workspace.workspaceId, deletedAt: nil)
@@ -197,14 +198,9 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
         XCTAssertEqual(storedMediaAsset, mediaAsset)
 
         let bootstrapEntries = try database.loadHotBootstrapEntries(workspaceId: workspace.workspaceId)
-        let mediaEntry = try XCTUnwrap(bootstrapEntries.first { entry in
+        XCTAssertFalse(bootstrapEntries.contains { entry in
             entry.entityType == .mediaAsset && entry.entityId == mediaAsset.mediaAssetId
         })
-        guard case .mediaAsset(let exportedMediaAsset) = mediaEntry.payload else {
-            XCTFail("Expected media asset bootstrap payload")
-            return
-        }
-        XCTAssertEqual(exportedMediaAsset, mediaAsset)
 
         let tombstone = self.makeMediaAsset(
             workspaceId: workspace.workspaceId,
@@ -229,13 +225,231 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
         XCTAssertEqual(storedTombstone.deletedAt, "2026-04-25T10:00:00.000Z")
     }
 
+    func testReferencedCachedMediaAssetQueuesUploadBeforeHotBootstrap() throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let mediaBytes = Data([0x01, 0x02, 0x03, 0x04])
+        let mediaSha256 = self.hexSHA256(data: mediaBytes)
+        let mediaAssetId = "00000000-0000-4000-8000-000000000011"
+        let mediaAsset = MediaAsset(
+            mediaAssetId: mediaAssetId,
+            workspaceId: workspace.workspaceId,
+            mimeType: "image/jpeg",
+            sizeBytes: Int64(mediaBytes.count),
+            sha256: mediaSha256,
+            sourceUrl: nil,
+            createdAt: "2026-04-24T10:00:00.000Z",
+            clientUpdatedAt: "2026-04-24T10:00:01.000Z",
+            lastModifiedByReplicaId: "replica-1",
+            lastOperationId: "operation-media-1",
+            updatedAt: "2026-04-24T10:00:02.000Z",
+            deletedAt: nil
+        )
+        try database.mediaAssetStore.upsertMediaAsset(
+            workspaceId: workspace.workspaceId,
+            mediaAsset: mediaAsset
+        )
+        let cacheEntry = try database.mediaTransferStore.upsertBlobCacheEntry(
+            entry: MediaBlobCacheUpsert(
+                sha256: mediaSha256,
+                mimeType: mediaAsset.mimeType,
+                sizeBytes: mediaAsset.sizeBytes,
+                createdAt: mediaAsset.createdAt,
+                lastAccessedAt: mediaAsset.createdAt,
+                sourceMediaAssetId: mediaAssetId
+            )
+        )
+        try self.writeMediaCacheFile(database: database, cacheEntry: cacheEntry, data: mediaBytes)
+
+        let markdown = try managedImageMarkdownReference(mediaAssetId: mediaAssetId, altText: "cached media")
+        _ = try database.saveCard(
+            workspaceId: workspace.workspaceId,
+            input: CardEditorInput(
+                frontText: markdown,
+                backText: "Answer",
+                tags: [],
+            ),
+            cardId: nil
+        )
+
+        let failedTransfer = try database.mediaTransferStore.enqueueTransfer(
+            request: MediaTransferEnqueueRequest(
+                transferId: "00000000-0000-4000-8000-000000000012",
+                workspaceId: workspace.workspaceId,
+                mediaAssetId: mediaAssetId,
+                kind: .upload,
+                sha256: mediaSha256,
+                mimeType: mediaAsset.mimeType,
+                sizeBytes: mediaAsset.sizeBytes,
+                createdAt: mediaAsset.createdAt
+            )
+        )
+        try database.core.execute(
+            sql: """
+            UPDATE media_transfer_queue
+            SET
+                status = 'failed',
+                next_attempt_at = ?,
+                last_error = ?,
+                updated_at = ?
+            WHERE transfer_id = ?
+            """,
+            values: [
+                .text(mediaUploadPermanentFailureNextAttemptAt),
+                .text("Permanent previous failure"),
+                .text("2026-04-24T10:00:03.000Z"),
+                .text(failedTransfer.transferId)
+            ]
+        )
+
+        let transferEntries = try database.prepareReferencedMediaAssetUploadsForHotBootstrap(
+            workspaceId: workspace.workspaceId
+        )
+
+        XCTAssertEqual(transferEntries.count, 1)
+        XCTAssertEqual(transferEntries.first?.workspaceId, workspace.workspaceId)
+        XCTAssertEqual(transferEntries.first?.mediaAssetId, mediaAssetId)
+        XCTAssertEqual(transferEntries.first?.kind, .upload)
+        XCTAssertEqual(transferEntries.first?.status, .pending)
+        XCTAssertEqual(transferEntries.first?.sha256, mediaSha256)
+        XCTAssertEqual(transferEntries.first?.localRelativePath, cacheEntry.localRelativePath)
+        XCTAssertTrue(
+            try database.mediaTransferStore.hasPendingUploadTransferMatchingAsset(
+                workspaceId: workspace.workspaceId,
+                mediaAssetId: mediaAssetId,
+                sha256: mediaSha256,
+                mimeType: mediaAsset.mimeType,
+                sizeBytes: mediaAsset.sizeBytes
+            )
+        )
+
+        let duplicateTransferEntries = try database.prepareReferencedMediaAssetUploadsForHotBootstrap(
+            workspaceId: workspace.workspaceId
+        )
+        XCTAssertEqual(duplicateTransferEntries.count, 0)
+        XCTAssertEqual(
+            2,
+            try database.core.scalarInt(
+                sql: """
+                SELECT COUNT(*)
+                FROM media_transfer_queue
+                WHERE workspace_id = ? AND media_asset_id = ? AND kind = 'upload'
+                """,
+                values: [
+                    .text(workspace.workspaceId),
+                    .text(mediaAssetId)
+                ]
+            )
+        )
+        XCTAssertEqual(
+            1,
+            try database.core.scalarInt(
+                sql: """
+                SELECT COUNT(*)
+                FROM media_transfer_queue
+                WHERE workspace_id = ? AND media_asset_id = ? AND kind = 'upload' AND status = 'pending'
+                """,
+                values: [
+                    .text(workspace.workspaceId),
+                    .text(mediaAssetId)
+                ]
+            )
+        )
+
+        let bootstrapEntries = try database.loadHotBootstrapEntries(workspaceId: workspace.workspaceId)
+        XCTAssertTrue(bootstrapEntries.contains { entry in
+            entry.entityType == .card
+        })
+        XCTAssertFalse(bootstrapEntries.contains { entry in
+            entry.entityType == .mediaAsset
+        })
+
+        try self.writeMediaCacheFile(
+            database: database,
+            cacheEntry: cacheEntry,
+            data: Data([0x04, 0x03, 0x02, 0x01])
+        )
+        XCTAssertThrowsError(
+            try database.prepareReferencedMediaAssetUploadsForHotBootstrap(workspaceId: workspace.workspaceId)
+        ) { error in
+            XCTAssertTrue(error.localizedDescription.contains("SHA-256"))
+        }
+    }
+
+    func testManagedImageAuthoringCreatesLocalCacheTransferAndParserSafeMarkdown() throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let sourceImageData = try self.tinyTransparentPNGData()
+
+        let result = try authorManagedImage(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: "installation-1",
+            sourceImageData: sourceImageData,
+            altText: "source[bracket]\nalt"
+        )
+
+        XCTAssertEqual(result.mediaAsset.workspaceId, workspace.workspaceId)
+        XCTAssertEqual(result.mediaAsset.mimeType, managedImageMIMEType)
+        XCTAssertGreaterThan(result.mediaAsset.sizeBytes, 0)
+        XCTAssertEqual(result.mediaAsset.sizeBytes, result.cacheEntry.sizeBytes)
+        XCTAssertEqual(result.mediaAsset.sizeBytes, result.transferEntry.sizeBytes)
+        XCTAssertEqual(result.mediaAsset.sha256, result.cacheEntry.sha256)
+        XCTAssertEqual(result.mediaAsset.sha256, result.transferEntry.sha256)
+        XCTAssertEqual(result.transferEntry.kind, .upload)
+        XCTAssertEqual(result.transferEntry.status, .pending)
+        XCTAssertEqual(result.transferEntry.mediaAssetId, result.mediaAsset.mediaAssetId)
+        XCTAssertEqual(result.transferEntry.localRelativePath, result.cacheEntry.localRelativePath)
+
+        let storedMediaAsset = try XCTUnwrap(
+            try database.loadOptionalMediaAssetIncludingDeleted(
+                workspaceId: workspace.workspaceId,
+                mediaAssetId: result.mediaAsset.mediaAssetId
+            )
+        )
+        XCTAssertEqual(storedMediaAsset, result.mediaAsset)
+        let storedCacheEntry = try XCTUnwrap(
+            try database.mediaTransferStore.loadOptionalBlobCacheEntry(sha256: result.mediaAsset.sha256)
+        )
+        XCTAssertEqual(storedCacheEntry, result.cacheEntry)
+
+        let cacheURL = database.databaseURL
+            .deletingLastPathComponent()
+            .appendingPathComponent(result.cacheEntry.localRelativePath, isDirectory: false)
+        let cachedData = try Data(contentsOf: cacheURL)
+        XCTAssertEqual([UInt8](cachedData.prefix(2)), [0xff, 0xd8])
+        XCTAssertEqual(Int64(cachedData.count), result.mediaAsset.sizeBytes)
+
+        XCTAssertEqual(
+            managedMediaAssetIdsReferencedInMarkdown(text: result.markdown),
+            Set([result.mediaAsset.mediaAssetId])
+        )
+        guard case .managedMarkdown(let renderedContent) = makeReviewRenderedContent(text: result.markdown) else {
+            XCTFail("Expected authored managed image Markdown to render as managed media")
+            return
+        }
+        let renderedReferences = renderedContent.blocks.compactMap { block in
+            if case .managedMedia(let reference) = block {
+                return reference
+            }
+            return nil
+        }
+        XCTAssertEqual(renderedReferences.count, 1)
+        XCTAssertEqual(renderedReferences.first?.mediaAssetId, result.mediaAsset.mediaAssetId)
+        XCTAssertEqual(renderedReferences.first?.isImageSyntax, true)
+        let renderedLabel = try XCTUnwrap(renderedReferences.first?.label)
+        XCTAssertFalse(renderedLabel.contains("["))
+        XCTAssertFalse(renderedLabel.contains("]"))
+        XCTAssertFalse(renderedLabel.contains("\n"))
+    }
+
     private func makeMediaAsset(workspaceId: String, deletedAt: String?) -> MediaAsset {
         MediaAsset(
             mediaAssetId: "00000000-0000-4000-8000-000000000001",
             workspaceId: workspaceId,
             mimeType: "image/png",
             sizeBytes: 1234,
-            sha256: "sha",
+            sha256: String(repeating: "a", count: 64),
             sourceUrl: nil,
             createdAt: "2026-04-24T10:00:00.000Z",
             clientUpdatedAt: deletedAt == nil ? "2026-04-24T10:00:01.000Z" : "2026-04-25T10:00:00.000Z",
@@ -244,5 +458,32 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
             updatedAt: deletedAt == nil ? "2026-04-24T10:00:02.000Z" : "2026-04-25T10:00:01.000Z",
             deletedAt: deletedAt
         )
+    }
+
+    private func tinyTransparentPNGData() throws -> Data {
+        let base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
+        guard let data = Data(base64Encoded: base64) else {
+            throw LocalStoreError.validation("Tiny managed image test fixture is invalid")
+        }
+
+        return data
+    }
+
+    private func writeMediaCacheFile(database: LocalDatabase, cacheEntry: MediaBlobCacheEntry, data: Data) throws {
+        let cacheURL = database.databaseURL
+            .deletingLastPathComponent()
+            .appendingPathComponent(cacheEntry.localRelativePath, isDirectory: false)
+        try FileManager.default.createDirectory(
+            at: cacheURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
+        try data.write(to: cacheURL, options: [.atomic])
+    }
+
+    private func hexSHA256(data: Data) -> String {
+        SHA256.hash(data: data).map { byte in
+            String(format: "%02x", byte)
+        }.joined()
     }
 }
