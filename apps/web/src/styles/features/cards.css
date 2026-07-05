@@ -59,10 +59,10 @@
   width: min(420px, calc(100vw - 32px));
   max-height: min(520px, calc(100dvh - 32px));
   padding: var(--cards-filter-popover-padding);
-  border: 1px solid var(--panel-border-strong);
+  border: 0;
   border-radius: var(--cards-filter-popover-radius);
-  background: rgba(20, 20, 24, 0.98);
-  box-shadow: var(--shadow);
+  background: var(--surface);
+  box-shadow: none;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -95,17 +95,16 @@
   width: 100%;
   min-height: 42px;
   padding: 0 14px;
-  border: 1px solid var(--panel-border);
+  border: 0;
   border-radius: var(--panel-inner-radius, var(--radius-md));
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface);
   color: var(--text);
   font: inherit;
 }
 
 .cards-search-input:focus {
-  outline: none;
-  border-color: rgba(196, 75, 45, 0.35);
-  box-shadow: 0 0 0 3px rgba(196, 75, 45, 0.12);
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
 }
 
 .cards-scroll {
@@ -235,10 +234,10 @@
   justify-content: center;
   min-height: 30px;
   padding: 0 10px;
-  border: 1px solid var(--panel-border);
+  border: 0;
   border-radius: var(--radius-pill);
   color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-hover);
   opacity: 0;
   pointer-events: none;
   font-size: 13px;
@@ -344,12 +343,13 @@
   font-family: inherit;
   line-height: 1.5;
   white-space: nowrap;
-  background: rgba(20, 20, 24, 0.98);
+  background: var(--surface);
   color: var(--text);
-  border: 1px solid var(--panel-border-strong);
+  border: 0;
   border-radius: var(--radius-sm);
-  outline: none;
-  box-shadow: var(--shadow);
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+  box-shadow: none;
   box-sizing: border-box;
 }
 
@@ -367,10 +367,10 @@
   max-height: 320px;
   display: flex;
   flex-direction: column;
-  background: rgba(20, 20, 24, 0.98);
-  border: 1px solid var(--panel-border);
+  background: var(--surface);
+  border: 0;
   border-radius: var(--cell-select-overlay-radius);
-  box-shadow: var(--shadow);
+  box-shadow: none;
   box-sizing: border-box;
   font-size: 14px;
   font-family: inherit;
@@ -391,6 +391,11 @@
   padding: 0 12px;
   outline: none;
   box-sizing: border-box;
+}
+
+.cell-select-search:focus {
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
 }
 
 .cell-select-options {
