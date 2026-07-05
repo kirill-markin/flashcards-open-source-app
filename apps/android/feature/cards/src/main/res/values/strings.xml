@@ -38,6 +38,15 @@
     <string name="cards_front_text_required">Front text is required.</string>
     <string name="cards_back_text_required">Back text is required.</string>
     <string name="cards_editor_back_content_description">Back</string>
+    <string name="cards_editor_add_image_content_description">Add image</string>
+    <string name="cards_editor_adding_image_content_description">Adding image</string>
+    <string name="cards_editor_image_label">Image</string>
+    <string name="cards_editor_image_loading">Loading image</string>
+    <string name="cards_editor_image_unavailable">Image unavailable</string>
+    <string name="cards_editor_remove_image">Remove</string>
+    <string name="cards_editor_image_reference_missing">The image reference is no longer in this card text.</string>
+    <string name="cards_editor_add_image_failed">Could not add image: %1$s</string>
+    <string name="cards_editor_add_image_unknown_error">Unknown import error.</string>
     <string name="cards_editor_guidance">Front text stays the review prompt. Back text stays the answer. Both can be long-form and are edited on dedicated Android surfaces.</string>
     <string name="cards_edit_with_ai">Edit with AI</string>
     <string name="cards_text_section">Text</string>

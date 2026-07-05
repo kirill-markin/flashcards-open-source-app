@@ -22,6 +22,8 @@ import kotlinx.coroutines.launch
 private data class CardEditorDraftState(
     val frontText: String,
     val backText: String,
+    val frontTextSelection: CardEditorTextSelection,
+    val backTextSelection: CardEditorTextSelection,
     val selectedTags: List<String>,
     val frontTextErrorMessage: String,
     val backTextErrorMessage: String,
@@ -41,6 +43,8 @@ class CardEditorViewModel(
         value = CardEditorDraftState(
             frontText = "",
             backText = "",
+            frontTextSelection = CardEditorTextSelection(start = 0, end = 0),
+            backTextSelection = CardEditorTextSelection(start = 0, end = 0),
             selectedTags = emptyList(),
             frontTextErrorMessage = "",
             backTextErrorMessage = "",
@@ -88,6 +92,16 @@ class CardEditorViewModel(
                 isEditing = editingCardId != null,
                 frontText = currentState.frontText,
                 backText = currentState.backText,
+                frontTextSelection = clampCardEditorTextSelection(
+                    selection = currentState.frontTextSelection,
+                    text = currentState.frontText
+                ),
+                backTextSelection = clampCardEditorTextSelection(
+                    selection = currentState.backTextSelection,
+                    text = currentState.backText
+                ),
+                frontManagedImageReferences = parseManagedImageReferences(text = currentState.frontText),
+                backManagedImageReferences = parseManagedImageReferences(text = currentState.backText),
                 selectedTags = normalizeTags(
                     values = currentState.selectedTags,
                     referenceTags = tagsSummary.tags.map(WorkspaceTagSummary::tag)
@@ -108,6 +122,10 @@ class CardEditorViewModel(
                 isEditing = editingCardId != null,
                 frontText = "",
                 backText = "",
+                frontTextSelection = CardEditorTextSelection(start = 0, end = 0),
+                backTextSelection = CardEditorTextSelection(start = 0, end = 0),
+                frontManagedImageReferences = emptyList(),
+                backManagedImageReferences = emptyList(),
                 selectedTags = emptyList(),
                 availableTagSuggestions = emptyList(),
                 frontTextErrorMessage = "",
@@ -119,10 +137,17 @@ class CardEditorViewModel(
         )
     }
 
-    fun updateFrontText(frontText: String) {
+    fun updateFrontText(
+        frontText: String,
+        selection: CardEditorTextSelection
+    ) {
         inputState.update { state ->
             state.copy(
                 frontText = frontText,
+                frontTextSelection = clampCardEditorTextSelection(
+                    selection = selection,
+                    text = frontText
+                ),
                 frontTextErrorMessage = "",
                 errorMessage = "",
                 isDirty = true
@@ -130,14 +155,134 @@ class CardEditorViewModel(
         }
     }
 
-    fun updateBackText(backText: String) {
+    fun updateBackText(
+        backText: String,
+        selection: CardEditorTextSelection
+    ) {
         inputState.update { state ->
             state.copy(
                 backText = backText,
+                backTextSelection = clampCardEditorTextSelection(
+                    selection = selection,
+                    text = backText
+                ),
                 backTextErrorMessage = "",
                 errorMessage = "",
                 isDirty = true
             )
+        }
+    }
+
+    fun updateFrontTextSelection(selection: CardEditorTextSelection) {
+        inputState.update { state ->
+            state.copy(
+                frontTextSelection = clampCardEditorTextSelection(
+                    selection = selection,
+                    text = state.frontText
+                )
+            )
+        }
+    }
+
+    fun updateBackTextSelection(selection: CardEditorTextSelection) {
+        inputState.update { state ->
+            state.copy(
+                backTextSelection = clampCardEditorTextSelection(
+                    selection = selection,
+                    text = state.backText
+                )
+            )
+        }
+    }
+
+    fun insertManagedImageMarkdown(
+        field: CardEditorTextField,
+        markdown: String
+    ) {
+        val normalizedMarkdown = markdown.trim()
+        require(normalizedMarkdown.isNotBlank()) {
+            "Managed image markdown must not be blank."
+        }
+
+        inputState.update { state ->
+            when (field) {
+                CardEditorTextField.FRONT -> {
+                    val edit = insertMarkdownAtSelection(
+                        text = state.frontText,
+                        selection = state.frontTextSelection,
+                        markdown = normalizedMarkdown
+                    )
+                    state.copy(
+                        frontText = edit.text,
+                        frontTextSelection = edit.selection,
+                        frontTextErrorMessage = "",
+                        errorMessage = "",
+                        isDirty = true
+                    )
+                }
+
+                CardEditorTextField.BACK -> {
+                    val edit = insertMarkdownAtSelection(
+                        text = state.backText,
+                        selection = state.backTextSelection,
+                        markdown = normalizedMarkdown
+                    )
+                    state.copy(
+                        backText = edit.text,
+                        backTextSelection = edit.selection,
+                        backTextErrorMessage = "",
+                        errorMessage = "",
+                        isDirty = true
+                    )
+                }
+            }
+        }
+    }
+
+    fun removeManagedImageReference(
+        field: CardEditorTextField,
+        referenceKey: String
+    ) {
+        require(referenceKey.isNotBlank()) {
+            "Managed image reference key must not be blank."
+        }
+
+        inputState.update { state ->
+            when (field) {
+                CardEditorTextField.FRONT -> {
+                    val edit = removeManagedImageReferenceFromText(
+                        text = state.frontText,
+                        selection = state.frontTextSelection,
+                        referenceKey = referenceKey
+                    ) ?: return@update state.copy(
+                        errorMessage = textProvider.imageReferenceMissing
+                    )
+                    state.copy(
+                        frontText = edit.text,
+                        frontTextSelection = edit.selection,
+                        frontTextErrorMessage = "",
+                        errorMessage = "",
+                        isDirty = true
+                    )
+                }
+
+                CardEditorTextField.BACK -> {
+                    val edit = removeManagedImageReferenceFromText(
+                        text = state.backText,
+                        selection = state.backTextSelection,
+                        referenceKey = referenceKey
+                    ) ?: return@update state.copy(
+                        errorMessage = textProvider.imageReferenceMissing
+                    )
+                    state.copy(
+                        backText = edit.text,
+                        backTextSelection = edit.selection,
+                        backTextErrorMessage = "",
+                        errorMessage = "",
+                        isDirty = true
+                    )
+                }
+            }
         }
     }
 
@@ -273,6 +418,17 @@ private data class CardEditorValidationResult(
     val errorMessage: String
 )
 
+private data class CardEditorTextEditResult(
+    val text: String,
+    val selection: CardEditorTextSelection
+)
+
+private data class ManagedImageReferenceMatch(
+    val reference: CardEditorManagedImageReference,
+    val startIndex: Int,
+    val endIndexExclusive: Int
+)
+
 private fun validateCardEditorInput(
     frontText: String,
     backText: String,
@@ -305,4 +461,132 @@ private fun toggleTagSelection(selectedTags: List<String>, tag: String): List<St
     }
 
     return selectedTags + tag
+}
+
+private val managedImageMarkdownRegex = Regex("""!\[([^\]\n]*)]\(fcasset:([^\s)]+)\)""")
+
+private fun insertMarkdownAtSelection(
+    text: String,
+    selection: CardEditorTextSelection,
+    markdown: String
+): CardEditorTextEditResult {
+    val normalizedSelection = clampCardEditorTextSelection(selection = selection, text = text)
+    val prefix = if (text.substring(startIndex = 0, endIndex = normalizedSelection.start).endsWith("\n") ||
+        normalizedSelection.start == 0
+    ) {
+        ""
+    } else {
+        "\n\n"
+    }
+    val suffix = if (text.substring(startIndex = normalizedSelection.end).startsWith("\n") ||
+        normalizedSelection.end == text.length
+    ) {
+        ""
+    } else {
+        "\n\n"
+    }
+    val insertedMarkdown = "$prefix$markdown$suffix"
+    val updatedText = text.replaceRange(
+        startIndex = normalizedSelection.start,
+        endIndex = normalizedSelection.end,
+        replacement = insertedMarkdown
+    )
+    val cursorIndex = normalizedSelection.start + insertedMarkdown.length
+    return CardEditorTextEditResult(
+        text = updatedText,
+        selection = CardEditorTextSelection(start = cursorIndex, end = cursorIndex)
+    )
+}
+
+private fun removeManagedImageReferenceFromText(
+    text: String,
+    selection: CardEditorTextSelection,
+    referenceKey: String
+): CardEditorTextEditResult? {
+    val match = findManagedImageReferenceMatches(text = text).firstOrNull { currentMatch ->
+        currentMatch.reference.referenceKey == referenceKey
+    } ?: return null
+    val updatedText = text.removeRange(
+        startIndex = match.startIndex,
+        endIndex = match.endIndexExclusive
+    )
+    return CardEditorTextEditResult(
+        text = updatedText,
+        selection = shiftSelectionAfterRemoval(
+            selection = selection,
+            removedStartIndex = match.startIndex,
+            removedEndIndexExclusive = match.endIndexExclusive
+        )
+    )
+}
+
+private fun parseManagedImageReferences(text: String): List<CardEditorManagedImageReference> {
+    return findManagedImageReferenceMatches(text = text).map(ManagedImageReferenceMatch::reference)
+}
+
+private fun findManagedImageReferenceMatches(text: String): List<ManagedImageReferenceMatch> {
+    return managedImageMarkdownRegex.findAll(input = text).map { match ->
+        val startIndex = match.range.first
+        val endIndexExclusive = match.range.last + 1
+        val rawLabel = match.groupValues[1].trim()
+        val label = if (rawLabel.isEmpty()) null else rawLabel
+        val mediaAssetId = match.groupValues[2].trim()
+        ManagedImageReferenceMatch(
+            reference = CardEditorManagedImageReference(
+                referenceKey = "$startIndex:$endIndexExclusive:$mediaAssetId",
+                mediaAssetId = mediaAssetId,
+                label = label
+            ),
+            startIndex = startIndex,
+            endIndexExclusive = endIndexExclusive
+        )
+    }.toList()
+}
+
+private fun clampCardEditorTextSelection(
+    selection: CardEditorTextSelection,
+    text: String
+): CardEditorTextSelection {
+    val start = selection.start.coerceIn(minimumValue = 0, maximumValue = text.length)
+    val end = selection.end.coerceIn(minimumValue = 0, maximumValue = text.length)
+    val normalizedStart = minOf(start, end)
+    val normalizedEnd = maxOf(start, end)
+    return CardEditorTextSelection(start = normalizedStart, end = normalizedEnd)
+}
+
+private fun shiftSelectionAfterRemoval(
+    selection: CardEditorTextSelection,
+    removedStartIndex: Int,
+    removedEndIndexExclusive: Int
+): CardEditorTextSelection {
+    val removedLength = removedEndIndexExclusive - removedStartIndex
+    val shiftedStart = shiftTextOffsetAfterRemoval(
+        offset = selection.start,
+        removedStartIndex = removedStartIndex,
+        removedEndIndexExclusive = removedEndIndexExclusive,
+        removedLength = removedLength
+    )
+    val shiftedEnd = shiftTextOffsetAfterRemoval(
+        offset = selection.end,
+        removedStartIndex = removedStartIndex,
+        removedEndIndexExclusive = removedEndIndexExclusive,
+        removedLength = removedLength
+    )
+    return CardEditorTextSelection(
+        start = minOf(shiftedStart, shiftedEnd),
+        end = maxOf(shiftedStart, shiftedEnd)
+    )
+}
+
+private fun shiftTextOffsetAfterRemoval(
+    offset: Int,
+    removedStartIndex: Int,
+    removedEndIndexExclusive: Int,
+    removedLength: Int
+): Int {
+    return when {
+        offset <= removedStartIndex -> offset
+        offset >= removedEndIndexExclusive -> offset - removedLength
+        else -> removedStartIndex
+    }
 }
