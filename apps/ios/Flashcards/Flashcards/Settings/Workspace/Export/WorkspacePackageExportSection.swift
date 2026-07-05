@@ -42,6 +42,14 @@ struct WorkspacePackageExportSection: View {
         return self.preview
     }
 
+    private var shouldShowInitialPreviewButton: Bool {
+        self.currentPreview == nil && self.cardSelectionTagOptions.isEmpty
+    }
+
+    private var shouldShowStalePreviewSection: Bool {
+        self.currentPreview == nil && self.cardSelectionTagOptions.isEmpty == false
+    }
+
     private var cloudRequirementMessage: String? {
         switch self.store.cloudSettings?.cloudState {
         case .linked, .guest:
@@ -79,8 +87,9 @@ struct WorkspacePackageExportSection: View {
                 self.metadataSection
                 self.tagsSection(preview: currentPreview)
                 self.confirmSection(preview: currentPreview)
-            } else if self.cardSelectionTagOptions.isEmpty == false {
+            } else if self.shouldShowStalePreviewSection {
                 self.cardSelectionSection
+                self.previewSection
             }
         }
         .onChange(of: self.currentWorkspaceId) { _, _ in
@@ -110,21 +119,33 @@ struct WorkspacePackageExportSection: View {
             )
             .foregroundStyle(.secondary)
 
-            Button {
-                Task { @MainActor in
-                    await self.previewPackageExport()
-                }
-            } label: {
-                Label(self.previewButtonTitle, systemImage: "archivebox")
+            if self.shouldShowInitialPreviewButton {
+                self.previewButton
             }
-            .disabled(self.isBusy || self.cloudRequirementMessage != nil)
-            .accessibilityIdentifier(UITestIdentifier.workspacePackageExportPreviewButton)
 
             if let cloudRequirementMessage {
                 Text(cloudRequirementMessage)
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private var previewSection: some View {
+        Section {
+            self.previewButton
+        }
+    }
+
+    private var previewButton: some View {
+        Button {
+            Task { @MainActor in
+                await self.previewPackageExport()
+            }
+        } label: {
+            Label(self.previewButtonTitle, systemImage: "archivebox")
+        }
+        .disabled(self.isBusy || self.cloudRequirementMessage != nil)
+        .accessibilityIdentifier(UITestIdentifier.workspacePackageExportPreviewButton)
     }
 
     private var metadataSection: some View {
