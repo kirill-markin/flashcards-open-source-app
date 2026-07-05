@@ -1,35 +1,12 @@
 name: Android Release
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'apps/android/**'
-      - '!apps/android/README.md'
-      - '!apps/android/docs/**'
-      - 'cloudbuild.android.yaml'
-      - 'scripts/android/run-android-ci.sh'
-      - 'scripts/android/run-android-firebase-test-lab.sh'
-      - 'scripts/android/run-android-release.sh'
-      - 'scripts/android/setup-github-android.sh'
-      - '.github/workflows/android-ci-reusable.yml'
-      - '.github/workflows/android-release.yml'
   workflow_dispatch:
     inputs:
       target_sha:
         description: Git SHA to release
         required: true
         type: string
-      upload_to_play_draft:
-        description: Upload the signed bundle to Google Play as a draft production release after Android CI succeeds
-        required: true
-        default: false
-        type: boolean
-      run_firebase_test_lab:
-        description: Submit Firebase Test Lab app instrumentation after Android CI succeeds
-        required: true
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -41,9 +18,6 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       target_sha: ${{ steps.resolve.outputs.target_sha }}
-      compare_base_sha: ${{ steps.resolve.outputs.compare_base_sha }}
-      android_changed: ${{ steps.resolve.outputs.android_changed }}
-      block_reason: ${{ steps.resolve.outputs.block_reason }}
       android_version_code: ${{ steps.release-metadata.outputs.android_version_code }}
       android_version_name: ${{ steps.release-metadata.outputs.android_version_name }}
       android_target_short_sha: ${{ steps.release-metadata.outputs.android_target_short_sha }}
@@ -53,14 +27,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event_name == 'push' && github.sha || inputs.target_sha }}
+          ref: ${{ inputs.target_sha }}
           fetch-depth: 0
 
       - name: Resolve release target
         id: resolve
         env:
-          INPUT_TARGET_SHA: ${{ github.event_name == 'push' && github.sha || inputs.target_sha }}
-          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          INPUT_TARGET_SHA: ${{ inputs.target_sha }}
         run: |
           set -euo pipefail
 
@@ -72,60 +45,10 @@ jobs:
           fi
 
           target_sha="$(git rev-parse "${target_sha}")"
-          compare_base_sha=""
-          before_sha="${PUSH_BEFORE_SHA:-}"
-
-          if [[ "${GITHUB_EVENT_NAME}" == "push" ]] && [[ -n "${before_sha}" ]] && [[ "${before_sha}" != "0000000000000000000000000000000000000000" ]]; then
-            compare_base_sha="${before_sha}"
-          elif git rev-parse "${target_sha}^" >/dev/null 2>&1; then
-            compare_base_sha="$(git rev-parse "${target_sha}^")"
-          fi
-
-          changed_files_path="${RUNNER_TEMP}/android-release-changed-files.txt"
-          if [[ -n "${compare_base_sha}" ]]; then
-            git diff --name-only "${compare_base_sha}" "${target_sha}" > "${changed_files_path}"
-          else
-            git ls-tree -r --name-only "${target_sha}" > "${changed_files_path}"
-          fi
-
-          android_changed=false
-          while IFS= read -r changed_path; do
-            case "${changed_path}" in
-              apps/android/README.md) ;;
-              apps/android/docs/*) ;;
-              apps/android/*|cloudbuild.android.yaml|scripts/android/run-android-ci.sh|scripts/android/run-android-firebase-test-lab.sh|scripts/android/run-android-release.sh|scripts/android/setup-github-android.sh|.github/workflows/android-ci-reusable.yml|.github/workflows/android-release.yml)
-                android_changed=true
-                break
-                ;;
-            esac
-          done < "${changed_files_path}"
-
-          block_reason=""
-          if [[ "${android_changed}" != "true" ]]; then
-            block_reason="android_not_changed"
-          fi
 
           {
             echo "target_sha=${target_sha}"
-            echo "compare_base_sha=${compare_base_sha}"
-            echo "android_changed=${android_changed}"
-            echo "block_reason=${block_reason}"
           } >> "${GITHUB_OUTPUT}"
-
-      - name: Validate Android release target
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          TARGET_SHA: ${{ steps.resolve.outputs.target_sha }}
-          ANDROID_CHANGED: ${{ steps.resolve.outputs.android_changed }}
-          BLOCK_REASON: ${{ steps.resolve.outputs.block_reason }}
-          UPLOAD_TO_PLAY_DRAFT: ${{ inputs.upload_to_play_draft }}
-        run: |
-          set -euo pipefail
-
-          if [[ "${ANDROID_CHANGED}" != "true" ]] && [[ "${EVENT_NAME}" == "push" || "${UPLOAD_TO_PLAY_DRAFT}" == "true" ]]; then
-            echo "Android release requires Android changes for ${TARGET_SHA}. Block reason: ${BLOCK_REASON}." >&2
-            exit 1
-          fi
 
       - name: Resolve Android release metadata
         id: release-metadata
@@ -173,28 +96,18 @@ jobs:
           } >> "${GITHUB_OUTPUT}"
 
       - name: Summarize preflight
-        env:
-          PLAY_UPLOAD_REQUESTED: ${{ github.event_name == 'push' || inputs.upload_to_play_draft }}
         run: |
           {
             echo "## Android release preflight"
             echo ""
             echo "- Target SHA: \`${{ steps.resolve.outputs.target_sha }}\`"
-            echo "- Compare base SHA: \`${{ steps.resolve.outputs.compare_base_sha || 'n/a' }}\`"
-            echo "- Android changed: \`${{ steps.resolve.outputs.android_changed }}\`"
-            echo "- Block reason: \`${{ steps.resolve.outputs.block_reason || 'n/a' }}\`"
             echo "- Version code: \`${{ steps.release-metadata.outputs.android_version_code }}\`"
             echo "- Version name: \`${{ steps.release-metadata.outputs.android_version_name }}\`"
             echo "- Release ID: \`${{ steps.release-metadata.outputs.android_release_id }}\`"
             echo "- Play release name: \`${{ steps.release-metadata.outputs.android_play_release_name }}\`"
-            echo "- Event: \`${{ github.event_name }}\`"
-            echo "- Upload draft to Play: \`${PLAY_UPLOAD_REQUESTED}\`"
-            echo "- Run Firebase Test Lab: \`${{ github.event_name == 'workflow_dispatch' && inputs.run_firebase_test_lab }}\`"
-            if [[ "${PLAY_UPLOAD_REQUESTED}" == "true" ]]; then
-              echo "- Play publish mode: \`draft production release uploaded by CI; final publish happens later in Play Console\`"
-            else
-              echo "- Play publish mode: \`not requested; no Play draft upload in this run\`"
-            fi
+            echo "- Upload draft to Play: \`true\`"
+            echo "- Run Firebase Test Lab: \`true\`"
+            echo "- Play publish mode: \`draft production release uploaded by CI; final publish happens later in Play Console\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
   android_ci:
@@ -215,7 +128,7 @@ jobs:
     needs:
       - preflight
       - android_ci
-    if: ${{ needs.android_ci.result == 'success' && github.event_name == 'workflow_dispatch' && inputs.run_firebase_test_lab }}
+    if: ${{ needs.android_ci.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     permissions:
@@ -449,12 +362,25 @@ jobs:
             echo "- Device: \`${DEVICE_DESCRIPTOR:-n/a}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
+      - name: Require Firebase Test Lab submission
+        if: always()
+        env:
+          SUBMISSION_STATE: ${{ steps.collect.outputs.submission_state }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${SUBMISSION_STATE}" != "submitted" ]]; then
+            echo "Firebase Test Lab submission is required for Android Release. Submission state: ${SUBMISSION_STATE:-unknown}." >&2
+            exit 1
+          fi
+
   publish_android:
     name: Upload Android bundle to Google Play production draft release
     needs:
       - preflight
       - android_ci
-    if: ${{ needs.android_ci.result == 'success' && (github.event_name == 'push' || inputs.upload_to_play_draft) }}
+      - firebase_test_lab_submission
+    if: ${{ needs.android_ci.result == 'success' && needs.firebase_test_lab_submission.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     concurrency:
@@ -634,7 +560,7 @@ jobs:
             echo "- GitHub run: \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`"
             echo "- GitHub run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo "- Upload state: \`draft\`"
-            echo "- Firebase Test Lab: \`manual-only through run_firebase_test_lab on Android Release workflow_dispatch runs\`"
+            echo "- Firebase Test Lab: \`required submission in this Android Release run\`"
             echo "- Next step: review Play App strings translations in Play Console, then publish the release manually."
           } >> "${GITHUB_STEP_SUMMARY}"
 
@@ -650,31 +576,23 @@ jobs:
 
     steps:
       - name: Summarize Android release outcome
-        env:
-          PLAY_UPLOAD_REQUESTED: ${{ github.event_name == 'push' || inputs.upload_to_play_draft }}
         run: |
           {
             echo "## Android release summary"
             echo ""
             echo "- Target SHA: \`${{ needs.preflight.outputs.target_sha }}\`"
-            echo "- Android changed: \`${{ needs.preflight.outputs.android_changed }}\`"
-            echo "- Block reason: \`${{ needs.preflight.outputs.block_reason || 'n/a' }}\`"
             echo "- Version code: \`${{ needs.preflight.outputs.android_version_code || 'n/a' }}\`"
             echo "- Release ID: \`${{ needs.preflight.outputs.android_release_id || 'n/a' }}\`"
             echo "- Play release name: \`${{ needs.preflight.outputs.android_play_release_name || 'n/a' }}\`"
             echo "- Android CI result: \`${{ needs.android_ci.result }}\`"
-            echo "- Firebase Test Lab requested: \`${{ github.event_name == 'workflow_dispatch' && inputs.run_firebase_test_lab }}\`"
             echo "- Firebase Test Lab submission result: \`${{ needs.firebase_test_lab_submission.result }}\`"
-            echo "- Play draft upload requested: \`${PLAY_UPLOAD_REQUESTED}\`"
+            echo "- Firebase Test Lab requested: \`true\`"
+            echo "- Play draft upload requested: \`true\`"
             echo "- Android Play draft upload result: \`${{ needs.publish_android.result }}\`"
             echo "- Firebase Test Lab submission: \`${{ needs.firebase_test_lab_submission.outputs.submission_state || 'n/a' }}\`"
             echo "- Firebase Test Lab matrix ID: \`${{ needs.firebase_test_lab_submission.outputs.matrix_id || 'n/a' }}\`"
             echo "- Firebase Test Lab results path: \`${{ needs.firebase_test_lab_submission.outputs.results_path || 'n/a' }}\`"
             echo "- Firebase Test Lab device: \`${{ needs.firebase_test_lab_submission.outputs.device_descriptor || 'n/a' }}\`"
-            if [[ "${PLAY_UPLOAD_REQUESTED}" == "true" ]]; then
-              echo "- Play publish mode: \`CI uploads a production-track draft only; Play Console publication remains manual\`"
-            else
-              echo "- Play publish mode: \`not requested; no Play draft upload in this run\`"
-            fi
+            echo "- Play publish mode: \`CI uploads a production-track draft only; Play Console publication remains manual\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"
