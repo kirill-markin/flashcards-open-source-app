@@ -1,6 +1,7 @@
 import SwiftUI
 
 private let reviewCardsStringsTableName: String = "ReviewCards"
+let reviewContentSurfaceCornerRadius: CGFloat = 24
 
 struct ReviewCardSideView: View {
     let label: String
@@ -88,7 +89,7 @@ struct ReviewCardSideView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(24)
-        .background(backgroundStyle, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(backgroundStyle, in: RoundedRectangle(cornerRadius: reviewContentSurfaceCornerRadius, style: .continuous))
     }
 
     @ViewBuilder
