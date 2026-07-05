@@ -355,7 +355,7 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, loc
       background: var(--surface-muted);
       color: var(--text);
       font-family: inherit;
-      font-size: 14px;
+      font-size: 16px;
       transition:
         border-color 140ms ease,
         background 140ms ease,
