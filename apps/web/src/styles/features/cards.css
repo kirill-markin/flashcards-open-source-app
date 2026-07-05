@@ -340,7 +340,7 @@
   position: fixed;
   z-index: 200;
   padding: 10px 12px;
-  font-size: 15px;
+  font-size: 16px;
   font-family: inherit;
   line-height: 1.5;
   white-space: nowrap;
@@ -375,6 +375,10 @@
   font-size: 14px;
   font-family: inherit;
   overflow: hidden;
+}
+
+.cell-select-overlay .tag-input-field {
+  font-size: 16px;
 }
 
 .cell-select-search {
