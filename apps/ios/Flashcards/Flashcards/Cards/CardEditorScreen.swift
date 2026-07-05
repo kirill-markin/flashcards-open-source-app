@@ -5,6 +5,8 @@ import SwiftUI
 private let reviewCardsStringsTableName: String = "ReviewCards"
 private let cardEditorManagedImagePreviewWidth: CGFloat = 176
 private let cardEditorManagedImagePreviewHeight: CGFloat = 128
+private let cardEditorTextAreaCornerRadius: CGFloat = reviewContentSurfaceCornerRadius
+private let cardEditorManagedImagePreviewCornerRadius: CGFloat = cardEditorTextAreaCornerRadius / 2
 private let cardEditorManagedMediaReferenceExpression: NSRegularExpression = {
     do {
         return try NSRegularExpression(
@@ -256,7 +258,7 @@ private struct CardTextEditorScreen: View {
                     .focused(self.$isTextEditorFocused)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .padding(12)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: cardEditorTextAreaCornerRadius, style: .continuous))
                     .accessibilityIdentifier(self.field.accessibilityIdentifier)
 
                 if self.isImportingImage {
@@ -489,7 +491,7 @@ private struct CardEditorManagedImagePreview: View {
                 height: cardEditorManagedImagePreviewHeight,
                 alignment: .center
             )
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: cardEditorManagedImagePreviewCornerRadius, style: .continuous))
 
             Button(role: .destructive, action: self.onRemove) {
                 Image(systemName: "xmark.circle.fill")

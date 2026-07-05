@@ -3,8 +3,7 @@ import SwiftUI
 import UIKit
 
 private let reviewManagedMediaStringsTableName: String = "ReviewCards"
-private let reviewManagedMediaCornerRadius: CGFloat = 12
-private let reviewManagedImageMaxHeight: CGFloat = 320
+private let reviewManagedMediaCornerRadius: CGFloat = reviewContentSurfaceCornerRadius / 2
 private let reviewManagedAudioHeight: CGFloat = 76
 private let reviewManagedVideoMinHeight: CGFloat = 190
 
@@ -36,12 +35,10 @@ private enum ReviewManagedMediaCategory {
 private struct ReviewManagedMediaTaskID: Hashable {
     let mediaAssetId: String
     let workspaceId: String?
-    let localReadVersion: Int
 
-    init(mediaAssetId: String, workspaceId: String?, localReadVersion: Int) {
+    init(mediaAssetId: String, workspaceId: String?) {
         self.mediaAssetId = mediaAssetId
         self.workspaceId = workspaceId
-        self.localReadVersion = localReadVersion
     }
 }
 
@@ -53,6 +50,7 @@ struct ReviewManagedMediaView: View {
 
     @State private var loadResult: ReviewManagedMediaLoadResult?
     @State private var isLoading: Bool = true
+    @State private var localRefreshTask: Task<Void, Never>?
 
     var body: some View {
         Group {
@@ -67,15 +65,22 @@ struct ReviewManagedMediaView: View {
             }
         }
         .task(id: taskID) { [taskID] in
-            await self.loadManagedMedia(taskID: taskID)
+            self.localRefreshTask?.cancel()
+            await self.loadManagedMedia(taskID: taskID, showsLoadingIndicator: true)
+        }
+        .onChange(of: store.localReadVersion) { _, _ in
+            self.startLocalRefresh(taskID: self.taskID)
+        }
+        .onDisappear {
+            self.localRefreshTask?.cancel()
+            self.localRefreshTask = nil
         }
     }
 
     private var taskID: ReviewManagedMediaTaskID {
         ReviewManagedMediaTaskID(
             mediaAssetId: reference.mediaAssetId,
-            workspaceId: store.workspace?.workspaceId,
-            localReadVersion: store.localReadVersion
+            workspaceId: store.workspace?.workspaceId
         )
     }
 
@@ -122,15 +127,17 @@ struct ReviewManagedMediaView: View {
 
     @ViewBuilder
     private func imageView(mediaAsset: MediaAsset, mediaURL: URL) -> some View {
+        let accessibilityLabel = displayLabel(mediaAsset: mediaAsset, category: .image)
+
         if mediaURL.isFileURL {
-            if let image = UIImage(contentsOfFile: mediaURL.path) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: .infinity, maxHeight: reviewManagedImageMaxHeight, alignment: .center)
-                    .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
-                    .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .image))
-            } else {
+            ReviewManagedFileImageView(mediaURL: mediaURL) { image in
+                self.reviewManagedImageView(
+                    image: Image(uiImage: image),
+                    accessibilityLabel: accessibilityLabel
+                )
+            } loading: {
+                loadingView
+            } failure: {
                 unavailableView(mediaAsset: mediaAsset)
             }
         } else {
@@ -139,12 +146,10 @@ struct ReviewManagedMediaView: View {
                 case .empty:
                     loadingView
                 case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity, maxHeight: reviewManagedImageMaxHeight, alignment: .center)
-                        .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
-                        .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .image))
+                    reviewManagedImageView(
+                        image: image,
+                        accessibilityLabel: accessibilityLabel
+                    )
                 case .failure:
                     unavailableView(mediaAsset: mediaAsset)
                 @unknown default:
@@ -152,6 +157,15 @@ struct ReviewManagedMediaView: View {
                 }
             }
         }
+    }
+
+    private func reviewManagedImageView(image: Image, accessibilityLabel: String) -> some View {
+        image
+            .resizable()
+            .scaledToFit()
+            .frame(maxWidth: .infinity, alignment: .center)
+            .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
+            .accessibilityLabel(accessibilityLabel)
     }
 
     private func unavailableView(mediaAsset: MediaAsset?) -> some View {
@@ -177,19 +191,36 @@ struct ReviewManagedMediaView: View {
         }
     }
 
-    private func loadManagedMedia(taskID: ReviewManagedMediaTaskID) async {
+    private func startLocalRefresh(taskID: ReviewManagedMediaTaskID) {
+        self.localRefreshTask?.cancel()
+        self.localRefreshTask = Task { @MainActor in
+            await self.loadManagedMedia(taskID: taskID, showsLoadingIndicator: false)
+        }
+    }
+
+    private func loadManagedMedia(taskID: ReviewManagedMediaTaskID, showsLoadingIndicator: Bool) async {
         guard taskID == self.taskID else {
             return
         }
 
-        self.isLoading = true
-        let nextLoadResult = await store.loadReviewManagedMedia(mediaAssetId: taskID.mediaAssetId)
-        guard Task.isCancelled == false, taskID == self.taskID else {
-            return
+        if showsLoadingIndicator {
+            self.isLoading = true
         }
 
-        self.loadResult = nextLoadResult
-        self.isLoading = false
+        while true {
+            let localReadVersion = store.localReadVersion
+            let nextLoadResult = await store.loadReviewManagedMedia(mediaAssetId: taskID.mediaAssetId)
+            guard Task.isCancelled == false, taskID == self.taskID else {
+                return
+            }
+            guard localReadVersion == store.localReadVersion else {
+                continue
+            }
+
+            self.loadResult = nextLoadResult
+            self.isLoading = false
+            return
+        }
     }
 
     private func displayLabel(mediaAsset: MediaAsset, category: ReviewManagedMediaCategory) -> String {
@@ -219,6 +250,94 @@ struct ReviewManagedMediaView: View {
         case .image, .audio, .video, .attachment:
             return String(localized: "Media unavailable", table: reviewManagedMediaStringsTableName)
         }
+    }
+}
+
+private struct ReviewManagedFileImageView<Content: View, Loading: View, Failure: View>: View {
+    let mediaURL: URL
+    let content: (UIImage) -> Content
+    let loading: () -> Loading
+    let failure: () -> Failure
+
+    @State private var decodedImage: UIImage?
+    @State private var decodedImageURL: URL?
+    @State private var failedImageURL: URL?
+
+    init(
+        mediaURL: URL,
+        @ViewBuilder content: @escaping (UIImage) -> Content,
+        @ViewBuilder loading: @escaping () -> Loading,
+        @ViewBuilder failure: @escaping () -> Failure
+    ) {
+        self.mediaURL = mediaURL
+        self.content = content
+        self.loading = loading
+        self.failure = failure
+    }
+
+    var body: some View {
+        Group {
+            if let decodedImage,
+               self.decodedImageURL == self.mediaURL {
+                self.content(decodedImage)
+            } else if self.failedImageURL == self.mediaURL {
+                self.failure()
+            } else {
+                self.loading()
+            }
+        }
+        .task(id: self.mediaURL) { [mediaURL] in
+            await self.loadImage(mediaURL: mediaURL)
+        }
+    }
+
+    private func loadImage(mediaURL: URL) async {
+        guard self.decodedImageURL != mediaURL else {
+            return
+        }
+
+        self.failedImageURL = nil
+        let nextImage = await decodeReviewManagedFileImage(mediaURL: mediaURL)
+        guard Task.isCancelled == false else {
+            return
+        }
+
+        guard let nextImage else {
+            if self.decodedImageURL != mediaURL {
+                self.decodedImage = nil
+                self.decodedImageURL = nil
+            }
+            self.failedImageURL = mediaURL
+            return
+        }
+
+        self.decodedImage = nextImage
+        self.decodedImageURL = mediaURL
+        self.failedImageURL = nil
+    }
+}
+
+private func decodeReviewManagedFileImage(mediaURL: URL) async -> UIImage? {
+    let decodeTask = Task.detached(priority: .userInitiated) { () -> UIImage? in
+        guard Task.isCancelled == false else {
+            return nil
+        }
+
+        var configuration = UIImageReader.Configuration()
+        configuration.preparesImagesForDisplay = true
+        let imageReader = UIImageReader(configuration: configuration)
+        let image = await imageReader.image(contentsOf: mediaURL)
+        guard Task.isCancelled == false else {
+            return nil
+        }
+
+        return image
+    }
+
+    return await withTaskCancellationHandler {
+        await decodeTask.value
+    } onCancel: {
+        decodeTask.cancel()
     }
 }
 
