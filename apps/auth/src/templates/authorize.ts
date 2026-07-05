@@ -67,17 +67,16 @@ export const renderAuthorizePage = (
   <style>
     :root {
       color-scheme: dark;
-      --bg: #050505;
-      --surface: linear-gradient(180deg, rgba(24, 24, 30, 0.94), rgba(17, 17, 22, 0.98));
-      --surface-muted: rgba(255, 255, 255, 0.04);
+      --bg: #000000;
+      --surface: #1c1c1e;
+      --surface-muted: #2c2c2e;
+      --surface-muted-hover: #3a3a3c;
       --text: #f6f6f8;
       --text-secondary: rgba(235, 235, 245, 0.66);
       --accent: #c44b2d;
       --accent-strong: #d65a38;
-      --border: rgba(255, 255, 255, 0.1);
-      --border-strong: rgba(255, 255, 255, 0.16);
+      --border-strong: #8e8e93;
       --danger: #ff4d57;
-      --shadow-soft: 0 12px 30px rgba(0, 0, 0, 0.26);
       --radius-sm: 10px;
       --radius-md: 14px;
       --radius-xl: 24px;
@@ -88,10 +87,7 @@ export const renderAuthorizePage = (
     html, body { height: 100%; }
 
     html {
-      background:
-        radial-gradient(circle at top, rgba(196, 75, 45, 0.12), transparent 34%),
-        radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.05), transparent 26%),
-        var(--bg);
+      background: var(--bg);
     }
 
     body {
@@ -118,11 +114,9 @@ export const renderAuthorizePage = (
     .login-card {
       width: 100%;
       max-width: 420px;
-      border: 1px solid var(--border);
       border-radius: var(--radius-xl);
       padding: 30px;
       background: var(--surface);
-      box-shadow: var(--shadow-soft);
     }
 
     .login-title {
@@ -130,7 +124,7 @@ export const renderAuthorizePage = (
       font-size: clamp(1.6rem, 3.4vw, 2rem);
       font-weight: 760;
       line-height: 1.04;
-      letter-spacing: -0.04em;
+      letter-spacing: 0;
     }
 
     .login-label {
@@ -146,22 +140,21 @@ export const renderAuthorizePage = (
       min-height: 44px;
       padding: 10px 12px;
       margin-bottom: 16px;
-      border: 1px solid var(--border);
+      border: 1px solid transparent;
       border-radius: var(--radius-sm);
       background: var(--surface-muted);
       color: var(--text);
       font-family: inherit;
       font-size: 16px;
-      transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+      transition: background 140ms ease, outline-color 140ms ease;
     }
 
     .login-input::placeholder { color: rgba(235, 235, 245, 0.45); }
 
     .login-input:focus-visible {
-      outline: none;
-      border-color: var(--border-strong);
-      background: rgba(255, 255, 255, 0.06);
-      box-shadow: 0 0 0 3px rgba(196, 75, 45, 0.18);
+      outline: 2px solid var(--border-strong);
+      outline-offset: 2px;
+      background: var(--surface-muted-hover);
     }
 
     .login-btn {
@@ -169,7 +162,7 @@ export const renderAuthorizePage = (
       width: 100%;
       min-height: 44px;
       padding: 10px 14px;
-      border: 1px solid transparent;
+      border: 0;
       border-radius: var(--radius-pill);
       background: var(--accent);
       color: #fff5f2;
@@ -177,26 +170,28 @@ export const renderAuthorizePage = (
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
-      transition: transform 140ms ease, background 140ms ease, opacity 140ms ease;
+      transition: background 140ms ease, opacity 140ms ease;
     }
 
     @media (hover: hover) and (pointer: fine) {
-      .login-btn:hover { background: var(--accent-strong); transform: translateY(-1px); }
+      .login-btn:hover { background: var(--accent-strong); }
+    }
+
+    .login-btn:focus-visible {
+      outline: 2px solid var(--border-strong);
+      outline-offset: 3px;
     }
 
     .login-btn:disabled { opacity: 0.5; cursor: default; }
 
     .login-btn-secondary {
       margin-top: 10px;
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--surface-muted);
       color: var(--text-secondary);
-      border-color: var(--border);
-      box-shadow: none;
     }
 
     @media (hover: hover) and (pointer: fine) {
-      .login-btn-secondary:hover { background: rgba(255, 255, 255, 0.08); color: var(--text); }
+      .login-btn-secondary:hover { background: var(--surface-muted-hover); color: var(--text); }
     }
 
     .login-error { color: var(--danger); font-size: 13px; margin-bottom: 12px; }
@@ -206,7 +201,7 @@ export const renderAuthorizePage = (
     .consent-scope {
       margin: 0 0 18px;
       padding: 12px 14px;
-      border: 1px solid var(--border);
+      border: 0;
       border-radius: var(--radius-sm);
       background: var(--surface-muted);
       color: var(--text-secondary);
