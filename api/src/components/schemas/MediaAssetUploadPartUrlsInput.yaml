@@ -1,4 +1,7 @@
 type: object
+description: >-
+  Request presigned URLs for direct S3 multipart upload parts. This request
+  describes part numbers and checksums only; it never carries media bytes.
 additionalProperties: false
 required:
   - parts

@@ -3,9 +3,10 @@ post:
     - media-assets
   summary: Complete a multipart media asset upload session
   description: >-
-    Completes the backend-controlled multipart upload, validates the stored
-    object metadata, and creates or idempotently updates the workspace logical
-    media asset.
+    Completes the backend-controlled direct S3 multipart upload after all parts
+    have been uploaded to their presigned PUT URLs, validates the stored object
+    metadata, and creates or idempotently updates the workspace logical media
+    asset.
   security:
     - ApiKeyHeader: []
   parameters:

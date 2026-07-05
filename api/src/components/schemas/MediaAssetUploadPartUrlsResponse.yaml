@@ -1,4 +1,7 @@
 type: object
+description: >-
+  Presigned direct S3 multipart upload URLs. Upload bytes with the returned PUT
+  URLs and headers; do not send part bytes to the backend.
 additionalProperties: false
 required:
   - sessionId
@@ -8,6 +11,7 @@ properties:
     $ref: ./UuidString.yaml
   partUrls:
     type: array
+    description: Each item authorizes one direct S3 UploadPart request.
     minItems: 1
     items:
       type: object
@@ -30,11 +34,13 @@ properties:
         url:
           type: string
           format: uri
+          description: Presigned S3 UploadPart URL for this part only.
         expiresAt:
           type: string
           format: date-time
         headers:
           type: object
+          description: Headers that must be included exactly on the direct S3 PUT request.
           additionalProperties:
             type: string
           example:

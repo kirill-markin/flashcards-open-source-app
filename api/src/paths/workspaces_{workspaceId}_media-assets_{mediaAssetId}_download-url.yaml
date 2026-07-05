@@ -3,8 +3,9 @@ get:
     - media-assets
   summary: Create a direct media asset download URL
   description: >-
-    Returns a presigned private GET URL for the stored object. Clients may use
-    normal HTTP Range requests against the returned URL for partial reads.
+    Returns a direct presigned private S3 GET URL for the stored object. Clients
+    fetch bytes from that URL, not through the backend, and may use normal HTTP
+    Range requests against the returned URL for partial reads.
   security:
     - ApiKeyHeader: []
   parameters:

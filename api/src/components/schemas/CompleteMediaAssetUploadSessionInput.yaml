@@ -1,4 +1,8 @@
 type: object
+description: >-
+  Completes a direct S3 multipart upload after every part has been uploaded to
+  its presigned PUT URL. The backend finalizes S3 and records the logical media
+  asset; it does not receive the media bytes.
 additionalProperties: false
 required:
   - parts
@@ -24,7 +28,7 @@ properties:
           type: string
           minLength: 1
           maxLength: 256
-          description: ETag returned after uploading this part.
+          description: ETag returned by S3 after uploading this part to its presigned PUT URL.
         sha256:
           type: string
           pattern: ^[0-9a-fA-F]{64}$

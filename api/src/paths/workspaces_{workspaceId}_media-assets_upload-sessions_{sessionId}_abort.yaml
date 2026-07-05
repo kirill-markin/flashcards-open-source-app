@@ -3,8 +3,8 @@ post:
     - media-assets
   summary: Abort a multipart media asset upload session
   description: >-
-    Aborts the backend-controlled multipart upload and marks the upload session
-    aborted. No logical media asset is created by this call.
+    Aborts the backend-controlled direct S3 multipart upload and marks the
+    upload session aborted. No logical media asset is created by this call.
   security:
     - ApiKeyHeader: []
   parameters:

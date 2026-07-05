@@ -8,6 +8,9 @@ properties:
     $ref: ./MediaAsset.yaml
   download:
     type: object
+    description: >-
+      Direct S3 download transfer descriptor. Fetch bytes from url with method;
+      the backend does not proxy media bytes for this response.
     additionalProperties: false
     required:
       - method
@@ -22,10 +25,15 @@ properties:
       url:
         type: string
         format: uri
+        description: >-
+          Presigned private S3 GET URL for the stored media object. Clients may
+          send standard HTTP Range headers to this URL while it is valid.
       expiresAt:
         type: string
         format: date-time
       rangeRequests:
         type: boolean
         const: true
-        description: Clients may send HTTP Range requests to this signed URL while it is valid.
+        description: >-
+          Always true for workspace media downloads; clients may send
+          Range: bytes=start-end to the signed S3 URL for partial reads.
