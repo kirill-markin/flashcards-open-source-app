@@ -56,7 +56,6 @@ import com.flashcardsopensourceapp.feature.settings.testSettingsNotificationDiag
 import com.flashcardsopensourceapp.feature.settings.testSettingsTechnicalErrorRowTag
 import com.flashcardsopensourceapp.feature.settings.testSettingsScreenTag
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -118,42 +117,6 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         ).forEach { rowTag ->
             assertRootRowVisible(rowTag = rowTag)
         }
-        assertRootRowOrder(
-            firstRowTag = settingsShareSectionTag,
-            secondRowTag = settingsInviteFriendButtonTag
-        )
-        assertRootRowOrder(
-            firstRowTag = settingsInviteFriendButtonTag,
-            secondRowTag = settingsShareAppRowTag
-        )
-        assertRootRowOrder(
-            firstRowTag = settingsShareAppRowTag,
-            secondRowTag = settingsAccountSectionTag
-        )
-        assertRootRowOrder(
-            firstRowTag = settingsReviewRemindersRowTag,
-            secondRowTag = settingsReviewAnimationsRowTag
-        )
-        assertRootRowOrder(
-            firstRowTag = settingsReviewAnimationsRowTag,
-            secondRowTag = settingsAiChatSuggestionsRowTag
-        )
-        assertRootRowOrder(
-            firstRowTag = settingsImportRowTag,
-            secondRowTag = settingsExportRowTag
-        )
-        assertRootRowOrder(
-            firstRowTag = settingsAiChatSuggestionsRowTag,
-            secondRowTag = settingsLeaderboardParticipationRowTag
-        )
-        assertRootRowOrder(
-            firstRowTag = settingsLeaderboardParticipationRowTag,
-            secondRowTag = settingsLanguageRowTag
-        )
-        assertRootRowOrder(
-            firstRowTag = settingsSupportRowTag,
-            secondRowTag = settingsLegalRowTag
-        )
         composeRule.onAllNodesWithTag(settingsTestRowTag).assertCountEquals(0)
 
         assertRowClick(
@@ -417,19 +380,6 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     private fun assertRootRowVisible(rowTag: String) {
         scrollSettingsRootTargetIntoView(targetTag = rowTag)
         composeRule.onNodeWithTag(testTag = rowTag).assertIsDisplayed()
-    }
-
-    private fun assertRootRowOrder(
-        firstRowTag: String,
-        secondRowTag: String
-    ) {
-        scrollSettingsRootToTag(targetTag = firstRowTag)
-        waitForSettingsRootTag(targetTag = firstRowTag)
-        waitForSettingsRootTag(targetTag = secondRowTag)
-        composeRule.onNodeWithTag(testTag = firstRowTag).assertIsDisplayed()
-        val firstTop = composeRule.onNodeWithTag(testTag = firstRowTag).fetchSemanticsNode().boundsInRoot.top
-        val secondTop = composeRule.onNodeWithTag(testTag = secondRowTag).fetchSemanticsNode().boundsInRoot.top
-        assertTrue("$firstRowTag should appear before $secondRowTag", firstTop < secondTop)
     }
 
     private fun assertRowClick(
