@@ -38,6 +38,7 @@ Interactive clients authenticate with OAuth 2.1 authorization code + PKCE and Dy
 - [Backend and web deployment](docs/backend-web-deployment.md)
 - [Public site URLs (`PUBLIC_SITE_BASE_URL`)](docs/public-site-urls.md)
 - [Release gates and monitoring](docs/release-gates.md)
+- [Manual production release](docs/manual-production-release.md)
 - [iOS local setup](docs/ios-local-setup.md)
 - [iOS CI/CD](docs/ios-ci-cd.md)
 - [Android CI/CD](docs/android-ci-cd.md)
