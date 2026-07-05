@@ -98,7 +98,7 @@ The automatic Android CI flow is:
 
 The manual Android release flow is:
 
-1. `android-release.yml` starts only through manual `workflow_dispatch` with an explicit `target_sha`
+1. `android-release.yml` starts only through manual `workflow_dispatch`; optional `target_sha` pins a specific release commit, otherwise the selected workflow ref SHA is used
 2. The workflow resolves one shared `ANDROID_VERSION_CODE` and one shared Android release identifier for the run
 3. The reusable Android CI gate runs for the target SHA
 4. Firebase Test Lab app instrumentation is submitted for the debug APKs produced by the CI gate
