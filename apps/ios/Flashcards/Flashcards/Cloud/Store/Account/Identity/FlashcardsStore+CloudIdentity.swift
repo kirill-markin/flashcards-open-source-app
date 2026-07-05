@@ -69,7 +69,7 @@ extension FlashcardsStore {
     private func removeStrictReminderNotificationsForCloudIdentityReset(
         previousNotificationScope: String?
     ) {
-        Task {
+        Task { @MainActor in
             await removePendingAndDeliveredStrictReminders(
                 center: UNUserNotificationCenter.current(),
                 removalScope: previousNotificationScope
