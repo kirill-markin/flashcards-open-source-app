@@ -902,6 +902,18 @@ export const jaCatalog = {
       tags: "タグ",
     },
     loading: "カードを読み込んでいます...",
+    media: {
+      insertImageLabel: "{{field}}に画像を挿入",
+      processing: "画像を処理しています...",
+      referencesLabel: "カードのメディア参照",
+      removeReferenceLabel: "{{label}} を削除",
+      errors: {
+        installationUnavailable: "このブラウザーのインストール情報はまだ準備できていません。再読み込みしてもう一度お試しください。",
+        processingFailed: "画像を処理できませんでした。別の画像を試すか、再読み込みしてもう一度お試しください。",
+        unsupportedImage: "JPEG、PNG、または WebP 画像を選択してください。アニメーション PNG と WebP はサポートされていません。",
+        workspaceUnavailable: "ワークスペースを利用できません",
+      },
+    },
     meta: {
       cardId: "カード ID",
       due: "期限",

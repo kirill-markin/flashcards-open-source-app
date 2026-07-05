@@ -1,6 +1,12 @@
 import type { ReactElement } from "react";
 import { useI18n } from "../../../i18n";
-import { CardFormFields, type CardFormState } from "../../cards/form/CardForm";
+import {
+  CardFormFields,
+  isCardFormManagedMediaProcessing,
+  type CardFormImageMediaRequest,
+  type CardFormManagedMediaState,
+  type CardFormState,
+} from "../../cards/form/CardForm";
 import type { Card, TagSuggestion } from "../../../types";
 
 export type ReviewEditorModalProps = Readonly<{
@@ -9,10 +15,14 @@ export type ReviewEditorModalProps = Readonly<{
   formState: CardFormState;
   isEditorPresented: boolean;
   isEditorSaving: boolean;
+  localReadVersion: number;
+  managedMediaState: CardFormManagedMediaState;
+  workspaceId: string | null;
   onEditWithAi: () => Promise<void>;
   onChange: (nextFormState: CardFormState) => void;
   onClose: () => void;
   onDelete: () => Promise<void>;
+  onPrepareImageMedia: (request: CardFormImageMediaRequest) => Promise<string | null>;
   onSave: () => Promise<void>;
   tagSuggestions: ReadonlyArray<TagSuggestion>;
 }>;
@@ -24,14 +34,19 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
     formState,
     isEditorPresented,
     isEditorSaving,
+    localReadVersion,
+    managedMediaState,
+    workspaceId,
     onEditWithAi,
     onChange,
     onClose,
     onDelete,
+    onPrepareImageMedia,
     onSave,
     tagSuggestions,
   } = props;
   const { t } = useI18n();
+  const isAuthoringMedia = isCardFormManagedMediaProcessing(managedMediaState);
 
   if (!isEditorPresented || editingCard === null) {
     return null;
@@ -49,7 +64,7 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
             <button
               type="button"
               className="ghost-btn review-editor-ai-btn"
-              disabled={isEditorSaving}
+              disabled={isEditorSaving || isAuthoringMedia}
               onClick={() => void onEditWithAi()}
               data-testid="review-editor-edit-with-ai"
             >
@@ -58,7 +73,7 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
             <button
               type="button"
               className="ghost-btn"
-              disabled={isEditorSaving}
+              disabled={isEditorSaving || isAuthoringMedia}
               onClick={onClose}
             >
               {t("common.cancel")}
@@ -66,7 +81,7 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
             <button
               type="button"
               className="ghost-btn review-editor-delete-btn"
-              disabled={isEditorSaving}
+              disabled={isEditorSaving || isAuthoringMedia}
               onClick={() => void onDelete()}
             >
               {t("reviewEditor.delete")}
@@ -74,7 +89,7 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
             <button
               type="button"
               className="primary-btn"
-              disabled={isEditorSaving}
+              disabled={isEditorSaving || isAuthoringMedia}
               onClick={() => void onSave()}
             >
               {isEditorSaving ? t("reviewEditor.saving") : t("reviewEditor.save")}
@@ -90,7 +105,11 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
           formState={formState}
           formIdPrefix="review-card-editor"
           isSaving={isEditorSaving}
+          localReadVersion={localReadVersion}
+          managedMediaState={managedMediaState}
+          workspaceId={workspaceId}
           onChange={onChange}
+          onPrepareImageMedia={onPrepareImageMedia}
         />
       </section>
     </div>

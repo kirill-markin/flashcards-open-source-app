@@ -902,6 +902,18 @@ const esEsCatalog: TranslationCatalog = {
       tags: "Etiquetas",
     },
     loading: "Cargando tarjeta...",
+    media: {
+      insertImageLabel: "Insertar imagen en {{field}}",
+      processing: "Procesando imagen...",
+      referencesLabel: "Referencias multimedia de la tarjeta",
+      removeReferenceLabel: "Quitar {{label}}",
+      errors: {
+        installationUnavailable: "Esta instalación del navegador no está lista. Recarga e inténtalo de nuevo.",
+        processingFailed: "No se pudo procesar la imagen. Prueba otra imagen o recarga e inténtalo de nuevo.",
+        unsupportedImage: "Elige una imagen JPEG, PNG o WebP. Las imágenes PNG y WebP animadas no son compatibles.",
+        workspaceUnavailable: "El espacio de trabajo no está disponible",
+      },
+    },
     meta: {
       cardId: "ID de la tarjeta",
       due: "Pendiente",

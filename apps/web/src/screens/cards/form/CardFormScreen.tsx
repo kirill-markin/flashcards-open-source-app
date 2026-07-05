@@ -4,11 +4,24 @@ import { useAppData } from "../../../appData";
 import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { useAiCardHandoff } from "../../../chat/handoff/useAiCardHandoff";
 import { useI18n } from "../../../i18n";
-import { CardFormFields, isCardFormStateDirty, toCardFormState, type CardFormState } from "./CardForm";
+import {
+  CardFormFields,
+  createCardFormManagedMediaState,
+  isCardFormManagedMediaProcessing,
+  isCardFormStateDirty,
+  toCardFormState,
+  type CardFormImageMediaRequest,
+  type CardFormManagedMediaField,
+  type CardFormManagedMediaFieldState,
+  type CardFormManagedMediaState,
+  type CardFormState,
+} from "./CardForm";
+import { prepareCardImageMediaAuthoring } from "./cardImageAuthoring";
 import { getExpectedCardMutationInlineErrorMessage } from "../cardMutationErrors";
 import type { Card, CreateCardInput, TagSuggestion, UpdateCardInput } from "../../../types";
 import { loadCardById } from "../../../localDb/cards/cards";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
+import { UnsupportedImagePreparationError } from "../../../media/imagePreparation";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { cardsRoute } from "../../../routes";
 
@@ -49,6 +62,7 @@ export function CardFormScreen(): ReactElement {
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [loadErrorMessage, setLoadErrorMessage] = useState<string>("");
   const [actionErrorMessage, setActionErrorMessage] = useState<string>("");
+  const [managedMediaState, setManagedMediaState] = useState<CardFormManagedMediaState>(createCardFormManagedMediaState);
   const observationIdentityRef = useRef<Readonly<{
     userId: string | null;
     installationId: string | null;
@@ -59,6 +73,7 @@ export function CardFormScreen(): ReactElement {
   const loadRequestSequenceRef = useRef<number>(0);
   const isCreateMode = cardId === undefined;
   const handoffCardToAi = useAiCardHandoff();
+  const isAuthoringMedia = isCardFormManagedMediaProcessing(managedMediaState);
   observationIdentityRef.current = {
     userId: session?.userId ?? null,
     installationId: cloudSettings?.installationId ?? null,
@@ -230,6 +245,10 @@ export function CardFormScreen(): ReactElement {
   }
 
   async function handleEditWithAi(): Promise<void> {
+    if (isAuthoringMedia) {
+      return;
+    }
+
     if (currentCard === null) {
       return;
     }
@@ -245,6 +264,76 @@ export function CardFormScreen(): ReactElement {
     }
 
     await handoffCardToAi(savedCard);
+  }
+
+  function setManagedMediaFieldState(
+    field: CardFormManagedMediaField,
+    nextState: CardFormManagedMediaFieldState,
+  ): void {
+    setManagedMediaState((currentState) => ({
+      ...currentState,
+      [field]: nextState,
+    }));
+  }
+
+  function setManagedMediaFieldError(field: CardFormManagedMediaField, errorMessage: string): void {
+    setManagedMediaFieldState(field, {
+      isProcessing: false,
+      errorMessage,
+    });
+  }
+
+  async function handlePrepareImageMedia(request: CardFormImageMediaRequest): Promise<string | null> {
+    if (activeWorkspace === null) {
+      setManagedMediaFieldError(request.field, t("cardForm.media.errors.workspaceUnavailable"));
+      return null;
+    }
+
+    if (cloudSettings === null) {
+      setManagedMediaFieldError(request.field, t("cardForm.media.errors.installationUnavailable"));
+      return null;
+    }
+
+    setManagedMediaFieldState(request.field, {
+      isProcessing: true,
+      errorMessage: "",
+    });
+    setErrorMessage("");
+
+    try {
+      const result = await prepareCardImageMediaAuthoring({
+        workspaceId: activeWorkspace.workspaceId,
+        installationId: cloudSettings.installationId,
+        file: request.file,
+        altText: request.altText,
+      });
+      return result.markdown;
+    } catch (error) {
+      if (error instanceof UnsupportedImagePreparationError) {
+        setManagedMediaFieldError(request.field, t("cardForm.media.errors.unsupportedImage"));
+        return null;
+      }
+
+      captureAppOperationError(error, {
+        feature: "cards",
+        operation: "card_image_authoring",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace.workspaceId,
+        installationId: cloudSettings.installationId,
+        entityId: cardId ?? null,
+      });
+      showCapturedTechnicalError(error);
+      setManagedMediaFieldError(request.field, t("cardForm.media.errors.processingFailed"));
+      return null;
+    } finally {
+      setManagedMediaState((currentState) => ({
+        ...currentState,
+        [request.field]: {
+          ...currentState[request.field],
+          isProcessing: false,
+        },
+      }));
+    }
   }
 
   async function handleDelete(): Promise<void> {
@@ -331,7 +420,7 @@ export function CardFormScreen(): ReactElement {
               <button
                 type="button"
                 className="ghost-btn review-editor-ai-btn"
-                disabled={isSaving || isDeleting}
+                disabled={isSaving || isDeleting || isAuthoringMedia}
                 onClick={() => void handleEditWithAi()}
                 data-testid="card-form-edit-with-ai"
               >
@@ -342,7 +431,7 @@ export function CardFormScreen(): ReactElement {
               <button
                 type="button"
                 className="ghost-btn settings-danger-btn"
-                disabled={isSaving || isDeleting}
+                disabled={isSaving || isDeleting || isAuthoringMedia}
                 onClick={() => void handleDelete()}
                 data-testid="card-form-delete"
               >
@@ -352,7 +441,7 @@ export function CardFormScreen(): ReactElement {
             <button
               type="button"
               className="primary-btn"
-              disabled={isSaving || isDeleting}
+              disabled={isSaving || isDeleting || isAuthoringMedia}
               onClick={() => void handleSubmit()}
               data-testid="card-form-save"
             >
@@ -367,7 +456,11 @@ export function CardFormScreen(): ReactElement {
           formState={formState}
           formIdPrefix="card-form-screen"
           isSaving={isSaving}
+          localReadVersion={localReadVersion}
+          managedMediaState={managedMediaState}
+          workspaceId={activeWorkspace?.workspaceId ?? null}
           onChange={setFormState}
+          onPrepareImageMedia={handlePrepareImageMedia}
         />
       </section>
     </main>

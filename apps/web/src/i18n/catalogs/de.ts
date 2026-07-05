@@ -902,6 +902,18 @@ const deCatalog: TranslationCatalog = {
       tags: "Tags",
     },
     loading: "Karte wird geladen...",
+    media: {
+      insertImageLabel: "Bild in {{field}} einfügen",
+      processing: "Bild wird verarbeitet...",
+      referencesLabel: "Medienverweise der Karte",
+      removeReferenceLabel: "{{label}} entfernen",
+      errors: {
+        installationUnavailable: "Diese Browser-Installation ist noch nicht bereit. Laden Sie neu und versuchen Sie es erneut.",
+        processingFailed: "Die Bildverarbeitung ist fehlgeschlagen. Versuchen Sie ein anderes Bild oder laden Sie neu.",
+        unsupportedImage: "Wählen Sie ein JPEG-, PNG- oder WebP-Bild. Animierte PNG- und WebP-Bilder werden nicht unterstützt.",
+        workspaceUnavailable: "Workspace ist nicht verfügbar",
+      },
+    },
     meta: {
       cardId: "Karten-ID",
       due: "Fällig",

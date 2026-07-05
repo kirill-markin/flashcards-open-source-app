@@ -902,6 +902,18 @@ const hiCatalog: TranslationCatalog = {
       tags: "टैग",
     },
     loading: "कार्ड लोड हो रहा है...",
+    media: {
+      insertImageLabel: "{{field}} में छवि डालें",
+      processing: "छवि प्रोसेस हो रही है...",
+      referencesLabel: "कार्ड मीडिया संदर्भ",
+      removeReferenceLabel: "{{label}} हटाएँ",
+      errors: {
+        installationUnavailable: "यह ब्राउज़र इंस्टॉलेशन तैयार नहीं है। फिर से लोड करें और दोबारा कोशिश करें।",
+        processingFailed: "छवि प्रोसेस नहीं हो सकी। कोई दूसरी छवि आज़माएँ या फिर से लोड करें।",
+        unsupportedImage: "JPEG, PNG या WebP छवि चुनें। एनिमेटेड PNG और WebP समर्थित नहीं हैं।",
+        workspaceUnavailable: "वर्कस्पेस उपलब्ध नहीं है",
+      },
+    },
     meta: {
       cardId: "कार्ड ID",
       due: "बाकी",
