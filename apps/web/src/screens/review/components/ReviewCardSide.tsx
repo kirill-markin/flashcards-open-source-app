@@ -1,5 +1,9 @@
-import type { ReactElement } from "react";
-import ReactMarkdown from "react-markdown";
+import {
+  createContext,
+  useContext,
+  type ReactElement,
+} from "react";
+import ReactMarkdown, { type Components } from "react-markdown";
 import {
   ManagedMediaReference,
   parseManagedMediaAssetId,
@@ -11,6 +15,12 @@ const REVIEW_MARKDOWN_FENCE_PATTERN = /^\s{0,3}(`{3,}|~{3,})/;
 const REVIEW_MARKDOWN_SYMBOL_ONLY_LIST_ITEM_PATTERN = /^(\s{0,3}[-*+]\s+)([+*\-#>])(\s*)$/;
 
 type MarkdownFenceMarker = "`" | "~";
+type ReviewMarkdownRenderContextValue = Readonly<{
+  localReadVersion: number;
+  workspaceId: string | null;
+}>;
+
+const ReviewMarkdownRenderContext = createContext<ReviewMarkdownRenderContextValue | null>(null);
 
 export type ReviewCardSideProps = Readonly<{
   aiButtonAriaLabel: string | null;
@@ -41,6 +51,19 @@ export type ReviewCardSpeechButtonProps = Readonly<{
 
 function reviewMarkdownClassName(tagName: string): string {
   return `review-markdown-${tagName}`;
+}
+
+function createManagedMediaReferenceKey(workspaceId: string | null, mediaAssetId: string): string {
+  return JSON.stringify([workspaceId, mediaAssetId]);
+}
+
+function useReviewMarkdownRenderContext(): ReviewMarkdownRenderContextValue {
+  const contextValue = useContext(ReviewMarkdownRenderContext);
+  if (contextValue === null) {
+    throw new Error("Review markdown render context is unavailable");
+  }
+
+  return contextValue;
 }
 
 function toMarkdownFenceMarker(line: string): MarkdownFenceMarker | null {
@@ -102,6 +125,120 @@ export function normalizeReviewMarkdownForWeb(text: string): string {
   return normalizedLines.join("\n");
 }
 
+const reviewMarkdownComponents: Components = {
+  a: function ReviewMarkdownAnchor({ children, href, title }) {
+    const { localReadVersion, workspaceId } = useReviewMarkdownRenderContext();
+    const mediaAssetId = parseManagedMediaAssetId(href);
+    if (mediaAssetId !== null) {
+      return (
+        <ManagedMediaReference
+          key={createManagedMediaReferenceKey(workspaceId, mediaAssetId)}
+          altText=""
+          localReadVersion={localReadVersion}
+          mediaAssetId={mediaAssetId}
+          workspaceId={workspaceId}
+        >
+          {children}
+        </ManagedMediaReference>
+      );
+    }
+
+    return <a className={reviewMarkdownClassName("a")} href={href} title={title}>{children}</a>;
+  },
+  h1: function ReviewMarkdownH1({ children }) {
+    return <h1 className={reviewMarkdownClassName("h1")}>{children}</h1>;
+  },
+  h2: function ReviewMarkdownH2({ children }) {
+    return <h2 className={reviewMarkdownClassName("h2")}>{children}</h2>;
+  },
+  h3: function ReviewMarkdownH3({ children }) {
+    return <h3 className={reviewMarkdownClassName("h3")}>{children}</h3>;
+  },
+  h4: function ReviewMarkdownH4({ children }) {
+    return <h4 className={reviewMarkdownClassName("h4")}>{children}</h4>;
+  },
+  h5: function ReviewMarkdownH5({ children }) {
+    return <h5 className={reviewMarkdownClassName("h5")}>{children}</h5>;
+  },
+  h6: function ReviewMarkdownH6({ children }) {
+    return <h6 className={reviewMarkdownClassName("h6")}>{children}</h6>;
+  },
+  p: function ReviewMarkdownParagraph({ children }) {
+    return <p className={reviewMarkdownClassName("p")}>{children}</p>;
+  },
+  ul: function ReviewMarkdownUnorderedList({ children }) {
+    return <ul className={reviewMarkdownClassName("ul")}>{children}</ul>;
+  },
+  ol: function ReviewMarkdownOrderedList({ children }) {
+    return <ol className={reviewMarkdownClassName("ol")}>{children}</ol>;
+  },
+  li: function ReviewMarkdownListItem({ children }) {
+    return <li className={reviewMarkdownClassName("li")}>{children}</li>;
+  },
+  blockquote: function ReviewMarkdownBlockquote({ children }) {
+    return <blockquote className={reviewMarkdownClassName("blockquote")}>{children}</blockquote>;
+  },
+  hr: function ReviewMarkdownHorizontalRule() {
+    return <hr className={reviewMarkdownClassName("hr")} />;
+  },
+  table: function ReviewMarkdownTable({ children }) {
+    return <table className={reviewMarkdownClassName("table")}>{children}</table>;
+  },
+  thead: function ReviewMarkdownTableHead({ children }) {
+    return <thead className={reviewMarkdownClassName("thead")}>{children}</thead>;
+  },
+  tbody: function ReviewMarkdownTableBody({ children }) {
+    return <tbody className={reviewMarkdownClassName("tbody")}>{children}</tbody>;
+  },
+  tr: function ReviewMarkdownTableRow({ children }) {
+    return <tr className={reviewMarkdownClassName("tr")}>{children}</tr>;
+  },
+  th: function ReviewMarkdownTableHeaderCell({ children }) {
+    return <th className={reviewMarkdownClassName("th")}>{children}</th>;
+  },
+  td: function ReviewMarkdownTableCell({ children }) {
+    return <td className={reviewMarkdownClassName("td")}>{children}</td>;
+  },
+  pre: function ReviewMarkdownPre({ children }) {
+    return <pre className={reviewMarkdownClassName("pre")}>{children}</pre>;
+  },
+  img: function ReviewMarkdownImage({ alt, src, title }) {
+    const { localReadVersion, workspaceId } = useReviewMarkdownRenderContext();
+    const mediaAssetId = parseManagedMediaAssetId(src);
+    if (mediaAssetId !== null) {
+      return (
+        <ManagedMediaReference
+          key={createManagedMediaReferenceKey(workspaceId, mediaAssetId)}
+          altText={alt ?? ""}
+          localReadVersion={localReadVersion}
+          mediaAssetId={mediaAssetId}
+          workspaceId={workspaceId}
+        >
+          {alt ?? ""}
+        </ManagedMediaReference>
+      );
+    }
+
+    return (
+      <img
+        className="review-markdown-img"
+        src={src}
+        alt={alt ?? ""}
+        title={title}
+        loading="lazy"
+        decoding="async"
+      />
+    );
+  },
+  code: function ReviewMarkdownCode({ children, className }) {
+    return (
+      <code className={`${reviewMarkdownClassName("code")}${className === undefined ? "" : ` ${className}`}`}>
+        {children}
+      </code>
+    );
+  },
+};
+
 function ReviewCardMarkdown(props: Readonly<{
   localReadVersion: number;
   text: string;
@@ -115,80 +252,14 @@ function ReviewCardMarkdown(props: Readonly<{
   const normalizedText = normalizeReviewMarkdownForWeb(text);
 
   return (
-    <ReactMarkdown
-      urlTransform={reviewMarkdownUrlTransform}
-      components={{
-        a: ({ children, href, title }) => {
-          const mediaAssetId = parseManagedMediaAssetId(href);
-          if (mediaAssetId !== null) {
-            return (
-              <ManagedMediaReference
-                altText=""
-                localReadVersion={localReadVersion}
-                mediaAssetId={mediaAssetId}
-                workspaceId={workspaceId}
-              >
-                {children}
-              </ManagedMediaReference>
-            );
-          }
-
-          return <a className={reviewMarkdownClassName("a")} href={href} title={title}>{children}</a>;
-        },
-        h1: ({ children }) => <h1 className={reviewMarkdownClassName("h1")}>{children}</h1>,
-        h2: ({ children }) => <h2 className={reviewMarkdownClassName("h2")}>{children}</h2>,
-        h3: ({ children }) => <h3 className={reviewMarkdownClassName("h3")}>{children}</h3>,
-        h4: ({ children }) => <h4 className={reviewMarkdownClassName("h4")}>{children}</h4>,
-        h5: ({ children }) => <h5 className={reviewMarkdownClassName("h5")}>{children}</h5>,
-        h6: ({ children }) => <h6 className={reviewMarkdownClassName("h6")}>{children}</h6>,
-        p: ({ children }) => <p className={reviewMarkdownClassName("p")}>{children}</p>,
-        ul: ({ children }) => <ul className={reviewMarkdownClassName("ul")}>{children}</ul>,
-        ol: ({ children }) => <ol className={reviewMarkdownClassName("ol")}>{children}</ol>,
-        li: ({ children }) => <li className={reviewMarkdownClassName("li")}>{children}</li>,
-        blockquote: ({ children }) => <blockquote className={reviewMarkdownClassName("blockquote")}>{children}</blockquote>,
-        hr: () => <hr className={reviewMarkdownClassName("hr")} />,
-        table: ({ children }) => <table className={reviewMarkdownClassName("table")}>{children}</table>,
-        thead: ({ children }) => <thead className={reviewMarkdownClassName("thead")}>{children}</thead>,
-        tbody: ({ children }) => <tbody className={reviewMarkdownClassName("tbody")}>{children}</tbody>,
-        tr: ({ children }) => <tr className={reviewMarkdownClassName("tr")}>{children}</tr>,
-        th: ({ children }) => <th className={reviewMarkdownClassName("th")}>{children}</th>,
-        td: ({ children }) => <td className={reviewMarkdownClassName("td")}>{children}</td>,
-        pre: ({ children }) => <pre className={reviewMarkdownClassName("pre")}>{children}</pre>,
-        img: ({ alt, src, title }) => {
-          const mediaAssetId = parseManagedMediaAssetId(src);
-          if (mediaAssetId !== null) {
-            return (
-              <ManagedMediaReference
-                altText={alt ?? ""}
-                localReadVersion={localReadVersion}
-                mediaAssetId={mediaAssetId}
-                workspaceId={workspaceId}
-              >
-                {alt ?? ""}
-              </ManagedMediaReference>
-            );
-          }
-
-          return (
-            <img
-              className="review-markdown-img"
-              src={src}
-              alt={alt ?? ""}
-              title={title}
-              loading="lazy"
-              decoding="async"
-            />
-          );
-        },
-        code: ({ children, className }) => (
-          <code className={`${reviewMarkdownClassName("code")}${className === undefined ? "" : ` ${className}`}`}>
-            {children}
-          </code>
-        ),
-      }}
-    >
-      {normalizedText}
-    </ReactMarkdown>
+    <ReviewMarkdownRenderContext.Provider value={{ localReadVersion, workspaceId }}>
+      <ReactMarkdown
+        urlTransform={reviewMarkdownUrlTransform}
+        components={reviewMarkdownComponents}
+      >
+        {normalizedText}
+      </ReactMarkdown>
+    </ReviewMarkdownRenderContext.Provider>
   );
 }
 

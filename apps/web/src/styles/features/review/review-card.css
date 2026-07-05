@@ -4,6 +4,7 @@
   --review-pane-radius: var(--panel-inner-radius, var(--radius-lg));
   --review-pane-inner-radius: max(0px, calc(var(--review-pane-radius) - var(--review-pane-padding)));
   --review-card-radius: var(--panel-inner-radius, var(--radius-lg));
+  --review-managed-media-image-radius: max(0px, calc(var(--review-card-radius) - 4px));
   display: grid;
   gap: 10px;
   min-width: 0;

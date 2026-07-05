@@ -120,14 +120,14 @@
 }
 
 .review-markdown-img,
-.review-markdown-media-image,
-.review-markdown-media-video {
+.review-markdown-media-image {
   display: block;
-  width: auto;
+  width: 100%;
+  height: auto;
   max-width: 100%;
-  max-height: 24rem;
-  border-radius: 8px;
+  border-radius: var(--review-managed-media-image-radius, 8px);
   background: rgba(7, 7, 10, 0.34);
+  object-fit: contain;
 }
 
 .review-markdown-managed-media {
