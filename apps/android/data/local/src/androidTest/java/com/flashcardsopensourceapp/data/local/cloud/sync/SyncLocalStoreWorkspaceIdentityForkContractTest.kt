@@ -253,12 +253,12 @@ class SyncLocalStoreWorkspaceIdentityForkContractTest {
                     isSelected = true
                 )
             )
-            throw AssertionError("Expected media asset registry rows to block workspace identity fork.")
+            throw AssertionError("Expected registered media asset rows to block workspace identity fork.")
         } catch (error: IllegalArgumentException) {
             assertEquals(
                 "Cannot fork workspace identity from workspace '$syncLocalStoreContractWorkspaceId' to " +
-                    "'workspace-2' because the source workspace has 1 media asset registry row(s). " +
-                    "Android cannot reassign managed media assets in this sync/storage split.",
+                    "'workspace-2' because the source workspace has 1 registered media asset row(s). " +
+                    "Android can only reassign pending media uploads.",
                 error.message
             )
         }
