@@ -15,14 +15,14 @@
 .chat-msg-user {
   align-self: flex-end;
   background: rgba(95, 25, 11, 0.54);
-  border-color: rgba(196, 75, 45, 0.18);
+  border-color: transparent;
   color: #fff2ee;
 }
 
 .chat-msg-assistant {
   align-self: flex-start;
   background: var(--surface-elevated);
-  border-color: var(--panel-border);
+  border-color: transparent;
 }
 
 .chat-streaming-indicator {
@@ -55,9 +55,8 @@
   display: block;
   margin: 10px 0 6px;
   overflow: hidden;
-  border: 1px solid var(--panel-border);
   border-radius: var(--chat-msg-inner-radius, var(--radius-sm));
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-hover);
 }
 
 .chat-card-part-summary {
@@ -110,7 +109,7 @@
   margin: 0;
   padding: 12px;
   border-radius: var(--chat-card-part-inner-radius, var(--radius-sm));
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-pressed);
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
@@ -118,9 +117,8 @@
 }
 
 .chat-card-part-context {
-  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--chat-card-part-inner-radius, var(--radius-sm));
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-pressed);
   overflow: hidden;
 }
 
