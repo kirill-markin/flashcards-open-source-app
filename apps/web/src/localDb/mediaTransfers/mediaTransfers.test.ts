@@ -1,17 +1,22 @@
 // @vitest-environment jsdom
 
+import { Blob as NodeBlob } from "node:buffer";
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
+import type { MediaAsset } from "../../types";
 import { clearWebSyncCache } from "../core/cache";
+import { loadMediaAssetRecord } from "../mediaAssets";
 import {
   claimNextDueMediaTransfer,
   claimNextDueMediaTransferByKind,
   enqueueMediaTransferDownload,
   enqueueMediaTransferUpload,
+  loadMediaBlobCacheRecord,
   loadMediaTransferQueueRecord,
   loadNextPendingMediaTransferAttemptAtByKind,
   markClaimedMediaTransferSucceeded,
   markMediaTransferFailed,
+  persistLocalMediaUpload,
   recoverStaleInProgressMediaTransfersByKind,
   renewInProgressMediaTransferClaim,
 } from "./mediaTransfers";
@@ -140,6 +145,78 @@ describe("localDb media transfers", () => {
       "workspace-1",
       "upload",
     )).resolves.toBe("2026-03-10T09:30:00.000Z");
+  });
+
+  it("persists local upload media asset state and queued transfer together", async () => {
+    const createdAt = "2026-03-10T09:00:00.000Z";
+    const sha256 = "8e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8";
+    const blob = new NodeBlob(["jpeg bytes"], { type: "image/jpeg" }) as unknown as Blob;
+    const mediaAsset: MediaAsset = {
+      mediaAssetId: "local-media-asset",
+      workspaceId: "workspace-1",
+      mimeType: "image/jpeg",
+      sizeBytes: blob.size,
+      sha256,
+      sourceUrl: null,
+      createdAt,
+      clientUpdatedAt: createdAt,
+      lastModifiedByReplicaId: "workspace-replica-1",
+      lastOperationId: "local-upload-transfer",
+      updatedAt: createdAt,
+      deletedAt: null,
+    };
+
+    await expect(persistLocalMediaUpload({
+      mediaAsset,
+      cacheRecord: {
+        sha256,
+        mimeType: mediaAsset.mimeType,
+        sizeBytes: mediaAsset.sizeBytes,
+        blob,
+        createdAt,
+        lastAccessedAt: createdAt,
+        sourceMediaAssetId: mediaAsset.mediaAssetId,
+      },
+      upload: {
+        transferId: mediaAsset.lastOperationId,
+        workspaceId: mediaAsset.workspaceId,
+        mediaAssetId: mediaAsset.mediaAssetId,
+        sha256,
+        mimeType: mediaAsset.mimeType,
+        sizeBytes: mediaAsset.sizeBytes,
+        sourceBlobCacheKey: sha256,
+        createdAt,
+        nextAttemptAt: createdAt,
+      },
+    })).resolves.toEqual(expect.objectContaining({
+      transferId: "local-upload-transfer",
+      kind: "upload",
+      status: "queued",
+      sourceBlobCacheKey: sha256,
+    }));
+
+    await expect(loadMediaAssetRecord("workspace-1", "local-media-asset")).resolves.toEqual(mediaAsset);
+    const cacheRecord = await loadMediaBlobCacheRecord(sha256);
+    if (cacheRecord === null) {
+      throw new Error("Expected local media blob cache record.");
+    }
+
+    expect(cacheRecord).toEqual(expect.objectContaining({
+      sha256,
+      mimeType: "image/jpeg",
+      sizeBytes: blob.size,
+      sourceMediaAssetId: "local-media-asset",
+    }));
+    expect(cacheRecord.blob.size).toBe(blob.size);
+    expect(cacheRecord.blob.type).toBe("image/jpeg");
+    await expect(loadMediaTransferQueueRecord("local-upload-transfer")).resolves.toEqual(expect.objectContaining({
+      transferId: "local-upload-transfer",
+      mediaAssetId: "local-media-asset",
+      sha256,
+      sourceBlobCacheKey: sha256,
+      createdAt,
+      nextAttemptAt: createdAt,
+    }));
   });
 
   it("recovers only stale in-progress upload transfers for retry", async () => {
