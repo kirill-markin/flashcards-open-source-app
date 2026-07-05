@@ -1,6 +1,11 @@
 import SwiftUI
 import UIKit
 
+struct WorkspacePackageExportShareItem: Hashable, Identifiable {
+    let id: UUID
+    let fileURL: URL
+}
+
 struct WorkspaceExportActivitySheet: UIViewControllerRepresentable {
     let activityItems: [Any]
 
