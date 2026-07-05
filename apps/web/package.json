@@ -12,6 +12,7 @@
     "test:e2e:prod": "FLASHCARDS_E2E_TARGET=prod playwright test"
   },
   "dependencies": {
+    "@floating-ui/react-dom": "^2.1.8",
     "@sentry/react": "^10.62.0",
     "heic-to": "^1.5.2",
     "lottie-web": "^5.13.0",
