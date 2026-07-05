@@ -72,6 +72,7 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.Local
 import com.flashcardsopensourceapp.data.local.repository.cards.LocalCardsRepository
 import com.flashcardsopensourceapp.data.local.repository.decks.LocalDecksRepository
 import com.flashcardsopensourceapp.data.local.repository.feedback.LocalFeedbackRepository
+import com.flashcardsopensourceapp.data.local.repository.media.LocalManagedMediaAuthoringRepository
 import com.flashcardsopensourceapp.data.local.repository.media.LocalMediaUploadTransferRepository
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.progress.LocalProgressRepository
@@ -279,6 +280,14 @@ class AppGraph(
         guestSessionStore = guestAiSessionStore,
         mediaFileRootDirectory = applicationContext.filesDir,
         signedPutUploader = OkHttpSignedPutUploader(okHttpClient = okHttpClient),
+        timeProvider = SystemTimeProvider
+    )
+    val managedMediaAuthoringRepository = LocalManagedMediaAuthoringRepository(
+        contentResolver = applicationContext.contentResolver,
+        database = database,
+        preferencesStore = cloudPreferencesStore,
+        mediaFileRootDirectory = applicationContext.filesDir,
+        ioDispatcher = Dispatchers.IO,
         timeProvider = SystemTimeProvider
     )
 

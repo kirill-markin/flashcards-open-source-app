@@ -180,6 +180,24 @@ interface MediaTransferDao {
     @Query("DELETE FROM media_transfer_queue WHERE transferId = :transferId")
     suspend fun deleteMediaTransfer(transferId: String)
 
+    @Query(
+        """
+        UPDATE media_transfer_queue
+        SET workspaceId = :newWorkspaceId,
+            updatedAtMillis = :updatedAtMillis
+        WHERE workspaceId = :oldWorkspaceId
+            AND kind = :uploadKind
+            AND status != :succeededStatus
+        """
+    )
+    suspend fun reassignPendingUploadMediaTransfers(
+        oldWorkspaceId: String,
+        newWorkspaceId: String,
+        uploadKind: String,
+        succeededStatus: String,
+        updatedAtMillis: Long
+    )
+
     @Query("DELETE FROM media_transfer_queue WHERE workspaceId = :workspaceId")
     suspend fun deleteMediaTransfersForWorkspace(workspaceId: String)
 }

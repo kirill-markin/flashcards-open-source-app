@@ -17,11 +17,14 @@ import com.flashcardsopensourceapp.data.local.cloud.sync.ReviewHistoryChangedEve
 import com.flashcardsopensourceapp.data.local.cloud.sync.emptySyncStateEntity
 import com.flashcardsopensourceapp.data.local.cloud.wire.toRemoteValue
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.model.media.MediaTransferKind
+import com.flashcardsopensourceapp.data.local.model.media.MediaTransferStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorkspaceSchedulerSettings
-import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.buildClientWorkspaceReplicaId
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
+import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import java.util.UUID
 
@@ -290,11 +293,15 @@ internal class WorkspaceIdentityLocalStore(
         ) {
             "Cannot fork workspace identity because current local workspace '$currentLocalWorkspaceId' does not exist."
         }
-        val mediaAssetCount = database.mediaAssetDao().countMediaAssets(workspaceId = currentLocalWorkspaceId)
-        require(mediaAssetCount == 0) {
+        val registeredMediaAssetCount = database.mediaAssetDao().countMediaAssetsExcludingPendingUploads(
+            workspaceId = currentLocalWorkspaceId,
+            uploadKind = MediaTransferKind.UPLOAD.wireKey,
+            succeededStatus = MediaTransferStatus.SUCCEEDED.wireKey
+        )
+        require(registeredMediaAssetCount == 0) {
             "Cannot fork workspace identity from workspace '$currentLocalWorkspaceId' to " +
-                "'${destinationWorkspace.workspaceId}' because the source workspace has $mediaAssetCount media asset " +
-                "registry row(s). Android cannot reassign managed media assets in this sync/storage split."
+                "'${destinationWorkspace.workspaceId}' because the source workspace has $registeredMediaAssetCount " +
+                "registered media asset row(s). Android can only reassign pending media uploads."
         }
         val snapshot = loadWorkspaceForkSnapshot(workspaceId = currentLocalWorkspaceId)
         val forkMappings = buildWorkspaceForkIdMappings(
@@ -347,6 +354,10 @@ internal class WorkspaceIdentityLocalStore(
                     newWorkspaceId = destinationWorkspace.workspaceId
                 )
             }
+            reassignPendingMediaUploadsForWorkspaceFork(
+                oldWorkspaceId = currentLocalWorkspaceId,
+                newWorkspaceId = destinationWorkspace.workspaceId
+            )
             localProgressCacheStore.reassignWorkspaceInTransaction(
                 oldWorkspaceId = currentLocalWorkspaceId,
                 newWorkspaceId = destinationWorkspace.workspaceId
@@ -478,6 +489,32 @@ internal class WorkspaceIdentityLocalStore(
         }
 
         replaceSyncStateWithEmptyProgress(workspaceId = destinationWorkspace.workspaceId)
+    }
+
+    private suspend fun reassignPendingMediaUploadsForWorkspaceFork(
+        oldWorkspaceId: String,
+        newWorkspaceId: String
+    ) {
+        val updatedAtMillis: Long = System.currentTimeMillis()
+        val lastModifiedByReplicaId: String = buildClientWorkspaceReplicaId(
+            workspaceId = newWorkspaceId,
+            installationId = preferencesStore.currentCloudSettings().installationId
+        )
+        database.mediaAssetDao().reassignPendingUploadMediaAssets(
+            oldWorkspaceId = oldWorkspaceId,
+            newWorkspaceId = newWorkspaceId,
+            uploadKind = MediaTransferKind.UPLOAD.wireKey,
+            succeededStatus = MediaTransferStatus.SUCCEEDED.wireKey,
+            lastModifiedByReplicaId = lastModifiedByReplicaId,
+            updatedAtMillis = updatedAtMillis
+        )
+        database.mediaTransferDao().reassignPendingUploadMediaTransfers(
+            oldWorkspaceId = oldWorkspaceId,
+            newWorkspaceId = newWorkspaceId,
+            uploadKind = MediaTransferKind.UPLOAD.wireKey,
+            succeededStatus = MediaTransferStatus.SUCCEEDED.wireKey,
+            updatedAtMillis = updatedAtMillis
+        )
     }
 
     private suspend fun loadWorkspaceForkSnapshot(workspaceId: String): WorkspaceForkSnapshot {
