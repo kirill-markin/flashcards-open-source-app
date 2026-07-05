@@ -20,8 +20,8 @@ struct WorkspacePackageExportSection: View {
     @State private var isExporting: Bool = false
     @State private var errorMessage: String = ""
     @State private var successMessage: String = ""
-    @State private var exportedFileURL: URL?
-    @State private var isShareSheetPresented: Bool = false
+    @State private var exportShareItem: WorkspacePackageExportShareItem?
+    @State private var exportCleanupFileURL: URL?
 
     private var isBusy: Bool {
         self.isPreviewing || self.isExporting
@@ -96,16 +96,12 @@ struct WorkspacePackageExportSection: View {
             self.resetWorkspaceExportState()
         }
         .sheet(
-            isPresented: self.$isShareSheetPresented,
+            item: self.$exportShareItem,
             onDismiss: {
                 self.cleanupExportedFile()
             }
-        ) {
-            if let exportedFileURL = self.exportedFileURL {
-                WorkspaceExportActivitySheet(activityItems: [exportedFileURL])
-            } else {
-                Text(aiSettingsLocalized("settings.workspace.export.fileUnavailable", "Export file is unavailable."))
-            }
+        ) { shareItem in
+            WorkspaceExportActivitySheet(activityItems: [shareItem.fileURL])
         }
     }
 
@@ -458,7 +454,7 @@ struct WorkspacePackageExportSection: View {
                 )
             )
             let fileManager = FileManager.default
-            self.exportedFileURL = try prepareWorkspacePackageExportDownload(
+            let exportedFileURL = try prepareWorkspacePackageExportDownload(
                 response: response,
                 fileManager: fileManager,
                 temporaryDirectory: fileManager.temporaryDirectory
@@ -467,16 +463,17 @@ struct WorkspacePackageExportSection: View {
                 "settings.workspace.export.package.success",
                 "flashcards.zip is ready to share."
             )
-            self.isShareSheetPresented = true
+            self.isExporting = false
+            self.exportCleanupFileURL = exportedFileURL
+            self.exportShareItem = WorkspacePackageExportShareItem(id: UUID(), fileURL: exportedFileURL)
         } catch {
             if isRequestCancellationError(error: error) {
                 self.isExporting = false
                 return
             }
             self.errorMessage = Flashcards.errorMessage(error: error)
+            self.isExporting = false
         }
-
-        self.isExporting = false
     }
 
     private func resetPreview() {
@@ -495,9 +492,11 @@ struct WorkspacePackageExportSection: View {
     @MainActor
     @discardableResult
     private func cleanupExportedFile() -> Bool {
-        guard let exportedFileURL = self.exportedFileURL else {
+        guard let exportedFileURL = self.exportCleanupFileURL else {
+            self.exportShareItem = nil
             return true
         }
+        self.exportShareItem = nil
 
         do {
             if FileManager.default.fileExists(atPath: exportedFileURL.path) {
@@ -508,7 +507,7 @@ struct WorkspacePackageExportSection: View {
             return false
         }
 
-        self.exportedFileURL = nil
+        self.exportCleanupFileURL = nil
         return true
     }
 }
