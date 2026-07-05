@@ -12,6 +12,9 @@
 .review-editor-modal {
   width: min(1120px, 100%);
   max-height: calc(100vh - 48px);
+  border: 0;
+  background: var(--surface);
+  box-shadow: none;
   overflow: auto;
 }
 
@@ -29,6 +32,9 @@
 .review-hard-reminder-modal {
   width: min(620px, 100%);
   max-height: calc(100vh - 48px);
+  border: 0;
+  background: var(--surface);
+  box-shadow: none;
   overflow: auto;
   display: grid;
   gap: 20px;
@@ -58,6 +64,9 @@
   --panel-padding: 28px;
   width: min(780px, 100%);
   max-height: calc(100vh - 48px);
+  border: 0;
+  background: var(--surface);
+  box-shadow: none;
   overflow: auto;
   display: grid;
   gap: 22px;

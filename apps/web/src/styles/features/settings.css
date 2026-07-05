@@ -315,6 +315,9 @@
   max-height: calc(100vh - 40px);
   display: grid;
   gap: 18px;
+  border: 0;
+  background: var(--surface);
+  box-shadow: none;
   overflow-y: auto;
 }
 
