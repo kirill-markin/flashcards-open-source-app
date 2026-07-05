@@ -18,19 +18,41 @@ extension FlashcardsStore {
         )
     }
 
-    func saveCard(input: CardEditorInput, editingCardId: String?) throws {
+    func saveCard(
+        input: CardEditorInput,
+        editingCardId: String?,
+        mediaAssetIdsReadyForUpload: Set<String>
+    ) throws {
         let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         _ = try context.database.saveCard(
             workspaceId: context.workspaceId,
             input: input,
-            cardId: editingCardId
+            cardId: editingCardId,
+            mediaAssetIdsReadyForUpload: mediaAssetIdsReadyForUpload
         )
         if editingCardId == nil {
             self.handleReviewScheduleLocalCardStateDidChange(now: now)
         }
         self.refreshLocalReadModels(now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
+    }
+
+    func authorCardEditorManagedImage(
+        preparedImage: PreparedManagedImage,
+        altText: String
+    ) throws -> ManagedImageAuthoringResult {
+        let context = try self.requireLocalOutboxMutationContext()
+        let cloudSettings = try requireCloudSettings(cloudSettings: self.cloudSettings)
+        let result = try authorManagedImage(
+            database: context.database,
+            workspaceId: context.workspaceId,
+            installationId: cloudSettings.installationId,
+            preparedImage: preparedImage,
+            altText: altText
+        )
+        self.localReadVersion += 1
+        return result
     }
 
     func createCards(inputs: [CardEditorInput]) throws -> [Card] {

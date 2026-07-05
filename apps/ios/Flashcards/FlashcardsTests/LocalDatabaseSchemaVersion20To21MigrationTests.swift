@@ -14,7 +14,8 @@ final class LocalDatabaseSchemaVersion20To21MigrationTests: LocalDatabaseTestCas
                 backText: "Answer",
                 tags: []
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         try database.close()
         self.database = nil

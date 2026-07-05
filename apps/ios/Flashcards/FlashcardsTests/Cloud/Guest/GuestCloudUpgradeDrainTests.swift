@@ -260,7 +260,8 @@ final class GuestCloudUpgradeDrainTests: XCTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         try store.reload()
 

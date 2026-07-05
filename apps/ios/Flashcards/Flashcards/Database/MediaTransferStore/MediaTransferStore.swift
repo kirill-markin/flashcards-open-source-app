@@ -178,6 +178,55 @@ struct MediaTransferStore {
         return rows.isEmpty == false
     }
 
+    func hasUploadTransferMatchingAsset(
+        workspaceId: String,
+        mediaAssetId: String,
+        sha256: String,
+        mimeType: String,
+        sizeBytes: Int64
+    ) throws -> Bool {
+        let normalizedWorkspaceId = try nonEmptyMediaTransferText(
+            value: workspaceId,
+            fieldName: "Media transfer workspaceId"
+        )
+        let normalizedMediaAssetId = try nonEmptyMediaTransferText(
+            value: mediaAssetId,
+            fieldName: "Media transfer mediaAssetId"
+        )
+        let normalizedSha256 = try normalizedMediaSha256(sha256: sha256)
+        let normalizedMimeType = try nonEmptyMediaTransferText(value: mimeType, fieldName: "Media transfer MIME type")
+        let localRelativePath = try mediaBlobCacheRelativePath(sha256: normalizedSha256)
+        guard sizeBytes > 0 else {
+            throw LocalStoreError.validation("Media transfer size must be greater than zero")
+        }
+        let rows = try self.core.query(
+            sql: """
+            SELECT 1
+            FROM media_transfer_queue
+            WHERE workspace_id = ?
+                AND media_asset_id = ?
+                AND kind = 'upload'
+                AND sha256 = ?
+                AND LOWER(mime_type) = LOWER(?)
+                AND size_bytes = ?
+                AND local_relative_path = ?
+            LIMIT 1
+            """,
+            values: [
+                .text(normalizedWorkspaceId),
+                .text(normalizedMediaAssetId),
+                .text(normalizedSha256),
+                .text(normalizedMimeType),
+                .integer(sizeBytes),
+                .text(localRelativePath)
+            ]
+        ) { statement in
+            DatabaseCore.columnInt64(statement: statement, index: 0)
+        }
+
+        return rows.isEmpty == false
+    }
+
     func enqueueTransfer(request: MediaTransferEnqueueRequest) throws -> MediaTransferQueueEntry {
         let transferId = try nonEmptyMediaTransferText(value: request.transferId, fieldName: "Media transfer id")
         let normalizedSha256 = try normalizedMediaSha256(sha256: request.sha256)

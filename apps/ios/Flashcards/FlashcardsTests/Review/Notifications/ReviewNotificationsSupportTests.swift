@@ -262,7 +262,8 @@ final class ReviewNotificationsSupportTests: XCTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         let calendar = makeCalendar()
         let reviewedAt = try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 10, minute: 15, calendar: calendar))
@@ -321,7 +322,8 @@ final class ReviewNotificationsSupportTests: XCTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         let calendar = makeCalendar()
         let reviewedAt = try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 10, minute: 15, calendar: calendar))
@@ -384,7 +386,8 @@ final class ReviewNotificationsSupportTests: XCTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         let calendar = makeCalendar()
         let reviewedAt = try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 10, minute: 15, calendar: calendar))
@@ -615,7 +618,8 @@ final class ReviewNotificationsSupportTests: XCTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         let calendar = makeCalendar()
         let now = try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 9, minute: 0, calendar: calendar))

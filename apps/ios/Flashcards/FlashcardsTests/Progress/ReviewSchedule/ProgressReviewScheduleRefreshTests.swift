@@ -320,7 +320,8 @@ final class ProgressReviewScheduleRefreshTests: ProgressStoreTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         try database.core.execute(
             sql: """

@@ -160,7 +160,8 @@ final class GuestCloudUpgradeMutationBlockingTests: XCTestCase {
                     backText: "Blocked answer",
                     tags: [],
                 ),
-                editingCardId: nil
+                editingCardId: nil,
+                mediaAssetIdsReadyForUpload: []
             )
         ) { error in
             XCTAssertEqual(
@@ -182,7 +183,8 @@ final class GuestCloudUpgradeMutationBlockingTests: XCTestCase {
                     backText: "Blocked answer",
                     tags: [],
                 ),
-                editingCardId: nil
+                editingCardId: nil,
+                mediaAssetIdsReadyForUpload: []
             )
         ) { error in
             XCTAssertEqual(
@@ -209,7 +211,8 @@ final class GuestCloudUpgradeMutationBlockingTests: XCTestCase {
                 backText: "Linked answer",
                 tags: [],
             ),
-            editingCardId: nil
+            editingCardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         XCTAssertEqual(1, try database.loadOutboxEntries(workspaceId: "workspace-linked", limit: Int.max).count)
     }
@@ -342,7 +345,8 @@ final class GuestCloudUpgradeMutationBlockingTests: XCTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         let setupOutboxEntries = try database.loadOutboxEntries(
             workspaceId: localWorkspace.workspaceId,

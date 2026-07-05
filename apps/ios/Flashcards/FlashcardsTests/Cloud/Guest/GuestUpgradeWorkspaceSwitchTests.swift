@@ -13,7 +13,8 @@ final class GuestUpgradeWorkspaceSwitchTests: LocalWorkspaceSyncTestCase {
                 backText: "Answer",
                 tags: ["guest"],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         _ = try database.createDeck(
             workspaceId: localWorkspace.workspaceId,
@@ -100,7 +101,8 @@ final class GuestUpgradeWorkspaceSwitchTests: LocalWorkspaceSyncTestCase {
                 backText: "Linked answer",
                 tags: ["linked"],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         let outboxRowsBeforeResume = try self.loadOutboxRows(database: database)
         XCTAssertTrue(outboxRowsBeforeResume.contains { row in row.entityId == savedLinkedCard.cardId })

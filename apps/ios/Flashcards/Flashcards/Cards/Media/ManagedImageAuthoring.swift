@@ -3,7 +3,6 @@ import Foundation
 struct ManagedImageAuthoringResult: Hashable, Sendable {
     let mediaAsset: MediaAsset
     let cacheEntry: MediaBlobCacheEntry
-    let transferEntry: MediaTransferQueueEntry
     let markdown: String
 }
 
@@ -14,6 +13,23 @@ func authorManagedImage(
     sourceImageData: Data,
     altText: String
 ) throws -> ManagedImageAuthoringResult {
+    let preparedImage = try prepareManagedImageData(sourceImageData: sourceImageData)
+    return try authorManagedImage(
+        database: database,
+        workspaceId: workspaceId,
+        installationId: installationId,
+        preparedImage: preparedImage,
+        altText: altText
+    )
+}
+
+func authorManagedImage(
+    database: LocalDatabase,
+    workspaceId: String,
+    installationId: String,
+    preparedImage: PreparedManagedImage,
+    altText: String
+) throws -> ManagedImageAuthoringResult {
     let normalizedWorkspaceId = try nonEmptyManagedImageAuthoringText(
         value: workspaceId,
         fieldName: "Managed image workspace id"
@@ -22,9 +38,8 @@ func authorManagedImage(
         value: installationId,
         fieldName: "Managed image installation id"
     )
-    let preparedImage = try prepareManagedImageData(sourceImageData: sourceImageData)
     let mediaAssetId = UUID().uuidString.lowercased()
-    let transferId = UUID().uuidString.lowercased()
+    let operationId = UUID().uuidString.lowercased()
     let createdAt = nowIsoTimestamp()
     let cacheURL = try managedImageBlobCacheFileURL(
         databaseURL: database.databaseURL,
@@ -59,7 +74,7 @@ func authorManagedImage(
                     workspaceId: normalizedWorkspaceId,
                     installationId: normalizedInstallationId
                 ),
-                lastOperationId: transferId,
+                lastOperationId: operationId,
                 updatedAt: createdAt,
                 deletedAt: nil
             )
@@ -67,23 +82,10 @@ func authorManagedImage(
                 workspaceId: normalizedWorkspaceId,
                 mediaAsset: mediaAsset
             )
-            let transferEntry = try database.mediaTransferStore.enqueueTransfer(
-                request: MediaTransferEnqueueRequest(
-                    transferId: transferId,
-                    workspaceId: normalizedWorkspaceId,
-                    mediaAssetId: mediaAssetId,
-                    kind: .upload,
-                    sha256: preparedImage.sha256,
-                    mimeType: preparedImage.mimeType,
-                    sizeBytes: preparedImage.sizeBytes,
-                    createdAt: createdAt
-                )
-            )
 
             return ManagedImageAuthoringResult(
                 mediaAsset: mediaAsset,
                 cacheEntry: cacheEntry,
-                transferEntry: transferEntry,
                 markdown: try managedImageMarkdownReference(
                     mediaAssetId: mediaAssetId,
                     altText: altText

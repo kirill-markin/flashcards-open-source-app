@@ -44,9 +44,11 @@ extension ReviewView {
         do {
             try store.saveCard(
                 input: normalizedInput,
-                editingCardId: editingCardId
+                editingCardId: editingCardId,
+                mediaAssetIdsReadyForUpload: self.cardFormState.mediaAssetIdsReadyForUpload
             )
             self.screenErrorMessage = ""
+            self.finishCardEditorSession()
             return AIChatCardReference(
                 cardId: editingCardId,
                 frontText: normalizedInput.frontText,
@@ -67,9 +69,11 @@ extension ReviewView {
     func beginEditing(card: Card) {
         self.editingCardId = card.cardId
         self.cardFormState = CardFormState(
+            editorSessionId: UUID(),
             frontText: card.frontText,
             backText: card.backText,
-            tags: card.tags
+            tags: card.tags,
+            mediaAssetIdsReadyForUpload: []
         )
         self.screenErrorMessage = ""
         self.isEditorPresented = true
@@ -84,9 +88,11 @@ extension ReviewView {
         do {
             try store.saveCard(
                 input: self.normalizedEditedCardInput(),
-                editingCardId: editingCardId
+                editingCardId: editingCardId,
+                mediaAssetIdsReadyForUpload: self.cardFormState.mediaAssetIdsReadyForUpload
             )
             self.screenErrorMessage = ""
+            self.finishCardEditorSession()
             self.isEditorPresented = false
         } catch {
             if let inlineErrorMessage = cardEditorInlineErrorMessage(error: error) {
@@ -107,6 +113,7 @@ extension ReviewView {
         do {
             try store.deleteCard(cardId: editingCardId)
             self.screenErrorMessage = ""
+            self.finishCardEditorSession()
             self.isEditorPresented = false
             self.editingCardId = nil
         } catch {
@@ -117,5 +124,10 @@ extension ReviewView {
                 store.presentTechnicalError(error)
             }
         }
+    }
+
+    func finishCardEditorSession() {
+        self.cardFormState.editorSessionId = UUID()
+        self.cardFormState.mediaAssetIdsReadyForUpload = []
     }
 }

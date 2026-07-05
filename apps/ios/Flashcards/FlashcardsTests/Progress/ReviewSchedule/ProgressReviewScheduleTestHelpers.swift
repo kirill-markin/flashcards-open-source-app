@@ -14,7 +14,8 @@ extension ProgressStoreTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
     }
 

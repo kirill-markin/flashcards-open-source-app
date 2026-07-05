@@ -14,7 +14,8 @@ final class LocalDatabaseSchemaVersion14To15MigrationTests: LocalDatabaseTestCas
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         _ = try database.createDeck(
             workspaceId: workspace.workspaceId,

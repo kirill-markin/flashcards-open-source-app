@@ -13,7 +13,8 @@ final class LocalWorkspaceLinkMigrationTests: LocalWorkspaceSyncTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         _ = try database.submitReview(
             workspaceId: localWorkspace.workspaceId,
@@ -65,7 +66,8 @@ final class LocalWorkspaceLinkMigrationTests: LocalWorkspaceSyncTestCase {
                 backText: "Answer",
                 tags: ["tag"],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         let savedDeck = try database.createDeck(
             workspaceId: localWorkspace.workspaceId,

@@ -14,7 +14,8 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
                 backText: "Answer",
                 tags: ["tag"],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         let suiteName = "review-selection-recovery-\(UUID().uuidString.lowercased())"
         let userDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
@@ -106,7 +107,8 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
                 backText: "Answer",
                 tags: ["tag"],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         try database.updateCloudSettings(
             cloudState: .linked,
@@ -207,7 +209,8 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
                 backText: "Answer",
                 tags: ["tag"],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         let suiteName = "review-selection-run-linked-recovery-\(UUID().uuidString.lowercased())"
         let userDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))

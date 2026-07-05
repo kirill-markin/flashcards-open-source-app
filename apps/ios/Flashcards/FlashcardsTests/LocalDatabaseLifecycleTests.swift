@@ -110,7 +110,8 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         let reviewTime = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-19T12:00:00.000Z"))
         let dayStart = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-19T00:00:00.000Z"))
@@ -141,7 +142,8 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         try database.updateCloudSettings(
             cloudState: .linked,
@@ -269,7 +271,8 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
 
         let failedTransfer = try database.mediaTransferStore.enqueueTransfer(
@@ -376,7 +379,7 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
         }
     }
 
-    func testManagedImageAuthoringCreatesLocalCacheTransferAndParserSafeMarkdown() throws {
+    func testManagedImageAuthoringCreatesLocalCacheAndSaveQueuesTransferForParserSafeMarkdown() throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let sourceImageData = try self.tinyTransparentPNGData()
@@ -393,13 +396,16 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
         XCTAssertEqual(result.mediaAsset.mimeType, managedImageMIMEType)
         XCTAssertGreaterThan(result.mediaAsset.sizeBytes, 0)
         XCTAssertEqual(result.mediaAsset.sizeBytes, result.cacheEntry.sizeBytes)
-        XCTAssertEqual(result.mediaAsset.sizeBytes, result.transferEntry.sizeBytes)
         XCTAssertEqual(result.mediaAsset.sha256, result.cacheEntry.sha256)
-        XCTAssertEqual(result.mediaAsset.sha256, result.transferEntry.sha256)
-        XCTAssertEqual(result.transferEntry.kind, .upload)
-        XCTAssertEqual(result.transferEntry.status, .pending)
-        XCTAssertEqual(result.transferEntry.mediaAssetId, result.mediaAsset.mediaAssetId)
-        XCTAssertEqual(result.transferEntry.localRelativePath, result.cacheEntry.localRelativePath)
+        XCTAssertFalse(
+            try database.mediaTransferStore.hasUploadTransferMatchingAsset(
+                workspaceId: workspace.workspaceId,
+                mediaAssetId: result.mediaAsset.mediaAssetId,
+                sha256: result.mediaAsset.sha256,
+                mimeType: result.mediaAsset.mimeType,
+                sizeBytes: result.mediaAsset.sizeBytes
+            )
+        )
 
         let storedMediaAsset = try XCTUnwrap(
             try database.loadOptionalMediaAssetIncludingDeleted(
@@ -441,6 +447,27 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
         XCTAssertFalse(renderedLabel.contains("["))
         XCTAssertFalse(renderedLabel.contains("]"))
         XCTAssertFalse(renderedLabel.contains("\n"))
+
+        let savedCard = try database.saveCard(
+            workspaceId: workspace.workspaceId,
+            input: CardEditorInput(
+                frontText: result.markdown,
+                backText: "Answer",
+                tags: [],
+            ),
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: Set([result.mediaAsset.mediaAssetId])
+        )
+        XCTAssertEqual(savedCard.frontText, result.markdown)
+        XCTAssertTrue(
+            try database.mediaTransferStore.hasPendingUploadTransferMatchingAsset(
+                workspaceId: workspace.workspaceId,
+                mediaAssetId: result.mediaAsset.mediaAssetId,
+                sha256: result.mediaAsset.sha256,
+                mimeType: result.mediaAsset.mimeType,
+                sizeBytes: result.mediaAsset.sizeBytes
+            )
+        )
     }
 
     private func makeMediaAsset(workspaceId: String, deletedAt: String?) -> MediaAsset {

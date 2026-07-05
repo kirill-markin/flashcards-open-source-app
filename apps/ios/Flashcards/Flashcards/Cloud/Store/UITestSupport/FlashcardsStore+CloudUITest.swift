@@ -720,7 +720,8 @@ extension FlashcardsStore {
         _ = try context.database.saveCard(
             workspaceId: context.workspaceId,
             input: self.cardEditorInput(card: card),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
     }
 

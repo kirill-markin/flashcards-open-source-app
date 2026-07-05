@@ -11,7 +11,8 @@ class CloudCredentialRecoveryTestCase: LocalWorkspaceSyncTestCase {
                 backText: "Answer",
                 tags: ["recovery"],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
     }
 
