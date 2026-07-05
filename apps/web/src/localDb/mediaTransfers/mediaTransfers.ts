@@ -1,9 +1,11 @@
+import type { MediaAsset } from "../../types";
 import {
   closeDatabaseAfter,
   closeDatabaseAfterWrite,
   describeIndexedDbError,
   getFromStore,
   runReadwrite,
+  type StoredMediaAsset,
 } from "../core/database";
 
 export type MediaBlobCacheRecord = Readonly<{
@@ -59,6 +61,12 @@ export type EnqueueMediaTransferUploadInput = Readonly<{
   sourceBlobCacheKey: string;
   createdAt: string;
   nextAttemptAt: string;
+}>;
+
+export type PersistLocalMediaUploadInput = Readonly<{
+  mediaAsset: MediaAsset;
+  cacheRecord: MediaBlobCacheRecord;
+  upload: EnqueueMediaTransferUploadInput;
 }>;
 
 type ClaimableMediaTransferStatus = "queued" | "failed";
@@ -258,6 +266,20 @@ export async function enqueueMediaTransferUpload(
   const record = createQueuedMediaTransferRecord(input, "upload", input.sourceBlobCacheKey);
   await putMediaTransferQueueRecord(record);
   return record;
+}
+
+export async function persistLocalMediaUpload(
+  input: PersistLocalMediaUploadInput,
+): Promise<MediaTransferQueueRecord> {
+  const transferRecord = createQueuedMediaTransferRecord(input.upload, "upload", input.upload.sourceBlobCacheKey);
+  await closeDatabaseAfterWrite(async (database) => {
+    await runReadwrite(database, ["mediaBlobCache", "mediaAssets", "mediaTransferQueue"], (transaction) => {
+      transaction.objectStore("mediaBlobCache").put(input.cacheRecord);
+      transaction.objectStore("mediaAssets").put(input.mediaAsset satisfies StoredMediaAsset);
+      return transaction.objectStore("mediaTransferQueue").put(transferRecord);
+    });
+  });
+  return transferRecord;
 }
 
 async function claimNextDueMediaTransferWithSelector(
