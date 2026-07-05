@@ -24,9 +24,10 @@ urgent local upload is required, use the local App Store archive flow in
 
 ## Android
 
-1. Run the manual `Android Release` GitHub Actions workflow for the latest
-   release SHA; it runs the Android gate, submits Firebase Test Lab, and uploads
-   the Play draft.
+1. Run the manual `Android Release` GitHub Actions workflow. Leave `Git SHA to
+   release` empty for the selected workflow ref, or fill it to pin a specific
+   release SHA; the workflow runs the Android gate, submits Firebase Test Lab,
+   and uploads the Play draft.
 2. Fix any non-green workflow result and review the Firebase Test Lab matrix
    result before continuing.
 3. Confirm the production-track draft release is present in Google Play Console.

@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       target_sha:
-        description: Git SHA to release
-        required: true
+        description: Git SHA to release. Leave empty to release the selected workflow ref.
+        required: false
         type: string
 
 permissions:
@@ -27,21 +27,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.target_sha }}
+          ref: ${{ inputs.target_sha || github.sha }}
           fetch-depth: 0
 
       - name: Resolve release target
         id: resolve
         env:
           INPUT_TARGET_SHA: ${{ inputs.target_sha }}
+          WORKFLOW_TARGET_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
 
           target_sha="${INPUT_TARGET_SHA}"
 
           if [[ -z "${target_sha}" ]]; then
-            echo "Target SHA is required." >&2
-            exit 1
+            target_sha="${WORKFLOW_TARGET_SHA}"
           fi
 
           target_sha="$(git rev-parse "${target_sha}")"
