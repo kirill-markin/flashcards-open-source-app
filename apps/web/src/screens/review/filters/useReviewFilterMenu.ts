@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ALL_CARDS_REVIEW_FILTER } from "../../../appData/domain";
+import { useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
 import { useI18n } from "../../../i18n";
 import { settingsDecksRoute } from "../../../routes";
 import type { DeckSummary, ReviewFilter, WorkspaceTagSummary } from "../../../types";
@@ -45,8 +46,8 @@ export type UseReviewFilterMenuResult = Readonly<{
   reviewDeckSearchText: string;
   reviewFilterListboxId: string;
   reviewFilterListboxRef: React.RefObject<HTMLDivElement | null>;
+  reviewFilterMenuRef: React.RefObject<HTMLDivElement | null>;
   reviewFilterMenuItems: ReadonlyArray<ReviewFilterMenuItem>;
-  reviewFilterMenuWrapRef: React.RefObject<HTMLDivElement | null>;
   reviewFilterTriggerRef: React.RefObject<HTMLButtonElement | null>;
   setReviewDeckSearchText: (value: string) => void;
   shouldShowReviewDeckSearch: boolean;
@@ -201,8 +202,8 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
   const [isReviewFilterMenuOpen, setIsReviewFilterMenuOpen] = useState<boolean>(false);
   const [reviewDeckSearchText, setReviewDeckSearchText] = useState<string>("");
   const [activeReviewFilterOptionKey, setActiveReviewFilterOptionKey] = useState<string | null>(null);
-  const reviewFilterMenuWrapRef = useRef<HTMLDivElement | null>(null);
   const reviewFilterTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const reviewFilterMenuRef = useRef<HTMLDivElement | null>(null);
   const reviewDeckSearchInputRef = useRef<HTMLInputElement | null>(null);
   const reviewFilterListboxRef = useRef<HTMLDivElement | null>(null);
   const reviewDeckFilterMenuItems = buildReviewDeckFilterMenuItems(
@@ -233,25 +234,12 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     ? null
     : toReviewFilterOptionElementId(activeReviewFilterOptionKey);
 
-  useEffect(() => {
-    if (!isReviewFilterMenuOpen) {
-      return;
-    }
-
-    function handleMouseDown(event: MouseEvent): void {
-      const target = event.target;
-      if (!(target instanceof Node)) {
-        return;
-      }
-
-      if (reviewFilterMenuWrapRef.current !== null && !reviewFilterMenuWrapRef.current.contains(target)) {
-        setIsReviewFilterMenuOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleMouseDown);
-    return () => document.removeEventListener("mousedown", handleMouseDown);
-  }, [isReviewFilterMenuOpen]);
+  useAnchoredFloatingOutsidePointerDismiss({
+    triggerRef: reviewFilterTriggerRef,
+    overlayRef: reviewFilterMenuRef,
+    enabled: isReviewFilterMenuOpen,
+    onClose: handleCloseMenu,
+  });
 
   useEffect(() => {
     if (isReviewFilterMenuOpen || reviewDeckSearchText === "") {
@@ -457,8 +445,8 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     reviewDeckSearchText,
     reviewFilterListboxId: REVIEW_FILTER_LISTBOX_ID,
     reviewFilterListboxRef,
+    reviewFilterMenuRef,
     reviewFilterMenuItems,
-    reviewFilterMenuWrapRef,
     reviewFilterTriggerRef,
     setReviewDeckSearchText,
     shouldShowReviewDeckSearch,
