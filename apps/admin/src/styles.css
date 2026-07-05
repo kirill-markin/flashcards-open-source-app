@@ -1,8 +1,8 @@
 :root {
   color-scheme: dark;
-  --bg: #050505;
-  --bg-elevated: #0a0a0c;
-  --panel: linear-gradient(180deg, rgba(24, 24, 30, 0.96), rgba(17, 17, 22, 0.98));
+  --bg: #000000;
+  --bg-elevated: #000000;
+  --panel: #1c1c1e;
   --panel-border: rgba(255, 255, 255, 0.1);
   --text: #f6f6f8;
   --muted: rgba(235, 235, 245, 0.7);
@@ -10,8 +10,6 @@
   --accent: #c44b2d;
   --accent-strong: #d65a38;
   --grid: rgba(255, 255, 255, 0.08);
-  --shadow: 0 28px 80px rgba(0, 0, 0, 0.44);
-  --shadow-soft: 0 12px 30px rgba(0, 0, 0, 0.26);
   --tooltip-bg: rgba(20, 20, 24, 0.96);
   --tooltip-text: #f6f6f8;
 }
@@ -37,10 +35,7 @@ body {
     system-ui,
     sans-serif;
   color: var(--text);
-  background:
-    radial-gradient(circle at top, rgba(196, 75, 45, 0.12), transparent 30%),
-    radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.05), transparent 26%),
-    var(--bg);
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -133,9 +128,7 @@ h2 {
   margin: 24px 0;
   padding: 18px;
   background: var(--panel);
-  border: 1px solid var(--panel-border);
   border-radius: 18px;
-  box-shadow: var(--shadow-soft);
 }
 
 .filter-panel-header {
@@ -203,8 +196,7 @@ h2 {
 }
 
 .filter-menu-button.active {
-  border-color: rgba(214, 90, 56, 0.78);
-  box-shadow: 0 0 0 3px rgba(196, 75, 45, 0.18);
+  border-color: rgba(255, 255, 255, 0.24);
 }
 
 .filter-menu-button:disabled {
@@ -228,10 +220,8 @@ h2 {
   max-height: min(560px, calc(100vh - 180px));
   padding: 14px;
   overflow: auto;
-  border: 1px solid var(--panel-border);
   border-radius: 16px;
-  background: rgba(20, 20, 24, 0.98);
-  box-shadow: var(--shadow);
+  background: var(--panel);
 }
 
 .filter-popover-anchor-wide .filter-popover {
@@ -294,8 +284,7 @@ h2 {
 }
 
 .date-filter-field input:focus {
-  border-color: rgba(214, 90, 56, 0.78);
-  box-shadow: 0 0 0 3px rgba(196, 75, 45, 0.18);
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 .date-filter-field input:disabled {
@@ -443,8 +432,14 @@ h2 {
 }
 
 .user-filter-search input:focus {
-  border-color: rgba(214, 90, 56, 0.78);
-  box-shadow: 0 0 0 3px rgba(196, 75, 45, 0.18);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.date-filter-field input:focus-visible,
+.user-filter-search input:focus-visible {
+  border-color: rgba(255, 255, 255, 0.72);
+  outline: 2px solid rgba(255, 255, 255, 0.72);
+  outline-offset: 2px;
 }
 
 .user-filter-search input:disabled {
@@ -610,9 +605,7 @@ h2 {
 .metric-card,
 .state-panel {
   background: var(--panel);
-  border: 1px solid var(--panel-border);
   border-radius: 18px;
-  box-shadow: var(--shadow-soft);
 }
 
 .metric-card {
@@ -642,9 +635,7 @@ h2 {
 
 .chart-shell {
   background: var(--panel);
-  border: 1px solid var(--panel-border);
   border-radius: 18px;
-  box-shadow: var(--shadow);
   overflow: hidden;
 }
 
