@@ -126,9 +126,9 @@
 .chat-close-btn {
   min-height: 36px;
   padding: 0 14px;
-  border: 1px solid var(--panel-border);
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface);
   font-size: 14px;
   cursor: pointer;
   color: var(--text-secondary);
@@ -137,7 +137,7 @@
 
 .chat-close-btn:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-hover);
 }
 
 .chat-messages {
@@ -163,9 +163,8 @@
 
 .chat-empty {
   padding: 12px;
-  border: 1px solid var(--panel-border);
   border-radius: var(--chat-sidebar-inner-radius, var(--radius-md));
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface);
   color: var(--text-secondary);
   font-size: 14px;
 }
@@ -195,7 +194,7 @@
 .chat-loading-chip {
   display: block;
   border-radius: var(--radius-pill);
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.05));
+  background: var(--surface-hover);
 }
 
 .chat-loading-line {
@@ -224,16 +223,16 @@
   z-index: 60;
   min-height: 52px;
   padding: 0 22px;
-  border: 1px solid var(--panel-border);
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
-  background: rgba(24, 24, 28, 0.84);
-  backdrop-filter: var(--blur);
+  background: var(--surface);
   color: var(--text-secondary);
   cursor: pointer;
-  box-shadow: var(--shadow-soft);
+  box-shadow: none;
 }
 
 .chat-toggle-floating:hover {
   color: var(--text);
-  border-color: var(--panel-border-strong);
+  border-color: transparent;
+  background: var(--surface-hover);
 }

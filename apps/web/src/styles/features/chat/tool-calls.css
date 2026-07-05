@@ -1,10 +1,9 @@
 .chat-tool-call {
   display: block;
   overflow: hidden;
-  border: 1px solid var(--panel-border);
   border-radius: var(--chat-msg-inner-radius, var(--radius-sm));
   margin: 10px 0 6px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-hover);
   font-size: 12px;
   scroll-margin-block-end: 24px;
 }
@@ -53,14 +52,6 @@
 
 .chat-tool-call-summary::-webkit-details-marker {
   display: none;
-}
-
-.chat-tool-call-started {
-  border-style: dashed;
-}
-
-.chat-tool-call-completed {
-  border-style: solid;
 }
 
 .chat-tool-call-section {
