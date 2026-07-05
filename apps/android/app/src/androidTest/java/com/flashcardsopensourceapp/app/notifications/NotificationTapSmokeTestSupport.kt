@@ -118,6 +118,7 @@ internal fun LiveSmokeContext.activeAppNotificationIds(context: Context): Set<In
 }
 
 internal fun LiveSmokeContext.openNotificationShadeAndTap(frontText: String) {
+    val packageName = composeRule.activity.packageName
     val didOpenNotificationShade = device.openNotification()
     if (didOpenNotificationShade.not()) {
         throw AssertionError("Failed to open the Android notification shade.")
@@ -140,6 +141,14 @@ internal fun LiveSmokeContext.openNotificationShadeAndTap(frontText: String) {
     val contentIntent = statusBarNotification.notification.contentIntent
         ?: throw AssertionError("Review reminder notification '$frontText' did not provide a contentIntent.")
     contentIntent.send()
+    collapseNotificationShadeIfOpen()
+    waitForAppToReachForeground(packageName = packageName)
+}
+
+internal fun LiveSmokeContext.collapseNotificationShadeIfOpen() {
+    runInstrumentationShellCommand(command = "cmd statusbar collapse")
+    device.waitForIdle()
+    InstrumentationRegistry.getInstrumentation().waitForIdleSync()
 }
 
 internal fun LiveSmokeContext.waitForAppToReachForeground(packageName: String) {
