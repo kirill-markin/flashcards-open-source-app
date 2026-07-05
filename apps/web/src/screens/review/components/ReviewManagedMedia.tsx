@@ -17,6 +17,7 @@ import type { MediaAsset } from "../../../types";
 
 const FCASSET_URL_PREFIX = "fcasset:";
 const MANAGED_MEDIA_DOWNLOAD_ATTEMPT_COUNT = 2;
+const MANAGED_MEDIA_DOWNLOAD_RANGE_SIZE_BYTES = 4 * 1024 * 1024;
 
 type ManagedMediaKind = "image" | "audio" | "video" | "attachment";
 type ManagedMediaLoadState =
@@ -26,6 +27,10 @@ type ManagedMediaLoadState =
 type ManagedMediaBlobLoadResult = Readonly<{
   mediaAsset: MediaAsset;
   cacheRecord: MediaBlobCacheRecord;
+}>;
+type ManagedMediaDownloadRange = Readonly<{
+  startByte: number;
+  endByte: number;
 }>;
 
 const activeManagedMediaDownloadPromises = new Map<string, Promise<MediaBlobCacheRecord>>();
@@ -117,24 +122,117 @@ async function readDownloadFailureBody(response: Response): Promise<string> {
   }
 }
 
+function planManagedMediaDownloadRanges(sizeBytes: number, rangeSizeBytes: number): ReadonlyArray<ManagedMediaDownloadRange> {
+  if (Number.isSafeInteger(sizeBytes) === false || sizeBytes < 0) {
+    throw new RangeError(`Managed media download range planning failed: sizeBytes must be a non-negative safe integer, actualSizeBytes=${sizeBytes}`);
+  }
+
+  if (Number.isSafeInteger(rangeSizeBytes) === false || rangeSizeBytes < 1) {
+    throw new RangeError(`Managed media download range planning failed: rangeSizeBytes must be a positive safe integer, actualRangeSizeBytes=${rangeSizeBytes}`);
+  }
+
+  const ranges: Array<ManagedMediaDownloadRange> = [];
+  for (let startByte = 0; startByte < sizeBytes; startByte += rangeSizeBytes) {
+    ranges.push({
+      startByte,
+      endByte: Math.min(startByte + rangeSizeBytes - 1, sizeBytes - 1),
+    });
+  }
+
+  return ranges;
+}
+
+function readManagedMediaDownloadRangeSize(range: ManagedMediaDownloadRange): number {
+  return range.endByte - range.startByte + 1;
+}
+
+async function readManagedMediaResponseBytes(
+  mediaAsset: MediaAsset,
+  response: Response,
+  rangeHeader: string,
+): Promise<ArrayBuffer> {
+  try {
+    return await response.arrayBuffer();
+  } catch (error) {
+    throw new Error(`Managed media download response body read failed: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, range=${rangeHeader}, status=${response.status}, error=${readErrorMessage(error)}`);
+  }
+}
+
+async function fetchManagedMediaRangeBytes(
+  mediaAsset: MediaAsset,
+  downloadMethod: "GET",
+  downloadUrl: string,
+  range: ManagedMediaDownloadRange,
+  isSingleRange: boolean,
+): Promise<ArrayBuffer> {
+  const rangeHeader = `bytes=${range.startByte}-${range.endByte}`;
+  let response: Response;
+  try {
+    response = await fetch(downloadUrl, {
+      method: downloadMethod,
+      headers: {
+        Range: rangeHeader,
+      },
+    });
+  } catch (error) {
+    throw new Error(`Managed media ranged download request failed: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, range=${rangeHeader}, error=${readErrorMessage(error)}`);
+  }
+
+  if (response.status === 206) {
+    const bytes = await readManagedMediaResponseBytes(mediaAsset, response, rangeHeader);
+    const expectedRangeSizeBytes = readManagedMediaDownloadRangeSize(range);
+    if (bytes.byteLength !== expectedRangeSizeBytes) {
+      throw new Error(`Managed media ranged download size mismatch: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, range=${rangeHeader}, expectedRangeSizeBytes=${expectedRangeSizeBytes}, actualRangeSizeBytes=${bytes.byteLength}, status=${response.status}`);
+    }
+
+    return bytes;
+  }
+
+  if (isSingleRange && response.status === 200) {
+    const bytes = await readManagedMediaResponseBytes(mediaAsset, response, rangeHeader);
+    if (bytes.byteLength !== mediaAsset.sizeBytes) {
+      throw new Error(`Managed media full download size mismatch: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, range=${rangeHeader}, expectedSizeBytes=${mediaAsset.sizeBytes}, actualSizeBytes=${bytes.byteLength}, status=${response.status}`);
+    }
+
+    return bytes;
+  }
+
+  if (response.ok === false) {
+    const responseBody = await readDownloadFailureBody(response);
+    throw new Error(`Managed media ranged download failed: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, range=${rangeHeader}, status=${response.status}, statusText=${response.statusText}, responseBody=${responseBody}`);
+  }
+
+  throw new Error(`Managed media ranged download returned unexpected status: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, range=${rangeHeader}, expectedStatus=206, actualStatus=${response.status}, statusText=${response.statusText}`);
+}
+
+function combineManagedMediaRangeBytes(mediaAsset: MediaAsset, chunks: ReadonlyArray<ArrayBuffer>): ArrayBuffer {
+  const totalByteLength = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+  if (totalByteLength !== mediaAsset.sizeBytes) {
+    throw new Error(`Managed media ranged download total size mismatch: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, expectedSizeBytes=${mediaAsset.sizeBytes}, actualSizeBytes=${totalByteLength}`);
+  }
+
+  const bytes: Uint8Array<ArrayBuffer> = new Uint8Array(totalByteLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(new Uint8Array(chunk), offset);
+    offset += chunk.byteLength;
+  }
+
+  return bytes.buffer;
+}
+
 async function fetchManagedMediaBytes(
   mediaAsset: MediaAsset,
   downloadMethod: "GET",
   downloadUrl: string,
 ): Promise<ArrayBuffer> {
-  let response: Response;
-  try {
-    response = await fetch(downloadUrl, { method: downloadMethod });
-  } catch (error) {
-    throw new Error(`Managed media download request failed: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, error=${readErrorMessage(error)}`);
+  const ranges = planManagedMediaDownloadRanges(mediaAsset.sizeBytes, MANAGED_MEDIA_DOWNLOAD_RANGE_SIZE_BYTES);
+  const chunks: Array<ArrayBuffer> = [];
+  for (const range of ranges) {
+    chunks.push(await fetchManagedMediaRangeBytes(mediaAsset, downloadMethod, downloadUrl, range, ranges.length === 1));
   }
 
-  if (response.ok === false) {
-    const responseBody = await readDownloadFailureBody(response);
-    throw new Error(`Managed media download failed: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, status=${response.status}, statusText=${response.statusText}, responseBody=${responseBody}`);
-  }
-
-  return response.arrayBuffer();
+  return combineManagedMediaRangeBytes(mediaAsset, chunks);
 }
 
 async function verifyManagedMediaBytes(mediaAsset: MediaAsset, bytes: ArrayBuffer): Promise<Blob> {

@@ -36,6 +36,8 @@ const fileSha256 = "44".repeat(32);
 const coldSha256 = "55".repeat(32);
 const refreshedSha256 = "66".repeat(32);
 const badSha256 = "77".repeat(32);
+const largeSha256 = "88".repeat(32);
+const testDownloadRangeSizeBytes = 4 * 1024 * 1024;
 
 function hexToArrayBuffer(hex: string): ArrayBuffer {
   if (hex.length % 2 !== 0) {
@@ -259,10 +261,10 @@ describe("ReviewCardSide managed media rendering", () => {
     ]);
     const downloadUrlDeferred = createDeferred<{
       mediaAsset: MediaAsset;
-      download: Readonly<{ method: "GET"; url: string; expiresAt: string }>;
+      download: Readonly<{ method: "GET"; url: string; expiresAt: string; rangeRequests: true }>;
     }>();
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
-      .mockResolvedValue(new Response(mediaBytes));
+      .mockResolvedValue(new Response(mediaBytes, { status: 206 }));
     vi.stubGlobal("fetch", fetchMock);
     mediaMocks.loadMediaAssetRecordMock.mockImplementation(async (_workspaceId: string, mediaAssetId: string): Promise<MediaAsset | null> => {
       return mediaAssets.get(mediaAssetId) ?? null;
@@ -288,6 +290,7 @@ describe("ReviewCardSide managed media rendering", () => {
         method: "GET",
         url: "https://media.example.test/signed-download",
         expiresAt: "2026-03-10T10:00:00.000Z",
+        rangeRequests: true,
       },
     });
 
@@ -296,7 +299,12 @@ describe("ReviewCardSide managed media rendering", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith("https://media.example.test/signed-download", { method: "GET" });
+    expect(fetchMock).toHaveBeenCalledWith("https://media.example.test/signed-download", {
+      method: "GET",
+      headers: {
+        Range: "bytes=0-3",
+      },
+    });
     expect(mediaMocks.writeMediaBlobCacheRecordMock).toHaveBeenCalledTimes(1);
     expect(mediaMocks.writeMediaBlobCacheRecordMock.mock.calls[0]?.[0]).toEqual(expect.objectContaining({
       sha256: coldSha256,
@@ -304,6 +312,54 @@ describe("ReviewCardSide managed media rendering", () => {
       sizeBytes: mediaBytes.byteLength,
       sourceMediaAssetId: "image-asset",
     }));
+  });
+
+  it("downloads cold managed media in direct byte ranges", async () => {
+    const mediaBytes = new Uint8Array(testDownloadRangeSizeBytes + 3);
+    mediaBytes.set([61, 62, 63], testDownloadRangeSizeBytes);
+    installDigestMock(largeSha256);
+    const mediaAsset = makeMediaAsset("large-image-asset", "image/png", largeSha256, mediaBytes.byteLength);
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(mediaBytes.slice(0, testDownloadRangeSizeBytes), { status: 206 }))
+      .mockResolvedValueOnce(new Response(mediaBytes.slice(testDownloadRangeSizeBytes), { status: 206 }));
+    vi.stubGlobal("fetch", fetchMock);
+    mediaMocks.loadMediaAssetRecordMock.mockResolvedValue(mediaAsset);
+    mediaMocks.loadMediaBlobCacheRecordMock.mockResolvedValue(null);
+    mediaMocks.loadMediaAssetDownloadUrlMock.mockResolvedValue({
+      mediaAsset,
+      download: {
+        method: "GET" as const,
+        url: "https://media.example.test/large-signed-download",
+        expiresAt: "2026-03-10T10:00:00.000Z",
+        rangeRequests: true,
+      },
+    });
+
+    root = renderReviewCardSide(container, "![Large](fcasset:large-image-asset)");
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".review-markdown-media-image")).not.toBeNull();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://media.example.test/large-signed-download", {
+      method: "GET",
+      headers: {
+        Range: "bytes=0-4194303",
+      },
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://media.example.test/large-signed-download", {
+      method: "GET",
+      headers: {
+        Range: "bytes=4194304-4194306",
+      },
+    });
+    expect(mediaMocks.writeMediaBlobCacheRecordMock).toHaveBeenCalledWith(expect.objectContaining({
+      sha256: largeSha256,
+      sizeBytes: mediaBytes.byteLength,
+    }));
+    const cacheRecord = mediaMocks.writeMediaBlobCacheRecordMock.mock.calls[0]?.[0] as MediaBlobCacheRecord | undefined;
+    expect(cacheRecord?.blob.size).toBe(mediaBytes.byteLength);
   });
 
   it("keeps external Markdown images on the normal image path", async () => {
@@ -338,7 +394,7 @@ describe("ReviewCardSide managed media rendering", () => {
     const mediaAsset = makeMediaAsset("refresh-asset", "image/png", refreshedSha256, mediaBytes.byteLength);
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(new Response("expired", { status: 403, statusText: "Forbidden" }))
-      .mockResolvedValueOnce(new Response(mediaBytes));
+      .mockResolvedValueOnce(new Response(mediaBytes, { status: 206 }));
     const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => undefined);
     vi.stubGlobal("fetch", fetchMock);
     mediaMocks.loadMediaAssetRecordMock.mockResolvedValue(mediaAsset);
@@ -350,6 +406,7 @@ describe("ReviewCardSide managed media rendering", () => {
           method: "GET" as const,
           url: "https://media.example.test/stale-download",
           expiresAt: "2026-03-10T10:00:00.000Z",
+          rangeRequests: true,
         },
       })
       .mockResolvedValueOnce({
@@ -358,6 +415,7 @@ describe("ReviewCardSide managed media rendering", () => {
           method: "GET" as const,
           url: "https://media.example.test/fresh-download",
           expiresAt: "2026-03-10T10:05:00.000Z",
+          rangeRequests: true,
         },
       });
 
@@ -370,6 +428,18 @@ describe("ReviewCardSide managed media rendering", () => {
     expect(mediaMocks.loadMediaAssetDownloadUrlMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://media.example.test/stale-download");
     expect(fetchMock.mock.calls[1]?.[0]).toBe("https://media.example.test/fresh-download");
+    expect(fetchMock.mock.calls[0]?.[1]).toEqual({
+      method: "GET",
+      headers: {
+        Range: "bytes=0-4",
+      },
+    });
+    expect(fetchMock.mock.calls[1]?.[1]).toEqual({
+      method: "GET",
+      headers: {
+        Range: "bytes=0-4",
+      },
+    });
     expect(mediaMocks.writeMediaBlobCacheRecordMock).toHaveBeenCalledWith(expect.objectContaining({
       sha256: refreshedSha256,
       sizeBytes: mediaBytes.byteLength,
@@ -388,7 +458,7 @@ describe("ReviewCardSide managed media rendering", () => {
     installDigestMock(badSha256);
     const mediaAsset = makeMediaAsset("corrupt-asset", "image/png", coldSha256, mediaBytes.byteLength);
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
-      .mockResolvedValue(new Response(mediaBytes));
+      .mockResolvedValue(new Response(mediaBytes, { status: 206 }));
     const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => undefined);
     vi.stubGlobal("fetch", fetchMock);
     mediaMocks.loadMediaAssetRecordMock.mockResolvedValue(mediaAsset);
@@ -399,6 +469,7 @@ describe("ReviewCardSide managed media rendering", () => {
         method: "GET" as const,
         url: "https://media.example.test/corrupt-download",
         expiresAt: "2026-03-10T10:00:00.000Z",
+        rangeRequests: true,
       },
     });
 
