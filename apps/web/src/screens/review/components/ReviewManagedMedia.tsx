@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   useState,
   type ReactElement,
   type ReactNode,
@@ -23,17 +24,36 @@ type ManagedMediaKind = "image" | "audio" | "video" | "attachment";
 type ManagedMediaLoadState =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "unavailable"; mediaAsset: MediaAsset | null }>
-  | Readonly<{ status: "ready"; mediaAsset: MediaAsset; url: string }>;
+  | Readonly<{
+    status: "ready";
+    mediaAsset: MediaAsset;
+    objectUrlLease: ManagedMediaObjectUrlLease;
+    releaseProvisionalObjectUrlLease: (() => void) | null;
+    url: string;
+  }>;
 type ManagedMediaBlobLoadResult = Readonly<{
   mediaAsset: MediaAsset;
   cacheRecord: MediaBlobCacheRecord;
 }>;
+type ManagedMediaObjectUrlLease = Readonly<{
+  key: string;
+  url: string;
+}>;
+type ManagedMediaObjectUrlRetention = Readonly<{
+  isAcquiredLease: boolean;
+  objectUrlLease: ManagedMediaObjectUrlLease;
+}>;
+type ManagedMediaObjectUrlCacheEntry = {
+  referenceCount: number;
+  url: string;
+};
 type ManagedMediaDownloadRange = Readonly<{
   startByte: number;
   endByte: number;
 }>;
 
 const activeManagedMediaDownloadPromises = new Map<string, Promise<MediaBlobCacheRecord>>();
+const managedMediaObjectUrlCache = new Map<string, ManagedMediaObjectUrlCacheEntry>();
 
 export function parseManagedMediaAssetId(url: string | null | undefined): string | null {
   if (url === null || url === undefined) {
@@ -94,6 +114,62 @@ function warnManagedMediaDownloadRetry(
     errorName: readErrorName(error),
     errorMessage: readErrorMessage(error),
   });
+}
+
+function createManagedMediaObjectUrlKey(mediaAsset: MediaAsset): string {
+  return JSON.stringify([
+    mediaAsset.workspaceId,
+    mediaAsset.mediaAssetId,
+    mediaAsset.sha256,
+    mediaAsset.mimeType,
+    mediaAsset.sizeBytes,
+  ]);
+}
+
+function acquireManagedMediaObjectUrl(mediaAsset: MediaAsset, blob: Blob): ManagedMediaObjectUrlLease {
+  const key = createManagedMediaObjectUrlKey(mediaAsset);
+  const cachedEntry = managedMediaObjectUrlCache.get(key);
+  if (cachedEntry !== undefined) {
+    cachedEntry.referenceCount += 1;
+    return {
+      key,
+      url: cachedEntry.url,
+    };
+  }
+
+  const url = URL.createObjectURL(blob);
+  managedMediaObjectUrlCache.set(key, {
+    referenceCount: 1,
+    url,
+  });
+  return {
+    key,
+    url,
+  };
+}
+
+function releaseManagedMediaObjectUrl(lease: ManagedMediaObjectUrlLease): void {
+  const cachedEntry = managedMediaObjectUrlCache.get(lease.key);
+  if (cachedEntry === undefined) {
+    throw new Error(`Managed media object URL release failed: cache entry was missing for key=${lease.key}`);
+  }
+
+  if (cachedEntry.url !== lease.url) {
+    throw new Error(`Managed media object URL release failed: cache URL mismatch for key=${lease.key}`);
+  }
+
+  if (cachedEntry.referenceCount < 1) {
+    throw new RangeError(`Managed media object URL release failed: invalid referenceCount=${cachedEntry.referenceCount} for key=${lease.key}`);
+  }
+
+  const nextReferenceCount = cachedEntry.referenceCount - 1;
+  if (nextReferenceCount === 0) {
+    URL.revokeObjectURL(cachedEntry.url);
+    managedMediaObjectUrlCache.delete(lease.key);
+    return;
+  }
+
+  cachedEntry.referenceCount = nextReferenceCount;
 }
 
 function requireSha256Digest(): SubtleCrypto {
@@ -428,6 +504,16 @@ function readTextFromReactNode(node: ReactNode): string {
   return "";
 }
 
+function isReadyManagedMediaReference(
+  loadState: ManagedMediaLoadState,
+  workspaceId: string,
+  mediaAssetId: string,
+): boolean {
+  return loadState.status === "ready"
+    && loadState.mediaAsset.workspaceId === workspaceId
+    && loadState.mediaAsset.mediaAssetId === mediaAssetId;
+}
+
 function ManagedMediaFallback(props: Readonly<{
   mediaAssetId: string;
   message: string;
@@ -461,18 +547,75 @@ export function ManagedMediaReference(props: Readonly<{
   } = props;
   const { t } = useI18n();
   const [loadState, setLoadState] = useState<ManagedMediaLoadState>({ status: "loading" });
+  const loadStateRef = useRef<ManagedMediaLoadState>(loadState);
+
+  function updateLoadState(nextLoadState: ManagedMediaLoadState): void {
+    loadStateRef.current = nextLoadState;
+    setLoadState(nextLoadState);
+  }
+
+  function retainObjectUrlForReadyMedia(
+    currentLoadState: ManagedMediaLoadState,
+    mediaAsset: MediaAsset,
+    cacheRecord: MediaBlobCacheRecord,
+  ): ManagedMediaObjectUrlRetention {
+    const nextKey = createManagedMediaObjectUrlKey(mediaAsset);
+    if (currentLoadState.status === "ready" && currentLoadState.objectUrlLease.key === nextKey) {
+      return {
+        isAcquiredLease: false,
+        objectUrlLease: currentLoadState.objectUrlLease,
+      };
+    }
+
+    return {
+      isAcquiredLease: true,
+      objectUrlLease: acquireManagedMediaObjectUrl(mediaAsset, cacheRecord.blob),
+    };
+  }
+
+  const committedObjectUrlLease = loadState.status === "ready" ? loadState.objectUrlLease : null;
+
+  useEffect(() => {
+    if (committedObjectUrlLease === null) {
+      return undefined;
+    }
+
+    if (loadState.status === "ready") {
+      loadState.releaseProvisionalObjectUrlLease?.();
+    }
+
+    return () => {
+      releaseManagedMediaObjectUrl(committedObjectUrlLease);
+    };
+  }, [committedObjectUrlLease]);
 
   useEffect(() => {
     let isCancelled = false;
-    let objectUrlToRevoke: string | null = null;
+    let provisionalObjectUrlLease: ManagedMediaObjectUrlLease | null = null;
 
-    async function loadManagedMedia(): Promise<void> {
-      if (workspaceId === null) {
-        setLoadState({ status: "unavailable", mediaAsset: null });
+    function clearProvisionalObjectUrlLease(): void {
+      provisionalObjectUrlLease = null;
+    }
+
+    function releaseProvisionalObjectUrlLease(): void {
+      if (provisionalObjectUrlLease === null) {
         return;
       }
 
-      setLoadState({ status: "loading" });
+      releaseManagedMediaObjectUrl(provisionalObjectUrlLease);
+      provisionalObjectUrlLease = null;
+    }
+
+    async function loadManagedMedia(): Promise<void> {
+      if (workspaceId === null) {
+        updateLoadState({ status: "unavailable", mediaAsset: null });
+        return;
+      }
+
+      if (isReadyManagedMediaReference(loadStateRef.current, workspaceId, mediaAssetId) === false) {
+        updateLoadState({ status: "loading" });
+      }
+
       let loadResult: ManagedMediaBlobLoadResult | null;
       try {
         loadResult = await loadManagedMediaBlob(workspaceId, mediaAssetId);
@@ -482,7 +625,7 @@ export function ManagedMediaReference(props: Readonly<{
         }
 
         warnManagedMediaUnavailable(workspaceId, mediaAssetId, error);
-        setLoadState({ status: "unavailable", mediaAsset: null });
+        updateLoadState({ status: "unavailable", mediaAsset: null });
         return;
       }
 
@@ -491,28 +634,34 @@ export function ManagedMediaReference(props: Readonly<{
       }
 
       if (loadResult === null) {
-        setLoadState({ status: "unavailable", mediaAsset: null });
+        updateLoadState({ status: "unavailable", mediaAsset: null });
         return;
       }
 
-      let objectUrl: string;
+      let objectUrlRetention: ManagedMediaObjectUrlRetention;
       try {
-        objectUrl = URL.createObjectURL(loadResult.cacheRecord.blob);
+        objectUrlRetention = retainObjectUrlForReadyMedia(loadStateRef.current, loadResult.mediaAsset, loadResult.cacheRecord);
+        if (objectUrlRetention.isAcquiredLease) {
+          provisionalObjectUrlLease = objectUrlRetention.objectUrlLease;
+        }
       } catch (error) {
         warnManagedMediaUnavailable(workspaceId, mediaAssetId, error);
-        setLoadState({ status: "unavailable", mediaAsset: loadResult.mediaAsset });
+        updateLoadState({ status: "unavailable", mediaAsset: loadResult.mediaAsset });
         return;
       }
 
       if (isCancelled) {
-        URL.revokeObjectURL(objectUrl);
+        releaseProvisionalObjectUrlLease();
         return;
       }
-      objectUrlToRevoke = objectUrl;
-      setLoadState({
+      updateLoadState({
         status: "ready",
         mediaAsset: loadResult.mediaAsset,
-        url: objectUrl,
+        objectUrlLease: objectUrlRetention.objectUrlLease,
+        releaseProvisionalObjectUrlLease: objectUrlRetention.isAcquiredLease
+          ? clearProvisionalObjectUrlLease
+          : null,
+        url: objectUrlRetention.objectUrlLease.url,
       });
     }
 
@@ -520,9 +669,7 @@ export function ManagedMediaReference(props: Readonly<{
 
     return () => {
       isCancelled = true;
-      if (objectUrlToRevoke !== null) {
-        URL.revokeObjectURL(objectUrlToRevoke);
-      }
+      releaseProvisionalObjectUrlLease();
     };
   }, [localReadVersion, mediaAssetId, workspaceId]);
 
