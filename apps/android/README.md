@@ -179,7 +179,7 @@ The Android app uses native Android and Compose testing:
 
 - targeted integration coverage runs through native instrumentation and Compose UI testing in `apps/android/app/src/androidTest` and `apps/android/data/local/src/androidTest`
 - shared FSRS scheduler parity stays in `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/model/FsrsSchedulerParityTest.kt` and uses `tests/fsrs-full-vectors.json`
-- manual Firebase Test Lab app UI instrumentation runs through the full `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app` instrumentation tree when `run_firebase_test_lab=true`, with `livesmoke/LiveSmokeTest.kt` and `notifications/NotificationTapSmokeTest.kt` kept as the highest-confidence stateful flows there
+- manual Firebase Test Lab app UI instrumentation runs through the full `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app` instrumentation tree as part of the manual `Android Release` workflow, with `livesmoke/LiveSmokeTest.kt` and `notifications/NotificationTapSmokeTest.kt` kept as the highest-confidence stateful flows there
 - the live smoke flow relies on stable Compose test tags from the production UI modules, not on a separate mock shell
 
 The Android live smoke scenario matches the other clients on purpose:
@@ -199,13 +199,13 @@ The repository policy for Android CI/CD is:
 - Firebase Test Lab is the cloud device test runner
 - `cloudbuild.android.yaml` is the Google-native Cloud Build entrypoint
 - Google auth from GitHub must use Workload Identity Federation, not a JSON key
-- the GitHub-hosted Android release gate is unit tests plus build/lint first, then GitHub-hosted `data:local` instrumentation; after that succeeds, CI uploads a Google Play production-track draft
+- automatic Android CI on `main` runs unit tests, debug builds, lint, and GitHub-hosted `data:local` instrumentation without uploading to Google Play or submitting Firebase Test Lab
+- the manual `Android Release` workflow runs the same GitHub-hosted Android gate, submits Firebase Test Lab app instrumentation, then uploads a Google Play production-track draft
 - one shared `ANDROID_VERSION_CODE` is resolved once per release run and reused across Android release artifacts and the Play draft bundle
 - one shared manager-readable release identifier, currently `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`, is reused in the Play release name and Firebase Test Lab result naming so the same release stays traceable across GitHub, Play, and Firebase
-- Firebase Test Lab app instrumentation is manual-only from the top-level `firebase_test_lab_submission` job with `run_firebase_test_lab=true`; it uses the same SHA and release metadata, can run without Play upload, and does not block the Play draft upload path
-- after pushing to `main`, watch `Android Release` when Android-impacting files changed; it runs independently from the AWS/Web release workflow
+- Firebase Test Lab app instrumentation is manual-only from the top-level `firebase_test_lab_submission` job in `Android Release`; submission is required before the Play draft upload starts
+- after pushing to `main`, watch `Android CI` when Android-impacting files changed; it runs independently from the AWS/Web release workflow
 - after the workflow uploads the AAB, review Play App strings translations in Play Console, confirm the Play language set still matches the app's explicit supported-language list, verify the Play-delivered build, and publish the release there manually
-- manual Android workflow runs also go through `Android Release`; Play draft upload and Firebase Test Lab submission are independent opt-ins there
 
 ## Respect Existing Code
 

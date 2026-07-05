@@ -25,13 +25,15 @@ urgent local upload is required, use the local App Store archive flow in
 ## Android
 
 1. Run the manual `Android Release` GitHub Actions workflow for the latest
-   release SHA, including the Android tests needed for the release decision.
-2. Fix anything that is not green before continuing.
+   release SHA; it runs the Android gate, submits Firebase Test Lab, and uploads
+   the Play draft.
+2. Fix any non-green workflow result and review the Firebase Test Lab matrix
+   result before continuing.
 3. Confirm the production-track draft release is present in Google Play Console.
 4. Publish the new version manually in Google Play Console after the draft is
    reviewed and ready.
 
-The Android CI/CD details, Firebase Test Lab inputs, Play draft upload behavior,
+The Android CI/CD details, Firebase Test Lab submission behavior,
 and Play Console publishing notes are documented in
 [docs/android-ci-cd.md](./android-ci-cd.md).
 
