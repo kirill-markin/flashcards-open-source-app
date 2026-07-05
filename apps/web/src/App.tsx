@@ -191,7 +191,7 @@ function RouteContentFallback(props: Readonly<{ messageKey: TranslationKey }>): 
 
   return (
     <main className="container">
-      <section className="panel">
+      <section className="panel panel-center state-panel">
         <p className="subtitle">{t(messageKey)}</p>
       </section>
     </main>

@@ -12,6 +12,9 @@
 .feedback-dialog {
   width: min(620px, 100%);
   max-height: calc(100vh - 48px);
+  border: 0;
+  background: var(--surface);
+  box-shadow: none;
   overflow: auto;
   display: grid;
   gap: 18px;

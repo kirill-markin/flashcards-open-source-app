@@ -126,6 +126,24 @@
   box-shadow: none;
 }
 
+.panel.state-panel,
+.panel.workspace-modal,
+.panel.app-error-dialog {
+  border: 0;
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.panel.state-panel {
+  gap: 18px;
+}
+
+.chat-main-content > .container > .panel.state-panel {
+  min-height: 0;
+  border-radius: var(--panel-radius);
+  background: var(--surface);
+}
+
 .panel-center {
   max-width: 520px;
   margin: 0 auto;
