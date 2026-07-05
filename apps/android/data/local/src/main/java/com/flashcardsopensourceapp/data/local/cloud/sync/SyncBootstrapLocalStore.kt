@@ -9,6 +9,8 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.buildMediaAssetBootstra
 import com.flashcardsopensourceapp.data.local.cloud.wire.buildReviewHistoryImportEventJson
 import com.flashcardsopensourceapp.data.local.cloud.wire.buildWorkspaceSchedulerSettingsBootstrapEntryJson
 import com.flashcardsopensourceapp.data.local.cloud.wire.toCardSummary
+import com.flashcardsopensourceapp.data.local.model.media.MediaTransferKind
+import com.flashcardsopensourceapp.data.local.model.media.MediaTransferStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
@@ -54,7 +56,11 @@ internal class SyncBootstrapLocalStore(
                 )
             }
 
-        database.mediaAssetDao().loadMediaAssets(workspaceId = workspaceId)
+        database.mediaAssetDao().loadMediaAssetsExcludingPendingUploads(
+            workspaceId = workspaceId,
+            uploadKind = MediaTransferKind.UPLOAD.wireKey,
+            succeededStatus = MediaTransferStatus.SUCCEEDED.wireKey
+        )
             .forEach { mediaAsset ->
                 entries.put(
                     buildMediaAssetBootstrapEntryJson(
