@@ -57,6 +57,12 @@ function parsePresignedMediaAssetDownload(
     ),
     url: parseRequiredField(objectValue, "url", endpoint, path, parseString),
     expiresAt: parseRequiredField(objectValue, "expiresAt", endpoint, path, parseString),
+    rangeRequests: parseLiteral(
+      parseRequiredField(objectValue, "rangeRequests", endpoint, path, parseBoolean),
+      endpoint,
+      joinPath(path, "rangeRequests"),
+      true,
+    ),
   };
 }
 

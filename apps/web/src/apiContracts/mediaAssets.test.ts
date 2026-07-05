@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { MediaAsset } from "../types";
 import {
+  parseMediaAssetDownloadUrlResponse,
   parseMediaAssetUploadSessionAbortResponse,
   parseMediaAssetUploadSessionCompleteResponse,
   parseMediaAssetUploadSessionCreateResponse,
@@ -24,6 +25,34 @@ const mediaAssetFixture: MediaAsset = {
 };
 
 describe("media asset API contracts", () => {
+  it("parses direct media download URLs with range support", () => {
+    const result = parseMediaAssetDownloadUrlResponse({
+      mediaAsset: {
+        ...mediaAssetFixture,
+        deletedAt: null,
+      },
+      download: {
+        method: "GET",
+        url: "https://downloads.example.test/media-object",
+        expiresAt: "2026-03-10T10:00:00.000Z",
+        rangeRequests: true,
+      },
+    }, "GET /workspaces/workspace-1/media-assets/media-asset-1/download-url");
+
+    expect(result).toEqual({
+      mediaAsset: {
+        ...mediaAssetFixture,
+        deletedAt: null,
+      },
+      download: {
+        method: "GET",
+        url: "https://downloads.example.test/media-object",
+        expiresAt: "2026-03-10T10:00:00.000Z",
+        rangeRequests: true,
+      },
+    });
+  });
+
   it("parses media asset hot sync tombstones", () => {
     const result = parseSyncPullResultResponse({
       changes: [
