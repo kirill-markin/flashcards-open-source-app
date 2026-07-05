@@ -3,6 +3,10 @@ import SwiftUI
 struct WorkspacePackageExportSection: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
+    let exportCleanupErrorMessage: String
+    let cleanupExportedFile: @MainActor () -> Bool
+    let presentExportedFile: @MainActor (URL) -> Void
+
     @State private var preview: WorkspacePackageExportPreviewResponse?
     @State private var previewWorkspaceId: String = ""
     @State private var metadataDraft: WorkspacePackageExportMetadataDraft = WorkspacePackageExportMetadataDraft(
@@ -20,8 +24,6 @@ struct WorkspacePackageExportSection: View {
     @State private var isExporting: Bool = false
     @State private var errorMessage: String = ""
     @State private var successMessage: String = ""
-    @State private var exportShareItem: WorkspacePackageExportShareItem?
-    @State private var exportCleanupFileURL: URL?
 
     private var isBusy: Bool {
         self.isPreviewing || self.isExporting
@@ -50,6 +52,12 @@ struct WorkspacePackageExportSection: View {
         self.currentPreview == nil && self.cardSelectionTagOptions.isEmpty == false
     }
 
+    private var displayedErrorMessage: String {
+        [self.errorMessage, self.exportCleanupErrorMessage]
+            .filter { $0.isEmpty == false }
+            .joined(separator: "\n")
+    }
+
     private var cloudRequirementMessage: String? {
         switch self.store.cloudSettings?.cloudState {
         case .linked, .guest:
@@ -66,9 +74,9 @@ struct WorkspacePackageExportSection: View {
         Group {
             self.packageSection
 
-            if self.errorMessage.isEmpty == false {
+            if self.displayedErrorMessage.isEmpty == false {
                 Section {
-                    Text(self.errorMessage)
+                    Text(self.displayedErrorMessage)
                         .foregroundStyle(.red)
                         .accessibilityIdentifier(UITestIdentifier.workspacePackageExportErrorMessage)
                 }
@@ -94,14 +102,6 @@ struct WorkspacePackageExportSection: View {
         }
         .onChange(of: self.currentWorkspaceId) { _, _ in
             self.resetWorkspaceExportState()
-        }
-        .sheet(
-            item: self.$exportShareItem,
-            onDismiss: {
-                self.cleanupExportedFile()
-            }
-        ) { shareItem in
-            WorkspaceExportActivitySheet(activityItems: [shareItem.fileURL])
         }
     }
 
@@ -464,8 +464,7 @@ struct WorkspacePackageExportSection: View {
                 "flashcards.zip is ready to share."
             )
             self.isExporting = false
-            self.exportCleanupFileURL = exportedFileURL
-            self.exportShareItem = WorkspacePackageExportShareItem(id: UUID(), fileURL: exportedFileURL)
+            self.presentExportedFile(exportedFileURL)
         } catch {
             if isRequestCancellationError(error: error) {
                 self.isExporting = false
@@ -488,33 +487,15 @@ struct WorkspacePackageExportSection: View {
         self.selectedCardTags = []
         self.cardSelectionTagOptions = []
     }
-
-    @MainActor
-    @discardableResult
-    private func cleanupExportedFile() -> Bool {
-        guard let exportedFileURL = self.exportCleanupFileURL else {
-            self.exportShareItem = nil
-            return true
-        }
-        self.exportShareItem = nil
-
-        do {
-            if FileManager.default.fileExists(atPath: exportedFileURL.path) {
-                try FileManager.default.removeItem(at: exportedFileURL)
-            }
-        } catch {
-            self.errorMessage = Flashcards.errorMessage(error: error)
-            return false
-        }
-
-        self.exportCleanupFileURL = nil
-        return true
-    }
 }
 
 #Preview {
     List {
-        WorkspacePackageExportSection()
+        WorkspacePackageExportSection(
+            exportCleanupErrorMessage: "",
+            cleanupExportedFile: { true },
+            presentExportedFile: { _ in }
+        )
     }
     .environment(FlashcardsStore())
 }
