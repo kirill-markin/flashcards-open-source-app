@@ -27,8 +27,11 @@ import {
   type SyncRestoreHistoryEntry,
 } from "../restore/syncRestoreHistory";
 import {
+  slowHotBootstrapBaseWarningBudgetMs,
   slowHotBootstrapBreadcrumbThresholdMs,
-  slowHotBootstrapWarningThresholdMs,
+  slowHotBootstrapMinimumWarningThresholdMs,
+  slowHotBootstrapPerEntryWarningBudgetMs,
+  slowHotBootstrapPerPageWarningBudgetMs,
   syncBootstrapPageSize,
 } from "./constants";
 import {
@@ -61,38 +64,45 @@ function isEmptyRemoteBootstrapNoise(
   return remoteIsEmpty === true && localCardCountAfter === 0 && entriesCount <= 1;
 }
 
-function shouldObserveHotBootstrap(input: Readonly<{
+type HotBootstrapObservationGateInput = Readonly<{
   durationMs: number;
   pageCount: number;
   entriesCount: number;
   localCardCountAfter: number;
   remoteIsEmpty: boolean | null;
-}>): boolean {
-  if (isEmptyRemoteBootstrapNoise(input.remoteIsEmpty, input.entriesCount, input.localCardCountAfter)) {
-    return false;
-  }
+}>;
 
-  return input.durationMs >= slowHotBootstrapWarningThresholdMs || input.pageCount > 1;
+function calculateSlowHotBootstrapWarningThresholdMs(input: Readonly<{
+  pageCount: number;
+  entriesCount: number;
+}>): number {
+  const warningBudgetMs = Math.ceil(
+    slowHotBootstrapBaseWarningBudgetMs
+    + input.pageCount * slowHotBootstrapPerPageWarningBudgetMs
+    + input.entriesCount * slowHotBootstrapPerEntryWarningBudgetMs,
+  );
+  return Math.max(slowHotBootstrapMinimumWarningThresholdMs, warningBudgetMs);
 }
 
-// Tolerated-slow band: a single-page, non-empty bootstrap that is slow enough to record
-// (>= the breadcrumb floor) but below the warning threshold. The warning gate
-// (shouldObserveHotBootstrap) takes precedence, so this stays mutually exclusive with it:
-// the >=8000ms or multi-page case warns, this band only breadcrumbs.
-function shouldBreadcrumbSlowHotBootstrap(input: Readonly<{
-  durationMs: number;
-  pageCount: number;
-  entriesCount: number;
-  localCardCountAfter: number;
-  remoteIsEmpty: boolean | null;
-}>): boolean {
+function shouldObserveHotBootstrap(input: HotBootstrapObservationGateInput): boolean {
   if (isEmptyRemoteBootstrapNoise(input.remoteIsEmpty, input.entriesCount, input.localCardCountAfter)) {
     return false;
   }
 
-  return input.pageCount === 1
-    && input.durationMs >= slowHotBootstrapBreadcrumbThresholdMs
-    && input.durationMs < slowHotBootstrapWarningThresholdMs;
+  return input.durationMs >= calculateSlowHotBootstrapWarningThresholdMs(input);
+}
+
+// Tolerated-slow band: a non-empty bootstrap that is slow enough to record
+// (>= the breadcrumb floor) but below the volume-aware warning threshold. The warning
+// gate takes precedence, so the two paths stay mutually exclusive.
+function shouldBreadcrumbSlowHotBootstrap(input: HotBootstrapObservationGateInput): boolean {
+  if (isEmptyRemoteBootstrapNoise(input.remoteIsEmpty, input.entriesCount, input.localCardCountAfter)) {
+    return false;
+  }
+
+  const warningThresholdMs = calculateSlowHotBootstrapWarningThresholdMs(input);
+  return input.durationMs >= slowHotBootstrapBreadcrumbThresholdMs
+    && input.durationMs < warningThresholdMs;
 }
 
 function determineLocalBootstrapState(
@@ -367,9 +377,9 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         remoteIsEmpty,
         ...readBootstrapTimingDetails(),
       };
-      // Warning wins: the >=8000ms or multi-page case raises a Sentry issue; the
-      // tolerated-slow single-page band only adds a silent breadcrumb. The two predicates
-      // never overlap, so at most one fires.
+      // Warning wins: durations above the volume-aware budget raise a Sentry issue;
+      // tolerated-slow restores only add a silent breadcrumb. The two predicates never
+      // overlap, so at most one fires.
       if (shouldObserveHotBootstrap(slowBootstrapObservation)) {
         observeSlowHotBootstrap(slowHotBootstrapDetails);
       } else if (shouldBreadcrumbSlowHotBootstrap(slowBootstrapObservation)) {
