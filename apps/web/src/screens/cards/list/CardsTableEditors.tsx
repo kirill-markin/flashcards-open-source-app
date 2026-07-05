@@ -4,23 +4,15 @@ import {
   useRef,
   useState,
   type ChangeEvent,
-  type CSSProperties,
   type KeyboardEvent,
-  type RefObject,
+  type PointerEvent,
   type ReactElement,
 } from "react";
-import { createPortal } from "react-dom";
 
+import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
 import { useI18n } from "../../../i18n";
 import type { TagSuggestion } from "../../../types";
 import { areSameTags, CardTagsInput, type CardTagsInputHandle } from "../CardTagsInput";
-
-type OverlayRect = Readonly<{
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-}>;
 
 type EditableTextCellProps = Readonly<{
   value: string;
@@ -39,100 +31,22 @@ type EditableTagsCellProps = Readonly<{
   cellClassName: string;
 }>;
 
-function getOverlayRect(element: HTMLTableCellElement): OverlayRect {
-  const rect = element.getBoundingClientRect();
-  return {
-    top: rect.top,
-    left: rect.left,
-    width: rect.width,
-    height: rect.height,
-  };
-}
-
-function getTextOverlayStyle(rect: OverlayRect, multiline: boolean): CSSProperties {
-  const width = multiline ? Math.max(rect.width, 360) : rect.width;
-  const height = multiline ? Math.max(rect.height * 3, 120) : rect.height;
-  const maxLeft = Math.max(window.innerWidth - width - 12, 12);
-
-  return {
-    top: rect.top,
-    left: Math.min(rect.left, maxLeft),
-    width,
-    height,
-  };
-}
-
-function getTagsOverlayStyle(rect: OverlayRect): CSSProperties {
-  const width = Math.max(rect.width, 320);
-  const maxLeft = Math.max(window.innerWidth - width - 12, 12);
-  const maxTop = Math.max(window.innerHeight - 320, 12);
-
-  return {
-    top: Math.min(rect.top, maxTop),
-    left: Math.min(rect.left, maxLeft),
-    width,
-  };
-}
-
-function useOverlayTracking(
-  isOpen: boolean,
-  cellRef: RefObject<HTMLTableCellElement | null>,
-  onUpdate: (rect: OverlayRect) => void,
-): void {
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    function handleViewportChange(): void {
-      if (cellRef.current === null) {
-        return;
-      }
-
-      onUpdate(getOverlayRect(cellRef.current));
-    }
-
-    window.addEventListener("resize", handleViewportChange);
-    window.addEventListener("scroll", handleViewportChange, true);
-
-    return () => {
-      window.removeEventListener("resize", handleViewportChange);
-      window.removeEventListener("scroll", handleViewportChange, true);
-    };
-  }, [cellRef, isOpen, onUpdate]);
-}
-
-function useOutsidePointerClose(
-  isOpen: boolean,
-  overlayRef: RefObject<HTMLElement | null>,
-  onClose: () => void,
-): void {
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    function handlePointerDown(event: MouseEvent): void {
-      if (overlayRef.current !== null && !overlayRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [isOpen, onClose, overlayRef]);
-}
+const floatingEditorViewportPaddingPx = 12;
+const multilineTextEditorMinimumWidthPx = 360;
+const multilineTextEditorMaximumWidthPx = 720;
+const multilineTextEditorMaximumHeightPx = 520;
+const tagsEditorMinimumWidthPx = 320;
+const tagsEditorMaximumWidthPx = 420;
+const tagsEditorMaximumHeightPx = 320;
 
 export function EditableCardTextCell(props: EditableTextCellProps): ReactElement {
   const { value, displayValue, multiline, saving, onCommit, cellClassName } = props;
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [draftValue, setDraftValue] = useState<string>(value);
-  const [overlayRect, setOverlayRect] = useState<OverlayRect | null>(null);
   const cellRef = useRef<HTMLTableCellElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-  useOverlayTracking(isEditing, cellRef, setOverlayRect);
 
   useEffect(() => {
     const activeElement = multiline ? textareaRef.current : inputRef.current;
@@ -146,17 +60,28 @@ export function EditableCardTextCell(props: EditableTextCellProps): ReactElement
 
   function closeEditor(): void {
     setIsEditing(false);
-    setOverlayRect(null);
   }
 
   function startEditing(): void {
-    if (saving || cellRef.current === null) {
+    if (saving || isEditing || cellRef.current === null) {
       return;
     }
 
     setDraftValue(value);
-    setOverlayRect(getOverlayRect(cellRef.current));
     setIsEditing(true);
+  }
+
+  function handleCellPointerDown(event: PointerEvent<HTMLTableCellElement>): void {
+    if (event.button !== 0) {
+      return;
+    }
+
+    if (isEditing) {
+      event.preventDefault();
+      return;
+    }
+
+    startEditing();
   }
 
   function commitEdit(): void {
@@ -196,19 +121,37 @@ export function EditableCardTextCell(props: EditableTextCellProps): ReactElement
   const displayContent = multiline
     ? <span className="cards-cell-multiline-display">{displayText}</span>
     : displayText;
-  const overlayStyle = overlayRect === null ? null : getTextOverlayStyle(overlayRect, multiline);
+  const overlayClassName = multiline
+    ? "cell-editor-overlay cell-editor-overlay-multiline"
+    : "cell-editor-overlay";
 
   return (
-    <td ref={cellRef} className={className} onClick={saving ? undefined : startEditing}>
+    <td ref={cellRef} className={className} onPointerDown={saving ? undefined : handleCellPointerDown}>
       {displayContent}
-      {isEditing && overlayStyle !== null && createPortal(
-        multiline ? (
+      <AnchoredFloatingOverlay
+        isOpen={isEditing}
+        referenceRef={cellRef}
+        floatingRef={overlayRef}
+        placement="bottom-start"
+        viewportPaddingPx={floatingEditorViewportPaddingPx}
+        offsetPx={0}
+        minimumWidth={multiline ? { kind: "reference-or-pixels", pixels: multilineTextEditorMinimumWidthPx } : { kind: "reference" }}
+        maxWidthPx={multiline ? multilineTextEditorMaximumWidthPx : null}
+        maxHeightPx={multiline ? multilineTextEditorMaximumHeightPx : null}
+        className={overlayClassName}
+        id={null}
+        role={null}
+        ariaLabel={null}
+        ariaLabelledBy={null}
+        ariaDescribedBy={null}
+        ariaModal={null}
+      >
+        {multiline ? (
           <textarea
             ref={textareaRef}
             name="card-cell-textarea"
-            className="cell-editor-overlay cell-editor-overlay-multiline"
+            className="cell-editor-field cell-editor-field-multiline"
             value={draftValue}
-            style={overlayStyle}
             onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDraftValue(event.target.value)}
             onBlur={commitEdit}
             onKeyDown={handleKeyDown}
@@ -217,17 +160,15 @@ export function EditableCardTextCell(props: EditableTextCellProps): ReactElement
           <input
             ref={inputRef}
             name="card-cell-input"
-            className="cell-editor-overlay"
+            className="cell-editor-field"
             type="text"
             value={draftValue}
-            style={overlayStyle}
             onChange={(event: ChangeEvent<HTMLInputElement>) => setDraftValue(event.target.value)}
             onBlur={commitEdit}
             onKeyDown={handleKeyDown}
           />
-        ),
-        document.body,
-      )}
+        )}
+      </AnchoredFloatingOverlay>
     </td>
   );
 }
@@ -236,7 +177,6 @@ export function EditableCardTagsCell(props: EditableTagsCellProps): ReactElement
   const { value, suggestions, saving, onCommit, cellClassName } = props;
   const { t } = useI18n();
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [overlayRect, setOverlayRect] = useState<OverlayRect | null>(null);
   const [draftTags, setDraftTags] = useState<ReadonlyArray<string>>(value);
   const cellRef = useRef<HTMLTableCellElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -244,12 +184,15 @@ export function EditableCardTagsCell(props: EditableTagsCellProps): ReactElement
 
   const handleClose = useCallback((): void => {
     setIsOpen(false);
-    setOverlayRect(null);
     setDraftTags(value);
   }, [value]);
 
-  useOverlayTracking(isOpen, cellRef, setOverlayRect);
-  useOutsidePointerClose(isOpen, overlayRef, handleCommit);
+  useAnchoredFloatingOutsidePointerDismiss({
+    triggerRef: cellRef,
+    overlayRef,
+    enabled: isOpen,
+    onClose: handleCommit,
+  });
 
   useEffect(() => {
     if (!isOpen || editorRef.current === null) {
@@ -267,20 +210,23 @@ export function EditableCardTagsCell(props: EditableTagsCellProps): ReactElement
     setDraftTags(value);
   }, [isOpen, value]);
 
-  function handleOpen(): void {
+  function handleCellClick(): void {
     if (saving || cellRef.current === null) {
       return;
     }
 
+    if (isOpen) {
+      handleCommit();
+      return;
+    }
+
     setDraftTags(value);
-    setOverlayRect(getOverlayRect(cellRef.current));
     setIsOpen(true);
   }
 
   function handleCommit(): void {
     const nextTags = editorRef.current === null ? draftTags : editorRef.current.flushDraft();
     setIsOpen(false);
-    setOverlayRect(null);
 
     if (areSameTags(nextTags, value)) {
       setDraftTags(value);
@@ -291,10 +237,9 @@ export function EditableCardTagsCell(props: EditableTagsCellProps): ReactElement
   }
 
   const className = `txn-cell ${cellClassName}${saving ? " cards-cell-disabled" : " drilldown-editable"}`;
-  const overlayStyle = overlayRect === null ? null : getTagsOverlayStyle(overlayRect);
 
   return (
-    <td ref={cellRef} className={className} onClick={saving ? undefined : handleOpen}>
+    <td ref={cellRef} className={className} onClick={saving ? undefined : handleCellClick}>
       {value.length === 0 ? <span className="tag-value-empty">—</span> : (
         <span className="tag-value-list">
           {value.map((tag) => (
@@ -304,20 +249,34 @@ export function EditableCardTagsCell(props: EditableTagsCellProps): ReactElement
           ))}
         </span>
       )}
-      {isOpen && overlayStyle !== null && createPortal(
-        <div ref={overlayRef} className="cell-select-overlay cell-tags-overlay" style={overlayStyle}>
-          <CardTagsInput
-            ref={editorRef}
-            value={draftTags}
-            suggestions={suggestions}
-            placeholder={t("cardTags.inputPlaceholder")}
-            inputName="card-tags-editor"
-            onChange={setDraftTags}
-            onEscape={handleClose}
-          />
-        </div>,
-        document.body,
-      )}
+      <AnchoredFloatingOverlay
+        isOpen={isOpen}
+        referenceRef={cellRef}
+        floatingRef={overlayRef}
+        placement="bottom-start"
+        viewportPaddingPx={floatingEditorViewportPaddingPx}
+        offsetPx={6}
+        minimumWidth={{ kind: "reference-or-pixels", pixels: tagsEditorMinimumWidthPx }}
+        maxWidthPx={tagsEditorMaximumWidthPx}
+        maxHeightPx={tagsEditorMaximumHeightPx}
+        className="cell-select-overlay cell-tags-overlay"
+        id={null}
+        role={null}
+        ariaLabel={null}
+        ariaLabelledBy={null}
+        ariaDescribedBy={null}
+        ariaModal={null}
+      >
+        <CardTagsInput
+          ref={editorRef}
+          value={draftTags}
+          suggestions={suggestions}
+          placeholder={t("cardTags.inputPlaceholder")}
+          inputName="card-tags-editor"
+          onChange={setDraftTags}
+          onEscape={handleClose}
+        />
+      </AnchoredFloatingOverlay>
     </td>
   );
 }

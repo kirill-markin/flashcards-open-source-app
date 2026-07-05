@@ -3,21 +3,12 @@ import {
   useEffect,
   useRef,
   useState,
-  type CSSProperties,
-  type RefObject,
   type ReactElement,
 } from "react";
-import { createPortal } from "react-dom";
+import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
 import { useI18n } from "../../../i18n";
 import type { TagSuggestion } from "../../../types";
 import { areSameTags, CardTagsInput, CardTagsValue, type CardTagsInputHandle } from "../CardTagsInput";
-
-type OverlayRect = Readonly<{
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-}>;
 
 type CardFormTagsFieldProps = Readonly<{
   value: ReadonlyArray<string>;
@@ -28,91 +19,16 @@ type CardFormTagsFieldProps = Readonly<{
   disabled: boolean;
 }>;
 
-function getOverlayRect(element: HTMLElement): OverlayRect {
-  const rect = element.getBoundingClientRect();
-  return {
-    top: rect.top,
-    left: rect.left,
-    width: rect.width,
-    height: rect.height,
-  };
-}
-
-function getTagsOverlayStyle(rect: OverlayRect): CSSProperties {
-  const width = Math.max(rect.width, 320);
-  const maxLeft = Math.max(window.innerWidth - width - 12, 12);
-  const maxTop = Math.max(window.innerHeight - 320, 12);
-
-  return {
-    top: Math.min(rect.top, maxTop),
-    left: Math.min(rect.left, maxLeft),
-    width,
-  };
-}
-
-function useOverlayTracking(
-  isOpen: boolean,
-  anchorRef: RefObject<HTMLElement | null>,
-  onUpdate: (rect: OverlayRect) => void,
-): void {
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    function handleViewportChange(): void {
-      if (anchorRef.current === null) {
-        return;
-      }
-
-      onUpdate(getOverlayRect(anchorRef.current));
-    }
-
-    window.addEventListener("resize", handleViewportChange);
-    window.addEventListener("scroll", handleViewportChange, true);
-
-    return () => {
-      window.removeEventListener("resize", handleViewportChange);
-      window.removeEventListener("scroll", handleViewportChange, true);
-    };
-  }, [anchorRef, isOpen, onUpdate]);
-}
-
-function useOutsidePointerClose(
-  isOpen: boolean,
-  triggerRef: RefObject<HTMLElement | null>,
-  overlayRef: RefObject<HTMLElement | null>,
-  onClose: () => void,
-): void {
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    function handlePointerDown(event: MouseEvent): void {
-      const target = event.target as Node;
-
-      if (overlayRef.current !== null && overlayRef.current.contains(target)) {
-        return;
-      }
-
-      if (triggerRef.current !== null && triggerRef.current.contains(target)) {
-        return;
-      }
-
-      onClose();
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [isOpen, onClose, overlayRef, triggerRef]);
-}
+const tagsOverlayViewportPaddingPx = 12;
+const tagsOverlayOffsetPx = 8;
+const tagsOverlayMinimumWidthPx = 320;
+const tagsOverlayMaximumWidthPx = 420;
+const tagsOverlayMaximumHeightPx = 320;
 
 export function CardFormTagsField(props: CardFormTagsFieldProps): ReactElement {
   const { value, suggestions, inputId, inputName, onChange, disabled } = props;
   const { t } = useI18n();
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [overlayRect, setOverlayRect] = useState<OverlayRect | null>(null);
   const [draftTags, setDraftTags] = useState<ReadonlyArray<string>>(value);
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -120,12 +36,15 @@ export function CardFormTagsField(props: CardFormTagsFieldProps): ReactElement {
 
   const handleCancel = useCallback((): void => {
     setIsOpen(false);
-    setOverlayRect(null);
     setDraftTags(value);
   }, [value]);
 
-  useOverlayTracking(isOpen, triggerRef, setOverlayRect);
-  useOutsidePointerClose(isOpen, triggerRef, overlayRef, handleCommit);
+  useAnchoredFloatingOutsidePointerDismiss({
+    triggerRef,
+    overlayRef,
+    enabled: isOpen,
+    onClose: handleCommit,
+  });
 
   useEffect(() => {
     if (!isOpen || editorRef.current === null) {
@@ -143,20 +62,23 @@ export function CardFormTagsField(props: CardFormTagsFieldProps): ReactElement {
     setDraftTags(value);
   }, [isOpen, value]);
 
-  function handleOpen(): void {
+  function handleTriggerClick(): void {
     if (disabled || triggerRef.current === null) {
       return;
     }
 
+    if (isOpen) {
+      handleCommit();
+      return;
+    }
+
     setDraftTags(value);
-    setOverlayRect(getOverlayRect(triggerRef.current));
     setIsOpen(true);
   }
 
   function handleCommit(): void {
     const nextTags = editorRef.current === null ? draftTags : editorRef.current.flushDraft();
     setIsOpen(false);
-    setOverlayRect(null);
 
     if (areSameTags(nextTags, value)) {
       setDraftTags(value);
@@ -166,7 +88,6 @@ export function CardFormTagsField(props: CardFormTagsFieldProps): ReactElement {
     onChange(nextTags);
   }
 
-  const overlayStyle = overlayRect === null ? null : getTagsOverlayStyle(overlayRect);
   const triggerClassName = `settings-input card-form-tags-trigger${disabled ? " cards-cell-disabled" : ""}`;
 
   return (
@@ -174,27 +95,41 @@ export function CardFormTagsField(props: CardFormTagsFieldProps): ReactElement {
       <div
         ref={triggerRef}
         className={triggerClassName}
-        onClick={disabled ? undefined : handleOpen}
+        onClick={disabled ? undefined : handleTriggerClick}
         data-testid="card-form-tags-trigger"
       >
         <CardTagsValue tags={value} emptyLabel={t("cardTags.triggerEmpty")} />
       </div>
 
-      {isOpen && overlayStyle !== null && createPortal(
-        <div ref={overlayRef} className="cell-select-overlay cell-tags-overlay card-form-tags-overlay" style={overlayStyle}>
-          <CardTagsInput
-            ref={editorRef}
-            value={draftTags}
-            suggestions={suggestions}
-            placeholder={t("cardTags.inputPlaceholder")}
-            inputId={inputId}
-            inputName={inputName}
-            onChange={setDraftTags}
-            onEscape={handleCancel}
-          />
-        </div>,
-        document.body,
-      )}
+      <AnchoredFloatingOverlay
+        isOpen={isOpen}
+        referenceRef={triggerRef}
+        floatingRef={overlayRef}
+        placement="bottom-start"
+        viewportPaddingPx={tagsOverlayViewportPaddingPx}
+        offsetPx={tagsOverlayOffsetPx}
+        minimumWidth={{ kind: "reference-or-pixels", pixels: tagsOverlayMinimumWidthPx }}
+        maxWidthPx={tagsOverlayMaximumWidthPx}
+        maxHeightPx={tagsOverlayMaximumHeightPx}
+        className="cell-select-overlay cell-tags-overlay"
+        id={null}
+        role={null}
+        ariaLabel={null}
+        ariaLabelledBy={null}
+        ariaDescribedBy={null}
+        ariaModal={null}
+      >
+        <CardTagsInput
+          ref={editorRef}
+          value={draftTags}
+          suggestions={suggestions}
+          placeholder={t("cardTags.inputPlaceholder")}
+          inputId={inputId}
+          inputName={inputName}
+          onChange={setDraftTags}
+          onEscape={handleCancel}
+        />
+      </AnchoredFloatingOverlay>
     </>
   );
 }

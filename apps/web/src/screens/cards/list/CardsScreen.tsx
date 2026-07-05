@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { useAppData } from "../../../appData";
 import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { getCardFilterActiveDimensionCount, normalizeCardFilter } from "../../../cardFilters";
+import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
 import { useI18n } from "../../../i18n";
 import { CardTagsInput, type CardTagsInputHandle } from "../CardTagsInput";
 import { getExpectedCardMutationInlineErrorMessage } from "../cardMutationErrors";
@@ -155,6 +156,18 @@ export function CardsScreen(): ReactElement {
     installationId: cloudSettings?.installationId ?? null,
   };
 
+  const closeFilterPopoverWithoutApply = useCallback((): void => {
+    setIsFilterPopoverOpen(false);
+    setDraftCardFilter(cardFilter);
+  }, [cardFilter]);
+
+  useAnchoredFloatingOutsidePointerDismiss({
+    triggerRef: filterWrapRef,
+    overlayRef: filterPopoverRef,
+    enabled: isFilterPopoverOpen,
+    onClose: closeFilterPopoverWithoutApply,
+  });
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       setDebouncedSearchText(searchText);
@@ -305,35 +318,17 @@ export function CardsScreen(): ReactElement {
       return;
     }
 
-    function handleMouseDown(event: MouseEvent): void {
-      const target = event.target as Node;
-      if (
-        filterWrapRef.current !== null
-        && filterWrapRef.current.contains(target)
-      ) {
-        return;
-      }
-
-      setIsFilterPopoverOpen(false);
-      setDraftCardFilter(cardFilter);
-    }
-
     function handleKeyDown(event: KeyboardEvent): void {
       if (event.key !== "Escape") {
         return;
       }
 
-      setIsFilterPopoverOpen(false);
-      setDraftCardFilter(cardFilter);
+      closeFilterPopoverWithoutApply();
     }
 
-    document.addEventListener("mousedown", handleMouseDown);
     document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handleMouseDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [cardFilter, isFilterPopoverOpen]);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [closeFilterPopoverWithoutApply, isFilterPopoverOpen]);
 
   useEffect(() => {
     if (!isFilterPopoverOpen || filterTagsInputRef.current === null) {
@@ -434,8 +429,7 @@ export function CardsScreen(): ReactElement {
 
   function handleFilterToggle(): void {
     if (isFilterPopoverOpen) {
-      setIsFilterPopoverOpen(false);
-      setDraftCardFilter(cardFilter);
+      closeFilterPopoverWithoutApply();
       return;
     }
 
@@ -444,8 +438,7 @@ export function CardsScreen(): ReactElement {
   }
 
   function handleFilterCancel(): void {
-    setIsFilterPopoverOpen(false);
-    setDraftCardFilter(cardFilter);
+    closeFilterPopoverWithoutApply();
   }
 
   function handleFilterClear(): void {
@@ -518,37 +511,47 @@ export function CardsScreen(): ReactElement {
             >
               <span>{filterButtonLabel}</span>
             </button>
-            {isFilterPopoverOpen ? (
-              <div
-                ref={filterPopoverRef}
-                className="cards-filter-popover"
-                role="dialog"
-                aria-label={t("cardsScreen.filters.ariaLabel")}
-              >
-                <div className="cards-filter-section">
-                  <span className="deck-form-label">{t("cardsScreen.filters.tags")}</span>
-                  <CardTagsInput
-                    ref={filterTagsInputRef}
-                    value={draftFilterValue.tags}
-                    suggestions={tagSuggestions}
-                    placeholder={t("cardTags.inputPlaceholder")}
-                    inputName="cards-filter-tags"
-                    onChange={(nextTags) => setDraftCardFilter({
-                      tags: nextTags,
-                    })}
-                    onEscape={handleFilterCancel}
-                  />
-                </div>
-
-                <p className="subtitle cards-filter-summary">{formatCardFilterSummary(normalizeCardFilter(draftFilterValue), t)}</p>
-
-                <div className="cards-filter-actions">
-                  <button type="button" className="ghost-btn" onClick={handleFilterClear}>{t("cardsScreen.filters.actions.clear")}</button>
-                  <button type="button" className="ghost-btn" onClick={handleFilterCancel}>{t("common.cancel")}</button>
-                  <button type="button" className="primary-btn" onClick={handleFilterApply}>{t("cardsScreen.filters.actions.apply")}</button>
-                </div>
+            <AnchoredFloatingOverlay
+              isOpen={isFilterPopoverOpen}
+              referenceRef={filterWrapRef}
+              floatingRef={filterPopoverRef}
+              placement="bottom-end"
+              viewportPaddingPx={16}
+              offsetPx={10}
+              minimumWidth={{ kind: "reference-or-pixels", pixels: 420 }}
+              maxWidthPx={420}
+              maxHeightPx={520}
+              className="cards-filter-popover"
+              id={null}
+              role="dialog"
+              ariaLabel={t("cardsScreen.filters.ariaLabel")}
+              ariaLabelledBy={null}
+              ariaDescribedBy={null}
+              ariaModal={null}
+            >
+              <div className="cards-filter-section">
+                <span className="deck-form-label">{t("cardsScreen.filters.tags")}</span>
+                <CardTagsInput
+                  ref={filterTagsInputRef}
+                  value={draftFilterValue.tags}
+                  suggestions={tagSuggestions}
+                  placeholder={t("cardTags.inputPlaceholder")}
+                  inputName="cards-filter-tags"
+                  onChange={(nextTags) => setDraftCardFilter({
+                    tags: nextTags,
+                  })}
+                  onEscape={handleFilterCancel}
+                />
               </div>
-            ) : null}
+
+              <p className="subtitle cards-filter-summary">{formatCardFilterSummary(normalizeCardFilter(draftFilterValue), t)}</p>
+
+              <div className="cards-filter-actions">
+                <button type="button" className="ghost-btn" onClick={handleFilterClear}>{t("cardsScreen.filters.actions.clear")}</button>
+                <button type="button" className="ghost-btn" onClick={handleFilterCancel}>{t("common.cancel")}</button>
+                <button type="button" className="primary-btn" onClick={handleFilterApply}>{t("cardsScreen.filters.actions.apply")}</button>
+              </div>
+            </AnchoredFloatingOverlay>
           </div>
         </div>
 
