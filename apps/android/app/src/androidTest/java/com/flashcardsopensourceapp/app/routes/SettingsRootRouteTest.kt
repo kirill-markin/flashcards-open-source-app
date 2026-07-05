@@ -424,13 +424,9 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         secondRowTag: String
     ) {
         scrollSettingsRootToTag(targetTag = firstRowTag)
+        waitForSettingsRootTag(targetTag = firstRowTag)
         waitForSettingsRootTag(targetTag = secondRowTag)
-        composeRule.onNodeWithTag(testTag = firstRowTag).performScrollTo()
-        composeRule.onNodeWithTag(testTag = secondRowTag).performScrollTo()
-        waitForSettingsRootTagToBeDisplayed(targetTag = firstRowTag)
-        waitForSettingsRootTagToBeDisplayed(targetTag = secondRowTag)
         composeRule.onNodeWithTag(testTag = firstRowTag).assertIsDisplayed()
-        composeRule.onNodeWithTag(testTag = secondRowTag).assertIsDisplayed()
         val firstTop = composeRule.onNodeWithTag(testTag = firstRowTag).fetchSemanticsNode().boundsInRoot.top
         val secondTop = composeRule.onNodeWithTag(testTag = secondRowTag).fetchSemanticsNode().boundsInRoot.top
         assertTrue("$firstRowTag should appear before $secondRowTag", firstTop < secondTop)

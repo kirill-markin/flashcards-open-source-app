@@ -124,6 +124,7 @@ class NotificationTapSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
                 }
             }
         } finally {
+            liveSmokeContext.collapseNotificationShadeIfOpen()
             liveSmokeContext.clearAppNotifications(context = appContext)
         }
     }
@@ -188,6 +189,7 @@ class NotificationTapSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
                 liveSmokeContext.waitForReviewReminderBadgeToDisappear()
             }
         } finally {
+            liveSmokeContext.collapseNotificationShadeIfOpen()
             liveSmokeContext.clearReviewReminderAttentionForNotificationSmoke()
             liveSmokeContext.clearAppNotifications(context = appContext)
         }
