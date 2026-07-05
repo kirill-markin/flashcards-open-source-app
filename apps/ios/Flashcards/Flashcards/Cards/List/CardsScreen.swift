@@ -94,9 +94,11 @@ struct CardsScreen: View {
     @State private var committedFilter: CardFilter? = nil
     @State private var draftFilter: CardFilter? = nil
     @State private var cardFormState: CardFormState = CardFormState(
+        editorSessionId: UUID(),
         frontText: "",
         backText: "",
-        tags: []
+        tags: [],
+        mediaAssetIdsReadyForUpload: []
     )
     @State private var screenErrorMessage: String = ""
     @State private var cardsLoadErrorMessage: String = ""
@@ -217,6 +219,7 @@ struct CardsScreen: View {
                         }
                     },
                     onCancel: {
+                        self.finishCardEditorSession()
                         self.editorPresentation = nil
                     },
                     onSave: {
@@ -262,9 +265,11 @@ struct CardsScreen: View {
     private func beginCreating() {
         self.dismissCardsSearch()
         self.cardFormState = CardFormState(
+            editorSessionId: UUID(),
             frontText: "",
             backText: "",
-            tags: []
+            tags: [],
+            mediaAssetIdsReadyForUpload: []
         )
         self.screenErrorMessage = ""
         self.editorPresentation = .create
@@ -273,9 +278,11 @@ struct CardsScreen: View {
     private func beginEditing(card: Card) {
         self.dismissCardsSearch()
         self.cardFormState = CardFormState(
+            editorSessionId: UUID(),
             frontText: card.frontText,
             backText: card.backText,
-            tags: card.tags
+            tags: card.tags,
+            mediaAssetIdsReadyForUpload: []
         )
         self.screenErrorMessage = ""
         self.editorPresentation = .edit(cardId: card.cardId)
@@ -330,9 +337,11 @@ struct CardsScreen: View {
         do {
             try store.saveCard(
                 input: normalizedInput,
-                editingCardId: editingCardId
+                editingCardId: editingCardId,
+                mediaAssetIdsReadyForUpload: self.cardFormState.mediaAssetIdsReadyForUpload
             )
             self.screenErrorMessage = ""
+            self.finishCardEditorSession()
             Task { @MainActor in
                 await self.reloadCardsSnapshot()
             }
@@ -383,6 +392,7 @@ struct CardsScreen: View {
             return
         }
 
+        self.finishCardEditorSession()
         self.navigation.openAICardHandoff(card: cardReference)
         self.logCardsAIHandoff(
             event: .open,
@@ -416,9 +426,11 @@ struct CardsScreen: View {
         do {
             try store.saveCard(
                 input: self.normalizedCardEditorInput(),
-                editingCardId: self.editorPresentation?.editingCardId
+                editingCardId: self.editorPresentation?.editingCardId,
+                mediaAssetIdsReadyForUpload: self.cardFormState.mediaAssetIdsReadyForUpload
             )
             self.screenErrorMessage = ""
+            self.finishCardEditorSession()
             self.editorPresentation = nil
             Task { @MainActor in
                 await self.reloadCardsSnapshot()
@@ -456,6 +468,7 @@ struct CardsScreen: View {
         do {
             try store.deleteCard(cardId: editingCardId)
             self.screenErrorMessage = ""
+            self.finishCardEditorSession()
             self.editorPresentation = nil
         } catch {
             if let inlineErrorMessage = cardEditorInlineErrorMessage(error: error) {
@@ -465,6 +478,11 @@ struct CardsScreen: View {
                 store.presentTechnicalError(error)
             }
         }
+    }
+
+    private func finishCardEditorSession() {
+        self.cardFormState.editorSessionId = UUID()
+        self.cardFormState.mediaAssetIdsReadyForUpload = []
     }
 
     private func applyFilters() {

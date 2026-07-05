@@ -14,7 +14,8 @@ final class LocalDatabaseSchemaVersion17To18MigrationTests: LocalDatabaseTestCas
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         _ = try database.submitReview(
             workspaceId: workspace.workspaceId,
@@ -56,7 +57,8 @@ final class LocalDatabaseSchemaVersion17To18MigrationTests: LocalDatabaseTestCas
                 backText: "Answer",
                 tags: ["existing"]
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         let deck = try database.createDeck(
             workspaceId: workspace.workspaceId,

@@ -151,7 +151,8 @@ final class ProgressLocalStoreTests: ProgressStoreTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
 
         _ = try database.submitReview(
@@ -196,7 +197,8 @@ final class ProgressLocalStoreTests: ProgressStoreTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
 
         XCTAssertTrue(
@@ -214,7 +216,8 @@ final class ProgressLocalStoreTests: ProgressStoreTestCase {
                 backText: "Updated answer",
                 tags: ["edited"],
             ),
-            cardId: createdCard.cardId
+            cardId: createdCard.cardId,
+            mediaAssetIdsReadyForUpload: []
         )
 
         XCTAssertFalse(
@@ -292,7 +295,8 @@ final class ProgressLocalStoreTests: ProgressStoreTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         guard let dueAt else {
             return card

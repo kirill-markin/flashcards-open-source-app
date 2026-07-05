@@ -29,9 +29,11 @@ struct ReviewView: View {
     @State var isEditorPresented: Bool = false
     @State var editingCardId: String? = nil
     @State var cardFormState: CardFormState = CardFormState(
+        editorSessionId: UUID(),
         frontText: "",
         backText: "",
-        tags: []
+        tags: [],
+        mediaAssetIdsReadyForUpload: []
     )
     @State var screenErrorMessage: String = ""
     @State var reviewTagSummaries: [WorkspaceTagSummary] = []
@@ -219,12 +221,14 @@ struct ReviewView: View {
                         guard let cardReference else {
                             return
                         }
+                        self.finishCardEditorSession()
                         self.navigation.openAICardHandoff(
                             card: cardReference
                         )
                         self.isEditorPresented = false
                     },
                     onCancel: {
+                        self.finishCardEditorSession()
                         self.isEditorPresented = false
                     },
                     onSave: {

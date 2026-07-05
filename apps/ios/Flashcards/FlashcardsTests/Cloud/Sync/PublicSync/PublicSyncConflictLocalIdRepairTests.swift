@@ -13,7 +13,8 @@ final class PublicSyncConflictLocalIdRepairTests: LocalWorkspaceSyncTestCase {
                 backText: "Answer",
                 tags: ["tag"],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         _ = try database.submitReview(
             workspaceId: workspace.workspaceId,
@@ -82,7 +83,8 @@ final class PublicSyncConflictLocalIdRepairTests: LocalWorkspaceSyncTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         _ = try database.submitReview(
             workspaceId: workspace.workspaceId,

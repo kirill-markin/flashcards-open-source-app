@@ -50,6 +50,21 @@ func prepareManagedImageData(sourceImageData: Data) throws -> PreparedManagedIma
     )
 }
 
+func prepareManagedImageDataInBackground(sourceImageData: Data) async throws -> PreparedManagedImage {
+    let preparationTask = Task.detached(priority: .userInitiated) {
+        try Task.checkCancellation()
+        let preparedImage = try prepareManagedImageData(sourceImageData: sourceImageData)
+        try Task.checkCancellation()
+        return preparedImage
+    }
+
+    return try await withTaskCancellationHandler {
+        try await preparationTask.value
+    } onCancel: {
+        preparationTask.cancel()
+    }
+}
+
 private struct ManagedImageSourceMetadata: Hashable {
     let width: Int
     let height: Int

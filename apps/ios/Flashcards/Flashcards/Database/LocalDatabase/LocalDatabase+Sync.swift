@@ -308,43 +308,75 @@ extension LocalDatabase {
         }
     }
 
+    func prepareReferencedMediaAssetUploadForSavedCard(
+        workspaceId: String,
+        mediaAssetId: String,
+        createdAt: String
+    ) throws -> MediaTransferQueueEntry? {
+        try self.prepareReferencedMediaAssetUpload(
+            workspaceId: workspaceId,
+            mediaAssetId: mediaAssetId,
+            createdAt: createdAt,
+            context: .savedCard,
+            existingTransferPolicy: .anyUpload
+        )
+    }
+
     private func prepareReferencedMediaAssetUploadForHotBootstrap(
         workspaceId: String,
         mediaAssetId: String,
         createdAt: String
+    ) throws -> MediaTransferQueueEntry? {
+        try self.prepareReferencedMediaAssetUpload(
+            workspaceId: workspaceId,
+            mediaAssetId: mediaAssetId,
+            createdAt: createdAt,
+            context: .hotBootstrap,
+            existingTransferPolicy: .pendingOnly
+        )
+    }
+
+    private func prepareReferencedMediaAssetUpload(
+        workspaceId: String,
+        mediaAssetId: String,
+        createdAt: String,
+        context: ReferencedMediaAssetUploadContext,
+        existingTransferPolicy: ReferencedMediaAssetUploadExistingTransferPolicy
     ) throws -> MediaTransferQueueEntry? {
         guard let mediaAsset = try self.mediaAssetStore.loadOptionalMediaAssetIncludingDeleted(
             workspaceId: workspaceId,
             mediaAssetId: mediaAssetId
         ) else {
             throw LocalStoreError.validation(
-                "Cannot bootstrap workspace because a card references a missing media asset: workspaceId=\(workspaceId) mediaAssetId=\(mediaAssetId)"
+                "\(context.actionDescription) because a card references a missing media asset: workspaceId=\(workspaceId) mediaAssetId=\(mediaAssetId)"
             )
         }
         guard mediaAsset.deletedAt == nil else {
             throw LocalStoreError.validation(
-                "Cannot bootstrap workspace because a card references a deleted media asset: workspaceId=\(workspaceId) mediaAssetId=\(mediaAssetId)"
+                "\(context.actionDescription) because a card references a deleted media asset: workspaceId=\(workspaceId) mediaAssetId=\(mediaAssetId)"
             )
         }
 
         let normalizedSha256 = try normalizedMediaSha256(sha256: mediaAsset.sha256)
         guard let cacheEntry = try self.mediaTransferStore.loadOptionalBlobCacheEntry(sha256: normalizedSha256) else {
             throw LocalStoreError.validation(
-                "Cannot bootstrap workspace because referenced media is not cached for upload: workspaceId=\(workspaceId) mediaAssetId=\(mediaAssetId) sha256=\(normalizedSha256)"
+                "\(context.actionDescription) because referenced media is not cached for upload: workspaceId=\(workspaceId) mediaAssetId=\(mediaAssetId) sha256=\(normalizedSha256)"
             )
         }
-        try validateReferencedMediaAssetCacheForHotBootstrap(
+        try validateReferencedMediaAssetCache(
             databaseURL: self.databaseURL,
             mediaAsset: mediaAsset,
-            cacheEntry: cacheEntry
+            cacheEntry: cacheEntry,
+            context: context
         )
 
-        guard try self.mediaTransferStore.hasPendingUploadTransferMatchingAsset(
+        guard try self.hasExistingReferencedMediaAssetUploadTransfer(
             workspaceId: workspaceId,
             mediaAssetId: mediaAssetId,
             sha256: normalizedSha256,
             mimeType: mediaAsset.mimeType,
-            sizeBytes: mediaAsset.sizeBytes
+            sizeBytes: mediaAsset.sizeBytes,
+            existingTransferPolicy: existingTransferPolicy
         ) == false else {
             return nil
         }
@@ -362,6 +394,53 @@ extension LocalDatabase {
             )
         )
     }
+
+    private func hasExistingReferencedMediaAssetUploadTransfer(
+        workspaceId: String,
+        mediaAssetId: String,
+        sha256: String,
+        mimeType: String,
+        sizeBytes: Int64,
+        existingTransferPolicy: ReferencedMediaAssetUploadExistingTransferPolicy
+    ) throws -> Bool {
+        switch existingTransferPolicy {
+        case .pendingOnly:
+            return try self.mediaTransferStore.hasPendingUploadTransferMatchingAsset(
+                workspaceId: workspaceId,
+                mediaAssetId: mediaAssetId,
+                sha256: sha256,
+                mimeType: mimeType,
+                sizeBytes: sizeBytes
+            )
+        case .anyUpload:
+            return try self.mediaTransferStore.hasUploadTransferMatchingAsset(
+                workspaceId: workspaceId,
+                mediaAssetId: mediaAssetId,
+                sha256: sha256,
+                mimeType: mimeType,
+                sizeBytes: sizeBytes
+            )
+        }
+    }
+}
+
+private enum ReferencedMediaAssetUploadContext {
+    case hotBootstrap
+    case savedCard
+
+    var actionDescription: String {
+        switch self {
+        case .hotBootstrap:
+            return "Cannot bootstrap workspace"
+        case .savedCard:
+            return "Cannot save card"
+        }
+    }
+}
+
+private enum ReferencedMediaAssetUploadExistingTransferPolicy {
+    case pendingOnly
+    case anyUpload
 }
 
 private func managedMediaAssetIdsReferencedByCards(cards: [Card]) -> Set<String> {
@@ -371,16 +450,17 @@ private func managedMediaAssetIdsReferencedByCards(cards: [Card]) -> Set<String>
     }
 }
 
-private func validateReferencedMediaAssetCacheForHotBootstrap(
+private func validateReferencedMediaAssetCache(
     databaseURL: URL,
     mediaAsset: MediaAsset,
-    cacheEntry: MediaBlobCacheEntry
+    cacheEntry: MediaBlobCacheEntry,
+    context: ReferencedMediaAssetUploadContext
 ) throws {
     let normalizedSha256 = try normalizedMediaSha256(sha256: mediaAsset.sha256)
     let expectedRelativePath = try mediaBlobCacheRelativePath(sha256: normalizedSha256)
     guard mediaAsset.sizeBytes > 0 else {
         throw LocalStoreError.validation(
-            "Cannot bootstrap workspace because referenced media asset size must be positive: mediaAssetId=\(mediaAsset.mediaAssetId) sizeBytes=\(mediaAsset.sizeBytes)"
+            "\(context.actionDescription) because referenced media asset size must be positive: mediaAssetId=\(mediaAsset.mediaAssetId) sizeBytes=\(mediaAsset.sizeBytes)"
         )
     }
     guard cacheEntry.sha256 == normalizedSha256,
@@ -388,7 +468,7 @@ private func validateReferencedMediaAssetCacheForHotBootstrap(
           cacheEntry.mimeType.lowercased() == mediaAsset.mimeType.lowercased(),
           cacheEntry.sizeBytes == mediaAsset.sizeBytes else {
         throw LocalStoreError.validation(
-            "Cannot bootstrap workspace because referenced media cache metadata does not match the media asset: mediaAssetId=\(mediaAsset.mediaAssetId)"
+            "\(context.actionDescription) because referenced media cache metadata does not match the media asset: mediaAssetId=\(mediaAsset.mediaAssetId)"
         )
     }
 
@@ -397,29 +477,31 @@ private func validateReferencedMediaAssetCacheForHotBootstrap(
         .appendingPathComponent(cacheEntry.localRelativePath, isDirectory: false)
     guard FileManager.default.fileExists(atPath: cacheURL.path) else {
         throw LocalStoreError.validation(
-            "Cannot bootstrap workspace because referenced media cache file is missing: mediaAssetId=\(mediaAsset.mediaAssetId) path=\(cacheEntry.localRelativePath)"
+            "\(context.actionDescription) because referenced media cache file is missing: mediaAssetId=\(mediaAsset.mediaAssetId) path=\(cacheEntry.localRelativePath)"
         )
     }
 
     let fileValidation = try streamReferencedMediaAssetCacheFileValidation(
         fileURL: cacheURL,
-        mediaAssetId: mediaAsset.mediaAssetId
+        mediaAssetId: mediaAsset.mediaAssetId,
+        context: context
     )
     guard fileValidation.sizeBytes == mediaAsset.sizeBytes else {
         throw LocalStoreError.validation(
-            "Cannot bootstrap workspace because referenced media cache file size does not match the media asset: mediaAssetId=\(mediaAsset.mediaAssetId) expected=\(mediaAsset.sizeBytes) actual=\(fileValidation.sizeBytes)"
+            "\(context.actionDescription) because referenced media cache file size does not match the media asset: mediaAssetId=\(mediaAsset.mediaAssetId) expected=\(mediaAsset.sizeBytes) actual=\(fileValidation.sizeBytes)"
         )
     }
     guard fileValidation.sha256 == normalizedSha256 else {
         throw LocalStoreError.validation(
-            "Cannot bootstrap workspace because referenced media cache file SHA-256 does not match the media asset: mediaAssetId=\(mediaAsset.mediaAssetId) expected=\(normalizedSha256) actual=\(fileValidation.sha256)"
+            "\(context.actionDescription) because referenced media cache file SHA-256 does not match the media asset: mediaAssetId=\(mediaAsset.mediaAssetId) expected=\(normalizedSha256) actual=\(fileValidation.sha256)"
         )
     }
 }
 
 private func streamReferencedMediaAssetCacheFileValidation(
     fileURL: URL,
-    mediaAssetId: String
+    mediaAssetId: String,
+    context: ReferencedMediaAssetUploadContext
 ) throws -> ReferencedMediaAssetCacheFileValidation {
     do {
         let fileHandle = try FileHandle(forReadingFrom: fileURL)
@@ -431,7 +513,7 @@ private func streamReferencedMediaAssetCacheFileValidation(
         throw error
     } catch {
         throw LocalStoreError.validation(
-            "Cannot bootstrap workspace because referenced media cache file is unreadable: mediaAssetId=\(mediaAssetId) path=\(fileURL.path) error=\(Flashcards.errorMessage(error: error))"
+            "\(context.actionDescription) because referenced media cache file is unreadable: mediaAssetId=\(mediaAssetId) path=\(fileURL.path) error=\(Flashcards.errorMessage(error: error))"
         )
     }
 }

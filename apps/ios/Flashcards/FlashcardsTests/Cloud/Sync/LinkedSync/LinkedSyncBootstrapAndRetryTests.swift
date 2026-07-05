@@ -136,7 +136,8 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                 backText: "Answer",
                 tags: ["tag"],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
 
         let configuration = URLSessionConfiguration.ephemeral
@@ -181,7 +182,8 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                     backText: "Answer \(cardIndex)",
                     tags: [],
                 ),
-                cardId: nil
+                cardId: nil,
+                mediaAssetIdsReadyForUpload: []
             )
         }
         XCTAssertEqual(cardCount, try self.loadOutboxCount(database: database))
@@ -271,7 +273,8 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                 backText: "Answer",
                 tags: ["tag"],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         let savedDeck = try database.createDeck(
             workspaceId: workspace.workspaceId,
@@ -332,7 +335,8 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                 backText: "Local dirty answer",
                 tags: ["local"],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         let savedDeck = try database.createDeck(
             workspaceId: workspace.workspaceId,
@@ -398,7 +402,8 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                 backText: "Local dirty answer",
                 tags: ["local"],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         XCTAssertEqual(1, try self.loadOutboxCount(database: database))
 
@@ -478,7 +483,8 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         _ = try database.submitReview(
             workspaceId: workspace.workspaceId,
@@ -534,7 +540,8 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         _ = try database.submitReview(
             workspaceId: workspace.workspaceId,
@@ -590,7 +597,8 @@ final class LinkedSyncBootstrapAndRetryTests: LocalWorkspaceSyncTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         _ = try database.submitReview(
             workspaceId: workspace.workspaceId,

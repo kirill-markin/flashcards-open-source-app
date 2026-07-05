@@ -1,19 +1,31 @@
 import Foundation
 
 extension LocalDatabase {
-    func saveCard(workspaceId: String, input: CardEditorInput, cardId: String?) throws -> Card {
+    func saveCard(
+        workspaceId: String,
+        input: CardEditorInput,
+        cardId: String?,
+        mediaAssetIdsReadyForUpload: Set<String>
+    ) throws -> Card {
         try self.cardStore.validateCardInput(input: input)
 
         return try self.core.inTransaction {
             let now = nowIsoTimestamp()
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
-            return try self.persistCardMutation(
+            let persistedCard = try self.persistCardMutation(
                 workspaceId: workspaceId,
                 input: input,
                 cardId: cardId,
                 cloudSettings: cloudSettings,
                 now: now
             )
+            try self.prepareCardMediaUploadsAfterSave(
+                workspaceId: workspaceId,
+                input: input,
+                mediaAssetIdsReadyForUpload: mediaAssetIdsReadyForUpload,
+                createdAt: now
+            )
+            return persistedCard
         }
     }
 
@@ -186,6 +198,28 @@ extension LocalDatabase {
         let uniqueCardIds = Set(cardIds)
         if uniqueCardIds.count != cardIds.count {
             throw LocalStoreError.validation("Card batch must not contain duplicate cardId values")
+        }
+    }
+
+    private func prepareCardMediaUploadsAfterSave(
+        workspaceId: String,
+        input: CardEditorInput,
+        mediaAssetIdsReadyForUpload: Set<String>,
+        createdAt: String
+    ) throws {
+        guard mediaAssetIdsReadyForUpload.isEmpty == false else {
+            return
+        }
+
+        let referencedMediaAssetIds = managedMediaAssetIdsReferencedInMarkdown(text: input.frontText)
+            .union(managedMediaAssetIdsReferencedInMarkdown(text: input.backText))
+            .intersection(mediaAssetIdsReadyForUpload)
+        for mediaAssetId in referencedMediaAssetIds.sorted() {
+            _ = try self.prepareReferencedMediaAssetUploadForSavedCard(
+                workspaceId: workspaceId,
+                mediaAssetId: mediaAssetId,
+                createdAt: createdAt
+            )
         }
     }
 }

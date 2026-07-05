@@ -177,7 +177,8 @@ final class ProgressReviewSchedulePendingOverlayTests: ProgressStoreTestCase {
                 backText: "Answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         let initialOutboxEntries = try database.loadOutboxEntries(
             workspaceId: workspace.workspaceId,
@@ -231,7 +232,8 @@ final class ProgressReviewSchedulePendingOverlayTests: ProgressStoreTestCase {
                 backText: "Updated answer",
                 tags: ["edited"],
             ),
-            cardId: existingCard.cardId
+            cardId: existingCard.cardId,
+            mediaAssetIdsReadyForUpload: []
         )
 
         XCTAssertFalse(
@@ -260,7 +262,8 @@ final class ProgressReviewSchedulePendingOverlayTests: ProgressStoreTestCase {
                 backText: "New answer",
                 tags: [],
             ),
-            cardId: nil
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
         )
         context.store.handleReviewScheduleLocalCardStateDidChange(now: now)
 
