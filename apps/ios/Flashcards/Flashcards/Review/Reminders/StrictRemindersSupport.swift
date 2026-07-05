@@ -521,6 +521,7 @@ func strictReminderSchedulingDelaySecondsRange(
     )
 }
 
+@MainActor
 func pendingStrictReminderRequestIdentifiers(
     center: UNUserNotificationCenter
 ) async -> [String] {
@@ -535,6 +536,7 @@ func pendingStrictReminderRequestIdentifiers(
     }
 }
 
+@MainActor
 @discardableResult
 func removePendingStrictReminders(
     center: UNUserNotificationCenter
@@ -542,6 +544,7 @@ func removePendingStrictReminders(
     await removePendingStrictReminders(center: center, userDefaults: .standard)
 }
 
+@MainActor
 @discardableResult
 func removePendingStrictReminders(
     center: UNUserNotificationCenter,
@@ -557,6 +560,7 @@ func removePendingStrictReminders(
     return removedCount
 }
 
+@MainActor
 @discardableResult
 func removePendingStrictReminders(
     center: UNUserNotificationCenter,
@@ -590,6 +594,7 @@ func removePendingStrictReminders(
     return pendingRequestIdentifiers.count
 }
 
+@MainActor
 func deliveredStrictReminderRequestIdentifiers(
     center: UNUserNotificationCenter
 ) async -> [String] {
@@ -604,6 +609,7 @@ func deliveredStrictReminderRequestIdentifiers(
     }
 }
 
+@MainActor
 func deliveredStrictReminderRequestIdentifiers(
     center: UNUserNotificationCenter,
     removalScope: String?
@@ -630,6 +636,7 @@ func deliveredStrictReminderRequestIdentifiers(
     }
 }
 
+@MainActor
 func deliveredStrictReminderRequestIdentifiers(
     center: UNUserNotificationCenter,
     removalScopes: [String?]
@@ -665,6 +672,7 @@ func deliveredStrictReminderRequestIdentifiers(
     }
 }
 
+@MainActor
 @discardableResult
 func removeDeliveredStrictReminders(
     center: UNUserNotificationCenter
@@ -672,6 +680,7 @@ func removeDeliveredStrictReminders(
     await removeDeliveredStrictReminders(center: center, userDefaults: .standard)
 }
 
+@MainActor
 @discardableResult
 func removeDeliveredStrictReminders(
     center: UNUserNotificationCenter,
@@ -685,6 +694,7 @@ func removeDeliveredStrictReminders(
     )
 }
 
+@MainActor
 @discardableResult
 func removeDeliveredStrictReminders(
     center: UNUserNotificationCenter,
@@ -700,6 +710,7 @@ func removeDeliveredStrictReminders(
     )
 }
 
+@MainActor
 @discardableResult
 func removeDeliveredStrictReminders(
     center: UNUserNotificationCenter,
@@ -713,6 +724,7 @@ func removeDeliveredStrictReminders(
     return requestIdentifiers.count
 }
 
+@MainActor
 @discardableResult
 func removePendingAndDeliveredStrictReminders(
     center: UNUserNotificationCenter
@@ -720,6 +732,7 @@ func removePendingAndDeliveredStrictReminders(
     await removePendingAndDeliveredStrictReminders(center: center, userDefaults: .standard)
 }
 
+@MainActor
 @discardableResult
 func removePendingAndDeliveredStrictReminders(
     center: UNUserNotificationCenter,
@@ -736,6 +749,7 @@ func removePendingAndDeliveredStrictReminders(
     return removedCount
 }
 
+@MainActor
 @discardableResult
 func removeDeliveredStrictReminders(
     center: UNUserNotificationCenter,
@@ -753,6 +767,7 @@ func removeDeliveredStrictReminders(
     return deliveredRequestIdentifiers.count
 }
 
+@MainActor
 @discardableResult
 func removePendingAndDeliveredStrictReminders(
     center: UNUserNotificationCenter,
