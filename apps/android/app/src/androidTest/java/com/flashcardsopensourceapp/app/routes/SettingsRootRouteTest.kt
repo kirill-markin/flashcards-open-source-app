@@ -2,14 +2,14 @@ package com.flashcardsopensourceapp.app.routes
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
@@ -59,6 +59,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+
+private const val settingsRouteUiTimeoutMillis: Long = 5_000L
 
 @RunWith(AndroidJUnit4::class)
 class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
@@ -407,25 +409,27 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     private fun assertSectionVisible(sectionTag: String) {
-        composeRule.onNodeWithTag(testTag = settingsRootScreenTag)
-            .performScrollToNode(matcher = hasTestTag(sectionTag))
-        composeRule.onNodeWithTag(sectionTag).assertIsDisplayed()
+        scrollSettingsRootTargetIntoView(targetTag = sectionTag)
+        composeRule.onNodeWithTag(testTag = sectionTag).assertIsDisplayed()
     }
 
     private fun assertRootRowVisible(rowTag: String) {
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(matcher = hasTestTag(rowTag))
-        composeRule.onNodeWithTag(rowTag).assertIsDisplayed()
+        scrollSettingsRootTargetIntoView(targetTag = rowTag)
+        composeRule.onNodeWithTag(testTag = rowTag).assertIsDisplayed()
     }
 
     private fun assertRootRowOrder(
         firstRowTag: String,
         secondRowTag: String
     ) {
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(matcher = hasTestTag(firstRowTag))
-        composeRule.onNodeWithTag(firstRowTag).assertIsDisplayed()
-        composeRule.onNodeWithTag(secondRowTag).assertIsDisplayed()
-        val firstTop = composeRule.onNodeWithTag(firstRowTag).fetchSemanticsNode().boundsInRoot.top
-        val secondTop = composeRule.onNodeWithTag(secondRowTag).fetchSemanticsNode().boundsInRoot.top
+        scrollSettingsRootToTag(targetTag = firstRowTag)
+        waitForSettingsRootTag(targetTag = secondRowTag)
+        composeRule.onNodeWithTag(testTag = firstRowTag).performScrollTo()
+        composeRule.onNodeWithTag(testTag = secondRowTag).performScrollTo()
+        composeRule.onNodeWithTag(testTag = firstRowTag).assertIsDisplayed()
+        composeRule.onNodeWithTag(testTag = secondRowTag).assertIsDisplayed()
+        val firstTop = composeRule.onNodeWithTag(testTag = firstRowTag).fetchSemanticsNode().boundsInRoot.top
+        val secondTop = composeRule.onNodeWithTag(testTag = secondRowTag).fetchSemanticsNode().boundsInRoot.top
         assertTrue("$firstRowTag should appear before $secondRowTag", firstTop < secondTop)
     }
 
@@ -434,9 +438,28 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         expectedClick: String,
         clickedRows: MutableList<String>
     ) {
-        assertRootRowVisible(rowTag = rowTag)
-        composeRule.onNodeWithTag(rowTag).performClick()
+        scrollSettingsRootTargetIntoView(targetTag = rowTag)
+        composeRule.onNodeWithTag(testTag = rowTag).assertIsDisplayed()
+        composeRule.onNodeWithTag(testTag = rowTag).performScrollTo()
+        composeRule.onNodeWithTag(testTag = rowTag).performClick()
         assertEquals(expectedClick, clickedRows.last())
+    }
+
+    private fun scrollSettingsRootTargetIntoView(targetTag: String) {
+        scrollSettingsRootToTag(targetTag = targetTag)
+        composeRule.onNodeWithTag(testTag = targetTag).performScrollTo()
+    }
+
+    private fun scrollSettingsRootToTag(targetTag: String) {
+        composeRule.onNodeWithTag(testTag = settingsRootScreenTag)
+            .performScrollToNode(matcher = hasTestTag(targetTag))
+        waitForSettingsRootTag(targetTag = targetTag)
+    }
+
+    private fun waitForSettingsRootTag(targetTag: String) {
+        composeRule.waitUntil(timeoutMillis = settingsRouteUiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(testTag = targetTag).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     private fun assertTestSettingsRowVisible(rowTag: String) {
