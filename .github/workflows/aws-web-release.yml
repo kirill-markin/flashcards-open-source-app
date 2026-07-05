@@ -14,6 +14,7 @@ on:
       - 'scripts/checks/check-agent-api-smoke.sh'
       - 'scripts/checks/check-api-health.sh'
       - 'scripts/checks/check-demo-cognito-users.sh'
+      - 'scripts/checks/check-mcp-smoke.sh'
       - 'scripts/checks/check-public-endpoints.sh'
       - 'scripts/deploy/deploy-admin.sh'
       - 'scripts/deploy/deploy-web.sh'
@@ -63,7 +64,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          aws_release_script_pattern='^scripts/(checks/(check-agent-api-smoke|check-api-health|check-demo-cognito-users|check-public-endpoints)\.sh|deploy/(deploy-admin|deploy-web|migrate-aws)\.sh|generate/(generate-global-metrics-snapshot\.sh|write-ci-cdk-context\.py))$'
+          aws_release_script_pattern='^scripts/(checks/(check-agent-api-smoke|check-api-health|check-demo-cognito-users|check-mcp-smoke|check-public-endpoints)\.sh|deploy/(deploy-admin|deploy-web|migrate-aws)\.sh|generate/(generate-global-metrics-snapshot\.sh|write-ci-cdk-context\.py))$'
 
           changed_files_path="${RUNNER_TEMP}/changed-files.txt"
           before_sha="${PUSH_BEFORE_SHA:-}"
@@ -214,6 +215,10 @@ jobs:
       - name: Build backend
         if: ${{ needs.changes.outputs.backend_changed == 'true' }}
         run: npm run build --prefix apps/backend
+
+      - name: Test backend MCP protocol
+        if: ${{ needs.changes.outputs.backend_changed == 'true' }}
+        run: npm run test:mcp --prefix apps/backend
 
       - name: Build web app
         if: ${{ needs.changes.outputs.web_changed == 'true' }}
@@ -407,6 +412,7 @@ jobs:
             echo "- Deployed SHA: \`${GITHUB_SHA}\`"
             echo "- Web post-deploy smoke: pending next job"
             echo "- Agent API post-deploy smoke: pending next job"
+            echo "- MCP post-deploy smoke: pending next job"
             echo ""
             echo "Manual admin smoke remains required for \`https://admin.<domain>\`."
           } >> "${GITHUB_STEP_SUMMARY}"
@@ -555,6 +561,39 @@ jobs:
             echo "- Result: \`${{ steps.agent_smoke.outcome }}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
+  mcp_smoke:
+    name: MCP post-deploy smoke
+    needs:
+      - changes
+      - aws_deploy
+    if: ${{ needs.changes.outputs.aws_changed == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run MCP smoke test
+        id: mcp_smoke
+        env:
+          FLASHCARDS_MCP_SMOKE_AUTH_BASE_URL: https://auth.flashcards-open-source-app.com
+          FLASHCARDS_MCP_SMOKE_API_BASE_URL: https://api.flashcards-open-source-app.com/v1
+          FLASHCARDS_MCP_SMOKE_MCP_BASE_URL: https://mcp.flashcards-open-source-app.com
+          FLASHCARDS_MCP_SMOKE_DEMO_EMAIL: google-review@example.com
+          FLASHCARDS_MCP_SMOKE_WORKSPACE_PREFIX: "E2E mcp "
+          FLASHCARDS_MCP_SMOKE_CONNECTION_LABEL_PREFIX: "E2E mcp "
+        run: bash scripts/checks/check-mcp-smoke.sh
+
+      - name: Summarize smoke result
+        if: always()
+        run: |
+          {
+            echo "## MCP post-deploy smoke"
+            echo ""
+            echo "- Deployed SHA: \`${GITHUB_SHA}\`"
+            echo "- Result: \`${{ steps.mcp_smoke.outcome }}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
   aws_release_status:
     name: Resolve AWS release outcome
     needs:
@@ -563,6 +602,7 @@ jobs:
       - aws_deploy
       - web_smoke
       - agent_api_smoke
+      - mcp_smoke
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     outputs:
@@ -585,6 +625,8 @@ jobs:
               aws_release_status="web_smoke_failed"
             elif [[ "${{ needs.agent_api_smoke.result }}" != "success" ]]; then
               aws_release_status="agent_api_smoke_failed"
+            elif [[ "${{ needs.mcp_smoke.result }}" != "success" ]]; then
+              aws_release_status="mcp_smoke_failed"
             else
               aws_release_status="released"
             fi
@@ -609,6 +651,7 @@ jobs:
       - aws_deploy
       - web_smoke
       - agent_api_smoke
+      - mcp_smoke
       - aws_release_status
     runs-on: ubuntu-24.04
 
@@ -624,6 +667,7 @@ jobs:
             echo "- AWS deploy job: \`${{ needs.aws_deploy.result }}\`"
             echo "- Web smoke job: \`${{ needs.web_smoke.result }}\`"
             echo "- Agent API smoke job: \`${{ needs.agent_api_smoke.result }}\`"
+            echo "- MCP smoke job: \`${{ needs.mcp_smoke.result }}\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"
 
