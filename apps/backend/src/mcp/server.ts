@@ -2,6 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { runSqlExecute, runSqlQuery } from "../aiTools/agentSql";
+import type { AgentSqlContext, AgentSqlExecutionResult } from "../aiTools/agentSql/shared";
 import {
   FRONT_BACK_CONTRACT,
   SQL_EXECUTE_TOOL_DESCRIPTION,
@@ -9,7 +10,10 @@ import {
   SQL_QUERY_TOOL_DESCRIPTION,
   SQL_QUERY_TOOL_NAME,
 } from "../aiTools/toolContract/sqlToolContract";
-import { resolveAccessibleMcpWorkspaceId } from "../server/requestContext";
+import {
+  resolveAccessibleMcpWorkspaceId,
+  type WorkspaceRequestContext,
+} from "../server/requestContext";
 import { createAgentEnvelope, createAgentErrorEnvelope } from "../agent/envelope";
 import { createPublicHttpErrorDetails, HttpError } from "../shared/errors";
 import {
@@ -45,6 +49,26 @@ const SERVER_INSTRUCTIONS =
 const LIST_WORKSPACES_TOOL_NAME = "list_workspaces";
 const LIST_WORKSPACES_TOOL_DESCRIPTION =
   "Lists the workspaces you can access, each with its workspaceId, name, active card count, last activity timestamp, and an isSelected flag marking your current default workspace. Use the returned workspaceId values for the sql_query and sql_execute workspaceId argument; pick the isSelected one to stay on the default.";
+
+export type McpServerDependencies = Readonly<{
+  resolveAccessibleMcpWorkspaceId: (
+    requestContext: WorkspaceRequestContext,
+    explicitWorkspaceId: string | undefined,
+  ) => Promise<string>;
+  runSqlQuery: (context: AgentSqlContext, sql: string) => Promise<AgentSqlExecutionResult>;
+  runSqlExecute: (context: AgentSqlContext, sql: string) => Promise<AgentSqlExecutionResult>;
+  listUserWorkspacesWithStatsForSelectedWorkspace: (
+    userId: string,
+    selectedWorkspaceId: string | null,
+  ) => Promise<ReadonlyArray<WorkspaceSummaryWithStats>>;
+}>;
+
+const DEFAULT_MCP_SERVER_DEPENDENCIES: McpServerDependencies = {
+  resolveAccessibleMcpWorkspaceId,
+  runSqlQuery,
+  runSqlExecute,
+  listUserWorkspacesWithStatsForSelectedWorkspace,
+};
 
 function buildToolResultText(payload: unknown): string {
   return JSON.stringify(payload, null, 2);
@@ -100,8 +124,9 @@ function createMcpToolInstructions(code: string | null, statusCode: number, tool
 // `error.details.workspaces` on WORKSPACE_SELECTION_REQUIRED.
 async function buildWorkspaceSelectionDetails(
   connection: AuthenticatedMcpAccessToken,
+  dependencies: McpServerDependencies,
 ): Promise<{ workspaces: ReadonlyArray<WorkspaceSummaryWithStats> }> {
-  const workspaces = await listUserWorkspacesWithStatsForSelectedWorkspace(
+  const workspaces = await dependencies.listUserWorkspacesWithStatsForSelectedWorkspace(
     connection.userId,
     connection.selectedWorkspaceId,
   );
@@ -128,6 +153,7 @@ async function buildToolErrorResult(
   resourceUrl: string,
   connection: AuthenticatedMcpAccessToken,
   toolName: string,
+  dependencies: McpServerDependencies,
 ): Promise<CallToolResult> {
   const userId = connection.userId;
   if (error instanceof HttpError) {
@@ -187,7 +213,10 @@ async function buildToolErrorResult(
       // WORKSPACE_SELECTION_REQUIRED envelope so the model still receives the
       // correct code + remediation text instead of an unhandled rejection.
       try {
-        const workspaceSelectionDetails = await buildWorkspaceSelectionDetails(connection);
+        const workspaceSelectionDetails = await buildWorkspaceSelectionDetails(
+          connection,
+          dependencies,
+        );
         return {
           isError: true,
           content: buildToolResult({
@@ -312,6 +341,22 @@ export function createMcpServer(
   websiteUrl: string,
   iconUrl: string,
 ): McpServer {
+  return createMcpServerWithDependencies(
+    connection,
+    resourceUrl,
+    websiteUrl,
+    iconUrl,
+    DEFAULT_MCP_SERVER_DEPENDENCIES,
+  );
+}
+
+export function createMcpServerWithDependencies(
+  connection: AuthenticatedMcpAccessToken,
+  resourceUrl: string,
+  websiteUrl: string,
+  iconUrl: string,
+  dependencies: McpServerDependencies,
+): McpServer {
   const server = new McpServer(
     {
       name: SERVER_NAME,
@@ -326,7 +371,7 @@ export function createMcpServer(
   );
 
   async function resolveWorkspaceId(requestedWorkspaceId: string | undefined): Promise<string> {
-    return resolveAccessibleMcpWorkspaceId(
+    return dependencies.resolveAccessibleMcpWorkspaceId(
       {
         userId: connection.userId,
         selectedWorkspaceId: connection.selectedWorkspaceId,
@@ -366,7 +411,7 @@ export function createMcpServer(
     async ({ sql, workspaceId: requestedWorkspaceId }): Promise<CallToolResult> => {
       try {
         const workspaceId = await resolveWorkspaceId(requestedWorkspaceId);
-        const result = await runSqlQuery({
+        const result = await dependencies.runSqlQuery({
           userId: connection.userId,
           workspaceId,
           selectedWorkspaceId: connection.selectedWorkspaceId,
@@ -377,7 +422,13 @@ export function createMcpServer(
           createAgentEnvelope(resourceUrl, result.data, result.instructions),
         );
       } catch (error) {
-        return buildToolErrorResult(error, resourceUrl, connection, SQL_QUERY_TOOL_NAME);
+        return buildToolErrorResult(
+          error,
+          resourceUrl,
+          connection,
+          SQL_QUERY_TOOL_NAME,
+          dependencies,
+        );
       }
     },
   );
@@ -411,7 +462,7 @@ export function createMcpServer(
     async ({ sql, workspaceId: requestedWorkspaceId }): Promise<CallToolResult> => {
       try {
         const workspaceId = await resolveWorkspaceId(requestedWorkspaceId);
-        const result = await runSqlExecute({
+        const result = await dependencies.runSqlExecute({
           userId: connection.userId,
           workspaceId,
           selectedWorkspaceId: connection.selectedWorkspaceId,
@@ -422,7 +473,13 @@ export function createMcpServer(
           createAgentEnvelope(resourceUrl, result.data, result.instructions),
         );
       } catch (error) {
-        return buildToolErrorResult(error, resourceUrl, connection, SQL_EXECUTE_TOOL_NAME);
+        return buildToolErrorResult(
+          error,
+          resourceUrl,
+          connection,
+          SQL_EXECUTE_TOOL_NAME,
+          dependencies,
+        );
       }
     },
   );
@@ -437,7 +494,7 @@ export function createMcpServer(
     },
     async (): Promise<CallToolResult> => {
       try {
-        const workspaces = await listUserWorkspacesWithStatsForSelectedWorkspace(
+        const workspaces = await dependencies.listUserWorkspacesWithStatsForSelectedWorkspace(
           connection.userId,
           connection.selectedWorkspaceId,
         );
@@ -450,7 +507,13 @@ export function createMcpServer(
           ),
         );
       } catch (error) {
-        return buildToolErrorResult(error, resourceUrl, connection, LIST_WORKSPACES_TOOL_NAME);
+        return buildToolErrorResult(
+          error,
+          resourceUrl,
+          connection,
+          LIST_WORKSPACES_TOOL_NAME,
+          dependencies,
+        );
       }
     },
   );
