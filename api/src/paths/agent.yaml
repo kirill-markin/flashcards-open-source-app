@@ -125,13 +125,14 @@ get:
               again only for risky or unclear actions. Create JPEG, PNG, or
               WebP image assets up to 4000000 bytes with POST
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/images.
-              For other media assets, create a multipart upload session with POST
+              For card-editor media authoring and other direct-transfer media
+              assets, create a multipart upload session with POST
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions.
               If status is already_available, use the returned mediaAsset and
               skip byte upload. If status is upload_required, request signed
               part URLs with POST
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts,
-              upload each part with the returned signed URL, method, and
+              upload each part directly to S3 with the returned signed URL, method, and
               headers, then complete the upload with POST
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/complete.
               Abort unused sessions with POST
@@ -140,7 +141,8 @@ get:
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}
               for registry metadata and GET
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url
-              for a range-capable direct download URL. Use POST
+              for a range-capable direct S3 download URL that accepts client
+              Range headers while valid. Use POST
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/export/preview
               to preview a portable workspace package export, then POST
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/export

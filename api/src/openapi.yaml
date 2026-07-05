@@ -46,8 +46,10 @@ tags:
       server-side and are not part of this public contract.
   - name: media-assets
     description: >-
-      Workspace-scoped media asset registry metadata and direct private object
-      transfer URLs.
+      Workspace-scoped media asset registry metadata and direct private S3
+      transfer URLs. Multipart upload bytes go to presigned PUT part URLs, and
+      download bytes come from presigned GET URLs that accept client Range
+      headers while valid.
   - name: workspace-packages
     description: >-
       Workspace-scoped package export, import preview, import confirmation, and

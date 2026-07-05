@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  createPresignedMediaAssetDownloadWithDependencies,
   createPresignedMediaAssetUploadPartsWithDependencies,
   createPresignedMediaAssetUploadWithDependencies,
 } from ".";
 import {
   createTestS3Client,
   getTestMediaAssetsStorageConfig,
+  testBlobStorageKey,
   testLastOperationId,
   testLastOperationIdSha256,
   testMediaAssetId,
@@ -77,4 +79,29 @@ test("createPresignedMediaAssetUploadPartsWithDependencies signs per-part checks
   const signedHeaders = new URL(partUrl?.url ?? "").searchParams.get("X-Amz-SignedHeaders");
   assert.notEqual(signedHeaders, null);
   assert.ok(new Set(signedHeaders?.split(";") ?? []).has("x-amz-checksum-sha256"));
+});
+
+test("createPresignedMediaAssetDownloadWithDependencies creates a direct range-compatible S3 GET URL", async () => {
+  const download = await createPresignedMediaAssetDownloadWithDependencies(
+    {
+      workspaceId: testWorkspaceId,
+      mediaAssetId: testMediaAssetId,
+      storageKey: testBlobStorageKey,
+      observationScope: testObservationScope,
+    },
+    {
+      s3Client: createTestS3Client(),
+      getMediaAssetsStorageConfigFn: getTestMediaAssetsStorageConfig,
+    },
+  );
+
+  const downloadUrl = new URL(download.url);
+  const signedHeaders = downloadUrl.searchParams.get("X-Amz-SignedHeaders");
+
+  assert.equal(download.method, "GET");
+  assert.equal(download.rangeRequests, true);
+  assert.equal(downloadUrl.protocol, "https:");
+  assert.equal(downloadUrl.hostname, "test-media-assets-bucket.s3.us-east-1.amazonaws.com");
+  assert.equal(decodeURIComponent(downloadUrl.pathname), `/${testBlobStorageKey}`);
+  assert.equal(signedHeaders, "host");
 });

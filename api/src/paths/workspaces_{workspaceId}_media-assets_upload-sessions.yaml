@@ -6,8 +6,9 @@ post:
     Creates or reuses the logical media asset for final normalized bytes. If
     matching media bytes are already available, the response is already_available
     and no byte upload is needed. Otherwise, the backend creates a short-lived
-    multipart transfer session and returns a backend session id for part URL
-    requests.
+    multipart transfer session and returns a backend session id for presigned
+    part URL requests. Card-editor media authoring should send bytes directly
+    to the returned S3 part URLs, not to this backend route.
   security:
     - ApiKeyHeader: []
   parameters:
