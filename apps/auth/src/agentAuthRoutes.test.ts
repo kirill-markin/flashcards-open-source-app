@@ -216,7 +216,7 @@ test("agent send-code avoids retry-after guidance after post-email transient DB 
 });
 
 test("agent send-code issues an opaque challenge for allowlisted demo emails without OTP delivery", async () => {
-  let createdChallengeSession = "";
+  const createdChallengeSessions: string[] = [];
   let decideOtpRateLimitCalled = false;
   let recordOtpSendDecisionCalled = false;
 
@@ -236,7 +236,7 @@ test("agent send-code issues an opaque challenge for allowlisted demo emails wit
       recordOtpSendDecisionCalled = true;
     },
     createAgentOtpChallenge: async (_email, cognitoSession) => {
-      createdChallengeSession = cognitoSession;
+      createdChallengeSessions.push(cognitoSession);
       return "DEMO-AGENT-OTP";
     },
     reissueLatestAgentOtpChallenge: async () => null,
@@ -252,15 +252,31 @@ test("agent send-code issues an opaque challenge for allowlisted demo emails wit
       email: "google-review@example.com",
     }),
   });
+  const secondResponse = await app.request("https://auth.flashcards-open-source-app.com/api/agent/send-code", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      email: "google-review@example.com",
+    }),
+  });
 
   const payload = await readJsonResponse<AgentSendCodeResponse>(response);
+  const secondPayload = await readJsonResponse<AgentSendCodeResponse>(secondResponse);
 
   assert.equal(response.status, 200);
+  assert.equal(secondResponse.status, 200);
   assert.equal(payload.ok, true);
+  assert.equal(secondPayload.ok, true);
   assert.equal(payload.data.otpSessionToken, "DEMO-AGENT-OTP");
+  assert.equal(secondPayload.data.otpSessionToken, "DEMO-AGENT-OTP");
   assert.match(payload.instructions, /placeholder code 00000000/);
   assert.match(payload.instructions, /Do not wait for an email or ask the user for a code/);
-  assert.equal(createdChallengeSession, "demo-agent-session:google-review@example.com");
+  assert.equal(createdChallengeSessions.length, 2);
+  assert.match(createdChallengeSessions[0] ?? "", /^demo-agent-session:google-review@example\.com:/);
+  assert.match(createdChallengeSessions[1] ?? "", /^demo-agent-session:google-review@example\.com:/);
+  assert.notEqual(createdChallengeSessions[0], createdChallengeSessions[1]);
   assert.equal(decideOtpRateLimitCalled, false);
   assert.equal(recordOtpSendDecisionCalled, false);
 });
