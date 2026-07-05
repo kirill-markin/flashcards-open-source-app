@@ -110,13 +110,11 @@
 }
 
 .progress-chart-column-today .progress-chart-bar-shell {
-  border-color: var(--accent-muted);
   background: var(--accent-soft);
 }
 
 .progress-chart-column.is-selected .progress-chart-bar-shell {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  background: rgba(196, 75, 45, 0.32);
 }
 
 .progress-chart-column.is-dimmed .progress-chart-labels {
@@ -129,7 +127,6 @@
   justify-content: center;
   height: 100%;
   padding: 8px 3px 0;
-  border: 1px solid transparent;
   border-radius: 12px;
 }
 
@@ -146,7 +143,6 @@
 .progress-chart-bar-active {
   min-height: 8px;
   background: rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .progress-chart-bar-segment {
@@ -195,6 +191,13 @@
   font-weight: 700;
 }
 
+.progress-chart-column.is-selected .progress-chart-day,
+.progress-chart-column.is-selected .progress-chart-month,
+.progress-chart-column.is-selected .progress-chart-weekday {
+  color: #fff5f2;
+  font-weight: 800;
+}
+
 .progress-chart-rating-list {
   display: grid;
   gap: 8px;
@@ -204,7 +207,6 @@
 }
 
 .progress-chart-rating-row {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--content-card-inner-radius, 8px);
   transition: background-color 120ms ease, opacity 120ms ease;
 }
@@ -215,7 +217,6 @@
 
 .progress-chart-rating-row.is-selected {
   background: var(--accent-soft);
-  border-bottom-color: transparent;
 }
 
 .progress-chart-rating-row.is-dimmed {
@@ -250,7 +251,6 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
 }
 
 .progress-chart-rating-label {

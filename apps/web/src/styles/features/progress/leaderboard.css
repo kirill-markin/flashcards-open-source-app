@@ -36,9 +36,8 @@
 .progress-leaderboard-info {
   margin: 0;
   padding: 10px 12px;
-  border: 1px solid var(--panel-border);
   border-radius: var(--content-card-inner-radius, var(--radius-md));
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-hover);
   color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.4;
@@ -52,15 +51,15 @@
 
 .progress-leaderboard-period-btn {
   padding: 6px 12px;
-  border: 1px solid var(--panel-border);
+  border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-hover);
   color: var(--text-secondary);
   font-size: 13px;
   line-height: 1;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  transition: background-color 120ms ease, color 120ms ease;
 }
 
 .progress-leaderboard-period-btn:focus-visible {
@@ -69,7 +68,6 @@
 }
 
 .progress-leaderboard-period-btn.is-selected {
-  border-color: var(--accent);
   background: var(--accent);
   color: #fff5f2;
 }
@@ -93,7 +91,6 @@
   min-height: 40px;
   padding: 8px 10px;
   border-radius: var(--content-card-inner-radius, var(--radius-sm));
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .progress-leaderboard-row-actionable {
@@ -131,7 +128,6 @@
 }
 
 .progress-leaderboard-row-viewer {
-  border-bottom-color: transparent;
   background: var(--accent-soft);
 }
 
@@ -342,9 +338,8 @@
   gap: 6px;
   min-width: 0;
   padding: 12px;
-  border: 1px solid var(--panel-border);
   border-radius: var(--content-card-inner-radius, var(--radius-md));
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-hover);
 }
 
 .progress-leaderboard-profile-metric-label,
@@ -385,9 +380,8 @@
   height: 76px;
   margin: 0;
   padding: 10px;
-  border: 1px solid var(--panel-border);
   border-radius: var(--content-card-inner-radius, var(--radius-md));
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--surface-hover);
   list-style: none;
 }
 
@@ -417,8 +411,8 @@
   gap: 6px;
   min-width: 0;
   padding: 12px;
-  border: 1px solid var(--panel-border);
   border-radius: var(--content-card-inner-radius, var(--radius-md));
+  background: var(--surface-hover);
 }
 
 .progress-leaderboard-profile-stat dd {
