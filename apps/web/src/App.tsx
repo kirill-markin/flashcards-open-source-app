@@ -23,6 +23,7 @@ import { ChatDraftProvider } from "./chat/composer/drafts/ChatDraftContext";
 import { ChatLayoutProvider, useChatLayout } from "./chat/layout/ChatLayoutContext";
 import { ChatSessionControllerProvider } from "./chat/sessionController";
 import { ChatToggle } from "./chat/layout/ChatToggle";
+import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss, type AnchoredFloatingOverlayMinimumWidth } from "./floating";
 import { useAppErrorDialog } from "./appError/AppErrorContext";
 import { type TranslationKey, useI18n } from "./i18n";
 import { captureApiContractError } from "./observability/apiContractObservation";
@@ -92,6 +93,12 @@ const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
   { route: cardsRoute, labelKey: "navigation.cards" },
   { route: settingsHubRoute, labelKey: "navigation.settings" },
 ];
+
+const mobileNavigationViewportPaddingPx: number = 12;
+const mobileNavigationOffsetPx: number = 8;
+const mobileNavigationMaxHeightPx: number = 420;
+const mobileNavigationMinimumWidth: AnchoredFloatingOverlayMinimumWidth = { kind: "reference" };
+const mobileNavigationFirstLinkSelector: string = "a[href]";
 
 const ChatPanel = lazy(async () => import("./chat/ChatPanel").then((module) => ({ default: module.ChatPanel })));
 const FriendInvitePreviewScreen = lazy(async () => import("./dev/previews/invite/FriendInvitePreviewScreen").then((module) => ({
@@ -356,6 +363,9 @@ export function AppShell(): ReactElement {
   const [accountDeletionTechnicalError, setAccountDeletionTechnicalError] = useState<Error | null>(null);
   const [isAccountDeletionSubmitting, setIsAccountDeletionSubmitting] = useState<boolean>(false);
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState<boolean>(false);
+  const topbarShellRef = useRef<HTMLElement | null>(null);
+  const mobileNavigationToggleRef = useRef<HTMLButtonElement | null>(null);
+  const mobileNavigationMenuRef = useRef<HTMLDivElement | null>(null);
   const shownSessionTechnicalErrorRef = useRef<Error | null>(null);
   const shownGlobalTechnicalErrorRef = useRef<Error | null>(null);
   const sessionRestoringMessage = sessionVerificationState === "unverified" ? t("loading.restoringSession") : "";
@@ -440,9 +450,44 @@ export function AppShell(): ReactElement {
     setIsAccountDeletionPendingState(isAccountDeletionPending());
   }), []);
 
-  useEffect(() => {
+  const closeMobileNavigation = useCallback(function closeMobileNavigation(): void {
     setIsMobileNavigationOpen(false);
-  }, [location.pathname]);
+  }, []);
+
+  const focusFirstMobileNavigationLink = useCallback(function focusFirstMobileNavigationLink(): void {
+    const mobileNavigationMenu = mobileNavigationMenuRef.current;
+    if (mobileNavigationMenu === null) {
+      return;
+    }
+
+    const firstVisibleLink = Array.from(mobileNavigationMenu.querySelectorAll<HTMLElement>(mobileNavigationFirstLinkSelector))
+      .find((element) => element.getClientRects().length > 0) ?? null;
+    firstVisibleLink?.focus();
+  }, []);
+
+  const closeMobileNavigationAndFocusToggle = useCallback(function closeMobileNavigationAndFocusToggle(): void {
+    closeMobileNavigation();
+    mobileNavigationToggleRef.current?.focus();
+  }, [closeMobileNavigation]);
+
+  useAnchoredFloatingOutsidePointerDismiss({
+    triggerRef: mobileNavigationToggleRef,
+    overlayRef: mobileNavigationMenuRef,
+    enabled: isMobileNavigationOpen,
+    onClose: closeMobileNavigation,
+  });
+
+  useEffect(() => {
+    if (isMobileNavigationOpen === false) {
+      return;
+    }
+
+    focusFirstMobileNavigationLink();
+  }, [focusFirstMobileNavigationLink, isMobileNavigationOpen]);
+
+  useEffect(() => {
+    closeMobileNavigation();
+  }, [closeMobileNavigation, location.pathname]);
 
   useEffect(() => {
     if (isMobileNavigationOpen === false) {
@@ -451,7 +496,7 @@ export function AppShell(): ReactElement {
 
     function closeMobileNavigationOnEscape(event: KeyboardEvent): void {
       if (event.key === "Escape") {
-        setIsMobileNavigationOpen(false);
+        closeMobileNavigationAndFocusToggle();
       }
     }
 
@@ -460,7 +505,7 @@ export function AppShell(): ReactElement {
     return () => {
       window.removeEventListener("keydown", closeMobileNavigationOnEscape);
     };
-  }, [isMobileNavigationOpen]);
+  }, [closeMobileNavigationAndFocusToggle, isMobileNavigationOpen]);
 
   useEffect(() => {
     if (
@@ -596,7 +641,7 @@ export function AppShell(): ReactElement {
   return (
     <div className="app-shell">
       <div className="header-sticky">
-        <header className="topbar-shell">
+        <header ref={topbarShellRef} className="topbar-shell">
           <div className="topbar">
             <div className="topbar-brand-block">
               <div className="topbar-brand-row">
@@ -625,6 +670,7 @@ export function AppShell(): ReactElement {
             </nav>
             <div className="topbar-actions">
               <button
+                ref={mobileNavigationToggleRef}
                 className="mobile-nav-toggle"
                 type="button"
                 aria-label={t("shell.primaryNavigation")}
@@ -650,20 +696,35 @@ export function AppShell(): ReactElement {
               />
             </div>
           </div>
-          {isMobileNavigationOpen ? (
-            <nav id="mobile-primary-navigation" className="mobile-nav-menu" aria-label={t("shell.primaryNavigation")}>
-              {primaryNavigationItems.map((item) => (
-                <NavLink
-                  key={item.route}
-                  className={({ isActive }) => `mobile-nav-link${isActive ? " mobile-nav-link-active" : ""}`}
-                  to={item.route}
-                  onClick={() => setIsMobileNavigationOpen(false)}
-                >
-                  {t(item.labelKey)}
-                </NavLink>
-              ))}
-            </nav>
-          ) : null}
+          <AnchoredFloatingOverlay
+            isOpen={isMobileNavigationOpen}
+            referenceRef={topbarShellRef}
+            floatingRef={mobileNavigationMenuRef}
+            placement="bottom-start"
+            viewportPaddingPx={mobileNavigationViewportPaddingPx}
+            offsetPx={mobileNavigationOffsetPx}
+            minimumWidth={mobileNavigationMinimumWidth}
+            maxWidthPx={null}
+            maxHeightPx={mobileNavigationMaxHeightPx}
+            className="mobile-nav-menu"
+            id="mobile-primary-navigation"
+            role="navigation"
+            ariaLabel={t("shell.primaryNavigation")}
+            ariaLabelledBy={null}
+            ariaDescribedBy={null}
+            ariaModal={null}
+          >
+            {primaryNavigationItems.map((item) => (
+              <NavLink
+                key={item.route}
+                className={({ isActive }) => `mobile-nav-link${isActive ? " mobile-nav-link-active" : ""}`}
+                to={item.route}
+                onClick={closeMobileNavigation}
+              >
+                {t(item.labelKey)}
+              </NavLink>
+            ))}
+          </AnchoredFloatingOverlay>
         </header>
       </div>
       {visibleGlobalErrorMessage !== "" ? (

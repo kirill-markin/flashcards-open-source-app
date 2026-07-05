@@ -162,9 +162,6 @@
 }
 
 .mobile-nav-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  inset-inline: 0;
   z-index: 120;
   display: none;
   gap: 4px;
@@ -173,6 +170,8 @@
   border-radius: var(--radius-lg);
   background: rgba(20, 20, 24, 0.98);
   box-shadow: var(--shadow);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .mobile-nav-link {
@@ -196,10 +195,6 @@
 .mobile-nav-link-active {
   color: var(--accent-strong);
   background: var(--accent-soft);
-}
-
-.account-menu-wrap {
-  position: relative;
 }
 
 .account-menu-button {
@@ -229,13 +224,8 @@
 }
 
 .account-menu-dropdown {
-  position: absolute;
-  top: calc(100% + 10px);
-  inset-inline-end: 0;
-  width: min(280px, calc(100vw - (2 * (var(--header-inline-padding) + var(--topbar-shell-inline-padding))) - 8px));
+  width: 280px;
   min-width: 0;
-  max-width: calc(100vw - (2 * (var(--header-inline-padding) + var(--topbar-shell-inline-padding))) - 8px);
-  max-height: min(420px, calc(100dvh - 32px));
   padding: 10px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
