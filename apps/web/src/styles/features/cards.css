@@ -50,19 +50,15 @@
 .cards-filter-popover {
   --cards-filter-popover-padding: 16px;
   --cards-filter-popover-radius: var(--radius-xl);
-  position: absolute;
-  top: calc(100% + 10px);
-  inset-inline-end: 0;
-  z-index: 30;
+  z-index: 200;
   display: grid;
   gap: 16px;
-  width: min(420px, calc(100vw - 32px));
-  max-height: min(520px, calc(100dvh - 32px));
   padding: var(--cards-filter-popover-padding);
   border: 0;
   border-radius: var(--cards-filter-popover-radius);
   background: var(--surface);
   box-shadow: none;
+  box-sizing: border-box;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -336,13 +332,13 @@
 }
 
 .cell-editor-overlay {
-  position: fixed;
   z-index: 200;
-  padding: 10px 12px;
+  display: flex;
+  min-width: 0;
+  min-height: 42px;
   font-size: 16px;
   font-family: inherit;
   line-height: 1.5;
-  white-space: nowrap;
   background: var(--surface);
   color: var(--text);
   border: 0;
@@ -351,9 +347,31 @@
   outline-offset: 2px;
   box-shadow: none;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .cell-editor-overlay-multiline {
+  min-height: 120px;
+}
+
+.cell-editor-field {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.cell-editor-field-multiline {
+  min-height: 120px;
   white-space: pre-wrap;
   resize: vertical;
 }
@@ -362,9 +380,7 @@
   --cell-select-overlay-padding: 6px;
   --cell-select-overlay-radius: var(--radius-md);
   --cell-select-overlay-inner-radius: max(0px, calc(var(--cell-select-overlay-radius) - var(--cell-select-overlay-padding)));
-  position: fixed;
   z-index: 200;
-  max-height: 320px;
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -637,12 +653,6 @@
 
   .cards-filter-trigger {
     width: 100%;
-  }
-
-  .cards-filter-popover {
-    inset-inline-start: 0;
-    inset-inline-end: auto;
-    width: min(100%, 420px);
   }
 
   .deck-detail-layout,
