@@ -2,8 +2,62 @@ import CryptoKit
 import Foundation
 
 private let reviewManagedMediaDownloadMaxAttempts: Int = 3
+private let reviewManagedMediaDownloadRangeChunkSizeBytes: Int64 = 1_048_576
 private let reviewManagedMediaDownloadRetryDelayNanoseconds: UInt64 = 500_000_000
+private let reviewManagedMediaDownloadResponseBodyMaxBytes: Int = 2_048
 private let reviewManagedMediaValidationChunkSizeBytes: Int = 1_048_576
+
+private struct ReviewManagedMediaDownloadRange: Sendable {
+    let startByte: Int64
+    let endByte: Int64
+    let totalSizeBytes: Int64
+    let sizeBytes: Int64
+
+    var headerValue: String {
+        "bytes=\(self.startByte)-\(self.endByte)"
+    }
+
+    var isFullObjectRange: Bool {
+        self.startByte == 0 && self.endByte == self.totalSizeBytes - 1
+    }
+
+    init(startByte: Int64, endByte: Int64, totalSizeBytes: Int64) {
+        self.startByte = startByte
+        self.endByte = endByte
+        self.totalSizeBytes = totalSizeBytes
+        self.sizeBytes = endByte - startByte + 1
+    }
+}
+
+private struct ReviewManagedMediaContentRange: Sendable {
+    let startByte: Int64
+    let endByte: Int64
+    let totalSizeBytes: Int64
+
+    init(startByte: Int64, endByte: Int64, totalSizeBytes: Int64) {
+        self.startByte = startByte
+        self.endByte = endByte
+        self.totalSizeBytes = totalSizeBytes
+    }
+}
+
+private struct ReviewManagedMediaHTTPStatusError: LocalizedError, Sendable {
+    let mediaAssetId: String
+    let rangeHeader: String
+    let statusCode: Int
+    let responseBody: String
+
+    var errorDescription: String? {
+        "Managed media ranged download failed with status \(self.statusCode) for mediaAssetId=\(self.mediaAssetId) range=\(self.rangeHeader) responseBody=\(self.responseBody)"
+    }
+
+    init(mediaAssetId: String, rangeHeader: String, statusCode: Int, responseBody: String) {
+        self.mediaAssetId = mediaAssetId
+        self.rangeHeader = rangeHeader
+        self.statusCode = statusCode
+        self.responseBody = responseBody
+    }
+}
 
 private struct ReviewManagedMediaDownloadTaskState {
     let id: String
@@ -291,90 +345,95 @@ private func downloadReviewManagedMediaBlobFileToCache(
         databaseURL: databaseURL,
         sha256: expectedSha256
     )
+    let partialFileURL = try reviewManagedMediaPartialCacheFileURL(
+        databaseURL: databaseURL,
+        sha256: expectedSha256
+    )
     let downloadedFileURL = try await downloadReviewManagedMediaBlob(
         downloadURL: downloadURL,
-        mediaAssetId: mediaAsset.mediaAssetId,
+        partialFileURL: partialFileURL,
+        mediaAsset: mediaAsset,
         session: session,
         retryScope: retryScope
     )
-    defer {
-        try? FileManager.default.removeItem(at: downloadedFileURL)
+
+    do {
+        try validateReviewManagedMediaBlob(
+            fileURL: downloadedFileURL,
+            mediaAsset: mediaAsset,
+            expectedSha256: expectedSha256
+        )
+    } catch {
+        try removeReviewManagedMediaPartialDownloadAfterFailure(
+            fileURL: downloadedFileURL,
+            mediaAssetId: mediaAsset.mediaAssetId,
+            failure: error,
+            reason: "validation_failed"
+        )
     }
 
-    try validateReviewManagedMediaBlob(
-        fileURL: downloadedFileURL,
-        mediaAsset: mediaAsset,
-        expectedSha256: expectedSha256
+    let publishedURL = try publishReviewManagedMediaPartialBlobFile(
+        partialFileURL: downloadedFileURL,
+        destinationURL: destinationURL,
+        mediaAssetId: mediaAsset.mediaAssetId
     )
-    try FileManager.default.createDirectory(
-        at: destinationURL.deletingLastPathComponent(),
-        withIntermediateDirectories: true,
-        attributes: nil
-    )
-    if FileManager.default.fileExists(atPath: destinationURL.path) {
-        try FileManager.default.removeItem(at: destinationURL)
+    guard publishedURL.path == destinationURL.path else {
+        throw LocalStoreError.database(
+            "Managed media cache publish returned unexpected path for mediaAssetId=\(mediaAsset.mediaAssetId): expected \(destinationURL.path), received \(publishedURL.path)"
+        )
     }
-    try FileManager.default.moveItem(at: downloadedFileURL, to: destinationURL)
 
-    return destinationURL
+    return publishedURL
 }
 
 private func downloadReviewManagedMediaBlob(
     downloadURL: URL,
-    mediaAssetId: String,
+    partialFileURL: URL,
+    mediaAsset: MediaAsset,
     session: URLSession,
     retryScope: IOSObservationScope
 ) async throws -> URL {
+    guard mediaAsset.sizeBytes >= 0 else {
+        throw LocalStoreError.validation(
+            "Managed media asset size must be non-negative for mediaAssetId=\(mediaAsset.mediaAssetId)"
+        )
+    }
+
     var lastError: Error?
     for attempt in 1...reviewManagedMediaDownloadMaxAttempts {
         do {
-            let (fileURL, response) = try await session.download(
-                for: reviewManagedMediaDownloadRequest(downloadURL: downloadURL)
+            return try await downloadReviewManagedMediaBlobAttempt(
+                downloadURL: downloadURL,
+                partialFileURL: partialFileURL,
+                mediaAsset: mediaAsset,
+                session: session
             )
-            guard let httpResponse = response as? HTTPURLResponse else {
-                try removeReviewManagedMediaTemporaryDownload(
-                    fileURL: fileURL,
-                    mediaAssetId: mediaAssetId
-                )
-                throw LocalStoreError.validation(
-                    "Managed media download did not receive an HTTP response for mediaAssetId=\(mediaAssetId)"
-                )
-            }
-            if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
-                let statusError = LocalStoreError.validation(
-                    "Managed media download failed with status \(httpResponse.statusCode) for mediaAssetId=\(mediaAssetId)"
-                )
-                try removeReviewManagedMediaTemporaryDownload(
-                    fileURL: fileURL,
-                    mediaAssetId: mediaAssetId
-                )
-                guard reviewManagedMediaDownloadHTTPStatusIsRetryable(statusCode: httpResponse.statusCode),
-                      attempt < reviewManagedMediaDownloadMaxAttempts else {
-                    throw statusError
-                }
-
-                lastError = statusError
-                try await retryReviewManagedMediaDownload(
-                    messageSummary: Flashcards.errorMessage(error: statusError),
-                    attempt: attempt,
-                    retryScope: retryScope,
-                    transportDiagnostics: makeIOSNetworkTransportDiagnostics(
-                        error: statusError,
-                        httpMethod: "GET",
-                        endpointPath: downloadURL.path,
-                        apiBaseUrl: nil
-                    )
-                )
-                continue
+        } catch let error as CancellationError {
+            throw error
+        } catch let statusError as ReviewManagedMediaHTTPStatusError {
+            lastError = statusError
+            guard reviewManagedMediaDownloadHTTPStatusIsRetryable(statusCode: statusError.statusCode),
+                  attempt < reviewManagedMediaDownloadMaxAttempts else {
+                throw statusError
             }
 
-            return fileURL
+            try await retryReviewManagedMediaDownload(
+                messageSummary: Flashcards.errorMessage(error: statusError),
+                attempt: attempt,
+                retryScope: retryScope,
+                transportDiagnostics: makeIOSNetworkTransportDiagnostics(
+                    error: statusError,
+                    httpMethod: "GET",
+                    endpointPath: downloadURL.path,
+                    apiBaseUrl: nil
+                )
+            )
         } catch let localError as LocalStoreError {
             throw localError
         } catch {
             let safeError = safeReviewManagedMediaDownloadError(
                 error: error,
-                mediaAssetId: mediaAssetId
+                mediaAssetId: mediaAsset.mediaAssetId
             )
             if isRequestCancellationError(error: error) {
                 throw safeError
@@ -403,6 +462,149 @@ private func downloadReviewManagedMediaBlob(
         throw LocalStoreError.database("Managed media download retry failed without an error")
     }
     throw lastError
+}
+
+private func downloadReviewManagedMediaBlobAttempt(
+    downloadURL: URL,
+    partialFileURL: URL,
+    mediaAsset: MediaAsset,
+    session: URLSession
+) async throws -> URL {
+    try Task.checkCancellation()
+    let resumedSizeBytes = try prepareReviewManagedMediaPartialDownloadFile(
+        partialFileURL: partialFileURL,
+        mediaAssetId: mediaAsset.mediaAssetId,
+        expectedSizeBytes: mediaAsset.sizeBytes
+    )
+    guard resumedSizeBytes < mediaAsset.sizeBytes else {
+        return partialFileURL
+    }
+
+    let fileHandle = try openReviewManagedMediaPartialFileForWriting(
+        partialFileURL: partialFileURL,
+        mediaAssetId: mediaAsset.mediaAssetId
+    )
+    do {
+        var downloadedSizeBytes = resumedSizeBytes
+        try seekReviewManagedMediaPartialFileToEnd(
+            fileHandle: fileHandle,
+            mediaAssetId: mediaAsset.mediaAssetId
+        )
+        while let range = try planNextReviewManagedMediaDownloadRange(
+            startByte: downloadedSizeBytes,
+            totalSizeBytes: mediaAsset.sizeBytes,
+            chunkSizeBytes: reviewManagedMediaDownloadRangeChunkSizeBytes,
+            mediaAssetId: mediaAsset.mediaAssetId
+        ) {
+            let chunk = try await downloadReviewManagedMediaRangeChunk(
+                downloadURL: downloadURL,
+                mediaAssetId: mediaAsset.mediaAssetId,
+                range: range,
+                session: session
+            )
+            try Task.checkCancellation()
+            try appendReviewManagedMediaPartialChunk(
+                fileHandle: fileHandle,
+                chunk: chunk,
+                mediaAssetId: mediaAsset.mediaAssetId
+            )
+            downloadedSizeBytes += Int64(chunk.count)
+        }
+
+        try closeReviewManagedMediaPartialFile(
+            fileHandle: fileHandle,
+            mediaAssetId: mediaAsset.mediaAssetId
+        )
+        return partialFileURL
+    } catch {
+        try closeReviewManagedMediaPartialFileAfterFailure(
+            fileHandle: fileHandle,
+            mediaAssetId: mediaAsset.mediaAssetId,
+            failure: error
+        )
+    }
+}
+
+private func planNextReviewManagedMediaDownloadRange(
+    startByte: Int64,
+    totalSizeBytes: Int64,
+    chunkSizeBytes: Int64,
+    mediaAssetId: String
+) throws -> ReviewManagedMediaDownloadRange? {
+    guard totalSizeBytes >= 0 else {
+        throw LocalStoreError.validation(
+            "Managed media asset size must be non-negative for mediaAssetId=\(mediaAssetId)"
+        )
+    }
+    guard chunkSizeBytes > 0 && chunkSizeBytes <= Int64(Int.max) else {
+        throw LocalStoreError.validation(
+            "Managed media download chunk size is invalid for mediaAssetId=\(mediaAssetId): chunkSizeBytes=\(chunkSizeBytes)"
+        )
+    }
+    guard startByte >= 0 && startByte <= totalSizeBytes else {
+        throw LocalStoreError.validation(
+            "Managed media download range start is invalid for mediaAssetId=\(mediaAssetId): startByte=\(startByte), totalSizeBytes=\(totalSizeBytes)"
+        )
+    }
+    guard startByte < totalSizeBytes else {
+        return nil
+    }
+
+    let rangeSizeBytes = min(totalSizeBytes - startByte, chunkSizeBytes)
+    let endByte = startByte + rangeSizeBytes - 1
+    return ReviewManagedMediaDownloadRange(
+        startByte: startByte,
+        endByte: endByte,
+        totalSizeBytes: totalSizeBytes
+    )
+}
+
+private func downloadReviewManagedMediaRangeChunk(
+    downloadURL: URL,
+    mediaAssetId: String,
+    range: ReviewManagedMediaDownloadRange,
+    session: URLSession
+) async throws -> Data {
+    let (data, response) = try await session.data(
+        for: reviewManagedMediaDownloadRequest(downloadURL: downloadURL, range: range)
+    )
+    guard let httpResponse = response as? HTTPURLResponse else {
+        throw LocalStoreError.validation(
+            "Managed media ranged download did not receive an HTTP response for mediaAssetId=\(mediaAssetId) range=\(range.headerValue)"
+        )
+    }
+
+    if httpResponse.statusCode == 206 {
+        try validateReviewManagedMediaPartialRangeResponse(
+            httpResponse: httpResponse,
+            data: data,
+            range: range,
+            mediaAssetId: mediaAssetId
+        )
+        return data
+    }
+
+    if httpResponse.statusCode == 200 && range.isFullObjectRange {
+        try validateReviewManagedMediaFullRangeResponse(
+            data: data,
+            range: range,
+            mediaAssetId: mediaAssetId
+        )
+        return data
+    }
+
+    if httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 {
+        throw LocalStoreError.validation(
+            "Managed media ranged download returned unsupported status \(httpResponse.statusCode) for mediaAssetId=\(mediaAssetId) range=\(range.headerValue)"
+        )
+    }
+
+    throw ReviewManagedMediaHTTPStatusError(
+        mediaAssetId: mediaAssetId,
+        rangeHeader: range.headerValue,
+        statusCode: httpResponse.statusCode,
+        responseBody: reviewManagedMediaDownloadResponseBodySummary(data: data)
+    )
 }
 
 private func retryReviewManagedMediaDownload(
@@ -441,17 +643,311 @@ private func makeReviewManagedMediaDownloadSession() -> URLSession {
     return URLSession(configuration: configuration)
 }
 
-private func reviewManagedMediaDownloadRequest(downloadURL: URL) -> URLRequest {
+private func reviewManagedMediaDownloadRequest(
+    downloadURL: URL,
+    range: ReviewManagedMediaDownloadRange
+) -> URLRequest {
     var request = URLRequest(url: downloadURL)
     request.httpMethod = "GET"
+    request.setValue(range.headerValue, forHTTPHeaderField: "Range")
     request.httpShouldHandleCookies = false
     request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
     return request
 }
 
-private func removeReviewManagedMediaTemporaryDownload(
+private func validateReviewManagedMediaPartialRangeResponse(
+    httpResponse: HTTPURLResponse,
+    data: Data,
+    range: ReviewManagedMediaDownloadRange,
+    mediaAssetId: String
+) throws {
+    let contentRangeHeader = httpResponse.value(forHTTPHeaderField: "Content-Range") ?? ""
+    let contentRange = try parseReviewManagedMediaContentRange(
+        headerValue: contentRangeHeader,
+        mediaAssetId: mediaAssetId
+    )
+    guard contentRange.startByte == range.startByte,
+          contentRange.endByte == range.endByte,
+          contentRange.totalSizeBytes == range.totalSizeBytes else {
+        throw LocalStoreError.validation(
+            "Managed media ranged download returned Content-Range '\(contentRangeHeader)' for mediaAssetId=\(mediaAssetId) expected bytes \(range.startByte)-\(range.endByte)/\(range.totalSizeBytes)"
+        )
+    }
+    guard Int64(data.count) == range.sizeBytes else {
+        throw LocalStoreError.validation(
+            "Managed media ranged download size mismatch for mediaAssetId=\(mediaAssetId) range=\(range.headerValue): expected \(range.sizeBytes), received \(data.count)"
+        )
+    }
+}
+
+private func validateReviewManagedMediaFullRangeResponse(
+    data: Data,
+    range: ReviewManagedMediaDownloadRange,
+    mediaAssetId: String
+) throws {
+    guard Int64(data.count) == range.totalSizeBytes else {
+        throw LocalStoreError.validation(
+            "Managed media full-object range response size mismatch for mediaAssetId=\(mediaAssetId): expected \(range.totalSizeBytes), received \(data.count)"
+        )
+    }
+}
+
+private func parseReviewManagedMediaContentRange(
+    headerValue: String,
+    mediaAssetId: String
+) throws -> ReviewManagedMediaContentRange {
+    let trimmedHeaderValue = headerValue.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedHeaderValue.lowercased().hasPrefix("bytes ") else {
+        throw LocalStoreError.validation(
+            "Managed media ranged download returned invalid Content-Range for mediaAssetId=\(mediaAssetId): \(headerValue)"
+        )
+    }
+
+    let rangeAndTotal = String(trimmedHeaderValue.dropFirst("bytes ".count))
+    let rangeParts = rangeAndTotal.split(separator: "/", maxSplits: 1, omittingEmptySubsequences: false)
+    guard rangeParts.count == 2,
+          let totalSizeBytes = Int64(String(rangeParts[1])) else {
+        throw LocalStoreError.validation(
+            "Managed media ranged download returned invalid Content-Range for mediaAssetId=\(mediaAssetId): \(headerValue)"
+        )
+    }
+
+    let byteParts = rangeParts[0].split(separator: "-", maxSplits: 1, omittingEmptySubsequences: false)
+    guard byteParts.count == 2,
+          let startByte = Int64(String(byteParts[0])),
+          let endByte = Int64(String(byteParts[1])),
+          startByte <= endByte,
+          totalSizeBytes > endByte else {
+        throw LocalStoreError.validation(
+            "Managed media ranged download returned invalid Content-Range for mediaAssetId=\(mediaAssetId): \(headerValue)"
+        )
+    }
+
+    return ReviewManagedMediaContentRange(
+        startByte: startByte,
+        endByte: endByte,
+        totalSizeBytes: totalSizeBytes
+    )
+}
+
+private func reviewManagedMediaDownloadResponseBodySummary(data: Data) -> String {
+    guard data.isEmpty == false else {
+        return ""
+    }
+
+    return String(decoding: data.prefix(reviewManagedMediaDownloadResponseBodyMaxBytes), as: UTF8.self)
+}
+
+private func prepareReviewManagedMediaPartialDownloadFile(
+    partialFileURL: URL,
+    mediaAssetId: String,
+    expectedSizeBytes: Int64
+) throws -> Int64 {
+    guard expectedSizeBytes >= 0 else {
+        throw LocalStoreError.validation(
+            "Managed media partial download expected size must be non-negative for mediaAssetId=\(mediaAssetId)"
+        )
+    }
+    try createReviewManagedMediaCacheDirectory(
+        directoryURL: partialFileURL.deletingLastPathComponent(),
+        mediaAssetId: mediaAssetId
+    )
+
+    guard FileManager.default.fileExists(atPath: partialFileURL.path) else {
+        guard FileManager.default.createFile(atPath: partialFileURL.path, contents: nil, attributes: nil) else {
+            throw LocalStoreError.database(
+                "Managed media partial download file could not be created for mediaAssetId=\(mediaAssetId) path=\(partialFileURL.path)"
+            )
+        }
+        return 0
+    }
+
+    let sizeBytes = try reviewManagedMediaRegularFileSize(
+        fileURL: partialFileURL,
+        mediaAssetId: mediaAssetId
+    )
+    guard sizeBytes <= expectedSizeBytes else {
+        let failure = LocalStoreError.database(
+            "Managed media partial download was larger than expected for mediaAssetId=\(mediaAssetId): expected \(expectedSizeBytes), found \(sizeBytes); deleted partial file"
+        )
+        try removeReviewManagedMediaPartialDownloadAfterFailure(
+            fileURL: partialFileURL,
+            mediaAssetId: mediaAssetId,
+            failure: failure,
+            reason: "partial_size_exceeded_expected"
+        )
+    }
+
+    return sizeBytes
+}
+
+private func createReviewManagedMediaCacheDirectory(
+    directoryURL: URL,
+    mediaAssetId: String
+) throws {
+    do {
+        try FileManager.default.createDirectory(
+            at: directoryURL,
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
+    } catch {
+        throw LocalStoreError.database(
+            "Managed media cache directory creation failed for mediaAssetId=\(mediaAssetId) path=\(directoryURL.path): \(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+private func reviewManagedMediaRegularFileSize(
     fileURL: URL,
     mediaAssetId: String
+) throws -> Int64 {
+    let attributes: [FileAttributeKey: Any]
+    do {
+        attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
+    } catch {
+        throw LocalStoreError.database(
+            "Managed media file attributes could not be read for mediaAssetId=\(mediaAssetId) path=\(fileURL.path): \(Flashcards.errorMessage(error: error))"
+        )
+    }
+
+    guard let fileType = attributes[.type] as? FileAttributeType,
+          fileType == .typeRegular else {
+        let failure = LocalStoreError.database(
+            "Managed media partial download path was not a regular file for mediaAssetId=\(mediaAssetId) path=\(fileURL.path); deleted partial path"
+        )
+        try removeReviewManagedMediaPartialDownloadAfterFailure(
+            fileURL: fileURL,
+            mediaAssetId: mediaAssetId,
+            failure: failure,
+            reason: "partial_path_not_regular_file"
+        )
+    }
+
+    guard let sizeNumber = attributes[.size] as? NSNumber else {
+        throw LocalStoreError.database(
+            "Managed media file size attribute was missing for mediaAssetId=\(mediaAssetId) path=\(fileURL.path)"
+        )
+    }
+
+    return sizeNumber.int64Value
+}
+
+private func openReviewManagedMediaPartialFileForWriting(
+    partialFileURL: URL,
+    mediaAssetId: String
+) throws -> FileHandle {
+    do {
+        return try FileHandle(forWritingTo: partialFileURL)
+    } catch {
+        throw LocalStoreError.database(
+            "Managed media partial download file could not be opened for writing for mediaAssetId=\(mediaAssetId) path=\(partialFileURL.path): \(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+private func seekReviewManagedMediaPartialFileToEnd(
+    fileHandle: FileHandle,
+    mediaAssetId: String
+) throws {
+    do {
+        _ = try fileHandle.seekToEnd()
+    } catch {
+        throw LocalStoreError.database(
+            "Managed media partial download seek failed for mediaAssetId=\(mediaAssetId): \(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+private func appendReviewManagedMediaPartialChunk(
+    fileHandle: FileHandle,
+    chunk: Data,
+    mediaAssetId: String
+) throws {
+    do {
+        try fileHandle.write(contentsOf: chunk)
+    } catch {
+        throw LocalStoreError.database(
+            "Managed media partial download write failed for mediaAssetId=\(mediaAssetId): \(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+private func closeReviewManagedMediaPartialFile(
+    fileHandle: FileHandle,
+    mediaAssetId: String
+) throws {
+    do {
+        try fileHandle.close()
+    } catch {
+        throw LocalStoreError.database(
+            "Managed media partial download file close failed for mediaAssetId=\(mediaAssetId): \(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+private func closeReviewManagedMediaPartialFileAfterFailure(
+    fileHandle: FileHandle,
+    mediaAssetId: String,
+    failure: Error
+) throws -> Never {
+    do {
+        try fileHandle.close()
+    } catch {
+        throw LocalStoreError.database(
+            "Managed media partial download failed and file close failed for mediaAssetId=\(mediaAssetId): operationError=\(Flashcards.errorMessage(error: failure)); closeError=\(Flashcards.errorMessage(error: error))"
+        )
+    }
+
+    throw failure
+}
+
+private func publishReviewManagedMediaPartialBlobFile(
+    partialFileURL: URL,
+    destinationURL: URL,
+    mediaAssetId: String
+) throws -> URL {
+    try createReviewManagedMediaCacheDirectory(
+        directoryURL: destinationURL.deletingLastPathComponent(),
+        mediaAssetId: mediaAssetId
+    )
+
+    guard FileManager.default.fileExists(atPath: destinationURL.path) else {
+        do {
+            try FileManager.default.moveItem(at: partialFileURL, to: destinationURL)
+            return destinationURL
+        } catch {
+            throw LocalStoreError.database(
+                "Managed media cache publish move failed for mediaAssetId=\(mediaAssetId) from=\(partialFileURL.path) to=\(destinationURL.path): \(Flashcards.errorMessage(error: error))"
+            )
+        }
+    }
+
+    var resultingURL: NSURL?
+    do {
+        try FileManager.default.replaceItemAt(
+            destinationURL,
+            withItemAt: partialFileURL,
+            backupItemName: nil,
+            options: [],
+            resultingItemURL: &resultingURL
+        )
+    } catch {
+        throw LocalStoreError.database(
+            "Managed media cache publish replace failed for mediaAssetId=\(mediaAssetId) from=\(partialFileURL.path) to=\(destinationURL.path): \(Flashcards.errorMessage(error: error))"
+        )
+    }
+
+    if let resultingURL {
+        return resultingURL as URL
+    }
+    return destinationURL
+}
+
+private func removeReviewManagedMediaPartialDownload(
+    fileURL: URL,
+    mediaAssetId: String,
+    reason: String
 ) throws {
     guard FileManager.default.fileExists(atPath: fileURL.path) else {
         return
@@ -461,9 +957,30 @@ private func removeReviewManagedMediaTemporaryDownload(
         try FileManager.default.removeItem(at: fileURL)
     } catch {
         throw LocalStoreError.database(
-            "Managed media temporary download cleanup failed for mediaAssetId=\(mediaAssetId): \(Flashcards.errorMessage(error: error))"
+            "Managed media partial download cleanup failed for mediaAssetId=\(mediaAssetId) reason=\(reason): \(Flashcards.errorMessage(error: error))"
         )
     }
+}
+
+private func removeReviewManagedMediaPartialDownloadAfterFailure(
+    fileURL: URL,
+    mediaAssetId: String,
+    failure: Error,
+    reason: String
+) throws -> Never {
+    do {
+        try removeReviewManagedMediaPartialDownload(
+            fileURL: fileURL,
+            mediaAssetId: mediaAssetId,
+            reason: reason
+        )
+    } catch {
+        throw LocalStoreError.database(
+            "Managed media partial download failed and cleanup failed for mediaAssetId=\(mediaAssetId) reason=\(reason): operationError=\(Flashcards.errorMessage(error: failure)); cleanupError=\(Flashcards.errorMessage(error: error))"
+        )
+    }
+
+    throw failure
 }
 
 private func safeReviewManagedMediaDownloadError(
@@ -608,4 +1125,14 @@ private func reviewManagedMediaCacheFileURL(
     return databaseURL
         .deletingLastPathComponent()
         .appendingPathComponent(localRelativePath, isDirectory: false)
+}
+
+private func reviewManagedMediaPartialCacheFileURL(
+    databaseURL: URL,
+    sha256: String
+) throws -> URL {
+    try reviewManagedMediaCacheFileURL(
+        databaseURL: databaseURL,
+        sha256: sha256
+    ).appendingPathExtension("partial")
 }
