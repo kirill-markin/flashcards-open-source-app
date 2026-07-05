@@ -9,6 +9,7 @@
  * both naive (Claude.ai, ChatGPT) and smart clients, and this flow may fold into
  * the standard OAuth path.
  */
+import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import { initiateEmailOtp } from "../../server/cognito/cognitoAuth.js";
 import { type AuthAppEnv, getRequestId } from "../../server/apiErrors.js";
@@ -48,7 +49,7 @@ type AgentSendCodeDependencies = Readonly<{
 }>;
 
 function createDemoAgentSession(email: string): string {
-  return `demo-agent-session:${email}`;
+  return `demo-agent-session:${email}:${randomUUID()}`;
 }
 
 function normalizeEmail(value: unknown): string {
