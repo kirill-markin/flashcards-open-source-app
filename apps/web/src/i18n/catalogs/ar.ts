@@ -902,6 +902,18 @@ const arCatalog: TranslationCatalog = {
       tags: "الوسوم",
     },
     loading: "جارٍ تحميل البطاقة...",
+    media: {
+      insertImageLabel: "إدراج صورة في {{field}}",
+      processing: "جارٍ معالجة الصورة...",
+      referencesLabel: "مراجع وسائط البطاقة",
+      removeReferenceLabel: "إزالة {{label}}",
+      errors: {
+        installationUnavailable: "تثبيت هذا المتصفح غير جاهز. أعد التحميل وحاول مرة أخرى.",
+        processingFailed: "فشلت معالجة الصورة. جرّب صورة أخرى أو أعد التحميل.",
+        unsupportedImage: "اختر صورة JPEG أو PNG أو WebP. صور PNG وWebP المتحركة غير مدعومة.",
+        workspaceUnavailable: "مساحة العمل غير متاحة",
+      },
+    },
     meta: {
       cardId: "معرّف البطاقة",
       due: "مستحق",

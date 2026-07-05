@@ -902,6 +902,18 @@ export const ruCatalog = {
       tags: "Теги",
     },
     loading: "Загрузка карточки...",
+    media: {
+      insertImageLabel: "Вставить изображение в {{field}}",
+      processing: "Обработка изображения...",
+      referencesLabel: "Медиа-ссылки карточки",
+      removeReferenceLabel: "Удалить {{label}}",
+      errors: {
+        installationUnavailable: "Эта установка браузера еще не готова. Перезагрузите страницу и попробуйте снова.",
+        processingFailed: "Не удалось обработать изображение. Попробуйте другое изображение или перезагрузите страницу.",
+        unsupportedImage: "Выберите изображение JPEG, PNG или WebP. Анимированные PNG и WebP не поддерживаются.",
+        workspaceUnavailable: "Рабочее пространство недоступно",
+      },
+    },
     meta: {
       cardId: "ID карточки",
       due: "Срок",

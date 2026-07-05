@@ -900,6 +900,18 @@ const enCatalog = {
       tags: "Tags",
     },
     loading: "Loading card...",
+    media: {
+      insertImageLabel: "Insert image into {{field}}",
+      processing: "Processing image...",
+      referencesLabel: "Card media references",
+      removeReferenceLabel: "Remove {{label}}",
+      errors: {
+        installationUnavailable: "This browser installation is not ready. Reload and try again.",
+        processingFailed: "Image processing failed. Try a different image or reload and try again.",
+        unsupportedImage: "Choose a JPEG, PNG, or WebP image. Animated PNG and WebP images are not supported.",
+        workspaceUnavailable: "Workspace is unavailable",
+      },
+    },
     meta: {
       cardId: "Card ID",
       due: "Due",

@@ -902,6 +902,18 @@ export const zhHansCatalog = {
       tags: "标签",
     },
     loading: "正在加载卡片...",
+    media: {
+      insertImageLabel: "将图片插入{{field}}",
+      processing: "正在处理图片...",
+      referencesLabel: "卡片媒体引用",
+      removeReferenceLabel: "移除 {{label}}",
+      errors: {
+        installationUnavailable: "此浏览器安装尚未就绪。请重新加载后再试。",
+        processingFailed: "图片处理失败。请尝试其他图片，或重新加载后再试。",
+        unsupportedImage: "请选择 JPEG、PNG 或 WebP 图片。不支持动画 PNG 和 WebP。",
+        workspaceUnavailable: "工作区不可用",
+      },
+    },
     meta: {
       cardId: "卡片 ID",
       due: "到期",
