@@ -218,7 +218,8 @@ repo still reports the old release version. For a merge commit that bumps the
 version, that is usually the first parent of the bump merge.
 
 Before bumping the repository to the next version, ask the user to manually run
-or complete these release actions:
+or complete the production release actions documented in
+[docs/manual-production-release.md](./manual-production-release.md), including:
 
 - Android release
 - Apple iOS release
@@ -245,9 +246,10 @@ been launched or finished.
    tag at the correct commit, then create the GitHub Release with the curated
    release notes.
 5. Ask the user to manually start or finish the Android release, Apple iOS
-   release, and MCP server release when applicable. The MCP server release uses
-   the manual `MCP Registry Publish` workflow and must not reuse a
-   `server.json.version` that already exists in the registry.
+   release, and MCP server release when applicable, following
+   [docs/manual-production-release.md](./manual-production-release.md). The MCP
+   server release uses the manual `MCP Registry Publish` workflow and must not
+   reuse a `server.json.version` that already exists in the registry.
 6. Only after the current version's tag, GitHub Release, and manual platform
    release actions have started, finished, or been explicitly skipped, choose
    the next semantic version for the repository.
