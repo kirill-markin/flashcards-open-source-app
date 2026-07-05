@@ -12,10 +12,6 @@
   font-weight: 700;
 }
 
-.review-filter-menu-wrap {
-  position: relative;
-}
-
 .review-screen-head-actions > .review-filter-menu-wrap {
   min-width: 220px;
 }
@@ -50,16 +46,11 @@
   --review-filter-menu-padding: 10px;
   --review-filter-menu-radius: var(--radius-lg);
   --review-filter-menu-inner-radius: max(0px, calc(var(--review-filter-menu-radius) - var(--review-filter-menu-padding)));
-  position: absolute;
-  top: calc(100% + 10px);
-  inset-inline-end: 0;
   z-index: 30;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 100%;
-  width: min(320px, calc(100vw - 32px));
-  max-height: min(420px, calc(100dvh - 32px));
+  width: 320px;
   padding: var(--review-filter-menu-padding);
   border: 1px solid var(--panel-border-strong);
   border-radius: var(--review-filter-menu-radius);

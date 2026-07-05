@@ -13,6 +13,7 @@ import {
   flushReviewScreenPromises,
   getActiveReviewFilterOption,
   keydownElementAsync,
+  pointerDownElementAsync,
 } from "./ReviewScreen.controlsTestSupport";
 
 const {
@@ -23,6 +24,28 @@ const {
   renderReviewScreen,
   rerenderReviewScreen,
 } = setupReviewScreenTest();
+
+function queryReviewFilterMenu(): HTMLDivElement | null {
+  const menu = document.querySelector(".review-filter-menu");
+  if (menu === null) {
+    return null;
+  }
+
+  if (!(menu instanceof HTMLDivElement)) {
+    throw new Error("Review filter menu was not rendered as a div");
+  }
+
+  return menu;
+}
+
+function getReviewFilterMenu(): HTMLDivElement {
+  const menu = queryReviewFilterMenu();
+  if (menu === null) {
+    throw new Error("Review filter menu was not found");
+  }
+
+  return menu;
+}
 
 describe("ReviewScreen filter controls", () => {
   it("renders compact review header controls with scope before streak", async () => {
@@ -265,7 +288,8 @@ describe("ReviewScreen filter controls", () => {
     await renderReviewScreen();
     await openReviewFilterMenu();
 
-    const searchInput = getContainer().querySelector(".review-filter-search-input");
+    const filterMenu = getReviewFilterMenu();
+    const searchInput = filterMenu.querySelector(".review-filter-search-input");
     if (!(searchInput instanceof HTMLInputElement)) {
       throw new Error("Review filter search input was not found");
     }
@@ -274,7 +298,7 @@ describe("ReviewScreen filter controls", () => {
     expect(searchInput.getAttribute("aria-haspopup")).toBe("listbox");
     expect(searchInput.getAttribute("aria-expanded")).toBe("true");
 
-    const listbox = getContainer().querySelector("[role='listbox']");
+    const listbox = filterMenu.querySelector("[role='listbox']");
     if (!(listbox instanceof HTMLElement)) {
       throw new Error("Review filter listbox was not found");
     }
@@ -291,7 +315,7 @@ describe("ReviewScreen filter controls", () => {
       "overflow-y: auto",
     )).toBe(true);
 
-    const editDecksLink = getContainer().querySelector(".review-filter-menu-entry-action");
+    const editDecksLink = filterMenu.querySelector(".review-filter-menu-entry-action");
     if (!(editDecksLink instanceof HTMLAnchorElement)) {
       throw new Error("Review filter edit decks link was not found");
     }
@@ -309,9 +333,9 @@ describe("ReviewScreen filter controls", () => {
 
     await setTextFieldValueAsync(searchInput, "ta");
 
-    expect(getContainer().textContent).toContain("Beta");
-    expect(getContainer().textContent).toContain("Delta");
-    expect(getContainer().textContent).not.toContain("Alpha");
+    expect(getReviewFilterMenu().textContent).toContain("Beta");
+    expect(getReviewFilterMenu().textContent).toContain("Delta");
+    expect(getReviewFilterMenu().textContent).not.toContain("Alpha");
     expect([...listbox.querySelectorAll("[role='option']")].map((option) => (
       option.getAttribute("data-review-filter-key")
     ))).toEqual(["deck:deck-2", "deck:deck-4", "deck:deck-6", "deck:deck-7"]);
@@ -326,7 +350,7 @@ describe("ReviewScreen filter controls", () => {
 
     expect(getActiveReviewFilterOption(searchInput).getAttribute("data-review-filter-key")).toBe("deck:deck-2");
     expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
-    expect(getContainer().querySelector(".review-filter-menu")).not.toBeNull();
+    expect(queryReviewFilterMenu()).not.toBeNull();
 
     await keydownElementAsync(searchInput, "ArrowDown");
     expect(getActiveReviewFilterOption(searchInput).getAttribute("data-review-filter-key")).toBe("deck:deck-4");
@@ -337,7 +361,7 @@ describe("ReviewScreen filter controls", () => {
 
     expect(getActiveReviewFilterOption(searchInput).getAttribute("data-review-filter-key")).toBe("deck:deck-4");
     expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
-    expect(getContainer().querySelector(".review-filter-menu")).not.toBeNull();
+    expect(queryReviewFilterMenu()).not.toBeNull();
 
     await keydownElementAsync(searchInput, "ArrowUp");
     expect(getActiveReviewFilterOption(searchInput).getAttribute("data-review-filter-key")).toBe("deck:deck-2");
@@ -349,7 +373,7 @@ describe("ReviewScreen filter controls", () => {
       kind: "deck",
       deckId: "deck-4",
     });
-    expect(getContainer().querySelector(".review-filter-menu")).toBeNull();
+    expect(queryReviewFilterMenu()).toBeNull();
     const triggerAfterSearchKeyboardSelect = getContainer().querySelector(".review-filter-trigger");
     if (!(triggerAfterSearchKeyboardSelect instanceof HTMLButtonElement)) {
       throw new Error("Review filter trigger was not found after search keyboard selection");
@@ -358,11 +382,19 @@ describe("ReviewScreen filter controls", () => {
 
     state.appData.selectReviewFilter.mockClear();
     await openReviewFilterMenu();
-    await dispatchDocumentKeydown("Escape");
-    expect(getContainer().querySelector(".review-filter-menu")).toBeNull();
+    await pointerDownElementAsync(triggerAfterSearchKeyboardSelect);
+    expect(queryReviewFilterMenu()).not.toBeNull();
+    await pointerDownElementAsync(getReviewFilterMenu());
+    expect(queryReviewFilterMenu()).not.toBeNull();
+    await pointerDownElementAsync(document.body);
+    expect(queryReviewFilterMenu()).toBeNull();
 
     await openReviewFilterMenu();
-    const mediumOption = [...getContainer().querySelectorAll("[data-review-filter-key]")]
+    await dispatchDocumentKeydown("Escape");
+    expect(queryReviewFilterMenu()).toBeNull();
+
+    await openReviewFilterMenu();
+    const mediumOption = [...getReviewFilterMenu().querySelectorAll("[data-review-filter-key]")]
       .find((element) => element.getAttribute("data-review-filter-key") === "tag:medium");
     if (!(mediumOption instanceof HTMLElement)) {
       throw new Error("Medium review filter option was not found");
@@ -391,13 +423,14 @@ describe("ReviewScreen filter controls", () => {
     await renderReviewScreen();
     await openReviewFilterMenu();
 
-    expect(getContainer().querySelector(".review-filter-search-input")).toBeNull();
+    const filterMenu = getReviewFilterMenu();
+    expect(filterMenu.querySelector(".review-filter-search-input")).toBeNull();
 
-    const listbox = getContainer().querySelector("[role='listbox']");
+    const listbox = filterMenu.querySelector("[role='listbox']");
     if (!(listbox instanceof HTMLElement)) {
       throw new Error("Review filter listbox was not found");
     }
-    const editDecksLink = getContainer().querySelector(".review-filter-menu-entry-action");
+    const editDecksLink = filterMenu.querySelector(".review-filter-menu-entry-action");
     if (!(editDecksLink instanceof HTMLAnchorElement)) {
       throw new Error("Review filter edit decks link was not found");
     }
@@ -423,7 +456,7 @@ describe("ReviewScreen filter controls", () => {
       kind: "deck",
       deckId: "deck-2",
     });
-    expect(getContainer().querySelector(".review-filter-menu")).toBeNull();
+    expect(queryReviewFilterMenu()).toBeNull();
     const triggerAfterListboxKeyboardSelect = getContainer().querySelector(".review-filter-trigger");
     if (!(triggerAfterListboxKeyboardSelect instanceof HTMLButtonElement)) {
       throw new Error("Review filter trigger was not found after listbox keyboard selection");
@@ -443,8 +476,9 @@ describe("ReviewScreen filter controls", () => {
     await renderReviewScreen();
     await openReviewFilterMenu();
 
-    const slashTagOption = getContainer().querySelector("[data-review-filter-key='tag:a/b']");
-    const escapedTagOption = getContainer().querySelector("[data-review-filter-key='tag:a-2f-b']");
+    const filterMenu = getReviewFilterMenu();
+    const slashTagOption = filterMenu.querySelector("[data-review-filter-key='tag:a/b']");
+    const escapedTagOption = filterMenu.querySelector("[data-review-filter-key='tag:a-2f-b']");
     if (!(slashTagOption instanceof HTMLElement) || !(escapedTagOption instanceof HTMLElement)) {
       throw new Error("Review filter collision test options were not found");
     }
