@@ -470,6 +470,38 @@ test("loadUserProgressSeriesInExecutor rejects daily and streak day invariant mi
   );
 });
 
+test("loadUserProgressSeriesInExecutor allows user-wide streak days outside the legacy daily review scope", async () => {
+  const { executor } = createProgressExecutor({
+    workspaceIdsByUser: {
+      "user-1": ["workspace-1"],
+    },
+    reviewRowsByRequest: {},
+    activeReviewDateRowsByUser: {
+      "user-1": [
+        { review_date: "2026-06-20" },
+      ],
+    },
+    reviewScheduleRowsByRequest: {},
+    reviewSequenceIdsByWorkspaceId: {
+      "workspace-1": 0,
+    },
+  });
+
+  const progress = await loadUserProgressSeriesInExecutor(executor, {
+    userId: "user-1",
+    timeZone: "America/Los_Angeles",
+    from: "2026-06-20",
+    to: "2026-06-20",
+  });
+
+  assert.deepEqual(progress.dailyReviews, [
+    { date: "2026-06-20", reviewCount: 0, againCount: 0, hardCount: 0, goodCount: 0, easyCount: 0 },
+  ]);
+  assert.deepEqual(progress.streakDays, [
+    { date: "2026-06-20", state: "reviewed" },
+  ]);
+});
+
 test("loadUserProgressSeriesInExecutor applies user scope for memberships and workspace scope for each review query", async () => {
   const { executor, recordedQueries } = createProgressExecutor({
     workspaceIdsByUser: {

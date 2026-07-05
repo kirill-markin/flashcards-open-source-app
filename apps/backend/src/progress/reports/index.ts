@@ -590,6 +590,14 @@ function validateProgressSeriesDayInvariant(
       );
     }
 
+    // Progress is temporarily mixed-scope: daily review bars still reflect the
+    // current legacy review-event scope, while streak days are user-wide. A
+    // user-wide reviewed streak day can therefore have zero reviews in the
+    // daily series until Progress filtering is rebuilt around one shared scope.
+    if (dailyReview.reviewCount === 0 && streakState === "reviewed") {
+      continue;
+    }
+
     if ((dailyReview.reviewCount > 0) !== (streakState === "reviewed")) {
       throw new Error(
         [
