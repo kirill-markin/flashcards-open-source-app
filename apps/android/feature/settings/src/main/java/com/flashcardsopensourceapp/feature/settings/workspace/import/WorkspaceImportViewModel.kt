@@ -324,27 +324,41 @@ class WorkspaceImportViewModel(
     }
 
     private suspend fun confirmImportAsync() {
-        val currentUiState: WorkspaceImportUiState = uiState.value
-        val selectedFile: WorkspaceImportSelectedFile = draftState.value.selectedFile ?: run {
+        val currentCloudSettings: CloudSettings = cloudSettingsState.value
+        val currentDraftState: WorkspaceImportDraftState = draftState.value
+        val currentIdentity: WorkspaceImportPreviewIdentity? = makePreviewIdentity(cloudSettings = currentCloudSettings)
+        val isPreviewCurrent: Boolean = currentDraftState.preview != null &&
+            currentDraftState.selectedFile != null &&
+            currentDraftState.previewIdentity == currentIdentity
+        val selectedFile: WorkspaceImportSelectedFile = currentDraftState.selectedFile ?: run {
             draftState.update { state ->
                 state.copy(errorMessage = strings.get(R.string.settings_import_preview_required))
             }
             return
         }
-        val preview: WorkspacePackageImportPreview = currentUiState.preview ?: run {
+        val currentPreview: WorkspacePackageImportPreview? = if (isPreviewCurrent) {
+            currentDraftState.preview
+        } else {
+            null
+        }
+        val preview: WorkspacePackageImportPreview = currentPreview ?: run {
             draftState.update { state ->
                 state.copy(errorMessage = strings.get(R.string.settings_import_preview_required))
             }
             return
         }
-        if (currentUiState.availabilityMessage.isNotEmpty()) {
+        val availabilityMessage: String = workspaceImportAvailabilityMessage(
+            cloudSettings = currentCloudSettings,
+            strings = strings
+        )
+        if (availabilityMessage.isNotEmpty()) {
             draftState.update { state ->
                 state.copy(
                     preview = null,
                     selectedFile = null,
                     previewIdentity = null,
                     importTag = "",
-                    errorMessage = currentUiState.availabilityMessage,
+                    errorMessage = availabilityMessage,
                     successMessage = ""
                 )
             }
@@ -356,9 +370,9 @@ class WorkspaceImportViewModel(
         val options = try {
             makeWorkspaceImportConfirmOptions(
                 preview = preview,
-                addImportTag = currentUiState.addImportTag,
-                importTag = currentUiState.importTag,
-                removedTags = currentUiState.removedTags,
+                addImportTag = currentDraftState.addImportTag,
+                importTag = currentDraftState.importTag,
+                removedTags = currentDraftState.removedTags,
                 importedAtMillis = importedAtMillis,
                 importId = importId,
                 missingImportTagMessage = strings.get(R.string.settings_import_missing_import_tag)
