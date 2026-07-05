@@ -2,10 +2,12 @@
 
 package com.flashcardsopensourceapp.app.livesmoke.flows
 
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
@@ -15,6 +17,7 @@ import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickNode
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickText
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.tapBackIcon
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForTagToExist
+import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilWithMitigation
 import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
 import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
@@ -87,14 +90,11 @@ internal fun LiveSmokeContext.openSettingsRow(rowTag: String, rowLabel: String) 
     openSettingsTab()
     val rowMatcher = hasTestTag(rowTag).and(other = hasClickAction())
 
-    composeRule.onNodeWithTag(testTag = settingsRootScreenTag)
-        .performScrollToNode(matcher = rowMatcher)
-    waitForTagToExist(
-        tag = rowTag,
-        timeoutMillis = internalUiTimeoutMillis,
-        context = "while waiting for settings row '$rowLabel'"
+    scrollSettingsRootTargetIntoView(
+        targetTag = rowTag,
+        targetLabel = rowLabel,
+        targetMatcher = rowMatcher
     )
-    composeRule.onNodeWithTag(testTag = rowTag).performScrollTo()
     clickNode(matcher = rowMatcher, label = rowLabel)
 }
 
@@ -117,12 +117,10 @@ internal fun LiveSmokeContext.assertSettingsInformationArchitecture() {
     ).forEach { section ->
         val sectionTag = section.first
         val sectionLabel = section.second
-        composeRule.onNodeWithTag(testTag = settingsRootScreenTag)
-            .performScrollToNode(matcher = hasTestTag(sectionTag))
-        waitForTagToExist(
-            tag = sectionTag,
-            timeoutMillis = internalUiTimeoutMillis,
-            context = "while verifying settings section '$sectionLabel'"
+        scrollSettingsRootTargetIntoView(
+            targetTag = sectionTag,
+            targetLabel = sectionLabel,
+            targetMatcher = hasTestTag(sectionTag)
         )
     }
 
@@ -151,12 +149,10 @@ internal fun LiveSmokeContext.assertSettingsInformationArchitecture() {
     ).forEach { row ->
         val rowTag = row.first
         val rowLabel = row.second
-        composeRule.onNodeWithTag(testTag = settingsRootScreenTag)
-            .performScrollToNode(matcher = hasTestTag(rowTag).and(other = hasClickAction()))
-        waitForTagToExist(
-            tag = rowTag,
-            timeoutMillis = internalUiTimeoutMillis,
-            context = "while verifying settings row '$rowLabel'"
+        scrollSettingsRootTargetIntoView(
+            targetTag = rowTag,
+            targetLabel = rowLabel,
+            targetMatcher = hasTestTag(rowTag).and(other = hasClickAction())
         )
     }
 }
@@ -244,3 +240,34 @@ private data class SettingsDetailProbe(
     val rowLabel: String,
     val destinationTag: String
 )
+
+private fun LiveSmokeContext.scrollSettingsRootTargetIntoView(
+    targetTag: String,
+    targetLabel: String,
+    targetMatcher: SemanticsMatcher
+) {
+    composeRule.onNodeWithTag(testTag = settingsRootScreenTag)
+        .performScrollToNode(matcher = targetMatcher)
+    waitForTagToExist(
+        tag = targetTag,
+        timeoutMillis = internalUiTimeoutMillis,
+        context = "while waiting for settings root target '$targetLabel'"
+    )
+    composeRule.onNodeWithTag(testTag = targetTag).performScrollTo()
+    waitForSettingsRootTargetToBeDisplayed(
+        targetTag = targetTag,
+        targetLabel = targetLabel
+    )
+}
+
+private fun LiveSmokeContext.waitForSettingsRootTargetToBeDisplayed(
+    targetTag: String,
+    targetLabel: String
+) {
+    waitUntilWithMitigation(
+        timeoutMillis = internalUiTimeoutMillis,
+        context = "while waiting for settings root target '$targetLabel' to be displayed"
+    ) {
+        composeRule.onNodeWithTag(testTag = targetTag).isDisplayed()
+    }
+}

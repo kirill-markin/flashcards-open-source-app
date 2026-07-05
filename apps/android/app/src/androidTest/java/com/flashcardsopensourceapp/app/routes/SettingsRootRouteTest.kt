@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -426,6 +427,8 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         waitForSettingsRootTag(targetTag = secondRowTag)
         composeRule.onNodeWithTag(testTag = firstRowTag).performScrollTo()
         composeRule.onNodeWithTag(testTag = secondRowTag).performScrollTo()
+        waitForSettingsRootTagToBeDisplayed(targetTag = firstRowTag)
+        waitForSettingsRootTagToBeDisplayed(targetTag = secondRowTag)
         composeRule.onNodeWithTag(testTag = firstRowTag).assertIsDisplayed()
         composeRule.onNodeWithTag(testTag = secondRowTag).assertIsDisplayed()
         val firstTop = composeRule.onNodeWithTag(testTag = firstRowTag).fetchSemanticsNode().boundsInRoot.top
@@ -448,6 +451,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     private fun scrollSettingsRootTargetIntoView(targetTag: String) {
         scrollSettingsRootToTag(targetTag = targetTag)
         composeRule.onNodeWithTag(testTag = targetTag).performScrollTo()
+        waitForSettingsRootTagToBeDisplayed(targetTag = targetTag)
     }
 
     private fun scrollSettingsRootToTag(targetTag: String) {
@@ -459,6 +463,12 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     private fun waitForSettingsRootTag(targetTag: String) {
         composeRule.waitUntil(timeoutMillis = settingsRouteUiTimeoutMillis) {
             composeRule.onAllNodesWithTag(testTag = targetTag).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun waitForSettingsRootTagToBeDisplayed(targetTag: String) {
+        composeRule.waitUntil(timeoutMillis = settingsRouteUiTimeoutMillis) {
+            composeRule.onNodeWithTag(testTag = targetTag).isDisplayed()
         }
     }
 
