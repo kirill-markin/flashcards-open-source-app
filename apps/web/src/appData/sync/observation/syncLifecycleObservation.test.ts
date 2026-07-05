@@ -30,10 +30,28 @@ const apiMocks = vi.hoisted(() => ({
   pushSyncOperationsMock: vi.fn(),
 }));
 
+const localCardMocks = vi.hoisted(() => ({
+  loadActiveCardCountMock: vi.fn<(workspaceId: string) => Promise<number>>(),
+}));
+
 vi.mock("../../../observability/webObservability", () => ({
   addWebBreadcrumb: observabilityMocks.addWebBreadcrumbMock,
   captureWebWarning: observabilityMocks.captureWebWarningMock,
 }));
+
+vi.mock("../../../localDb/cards/cards", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../localDb/cards/cards")>();
+  return {
+    ...actual,
+    loadActiveCardCount: (workspaceId: string): Promise<number> => {
+      if (localCardMocks.loadActiveCardCountMock.getMockImplementation() !== undefined) {
+        return localCardMocks.loadActiveCardCountMock(workspaceId);
+      }
+
+      return actual.loadActiveCardCount(workspaceId);
+    },
+  };
+});
 
 vi.mock("../../../api", () => ({
   bootstrapPullSyncState: apiMocks.bootstrapPullSyncStateMock,
@@ -91,14 +109,14 @@ function createBootstrapPullResult(input: Readonly<{
   };
 }
 
-function createDeckBootstrapEntry(workspaceId: string): SyncBootstrapEntry {
+function createDeckBootstrapEntryWithId(workspaceId: string, deckId: string): SyncBootstrapEntry {
   const timestamp = "2026-05-01T00:00:00.000Z";
   return {
     entityType: "deck",
-    entityId: "deck-1",
+    entityId: deckId,
     action: "upsert",
     payload: {
-      deckId: "deck-1",
+      deckId,
       workspaceId,
       name: "Deck",
       filterDefinition: {
@@ -113,6 +131,25 @@ function createDeckBootstrapEntry(workspaceId: string): SyncBootstrapEntry {
       deletedAt: null,
     },
   };
+}
+
+function createDeckBootstrapEntry(workspaceId: string): SyncBootstrapEntry {
+  return createDeckBootstrapEntryWithId(workspaceId, "deck-1");
+}
+
+function createDeckBootstrapEntries(
+  workspaceId: string,
+  count: number,
+  idPrefix: string,
+): ReadonlyArray<SyncBootstrapEntry> {
+  if (Number.isInteger(count) === false || count < 0) {
+    throw new Error(`Invalid deck bootstrap entry count: ${count}`);
+  }
+
+  return Array.from(
+    { length: count },
+    (_value, index) => createDeckBootstrapEntryWithId(workspaceId, `${idPrefix}-${index}`),
+  );
 }
 
 type TestClock = Readonly<{
@@ -272,6 +309,12 @@ function findCapturedWarning(action: string): unknown {
     .find((event) => event.action === action) ?? null;
 }
 
+function findAddedBreadcrumb(action: string): unknown {
+  return observabilityMocks.addWebBreadcrumbMock.mock.calls
+    .map((call) => call[0] as Readonly<{ action: string }>)
+    .find((event) => event.action === action) ?? null;
+}
+
 describe("sync lifecycle observation", () => {
   beforeEach(async () => {
     await clearWebSyncCache();
@@ -289,6 +332,7 @@ describe("sync lifecycle observation", () => {
     apiMocks.pullReviewHistorySyncMock.mockReset();
     apiMocks.pullSyncChangesMock.mockReset();
     apiMocks.pushSyncOperationsMock.mockReset();
+    localCardMocks.loadActiveCardCountMock.mockReset();
     primeEmptyRemoteSync();
   });
 
@@ -638,6 +682,171 @@ describe("sync lifecycle observation", () => {
     });
 
     expect(findCapturedWarning("sync_restore_slow")).toBeNull();
+    expect(findAddedBreadcrumb("sync_hot_bootstrap_tolerated_slow")).toBeNull();
+  });
+
+  it("breadcrumbs normal multi-page volume restores without warning", async () => {
+    const clock = installMutableDateNow(0);
+    installPersistentStorageMockWithClock(clock, 0, 7, 0);
+    localCardMocks.loadActiveCardCountMock
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(2001);
+    apiMocks.bootstrapPullSyncStateMock
+      .mockImplementationOnce(async () => {
+        clock.advance(1200);
+        return createBootstrapPullResult({
+          entries: createDeckBootstrapEntries("workspace-1", 1000, "normal-page-1"),
+          bootstrapHotChangeId: 12,
+          nextCursor: "cursor-2",
+          hasMore: true,
+          remoteIsEmpty: false,
+        });
+      })
+      .mockImplementationOnce(async () => {
+        clock.advance(1400);
+        return createBootstrapPullResult({
+          entries: createDeckBootstrapEntries("workspace-1", 1000, "normal-page-2"),
+          bootstrapHotChangeId: 13,
+          nextCursor: "cursor-3",
+          hasMore: true,
+          remoteIsEmpty: false,
+        });
+      })
+      .mockImplementationOnce(async () => {
+        clock.advance(1000);
+        return createBootstrapPullResult({
+          entries: createDeckBootstrapEntries("workspace-1", 64, "normal-page-3"),
+          bootstrapHotChangeId: 14,
+          nextCursor: null,
+          hasMore: false,
+          remoteIsEmpty: false,
+        });
+      });
+
+    await runWorkspaceRemoteSync({
+      ...createRemoteSyncInput(),
+      refreshWorkspaceView: async (_workspaceId: string): Promise<void> => {
+        clock.advance(605);
+      },
+    });
+
+    expect(findCapturedWarning("sync_restore_slow")).toBeNull();
+    expect(findAddedBreadcrumb("sync_hot_bootstrap_tolerated_slow")).toEqual(expect.objectContaining({
+      action: "sync_hot_bootstrap_tolerated_slow",
+      details: expect.objectContaining({
+        durationMs: 4205,
+        pageSize: 1000,
+        pageCount: 3,
+        entriesCount: 2064,
+        localCardCountAfter: 2001,
+        bootstrapPullDurationMs: 3600,
+        applyHotPagesDurationMs: 0,
+        finalRefreshDurationMs: 605,
+        persistentStorageDurationMs: 7,
+        bootstrapPageDurationMs: [1200, 1400, 1000],
+      }),
+    }));
+  });
+
+  it("warns for a small anomalous restore when the local cache already has many cards", async () => {
+    const clock = installMutableDateNow(0);
+    installPersistentStorageMockWithClock(clock, 0, 7, 0);
+    localCardMocks.loadActiveCardCountMock
+      .mockResolvedValueOnce(5000)
+      .mockResolvedValueOnce(5000);
+    apiMocks.bootstrapPullSyncStateMock.mockImplementation(async () => {
+      clock.advance(9200);
+      return createBootstrapPullResult({
+        entries: [createDeckBootstrapEntryWithId("workspace-1", "small-remote-deck")],
+        bootstrapHotChangeId: 12,
+        nextCursor: null,
+        hasMore: false,
+        remoteIsEmpty: false,
+      });
+    });
+
+    await runWorkspaceRemoteSync({
+      ...createRemoteSyncInput(),
+      refreshWorkspaceView: async (_workspaceId: string): Promise<void> => {},
+    });
+
+    expect(findCapturedWarning("sync_restore_slow")).toEqual(expect.objectContaining({
+      action: "sync_restore_slow",
+      details: expect.objectContaining({
+        durationMs: 9200,
+        pageSize: 1000,
+        pageCount: 1,
+        entriesCount: 1,
+        localCardCountBefore: 5000,
+        localCardCountAfter: 5000,
+        bootstrapPullDurationMs: 9200,
+        applyHotPagesDurationMs: 0,
+        finalRefreshDurationMs: 0,
+        persistentStorageDurationMs: 7,
+        bootstrapPageDurationMs: [9200],
+      }),
+    }));
+    expect(findAddedBreadcrumb("sync_hot_bootstrap_tolerated_slow")).toBeNull();
+  });
+
+  it("warns for anomalous multi-page volume restores above the calculated budget", async () => {
+    const clock = installMutableDateNow(0);
+    installPersistentStorageMockWithClock(clock, 0, 7, 0);
+    apiMocks.bootstrapPullSyncStateMock
+      .mockImplementationOnce(async () => {
+        clock.advance(3000);
+        return createBootstrapPullResult({
+          entries: createDeckBootstrapEntries("workspace-1", 1000, "anomalous-page-1"),
+          bootstrapHotChangeId: 12,
+          nextCursor: "cursor-2",
+          hasMore: true,
+          remoteIsEmpty: false,
+        });
+      })
+      .mockImplementationOnce(async () => {
+        clock.advance(3000);
+        return createBootstrapPullResult({
+          entries: createDeckBootstrapEntries("workspace-1", 1000, "anomalous-page-2"),
+          bootstrapHotChangeId: 13,
+          nextCursor: "cursor-3",
+          hasMore: true,
+          remoteIsEmpty: false,
+        });
+      })
+      .mockImplementationOnce(async () => {
+        clock.advance(3000);
+        return createBootstrapPullResult({
+          entries: createDeckBootstrapEntries("workspace-1", 64, "anomalous-page-3"),
+          bootstrapHotChangeId: 14,
+          nextCursor: null,
+          hasMore: false,
+          remoteIsEmpty: false,
+        });
+      });
+
+    await runWorkspaceRemoteSync({
+      ...createRemoteSyncInput(),
+      refreshWorkspaceView: async (_workspaceId: string): Promise<void> => {
+        clock.advance(600);
+      },
+    });
+
+    expect(findCapturedWarning("sync_restore_slow")).toEqual(expect.objectContaining({
+      action: "sync_restore_slow",
+      details: expect.objectContaining({
+        durationMs: 9600,
+        pageSize: 1000,
+        pageCount: 3,
+        entriesCount: 2064,
+        localCardCountAfter: 0,
+        bootstrapPullDurationMs: 9000,
+        applyHotPagesDurationMs: 0,
+        finalRefreshDurationMs: 600,
+        persistentStorageDurationMs: 7,
+        bootstrapPageDurationMs: [3000, 3000, 3000],
+      }),
+    }));
+    expect(findAddedBreadcrumb("sync_hot_bootstrap_tolerated_slow")).toBeNull();
   });
 
   it("keeps warning for a slow non-empty remote bootstrap", async () => {

@@ -1,6 +1,11 @@
 export const syncIncrementalPageSize = 500;
 export const syncBootstrapPageSize = 1000;
-// Normal cold-start fresh single-page bootstraps run ~6.5s (server/network latency), which is expected; multi-page bootstraps still warn via pageCount > 1.
-export const slowHotBootstrapWarningThresholdMs = 8000;
-// Floor for the tolerated-slow breadcrumb: single-page bootstraps in the 2–8s band emit a silent breadcrumb (no Sentry issue) for debugging context, staying below the 8000ms warning threshold.
+// Multi-page hot-state restores are normal when users have thousands of cards.
+// Warnings should represent abnormal duration after accounting for restored volume.
+export const slowHotBootstrapMinimumWarningThresholdMs = 8000;
+export const slowHotBootstrapBaseWarningBudgetMs = 2000;
+export const slowHotBootstrapPerPageWarningBudgetMs = 1500;
+export const slowHotBootstrapPerEntryWarningBudgetMs = 1.5;
+// Floor for the tolerated-slow breadcrumb: non-empty hot-state restores above this
+// duration emit silent context when they stay below the volume-aware warning threshold.
 export const slowHotBootstrapBreadcrumbThresholdMs = 2000;

@@ -518,11 +518,10 @@ export type SyncRestoreWarningDetails = SyncBootstrapTimingDetails & Readonly<{
   remoteIsEmpty: boolean | null;
 }>;
 
-// Single-page bootstraps slow enough to be interesting (>= the breadcrumb floor)
-// but below the warning threshold are a tolerated, expected condition (server/network
-// latency), so they are emitted as a silent breadcrumb for debugging context — never a
-// warning. The >= warning-threshold or multi-page case stays a warning (see
-// SyncRestoreWarningDetails); the two are mutually exclusive.
+// Bootstraps slow enough to be interesting (>= the breadcrumb floor) but below
+// the volume-aware warning threshold are a tolerated, expected condition, so they
+// are emitted as a silent breadcrumb for debugging context. Warning and tolerated
+// breadcrumb observations are mutually exclusive.
 export type SyncRestoreToleratedSlowBreadcrumbDetails = SyncBootstrapTimingDetails & Readonly<{
   eventName: "sync_hot_bootstrap_tolerated_slow";
   syncRunId: string;
