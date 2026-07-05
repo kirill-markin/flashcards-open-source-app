@@ -13,10 +13,10 @@
 
 .card-meta-panel {
   padding: 18px;
-  border: 1px solid var(--panel-border);
+  border: 0;
   border-radius: var(--panel-inner-radius, var(--radius-md));
-  background: var(--surface-elevated);
-  box-shadow: var(--shadow-soft);
+  background: var(--surface);
+  box-shadow: none;
 }
 
 .form-label {
@@ -37,7 +37,8 @@
   display: grid;
   gap: 10px;
   margin: 0;
-  border: 1px solid var(--panel-border);
+  padding: 0;
+  border: 0;
 }
 
 .deck-form-label {
@@ -61,11 +62,16 @@
   align-items: center;
   min-height: 36px;
   padding: 0 12px;
-  border: 1px solid var(--panel-border);
+  border: 0;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface);
   cursor: pointer;
   color: var(--text-secondary);
+}
+
+.deck-checkbox-option:focus-within {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
 }
 
 .deck-checkbox-option input {
