@@ -8,7 +8,8 @@
     "build": "npm run bundle --prefix ../../api && npm run clean && tsc",
     "start": "node dist/entrypoints/index.js",
     "lint": "tsc --noEmit",
-    "test": "npm run bundle --prefix ../../api && node scripts/run-tests.mjs"
+    "test": "npm run bundle --prefix ../../api && node scripts/run-tests.mjs",
+    "test:mcp": "npm run bundle --prefix ../../api && node --test --import tsx src/entrypoints/lambda-mcp.test.ts src/mcp/server.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.1077.0",
