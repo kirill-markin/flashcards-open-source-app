@@ -36,6 +36,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -258,6 +259,7 @@ private fun CardEditorManagedImagePreviewItem(
         ) {
             CardEditorManagedImagePreviewSurface(
                 state = previewState,
+                mediaAssetId = reference.mediaAssetId,
                 label = label
             )
             Text(
@@ -287,6 +289,7 @@ private fun CardEditorManagedImagePreviewItem(
 @Composable
 private fun CardEditorManagedImagePreviewSurface(
     state: CardEditorManagedImagePreviewState,
+    mediaAssetId: String,
     label: String
 ) {
     when (state) {
@@ -302,6 +305,7 @@ private fun CardEditorManagedImagePreviewSurface(
 
         is CardEditorManagedImagePreviewState.Ready -> CardEditorManagedImage(
             uri = state.uri,
+            mediaAssetId = mediaAssetId,
             label = label
         )
     }
@@ -310,37 +314,52 @@ private fun CardEditorManagedImagePreviewSurface(
 @Composable
 private fun CardEditorManagedImage(
     uri: String,
+    mediaAssetId: String,
     label: String
 ) {
     val context = LocalContext.current
-    val imageRequest = remember(context, uri) {
-        ImageRequest.Builder(context)
-            .data(uri)
-            .diskCachePolicy(CachePolicy.DISABLED)
-            .build()
+    val memoryCacheKey = remember(mediaAssetId, uri) {
+        cardEditorManagedImageMemoryCacheKey(mediaAssetId = mediaAssetId, uri = uri)
     }
-    SubcomposeAsyncImage(
-        model = imageRequest,
-        contentDescription = label,
-        contentScale = ContentScale.Crop,
-        loading = {
-            CardEditorManagedImagePlaceholder(
-                label = stringResource(id = R.string.cards_editor_image_loading),
-                isLoading = true
-            )
-        },
-        error = {
-            CardEditorManagedImagePlaceholder(
-                label = stringResource(id = R.string.cards_editor_image_unavailable),
-                isLoading = false
-            )
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(104.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(color = MaterialTheme.colorScheme.surfaceContainerHighest)
-    )
+
+    key(memoryCacheKey) {
+        val imageRequest = remember(context, uri) {
+            ImageRequest.Builder(context)
+                .data(uri)
+                .memoryCacheKey(memoryCacheKey)
+                .diskCachePolicy(CachePolicy.DISABLED)
+                .build()
+        }
+        SubcomposeAsyncImage(
+            model = imageRequest,
+            contentDescription = label,
+            contentScale = ContentScale.Crop,
+            loading = {
+                CardEditorManagedImagePlaceholder(
+                    label = stringResource(id = R.string.cards_editor_image_loading),
+                    isLoading = true
+                )
+            },
+            error = {
+                CardEditorManagedImagePlaceholder(
+                    label = stringResource(id = R.string.cards_editor_image_unavailable),
+                    isLoading = false
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(104.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(color = MaterialTheme.colorScheme.surfaceContainerHighest)
+        )
+    }
+}
+
+private fun cardEditorManagedImageMemoryCacheKey(
+    mediaAssetId: String,
+    uri: String
+): String {
+    return "card-editor-managed-media:$mediaAssetId:$uri"
 }
 
 @Composable

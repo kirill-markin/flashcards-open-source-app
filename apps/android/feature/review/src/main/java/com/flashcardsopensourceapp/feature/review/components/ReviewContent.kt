@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
@@ -53,6 +54,7 @@ private val reviewEditButtonSize = 26.dp
 private val reviewEditIconSize = 14.dp
 private val reviewSpeechButtonSize = 32.dp
 private val reviewSpeechIconSize = 18.dp
+private val reviewCurrentCardCornerRadius = 12.dp
 
 internal fun reviewContentBottomPadding(hasCurrentCard: Boolean, isAnswerVisible: Boolean): Dp {
     if (hasCurrentCard.not()) {
@@ -280,6 +282,7 @@ private fun ReviewCardContent(
         }
 
         Card(
+            shape = RoundedCornerShape(reviewCurrentCardCornerRadius),
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(reviewCurrentCardTag)

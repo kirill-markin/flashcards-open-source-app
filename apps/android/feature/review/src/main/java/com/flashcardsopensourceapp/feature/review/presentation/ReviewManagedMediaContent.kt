@@ -2,16 +2,22 @@ package com.flashcardsopensourceapp.feature.review
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Context
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Audiotrack
@@ -28,6 +34,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -45,21 +52,26 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
+import coil3.compose.SubcomposeAsyncImageContent
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.IOException
 
 private val reviewManagedMediaIconSize = 22.dp
 private val reviewManagedMediaActionIconSize = 18.dp
-private val reviewManagedMediaImageMinimumHeight = 120.dp
-private val reviewManagedMediaImageMaximumHeight = 360.dp
+private val reviewManagedMediaImagePlaceholderHeight = 180.dp
+private val reviewManagedMediaSurfaceCornerRadius = 12.dp
+private val reviewManagedMediaImageCornerRadius = 6.dp
 
 private enum class ReviewManagedMediaCategory {
     IMAGE,
@@ -72,7 +84,8 @@ private sealed interface ReviewManagedMediaFileState {
     data object Loading : ReviewManagedMediaFileState
 
     data class Ready(
-        val mediaFile: ReviewMediaAssetFile
+        val mediaFile: ReviewMediaAssetFile,
+        val imageAspectRatio: Float?
     ) : ReviewManagedMediaFileState
 
     data object Unavailable : ReviewManagedMediaFileState
@@ -141,6 +154,7 @@ private fun ReviewManagedMediaImageFile(
     label: String,
     onLoadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile
 ) {
+    val context = LocalContext.current
     val currentLoadManagedMediaFile = rememberUpdatedState(newValue = onLoadManagedMediaFile)
     val mediaFileState by produceState<ReviewManagedMediaFileState>(
         initialValue = ReviewManagedMediaFileState.Loading,
@@ -149,8 +163,10 @@ private fun ReviewManagedMediaImageFile(
         key3 = mediaAsset.deletedAtMillis
     ) {
         value = try {
+            val mediaFile: ReviewMediaAssetFile = currentLoadManagedMediaFile.value(mediaAsset.mediaAssetId)
             ReviewManagedMediaFileState.Ready(
-                mediaFile = currentLoadManagedMediaFile.value(mediaAsset.mediaAssetId)
+                mediaFile = mediaFile,
+                imageAspectRatio = reviewManagedMediaImageAspectRatio(context = context, uri = mediaFile.uri)
             )
         } catch (error: Throwable) {
             if (error is CancellationException) {
@@ -161,21 +177,32 @@ private fun ReviewManagedMediaImageFile(
     }
 
     when (val state = mediaFileState) {
-        ReviewManagedMediaFileState.Loading -> ReviewManagedMediaPlaceholderRow(
+        ReviewManagedMediaFileState.Loading -> ReviewManagedMediaImageState(
             label = label,
             supportingText = stringResource(id = R.string.review_media_loading),
-            icon = Icons.Outlined.Image
+            icon = Icons.Outlined.Image,
+            showProgress = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(reviewManagedMediaImagePlaceholderHeight)
         )
 
-        ReviewManagedMediaFileState.Unavailable -> ReviewManagedMediaPlaceholderRow(
+        ReviewManagedMediaFileState.Unavailable -> ReviewManagedMediaImageState(
             label = label,
             supportingText = stringResource(id = R.string.review_media_unavailable),
-            icon = Icons.Outlined.WarningAmber
+            icon = Icons.Outlined.WarningAmber,
+            showProgress = false,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(reviewManagedMediaImagePlaceholderHeight)
         )
 
         is ReviewManagedMediaFileState.Ready -> ReviewManagedMediaImage(
             label = label,
-            uri = state.mediaFile.uri
+            mediaAssetId = state.mediaFile.mediaAsset.mediaAssetId,
+            sha256 = state.mediaFile.mediaAsset.sha256,
+            uri = state.mediaFile.uri,
+            imageAspectRatio = state.imageAspectRatio
         )
     }
 }
@@ -183,44 +210,112 @@ private fun ReviewManagedMediaImageFile(
 @Composable
 private fun ReviewManagedMediaImage(
     label: String,
-    uri: String
+    mediaAssetId: String,
+    sha256: String,
+    uri: String,
+    imageAspectRatio: Float?
 ) {
     val context = LocalContext.current
-    val imageRequest = remember(context, uri) {
-        ImageRequest.Builder(context)
-            .data(uri)
-            .diskCachePolicy(CachePolicy.DISABLED)
-            .build()
+    val memoryCacheKey = remember(mediaAssetId, sha256) {
+        reviewManagedMediaImageMemoryCacheKey(mediaAssetId = mediaAssetId, sha256 = sha256)
     }
-    SubcomposeAsyncImage(
-        model = imageRequest,
-        contentDescription = label,
-        contentScale = ContentScale.Fit,
-        loading = {
-            ReviewManagedMediaImageState(
-                label = label,
-                supportingText = stringResource(id = R.string.review_media_loading),
-                icon = Icons.Outlined.Image,
-                showProgress = true
-            )
-        },
-        error = {
-            ReviewManagedMediaImageState(
-                label = label,
-                supportingText = stringResource(id = R.string.review_media_unavailable),
-                icon = Icons.Outlined.WarningAmber,
-                showProgress = false
-            )
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(
-                min = reviewManagedMediaImageMinimumHeight,
-                max = reviewManagedMediaImageMaximumHeight
-            )
-            .clip(shape = MaterialTheme.shapes.medium)
-            .background(color = MaterialTheme.colorScheme.surfaceContainerHighest)
-    )
+
+    key(memoryCacheKey) {
+        val imageSizeModifier: Modifier = if (imageAspectRatio != null) {
+            Modifier.aspectRatio(ratio = imageAspectRatio)
+        } else {
+            Modifier.height(reviewManagedMediaImagePlaceholderHeight)
+        }
+        val imageRequest = remember(context, uri) {
+            ImageRequest.Builder(context)
+                .data(uri)
+                .memoryCacheKey(memoryCacheKey)
+                .diskCachePolicy(CachePolicy.DISABLED)
+                .build()
+        }
+        SubcomposeAsyncImage(
+            model = imageRequest,
+            contentDescription = label,
+            contentScale = ContentScale.Fit,
+            loading = {
+                ReviewManagedMediaImageState(
+                    label = label,
+                    supportingText = stringResource(id = R.string.review_media_loading),
+                    icon = Icons.Outlined.Image,
+                    showProgress = true,
+                    modifier = Modifier.fillMaxSize()
+                )
+            },
+            success = {
+                SubcomposeAsyncImageContent(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(shape = RoundedCornerShape(reviewManagedMediaImageCornerRadius))
+                )
+            },
+            error = {
+                ReviewManagedMediaImageState(
+                    label = label,
+                    supportingText = stringResource(id = R.string.review_media_unavailable),
+                    icon = Icons.Outlined.WarningAmber,
+                    showProgress = false,
+                    modifier = Modifier.fillMaxSize()
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(imageSizeModifier)
+        )
+    }
+}
+
+private fun reviewManagedMediaImageMemoryCacheKey(
+    mediaAssetId: String,
+    sha256: String
+): String {
+    return "review-managed-media:$mediaAssetId:$sha256"
+}
+
+private suspend fun reviewManagedMediaImageAspectRatio(
+    context: Context,
+    uri: String
+): Float? {
+    return withContext(Dispatchers.IO) {
+        val options = BitmapFactory.Options().apply {
+            inJustDecodeBounds = true
+        }
+        try {
+            context.contentResolver.openInputStream(Uri.parse(uri)).use { inputStream ->
+                if (inputStream == null) {
+                    return@withContext null
+                }
+                BitmapFactory.decodeStream(inputStream, null, options)
+            }
+            reviewManagedMediaImageAspectRatio(width = options.outWidth, height = options.outHeight)
+        } catch (error: IOException) {
+            null
+        } catch (error: SecurityException) {
+            null
+        } catch (error: IllegalArgumentException) {
+            null
+        }
+    }
+}
+
+private fun reviewManagedMediaImageAspectRatio(
+    width: Int,
+    height: Int
+): Float? {
+    if (width <= 0 || height <= 0) {
+        return null
+    }
+
+    val aspectRatio: Float = width.toFloat() / height.toFloat()
+    if (aspectRatio.isFinite().not()) {
+        return null
+    }
+
+    return aspectRatio
 }
 
 @Composable
@@ -228,13 +323,17 @@ private fun ReviewManagedMediaImageState(
     label: String,
     supportingText: String,
     icon: ImageVector,
-    showProgress: Boolean
+    showProgress: Boolean,
+    modifier: Modifier
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
+            .background(
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                shape = RoundedCornerShape(reviewManagedMediaSurfaceCornerRadius)
+            )
             .padding(16.dp)
     ) {
         if (showProgress) {
@@ -367,7 +466,7 @@ private fun ReviewManagedMediaAttachment(
             .fillMaxWidth()
             .background(
                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                shape = MaterialTheme.shapes.medium
+                shape = RoundedCornerShape(reviewManagedMediaSurfaceCornerRadius)
             )
             .padding(12.dp)
     ) {
@@ -464,7 +563,7 @@ private fun ReviewManagedMediaPlaceholderRow(
             .fillMaxWidth()
             .background(
                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                shape = MaterialTheme.shapes.medium
+                shape = RoundedCornerShape(reviewManagedMediaSurfaceCornerRadius)
             )
             .padding(12.dp)
     ) {
