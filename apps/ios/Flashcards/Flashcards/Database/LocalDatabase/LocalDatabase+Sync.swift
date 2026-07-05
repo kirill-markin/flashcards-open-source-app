@@ -1,4 +1,12 @@
+import CryptoKit
 import Foundation
+
+private let referencedMediaAssetCacheValidationChunkSizeBytes: Int = 1_048_576
+
+private struct ReferencedMediaAssetCacheFileValidation: Hashable {
+    let sizeBytes: Int64
+    let sha256: String
+}
 
 extension LocalDatabase {
     /// Loads the next FIFO outbox page for one batched push request.
@@ -221,14 +229,6 @@ extension LocalDatabase {
                 payload: .deck(deck)
             )
         }
-        let mediaAssets = try self.mediaAssetStore.loadMediaAssetsIncludingDeleted(workspaceId: workspaceId).map { mediaAsset in
-            SyncBootstrapEntry(
-                entityType: .mediaAsset,
-                entityId: mediaAsset.mediaAssetId,
-                action: .upsert,
-                payload: .mediaAsset(mediaAsset)
-            )
-        }
         let schedulerSettings = try self.workspaceSettingsStore.loadWorkspaceSchedulerSettings(workspaceId: workspaceId)
         let schedulerEntry = SyncBootstrapEntry(
             entityType: .workspaceSchedulerSettings,
@@ -237,7 +237,36 @@ extension LocalDatabase {
             payload: .workspaceSchedulerSettings(schedulerSettings)
         )
 
-        return cards + decks + mediaAssets + [schedulerEntry]
+        // Media assets are registered remotely only through the upload API.
+        // Keep local rows for offline rendering, but never bootstrap-push them.
+        return cards + decks + [schedulerEntry]
+    }
+
+    @discardableResult
+    func prepareReferencedMediaAssetUploadsForHotBootstrap(workspaceId: String) throws -> [MediaTransferQueueEntry] {
+        let activeCards = try self.cardStore.loadCardsIncludingDeleted(workspaceId: workspaceId).filter { card in
+            card.deletedAt == nil
+        }
+        let referencedMediaAssetIds = managedMediaAssetIdsReferencedByCards(cards: activeCards)
+        guard referencedMediaAssetIds.isEmpty == false else {
+            return []
+        }
+
+        let createdAt = nowIsoTimestamp()
+        return try self.core.inTransaction {
+            var transferEntries: [MediaTransferQueueEntry] = []
+            for mediaAssetId in referencedMediaAssetIds.sorted() {
+                if let transferEntry = try self.prepareReferencedMediaAssetUploadForHotBootstrap(
+                    workspaceId: workspaceId,
+                    mediaAssetId: mediaAssetId,
+                    createdAt: createdAt
+                ) {
+                    transferEntries.append(transferEntry)
+                }
+            }
+
+            return transferEntries
+        }
     }
 
     func loadOptionalMediaAssetIncludingDeleted(workspaceId: String, mediaAssetId: String) throws -> MediaAsset? {
@@ -278,4 +307,197 @@ extension LocalDatabase {
             try self.syncApplier.applySyncChange(workspaceId: workspaceId, change: change)
         }
     }
+
+    private func prepareReferencedMediaAssetUploadForHotBootstrap(
+        workspaceId: String,
+        mediaAssetId: String,
+        createdAt: String
+    ) throws -> MediaTransferQueueEntry? {
+        guard let mediaAsset = try self.mediaAssetStore.loadOptionalMediaAssetIncludingDeleted(
+            workspaceId: workspaceId,
+            mediaAssetId: mediaAssetId
+        ) else {
+            throw LocalStoreError.validation(
+                "Cannot bootstrap workspace because a card references a missing media asset: workspaceId=\(workspaceId) mediaAssetId=\(mediaAssetId)"
+            )
+        }
+        guard mediaAsset.deletedAt == nil else {
+            throw LocalStoreError.validation(
+                "Cannot bootstrap workspace because a card references a deleted media asset: workspaceId=\(workspaceId) mediaAssetId=\(mediaAssetId)"
+            )
+        }
+
+        let normalizedSha256 = try normalizedMediaSha256(sha256: mediaAsset.sha256)
+        guard let cacheEntry = try self.mediaTransferStore.loadOptionalBlobCacheEntry(sha256: normalizedSha256) else {
+            throw LocalStoreError.validation(
+                "Cannot bootstrap workspace because referenced media is not cached for upload: workspaceId=\(workspaceId) mediaAssetId=\(mediaAssetId) sha256=\(normalizedSha256)"
+            )
+        }
+        try validateReferencedMediaAssetCacheForHotBootstrap(
+            databaseURL: self.databaseURL,
+            mediaAsset: mediaAsset,
+            cacheEntry: cacheEntry
+        )
+
+        guard try self.mediaTransferStore.hasPendingUploadTransferMatchingAsset(
+            workspaceId: workspaceId,
+            mediaAssetId: mediaAssetId,
+            sha256: normalizedSha256,
+            mimeType: mediaAsset.mimeType,
+            sizeBytes: mediaAsset.sizeBytes
+        ) == false else {
+            return nil
+        }
+
+        return try self.mediaTransferStore.enqueueTransfer(
+            request: MediaTransferEnqueueRequest(
+                transferId: UUID().uuidString.lowercased(),
+                workspaceId: workspaceId,
+                mediaAssetId: mediaAssetId,
+                kind: .upload,
+                sha256: normalizedSha256,
+                mimeType: mediaAsset.mimeType,
+                sizeBytes: mediaAsset.sizeBytes,
+                createdAt: createdAt
+            )
+        )
+    }
+}
+
+private func managedMediaAssetIdsReferencedByCards(cards: [Card]) -> Set<String> {
+    cards.reduce(into: Set<String>()) { result, card in
+        result.formUnion(managedMediaAssetIdsReferencedInMarkdown(text: card.frontText))
+        result.formUnion(managedMediaAssetIdsReferencedInMarkdown(text: card.backText))
+    }
+}
+
+private func validateReferencedMediaAssetCacheForHotBootstrap(
+    databaseURL: URL,
+    mediaAsset: MediaAsset,
+    cacheEntry: MediaBlobCacheEntry
+) throws {
+    let normalizedSha256 = try normalizedMediaSha256(sha256: mediaAsset.sha256)
+    let expectedRelativePath = try mediaBlobCacheRelativePath(sha256: normalizedSha256)
+    guard mediaAsset.sizeBytes > 0 else {
+        throw LocalStoreError.validation(
+            "Cannot bootstrap workspace because referenced media asset size must be positive: mediaAssetId=\(mediaAsset.mediaAssetId) sizeBytes=\(mediaAsset.sizeBytes)"
+        )
+    }
+    guard cacheEntry.sha256 == normalizedSha256,
+          cacheEntry.localRelativePath == expectedRelativePath,
+          cacheEntry.mimeType.lowercased() == mediaAsset.mimeType.lowercased(),
+          cacheEntry.sizeBytes == mediaAsset.sizeBytes else {
+        throw LocalStoreError.validation(
+            "Cannot bootstrap workspace because referenced media cache metadata does not match the media asset: mediaAssetId=\(mediaAsset.mediaAssetId)"
+        )
+    }
+
+    let cacheURL = databaseURL
+        .deletingLastPathComponent()
+        .appendingPathComponent(cacheEntry.localRelativePath, isDirectory: false)
+    guard FileManager.default.fileExists(atPath: cacheURL.path) else {
+        throw LocalStoreError.validation(
+            "Cannot bootstrap workspace because referenced media cache file is missing: mediaAssetId=\(mediaAsset.mediaAssetId) path=\(cacheEntry.localRelativePath)"
+        )
+    }
+
+    let fileValidation = try streamReferencedMediaAssetCacheFileValidation(
+        fileURL: cacheURL,
+        mediaAssetId: mediaAsset.mediaAssetId
+    )
+    guard fileValidation.sizeBytes == mediaAsset.sizeBytes else {
+        throw LocalStoreError.validation(
+            "Cannot bootstrap workspace because referenced media cache file size does not match the media asset: mediaAssetId=\(mediaAsset.mediaAssetId) expected=\(mediaAsset.sizeBytes) actual=\(fileValidation.sizeBytes)"
+        )
+    }
+    guard fileValidation.sha256 == normalizedSha256 else {
+        throw LocalStoreError.validation(
+            "Cannot bootstrap workspace because referenced media cache file SHA-256 does not match the media asset: mediaAssetId=\(mediaAsset.mediaAssetId) expected=\(normalizedSha256) actual=\(fileValidation.sha256)"
+        )
+    }
+}
+
+private func streamReferencedMediaAssetCacheFileValidation(
+    fileURL: URL,
+    mediaAssetId: String
+) throws -> ReferencedMediaAssetCacheFileValidation {
+    do {
+        let fileHandle = try FileHandle(forReadingFrom: fileURL)
+        return try scanReferencedMediaAssetCacheFile(
+            fileHandle: fileHandle,
+            mediaAssetId: mediaAssetId
+        )
+    } catch let error as LocalStoreError {
+        throw error
+    } catch {
+        throw LocalStoreError.validation(
+            "Cannot bootstrap workspace because referenced media cache file is unreadable: mediaAssetId=\(mediaAssetId) path=\(fileURL.path) error=\(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+private func scanReferencedMediaAssetCacheFile(
+    fileHandle: FileHandle,
+    mediaAssetId: String
+) throws -> ReferencedMediaAssetCacheFileValidation {
+    do {
+        var sizeBytes: Int64 = 0
+        var hasher = SHA256()
+        while true {
+            guard let chunk = try fileHandle.read(upToCount: referencedMediaAssetCacheValidationChunkSizeBytes),
+                  chunk.isEmpty == false else {
+                break
+            }
+
+            hasher.update(data: chunk)
+            sizeBytes += Int64(chunk.count)
+        }
+
+        try closeReferencedMediaAssetCacheFileHandle(fileHandle: fileHandle, mediaAssetId: mediaAssetId)
+        return ReferencedMediaAssetCacheFileValidation(
+            sizeBytes: sizeBytes,
+            sha256: referencedMediaAssetHexSHA256(digest: hasher.finalize())
+        )
+    } catch {
+        try closeReferencedMediaAssetCacheFileHandleAfterFailure(
+            fileHandle: fileHandle,
+            mediaAssetId: mediaAssetId,
+            failure: error
+        )
+    }
+}
+
+private func closeReferencedMediaAssetCacheFileHandle(
+    fileHandle: FileHandle,
+    mediaAssetId: String
+) throws {
+    do {
+        try fileHandle.close()
+    } catch {
+        throw LocalStoreError.validation(
+            "Cannot bootstrap workspace because referenced media cache file close failed: mediaAssetId=\(mediaAssetId) error=\(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+private func closeReferencedMediaAssetCacheFileHandleAfterFailure(
+    fileHandle: FileHandle,
+    mediaAssetId: String,
+    failure: Error
+) throws -> Never {
+    do {
+        try fileHandle.close()
+    } catch {
+        throw LocalStoreError.validation(
+            "Cannot bootstrap workspace because referenced media cache file validation and close failed: mediaAssetId=\(mediaAssetId) validationError=\(Flashcards.errorMessage(error: failure)); closeError=\(Flashcards.errorMessage(error: error))"
+        )
+    }
+
+    throw failure
+}
+
+private func referencedMediaAssetHexSHA256(digest: SHA256.Digest) -> String {
+    digest.map { byte in
+        String(format: "%02x", byte)
+    }.joined()
 }

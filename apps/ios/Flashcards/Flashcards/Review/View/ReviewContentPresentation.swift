@@ -70,7 +70,6 @@ private let reviewContentTableSeparatorExpression = makeReviewContentRegularExpr
 private let reviewManagedMediaReferenceExpression = makeReviewContentRegularExpression(
     pattern: #"(!)?\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)"#
 )
-private let reviewManagedMediaSchemePrefix: String = "fcasset:"
 
 func classifyReviewContentPresentation(text: String) -> ReviewContentPresentationMode {
     let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -123,25 +122,7 @@ func makeReviewRenderedContent(text: String) -> ReviewRenderedContent {
 }
 
 func parseManagedMediaAssetId(reference: String) -> String? {
-    let trimmedReference = reference.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard trimmedReference.lowercased().hasPrefix(reviewManagedMediaSchemePrefix) else {
-        return nil
-    }
-
-    var rawAssetId = String(trimmedReference.dropFirst(reviewManagedMediaSchemePrefix.count))
-    while rawAssetId.hasPrefix("/") {
-        rawAssetId.removeFirst()
-    }
-
-    let fragmentOrQueryStart = rawAssetId.firstIndex { character in
-        character == "?" || character == "#"
-    }
-    if let fragmentOrQueryStart {
-        rawAssetId = String(rawAssetId[..<fragmentOrQueryStart])
-    }
-
-    let mediaAssetId = rawAssetId.trimmingCharacters(in: .whitespacesAndNewlines)
-    return mediaAssetId.isEmpty ? nil : mediaAssetId
+    managedMediaAssetId(reference: reference)
 }
 
 func makeReviewSpeakableText(text: String) -> String {

@@ -185,6 +185,7 @@ extension CloudSyncRunner {
         installationId: String,
         syncBasePath: String
     ) async throws -> CloudSyncResult {
+        try self.database.prepareReferencedMediaAssetUploadsForHotBootstrap(workspaceId: workspaceId)
         let bootstrapEntries = try self.database.loadHotBootstrapEntries(workspaceId: workspaceId)
         let reviewEvents = try self.database.loadReviewEvents(workspaceId: workspaceId)
         let pendingOutboxEntries = try self.database.loadOutboxEntries(workspaceId: workspaceId, limit: Int.max)

@@ -2,6 +2,13 @@ import Foundation
 
 private let mediaSha256AllowedScalars = CharacterSet(charactersIn: "0123456789abcdefABCDEF")
 private let mediaBlobCacheRelativePathPrefix = "media/blobs/sha256"
+let managedMediaAssetReferenceSchemePrefix = "fcasset:"
+private let managedMediaAssetReferenceExpression = makeManagedMediaAssetRegularExpression(
+    pattern: #"(!)?\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)"#
+)
+private let managedMediaFenceExpression = makeManagedMediaAssetRegularExpression(
+    pattern: #"^\s{0,3}(`{3,}|~{3,})"#
+)
 
 // Keep in sync with apps/backend/src/media/assets.ts::MediaAssetRecord and
 // apps/web/src/types.ts::MediaAsset.
@@ -132,4 +139,107 @@ func mediaBlobCacheRelativePath(sha256: String) throws -> String {
     let secondDirectory = String(normalizedSha256[secondDirectoryStart..<secondDirectoryEnd])
 
     return "\(mediaBlobCacheRelativePathPrefix)/\(firstDirectory)/\(secondDirectory)/\(normalizedSha256)"
+}
+
+func managedImageMarkdownReference(mediaAssetId: String, altText: String) throws -> String {
+    let trimmedMediaAssetId = mediaAssetId.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedMediaAssetId.isEmpty == false else {
+        throw LocalStoreError.validation("Managed media asset id must not be empty")
+    }
+
+    return "![\(parserSafeManagedImageMarkdownAltText(altText: altText))](\(managedMediaAssetReferenceSchemePrefix)\(trimmedMediaAssetId))"
+}
+
+func managedMediaAssetId(reference: String) -> String? {
+    let trimmedReference = reference.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedReference.lowercased().hasPrefix(managedMediaAssetReferenceSchemePrefix) else {
+        return nil
+    }
+
+    var rawAssetId = String(trimmedReference.dropFirst(managedMediaAssetReferenceSchemePrefix.count))
+    while rawAssetId.hasPrefix("/") {
+        rawAssetId.removeFirst()
+    }
+
+    let fragmentOrQueryStart = rawAssetId.firstIndex { character in
+        character == "?" || character == "#"
+    }
+    if let fragmentOrQueryStart {
+        rawAssetId = String(rawAssetId[..<fragmentOrQueryStart])
+    }
+
+    let mediaAssetId = rawAssetId.trimmingCharacters(in: .whitespacesAndNewlines)
+    return mediaAssetId.isEmpty ? nil : mediaAssetId
+}
+
+func managedMediaAssetIdsReferencedInMarkdown(text: String) -> Set<String> {
+    var activeFenceMarker: String?
+    var mediaAssetIds = Set<String>()
+
+    for line in text.components(separatedBy: .newlines) {
+        let fenceMarker = managedMediaFenceMarker(line: line)
+
+        if let currentFenceMarker = activeFenceMarker {
+            if fenceMarker == currentFenceMarker {
+                activeFenceMarker = nil
+            }
+            continue
+        }
+
+        if let fenceMarker {
+            activeFenceMarker = fenceMarker
+            continue
+        }
+
+        mediaAssetIds.formUnion(managedMediaAssetIdsReferencedInLine(line: line))
+    }
+
+    return mediaAssetIds
+}
+
+private func parserSafeManagedImageMarkdownAltText(altText: String) -> String {
+    altText
+        .replacingOccurrences(of: "\r\n", with: " ")
+        .replacingOccurrences(of: "\r", with: " ")
+        .replacingOccurrences(of: "\n", with: " ")
+        .replacingOccurrences(of: "[", with: " ")
+        .replacingOccurrences(of: "]", with: " ")
+}
+
+private func managedMediaAssetIdsReferencedInLine(line: String) -> Set<String> {
+    let fullRange = NSRange(line.startIndex..<line.endIndex, in: line)
+    let matches = managedMediaAssetReferenceExpression.matches(in: line, options: [], range: fullRange)
+    var mediaAssetIds = Set<String>()
+
+    for match in matches {
+        guard let urlRange = Range(match.range(at: 3), in: line),
+              let mediaAssetId = managedMediaAssetId(reference: String(line[urlRange])) else {
+            continue
+        }
+
+        mediaAssetIds.insert(mediaAssetId)
+    }
+
+    return mediaAssetIds
+}
+
+private func managedMediaFenceMarker(line: String) -> String? {
+    let range = NSRange(line.startIndex..<line.endIndex, in: line)
+    guard let match = managedMediaFenceExpression.firstMatch(in: line, options: [], range: range),
+          let markerRange = Range(match.range(at: 1), in: line) else {
+        return nil
+    }
+
+    return String(line[markerRange])
+}
+
+private func makeManagedMediaAssetRegularExpression(pattern: String) -> NSRegularExpression {
+    do {
+        return try NSRegularExpression(
+            pattern: pattern,
+            options: [.anchorsMatchLines]
+        )
+    } catch {
+        fatalError("Invalid managed media asset regex pattern: \(pattern)")
+    }
 }
