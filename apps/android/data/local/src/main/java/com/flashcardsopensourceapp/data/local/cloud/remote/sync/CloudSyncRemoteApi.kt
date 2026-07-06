@@ -21,7 +21,7 @@ import org.json.JSONObject
  Keep Android sync wire payloads aligned with:
  - apps/backend/src/sync/contracts/input.ts
  - apps/backend/src/sync/contracts/types.ts
- - apps/ios/Flashcards/Flashcards/Cloud/Sync/CloudSyncWireContracts.swift
+ - apps/ios/Flashcards/Flashcards/Cloud/Sync/Contracts/CloudSyncWireContracts.swift
  */
 
 data class RemoteSyncChange(
