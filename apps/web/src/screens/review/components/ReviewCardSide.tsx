@@ -136,6 +136,7 @@ const reviewMarkdownComponents: Components = {
           altText=""
           localReadVersion={localReadVersion}
           mediaAssetId={mediaAssetId}
+          referencePresentation="link"
           workspaceId={workspaceId}
         >
           {children}
@@ -212,6 +213,7 @@ const reviewMarkdownComponents: Components = {
           altText={alt ?? ""}
           localReadVersion={localReadVersion}
           mediaAssetId={mediaAssetId}
+          referencePresentation="image"
           workspaceId={workspaceId}
         >
           {alt ?? ""}

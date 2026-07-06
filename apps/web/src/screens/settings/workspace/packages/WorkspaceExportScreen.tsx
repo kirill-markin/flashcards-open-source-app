@@ -2,16 +2,16 @@ import { useEffect, useState, type ReactElement } from "react";
 import {
   downloadWorkspacePackageExport,
   previewWorkspacePackageExport,
-} from "../../../api";
-import { useAppData } from "../../../appData";
-import { useAppErrorDialog } from "../../../appError/AppErrorContext";
-import { useI18n } from "../../../i18n";
-import { captureAppOperationError } from "../../../observability/appOperationObservation";
+} from "../../../../api";
+import { useAppData } from "../../../../appData";
+import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
+import { useI18n } from "../../../../i18n";
+import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import type {
   WorkspacePackageExportPreviewResponse,
   WorkspacePackageExportRequest,
-} from "../../../types";
-import { SettingsShell } from "../SettingsShared";
+} from "../../../../types";
+import { SettingsShell } from "../../SettingsShared";
 
 type PackageMetadataRow = Readonly<{
   label: string;

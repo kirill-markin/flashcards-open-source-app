@@ -185,10 +185,10 @@ const TagsScreen = lazy(async () => import("./screens/settings/workspace/TagsScr
 const WorkspaceSchedulerScreen = lazy(async () => import("./screens/settings/workspace/WorkspaceSchedulerScreen").then((module) => ({
   default: module.WorkspaceSchedulerScreen,
 })));
-const WorkspaceExportScreen = lazy(async () => import("./screens/settings/workspace/WorkspaceExportScreen").then((module) => ({
+const WorkspaceExportScreen = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceExportScreen").then((module) => ({
   default: module.WorkspaceExportScreen,
 })));
-const WorkspaceImportScreen = lazy(async () => import("./screens/settings/workspace/WorkspaceImportScreen").then((module) => ({
+const WorkspaceImportScreen = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceImportScreen").then((module) => ({
   default: module.WorkspaceImportScreen,
 })));
 

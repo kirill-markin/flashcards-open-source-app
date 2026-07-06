@@ -2,9 +2,9 @@
 import { act } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AppDataContextValue } from "../../../appData";
-import { AppErrorDialogProvider } from "../../../appError/AppErrorContext";
-import { I18nProvider } from "../../../i18n";
+import type { AppDataContextValue } from "../../../../appData";
+import { AppErrorDialogProvider } from "../../../../appError/AppErrorContext";
+import { I18nProvider } from "../../../../i18n";
 import type {
   Card,
   Deck,
@@ -14,7 +14,7 @@ import type {
   WorkspacePackageExportPreviewResponse,
   WorkspacePackageExportRequest,
   WorkspaceResetProgressPreview,
-} from "../../../types";
+} from "../../../../types";
 import { WorkspaceExportScreen } from "./WorkspaceExportScreen";
 
 const {
@@ -33,8 +33,8 @@ const {
   useAppDataMock: vi.fn<() => AppDataContextValue>(),
 }));
 
-vi.mock("../../../api", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../../api")>();
+vi.mock("../../../../api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../../api")>();
   return {
     ...actual,
     downloadWorkspacePackageExport: downloadWorkspacePackageExportMock,
@@ -42,7 +42,7 @@ vi.mock("../../../api", async (importOriginal) => {
   };
 });
 
-vi.mock("../../../appData", () => ({
+vi.mock("../../../../appData", () => ({
   useAppData: useAppDataMock,
 }));
 
