@@ -62,7 +62,7 @@ struct ReviewManagedMediaView: View {
                       let mediaURL = loadResult.mediaURL {
                 readyView(mediaAsset: mediaAsset, mediaURL: mediaURL)
             } else {
-                unavailableView(mediaAsset: loadResult?.mediaAsset)
+                unavailableView(unavailableReason: loadResult?.unavailableReason)
             }
         }
         .task(id: taskID) { [taskID] in
@@ -167,7 +167,7 @@ struct ReviewManagedMediaView: View {
             } loading: {
                 imageLoadingView
             } failure: {
-                unavailableView(mediaAsset: mediaAsset)
+                unavailableView(unavailableReason: .cacheOrDownloadUnavailable)
             }
         } else {
             AsyncImage(url: mediaURL) { phase in
@@ -181,9 +181,9 @@ struct ReviewManagedMediaView: View {
                         aspectRatio: nil
                     )
                 case .failure:
-                    unavailableView(mediaAsset: mediaAsset)
+                    unavailableView(unavailableReason: .cacheOrDownloadUnavailable)
                 @unknown default:
-                    unavailableView(mediaAsset: mediaAsset)
+                    unavailableView(unavailableReason: .cacheOrDownloadUnavailable)
                 }
             }
         }
@@ -212,13 +212,8 @@ struct ReviewManagedMediaView: View {
         .accessibilityLabel(accessibilityLabel)
     }
 
-    private func unavailableView(mediaAsset: MediaAsset?) -> some View {
-        let category = ReviewManagedMediaCategory(
-            mimeType: mediaAsset?.mimeType,
-            isImageSyntax: reference.isImageSyntax
-        )
-
-        return Label(unavailableLabel(category: category), systemImage: "exclamationmark.triangle")
+    private func unavailableView(unavailableReason: ReviewManagedMediaUnavailableReason?) -> some View {
+        Label(unavailableLabel(unavailableReason: unavailableReason), systemImage: "exclamationmark.triangle")
             .font(.subheadline)
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -289,9 +284,11 @@ struct ReviewManagedMediaView: View {
         }
     }
 
-    private func unavailableLabel(category: ReviewManagedMediaCategory) -> String {
-        switch category {
-        case .image, .audio, .video, .attachment:
+    private func unavailableLabel(unavailableReason: ReviewManagedMediaUnavailableReason?) -> String {
+        switch unavailableReason {
+        case .some(.missingRegistry):
+            return String(localized: "Media still syncing", table: reviewManagedMediaStringsTableName)
+        case .some(.cacheOrDownloadUnavailable), nil:
             return String(localized: "Media unavailable", table: reviewManagedMediaStringsTableName)
         }
     }

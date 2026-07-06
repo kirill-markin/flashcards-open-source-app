@@ -12,13 +12,24 @@ private struct ReviewManagedMediaDownloadTaskState {
 
 @MainActor private var reviewManagedMediaDownloadTasks: [String: ReviewManagedMediaDownloadTaskState] = [:]
 
+enum ReviewManagedMediaUnavailableReason: Hashable, Sendable {
+    case missingRegistry
+    case cacheOrDownloadUnavailable
+}
+
 struct ReviewManagedMediaLoadResult: Hashable, Sendable {
     let mediaAsset: MediaAsset?
     let mediaURL: URL?
+    let unavailableReason: ReviewManagedMediaUnavailableReason?
 
-    init(mediaAsset: MediaAsset?, mediaURL: URL?) {
+    init(
+        mediaAsset: MediaAsset?,
+        mediaURL: URL?,
+        unavailableReason: ReviewManagedMediaUnavailableReason?
+    ) {
         self.mediaAsset = mediaAsset
         self.mediaURL = mediaURL
+        self.unavailableReason = unavailableReason
     }
 }
 
@@ -27,7 +38,11 @@ extension FlashcardsStore {
     func loadReviewManagedMedia(mediaAssetId: String) async -> ReviewManagedMediaLoadResult {
         guard let database = self.database,
               let workspaceId = self.workspace?.workspaceId else {
-            return ReviewManagedMediaLoadResult(mediaAsset: nil, mediaURL: nil)
+            return ReviewManagedMediaLoadResult(
+                mediaAsset: nil,
+                mediaURL: nil,
+                unavailableReason: .cacheOrDownloadUnavailable
+            )
         }
 
         let localMediaAsset: MediaAsset
@@ -36,7 +51,11 @@ extension FlashcardsStore {
                 workspaceId: workspaceId,
                 mediaAssetId: mediaAssetId
             ), loadedMediaAsset.deletedAt == nil else {
-                return ReviewManagedMediaLoadResult(mediaAsset: nil, mediaURL: nil)
+                return ReviewManagedMediaLoadResult(
+                    mediaAsset: nil,
+                    mediaURL: nil,
+                    unavailableReason: .missingRegistry
+                )
             }
             localMediaAsset = loadedMediaAsset
         } catch {
@@ -44,7 +63,11 @@ extension FlashcardsStore {
                 error: error,
                 stage: "local_registry_load"
             )
-            return ReviewManagedMediaLoadResult(mediaAsset: nil, mediaURL: nil)
+            return ReviewManagedMediaLoadResult(
+                mediaAsset: nil,
+                mediaURL: nil,
+                unavailableReason: .cacheOrDownloadUnavailable
+            )
         }
 
         do {
@@ -52,20 +75,32 @@ extension FlashcardsStore {
                 database: database,
                 mediaAsset: localMediaAsset
             ) {
-                return ReviewManagedMediaLoadResult(mediaAsset: localMediaAsset, mediaURL: cacheURL)
+                return ReviewManagedMediaLoadResult(
+                    mediaAsset: localMediaAsset,
+                    mediaURL: cacheURL,
+                    unavailableReason: nil
+                )
             }
         } catch {
             self.captureReviewManagedMediaLoadFailure(
                 error: error,
                 stage: "cache_lookup"
             )
-            return ReviewManagedMediaLoadResult(mediaAsset: localMediaAsset, mediaURL: nil)
+            return ReviewManagedMediaLoadResult(
+                mediaAsset: localMediaAsset,
+                mediaURL: nil,
+                unavailableReason: .cacheOrDownloadUnavailable
+            )
         }
 
         guard let cloudSyncService = self.dependencies.cloudSyncService,
               let activeSession = self.cloudRuntime.activeCloudSession(),
               activeSession.workspaceId == workspaceId else {
-            return ReviewManagedMediaLoadResult(mediaAsset: localMediaAsset, mediaURL: nil)
+            return ReviewManagedMediaLoadResult(
+                mediaAsset: localMediaAsset,
+                mediaURL: nil,
+                unavailableReason: .cacheOrDownloadUnavailable
+            )
         }
 
         do {
@@ -78,14 +113,19 @@ extension FlashcardsStore {
                     activeSession: activeSession,
                     mediaAsset: localMediaAsset,
                     expectedSha256: normalizedSha256
-                )
+                ),
+                unavailableReason: nil
             )
         } catch {
             self.captureReviewManagedMediaLoadFailure(
                 error: error,
                 stage: "cache_download"
             )
-            return ReviewManagedMediaLoadResult(mediaAsset: localMediaAsset, mediaURL: nil)
+            return ReviewManagedMediaLoadResult(
+                mediaAsset: localMediaAsset,
+                mediaURL: nil,
+                unavailableReason: .cacheOrDownloadUnavailable
+            )
         }
     }
 
