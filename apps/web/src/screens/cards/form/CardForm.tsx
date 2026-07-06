@@ -1,17 +1,28 @@
 import {
+  useCallback,
+  useEffect,
+  useMemo,
   useRef,
+  useState,
   type ChangeEvent,
   type ReactElement,
   type RefObject,
 } from "react";
 import { useI18n } from "../../../i18n";
 import { CardFormTagsField } from "./CardFormTagsField";
+import {
+  loadMediaUploadTransfersForWorkspaceMediaAssets,
+  type MediaUploadTransferForMediaAsset,
+  type MediaTransferQueueRecord,
+  type MediaTransferStatus,
+} from "../../../localDb/mediaTransfers";
+import {
+  parseManagedImageMarkdownReferences,
+  type ManagedMediaMarkdownReference,
+} from "../../../media/managedMediaMarkdown";
 import type { Card, TagSuggestion } from "../../../types";
 import { formatNullableDateTime } from "../../shared/featureFormatting";
-import {
-  ManagedMediaReference,
-  parseManagedMediaAssetId,
-} from "../../review/components/ReviewManagedMedia";
+import { ManagedMediaReference } from "../../review/components/ReviewManagedMedia";
 
 export type CardFormState = Readonly<{
   frontText: string;
@@ -25,6 +36,12 @@ export type CardFormImageMediaRequest = Readonly<{
   field: CardFormManagedMediaField;
   file: File;
   altText: string;
+}>;
+
+export type CardFormMediaUploadRetryRequest = Readonly<{
+  transferId: string;
+  workspaceId: string;
+  mediaAssetId: string;
 }>;
 
 export type CardFormManagedMediaFieldState = Readonly<{
@@ -45,14 +62,7 @@ type Props = Readonly<{
   workspaceId: string | null;
   onChange: (nextFormState: CardFormState) => void;
   onPrepareImageMedia: (request: CardFormImageMediaRequest) => Promise<string | null>;
-}>;
-
-type ManagedMediaMarkdownReference = Readonly<{
-  mediaAssetId: string;
-  altText: string;
-  markdown: string;
-  startIndex: number;
-  endIndex: number;
+  onRetryMediaUploadTransfer: (request: CardFormMediaUploadRetryRequest) => Promise<void>;
 }>;
 
 type ManagedMediaInsertion = Readonly<{
@@ -65,7 +75,15 @@ type TextareaSelection = Readonly<{
   end: number;
 }>;
 
+type CardFormMediaUploadDisplayState = Readonly<{
+  transferStatus: Exclude<MediaTransferStatus, "completed">;
+  visualStatus: "pending" | "uploading" | "failed";
+  labelKey: "cardForm.media.uploadFailed" | "cardForm.media.uploadPending" | "cardForm.media.uploading";
+  shouldShowRetry: boolean;
+}>;
+
 const cardImageFilePickerAccept = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
+const mediaUploadStatusRefreshIntervalMs = 3000;
 
 export function toCardFormState(card: Card | null): CardFormState {
   if (card === null) {
@@ -131,39 +149,6 @@ function buildManagedMediaInsertion(
   };
 }
 
-function unescapeMarkdownImageAltText(altText: string): string {
-  return altText.replace(/\\([\\\]])/g, "$1");
-}
-
-function extractManagedMediaReferences(text: string): ReadonlyArray<ManagedMediaMarkdownReference> {
-  const references: Array<ManagedMediaMarkdownReference> = [];
-  const pattern = /!\[((?:\\.|[^\]\\])*)\]\((fcasset:[^)]+)\)/gi;
-
-  for (const match of text.matchAll(pattern)) {
-    const markdown = match[0];
-    const rawAltText = match[1];
-    const mediaUrl = match[2];
-    if (match.index === undefined || rawAltText === undefined || mediaUrl === undefined) {
-      throw new Error("Managed media Markdown parser returned an incomplete image match");
-    }
-
-    const mediaAssetId = parseManagedMediaAssetId(mediaUrl);
-    if (mediaAssetId === null) {
-      continue;
-    }
-
-    references.push({
-      mediaAssetId,
-      altText: unescapeMarkdownImageAltText(rawAltText),
-      markdown,
-      startIndex: match.index,
-      endIndex: match.index + markdown.length,
-    });
-  }
-
-  return references;
-}
-
 function removeManagedMediaReference(text: string, reference: ManagedMediaMarkdownReference): string {
   return `${text.slice(0, reference.startIndex)}${text.slice(reference.endIndex)}`;
 }
@@ -171,6 +156,108 @@ function removeManagedMediaReference(text: string, reference: ManagedMediaMarkdo
 function resolveManagedMediaReferenceLabel(reference: ManagedMediaMarkdownReference, fallbackLabel: string): string {
   const trimmedAltText = reference.altText.trim();
   return trimmedAltText === "" ? fallbackLabel : trimmedAltText;
+}
+
+function collectReferencedMediaAssetIds(
+  references: ReadonlyArray<ReadonlyArray<ManagedMediaMarkdownReference>>,
+): ReadonlyArray<string> {
+  const mediaAssetIds = new Set<string>();
+  for (const fieldReferences of references) {
+    for (const reference of fieldReferences) {
+      mediaAssetIds.add(reference.mediaAssetId);
+    }
+  }
+
+  return [...mediaAssetIds];
+}
+
+function createMediaTransferByAssetId(
+  transfers: ReadonlyArray<MediaUploadTransferForMediaAsset>,
+): ReadonlyMap<string, MediaTransferQueueRecord> {
+  const transferByAssetId = new Map<string, MediaTransferQueueRecord>();
+  for (const transfer of transfers) {
+    transferByAssetId.set(transfer.mediaAssetId, transfer.transfer);
+  }
+
+  return transferByAssetId;
+}
+
+function isFailedUploadRetryDue(record: MediaTransferQueueRecord, nowTimestamp: number): boolean {
+  const nextAttemptAtTimestamp = Date.parse(record.nextAttemptAt);
+  return Number.isNaN(nextAttemptAtTimestamp) === false && nextAttemptAtTimestamp <= nowTimestamp;
+}
+
+function resolveMediaUploadDisplayState(
+  record: MediaTransferQueueRecord | undefined,
+  nowTimestamp: number,
+): CardFormMediaUploadDisplayState | null {
+  if (record === undefined || record.status === "completed") {
+    return null;
+  }
+
+  if (record.status === "in_progress") {
+    return {
+      transferStatus: "in_progress",
+      visualStatus: "uploading",
+      labelKey: "cardForm.media.uploading",
+      shouldShowRetry: false,
+    };
+  }
+
+  if (record.status === "queued") {
+    return {
+      transferStatus: "queued",
+      visualStatus: "pending",
+      labelKey: "cardForm.media.uploadPending",
+      shouldShowRetry: false,
+    };
+  }
+
+  if (isFailedUploadRetryDue(record, nowTimestamp)) {
+    return {
+      transferStatus: "failed",
+      visualStatus: "pending",
+      labelKey: "cardForm.media.uploadPending",
+      shouldShowRetry: false,
+    };
+  }
+
+  return {
+    transferStatus: "failed",
+    visualStatus: "failed",
+    labelKey: "cardForm.media.uploadFailed",
+    shouldShowRetry: true,
+  };
+}
+
+function hasRefreshableUploadTransfer(transfers: ReadonlyMap<string, MediaTransferQueueRecord>): boolean {
+  for (const transfer of transfers.values()) {
+    if (transfer.status !== "completed") {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function readErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim() !== "") {
+    return error.message;
+  }
+
+  return String(error);
+}
+
+function warnMediaUploadStatusLoadFailed(
+  workspaceId: string,
+  mediaAssetIds: ReadonlyArray<string>,
+  error: unknown,
+): void {
+  console.warn("Card form media upload status lookup failed", {
+    workspaceId,
+    mediaAssetIds,
+    errorMessage: readErrorMessage(error),
+  });
 }
 
 function ImageIcon(): ReactElement {
@@ -195,16 +282,21 @@ function RemoveIcon(): ReactElement {
 function ManagedMediaReferenceStrip(props: Readonly<{
   localReadVersion: number;
   references: ReadonlyArray<ManagedMediaMarkdownReference>;
+  uploadTransfersByMediaAssetId: ReadonlyMap<string, MediaTransferQueueRecord>;
   workspaceId: string | null;
   onRemove: (reference: ManagedMediaMarkdownReference) => void;
+  onRetryMediaUploadTransfer: (request: CardFormMediaUploadRetryRequest) => void;
 }>): ReactElement | null {
   const {
     localReadVersion,
     references,
+    uploadTransfersByMediaAssetId,
     workspaceId,
     onRemove,
+    onRetryMediaUploadTransfer,
   } = props;
   const { t } = useI18n();
+  const nowTimestamp = Date.now();
 
   if (references.length === 0) {
     return null;
@@ -214,22 +306,54 @@ function ManagedMediaReferenceStrip(props: Readonly<{
     <div className="card-form-managed-media-strip" aria-label={t("cardForm.media.referencesLabel")}>
       {references.map((reference) => {
         const referenceLabel = resolveManagedMediaReferenceLabel(reference, t("reviewScreen.media.imageAlt"));
+        const uploadTransfer = uploadTransfersByMediaAssetId.get(reference.mediaAssetId);
+        const uploadDisplayState = resolveMediaUploadDisplayState(
+          uploadTransfer,
+          nowTimestamp,
+        );
         return (
           <div
             className="card-form-managed-media-reference"
             key={`${reference.mediaAssetId}:${reference.startIndex}`}
             data-fcasset-id={reference.mediaAssetId}
           >
-            <div className="card-form-managed-media-preview">
-              <ManagedMediaReference
-                altText={reference.altText}
-                localReadVersion={localReadVersion}
-                mediaAssetId={reference.mediaAssetId}
-                referencePresentation="image"
-                workspaceId={workspaceId}
-              >
-                {referenceLabel}
-              </ManagedMediaReference>
+            <div className="card-form-managed-media-body">
+              <div className="card-form-managed-media-preview">
+                <ManagedMediaReference
+                  altText={reference.altText}
+                  localReadVersion={localReadVersion}
+                  mediaAssetId={reference.mediaAssetId}
+                  referencePresentation="image"
+                  workspaceId={workspaceId}
+                >
+                  {referenceLabel}
+                </ManagedMediaReference>
+              </div>
+              {uploadDisplayState !== null ? (
+                <div
+                  className="card-form-managed-media-upload-state"
+                  data-status={uploadDisplayState.visualStatus}
+                  data-transfer-status={uploadDisplayState.transferStatus}
+                  data-testid="card-form-media-upload-status"
+                  role="status"
+                >
+                  <span>{t(uploadDisplayState.labelKey)}</span>
+                  {uploadDisplayState.shouldShowRetry && uploadTransfer !== undefined ? (
+                    <button
+                      type="button"
+                      className="card-form-media-retry-btn"
+                      onClick={() => onRetryMediaUploadTransfer({
+                        transferId: uploadTransfer.transferId,
+                        workspaceId: uploadTransfer.workspaceId,
+                        mediaAssetId: uploadTransfer.mediaAssetId,
+                      })}
+                      data-testid="card-form-media-upload-retry"
+                    >
+                      {t("cardForm.media.retryUpload")}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
             <button
               type="button"
@@ -259,6 +383,7 @@ export function CardFormFields(props: Props): ReactElement {
     workspaceId,
     onChange,
     onPrepareImageMedia,
+    onRetryMediaUploadTransfer,
   } = props;
   const { t, formatDateTime } = useI18n();
   const frontFieldId = `${formIdPrefix}-front-text`;
@@ -269,7 +394,72 @@ export function CardFormFields(props: Props): ReactElement {
   const frontImageInputRef = useRef<HTMLInputElement | null>(null);
   const backImageInputRef = useRef<HTMLInputElement | null>(null);
   const formStateRef = useRef<CardFormState>(formState);
+  const uploadTransferLoadSequenceRef = useRef<number>(0);
+  const [uploadTransfersByMediaAssetId, setUploadTransfersByMediaAssetId] = useState<ReadonlyMap<string, MediaTransferQueueRecord>>(
+    new Map<string, MediaTransferQueueRecord>(),
+  );
+  const frontManagedMediaReferences = useMemo(
+    (): ReadonlyArray<ManagedMediaMarkdownReference> => parseManagedImageMarkdownReferences(formState.frontText),
+    [formState.frontText],
+  );
+  const backManagedMediaReferences = useMemo(
+    (): ReadonlyArray<ManagedMediaMarkdownReference> => parseManagedImageMarkdownReferences(formState.backText),
+    [formState.backText],
+  );
+  const referencedMediaAssetIds = useMemo(
+    (): ReadonlyArray<string> => collectReferencedMediaAssetIds([
+      frontManagedMediaReferences,
+      backManagedMediaReferences,
+    ]),
+    [backManagedMediaReferences, frontManagedMediaReferences],
+  );
   formStateRef.current = formState;
+
+  const loadUploadTransferStatuses = useCallback(async function loadUploadTransferStatuses(): Promise<void> {
+    const requestSequence = uploadTransferLoadSequenceRef.current + 1;
+    uploadTransferLoadSequenceRef.current = requestSequence;
+    const isCurrentRequest = function isCurrentRequest(): boolean {
+      return uploadTransferLoadSequenceRef.current === requestSequence;
+    };
+
+    if (workspaceId === null || referencedMediaAssetIds.length === 0) {
+      setUploadTransfersByMediaAssetId(new Map<string, MediaTransferQueueRecord>());
+      return;
+    }
+
+    try {
+      const transfers = await loadMediaUploadTransfersForWorkspaceMediaAssets(workspaceId, referencedMediaAssetIds);
+      if (isCurrentRequest()) {
+        setUploadTransfersByMediaAssetId(createMediaTransferByAssetId(transfers));
+      }
+    } catch (error) {
+      if (isCurrentRequest()) {
+        warnMediaUploadStatusLoadFailed(workspaceId, referencedMediaAssetIds, error);
+      }
+    }
+  }, [referencedMediaAssetIds, workspaceId]);
+
+  useEffect(() => () => {
+    uploadTransferLoadSequenceRef.current += 1;
+  }, []);
+
+  useEffect(() => {
+    void loadUploadTransferStatuses();
+  }, [loadUploadTransferStatuses, localReadVersion]);
+
+  useEffect(() => {
+    if (hasRefreshableUploadTransfer(uploadTransfersByMediaAssetId) === false) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void loadUploadTransferStatuses();
+    }, mediaUploadStatusRefreshIntervalMs);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [loadUploadTransferStatuses, uploadTransfersByMediaAssetId]);
 
   function updateField<Key extends keyof CardFormState>(key: Key, value: CardFormState[Key]): void {
     onChange({
@@ -368,11 +558,11 @@ export function CardFormFields(props: Props): ReactElement {
     field: CardFormManagedMediaField,
     fieldId: string,
     label: string,
+    references: ReadonlyArray<ManagedMediaMarkdownReference>,
     rows: number,
     testId: string,
   ): ReactElement {
     const mediaState = managedMediaState[field];
-    const references = extractManagedMediaReferences(formState[field]);
     const insertImageLabel = t("cardForm.media.insertImageLabel", { field: label });
 
     return (
@@ -420,8 +610,12 @@ export function CardFormFields(props: Props): ReactElement {
         <ManagedMediaReferenceStrip
           localReadVersion={localReadVersion}
           references={references}
+          uploadTransfersByMediaAssetId={uploadTransfersByMediaAssetId}
           workspaceId={workspaceId}
           onRemove={(reference) => handleRemoveReference(field, reference)}
+          onRetryMediaUploadTransfer={(request) => {
+            void onRetryMediaUploadTransfer(request).then(() => loadUploadTransferStatuses());
+          }}
         />
       </section>
     );
@@ -430,8 +624,8 @@ export function CardFormFields(props: Props): ReactElement {
   return (
     <div className="card-form-layout">
       <section className="card-form-panel">
-        {renderTextField("frontText", frontFieldId, t("cardForm.fields.front"), 7, "card-form-front-text")}
-        {renderTextField("backText", backFieldId, t("cardForm.fields.back"), 9, "card-form-back-text")}
+        {renderTextField("frontText", frontFieldId, t("cardForm.fields.front"), frontManagedMediaReferences, 7, "card-form-front-text")}
+        {renderTextField("backText", backFieldId, t("cardForm.fields.back"), backManagedMediaReferences, 9, "card-form-back-text")}
 
         <div className="form-label content-card content-card-section">
           <label htmlFor={tagsFieldId}>

@@ -907,6 +907,10 @@ const arCatalog: TranslationCatalog = {
       processing: "جارٍ معالجة الصورة...",
       referencesLabel: "مراجع وسائط البطاقة",
       removeReferenceLabel: "إزالة {{label}}",
+      retryUpload: "إعادة المحاولة",
+      uploadFailed: "فشل الرفع",
+      uploadPending: "رفع معلّق",
+      uploading: "جارٍ الرفع",
       errors: {
         installationUnavailable: "تثبيت هذا المتصفح غير جاهز. أعد التحميل وحاول مرة أخرى.",
         processingFailed: "فشلت معالجة الصورة. جرّب صورة أخرى أو أعد التحميل.",

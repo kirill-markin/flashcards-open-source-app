@@ -69,6 +69,11 @@ export type PersistLocalMediaUploadInput = Readonly<{
   upload: EnqueueMediaTransferUploadInput;
 }>;
 
+export type MediaUploadTransferForMediaAsset = Readonly<{
+  mediaAssetId: string;
+  transfer: MediaTransferQueueRecord;
+}>;
+
 type ClaimableMediaTransferStatus = "queued" | "failed";
 
 export type RecoverStaleInProgressMediaTransfersByKindInput = Readonly<{
@@ -101,6 +106,13 @@ export type MarkClaimedMediaTransferFailedInput = Readonly<{
   failedAt: string;
   lastError: string;
   nextAttemptAt: string;
+}>;
+
+export type MarkMediaUploadTransferDueForRetryInput = Readonly<{
+  transferId: string;
+  workspaceId: string;
+  mediaAssetId: string;
+  retryAt: string;
 }>;
 
 function createQueuedMediaTransferRecord(
@@ -182,6 +194,40 @@ function selectNextDueTransfer(
   return compareMediaTransferClaimPriority(queuedRecord, failedRecord) <= 0 ? queuedRecord : failedRecord;
 }
 
+function compareMediaTransferRecency(
+  left: MediaTransferQueueRecord,
+  right: MediaTransferQueueRecord,
+): number {
+  const updatedAtComparison = left.updatedAt.localeCompare(right.updatedAt);
+  if (updatedAtComparison !== 0) {
+    return updatedAtComparison;
+  }
+
+  const createdAtComparison = left.createdAt.localeCompare(right.createdAt);
+  if (createdAtComparison !== 0) {
+    return createdAtComparison;
+  }
+
+  return left.transferId.localeCompare(right.transferId);
+}
+
+function selectLatestUploadMediaTransfer(
+  records: ReadonlyArray<MediaTransferQueueRecord>,
+): MediaTransferQueueRecord | null {
+  let latestRecord: MediaTransferQueueRecord | null = null;
+  for (const record of records) {
+    if (record.kind !== "upload") {
+      continue;
+    }
+
+    if (latestRecord === null || compareMediaTransferRecency(latestRecord, record) < 0) {
+      latestRecord = record;
+    }
+  }
+
+  return latestRecord;
+}
+
 function toClaimedTransferRecord(
   record: MediaTransferQueueRecord,
   claimedAt: string,
@@ -226,6 +272,74 @@ export async function loadMediaTransferQueueRecord(
     transferId,
   ));
   return record ?? null;
+}
+
+export async function loadMediaUploadTransfersForWorkspaceMediaAssets(
+  workspaceId: string,
+  mediaAssetIds: ReadonlyArray<string>,
+): Promise<ReadonlyArray<MediaUploadTransferForMediaAsset>> {
+  const uniqueMediaAssetIds: ReadonlyArray<string> = [...new Set(mediaAssetIds)];
+  if (uniqueMediaAssetIds.length === 0) {
+    return [];
+  }
+
+  return closeDatabaseAfter(async (database) => new Promise<ReadonlyArray<MediaUploadTransferForMediaAsset>>((resolve, reject) => {
+    const transaction = database.transaction(["mediaTransferQueue"], "readonly");
+    const index = transaction.objectStore("mediaTransferQueue").index("workspaceId_mediaAssetId");
+    const latestTransfers = new Map<string, MediaTransferQueueRecord>();
+    let didReject = false;
+
+    const rejectOnce = (error: Error): void => {
+      if (didReject) {
+        return;
+      }
+
+      didReject = true;
+      rejectIndexedDbTransaction(transaction, reject, error);
+    };
+
+    for (const mediaAssetId of uniqueMediaAssetIds) {
+      const request = index.getAll(IDBKeyRange.only([workspaceId, mediaAssetId]));
+      request.onerror = () => {
+        rejectOnce(describeIndexedDbError(
+          `IndexedDB media upload transfer lookup failed. workspaceId=${workspaceId}, mediaAssetId=${mediaAssetId}`,
+          request.error,
+        ));
+      };
+      request.onsuccess = () => {
+        const latestRecord = selectLatestUploadMediaTransfer(request.result as ReadonlyArray<MediaTransferQueueRecord>);
+        if (latestRecord !== null) {
+          latestTransfers.set(mediaAssetId, latestRecord);
+        }
+      };
+    }
+
+    transaction.onerror = () => {
+      if (didReject === false) {
+        reject(describeIndexedDbError(
+          `IndexedDB media upload transfer lookup failed. workspaceId=${workspaceId}, mediaAssetCount=${uniqueMediaAssetIds.length}`,
+          transaction.error,
+        ));
+      }
+    };
+    transaction.onabort = () => {
+      if (didReject === false) {
+        reject(describeIndexedDbError(
+          `IndexedDB media upload transfer lookup aborted. workspaceId=${workspaceId}, mediaAssetCount=${uniqueMediaAssetIds.length}`,
+          transaction.error,
+        ));
+      }
+    };
+    transaction.oncomplete = () => {
+      resolve(uniqueMediaAssetIds.flatMap((mediaAssetId) => {
+        const transfer = latestTransfers.get(mediaAssetId);
+        return transfer === undefined ? [] : [{
+          mediaAssetId,
+          transfer,
+        }];
+      }));
+    };
+  }));
 }
 
 export async function writeMediaBlobCacheRecord(record: MediaBlobCacheRecord): Promise<void> {
@@ -689,11 +803,12 @@ async function updateMediaTransferQueueRecord(
   updatedAt: string,
   updateRecord: (record: MediaTransferQueueRecord) => MediaTransferQueueRecord,
   errorPrefix: string,
-): Promise<void> {
-  await closeDatabaseAfterWrite(async (database) => new Promise<void>((resolve, reject) => {
+): Promise<MediaTransferQueueRecord> {
+  return closeDatabaseAfter(async (database) => new Promise<MediaTransferQueueRecord>((resolve, reject) => {
     const transaction = database.transaction(["mediaTransferQueue"], "readwrite");
     const store = transaction.objectStore("mediaTransferQueue");
     const request = store.get(transferId);
+    let updatedRecord: MediaTransferQueueRecord | null = null;
     let didReject = false;
 
     const rejectOnce = (error: Error): void => {
@@ -715,10 +830,17 @@ async function updateMediaTransferQueueRecord(
         return;
       }
 
-      const putRequest = store.put(updateRecord({
-        ...record,
-        updatedAt,
-      }));
+      try {
+        updatedRecord = updateRecord({
+          ...record,
+          updatedAt,
+        });
+      } catch (error) {
+        rejectOnce(error instanceof Error ? error : new Error(`${errorPrefix}: transfer update failed`));
+        return;
+      }
+
+      const putRequest = store.put(updatedRecord);
       putRequest.onerror = () => {
         rejectOnce(describeIndexedDbError(`${errorPrefix} write failed`, putRequest.error));
       };
@@ -735,7 +857,12 @@ async function updateMediaTransferQueueRecord(
       }
     };
     transaction.oncomplete = () => {
-      resolve();
+      if (updatedRecord === null) {
+        reject(new Error(`${errorPrefix}: update did not complete. transferId=${transferId}`));
+        return;
+      }
+
+      resolve(updatedRecord);
     };
   }));
 }
@@ -777,6 +904,41 @@ export async function markMediaTransferFailed(
       completedAt: null,
     }),
     "IndexedDB media transfer failure update failed",
+  );
+}
+
+export async function markMediaUploadTransferDueForRetry(
+  input: MarkMediaUploadTransferDueForRetryInput,
+): Promise<MediaTransferQueueRecord> {
+  return updateMediaTransferQueueRecord(
+    input.transferId,
+    input.retryAt,
+    (record) => {
+      if (record.workspaceId !== input.workspaceId) {
+        throw new Error(`IndexedDB media upload transfer retry update failed: workspace mismatch. transferId=${input.transferId}, expectedWorkspaceId=${input.workspaceId}, actualWorkspaceId=${record.workspaceId}`);
+      }
+
+      if (record.mediaAssetId !== input.mediaAssetId) {
+        throw new Error(`IndexedDB media upload transfer retry update failed: media asset mismatch. transferId=${input.transferId}, expectedMediaAssetId=${input.mediaAssetId}, actualMediaAssetId=${record.mediaAssetId}`);
+      }
+
+      if (record.kind !== "upload") {
+        throw new Error(`IndexedDB media upload transfer retry update failed: transfer kind mismatch. transferId=${input.transferId}, expectedKind=upload, actualKind=${record.kind}`);
+      }
+
+      if (record.status !== "failed") {
+        throw new Error(`IndexedDB media upload transfer retry update failed: transfer is not failed. transferId=${input.transferId}, status=${record.status}`);
+      }
+
+      return {
+        ...record,
+        status: "failed",
+        nextAttemptAt: input.retryAt,
+        claimedAt: null,
+        completedAt: null,
+      };
+    },
+    "IndexedDB media upload transfer retry update failed",
   );
 }
 

@@ -907,6 +907,10 @@ export const ruCatalog = {
       processing: "Обработка изображения...",
       referencesLabel: "Медиа-ссылки карточки",
       removeReferenceLabel: "Удалить {{label}}",
+      retryUpload: "Повторить",
+      uploadFailed: "Ошибка загрузки",
+      uploadPending: "Ожидает загрузки",
+      uploading: "Загружается",
       errors: {
         installationUnavailable: "Эта установка браузера еще не готова. Перезагрузите страницу и попробуйте снова.",
         processingFailed: "Не удалось обработать изображение. Попробуйте другое изображение или перезагрузите страницу.",

@@ -907,6 +907,10 @@ const esMxCatalog: TranslationCatalog = {
       processing: "Procesando imagen...",
       referencesLabel: "Referencias multimedia de la tarjeta",
       removeReferenceLabel: "Quitar {{label}}",
+      retryUpload: "Reintentar",
+      uploadFailed: "Error al subir",
+      uploadPending: "Subida pendiente",
+      uploading: "Subiendo",
       errors: {
         installationUnavailable: "Esta instalación del navegador no está lista. Recarga e inténtalo de nuevo.",
         processingFailed: "No se pudo procesar la imagen. Prueba otra imagen o recarga e inténtalo de nuevo.",
