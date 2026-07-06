@@ -2,6 +2,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type ReactElement,
   type ReactNode,
 } from "react";
@@ -21,10 +22,16 @@ const MANAGED_MEDIA_DOWNLOAD_ATTEMPT_COUNT = 2;
 const MANAGED_MEDIA_DOWNLOAD_RANGE_SIZE_BYTES = 4 * 1024 * 1024;
 
 type ManagedMediaKind = "image" | "audio" | "video" | "attachment";
+type ManagedMediaReferencePresentation = "image" | "link";
+type ManagedMediaImageDimensions = Readonly<{
+  height: number;
+  width: number;
+}>;
 type ManagedMediaLoadState =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "unavailable"; mediaAsset: MediaAsset | null }>
   | Readonly<{
+    imageDimensions: ManagedMediaImageDimensions | null;
     status: "ready";
     mediaAsset: MediaAsset;
     objectUrlLease: ManagedMediaObjectUrlLease;
@@ -504,6 +511,63 @@ function readTextFromReactNode(node: ReactNode): string {
   return "";
 }
 
+function readDecodedManagedImageDimensions(image: HTMLImageElement): ManagedMediaImageDimensions | null {
+  if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+    return {
+      height: image.naturalHeight,
+      width: image.naturalWidth,
+    };
+  }
+
+  return null;
+}
+
+function waitForManagedImageLoad(image: HTMLImageElement, url: string): Promise<void> {
+  if (image.complete) {
+    if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+      return Promise.resolve();
+    }
+
+    return Promise.reject(new Error(`Managed media image load failed: objectUrl=${url}`));
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    image.onload = (): void => {
+      resolve();
+    };
+    image.onerror = (): void => {
+      reject(new Error(`Managed media image load failed: objectUrl=${url}`));
+    };
+  });
+}
+
+async function decodeManagedImageObjectUrl(url: string): Promise<ManagedMediaImageDimensions | null> {
+  const image = new Image();
+  image.src = url;
+
+  try {
+    if (typeof image.decode === "function") {
+      await image.decode();
+    } else {
+      await waitForManagedImageLoad(image, url);
+    }
+  } catch (error) {
+    throw new Error(`Managed media image decode failed: objectUrl=${url}, error=${readErrorMessage(error)}`);
+  }
+
+  return readDecodedManagedImageDimensions(image);
+}
+
+function createManagedImageStyle(imageDimensions: ManagedMediaImageDimensions | null): CSSProperties | undefined {
+  if (imageDimensions === null) {
+    return undefined;
+  }
+
+  return {
+    aspectRatio: `${imageDimensions.width} / ${imageDimensions.height}`,
+  };
+}
+
 function isReadyManagedMediaReference(
   loadState: ManagedMediaLoadState,
   workspaceId: string,
@@ -536,6 +600,7 @@ export function ManagedMediaReference(props: Readonly<{
   children: ReactNode;
   localReadVersion: number;
   mediaAssetId: string;
+  referencePresentation: ManagedMediaReferencePresentation;
   workspaceId: string | null;
 }>): ReactElement {
   const {
@@ -543,6 +608,7 @@ export function ManagedMediaReference(props: Readonly<{
     children,
     localReadVersion,
     mediaAssetId,
+    referencePresentation,
     workspaceId,
   } = props;
   const { t } = useI18n();
@@ -639,12 +705,28 @@ export function ManagedMediaReference(props: Readonly<{
       }
 
       let objectUrlRetention: ManagedMediaObjectUrlRetention;
+      let imageDimensions: ManagedMediaImageDimensions | null = null;
       try {
-        objectUrlRetention = retainObjectUrlForReadyMedia(loadStateRef.current, loadResult.mediaAsset, loadResult.cacheRecord);
+        const currentLoadState = loadStateRef.current;
+        objectUrlRetention = retainObjectUrlForReadyMedia(currentLoadState, loadResult.mediaAsset, loadResult.cacheRecord);
         if (objectUrlRetention.isAcquiredLease) {
           provisionalObjectUrlLease = objectUrlRetention.objectUrlLease;
         }
+
+        if (classifyManagedMediaKind(loadResult.mediaAsset.mimeType) === "image") {
+          imageDimensions = objectUrlRetention.isAcquiredLease
+            ? await decodeManagedImageObjectUrl(objectUrlRetention.objectUrlLease.url)
+            : currentLoadState.status === "ready"
+              ? currentLoadState.imageDimensions
+              : null;
+        }
       } catch (error) {
+        if (isCancelled) {
+          releaseProvisionalObjectUrlLease();
+          return;
+        }
+
+        releaseProvisionalObjectUrlLease();
         warnManagedMediaUnavailable(workspaceId, mediaAssetId, error);
         updateLoadState({ status: "unavailable", mediaAsset: loadResult.mediaAsset });
         return;
@@ -655,6 +737,7 @@ export function ManagedMediaReference(props: Readonly<{
         return;
       }
       updateLoadState({
+        imageDimensions,
         status: "ready",
         mediaAsset: loadResult.mediaAsset,
         objectUrlLease: objectUrlRetention.objectUrlLease,
@@ -674,6 +757,18 @@ export function ManagedMediaReference(props: Readonly<{
   }, [localReadVersion, mediaAssetId, workspaceId]);
 
   if (loadState.status === "loading") {
+    if (referencePresentation === "image") {
+      return (
+        <span
+          className="review-markdown-managed-media review-markdown-media-image-loading"
+          data-fcasset-id={mediaAssetId}
+          aria-busy="true"
+          aria-label={t("reviewScreen.media.loading")}
+          role="status"
+        />
+      );
+    }
+
     return (
       <span
         className="review-markdown-managed-media review-markdown-media-loading"
@@ -713,6 +808,7 @@ export function ManagedMediaReference(props: Readonly<{
         alt={altText.trim() === "" ? t("reviewScreen.media.imageAlt") : altText}
         loading="lazy"
         decoding="async"
+        style={createManagedImageStyle(loadState.imageDimensions)}
       />
     );
   }
