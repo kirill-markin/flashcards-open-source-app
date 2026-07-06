@@ -27,6 +27,8 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
         return [.test, .testAnimations]
     case .notificationDiagnostics:
         return [.test, .notificationDiagnostics]
+    case .localSyncDiagnostics:
+        return [.test, .localSyncDiagnostics]
     case .workspaceNotifications:
         return [.workspaceNotifications]
     case .workspaceScheduler:
