@@ -185,25 +185,19 @@ func publishReviewManagedMediaPartialBlobFile(
         }
     }
 
-    var resultingURL: NSURL?
     do {
-        try FileManager.default.replaceItemAt(
+        let resultingURL = try FileManager.default.replaceItemAt(
             destinationURL,
             withItemAt: partialFileURL,
             backupItemName: nil,
-            options: [],
-            resultingItemURL: &resultingURL
+            options: []
         )
+        return resultingURL ?? destinationURL
     } catch {
         throw LocalStoreError.database(
             "Managed media cache publish replace failed for mediaAssetId=\(mediaAssetId) from=\(partialFileURL.path) to=\(destinationURL.path): \(Flashcards.errorMessage(error: error))"
         )
     }
-
-    if let resultingURL {
-        return resultingURL as URL
-    }
-    return destinationURL
 }
 
 private func removeReviewManagedMediaPartialDownload(

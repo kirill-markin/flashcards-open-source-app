@@ -721,6 +721,8 @@ private func cardEditorSingleSelectionRange(text: String, selection: TextSelecti
         return range
     case .multiSelection:
         return text.endIndex..<text.endIndex
+    @unknown default:
+        return text.endIndex..<text.endIndex
     }
 }
 
