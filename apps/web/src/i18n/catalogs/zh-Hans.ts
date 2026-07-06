@@ -907,6 +907,10 @@ export const zhHansCatalog = {
       processing: "正在处理图片...",
       referencesLabel: "卡片媒体引用",
       removeReferenceLabel: "移除 {{label}}",
+      retryUpload: "重试",
+      uploadFailed: "上传失败",
+      uploadPending: "等待上传",
+      uploading: "正在上传",
       errors: {
         installationUnavailable: "此浏览器安装尚未就绪。请重新加载后再试。",
         processingFailed: "图片处理失败。请尝试其他图片，或重新加载后再试。",

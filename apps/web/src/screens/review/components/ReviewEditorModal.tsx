@@ -4,6 +4,7 @@ import {
   CardFormFields,
   isCardFormManagedMediaProcessing,
   type CardFormImageMediaRequest,
+  type CardFormMediaUploadRetryRequest,
   type CardFormManagedMediaState,
   type CardFormState,
 } from "../../cards/form/CardForm";
@@ -23,6 +24,7 @@ export type ReviewEditorModalProps = Readonly<{
   onClose: () => void;
   onDelete: () => Promise<void>;
   onPrepareImageMedia: (request: CardFormImageMediaRequest) => Promise<string | null>;
+  onRetryMediaUploadTransfer: (request: CardFormMediaUploadRetryRequest) => Promise<void>;
   onSave: () => Promise<void>;
   tagSuggestions: ReadonlyArray<TagSuggestion>;
 }>;
@@ -42,6 +44,7 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
     onClose,
     onDelete,
     onPrepareImageMedia,
+    onRetryMediaUploadTransfer,
     onSave,
     tagSuggestions,
   } = props;
@@ -110,6 +113,7 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
           workspaceId={workspaceId}
           onChange={onChange}
           onPrepareImageMedia={onPrepareImageMedia}
+          onRetryMediaUploadTransfer={onRetryMediaUploadTransfer}
         />
       </section>
     </div>

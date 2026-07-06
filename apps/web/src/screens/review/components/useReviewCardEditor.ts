@@ -9,12 +9,14 @@ import {
   isCardFormManagedMediaProcessing,
   toCardFormState,
   type CardFormImageMediaRequest,
+  type CardFormMediaUploadRetryRequest,
   type CardFormManagedMediaField,
   type CardFormManagedMediaFieldState,
   type CardFormManagedMediaState,
   type CardFormState,
 } from "../../cards/form/CardForm";
 import { prepareCardImageMediaAuthoring } from "../../cards/form/cardImageAuthoring";
+import { markMediaUploadTransferDueForRetry } from "../../../localDb/mediaTransfers";
 import type { Card } from "../../../types";
 
 type UseReviewCardEditorParams = Readonly<{
@@ -41,6 +43,7 @@ export type UseReviewCardEditorResult = Readonly<{
   handleEditorDelete: () => Promise<void>;
   handlePrepareImageMedia: (request: CardFormImageMediaRequest) => Promise<string | null>;
   handleEditorSaveForAiHandoff: () => Promise<Card | null>;
+  handleRetryMediaUploadTransfer: (request: CardFormMediaUploadRetryRequest) => Promise<void>;
   handleEditorSave: () => Promise<void>;
   handleOpenEditor: (card: Card) => void;
   isEditorPresented: boolean;
@@ -282,6 +285,30 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
     }
   }
 
+  async function handleRetryMediaUploadTransfer(request: CardFormMediaUploadRetryRequest): Promise<void> {
+    setEditorErrorMessage("");
+    setErrorMessage("");
+
+    try {
+      await markMediaUploadTransferDueForRetry({
+        ...request,
+        retryAt: new Date().toISOString(),
+      });
+      runMediaUploadTransfers();
+    } catch (error) {
+      captureAppOperationError(error, {
+        feature: "review",
+        operation: "review_card_image_upload_retry",
+        userId,
+        workspaceId: request.workspaceId,
+        installationId,
+        entityId: request.mediaAssetId,
+      });
+      showCapturedTechnicalError(error);
+      setEditorErrorMessage(t("appError.technicalError.message"));
+    }
+  }
+
   return {
     editorErrorMessage,
     editingCard,
@@ -289,6 +316,7 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
     handleEditorDelete,
     handlePrepareImageMedia,
     handleEditorSaveForAiHandoff,
+    handleRetryMediaUploadTransfer,
     handleEditorSave,
     handleOpenEditor,
     isEditorPresented,

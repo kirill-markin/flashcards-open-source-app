@@ -1,6 +1,13 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from "vitest";
+import "fake-indexeddb/auto";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Card } from "../../../types";
+import { clearWebSyncCache } from "../../../localDb/core/cache";
+import {
+  enqueueMediaTransferUpload,
+  loadMediaTransferQueueRecord,
+  markMediaTransferFailed,
+} from "../../../localDb/mediaTransfers";
 import {
   clickElementAsync,
   createCard,
@@ -8,6 +15,10 @@ import {
   setTextFieldValueAsync,
   setupReviewScreenTest,
 } from "../testSupport/ReviewScreenTestSupport";
+
+beforeEach(async () => {
+  await clearWebSyncCache();
+});
 
 const {
   dispatchDocumentKeydown,
@@ -58,6 +69,112 @@ describe("ReviewScreen editor controls", () => {
       backText: "Existing back",
       tags: ["grammar"],
     });
+  });
+
+  it("shows failed media upload status and retries through the upload runner", async () => {
+    const state = getState();
+    const card = createCard({
+      cardId: "card-media-upload",
+      frontText: "![Diagram](fcasset:media-upload-asset)",
+      backText: "Existing back",
+    });
+    state.cards = [card];
+    state.reviewQueue = [card];
+    state.reviewTimeline = [card];
+    vi.useRealTimers();
+    await enqueueMediaTransferUpload({
+      transferId: "media-upload-transfer",
+      workspaceId: "workspace-1",
+      mediaAssetId: "media-upload-asset",
+      sha256: "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      mimeType: "image/png",
+      sizeBytes: 42817,
+      sourceBlobCacheKey: "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      createdAt: "2026-03-10T09:00:00.000Z",
+      nextAttemptAt: "2026-03-10T09:00:00.000Z",
+    });
+    await markMediaTransferFailed(
+      "media-upload-transfer",
+      "2026-03-10T09:05:00.000Z",
+      "network unavailable",
+      "2099-03-10T09:10:00.000Z",
+    );
+
+    await renderReviewScreen();
+
+    const editButton = getContainer().querySelector(".review-pane-edit-btn");
+    if (!(editButton instanceof HTMLButtonElement)) {
+      throw new Error("Review edit button was not found");
+    }
+
+    await clickElementAsync(editButton);
+
+    await vi.waitFor(() => {
+      const status = document.querySelector("[data-testid='card-form-media-upload-status']");
+      expect(status?.textContent).toContain("Upload failed");
+    });
+
+    const retryButton = document.querySelector("[data-testid='card-form-media-upload-retry']");
+    if (!(retryButton instanceof HTMLButtonElement)) {
+      throw new Error("Media upload retry button was not found");
+    }
+
+    await clickElementAsync(retryButton);
+
+    await vi.waitFor(async () => {
+      const transfer = await loadMediaTransferQueueRecord("media-upload-transfer");
+      expect(transfer?.nextAttemptAt).not.toBe("2099-03-10T09:10:00.000Z");
+      expect(transfer?.nextAttemptAt.localeCompare(new Date().toISOString())).toBeLessThanOrEqual(0);
+      expect(state.appData.runMediaUploadTransfers).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("shows due failed media uploads as pending without a manual retry action", async () => {
+    const state = getState();
+    const card = createCard({
+      cardId: "card-media-upload-due",
+      frontText: "![Diagram](fcasset:media-upload-due-asset)",
+      backText: "Existing back",
+    });
+    state.cards = [card];
+    state.reviewQueue = [card];
+    state.reviewTimeline = [card];
+    vi.useRealTimers();
+    await enqueueMediaTransferUpload({
+      transferId: "media-upload-due-transfer",
+      workspaceId: "workspace-1",
+      mediaAssetId: "media-upload-due-asset",
+      sha256: "6e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      mimeType: "image/png",
+      sizeBytes: 42817,
+      sourceBlobCacheKey: "6e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      createdAt: "2026-03-10T09:00:00.000Z",
+      nextAttemptAt: "2026-03-10T09:00:00.000Z",
+    });
+    await markMediaTransferFailed(
+      "media-upload-due-transfer",
+      "2026-03-10T09:05:00.000Z",
+      "network unavailable",
+      "2000-03-10T09:10:00.000Z",
+    );
+
+    await renderReviewScreen();
+
+    const editButton = getContainer().querySelector(".review-pane-edit-btn");
+    if (!(editButton instanceof HTMLButtonElement)) {
+      throw new Error("Review edit button was not found");
+    }
+
+    await clickElementAsync(editButton);
+
+    await vi.waitFor(() => {
+      const status = document.querySelector("[data-testid='card-form-media-upload-status']");
+      expect(status?.textContent).toContain("Pending upload");
+      expect(status?.getAttribute("data-status")).toBe("pending");
+      expect(status?.getAttribute("data-transfer-status")).toBe("failed");
+    });
+
+    expect(document.querySelector("[data-testid='card-form-media-upload-retry']")).toBeNull();
   });
 
   it("deletes the edited card after confirmation", async () => {

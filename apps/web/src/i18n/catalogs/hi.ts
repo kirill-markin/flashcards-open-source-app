@@ -907,6 +907,10 @@ const hiCatalog: TranslationCatalog = {
       processing: "छवि प्रोसेस हो रही है...",
       referencesLabel: "कार्ड मीडिया संदर्भ",
       removeReferenceLabel: "{{label}} हटाएँ",
+      retryUpload: "फिर से कोशिश करें",
+      uploadFailed: "अपलोड विफल",
+      uploadPending: "अपलोड लंबित",
+      uploading: "अपलोड हो रहा है",
       errors: {
         installationUnavailable: "यह ब्राउज़र इंस्टॉलेशन तैयार नहीं है। फिर से लोड करें और दोबारा कोशिश करें।",
         processingFailed: "छवि प्रोसेस नहीं हो सकी। कोई दूसरी छवि आज़माएँ या फिर से लोड करें।",

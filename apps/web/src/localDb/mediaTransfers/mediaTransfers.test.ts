@@ -13,8 +13,10 @@ import {
   enqueueMediaTransferUpload,
   loadMediaBlobCacheRecord,
   loadMediaTransferQueueRecord,
+  loadMediaUploadTransfersForWorkspaceMediaAssets,
   loadNextPendingMediaTransferAttemptAtByKind,
   markClaimedMediaTransferSucceeded,
+  markMediaUploadTransferDueForRetry,
   markMediaTransferFailed,
   persistLocalMediaUpload,
   recoverStaleInProgressMediaTransfersByKind,
@@ -145,6 +147,135 @@ describe("localDb media transfers", () => {
       "workspace-1",
       "upload",
     )).resolves.toBe("2026-03-10T09:30:00.000Z");
+  });
+
+  it("loads the latest upload transfer per requested workspace media asset", async () => {
+    await enqueueMediaTransferUpload({
+      transferId: "media-asset-1-upload-old",
+      workspaceId: "workspace-1",
+      mediaAssetId: "media-asset-1",
+      sha256: "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      mimeType: "image/png",
+      sizeBytes: 42817,
+      sourceBlobCacheKey: "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      createdAt: "2026-03-10T09:00:00.000Z",
+      nextAttemptAt: "2026-03-10T09:00:00.000Z",
+    });
+    await enqueueMediaTransferUpload({
+      transferId: "media-asset-1-upload-new",
+      workspaceId: "workspace-1",
+      mediaAssetId: "media-asset-1",
+      sha256: "6e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      mimeType: "image/png",
+      sizeBytes: 42818,
+      sourceBlobCacheKey: "6e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      createdAt: "2026-03-10T09:01:00.000Z",
+      nextAttemptAt: "2026-03-10T09:01:00.000Z",
+    });
+    await enqueueMediaTransferDownload({
+      transferId: "media-asset-2-download",
+      workspaceId: "workspace-1",
+      mediaAssetId: "media-asset-2",
+      sha256: "7e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      mimeType: "image/png",
+      sizeBytes: 42819,
+      createdAt: "2026-03-10T09:02:00.000Z",
+      nextAttemptAt: "2026-03-10T09:02:00.000Z",
+    });
+    await enqueueMediaTransferUpload({
+      transferId: "media-asset-2-upload",
+      workspaceId: "workspace-1",
+      mediaAssetId: "media-asset-2",
+      sha256: "8e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      mimeType: "image/png",
+      sizeBytes: 42820,
+      sourceBlobCacheKey: "8e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      createdAt: "2026-03-10T09:03:00.000Z",
+      nextAttemptAt: "2026-03-10T09:03:00.000Z",
+    });
+    await enqueueMediaTransferUpload({
+      transferId: "other-workspace-upload",
+      workspaceId: "workspace-2",
+      mediaAssetId: "media-asset-1",
+      sha256: "9e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      mimeType: "image/png",
+      sizeBytes: 42821,
+      sourceBlobCacheKey: "9e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      createdAt: "2026-03-10T09:04:00.000Z",
+      nextAttemptAt: "2026-03-10T09:04:00.000Z",
+    });
+
+    await expect(loadMediaUploadTransfersForWorkspaceMediaAssets("workspace-1", [
+      "media-asset-1",
+      "media-asset-2",
+      "media-asset-1",
+      "media-asset-missing",
+    ])).resolves.toEqual([
+      {
+        mediaAssetId: "media-asset-1",
+        transfer: expect.objectContaining({
+          transferId: "media-asset-1-upload-new",
+          kind: "upload",
+        }),
+      },
+      {
+        mediaAssetId: "media-asset-2",
+        transfer: expect.objectContaining({
+          transferId: "media-asset-2-upload",
+          kind: "upload",
+        }),
+      },
+    ]);
+  });
+
+  it("marks an existing failed upload transfer due for retry without creating a new transfer", async () => {
+    await enqueueMediaTransferUpload({
+      transferId: "permanent-upload-transfer",
+      workspaceId: "workspace-1",
+      mediaAssetId: "permanent-media-asset-upload",
+      sha256: "1e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      mimeType: "image/png",
+      sizeBytes: 42817,
+      sourceBlobCacheKey: "1e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      createdAt: "2026-03-10T09:00:00.000Z",
+      nextAttemptAt: "2026-03-10T09:00:00.000Z",
+    });
+    await markMediaTransferFailed(
+      "permanent-upload-transfer",
+      "2026-03-10T09:05:00.000Z",
+      "permanent upload failure",
+      "9999-12-31T23:59:59.999Z",
+    );
+
+    await expect(markMediaUploadTransferDueForRetry({
+      transferId: "permanent-upload-transfer",
+      workspaceId: "workspace-1",
+      mediaAssetId: "permanent-media-asset-upload",
+      retryAt: "2026-03-10T09:10:00.000Z",
+    })).resolves.toEqual(expect.objectContaining({
+      transferId: "permanent-upload-transfer",
+      workspaceId: "workspace-1",
+      mediaAssetId: "permanent-media-asset-upload",
+      kind: "upload",
+      status: "failed",
+      attemptCount: 1,
+      nextAttemptAt: "2026-03-10T09:10:00.000Z",
+      lastError: "permanent upload failure",
+      claimedAt: null,
+      completedAt: null,
+      updatedAt: "2026-03-10T09:10:00.000Z",
+    }));
+
+    await expect(claimNextDueMediaTransferByKind(
+      "workspace-1",
+      "upload",
+      "2026-03-10T09:10:00.000Z",
+    )).resolves.toEqual(expect.objectContaining({
+      transferId: "permanent-upload-transfer",
+      kind: "upload",
+      status: "in_progress",
+      claimedAt: "2026-03-10T09:10:00.000Z",
+    }));
   });
 
   it("persists local upload media asset state and queued transfer together", async () => {

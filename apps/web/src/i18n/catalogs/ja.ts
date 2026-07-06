@@ -907,6 +907,10 @@ export const jaCatalog = {
       processing: "画像を処理しています...",
       referencesLabel: "カードのメディア参照",
       removeReferenceLabel: "{{label}} を削除",
+      retryUpload: "再試行",
+      uploadFailed: "アップロード失敗",
+      uploadPending: "アップロード待ち",
+      uploading: "アップロード中",
       errors: {
         installationUnavailable: "このブラウザーのインストール情報はまだ準備できていません。再読み込みしてもう一度お試しください。",
         processingFailed: "画像を処理できませんでした。別の画像を試すか、再読み込みしてもう一度お試しください。",

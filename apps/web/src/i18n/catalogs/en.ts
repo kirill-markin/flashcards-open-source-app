@@ -905,6 +905,10 @@ const enCatalog = {
       processing: "Processing image...",
       referencesLabel: "Card media references",
       removeReferenceLabel: "Remove {{label}}",
+      retryUpload: "Retry",
+      uploadFailed: "Upload failed",
+      uploadPending: "Pending upload",
+      uploading: "Uploading",
       errors: {
         installationUnavailable: "This browser installation is not ready. Reload and try again.",
         processingFailed: "Image processing failed. Try a different image or reload and try again.",

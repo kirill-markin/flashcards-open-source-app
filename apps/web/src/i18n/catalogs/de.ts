@@ -907,6 +907,10 @@ const deCatalog: TranslationCatalog = {
       processing: "Bild wird verarbeitet...",
       referencesLabel: "Medienverweise der Karte",
       removeReferenceLabel: "{{label}} entfernen",
+      retryUpload: "Erneut",
+      uploadFailed: "Upload fehlgeschlagen",
+      uploadPending: "Upload ausstehend",
+      uploading: "Upload läuft",
       errors: {
         installationUnavailable: "Diese Browser-Installation ist noch nicht bereit. Laden Sie neu und versuchen Sie es erneut.",
         processingFailed: "Die Bildverarbeitung ist fehlgeschlagen. Versuchen Sie ein anderes Bild oder laden Sie neu.",

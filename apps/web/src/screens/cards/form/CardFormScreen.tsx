@@ -11,6 +11,7 @@ import {
   isCardFormStateDirty,
   toCardFormState,
   type CardFormImageMediaRequest,
+  type CardFormMediaUploadRetryRequest,
   type CardFormManagedMediaField,
   type CardFormManagedMediaFieldState,
   type CardFormManagedMediaState,
@@ -21,6 +22,7 @@ import { getExpectedCardMutationInlineErrorMessage } from "../cardMutationErrors
 import type { Card, CreateCardInput, TagSuggestion, UpdateCardInput } from "../../../types";
 import { loadCardById } from "../../../localDb/cards/cards";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
+import { markMediaUploadTransferDueForRetry } from "../../../localDb/mediaTransfers";
 import { UnsupportedImagePreparationError } from "../../../media/imagePreparation";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { cardsRoute } from "../../../routes";
@@ -338,6 +340,30 @@ export function CardFormScreen(): ReactElement {
     }
   }
 
+  async function handleRetryMediaUploadTransfer(request: CardFormMediaUploadRetryRequest): Promise<void> {
+    setActionErrorMessage("");
+    setErrorMessage("");
+
+    try {
+      await markMediaUploadTransferDueForRetry({
+        ...request,
+        retryAt: new Date().toISOString(),
+      });
+      runMediaUploadTransfers();
+    } catch (error) {
+      captureAppOperationError(error, {
+        feature: "cards",
+        operation: "card_image_upload_retry",
+        userId: session?.userId ?? null,
+        workspaceId: request.workspaceId,
+        installationId: cloudSettings?.installationId ?? null,
+        entityId: request.mediaAssetId,
+      });
+      showCapturedTechnicalError(error);
+      setActionErrorMessage(t("appError.technicalError.message"));
+    }
+  }
+
   async function handleDelete(): Promise<void> {
     if (cardId === undefined) {
       setActionErrorMessage(t("cardForm.errors.cardIdRequired"));
@@ -463,6 +489,7 @@ export function CardFormScreen(): ReactElement {
           workspaceId={activeWorkspace?.workspaceId ?? null}
           onChange={setFormState}
           onPrepareImageMedia={handlePrepareImageMedia}
+          onRetryMediaUploadTransfer={handleRetryMediaUploadTransfer}
         />
       </section>
     </main>

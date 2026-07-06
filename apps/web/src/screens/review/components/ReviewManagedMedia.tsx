@@ -15,9 +15,11 @@ import {
   writeMediaBlobCacheRecord,
   type MediaBlobCacheRecord,
 } from "../../../localDb/mediaTransfers";
+import { parseManagedMediaAssetId } from "../../../media/managedMediaMarkdown";
 import type { MediaAsset } from "../../../types";
 
-const FCASSET_URL_PREFIX = "fcasset:";
+export { parseManagedMediaAssetId };
+
 const MANAGED_MEDIA_DOWNLOAD_ATTEMPT_COUNT = 2;
 const MANAGED_MEDIA_DOWNLOAD_RANGE_SIZE_BYTES = 4 * 1024 * 1024;
 
@@ -61,21 +63,6 @@ type ManagedMediaDownloadRange = Readonly<{
 
 const activeManagedMediaDownloadPromises = new Map<string, Promise<MediaBlobCacheRecord>>();
 const managedMediaObjectUrlCache = new Map<string, ManagedMediaObjectUrlCacheEntry>();
-
-export function parseManagedMediaAssetId(url: string | null | undefined): string | null {
-  if (url === null || url === undefined) {
-    return null;
-  }
-
-  const trimmedUrl = url.trim();
-  if (trimmedUrl.toLowerCase().startsWith(FCASSET_URL_PREFIX) === false) {
-    return null;
-  }
-
-  const rawReference = trimmedUrl.slice(FCASSET_URL_PREFIX.length).replace(/^\/+/, "");
-  const mediaAssetId = rawReference.split(/[?#]/, 1)[0]?.trim() ?? "";
-  return mediaAssetId === "" ? null : mediaAssetId;
-}
 
 export function reviewMarkdownUrlTransform(url: string): string {
   return parseManagedMediaAssetId(url) === null ? defaultUrlTransform(url) : url;
