@@ -4,6 +4,7 @@ import UIKit
 
 private let reviewManagedMediaStringsTableName: String = "ReviewCards"
 private let reviewManagedMediaCornerRadius: CGFloat = reviewContentSurfaceCornerRadius / 2
+private let reviewManagedImagePlaceholderAspectRatio: CGFloat = 4.0 / 3.0
 private let reviewManagedAudioHeight: CGFloat = 76
 private let reviewManagedVideoMinHeight: CGFloat = 190
 
@@ -55,7 +56,7 @@ struct ReviewManagedMediaView: View {
     var body: some View {
         Group {
             if isLoading {
-                loadingView
+                initialLoadingView
             } else if let loadResult,
                       let mediaAsset = loadResult.mediaAsset,
                       let mediaURL = loadResult.mediaURL {
@@ -84,17 +85,44 @@ struct ReviewManagedMediaView: View {
         )
     }
 
+    @ViewBuilder
+    private var initialLoadingView: some View {
+        if reference.isImageSyntax {
+            imageLoadingView
+        } else {
+            loadingView
+        }
+    }
+
+    private var loadingMediaLabel: String {
+        String(localized: "Loading media...", table: reviewManagedMediaStringsTableName)
+    }
+
     private var loadingView: some View {
         HStack(spacing: 10) {
             ProgressView()
                 .controlSize(.small)
-            Text(String(localized: "Loading media...", table: reviewManagedMediaStringsTableName))
+            Text(loadingMediaLabel)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .background(mediaBackgroundStyle, in: RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
+    }
+
+    private var imageLoadingView: some View {
+        RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius)
+            .fill(mediaBackgroundStyle)
+            .aspectRatio(reviewManagedImagePlaceholderAspectRatio, contentMode: .fit)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .overlay {
+                ProgressView(loadingMediaLabel)
+                    .controlSize(.regular)
+                    .labelsHidden()
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(loadingMediaLabel)
     }
 
     private func readyView(mediaAsset: MediaAsset, mediaURL: URL) -> some View {
@@ -133,10 +161,11 @@ struct ReviewManagedMediaView: View {
             ReviewManagedFileImageView(mediaURL: mediaURL) { image in
                 self.reviewManagedImageView(
                     image: Image(uiImage: image),
-                    accessibilityLabel: accessibilityLabel
+                    accessibilityLabel: accessibilityLabel,
+                    aspectRatio: reviewManagedImageAspectRatio(size: image.size)
                 )
             } loading: {
-                loadingView
+                imageLoadingView
             } failure: {
                 unavailableView(mediaAsset: mediaAsset)
             }
@@ -144,11 +173,12 @@ struct ReviewManagedMediaView: View {
             AsyncImage(url: mediaURL) { phase in
                 switch phase {
                 case .empty:
-                    loadingView
+                    imageLoadingView
                 case .success(let image):
                     reviewManagedImageView(
                         image: image,
-                        accessibilityLabel: accessibilityLabel
+                        accessibilityLabel: accessibilityLabel,
+                        aspectRatio: nil
                     )
                 case .failure:
                     unavailableView(mediaAsset: mediaAsset)
@@ -159,13 +189,27 @@ struct ReviewManagedMediaView: View {
         }
     }
 
-    private func reviewManagedImageView(image: Image, accessibilityLabel: String) -> some View {
-        image
-            .resizable()
-            .scaledToFit()
-            .frame(maxWidth: .infinity, alignment: .center)
-            .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
-            .accessibilityLabel(accessibilityLabel)
+    @ViewBuilder
+    private func reviewManagedImageView(
+        image: Image,
+        accessibilityLabel: String,
+        aspectRatio: CGFloat?
+    ) -> some View {
+        Group {
+            if let aspectRatio {
+                image
+                    .resizable()
+                    .scaledToFit()
+                    .aspectRatio(aspectRatio, contentMode: .fit)
+            } else {
+                image
+                    .resizable()
+                    .scaledToFit()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+        .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
+        .accessibilityLabel(accessibilityLabel)
     }
 
     private func unavailableView(mediaAsset: MediaAsset?) -> some View {
@@ -315,6 +359,21 @@ private struct ReviewManagedFileImageView<Content: View, Loading: View, Failure:
         self.decodedImageURL = mediaURL
         self.failedImageURL = nil
     }
+}
+
+private func reviewManagedImageAspectRatio(size: CGSize) -> CGFloat? {
+    let width: CGFloat = size.width
+    let height: CGFloat = size.height
+    guard width.isFinite, height.isFinite, width > 0, height > 0 else {
+        return nil
+    }
+
+    let aspectRatio: CGFloat = width / height
+    guard aspectRatio.isFinite, aspectRatio > 0 else {
+        return nil
+    }
+
+    return aspectRatio
 }
 
 private func decodeReviewManagedFileImage(mediaURL: URL) async -> UIImage? {
