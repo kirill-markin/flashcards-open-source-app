@@ -33,6 +33,7 @@ export const settingsResetStudyProgressRoute: string = "/settings/reset-study-pr
 export const settingsDeleteCurrentWorkspaceRoute: string = "/settings/delete-current-workspace";
 export const settingsTestRoute: string = "/settings/test";
 export const settingsTestAnimationsRoute: string = "/settings/test/animations";
+export const settingsTestLocalSyncDiagnosticsRoute: string = "/settings/test/local-sync-diagnostics";
 export const settingsSchedulerRoute: string = "/settings/scheduling";
 export const settingsNotificationsRoute: string = "/settings/review-reminders";
 export const settingsImportRoute: string = "/settings/import";

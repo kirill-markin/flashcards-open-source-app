@@ -263,6 +263,101 @@
   font-size: 14px;
 }
 
+.settings-panel-test-local-sync-diagnostics {
+  max-width: 1120px;
+}
+
+.settings-diagnostics-screen {
+  display: grid;
+  gap: 18px;
+}
+
+.settings-diagnostics-toolbar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.settings-diagnostics-actions {
+  margin: 0;
+}
+
+.settings-diagnostics-copy-status {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.settings-diagnostics-state {
+  min-height: 180px;
+}
+
+.settings-diagnostics-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.settings-diagnostics-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: var(--panel-inner-radius, var(--radius-md));
+  background: var(--surface);
+}
+
+.settings-diagnostics-field dt {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.settings-diagnostics-field dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+
+.settings-diagnostics-problem-list {
+  display: grid;
+  gap: 14px;
+}
+
+.settings-diagnostics-problem-section {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-diagnostics-problem-title {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.settings-diagnostics-empty {
+  margin: 0;
+}
+
+.settings-diagnostics-problem-record {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px 14px;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.settings-diagnostics-problem-record code {
+  white-space: pre-wrap;
+}
+
 .settings-connections-list {
   display: grid;
   gap: 14px;

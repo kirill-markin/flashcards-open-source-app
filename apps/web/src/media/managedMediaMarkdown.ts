@@ -74,6 +74,21 @@ export function parseManagedImageMarkdownReferences(text: string): ReadonlyArray
   return references;
 }
 
+export function extractManagedMediaAssetIdsFromMarkdown(text: string): ReadonlyArray<string> {
+  const mediaAssetIds = new Set<string>();
+  const pattern = /\bfcasset:[^\s)\]"'<>]+/gi;
+
+  for (const match of text.matchAll(pattern)) {
+    const mediaUrl = match[0];
+    const mediaAssetId = parseManagedMediaAssetId(mediaUrl);
+    if (mediaAssetId !== null) {
+      mediaAssetIds.add(mediaAssetId);
+    }
+  }
+
+  return [...mediaAssetIds];
+}
+
 export function buildManagedImageMarkdown(input: ManagedImageMarkdownInput): string {
   const mediaAssetId = requireMediaAssetId(input.mediaAssetId);
   return `![${escapeMarkdownImageAltText(input.altText)}](${MANAGED_MEDIA_URL_PREFIX}${mediaAssetId})`;
