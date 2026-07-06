@@ -448,6 +448,22 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
         XCTAssertFalse(renderedLabel.contains("]"))
         XCTAssertFalse(renderedLabel.contains("\n"))
 
+        let readyMediaAssetIds = Set([result.mediaAsset.mediaAssetId])
+        _ = try database.saveCard(
+            workspaceId: workspace.workspaceId,
+            input: CardEditorInput(
+                frontText: "Question without managed media",
+                backText: "Answer without managed media",
+                tags: [],
+            ),
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: readyMediaAssetIds
+        )
+        XCTAssertEqual(
+            0,
+            try self.pendingUploadTransferCount(database: database, mediaAsset: result.mediaAsset)
+        )
+
         let savedCard = try database.saveCard(
             workspaceId: workspace.workspaceId,
             input: CardEditorInput(
@@ -456,7 +472,7 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
                 tags: [],
             ),
             cardId: nil,
-            mediaAssetIdsReadyForUpload: Set([result.mediaAsset.mediaAssetId])
+            mediaAssetIdsReadyForUpload: readyMediaAssetIds
         )
         XCTAssertEqual(savedCard.frontText, result.markdown)
         XCTAssertTrue(
@@ -467,6 +483,26 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
                 mimeType: result.mediaAsset.mimeType,
                 sizeBytes: result.mediaAsset.sizeBytes
             )
+        )
+        XCTAssertEqual(
+            1,
+            try self.pendingUploadTransferCount(database: database, mediaAsset: result.mediaAsset)
+        )
+
+        let savedCardAgain = try database.saveCard(
+            workspaceId: workspace.workspaceId,
+            input: CardEditorInput(
+                frontText: result.markdown,
+                backText: "Answer",
+                tags: [],
+            ),
+            cardId: savedCard.cardId,
+            mediaAssetIdsReadyForUpload: readyMediaAssetIds
+        )
+        XCTAssertEqual(savedCardAgain.cardId, savedCard.cardId)
+        XCTAssertEqual(
+            1,
+            try self.pendingUploadTransferCount(database: database, mediaAsset: result.mediaAsset)
         )
     }
 
@@ -506,6 +542,31 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
             attributes: nil
         )
         try data.write(to: cacheURL, options: [.atomic])
+    }
+
+    private func pendingUploadTransferCount(database: LocalDatabase, mediaAsset: MediaAsset) throws -> Int {
+        return try database.core.scalarInt(
+            sql: """
+            SELECT COUNT(*)
+            FROM media_transfer_queue
+            WHERE workspace_id = ?
+                AND media_asset_id = ?
+                AND kind = 'upload'
+                AND status = 'pending'
+                AND sha256 = ?
+                AND LOWER(mime_type) = LOWER(?)
+                AND size_bytes = ?
+                AND local_relative_path = ?
+            """,
+            values: [
+                .text(mediaAsset.workspaceId),
+                .text(mediaAsset.mediaAssetId),
+                .text(mediaAsset.sha256),
+                .text(mediaAsset.mimeType),
+                .integer(mediaAsset.sizeBytes),
+                .text(try mediaBlobCacheRelativePath(sha256: mediaAsset.sha256))
+            ]
+        )
     }
 
     private func hexSHA256(data: Data) -> String {
