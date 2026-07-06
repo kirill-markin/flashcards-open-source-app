@@ -294,10 +294,19 @@ export async function upsertMediaAssetSnapshotWithBlobNormalizationInExecutor(
   assertExistingMediaAssetMatchesSnapshot(existingRow, normalizedInput);
   const existingMediaAsset = mapMediaAssetRow(existingRow);
   if (incomingLwwMetadataWins(toInputLwwMetadata(normalizedMetadata), toMediaAssetLwwMetadata(existingRow)) === false) {
+    const existingChangeId = await findLatestSyncChangeId(
+      executor,
+      workspaceId,
+      "media_asset",
+      existingMediaAsset.mediaAssetId,
+    );
+    const changeId = existingChangeId === null
+      ? await recordMediaAssetSyncChange(executor, workspaceId, hotChangeWriteLock, existingMediaAsset)
+      : existingChangeId;
     return {
       mediaAsset: existingMediaAsset,
       applied: false,
-      changeId: await findLatestSyncChangeId(executor, workspaceId, "media_asset", existingMediaAsset.mediaAssetId),
+      changeId,
     };
   }
 

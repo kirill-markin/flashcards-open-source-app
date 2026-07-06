@@ -254,6 +254,73 @@ function createExistingMediaAssetConflictExecutor(): DatabaseExecutor {
   };
 }
 
+function createExistingMediaAssetMissingHotChangeExecutor(): Readonly<{
+  executor: DatabaseExecutor;
+  insertedHotChangeParams: ReadonlyArray<ReadonlyArray<SqlValue>>;
+}> {
+  const insertedHotChangeParams: ReadonlyArray<SqlValue>[] = [];
+  const mediaBlob = createMediaBlobRow({
+    mediaBlobId: testMediaBlobId,
+    mimeType: "image/png",
+    sizeBytes: 42,
+    sha256: testSha256,
+    storageKey: testStorageKey,
+  });
+  const existingRow = createMediaAssetRow({
+    mediaAssetId: testMediaAssetId,
+    mediaBlob,
+    sourceUrl: null,
+    clientUpdatedAt: "2026-02-28T11:00:00.000Z",
+    lastModifiedByReplicaId: "replica-winner",
+    lastOperationId: "operation-winner",
+    updatedAt: "2026-02-28T11:00:00.000Z",
+    deletedAt: null,
+  });
+
+  return {
+    executor: {
+      query: async <Row extends pg.QueryResultRow>(
+        text: string,
+        params: ReadonlyArray<SqlValue>,
+      ): Promise<pg.QueryResult<Row>> => {
+        const workspaceSyncResult = createWorkspaceSyncQueryResult<Row>(text, params);
+        if (workspaceSyncResult !== null) {
+          return workspaceSyncResult;
+        }
+
+        if (text.includes("FROM content.media_assets AS media_assets") && text.includes("FOR UPDATE")) {
+          assert.deepEqual(params, [testWorkspaceId, testMediaAssetId]);
+          return createQueryResult([existingRow as unknown as Row]);
+        }
+
+        if (text.includes("SELECT change_id FROM sync.hot_changes")) {
+          assert.deepEqual(params, [testWorkspaceId, "media_asset", testMediaAssetId]);
+          return createQueryResult<Row>([]);
+        }
+
+        if (text.includes("INSERT INTO sync.hot_changes")) {
+          assert.deepEqual(params, [
+            testWorkspaceId,
+            "media_asset",
+            testMediaAssetId,
+            "upsert",
+            "replica-winner",
+            "operation-winner",
+            "2026-02-28T11:00:00.000Z",
+          ]);
+          insertedHotChangeParams.push(params);
+          return createQueryResult<Row>([{
+            change_id: 31,
+          } as unknown as Row]);
+        }
+
+        throw new Error(`Unexpected query: ${text}`);
+      },
+    },
+    insertedHotChangeParams,
+  };
+}
+
 function createDuplicateBlobExecutor(): Readonly<{
   executor: DatabaseExecutor;
   assetRowsById: Map<string, MediaAssetRow>;
@@ -505,6 +572,28 @@ test("upsertMediaAssetSnapshotInExecutor rejects media asset metadata conflicts 
       return true;
     },
   );
+});
+
+test("upsertMediaAssetSnapshotInExecutor records missing hot change for existing LWW winner", async () => {
+  const { executor, insertedHotChangeParams } = createExistingMediaAssetMissingHotChangeExecutor();
+
+  const result = await upsertMediaAssetSnapshotInExecutor(
+    executor,
+    testWorkspaceId,
+    createSnapshotInput(testMediaAssetId),
+    {
+      clientUpdatedAt: "2026-02-28T10:00:00.000Z",
+      lastModifiedByReplicaId: "replica-loser",
+      lastOperationId: "operation-loser",
+    },
+  );
+
+  assert.equal(result.applied, false);
+  assert.equal(result.changeId, 31);
+  assert.equal(result.mediaAsset.mediaAssetId, testMediaAssetId);
+  assert.equal(result.mediaAsset.lastModifiedByReplicaId, "replica-winner");
+  assert.equal(result.mediaAsset.lastOperationId, "operation-winner");
+  assert.equal(insertedHotChangeParams.length, 1);
 });
 
 test("upsertMediaAssetSnapshotInExecutor updates existing media asset metadata through valid SQL", async () => {
