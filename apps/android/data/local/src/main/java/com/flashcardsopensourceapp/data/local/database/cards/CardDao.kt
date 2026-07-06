@@ -10,6 +10,17 @@ import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.CardWithRelations
 import kotlinx.coroutines.flow.Flow
 
+data class LocalSyncDiagnosticsCardCounts(
+    val localActiveCards: Int,
+    val localDeletedCards: Int
+)
+
+data class LocalSyncDiagnosticsCardMarkdownRow(
+    val cardId: String,
+    val frontText: String,
+    val backText: String
+)
+
 @Dao
 interface CardDao {
     @Transaction
@@ -52,6 +63,30 @@ interface CardDao {
 
     @Query("SELECT * FROM cards WHERE workspaceId = :workspaceId ORDER BY createdAtMillis ASC, cardId ASC")
     suspend fun loadCards(workspaceId: String): List<CardEntity>
+
+    @Query(
+        """
+        SELECT
+            COUNT(CASE WHEN deletedAtMillis IS NULL THEN 1 END) AS localActiveCards,
+            COUNT(CASE WHEN deletedAtMillis IS NOT NULL THEN 1 END) AS localDeletedCards
+        FROM cards
+        WHERE workspaceId = :workspaceId
+        """
+    )
+    fun observeLocalSyncDiagnosticsCardCounts(workspaceId: String): Flow<LocalSyncDiagnosticsCardCounts>
+
+    @Query(
+        """
+        SELECT cardId, frontText, backText
+        FROM cards
+        WHERE workspaceId = :workspaceId
+            AND deletedAtMillis IS NULL
+        ORDER BY updatedAtMillis DESC, createdAtMillis DESC, cardId ASC
+        """
+    )
+    fun observeLocalSyncDiagnosticsActiveCardMarkdownRows(
+        workspaceId: String
+    ): Flow<List<LocalSyncDiagnosticsCardMarkdownRow>>
 
     @Query("SELECT COUNT(*) FROM cards")
     fun observeCardCount(): Flow<Int>

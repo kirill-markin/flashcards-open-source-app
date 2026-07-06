@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -24,6 +25,7 @@ fun TestSettingsRoute(
     onOpenAnimations: () -> Unit,
     onShowTechnicalErrorDialogPreview: () -> Unit,
     onOpenNotificationDiagnostics: () -> Unit,
+    onOpenLocalSyncDiagnostics: () -> Unit,
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
@@ -104,6 +106,28 @@ fun TestSettingsRoute(
                         modifier = Modifier
                             .testTag(tag = testSettingsNotificationDiagnosticsRowTag)
                             .clickable(onClick = onOpenNotificationDiagnostics)
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text(stringResource(R.string.settings_test_local_sync_diagnostics_title))
+                        },
+                        supportingContent = {
+                            Text(stringResource(R.string.settings_test_local_sync_diagnostics_summary))
+                        },
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.Sync,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier
+                            .testTag(tag = testSettingsLocalSyncDiagnosticsRowTag)
+                            .clickable(onClick = onOpenLocalSyncDiagnostics)
                     )
                 }
             }

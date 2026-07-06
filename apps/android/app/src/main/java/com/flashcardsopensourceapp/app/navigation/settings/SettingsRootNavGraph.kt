@@ -45,6 +45,9 @@ import com.flashcardsopensourceapp.feature.settings.feedback.FeedbackSettingsRou
 import com.flashcardsopensourceapp.feature.settings.language.LanguageSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.leaderboard.LeaderboardParticipationRoute
 import com.flashcardsopensourceapp.feature.settings.leaderboard.createLeaderboardParticipationViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.localSyncDiagnostics.LocalSyncDiagnosticsRoute
+import com.flashcardsopensourceapp.feature.settings.localSyncDiagnostics.LocalSyncDiagnosticsViewModel
+import com.flashcardsopensourceapp.feature.settings.localSyncDiagnostics.createLocalSyncDiagnosticsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.notifications.NotificationDiagnosticsRoute
 import com.flashcardsopensourceapp.feature.settings.notifications.NotificationDiagnosticsUiState
 import com.flashcardsopensourceapp.feature.settings.review.ReviewAnimationsRoute
@@ -432,6 +435,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             onOpenNotificationDiagnostics = {
                 navController.navigate(route = SettingsNotificationDiagnosticsDestination.route)
             },
+            onOpenLocalSyncDiagnostics = {
+                navController.navigate(route = SettingsLocalSyncDiagnosticsDestination.route)
+            },
             onBack = {
                 navController.popBackStack()
             }
@@ -470,6 +476,26 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
 
         NotificationDiagnosticsRoute(
             uiState = uiState,
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+
+    composable(route = SettingsLocalSyncDiagnosticsDestination.route) {
+        val context = LocalContext.current
+        val localSyncDiagnosticsViewModel =
+            viewModel<LocalSyncDiagnosticsViewModel>(
+                factory = createLocalSyncDiagnosticsViewModelFactory(
+                    workspaceRepository = appGraph.workspaceRepository,
+                    applicationContext = context.applicationContext
+                )
+            )
+        val uiState by localSyncDiagnosticsViewModel.uiState.collectAsStateWithLifecycle()
+
+        LocalSyncDiagnosticsRoute(
+            uiState = uiState,
+            onRefresh = localSyncDiagnosticsViewModel::refresh,
             onBack = {
                 navController.popBackStack()
             }

@@ -52,6 +52,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsSupportRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTagsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsTestRowTag
 import com.flashcardsopensourceapp.feature.settings.testSettingsAnimationsRowTag
+import com.flashcardsopensourceapp.feature.settings.testSettingsLocalSyncDiagnosticsRowTag
 import com.flashcardsopensourceapp.feature.settings.testSettingsNotificationDiagnosticsRowTag
 import com.flashcardsopensourceapp.feature.settings.testSettingsTechnicalErrorRowTag
 import com.flashcardsopensourceapp.feature.settings.testSettingsScreenTag
@@ -217,6 +218,9 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onOpenNotificationDiagnostics = {
                         clickedRows += "notification_diagnostics"
                     },
+                    onOpenLocalSyncDiagnostics = {
+                        clickedRows += "local_sync_diagnostics"
+                    },
                     onBack = {
                         clickedRows += "back"
                     }
@@ -227,6 +231,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertTestSettingsRowVisible(rowTag = testSettingsAnimationsRowTag)
         assertTestSettingsRowVisible(rowTag = testSettingsTechnicalErrorRowTag)
         assertTestSettingsRowVisible(rowTag = testSettingsNotificationDiagnosticsRowTag)
+        assertTestSettingsRowVisible(rowTag = testSettingsLocalSyncDiagnosticsRowTag)
         assertTestSettingsRowClick(
             rowTag = testSettingsTechnicalErrorRowTag,
             expectedClick = "technical_error",
@@ -235,6 +240,11 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertTestSettingsRowClick(
             rowTag = testSettingsNotificationDiagnosticsRowTag,
             expectedClick = "notification_diagnostics",
+            clickedRows = clickedRows
+        )
+        assertTestSettingsRowClick(
+            rowTag = testSettingsLocalSyncDiagnosticsRowTag,
+            expectedClick = "local_sync_diagnostics",
             clickedRows = clickedRows
         )
     }

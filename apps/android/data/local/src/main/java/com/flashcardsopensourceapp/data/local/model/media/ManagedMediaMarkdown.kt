@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.data.local.model.media
 
 private const val managedMediaAssetSchemePrefix: String = "fcasset:"
 private const val managedImageFallbackAltText: String = "Image"
+private val managedMediaAssetReferenceRegex: Regex = Regex("""fcasset:([^\s)]+)""")
 
 fun managedImageMarkdownReference(
     mediaAssetId: String,
@@ -10,6 +11,14 @@ fun managedImageMarkdownReference(
     val normalizedMediaAssetId: String = normalizeManagedMediaAssetId(mediaAssetId = mediaAssetId)
     val normalizedAltText: String = normalizeManagedMediaLabel(label = altText)
     return "![$normalizedAltText]($managedMediaAssetSchemePrefix$normalizedMediaAssetId)"
+}
+
+fun extractManagedMediaAssetReferences(markdown: String): Set<String> {
+    return managedMediaAssetReferenceRegex
+        .findAll(input = markdown)
+        .map { matchResult -> matchResult.groupValues[1].trim() }
+        .filter { mediaAssetId -> mediaAssetId.isNotEmpty() }
+        .toSet()
 }
 
 private fun normalizeManagedMediaAssetId(mediaAssetId: String): String {
