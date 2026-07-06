@@ -225,6 +225,7 @@ function ManagedMediaReferenceStrip(props: Readonly<{
                 altText={reference.altText}
                 localReadVersion={localReadVersion}
                 mediaAssetId={reference.mediaAssetId}
+                referencePresentation="image"
                 workspaceId={workspaceId}
               >
                 {referenceLabel}

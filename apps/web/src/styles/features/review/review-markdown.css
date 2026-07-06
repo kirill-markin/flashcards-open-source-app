@@ -135,6 +135,15 @@
   min-width: 0;
 }
 
+.review-markdown-media-image-loading {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--review-managed-media-image-radius, 8px);
+  background: rgba(7, 7, 10, 0.34);
+}
+
 .review-markdown-media-audio,
 .review-markdown-media-video {
   display: flex;

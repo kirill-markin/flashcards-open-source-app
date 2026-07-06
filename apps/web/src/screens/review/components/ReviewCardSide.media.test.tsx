@@ -160,6 +160,9 @@ function createReviewCardSideRoot(
 describe("ReviewCardSide managed media rendering", () => {
   let container: HTMLDivElement;
   let createObjectURLMock: ReturnType<typeof vi.fn<(blob: Blob) => string>>;
+  let imageDecodeMock: ReturnType<typeof vi.fn<() => Promise<void>>>;
+  let imageNaturalHeight: number;
+  let imageNaturalWidth: number;
   let revokeObjectURLMock: ReturnType<typeof vi.fn<(url: string) => void>>;
   let root: ReactDOM.Root | null;
 
@@ -182,6 +185,22 @@ describe("ReviewCardSide managed media rendering", () => {
       configurable: true,
       value: revokeObjectURLMock,
     });
+    imageNaturalHeight = 600;
+    imageNaturalWidth = 800;
+    imageDecodeMock = vi.fn(async (): Promise<void> => undefined);
+    class ManagedMediaTestImage {
+      complete = false;
+      naturalHeight = imageNaturalHeight;
+      naturalWidth = imageNaturalWidth;
+      onerror: (() => void) | null = null;
+      onload: (() => void) | null = null;
+      src = "";
+
+      decode(): Promise<void> {
+        return imageDecodeMock();
+      }
+    }
+    vi.stubGlobal("Image", ManagedMediaTestImage);
     container = document.createElement("div");
     document.body.append(container);
     root = null;
@@ -202,6 +221,105 @@ describe("ReviewCardSide managed media rendering", () => {
     window.localStorage.clear();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it("renders an image-shaped placeholder until a managed image has decoded", async () => {
+    const imageDecodeDeferred = createDeferred<void>();
+    imageDecodeMock.mockImplementation(async (): Promise<void> => imageDecodeDeferred.promise);
+    const imageBlob = new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" });
+    const mediaAsset = makeMediaAsset("image-asset", "image/png", imageSha256, imageBlob.size);
+    const cacheRecord = makeCacheRecord(mediaAsset, imageBlob);
+    mediaMocks.loadMediaAssetRecordMock.mockResolvedValue(mediaAsset);
+    mediaMocks.loadMediaBlobCacheRecordMock.mockResolvedValue(cacheRecord);
+
+    root = createReviewCardSideRoot(container, "![Diagram](fcasset:image-asset)", 0);
+
+    await vi.waitFor(() => {
+      expect(imageDecodeMock).toHaveBeenCalledTimes(1);
+    });
+
+    const placeholder = container.querySelector(".review-markdown-media-image-loading");
+    if (!(placeholder instanceof HTMLElement)) {
+      throw new Error("Managed image loading placeholder was not rendered");
+    }
+    expect(placeholder.getAttribute("data-fcasset-id")).toBe("image-asset");
+    expect(placeholder.getAttribute("aria-busy")).toBe("true");
+    expect(placeholder.getAttribute("aria-label")).toBeTruthy();
+    expect(container.querySelector(".review-markdown-media-loading")).toBeNull();
+    expect(container.querySelector(".review-markdown-media-image")).toBeNull();
+
+    await act(async () => {
+      imageDecodeDeferred.resolve(undefined);
+      await imageDecodeDeferred.promise;
+    });
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".review-markdown-media-image")).not.toBeNull();
+    });
+
+    const image = container.querySelector(".review-markdown-media-image");
+    if (!(image instanceof HTMLImageElement)) {
+      throw new Error("Managed image was not rendered after decode");
+    }
+    expect(image.alt).toBe("Diagram");
+    expect(image.getAttribute("src")).toBe("blob:review-media-1");
+    expect(image.style.aspectRatio).toBe("800 / 600");
+    expect(container.querySelector(".review-markdown-media-image-loading")).toBeNull();
+  });
+
+  it("keeps managed Markdown links on the compact loading and fallback path", async () => {
+    const mediaAssetDeferred = createDeferred<MediaAsset | null>();
+    mediaMocks.loadMediaAssetRecordMock.mockImplementation(async (): Promise<MediaAsset | null> => mediaAssetDeferred.promise);
+
+    root = createReviewCardSideRoot(container, "[Diagram](fcasset:image-asset)", 0);
+
+    const loading = container.querySelector(".review-markdown-media-loading");
+    if (!(loading instanceof HTMLElement)) {
+      throw new Error("Managed link loading placeholder was not rendered");
+    }
+    expect(loading.getAttribute("data-fcasset-id")).toBe("image-asset");
+    expect(loading.getAttribute("aria-busy")).toBe("true");
+    expect(container.querySelector(".review-markdown-media-image-loading")).toBeNull();
+    expect(imageDecodeMock).not.toHaveBeenCalled();
+
+    await vi.waitFor(() => {
+      expect(mediaMocks.loadMediaAssetRecordMock).toHaveBeenCalledWith("workspace-1", "image-asset");
+    });
+    await act(async () => {
+      mediaAssetDeferred.resolve(null);
+      await mediaAssetDeferred.promise;
+    });
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".review-markdown-media-fallback")?.textContent).toBe("Media unavailable");
+    });
+    expect(container.querySelector(".review-markdown-media-image-loading")).toBeNull();
+  });
+
+  it("renders unavailable media and releases the object URL when managed image decode fails", async () => {
+    const imageBlob = new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" });
+    const mediaAsset = makeMediaAsset("image-asset", "image/png", imageSha256, imageBlob.size);
+    const cacheRecord = makeCacheRecord(mediaAsset, imageBlob);
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => undefined);
+    imageDecodeMock.mockRejectedValue(new Error("decode failed"));
+    mediaMocks.loadMediaAssetRecordMock.mockResolvedValue(mediaAsset);
+    mediaMocks.loadMediaBlobCacheRecordMock.mockResolvedValue(cacheRecord);
+
+    root = createReviewCardSideRoot(container, "![Diagram](fcasset:image-asset)", 0);
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".review-markdown-media-fallback")?.textContent).toBe("Media unavailable");
+    });
+
+    expect(container.querySelector(".review-markdown-media-image")).toBeNull();
+    expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:review-media-1");
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      "Managed media download unavailable",
+      expect.objectContaining({
+        mediaAssetId: "image-asset",
+        errorMessage: expect.stringContaining("decode failed"),
+      }),
+    );
   });
 
   it("renders managed image, audio, video, and generic attachments from warm blob cache", async () => {
@@ -384,7 +502,7 @@ describe("ReviewCardSide managed media rendering", () => {
     renderReviewCardSide(root, "![Second](fcasset:second-image-asset)", 0);
 
     expect(container.querySelector(".review-markdown-media-image")).toBeNull();
-    expect(container.querySelector(".review-markdown-media-loading")?.getAttribute("data-fcasset-id")).toBe("second-image-asset");
+    expect(container.querySelector(".review-markdown-media-image-loading")?.getAttribute("data-fcasset-id")).toBe("second-image-asset");
     expect(revokeObjectURLMock).toHaveBeenCalledWith(initialSrc);
     expect(createObjectURLMock).toHaveBeenCalledTimes(1);
 
