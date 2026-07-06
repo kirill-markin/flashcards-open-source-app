@@ -66,6 +66,7 @@ import {
   settingsServerRoute,
   settingsTagsRoute,
   settingsTestAnimationsRoute,
+  settingsTestLocalSyncDiagnosticsRoute,
   settingsTestRoute,
   shareRoute,
 } from "./routes";
@@ -175,6 +176,9 @@ const ServerSettingsInfoScreen = lazy(async () => import("./screens/settings/Ser
 })));
 const TestAnimationsScreen = lazy(async () => import("./screens/settings/TestSettingsScreen").then((module) => ({
   default: module.TestAnimationsScreen,
+})));
+const TestLocalSyncDiagnosticsScreen = lazy(async () => import("./screens/settings/TestSettingsScreen").then((module) => ({
+  default: module.TestLocalSyncDiagnosticsScreen,
 })));
 const TestSettingsScreen = lazy(async () => import("./screens/settings/TestSettingsScreen").then((module) => ({
   default: module.TestSettingsScreen,
@@ -832,6 +836,14 @@ export function RoutedShell(): ReactElement {
                 <TestAnimationsScreen />
               </TestModeRouteGuard>
             ), "loading.testAnimations")}
+          />
+          <Route
+            path={settingsTestLocalSyncDiagnosticsRoute}
+            element={renderDeferredRoute((
+              <TestModeRouteGuard>
+                <TestLocalSyncDiagnosticsScreen />
+              </TestModeRouteGuard>
+            ), "loading.testSettings")}
           />
           <Route path={accountStatusRoute} element={renderDeferredRoute(<AccountStatusScreen />, "loading.accountStatus")} />
           <Route path={accountLegalRoute} element={renderDeferredRoute(<LegalScreen />, "loading.legal")} />
