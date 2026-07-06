@@ -2,15 +2,31 @@ package com.flashcardsopensourceapp.data.local.repository.workspace
 
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
+import com.flashcardsopensourceapp.data.local.database.cards.LocalSyncDiagnosticsCardMarkdownRow
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
+import com.flashcardsopensourceapp.data.local.database.media.LocalSyncDiagnosticsMediaAssetIdRow
+import com.flashcardsopensourceapp.data.local.database.media.LocalSyncDiagnosticsMediaTransferProblemRow
+import com.flashcardsopensourceapp.data.local.database.media.LocalSyncDiagnosticsMissingMediaBlobRow
+import com.flashcardsopensourceapp.data.local.database.sync.LocalSyncDiagnosticsOutboxProblemRow
 import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataStorage
 import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSummary
 import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSyncStatus
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.sync.DeviceDiagnosticsSummary
+import com.flashcardsopensourceapp.data.local.model.media.MediaTransferKind
+import com.flashcardsopensourceapp.data.local.model.media.MediaTransferStatus
+import com.flashcardsopensourceapp.data.local.model.media.extractManagedMediaAssetReferences
+import com.flashcardsopensourceapp.data.local.model.sync.LocalSyncDiagnosticsCardOutboxProblem
+import com.flashcardsopensourceapp.data.local.model.sync.LocalSyncDiagnosticsCardsSync
+import com.flashcardsopensourceapp.data.local.model.sync.LocalSyncDiagnosticsManagedMediaSync
+import com.flashcardsopensourceapp.data.local.model.sync.LocalSyncDiagnosticsMediaTransferProblem
+import com.flashcardsopensourceapp.data.local.model.sync.LocalSyncDiagnosticsMissingMediaBlobProblem
+import com.flashcardsopensourceapp.data.local.model.sync.LocalSyncDiagnosticsMissingMediaReferenceProblem
+import com.flashcardsopensourceapp.data.local.model.sync.LocalSyncDiagnosticsProblemRecords
+import com.flashcardsopensourceapp.data.local.model.sync.LocalSyncDiagnosticsSummary
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceOverviewSummary
 import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedulerSettings
@@ -33,6 +49,30 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+
+private const val localSyncDiagnosticsProblemLimit: Int = 5
+private const val cardEntityTypeWireKey: String = "card"
+private const val upsertOperationTypeWireKey: String = "upsert"
+
+private data class CardsSyncDiagnosticsObservation(
+    val cardsSync: LocalSyncDiagnosticsCardsSync,
+    val failedCardOutboxEntries: List<LocalSyncDiagnosticsCardOutboxProblem>
+)
+
+private data class ManagedMediaSyncDiagnosticsObservation(
+    val managedMediaSync: LocalSyncDiagnosticsManagedMediaSync,
+    val failedMediaTransfers: List<LocalSyncDiagnosticsMediaTransferProblem>,
+    val missingMediaReferences: List<LocalSyncDiagnosticsMissingMediaReferenceProblem>,
+    val assetsMissingLocalBlob: List<LocalSyncDiagnosticsMissingMediaBlobProblem>
+)
+
+private data class MediaReferenceDiagnosticsObservation(
+    val referencedMediaInCards: Int,
+    val referencesMissingLocalAsset: Int,
+    val missingMediaReferences: List<LocalSyncDiagnosticsMissingMediaReferenceProblem>,
+    val assetsMissingLocalBlob: Int,
+    val assetsMissingLocalBlobRows: List<LocalSyncDiagnosticsMissingMediaBlobProblem>
+)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LocalWorkspaceRepository(
@@ -197,6 +237,150 @@ class LocalWorkspaceRepository(
         }
     }
 
+    override fun observeLocalSyncDiagnostics(): Flow<LocalSyncDiagnosticsSummary?> {
+        return observeCurrentWorkspace(
+            database = database,
+            preferencesStore = preferencesStore
+        ).flatMapLatest { workspace ->
+            if (workspace == null) {
+                return@flatMapLatest flowOf(null)
+            }
+
+            combine(
+                observeCardsSyncDiagnostics(workspaceId = workspace.workspaceId),
+                observeManagedMediaSyncDiagnostics(workspaceId = workspace.workspaceId)
+            ) { cardsObservation, mediaObservation ->
+                LocalSyncDiagnosticsSummary(
+                    cardsSync = cardsObservation.cardsSync,
+                    managedMediaSync = mediaObservation.managedMediaSync,
+                    problemRecords = LocalSyncDiagnosticsProblemRecords(
+                        failedCardOutboxEntries = cardsObservation.failedCardOutboxEntries,
+                        failedMediaTransfers = mediaObservation.failedMediaTransfers,
+                        missingMediaReferences = mediaObservation.missingMediaReferences,
+                        assetsMissingLocalBlob = mediaObservation.assetsMissingLocalBlob
+                    )
+                )
+            }
+        }
+    }
+
+    private fun observeCardsSyncDiagnostics(workspaceId: String): Flow<CardsSyncDiagnosticsObservation> {
+        return combine(
+            preferencesStore.observeCloudSettings(),
+            database.syncStateDao().observeSyncState(workspaceId = workspaceId),
+            database.cardDao().observeLocalSyncDiagnosticsCardCounts(workspaceId = workspaceId),
+            database.outboxDao().observeLocalSyncDiagnosticsOutboxAggregate(
+                workspaceId = workspaceId,
+                entityType = cardEntityTypeWireKey,
+                operationType = upsertOperationTypeWireKey
+            ),
+            database.outboxDao().observeLocalSyncDiagnosticsOutboxProblemRows(
+                workspaceId = workspaceId,
+                entityType = cardEntityTypeWireKey,
+                operationType = upsertOperationTypeWireKey,
+                limit = localSyncDiagnosticsProblemLimit
+            )
+        ) { cloudSettings, syncState, cardCounts, outboxAggregate, failedOutboxRows ->
+            CardsSyncDiagnosticsObservation(
+                cardsSync = LocalSyncDiagnosticsCardsSync(
+                    workspaceId = workspaceId,
+                    installationId = cloudSettings.installationId,
+                    cloudState = cloudSettings.cloudState,
+                    localActiveCards = cardCounts.localActiveCards,
+                    localDeletedCards = cardCounts.localDeletedCards,
+                    pendingCardOperations = outboxAggregate.pendingOperationCount,
+                    failedCardOperations = outboxAggregate.failedOperationCount,
+                    oldestPendingCardOperationAtMillis = outboxAggregate.oldestPendingOperationAtMillis,
+                    latestCardSyncSuccessAtMillis = syncState?.lastSuccessfulSyncAtMillis,
+                    hotStateHydrated = syncState?.hasHydratedHotState ?: false,
+                    hotCursor = syncState?.lastSyncCursor,
+                    reviewCursor = syncState?.lastReviewSequenceId,
+                    latestSyncError = syncState?.lastSyncError
+                ),
+                failedCardOutboxEntries = failedOutboxRows.map(::toFailedCardOutboxProblem)
+            )
+        }
+    }
+
+    private fun observeManagedMediaSyncDiagnostics(workspaceId: String): Flow<ManagedMediaSyncDiagnosticsObservation> {
+        return combine(
+            database.mediaAssetDao().observeLocalSyncDiagnosticsMediaAssetCounts(workspaceId = workspaceId),
+            database.mediaTransferDao().observeLocalSyncDiagnosticsMediaBlobAggregate(),
+            database.mediaTransferDao().observeLocalSyncDiagnosticsMediaTransferAggregate(
+                workspaceId = workspaceId,
+                uploadKind = MediaTransferKind.UPLOAD.wireKey,
+                queuedStatus = MediaTransferStatus.QUEUED.wireKey,
+                inProgressStatus = MediaTransferStatus.IN_PROGRESS.wireKey,
+                failedStatus = MediaTransferStatus.FAILED.wireKey,
+                succeededStatus = MediaTransferStatus.SUCCEEDED.wireKey
+            ),
+            database.mediaTransferDao().observeLocalSyncDiagnosticsMediaTransferProblemRows(
+                workspaceId = workspaceId,
+                kind = MediaTransferKind.UPLOAD.wireKey,
+                failedStatus = MediaTransferStatus.FAILED.wireKey,
+                limit = localSyncDiagnosticsProblemLimit
+            ),
+            observeMediaReferenceDiagnostics(workspaceId = workspaceId)
+        ) { assetCounts, blobAggregate, transferAggregate, failedTransferRows, referenceDiagnostics ->
+            ManagedMediaSyncDiagnosticsObservation(
+                managedMediaSync = LocalSyncDiagnosticsManagedMediaSync(
+                    localActiveMediaAssets = assetCounts.localActiveMediaAssets,
+                    deletedMediaAssets = assetCounts.deletedMediaAssets,
+                    localMediaBlobs = blobAggregate.localMediaBlobs,
+                    localMediaBytes = blobAggregate.localMediaBytes,
+                    referencedMediaInCards = referenceDiagnostics.referencedMediaInCards,
+                    referencesMissingLocalAsset = referenceDiagnostics.referencesMissingLocalAsset,
+                    assetsMissingLocalBlob = referenceDiagnostics.assetsMissingLocalBlob,
+                    pendingMediaUploads = transferAggregate.pendingMediaUploads,
+                    failedMediaUploads = transferAggregate.failedMediaUploads,
+                    pendingMediaDownloads = null,
+                    failedMediaDownloads = null,
+                    oldestPendingMediaTransferAtMillis = transferAggregate.oldestPendingMediaTransferAtMillis,
+                    latestMediaUploadSuccessAtMillis = transferAggregate.latestMediaUploadSuccessAtMillis,
+                    latestMediaDownloadCacheSuccessAtMillis = blobAggregate.latestCacheWriteAtMillis,
+                    latestMediaTransferError = transferAggregate.latestMediaTransferError
+                ),
+                failedMediaTransfers = failedTransferRows.map(::toFailedMediaTransferProblem),
+                missingMediaReferences = referenceDiagnostics.missingMediaReferences,
+                assetsMissingLocalBlob = referenceDiagnostics.assetsMissingLocalBlobRows
+            )
+        }
+    }
+
+    private fun observeMediaReferenceDiagnostics(workspaceId: String): Flow<MediaReferenceDiagnosticsObservation> {
+        return combine(
+            database.cardDao().observeLocalSyncDiagnosticsActiveCardMarkdownRows(workspaceId = workspaceId),
+            database.mediaAssetDao().observeLocalSyncDiagnosticsActiveMediaAssetIds(workspaceId = workspaceId),
+            database.mediaAssetDao().observeLocalSyncDiagnosticsAssetsMissingLocalBlobCount(workspaceId = workspaceId),
+            database.mediaAssetDao().observeLocalSyncDiagnosticsMissingMediaBlobRows(
+                workspaceId = workspaceId,
+                limit = localSyncDiagnosticsProblemLimit
+            )
+        ) { cardMarkdownRows, activeMediaAssetIdRows, assetsMissingLocalBlob, missingBlobRows ->
+            val activeMediaAssetIds: Set<String> = activeMediaAssetIdRows
+                .map(LocalSyncDiagnosticsMediaAssetIdRow::mediaAssetId)
+                .toSet()
+            val referencedMediaAssetIds: Set<String> = cardMarkdownRows
+                .flatMap(::extractManagedMediaReferences)
+                .toSet()
+            val missingMediaReferences: List<LocalSyncDiagnosticsMissingMediaReferenceProblem> =
+                makeMissingMediaReferenceProblems(
+                    cardMarkdownRows = cardMarkdownRows,
+                    activeMediaAssetIds = activeMediaAssetIds
+                )
+
+            MediaReferenceDiagnosticsObservation(
+                referencedMediaInCards = referencedMediaAssetIds.size,
+                referencesMissingLocalAsset = referencedMediaAssetIds.count { mediaAssetId ->
+                    activeMediaAssetIds.contains(mediaAssetId).not()
+                },
+                missingMediaReferences = missingMediaReferences.take(localSyncDiagnosticsProblemLimit),
+                assetsMissingLocalBlob = assetsMissingLocalBlob,
+                assetsMissingLocalBlobRows = missingBlobRows.map(::toMissingMediaBlobProblem)
+            )
+        }
+    }
+
     override suspend fun updateWorkspaceSchedulerSettings(
         desiredRetention: Double,
         learningStepsMinutes: List<Int>,
@@ -230,4 +414,77 @@ class LocalWorkspaceRepository(
             syncLocalStore.enqueueWorkspaceSchedulerSettingsUpsert(settings = settingsEntity)
         }
     }
+}
+
+private fun extractManagedMediaReferences(row: LocalSyncDiagnosticsCardMarkdownRow): Set<String> {
+    return extractManagedMediaAssetReferences(markdown = row.frontText) +
+        extractManagedMediaAssetReferences(markdown = row.backText)
+}
+
+private fun makeMissingMediaReferenceProblems(
+    cardMarkdownRows: List<LocalSyncDiagnosticsCardMarkdownRow>,
+    activeMediaAssetIds: Set<String>
+): List<LocalSyncDiagnosticsMissingMediaReferenceProblem> {
+    return cardMarkdownRows.flatMap { row ->
+        extractManagedMediaReferences(row = row)
+            .filter { mediaAssetId -> activeMediaAssetIds.contains(mediaAssetId).not() }
+            .map { mediaAssetId ->
+                LocalSyncDiagnosticsMissingMediaReferenceProblem(
+                    cardId = row.cardId,
+                    mediaAssetId = mediaAssetId
+                )
+            }
+    }.distinctBy { problem -> problem.cardId to problem.mediaAssetId }
+}
+
+private fun toFailedCardOutboxProblem(
+    row: LocalSyncDiagnosticsOutboxProblemRow
+): LocalSyncDiagnosticsCardOutboxProblem {
+    return LocalSyncDiagnosticsCardOutboxProblem(
+        operationId = row.outboxEntryId,
+        cardId = row.entityId,
+        createdAtMillis = row.createdAtMillis,
+        attemptCount = row.attemptCount,
+        lastError = shortDiagnosticError(error = row.lastError)
+    )
+}
+
+private fun toFailedMediaTransferProblem(
+    row: LocalSyncDiagnosticsMediaTransferProblemRow
+): LocalSyncDiagnosticsMediaTransferProblem {
+    return LocalSyncDiagnosticsMediaTransferProblem(
+        transferId = row.transferId,
+        mediaAssetId = row.mediaAssetId,
+        kind = row.kind,
+        status = row.status,
+        createdAtMillis = row.createdAtMillis,
+        attemptCount = row.attemptCount,
+        lastError = shortDiagnosticError(error = row.lastError)
+    )
+}
+
+private fun toMissingMediaBlobProblem(
+    row: LocalSyncDiagnosticsMissingMediaBlobRow
+): LocalSyncDiagnosticsMissingMediaBlobProblem {
+    return LocalSyncDiagnosticsMissingMediaBlobProblem(
+        mediaAssetId = row.mediaAssetId,
+        sha256 = row.sha256
+    )
+}
+
+private fun shortDiagnosticError(error: String?): String? {
+    val normalizedError: String = error
+        ?.lineSequence()
+        ?.map { line -> line.trim() }
+        ?.filter { line -> line.isNotEmpty() }
+        ?.joinToString(separator = " ")
+        ?.trim()
+        ?: return null
+    if (normalizedError.isEmpty()) {
+        return null
+    }
+    if (normalizedError.length <= 160) {
+        return normalizedError
+    }
+    return normalizedError.take(n = 157) + "..."
 }

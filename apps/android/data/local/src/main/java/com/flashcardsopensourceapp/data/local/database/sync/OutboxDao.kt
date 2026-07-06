@@ -7,6 +7,20 @@ import androidx.room.Query
 import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
 import kotlinx.coroutines.flow.Flow
 
+data class LocalSyncDiagnosticsOutboxAggregate(
+    val pendingOperationCount: Int,
+    val failedOperationCount: Int,
+    val oldestPendingOperationAtMillis: Long?
+)
+
+data class LocalSyncDiagnosticsOutboxProblemRow(
+    val outboxEntryId: String,
+    val entityId: String,
+    val createdAtMillis: Long,
+    val attemptCount: Int,
+    val lastError: String?
+)
+
 @Dao
 interface OutboxDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -26,6 +40,44 @@ interface OutboxDao {
 
     @Query("SELECT * FROM outbox_entries WHERE workspaceId = :workspaceId ORDER BY createdAtMillis ASC, rowid ASC LIMIT :limit")
     suspend fun loadOutboxEntries(workspaceId: String, limit: Int): List<OutboxEntryEntity>
+
+    @Query(
+        """
+        SELECT
+            COUNT(*) AS pendingOperationCount,
+            COUNT(CASE WHEN lastError IS NOT NULL AND lastError != '' THEN 1 END) AS failedOperationCount,
+            MIN(createdAtMillis) AS oldestPendingOperationAtMillis
+        FROM outbox_entries
+        WHERE workspaceId = :workspaceId
+            AND entityType = :entityType
+            AND operationType = :operationType
+        """
+    )
+    fun observeLocalSyncDiagnosticsOutboxAggregate(
+        workspaceId: String,
+        entityType: String,
+        operationType: String
+    ): Flow<LocalSyncDiagnosticsOutboxAggregate>
+
+    @Query(
+        """
+        SELECT outboxEntryId, entityId, createdAtMillis, attemptCount, lastError
+        FROM outbox_entries
+        WHERE workspaceId = :workspaceId
+            AND entityType = :entityType
+            AND operationType = :operationType
+            AND lastError IS NOT NULL
+            AND lastError != ''
+        ORDER BY createdAtMillis DESC, rowid DESC
+        LIMIT :limit
+        """
+    )
+    fun observeLocalSyncDiagnosticsOutboxProblemRows(
+        workspaceId: String,
+        entityType: String,
+        operationType: String,
+        limit: Int
+    ): Flow<List<LocalSyncDiagnosticsOutboxProblemRow>>
 
     @Query("SELECT * FROM outbox_entries WHERE workspaceId = :workspaceId ORDER BY createdAtMillis ASC, rowid ASC")
     suspend fun loadAllOutboxEntries(workspaceId: String): List<OutboxEntryEntity>

@@ -152,6 +152,10 @@ data object SettingsNotificationDiagnosticsDestination {
     const val route: String = "settings/test/notification-diagnostics"
 }
 
+data object SettingsLocalSyncDiagnosticsDestination {
+    const val route: String = "settings/test/local-sync-diagnostics"
+}
+
 data object SettingsAccessDetailDestination {
     const val routePrefix: String = "settings/access/detail"
     const val routeArgument: String = "capability"

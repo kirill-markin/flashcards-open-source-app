@@ -6,6 +6,31 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.flashcardsopensourceapp.data.local.database.entities.MediaBlobCacheEntity
 import com.flashcardsopensourceapp.data.local.database.entities.MediaTransferQueueEntity
+import kotlinx.coroutines.flow.Flow
+
+data class LocalSyncDiagnosticsMediaBlobAggregate(
+    val localMediaBlobs: Int,
+    val localMediaBytes: Long,
+    val latestCacheWriteAtMillis: Long?
+)
+
+data class LocalSyncDiagnosticsMediaTransferAggregate(
+    val pendingMediaUploads: Int,
+    val failedMediaUploads: Int,
+    val oldestPendingMediaTransferAtMillis: Long?,
+    val latestMediaUploadSuccessAtMillis: Long?,
+    val latestMediaTransferError: String?
+)
+
+data class LocalSyncDiagnosticsMediaTransferProblemRow(
+    val transferId: String,
+    val mediaAssetId: String,
+    val kind: String,
+    val status: String,
+    val createdAtMillis: Long,
+    val attemptCount: Int,
+    val lastError: String?
+)
 
 @Dao
 interface MediaTransferDao {
@@ -14,6 +39,17 @@ interface MediaTransferDao {
 
     @Query("SELECT * FROM media_blob_cache WHERE sha256 = :sha256 LIMIT 1")
     suspend fun loadMediaBlobCache(sha256: String): MediaBlobCacheEntity?
+
+    @Query(
+        """
+        SELECT
+            COUNT(*) AS localMediaBlobs,
+            COALESCE(SUM(sizeBytes), 0) AS localMediaBytes,
+            MAX(createdAtMillis) AS latestCacheWriteAtMillis
+        FROM media_blob_cache
+        """
+    )
+    fun observeLocalSyncDiagnosticsMediaBlobAggregate(): Flow<LocalSyncDiagnosticsMediaBlobAggregate>
 
     @Query(
         """
@@ -47,6 +83,77 @@ interface MediaTransferDao {
 
     @Query("SELECT * FROM media_transfer_queue WHERE transferId = :transferId LIMIT 1")
     suspend fun loadMediaTransfer(transferId: String): MediaTransferQueueEntity?
+
+    @Query(
+        """
+        SELECT
+            COUNT(
+                CASE
+                    WHEN kind = :uploadKind
+                        AND (status = :queuedStatus OR status = :inProgressStatus)
+                    THEN 1
+                END
+            ) AS pendingMediaUploads,
+            COUNT(
+                CASE
+                    WHEN kind = :uploadKind
+                        AND status = :failedStatus
+                    THEN 1
+                END
+            ) AS failedMediaUploads,
+            MIN(
+                CASE
+                    WHEN kind = :uploadKind
+                        AND (status = :queuedStatus OR status = :inProgressStatus)
+                    THEN createdAtMillis
+                END
+            ) AS oldestPendingMediaTransferAtMillis,
+            MAX(
+                CASE
+                    WHEN kind = :uploadKind
+                        AND status = :succeededStatus
+                    THEN updatedAtMillis
+                END
+            ) AS latestMediaUploadSuccessAtMillis,
+            (
+                SELECT recent.lastError
+                FROM media_transfer_queue AS recent
+                WHERE recent.workspaceId = :workspaceId
+                    AND recent.lastError IS NOT NULL
+                    AND recent.lastError != ''
+                ORDER BY recent.updatedAtMillis DESC, recent.transferId ASC
+                LIMIT 1
+            ) AS latestMediaTransferError
+        FROM media_transfer_queue
+        WHERE workspaceId = :workspaceId
+        """
+    )
+    fun observeLocalSyncDiagnosticsMediaTransferAggregate(
+        workspaceId: String,
+        uploadKind: String,
+        queuedStatus: String,
+        inProgressStatus: String,
+        failedStatus: String,
+        succeededStatus: String
+    ): Flow<LocalSyncDiagnosticsMediaTransferAggregate>
+
+    @Query(
+        """
+        SELECT transferId, mediaAssetId, kind, status, createdAtMillis, attemptCount, lastError
+        FROM media_transfer_queue
+        WHERE workspaceId = :workspaceId
+            AND kind = :kind
+            AND status = :failedStatus
+        ORDER BY updatedAtMillis DESC, transferId ASC
+        LIMIT :limit
+        """
+    )
+    fun observeLocalSyncDiagnosticsMediaTransferProblemRows(
+        workspaceId: String,
+        kind: String,
+        failedStatus: String,
+        limit: Int
+    ): Flow<List<LocalSyncDiagnosticsMediaTransferProblemRow>>
 
     @Query(
         """

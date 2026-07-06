@@ -49,6 +49,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.sync.DeviceDiagnosticsSummary
+import com.flashcardsopensourceapp.data.local.model.sync.LocalSyncDiagnosticsSummary
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
@@ -98,6 +99,7 @@ interface WorkspaceRepository {
     fun observeWorkspaceSchedulerSettings(): Flow<WorkspaceSchedulerSettings?>
     fun observeWorkspaceTagsSummary(): Flow<WorkspaceTagsSummary>
     fun observeDeviceDiagnostics(): Flow<DeviceDiagnosticsSummary?>
+    fun observeLocalSyncDiagnostics(): Flow<LocalSyncDiagnosticsSummary?>
     suspend fun updateWorkspaceSchedulerSettings(
         desiredRetention: Double,
         learningStepsMinutes: List<Int>,

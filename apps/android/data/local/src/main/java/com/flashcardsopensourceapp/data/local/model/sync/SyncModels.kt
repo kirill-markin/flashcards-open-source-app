@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.data.local.model.sync
 
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.cards.CardMetadata
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 
 enum class SyncEntityType {
@@ -189,4 +190,79 @@ data class DeviceDiagnosticsSummary(
     val lastSyncAttemptAtMillis: Long?,
     val lastSuccessfulSyncAtMillis: Long?,
     val lastSyncErrorMessage: String?
+)
+
+data class LocalSyncDiagnosticsSummary(
+    val cardsSync: LocalSyncDiagnosticsCardsSync,
+    val managedMediaSync: LocalSyncDiagnosticsManagedMediaSync,
+    val problemRecords: LocalSyncDiagnosticsProblemRecords
+)
+
+data class LocalSyncDiagnosticsCardsSync(
+    val workspaceId: String,
+    val installationId: String,
+    val cloudState: CloudAccountState,
+    val localActiveCards: Int,
+    val localDeletedCards: Int,
+    val pendingCardOperations: Int,
+    val failedCardOperations: Int,
+    val oldestPendingCardOperationAtMillis: Long?,
+    val latestCardSyncSuccessAtMillis: Long?,
+    val hotStateHydrated: Boolean,
+    val hotCursor: String?,
+    val reviewCursor: Long?,
+    val latestSyncError: String?
+)
+
+data class LocalSyncDiagnosticsManagedMediaSync(
+    val localActiveMediaAssets: Int,
+    val deletedMediaAssets: Int,
+    val localMediaBlobs: Int,
+    val localMediaBytes: Long,
+    val referencedMediaInCards: Int,
+    val referencesMissingLocalAsset: Int,
+    val assetsMissingLocalBlob: Int,
+    val pendingMediaUploads: Int,
+    val failedMediaUploads: Int,
+    val pendingMediaDownloads: Int?,
+    val failedMediaDownloads: Int?,
+    val oldestPendingMediaTransferAtMillis: Long?,
+    val latestMediaUploadSuccessAtMillis: Long?,
+    val latestMediaDownloadCacheSuccessAtMillis: Long?,
+    val latestMediaTransferError: String?
+)
+
+data class LocalSyncDiagnosticsProblemRecords(
+    val failedCardOutboxEntries: List<LocalSyncDiagnosticsCardOutboxProblem>,
+    val failedMediaTransfers: List<LocalSyncDiagnosticsMediaTransferProblem>,
+    val missingMediaReferences: List<LocalSyncDiagnosticsMissingMediaReferenceProblem>,
+    val assetsMissingLocalBlob: List<LocalSyncDiagnosticsMissingMediaBlobProblem>
+)
+
+data class LocalSyncDiagnosticsCardOutboxProblem(
+    val operationId: String,
+    val cardId: String,
+    val createdAtMillis: Long,
+    val attemptCount: Int,
+    val lastError: String?
+)
+
+data class LocalSyncDiagnosticsMediaTransferProblem(
+    val transferId: String,
+    val mediaAssetId: String,
+    val kind: String,
+    val status: String,
+    val createdAtMillis: Long,
+    val attemptCount: Int,
+    val lastError: String?
+)
+
+data class LocalSyncDiagnosticsMissingMediaReferenceProblem(
+    val cardId: String,
+    val mediaAssetId: String
+)
+
+data class LocalSyncDiagnosticsMissingMediaBlobProblem(
+    val mediaAssetId: String,
+    val sha256: String
 )
