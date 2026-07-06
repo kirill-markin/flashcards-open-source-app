@@ -74,7 +74,7 @@ class LocalManagedMediaAuthoringRepositoryTest {
             preferencesStore = runtime.preferencesStore,
             mediaFileRootDirectory = mediaFileRootDirectory,
             ioDispatcher = Dispatchers.IO,
-            timeProvider = FixedTimeProvider(currentTimeMillis = nowMillis)
+            timeProvider = FixedTimeProvider(fixedCurrentTimeMillis = nowMillis)
         )
         val sourceImageUri: Uri = createMediaStoreImageUri(
             context = runtime.context,
