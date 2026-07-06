@@ -32,6 +32,22 @@ struct TestSettingsView: View {
                 }
                 .accessibilityIdentifier(UITestIdentifier.testSettingsNotificationDiagnosticsRow)
 
+                NavigationLink(value: SettingsNavigationDestination.localSyncDiagnostics) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized(
+                            "settings.test.localSyncDiagnostics",
+                            "Local Sync Diagnostics"
+                        ),
+                        value: aiSettingsLocalized(
+                            "settings.test.localSyncDiagnostics.value",
+                            "Read-only"
+                        ),
+                        systemImage: "externaldrive.badge.icloud",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.testSettingsLocalSyncDiagnosticsRow)
+
                 Button {
                     store.presentTechnicalErrorPreview()
                 } label: {

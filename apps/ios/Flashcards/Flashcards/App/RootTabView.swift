@@ -641,6 +641,8 @@ struct RootTabView: View {
             TestAnimationsView()
         case .notificationDiagnostics:
             NotificationDiagnosticsView()
+        case .localSyncDiagnostics:
+            LocalSyncDiagnosticsView()
         case .workspaceNotifications:
             ReviewNotificationsSettingsView()
         case .workspaceScheduler:
