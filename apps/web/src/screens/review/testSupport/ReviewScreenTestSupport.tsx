@@ -249,6 +249,7 @@ function createAppData(state: ReviewScreenTestState): ReviewScreenAppData {
       reviewReactionAnimationsEnabled: true,
     })),
     runSync: vi.fn(async (): Promise<void> => undefined),
+    runMediaUploadTransfers: vi.fn(),
     initialize: vi.fn(async (): Promise<void> => undefined),
     chooseWorkspace: vi.fn(async (_workspaceId: string): Promise<void> => undefined),
     createWorkspace: vi.fn(async (_name: string): Promise<void> => undefined),

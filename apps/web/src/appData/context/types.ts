@@ -48,6 +48,7 @@ export type AppDataContextValue = Readonly<{
   loadWorkspaceResetProgressPreview: (workspaceId: string) => Promise<WorkspaceResetProgressPreview>;
   resetWorkspaceProgress: (workspaceId: string, confirmationText: string) => Promise<ResetWorkspaceProgressResponse>;
   runSync: () => Promise<void>;
+  runMediaUploadTransfers: () => void;
   refreshLocalData: () => Promise<void>;
   getCardById: (cardId: string) => Promise<Card>;
   getDeckById: (deckId: string) => Promise<Deck>;

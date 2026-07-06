@@ -21,6 +21,7 @@ type UseReviewCardEditorParams = Readonly<{
   deleteCardItem: (cardId: string) => Promise<Card>;
   installationId: string | null;
   queueCards: ReadonlyArray<Card>;
+  runMediaUploadTransfers: () => void;
   selectedCard: Card | null;
   setErrorMessage: (message: string) => void;
   t: (key: TranslationKey) => string;
@@ -54,6 +55,7 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
     deleteCardItem,
     installationId,
     queueCards,
+    runMediaUploadTransfers,
     selectedCard,
     setErrorMessage,
     t,
@@ -250,6 +252,7 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
         file: request.file,
         altText: request.altText,
       });
+      runMediaUploadTransfers();
       return result.markdown;
     } catch (error) {
       if (error instanceof UnsupportedImagePreparationError) {

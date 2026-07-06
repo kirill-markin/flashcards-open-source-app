@@ -100,6 +100,7 @@ type SyncEngine = Readonly<{
   runSync: () => Promise<void>;
   runSyncSilently: () => Promise<void>;
   runSyncForWorkspace: (workspace: WorkspaceSummary) => Promise<void>;
+  runMediaUploadTransfers: () => void;
   discardWorkspaceSync: (workspaceId: string) => void;
   discardAllSyncWork: (runWhileDiscarding: () => Promise<void>) => Promise<void>;
   refreshLocalData: () => Promise<void>;
@@ -716,6 +717,14 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     await runSyncForWorkspaceInternal(activeWorkspace, ignoreSyncError);
   }, [activeWorkspace, ignoreSyncError, runSyncForWorkspaceInternal]);
 
+  const runMediaUploadTransfers = useCallback(function runMediaUploadTransfers(): void {
+    if (activeWorkspace === null) {
+      return;
+    }
+
+    runMediaUploadTransfersForWorkspace(activeWorkspace);
+  }, [activeWorkspace, runMediaUploadTransfersForWorkspace]);
+
   useEffect(() => {
     if (sessionLoadState !== "ready" || sessionVerificationState !== "verified" || session === null || activeWorkspace === null) {
       return;
@@ -983,6 +992,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     runSync,
     runSyncSilently,
     runSyncForWorkspace,
+    runMediaUploadTransfers,
     discardWorkspaceSync,
     discardAllSyncWork,
     refreshLocalData,
