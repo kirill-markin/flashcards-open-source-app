@@ -51,6 +51,7 @@ export function CardFormScreen(): ReactElement {
     deleteCardItem,
     setErrorMessage,
     localReadVersion,
+    runMediaUploadTransfers,
     session,
   } = useAppData();
   const { showCapturedTechnicalError } = useAppErrorDialog();
@@ -307,6 +308,7 @@ export function CardFormScreen(): ReactElement {
         file: request.file,
         altText: request.altText,
       });
+      runMediaUploadTransfers();
       return result.markdown;
     } catch (error) {
       if (error instanceof UnsupportedImagePreparationError) {

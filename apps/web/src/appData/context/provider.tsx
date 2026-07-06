@@ -414,6 +414,7 @@ export function AppDataProvider(props: Props): ReactElement {
     loadWorkspaceResetProgressPreview,
     resetWorkspaceProgress,
     runSync: syncEngine.runSync,
+    runMediaUploadTransfers: syncEngine.runMediaUploadTransfers,
     refreshLocalData: syncEngine.refreshLocalData,
     getCardById: syncEngine.getCardById,
     getDeckById: syncEngine.getDeckById,

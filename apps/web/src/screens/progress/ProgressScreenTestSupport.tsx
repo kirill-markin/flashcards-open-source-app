@@ -256,6 +256,7 @@ export function createAppData(): AppDataContextValue {
       cardsResetCount: 0,
     })),
     runSync: vi.fn(async (): Promise<void> => undefined),
+    runMediaUploadTransfers: vi.fn(),
     refreshLocalData: vi.fn(async (): Promise<void> => undefined),
     getCardById: vi.fn(async (_cardId: string) => {
       throw new Error("getCardById was not expected in ProgressScreen test");
