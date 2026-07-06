@@ -69,6 +69,7 @@ import java.io.IOException
 
 private val reviewManagedMediaIconSize = 22.dp
 private val reviewManagedMediaActionIconSize = 18.dp
+private const val reviewManagedMediaImagePlaceholderAspectRatio = 4f / 3f
 private val reviewManagedMediaImagePlaceholderHeight = 180.dp
 private val reviewManagedMediaSurfaceCornerRadius = 12.dp
 private val reviewManagedMediaImageCornerRadius = 6.dp
@@ -184,7 +185,7 @@ private fun ReviewManagedMediaImageFile(
             showProgress = true,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(reviewManagedMediaImagePlaceholderHeight)
+                .aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
         )
 
         ReviewManagedMediaFileState.Unavailable -> ReviewManagedMediaImageState(
@@ -194,7 +195,7 @@ private fun ReviewManagedMediaImageFile(
             showProgress = false,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(reviewManagedMediaImagePlaceholderHeight)
+                .aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
         )
 
         is ReviewManagedMediaFileState.Ready -> ReviewManagedMediaImage(
