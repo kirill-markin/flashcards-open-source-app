@@ -30,6 +30,7 @@ Cross-client live smoke references:
 - Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/LiveSmokeTest.kt`
 - Android notification tap gate: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/notifications/NotificationTapSmokeTest.kt`
 - Web: `apps/web/e2e/live-smoke.spec.ts`
+- Manual managed image sync: [docs/managed-media-cross-client-smoke.md](./managed-media-cross-client-smoke.md)
 
 These live smoke flows are the highest-confidence checks in the repository because they exercise the real app closest to production conditions.
 On Android, these live smoke flows run as part of the broader Firebase Test Lab app instrumentation suite in the manual `Android Release` workflow.
