@@ -6,8 +6,8 @@ import {
   createMediaAssetUploadPartUrls,
   createMediaAssetUploadSession,
   isAuthRedirectError,
-} from "../../api";
-import { putMediaAsset } from "../../localDb/mediaAssets";
+} from "../../../api";
+import { putMediaAsset } from "../../../localDb/mediaAssets";
 import {
   claimNextDueMediaTransferByKind,
   loadMediaBlobCacheRecord,
@@ -17,16 +17,16 @@ import {
   renewInProgressMediaTransferClaim,
   type MediaBlobCacheRecord,
   type MediaTransferQueueRecord,
-} from "../../localDb/mediaTransfers";
-import { loadCloudSettings } from "../../localDb/sync/cloudSettings";
+} from "../../../localDb/mediaTransfers";
+import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
 import type {
   CompleteMediaAssetUploadPartInput,
   MediaAsset,
   MediaAssetUploadSessionCreateResult,
   MediaAssetUploadPartUrl,
   MediaAssetUploadSession,
-} from "../../types";
-import { requireCloudInstallationId } from "./local/syncCloudSettings";
+} from "../../../types";
+import { requireCloudInstallationId } from "../local/syncCloudSettings";
 
 type VerifiedUploadBytes = Readonly<{
   bytes: Uint8Array;
