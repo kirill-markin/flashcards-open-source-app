@@ -6,12 +6,12 @@ import type {
   CardMetadata,
   CardMutationMetadata,
   CreateCardInput,
-} from "../../cards";
+} from "../../../cards";
 import type {
   DatabaseExecutor,
   WorkspaceDatabaseScope,
-} from "../../database";
-import { HttpError } from "../../shared/errors";
+} from "../../../database";
+import { HttpError } from "../../../shared/errors";
 import {
   persistWorkspacePackageImportCardsWithDependencies,
   type WorkspacePackageImportCardPersistenceDependencies,
@@ -23,7 +23,7 @@ import {
   type WorkspacePackageImportCardPersistenceInput,
   type WorkspacePackageImportCardPersistenceResult,
   type WorkspacePackageImportPlannedCard,
-} from "../index";
+} from "../../index";
 
 const testUserId = "user-1";
 const testWorkspaceId = "11111111-1111-4111-8111-111111111111";

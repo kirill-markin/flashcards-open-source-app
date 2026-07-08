@@ -6,7 +6,7 @@ import {
   type WorkspacePackageCardSourceMetadataV1,
   type WorkspacePackageCardsJsonV1,
   type WorkspacePackageImportPlanOptions,
-} from "../index";
+} from "../../index";
 
 const importedAt = "2026-06-30T12:00:00.000Z";
 const importId = "import-session-1";

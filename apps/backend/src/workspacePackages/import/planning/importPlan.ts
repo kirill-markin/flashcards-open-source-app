@@ -1,14 +1,14 @@
-import { normalizeIsoTimestamp } from "../../sync/conflicts/lww";
+import { normalizeIsoTimestamp } from "../../../sync/conflicts/lww";
 import {
   rewriteMarkdownPortableMediaUrlsToFcAssets,
-} from "../markdownMedia";
+} from "../../markdownMedia";
 import {
   parseWorkspacePackageCardsJsonV1,
   type PortableWorkspacePackageCardV1,
   type WorkspacePackageCardMetadataV1,
   type WorkspacePackageCardSourceMetadataV1,
   type WorkspacePackageCardsJsonV1,
-} from "../types";
+} from "../../types";
 
 export type WorkspacePackageImportPlanOptions = Readonly<{
   addImportTag: boolean;

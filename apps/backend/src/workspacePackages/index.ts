@@ -44,28 +44,28 @@ export {
   workspacePackageImportPreviewDefaultMaxSingleMediaBytes,
   workspacePackageImportPreviewDefaultMaxTotalMediaBytes,
   workspacePackageImportPreviewDefaultMaxZipBytes,
-} from "./import/importPreview";
+} from "./import/planning/importPreview";
 
 export {
   loadWorkspacePackageImportReferencedMedia,
   loadWorkspacePackageImportReferencedMediaWithLimits,
-} from "./import/importMedia";
+} from "./import/media/importMedia";
 
 export {
   ingestWorkspacePackageImportMediaAssets,
-} from "./import/importMediaAssets";
+} from "./import/media/importMediaAssets";
 
 export {
   persistWorkspacePackageImportCards,
-} from "./import/importCards";
+} from "./import/apply/importCards";
 
 export {
   planWorkspacePackageImport,
-} from "./import/importPlan";
+} from "./import/planning/importPlan";
 
 export {
   confirmWorkspacePackageImport,
-} from "./import/importConfirm";
+} from "./import/apply/importConfirm";
 
 export type {
   WorkspacePackageExportCardSelection,
@@ -93,26 +93,26 @@ export type {
   WorkspacePackageImportPreviewWarning,
   WorkspacePackageImportTagPolicy,
   WorkspacePackageImportTagPolicyInput,
-} from "./import/importPreview";
+} from "./import/planning/importPreview";
 
 export type {
   WorkspacePackageImportReferencedMediaFile,
   WorkspacePackageImportReferencedMediaInput,
   WorkspacePackageImportReferencedMediaLimits,
   WorkspacePackageImportReferencedMediaLoadResult,
-} from "./import/importMedia";
+} from "./import/media/importMedia";
 
 export type {
   WorkspacePackageImportedMediaAsset,
   WorkspacePackageImportMediaAssetIngestionInput,
   WorkspacePackageImportMediaAssetIngestionResult,
-} from "./import/importMediaAssets";
+} from "./import/media/importMediaAssets";
 
 export type {
   WorkspacePackageImportCardPersistenceInput,
   WorkspacePackageImportCardPersistenceResult,
   WorkspacePackageImportCardPersistenceSummary,
-} from "./import/importCards";
+} from "./import/apply/importCards";
 
 export type {
   WorkspacePackageImportPlan,
@@ -120,13 +120,13 @@ export type {
   WorkspacePackageImportPlanOptions,
   WorkspacePackageImportPlanSummary,
   WorkspacePackageImportPlannedCard,
-} from "./import/importPlan";
+} from "./import/planning/importPlan";
 
 export type {
   WorkspacePackageImportConfirmInput,
   WorkspacePackageImportConfirmResult,
   WorkspacePackageImportConfirmSummary,
-} from "./import/importConfirm";
+} from "./import/apply/importConfirm";
 
 export {
   normalizeWorkspacePackageCardMetadataV1,

@@ -18,11 +18,11 @@ import {
   workspacePackageImportZipDefaultMaxZipBytes,
   type CollectedWorkspacePackageZip,
   type WorkspacePackageImportZipLimits,
-} from "./importZip";
+} from "../importZip";
 import type {
   PortableWorkspacePackageCardV1,
   WorkspacePackageCardsJsonV1,
-} from "../types";
+} from "../../types";
 
 export const workspacePackageImportPreviewDefaultMaxZipBytes = workspacePackageImportZipDefaultMaxZipBytes;
 export const workspacePackageImportPreviewDefaultMaxEntries = workspacePackageImportZipDefaultMaxEntries;

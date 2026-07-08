@@ -1,24 +1,24 @@
 import type { Buffer } from "node:buffer";
-import type { Card } from "../../cards";
+import type { Card } from "../../../cards";
 import {
   transactionWithWorkspaceScopeReadOnly,
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
-} from "../../database";
-import { assertReplicaBelongsToWorkspaceInExecutor } from "../../mediaAssets/workspaceReplicas";
-import type { BackendObservationScope } from "../../observability/sentry";
-import { HttpError } from "../../shared/errors";
+} from "../../../database";
+import { assertReplicaBelongsToWorkspaceInExecutor } from "../../../mediaAssets/workspaceReplicas";
+import type { BackendObservationScope } from "../../../observability/sentry";
+import { HttpError } from "../../../shared/errors";
 import {
   ingestWorkspacePackageImportMediaAssets,
   type WorkspacePackageImportedMediaAsset,
   type WorkspacePackageImportMediaAssetIngestionInput,
   type WorkspacePackageImportMediaAssetIngestionResult,
-} from "./importMediaAssets";
+} from "../media/importMediaAssets";
 import {
   loadWorkspacePackageImportReferencedMedia,
   type WorkspacePackageImportReferencedMediaInput,
   type WorkspacePackageImportReferencedMediaLoadResult,
-} from "./importMedia";
+} from "../media/importMedia";
 import {
   persistWorkspacePackageImportCards,
   type WorkspacePackageImportCardPersistenceInput,
@@ -31,7 +31,7 @@ import {
   type WorkspacePackageImportPlanInput,
   type WorkspacePackageImportPlanOptions,
   type WorkspacePackageImportPlanPreflightInput,
-} from "./importPlan";
+} from "../planning/importPlan";
 
 export type WorkspacePackageImportConfirmInput = Readonly<{
   userId: string;
