@@ -73,7 +73,7 @@ import {
 } from "../remote/syncRemote";
 import {
   processDueMediaUploadTransfersForWorkspace,
-} from "../mediaUploadTransferRunner";
+} from "../mediaUploads/mediaUploadTransferRunner";
 import {
   ensureWorkspaceSeedReady,
   seedWorkspaceLocally,

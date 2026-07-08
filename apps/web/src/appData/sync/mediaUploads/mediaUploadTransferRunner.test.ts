@@ -3,11 +3,11 @@
 import { createHash } from "node:crypto";
 import { Blob as NodeBlob } from "node:buffer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import "../../api/endpoints/endpointsTestSupport";
-import { primeSessionCsrfToken, setNavigationHandlerForTests } from "../../api";
-import { createJsonResponse } from "../../api/ApiTestSupport";
-import { clearWebSyncCache } from "../../localDb/core/cache";
-import { loadMediaAssetRecord } from "../../localDb/mediaAssets";
+import "../../../api/endpoints/endpointsTestSupport";
+import { primeSessionCsrfToken, setNavigationHandlerForTests } from "../../../api";
+import { createJsonResponse } from "../../../api/ApiTestSupport";
+import { clearWebSyncCache } from "../../../localDb/core/cache";
+import { loadMediaAssetRecord } from "../../../localDb/mediaAssets";
 import {
   claimNextDueMediaTransferByKind,
   enqueueMediaTransferUpload,
@@ -15,9 +15,9 @@ import {
   type MediaTransferQueueRecord,
   type RenewInProgressMediaTransferClaimInput,
   writeMediaBlobCacheRecord,
-} from "../../localDb/mediaTransfers";
-import { putCloudSettings } from "../../localDb/sync/cloudSettings";
-import type { CloudSettings, MediaAsset } from "../../types";
+} from "../../../localDb/mediaTransfers";
+import { putCloudSettings } from "../../../localDb/sync/cloudSettings";
+import type { CloudSettings, MediaAsset } from "../../../types";
 import { processDueMediaUploadTransfersForWorkspace } from "./mediaUploadTransferRunner";
 
 type RenewMediaTransferClaim = (input: RenewInProgressMediaTransferClaimInput) => Promise<MediaTransferQueueRecord>;
@@ -27,8 +27,8 @@ const mediaTransferRenewMock = vi.hoisted(() => ({
   renewInProgressMediaTransferClaim: vi.fn<RenewMediaTransferClaim>(),
 }));
 
-vi.mock("../../localDb/mediaTransfers", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../localDb/mediaTransfers")>();
+vi.mock("../../../localDb/mediaTransfers", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../localDb/mediaTransfers")>();
   mediaTransferRenewMock.defaultRenewInProgressMediaTransferClaim = actual.renewInProgressMediaTransferClaim;
   mediaTransferRenewMock.renewInProgressMediaTransferClaim.mockImplementation(actual.renewInProgressMediaTransferClaim);
   return {
