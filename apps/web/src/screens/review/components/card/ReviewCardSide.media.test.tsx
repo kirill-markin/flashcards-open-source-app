@@ -3,10 +3,10 @@
 import { act } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { I18nProvider } from "../../../i18n";
-import { createStorageMock } from "../../../api/ApiTestSupport";
-import type { MediaBlobCacheRecord } from "../../../localDb/mediaTransfers";
-import type { MediaAsset } from "../../../types";
+import { I18nProvider } from "../../../../i18n";
+import { createStorageMock } from "../../../../api/ApiTestSupport";
+import type { MediaBlobCacheRecord } from "../../../../localDb/mediaTransfers";
+import type { MediaAsset } from "../../../../types";
 import { ReviewCardSide } from "./ReviewCardSide";
 
 const mediaMocks = vi.hoisted(() => ({
@@ -16,15 +16,15 @@ const mediaMocks = vi.hoisted(() => ({
   writeMediaBlobCacheRecordMock: vi.fn(),
 }));
 
-vi.mock("../../../api", () => ({
+vi.mock("../../../../api", () => ({
   loadMediaAssetDownloadUrl: mediaMocks.loadMediaAssetDownloadUrlMock,
 }));
 
-vi.mock("../../../localDb/mediaAssets", () => ({
+vi.mock("../../../../localDb/mediaAssets", () => ({
   loadMediaAssetRecord: mediaMocks.loadMediaAssetRecordMock,
 }));
 
-vi.mock("../../../localDb/mediaTransfers", () => ({
+vi.mock("../../../../localDb/mediaTransfers", () => ({
   loadMediaBlobCacheRecord: mediaMocks.loadMediaBlobCacheRecordMock,
   writeMediaBlobCacheRecord: mediaMocks.writeMediaBlobCacheRecordMock,
 }));

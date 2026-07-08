@@ -1,7 +1,7 @@
 import { useEffect, type ReactElement } from "react";
 import { useAppData } from "../../appData";
 import { FeedbackDialog } from "../../feedback/FeedbackDialog";
-import { ReviewEditorModal } from "./components/ReviewEditorModal";
+import { ReviewEditorModal } from "./components/card/ReviewEditorModal";
 import { ReviewPane } from "./components/ReviewPane";
 import { ReviewQueuePanel } from "./components/ReviewQueuePanel";
 import { ReviewScreenHeader } from "./components/ReviewScreenHeader";
@@ -11,7 +11,7 @@ import { ReviewRatingReactionLayer } from "./reactions/ReviewRatingReactionLayer
 import { startReviewReactionLottiePrewarm } from "./reactions/lottie/reviewReactionLottie";
 import { useReviewScreenController } from "./useReviewScreenController";
 
-export { normalizeReviewMarkdownForWeb } from "./components/ReviewCardSide";
+export { normalizeReviewMarkdownForWeb } from "./components/card/ReviewCardSide";
 
 export function ReviewScreen(): ReactElement {
   const { session } = useAppData();

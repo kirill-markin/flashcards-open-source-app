@@ -6,7 +6,7 @@ import { cardsRoute, chatRoute } from "../../../routes";
 import type { Card } from "../../../types";
 import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
 import { formatNullableDateTime, formatTagSummary } from "../../shared/featureFormatting";
-import { ReviewCardSide, ReviewCardSpeechButton, ReviewEditIcon } from "./ReviewCardSide";
+import { ReviewCardSide, ReviewCardSpeechButton, ReviewEditIcon } from "./card/ReviewCardSide";
 import type { ReviewButtonOption } from "./reviewRatingOptions";
 import type { ReviewSpeechSide } from "../speech/reviewSpeech";
 import {

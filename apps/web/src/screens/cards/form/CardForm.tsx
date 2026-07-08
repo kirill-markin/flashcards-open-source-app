@@ -22,7 +22,7 @@ import {
 } from "../../../media/managedMediaMarkdown";
 import type { Card, TagSuggestion } from "../../../types";
 import { formatNullableDateTime } from "../../shared/featureFormatting";
-import { ManagedMediaReference } from "../../review/components/ReviewManagedMedia";
+import { ManagedMediaReference } from "../../review/components/card/ReviewManagedMedia";
 
 export type CardFormState = Readonly<{
   frontText: string;
