@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import sharp from "sharp";
-import { HttpError } from "../shared/errors";
+import { HttpError } from "../../shared/errors";
 import {
   imageJpegCardMaxSidePixels,
   imageJpegCardTransparentPixelLightCardGray,
   normalizeImageBytesForCard,
 } from "./imageNormalization";
-import { imageJpegCardMediaBlobMimeType } from "./types";
+import { imageJpegCardMediaBlobMimeType } from "../types";
 
 type RgbPixel = Readonly<{
   red: number;

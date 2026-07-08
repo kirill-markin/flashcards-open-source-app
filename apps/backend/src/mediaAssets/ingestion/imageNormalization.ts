@@ -1,6 +1,6 @@
 import sharp, { type Metadata } from "sharp";
-import { HttpError } from "../shared/errors";
-import { imageJpegCardMediaBlobMimeType } from "./types";
+import { HttpError } from "../../shared/errors";
+import { imageJpegCardMediaBlobMimeType } from "../types";
 
 export const imageJpegCardMaxSidePixels = 1_200;
 export const imageJpegCardJpegQuality = 82;

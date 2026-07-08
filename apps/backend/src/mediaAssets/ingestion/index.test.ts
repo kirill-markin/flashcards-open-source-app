@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
-import { createBackendObservationScope } from "../observability/sentry";
-import { ingestImageMediaAssetWithDependencies, type ImageMediaAssetIngestionDependencies } from "./ingestion";
-import { buildMediaBlobStorageKey } from "./storageKeys";
+import { createBackendObservationScope } from "../../observability/sentry";
+import { ingestImageMediaAssetWithDependencies, type ImageMediaAssetIngestionDependencies } from "./index";
+import { buildMediaBlobStorageKey } from "../storageKeys";
 import {
   imageJpegCardMediaBlobMimeType,
   imageJpegCardMediaBlobNormalizationVersion,
@@ -12,7 +12,7 @@ import {
   type MediaAssetImageIngestionMetadataInput,
   type MediaBlob,
   type NormalizedImageMediaAssetInput,
-} from "./types";
+} from "../types";
 
 const testUserId = "user-1";
 const testWorkspaceId = "11111111-1111-4111-8111-111111111111";
