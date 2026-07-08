@@ -2,9 +2,9 @@ import { createHash } from "node:crypto";
 import {
   createImageNormalizedMediaAssetForWorkspace,
   loadReusableImageMediaBlobForWorkspace,
-} from ".";
-import { storeMediaAssetBlobBytesIfAbsent } from "./storage";
-import { buildMediaBlobStorageKey } from "./storageKeys";
+} from "..";
+import { storeMediaAssetBlobBytesIfAbsent } from "../storage";
+import { buildMediaBlobStorageKey } from "../storageKeys";
 import {
   normalizeImageBytesForCard,
   type NormalizedImageBytes,
@@ -13,8 +13,8 @@ import type {
   MediaAsset,
   MediaAssetImageIngestionMetadataInput,
   NormalizedImageMediaAssetInput,
-} from "./types";
-import type { BackendObservationScope } from "../observability/sentry";
+} from "../types";
+import type { BackendObservationScope } from "../../observability/sentry";
 
 export type ImageMediaAssetIngestionInput = Readonly<{
   userId: string;

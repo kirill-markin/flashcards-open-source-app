@@ -2,8 +2,8 @@ import {
   queryWithWorkspaceScopeReadOnly,
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
-} from "../database";
-import { HttpError } from "../shared/errors";
+} from "../../database";
+import { HttpError } from "../../shared/errors";
 import {
   assertMediaBlobMatchesInput,
   findMediaAssetRowForUpdateInExecutor,
@@ -15,7 +15,7 @@ import {
   toOptionalIsoString,
   toSafeNumber,
   upsertMediaAssetSnapshotInExecutor,
-} from "./persistence";
+} from "../persistence";
 import type {
   MediaAsset,
   MediaAssetMutationMetadata,
@@ -29,8 +29,8 @@ import type {
   MediaAssetUploadSessionRow,
   MediaAssetUploadSessionState,
   MediaBlobRow,
-} from "./types";
-import { assertReplicaBelongsToWorkspaceInExecutor } from "./workspaceReplicas";
+} from "../types";
+import { assertReplicaBelongsToWorkspaceInExecutor } from "../workspaceReplicas";
 
 const MEDIA_UPLOAD_SESSION_COLUMNS = [
   "media_upload_session_id",
