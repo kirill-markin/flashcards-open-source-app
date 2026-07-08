@@ -7,16 +7,16 @@ import {
   type ReactNode,
 } from "react";
 import { defaultUrlTransform } from "react-markdown";
-import { loadMediaAssetDownloadUrl } from "../../../api";
-import { useI18n } from "../../../i18n";
-import { loadMediaAssetRecord } from "../../../localDb/mediaAssets";
+import { loadMediaAssetDownloadUrl } from "../../../../api";
+import { useI18n } from "../../../../i18n";
+import { loadMediaAssetRecord } from "../../../../localDb/mediaAssets";
 import {
   loadMediaBlobCacheRecord,
   writeMediaBlobCacheRecord,
   type MediaBlobCacheRecord,
-} from "../../../localDb/mediaTransfers";
-import { parseManagedMediaAssetId } from "../../../media/managedMediaMarkdown";
-import type { MediaAsset } from "../../../types";
+} from "../../../../localDb/mediaTransfers";
+import { parseManagedMediaAssetId } from "../../../../media/managedMediaMarkdown";
+import type { MediaAsset } from "../../../../types";
 
 export { parseManagedMediaAssetId };
 

@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { useI18n } from "../../../i18n";
+import { useI18n } from "../../../../i18n";
 import {
   CardFormFields,
   isCardFormManagedMediaProcessing,
@@ -7,8 +7,8 @@ import {
   type CardFormMediaUploadRetryRequest,
   type CardFormManagedMediaState,
   type CardFormState,
-} from "../../cards/form/CardForm";
-import type { Card, TagSuggestion } from "../../../types";
+} from "../../../cards/form/CardForm";
+import type { Card, TagSuggestion } from "../../../../types";
 
 export type ReviewEditorModalProps = Readonly<{
   editingCard: Card | null;

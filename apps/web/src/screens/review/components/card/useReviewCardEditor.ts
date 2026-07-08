@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useAppErrorDialog } from "../../../appError/AppErrorContext";
-import type { TranslationKey } from "../../../i18n";
-import { UnsupportedImagePreparationError } from "../../../media/imagePreparation";
-import { captureAppOperationError } from "../../../observability/appOperationObservation";
-import { getExpectedCardMutationInlineErrorMessage } from "../../cards/cardMutationErrors";
+import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
+import type { TranslationKey } from "../../../../i18n";
+import { UnsupportedImagePreparationError } from "../../../../media/imagePreparation";
+import { captureAppOperationError } from "../../../../observability/appOperationObservation";
+import { getExpectedCardMutationInlineErrorMessage } from "../../../cards/cardMutationErrors";
 import {
   createCardFormManagedMediaState,
   isCardFormManagedMediaProcessing,
@@ -14,10 +14,10 @@ import {
   type CardFormManagedMediaFieldState,
   type CardFormManagedMediaState,
   type CardFormState,
-} from "../../cards/form/CardForm";
-import { prepareCardImageMediaAuthoring } from "../../cards/form/cardImageAuthoring";
-import { markMediaUploadTransferDueForRetry } from "../../../localDb/mediaTransfers";
-import type { Card } from "../../../types";
+} from "../../../cards/form/CardForm";
+import { prepareCardImageMediaAuthoring } from "../../../cards/form/cardImageAuthoring";
+import { markMediaUploadTransferDueForRetry } from "../../../../localDb/mediaTransfers";
+import type { Card } from "../../../../types";
 
 type UseReviewCardEditorParams = Readonly<{
   deleteCardItem: (cardId: string) => Promise<Card>;
