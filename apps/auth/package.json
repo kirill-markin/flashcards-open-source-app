@@ -10,17 +10,17 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@aws-sdk/client-secrets-manager": "^3.1077.0",
-    "@hono/node-server": "^2.0.6",
-    "@sentry/aws-serverless": "^10.62.0",
+    "@aws-sdk/client-secrets-manager": "^3.1081.0",
+    "@hono/node-server": "^2.0.8",
+    "@sentry/aws-serverless": "^10.64.0",
     "aws-jwt-verify": "^5.2.1",
-    "hono": "^4.12.27",
+    "hono": "^4.12.28",
     "pg": "^8.22.0"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",
     "@types/pg": "^8.20.0",
-    "tsx": "^4.22.4",
+    "tsx": "^4.23.0",
     "typescript": "^6.0.3"
   },
   "engines": {

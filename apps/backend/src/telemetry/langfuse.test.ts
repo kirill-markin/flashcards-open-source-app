@@ -36,6 +36,11 @@ type BasicTracerProviderConfig = Readonly<{
     sampler: Sampler;
   }>;
 }>;
+type BasicTracerProviderTracerOptions = Readonly<{
+  _tracerOptions: Readonly<{
+    sampler: Sampler;
+  }>;
+}>;
 
 function snapshotEnv(): EnvSnapshot {
   return {
@@ -78,8 +83,13 @@ function createTestLangfuseSpanProcessor(): LangfuseSpanProcessor {
 }
 
 function getTracerProviderSampler(provider: BasicTracerProvider): SamplingSampler {
-  const providerConfig = provider as unknown as BasicTracerProviderConfig;
-  return providerConfig._config.sampler as unknown as SamplingSampler;
+  const providerConfig = provider as unknown as Partial<BasicTracerProviderConfig & BasicTracerProviderTracerOptions>;
+  const sampler = providerConfig._tracerOptions?.sampler ?? providerConfig._config?.sampler;
+  if (sampler === undefined) {
+    throw new Error("OpenTelemetry tracer provider sampler was not found in the known provider config fields.");
+  }
+
+  return sampler as unknown as SamplingSampler;
 }
 
 test("Langfuse tracer provider always samples spans independent from active parents", () => {

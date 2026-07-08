@@ -11,10 +11,10 @@ type InitializeBackendSentryDependencies = Readonly<{
 }>;
 
 type BackendSentryInitOptions = NonNullable<Parameters<typeof Sentry.init>[0]>;
-type BackendSentryIntegration = ReturnType<typeof Sentry.honoIntegration>;
-type BackendSentryIntegrationFactory = (
-  defaultIntegrations: Array<BackendSentryIntegration>,
-) => Array<BackendSentryIntegration>;
+type BackendSentryIntegrationFactory = NonNullable<
+  Exclude<BackendSentryInitOptions["integrations"], ReadonlyArray<unknown> | undefined>
+>;
+type BackendSentryIntegration = Parameters<BackendSentryIntegrationFactory>[0][number];
 
 type BackendSentryConfig =
   | Readonly<{ enabled: false }>
