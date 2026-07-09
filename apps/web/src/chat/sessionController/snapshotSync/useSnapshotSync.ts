@@ -39,6 +39,8 @@ import { useChatLiveSession } from "./useLiveSession";
 import type { ChatHistoryState } from "../../history/useChatHistory";
 import type { ChatLiveEvent } from "../../streaming/liveStream";
 
+const assistantMessageDoneTerminalReconcileDelayMs = 5_000;
+
 type UseChatSessionSnapshotSyncParams = Readonly<{
   controllerId: string;
   workspaceId: string | null;
@@ -432,6 +434,7 @@ export function useChatSessionSnapshotSync(
   const activeToolRunPostSyncPromiseRef = useRef<Promise<void> | null>(null);
   const liveCursorRef = useRef<string | null>(null);
   const resumeAttemptCounterRef = useRef<number>(0);
+  const assistantMessageDoneTerminalReconcileTimerRef = useRef<number | null>(null);
   const reconcileTerminalSnapshotRef = useRef<(sessionId: string | null) => void>(() => {});
   const pendingToolRunPostSyncRef = useRef<boolean>(state.pendingToolRunPostSync);
 
@@ -470,11 +473,41 @@ export function useChatSessionSnapshotSync(
     snapshotRequestVersionRef.current += 1;
   }, []);
 
+  const clearAssistantMessageDoneTerminalReconcileTimer = useCallback((): void => {
+    const timerId = assistantMessageDoneTerminalReconcileTimerRef.current;
+    if (timerId === null) {
+      return;
+    }
+
+    window.clearTimeout(timerId);
+    assistantMessageDoneTerminalReconcileTimerRef.current = null;
+  }, []);
+
+  const scheduleAssistantMessageDoneTerminalReconcile = useCallback((
+    sessionId: string,
+    runId: string,
+  ): void => {
+    clearAssistantMessageDoneTerminalReconcileTimer();
+    assistantMessageDoneTerminalReconcileTimerRef.current = window.setTimeout((): void => {
+      assistantMessageDoneTerminalReconcileTimerRef.current = null;
+      if (
+        currentSessionIdRef.current !== sessionId
+        || runStateRef.current !== "running"
+        || activeRunIdRef.current !== runId
+      ) {
+        return;
+      }
+
+      reconcileTerminalSnapshotRef.current(sessionId);
+    }, assistantMessageDoneTerminalReconcileDelayMs);
+  }, [clearAssistantMessageDoneTerminalReconcileTimer]);
+
   const resetSnapshotTracking = useCallback((updatedAt: number | null): void => {
+    clearAssistantMessageDoneTerminalReconcileTimer();
     lastSnapshotUpdatedAtRef.current = updatedAt;
     activeRunIdRef.current = null;
     liveCursorRef.current = null;
-  }, []);
+  }, [clearAssistantMessageDoneTerminalReconcileTimer]);
 
   const nextResumeAttemptId = useCallback((): number => {
     const nextAttemptId = resumeAttemptCounterRef.current + 1;
@@ -583,6 +616,7 @@ export function useChatSessionSnapshotSync(
         event.isStopped,
       );
       if (didFinish === false) {
+        clearAssistantMessageDoneTerminalReconcileTimer();
         reconcileTerminalSnapshotRef.current(event.sessionId);
         return;
       }
@@ -590,6 +624,7 @@ export function useChatSessionSnapshotSync(
       // The live protocol can finalize the assistant message before the run
       // itself becomes terminal. Keep the run active until run_terminal (or a
       // terminal snapshot recovery path) so post-run sync stays terminal-only.
+      scheduleAssistantMessageDoneTerminalReconcile(event.sessionId, event.runId);
       return;
     }
 
@@ -610,6 +645,7 @@ export function useChatSessionSnapshotSync(
       return;
     }
 
+    clearAssistantMessageDoneTerminalReconcileTimer();
     setKnownActiveRunId(null);
 
     if (event.outcome === "reset_required") {
@@ -630,12 +666,14 @@ export function useChatSessionSnapshotSync(
     });
   }, [
     appendAssistantText,
+    clearAssistantMessageDoneTerminalReconcileTimer,
     completeAssistantReasoningSummary,
     dispatch,
     finishAssistantMessage,
     markPendingToolRunPostSync,
     state.currentSessionId,
     state.mainContentInvalidationVersion,
+    scheduleAssistantMessageDoneTerminalReconcile,
     triggerToolRunPostSyncIfNeeded,
     uiMessages,
     setKnownActiveRunId,
@@ -777,6 +815,7 @@ export function useChatSessionSnapshotSync(
       dispatch({ type: "live_attach_connected" });
     },
     onUnexpectedStreamEnd: (sessionId, runId) => {
+      clearAssistantMessageDoneTerminalReconcileTimer();
       dispatch({
         type: "stop_finished",
         runState: runStateRef.current,
@@ -1010,6 +1049,10 @@ export function useChatSessionSnapshotSync(
   useEffect(() => {
     reconcileTerminalSnapshotRef.current = reconcileTerminalSnapshot;
   }, [reconcileTerminalSnapshot]);
+
+  useEffect(() => () => {
+    clearAssistantMessageDoneTerminalReconcileTimer();
+  }, [clearAssistantMessageDoneTerminalReconcileTimer]);
 
   return {
     isLiveStreamConnected,

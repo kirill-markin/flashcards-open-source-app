@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
   consumeChatLiveStreamMock,
@@ -347,6 +348,95 @@ describe("ChatPanel post-run sync", () => {
     await flushAsync();
     await flushAsync();
 
+    expect(runSyncMock).toHaveBeenCalledTimes(2);
+    expect(refreshLocalDataMock).not.toHaveBeenCalled();
+  });
+
+  it("reconciles a terminal snapshot when assistant_message_done is not followed by run_terminal", async () => {
+    const refreshLocalDataMock = vi.fn(async (): Promise<void> => undefined);
+    const runSyncMock = vi.fn(async (): Promise<void> => undefined);
+    let snapshotRequestCount = 0;
+    useAppDataMock.mockReturnValue(createVerifiedWorkspaceAppDataMock({
+      refreshLocalData: refreshLocalDataMock,
+      runSync: runSyncMock,
+      setErrorMessage: vi.fn(),
+    }));
+    getChatSnapshotMock.mockImplementation(async (sessionId: string) => {
+      snapshotRequestCount += 1;
+      if (snapshotRequestCount === 1) {
+        return createChatSnapshot({
+          sessionId,
+          conversationScopeId: sessionId,
+        });
+      }
+
+      return createChatSnapshot({
+        sessionId,
+        conversationScopeId: sessionId,
+        activeRun: null,
+        conversation: {
+          updatedAt: 2,
+          mainContentInvalidationVersion: 0,
+          messages: [createCompletedToolCallAssistantMessage({
+            timestamp: 2,
+            isStopped: false,
+            itemId: "item-1",
+            cursor: "cursor-2",
+          })],
+        },
+      });
+    });
+    consumeChatLiveStreamMock.mockImplementation(({ onEvent, runId, sessionId }) => {
+      onEvent({
+        type: "assistant_tool_call",
+        sessionId,
+        conversationScopeId: sessionId,
+        runId,
+        sequenceNumber: 1,
+        streamEpoch: "epoch-1",
+        cursor: "cursor-1",
+        toolCallId: "tool-1",
+        itemId: "item-1",
+        outputIndex: 0,
+        name: "agent_sql",
+        status: "started",
+        input: "update cards set back_text = 'Updated answer'",
+        output: "{\"ok\":true}",
+        providerStatus: null,
+      });
+      onEvent({
+        type: "assistant_message_done",
+        sessionId,
+        conversationScopeId: sessionId,
+        runId,
+        sequenceNumber: 2,
+        streamEpoch: "epoch-1",
+        cursor: "cursor-2",
+        itemId: "item-1",
+        content: [{ type: "text", text: "Updated." }],
+        isError: false,
+        isStopped: false,
+      });
+      return new Promise<void>(() => undefined);
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+    await sendMessage("update the current card");
+    await flushAsync();
+    await flushAsync();
+
+    expect(runSyncMock).toHaveBeenCalledTimes(1);
+    expect(refreshLocalDataMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_000);
+      await Promise.resolve();
+    });
+    await flushAsync();
+    await flushAsync();
+
+    expect(getChatSnapshotMock).toHaveBeenCalledTimes(2);
     expect(runSyncMock).toHaveBeenCalledTimes(2);
     expect(refreshLocalDataMock).not.toHaveBeenCalled();
   });
