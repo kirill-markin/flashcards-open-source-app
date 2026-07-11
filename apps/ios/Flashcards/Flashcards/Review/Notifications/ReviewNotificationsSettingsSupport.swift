@@ -7,7 +7,8 @@ let defaultDailyReminderMinute: Int = 0
 let defaultInactivityReminderWindowEndHour: Int = 19
 let defaultInactivityReminderWindowEndMinute: Int = 0
 
-let reviewNotificationsSettingsUserDefaultsKeyPrefix: String = "review-notifications-settings::"
+let reviewNotificationsSettingsUserDefaultsKey: String = "review-notifications-settings"
+let legacyReviewNotificationsSettingsUserDefaultsKeyPrefix: String = "review-notifications-settings::"
 let reviewNotificationPromptStateUserDefaultsKey: String = "review-notification-prompt-state"
 let reviewNotificationSuccessfulReviewCountUserDefaultsKey: String = "review-notification-successful-review-count"
 
@@ -25,13 +26,13 @@ enum ReviewNotificationMode: String, Codable, CaseIterable, Identifiable, Hashab
             return String(
                 localized: "review_notification.mode.daily",
                 table: "Foundation",
-                comment: "Daily review notification mode title"
+                comment: "Once-daily review notification mode title"
             )
         case .inactivity:
             return String(
                 localized: "review_notification.mode.inactivity",
                 table: "Foundation",
-                comment: "Cards review notification mode title"
+                comment: "After-a-break review notification mode title"
             )
         }
     }
@@ -52,9 +53,9 @@ enum ReviewNotificationsReconcileTrigger: Hashable, Sendable {
     /// notification (and the icon badge it carries) is no longer relevant.
     var shouldClearDeliveredReviewNotifications: Bool {
         switch self {
-        case .appActive, .reviewRecorded:
+        case .appActive, .reviewRecorded, .workspaceChanged:
             return true
-        case .appBackground, .settingsChanged, .permissionChanged, .filterChanged, .workspaceChanged:
+        case .appBackground, .settingsChanged, .permissionChanged, .filterChanged:
             return false
         }
     }
@@ -136,8 +137,8 @@ struct NotificationPermissionPromptState: Codable, Hashable, Sendable {
 }
 
 func makeDefaultReviewNotificationsSettings() -> ReviewNotificationsSettings {
-    // Internal reminder categories default to enabled. Delivery is still gated by
-    // the current system notification permission state.
+    // The app-level master defaults to enabled. Delivery is still gated by the
+    // current system notification permission state.
     ReviewNotificationsSettings(
         isEnabled: true,
         selectedMode: .daily,
@@ -176,35 +177,98 @@ func reviewNotificationPendingRequestsLimit(strictRemindersSettings: StrictRemin
     return max(0, appNotificationPendingRequestsLimit - strictReminderPendingRequestsLimit)
 }
 
-func makeReviewNotificationsSettingsUserDefaultsKey(workspaceId: String) -> String {
-    "\(reviewNotificationsSettingsUserDefaultsKeyPrefix)\(workspaceId)"
+func makeLegacyReviewNotificationsSettingsUserDefaultsKey(workspaceId: String) -> String {
+    "\(legacyReviewNotificationsSettingsUserDefaultsKeyPrefix)\(workspaceId)"
 }
 
 func loadReviewNotificationsSettings(
     userDefaults: UserDefaults,
+    encoder: JSONEncoder,
     decoder: JSONDecoder,
     workspaceId: String?
 ) -> ReviewNotificationsSettings {
-    guard
-        let workspaceId,
-        let data = userDefaults.data(forKey: makeReviewNotificationsSettingsUserDefaultsKey(workspaceId: workspaceId))
-    else {
+    if let data = userDefaults.data(forKey: reviewNotificationsSettingsUserDefaultsKey) {
+        do {
+            return try decoder.decode(ReviewNotificationsSettings.self, from: data)
+        } catch {
+            captureReviewNotificationsSilentFailure(
+                error: error,
+                action: "review_notifications_settings_load",
+                stage: "decode_global",
+                cloudSettings: nil,
+                workspaceId: workspaceId,
+                configurationMode: nil
+            )
+            userDefaults.removeObject(forKey: reviewNotificationsSettingsUserDefaultsKey)
+            let settings = makeDefaultReviewNotificationsSettings()
+            persistInitialReviewNotificationsSettings(
+                settings: settings,
+                userDefaults: userDefaults,
+                encoder: encoder,
+                workspaceId: workspaceId
+            )
+            return settings
+        }
+    }
+
+    guard let workspaceId else {
         return makeDefaultReviewNotificationsSettings()
     }
 
+    let settings: ReviewNotificationsSettings
+    if let legacyData = userDefaults.data(
+        forKey: makeLegacyReviewNotificationsSettingsUserDefaultsKey(workspaceId: workspaceId)
+    ) {
+        do {
+            settings = try decoder.decode(ReviewNotificationsSettings.self, from: legacyData)
+        } catch {
+            captureReviewNotificationsSilentFailure(
+                error: error,
+                action: "review_notifications_settings_migrate",
+                stage: "decode_legacy",
+                cloudSettings: nil,
+                workspaceId: workspaceId,
+                configurationMode: nil
+            )
+            userDefaults.removeObject(
+                forKey: makeLegacyReviewNotificationsSettingsUserDefaultsKey(workspaceId: workspaceId)
+            )
+            settings = makeDefaultReviewNotificationsSettings()
+        }
+    } else {
+        settings = makeDefaultReviewNotificationsSettings()
+    }
+
+    persistInitialReviewNotificationsSettings(
+        settings: settings,
+        userDefaults: userDefaults,
+        encoder: encoder,
+        workspaceId: workspaceId
+    )
+    return settings
+}
+
+private func persistInitialReviewNotificationsSettings(
+    settings: ReviewNotificationsSettings,
+    userDefaults: UserDefaults,
+    encoder: JSONEncoder,
+    workspaceId: String?
+) {
     do {
-        return try decoder.decode(ReviewNotificationsSettings.self, from: data)
+        userDefaults.set(
+            try encoder.encode(settings),
+            forKey: reviewNotificationsSettingsUserDefaultsKey
+        )
     } catch {
         captureReviewNotificationsSilentFailure(
             error: error,
-            action: "review_notifications_settings_load",
-            stage: "decode",
+            action: "review_notifications_settings_migrate",
+            stage: "encode_global",
             cloudSettings: nil,
             workspaceId: workspaceId,
             configurationMode: nil
         )
-        userDefaults.removeObject(forKey: makeReviewNotificationsSettingsUserDefaultsKey(workspaceId: workspaceId))
-        return makeDefaultReviewNotificationsSettings()
+        userDefaults.removeObject(forKey: reviewNotificationsSettingsUserDefaultsKey)
     }
 }
 

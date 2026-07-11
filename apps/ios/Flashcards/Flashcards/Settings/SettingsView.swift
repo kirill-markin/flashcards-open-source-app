@@ -87,9 +87,9 @@ struct SettingsView: View {
             }
 
             Section(aiSettingsLocalized("settings.section.general", "General")) {
-                NavigationLink(value: SettingsNavigationDestination.workspaceNotifications) {
+                NavigationLink(value: SettingsNavigationDestination.notifications) {
                     SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.reviewReminders", "Reminders"),
+                        title: aiSettingsLocalized("settings.row.notifications", "Notifications"),
                         value: nil,
                         systemImage: "bell.badge",
                         attentionCount: nil

@@ -60,6 +60,23 @@ extension LocalDatabase {
         ) == 1
     }
 
+    func hasReviewEvent(workspaceId: String, start: Date, end: Date) throws -> Bool {
+        try self.core.scalarInt(
+            sql: """
+            SELECT EXISTS(
+                SELECT 1
+                FROM review_events
+                WHERE workspace_id = ? AND reviewed_at_client >= ? AND reviewed_at_client < ?
+            )
+            """,
+            values: [
+                .text(workspaceId),
+                .text(formatIsoTimestamp(date: start)),
+                .text(formatIsoTimestamp(date: end))
+            ]
+        ) == 1
+    }
+
     func loadFeedbackReviewActivitySummary(
         workspaceId: String,
         now: Date,

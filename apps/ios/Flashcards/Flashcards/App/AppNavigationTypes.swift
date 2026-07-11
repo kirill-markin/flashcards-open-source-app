@@ -40,7 +40,7 @@ enum SettingsNavigationDestination: Hashable, Sendable {
     case testAnimations
     case notificationDiagnostics
     case localSyncDiagnostics
-    case workspaceNotifications
+    case notifications
     case workspaceScheduler
     case workspaceExport
     case workspaceImport

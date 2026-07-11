@@ -133,7 +133,10 @@ final class FlashcardsStore {
     @ObservationIgnored var lastImmediateCloudSyncTriggerAt: Date?
     @ObservationIgnored var activeReviewNotificationsRescheduleTask: Task<Void, Never>?
     @ObservationIgnored var reviewNotificationsRescheduleGeneration: Int
+    @ObservationIgnored var pendingReviewNotificationsDeliveredCleanup: Bool
+    @ObservationIgnored var pendingReviewNotificationsAttentionClear: Bool
     @ObservationIgnored var activeStrictRemindersRescheduleTask: Task<Void, Never>?
+    @ObservationIgnored var strictRemindersRescheduleGeneration: Int
     @ObservationIgnored var pendingStrictRemindersReconcileRequest: StrictRemindersReconcileRequest?
     @ObservationIgnored var reviewHardReminderLastShownAt: Date?
     @ObservationIgnored var progressSummaryServerBaseCache: PersistedProgressSummaryServerBase?
@@ -468,7 +471,10 @@ final class FlashcardsStore {
         self.lastImmediateCloudSyncTriggerAt = nil
         self.activeReviewNotificationsRescheduleTask = nil
         self.reviewNotificationsRescheduleGeneration = 0
+        self.pendingReviewNotificationsDeliveredCleanup = false
+        self.pendingReviewNotificationsAttentionClear = false
         self.activeStrictRemindersRescheduleTask = nil
+        self.strictRemindersRescheduleGeneration = 0
         self.pendingStrictRemindersReconcileRequest = nil
         self.reviewHardReminderLastShownAt = loadReviewHardReminderLastShownAt(userDefaults: userDefaults)
         self.progressSummaryServerBaseCache = nil
@@ -528,6 +534,7 @@ final class FlashcardsStore {
         }
         self.reviewNotificationsSettings = loadReviewNotificationsSettings(
             userDefaults: userDefaults,
+            encoder: encoder,
             decoder: decoder,
             workspaceId: self.workspace?.workspaceId
         )

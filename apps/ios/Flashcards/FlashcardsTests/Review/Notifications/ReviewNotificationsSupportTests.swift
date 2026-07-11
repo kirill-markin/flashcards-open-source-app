@@ -24,6 +24,7 @@ final class ReviewNotificationsSupportTests: XCTestCase {
 
         let settings = loadReviewNotificationsSettings(
             userDefaults: userDefaults,
+            encoder: JSONEncoder(),
             decoder: JSONDecoder(),
             workspaceId: "workspace-1"
         )
@@ -32,7 +33,7 @@ final class ReviewNotificationsSupportTests: XCTestCase {
         XCTAssertEqual(settings.selectedMode, .daily)
     }
 
-    func testLoadReviewNotificationsSettingsPreservesPersistedDisabledChoice() throws {
+    func testLoadReviewNotificationsSettingsMigratesCurrentWorkspaceOnce() throws {
         let suiteName = "ReviewNotificationsSupportTests-\(UUID().uuidString)"
         guard let userDefaults = UserDefaults(suiteName: suiteName) else {
             XCTFail("Expected isolated UserDefaults suite")
@@ -63,16 +64,27 @@ final class ReviewNotificationsSupportTests: XCTestCase {
         let persistedData = try JSONEncoder().encode(disabledSettings)
         userDefaults.set(
             persistedData,
-            forKey: makeReviewNotificationsSettingsUserDefaultsKey(workspaceId: workspaceId)
+            forKey: makeLegacyReviewNotificationsSettingsUserDefaultsKey(workspaceId: workspaceId)
         )
 
         let loadedSettings = loadReviewNotificationsSettings(
             userDefaults: userDefaults,
+            encoder: JSONEncoder(),
             decoder: JSONDecoder(),
             workspaceId: workspaceId
         )
 
         XCTAssertEqual(loadedSettings, disabledSettings)
+        XCTAssertNotNil(userDefaults.data(forKey: reviewNotificationsSettingsUserDefaultsKey))
+
+        let settingsAfterWorkspaceSwitch = loadReviewNotificationsSettings(
+            userDefaults: userDefaults,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder(),
+            workspaceId: "workspace-2"
+        )
+
+        XCTAssertEqual(settingsAfterWorkspaceSwitch, disabledSettings)
     }
 
     func testDefaultStrictRemindersSettingsStartEnabled() {
@@ -192,7 +204,11 @@ final class ReviewNotificationsSupportTests: XCTestCase {
         let now = try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 21, minute: 5, calendar: calendar))
 
         XCTAssertEqual(
-            makeStrictRemindersReconcileRequest(trigger: .appActive, now: now),
+            makeStrictRemindersReconcileRequest(
+                trigger: .appActive,
+                now: now,
+                shouldClearDeliveredStrictReminders: false
+            ),
             StrictRemindersReconcileRequest(
                 now: now,
                 triggers: [.appActive],
@@ -200,12 +216,35 @@ final class ReviewNotificationsSupportTests: XCTestCase {
             )
         )
         XCTAssertEqual(
-            makeStrictRemindersReconcileRequest(trigger: .reviewRecorded, now: now),
+            makeStrictRemindersReconcileRequest(
+                trigger: .reviewRecorded,
+                now: now,
+                shouldClearDeliveredStrictReminders: false
+            ),
             StrictRemindersReconcileRequest(
                 now: now,
                 triggers: [.reviewRecorded],
                 shouldClearDeliveredStrictReminders: false
             )
+        )
+        XCTAssertEqual(
+            makeStrictRemindersReconcileRequest(
+                trigger: .workspaceChanged,
+                now: now,
+                shouldClearDeliveredStrictReminders: false
+            ),
+            StrictRemindersReconcileRequest(
+                now: now,
+                triggers: [.workspaceChanged],
+                shouldClearDeliveredStrictReminders: true
+            )
+        )
+        XCTAssertTrue(
+            makeStrictRemindersReconcileRequest(
+                trigger: .settingsChanged,
+                now: now,
+                shouldClearDeliveredStrictReminders: true
+            ).shouldClearDeliveredStrictReminders
         )
     }
 
@@ -287,6 +326,7 @@ final class ReviewNotificationsSupportTests: XCTestCase {
             ),
             importedCompletedDayStartMillis: try await loadStrictReminderImportedCompletedDayStartMillis(
                 databaseURL: databaseURL,
+                workspaceId: workspace.workspaceId,
                 now: now,
                 calendar: calendar
             ),
@@ -299,6 +339,15 @@ final class ReviewNotificationsSupportTests: XCTestCase {
         )
         XCTAssertTrue(resolution.shouldPersistImportedCompletion)
         XCTAssertFalse(resolution.shouldClearPersistedCompletion)
+        XCTAssertEqual(
+            try await loadStrictReminderImportedCompletedDayStartMillis(
+                databaseURL: databaseURL,
+                workspaceId: "workspace-without-review",
+                now: now,
+                calendar: calendar
+            ),
+            []
+        )
     }
 
     func testResolveStrictReminderCompletedDayResolutionDoesNotRePersistExistingCurrentDayCompletion() async throws {
@@ -351,6 +400,7 @@ final class ReviewNotificationsSupportTests: XCTestCase {
             ),
             importedCompletedDayStartMillis: try await loadStrictReminderImportedCompletedDayStartMillis(
                 databaseURL: databaseURL,
+                workspaceId: workspace.workspaceId,
                 now: now,
                 calendar: calendar
             ),
@@ -419,6 +469,7 @@ final class ReviewNotificationsSupportTests: XCTestCase {
             ),
             importedCompletedDayStartMillis: try await loadStrictReminderImportedCompletedDayStartMillis(
                 databaseURL: databaseURL,
+                workspaceId: workspace.workspaceId,
                 now: now,
                 calendar: calendar
             ),
@@ -956,12 +1007,128 @@ final class ReviewNotificationsSupportTests: XCTestCase {
         )
     }
 
-    func testParseAppNotificationTapRequestRecognizesStrictReminder() {
-        let request = parseAppNotificationTapRequest(
-            userInfo: [appNotificationTapTypeUserInfoKey: AppNotificationTapType.strictReminder.rawValue]
+    func testParseAppNotificationTapRequestPreservesWorkspaceOwnership() {
+        let strictRequest = parseAppNotificationTapRequest(
+            userInfo: [appNotificationTapTypeUserInfoKey: AppNotificationTapType.strictReminder.rawValue],
+            requestIdentifier: nil
         )
 
-        XCTAssertEqual(request, .openStrictReminder)
+        XCTAssertEqual(strictRequest, .openStrictReminder)
+
+        let reviewRequest = parseAppNotificationTapRequest(
+            userInfo: [appNotificationTapTypeUserInfoKey: AppNotificationTapType.reviewReminder.rawValue],
+            requestIdentifier: makeReviewNotificationRequestIdentifier(
+                workspaceId: "workspace-1",
+                kind: "daily",
+                suffix: "2026-04-03-10-00"
+            )
+        )
+
+        XCTAssertEqual(reviewRequest, .openReviewReminder(workspaceId: "workspace-1"))
+        XCTAssertNil(
+            appNotificationTapWorkspaceOwnershipFallback(
+                request: .openReviewReminder(workspaceId: "workspace-1"),
+                currentWorkspaceId: "workspace-1"
+            )
+        )
+        XCTAssertEqual(
+            appNotificationTapWorkspaceOwnershipFallback(
+                request: .openReviewReminder(workspaceId: "workspace-1"),
+                currentWorkspaceId: "workspace-2"
+            )?.reason,
+            "stale_review_reminder_workspace"
+        )
+
+        let malformedReviewRequest = parseAppNotificationTapRequest(
+            userInfo: [appNotificationTapTypeUserInfoKey: AppNotificationTapType.reviewReminder.rawValue],
+            requestIdentifier: "invalid-review-reminder"
+        )
+        guard let malformedReviewRequest,
+              case .fallback(let malformedFallback) = malformedReviewRequest else {
+            XCTFail("Expected malformed review reminder identifier to be rejected")
+            return
+        }
+        XCTAssertEqual(malformedFallback.reason, "invalid_review_reminder_identifier")
+    }
+
+    func testResolveAppNotificationOwnershipPreservesUnrelatedAndRejectsStaleRequests() throws {
+        let suiteName = "ReviewNotificationsSupportTests-\(UUID().uuidString)"
+        guard let userDefaults = UserDefaults(suiteName: suiteName) else {
+            XCTFail("Expected isolated UserDefaults suite")
+            return
+        }
+        defer {
+            userDefaults.removePersistentDomain(forName: suiteName)
+        }
+
+        try saveAppNotificationPresentationOwnership(
+            ownership: AppNotificationPresentationOwnership(
+                schemaVersion: appNotificationPresentationOwnershipSchemaVersion,
+                isMasterEnabled: true,
+                workspaceId: "workspace-1",
+                isStrictReminderEnabled: true,
+                strictReminderScope: "strict-scope-1"
+            ),
+            userDefaults: userDefaults,
+            encoder: JSONEncoder()
+        )
+
+        XCTAssertEqual(
+            try resolveAppNotificationOwnership(
+                userInfo: [:],
+                requestIdentifier: "unrelated-notification",
+                userDefaults: userDefaults,
+                decoder: JSONDecoder()
+            ),
+            .unrelated
+        )
+        XCTAssertEqual(
+            try resolveAppNotificationOwnership(
+                userInfo: buildAppNotificationUserInfo(notificationType: .reviewReminder),
+                requestIdentifier: makeReviewNotificationRequestIdentifier(
+                    workspaceId: "workspace-1",
+                    kind: "daily",
+                    suffix: "2026-04-03-10-00"
+                ),
+                userDefaults: userDefaults,
+                decoder: JSONDecoder()
+            ),
+            .owned(.openReviewReminder(workspaceId: "workspace-1"))
+        )
+
+        let staleReviewDecision = try resolveAppNotificationOwnership(
+            userInfo: buildAppNotificationUserInfo(notificationType: .reviewReminder),
+            requestIdentifier: makeReviewNotificationRequestIdentifier(
+                workspaceId: "workspace-2",
+                kind: "daily",
+                suffix: "2026-04-03-10-00"
+            ),
+            userDefaults: userDefaults,
+            decoder: JSONDecoder()
+        )
+        guard case .suppressed(let staleReviewFallback) = staleReviewDecision else {
+            XCTFail("Expected stale review notification to be suppressed")
+            return
+        }
+        XCTAssertEqual(staleReviewFallback.reason, "stale_review_reminder_workspace")
+
+        let calendar = makeCalendar()
+        let scheduledAt = try XCTUnwrap(
+            makeDate(year: 2026, month: 4, day: 3, hour: 20, minute: 0, calendar: calendar)
+        )
+        XCTAssertEqual(
+            try resolveAppNotificationOwnership(
+                userInfo: buildStrictReminderNotificationUserInfo(scope: "strict-scope-1"),
+                requestIdentifier: makeStrictReminderRequestIdentifier(
+                    offset: .fourHours,
+                    scheduledAt: scheduledAt,
+                    calendar: calendar
+                ),
+                userDefaults: userDefaults,
+                decoder: JSONDecoder()
+            ),
+            .owned(.openStrictReminder)
+        )
     }
 }
 

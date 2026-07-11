@@ -218,7 +218,7 @@ private func makeNotificationDiagnosticsReviewSettingsSection(
 ) -> NotificationDiagnosticsSnapshotSection {
     NotificationDiagnosticsSnapshotSection(
         id: "review-reminders",
-        title: aiSettingsLocalized("settings.notificationDiagnostics.section.reviewReminders", "Review Reminders"),
+        title: aiSettingsLocalized("settings.notificationDiagnostics.section.reviewReminders", "Notifications"),
         rows: [
             NotificationDiagnosticsSnapshotRow(
                 id: "enabled",
@@ -250,7 +250,7 @@ private func makeNotificationDiagnosticsReviewSettingsSection(
             ),
             NotificationDiagnosticsSnapshotRow(
                 id: "inactivity-idle-minutes",
-                title: aiSettingsLocalized("settings.notifications.remindAfter", "Remind me after"),
+                title: aiSettingsLocalized("settings.notifications.repeatEvery", "Repeat every"),
                 value: "\(settings.inactivity.idleMinutes)"
             ),
             makeNotificationDiagnosticsCountRow(

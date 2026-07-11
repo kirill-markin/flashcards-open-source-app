@@ -3,9 +3,34 @@ import UserNotifications
 
 @MainActor
 extension FlashcardsStore {
+    func refreshAppNotificationPresentationOwnership() {
+        self.persistAppNotificationPresentationOwnership(
+            ownership: AppNotificationPresentationOwnership(
+                schemaVersion: appNotificationPresentationOwnershipSchemaVersion,
+                isMasterEnabled: self.reviewNotificationsSettings.isEnabled,
+                workspaceId: self.workspace?.workspaceId,
+                isStrictReminderEnabled: self.strictRemindersSettings.isEnabled,
+                strictReminderScope: loadStrictReminderNotificationScope(userDefaults: self.userDefaults)
+            )
+        )
+    }
+
+    func invalidateAppNotificationPresentationOwnership(strictReminderScope: String) {
+        self.persistAppNotificationPresentationOwnership(
+            ownership: AppNotificationPresentationOwnership(
+                schemaVersion: appNotificationPresentationOwnershipSchemaVersion,
+                isMasterEnabled: false,
+                workspaceId: nil,
+                isStrictReminderEnabled: false,
+                strictReminderScope: strictReminderScope
+            )
+        )
+    }
+
     func reloadReviewNotificationsSettings() {
         self.reviewNotificationsSettings = loadReviewNotificationsSettings(
             userDefaults: self.userDefaults,
+            encoder: self.encoder,
             decoder: self.decoder,
             workspaceId: self.workspace?.workspaceId
         )
@@ -14,7 +39,14 @@ extension FlashcardsStore {
     func updateReviewNotificationsSettings(settings: ReviewNotificationsSettings) {
         self.reviewNotificationsSettings = settings
         self.persistReviewNotificationsSettings()
-        self.reconcileReviewNotifications(trigger: .settingsChanged, now: Date())
+        self.refreshAppNotificationPresentationOwnership()
+        let now = Date()
+        if settings.isEnabled == false {
+            self.clearReviewReminderAttention()
+            self.clearAppIconBadge()
+        }
+        self.reconcileReviewNotifications(trigger: .settingsChanged, now: now)
+        self.reconcileStrictReminders(trigger: .settingsChanged, now: now)
     }
 
     func updateReviewNotificationsEnabled(isEnabled: Bool) {
@@ -124,6 +156,11 @@ extension FlashcardsStore {
             return
         }
 
+        self.reviewReminderAttentionState = nil
+        clearReviewReminderAttentionState(userDefaults: self.userDefaults)
+    }
+
+    func clearReviewReminderAttention() {
         self.reviewReminderAttentionState = nil
         clearReviewReminderAttentionState(userDefaults: self.userDefaults)
     }
@@ -244,14 +281,38 @@ extension FlashcardsStore {
     /// pending review reminders before rescheduling, and it clears already delivered
     /// review reminders when the app becomes active or a review is recorded.
     func reconcileReviewNotifications(trigger: ReviewNotificationsReconcileTrigger, now: Date) {
+        let shouldClearDeliveredReviewNotifications = trigger.shouldClearDeliveredReviewNotifications
+            || self.reviewNotificationsSettings.isEnabled == false
+        self.pendingReviewNotificationsDeliveredCleanup = self.pendingReviewNotificationsDeliveredCleanup
+            || shouldClearDeliveredReviewNotifications
+        if trigger == .workspaceChanged {
+            clearPendingAppNotificationTap(userDefaults: self.userDefaults)
+            self.clearReviewReminderAttention()
+            self.clearAppIconBadge()
+        }
+        if trigger == .workspaceChanged || self.reviewNotificationsSettings.isEnabled == false {
+            self.pendingReviewNotificationsAttentionClear = true
+        }
         self.reviewNotificationsRescheduleGeneration += 1
         let generation = self.reviewNotificationsRescheduleGeneration
-        self.activeReviewNotificationsRescheduleTask?.cancel()
+        let previousTask = self.activeReviewNotificationsRescheduleTask
+        previousTask?.cancel()
         self.activeReviewNotificationsRescheduleTask = Task { @MainActor in
+            if let previousTask {
+                await previousTask.value
+            }
+            guard self.reviewNotificationsRescheduleGeneration == generation else {
+                return
+            }
+            guard Task.isCancelled == false else {
+                return
+            }
             await self.rescheduleReviewNotifications(
                 trigger: trigger,
                 now: now,
-                generation: generation
+                generation: generation,
+                shouldClearDeliveredReviewNotifications: self.pendingReviewNotificationsDeliveredCleanup,
+                shouldClearReviewReminderAttention: self.pendingReviewNotificationsAttentionClear
             )
             if self.reviewNotificationsRescheduleGeneration == generation {
                 self.activeReviewNotificationsRescheduleTask = nil
@@ -264,6 +325,13 @@ extension FlashcardsStore {
         case .fallback(let fallback):
             logAppNotificationTapFallback(fallback: fallback)
         case .openReviewReminder:
+            if let fallback = appNotificationTapWorkspaceOwnershipFallback(
+                request: request,
+                currentWorkspaceId: self.workspace?.workspaceId
+            ) {
+                logAppNotificationTapFallback(fallback: fallback)
+                return
+            }
             self.reloadReviewReminderAttentionState()
             navigation.selectTab(.review)
         case .openStrictReminder:
@@ -369,23 +437,41 @@ extension FlashcardsStore {
     }
 
     private func persistReviewNotificationsSettings() {
-        guard let workspaceId = self.workspace?.workspaceId else {
-            return
-        }
-
         do {
             let data = try self.encoder.encode(self.reviewNotificationsSettings)
-            self.userDefaults.set(data, forKey: makeReviewNotificationsSettingsUserDefaultsKey(workspaceId: workspaceId))
+            self.userDefaults.set(data, forKey: reviewNotificationsSettingsUserDefaultsKey)
         } catch {
             captureReviewNotificationsSilentFailure(
                 error: error,
                 action: "review_notifications_settings_save",
                 stage: "encode",
                 cloudSettings: self.cloudSettings,
-                workspaceId: workspaceId,
+                workspaceId: self.workspace?.workspaceId,
                 configurationMode: try? self.currentCloudServiceConfiguration().mode
             )
-            self.userDefaults.removeObject(forKey: makeReviewNotificationsSettingsUserDefaultsKey(workspaceId: workspaceId))
+            self.userDefaults.removeObject(forKey: reviewNotificationsSettingsUserDefaultsKey)
+        }
+    }
+
+    private func persistAppNotificationPresentationOwnership(
+        ownership: AppNotificationPresentationOwnership
+    ) {
+        do {
+            try saveAppNotificationPresentationOwnership(
+                ownership: ownership,
+                userDefaults: self.userDefaults,
+                encoder: self.encoder
+            )
+        } catch {
+            self.userDefaults.removeObject(forKey: appNotificationPresentationOwnershipUserDefaultsKey)
+            captureReviewNotificationsSilentFailure(
+                error: error,
+                action: "app_notification_presentation_ownership_save",
+                stage: "encode",
+                cloudSettings: self.cloudSettings,
+                workspaceId: ownership.workspaceId,
+                configurationMode: try? self.currentCloudServiceConfiguration().mode
+            )
         }
     }
 

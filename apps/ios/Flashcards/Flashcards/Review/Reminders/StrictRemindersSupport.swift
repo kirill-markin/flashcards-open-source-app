@@ -65,9 +65,9 @@ enum StrictRemindersReconcileTrigger: Hashable, Sendable {
 
     var shouldClearDeliveredStrictReminders: Bool {
         switch self {
-        case .appActive:
+        case .appActive, .workspaceChanged:
             return true
-        case .appBackground, .settingsChanged, .permissionChanged, .reviewRecorded, .reviewHistoryImported, .workspaceChanged:
+        case .appBackground, .settingsChanged, .permissionChanged, .reviewRecorded, .reviewHistoryImported:
             return false
         }
     }
@@ -138,12 +138,14 @@ func makeDefaultStrictRemindersSettings() -> StrictRemindersSettings {
 
 func makeStrictRemindersReconcileRequest(
     trigger: StrictRemindersReconcileTrigger,
-    now: Date
+    now: Date,
+    shouldClearDeliveredStrictReminders: Bool
 ) -> StrictRemindersReconcileRequest {
     StrictRemindersReconcileRequest(
         now: now,
         triggers: [trigger],
         shouldClearDeliveredStrictReminders: trigger.shouldClearDeliveredStrictReminders
+            || shouldClearDeliveredStrictReminders
     )
 }
 
@@ -360,7 +362,10 @@ func shouldRemoveStrictReminderNotification(
     userInfo: [AnyHashable: Any],
     removalScope: String?
 ) -> Bool {
-    guard parseAppNotificationTapRequest(userInfo: userInfo) == .openStrictReminder else {
+    guard parseAppNotificationTapRequest(
+        userInfo: userInfo,
+        requestIdentifier: nil
+    ) == .openStrictReminder else {
         return false
     }
 
@@ -395,6 +400,7 @@ func strictReminderRemovalScopes(currentScope: String?) -> [String?] {
 
 func loadStrictReminderImportedCompletedDayStartMillis(
     databaseURL: URL?,
+    workspaceId: String,
     now: Date,
     calendar: Calendar
 ) async throws -> Set<Int64> {
@@ -415,7 +421,8 @@ func loadStrictReminderImportedCompletedDayStartMillis(
             try? database.close()
         }
 
-        let hasImportedReviewEventToday = try database.hasAppWideReviewEvent(
+        let hasImportedReviewEventToday = try database.hasReviewEvent(
+            workspaceId: workspaceId,
             start: startOfToday,
             end: startOfTomorrow
         )

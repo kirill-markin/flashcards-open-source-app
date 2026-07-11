@@ -19,16 +19,20 @@ extension FlashcardsStore {
 
         self.reviewRuntime.cancelForAccountDeletion()
         self.cloudRuntime.cancelForAccountDeletion()
-        self.activeStrictRemindersRescheduleTask?.cancel()
-        self.activeStrictRemindersRescheduleTask = nil
-        self.pendingStrictRemindersReconcileRequest = nil
+        let previousStrictRemindersReconciliationTask = self.cancelStrictRemindersReconciliation()
         try self.cloudRuntime.clearCredentials()
         try self.dependencies.guestCredentialStore.clearGuestSession()
         try database.resetForAccountDeletion()
-        rotateStrictReminderNotificationScope(userDefaults: self.userDefaults)
+        let nextStrictReminderNotificationScope = rotateStrictReminderNotificationScope(
+            userDefaults: self.userDefaults
+        )
+        self.invalidateAppNotificationPresentationOwnership(
+            strictReminderScope: nextStrictReminderNotificationScope
+        )
         clearPendingAppNotificationTap(userDefaults: self.userDefaults)
         self.removeStrictReminderNotificationsForCloudIdentityReset(
-            previousNotificationScope: previousStrictReminderNotificationScope
+            previousNotificationScope: previousStrictReminderNotificationScope,
+            previousReconciliationTask: previousStrictRemindersReconciliationTask
         )
         clearStoredReviewFilters(userDefaults: self.userDefaults)
         clearStoredStrictReminders(userDefaults: self.userDefaults)
@@ -67,9 +71,11 @@ extension FlashcardsStore {
     }
 
     private func removeStrictReminderNotificationsForCloudIdentityReset(
-        previousNotificationScope: String?
+        previousNotificationScope: String?,
+        previousReconciliationTask: Task<Void, Never>
     ) {
         Task { @MainActor in
+            await previousReconciliationTask.value
             await removePendingAndDeliveredStrictReminders(
                 center: UNUserNotificationCenter.current(),
                 removalScope: previousNotificationScope
