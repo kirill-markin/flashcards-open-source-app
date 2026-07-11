@@ -85,7 +85,10 @@ struct TestSettingsView: View {
 }
 
 struct TestAnimationsView: View {
-    @State private var hasStartedReviewReactionLottiePrewarm: Bool = false
+    @Environment(\.isLowPowerModeEnabled) private var isLowPowerModeEnabled: Bool
+
+    @State private var reviewReactionLottiePrewarmTask: Task<Void, Never>?
+    @State private var reviewReactionLottiePrewarmId: UUID?
     @State private var reviewReactionLottieAssetStore: ReviewReactionLottieAssetStore = makePendingReviewReactionLottieAssetStore()
     @State private var activeReviewReactionEvents: [ReviewReactionEvent] = []
 
@@ -106,13 +109,25 @@ struct TestAnimationsView: View {
 
                                     Spacer(minLength: 0)
 
-                                    Text(testAnimationDetailText(entry: entry, assetStatus: assetStatus))
+                                    Text(
+                                        testAnimationDetailText(
+                                            entry: entry,
+                                            assetStatus: assetStatus,
+                                            isLowPowerModeEnabled: self.isLowPowerModeEnabled
+                                        )
+                                    )
                                         .font(.subheadline.monospacedDigit())
                                         .foregroundStyle(.secondary)
                                 }
                             }
-                            .disabled(assetStatus == .pending)
-                            .accessibilityLabel(testAnimationAccessibilityLabel(entry: entry, assetStatus: assetStatus))
+                            .disabled(self.isLowPowerModeEnabled || assetStatus == .pending)
+                            .accessibilityLabel(
+                                testAnimationAccessibilityLabel(
+                                    entry: entry,
+                                    assetStatus: assetStatus,
+                                    isLowPowerModeEnabled: self.isLowPowerModeEnabled
+                                )
+                            )
                         }
                     }
                 }
@@ -130,22 +145,65 @@ struct TestAnimationsView: View {
         .onAppear {
             self.prewarmReviewReactionLottieAssets()
         }
+        .onChange(of: self.isLowPowerModeEnabled) { _, isEnabled in
+            if isEnabled {
+                self.cancelReviewReactionLottiePrewarm()
+                self.activeReviewReactionEvents = []
+            } else {
+                self.prewarmReviewReactionLottieAssets()
+            }
+        }
+        .onDisappear {
+            self.cancelReviewReactionLottiePrewarm()
+        }
     }
 
     private func prewarmReviewReactionLottieAssets() {
-        if self.hasStartedReviewReactionLottiePrewarm {
+        guard self.isLowPowerModeEnabled == false else {
+            return
+        }
+        guard self.reviewReactionLottiePrewarmTask == nil else {
+            return
+        }
+        let pendingVariants: Set<ReviewReactionVariant> = self.reviewReactionLottieAssetStore.pendingVariants
+        guard pendingVariants.isEmpty == false else {
             return
         }
 
-        self.hasStartedReviewReactionLottiePrewarm = true
-        startReviewReactionLottieAssetPrewarm { loadResult in
-            self.reviewReactionLottieAssetStore = self.reviewReactionLottieAssetStore.recordingLoadResult(
-                loadResult: loadResult
-            )
+        let prewarmId = UUID()
+        self.reviewReactionLottiePrewarmId = prewarmId
+        self.reviewReactionLottiePrewarmTask = startReviewReactionLottieAssetPrewarm(
+            pendingVariants: pendingVariants,
+            onLoadResult: { loadResult in
+                self.reviewReactionLottieAssetStore = self.reviewReactionLottieAssetStore.recordingLoadResult(
+                    loadResult: loadResult
+                )
+            },
+            onCompletion: {
+                self.finishReviewReactionLottiePrewarm(prewarmId: prewarmId)
+            }
+        )
+    }
+
+    private func cancelReviewReactionLottiePrewarm() {
+        self.reviewReactionLottiePrewarmTask?.cancel()
+        self.reviewReactionLottiePrewarmTask = nil
+        self.reviewReactionLottiePrewarmId = nil
+    }
+
+    private func finishReviewReactionLottiePrewarm(prewarmId: UUID) {
+        guard self.reviewReactionLottiePrewarmId == prewarmId else {
+            return
         }
+
+        self.reviewReactionLottiePrewarmTask = nil
+        self.reviewReactionLottiePrewarmId = nil
     }
 
     private func playAnimation(entry: ReviewReactionVariantDistributionEntry) {
+        guard self.isLowPowerModeEnabled == false else {
+            return
+        }
         guard self.assetStatus(entry: entry) != .pending else {
             return
         }
@@ -200,8 +258,16 @@ private func testAnimationProbabilityText(entry: ReviewReactionVariantDistributi
 
 private func testAnimationDetailText(
     entry: ReviewReactionVariantDistributionEntry,
-    assetStatus: ReviewReactionLottieAssetStatus
+    assetStatus: ReviewReactionLottieAssetStatus,
+    isLowPowerModeEnabled: Bool
 ) -> String {
+    if isLowPowerModeEnabled {
+        return aiSettingsLocalized(
+            "settings.reviewAnimations.lowPowerMode.paused",
+            "Paused by Low Power Mode"
+        )
+    }
+
     switch assetStatus {
     case .pending:
         return aiSettingsLocalized("common.loading", "Loading...")
@@ -212,13 +278,18 @@ private func testAnimationDetailText(
 
 private func testAnimationAccessibilityLabel(
     entry: ReviewReactionVariantDistributionEntry,
-    assetStatus: ReviewReactionLottieAssetStatus
+    assetStatus: ReviewReactionLottieAssetStatus,
+    isLowPowerModeEnabled: Bool
 ) -> String {
     aiSettingsLocalizedFormat(
         "settings.test.animations.playAccessibility",
         "Play %@ animation, %@",
         entry.variant.debugIdentifier,
-        testAnimationDetailText(entry: entry, assetStatus: assetStatus)
+        testAnimationDetailText(
+            entry: entry,
+            assetStatus: assetStatus,
+            isLowPowerModeEnabled: isLowPowerModeEnabled
+        )
     )
 }
 

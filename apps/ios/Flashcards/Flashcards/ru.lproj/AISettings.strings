@@ -171,6 +171,8 @@
 "settings.currentWorkspace.renameLinkedOnly" = "Переименование рабочей области доступно только для связанных облачных рабочих областей.";
 "settings.reviewAnimations.title" = "Анимации повторения";
 "settings.reviewAnimations.toggle" = "Показывать анимации после оценки карточки";
+"settings.reviewAnimations.lowPowerMode.footer" = "Режим энергосбережения временно отключает анимации повторения, не изменяя эту настройку.";
+"settings.reviewAnimations.lowPowerMode.paused" = "Приостановлено режимом энергосбережения";
 "settings.aiChatSuggestions.title" = "Подсказки AI-чата";
 "settings.aiChatSuggestions.toggle" = "Показывать подсказки в поле ввода";
 "settings.aiChatSuggestions.description" = "Когда настройка выключена, AI-чат не показывает предложенные запросы над полем ввода.";

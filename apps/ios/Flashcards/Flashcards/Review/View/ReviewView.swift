@@ -14,6 +14,7 @@ private let reviewQueuePreviewPageSize: Int = 50
 
 struct ReviewView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.isLowPowerModeEnabled) var isLowPowerModeEnabled: Bool
     @Environment(FlashcardsStore.self) var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
 
@@ -22,7 +23,8 @@ struct ReviewView: View {
     @State var preparedRevealState: PreparedReviewRevealState? = nil
     // Keep the next review card warm so the next front can appear immediately after rating.
     @State var preparedNextRevealState: PreparedReviewRevealState? = nil
-    @State var hasStartedReviewReactionLottiePrewarm: Bool = false
+    @State var reviewReactionLottiePrewarmTask: Task<Void, Never>?
+    @State var reviewReactionLottiePrewarmId: UUID?
     @State var reviewReactionLottieAssetStore: ReviewReactionLottieAssetStore = makePendingReviewReactionLottieAssetStore()
     @State var activeReviewReactionEvents: [ReviewReactionEvent] = []
     @State var isQueuePreviewPresented: Bool = false
@@ -60,6 +62,10 @@ struct ReviewView: View {
         case .tag(let tag):
             return tag
         }
+    }
+
+    var areReviewReactionAnimationsEnabled: Bool {
+        store.accountPreferences.reviewReactionAnimationsEnabled && self.isLowPowerModeEnabled == false
     }
 
     private func reviewFilterMenuItemLabel(reviewFilter: ReviewFilter) -> String {
@@ -132,14 +138,15 @@ struct ReviewView: View {
         .accessibilityIdentifier(UITestIdentifier.reviewScreen)
         .navigationTitle(String(localized: "Review", table: reviewCardsStringsTableName))
         .onAppear {
-            if store.accountPreferences.reviewReactionAnimationsEnabled {
+            if self.areReviewReactionAnimationsEnabled {
                 self.prewarmReviewReactionLottieAssets()
             }
         }
-        .onChange(of: store.accountPreferences.reviewReactionAnimationsEnabled) { _, isEnabled in
+        .onChange(of: self.areReviewReactionAnimationsEnabled) { _, isEnabled in
             if isEnabled {
                 self.prewarmReviewReactionLottieAssets()
             } else {
+                self.cancelReviewReactionLottiePrewarm()
                 self.dismissActiveReviewReactions()
             }
         }
@@ -149,6 +156,7 @@ struct ReviewView: View {
         }
         .onDisappear {
             self.reviewSpeechController.stopSpeech()
+            self.cancelReviewReactionLottiePrewarm()
         }
         .task(id: preparedRevealStatesTaskId) {
             await self.refreshPreparedRevealStates(reviewQueue: store.effectiveReviewQueue)
@@ -704,7 +712,7 @@ struct ReviewView: View {
 
     private func reviewAnswerButton(cardId: String, option: ReviewAnswerOption) -> some View {
         Button {
-            if store.accountPreferences.reviewReactionAnimationsEnabled {
+            if self.areReviewReactionAnimationsEnabled {
                 self.emitReviewReaction(rating: option.rating)
             }
             self.submitReview(cardId: cardId, rating: option.rating)

@@ -171,6 +171,8 @@
 "settings.currentWorkspace.renameLinkedOnly" = "El cambio de nombre del espacio de trabajo solo esta disponible para espacios de trabajo en la nube vinculados.";
 "settings.reviewAnimations.title" = "Animaciones de repaso";
 "settings.reviewAnimations.toggle" = "Mostrar animaciones despues de valorar una tarjeta";
+"settings.reviewAnimations.lowPowerMode.footer" = "El modo de bajo consumo desactiva temporalmente las animaciones de repaso sin cambiar este ajuste.";
+"settings.reviewAnimations.lowPowerMode.paused" = "En pausa por el modo de bajo consumo";
 "settings.aiChatSuggestions.title" = "Sugerencias del chat con IA";
 "settings.aiChatSuggestions.toggle" = "Mostrar sugerencias en el redactor";
 "settings.aiChatSuggestions.description" = "Cuando está desactivado, el chat con IA no muestra sugerencias de mensajes encima del redactor.";

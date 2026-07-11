@@ -171,6 +171,8 @@
 "settings.currentWorkspace.renameLinkedOnly" = "إعادة تسمية مساحة العمل متاحة فقط لمساحات العمل السحابية المرتبطة.";
 "settings.reviewAnimations.title" = "رسوم المراجعة المتحركة";
 "settings.reviewAnimations.toggle" = "إظهار الرسوم المتحركة بعد تقييم بطاقة";
+"settings.reviewAnimations.lowPowerMode.footer" = "يعطّل نمط الطاقة المنخفضة رسوم المراجعة المتحركة مؤقتًا دون تغيير هذا الإعداد.";
+"settings.reviewAnimations.lowPowerMode.paused" = "متوقفة مؤقتًا بسبب نمط الطاقة المنخفضة";
 "settings.aiChatSuggestions.title" = "اقتراحات دردشة الذكاء الاصطناعي";
 "settings.aiChatSuggestions.toggle" = "إظهار اقتراحات محرر الرسائل";
 "settings.aiChatSuggestions.description" = "عند إيقاف هذا الخيار، لن تعرض دردشة الذكاء الاصطناعي اقتراحات فوق محرر الرسائل.";

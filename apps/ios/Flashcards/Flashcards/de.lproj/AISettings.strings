@@ -171,6 +171,8 @@
 "settings.currentWorkspace.renameLinkedOnly" = "Das Umbenennen von Arbeitsbereichen ist nur fur verknupfte Cloud-Arbeitsbereiche verfugbar.";
 "settings.reviewAnimations.title" = "Wiederholungsanimationen";
 "settings.reviewAnimations.toggle" = "Animationen nach dem Bewerten einer Karte anzeigen";
+"settings.reviewAnimations.lowPowerMode.footer" = "Der Stromsparmodus deaktiviert Wiederholungsanimationen vorübergehend, ohne diese Einstellung zu ändern.";
+"settings.reviewAnimations.lowPowerMode.paused" = "Durch Stromsparmodus pausiert";
 "settings.aiChatSuggestions.title" = "KI-Chat-Vorschläge";
 "settings.aiChatSuggestions.toggle" = "Vorschläge im Texteingabefeld anzeigen";
 "settings.aiChatSuggestions.description" = "Wenn diese Einstellung aus ist, zeigt der KI-Chat keine vorgeschlagenen Prompts über dem Texteingabefeld.";

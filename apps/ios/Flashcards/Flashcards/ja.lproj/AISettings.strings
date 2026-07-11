@@ -171,6 +171,8 @@
 "settings.currentWorkspace.renameLinkedOnly" = "ワークスペース名の変更は、リンク済みのクラウドワークスペースでのみ利用できます。";
 "settings.reviewAnimations.title" = "復習アニメーション";
 "settings.reviewAnimations.toggle" = "カード評価後にアニメーションを表示";
+"settings.reviewAnimations.lowPowerMode.footer" = "低電力モードでは、この設定を変更せずに復習アニメーションが一時的に無効になります。";
+"settings.reviewAnimations.lowPowerMode.paused" = "低電力モードにより一時停止中";
 "settings.aiChatSuggestions.title" = "AIチャットの候補";
 "settings.aiChatSuggestions.toggle" = "入力欄の候補を表示";
 "settings.aiChatSuggestions.description" = "オフにすると、AIチャットは入力欄の上に候補プロンプトを表示しません。";

@@ -171,6 +171,8 @@
 "settings.currentWorkspace.renameLinkedOnly" = "只有已关联的云端工作空间可以重命名。";
 "settings.reviewAnimations.title" = "复习动画";
 "settings.reviewAnimations.toggle" = "给卡片评分后显示动画";
+"settings.reviewAnimations.lowPowerMode.footer" = "低电量模式会暂时停用复习动画，但不会更改此设置。";
+"settings.reviewAnimations.lowPowerMode.paused" = "已因低电量模式暂停";
 "settings.aiChatSuggestions.title" = "AI 聊天建议";
 "settings.aiChatSuggestions.toggle" = "显示输入框建议";
 "settings.aiChatSuggestions.description" = "关闭后，AI 聊天不会在输入框上方显示建议提示。";

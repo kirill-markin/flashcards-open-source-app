@@ -44,6 +44,7 @@ enum ReviewReactionLottieAssetLoadResult: @unchecked Sendable {
 }
 
 typealias ReviewReactionLottieAssetLoadHandler = @MainActor @Sendable (ReviewReactionLottieAssetLoadResult) -> Void
+typealias ReviewReactionLottieAssetPrewarmCompletionHandler = @MainActor @Sendable () -> Void
 
 struct ReviewReactionLottieAssetStore {
     let readyAnimations: [ReviewReactionVariant: LottieAnimation]
@@ -413,16 +414,35 @@ func reviewReactionLottiePrewarmAssetConfigurations() -> [ReviewReactionLottieAs
 }
 
 func startReviewReactionLottieAssetPrewarm(
-    onLoadResult: @escaping ReviewReactionLottieAssetLoadHandler
-) {
-    Task.detached(priority: .utility) {
-        for assetConfiguration in reviewReactionLottiePrewarmAssetConfigurations() {
+    pendingVariants: Set<ReviewReactionVariant>,
+    onLoadResult: @escaping ReviewReactionLottieAssetLoadHandler,
+    onCompletion: @escaping ReviewReactionLottieAssetPrewarmCompletionHandler
+) -> Task<Void, Never> {
+    let pendingAssetConfigurations: [ReviewReactionLottieAssetConfiguration] = reviewReactionLottiePrewarmAssetConfigurations()
+        .filter { assetConfiguration in
+            pendingVariants.contains(assetConfiguration.variant)
+        }
+
+    return Task.detached(priority: .utility) {
+        for assetConfiguration in pendingAssetConfigurations {
+            guard Task.isCancelled == false else {
+                break
+            }
             let loadResult: ReviewReactionLottieAssetLoadResult = loadReviewReactionLottieAsset(
                 assetConfiguration: assetConfiguration
             )
+            guard Task.isCancelled == false else {
+                break
+            }
             await MainActor.run {
+                guard Task.isCancelled == false else {
+                    return
+                }
                 onLoadResult(loadResult)
             }
+        }
+        await MainActor.run {
+            onCompletion()
         }
     }
 }

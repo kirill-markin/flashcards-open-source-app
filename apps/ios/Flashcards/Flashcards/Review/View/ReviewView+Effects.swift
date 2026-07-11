@@ -2,16 +2,45 @@ import SwiftUI
 
 extension ReviewView {
     func prewarmReviewReactionLottieAssets() {
-        if self.hasStartedReviewReactionLottiePrewarm {
+        guard self.areReviewReactionAnimationsEnabled else {
+            return
+        }
+        guard self.reviewReactionLottiePrewarmTask == nil else {
+            return
+        }
+        let pendingVariants: Set<ReviewReactionVariant> = self.reviewReactionLottieAssetStore.pendingVariants
+        guard pendingVariants.isEmpty == false else {
             return
         }
 
-        self.hasStartedReviewReactionLottiePrewarm = true
-        startReviewReactionLottieAssetPrewarm { loadResult in
-            self.reviewReactionLottieAssetStore = self.reviewReactionLottieAssetStore.recordingLoadResult(
-                loadResult: loadResult
-            )
+        let prewarmId = UUID()
+        self.reviewReactionLottiePrewarmId = prewarmId
+        self.reviewReactionLottiePrewarmTask = startReviewReactionLottieAssetPrewarm(
+            pendingVariants: pendingVariants,
+            onLoadResult: { loadResult in
+                self.reviewReactionLottieAssetStore = self.reviewReactionLottieAssetStore.recordingLoadResult(
+                    loadResult: loadResult
+                )
+            },
+            onCompletion: {
+                self.finishReviewReactionLottiePrewarm(prewarmId: prewarmId)
+            }
+        )
+    }
+
+    func cancelReviewReactionLottiePrewarm() {
+        self.reviewReactionLottiePrewarmTask?.cancel()
+        self.reviewReactionLottiePrewarmTask = nil
+        self.reviewReactionLottiePrewarmId = nil
+    }
+
+    private func finishReviewReactionLottiePrewarm(prewarmId: UUID) {
+        guard self.reviewReactionLottiePrewarmId == prewarmId else {
+            return
         }
+
+        self.reviewReactionLottiePrewarmTask = nil
+        self.reviewReactionLottiePrewarmId = nil
     }
 
     func emitReviewReaction(rating: ReviewRating) {
