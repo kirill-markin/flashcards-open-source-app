@@ -27,6 +27,11 @@ internal fun NavGraphBuilder.registerSettingsNavGraph(
             coroutineScope = coroutineScope,
             reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore
         )
+        registerSettingsNotificationsDestination(
+            appGraph = appGraph,
+            navController = navController,
+            coroutineScope = coroutineScope
+        )
         registerSettingsWorkspaceNavGraph(
             appGraph = appGraph,
             navController = navController,

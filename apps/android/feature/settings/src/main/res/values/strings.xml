@@ -90,8 +90,8 @@
     <string name="settings_share_app_text">Study with Flashcards. Your cards stay available across iOS, Android, and the web.</string>
     <string name="settings_root_test_title">Test</string>
     <string name="settings_root_test_summary">3 items</string>
-    <string name="settings_review_reminders_title">Reminders</string>
-    <string name="settings_review_reminders_summary">Workspace reminders and streak reminders</string>
+    <string name="settings_review_reminders_title">Notifications</string>
+    <string name="settings_review_reminders_summary">Study notifications on this device</string>
     <string name="settings_review_animations_title">Review Animations</string>
     <string name="settings_review_animations_summary">Show animations after rating a card</string>
     <string name="settings_review_animations_toggle_title">Show animations after rating a card</string>
@@ -216,7 +216,7 @@
     <string name="settings_notification_diagnostics_delivered_other_label">Other review-channel notifications</string>
     <string name="settings_notification_diagnostics_enabled_label">Enabled</string>
     <string name="settings_notification_diagnostics_mode_label">Mode</string>
-    <string name="settings_notification_diagnostics_inactivity_window_label">Cards reminder window</string>
+    <string name="settings_notification_diagnostics_inactivity_window_label">Break time window</string>
     <string name="settings_notification_diagnostics_window_format">%1$s to %2$s</string>
     <string name="settings_notification_diagnostics_idle_minutes_label">Idle minutes</string>
     <string name="settings_notification_diagnostics_work_limit_label">Work limit</string>
@@ -368,9 +368,9 @@
     <string name="settings_access_photos_guidance">Android 14+ uses the system photo picker here, so broad storage access is not required.</string>
     <string name="settings_access_files_guidance">Android uses the system document picker here, so broad storage access is not required.</string>
 
-    <string name="settings_notifications_title">Reminders</string>
+    <string name="settings_notifications_title">Notifications</string>
     <string name="settings_notifications_this_device_title">This device only</string>
-    <string name="settings_notifications_this_device_body">Study reminders stay on this device and contain cards only, never marketing.</string>
+    <string name="settings_notifications_this_device_body">These settings stay on this device. Notifications use the currently selected workspace and never contain marketing.</string>
     <string name="settings_notifications_permission_title">Permission</string>
     <string name="settings_notifications_allow_button">Allow notifications</string>
     <string name="settings_notifications_permission_guidance_allowed">Android can deliver enabled study reminders.</string>
@@ -378,19 +378,19 @@
     <string name="settings_notifications_permission_guidance_blocked">Android is blocking study reminders. Open app settings to allow notifications again.</string>
     <string name="settings_notifications_strict_reminders_title">Streak reminders</string>
     <string name="settings_notifications_strict_reminders_body">If you have not reviewed today, Flashcards reminds you 4, 3, and 2 hours before midnight so you can keep your streak.</string>
-    <string name="settings_notifications_reminders_title">Workspace reminders</string>
-    <string name="settings_notifications_reminders_body">Send cards from the current workspace.</string>
+    <string name="settings_notifications_reminders_title">Enable notifications</string>
+    <string name="settings_notifications_reminders_body">Turn all study notifications on or off.</string>
     <string name="settings_notifications_show_app_icon_badge_title">Show app icon badge</string>
     <string name="settings_notifications_show_app_icon_badge_body">Supported launchers may show a red 1 or dot while a review reminder notification is active. Opening the app or completing a review clears delivered review reminders.</string>
-    <string name="settings_notifications_mode_daily">Daily</string>
-    <string name="settings_notifications_mode_inactivity">Cards</string>
-    <string name="settings_notifications_daily_title">Daily reminder</string>
-    <string name="settings_notifications_daily_example">Send one card every day at the selected time.</string>
-    <string name="settings_notifications_inactivity_title">Cards reminder</string>
-    <string name="settings_notifications_inactivity_example">Send a card after you have been away for a while, during the time window you choose.</string>
+    <string name="settings_notifications_mode_daily">Once daily</string>
+    <string name="settings_notifications_mode_inactivity">After a break</string>
+    <string name="settings_notifications_daily_title">Time</string>
+    <string name="settings_notifications_daily_example">Send one card once per day at the selected time.</string>
+    <string name="settings_notifications_inactivity_title">Time window</string>
+    <string name="settings_notifications_inactivity_example">After you have been inactive, send a card during this window and repeat at the selected interval.</string>
     <string name="settings_notifications_from_title">From</string>
     <string name="settings_notifications_to_title">To</string>
-    <string name="settings_notifications_remind_after_title">Remind me after</string>
+    <string name="settings_notifications_remind_after_title">Repeat every</string>
 
     <string name="settings_workspace_decks_title">Decks</string>
     <string name="settings_workspace_tags_title">Tags</string>

@@ -337,6 +337,10 @@ private fun NotificationDiagnosticsReviewPayloadCard(
         title = stringResource(R.string.settings_notification_diagnostics_payload_title, index + 1),
         rows = listOfNotNull(
             NotificationDiagnosticsInfoRow(
+                label = stringResource(R.string.settings_device_workspace_id_label),
+                value = payload.workspaceId
+            ),
+            NotificationDiagnosticsInfoRow(
                 label = stringResource(R.string.settings_notification_diagnostics_request_id_label),
                 value = payload.requestId
             ),
@@ -380,6 +384,10 @@ private fun NotificationDiagnosticsStrictReminderPayloadCard(
     NotificationDiagnosticsInfoCard(
         title = stringResource(R.string.settings_notification_diagnostics_payload_title, index + 1),
         rows = listOf(
+            NotificationDiagnosticsInfoRow(
+                label = stringResource(R.string.settings_device_workspace_id_label),
+                value = payload.workspaceId
+            ),
             NotificationDiagnosticsInfoRow(
                 label = stringResource(R.string.settings_notification_diagnostics_request_id_label),
                 value = payload.requestId

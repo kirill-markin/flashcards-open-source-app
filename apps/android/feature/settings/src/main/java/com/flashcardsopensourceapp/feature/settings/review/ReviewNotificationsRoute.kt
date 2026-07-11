@@ -8,12 +8,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -102,6 +107,25 @@ fun ReviewNotificationsRoute(
         }
     }
 
+    if (uiState.isLoaded.not()) {
+        SettingsScreenScaffold(
+            title = stringResource(R.string.settings_notifications_title),
+            onBack = onBack,
+            isBackEnabled = true
+        ) { innerPadding ->
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .testTag(tag = reviewNotificationsScreenTag)
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+        return
+    }
+
     SettingsScreenScaffold(
         title = stringResource(R.string.settings_notifications_title),
         onBack = onBack,
@@ -170,7 +194,10 @@ fun ReviewNotificationsRoute(
                                 }
                             )
 
-                            if (uiState.settings.selectedMode == ReviewNotificationMode.DAILY) {
+                            if (
+                                uiState.settings.isEnabled &&
+                                uiState.settings.selectedMode == ReviewNotificationMode.DAILY
+                            ) {
                                 ReviewNotificationModeSelector(
                                     selectedMode = uiState.settings.selectedMode,
                                     onUpdateMode = onUpdateMode
@@ -191,7 +218,7 @@ fun ReviewNotificationsRoute(
                                         )
                                     }
                                 )
-                            } else {
+                            } else if (uiState.settings.isEnabled) {
                                 ReviewNotificationModeSelector(
                                     selectedMode = uiState.settings.selectedMode,
                                     onUpdateMode = onUpdateMode
@@ -237,23 +264,10 @@ fun ReviewNotificationsRoute(
                                         Text(stringResource(R.string.settings_notifications_remind_after_title))
                                     },
                                     trailingContent = {
-                                        SingleChoiceSegmentedButtonRow {
-                                            listOf(60, 120, 180).forEachIndexed { index, value ->
-                                                SegmentedButton(
-                                                    selected = uiState.settings.inactivity.idleMinutes == value,
-                                                    onClick = {
-                                                        onUpdateIdleMinutes(value)
-                                                    },
-                                                    shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
-                                                        index = index,
-                                                        count = 3
-                                                    ),
-                                                    label = {
-                                                        Text(idleMinutesLabel(minutes = value))
-                                                    }
-                                                )
-                                            }
-                                        }
+                                        IdleMinutesDropdown(
+                                            selectedMinutes = uiState.settings.inactivity.idleMinutes,
+                                            onUpdateIdleMinutes = onUpdateIdleMinutes
+                                        )
                                     }
                                 )
                             }
@@ -261,56 +275,87 @@ fun ReviewNotificationsRoute(
                     }
                 }
 
-                item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        ListItem(
-                            headlineContent = {
-                                Text(stringResource(R.string.settings_notifications_show_app_icon_badge_title))
-                            },
-                            supportingContent = {
-                                Text(stringResource(R.string.settings_notifications_show_app_icon_badge_body))
-                            },
-                            trailingContent = {
-                                Switch(
-                                    checked = uiState.settings.showAppIconBadge,
-                                    onCheckedChange = onUpdateShowAppIconBadge
-                                )
-                            }
-                        )
+                if (uiState.settings.isEnabled) {
+                    item {
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            ListItem(
+                                headlineContent = {
+                                    Text(stringResource(R.string.settings_notifications_show_app_icon_badge_title))
+                                },
+                                supportingContent = {
+                                    Text(stringResource(R.string.settings_notifications_show_app_icon_badge_body))
+                                },
+                                trailingContent = {
+                                    Switch(
+                                        checked = uiState.settings.showAppIconBadge,
+                                        onCheckedChange = onUpdateShowAppIconBadge
+                                    )
+                                }
+                            )
+                        }
                     }
-                }
 
-                item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        ListItem(
-                            headlineContent = {
-                                Text(stringResource(R.string.settings_notifications_strict_reminders_title))
-                            },
-                            supportingContent = {
-                                Text(stringResource(R.string.settings_notifications_strict_reminders_body))
-                            },
-                            trailingContent = {
-                                Switch(
-                                    checked = uiState.strictRemindersSettings.isEnabled,
-                                    onCheckedChange = onUpdateStrictRemindersEnabled
-                                )
-                            }
-                        )
+                    item {
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            ListItem(
+                                headlineContent = {
+                                    Text(stringResource(R.string.settings_notifications_strict_reminders_title))
+                                },
+                                supportingContent = {
+                                    Text(stringResource(R.string.settings_notifications_strict_reminders_body))
+                                },
+                                trailingContent = {
+                                    Switch(
+                                        checked = uiState.strictRemindersSettings.isEnabled,
+                                        onCheckedChange = onUpdateStrictRemindersEnabled
+                                    )
+                                }
+                            )
+                        }
                     }
-                }
 
-                item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        ListItem(
-                            headlineContent = {
-                                Text(stringResource(R.string.settings_notifications_this_device_title))
-                            },
-                            supportingContent = {
-                                Text(stringResource(R.string.settings_notifications_this_device_body))
-                            }
-                        )
+                    item {
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            ListItem(
+                                headlineContent = {
+                                    Text(stringResource(R.string.settings_notifications_this_device_title))
+                                },
+                                supportingContent = {
+                                    Text(stringResource(R.string.settings_notifications_this_device_body))
+                                }
+                            )
+                        }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IdleMinutesDropdown(
+    selectedMinutes: Int,
+    onUpdateIdleMinutes: (Int) -> Unit
+) {
+    var isExpanded by remember { mutableStateOf(value = false) }
+    val intervalMinutes = listOf(30, 60, 90, 120, 180, 240)
+
+    Box {
+        TextButton(onClick = { isExpanded = true }) {
+            Text(idleMinutesLabel(minutes = selectedMinutes))
+        }
+        DropdownMenu(
+            expanded = isExpanded,
+            onDismissRequest = { isExpanded = false }
+        ) {
+            intervalMinutes.forEach { minutes ->
+                DropdownMenuItem(
+                    text = { Text(idleMinutesLabel(minutes = minutes)) },
+                    onClick = {
+                        isExpanded = false
+                        onUpdateIdleMinutes(minutes)
+                    }
+                )
             }
         }
     }

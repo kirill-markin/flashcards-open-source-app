@@ -12,8 +12,7 @@ enum class ReviewNotificationPermissionUiStatus {
 }
 
 data class ReviewNotificationsUiState(
-    val workspaceId: String?,
-    val workspaceName: String,
+    val isLoaded: Boolean,
     val settings: ReviewNotificationsSettings,
     val strictRemindersSettings: StrictRemindersSettings,
     val hasRequestedSystemPermission: Boolean
@@ -21,8 +20,7 @@ data class ReviewNotificationsUiState(
 
 fun initialReviewNotificationsUiState(): ReviewNotificationsUiState {
     return ReviewNotificationsUiState(
-        workspaceId = null,
-        workspaceName = "",
+        isLoaded = false,
         settings = defaultReviewNotificationsSettings(),
         strictRemindersSettings = defaultStrictRemindersSettings(),
         hasRequestedSystemPermission = false
