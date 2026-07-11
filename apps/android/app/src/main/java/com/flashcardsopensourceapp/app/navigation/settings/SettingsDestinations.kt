@@ -72,7 +72,7 @@ data object SettingsWorkspaceSchedulerDestination {
     const val route: String = "settings/scheduling"
 }
 
-data object SettingsWorkspaceNotificationsDestination {
+data object SettingsNotificationsDestination {
     const val route: String = "settings/review-reminders"
 }
 

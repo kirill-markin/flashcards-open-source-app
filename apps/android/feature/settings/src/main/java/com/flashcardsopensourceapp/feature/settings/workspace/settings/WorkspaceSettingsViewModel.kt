@@ -10,7 +10,6 @@ import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
-import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
@@ -44,7 +43,6 @@ private data class WorkspaceSettingsDraftState(
 class WorkspaceSettingsViewModel(
     workspaceRepository: WorkspaceRepository,
     private val cloudAccountRepository: CloudAccountRepository,
-    reviewNotificationsStore: ReviewNotificationsStore,
     private val technicalErrorController: AppTechnicalErrorController,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
@@ -64,22 +62,14 @@ class WorkspaceSettingsViewModel(
     val uiState: StateFlow<WorkspaceSettingsUiState> = combine(
         workspaceRepository.observeWorkspaceOverview(),
         workspaceRepository.observeWorkspaceSchedulerSettings(),
-        workspaceRepository.observeWorkspace(),
         cloudAccountRepository.observeCloudSettings(),
         draftState
-    ) { overview, schedulerSettings, workspace, cloudSettings, draft ->
+    ) { overview, schedulerSettings, cloudSettings, draft ->
         WorkspaceSettingsUiState(
             workspaceName = overview?.workspaceName ?: strings.get(R.string.settings_unavailable),
             deckCount = overview?.deckCount ?: 0,
             totalCards = overview?.totalCards ?: 0,
             tagCount = overview?.tagsCount ?: 0,
-            notificationsSummary = workspace?.let {
-                if (reviewNotificationsStore.loadSettings().isEnabled) {
-                    strings.get(R.string.settings_on)
-                } else {
-                    strings.get(R.string.settings_off)
-                }
-            } ?: strings.get(R.string.settings_unavailable),
             schedulerSummary = schedulerSettings?.let { settings ->
                 formatWorkspaceSchedulerSummary(settings = settings, strings = strings)
             } ?: strings.get(R.string.settings_unavailable),
@@ -102,7 +92,6 @@ class WorkspaceSettingsViewModel(
             deckCount = 0,
             totalCards = 0,
             tagCount = 0,
-            notificationsSummary = strings.get(R.string.settings_loading),
             schedulerSummary = strings.get(R.string.settings_loading),
             exportSummary = strings.get(R.string.settings_export_package_summary),
             isLinked = false,
@@ -337,7 +326,6 @@ class WorkspaceSettingsViewModel(
 fun createWorkspaceSettingsViewModelFactory(
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
-    reviewNotificationsStore: ReviewNotificationsStore,
     technicalErrorController: AppTechnicalErrorController,
     applicationContext: Context
 ): ViewModelProvider.Factory {
@@ -346,7 +334,6 @@ fun createWorkspaceSettingsViewModelFactory(
             WorkspaceSettingsViewModel(
                 workspaceRepository = workspaceRepository,
                 cloudAccountRepository = cloudAccountRepository,
-                reviewNotificationsStore = reviewNotificationsStore,
                 technicalErrorController = technicalErrorController,
                 strings = createSettingsStringResolver(context = applicationContext)
             )

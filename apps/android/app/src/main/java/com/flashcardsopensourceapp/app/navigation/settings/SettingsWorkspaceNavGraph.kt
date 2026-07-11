@@ -1,7 +1,6 @@
 package com.flashcardsopensourceapp.app.navigation.settings
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -12,8 +11,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
-import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
-import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.feature.settings.deck.DeckDetailRoute
 import com.flashcardsopensourceapp.feature.settings.deck.DeckEditorSaveResult
 import com.flashcardsopensourceapp.feature.settings.deck.DeckEditorRoute
@@ -23,8 +20,6 @@ import com.flashcardsopensourceapp.feature.settings.deck.createAllCardsDeckDetai
 import com.flashcardsopensourceapp.feature.settings.deck.createDeckDetailViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.deck.createDeckEditorViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.deck.createDecksViewModelFactory
-import com.flashcardsopensourceapp.feature.settings.review.ReviewNotificationsRoute
-import com.flashcardsopensourceapp.feature.settings.review.createReviewNotificationsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.scheduler.SchedulerSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.scheduler.createSchedulerSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.workspace.delete.DeleteCurrentWorkspaceRoute
@@ -40,8 +35,6 @@ import com.flashcardsopensourceapp.feature.settings.workspace.tags.createWorkspa
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
@@ -55,7 +48,6 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
             factory = createWorkspaceSettingsViewModelFactory(
                 workspaceRepository = appGraph.workspaceRepository,
                 cloudAccountRepository = appGraph.cloudAccountRepository,
-                reviewNotificationsStore = appGraph.reviewNotificationsStore,
                 technicalErrorController = appGraph.appMessageBus,
                 applicationContext = context.applicationContext
             )
@@ -70,111 +62,6 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
             onRequestResetProgress = workspaceSettingsViewModel::requestResetProgressAsync,
             onDismissResetPreviewAlert = workspaceSettingsViewModel::dismissResetPreviewAlert,
             onResetProgress = workspaceSettingsViewModel::resetProgressAsync,
-            onBack = {
-                navController.popBackStack()
-            }
-        )
-    }
-
-    composable(route = SettingsWorkspaceNotificationsDestination.route) {
-        val notificationSchedulingMutex = remember { Mutex() }
-        val reviewNotificationsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.review.ReviewNotificationsViewModel>(
-            factory = createReviewNotificationsViewModelFactory(
-                workspaceRepository = appGraph.workspaceRepository,
-                reviewNotificationsStore = appGraph.reviewNotificationsStore,
-                strictRemindersStore = appGraph.strictRemindersStore,
-                onNotificationsMasterChanged = { isEnabled ->
-                    coroutineScope.launch {
-                        notificationSchedulingMutex.withLock {
-                            val nowMillis = System.currentTimeMillis()
-                            if (isEnabled) {
-                                appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotificationsAndWait(
-                                    trigger = ReviewNotificationsReconcileTrigger.SETTINGS_CHANGED,
-                                    nowMillis = nowMillis
-                                )
-                                appGraph.strictRemindersManager.reconcileStrictRemindersAndWait(
-                                    trigger = StrictRemindersReconcileTrigger.SETTINGS_CHANGED,
-                                    nowMillis = nowMillis
-                                )
-                            } else {
-                                appGraph.strictRemindersManager.reconcileStrictRemindersAndWait(
-                                    trigger = StrictRemindersReconcileTrigger.SETTINGS_CHANGED,
-                                    nowMillis = nowMillis
-                                )
-                                appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotificationsAndWait(
-                                    trigger = ReviewNotificationsReconcileTrigger.SETTINGS_CHANGED,
-                                    nowMillis = nowMillis
-                                )
-                            }
-                        }
-                    }
-                },
-                onReviewSettingsChanged = {
-                    coroutineScope.launch {
-                        notificationSchedulingMutex.withLock {
-                            appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotificationsAndWait(
-                                trigger = ReviewNotificationsReconcileTrigger.SETTINGS_CHANGED,
-                                nowMillis = System.currentTimeMillis()
-                            )
-                        }
-                    }
-                },
-                onStrictRemindersSettingsChanged = { isEnabled ->
-                    coroutineScope.launch {
-                        notificationSchedulingMutex.withLock {
-                            val nowMillis = System.currentTimeMillis()
-                            if (isEnabled) {
-                                appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotificationsAndWait(
-                                    trigger = ReviewNotificationsReconcileTrigger.SETTINGS_CHANGED,
-                                    nowMillis = nowMillis
-                                )
-                                appGraph.strictRemindersManager.reconcileStrictRemindersAndWait(
-                                    trigger = StrictRemindersReconcileTrigger.SETTINGS_CHANGED,
-                                    nowMillis = nowMillis
-                                )
-                            } else {
-                                appGraph.strictRemindersManager.reconcileStrictRemindersAndWait(
-                                    trigger = StrictRemindersReconcileTrigger.SETTINGS_CHANGED,
-                                    nowMillis = nowMillis
-                                )
-                                appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotificationsAndWait(
-                                    trigger = ReviewNotificationsReconcileTrigger.SETTINGS_CHANGED,
-                                    nowMillis = nowMillis
-                                )
-                            }
-                        }
-                    }
-                },
-                onAppIconBadgeDisabled = {
-                    coroutineScope.launch {
-                        appGraph.reviewNotificationsManager.clearDeliveredReviewReminderNotifications()
-                    }
-                }
-            )
-        )
-        val uiState by reviewNotificationsViewModel.uiState.collectAsStateWithLifecycle()
-
-        ReviewNotificationsRoute(
-            uiState = uiState,
-            onUpdateEnabled = reviewNotificationsViewModel::updateEnabled,
-            onUpdateMode = reviewNotificationsViewModel::updateMode,
-            onUpdateDailyTime = reviewNotificationsViewModel::updateDailyTime,
-            onUpdateInactivityWindowStart = reviewNotificationsViewModel::updateInactivityWindowStart,
-            onUpdateInactivityWindowEnd = reviewNotificationsViewModel::updateInactivityWindowEnd,
-            onUpdateIdleMinutes = reviewNotificationsViewModel::updateIdleMinutes,
-            onUpdateShowAppIconBadge = reviewNotificationsViewModel::updateShowAppIconBadge,
-            onUpdateStrictRemindersEnabled = reviewNotificationsViewModel::updateStrictRemindersEnabled,
-            onMarkSystemPermissionRequested = reviewNotificationsViewModel::markSystemPermissionRequested,
-            onPermissionGranted = {
-                appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
-                    trigger = ReviewNotificationsReconcileTrigger.PERMISSION_CHANGED,
-                    nowMillis = System.currentTimeMillis()
-                )
-                appGraph.strictRemindersManager.reconcileStrictReminders(
-                    trigger = StrictRemindersReconcileTrigger.PERMISSION_CHANGED,
-                    nowMillis = System.currentTimeMillis()
-                )
-            },
             onBack = {
                 navController.popBackStack()
             }

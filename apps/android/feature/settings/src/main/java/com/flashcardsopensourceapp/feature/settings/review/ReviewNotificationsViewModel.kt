@@ -23,7 +23,6 @@ class ReviewNotificationsViewModel(
     private val workspaceRepository: WorkspaceRepository,
     private val reviewNotificationsStore: ReviewNotificationsStore,
     private val strictRemindersStore: StrictRemindersStore,
-    private val onNotificationsMasterChanged: (Boolean) -> Unit,
     private val onReviewSettingsChanged: () -> Unit,
     private val onStrictRemindersSettingsChanged: (Boolean) -> Unit,
     private val onAppIconBadgeDisabled: () -> Unit
@@ -41,8 +40,7 @@ class ReviewNotificationsViewModel(
         reviewNotificationsStore.migrateLegacySettings(currentWorkspaceId = workspace.workspaceId)
         val promptState = reviewNotificationsStore.loadPromptState()
         ReviewNotificationsUiState(
-            workspaceId = workspace.workspaceId,
-            workspaceName = workspace.name,
+            isLoaded = true,
             settings = reviewNotificationsStore.loadSettings(),
             strictRemindersSettings = strictRemindersStore.loadStrictRemindersSettings(),
             hasRequestedSystemPermission = promptState.hasRequestedSystemPermission
@@ -54,13 +52,9 @@ class ReviewNotificationsViewModel(
     )
 
     fun updateEnabled(isEnabled: Boolean) {
-        if (uiState.value.workspaceId == null) {
-            return
+        updateSettings { settings ->
+            settings.copy(isEnabled = isEnabled)
         }
-        val nextSettings = uiState.value.settings.copy(isEnabled = isEnabled)
-        reviewNotificationsStore.saveSettings(settings = nextSettings)
-        refreshVersion.update { version -> version + 1 }
-        onNotificationsMasterChanged(isEnabled)
     }
 
     fun updateMode(mode: ReviewNotificationMode) {
@@ -111,21 +105,18 @@ class ReviewNotificationsViewModel(
     }
 
     fun updateShowAppIconBadge(value: Boolean) {
-        if (uiState.value.workspaceId == null) {
-            return
-        }
-        updateSettings { settings ->
+        val didUpdate = updateSettings { settings ->
             settings.copy(showAppIconBadge = value)
         }
         // When the toggle is turned off, drop any badge currently shown so the
         // user gets immediate feedback rather than waiting for a future event.
-        if (value.not()) {
+        if (didUpdate && value.not()) {
             onAppIconBadgeDisabled()
         }
     }
 
     fun updateStrictRemindersEnabled(isEnabled: Boolean) {
-        if (uiState.value.workspaceId == null) {
+        if (uiState.value.isLoaded.not()) {
             return
         }
         val nextSettings = StrictRemindersSettings(isEnabled = isEnabled)
@@ -135,7 +126,7 @@ class ReviewNotificationsViewModel(
     }
 
     fun markSystemPermissionRequested() {
-        if (uiState.value.workspaceId == null) {
+        if (uiState.value.isLoaded.not()) {
             return
         }
         val promptState = reviewNotificationsStore.loadPromptState()
@@ -149,14 +140,17 @@ class ReviewNotificationsViewModel(
         refreshVersion.update { version -> version + 1 }
     }
 
-    private fun updateSettings(transform: (ReviewNotificationsSettings) -> ReviewNotificationsSettings) {
-        if (uiState.value.workspaceId == null) {
-            return
+    private fun updateSettings(
+        transform: (ReviewNotificationsSettings) -> ReviewNotificationsSettings
+    ): Boolean {
+        if (uiState.value.isLoaded.not()) {
+            return false
         }
         val nextSettings = transform(uiState.value.settings)
         reviewNotificationsStore.saveSettings(settings = nextSettings)
         refreshVersion.update { version -> version + 1 }
         onReviewSettingsChanged()
+        return true
     }
 }
 
@@ -164,7 +158,6 @@ fun createReviewNotificationsViewModelFactory(
     workspaceRepository: WorkspaceRepository,
     reviewNotificationsStore: ReviewNotificationsStore,
     strictRemindersStore: StrictRemindersStore,
-    onNotificationsMasterChanged: (Boolean) -> Unit,
     onReviewSettingsChanged: () -> Unit,
     onStrictRemindersSettingsChanged: (Boolean) -> Unit,
     onAppIconBadgeDisabled: () -> Unit
@@ -175,7 +168,6 @@ fun createReviewNotificationsViewModelFactory(
                 workspaceRepository = workspaceRepository,
                 reviewNotificationsStore = reviewNotificationsStore,
                 strictRemindersStore = strictRemindersStore,
-                onNotificationsMasterChanged = onNotificationsMasterChanged,
                 onReviewSettingsChanged = onReviewSettingsChanged,
                 onStrictRemindersSettingsChanged = onStrictRemindersSettingsChanged,
                 onAppIconBadgeDisabled = onAppIconBadgeDisabled

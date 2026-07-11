@@ -8,7 +8,6 @@ data class WorkspaceSettingsUiState(
     val deckCount: Int,
     val totalCards: Int,
     val tagCount: Int,
-    val notificationsSummary: String,
     val schedulerSummary: String,
     val exportSummary: String,
     val isLinked: Boolean,

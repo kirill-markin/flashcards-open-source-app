@@ -145,7 +145,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                 navController.navigate(route = SettingsCurrentWorkspaceDestination.route)
             },
             onOpenReviewReminders = {
-                navController.navigate(route = SettingsWorkspaceNotificationsDestination.route)
+                navController.navigate(route = SettingsNotificationsDestination.route)
             },
             onOpenReviewAnimations = {
                 navController.navigate(route = SettingsReviewAnimationsDestination.route)
