@@ -2,8 +2,10 @@ package com.flashcardsopensourceapp.app.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -27,10 +29,16 @@ fun AppNavHost(
     appGraph: AppGraph,
     navController: NavHostController,
     reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
+    reviewReactionAnimationsEnabled: Boolean,
+    isPowerSaveMode: Boolean,
     appNotificationTapRequest: AppNotificationTapHandoffRequest?,
     consumeAppNotificationTap: (Long) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val reviewReactionAnimationsEnabledState: State<Boolean> = rememberUpdatedState(
+        newValue = reviewReactionAnimationsEnabled
+    )
+    val isPowerSaveModeState: State<Boolean> = rememberUpdatedState(newValue = isPowerSaveMode)
     val cardEditorRequest by appGraph.appHandoffCoordinator.observeCardEditor().collectAsStateWithLifecycle()
     val reviewFilterRequest by appGraph.appHandoffCoordinator.observeReviewFilter().collectAsStateWithLifecycle()
     val settingsNavigationRequest by appGraph.appHandoffCoordinator.observeSettingsNavigation().collectAsStateWithLifecycle()
@@ -91,7 +99,8 @@ fun AppNavHost(
         registerReviewNavGraph(
             appGraph = appGraph,
             navController = navController,
-            reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore
+            reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
+            reviewReactionAnimationsEnabledState = reviewReactionAnimationsEnabledState
         )
         registerCardsNavGraph(
             appGraph = appGraph,
@@ -111,7 +120,7 @@ fun AppNavHost(
             navController = navController,
             packageInfo = packageInfo,
             coroutineScope = coroutineScope,
-            reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore
+            isPowerSaveModeState = isPowerSaveModeState
         )
     }
 }

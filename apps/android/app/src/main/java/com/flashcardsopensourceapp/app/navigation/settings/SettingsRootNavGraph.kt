@@ -7,6 +7,7 @@ import android.os.SystemClock
 import android.provider.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -32,7 +33,6 @@ import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationDialog
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationShareEffect
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationViewModel
 import com.flashcardsopensourceapp.feature.friendinvite.createFriendInvitationViewModelFactory
-import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieConfigurationStore
 import com.flashcardsopensourceapp.feature.review.reaction.TestAnimationsRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsFriendInviteAvailability
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
@@ -65,7 +65,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
     navController: NavHostController,
     packageInfo: AppPackageInfo,
     coroutineScope: CoroutineScope,
-    reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore
+    isPowerSaveModeState: State<Boolean>
 ) {
     composable(route = SettingsDestination.route) { backStackEntry ->
         val context = LocalContext.current
@@ -446,7 +446,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
 
     composable(route = SettingsTestAnimationsDestination.route) {
         TestAnimationsRoute(
-            reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
+            isPowerSaveMode = isPowerSaveModeState.value,
             onBack = {
                 navController.popBackStack()
             }

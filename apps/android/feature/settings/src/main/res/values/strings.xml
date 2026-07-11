@@ -95,7 +95,7 @@
     <string name="settings_review_animations_title">Review Animations</string>
     <string name="settings_review_animations_summary">Show animations after rating a card</string>
     <string name="settings_review_animations_toggle_title">Show animations after rating a card</string>
-    <string name="settings_review_animations_toggle_body">Review reaction animations appear briefly after Again, Hard, Good, and Easy.</string>
+    <string name="settings_review_animations_toggle_body">Review reaction animations appear briefly after Again, Hard, Good, and Easy. They are automatically paused while Battery Saver is on.</string>
     <string name="settings_review_animations_update_failed">Could not update review animations.</string>
     <string name="settings_ai_chat_suggestions_title">AI Chat Suggestions</string>
     <string name="settings_ai_chat_suggestions_toggle_title">Show composer suggestions</string>
