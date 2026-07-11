@@ -8,6 +8,12 @@
  */
 import * as Sentry from "@sentry/aws-serverless";
 
+declare const authTraceIdBrand: unique symbol;
+
+export type AuthTraceId = string & Readonly<{
+  [authTraceIdBrand]: true;
+}>;
+
 type AuthSentryInitOptions = NonNullable<Parameters<typeof Sentry.init>[0]>;
 type AuthSentryEvent = Parameters<NonNullable<AuthSentryInitOptions["beforeSend"]>>[0];
 
@@ -24,6 +30,39 @@ const redactedSecretValue = "<redacted>";
 const maskedEmailValue = "<masked-email>";
 
 let authSentryInitialized = false;
+
+const sentryTracePattern = /^([0-9a-f]{32})-([0-9a-f]{16})(?:-[01])?$/;
+const zeroTraceId = "0".repeat(32);
+const zeroSpanId = "0".repeat(16);
+
+function parseAuthTraceId(sentryTrace: string | null): AuthTraceId | null {
+  if (sentryTrace === null) {
+    return null;
+  }
+
+  const match = sentryTracePattern.exec(sentryTrace);
+  if (match === null || match[1] === zeroTraceId || match[2] === zeroSpanId) {
+    return null;
+  }
+
+  return match[1] as AuthTraceId;
+}
+
+export function continueAuthTrace<Result>(
+  sentryTrace: string | null,
+  baggage: string | null,
+  callback: (traceId: AuthTraceId | null) => Result,
+): Result {
+  const traceId = parseAuthTraceId(sentryTrace);
+  if (traceId === null) {
+    return callback(null);
+  }
+
+  return Sentry.continueTrace({
+    sentryTrace: sentryTrace ?? undefined,
+    baggage: baggage ?? undefined,
+  }, () => callback(traceId));
+}
 
 function isAwsLambdaRuntime(env: NodeJS.ProcessEnv): boolean {
   return (env.AWS_EXECUTION_ENV ?? "").startsWith("AWS_Lambda_")

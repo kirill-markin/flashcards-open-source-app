@@ -1,6 +1,8 @@
 /**
  * Structured logger for auth service.
  */
+import type { AuthTraceId } from "./sentry.js";
+
 type AuthAction =
   | "send_code"
   | "send_code_error"
@@ -26,10 +28,11 @@ type AuthAction =
   | "request_error"
   | "error";
 
-type LogEvent = Readonly<{
+export type AuthLogEvent = Readonly<{
   domain: "auth";
   action: AuthAction;
   requestId?: string;
+  traceId?: AuthTraceId | null;
   route?: string;
   statusCode?: number;
   code?: string;
@@ -44,16 +47,18 @@ type LogEvent = Readonly<{
   error?: string;
 }>;
 
+export type AuthLogger = (event: AuthLogEvent) => void;
+
 export const maskEmail = (email: string): string => {
   const [local, domain] = email.split("@");
   if (!local || !domain) return "***";
   return `${local[0]}***@${domain}`;
 };
 
-export const log = (event: LogEvent): void => {
+export const log: AuthLogger = (event) => {
   console.log(JSON.stringify(event));
 };
 
-export const logWarning = (event: LogEvent): void => {
+export const logWarning: AuthLogger = (event) => {
   console.warn(JSON.stringify(event));
 };

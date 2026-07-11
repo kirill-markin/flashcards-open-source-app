@@ -25,11 +25,18 @@ import oauthRegister from "./routes/oauth/register.js";
 import oauthToken from "./routes/oauth/token.js";
 import oauthAuthorize from "./routes/oauth/authorize.js";
 import robots from "./routes/robots.js";
-import { type AuthAppEnv, getRequestId, jsonAuthError } from "./server/apiErrors.js";
+import {
+  type AuthAppEnv,
+  getRequestLogger,
+  getRequestId,
+  getTraceId,
+  jsonAuthError,
+} from "./server/apiErrors.js";
 import { getDemoEmailAccessConfig } from "./server/demoEmailAccess.js";
 import { createAgentErrorEnvelope } from "./server/agent/agentEnvelope.js";
 import { isTransientDatabaseError } from "./server/databaseErrors.js";
 import { log } from "./server/logger.js";
+import { continueAuthTrace } from "./server/sentry.js";
 
 const apiCorsAllowHeaders = [
   "content-type",
@@ -127,6 +134,89 @@ function isOAuthPublicPath(path: string): boolean {
   return oauthPublicPaths.includes(stripApiStagePrefix(path));
 }
 
+export function registerAuthErrorHandler(app: Hono<AuthAppEnv>): void {
+  app.onError((error, c) => {
+    const requestId = getRequestId(c);
+    const traceId = getTraceId(c);
+    const logger = getRequestLogger(c);
+    const routeKind = getApiRouteKind(c.req.path);
+    if (isTransientDatabaseError(error)) {
+      const statusCode = 503;
+      const code = "SERVICE_UNAVAILABLE";
+      const message = "Service is temporarily unavailable. Retry shortly.";
+      logger({
+        domain: "auth",
+        action: "request_error",
+        requestId,
+        traceId,
+        route: c.req.path,
+        statusCode,
+        code,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      c.header("Retry-After", "1");
+      c.header("Access-Control-Expose-Headers", apiCorsExposeHeaders.join(", "));
+
+      if (routeKind === "agent") {
+        return c.json(
+          createAgentErrorEnvelope(
+            c.req.url,
+            code,
+            message,
+            "Retry the same action shortly.",
+          ),
+          statusCode,
+        );
+      }
+
+      if (routeKind === "api") {
+        return c.json({
+          error: message,
+          requestId,
+          code,
+        }, statusCode);
+      }
+
+      return c.text(`Request failed. Reference: ${requestId}`, statusCode);
+    }
+
+    logger({
+      domain: "auth",
+      action: "request_error",
+      requestId,
+      traceId,
+      route: c.req.path,
+      statusCode: 500,
+      code: "INTERNAL_ERROR",
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    // Hono's onError swallows the error (returns a 500 response), so
+    // Sentry.wrapHandler never sees it. Capture explicitly here.
+    Sentry.captureException(error, {
+      tags: { service: "auth", route: c.req.path, code: "INTERNAL_ERROR" },
+      extra: { requestId },
+    });
+
+    if (routeKind === "agent" || routeKind === "api") {
+      if (routeKind === "agent") {
+        return c.json(
+          createAgentErrorEnvelope(
+            c.req.url,
+            "INTERNAL_ERROR",
+            "Agent authentication request failed. Try again.",
+            "Retry the same action. If the issue persists, restart from GET /v1/agent on the API host and follow the returned actions.",
+          ),
+          500,
+        );
+      }
+      return jsonAuthError(c, 500, "INTERNAL_ERROR", "Authentication failed. Try again.");
+    }
+
+    return c.text(`Request failed. Reference: ${requestId}`, 500);
+  });
+}
+
 function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   getDemoEmailAccessConfig();
   const app = new Hono<AuthAppEnv>().basePath(basePath);
@@ -135,9 +225,19 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   app.use("*", async (c, next) => {
     const requestId = randomUUID();
     c.set("requestId", requestId);
+    c.set("logger", log);
     c.header("X-Request-Id", requestId);
     await next();
     c.header("X-Robots-Tag", "noindex, nofollow, noarchive");
+  });
+
+  app.use("*", async (c, next) => {
+    const sentryTrace = c.req.header("sentry-trace") ?? null;
+    const baggage = c.req.header("baggage") ?? null;
+    await continueAuthTrace(sentryTrace, baggage, async (traceId) => {
+      c.set("traceId", traceId);
+      await next();
+    });
   });
 
   // Public, credential-free CORS for the OAuth Authorization Server endpoints so
@@ -192,82 +292,7 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   // outside /api/*, so it gets the same cross-origin guard explicitly.
   app.use("/authorize/consent", denyCrossOrigin);
 
-  app.onError((error, c) => {
-    const requestId = getRequestId(c);
-    const routeKind = getApiRouteKind(c.req.path);
-    if (isTransientDatabaseError(error)) {
-      const statusCode = 503;
-      const code = "SERVICE_UNAVAILABLE";
-      const message = "Service is temporarily unavailable. Retry shortly.";
-      log({
-        domain: "auth",
-        action: "request_error",
-        requestId,
-        route: c.req.path,
-        statusCode,
-        code,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      c.header("Retry-After", "1");
-      c.header("Access-Control-Expose-Headers", apiCorsExposeHeaders.join(", "));
-
-      if (routeKind === "agent") {
-        return c.json(
-          createAgentErrorEnvelope(
-            c.req.url,
-            code,
-            message,
-            "Retry the same action shortly.",
-          ),
-          statusCode,
-        );
-      }
-
-      if (routeKind === "api") {
-        return c.json({
-          error: message,
-          requestId,
-          code,
-        }, statusCode);
-      }
-
-      return c.text(`Request failed. Reference: ${requestId}`, statusCode);
-    }
-
-    log({
-      domain: "auth",
-      action: "request_error",
-      requestId,
-      route: c.req.path,
-      statusCode: 500,
-      code: "INTERNAL_ERROR",
-      error: error instanceof Error ? error.message : String(error),
-    });
-
-    // Hono's onError swallows the error (returns a 500 response), so
-    // Sentry.wrapHandler never sees it. Capture explicitly here.
-    Sentry.captureException(error, {
-      tags: { service: "auth", route: c.req.path, code: "INTERNAL_ERROR" },
-      extra: { requestId },
-    });
-
-    if (routeKind === "agent" || routeKind === "api") {
-      if (routeKind === "agent") {
-        return c.json(
-          createAgentErrorEnvelope(
-            c.req.url,
-            "INTERNAL_ERROR",
-            "Agent authentication request failed. Try again.",
-            "Retry the same action. If the issue persists, restart from GET /v1/agent on the API host and follow the returned actions.",
-          ),
-          500,
-        );
-      }
-      return jsonAuthError(c, 500, "INTERNAL_ERROR", "Authentication failed. Try again.");
-    }
-
-    return c.text(`Request failed. Reference: ${requestId}`, 500);
-  });
+  registerAuthErrorHandler(app);
 
   app.route("/", health);
   app.route("/", robots);

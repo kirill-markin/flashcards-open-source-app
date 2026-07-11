@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { createSendCodeApp } from "./routes/browser/sendCode.js";
 import { createVerifyCodeApp } from "./routes/browser/verifyCode.js";
 import type { AuthAppEnv } from "./server/apiErrors.js";
+import { log } from "./server/logger.js";
 import type { OtpVerifyAttemptState } from "./server/otp/otpVerifyAttempts.js";
 
 type ServiceUnavailableResponse = Readonly<{
@@ -29,6 +30,8 @@ function createTestApp(routeApp: Hono<AuthAppEnv>): Hono<AuthAppEnv> {
   const app = new Hono<AuthAppEnv>();
   app.use("*", async (context, next) => {
     context.set("requestId", "request-1");
+    context.set("logger", log);
+    context.set("traceId", null);
     await next();
   });
   app.route("/", routeApp);

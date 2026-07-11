@@ -1,10 +1,13 @@
 import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { log } from "./logger.js";
+import type { AuthLogger } from "./logger.js";
+import type { AuthTraceId } from "./sentry.js";
 
 export type AuthAppEnv = {
   Variables: {
     requestId: string;
+    traceId: AuthTraceId | null;
+    logger: AuthLogger;
   };
 };
 
@@ -30,6 +33,14 @@ export function getRequestId(context: Context<AuthAppEnv>): string {
   return context.get("requestId");
 }
 
+export function getTraceId(context: Context<AuthAppEnv>): AuthTraceId | null {
+  return context.get("traceId");
+}
+
+export function getRequestLogger(context: Context<AuthAppEnv>): AuthLogger {
+  return context.get("logger");
+}
+
 export function jsonAuthError(
   context: Context<AuthAppEnv>,
   statusCode: ContentfulStatusCode,
@@ -37,11 +48,14 @@ export function jsonAuthError(
   error: string,
 ): Response {
   const requestId = getRequestId(context);
+  const traceId = getTraceId(context);
+  const logger = getRequestLogger(context);
 
-  log({
+  logger({
     domain: "auth",
     action: "request_error",
     requestId,
+    traceId,
     route: context.req.path,
     statusCode,
     code,
