@@ -583,9 +583,6 @@ export const jaCatalog = {
       title: "タグ",
       description: "ワークスペース全体のタグ利用状況とカード数を確認します。",
     },
-    notifications: {
-      value: "このデバイス",
-    },
     export: {
       title: "エクスポート",
       description: "このワークスペースの有効なカードをポータブルな flashcards.zip パッケージとしてダウンロードします。",
@@ -718,12 +715,13 @@ export const jaCatalog = {
     previewRemoveTagLabel: "{{tag}} を削除 ({{count}}件のカード)",
   },
   notificationsSettings: {
-    title: "復習リマインダー",
-    subtitle: "復習リマインダー設定はこのワークスペースに紐づきますが、リマインダーは受け取りたいデバイスごとに設定されます。",
-    cardTitle: "iPhone または Android で復習リマインダーを設定",
-    paragraphOne: "復習リマインダー設定はこのワークスペースに属しますが、有効化と管理は各デバイスで個別に行います。",
-    paragraphTwo: "学習通知を受け取りたい場合は、通知を受け取りたい iPhone または Android デバイスでこのワークスペースを開き、そこで通知を設定してください。",
-    paragraphThree: "Web アプリは通知に対応していないため、この画面には通知の設定項目はありません。",
+    title: "通知",
+    subtitle: "スケジュールされた学習通知は、iPhone および Android アプリで利用できます。",
+    value: "モバイルアプリ",
+    cardTitle: "モバイルアプリで通知を管理",
+    paragraphOne: "通知設定はモバイルアプリのインストールごとに保存され、ワークスペースやアカウントには属しません。",
+    paragraphTwo: "リマインダーでは、そのモバイルアプリで現在選択されているワークスペースのカードと学習状況が自動的に使用されます。",
+    paragraphThree: "Web アプリはこれらの通知の配信や管理を行わないため、この画面には通知の設定項目はありません。",
   },
   reviewAnimationsSettings: {
     title: "復習アニメーション",

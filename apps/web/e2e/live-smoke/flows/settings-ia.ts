@@ -46,7 +46,7 @@ const settingsDetailTargets: ReadonlyArray<SettingsDetailTarget> = [
   {
     rowTestId: "settings-row-review-reminders",
     route: settingsNotificationsRoute,
-    actionName: "open Review reminders settings",
+    actionName: "open Notifications settings",
   },
   {
     rowTestId: "settings-row-access",

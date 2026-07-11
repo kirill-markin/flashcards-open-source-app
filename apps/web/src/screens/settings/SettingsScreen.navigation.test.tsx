@@ -17,6 +17,7 @@ import {
   settingsImportRoute,
   settingsLanguageRoute,
   settingsLeaderboardParticipationRoute,
+  settingsNotificationsRoute,
   settingsReviewAnimationsRoute,
   settingsSchedulerRoute,
   settingsServerRoute,
@@ -445,6 +446,9 @@ describe("SettingsScreen navigation", () => {
 
     await clickRow("settings-row-language");
     expect(currentPathname()).toBe(settingsLanguageRoute);
+
+    await clickRow("settings-row-review-reminders");
+    expect(currentPathname()).toBe(settingsNotificationsRoute);
 
     await clickRow("settings-row-review-animations");
     expect(currentPathname()).toBe(settingsReviewAnimationsRoute);

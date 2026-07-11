@@ -581,9 +581,6 @@ const enCatalog = {
       title: "Tags",
       description: "Inspect workspace-wide tag usage and card counts.",
     },
-    notifications: {
-      value: "This device",
-    },
     export: {
       title: "Export",
       description: "Download active cards from this workspace as a portable flashcards.zip package.",
@@ -716,12 +713,13 @@ const enCatalog = {
     previewRemoveTagLabel: "Remove {{tag}} ({{count}} cards)",
   },
   notificationsSettings: {
-    title: "Review reminders",
-    subtitle: "Review reminder preferences stay attached to this workspace, but reminders are configured only on the device where you want to receive them.",
-    cardTitle: "Set up review reminders on iPhone or Android",
-    paragraphOne: "Review reminder settings belong to this workspace, but they are turned on and managed separately on each device.",
-    paragraphTwo: "If you want study notifications, open this workspace on the iPhone or Android device where you want to receive them and configure notifications there.",
-    paragraphThree: "The web app does not support notifications, so there are no notification controls on this screen.",
+    title: "Notifications",
+    subtitle: "Scheduled study notifications are available in the iPhone and Android apps.",
+    value: "Mobile app",
+    cardTitle: "Manage notifications in the mobile app",
+    paragraphOne: "Notification settings belong to each mobile app installation, not to a workspace or your account.",
+    paragraphTwo: "Reminders automatically use cards and activity from the workspace currently selected in that mobile app.",
+    paragraphThree: "The web app does not deliver or manage these notifications, so there are no notification controls on this screen.",
   },
   reviewAnimationsSettings: {
     title: "Review Animations",

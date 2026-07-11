@@ -9,7 +9,7 @@ export function NotificationsSettingsScreen(): ReactElement {
     <SettingsShell
       title={t("notificationsSettings.title")}
       subtitle={t("notificationsSettings.subtitle")}
-      activeTab="workspace"
+      activeTab="general"
     >
       <SettingsGroup>
         <article className="content-card settings-summary-card" role="note">
