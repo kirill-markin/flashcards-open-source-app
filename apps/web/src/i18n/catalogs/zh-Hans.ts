@@ -450,8 +450,10 @@ export const zhHansCatalog = {
   settingsCurrentWorkspace: {
     title: "工作区",
     subtitle: "选择此浏览器中当前活动的工作区，或为此账户创建新的工作区。",
-    workspaceCardTitle: "工作区",
-    workspaceCardDescription: "切换当前活动工作区，或为此账户创建新的工作区。",
+    currentWorkspaceLabel: "当前工作区",
+    changeWorkspaceTitle: "切换工作区",
+    changeWorkspaceDescription: "切换当前活动的工作区，或为此账户创建新的工作区。",
+    changeWorkspaceDialogDescription: "选择已连接的工作区，或为此账户创建新的工作区。",
     newWorkspace: "新建工作区",
     workspaceNamePlaceholder: "工作区名称",
     workspaceNameRequired: "工作区名称为必填项",

@@ -91,7 +91,7 @@ async function createEphemeralWorkspace(session: LiveSmokeSession): Promise<void
     "open current workspace settings",
     page.getByTestId("settings-row-current-workspace"),
   );
-  const workspaceActionCard = page.locator(".settings-nav-card-button[data-workspace-management-state]").first();
+  const workspaceActionCard = page.getByTestId("workspace-change-open");
   await trackedExpectAttribute(
     diagnostics,
     "wait for workspace management readiness",
@@ -100,23 +100,28 @@ async function createEphemeralWorkspace(session: LiveSmokeSession): Promise<void
     "ready",
     externalUiTimeoutMs,
   );
-  await trackedClick(diagnostics, "expand workspace picker card", workspaceActionCard);
+  await trackedClick(diagnostics, "open change workspace dialog", workspaceActionCard);
   await trackedExpectVisible(
     diagnostics,
-    "confirm workspace picker is visible",
-    page.locator(".settings-workspace-picker"),
+    "confirm change workspace dialog is visible",
+    page.getByTestId("workspace-change-dialog"),
     externalUiTimeoutMs,
   );
   await trackedClick(
     diagnostics,
     "open new workspace form",
-    page.locator(".settings-workspace-picker > button.ghost-btn").first(),
+    page.getByTestId("workspace-create-open"),
   );
-  await trackedFill(diagnostics, `fill workspace name ${scenario.workspaceName}`, page.locator(".settings-workspace-create-input"), scenario.workspaceName);
+  await trackedFill(
+    diagnostics,
+    `fill workspace name ${scenario.workspaceName}`,
+    page.getByTestId("workspace-create-name-input"),
+    scenario.workspaceName,
+  );
   await trackedClick(
     diagnostics,
     `submit workspace creation for ${scenario.workspaceName}`,
-    page.locator(".settings-workspace-create-actions .primary-btn"),
+    page.getByTestId("workspace-create-submit"),
   );
   await trackedExpectText(
     diagnostics,

@@ -8,10 +8,56 @@ export type AppErrorDialogProps = Readonly<{
   onDismiss: () => void;
 }>;
 
+const appErrorDialogFocusableSelector: string = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "summary",
+  "[tabindex]:not([tabindex='-1'])",
+].join(",");
+
+function getFocusableElements(dialog: HTMLElement): ReadonlyArray<HTMLElement> {
+  return Array.from(dialog.querySelectorAll<HTMLElement>(appErrorDialogFocusableSelector))
+    .filter((element) => element.tabIndex >= 0 && element.getAttribute("aria-hidden") !== "true");
+}
+
+function trapFocusInsideDialog(event: KeyboardEvent, dialog: HTMLElement): void {
+  const focusableElements = getFocusableElements(dialog);
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+
+  if (firstElement === undefined || lastElement === undefined) {
+    event.preventDefault();
+    dialog.focus();
+    return;
+  }
+
+  const activeElement = document.activeElement;
+  if (!(activeElement instanceof HTMLElement) || dialog.contains(activeElement) === false) {
+    event.preventDefault();
+    (event.shiftKey ? lastElement : firstElement).focus();
+    return;
+  }
+
+  if (event.shiftKey && activeElement === firstElement) {
+    event.preventDefault();
+    lastElement.focus();
+    return;
+  }
+
+  if (event.shiftKey === false && activeElement === lastElement) {
+    event.preventDefault();
+    firstElement.focus();
+  }
+}
+
 export function AppErrorDialog(props: AppErrorDialogProps): ReactElement | null {
   const { presentation, onDismiss } = props;
   const { t } = useI18n();
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -26,13 +72,23 @@ export function AppErrorDialog(props: AppErrorDialogProps): ReactElement | null 
 
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
         onDismiss();
+        return;
+      }
+
+      if (event.key === "Tab") {
+        event.stopImmediatePropagation();
+        if (dialogRef.current !== null) {
+          trapFocusInsideDialog(event, dialogRef.current);
+        }
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown, true);
     return (): void => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown, true);
       previousFocusRef.current?.focus();
       previousFocusRef.current = null;
     };
@@ -51,11 +107,13 @@ export function AppErrorDialog(props: AppErrorDialogProps): ReactElement | null 
   return createPortal(
     <div className="app-error-dialog-backdrop" onMouseDown={dismissFromBackdrop}>
       <section
+        ref={dialogRef}
         className="panel app-error-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="app-error-dialog-title"
         aria-describedby="app-error-dialog-message"
+        tabIndex={-1}
         data-testid="app-error-dialog"
       >
         <div className="cell-stack">

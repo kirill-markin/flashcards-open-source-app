@@ -450,8 +450,10 @@ const hiCatalog: TranslationCatalog = {
   settingsCurrentWorkspace: {
     title: "वर्कस्पेस",
     subtitle: "चुनें कि इस ब्राउज़र में कौन-सा वर्कस्पेस सक्रिय है या इस खाते के लिए नया वर्कस्पेस बनाएँ।",
-    workspaceCardTitle: "वर्कस्पेस",
-    workspaceCardDescription: "सक्रिय वर्कस्पेस बदलें या इस खाते के लिए नया वर्कस्पेस बनाएँ।",
+    currentWorkspaceLabel: "मौजूदा वर्कस्पेस",
+    changeWorkspaceTitle: "वर्कस्पेस बदलें",
+    changeWorkspaceDescription: "सक्रिय वर्कस्पेस बदलें या इस खाते के लिए नया वर्कस्पेस बनाएँ।",
+    changeWorkspaceDialogDescription: "लिंक किया गया वर्कस्पेस चुनें या इस खाते के लिए नया वर्कस्पेस बनाएँ।",
     newWorkspace: "नया वर्कस्पेस",
     workspaceNamePlaceholder: "वर्कस्पेस का नाम",
     workspaceNameRequired: "वर्कस्पेस का नाम आवश्यक है",

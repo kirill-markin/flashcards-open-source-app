@@ -452,10 +452,32 @@
   word-break: break-word;
 }
 
-.settings-workspace-picker {
+.settings-workspace-current-summary {
   display: grid;
-  gap: 14px;
-  padding: 0 4px 4px;
+  gap: 8px;
+}
+
+.settings-workspace-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  overflow-y: auto;
+  background: rgba(9, 10, 15, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.settings-workspace-dialog {
+  width: min(100%, 560px);
+  max-height: calc(100vh - 40px);
+  display: grid;
+  gap: 18px;
+  border: 0;
+  background: var(--surface);
+  box-shadow: none;
+  overflow-y: auto;
 }
 
 .settings-workspace-choice-list {
@@ -505,22 +527,6 @@
 .settings-workspace-create-form {
   display: grid;
   gap: 12px;
-}
-
-.settings-workspace-create-input {
-  width: 100%;
-  min-height: 46px;
-  padding: 0 14px;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
-  font: inherit;
-}
-
-.settings-workspace-create-input:focus {
-  border-color: rgba(196, 75, 45, 0.5);
-  box-shadow: 0 0 0 4px rgba(196, 75, 45, 0.14);
 }
 
 .settings-workspace-create-actions {
@@ -705,5 +711,22 @@
   .workspace-import-preview-stats,
   .workspace-import-preview-metadata-row {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .settings-workspace-dialog-backdrop {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .settings-workspace-dialog {
+    width: 100%;
+    max-height: calc(100vh - 24px);
+  }
+
+  .settings-workspace-choice {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

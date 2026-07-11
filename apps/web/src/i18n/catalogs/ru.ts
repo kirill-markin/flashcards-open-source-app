@@ -450,8 +450,10 @@ export const ruCatalog = {
   settingsCurrentWorkspace: {
     title: "Рабочее пространство",
     subtitle: "Выберите, какое рабочее пространство активно в этом браузере, или создайте новое для этого аккаунта.",
-    workspaceCardTitle: "Рабочее пространство",
-    workspaceCardDescription: "Смените активное рабочее пространство или создайте новое для этого аккаунта.",
+    currentWorkspaceLabel: "Текущее рабочее пространство",
+    changeWorkspaceTitle: "Сменить рабочее пространство",
+    changeWorkspaceDescription: "Смените активное рабочее пространство или создайте новое для этого аккаунта.",
+    changeWorkspaceDialogDescription: "Выберите связанное рабочее пространство или создайте новое для этого аккаунта.",
     newWorkspace: "Новое рабочее пространство",
     workspaceNamePlaceholder: "Название рабочего пространства",
     workspaceNameRequired: "Название рабочего пространства обязательно",

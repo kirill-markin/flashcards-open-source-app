@@ -450,8 +450,10 @@ export const jaCatalog = {
   settingsCurrentWorkspace: {
     title: "ワークスペース",
     subtitle: "このブラウザでどのワークスペースをアクティブにするか選ぶか、このアカウント用に新しいワークスペースを作成します。",
-    workspaceCardTitle: "ワークスペース",
-    workspaceCardDescription: "アクティブなワークスペースを切り替えるか、このアカウント用に新しいワークスペースを作成します。",
+    currentWorkspaceLabel: "現在のワークスペース",
+    changeWorkspaceTitle: "ワークスペースを切り替える",
+    changeWorkspaceDescription: "アクティブなワークスペースを切り替えるか、このアカウント用に新しいワークスペースを作成します。",
+    changeWorkspaceDialogDescription: "リンク済みのワークスペースを選ぶか、このアカウント用に新しいワークスペースを作成します。",
     newWorkspace: "新しいワークスペース",
     workspaceNamePlaceholder: "ワークスペース名",
     workspaceNameRequired: "ワークスペース名は必須です",
