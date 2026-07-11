@@ -5,7 +5,6 @@ package com.flashcardsopensourceapp.app.livesmoke.flows
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -20,7 +19,6 @@ import com.flashcardsopensourceapp.app.livesmoke.diagnostics.nodeSummary
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.tapBackIcon
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForFlowValue
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitForTagToExist
-import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilAtLeastOneExistsOrFail
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilWithMitigation
 import com.flashcardsopensourceapp.app.livesmoke.support.LiveSmokeContext
 import com.flashcardsopensourceapp.app.livesmoke.support.appGraph
@@ -30,11 +28,13 @@ import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceErrorMe
 import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceNameOrNull
 import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceOperationMessageOrNull
 import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceSummaryOrNull
+import com.flashcardsopensourceapp.app.livesmoke.support.dismissCurrentWorkspaceChangeSheet
 import com.flashcardsopensourceapp.app.livesmoke.support.externalCloudWorkspaceTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.externalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.selectedWorkspaceSummary
 import com.flashcardsopensourceapp.app.livesmoke.support.selectedWorkspaceSummaryOrNull
+import com.flashcardsopensourceapp.app.livesmoke.support.waitForCurrentWorkspaceChangeSheetToSettle
 import com.flashcardsopensourceapp.app.livesmoke.support.waitForCurrentWorkspaceName
 import com.flashcardsopensourceapp.app.livesmoke.support.waitForCurrentWorkspaceScreenToSettle
 import com.flashcardsopensourceapp.app.livesmoke.support.waitForSelectedWorkspaceSummary
@@ -44,9 +44,12 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.feature.settings.settingsCurrentWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteCurrentWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceCreateButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceChangeSheetListTag
+import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceChangeSheetTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceExistingRowTag
-import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceListTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceNameFieldTag
+import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceRenameActionTag
+import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceRenameDialogTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceSaveNameButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspace.delete.workspaceOverviewDeleteConfirmationButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspace.delete.workspaceOverviewDeleteConfirmationDialogTag
@@ -83,10 +86,7 @@ internal data class EphemeralWorkspaceHandle(
 internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): EphemeralWorkspaceHandle {
     openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Workspace")
     waitForCurrentWorkspaceScreenToSettle(timeoutMillis = externalCloudWorkspaceTimeoutMillis)
-    waitUntilAtLeastOneExistsOrFail(
-        matcher = hasText("Create new workspace"),
-        timeoutMillis = internalUiTimeoutMillis
-    )
+    waitForCurrentWorkspaceChangeSheetToSettle(timeoutMillis = externalCloudWorkspaceTimeoutMillis)
     waitForSelectedWorkspaceSummary(
         context = "before creating a linked workspace",
         timeoutMillis = internalUiTimeoutMillis
@@ -97,7 +97,7 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): E
     val selectedWorkspaceIdBeforeCreate: String = currentWorkspaceIdOrThrow(
         context = "before creating a linked workspace"
     )
-    composeRule.onNodeWithTag(currentWorkspaceListTag).performScrollToNode(
+    composeRule.onNodeWithTag(currentWorkspaceChangeSheetListTag).performScrollToNode(
         matcher = hasTestTag(currentWorkspaceCreateButtonTag)
     )
     clickTag(tag = currentWorkspaceCreateButtonTag, label = "Create new workspace")
@@ -106,13 +106,21 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): E
         timeoutMillis = externalCloudWorkspaceTimeoutMillis,
         context = "after creating a linked workspace"
     )
+    waitForCurrentWorkspaceOperationToFinish(
+        timeoutMillis = externalCloudWorkspaceTimeoutMillis
+    )
+    waitForCurrentWorkspaceChangeSheetToSettle(timeoutMillis = externalCloudWorkspaceTimeoutMillis)
     waitForSelectedWorkspaceSummaryToChange(
         beforeSummary = selectedWorkspaceSummaryBeforeCreate,
         context = "after creating a linked workspace",
         timeoutMillis = externalCloudWorkspaceTimeoutMillis
     )
-    waitForCurrentWorkspaceOperationToFinish(
-        timeoutMillis = externalCloudWorkspaceTimeoutMillis
+    dismissCurrentWorkspaceChangeSheet(timeoutMillis = internalUiTimeoutMillis)
+    clickTag(tag = currentWorkspaceRenameActionTag, label = "Rename workspace")
+    waitForTagToExist(
+        tag = currentWorkspaceRenameDialogTag,
+        timeoutMillis = internalUiTimeoutMillis,
+        context = "while opening the Rename workspace dialog"
     )
     waitForCurrentWorkspaceRenameReady(
         expectedWorkspaceName = workspaceName,
@@ -154,11 +162,9 @@ internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceHandle: Ephemera
     )
     openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Workspace")
     waitForCurrentWorkspaceScreenToSettle(timeoutMillis = externalCloudWorkspaceTimeoutMillis)
-    waitUntilAtLeastOneExistsOrFail(
-        matcher = hasText("Create new workspace"),
-        timeoutMillis = internalUiTimeoutMillis
-    )
+    waitForCurrentWorkspaceChangeSheetToSettle(timeoutMillis = externalCloudWorkspaceTimeoutMillis)
     if (composeRule.onAllNodesWithText(workspaceHandle.workspaceName).fetchSemanticsNodes().isEmpty()) {
+        dismissCurrentWorkspaceChangeSheet(timeoutMillis = internalUiTimeoutMillis)
         tapBackIcon()
         return
     }
@@ -166,6 +172,7 @@ internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceHandle: Ephemera
         context = "before deleting the isolated linked workspace",
         timeoutMillis = internalUiTimeoutMillis
     )
+    dismissCurrentWorkspaceChangeSheet(timeoutMillis = internalUiTimeoutMillis)
     tapBackIcon()
 
     openSettingsRow(rowTag = settingsDeleteCurrentWorkspaceRowTag, rowLabel = "Delete current workspace")
@@ -200,10 +207,7 @@ internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceHandle: Ephemera
             context = "while waiting for workspace deletion to finish"
         ) {
             val currentWorkspaceName: String? = currentWorkspaceNameOrNull()
-            val selectedSummary: String? = selectedWorkspaceSummaryOrNull()
-            composeRule.onAllNodesWithText(workspaceHandle.workspaceName).fetchSemanticsNodes().isEmpty() &&
-                currentWorkspaceName != workspaceHandle.workspaceName &&
-                selectedSummary?.contains(other = workspaceHandle.workspaceName) != true
+            currentWorkspaceName != workspaceHandle.workspaceName
         }
     } catch (error: Throwable) {
         throw AssertionError(
@@ -217,10 +221,30 @@ internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceHandle: Ephemera
             error
         )
     }
+    waitForCurrentWorkspaceChangeSheetToSettle(timeoutMillis = externalCloudWorkspaceTimeoutMillis)
+    try {
+        waitUntilWithMitigation(
+            timeoutMillis = externalCloudWorkspaceTimeoutMillis,
+            context = "while waiting for the deleted workspace to leave the selector"
+        ) {
+            val selectedSummary: String? = selectedWorkspaceSummaryOrNull()
+            composeRule.onAllNodesWithText(workspaceHandle.workspaceName).fetchSemanticsNodes().isEmpty() &&
+                selectedSummary?.contains(other = workspaceHandle.workspaceName) != true
+        }
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "Deleted workspace remained visible in the selector. " +
+                "Workspace=${workspaceHandle.workspaceName} " +
+                "SelectedRow=${selectedWorkspaceSummaryOrNull()} " +
+                "VisibleRows=${captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)}",
+            error
+        )
+    }
     waitForSelectedWorkspaceSummary(
         context = "after deleting the isolated linked workspace",
         timeoutMillis = externalCloudWorkspaceTimeoutMillis
     )
+    dismissCurrentWorkspaceChangeSheet(timeoutMillis = internalUiTimeoutMillis)
     tapBackIcon()
 }
 
@@ -257,6 +281,7 @@ internal fun LiveSmokeContext.forceLinkedSyncAndWaitForWorkspace(
     openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag, rowLabel = "Workspace")
     waitForCurrentWorkspaceScreenToSettle(timeoutMillis = timeoutMillis)
     waitForCurrentWorkspaceName(expectedWorkspaceName = workspaceHandle.workspaceName)
+    waitForCurrentWorkspaceChangeSheetToSettle(timeoutMillis = timeoutMillis)
     waitForSelectedWorkspaceSummary(
         context = "after forcing linked sync before cleanup",
         timeoutMillis = timeoutMillis
@@ -274,6 +299,7 @@ internal fun LiveSmokeContext.forceLinkedSyncAndWaitForWorkspace(
                 "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}"
         )
     }
+    dismissCurrentWorkspaceChangeSheet(timeoutMillis = internalUiTimeoutMillis)
     tapBackIcon()
 }
 
@@ -392,9 +418,11 @@ private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToFinish(timeoutMil
             timeoutMillis = timeoutMillis,
             context = "while waiting for current workspace operation to finish"
         ) {
-            currentWorkspaceOperationMessageOrNull() == null &&
-                currentWorkspaceNameOrNull() != "Unavailable" &&
-                selectedWorkspaceSummaryOrNull() != null
+            composeRule.onAllNodesWithTag(currentWorkspaceChangeSheetTag)
+                .fetchSemanticsNodes()
+                .isEmpty() &&
+                currentWorkspaceOperationMessageOrNull() == null &&
+                currentWorkspaceNameOrNull() != "Unavailable"
         }
     } catch (error: Throwable) {
         throw AssertionError(
@@ -416,10 +444,10 @@ private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToLeaveSwitchingSta
             timeoutMillis = timeoutMillis,
             context = "while waiting for current workspace operation to leave switching"
         ) {
-            currentWorkspaceOperationMessageOrNull()
-                ?.startsWith(prefix = "Switching to")
-                ?.not()
-                ?: true
+            currentWorkspaceErrorMessageOrNull() != null ||
+                composeRule.onAllNodesWithTag(currentWorkspaceChangeSheetTag)
+                    .fetchSemanticsNodes()
+                    .isEmpty()
         }
     } catch (error: Throwable) {
         throw AssertionError(
@@ -442,13 +470,17 @@ private fun LiveSmokeContext.waitForCurrentWorkspaceRenameOutcome(
             timeoutMillis = timeoutMillis,
             context = "while waiting for workspace rename to persist"
         ) {
-            currentWorkspaceNameFieldValueOrNull() == expectedWorkspaceName &&
+            composeRule.onAllNodesWithTag(currentWorkspaceRenameDialogTag)
+                .fetchSemanticsNodes()
+                .isEmpty() &&
+                currentWorkspaceNameOrNull() == expectedWorkspaceName &&
                 hasVisibleText(text = "Saving...", substring = false).not()
         }
     } catch (error: Throwable) {
         throw AssertionError(
             "Workspace rename did not persist on the Workspace screen. " +
-                "FieldValue=${currentWorkspaceNameFieldValueOrNull()} " +
+                "WorkspaceName=${currentWorkspaceNameOrNull()} " +
+                "DialogVisible=${composeRule.onAllNodesWithTag(currentWorkspaceRenameDialogTag).fetchSemanticsNodes().isNotEmpty()} " +
                 "Error=${currentWorkspaceErrorMessageOrNull()}",
             error
         )

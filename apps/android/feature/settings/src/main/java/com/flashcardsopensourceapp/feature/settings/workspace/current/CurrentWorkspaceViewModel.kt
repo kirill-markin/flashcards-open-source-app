@@ -33,6 +33,7 @@ import com.flashcardsopensourceapp.feature.settings.cloud.workspaceSelectionTitl
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.resolveWorkspaceName
 import com.flashcardsopensourceapp.feature.settings.workspace.shared.workspaceUpdatedOnAnotherDeviceMessage
+import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -59,6 +60,7 @@ private data class CurrentWorkspaceDraftState(
     val workspaceNameDraft: String,
     val hasUserEditedName: Boolean,
     val isSavingName: Boolean,
+    val renameCompletion: CurrentWorkspaceRenameCompletion?,
     val workspaces: List<CloudWorkspaceSummary>
 )
 
@@ -82,6 +84,7 @@ class CurrentWorkspaceViewModel(
             workspaceNameDraft = "",
             hasUserEditedName = false,
             isSavingName = false,
+            renameCompletion = null,
             workspaces = emptyList()
         )
     )
@@ -93,6 +96,7 @@ class CurrentWorkspaceViewModel(
     private var pendingAutoSyncRequestId: String? = null
     private var currentWorkspaceSignatureAtAutoSyncStart: CurrentWorkspaceVisibleSignature? = null
     private var lastVisibleAutoSyncChangeSignature: CurrentWorkspaceVisibleSignature? = null
+    private var activeRenameSubmissionId: String? = null
 
     val uiState: StateFlow<CurrentWorkspaceUiState> = combine(
         workspaceRepository.observeAppMetadata(),
@@ -133,6 +137,7 @@ class CurrentWorkspaceViewModel(
             currentWorkspaceName
         }
         CurrentWorkspaceUiState(
+            isInitialized = true,
             cloudStatusTitle = displayCloudAccountStateTitle(
                 cloudState = cloudSettings.cloudState,
                 strings = strings
@@ -156,6 +161,7 @@ class CurrentWorkspaceViewModel(
             successMessage = draft.successMessage,
             workspaceNameDraft = workspaceNameDraft,
             isSavingName = draft.isSavingName,
+            renameCompletion = draft.renameCompletion,
             workspaces = buildCurrentWorkspaceItems(
                 activeWorkspaceId = cloudSettings.activeWorkspaceId,
                 workspaces = draft.workspaces,
@@ -166,6 +172,7 @@ class CurrentWorkspaceViewModel(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = CurrentWorkspaceUiState(
+            isInitialized = false,
             cloudStatusTitle = strings.get(R.string.settings_loading),
             currentWorkspaceName = strings.get(R.string.settings_loading),
             linkedEmail = null,
@@ -181,6 +188,7 @@ class CurrentWorkspaceViewModel(
             successMessage = "",
             workspaceNameDraft = "",
             isSavingName = false,
+            renameCompletion = null,
             workspaces = emptyList()
         )
     )
@@ -191,7 +199,10 @@ class CurrentWorkspaceViewModel(
 
     suspend fun loadWorkspaces() {
         val cloudSettings = cloudAccountRepository.observeCloudSettings().first()
-        if (cloudSettings.cloudState != CloudAccountState.LINKED) {
+        if (
+            cloudSettings.cloudState != CloudAccountState.LINKED
+            && cloudSettings.cloudState != CloudAccountState.LINKING_READY
+        ) {
             messageController.showMessage(
                 message = if (cloudSettings.cloudState == CloudAccountState.GUEST) {
                     strings.get(R.string.settings_current_workspace_load_guest_message)
@@ -446,6 +457,9 @@ class CurrentWorkspaceViewModel(
             }
             true
         } catch (error: CancellationException) {
+            draftState.update { state ->
+                state.copy(isSavingName = false)
+            }
             throw error
         } catch (error: Exception) {
             val errorMessage = strings.get(R.string.settings_workspace_name_save_failed)
@@ -470,10 +484,34 @@ class CurrentWorkspaceViewModel(
         }
     }
 
-    fun saveWorkspaceNameAsync() {
-        viewModelScope.launch {
-            saveWorkspaceName()
+    fun saveWorkspaceNameAsync(): String {
+        val activeSubmissionId = activeRenameSubmissionId
+        if (activeSubmissionId != null) {
+            return activeSubmissionId
         }
+
+        val submissionId = UUID.randomUUID().toString()
+        activeRenameSubmissionId = submissionId
+        viewModelScope.launch {
+            try {
+                val result = if (saveWorkspaceName()) {
+                    CurrentWorkspaceRenameResult.SUCCEEDED
+                } else {
+                    CurrentWorkspaceRenameResult.FAILED
+                }
+                draftState.update { state ->
+                    state.copy(
+                        renameCompletion = CurrentWorkspaceRenameCompletion(
+                            submissionId = submissionId,
+                            result = result
+                        )
+                    )
+                }
+            } finally {
+                activeRenameSubmissionId = null
+            }
+        }
+        return submissionId
     }
 
     private fun observeAutoSyncDrivenWorkspaceChanges() {

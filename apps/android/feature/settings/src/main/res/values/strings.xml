@@ -262,6 +262,11 @@
     <string name="settings_current_workspace_manage_sign_in_message">Sign in to manage linked workspaces.</string>
     <string name="settings_current_workspace_switching">Switching to %1$s...</string>
     <string name="settings_current_workspace_syncing">Syncing %1$s...</string>
+    <string name="settings_current_workspace_current_title">Current workspace</string>
+    <string name="settings_current_workspace_change_action">Change workspace</string>
+    <string name="settings_current_workspace_rename_action">Rename workspace</string>
+    <string name="settings_current_workspace_change_sheet_title">Change workspace</string>
+    <string name="settings_current_workspace_rename_dialog_title">Rename workspace</string>
 
     <string name="settings_account_status_title">Account status</string>
     <string name="settings_account_legal_title">Legal</string>

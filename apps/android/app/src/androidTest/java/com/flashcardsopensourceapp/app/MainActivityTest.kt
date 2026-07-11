@@ -70,7 +70,9 @@ import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerLearningS
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerMaximumIntervalFieldTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerRelearningStepsFieldTag
 import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerSaveButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceChangeActionTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceNameTag
+import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceRenameActionTag
 import com.flashcardsopensourceapp.feature.settings.workspaceImportChooseFileButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspaceImportScreenTag
 import com.flashcardsopensourceapp.feature.settings.workspace.tags.workspaceTagCardsCountTag
@@ -400,11 +402,29 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     @Test
-    fun currentWorkspaceShowsRenameNoticeFromEmptyState() {
+    fun currentWorkspaceShowsActionsAndSignInGuidanceFromEmptyState() {
         waitForCardsEmptyState()
 
         openSettingsRow(rowTag = settingsCurrentWorkspaceRowTag)
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_workspace_rename_guidance)).fetchSemanticsNode()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            listOf(
+                currentWorkspaceChangeActionTag,
+                currentWorkspaceRenameActionTag
+            ).all { tag: String ->
+                composeRule.onAllNodesWithTag(tag)
+                    .fetchSemanticsNodes()
+                    .singleOrNull()
+                    ?.config
+                    ?.contains(SemanticsProperties.Disabled)
+                    ?.not()
+                    ?: false
+            }
+        }
+        composeRule.onNodeWithTag(currentWorkspaceChangeActionTag).fetchSemanticsNode()
+        composeRule.onNodeWithTag(currentWorkspaceRenameActionTag).fetchSemanticsNode()
+        composeRule.onNodeWithText(
+            settingsString(SettingsR.string.settings_current_workspace_load_sign_in_message)
+        ).fetchSemanticsNode()
     }
 
     @Test
