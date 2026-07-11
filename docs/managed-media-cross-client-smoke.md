@@ -35,6 +35,31 @@ Expected behavior for every path:
 - Destination clients must not remain permanently stuck on unavailable media
   after the source upload has completed and sync has run.
 
+## iOS Card Photo Picker Regression
+
+Run this flow on a real iPhone:
+
+1. Open Cards, tap Add card, and open Front.
+2. Enter ordinary text, tap Add image, and select a recognizable photo.
+3. Confirm the Front editor remains visible after the system photo picker closes,
+   the original text remains present, and the selected image appears in the
+   preview strip.
+4. Use Back to return to the card form; this must not save or dismiss the card.
+   Open Back, enter ordinary answer text, return to the card form, and tap Save.
+5. Confirm the new card is visible in Cards, reopen it, open Front, and confirm
+   the text and image are still present.
+
+Repeat the picker portion with each of these conditions:
+
+- Tap Cancel in the system photo picker. The Front editor and enclosing card
+  editor must remain open and unchanged.
+- Select an animated GIF. The actionable rejection alert must appear, and
+  closing it must leave the Front editor and enclosing card editor open with
+  the existing text unchanged.
+- Select JPEG- and HEIC-origin photos, including once while the iPhone is
+  offline. Each supported photo must be inserted locally while the Front editor
+  and enclosing card editor remain open; upload may wait for connectivity.
+
 ## Failure Evidence
 
 If any path fails, capture:

@@ -235,6 +235,7 @@ private struct CardTextEditorScreen: View {
     @Binding var editorSessionId: UUID
     @Binding var mediaAssetIdsReadyForUpload: Set<String>
     @FocusState private var isTextEditorFocused: Bool
+    @State private var isPhotoPickerPresented: Bool = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var textSelection: TextSelection?
     @State private var isImportingImage: Bool = false
@@ -288,6 +289,13 @@ private struct CardTextEditorScreen: View {
                 self.addImageToolbarItem
             }
         }
+        .photosPicker(
+            isPresented: self.$isPhotoPickerPresented,
+            selection: self.$selectedPhotoItem,
+            matching: .images,
+            preferredItemEncoding: .current,
+            photoLibrary: .shared()
+        )
         .alert(
             String(localized: "Image couldn't be inserted", table: reviewCardsStringsTableName),
             isPresented: self.$isImageImportErrorPresented
@@ -305,32 +313,34 @@ private struct CardTextEditorScreen: View {
         }
         .onChange(of: self.editorSessionId) { _, _ in
             self.cancelImageImport()
+            self.clearSelectedPhotoItem()
         }
         .onAppear {
             self.isTextEditorFocused = true
         }
         .onDisappear {
             self.cancelImageImport()
+            self.clearSelectedPhotoItem()
         }
     }
 
-    @ViewBuilder
     private var addImageToolbarItem: some View {
-        if self.isImportingImage {
-            ProgressView()
-                .controlSize(.small)
-                .accessibilityLabel(String(localized: "Processing image...", table: reviewCardsStringsTableName))
-        } else {
-            PhotosPicker(
-                selection: self.$selectedPhotoItem,
-                matching: .images,
-                preferredItemEncoding: .current,
-                photoLibrary: .shared()
-            ) {
+        Button {
+            self.isPhotoPickerPresented = true
+        } label: {
+            if self.isImportingImage {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
                 Image(systemName: "photo.badge.plus")
             }
-            .accessibilityLabel(String(localized: "Add image", table: reviewCardsStringsTableName))
         }
+        .disabled(self.isImportingImage)
+        .accessibilityLabel(
+            self.isImportingImage
+                ? String(localized: "Processing image...", table: reviewCardsStringsTableName)
+                : String(localized: "Add image", table: reviewCardsStringsTableName)
+        )
     }
 
     private func startImageImport(item: PhotosPickerItem) {
@@ -339,7 +349,6 @@ private struct CardTextEditorScreen: View {
         let editorSessionId = self.editorSessionId
         self.activeImageImportId = importId
         self.isImportingImage = true
-        self.selectedPhotoItem = nil
         self.imageImportTask = Task { @MainActor in
             await self.handleSelectedPhotoItem(
                 item,
@@ -354,6 +363,9 @@ private struct CardTextEditorScreen: View {
         self.imageImportTask = nil
         self.activeImageImportId = nil
         self.isImportingImage = false
+    }
+
+    private func clearSelectedPhotoItem() {
         self.selectedPhotoItem = nil
     }
 
@@ -422,7 +434,7 @@ private struct CardTextEditorScreen: View {
         self.imageImportTask = nil
         self.activeImageImportId = nil
         self.isImportingImage = false
-        self.selectedPhotoItem = nil
+        self.clearSelectedPhotoItem()
     }
 
     private func isCurrentImageImport(editorSessionId: UUID, importId: UUID) -> Bool {
