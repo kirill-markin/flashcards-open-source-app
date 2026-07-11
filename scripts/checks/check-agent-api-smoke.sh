@@ -403,6 +403,29 @@ assert payload["data"]["resource"] is None
 assert {"workspace", "cards", "decks", "review_events"}.issubset(table_names)
 PY
 
+request_json "POST" "${API_BASE_URL%/}/agent/sql/query" "{\"sql\":\"SELECT * FROM cards WHERE deleted_at IS NULL LIMIT 20 OFFSET 0\"}" "authorization: ApiKey ${AGENT_API_KEY}"
+assert_status "400" "POST /v1/agent/sql/query invalid filter"
+python3 - <<'PY' "${LAST_BODY_FILE}"
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+expected_message = "Column is not filterable: deleted_at"
+
+assert payload["ok"] is False
+assert payload["data"] == {}
+assert payload["error"]["code"] == "QUERY_INVALID_SQL"
+assert payload["error"]["message"] == expected_message
+assert payload["error"]["details"]["validationIssues"] == [{
+    "path": "sql",
+    "code": "invalid_sql",
+    "message": expected_message,
+}]
+assert isinstance(payload["requestId"], str) and payload["requestId"] != ""
+assert "Fix the sql string" in payload["instructions"]
+assert "server-side error" not in payload["instructions"]
+PY
+
 request_json "POST" "${API_BASE_URL%/}/agent/sql/execute" "{\"sql\":\"INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('${CARD_FRONT_TEXT}', '${CARD_BACK_TEXT}', ('agent-smoke'), 'medium')\"}" "authorization: ApiKey ${AGENT_API_KEY}"
 assert_status "200" "POST /v1/agent/sql/execute INSERT"
 python3 - <<'PY' "${LAST_BODY_FILE}"
