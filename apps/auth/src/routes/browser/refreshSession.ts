@@ -1,9 +1,14 @@
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
-import { type AuthAppEnv, getRequestId, jsonAuthError } from "../../server/apiErrors.js";
+import {
+  type AuthAppEnv,
+  getRequestLogger,
+  getRequestId,
+  getTraceId,
+  jsonAuthError,
+} from "../../server/apiErrors.js";
 import { clearBrowserSessionCookies, setBrowserSessionCookies } from "../../server/browserSession.js";
 import { isTerminalRefreshFailure, refreshTokens } from "../../server/cognito/cognitoAuth.js";
-import { log } from "../../server/logger.js";
 
 type RefreshSessionDependencies = Readonly<{
   refreshTokens: (refreshToken: string) => Promise<Awaited<ReturnType<typeof refreshTokens>>>;
@@ -16,12 +21,15 @@ export function createRefreshSessionApp(dependencies: RefreshSessionDependencies
 
   app.post("/api/refresh-session", async (c) => {
     const requestId = getRequestId(c);
+    const traceId = getTraceId(c);
+    const logger = getRequestLogger(c);
     const refreshToken = getCookie(c, "refresh") ?? "";
     if (refreshToken === "") {
-      log({
+      logger({
         domain: "auth",
         action: "refresh_session_missing_cookie",
         requestId,
+        traceId,
         route: c.req.path,
         statusCode: 401,
         code: "REFRESH_TOKEN_MISSING",
@@ -34,10 +42,11 @@ export function createRefreshSessionApp(dependencies: RefreshSessionDependencies
     try {
       const tokens = await dependencies.refreshTokens(refreshToken);
       dependencies.setBrowserSessionCookies(c, tokens.idToken, refreshToken);
-      log({
+      logger({
         domain: "auth",
         action: "refresh_session",
         requestId,
+        traceId,
         route: c.req.path,
         statusCode: 200,
       });
@@ -45,10 +54,11 @@ export function createRefreshSessionApp(dependencies: RefreshSessionDependencies
     } catch (error) {
       if (isTerminalRefreshFailure(error)) {
         const message = error instanceof Error ? error.message : String(error);
-        log({
+        logger({
           domain: "auth",
           action: "refresh_session_error",
           requestId,
+          traceId,
           route: c.req.path,
           statusCode: 401,
           code: "REFRESH_TOKEN_FAILED",
