@@ -208,6 +208,112 @@ describe("session transport auth recovery", () => {
     expectLocalBrowserStatePreserved();
   });
 
+  it("reconciles a session when every refresh response is lost after server-side success", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    primeSessionCsrfToken("csrf-token-1");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockRejectedValueOnce(new TypeError("Load failed"))
+      .mockRejectedValueOnce(new TypeError("Load failed"))
+      .mockRejectedValueOnce(new TypeError("Load failed"))
+      .mockResolvedValueOnce(createSessionResponse({
+        csrfToken: "csrf-token-2",
+      }))
+      .mockResolvedValueOnce(createNewChatSessionResponse("session-1"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createTransportBackedChatSession("session-1")).resolves.toMatchObject({
+      sessionId: "session-1",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+    expect(fetchMock.mock.calls.slice(1, 4).map((call) => call[0])).toEqual([
+      "http://localhost:8081/api/refresh-session",
+      "http://localhost:8081/api/refresh-session",
+      "http://localhost:8081/api/refresh-session",
+    ]);
+    expect(fetchMock.mock.calls[4]?.[0]).toBe("http://localhost:8080/v1/me");
+    expect(fetchMock.mock.calls[5]?.[0]).toBe("http://localhost:8080/v1/chat/new");
+
+    const retriedRequestInit = fetchMock.mock.calls[5]?.[1] as RequestInit | undefined;
+    expect(new Headers(retriedRequestInit?.headers).get("X-CSRF-Token")).toBe("csrf-token-2");
+  });
+
+  it("preserves the original refresh network error when reconciliation remains unauthorized", async () => {
+    seedLocalBrowserState();
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const deleteDatabaseSpy = vi.spyOn(indexedDB, "deleteDatabase");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockRejectedValueOnce(new TypeError("Load failed"))
+      .mockRejectedValueOnce(new TypeError("Load failed"))
+      .mockRejectedValueOnce(new TypeError("Load failed"))
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 401 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    let redirectedUrl = "";
+    setNavigationHandlerForTests((url: string) => {
+      redirectedUrl = url;
+    });
+
+    await expect(getSession()).rejects.toMatchObject({
+      statusCode: 0,
+      message: "The auth service is unavailable. Try again. (/api/refresh-session; Load failed)",
+      code: null,
+      requestId: null,
+      endpoint: "POST /api/refresh-session",
+      responseBodyKind: "empty",
+    } satisfies Partial<ApiError>);
+
+    expect(fetchMock).toHaveBeenCalledTimes(7);
+    expect(fetchMock.mock.calls.slice(4).map((call) => call[0])).toEqual([
+      "http://localhost:8080/v1/me",
+      "http://localhost:8080/v1/me",
+      "http://localhost:8080/v1/me",
+    ]);
+    expect(deleteDatabaseSpy).not.toHaveBeenCalled();
+    expect(redirectedUrl).toBe("");
+    expectLocalBrowserStatePreserved();
+    expect(isBrowserReauthRequired()).toBe(false);
+  });
+
+  it("shares refresh reconciliation across concurrent callers", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockRejectedValueOnce(new TypeError("Load failed"))
+      .mockRejectedValueOnce(new TypeError("Load failed"))
+      .mockRejectedValueOnce(new TypeError("Load failed"))
+      .mockResolvedValueOnce(createSessionResponse({
+        csrfToken: "csrf-token-2",
+      }))
+      .mockResolvedValueOnce(createSessionResponse({
+        csrfToken: "csrf-token-2",
+      }))
+      .mockResolvedValueOnce(createSessionResponse({
+        csrfToken: "csrf-token-2",
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const sessions = await Promise.all([getSession(), getSession()]);
+
+    expect(sessions).toHaveLength(2);
+    expect(fetchMock).toHaveBeenCalledTimes(8);
+    expect(fetchMock.mock.calls.slice(2, 5).map((call) => call[0])).toEqual([
+      "http://localhost:8081/api/refresh-session",
+      "http://localhost:8081/api/refresh-session",
+      "http://localhost:8081/api/refresh-session",
+    ]);
+    expect(fetchMock.mock.calls[5]?.[0]).toBe("http://localhost:8080/v1/me");
+    expect(fetchMock.mock.calls.slice(6).map((call) => call[0])).toEqual([
+      "http://localhost:8080/v1/me",
+      "http://localhost:8080/v1/me",
+    ]);
+  });
+
   it("keeps request metadata on API errors with header requestId priority", async () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(new Response(JSON.stringify({
