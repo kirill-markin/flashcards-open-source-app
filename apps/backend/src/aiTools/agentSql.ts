@@ -17,22 +17,13 @@ import {
   type AgentSqlExecutionResult,
 } from "./agentSql/shared";
 import { executeSqlMutationStatement } from "./agentSql/singleMutation";
+import { buildInvalidSqlError } from "./sqlErrors";
 import { MAX_SQL_BATCH_STATEMENT_COUNT, MAX_SQL_RESULT_CHARS } from "./toolContract/sqlToolLimits";
 
 export type {
   AgentSqlExecutionResult,
   AgentSqlPayload,
 } from "./agentSql/shared";
-
-function buildInvalidSqlError(message: string): HttpError {
-  return new HttpError(400, message, "QUERY_INVALID_SQL", {
-    validationIssues: [{
-      path: "sql",
-      code: "invalid_sql",
-      message,
-    }],
-  });
-}
 
 function parseSingleStatementSql(sql: string): ParsedSqlStatement {
   try {

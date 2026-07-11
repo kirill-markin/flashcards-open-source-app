@@ -1,3 +1,4 @@
+import { buildInvalidSqlError } from "../sqlErrors";
 import { getSqlSourceColumnDescriptors } from "./schema";
 import type {
   SqlAggregateFunctionName,
@@ -49,7 +50,11 @@ export function normalizeSqlLimit(limit: number | null, maximumLimit: number): n
     return maximumLimit;
   }
 
-  if (limit < 1) {
+  if (limit === 0) {
+    throw buildInvalidSqlError("LIMIT must be greater than 0");
+  }
+
+  if (limit < 0) {
     throw new Error("LIMIT must be greater than 0");
   }
 
@@ -167,6 +172,10 @@ function rowMatchesInPredicate(columnValue: SqlRowValue | undefined, predicate: 
 
 function validatePredicate(source: SqlFromSource, predicate: SqlPredicate): void {
   if (predicate.type === "match") {
+    if (predicate.query.trim() === "") {
+      throw buildInvalidSqlError("MATCH query must not be empty");
+    }
+
     return;
   }
 
@@ -176,17 +185,13 @@ function validatePredicate(source: SqlFromSource, predicate: SqlPredicate): void
   }
 
   if (columnDescriptor.filterable === false) {
-    throw new Error(`Column is not filterable: ${predicate.columnName}`);
+    throw buildInvalidSqlError(`Column is not filterable: ${predicate.columnName}`);
   }
 }
 
 function rowMatchesPredicate(row: SqlRow, predicate: SqlPredicate): boolean {
   if (predicate.type === "match") {
     const normalizedQuery = predicate.query.trim().toLowerCase();
-    if (normalizedQuery === "") {
-      throw new Error("MATCH query must not be empty");
-    }
-
     return Object.values(row).some((value) => normalizeSearchableText(value).includes(normalizedQuery));
   }
 
@@ -326,11 +331,11 @@ function validateRowOrderBy(source: SqlFromSource, orderBy: ReadonlyArray<SqlSel
     }
     const columnDescriptor = availableColumns[item.expressionName];
     if (columnDescriptor === undefined) {
-      throw new Error(`Unknown ORDER BY target: ${item.expressionName}`);
+      throw buildInvalidSqlError(`Unknown ORDER BY target: ${item.expressionName}`);
     }
 
     if (columnDescriptor.sortable === false) {
-      throw new Error(`Column is not sortable: ${item.expressionName}`);
+      throw buildInvalidSqlError(`Column is not sortable: ${item.expressionName}`);
     }
   }
 }
@@ -394,7 +399,7 @@ function validateAggregateSelect(statement: SqlSelectStatement): void {
 
     if (item.functionName === "avg" || item.functionName === "sum") {
       if (columnDescriptor.type !== "integer" && columnDescriptor.type !== "number") {
-        throw new Error(`${item.functionName.toUpperCase()} only supports numeric columns`);
+        throw buildInvalidSqlError(`${item.functionName.toUpperCase()} only supports numeric columns`);
       }
     }
   }
@@ -408,7 +413,7 @@ function validateAggregateSelect(statement: SqlSelectStatement): void {
       continue;
     }
 
-    throw new Error(`Unknown ORDER BY target: ${item.expressionName}`);
+    throw buildInvalidSqlError(`Unknown ORDER BY target: ${item.expressionName}`);
   }
 }
 
@@ -541,6 +546,12 @@ function isWildcardSelect(statement: SqlSelectStatement): boolean {
   return statement.selectItems.length === 1 && statement.selectItems[0]?.type === "wildcard";
 }
 
+function validateSelectProjection(selectItems: ReadonlyArray<SqlSelectItem>): void {
+  if (selectItems.length > 1 && selectItems.some((item) => item.type === "wildcard")) {
+    throw buildInvalidSqlError("SELECT * cannot be mixed with other projections");
+  }
+}
+
 function isGroupedSelect(statement: SqlSelectStatement): boolean {
   return statement.groupBy.length > 0 || statement.selectItems.some((item) => item.type === "aggregate");
 }
@@ -554,6 +565,7 @@ export function executeSqlSelect(
   rows: ReadonlyArray<SqlRow>,
   maximumLimit: number,
 ): SqlSelectExecutionResult {
+  validateSelectProjection(statement.selectItems);
   const limit = normalizeSqlLimit(statement.limit, maximumLimit);
   const offset = normalizeSqlOffset(statement.offset);
   const expandedRows = expandRowsForSource(statement.source, rows);
