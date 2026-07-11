@@ -8,6 +8,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 
 const val reviewNotificationPermissionPromptThreshold: Int = 6
@@ -21,8 +22,9 @@ const val defaultInactivityReminderWindowEndHour: Int = 19
 const val defaultInactivityReminderWindowEndMinute: Int = 0
 
 private const val reviewNotificationsPreferencesName: String = "flashcards-review-notifications"
-private const val reviewNotificationsSettingsKeyPrefix: String = "review-notifications-settings::"
-private const val reviewNotificationsScheduledPayloadsKeyPrefix: String = "review-notifications-scheduled-payloads::"
+private const val reviewNotificationsSettingsKey: String = "review-notifications-settings"
+private const val legacyReviewNotificationsSettingsKeyPrefix: String = "review-notifications-settings::"
+private const val reviewNotificationsScheduledPayloadsKey: String = "review-notifications-scheduled-payloads"
 private const val strictRemindersSettingsKey: String = "strict-reminders-settings"
 private const val strictRemindersScheduledPayloadsKey: String = "strict-reminders-scheduled-payloads"
 private const val strictRemindersLastCompletedReviewAtKey: String = "strict-reminders-last-completed-review-at"
@@ -149,8 +151,9 @@ fun reviewNotificationWorkLimit(strictRemindersSettings: StrictRemindersSettings
 }
 
 interface ReviewNotificationsStore {
-    fun loadSettings(workspaceId: String): ReviewNotificationsSettings
-    fun saveSettings(workspaceId: String, settings: ReviewNotificationsSettings)
+    fun migrateLegacySettings(currentWorkspaceId: String)
+    fun loadSettings(): ReviewNotificationsSettings
+    fun saveSettings(settings: ReviewNotificationsSettings)
     fun loadPromptState(): NotificationPermissionPromptState
     fun savePromptState(state: NotificationPermissionPromptState)
     fun loadSuccessfulReviewCount(): Int
@@ -161,8 +164,8 @@ interface ReviewNotificationsStore {
     fun loadReviewReminderAttentionState(): ReviewReminderAttentionState?
     fun markReviewReminderAttention(state: ReviewReminderAttentionState)
     fun clearReviewReminderAttention()
-    fun loadScheduledPayloads(workspaceId: String): List<ScheduledReviewNotificationPayload>
-    fun saveScheduledPayloads(workspaceId: String, payloads: List<ScheduledReviewNotificationPayload>)
+    fun loadScheduledPayloads(): List<ScheduledReviewNotificationPayload>
+    fun saveScheduledPayloads(payloads: List<ScheduledReviewNotificationPayload>)
 }
 
 interface StrictRemindersStore {
@@ -184,24 +187,50 @@ class SharedPreferencesReviewNotificationsStore(
         Context.MODE_PRIVATE
     )
 
-    override fun loadSettings(workspaceId: String): ReviewNotificationsSettings {
-        val rawValue = preferences.getString(makeSettingsKey(workspaceId = workspaceId), null)
+    @Synchronized
+    override fun migrateLegacySettings(currentWorkspaceId: String) {
+        if (preferences.contains(reviewNotificationsSettingsKey)) {
+            return
+        }
+
+        val legacySettingsKey = makeLegacySettingsKey(workspaceId = currentWorkspaceId)
+        val legacyRawValue = preferences.getString(legacySettingsKey, null)
+        val settings = legacyRawValue?.let { rawValue ->
+            try {
+                decodeSettings(rawValue = rawValue)
+            } catch (_: JSONException) {
+                preferences.edit(commit = true) {
+                    remove(legacySettingsKey)
+                }
+                defaultReviewNotificationsSettings()
+            } catch (_: IllegalArgumentException) {
+                preferences.edit(commit = true) {
+                    remove(legacySettingsKey)
+                }
+                defaultReviewNotificationsSettings()
+            }
+        } ?: defaultReviewNotificationsSettings()
+        saveSettings(settings = settings)
+    }
+
+    override fun loadSettings(): ReviewNotificationsSettings {
+        val rawValue = preferences.getString(reviewNotificationsSettingsKey, null)
             ?: return defaultReviewNotificationsSettings()
 
         return try {
             decodeSettings(rawValue = rawValue)
         } catch (_: Exception) {
             preferences.edit(commit = true) {
-                remove(makeSettingsKey(workspaceId = workspaceId))
+                remove(reviewNotificationsSettingsKey)
             }
             defaultReviewNotificationsSettings()
         }
     }
 
-    override fun saveSettings(workspaceId: String, settings: ReviewNotificationsSettings) {
+    override fun saveSettings(settings: ReviewNotificationsSettings) {
         preferences.edit(commit = true) {
             putString(
-                makeSettingsKey(workspaceId = workspaceId),
+                reviewNotificationsSettingsKey,
                 encodeSettings(settings = settings)
             )
         }
@@ -329,24 +358,24 @@ class SharedPreferencesReviewNotificationsStore(
         }
     }
 
-    override fun loadScheduledPayloads(workspaceId: String): List<ScheduledReviewNotificationPayload> {
-        val rawValue = preferences.getString(makeScheduledPayloadsKey(workspaceId = workspaceId), null)
+    override fun loadScheduledPayloads(): List<ScheduledReviewNotificationPayload> {
+        val rawValue = preferences.getString(reviewNotificationsScheduledPayloadsKey, null)
             ?: return emptyList()
 
         return try {
             decodeScheduledPayloads(rawValue = rawValue)
         } catch (_: Exception) {
             preferences.edit(commit = true) {
-                remove(makeScheduledPayloadsKey(workspaceId = workspaceId))
+                remove(reviewNotificationsScheduledPayloadsKey)
             }
             emptyList()
         }
     }
 
-    override fun saveScheduledPayloads(workspaceId: String, payloads: List<ScheduledReviewNotificationPayload>) {
+    override fun saveScheduledPayloads(payloads: List<ScheduledReviewNotificationPayload>) {
         preferences.edit(commit = true) {
             putString(
-                makeScheduledPayloadsKey(workspaceId = workspaceId),
+                reviewNotificationsScheduledPayloadsKey,
                 encodeScheduledPayloads(payloads = payloads)
             )
         }
@@ -731,12 +760,8 @@ private fun buildScheduledReviewNotificationPayloads(
 
 private val notificationRequestIdDateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
 
-private fun makeSettingsKey(workspaceId: String): String {
-    return "$reviewNotificationsSettingsKeyPrefix$workspaceId"
-}
-
-private fun makeScheduledPayloadsKey(workspaceId: String): String {
-    return "$reviewNotificationsScheduledPayloadsKeyPrefix$workspaceId"
+private fun makeLegacySettingsKey(workspaceId: String): String {
+    return "$legacyReviewNotificationsSettingsKeyPrefix$workspaceId"
 }
 
 private fun encodeSettings(settings: ReviewNotificationsSettings): String {
@@ -872,6 +897,7 @@ private fun encodeScheduledStrictReminderPayloads(
         payloads.forEach { payload ->
             put(
                 JSONObject().apply {
+                    put("workspaceId", payload.workspaceId)
                     put("scheduledAtMillis", payload.scheduledAtMillis)
                     put("timeOffset", payload.timeOffset.rawValue)
                     put("requestId", payload.requestId)
@@ -905,6 +931,7 @@ private fun decodeScheduledStrictReminderPayloads(rawValue: String): List<Schedu
     return (0 until payloads.length()).map { index ->
         val payload = payloads.getJSONObject(index)
         ScheduledStrictReminderPayload(
+            workspaceId = payload.getString("workspaceId"),
             scheduledAtMillis = payload.getLong("scheduledAtMillis"),
             timeOffset = StrictReminderTimeOffset.fromRawValue(
                 rawValue = payload.getString("timeOffset")

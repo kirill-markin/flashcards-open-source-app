@@ -29,6 +29,7 @@ import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.core.ui.TestModeStore
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
+import com.flashcardsopensourceapp.app.notifications.NotificationDeliveryGate
 import com.flashcardsopensourceapp.app.notifications.review.ReviewReminderAttentionController
 import com.flashcardsopensourceapp.app.notifications.review.ReviewNotificationsManager
 import com.flashcardsopensourceapp.app.notifications.strict.AndroidStrictRemindersScheduler
@@ -48,6 +49,7 @@ import com.flashcardsopensourceapp.data.local.database.core.buildAppDatabase
 import com.flashcardsopensourceapp.data.local.database.core.closeAppDatabase
 import com.flashcardsopensourceapp.data.local.network.OkHttpSignedPutUploader
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
+import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.SharedPreferencesReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersStore
@@ -93,16 +95,21 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import java.time.ZoneId
 
 private const val appGraphLogTag: String = "AppGraph"
+private const val notificationsWorkspaceReconcileInitialRetryDelayMillis: Long = 250L
+private const val notificationsWorkspaceReconcileMaximumRetryDelayMillis: Long = 4_000L
 
 sealed interface AppStartupState {
     data object Loading : AppStartupState
@@ -117,6 +124,11 @@ private class AppTechnicalErrorDetailsException(
 
 data class AppGuestCloudSession(
     val workspaceId: String
+)
+
+private data class NotificationsWorkspaceObservation(
+    val activeWorkspaceId: String?,
+    val hasMatchingLocalWorkspace: Boolean
 )
 
 class AppGraph(
@@ -148,6 +160,7 @@ class AppGraph(
     private var startupJob: Job? = null
     private var cloudIdentityObserverJob: Job? = null
     private var reviewHistoryAppliedObserverJob: Job? = null
+    private var notificationsWorkspaceObserverJob: Job? = null
 
     internal val appPackageInfo: AppPackageInfo = loadPackageInfo(context = context)
     val appMessageBus = AppMessageBus(
@@ -183,9 +196,11 @@ class AppGraph(
     private val notificationsStore = SharedPreferencesReviewNotificationsStore(context = context)
     val reviewNotificationsStore: ReviewNotificationsStore = notificationsStore
     val strictRemindersStore: StrictRemindersStore = notificationsStore
+    val notificationDeliveryGate = NotificationDeliveryGate()
     val reviewReminderAttentionController = ReviewReminderAttentionController(
         reviewNotificationsStore = reviewNotificationsStore,
-        reviewLogDao = database.reviewLogDao()
+        reviewLogDao = database.reviewLogDao(),
+        notificationDeliveryGate = notificationDeliveryGate
     )
     private val aiCoroutineDispatchers = AiCoroutineDispatchers(io = Dispatchers.IO)
     private val localProgressCacheStore = LocalProgressCacheStore(
@@ -219,18 +234,29 @@ class AppGraph(
     val reviewNotificationsManager = ReviewNotificationsManager(
         context = context,
         database = database,
-        preferencesStore = cloudPreferencesStore,
+        currentWorkspaceIdProvider = {
+            loadActiveNotificationWorkspaceIdOrNull()
+        },
         reviewPreferencesStore = reviewPreferencesStore,
         reviewNotificationsStore = reviewNotificationsStore,
         strictRemindersStore = strictRemindersStore,
+        attentionController = reviewReminderAttentionController,
+        notificationDeliveryGate = notificationDeliveryGate,
         observability = observability,
         appVersion = appPackageInfo.versionName,
         versionCode = appPackageInfo.longVersionCode.toInt()
     )
     val strictRemindersManager = StrictRemindersManager(
         strictRemindersStore = strictRemindersStore,
+        notificationsMasterEnabledProvider = {
+            reviewNotificationsStore.loadSettings().isEnabled
+        },
         reviewLogDao = database.reviewLogDao(),
         scheduler = strictRemindersScheduler,
+        notificationDeliveryGate = notificationDeliveryGate,
+        currentWorkspaceIdProvider = {
+            loadActiveNotificationWorkspaceIdOrNull()
+        },
         zoneIdProvider = ZoneId::systemDefault,
         observability = observability,
         appVersion = appPackageInfo.versionName,
@@ -469,6 +495,13 @@ class AppGraph(
                 ensureLocalWorkspaceShell(currentTimeMillis = System.currentTimeMillis())
                 cloudPreferencesStore.hydrateCloudSettingsFromDatabase()
                 cloudGuestSessionCoordinator.reconcilePersistedCloudStateForStartup()
+                val initialWorkspaceId = workspaceRepository.observeWorkspace().first()?.workspaceId
+                if (initialWorkspaceId != null) {
+                    reviewNotificationsStore.migrateLegacySettings(
+                        currentWorkspaceId = initialWorkspaceId
+                    )
+                }
+                startNotificationsWorkspaceObserver(initialWorkspaceId = initialWorkspaceId)
                 startupStateMutable.value = AppStartupState.Ready
             } catch (error: CancellationException) {
                 throw error
@@ -491,6 +524,94 @@ class AppGraph(
                 )
             }
         }
+    }
+
+    private fun startNotificationsWorkspaceObserver(initialWorkspaceId: String?) {
+        notificationsWorkspaceObserverJob?.cancel()
+        notificationsWorkspaceObserverJob = appScope.launch {
+            var previousWorkspaceId = initialWorkspaceId
+            combine(
+                database.workspaceDao().observeWorkspaces(),
+                cloudPreferencesStore.observeCloudSettings()
+            ) { workspaces, cloudSettings ->
+                val activeWorkspaceId = cloudSettings.activeWorkspaceId
+                NotificationsWorkspaceObservation(
+                    activeWorkspaceId = activeWorkspaceId,
+                    hasMatchingLocalWorkspace = if (activeWorkspaceId == null) {
+                        workspaces.isEmpty()
+                    } else {
+                        workspaces.any { workspace ->
+                            workspace.workspaceId == activeWorkspaceId
+                        }
+                    }
+                )
+            }.collectLatest { observation ->
+                if (observation.hasMatchingLocalWorkspace.not()) {
+                    return@collectLatest
+                }
+
+                val workspaceId = observation.activeWorkspaceId
+                if (workspaceId == previousWorkspaceId) {
+                    return@collectLatest
+                }
+
+                reconcileNotificationsForWorkspaceUntilSuccessful(workspaceId = workspaceId)
+                previousWorkspaceId = workspaceId
+            }
+        }
+    }
+
+    private suspend fun reconcileNotificationsForWorkspaceUntilSuccessful(workspaceId: String?) {
+        var attempt = 1
+        var retryDelayMillis = notificationsWorkspaceReconcileInitialRetryDelayMillis
+        while (true) {
+            try {
+                reconcileNotificationsForWorkspace(workspaceId = workspaceId)
+                return
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                Log.w(
+                    appGraphLogTag,
+                    "event=notifications_workspace_reconcile_retry " +
+                        "workspace_id=${workspaceId ?: "none"} " +
+                        "attempt=$attempt retry_delay_ms=$retryDelayMillis " +
+                        renderSanitizedThrowableLogFields(error = error)
+                )
+                delay(timeMillis = retryDelayMillis)
+                retryDelayMillis = minOf(
+                    retryDelayMillis * 2L,
+                    notificationsWorkspaceReconcileMaximumRetryDelayMillis
+                )
+                if (attempt < Int.MAX_VALUE) {
+                    attempt += 1
+                }
+            }
+        }
+    }
+
+    suspend fun loadActiveNotificationWorkspaceIdOrNull(): String? {
+        val activeWorkspaceId = cloudPreferencesStore.currentCloudSettings().activeWorkspaceId
+            ?: return null
+        return database.workspaceDao()
+            .loadWorkspaceById(workspaceId = activeWorkspaceId)
+            ?.workspaceId
+    }
+
+    private suspend fun reconcileNotificationsForWorkspace(workspaceId: String?) {
+        if (workspaceId != null) {
+            reviewNotificationsStore.migrateLegacySettings(currentWorkspaceId = workspaceId)
+        }
+        reviewReminderAttentionController.clear()
+        val nowMillis = System.currentTimeMillis()
+        reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotificationsAndWait(
+            trigger = ReviewNotificationsReconcileTrigger.WORKSPACE_CHANGED,
+            nowMillis = nowMillis
+        )
+        strictRemindersManager.reconcileStrictRemindersAndWait(
+            trigger = StrictRemindersReconcileTrigger.WORKSPACE_CHANGED,
+            nowMillis = nowMillis
+        )
     }
 
     suspend fun ensureLocalWorkspaceShell(currentTimeMillis: Long) {
@@ -605,6 +726,7 @@ class AppGraph(
         startupJob?.cancelAndJoin()
         cloudIdentityObserverJob?.cancelAndJoin()
         reviewHistoryAppliedObserverJob?.cancelAndJoin()
+        notificationsWorkspaceObserverJob?.cancelAndJoin()
         reviewNotificationsManager.close()
         strictRemindersManager.close()
         appJob.cancelAndJoin()

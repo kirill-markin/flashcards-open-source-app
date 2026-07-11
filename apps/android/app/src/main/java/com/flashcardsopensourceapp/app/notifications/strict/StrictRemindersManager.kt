@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.app.notifications.strict
 import android.app.NotificationManager
 import android.content.Context
 import android.service.notification.StatusBarNotification
+import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.Constraints
 import androidx.work.Data
@@ -11,6 +12,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.await
 import com.flashcardsopensourceapp.app.notifications.NotificationDelayRange
+import com.flashcardsopensourceapp.app.notifications.NotificationDeliveryGate
 import com.flashcardsopensourceapp.app.notifications.NotificationExpectedWorkInfoReadback
 import com.flashcardsopensourceapp.app.notifications.calculateNotificationDelayRange
 import com.flashcardsopensourceapp.app.notifications.emptyNotificationDelayRange
@@ -20,6 +22,7 @@ import com.flashcardsopensourceapp.app.notifications.loadExpectedWorkInfoReadbac
 import com.flashcardsopensourceapp.app.notifications.loadWorkInfoStateCountsByTag
 import com.flashcardsopensourceapp.app.notifications.strictReminderNotificationKind
 import com.flashcardsopensourceapp.app.notifications.reviewNotificationChannelId
+import com.flashcardsopensourceapp.app.observability.renderSanitizedThrowableLogFields
 import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission as hasNotificationPermissionGranted
 import com.flashcardsopensourceapp.core.observability.AndroidBreadcrumbEvent
 import com.flashcardsopensourceapp.core.observability.AndroidNotificationSchedulingDiagnostic
@@ -40,6 +43,7 @@ import com.flashcardsopensourceapp.data.local.notifications.strictReminderWorkLi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
@@ -52,7 +56,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 const val strictReminderRequestIdDataKey: String = "strictReminderRequestId"
 const val strictReminderTimeOffsetDataKey: String = "strictReminderTimeOffset"
+const val strictReminderWorkspaceIdDataKey: String = "strictReminderWorkspaceId"
 const val strictReminderWorkTag: String = "strict-reminder-notification"
+private const val strictRemindersManagerLogTag: String = "StrictRemindersManager"
 
 interface StrictRemindersScheduler {
     fun hasNotificationPermission(): Boolean
@@ -119,6 +125,7 @@ class AndroidStrictRemindersScheduler(
         val inputData = Data.Builder()
             .putString(strictReminderRequestIdDataKey, payload.requestId)
             .putString(strictReminderTimeOffsetDataKey, payload.timeOffset.rawValue)
+            .putString(strictReminderWorkspaceIdDataKey, payload.workspaceId)
             .build()
         val request = OneTimeWorkRequestBuilder<StrictReminderWorker>()
             .setInitialDelay(delayMillis, TimeUnit.MILLISECONDS)
@@ -169,8 +176,11 @@ class AndroidStrictRemindersScheduler(
 
 class StrictRemindersManager(
     private val strictRemindersStore: StrictRemindersStore,
+    private val notificationsMasterEnabledProvider: () -> Boolean,
     private val reviewLogDao: ReviewLogDao,
     private val scheduler: StrictRemindersScheduler,
+    private val notificationDeliveryGate: NotificationDeliveryGate,
+    private val currentWorkspaceIdProvider: suspend () -> String?,
     private val zoneIdProvider: () -> ZoneId,
     private val observability: AppObservability,
     private val appVersion: String?,
@@ -258,14 +268,32 @@ class StrictRemindersManager(
     }
 
     private suspend fun processCommand(command: StrictRemindersCommand) {
+        val completion = commandCompletion(command = command)
+        try {
+            executeCommand(command = command)
+            completion?.complete(Unit)
+        } catch (error: CancellationException) {
+            completion?.completeExceptionally(error)
+            throw error
+        } catch (error: Exception) {
+            completion?.completeExceptionally(error)
+            Log.e(
+                strictRemindersManagerLogTag,
+                "event=strict_reminders_command_failed " +
+                    "trigger=${strictReminderCommandTrigger(command = command)} " +
+                    "awaited=${completion != null} " +
+                    renderSanitizedThrowableLogFields(error = error)
+            )
+        }
+    }
+
+    private suspend fun executeCommand(command: StrictRemindersCommand) {
         when (command) {
             is StrictRemindersCommand.Reconcile -> {
-                runCompletableCommand(completion = command.completion) {
-                    reconcileStrictRemindersNow(
-                        trigger = command.trigger,
-                        nowMillis = command.nowMillis
-                    )
-                }
+                reconcileStrictRemindersNow(
+                    trigger = command.trigger,
+                    nowMillis = command.nowMillis
+                )
             }
 
             is StrictRemindersCommand.RecordSuccessfulReview -> {
@@ -295,24 +323,17 @@ class StrictRemindersManager(
             }
 
             is StrictRemindersCommand.ClearIdentityState -> {
-                runCompletableCommand(completion = command.completion) {
-                    clearIdentityStateNow()
-                }
+                clearIdentityStateNow()
             }
         }
     }
 
-    private suspend fun runCompletableCommand(
-        completion: CompletableDeferred<Unit>?,
-        action: suspend () -> Unit
-    ) {
-        runCatching {
-            action()
-        }.onSuccess {
-            completion?.complete(Unit)
-        }.onFailure { error ->
-            completion?.completeExceptionally(error)
-            throw error
+    private fun commandCompletion(command: StrictRemindersCommand): CompletableDeferred<Unit>? {
+        return when (command) {
+            is StrictRemindersCommand.Reconcile -> command.completion
+            is StrictRemindersCommand.ClearIdentityState -> command.completion
+            is StrictRemindersCommand.RecordSuccessfulReview,
+            is StrictRemindersCommand.RecordImportedReviewHistory -> null
         }
     }
 
@@ -367,11 +388,13 @@ class StrictRemindersManager(
     ) {
         val storedScheduledCountBefore: Int = strictRemindersStore.loadScheduledStrictReminderPayloads().size
         val settings = strictRemindersStore.loadStrictRemindersSettings()
+        val currentWorkspaceId = currentWorkspaceIdProvider()
         val permissionAllowed: Boolean = scheduler.hasNotificationPermission()
         emitStrictReminderSchedulingBreadcrumb(
             diagnostic = makeStrictReminderSchedulingDiagnostic(
                 stage = "reconcile_start",
                 trigger = trigger.name.lowercase(),
+                workspaceId = currentWorkspaceId,
                 permissionAllowed = permissionAllowed,
                 plannedCount = null,
                 storedScheduledCountBefore = storedScheduledCountBefore,
@@ -384,16 +407,16 @@ class StrictRemindersManager(
             )
         )
 
-        if (trigger.shouldClearDeliveredStrictReminders) {
-            scheduler.clearDeliveredNotifications()
-        }
-
         scheduler.clearScheduledReminders()
         strictRemindersStore.saveScheduledStrictReminderPayloads(payloads = emptyList())
+        if (trigger.shouldClearDeliveredStrictReminders) {
+            clearDeliveredNotifications()
+        }
         emitStrictReminderSchedulingBreadcrumb(
             diagnostic = makeStrictReminderSchedulingDiagnostic(
                 stage = "after_cancel",
                 trigger = trigger.name.lowercase(),
+                workspaceId = currentWorkspaceId,
                 permissionAllowed = permissionAllowed,
                 plannedCount = null,
                 storedScheduledCountBefore = storedScheduledCountBefore,
@@ -406,10 +429,24 @@ class StrictRemindersManager(
             )
         )
 
+        val masterEnabled = notificationsMasterEnabledProvider()
+        if (masterEnabled.not()) {
+            clearDeliveredNotifications()
+            saveEmptyStrictReminderSchedulingAndEmitSkippedDiagnostic(
+                stage = "master_disabled",
+                trigger = trigger,
+                workspaceId = currentWorkspaceId,
+                permissionAllowed = permissionAllowed,
+                storedScheduledCountBefore = storedScheduledCountBefore
+            )
+            return
+        }
         if (settings.isEnabled.not()) {
+            clearDeliveredNotifications()
             saveEmptyStrictReminderSchedulingAndEmitSkippedDiagnostic(
                 stage = "settings_disabled",
                 trigger = trigger,
+                workspaceId = currentWorkspaceId,
                 permissionAllowed = permissionAllowed,
                 storedScheduledCountBefore = storedScheduledCountBefore
             )
@@ -420,6 +457,17 @@ class StrictRemindersManager(
             saveEmptyStrictReminderSchedulingAndEmitSkippedDiagnostic(
                 stage = "permission_blocked",
                 trigger = trigger,
+                workspaceId = currentWorkspaceId,
+                permissionAllowed = permissionAllowed,
+                storedScheduledCountBefore = storedScheduledCountBefore
+            )
+            return
+        }
+        if (currentWorkspaceId == null) {
+            saveEmptyStrictReminderSchedulingAndEmitSkippedDiagnostic(
+                stage = "missing_current_workspace",
+                trigger = trigger,
+                workspaceId = null,
                 permissionAllowed = permissionAllowed,
                 storedScheduledCountBefore = storedScheduledCountBefore
             )
@@ -428,10 +476,12 @@ class StrictRemindersManager(
 
         val zoneId = zoneIdProvider()
         val lastCompletedReviewAtMillis = loadEffectiveLastCompletedReviewAtMillis(
+            workspaceId = currentWorkspaceId,
             nowMillis = nowMillis,
             zoneId = zoneId
         )
         val payloads = buildStrictReminderPayloads(
+            workspaceId = currentWorkspaceId,
             nowMillis = nowMillis,
             zoneId = zoneId,
             isLocalDateCompleted = { localDate ->
@@ -465,6 +515,7 @@ class StrictRemindersManager(
         val afterEnqueueDiagnostic: AndroidNotificationSchedulingDiagnostic = makeStrictReminderSchedulingDiagnostic(
             stage = "after_enqueue",
             trigger = trigger.name.lowercase(),
+            workspaceId = currentWorkspaceId,
             permissionAllowed = permissionAllowed,
             plannedCount = payloads.size,
             storedScheduledCountBefore = storedScheduledCountBefore,
@@ -486,6 +537,7 @@ class StrictRemindersManager(
     private suspend fun saveEmptyStrictReminderSchedulingAndEmitSkippedDiagnostic(
         stage: String,
         trigger: StrictRemindersReconcileTrigger,
+        workspaceId: String?,
         permissionAllowed: Boolean,
         storedScheduledCountBefore: Int
     ) {
@@ -494,6 +546,7 @@ class StrictRemindersManager(
             diagnostic = makeStrictReminderSchedulingDiagnostic(
                 stage = stage,
                 trigger = trigger.name.lowercase(),
+                workspaceId = workspaceId,
                 permissionAllowed = permissionAllowed,
                 plannedCount = 0,
                 storedScheduledCountBefore = storedScheduledCountBefore,
@@ -510,6 +563,7 @@ class StrictRemindersManager(
     private fun makeStrictReminderSchedulingDiagnostic(
         stage: String,
         trigger: String,
+        workspaceId: String?,
         permissionAllowed: Boolean?,
         plannedCount: Int?,
         storedScheduledCountBefore: Int?,
@@ -525,7 +579,7 @@ class StrictRemindersManager(
             stage = stage,
             trigger = trigger,
             requestId = null,
-            workspaceId = null,
+            workspaceId = workspaceId,
             permissionAllowed = permissionAllowed,
             plannedCount = plannedCount,
             workLimit = strictReminderWorkLimit,
@@ -594,6 +648,7 @@ class StrictRemindersManager(
         val diagnostic = makeStrictReminderSchedulingDiagnostic(
             stage = "command_enqueue_rejected",
             trigger = strictReminderCommandTrigger(command = command),
+            workspaceId = null,
             permissionAllowed = null,
             plannedCount = null,
             storedScheduledCountBefore = null,
@@ -625,12 +680,19 @@ class StrictRemindersManager(
     }
 
     private suspend fun clearIdentityStateNow() {
-        scheduler.clearDeliveredNotifications()
         scheduler.clearScheduledReminders()
+        clearDeliveredNotifications()
         strictRemindersStore.clearStrictRemindersIdentityState()
     }
 
+    private suspend fun clearDeliveredNotifications() {
+        notificationDeliveryGate.runExclusive {
+            scheduler.clearDeliveredNotifications()
+        }
+    }
+
     private suspend fun loadEffectiveLastCompletedReviewAtMillis(
+        workspaceId: String,
         nowMillis: Long,
         zoneId: ZoneId
     ): Long? {
@@ -640,7 +702,8 @@ class StrictRemindersManager(
             localDate = currentLocalDate,
             zoneId = zoneId
         )
-        val hasReviewLogsInCurrentLocalDate = reviewLogDao.hasReviewLogsBetween(
+        val hasReviewLogsInCurrentLocalDate = reviewLogDao.hasWorkspaceReviewLogsBetween(
+            workspaceId = workspaceId,
             startMillis = currentLocalDateWindow.startMillis,
             endMillis = currentLocalDateWindow.endMillis
         )

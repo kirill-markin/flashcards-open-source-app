@@ -311,6 +311,7 @@ class ReviewNotificationsStoreTest {
     @Test
     fun strictReminderPayloadsStayWithinWorkLimit() = runBlocking {
         val payloads = buildStrictReminderPayloads(
+            workspaceId = "workspace-1",
             nowMillis = parseTimestampMillis(value = "2026-04-03T09:00:00Z"),
             zoneId = ZoneId.of("UTC"),
             isLocalDateCompleted = { _ -> false }
@@ -324,6 +325,7 @@ class ReviewNotificationsStoreTest {
     fun strictReminderPayloadsSkipCompletedDaysAndPastCandidates() = runBlocking {
         val zoneId = ZoneId.of("UTC")
         val payloads = buildStrictReminderPayloads(
+            workspaceId = "workspace-1",
             nowMillis = parseTimestampMillis(value = "2026-04-03T21:30:00Z"),
             zoneId = zoneId,
             isLocalDateCompleted = { localDate ->
@@ -333,10 +335,10 @@ class ReviewNotificationsStoreTest {
 
         assertEquals(
             listOf(
-                "strict-reminder::2026-04-03::2h",
-                "strict-reminder::2026-04-05::4h",
-                "strict-reminder::2026-04-05::3h",
-                "strict-reminder::2026-04-05::2h"
+                "strict-reminder::workspace-1::2026-04-03::2h",
+                "strict-reminder::workspace-1::2026-04-05::4h",
+                "strict-reminder::workspace-1::2026-04-05::3h",
+                "strict-reminder::workspace-1::2026-04-05::2h"
             ),
             payloads.take(4).map { payload -> payload.requestId }
         )
@@ -360,6 +362,7 @@ class ReviewNotificationsStoreTest {
     fun strictReminderPayloadsUseStartOfNextDayForDstShift() = runBlocking {
         val zoneId = ZoneId.of("Europe/Madrid")
         val payloads = buildStrictReminderPayloads(
+            workspaceId = "workspace-1",
             nowMillis = parseTimestampMillis(value = "2026-03-29T00:00:00Z"),
             zoneId = zoneId,
             isLocalDateCompleted = { _ -> false }

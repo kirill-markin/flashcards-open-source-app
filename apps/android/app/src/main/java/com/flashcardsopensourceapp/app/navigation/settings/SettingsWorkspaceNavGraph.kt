@@ -83,6 +83,32 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 workspaceRepository = appGraph.workspaceRepository,
                 reviewNotificationsStore = appGraph.reviewNotificationsStore,
                 strictRemindersStore = appGraph.strictRemindersStore,
+                onNotificationsMasterChanged = { isEnabled ->
+                    coroutineScope.launch {
+                        notificationSchedulingMutex.withLock {
+                            val nowMillis = System.currentTimeMillis()
+                            if (isEnabled) {
+                                appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotificationsAndWait(
+                                    trigger = ReviewNotificationsReconcileTrigger.SETTINGS_CHANGED,
+                                    nowMillis = nowMillis
+                                )
+                                appGraph.strictRemindersManager.reconcileStrictRemindersAndWait(
+                                    trigger = StrictRemindersReconcileTrigger.SETTINGS_CHANGED,
+                                    nowMillis = nowMillis
+                                )
+                            } else {
+                                appGraph.strictRemindersManager.reconcileStrictRemindersAndWait(
+                                    trigger = StrictRemindersReconcileTrigger.SETTINGS_CHANGED,
+                                    nowMillis = nowMillis
+                                )
+                                appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotificationsAndWait(
+                                    trigger = ReviewNotificationsReconcileTrigger.SETTINGS_CHANGED,
+                                    nowMillis = nowMillis
+                                )
+                            }
+                        }
+                    }
+                },
                 onReviewSettingsChanged = {
                     coroutineScope.launch {
                         notificationSchedulingMutex.withLock {
@@ -120,7 +146,9 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                     }
                 },
                 onAppIconBadgeDisabled = {
-                    appGraph.reviewNotificationsManager.clearDeliveredReviewReminderNotifications()
+                    coroutineScope.launch {
+                        appGraph.reviewNotificationsManager.clearDeliveredReviewReminderNotifications()
+                    }
                 }
             )
         )

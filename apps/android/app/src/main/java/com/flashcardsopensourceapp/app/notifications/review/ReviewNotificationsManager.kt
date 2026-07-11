@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.app.notifications.review
 import android.app.NotificationManager
 import android.content.Context
 import android.service.notification.StatusBarNotification
+import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.Constraints
 import androidx.work.Data
@@ -11,6 +12,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.await
 import com.flashcardsopensourceapp.app.notifications.NotificationDelayRange
+import com.flashcardsopensourceapp.app.notifications.NotificationDeliveryGate
 import com.flashcardsopensourceapp.app.notifications.NotificationExpectedWorkInfoReadback
 import com.flashcardsopensourceapp.app.notifications.calculateNotificationDelayRange
 import com.flashcardsopensourceapp.app.notifications.emptyNotificationDelayRange
@@ -21,12 +23,12 @@ import com.flashcardsopensourceapp.app.notifications.loadExpectedWorkInfoReadbac
 import com.flashcardsopensourceapp.app.notifications.loadWorkInfoStateCountsByTag
 import com.flashcardsopensourceapp.app.notifications.reviewReminderNotificationKind
 import com.flashcardsopensourceapp.app.notifications.reviewNotificationChannelId
+import com.flashcardsopensourceapp.app.observability.renderSanitizedThrowableLogFields
 import com.flashcardsopensourceapp.core.observability.AndroidBreadcrumbEvent
 import com.flashcardsopensourceapp.core.observability.AndroidNotificationSchedulingDiagnostic
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidWorkInfoStateCounts
 import com.flashcardsopensourceapp.core.observability.AppObservability
-import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.review.loadTopActiveReviewCard
@@ -48,32 +50,79 @@ import com.flashcardsopensourceapp.data.local.notifications.buildInactivityRemin
 import com.flashcardsopensourceapp.data.local.notifications.makePersistedReviewFilter
 import com.flashcardsopensourceapp.data.local.notifications.reviewNotificationWorkLimit
 import com.flashcardsopensourceapp.data.local.notifications.strictReminderWorkLimit
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.feature.review.reviewTextProvider
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
 const val reviewNotificationFrontTextDataKey: String = "frontText"
 const val reviewNotificationRequestIdDataKey: String = "requestId"
 const val reviewNotificationWorkspaceIdDataKey: String = "workspaceId"
 const val reviewNotificationWorkTag: String = "review-notification"
+private const val reviewNotificationsManagerLogTag: String = "ReviewNotificationsManager"
+
+private data class ReviewNotificationsReconcileCommand(
+    val trigger: ReviewNotificationsReconcileTrigger,
+    val nowMillis: Long,
+    val generation: Long,
+    val requiresDeliveredCleanup: Boolean,
+    val completion: CompletableDeferred<Unit>?
+)
+
+private data class ReviewNotificationsReconcileBatch(
+    val trigger: ReviewNotificationsReconcileTrigger,
+    val nowMillis: Long,
+    val generation: Long,
+    val requiresDeliveredCleanup: Boolean,
+    val completions: List<CompletableDeferred<Unit>>
+) {
+    fun merge(command: ReviewNotificationsReconcileCommand): ReviewNotificationsReconcileBatch {
+        return ReviewNotificationsReconcileBatch(
+            trigger = command.trigger,
+            nowMillis = command.nowMillis,
+            generation = command.generation,
+            requiresDeliveredCleanup = requiresDeliveredCleanup || command.requiresDeliveredCleanup,
+            completions = if (command.completion == null) {
+                completions
+            } else {
+                completions + command.completion
+            }
+        )
+    }
+}
+
+private fun makeReviewNotificationsReconcileBatch(
+    command: ReviewNotificationsReconcileCommand
+): ReviewNotificationsReconcileBatch {
+    return ReviewNotificationsReconcileBatch(
+        trigger = command.trigger,
+        nowMillis = command.nowMillis,
+        generation = command.generation,
+        requiresDeliveredCleanup = command.requiresDeliveredCleanup,
+        completions = listOfNotNull(command.completion)
+    )
+}
 
 class ReviewNotificationsManager(
     private val context: Context,
     private val database: AppDatabase,
-    private val preferencesStore: CloudPreferencesStore,
+    private val currentWorkspaceIdProvider: suspend () -> String?,
     private val reviewPreferencesStore: ReviewPreferencesStore,
     private val reviewNotificationsStore: ReviewNotificationsStore,
     private val strictRemindersStore: StrictRemindersStore,
+    private val attentionController: ReviewReminderAttentionController,
+    private val notificationDeliveryGate: NotificationDeliveryGate,
     private val observability: AppObservability,
     private val appVersion: String?,
     private val versionCode: Int?
@@ -81,8 +130,54 @@ class ReviewNotificationsManager(
     private val workManager: WorkManager = WorkManager.getInstance(context)
     private val scopeJob = SupervisorJob()
     private val scope = CoroutineScope(scopeJob + Dispatchers.Default)
-    private var activeReconcileJob: Job? = null
-    private val reconcileGeneration = AtomicLong(0)
+    private val reconcileRequestSequence = AtomicLong(0)
+    private val reconcileCommandChannel = Channel<ReviewNotificationsReconcileCommand>(
+        capacity = Channel.UNLIMITED
+    )
+    private val isClosed = AtomicBoolean(false)
+    private val reconcileProcessorJob = scope.launch {
+        var deliveredCleanupRequired = false
+        for (firstCommand in reconcileCommandChannel) {
+            var batch = makeReviewNotificationsReconcileBatch(command = firstCommand)
+            while (true) {
+                val nextCommand = reconcileCommandChannel.tryReceive().getOrNull() ?: break
+                batch = batch.merge(command = nextCommand)
+            }
+            deliveredCleanupRequired = deliveredCleanupRequired || batch.requiresDeliveredCleanup
+            try {
+                reconcileCurrentWorkspaceReviewNotifications(
+                    trigger = batch.trigger,
+                    nowMillis = batch.nowMillis,
+                    generation = batch.generation,
+                    shouldClearDeliveredReviewNotifications = deliveredCleanupRequired,
+                    onDeliveredCleanupCompleted = {
+                        deliveredCleanupRequired = false
+                    }
+                )
+                batch.completions.forEach { completion ->
+                    completion.complete(Unit)
+                }
+            } catch (error: CancellationException) {
+                batch.completions.forEach { completion ->
+                    completion.completeExceptionally(error)
+                }
+                throw error
+            } catch (error: Exception) {
+                batch.completions.forEach { completion ->
+                    completion.completeExceptionally(error)
+                }
+                Log.e(
+                    reviewNotificationsManagerLogTag,
+                    "event=review_notifications_reconcile_failed " +
+                        "trigger=${batch.trigger.name.lowercase()} " +
+                        "generation=${batch.generation} " +
+                        "awaited=${batch.completions.isNotEmpty()} " +
+                        "delivered_cleanup_required=$deliveredCleanupRequired " +
+                        renderSanitizedThrowableLogFields(error = error)
+                )
+            }
+        }
+    }
 
     /**
      * Reconciles review reminder notifications for the current workspace.
@@ -96,77 +191,115 @@ class ReviewNotificationsManager(
         trigger: ReviewNotificationsReconcileTrigger,
         nowMillis: Long
     ) {
-        val generation = reconcileGeneration.incrementAndGet()
-        activeReconcileJob?.cancel()
-        activeReconcileJob = scope.launch {
-            reconcileCurrentWorkspaceReviewNotifications(
+        enqueueReconcileCommandIfOpen(
+            command = makeReconcileCommand(
                 trigger = trigger,
                 nowMillis = nowMillis,
-                generation = generation
+                completion = null
             )
-            if (isLatestReconcileGeneration(generation = generation)) {
-                activeReconcileJob = null
-            }
-        }
+        )
     }
 
     suspend fun reconcileCurrentWorkspaceReviewNotificationsAndWait(
         trigger: ReviewNotificationsReconcileTrigger,
         nowMillis: Long
     ) {
-        val generation = reconcileGeneration.incrementAndGet()
-        activeReconcileJob?.cancelAndJoin()
-        val reconcileJob = scope.async {
-            reconcileCurrentWorkspaceReviewNotifications(
+        val completion = CompletableDeferred<Unit>()
+        enqueueRequiredReconcileCommand(
+            command = makeReconcileCommand(
                 trigger = trigger,
                 nowMillis = nowMillis,
-                generation = generation
+                completion = completion
             )
-        }
-        activeReconcileJob = reconcileJob
-        try {
-            reconcileJob.await()
-        } finally {
-            if (isLatestReconcileGeneration(generation = generation)) {
-                activeReconcileJob = null
-            }
-        }
+        )
+        completion.await()
     }
 
     suspend fun close() {
-        activeReconcileJob?.cancelAndJoin()
+        if (isClosed.compareAndSet(false, true).not()) {
+            return
+        }
+        reconcileCommandChannel.close()
+        reconcileProcessorJob.cancelAndJoin()
+        val closeError = CancellationException("Review notifications manager is closed.")
+        while (true) {
+            val pendingCommand = reconcileCommandChannel.tryReceive().getOrNull() ?: break
+            pendingCommand.completion?.completeExceptionally(closeError)
+        }
         scopeJob.cancelAndJoin()
+    }
+
+    private fun makeReconcileCommand(
+        trigger: ReviewNotificationsReconcileTrigger,
+        nowMillis: Long,
+        completion: CompletableDeferred<Unit>?
+    ): ReviewNotificationsReconcileCommand {
+        val settings = reviewNotificationsStore.loadSettings()
+        return ReviewNotificationsReconcileCommand(
+            trigger = trigger,
+            nowMillis = nowMillis,
+            generation = reconcileRequestSequence.incrementAndGet(),
+            requiresDeliveredCleanup = trigger.shouldClearDeliveredReviewNotifications || settings.isEnabled.not(),
+            completion = completion
+        )
+    }
+
+    private fun enqueueReconcileCommandIfOpen(command: ReviewNotificationsReconcileCommand) {
+        if (tryEnqueueReconcileCommand(command = command)) {
+            return
+        }
+        Log.w(
+            reviewNotificationsManagerLogTag,
+            "event=review_notifications_reconcile_rejected " +
+                "trigger=${command.trigger.name.lowercase()} generation=${command.generation} manager_closed=true"
+        )
+    }
+
+    private fun enqueueRequiredReconcileCommand(command: ReviewNotificationsReconcileCommand) {
+        if (tryEnqueueReconcileCommand(command = command)) {
+            return
+        }
+        throw IllegalStateException("Review notifications manager is closed.")
+    }
+
+    private fun tryEnqueueReconcileCommand(command: ReviewNotificationsReconcileCommand): Boolean {
+        if (isClosed.get()) {
+            return false
+        }
+        val result = reconcileCommandChannel.trySend(command)
+        if (result.isSuccess) {
+            return true
+        }
+        val sendException = result.exceptionOrNull()
+        if (isClosed.get() || sendException is ClosedSendChannelException) {
+            return false
+        }
+        throw IllegalStateException(
+            "Review notifications reconciliation could not be enqueued.",
+            sendException
+        )
     }
 
     private suspend fun reconcileCurrentWorkspaceReviewNotifications(
         trigger: ReviewNotificationsReconcileTrigger,
         nowMillis: Long,
-        generation: Long
+        generation: Long,
+        shouldClearDeliveredReviewNotifications: Boolean,
+        onDeliveredCleanupCompleted: () -> Unit
     ) {
-        if (isLatestReconcileGeneration(generation = generation).not()) {
+        val workspaceId = currentWorkspaceIdProvider()
+        if (workspaceId == null) {
+            clearReviewScheduling()
+            clearDeliveredReviewReminderState()
+            onDeliveredCleanupCompleted()
             return
         }
-
-        if (trigger.shouldClearDeliveredReviewNotifications) {
-            clearDeliveredReviewReminderNotifications()
-        }
-
-        val workspace = loadCurrentWorkspaceOrNull(
-            database = database,
-            preferencesStore = preferencesStore
-        ) ?: return
-        if (isLatestReconcileGeneration(generation = generation).not()) {
-            return
-        }
-
-        val workspaceId: String = workspace.workspaceId
         val strictRemindersSettings = strictRemindersStore.loadStrictRemindersSettings()
         val strictRemindersEnabled: Boolean = strictRemindersSettings.isEnabled
         val workLimit: Int = reviewNotificationWorkLimit(strictRemindersSettings = strictRemindersSettings)
         val permissionAllowed: Boolean = hasNotificationPermission(context = context)
-        val storedScheduledCountBefore: Int = reviewNotificationsStore.loadScheduledPayloads(
-            workspaceId = workspaceId
-        ).size
+        reviewNotificationsStore.migrateLegacySettings(currentWorkspaceId = workspaceId)
+        val storedScheduledCountBefore: Int = reviewNotificationsStore.loadScheduledPayloads().size
         emitReviewSchedulingBreadcrumb(
             diagnostic = makeReviewSchedulingDiagnostic(
                 stage = "reconcile_start",
@@ -185,7 +318,13 @@ class ReviewNotificationsManager(
             )
         )
 
-        clearCurrentWorkspaceReviewScheduling(workspaceId = workspaceId)
+        clearReviewScheduling()
+        var deliveredCleanupCompleted = false
+        if (shouldClearDeliveredReviewNotifications) {
+            clearDeliveredReviewReminderState()
+            onDeliveredCleanupCompleted()
+            deliveredCleanupCompleted = true
+        }
         emitReviewSchedulingBreadcrumb(
             diagnostic = makeReviewSchedulingDiagnostic(
                 stage = "after_cancel",
@@ -196,7 +335,7 @@ class ReviewNotificationsManager(
                 workLimit = workLimit,
                 strictRemindersEnabled = strictRemindersEnabled,
                 storedScheduledCountBefore = storedScheduledCountBefore,
-                storedScheduledCountAfter = reviewNotificationsStore.loadScheduledPayloads(workspaceId = workspaceId).size,
+                storedScheduledCountAfter = reviewNotificationsStore.loadScheduledPayloads().size,
                 tagWorkStateCounts = loadWorkInfoStateCountsByTag(
                     workManager = workManager,
                     workTag = reviewNotificationWorkTag
@@ -207,8 +346,12 @@ class ReviewNotificationsManager(
             )
         )
 
-        val settings = reviewNotificationsStore.loadSettings(workspaceId = workspaceId)
+        val settings = reviewNotificationsStore.loadSettings()
         if (settings.isEnabled.not()) {
+            if (deliveredCleanupCompleted.not()) {
+                clearDeliveredReviewReminderState()
+                onDeliveredCleanupCompleted()
+            }
             saveEmptyReviewSchedulingAndEmitSkippedDiagnostic(
                 stage = "settings_disabled",
                 trigger = trigger,
@@ -235,10 +378,6 @@ class ReviewNotificationsManager(
             )
             return
         }
-        if (isLatestReconcileGeneration(generation = generation).not()) {
-            return
-        }
-
         val selectedReviewFilter = reviewPreferencesStore.loadSelectedReviewFilter(
             workspaceId = workspaceId
         )
@@ -343,23 +482,10 @@ class ReviewNotificationsManager(
                 }
             }
         }
-        if (isLatestReconcileGeneration(generation = generation).not()) {
-            return
-        }
-
         payloads.forEach { payload ->
-            if (isLatestReconcileGeneration(generation = generation).not()) {
-                return
-            }
             enqueuePayload(payload = payload, nowMillis = nowMillis)
         }
-        if (isLatestReconcileGeneration(generation = generation).not()) {
-            return
-        }
-        reviewNotificationsStore.saveScheduledPayloads(
-            workspaceId = workspaceId,
-            payloads = payloads
-        )
+        reviewNotificationsStore.saveScheduledPayloads(payloads = payloads)
         val expectedWorkReadback: NotificationExpectedWorkInfoReadback = loadExpectedWorkInfoReadback(
             workManager = workManager,
             expectedUniqueWorkNames = payloads.map { payload ->
@@ -385,7 +511,7 @@ class ReviewNotificationsManager(
             workLimit = workLimit,
             strictRemindersEnabled = strictRemindersEnabled,
             storedScheduledCountBefore = storedScheduledCountBefore,
-            storedScheduledCountAfter = reviewNotificationsStore.loadScheduledPayloads(workspaceId = workspaceId).size,
+            storedScheduledCountAfter = reviewNotificationsStore.loadScheduledPayloads().size,
             tagWorkStateCounts = tagWorkStateCounts,
             expectedWorkReadback = expectedWorkReadback,
             delayRange = delayRange,
@@ -399,10 +525,6 @@ class ReviewNotificationsManager(
         )
     }
 
-    private fun isLatestReconcileGeneration(generation: Long): Boolean {
-        return reconcileGeneration.get() == generation
-    }
-
     /**
      * Removes only already-delivered review reminders from the notification shade.
      *
@@ -410,10 +532,23 @@ class ReviewNotificationsManager(
      * `review-notification::` tag namespace. Legacy reminders without a tag are
      * also removed as long as they are still posted on the review channel.
      *
-     * Public so callers can drop the launcher icon badge synchronously, e.g. when
-     * the user disables the "Show app icon badge" toggle.
+     * Public so callers can serialize launcher icon badge cleanup, e.g. when the
+     * user disables the "Show app icon badge" toggle.
      */
-    fun clearDeliveredReviewReminderNotifications() {
+    suspend fun clearDeliveredReviewReminderNotifications() {
+        notificationDeliveryGate.runExclusive {
+            clearDeliveredReviewReminderNotificationsInsideGate()
+        }
+    }
+
+    private suspend fun clearDeliveredReviewReminderState() {
+        notificationDeliveryGate.runExclusive {
+            clearDeliveredReviewReminderNotificationsInsideGate()
+            attentionController.clearInsideGate()
+        }
+    }
+
+    private fun clearDeliveredReviewReminderNotificationsInsideGate() {
         val notificationManager = context.getSystemService(NotificationManager::class.java)
         val deliveredNotifications = notificationManager.activeNotifications.filter { notification ->
             isReviewReminderNotification(notification = notification)
@@ -476,9 +611,9 @@ class ReviewNotificationsManager(
         ).await()
     }
 
-    private suspend fun clearCurrentWorkspaceReviewScheduling(workspaceId: String) {
+    private suspend fun clearReviewScheduling() {
         workManager.cancelAllWorkByTag(reviewNotificationWorkTag).await()
-        reviewNotificationsStore.saveScheduledPayloads(workspaceId = workspaceId, payloads = emptyList())
+        reviewNotificationsStore.saveScheduledPayloads(payloads = emptyList())
     }
 
     private suspend fun saveEmptyReviewSchedulingAndEmitSkippedDiagnostic(
@@ -491,10 +626,7 @@ class ReviewNotificationsManager(
         storedScheduledCountBefore: Int,
         generation: Long
     ) {
-        reviewNotificationsStore.saveScheduledPayloads(
-            workspaceId = workspaceId,
-            payloads = emptyList()
-        )
+        reviewNotificationsStore.saveScheduledPayloads(payloads = emptyList())
         emitReviewSchedulingBreadcrumb(
             diagnostic = makeReviewSchedulingDiagnostic(
                 stage = stage,
@@ -505,7 +637,7 @@ class ReviewNotificationsManager(
                 workLimit = workLimit,
                 strictRemindersEnabled = strictRemindersEnabled,
                 storedScheduledCountBefore = storedScheduledCountBefore,
-                storedScheduledCountAfter = reviewNotificationsStore.loadScheduledPayloads(workspaceId = workspaceId).size,
+                storedScheduledCountAfter = reviewNotificationsStore.loadScheduledPayloads().size,
                 tagWorkStateCounts = loadWorkInfoStateCountsByTag(
                     workManager = workManager,
                     workTag = reviewNotificationWorkTag

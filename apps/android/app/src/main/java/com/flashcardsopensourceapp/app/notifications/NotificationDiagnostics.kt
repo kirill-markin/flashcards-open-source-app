@@ -48,13 +48,13 @@ internal suspend fun loadNotificationDiagnosticsUiState(
             "Notification diagnostics require a current workspace before loading stored reminder settings."
         )
     val reviewSettings: ReviewNotificationsSettings = withContext(Dispatchers.IO) {
-        appGraph.reviewNotificationsStore.loadSettings(workspaceId = workspace.workspaceId)
+        appGraph.reviewNotificationsStore.loadSettings()
     }
     val strictSettings: StrictRemindersSettings = withContext(Dispatchers.IO) {
         appGraph.strictRemindersStore.loadStrictRemindersSettings()
     }
     val reviewPayloads: List<ScheduledReviewNotificationPayload> = withContext(Dispatchers.IO) {
-        appGraph.reviewNotificationsStore.loadScheduledPayloads(workspaceId = workspace.workspaceId)
+        appGraph.reviewNotificationsStore.loadScheduledPayloads()
     }
     val strictPayloads: List<ScheduledStrictReminderPayload> = withContext(Dispatchers.IO) {
         appGraph.strictRemindersStore.loadScheduledStrictReminderPayloads()
@@ -191,6 +191,7 @@ private fun ReviewNotificationsSettings.toNotificationDiagnosticsUiState(
 
 private fun ScheduledReviewNotificationPayload.toNotificationDiagnosticsUiState(): NotificationDiagnosticsReviewPayloadUiState {
     return NotificationDiagnosticsReviewPayloadUiState(
+        workspaceId = workspaceId,
         requestId = requestId,
         scheduledAtMillis = scheduledAtMillis,
         cardId = cardId,
@@ -208,6 +209,7 @@ private fun PersistedReviewFilter.toNotificationDiagnosticsUiState(): Notificati
 
 private fun ScheduledStrictReminderPayload.toNotificationDiagnosticsUiState(): NotificationDiagnosticsStrictReminderPayloadUiState {
     return NotificationDiagnosticsStrictReminderPayloadUiState(
+        workspaceId = workspaceId,
         requestId = requestId,
         scheduledAtMillis = scheduledAtMillis,
         timeOffsetRawValue = timeOffset.rawValue

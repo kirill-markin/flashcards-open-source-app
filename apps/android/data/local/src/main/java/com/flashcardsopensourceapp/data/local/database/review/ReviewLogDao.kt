@@ -37,13 +37,18 @@ interface ReviewLogDao {
         SELECT EXISTS(
             SELECT 1
             FROM review_logs
-            WHERE reviewedAtMillis >= :startMillis
+            WHERE workspaceId = :workspaceId
+                AND reviewedAtMillis >= :startMillis
                 AND reviewedAtMillis < :endMillis
             LIMIT 1
         )
         """
     )
-    suspend fun hasReviewLogsBetween(startMillis: Long, endMillis: Long): Boolean
+    suspend fun hasWorkspaceReviewLogsBetween(
+        workspaceId: String,
+        startMillis: Long,
+        endMillis: Long
+    ): Boolean
 
     @Query(
         """

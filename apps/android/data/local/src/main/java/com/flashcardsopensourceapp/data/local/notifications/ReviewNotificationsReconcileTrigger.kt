@@ -3,11 +3,9 @@ package com.flashcardsopensourceapp.data.local.notifications
 /**
  * Identifies why review reminders are being reconciled.
  *
- * [APP_ACTIVE] clears already-delivered reminders because the user has returned
- * to the app and the previous reminders have served their purpose. [REVIEW_RECORDED]
- * also clears them because the moment a card is reviewed, any "review reminder"
- * notification (and the launcher icon badge it carries) is no longer relevant.
- * The remaining triggers only reconcile pending work and scheduled payloads.
+ * [APP_ACTIVE], [REVIEW_RECORDED], and [WORKSPACE_CHANGED] clear delivered
+ * reminders because their previous attention scope is no longer relevant. The
+ * remaining triggers only reconcile pending work and scheduled payloads.
  */
 enum class ReviewNotificationsReconcileTrigger(
     val shouldClearDeliveredReviewNotifications: Boolean
@@ -18,5 +16,5 @@ enum class ReviewNotificationsReconcileTrigger(
     PERMISSION_CHANGED(shouldClearDeliveredReviewNotifications = false),
     REVIEW_RECORDED(shouldClearDeliveredReviewNotifications = true),
     FILTER_CHANGED(shouldClearDeliveredReviewNotifications = false),
-    WORKSPACE_CHANGED(shouldClearDeliveredReviewNotifications = false)
+    WORKSPACE_CHANGED(shouldClearDeliveredReviewNotifications = true)
 }
