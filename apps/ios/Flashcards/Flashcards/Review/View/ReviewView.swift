@@ -240,6 +240,7 @@ struct ReviewView: View {
                 )
             }
             .technicalErrorSheet(store: self.store)
+            .interactiveDismissDisabled()
         }
         .alert(
             String(localized: "Review wasn't saved", table: reviewCardsStringsTableName),
