@@ -460,7 +460,38 @@ assert {"workspace", "cards", "decks", "review_events"}.issubset(table_names), s
 assert "media_assets" not in table_names
 PY
 
-request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":{\"name\":\"sql_execute\",\"arguments\":{\"sql\":\"INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('${CARD_FRONT_TEXT}', '${CARD_BACK_TEXT}', ('mcp-smoke'), 'medium')\",\"workspaceId\":\"${WORKSPACE_ID}\"}}}"
+request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":{\"name\":\"sql_query\",\"arguments\":{\"sql\":\"SELECT * FROM cards WHERE deleted_at IS NULL LIMIT 20 OFFSET 0\",\"workspaceId\":\"${WORKSPACE_ID}\"}}}"
+assert_status "200" "MCP tools/call sql_query invalid filter"
+python3 - <<'PY' "${LAST_BODY_FILE}"
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+expected_message = "Column is not filterable: deleted_at"
+
+assert payload["jsonrpc"] == "2.0"
+assert payload["id"] == 5
+assert "error" not in payload
+result = payload["result"]
+assert result["isError"] is True
+content = result["content"]
+assert isinstance(content, list) and len(content) >= 1
+assert content[0]["type"] == "text"
+agent_payload = json.loads(content[0]["text"])
+assert agent_payload["ok"] is False
+assert agent_payload["data"] == {}
+assert agent_payload["error"]["code"] == "QUERY_INVALID_SQL"
+assert agent_payload["error"]["message"] == expected_message
+assert agent_payload["error"]["details"]["validationIssues"] == [{
+    "path": "sql",
+    "code": "invalid_sql",
+    "message": expected_message,
+}]
+assert "Fix the sql string" in agent_payload["instructions"]
+assert "server-side error" not in agent_payload["instructions"]
+PY
+
+request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"sql_execute\",\"arguments\":{\"sql\":\"INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('${CARD_FRONT_TEXT}', '${CARD_BACK_TEXT}', ('mcp-smoke'), 'medium')\",\"workspaceId\":\"${WORKSPACE_ID}\"}}}"
 assert_status "200" "MCP tools/call sql_execute INSERT"
 python3 - <<'PY' "${LAST_BODY_FILE}"
 import json
@@ -468,7 +499,7 @@ import sys
 
 payload = json.load(open(sys.argv[1], encoding="utf-8"))
 assert payload["jsonrpc"] == "2.0"
-assert payload["id"] == 5
+assert payload["id"] == 6
 assert "error" not in payload
 content = payload["result"]["content"]
 assert isinstance(content, list) and len(content) >= 1
@@ -480,7 +511,7 @@ assert agent_payload["data"]["resource"] == "cards"
 assert agent_payload["data"]["affectedCount"] == 1
 PY
 
-request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"sql_query\",\"arguments\":{\"sql\":\"SELECT card_id, front_text, back_text FROM cards WHERE LOWER(front_text) = '${CARD_FRONT_TEXT_LOWER}' ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0\",\"workspaceId\":\"${WORKSPACE_ID}\"}}}"
+request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"sql_query\",\"arguments\":{\"sql\":\"SELECT card_id, front_text, back_text FROM cards WHERE LOWER(front_text) = '${CARD_FRONT_TEXT_LOWER}' ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0\",\"workspaceId\":\"${WORKSPACE_ID}\"}}}"
 assert_status "200" "MCP tools/call sql_query SELECT"
 python3 - <<'PY' "${LAST_BODY_FILE}" "${CARD_FRONT_TEXT}" "${CARD_BACK_TEXT}"
 import json
@@ -490,7 +521,7 @@ payload = json.load(open(sys.argv[1], encoding="utf-8"))
 front_text = sys.argv[2]
 back_text = sys.argv[3]
 assert payload["jsonrpc"] == "2.0"
-assert payload["id"] == 6
+assert payload["id"] == 7
 assert "error" not in payload
 content = payload["result"]["content"]
 assert isinstance(content, list) and len(content) >= 1
