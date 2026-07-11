@@ -1,15 +1,19 @@
 package com.flashcardsopensourceapp.app.notifications.review
 
 import android.content.Context
+import android.database.sqlite.SQLiteException
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.flashcardsopensourceapp.app.FlashcardsApplication
+import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.notifications.addNotificationWorkerBreadcrumb
 import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
 import com.flashcardsopensourceapp.app.notifications.reviewReminderNotificationKind
-import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
-import com.flashcardsopensourceapp.data.local.notifications.ReviewReminderAttentionState
-import com.flashcardsopensourceapp.data.local.notifications.SharedPreferencesReviewNotificationsStore
+import com.flashcardsopensourceapp.app.observability.renderSanitizedThrowableLogFields
+import kotlinx.coroutines.CancellationException
+
+private const val reviewNotificationWorkerLogTag: String = "ReviewNotificationWorker"
 
 open class ReviewNotificationWorker(
     appContext: Context,
@@ -46,63 +50,168 @@ open class ReviewNotificationWorker(
             return Result.failure()
         }
 
-        // Read live so a toggle-off after schedule time wins immediately, even if a
-        // worker is already mid-flight.
-        val store = resolveReviewNotificationsStore()
-        val showAppIconBadge = store.loadSettings(workspaceId = workspaceId).showAppIconBadge
-
-        showReviewReminderNotification(
-            context = applicationContext,
-            frontText = frontText,
-            requestId = requestId,
-            showAppIconBadge = showAppIconBadge
-        )
-        markDeliveredReviewReminder(
-            workspaceId = workspaceId,
-            requestId = requestId,
-            deliveredAtMillis = System.currentTimeMillis()
-        )
-        addWorkerBreadcrumb(
-            stage = "worker_notification_posted",
-            requestId = requestId,
-            workspaceId = workspaceId,
-            permissionAllowed = permissionAllowed
-        )
-        return Result.success()
-    }
-
-    private fun resolveReviewNotificationsStore(): ReviewNotificationsStore {
-        val appGraphStore = (applicationContext as? FlashcardsApplication)
-            ?.appGraphOrNull
-            ?.reviewNotificationsStore
-        if (appGraphStore != null) {
-            return appGraphStore
+        val application = applicationContext as? FlashcardsApplication
+        if (application == null) {
+            Log.e(
+                reviewNotificationWorkerLogTag,
+                "event=review_notification_worker_invalid_application " +
+                    "request_id=$requestId workspace_id=$workspaceId"
+            )
+            return Result.failure()
         }
-        // Cold-start fallback: the worker can fire before Application.onCreate has published the graph.
-        return SharedPreferencesReviewNotificationsStore(context = applicationContext)
+        val appGraph = application.appGraphOrNull
+        if (appGraph == null) {
+            addWorkerBreadcrumb(
+                stage = "worker_app_graph_unavailable",
+                requestId = requestId,
+                workspaceId = workspaceId,
+                permissionAllowed = permissionAllowed
+            )
+            if (application.isRuntimeSupported.not()) {
+                Log.e(
+                    reviewNotificationWorkerLogTag,
+                    "event=review_notification_worker_runtime_unsupported " +
+                        "request_id=$requestId workspace_id=$workspaceId"
+                )
+                return Result.failure()
+            }
+            Log.w(
+                reviewNotificationWorkerLogTag,
+                "event=review_notification_worker_app_graph_unavailable_retry " +
+                    "request_id=$requestId workspace_id=$workspaceId"
+            )
+            return Result.retry()
+        }
+        try {
+            appGraph.awaitStartup()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: IllegalStateException) {
+            logRecoverableFailure(
+                stage = "worker_startup_unavailable_retry",
+                requestId = requestId,
+                workspaceId = workspaceId,
+                error = error
+            )
+            return Result.retry()
+        }
+        val currentWorkspaceId = try {
+            appGraph.loadActiveNotificationWorkspaceIdOrNull()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: SQLiteException) {
+            logRecoverableFailure(
+                stage = "worker_workspace_read_retry",
+                requestId = requestId,
+                workspaceId = workspaceId,
+                error = error
+            )
+            return Result.retry()
+        }
+        if (currentWorkspaceId != workspaceId) {
+            addWorkerBreadcrumb(
+                stage = "worker_stale_workspace",
+                requestId = requestId,
+                workspaceId = workspaceId,
+                permissionAllowed = permissionAllowed
+            )
+            return Result.success()
+        }
+
+        // Read live immediately before posting so master and badge changes win
+        // even when this worker was already running.
+        val store = appGraph.reviewNotificationsStore
+        store.migrateLegacySettings(currentWorkspaceId = currentWorkspaceId)
+        return appGraph.notificationDeliveryGate.runExclusive {
+            val finalWorkspaceId = try {
+                appGraph.loadActiveNotificationWorkspaceIdOrNull()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: SQLiteException) {
+                logRecoverableFailure(
+                    stage = "worker_final_workspace_read_retry",
+                    requestId = requestId,
+                    workspaceId = workspaceId,
+                    error = error
+                )
+                return@runExclusive Result.retry()
+            }
+            val finalSettings = store.loadSettings()
+            val finalPermissionAllowed = hasNotificationPermission(context = applicationContext)
+            if (finalWorkspaceId != workspaceId) {
+                addWorkerBreadcrumb(
+                    stage = "worker_workspace_changed",
+                    requestId = requestId,
+                    workspaceId = workspaceId,
+                    permissionAllowed = finalPermissionAllowed
+                )
+                return@runExclusive Result.success()
+            }
+            if (finalSettings.isEnabled.not()) {
+                addWorkerBreadcrumb(
+                    stage = "worker_master_disabled",
+                    requestId = requestId,
+                    workspaceId = workspaceId,
+                    permissionAllowed = finalPermissionAllowed
+                )
+                return@runExclusive Result.success()
+            }
+            if (finalPermissionAllowed.not()) {
+                addWorkerBreadcrumb(
+                    stage = "worker_permission_changed",
+                    requestId = requestId,
+                    workspaceId = workspaceId,
+                    permissionAllowed = false
+                )
+                return@runExclusive Result.success()
+            }
+
+            showReviewReminderNotification(
+                context = applicationContext,
+                frontText = frontText,
+                requestId = requestId,
+                showAppIconBadge = finalSettings.showAppIconBadge
+            )
+            markDeliveredReviewReminderInsideGate(
+                appGraph = appGraph,
+                workspaceId = workspaceId,
+                requestId = requestId,
+                deliveredAtMillis = System.currentTimeMillis()
+            )
+            addWorkerBreadcrumb(
+                stage = "worker_notification_posted",
+                requestId = requestId,
+                workspaceId = workspaceId,
+                permissionAllowed = finalPermissionAllowed
+            )
+            Result.success()
+        }
     }
 
-    private fun markDeliveredReviewReminder(
+    private fun markDeliveredReviewReminderInsideGate(
+        appGraph: AppGraph,
         workspaceId: String,
         requestId: String,
         deliveredAtMillis: Long
     ) {
-        val appGraph = (applicationContext as? FlashcardsApplication)?.appGraphOrNull
-        if (appGraph != null) {
-            appGraph.reviewReminderAttentionController.markDeliveredReviewReminder(
-                workspaceId = workspaceId,
-                requestId = requestId,
-                deliveredAtMillis = deliveredAtMillis
-            )
-            return
-        }
+        appGraph.reviewReminderAttentionController.markDeliveredReviewReminderInsideGate(
+            workspaceId = workspaceId,
+            requestId = requestId,
+            deliveredAtMillis = deliveredAtMillis
+        )
+    }
 
-        SharedPreferencesReviewNotificationsStore(context = applicationContext).markReviewReminderAttention(
-            state = ReviewReminderAttentionState(
-                workspaceId = workspaceId,
-                requestId = requestId,
-                deliveredAtMillis = deliveredAtMillis
-            )
+    private fun logRecoverableFailure(
+        stage: String,
+        requestId: String,
+        workspaceId: String,
+        error: Exception
+    ) {
+        Log.w(
+            reviewNotificationWorkerLogTag,
+            "event=review_notification_worker_recoverable_failure " +
+                "stage=$stage request_id=$requestId workspace_id=$workspaceId " +
+                renderSanitizedThrowableLogFields(error = error)
         )
     }
 

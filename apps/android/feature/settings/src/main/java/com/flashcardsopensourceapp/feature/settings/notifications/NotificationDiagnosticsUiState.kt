@@ -93,6 +93,7 @@ data class NotificationDiagnosticsWorkInfoStateCountsUiState(
 )
 
 data class NotificationDiagnosticsReviewPayloadUiState(
+    val workspaceId: String,
     val requestId: String,
     val scheduledAtMillis: Long,
     val cardId: String?,
@@ -106,6 +107,7 @@ data class NotificationDiagnosticsReviewFilterUiState(
 )
 
 data class NotificationDiagnosticsStrictReminderPayloadUiState(
+    val workspaceId: String,
     val requestId: String,
     val scheduledAtMillis: Long,
     val timeOffsetRawValue: String

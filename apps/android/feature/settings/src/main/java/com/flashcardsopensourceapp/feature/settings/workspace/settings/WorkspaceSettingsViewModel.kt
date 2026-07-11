@@ -73,8 +73,8 @@ class WorkspaceSettingsViewModel(
             deckCount = overview?.deckCount ?: 0,
             totalCards = overview?.totalCards ?: 0,
             tagCount = overview?.tagsCount ?: 0,
-            notificationsSummary = workspace?.let { currentWorkspace ->
-                if (reviewNotificationsStore.loadSettings(workspaceId = currentWorkspace.workspaceId).isEnabled) {
+            notificationsSummary = workspace?.let {
+                if (reviewNotificationsStore.loadSettings().isEnabled) {
                     strings.get(R.string.settings_on)
                 } else {
                     strings.get(R.string.settings_off)

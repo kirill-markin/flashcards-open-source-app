@@ -4,6 +4,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 const val strictReminderSchedulingMaxDayOffset: Int = 7
 const val strictReminderWorkLimit: Int = 24
@@ -32,6 +33,7 @@ data class StrictRemindersSettings(
 )
 
 data class ScheduledStrictReminderPayload(
+    val workspaceId: String,
     val scheduledAtMillis: Long,
     val timeOffset: StrictReminderTimeOffset,
     val requestId: String
@@ -117,6 +119,7 @@ fun resolveStrictReminderCompletedReviewAtMillis(
 }
 
 suspend fun buildStrictReminderPayloads(
+    workspaceId: String,
     nowMillis: Long,
     zoneId: ZoneId,
     isLocalDateCompleted: suspend (LocalDate) -> Boolean
@@ -126,6 +129,7 @@ suspend fun buildStrictReminderPayloads(
     return (0..strictReminderSchedulingMaxDayOffset).flatMap { dayOffset ->
         val localDate = now.toLocalDate().plusDays(dayOffset.toLong())
         buildStrictReminderPayloadsForLocalDate(
+            workspaceId = workspaceId,
             localDate = localDate,
             nowMillis = nowMillis,
             zoneId = zoneId,
@@ -137,13 +141,70 @@ suspend fun buildStrictReminderPayloads(
 }
 
 fun makeStrictReminderRequestId(
+    workspaceId: String,
     localDate: LocalDate,
     timeOffset: StrictReminderTimeOffset
 ): String {
-    return "strict-reminder::${localDate.format(strictReminderLocalDateFormatter)}::${timeOffset.rawValue}"
+    return "$strictReminderRequestIdPrefix::$workspaceId::${localDate.format(strictReminderLocalDateFormatter)}::${timeOffset.rawValue}"
+}
+
+fun isStrictReminderRequestIdValid(
+    requestId: String,
+    workspaceId: String?,
+    timeOffset: StrictReminderTimeOffset
+): Boolean {
+    val components = requestId.split("::")
+    if (components.firstOrNull() != strictReminderRequestIdPrefix) {
+        return false
+    }
+
+    val identityComponents: Triple<String?, String, String> = when (components.size) {
+        3 -> Triple(null, components[1], components[2])
+        4 -> {
+            val embeddedWorkspaceId = components[1]
+            if (embeddedWorkspaceId.isBlank()) {
+                return false
+            }
+            Triple(embeddedWorkspaceId, components[2], components[3])
+        }
+        else -> return false
+    }
+    val embeddedWorkspaceId = identityComponents.first
+    if (embeddedWorkspaceId != workspaceId) {
+        return false
+    }
+
+    val localDate = try {
+        LocalDate.parse(identityComponents.second, strictReminderLocalDateFormatter)
+    } catch (_: DateTimeParseException) {
+        return false
+    }
+    val embeddedTimeOffset = try {
+        StrictReminderTimeOffset.fromRawValue(rawValue = identityComponents.third)
+    } catch (_: IllegalArgumentException) {
+        return false
+    }
+    if (embeddedTimeOffset != timeOffset) {
+        return false
+    }
+
+    val canonicalRequestId = if (embeddedWorkspaceId == null) {
+        makeLegacyStrictReminderRequestId(
+            localDate = localDate,
+            timeOffset = embeddedTimeOffset
+        )
+    } else {
+        makeStrictReminderRequestId(
+            workspaceId = embeddedWorkspaceId,
+            localDate = localDate,
+            timeOffset = embeddedTimeOffset
+        )
+    }
+    return requestId == canonicalRequestId
 }
 
 private suspend fun buildStrictReminderPayloadsForLocalDate(
+    workspaceId: String,
     localDate: LocalDate,
     nowMillis: Long,
     zoneId: ZoneId,
@@ -163,9 +224,11 @@ private suspend fun buildStrictReminderPayloadsForLocalDate(
         }
 
         ScheduledStrictReminderPayload(
+            workspaceId = workspaceId,
             scheduledAtMillis = scheduledAtMillis,
             timeOffset = timeOffset,
             requestId = makeStrictReminderRequestId(
+                workspaceId = workspaceId,
                 localDate = localDate,
                 timeOffset = timeOffset
             )
@@ -174,3 +237,11 @@ private suspend fun buildStrictReminderPayloadsForLocalDate(
 }
 
 private val strictReminderLocalDateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
+private const val strictReminderRequestIdPrefix: String = "strict-reminder"
+
+private fun makeLegacyStrictReminderRequestId(
+    localDate: LocalDate,
+    timeOffset: StrictReminderTimeOffset
+): String {
+    return "$strictReminderRequestIdPrefix::${localDate.format(strictReminderLocalDateFormatter)}::${timeOffset.rawValue}"
+}

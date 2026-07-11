@@ -37,8 +37,11 @@ class StrictRemindersManagerTest {
         val scheduler = FakeStrictRemindersScheduler(hasNotificationPermission = true)
         val manager = StrictRemindersManager(
             strictRemindersStore = store,
+            notificationsMasterEnabledProvider = { true },
             reviewLogDao = FakeReviewLogDao(hasReviewLogsBetween = false),
             scheduler = scheduler,
+            notificationDeliveryGate = NotificationDeliveryGate(),
+            currentWorkspaceIdProvider = { testWorkspaceId },
             zoneIdProvider = { zoneId },
             observability = FakeAppObservability(),
             appVersion = testAppVersion,
@@ -57,14 +60,14 @@ class StrictRemindersManagerTest {
             awaitUntil {
                 store.lastCompletedReviewAtMillis == reviewedAtMillis &&
                     scheduler.scheduledPayloads.any { payload ->
-                        payload.requestId == "strict-reminder::2026-04-04::4h"
+                        payload.requestId == "strict-reminder::$testWorkspaceId::2026-04-04::4h"
                     }
             }
 
             assertEquals(reviewedAtMillis, store.lastCompletedReviewAtMillis)
             assertTrue(
                 scheduler.scheduledPayloads.any { payload ->
-                    payload.requestId == "strict-reminder::2026-04-04::4h"
+                    payload.requestId == "strict-reminder::$testWorkspaceId::2026-04-04::4h"
                 }
             )
         } finally {
@@ -78,8 +81,11 @@ class StrictRemindersManagerTest {
         val scheduler = FakeStrictRemindersScheduler(hasNotificationPermission = true)
         val manager = StrictRemindersManager(
             strictRemindersStore = store,
+            notificationsMasterEnabledProvider = { true },
             reviewLogDao = FakeReviewLogDao(hasReviewLogsBetween = true),
             scheduler = scheduler,
+            notificationDeliveryGate = NotificationDeliveryGate(),
+            currentWorkspaceIdProvider = { testWorkspaceId },
             zoneIdProvider = { zoneId },
             observability = FakeAppObservability(),
             appVersion = testAppVersion,
@@ -104,7 +110,7 @@ class StrictRemindersManagerTest {
                 store.lastCompletedReviewAtMillis == parseTimestampMillis(value = "2026-04-03T21:00:00Z") &&
                     scheduler.clearScheduledInvocationCount >= 3 &&
                     scheduler.scheduledPayloads.none { payload ->
-                        payload.requestId.startsWith("strict-reminder::2026-04-03::")
+                        payload.requestId.startsWith("strict-reminder::$testWorkspaceId::2026-04-03::")
                     }
             }
 
@@ -114,7 +120,7 @@ class StrictRemindersManagerTest {
             )
             assertFalse(
                 scheduler.scheduledPayloads.any { payload ->
-                    payload.requestId.startsWith("strict-reminder::2026-04-03::")
+                    payload.requestId.startsWith("strict-reminder::$testWorkspaceId::2026-04-03::")
                 }
             )
             assertTrue(scheduler.clearScheduledInvocationCount >= 3)
@@ -133,8 +139,11 @@ class StrictRemindersManagerTest {
         val scheduler = FakeStrictRemindersScheduler(hasNotificationPermission = true)
         val manager = StrictRemindersManager(
             strictRemindersStore = store,
+            notificationsMasterEnabledProvider = { true },
             reviewLogDao = FakeReviewLogDao(hasReviewLogsBetween = false),
             scheduler = scheduler,
+            notificationDeliveryGate = NotificationDeliveryGate(),
+            currentWorkspaceIdProvider = { testWorkspaceId },
             zoneIdProvider = { zoneId },
             observability = FakeAppObservability(),
             appVersion = testAppVersion,
@@ -150,14 +159,14 @@ class StrictRemindersManagerTest {
             awaitUntil {
                 store.lastCompletedReviewAtMillis == null &&
                     scheduler.scheduledPayloads.any { payload ->
-                        payload.requestId == "strict-reminder::2026-04-03::4h"
+                        payload.requestId == "strict-reminder::$testWorkspaceId::2026-04-03::4h"
                     }
             }
 
             assertEquals(null, store.lastCompletedReviewAtMillis)
             assertTrue(
                 scheduler.scheduledPayloads.any { payload ->
-                    payload.requestId == "strict-reminder::2026-04-03::4h"
+                    payload.requestId == "strict-reminder::$testWorkspaceId::2026-04-03::4h"
                 }
             )
         } finally {
@@ -175,9 +184,10 @@ class StrictRemindersManagerTest {
             saveScheduledStrictReminderPayloads(
                 payloads = listOf(
                     ScheduledStrictReminderPayload(
+                        workspaceId = testWorkspaceId,
                         scheduledAtMillis = parseTimestampMillis(value = "2026-04-03T22:00:00Z"),
                         timeOffset = com.flashcardsopensourceapp.data.local.notifications.StrictReminderTimeOffset.TWO_HOURS,
-                        requestId = "strict-reminder::2026-04-03::2h"
+                        requestId = "strict-reminder::$testWorkspaceId::2026-04-03::2h"
                     )
                 )
             )
@@ -187,8 +197,11 @@ class StrictRemindersManagerTest {
         }
         val manager = StrictRemindersManager(
             strictRemindersStore = store,
+            notificationsMasterEnabledProvider = { true },
             reviewLogDao = FakeReviewLogDao(hasReviewLogsBetween = false),
             scheduler = scheduler,
+            notificationDeliveryGate = NotificationDeliveryGate(),
+            currentWorkspaceIdProvider = { testWorkspaceId },
             zoneIdProvider = { zoneId },
             observability = FakeAppObservability(),
             appVersion = testAppVersion,
@@ -215,8 +228,11 @@ class StrictRemindersManagerTest {
         val scheduler = FakeStrictRemindersScheduler(hasNotificationPermission = true)
         val manager = StrictRemindersManager(
             strictRemindersStore = store,
+            notificationsMasterEnabledProvider = { true },
             reviewLogDao = FakeReviewLogDao(hasReviewLogsBetween = false),
             scheduler = scheduler,
+            notificationDeliveryGate = NotificationDeliveryGate(),
+            currentWorkspaceIdProvider = { testWorkspaceId },
             zoneIdProvider = { zoneId },
             observability = FakeAppObservability(),
             appVersion = testAppVersion,
@@ -391,7 +407,11 @@ private class FakeReviewLogDao(
         throw UnsupportedOperationException("Unused in strict reminders manager tests.")
     }
 
-    override suspend fun hasReviewLogsBetween(startMillis: Long, endMillis: Long): Boolean {
+    override suspend fun hasWorkspaceReviewLogsBetween(
+        workspaceId: String,
+        startMillis: Long,
+        endMillis: Long
+    ): Boolean {
         return hasReviewLogsBetween
     }
 
@@ -463,3 +483,4 @@ private fun parseTimestampMillis(value: String): Long {
 // Frozen test input — intentionally not the real app version; do not bump on release (see docs/version-bump.md).
 private const val testAppVersion: String = "1.0.0"
 private const val testVersionCode: Int = 1
+private const val testWorkspaceId: String = "workspace-1"

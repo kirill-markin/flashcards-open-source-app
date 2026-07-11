@@ -96,21 +96,28 @@ internal fun LiveSmokeContext.postReviewReminderNotificationWithAttention(
     frontText: String,
     requestId: String
 ): Int {
-    val notificationId = postReviewReminderNotification(
-        context = context,
-        frontText = frontText,
-        requestId = requestId
-    )
-    appGraph().reviewReminderAttentionController.markDeliveredReviewReminder(
-        workspaceId = requireCurrentWorkspaceIdForNotificationSmoke(),
-        requestId = requestId,
-        deliveredAtMillis = System.currentTimeMillis()
-    )
-    return notificationId
+    return runBlocking {
+        val appGraph = appGraph()
+        appGraph.notificationDeliveryGate.runExclusive {
+            val notificationId = postReviewReminderNotification(
+                context = context,
+                frontText = frontText,
+                requestId = requestId
+            )
+            appGraph.reviewReminderAttentionController.markDeliveredReviewReminderInsideGate(
+                workspaceId = requireCurrentWorkspaceIdForNotificationSmoke(),
+                requestId = requestId,
+                deliveredAtMillis = System.currentTimeMillis()
+            )
+            notificationId
+        }
+    }
 }
 
 internal fun LiveSmokeContext.clearReviewReminderAttentionForNotificationSmoke() {
-    appGraph().reviewReminderAttentionController.clearAfterSuccessfulReview()
+    runBlocking {
+        appGraph().reviewReminderAttentionController.clearAfterSuccessfulReview()
+    }
 }
 
 internal fun LiveSmokeContext.activeAppNotificationIds(context: Context): Set<Int> {
@@ -217,11 +224,9 @@ private fun activeNotificationIds(context: Context): Set<Int> {
         .toSet()
 }
 
-private fun LiveSmokeContext.requireCurrentWorkspaceIdForNotificationSmoke(): String {
-    return runBlocking {
-        requireNotNull(appGraph().database.workspaceDao().loadAnyWorkspace()?.workspaceId) {
-            "Expected a current workspace before posting a review reminder notification."
-        }
+private suspend fun LiveSmokeContext.requireCurrentWorkspaceIdForNotificationSmoke(): String {
+    return requireNotNull(appGraph().database.workspaceDao().loadAnyWorkspace()?.workspaceId) {
+        "Expected a current workspace before posting a review reminder notification."
     }
 }
 
