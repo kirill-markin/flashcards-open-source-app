@@ -80,6 +80,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackTrigger
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
@@ -96,6 +97,8 @@ import com.flashcardsopensourceapp.feature.settings.SettingsAttentionSummary
 import com.flashcardsopensourceapp.feature.settings.makeSettingsAttentionIssues
 import com.flashcardsopensourceapp.feature.settings.makeSettingsAttentionSummary
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 private const val startupLoadingTag: String = "app.startupLoading"
@@ -160,7 +163,23 @@ fun FlashcardsApp(
         }
 
         val snackbarHostState = remember { SnackbarHostState() }
-        val reviewReactionLottieConfigurationStore = rememberReviewReactionLottieConfigurationStore()
+        val isPowerSaveMode: Boolean = rememberIsPowerSaveMode()
+        val accountPreferencesFlow: Flow<AccountPreferences?> =
+            remember(appGraph.cloudAccountRepository) {
+                appGraph.cloudAccountRepository
+                    .observeAccountPreferences()
+                    .map<AccountPreferences, AccountPreferences?> { accountPreferences ->
+                        accountPreferences
+                    }
+            }
+        val accountPreferences: AccountPreferences? by accountPreferencesFlow.collectAsStateWithLifecycle(
+            initialValue = null
+        )
+        val effectiveReviewReactionAnimationsEnabled: Boolean =
+            accountPreferences?.reviewReactionAnimationsEnabled == true && isPowerSaveMode.not()
+        val reviewReactionLottieConfigurationStore = rememberReviewReactionLottieConfigurationStore(
+            loadLottieCompositions = effectiveReviewReactionAnimationsEnabled
+        )
         LaunchedEffect(appGraph.appMessageBus, snackbarHostState) {
             appGraph.appMessageBus.messages.collect { message ->
                 snackbarHostState.showSnackbar(message = message)
@@ -578,6 +597,8 @@ fun FlashcardsApp(
                     appGraph = appGraph,
                     navController = navController,
                     reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
+                    reviewReactionAnimationsEnabled = effectiveReviewReactionAnimationsEnabled,
+                    isPowerSaveMode = isPowerSaveMode,
                     appNotificationTapRequest = appNotificationTapRequest,
                     consumeAppNotificationTap = consumeAppNotificationTap
                 )

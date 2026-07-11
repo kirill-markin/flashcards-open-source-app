@@ -294,19 +294,23 @@ private val reviewReactionLottieAssetConfigurations: List<ReviewReactionLottieAs
 )
 
 @Composable
-fun rememberReviewReactionLottieConfigurationStore(): ReviewReactionLottieConfigurationStore {
+fun rememberReviewReactionLottieConfigurationStore(
+    loadLottieCompositions: Boolean
+): ReviewReactionLottieConfigurationStore {
     val configurationStore: ReviewReactionLottieConfigurationStore =
         remember { createReviewReactionLottieConfigurationStore() }
 
-    reviewReactionLottieAssetConfigurations.forEach { assetConfiguration: ReviewReactionLottieAssetConfiguration ->
-        val readiness: ReviewReactionLottieReadiness = rememberReviewReactionLottieReadiness(
-            assetConfiguration = assetConfiguration
-        )
-        SideEffect {
-            configurationStore.updateReadiness(
-                variant = assetConfiguration.variant,
-                readiness = readiness
+    if (loadLottieCompositions) {
+        reviewReactionLottieAssetConfigurations.forEach { assetConfiguration: ReviewReactionLottieAssetConfiguration ->
+            val readiness: ReviewReactionLottieReadiness = rememberReviewReactionLottieReadiness(
+                assetConfiguration = assetConfiguration
             )
+            SideEffect {
+                configurationStore.updateReadiness(
+                    variant = assetConfiguration.variant,
+                    readiness = readiness
+                )
+            }
         }
     }
 

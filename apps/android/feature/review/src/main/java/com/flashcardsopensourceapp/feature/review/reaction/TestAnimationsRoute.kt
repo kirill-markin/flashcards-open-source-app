@@ -19,6 +19,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,18 +45,41 @@ private val testAnimationRatingOrder: List<ReviewRating> = listOf(
     ReviewRating.EASY
 )
 
+private data class TestAnimationEntryUiState(
+    val entry: ReviewReactionVariantDistributionEntry,
+    val availability: TestAnimationAvailability
+)
+
+private enum class TestAnimationAvailability {
+    PLAYABLE,
+    LOADING,
+    PAUSED_BY_BATTERY_SAVER
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TestAnimationsRoute(
-    reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
+    isPowerSaveMode: Boolean,
     onBack: () -> Unit
 ) {
     var activeReviewReactionEvents by remember {
         mutableStateOf<List<ReviewReactionEvent>>(value = emptyList())
     }
     val reviewReactionMotionMode: ReviewReactionMotionMode = reviewReactionMotionModeFromAnimatorSettings()
+    val reviewReactionLottieConfigurationStore = rememberReviewReactionLottieConfigurationStore(
+        loadLottieCompositions = isPowerSaveMode.not()
+    )
 
     fun playAnimation(entry: ReviewReactionVariantDistributionEntry) {
+        val availability: TestAnimationAvailability = testAnimationAvailability(
+            entry = entry,
+            isPowerSaveMode = isPowerSaveMode,
+            configurationStore = reviewReactionLottieConfigurationStore
+        )
+        if (availability != TestAnimationAvailability.PLAYABLE) {
+            return
+        }
+
         val event = ReviewReactionEvent(
             id = UUID.randomUUID().toString(),
             rating = entry.rating,
@@ -66,6 +90,12 @@ fun TestAnimationsRoute(
             event = event,
             maximumActiveEvents = reviewReactionMaximumActiveEvents
         )
+    }
+
+    LaunchedEffect(isPowerSaveMode) {
+        if (isPowerSaveMode) {
+            activeReviewReactionEvents = emptyList()
+        }
     }
 
     Scaffold(
@@ -104,8 +134,20 @@ fun TestAnimationsRoute(
                     }
 
                     item {
+                        val entryUiStates: List<TestAnimationEntryUiState> =
+                            reviewReactionVariantDistributionEntries(rating = rating)
+                                .map { entry: ReviewReactionVariantDistributionEntry ->
+                                    TestAnimationEntryUiState(
+                                        entry = entry,
+                                        availability = testAnimationAvailability(
+                                            entry = entry,
+                                            isPowerSaveMode = isPowerSaveMode,
+                                            configurationStore = reviewReactionLottieConfigurationStore
+                                        )
+                                    )
+                                }
                         TestAnimationRatingCard(
-                            entries = reviewReactionVariantDistributionEntries(rating = rating),
+                            entryUiStates = entryUiStates,
                             onPlayAnimation = { entry: ReviewReactionVariantDistributionEntry ->
                                 playAnimation(entry = entry)
                             }
@@ -131,15 +173,22 @@ fun TestAnimationsRoute(
 
 @Composable
 private fun TestAnimationRatingCard(
-    entries: List<ReviewReactionVariantDistributionEntry>,
+    entryUiStates: List<TestAnimationEntryUiState>,
     onPlayAnimation: (ReviewReactionVariantDistributionEntry) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        entries.forEach { entry: ReviewReactionVariantDistributionEntry ->
+        entryUiStates.forEach { uiState: TestAnimationEntryUiState ->
+            val entry: ReviewReactionVariantDistributionEntry = uiState.entry
+            val isPlayable: Boolean = uiState.availability == TestAnimationAvailability.PLAYABLE
             val probabilityText: String = testAnimationProbabilityText(entry = entry)
-            val playContentDescription: String = testAnimationPlayContentDescription(
-                entry = entry,
+            val supportingText: String = testAnimationSupportingText(
+                availability = uiState.availability,
                 probabilityText = probabilityText
+            )
+            val rowContentDescription: String = testAnimationContentDescription(
+                entry = entry,
+                availability = uiState.availability,
+                supportingText = supportingText
             )
             ListItem(
                 headlineContent = {
@@ -149,18 +198,45 @@ private fun TestAnimationRatingCard(
                     )
                 },
                 supportingContent = {
-                    Text(probabilityText)
+                    Text(supportingText)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .semantics {
-                        contentDescription = playContentDescription
+                        contentDescription = rowContentDescription
                     }
-                    .clickable {
-                        onPlayAnimation(entry)
-                    }
+                    .clickable(
+                        enabled = isPlayable,
+                        onClick = {
+                            onPlayAnimation(entry)
+                        }
+                    )
             )
         }
+    }
+}
+
+private fun testAnimationAvailability(
+    entry: ReviewReactionVariantDistributionEntry,
+    isPowerSaveMode: Boolean,
+    configurationStore: ReviewReactionLottieConfigurationStore
+): TestAnimationAvailability {
+    if (isPowerSaveMode) {
+        return TestAnimationAvailability.PAUSED_BY_BATTERY_SAVER
+    }
+
+    val configuration: ReviewReactionLottieConfiguration = reviewReactionLottieConfiguration(
+        variant = entry.variant,
+        configurationStore = configurationStore
+    ) ?: error(
+        "Test animation Lottie configuration is missing. " +
+            "variant=${entry.variant.debugIdentifier}"
+    )
+
+    return when (configuration.readiness) {
+        is ReviewReactionLottieReadiness.Ready -> TestAnimationAvailability.PLAYABLE
+        ReviewReactionLottieReadiness.Pending -> TestAnimationAvailability.LOADING
+        is ReviewReactionLottieReadiness.Failed -> TestAnimationAvailability.PLAYABLE
     }
 }
 
@@ -183,13 +259,36 @@ private fun testAnimationProbabilityText(entry: ReviewReactionVariantDistributio
 }
 
 @Composable
-private fun testAnimationPlayContentDescription(
-    entry: ReviewReactionVariantDistributionEntry,
+private fun testAnimationSupportingText(
+    availability: TestAnimationAvailability,
     probabilityText: String
 ): String {
-    return stringResource(
-        R.string.review_test_animations_play_content_description,
-        entry.variant.debugIdentifier,
-        probabilityText
-    )
+    return when (availability) {
+        TestAnimationAvailability.PLAYABLE -> probabilityText
+        TestAnimationAvailability.LOADING -> stringResource(R.string.review_test_animations_loading)
+        TestAnimationAvailability.PAUSED_BY_BATTERY_SAVER ->
+            stringResource(R.string.review_test_animations_battery_saver_paused)
+    }
+}
+
+@Composable
+private fun testAnimationContentDescription(
+    entry: ReviewReactionVariantDistributionEntry,
+    availability: TestAnimationAvailability,
+    supportingText: String
+): String {
+    return when (availability) {
+        TestAnimationAvailability.PLAYABLE -> stringResource(
+            R.string.review_test_animations_play_content_description,
+            entry.variant.debugIdentifier,
+            supportingText
+        )
+
+        TestAnimationAvailability.LOADING,
+        TestAnimationAvailability.PAUSED_BY_BATTERY_SAVER -> stringResource(
+            R.string.review_test_animations_status_content_description,
+            entry.variant.debugIdentifier,
+            supportingText
+        )
+    }
 }

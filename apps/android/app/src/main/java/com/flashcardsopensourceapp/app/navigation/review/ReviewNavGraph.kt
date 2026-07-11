@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -25,7 +26,6 @@ import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
@@ -36,7 +36,8 @@ import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionLottieC
 internal fun NavGraphBuilder.registerReviewNavGraph(
     appGraph: AppGraph,
     navController: NavHostController,
-    reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore
+    reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
+    reviewReactionAnimationsEnabledState: State<Boolean>
 ) {
     fun handleNotificationPermissionGranted() {
         appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
@@ -114,9 +115,6 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 )
             )
             val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
-            val accountPreferences by appGraph.cloudAccountRepository.observeAccountPreferences().collectAsStateWithLifecycle(
-                initialValue = defaultAccountPreferences()
-            )
             val reviewFilterRequest by appGraph.appHandoffCoordinator.observeReviewFilter().collectAsStateWithLifecycle()
 
             LaunchedEffect(reviewFilterRequest?.requestId, uiState) {
@@ -130,7 +128,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             ReviewRoute(
                 uiState = uiState,
                 reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
-                reviewReactionAnimationsEnabled = accountPreferences.reviewReactionAnimationsEnabled,
+                reviewReactionAnimationsEnabled = reviewReactionAnimationsEnabledState.value,
                 onSelectFilter = reviewViewModel::selectFilter,
                 onOpenPreview = {
                     reviewViewModel.refreshPreview()

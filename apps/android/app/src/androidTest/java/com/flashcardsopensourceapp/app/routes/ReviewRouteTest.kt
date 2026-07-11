@@ -71,7 +71,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.setContent {
             FlashcardsTheme {
                 val reviewReactionLottieConfigurationStore =
-                    rememberReviewReactionLottieConfigurationStore()
+                    rememberReviewReactionLottieConfigurationStore(loadLottieCompositions = true)
                 ReviewRoute(
                     uiState = ReviewUiState(
                         isLoading = false,
