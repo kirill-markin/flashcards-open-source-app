@@ -2,6 +2,21 @@ import Foundation
 
 @MainActor
 extension FlashcardsStore {
+    private func clearScheduledNotificationStorageForWorkspaceSwitch(
+        previousWorkspaceId: String?,
+        nextWorkspaceId: String
+    ) {
+        if let previousWorkspaceId {
+            self.userDefaults.removeObject(
+                forKey: makeScheduledReviewNotificationsUserDefaultsKey(workspaceId: previousWorkspaceId)
+            )
+        }
+        self.userDefaults.removeObject(
+            forKey: makeScheduledReviewNotificationsUserDefaultsKey(workspaceId: nextWorkspaceId)
+        )
+        clearStoredStrictReminders(userDefaults: self.userDefaults)
+    }
+
     private func resetReviewRuntimeForWorkspace(nextWorkspaceId: String) {
         let nextReviewFilter = FlashcardsStore.loadSelectedReviewFilter(
             userDefaults: self.userDefaults,
@@ -124,7 +139,15 @@ extension FlashcardsStore {
         now: Date,
         refreshVisibleProgress: Bool
     ) {
-        let didSwitchWorkspace = self.workspace?.workspaceId != snapshot.workspace.workspaceId
+        let previousWorkspaceId = self.workspace?.workspaceId
+        let didSwitchWorkspace = previousWorkspaceId != snapshot.workspace.workspaceId
+        let didTransitionWorkspace = previousWorkspaceId != nil && didSwitchWorkspace
+        if didTransitionWorkspace {
+            self.clearScheduledNotificationStorageForWorkspaceSwitch(
+                previousWorkspaceId: previousWorkspaceId,
+                nextWorkspaceId: snapshot.workspace.workspaceId
+            )
+        }
         if didSwitchWorkspace {
             self.resetReviewRuntimeForWorkspace(nextWorkspaceId: snapshot.workspace.workspaceId)
         }
@@ -133,6 +156,11 @@ extension FlashcardsStore {
         self.globalErrorMessage = ""
         self.reloadReviewNotificationsSettings()
         self.reloadStrictRemindersSettings()
+        if didTransitionWorkspace {
+            self.reconcileStrictReminders(trigger: .workspaceChanged, now: now)
+        } else {
+            self.refreshAppNotificationPresentationOwnership()
+        }
         self.reloadReviewReminderAttentionState()
         self.reconcileReviewReminderAttentionAfterReviewLogs(now: now)
         self.localReadVersion += 1
@@ -143,8 +171,13 @@ extension FlashcardsStore {
         }
         self.cachedAIChatStore?.refreshAccessContextIfNeeded()
         self.refreshReviewState(now: now)
-        self.reconcileReviewNotifications(trigger: .workspaceChanged, now: now)
-        self.reconcileStrictReminders(trigger: .workspaceChanged, now: now)
+        if didTransitionWorkspace == false {
+            self.reconcileStrictReminders(trigger: .reviewHistoryImported, now: now)
+        }
+        self.reconcileReviewNotifications(
+            trigger: didTransitionWorkspace ? .workspaceChanged : .filterChanged,
+            now: now
+        )
         self.requestGuestSignInAfterReviewPromptReconciliation()
     }
 
@@ -179,6 +212,9 @@ extension FlashcardsStore {
             reviewedCount: nextHomeSnapshot.reviewedCount
         )
 
+        let previousWorkspaceId = self.workspace?.workspaceId
+        let didSwitchWorkspace = previousWorkspaceId != bootstrapSnapshot.workspace.workspaceId
+        let didTransitionWorkspace = previousWorkspaceId != nil && didSwitchWorkspace
         let workspaceChanged = self.workspace != bootstrapSnapshot.workspace
         let cardsChanged = self.cards != nextCards
         let didChange = workspaceChanged
@@ -202,15 +238,31 @@ extension FlashcardsStore {
         self.deckItems = nextDeckItems
         self.homeSnapshot = resolvedHomeSnapshot
         self.globalErrorMessage = ""
+        if didTransitionWorkspace {
+            self.clearScheduledNotificationStorageForWorkspaceSwitch(
+                previousWorkspaceId: previousWorkspaceId,
+                nextWorkspaceId: bootstrapSnapshot.workspace.workspaceId
+            )
+        }
         self.reloadReviewNotificationsSettings()
         self.reloadStrictRemindersSettings()
+        if didTransitionWorkspace {
+            self.reconcileStrictReminders(trigger: .workspaceChanged, now: now)
+        } else {
+            self.refreshAppNotificationPresentationOwnership()
+        }
         self.reloadReviewReminderAttentionState()
         self.reconcileReviewReminderAttentionAfterReviewLogs(now: now)
         if workspaceChanged {
             self.resetReviewHardReminderSession()
         }
-        self.reconcileReviewNotifications(trigger: .workspaceChanged, now: now)
-        self.reconcileStrictReminders(trigger: .workspaceChanged, now: now)
+        if didTransitionWorkspace == false {
+            self.reconcileStrictReminders(trigger: .reviewHistoryImported, now: now)
+        }
+        self.reconcileReviewNotifications(
+            trigger: didTransitionWorkspace ? .workspaceChanged : .filterChanged,
+            now: now
+        )
 
         return BootstrapSnapshotRefreshOutcome(
             didChange: didChange,

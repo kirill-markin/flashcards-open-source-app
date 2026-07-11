@@ -6,7 +6,9 @@ extension FlashcardsStore {
     func rescheduleReviewNotifications(
         trigger: ReviewNotificationsReconcileTrigger,
         now: Date,
-        generation: Int
+        generation: Int,
+        shouldClearDeliveredReviewNotifications: Bool,
+        shouldClearReviewReminderAttention: Bool
     ) async {
         guard self.reviewNotificationsRescheduleGeneration == generation else {
             return
@@ -49,21 +51,76 @@ extension FlashcardsStore {
             identifiers: pendingBeforeCleanupRequestIdentifiers
         )
         var deliveredBeforeCount: Int?
-        if trigger.shouldClearDeliveredReviewNotifications {
+        if shouldClearDeliveredReviewNotifications {
             let deliveredReviewReminderStates = await deliveredReviewReminderAttentionStates(center: center)
+            guard self.reviewNotificationsRescheduleGeneration == generation else {
+                return
+            }
+            guard Task.isCancelled == false else {
+                return
+            }
             deliveredBeforeCount = deliveredReviewReminderStates.count
-            self.markReviewReminderAttentionFromDeliveredStates(
-                states: deliveredReviewReminderStates,
-                workspaceId: workspaceId
-            )
-            self.reconcileReviewReminderAttentionAfterReviewLogs(now: now)
+            if shouldClearReviewReminderAttention == false && self.reviewNotificationsSettings.isEnabled {
+                self.markReviewReminderAttentionFromDeliveredStates(
+                    states: deliveredReviewReminderStates,
+                    workspaceId: workspaceId
+                )
+                self.reconcileReviewReminderAttentionAfterReviewLogs(now: now)
+            } else if shouldClearReviewReminderAttention == false {
+                self.clearReviewReminderAttention()
+            }
         }
         if pendingRequestIdentifiers.isEmpty == false {
             center.removePendingNotificationRequests(withIdentifiers: pendingRequestIdentifiers)
         }
         var deliveredRemovedCount: Int?
-        if trigger.shouldClearDeliveredReviewNotifications {
+        if shouldClearDeliveredReviewNotifications {
             deliveredRemovedCount = await removeDeliveredReviewNotifications(center: center)
+            guard self.reviewNotificationsRescheduleGeneration == generation else {
+                return
+            }
+            guard Task.isCancelled == false else {
+                return
+            }
+            if shouldClearReviewReminderAttention {
+                self.clearReviewReminderAttention()
+                do {
+                    try await center.setBadgeCount(0)
+                } catch {
+                    let errorSummary = Flashcards.errorMessage(error: error)
+                    self.addNotificationForegroundOperationBreadcrumb(
+                        notificationKind: .reviewReminder,
+                        stage: "review_notification_center_cleanup",
+                        phase: .failure,
+                        trigger: trigger.diagnosticValue,
+                        startedAt: cleanupStartedAt,
+                        authorizationStatus: nil,
+                        counts: notificationCleanupForegroundOperationCounts(
+                            pendingBefore: cleanupPendingBefore,
+                            deliveredBeforeCount: deliveredBeforeCount,
+                            deliveredRemovedCount: deliveredRemovedCount
+                        ),
+                        errorSummary: errorSummary
+                    )
+                    captureReviewNotificationsSilentFailure(
+                        error: error,
+                        action: "review_notifications_badge_reset",
+                        stage: "cleanup",
+                        cloudSettings: self.cloudSettings,
+                        workspaceId: workspaceId,
+                        configurationMode: try? self.currentCloudServiceConfiguration().mode
+                    )
+                    return
+                }
+                guard self.reviewNotificationsRescheduleGeneration == generation else {
+                    return
+                }
+                guard Task.isCancelled == false else {
+                    return
+                }
+                self.pendingReviewNotificationsAttentionClear = false
+            }
+            self.pendingReviewNotificationsDeliveredCleanup = false
         }
         self.addNotificationForegroundOperationBreadcrumb(
             notificationKind: .reviewReminder,

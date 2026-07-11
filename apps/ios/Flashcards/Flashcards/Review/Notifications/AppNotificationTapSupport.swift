@@ -2,7 +2,9 @@ import Foundation
 
 let appNotificationTapTypeUserInfoKey: String = "appNotificationTapType"
 let pendingAppNotificationTapUserDefaultsKey: String = "pending-app-notification-tap"
-let pendingAppNotificationTapSchemaVersion: Int = 1
+let pendingAppNotificationTapSchemaVersion: Int = 2
+let appNotificationPresentationOwnershipUserDefaultsKey: String = "app-notification-presentation-ownership"
+let appNotificationPresentationOwnershipSchemaVersion: Int = 1
 
 enum AppNotificationTapType: String, Codable, Hashable, Sendable {
     case reviewReminder
@@ -22,9 +24,23 @@ struct AppNotificationTapFallback: Codable, Hashable, Sendable {
 }
 
 enum AppNotificationTapRequest: Codable, Hashable, Sendable {
-    case openReviewReminder
+    case openReviewReminder(workspaceId: String)
     case openStrictReminder
     case fallback(AppNotificationTapFallback)
+}
+
+struct AppNotificationPresentationOwnership: Codable, Hashable, Sendable {
+    let schemaVersion: Int
+    let isMasterEnabled: Bool
+    let workspaceId: String?
+    let isStrictReminderEnabled: Bool
+    let strictReminderScope: String
+}
+
+enum AppNotificationOwnershipDecision: Hashable, Sendable {
+    case unrelated
+    case owned(AppNotificationTapRequest)
+    case suppressed(AppNotificationTapFallback)
 }
 
 struct PendingAppNotificationTapEnvelope: Codable, Hashable, Sendable {
@@ -93,6 +109,157 @@ func clearPendingAppNotificationTap(userDefaults: UserDefaults) {
     userDefaults.removeObject(forKey: pendingAppNotificationTapUserDefaultsKey)
 }
 
+func saveAppNotificationPresentationOwnership(
+    ownership: AppNotificationPresentationOwnership,
+    userDefaults: UserDefaults,
+    encoder: JSONEncoder
+) throws {
+    do {
+        userDefaults.set(
+            try encoder.encode(ownership),
+            forKey: appNotificationPresentationOwnershipUserDefaultsKey
+        )
+    } catch {
+        throw LocalStoreError.validation(
+            "App notification presentation ownership could not be saved: \(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+func loadAppNotificationPresentationOwnership(
+    userDefaults: UserDefaults,
+    decoder: JSONDecoder
+) throws -> AppNotificationPresentationOwnership? {
+    guard let data = userDefaults.data(forKey: appNotificationPresentationOwnershipUserDefaultsKey) else {
+        return nil
+    }
+
+    do {
+        let ownership = try decoder.decode(AppNotificationPresentationOwnership.self, from: data)
+        guard ownership.schemaVersion == appNotificationPresentationOwnershipSchemaVersion else {
+            throw LocalStoreError.validation(
+                "App notification presentation ownership schema is unsupported: \(ownership.schemaVersion)"
+            )
+        }
+        return ownership
+    } catch {
+        throw LocalStoreError.validation(
+            "App notification presentation ownership is invalid: \(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+func resolveAppNotificationOwnership(
+    userInfo: [AnyHashable: Any],
+    requestIdentifier: String,
+    userDefaults: UserDefaults,
+    decoder: JSONDecoder
+) throws -> AppNotificationOwnershipDecision {
+    guard let request = parseAppNotificationTapRequest(
+        userInfo: userInfo,
+        requestIdentifier: requestIdentifier
+    ) else {
+        return .unrelated
+    }
+    if case .fallback(let fallback) = request {
+        return .suppressed(fallback)
+    }
+
+    guard let ownership = try loadAppNotificationPresentationOwnership(
+        userDefaults: userDefaults,
+        decoder: decoder
+    ) else {
+        return .suppressed(
+            AppNotificationTapFallback(
+                stage: "ownership",
+                reason: "missing_presentation_ownership",
+                notificationType: appNotificationTapType(request: request),
+                details: nil
+            )
+        )
+    }
+    guard ownership.isMasterEnabled else {
+        return .suppressed(
+            AppNotificationTapFallback(
+                stage: "ownership",
+                reason: "notifications_master_disabled",
+                notificationType: appNotificationTapType(request: request),
+                details: nil
+            )
+        )
+    }
+
+    switch request {
+    case .openReviewReminder(let notificationWorkspaceId):
+        guard notificationWorkspaceId == ownership.workspaceId else {
+            return .suppressed(
+                AppNotificationTapFallback(
+                    stage: "ownership",
+                    reason: "stale_review_reminder_workspace",
+                    notificationType: AppNotificationTapType.reviewReminder.rawValue,
+                    details: "notificationWorkspaceId=\(notificationWorkspaceId) currentWorkspaceId=\(ownership.workspaceId ?? "unavailable")"
+                )
+            )
+        }
+        return .owned(request)
+    case .openStrictReminder:
+        guard ownership.isStrictReminderEnabled else {
+            return .suppressed(
+                AppNotificationTapFallback(
+                    stage: "ownership",
+                    reason: "strict_reminders_disabled",
+                    notificationType: AppNotificationTapType.strictReminder.rawValue,
+                    details: nil
+                )
+            )
+        }
+        guard ownership.workspaceId?.isEmpty == false else {
+            return .suppressed(
+                AppNotificationTapFallback(
+                    stage: "ownership",
+                    reason: "missing_notification_workspace_ownership",
+                    notificationType: AppNotificationTapType.strictReminder.rawValue,
+                    details: nil
+                )
+            )
+        }
+        guard isStrictReminderRequestIdentifier(identifier: requestIdentifier) else {
+            return .suppressed(
+                AppNotificationTapFallback(
+                    stage: "parse",
+                    reason: "invalid_strict_reminder_identifier",
+                    notificationType: AppNotificationTapType.strictReminder.rawValue,
+                    details: requestIdentifier
+                )
+            )
+        }
+        guard let notificationScope = userInfo[strictReminderNotificationScopeUserInfoKey] as? String,
+              notificationScope.isEmpty == false else {
+            return .suppressed(
+                AppNotificationTapFallback(
+                    stage: "parse",
+                    reason: "invalid_strict_reminder_scope",
+                    notificationType: AppNotificationTapType.strictReminder.rawValue,
+                    details: nil
+                )
+            )
+        }
+        guard notificationScope == ownership.strictReminderScope else {
+            return .suppressed(
+                AppNotificationTapFallback(
+                    stage: "ownership",
+                    reason: "stale_strict_reminder_scope",
+                    notificationType: AppNotificationTapType.strictReminder.rawValue,
+                    details: nil
+                )
+            )
+        }
+        return .owned(request)
+    case .fallback(let fallback):
+        return .suppressed(fallback)
+    }
+}
+
 func logAppNotificationTapEvent(action: String, metadata: [String: String]) {
     let observation = NotificationTapObservation(
         action: NotificationTapAction(rawValue: action) ?? .fallback,
@@ -157,7 +324,10 @@ func makeAppNotificationTapLogMetadata(
     return metadata
 }
 
-func parseAppNotificationTapRequest(userInfo: [AnyHashable: Any]) -> AppNotificationTapRequest? {
+func parseAppNotificationTapRequest(
+    userInfo: [AnyHashable: Any],
+    requestIdentifier: String?
+) -> AppNotificationTapRequest? {
     guard let rawNotificationType = userInfo[appNotificationTapTypeUserInfoKey] as? String else {
         return nil
     }
@@ -174,10 +344,40 @@ func parseAppNotificationTapRequest(userInfo: [AnyHashable: Any]) -> AppNotifica
 
     switch notificationType {
     case .reviewReminder:
-        return .openReviewReminder
+        guard let requestIdentifier,
+              let workspaceId = reviewNotificationRequestWorkspaceId(identifier: requestIdentifier) else {
+            return .fallback(
+                AppNotificationTapFallback(
+                    stage: "parse",
+                    reason: "invalid_review_reminder_identifier",
+                    notificationType: notificationType.rawValue,
+                    details: requestIdentifier
+                )
+            )
+        }
+        return .openReviewReminder(workspaceId: workspaceId)
     case .strictReminder:
         return .openStrictReminder
     }
+}
+
+func appNotificationTapWorkspaceOwnershipFallback(
+    request: AppNotificationTapRequest,
+    currentWorkspaceId: String?
+) -> AppNotificationTapFallback? {
+    guard case .openReviewReminder(let notificationWorkspaceId) = request else {
+        return nil
+    }
+    guard notificationWorkspaceId == currentWorkspaceId else {
+        return AppNotificationTapFallback(
+            stage: "consume",
+            reason: "stale_review_reminder_workspace",
+            notificationType: AppNotificationTapType.reviewReminder.rawValue,
+            details: "notificationWorkspaceId=\(notificationWorkspaceId) currentWorkspaceId=\(currentWorkspaceId ?? "unavailable")"
+        )
+    }
+
+    return nil
 }
 
 func logAppNotificationTapFallback(fallback: AppNotificationTapFallback) {
@@ -193,4 +393,22 @@ func logAppNotificationTapFallback(fallback: AppNotificationTapFallback) {
         details: fallback.details
     )
     logAppNotificationTapEvent(action: "notification_tap_fallback", metadata: metadata)
+}
+
+func logAppNotificationSuppression(
+    fallback: AppNotificationTapFallback,
+    source: AppNotificationTapSource?,
+    appState: String?
+) {
+    let metadata = makeAppNotificationTapLogMetadata(
+        request: .fallback(fallback),
+        source: source,
+        appState: appState,
+        scenePhase: nil,
+        receivedAtMillis: nil,
+        stage: fallback.stage,
+        reason: fallback.reason,
+        details: fallback.details
+    )
+    logAppNotificationTapEvent(action: "notification_tap_dropped", metadata: metadata)
 }

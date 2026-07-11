@@ -18,6 +18,39 @@ private struct FlashcardsUITestPreservedLaunchState {
     }
 }
 
+@MainActor
+private func rebindPendingUITestReviewNotificationTap(
+    userDefaults: UserDefaults,
+    workspaceId: String?
+) throws {
+    guard let envelope = try loadPendingAppNotificationTap(
+        userDefaults: userDefaults,
+        decoder: JSONDecoder()
+    ) else {
+        return
+    }
+    guard envelope.source == .uiTestEnvironment,
+          case .openReviewReminder = envelope.request else {
+        return
+    }
+    guard let workspaceId else {
+        throw LocalStoreError.validation(
+            "UI test review notification tap could not be bound because the current workspace is unavailable"
+        )
+    }
+
+    try savePendingAppNotificationTap(
+        envelope: PendingAppNotificationTapEnvelope(
+            schemaVersion: pendingAppNotificationTapSchemaVersion,
+            request: .openReviewReminder(workspaceId: workspaceId),
+            receivedAtMillis: envelope.receivedAtMillis,
+            source: envelope.source
+        ),
+        userDefaults: userDefaults,
+        encoder: JSONEncoder()
+    )
+}
+
 private struct FlashcardsUITestLaunchCoordinator {
     let launchScenario: FlashcardsUITestLaunchScenario
     let processInfo: ProcessInfo
@@ -38,6 +71,10 @@ private struct FlashcardsUITestLaunchCoordinator {
         }
 
         preservedLaunchState.restore(userDefaults: store.userDefaults)
+        try rebindPendingUITestReviewNotificationTap(
+            userDefaults: store.userDefaults,
+            workspaceId: store.workspace?.workspaceId
+        )
         if self.launchScenario == .marketingGuestSessionCleanup {
             return
         }

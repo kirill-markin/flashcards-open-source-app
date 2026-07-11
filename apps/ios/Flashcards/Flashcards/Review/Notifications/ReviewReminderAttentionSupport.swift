@@ -87,12 +87,11 @@ func clearReviewReminderAttentionState(userDefaults: UserDefaults) {
 func makeReviewReminderAttentionState(
     notification: UNNotification
 ) -> ReviewReminderAttentionState? {
-    guard parseAppNotificationTapRequest(userInfo: notification.request.content.userInfo) == .openReviewReminder else {
-        return nil
-    }
-
     let requestId = notification.request.identifier
-    guard let workspaceId = reviewNotificationRequestWorkspaceId(identifier: requestId) else {
+    guard let request = parseAppNotificationTapRequest(
+        userInfo: notification.request.content.userInfo,
+        requestIdentifier: requestId
+    ), case .openReviewReminder(let workspaceId) = request else {
         return nil
     }
 

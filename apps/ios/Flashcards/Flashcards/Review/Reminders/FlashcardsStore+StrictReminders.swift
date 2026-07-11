@@ -21,6 +21,7 @@ extension FlashcardsStore {
     func updateStrictRemindersSettings(settings: StrictRemindersSettings) {
         self.strictRemindersSettings = settings
         self.persistStrictRemindersSettings()
+        self.refreshAppNotificationPresentationOwnership()
         self.reconcileNotificationsAfterStrictRemindersSettingsChanged(now: Date())
     }
 
@@ -30,8 +31,40 @@ extension FlashcardsStore {
         )
     }
 
+    @discardableResult
+    func cancelStrictRemindersReconciliation() -> Task<Void, Never> {
+        self.strictRemindersRescheduleGeneration += 1
+        let generation = self.strictRemindersRescheduleGeneration
+        let previousTask = self.activeStrictRemindersRescheduleTask
+        previousTask?.cancel()
+        self.pendingStrictRemindersReconcileRequest = nil
+        let replacementTask = Task { @MainActor in
+            if let previousTask {
+                await previousTask.value
+            }
+            await self.drainStrictRemindersReconcileRequests(generation: generation)
+        }
+        self.activeStrictRemindersRescheduleTask = replacementTask
+        return replacementTask
+    }
+
     func reconcileStrictReminders(trigger: StrictRemindersReconcileTrigger, now: Date) {
-        let nextRequest = makeStrictRemindersReconcileRequest(trigger: trigger, now: now)
+        if trigger == .workspaceChanged {
+            rotateStrictReminderNotificationScope(userDefaults: self.userDefaults)
+            self.refreshAppNotificationPresentationOwnership()
+        }
+        if trigger == .workspaceChanged
+            || self.reviewNotificationsSettings.isEnabled == false
+            || self.strictRemindersSettings.isEnabled == false {
+            self.cancelStrictRemindersReconciliation()
+        }
+        let generation = self.strictRemindersRescheduleGeneration
+        let nextRequest = makeStrictRemindersReconcileRequest(
+            trigger: trigger,
+            now: now,
+            shouldClearDeliveredStrictReminders: self.reviewNotificationsSettings.isEnabled == false
+                || self.strictRemindersSettings.isEnabled == false
+        )
         self.pendingStrictRemindersReconcileRequest = mergeStrictRemindersReconcileRequests(
             pendingRequest: self.pendingStrictRemindersReconcileRequest,
             nextRequest: nextRequest
@@ -41,7 +74,7 @@ extension FlashcardsStore {
         }
 
         self.activeStrictRemindersRescheduleTask = Task { @MainActor in
-            await self.drainStrictRemindersReconcileRequests()
+            await self.drainStrictRemindersReconcileRequests(generation: generation)
         }
     }
 
@@ -128,13 +161,19 @@ extension FlashcardsStore {
         }
     }
 
-    private func drainStrictRemindersReconcileRequests() async {
+    private func drainStrictRemindersReconcileRequests(generation: Int) async {
+        guard self.strictRemindersRescheduleGeneration == generation else {
+            return
+        }
         guard Task.isCancelled == false else {
             self.pendingStrictRemindersReconcileRequest = nil
             return
         }
 
         while let request = self.pendingStrictRemindersReconcileRequest {
+            guard self.strictRemindersRescheduleGeneration == generation else {
+                return
+            }
             guard Task.isCancelled == false else {
                 self.pendingStrictRemindersReconcileRequest = nil
                 return
@@ -143,11 +182,16 @@ extension FlashcardsStore {
             await self.rescheduleStrictReminders(request: request)
         }
 
-        self.activeStrictRemindersRescheduleTask = nil
+        if self.strictRemindersRescheduleGeneration == generation {
+            self.activeStrictRemindersRescheduleTask = nil
+        }
     }
 
     private func rescheduleStrictReminders(request: StrictRemindersReconcileRequest) async {
         guard Task.isCancelled == false else {
+            return
+        }
+        guard let workspaceId = self.workspace?.workspaceId else {
             return
         }
 
@@ -164,9 +208,6 @@ extension FlashcardsStore {
             errorSummary: nil
         )
         let center = UNUserNotificationCenter.current()
-        let removalScopes = strictReminderRemovalScopes(
-            currentScope: storedStrictReminderNotificationScope(userDefaults: self.userDefaults)
-        )
         let cleanupStartedAt = Date()
         self.addNotificationForegroundOperationBreadcrumb(
             notificationKind: .strictReminder,
@@ -182,17 +223,22 @@ extension FlashcardsStore {
         let cleanupPendingBefore = appNotificationPendingRequestBreakdown(
             identifiers: pendingBeforeCleanupRequestIdentifiers
         )
+        let pendingStrictRequestIdentifiers = filterStrictReminderRequestIdentifiers(
+            identifiers: pendingBeforeCleanupRequestIdentifiers
+        )
+        let shouldClearDeliveredStrictReminders = request.shouldClearDeliveredStrictReminders
+            || self.reviewNotificationsSettings.isEnabled == false
+            || self.strictRemindersSettings.isEnabled == false
         let deliveredBeforeCleanupRequestIdentifiersToRemove: [String]?
-        if request.shouldClearDeliveredStrictReminders {
+        if shouldClearDeliveredStrictReminders {
             deliveredBeforeCleanupRequestIdentifiersToRemove = await deliveredStrictReminderRequestIdentifiers(
-                center: center,
-                removalScopes: removalScopes
+                center: center
             )
         } else {
             deliveredBeforeCleanupRequestIdentifiersToRemove = nil
         }
-        for removalScope in removalScopes {
-            await removePendingStrictReminders(center: center, removalScope: removalScope)
+        if pendingStrictRequestIdentifiers.isEmpty == false {
+            center.removePendingNotificationRequests(withIdentifiers: pendingStrictRequestIdentifiers)
         }
         guard Task.isCancelled == false else {
             return
@@ -222,7 +268,7 @@ extension FlashcardsStore {
             return
         }
 
-        guard self.strictRemindersSettings.isEnabled else {
+        guard self.reviewNotificationsSettings.isEnabled, self.strictRemindersSettings.isEnabled else {
             self.persistScheduledStrictReminders(payloads: [])
             self.addNotificationForegroundOperationBreadcrumb(
                 notificationKind: .strictReminder,
@@ -298,6 +344,7 @@ extension FlashcardsStore {
             )
             let importedCompletedDayStartMillis = try await loadStrictReminderImportedCompletedDayStartMillis(
                 databaseURL: self.localDatabaseURL,
+                workspaceId: workspaceId,
                 now: request.now,
                 calendar: calendar
             )

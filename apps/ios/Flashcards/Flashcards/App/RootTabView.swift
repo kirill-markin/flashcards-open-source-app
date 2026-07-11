@@ -643,8 +643,8 @@ struct RootTabView: View {
             NotificationDiagnosticsView()
         case .localSyncDiagnostics:
             LocalSyncDiagnosticsView()
-        case .workspaceNotifications:
-            ReviewNotificationsSettingsView()
+        case .notifications:
+            NotificationsSettingsView()
         case .workspaceScheduler:
             SchedulerSettingsDetailView()
         case .workspaceExport:

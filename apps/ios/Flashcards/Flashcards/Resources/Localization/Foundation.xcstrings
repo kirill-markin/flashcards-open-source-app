@@ -7200,119 +7200,119 @@
       }
     },
     "review_notification.mode.daily" : {
-      "comment" : "Daily review notification mode title",
+      "comment" : "Once-daily review notification mode title",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يومي"
+            "value" : "مرة يوميًا"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Täglich"
+            "value" : "Einmal täglich"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Daily"
+            "value" : "Once daily"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diario"
+            "value" : "Una vez al día"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diario"
+            "value" : "Una vez al día"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "दैनिक"
+            "value" : "दिन में एक बार"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "毎日"
+            "value" : "1日1回"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ежедневно"
+            "value" : "Раз в день"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "每天"
+            "value" : "每天一次"
           }
         }
       }
     },
     "review_notification.mode.inactivity" : {
-      "comment" : "Cards review notification mode title",
+      "comment" : "After-a-break review notification mode title",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "البطاقات"
+            "value" : "بعد استراحة"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Karten"
+            "value" : "Nach einer Pause"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cards"
+            "value" : "After a break"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tarjetas"
+            "value" : "Después de una pausa"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tarjetas"
+            "value" : "Después de una pausa"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "कार्ड"
+            "value" : "ब्रेक के बाद"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "カード"
+            "value" : "休憩後"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Карточки"
+            "value" : "После перерыва"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "卡片"
+            "value" : "休息后"
           }
         }
       }

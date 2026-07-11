@@ -231,9 +231,9 @@ func localizedReviewNotificationPermissionActionTitle(_ status: ReviewNotificati
 func localizedReviewNotificationModeTitle(_ mode: ReviewNotificationMode) -> String {
     switch mode {
     case .daily:
-        return aiSettingsLocalized("settings.notifications.mode.daily", "Daily")
+        return aiSettingsLocalized("settings.notifications.mode.daily", "Once daily")
     case .inactivity:
-        return aiSettingsLocalized("settings.notifications.mode.inactivity", "Cards")
+        return aiSettingsLocalized("settings.notifications.mode.inactivity", "After a break")
     }
 }
 

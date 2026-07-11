@@ -427,6 +427,7 @@ extension FlashcardsStore {
                 linkedSession: replacementSession
             )
             self.cloudRuntime.setActiveCloudSession(linkedSession: replacementSession)
+            try self.reload()
             let syncResult = try await self.runLinkedSync(linkedSession: replacementSession)
             try await self.applySyncResultWithoutBlockingReset(
                 syncResult: syncResult,

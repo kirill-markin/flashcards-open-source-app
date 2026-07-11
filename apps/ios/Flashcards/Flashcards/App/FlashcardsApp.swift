@@ -325,7 +325,10 @@ private func logAppLifecycleBreadcrumb(
 }
 
 @MainActor
-private func consumeFlashcardsUITestAppNotificationTapRequest(processInfo: ProcessInfo) -> AppNotificationTapRequest? {
+private func consumeFlashcardsUITestAppNotificationTapRequest(
+    processInfo: ProcessInfo,
+    workspaceId: String?
+) -> AppNotificationTapRequest? {
     guard hasConsumedFlashcardsUITestAppNotificationTapEnvironment == false else {
         return nil
     }
@@ -337,7 +340,21 @@ private func consumeFlashcardsUITestAppNotificationTapRequest(processInfo: Proce
     let userInfo: [AnyHashable: Any] = [
         appNotificationTapTypeUserInfoKey: appNotificationTapType
     ]
-    return parseAppNotificationTapRequest(userInfo: userInfo)
+    let requestIdentifier: String?
+    if appNotificationTapType == AppNotificationTapType.reviewReminder.rawValue,
+       let workspaceId {
+        requestIdentifier = makeReviewNotificationRequestIdentifier(
+            workspaceId: workspaceId,
+            kind: "ui-test",
+            suffix: "launch"
+        )
+    } else {
+        requestIdentifier = nil
+    }
+    return parseAppNotificationTapRequest(
+        userInfo: userInfo,
+        requestIdentifier: requestIdentifier
+    )
 }
 
 @MainActor
@@ -412,7 +429,10 @@ struct FlashcardsApp: App {
         if let launchScenario {
             store.uiTestLaunchPreparationStatus = .running(launchScenario: launchScenario)
         }
-        if let request = consumeFlashcardsUITestAppNotificationTapRequest(processInfo: processInfo) {
+        if let request = consumeFlashcardsUITestAppNotificationTapRequest(
+            processInfo: processInfo,
+            workspaceId: store.workspace?.workspaceId
+        ) {
             let receivedMetadata = makeAppNotificationTapLogMetadata(
                 request: request,
                 source: .uiTestEnvironment,
@@ -909,6 +929,27 @@ struct FlashcardsApp: App {
                 stage: "consume",
                 reason: "invalid_pending_envelope",
                 details: Flashcards.errorMessage(error: error)
+            )
+            logAppNotificationTapEvent(action: "notification_tap_dropped", metadata: droppedMetadata)
+            return
+        }
+
+        if let fallback = appNotificationTapWorkspaceOwnershipFallback(
+            request: envelope.request,
+            currentWorkspaceId: self.store.workspace?.workspaceId
+        ) {
+            if case .openReviewReminder(let workspaceId) = envelope.request {
+                self.store.clearReviewReminderAttention(workspaceId: workspaceId)
+            }
+            let droppedMetadata = makeAppNotificationTapLogMetadata(
+                request: envelope.request,
+                source: envelope.source,
+                appState: nil,
+                scenePhase: "active",
+                receivedAtMillis: envelope.receivedAtMillis,
+                stage: fallback.stage,
+                reason: fallback.reason,
+                details: fallback.details
             )
             logAppNotificationTapEvent(action: "notification_tap_dropped", metadata: droppedMetadata)
             return

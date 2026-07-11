@@ -15,12 +15,47 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        persistReviewReminderAttentionState(
-            notification: notification,
-            userDefaults: .standard,
-            encoder: JSONEncoder()
-        )
-        return [.banner, .sound]
+        let decision: AppNotificationOwnershipDecision
+        do {
+            decision = try resolveAppNotificationOwnership(
+                userInfo: notification.request.content.userInfo,
+                requestIdentifier: notification.request.identifier,
+                userDefaults: .standard,
+                decoder: JSONDecoder()
+            )
+        } catch {
+            let fallback = Self.invalidPresentationOwnershipFallback(
+                userInfo: notification.request.content.userInfo,
+                error: error
+            )
+            logAppNotificationSuppression(
+                fallback: fallback,
+                source: nil,
+                appState: Self.currentApplicationStateString()
+            )
+            return []
+        }
+
+        switch decision {
+        case .unrelated:
+            return [.banner, .sound]
+        case .owned(let request):
+            if case .openReviewReminder = request {
+                persistReviewReminderAttentionState(
+                    notification: notification,
+                    userDefaults: .standard,
+                    encoder: JSONEncoder()
+                )
+            }
+            return [.banner, .sound]
+        case .suppressed(let fallback):
+            logAppNotificationSuppression(
+                fallback: fallback,
+                source: nil,
+                appState: Self.currentApplicationStateString()
+            )
+            return []
+        }
     }
 
     nonisolated func userNotificationCenter(
@@ -29,29 +64,42 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         let userInfo = response.notification.request.content.userInfo
-        guard let request = parseAppNotificationTapRequest(userInfo: userInfo) else {
+        let decision: AppNotificationOwnershipDecision
+        do {
+            decision = try resolveAppNotificationOwnership(
+                userInfo: userInfo,
+                requestIdentifier: response.notification.request.identifier,
+                userDefaults: .standard,
+                decoder: JSONDecoder()
+            )
+        } catch {
+            logAppNotificationSuppression(
+                fallback: Self.invalidPresentationOwnershipFallback(userInfo: userInfo, error: error),
+                source: .notificationResponse,
+                appState: Self.currentApplicationStateString()
+            )
             completionHandler()
             return
         }
 
         let appState = Self.currentApplicationStateString()
-        if request == .openStrictReminder
-            && isCurrentStrictReminderNotification(userInfo: userInfo, userDefaults: .standard) == false {
-            let droppedMetadata = makeAppNotificationTapLogMetadata(
-                request: request,
+        let request: AppNotificationTapRequest
+        switch decision {
+        case .unrelated:
+            completionHandler()
+            return
+        case .owned(let ownedRequest):
+            request = ownedRequest
+        case .suppressed(let fallback):
+            logAppNotificationSuppression(
+                fallback: fallback,
                 source: .notificationResponse,
-                appState: appState,
-                scenePhase: nil,
-                receivedAtMillis: nil,
-                stage: "receive",
-                reason: "stale_strict_reminder_scope",
-                details: nil
+                appState: appState
             )
-            logAppNotificationTapEvent(action: "notification_tap_dropped", metadata: droppedMetadata)
             completionHandler()
             return
         }
-        if request == .openReviewReminder {
+        if case .openReviewReminder = request {
             persistReviewReminderAttentionState(
                 notification: response.notification,
                 userDefaults: .standard,
@@ -114,6 +162,18 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
             UIApplication.shared.applicationState
         }
         return self.serializeApplicationState(applicationState: applicationState)
+    }
+
+    private nonisolated static func invalidPresentationOwnershipFallback(
+        userInfo: [AnyHashable: Any],
+        error: Error
+    ) -> AppNotificationTapFallback {
+        AppNotificationTapFallback(
+            stage: "ownership",
+            reason: "invalid_presentation_ownership",
+            notificationType: userInfo[appNotificationTapTypeUserInfoKey] as? String,
+            details: Flashcards.errorMessage(error: error)
+        )
     }
 
     private nonisolated static func serializeApplicationState(applicationState: UIApplication.State) -> String {

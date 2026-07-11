@@ -162,7 +162,7 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
         }
 
         throw LiveSmokeFailure.unexpectedAccountState(
-            message: "General settings rows should appear as Reminders, Review Animations, AI Chat Suggestions, Leaderboard participation, then Language.",
+            message: "General settings rows should appear as Notifications, Review Animations, AI Chat Suggestions, Leaderboard participation, then Language.",
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
