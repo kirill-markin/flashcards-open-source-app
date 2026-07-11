@@ -583,9 +583,6 @@ export const zhHansCatalog = {
       title: "标签",
       description: "查看整个工作区的标签使用情况和卡片数量。",
     },
-    notifications: {
-      value: "此设备",
-    },
     export: {
       title: "导出",
       description: "将此工作区的活动卡片下载为可移植的 flashcards.zip 包。",
@@ -718,12 +715,13 @@ export const zhHansCatalog = {
     previewRemoveTagLabel: "移除 {{tag}}（{{count}} 张卡片）",
   },
   notificationsSettings: {
-    title: "复习提醒",
-    subtitle: "复习提醒偏好会绑定到此工作区，但提醒只会在您希望接收它们的设备上配置。",
-    cardTitle: "在 iPhone 或 Android 上设置复习提醒",
-    paragraphOne: "复习提醒设置属于此工作区，但需要在每台设备上分别启用和管理。",
-    paragraphTwo: "如果您希望接收学习通知，请在您希望接收通知的 iPhone 或 Android 设备上打开此工作区，并在该设备上配置通知。",
-    paragraphThree: "Web 应用不支持通知，因此此界面没有通知控制项。",
+    title: "通知",
+    subtitle: "iPhone 和 Android 应用支持定时学习通知。",
+    value: "移动应用",
+    cardTitle: "在移动应用中管理通知",
+    paragraphOne: "通知设置属于每次移动应用安装，而不属于工作区或您的账户。",
+    paragraphTwo: "提醒会自动使用该移动应用中当前所选工作区的卡片和活动。",
+    paragraphThree: "Web 应用不会发送或管理这些通知，因此此界面没有通知控制项。",
   },
   reviewAnimationsSettings: {
     title: "复习动画",

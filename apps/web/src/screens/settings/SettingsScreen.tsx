@@ -208,7 +208,7 @@ export function SettingsScreen(): ReactElement {
           <SettingsNavigationCard
             title={t("notificationsSettings.title")}
             description={t("notificationsSettings.subtitle")}
-            value={t("settingsWorkspace.notifications.value")}
+            value={t("notificationsSettings.value")}
             to={settingsNotificationsRoute}
             testId="settings-row-review-reminders"
           />

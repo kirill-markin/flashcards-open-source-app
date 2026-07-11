@@ -583,9 +583,6 @@ const deCatalog: TranslationCatalog = {
       title: "Tags",
       description: "Prüfe die arbeitsbereichsweite Tag-Nutzung und Kartenanzahl.",
     },
-    notifications: {
-      value: "Dieses Gerät",
-    },
     export: {
       title: "Export",
       description: "Lade aktive Karten aus diesem Arbeitsbereich als portables flashcards.zip-Paket herunter.",
@@ -718,12 +715,13 @@ const deCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} entfernen ({{count}} Karten)",
   },
   notificationsSettings: {
-    title: "Wiederholungs-Erinnerungen",
-    subtitle: "Einstellungen für Wiederholungs-Erinnerungen bleiben diesem Arbeitsbereich zugeordnet, aber Erinnerungen werden nur auf dem Gerät eingerichtet, auf dem du sie erhalten möchtest.",
-    cardTitle: "Wiederholungs-Erinnerungen auf iPhone oder Android einrichten",
-    paragraphOne: "Erinnerungseinstellungen für Wiederholungen gehören zu diesem Arbeitsbereich, werden aber auf jedem Gerät separat aktiviert und verwaltet.",
-    paragraphTwo: "Wenn du Lernbenachrichtigungen möchtest, öffne diesen Arbeitsbereich auf dem iPhone- oder Android-Gerät, auf dem du sie erhalten möchtest, und richte dort die Benachrichtigungen ein.",
-    paragraphThree: "Die Web-App unterstützt keine Benachrichtigungen, daher gibt es auf diesem Bildschirm keine Benachrichtigungssteuerung.",
+    title: "Benachrichtigungen",
+    subtitle: "Geplante Lernbenachrichtigungen sind in den iPhone- und Android-Apps verfügbar.",
+    value: "Mobile-App",
+    cardTitle: "Benachrichtigungen in der Mobile-App verwalten",
+    paragraphOne: "Die Benachrichtigungseinstellungen gehören zur jeweiligen Installation der Mobile-App, nicht zu einem Arbeitsbereich oder deinem Konto.",
+    paragraphTwo: "Erinnerungen verwenden automatisch die Karten und Aktivitäten aus dem Arbeitsbereich, der aktuell in dieser Mobile-App ausgewählt ist.",
+    paragraphThree: "Die Web-App stellt diese Benachrichtigungen weder zu noch verwaltet sie, daher gibt es auf diesem Bildschirm keine Benachrichtigungssteuerung.",
   },
   reviewAnimationsSettings: {
     title: "Wiederholungsanimationen",

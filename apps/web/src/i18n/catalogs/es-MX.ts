@@ -583,9 +583,6 @@ const esMxCatalog: TranslationCatalog = {
       title: "Etiquetas",
       description: "Consulta el uso de etiquetas y el número de tarjetas de todo el espacio de trabajo.",
     },
-    notifications: {
-      value: "Este dispositivo",
-    },
     export: {
       title: "Exportar",
       description: "Descarga las tarjetas activas de este espacio de trabajo como paquete portátil flashcards.zip.",
@@ -718,12 +715,13 @@ const esMxCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Quitar {{tag}} ({{count}} tarjetas)",
   },
   notificationsSettings: {
-    title: "Recordatorios de repaso",
-    subtitle: "Las preferencias de recordatorios de repaso siguen asociadas a este espacio de trabajo, pero los recordatorios solo se configuran en el dispositivo donde quieras recibirlos.",
-    cardTitle: "Configura los recordatorios de repaso en iPhone o Android",
-    paragraphOne: "La configuración de recordatorios de repaso pertenece a este espacio de trabajo, pero se activa y se administra por separado en cada dispositivo.",
-    paragraphTwo: "Si quieres notificaciones de estudio, abre este espacio de trabajo en el iPhone o Android donde quieras recibirlas y configúralas ahí.",
-    paragraphThree: "La app web no admite notificaciones, así que no hay controles de notificaciones en esta pantalla.",
+    title: "Notificaciones",
+    subtitle: "Las notificaciones de estudio programadas están disponibles en las apps para iPhone y Android.",
+    value: "App móvil",
+    cardTitle: "Administra las notificaciones en la app móvil",
+    paragraphOne: "La configuración de las notificaciones pertenece a cada instalación de la app móvil, no a un espacio de trabajo ni a tu cuenta.",
+    paragraphTwo: "Los recordatorios usan automáticamente las tarjetas y la actividad del espacio de trabajo seleccionado en ese momento en esa app móvil.",
+    paragraphThree: "La app web no envía ni administra estas notificaciones, así que no hay controles de notificaciones en esta pantalla.",
   },
   reviewAnimationsSettings: {
     title: "Animaciones de repaso",
