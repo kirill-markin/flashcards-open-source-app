@@ -160,11 +160,13 @@ extension LocalDatabase {
                 ),
                 latestMediaTransferError: try self.core.scalarOptionalText(
                     sql: """
-                    SELECT last_error
-                    FROM media_transfer_queue
-                    WHERE workspace_id = ? AND last_error IS NOT NULL
-                    ORDER BY updated_at DESC, transfer_id ASC
-                    LIMIT 1
+                    SELECT (
+                        SELECT last_error
+                        FROM media_transfer_queue
+                        WHERE workspace_id = ? AND last_error IS NOT NULL
+                        ORDER BY updated_at DESC, transfer_id ASC
+                        LIMIT 1
+                    )
                     """,
                     values: [.text(workspaceId)]
                 )
