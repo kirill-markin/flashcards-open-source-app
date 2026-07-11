@@ -21,6 +21,21 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
+    func assertElementDoesNotExist(identifier: String, timeout: TimeInterval) throws {
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_element_does_not_exist.\(identifier)") {
+            let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            if element.waitForNonExistence(timeout: timeout) == false {
+                throw LiveSmokeFailure.elementDidNotDisappear(
+                    identifier: identifier,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+        }
+    }
+
+    @MainActor
     func assertTextExists(_ text: String, timeout: TimeInterval) throws {
         try self.runWithInlineRawScreenStateOnFailure(action: "assert_text_exists.\(text)") {
             let textElement = self.exactVisibleText(text).firstMatch

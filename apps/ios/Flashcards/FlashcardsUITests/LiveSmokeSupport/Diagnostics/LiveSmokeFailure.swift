@@ -3,6 +3,7 @@ import Foundation
 enum LiveSmokeFailure: LocalizedError {
     case stepFailed(title: String, durationSeconds: TimeInterval, underlyingMessage: String)
     case missingElement(identifier: String, timeoutSeconds: TimeInterval, screen: String, step: String)
+    case elementDidNotDisappear(identifier: String, timeoutSeconds: TimeInterval, screen: String, step: String)
     case missingText(text: String, timeoutSeconds: TimeInterval, screen: String, step: String)
     case disabledElement(identifier: String, screen: String, step: String)
     case textInputNotReady(
@@ -36,6 +37,8 @@ enum LiveSmokeFailure: LocalizedError {
             return "iOS live smoke step failed: \(title). Duration: \(formatDuration(seconds: durationSeconds)). \(underlyingMessage)"
         case .missingElement(let identifier, let timeoutSeconds, let screen, let step):
             return "Element '\(identifier)' did not appear within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)' on screen: \(screen)"
+        case .elementDidNotDisappear(let identifier, let timeoutSeconds, let screen, let step):
+            return "Element '\(identifier)' did not disappear within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)' on screen: \(screen)"
         case .missingText(let text, let timeoutSeconds, let screen, let step):
             return "Text '\(text)' did not appear within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)' on screen: \(screen)"
         case .disabledElement(let identifier, let screen, let step):

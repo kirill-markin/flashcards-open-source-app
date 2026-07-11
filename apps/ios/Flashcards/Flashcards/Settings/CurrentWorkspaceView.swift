@@ -7,9 +7,7 @@ struct CurrentWorkspaceView: View {
     @State private var isWorkspacePickerPresented: Bool = false
     @State private var isWorkspacePickerLoading: Bool = false
     @State private var workspacePickerGuidanceMessage: String = ""
-    @State private var workspaceNameDraft: String = ""
-    @State private var renameGuidanceMessage: String = ""
-    @State private var isRenameSubmitting: Bool = false
+    @State private var isRenameSheetPresented: Bool = false
 
     private var currentWorkspaceName: String {
         self.store.workspace?.name ?? aiSettingsLocalized("common.unavailable", "Unavailable")
@@ -19,84 +17,51 @@ struct CurrentWorkspaceView: View {
         self.store.cloudSettings?.cloudState != .linked
     }
 
-    private var isRenameDisabled: Bool {
-        let trimmedWorkspaceName = self.workspaceNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        return self.isWorkspaceManagementLocked
-            || self.isRenameSubmitting
-            || trimmedWorkspaceName.isEmpty
-            || trimmedWorkspaceName == store.workspace?.name
-    }
-
     var body: some View {
         List {
             Section {
-                Button {
-                    self.handleWorkspaceRowTap()
-                } label: {
-                    SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.currentWorkspace.row.workspace", "Workspace"),
-                        value: self.isWorkspacePickerLoading
-                            ? aiSettingsLocalized("common.loading", "Loading...")
-                            : self.currentWorkspaceName,
-                        systemImage: "square.stack",
-                        attentionCount: nil
-                    )
+                LabeledContent(
+                    aiSettingsLocalized("settings.currentWorkspace.currentWorkspace", "Current Workspace")
+                ) {
+                    Text(self.currentWorkspaceName)
+                        .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(self.isWorkspaceManagementLocked ? .secondary : .primary)
-                .accessibilityIdentifier(UITestIdentifier.currentWorkspaceRowButton)
             }
 
-            Section(aiSettingsLocalized("settings.currentWorkspace.section.rename", "Rename")) {
-                if self.isWorkspaceManagementLocked {
-                    LabeledContent(aiSettingsLocalized("settings.workspace.overview.workspace", "Workspace")) {
-                        Text(self.currentWorkspaceName)
-                    }
-
-                    Text(
-                        aiSettingsLocalized(
-                            "settings.currentWorkspace.renameLinkedOnly",
-                            "Workspace rename is available only for linked cloud workspaces."
+            Section {
+                Button {
+                    self.handleChangeWorkspaceTap()
+                } label: {
+                    HStack {
+                        Label(
+                            aiSettingsLocalized("settings.currentWorkspace.changeWorkspace", "Change Workspace"),
+                            systemImage: "arrow.triangle.2.circlepath"
                         )
-                    )
-                        .foregroundStyle(.secondary)
-                } else {
-                    TextField(
-                        aiSettingsLocalized("settings.workspace.overview.workspaceName", "Workspace name"),
-                        text: self.$workspaceNameDraft
-                    )
-                        .textInputAutocapitalization(.words)
-                        .autocorrectionDisabled(true)
-                        .accessibilityIdentifier(UITestIdentifier.currentWorkspaceNameField)
 
-                    Button(
-                        self.isRenameSubmitting
-                            ? aiSettingsLocalized("common.saving", "Saving...")
-                            : aiSettingsLocalized("settings.workspace.overview.saveName", "Save name")
-                    ) {
-                        Task {
-                            await self.renameWorkspace()
+                        Spacer()
+
+                        if self.isWorkspacePickerLoading {
+                            ProgressView()
                         }
                     }
-                    .disabled(self.isRenameDisabled)
-                    .accessibilityIdentifier(UITestIdentifier.currentWorkspaceSaveNameButton)
-
-                    if self.renameGuidanceMessage.isEmpty == false {
-                        Text(self.renameGuidanceMessage)
-                            .foregroundStyle(.secondary)
-                    }
                 }
+                .disabled(self.isWorkspacePickerLoading)
+                .accessibilityIdentifier(UITestIdentifier.currentWorkspaceChangeButton)
+
+                Button {
+                    self.handleRenameWorkspaceTap()
+                } label: {
+                    Label(
+                        aiSettingsLocalized("settings.currentWorkspace.renameWorkspace", "Rename Workspace"),
+                        systemImage: "pencil"
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.currentWorkspaceRenameButton)
             }
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.currentWorkspaceScreen)
         .navigationTitle(aiSettingsLocalized("settings.currentWorkspace.title", "Workspace"))
-        .task(id: store.workspace?.workspaceId) {
-            self.workspaceNameDraft = store.workspace?.name ?? ""
-        }
-        .task(id: store.workspace?.name) {
-            self.workspaceNameDraft = store.workspace?.name ?? ""
-        }
         .sheet(isPresented: self.$isWorkspacePickerPresented) {
             CurrentWorkspacePickerContainer(
                 workspaces: self.linkedWorkspaces,
@@ -110,15 +75,38 @@ struct CurrentWorkspaceView: View {
             .environment(self.store)
             .technicalErrorSheetHost(store: self.store)
         }
+        .sheet(isPresented: self.$isRenameSheetPresented) {
+            CurrentWorkspaceRenameSheet(
+                initialWorkspaceName: self.store.workspace?.name ?? ""
+            )
+            .environment(self.store)
+            .technicalErrorSheetHost(store: self.store)
+        }
     }
 
-    private func handleWorkspaceRowTap() {
-        guard self.isWorkspaceManagementLocked == false else {
-            self.store.enqueueTransientBanner(banner: makeWorkspaceChangesRequireAccountBanner())
+    private func handleChangeWorkspaceTap() {
+        guard self.authorizeWorkspaceManagementAction() else {
             return
         }
 
         self.presentWorkspacePicker()
+    }
+
+    private func handleRenameWorkspaceTap() {
+        guard self.authorizeWorkspaceManagementAction() else {
+            return
+        }
+
+        self.isRenameSheetPresented = true
+    }
+
+    private func authorizeWorkspaceManagementAction() -> Bool {
+        guard self.isWorkspaceManagementLocked == false else {
+            self.store.enqueueTransientBanner(banner: makeWorkspaceChangesRequireAccountBanner())
+            return false
+        }
+
+        return true
     }
 
     private func presentWorkspacePicker() {
@@ -143,23 +131,126 @@ struct CurrentWorkspaceView: View {
             }
         }
     }
+}
+
+private struct CurrentWorkspaceRenameSheet: View {
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(\.dismiss) private var dismiss
+
+    let initialWorkspaceName: String
+
+    @State private var workspaceNameDraft: String
+    @State private var guidanceMessage: String = ""
+    @State private var isSubmitting: Bool = false
+    @FocusState private var isWorkspaceNameFieldFocused: Bool
+
+    private var trimmedWorkspaceName: String {
+        self.workspaceNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var isSaveDisabled: Bool {
+        self.isSubmitting
+            || self.trimmedWorkspaceName.isEmpty
+            || self.trimmedWorkspaceName
+                == self.initialWorkspaceName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    init(initialWorkspaceName: String) {
+        self.initialWorkspaceName = initialWorkspaceName
+        self._workspaceNameDraft = State(initialValue: initialWorkspaceName)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(
+                        aiSettingsLocalized("settings.workspace.overview.workspaceName", "Workspace name"),
+                        text: self.$workspaceNameDraft
+                    )
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled(true)
+                        .submitLabel(.done)
+                        .focused(self.$isWorkspaceNameFieldFocused)
+                        .accessibilityIdentifier(UITestIdentifier.currentWorkspaceNameField)
+                        .onSubmit {
+                            self.submitRenameIfEnabled()
+                        }
+
+                    if self.guidanceMessage.isEmpty == false {
+                        Text(self.guidanceMessage)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .navigationTitle(
+                aiSettingsLocalized("settings.currentWorkspace.renameWorkspace", "Rename Workspace")
+            )
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(aiSettingsLocalized("common.cancel", "Cancel")) {
+                        self.dismiss()
+                    }
+                    .disabled(self.isSubmitting)
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        self.submitRenameIfEnabled()
+                    } label: {
+                        if self.isSubmitting {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Text(aiSettingsLocalized("settings.workspace.overview.saveName", "Save Name"))
+                        }
+                    }
+                    .disabled(self.isSaveDisabled)
+                    .accessibilityIdentifier(UITestIdentifier.currentWorkspaceSaveNameButton)
+                }
+            }
+        }
+        .accessibilityIdentifier(UITestIdentifier.currentWorkspaceRenameSheet)
+        .interactiveDismissDisabled(self.isSubmitting)
+        .presentationDetents([.medium])
+        .task {
+            self.workspaceNameDraft = self.initialWorkspaceName
+            self.guidanceMessage = ""
+            await Task.yield()
+            self.isWorkspaceNameFieldFocused = true
+        }
+    }
+
+    @MainActor
+    private func submitRenameIfEnabled() {
+        guard self.isSaveDisabled == false else {
+            return
+        }
+
+        self.isSubmitting = true
+        self.guidanceMessage = ""
+
+        Task {
+            await self.renameWorkspace()
+        }
+    }
 
     @MainActor
     private func renameWorkspace() async {
-        self.isRenameSubmitting = true
-
         do {
-            self.renameGuidanceMessage = ""
-            try await store.renameCurrentWorkspace(name: self.workspaceNameDraft)
+            try await self.store.renameCurrentWorkspace(name: self.trimmedWorkspaceName)
+            self.isSubmitting = false
+            self.dismiss()
         } catch {
             if let guidanceMessage = self.store.workspaceOperationGuidanceMessage(error: error) {
-                self.renameGuidanceMessage = guidanceMessage
+                self.guidanceMessage = guidanceMessage
             } else if self.store.shouldPresentWorkspaceOperationTechnicalError(error: error) {
                 self.store.presentTechnicalError(error)
             }
-        }
 
-        self.isRenameSubmitting = false
+            self.isSubmitting = false
+        }
     }
 }
 
@@ -248,7 +339,8 @@ private struct CurrentWorkspacePickerSheet: View {
                         CloudWorkspaceSelectionRow(item: item)
                     }
                     .buttonStyle(.plain)
-                    .disabled(self.isSwitching)
+                    .disabled(self.isSwitching || item.showsSelectedIndicator)
+                    .accessibilityAddTraits(item.showsSelectedIndicator ? .isSelected : [])
                     .accessibilityIdentifier(currentWorkspaceSelectionButtonIdentifier(selection: item.selection))
                 }
             }

@@ -221,6 +221,9 @@
 
 "settings.currentWorkspace.title" = "Espacio de trabajo";
 "settings.currentWorkspace.row.workspace" = "Espacio de trabajo";
+"settings.currentWorkspace.currentWorkspace" = "Espacio de trabajo actual";
+"settings.currentWorkspace.changeWorkspace" = "Cambiar espacio de trabajo";
+"settings.currentWorkspace.renameWorkspace" = "Renombrar espacio de trabajo";
 "settings.currentWorkspace.loadingWorkspaces" = "Cargando espacios de trabajo...";
 "settings.currentWorkspace.loadError" = "No se pudieron cargar los espacios de trabajo vinculados.";
 "settings.currentWorkspace.chooseWorkspaceTitle" = "Elegir espacio de trabajo";
