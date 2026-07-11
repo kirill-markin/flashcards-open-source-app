@@ -450,8 +450,10 @@ const arCatalog: TranslationCatalog = {
   settingsCurrentWorkspace: {
     title: "مساحة العمل",
     subtitle: "اختر مساحة العمل النشطة في هذا المتصفح أو أنشئ مساحة عمل جديدة لهذا الحساب.",
-    workspaceCardTitle: "مساحة العمل",
-    workspaceCardDescription: "غيّر مساحة العمل النشطة أو أنشئ مساحة عمل جديدة لهذا الحساب.",
+    currentWorkspaceLabel: "مساحة العمل الحالية",
+    changeWorkspaceTitle: "تغيير مساحة العمل",
+    changeWorkspaceDescription: "بدّل مساحة العمل النشطة أو أنشئ مساحة عمل جديدة لهذا الحساب.",
+    changeWorkspaceDialogDescription: "اختر مساحة عمل مرتبطة أو أنشئ مساحة عمل جديدة لهذا الحساب.",
     newWorkspace: "مساحة عمل جديدة",
     workspaceNamePlaceholder: "اسم مساحة العمل",
     workspaceNameRequired: "اسم مساحة العمل مطلوب",

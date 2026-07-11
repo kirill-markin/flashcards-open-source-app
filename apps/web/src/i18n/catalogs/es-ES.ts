@@ -450,8 +450,10 @@ const esEsCatalog: TranslationCatalog = {
   settingsCurrentWorkspace: {
     title: "Espacio de trabajo",
     subtitle: "Elige qué espacio de trabajo está activo en este navegador o crea uno nuevo para esta cuenta.",
-    workspaceCardTitle: "Espacio de trabajo",
-    workspaceCardDescription: "Cambia el espacio de trabajo activo o crea uno nuevo para esta cuenta.",
+    currentWorkspaceLabel: "Espacio de trabajo actual",
+    changeWorkspaceTitle: "Cambiar de espacio de trabajo",
+    changeWorkspaceDescription: "Cambia el espacio de trabajo activo o crea uno nuevo para esta cuenta.",
+    changeWorkspaceDialogDescription: "Elige un espacio de trabajo vinculado o crea uno nuevo para esta cuenta.",
     newWorkspace: "Nuevo espacio de trabajo",
     workspaceNamePlaceholder: "Nombre del espacio de trabajo",
     workspaceNameRequired: "El nombre del espacio de trabajo es obligatorio",

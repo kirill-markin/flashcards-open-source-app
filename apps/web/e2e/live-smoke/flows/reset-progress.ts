@@ -171,7 +171,7 @@ async function ensureScenarioWorkspaceSelected(
       `open current workspace settings while recovering workspace ${actionSuffix}`,
       page.getByTestId("settings-row-current-workspace"),
     );
-    const workspaceActionCard = page.locator(".settings-nav-card-button[data-workspace-management-state]").first();
+    const workspaceActionCard = page.getByTestId("workspace-change-open");
     await trackedExpectAttribute(
       diagnostics,
       `wait for workspace picker readiness while recovering workspace ${actionSuffix}`,
@@ -182,19 +182,21 @@ async function ensureScenarioWorkspaceSelected(
     );
     await trackedClick(
       diagnostics,
-      `expand workspace picker while recovering workspace ${actionSuffix}`,
+      `open change workspace dialog while recovering workspace ${actionSuffix}`,
       workspaceActionCard,
     );
     await trackedExpectVisible(
       diagnostics,
-      `confirm workspace picker is visible while recovering workspace ${actionSuffix}`,
-      page.locator(".settings-workspace-picker"),
+      `confirm change workspace dialog is visible while recovering workspace ${actionSuffix}`,
+      page.getByTestId("workspace-change-dialog"),
       externalUiTimeoutMs,
     );
     await trackedClick(
       diagnostics,
       `select scenario workspace ${scenario.workspaceName} while recovering workspace ${actionSuffix}`,
-      page.locator(".settings-workspace-choice").filter({ hasText: scenario.workspaceName }).first(),
+      page.locator(
+        `[data-testid="workspace-change-choice"][data-workspace-name=${JSON.stringify(scenario.workspaceName)}]`,
+      ),
     );
   }
 

@@ -450,8 +450,10 @@ const deCatalog: TranslationCatalog = {
   settingsCurrentWorkspace: {
     title: "Arbeitsbereich",
     subtitle: "Wähle, welcher Arbeitsbereich in diesem Browser aktiv ist, oder erstelle einen neuen Arbeitsbereich für dieses Konto.",
-    workspaceCardTitle: "Arbeitsbereich",
-    workspaceCardDescription: "Ändere den aktiven Arbeitsbereich oder erstelle einen neuen Arbeitsbereich für dieses Konto.",
+    currentWorkspaceLabel: "Aktueller Arbeitsbereich",
+    changeWorkspaceTitle: "Arbeitsbereich wechseln",
+    changeWorkspaceDescription: "Wechsle den aktiven Arbeitsbereich oder erstelle einen neuen Arbeitsbereich für dieses Konto.",
+    changeWorkspaceDialogDescription: "Wähle einen verknüpften Arbeitsbereich oder erstelle einen neuen Arbeitsbereich für dieses Konto.",
     newWorkspace: "Neuer Arbeitsbereich",
     workspaceNamePlaceholder: "Name des Arbeitsbereichs",
     workspaceNameRequired: "Der Name des Arbeitsbereichs ist erforderlich",

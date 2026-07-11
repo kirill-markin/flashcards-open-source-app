@@ -448,8 +448,10 @@ const enCatalog = {
   settingsCurrentWorkspace: {
     title: "Workspace",
     subtitle: "Choose which workspace is active in this browser or create a new workspace for this account.",
-    workspaceCardTitle: "Workspace",
-    workspaceCardDescription: "Change the active workspace or create a new workspace for this account.",
+    currentWorkspaceLabel: "Current workspace",
+    changeWorkspaceTitle: "Change workspace",
+    changeWorkspaceDescription: "Switch the active workspace or create a new workspace for this account.",
+    changeWorkspaceDialogDescription: "Choose a linked workspace or create a new workspace for this account.",
     newWorkspace: "New workspace",
     workspaceNamePlaceholder: "Workspace name",
     workspaceNameRequired: "Workspace name is required",

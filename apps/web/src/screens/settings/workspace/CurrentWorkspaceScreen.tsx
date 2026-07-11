@@ -1,4 +1,11 @@
-import { type FormEvent, type ReactElement, useEffect, useState } from "react";
+import {
+  type FormEvent,
+  type ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { ApiContractError } from "../../../api";
 import { useAppData } from "../../../appData";
 import { useAppErrorDialog } from "../../../appError/AppErrorContext";
@@ -8,6 +15,7 @@ import { addWebBreadcrumb } from "../../../observability/webObservability";
 import { useTransientMessage } from "../../../useTransientMessage";
 import { isWorkspaceManagementLocked } from "../../../workspaceManagement";
 import { SettingsActionCard, SettingsGroup, SettingsShell } from "../SettingsShared";
+import { WorkspaceActionDialog } from "./WorkspaceActionDialog";
 
 export function CurrentWorkspaceScreen(): ReactElement {
   const {
@@ -21,16 +29,26 @@ export function CurrentWorkspaceScreen(): ReactElement {
     isSessionVerified,
     cloudSettings,
     renameWorkspace,
+    errorMessage: workspaceActionErrorMessage,
+    technicalError: workspaceActionTechnicalError,
+    setErrorMessage: setWorkspaceActionErrorMessage,
   } = useAppData();
   const { showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime } = useI18n();
-  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [isChangeDialogOpen, setIsChangeDialogOpen] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState<string>("");
-  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [changeErrorMessage, setChangeErrorMessage] = useState<string>("");
+  const [pendingWorkspaceId, setPendingWorkspaceId] = useState<string | null>(null);
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState<boolean>(false);
   const [workspaceName, setWorkspaceName] = useState<string>("");
   const [renameErrorMessage, setRenameErrorMessage] = useState<string>("");
   const [isRenameSubmitting, setIsRenameSubmitting] = useState<boolean>(false);
+  const changeDialogInitialFocusRef = useRef<HTMLButtonElement | null>(null);
+  const changeDialogOperationFocusRef = useRef<HTMLElement | null>(null);
+  const newWorkspaceNameInputRef = useRef<HTMLInputElement | null>(null);
+  const renameDialogOperationFocusRef = useRef<HTMLElement | null>(null);
+  const renameInputRef = useRef<HTMLInputElement | null>(null);
   const { message, showMessage } = useTransientMessage(3000);
   const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
   const currentWorkspaceName = activeWorkspace?.name ?? t("common.unavailable");
@@ -45,10 +63,58 @@ export function CurrentWorkspaceScreen(): ReactElement {
     || isRenameSubmitting;
   const technicalErrorMessage = t("appError.technicalError.message");
 
-  useEffect(() => {
+  const closeChangeDialog = useCallback(function closeChangeDialog(): void {
+    setIsChangeDialogOpen(false);
+    setIsCreating(false);
+    setNewWorkspaceName("");
+    setChangeErrorMessage("");
+    setPendingWorkspaceId(null);
+    changeDialogOperationFocusRef.current = null;
+  }, []);
+
+  const closeRenameDialog = useCallback(function closeRenameDialog(): void {
+    setIsRenameDialogOpen(false);
     setWorkspaceName(activeWorkspace?.name ?? "");
     setRenameErrorMessage("");
-  }, [activeWorkspace?.name, activeWorkspace?.workspaceId]);
+    renameDialogOperationFocusRef.current = null;
+  }, [activeWorkspace?.name]);
+
+  useEffect(() => {
+    if (isCreating) {
+      newWorkspaceNameInputRef.current?.focus();
+      return;
+    }
+
+    if (isChangeDialogOpen) {
+      changeDialogInitialFocusRef.current?.focus();
+    }
+  }, [isChangeDialogOpen, isCreating]);
+
+  useEffect(() => {
+    if (pendingWorkspaceId === null || isChoosingWorkspace) {
+      return;
+    }
+
+    if (activeWorkspace?.workspaceId === pendingWorkspaceId) {
+      closeChangeDialog();
+      return;
+    }
+
+    if (workspaceActionErrorMessage !== "") {
+      setChangeErrorMessage(
+        workspaceActionTechnicalError === null ? workspaceActionErrorMessage : technicalErrorMessage,
+      );
+      setPendingWorkspaceId(null);
+    }
+  }, [
+    activeWorkspace?.workspaceId,
+    closeChangeDialog,
+    isChoosingWorkspace,
+    pendingWorkspaceId,
+    technicalErrorMessage,
+    workspaceActionErrorMessage,
+    workspaceActionTechnicalError,
+  ]);
 
   function buildWorkspaceInteractionLogDetails(workspaceId: string | null, errorMessage: string | null): Readonly<{
     sessionVerificationState: string;
@@ -72,12 +138,73 @@ export function CurrentWorkspaceScreen(): ReactElement {
     };
   }
 
-  async function handleWorkspaceSelect(workspaceId: string): Promise<void> {
-    setErrorMessage("");
-    await chooseWorkspace(workspaceId);
-    setIsExpanded(false);
+  function showWorkspaceManagementLockedMessage(): void {
+    const details = buildWorkspaceInteractionLogDetails(null, null);
+    addWebBreadcrumb({
+      action: "workspace_transition",
+      scope: {
+        app: "web",
+        feature: "workspace",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+        route: `${window.location.pathname}${window.location.search}${window.location.hash}`,
+        requestId: null,
+        statusCode: null,
+        code: null,
+      },
+      details: {
+        eventName: "workspace_management_interaction_blocked",
+        sessionVerificationState: details.sessionVerificationState,
+        isSessionVerified: details.isSessionVerified,
+        cloudState: details.cloudState,
+        workspaceId: details.workspaceId,
+        deletedWorkspaceId: null,
+        replacementWorkspaceId: null,
+        selectedWorkspaceId: details.selectedWorkspaceId,
+        activeWorkspaceId: details.activeWorkspaceId,
+        availableWorkspaceIds: details.availableWorkspaceIds,
+        nextWorkspaceIds: [],
+        redirected: false,
+        errorMessage: details.errorMessage,
+        bootstrapPhase: null,
+        syncRunId: null,
+      },
+    });
+    showMessage(workspaceManagementLockedMessage);
+  }
+
+  function runWorkspaceManagementAction(openDialog: () => void): void {
+    if (isWorkspaceLocked) {
+      showWorkspaceManagementLockedMessage();
+      return;
+    }
+
+    openDialog();
+  }
+
+  function openChangeDialog(): void {
+    setChangeErrorMessage("");
+    setPendingWorkspaceId(null);
     setIsCreating(false);
     setNewWorkspaceName("");
+    changeDialogOperationFocusRef.current = null;
+    setIsChangeDialogOpen(true);
+  }
+
+  function openRenameDialog(): void {
+    setWorkspaceName(activeWorkspace?.name ?? "");
+    setRenameErrorMessage("");
+    renameDialogOperationFocusRef.current = null;
+    setIsRenameDialogOpen(true);
+  }
+
+  async function handleWorkspaceSelect(workspaceId: string, focusTarget: HTMLButtonElement): Promise<void> {
+    setChangeErrorMessage("");
+    setWorkspaceActionErrorMessage("");
+    setPendingWorkspaceId(workspaceId);
+    changeDialogOperationFocusRef.current = focusTarget;
+    await chooseWorkspace(workspaceId);
   }
 
   async function handleCreateWorkspace(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -85,28 +212,28 @@ export function CurrentWorkspaceScreen(): ReactElement {
 
     const trimmedName = newWorkspaceName.trim();
     if (trimmedName === "") {
-      setErrorMessage(t("settingsCurrentWorkspace.workspaceNameRequired"));
+      setChangeErrorMessage(t("settingsCurrentWorkspace.workspaceNameRequired"));
       return;
     }
 
     try {
-      setErrorMessage("");
+      setChangeErrorMessage("");
+      setWorkspaceActionErrorMessage("");
+      changeDialogOperationFocusRef.current = newWorkspaceNameInputRef.current;
       await createWorkspace(trimmedName);
-      setIsExpanded(false);
-      setIsCreating(false);
-      setNewWorkspaceName("");
+      closeChangeDialog();
     } catch (error) {
       const nextErrorMessage = error instanceof Error ? error.message : String(error);
       const isExpectedError = nextErrorMessage === t("app.sessionUnavailable")
         || nextErrorMessage === t("app.sessionRestoringActionLocked")
         || nextErrorMessage === t("settingsCurrentWorkspace.workspaceNameRequired");
       if (isExpectedError) {
-        setErrorMessage(nextErrorMessage);
+        setChangeErrorMessage(nextErrorMessage);
         return;
       }
 
       showCapturedTechnicalError(error);
-      setErrorMessage(technicalErrorMessage);
+      setChangeErrorMessage(technicalErrorMessage);
     }
   }
 
@@ -135,9 +262,11 @@ export function CurrentWorkspaceScreen(): ReactElement {
 
     setIsRenameSubmitting(true);
     setRenameErrorMessage("");
+    renameDialogOperationFocusRef.current = renameInputRef.current;
 
     try {
       await renameWorkspace(activeWorkspace.workspaceId, trimmedWorkspaceName);
+      closeRenameDialog();
     } catch (error) {
       if (error instanceof ApiContractError === false) {
         const wasCaptured = captureAppOperationError(error, {
@@ -169,165 +298,201 @@ export function CurrentWorkspaceScreen(): ReactElement {
     }
   }
 
-  function handleWorkspaceRowClick(): void {
-    if (isWorkspaceLocked) {
-      const details = buildWorkspaceInteractionLogDetails(null, null);
-      addWebBreadcrumb({
-        action: "workspace_transition",
-        scope: {
-          app: "web",
-          feature: "workspace",
-          userId: session?.userId ?? null,
-          workspaceId: activeWorkspace?.workspaceId ?? null,
-          installationId: cloudSettings?.installationId ?? null,
-          route: `${window.location.pathname}${window.location.search}${window.location.hash}`,
-          requestId: null,
-          statusCode: null,
-          code: null,
-        },
-        details: {
-          eventName: "workspace_management_interaction_blocked",
-          sessionVerificationState: details.sessionVerificationState,
-          isSessionVerified: details.isSessionVerified,
-          cloudState: details.cloudState,
-          workspaceId: details.workspaceId,
-          deletedWorkspaceId: null,
-          replacementWorkspaceId: null,
-          selectedWorkspaceId: details.selectedWorkspaceId,
-          activeWorkspaceId: details.activeWorkspaceId,
-          availableWorkspaceIds: details.availableWorkspaceIds,
-          nextWorkspaceIds: [],
-          redirected: false,
-          errorMessage: details.errorMessage,
-          bootstrapPhase: null,
-          syncRunId: null,
-        },
-      });
-      showMessage(workspaceManagementLockedMessage);
-      return;
-    }
-
-    setErrorMessage("");
-    setIsExpanded((currentValue) => !currentValue);
-  }
-
   return (
-    <SettingsShell
-      title={t("settingsCurrentWorkspace.title")}
-      subtitle={t("settingsCurrentWorkspace.subtitle")}
-      activeTab="current-workspace"
-    >
-      {message === "" ? null : <p className="settings-temporary-banner" role="status">{message}</p>}
+    <>
+      <SettingsShell
+        title={t("settingsCurrentWorkspace.title")}
+        subtitle={t("settingsCurrentWorkspace.subtitle")}
+        activeTab="current-workspace"
+      >
+        {message === "" ? null : <p className="settings-temporary-banner" role="status">{message}</p>}
 
-      <SettingsGroup>
-        <div className="settings-nav-list">
-          <SettingsActionCard
-            title={t("settingsCurrentWorkspace.workspaceCardTitle")}
-            description={t("settingsCurrentWorkspace.workspaceCardDescription")}
-            value={currentWorkspaceName}
-            onClick={handleWorkspaceRowClick}
-            isMuted={isWorkspaceLocked}
-            workspaceManagementState={workspaceManagementState}
-          />
+        <SettingsGroup>
+          <article className="content-card settings-workspace-current-summary" data-testid="workspace-current-summary">
+            <span className="cell-secondary">{t("settingsCurrentWorkspace.currentWorkspaceLabel")}</span>
+            <strong className="panel-subtitle" data-testid="workspace-current-value">{currentWorkspaceName}</strong>
+          </article>
+        </SettingsGroup>
+
+        <SettingsGroup>
+          <div className="settings-nav-list">
+            <SettingsActionCard
+              title={t("settingsCurrentWorkspace.changeWorkspaceTitle")}
+              description={t("settingsCurrentWorkspace.changeWorkspaceDescription")}
+              value={currentWorkspaceName}
+              onClick={() => runWorkspaceManagementAction(openChangeDialog)}
+              testId="workspace-change-open"
+              isMuted={isWorkspaceLocked}
+              workspaceManagementState={workspaceManagementState}
+            />
+            <SettingsActionCard
+              title={t("workspaceOverview.rename.title")}
+              description={t("workspaceOverview.rename.description")}
+              value={null}
+              onClick={() => runWorkspaceManagementAction(openRenameDialog)}
+              testId="workspace-rename-open"
+              isMuted={isWorkspaceLocked}
+              workspaceManagementState={workspaceManagementState}
+            />
+          </div>
+        </SettingsGroup>
+      </SettingsShell>
+
+      <WorkspaceActionDialog
+        isOpen={isChangeDialogOpen}
+        titleId="workspace-change-dialog-title"
+        title={t("settingsCurrentWorkspace.changeWorkspaceTitle")}
+        descriptionId="workspace-change-dialog-description"
+        description={t("settingsCurrentWorkspace.changeWorkspaceDialogDescription")}
+        testId="workspace-change-dialog"
+        initialFocusRef={changeDialogInitialFocusRef}
+        operationReturnFocusRef={changeDialogOperationFocusRef}
+        isOperationSubmitting={isChoosingWorkspace}
+        onDismiss={closeChangeDialog}
+      >
+        <div className="settings-workspace-choice-list">
+          {availableWorkspaces.map((workspace) => {
+            const isCurrentWorkspace = workspace.workspaceId === activeWorkspace?.workspaceId;
+            return (
+              <button
+                key={workspace.workspaceId}
+                className={`settings-workspace-choice${isCurrentWorkspace ? " settings-workspace-choice-active" : ""}`}
+                type="button"
+                onClick={(event) => void handleWorkspaceSelect(workspace.workspaceId, event.currentTarget)}
+                disabled={isChoosingWorkspace || isCurrentWorkspace}
+                aria-current={isCurrentWorkspace ? "true" : undefined}
+                data-testid="workspace-change-choice"
+                data-workspace-id={workspace.workspaceId}
+                data-workspace-name={workspace.name}
+              >
+                <span className="settings-workspace-choice-name">{workspace.name}</span>
+                <span className="settings-workspace-choice-meta">{formatDateTime(workspace.createdAt)}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {isExpanded && isWorkspaceLocked === false ? (
-          <div className="settings-workspace-picker">
-            <div className="settings-workspace-choice-list">
-              {availableWorkspaces.map((workspace) => (
-                <button
-                  key={workspace.workspaceId}
-                  className={`settings-workspace-choice${workspace.workspaceId === activeWorkspace?.workspaceId ? " settings-workspace-choice-active" : ""}`}
-                  type="button"
-                  onClick={() => void handleWorkspaceSelect(workspace.workspaceId)}
-                  disabled={isChoosingWorkspace}
-                >
-                  <span className="settings-workspace-choice-name">{workspace.name}</span>
-                  <span className="settings-workspace-choice-meta">{formatDateTime(workspace.createdAt)}</span>
-                </button>
-              ))}
-            </div>
-
-            {!isCreating ? (
+        {!isCreating ? (
+          <button
+            ref={changeDialogInitialFocusRef}
+            className="ghost-btn"
+            type="button"
+            onClick={() => {
+              setIsCreating(true);
+              setChangeErrorMessage("");
+            }}
+            disabled={isChoosingWorkspace}
+            data-testid="workspace-create-open"
+          >
+            {t("settingsCurrentWorkspace.newWorkspace")}
+          </button>
+        ) : (
+          <form className="settings-workspace-create-form" onSubmit={(event) => void handleCreateWorkspace(event)}>
+            <input
+              ref={newWorkspaceNameInputRef}
+              className="settings-input"
+              type="text"
+              placeholder={t("settingsCurrentWorkspace.workspaceNamePlaceholder")}
+              value={newWorkspaceName}
+              onChange={(event) => setNewWorkspaceName(event.target.value)}
+              disabled={isChoosingWorkspace}
+              data-testid="workspace-create-name-input"
+            />
+            <div className="settings-workspace-create-actions">
+              <button
+                className="primary-btn"
+                type="submit"
+                disabled={isChoosingWorkspace}
+                data-testid="workspace-create-submit"
+              >
+                {t("settingsCurrentWorkspace.createWorkspace")}
+              </button>
               <button
                 className="ghost-btn"
                 type="button"
                 onClick={() => {
-                  setIsCreating(true);
-                  setErrorMessage("");
+                  setIsCreating(false);
+                  setNewWorkspaceName("");
+                  setChangeErrorMessage("");
                 }}
                 disabled={isChoosingWorkspace}
+                data-testid="workspace-create-cancel"
               >
-                {t("settingsCurrentWorkspace.newWorkspace")}
-              </button>
-            ) : (
-              <form className="settings-workspace-create-form" onSubmit={(event) => void handleCreateWorkspace(event)}>
-                <input
-                  className="settings-workspace-create-input"
-                  type="text"
-                  placeholder={t("settingsCurrentWorkspace.workspaceNamePlaceholder")}
-                  value={newWorkspaceName}
-                  onChange={(event) => setNewWorkspaceName(event.target.value)}
-                  disabled={isChoosingWorkspace}
-                />
-                <div className="settings-workspace-create-actions">
-                  <button className="primary-btn" type="submit" disabled={isChoosingWorkspace}>
-                    {t("settingsCurrentWorkspace.createWorkspace")}
-                  </button>
-                  <button
-                    className="ghost-btn"
-                    type="button"
-                    onClick={() => {
-                      setIsCreating(false);
-                      setNewWorkspaceName("");
-                      setErrorMessage("");
-                    }}
-                    disabled={isChoosingWorkspace}
-                  >
-                    {t("common.cancel")}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {errorMessage === "" ? null : <p className="error-banner">{errorMessage}</p>}
-          </div>
-        ) : null}
-      </SettingsGroup>
-
-      <SettingsGroup>
-        <article className="content-card settings-overview-card">
-          <form className="cell-stack" onSubmit={(event) => void handleRenameSubmit(event)}>
-            <div className="cell-stack">
-              <h2 className="panel-subtitle">{t("workspaceOverview.rename.title")}</h2>
-              <p className="subtitle">{t("workspaceOverview.rename.description")}</p>
-            </div>
-            <label className="cell-stack" htmlFor="current-workspace-name">
-              <span className="cell-secondary">{t("workspaceOverview.rename.fieldLabel")}</span>
-              <input
-                id="current-workspace-name"
-                className="settings-input"
-                type="text"
-                value={workspaceName}
-                autoComplete="off"
-                disabled={isWorkspaceLocked}
-                onChange={(event) => {
-                  setWorkspaceName(event.target.value);
-                  setRenameErrorMessage("");
-                }}
-              />
-            </label>
-            {renameErrorMessage !== "" ? <p className="error-banner">{renameErrorMessage}</p> : null}
-            {isSessionVerified === false ? <p className="subtitle">{t("loading.restoringSession")}</p> : null}
-            {isWorkspaceLocked ? <p className="subtitle">{workspaceManagementLockedMessage}</p> : null}
-            <div className="screen-actions">
-              <button className="primary-btn" type="submit" disabled={isRenameDisabled}>
-                {isRenameSubmitting ? t("workspaceOverview.rename.saving") : t("workspaceOverview.rename.save")}
+                {t("common.cancel")}
               </button>
             </div>
           </form>
-        </article>
-      </SettingsGroup>
-    </SettingsShell>
+        )}
+
+        {isChoosingWorkspace ? <p className="subtitle" role="status">{t("common.loading")}</p> : null}
+        {changeErrorMessage === "" ? null : <p className="error-banner" role="alert">{changeErrorMessage}</p>}
+        <div className="screen-actions">
+          <button
+            className="ghost-btn"
+            type="button"
+            onClick={closeChangeDialog}
+            disabled={isChoosingWorkspace}
+            data-testid="workspace-change-cancel"
+          >
+            {t("common.cancel")}
+          </button>
+        </div>
+      </WorkspaceActionDialog>
+
+      <WorkspaceActionDialog
+        isOpen={isRenameDialogOpen}
+        titleId="workspace-rename-dialog-title"
+        title={t("workspaceOverview.rename.title")}
+        descriptionId="workspace-rename-dialog-description"
+        description={t("workspaceOverview.rename.description")}
+        testId="workspace-rename-dialog"
+        initialFocusRef={renameInputRef}
+        operationReturnFocusRef={renameDialogOperationFocusRef}
+        isOperationSubmitting={isRenameSubmitting}
+        onDismiss={closeRenameDialog}
+      >
+        <form className="cell-stack" onSubmit={(event) => void handleRenameSubmit(event)}>
+          <label className="cell-stack" htmlFor="current-workspace-name">
+            <span className="cell-secondary">{t("workspaceOverview.rename.fieldLabel")}</span>
+            <input
+              ref={renameInputRef}
+              id="current-workspace-name"
+              className="settings-input"
+              type="text"
+              value={workspaceName}
+              autoComplete="off"
+              disabled={isWorkspaceLocked || isRenameSubmitting}
+              onChange={(event) => {
+                setWorkspaceName(event.target.value);
+                setRenameErrorMessage("");
+              }}
+              data-testid="workspace-rename-name-input"
+            />
+          </label>
+          {renameErrorMessage !== "" ? <p className="error-banner" role="alert">{renameErrorMessage}</p> : null}
+          {isSessionVerified === false ? <p className="subtitle">{t("loading.restoringSession")}</p> : null}
+          {isWorkspaceLocked ? <p className="subtitle">{workspaceManagementLockedMessage}</p> : null}
+          <div className="screen-actions">
+            <button
+              className="ghost-btn"
+              type="button"
+              onClick={closeRenameDialog}
+              disabled={isRenameSubmitting}
+              data-testid="workspace-rename-cancel"
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              className="primary-btn"
+              type="submit"
+              disabled={isRenameDisabled}
+              data-testid="workspace-rename-save"
+            >
+              {isRenameSubmitting ? t("workspaceOverview.rename.saving") : t("workspaceOverview.rename.save")}
+            </button>
+          </div>
+        </form>
+      </WorkspaceActionDialog>
+    </>
   );
 }
