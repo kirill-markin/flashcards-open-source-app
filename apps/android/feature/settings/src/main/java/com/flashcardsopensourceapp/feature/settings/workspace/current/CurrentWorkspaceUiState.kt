@@ -13,7 +13,18 @@ enum class CurrentWorkspaceOperation {
     SYNCING
 }
 
+enum class CurrentWorkspaceRenameResult {
+    SUCCEEDED,
+    FAILED
+}
+
+data class CurrentWorkspaceRenameCompletion(
+    val submissionId: String,
+    val result: CurrentWorkspaceRenameResult
+)
+
 data class CurrentWorkspaceUiState(
+    val isInitialized: Boolean,
     val cloudStatusTitle: String,
     val currentWorkspaceName: String,
     val linkedEmail: String?,
@@ -29,6 +40,7 @@ data class CurrentWorkspaceUiState(
     val successMessage: String,
     val workspaceNameDraft: String,
     val isSavingName: Boolean,
+    val renameCompletion: CurrentWorkspaceRenameCompletion?,
     val workspaces: List<CurrentWorkspaceItemUiState>
 )
 

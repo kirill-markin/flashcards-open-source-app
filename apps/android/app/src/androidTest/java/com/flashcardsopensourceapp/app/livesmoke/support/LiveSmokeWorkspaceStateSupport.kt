@@ -2,22 +2,26 @@
 
 package com.flashcardsopensourceapp.app.livesmoke.support
 
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.nodeSummary
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.nodeSummaryIncludingDescendants
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.waitUntilWithMitigation
-import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceCreateButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceChangeActionTag
+import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceChangeSheetListTag
+import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceChangeSheetTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceErrorMessageTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceExistingRowTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceListTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceLoadingStateTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceNameTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceOperationMessageTag
-import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceReloadButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceRenameActionTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceSelectedSummaryTag
 import com.flashcardsopensourceapp.feature.settings.workspace.delete.workspaceOverviewErrorMessageTag
 import kotlinx.coroutines.flow.first
@@ -37,6 +41,77 @@ internal fun LiveSmokeContext.waitForSelectedWorkspaceSummary(context: String, t
             "Workspace selection did not settle $context. " +
                 "Visible linked workspaces=${captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)} " +
                 "WorkspaceName=${currentWorkspaceNameOrNull()}",
+            error
+        )
+    }
+}
+
+internal fun LiveSmokeContext.openCurrentWorkspaceChangeSheet(timeoutMillis: Long) {
+    if (
+        composeRule.onAllNodesWithTag(currentWorkspaceChangeSheetTag)
+            .fetchSemanticsNodes()
+            .isNotEmpty()
+    ) {
+        return
+    }
+    composeRule.onNodeWithTag(currentWorkspaceListTag).performScrollToNode(
+        matcher = hasTestTag(currentWorkspaceChangeActionTag)
+    )
+    composeRule.onNodeWithTag(currentWorkspaceChangeActionTag).performClick()
+    waitUntilWithMitigation(
+        timeoutMillis = timeoutMillis,
+        context = "while opening the Change workspace sheet"
+    ) {
+        composeRule.onAllNodesWithTag(currentWorkspaceChangeSheetTag)
+            .fetchSemanticsNodes()
+            .isNotEmpty()
+    }
+}
+
+internal fun LiveSmokeContext.dismissCurrentWorkspaceChangeSheet(timeoutMillis: Long) {
+    if (
+        composeRule.onAllNodesWithTag(currentWorkspaceChangeSheetTag)
+            .fetchSemanticsNodes()
+            .isEmpty()
+    ) {
+        return
+    }
+    device.pressBack()
+    waitUntilWithMitigation(
+        timeoutMillis = timeoutMillis,
+        context = "while dismissing the Change workspace sheet"
+    ) {
+        composeRule.onAllNodesWithTag(currentWorkspaceChangeSheetTag)
+            .fetchSemanticsNodes()
+            .isEmpty()
+    }
+}
+
+internal fun LiveSmokeContext.waitForCurrentWorkspaceChangeSheetToSettle(timeoutMillis: Long) {
+    openCurrentWorkspaceChangeSheet(timeoutMillis = timeoutMillis)
+    try {
+        waitUntilWithMitigation(
+            timeoutMillis = timeoutMillis,
+            context = "while waiting for the Change workspace sheet to settle"
+        ) {
+            val visibleError: String? = currentWorkspaceVisibleErrorMessageOrNull()
+            if (visibleError != null) {
+                throw AssertionError("Change workspace settled with an error: $visibleError")
+            }
+
+            val isLoading: Boolean = composeRule.onAllNodesWithTag(currentWorkspaceLoadingStateTag)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+            isLoading.not() && composeRule.onAllNodesWithTag(currentWorkspaceChangeSheetListTag)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "Change workspace sheet did not settle. " +
+                "Loading=${composeRule.onAllNodesWithTag(currentWorkspaceLoadingStateTag).fetchSemanticsNodes().isNotEmpty()} " +
+                "Error=${currentWorkspaceVisibleErrorMessageOrNull()} " +
+                "VisibleRows=${captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)}",
             error
         )
     }
@@ -79,24 +154,24 @@ internal fun LiveSmokeContext.waitForCurrentWorkspaceScreenToSettle(timeoutMilli
                 throw AssertionError("Workspace settled with an error: $visibleError")
             }
 
-            val isLoading: Boolean = composeRule.onAllNodesWithTag(currentWorkspaceLoadingStateTag)
+            val changeAction = composeRule.onAllNodesWithTag(currentWorkspaceChangeActionTag)
                 .fetchSemanticsNodes()
-                .isNotEmpty()
-            isLoading.not() && (
-                composeRule.onAllNodesWithTag(currentWorkspaceCreateButtonTag)
-                    .fetchSemanticsNodes()
-                    .isNotEmpty() ||
-                    composeRule.onAllNodesWithTag(currentWorkspaceReloadButtonTag)
-                        .fetchSemanticsNodes()
-                        .isNotEmpty()
-                )
+                .singleOrNull()
+            val renameAction = composeRule.onAllNodesWithTag(currentWorkspaceRenameActionTag)
+                .fetchSemanticsNodes()
+                .singleOrNull()
+            currentWorkspaceNameOrNull() != null &&
+                changeAction != null &&
+                changeAction.config.contains(SemanticsProperties.Disabled).not() &&
+                renameAction != null &&
+                renameAction.config.contains(SemanticsProperties.Disabled).not()
         }
     } catch (error: Throwable) {
         throw AssertionError(
             "Workspace screen did not settle. " +
-                "Loading=${composeRule.onAllNodesWithTag(currentWorkspaceLoadingStateTag).fetchSemanticsNodes().isNotEmpty()} " +
+                "ChangeAction=${composeRule.onAllNodesWithTag(currentWorkspaceChangeActionTag).fetchSemanticsNodes().isNotEmpty()} " +
                 "Error=${currentWorkspaceVisibleErrorMessageOrNull()} " +
-                "SelectedRow=${selectedWorkspaceSummaryOrNull()}",
+                "WorkspaceName=${currentWorkspaceNameOrNull()}",
             error
         )
     }
@@ -191,17 +266,24 @@ internal fun LiveSmokeContext.currentWorkspaceOperationMessageOrNull(): String? 
 }
 
 private fun LiveSmokeContext.scrollCurrentWorkspaceListToSelectedWorkspace() {
-    if (composeRule.onAllNodesWithTag(currentWorkspaceListTag).fetchSemanticsNodes().isEmpty()) {
+    if (composeRule.onAllNodesWithTag(currentWorkspaceChangeSheetListTag).fetchSemanticsNodes().isEmpty()) {
         return
     }
     runCatching {
-        composeRule.onNodeWithTag(currentWorkspaceListTag).performScrollToNode(
+        composeRule.onNodeWithTag(currentWorkspaceChangeSheetListTag).performScrollToNode(
             matcher = hasTestTag(currentWorkspaceSelectedSummaryTag)
         )
     }
 }
 
 private fun LiveSmokeContext.scrollCurrentWorkspaceListToTopCard() {
+    if (
+        composeRule.onAllNodesWithTag(currentWorkspaceChangeSheetTag)
+            .fetchSemanticsNodes()
+            .isNotEmpty()
+    ) {
+        return
+    }
     if (composeRule.onAllNodesWithTag(currentWorkspaceListTag).fetchSemanticsNodes().isEmpty()) {
         return
     }
@@ -213,7 +295,7 @@ private fun LiveSmokeContext.scrollCurrentWorkspaceListToTopCard() {
 internal fun LiveSmokeContext.captureVisibleWorkspaceRows(rowTag: String): List<String> {
     return composeRule.onAllNodesWithTag(rowTag)
         .fetchSemanticsNodes()
-        .map(::nodeSummary)
+        .map(::nodeSummaryIncludingDescendants)
 }
 
 internal fun LiveSmokeContext.currentCloudSettingsSummary(): String {
