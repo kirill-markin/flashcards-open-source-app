@@ -99,10 +99,6 @@ internal class CloudSignInCoordinator(
             )
         }
 
-        val accountSnapshot: CloudAccountSnapshot = sessionProvider.fetchCloudAccount(
-            credentials = credentials,
-            configuration = configuration
-        )
         val guestSession: StoredGuestAiSession? = loadActiveGuestSessionOrNull(
             preferencesStore = preferencesStore,
             guestSessionStore = guestSessionStore,
@@ -117,6 +113,10 @@ internal class CloudSignInCoordinator(
                 guestToken = guestSession.guestToken
             )
         }
+        val accountSnapshot: CloudAccountSnapshot = sessionProvider.fetchCloudAccount(
+            credentials = credentials,
+            configuration = configuration
+        )
         return CloudWorkspaceLinkContext(
             userId = accountSnapshot.userId,
             email = accountSnapshot.email,
