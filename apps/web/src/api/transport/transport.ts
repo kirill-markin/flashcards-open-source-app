@@ -14,6 +14,7 @@ import {
 } from "./response";
 
 type SessionCsrfState = "unknown" | "session" | "non-session";
+type RefreshBrowserSessionResult = "refreshed" | "reconciled" | "unauthorized";
 export type AuthRecoveryMode = "allow" | "skip";
 export type NetworkRetryMode = "none" | "transient";
 type NavigateToUrl = (url: string) => void;
@@ -33,6 +34,8 @@ const refreshSessionEndpoint = "POST /api/refresh-session";
 const refreshSessionMaximumAttemptCount = 3;
 const refreshSessionBaseRetryDelayMs = 100;
 const refreshSessionMaximumRetryDelayMs = 500;
+const refreshSessionReconciliationMaximumAttemptCount = 3;
+const refreshSessionReconciliationDelayMs = 200;
 const apiNetworkRetryMaximumAttemptCount = 4;
 const apiNetworkRetryBaseDelayMs = 250;
 const apiNetworkRetryMaximumDelayMs = 2000;
@@ -392,13 +395,48 @@ function waitForRefreshSessionRetry(attemptIndex: number): Promise<void> {
   });
 }
 
+function waitForRefreshSessionReconciliation(): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, refreshSessionReconciliationDelayMs);
+  });
+}
+
+async function reconcileRefreshSession(
+  networkRetryMode: NetworkRetryMode,
+  refreshNetworkError: ApiError,
+): Promise<void> {
+  for (
+    let attemptCount = 1;
+    attemptCount <= refreshSessionReconciliationMaximumAttemptCount;
+    attemptCount += 1
+  ) {
+    await waitForRefreshSessionReconciliation();
+
+    try {
+      await loadSessionInfoWithoutRecovery(networkRetryMode);
+      return;
+    } catch (error) {
+      if (error instanceof ApiError === false || error.statusCode !== 401) {
+        throw error;
+      }
+
+      if (attemptCount === refreshSessionReconciliationMaximumAttemptCount) {
+        throw refreshNetworkError;
+      }
+    }
+  }
+
+  throw new Error("Refresh session reconciliation loop exited without a result");
+}
+
 /**
- * Calls the auth service refresh endpoint with shared cookies and returns
- * `false` only when the refresh token is no longer valid.
+ * Calls the auth service refresh endpoint with shared cookies and distinguishes
+ * a normal refresh from a session verified after ambiguous network failures.
  */
-async function refreshBrowserSession(): Promise<boolean> {
+async function refreshBrowserSession(networkRetryMode: NetworkRetryMode): Promise<RefreshBrowserSessionResult> {
   const config = getAppConfig();
   let lastNetworkError: ApiError | null = null;
+  let networkRejectionCount = 0;
 
   for (let attemptIndex = 0; attemptIndex < refreshSessionMaximumAttemptCount; attemptIndex += 1) {
     let response: Response;
@@ -410,21 +448,27 @@ async function refreshBrowserSession(): Promise<boolean> {
       });
     } catch (error) {
       lastNetworkError = createRefreshSessionNetworkError(error);
+      networkRejectionCount += 1;
       if (hasRemainingRefreshAttempt(attemptIndex)) {
         await waitForRefreshSessionRetry(attemptIndex);
         continue;
+      }
+
+      if (networkRejectionCount === refreshSessionMaximumAttemptCount) {
+        await reconcileRefreshSession(networkRetryMode, lastNetworkError);
+        return "reconciled";
       }
 
       throw lastNetworkError;
     }
 
     if (response.ok) {
-      return true;
+      return "refreshed";
     }
 
     if (response.status === 401) {
       resetSessionState();
-      return false;
+      return "unauthorized";
     }
 
     if (isTransientRefreshSessionStatus(response.status) && hasRemainingRefreshAttempt(attemptIndex)) {
@@ -452,9 +496,13 @@ function shouldRetryAfterWeakerSessionRecovery(error: unknown, options: RequestO
 
 function startSessionRecovery(options: RequestOptions): Promise<void> {
   const recoveryTask = (async (): Promise<void> => {
-    const refreshed = await refreshBrowserSession();
-    if (refreshed === false) {
+    const refreshResult = await refreshBrowserSession(options.networkRetryMode);
+    if (refreshResult === "unauthorized") {
       await redirectToLogin(options.prepareForAuthRedirect);
+    }
+
+    if (refreshResult === "reconciled") {
+      return;
     }
 
     try {
