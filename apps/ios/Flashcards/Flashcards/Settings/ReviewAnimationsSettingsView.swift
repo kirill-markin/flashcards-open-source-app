@@ -30,6 +30,13 @@ struct ReviewAnimationsSettingsView: View {
                 )
                 .disabled(self.isSaving || store.canPersistAccountPreferences == false)
                 .accessibilityIdentifier(UITestIdentifier.reviewAnimationsSettingsToggle)
+            } footer: {
+                Text(
+                    aiSettingsLocalized(
+                        "settings.reviewAnimations.lowPowerMode.footer",
+                        "Low Power Mode temporarily disables review animations without changing this setting."
+                    )
+                )
             }
         }
         .listStyle(.insetGrouped)

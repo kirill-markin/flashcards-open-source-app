@@ -171,6 +171,8 @@
 "settings.currentWorkspace.renameLinkedOnly" = "कार्यस्थान का नाम बदलना केवल लिंक किए गए क्लाउड कार्यस्थानों के लिए उपलब्ध है।";
 "settings.reviewAnimations.title" = "समीक्षा एनिमेशन";
 "settings.reviewAnimations.toggle" = "कार्ड को रेट करने के बाद एनिमेशन दिखाएं";
+"settings.reviewAnimations.lowPowerMode.footer" = "लो पावर मोड इस सेटिंग को बदले बिना समीक्षा एनिमेशन को अस्थायी रूप से बंद कर देता है।";
+"settings.reviewAnimations.lowPowerMode.paused" = "लो पावर मोड के कारण रुका हुआ";
 "settings.aiChatSuggestions.title" = "AI चैट सुझाव";
 "settings.aiChatSuggestions.toggle" = "कंपोज़र सुझाव दिखाएँ";
 "settings.aiChatSuggestions.description" = "यह बंद होने पर, AI चैट कंपोज़र के ऊपर सुझाए गए प्रॉम्प्ट नहीं दिखाता.";

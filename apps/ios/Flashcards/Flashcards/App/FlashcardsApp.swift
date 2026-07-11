@@ -394,6 +394,7 @@ struct FlashcardsApp: App {
     @State private var uiTestAIHandoffCard: FlashcardsUITestAIHandoffCard?
     @State private var hasRunInitialStartup: Bool
     @State private var isStartupReadyForBackgroundWork: Bool
+    @State private var isLowPowerModeEnabled: Bool
 
     @MainActor
     init() {
@@ -524,6 +525,7 @@ struct FlashcardsApp: App {
         _uiTestAIHandoffCard = State(initialValue: aiHandoffCard)
         _hasRunInitialStartup = State(initialValue: false)
         _isStartupReadyForBackgroundWork = State(initialValue: false)
+        _isLowPowerModeEnabled = State(initialValue: processInfo.isLowPowerModeEnabled)
     }
 
     var body: some Scene {
@@ -531,10 +533,14 @@ struct FlashcardsApp: App {
             RootTabView()
                 .environment(store)
                 .environment(navigation)
+                .environment(\.isLowPowerModeEnabled, self.isLowPowerModeEnabled)
                 .task(id: self.isCloudCredentialRecoveryGateActive) {
                     await self.runInitialAppStartupIfNeeded()
                 }
                 .onChange(of: scenePhase) { _, nextPhase in
+                    if nextPhase == .active {
+                        self.refreshLowPowerModeState()
+                    }
                     logAppLifecycleBreadcrumb(
                         action: .scenePhaseChanged,
                         store: store,
@@ -577,6 +583,9 @@ struct FlashcardsApp: App {
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
                     self.handleProgressContextSystemChange()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .NSProcessInfoPowerStateDidChange)) { _ in
+                    self.refreshLowPowerModeState()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
                     self.handleProgressContextSystemChange()
@@ -630,6 +639,11 @@ struct FlashcardsApp: App {
 
     private var isCloudCredentialRecoveryGateActive: Bool {
         self.store.cloudCredentialRecoveryState != nil
+    }
+
+    @MainActor
+    private func refreshLowPowerModeState() {
+        self.isLowPowerModeEnabled = ProcessInfo.processInfo.isLowPowerModeEnabled
     }
 
     @MainActor
