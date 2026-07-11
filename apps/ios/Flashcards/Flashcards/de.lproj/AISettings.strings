@@ -221,6 +221,9 @@
 
 "settings.currentWorkspace.title" = "Arbeitsbereich";
 "settings.currentWorkspace.row.workspace" = "Arbeitsbereich";
+"settings.currentWorkspace.currentWorkspace" = "Aktueller Arbeitsbereich";
+"settings.currentWorkspace.changeWorkspace" = "Arbeitsbereich wechseln";
+"settings.currentWorkspace.renameWorkspace" = "Arbeitsbereich umbenennen";
 "settings.currentWorkspace.loadingWorkspaces" = "Arbeitsbereiche werden geladen...";
 "settings.currentWorkspace.loadError" = "Verknüpfte Arbeitsbereiche konnten nicht geladen werden.";
 "settings.currentWorkspace.chooseWorkspaceTitle" = "Wählen Sie Arbeitsbereich";

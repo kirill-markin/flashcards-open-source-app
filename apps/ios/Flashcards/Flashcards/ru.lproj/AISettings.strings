@@ -221,6 +221,9 @@
 
 "settings.currentWorkspace.title" = "Рабочая область";
 "settings.currentWorkspace.row.workspace" = "Рабочая область";
+"settings.currentWorkspace.currentWorkspace" = "Текущая рабочая область";
+"settings.currentWorkspace.changeWorkspace" = "Сменить рабочую область";
+"settings.currentWorkspace.renameWorkspace" = "Переименовать рабочую область";
 "settings.currentWorkspace.loadingWorkspaces" = "Загрузка рабочих пространств...";
 "settings.currentWorkspace.loadError" = "Не удалось загрузить связанные рабочие области.";
 "settings.currentWorkspace.chooseWorkspaceTitle" = "Выберите рабочее пространство";

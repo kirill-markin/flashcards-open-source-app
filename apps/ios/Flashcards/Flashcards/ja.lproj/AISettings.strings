@@ -221,6 +221,9 @@
 
 "settings.currentWorkspace.title" = "ワークスペース";
 "settings.currentWorkspace.row.workspace" = "ワークスペース";
+"settings.currentWorkspace.currentWorkspace" = "現在のワークスペース";
+"settings.currentWorkspace.changeWorkspace" = "ワークスペースを変更";
+"settings.currentWorkspace.renameWorkspace" = "ワークスペース名を変更";
 "settings.currentWorkspace.loadingWorkspaces" = "ワークスペースを読み込み中...";
 "settings.currentWorkspace.loadError" = "リンクされたワークスペースをロードできませんでした。";
 "settings.currentWorkspace.chooseWorkspaceTitle" = "ワークスペースを選択";

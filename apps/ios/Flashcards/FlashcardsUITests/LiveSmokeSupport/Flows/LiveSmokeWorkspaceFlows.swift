@@ -148,7 +148,7 @@ extension LiveSmokeTestCase {
         )
         try self.assertScreenVisible(screen: .currentWorkspace, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.tapButton(
-            identifier: LiveSmokeIdentifier.currentWorkspaceRowButton,
+            identifier: LiveSmokeIdentifier.currentWorkspaceChangeButton,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
         try self.assertCurrentWorkspacePickerIsVisible()
@@ -169,6 +169,14 @@ extension LiveSmokeTestCase {
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         try self.assertScreenVisible(screen: .currentWorkspace, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButton(
+            identifier: LiveSmokeIdentifier.currentWorkspaceRenameButton,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.currentWorkspaceRenameSheet,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
         try self.replaceTextSafely(
             workspaceName,
             inElementWithIdentifier: LiveSmokeIdentifier.currentWorkspaceNameField,
@@ -176,6 +184,10 @@ extension LiveSmokeTestCase {
         )
         try self.tapButton(
             identifier: LiveSmokeIdentifier.currentWorkspaceSaveNameButton,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertElementDoesNotExist(
+            identifier: LiveSmokeIdentifier.currentWorkspaceRenameSheet,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         try self.tapFirstNavigationBackButton()

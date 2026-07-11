@@ -221,6 +221,9 @@
 
 "settings.currentWorkspace.title" = "वर्कस्पेस";
 "settings.currentWorkspace.row.workspace" = "कार्यक्षेत्र";
+"settings.currentWorkspace.currentWorkspace" = "वर्तमान कार्यस्थान";
+"settings.currentWorkspace.changeWorkspace" = "कार्यस्थान बदलें";
+"settings.currentWorkspace.renameWorkspace" = "कार्यस्थान का नाम बदलें";
 "settings.currentWorkspace.loadingWorkspaces" = "कार्यस्थान लोड हो रहा है...";
 "settings.currentWorkspace.loadError" = "लिंक किए गए कार्यस्थान लोड नहीं किए जा सके.";
 "settings.currentWorkspace.chooseWorkspaceTitle" = "कार्यस्थान चुनें";

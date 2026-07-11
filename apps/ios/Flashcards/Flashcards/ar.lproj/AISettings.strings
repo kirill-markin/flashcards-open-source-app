@@ -221,6 +221,9 @@
 
 "settings.currentWorkspace.title" = "مساحة العمل";
 "settings.currentWorkspace.row.workspace" = "مساحة العمل";
+"settings.currentWorkspace.currentWorkspace" = "مساحة العمل الحالية";
+"settings.currentWorkspace.changeWorkspace" = "تغيير مساحة العمل";
+"settings.currentWorkspace.renameWorkspace" = "إعادة تسمية مساحة العمل";
 "settings.currentWorkspace.loadingWorkspaces" = "جارٍ تحميل مساحات العمل...";
 "settings.currentWorkspace.loadError" = "تعذر تحميل مساحات العمل المرتبطة.";
 "settings.currentWorkspace.chooseWorkspaceTitle" = "اختر مساحة العمل";

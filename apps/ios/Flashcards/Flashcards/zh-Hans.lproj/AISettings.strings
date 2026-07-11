@@ -221,6 +221,9 @@
 
 "settings.currentWorkspace.title" = "工作空间";
 "settings.currentWorkspace.row.workspace" = "工作空间";
+"settings.currentWorkspace.currentWorkspace" = "当前工作空间";
+"settings.currentWorkspace.changeWorkspace" = "更改工作空间";
+"settings.currentWorkspace.renameWorkspace" = "重命名工作空间";
 "settings.currentWorkspace.loadingWorkspaces" = "正在加载工作区...";
 "settings.currentWorkspace.loadError" = "无法加载链接的工作区。";
 "settings.currentWorkspace.chooseWorkspaceTitle" = "选择工作空间";
