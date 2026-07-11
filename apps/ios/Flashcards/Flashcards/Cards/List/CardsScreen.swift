@@ -232,6 +232,7 @@ struct CardsScreen: View {
             }
             .technicalErrorSheet(store: self.store)
             .accessibilityIdentifier(UITestIdentifier.cardEditorScreen)
+            .interactiveDismissDisabled()
         }
         .sheet(isPresented: $isFilterSheetPresented) {
             NavigationStack {

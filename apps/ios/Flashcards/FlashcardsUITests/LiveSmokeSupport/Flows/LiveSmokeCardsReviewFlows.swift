@@ -2,6 +2,53 @@ import XCTest
 
 extension LiveSmokeTestCase {
     @MainActor
+    func assertUnsavedCardDraftSurvivesInteractiveDismissal(frontText: String) throws {
+        try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButton(identifier: LiveSmokeIdentifier.cardsAddButton, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.cardEditorScreen,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorFrontRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.typeTextSafely(
+            frontText,
+            intoElementWithIdentifier: LiveSmokeIdentifier.cardEditorFrontTextEditor,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.tapFirstNavigationBackButton()
+
+        let cardEditorSheet = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.cardEditorScreen)
+            .firstMatch
+        cardEditorSheet.swipeDown()
+
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.cardEditorScreen,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+        try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorFrontRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+
+        let frontTextEditor = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.cardEditorFrontTextEditor)
+            .firstMatch
+        if try self.waitForElementValue(
+            frontTextEditor,
+            identifier: LiveSmokeIdentifier.cardEditorFrontTextEditor,
+            expectedValue: frontText,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        ) == false {
+            throw LiveSmokeFailure.unexpectedElementValue(
+                identifier: LiveSmokeIdentifier.cardEditorFrontTextEditor,
+                expectedValue: frontText,
+                actualValue: self.elementValue(element: frontTextEditor),
+                timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    @MainActor
     func createManualCard(frontText: String, backText: String) throws {
         try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.tapButton(identifier: LiveSmokeIdentifier.cardsAddButton, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)

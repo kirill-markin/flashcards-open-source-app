@@ -12,6 +12,16 @@ final class LiveSmokeCardsTests: LiveSmokeTestCase {
     }
 
     @MainActor
+    func testLiveSmokeUnsavedCardDraftSurvivesInteractiveDismissal() throws {
+        let frontText = "Unsaved card draft \(UUID().uuidString)"
+        try self.launchApplication(launchScenario: .guestEmptyWorkspace, selectedTab: .cards)
+
+        try self.step("keep an unsaved card draft after interactive dismissal") {
+            try self.assertUnsavedCardDraftSurvivesInteractiveDismissal(frontText: frontText)
+        }
+    }
+
+    @MainActor
     func testLiveSmokeCardsEditorAiHandoffFlow() throws {
         try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .cards)
 

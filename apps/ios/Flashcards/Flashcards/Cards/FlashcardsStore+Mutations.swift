@@ -51,7 +51,6 @@ extension FlashcardsStore {
             preparedImage: preparedImage,
             altText: altText
         )
-        self.localReadVersion += 1
         return result
     }
 
