@@ -1,11 +1,15 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.account.guestUpgrade
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspacePostAuthRoute
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudAccountSnapshot
@@ -35,26 +39,76 @@ class LocalCloudAccountRepositoryGuestUpgradeVerificationTest {
     }
 
     @Test
-    fun verifyCodePreparesBoundGuestUpgradeWhenMatchingGuestSessionExists() = runBlocking {
-        val localWorkspaceId = environment.requireLocalWorkspaceId()
-        val guestWorkspaceId = "guest-workspace"
-        val remoteGateway = FakeCloudRemoteGateway.forGuestUpgrade(
-            guestUpgradeMode = CloudGuestUpgradeMode.BOUND,
-            accountSnapshot = createCloudAccountSnapshot(
-                userId = "user-1",
-                email = "user@example.com",
-                workspaces = listOf(
-                    createCloudWorkspaceSummary(
-                        workspaceId = "workspace-remote",
-                        name = "Personal",
-                        createdAtMillis = 100L,
-                        isSelected = true
-                    )
+    fun verifyCodeUsesBoundGuestIdentityToCompleteCloudLink() = runBlocking {
+        val localWorkspaceId: String = environment.requireLocalWorkspaceId()
+        val guestWorkspaceId: String = "guest-workspace"
+        val guestWorkspace: CloudWorkspaceSummary = createCloudWorkspaceSummary(
+            workspaceId = guestWorkspaceId,
+            name = "Guest Workspace",
+            createdAtMillis = 100L,
+            isSelected = true
+        )
+        val secondaryWorkspace: CloudWorkspaceSummary = createCloudWorkspaceSummary(
+            workspaceId = "workspace-secondary",
+            name = "Secondary",
+            createdAtMillis = 200L,
+            isSelected = false
+        )
+        val postBindAccountSnapshot: CloudAccountSnapshot = createCloudAccountSnapshot(
+            userId = "guest-user",
+            email = "user@example.com",
+            workspaces = listOf(guestWorkspace, secondaryWorkspace)
+        )
+        val preBindAccountSnapshot: CloudAccountSnapshot = createCloudAccountSnapshot(
+            userId = "cognito-user",
+            email = "user@example.com",
+            workspaces = listOf(
+                createCloudWorkspaceSummary(
+                    workspaceId = "workspace-cognito",
+                    name = "Cognito Workspace",
+                    createdAtMillis = 300L,
+                    isSelected = true
                 )
-            ),
+            )
+        )
+        val baseGateway: FakeCloudRemoteGateway = FakeCloudRemoteGateway.forGuestUpgrade(
+            guestUpgradeMode = CloudGuestUpgradeMode.BOUND,
+            accountSnapshot = postBindAccountSnapshot,
             bootstrapRemoteIsEmpty = true,
             guestUpgradeReconciliation = null
         )
+        val accountEvents: MutableList<String> = mutableListOf()
+        var guestUpgradePrepared: Boolean = false
+        val remoteGateway: CloudRemoteGateway = object : CloudRemoteGateway by baseGateway {
+            override suspend fun prepareGuestUpgrade(
+                apiBaseUrl: String,
+                bearerToken: String,
+                guestToken: String
+            ): CloudGuestUpgradeMode {
+                accountEvents += "prepare"
+                val mode: CloudGuestUpgradeMode = baseGateway.prepareGuestUpgrade(
+                    apiBaseUrl = apiBaseUrl,
+                    bearerToken = bearerToken,
+                    guestToken = guestToken
+                )
+                guestUpgradePrepared = true
+                return mode
+            }
+
+            override suspend fun fetchCloudAccount(
+                apiBaseUrl: String,
+                authorizationHeader: String
+            ): CloudAccountSnapshot {
+                accountEvents += "fetch"
+                if (!guestUpgradePrepared) {
+                    return preBindAccountSnapshot
+                }
+                return baseGateway.fetchCloudAccount(
+                    apiBaseUrl = apiBaseUrl,
+                    authorizationHeader = authorizationHeader
+                )
+            }
+        }
         val repository = environment.createCloudAccountRepository(remoteGateway = remoteGateway)
         environment.cloudPreferencesStore.updateCloudSettings(
             cloudState = CloudAccountState.DISCONNECTED,
@@ -79,6 +133,10 @@ class LocalCloudAccountRepositoryGuestUpgradeVerificationTest {
             code = "123456"
         )
 
+        assertEquals(listOf("prepare", "fetch"), accountEvents)
+        assertEquals(postBindAccountSnapshot.userId, linkContext.userId)
+        assertEquals(postBindAccountSnapshot.workspaces, linkContext.workspaces)
+        assertEquals(guestWorkspaceId, linkContext.preferredWorkspaceId)
         assertEquals(CloudGuestUpgradeMode.BOUND, linkContext.guestUpgradeMode)
         assertEquals(CloudWorkspacePostAuthRoute.NONE, linkContext.postAuthRoute)
         assertEquals(CloudAccountState.GUEST, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
@@ -86,7 +144,22 @@ class LocalCloudAccountRepositoryGuestUpgradeVerificationTest {
         assertNull(environment.cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
         assertEquals(localWorkspaceId, environment.cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
         assertNull(environment.cloudPreferencesStore.loadCredentials())
-        assertEquals(1, remoteGateway.prepareGuestUpgradeCalls)
+        assertEquals(1, baseGateway.prepareGuestUpgradeCalls)
+        assertEquals(1, baseGateway.fetchCloudAccountCalls)
+
+        val selectedWorkspace: CloudWorkspaceSummary = repository.completeCloudLink(
+            linkContext = linkContext,
+            selection = CloudWorkspaceLinkSelection.Existing(workspaceId = guestWorkspaceId)
+        )
+
+        assertEquals(guestWorkspace, selectedWorkspace)
+        assertEquals(CloudAccountState.LINKED, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(
+            postBindAccountSnapshot.userId,
+            environment.cloudPreferencesStore.currentCloudSettings().linkedUserId
+        )
+        assertEquals(guestWorkspaceId, environment.cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
+        assertEquals(guestWorkspaceId, environment.cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
     }
 
     @Test
