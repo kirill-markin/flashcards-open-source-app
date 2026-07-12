@@ -13,6 +13,26 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
 ): pg.QueryResult<Row> | null {
   const { state } = context;
 
+  if (
+    text
+      === "SELECT pg_advisory_xact_lock(hashtextextended('auth.cognito_identity:' || $1::text, 2::bigint))"
+  ) {
+    return createQueryResult<Row>([]);
+  }
+
+  if (text.includes("FROM auth.deleted_subjects") && text.includes("subject_sha256 = $1")) {
+    const subjectHash = String(params[0]);
+    const rows = state.deletedSubjectHashes.has(subjectHash)
+      ? [{ subject_sha256: subjectHash } as unknown as Row]
+      : [];
+    return createQueryResult<Row>(rows);
+  }
+
+  if (text.includes("INSERT INTO auth.deleted_subjects")) {
+    state.deletedSubjectHashes.add(String(params[0]));
+    return createQueryResult<Row>([]);
+  }
+
   if (text.includes("FROM auth.guest_sessions")) {
     const requestedHash = params[0];
     const guestSession = state.guestSession;
@@ -66,7 +86,10 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
     const mappedUserId = typeof providerSubject === "string"
       ? state.identityMappings.get(providerSubject) ?? null
       : null;
-    const rows = mappedUserId === null ? [] : [{ user_id: mappedUserId } as unknown as Row];
+    const rows = mappedUserId === null ? [] : [{
+      provider_subject: providerSubject,
+      user_id: mappedUserId,
+    } as unknown as Row];
     return createQueryResult<Row>(rows);
   }
 

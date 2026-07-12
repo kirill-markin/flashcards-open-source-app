@@ -1,4 +1,5 @@
 import { AuthError, authenticateRequest, type AuthRequest, type AuthResult } from "../auth";
+import { ensureCognitoUserProfile, type UserProfile } from "../auth/ensureUser";
 import { HttpError } from "../shared/errors";
 import {
   enforceSessionCsrfProtection,
@@ -14,6 +15,7 @@ type AdminAccessQueryRow = Readonly<{
 
 type RequireAdminRequestDependencies = Readonly<{
   authenticateRequestFn: (request: AuthRequest) => Promise<AuthResult>;
+  ensureCognitoUserProfileFn: (subjectUserId: string, email: string | null) => Promise<UserProfile>;
   hasActiveAdminGrantFn: (email: string) => Promise<boolean>;
 }>;
 
@@ -115,11 +117,12 @@ export async function requireAdminRequestWithDependencies(
   if (!hasGrant) {
     throw new HttpError(403, "Admin access required.", "ADMIN_ACCESS_REQUIRED");
   }
+  const userProfile = await dependencies.ensureCognitoUserProfileFn(auth.subjectUserId, auth.email);
 
   return {
     email: normalizedEmail,
     transport: auth.transport,
-    userId: auth.userId,
+    userId: userProfile.userId,
     subjectUserId: auth.subjectUserId,
     requestAuthInputs,
   };
@@ -131,6 +134,7 @@ export async function requireAdminRequest(
 ): Promise<AdminRequestContext> {
   return requireAdminRequestWithDependencies(request, allowedOrigins, {
     authenticateRequestFn: authenticateRequest,
+    ensureCognitoUserProfileFn: ensureCognitoUserProfile,
     hasActiveAdminGrantFn: hasActiveAdminGrant,
   });
 }

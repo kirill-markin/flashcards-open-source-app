@@ -2,8 +2,19 @@
  * Ensure the authenticated user has a profile row and an accessible selected
  * workspace. New users are auto-provisioned with a default workspace.
  */
-import { transactionWithUserScope, type DatabaseExecutor } from "../database";
+import {
+  applyUserDatabaseScopeInExecutor,
+  transactionWithUserScope,
+  type DatabaseExecutor,
+} from "../database";
+import { unsafeTransaction } from "../database/unsafe";
 import { ensureUserSelectedWorkspaceInExecutor } from "../workspaces";
+import { assertSubjectIsNotDeletedInExecutor } from "./deletedSubjects";
+import {
+  bindCognitoIdentityMappingInExecutor,
+  loadCognitoIdentityMappingInExecutor,
+  lockCognitoIdentityLifecycleInExecutor,
+} from "./userIdentities";
 
 export type AccountPreferences = Readonly<{
   reviewReactionAnimationsEnabled: boolean;
@@ -84,4 +95,33 @@ export async function ensureUserProfileInExecutor(
 
 export async function ensureUserProfile(userId: string, email: string | null): Promise<UserProfile> {
   return transactionWithUserScope({ userId }, async (executor) => ensureUserProfileInExecutor(executor, userId, email));
+}
+
+export async function ensureCognitoUserProfileInExecutor(
+  executor: DatabaseExecutor,
+  subjectUserId: string,
+  email: string | null,
+): Promise<UserProfile> {
+  await lockCognitoIdentityLifecycleInExecutor(executor, subjectUserId);
+  await assertSubjectIsNotDeletedInExecutor(executor, subjectUserId);
+  const existingMapping = await loadCognitoIdentityMappingInExecutor(executor, subjectUserId);
+  const authoritativeUserId = existingMapping?.userId ?? subjectUserId;
+
+  await applyUserDatabaseScopeInExecutor(executor, { userId: authoritativeUserId });
+  const profile = await ensureUserProfileInExecutor(executor, authoritativeUserId, email);
+
+  if (existingMapping === null) {
+    await bindCognitoIdentityMappingInExecutor(executor, subjectUserId, subjectUserId);
+  }
+
+  return profile;
+}
+
+export async function ensureCognitoUserProfile(
+  subjectUserId: string,
+  email: string | null,
+): Promise<UserProfile> {
+  return unsafeTransaction(
+    async (executor) => ensureCognitoUserProfileInExecutor(executor, subjectUserId, email),
+  );
 }

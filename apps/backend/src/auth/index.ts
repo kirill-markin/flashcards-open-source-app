@@ -12,9 +12,9 @@ import {
 } from "aws-jwt-verify/error";
 import { authenticateAgentApiKey } from "../agent/apiKeys";
 import { getAuthConfig } from "./config";
-import { unsafeQuery } from "../database/unsafe";
 import { HttpError } from "../shared/errors";
 import { authenticateGuestSession, type GuestSessionPlatform } from "../guestAuth";
+import { loadCognitoIdentityMapping } from "./userIdentities";
 
 export type AuthTransport = "none" | "bearer" | "session" | "api_key" | "guest";
 
@@ -104,10 +104,6 @@ type ParsedAuthorizationHeader =
   | Readonly<{ scheme: "guest"; token: string }>
   | Readonly<{ scheme: "api_key"; token: string }>;
 
-type IdentityMappingRow = Readonly<{
-  user_id: string;
-}>;
-
 function parseAuthorizationHeader(authorizationHeader: string | undefined): ParsedAuthorizationHeader {
   if (authorizationHeader === undefined || authorizationHeader === "") {
     return { scheme: "none" };
@@ -174,20 +170,6 @@ async function verifyIdToken(token: string): Promise<AuthenticatedUserIdentity> 
   }
 }
 
-async function resolveMappedCognitoUserId(providerSubject: string): Promise<string | null> {
-  const result = await unsafeQuery<IdentityMappingRow>(
-    [
-      "SELECT user_id",
-      "FROM auth.user_identities",
-      "WHERE provider_type = 'cognito' AND provider_subject = $1",
-      "LIMIT 1",
-    ].join(" "),
-    [providerSubject],
-  );
-
-  return result.rows[0]?.user_id ?? null;
-}
-
 /**
  * Authenticates one request using the validated backend auth config rather
  * than raw env defaults. App startup must already have rejected missing or
@@ -228,10 +210,10 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
 
   if (parsedAuthorization.scheme === "bearer") {
     const identity = await verifyIdToken(parsedAuthorization.token);
-    const mappedUserId = await resolveMappedCognitoUserId(identity.userId);
+    const mapping = await loadCognitoIdentityMapping(identity.userId);
     return {
       ...identity,
-      userId: mappedUserId ?? identity.userId,
+      userId: mapping?.userId ?? identity.userId,
       subjectUserId: identity.userId,
       transport: "bearer",
       connectionId: null,
@@ -258,10 +240,10 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
 
   if (request.sessionToken !== undefined && request.sessionToken !== "") {
     const identity = await verifyIdToken(request.sessionToken);
-    const mappedUserId = await resolveMappedCognitoUserId(identity.userId);
+    const mapping = await loadCognitoIdentityMapping(identity.userId);
     return {
       ...identity,
-      userId: mappedUserId ?? identity.userId,
+      userId: mapping?.userId ?? identity.userId,
       subjectUserId: identity.userId,
       transport: "session",
       connectionId: null,

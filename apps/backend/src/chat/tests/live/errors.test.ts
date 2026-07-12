@@ -79,6 +79,9 @@ test("handleLiveRequest rejects a signed live token when the run is no longer ac
         authenticateRequestFn: async () => {
           throw new Error("authenticateRequestFn should not run for Live auth");
         },
+        ensureCognitoUserProfileFn: async () => {
+          throw new Error("ensureCognitoUserProfileFn should not run for Live auth");
+        },
         ensureUserProfileFn: async () => {
           throw new Error("ensureUserProfileFn should not run for Live auth");
         },
@@ -104,8 +107,9 @@ test("handleLiveRequest rejects a signed live token when the run is no longer ac
   );
 });
 
-test("handleLiveRequest prefers an explicit workspaceId for non-Live auth fallback", async () => {
+test("handleLiveRequest uses the authoritative Cognito profile for downstream access", async () => {
   let assertedWorkspaceId: string | null = null;
+  let assertedUserId: string | null = null;
 
   const result = await handleLiveRequest(
     new URL(`https://chat-live.example.com/?sessionId=session-1&runId=run-1&workspaceId=${EXPLICIT_WORKSPACE_ID}`),
@@ -118,30 +122,38 @@ test("handleLiveRequest prefers an explicit workspaceId for non-Live auth fallba
     },
     {
       authenticateRequestFn: async () => ({
-        userId: "user-1",
-        email: null,
+        userId: "stale-user",
+        email: "user@example.com",
         cognitoUsername: null,
-        subjectUserId: "user-1",
+        subjectUserId: "cognito-subject",
         transport: "bearer",
         connectionId: null,
         selectedWorkspaceId: null,
         guestSessionId: null,
         guestPlatform: null,
       }),
-      ensureUserProfileFn: async () => ({
-        userId: "user-1",
-        selectedWorkspaceId: "workspace-legacy",
-        email: null,
-        locale: "en",
-        createdAt: "2026-03-30T00:00:00.000Z",
-        preferences: {
-          reviewReactionAnimationsEnabled: true,
-        },
-      }),
+      ensureCognitoUserProfileFn: async (subjectUserId, email) => {
+        assert.equal(subjectUserId, "cognito-subject");
+        assert.equal(email, "user@example.com");
+        return {
+          userId: "authoritative-user",
+          selectedWorkspaceId: "workspace-legacy",
+          email: "user@example.com",
+          locale: "en",
+          createdAt: "2026-03-30T00:00:00.000Z",
+          preferences: {
+            reviewReactionAnimationsEnabled: true,
+          },
+        };
+      },
+      ensureUserProfileFn: async () => {
+        throw new Error("ensureUserProfileFn should not run for Bearer auth");
+      },
       verifyChatLiveAuthorizationHeaderFn: async () => {
         throw new Error("verifyChatLiveAuthorizationHeaderFn should not run for Bearer auth");
       },
       resolveAccessibleChatWorkspaceIdFn: async (requestContext, explicitWorkspaceId) => {
+        assert.equal(requestContext.userId, "authoritative-user");
         assert.equal(requestContext.selectedWorkspaceId, "workspace-legacy");
         assert.equal(explicitWorkspaceId, EXPLICIT_WORKSPACE_ID);
         if (explicitWorkspaceId === undefined) {
@@ -150,18 +162,20 @@ test("handleLiveRequest prefers an explicit workspaceId for non-Live auth fallba
 
         return explicitWorkspaceId;
       },
-      assertChatLiveRunAccessFn: async (_userId, workspaceId) => {
+      assertChatLiveRunAccessFn: async (userId, workspaceId) => {
+        assertedUserId = userId;
         assertedWorkspaceId = workspaceId;
       },
     },
   );
 
   assert.equal(assertedWorkspaceId, EXPLICIT_WORKSPACE_ID);
+  assert.equal(assertedUserId, "authoritative-user");
   assert.deepEqual(result, {
     sessionId: "session-1",
     runId: "run-1",
     afterCursor: undefined,
-    userId: "user-1",
+    userId: "authoritative-user",
     workspaceId: EXPLICIT_WORKSPACE_ID,
     clientRequestId: "11111111-2222-4333-8444-555555555555",
     resumeAttemptId: "resume-1",

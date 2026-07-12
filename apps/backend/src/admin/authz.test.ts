@@ -41,6 +41,9 @@ test("requireAdminRequestWithDependencies propagates unauthenticated requests as
         authenticateRequestFn: async (_request: AuthRequest): Promise<AuthResult> => {
           throw new AuthError(401, "Missing authentication token");
         },
+        ensureCognitoUserProfileFn: async () => {
+          throw new Error("ensureCognitoUserProfileFn should not run for unauthenticated requests");
+        },
         hasActiveAdminGrantFn: async (): Promise<boolean> => true,
       },
     ),
@@ -56,6 +59,9 @@ test("requireAdminRequestWithDependencies rejects non-human transports", async (
         [],
         {
           authenticateRequestFn: async (): Promise<AuthResult> => createAuthenticatedResult(transport, null),
+          ensureCognitoUserProfileFn: async () => {
+            throw new Error("ensureCognitoUserProfileFn should not run for non-session transports");
+          },
           hasActiveAdminGrantFn: async (): Promise<boolean> => true,
         },
       ),
@@ -75,6 +81,9 @@ test("requireAdminRequestWithDependencies rejects bearer-token admin access", as
       [],
       {
         authenticateRequestFn: async (): Promise<AuthResult> => createAuthenticatedResult("bearer", "admin@example.com"),
+        ensureCognitoUserProfileFn: async () => {
+          throw new Error("ensureCognitoUserProfileFn should not run for bearer transport");
+        },
         hasActiveAdminGrantFn: async (): Promise<boolean> => true,
       },
     ),
@@ -96,6 +105,9 @@ test("requireAdminRequestWithDependencies accepts localhost admin requests in AU
     [],
     {
       authenticateRequestFn: async (): Promise<AuthResult> => createAuthenticatedResult("none", null),
+      ensureCognitoUserProfileFn: async () => {
+        throw new Error("ensureCognitoUserProfileFn should not run for local auth");
+      },
       hasActiveAdminGrantFn: async (): Promise<boolean> => {
         hasActiveAdminGrantCalls += 1;
         return true;
@@ -130,6 +142,9 @@ test("requireAdminRequestWithDependencies rejects AUTH_MODE=none admin requests 
       [],
       {
         authenticateRequestFn: async (): Promise<AuthResult> => createAuthenticatedResult("none", null),
+        ensureCognitoUserProfileFn: async () => {
+          throw new Error("ensureCognitoUserProfileFn should not run for local auth");
+        },
         hasActiveAdminGrantFn: async (): Promise<boolean> => true,
       },
     ),
@@ -148,6 +163,9 @@ test("requireAdminRequestWithDependencies rejects signed-in non-admin users", as
       [],
       {
         authenticateRequestFn: async (): Promise<AuthResult> => createAuthenticatedResult("session", "viewer@example.com"),
+        ensureCognitoUserProfileFn: async () => {
+          throw new Error("ensureCognitoUserProfileFn should not run without an admin grant");
+        },
         hasActiveAdminGrantFn: async (): Promise<boolean> => false,
       },
     ),
@@ -160,11 +178,29 @@ test("requireAdminRequestWithDependencies rejects signed-in non-admin users", as
 });
 
 test("requireAdminRequestWithDependencies accepts signed-in admins and normalizes email", async () => {
+  const auth = {
+    ...createAuthenticatedResult("session", "Admin@Example.com "),
+    userId: "stale-user",
+  } satisfies AuthResult;
   const result = await requireAdminRequestWithDependencies(
     createRequest("http://localhost/admin/session"),
     [],
     {
-      authenticateRequestFn: async (): Promise<AuthResult> => createAuthenticatedResult("session", "Admin@Example.com "),
+      authenticateRequestFn: async (): Promise<AuthResult> => auth,
+      ensureCognitoUserProfileFn: async (subjectUserId, email) => {
+        assert.equal(subjectUserId, "subject-1");
+        assert.equal(email, "Admin@Example.com ");
+        return {
+          userId: "authoritative-user",
+          selectedWorkspaceId: "workspace-1",
+          email: "admin@example.com",
+          locale: "en",
+          createdAt: "2026-07-11T00:00:00.000Z",
+          preferences: {
+            reviewReactionAnimationsEnabled: true,
+          },
+        };
+      },
       hasActiveAdminGrantFn: async (): Promise<boolean> => true,
     },
   );
@@ -172,7 +208,7 @@ test("requireAdminRequestWithDependencies accepts signed-in admins and normalize
   assert.deepEqual(result, {
     email: "admin@example.com",
     transport: "session",
-    userId: "user-1",
+    userId: "authoritative-user",
     subjectUserId: "subject-1",
     requestAuthInputs: {
       authorizationHeader: undefined,

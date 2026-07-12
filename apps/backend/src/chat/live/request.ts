@@ -1,6 +1,10 @@
 import { authenticateRequest, type AuthResult } from "../../auth";
 import { HttpError } from "../../shared/errors";
-import { ensureUserProfile, type UserProfile } from "../../auth/ensureUser";
+import {
+  ensureCognitoUserProfile,
+  ensureUserProfile,
+  type UserProfile,
+} from "../../auth/ensureUser";
 import {
   parseOptionalWorkspaceIdParam,
   resolveAccessibleChatWorkspaceId,
@@ -31,6 +35,7 @@ export type LiveStreamParams = Readonly<{
 
 type HandleLiveRequestDependencies = Readonly<{
   authenticateRequestFn: typeof authenticateRequest;
+  ensureCognitoUserProfileFn: typeof ensureCognitoUserProfile;
   ensureUserProfileFn: typeof ensureUserProfile;
   verifyChatLiveAuthorizationHeaderFn: typeof verifyChatLiveAuthorizationHeader;
   resolveAccessibleChatWorkspaceIdFn: typeof resolveAccessibleChatWorkspaceId;
@@ -39,6 +44,7 @@ type HandleLiveRequestDependencies = Readonly<{
 
 const defaultHandleLiveRequestDependencies: HandleLiveRequestDependencies = {
   authenticateRequestFn: authenticateRequest,
+  ensureCognitoUserProfileFn: ensureCognitoUserProfile,
   ensureUserProfileFn: ensureUserProfile,
   verifyChatLiveAuthorizationHeaderFn: verifyChatLiveAuthorizationHeader,
   resolveAccessibleChatWorkspaceIdFn: resolveAccessibleChatWorkspaceId,
@@ -147,14 +153,17 @@ export async function handleLiveRequest(
 
   const userProfile: UserProfile | null = authResult.transport === "api_key"
     ? null
-    : await liveRequestDependencies.ensureUserProfileFn(authResult.userId, null);
+    : authResult.transport === "bearer" || authResult.transport === "session"
+      ? await liveRequestDependencies.ensureCognitoUserProfileFn(authResult.subjectUserId, authResult.email)
+      : await liveRequestDependencies.ensureUserProfileFn(authResult.userId, null);
+  const authoritativeUserId = userProfile?.userId ?? authResult.userId;
   const explicitWorkspaceId = parseOptionalWorkspaceIdParam(url.searchParams.get("workspaceId") ?? undefined);
 
   let workspaceId: string;
   try {
     workspaceId = await liveRequestDependencies.resolveAccessibleChatWorkspaceIdFn(
       {
-        userId: authResult.userId,
+        userId: authoritativeUserId,
         selectedWorkspaceId: authResult.transport === "api_key"
           ? authResult.selectedWorkspaceId
           : userProfile?.selectedWorkspaceId ?? null,
@@ -173,13 +182,13 @@ export async function handleLiveRequest(
     throw error;
   }
 
-  await liveRequestDependencies.assertChatLiveRunAccessFn(authResult.userId, workspaceId, sessionId, runId);
+  await liveRequestDependencies.assertChatLiveRunAccessFn(authoritativeUserId, workspaceId, sessionId, runId);
 
   return {
     sessionId,
     runId,
     afterCursor,
-    userId: authResult.userId,
+    userId: authoritativeUserId,
     workspaceId,
     traceContext: null,
     ...(clientRequestId === undefined ? {} : { clientRequestId }),

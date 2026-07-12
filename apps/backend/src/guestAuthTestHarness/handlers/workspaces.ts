@@ -18,6 +18,23 @@ export function handleWorkspaceExecutorQuery<Row extends pg.QueryResultRow>(
 ): pg.QueryResult<Row> | null {
   const { scope, state } = context;
 
+  if (
+    text.startsWith("SELECT memberships.workspace_id")
+    && text.includes("FROM org.workspace_memberships memberships")
+    && text.includes("ORDER BY workspaces.created_at ASC")
+  ) {
+    const userId = String(params[0]);
+    scope.requireCurrentUserScope(userId);
+    const rows = [...state.workspaces.values()]
+      .filter((workspace) => state.workspaceMemberships.has(membershipKey(userId, workspace.workspace_id)))
+      .sort((left, right) => (
+        left.created_at.localeCompare(right.created_at)
+        || left.workspace_id.localeCompare(right.workspace_id)
+      ))
+      .map((workspace) => ({ workspace_id: workspace.workspace_id } as unknown as Row));
+    return createQueryResult<Row>(rows);
+  }
+
   if (text.includes("pg_advisory_xact_lock") && text.includes("hashtextextended")) {
     const userId = params[0];
     const workspaceId = params[1];

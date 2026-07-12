@@ -2,7 +2,11 @@ import { authenticateRequest, type AuthTransport } from "../auth";
 import type { GuestSessionPlatform } from "../guestAuth";
 import { isDeletedSubject } from "../auth/deletedSubjects";
 import { HttpError } from "../shared/errors";
-import { ensureUserProfile, type AccountPreferences } from "../auth/ensureUser";
+import {
+  ensureCognitoUserProfile,
+  ensureUserProfile,
+  type AccountPreferences,
+} from "../auth/ensureUser";
 import { assertUserHasWorkspaceAccess } from "../workspaces";
 import {
   enforceSessionCsrfProtection,
@@ -43,6 +47,7 @@ type WorkspaceSelectionErrorConfig = Readonly<{
 type LoadRequestContextDependencies = Readonly<{
   authenticateRequestFn: typeof authenticateRequest;
   isDeletedSubjectFn: typeof isDeletedSubject;
+  ensureCognitoUserProfileFn: typeof ensureCognitoUserProfile;
   ensureUserProfileFn: typeof ensureUserProfile;
 }>;
 
@@ -81,7 +86,9 @@ export async function loadRequestContextWithDependencies(
   if (auth.transport !== "none" && await dependencies.isDeletedSubjectFn(subjectUserId)) {
     throw new HttpError(410, "This account has already been deleted.", "ACCOUNT_DELETED");
   }
-  const userProfile = await dependencies.ensureUserProfileFn(auth.userId, auth.email);
+  const userProfile = auth.transport === "bearer" || auth.transport === "session"
+    ? await dependencies.ensureCognitoUserProfileFn(auth.subjectUserId, auth.email)
+    : await dependencies.ensureUserProfileFn(auth.userId, auth.email);
   const selectedWorkspaceId = auth.transport === "api_key"
     ? auth.selectedWorkspaceId
     : userProfile.selectedWorkspaceId;
@@ -107,6 +114,7 @@ export async function loadRequestContext(
   return loadRequestContextWithDependencies(requestAuthInputs, {
     authenticateRequestFn: authenticateRequest,
     isDeletedSubjectFn: isDeletedSubject,
+    ensureCognitoUserProfileFn: ensureCognitoUserProfile,
     ensureUserProfileFn: ensureUserProfile,
   });
 }

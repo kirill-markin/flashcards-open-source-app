@@ -114,6 +114,7 @@ export function createMergeState(params: Readonly<{
       platform: "ios",
       revoked_at: null,
     },
+    deletedSubjectHashes: new Set<string>(),
     identityMappings: new Map<string, string>([[params.targetSubject, params.targetUserId]]),
     userSettings: new Map<string, UserSettingsState>([
       [params.guestUserId, createUserSettingsState(params.guestUserId, params.guestWorkspaceId, null)],
