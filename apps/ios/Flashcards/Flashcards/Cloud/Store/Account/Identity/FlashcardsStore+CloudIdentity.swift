@@ -93,6 +93,7 @@ extension FlashcardsStore {
         }
 
         if linkedUserId != nextUserId {
+            try self.throwIfLinkedWorkspaceUnavailableRecoveryRequired()
             try self.resetLocalStateForCloudIdentityChange()
         }
     }
@@ -201,6 +202,9 @@ extension FlashcardsStore {
     }
 
     func shouldResetLocalStateAfterAuthenticatedSilentRestoreFailure(error: Error) -> Bool {
+        if self.cloudCredentialRecoveryState?.reason == .linkedWorkspaceUnavailable {
+            return false
+        }
         if error is URLError {
             return true
         }
@@ -240,6 +244,7 @@ extension FlashcardsStore {
             return false
         }
 
+        try self.throwIfLinkedWorkspaceUnavailableRecoveryRequired()
         try self.resetLocalStateForCloudIdentityChange()
         return true
     }

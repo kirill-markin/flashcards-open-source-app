@@ -202,6 +202,7 @@
 "settings.sync.failed" = "Fallo de sincronizacion: %@";
 "settings.sync.failed.generic" = "Fallo de sincronizacion";
 "settings.sync.recovery.linkedCredentialsMissing" = "Faltan las credenciales seguras de inicio de sesion en este dispositivo. Los datos locales se conservan. Inicia sesion de nuevo para reconectar la sincronizacion.";
+"settings.sync.recovery.linkedWorkspaceUnavailable" = "Ha cambiado el acceso en la nube al espacio de trabajo vinculado. Los datos locales se conservan. Inicia sesión de nuevo cuando se haya restaurado el acceso a la cuenta y al espacio de trabajo originales.";
 "settings.sync.recovery.guestSessionMissing" = "Faltan las credenciales de invitado en este dispositivo. Los datos locales se conservan, pero la antigua cuenta de invitado en la nube no se puede recuperar sin su token.";
 "settings.sync.recovery.invalidStoredState" = "Los datos de recuperacion de credenciales en la nube guardados en este dispositivo no son validos. La sincronizacion esta en pausa hasta que reconectes o restablezcas la identidad en la nube.";
 "settings.sync.recovery.wrongLinkedAccount" = "Inicia sesion con la cuenta en la nube original para reconectar los datos locales conservados.";
@@ -212,6 +213,8 @@
 "settings.sync.recoveryGate.guestSessionMissing.body" = "No se pudo restaurar la sesion de invitado en este dispositivo. Tus datos locales siguen aqui. Inicia sesion con email para guardarlos en un espacio de trabajo recuperado, o borra los datos locales y empieza de nuevo.";
 "settings.sync.recoveryGate.linkedCredentialsMissing.title" = "Inicia sesion de nuevo para reconectar";
 "settings.sync.recoveryGate.linkedCredentialsMissing.body" = "Faltan credenciales seguras de inicio de sesion en este dispositivo. Tus datos locales siguen aqui. Inicia sesion con la cuenta en la nube original para reconectarlos, o borra los datos locales y empieza de nuevo.";
+"settings.sync.recoveryGate.linkedWorkspaceUnavailable.title" = "Ha cambiado el acceso al espacio en la nube";
+"settings.sync.recoveryGate.linkedWorkspaceUnavailable.body" = "Este dispositivo ya no puede acceder a su espacio de trabajo vinculado en la nube. Tus tarjetas, repasos, cambios pendientes y archivos multimedia locales se mantienen a salvo. Cuando se haya restaurado el acceso a la cuenta y al espacio de trabajo originales, inicia sesión de nuevo para reintentarlo, o borra los datos locales y empieza de cero.";
 "settings.sync.recoveryGate.invalidStoredState.title" = "Los datos de recuperacion en la nube no son validos";
 "settings.sync.recoveryGate.invalidStoredState.body" = "Los datos de recuperacion en la nube de este dispositivo no son validos. Para mantener segura la app, el uso normal esta bloqueado. Borra los datos locales y empieza de nuevo, o intenta iniciar sesion si la recuperacion todavia es posible.";
 "settings.sync.recoveryGate.signInAndRecover" = "Iniciar sesion y recuperar";

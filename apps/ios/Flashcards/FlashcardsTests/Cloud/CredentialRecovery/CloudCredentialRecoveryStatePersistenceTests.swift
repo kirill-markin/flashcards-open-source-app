@@ -4,7 +4,7 @@ import XCTest
 
 final class CloudCredentialRecoveryStatePersistenceTests: CloudCredentialRecoveryTestCase {
     @MainActor
-    func testPersistedRecoveryStateLoadsBlockedStatusOnStoreInitialization() throws {
+    func testPersistedRecoveryStateLoadsBlockedStatusOnStoreInitialization() async throws {
         let suiteName: String = "recovery-relaunch-\(UUID().uuidString)"
         let userDefaults: UserDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         let encoder: JSONEncoder = JSONEncoder()
@@ -58,7 +58,7 @@ final class CloudCredentialRecoveryStatePersistenceTests: CloudCredentialRecover
         let loadedInitialStore: FlashcardsStore = try XCTUnwrap(initialStore)
         let cloudSettings: CloudSettings = try XCTUnwrap(loadedInitialStore.cloudSettings)
         try loadedInitialStore.markCloudCredentialRecoveryRequired(
-            reason: .linkedCredentialsMissing,
+            reason: .linkedWorkspaceUnavailable,
             cloudSettings: cloudSettings,
             configuration: configuration,
             detectedAt: Date(timeIntervalSince1970: 1_775_000_000)
@@ -66,6 +66,7 @@ final class CloudCredentialRecoveryStatePersistenceTests: CloudCredentialRecover
         loadedInitialStore.shutdownForTests()
         initialStore = nil
 
+        let relaunchedCloudSyncService: GuestUpgradeDrainCloudSyncService = GuestUpgradeDrainCloudSyncService()
         relaunchedStore = self.makeRecoveryStore(
             userDefaults: userDefaults,
             encoder: encoder,
@@ -74,7 +75,7 @@ final class CloudCredentialRecoveryStatePersistenceTests: CloudCredentialRecover
             credentialStore: credentialStore,
             guestCredentialStore: guestCredentialStore,
             guestCloudAuthService: GuestCloudAuthService(),
-            cloudSyncService: GuestUpgradeDrainCloudSyncService()
+            cloudSyncService: relaunchedCloudSyncService
         )
 
         let loadedRelaunchedStore: FlashcardsStore = try XCTUnwrap(relaunchedStore)
@@ -85,10 +86,12 @@ final class CloudCredentialRecoveryStatePersistenceTests: CloudCredentialRecover
         XCTAssertEqual(persistedRecoveryState, loadedRelaunchedStore.cloudCredentialRecoveryState)
         XCTAssertBlockedSyncStatus(
             loadedRelaunchedStore.syncStatus,
-            expectedReason: .linkedCredentialsMissing,
+            expectedReason: .linkedWorkspaceUnavailable,
             file: #filePath,
             line: #line
         )
+        await loadedRelaunchedStore.syncCloudIfLinked(trigger: self.makeRecoverySyncTrigger())
+        XCTAssertEqual(0, relaunchedCloudSyncService.runLinkedSyncCallCount)
     }
 
     @MainActor

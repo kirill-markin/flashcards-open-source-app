@@ -202,6 +202,7 @@
 "settings.sync.failed" = "同期失敗: %@";
 "settings.sync.failed.generic" = "同期に失敗しました";
 "settings.sync.recovery.linkedCredentialsMissing" = "このデバイスの安全なサインイン認証情報が見つかりません。ローカルデータは保持されています。同期を再接続するにはもう一度サインインしてください。";
+"settings.sync.recovery.linkedWorkspaceUnavailable" = "リンク済みワークスペースへのクラウドアクセスが変更されました。ローカルデータは保持されています。元のアカウントとワークスペースへのアクセスが復元された後、もう一度サインインしてください。";
 "settings.sync.recovery.guestSessionMissing" = "このデバイスのゲスト認証情報が見つかりません。ローカルデータは保持されていますが、古いゲストクラウドアカウントはトークンなしでは復元できません。";
 "settings.sync.recovery.invalidStoredState" = "このデバイスに保存されたクラウド認証情報の復旧データが無効です。クラウド ID を再接続またはリセットするまで同期は一時停止されます。";
 "settings.sync.recovery.wrongLinkedAccount" = "保持されたローカルデータを再接続するには、元のクラウドアカウントでサインインしてください。";
@@ -212,6 +213,8 @@
 "settings.sync.recoveryGate.guestSessionMissing.body" = "このデバイスのゲストセッションを復元できませんでした。ローカルデータはまだこのデバイスにあります。メールでサインインして復旧済みワークスペースに保存するか、ローカルデータを消去して最初から始めてください。";
 "settings.sync.recoveryGate.linkedCredentialsMissing.title" = "もう一度サインインして再接続";
 "settings.sync.recoveryGate.linkedCredentialsMissing.body" = "このデバイスに安全なサインイン認証情報がありません。ローカルデータはまだこのデバイスにあります。元のクラウドアカウントでサインインして再接続するか、ローカルデータを消去して最初から始めてください。";
+"settings.sync.recoveryGate.linkedWorkspaceUnavailable.title" = "クラウドワークスペースへのアクセスが変更されました";
+"settings.sync.recoveryGate.linkedWorkspaceUnavailable.body" = "このデバイスは、リンク済みのクラウドワークスペースにアクセスできなくなりました。ローカルのカード、復習履歴、保留中の変更、メディアは安全に保持されています。元のアカウントとワークスペースへのアクセスが復元された後、もう一度サインインして再試行するか、ローカルデータを消去して最初からやり直してください。";
 "settings.sync.recoveryGate.invalidStoredState.title" = "クラウド復旧データが無効です";
 "settings.sync.recoveryGate.invalidStoredState.body" = "このデバイスのクラウド復旧データは無効です。アプリを安全に保つため、通常の使用はブロックされています。ローカルデータを消去して最初から始めるか、復旧できる可能性がある場合はサインインを試してください。";
 "settings.sync.recoveryGate.signInAndRecover" = "サインインして復旧";

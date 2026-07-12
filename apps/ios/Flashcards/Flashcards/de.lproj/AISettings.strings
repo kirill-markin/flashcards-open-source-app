@@ -202,6 +202,7 @@
 "settings.sync.failed" = "Synchronisierungsfehler: %@";
 "settings.sync.failed.generic" = "Synchronisierung fehlgeschlagen";
 "settings.sync.recovery.linkedCredentialsMissing" = "Sichere Anmeldedaten fehlen auf diesem Gerät. Lokale Daten bleiben erhalten. Melde dich erneut an, um die Synchronisierung wieder zu verbinden.";
+"settings.sync.recovery.linkedWorkspaceUnavailable" = "Der Cloud-Zugriff auf den verknüpften Arbeitsbereich hat sich geändert. Lokale Daten bleiben erhalten. Melde dich erneut an, nachdem der Zugriff auf das ursprüngliche Konto und den Arbeitsbereich wiederhergestellt wurde.";
 "settings.sync.recovery.guestSessionMissing" = "Gast-Anmeldedaten fehlen auf diesem Gerät. Lokale Daten bleiben erhalten, aber das alte Gast-Cloudkonto kann ohne sein Token nicht wiederhergestellt werden.";
 "settings.sync.recovery.invalidStoredState" = "Die auf diesem Gerät gespeicherten Cloud-Wiederherstellungsdaten sind ungültig. Die Synchronisierung ist pausiert, bis du die Cloud-Identität erneut verbindest oder zurücksetzt.";
 "settings.sync.recovery.wrongLinkedAccount" = "Melde dich mit dem ursprünglichen Cloudkonto an, um die erhaltenen lokalen Daten wieder zu verbinden.";
@@ -212,6 +213,8 @@
 "settings.sync.recoveryGate.guestSessionMissing.body" = "Die Gastsitzung auf diesem Gerät konnte nicht wiederhergestellt werden. Deine lokalen Daten sind noch hier. Melde dich per E-Mail an, um sie in einem wiederhergestellten Arbeitsbereich zu speichern, oder lösche lokale Daten und beginne neu.";
 "settings.sync.recoveryGate.linkedCredentialsMissing.title" = "Erneut anmelden, um die Verbindung wiederherzustellen";
 "settings.sync.recoveryGate.linkedCredentialsMissing.body" = "Sichere Anmeldedaten fehlen auf diesem Gerät. Deine lokalen Daten sind noch hier. Melde dich mit dem ursprünglichen Cloud-Konto an, um sie wieder zu verbinden, oder lösche lokale Daten und beginne neu.";
+"settings.sync.recoveryGate.linkedWorkspaceUnavailable.title" = "Cloud-Arbeitsbereichszugriff geändert";
+"settings.sync.recoveryGate.linkedWorkspaceUnavailable.body" = "Dieses Gerät kann nicht mehr auf den verknüpften Cloud-Arbeitsbereich zugreifen. Deine lokalen Karten, Wiederholungen, ausstehenden Änderungen und Medien werden sicher aufbewahrt. Melde dich erneut an, nachdem der Zugriff auf das ursprüngliche Konto und den Arbeitsbereich wiederhergestellt wurde, oder lösche die lokalen Daten und beginne neu.";
 "settings.sync.recoveryGate.invalidStoredState.title" = "Cloud-Wiederherstellungsdaten sind ungültig";
 "settings.sync.recoveryGate.invalidStoredState.body" = "Cloud-Wiederherstellungsdaten auf diesem Gerät sind ungültig. Damit die App sicher bleibt, ist die normale Nutzung blockiert. Lösche lokale Daten und beginne neu, oder versuche, dich anzumelden, wenn eine Wiederherstellung noch möglich ist.";
 "settings.sync.recoveryGate.signInAndRecover" = "Anmelden und wiederherstellen";

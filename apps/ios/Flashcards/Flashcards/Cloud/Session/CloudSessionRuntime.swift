@@ -521,7 +521,7 @@ final class CloudSessionRuntime {
         return accumulatedResult
     }
 
-    private func waitForActiveCloudSyncToSettle() async {
+    func waitForActiveCloudSyncToSettle() async {
         while let activeCloudSyncTask = self.state.activeCloudSyncTask {
             let startedAt = Date()
             self.addCloudSyncRuntimeBreadcrumb(

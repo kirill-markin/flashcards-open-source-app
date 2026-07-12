@@ -219,6 +219,7 @@ private func safeCloudCredentialRecoveryPostAuthMessage(error: Error) -> String?
 private func safeCloudCredentialRecoveryPostAuthMessages() -> Set<String> {
     [
         localizedCloudCredentialRecoveryBlockedMessage(reason: .linkedCredentialsMissing),
+        localizedCloudCredentialRecoveryBlockedMessage(reason: .linkedWorkspaceUnavailable),
         localizedCloudCredentialRecoveryBlockedMessage(reason: .guestSessionMissing),
         localizedCloudCredentialRecoveryBlockedMessage(reason: .invalidStoredState),
         localizedCloudCredentialRecoveryWrongLinkedAccountMessage(),

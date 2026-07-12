@@ -257,8 +257,18 @@ enum CloudGuestUpgradeSelection: Hashable, Sendable {
 
 enum CloudCredentialRecoveryReason: String, Codable, Hashable, Sendable {
     case linkedCredentialsMissing = "linked_credentials_missing"
+    case linkedWorkspaceUnavailable = "linked_workspace_unavailable"
     case guestSessionMissing = "guest_session_missing"
     case invalidStoredState = "invalid_stored_state"
+
+    var requiresOriginalLinkedIdentity: Bool {
+        switch self {
+        case .linkedCredentialsMissing, .linkedWorkspaceUnavailable:
+            return true
+        case .guestSessionMissing, .invalidStoredState:
+            return false
+        }
+    }
 }
 
 struct CloudCredentialRecoveryState: Codable, Hashable, Sendable {
