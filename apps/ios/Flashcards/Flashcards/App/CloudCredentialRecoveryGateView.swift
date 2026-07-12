@@ -183,6 +183,18 @@ func makeCloudCredentialRecoveryGatePresentation(
             ),
             symbolName: "lock.shield"
         )
+    case .linkedWorkspaceUnavailable:
+        return CloudCredentialRecoveryGatePresentation(
+            title: aiSettingsLocalized(
+                "settings.sync.recoveryGate.linkedWorkspaceUnavailable.title",
+                "Cloud workspace access changed"
+            ),
+            message: aiSettingsLocalized(
+                "settings.sync.recoveryGate.linkedWorkspaceUnavailable.body",
+                "This device can no longer access its linked cloud workspace. Your local cards, reviews, pending changes, and media are being kept safe. After the original account and workspace access are restored, sign in again to retry, or erase local data and start fresh."
+            ),
+            symbolName: "externaldrive.badge.exclamationmark"
+        )
     case .invalidStoredState:
         return CloudCredentialRecoveryGatePresentation(
             title: aiSettingsLocalized(

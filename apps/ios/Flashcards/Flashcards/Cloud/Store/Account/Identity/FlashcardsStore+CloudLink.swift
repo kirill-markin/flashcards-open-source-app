@@ -133,7 +133,7 @@ extension FlashcardsStore {
         }
 
         switch recoveryState.reason {
-        case .linkedCredentialsMissing:
+        case .linkedCredentialsMissing, .linkedWorkspaceUnavailable:
             guard recoveryState.previousCloudState == .linked else {
                 try self.throwIfCloudCredentialRecoveryRequired()
                 return .none

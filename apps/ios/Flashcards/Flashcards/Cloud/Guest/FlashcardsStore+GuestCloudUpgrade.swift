@@ -146,9 +146,7 @@ extension FlashcardsStore {
         guard self.cloudCredentialRecoveryState != nil else {
             return
         }
-        if self.cloudCredentialRecoveryState?.reason == .invalidStoredState {
-            try self.throwIfCloudCredentialRecoveryRequired()
-        }
+        try self.throwIfCredentialRecoveryBlocksPendingGuestUpgrade()
         guard try self.matchingInFlightPendingGuestUpgradeState(apiBaseUrl: apiBaseUrl) != nil else {
             return
         }
@@ -170,9 +168,7 @@ extension FlashcardsStore {
         guard self.cloudCredentialRecoveryState != nil else {
             return nil
         }
-        if self.cloudCredentialRecoveryState?.reason == .invalidStoredState {
-            try self.throwIfCloudCredentialRecoveryRequired()
-        }
+        try self.throwIfCredentialRecoveryBlocksPendingGuestUpgrade()
         guard try self.matchingInFlightPendingGuestUpgradeState(apiBaseUrl: apiBaseUrl) != nil else {
             return nil
         }

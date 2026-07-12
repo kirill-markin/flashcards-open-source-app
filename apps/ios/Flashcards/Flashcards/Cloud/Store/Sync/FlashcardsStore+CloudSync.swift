@@ -170,7 +170,7 @@ extension FlashcardsStore {
             error: nil
         )
         do {
-        try self.throwIfInvalidStoredCloudCredentialRecoveryRequired()
+        try self.throwIfCredentialRecoveryBlocksPendingGuestUpgrade()
         if try await self.resumePendingGuestUpgradeIfNeeded(trigger: trigger) {
             self.addCloudSyncForegroundOperationBreadcrumb(
                 stage: "sync_now",
@@ -361,7 +361,7 @@ extension FlashcardsStore {
         }
 
         do {
-            try self.throwIfInvalidStoredCloudCredentialRecoveryRequired()
+            try self.throwIfCredentialRecoveryBlocksPendingGuestUpgrade()
             if try await self.resumePendingGuestUpgradeIfNeeded(trigger: trigger) {
                 self.addCloudSyncForegroundOperationBreadcrumb(
                     stage: "sync_if_linked",
@@ -741,6 +741,9 @@ extension FlashcardsStore {
         fallbackCloudState: CloudAccountState?,
         trigger: CloudSyncTrigger
     ) -> SyncStatus {
+        if let recoveryState = self.cloudCredentialRecoveryState {
+            return .blocked(message: localizedCloudCredentialRecoveryBlockedMessage(reason: recoveryState.reason))
+        }
         if trigger.source == .postAuth {
             return .idle
         }
@@ -757,6 +760,9 @@ extension FlashcardsStore {
     }
 
     func transitionSyncStatusForCloudFailure(error: Error) -> SyncStatus {
+        if let recoveryState = self.cloudCredentialRecoveryState {
+            return .blocked(message: localizedCloudCredentialRecoveryBlockedMessage(reason: recoveryState.reason))
+        }
         if let blockedMessage = self.blockedCloudIdentityConflictMessage(error: error) {
             return .blocked(message: blockedMessage)
         }
@@ -765,6 +771,9 @@ extension FlashcardsStore {
     }
 
     func transitionSyncStatusForCloudFailure(error: Error, trigger: CloudSyncTrigger) -> SyncStatus {
+        if let recoveryState = self.cloudCredentialRecoveryState {
+            return .blocked(message: localizedCloudCredentialRecoveryBlockedMessage(reason: recoveryState.reason))
+        }
         if trigger.source == .postAuth {
             return .idle
         }
@@ -832,6 +841,19 @@ extension FlashcardsStore {
         trigger: CloudSyncTrigger,
         action: String
     ) -> Bool {
+        if self.cloudCredentialRecoveryState?.reason == .linkedWorkspaceUnavailable,
+            let localStoreError = error as? LocalStoreError,
+            case .validation(let message) = localStoreError,
+            message == localizedCloudCredentialRecoveryBlockedMessage(reason: .linkedWorkspaceUnavailable) {
+            return false
+        }
+        if isLinkedWorkspaceUnavailableCloudSyncResponse(
+            error: error,
+            linkedSession: linkedSession,
+            cloudSettings: self.cloudSettings
+        ) {
+            return false
+        }
         guard self.shouldCaptureCloudSyncFailure(error: error, trigger: trigger) else {
             return false
         }
@@ -872,10 +894,18 @@ extension FlashcardsStore {
 
             return try await self.cloudRuntime.runLinkedSync(linkedSession: linkedSession)
         } catch {
-            throw try self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
+            let failureError = try self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
                 error: error,
                 now: Date()
             )
+            if try await self.enterLinkedWorkspaceUnavailableRecoveryIfNeeded(
+                error: failureError,
+                linkedSession: linkedSession,
+                detectedAt: Date()
+            ) {
+                try self.throwIfCloudCredentialRecoveryRequired()
+            }
+            throw failureError
         }
     }
 
@@ -903,10 +933,18 @@ extension FlashcardsStore {
 
             return try await self.cloudRuntime.runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: linkedSession)
         } catch {
-            throw try self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
+            let failureError = try self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
                 error: error,
                 now: Date()
             )
+            if try await self.enterLinkedWorkspaceUnavailableRecoveryIfNeeded(
+                error: failureError,
+                linkedSession: linkedSession,
+                detectedAt: Date()
+            ) {
+                try self.throwIfCloudCredentialRecoveryRequired()
+            }
+            throw failureError
         }
     }
 

@@ -202,6 +202,7 @@
 "settings.sync.failed" = "同步失败：%@";
 "settings.sync.failed.generic" = "同步失败";
 "settings.sync.recovery.linkedCredentialsMissing" = "此设备缺少安全登录凭据。本地数据已保留。请重新登录以重新连接同步。";
+"settings.sync.recovery.linkedWorkspaceUnavailable" = "关联工作区的云端访问权限已发生变化。本地数据已保留。原账户和工作区访问权限恢复后，请重新登录。";
 "settings.sync.recovery.guestSessionMissing" = "此设备缺少访客凭据。本地数据已保留，但没有令牌就无法恢复旧的访客云账户。";
 "settings.sync.recovery.invalidStoredState" = "此设备上存储的云凭据恢复数据无效。同步已暂停，直到你重新连接或重置云身份。";
 "settings.sync.recovery.wrongLinkedAccount" = "请使用原始云账户登录，以重新连接已保留的本地数据。";
@@ -212,6 +213,8 @@
 "settings.sync.recoveryGate.guestSessionMissing.body" = "无法恢复此设备上的访客会话。你的本地数据仍在此设备上。请用电子邮件登录，将其保存到已恢复的工作空间，或抹掉本地数据并重新开始。";
 "settings.sync.recoveryGate.linkedCredentialsMissing.title" = "再次登录以重新连接";
 "settings.sync.recoveryGate.linkedCredentialsMissing.body" = "此设备缺少安全登录凭据。你的本地数据仍在此设备上。请使用原来的云账户登录以重新连接，或抹掉本地数据并重新开始。";
+"settings.sync.recoveryGate.linkedWorkspaceUnavailable.title" = "云工作区访问权限已变化";
+"settings.sync.recoveryGate.linkedWorkspaceUnavailable.body" = "此设备已无法访问关联的云工作区。你的本地卡片、复习记录、待处理更改和媒体文件都会安全保留。原账户和工作区访问权限恢复后，请重新登录并重试，或抹掉本地数据并重新开始。";
 "settings.sync.recoveryGate.invalidStoredState.title" = "云恢复数据无效";
 "settings.sync.recoveryGate.invalidStoredState.body" = "此设备上的云恢复数据无效。为确保应用安全，普通使用已被阻止。请抹掉本地数据并重新开始，或在仍可恢复时尝试登录。";
 "settings.sync.recoveryGate.signInAndRecover" = "登录并恢复";

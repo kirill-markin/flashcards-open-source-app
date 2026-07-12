@@ -235,7 +235,7 @@ final class CloudLinkedCredentialRecoveryTests: CloudCredentialRecoveryTestCase 
         }
         let cloudSettings: CloudSettings = try XCTUnwrap(store.cloudSettings)
         try store.markCloudCredentialRecoveryRequired(
-            reason: .linkedCredentialsMissing,
+            reason: .linkedWorkspaceUnavailable,
             cloudSettings: cloudSettings,
             configuration: configuration,
             detectedAt: Date(timeIntervalSince1970: 1_775_000_000)
@@ -271,12 +271,12 @@ final class CloudLinkedCredentialRecoveryTests: CloudCredentialRecoveryTestCase 
         XCTAssertEqual(Optional("linked-user"), cloudSettingsAfterRejectedLink.linkedUserId)
         XCTAssertEqual(Optional(workspace.workspaceId), cloudSettingsAfterRejectedLink.activeWorkspaceId)
         let recoveryState: CloudCredentialRecoveryState = try XCTUnwrap(store.cloudCredentialRecoveryState)
-        XCTAssertEqual(.linkedCredentialsMissing, recoveryState.reason)
+        XCTAssertEqual(.linkedWorkspaceUnavailable, recoveryState.reason)
         XCTAssertEqual(Optional("linked-user"), recoveryState.linkedUserId)
         XCTAssertEqual(recoveryState, try self.loadPersistedRecoveryState(userDefaults: userDefaults, decoder: decoder))
         XCTAssertBlockedSyncStatus(
             store.syncStatus,
-            expectedReason: .linkedCredentialsMissing,
+            expectedReason: .linkedWorkspaceUnavailable,
             file: #filePath,
             line: #line
         )
@@ -364,7 +364,7 @@ final class CloudLinkedCredentialRecoveryTests: CloudCredentialRecoveryTestCase 
         }
         let cloudSettings: CloudSettings = try XCTUnwrap(store.cloudSettings)
         try store.markCloudCredentialRecoveryRequired(
-            reason: .linkedCredentialsMissing,
+            reason: .linkedWorkspaceUnavailable,
             cloudSettings: cloudSettings,
             configuration: configuration,
             detectedAt: Date(timeIntervalSince1970: 1_775_000_000)

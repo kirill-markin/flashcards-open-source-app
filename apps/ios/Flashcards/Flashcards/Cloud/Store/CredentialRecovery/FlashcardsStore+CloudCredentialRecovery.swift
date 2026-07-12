@@ -68,8 +68,17 @@ extension FlashcardsStore {
         )
     }
 
-    func throwIfInvalidStoredCloudCredentialRecoveryRequired() throws {
-        guard self.cloudCredentialRecoveryState?.reason == .invalidStoredState else {
+    func throwIfCredentialRecoveryBlocksPendingGuestUpgrade() throws {
+        guard let reason = self.cloudCredentialRecoveryState?.reason,
+            reason == .invalidStoredState || reason == .linkedWorkspaceUnavailable else {
+            return
+        }
+
+        try self.throwIfCloudCredentialRecoveryRequired()
+    }
+
+    func throwIfLinkedWorkspaceUnavailableRecoveryRequired() throws {
+        guard self.cloudCredentialRecoveryState?.reason == .linkedWorkspaceUnavailable else {
             return
         }
 
@@ -138,7 +147,7 @@ extension FlashcardsStore {
             )
         }
 
-        guard recoveryState.reason == .linkedCredentialsMissing else {
+        guard recoveryState.reason.requiresOriginalLinkedIdentity else {
             return
         }
         guard recoveryState.previousCloudState == .linked else {
@@ -290,7 +299,7 @@ extension FlashcardsStore {
                 apiBaseUrl: linkedSession.apiBaseUrl
             )
             return true
-        case .linkedCredentialsMissing:
+        case .linkedCredentialsMissing, .linkedWorkspaceUnavailable:
             try self.validateLinkedCredentialRecoveryConfiguration(
                 recoveryState: recoveryState,
                 apiBaseUrl: linkedSession.apiBaseUrl
@@ -458,7 +467,7 @@ extension FlashcardsStore {
             )
         }
 
-        guard recoveryState.reason == .linkedCredentialsMissing else {
+        guard recoveryState.reason.requiresOriginalLinkedIdentity else {
             return
         }
         guard recoveryState.previousCloudState == .linked else {

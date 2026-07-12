@@ -291,6 +291,7 @@ extension FlashcardsStore {
         guard accountContext.userId == session.userId else {
             switch session.authorization {
             case .bearer:
+                try self.throwIfLinkedWorkspaceUnavailableRecoveryRequired()
                 try self.resetLocalStateForCloudIdentityChange()
                 return
             case .guest:

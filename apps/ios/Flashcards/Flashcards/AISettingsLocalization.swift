@@ -73,6 +73,11 @@ func localizedCloudCredentialRecoveryBlockedMessage(reason: CloudCredentialRecov
             "settings.sync.recovery.linkedCredentialsMissing",
             "Secure sign-in credentials are missing on this device. Local data is preserved. Sign in again to reconnect sync."
         )
+    case .linkedWorkspaceUnavailable:
+        return aiSettingsLocalized(
+            "settings.sync.recovery.linkedWorkspaceUnavailable",
+            "Cloud access to the linked workspace changed. Local data is preserved. Sign in again after the original account and workspace access are restored."
+        )
     case .guestSessionMissing:
         return aiSettingsLocalized(
             "settings.sync.recovery.guestSessionMissing",
