@@ -42,7 +42,6 @@ import type { SessionInfo } from "../../../types";
 type UseWorkspaceLifecycleParams =
   & Readonly<{
     t: (key: TranslationKey) => string;
-    runSync: () => Promise<void>;
     runSyncSilently: () => Promise<void>;
     resolveInitialWorkspace: (currentSession: SessionInfo) => Promise<void>;
     clearConfirmedUserScopedState: (reason: LocalBrowserDataCleanupReason) => Promise<void>;
@@ -90,7 +89,6 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     setErrorMessage,
     setTechnicalError,
     setCloudSettings,
-    runSync,
     runSyncSilently,
     resolveInitialWorkspace,
     clearConfirmedUserScopedState,
@@ -362,7 +360,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
 
     const intervalId = window.setInterval(() => {
       if (document.visibilityState === "visible") {
-        runLifecycleTaskInBackground(runSync());
+        runLifecycleTaskInBackground(resumeInBackground());
       }
     }, 60_000);
 
@@ -387,7 +385,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [resumeInBackground, runSync, session, sessionLoadState, sessionVerificationState]);
+  }, [resumeInBackground, session, sessionLoadState, sessionVerificationState]);
 
   return {
     initialize,

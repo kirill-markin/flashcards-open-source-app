@@ -51,6 +51,7 @@ describe("useWorkspaceSession reauth resume", () => {
         root?.unmount();
       });
     }
+    globalThis.IS_REACT_ACT_ENVIRONMENT = undefined;
 
     container?.remove();
     root = null;
@@ -274,6 +275,112 @@ describe("useWorkspaceSession reauth resume", () => {
       linkedUserId: "user-2",
       linkedWorkspaceId: "workspace-2",
     }));
+  });
+
+  it("revalidates an account change before each visible interval sync", async () => {
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+    seedBrowserStorage();
+    await seedIndexedDbState();
+    vi.useFakeTimers({
+      toFake: ["setInterval", "clearInterval"],
+    });
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: (): DocumentVisibilityState => "visible",
+    });
+    const deleteDatabaseSpy = vi.spyOn(indexedDB, "deleteDatabase");
+    const syncDiscardDeferred = createDeferredVoidPromise();
+    const replacementWorkspaceSyncStarted = createDeferredVoidPromise();
+    const discardAllSyncWorkMock = vi.fn(async (
+      runWhileDiscarding: () => Promise<void>,
+    ): Promise<void> => {
+      await syncDiscardDeferred.promise;
+      await runWhileDiscarding();
+    });
+
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2"))
+      .mockResolvedValueOnce(buildWorkspacesResponse([replacementWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2-next"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const runSyncMock = vi.fn(async (): Promise<void> => {});
+    const runSyncSilentlyMock = vi.fn(async (): Promise<void> => {});
+    const runSyncForWorkspaceMock = vi.fn(async (workspace: WorkspaceSummary): Promise<void> => {
+      if (workspace.workspaceId === replacementWorkspace.workspaceId) {
+        replacementWorkspaceSyncStarted.resolve();
+      }
+    });
+
+    await act(async () => {
+      root?.render(
+        <TestHarness
+          initialSessionLoadState="ready"
+          initialSessionVerificationState="unverified"
+          initialSession={seededSession}
+          initialActiveWorkspace={seededWorkspace}
+          initialAvailableWorkspaces={[seededWorkspace]}
+          onStateChange={(snapshot: HarnessSnapshot): void => {
+            latestState = snapshot;
+          }}
+          refreshWorkspaceViewMock={vi.fn(async (): Promise<void> => {})}
+          runSyncMock={runSyncMock}
+          runSyncSilentlyMock={runSyncSilentlyMock}
+          runSyncForWorkspaceMock={runSyncForWorkspaceMock}
+          discardWorkspaceSyncMock={vi.fn((_workspaceId: string): void => {})}
+          discardAllSyncWorkMock={discardAllSyncWorkMock}
+          resetUserScopedUiStateMock={vi.fn((): void => {})}
+          onActionsChange={null}
+        />,
+      );
+    });
+
+    for (let attempt = 0; attempt < 10 && runSyncForWorkspaceMock.mock.calls.length === 0; attempt += 1) {
+      await act(async () => {
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+      });
+    }
+    expect(latestState?.session?.userId).toBe("user-1");
+    expect(latestState?.sessionVerificationState).toBe("verified");
+    expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
+    runSyncForWorkspaceMock.mockClear();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+
+    expect(discardAllSyncWorkMock).toHaveBeenCalledTimes(1);
+    expect(runSyncMock).not.toHaveBeenCalled();
+    expect(runSyncSilentlyMock).not.toHaveBeenCalled();
+    expect(runSyncForWorkspaceMock).not.toHaveBeenCalled();
+    expect(deleteDatabaseSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      syncDiscardDeferred.resolve();
+      await replacementWorkspaceSyncStarted.promise;
+      await Promise.resolve();
+    });
+
+    expect(latestState?.session?.userId).toBe("user-2");
+    expect(latestState?.activeWorkspace?.workspaceId).toBe("workspace-2");
+    expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
+
+    expect(discardAllSyncWorkMock.mock.invocationCallOrder[0]).toBeLessThan(
+      deleteDatabaseSpy.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(runSyncForWorkspaceMock).toHaveBeenCalledWith(replacementWorkspace);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+
+    expect(runSyncSilentlyMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
+    expect(latestState?.session?.userId).toBe("user-2");
+    expect(latestState?.session?.csrfToken).toBe("csrf-user-2-next");
   });
 
   it("shows an error when resume account switch bootstrap fails", async () => {

@@ -317,7 +317,7 @@ describe("useWorkspaceSession bootstrap", () => {
     expect(latestState?.technicalError).toBeNull();
   });
 
-  it("catches rejecting visible interval sync tasks", async () => {
+  it("revalidates the same user before a visible interval sync", async () => {
     seedBrowserStorage();
     await seedIndexedDbState();
 
@@ -337,13 +337,12 @@ describe("useWorkspaceSession bootstrap", () => {
 
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
-      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]));
+      .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-interval"));
     vi.stubGlobal("fetch", fetchMock);
 
-    const intervalSyncError = new Error("Interval sync failed");
-    const runSyncMock = vi.fn(async (): Promise<void> => {
-      throw intervalSyncError;
-    });
+    const runSyncMock = vi.fn(async (): Promise<void> => {});
+    const runSyncSilentlyMock = vi.fn(async (): Promise<void> => {});
 
     await act(async () => {
       root?.render(
@@ -358,7 +357,7 @@ describe("useWorkspaceSession bootstrap", () => {
           }}
           refreshWorkspaceViewMock={vi.fn(async (): Promise<void> => {})}
           runSyncMock={runSyncMock}
-          runSyncSilentlyMock={vi.fn(async (): Promise<void> => {})}
+          runSyncSilentlyMock={runSyncSilentlyMock}
           runSyncForWorkspaceMock={vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {})}
           discardWorkspaceSyncMock={vi.fn((_workspaceId: string): void => {})}
           discardAllSyncWorkMock={createDiscardAllSyncWorkMock()}
@@ -385,7 +384,13 @@ describe("useWorkspaceSession bootstrap", () => {
       await Promise.resolve();
     });
 
-    expect(runSyncMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(runSyncMock).not.toHaveBeenCalled();
+    expect(runSyncSilentlyMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.invocationCallOrder[2]).toBeLessThan(
+      runSyncSilentlyMock.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(latestState?.session?.csrfToken).toBe("csrf-interval");
     expect(latestState?.sessionLoadState).toBe("ready");
     expect(latestState?.sessionVerificationState).toBe("verified");
   });
