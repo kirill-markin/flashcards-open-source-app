@@ -324,7 +324,11 @@ export function isGuestUpgradeMergeOnlyExecutorQuery(text: string): boolean {
     && text.includes("column_name = 'platform'")
   )
     || text.includes("FROM sync.claim_installation")
-    || (text.includes("pg_advisory_xact_lock") && text.includes("hashtextextended"))
+    || (
+      text.includes("pg_advisory_xact_lock")
+      && text.includes("hashtextextended")
+      && !text.includes("auth.cognito_identity:")
+    )
     || (
       text.startsWith("SELECT")
       && text.includes("FROM org.workspaces AS workspaces")

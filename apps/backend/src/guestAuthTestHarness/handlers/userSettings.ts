@@ -13,6 +13,49 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
 ): pg.QueryResult<Row> | null {
   const { scope, state } = context;
 
+  if (text === "SELECT user_id FROM org.user_settings WHERE user_id = $1 LIMIT 1") {
+    const userId = String(params[0]);
+    scope.requireCurrentUserScope(userId);
+    const row = state.userSettings.get(userId);
+    return createQueryResult<Row>(row === undefined ? [] : [{ user_id: row.user_id } as unknown as Row]);
+  }
+
+  if (
+    text.startsWith("INSERT INTO org.user_settings (user_id, email)")
+    && text.includes("ON CONFLICT (user_id) DO UPDATE")
+  ) {
+    const userId = String(params[0]);
+    const email = params[1] === null ? null : String(params[1]);
+    scope.requireCurrentUserScope(userId);
+    const current = state.userSettings.get(userId);
+    if (current === undefined) {
+      state.userSettings.set(userId, createUserSettingsState(userId, null, email));
+    } else if (current.email === null && email !== null) {
+      state.userSettings.set(userId, {
+        ...current,
+        email,
+      });
+    }
+    return createQueryResult<Row>([]);
+  }
+
+  if (
+    text.startsWith("SELECT workspace_id, email, locale, review_reaction_animations_enabled, created_at")
+    && text.includes("FROM org.user_settings")
+    && text.includes("FOR UPDATE")
+  ) {
+    const userId = String(params[0]);
+    scope.requireCurrentUserScope(userId);
+    const row = state.userSettings.get(userId);
+    return createQueryResult<Row>(row === undefined ? [] : [{
+      workspace_id: row.workspace_id,
+      email: row.email,
+      locale: "en",
+      review_reaction_animations_enabled: true,
+      created_at: "2026-04-02T13:00:00.000Z",
+    } as unknown as Row]);
+  }
+
   if (text === "INSERT INTO org.user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING") {
     const userId = String(params[0]);
     scope.requireCurrentUserScope(userId);

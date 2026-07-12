@@ -183,6 +183,7 @@ export type MutableState = {
   currentWorkspaceId: string | null;
   nextHotChangeId: number;
   guestSession: GuestSessionState | null;
+  deletedSubjectHashes: Set<string>;
   identityMappings: Map<string, string>;
   userSettings: Map<string, UserSettingsState>;
   workspaces: Map<string, WorkspaceState>;

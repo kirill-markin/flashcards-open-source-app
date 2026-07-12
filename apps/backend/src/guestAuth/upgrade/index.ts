@@ -1,4 +1,13 @@
-import type { DatabaseExecutor } from "../../database";
+import {
+  applyUserDatabaseScopeInExecutor,
+  type DatabaseExecutor,
+} from "../../database";
+import {
+  bindCognitoIdentityMappingInExecutor,
+  loadCognitoIdentityMappingInExecutor,
+  lockCognitoIdentityLifecycleInExecutor,
+} from "../../auth/userIdentities";
+import { assertSubjectIsNotDeletedInExecutor } from "../../auth/deletedSubjects";
 import { HttpError } from "../../shared/errors";
 import {
   captureBackendWarning,
@@ -16,13 +25,11 @@ import { cleanupGuestSessionSourceInExecutor } from "../delete/index";
 import { mergeGuestWorkspaceIntoTargetInExecutor } from "../merge/index";
 import {
   assertTargetWorkspaceAccessInExecutor,
-  bindIdentityMappingInExecutor,
   loadGuestSessionRecordInExecutor,
   loadGuestSessionWithUserSettingsLockInExecutor,
   loadGuestUpgradeReplayByGuestTokenInExecutor,
   loadGuestUpgradeReplayInExecutor,
   loadGuestWorkspaceIdInExecutor,
-  loadIdentityMappingInExecutor,
   loadWorkspaceNameInExecutor,
   loadWorkspaceSummaryInExecutor,
   recordGuestUpgradeHistoryInExecutor,
@@ -329,11 +336,18 @@ export async function prepareGuestUpgradeInExecutor(
   cognitoSubject: string,
   email: string | null,
 ): Promise<GuestUpgradePreparation> {
+  await lockCognitoIdentityLifecycleInExecutor(executor, cognitoSubject);
+  await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
   const guestSession = await loadGuestSessionWithUserSettingsLockInExecutor(executor, guestToken);
-  const existingMappedUserId = await loadIdentityMappingInExecutor(executor, cognitoSubject);
+  const existingMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
 
-  if (existingMappedUserId === null || existingMappedUserId === guestSession.userId) {
-    await bindIdentityMappingInExecutor(executor, cognitoSubject, guestSession.userId);
+  if (existingMapping !== null) {
+    if (existingMapping.userId !== guestSession.userId) {
+      return {
+        mode: "merge_required",
+      };
+    }
+
     await updateUserEmailInExecutor(executor, guestSession.userId, email);
 
     return {
@@ -341,8 +355,23 @@ export async function prepareGuestUpgradeInExecutor(
     };
   }
 
+  await applyUserDatabaseScopeInExecutor(executor, { userId: cognitoSubject });
+  const fallbackProfile = await executor.query<Readonly<{ user_id: string }>>(
+    "SELECT user_id FROM org.user_settings WHERE user_id = $1 LIMIT 1",
+    [cognitoSubject],
+  );
+  if (fallbackProfile.rows[0] !== undefined) {
+    await bindCognitoIdentityMappingInExecutor(executor, cognitoSubject, cognitoSubject);
+    return {
+      mode: "merge_required",
+    };
+  }
+
+  await bindCognitoIdentityMappingInExecutor(executor, cognitoSubject, guestSession.userId);
+  await updateUserEmailInExecutor(executor, guestSession.userId, email);
+
   return {
-    mode: "merge_required",
+    mode: "bound",
   };
 }
 
@@ -367,6 +396,8 @@ export async function completeGuestUpgradeInExecutor(
   selection: GuestUpgradeSelection,
   capabilities: GuestUpgradeCompleteCapabilities,
 ): Promise<GuestUpgradeCompletion> {
+  await lockCognitoIdentityLifecycleInExecutor(executor, cognitoSubject);
+  await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
   // Phase 1: load the guest session identity before taking user row locks.
   const unlockedGuestSession = await loadGuestSessionRecordInExecutor(executor, guestToken, false);
   if (unlockedGuestSession === null) {
@@ -379,8 +410,8 @@ export async function completeGuestUpgradeInExecutor(
   }
 
   // Phase 2: resolve the mapped target user.
-  const targetUserId = await loadIdentityMappingInExecutor(executor, cognitoSubject);
-  if (targetUserId === null) {
+  const targetMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
+  if (targetMapping === null) {
     const guestSession = await lockGuestSessionAfterUserSettingsInExecutor(
       executor,
       guestToken,
@@ -398,6 +429,7 @@ export async function completeGuestUpgradeInExecutor(
 
     throw createGuestUpgradeAccountRequiredError();
   }
+  const targetUserId = targetMapping.userId;
 
   // Phase 3: short-circuit revoked-session replay.
   if (unlockedGuestSession.revokedAt !== null) {

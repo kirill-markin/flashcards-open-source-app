@@ -1,6 +1,17 @@
 import { deleteCognitoUser } from "./cognitoUsers";
-import { transactionWithUserScope, type DatabaseExecutor } from "../database";
-import { isDeletedSubject, markDeletedSubjectInExecutor } from "./deletedSubjects";
+import {
+  applyUserDatabaseScopeInExecutor,
+  type DatabaseExecutor,
+} from "../database";
+import { unsafeTransaction } from "../database/unsafe";
+import {
+  isDeletedSubjectInExecutor,
+  markDeletedSubjectInExecutor,
+} from "./deletedSubjects";
+import {
+  loadCognitoIdentityMappingInExecutor,
+  lockCognitoIdentityLifecycleInExecutor,
+} from "./userIdentities";
 import { isConfiguredDemoEmail } from "./demoEmailAccess";
 import { HttpError } from "../shared/errors";
 import {
@@ -11,7 +22,6 @@ import {
 export const deleteAccountConfirmationText: string = "delete my account";
 
 type AccountDeletionInput = Readonly<{
-  appUserId: string;
   authSubjectUserId: string;
   email: string | null;
   cognitoUsername: string | null;
@@ -19,9 +29,8 @@ type AccountDeletionInput = Readonly<{
 }>;
 
 type AccountDeletionDependencies = Readonly<{
-  transactionWithUserScope: typeof transactionWithUserScope;
+  unsafeTransaction: typeof unsafeTransaction;
   deleteCognitoUser: (cognitoUsername: string) => Promise<void>;
-  isDeletedSubject: (userId: string) => Promise<boolean>;
   isConfiguredDemoEmail: (email: string | null) => boolean;
 }>;
 
@@ -39,9 +48,8 @@ type UserSettingsEmailRow = Readonly<{
 }>;
 
 const defaultAccountDeletionDependencies: AccountDeletionDependencies = {
-  transactionWithUserScope,
+  unsafeTransaction,
   deleteCognitoUser,
-  isDeletedSubject,
   isConfiguredDemoEmail,
 };
 
@@ -184,23 +192,22 @@ export async function deleteAccountForAuthenticatedUser(
   assertValidConfirmationText(input.confirmationText);
   const isDemoAccount = dependencies.isConfiguredDemoEmail(input.email);
 
-  if (await dependencies.isDeletedSubject(input.authSubjectUserId)) {
-    if (isDemoAccount) {
+  await dependencies.unsafeTransaction(async (executor) => {
+    await lockCognitoIdentityLifecycleInExecutor(executor, input.authSubjectUserId);
+    if (await isDeletedSubjectInExecutor(executor, input.authSubjectUserId)) {
       return;
     }
 
-    const cognitoUsername = assertCognitoUsername(input.cognitoUsername);
-    await deleteCognitoIdentity(cognitoUsername, dependencies);
-    return;
-  }
+    const mapping = await loadCognitoIdentityMappingInExecutor(executor, input.authSubjectUserId);
+    const authoritativeUserId = mapping?.userId ?? input.authSubjectUserId;
+    await applyUserDatabaseScopeInExecutor(executor, { userId: authoritativeUserId });
 
-  await dependencies.transactionWithUserScope({ userId: input.appUserId }, async (executor) => {
     if (isDemoAccount) {
-      await deleteDemoAccountDataInExecutor(executor, input.appUserId);
+      await deleteDemoAccountDataInExecutor(executor, authoritativeUserId);
       return;
     }
 
-    await deleteRealAccountDataInExecutor(executor, input.appUserId, input.authSubjectUserId);
+    await deleteRealAccountDataInExecutor(executor, authoritativeUserId, input.authSubjectUserId);
   });
 
   if (isDemoAccount) {

@@ -53,7 +53,6 @@ export function registerAccountDeletionRoute(
 
     try {
       await deleteAccountForAuthenticatedUser({
-        appUserId: auth.userId,
         authSubjectUserId: auth.subjectUserId,
         email: auth.email,
         cognitoUsername: auth.cognitoUsername,

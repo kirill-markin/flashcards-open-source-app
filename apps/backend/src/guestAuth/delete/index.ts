@@ -3,6 +3,7 @@ import {
   type DatabaseExecutor,
 } from "../../database";
 import { HttpError } from "../../shared/errors";
+import { hasCognitoIdentityMappingForUserInExecutor } from "../../auth/userIdentities";
 import { loadWorkspaceManagementRowInExecutor } from "../../workspaces/queries";
 import {
   assertWorkspaceIsSoleMember,
@@ -11,7 +12,6 @@ import {
 import {
   deleteUserSettingsInExecutor,
   deleteGuestWorkspaceIfOwnedBySoleMemberInExecutor,
-  hasCognitoIdentityMappingForUserInExecutor,
   loadGuestSessionWithUserSettingsLockInExecutor,
   loadGuestWorkspaceIdInExecutor,
   revokeGuestSessionInExecutor,

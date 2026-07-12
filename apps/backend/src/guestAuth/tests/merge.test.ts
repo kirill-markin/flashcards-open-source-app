@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
 import type { DatabaseExecutor } from "../../database";
+import { hashDeletedSubject } from "../../auth/deletedSubjects";
 import { HttpError } from "../../shared/errors";
 import { completeGuestUpgradeInExecutor } from "..";
 import {
@@ -19,6 +20,70 @@ type RecordedGuestUpgradeQuery = Readonly<{
   text: string;
   params: ReadonlyArray<GuestUpgradeExecutorParam>;
 }>;
+
+test("completeGuestUpgradeInExecutor rejects a tombstoned subject before any completion read", async () => {
+  const guestToken = "guest-token-complete-deleted";
+  const cognitoSubject = "cognito-subject-complete-deleted";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-complete-deleted",
+    guestUserId: "guest-user",
+    guestWorkspaceId: "guest-workspace",
+    targetSubject: cognitoSubject,
+    targetUserId: "linked-user",
+    targetWorkspaceId: "target-workspace",
+    guestReplicaId: "guest-replica",
+    installationId: "installation-complete-deleted",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  state.deletedSubjectHashes.add(hashDeletedSubject(cognitoSubject));
+  const recordedQueries: Array<RecordedGuestUpgradeQuery> = [];
+  const baseExecutor = createGuestUpgradeExecutor(state);
+  const executor: DatabaseExecutor = {
+    query: async <Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<GuestUpgradeExecutorParam>,
+    ): Promise<pg.QueryResult<Row>> => {
+      recordedQueries.push({ text, params: [...params] });
+      return baseExecutor.query<Row>(text, params);
+    },
+  };
+
+  await assert.rejects(
+    completeGuestUpgradeInExecutor(
+      executor,
+      guestToken,
+      cognitoSubject,
+      { type: "create_new" },
+      DROPPED_ENTITIES_UNSUPPORTED,
+    ),
+    (error: unknown) => (
+      error instanceof HttpError
+      && error.statusCode === 410
+      && error.code === "ACCOUNT_DELETED"
+    ),
+  );
+
+  const identityLockIndex = recordedQueries.findIndex((query) => query.text.includes("auth.cognito_identity:"));
+  const tombstoneReadIndex = recordedQueries.findIndex((query) => query.text.includes("FROM auth.deleted_subjects"));
+  const forbiddenReadFragments = [
+    "FROM auth.guest_sessions",
+    "FROM auth.user_identities",
+    "FROM auth.guest_upgrade_history",
+    "FROM org.user_settings",
+    "FROM org.workspace_memberships",
+    "FROM org.workspaces",
+  ];
+
+  assert.notEqual(identityLockIndex, -1);
+  assert.notEqual(tombstoneReadIndex, -1);
+  assert.ok(identityLockIndex < tombstoneReadIndex);
+  assert.equal(
+    recordedQueries.some((query) => forbiddenReadFragments.some((fragment) => query.text.includes(fragment))),
+    false,
+  );
+});
 
 test("completeGuestUpgradeInExecutor reassigns guest installation ownership during merge", async () => {
   const guestToken = "guest-token-1";
@@ -294,6 +359,10 @@ test("completeGuestUpgradeInExecutor locks source and target workspaces in merge
     DROPPED_ENTITIES_UNSUPPORTED,
   );
 
+  const identityLockIndex = recordedQueries.findIndex((query) => (
+    query.text.includes("auth.cognito_identity:")
+    && query.params[0] === targetSubject
+  ));
   const targetUserSettingsLockIndex = recordedQueries.findIndex((query) => (
     query.text === "SELECT user_id FROM org.user_settings WHERE user_id = $1 FOR UPDATE"
     && query.params[0] === targetUserId
@@ -330,6 +399,7 @@ test("completeGuestUpgradeInExecutor locks source and target workspaces in merge
     && query.params[0] === guestWorkspaceId
   ));
 
+  assert.notEqual(identityLockIndex, -1);
   assert.notEqual(guestUserSettingsLockIndex, -1);
   assert.notEqual(lockedGuestSessionIndex, -1);
   assert.notEqual(targetUserSettingsLockIndex, -1);
@@ -338,6 +408,11 @@ test("completeGuestUpgradeInExecutor locks source and target workspaces in merge
   assert.notEqual(sourceReplicaReadIndex, -1);
   assert.notEqual(targetSchedulerReadIndex, -1);
   assert.notEqual(sourceContentDeleteIndex, -1);
+  assert.ok(identityLockIndex < targetUserSettingsLockIndex);
+  assert.ok(identityLockIndex < guestUserSettingsLockIndex);
+  assert.ok(identityLockIndex < lockedGuestSessionIndex);
+  assert.ok(identityLockIndex < sourceWorkspaceLockIndex);
+  assert.ok(identityLockIndex < targetWorkspaceLockIndex);
   assert.ok(targetUserSettingsLockIndex < guestUserSettingsLockIndex);
   assert.ok(guestUserSettingsLockIndex < lockedGuestSessionIndex);
   assert.ok(targetUserSettingsLockIndex < lockedGuestSessionIndex);
