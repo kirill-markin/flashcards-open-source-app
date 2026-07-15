@@ -1,7 +1,7 @@
 [versions]
-agp = "9.2.1"
-kotlin = "2.4.0"
-ksp = "2.3.9"
+agp = "9.3.0"
+kotlin = "2.4.10"
+ksp = "2.3.10"
 # Pinned for compileSdk 36 (our stable baseline — see apps/android/README.md):
 # coreKtx >= 1.19.0 requires compileSdk 37 (Android 17, not yet stable) and breaks the Android build.
 coreKtx = "1.18.0"
@@ -28,7 +28,7 @@ testOrchestrator = "1.6.1"
 securityCrypto = "1.1.0"
 json = "20260522"
 okhttp = "5.4.0"
-sentry = "8.47.0"
+sentry = "8.48.0"
 sentryAndroidGradlePlugin = "6.14.0"
 
 [libraries]
