@@ -21,6 +21,11 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import com.airbnb.lottie.LottieComposition
 import com.airbnb.lottie.compose.LottieAnimation
+import com.flashcardsopensourceapp.feature.review.reaction.drawing.drawReviewReaction
+import com.flashcardsopensourceapp.feature.review.reaction.drawing.reviewReactionCenterX
+import com.flashcardsopensourceapp.feature.review.reaction.drawing.reviewReactionCenterY
+import com.flashcardsopensourceapp.feature.review.reaction.drawing.reviewReactionClampedProgress
+import com.flashcardsopensourceapp.feature.review.reaction.drawing.reviewReactionOpacity
 import kotlinx.coroutines.delay
 
 private const val reviewReactionAnimationMinimumProgress: Float = 0f
