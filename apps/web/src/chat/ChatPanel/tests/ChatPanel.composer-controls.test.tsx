@@ -296,7 +296,7 @@ describe("ChatPanel composer controls", () => {
     expect(sendButton).not.toBeNull();
     expect(sendButton?.disabled).toBe(true);
     expect(sendButton?.getAttribute("aria-busy")).toBe("true");
-    expect(queryChatSendButtonBusyIndicator(getContainer())).not.toBeNull();
+    expect(queryChatSendButtonBusyIndicator(getContainer())?.hidden).toBe(false);
 
     await dispatchChatPanelDragEvent(getContainer(), createDropEvent(new File(["pending"], "pending.txt", { type: "text/plain" })));
     await flushAsync();
@@ -341,7 +341,7 @@ describe("ChatPanel composer controls", () => {
     expect(composerState?.getAttribute("data-send-phase")).toBe("preparingSend");
     expect(sendButton).not.toBeNull();
     expect(sendButton?.getAttribute("aria-busy")).toBe("true");
-    expect(queryChatSendButtonBusyIndicator(getContainer())).not.toBeNull();
+    expect(queryChatSendButtonBusyIndicator(getContainer())?.hidden).toBe(false);
     expect(resolveDelayedAttachment).not.toBeNull();
 
     await act(async () => {

@@ -505,14 +505,13 @@ export function ChatPanel(props: Props): ReactElement {
                 disabled={!canSendPendingMessage}
                 data-testid="chat-send-button"
               >
-                {isSendButtonBusy ? (
-                  <span
-                    className="chat-send-btn-spinner"
-                    aria-hidden="true"
-                    data-testid="chat-send-button-busy-indicator"
-                  />
-                ) : null}
-                {t("chatPanel.actions.send")}
+                <span
+                  className="chat-send-btn-spinner"
+                  aria-hidden="true"
+                  data-testid="chat-send-button-busy-indicator"
+                  hidden={!isSendButtonBusy}
+                />
+                <span>{t("chatPanel.actions.send")}</span>
               </button>
             )}
           </div>

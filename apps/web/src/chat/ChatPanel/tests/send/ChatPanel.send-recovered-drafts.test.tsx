@@ -314,7 +314,7 @@ describe("ChatPanel send recovered drafts", () => {
     expect(textareaAfterReopen?.value).toBe("keep this draft after closing panel");
     expect(sendButtonAfterReopen?.disabled).toBe(true);
     expect(sendButtonAfterReopen?.getAttribute("aria-busy")).toBe("true");
-    expect(queryChatSendButtonBusyIndicator(getContainer())).not.toBeNull();
+    expect(queryChatSendButtonBusyIndicator(getContainer())?.hidden).toBe(false);
     expect(readStoredDraftInputText("workspace-1", staleSessionId as string)).toBeNull();
     expect(readStoredDraftInputText("workspace-1", recoveredSessionId as string)).toBe("keep this draft after closing panel");
 
@@ -327,7 +327,7 @@ describe("ChatPanel send recovered drafts", () => {
     expect(composerStateAfterRetryFailure?.getAttribute("data-send-phase")).toBe("idle");
     expect(sendButtonAfterRetryFailure?.disabled).toBe(false);
     expect(sendButtonAfterRetryFailure?.getAttribute("aria-busy")).toBe("false");
-    expect(queryChatSendButtonBusyIndicator(getContainer())).toBeNull();
+    expect(queryChatSendButtonBusyIndicator(getContainer())?.hidden).toBe(true);
     expect(readStoredDraftInputText("workspace-1", recoveredSessionId as string)).toBe("keep this draft after closing panel");
   });
 
