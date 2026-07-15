@@ -1,6 +1,9 @@
-package com.flashcardsopensourceapp.feature.review.reaction
+package com.flashcardsopensourceapp.feature.review.reaction.drawing
 
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionEvent
+import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionMotionMode
+import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionVariant
 
 internal fun DrawScope.drawReviewReaction(
     event: ReviewReactionEvent,

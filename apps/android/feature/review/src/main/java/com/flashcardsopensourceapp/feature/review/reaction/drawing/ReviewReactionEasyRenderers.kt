@@ -1,7 +1,9 @@
-package com.flashcardsopensourceapp.feature.review.reaction
+package com.flashcardsopensourceapp.feature.review.reaction.drawing
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionMotionMode
+import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionVariant
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.min

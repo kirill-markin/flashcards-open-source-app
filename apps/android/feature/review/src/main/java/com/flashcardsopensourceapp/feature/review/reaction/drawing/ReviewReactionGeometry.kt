@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.review.reaction
+package com.flashcardsopensourceapp.feature.review.reaction.drawing
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
