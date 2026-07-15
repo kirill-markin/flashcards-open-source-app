@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.ai.ui
+package com.flashcardsopensourceapp.feature.ai.input
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -59,6 +59,7 @@ import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
 import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
+import com.flashcardsopensourceapp.feature.ai.ui.RepairStatusCard
 
 private val aiComposerActionSize = 40.dp
 private val aiComposerPrimaryActionSize = 36.dp

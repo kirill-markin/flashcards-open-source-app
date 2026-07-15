@@ -63,7 +63,10 @@ import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
 import com.flashcardsopensourceapp.feature.ai.aiNewChatButtonTag
 import com.flashcardsopensourceapp.feature.ai.input.AiCapabilityPresentationResult
+import com.flashcardsopensourceapp.feature.ai.input.AiComposer
 import com.flashcardsopensourceapp.feature.ai.input.AndroidAiChatDictationRecorder
+import com.flashcardsopensourceapp.feature.ai.input.AttachmentAction
+import com.flashcardsopensourceapp.feature.ai.input.AttachmentSheet
 import com.flashcardsopensourceapp.feature.ai.input.aiAttachmentImportAlert
 import com.flashcardsopensourceapp.feature.ai.input.aiCapabilityPresentationResult
 import com.flashcardsopensourceapp.feature.ai.input.aiChatDocumentPickerMimeTypes

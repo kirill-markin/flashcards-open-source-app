@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.ai.ui
+package com.flashcardsopensourceapp.feature.ai.input
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
