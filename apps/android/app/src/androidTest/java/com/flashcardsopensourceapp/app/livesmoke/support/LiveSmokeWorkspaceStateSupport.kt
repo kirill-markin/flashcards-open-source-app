@@ -2,12 +2,16 @@
 
 package com.flashcardsopensourceapp.app.livesmoke.support
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.nodeSummary
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.nodeSummaryIncludingDescendants
@@ -76,7 +80,11 @@ internal fun LiveSmokeContext.dismissCurrentWorkspaceChangeSheet(timeoutMillis: 
     ) {
         return
     }
-    device.pressBack()
+    composeRule.onNode(
+        matcher = SemanticsMatcher.keyIsDefined(SemanticsActions.Dismiss) and
+            hasAnyAncestor(hasTestTag(currentWorkspaceChangeSheetTag)),
+        useUnmergedTree = true
+    ).performSemanticsAction(SemanticsActions.Dismiss)
     waitUntilWithMitigation(
         timeoutMillis = timeoutMillis,
         context = "while dismissing the Change workspace sheet"
