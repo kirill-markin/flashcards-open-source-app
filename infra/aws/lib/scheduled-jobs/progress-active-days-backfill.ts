@@ -6,26 +6,27 @@ import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as rds from "aws-cdk-lib/aws-rds";
 import * as scheduler from "aws-cdk-lib/aws-scheduler";
 import { Construct } from "constructs";
-import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
-import { createSentrySourceMapUploadCommand } from "./sentry-source-maps";
+import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
+import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
 
-export interface CommunityLeaderboardProps {
+export interface ProgressActiveDaysBackfillProps {
   vpc: ec2.Vpc;
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
   backendDbSecret: cdk.aws_secretsmanager.Secret;
+  reportingDbSecret: cdk.aws_secretsmanager.ISecret;
   sentryDsnSecretArn: string | undefined;
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
   sentryTracesSampleRate: string | undefined;
 }
 
-export interface CommunityLeaderboardResult {
-  snapshotFunction: lambdaNodejs.NodejsFunction;
+export interface ProgressActiveDaysBackfillResult {
+  backfillFunction: lambdaNodejs.NodejsFunction;
 }
 
-export const communityLeaderboardSnapshotScheduleHours = 1;
-export const communityLeaderboardSnapshotScheduleExpression = "cron(0 * * * ? *)";
+export const progressActiveDaysBackfillScheduleHours = 1;
+export const progressActiveDaysBackfillScheduleExpression = "cron(15 * * * ? *)";
 
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
   minify: true,
@@ -47,7 +48,7 @@ function hasConfiguredValue(value: string | undefined): value is string {
 function addOptionalSentryEnvironment(
   scope: Construct,
   fn: lambdaNodejs.NodejsFunction,
-  props: CommunityLeaderboardProps,
+  props: ProgressActiveDaysBackfillProps,
 ): void {
   if (!hasConfiguredValue(props.sentryDsnSecretArn)) {
     return;
@@ -67,7 +68,7 @@ function addOptionalSentryEnvironment(
 
   const secret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
     scope,
-    "CommunityLeaderboardSnapshotSentryDsnSecret",
+    "ProgressActiveDaysBackfillSentryDsnSecret",
     props.sentryDsnSecretArn,
   );
   secret.grantRead(fn);
@@ -77,15 +78,12 @@ function addOptionalSentryEnvironment(
   fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
 }
 
-/**
- * Hourly community leaderboard snapshot generation. The Lambda connects to Postgres as
- * the backend_app runtime role (read-write) and calls the SECURITY DEFINER snapshot
- * function, so it needs the backend database secret rather than the read-only reporting
- * secret used by the global metrics snapshot.
- */
-export function communityLeaderboard(scope: Construct, props: CommunityLeaderboardProps): CommunityLeaderboardResult {
-  const snapshotFunction = new lambdaNodejs.NodejsFunction(scope, "CommunityLeaderboardSnapshotHandler", {
-    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-community-leaderboard-snapshot.ts"),
+export function progressActiveDaysBackfill(
+  scope: Construct,
+  props: ProgressActiveDaysBackfillProps,
+): ProgressActiveDaysBackfillResult {
+  const backfillFunction = new lambdaNodejs.NodejsFunction(scope, "ProgressActiveDaysBackfillHandler", {
+    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-progress-active-days-backfill.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.minutes(5),
@@ -98,36 +96,38 @@ export function communityLeaderboard(scope: Construct, props: CommunityLeaderboa
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
       DB_SECRET_ARN: props.backendDbSecret.secretArn,
+      REPORTING_DB_SECRET_ARN: props.reportingDbSecret.secretArn,
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
     },
   });
 
-  props.backendDbSecret.grantRead(snapshotFunction);
-  addOptionalSentryEnvironment(scope, snapshotFunction, props);
+  props.backendDbSecret.grantRead(backfillFunction);
+  props.reportingDbSecret.grantRead(backfillFunction);
+  addOptionalSentryEnvironment(scope, backfillFunction, props);
 
-  const schedulerInvokeRole = new iam.Role(scope, "CommunityLeaderboardSnapshotSchedulerRole", {
+  const schedulerInvokeRole = new iam.Role(scope, "ProgressActiveDaysBackfillSchedulerRole", {
     assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
   });
   schedulerInvokeRole.addToPolicy(new iam.PolicyStatement({
     actions: ["lambda:InvokeFunction"],
-    resources: [snapshotFunction.functionArn],
+    resources: [backfillFunction.functionArn],
   }));
 
-  new scheduler.CfnSchedule(scope, "CommunityLeaderboardSnapshotHourlySchedule", {
-    description: "Generate the community leaderboard snapshots every hour",
+  new scheduler.CfnSchedule(scope, "ProgressActiveDaysBackfillHourlySchedule", {
+    description: "Materialize missing Progress active review days every hour",
     flexibleTimeWindow: { mode: "OFF" },
-    scheduleExpression: communityLeaderboardSnapshotScheduleExpression,
+    scheduleExpression: progressActiveDaysBackfillScheduleExpression,
     scheduleExpressionTimezone: "UTC",
     state: "ENABLED",
     target: {
-      arn: snapshotFunction.functionArn,
+      arn: backfillFunction.functionArn,
       input: "{}",
       roleArn: schedulerInvokeRole.roleArn,
     },
   });
 
   return {
-    snapshotFunction,
+    backfillFunction,
   };
 }

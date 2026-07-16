@@ -17,7 +17,7 @@ test("progress active days backfill is scheduled hourly", () => {
 });
 
 test("progress active days backfill construct creates the hourly schedule and Lambda", () => {
-  const source = readLibSource("lib/progress-active-days-backfill.ts");
+  const source = readLibSource("lib/scheduled-jobs/progress-active-days-backfill.ts");
 
   assert.match(source, /new lambdaNodejs\.NodejsFunction\(scope, "ProgressActiveDaysBackfillHandler"/);
   assert.match(

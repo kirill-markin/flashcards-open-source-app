@@ -6,10 +6,10 @@ import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as rds from "aws-cdk-lib/aws-rds";
 import * as scheduler from "aws-cdk-lib/aws-scheduler";
 import { Construct } from "constructs";
-import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
-import { createSentrySourceMapUploadCommand } from "./sentry-source-maps";
+import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
+import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
 
-export interface StreakLeaderboardProps {
+export interface CommunityLeaderboardProps {
   vpc: ec2.Vpc;
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
@@ -20,12 +20,12 @@ export interface StreakLeaderboardProps {
   sentryTracesSampleRate: string | undefined;
 }
 
-export interface StreakLeaderboardResult {
+export interface CommunityLeaderboardResult {
   snapshotFunction: lambdaNodejs.NodejsFunction;
 }
 
-export const streakLeaderboardSnapshotScheduleHours = 24;
-export const streakLeaderboardSnapshotScheduleExpression = "cron(0 12 * * ? *)";
+export const communityLeaderboardSnapshotScheduleHours = 1;
+export const communityLeaderboardSnapshotScheduleExpression = "cron(0 * * * ? *)";
 
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
   minify: true,
@@ -47,7 +47,7 @@ function hasConfiguredValue(value: string | undefined): value is string {
 function addOptionalSentryEnvironment(
   scope: Construct,
   fn: lambdaNodejs.NodejsFunction,
-  props: StreakLeaderboardProps,
+  props: CommunityLeaderboardProps,
 ): void {
   if (!hasConfiguredValue(props.sentryDsnSecretArn)) {
     return;
@@ -67,7 +67,7 @@ function addOptionalSentryEnvironment(
 
   const secret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
     scope,
-    "StreakLeaderboardSnapshotSentryDsnSecret",
+    "CommunityLeaderboardSnapshotSentryDsnSecret",
     props.sentryDsnSecretArn,
   );
   secret.grantRead(fn);
@@ -77,9 +77,15 @@ function addOptionalSentryEnvironment(
   fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
 }
 
-export function streakLeaderboard(scope: Construct, props: StreakLeaderboardProps): StreakLeaderboardResult {
-  const snapshotFunction = new lambdaNodejs.NodejsFunction(scope, "StreakLeaderboardSnapshotHandler", {
-    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-streak-leaderboard-snapshot.ts"),
+/**
+ * Hourly community leaderboard snapshot generation. The Lambda connects to Postgres as
+ * the backend_app runtime role (read-write) and calls the SECURITY DEFINER snapshot
+ * function, so it needs the backend database secret rather than the read-only reporting
+ * secret used by the global metrics snapshot.
+ */
+export function communityLeaderboard(scope: Construct, props: CommunityLeaderboardProps): CommunityLeaderboardResult {
+  const snapshotFunction = new lambdaNodejs.NodejsFunction(scope, "CommunityLeaderboardSnapshotHandler", {
+    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-community-leaderboard-snapshot.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.minutes(5),
@@ -100,7 +106,7 @@ export function streakLeaderboard(scope: Construct, props: StreakLeaderboardProp
   props.backendDbSecret.grantRead(snapshotFunction);
   addOptionalSentryEnvironment(scope, snapshotFunction, props);
 
-  const schedulerInvokeRole = new iam.Role(scope, "StreakLeaderboardSnapshotSchedulerRole", {
+  const schedulerInvokeRole = new iam.Role(scope, "CommunityLeaderboardSnapshotSchedulerRole", {
     assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
   });
   schedulerInvokeRole.addToPolicy(new iam.PolicyStatement({
@@ -108,10 +114,10 @@ export function streakLeaderboard(scope: Construct, props: StreakLeaderboardProp
     resources: [snapshotFunction.functionArn],
   }));
 
-  new scheduler.CfnSchedule(scope, "StreakLeaderboardSnapshotDailySchedule", {
-    description: "Generate the streak leaderboard snapshot daily at 12:00 UTC",
+  new scheduler.CfnSchedule(scope, "CommunityLeaderboardSnapshotHourlySchedule", {
+    description: "Generate the community leaderboard snapshots every hour",
     flexibleTimeWindow: { mode: "OFF" },
-    scheduleExpression: streakLeaderboardSnapshotScheduleExpression,
+    scheduleExpression: communityLeaderboardSnapshotScheduleExpression,
     scheduleExpressionTimezone: "UTC",
     state: "ENABLED",
     target: {
