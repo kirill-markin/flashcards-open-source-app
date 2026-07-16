@@ -8,8 +8,8 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import * as scheduler from "aws-cdk-lib/aws-scheduler";
 import { Construct } from "constructs";
 import * as path from "path";
-import { backendNodejsProjectPaths, infraAwsNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
-import { createSentrySourceMapUploadCommand } from "./sentry-source-maps";
+import { backendNodejsProjectPaths, infraAwsNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
+import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
 
 export interface GlobalMetricsProps {
   vpc: ec2.Vpc;
@@ -153,7 +153,7 @@ export function globalMetrics(scope: Construct, props: GlobalMetricsProps): Glob
     scope,
     "GlobalMetricsSnapshotFreshnessCheckerHandler",
     {
-      entry: path.join(__dirname, "../lambda/global-metrics-snapshot-freshness/index.ts"),
+      entry: path.join(__dirname, "../../lambda/global-metrics-snapshot-freshness/index.ts"),
       handler: "handler",
       runtime: lambda.Runtime.NODEJS_24_X,
       timeout: cdk.Duration.seconds(30),

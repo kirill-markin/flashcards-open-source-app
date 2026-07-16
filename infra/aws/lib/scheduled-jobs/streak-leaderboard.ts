@@ -6,27 +6,26 @@ import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as rds from "aws-cdk-lib/aws-rds";
 import * as scheduler from "aws-cdk-lib/aws-scheduler";
 import { Construct } from "constructs";
-import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
-import { createSentrySourceMapUploadCommand } from "./sentry-source-maps";
+import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
+import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
 
-export interface ProgressActiveDaysBackfillProps {
+export interface StreakLeaderboardProps {
   vpc: ec2.Vpc;
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
   backendDbSecret: cdk.aws_secretsmanager.Secret;
-  reportingDbSecret: cdk.aws_secretsmanager.ISecret;
   sentryDsnSecretArn: string | undefined;
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
   sentryTracesSampleRate: string | undefined;
 }
 
-export interface ProgressActiveDaysBackfillResult {
-  backfillFunction: lambdaNodejs.NodejsFunction;
+export interface StreakLeaderboardResult {
+  snapshotFunction: lambdaNodejs.NodejsFunction;
 }
 
-export const progressActiveDaysBackfillScheduleHours = 1;
-export const progressActiveDaysBackfillScheduleExpression = "cron(15 * * * ? *)";
+export const streakLeaderboardSnapshotScheduleHours = 24;
+export const streakLeaderboardSnapshotScheduleExpression = "cron(0 12 * * ? *)";
 
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
   minify: true,
@@ -48,7 +47,7 @@ function hasConfiguredValue(value: string | undefined): value is string {
 function addOptionalSentryEnvironment(
   scope: Construct,
   fn: lambdaNodejs.NodejsFunction,
-  props: ProgressActiveDaysBackfillProps,
+  props: StreakLeaderboardProps,
 ): void {
   if (!hasConfiguredValue(props.sentryDsnSecretArn)) {
     return;
@@ -68,7 +67,7 @@ function addOptionalSentryEnvironment(
 
   const secret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
     scope,
-    "ProgressActiveDaysBackfillSentryDsnSecret",
+    "StreakLeaderboardSnapshotSentryDsnSecret",
     props.sentryDsnSecretArn,
   );
   secret.grantRead(fn);
@@ -78,12 +77,9 @@ function addOptionalSentryEnvironment(
   fn.addEnvironment("SENTRY_TRACES_SAMPLE_RATE", props.sentryTracesSampleRate);
 }
 
-export function progressActiveDaysBackfill(
-  scope: Construct,
-  props: ProgressActiveDaysBackfillProps,
-): ProgressActiveDaysBackfillResult {
-  const backfillFunction = new lambdaNodejs.NodejsFunction(scope, "ProgressActiveDaysBackfillHandler", {
-    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-progress-active-days-backfill.ts"),
+export function streakLeaderboard(scope: Construct, props: StreakLeaderboardProps): StreakLeaderboardResult {
+  const snapshotFunction = new lambdaNodejs.NodejsFunction(scope, "StreakLeaderboardSnapshotHandler", {
+    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-streak-leaderboard-snapshot.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.minutes(5),
@@ -96,38 +92,36 @@ export function progressActiveDaysBackfill(
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
       DB_SECRET_ARN: props.backendDbSecret.secretArn,
-      REPORTING_DB_SECRET_ARN: props.reportingDbSecret.secretArn,
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
     },
   });
 
-  props.backendDbSecret.grantRead(backfillFunction);
-  props.reportingDbSecret.grantRead(backfillFunction);
-  addOptionalSentryEnvironment(scope, backfillFunction, props);
+  props.backendDbSecret.grantRead(snapshotFunction);
+  addOptionalSentryEnvironment(scope, snapshotFunction, props);
 
-  const schedulerInvokeRole = new iam.Role(scope, "ProgressActiveDaysBackfillSchedulerRole", {
+  const schedulerInvokeRole = new iam.Role(scope, "StreakLeaderboardSnapshotSchedulerRole", {
     assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
   });
   schedulerInvokeRole.addToPolicy(new iam.PolicyStatement({
     actions: ["lambda:InvokeFunction"],
-    resources: [backfillFunction.functionArn],
+    resources: [snapshotFunction.functionArn],
   }));
 
-  new scheduler.CfnSchedule(scope, "ProgressActiveDaysBackfillHourlySchedule", {
-    description: "Materialize missing Progress active review days every hour",
+  new scheduler.CfnSchedule(scope, "StreakLeaderboardSnapshotDailySchedule", {
+    description: "Generate the streak leaderboard snapshot daily at 12:00 UTC",
     flexibleTimeWindow: { mode: "OFF" },
-    scheduleExpression: progressActiveDaysBackfillScheduleExpression,
+    scheduleExpression: streakLeaderboardSnapshotScheduleExpression,
     scheduleExpressionTimezone: "UTC",
     state: "ENABLED",
     target: {
-      arn: backfillFunction.functionArn,
+      arn: snapshotFunction.functionArn,
       input: "{}",
       roleArn: schedulerInvokeRole.roleArn,
     },
   });
 
   return {
-    backfillFunction,
+    snapshotFunction,
   };
 }

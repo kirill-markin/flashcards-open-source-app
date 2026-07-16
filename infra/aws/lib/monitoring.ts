@@ -15,10 +15,10 @@ import {
   globalMetricsSnapshotFreshnessMetricName,
   globalMetricsSnapshotFreshnessMetricNamespace,
   globalMetricsSnapshotFreshnessMetricStackDimensionName,
-} from "./global-metrics";
-import { communityLeaderboardSnapshotScheduleHours } from "./community-leaderboard";
-import { streakLeaderboardSnapshotScheduleHours } from "./streak-leaderboard";
-import { progressActiveDaysBackfillScheduleHours } from "./progress-active-days-backfill";
+} from "./scheduled-jobs/global-metrics";
+import { communityLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/community-leaderboard";
+import { streakLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/streak-leaderboard";
+import { progressActiveDaysBackfillScheduleHours } from "./scheduled-jobs/progress-active-days-backfill";
 
 const communityLeaderboardSnapshotStaleEvaluationPeriods = 2;
 const streakLeaderboardSnapshotStaleEvaluationPeriods = 2;

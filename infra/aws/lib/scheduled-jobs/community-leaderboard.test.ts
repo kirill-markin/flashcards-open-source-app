@@ -17,7 +17,7 @@ test("community leaderboard snapshot is scheduled hourly", () => {
 });
 
 test("community leaderboard construct creates the hourly schedule and snapshot Lambda", () => {
-  const source = readLibSource("lib/community-leaderboard.ts");
+  const source = readLibSource("lib/scheduled-jobs/community-leaderboard.ts");
 
   // A NodejsFunction whose entry is the leaderboard snapshot Lambda handler.
   assert.match(source, /new lambdaNodejs\.NodejsFunction\(scope, "CommunityLeaderboardSnapshotHandler"/);

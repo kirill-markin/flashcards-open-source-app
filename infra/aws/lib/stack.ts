@@ -15,10 +15,10 @@ import { migrationRunner } from "./migration-runner";
 import { authGateway } from "./gateways/auth-gateway";
 import { mcpGateway } from "./gateways/mcp-gateway";
 import { analyticsAccess, type AnalyticsAccessResult } from "./analytics-access";
-import { globalMetrics } from "./global-metrics";
-import { communityLeaderboard } from "./community-leaderboard";
-import { streakLeaderboard } from "./streak-leaderboard";
-import { progressActiveDaysBackfill } from "./progress-active-days-backfill";
+import { globalMetrics } from "./scheduled-jobs/global-metrics";
+import { communityLeaderboard } from "./scheduled-jobs/community-leaderboard";
+import { streakLeaderboard } from "./scheduled-jobs/streak-leaderboard";
+import { progressActiveDaysBackfill } from "./scheduled-jobs/progress-active-days-backfill";
 import { mediaAssets } from "./media-assets";
 
 function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefined {
