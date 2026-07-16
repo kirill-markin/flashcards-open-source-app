@@ -321,7 +321,7 @@ class ReviewNotificationsManager(
         clearReviewScheduling()
         var deliveredCleanupCompleted = false
         if (shouldClearDeliveredReviewNotifications) {
-            clearDeliveredReviewReminderState()
+            clearDeliveredReviewReminderNotifications()
             onDeliveredCleanupCompleted()
             deliveredCleanupCompleted = true
         }
@@ -348,8 +348,8 @@ class ReviewNotificationsManager(
 
         val settings = reviewNotificationsStore.loadSettings()
         if (settings.isEnabled.not()) {
+            clearDeliveredReviewReminderState()
             if (deliveredCleanupCompleted.not()) {
-                clearDeliveredReviewReminderState()
                 onDeliveredCleanupCompleted()
             }
             saveEmptyReviewSchedulingAndEmitSkippedDiagnostic(
