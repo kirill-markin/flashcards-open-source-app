@@ -143,13 +143,14 @@ final class StrictReminderCompletionTests: ReviewNotificationsTestCase {
         )
         XCTAssertTrue(resolution.shouldPersistImportedCompletion)
         XCTAssertFalse(resolution.shouldClearPersistedCompletion)
+        let unrelatedWorkspaceCompletedDayStartMillis: Set<Int64> = try await loadStrictReminderImportedCompletedDayStartMillis(
+            databaseURL: databaseURL,
+            workspaceId: "workspace-without-review",
+            now: now,
+            calendar: calendar
+        )
         XCTAssertEqual(
-            try await loadStrictReminderImportedCompletedDayStartMillis(
-                databaseURL: databaseURL,
-                workspaceId: "workspace-without-review",
-                now: now,
-                calendar: calendar
-            ),
+            unrelatedWorkspaceCompletedDayStartMillis,
             []
         )
     }
