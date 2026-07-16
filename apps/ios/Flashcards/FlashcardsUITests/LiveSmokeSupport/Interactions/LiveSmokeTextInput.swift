@@ -1,5 +1,7 @@
 import XCTest
 
+private let liveSmokeTextInputCharacterIntervalSeconds: TimeInterval = 0.05
+
 extension LiveSmokeTestCase {
     @MainActor
     func typeTextSafely(
@@ -15,7 +17,7 @@ extension LiveSmokeTestCase {
                 timeout: timeout
             )
             self.logActionStart(action: "type_text", identifier: identifier)
-            element.typeText(text)
+            self.typeTextReliably(text, intoElement: element)
             if try self.waitForElementValueContaining(
                 element,
                 identifier: identifier,
@@ -69,9 +71,9 @@ extension LiveSmokeTestCase {
             let existingValue = self.elementValue(element: element)
             if existingValue.isEmpty == false && existingValue != placeholderValue {
                 let deleteSequence = String(repeating: XCUIKeyboardKey.delete.rawValue, count: existingValue.count)
-                element.typeText(deleteSequence)
+                self.typeTextReliably(deleteSequence, intoElement: element)
             }
-            element.typeText(text)
+            self.typeTextReliably(text, intoElement: element)
 
             if try self.waitForElementValueContaining(
                 element,
@@ -107,6 +109,19 @@ extension LiveSmokeTestCase {
             placeholderValue: element.placeholderValue ?? "",
             timeout: timeout
         )
+    }
+
+    @MainActor
+    private func typeTextReliably(
+        _ text: String,
+        intoElement element: XCUIElement
+    ) {
+        for character in text {
+            element.typeText(String(character))
+            RunLoop.current.run(
+                until: Date(timeIntervalSinceNow: liveSmokeTextInputCharacterIntervalSeconds)
+            )
+        }
     }
 
     // Raw XCUIElement.typeText can hang until XCTest's global execution allowance

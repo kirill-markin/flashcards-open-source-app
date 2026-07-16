@@ -649,11 +649,6 @@ extension FlashcardsStore {
             try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.manualReviewCard, context: context)
         case .guestManualReviewCardWithReminderAttention:
             try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.manualReviewCard, context: context)
-            self.markReviewReminderAttention(
-                workspaceId: context.workspaceId,
-                requestId: "ui-test-review-reminder-attention",
-                deliveredAtMillis: epochMillis(date: Date())
-            )
         case .guestAIReviewCard:
             try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.aiReviewCard, context: context)
         case .marketingScreenshots:
@@ -662,6 +657,19 @@ extension FlashcardsStore {
         case .marketingGuestSessionCleanup:
             return
         }
+    }
+
+    func markUITestReviewReminderAttentionAfterNotificationCleanup() async throws {
+        while let task = self.activeReviewNotificationsRescheduleTask {
+            await task.value
+        }
+
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        self.markReviewReminderAttention(
+            workspaceId: context.workspaceId,
+            requestId: "ui-test-review-reminder-attention",
+            deliveredAtMillis: epochMillis(date: Date())
+        )
     }
 
     private func createUITestMarketingScreenshotsData(
