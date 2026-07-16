@@ -29,6 +29,7 @@ import com.flashcardsopensourceapp.feature.review.reviewCurrentCardTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 private const val notificationPermissionUserFixedFlag: String = "user-fixed"
@@ -225,8 +226,8 @@ private fun activeNotificationIds(context: Context): Set<Int> {
 }
 
 private suspend fun LiveSmokeContext.requireCurrentWorkspaceIdForNotificationSmoke(): String {
-    return requireNotNull(appGraph().database.workspaceDao().loadAnyWorkspace()?.workspaceId) {
-        "Expected a current workspace before posting a review reminder notification."
+    return requireNotNull(appGraph().workspaceRepository.observeWorkspace().first()?.workspaceId) {
+        "Expected an active current workspace before posting a review reminder notification."
     }
 }
 

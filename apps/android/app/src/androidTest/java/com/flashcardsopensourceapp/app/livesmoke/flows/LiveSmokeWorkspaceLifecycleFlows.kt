@@ -38,7 +38,6 @@ import com.flashcardsopensourceapp.app.livesmoke.support.waitForCurrentWorkspace
 import com.flashcardsopensourceapp.app.livesmoke.support.waitForCurrentWorkspaceName
 import com.flashcardsopensourceapp.app.livesmoke.support.waitForCurrentWorkspaceScreenToSettle
 import com.flashcardsopensourceapp.app.livesmoke.support.waitForSelectedWorkspaceSummary
-import com.flashcardsopensourceapp.app.livesmoke.support.waitForSelectedWorkspaceSummaryToChange
 import com.flashcardsopensourceapp.app.livesmoke.support.deleteCurrentWorkspaceErrorMessageOrNull
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.feature.settings.settingsCurrentWorkspaceRowTag
@@ -91,9 +90,6 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): E
         context = "before creating a linked workspace",
         timeoutMillis = internalUiTimeoutMillis
     )
-    val selectedWorkspaceSummaryBeforeCreate: String = selectedWorkspaceSummary(
-        context = "before creating a linked workspace"
-    )
     val selectedWorkspaceIdBeforeCreate: String = currentWorkspaceIdOrThrow(
         context = "before creating a linked workspace"
     )
@@ -110,8 +106,7 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): E
         timeoutMillis = externalCloudWorkspaceTimeoutMillis
     )
     waitForCurrentWorkspaceChangeSheetToSettle(timeoutMillis = externalCloudWorkspaceTimeoutMillis)
-    waitForSelectedWorkspaceSummaryToChange(
-        beforeSummary = selectedWorkspaceSummaryBeforeCreate,
+    waitForSelectedWorkspaceSummary(
         context = "after creating a linked workspace",
         timeoutMillis = externalCloudWorkspaceTimeoutMillis
     )

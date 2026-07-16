@@ -117,32 +117,6 @@ internal fun LiveSmokeContext.waitForCurrentWorkspaceChangeSheetToSettle(timeout
     }
 }
 
-internal fun LiveSmokeContext.waitForSelectedWorkspaceSummaryToChange(
-    beforeSummary: String,
-    context: String,
-    timeoutMillis: Long
-) {
-    try {
-        waitUntilWithMitigation(
-            timeoutMillis = timeoutMillis,
-            context = "while waiting for current workspace selection to change $context"
-        ) {
-            runCatching {
-                scrollCurrentWorkspaceListToSelectedWorkspace()
-                selectedWorkspaceSummary(context = context) != beforeSummary
-            }.getOrDefault(false)
-        }
-    } catch (error: Throwable) {
-        throw AssertionError(
-            "Workspace selection did not change $context. " +
-                "Before=$beforeSummary After=${selectedWorkspaceSummaryOrNull()} " +
-                "WorkspaceName=${currentWorkspaceNameOrNull()} " +
-                "Error=${currentWorkspaceErrorMessageOrNull()}",
-            error
-        )
-    }
-}
-
 internal fun LiveSmokeContext.waitForCurrentWorkspaceScreenToSettle(timeoutMillis: Long) {
     try {
         waitUntilWithMitigation(
