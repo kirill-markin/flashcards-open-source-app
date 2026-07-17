@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.progress.sections
+package com.flashcardsopensourceapp.feature.progress.sections.leaderboard
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -42,6 +42,9 @@ import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardProfileRe
 import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardProfileReviewActivityDayUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardProfileSheetUiState
 import com.flashcardsopensourceapp.feature.progress.R
+import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardProfileActivityChartTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardProfileRetryButtonTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardProfileSheetTag
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle

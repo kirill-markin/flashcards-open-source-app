@@ -24,12 +24,12 @@ import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationShareEff
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationUiState
 import com.flashcardsopensourceapp.feature.progress.sections.ErrorCard
 import com.flashcardsopensourceapp.feature.progress.sections.GuidanceCard
-import com.flashcardsopensourceapp.feature.progress.sections.LeaderboardSectionCard
+import com.flashcardsopensourceapp.feature.progress.sections.leaderboard.LeaderboardSectionCard
 import com.flashcardsopensourceapp.feature.progress.sections.LoadingCard
-import com.flashcardsopensourceapp.feature.progress.sections.ProgressLeaderboardProfileSheet
+import com.flashcardsopensourceapp.feature.progress.sections.leaderboard.ProgressLeaderboardProfileSheet
 import com.flashcardsopensourceapp.feature.progress.sections.ReviewScheduleSectionCard
 import com.flashcardsopensourceapp.feature.progress.sections.ReviewsSectionCard
-import com.flashcardsopensourceapp.feature.progress.sections.StreakLeaderboardSectionCard
+import com.flashcardsopensourceapp.feature.progress.sections.leaderboard.StreakLeaderboardSectionCard
 import com.flashcardsopensourceapp.feature.progress.sections.StreakSectionCard
 
 @OptIn(ExperimentalMaterial3Api::class)

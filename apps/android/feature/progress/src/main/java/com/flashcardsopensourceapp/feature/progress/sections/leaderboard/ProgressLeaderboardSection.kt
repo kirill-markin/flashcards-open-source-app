@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.progress.sections
+package com.flashcardsopensourceapp.feature.progress.sections.leaderboard
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +53,15 @@ import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardProfileId
 import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardRowUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardSectionUiState
 import com.flashcardsopensourceapp.feature.progress.R
+import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardGapRowTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardInfoButtonTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardInviteButtonTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardInviteDisplayNameFieldTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardParticipantRowTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardPeriodSelectorTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardResolvedContentTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardSectionTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressSectionShape
 import com.flashcardsopensourceapp.feature.friendinvite.R as FriendInviteR
 import java.text.NumberFormat
 import java.util.Locale
