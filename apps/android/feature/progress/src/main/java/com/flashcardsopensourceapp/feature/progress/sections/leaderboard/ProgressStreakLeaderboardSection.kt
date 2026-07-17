@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.progress.sections
+package com.flashcardsopensourceapp.feature.progress.sections.leaderboard
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +37,12 @@ import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardProfileId
 import com.flashcardsopensourceapp.feature.progress.ProgressStreakLeaderboardRowUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressStreakLeaderboardSectionUiState
 import com.flashcardsopensourceapp.feature.progress.R
+import com.flashcardsopensourceapp.feature.progress.sections.progressSectionShape
+import com.flashcardsopensourceapp.feature.progress.sections.progressStreakLeaderboardGapRowTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressStreakLeaderboardInfoButtonTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressStreakLeaderboardParticipantRowTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressStreakLeaderboardResolvedContentTag
+import com.flashcardsopensourceapp.feature.progress.sections.progressStreakLeaderboardSectionTag
 import java.text.NumberFormat
 import java.util.Locale
 
