@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app.routes
+package com.flashcardsopensourceapp.app.routes.settings
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals

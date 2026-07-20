@@ -165,8 +165,8 @@ rg -n 'onNodeWithText\\(|assertTextEquals\\(|assertTextContains\\(' \
 Current examples worth checking:
 
 - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MainActivityTest.kt`
-- `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/routes/SettingsAuthRouteTest.kt`
-- `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/routes/CloudPostAuthRouteTest.kt`
+- `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/routes/settings/SettingsAuthRouteTest.kt`
+- `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/routes/settings/CloudPostAuthRouteTest.kt`
 - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/routes/AccountDeletionBlockingSurfaceTest.kt`
 - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/support/LiveSmokeScenarioAiHelpers.kt`
 - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/support/LiveSmokeScenarioCardHelpers.kt`
