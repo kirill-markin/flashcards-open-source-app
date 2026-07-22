@@ -78,6 +78,8 @@ test("runPersistedChatSessionWithDeps persists a failed run for real provider er
   assert.equal(terminalLog?.providerErrorMessage, null);
   assert.equal(terminalLog?.providerErrorStatus, 429);
   assert.equal(terminalLog?.providerErrorCode, "rate_limit_exceeded");
+  assert.equal(terminalLog?.providerErrorType, "rate_limit_error");
+  assert.equal(terminalLog?.providerErrorParam, "requests_per_minute");
   assert.equal(terminalLog?.providerErrorCategory, "provider_rate_limited");
   assert.equal(terminalLog?.providerRequestId, "req_provider_123");
   assert.equal(terminalLog?.lambdaRequestId, "lambda-request-1");
@@ -121,6 +123,8 @@ test("runPersistedChatSessionWithDeps maps provider invalid_file failures to att
   assert.equal(terminalLog?.providerErrorMessage, null);
   assert.equal(terminalLog?.providerErrorStatus, 400);
   assert.equal(terminalLog?.providerErrorCode, "invalid_file");
+  assert.equal(terminalLog?.providerErrorType, "invalid_request_error");
+  assert.equal(terminalLog?.providerErrorParam, "input[].content[]");
   assert.equal(terminalLog?.providerErrorCategory, "provider_error");
   assert.equal(terminalLog?.providerRequestId, "req_invalid_file_123");
   assert.equal(terminalLog?.errorClass, undefined);
@@ -163,6 +167,8 @@ test("runPersistedChatSessionWithDeps maps local attachment validation failures 
   const terminalLog = findLog(logs, "chat_worker_terminal_state_persisted");
   assert.equal(terminalLog?.consoleMethod, "warn");
   assert.equal(terminalLog?.providerErrorMessage, null);
+  assert.equal(terminalLog?.providerErrorType, null);
+  assert.equal(terminalLog?.providerErrorParam, null);
   assert.equal(terminalLog?.errorClass, undefined);
   assert.equal(terminalLog?.errorMessage, undefined);
 });
@@ -247,6 +253,8 @@ test("runPersistedChatSessionWithDeps does not log raw provider terminal event m
   assert.equal(terminalLog?.consoleMethod, "warn");
   assert.equal(terminalLog?.providerErrorClass, "ChatProviderTerminalEventError");
   assert.equal(terminalLog?.providerErrorMessage, null);
+  assert.equal(terminalLog?.providerErrorType, null);
+  assert.equal(terminalLog?.providerErrorParam, null);
   assert.equal(terminalLog?.providerErrorCategory, "provider_error");
   assert.equal(terminalLog?.errorClass, undefined);
   assert.equal(terminalLog?.errorMessage, undefined);

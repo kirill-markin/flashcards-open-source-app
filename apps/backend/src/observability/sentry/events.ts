@@ -478,6 +478,8 @@ export type ChatWorkerLifecycleDetails = Readonly<{
   providerErrorMessage: null;
   providerErrorStatus?: number | null;
   providerErrorCode?: string | null;
+  providerErrorType: string | null;
+  providerErrorParam: string | null;
   providerErrorCategory?: string | null;
   providerRequestId: string | null;
   heartbeatAt: string | null;

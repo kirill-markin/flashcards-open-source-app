@@ -6,6 +6,7 @@ import {
   captureBackendException,
   captureBackendWarning,
 } from "./capture";
+import { logChatWorkerLifecycleEvent } from "../../chat/worker/logging";
 import type { ChatWorkerLifecycleDetails } from "./events";
 import { createBackendObservationScope } from "./scope";
 import {
@@ -32,6 +33,8 @@ test("backend breadcrumb serialization keeps CloudWatch JSON shape", () => {
     providerErrorMessage: null,
     providerErrorStatus: null,
     providerErrorCode: null,
+    providerErrorType: null,
+    providerErrorParam: null,
     providerErrorCategory: null,
     providerRequestId: null,
     heartbeatAt: null,
@@ -91,6 +94,8 @@ test("backend breadcrumb serialization keeps CloudWatch JSON shape", () => {
     providerErrorMessage: null,
     providerErrorStatus: null,
     providerErrorCode: null,
+    providerErrorType: null,
+    providerErrorParam: null,
     providerErrorCategory: null,
     providerRequestId: null,
     heartbeatAt: null,
@@ -175,14 +180,20 @@ test("backend warning and exception serialization include typed details", () => 
   assert.equal(exceptionRecord.message, "<redacted-content>");
 });
 
-test("backend warnings create Sentry warning issues", () => {
+test("backend warnings create Sentry warning issues with explicit fingerprints", () => {
   const originalCaptureMessage = sentryModule.captureMessage;
+  const originalSetFingerprint = Sentry.Scope.prototype.setFingerprint;
   let captureMessageCount = 0;
   let capturedMessage: Parameters<typeof Sentry.captureMessage>[0] | null = null;
+  const capturedFingerprints: Array<ReadonlyArray<string>> = [];
   sentryModule.captureMessage = (message) => {
     captureMessageCount += 1;
     capturedMessage = message;
     return "event-id";
+  };
+  Sentry.Scope.prototype.setFingerprint = function setFingerprint(fingerprint) {
+    capturedFingerprints.push(fingerprint);
+    return this;
   };
 
   try {
@@ -213,8 +224,52 @@ test("backend warnings create Sentry warning issues", () => {
 
     assert.equal(captureMessageCount, 1);
     assert.equal(capturedMessage, "global_snapshot_error");
+    assert.deepEqual(capturedFingerprints, [["global_snapshot_error"]]);
+
+    const terminalWarningMessages = withCapturedConsole("warn", () => {
+      logChatWorkerLifecycleEvent("chat_worker_terminal_state_persisted", {
+        lambdaRequestId: "lambda-request-1",
+        chatRequestId: "chat-request-1",
+        runId: "run-1",
+        sessionId: "session-1",
+        userId: "user-1",
+        workspaceId: "workspace-1",
+      }, {
+        abortReason: null,
+        signalAborted: false,
+        cancellationRequested: false,
+        ownershipLost: false,
+        runStatus: "failed",
+        sessionState: "idle",
+        providerErrorClass: "BadRequestError",
+        providerErrorMessage: null,
+        providerErrorStatus: 400,
+        providerErrorCode: "invalid_value",
+        providerErrorType: "invalid_request_error",
+        providerErrorParam: "input[].content[]",
+        providerErrorCategory: "provider_error",
+        providerRequestId: "req_provider_123",
+        heartbeatAt: null,
+        startedAt: "2026-07-22T12:00:00.000Z",
+        finishedAt: "2026-07-22T12:00:01.000Z",
+        outcome: null,
+      }, true);
+    });
+
+    assert.equal(terminalWarningMessages.length, 1);
+    assert.equal(captureMessageCount, 2);
+    assert.equal(capturedMessage, "chat_worker_terminal_state_persisted");
+    assert.deepEqual(capturedFingerprints[1], [
+      "chat_worker_terminal_state_persisted",
+      "provider_error",
+      "400",
+      "invalid_value",
+      "invalid_request_error",
+      "input[].content[]",
+    ]);
   } finally {
     sentryModule.captureMessage = originalCaptureMessage;
+    Sentry.Scope.prototype.setFingerprint = originalSetFingerprint;
   }
 });
 

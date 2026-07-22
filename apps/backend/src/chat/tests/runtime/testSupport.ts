@@ -42,6 +42,8 @@ export function createAbortError(): Error {
 export function createProviderApiError(rawMessage: string): Error & Readonly<{
   status: number;
   code: string;
+  type: string;
+  param: string;
   requestID: string;
 }> {
   const error = new Error(rawMessage);
@@ -49,6 +51,8 @@ export function createProviderApiError(rawMessage: string): Error & Readonly<{
   return Object.assign(error, {
     status: 429,
     code: "rate_limit_exceeded",
+    type: "rate_limit_error",
+    param: "requests_per_minute",
     requestID: "req_provider_123",
   });
 }
@@ -56,6 +60,8 @@ export function createProviderApiError(rawMessage: string): Error & Readonly<{
 export function createProviderInvalidFileError(rawMessage: string): Error & Readonly<{
   status: number;
   code: string;
+  type: string;
+  param: string;
   requestID: string;
 }> {
   const error = new Error(rawMessage);
@@ -63,6 +69,8 @@ export function createProviderInvalidFileError(rawMessage: string): Error & Read
   return Object.assign(error, {
     status: 400,
     code: "invalid_file",
+    type: "invalid_request_error",
+    param: "input[12].content[0]",
     requestID: "req_invalid_file_123",
   });
 }

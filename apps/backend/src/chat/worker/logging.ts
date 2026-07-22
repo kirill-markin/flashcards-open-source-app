@@ -2,10 +2,12 @@ import {
   addBackendBreadcrumb,
   captureBackendException,
   captureBackendWarning,
+  captureBackendWarningWithFingerprint,
   createBackendObservationScope,
   type BackendObservationScope,
   type ChatWorkerLifecycleDetails,
 } from "../../observability/sentry";
+import { createChatTerminalWarningFingerprint } from "../runtime/providerErrors";
 
 export type ChatWorkerLogContext = Readonly<{
   lambdaRequestId: string | null;
@@ -66,7 +68,17 @@ export function logChatWorkerLifecycleEvent(
 ): void {
   const scope = createChatWorkerScope(context);
   const details = createChatWorkerLifecycleDetails(context, payload);
-  if (isError && (action === "chat_worker_terminal_state_persisted" || action === "chat_worker_composer_suggestions_failed")) {
+  if (isError && action === "chat_worker_terminal_state_persisted") {
+    captureBackendWarningWithFingerprint({
+      action,
+      message: `${action} warning`,
+      scope,
+      details,
+    }, createChatTerminalWarningFingerprint(details));
+    return;
+  }
+
+  if (isError && action === "chat_worker_composer_suggestions_failed") {
     captureBackendWarning({
       action,
       message: `${action} warning`,
