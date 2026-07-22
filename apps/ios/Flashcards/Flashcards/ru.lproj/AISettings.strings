@@ -83,6 +83,8 @@
 "ai.message.reasoning.status.running" = "В ПРОГРЕССЕ";
 "ai.message.reasoning.status.done" = "СОВЕРШЕНО";
 "ai.message.reasoning.thinking" = "Думая...";
+"ai.message.fullResponse.show" = "Показать ответ полностью";
+"ai.message.fullResponse.title" = "Полный ответ";
 "ai.tool.label.codeExecution" = "Выполнение кода";
 "ai.tool.label.webSearch" = "Веб-поиск";
 "ai.tool.section.request" = "Приложение";

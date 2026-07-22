@@ -83,6 +83,8 @@
 "ai.message.reasoning.status.running" = "प्रगति पर";
 "ai.message.reasoning.status.done" = "हो गया";
 "ai.message.reasoning.thinking" = "सोच रहा हूँ...";
+"ai.message.fullResponse.show" = "पूरा जवाब दिखाएँ";
+"ai.message.fullResponse.title" = "पूरा जवाब";
 "ai.tool.label.codeExecution" = "कोड निष्पादन";
 "ai.tool.label.webSearch" = "वेब खोज";
 "ai.tool.section.request" = "एप्लीकेशन";

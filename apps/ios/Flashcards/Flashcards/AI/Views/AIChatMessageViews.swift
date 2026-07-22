@@ -147,7 +147,7 @@ extension AIChatView {
 
         if message.role == .assistant, message.isError {
             row
-                .accessibilityElement(children: .ignore)
+                .accessibilityElement(children: .contain)
                 .accessibilityLabel(self.messageRowAccessibilityLabel(message: message))
                 .accessibilityIdentifier(UITestIdentifier.aiAssistantErrorMessage)
         } else if message.role == .assistant {
@@ -216,11 +216,11 @@ extension AIChatView {
         switch part {
         case .text(let text):
             if message.role == .assistant {
-                Text(text)
+                AIChatLongTextView(text: text)
                     .textSelection(.enabled)
                     .accessibilityIdentifier(UITestIdentifier.aiAssistantVisibleText)
             } else {
-                Text(text)
+                AIChatLongTextView(text: text)
             }
         case .image:
             Label(aiSettingsLocalized("ai.message.imageAttached", "Image attached"), systemImage: "photo")
@@ -340,8 +340,8 @@ extension AIChatView {
                     self.detachAutoFollowForExpandedContent()
                 }
             ) {
-                Text(
-                    reasoningSummary.summary.isEmpty
+                AIChatLongTextView(
+                    text: reasoningSummary.summary.isEmpty
                         ? aiSettingsLocalized("ai.message.reasoning.thinking", "Thinking...")
                         : reasoningSummary.summary
                 )
