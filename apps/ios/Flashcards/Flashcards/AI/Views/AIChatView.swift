@@ -447,9 +447,7 @@ struct AIChatView: View {
     }
 
     var chatScrollSurface: some View {
-        ScrollView {
-            self.chatScrollContent
-        }
+        self.chatScrollContent
         .accessibilityIdentifier(UITestIdentifier.aiConversationScrollSurface)
         .defaultScrollAnchor(.bottom, for: .initialOffset)
         .defaultScrollAnchor(.bottom, for: .alignment)
@@ -461,6 +459,7 @@ struct AIChatView: View {
         // until the user nudged the scroll view manually.
         .scrollPosition(self.$scrollPosition, anchor: .bottom)
         .contentMargins(.horizontal, aiChatMessageListHorizontalPadding, for: .scrollContent)
+        .contentMargins(.vertical, 12, for: .scrollContent)
         .contentMargins(.horizontal, 0, for: .scrollIndicators)
         .contentShape(Rectangle())
         .onTapGesture {
@@ -550,35 +549,39 @@ struct AIChatView: View {
 
     @ViewBuilder
     var chatScrollContent: some View {
-        if self.chatStore.messages.isEmpty {
-            VStack {
+        // The transcript must use a native virtualized container and stable row IDs.
+        List {
+            if self.chatStore.messages.isEmpty {
                 self.emptyChatState
-            }
-            .scrollTargetLayout()
-            .frame(maxWidth: .infinity)
-            .containerRelativeFrame(.vertical, alignment: .center)
-            .padding(.vertical, 12)
-        } else {
-            // Keep this as VStack: LazyVStack caused blank chat history during keyboard-driven relayout here, and stability matters more than lazy virtualization on this screen.
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(Array(self.chatStore.messages.enumerated()), id: \.element.id) { index, message in
+                    .frame(maxWidth: .infinity)
+                    .containerRelativeFrame(.vertical, alignment: .center)
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+            } else {
+                let tailMessageId: String? = self.chatStore.messages.last?.id
+
+                ForEach(self.chatStore.messages) { message in
                     self.messageRow(
                         message: message,
                         repairStatus: self.repairStatus(for: message),
                         showsTypingIndicator: aiChatShouldShowTypingIndicator(
                             message: message,
-                            isLastMessage: index == self.chatStore.messages.indices.last,
+                            isLastMessage: message.id == tailMessageId,
                             isStreaming: self.chatStore.isStreaming,
                             optimisticAssistantMessageId: self.chatStore.optimisticOutgoingTurnState?.assistantMessageId
                         )
                     )
                     .id(message.id)
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
                 }
             }
-            .scrollTargetLayout()
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .listStyle(.plain)
+        .listRowSpacing(12)
+        .scrollContentBackground(.hidden)
     }
 
     func acceptExternalAIConsent() {
