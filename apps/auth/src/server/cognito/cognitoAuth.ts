@@ -9,12 +9,14 @@ import {
   createCognitoTypedError,
   getCognitoErrorType,
   getNormalizedCognitoErrorType,
+  type CognitoOperation,
 } from "./cognitoErrors.js";
 import { log, maskEmail } from "../logger.js";
 
 type CognitoErrorResponse = Readonly<{
-  __type?: string;
-  message?: string;
+  cognitoType: string;
+  message: string;
+  reasonCode: string | null;
 }>;
 
 type InitiateAuthResult = Readonly<{
@@ -51,8 +53,57 @@ const getClientId = (): string => {
   return clientId;
 };
 
+function getCognitoErrorResponseContext(
+  operation: CognitoOperation,
+  providerStatusCode: number,
+): string {
+  return `Cognito ${operation} error response (HTTP ${providerStatusCode})`;
+}
+
+function parseRequiredCognitoErrorString(
+  value: unknown,
+  fieldName: "__type" | "message",
+  context: string,
+): string {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new TypeError(`${context} must include a non-empty string ${fieldName} field`);
+  }
+
+  return value;
+}
+
+function parseCognitoReasonCode(value: unknown, context: string): string | null {
+  if (value === undefined) {
+    return null;
+  }
+
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new TypeError(`${context} reasonCode field must be a non-empty string when present`);
+  }
+
+  return value;
+}
+
+function parseCognitoErrorResponse(
+  value: unknown,
+  operation: CognitoOperation,
+  providerStatusCode: number,
+): CognitoErrorResponse {
+  const context = getCognitoErrorResponseContext(operation, providerStatusCode);
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new TypeError(`${context} must be a JSON object`);
+  }
+
+  const fields = value as Record<string, unknown>;
+  return {
+    cognitoType: parseRequiredCognitoErrorString(fields.__type, "__type", context),
+    message: parseRequiredCognitoErrorString(fields.message, "message", context),
+    reasonCode: parseCognitoReasonCode(fields.reasonCode, context),
+  };
+}
+
 const cognitoFetch = async (
-  target: string,
+  target: CognitoOperation,
   body: Record<string, unknown>,
 ): Promise<Record<string, unknown>> => {
   const endpoint = `https://cognito-idp.${getRegion()}.amazonaws.com/`;
@@ -67,17 +118,31 @@ const cognitoFetch = async (
   });
 
   if (!response.ok) {
-    const error = await response.json() as CognitoErrorResponse;
-    const errorType = error.__type ?? "";
-    const errorMessage = error.message ?? `Cognito ${target} failed: ${response.status}`;
-    throw createCognitoTypedError(errorMessage, errorType);
+    let errorResponseValue: unknown;
+    try {
+      errorResponseValue = await response.json();
+    } catch (error) {
+      throw new TypeError(
+        `${getCognitoErrorResponseContext(target, response.status)} was not valid JSON`,
+        { cause: error },
+      );
+    }
+
+    const errorResponse = parseCognitoErrorResponse(errorResponseValue, target, response.status);
+    throw createCognitoTypedError({
+      operation: target,
+      providerStatusCode: response.status,
+      cognitoType: errorResponse.cognitoType,
+      reasonCode: errorResponse.reasonCode,
+      message: errorResponse.message,
+    });
   }
 
   return response.json() as Promise<Record<string, unknown>>;
 };
 
 type CognitoFetchFunction = (
-  target: string,
+  target: CognitoOperation,
   body: Record<string, unknown>,
 ) => Promise<Record<string, unknown>>;
 
