@@ -41,7 +41,12 @@ export function addBackendSentryBreadcrumb(event: BackendBreadcrumbEvent): void 
   });
 }
 
-export function captureBackendWarning(event: BackendWarningEvent): void {
+type BackendWarningFingerprint = readonly [string, ...ReadonlyArray<string>];
+
+function captureBackendWarningImpl(
+  event: BackendWarningEvent,
+  fingerprint: BackendWarningFingerprint,
+): void {
   writeCloudWatchRecord(event, "warning");
   Sentry.withScope((scope) => {
     setSentryScope(scope, event.scope);
@@ -51,9 +56,20 @@ export function captureBackendWarning(event: BackendWarningEvent): void {
     );
     scope.setTag(manualBackendWarningCaptureTagName, manualBackendCaptureTagValue);
     scope.setTag(backendActionTagName, event.action);
-    scope.setFingerprint([event.action]);
+    scope.setFingerprint([...fingerprint]);
     Sentry.captureMessage(event.action, "warning");
   });
+}
+
+export function captureBackendWarning(event: BackendWarningEvent): void {
+  captureBackendWarningImpl(event, [event.action]);
+}
+
+export function captureBackendWarningWithFingerprint(
+  event: BackendWarningEvent,
+  fingerprint: BackendWarningFingerprint,
+): void {
+  captureBackendWarningImpl(event, fingerprint);
 }
 
 export function captureBackendException(event: BackendExceptionEvent): void {

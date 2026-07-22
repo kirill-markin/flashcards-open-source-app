@@ -4,6 +4,7 @@ export {
   addBackendSentryBreadcrumb,
   captureBackendException,
   captureBackendWarning,
+  captureBackendWarningWithFingerprint,
 } from "./capture";
 export {
   getBackendSentryConfig,
