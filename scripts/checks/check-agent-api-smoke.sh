@@ -230,6 +230,8 @@ missing_paths = sorted(required_paths.difference(payload["paths"].keys()))
 unexpected_paths = sorted(set(payload["paths"].keys()).difference(required_paths))
 assert missing_paths == [], missing_paths
 assert unexpected_paths == [], unexpected_paths
+send_code_400 = payload["paths"]["/api/agent/send-code"]["post"]["responses"]["400"]
+assert send_code_400["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/AgentErrorEnvelope"
 PY
 
 request_json "GET" "${API_BASE_URL%/}/openapi.json" "" ""
@@ -252,6 +254,21 @@ agent_swagger = json.load(open(sys.argv[4], encoding="utf-8"))
 assert canonical == root_openapi
 assert canonical == root_swagger
 assert canonical == agent_swagger
+PY
+
+request_json "POST" "${AUTH_BASE_URL%/}/api/agent/send-code" '{"email":"invalid"}' ""
+assert_status "400" "POST /api/agent/send-code with invalid email"
+INVALID_EMAIL_BODY="${LAST_BODY_FILE}"
+python3 - <<'PY' "${INVALID_EMAIL_BODY}"
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+assert payload["ok"] is False
+assert payload["data"] == {}
+assert payload["actions"] == []
+assert payload["error"]["code"] == "INVALID_EMAIL"
+assert isinstance(payload["instructions"], str) and payload["instructions"].strip() != ""
 PY
 
 request_json "POST" "${AUTH_BASE_URL%/}/api/agent/send-code" "{\"email\":\"${DEMO_EMAIL}\"}" ""
