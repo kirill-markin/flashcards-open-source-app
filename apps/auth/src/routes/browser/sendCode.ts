@@ -26,6 +26,7 @@ import {
 import { log, maskEmail } from "../../server/logger.js";
 import { isTransientDatabaseError } from "../../server/databaseErrors.js";
 import { isRejectedPasswordSignIn } from "../../server/cognito/passwordSignInErrors.js";
+import { isCognitoInvalidEmailError } from "../../server/cognito/cognitoErrors.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const POST_EMAIL_DB_FAILURE_MESSAGE = "A verification email may have been sent, but sign-in could not be prepared.";
@@ -181,6 +182,22 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
         const [result] = await Promise.all([dependencies.initiateEmailOtp(email), dependencies.jitterDelay()]);
         session = result.session;
       } catch (err) {
+        if (isCognitoInvalidEmailError(err)) {
+          log({
+            domain: "auth",
+            action: "send_code_error",
+            requestId,
+            route: c.req.path,
+            statusCode: 400,
+            code: "INVALID_EMAIL",
+            reasonCategory: "provider_invalid_email",
+            errorClass: err.cognitoType,
+            errorCode: err.reasonCode,
+            errorMessage: err.message,
+          });
+          return jsonAuthError(c, 400, "INVALID_EMAIL", "Enter a valid email address.");
+        }
+
         log({
           domain: "auth",
           action: "send_code_error",

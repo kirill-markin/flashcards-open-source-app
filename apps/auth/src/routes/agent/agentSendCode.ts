@@ -27,6 +27,7 @@ import {
 import { log, maskEmail } from "../../server/logger.js";
 import { getPublicAuthBaseUrl, getPublicApiBaseUrl } from "../../server/publicUrls.js";
 import { isTransientDatabaseError } from "../../server/databaseErrors.js";
+import { isCognitoInvalidEmailError } from "../../server/cognito/cognitoErrors.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const POST_EMAIL_DELIVERY_DB_FAILURE_INSTRUCTIONS = "A verification email may already be in the user's inbox, but this response could not create a usable agent verification handle. Do not retry this same send-code request immediately because it may send another email. Ask the user to wait briefly and check their email, including spam or junk. If sign-in is still needed, start a fresh flow with POST /api/agent/send-code and use only the latest email code and latest otpSessionToken.";
@@ -188,6 +189,30 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
       try {
         session = (await dependencies.initiateEmailOtp(email)).session;
       } catch (error) {
+        if (isCognitoInvalidEmailError(error)) {
+          log({
+            domain: "auth",
+            action: "agent_send_code_error",
+            requestId,
+            route: c.req.path,
+            statusCode: 400,
+            code: "INVALID_EMAIL",
+            reasonCategory: "provider_invalid_email",
+            errorClass: error.cognitoType,
+            errorCode: error.reasonCode,
+            errorMessage: error.message,
+          });
+          return c.json(
+            createAgentErrorEnvelope(
+              c.req.url,
+              "INVALID_EMAIL",
+              "Enter a valid email address.",
+              "Do not retry with the same email address. Correct it before calling POST /api/agent/send-code again.",
+            ),
+            400,
+          );
+        }
+
         log({
           domain: "auth",
           action: "agent_send_code_error",

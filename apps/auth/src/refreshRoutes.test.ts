@@ -40,11 +40,23 @@ function createTestApp(routeApp: Hono<AuthAppEnv>, logger: AuthLogger): Hono<Aut
 }
 
 function createTerminalRefreshFailure(): CognitoTypedError {
-  return createCognitoTypedError("Refresh token is invalid", "NotAuthorizedException");
+  return createCognitoTypedError({
+    operation: "InitiateAuth",
+    providerStatusCode: 400,
+    cognitoType: "NotAuthorizedException",
+    reasonCode: null,
+    message: "Refresh token is invalid",
+  });
 }
 
 function createNonTerminalRefreshFailure(): CognitoTypedError {
-  return createCognitoTypedError("Cognito internal error", "InternalErrorException");
+  return createCognitoTypedError({
+    operation: "InitiateAuth",
+    providerStatusCode: 500,
+    cognitoType: "InternalErrorException",
+    reasonCode: null,
+    message: "Cognito internal error",
+  });
 }
 
 function getSetCookieValues(response: Response): ReadonlyArray<string> {
