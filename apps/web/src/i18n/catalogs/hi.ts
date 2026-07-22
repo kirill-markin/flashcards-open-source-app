@@ -693,6 +693,8 @@ const hiCatalog: TranslationCatalog = {
     packageImportButton: "flashcards.zip चुनें",
     packageConfirmButton: "प्रीव्यू किया पैकेज इम्पोर्ट करें",
     packagePreviewRequired: "इम्पोर्ट से पहले पैकेज चुनें और प्रीव्यू पूरा होने दें।",
+    packageInvalid: "यह फ़ाइल मान्य flashcards.zip नहीं है। Flashcards Open Source App से एक्सपोर्ट किया गया पैकेज चुनें।",
+    packageTooLarge: "चुना गया पैकेज बहुत बड़ा है। छोटा flashcards.zip चुनें।",
     packageImportSuccess: "{{count}} कार्ड इम्पोर्ट किए गए।",
     packageImportSuccessWithTag: "{{tag}} टैग के साथ {{count}} कार्ड इम्पोर्ट किए गए।",
     importTagLabel: "इम्पोर्ट किए गए कार्ड टैग करें",

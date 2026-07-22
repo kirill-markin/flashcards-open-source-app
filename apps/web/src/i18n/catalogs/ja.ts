@@ -693,6 +693,8 @@ export const jaCatalog = {
     packageImportButton: "flashcards.zip を選択",
     packageConfirmButton: "プレビュー済みパッケージをインポート",
     packagePreviewRequired: "インポートする前にパッケージを選択し、プレビューを待ってください。",
+    packageInvalid: "このファイルは有効な flashcards.zip ではありません。Flashcards Open Source App からエクスポートしたパッケージを選択してください。",
+    packageTooLarge: "選択したパッケージが大きすぎます。より小さい flashcards.zip を選択してください。",
     packageImportSuccess: "{{count}}件のカードをインポートしました。",
     packageImportSuccessWithTag: "{{tag}} タグ付きで {{count}}件のカードをインポートしました。",
     importTagLabel: "インポートしたカードにタグを付ける",

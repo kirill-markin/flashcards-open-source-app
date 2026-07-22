@@ -693,6 +693,8 @@ const deCatalog: TranslationCatalog = {
     packageImportButton: "flashcards.zip wählen",
     packageConfirmButton: "Paket aus Vorschau importieren",
     packagePreviewRequired: "Wähle ein Paket und warte auf die Vorschau, bevor du importierst.",
+    packageInvalid: "Diese Datei ist keine gültige flashcards.zip-Datei. Wähle ein Paket, das aus der Flashcards Open Source App exportiert wurde.",
+    packageTooLarge: "Das ausgewählte Paket ist zu groß. Wähle eine kleinere flashcards.zip-Datei.",
     packageImportSuccess: "{{count}} Karten importiert.",
     packageImportSuccessWithTag: "{{count}} Karten mit Tag {{tag}} importiert.",
     importTagLabel: "Importierte Karten taggen",
