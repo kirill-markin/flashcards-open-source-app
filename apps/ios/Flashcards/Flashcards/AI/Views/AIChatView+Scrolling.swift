@@ -10,7 +10,12 @@ func aiChatScrollState(
     scrollGeometry: ScrollGeometry,
     bottomThreshold: CGFloat
 ) -> AIChatScrollState {
-    let distanceToBottom = max(scrollGeometry.contentSize.height - scrollGeometry.visibleRect.maxY, 0)
+    let distanceToBottom = max(
+        scrollGeometry.contentSize.height
+            + scrollGeometry.contentInsets.bottom
+            - scrollGeometry.visibleRect.maxY,
+        0
+    )
     let isUserInitiatedScroll: Bool
     switch scrollPhase {
     case .tracking, .interacting, .decelerating:
