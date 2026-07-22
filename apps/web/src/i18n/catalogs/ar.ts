@@ -693,6 +693,8 @@ const arCatalog: TranslationCatalog = {
     packageImportButton: "اختيار flashcards.zip",
     packageConfirmButton: "استيراد الحزمة بعد المعاينة",
     packagePreviewRequired: "اختر حزمة وانتظر المعاينة قبل الاستيراد.",
+    packageInvalid: "هذا الملف ليس حزمة flashcards.zip صالحة. اختر حزمة تم تصديرها من تطبيق Flashcards Open Source App.",
+    packageTooLarge: "الحزمة المحددة كبيرة جدًا. اختر ملف flashcards.zip أصغر.",
     packageImportSuccess: "تم استيراد {{count}} بطاقة.",
     packageImportSuccessWithTag: "تم استيراد {{count}} بطاقة مع الوسم {{tag}}.",
     importTagLabel: "وسم البطاقات المستوردة",

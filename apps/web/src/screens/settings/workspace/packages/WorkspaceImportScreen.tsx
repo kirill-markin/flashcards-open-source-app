@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import {
+  ApiError,
   confirmWorkspacePackageImport,
   previewWorkspacePackageImport,
 } from "../../../../api";
 import { useAppData } from "../../../../appData";
 import { requireCloudInstallationId } from "../../../../appData/sync/local/syncCloudSettings";
 import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
-import { useI18n } from "../../../../i18n";
+import { type TranslationKey, useI18n } from "../../../../i18n";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import type {
   WorkspacePackageImportConfirmOptions,
@@ -24,6 +25,28 @@ type PackageImportPreviewIdentity = Readonly<{
   workspaceId: string;
   installationId: string;
 }>;
+
+function getWorkspacePackageValidationErrorMessage(
+  error: unknown,
+  t: (key: TranslationKey) => string,
+): string | null {
+  if (!(error instanceof ApiError) || error.statusCode < 400 || error.statusCode >= 500) {
+    return null;
+  }
+
+  switch (error.code) {
+    case "WORKSPACE_PACKAGE_IMPORT_PREVIEW_ZIP_EMPTY":
+    case "WORKSPACE_PACKAGE_IMPORT_PREVIEW_ZIP_INVALID":
+    case "WORKSPACE_PACKAGE_IMPORT_PREVIEW_CARDS_JSON_MALFORMED":
+    case "WORKSPACE_PACKAGE_IMPORT_PREVIEW_CARDS_JSON_INVALID":
+      return t("workspaceImport.packageInvalid");
+    case "WORKSPACE_PACKAGE_IMPORT_PREVIEW_BODY_TOO_LARGE":
+    case "WORKSPACE_PACKAGE_IMPORT_PREVIEW_TOO_LARGE":
+      return t("workspaceImport.packageTooLarge");
+  }
+
+  return null;
+}
 
 function buildSafeMetadataHttpUrl(value: string): string | null {
   try {
@@ -161,12 +184,17 @@ export function WorkspaceImportScreen(): ReactElement {
       setPackageImportTag(preview.defaultOptions.suggestedImportTag);
       setPackageImportRemoveTags([...preview.defaultOptions.removedTags]);
     } catch (error) {
-      const wasCaptured = captureWorkspaceImportError(error);
-      if (wasCaptured) {
-        showCapturedTechnicalError(error);
-        setErrorMessage(technicalErrorMessage);
+      const validationErrorMessage = getWorkspacePackageValidationErrorMessage(error, t);
+      if (validationErrorMessage !== null) {
+        setErrorMessage(validationErrorMessage);
       } else {
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        const wasCaptured = captureWorkspaceImportError(error);
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setErrorMessage(technicalErrorMessage);
+        } else {
+          setErrorMessage(error instanceof Error ? error.message : String(error));
+        }
       }
     } finally {
       setIsPackagePreviewing(false);
@@ -226,12 +254,17 @@ export function WorkspaceImportScreen(): ReactElement {
           tag: result.summary.importTag,
         }));
     } catch (error) {
-      const wasCaptured = captureWorkspaceImportError(error);
-      if (wasCaptured) {
-        showCapturedTechnicalError(error);
-        setErrorMessage(technicalErrorMessage);
+      const validationErrorMessage = getWorkspacePackageValidationErrorMessage(error, t);
+      if (validationErrorMessage !== null) {
+        setErrorMessage(validationErrorMessage);
       } else {
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        const wasCaptured = captureWorkspaceImportError(error);
+        if (wasCaptured) {
+          showCapturedTechnicalError(error);
+          setErrorMessage(technicalErrorMessage);
+        } else {
+          setErrorMessage(error instanceof Error ? error.message : String(error));
+        }
       }
     } finally {
       setIsPackageImporting(false);

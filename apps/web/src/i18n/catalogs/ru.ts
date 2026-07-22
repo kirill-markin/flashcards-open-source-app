@@ -693,6 +693,8 @@ export const ruCatalog = {
     packageImportButton: "Выбрать flashcards.zip",
     packageConfirmButton: "Импортировать пакет из предпросмотра",
     packagePreviewRequired: "Выберите пакет и дождитесь предпросмотра перед импортом.",
+    packageInvalid: "Этот файл не является допустимым flashcards.zip. Выберите пакет, экспортированный из Flashcards Open Source App.",
+    packageTooLarge: "Выбранный пакет слишком велик. Выберите файл flashcards.zip меньшего размера.",
     packageImportSuccess: "Импортировано карточек: {{count}}.",
     packageImportSuccessWithTag: "Импортировано карточек: {{count}} с тегом {{tag}}.",
     importTagLabel: "Добавить тег к импортированным карточкам",

@@ -693,6 +693,8 @@ const esMxCatalog: TranslationCatalog = {
     packageImportButton: "Elegir flashcards.zip",
     packageConfirmButton: "Importar paquete previsualizado",
     packagePreviewRequired: "Elige un paquete y espera la previsualización antes de importar.",
+    packageInvalid: "Este archivo no es un flashcards.zip válido. Elige un paquete exportado desde Flashcards Open Source App.",
+    packageTooLarge: "El paquete seleccionado es demasiado grande. Elige un flashcards.zip más pequeño.",
     packageImportSuccess: "{{count}} tarjetas importadas.",
     packageImportSuccessWithTag: "{{count}} tarjetas importadas con la etiqueta {{tag}}.",
     importTagLabel: "Etiquetar tarjetas importadas",

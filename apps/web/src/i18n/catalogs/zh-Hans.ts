@@ -693,6 +693,8 @@ export const zhHansCatalog = {
     packageImportButton: "选择 flashcards.zip",
     packageConfirmButton: "导入已预览的包",
     packagePreviewRequired: "请先选择包并等待预览完成再导入。",
+    packageInvalid: "此文件不是有效的 flashcards.zip。请选择从 Flashcards Open Source App 导出的包。",
+    packageTooLarge: "所选包太大。请选择较小的 flashcards.zip。",
     packageImportSuccess: "已导入 {{count}} 张卡片。",
     packageImportSuccessWithTag: "已导入 {{count}} 张带有标签 {{tag}} 的卡片。",
     importTagLabel: "标记导入的卡片",

@@ -691,6 +691,8 @@ const enCatalog = {
     packageImportButton: "Choose flashcards.zip",
     packageConfirmButton: "Import previewed package",
     packagePreviewRequired: "Choose a package and wait for the preview before importing.",
+    packageInvalid: "This file is not a valid flashcards.zip. Choose a package exported from Flashcards Open Source App.",
+    packageTooLarge: "The selected package is too large. Choose a smaller flashcards.zip.",
     packageImportSuccess: "Imported {{count}} cards.",
     packageImportSuccessWithTag: "Imported {{count}} cards with tag {{tag}}.",
     importTagLabel: "Tag imported cards",

@@ -2,6 +2,7 @@
 import { act } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "../../../../api";
 import type { AppDataContextValue } from "../../../../appData";
 import { AppErrorDialogProvider } from "../../../../appError/AppErrorContext";
 import { I18nProvider } from "../../../../i18n";
@@ -607,6 +608,32 @@ describe("WorkspaceImportScreen package import", () => {
     ));
 
     expect(requireElement("[data-testid='workspace-import-error']", HTMLParagraphElement).textContent).toContain("A technical error occurred.");
+    expect(document.body.querySelector("[data-testid='app-error-dialog']")).not.toBeNull();
+    expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
+  });
+
+  it("shows inline guidance for invalid packages without a technical error dialog", async () => {
+    const file = createZipFile("flashcards.zip");
+    previewWorkspacePackageImportMock.mockRejectedValueOnce(new ApiError({
+      statusCode: 400,
+      message: "ZIP entry is not supported: gemini-code-1784560458635.txt",
+      code: "WORKSPACE_PACKAGE_IMPORT_PREVIEW_ZIP_INVALID",
+      requestId: "7684327b-64e3-41b2-a4f0-7bf428d4e225",
+      endpoint: "POST /workspaces/workspace-1/packages/import/preview",
+      responseBodyKind: "json",
+    }));
+
+    await renderScreen();
+    await choosePackageFile(file);
+    await waitForCondition("Invalid package guidance was not shown", () => (
+      getContainer().querySelector("[data-testid='workspace-import-error']") !== null
+    ));
+
+    expect(requireElement("[data-testid='workspace-import-error']", HTMLParagraphElement).textContent).toContain(
+      "This file is not a valid flashcards.zip. Choose a package exported from Flashcards Open Source App.",
+    );
+    expect(getContainer().querySelector("[data-testid='workspace-package-import-preview']")).toBeNull();
+    expect(document.body.querySelector("[data-testid='app-error-dialog']")).toBeNull();
     expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
   });
 });
