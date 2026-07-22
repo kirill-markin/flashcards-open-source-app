@@ -747,6 +747,17 @@ extension SentryObservabilityAdapter {
             "text_length": observation.textLength.map { textLength in String(textLength) } ?? "",
             "summary_length": observation.summaryLength.map { summaryLength in String(summaryLength) } ?? "",
             "suggestion_count": observation.suggestionCount.map { suggestionCount in String(suggestionCount) } ?? "",
+            "message_count": observation.messageCount.map { count in String(count) } ?? "",
+            "content_part_count": observation.contentPartCount.map { count in String(count) } ?? "",
+            "rendered_text_character_count": observation.renderedTextCharacterCount
+                .map { count in String(count) } ?? "",
+            "rendered_text_utf8_byte_count": observation.renderedTextUTF8ByteCount
+                .map { count in String(count) } ?? "",
+            "largest_rendered_text_part_character_count": observation.largestRenderedTextPartCharacterCount
+                .map { count in String(count) } ?? "",
+            "largest_rendered_text_part_utf8_byte_count": observation.largestRenderedTextPartUTF8ByteCount
+                .map { count in String(count) } ?? "",
+            "has_older_messages": observation.hasOlderMessages.map { value in String(value) } ?? "",
             "is_error": observation.isError.map { isError in String(isError) } ?? "",
             "is_stopped": observation.isStopped.map { isStopped in String(isStopped) } ?? "",
             "outcome": observation.outcome ?? "",

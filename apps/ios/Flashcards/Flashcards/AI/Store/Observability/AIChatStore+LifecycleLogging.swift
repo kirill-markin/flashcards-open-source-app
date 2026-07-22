@@ -54,6 +54,15 @@ private func logAIChatStoreLifecycleEvent(action: String, metadata: [String: Str
         summaryLength: metadata["summaryLength"].flatMap(Int.init),
         suggestionCount: metadata["suggestionCount"].flatMap(Int.init)
             ?? metadata["count"].flatMap(Int.init),
+        messageCount: metadata["messageCount"].flatMap(Int.init),
+        contentPartCount: metadata["contentPartCount"].flatMap(Int.init),
+        renderedTextCharacterCount: metadata["renderedTextCharacterCount"].flatMap(Int.init),
+        renderedTextUTF8ByteCount: metadata["renderedTextUTF8ByteCount"].flatMap(Int.init),
+        largestRenderedTextPartCharacterCount: metadata["largestRenderedTextPartCharacterCount"]
+            .flatMap(Int.init),
+        largestRenderedTextPartUTF8ByteCount: metadata["largestRenderedTextPartUTF8ByteCount"]
+            .flatMap(Int.init),
+        hasOlderMessages: metadata["hasOlderMessages"].flatMap(aiChatStoreBool),
         isError: metadata["isError"].flatMap(aiChatStoreBool),
         isStopped: metadata["isStopped"].flatMap(aiChatStoreBool),
         outcome: metadata["outcome"].flatMap(aiChatStoreNonPlaceholderString),
@@ -148,7 +157,8 @@ private func aiChatStoreLifecycleEventIsWarning(_ action: AIChatLifecycleAction)
             .bootstrapSessionContractMismatch,
             .chatUnknownContentReceived:
         return true
-    case .runStart,
+    case .aiChatRenderFootprint,
+            .runStart,
             .runStarted,
             .bootstrapRetryScheduled,
             .newSessionRetryScheduled,

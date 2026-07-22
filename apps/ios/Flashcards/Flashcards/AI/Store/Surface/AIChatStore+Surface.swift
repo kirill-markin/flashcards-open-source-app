@@ -180,6 +180,42 @@ extension AIChatStore {
             )
         }
 
+        if didBecomeVisible {
+            let footprint = makeAIChatRenderFootprint(
+                messages: self.messages,
+                hasOlderMessages: self.hasOlderMessages
+            )
+            var metadata: [String: String] = [
+                "messageCount": String(footprint.messageCount),
+                "contentPartCount": String(footprint.contentPartCount),
+                "renderedTextCharacterCount": String(footprint.renderedTextCharacterCount),
+                "renderedTextUTF8ByteCount": String(footprint.renderedTextUTF8ByteCount),
+                "largestRenderedTextPartCharacterCount": String(
+                    footprint.largestRenderedTextPartCharacterCount
+                ),
+                "largestRenderedTextPartUTF8ByteCount": String(
+                    footprint.largestRenderedTextPartUTF8ByteCount
+                ),
+                "hasOlderMessages": String(footprint.hasOlderMessages)
+            ]
+            if self.chatSessionId.isEmpty == false {
+                metadata["chatSessionId"] = self.chatSessionId
+            }
+            if self.conversationScopeId.isEmpty == false {
+                metadata["conversationScopeId"] = self.conversationScopeId
+            }
+            if let workspaceId = activity.workspaceId {
+                metadata["workspaceId"] = workspaceId
+            }
+            if let cloudState = activity.cloudState {
+                metadata["cloudState"] = cloudState.rawValue
+            }
+            logAIChatStoreEvent(
+                action: AIChatLifecycleAction.aiChatRenderFootprint.rawValue,
+                metadata: metadata
+            )
+        }
+
         if didVisibilityChange {
             self.setChatVisibility(isVisible: activity.isVisible)
         }
