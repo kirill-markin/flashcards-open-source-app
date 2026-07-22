@@ -7,7 +7,6 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.observability.AppObservability
-import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
@@ -300,7 +299,7 @@ fun createAiViewModelFactory(
                 observability = observability,
                 textProvider = aiTextProvider(context = application),
                 currentUiLocaleTag = {
-                    currentResourceLocale(resources = application.resources).toLanguageTag()
+                    currentAiUiLocaleTag(context = application)
                 }
             )
         }

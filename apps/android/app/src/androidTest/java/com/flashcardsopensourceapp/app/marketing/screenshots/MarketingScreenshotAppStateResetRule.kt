@@ -79,15 +79,16 @@ class MarketingScreenshotAppStateResetRule : AppStateResetRule() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val localeManager = context.getSystemService(LocaleManager::class.java)
             ?: throw IllegalStateException("LocaleManager was unavailable while applying screenshot locale.")
-        val localeList = LocaleList.forLanguageTags(localeConfig.appLocaleTag)
+        val applicationLocales: LocaleList = LocaleList.forLanguageTags(localeConfig.appLocaleTag)
+        val supportedLocales: LocaleList = LocaleList.forLanguageTags("${localeConfig.appLocaleTag},en")
 
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
-            localeManager.overrideLocaleConfig = LocaleConfig(localeList)
-            localeManager.applicationLocales = localeList
+            localeManager.overrideLocaleConfig = LocaleConfig(supportedLocales)
+            localeManager.applicationLocales = applicationLocales
         }
         waitForOverrideLocaleConfigState(
             localeManager = localeManager,
-            expectedLanguageTags = localeConfig.appLocaleTag,
+            expectedLanguageTags = supportedLocales.toLanguageTags(),
             phase = "applying marketing screenshot override locale config '${localeConfig.localePrefix}'"
         )
         waitForLocaleState(
