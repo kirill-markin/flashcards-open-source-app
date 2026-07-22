@@ -398,6 +398,7 @@ enum CloudFlowOutcome: String, Sendable, Hashable {
 }
 
 enum AIChatLifecycleAction: String, Sendable {
+    case aiChatRenderFootprint = "ai_chat_render_footprint"
     case runStart = "ai_run_start"
     case runStarted = "ai_run_started"
     case runFail = "ai_run_fail"
@@ -433,6 +434,13 @@ struct AIChatLifecycleObservation: Sendable, Hashable {
     let textLength: Int?
     let summaryLength: Int?
     let suggestionCount: Int?
+    let messageCount: Int?
+    let contentPartCount: Int?
+    let renderedTextCharacterCount: Int?
+    let renderedTextUTF8ByteCount: Int?
+    let largestRenderedTextPartCharacterCount: Int?
+    let largestRenderedTextPartUTF8ByteCount: Int?
+    let hasOlderMessages: Bool?
     let isError: Bool?
     let isStopped: Bool?
     let outcome: String?
