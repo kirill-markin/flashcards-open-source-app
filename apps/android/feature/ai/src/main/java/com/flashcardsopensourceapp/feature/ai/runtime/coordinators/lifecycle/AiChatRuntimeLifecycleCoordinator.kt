@@ -40,6 +40,8 @@ internal class AiChatRuntimeLifecycleCoordinator(
     private val detachLiveStream: (String) -> Unit,
     private val cancelActiveDictation: (String) -> Unit
 ) {
+    private var accessContextLoadGeneration: Long = 0L
+
     fun updateAccessContext(accessContext: AiAccessContext) {
         val previousAccessContext = context.activeAccessContext
         context.activeAccessContext = accessContext
@@ -47,6 +49,8 @@ internal class AiChatRuntimeLifecycleCoordinator(
             retryBootstrapIfLoadingWithoutOwner(accessContext = accessContext)
             return
         }
+        accessContextLoadGeneration += 1L
+        val loadGeneration: Long = accessContextLoadGeneration
         cancelActiveDictation("AI dictation cancelled because access context changed.")
         context.activeSendJob?.cancel(
             cause = CancellationException("AI send cancelled because access context changed.")
@@ -97,6 +101,9 @@ internal class AiChatRuntimeLifecycleCoordinator(
                 workspaceId = accessContext.workspaceId,
                 sessionId = persistedSessionId
             )
+            if (loadGeneration != accessContextLoadGeneration) {
+                return@launch
+            }
             val nextState = makeAiDraftState(
                 workspaceId = accessContext.workspaceId,
                 persistedState = persistedState
@@ -163,7 +170,11 @@ internal class AiChatRuntimeLifecycleCoordinator(
         resumeDiagnostics: AiChatResumeDiagnostics?
     ) {
         val currentState = context.runtimeStateMutable.value
-        val accessContext = context.activeAccessContext
+        val accessContext = context.activeAccessContext ?: return
+        val activeWorkspaceId = accessContext.workspaceId ?: return
+        if (currentState.workspaceId != activeWorkspaceId) {
+            return
+        }
         if (
             currentState.composerPhase == AiComposerPhase.PREPARING_SEND
             || currentState.composerPhase == AiComposerPhase.STARTING_RUN
@@ -171,9 +182,6 @@ internal class AiChatRuntimeLifecycleCoordinator(
             return
         }
         if (context.hasConsent().not()) {
-            return
-        }
-        if (accessContext?.workspaceId == null) {
             return
         }
         if (accessContext.cloudState == CloudAccountState.LINKING_READY) {
