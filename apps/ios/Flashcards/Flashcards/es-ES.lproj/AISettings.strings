@@ -83,6 +83,8 @@
 "ai.message.reasoning.status.running" = "EN CURSO";
 "ai.message.reasoning.status.done" = "HECHO";
 "ai.message.reasoning.thinking" = "Pensando...";
+"ai.message.fullResponse.show" = "Mostrar respuesta completa";
+"ai.message.fullResponse.title" = "Respuesta completa";
 "ai.tool.label.codeExecution" = "Ejecucion de codigo";
 "ai.tool.label.webSearch" = "Busqueda web";
 "ai.tool.section.request" = "Solicitud";

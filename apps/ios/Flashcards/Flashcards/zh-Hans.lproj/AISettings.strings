@@ -83,6 +83,8 @@
 "ai.message.reasoning.status.running" = "进行中";
 "ai.message.reasoning.status.done" = "完成";
 "ai.message.reasoning.thinking" = "思考...";
+"ai.message.fullResponse.show" = "显示完整回复";
+"ai.message.fullResponse.title" = "完整回复";
 "ai.tool.label.codeExecution" = "代码执行";
 "ai.tool.label.webSearch" = "网页搜索";
 "ai.tool.section.request" = "应用";

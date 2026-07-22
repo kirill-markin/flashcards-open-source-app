@@ -83,6 +83,8 @@
 "ai.message.reasoning.status.running" = "進行中";
 "ai.message.reasoning.status.done" = "完了";
 "ai.message.reasoning.thinking" = "考え中...";
+"ai.message.fullResponse.show" = "回答をすべて表示";
+"ai.message.fullResponse.title" = "回答全文";
 "ai.tool.label.codeExecution" = "コードの実行";
 "ai.tool.label.webSearch" = "ウェブ検索";
 "ai.tool.section.request" = "アプリケーション";

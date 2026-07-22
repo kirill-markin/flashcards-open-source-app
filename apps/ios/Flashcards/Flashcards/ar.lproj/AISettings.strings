@@ -83,6 +83,8 @@
 "ai.message.reasoning.status.running" = "قيد التقدم";
 "ai.message.reasoning.status.done" = "تم";
 "ai.message.reasoning.thinking" = "أفكر...";
+"ai.message.fullResponse.show" = "عرض الرد الكامل";
+"ai.message.fullResponse.title" = "الرد الكامل";
 "ai.tool.label.codeExecution" = "تنفيذ التعليمات البرمجية";
 "ai.tool.label.webSearch" = "بحث الويب";
 "ai.tool.section.request" = "التطبيق";
