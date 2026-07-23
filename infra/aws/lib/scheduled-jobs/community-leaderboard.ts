@@ -85,7 +85,7 @@ function addOptionalSentryEnvironment(
  */
 export function communityLeaderboard(scope: Construct, props: CommunityLeaderboardProps): CommunityLeaderboardResult {
   const snapshotFunction = new lambdaNodejs.NodejsFunction(scope, "CommunityLeaderboardSnapshotHandler", {
-    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-community-leaderboard-snapshot.ts"),
+    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-community-leaderboard-snapshot.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.minutes(5),

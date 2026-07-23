@@ -22,7 +22,7 @@ test("streak leaderboard construct creates the daily schedule and snapshot Lambd
   assert.match(source, /new lambdaNodejs\.NodejsFunction\(scope, "StreakLeaderboardSnapshotHandler"/);
   assert.match(
     source,
-    /entry: resolveFromRepoRoot\("apps", "backend", "src", "entrypoints", "lambda-streak-leaderboard-snapshot\.ts"\)/,
+    /entry: resolveFromRepoRoot\("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-streak-leaderboard-snapshot\.ts"\)/,
   );
   assert.match(source, /DB_SECRET_ARN: props\.backendDbSecret\.secretArn/);
   assert.equal(source.includes("REPORTING_DB_SECRET_ARN"), false);
