@@ -673,12 +673,12 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: undefined,
-    mediaAssetsBucket: undefined,
-    memorySize: 512,
-    architecture: lambda.Architecture.X86_64,
+    mediaAssetsBucket: props.mediaAssetsBucket,
+    memorySize: 1024,
+    architecture: lambda.Architecture.ARM_64,
     bundling: createLambdaBundling({
-      nodeModules: [],
-      forceDockerBundling: false,
+      nodeModules: ["sharp"],
+      forceDockerBundling: true,
     }),
   });
   const chatLiveFn = createBackendFunction(scope, {
