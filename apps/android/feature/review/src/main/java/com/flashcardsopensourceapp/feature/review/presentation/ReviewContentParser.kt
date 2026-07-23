@@ -4,7 +4,7 @@ import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 
 /*
  Keep review content presentation heuristics aligned with:
- - apps/web/src/screens/reviewContentPresentation.ts
+ - apps/web/src/screens/review/components/card/reviewContentPresentation.ts
  - apps/ios/Flashcards/Flashcards/Review/View/ReviewContentPresentation.swift
  */
 
@@ -15,7 +15,6 @@ internal val reviewHeadingRegex: Regex = Regex(pattern = """^\s{0,3}(#{1,6})\s+(
 internal val reviewQuoteRegex: Regex = Regex(pattern = """^\s{0,3}>\s?(.*)$""")
 internal val reviewBulletRegex: Regex = Regex(pattern = """^\s{0,3}[-*+]\s+(.+?)\s*$""")
 internal val reviewOrderedListRegex: Regex = Regex(pattern = """^\s{0,3}\d+\.\s+(.+?)\s*$""")
-internal val reviewFenceRegex: Regex = Regex(pattern = """^\s{0,3}(```|~~~)\s*([\w+-]+)?\s*$""")
 internal val reviewHorizontalRuleRegex: Regex = Regex(pattern = """^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$""")
 internal val reviewTableDelimiterRegex: Regex = Regex(
     pattern = """^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$"""
@@ -23,7 +22,17 @@ internal val reviewTableDelimiterRegex: Regex = Regex(
 internal val reviewManagedMediaReferenceRegex: Regex = Regex(
     pattern = """(!)?\[([^\]]*)]\(([^)\s]+)(?:\s+"[^"]*")?\)"""
 )
+private val reviewMarkdownLinkOrImageRegex: Regex = Regex(
+    pattern = """!?\[[^\]]*]\([^)]+\)"""
+)
+private val reviewFenceOpeningRegex: Regex = Regex(pattern = """^\s{0,3}(`{3,}|~{3,})(.*)$""")
+private val reviewFenceClosingRegex: Regex = Regex(pattern = """^\s{0,3}(`{3,}|~{3,})\s*$""")
 private const val reviewManagedMediaSchemePrefix: String = "fcasset:"
+
+private data class ReviewManagedMediaMatch(
+    val range: IntRange,
+    val reference: ReviewManagedMediaReference
+)
 
 fun classifyReviewContentPresentation(text: String): ReviewContentPresentationMode {
     val trimmedText: String = text.trim()
@@ -56,15 +65,18 @@ fun makeReviewRenderedContent(
     text: String,
     mediaAssetsById: Map<String, MediaAsset>
 ): ReviewRenderedContent {
+    val managedMarkdown: ReviewRenderedContent.ManagedMarkdown? = makeReviewManagedMarkdownContent(
+        text = text,
+        mediaAssetsById = mediaAssetsById
+    )
+    if (managedMarkdown != null) {
+        return managedMarkdown
+    }
+
     return when (classifyReviewContentPresentation(text = text)) {
         ReviewContentPresentationMode.SHORT_PLAIN -> ReviewRenderedContent.ShortPlain(text = text)
         ReviewContentPresentationMode.PARAGRAPH_PLAIN -> ReviewRenderedContent.ParagraphPlain(text = text)
-        ReviewContentPresentationMode.RICH -> ReviewRenderedContent.Rich(
-            blocks = parseReviewRichBlocks(
-                text = text,
-                mediaAssetsById = mediaAssetsById
-            )
-        )
+        ReviewContentPresentationMode.RICH -> ReviewRenderedContent.Markdown(markdown = text)
     }
 }
 
@@ -72,7 +84,7 @@ private fun hasStrongRichCue(text: String): Boolean {
     if (text.isBlank()) {
         return false
     }
-    if (containsReviewManagedMediaReference(text = text)) {
+    if (reviewMarkdownLinkOrImageRegex.containsMatchIn(input = text)) {
         return true
     }
 
@@ -81,17 +93,31 @@ private fun hasStrongRichCue(text: String): Boolean {
             || reviewQuoteRegex.matches(line)
             || reviewBulletRegex.matches(line)
             || reviewOrderedListRegex.matches(line)
-            || reviewFenceRegex.matches(line)
+            || reviewFenceMarker(line = line) != null
             || reviewHorizontalRuleRegex.matches(line)
             || reviewTableDelimiterRegex.matches(line)
     }
 }
 
-private fun containsReviewManagedMediaReference(text: String): Boolean {
-    return reviewManagedMediaReferenceRegex.findAll(input = text).any { match ->
-        val reference: String = match.groups[3]?.value ?: return@any false
-        parseReviewManagedMediaAssetId(reference = reference) != null
+internal fun reviewFenceMarker(line: String): String? {
+    val match: MatchResult = reviewFenceOpeningRegex.matchEntire(input = line) ?: return null
+    val marker: String = match.groupValues[1]
+    val info: String = match.groupValues[2]
+    if (marker.first() == '`' && info.contains('`')) {
+        return null
     }
+
+    return marker
+}
+
+internal fun isReviewFenceClosingLine(
+    line: String,
+    openingMarker: String
+): Boolean {
+    val match: MatchResult = reviewFenceClosingRegex.matchEntire(input = line) ?: return false
+    val closingMarker: String = match.groupValues[1]
+    return closingMarker.first() == openingMarker.first() &&
+        closingMarker.length >= openingMarker.length
 }
 
 internal fun parseReviewManagedMediaAssetId(reference: String): String? {
@@ -115,271 +141,97 @@ internal fun parseReviewManagedMediaAssetId(reference: String): String? {
     return mediaAssetId.ifEmpty { null }
 }
 
-private fun parseReviewRichBlocks(
+private fun makeReviewManagedMarkdownContent(
     text: String,
     mediaAssetsById: Map<String, MediaAsset>
-): List<ReviewRichBlock> {
-    val normalizedText: String = text.replace("\r\n", "\n").replace('\r', '\n')
-    val lines: List<String> = normalizedText.lines()
-    var index: Int = 0
-    val blocks: MutableList<ReviewRichBlock> = mutableListOf()
-
-    while (index < lines.size) {
-        val line: String = lines[index]
-
-        if (line.isBlank()) {
-            index += 1
-            continue
-        }
-
-        val fenceMatch: MatchResult? = reviewFenceRegex.matchEntire(line)
-        if (fenceMatch != null) {
-            val fence: String = fenceMatch.groupValues[1]
-            val languageLabel: String? = fenceMatch.groupValues[2].ifBlank { null }
-            val codeLines: MutableList<String> = mutableListOf()
-            index += 1
-
-            while (index < lines.size && reviewFenceRegex.matchEntire(lines[index])?.groupValues?.get(1) != fence) {
-                codeLines += lines[index]
-                index += 1
-            }
-
-            if (index < lines.size) {
-                index += 1
-            }
-
-            blocks += ReviewRichBlock.CodeBlock(
-                languageLabel = languageLabel,
-                code = codeLines.joinToString(separator = "\n")
-            )
-            continue
-        }
-
-        val managedMediaBlocks: List<ReviewRichBlock>? = splitReviewManagedMediaLine(
-            line = line,
-            mediaAssetsById = mediaAssetsById
-        )
-        if (managedMediaBlocks != null) {
-            blocks += managedMediaBlocks
-            index += 1
-            continue
-        }
-
-        val headingMatch: MatchResult? = reviewHeadingRegex.matchEntire(line)
-        if (headingMatch != null) {
-            blocks += ReviewRichBlock.Heading(
-                level = headingMatch.groupValues[1].length,
-                segments = parseInlineSegments(text = headingMatch.groupValues[2])
-            )
-            index += 1
-            continue
-        }
-
-        if (reviewQuoteRegex.matches(line)) {
-            val quoteLines: MutableList<String> = mutableListOf()
-
-            while (index < lines.size) {
-                val quoteMatch: MatchResult = reviewQuoteRegex.matchEntire(lines[index]) ?: break
-                quoteLines += quoteMatch.groupValues[1]
-                index += 1
-            }
-
-            blocks += ReviewRichBlock.Quote(
-                segments = parseInlineSegments(text = quoteLines.joinToString(separator = "\n"))
-            )
-            continue
-        }
-
-        val bulletMatch: MatchResult? = reviewBulletRegex.matchEntire(line)
-        val orderedMatch: MatchResult? = reviewOrderedListRegex.matchEntire(line)
-        if (bulletMatch != null || orderedMatch != null) {
-            val ordered: Boolean = orderedMatch != null
-            val items: MutableList<List<ReviewInlineSegment>> = mutableListOf()
-
-            while (index < lines.size) {
-                val itemMatch: MatchResult = if (ordered) {
-                    reviewOrderedListRegex.matchEntire(lines[index])
-                } else {
-                    reviewBulletRegex.matchEntire(lines[index])
-                } ?: break
-
-                items += parseInlineSegments(text = itemMatch.groupValues[1])
-                index += 1
-            }
-
-            blocks += ReviewRichBlock.BulletList(
-                ordered = ordered,
-                items = items
-            )
-            continue
-        }
-
-        val paragraphLines: MutableList<String> = mutableListOf()
-        while (index < lines.size && shouldContinueParagraph(line = lines[index])) {
-            paragraphLines += lines[index]
-            index += 1
-        }
-
-        blocks += ReviewRichBlock.Paragraph(
-            segments = parseInlineSegments(text = paragraphLines.joinToString(separator = "\n"))
-        )
-    }
-
-    return if (blocks.isEmpty()) {
-        listOf(
-            ReviewRichBlock.Paragraph(
-                segments = parseInlineSegments(text = text)
-            )
-        )
-    } else {
-        blocks
-    }
-}
-
-private fun shouldContinueParagraph(line: String): Boolean {
-    if (line.isBlank()) {
-        return false
-    }
-
-    return reviewFenceRegex.matches(line).not()
-        && containsReviewManagedMediaReference(text = line).not()
-        && reviewHeadingRegex.matches(line).not()
-        && reviewQuoteRegex.matches(line).not()
-        && reviewBulletRegex.matches(line).not()
-        && reviewOrderedListRegex.matches(line).not()
-}
-
-private fun splitReviewManagedMediaLine(
-    line: String,
-    mediaAssetsById: Map<String, MediaAsset>
-): List<ReviewRichBlock>? {
-    val matches: List<MatchResult> = reviewManagedMediaReferenceRegex.findAll(input = line).toList()
+): ReviewRenderedContent.ManagedMarkdown? {
+    val matches: List<ReviewManagedMediaMatch> = findReviewManagedMediaMatches(
+        text = text,
+        mediaAssetsById = mediaAssetsById
+    )
     if (matches.isEmpty()) {
         return null
     }
 
-    val blocks: MutableList<ReviewRichBlock> = mutableListOf()
     var currentIndex: Int = 0
-    var didFindManagedMedia: Boolean = false
-
-    matches.forEach { match ->
-        val reference: String = match.groups[3]?.value ?: return@forEach
-        val mediaAssetId: String = parseReviewManagedMediaAssetId(reference = reference) ?: return@forEach
-        val matchStart: Int = match.range.first
-        val matchEndExclusive: Int = match.range.last + 1
-
-        appendReviewManagedMediaTextBlock(
-            text = line.substring(startIndex = currentIndex, endIndex = matchStart),
-            blocks = blocks
-        )
-        blocks += ReviewRichBlock.ManagedMedia(
-            reference = ReviewManagedMediaReference(
-                mediaAssetId = mediaAssetId,
-                label = match.groups[2]?.value?.trim()?.ifEmpty { null },
-                isImageSyntax = match.groups[1] != null,
-                mediaAsset = mediaAssetsById[mediaAssetId]
+    val blocks: List<ReviewManagedMarkdownBlock> = buildList {
+        matches.forEach { match ->
+            val precedingMarkdown: String = text.substring(
+                startIndex = currentIndex,
+                endIndex = match.range.first
             )
-        )
-        currentIndex = matchEndExclusive
-        didFindManagedMedia = true
+            if (precedingMarkdown.isNotBlank()) {
+                add(ReviewManagedMarkdownBlock.Markdown(markdown = precedingMarkdown))
+            }
+            add(ReviewManagedMarkdownBlock.ManagedMedia(reference = match.reference))
+            currentIndex = match.range.last + 1
+        }
+
+        val trailingMarkdown: String = text.substring(startIndex = currentIndex)
+        if (trailingMarkdown.isNotBlank()) {
+            add(ReviewManagedMarkdownBlock.Markdown(markdown = trailingMarkdown))
+        }
     }
 
-    if (didFindManagedMedia.not()) {
-        return null
-    }
-
-    appendReviewManagedMediaTextBlock(
-        text = line.substring(startIndex = currentIndex),
-        blocks = blocks
-    )
-    return blocks
+    return ReviewRenderedContent.ManagedMarkdown(blocks = blocks)
 }
 
-private fun appendReviewManagedMediaTextBlock(
+private fun findReviewManagedMediaMatches(
     text: String,
-    blocks: MutableList<ReviewRichBlock>
-) {
-    if (text.trim().isEmpty()) {
-        return
-    }
+    mediaAssetsById: Map<String, MediaAsset>
+): List<ReviewManagedMediaMatch> {
+    return buildList {
+        var activeFenceMarker: String? = null
+        var lineStart: Int = 0
 
-    blocks += ReviewRichBlock.Paragraph(
-        segments = parseInlineSegments(text = text)
-    )
-}
-
-private fun parseInlineSegments(text: String): List<ReviewInlineSegment> {
-    if (text.contains('`').not()) {
-        return listOf(
-            ReviewInlineSegment(
-                text = text,
-                isCode = false
-            )
-        )
-    }
-
-    val segments: MutableList<ReviewInlineSegment> = mutableListOf()
-    val currentText: StringBuilder = StringBuilder()
-    var isInsideCode: Boolean = false
-
-    text.forEach { character ->
-        if (character == '`') {
-            if (currentText.isNotEmpty()) {
-                segments += ReviewInlineSegment(
-                    text = currentText.toString(),
-                    isCode = isInsideCode
-                )
-                currentText.clear()
+        while (lineStart <= text.length) {
+            val lineEnd: Int = text.indexOfAny(
+                chars = charArrayOf('\r', '\n'),
+                startIndex = lineStart
+            ).let { index ->
+                if (index < 0) text.length else index
             }
-            isInsideCode = isInsideCode.not()
-        } else {
-            currentText.append(character)
-        }
-    }
+            val line: String = text.substring(startIndex = lineStart, endIndex = lineEnd)
+            val fenceMarker: String? = reviewFenceMarker(line = line)
+            val currentFenceMarker: String? = activeFenceMarker
 
-    if (currentText.isNotEmpty()) {
-        segments += ReviewInlineSegment(
-            text = currentText.toString(),
-            isCode = isInsideCode
-        )
-    }
-
-    return if (segments.isEmpty()) {
-        listOf(
-            ReviewInlineSegment(
-                text = text,
-                isCode = false
-            )
-        )
-    } else {
-        segments
-    }
-}
-
-fun reviewRenderedContentDebugText(content: ReviewRenderedContent): String {
-    return when (content) {
-        is ReviewRenderedContent.ShortPlain -> content.text
-        is ReviewRenderedContent.ParagraphPlain -> content.text
-        is ReviewRenderedContent.Rich -> content.blocks.joinToString(separator = "\n") { block ->
-            when (block) {
-                is ReviewRichBlock.Paragraph -> inlineSegmentsDebugText(segments = block.segments)
-                is ReviewRichBlock.Heading -> inlineSegmentsDebugText(segments = block.segments)
-                is ReviewRichBlock.BulletList -> block.items.joinToString(separator = "\n") { item ->
-                    inlineSegmentsDebugText(segments = item)
+            if (currentFenceMarker != null) {
+                if (isReviewFenceClosingLine(line = line, openingMarker = currentFenceMarker)) {
+                    activeFenceMarker = null
                 }
-
-                is ReviewRichBlock.Quote -> inlineSegmentsDebugText(segments = block.segments)
-                is ReviewRichBlock.CodeBlock -> block.code
-                is ReviewRichBlock.ManagedMedia -> block.reference.label.orEmpty()
+            } else if (fenceMarker != null) {
+                activeFenceMarker = fenceMarker
+            } else {
+                reviewManagedMediaReferenceRegex.findAll(input = line).forEach { match ->
+                    val rawReference: String = match.groups[3]?.value ?: return@forEach
+                    val mediaAssetId: String = parseReviewManagedMediaAssetId(
+                        reference = rawReference
+                    ) ?: return@forEach
+                    add(
+                        ReviewManagedMediaMatch(
+                            range = (lineStart + match.range.first)..(lineStart + match.range.last),
+                            reference = ReviewManagedMediaReference(
+                                mediaAssetId = mediaAssetId,
+                                label = match.groups[2]?.value?.trim()?.ifEmpty { null },
+                                isImageSyntax = match.groups[1] != null,
+                                mediaAsset = mediaAssetsById[mediaAssetId]
+                            )
+                        )
+                    )
+                }
             }
-        }
-    }
-}
 
-private fun inlineSegmentsDebugText(segments: List<ReviewInlineSegment>): String {
-    return buildString {
-        segments.forEach { segment ->
-            append(segment.text)
+            if (lineEnd == text.length) {
+                break
+            }
+            lineStart = if (text[lineEnd] == '\r' &&
+                lineEnd + 1 < text.length &&
+                text[lineEnd + 1] == '\n'
+            ) {
+                lineEnd + 2
+            } else {
+                lineEnd + 1
+            }
         }
     }
 }
