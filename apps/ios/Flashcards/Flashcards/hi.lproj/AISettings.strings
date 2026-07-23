@@ -86,6 +86,7 @@
 "ai.message.fullResponse.show" = "पूरा जवाब दिखाएँ";
 "ai.message.fullResponse.title" = "पूरा जवाब";
 "ai.tool.label.codeExecution" = "कोड निष्पादन";
+"ai.tool.label.generatedCardImage" = "कार्ड की छवि बनाएँ";
 "ai.tool.label.webSearch" = "वेब खोज";
 "ai.tool.section.request" = "एप्लीकेशन";
 "ai.tool.section.response" = "उत्तर";

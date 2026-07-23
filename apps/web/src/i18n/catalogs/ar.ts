@@ -1182,6 +1182,7 @@ const arCatalog: TranslationCatalog = {
     thinking: "جارٍ التفكير...",
     toolLabels: {
       codeExecution: "تنفيذ الكود",
+      generatedCardImage: "إنشاء صورة للبطاقة",
       sql: "SQL",
       webSearch: "بحث الويب",
     },

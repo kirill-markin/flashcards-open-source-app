@@ -1182,6 +1182,7 @@ export const zhHansCatalog = {
     thinking: "思考中...",
     toolLabels: {
       codeExecution: "代码执行",
+      generatedCardImage: "生成卡片图片",
       sql: "SQL",
       webSearch: "网页搜索",
     },

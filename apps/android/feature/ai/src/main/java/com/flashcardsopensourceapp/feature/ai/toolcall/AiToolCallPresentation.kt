@@ -13,12 +13,17 @@ fun formatAiToolLabel(name: String, textProvider: AiTextProvider): String {
     return when (name) {
         "sql" -> textProvider.toolSql
         "code_execution", "code_interpreter" -> textProvider.toolCodeExecution
+        "add_generated_image_to_card" -> textProvider.toolGeneratedCardImage
         "web_search" -> textProvider.toolWebSearch
         else -> name
     }
 }
 
 fun formatAiToolCallPreview(name: String, input: String?): String? {
+    if (name == "add_generated_image_to_card") {
+        return null
+    }
+
     if (input == null || input.trim().isEmpty()) {
         return null
     }

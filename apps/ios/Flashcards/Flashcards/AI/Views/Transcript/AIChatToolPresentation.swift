@@ -23,6 +23,8 @@ func aiChatToolLabel(name: String) -> String {
         return "SQL"
     case "code_execution", "code_interpreter":
         return aiSettingsLocalized("ai.tool.label.codeExecution", "Code execution")
+    case "add_generated_image_to_card":
+        return aiSettingsLocalized("ai.tool.label.generatedCardImage", "Generate card image")
     case "web_search":
         return aiSettingsLocalized("ai.tool.label.webSearch", "Web search")
     default:
@@ -31,6 +33,10 @@ func aiChatToolLabel(name: String) -> String {
 }
 
 func aiChatToolPreview(name: String, input: String?) -> String? {
+    if name == "add_generated_image_to_card" {
+        return nil
+    }
+
     guard let input, input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
         return nil
     }

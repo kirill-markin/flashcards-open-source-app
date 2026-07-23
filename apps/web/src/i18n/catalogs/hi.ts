@@ -1182,6 +1182,7 @@ const hiCatalog: TranslationCatalog = {
     thinking: "सोच रहा है...",
     toolLabels: {
       codeExecution: "कोड निष्पादन",
+      generatedCardImage: "कार्ड की छवि बनाएँ",
       sql: "SQL",
       webSearch: "वेब खोज",
     },
