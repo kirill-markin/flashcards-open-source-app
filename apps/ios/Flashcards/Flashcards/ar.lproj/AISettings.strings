@@ -86,6 +86,7 @@
 "ai.message.fullResponse.show" = "عرض الرد الكامل";
 "ai.message.fullResponse.title" = "الرد الكامل";
 "ai.tool.label.codeExecution" = "تنفيذ التعليمات البرمجية";
+"ai.tool.label.generatedCardImage" = "إنشاء صورة للبطاقة";
 "ai.tool.label.webSearch" = "بحث الويب";
 "ai.tool.section.request" = "التطبيق";
 "ai.tool.section.response" = "الإجابة";

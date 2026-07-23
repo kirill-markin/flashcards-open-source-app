@@ -1182,6 +1182,7 @@ export const jaCatalog = {
     thinking: "考え中...",
     toolLabels: {
       codeExecution: "コード実行",
+      generatedCardImage: "カード画像を生成",
       sql: "SQL",
       webSearch: "Web 検索",
     },

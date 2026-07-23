@@ -86,6 +86,7 @@
 "ai.message.fullResponse.show" = "Vollständige Antwort anzeigen";
 "ai.message.fullResponse.title" = "Vollständige Antwort";
 "ai.tool.label.codeExecution" = "Codeausführung";
+"ai.tool.label.generatedCardImage" = "Kartenbild erstellen";
 "ai.tool.label.webSearch" = "Websuche";
 "ai.tool.section.request" = "Anwendung";
 "ai.tool.section.response" = "Antwort";

@@ -1182,6 +1182,7 @@ export const ruCatalog = {
     thinking: "Думает...",
     toolLabels: {
       codeExecution: "Выполнение кода",
+      generatedCardImage: "Создать изображение карточки",
       sql: "SQL",
       webSearch: "Веб-поиск",
     },

@@ -86,6 +86,7 @@
 "ai.message.fullResponse.show" = "回答をすべて表示";
 "ai.message.fullResponse.title" = "回答全文";
 "ai.tool.label.codeExecution" = "コードの実行";
+"ai.tool.label.generatedCardImage" = "カード画像を生成";
 "ai.tool.label.webSearch" = "ウェブ検索";
 "ai.tool.section.request" = "アプリケーション";
 "ai.tool.section.response" = "答え";

@@ -86,6 +86,7 @@
 "ai.message.fullResponse.show" = "Показать ответ полностью";
 "ai.message.fullResponse.title" = "Полный ответ";
 "ai.tool.label.codeExecution" = "Выполнение кода";
+"ai.tool.label.generatedCardImage" = "Создать изображение карточки";
 "ai.tool.label.webSearch" = "Веб-поиск";
 "ai.tool.section.request" = "Приложение";
 "ai.tool.section.response" = "Ответ";

@@ -1180,6 +1180,7 @@ const enCatalog = {
     thinking: "Thinking...",
     toolLabels: {
       codeExecution: "Code execution",
+      generatedCardImage: "Generate card image",
       sql: "SQL",
       webSearch: "Web search",
     },

@@ -56,6 +56,7 @@
     <string name="ai_tool_label">Tool: %1$s</string>
     <string name="ai_tool_sql">SQL</string>
     <string name="ai_tool_code_execution">Code execution</string>
+    <string name="ai_tool_generated_card_image">Generate card image</string>
     <string name="ai_tool_web_search">Web search</string>
     <string name="ai_tool_running">Running</string>
     <string name="ai_tool_done">Done</string>

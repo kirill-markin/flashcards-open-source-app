@@ -86,6 +86,7 @@
 "ai.message.fullResponse.show" = "显示完整回复";
 "ai.message.fullResponse.title" = "完整回复";
 "ai.tool.label.codeExecution" = "代码执行";
+"ai.tool.label.generatedCardImage" = "生成卡片图片";
 "ai.tool.label.webSearch" = "网页搜索";
 "ai.tool.section.request" = "应用";
 "ai.tool.section.response" = "答案";

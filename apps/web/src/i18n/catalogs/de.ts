@@ -1182,6 +1182,7 @@ const deCatalog: TranslationCatalog = {
     thinking: "Denkt nach...",
     toolLabels: {
       codeExecution: "Codeausführung",
+      generatedCardImage: "Kartenbild erstellen",
       sql: "SQL",
       webSearch: "Websuche",
     },

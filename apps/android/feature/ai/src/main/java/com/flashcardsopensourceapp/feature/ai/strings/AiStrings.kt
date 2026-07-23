@@ -66,6 +66,7 @@ data class AiTextProvider(
     val filesSettingsMessage: String,
     val toolSql: String,
     val toolCodeExecution: String,
+    val toolGeneratedCardImage: String,
     val toolWebSearch: String,
     val toolRunning: String,
     val toolDone: String,
@@ -149,6 +150,7 @@ data class AiTextProvider(
         return when (name) {
             "sql" -> toolSql
             "code_execution", "code_interpreter" -> toolCodeExecution
+            "add_generated_image_to_card" -> toolGeneratedCardImage
             "web_search" -> toolWebSearch
             else -> name
         }
@@ -247,6 +249,7 @@ fun aiTextProvider(context: Context): AiTextProvider {
         filesSettingsMessage = context.getString(R.string.ai_alert_files_message),
         toolSql = context.getString(R.string.ai_tool_sql),
         toolCodeExecution = context.getString(R.string.ai_tool_code_execution),
+        toolGeneratedCardImage = context.getString(R.string.ai_tool_generated_card_image),
         toolWebSearch = context.getString(R.string.ai_tool_web_search),
         toolRunning = context.getString(R.string.ai_tool_running),
         toolDone = context.getString(R.string.ai_tool_done),
@@ -315,6 +318,7 @@ fun testAiTextProvider(): AiTextProvider {
         filesSettingsMessage = "File access is turned off for Flashcards Open Source App. Open Settings to allow it.",
         toolSql = "SQL",
         toolCodeExecution = "Code execution",
+        toolGeneratedCardImage = "Generate card image",
         toolWebSearch = "Web search",
         toolRunning = "Running",
         toolDone = "Done",

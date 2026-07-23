@@ -1182,6 +1182,7 @@ const esEsCatalog: TranslationCatalog = {
     thinking: "Pensando...",
     toolLabels: {
       codeExecution: "Ejecución de código",
+      generatedCardImage: "Generar imagen de tarjeta",
       sql: "SQL",
       webSearch: "Búsqueda web",
     },

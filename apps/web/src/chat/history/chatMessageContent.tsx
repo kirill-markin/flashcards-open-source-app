@@ -19,6 +19,7 @@ type ChatMessageTechnicalErrorHandler = (error: unknown) => boolean;
 export function formatToolLabel(name: string, t: Translate): string {
   if (name === "sql") return t("chatMessageContent.toolLabels.sql");
   if (name === "code_execution" || name === "code_interpreter") return t("chatMessageContent.toolLabels.codeExecution");
+  if (name === "add_generated_image_to_card") return t("chatMessageContent.toolLabels.generatedCardImage");
   if (name === "web_search") return t("chatMessageContent.toolLabels.webSearch");
   return name;
 }
@@ -29,6 +30,10 @@ export function formatToolLabel(name: string, t: Translate): string {
  * - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/toolcall/AiToolCallPresentation.kt::formatAiToolCallPreview`
  */
 function extractToolCallPreview(name: string, input: string | null): string | null {
+  if (name === "add_generated_image_to_card") {
+    return null;
+  }
+
   if (input === null || input.trim() === "") {
     return null;
   }
