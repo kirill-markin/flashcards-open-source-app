@@ -21,6 +21,16 @@ function loadApiGatewaySource(): string {
   return readFileSync(apiGatewayPath, "utf8");
 }
 
+function getBackendFunctionConfiguration(apiGatewaySource: string, constructId: string): string {
+  const configurationStart = apiGatewaySource.indexOf(`constructId: "${constructId}"`);
+  assert.notEqual(configurationStart, -1, `Missing ${constructId} configuration`);
+
+  const configurationEnd = apiGatewaySource.indexOf("\n  });", configurationStart);
+  assert.notEqual(configurationEnd, -1, `Missing ${constructId} configuration end`);
+
+  return apiGatewaySource.slice(configurationStart, configurationEnd);
+}
+
 function assertApiGatewayUsesBackendProxy(apiGatewaySource: string): void {
   assert.match(
     apiGatewaySource,
@@ -55,13 +65,19 @@ test("API Gateway proxy accepts browser-safe binary bodies", () => {
   );
 });
 
-test("Backend API Lambda packages sharp with ARM64 Docker bundling only on the API handler", () => {
-  const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
-  const apiGatewaySource = readFileSync(apiGatewayPath, "utf8");
+test("backend API and chat worker package sharp with ARM64 Docker bundling and managed media access", () => {
+  const apiGatewaySource = loadApiGatewaySource();
+  const backendConfiguration = getBackendFunctionConfiguration(apiGatewaySource, "BackendHandler");
+  const chatWorkerConfiguration = getBackendFunctionConfiguration(apiGatewaySource, "ChatRunWorkerHandler");
+  const chatLiveConfiguration = getBackendFunctionConfiguration(apiGatewaySource, "ChatLiveHandler");
 
   assert.match(
-    apiGatewaySource,
-    /constructId: "BackendHandler"[\s\S]*architecture: lambda\.Architecture\.ARM_64[\s\S]*nodeModules: \["sharp"\][\s\S]*forceDockerBundling: true/,
+    backendConfiguration,
+    /mediaAssetsBucket: props\.mediaAssetsBucket[\s\S]*memorySize: 1024[\s\S]*architecture: lambda\.Architecture\.ARM_64[\s\S]*nodeModules: \["sharp"\][\s\S]*forceDockerBundling: true/,
+  );
+  assert.match(
+    chatWorkerConfiguration,
+    /mediaAssetsBucket: props\.mediaAssetsBucket[\s\S]*memorySize: 1024[\s\S]*architecture: lambda\.Architecture\.ARM_64[\s\S]*nodeModules: \["sharp"\][\s\S]*forceDockerBundling: true/,
   );
   assert.match(
     apiGatewaySource,
@@ -71,13 +87,15 @@ test("Backend API Lambda packages sharp with ARM64 Docker bundling only on the A
     apiGatewaySource,
     /SENTRY_BACKEND_CLI_PATH: `\$\{dockerBundlingRepoRootPath\}\/apps\/backend\/node_modules\/\.bin\/sentry-cli`/,
   );
+  assert.equal(apiGatewaySource.match(/mediaAssetsBucket: props\.mediaAssetsBucket/g)?.length, 2);
+  assert.equal(apiGatewaySource.match(/nodeModules: \["sharp"\]/g)?.length, 2);
   assert.doesNotMatch(
-    apiGatewaySource,
-    /constructId: "ChatRunWorkerHandler"[\s\S]*nodeModules: \["sharp"\]/,
+    chatLiveConfiguration,
+    /mediaAssetsBucket: props\.mediaAssetsBucket/,
   );
   assert.doesNotMatch(
-    apiGatewaySource,
-    /constructId: "ChatLiveHandler"[\s\S]*nodeModules: \["sharp"\]/,
+    chatLiveConfiguration,
+    /nodeModules: \["sharp"\]/,
   );
 });
 
