@@ -19,44 +19,24 @@ sealed interface ReviewRenderedContent {
         val text: String
     ) : ReviewRenderedContent
 
-    data class Rich(
-        val blocks: List<ReviewRichBlock>
+    data class Markdown(
+        val markdown: String
+    ) : ReviewRenderedContent
+
+    data class ManagedMarkdown(
+        val blocks: List<ReviewManagedMarkdownBlock>
     ) : ReviewRenderedContent
 }
 
-sealed interface ReviewRichBlock {
-    data class Paragraph(
-        val segments: List<ReviewInlineSegment>
-    ) : ReviewRichBlock
-
-    data class Heading(
-        val level: Int,
-        val segments: List<ReviewInlineSegment>
-    ) : ReviewRichBlock
-
-    data class BulletList(
-        val ordered: Boolean,
-        val items: List<List<ReviewInlineSegment>>
-    ) : ReviewRichBlock
-
-    data class Quote(
-        val segments: List<ReviewInlineSegment>
-    ) : ReviewRichBlock
-
-    data class CodeBlock(
-        val languageLabel: String?,
-        val code: String
-    ) : ReviewRichBlock
+sealed interface ReviewManagedMarkdownBlock {
+    data class Markdown(
+        val markdown: String
+    ) : ReviewManagedMarkdownBlock
 
     data class ManagedMedia(
         val reference: ReviewManagedMediaReference
-    ) : ReviewRichBlock
+    ) : ReviewManagedMarkdownBlock
 }
-
-data class ReviewInlineSegment(
-    val text: String,
-    val isCode: Boolean
-)
 
 data class ReviewManagedMediaReference(
     val mediaAssetId: String,

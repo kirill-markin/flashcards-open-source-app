@@ -14,9 +14,10 @@ fun makeReviewSpeakableText(text: String): String {
 
         text.lines().forEach { line ->
             val fenceMarker: String? = reviewFenceMarker(line = line)
+            val currentFenceMarker: String? = activeFenceMarker
 
-            if (activeFenceMarker != null) {
-                if (fenceMarker == activeFenceMarker) {
+            if (currentFenceMarker != null) {
+                if (isReviewFenceClosingLine(line = line, openingMarker = currentFenceMarker)) {
                     activeFenceMarker = null
                 }
                 return@forEach
@@ -35,11 +36,6 @@ fun makeReviewSpeakableText(text: String): String {
     }
 
     return normalizeReviewSpeakableText(lines = speakableLines)
-}
-
-private fun reviewFenceMarker(line: String): String? {
-    val match: MatchResult? = reviewFenceRegex.matchEntire(line.trim())
-    return match?.groups?.get(index = 1)?.value
 }
 
 private fun normalizeReviewSpeakableMarkdownLine(line: String): String {
