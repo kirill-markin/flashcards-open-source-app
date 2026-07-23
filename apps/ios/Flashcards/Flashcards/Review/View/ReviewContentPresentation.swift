@@ -57,6 +57,7 @@ private let reviewContentMarkdownExpressions: [NSRegularExpression] = [
     makeReviewContentRegularExpression(pattern: #"^\s{0,3}[-*+]\s+\S"#),
     makeReviewContentRegularExpression(pattern: #"^\s{0,3}\d+\.\s+\S"#),
     makeReviewContentRegularExpression(pattern: #"^\s{0,3}(?:```|~~~)"#),
+    makeReviewContentRegularExpression(pattern: #"!?\[[^\]]*\]\([^)]+\)"#),
     makeReviewContentRegularExpression(pattern: #"^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$"#),
     makeReviewContentRegularExpression(pattern: #"^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$"#)
 ]
