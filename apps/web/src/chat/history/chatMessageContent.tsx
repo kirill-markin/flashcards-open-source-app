@@ -13,7 +13,7 @@ type ChatMessageTechnicalErrorHandler = (error: unknown) => boolean;
  * unsupported or future tool names visible instead of dropping them.
  *
  * Mirrors:
- * - `apps/ios/Flashcards/Flashcards/AI/Views/AIChatToolPresentation.swift::aiChatToolLabel`
+ * - `apps/ios/Flashcards/Flashcards/AI/Views/Transcript/AIChatToolPresentation.swift::aiChatToolLabel`
  * - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/toolcall/AiToolCallPresentation.kt::formatAiToolLabel`
  */
 export function formatToolLabel(name: string, t: Translate): string {
@@ -25,7 +25,7 @@ export function formatToolLabel(name: string, t: Translate): string {
 
 /**
  * Mirrors:
- * - `apps/ios/Flashcards/Flashcards/AI/Views/AIChatToolPresentation.swift::aiChatToolPreview`
+ * - `apps/ios/Flashcards/Flashcards/AI/Views/Transcript/AIChatToolPresentation.swift::aiChatToolPreview`
  * - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/toolcall/AiToolCallPresentation.kt::formatAiToolCallPreview`
  */
 function extractToolCallPreview(name: string, input: string | null): string | null {
