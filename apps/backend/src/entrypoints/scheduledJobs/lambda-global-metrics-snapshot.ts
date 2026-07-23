@@ -7,7 +7,7 @@ import {
   normalizeCaughtError,
   type GlobalMetricsSnapshotFailureDetails,
   wrapBackendHandler,
-} from "../observability/sentry";
+} from "../../observability/sentry";
 
 initializeBackendSentry("global-metrics-snapshot");
 
@@ -22,7 +22,7 @@ type GlobalMetricsSnapshotResponse = Readonly<{
 }>;
 
 type GlobalMetricsSnapshotRuntime = Readonly<{
-  generateAndWriteGlobalMetricsSnapshot: typeof import("../globalMetrics/generation").generateAndWriteGlobalMetricsSnapshot;
+  generateAndWriteGlobalMetricsSnapshot: typeof import("../../globalMetrics/generation").generateAndWriteGlobalMetricsSnapshot;
 }>;
 
 let globalMetricsSnapshotRuntimePromise: Promise<GlobalMetricsSnapshotRuntime> | null = null;
@@ -32,8 +32,8 @@ async function createGlobalMetricsSnapshotRuntime(): Promise<GlobalMetricsSnapsh
     { initializeLangfuseTelemetry },
     { generateAndWriteGlobalMetricsSnapshot },
   ] = await Promise.all([
-    import("../telemetry/langfuse"),
-    import("../globalMetrics/generation"),
+    import("../../telemetry/langfuse"),
+    import("../../globalMetrics/generation"),
   ]);
   initializeLangfuseTelemetry();
   return {

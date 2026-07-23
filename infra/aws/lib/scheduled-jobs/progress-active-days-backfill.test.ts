@@ -22,7 +22,7 @@ test("progress active days backfill construct creates the hourly schedule and La
   assert.match(source, /new lambdaNodejs\.NodejsFunction\(scope, "ProgressActiveDaysBackfillHandler"/);
   assert.match(
     source,
-    /entry: resolveFromRepoRoot\("apps", "backend", "src", "entrypoints", "lambda-progress-active-days-backfill\.ts"\)/,
+    /entry: resolveFromRepoRoot\("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-progress-active-days-backfill\.ts"\)/,
   );
   assert.match(source, /DB_SECRET_ARN: props\.backendDbSecret\.secretArn/);
   assert.match(source, /REPORTING_DB_SECRET_ARN: props\.reportingDbSecret\.secretArn/);

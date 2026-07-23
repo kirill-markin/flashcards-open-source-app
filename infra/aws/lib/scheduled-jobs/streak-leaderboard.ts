@@ -79,7 +79,7 @@ function addOptionalSentryEnvironment(
 
 export function streakLeaderboard(scope: Construct, props: StreakLeaderboardProps): StreakLeaderboardResult {
   const snapshotFunction = new lambdaNodejs.NodejsFunction(scope, "StreakLeaderboardSnapshotHandler", {
-    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-streak-leaderboard-snapshot.ts"),
+    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-streak-leaderboard-snapshot.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.minutes(5),

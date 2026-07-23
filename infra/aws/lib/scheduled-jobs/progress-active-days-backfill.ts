@@ -83,7 +83,7 @@ export function progressActiveDaysBackfill(
   props: ProgressActiveDaysBackfillProps,
 ): ProgressActiveDaysBackfillResult {
   const backfillFunction = new lambdaNodejs.NodejsFunction(scope, "ProgressActiveDaysBackfillHandler", {
-    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-progress-active-days-backfill.ts"),
+    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-progress-active-days-backfill.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.minutes(5),

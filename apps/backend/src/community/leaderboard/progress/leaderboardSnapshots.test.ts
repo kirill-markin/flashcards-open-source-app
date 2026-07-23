@@ -568,11 +568,11 @@ test("production leaderboard snapshot generation uses one repeatable-read transa
 test("community leaderboard snapshot Lambda retries transient database failures", () => {
   const sourcePath = resolve(
     process.cwd(),
-    "src/entrypoints/lambda-community-leaderboard-snapshot.ts",
+    "src/entrypoints/scheduledJobs/lambda-community-leaderboard-snapshot.ts",
   );
   const source = readFileSync(sourcePath, "utf8").replace(/\s+/g, " ");
 
-  assert.match(source, /import \{ withTransientDatabaseRetry \} from "\.\.\/database\/transient"/);
+  assert.match(source, /import \{ withTransientDatabaseRetry \} from "\.\.\/\.\.\/database\/transient"/);
   assert.match(source, /const result = await withTransientDatabaseRetry\( \(\) => runtime\.generateLeaderboardSnapshots\(\), \(\) => observationScope, \)/);
 });
 

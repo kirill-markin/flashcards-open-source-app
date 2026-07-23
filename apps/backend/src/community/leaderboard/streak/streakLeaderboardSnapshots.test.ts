@@ -260,12 +260,12 @@ test("production streak leaderboard snapshot generation uses one repeatable-read
 test("streak leaderboard snapshot Lambda retries transient database failures", () => {
   const sourcePath = resolve(
     process.cwd(),
-    "src/entrypoints/lambda-streak-leaderboard-snapshot.ts",
+    "src/entrypoints/scheduledJobs/lambda-streak-leaderboard-snapshot.ts",
   );
   const source = readFileSync(sourcePath, "utf8").replace(/\s+/g, " ");
 
   assert.match(source, /initializeBackendSentry\("streak-leaderboard-snapshot"\)/);
-  assert.match(source, /import \{ withTransientDatabaseRetry \} from "\.\.\/database\/transient"/);
+  assert.match(source, /import \{ withTransientDatabaseRetry \} from "\.\.\/\.\.\/database\/transient"/);
   assert.match(source, /const result = await withTransientDatabaseRetry\( \(\) => runtime\.generateStreakLeaderboardSnapshots\(\), \(\) => observationScope, \)/);
 });
 

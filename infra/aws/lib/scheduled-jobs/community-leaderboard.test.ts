@@ -23,7 +23,7 @@ test("community leaderboard construct creates the hourly schedule and snapshot L
   assert.match(source, /new lambdaNodejs\.NodejsFunction\(scope, "CommunityLeaderboardSnapshotHandler"/);
   assert.match(
     source,
-    /entry: resolveFromRepoRoot\("apps", "backend", "src", "entrypoints", "lambda-community-leaderboard-snapshot\.ts"\)/,
+    /entry: resolveFromRepoRoot\("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-community-leaderboard-snapshot\.ts"\)/,
   );
 
   // The job writes to Postgres as backend_app, so it uses the backend (read-write) secret,
