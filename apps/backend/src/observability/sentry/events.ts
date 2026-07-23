@@ -519,6 +519,25 @@ export type ChatTranscriptionFailureDetails = Readonly<{
   errorMessage: string;
 }>;
 
+export type GeneratedCardImageProviderDetails = Readonly<{
+  model: string;
+  size: string;
+  quality: string;
+  outputFormat: string;
+  promptLength: number;
+  attempt: number;
+  maximumAttempts: number;
+  retryDelayMs: number | null;
+  providerStatus: number | null;
+  providerRequestId: string | null;
+  providerErrorType: string | null;
+  providerErrorCode: string | null;
+  providerErrorParam: string | null;
+  providerModerationStage: string | null;
+  providerModerationCategories: ReadonlyArray<string>;
+  errorClass: string | null;
+}>;
+
 export type McpWorkspaceSelectionEnrichmentFailureDetails = Readonly<{
   code: "WORKSPACE_SELECTION_REQUIRED";
   enrichmentPath: "mcp_workspace_selection_details";
@@ -850,7 +869,8 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"chat_worker_provider_call_aborted", ChatWorkerLifecycleDetails>
   | EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerLifecycleDetails>
   | EventByAction<"chat_worker_composer_suggestions_failed", ChatWorkerLifecycleDetails>
-  | EventByAction<"chat_transcription_invalid_audio", ChatTranscriptionFailureDetails>;
+  | EventByAction<"chat_transcription_invalid_audio", ChatTranscriptionFailureDetails>
+  | EventByAction<"generated_card_image_provider_complete", GeneratedCardImageProviderDetails>;
 
 export type BackendWarningEvent =
   | (EventByAction<"global_snapshot_error", Readonly<{
@@ -868,6 +888,14 @@ export type BackendWarningEvent =
   | (EventByAction<"chat_worker_terminal_state_persisted", ChatWorkerLifecycleDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_worker_composer_suggestions_failed", ChatWorkerLifecycleDetails> & Readonly<{ message: string }>)
   | (EventByAction<"chat_transcription_failed", ChatTranscriptionFailureDetails> & Readonly<{ message: string }>)
+  | (EventByAction<
+    "generated_card_image_provider_retry",
+    GeneratedCardImageProviderDetails
+  > & Readonly<{ message: string }>)
+  | (EventByAction<
+    "generated_card_image_provider_failed",
+    GeneratedCardImageProviderDetails
+  > & Readonly<{ message: string }>)
   | (EventByAction<
     "progress_active_days_backfill_candidate_failed",
     ProgressActiveDaysBackfillCandidateFailureDetails

@@ -1,0 +1,532 @@
+import OpenAI from "openai";
+import { buildOpenAISafetyIdentifier } from "../openai/safetyIdentifier";
+import { getOpenAIClient } from "../openai/client";
+import {
+  addBackendBreadcrumb,
+  captureBackendWarning,
+  type GeneratedCardImageProviderDetails,
+} from "../../observability/sentry";
+import { maximumImageIngestionOriginalBytes } from "../../mediaAssets/validators";
+import type {
+  GeneratedProviderImage,
+  OpenAIImageGenerationInput,
+} from "./providerTypes";
+
+export const generatedCardImageModel = "gpt-image-2";
+export const generatedCardImageSize = "1024x1024";
+export const generatedCardImageQuality = "low";
+export const generatedCardImageOutputFormat = "jpeg";
+
+const generatedCardImageMaximumProviderAttempts = 3;
+const generatedCardImageInitialRetryDelayMs = 500;
+const generatedCardImageMaximumRetryDelayMs = 30_000;
+const maximumEncodedImageCharacters = Math.ceil(maximumImageIngestionOriginalBytes / 3) * 4;
+
+type OpenAIImageFailureMetadata = Readonly<{
+  status: number | null;
+  requestId: string | null;
+  errorType: string | null;
+  errorCode: string | null;
+  errorParam: string | null;
+  moderationStage: string | null;
+  moderationCategories: ReadonlyArray<string>;
+  errorClass: string;
+}>;
+
+type ErrorRecord = Readonly<Record<string, unknown>>;
+
+function toRecord(value: unknown): ErrorRecord | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as ErrorRecord;
+}
+
+function readOptionalString(record: ErrorRecord | null, fieldName: string): string | null {
+  const value = record?.[fieldName];
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  return trimmedValue === "" ? null : trimmedValue;
+}
+
+function readOptionalStatus(record: ErrorRecord | null): number | null {
+  const value = record?.status ?? record?.statusCode;
+  return typeof value === "number" && Number.isInteger(value) ? value : null;
+}
+
+function readModerationCategories(record: ErrorRecord | null): ReadonlyArray<string> {
+  const value = record?.categories;
+  if (Array.isArray(value) === false) {
+    return [];
+  }
+
+  return value
+    .filter((category): category is string => typeof category === "string")
+    .map((category) => category.trim())
+    .filter((category) => category !== "")
+    .slice(0, 16);
+}
+
+function getErrorClass(error: unknown): string {
+  if (error instanceof Error) {
+    return error.constructor.name;
+  }
+
+  return "NonErrorThrow";
+}
+
+function getOpenAIImageFailureMetadata(error: unknown): OpenAIImageFailureMetadata {
+  const errorRecord = toRecord(error);
+  const providerErrorRecord = toRecord(errorRecord?.error);
+  const moderationDetails = toRecord(providerErrorRecord?.moderation_details);
+  return {
+    status: readOptionalStatus(errorRecord),
+    requestId: readOptionalString(errorRecord, "requestID")
+      ?? readOptionalString(errorRecord, "requestId")
+      ?? readOptionalString(errorRecord, "request_id"),
+    errorType: readOptionalString(errorRecord, "type")
+      ?? readOptionalString(providerErrorRecord, "type"),
+    errorCode: readOptionalString(errorRecord, "code")
+      ?? readOptionalString(providerErrorRecord, "code"),
+    errorParam: readOptionalString(errorRecord, "param")
+      ?? readOptionalString(providerErrorRecord, "param"),
+    moderationStage: readOptionalString(moderationDetails, "moderation_stage"),
+    moderationCategories: readModerationCategories(moderationDetails),
+    errorClass: getErrorClass(error),
+  };
+}
+
+function isTransientProviderFailure(metadata: OpenAIImageFailureMetadata): boolean {
+  return metadata.status === 429
+    || (metadata.status !== null && metadata.status >= 500 && metadata.status <= 599);
+}
+
+function retryDelayMs(attempt: number): number {
+  return generatedCardImageInitialRetryDelayMs * (2 ** (attempt - 1));
+}
+
+function parseNonNegativeDecimalDelay(value: string): number | null {
+  const normalizedValue = value.trim();
+  if (/^\d+(?:\.\d+)?$/u.test(normalizedValue) === false) {
+    return null;
+  }
+
+  const parsedValue = Number(normalizedValue);
+  return Number.isFinite(parsedValue) && parsedValue >= 0 ? parsedValue : null;
+}
+
+function readProviderRetryDelayMs(error: unknown, nowMs: number): number | null {
+  if (error instanceof OpenAI.APIError === false || error.headers === undefined) {
+    return null;
+  }
+
+  const retryAfterMilliseconds = error.headers.get("retry-after-ms");
+  if (retryAfterMilliseconds !== null) {
+    const parsedMilliseconds = parseNonNegativeDecimalDelay(retryAfterMilliseconds);
+    if (parsedMilliseconds !== null) {
+      return Math.min(parsedMilliseconds, generatedCardImageMaximumRetryDelayMs);
+    }
+  }
+
+  const retryAfter = error.headers.get("retry-after");
+  if (retryAfter === null) {
+    return null;
+  }
+
+  const parsedSeconds = parseNonNegativeDecimalDelay(retryAfter);
+  const parsedDelayMs = parsedSeconds === null
+    ? Date.parse(retryAfter) - nowMs
+    : parsedSeconds * 1_000;
+  if (Number.isFinite(parsedDelayMs) === false || parsedDelayMs < 0) {
+    return null;
+  }
+
+  return Math.min(parsedDelayMs, generatedCardImageMaximumRetryDelayMs);
+}
+
+function retryDelayForFailureMs(error: unknown, attempt: number): number {
+  return readProviderRetryDelayMs(error, Date.now()) ?? retryDelayMs(attempt);
+}
+
+function createAbortError(signal: AbortSignal): Error {
+  return signal.reason instanceof Error
+    ? signal.reason
+    : new DOMException("OpenAI image generation was aborted.", "AbortError");
+}
+
+async function waitForRetry(delayMs: number, signal: AbortSignal): Promise<void> {
+  signal.throwIfAborted();
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      signal.removeEventListener("abort", handleAbort);
+      resolve();
+    }, delayMs);
+    const handleAbort = (): void => {
+      clearTimeout(timeout);
+      reject(createAbortError(signal));
+    };
+
+    signal.addEventListener("abort", handleAbort, { once: true });
+  });
+}
+
+function createProviderDetails(
+  imagePrompt: string,
+  attempt: number,
+  retryDelay: number | null,
+  metadata: OpenAIImageFailureMetadata,
+): GeneratedCardImageProviderDetails {
+  return {
+    model: generatedCardImageModel,
+    size: generatedCardImageSize,
+    quality: generatedCardImageQuality,
+    outputFormat: generatedCardImageOutputFormat,
+    promptLength: imagePrompt.length,
+    attempt,
+    maximumAttempts: generatedCardImageMaximumProviderAttempts,
+    retryDelayMs: retryDelay,
+    providerStatus: metadata.status,
+    providerRequestId: metadata.requestId,
+    providerErrorType: metadata.errorType,
+    providerErrorCode: metadata.errorCode,
+    providerErrorParam: metadata.errorParam,
+    providerModerationStage: metadata.moderationStage,
+    providerModerationCategories: metadata.moderationCategories,
+    errorClass: metadata.errorClass,
+  };
+}
+
+function createSuccessProviderDetails(
+  imagePrompt: string,
+  attempt: number,
+  providerRequestId: string | null,
+): GeneratedCardImageProviderDetails {
+  return {
+    model: generatedCardImageModel,
+    size: generatedCardImageSize,
+    quality: generatedCardImageQuality,
+    outputFormat: generatedCardImageOutputFormat,
+    promptLength: imagePrompt.length,
+    attempt,
+    maximumAttempts: generatedCardImageMaximumProviderAttempts,
+    retryDelayMs: null,
+    providerStatus: 200,
+    providerRequestId,
+    providerErrorType: null,
+    providerErrorCode: null,
+    providerErrorParam: null,
+    providerModerationStage: null,
+    providerModerationCategories: [],
+    errorClass: null,
+  };
+}
+
+function describeSafeProviderFailure(metadata: OpenAIImageFailureMetadata): string {
+  return [
+    `status=${metadata.status === null ? "unknown" : String(metadata.status)}`,
+    `requestId=${metadata.requestId ?? "unknown"}`,
+    `type=${metadata.errorType ?? "unknown"}`,
+    `code=${metadata.errorCode ?? "unknown"}`,
+    `param=${metadata.errorParam ?? "unknown"}`,
+    `moderationStage=${metadata.moderationStage ?? "unknown"}`,
+    `moderationCategories=${metadata.moderationCategories.join(",") || "none"}`,
+    `errorClass=${metadata.errorClass}`,
+  ].join(" ");
+}
+
+function providerFailureHint(metadata: OpenAIImageFailureMetadata): string {
+  if (metadata.status === 401 || metadata.status === 403) {
+    return "Check the OpenAI API key, project permissions, and image-model access.";
+  }
+
+  if (metadata.status === 429) {
+    return "The OpenAI image rate limit remained unavailable after bounded retries.";
+  }
+
+  if (metadata.errorCode === "moderation_blocked") {
+    return "Revise the image prompt to meet OpenAI image safety requirements.";
+  }
+
+  if (
+    metadata.status !== null
+    && metadata.status >= 500
+    && metadata.status <= 599
+  ) {
+    return "OpenAI image generation remained unavailable after bounded retries.";
+  }
+
+  return "Review the safe provider fields and correct the image request before retrying.";
+}
+
+function createMappedProviderError(error: unknown, metadata: OpenAIImageFailureMetadata): Error {
+  return Object.assign(
+    new Error(
+      [
+        "OpenAI image generation failed.",
+        providerFailureHint(metadata),
+        describeSafeProviderFailure(metadata),
+      ].join(" "),
+      { cause: error },
+    ),
+    {
+      name: "OpenAIImageGenerationError",
+      status: metadata.status,
+      requestID: metadata.requestId,
+      type: metadata.errorType,
+      code: metadata.errorCode,
+      param: metadata.errorParam,
+      moderationStage: metadata.moderationStage,
+      moderationCategories: metadata.moderationCategories,
+    },
+  );
+}
+
+function createInvalidProviderResponseError(
+  message: string,
+  providerStatus: number,
+  providerRequestId: string | null,
+  cause: unknown,
+): Error {
+  return Object.assign(
+    new Error(message, { cause }),
+    {
+      name: "OpenAIImageGenerationResponseError",
+      status: providerStatus,
+      requestID: providerRequestId,
+      type: "invalid_response",
+      code: "invalid_image_response",
+    },
+  );
+}
+
+function extractGeneratedImageBase64(response: unknown): string {
+  const responseRecord = toRecord(response);
+  const data = responseRecord?.data;
+  if (Array.isArray(data) === false || data.length !== 1) {
+    throw new Error("OpenAI image generation must return exactly one image.");
+  }
+
+  const imageRecord = toRecord(data[0]);
+  const base64Image = imageRecord?.b64_json;
+  if (typeof base64Image !== "string" || base64Image.trim() === "") {
+    throw new Error("OpenAI image generation returned an empty image.");
+  }
+
+  return base64Image;
+}
+
+function isBase64AlphabetCharacter(characterCode: number): boolean {
+  return (
+    (characterCode >= 65 && characterCode <= 90)
+    || (characterCode >= 97 && characterCode <= 122)
+    || (characterCode >= 48 && characterCode <= 57)
+    || characterCode === 43
+    || characterCode === 47
+  );
+}
+
+function hasCanonicalBase64Shape(base64Image: string): boolean {
+  const paddingBytes = base64Image.endsWith("==") ? 2 : base64Image.endsWith("=") ? 1 : 0;
+  const dataEndIndex = base64Image.length - paddingBytes;
+  for (let index = 0; index < dataEndIndex; index += 1) {
+    if (isBase64AlphabetCharacter(base64Image.charCodeAt(index)) === false) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function decodeGeneratedCardImageBase64(base64Image: string): Buffer {
+  if (base64Image.length > maximumEncodedImageCharacters) {
+    throw new Error(
+      `OpenAI image generation returned more than ${maximumImageIngestionOriginalBytes} decoded bytes.`,
+    );
+  }
+
+  const canonicalBase64 = base64Image.trim();
+  if (
+    canonicalBase64 !== base64Image
+    || canonicalBase64.length === 0
+    || canonicalBase64.length % 4 !== 0
+    || hasCanonicalBase64Shape(canonicalBase64) === false
+  ) {
+    throw new Error("OpenAI image generation returned malformed base64 image data.");
+  }
+
+  const paddingBytes = canonicalBase64.endsWith("==") ? 2 : canonicalBase64.endsWith("=") ? 1 : 0;
+  const decodedByteLength = (canonicalBase64.length / 4) * 3 - paddingBytes;
+  if (decodedByteLength > maximumImageIngestionOriginalBytes) {
+    throw new Error(
+      `OpenAI image generation returned ${decodedByteLength} decoded bytes; maximum is ${maximumImageIngestionOriginalBytes}.`,
+    );
+  }
+
+  const imageBytes = Buffer.from(canonicalBase64, "base64");
+  if (
+    imageBytes.byteLength === 0
+    || imageBytes.byteLength !== decodedByteLength
+    || imageBytes.toString("base64") !== canonicalBase64
+  ) {
+    throw new Error("OpenAI image generation returned invalid base64 image data.");
+  }
+
+  return imageBytes;
+}
+
+/**
+ * Calls the official OpenAI Image API while keeping retries, aborts, and safe provider telemetry explicit.
+ */
+export class OpenAIGeneratedCardImageProvider {
+  readonly #client: OpenAI;
+
+  public constructor(client: OpenAI) {
+    this.#client = client;
+  }
+
+  public async generate(input: OpenAIImageGenerationInput): Promise<GeneratedProviderImage> {
+    const providerObservation = input.observationContext.rootObservation?.startObservation(
+      "generated_card_image_provider",
+      {
+        input: {
+          hasPrompt: true,
+          promptLength: input.imagePrompt.length,
+        },
+        metadata: {
+          model: generatedCardImageModel,
+          size: generatedCardImageSize,
+          quality: generatedCardImageQuality,
+          outputFormat: generatedCardImageOutputFormat,
+        },
+      },
+      {
+        asType: "generation",
+      },
+    ) ?? null;
+    let providerResultRecorded = false;
+
+    try {
+      for (let attempt = 1; attempt <= generatedCardImageMaximumProviderAttempts; attempt += 1) {
+        input.signal.throwIfAborted();
+
+        try {
+          const providerRequest = this.#client.images.generate(
+            {
+              model: generatedCardImageModel,
+              prompt: input.imagePrompt,
+              n: 1,
+              size: generatedCardImageSize,
+              quality: generatedCardImageQuality,
+              output_format: generatedCardImageOutputFormat,
+              user: buildOpenAISafetyIdentifier(input.userId),
+            },
+            {
+              maxRetries: 0,
+              signal: input.signal,
+            },
+          );
+          const rawProviderResponse = await providerRequest.asResponse();
+          const providerRequestId = rawProviderResponse.headers.get("x-request-id");
+
+          let imageBytes: Buffer;
+          try {
+            imageBytes = decodeGeneratedCardImageBase64(
+              extractGeneratedImageBase64(await providerRequest),
+            );
+          } catch (error) {
+            throw createInvalidProviderResponseError(
+              "OpenAI image generation returned an invalid image response.",
+              rawProviderResponse.status,
+              providerRequestId,
+              error,
+            );
+          }
+
+          const details = createSuccessProviderDetails(
+            input.imagePrompt,
+            attempt,
+            providerRequestId,
+          );
+          addBackendBreadcrumb({
+            action: "generated_card_image_provider_complete",
+            scope: input.observationContext.scope,
+            details,
+          });
+          providerObservation?.updateOtelSpanAttributes({
+            output: {
+              result: "success",
+            },
+            metadata: details,
+          });
+          providerResultRecorded = true;
+          return {
+            bytes: imageBytes,
+            providerRequestId,
+          };
+        } catch (error) {
+          if (input.signal.aborted) {
+            throw error;
+          }
+
+          const metadata = getOpenAIImageFailureMetadata(error);
+          if (
+            attempt < generatedCardImageMaximumProviderAttempts
+            && isTransientProviderFailure(metadata)
+          ) {
+            const delayMs = retryDelayForFailureMs(error, attempt);
+            const details = createProviderDetails(input.imagePrompt, attempt, delayMs, metadata);
+            captureBackendWarning({
+              action: "generated_card_image_provider_retry",
+              message: "OpenAI image generation will retry after a transient provider failure.",
+              scope: input.observationContext.scope,
+              details,
+            });
+            providerObservation?.updateOtelSpanAttributes({
+              metadata: details,
+            });
+            await waitForRetry(delayMs, input.signal);
+            continue;
+          }
+
+          const details = createProviderDetails(input.imagePrompt, attempt, null, metadata);
+          captureBackendWarning({
+            action: "generated_card_image_provider_failed",
+            message: "OpenAI image generation failed.",
+            scope: input.observationContext.scope,
+            details,
+          });
+          providerObservation?.updateOtelSpanAttributes({
+            output: {
+              result: "error",
+            },
+            metadata: details,
+          });
+          providerResultRecorded = true;
+          throw createMappedProviderError(error, metadata);
+        }
+      }
+
+      throw new Error("OpenAI image generation exhausted its attempt loop without a result.");
+    } catch (error) {
+      if (input.signal.aborted && providerResultRecorded === false) {
+        providerObservation?.updateOtelSpanAttributes({
+          output: {
+            result: "aborted",
+          },
+        });
+        providerResultRecorded = true;
+      }
+      throw error;
+    } finally {
+      providerObservation?.end();
+    }
+  }
+}
+
+export function createOpenAIGeneratedCardImageProvider(): OpenAIGeneratedCardImageProvider {
+  return new OpenAIGeneratedCardImageProvider(getOpenAIClient());
+}
