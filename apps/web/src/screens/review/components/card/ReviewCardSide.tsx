@@ -4,6 +4,7 @@ import {
   type ReactElement,
 } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   ManagedMediaReference,
   parseManagedMediaAssetId,
@@ -258,6 +259,7 @@ function ReviewCardMarkdown(props: Readonly<{
       <ReactMarkdown
         urlTransform={reviewMarkdownUrlTransform}
         components={reviewMarkdownComponents}
+        remarkPlugins={[remarkGfm]}
       >
         {normalizedText}
       </ReactMarkdown>
