@@ -57,6 +57,28 @@ function assertMarkdownMediaRoundTrip(
   );
 }
 
+function assertMarkdownMediaInactive(markdown: string, assetId: string): void {
+  const portablePath = `media/${assetId}.png`;
+  const portableMarkdown = markdown.replaceAll(`fcasset:${assetId}`, portablePath);
+  assert.deepEqual(extractMarkdownFcAssetIds(markdown), []);
+  assert.deepEqual(extractMarkdownImageFcAssetIds(markdown), []);
+  assert.deepEqual(extractMarkdownLinkDestinationUrls(markdown), []);
+  assert.equal(
+    rewriteMarkdownFcAssetUrlsToPortablePathsFromMap(
+      markdown,
+      new Map([[assetId, portablePath]]),
+    ),
+    markdown,
+  );
+  assert.equal(
+    rewriteMarkdownPortableMediaUrlsToFcAssetsFromMap(
+      portableMarkdown,
+      new Map([[portablePath, assetId]]),
+    ),
+    portableMarkdown,
+  );
+}
+
 function assertMarkdownComplexityError(
   operation: () => void,
   sourceIndex: number,
@@ -564,6 +586,152 @@ test("Markdown media helpers parse exact one-line destinations and titles", () =
   assertMarkdownMediaRoundTrip(markdown, mappings);
 });
 
+test("Markdown media helpers continue labels through valid logical lines", () => {
+  const cases: ReadonlyArray<readonly [string, string]> = [
+    ["![soft\nbreak](fcasset:soft)", "soft"],
+    ["![hard  \nbreak](fcasset:hard-spaces)", "hard-spaces"],
+    [String.raw`![hard\
+break](fcasset:hard-backslash)`, "hard-backslash"],
+    ["![crlf\r\nbreak](fcasset:crlf)", "crlf"],
+    ["![ordered\n14. continuation](fcasset:ordered)", "ordered"],
+    ["![indented\n    continuation](fcasset:indented)", "indented"],
+    ["> ![explicit\n> continuation](fcasset:explicit)", "explicit"],
+    ["> ![lazy\ncontinuation](fcasset:lazy)", "lazy"],
+    ["> ![html\n<span data-x=value>\ncontinuation](fcasset:type-seven)", "type-seven"],
+    ["![invalid fence\n```bad` info\ncontinuation](fcasset:invalid-fence)", "invalid-fence"],
+    [String.raw`![escaped \]
+[balanced] label](fcasset:balanced)`, "balanced"],
+    ["![code `raw\n] label`](fcasset:code)", "code"],
+  ];
+
+  for (const [markdown, assetId] of cases) {
+    assert.deepEqual(extractMarkdownFcAssetIds(markdown), [assetId]);
+    assert.deepEqual(extractMarkdownImageFcAssetIds(markdown), [assetId]);
+    assert.deepEqual(extractMarkdownLinkDestinationUrls(markdown), [`fcasset:${assetId}`]);
+    assertMarkdownMediaRoundTrip(markdown, [[assetId, `media/${assetId}.png`]]);
+  }
+
+  const linkMarkdown = "[multiline\nlink](fcasset:link)";
+  assert.deepEqual(extractMarkdownFcAssetIds(linkMarkdown), ["link"]);
+  assert.deepEqual(extractMarkdownImageFcAssetIds(linkMarkdown), []);
+  assertMarkdownMediaRoundTrip(linkMarkdown, [["link", "media/link.png"]]);
+});
+
+test("Markdown media helpers stop labels at structural boundaries", () => {
+  const cases: ReadonlyArray<readonly [string, string]> = [
+    ["![blank\n\n tail](fcasset:blank)", "blank"],
+    ["![heading\n# heading\n tail](fcasset:heading)", "heading"],
+    ["![bullet\n- item\n tail](fcasset:bullet)", "bullet"],
+    ["![thematic\n---\n tail](fcasset:thematic)", "thematic"],
+    ["![blockquote\n> quote\n tail](fcasset:blockquote)", "blockquote"],
+    ["![fence\n```\n tail](fcasset:fence)", "fence"],
+    ["![html\n<div>\n tail](fcasset:html)", "html"],
+    ["> ![blank marker\n-\n tail](fcasset:blank-marker)", "blank-marker"],
+    ["> ![ordered exit\n2. item\n tail](fcasset:ordered-exit)", "ordered-exit"],
+    ["> ![container blank\n>\n> tail](fcasset:container-blank)", "container-blank"],
+    ["> ![lf\n-\n tail](fcasset:lf-exit)", "lf-exit"],
+    ["> ![crlf\r\n-\r\n tail](fcasset:crlf-exit)", "crlf-exit"],
+    ["&gt; ![entity\n-\n tail](fcasset:entity-exit)", "entity-exit"],
+    ["&gt; ![entity\r\n-\r\n tail](fcasset:entity-crlf-exit)", "entity-crlf-exit"],
+  ];
+
+  for (const [markdown, assetId] of cases) {
+    assertMarkdownMediaInactive(markdown, assetId);
+  }
+});
+
+test("Markdown media helpers parse multiline components and quoted inline HTML exactly", () => {
+  const markdown = [
+    "![opening](\nfcasset:opening)",
+    "![double](fcasset:double\n\"title\")",
+    "![single](fcasset:single 'first\nsecond')",
+    "![parenthesized](fcasset:parenthesized (first\r\nsecond))",
+    "> ![quoted](fcasset:quoted\r\n> \"title\")",
+  ].join("\n\n");
+  const mappings: ReadonlyArray<readonly [string, string]> = [
+    ["opening", "media/opening.png"],
+    ["double", "media/double.png"],
+    ["single", "media/single.png"],
+    ["parenthesized", "media/parenthesized.png"],
+    ["quoted", "media/quoted.png"],
+  ];
+  assert.deepEqual(extractMarkdownFcAssetIds(markdown), mappings.map(([assetId]) => assetId));
+  assert.deepEqual(
+    extractMarkdownImageFcAssetIds(markdown),
+    mappings.map(([assetId]) => assetId),
+  );
+  assertMarkdownMediaRoundTrip(markdown, mappings);
+
+  for (const [inactiveMarkdown, assetId] of [
+    ["![double break](\n\nfcasset:double-break)", "double-break"],
+    ["![blank title](fcasset:blank-title \"first\n\nsecond\")", "blank-title"],
+    ["![heading title](fcasset:heading-title \"first\n# heading\nsecond\")", "heading-title"],
+    ["> ![marker blank](fcasset:marker-blank\n>\n> \"title\")", "marker-blank"],
+  ] as const) {
+    assertMarkdownMediaInactive(inactiveMarkdown, assetId);
+  }
+
+  const quotedHtml = "![foo <bar attr=\"\n](fcasset:inner)\">](fcasset:outer)";
+  assert.deepEqual(extractMarkdownFcAssetIds(quotedHtml), ["outer"]);
+  assert.deepEqual(extractMarkdownImageFcAssetIds(quotedHtml), ["outer"]);
+  assertMarkdownMediaRoundTrip(quotedHtml, [["outer", "media/outer.png"]]);
+
+  const malformedHtml = "![foo <bar attr=\"\n](fcasset:inner)>](fcasset:outer)";
+  assert.deepEqual(extractMarkdownFcAssetIds(malformedHtml), ["inner"]);
+  assert.deepEqual(extractMarkdownImageFcAssetIds(malformedHtml), ["inner"]);
+  assertMarkdownMediaRoundTrip(malformedHtml, [["inner", "media/inner.png"]]);
+
+  const opaqueAutolinks = [
+    "![before",
+    "<https://example.com/[hidden](fcasset:hidden-uri)>",
+    "<foo`bar@example.com>",
+    "after](fcasset:visible)",
+  ].join("\n");
+  assert.deepEqual(extractMarkdownFcAssetIds(opaqueAutolinks), ["visible"]);
+  assert.deepEqual(extractMarkdownImageFcAssetIds(opaqueAutolinks), ["visible"]);
+  assertMarkdownMediaRoundTrip(opaqueAutolinks, [["visible", "media/visible.png"]]);
+});
+
+test("Markdown media helpers reject unbalanced bare destinations before line endings", () => {
+  for (const lineEnding of ["\n", "\r\n"]) {
+    const directMarkdown = `![direct](foo(${lineEnding})`;
+    assert.deepEqual(extractMarkdownLinkDestinationUrls(directMarkdown), []);
+    assert.deepEqual(extractMarkdownFcAssetIds(directMarkdown), []);
+    assert.deepEqual(extractMarkdownImageFcAssetIds(directMarkdown), []);
+    assert.equal(
+      rewriteMarkdownFcAssetUrlsToPortablePathsFromMap(directMarkdown, new Map()),
+      directMarkdown,
+    );
+    assert.equal(
+      rewriteMarkdownPortableMediaUrlsToFcAssetsFromMap(directMarkdown, new Map()),
+      directMarkdown,
+    );
+
+    const nestedLink = `[outer [inner](foo(${lineEnding})](fcasset:outer)`;
+    assert.deepEqual(extractMarkdownLinkDestinationUrls(nestedLink), ["fcasset:outer"]);
+    assert.deepEqual(extractMarkdownFcAssetIds(nestedLink), ["outer"]);
+    assert.deepEqual(extractMarkdownImageFcAssetIds(nestedLink), []);
+    assertMarkdownMediaRoundTrip(nestedLink, [["outer", "media/outer.png"]]);
+
+    const nestedImage = `![outer [inner](foo(${lineEnding})](fcasset:image)`;
+    assert.deepEqual(extractMarkdownLinkDestinationUrls(nestedImage), ["fcasset:image"]);
+    assert.deepEqual(extractMarkdownFcAssetIds(nestedImage), ["image"]);
+    assert.deepEqual(extractMarkdownImageFcAssetIds(nestedImage), ["image"]);
+    assertMarkdownMediaRoundTrip(nestedImage, [["image", "media/image.png"]]);
+
+    const validMarkdown = [
+      `![balanced](https://example.com/a(b)${lineEnding}"title")`,
+      `![escaped](https://example.com/a\\(${lineEnding}'title')`,
+      `![angle](<https://example.com/a(b)>${lineEnding}(title))`,
+    ].join(" ");
+    assert.deepEqual(extractMarkdownLinkDestinationUrls(validMarkdown), [
+      "https://example.com/a(b)",
+      String.raw`https://example.com/a\(`,
+      "https://example.com/a(b)",
+    ]);
+  }
+});
+
 test("Markdown media helpers treat valid one-line HTML and autolinks as opaque", () => {
   const mappings: ReadonlyArray<readonly [string, string]> = [
     ["visible-tag", "media/visible-tag.png"],
@@ -647,9 +815,9 @@ test("Markdown helpers enforce one stable bounded label complexity contract", ()
     `[label](abc <x data-x="${"[".repeat(1_001)}">`;
   const carriageReturnMarkdown = `${"[".repeat(1_000)}\r${"[".repeat(1_000)}`;
   const completedLinkBeforeLineBoundaryMarkdown =
-    `${"[".repeat(999)}[x](url)\n${"[".repeat(1_000)}`;
+    `${"[".repeat(999)}[x](url)\n\n${"[".repeat(1_000)}`;
   const multilineCodeAfterCompletedLabelMarkdown =
-    `${"[".repeat(1_000)}]\`\n\`[[`;
+    `${"[".repeat(1_000)}]\`\n\n\`[[`;
   const rejectedMarkdown = "[".repeat(1_001);
   const unreachableResolver = (): string => {
     throw new Error("Resolver must not be called for incomplete labels.");
@@ -706,11 +874,11 @@ test("Markdown helpers enforce one stable bounded label complexity contract", ()
     );
     assert.doesNotThrow(
       () => operation(completedLinkBeforeLineBoundaryMarkdown),
-      `${operationName} must reset unresolved outer labels after a completed link`,
+      `${operationName} must reset unresolved outer labels after a paragraph boundary`,
     );
     assert.doesNotThrow(
       () => operation(multilineCodeAfterCompletedLabelMarkdown),
-      `${operationName} must not restore prior-line label depth after multiline code`,
+      `${operationName} must not restore label depth across a code paragraph boundary`,
     );
     assertMarkdownComplexityError(
       () => operation(rejectedMarkdown),
