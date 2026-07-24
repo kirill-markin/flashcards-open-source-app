@@ -18,6 +18,7 @@ type MarkdownLinkDestination = Readonly<{
 }>;
 
 type MarkdownSourceRange = Readonly<{ startIndex: number; endIndex: number }>;
+type MarkdownProseRange = MarkdownSourceRange & Readonly<{ startLineIndex: number }>;
 
 type MarkdownInlineItem = MarkdownSourceRange | MarkdownLinkDestination;
 
@@ -34,9 +35,13 @@ type MarkdownInlineScanKind = "whitespace" | "bare" | "angled" | "\"" | "'" | "(
 
 type MarkdownInlineState = {
   markdown: string;
+  blockScan: MarkdownBlockScan;
   cursorIndex: number;
+  lineIndex: number;
   lineEndIndex: number;
   rangeEndIndex: number;
+  paragraphId: number;
+  containerStackId: number;
   scans: Partial<Record<MarkdownInlineScanKind, MarkdownInlineScan>>;
   opaqueDelimiterFailures: Uint8Array;
 };
@@ -62,12 +67,19 @@ type MarkdownLinkDestinationRange = Readonly<{
 type MarkdownCodeFrame = Readonly<{
   openerStartIndex: number;
   markerLength: number;
-  parentLabelDepthLineEndIndex: number | null;
   parentLabelDepth: number;
 }>;
 
+type MarkdownLogicalInspection = {
+  cursorIndex: number;
+  lineIndex: number;
+  lineEndIndex: number;
+};
+
 type MarkdownLinkInspection = {
   cursorIndex: number;
+  lineIndex: number;
+  lineEndIndex: number;
   precedingBackslashCount: number;
   reentryIndex: number | null;
   activeCodeStop: MarkdownCodeStop | null;
@@ -124,7 +136,7 @@ type MarkdownThematicBreakState = Readonly<{
 type MarkdownBlockScan = Readonly<{
   lines: Readonly<{ chunks: ReadonlyArray<Int32Array>; lineCount: number; fieldCount: number }>;
   containerStacks: ReadonlyArray<ReadonlyArray<MarkdownContainer>>;
-  proseRanges: ReadonlyArray<MarkdownSourceRange>;
+  proseRanges: ReadonlyArray<MarkdownProseRange>;
   fencedCodeRanges: ReadonlyArray<MarkdownSourceRange>;
 }>;
 
@@ -225,16 +237,6 @@ function matchFcAssetId(url: string): string | null {
   }
 
   return match[1] ?? null;
-}
-
-function getLineEndIndex(markdown: string, index: number): number {
-  const newlineIndex = markdown.indexOf("\n", index);
-  const carriageReturnIndex = markdown.indexOf("\r", index);
-  if (newlineIndex === -1) {
-    return carriageReturnIndex === -1 ? markdown.length : carriageReturnIndex;
-  }
-  if (carriageReturnIndex === -1) return newlineIndex;
-  return Math.min(newlineIndex, carriageReturnIndex);
 }
 
 function countRepeatedCharacter(markdown: string, index: number, marker: "`" | "~"): number {
@@ -712,6 +714,13 @@ function canMarkdownBlockInterruptParagraph(blockStart: MarkdownBlockStart): boo
       || blockStart.marker.container.orderedStart === 1);
 }
 
+function canMarkdownBlockContinueAfterContainerMismatch(
+  blockStart: MarkdownBlockStart,
+): boolean {
+  return blockStart.kind === "paragraph"
+    || (blockStart.kind === "html" && blockStart.htmlBlockType === 7);
+}
+
 function isAsciiLetter(character: string | undefined): boolean {
   return character !== undefined
     && (
@@ -865,29 +874,31 @@ function matchesMarkdownDelimiterAt(
 
 function scanMarkdownOpaqueDelimiterEnd(
   state: MarkdownInlineState,
-  startIndex: number,
+  inspection: MarkdownLogicalInspection,
   delimiter: string,
   delimiterKind: MarkdownOpaqueDelimiter,
 ): number | null {
   if (state.opaqueDelimiterFailures[delimiterKind] !== 0) return null;
 
-  let cursorIndex = startIndex;
-  while (cursorIndex < state.lineEndIndex) {
-    if (
-      matchesMarkdownDelimiterAt(
-        state.markdown,
-        cursorIndex,
-        delimiter,
-        state.lineEndIndex,
-      )
-    ) {
-      return cursorIndex + delimiter.length;
+  while (true) {
+    while (inspection.cursorIndex < inspection.lineEndIndex) {
+      if (
+        matchesMarkdownDelimiterAt(
+          state.markdown,
+          inspection.cursorIndex,
+          delimiter,
+          inspection.lineEndIndex,
+        )
+      ) {
+        return inspection.cursorIndex + delimiter.length;
+      }
+      inspection.cursorIndex += 1;
     }
-    cursorIndex += 1;
+    if (!advanceMarkdownLogicalInspectionToNextLine(state, inspection)) {
+      state.opaqueDelimiterFailures[delimiterKind] = 1;
+      return null;
+    }
   }
-
-  state.opaqueDelimiterFailures[delimiterKind] = 1;
-  return null;
 }
 
 function matchMarkdownInlineHtmlCommentEnd(
@@ -905,7 +916,11 @@ function matchMarkdownInlineHtmlCommentEnd(
   }
   return scanMarkdownOpaqueDelimiterEnd(
     state,
-    startIndex + 4,
+    {
+      cursorIndex: startIndex + 4,
+      lineIndex: state.lineIndex,
+      lineEndIndex: state.lineEndIndex,
+    },
     "-->",
     MarkdownOpaqueDelimiter.Comment,
   );
@@ -922,7 +937,11 @@ function matchMarkdownInlineHtmlDeclarationEnd(
   }
   return scanMarkdownOpaqueDelimiterEnd(
     state,
-    cursorIndex,
+    {
+      cursorIndex,
+      lineIndex: state.lineIndex,
+      lineEndIndex: state.lineEndIndex,
+    },
     ">",
     MarkdownOpaqueDelimiter.Declaration,
   );
@@ -933,18 +952,26 @@ function isMarkdownInlineHtmlWhitespace(character: string | undefined): boolean 
 }
 
 function skipMarkdownInlineHtmlWhitespace(
-  markdown: string,
-  startIndex: number,
-  lineEndIndex: number,
-): number {
-  let cursorIndex = startIndex;
-  while (
-    cursorIndex < lineEndIndex
-    && isMarkdownInlineHtmlWhitespace(markdown[cursorIndex])
-  ) {
-    cursorIndex += 1;
+  state: MarkdownInlineState,
+  inspection: MarkdownLogicalInspection,
+): boolean {
+  let consumedWhitespace = false;
+  while (true) {
+    while (
+      inspection.cursorIndex < inspection.lineEndIndex
+      && isMarkdownInlineHtmlWhitespace(state.markdown[inspection.cursorIndex])
+    ) {
+      inspection.cursorIndex += 1;
+      consumedWhitespace = true;
+    }
+    if (inspection.cursorIndex < inspection.lineEndIndex) {
+      return consumedWhitespace;
+    }
+    if (!advanceMarkdownLogicalInspectionToNextLine(state, inspection)) {
+      return consumedWhitespace;
+    }
+    consumedWhitespace = true;
   }
-  return cursorIndex;
 }
 
 function isMarkdownInlineHtmlAttributeNameStart(character: string | undefined): boolean {
@@ -974,7 +1001,7 @@ function isMarkdownInlineHtmlUnquotedValueCharacter(character: string | undefine
 
 function scanMarkdownInlineHtmlQuotedValueEnd(
   state: MarkdownInlineState,
-  startIndex: number,
+  inspection: MarkdownLogicalInspection,
   quote: "\"" | "'",
 ): number | null {
   const delimiterKind = quote === "\""
@@ -982,18 +1009,22 @@ function scanMarkdownInlineHtmlQuotedValueEnd(
     : MarkdownOpaqueDelimiter.SingleQuote;
   if (state.opaqueDelimiterFailures[delimiterKind] !== 0) return null;
 
-  let cursorIndex = startIndex;
-  while (
-    cursorIndex < state.lineEndIndex
-    && state.markdown[cursorIndex] !== quote
-  ) {
-    cursorIndex += 1;
+  while (true) {
+    while (
+      inspection.cursorIndex < inspection.lineEndIndex
+      && state.markdown[inspection.cursorIndex] !== quote
+    ) {
+      inspection.cursorIndex += 1;
+    }
+    if (inspection.cursorIndex < inspection.lineEndIndex) {
+      inspection.cursorIndex += 1;
+      return inspection.cursorIndex;
+    }
+    if (!advanceMarkdownLogicalInspectionToNextLine(state, inspection)) {
+      state.opaqueDelimiterFailures[delimiterKind] = 1;
+      return null;
+    }
   }
-  if (cursorIndex >= state.lineEndIndex) {
-    state.opaqueDelimiterFailures[delimiterKind] = 1;
-    return null;
-  }
-  return cursorIndex + 1;
 }
 
 function matchMarkdownInlineHtmlOpeningTagEnd(
@@ -1001,91 +1032,88 @@ function matchMarkdownInlineHtmlOpeningTagEnd(
   startIndex: number,
 ): number | null {
   const markdown = state.markdown;
-  let cursorIndex = startIndex + 1;
-  if (!isAsciiLetter(markdown[cursorIndex])) return null;
+  const inspection: MarkdownLogicalInspection = {
+    cursorIndex: startIndex + 1,
+    lineIndex: state.lineIndex,
+    lineEndIndex: state.lineEndIndex,
+  };
+  if (!isAsciiLetter(markdown[inspection.cursorIndex])) return null;
 
-  cursorIndex += 1;
+  inspection.cursorIndex += 1;
   while (
-    cursorIndex < state.lineEndIndex
+    inspection.cursorIndex < inspection.lineEndIndex
     && (
-      isAsciiAlphanumeric(markdown[cursorIndex])
-      || markdown[cursorIndex] === "-"
+      isAsciiAlphanumeric(markdown[inspection.cursorIndex])
+      || markdown[inspection.cursorIndex] === "-"
     )
   ) {
-    cursorIndex += 1;
+    inspection.cursorIndex += 1;
   }
 
-  while (cursorIndex < state.lineEndIndex) {
-    if (markdown[cursorIndex] === ">") return cursorIndex + 1;
+  while (true) {
+    if (markdown[inspection.cursorIndex] === ">") {
+      return inspection.cursorIndex + 1;
+    }
     if (
-      markdown[cursorIndex] === "/"
-      && markdown[cursorIndex + 1] === ">"
+      markdown[inspection.cursorIndex] === "/"
+      && markdown[inspection.cursorIndex + 1] === ">"
     ) {
-      return cursorIndex + 2;
+      return inspection.cursorIndex + 2;
     }
 
-    const attributeSeparatorEndIndex = skipMarkdownInlineHtmlWhitespace(
-      markdown,
-      cursorIndex,
-      state.lineEndIndex,
-    );
-    if (attributeSeparatorEndIndex === cursorIndex) return null;
-    cursorIndex = attributeSeparatorEndIndex;
-    if (markdown[cursorIndex] === ">") return cursorIndex + 1;
-    if (
-      markdown[cursorIndex] === "/"
-      && markdown[cursorIndex + 1] === ">"
-    ) {
-      return cursorIndex + 2;
+    if (!skipMarkdownInlineHtmlWhitespace(state, inspection)) return null;
+    if (markdown[inspection.cursorIndex] === ">") {
+      return inspection.cursorIndex + 1;
     }
-    if (!isMarkdownInlineHtmlAttributeNameStart(markdown[cursorIndex])) {
+    if (
+      markdown[inspection.cursorIndex] === "/"
+      && markdown[inspection.cursorIndex + 1] === ">"
+    ) {
+      return inspection.cursorIndex + 2;
+    }
+    if (!isMarkdownInlineHtmlAttributeNameStart(markdown[inspection.cursorIndex])) {
       return null;
     }
 
-    cursorIndex += 1;
+    inspection.cursorIndex += 1;
     while (
-      cursorIndex < state.lineEndIndex
-      && isMarkdownInlineHtmlAttributeNameCharacter(markdown[cursorIndex])
+      inspection.cursorIndex < inspection.lineEndIndex
+      && isMarkdownInlineHtmlAttributeNameCharacter(markdown[inspection.cursorIndex])
     ) {
-      cursorIndex += 1;
+      inspection.cursorIndex += 1;
     }
 
-    const equalsIndex = skipMarkdownInlineHtmlWhitespace(
-      markdown,
-      cursorIndex,
-      state.lineEndIndex,
-    );
-    if (markdown[equalsIndex] !== "=") {
+    const equalsInspection: MarkdownLogicalInspection = { ...inspection };
+    skipMarkdownInlineHtmlWhitespace(state, equalsInspection);
+    if (markdown[equalsInspection.cursorIndex] !== "=") {
       continue;
     }
 
-    cursorIndex = skipMarkdownInlineHtmlWhitespace(
-      markdown,
-      equalsIndex + 1,
-      state.lineEndIndex,
-    );
-    const quote = markdown[cursorIndex];
+    inspection.cursorIndex = equalsInspection.cursorIndex + 1;
+    inspection.lineIndex = equalsInspection.lineIndex;
+    inspection.lineEndIndex = equalsInspection.lineEndIndex;
+    skipMarkdownInlineHtmlWhitespace(state, inspection);
+    const quote = markdown[inspection.cursorIndex];
     if (quote === "\"" || quote === "'") {
+      inspection.cursorIndex += 1;
       const quotedValueEndIndex = scanMarkdownInlineHtmlQuotedValueEnd(
         state,
-        cursorIndex + 1,
+        inspection,
         quote,
       );
       if (quotedValueEndIndex === null) return null;
-      cursorIndex = quotedValueEndIndex;
       continue;
     }
 
-    const valueStartIndex = cursorIndex;
+    const valueStartIndex = inspection.cursorIndex;
     while (
-      cursorIndex < state.lineEndIndex
-      && isMarkdownInlineHtmlUnquotedValueCharacter(markdown[cursorIndex])
+      inspection.cursorIndex < inspection.lineEndIndex
+      && isMarkdownInlineHtmlUnquotedValueCharacter(markdown[inspection.cursorIndex])
     ) {
-      cursorIndex += 1;
+      inspection.cursorIndex += 1;
     }
-    if (cursorIndex === valueStartIndex) return null;
+    if (inspection.cursorIndex === valueStartIndex) return null;
   }
-  return null;
 }
 
 function matchMarkdownInlineHtmlClosingTagEnd(
@@ -1093,24 +1121,24 @@ function matchMarkdownInlineHtmlClosingTagEnd(
   startIndex: number,
 ): number | null {
   const markdown = state.markdown;
-  let cursorIndex = startIndex + 2;
-  if (!isAsciiLetter(markdown[cursorIndex])) return null;
-  cursorIndex += 1;
+  const inspection: MarkdownLogicalInspection = {
+    cursorIndex: startIndex + 2,
+    lineIndex: state.lineIndex,
+    lineEndIndex: state.lineEndIndex,
+  };
+  if (!isAsciiLetter(markdown[inspection.cursorIndex])) return null;
+  inspection.cursorIndex += 1;
   while (
-    cursorIndex < state.lineEndIndex
+    inspection.cursorIndex < inspection.lineEndIndex
     && (
-      isAsciiAlphanumeric(markdown[cursorIndex])
-      || markdown[cursorIndex] === "-"
+      isAsciiAlphanumeric(markdown[inspection.cursorIndex])
+      || markdown[inspection.cursorIndex] === "-"
     )
   ) {
-    cursorIndex += 1;
+    inspection.cursorIndex += 1;
   }
-  cursorIndex = skipMarkdownInlineHtmlWhitespace(
-    markdown,
-    cursorIndex,
-    state.lineEndIndex,
-  );
-  return markdown[cursorIndex] === ">" ? cursorIndex + 1 : null;
+  skipMarkdownInlineHtmlWhitespace(state, inspection);
+  return markdown[inspection.cursorIndex] === ">" ? inspection.cursorIndex + 1 : null;
 }
 
 function matchMarkdownInlineHtmlEnd(
@@ -1127,7 +1155,11 @@ function matchMarkdownInlineHtmlEnd(
   if (matchesMarkdownDelimiterAt(markdown, startIndex, "<?", state.lineEndIndex)) {
     return scanMarkdownOpaqueDelimiterEnd(
       state,
-      startIndex + 2,
+      {
+        cursorIndex: startIndex + 2,
+        lineIndex: state.lineIndex,
+        lineEndIndex: state.lineEndIndex,
+      },
       "?>",
       MarkdownOpaqueDelimiter.ProcessingInstruction,
     );
@@ -1135,7 +1167,11 @@ function matchMarkdownInlineHtmlEnd(
   if (matchesMarkdownDelimiterAt(markdown, startIndex, "<![CDATA[", state.lineEndIndex)) {
     return scanMarkdownOpaqueDelimiterEnd(
       state,
-      startIndex + 9,
+      {
+        cursorIndex: startIndex + 9,
+        lineIndex: state.lineIndex,
+        lineEndIndex: state.lineEndIndex,
+      },
       "]]>",
       MarkdownOpaqueDelimiter.Cdata,
     );
@@ -1255,8 +1291,9 @@ function skipMarkdownLinkWhitespace(
     return inspection.cursorIndex > startIndex;
   }
 
+  const startLineIndex = inspection.lineIndex;
   while (
-    inspection.cursorIndex < endIndex
+    inspection.cursorIndex < inspection.lineEndIndex
     && (
       state.markdown[inspection.cursorIndex] === " "
       || state.markdown[inspection.cursorIndex] === "\t"
@@ -1264,8 +1301,22 @@ function skipMarkdownLinkWhitespace(
   ) {
     consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
   }
-  state.scans.whitespace = [startIndex, inspection.cursorIndex];
-  return inspection.cursorIndex > startIndex;
+  if (inspection.cursorIndex === inspection.lineEndIndex) {
+    advanceMarkdownLinkInspectionToNextLine(state, inspection);
+    while (
+      inspection.cursorIndex < inspection.lineEndIndex
+      && (
+        state.markdown[inspection.cursorIndex] === " "
+        || state.markdown[inspection.cursorIndex] === "\t"
+      )
+    ) {
+      consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
+    }
+  }
+  if (inspection.lineIndex === startLineIndex) {
+    state.scans.whitespace = [startIndex, inspection.cursorIndex];
+  }
+  return inspection.cursorIndex > startIndex || inspection.lineIndex !== startLineIndex;
 }
 
 function findActiveCodeStopInRange(
@@ -1338,7 +1389,10 @@ function scanMarkdownAngleDestinationEnd(
       endIndex,
       codeFrameIndexByMarkerLength,
     );
-    if (inspection.cursorIndex >= endIndex || markdown[inspection.cursorIndex] !== ">") {
+    if (
+      inspection.cursorIndex >= inspection.lineEndIndex
+      || markdown[inspection.cursorIndex] !== ">"
+    ) {
       return null;
     }
     const destinationEndIndex = inspection.cursorIndex;
@@ -1347,7 +1401,7 @@ function scanMarkdownAngleDestinationEnd(
   }
 
   let canCacheScan = true;
-  while (inspection.cursorIndex < endIndex) {
+  while (inspection.cursorIndex < inspection.lineEndIndex) {
     const tokenStartIndex = inspection.cursorIndex;
     const token = consumeMarkdownLinkToken(
       state,
@@ -1392,12 +1446,14 @@ function scanMarkdownBareDestinationEnd(
       endIndex,
       codeFrameIndexByMarkerLength,
     );
-    return inspection.cursorIndex < endIndex ? inspection.cursorIndex : null;
+    return inspection.cursorIndex > destinationStartIndex
+      ? inspection.cursorIndex
+      : null;
   }
 
   let parenthesisDepth = 0;
   let canCacheScan = true;
-  while (inspection.cursorIndex < endIndex) {
+  while (inspection.cursorIndex < inspection.lineEndIndex) {
     const character = state.markdown[inspection.cursorIndex];
     if (character === " " || character === "\t") {
       break;
@@ -1441,8 +1497,8 @@ function scanMarkdownBareDestinationEnd(
   }
 
   if (
-    inspection.cursorIndex >= endIndex
-    || inspection.cursorIndex === destinationStartIndex
+    inspection.cursorIndex === destinationStartIndex
+    || parenthesisDepth !== 0
   ) {
     return null;
   }
@@ -1472,7 +1528,7 @@ function scanMarkdownLinkTitle(
       codeFrameIndexByMarkerLength,
     );
     if (
-      inspection.cursorIndex >= endIndex
+      inspection.cursorIndex >= inspection.lineEndIndex
       || state.markdown[inspection.cursorIndex] !== titleClosingDelimiter
     ) {
       return false;
@@ -1482,7 +1538,17 @@ function scanMarkdownLinkTitle(
   }
 
   let canCacheScan = true;
-  while (inspection.cursorIndex < endIndex) {
+  while (true) {
+    if (inspection.cursorIndex >= inspection.lineEndIndex) {
+      if (!advanceMarkdownLinkInspectionToNextLine(state, inspection)) {
+        if (canCacheScan) {
+          state.scans[titleDelimiter] = [titleStartIndex, inspection.cursorIndex];
+        }
+        return false;
+      }
+      canCacheScan = false;
+      continue;
+    }
     const tokenStartIndex = inspection.cursorIndex;
     const token = consumeMarkdownLinkToken(
       state,
@@ -1511,11 +1577,6 @@ function scanMarkdownLinkTitle(
       return true;
     }
   }
-
-  if (canCacheScan) {
-    state.scans[titleDelimiter] = [titleStartIndex, inspection.cursorIndex];
-  }
-  return false;
 }
 
 function parseMarkdownLinkDestinationAfterLabel(
@@ -1533,6 +1594,8 @@ function parseMarkdownLinkDestinationAfterLabel(
 
   const inspection: MarkdownLinkInspection = {
     cursorIndex: labelCloseIndex + 1,
+    lineIndex: state.lineIndex,
+    lineEndIndex: state.lineEndIndex,
     precedingBackslashCount: 0,
     reentryIndex: null,
     activeCodeStop: null,
@@ -1588,7 +1651,7 @@ function parseMarkdownLinkDestinationAfterLabel(
         !hasTitleSeparator
         || (titleDelimiter !== "\"" && titleDelimiter !== "'" && titleDelimiter !== "(")
       ) {
-        if (inspection.cursorIndex < endIndex) {
+        if (inspection.cursorIndex < inspection.lineEndIndex) {
           consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
         }
         return createFailedMarkdownLinkAttempt(inspection);
@@ -1605,8 +1668,11 @@ function parseMarkdownLinkDestinationAfterLabel(
       skipMarkdownLinkWhitespace(state, inspection, endIndex, codeFrameIndexByMarkerLength);
     }
 
-    if (inspection.cursorIndex >= endIndex || markdown[inspection.cursorIndex] !== ")") {
-      if (inspection.cursorIndex < endIndex) {
+    if (
+      inspection.cursorIndex >= inspection.lineEndIndex
+      || markdown[inspection.cursorIndex] !== ")"
+    ) {
+      if (inspection.cursorIndex < inspection.lineEndIndex) {
         consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
       }
       return createFailedMarkdownLinkAttempt(inspection);
@@ -1662,12 +1728,13 @@ function scanMarkdownBlocks(markdown: string): MarkdownBlockScan {
   const lineChunks: Array<Int32Array> = [];
   let lineCount = 0;
   const containerStacks: Array<ReadonlyArray<MarkdownContainer>> = [[]];
-  const proseRanges: Array<MarkdownSourceRange> = [];
+  const proseRanges: Array<MarkdownProseRange> = [];
   const fencedCodeRanges: Array<MarkdownSourceRange> = [];
   let containerStackId = 0;
   let activeParagraphId: number | null = null;
   let nextParagraphId = 0;
   let activeProseStartIndex: number | null = null;
+  let activeProseStartLineIndex: number | null = null;
   let activeProseEndIndex = 0;
   let activeFence: MarkdownFence | null = null;
   let activeFenceStartIndex: number | null = null;
@@ -1675,10 +1742,18 @@ function scanMarkdownBlocks(markdown: string): MarkdownBlockScan {
 
   const closeParagraph = (): void => {
     if (activeProseStartIndex !== null) {
-      proseRanges.push({ startIndex: activeProseStartIndex, endIndex: activeProseEndIndex });
+      if (activeProseStartLineIndex === null) {
+        throw new Error("Markdown prose range is missing its starting line index.");
+      }
+      proseRanges.push({
+        startIndex: activeProseStartIndex,
+        endIndex: activeProseEndIndex,
+        startLineIndex: activeProseStartLineIndex,
+      });
     }
     activeParagraphId = null;
     activeProseStartIndex = null;
+    activeProseStartLineIndex = null;
   };
 
   const appendLine = (
@@ -1819,7 +1894,7 @@ function scanMarkdownBlocks(markdown: string): MarkdownBlockScan {
         activeParagraphId !== null
         && !isMarkdownCursorBlank(lineCursor, nonWhitespaceEndIndex)
         && blockStart !== null
-        && !canMarkdownBlockInterruptParagraph(blockStart)
+        && canMarkdownBlockContinueAfterContainerMismatch(blockStart)
       );
       if (isLazyParagraphContinuation) {
         containerStackId = materializeMarkdownContainerStack(containerStacks, containerStackId,
@@ -1950,14 +2025,20 @@ function scanMarkdownBlocks(markdown: string): MarkdownBlockScan {
     }
 
     const paragraphId = nextParagraphId;
+    const paragraphStartLineIndex = lineCount;
     nextParagraphId += 1;
     appendLine(lineStartIndex, lineEndIndex, nextLineStartIndex, lineCursor.sourceIndex,
       containerStackId, paragraphId, MarkdownBlockKind.Prose);
     if (blockStart.kind === "atx-heading") {
-      proseRanges.push({ startIndex: lineStartIndex, endIndex: nextLineStartIndex });
+      proseRanges.push({
+        startIndex: lineStartIndex,
+        endIndex: nextLineStartIndex,
+        startLineIndex: paragraphStartLineIndex,
+      });
     } else {
       activeParagraphId = paragraphId;
       activeProseStartIndex = lineStartIndex;
+      activeProseStartLineIndex = paragraphStartLineIndex;
       activeProseEndIndex = nextLineStartIndex;
     }
     lineStartIndex = nextLineStartIndex;
@@ -1976,33 +2057,274 @@ function scanMarkdownBlocks(markdown: string): MarkdownBlockScan {
   };
 }
 
+function getMarkdownLineField(
+  blockScan: MarkdownBlockScan,
+  lineIndex: number,
+  field: MarkdownLineField,
+): number {
+  if (lineIndex < 0 || lineIndex >= blockScan.lines.lineCount) {
+    throw new Error(`Markdown line index is out of range: ${lineIndex}.`);
+  }
+  const lineChunk = blockScan.lines.chunks[
+    Math.floor(lineIndex / markdownLineChunkCapacity)
+  ];
+  if (lineChunk === undefined) {
+    throw new Error(`Markdown line chunk is missing for line index ${lineIndex}.`);
+  }
+  const fieldStartIndex = (
+    lineIndex % markdownLineChunkCapacity
+  ) * blockScan.lines.fieldCount;
+  return lineChunk[fieldStartIndex + field] ?? -1;
+}
+
+type MarkdownNextLogicalLine = Readonly<{
+  lineIndex: number;
+  contentStartIndex: number;
+  lineEndIndex: number;
+}>;
+
+function getMarkdownInlineLineEndIndex(
+  markdown: string,
+  startIndex: number,
+  structuralLineEndIndex: number,
+): number {
+  let cursorIndex = startIndex;
+  while (
+    cursorIndex < structuralLineEndIndex
+    && markdown[cursorIndex] !== "\r"
+  ) {
+    cursorIndex += 1;
+  }
+  return cursorIndex;
+}
+
+function getMarkdownNextLogicalLine(
+  blockScan: MarkdownBlockScan,
+  lineIndex: number,
+  rangeEndIndex: number,
+  paragraphId: number,
+  containerStackId: number,
+): MarkdownNextLogicalLine | null {
+  const nextLineStartIndex = getMarkdownLineField(
+    blockScan,
+    lineIndex,
+    MarkdownLineField.NextStartIndex,
+  );
+  if (nextLineStartIndex >= rangeEndIndex) {
+    return null;
+  }
+
+  const nextLineIndex = lineIndex + 1;
+  if (
+    nextLineIndex >= blockScan.lines.lineCount
+    || getMarkdownLineField(
+      blockScan,
+      nextLineIndex,
+      MarkdownLineField.StartIndex,
+    ) !== nextLineStartIndex
+    || getMarkdownLineField(
+      blockScan,
+      nextLineIndex,
+      MarkdownLineField.ParagraphId,
+    ) !== paragraphId
+    || getMarkdownLineField(
+      blockScan,
+      nextLineIndex,
+      MarkdownLineField.ContainerStackId,
+    ) !== containerStackId
+    || getMarkdownLineField(
+      blockScan,
+      nextLineIndex,
+      MarkdownLineField.BlockKind,
+    ) !== MarkdownBlockKind.Prose
+  ) {
+    return null;
+  }
+
+  const contentStartIndex = getMarkdownLineField(
+    blockScan,
+    nextLineIndex,
+    MarkdownLineField.ContentStartIndex,
+  );
+  const lineEndIndex = getMarkdownLineField(
+    blockScan,
+    nextLineIndex,
+    MarkdownLineField.EndIndex,
+  );
+  if (contentStartIndex >= lineEndIndex) {
+    return null;
+  }
+  return { lineIndex: nextLineIndex, contentStartIndex, lineEndIndex };
+}
+
 function createMarkdownInlineState(
   markdown: string,
-  range: MarkdownSourceRange,
+  blockScan: MarkdownBlockScan,
+  range: MarkdownProseRange,
 ): MarkdownInlineState {
+  const lineIndex = range.startLineIndex;
+  if (
+    getMarkdownLineField(
+      blockScan,
+      lineIndex,
+      MarkdownLineField.StartIndex,
+    ) !== range.startIndex
+  ) {
+    throw new Error(`Markdown prose range has an invalid starting line at ${range.startIndex}.`);
+  }
+  const paragraphId = getMarkdownLineField(
+    blockScan,
+    lineIndex,
+    MarkdownLineField.ParagraphId,
+  );
+  const blockKind = getMarkdownLineField(
+    blockScan,
+    lineIndex,
+    MarkdownLineField.BlockKind,
+  );
+  if (paragraphId < 0 || blockKind !== MarkdownBlockKind.Prose) {
+    throw new Error(`Markdown prose range starts outside prose at index ${range.startIndex}.`);
+  }
+  const contentStartIndex = getMarkdownLineField(
+    blockScan,
+    lineIndex,
+    MarkdownLineField.ContentStartIndex,
+  );
   return {
     markdown,
-    cursorIndex: range.startIndex,
-    lineEndIndex: Math.min(getLineEndIndex(markdown, range.startIndex), range.endIndex),
+    blockScan,
+    cursorIndex: Math.max(range.startIndex, contentStartIndex),
+    lineIndex,
+    lineEndIndex: getMarkdownInlineLineEndIndex(
+      markdown,
+      Math.max(range.startIndex, contentStartIndex),
+      Math.min(
+        getMarkdownLineField(blockScan, lineIndex, MarkdownLineField.EndIndex),
+        range.endIndex,
+      ),
+    ),
     rangeEndIndex: range.endIndex,
+    paragraphId,
+    containerStackId: getMarkdownLineField(
+      blockScan,
+      lineIndex,
+      MarkdownLineField.ContainerStackId,
+    ),
     scans: {},
     opaqueDelimiterFailures: new Uint8Array(MarkdownOpaqueDelimiter.Count),
   };
+}
+
+function advanceMarkdownInlineStateToNextLine(state: MarkdownInlineState): boolean {
+  if (
+    state.lineEndIndex !== getMarkdownLineField(
+      state.blockScan,
+      state.lineIndex,
+      MarkdownLineField.EndIndex,
+    )
+  ) {
+    return false;
+  }
+  const nextLine = getMarkdownNextLogicalLine(
+    state.blockScan,
+    state.lineIndex,
+    state.rangeEndIndex,
+    state.paragraphId,
+    state.containerStackId,
+  );
+  if (nextLine === null) return false;
+
+  state.cursorIndex = nextLine.contentStartIndex;
+  state.lineIndex = nextLine.lineIndex;
+  state.lineEndIndex = getMarkdownInlineLineEndIndex(
+    state.markdown,
+    nextLine.contentStartIndex,
+    nextLine.lineEndIndex,
+  );
+  state.scans = {};
+  return true;
+}
+
+function advanceMarkdownInlineStatePastLoneCarriageReturn(
+  state: MarkdownInlineState,
+): boolean {
+  const structuralLineEndIndex = getMarkdownLineField(
+    state.blockScan,
+    state.lineIndex,
+    MarkdownLineField.EndIndex,
+  );
+  if (
+    state.lineEndIndex >= structuralLineEndIndex
+    || state.markdown[state.lineEndIndex] !== "\r"
+  ) {
+    return false;
+  }
+
+  state.cursorIndex = state.lineEndIndex + 1;
+  state.lineEndIndex = getMarkdownInlineLineEndIndex(
+    state.markdown,
+    state.cursorIndex,
+    structuralLineEndIndex,
+  );
+  state.scans = {};
+  state.opaqueDelimiterFailures.fill(0);
+  return true;
 }
 
 function advanceMarkdownInlineCursor(
   state: MarkdownInlineState,
   nextIndex: number,
 ): void {
-  state.cursorIndex = nextIndex;
-  if (state.cursorIndex > state.lineEndIndex) {
-    state.lineEndIndex = Math.min(
-      getLineEndIndex(state.markdown, state.cursorIndex),
-      state.rangeEndIndex,
-    );
-    state.scans = {};
-    state.opaqueDelimiterFailures.fill(0);
+  while (nextIndex > state.lineEndIndex) {
+    if (!advanceMarkdownInlineStateToNextLine(state)) {
+      throw new Error(`Markdown inline cursor crossed a structural boundary at index ${nextIndex}.`);
+    }
   }
+  state.cursorIndex = nextIndex;
+}
+
+function advanceMarkdownLogicalInspectionToNextLine(
+  state: MarkdownInlineState,
+  inspection: MarkdownLogicalInspection,
+): boolean {
+  if (
+    inspection.lineEndIndex !== getMarkdownLineField(
+      state.blockScan,
+      inspection.lineIndex,
+      MarkdownLineField.EndIndex,
+    )
+  ) {
+    return false;
+  }
+  const nextLine = getMarkdownNextLogicalLine(
+    state.blockScan,
+    inspection.lineIndex,
+    state.rangeEndIndex,
+    state.paragraphId,
+    state.containerStackId,
+  );
+  if (nextLine === null) return false;
+
+  inspection.cursorIndex = nextLine.contentStartIndex;
+  inspection.lineIndex = nextLine.lineIndex;
+  inspection.lineEndIndex = getMarkdownInlineLineEndIndex(
+    state.markdown,
+    nextLine.contentStartIndex,
+    nextLine.lineEndIndex,
+  );
+  return true;
+}
+
+function advanceMarkdownLinkInspectionToNextLine(
+  state: MarkdownInlineState,
+  inspection: MarkdownLinkInspection,
+): boolean {
+  if (!advanceMarkdownLogicalInspectionToNextLine(state, inspection)) {
+    return false;
+  }
+  inspection.precedingBackslashCount = 0;
+  inspection.skippedSource = true;
+  return true;
 }
 
 function createMarkdownLabelStack(): MarkdownLabelStack {
@@ -2054,12 +2376,13 @@ const markdownCodeRangeSink: MarkdownInlineItemSink<MarkdownSourceRange> = {
 
 function* scanMarkdownInlineItems<Item extends MarkdownInlineItem>(
   markdown: string,
-  range: MarkdownSourceRange,
+  blockScan: MarkdownBlockScan,
+  range: MarkdownProseRange,
   sink: MarkdownInlineItemSink<Item>,
   unmatchedCodeOpenerIndexes: ReadonlySet<number>,
   minimumYieldStartIndex: number,
 ): Generator<Item, ReadonlyArray<MarkdownCodeFrame>, void> {
-  const state = createMarkdownInlineState(markdown, range);
+  const state = createMarkdownInlineState(markdown, blockScan, range);
   const codeFrames: Array<MarkdownCodeFrame> = [];
   const codeFrameIndexByMarkerLength = new Map<number, number>();
   const labelStack = createMarkdownLabelStack();
@@ -2067,7 +2390,16 @@ function* scanMarkdownInlineItems<Item extends MarkdownInlineItem>(
 
   while (state.cursorIndex < range.endIndex) {
     if (state.cursorIndex >= state.lineEndIndex) {
+      precedingBackslashCount = 0;
+      if (advanceMarkdownInlineStatePastLoneCarriageReturn(state)) {
+        clearMarkdownLabelStack(labelStack);
+        continue;
+      }
+      if (advanceMarkdownInlineStateToNextLine(state)) {
+        continue;
+      }
       clearMarkdownLabelStack(labelStack);
+      break;
     }
 
     const character = markdown[state.cursorIndex];
@@ -2109,9 +2441,6 @@ function* scanMarkdownInlineItems<Item extends MarkdownInlineItem>(
         codeFrames.push({
           openerStartIndex: state.cursorIndex,
           markerLength,
-          parentLabelDepthLineEndIndex: labelStack.depth === 0
-            ? null
-            : state.lineEndIndex,
           parentLabelDepth: labelStack.depth,
         });
         codeFrameIndexByMarkerLength.set(markerLength, codeFrames.length - 1);
@@ -2130,14 +2459,7 @@ function* scanMarkdownInlineItems<Item extends MarkdownInlineItem>(
         }
       }
       codeFrames.length = closingFrameIndex;
-      const crossedParentLabelLine =
-        closingFrame.parentLabelDepthLineEndIndex !== null
-        && markerEndIndex > closingFrame.parentLabelDepthLineEndIndex;
-      if (crossedParentLabelLine) {
-        clearMarkdownLabelStack(labelStack);
-      } else {
-        labelStack.depth = closingFrame.parentLabelDepth;
-      }
+      labelStack.depth = closingFrame.parentLabelDepth;
       if (codeFrames.length === 0) {
         const codeItem = sink.selectCodeRange(
           closingFrame.openerStartIndex,
@@ -2174,7 +2496,7 @@ function* scanMarkdownInlineItems<Item extends MarkdownInlineItem>(
         labelStartIndex,
         state.cursorIndex,
         isImage,
-        state.lineEndIndex,
+        state.rangeEndIndex,
         codeFrameIndexByMarkerLength,
       );
       if (attempt.kind === "destination") {
@@ -2236,11 +2558,13 @@ function* scanMarkdownInlineItems<Item extends MarkdownInlineItem>(
 
 function* iterateMarkdownInlineItems<Item extends MarkdownInlineItem>(
   markdown: string,
-  range: MarkdownSourceRange,
+  blockScan: MarkdownBlockScan,
+  range: MarkdownProseRange,
   sink: MarkdownInlineItemSink<Item>,
 ): IterableIterator<Item> {
   const unresolvedFrames = yield* scanMarkdownInlineItems(
     markdown,
+    blockScan,
     range,
     sink,
     new Set<number>(),
@@ -2256,6 +2580,7 @@ function* iterateMarkdownInlineItems<Item extends MarkdownInlineItem>(
   );
   const replayFrames = yield* scanMarkdownInlineItems(
     markdown,
+    blockScan,
     range,
     sink,
     unmatchedCodeOpenerIndexes,
@@ -2272,9 +2597,11 @@ function* iterateMarkdownInlineItems<Item extends MarkdownInlineItem>(
 function* iterateMarkdownActiveDestinations(
   markdown: string,
 ): IterableIterator<MarkdownLinkDestination> {
-  for (const proseRange of scanMarkdownBlocks(markdown).proseRanges) {
+  const blockScan = scanMarkdownBlocks(markdown);
+  for (const proseRange of blockScan.proseRanges) {
     for (const destination of iterateMarkdownInlineItems(
       markdown,
+      blockScan,
       proseRange,
       markdownDestinationSink,
     )) {
@@ -2285,12 +2612,13 @@ function* iterateMarkdownActiveDestinations(
 
 function collectMarkdownInlineCodeRanges(
   markdown: string,
-  proseRanges: ReadonlyArray<MarkdownSourceRange>,
+  blockScan: MarkdownBlockScan,
 ): ReadonlyArray<MarkdownSourceRange> {
   const codeRanges: Array<MarkdownSourceRange> = [];
-  for (const proseRange of proseRanges) {
+  for (const proseRange of blockScan.proseRanges) {
     for (const codeRange of iterateMarkdownInlineItems(
       markdown,
+      blockScan,
       proseRange,
       markdownCodeRangeSink,
     )) {
@@ -2333,7 +2661,7 @@ function* iterateOrderedMarkdownCodeRanges(
 
 function extractMarkdownNonCodeTextSegmentsUnchecked(markdown: string): ReadonlyArray<string> {
   const blockScan = scanMarkdownBlocks(markdown);
-  const inlineCodeRanges = collectMarkdownInlineCodeRanges(markdown, blockScan.proseRanges);
+  const inlineCodeRanges = collectMarkdownInlineCodeRanges(markdown, blockScan);
   const segments: Array<string> = [];
   let segmentStartIndex = 0;
   for (const codeRange of iterateOrderedMarkdownCodeRanges(
