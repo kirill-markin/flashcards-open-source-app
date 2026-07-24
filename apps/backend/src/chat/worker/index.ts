@@ -88,6 +88,7 @@ export async function handleChatWorkerEvent(
   const result: ChatWorkerRunResult = await runPersistedChatSession({
     lambdaRequestId: executionContext.lambdaRequestId,
     runId: claimedRun.runId,
+    claimToken: claimedRun.claimToken,
     requestId: claimedRun.requestId,
     userId: claimedRun.userId,
     workspaceId: claimedRun.workspaceId,

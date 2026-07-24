@@ -17,10 +17,13 @@ import {
   SQL_TOOL_ARGUMENT_VALIDATOR,
   SQL_TOOL_NAME,
 } from "../../../aiTools/toolContract/sqlToolContract";
+import type { ChatRunClaimToken } from "../../runs";
 
 export type OpenAIToolContext = Readonly<{
   userId: string;
   workspaceId: string;
+  claimToken: ChatRunClaimToken;
+  signal: AbortSignal | null;
 }>;
 
 export type ExecutedChatToolCall = Readonly<{
@@ -31,7 +34,7 @@ export type ExecutedChatToolCall = Readonly<{
 
 type OpenAIToolDependencies = Readonly<{
   executeAgentSql: typeof executeAgentSql;
-  createToolDependencies: () => AgentToolOperationDependencies;
+  createToolDependencies: (context: OpenAIToolContext) => AgentToolOperationDependencies;
 }>;
 
 type ToolErrorPayload = Readonly<{
@@ -52,11 +55,11 @@ type ToolErrorPayload = Readonly<{
  */
 const MAX_TOOL_OUTPUT_CHARS = 24_000 as const;
 
-function createToolDependencies(): AgentToolOperationDependencies {
+function createToolDependencies(context: OpenAIToolContext): AgentToolOperationDependencies {
   return {
     ...DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
     ensureAgentSyncReplica: async (workspaceId: string, userId: string): Promise<string> =>
-      ensureAIChatSyncReplica(workspaceId, userId, "web"),
+      ensureAIChatSyncReplica(workspaceId, userId, "web", context.signal),
   };
 }
 
@@ -194,7 +197,7 @@ export async function executeChatToolCallWithDependencies(
         connectionId: "chat-v2",
       },
       parsed.sql,
-      dependencies.createToolDependencies(),
+      dependencies.createToolDependencies(context),
     );
 
     return {

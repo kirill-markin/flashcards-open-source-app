@@ -15,7 +15,7 @@ import type { ChatComposerSuggestionsLocale } from "../composerSuggestions";
 import type { ChatSessionRunState } from "../store";
 import type { ChatSessionRow } from "../store/repository";
 import type { ContentPart } from "../types";
-import type { ChatRunStatus } from "./types";
+import type { ChatRunClaimToken, ChatRunStatus } from "./types";
 
 export type ChatRunRow = Readonly<{
   run_id: string;
@@ -62,7 +62,6 @@ export type UpdateChatRunPolicySnapshotParams = Readonly<{
 export type UpdateChatRunStatusParams = Readonly<{
   runId: string;
   status: ChatRunStatus;
-  workerClaimedAt: Date | null;
   workerHeartbeatAt: Date | null;
   cancelRequestedAt: Date | null;
   startedAt: Date | null;
@@ -72,7 +71,6 @@ export type UpdateChatRunStatusParams = Readonly<{
 
 type CreateChatRunStatusUpdateFromRowParams = Readonly<{
   status: ChatRunStatus;
-  workerClaimedAt?: Date | null;
   workerHeartbeatAt?: Date | null;
   cancelRequestedAt?: Date | null;
   startedAt?: Date | null;
@@ -94,7 +92,7 @@ const CHAT_RUN_COLUMNS_SQL = `
     timezone,
     ui_locale,
     turn_input,
-    worker_claimed_at,
+    worker_claimed_at::text AS worker_claimed_at,
     worker_heartbeat_at,
     cancel_requested_at,
     started_at,
@@ -138,7 +136,35 @@ ${CHAT_RUN_COLUMNS_SQL}
 const UPDATE_CHAT_RUN_STATUS_SQL = `
   UPDATE ai.chat_runs
   SET status = $2,
-      worker_claimed_at = $3,
+      worker_heartbeat_at = $3,
+      cancel_requested_at = $4,
+      started_at = $5,
+      finished_at = $6,
+      last_error_message = $7,
+      updated_at = now()
+  WHERE run_id = $1
+  RETURNING
+${CHAT_RUN_COLUMNS_SQL}
+`;
+
+const CLAIM_CHAT_RUN_SQL = `
+  UPDATE ai.chat_runs
+  SET status = 'running',
+      worker_claimed_at = statement_timestamp(),
+      worker_heartbeat_at = statement_timestamp(),
+      started_at = COALESCE(started_at, statement_timestamp()),
+      finished_at = NULL,
+      last_error_message = NULL,
+      updated_at = now()
+  WHERE run_id = $1
+    AND status IN ('queued', 'running')
+  RETURNING
+${CHAT_RUN_COLUMNS_SQL}
+`;
+
+const UPDATE_CLAIMED_CHAT_RUN_STATUS_SQL = `
+  UPDATE ai.chat_runs
+  SET status = $3,
       worker_heartbeat_at = $4,
       cancel_requested_at = $5,
       started_at = $6,
@@ -146,6 +172,8 @@ const UPDATE_CHAT_RUN_STATUS_SQL = `
       last_error_message = $8,
       updated_at = now()
   WHERE run_id = $1
+    AND status = 'running'
+    AND worker_claimed_at = $2::timestamptz
   RETURNING
 ${CHAT_RUN_COLUMNS_SQL}
 `;
@@ -252,9 +280,6 @@ export function createChatRunStatusUpdateFromRow(
   return {
     runId: run.run_id,
     status: params.status,
-    workerClaimedAt: params.workerClaimedAt === undefined
-      ? toDateOrNull(run.worker_claimed_at)
-      : params.workerClaimedAt,
     workerHeartbeatAt: params.workerHeartbeatAt === undefined
       ? toDateOrNull(run.worker_heartbeat_at)
       : params.workerHeartbeatAt,
@@ -366,7 +391,6 @@ export async function updateChatRunStatusWithExecutor(
     const rows = await executeQuery<ChatRunRow>(executor, UPDATE_CHAT_RUN_STATUS_SQL, [
       params.runId,
       params.status,
-      params.workerClaimedAt?.toISOString() ?? null,
       params.workerHeartbeatAt?.toISOString() ?? null,
       params.cancelRequestedAt?.toISOString() ?? null,
       params.startedAt?.toISOString() ?? null,
@@ -374,5 +398,37 @@ export async function updateChatRunStatusWithExecutor(
       params.lastErrorMessage,
     ]);
     return requireRunRow(rows[0], "update");
+  });
+}
+
+export async function claimChatRunWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  runId: string,
+): Promise<ChatRunRow | null> {
+  return withScopedExecutor(executor, scope, async () => {
+    const rows = await executeQuery<ChatRunRow>(executor, CLAIM_CHAT_RUN_SQL, [runId]);
+    return rows[0] ?? null;
+  });
+}
+
+export async function updateClaimedChatRunStatusWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  claimToken: ChatRunClaimToken,
+  params: UpdateChatRunStatusParams,
+): Promise<ChatRunRow | null> {
+  return withScopedExecutor(executor, scope, async () => {
+    const rows = await executeQuery<ChatRunRow>(executor, UPDATE_CLAIMED_CHAT_RUN_STATUS_SQL, [
+      params.runId,
+      claimToken,
+      params.status,
+      params.workerHeartbeatAt?.toISOString() ?? null,
+      params.cancelRequestedAt?.toISOString() ?? null,
+      params.startedAt?.toISOString() ?? null,
+      params.finishedAt?.toISOString() ?? null,
+      params.lastErrorMessage,
+    ]);
+    return rows[0] ?? null;
   });
 }

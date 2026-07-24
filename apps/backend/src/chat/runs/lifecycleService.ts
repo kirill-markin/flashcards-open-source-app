@@ -46,6 +46,7 @@ import {
   recoverStaleRunWithExecutor,
 } from "./finalization";
 import {
+  claimChatRunWithExecutor as claimChatRunRowWithExecutor,
   createChatRunStatusUpdateFromRow,
   insertChatRunWithExecutor,
   mapChatRunStatusToSessionRunState,
@@ -54,10 +55,12 @@ import {
   selectChatRunForUpdateWithExecutor,
   selectSessionForUpdateWithExecutor,
   updateChatRunPolicySnapshotWithExecutor,
+  updateClaimedChatRunStatusWithExecutor,
   updateChatRunStatusWithExecutor,
   type ChatRunRow,
 } from "./repository";
 import type {
+  ChatRunClaimToken,
   ChatRunHeartbeatState,
   ChatRunStopState,
   ClaimedChatRun,
@@ -203,19 +206,15 @@ export async function claimChatRun(
       return null;
     }
 
-    const now = new Date();
-    const claimedRun = await updateChatRunStatusWithExecutor(
-      executor,
-      scope,
-      createChatRunStatusUpdateFromRow(run, {
-        status: "running",
-        workerClaimedAt: now,
-        workerHeartbeatAt: now,
-        startedAt: run.started_at === null ? now : undefined,
-        finishedAt: null,
-        lastErrorMessage: null,
-      }),
+    const claimedRun = requireRunRow(
+      await claimChatRunRowWithExecutor(executor, scope, run.run_id) ?? undefined,
+      "claim",
     );
+    if (claimedRun.worker_claimed_at === null) {
+      throw new Error(`Claimed chat run is missing worker_claimed_at: ${claimedRun.run_id}`);
+    }
+    const claimToken = claimedRun.worker_claimed_at;
+    const claimedAt = new Date(claimToken);
 
     await updateChatSessionRunStateWithExecutor(
       executor,
@@ -223,7 +222,7 @@ export async function claimChatRun(
       session.session_id,
       "running",
       claimedRun.run_id,
-      now,
+      claimedAt,
     );
 
     const messages = await buildLocalMessagesForClaimedRun(executor, scope, claimedRun.session_id, claimedRun.assistant_item_id);
@@ -232,6 +231,7 @@ export async function claimChatRun(
 
     return {
       runId: claimedRun.run_id,
+      claimToken,
       sessionId: claimedRun.session_id,
       requestId: claimedRun.request_id,
       userId,
@@ -268,10 +268,12 @@ async function buildLocalMessagesForClaimedRun(
 export function assertClaimedRunStillActive(
   run: ChatRunRow,
   session: ChatSessionRow,
+  claimToken: ChatRunClaimToken,
   operation: string,
 ): void {
   if (
     run.status !== "running"
+    || run.worker_claimed_at !== claimToken
     || session.status !== "running"
     || session.active_run_id !== run.run_id
   ) {
@@ -289,12 +291,17 @@ export async function touchClaimedChatRunHeartbeat(
   userId: string,
   workspaceId: string,
   runId: string,
+  claimToken: ChatRunClaimToken,
   heartbeatAt: Date,
 ): Promise<ChatRunHeartbeatState> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const scope = { userId, workspaceId };
     const run = await selectChatRunForUpdateWithExecutor(executor, scope, runId);
-    if (run === null || run.status !== "running") {
+    if (
+      run === null
+      || run.status !== "running"
+      || run.worker_claimed_at !== claimToken
+    ) {
       return {
         cancellationRequested: false,
         ownershipLost: true,
@@ -309,18 +316,24 @@ export async function touchClaimedChatRunHeartbeat(
       };
     }
 
-    await updateChatRunStatusWithExecutor(
+    const updatedRun = await updateClaimedChatRunStatusWithExecutor(
       executor,
       scope,
+      claimToken,
       createChatRunStatusUpdateFromRow(run, {
         status: "running",
-        workerClaimedAt: run.worker_claimed_at === null ? heartbeatAt : undefined,
         workerHeartbeatAt: heartbeatAt,
         startedAt: run.started_at === null ? heartbeatAt : undefined,
         finishedAt: null,
         lastErrorMessage: null,
       }),
     );
+    if (updatedRun === null) {
+      return {
+        cancellationRequested: false,
+        ownershipLost: true,
+      };
+    }
 
     await updateChatSessionRunStateWithExecutor(
       executor,
@@ -352,6 +365,7 @@ export async function completeClaimedChatRun(
     assistantOpenAIItems?: ReadonlyArray<StoredOpenAIReplayItem>;
     composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
   }>,
+  claimToken: ChatRunClaimToken,
 ): Promise<void> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const scope = { userId, workspaceId };
@@ -360,7 +374,7 @@ export async function completeClaimedChatRun(
       "complete",
     );
     const session = await selectSessionForUpdateWithExecutor(executor, scope, run.session_id);
-    assertClaimedRunStillActive(run, session, "complete");
+    assertClaimedRunStillActive(run, session, claimToken, "complete");
 
     await updateChatItemWithExecutor(executor, scope, {
       itemId: params.assistantItemId,
@@ -369,14 +383,18 @@ export async function completeClaimedChatRun(
       assistantOpenAIItems: params.assistantOpenAIItems,
     });
 
-    await updateChatRunStatusWithExecutor(
-      executor,
-      scope,
-      createChatRunStatusUpdateFromRow(run, {
-        status: "completed",
-        finishedAt: new Date(),
-        lastErrorMessage: null,
-      }),
+    requireRunRow(
+      await updateClaimedChatRunStatusWithExecutor(
+        executor,
+        scope,
+        claimToken,
+        createChatRunStatusUpdateFromRow(run, {
+          status: "completed",
+          finishedAt: new Date(),
+          lastErrorMessage: null,
+        }),
+      ) ?? undefined,
+      "complete",
     );
 
     await updateChatSessionRunStateWithExecutor(executor, scope, params.sessionId, "idle", null, null);
@@ -405,6 +423,7 @@ export async function persistClaimedChatRunTerminalError(
     errorMessage: string;
     sessionState: ChatSessionRunState;
   }>,
+  claimToken: ChatRunClaimToken,
 ): Promise<void> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const scope = { userId, workspaceId };
@@ -413,7 +432,7 @@ export async function persistClaimedChatRunTerminalError(
       "fail",
     );
     const session = await selectSessionForUpdateWithExecutor(executor, scope, run.session_id);
-    assertClaimedRunStillActive(run, session, "fail");
+    assertClaimedRunStillActive(run, session, claimToken, "fail");
     const finalizedAssistantContent = finalizePendingToolCallContent(
       params.assistantContent,
       "incomplete",
@@ -444,14 +463,18 @@ export async function persistClaimedChatRunTerminalError(
       });
     }
 
-    await updateChatRunStatusWithExecutor(
-      executor,
-      scope,
-      createChatRunStatusUpdateFromRow(run, {
-        status: params.sessionState === "interrupted" ? "interrupted" : "failed",
-        finishedAt: new Date(),
-        lastErrorMessage: params.errorMessage,
-      }),
+    requireRunRow(
+      await updateClaimedChatRunStatusWithExecutor(
+        executor,
+        scope,
+        claimToken,
+        createChatRunStatusUpdateFromRow(run, {
+          status: params.sessionState === "interrupted" ? "interrupted" : "failed",
+          finishedAt: new Date(),
+          lastErrorMessage: params.errorMessage,
+        }),
+      ) ?? undefined,
+      "fail",
     );
 
     await updateChatSessionRunStateWithExecutor(
@@ -484,6 +507,7 @@ export async function persistClaimedChatRunCancelled(
     assistantContent: ReadonlyArray<ContentPart>;
     assistantOpenAIItems?: ReadonlyArray<StoredOpenAIReplayItem>;
   }>,
+  claimToken: ChatRunClaimToken,
 ): Promise<void> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const scope = { userId, workspaceId };
@@ -492,7 +516,7 @@ export async function persistClaimedChatRunCancelled(
       "cancel",
     );
     const session = await selectSessionForUpdateWithExecutor(executor, scope, run.session_id);
-    assertClaimedRunStillActive(run, session, "cancel");
+    assertClaimedRunStillActive(run, session, claimToken, "cancel");
 
     await updateChatItemWithExecutor(executor, scope, {
       itemId: params.assistantItemId,
@@ -501,15 +525,19 @@ export async function persistClaimedChatRunCancelled(
       assistantOpenAIItems: params.assistantOpenAIItems,
     });
 
-    await updateChatRunStatusWithExecutor(
-      executor,
-      scope,
-      createChatRunStatusUpdateFromRow(run, {
-        status: "cancelled",
-        cancelRequestedAt: run.cancel_requested_at === null ? new Date() : undefined,
-        finishedAt: new Date(),
-        lastErrorMessage: STOPPED_BY_USER_TOOL_OUTPUT,
-      }),
+    requireRunRow(
+      await updateClaimedChatRunStatusWithExecutor(
+        executor,
+        scope,
+        claimToken,
+        createChatRunStatusUpdateFromRow(run, {
+          status: "cancelled",
+          cancelRequestedAt: run.cancel_requested_at === null ? new Date() : undefined,
+          finishedAt: new Date(),
+          lastErrorMessage: STOPPED_BY_USER_TOOL_OUTPUT,
+        }),
+      ) ?? undefined,
+      "cancel",
     );
 
     await updateChatSessionRunStateWithExecutor(executor, scope, params.sessionId, "idle", null, null);

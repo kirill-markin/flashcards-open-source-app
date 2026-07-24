@@ -15,6 +15,7 @@ export function createParams(
 ): StartOpenAILoopParams {
   return {
     requestId: "request-1",
+    claimToken: "2026-07-24 10:11:12.123456+00",
     userId: "user-1",
     workspaceId: "workspace-1",
     sessionId: "session-1",

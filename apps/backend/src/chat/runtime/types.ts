@@ -12,6 +12,7 @@ import type {
 import type {
   ContentPart,
 } from "../types";
+import type { ChatRunClaimToken } from "../runs";
 
 type ChatRunDiagnostics = Readonly<{
   requestId: string;
@@ -30,6 +31,7 @@ type ChatRunDiagnostics = Readonly<{
 export type StartPersistedChatRunParams = Readonly<{
   lambdaRequestId: string | null;
   runId: string;
+  claimToken: ChatRunClaimToken;
   requestId: string;
   userId: string;
   workspaceId: string;

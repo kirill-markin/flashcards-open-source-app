@@ -55,6 +55,23 @@ type RuntimeFinalizationResult = Readonly<{
   result: ChatWorkerRunResult;
 }>;
 
+class TerminalPersistenceError extends Error {
+  public readonly originalError: unknown;
+
+  public constructor(originalError: unknown) {
+    super("Terminal chat persistence failed");
+    this.name = "TerminalPersistenceError";
+    this.originalError = originalError;
+  }
+}
+
+function rethrowTerminalPersistenceError(error: unknown): never {
+  if (error instanceof TerminalPersistenceError) {
+    throw error.originalError;
+  }
+  throw error;
+}
+
 /**
  * Runs one persisted chat session using a single awaited provider-control flow.
  * User cancellation is terminal and persists exactly once.
@@ -107,10 +124,28 @@ export async function runPersistedChatSessionWithDeps(
     return finalizationResult.result;
   };
 
+  const persistTerminalResult = async (
+    persist: () => Promise<RuntimeFinalizationResult>,
+  ): Promise<ChatWorkerRunResult> => {
+    try {
+      return applyFinalizationResult(await persist());
+    } catch (error) {
+      if (isChatStorageEntityNotFoundError(error)) {
+        return {
+          outcome: "ownership_lost",
+          abortReason: "ownership_lost",
+          runStatus: null,
+          sessionState: null,
+        };
+      }
+      throw new TerminalPersistenceError(error);
+    }
+  };
+
   const persistCancelled = async (
     reason: ChatWorkerAbortReason,
-  ): Promise<ChatWorkerRunResult> => applyFinalizationResult(
-    await persistCancelledChatRun({
+  ): Promise<ChatWorkerRunResult> => persistTerminalResult(
+    () => persistCancelledChatRun({
       ...createFinalizationBaseParams(),
       reason,
     }),
@@ -118,8 +153,8 @@ export async function runPersistedChatSessionWithDeps(
 
   const persistFailed = async (
     error: unknown,
-  ): Promise<ChatWorkerRunResult> => applyFinalizationResult(
-    await persistFailedChatRun({
+  ): Promise<ChatWorkerRunResult> => persistTerminalResult(
+    () => persistFailedChatRun({
       ...createFinalizationBaseParams(),
       error,
     }),
@@ -128,8 +163,8 @@ export async function runPersistedChatSessionWithDeps(
   const persistInterrupted = async (
     errorMessage: string,
     assistantOpenAIItems: ReadonlyArray<StoredOpenAIReplayItem> | undefined,
-  ): Promise<ChatWorkerRunResult> => applyFinalizationResult(
-    await persistInterruptedChatRun({
+  ): Promise<ChatWorkerRunResult> => persistTerminalResult(
+    () => persistInterruptedChatRun({
       ...createFinalizationBaseParams(),
       errorMessage,
       assistantOpenAIItems,
@@ -138,8 +173,8 @@ export async function runPersistedChatSessionWithDeps(
 
   const persistCompleted = async (
     assistantOpenAIItems: ReadonlyArray<StoredOpenAIReplayItem>,
-  ): Promise<ChatWorkerRunResult> => applyFinalizationResult(
-    await persistCompletedChatRun({
+  ): Promise<ChatWorkerRunResult> => persistTerminalResult(
+    () => persistCompletedChatRun({
       ...createFinalizationBaseParams(),
       assistantOpenAIItems,
     }),
@@ -165,7 +200,7 @@ export async function runPersistedChatSessionWithDeps(
       };
     }
     if (initialHeartbeat.outcome === "initial_cancelled") {
-      return persistCancelled("initial_cancel_state");
+      return persistCancelled("initial_cancel_state").catch(rethrowTerminalPersistenceError);
     }
 
     control.scheduleSoftDeadlineTimer();
@@ -205,6 +240,7 @@ export async function runPersistedChatSessionWithDeps(
           "ai.openai",
           async () => dependencies.startOpenAILoop({
             requestId: params.requestId,
+            claimToken: params.claimToken,
             userId: params.userId,
             workspaceId: params.workspaceId,
             sessionId: params.sessionId,
@@ -325,6 +361,10 @@ export async function runPersistedChatSessionWithDeps(
       sessionState: "idle",
     };
   } catch (error) {
+    if (error instanceof TerminalPersistenceError) {
+      throw error.originalError;
+    }
+
     const abortReason = control.getAbortReason();
     if (abortReason !== null && isUserAbortError(error)) {
       logProviderCallAborted(
@@ -346,10 +386,13 @@ export async function runPersistedChatSessionWithDeps(
       }
 
       if (abortReason === "deadline_reached") {
-        return persistInterrupted(DEADLINE_REACHED_MESSAGE, undefined);
+        return persistInterrupted(
+          DEADLINE_REACHED_MESSAGE,
+          undefined,
+        ).catch(rethrowTerminalPersistenceError);
       }
 
-      return persistCancelled(abortReason);
+      return persistCancelled(abortReason).catch(rethrowTerminalPersistenceError);
     }
 
     if (control.getOwnershipLost() || error instanceof ChatRunOwnershipLostError) {
@@ -370,7 +413,7 @@ export async function runPersistedChatSessionWithDeps(
       };
     }
 
-    return persistFailed(error);
+    return persistFailed(error).catch(rethrowTerminalPersistenceError);
   } finally {
     control.clearTimers();
     await dependencies.endTaskProtection();

@@ -143,6 +143,7 @@ export function createChatRuntimeControl(
           params.userId,
           params.workspaceId,
           params.runId,
+          params.claimToken,
           heartbeatAt,
         ).then((state) => {
           handleHeartbeatState(heartbeatAt, state);
@@ -155,6 +156,7 @@ export function createChatRuntimeControl(
         params.userId,
         params.workspaceId,
         params.runId,
+        params.claimToken,
         initialHeartbeatAt,
       );
       if (initialHeartbeatState.ownershipLost) {

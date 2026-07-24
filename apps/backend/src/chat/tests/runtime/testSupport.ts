@@ -79,6 +79,7 @@ export function createParams(): StartPersistedChatRunParams {
   return {
     lambdaRequestId: "lambda-request-1",
     runId: "run-1",
+    claimToken: "2026-07-24 10:11:12.123456+00",
     requestId: "chat-request-1",
     userId: "user-1",
     workspaceId: "workspace-1",

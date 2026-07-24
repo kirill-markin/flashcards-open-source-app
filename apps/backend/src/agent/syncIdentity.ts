@@ -17,5 +17,6 @@ export async function ensureAgentSyncReplica(
     actorKey: connectionId,
     platform: "web",
     appVersion: `agent:${connectionId}`,
+    signal: null,
   });
 }

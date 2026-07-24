@@ -4,6 +4,7 @@ import {
   executeChatToolCall,
   type ExecutedChatToolCall,
 } from "./tools";
+import type { ChatRunClaimToken } from "../../runs";
 
 type ToolTelemetryMetadata = Readonly<{
   toolName: string;
@@ -72,8 +73,10 @@ function buildToolTelemetryMetadata(
 export async function runOneToolCall(
   params: Readonly<{
     item: OpenAI.Responses.ResponseFunctionToolCall;
+    claimToken: ChatRunClaimToken;
     userId: string;
     workspaceId: string;
+    signal: AbortSignal | null;
     rootObservation: LangfuseObservation | null;
   }>,
 ): Promise<ExecutedChatToolCall> {
@@ -109,6 +112,8 @@ export async function runOneToolCall(
       {
         userId: params.userId,
         workspaceId: params.workspaceId,
+        claimToken: params.claimToken,
+        signal: params.signal,
       },
     );
 

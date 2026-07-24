@@ -507,6 +507,7 @@ async function recreateGuestReplicasInExecutor(
         actorKey: replica.actorKey,
         platform: replica.platform,
         appVersion: replica.appVersion,
+        signal: null,
       });
     }
 

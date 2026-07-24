@@ -10,7 +10,9 @@ export async function ensureAIChatSyncReplica(
   workspaceId: string,
   userId: string,
   devicePlatform: SyncClientPlatform,
+  signal: AbortSignal | null,
 ): Promise<string> {
+  signal?.throwIfAborted();
   return ensureSystemWorkspaceReplica({
     workspaceId,
     userId,
@@ -18,5 +20,6 @@ export async function ensureAIChatSyncReplica(
     actorKey: `${devicePlatform}:chat`,
     platform: devicePlatform,
     appVersion: `ai-chat:${devicePlatform}:chat`,
+    signal,
   });
 }

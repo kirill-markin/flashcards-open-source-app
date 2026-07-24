@@ -54,6 +54,7 @@ type EnsureSystemWorkspaceReplicaParams = Readonly<{
   actorKey: string;
   platform: WorkspaceReplicaPlatform;
   appVersion: string | null;
+  signal: AbortSignal | null;
 }>;
 
 function toUuidFromSeed(seed: string): string {
@@ -137,7 +138,9 @@ async function upsertWorkspaceReplicaInExecutor(
   actorKey: string | null,
   platform: WorkspaceReplicaPlatform,
   appVersion: string | null,
+  signal: AbortSignal | null,
 ): Promise<string> {
+  signal?.throwIfAborted();
   const insertResult = await executor.query<WorkspaceReplicaRow>(
     [
       "INSERT INTO sync.workspace_replicas",
@@ -150,11 +153,13 @@ async function upsertWorkspaceReplicaInExecutor(
     ].join(" "),
     [replicaId, workspaceId, userId, actorKind, installationId, actorKey, platform, appVersion],
   );
+  signal?.throwIfAborted();
 
   if (insertResult.rows.length === 1) {
     return replicaId;
   }
 
+  signal?.throwIfAborted();
   const updateResult = await executor.query<WorkspaceReplicaRow>(
     [
       "UPDATE sync.workspace_replicas",
@@ -169,6 +174,7 @@ async function upsertWorkspaceReplicaInExecutor(
     ].join(" "),
     [replicaId, workspaceId, userId, actorKind, installationId, actorKey, platform, appVersion],
   );
+  signal?.throwIfAborted();
 
   if (updateResult.rows.length === 1) {
     return replicaId;
@@ -185,8 +191,11 @@ async function lockWorkspaceAccessInExecutor(
   executor: DatabaseExecutor,
   userId: string,
   workspaceId: string,
+  signal: AbortSignal | null,
 ): Promise<void> {
+  signal?.throwIfAborted();
   await lockWorkspaceAccessLifecycleInExecutor(executor, userId, workspaceId);
+  signal?.throwIfAborted();
 
   const result = await executor.query<WorkspaceAccessLockRow>(
     [
@@ -199,6 +208,7 @@ async function lockWorkspaceAccessInExecutor(
     ].join(" "),
     [userId, workspaceId],
   );
+  signal?.throwIfAborted();
 
   if (result.rows[0] === undefined) {
     throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
@@ -218,7 +228,7 @@ export async function ensureWorkspaceReplicaInExecutor(
     userId: params.userId,
     workspaceId: params.workspaceId,
   });
-  await lockWorkspaceAccessInExecutor(executor, params.userId, params.workspaceId);
+  await lockWorkspaceAccessInExecutor(executor, params.userId, params.workspaceId, null);
   await ensureInstallationInExecutor(
     executor,
     params.userId,
@@ -238,6 +248,7 @@ export async function ensureWorkspaceReplicaInExecutor(
     null,
     params.platform,
     params.appVersion,
+    null,
   );
 }
 
@@ -257,21 +268,32 @@ export async function ensureWorkspaceReplica(
 export async function ensureSystemWorkspaceReplica(
   params: EnsureSystemWorkspaceReplicaParams,
 ): Promise<string> {
-  return transactionWithWorkspaceScope(
+  params.signal?.throwIfAborted();
+  const replicaId = await transactionWithWorkspaceScope(
     { userId: params.userId, workspaceId: params.workspaceId },
     async (executor) => ensureSystemWorkspaceReplicaInExecutor(executor, params),
   );
+  params.signal?.throwIfAborted();
+  return replicaId;
 }
 
 export async function ensureSystemWorkspaceReplicaInExecutor(
   executor: DatabaseExecutor,
   params: EnsureSystemWorkspaceReplicaParams,
 ): Promise<string> {
+  params.signal?.throwIfAborted();
   await applyWorkspaceDatabaseScopeInExecutor(executor, {
     userId: params.userId,
     workspaceId: params.workspaceId,
   });
-  await lockWorkspaceAccessInExecutor(executor, params.userId, params.workspaceId);
+  params.signal?.throwIfAborted();
+  await lockWorkspaceAccessInExecutor(
+    executor,
+    params.userId,
+    params.workspaceId,
+    params.signal,
+  );
+  params.signal?.throwIfAborted();
 
   const replicaId = buildSystemWorkspaceReplicaId(
     params.workspaceId,
@@ -289,6 +311,7 @@ export async function ensureSystemWorkspaceReplicaInExecutor(
     params.actorKey,
     params.platform,
     params.appVersion,
+    params.signal,
   );
 }
 
@@ -297,10 +320,12 @@ export async function ensureBootstrapSystemWorkspaceReplicaInExecutor(
   params: EnsureSystemWorkspaceReplicaParams,
   replicaId: string,
 ): Promise<string> {
+  params.signal?.throwIfAborted();
   await applyWorkspaceDatabaseScopeInExecutor(executor, {
     userId: params.userId,
     workspaceId: params.workspaceId,
   });
+  params.signal?.throwIfAborted();
 
   return upsertWorkspaceReplicaInExecutor(
     executor,
@@ -312,5 +337,6 @@ export async function ensureBootstrapSystemWorkspaceReplicaInExecutor(
     params.actorKey,
     params.platform,
     params.appVersion,
+    params.signal,
   );
 }

@@ -65,12 +65,16 @@ test("startOpenAILoopWithDeps stops after a completed tool call before the next 
   let stopBeforeNextStep = false;
   let streamCallCount = 0;
   let toolCallCount = 0;
+  let observedClaimToken: string | null = null;
+  let observedSignal: AbortSignal | null = null;
+  const abortController = new AbortController();
   const startedFunctionCallItem = createFunctionCallItem("in_progress");
   const completedFunctionCallItem = createFunctionCallItem("completed");
   const { sink, events } = collectEvents();
 
   const result = await startOpenAILoopWithDeps(
     createParams({
+      signal: abortController.signal,
       shouldStopBeforeNextStep: (): boolean => stopBeforeNextStep,
     }),
     sink,
@@ -82,8 +86,10 @@ test("startOpenAILoopWithDeps stops after a completed tool call before the next 
           createResponse([completedFunctionCallItem], ""),
         );
       },
-      async () => {
+      async (params) => {
         toolCallCount += 1;
+        observedClaimToken = params.claimToken;
+        observedSignal = params.signal;
         stopBeforeNextStep = true;
         return {
           output: "{\"ok\":true}",
@@ -96,6 +102,8 @@ test("startOpenAILoopWithDeps stops after a completed tool call before the next 
 
   assert.equal(streamCallCount, 1);
   assert.equal(toolCallCount, 1);
+  assert.equal(observedClaimToken, createParams({}).claimToken);
+  assert.equal(observedSignal, abortController.signal);
   assert.equal(result.terminationReason, "stopped_before_next_step");
   assert.deepEqual(result.openaiItems, [
     {

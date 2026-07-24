@@ -3,6 +3,7 @@
  * Internal implementation is split across focused modules under `./runs/`.
  */
 export type {
+  ChatRunClaimToken,
   ChatRunHeartbeatState,
   ChatRunSnapshot,
   ChatRunStatus,
@@ -11,6 +12,12 @@ export type {
   PreparedChatRun,
   RecoveredPaginatedSession,
 } from "./runs/types";
+
+export {
+  assertActiveChatRunClaimWithExecutor,
+  InactiveChatRunClaimError,
+} from "./runs/claimFence";
+export type { ChatRunClaimFenceParams } from "./runs/claimFence";
 
 export {
   getChatRunSnapshot,
