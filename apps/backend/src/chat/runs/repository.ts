@@ -12,9 +12,11 @@ import {
 } from "../config";
 import type { ChatCostPolicyMode } from "../costPolicy";
 import type { ChatComposerSuggestionsLocale } from "../composerSuggestions";
-import type { ChatSessionRunState } from "../store";
+import type { ChatItemState, ChatSessionRunState } from "../store";
 import type { ChatSessionRow } from "../store/repository";
+import type { GeneratedCardImageAttemptReservation } from "../openai/tools/generatedImageAttemptBudget";
 import type { ContentPart } from "../types";
+import type { ChatRunClaimFenceParams } from "./claimFence";
 import type { ChatRunClaimToken, ChatRunStatus } from "./types";
 
 export type ChatRunRow = Readonly<{
@@ -76,6 +78,18 @@ type CreateChatRunStatusUpdateFromRowParams = Readonly<{
   startedAt?: Date | null;
   finishedAt?: Date | null;
   lastErrorMessage: string | null;
+}>;
+
+type GeneratedCardImageAttemptStateRow = Readonly<{
+  item_id: string;
+  state: ChatItemState;
+  role: string | null;
+  attempt_count_type: string | null;
+  attempt_count_text: string | null;
+}>;
+
+type ReservedGeneratedCardImageAttemptRow = Readonly<{
+  attempt_count_text: string;
 }>;
 
 const CHAT_RUN_COLUMNS_SQL = `
@@ -219,6 +233,33 @@ ${CHAT_RUN_COLUMNS_SQL}
   LIMIT 1
 `;
 
+const SELECT_GENERATED_CARD_IMAGE_ATTEMPT_STATE_FOR_UPDATE_SQL = `
+  SELECT
+    chat_items.item_id,
+    chat_items.state,
+    chat_items.payload->>'role' AS role,
+    jsonb_typeof(chat_items.payload->'generatedCardImageAttemptCount') AS attempt_count_type,
+    chat_items.payload->>'generatedCardImageAttemptCount' AS attempt_count_text
+  FROM ai.chat_runs AS chat_runs
+  INNER JOIN ai.chat_items AS chat_items
+    ON chat_items.item_id = chat_runs.assistant_item_id
+  WHERE chat_runs.run_id = $1
+    AND chat_items.item_kind = 'message'
+  FOR UPDATE OF chat_items
+`;
+
+const RESERVE_GENERATED_CARD_IMAGE_ATTEMPT_SQL = `
+  UPDATE ai.chat_items
+  SET payload = jsonb_set(
+    payload,
+    '{generatedCardImageAttemptCount}',
+    to_jsonb($2::integer),
+    true
+  )
+  WHERE item_id = $1
+  RETURNING payload->>'generatedCardImageAttemptCount' AS attempt_count_text
+`;
+
 async function executeQuery<Row extends QueryResultRow>(
   executor: DatabaseExecutor,
   text: string,
@@ -243,6 +284,51 @@ function toDateOrNull(value: string | null): Date | null {
   }
 
   return new Date(value);
+}
+
+function parseGeneratedCardImageAttemptCount(
+  row: GeneratedCardImageAttemptStateRow,
+  maximumAttempts: 3,
+): number {
+  if (row.attempt_count_type === null && row.attempt_count_text === null) {
+    return 0;
+  }
+  if (row.attempt_count_type !== "number" || row.attempt_count_text === null) {
+    throw new Error(
+      `Generated card image attempt count must be a JSON number. itemId=${row.item_id}`,
+    );
+  }
+
+  const attemptCount = Number(row.attempt_count_text);
+  if (
+    !Number.isSafeInteger(attemptCount)
+    || attemptCount < 0
+    || attemptCount > maximumAttempts
+  ) {
+    throw new Error(
+      `Generated card image attempt count must be an integer between 0 and ${maximumAttempts}. itemId=${row.item_id}`,
+    );
+  }
+  return attemptCount;
+}
+
+function requireReservedGeneratedCardImageAttempt(
+  value: string,
+  expectedAttempt: number,
+  maximumAttempts: 3,
+): 1 | 2 | 3 {
+  const attempt = Number(value);
+  if (
+    !Number.isSafeInteger(attempt)
+    || attempt < 1
+    || attempt > maximumAttempts
+    || attempt !== expectedAttempt
+  ) {
+    throw new Error(
+      `Generated card image attempt reservation returned an invalid attempt. attempt=${value}; expectedAttempt=${expectedAttempt}`,
+    );
+  }
+  return attempt as 1 | 2 | 3;
 }
 
 export function requireSessionRow(row: ChatSessionRow | undefined, operation: string): ChatSessionRow {
@@ -341,6 +427,55 @@ export async function selectSessionForUpdateWithExecutor(
   return withScopedExecutor(executor, scope, async () => {
     const rows = await executeQuery<ChatSessionRow>(executor, SELECT_SESSION_FOR_UPDATE_SQL, [sessionId]);
     return requireSessionRow(rows[0], "lock");
+  });
+}
+
+export async function reserveGeneratedCardImageAttemptForActiveRunWithExecutor(
+  executor: DatabaseExecutor,
+  params: ChatRunClaimFenceParams,
+  maximumAttempts: 3,
+): Promise<GeneratedCardImageAttemptReservation> {
+  return withScopedExecutor(executor, params, async () => {
+    const stateRows = await executeQuery<GeneratedCardImageAttemptStateRow>(
+      executor,
+      SELECT_GENERATED_CARD_IMAGE_ATTEMPT_STATE_FOR_UPDATE_SQL,
+      [params.runId],
+    );
+    const state = stateRows[0];
+    if (
+      state === undefined
+      || state.state !== "in_progress"
+      || state.role !== "assistant"
+    ) {
+      return { status: "run_inactive" };
+    }
+
+    const attemptCount = parseGeneratedCardImageAttemptCount(state, maximumAttempts);
+    if (attemptCount === maximumAttempts) {
+      return { status: "limit_reached" };
+    }
+
+    const reservedAttempt = attemptCount + 1;
+    const reservedRows = await executeQuery<ReservedGeneratedCardImageAttemptRow>(
+      executor,
+      RESERVE_GENERATED_CARD_IMAGE_ATTEMPT_SQL,
+      [state.item_id, reservedAttempt],
+    );
+    const reservedRow = reservedRows[0];
+    if (reservedRow === undefined) {
+      throw new Error(
+        `Generated card image attempt target disappeared while locked. itemId=${state.item_id}`,
+      );
+    }
+
+    return {
+      status: "reserved",
+      attempt: requireReservedGeneratedCardImageAttempt(
+        reservedRow.attempt_count_text,
+        reservedAttempt,
+        maximumAttempts,
+      ),
+    };
   });
 }
 
