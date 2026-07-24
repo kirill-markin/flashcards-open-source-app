@@ -4,9 +4,21 @@ import type pg from "pg";
 import type { DatabaseExecutor, SqlValue, WorkspaceDatabaseScope } from "../../database";
 import { ChatRunRowNotFoundError } from "../errors";
 import type { ChatSessionRow } from "../store/repository";
+import {
+  assertActiveChatRunClaimWithExecutor,
+  InactiveChatRunClaimError,
+} from "./claimFence";
 import { finalizeInterruptedRunWithExecutor } from "./finalization";
-import { assertClaimedRunStillActive, requestChatRunCancellationWithExecutor } from "./lifecycleService";
-import type { ChatRunRow } from "./repository";
+import {
+  assertClaimedRunStillActive,
+  requestChatRunCancellationWithExecutor,
+} from "./lifecycleService";
+import {
+  claimChatRunWithExecutor,
+  createChatRunStatusUpdateFromRow,
+  updateClaimedChatRunStatusWithExecutor,
+  type ChatRunRow,
+} from "./repository";
 
 type RecordedQuery = Readonly<{
   text: string;
@@ -17,6 +29,8 @@ const scope: WorkspaceDatabaseScope = {
   userId: "user-1",
   workspaceId: "workspace-1",
 };
+const firstClaimToken = "2026-07-24 10:11:12.123456+00";
+const secondClaimToken = "2026-07-24 10:12:13.654321+00";
 
 function createQueryResult<Row extends pg.QueryResultRow>(rows: ReadonlyArray<Row>): pg.QueryResult<Row> {
   return {
@@ -45,7 +59,7 @@ function createRunRow(
     timezone: "Europe/Madrid",
     ui_locale: "es",
     turn_input: [],
-    worker_claimed_at: null,
+    worker_claimed_at: firstClaimToken,
     worker_heartbeat_at: null,
     cancel_requested_at: null,
     started_at: null,
@@ -77,6 +91,7 @@ test("assertClaimedRunStillActive accepts the active running owner", () => {
     assertClaimedRunStillActive(
       createRunRow(),
       createSessionRow(),
+      firstClaimToken,
       "complete",
     );
   });
@@ -89,6 +104,7 @@ test("assertClaimedRunStillActive rejects a session that no longer owns the run"
       createSessionRow({
         active_run_id: "run-2",
       }),
+      firstClaimToken,
       "complete",
     );
   }, ChatRunRowNotFoundError);
@@ -103,9 +119,218 @@ test("assertClaimedRunStillActive rejects non-running terminal state", () => {
       createSessionRow({
         status: "idle",
       }),
+      firstClaimToken,
       "fail",
     );
   }, ChatRunRowNotFoundError);
+});
+
+test("assertClaimedRunStillActive rejects a reclaimed run for the first claim token", () => {
+  assert.throws(() => {
+    assertClaimedRunStillActive(
+      createRunRow({
+        worker_claimed_at: secondClaimToken,
+      }),
+      createSessionRow(),
+      firstClaimToken,
+      "complete",
+    );
+  }, ChatRunRowNotFoundError);
+});
+
+test("claimChatRunWithExecutor returns the exact persisted worker claim token", async () => {
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("set_config('app.user_id'")) {
+        return createQueryResult<Row>([]);
+      }
+      if (text.includes("UPDATE ai.chat_runs")) {
+        assert.match(text, /worker_claimed_at = statement_timestamp\(\)/);
+        assert.deepEqual(params, ["run-1"]);
+        return createQueryResult<Row>([
+          createRunRow({
+            worker_claimed_at: firstClaimToken,
+            worker_heartbeat_at: firstClaimToken,
+          }) as unknown as Row,
+        ]);
+      }
+      throw new Error(`Unexpected query: ${text}`);
+    },
+  };
+
+  const claimedRun = await claimChatRunWithExecutor(executor, scope, "run-1");
+  assert.equal(claimedRun?.worker_claimed_at, firstClaimToken);
+});
+
+test("claimed heartbeat and terminal updates reject stale ownership in the update predicate", async () => {
+  const run = createRunRow();
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("set_config('app.user_id'")) {
+        return createQueryResult<Row>([]);
+      }
+      if (text.includes("UPDATE ai.chat_runs")) {
+        assert.match(text, /status = 'running'/);
+        assert.match(text, /worker_claimed_at = \$2::timestamptz/);
+        assert.doesNotMatch(
+          text.slice(text.indexOf("SET"), text.indexOf("WHERE")),
+          /worker_claimed_at/,
+        );
+        return createQueryResult<Row>(
+          params[1] === firstClaimToken
+            ? [createRunRow({
+              status: params[2] === "running" ? "running" : "completed",
+              worker_heartbeat_at: typeof params[3] === "string" ? params[3] : null,
+            }) as unknown as Row]
+            : [],
+        );
+      }
+      throw new Error(`Unexpected query: ${text}`);
+    },
+  };
+  const heartbeatAt = new Date("2026-07-24T10:13:14.000Z");
+  const heartbeatUpdate = createChatRunStatusUpdateFromRow(run, {
+    status: "running",
+    workerHeartbeatAt: heartbeatAt,
+    finishedAt: null,
+    lastErrorMessage: null,
+  });
+  const terminalUpdate = createChatRunStatusUpdateFromRow(run, {
+    status: "completed",
+    finishedAt: new Date("2026-07-24T10:14:15.000Z"),
+    lastErrorMessage: null,
+  });
+
+  const currentHeartbeat = await updateClaimedChatRunStatusWithExecutor(
+    executor,
+    scope,
+    firstClaimToken,
+    heartbeatUpdate,
+  );
+  const staleHeartbeat = await updateClaimedChatRunStatusWithExecutor(
+    executor,
+    scope,
+    secondClaimToken,
+    heartbeatUpdate,
+  );
+  const currentResult = await updateClaimedChatRunStatusWithExecutor(
+    executor,
+    scope,
+    firstClaimToken,
+    terminalUpdate,
+  );
+  const staleResult = await updateClaimedChatRunStatusWithExecutor(
+    executor,
+    scope,
+    secondClaimToken,
+    terminalUpdate,
+  );
+
+  assert.equal(currentHeartbeat?.worker_heartbeat_at, heartbeatAt.toISOString());
+  assert.equal(staleHeartbeat, null);
+  assert.equal(currentResult?.status, "completed");
+  assert.equal(staleResult, null);
+});
+
+test("assertActiveChatRunClaimWithExecutor locks run then session and accepts the active claim", async () => {
+  const lockOrder: Array<string> = [];
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+    ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("set_config('app.user_id'")) {
+        return createQueryResult<Row>([]);
+      }
+      if (text.includes("FROM ai.chat_runs") && text.includes("FOR UPDATE")) {
+        lockOrder.push("run");
+        return createQueryResult<Row>([createRunRow() as unknown as Row]);
+      }
+      if (text.includes("FROM ai.chat_sessions") && text.includes("FOR UPDATE")) {
+        lockOrder.push("session");
+        return createQueryResult<Row>([createSessionRow() as unknown as Row]);
+      }
+      throw new Error(`Unexpected query: ${text}`);
+    },
+  };
+
+  await assertActiveChatRunClaimWithExecutor(executor, {
+    ...scope,
+    runId: "run-1",
+    sessionId: "session-1",
+    claimToken: firstClaimToken,
+  });
+
+  assert.deepEqual(lockOrder, ["run", "session"]);
+});
+
+test("assertActiveChatRunClaimWithExecutor rejects every inactive claim state", async () => {
+  const cases: ReadonlyArray<Readonly<{
+    name: string;
+    run: ChatRunRow;
+    session: ChatSessionRow;
+  }>> = [
+    {
+      name: "claim token mismatch",
+      run: createRunRow({ worker_claimed_at: secondClaimToken }),
+      session: createSessionRow(),
+    },
+    {
+      name: "cancel requested",
+      run: createRunRow({ cancel_requested_at: "2026-07-24T10:12:00.000Z" }),
+      session: createSessionRow(),
+    },
+    {
+      name: "non-running run",
+      run: createRunRow({ status: "completed" }),
+      session: createSessionRow(),
+    },
+    {
+      name: "inactive session",
+      run: createRunRow(),
+      session: createSessionRow({ status: "idle" }),
+    },
+    {
+      name: "mismatched active run",
+      run: createRunRow(),
+      session: createSessionRow({ active_run_id: "run-2" }),
+    },
+  ];
+
+  for (const testCase of cases) {
+    const executor: DatabaseExecutor = {
+      async query<Row extends pg.QueryResultRow>(
+        text: string,
+      ): Promise<pg.QueryResult<Row>> {
+        if (text.includes("set_config('app.user_id'")) {
+          return createQueryResult<Row>([]);
+        }
+        if (text.includes("FROM ai.chat_runs") && text.includes("FOR UPDATE")) {
+          return createQueryResult<Row>([testCase.run as unknown as Row]);
+        }
+        if (text.includes("FROM ai.chat_sessions") && text.includes("FOR UPDATE")) {
+          return createQueryResult<Row>([testCase.session as unknown as Row]);
+        }
+        throw new Error(`Unexpected query: ${text}`);
+      },
+    };
+
+    await assert.rejects(
+      assertActiveChatRunClaimWithExecutor(executor, {
+        ...scope,
+        runId: "run-1",
+        sessionId: "session-1",
+        claimToken: firstClaimToken,
+      }),
+      InactiveChatRunClaimError,
+      testCase.name,
+    );
+  }
 });
 
 test("requestChatRunCancellationWithExecutor no-ops when the expected run is no longer active", async () => {

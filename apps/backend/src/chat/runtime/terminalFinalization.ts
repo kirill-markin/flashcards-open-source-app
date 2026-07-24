@@ -96,7 +96,7 @@ export async function persistCancelledChatRun(
     sessionId: input.params.sessionId,
     assistantItemId: input.params.assistantItemId,
     assistantContent,
-  });
+  }, input.params.claimToken);
   const lifecycleState = input.readLifecycleState();
   logTerminalStatePersisted(
     input.logContext,
@@ -135,7 +135,7 @@ export async function persistFailedChatRun(
     assistantContent,
     errorMessage: createPublicTerminalErrorMessage(input.error),
     sessionState: "idle",
-  });
+  }, input.params.claimToken);
   const lifecycleState = input.readLifecycleState();
   logTerminalStatePersisted(
     input.logContext,
@@ -176,7 +176,7 @@ export async function persistInterruptedChatRun(
     assistantOpenAIItems: input.assistantOpenAIItems,
     errorMessage: input.errorMessage,
     sessionState: "interrupted",
-  });
+  }, input.params.claimToken);
   const lifecycleState = input.readLifecycleState();
   logTerminalStatePersisted(
     input.logContext,
@@ -221,7 +221,7 @@ export async function persistCompletedChatRun(
     assistantContent,
     assistantOpenAIItems: input.assistantOpenAIItems,
     composerSuggestions,
-  });
+  }, input.params.claimToken);
   const lifecycleState = input.readLifecycleState();
   logTerminalStatePersisted(
     input.logContext,

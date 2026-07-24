@@ -271,6 +271,7 @@ test("ensureSystemWorkspaceReplicaInExecutor does not claim installations", asyn
     actorKey: "chat-session-1",
     platform: "web",
     appVersion: "1.2.3",
+    signal: null,
   });
 
   assert.equal(replicaId, buildSystemWorkspaceReplicaId("workspace-1", "ai_chat", "chat-session-1"));
@@ -279,6 +280,90 @@ test("ensureSystemWorkspaceReplicaInExecutor does not claim installations", asyn
   assert.ok(isWorkspaceAccessLifecycleLockQuery(recordedQueries[1]!.text));
   assert.ok(isWorkspaceAccessLockQuery(recordedQueries[2]!.text));
   assert.match(recordedQueries[3]!.text, /INSERT INTO sync\.workspace_replicas/);
+});
+
+test("ensureSystemWorkspaceReplicaInExecutor performs no queries when already aborted", async () => {
+  const abortController = new AbortController();
+  const abortError = new Error("Chat run ownership was lost.");
+  let queryCount = 0;
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(): Promise<pg.QueryResult<Row>> {
+      queryCount += 1;
+      throw new Error("Database query was not expected.");
+    },
+  };
+  abortController.abort(abortError);
+
+  await assert.rejects(
+    ensureSystemWorkspaceReplicaInExecutor(executor, {
+      workspaceId: "workspace-1",
+      userId: "user-b",
+      actorKind: "ai_chat",
+      actorKey: "web:chat",
+      platform: "web",
+      appVersion: "ai-chat:web:chat",
+      signal: abortController.signal,
+    }),
+    (error: unknown): boolean => error === abortError,
+  );
+
+  assert.equal(queryCount, 0);
+});
+
+test("ensureSystemWorkspaceReplicaInExecutor stops before replica writes after lookup abort", async () => {
+  const abortController = new AbortController();
+  const abortError = new Error("Chat run ownership was lost.");
+  const recordedQueries: Array<RecordedQuery> = [];
+  let replicaWriteCount = 0;
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
+    ): Promise<pg.QueryResult<Row>> {
+      recordedQueries.push({ text, params });
+
+      if (text.includes("set_config('app.user_id'")) {
+        return createQueryResult<Row>([]);
+      }
+
+      if (isWorkspaceAccessLifecycleLockQuery(text)) {
+        return createQueryResult<Row>([]);
+      }
+
+      if (isWorkspaceAccessLockQuery(text)) {
+        abortController.abort(abortError);
+        return createQueryResult<Row>([{
+          workspace_id: "workspace-1",
+        } as unknown as Row]);
+      }
+
+      if (
+        text.includes("INSERT INTO sync.workspace_replicas")
+        || text.includes("UPDATE sync.workspace_replicas")
+      ) {
+        replicaWriteCount += 1;
+        throw new Error("Workspace replica write was not expected.");
+      }
+
+      throw new Error(`Unexpected query: ${text}`);
+    },
+  };
+
+  await assert.rejects(
+    ensureSystemWorkspaceReplicaInExecutor(executor, {
+      workspaceId: "workspace-1",
+      userId: "user-b",
+      actorKind: "ai_chat",
+      actorKey: "web:chat",
+      platform: "web",
+      appVersion: "ai-chat:web:chat",
+      signal: abortController.signal,
+    }),
+    (error: unknown): boolean => error === abortError,
+  );
+
+  assert.equal(replicaWriteCount, 0);
+  assert.equal(recordedQueries.length, 3);
 });
 
 test("ensureSystemWorkspaceReplicaInExecutor accepts workspace_reset actors", async () => {
@@ -340,6 +425,7 @@ test("ensureSystemWorkspaceReplicaInExecutor accepts workspace_reset actors", as
     actorKey: "reset-progress",
     platform: "system",
     appVersion: null,
+    signal: null,
   });
 
   assert.equal(replicaId, buildSystemWorkspaceReplicaId("workspace-1", "workspace_reset", "reset-progress"));
@@ -375,6 +461,7 @@ test("ensureSystemWorkspaceReplicaInExecutor raises workspace not found before r
       actorKey: "chat-session-1",
       platform: "web",
       appVersion: "1.2.3",
+      signal: null,
     }),
     (error: unknown): boolean => {
       assert.ok(error instanceof HttpError);
@@ -444,6 +531,7 @@ test("ensureBootstrapSystemWorkspaceReplicaInExecutor uses provided bootstrap re
     actorKey: "workspace-seed",
     platform: "system",
     appVersion: "server-bootstrap",
+    signal: null,
   }, replicaId);
 
   assert.equal(returnedReplicaId, replicaId);

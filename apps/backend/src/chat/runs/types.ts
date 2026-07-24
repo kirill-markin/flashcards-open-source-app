@@ -20,6 +20,8 @@ export type ChatRunStatus =
   | "failed"
   | "interrupted";
 
+export type ChatRunClaimToken = string;
+
 export type PreparedChatRun = Readonly<{
   sessionId: string;
   runId: string;
@@ -45,6 +47,7 @@ export type ChatRunDiagnostics = Readonly<{
 
 export type ClaimedChatRun = Readonly<{
   runId: string;
+  claimToken: ChatRunClaimToken;
   sessionId: string;
   requestId: string;
   userId: string;

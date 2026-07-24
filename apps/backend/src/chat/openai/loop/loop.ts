@@ -43,6 +43,7 @@ import {
   type ChatRuntimeModelId,
   type ChatRuntimeReasoningEffort,
 } from "../../config";
+import type { ChatRunClaimToken } from "../../runs";
 
 export const CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS = 30;
 const MAX_REASONING_ITEMS = 8;
@@ -76,8 +77,10 @@ type OpenAILoopDependencies = Readonly<{
   getObservedOpenAIClient: typeof getObservedOpenAIClient;
   runOneToolCall: (params: Readonly<{
     item: OpenAI.Responses.ResponseFunctionToolCall;
+    claimToken: ChatRunClaimToken;
     userId: string;
     workspaceId: string;
+    signal: AbortSignal | null;
     rootObservation: LangfuseObservation | null;
   }>) => Promise<ExecutedChatToolCall>;
 }>;
@@ -127,6 +130,7 @@ type BuildOpenAIResponsesRequestParams = Readonly<{
 
 export type StartOpenAILoopParams = Readonly<{
   requestId: string;
+  claimToken: ChatRunClaimToken;
   userId: string;
   workspaceId: string;
   sessionId: string;
@@ -277,8 +281,10 @@ async function getFinalResponseFromStream(
 async function runOneToolCall(
   params: Readonly<{
     item: OpenAI.Responses.ResponseFunctionToolCall;
+    claimToken: ChatRunClaimToken;
     userId: string;
     workspaceId: string;
+    signal: AbortSignal | null;
     rootObservation: LangfuseObservation | null;
   }>,
 ): Promise<ExecutedChatToolCall> {
@@ -875,8 +881,10 @@ async function runLoopWithDeps(
       try {
         const output = await dependencies.runOneToolCall({
           item: functionCall,
+          claimToken: params.claimToken,
           userId: params.userId,
           workspaceId: params.workspaceId,
+          signal: params.signal ?? null,
           rootObservation: params.rootObservation,
         });
         const update = applyToolCallOutput(

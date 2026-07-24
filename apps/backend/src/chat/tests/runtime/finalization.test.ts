@@ -69,19 +69,92 @@ test("runPersistedChatSessionWithDeps exits without failing when the claimed run
   assert.equal(findLog(logs, "chat_worker_terminal_state_persisted"), undefined);
 });
 
+test("runPersistedChatSessionWithDeps maps stale failed, cancelled, and interrupted persistence to ownership loss", async () => {
+  const staleTerminalPersistence = async (): Promise<never> => {
+    throw new ChatRunRowNotFoundError("terminal");
+  };
+  const results = await Promise.all([
+    runPersistedChatSessionWithDeps(createParams(), createDependencies({
+      startOpenAILoop: async () => { throw new Error("Provider failed"); },
+      persistAssistantTerminalError: staleTerminalPersistence,
+    })),
+    runPersistedChatSessionWithDeps(createParams(), createDependencies({
+      touchChatRunHeartbeat: async () => ({ cancellationRequested: true, ownershipLost: false }),
+      persistAssistantCancelled: staleTerminalPersistence,
+    })),
+    runPersistedChatSessionWithDeps(
+      { ...createParams(), getRemainingTimeInMillis: (): number => 0 },
+      createDependencies({ persistAssistantTerminalError: staleTerminalPersistence }),
+    ),
+  ]);
+  assert.deepEqual(results.map((result) => result.outcome), [
+    "ownership_lost",
+    "ownership_lost",
+    "ownership_lost",
+  ]);
+});
+
+test("runPersistedChatSessionWithDeps preserves every terminal persistence infrastructure error", async () => {
+  const assertInfrastructureErrorPropagates = async (
+    operation: string,
+    params: ReturnType<typeof createParams>,
+    overrides: Parameters<typeof createDependencies>[0],
+  ): Promise<void> => {
+    const databaseError = new Error(`Database unavailable during ${operation}`);
+    let terminalPersistCount = 0;
+    const persistTerminal = async (): Promise<never> => {
+      terminalPersistCount += 1;
+      throw databaseError;
+    };
+    const execution = runPersistedChatSessionWithDeps(params, createDependencies({
+      ...overrides,
+      completeChatRun: persistTerminal,
+      persistAssistantCancelled: persistTerminal,
+      persistAssistantTerminalError: persistTerminal,
+    }));
+
+    await assert.rejects(execution, (error: unknown): boolean => error === databaseError);
+    assert.equal(terminalPersistCount, 1);
+  };
+
+  await assertInfrastructureErrorPropagates("completion", createParams(), {});
+  await assertInfrastructureErrorPropagates("failure", createParams(), {
+    startOpenAILoop: async (
+      _params: StartOpenAILoopParams,
+      onEvent: OpenAILoopEventSink,
+    ): Promise<OpenAILoopCompletion> => {
+      await onEvent({ type: "error", message: "Provider failed" });
+      return { openaiItems: [], terminationReason: "completed" };
+    },
+  });
+  await assertInfrastructureErrorPropagates("cancellation", createParams(), {
+    touchChatRunHeartbeat: async () => ({
+      cancellationRequested: true,
+      ownershipLost: false,
+    }),
+  });
+  await assertInfrastructureErrorPropagates(
+    "interruption",
+    { ...createParams(), getRemainingTimeInMillis: (): number => 0 },
+    {},
+  );
+});
+
 test("runPersistedChatSessionWithDeps completes a successful run and persists completion once", async () => {
   let completedPersistCount = 0;
   let composerSuggestionUserId: string | null = null;
   let composerSuggestionUiLocale: string | null | undefined = undefined;
+  const observedClaimTokens: Array<string> = [];
 
   const logs = await withCapturedLogs(async () => {
     const result = await runPersistedChatSessionWithDeps(
       createParams(),
       createDependencies({
         startOpenAILoop: async (
-          _params: StartOpenAILoopParams,
+          params: StartOpenAILoopParams,
           onEvent: OpenAILoopEventSink,
         ): Promise<OpenAILoopCompletion> => {
+          observedClaimTokens.push(params.claimToken);
           await onEvent({
             type: "delta",
             text: "done",
@@ -106,8 +179,21 @@ test("runPersistedChatSessionWithDeps completes a successful run and persists co
           composerSuggestionUiLocale = uiLocale;
           return [];
         },
-        completeChatRun: async () => {
+        completeChatRun: async (_userId, _workspaceId, _params, claimToken) => {
           completedPersistCount += 1;
+          observedClaimTokens.push(claimToken);
+        },
+        touchChatRunHeartbeat: async (
+          _userId,
+          _workspaceId,
+          _runId,
+          claimToken,
+        ) => {
+          observedClaimTokens.push(claimToken);
+          return {
+            cancellationRequested: false,
+            ownershipLost: false,
+          };
         },
       }),
     );
@@ -123,6 +209,7 @@ test("runPersistedChatSessionWithDeps completes a successful run and persists co
   assert.equal(completedPersistCount, 1);
   assert.equal(composerSuggestionUserId, "user-1");
   assert.equal(composerSuggestionUiLocale, "es-MX");
+  assert.deepEqual(observedClaimTokens, Array.from({ length: 3 }, () => createParams().claimToken));
   assert.equal(findLog(logs, "chat_worker_terminal_state_persisted")?.runStatus, "completed");
 });
 

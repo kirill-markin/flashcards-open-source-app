@@ -176,6 +176,7 @@ export async function createWorkspaceInExecutorWithObservationScope(
       actorKey: "workspace-seed",
       platform: "system",
       appVersion: "server-bootstrap",
+      signal: null,
     }, bootstrapReplicaId);
 
     stage = "load_scheduler_settings";

@@ -453,6 +453,7 @@ async function resetWorkspaceProgressInExecutor(
       actorKey: "reset-progress",
       platform: "system",
       appVersion: null,
+      signal: null,
     });
 
     for (const resettableCard of resettableCards) {
