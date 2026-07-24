@@ -7,10 +7,14 @@ type MarkdownUrlRewrite = Readonly<{
 }>;
 
 type MarkdownLinkDestination = Readonly<{
+  labelStartIndex: number;
+  labelEndIndex: number;
   startIndex: number;
   endIndex: number;
   linkEndIndex: number;
   destination: string;
+  hasDestination: boolean;
+  isImage: boolean;
 }>;
 
 type MarkdownSourceRange = Readonly<{ startIndex: number; endIndex: number }>;
@@ -26,7 +30,7 @@ type MarkdownInlineItemSink<Item extends MarkdownInlineItem> = Readonly<{
 }>;
 
 type MarkdownInlineScan = readonly [startIndex: number, endIndex: number];
-type MarkdownInlineScanKind = "whitespace" | "bare" | "angled" | "\"" | "'";
+type MarkdownInlineScanKind = "whitespace" | "bare" | "angled" | "\"" | "'" | "(";
 
 type MarkdownInlineState = {
   markdown: string;
@@ -46,15 +50,18 @@ type MarkdownLabelStack = {
 type MarkdownCodeStop = Readonly<{ markerLength: number; closingEndIndex: number }>;
 
 type MarkdownLinkDestinationRange = Readonly<{
+  labelStartIndex: number;
+  labelEndIndex: number;
   startIndex: number;
   endIndex: number;
   linkEndIndex: number;
+  hasDestination: boolean;
+  isImage: boolean;
 }>;
 
 type MarkdownCodeFrame = Readonly<{
   openerStartIndex: number;
   markerLength: number;
-  parentLabelLineEndIndex: number | null;
   parentLabelDepthLineEndIndex: number | null;
   parentLabelDepth: number;
 }>;
@@ -132,6 +139,7 @@ const enum MarkdownBlockKind {
 
 const enum MarkdownLabelFlag {
   Image = 1,
+  ContainsActiveLink = 2,
 }
 
 const enum MarkdownOpaqueDelimiter {
@@ -174,6 +182,7 @@ const markdownThematicBreakStart: MarkdownBlockStart = { kind: "thematic-break" 
 const markdownAtxHeadingStart: MarkdownBlockStart = { kind: "atx-heading" };
 const markdownLineChunkCapacity = 8_192;
 const markdownMaximumInlineLabelDepth = 1_000;
+const markdownMaximumLinkDestinationParenthesisDepth = 32;
 
 class MarkdownComplexityError extends Error {
   readonly sourceIndex: number;
@@ -1237,15 +1246,15 @@ function skipMarkdownLinkWhitespace(
   inspection: MarkdownLinkInspection,
   endIndex: number,
   codeFrameIndexByMarkerLength: ReadonlyMap<number, number>,
-): void {
+): boolean {
+  const startIndex = inspection.cursorIndex;
   const cachedEndIndex = getCachedScanEndIndex(state, "whitespace", inspection.cursorIndex);
   if (cachedEndIndex !== null) {
     inspection.cursorIndex = cachedEndIndex;
     inspection.precedingBackslashCount = 0;
-    return;
+    return inspection.cursorIndex > startIndex;
   }
 
-  const startIndex = inspection.cursorIndex;
   while (
     inspection.cursorIndex < endIndex
     && (
@@ -1256,6 +1265,7 @@ function skipMarkdownLinkWhitespace(
     consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
   }
   state.scans.whitespace = [startIndex, inspection.cursorIndex];
+  return inspection.cursorIndex > startIndex;
 }
 
 function findActiveCodeStopInRange(
@@ -1304,9 +1314,215 @@ function createFailedMarkdownLinkAttempt(
   };
 }
 
+function isMarkdownLinkDestinationControl(character: string | undefined): boolean {
+  if (character === undefined) return false;
+  const characterCode = character.charCodeAt(0);
+  return characterCode <= 0x1f || characterCode === 0x7f;
+}
+
+function scanMarkdownAngleDestinationEnd(
+  state: MarkdownInlineState,
+  inspection: MarkdownLinkInspection,
+  endIndex: number,
+  codeFrameIndexByMarkerLength: ReadonlyMap<number, number>,
+): number | null {
+  const markdown = state.markdown;
+  consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
+  const destinationStartIndex = inspection.cursorIndex;
+  const cachedEndIndex = getCachedScanEndIndex(state, "angled", destinationStartIndex);
+  if (cachedEndIndex !== null) {
+    advanceMarkdownLinkInspectionToCachedEnd(
+      state,
+      inspection,
+      cachedEndIndex,
+      endIndex,
+      codeFrameIndexByMarkerLength,
+    );
+    if (inspection.cursorIndex >= endIndex || markdown[inspection.cursorIndex] !== ">") {
+      return null;
+    }
+    const destinationEndIndex = inspection.cursorIndex;
+    consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
+    return destinationEndIndex;
+  }
+
+  let canCacheScan = true;
+  while (inspection.cursorIndex < endIndex) {
+    const tokenStartIndex = inspection.cursorIndex;
+    const token = consumeMarkdownLinkToken(
+      state,
+      inspection,
+      endIndex,
+      codeFrameIndexByMarkerLength,
+    );
+    if (token.character === "\\") {
+      canCacheScan = false;
+      continue;
+    }
+    if (token.character === ">" && !token.isEscaped) {
+      if (canCacheScan) {
+        state.scans.angled = [destinationStartIndex, tokenStartIndex];
+      }
+      return tokenStartIndex;
+    }
+    if (token.character === "<" && !token.isEscaped) {
+      return null;
+    }
+  }
+
+  if (canCacheScan) {
+    state.scans.angled = [destinationStartIndex, inspection.cursorIndex];
+  }
+  return null;
+}
+
+function scanMarkdownBareDestinationEnd(
+  state: MarkdownInlineState,
+  inspection: MarkdownLinkInspection,
+  endIndex: number,
+  codeFrameIndexByMarkerLength: ReadonlyMap<number, number>,
+): number | null {
+  const destinationStartIndex = inspection.cursorIndex;
+  const cachedEndIndex = getCachedScanEndIndex(state, "bare", destinationStartIndex);
+  if (cachedEndIndex !== null) {
+    advanceMarkdownLinkInspectionToCachedEnd(
+      state,
+      inspection,
+      cachedEndIndex,
+      endIndex,
+      codeFrameIndexByMarkerLength,
+    );
+    return inspection.cursorIndex < endIndex ? inspection.cursorIndex : null;
+  }
+
+  let parenthesisDepth = 0;
+  let canCacheScan = true;
+  while (inspection.cursorIndex < endIndex) {
+    const character = state.markdown[inspection.cursorIndex];
+    if (character === " " || character === "\t") {
+      break;
+    }
+    if (isMarkdownLinkDestinationControl(character)) {
+      return null;
+    }
+
+    const tokenStartIndex = inspection.cursorIndex;
+    const token = consumeMarkdownLinkToken(
+      state,
+      inspection,
+      endIndex,
+      codeFrameIndexByMarkerLength,
+    );
+    if (token.character === "\\") {
+      canCacheScan = false;
+      continue;
+    }
+    if (token.isEscaped) {
+      continue;
+    }
+    if (token.character === "(") {
+      canCacheScan = false;
+      parenthesisDepth += 1;
+      if (parenthesisDepth > markdownMaximumLinkDestinationParenthesisDepth) {
+        return null;
+      }
+      continue;
+    }
+    if (token.character !== ")") {
+      continue;
+    }
+    if (parenthesisDepth === 0) {
+      inspection.cursorIndex = tokenStartIndex;
+      inspection.precedingBackslashCount = 0;
+      break;
+    }
+    canCacheScan = false;
+    parenthesisDepth -= 1;
+  }
+
+  if (
+    inspection.cursorIndex >= endIndex
+    || inspection.cursorIndex === destinationStartIndex
+  ) {
+    return null;
+  }
+  if (canCacheScan) {
+    state.scans.bare = [destinationStartIndex, inspection.cursorIndex];
+  }
+  return inspection.cursorIndex;
+}
+
+function scanMarkdownLinkTitle(
+  state: MarkdownInlineState,
+  inspection: MarkdownLinkInspection,
+  endIndex: number,
+  titleDelimiter: "\"" | "'" | "(",
+  codeFrameIndexByMarkerLength: ReadonlyMap<number, number>,
+): boolean {
+  consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
+  const titleStartIndex = inspection.cursorIndex;
+  const titleClosingDelimiter = titleDelimiter === "(" ? ")" : titleDelimiter;
+  const cachedEndIndex = getCachedScanEndIndex(state, titleDelimiter, titleStartIndex);
+  if (cachedEndIndex !== null) {
+    advanceMarkdownLinkInspectionToCachedEnd(
+      state,
+      inspection,
+      cachedEndIndex,
+      endIndex,
+      codeFrameIndexByMarkerLength,
+    );
+    if (
+      inspection.cursorIndex >= endIndex
+      || state.markdown[inspection.cursorIndex] !== titleClosingDelimiter
+    ) {
+      return false;
+    }
+    consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
+    return true;
+  }
+
+  let canCacheScan = true;
+  while (inspection.cursorIndex < endIndex) {
+    const tokenStartIndex = inspection.cursorIndex;
+    const token = consumeMarkdownLinkToken(
+      state,
+      inspection,
+      endIndex,
+      codeFrameIndexByMarkerLength,
+    );
+    if (token.character === "\\") {
+      canCacheScan = false;
+      continue;
+    }
+    if (
+      titleDelimiter === "("
+      && token.character === "("
+      && !token.isEscaped
+    ) {
+      return false;
+    }
+    if (
+      token.character === titleClosingDelimiter
+      && !token.isEscaped
+    ) {
+      if (canCacheScan) {
+        state.scans[titleDelimiter] = [titleStartIndex, tokenStartIndex];
+      }
+      return true;
+    }
+  }
+
+  if (canCacheScan) {
+    state.scans[titleDelimiter] = [titleStartIndex, inspection.cursorIndex];
+  }
+  return false;
+}
+
 function parseMarkdownLinkDestinationAfterLabel(
   state: MarkdownInlineState,
+  labelStartIndex: number,
   labelCloseIndex: number,
+  isImage: boolean,
   endIndex: number,
   codeFrameIndexByMarkerLength: ReadonlyMap<number, number>,
 ): MarkdownLinkAttempt {
@@ -1327,121 +1543,76 @@ function parseMarkdownLinkDestinationAfterLabel(
 
   let destinationStartIndex = inspection.cursorIndex;
   let destinationEndIndex: number;
-  if (markdown[inspection.cursorIndex] === "<") {
-    consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
-    destinationStartIndex = inspection.cursorIndex;
-    const cachedEndIndex = getCachedScanEndIndex(state, "angled", destinationStartIndex);
-    if (cachedEndIndex === null) {
-      while (
-        inspection.cursorIndex < endIndex
-        && markdown[inspection.cursorIndex] !== ">"
-      ) {
-        consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
-      }
-      state.scans.angled = [destinationStartIndex, inspection.cursorIndex];
-    } else {
-      advanceMarkdownLinkInspectionToCachedEnd(
-        state,
-        inspection,
-        cachedEndIndex,
-        endIndex,
-        codeFrameIndexByMarkerLength,
-      );
-    }
-    if (inspection.cursorIndex >= endIndex || markdown[inspection.cursorIndex] !== ">") {
+  let hasDestination = true;
+  if (markdown[inspection.cursorIndex] === ")") {
+    hasDestination = false;
+    destinationEndIndex = destinationStartIndex;
+  } else if (markdown[inspection.cursorIndex] === "<") {
+    destinationStartIndex += 1;
+    const scannedEndIndex = scanMarkdownAngleDestinationEnd(
+      state,
+      inspection,
+      endIndex,
+      codeFrameIndexByMarkerLength,
+    );
+    if (scannedEndIndex === null) {
       return createFailedMarkdownLinkAttempt(inspection);
     }
-    destinationEndIndex = inspection.cursorIndex;
+    destinationEndIndex = scannedEndIndex;
+    hasDestination = destinationStartIndex < destinationEndIndex;
+  } else {
+    const scannedEndIndex = scanMarkdownBareDestinationEnd(
+      state,
+      inspection,
+      endIndex,
+      codeFrameIndexByMarkerLength,
+    );
+    if (scannedEndIndex === null) {
+      return createFailedMarkdownLinkAttempt(inspection);
+    }
+    destinationEndIndex = scannedEndIndex;
+  }
+
+  if (!hasDestination && markdown[inspection.cursorIndex] === ")") {
     consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
   } else {
-    const cachedEndIndex = getCachedScanEndIndex(state, "bare", destinationStartIndex);
-    if (cachedEndIndex === null) {
-      while (inspection.cursorIndex < endIndex) {
-        const character = markdown[inspection.cursorIndex];
-        if (
-          character === ")"
-          || character === " "
-          || character === "\t"
-          || character === "\n"
-        ) {
-          break;
+    const hasTitleSeparator = skipMarkdownLinkWhitespace(
+      state,
+      inspection,
+      endIndex,
+      codeFrameIndexByMarkerLength,
+    );
+    if (markdown[inspection.cursorIndex] !== ")") {
+      const titleDelimiter = markdown[inspection.cursorIndex];
+      if (
+        !hasTitleSeparator
+        || (titleDelimiter !== "\"" && titleDelimiter !== "'" && titleDelimiter !== "(")
+      ) {
+        if (inspection.cursorIndex < endIndex) {
+          consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
         }
+        return createFailedMarkdownLinkAttempt(inspection);
+      }
+      if (!scanMarkdownLinkTitle(
+        state,
+        inspection,
+        endIndex,
+        titleDelimiter,
+        codeFrameIndexByMarkerLength,
+      )) {
+        return createFailedMarkdownLinkAttempt(inspection);
+      }
+      skipMarkdownLinkWhitespace(state, inspection, endIndex, codeFrameIndexByMarkerLength);
+    }
+
+    if (inspection.cursorIndex >= endIndex || markdown[inspection.cursorIndex] !== ")") {
+      if (inspection.cursorIndex < endIndex) {
         consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
       }
-      state.scans.bare = [destinationStartIndex, inspection.cursorIndex];
-    } else {
-      advanceMarkdownLinkInspectionToCachedEnd(
-        state,
-        inspection,
-        cachedEndIndex,
-        endIndex,
-        codeFrameIndexByMarkerLength,
-      );
-    }
-    destinationEndIndex = inspection.cursorIndex;
-    if (destinationEndIndex >= endIndex) {
       return createFailedMarkdownLinkAttempt(inspection);
     }
-  }
-
-  if (destinationStartIndex === destinationEndIndex) {
-    if (inspection.cursorIndex < endIndex) {
-      consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
-    }
-    return createFailedMarkdownLinkAttempt(inspection);
-  }
-
-  skipMarkdownLinkWhitespace(state, inspection, endIndex, codeFrameIndexByMarkerLength);
-  const titleQuote = markdown[inspection.cursorIndex];
-  if (titleQuote === "\"" || titleQuote === "'") {
     consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
-    const titleStartIndex = inspection.cursorIndex;
-    const cachedEndIndex = getCachedScanEndIndex(state, titleQuote, titleStartIndex);
-    if (cachedEndIndex === null) {
-      let closingQuoteIndex: number | null = null;
-      while (inspection.cursorIndex < endIndex) {
-        const tokenStartIndex = inspection.cursorIndex;
-        const token = consumeMarkdownLinkToken(
-          state,
-          inspection,
-          endIndex,
-          codeFrameIndexByMarkerLength,
-        );
-        if (token.character === titleQuote && !token.isEscaped) {
-          closingQuoteIndex = tokenStartIndex;
-          break;
-        }
-      }
-      state.scans[titleQuote] = [
-        titleStartIndex,
-        closingQuoteIndex ?? inspection.cursorIndex,
-      ];
-      if (closingQuoteIndex === null) {
-        return createFailedMarkdownLinkAttempt(inspection);
-      }
-    } else {
-      advanceMarkdownLinkInspectionToCachedEnd(
-        state,
-        inspection,
-        cachedEndIndex,
-        endIndex,
-        codeFrameIndexByMarkerLength,
-      );
-      if (inspection.cursorIndex >= endIndex || markdown[inspection.cursorIndex] !== titleQuote) {
-        return createFailedMarkdownLinkAttempt(inspection);
-      }
-      consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
-    }
-    skipMarkdownLinkWhitespace(state, inspection, endIndex, codeFrameIndexByMarkerLength);
   }
-
-  if (inspection.cursorIndex >= endIndex || markdown[inspection.cursorIndex] !== ")") {
-    if (inspection.cursorIndex < endIndex) {
-      consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
-    }
-    return createFailedMarkdownLinkAttempt(inspection);
-  }
-  consumeMarkdownLinkToken(state, inspection, endIndex, codeFrameIndexByMarkerLength);
 
   const activeCodeStop = inspection.skippedSource
     ? findActiveCodeStopInRange(
@@ -1454,9 +1625,13 @@ function parseMarkdownLinkDestinationAfterLabel(
   return {
     kind: "destination",
     destination: {
+      labelStartIndex,
+      labelEndIndex: labelCloseIndex + 1,
       startIndex: destinationStartIndex,
       endIndex: destinationEndIndex,
       linkEndIndex: inspection.cursorIndex,
+      hasDestination,
+      isImage,
     },
     activeCodeStop,
   };
@@ -1855,9 +2030,12 @@ function clearMarkdownLabelStack(stack: MarkdownLabelStack): void {
   stack.depth = 0;
 }
 
-function popMarkdownLabelFrame(stack: MarkdownLabelStack): void {
-  if (stack.depth > 0) {
-    stack.depth -= 1;
+function markMarkdownLabelStackWithActiveLink(stack: MarkdownLabelStack): void {
+  for (let frameIndex = stack.depth - 1; frameIndex >= 0; frameIndex -= 1) {
+    stack.flags[frameIndex] |= MarkdownLabelFlag.ContainsActiveLink;
+    if ((stack.flags[frameIndex] & MarkdownLabelFlag.Image) !== 0) {
+      return;
+    }
   }
 }
 
@@ -1878,21 +2056,17 @@ function* scanMarkdownInlineItems<Item extends MarkdownInlineItem>(
   markdown: string,
   range: MarkdownSourceRange,
   sink: MarkdownInlineItemSink<Item>,
-  initialLabelLineEndIndex: number | null,
-  initialLabelDepth: number,
   unmatchedCodeOpenerIndexes: ReadonlySet<number>,
+  minimumYieldStartIndex: number,
 ): Generator<Item, ReadonlyArray<MarkdownCodeFrame>, void> {
   const state = createMarkdownInlineState(markdown, range);
   const codeFrames: Array<MarkdownCodeFrame> = [];
   const codeFrameIndexByMarkerLength = new Map<number, number>();
   const labelStack = createMarkdownLabelStack();
-  labelStack.depth = initialLabelDepth;
-  let labelLineEndIndex = initialLabelLineEndIndex;
   let precedingBackslashCount = 0;
 
   while (state.cursorIndex < range.endIndex) {
     if (state.cursorIndex >= state.lineEndIndex) {
-      labelLineEndIndex = null;
       clearMarkdownLabelStack(labelStack);
     }
 
@@ -1923,7 +2097,7 @@ function* scanMarkdownInlineItems<Item extends MarkdownInlineItem>(
       if (unmatchedCodeOpenerIndexes.has(state.cursorIndex)) {
         if (codeFrames.length === 0) {
           const codeItem = sink.selectCodeRange(state.cursorIndex, markerEndIndex);
-          if (codeItem !== null) {
+          if (codeItem !== null && codeItem.startIndex >= minimumYieldStartIndex) {
             yield codeItem;
           }
         }
@@ -1935,7 +2109,6 @@ function* scanMarkdownInlineItems<Item extends MarkdownInlineItem>(
         codeFrames.push({
           openerStartIndex: state.cursorIndex,
           markerLength,
-          parentLabelLineEndIndex: labelLineEndIndex,
           parentLabelDepthLineEndIndex: labelStack.depth === 0
             ? null
             : state.lineEndIndex,
@@ -1961,10 +2134,8 @@ function* scanMarkdownInlineItems<Item extends MarkdownInlineItem>(
         closingFrame.parentLabelDepthLineEndIndex !== null
         && markerEndIndex > closingFrame.parentLabelDepthLineEndIndex;
       if (crossedParentLabelLine) {
-        labelLineEndIndex = null;
         clearMarkdownLabelStack(labelStack);
       } else {
-        labelLineEndIndex = closingFrame.parentLabelLineEndIndex;
         labelStack.depth = closingFrame.parentLabelDepth;
       }
       if (codeFrames.length === 0) {
@@ -1972,7 +2143,7 @@ function* scanMarkdownInlineItems<Item extends MarkdownInlineItem>(
           closingFrame.openerStartIndex,
           markerEndIndex,
         );
-        if (codeItem !== null) {
+        if (codeItem !== null && codeItem.startIndex >= minimumYieldStartIndex) {
           yield codeItem;
         }
       }
@@ -1980,15 +2151,30 @@ function* scanMarkdownInlineItems<Item extends MarkdownInlineItem>(
       continue;
     }
 
-    if (character === "]" && !isEscaped && codeFrames.length === 0) {
-      popMarkdownLabelFrame(labelStack);
-    }
+    if (
+      character === "]"
+      && !isEscaped
+      && codeFrames.length === 0
+      && labelStack.depth > 0
+    ) {
+      const frameIndex = labelStack.depth - 1;
+      const labelStartIndex = labelStack.startIndexes[frameIndex];
+      const labelFlags = labelStack.flags[frameIndex];
+      labelStack.depth = frameIndex;
+      const isImage = (labelFlags & MarkdownLabelFlag.Image) !== 0;
+      const containsActiveLink =
+        (labelFlags & MarkdownLabelFlag.ContainsActiveLink) !== 0;
+      if (!isImage && containsActiveLink) {
+        advanceMarkdownInlineCursor(state, state.cursorIndex + 1);
+        continue;
+      }
 
-    if (labelLineEndIndex !== null && character === "]" && !isEscaped) {
       const attempt = parseMarkdownLinkDestinationAfterLabel(
         state,
+        labelStartIndex,
         state.cursorIndex,
-        labelLineEndIndex,
+        isImage,
+        state.lineEndIndex,
         codeFrameIndexByMarkerLength,
       );
       if (attempt.kind === "destination") {
@@ -2000,17 +2186,25 @@ function* scanMarkdownInlineItems<Item extends MarkdownInlineItem>(
           continue;
         }
 
+        if (!isImage) {
+          markMarkdownLabelStackWithActiveLink(labelStack);
+        }
         if (codeFrames.length === 0) {
           const destinationItem = sink.selectDestination(markdown, attempt.destination);
-          if (destinationItem !== null) {
+          if (
+            destinationItem !== null
+            && destinationItem.startIndex >= minimumYieldStartIndex
+          ) {
             yield destinationItem;
           }
         }
         advanceMarkdownInlineCursor(state, attempt.destination.linkEndIndex);
       } else {
+        if (isImage && containsActiveLink) {
+          markMarkdownLabelStackWithActiveLink(labelStack);
+        }
         advanceMarkdownInlineCursor(state, attempt.resumeIndex);
       }
-      labelLineEndIndex = null;
       continue;
     }
 
@@ -2023,11 +2217,10 @@ function* scanMarkdownInlineItems<Item extends MarkdownInlineItem>(
       if (codeFrames.length === 0) {
         pushMarkdownLabelFrame(
           labelStack,
-          state.cursorIndex,
+          state.cursorIndex + (isImageMarker ? 1 : 0),
           isImageMarker,
         );
       }
-      labelLineEndIndex ??= state.lineEndIndex;
       advanceMarkdownInlineCursor(
         state,
         state.cursorIndex + (isImageMarker ? 2 : 1),
@@ -2050,9 +2243,8 @@ function* iterateMarkdownInlineItems<Item extends MarkdownInlineItem>(
     markdown,
     range,
     sink,
-    null,
-    0,
     new Set<number>(),
+    range.startIndex,
   );
   const firstUnresolvedFrame = unresolvedFrames[0];
   if (firstUnresolvedFrame === undefined) {
@@ -2064,14 +2256,10 @@ function* iterateMarkdownInlineItems<Item extends MarkdownInlineItem>(
   );
   const replayFrames = yield* scanMarkdownInlineItems(
     markdown,
-    {
-      startIndex: firstUnresolvedFrame.openerStartIndex,
-      endIndex: range.endIndex,
-    },
+    range,
     sink,
-    firstUnresolvedFrame.parentLabelLineEndIndex,
-    firstUnresolvedFrame.parentLabelDepth,
     unmatchedCodeOpenerIndexes,
+    firstUnresolvedFrame.openerStartIndex,
   );
   if (replayFrames.length !== 0) {
     const replayFrame = replayFrames[0];
@@ -2081,7 +2269,7 @@ function* iterateMarkdownInlineItems<Item extends MarkdownInlineItem>(
   }
 }
 
-function* iterateMarkdownLinkDestinations(
+function* iterateMarkdownActiveDestinations(
   markdown: string,
 ): IterableIterator<MarkdownLinkDestination> {
   for (const proseRange of scanMarkdownBlocks(markdown).proseRanges) {
@@ -2180,7 +2368,10 @@ function rewriteMarkdownUrlsUnchecked(
 ): string {
   const rewrites: Array<MarkdownUrlRewrite> = [];
 
-  for (const linkDestination of iterateMarkdownLinkDestinations(markdown)) {
+  for (const linkDestination of iterateMarkdownActiveDestinations(markdown)) {
+    if (!linkDestination.hasDestination) {
+      continue;
+    }
     const replacementUrl = buildRewrite(linkDestination.destination);
     if (replacementUrl === null) {
       continue;
@@ -2336,7 +2527,10 @@ function extractMarkdownFcAssetIdsUnchecked(markdown: string): ReadonlyArray<str
   const assetIds: Array<string> = [];
   const seenAssetIds = new Set<string>();
 
-  for (const linkDestination of iterateMarkdownLinkDestinations(markdown)) {
+  for (const linkDestination of iterateMarkdownActiveDestinations(markdown)) {
+    if (!linkDestination.hasDestination) {
+      continue;
+    }
     const assetId = matchFcAssetId(linkDestination.destination);
     if (assetId === null || seenAssetIds.has(assetId)) {
       continue;
@@ -2353,9 +2547,36 @@ export function extractMarkdownFcAssetIds(markdown: string): ReadonlyArray<strin
   return runMarkdownHelper(() => extractMarkdownFcAssetIdsUnchecked(markdown));
 }
 
+function extractMarkdownImageFcAssetIdsUnchecked(markdown: string): ReadonlyArray<string> {
+  const assetIds: Array<string> = [];
+  const seenAssetIds = new Set<string>();
+
+  for (const destination of iterateMarkdownActiveDestinations(markdown)) {
+    if (!destination.hasDestination || !destination.isImage) {
+      continue;
+    }
+    const assetId = matchFcAssetId(destination.destination);
+    if (assetId === null || seenAssetIds.has(assetId)) {
+      continue;
+    }
+
+    seenAssetIds.add(assetId);
+    assetIds.push(assetId);
+  }
+
+  return assetIds;
+}
+
+export function extractMarkdownImageFcAssetIds(markdown: string): ReadonlyArray<string> {
+  return runMarkdownHelper(() => extractMarkdownImageFcAssetIdsUnchecked(markdown));
+}
+
 function extractMarkdownLinkDestinationUrlsUnchecked(markdown: string): ReadonlyArray<string> {
   const destinations: Array<string> = [];
-  for (const linkDestination of iterateMarkdownLinkDestinations(markdown)) {
+  for (const linkDestination of iterateMarkdownActiveDestinations(markdown)) {
+    if (!linkDestination.hasDestination) {
+      continue;
+    }
     destinations.push(linkDestination.destination);
   }
 
@@ -2370,7 +2591,10 @@ function extractMarkdownPortableMediaPathsUnchecked(markdown: string): ReadonlyA
   const portableMediaPaths: Array<string> = [];
   const seenPortableMediaPaths = new Set<string>();
 
-  for (const linkDestination of iterateMarkdownLinkDestinations(markdown)) {
+  for (const linkDestination of iterateMarkdownActiveDestinations(markdown)) {
+    if (!linkDestination.hasDestination) {
+      continue;
+    }
     if (!isPortableMediaPathCandidate(linkDestination.destination)) {
       continue;
     }

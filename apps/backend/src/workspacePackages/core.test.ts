@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   extractMarkdownFcAssetIds,
+  extractMarkdownImageFcAssetIds,
   extractMarkdownLinkDestinationUrls,
   extractMarkdownNonCodeTextSegments,
   extractMarkdownPortableMediaPaths,
@@ -437,6 +438,132 @@ test("Markdown media helpers preserve current one-line destination grammar", () 
   );
 });
 
+test("Markdown media helpers share one ordered single-line active destination contract", () => {
+  const markdown = [
+    "![image](fcasset:image)",
+    "[link](fcasset:link)",
+    String.raw`[escaped \] label](fcasset:escaped)`,
+    "[balanced [label]](fcasset:balanced)",
+    "[code `]` label](fcasset:code)",
+    "![portable image](media/image.png)",
+    "[portable link](media/link.txt)",
+    "![duplicate](fcasset:image)",
+  ].join(" ");
+  const mappings: ReadonlyArray<readonly [string, string]> = [
+    ["image", "media/image-fcasset.png"],
+    ["link", "media/link-fcasset.txt"],
+    ["escaped", "media/escaped.png"],
+    ["balanced", "media/balanced.png"],
+    ["code", "media/code.png"],
+  ];
+
+  assert.deepEqual(extractMarkdownLinkDestinationUrls(markdown), [
+    "fcasset:image",
+    "fcasset:link",
+    "fcasset:escaped",
+    "fcasset:balanced",
+    "fcasset:code",
+    "media/image.png",
+    "media/link.txt",
+    "fcasset:image",
+  ]);
+  assert.deepEqual(extractMarkdownFcAssetIds(markdown), mappings.map(([assetId]) => assetId));
+  assert.deepEqual(extractMarkdownImageFcAssetIds(markdown), ["image"]);
+  assert.deepEqual(extractMarkdownPortableMediaPaths(markdown), [
+    "media/image.png",
+    "media/link.txt",
+  ]);
+  assert.equal(
+    rewriteMarkdownFcAssetUrlsToPortablePathsFromMap(markdown, new Map(mappings)),
+    mappings.reduce((rewrittenMarkdown, [assetId, portablePath]) => (
+      rewrittenMarkdown.replaceAll(`fcasset:${assetId}`, portablePath)
+    ), markdown),
+  );
+  assert.equal(
+    rewriteMarkdownPortableMediaUrlsToFcAssetsFromMap(markdown, new Map([
+      ["media/image.png", "portable-image"],
+      ["media/link.txt", "portable-link"],
+    ])),
+    markdown
+      .replace("media/image.png", "fcasset:portable-image")
+      .replace("media/link.txt", "fcasset:portable-link"),
+  );
+});
+
+test("Markdown media helpers preserve nested identity and resume invalid outer tails", () => {
+  const markdown = [
+    "[outer [inner](fcasset:inner)](fcasset:inactive-outer)",
+    "[outer [empty]()](fcasset:inactive-empty-outer)",
+    "[outer [empty-angle](<>)](fcasset:inactive-empty-angle-outer)",
+    "[![image](fcasset:primary)](fcasset:source)",
+    "![description [reference](fcasset:reference)](fcasset:description-image)",
+    "[outer [nested](fcasset:nested-link)](![tail](fcasset:tail))",
+    "[outer ![description [isolated](fcasset:image-reference)](fcasset:container-image)]"
+      + "(fcasset:outer-source)",
+  ].join(" ");
+  const mappings: ReadonlyArray<readonly [string, string]> = [
+    ["inner", "media/inner.png"],
+    ["primary", "media/image.png"],
+    ["source", "media/source.png"],
+    ["reference", "media/reference.png"],
+    ["description-image", "media/description-image.png"],
+    ["nested-link", "media/nested.png"],
+    ["tail", "media/tail.png"],
+    ["image-reference", "media/isolated.png"],
+    ["container-image", "media/nested-image.png"],
+    ["outer-source", "media/isolated-outer.png"],
+  ];
+
+  assert.deepEqual(extractMarkdownFcAssetIds(markdown), mappings.map(([assetId]) => assetId));
+  assert.deepEqual(extractMarkdownImageFcAssetIds(markdown), [
+    "primary",
+    "description-image",
+    "tail",
+    "container-image",
+  ]);
+  assertMarkdownMediaRoundTrip(markdown, mappings);
+});
+
+test("Markdown media helpers parse exact one-line destinations and titles", () => {
+  const markdown = [
+    "[title-looking]( \"title\")",
+    "[parenthesized-destination]( (target))",
+    "[empty]()",
+    "[angle-empty](<>)",
+    "![angle](<fcasset:angle> \"angle title\")",
+    "[double](fcasset:double \"double title\")",
+    "[single](fcasset:single 'single title')",
+    String.raw`[parenthesized-title](fcasset:parenthesized (escaped \(title\)))`,
+    "[balanced-destination](https://example.com/a(b)c)",
+    String.raw`[escaped-bare](https://example.com/a\))`,
+    String.raw`[escaped-angle](<https://example.com/a\>>)`,
+    "[invalid-parenthesized-title](fcasset:inactive-open (bad(open))",
+    "[adjacent-titles](fcasset:inactive-adjacent \"one\" \"two\")",
+    "[unterminated-title](fcasset:inactive-unterminated \"title)",
+  ].join(" ");
+  const mappings: ReadonlyArray<readonly [string, string]> = [
+    ["angle", "media/angle.png"],
+    ["double", "media/double.png"],
+    ["single", "media/single.png"],
+    ["parenthesized", "media/parenthesized.png"],
+  ];
+
+  assert.deepEqual(extractMarkdownLinkDestinationUrls(markdown), [
+    "\"title\"",
+    "(target)",
+    "fcasset:angle",
+    "fcasset:double",
+    "fcasset:single",
+    "fcasset:parenthesized",
+    "https://example.com/a(b)c",
+    String.raw`https://example.com/a\)`,
+    String.raw`https://example.com/a\>`,
+  ]);
+  assert.deepEqual(extractMarkdownFcAssetIds(markdown), mappings.map(([assetId]) => assetId));
+  assert.deepEqual(extractMarkdownImageFcAssetIds(markdown), ["angle"]);
+  assertMarkdownMediaRoundTrip(markdown, mappings);
+});
+
 test("Markdown media helpers treat valid one-line HTML and autolinks as opaque", () => {
   const mappings: ReadonlyArray<readonly [string, string]> = [
     ["visible-tag", "media/visible-tag.png"],
@@ -529,6 +656,7 @@ test("Markdown helpers enforce one stable bounded label complexity contract", ()
   };
   const scannerOperations: ReadonlyArray<readonly [string, (markdown: string) => void]> = [
     ["fcasset extraction", (markdown) => { extractMarkdownFcAssetIds(markdown); }],
+    ["image fcasset extraction", (markdown) => { extractMarkdownImageFcAssetIds(markdown); }],
     ["destination extraction", (markdown) => { extractMarkdownLinkDestinationUrls(markdown); }],
     ["non-code extraction", (markdown) => { extractMarkdownNonCodeTextSegments(markdown); }],
     ["portable extraction", (markdown) => { extractMarkdownPortableMediaPaths(markdown); }],
