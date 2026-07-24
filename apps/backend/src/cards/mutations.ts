@@ -3,12 +3,14 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../database";
+import { expectUuidString } from "../server/requestParsing";
 import { HttpError } from "../shared/errors";
 import {
   incomingLwwMetadataWins,
   normalizeIsoTimestamp,
 } from "../sync/conflicts/lww";
 import { findLatestSyncChangeId, lockWorkspaceSyncMetadataForHotChangesInExecutor } from "../sync/replication/changes";
+import { extractMarkdownImageFcAssetIds } from "../workspacePackages/markdownMedia";
 import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
@@ -26,6 +28,8 @@ import {
   toCardLwwMetadata,
 } from "./shared";
 import type {
+  AppendManagedImageToCardSideInput,
+  AppendManagedImageToCardSideResult,
   BulkCreateCardItem,
   BulkDeleteCardItem,
   BulkDeleteCardsResult,
@@ -35,12 +39,108 @@ import type {
   CardMutationResult,
   CardRow,
   CardSnapshotInput,
+  CardTextSide,
   CreateCardInput,
   UpdateCardInput,
   UpdateQueryParts,
 } from "./types";
 
 const MAX_CARD_BATCH_SIZE = 100;
+
+type AppendedManagedImageCardText = Readonly<{ text: string; applied: boolean }>;
+
+const cardTextColumnBySide: Readonly<Record<CardTextSide, "front_text" | "back_text">> = {
+  front: "front_text",
+  back: "back_text",
+};
+
+function normalizeCardTextSide(targetSide: CardTextSide): CardTextSide {
+  if (targetSide !== "front" && targetSide !== "back") {
+    throw new HttpError(400, "targetSide must be either front or back");
+  }
+
+  return targetSide;
+}
+
+function normalizeManagedImageAltText(altText: string): string {
+  const normalizedAltText = altText
+    .trim()
+    .replace(/\r\n|\r|\n/gu, " ")
+    .replace(/\s+/gu, " ")
+    .replace(/\\/gu, "＼")
+    .replace(/\[/gu, "(")
+    .replace(/\]/gu, ")");
+  if (normalizedAltText === "") {
+    throw new HttpError(400, "altText must not be empty");
+  }
+
+  return normalizedAltText;
+}
+
+function buildNormalizedManagedImageMarkdownReference(mediaAssetId: string, altText: string): string {
+  return `![${altText}](fcasset:${mediaAssetId})`;
+}
+
+function hasExactManagedImageMarkdownReference(text: string, mediaAssetId: string): boolean {
+  return extractMarkdownImageFcAssetIds(text)
+    .some((referencedMediaAssetId) => referencedMediaAssetId.toLowerCase() === mediaAssetId);
+}
+
+function appendMarkdownBlock(text: string, markdownBlock: string): string {
+  const separator = text === "" || text.endsWith("\n\n")
+    ? ""
+    : text.endsWith("\n") ? "\n" : "\n\n";
+  return `${text}${separator}${markdownBlock}`;
+}
+
+function appendNormalizedManagedImageToCardText(
+  text: string,
+  mediaAssetId: string,
+  markdownReference: string,
+): AppendedManagedImageCardText {
+  if (hasExactManagedImageMarkdownReference(text, mediaAssetId)) {
+    return { text, applied: false };
+  }
+
+  const appendedText = appendMarkdownBlock(text, markdownReference);
+  if (!hasExactManagedImageMarkdownReference(appendedText, mediaAssetId)) {
+    throw new HttpError(
+      409,
+      "Close the selected card side's unterminated Markdown fence or HTML block before appending an image.",
+      "CARD_IMAGE_APPEND_MARKDOWN_BLOCK_UNCLOSED",
+    );
+  }
+  return { text: appendedText, applied: true };
+}
+
+function deriveGeneratedCardMutationTimestamp(
+  currentTime: Date,
+  storedClientUpdatedAt: string | Date,
+): string {
+  return new Date(Math.max(
+    currentTime.getTime(), new Date(storedClientUpdatedAt).getTime() + 1,
+  )).toISOString();
+}
+
+export function buildManagedImageMarkdownReference(mediaAssetId: string, altText: string): string {
+  return buildNormalizedManagedImageMarkdownReference(
+    expectUuidString(mediaAssetId, "mediaAssetId"),
+    normalizeManagedImageAltText(altText),
+  );
+}
+
+export function appendManagedImageToCardText(
+  text: string,
+  mediaAssetId: string,
+  altText: string,
+): AppendedManagedImageCardText {
+  const normalizedMediaAssetId = expectUuidString(mediaAssetId, "mediaAssetId");
+  const markdownReference = buildNormalizedManagedImageMarkdownReference(
+    normalizedMediaAssetId,
+    normalizeManagedImageAltText(altText),
+  );
+  return appendNormalizedManagedImageToCardText(text, normalizedMediaAssetId, markdownReference);
+}
 
 function normalizeRequiredCardText(value: string, fieldName: string): string {
   const normalizedValue = value.trim();
@@ -195,6 +295,88 @@ async function loadCardRowForMutation(
   );
 
   return result.rows[0];
+}
+
+async function loadActiveCardRowForMutation(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  cardId: string,
+): Promise<CardRow | undefined> {
+  const result = await executor.query<CardRow>(
+    [
+      CARD_SELECT,
+      "WHERE workspace_id = $1 AND card_id = $2 AND deleted_at IS NULL",
+      "FOR UPDATE",
+    ].join(" "),
+    [workspaceId, cardId],
+  );
+
+  return result.rows[0];
+}
+
+export async function appendManagedImageToCardSideInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  input: AppendManagedImageToCardSideInput,
+  metadata: CardMutationMetadata,
+): Promise<AppendManagedImageToCardSideResult> {
+  const targetSide = normalizeCardTextSide(input.targetSide);
+  const cardId = expectUuidString(input.cardId, "cardId");
+  const mediaAssetId = expectUuidString(input.mediaAssetId, "mediaAssetId");
+  const markdownReference = buildNormalizedManagedImageMarkdownReference(
+    mediaAssetId,
+    normalizeManagedImageAltText(input.altText),
+  );
+  const normalizedMetadata = normalizeCardMutationMetadata(metadata);
+
+  const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(
+    executor,
+    workspaceId,
+  );
+  const row = await loadActiveCardRowForMutation(executor, workspaceId, cardId);
+  if (row === undefined) {
+    throw new HttpError(404, "Card not found");
+  }
+
+  const currentText = targetSide === "front" ? row.front_text : row.back_text;
+  const appendedText = appendNormalizedManagedImageToCardText(
+    currentText,
+    mediaAssetId,
+    markdownReference,
+  );
+  if (appendedText.applied === false) {
+    return { card: mapCard(row), applied: false };
+  }
+
+  const generatedClientUpdatedAt = deriveGeneratedCardMutationTimestamp(new Date(), row.client_updated_at);
+  const targetColumn = cardTextColumnBySide[targetSide];
+  const updateResult = await executor.query<CardRow>(
+    [
+      "UPDATE content.cards",
+      `SET ${targetColumn} = $1, client_updated_at = $2,`,
+      "last_modified_by_replica_id = $3, last_operation_id = $4, updated_at = now()",
+      "WHERE workspace_id = $5 AND card_id = $6 AND deleted_at IS NULL",
+      "RETURNING",
+      CARD_COLUMNS,
+    ].join(" "),
+    [
+      appendedText.text,
+      generatedClientUpdatedAt,
+      normalizedMetadata.lastModifiedByReplicaId,
+      normalizedMetadata.lastOperationId,
+      workspaceId,
+      cardId,
+    ],
+  );
+
+  const updatedRow = updateResult.rows[0];
+  if (updatedRow === undefined) {
+    throw new HttpError(404, "Card not found");
+  }
+
+  const card = mapCard(updatedRow);
+  await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, card);
+  return { card, applied: true };
 }
 
 async function insertCardRowForSnapshotInExecutor(

@@ -4,6 +4,8 @@
  * described in docs/fsrs-scheduling-logic.md.
  */
 export type {
+  AppendManagedImageToCardSideInput,
+  AppendManagedImageToCardSideResult,
   BulkCreateCardItem,
   BulkDeleteCardItem,
   BulkDeleteCardsResult,
@@ -19,6 +21,7 @@ export type {
   CardQuerySortDirection,
   CardQuerySortKey,
   CardSnapshotInput,
+  CardTextSide,
   CreateCardInput,
   DeckSummary,
   QueryCardsInput,
@@ -45,6 +48,9 @@ export {
 } from "./fsrs";
 
 export {
+  appendManagedImageToCardSideInExecutor,
+  appendManagedImageToCardText,
+  buildManagedImageMarkdownReference,
   createCard,
   createCards,
   createCardInExecutor,
