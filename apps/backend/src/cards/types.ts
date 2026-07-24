@@ -158,6 +158,20 @@ export type CardListPage = Readonly<{
 
 export type CardMutationMetadata = LwwMetadata;
 
+export type CardTextSide = "front" | "back";
+
+export type AppendManagedImageToCardSideInput = Readonly<{
+  cardId: string;
+  targetSide: CardTextSide;
+  mediaAssetId: string;
+  altText: string;
+}>;
+
+export type AppendManagedImageToCardSideResult = Readonly<{
+  card: Card;
+  applied: boolean;
+}>;
+
 export type CreateCardInput = Readonly<{
   frontText: string;
   backText: string;
