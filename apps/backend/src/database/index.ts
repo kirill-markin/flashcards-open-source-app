@@ -19,6 +19,10 @@ export type {
   UserDatabaseScope,
   WorkspaceDatabaseScope,
 } from "./core";
+export {
+  SessionAdvisoryLockAbortedError, SessionAdvisoryLockTimeoutError, withSessionAdvisoryLock,
+} from "./sessionAdvisoryLock";
+export type { SessionAdvisoryLockInput } from "./sessionAdvisoryLock";
 
 export async function transactionWithUserScope<Result>(
   scope: UserDatabaseScope,
