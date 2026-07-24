@@ -50,6 +50,8 @@ export type ChatItemPayload = Readonly<{
   role: "user" | "assistant";
   content: ReadonlyArray<ContentPart>;
   openaiItems?: ReadonlyArray<StoredOpenAIReplayItem>;
+  /** Internal durable state; normal chat-item mappers intentionally omit it. */
+  generatedCardImageAttemptCount?: 0 | 1 | 2 | 3;
 }>;
 
 export type ChatItemRow = Readonly<{
@@ -243,7 +245,16 @@ const INSERT_CHAT_ITEM_SQL = `
 const UPDATE_CHAT_ITEM_SQL = `
   WITH updated_item AS (
     UPDATE ai.chat_items
-    SET payload = $2::jsonb,
+    SET payload = CASE
+          WHEN payload ? 'generatedCardImageAttemptCount'
+          THEN jsonb_set(
+            $2::jsonb,
+            '{generatedCardImageAttemptCount}',
+            payload->'generatedCardImageAttemptCount',
+            true
+          )
+          ELSE $2::jsonb
+        END,
         state = $3,
         updated_at = now()
     WHERE item_id = $1
@@ -354,7 +365,16 @@ const UPDATE_CHAT_SESSION_ACTIVE_COMPOSER_SUGGESTION_GENERATION_SQL = `
 const UPDATE_CHAT_ITEM_AND_INVALIDATE_MAIN_CONTENT_SQL = `
   WITH updated_item AS (
     UPDATE ai.chat_items
-    SET payload = $2::jsonb,
+    SET payload = CASE
+          WHEN payload ? 'generatedCardImageAttemptCount'
+          THEN jsonb_set(
+            $2::jsonb,
+            '{generatedCardImageAttemptCount}',
+            payload->'generatedCardImageAttemptCount',
+            true
+          )
+          ELSE $2::jsonb
+        END,
         state = $3,
         updated_at = now()
     WHERE item_id = $1
