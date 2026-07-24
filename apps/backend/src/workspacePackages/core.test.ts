@@ -6,13 +6,23 @@ import {
   extractMarkdownNonCodeTextSegments,
   extractMarkdownPortableMediaPaths,
   parseWorkspacePackageCardsJsonV1,
+  rewriteMarkdownFcAssetUrlsToFcAssets,
+  rewriteMarkdownFcAssetUrlsToPortablePaths,
   rewriteMarkdownFcAssetUrlsToPortablePathsFromMap,
+  rewriteMarkdownFcAssetUrlsToSharedPortablePaths,
+  rewriteMarkdownPortableMediaUrlsToFcAssets,
   rewriteMarkdownPortableMediaUrlsToFcAssetsFromMap,
   toPortableWorkspacePackageCard,
   validatePortableMediaPath,
   validateUniquePortableMediaPaths,
 } from "./index";
 import type { WorkspacePackageCardMetadataV1 } from "./index";
+import { HttpError } from "../shared/errors";
+import { extractReferencedWorkspacePackageExportMediaAssetIds } from "./export/exportPreview";
+import { extractReferencedWorkspacePackageMediaPaths } from "./import/importZip";
+import {
+  rewriteMarkdownFcAssetUrlsToSharedPortablePathsFromMap,
+} from "./markdownMedia";
 
 const testMetadata: WorkspacePackageCardMetadataV1 = {
   version: 1,
@@ -44,6 +54,22 @@ function assertMarkdownMediaRoundTrip(
     rewriteMarkdownPortableMediaUrlsToFcAssetsFromMap(portableMarkdown, assetIdsByPortablePath),
     markdown,
   );
+}
+
+function assertMarkdownComplexityError(
+  operation: () => void,
+  sourceIndex: number,
+  expectedCode: string,
+): void {
+  assert.throws(operation, (error: unknown) => {
+    assert.ok(error instanceof HttpError);
+    assert.equal(error.statusCode, 400);
+    assert.equal(error.code, expectedCode);
+    assert.match(error.message, new RegExp(`source index ${sourceIndex}`));
+    assert.match(error.message, /maximumDepth=1000/);
+    assert.match(error.message, /Simplify nested Markdown labels and retry/);
+    return true;
+  });
 }
 
 test("toPortableWorkspacePackageCard projects only portable card fields", () => {
@@ -408,6 +434,204 @@ test("Markdown media helpers preserve current one-line destination grammar", () 
       ["media/original.png", "original"],
     ])),
     markdown.replace("media/original.png", "fcasset:original"),
+  );
+});
+
+test("Markdown media helpers treat valid one-line HTML and autolinks as opaque", () => {
+  const mappings: ReadonlyArray<readonly [string, string]> = [
+    ["visible-tag", "media/visible-tag.png"],
+    ["visible-comment", "media/visible-comment.png"],
+    ["visible-processing", "media/visible-processing.png"],
+    ["visible-declaration", "media/visible-declaration.png"],
+    ["visible-cdata", "media/visible-cdata.png"],
+    ["visible-uri", "media/visible-uri.png"],
+    ["visible-email", "media/visible-email.png"],
+    ["visible-control", "media/visible-control.png"],
+  ];
+  const markdown = [
+    "before <x data-x=\"[hidden-tag](fcasset:hidden-tag)\" quoted='`' bare=value flag>"
+      + "[visible tag](fcasset:visible-tag)</x >",
+    "before <!-- [hidden-comment](fcasset:hidden-comment) ` -->"
+      + " [visible comment](fcasset:visible-comment)",
+    "before <? [hidden-processing](fcasset:hidden-processing) ` ?>"
+      + " [visible processing](fcasset:visible-processing)",
+    "before <!DOCTYPE [hidden-declaration](fcasset:hidden-declaration) `>"
+      + " [visible declaration](fcasset:visible-declaration)",
+    "before <![CDATA[[hidden-cdata](fcasset:hidden-cdata) `]]>"
+      + " [visible cdata](fcasset:visible-cdata)",
+    "before <https://example.com/[hidden-uri](fcasset:hidden-uri)?tick=`>"
+      + " [visible uri](fcasset:visible-uri)",
+    "before <foo`bar@example.com> [visible email](fcasset:visible-email)",
+    "before <x data-x=foo\u000b[hidden-control](fcasset:hidden-control)>"
+      + " [visible control](fcasset:visible-control)",
+  ].join("\n");
+
+  assert.deepEqual(
+    extractMarkdownFcAssetIds(markdown),
+    mappings.map(([assetId]) => assetId),
+  );
+  assert.deepEqual(
+    extractMarkdownLinkDestinationUrls(markdown),
+    mappings.map(([assetId]) => `fcasset:${assetId}`),
+  );
+  assert.deepEqual(extractMarkdownNonCodeTextSegments(markdown), [markdown]);
+  assertMarkdownMediaRoundTrip(markdown, mappings);
+
+  const deeplyNestedOpaqueAttribute = `before <x data-x="${"[".repeat(1_001)}"> after`;
+  assert.deepEqual(extractMarkdownFcAssetIds(deeplyNestedOpaqueAttribute), []);
+});
+
+test("Markdown media helpers keep malformed and escaped one-line spans visible", () => {
+  const mappings: ReadonlyArray<readonly [string, string]> = [
+    ["unclosed-quote", "media/unclosed-quote.png"],
+    ["bad-attribute", "media/bad-attribute.png"],
+    ["unclosed-comment", "media/unclosed-comment.png"],
+    ["invalid-uri", "media/invalid-uri.png"],
+    ["escaped-tag", "media/escaped-tag.png"],
+    ["carriage-return", "media/carriage-return.png"],
+    ["delete-control", "media/delete-control.png"],
+    ["vertical-tab", "media/vertical-tab.png"],
+    ["nonbreaking-space", "media/nonbreaking-space.png"],
+  ];
+  const markdown = [
+    "before <x data-x=\"[unclosed quote](fcasset:unclosed-quote)>",
+    "before <x ??? [bad attribute](fcasset:bad-attribute)>",
+    "before <!-- [unclosed comment](fcasset:unclosed-comment)",
+    "before <x:[invalid uri](fcasset:invalid-uri)>",
+    String.raw`before \<x data-x="[escaped tag](fcasset:escaped-tag)">`,
+    "before <x data-x=\"\r[carriage return](fcasset:carriage-return)\">",
+    "before <ab:\u007f[delete control](fcasset:delete-control)>",
+    "before <x\u000ba=\"[vertical tab](fcasset:vertical-tab)\">",
+    "before <x\u00a0a=\"[nonbreaking space](fcasset:nonbreaking-space)\">",
+  ].join("\n");
+
+  assert.deepEqual(
+    extractMarkdownFcAssetIds(markdown),
+    mappings.map(([assetId]) => assetId),
+  );
+  assertMarkdownMediaRoundTrip(markdown, mappings);
+});
+
+test("Markdown helpers enforce one stable bounded label complexity contract", () => {
+  const acceptedMarkdown = "[".repeat(1_000);
+  const shallowMarkerHeavyMarkdown = "[]".repeat(1_001);
+  const failedDestinationMarkdown = `${"[".repeat(1_000)}](abc] x[[`;
+  const failedDestinationBeforeOpaqueMarkdown =
+    `[label](abc <x data-x="${"[".repeat(1_001)}">`;
+  const carriageReturnMarkdown = `${"[".repeat(1_000)}\r${"[".repeat(1_000)}`;
+  const completedLinkBeforeLineBoundaryMarkdown =
+    `${"[".repeat(999)}[x](url)\n${"[".repeat(1_000)}`;
+  const multilineCodeAfterCompletedLabelMarkdown =
+    `${"[".repeat(1_000)}]\`\n\`[[`;
+  const rejectedMarkdown = "[".repeat(1_001);
+  const unreachableResolver = (): string => {
+    throw new Error("Resolver must not be called for incomplete labels.");
+  };
+  const scannerOperations: ReadonlyArray<readonly [string, (markdown: string) => void]> = [
+    ["fcasset extraction", (markdown) => { extractMarkdownFcAssetIds(markdown); }],
+    ["destination extraction", (markdown) => { extractMarkdownLinkDestinationUrls(markdown); }],
+    ["non-code extraction", (markdown) => { extractMarkdownNonCodeTextSegments(markdown); }],
+    ["portable extraction", (markdown) => { extractMarkdownPortableMediaPaths(markdown); }],
+    ["portable rewrite", (markdown) => {
+      rewriteMarkdownFcAssetUrlsToPortablePaths(markdown, unreachableResolver);
+    }],
+    ["portable map rewrite", (markdown) => {
+      rewriteMarkdownFcAssetUrlsToPortablePathsFromMap(markdown, new Map());
+    }],
+    ["shared portable rewrite", (markdown) => {
+      rewriteMarkdownFcAssetUrlsToSharedPortablePaths(markdown, unreachableResolver);
+    }],
+    ["shared portable map rewrite", (markdown) => {
+      rewriteMarkdownFcAssetUrlsToSharedPortablePathsFromMap(markdown, new Map());
+    }],
+    ["fcasset rewrite", (markdown) => {
+      rewriteMarkdownFcAssetUrlsToFcAssets(markdown, unreachableResolver);
+    }],
+    ["portable fcasset rewrite", (markdown) => {
+      rewriteMarkdownPortableMediaUrlsToFcAssets(markdown, unreachableResolver);
+    }],
+    ["portable fcasset map rewrite", (markdown) => {
+      rewriteMarkdownPortableMediaUrlsToFcAssetsFromMap(markdown, new Map());
+    }],
+  ];
+
+  for (const [operationName, operation] of scannerOperations) {
+    assert.doesNotThrow(
+      () => operation(acceptedMarkdown),
+      `${operationName} must accept depth 1,000`,
+    );
+    assert.doesNotThrow(
+      () => operation(shallowMarkerHeavyMarkdown),
+      `${operationName} must limit nested depth rather than total labels`,
+    );
+    assert.doesNotThrow(
+      () => operation(failedDestinationMarkdown),
+      `${operationName} must account for brackets skipped by failed destinations`,
+    );
+    assert.doesNotThrow(
+      () => operation(failedDestinationBeforeOpaqueMarkdown),
+      `${operationName} must re-enter at opaque spans after failed destinations`,
+    );
+    assert.doesNotThrow(
+      () => operation(carriageReturnMarkdown),
+      `${operationName} must reset label depth after a lone carriage return`,
+    );
+    assert.doesNotThrow(
+      () => operation(completedLinkBeforeLineBoundaryMarkdown),
+      `${operationName} must reset unresolved outer labels after a completed link`,
+    );
+    assert.doesNotThrow(
+      () => operation(multilineCodeAfterCompletedLabelMarkdown),
+      `${operationName} must not restore prior-line label depth after multiline code`,
+    );
+    assertMarkdownComplexityError(
+      () => operation(rejectedMarkdown),
+      1_000,
+      "MARKDOWN_COMPLEXITY_LIMIT_EXCEEDED",
+    );
+  }
+
+  const resolverError = new TypeError("Resolver failed independently.");
+  assert.throws(
+    () => rewriteMarkdownFcAssetUrlsToPortablePaths(
+      "[image](fcasset:image)",
+      () => {
+        throw resolverError;
+      },
+    ),
+    (error: unknown) => error === resolverError,
+  );
+});
+
+test("Markdown complexity errors preserve export and import consumer contracts", () => {
+  const rejectedMarkdown = "[".repeat(1_001);
+  assertMarkdownComplexityError(
+    () => {
+      extractReferencedWorkspacePackageExportMediaAssetIds([{
+        card_id: "card-1",
+        front_text: rejectedMarkdown,
+        back_text: "Answer",
+        card_type: "basic",
+        metadata: null,
+        tags: [],
+      }]);
+    },
+    1_000,
+    "MARKDOWN_COMPLEXITY_LIMIT_EXCEEDED",
+  );
+
+  assertMarkdownComplexityError(
+    () => {
+      extractReferencedWorkspacePackageMediaPaths([{
+        frontText: rejectedMarkdown,
+        backText: "Answer",
+        tags: [],
+        cardType: "basic",
+        metadata: { version: 1, source: null },
+      }]);
+    },
+    1_000,
+    "WORKSPACE_PACKAGE_IMPORT_PREVIEW_CARDS_JSON_INVALID",
   );
 });
 
