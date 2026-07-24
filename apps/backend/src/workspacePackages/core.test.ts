@@ -249,6 +249,96 @@ test("Markdown media helpers stream code, links, and escape precedence", () => {
   }
 });
 
+test("Markdown media helpers classify container fences and list continuations once", () => {
+  const cases: ReadonlyArray<readonly [
+    string, ReadonlyArray<readonly [string, string]>, ReadonlyArray<string> | null,
+  ]> = [
+    ["before\r\n~~~\r\n[hidden](fcasset:hidden)\r\n[portable](media/hidden.png)\r\n~~~\r\nafter",
+      [], ["before\r\n", "after"]],
+    ["~~~\n[hidden](fcasset:hidden)\n~~~ extra\n[still hidden](media/hidden.png)\n~~~~\n[active](fcasset:active)",
+      [["active", "media/active.png"]], null],
+    ["> - ~~~\n>\n>   [hidden](fcasset:hidden)\n>   [portable](media/hidden.png)\n>   ~~~\n[active](fcasset:active)",
+      [["active", "media/active.png"]], null],
+    ["10. item\n    ~~~\n    [hidden](fcasset:hidden)\n    [portable](media/hidden.png)\n    ~~~\n[active](fcasset:active)",
+      [["active", "media/active.png"]], ["10. item\n", "[active](fcasset:active)"]],
+    [["paragraph", "14. ~~~", "    [active](fcasset:active)", "    ~~~"].join("\n"),
+      [["active", "media/active.png"]], null],
+    ["> \t~~~\r\n>   [hidden](fcasset:hidden)\r\n>   [portable](media/hidden.png)\r\n>   ~~~\r\n-\t ~~~\r\n     [hidden](fcasset:hidden)\r\n     [portable](media/hidden.png)\r\n     ~~~\r\n[active](fcasset:active)",
+      [["active", "media/active.png"]], null],
+    ["-     \n  ~~~\n  [hidden](fcasset:hidden)\n  [portable](media/hidden.png)\n  ~~~\n[active](fcasset:active)",
+      [["active", "media/active.png"]], null],
+    [["-", "", "    ~~~", "    [active](fcasset:active)", "    ~~~"].join("\n"),
+      [["active", "media/active.png"]], null],
+  ];
+
+  for (const [markdown, mappings, nonCodeText] of cases) {
+    assert.deepEqual(extractMarkdownFcAssetIds(markdown), mappings.map(([assetId]) => assetId));
+    assertMarkdownMediaRoundTrip(markdown, mappings);
+    if (nonCodeText !== null) {
+      assert.deepEqual(extractMarkdownNonCodeTextSegments(markdown), nonCodeText);
+    }
+  }
+
+  const nestedListDepth = 128;
+  const nestedListMarkdown = `${"- ".repeat(nestedListDepth)}item\n${
+    "  ".repeat(nestedListDepth)}[active](fcasset:active)`;
+  assert.deepEqual(extractMarkdownFcAssetIds(nestedListMarkdown), ["active"]);
+  assertMarkdownMediaRoundTrip(nestedListMarkdown, [["active", "media/active.png"]]);
+});
+
+test("Markdown media helpers keep inline code inside real block and HTML boundaries", () => {
+  const activeCases = [
+    "`open\n# heading\n` [active](fcasset:active)",
+    "`open\n---\n` [active](fcasset:active)",
+    "`open\n~~~\n[hidden](fcasset:hidden)\n~~~\n` [active](fcasset:active)",
+    "`open\n<div>\n[hidden](fcasset:hidden)\n\n` [active](fcasset:active)",
+    "> `open\n> ---\n> ` [active](fcasset:active)",
+    "> `code [hidden](fcasset:hidden)\ncontinuation\n===\n` [active](fcasset:active)",
+    "<pre>\n[hidden](fcasset:hidden)\n</script>\n~~~\n[fenced](media/hidden.png)\n~~~\n[active](fcasset:active)",
+    ...["<x a:b=ok flag quoted=\"<>\">", "</x >"].map((htmlTag) => (
+      `${htmlTag}\n[hidden](fcasset:hidden)\n\n[active](fcasset:active)`)),
+    ...["</x garbage>", "<x ???>"].map((htmlTag) => (
+      `${htmlTag}\n~~~\n[hidden](fcasset:hidden)\n[portable](media/hidden.png)\n~~~\n[active](fcasset:active)`)),
+    ...([
+      ["<!--", "-->"], ["<?", "?>"], ["<!DECLARATION", ">"],
+      ["<![CDATA[", "]]>"], ["<table>", ""],
+    ] as const).map(([htmlStart, htmlEnd]) => (
+      `${htmlStart}\n[hidden](fcasset:hidden)\n${htmlEnd}\n\n[active](fcasset:active)`)),
+  ];
+  for (const markdown of activeCases) {
+    assert.deepEqual(extractMarkdownFcAssetIds(markdown), ["active"]);
+    assertMarkdownMediaRoundTrip(markdown, [["active", "media/active.png"]]);
+  }
+
+  for (const malformedTag of ["</x garbage>", "<x ???>"]) {
+    const markdown = `${malformedTag}\n~~~\n[hidden](fcasset:hidden)\n~~~\n[active](fcasset:active)`;
+    assert.deepEqual(extractMarkdownNonCodeTextSegments(markdown),
+      [`${malformedTag}\n`, "[active](fcasset:active)"]);
+  }
+});
+
+test("Markdown non-code text keeps raw HTML for public safety checks", () => {
+  const unsafeHtmlReference = "media/blobs/sha256/aa/aa/html-private";
+  const markdown = [
+    "<div>",
+    unsafeHtmlReference,
+    "`raw HTML backticks`",
+    "</div>",
+    "",
+    "visible `inline media/blobs/sha256/aa/aa/inline-private` after",
+    "~~~",
+    "media/blobs/sha256/aa/aa/fenced-private",
+    "~~~",
+    "tail",
+  ].join("\n");
+
+  assert.deepEqual(extractMarkdownNonCodeTextSegments(markdown), [
+    ["<div>", unsafeHtmlReference, "`raw HTML backticks`", "</div>", "", "visible "].join("\n"),
+    " after\n",
+    "tail",
+  ]);
+});
+
 test("Markdown media helpers preserve code and events from invalid one-line links", () => {
   const multilineCode = "[literal `\n[x](fcasset:x)\n`";
   const multilinePortableCode = multilineCode.replace("fcasset:x", "media/x.png");
