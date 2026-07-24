@@ -1,5 +1,6 @@
 export {
   extractMarkdownFcAssetIds,
+  extractMarkdownImageFcAssetIds,
   extractMarkdownLinkDestinationUrls,
   extractMarkdownNonCodeTextSegments,
   extractMarkdownPortableMediaPaths,
