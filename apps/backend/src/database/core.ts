@@ -1,5 +1,8 @@
 import pg from "pg";
-import { getDatabaseUrl } from "./config";
+import {
+  getDatabaseUrl,
+  getDatabaseUrlWithAbortSignal,
+} from "./config";
 import {
   getDatabaseErrorFields,
   logDatabasePoolError,
@@ -10,6 +13,12 @@ import {
   captureBackendWarning,
   createBackendRuntimeObservationScope,
 } from "../observability/sentry";
+import {
+  queryWithPostgresDeadline,
+  resolvePostgresPoolUntilDeadline,
+  transactionWithPostgresDeadline,
+  validateDatabaseDeadline,
+} from "./deadline";
 
 let pool: pg.Pool | undefined;
 
@@ -31,16 +40,53 @@ export type DatabaseExecutor = Readonly<{
   ): Promise<pg.QueryResult<Row>>;
 }>;
 
+function createDatabasePool(connectionString: string): pg.Pool {
+  const ssl = process.env.DB_SECRET_ARN ? true : false;
+  const databasePool = new pg.Pool({ connectionString, ssl });
+  databasePool.on("error", (error: Error): void => {
+    logDatabasePoolError("main", error);
+  });
+  return databasePool;
+}
+
 async function getPool(): Promise<pg.Pool> {
-  if (!pool) {
-    const connectionString = await getDatabaseUrl();
-    const ssl = process.env.DB_SECRET_ARN ? true : false;
-    pool = new pg.Pool({ connectionString, ssl });
-    pool.on("error", (error: Error): void => {
-      logDatabasePoolError("main", error);
-    });
-  }
+  if (pool) return pool;
+  const connectionString = await getDatabaseUrl();
+  if (pool) return pool;
+  pool = createDatabasePool(connectionString);
   return pool;
+}
+
+async function initializePoolUntilDeadline(
+  deadlineAtMs: number,
+  abortSignal: AbortSignal,
+): Promise<pg.Pool> {
+  if (pool) return pool;
+  const connectionString = await getDatabaseUrlWithAbortSignal(
+    abortSignal,
+    deadlineAtMs,
+  );
+  abortSignal.throwIfAborted();
+  validateDatabaseDeadline(deadlineAtMs);
+  if (pool) return pool;
+
+  const databasePool = createDatabasePool(connectionString);
+  try {
+    abortSignal.throwIfAborted();
+    validateDatabaseDeadline(deadlineAtMs);
+  } catch (error) {
+    await databasePool.end();
+    throw error;
+  }
+  pool = databasePool;
+  return pool;
+}
+
+async function getPoolUntilDeadline(deadlineAtMs: number): Promise<pg.Pool> {
+  return resolvePostgresPoolUntilDeadline(
+    deadlineAtMs,
+    async (abortSignal) => initializePoolUntilDeadline(deadlineAtMs, abortSignal),
+  );
 }
 
 async function executeQuery<Row extends pg.QueryResultRow>(
@@ -148,6 +194,20 @@ export async function unsafeQuery<Row extends pg.QueryResultRow>(
   return executeQuery<Row>(await getPool(), text, params);
 }
 
+export async function unsafeQueryWithDeadline<Row extends pg.QueryResultRow>(
+  deadlineAtMs: number,
+  text: string,
+  params: ReadonlyArray<SqlValue>,
+): Promise<pg.QueryResult<Row>> {
+  validateDatabaseDeadline(deadlineAtMs);
+  return queryWithPostgresDeadline<Row>(
+    await getPoolUntilDeadline(deadlineAtMs),
+    deadlineAtMs,
+    text,
+    params,
+  );
+}
+
 /**
  * Opens one privileged transaction without applying any request scope.
  * Callers must set any needed user/workspace scope explicitly.
@@ -156,6 +216,18 @@ export async function unsafeTransaction<Result>(
   callback: (executor: DatabaseExecutor) => Promise<Result>,
 ): Promise<Result> {
   return unsafeTransactionWithBeginStatement("BEGIN", callback);
+}
+
+export async function unsafeTransactionWithDeadline<Result>(
+  deadlineAtMs: number,
+  callback: (executor: DatabaseExecutor) => Promise<Result>,
+): Promise<Result> {
+  validateDatabaseDeadline(deadlineAtMs);
+  return transactionWithPostgresDeadline(
+    await getPoolUntilDeadline(deadlineAtMs),
+    deadlineAtMs,
+    callback,
+  );
 }
 
 export async function unsafeRepeatableReadTransaction<Result>(
