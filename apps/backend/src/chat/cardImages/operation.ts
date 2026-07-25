@@ -1,59 +1,60 @@
 import { createHash } from "node:crypto";
-import { appendManagedImageToCardSideInExecutor, getCard, type CardTextSide } from "../../cards";
-import {
-  queryWithWorkspaceScopeReadOnly, transactionWithWorkspaceScope, transactionWithWorkspaceScopeReadOnly,
-} from "../../database";
-import {
-  MEDIA_ASSET_COLUMNS, MEDIA_ASSET_JOIN_CLAUSE, loadReusableImageMediaBlobForWorkspace, mapMediaAssetRow,
-} from "../../mediaAssets";
+import type { CardTextSide } from "../../cards";
+import { transactionWithWorkspaceScopeDeadline } from "../../database";
+import { DatabaseCommitOutcomeUnknownError } from "../../database/transient";
 import { normalizeImageBytesForCard } from "../../mediaAssets/ingestion/imageNormalization";
 import {
-  findMediaAssetRowForUpdateInExecutor, upsertMediaAssetSnapshotWithBlobNormalizationInExecutor,
-} from "../../mediaAssets/persistence";
-import { storeMediaAssetBlobBytesIfAbsent } from "../../mediaAssets/storage";
-import { buildMediaBlobStorageKey } from "../../mediaAssets/storageKeys";
+  loadGeneratedMediaStagingObject,
+  storeGeneratedMediaStagingObject,
+  type GeneratedMediaStagingObject,
+} from "../../mediaAssets/storage";
 import {
-  imageJpegCardMediaBlobMimeType, imageJpegCardMediaBlobNormalizationVersion, type MediaAsset,
-  type MediaAssetRow, type NormalizedImageMediaAssetInput,
-} from "../../mediaAssets/types";
+  buildMediaBlobStorageKey,
+  buildMediaUploadStagingStorageKey,
+} from "../../mediaAssets/storageKeys";
 import { assertReplicaBelongsToWorkspaceInExecutor } from "../../mediaAssets/workspaceReplicas";
 import { expectNonEmptyString, expectUuidString } from "../../server/requestParsing";
 import { HttpError } from "../../shared/errors";
-import { lockWorkspaceSyncMetadataForHotChangesInExecutor } from "../../sync/replication/changes";
+import { assertActiveChatRunClaimWithExecutor } from "../runs/claimFence";
 import { deriveGeneratedCardImageOperationMetadata } from "./metadata";
 import { createOpenAIGeneratedCardImageProvider } from "./openaiAdapter";
 import { withGeneratedCardImageOperationLock } from "./operationLock";
-import type { GeneratedProviderImage, OpenAIImageGenerationInput } from "./providerTypes";
-import type { GeneratedCardImageInput, GeneratedCardImageOperationMetadata, GeneratedCardImageResult } from "./types";
+import { enqueueGeneratedMediaPromotionJob, type EnqueueGeneratedMediaPromotionJobResult } from "./promotionJobs";
+import {
+  GeneratedCardImageDeadlineExceededError,
+  type GeneratedProviderImage,
+  type OpenAIImageGenerationInput,
+} from "./providerTypes";
+import type {
+  GeneratedCardImageInput,
+  GeneratedCardImageOperationMetadata,
+  GeneratedCardImageResult,
+} from "./types";
 
 const maximumGeneratedCardImagePromptCharacters = 32_000;
+const maximumGeneratedCardImageAltTextCharacters = 2_000;
+const controlCharacterPattern = /[\u0000-\u001f\u007f-\u009f]/u;
+const maximumTimerDelayMs = 2_147_483_647;
 
-export type PreparedGeneratedCardImage = NormalizedImageMediaAssetInput;
-
-type PersistedGeneratedCardImage =
-  Pick<GeneratedCardImageResult, "mediaRegistrationApplied" | "cardAppendApplied" | "reused">;
+export type PreparedGeneratedCardImage = GeneratedMediaStagingObject & Readonly<{ reused: boolean }>;
 
 export type GeneratedCardImageOperationDependencies = Readonly<{
   assertPreconditionsFn: (input: GeneratedCardImageInput) => Promise<void>;
   withOperationLockFn: typeof withGeneratedCardImageOperationLock;
-  findMediaAssetFn: (userId: string, workspaceId: string, mediaAssetId: string) => Promise<MediaAsset | null>;
-  prepareGeneratedImageFn: (
-    input: GeneratedCardImageInput,
-    operationMetadata: GeneratedCardImageOperationMetadata,
-  ) => Promise<PreparedGeneratedCardImage>;
-  persistGeneratedImageFn: (
-    input: GeneratedCardImageInput,
-    operationMetadata: GeneratedCardImageOperationMetadata,
-    preparedImage: PreparedGeneratedCardImage | null,
-    cardClientUpdatedAt: string,
-  ) => Promise<PersistedGeneratedCardImage>;
+  prepareStagedImageFn: (input: GeneratedCardImageInput,
+    operationMetadata: GeneratedCardImageOperationMetadata) => Promise<PreparedGeneratedCardImage>;
+  enqueuePromotionJobFn: (
+    input: GeneratedCardImageInput, operationMetadata: GeneratedCardImageOperationMetadata,
+    preparedImage: PreparedGeneratedCardImage,
+  ) => Promise<EnqueueGeneratedMediaPromotionJobResult>;
 }>;
 
 export type GeneratedCardImageExternalDependencies = Readonly<{
   generateProviderImageFn: (input: OpenAIImageGenerationInput) => Promise<GeneratedProviderImage>;
   normalizeImageBytesForCardFn: typeof normalizeImageBytesForCard;
-  storeMediaAssetBlobBytesIfAbsentFn: typeof storeMediaAssetBlobBytesIfAbsent;
-  currentTimestampFn: () => string;
+  loadGeneratedMediaStagingObjectFn: typeof loadGeneratedMediaStagingObject;
+  storeGeneratedMediaStagingObjectFn: typeof storeGeneratedMediaStagingObject;
+  enqueueGeneratedMediaPromotionJobFn: typeof enqueueGeneratedMediaPromotionJob;
 }>;
 
 function normalizeTargetSide(targetSide: CardTextSide): CardTextSide {
@@ -66,183 +67,159 @@ function normalizeTargetSide(targetSide: CardTextSide): CardTextSide {
 function normalizeGeneratedCardImageInput(input: GeneratedCardImageInput): GeneratedCardImageInput {
   const imagePrompt = expectNonEmptyString(input.imagePrompt, "imagePrompt");
   if (imagePrompt.length > maximumGeneratedCardImagePromptCharacters) {
-    throw new HttpError(400, `imagePrompt must be at most ${maximumGeneratedCardImagePromptCharacters} characters`);
+    throw new HttpError(400,
+      `imagePrompt must be at most ${maximumGeneratedCardImagePromptCharacters} characters`);
   }
-
+  const altText = expectNonEmptyString(input.altText, "altText");
+  if (
+    altText.length > maximumGeneratedCardImageAltTextCharacters
+    || controlCharacterPattern.test(altText)
+  ) {
+    throw new HttpError(400,
+      `altText must be at most ${maximumGeneratedCardImageAltTextCharacters} characters without control characters`);
+  }
   return {
     runId: expectUuidString(input.runId, "runId"),
+    sessionId: expectUuidString(input.sessionId, "sessionId"),
+    claimToken: expectNonEmptyString(input.claimToken, "claimToken"),
     userId: expectNonEmptyString(input.userId, "userId"),
     workspaceId: expectUuidString(input.workspaceId, "workspaceId"),
     cardId: expectUuidString(input.cardId, "cardId"),
     targetSide: normalizeTargetSide(input.targetSide),
     imagePrompt,
-    altText: expectNonEmptyString(input.altText, "altText"),
+    altText,
     replicaId: expectUuidString(input.replicaId, "replicaId"),
     observationContext: input.observationContext,
     signal: input.signal,
+    operationDeadlineMs: input.operationDeadlineMs,
   };
 }
 
-async function assertGeneratedCardImagePreconditions(input: GeneratedCardImageInput): Promise<void> {
-  await Promise.all([
-    getCard(input.userId, input.workspaceId, input.cardId),
-    transactionWithWorkspaceScopeReadOnly(
-      { userId: input.userId, workspaceId: input.workspaceId },
-      async (executor) => assertReplicaBelongsToWorkspaceInExecutor(executor, input.workspaceId, input.replicaId),
-    ),
-  ]);
+function assertGeneratedCardImageOperationActive(input: GeneratedCardImageInput): void {
+  input.signal.throwIfAborted();
+  if (!Number.isSafeInteger(input.operationDeadlineMs) || input.operationDeadlineMs < 1) {
+    throw new RangeError(
+      "Generated card image operation deadline must be a positive absolute epoch-millisecond safe integer.",
+    );
+  }
+  if (input.operationDeadlineMs <= Date.now()) {
+    throw new GeneratedCardImageDeadlineExceededError(null);
+  }
 }
 
-async function findGeneratedCardImageMediaAsset(
-  userId: string, workspaceId: string, mediaAssetId: string,
-): Promise<MediaAsset | null> {
-  const result = await queryWithWorkspaceScopeReadOnly<MediaAssetRow>(
-    { userId, workspaceId },
-    `SELECT ${MEDIA_ASSET_COLUMNS}
-       FROM ${MEDIA_ASSET_JOIN_CLAUSE}
-       WHERE media_assets.workspace_id = $1 AND media_assets.media_asset_id = $2
-       LIMIT 1`,
-    [workspaceId, mediaAssetId],
+async function withGeneratedCardImageDeadline<Result>(
+  input: GeneratedCardImageInput,
+  run: (deadlineInput: GeneratedCardImageInput) => Promise<Result>,
+): Promise<Result> {
+  assertGeneratedCardImageOperationActive(input);
+  const deadlineController = new AbortController();
+  const deadlineError = new GeneratedCardImageDeadlineExceededError(null);
+  const deadlineTimer = setTimeout(
+    () => deadlineController.abort(deadlineError),
+    Math.min(input.operationDeadlineMs - Date.now(), maximumTimerDelayMs),
   );
-  const row = result.rows[0];
-  return row === undefined ? null : mapMediaAssetRow(row);
-}
-
-function assertReusableGeneratedMediaAsset(
-  mediaAsset: MediaAsset, operationMetadata: GeneratedCardImageOperationMetadata,
-): void {
-  if (mediaAsset.lastOperationId !== operationMetadata.mediaLastOperationId
-      || mediaAsset.sourceUrl !== null) {
-    throw new HttpError(409,
-      `The deterministic generated media asset id belongs to another operation. mediaAssetId=${operationMetadata.mediaAssetId}`,
-      "GENERATED_CARD_IMAGE_MEDIA_ID_CONFLICT");
-  }
-  if (mediaAsset.deletedAt !== null) {
-    throw new HttpError(409, `The generated media asset was deleted. mediaAssetId=${operationMetadata.mediaAssetId}`,
-      "GENERATED_CARD_IMAGE_MEDIA_DELETED");
+  const deadlineInput = {
+    ...input, signal: AbortSignal.any([input.signal, deadlineController.signal]),
+  };
+  try {
+    return await run(deadlineInput);
+  } catch (error) {
+    if (deadlineController.signal.aborted) throw deadlineError;
+    throw error;
+  } finally {
+    clearTimeout(deadlineTimer);
   }
 }
 
-async function prepareGeneratedCardImage(
+async function assertGeneratedCardImagePreconditions(input: GeneratedCardImageInput): Promise<void> {
+  await transactionWithWorkspaceScopeDeadline(
+    { userId: input.userId, workspaceId: input.workspaceId },
+    input.operationDeadlineMs,
+    async (executor) => {
+      await assertActiveChatRunClaimWithExecutor(executor, input);
+      const cardResult = await executor.query<{ card_id: string }>(
+        `SELECT card_id FROM content.cards
+         WHERE workspace_id = $1 AND card_id = $2 AND deleted_at IS NULL
+         LIMIT 1`,
+        [input.workspaceId, input.cardId],
+      );
+      if (cardResult.rows[0] === undefined) {
+        throw new HttpError(404, "Card not found");
+      }
+      await assertReplicaBelongsToWorkspaceInExecutor(
+        executor, input.workspaceId, input.replicaId,
+      );
+    },
+  );
+}
+
+async function prepareStagedGeneratedCardImage(
   input: GeneratedCardImageInput,
   operationMetadata: GeneratedCardImageOperationMetadata,
   dependencies: GeneratedCardImageExternalDependencies,
 ): Promise<PreparedGeneratedCardImage> {
+  const stagingStorageKey = buildMediaUploadStagingStorageKey(
+    input.workspaceId, operationMetadata.mediaAssetId, operationMetadata.operationId);
+  const stagingInput = {
+    workspaceId: input.workspaceId, mediaAssetId: operationMetadata.mediaAssetId,
+    operationId: operationMetadata.operationId, stagingStorageKey,
+    observationScope: input.observationContext.scope, signal: input.signal,
+  };
+  const existing = await dependencies.loadGeneratedMediaStagingObjectFn(stagingInput);
+  if (existing !== null) return { ...existing, reused: true };
   const generatedImage = await dependencies.generateProviderImageFn({
-    userId: input.userId,
-    imagePrompt: input.imagePrompt,
+    userId: input.userId, imagePrompt: input.imagePrompt,
     observationContext: input.observationContext,
-    signal: input.signal,
+    signal: input.signal, operationDeadlineMs: input.operationDeadlineMs,
   });
   input.signal.throwIfAborted();
-
   const normalizedImage = await dependencies.normalizeImageBytesForCardFn(generatedImage.bytes);
   input.signal.throwIfAborted();
-
-  const timestamp = dependencies.currentTimestampFn();
-  const mediaAssetInput: NormalizedImageMediaAssetInput = {
-    mediaAssetId: operationMetadata.mediaAssetId,
-    sourceUrl: null,
-    createdAt: timestamp,
-    clientUpdatedAt: timestamp,
-    lastModifiedByReplicaId: input.replicaId,
-    lastOperationId: operationMetadata.mediaLastOperationId,
+  const staged = await dependencies.storeGeneratedMediaStagingObjectFn({
+    ...stagingInput,
+    mimeType: normalizedImage.mimeType,
     sizeBytes: normalizedImage.sizeBytes,
     sha256: createHash("sha256").update(normalizedImage.bytes).digest("hex"),
-  };
-  const reusableBlob = await loadReusableImageMediaBlobForWorkspace(
-    input.userId, input.workspaceId, mediaAssetInput,
-  );
+    bytes: normalizedImage.bytes,
+  });
   input.signal.throwIfAborted();
-
-  if (reusableBlob === null) {
-    await dependencies.storeMediaAssetBlobBytesIfAbsentFn({
-      workspaceId: input.workspaceId,
-      mediaAssetId: operationMetadata.mediaAssetId,
-      storageKey: buildMediaBlobStorageKey(mediaAssetInput.sha256),
-      mimeType: normalizedImage.mimeType,
-      sha256: mediaAssetInput.sha256,
-      lastOperationId: operationMetadata.mediaLastOperationId,
-      bytes: normalizedImage.bytes,
-      observationScope: input.observationContext.scope,
-    });
-  }
-  input.signal.throwIfAborted();
-  return mediaAssetInput;
+  return { ...staged, reused: false };
 }
 
-async function persistGeneratedCardImage(
+async function enqueueGeneratedCardImagePromotion(
   input: GeneratedCardImageInput,
   operationMetadata: GeneratedCardImageOperationMetadata,
-  preparedImage: PreparedGeneratedCardImage | null,
-  cardClientUpdatedAt: string,
-): Promise<PersistedGeneratedCardImage> {
+  preparedImage: PreparedGeneratedCardImage,
+  dependencies: GeneratedCardImageExternalDependencies,
+): Promise<EnqueueGeneratedMediaPromotionJobResult> {
   input.signal.throwIfAborted();
+  return dependencies.enqueueGeneratedMediaPromotionJobFn({
+    userId: input.userId, workspaceId: input.workspaceId,
+    sessionId: input.sessionId, runId: input.runId, claimToken: input.claimToken,
+    deadlineAtMs: input.operationDeadlineMs,
+    jobId: operationMetadata.operationId, operationId: operationMetadata.operationId,
+    cardId: input.cardId, targetSide: input.targetSide, altText: input.altText,
+    mediaAssetId: operationMetadata.mediaAssetId, replicaId: input.replicaId,
+    stagingStorageKey: preparedImage.stagingStorageKey,
+    blobStorageKey: buildMediaBlobStorageKey(preparedImage.sha256),
+    sha256: preparedImage.sha256, mimeType: preparedImage.mimeType,
+    sizeBytes: preparedImage.sizeBytes,
+  });
+}
 
-  return transactionWithWorkspaceScope(
-    { userId: input.userId, workspaceId: input.workspaceId },
-    async (executor) => {
-      await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, input.workspaceId);
-      await assertReplicaBelongsToWorkspaceInExecutor(executor, input.workspaceId, input.replicaId);
-      input.signal.throwIfAborted();
-
-      const existingRow = await findMediaAssetRowForUpdateInExecutor(
-        executor, input.workspaceId, operationMetadata.mediaAssetId,
-      );
-      let mediaRegistrationApplied = false;
-      let reused = preparedImage === null || existingRow !== null;
-      if (existingRow === null) {
-        if (preparedImage === null) {
-          throw new HttpError(409,
-            `The generated media asset disappeared. mediaAssetId=${operationMetadata.mediaAssetId}`,
-            "GENERATED_CARD_IMAGE_MEDIA_MISSING");
-        }
-        const mediaResult = await upsertMediaAssetSnapshotWithBlobNormalizationInExecutor(
-          executor,
-          input.workspaceId,
-          {
-            mediaAssetId: preparedImage.mediaAssetId,
-            mimeType: imageJpegCardMediaBlobMimeType,
-            sizeBytes: preparedImage.sizeBytes,
-            sha256: preparedImage.sha256,
-            sourceUrl: null,
-            createdAt: preparedImage.createdAt,
-            deletedAt: null,
-          },
-          {
-            clientUpdatedAt: preparedImage.clientUpdatedAt,
-            lastModifiedByReplicaId: input.replicaId,
-            lastOperationId: operationMetadata.mediaLastOperationId,
-          },
-          imageJpegCardMediaBlobNormalizationVersion,
-        );
-        assertReusableGeneratedMediaAsset(mediaResult.mediaAsset, operationMetadata);
-        mediaRegistrationApplied = true;
-        reused = false;
-      } else {
-        assertReusableGeneratedMediaAsset(mapMediaAssetRow(existingRow), operationMetadata);
-      }
-
-      input.signal.throwIfAborted();
-      const cardResult = await appendManagedImageToCardSideInExecutor(
-        executor,
-        input.workspaceId,
-        {
-          cardId: input.cardId,
-          targetSide: input.targetSide,
-          mediaAssetId: operationMetadata.mediaAssetId,
-          altText: input.altText,
-        },
-        {
-          clientUpdatedAt: cardClientUpdatedAt,
-          lastModifiedByReplicaId: input.replicaId,
-          lastOperationId: operationMetadata.cardLastOperationId,
-        },
-      );
-      input.signal.throwIfAborted();
-      return { mediaRegistrationApplied, cardAppendApplied: cardResult.applied, reused };
-    },
-  );
+async function enqueueGeneratedCardImagePromotionWithCommitReconciliation(
+  input: GeneratedCardImageInput,
+  operationMetadata: GeneratedCardImageOperationMetadata,
+  preparedImage: PreparedGeneratedCardImage,
+  enqueuePromotionJobFn: GeneratedCardImageOperationDependencies["enqueuePromotionJobFn"],
+): Promise<EnqueueGeneratedMediaPromotionJobResult> {
+  try {
+    return await enqueuePromotionJobFn(input, operationMetadata, preparedImage);
+  } catch (error) {
+    if (!(error instanceof DatabaseCommitOutcomeUnknownError)) throw error;
+    assertGeneratedCardImageOperationActive(input);
+    return enqueuePromotionJobFn(input, operationMetadata, preparedImage);
+  }
 }
 
 export function createGeneratedCardImageOperationDependencies(
@@ -251,26 +228,11 @@ export function createGeneratedCardImageOperationDependencies(
   return {
     assertPreconditionsFn: assertGeneratedCardImagePreconditions,
     withOperationLockFn: withGeneratedCardImageOperationLock,
-    findMediaAssetFn: findGeneratedCardImageMediaAsset,
-    prepareGeneratedImageFn: async (input, metadata) => prepareGeneratedCardImage(
+    prepareStagedImageFn: async (input, metadata) => prepareStagedGeneratedCardImage(
       input, metadata, externalDependencies,
     ),
-    persistGeneratedImageFn: persistGeneratedCardImage,
-  };
-}
-
-function toGeneratedCardImageResult(
-  input: GeneratedCardImageInput, operationMetadata: GeneratedCardImageOperationMetadata,
-  persisted: PersistedGeneratedCardImage,
-): GeneratedCardImageResult {
-  return {
-    cardId: input.cardId,
-    mediaAssetId: operationMetadata.mediaAssetId,
-    targetSide: input.targetSide,
-    mediaRegistrationApplied: persisted.mediaRegistrationApplied,
-    cardAppendApplied: persisted.cardAppendApplied,
-    reused: persisted.reused,
-    sourceUrl: null,
+    enqueuePromotionJobFn: async (input, metadata, preparedImage) =>
+      enqueueGeneratedCardImagePromotion(input, metadata, preparedImage, externalDependencies),
   };
 }
 
@@ -279,51 +241,54 @@ export async function generateCardImageWithDependencies(
   dependencies: GeneratedCardImageOperationDependencies,
 ): Promise<GeneratedCardImageResult> {
   const normalizedInput = normalizeGeneratedCardImageInput(input);
-  normalizedInput.signal.throwIfAborted();
+  assertGeneratedCardImageOperationActive(normalizedInput);
   const operationMetadata = deriveGeneratedCardImageOperationMetadata(
     normalizedInput.runId, normalizedInput.cardId, normalizedInput.targetSide,
   );
-
   await dependencies.assertPreconditionsFn(normalizedInput);
-  normalizedInput.signal.throwIfAborted();
-  return dependencies.withOperationLockFn(
-    {
-      workspaceId: normalizedInput.workspaceId, mediaAssetId: operationMetadata.mediaAssetId,
-      signal: normalizedInput.signal,
-    },
-    async (lockSignal) => {
-      const lockedInput: GeneratedCardImageInput = { ...normalizedInput, signal: lockSignal };
-      lockedInput.signal.throwIfAborted();
-      const existingMediaAsset = await dependencies.findMediaAssetFn(
-        lockedInput.userId, lockedInput.workspaceId, operationMetadata.mediaAssetId,
-      );
-      lockedInput.signal.throwIfAborted();
-
-      if (existingMediaAsset !== null) {
-        assertReusableGeneratedMediaAsset(existingMediaAsset, operationMetadata);
-        const persisted = await dependencies.persistGeneratedImageFn(
-          lockedInput, operationMetadata, null, new Date().toISOString(),
+  assertGeneratedCardImageOperationActive(normalizedInput);
+  return withGeneratedCardImageDeadline(
+    normalizedInput,
+    async (deadlineInput) => dependencies.withOperationLockFn(
+      {
+        workspaceId: deadlineInput.workspaceId, mediaAssetId: operationMetadata.mediaAssetId,
+        signal: deadlineInput.signal,
+      },
+      async (lockSignal) => {
+        const lockedInput = { ...deadlineInput, signal: lockSignal };
+        const preparedImage = await dependencies.prepareStagedImageFn(
+          lockedInput, operationMetadata,
         );
-        return toGeneratedCardImageResult(lockedInput, operationMetadata, persisted);
-      }
-
-      const preparedImage = await dependencies.prepareGeneratedImageFn(lockedInput, operationMetadata);
-      const persisted = await dependencies.persistGeneratedImageFn(
-        lockedInput, operationMetadata, preparedImage, preparedImage.clientUpdatedAt,
-      );
-      return toGeneratedCardImageResult(lockedInput, operationMetadata, persisted);
-    },
+        assertGeneratedCardImageOperationActive(lockedInput);
+        const enqueueResult = await enqueueGeneratedCardImagePromotionWithCommitReconciliation(
+          lockedInput, operationMetadata, preparedImage, dependencies.enqueuePromotionJobFn,
+        );
+        return {
+          status: enqueueResult.outcome === "created" ? "queued" : "already_queued",
+          cardId: lockedInput.cardId,
+          mediaAssetId: operationMetadata.mediaAssetId,
+          targetSide: lockedInput.targetSide,
+          mediaRegistrationApplied: false,
+          cardAppendApplied: false,
+          reused: preparedImage.reused || enqueueResult.outcome === "existing",
+          sourceUrl: null,
+        };
+      },
+    ),
   );
 }
 
 const defaultExternalDependencies: GeneratedCardImageExternalDependencies = {
   generateProviderImageFn: async (input) => createOpenAIGeneratedCardImageProvider().generate(input),
   normalizeImageBytesForCardFn: normalizeImageBytesForCard,
-  storeMediaAssetBlobBytesIfAbsentFn: storeMediaAssetBlobBytesIfAbsent,
-  currentTimestampFn: () => new Date().toISOString(),
+  loadGeneratedMediaStagingObjectFn: loadGeneratedMediaStagingObject,
+  storeGeneratedMediaStagingObjectFn: storeGeneratedMediaStagingObject,
+  enqueueGeneratedMediaPromotionJobFn: enqueueGeneratedMediaPromotionJob,
 };
 
 export async function generateCardImage(input: GeneratedCardImageInput): Promise<GeneratedCardImageResult> {
-  return generateCardImageWithDependencies(input,
-    createGeneratedCardImageOperationDependencies(defaultExternalDependencies));
+  return generateCardImageWithDependencies(
+    input,
+    createGeneratedCardImageOperationDependencies(defaultExternalDependencies),
+  );
 }

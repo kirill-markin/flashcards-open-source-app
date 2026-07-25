@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
-import { CopyObjectCommand, HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { CopyObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../storageKeys";
 import {
   GeneratedMediaPromotionStorageTerminalError,
   GeneratedMediaPromotionStorageTransientError,
+  loadGeneratedMediaStagingObjectWithDependencies,
   promoteGeneratedMediaObjectWithDependencies,
+  storeGeneratedMediaStagingObjectWithDependencies,
   type GeneratedMediaObjectPromotionInput,
+  type StoreGeneratedMediaStagingObjectInput,
 } from "./generatedPromotion";
 import { createUploadProofMetadata } from "./proof";
 import {
@@ -64,6 +68,48 @@ async function promote(
     s3Client: client, getMediaAssetsStorageConfigFn: getTestMediaAssetsStorageConfig,
   });
 }
+function stagingInput(bytes: Buffer): StoreGeneratedMediaStagingObjectInput {
+  const sha256 = createHash("sha256").update(bytes).digest("hex");
+  return {
+    workspaceId: testWorkspaceId, mediaAssetId: testMediaAssetId, operationId,
+    stagingStorageKey: buildMediaUploadStagingStorageKey(testWorkspaceId, testMediaAssetId, operationId),
+    mimeType, sizeBytes: bytes.byteLength, sha256, bytes, observationScope: testObservationScope,
+    signal: new AbortController().signal,
+  };
+}
+test("generated staging is reusable, conditional, and cannot be poisoned by different bytes", async () => {
+  const firstInput = stagingInput(Buffer.from("first normalized generated image"));
+  let storedInput: StoreGeneratedMediaStagingObjectInput | null = null;
+  const client = createTestS3Client();
+  client.send = (async (command: unknown, options?: Readonly<{ abortSignal?: AbortSignal }>) => {
+    assert.ok(options?.abortSignal instanceof AbortSignal);
+    if (command instanceof PutObjectCommand) {
+      assert.equal(command.input.IfNoneMatch, "*");
+      if (storedInput !== null) throw createS3Error(412, "PreconditionFailed", "exists");
+      storedInput = firstInput; return {};
+    }
+    assert.ok(command instanceof HeadObjectCommand); const stored = storedInput;
+    if (stored === null) throw createS3Error(404, "NotFound", "missing");
+    return headResponse(
+      { ...input(stored.signal), sizeBytes: stored.sizeBytes, sha256: stored.sha256 },
+      createUploadProofMetadata({
+        workspaceId: stored.workspaceId, mediaAssetId: stored.mediaAssetId,
+        lastOperationId: stored.operationId, sha256: stored.sha256,
+      }),
+      stored.sha256,
+    );
+  }) as S3Client["send"];
+  const dependencies = { s3Client: client, getMediaAssetsStorageConfigFn: getTestMediaAssetsStorageConfig };
+  const stored = await storeGeneratedMediaStagingObjectWithDependencies(firstInput, dependencies);
+  assert.deepEqual(await loadGeneratedMediaStagingObjectWithDependencies(firstInput, dependencies), stored);
+  await assert.rejects(
+    storeGeneratedMediaStagingObjectWithDependencies(
+      stagingInput(Buffer.from("different normalized generated image")), dependencies),
+    (error: unknown) => error instanceof GeneratedMediaPromotionStorageTerminalError
+      && error.code === "STAGING_CONTENT_INVALID",
+  );
+  storedInput = null; assert.equal(await loadGeneratedMediaStagingObjectWithDependencies(firstInput, dependencies), null);
+});
 test("generated promotion handles 409/412 and cross-workspace reuses a tenant-neutral blob", async () => {
   for (const copyStatuses of [[], [409, 409], [412]] as const) {
     const promotionInput = input(new AbortController().signal);

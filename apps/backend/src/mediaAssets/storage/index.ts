@@ -43,10 +43,19 @@ import {
 export {
   GeneratedMediaPromotionStorageTerminalError,
   GeneratedMediaPromotionStorageTransientError,
+  loadGeneratedMediaStagingObject,
+  loadGeneratedMediaStagingObjectWithDependencies,
   promoteGeneratedMediaObject,
   promoteGeneratedMediaObjectWithDependencies,
+  storeGeneratedMediaStagingObject,
+  storeGeneratedMediaStagingObjectWithDependencies,
 } from "./generatedPromotion";
-export type { GeneratedMediaObjectPromotionInput } from "./generatedPromotion";
+export type {
+  GeneratedMediaObjectPromotionInput,
+  GeneratedMediaStagingObject,
+  GeneratedMediaStagingObjectInput,
+  StoreGeneratedMediaStagingObjectInput,
+} from "./generatedPromotion";
 
 export { getMediaAssetsStorageConfig } from "./config";
 export type { MediaAssetsStorageConfig } from "./config";

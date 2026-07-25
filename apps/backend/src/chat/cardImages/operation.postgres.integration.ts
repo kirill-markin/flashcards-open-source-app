@@ -9,26 +9,33 @@ import {
   closeSessionAdvisoryLockPoolForTests, readSessionAdvisoryLockWaitingCountForTests,
   SessionAdvisoryLockCapacityError, toSessionAdvisoryLockConnectionBoundaryError,
 } from "../../database/sessionAdvisoryLock";
-import { TransientDatabaseHttpError } from "../../database/transient";
+import {
+  DatabaseCommitOutcomeUnknownError, TransientDatabaseHttpError,
+} from "../../database/transient";
+import type { GeneratedMediaStagingObject } from "../../mediaAssets/storage";
 import { imageJpegCardMediaBlobMimeType } from "../../mediaAssets/types";
 import { createBackendObservationScope } from "../../observability/sentry";
 import { HttpError } from "../../shared/errors";
 import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../testSupport/postgresIntegration";
+import { claimChatRun, InactiveChatRunClaimError, prepareChatRun, type ClaimedChatRun } from "../runs";
 import { deriveGeneratedCardImageOperationMetadata } from "./metadata";
 import { createGeneratedCardImageOperationDependencies, generateCardImageWithDependencies } from "./operation";
 import {
   GeneratedCardImageOperationLockAbortedError,
   withGeneratedCardImageOperationLock, type GeneratedCardImageOperationLockInput,
 } from "./operationLock";
+import { enqueueGeneratedMediaPromotionJob } from "./promotionJobs";
 import type { GeneratedCardImageInput } from "./types";
 const normalizedBytes = Buffer.from("deterministic-local-normalized-image");
 const normalizedSha256 = "8349792a6784cfdc5061b34e1184c85bcdb13719e86ac4be576e52e5e8c5f603";
 const lockSessionApplicationName = "backend-session-advisory-lock";
 type CountRow = Readonly<{ count: string }>;
 type TransactionStateRow = Readonly<{ session_count: string; no_open_transaction: boolean }>;
-type PersistedAssetRow = Readonly<{ source_url: string | null; sha256: string; normalization_version: string }>;
 type PersistedCardRow = Readonly<{ back_text: string }>;
-type HotChangeCountRow = Readonly<{ entity_type: string; count: string }>;
+type PromotionJobRow = Readonly<{
+  user_id: string; operation_id: string; card_id: string; replica_id: string;
+  sha256: string; state: string;
+}>;
 type AdvisoryLockRow = Readonly<{ acquired: boolean }>;
 type AdvisoryUnlockRow = Readonly<{ unlocked: boolean }>;
 type BackendPidRow = Readonly<{ pid: number }>;
@@ -60,10 +67,12 @@ async function holdLock<Input>(runner: LockRunner<Input>, input: Input): Promise
   return { completion, release: release.resolve };
 }
 function createInput(
-  fixture: PostgresIntegrationFixture, runId: string, targetSide: "front" | "back", signal: AbortSignal,
+  fixture: PostgresIntegrationFixture, run: ClaimedChatRun,
+  targetSide: "front" | "back", signal: AbortSignal,
 ): GeneratedCardImageInput {
   return {
-    runId, userId: fixture.userId, workspaceId: fixture.workspaceId,
+    runId: run.runId, sessionId: run.sessionId, claimToken: run.claimToken,
+    userId: fixture.userId, workspaceId: fixture.workspaceId,
     cardId: fixture.cardId, targetSide,
     imagePrompt: "Draw a deterministic integration diagram.",
     altText: "Generated integration diagram",
@@ -71,13 +80,25 @@ function createInput(
     observationContext: {
       scope: createBackendObservationScope(
         "chat-worker", "generated-image-postgres-integration", null, null, fixture.userId,
-        fixture.workspaceId, "generated-image-postgres-chat-request", runId,
-        "55555555-5555-4555-8555-555555555555", null, null,
+        fixture.workspaceId, "generated-image-postgres-chat-request", run.runId,
+        run.sessionId, null, null,
       ),
       rootObservation: null,
     },
-    signal,
+    signal, operationDeadlineMs: Date.now() + 120_000,
   };
+}
+async function createClaimedImageRun(fixture: PostgresIntegrationFixture): Promise<ClaimedChatRun> {
+  const prepared = await prepareChatRun(
+    fixture.userId, fixture.workspaceId, undefined,
+    [{ type: "text", text: "Generate an image for this card." }],
+    randomUUID(), "Europe/Madrid", null,
+  );
+  const claimed = await claimChatRun(fixture.userId, fixture.workspaceId, prepared.runId);
+  if (claimed === null) {
+    throw new Error(`Failed to claim generated image integration run. runId=${prepared.runId}`);
+  }
+  return claimed;
 }
 async function waitForLockAttemptCount(fixture: PostgresIntegrationFixture, expectedCount: number): Promise<void> {
   await waitForValue(async () => {
@@ -168,15 +189,17 @@ function sessionLockInput(lockKey: string, timeoutMs: number): SessionAdvisoryLo
     signal: new AbortController().signal,
   };
 }
-test("generated image operation coordinates real sessions and persists atomically", async () => {
+test("generated image operation reconciles ambiguous enqueue without early card visibility", async () => {
   try {
     await withPostgresIntegrationFixture(async (fixture) => {
-      const runId = randomUUID();
-      const operationMetadata = deriveGeneratedCardImageOperationMetadata(runId, fixture.cardId, "back");
+      const run = await createClaimedImageRun(fixture);
+      const operationMetadata = deriveGeneratedCardImageOperationMetadata(run.runId, fixture.cardId, "back");
       const providerStarted = createDeferred();
       const releaseProvider = createDeferred();
       let providerCalls = 0;
       let storageCalls = 0;
+      let enqueueCalls = 0;
+      let stagedObject: GeneratedMediaStagingObject | null = null;
       const dependencies = createGeneratedCardImageOperationDependencies({
         generateProviderImageFn: async () => {
           providerCalls += 1;
@@ -188,25 +211,43 @@ test("generated image operation coordinates real sessions and persists atomicall
           bytes: normalizedBytes, mimeType: imageJpegCardMediaBlobMimeType,
           sizeBytes: normalizedBytes.byteLength,
         }),
-        storeMediaAssetBlobBytesIfAbsentFn: async (input) => {
+        loadGeneratedMediaStagingObjectFn: async () => stagedObject,
+        storeGeneratedMediaStagingObjectFn: async (input) => {
           storageCalls += 1;
           assert.equal(input.sha256, normalizedSha256);
+          assert.match(input.stagingStorageKey, /^media\/uploads\//u);
           assert.equal(await countMediaAsset(fixture, input.mediaAssetId), 0);
           await assertNoExternalWorkTransaction(fixture);
+          stagedObject = {
+            stagingStorageKey: input.stagingStorageKey,
+            mimeType: input.mimeType,
+            sizeBytes: input.sizeBytes,
+            sha256: input.sha256,
+          };
+          return stagedObject;
         },
-        currentTimestampFn: () => fixture.createdAt,
+        enqueueGeneratedMediaPromotionJobFn: async (input) => {
+          enqueueCalls += 1;
+          const result = await enqueueGeneratedMediaPromotionJob(input);
+          if (enqueueCalls === 1) {
+            throw new DatabaseCommitOutcomeUnknownError(
+              new Error("Simulated lost COMMIT response after durable enqueue."),
+            );
+          }
+          return result;
+        },
       });
       const operations: Array<Promise<unknown>> = [];
       try {
         const first = generateCardImageWithDependencies(
-          createInput(fixture, runId, "back", new AbortController().signal), dependencies,
+          createInput(fixture, run, "back", new AbortController().signal), dependencies,
         );
         operations.push(first);
         void first.catch(() => undefined);
         await providerStarted.promise;
         await assertNoExternalWorkTransaction(fixture);
         const second = generateCardImageWithDependencies(
-          createInput(fixture, runId, "back", new AbortController().signal), dependencies,
+          createInput(fixture, run, "back", new AbortController().signal), dependencies,
         );
         operations.push(second);
         void second.catch(() => undefined);
@@ -215,61 +256,30 @@ test("generated image operation coordinates real sessions and persists atomicall
         const results = await Promise.all([first, second]);
         assert.equal(providerCalls, 1);
         assert.equal(storageCalls, 1);
-        assert.deepEqual(results.map((result) => result.reused).sort(), [false, true]);
-        assert.deepEqual(results.map((result) => result.cardAppendApplied).sort(), [false, true]);
-        assert.equal(results.every((result) => result.sourceUrl === null), true);
-        const asset = await fixture.ownerPool.query<PersistedAssetRow>(
-          `SELECT media_assets.source_url, media_blobs.sha256, media_blobs.normalization_version
-             FROM content.media_assets AS media_assets
-             INNER JOIN content.media_blobs AS media_blobs
-               ON media_blobs.media_blob_id = media_assets.media_blob_id
-             WHERE media_assets.workspace_id = $1 AND media_assets.media_asset_id = $2`,
-          [fixture.workspaceId, operationMetadata.mediaAssetId],
-        );
-        assert.deepEqual(asset.rows[0], {
-          source_url: null, sha256: normalizedSha256, normalization_version: "image-jpeg-card-v1",
-        });
+        assert.deepEqual(results.map((result) => result.reused).sort(), [true, true]);
+        assert.equal(results.every((result) => result.cardAppendApplied === false), true);
+        assert.deepEqual(results.map((result) => result.status), ["already_queued", "already_queued"]);
+        assert.equal(enqueueCalls, 3);
+        assert.equal(await countMediaAsset(fixture, operationMetadata.mediaAssetId), 0);
         const card = await fixture.ownerPool.query<PersistedCardRow>(
           "SELECT back_text FROM content.cards WHERE workspace_id = $1 AND card_id = $2",
           [fixture.workspaceId, fixture.cardId],
         );
-        const assetReference = new RegExp(`fcasset:${operationMetadata.mediaAssetId}`, "gu");
-        assert.equal(card.rows[0]?.back_text.match(assetReference)?.length, 1);
-        const hotChanges = await fixture.ownerPool.query<HotChangeCountRow>(
-          [
-            "SELECT entity_type, count(*)::text AS count FROM sync.hot_changes",
-            "WHERE workspace_id = $1 GROUP BY entity_type ORDER BY entity_type",
-          ].join(" "),
-          [fixture.workspaceId],
+        assert.equal(card.rows[0]?.back_text, "Original answer");
+        const job = await fixture.ownerPool.query<PromotionJobRow>(
+          `SELECT user_id, operation_id, card_id, replica_id, sha256, state
+           FROM content.generated_media_promotion_jobs
+           WHERE operation_id = $1`,
+          [operationMetadata.operationId],
         );
-        assert.deepEqual(hotChanges.rows, [
-          { entity_type: "card", count: "1" },
-          { entity_type: "media_asset", count: "1" },
-        ]);
-        const failedRunId = randomUUID();
-        const failedMetadata = deriveGeneratedCardImageOperationMetadata(failedRunId, fixture.cardId, "front");
-        await fixture.ownerPool.query(
-          "UPDATE content.cards SET front_text = $1 WHERE workspace_id = $2 AND card_id = $3",
-          ["```markdown\nUnclosed", fixture.workspaceId, fixture.cardId],
-        );
-        await assert.rejects(
-          generateCardImageWithDependencies(
-            createInput(fixture, failedRunId, "front", new AbortController().signal),
-            dependencies,
-          ),
-          (error: unknown) => error instanceof HttpError
-            && error.code === "CARD_IMAGE_APPEND_MARKDOWN_BLOCK_UNCLOSED",
-        );
-        assert.equal(await countMediaAsset(fixture, failedMetadata.mediaAssetId), 0);
-        const hotChangeCount = await fixture.ownerPool.query<CountRow>(
-          "SELECT count(*)::text AS count FROM sync.hot_changes WHERE workspace_id = $1",
-          [fixture.workspaceId],
-        );
-        assert.equal(hotChangeCount.rows[0]?.count, "2");
-        await fixture.ownerPool.query(
-          "UPDATE content.cards SET front_text = $1 WHERE workspace_id = $2 AND card_id = $3",
-          ["Original question", fixture.workspaceId, fixture.cardId],
-        );
+        assert.deepEqual(job.rows[0], {
+          user_id: fixture.userId,
+          operation_id: operationMetadata.operationId,
+          card_id: fixture.cardId,
+          replica_id: fixture.replicaId,
+          sha256: normalizedSha256,
+          state: "pending",
+        });
         await closeSessionAdvisoryLockPoolForTests();
         const operationLockKey = `chat.generated_card_image:${fixture.workspaceId}:${operationMetadata.mediaAssetId}`;
         const holder = await holdLock(
@@ -296,11 +306,12 @@ test("generated image operation coordinates real sessions and persists atomicall
         await assertAdvisoryLockReleased(fixture, operationLockKey);
         await closeSessionAdvisoryLockPoolForTests();
         const completedRetry = await generateCardImageWithDependencies(
-          createInput(fixture, runId, "back", new AbortController().signal), dependencies,
+          createInput(fixture, run, "back", new AbortController().signal), dependencies,
         );
         assert.equal(completedRetry.reused, true);
         assert.equal(completedRetry.cardAppendApplied, false);
-        assert.equal(providerCalls, 2);
+        assert.equal(completedRetry.status, "already_queued");
+        assert.equal(providerCalls, 1);
         await closeSessionAdvisoryLockPoolForTests();
         const timeoutKey = `generated-image-timeout:${randomUUID()}`;
         const timeoutHolder = await holdLock(withSessionAdvisoryLock, sessionLockInput(timeoutKey, 1_000));
@@ -321,14 +332,21 @@ test("generated image operation coordinates real sessions and persists atomicall
           await withSessionAdvisoryLock(sessionLockInput(timeoutKey, 1_000), async (_signal) => "reacquired"),
           "reacquired",
         );
+        await assert.rejects(
+          generateCardImageWithDependencies(
+            { ...createInput(fixture, run, "back", new AbortController().signal),
+              claimToken: "stale-claim-token" },
+            dependencies,
+          ),
+          (error: unknown) => error instanceof InactiveChatRunClaimError,
+        );
+        assert.equal(providerCalls, 1);
       } finally {
         releaseProvider.resolve();
         await Promise.allSettled(operations);
         await fixture.ownerPool.query(
-          "DELETE FROM content.media_assets WHERE workspace_id = $1", [fixture.workspaceId],
-        );
-        await fixture.ownerPool.query(
-          "DELETE FROM content.media_blobs WHERE sha256 = $1", [normalizedSha256],
+          "DELETE FROM content.generated_media_promotion_jobs WHERE workspace_id = $1",
+          [fixture.workspaceId],
         );
       }
     });

@@ -10,24 +10,22 @@ const runId = "11111111-1111-4111-8111-111111111111";
 const workspaceId = "22222222-2222-4222-8222-222222222222";
 const cardId = "33333333-3333-4333-8333-333333333333";
 const replicaId = "44444444-4444-4444-8444-444444444444";
-const timestamp = "2026-07-24T10:00:00.000Z";
+const sessionId = "55555555-5555-4555-8555-555555555555";
 function createInput(signal: AbortSignal): GeneratedCardImageInput {
   return {
-    runId, userId: "operation-test-user", workspaceId, cardId, targetSide: "back",
-    imagePrompt: "Draw a labeled plant cell.",
-    altText: "Plant cell diagram",
-    replicaId,
+    runId, sessionId, claimToken: "2026-07-24 10:11:12.123456+00",
+    userId: "operation-test-user", workspaceId, cardId, targetSide: "back",
+    imagePrompt: "Draw a labeled plant cell.", altText: "Plant cell diagram", replicaId,
     observationContext: {
       scope: createBackendObservationScope(
         "chat-worker", "operation-test-request", null, null, "operation-test-user",
-        workspaceId, "operation-test-chat-request", runId,
-        "55555555-5555-4555-8555-555555555555", null, null,
+        workspaceId, "operation-test-chat-request", runId, sessionId, null, null,
       ), rootObservation: null,
     },
-    signal,
+    signal, operationDeadlineMs: Date.now() + 120_000,
   };
 }
-test("generated image orchestration prepares before persistence", async () => {
+test("generated image orchestration stages before durable enqueue", async () => {
   const calls: Array<string> = [];
   const metadata = deriveGeneratedCardImageOperationMetadata(runId, cardId, "back");
   const lockSignal = new AbortController().signal;
@@ -38,30 +36,28 @@ test("generated image orchestration prepares before persistence", async () => {
       assert.notEqual(lockInput.signal, lockSignal);
       return callback(lockSignal);
     },
-    findMediaAssetFn: async () => { calls.push("find-media"); return null; },
-    prepareGeneratedImageFn: async (input) => {
-      calls.push("prepare");
+    prepareStagedImageFn: async (input) => {
+      calls.push("stage");
       assert.equal(input.signal, lockSignal);
       return {
-        mediaAssetId: metadata.mediaAssetId, sourceUrl: null,
-        createdAt: timestamp, clientUpdatedAt: timestamp,
-        lastModifiedByReplicaId: replicaId, lastOperationId: metadata.mediaLastOperationId,
-        sizeBytes: 10, sha256: "a".repeat(64),
+        stagingStorageKey: "media/uploads/test", mimeType: "image/jpeg",
+        sizeBytes: 10, sha256: "a".repeat(64), reused: false,
       };
     },
-    persistGeneratedImageFn: async (input, _metadata, preparedImage) => {
-      calls.push("persist");
-      assert.equal(input.signal, lockSignal);
-      assert.notEqual(preparedImage, null);
-      return { mediaRegistrationApplied: true, cardAppendApplied: true, reused: false };
+    enqueuePromotionJobFn: async (input, operationMetadata, preparedImage) => {
+      calls.push("enqueue");
+      assert.equal(input.signal.aborted, false);
+      assert.deepEqual(operationMetadata, metadata);
+      assert.equal(preparedImage.stagingStorageKey, "media/uploads/test");
+      return { outcome: "created", jobId: metadata.operationId };
     },
   };
   const result = await generateCardImageWithDependencies(
     createInput(new AbortController().signal), dependencies,
   );
-  assert.deepEqual(calls, ["preconditions", "lock", "find-media", "prepare", "persist"]);
+  assert.deepEqual(calls, ["preconditions", "lock", "stage", "enqueue"]);
   assert.deepEqual(result, {
-    cardId, mediaAssetId: metadata.mediaAssetId, targetSide: "back",
-    mediaRegistrationApplied: true, cardAppendApplied: true, reused: false, sourceUrl: null,
+    status: "queued", cardId, mediaAssetId: metadata.mediaAssetId, targetSide: "back",
+    mediaRegistrationApplied: false, cardAppendApplied: false, reused: false, sourceUrl: null,
   });
 });

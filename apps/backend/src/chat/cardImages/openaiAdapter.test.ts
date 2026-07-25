@@ -29,6 +29,7 @@ import {
 import type {
   OpenAIImageGenerationInput,
 } from "./providerTypes";
+import { GeneratedCardImageDeadlineExceededError } from "./providerTypes";
 
 type CapturedProviderRequest = Readonly<{
   method: string | null;
@@ -282,6 +283,11 @@ function createProvider(baseURL: string): OpenAIGeneratedCardImageProvider {
   return new OpenAIGeneratedCardImageProvider(client);
 }
 
+function createProviderWithFetch(fetch: typeof globalThis.fetch): OpenAIGeneratedCardImageProvider {
+  return new OpenAIGeneratedCardImageProvider(
+    new OpenAI({ apiKey: "test-openai-api-key", maxRetries: 4, fetch }),
+  );
+}
 function createProviderInput(
   imagePrompt: string,
   signal: AbortSignal,
@@ -307,6 +313,7 @@ function createProviderInput(
       rootObservation,
     },
     signal,
+    operationDeadlineMs: Date.now() + 120_000,
   };
 }
 
@@ -431,7 +438,7 @@ function getErrorField(error: Error, fieldName: string): unknown {
 
 function countLangfuseResults(
   telemetry: RecordedLangfuseTelemetry,
-  expectedResult: "success" | "error" | "aborted",
+  expectedResult: "success" | "error" | "aborted" | "deadline",
 ): number {
   return telemetry.updates.filter((update) => {
     const output = toRecord(update).output;
@@ -773,6 +780,26 @@ test("provider makes exactly three attempts for transient 5xx failures", async (
   );
 });
 
+test("native SDK connection timeout retries and preserves terminal timeout classification", async () => {
+  const successBytes = Buffer.from("native timeout retry success"); let successFetchCalls = 0;
+  const result = await createProviderWithFetch(async () => {
+    if (++successFetchCalls === 1) throw new DOMException("socket timed out", "TimeoutError");
+    return new Response(JSON.stringify({ data: [{ b64_json: successBytes.toString("base64") }] }),
+      { status: 200, headers: { "content-type": "application/json",
+        "x-request-id": "req_native_timeout_success" } });
+  }).generate(createProviderInput("Draw a native timeout retry diagram.",
+    new AbortController().signal, null));
+  assert.deepEqual(result.bytes, successBytes); assert.equal(successFetchCalls, 2);
+  let exhaustedFetchCalls = 0;
+  const exhaustedError = await captureThrownError(createProviderWithFetch(async () => {
+    exhaustedFetchCalls += 1;
+    throw new DOMException("socket timed out", "TimeoutError");
+  }).generate(createProviderInput("Draw an exhausted native timeout diagram.",
+    new AbortController().signal, null)));
+  assert.equal(exhaustedFetchCalls, 3); assert.equal(exhaustedError.name, "OpenAIImageGenerationError");
+  assert.equal(getErrorField(exhaustedError, "status"), null);
+  assert.equal(exhaustedError instanceof GeneratedCardImageDeadlineExceededError, false);
+});
 test("provider does not retry invalid, authentication, permission, conflict, or moderation failures", async () => {
   const failureCases = [
     {
@@ -922,6 +949,39 @@ test("provider aborts the in-flight SDK request without retrying", async () => {
       assert.equal(capture.cloudWatchLogs.length, 0);
       assert.equal(countLangfuseResults(langfuse, "aborted"), 1);
       assert.equal(langfuse.getEndCount(), 1);
+    },
+  );
+});
+
+test("provider preserves a known 429 when the remaining budget cannot fit a retry", async () => {
+  await withProviderTestServer(
+    (_request, _requestNumber, response) => writeJsonResponse(response, 429,
+      "req_insufficient_retry_budget",
+      { error: { message: "Rate limited.", type: "rate_limit_error", code: "rate_limit_exceeded" } }),
+    async (server) => {
+      const input = createProviderInput("Draw a bounded retry diagram.",
+        new AbortController().signal, null);
+      const error = await captureThrownError(createProvider(server.baseURL).generate(
+        { ...input, operationDeadlineMs: Date.now() + 35_000 }));
+      assert.equal(server.requests.length, 1); assert.equal(error.name, "OpenAIImageGenerationError");
+      assert.equal(getErrorField(error, "status"), 429);
+      assert.equal(getErrorField(error, "requestID"), "req_insufficient_retry_budget");
+    },
+  );
+});
+
+test("provider reports a true request deadline distinctly", async () => {
+  await withProviderTestServer(
+    (_request, _requestNumber, _response) => {
+      // Keep the response open until the bounded provider timeout aborts it.
+    },
+    async (server) => {
+      const input = createProviderInput("Draw a provider deadline diagram.",
+        new AbortController().signal, null);
+      const error = await captureThrownError(createProvider(server.baseURL).generate(
+        { ...input, operationDeadlineMs: Date.now() + 30_500 }));
+      assert.equal(error instanceof GeneratedCardImageDeadlineExceededError, true);
+      assert.equal(server.requests.length, 1);
     },
   );
 });

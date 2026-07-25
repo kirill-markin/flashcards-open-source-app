@@ -529,6 +529,8 @@ export type GeneratedCardImageProviderDetails = Readonly<{
   attempt: number;
   maximumAttempts: number;
   retryDelayMs: number | null;
+  requestTimeoutMs: number;
+  retrySkippedForBudget: boolean;
   providerStatus: number | null;
   providerRequestId: string | null;
   providerErrorType: string | null;
