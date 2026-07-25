@@ -1,6 +1,7 @@
 import { transactionWithWorkspaceScopeDeadline, type DatabaseExecutor } from "../../database";
 import { unsafeQueryWithDeadline } from "../../database/unsafe";
 import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../../mediaAssets/storageKeys";
+import { assertReplicaBelongsToWorkspaceInExecutor } from "../../mediaAssets/workspaceReplicas";
 import { assertActiveChatRunClaimWithExecutor, type ChatRunClaimFenceParams } from "../runs/claimFence";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const sha256Pattern = /^[0-9a-f]{64}$/u;
@@ -10,6 +11,7 @@ const controlCharacterPattern = /[\u0000-\u001f\u007f-\u009f]/u;
 export type GeneratedMediaPromotionJobPayload = Readonly<{
   jobId: string;
   operationId: string;
+  userId: string;
   workspaceId: string;
   cardId: string;
   targetSide: "front" | "back";
@@ -51,6 +53,7 @@ export type FailGeneratedMediaPromotionJobInput =
 type StoredPayloadRow = Readonly<{
   job_id: string;
   operation_id: string;
+  user_id: string;
   workspace_id: string;
   card_id: string;
   target_side: "front" | "back";
@@ -76,6 +79,7 @@ type ClaimedJobRow = StoredPayloadRow & Readonly<{
   updated_at: Date;
 }>;
 type TransitionRow = Readonly<{ transitioned: boolean }>;
+type AppliedScopeRow = Readonly<{ scope_status: string }>;
 type InsertedRow = Readonly<{ job_id: string }>;
 export class GeneratedMediaPromotionJobConflictError extends Error {
   readonly code = "GENERATED_MEDIA_PROMOTION_JOB_CONFLICT";
@@ -93,6 +97,13 @@ export class GeneratedMediaPromotionJobLeaseLostError extends Error {
     this.name = "GeneratedMediaPromotionJobLeaseLostError";
   }
 }
+export class GeneratedMediaPromotionJobAccessRevokedError extends Error {
+  readonly code = "WORKSPACE_ACCESS_REVOKED";
+  constructor(jobId: string) {
+    super(`Generated-media promotion job workspace access was revoked. jobId=${jobId}`);
+    this.name = "GeneratedMediaPromotionJobAccessRevokedError";
+  }
+}
 function requireUuid(value: string, fieldName: string): void {
   if (!uuidPattern.test(value)) {
     throw new TypeError(`${fieldName} must be a lowercase UUID.`);
@@ -105,6 +116,10 @@ function requirePayload(payload: GeneratedMediaPromotionJobPayload): void {
   requireUuid(payload.cardId, "cardId");
   requireUuid(payload.mediaAssetId, "mediaAssetId");
   requireUuid(payload.replicaId, "replicaId");
+  if (payload.userId !== payload.userId.trim() || payload.userId === ""
+    || controlCharacterPattern.test(payload.userId)) {
+    throw new TypeError("userId must be non-empty, trimmed, and contain no control characters.");
+  }
   if (
     payload.altText !== payload.altText.trim()
     || payload.altText.length < 1
@@ -153,6 +168,7 @@ function toPayload(row: StoredPayloadRow): GeneratedMediaPromotionJobPayload {
   const payload: GeneratedMediaPromotionJobPayload = {
     jobId: row.job_id,
     operationId: row.operation_id,
+    userId: row.user_id,
     workspaceId: row.workspace_id,
     cardId: row.card_id,
     targetSide: row.target_side,
@@ -213,7 +229,7 @@ function toClaimedJob(row: ClaimedJobRow): ClaimedGeneratedMediaPromotionJob {
   };
 }
 const storedPayloadColumns = `
-  job_id, operation_id, workspace_id, card_id, target_side, alt_text,
+  job_id, operation_id, user_id, workspace_id, card_id, target_side, alt_text,
   media_asset_id, replica_id, staging_storage_key, blob_storage_key,
   sha256, mime_type, size_bytes
 `;
@@ -226,17 +242,18 @@ export async function enqueueGeneratedMediaPromotionJob(
     input.deadlineAtMs,
     async (executor) => {
       await assertActiveChatRunClaimWithExecutor(executor, input);
+      await assertReplicaBelongsToWorkspaceInExecutor(executor, input.workspaceId, input.replicaId);
       const inserted = await executor.query<InsertedRow>(
         `INSERT INTO content.generated_media_promotion_jobs (
-           job_id, operation_id, workspace_id, card_id, target_side, alt_text,
+           job_id, operation_id, user_id, workspace_id, card_id, target_side, alt_text,
            media_asset_id, replica_id, staging_storage_key, blob_storage_key,
            sha256, mime_type, size_bytes
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          ON CONFLICT DO NOTHING
          RETURNING job_id`,
         [
-          input.jobId, input.operationId, input.workspaceId, input.cardId,
-          input.targetSide, input.altText, input.mediaAssetId, input.replicaId,
+          input.jobId, input.operationId, input.userId, input.workspaceId,
+          input.cardId, input.targetSide, input.altText, input.mediaAssetId, input.replicaId,
           input.stagingStorageKey, input.blobStorageKey, input.sha256,
           input.mimeType, input.sizeBytes,
         ],
@@ -312,6 +329,26 @@ export async function markGeneratedMediaPromotionJobAppliedWithExecutor(
     [input.jobId, input.leaseToken],
     input.jobId,
   );
+}
+export async function applyGeneratedMediaPromotionJobScopeWithExecutor(
+  executor: DatabaseExecutor,
+  input: GeneratedMediaPromotionJobLeaseInput,
+): Promise<void> {
+  requireUuid(input.jobId, "jobId");
+  requireUuid(input.leaseToken, "leaseToken");
+  const result = await executor.query<AppliedScopeRow>(
+    "SELECT content.apply_generated_media_promotion_job_scope($1, $2) AS scope_status",
+    [input.jobId, input.leaseToken],
+  );
+  const status = result.rows[0]?.scope_status;
+  if (status === "scoped") return;
+  if (status === "access_revoked") {
+    throw new GeneratedMediaPromotionJobAccessRevokedError(input.jobId);
+  }
+  if (status === "lease_lost") {
+    throw new GeneratedMediaPromotionJobLeaseLostError(input.jobId);
+  }
+  throw new TypeError(`PostgreSQL returned an invalid promotion scope status. jobId=${input.jobId}`);
 }
 export async function rescheduleGeneratedMediaPromotionJobWithExecutor(
   executor: DatabaseExecutor,

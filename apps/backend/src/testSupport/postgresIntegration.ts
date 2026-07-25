@@ -17,6 +17,7 @@ export type PostgresIntegrationFixture = Readonly<{
 }>;
 
 type RemainingFixtureRows = Readonly<{ remaining: boolean }>;
+type MediaBlobIdRow = Readonly<{ media_blob_id: string }>;
 
 function requireDatabaseUrl(environmentVariable: "DATABASE_URL" | "TEST_DATABASE_ADMIN_URL"): string {
   const databaseUrl = process.env[environmentVariable]?.trim();
@@ -114,16 +115,40 @@ async function deleteAndVerifyFixtureRows(fixture: PostgresIntegrationFixture): 
   const ownerClient = await fixture.ownerPool.connect();
   try {
     await ownerClient.query("BEGIN");
+    const mediaBlobRows = await ownerClient.query<MediaBlobIdRow>(
+      "SELECT DISTINCT media_blob_id FROM content.media_assets WHERE workspace_id = $1",
+      [fixture.workspaceId],
+    );
     await ownerClient.query("DELETE FROM org.workspaces WHERE workspace_id = $1", [fixture.workspaceId]);
+    await ownerClient.query(
+      `DELETE FROM content.media_blobs AS blobs
+       WHERE blobs.media_blob_id = ANY($1::uuid[])
+         AND NOT EXISTS (
+           SELECT 1 FROM content.media_assets AS assets
+           WHERE assets.media_blob_id = blobs.media_blob_id
+         )
+         AND NOT EXISTS (SELECT 1 FROM catalog.package_media_assets AS package_assets
+                         WHERE package_assets.media_blob_id = blobs.media_blob_id)`,
+      [mediaBlobRows.rows.map((row) => row.media_blob_id)],
+    );
     await ownerClient.query("DELETE FROM org.user_settings WHERE user_id = $1", [fixture.userId]);
     const verification = await ownerClient.query<RemainingFixtureRows>([
       "SELECT EXISTS (SELECT 1 FROM org.workspaces WHERE workspace_id = $1)",
       "OR EXISTS (SELECT 1 FROM org.user_settings WHERE user_id = $2)",
       "OR EXISTS (SELECT 1 FROM sync.workspace_replicas WHERE replica_id = $3)",
       "OR EXISTS (SELECT 1 FROM content.cards WHERE card_id = $4)",
-      "OR EXISTS (SELECT 1 FROM sync.hot_changes WHERE workspace_id = $1) AS remaining",
+      "OR EXISTS (SELECT 1 FROM sync.hot_changes WHERE workspace_id = $1)",
+      "OR EXISTS (SELECT 1 FROM content.media_blobs AS blobs",
+      "WHERE blobs.media_blob_id = ANY($5::uuid[])",
+      "AND NOT EXISTS (SELECT 1 FROM content.media_assets AS assets",
+      "WHERE assets.media_blob_id = blobs.media_blob_id)",
+      "AND NOT EXISTS (SELECT 1 FROM catalog.package_media_assets AS package_assets",
+      "WHERE package_assets.media_blob_id = blobs.media_blob_id)) AS remaining",
     ].join(" "),
-      [fixture.workspaceId, fixture.userId, fixture.replicaId, fixture.cardId],
+      [
+        fixture.workspaceId, fixture.userId, fixture.replicaId, fixture.cardId,
+        mediaBlobRows.rows.map((row) => row.media_blob_id),
+      ],
     );
     if (verification.rows[0]?.remaining !== false) {
       throw new Error(

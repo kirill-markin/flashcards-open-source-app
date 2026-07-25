@@ -41,6 +41,7 @@ export interface MonitoringProps {
   communityLeaderboardSnapshotFn: lambda.IFunction;
   streakLeaderboardSnapshotFn: lambda.IFunction;
   progressActiveDaysBackfillFn: lambda.IFunction;
+  generatedMediaPromotionFn: lambda.IFunction;
 }
 
 export interface MonitoringResult {
@@ -322,6 +323,24 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     alarmDescription:
       "Progress active review days backfill Lambda has not run for two consecutive hours, " +
       "so known-timezone users may keep missing active-day materialization",
+    treatMissingData: cloudwatch.TreatMissingData.BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  new cloudwatch.Alarm(scope, "GeneratedMediaPromotionLambdaErrorAlarm", {
+    metric: props.generatedMediaPromotionFn.metricErrors(
+      { period: cdk.Duration.minutes(5), statistic: "Sum" },
+    ),
+    threshold: 1, evaluationPeriods: 1, alarmDescription: "Generated-media promotion Lambda had errors",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  new cloudwatch.Alarm(scope, "GeneratedMediaPromotionStaleAlarm", {
+    metric: props.generatedMediaPromotionFn.metricInvocations(
+      { period: cdk.Duration.minutes(5), statistic: "Sum" },
+    ),
+    threshold: 1, comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+    evaluationPeriods: 2, datapointsToAlarm: 2,
+    alarmDescription: "Generated-media promotion Lambda has not run for ten minutes",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
 

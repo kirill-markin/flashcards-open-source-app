@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../../database";
+import { testObservationScope } from "../../mediaAssets/storage/testHelpers";
 import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../../mediaAssets/storageKeys";
 import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../testSupport/postgresIntegration";
 import { InactiveChatRunClaimError } from "../runs/claimFence";
@@ -16,6 +17,11 @@ import {
   type ClaimedGeneratedMediaPromotionJob,
   type EnqueueGeneratedMediaPromotionJobInput,
 } from "./promotionJobs";
+import {
+  applyGeneratedMediaPromotionJob, failGeneratedMediaPromotionJob,
+  processClaimedGeneratedMediaPromotionJobWithDependencies,
+  rescheduleGeneratedMediaPromotionJob,
+} from "./promotionProcessor";
 type RunFixture = Readonly<{ sessionId: string; runId: string; claimToken: string }>;
 type ClaimTokenRow = Readonly<{ claim_token: string }>;
 type JobStateRow = Readonly<{ state: string; retry_count: number;
@@ -58,7 +64,7 @@ EnqueueGeneratedMediaPromotionJobInput {
   const jobId = randomUUID();
   const operationId = randomUUID();
   const mediaAssetId = randomUUID();
-  const sha256 = "8349792a6784cfdc5061b34e1184c85bcdb13719e86ac4be576e52e5e8c5f603";
+  const sha256 = "e4514fb8fbc32fb38d301d03c556edbf81e27aebbe7039b9eb40e3352ac2147f";
   return {
     userId: fixture.userId,
     workspaceId: fixture.workspaceId,
@@ -105,7 +111,7 @@ function hasPostgresCode(error: unknown, code: string): boolean {
 test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS", async () => {
   await withPostgresIntegrationFixture(async (fixture) => {
     const run = await createRun(fixture);
-    const concurrentInput = createInput(fixture, run);
+    const concurrentInput = { ...createInput(fixture, run), targetSide: "front" as const };
     await assert.rejects(
       enqueueGeneratedMediaPromotionJob({ ...concurrentInput, claimToken: new Date(0).toISOString() }),
       InactiveChatRunClaimError,
@@ -122,6 +128,14 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
       "UPDATE ai.chat_runs SET cancel_requested_at = NULL WHERE run_id = $1",
       [run.runId],
     );
+    await fixture.ownerPool.query(
+      "UPDATE sync.workspace_replicas SET user_id = 'unowned-replica-user' WHERE replica_id = $1", [fixture.replicaId]);
+    await assert.rejects(
+      enqueueGeneratedMediaPromotionJob(concurrentInput), (error: unknown) =>
+        hasPostgresCode(error, "MEDIA_ASSET_REPLICA_INVALID"),
+    );
+    await fixture.ownerPool.query(
+      "UPDATE sync.workspace_replicas SET user_id = $1 WHERE replica_id = $2", [fixture.userId, fixture.replicaId]);
     const concurrentEnqueue = await Promise.all([
       enqueueGeneratedMediaPromotionJob(concurrentInput),
       enqueueGeneratedMediaPromotionJob(concurrentInput),
@@ -166,6 +180,11 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
     assert.equal(new Set(claimed.map((job) => job.jobId)).size, 4);
     assert.equal(new Set(claimed.map((job) => job.leaseToken)).size, 4);
     const applied = byJobId(claimed, inputs[0]?.jobId ?? "");
+    assert.equal(applied.userId, fixture.userId);
+    await fixture.ownerPool.query(
+      "UPDATE sync.workspace_replicas SET user_id = 'reassigned-user' WHERE replica_id = $1",
+      [fixture.replicaId],
+    );
     await assert.rejects(
       transition(fixture, async (executor) =>
         markGeneratedMediaPromotionJobAppliedWithExecutor(executor, {
@@ -174,8 +193,24 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
         })),
       GeneratedMediaPromotionJobLeaseLostError,
     );
-    await transition(fixture, async (executor) =>
-      markGeneratedMediaPromotionJobAppliedWithExecutor(executor, applied));
+    await applyGeneratedMediaPromotionJob(applied, Date.now() + 10_000);
+    const appliedCard = await fixture.ownerPool.query<{ front_text: string; back_text: string }>(
+      "SELECT front_text, back_text FROM content.cards WHERE workspace_id = $1 AND card_id = $2",
+      [fixture.workspaceId, fixture.cardId],
+    );
+    assert.equal(appliedCard.rows[0]?.back_text, "Original answer");
+    assert.equal(
+      appliedCard.rows[0]?.front_text.match(new RegExp(`fcasset:${applied.mediaAssetId}`, "gu"))?.length,
+      1,
+    );
+    assert.ok(appliedCard.rows[0]?.front_text.startsWith("Original question\n\n![Generated integration image]"));
+    assert.equal(
+      (await fixture.ownerPool.query<{ count: string }>(
+        "SELECT count(*)::text AS count FROM content.media_assets WHERE media_asset_id = $1",
+        [applied.mediaAssetId],
+      )).rows[0]?.count,
+      "1",
+    );
     const rescheduled = byJobId(claimed, inputs[1]?.jobId ?? "");
     const nextAttemptAt = new Date(Date.now() + 60_000);
     const retryError = { code: "S3_TRANSIENT", message: "Temporary object-store failure." };
@@ -239,11 +274,28 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
     const terminalInput = inputs[3];
     if (terminalInput === undefined) throw new Error("Missing terminal input.");
     const terminal = byJobId(claimed, terminalInput.jobId);
-    await transition(fixture, async (executor) =>
-      failGeneratedMediaPromotionJobWithExecutor(executor, {
-        ...terminal,
-        error: { code: "IMMUTABLE_CONFLICT", message: "Immutable payload conflict." },
-      }));
+    await fixture.ownerPool.query(
+      "DELETE FROM org.workspace_memberships WHERE workspace_id = $1 AND user_id = $2",
+      [fixture.workspaceId, fixture.userId],
+    );
+    const revokedResult = await processClaimedGeneratedMediaPromotionJobWithDependencies(
+      terminal,
+      {
+        leaseOwner: "integration-revoked", leaseDurationMs: 60_000,
+        maximumJobs: 1, deadlineAtMs: Date.now() + 10_000,
+        observationScope: testObservationScope, signal: new AbortController().signal,
+      },
+      {
+        claimJobsFn: claimGeneratedMediaPromotionJobs,
+        promoteObjectFn: async () => {},
+        applyJobFn: applyGeneratedMediaPromotionJob,
+        rescheduleJobFn: rescheduleGeneratedMediaPromotionJob,
+        failJobFn: failGeneratedMediaPromotionJob,
+        nowFn: Date.now,
+      },
+    );
+    assert.equal(revokedResult.outcome, "failed");
+    assert.equal(revokedResult.errorCode, "WORKSPACE_ACCESS_REVOKED");
     await assert.rejects(
       transition(fixture, async (executor) =>
         failGeneratedMediaPromotionJobWithExecutor(executor, {
