@@ -1,20 +1,31 @@
-import { CopyObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { CopyObjectCommand, HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { createHash } from "node:crypto";
 import { addBackendBreadcrumb, type BackendObservationScope } from "../../observability/sentry";
-import type { MediaAssetObjectMetadata } from "../types";
+import { imageJpegCardMediaBlobMimeType, type MediaAssetObjectMetadata } from "../types";
 import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../storageKeys";
 import { getMediaAssetsS3Client, getMediaAssetsStorageConfig } from "./config";
 import type { MediaAssetStorageDependencies } from "./contracts";
 import { getS3ErrorStatusCode } from "./errors";
 import {
-  createUploadProofMetadata, toHexSha256Digest, uploadProofLastOperationIdSha256Key,
+  createUploadProofMetadata, toBase64Sha256Digest, toHexSha256Digest,
+  uploadProofLastOperationIdSha256Key,
   uploadProofMediaAssetIdKey, uploadProofSha256Key, uploadProofWorkspaceIdKey,
 } from "./proof";
 const maximumS3Attempts = 3;
-export type GeneratedMediaObjectPromotionInput = Readonly<{
-  workspaceId: string; mediaAssetId: string; operationId: string;
-  stagingStorageKey: string; blobStorageKey: string;
-  mimeType: string; sizeBytes: number; sha256: string;
-  observationScope: BackendObservationScope; signal: AbortSignal;
+type GeneratedMediaStorageRequestInput = Readonly<{
+  workspaceId: string; mediaAssetId: string; operationId: string; signal: AbortSignal;
+  observationScope: BackendObservationScope;
+}>;
+export type GeneratedMediaStagingObjectInput = GeneratedMediaStorageRequestInput
+  & Readonly<{ stagingStorageKey: string }>;
+export type GeneratedMediaStagingObject = Readonly<{
+  stagingStorageKey: string; mimeType: typeof imageJpegCardMediaBlobMimeType; sizeBytes: number; sha256: string;
+}>;
+export type StoreGeneratedMediaStagingObjectInput = GeneratedMediaStagingObjectInput & Readonly<{
+  bytes: Buffer; mimeType: typeof imageJpegCardMediaBlobMimeType; sizeBytes: number; sha256: string;
+}>;
+export type GeneratedMediaObjectPromotionInput = GeneratedMediaStagingObjectInput & Readonly<{
+  blobStorageKey: string; mimeType: string; sizeBytes: number; sha256: string;
 }>;
 type GeneratedMediaObjectMetadata = MediaAssetObjectMetadata & Readonly<{ customMetadata: Readonly<Record<string, string>> }>;
 export class GeneratedMediaPromotionStorageTerminalError extends Error {
@@ -56,8 +67,8 @@ async function waitForRetry(signal: AbortSignal): Promise<void> {
   });
 }
 async function runS3<Result>(
-  input: GeneratedMediaObjectPromotionInput,
-  operation: "head_object" | "copy_object",
+  input: GeneratedMediaStorageRequestInput,
+  operation: "head_object" | "copy_object" | "put_object",
   run: () => Promise<Result>,
 ): Promise<Result> {
   let lastStatusCode: number | null = null;
@@ -76,8 +87,7 @@ async function runS3<Result>(
         details: {
           operation, attempt, maxAttempts: maximumS3Attempts,
           workspaceId: input.workspaceId, mediaAssetId: input.mediaAssetId,
-          statusCode: lastStatusCode,
-          errorClass: error instanceof Error ? error.name : "UnknownError",
+          statusCode: lastStatusCode, errorClass: error instanceof Error ? error.name : "UnknownError",
         },
       });
       await waitForRetry(input.signal);
@@ -107,23 +117,29 @@ function toMetadata(response: Readonly<{
 function terminal(code: string, safeMessage: string, statusCode: number | null): never {
   throw new GeneratedMediaPromotionStorageTerminalError(code, safeMessage, statusCode);
 }
-function validateInput(input: GeneratedMediaObjectPromotionInput): void {
-  const keysMatch = input.stagingStorageKey === buildMediaUploadStagingStorageKey(
+function validateStagingIdentity(input: GeneratedMediaStagingObjectInput): void {
+  if (input.stagingStorageKey !== buildMediaUploadStagingStorageKey(
     input.workspaceId, input.mediaAssetId, input.operationId,
-  ) && input.blobStorageKey === buildMediaBlobStorageKey(input.sha256);
+  )) terminal("INVALID_STORAGE_KEY", "Generated-media staging storage key is not deterministic.", null);
+}
+function validateContent(input: Readonly<{
+  mimeType: string; sizeBytes: number; sha256: string;
+}>): void {
   const proofFieldsValid = input.mimeType === input.mimeType.trim().toLowerCase()
     && /^[a-z0-9][a-z0-9.+-]*\/[a-z0-9][a-z0-9.+-]*$/u.test(input.mimeType)
     && /^[0-9a-f]{64}$/u.test(input.sha256)
     && Number.isSafeInteger(input.sizeBytes) && input.sizeBytes > 0;
-  if (!keysMatch) terminal(
-    "INVALID_STORAGE_KEY", "Generated-media promotion storage keys are not deterministic.", null,
-  );
-  if (!proofFieldsValid) terminal(
-    "INVALID_MEDIA_PROOF", "Generated-media promotion proof fields are not normalized.", null,
-  );
+  if (!proofFieldsValid) terminal("INVALID_MEDIA_PROOF", "Generated-media promotion proof fields are not normalized.", null);
+}
+function validatePromotionInput(input: GeneratedMediaObjectPromotionInput): void {
+  validateStagingIdentity(input);
+  validateContent(input);
+  if (input.blobStorageKey !== buildMediaBlobStorageKey(input.sha256)) {
+    terminal("INVALID_STORAGE_KEY", "Generated-media blob storage key is not deterministic.", null);
+  }
 }
 async function headObject(
-  input: GeneratedMediaObjectPromotionInput,
+  input: GeneratedMediaStorageRequestInput,
   key: string,
   dependencies: MediaAssetStorageDependencies,
 ): Promise<GeneratedMediaObjectMetadata | null> {
@@ -151,36 +167,66 @@ function contentMatches(input: GeneratedMediaObjectPromotionInput, metadata: Med
     && metadata.checksumSha256 === input.sha256
     && metadata.checksumType === "FULL_OBJECT";
 }
-function assertStaging(input: GeneratedMediaObjectPromotionInput, metadata: GeneratedMediaObjectMetadata): void {
+function readStagingObject(
+  input: GeneratedMediaStagingObjectInput,
+  metadata: GeneratedMediaObjectMetadata,
+): GeneratedMediaStagingObject {
+  const sha256 = metadata.checksumSha256;
+  const sizeBytes = metadata.sizeBytes;
+  const metadataKeys = Object.keys(metadata.customMetadata).sort();
+  const expectedMetadataKeys = [
+    uploadProofLastOperationIdSha256Key,
+    uploadProofMediaAssetIdKey,
+    uploadProofSha256Key,
+    uploadProofWorkspaceIdKey,
+  ].sort();
+  if (metadata.mimeType !== imageJpegCardMediaBlobMimeType
+    || typeof sizeBytes !== "number"
+    || !Number.isSafeInteger(sizeBytes)
+    || sizeBytes < 1
+    || sha256 === null
+    || !/^[0-9a-f]{64}$/u.test(sha256)
+    || metadata.checksumType !== "FULL_OBJECT") {
+    terminal("STAGING_CONTENT_INVALID", "Staged generated-media MIME type, byte size, or SHA-256 checksum is invalid.", null);
+  }
+  if (metadata.uploadProof.sha256 !== sha256) {
+    terminal("STAGING_CONTENT_INVALID", "Staged generated-media checksum does not match its immutable content proof.", null);
+  }
   const proof = createUploadProofMetadata({
     workspaceId: input.workspaceId, mediaAssetId: input.mediaAssetId,
-    lastOperationId: input.operationId, sha256: input.sha256,
+    lastOperationId: input.operationId, sha256,
   });
-  if (!contentMatches(input, metadata)) terminal(
-    "STAGING_CONTENT_INVALID",
-    "Staged generated-media MIME type, byte size, or SHA-256 does not match the job.",
-    null,
-  );
-  if (
-    metadata.uploadProof.workspaceId !== proof[uploadProofWorkspaceIdKey]
+  if (metadataKeys.length !== expectedMetadataKeys.length
+    || metadataKeys.some((key, index) => key !== expectedMetadataKeys[index])
+    || metadata.uploadProof.workspaceId !== proof[uploadProofWorkspaceIdKey]
     || metadata.uploadProof.mediaAssetId !== proof[uploadProofMediaAssetIdKey]
-    || metadata.uploadProof.lastOperationIdSha256
-      !== proof[uploadProofLastOperationIdSha256Key]
-    || metadata.uploadProof.sha256 !== proof[uploadProofSha256Key]
-  ) terminal(
-    "STAGING_PROOF_INVALID",
-    "Staged generated-media ownership proof does not match the durable job.",
-    null,
-  );
+    || metadata.uploadProof.lastOperationIdSha256 !== proof[uploadProofLastOperationIdSha256Key]) {
+    terminal("STAGING_PROOF_INVALID", "Staged generated-media ownership proof does not match the durable job.", null);
+  }
+  return {
+    stagingStorageKey: input.stagingStorageKey,
+    mimeType: imageJpegCardMediaBlobMimeType,
+    sizeBytes,
+    sha256,
+  };
+}
+function assertStaging(
+  input: GeneratedMediaObjectPromotionInput,
+  metadata: GeneratedMediaObjectMetadata,
+): void {
+  const staging = readStagingObject(input, metadata);
+  if (staging.sizeBytes !== input.sizeBytes
+    || staging.mimeType !== input.mimeType
+    || staging.sha256 !== input.sha256) {
+    terminal("STAGING_CONTENT_INVALID", "Staged generated-media MIME type, byte size, or SHA-256 does not match the job.", null);
+  }
 }
 function assertPermanent(input: GeneratedMediaObjectPromotionInput, metadata: GeneratedMediaObjectMetadata): void {
   const tenantNeutral = Object.keys(metadata.customMetadata).length === 1
     && metadata.customMetadata[uploadProofSha256Key] === input.sha256;
-  if (!contentMatches(input, metadata) || !tenantNeutral) terminal(
-    "PERMANENT_BLOB_CONFLICT",
-    "The permanent object conflicts with the job or contains tenant metadata.",
-    null,
-  );
+  if (!contentMatches(input, metadata) || !tenantNeutral) {
+    terminal("PERMANENT_BLOB_CONFLICT", "The permanent object conflicts with the job or contains tenant metadata.", null);
+  }
 }
 async function copyObject(
   input: GeneratedMediaObjectPromotionInput,
@@ -210,11 +256,68 @@ async function copyObject(
     terminal("S3_REQUEST_REJECTED", "Object storage rejected the promotion request.", statusCode);
   }
 }
+async function putStagingObject(
+  input: StoreGeneratedMediaStagingObjectInput,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<void> {
+  const bucketName = dependencies.getMediaAssetsStorageConfigFn().bucketName;
+  try {
+    await runS3(input, "put_object", async () => dependencies.s3Client.send(
+      new PutObjectCommand({
+        Bucket: bucketName,
+        Key: input.stagingStorageKey,
+        Body: input.bytes,
+        ContentType: input.mimeType,
+        ChecksumSHA256: toBase64Sha256Digest(input.sha256),
+        IfNoneMatch: "*",
+        Metadata: createUploadProofMetadata({
+          workspaceId: input.workspaceId, mediaAssetId: input.mediaAssetId,
+          lastOperationId: input.operationId, sha256: input.sha256,
+        }),
+      }),
+      { abortSignal: input.signal },
+    ));
+  } catch (error) {
+    input.signal.throwIfAborted();
+    const statusCode = getS3ErrorStatusCode(error);
+    if (statusCode === 412) return;
+    if (error instanceof GeneratedMediaPromotionStorageTransientError) throw error;
+    if (statusCode === null) throw error;
+    terminal("S3_REQUEST_REJECTED", "Object storage rejected the staging request.", statusCode);
+  }
+}
+export async function loadGeneratedMediaStagingObjectWithDependencies(
+  input: GeneratedMediaStagingObjectInput,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<GeneratedMediaStagingObject | null> {
+  validateStagingIdentity(input);
+  const metadata = await headObject(input, input.stagingStorageKey, dependencies);
+  return metadata === null ? null : readStagingObject(input, metadata);
+}
+export async function storeGeneratedMediaStagingObjectWithDependencies(
+  input: StoreGeneratedMediaStagingObjectInput,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<GeneratedMediaStagingObject> {
+  validateStagingIdentity(input);
+  validateContent(input);
+  if (input.mimeType !== imageJpegCardMediaBlobMimeType
+    || input.bytes.byteLength !== input.sizeBytes
+    || createHash("sha256").update(input.bytes).digest("hex") !== input.sha256) {
+    terminal("INVALID_MEDIA_PROOF", "Generated-media staging bytes do not match normalized metadata.", null);
+  }
+  await putStagingObject(input, dependencies);
+  const stored = await loadGeneratedMediaStagingObjectWithDependencies(input, dependencies);
+  if (stored === null) throw new GeneratedMediaPromotionStorageTransientError(404);
+  if (stored.sizeBytes !== input.sizeBytes || stored.sha256 !== input.sha256) {
+    terminal("STAGING_CONTENT_INVALID", "The deterministic staging key already contains different generated-media bytes.", null);
+  }
+  return stored;
+}
 export async function promoteGeneratedMediaObjectWithDependencies(
   input: GeneratedMediaObjectPromotionInput,
   dependencies: MediaAssetStorageDependencies,
 ): Promise<void> {
-  validateInput(input);
+  validatePromotionInput(input);
   const staging = await headObject(input, input.stagingStorageKey, dependencies);
   if (staging === null) terminal("STAGING_NOT_FOUND", "The staged object is missing.", 404);
   assertStaging(input, staging);
@@ -232,6 +335,22 @@ export async function promoteGeneratedMediaObject(
   input: GeneratedMediaObjectPromotionInput,
 ): Promise<void> {
   return promoteGeneratedMediaObjectWithDependencies(input, {
+    s3Client: getMediaAssetsS3Client(),
+    getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
+  });
+}
+export async function loadGeneratedMediaStagingObject(
+  input: GeneratedMediaStagingObjectInput,
+): Promise<GeneratedMediaStagingObject | null> {
+  return loadGeneratedMediaStagingObjectWithDependencies(input, {
+    s3Client: getMediaAssetsS3Client(),
+    getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
+  });
+}
+export async function storeGeneratedMediaStagingObject(
+  input: StoreGeneratedMediaStagingObjectInput,
+): Promise<GeneratedMediaStagingObject> {
+  return storeGeneratedMediaStagingObjectWithDependencies(input, {
     s3Client: getMediaAssetsS3Client(),
     getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
   });
