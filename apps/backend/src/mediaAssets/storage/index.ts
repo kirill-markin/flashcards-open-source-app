@@ -40,6 +40,13 @@ import {
   promoteMediaAssetUploadToBlobWithDependencies,
   storeMediaAssetBlobBytesIfAbsentWithDependencies,
 } from "./promotion";
+export {
+  GeneratedMediaPromotionStorageTerminalError,
+  GeneratedMediaPromotionStorageTransientError,
+  promoteGeneratedMediaObject,
+  promoteGeneratedMediaObjectWithDependencies,
+} from "./generatedPromotion";
+export type { GeneratedMediaObjectPromotionInput } from "./generatedPromotion";
 
 export { getMediaAssetsStorageConfig } from "./config";
 export type { MediaAssetsStorageConfig } from "./config";

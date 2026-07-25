@@ -19,6 +19,7 @@ import { globalMetrics } from "./scheduled-jobs/global-metrics";
 import { communityLeaderboard } from "./scheduled-jobs/community-leaderboard";
 import { streakLeaderboard } from "./scheduled-jobs/streak-leaderboard";
 import { progressActiveDaysBackfill } from "./scheduled-jobs/progress-active-days-backfill";
+import { generatedMediaPromotion } from "./scheduled-jobs/generated-media-promotion";
 import { mediaAssets } from "./media-assets";
 
 function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefined {
@@ -195,6 +196,14 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const mediaAssetsResult = mediaAssets(this, {
       baseDomain,
     });
+    const generatedMediaPromotionResult = generatedMediaPromotion(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      backendDbSecret: dbResult.backendDbSecret,
+      mediaAssetsBucket: mediaAssetsResult.bucket,
+      ...sentryContext,
+    });
     let analyticsAccessResult: AnalyticsAccessResult | undefined;
     if (analyticsAccessRequested) {
       if (analyticsSshPublicKeysValue === undefined) {
@@ -319,6 +328,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       communityLeaderboardSnapshotFn: communityLeaderboardResult.snapshotFunction,
       streakLeaderboardSnapshotFn: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFn: progressActiveDaysBackfillResult.backfillFunction,
+      generatedMediaPromotionFn: generatedMediaPromotionResult.promotionFunction,
     });
 
     ciCd(this, {

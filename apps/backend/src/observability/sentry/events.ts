@@ -8,6 +8,7 @@ export type BackendService =
   | "community-leaderboard-snapshot"
   | "streak-leaderboard-snapshot"
   | "progress-active-days-backfill"
+  | "generated-media-promotion"
   | "migration";
 
 export type BackendObservationScope = Readonly<{
@@ -674,6 +675,14 @@ export type ProgressActiveDaysBackfillFailureDetails = Readonly<{
   message: string;
 }>;
 
+export type GeneratedMediaPromotionBatchDetails = Readonly<{
+  maximumJobs: number; claimed: number; applied: number; ambiguous: number;
+  failed: number; interrupted: number; leaseLost: number; rescheduled: number;
+  results: ReadonlyArray<Readonly<{
+    jobId: string; outcome: string; retryCount: number; errorCode: string | null;
+  }>>;
+}>;
+
 export type DatabaseTransientRetryDetails = Readonly<{
   attempt: number;
   maxAttempts: number;
@@ -773,6 +782,7 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"community_leaderboard_snapshot_generated", CommunityLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"streak_leaderboard_snapshot_generated", StreakLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"progress_active_days_backfill_completed", ProgressActiveDaysBackfillCompletedDetails>
+  | EventByAction<"generated_media_promotion_batch_completed", GeneratedMediaPromotionBatchDetails>
   | EventByAction<"database_transient_retry", DatabaseTransientRetryDetails>
   | EventByAction<"global_metrics_s3_retry", GlobalMetricsS3RetryDetails>
   | EventByAction<"media_asset_storage_retry", MediaAssetStorageRetryDetails>
@@ -1032,6 +1042,9 @@ export type BackendExceptionEvent =
     error: Error;
   }>)
   | (EventByAction<"progress_active_days_backfill_failed", ProgressActiveDaysBackfillFailureDetails> & Readonly<{
+    error: Error;
+  }>)
+  | (EventByAction<"generated_media_promotion_batch_failed", GeneratedMediaPromotionBatchDetails> & Readonly<{
     error: Error;
   }>)
   | (EventByAction<"migration_failed", MigrationFailureDetails> & Readonly<{ error: Error }>)
