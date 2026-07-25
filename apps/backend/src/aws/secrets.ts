@@ -9,8 +9,16 @@ const secretsClient = new SecretsManagerClient({});
 let resolvedBackendCsrfSecret: string | undefined;
 let resolvedBackendChatLiveAuthSecret: string | undefined;
 
-export async function getDatabaseCredentialsSecret(secretArn: string): Promise<DatabaseCredentialsSecret> {
-  const response = await secretsClient.send(new GetSecretValueCommand({ SecretId: secretArn }));
+async function loadDatabaseCredentialsSecret(
+  secretArn: string,
+  abortSignal: AbortSignal | null,
+): Promise<DatabaseCredentialsSecret> {
+  abortSignal?.throwIfAborted();
+  const command = new GetSecretValueCommand({ SecretId: secretArn });
+  const response = abortSignal === null
+    ? await secretsClient.send(command)
+    : await secretsClient.send(command, { abortSignal });
+  abortSignal?.throwIfAborted();
   if (!response.SecretString) {
     throw new Error(`Secret ${secretArn} does not contain SecretString`);
   }
@@ -28,6 +36,17 @@ export async function getDatabaseCredentialsSecret(secretArn: string): Promise<D
     username: value.username,
     password: value.password,
   };
+}
+
+export async function getDatabaseCredentialsSecret(secretArn: string): Promise<DatabaseCredentialsSecret> {
+  return loadDatabaseCredentialsSecret(secretArn, null);
+}
+
+export async function getDatabaseCredentialsSecretWithAbortSignal(
+  secretArn: string,
+  abortSignal: AbortSignal,
+): Promise<DatabaseCredentialsSecret> {
+  return loadDatabaseCredentialsSecret(secretArn, abortSignal);
 }
 
 export async function getBackendCsrfSecret(secretArn: string): Promise<string> {

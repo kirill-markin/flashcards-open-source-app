@@ -4,6 +4,7 @@ import {
   applyWorkspaceDatabaseScopeInExecutor,
   unsafeRepeatableReadReadOnlyTransaction,
   unsafeTransaction,
+  unsafeTransactionWithDeadline,
   type DatabaseExecutor,
   type SqlValue,
   type UserDatabaseScope,
@@ -23,6 +24,11 @@ export {
   SessionAdvisoryLockAbortedError, SessionAdvisoryLockTimeoutError, withSessionAdvisoryLock,
 } from "./sessionAdvisoryLock";
 export type { SessionAdvisoryLockInput } from "./sessionAdvisoryLock";
+export {
+  DatabaseDeadlineExceededError,
+  DatabaseTransactionRolledBackError,
+} from "./deadline";
+export type { DatabaseDeadlinePhase } from "./deadline";
 
 export async function transactionWithUserScope<Result>(
   scope: UserDatabaseScope,
@@ -39,6 +45,17 @@ export async function transactionWithWorkspaceScope<Result>(
   callback: (executor: DatabaseExecutor) => Promise<Result>,
 ): Promise<Result> {
   return unsafeTransaction(async (executor) => {
+    await applyWorkspaceDatabaseScopeInExecutor(executor, scope);
+    return callback(executor);
+  });
+}
+
+export async function transactionWithWorkspaceScopeDeadline<Result>(
+  scope: WorkspaceDatabaseScope,
+  deadlineAtMs: number,
+  callback: (executor: DatabaseExecutor) => Promise<Result>,
+): Promise<Result> {
+  return unsafeTransactionWithDeadline(deadlineAtMs, async (executor) => {
     await applyWorkspaceDatabaseScopeInExecutor(executor, scope);
     return callback(executor);
   });

@@ -20,6 +20,10 @@ function createCodedError(code: string, message: string): CodedError {
   return error;
 }
 
+function hasCode(error: unknown, code: string): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === code;
+}
+
 test("unsafeTransaction classifies transaction failures and discards clients when needed", async () => {
   const originalDatabaseUrl = process.env.DATABASE_URL;
   const originalDbSecretArn = process.env.DB_SECRET_ARN;
@@ -33,6 +37,7 @@ test("unsafeTransaction classifies transaction failures and discards clients whe
   let beginError: CodedError | null = transientBeginError;
   let commitError: CodedError | null = transientCommitError;
   let rollbackError: CodedError | null = null;
+  let poolConstructionCount = 0;
 
   const fakeClient = {
     async query(text: string, params?: ReadonlyArray<unknown>): Promise<pg.QueryResult<pg.QueryResultRow>> {
@@ -66,7 +71,9 @@ test("unsafeTransaction classifies transaction failures and discards clients whe
   };
 
   class FakePool {
-    constructor(_config: pg.PoolConfig) {}
+    constructor(_config: pg.PoolConfig) {
+      poolConstructionCount += 1;
+    }
 
     on(_event: string, _listener: (error: Error) => void): void {}
 
@@ -91,6 +98,16 @@ test("unsafeTransaction classifies transaction failures and discards clients whe
     const dbCore = await import("./core");
 
     await assert.rejects(
+      dbCore.unsafeQueryWithDeadline(Date.now() - 1, "SELECT 1", []),
+      (error: unknown) => hasCode(error, "DATABASE_DEADLINE_EXCEEDED"),
+    );
+    await assert.rejects(
+      dbCore.unsafeTransactionWithDeadline(Date.now() - 1, async () => "unreachable"),
+      (error: unknown) => hasCode(error, "DATABASE_DEADLINE_EXCEEDED"),
+    );
+    assert.equal(poolConstructionCount, 0);
+
+    await assert.rejects(
       dbCore.unsafeTransaction(async () => {
         throw new Error("Callback should not run when BEGIN fails.");
       }),
@@ -105,6 +122,7 @@ test("unsafeTransaction classifies transaction failures and discards clients whe
     assert.deepEqual(queries, [
       { text: "BEGIN", params: null },
     ]);
+    assert.equal(poolConstructionCount, 1);
     assert.equal(releaseArguments.length, 1);
     assert.equal(releaseArguments[0], transientBeginError);
 
