@@ -1,8 +1,10 @@
 import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../database";
+import { unsafeTransaction } from "../database/unsafe";
 import { HttpError } from "../shared/errors";
 import { buildMediaBlobStorageKey } from "./storageKeys";
 import {
   mediaBlobNormalizationVersions,
+  passthroughMediaBlobNormalizationVersion,
   type MediaBlobNormalizationVersion,
 } from "./types";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
@@ -27,12 +29,25 @@ export type MediaBlobWriterExactInput = MediaBlobWriterReservationInput & Readon
   reservationToken: string;
 }>;
 export type MediaBlobWriterReconciliation = "referenced" | "unreferenced";
+export type DirectMediaBlobWriterResolution =
+  | MediaBlobWriterReconciliation
+  | "absent"
+  | "access_active"
+  | "stale";
+export type DirectMediaBlobWriterResolutionInput = Readonly<{
+  userId: string; workspaceId: string; mediaAssetId: string; operationId: string;
+  lastModifiedByReplicaId: string; sha256: string; storageKey: string;
+  mimeType: string; sizeBytes: number;
+}>;
+export type DirectMediaBlobWriterReservationInput =
+  DirectMediaBlobWriterResolutionInput & Readonly<{ normalizationVersion: MediaBlobNormalizationVersion }>;
 type ReservationRow = Readonly<{
   reservation_token: string | null; reservation_state: string | null;
   reservation_status: string; normalization_version: string;
 }>;
 type BooleanRow = Readonly<{ transitioned: boolean }>;
 type ReconciliationRow = Readonly<{ reconciliation_status: string }>;
+type DirectResolutionRow = Readonly<{ resolution_status: string }>;
 type CleanupClaimRow = Readonly<{ lease_token: string | null }>;
 export class MediaBlobLifecycleBusyError extends HttpError {
   constructor() { super( 503, "Media bytes are temporarily fenced by cleanup. Retry shortly.", "MEDIA_BLOB_LIFECYCLE_BUSY", ); this.name = "MediaBlobLifecycleBusyError";
@@ -77,6 +92,10 @@ function requireNormalizationVersion(value: string): MediaBlobNormalizationVersi
   }
   return version;
 }
+function assertHistoricalWriterOwner(userId: string, replicaId: string): void {
+  if (userId !== userId.trim() || userId.length === 0) throw new TypeError("userId must be non-empty and trimmed.");
+  if (!uuidPattern.test(replicaId)) throw new TypeError("lastModifiedByReplicaId must be a lowercase UUID.");
+}
 export async function reserveMediaBlobWriterInExecutor(
   executor: DatabaseExecutor, input: MediaBlobWriterReservationInput,
 ): Promise<MediaBlobWriterReservation> {
@@ -102,6 +121,36 @@ export async function reserveMediaBlobWriterForWorkspace(
 ): Promise<MediaBlobWriterReservation> {
   return transactionWithWorkspaceScope( { userId, workspaceId: input.workspaceId }, async (executor) => reserveMediaBlobWriterInExecutor(executor, input),
   );
+}
+export async function reserveDirectMediaBlobWriterWithOwnerInExecutor(
+  executor: DatabaseExecutor,
+  input: DirectMediaBlobWriterReservationInput,
+): Promise<MediaBlobWriterReservation> {
+  assertReservationInput({ ...input, writerKind: "direct_ingestion" });
+  assertHistoricalWriterOwner(input.userId, input.lastModifiedByReplicaId);
+  const result = await executor.query<ReservationRow>(
+    `SELECT reservation_token, reservation_state, reservation_status, normalization_version FROM content.reserve_direct_media_blob_writer_with_owner($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+    [
+      input.userId, input.workspaceId, input.mediaAssetId, input.operationId,
+      input.lastModifiedByReplicaId, input.sha256, input.storageKey, input.mimeType,
+      input.sizeBytes, input.normalizationVersion,
+    ],
+  );
+  const row = result.rows[0];
+  if (row?.reservation_status === "cleanup_claimed") throw new MediaBlobLifecycleBusyError();
+  if (row?.reservation_status !== "reserved" || row.reservation_token === null
+    || (row.reservation_state !== "active" && row.reservation_state !== "ambiguous"
+      && row.reservation_state !== "finalized")
+  ) throw new MediaBlobWriterFenceError("reserve_direct_owner");
+  assertMediaBlobWriterReservationToken(row.reservation_token);
+  return { reservationToken: row.reservation_token, state: row.reservation_state,
+    normalizationVersion: requireNormalizationVersion(row.normalization_version) };
+}
+export async function reserveDirectMediaBlobWriterWithOwner(
+  input: DirectMediaBlobWriterReservationInput,
+): Promise<MediaBlobWriterReservation> {
+  return transactionWithWorkspaceScope( { userId: input.userId, workspaceId: input.workspaceId },
+    (executor) => reserveDirectMediaBlobWriterWithOwnerInExecutor(executor, input));
 }
 export async function finalizeMediaBlobWriterInExecutor(
   executor: DatabaseExecutor,
@@ -162,6 +211,40 @@ export async function terminalizeMediaBlobWriterFailureInExecutor(
   const status = result.rows[0]?.reconciliation_status;
   if (status === "referenced" || status === "unreferenced") return status;
   throw new MediaBlobWriterFenceError("terminalize_failure");
+}
+export async function resolveDirectMediaBlobWriterAfterAccessRevocationInExecutor(
+  executor: DatabaseExecutor,
+  input: DirectMediaBlobWriterResolutionInput,
+): Promise<DirectMediaBlobWriterResolution> {
+  assertReservationInput({
+    ...input,
+    writerKind: "direct_ingestion",
+    normalizationVersion: passthroughMediaBlobNormalizationVersion,
+  });
+  assertHistoricalWriterOwner(input.userId, input.lastModifiedByReplicaId);
+  const result = await executor.query<DirectResolutionRow>(
+    `SELECT content.resolve_direct_media_blob_writer_after_access_revocation(
+       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+     ) AS resolution_status`,
+    [
+      input.userId, input.workspaceId, input.mediaAssetId, input.operationId,
+      input.lastModifiedByReplicaId, input.sha256, input.storageKey, input.mimeType,
+      input.sizeBytes, mediaBlobCleanupDelayMs,
+    ],
+  );
+  const status = result.rows[0]?.resolution_status;
+  if (
+    status === "absent" || status === "referenced" || status === "unreferenced"
+    || status === "access_active" || status === "stale"
+  ) return status;
+  throw new TypeError("PostgreSQL returned an invalid direct media blob writer resolution.");
+}
+export async function resolveDirectMediaBlobWriterAfterAccessRevocation(
+  input: DirectMediaBlobWriterResolutionInput,
+): Promise<DirectMediaBlobWriterResolution> {
+  return unsafeTransaction(
+    (executor) => resolveDirectMediaBlobWriterAfterAccessRevocationInExecutor(executor, input),
+  );
 }
 export async function markMediaBlobWriterAmbiguousForWorkspace(
   userId: string, workspaceId: string, reservationToken: string,
