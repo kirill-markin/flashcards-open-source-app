@@ -17,7 +17,8 @@ export type PostgresIntegrationFixture = Readonly<{
 }>;
 
 type RemainingFixtureRows = Readonly<{ remaining: boolean }>;
-type MediaBlobIdRow = Readonly<{ media_blob_id: string }>;
+type MediaBlobFixtureRow = Readonly<{ media_blob_id: string; sha256: string }>;
+type Sha256Row = Readonly<{ sha256: string }>;
 
 function requireDatabaseUrl(environmentVariable: "DATABASE_URL" | "TEST_DATABASE_ADMIN_URL"): string {
   const databaseUrl = process.env[environmentVariable]?.trim();
@@ -115,11 +116,30 @@ async function deleteAndVerifyFixtureRows(fixture: PostgresIntegrationFixture): 
   const ownerClient = await fixture.ownerPool.connect();
   try {
     await ownerClient.query("BEGIN");
-    const mediaBlobRows = await ownerClient.query<MediaBlobIdRow>(
-      "SELECT DISTINCT media_blob_id FROM content.media_assets WHERE workspace_id = $1",
+    const mediaBlobRows = await ownerClient.query<MediaBlobFixtureRow>(
+      `SELECT DISTINCT media_blobs.media_blob_id, media_blobs.sha256
+       FROM content.media_assets AS media_assets
+       INNER JOIN content.media_blobs AS media_blobs
+         ON media_blobs.media_blob_id = media_assets.media_blob_id
+       WHERE media_assets.workspace_id = $1`,
       [fixture.workspaceId],
     );
+    const fixtureWorkspaceIds = [fixture.workspaceId, fixture.outOfScopeWorkspaceId];
+    const reservationRows = await ownerClient.query<Sha256Row>(
+      `SELECT DISTINCT sha256
+       FROM content.media_blob_writer_reservations
+       WHERE workspace_id = ANY($1::uuid[])`,
+      [fixtureWorkspaceIds],
+    );
+    const fixtureSha256s = [...new Set([
+      ...mediaBlobRows.rows.map((row) => row.sha256),
+      ...reservationRows.rows.map((row) => row.sha256),
+    ])];
     await ownerClient.query("DELETE FROM org.workspaces WHERE workspace_id = $1", [fixture.workspaceId]);
+    await ownerClient.query(
+      "DELETE FROM content.media_blob_writer_reservations WHERE workspace_id = ANY($1::uuid[])",
+      [fixtureWorkspaceIds],
+    );
     await ownerClient.query(
       `DELETE FROM content.media_blobs AS blobs
        WHERE blobs.media_blob_id = ANY($1::uuid[])
@@ -130,6 +150,19 @@ async function deleteAndVerifyFixtureRows(fixture: PostgresIntegrationFixture): 
          AND NOT EXISTS (SELECT 1 FROM catalog.package_media_assets AS package_assets
                          WHERE package_assets.media_blob_id = blobs.media_blob_id)`,
       [mediaBlobRows.rows.map((row) => row.media_blob_id)],
+    );
+    await ownerClient.query(
+      `DELETE FROM content.media_blob_lifecycles AS lifecycles
+       WHERE lifecycles.sha256 = ANY($1::text[])
+         AND NOT EXISTS (
+           SELECT 1 FROM content.media_blobs AS blobs
+           WHERE blobs.sha256 = lifecycles.sha256
+         )
+         AND NOT EXISTS (
+           SELECT 1 FROM content.media_blob_writer_reservations AS reservations
+           WHERE reservations.sha256 = lifecycles.sha256
+         )`,
+      [fixtureSha256s],
     );
     await ownerClient.query("DELETE FROM org.user_settings WHERE user_id = $1", [fixture.userId]);
     const verification = await ownerClient.query<RemainingFixtureRows>([
@@ -143,11 +176,20 @@ async function deleteAndVerifyFixtureRows(fixture: PostgresIntegrationFixture): 
       "AND NOT EXISTS (SELECT 1 FROM content.media_assets AS assets",
       "WHERE assets.media_blob_id = blobs.media_blob_id)",
       "AND NOT EXISTS (SELECT 1 FROM catalog.package_media_assets AS package_assets",
-      "WHERE package_assets.media_blob_id = blobs.media_blob_id)) AS remaining",
+      "WHERE package_assets.media_blob_id = blobs.media_blob_id))",
+      "OR EXISTS (SELECT 1 FROM content.media_blob_writer_reservations",
+      "WHERE workspace_id = ANY($6::uuid[]))",
+      "OR EXISTS (SELECT 1 FROM content.media_blob_lifecycles AS lifecycles",
+      "WHERE lifecycles.sha256 = ANY($7::text[])",
+      "AND NOT EXISTS (SELECT 1 FROM content.media_blobs AS blobs",
+      "WHERE blobs.sha256 = lifecycles.sha256)",
+      "AND NOT EXISTS (SELECT 1 FROM content.media_blob_writer_reservations AS reservations",
+      "WHERE reservations.sha256 = lifecycles.sha256)) AS remaining",
     ].join(" "),
       [
         fixture.workspaceId, fixture.userId, fixture.replicaId, fixture.cardId,
         mediaBlobRows.rows.map((row) => row.media_blob_id),
+        fixtureWorkspaceIds, fixtureSha256s,
       ],
     );
     if (verification.rows[0]?.remaining !== false) {
