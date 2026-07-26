@@ -348,6 +348,11 @@ struct SyncApplier {
     }
 }
 
+private func compareUtf8Strings(left: String, right: String) -> ComparisonResult {
+    left.utf8.elementsEqual(right.utf8) ? .orderedSame
+        : (left.utf8.lexicographicallyPrecedes(right.utf8) ? .orderedAscending : .orderedDescending)
+}
+
 private func compareLwwTuple(
     leftClientUpdatedAt: String,
     leftDeviceId: String,
@@ -356,17 +361,17 @@ private func compareLwwTuple(
     rightDeviceId: String,
     rightOperationId: String
 ) -> Int {
-    let timestampComparison = leftClientUpdatedAt.compare(rightClientUpdatedAt)
+    let timestampComparison = compareUtf8Strings(left: leftClientUpdatedAt, right: rightClientUpdatedAt)
     if timestampComparison != .orderedSame {
         return timestampComparison == .orderedAscending ? -1 : 1
     }
 
-    let deviceComparison = leftDeviceId.compare(rightDeviceId)
+    let deviceComparison = compareUtf8Strings(left: leftDeviceId, right: rightDeviceId)
     if deviceComparison != .orderedSame {
         return deviceComparison == .orderedAscending ? -1 : 1
     }
 
-    let operationComparison = leftOperationId.compare(rightOperationId)
+    let operationComparison = compareUtf8Strings(left: leftOperationId, right: rightOperationId)
     if operationComparison == .orderedAscending {
         return -1
     }

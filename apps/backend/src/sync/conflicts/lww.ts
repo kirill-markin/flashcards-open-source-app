@@ -21,12 +21,14 @@ export function compareLwwMetadata(left: LwwMetadata, right: LwwMetadata): numbe
     return timestampDifference;
   }
 
-  const deviceComparison = left.lastModifiedByReplicaId.localeCompare(right.lastModifiedByReplicaId);
+  const deviceComparison = Buffer.compare(
+    Buffer.from(left.lastModifiedByReplicaId, "utf8"), Buffer.from(right.lastModifiedByReplicaId, "utf8"),
+  );
   if (deviceComparison !== 0) {
     return deviceComparison;
   }
 
-  return left.lastOperationId.localeCompare(right.lastOperationId);
+  return Buffer.compare(Buffer.from(left.lastOperationId, "utf8"), Buffer.from(right.lastOperationId, "utf8"));
 }
 
 export function incomingLwwMetadataWins(
