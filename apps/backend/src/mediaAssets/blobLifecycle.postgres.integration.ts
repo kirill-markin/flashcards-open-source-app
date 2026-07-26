@@ -11,6 +11,7 @@ import {
   finalizeMediaBlobWriterInExecutor, markMediaBlobWriterAmbiguousInExecutor,
   MediaBlobLifecycleBusyError, MediaBlobLifecycleConflictError, MediaBlobWriterFenceError,
   reconcileMediaBlobWriterInExecutor, reserveMediaBlobWriterInExecutor,
+  terminalizeMediaBlobWriterFailureInExecutor,
   type MediaBlobWriterReservationInput,
 } from "./blobLifecycle";
 import { createImageNormalizedMediaAssetForWorkspace } from ".";
@@ -21,10 +22,15 @@ type LifecycleUpgradeRow = Readonly<{
   created_at_matches: boolean; updated_at_matches: boolean; workspace_fence: boolean; catalog_fence: boolean;
   backend_table_access: boolean; auth_table_access: boolean;
   backend_reserve_access: boolean; backend_fence_access: boolean;
+  backend_terminalize_access: boolean; auth_terminalize_access: boolean;
+  backend_generated_failure_access: boolean;
 }>;
 function createUniqueSha256(): string { return createHash("sha256").update(randomUUID()).digest("hex"); }
 const lifecycleMigrationSql = readFileSync(resolve(
   __dirname, "../../../../db/migrations/0091_durable_media_blob_lifecycle.sql",
+), "utf8");
+const writerSupportMigrationSql = readFileSync(resolve(
+  __dirname, "../../../../db/migrations/0092_media_blob_writer_support.sql",
 ), "utf8");
 function input(workspaceId: string, mediaAssetId: string, operationId: string, sha256: string): MediaBlobWriterReservationInput {
   return {
@@ -147,6 +153,11 @@ async function assertLifecycleMigrationUpgrade(fixture: PostgresIntegrationFixtu
     await client.query("BEGIN");
     await client.query(`
       DROP TRIGGER media_assets_blob_reference_fence ON content.media_assets; DROP TRIGGER package_media_assets_blob_reference_fence ON catalog.package_media_assets;
+      DROP FUNCTION content.mark_generated_media_promotion_blob_writer_ambiguous(UUID, UUID, UUID, UUID, TEXT, UUID, UUID, TEXT, TEXT, UUID, UUID, TEXT, TEXT, TEXT, TEXT, BIGINT, TEXT);
+      DROP FUNCTION content.fail_generated_media_promotion_job_with_blob_writer(UUID, UUID, UUID, UUID, TEXT, UUID, UUID, TEXT, TEXT, UUID, UUID, TEXT, TEXT, TEXT, TEXT, BIGINT, TEXT, TEXT, TEXT, INTEGER);
+      DROP FUNCTION content.generated_media_promotion_blob_writer_lease_matches(UUID, UUID, UUID, TEXT, UUID, UUID, TEXT, TEXT, UUID, UUID, TEXT, TEXT, TEXT, TEXT, BIGINT);
+      DROP FUNCTION content.terminalize_media_blob_writer_failure(UUID, TEXT, TEXT, TEXT, BIGINT, TEXT, TEXT, UUID, UUID, TEXT, INTEGER);
+      DROP FUNCTION content.media_blob_writer_exact_match(UUID, TEXT, TEXT, TEXT, BIGINT, TEXT, TEXT, UUID, UUID, TEXT);
       DROP FUNCTION content.fence_workspace_media_asset_reference(), content.fence_catalog_media_asset_reference(), content.fence_media_blob_reference(UUID);
       DROP FUNCTION content.reserve_media_blob_writer(TEXT, TEXT, TEXT, BIGINT, TEXT, TEXT, UUID, UUID, TEXT), content.finalize_media_blob_writer(UUID, TEXT, UUID, UUID);
       DROP FUNCTION content.mark_media_blob_writer_ambiguous(UUID), content.reconcile_media_blob_writer(UUID, TEXT, UUID, UUID, INTEGER);
@@ -160,6 +171,7 @@ async function assertLifecycleMigrationUpgrade(fixture: PostgresIntegrationFixtu
       [blobId, sha256, storageKey, fixture.createdAt],
     );
     await client.query(lifecycleMigrationSql);
+    await client.query(writerSupportMigrationSql);
     assert.deepEqual((await client.query<LifecycleUpgradeRow>(
       `SELECT lifecycles.storage_key, lifecycles.mime_type, lifecycles.size_bytes::text, lifecycles.normalization_version,
               lifecycles.created_at = $2::timestamptz AS created_at_matches, lifecycles.updated_at = $2::timestamptz AS updated_at_matches,
@@ -168,7 +180,10 @@ async function assertLifecycleMigrationUpgrade(fixture: PostgresIntegrationFixtu
               has_table_privilege('backend_app', 'content.media_blob_lifecycles', 'SELECT') AS backend_table_access,
               has_table_privilege('auth_app', 'content.media_blob_writer_reservations', 'SELECT') AS auth_table_access,
               has_function_privilege('backend_app', 'content.reserve_media_blob_writer(text,text,text,bigint,text,text,uuid,uuid,text)', 'EXECUTE') AS backend_reserve_access,
-              has_function_privilege('backend_app', 'content.fence_media_blob_reference(uuid)', 'EXECUTE') AS backend_fence_access
+              has_function_privilege('backend_app', 'content.fence_media_blob_reference(uuid)', 'EXECUTE') AS backend_fence_access,
+              has_function_privilege('backend_app', 'content.terminalize_media_blob_writer_failure(uuid,text,text,text,bigint,text,text,uuid,uuid,text,integer)', 'EXECUTE') AS backend_terminalize_access,
+              has_function_privilege('auth_app', 'content.terminalize_media_blob_writer_failure(uuid,text,text,text,bigint,text,text,uuid,uuid,text,integer)', 'EXECUTE') AS auth_terminalize_access,
+              has_function_privilege('backend_app', 'content.fail_generated_media_promotion_job_with_blob_writer(uuid,uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint,text,text,text,integer)', 'EXECUTE') AS backend_generated_failure_access
        FROM content.media_blob_lifecycles AS lifecycles WHERE lifecycles.sha256 = $1`,
       [sha256, fixture.createdAt],
     )).rows[0], {
@@ -176,6 +191,8 @@ async function assertLifecycleMigrationUpgrade(fixture: PostgresIntegrationFixtu
       created_at_matches: true, updated_at_matches: true, workspace_fence: true, catalog_fence: true,
       backend_table_access: false, auth_table_access: false,
       backend_reserve_access: true, backend_fence_access: false,
+      backend_terminalize_access: true, auth_terminalize_access: false,
+      backend_generated_failure_access: true,
     });
     await client.query("ROLLBACK");
   } catch (error) {
@@ -196,9 +213,10 @@ test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and g
     const leaseWaitSha = createUniqueSha256();
     const referenceLeaseSha = createUniqueSha256();
     const reservationLeaseSha = createUniqueSha256();
+    const revokedSha = createUniqueSha256();
     const fixtureSha256s = [
       referencedSha, cleanupSha, mediaRaceSha, catalogRaceSha, legacySha, backfillSha, leaseWaitSha,
-      referenceLeaseSha, reservationLeaseSha,
+      referenceLeaseSha, reservationLeaseSha, revokedSha,
     ];
     const cleanupBlobId = randomUUID();
     const concurrentWorkspaceId = randomUUID();
@@ -275,15 +293,26 @@ test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and g
         ),
         MediaBlobLifecycleConflictError,
       );
-      await assert.rejects(
-        transactionWithWorkspaceScope(
-          { userId: fixture.userId, workspaceId: fixture.workspaceId },
-          (executor) => reserveMediaBlobWriterInExecutor(executor, {
-            ...referencedInput, operationId: `${referencedInput.operationId}-normalization`,
-            normalizationVersion: passthroughMediaBlobNormalizationVersion,
-          }),
-        ),
-        MediaBlobLifecycleConflictError,
+      const adopted = await transactionWithWorkspaceScope(
+        { userId: fixture.userId, workspaceId: fixture.workspaceId },
+        (executor) => reserveMediaBlobWriterInExecutor(executor, {
+          ...referencedInput, writerKind: "multipart_completion",
+          operationId: `${referencedInput.operationId}-normalization`,
+          normalizationVersion: passthroughMediaBlobNormalizationVersion,
+        }),
+      );
+      assert.equal(adopted.normalizationVersion, imageJpegCardMediaBlobNormalizationVersion);
+      const generatedAdopted = await transactionWithWorkspaceScope(
+        { userId: fixture.userId, workspaceId: fixture.workspaceId },
+        (executor) => reserveMediaBlobWriterInExecutor(executor, {
+          ...referencedInput, writerKind: "generated_promotion",
+          mediaAssetId: randomUUID(), operationId: randomUUID(),
+          normalizationVersion: passthroughMediaBlobNormalizationVersion,
+        }),
+      );
+      assert.equal(
+        generatedAdopted.normalizationVersion,
+        imageJpegCardMediaBlobNormalizationVersion,
       );
       const deniedOperations: ReadonlyArray<(executor: DatabaseExecutor) => Promise<unknown>> = [
         (executor) => finalizeMediaBlobWriterInExecutor(executor, {
@@ -498,6 +527,42 @@ test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and g
          VALUES ($1, $2, $3, $4)`,
         [randomUUID(), packageId, `race-${randomUUID()}`, catalogRace.blobId],
       );
+      const revokedInput = input(
+        concurrentWorkspaceId, randomUUID(), `revoked-${randomUUID()}`, revokedSha,
+      );
+      const revokedReservation = await transactionWithWorkspaceScope(
+        { userId: fixture.userId, workspaceId: concurrentWorkspaceId },
+        (executor) => reserveMediaBlobWriterInExecutor(executor, revokedInput),
+      );
+      await fixture.ownerPool.query(
+        "DELETE FROM org.workspace_memberships WHERE workspace_id = $1 AND user_id = $2",
+        [concurrentWorkspaceId, fixture.userId],
+      );
+      const exactParams: Array<string | number> = [
+        revokedReservation.reservationToken, revokedInput.sha256, revokedInput.storageKey,
+        revokedInput.mimeType, revokedInput.sizeBytes, revokedReservation.normalizationVersion,
+        revokedInput.writerKind, revokedInput.workspaceId, revokedInput.mediaAssetId,
+        revokedInput.operationId, 3_600_000,
+      ];
+      for (const [index, value] of [
+        [0, randomUUID()], [1, createUniqueSha256()],
+        [2, buildMediaBlobStorageKey(createUniqueSha256())], [3, "image/png"], [4, 43],
+        [5, passthroughMediaBlobNormalizationVersion], [7, randomUUID()],
+        [8, randomUUID()], [9, `wrong-${randomUUID()}`],
+      ] as const) {
+        const rejectedParams = [...exactParams];
+        rejectedParams[index] = value;
+        assert.equal((await fixture.runtimePool.query<{ reconciliation_status: string }>(
+          "SELECT content.terminalize_media_blob_writer_failure($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) AS reconciliation_status",
+          rejectedParams,
+        )).rows[0]?.reconciliation_status, "stale");
+      }
+      assert.equal(await unsafeTransaction(
+        (executor) => terminalizeMediaBlobWriterFailureInExecutor(executor, {
+          ...revokedInput, reservationToken: revokedReservation.reservationToken,
+          normalizationVersion: revokedReservation.normalizationVersion,
+        }),
+      ), "unreferenced");
     } finally {
       await fixture.ownerPool.query("DELETE FROM catalog.packages WHERE package_id = $1", [packageId]);
       await fixture.ownerPool.query("DELETE FROM catalog.authors WHERE author_id = $1", [authorId]);

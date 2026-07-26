@@ -1,7 +1,10 @@
 import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../database";
 import { HttpError } from "../shared/errors";
 import { buildMediaBlobStorageKey } from "./storageKeys";
-import type { MediaBlobNormalizationVersion } from "./types";
+import {
+  mediaBlobNormalizationVersions,
+  type MediaBlobNormalizationVersion,
+} from "./types";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const sha256Pattern = /^[0-9a-f]{64}$/u;
 const mimeTypePattern = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/u;
@@ -18,9 +21,16 @@ export type MediaBlobWriterReservationInput = MediaBlobWriterIdentity & Readonly
 }>;
 export type MediaBlobWriterReservation = Readonly<{
   reservationToken: string; state: "active" | "ambiguous" | "finalized";
+  normalizationVersion: MediaBlobNormalizationVersion;
+}>;
+export type MediaBlobWriterExactInput = MediaBlobWriterReservationInput & Readonly<{
+  reservationToken: string;
 }>;
 export type MediaBlobWriterReconciliation = "referenced" | "unreferenced";
-type ReservationRow = Readonly<{ reservation_token: string | null; reservation_state: string | null; reservation_status: string }>;
+type ReservationRow = Readonly<{
+  reservation_token: string | null; reservation_state: string | null;
+  reservation_status: string; normalization_version: string;
+}>;
 type BooleanRow = Readonly<{ transitioned: boolean }>;
 type ReconciliationRow = Readonly<{ reconciliation_status: string }>;
 type CleanupClaimRow = Readonly<{ lease_token: string | null }>;
@@ -56,12 +66,22 @@ function assertReservationInput(input: MediaBlobWriterReservationInput): void {
   }
   if (!Number.isSafeInteger(input.sizeBytes) || input.sizeBytes < 0) { throw new RangeError("sizeBytes must be a non-negative safe integer.");
   }
+  if (!mediaBlobNormalizationVersions.some((version) => version === input.normalizationVersion)) {
+    throw new TypeError("normalizationVersion is unsupported.");
+  }
+}
+function requireNormalizationVersion(value: string): MediaBlobNormalizationVersion {
+  const version = mediaBlobNormalizationVersions.find((candidate) => candidate === value);
+  if (version === undefined) {
+    throw new TypeError("PostgreSQL returned an invalid media blob normalization version.");
+  }
+  return version;
 }
 export async function reserveMediaBlobWriterInExecutor(
   executor: DatabaseExecutor, input: MediaBlobWriterReservationInput,
 ): Promise<MediaBlobWriterReservation> {
   assertReservationInput(input);
-  const result = await executor.query<ReservationRow>( `SELECT reservation_token, reservation_state, reservation_status FROM content.reserve_media_blob_writer($1, $2, $3, $4, $5, $6, $7, $8, $9)`, [ input.sha256, input.storageKey, input.mimeType, input.sizeBytes, input.normalizationVersion, input.writerKind, input.workspaceId, input.mediaAssetId, input.operationId, ],
+  const result = await executor.query<ReservationRow>( `SELECT reservation_token, reservation_state, reservation_status, normalization_version FROM content.reserve_media_blob_writer($1, $2, $3, $4, $5, $6, $7, $8, $9)`, [ input.sha256, input.storageKey, input.mimeType, input.sizeBytes, input.normalizationVersion, input.writerKind, input.workspaceId, input.mediaAssetId, input.operationId, ],
   ).catch((error: unknown) => {
     if (typeof error === "object" && error !== null && "code" in error && error.code === "23514") throw new MediaBlobLifecycleConflictError();
     throw error;
@@ -74,6 +94,7 @@ export async function reserveMediaBlobWriterInExecutor(
   }
   assertMediaBlobWriterReservationToken(row.reservation_token);
   return { reservationToken: row.reservation_token, state: row.reservation_state,
+    normalizationVersion: requireNormalizationVersion(row.normalization_version),
   };
 }
 export async function reserveMediaBlobWriterForWorkspace(
@@ -122,6 +143,25 @@ export async function failMediaBlobWriterInExecutor(
   );
   if (result.rows[0]?.transitioned !== true) { throw new MediaBlobWriterFenceError("fail");
   }
+}
+export async function terminalizeMediaBlobWriterFailureInExecutor(
+  executor: DatabaseExecutor, input: MediaBlobWriterExactInput,
+): Promise<MediaBlobWriterReconciliation> {
+  assertReservationInput(input);
+  assertMediaBlobWriterReservationToken(input.reservationToken);
+  const result = await executor.query<ReconciliationRow>(
+    `SELECT content.terminalize_media_blob_writer_failure(
+       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+     ) AS reconciliation_status`,
+    [
+      input.reservationToken, input.sha256, input.storageKey, input.mimeType, input.sizeBytes,
+      input.normalizationVersion, input.writerKind, input.workspaceId, input.mediaAssetId,
+      input.operationId, mediaBlobCleanupDelayMs,
+    ],
+  );
+  const status = result.rows[0]?.reconciliation_status;
+  if (status === "referenced" || status === "unreferenced") return status;
+  throw new MediaBlobWriterFenceError("terminalize_failure");
 }
 export async function markMediaBlobWriterAmbiguousForWorkspace(
   userId: string, workspaceId: string, reservationToken: string,
