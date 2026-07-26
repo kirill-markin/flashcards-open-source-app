@@ -162,6 +162,7 @@ async function assertLifecycleMigrationUpgrade(fixture: PostgresIntegrationFixtu
       DROP FUNCTION content.reserve_media_blob_writer(TEXT, TEXT, TEXT, BIGINT, TEXT, TEXT, UUID, UUID, TEXT), content.finalize_media_blob_writer(UUID, TEXT, UUID, UUID);
       DROP FUNCTION content.mark_media_blob_writer_ambiguous(UUID), content.reconcile_media_blob_writer(UUID, TEXT, UUID, UUID, INTEGER);
       DROP FUNCTION content.fail_media_blob_writer(UUID, INTEGER), content.claim_media_blob_cleanup(TEXT, INTEGER), content.generated_media_promotion_operation_applied(UUID, UUID);
+      DROP TABLE content.media_blob_writer_owner_snapshots;
       DROP TABLE content.media_blob_writer_reservations, content.media_blob_lifecycles
     `);
     await client.query(
