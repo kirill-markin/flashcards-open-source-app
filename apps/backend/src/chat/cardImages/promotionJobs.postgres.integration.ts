@@ -2,16 +2,21 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../../database";
+import { reserveMediaBlobWriterInExecutor } from "../../mediaAssets/blobLifecycle";
 import { testObservationScope } from "../../mediaAssets/storage/testHelpers";
 import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../../mediaAssets/storageKeys";
+import { imageJpegCardMediaBlobNormalizationVersion } from "../../mediaAssets/types";
 import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../testSupport/postgresIntegration";
 import { InactiveChatRunClaimError } from "../runs/claimFence";
 import {
   claimGeneratedMediaPromotionJobs,
   enqueueGeneratedMediaPromotionJob,
   failGeneratedMediaPromotionJobWithExecutor,
+  failGeneratedMediaPromotionJobWithBlobWriterInExecutor,
   GeneratedMediaPromotionJobConflictError,
   GeneratedMediaPromotionJobLeaseLostError,
+  isGeneratedMediaPromotionOperationAppliedWithExecutor,
+  markGeneratedMediaPromotionBlobWriterAmbiguousWithExecutor,
   markGeneratedMediaPromotionJobAppliedWithExecutor,
   rescheduleGeneratedMediaPromotionJobWithExecutor,
   type ClaimedGeneratedMediaPromotionJob,
@@ -86,9 +91,9 @@ EnqueueGeneratedMediaPromotionJobInput {
     sizeBytes: 4096,
   };
 }
-async function transition(fixture: PostgresIntegrationFixture,
-  callback: (executor: DatabaseExecutor) => Promise<void>): Promise<void> {
-  await transactionWithWorkspaceScope(
+async function transition<Result>(fixture: PostgresIntegrationFixture,
+  callback: (executor: DatabaseExecutor) => Promise<Result>): Promise<Result> {
+  return transactionWithWorkspaceScope(
     { userId: fixture.userId, workspaceId: fixture.workspaceId },
     callback,
   );
@@ -194,6 +199,14 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
       GeneratedMediaPromotionJobLeaseLostError,
     );
     await applyGeneratedMediaPromotionJob(applied, Date.now() + 10_000);
+    await transition(fixture, async (executor) => {
+      assert.equal(await isGeneratedMediaPromotionOperationAppliedWithExecutor(
+        executor, applied.jobId, applied.operationId,
+      ), true);
+      assert.equal(await isGeneratedMediaPromotionOperationAppliedWithExecutor(
+        executor, applied.jobId, randomUUID(),
+      ), false);
+    });
     const appliedCard = await fixture.ownerPool.query<{ front_text: string; back_text: string }>(
       "SELECT front_text, back_text FROM content.cards WHERE workspace_id = $1 AND card_id = $2",
       [fixture.workspaceId, fixture.cardId],
@@ -236,6 +249,27 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
     const reclaimedInput = inputs[2];
     if (reclaimedInput === undefined) throw new Error("Missing reclaim input.");
     const expired = byJobId(claimed, reclaimedInput.jobId);
+    const writer = await transition(fixture, async (executor) =>
+      reserveMediaBlobWriterInExecutor(executor, {
+        writerKind: "generated_promotion", workspaceId: expired.workspaceId,
+        mediaAssetId: expired.mediaAssetId, operationId: expired.operationId,
+        sha256: expired.sha256, storageKey: expired.blobStorageKey,
+        mimeType: expired.mimeType, sizeBytes: expired.sizeBytes,
+        normalizationVersion: imageJpegCardMediaBlobNormalizationVersion,
+      }));
+    const writerInput = {
+      ...expired, reservationToken: writer.reservationToken,
+      normalizationVersion: writer.normalizationVersion,
+    };
+    await assert.rejects(
+      transition(fixture, (executor) =>
+        markGeneratedMediaPromotionBlobWriterAmbiguousWithExecutor(executor, {
+          ...writerInput, leaseToken: randomUUID(),
+        })),
+      GeneratedMediaPromotionJobLeaseLostError,
+    );
+    await transition(fixture, (executor) =>
+      markGeneratedMediaPromotionBlobWriterAmbiguousWithExecutor(executor, writerInput));
     await fixture.ownerPool.query(
       `UPDATE content.generated_media_promotion_jobs
        SET updated_at = created_at,
@@ -248,6 +282,11 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
       expired.jobId,
     );
     assert.notEqual(reclaimed.leaseToken, expired.leaseToken);
+    await assert.rejects(
+      transition(fixture, (executor) =>
+        markGeneratedMediaPromotionBlobWriterAmbiguousWithExecutor(executor, writerInput)),
+      GeneratedMediaPromotionJobLeaseLostError,
+    );
     const rescheduledState = await fixture.ownerPool.query<JobStateRow>(
       `SELECT state, retry_count, last_error_code
        FROM content.generated_media_promotion_jobs WHERE job_id = $1`,
@@ -260,17 +299,28 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
     });
     await assert.rejects(
       transition(fixture, async (executor) =>
-        failGeneratedMediaPromotionJobWithExecutor(executor, {
-          ...expired,
+        failGeneratedMediaPromotionJobWithBlobWriterInExecutor(executor, {
+          ...writerInput,
           error: { code: "STALE_WORKER", message: "Stale worker must be fenced." },
         })),
       GeneratedMediaPromotionJobLeaseLostError,
     );
     await transition(fixture, async (executor) =>
-      failGeneratedMediaPromotionJobWithExecutor(executor, {
-        ...reclaimed,
+      failGeneratedMediaPromotionJobWithBlobWriterInExecutor(executor, {
+        ...reclaimed, reservationToken: writer.reservationToken,
+        normalizationVersion: writer.normalizationVersion,
         error: { code: "CORRUPT_STAGING", message: "Staged object proof is invalid." },
       }));
+    assert.deepEqual((await fixture.ownerPool.query<{
+      job_state: string; reservation_state: string;
+    }>(
+      `SELECT jobs.state AS job_state, reservations.state AS reservation_state
+       FROM content.generated_media_promotion_jobs AS jobs
+       INNER JOIN content.media_blob_writer_reservations AS reservations
+         ON reservations.reservation_token = $2
+       WHERE jobs.job_id = $1`,
+      [reclaimed.jobId, writer.reservationToken],
+    )).rows[0], { job_state: "failed", reservation_state: "unreferenced" });
     const terminalInput = inputs[3];
     if (terminalInput === undefined) throw new Error("Missing terminal input.");
     const terminal = byJobId(claimed, terminalInput.jobId);

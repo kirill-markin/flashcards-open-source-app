@@ -1,6 +1,14 @@
-import { transactionWithWorkspaceScopeDeadline, type DatabaseExecutor } from "../../database";
+import {
+  transactionWithWorkspaceScopeDeadline,
+  type DatabaseExecutor,
+  type SqlValue,
+} from "../../database";
 import { unsafeQueryWithDeadline } from "../../database/unsafe";
 import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../../mediaAssets/storageKeys";
+import {
+  mediaBlobNormalizationVersions,
+  type MediaBlobNormalizationVersion,
+} from "../../mediaAssets/types";
 import { assertReplicaBelongsToWorkspaceInExecutor } from "../../mediaAssets/workspaceReplicas";
 import { assertActiveChatRunClaimWithExecutor, type ChatRunClaimFenceParams } from "../runs/claimFence";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
@@ -50,6 +58,13 @@ export type RescheduleGeneratedMediaPromotionJobInput =
   & Readonly<{ nextAttemptAt: Date; error: SafeGeneratedMediaPromotionJobError }>;
 export type FailGeneratedMediaPromotionJobInput =
   GeneratedMediaPromotionJobLeaseInput & Readonly<{ error: SafeGeneratedMediaPromotionJobError }>;
+export type GeneratedMediaPromotionBlobWriterInput =
+  ClaimedGeneratedMediaPromotionJob & Readonly<{
+    reservationToken: string;
+    normalizationVersion: MediaBlobNormalizationVersion;
+  }>;
+export type FailGeneratedMediaPromotionJobWithBlobWriterInput =
+  GeneratedMediaPromotionBlobWriterInput & Readonly<{ error: SafeGeneratedMediaPromotionJobError }>;
 type StoredPayloadRow = Readonly<{
   job_id: string;
   operation_id: string;
@@ -80,6 +95,7 @@ type ClaimedJobRow = StoredPayloadRow & Readonly<{
 }>;
 type TransitionRow = Readonly<{ transitioned: boolean }>;
 type AppliedScopeRow = Readonly<{ scope_status: string }>;
+type OperationAppliedRow = Readonly<{ applied: boolean }>;
 type InsertedRow = Readonly<{ job_id: string }>;
 export class GeneratedMediaPromotionJobConflictError extends Error {
   readonly code = "GENERATED_MEDIA_PROMOTION_JOB_CONFLICT";
@@ -162,6 +178,24 @@ function requireSafeError(error: SafeGeneratedMediaPromotionJobError): void {
   ) {
     throw new TypeError("error.message must be 1 to 500 trimmed characters without control characters.");
   }
+}
+function requireBlobWriterInput(input: GeneratedMediaPromotionBlobWriterInput): void {
+  requirePayload(input);
+  requireUuid(input.leaseToken, "leaseToken");
+  requireUuid(input.reservationToken, "reservationToken");
+  if (!mediaBlobNormalizationVersions.some((version) => version === input.normalizationVersion)) {
+    throw new TypeError("normalizationVersion is unsupported.");
+  }
+}
+function blobWriterTransitionParams(
+  input: GeneratedMediaPromotionBlobWriterInput,
+): ReadonlyArray<SqlValue> {
+  return [
+    input.jobId, input.leaseToken, input.reservationToken, input.operationId,
+    input.userId, input.workspaceId, input.cardId, input.targetSide, input.altText,
+    input.mediaAssetId, input.replicaId, input.stagingStorageKey, input.blobStorageKey,
+    input.sha256, input.mimeType, input.sizeBytes, input.normalizationVersion,
+  ];
 }
 function toPayload(row: StoredPayloadRow): GeneratedMediaPromotionJobPayload {
   const sizeBytes = Number(row.size_bytes);
@@ -309,7 +343,7 @@ export async function claimGeneratedMediaPromotionJobs(
 async function requireTransition(
   executor: DatabaseExecutor,
   text: string,
-  params: ReadonlyArray<string | Date>,
+  params: ReadonlyArray<SqlValue>,
   jobId: string,
 ): Promise<void> {
   const result = await executor.query<TransitionRow>(text, params);
@@ -327,6 +361,53 @@ export async function markGeneratedMediaPromotionJobAppliedWithExecutor(
     executor,
     "SELECT content.mark_generated_media_promotion_job_applied($1, $2) AS transitioned",
     [input.jobId, input.leaseToken],
+    input.jobId,
+  );
+}
+export async function isGeneratedMediaPromotionOperationAppliedWithExecutor(
+  executor: DatabaseExecutor, jobId: string, operationId: string,
+): Promise<boolean> {
+  requireUuid(jobId, "jobId");
+  requireUuid(operationId, "operationId");
+  const result = await executor.query<OperationAppliedRow>(
+    "SELECT content.generated_media_promotion_operation_applied($1, $2) AS applied",
+    [jobId, operationId],
+  );
+  const applied = result.rows[0]?.applied;
+  if (typeof applied !== "boolean") {
+    throw new TypeError(`PostgreSQL returned an invalid promotion operation status. jobId=${jobId}`);
+  }
+  return applied;
+}
+export async function markGeneratedMediaPromotionBlobWriterAmbiguousWithExecutor(
+  executor: DatabaseExecutor, input: GeneratedMediaPromotionBlobWriterInput,
+): Promise<void> {
+  requireBlobWriterInput(input);
+  await requireTransition(
+    executor,
+    `SELECT content.mark_generated_media_promotion_blob_writer_ambiguous(
+       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+       $16, $17
+     ) AS transitioned`,
+    blobWriterTransitionParams(input),
+    input.jobId,
+  );
+}
+export async function failGeneratedMediaPromotionJobWithBlobWriterInExecutor(
+  executor: DatabaseExecutor, input: FailGeneratedMediaPromotionJobWithBlobWriterInput,
+): Promise<void> {
+  requireBlobWriterInput(input);
+  requireSafeError(input.error);
+  await requireTransition(
+    executor,
+    `SELECT content.fail_generated_media_promotion_job_with_blob_writer(
+       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+       $16, $17, $18, $19, $20
+     ) AS transitioned`,
+    [
+      ...blobWriterTransitionParams(input), input.error.code, input.error.message,
+      3_600_000,
+    ],
     input.jobId,
   );
 }
