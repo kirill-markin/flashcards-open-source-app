@@ -48,6 +48,7 @@ export type MediaAssetUploadSessionWriterClosure =
   | "absent"
   | "referenced"
   | "unreferenced"
+  | "no_writer_closed"
   | "access_active"
   | "already_closed"
   | "stale";
@@ -59,6 +60,38 @@ export type MediaAssetUploadSessionWriterClosureInput = Readonly<{
 }>;
 
 type MediaAssetUploadSessionWriterClosureRow = Readonly<{ closure_status: string }>;
+export type MediaAssetUploadSessionCompletionWithOwnerInput = Readonly<{
+  userId: string; workspaceId: string; sessionId: string; mediaAssetId: string;
+  lastModifiedByReplicaId: string; lastOperationId: string; sha256: string;
+  stagingStorageKey: string; blobStorageKey: string; s3UploadId: string;
+  mimeType: string; sizeBytes: number; partSizeBytes: number; partCount: number;
+  sourceUrl: string | null; assetCreatedAt: string; clientUpdatedAt: string;
+  expiresAt: string; normalizationVersion: typeof passthroughMediaBlobNormalizationVersion;
+}>;
+export type MediaAssetUploadSessionCompletionWithOwnerRejection =
+  | "access_denied"
+  | "session_not_found"
+  | "payload_mismatch"
+  | "replica_mismatch"
+  | "expired"
+  | "aborting"
+  | "aborted"
+  | "state_conflict"
+  | "legacy_unbound"
+  | "ownership_mismatch"
+  | "writer_conflict"
+  | "cleanup_claimed"
+  | "completed_mismatch";
+export type MediaAssetUploadSessionCompletionWithOwnerResult =
+  | Readonly<{
+    status: "started" | "replayed" | "already_completed";
+    reservation: MediaBlobWriterReservation;
+  }>
+  | Readonly<{ status: MediaAssetUploadSessionCompletionWithOwnerRejection }>;
+type MediaAssetUploadSessionCompletionWithOwnerRow = Readonly<{
+  completion_status: string; reservation_token: string | null;
+  reservation_state: string | null; normalization_version: string | null;
+}>;
 type OwnedMultipartReservationRow = Readonly<{
   reservation_token: string | null; reservation_state: string | null;
   reservation_status: string; normalization_version: string;
@@ -756,6 +789,7 @@ export async function closeMediaAssetUploadSessionBlobWriterInExecutor(
   const status = result.rows[0]?.closure_status;
   if (
     status === "absent" || status === "referenced" || status === "unreferenced"
+    || status === "no_writer_closed"
     || status === "access_active" || status === "already_closed" || status === "stale"
   ) return status;
   throw new TypeError("PostgreSQL returned an invalid media upload session writer closure.");
@@ -766,6 +800,68 @@ export async function closeMediaAssetUploadSessionBlobWriter(
 ): Promise<MediaAssetUploadSessionWriterClosure> {
   return unsafeTransaction(
     (executor) => closeMediaAssetUploadSessionBlobWriterInExecutor(executor, input),
+  );
+}
+
+export async function beginMediaAssetUploadSessionCompletionWithOwnerInExecutor(
+  executor: DatabaseExecutor,
+  input: MediaAssetUploadSessionCompletionWithOwnerInput,
+): Promise<MediaAssetUploadSessionCompletionWithOwnerResult> {
+  const result = await executor.query<MediaAssetUploadSessionCompletionWithOwnerRow>(
+    `SELECT completion_status, reservation_token, reservation_state, normalization_version
+     FROM content.begin_media_upload_session_completion_with_owner(
+       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19
+     )`,
+    [
+      input.userId, input.workspaceId, input.sessionId, input.mediaAssetId,
+      input.lastModifiedByReplicaId, input.lastOperationId, input.sha256,
+      input.stagingStorageKey, input.blobStorageKey, input.s3UploadId, input.mimeType,
+      input.sizeBytes, input.partSizeBytes, input.partCount, input.sourceUrl,
+      input.assetCreatedAt, input.clientUpdatedAt, input.expiresAt,
+      input.normalizationVersion,
+    ],
+  );
+  const row = result.rows[0];
+  if (
+    row?.completion_status === "started" || row?.completion_status === "replayed"
+    || row?.completion_status === "already_completed"
+  ) {
+    const normalizationVersion = mediaBlobNormalizationVersions.find(
+      (candidate) => candidate === row.normalization_version,
+    );
+    if (row.reservation_token === null || normalizationVersion === undefined
+      || (row.reservation_state !== "active" && row.reservation_state !== "ambiguous"
+        && row.reservation_state !== "finalized")
+    ) throw new TypeError("PostgreSQL returned an invalid atomic multipart completion start.");
+    assertMediaBlobWriterReservationToken(row.reservation_token);
+    return {
+      status: row.completion_status,
+      reservation: {
+        reservationToken: row.reservation_token,
+        state: row.reservation_state,
+        normalizationVersion,
+      },
+    };
+  }
+  const rejectionStatuses: ReadonlyArray<MediaAssetUploadSessionCompletionWithOwnerRejection> = [
+    "access_denied", "session_not_found", "payload_mismatch", "replica_mismatch",
+    "expired", "aborting", "aborted", "state_conflict", "legacy_unbound",
+    "ownership_mismatch", "writer_conflict", "cleanup_claimed", "completed_mismatch",
+  ];
+  const rejection = rejectionStatuses.find(
+    (candidate) => candidate === row?.completion_status,
+  );
+  if (rejection !== undefined && row?.reservation_token === null
+    && row.reservation_state === null) return { status: rejection };
+  throw new TypeError("PostgreSQL returned an invalid atomic multipart completion rejection.");
+}
+
+export async function beginMediaAssetUploadSessionCompletionWithOwner(
+  input: MediaAssetUploadSessionCompletionWithOwnerInput,
+): Promise<MediaAssetUploadSessionCompletionWithOwnerResult> {
+  return transactionWithWorkspaceScope(
+    { userId: input.userId, workspaceId: input.workspaceId },
+    (executor) => beginMediaAssetUploadSessionCompletionWithOwnerInExecutor(executor, input),
   );
 }
 
