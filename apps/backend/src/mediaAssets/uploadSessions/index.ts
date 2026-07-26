@@ -36,6 +36,7 @@ import type {
   MediaAssetUploadSessionCreateResult,
   MediaAssetUploadSessionRow,
   MediaAssetUploadSessionState,
+  MediaBlobNormalizationVersion,
   MediaBlobRow,
 } from "../types";
 import {
@@ -88,9 +89,26 @@ export type MediaAssetUploadSessionCompletionWithOwnerResult =
     reservation: MediaBlobWriterReservation;
   }>
   | Readonly<{ status: MediaAssetUploadSessionCompletionWithOwnerRejection }>;
+export type MediaAssetUploadSessionCompletionResolutionInput =
+  Omit<MediaAssetUploadSessionCompletionWithOwnerInput, "normalizationVersion">
+  & Readonly<{ normalizationVersion: MediaBlobNormalizationVersion; reservationToken: string }>;
+export type MediaAssetUploadSessionCompletionApplyFence =
+  | "ready" | "already_applied" | "peer_conflict" | "access_denied"
+  | "aborting" | "aborted" | "stale";
+export type MediaAssetUploadSessionCompletionFailureResolution =
+  | "referenced" | "unreferenced_restored" | "peer_conflict"
+  | "already_closed" | "access_denied" | "stale";
+export type MediaAssetUploadSessionCompletionRevocationInput =
+  Omit<MediaAssetUploadSessionCompletionWithOwnerInput, "normalizationVersion">;
+export type MediaAssetUploadSessionCompletionRevocationResolution =
+  | "referenced" | "unreferenced_closed" | "absent_closed" | "peer_conflict"
+  | "already_closed" | "access_active" | "stale";
 type MediaAssetUploadSessionCompletionWithOwnerRow = Readonly<{
   completion_status: string; reservation_token: string | null;
   reservation_state: string | null; normalization_version: string | null;
+}>;
+type MediaAssetUploadSessionCompletionResolutionRow = Readonly<{
+  resolution_status: string;
 }>;
 type OwnedMultipartReservationRow = Readonly<{
   reservation_token: string | null; reservation_state: string | null;
@@ -862,6 +880,110 @@ export async function beginMediaAssetUploadSessionCompletionWithOwner(
   return transactionWithWorkspaceScope(
     { userId: input.userId, workspaceId: input.workspaceId },
     (executor) => beginMediaAssetUploadSessionCompletionWithOwnerInExecutor(executor, input),
+  );
+}
+
+function toMediaAssetUploadSessionCompletionResolutionParams(
+  input: MediaAssetUploadSessionCompletionRevocationInput,
+): ReadonlyArray<string | number | null> {
+  return [
+    input.userId, input.workspaceId, input.sessionId, input.mediaAssetId,
+    input.lastModifiedByReplicaId, input.lastOperationId, input.sha256,
+    input.stagingStorageKey, input.blobStorageKey, input.s3UploadId, input.mimeType,
+    input.sizeBytes, input.partSizeBytes, input.partCount, input.sourceUrl,
+    input.assetCreatedAt, input.clientUpdatedAt, input.expiresAt,
+  ];
+}
+
+export async function fenceMediaAssetUploadSessionCompletionApplyWithOwnerInExecutor(
+  executor: DatabaseExecutor,
+  input: MediaAssetUploadSessionCompletionResolutionInput,
+): Promise<MediaAssetUploadSessionCompletionApplyFence> {
+  assertMediaBlobWriterReservationToken(input.reservationToken);
+  const result = await executor.query<MediaAssetUploadSessionCompletionResolutionRow>(
+    `SELECT content.fence_media_upload_session_completion_apply_with_owner(
+       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21
+     ) AS resolution_status`,
+    [
+      ...toMediaAssetUploadSessionCompletionResolutionParams(input),
+      input.reservationToken, input.normalizationVersion, mediaBlobCleanupDelayMs,
+    ],
+  );
+  const status = result.rows[0]?.resolution_status;
+  if (status === "ready" || status === "already_applied" || status === "peer_conflict"
+    || status === "access_denied" || status === "aborting" || status === "aborted"
+    || status === "stale") return status;
+  throw new TypeError("PostgreSQL returned an invalid multipart completion apply fence.");
+}
+
+export async function fenceMediaAssetUploadSessionCompletionApplyWithOwner(
+  input: MediaAssetUploadSessionCompletionResolutionInput,
+): Promise<MediaAssetUploadSessionCompletionApplyFence> {
+  return transactionWithWorkspaceScope(
+    { userId: input.userId, workspaceId: input.workspaceId },
+    (executor) => fenceMediaAssetUploadSessionCompletionApplyWithOwnerInExecutor(executor, input),
+  );
+}
+
+export async function resolveMediaAssetUploadSessionCompletionFailureWithOwnerInExecutor(
+  executor: DatabaseExecutor,
+  input: MediaAssetUploadSessionCompletionResolutionInput,
+): Promise<MediaAssetUploadSessionCompletionFailureResolution> {
+  assertMediaBlobWriterReservationToken(input.reservationToken);
+  const result = await executor.query<MediaAssetUploadSessionCompletionResolutionRow>(
+    `SELECT content.resolve_media_upload_session_completion_failure_with_owner(
+       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21
+     ) AS resolution_status`,
+    [
+      ...toMediaAssetUploadSessionCompletionResolutionParams(input),
+      input.reservationToken, input.normalizationVersion, mediaBlobCleanupDelayMs,
+    ],
+  );
+  const status = result.rows[0]?.resolution_status;
+  if (status === "referenced" || status === "unreferenced_restored"
+    || status === "peer_conflict" || status === "already_closed"
+    || status === "access_denied" || status === "stale") return status;
+  throw new TypeError("PostgreSQL returned an invalid multipart completion failure resolution.");
+}
+
+export async function resolveMediaAssetUploadSessionCompletionFailureWithOwner(
+  input: MediaAssetUploadSessionCompletionResolutionInput,
+): Promise<MediaAssetUploadSessionCompletionFailureResolution> {
+  return transactionWithWorkspaceScope(
+    { userId: input.userId, workspaceId: input.workspaceId },
+    (executor) => resolveMediaAssetUploadSessionCompletionFailureWithOwnerInExecutor(executor, input),
+  );
+}
+
+export async function resolveMediaAssetUploadSessionCompletionAfterAccessRevocationInExecutor(
+  executor: DatabaseExecutor,
+  input: MediaAssetUploadSessionCompletionRevocationInput,
+): Promise<MediaAssetUploadSessionCompletionRevocationResolution> {
+  const result = await executor.query<MediaAssetUploadSessionCompletionResolutionRow>(
+    `SELECT content.resolve_media_upload_session_completion_after_access_revocation(
+       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19
+     ) AS resolution_status`,
+    [
+      ...toMediaAssetUploadSessionCompletionResolutionParams(input),
+      mediaBlobCleanupDelayMs,
+    ],
+  );
+  const status = result.rows[0]?.resolution_status;
+  if (status === "referenced" || status === "unreferenced_closed"
+    || status === "absent_closed" || status === "peer_conflict"
+    || status === "already_closed" || status === "access_active"
+    || status === "stale") return status;
+  throw new TypeError("PostgreSQL returned an invalid multipart completion revocation resolution.");
+}
+
+export async function resolveMediaAssetUploadSessionCompletionAfterAccessRevocation(
+  input: MediaAssetUploadSessionCompletionRevocationInput,
+): Promise<MediaAssetUploadSessionCompletionRevocationResolution> {
+  return unsafeTransaction(
+    (executor) => resolveMediaAssetUploadSessionCompletionAfterAccessRevocationInExecutor(
+      executor,
+      input,
+    ),
   );
 }
 

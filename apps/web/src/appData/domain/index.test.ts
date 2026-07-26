@@ -9,6 +9,7 @@ import {
   buildUpdatedCard,
   cardsMatchingReviewFilter,
   compareCardsForReviewOrder,
+  compareLww,
   doesCardMutationAffectReviewSchedule,
   matchesCardFilter,
   matchesDeckFilterDefinition,
@@ -327,5 +328,13 @@ describe("review tag matching domain", () => {
     expect(matchesCardFilter({
       tags: ["éclair"],
     }, card)).toBe(true);
+  });
+
+  it("orders LWW metadata by UTF-8 bytes", () => {
+    const metadata = (lastOperationId: string) => ({
+      clientUpdatedAt: "2026-03-10T09:00:00.000Z", lastModifiedByReplicaId: "replica", lastOperationId,
+    });
+    expect(compareLww(metadata("lww-tie_"), metadata("lww-tie-"))).toBeGreaterThan(0);
+    expect(compareLww(metadata("lww-tie-😀"), metadata(`lww-tie-\uE000`))).toBeGreaterThan(0);
   });
 });

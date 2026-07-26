@@ -418,18 +418,28 @@ export function currentReviewCard(reviewQueue: ReadonlyArray<Card>): Card | null
   return reviewQueue[0] ?? null;
 }
 
+function compareUtf8Strings(left: string, right: string): number {
+  const leftBytes = new TextEncoder().encode(left);
+  const rightBytes = new TextEncoder().encode(right);
+  for (let index = 0; index < Math.max(leftBytes.length, rightBytes.length); index += 1) {
+    const difference = (leftBytes[index] ?? -1) - (rightBytes[index] ?? -1);
+    if (difference !== 0) return difference;
+  }
+  return 0;
+}
+
 export function compareLww(left: LastWriteWinsRecord, right: LastWriteWinsRecord): number {
-  const timestampDifference = left.clientUpdatedAt.localeCompare(right.clientUpdatedAt);
+  const timestampDifference = compareUtf8Strings(left.clientUpdatedAt, right.clientUpdatedAt);
   if (timestampDifference !== 0) {
     return timestampDifference;
   }
 
-  const deviceDifference = left.lastModifiedByReplicaId.localeCompare(right.lastModifiedByReplicaId);
+  const deviceDifference = compareUtf8Strings(left.lastModifiedByReplicaId, right.lastModifiedByReplicaId);
   if (deviceDifference !== 0) {
     return deviceDifference;
   }
 
-  return left.lastOperationId.localeCompare(right.lastOperationId);
+  return compareUtf8Strings(left.lastOperationId, right.lastOperationId);
 }
 
 export function upsertCard(cards: ReadonlyArray<Card>, nextCard: Card): Array<Card> {
