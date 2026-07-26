@@ -65,6 +65,8 @@ export type GeneratedMediaPromotionBlobWriterInput =
   }>;
 export type FailGeneratedMediaPromotionJobWithBlobWriterInput =
   GeneratedMediaPromotionBlobWriterInput & Readonly<{ error: SafeGeneratedMediaPromotionJobError }>;
+export type GeneratedMediaPromotionAccessRevocationOutcome =
+  "access_active" | "applied" | "failed";
 type StoredPayloadRow = Readonly<{
   job_id: string;
   operation_id: string;
@@ -96,6 +98,7 @@ type ClaimedJobRow = StoredPayloadRow & Readonly<{
 type TransitionRow = Readonly<{ transitioned: boolean }>;
 type AppliedScopeRow = Readonly<{ scope_status: string }>;
 type OperationAppliedRow = Readonly<{ applied: boolean }>;
+type AccessRevocationRow = Readonly<{ revocation_status: string }>;
 type InsertedRow = Readonly<{ job_id: string }>;
 export class GeneratedMediaPromotionJobConflictError extends Error {
   readonly code = "GENERATED_MEDIA_PROMOTION_JOB_CONFLICT";
@@ -409,6 +412,33 @@ export async function failGeneratedMediaPromotionJobWithBlobWriterInExecutor(
       3_600_000,
     ],
     input.jobId,
+  );
+}
+export async function failGeneratedMediaPromotionJobAfterAccessRevocationWithExecutor(
+  executor: DatabaseExecutor,
+  input: ClaimedGeneratedMediaPromotionJob,
+): Promise<GeneratedMediaPromotionAccessRevocationOutcome> {
+  requirePayload(input);
+  requireUuid(input.leaseToken, "leaseToken");
+  const result = await executor.query<AccessRevocationRow>(
+    `SELECT content.fail_generated_media_promotion_job_after_access_revocation(
+       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
+     ) AS revocation_status`,
+    [
+      input.jobId, input.leaseToken, input.operationId, input.userId,
+      input.workspaceId, input.cardId, input.targetSide, input.altText,
+      input.mediaAssetId, input.replicaId, input.stagingStorageKey,
+      input.blobStorageKey, input.sha256, input.mimeType, input.sizeBytes,
+      3_600_000,
+    ],
+  );
+  const status = result.rows[0]?.revocation_status;
+  if (status === "access_active" || status === "applied" || status === "failed") return status;
+  if (status === "stale") {
+    throw new GeneratedMediaPromotionJobLeaseLostError(input.jobId);
+  }
+  throw new TypeError(
+    `PostgreSQL returned an invalid promotion access-revocation status. jobId=${input.jobId}`,
   );
 }
 export async function applyGeneratedMediaPromotionJobScopeWithExecutor(
