@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  captureBackendRuntimeWarning,
+} from "../runtime";
+import {
   addBackendBreadcrumb,
   addBackendSentryBreadcrumb,
   type BackendBreadcrumbEvent,
@@ -30,6 +33,10 @@ import {
   wrapBackendHandler,
   wrapBackendStreamHandler,
 } from ".";
+import {
+  sentryModule,
+  withCapturedConsole,
+} from "./testHelpers";
 
 type FacadeTypeSample = Readonly<{
   service: BackendService;
@@ -145,4 +152,84 @@ test("backend Sentry facade exports the public observability API", () => {
   assert.equal(typeSample.breadcrumb.action, "request_error");
   assert.equal(typeSample.warning.action, "database_pool_error");
   assert.equal(typeSample.exception.error, normalizedError);
+});
+
+test("backend Sentry initialization configures the runtime sink idempotently and reset removes it", () => {
+  resetBackendSentryForTests();
+  const originalCaptureMessage = sentryModule.captureMessage;
+  const originalEnvironment = {
+    sentryDsn: process.env.SENTRY_DSN,
+    awsExecutionEnvironment: process.env.AWS_EXECUTION_ENV,
+    awsLambdaFunctionName: process.env.AWS_LAMBDA_FUNCTION_NAME,
+  };
+  let captureMessageCount = 0;
+  sentryModule.captureMessage = () => {
+    captureMessageCount += 1;
+    return "event-id";
+  };
+  delete process.env.SENTRY_DSN;
+  delete process.env.AWS_EXECUTION_ENV;
+  delete process.env.AWS_LAMBDA_FUNCTION_NAME;
+
+  const event: BackendWarningEvent = {
+    action: "database_pool_error",
+    scope: createBackendObservationScope(
+      "backend-api",
+      "request-runtime-sink",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+    ),
+    details: {
+      poolName: "main",
+      sqlState: null,
+      errorCode: "ECONNRESET",
+      errorClass: "Error",
+      errorMessage: "pool failed",
+    },
+  };
+
+  try {
+    initializeBackendSentry("backend-api");
+    initializeBackendSentry("backend-api");
+    const configuredMessages = withCapturedConsole("warn", () => {
+      captureBackendRuntimeWarning(event);
+    });
+
+    assert.equal(configuredMessages.length, 1);
+    assert.equal(captureMessageCount, 1);
+    assert.equal(createBackendRuntimeObservationScope().service, "backend-api");
+
+    resetBackendSentryForTests();
+    const fallbackMessages = withCapturedConsole("warn", () => {
+      captureBackendRuntimeWarning(event);
+    });
+
+    assert.equal(fallbackMessages.length, 1);
+    assert.equal(captureMessageCount, 1);
+  } finally {
+    sentryModule.captureMessage = originalCaptureMessage;
+    if (originalEnvironment.sentryDsn === undefined) {
+      delete process.env.SENTRY_DSN;
+    } else {
+      process.env.SENTRY_DSN = originalEnvironment.sentryDsn;
+    }
+    if (originalEnvironment.awsExecutionEnvironment === undefined) {
+      delete process.env.AWS_EXECUTION_ENV;
+    } else {
+      process.env.AWS_EXECUTION_ENV = originalEnvironment.awsExecutionEnvironment;
+    }
+    if (originalEnvironment.awsLambdaFunctionName === undefined) {
+      delete process.env.AWS_LAMBDA_FUNCTION_NAME;
+    } else {
+      process.env.AWS_LAMBDA_FUNCTION_NAME = originalEnvironment.awsLambdaFunctionName;
+    }
+    resetBackendSentryForTests();
+  }
 });

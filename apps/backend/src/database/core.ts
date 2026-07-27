@@ -10,9 +10,9 @@ import {
   toDatabaseCommitBoundaryError,
 } from "./transient";
 import {
-  captureBackendWarning,
+  captureBackendRuntimeWarning,
   createBackendRuntimeObservationScope,
-} from "../observability/sentry";
+} from "../observability/runtime";
 import {
   queryWithPostgresDeadline,
   resolvePostgresPoolUntilDeadline,
@@ -145,7 +145,7 @@ function toClientReleaseError(error: unknown): Error {
 function logUnsafeTransactionRollbackFailure(originalError: unknown, rollbackError: unknown): void {
   const originalFields = getDatabaseErrorFields(originalError);
   const rollbackFields = getDatabaseErrorFields(rollbackError);
-  captureBackendWarning({
+  captureBackendRuntimeWarning({
     action: "unsafe_transaction_rollback_failed",
     scope: createBackendRuntimeObservationScope(),
     details: {

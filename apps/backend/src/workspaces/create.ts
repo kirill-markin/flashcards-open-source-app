@@ -7,13 +7,15 @@ import {
 } from "../database";
 import { HttpError } from "../shared/errors";
 import {
-  addBackendBreadcrumb,
-  captureBackendException,
+  addBackendRuntimeBreadcrumb,
+  captureBackendRuntimeException,
   normalizeCaughtError,
-  type BackendObservationScope,
-  type WorkspaceTransactionDetails,
-} from "../observability/sentry";
-import { markBackendExceptionWrapperAsReported } from "../observability/reporting";
+} from "../observability/runtime";
+import type {
+  BackendObservationScope,
+  WorkspaceTransactionDetails,
+} from "../observability/sentry/events";
+import { markBackendExceptionWrapperAsReported } from "../observability/reportedErrors";
 import {
   buildSystemWorkspaceReplicaId,
   ensureBootstrapSystemWorkspaceReplicaInExecutor,
@@ -92,7 +94,11 @@ function handleWorkspaceCreateFailure(
       table: null,
       detail: null,
     };
-    addBackendBreadcrumb({ action: "workspace_create_transaction_error", scope, details });
+    addBackendRuntimeBreadcrumb({
+      action: "workspace_create_transaction_error",
+      scope,
+      details,
+    });
     throw error;
   }
 
@@ -109,7 +115,7 @@ function handleWorkspaceCreateFailure(
     selectedWorkspaceIdAfterPreparation: null,
     deletedCardsCount: null,
   };
-  captureBackendException({
+  captureBackendRuntimeException({
     action: "workspace_create_transaction_error",
     error: normalizeCaughtError(error),
     scope,

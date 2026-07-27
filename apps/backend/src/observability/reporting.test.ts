@@ -3,14 +3,38 @@ import test from "node:test";
 import { AuthError, authVerificationTemporarilyUnavailableCode } from "../auth";
 import { HttpError } from "../shared/errors";
 import { createBackendFailureDetails } from "../server/logging";
-import { captureBackendException } from "./sentry/capture";
+import {
+  addBackendBreadcrumb,
+  captureBackendException,
+  captureBackendWarning,
+} from "./sentry/capture";
 import { normalizeCaughtError } from "./sentry/errorNormalization";
 import { createBackendObservationScope } from "./sentry/scope";
-import { hasReportedBackendException, reportBackendExceptionOrBreadcrumb } from "./reporting";
+import {
+  hasReportedBackendException,
+  markBackendExceptionWrapperAsReported,
+  reportBackendExceptionOrBreadcrumb,
+} from "./reporting";
+import {
+  configureBackendRuntimeObservability,
+  resetBackendRuntimeObservability,
+} from "./runtime";
 import {
   sentryModule,
   withCapturedConsole,
 } from "./sentry/testHelpers";
+
+test.beforeEach(() => {
+  configureBackendRuntimeObservability("backend-api", {
+    addBreadcrumb: addBackendBreadcrumb,
+    captureWarning: captureBackendWarning,
+    captureException: captureBackendException,
+  });
+});
+
+test.afterEach(() => {
+  resetBackendRuntimeObservability();
+});
 
 test("normalizeCaughtError preserves Error and converts non-Error throws", () => {
   const error = new TypeError("bad input");
@@ -249,6 +273,47 @@ test("backend reporting recognizes repeated normalized non-Error throws", () => 
 
     assert.equal(appDetectedPreviousReport, true);
     assert.equal(captureExceptionCount, 1);
+  } finally {
+    sentryModule.captureException = originalCaptureException;
+  }
+});
+
+test("backend reporting does not recapture explicitly reported wrapper errors", () => {
+  const originalCaptureException = sentryModule.captureException;
+  let captureExceptionCount = 0;
+  sentryModule.captureException = () => {
+    captureExceptionCount += 1;
+    return "event-id";
+  };
+
+  try {
+    const error = markBackendExceptionWrapperAsReported(
+      new HttpError(500, "Workspace creation failed", "WORKSPACE_CREATE_FAILED"),
+    );
+    const scope = createBackendObservationScope(
+      "backend-api",
+      "request-wrapper",
+      "/workspaces",
+      "POST",
+      "user-wrapper",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+    );
+    const details = createBackendFailureDetails(error);
+    const breadcrumbMessages = withCapturedConsole("log", () => {
+      reportBackendExceptionOrBreadcrumb(
+        error,
+        { action: "workspace_create_error", error, scope, details },
+        { action: "workspace_create_error", scope, details },
+      );
+    });
+
+    assert.equal(captureExceptionCount, 0);
+    assert.equal(JSON.parse(breadcrumbMessages[0] ?? "").action, "workspace_create_error");
   } finally {
     sentryModule.captureException = originalCaptureException;
   }
