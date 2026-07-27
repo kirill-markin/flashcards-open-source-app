@@ -1,5 +1,5 @@
 import type { S3Client } from "@aws-sdk/client-s3";
-import type { BackendObservationScope } from "../../observability/sentry";
+import type { BackendObservationScope } from "../../observability/sentry/events";
 import type {
   CompleteMediaAssetUploadPartInput,
   MediaAssetUploadSessionPartRequest,

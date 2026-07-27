@@ -6,8 +6,8 @@ import { unsafeQuery } from "../../database/unsafe";
 import { HttpError } from "../../shared/errors";
 import {
   AUTO_CREATED_WORKSPACE_NAME,
-  createWorkspaceInExecutor,
-} from "../../workspaces";
+} from "../../workspaces/types";
+import { createWorkspaceInExecutor } from "../../workspaces/create";
 import { guestSessionPlatformColumnExistsInExecutor } from "../platformColumn";
 import { hashGuestToken } from "../shared";
 import type { GuestSessionPlatform, GuestSessionSnapshot } from "../types";

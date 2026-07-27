@@ -2,7 +2,7 @@ import {
   CopyObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
-import type { BackendObservationScope } from "../../observability/sentry";
+import type { BackendObservationScope } from "../../observability/sentry/events";
 import { HttpError } from "../../shared/errors";
 import type {
   AssertMediaAssetObjectInput,

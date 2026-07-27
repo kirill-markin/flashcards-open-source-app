@@ -8,7 +8,7 @@ import {
   type DatabaseExecutor,
 } from "../database";
 import { unsafeTransaction } from "../database/unsafe";
-import { ensureUserSelectedWorkspaceInExecutor } from "../workspaces";
+import { ensureUserSelectedWorkspaceInExecutor } from "../workspaces/selection";
 import { assertSubjectIsNotDeletedInExecutor } from "./deletedSubjects";
 import {
   bindCognitoIdentityMappingInExecutor,

@@ -8,7 +8,7 @@ import {
   type CursorPageInput,
 } from "../shared/pagination";
 import { createCrockfordToken, normalizeCrockfordToken } from "./crockford";
-import { ensureApiKeyWorkspaceSelection } from "../workspaces";
+import { ensureApiKeyWorkspaceSelection } from "../workspaces/selection";
 
 const AGENT_API_KEY_PREFIX = "fca";
 const AGENT_API_KEY_ID_LENGTH = 8;

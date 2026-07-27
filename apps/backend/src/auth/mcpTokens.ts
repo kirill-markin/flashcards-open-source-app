@@ -3,7 +3,7 @@ import { unsafeQuery } from "../database/unsafe";
 import { HttpError } from "../shared/errors";
 import { normalizeCrockfordToken } from "../agent/crockford";
 import { authenticateAgentApiKey } from "../agent/apiKeys";
-import { ensureMcpConnectionWorkspaceSelection } from "../workspaces";
+import { ensureMcpConnectionWorkspaceSelection } from "../workspaces/selection";
 
 const AGENT_API_KEY_PREFIX = "FCA_";
 

@@ -1,16 +1,16 @@
 import { AuthError, authVerificationTemporarilyUnavailableCode } from "../auth";
 import { HttpError } from "../shared/errors";
 import {
-  addBackendBreadcrumb,
-  captureBackendException,
-} from "./sentry/capture";
-import { hasCapturedBackendException } from "./sentry/errorNormalization";
+  addBackendRuntimeBreadcrumb,
+  captureBackendRuntimeException,
+} from "./runtime";
 import type {
   BackendBreadcrumbEvent,
   BackendExceptionEvent,
 } from "./sentry/events";
-
-const reportedBackendExceptionWrappers = new WeakSet<Error>();
+import {
+  hasReportedBackendException,
+} from "./reportedErrors";
 
 function isExpectedRequestError(error: unknown): boolean {
   if (error instanceof AuthError) {
@@ -21,14 +21,10 @@ function isExpectedRequestError(error: unknown): boolean {
     && (error.statusCode < 500 || error.code === authVerificationTemporarilyUnavailableCode);
 }
 
-export function markBackendExceptionWrapperAsReported(error: Error): Error {
-  reportedBackendExceptionWrappers.add(error);
-  return error;
-}
-
-export function hasReportedBackendException(error: Error): boolean {
-  return hasCapturedBackendException(error) || reportedBackendExceptionWrappers.has(error);
-}
+export {
+  hasReportedBackendException,
+  markBackendExceptionWrapperAsReported,
+} from "./reportedErrors";
 
 export function reportBackendExceptionOrBreadcrumb(
   error: unknown,
@@ -36,14 +32,14 @@ export function reportBackendExceptionOrBreadcrumb(
   breadcrumbEvent: BackendBreadcrumbEvent,
 ): void {
   if (isExpectedRequestError(error)) {
-    addBackendBreadcrumb(breadcrumbEvent);
+    addBackendRuntimeBreadcrumb(breadcrumbEvent);
     return;
   }
 
   if (hasReportedBackendException(exceptionEvent.error)) {
-    addBackendBreadcrumb(breadcrumbEvent);
+    addBackendRuntimeBreadcrumb(breadcrumbEvent);
     return;
   }
 
-  captureBackendException(exceptionEvent);
+  captureBackendRuntimeException(exceptionEvent);
 }

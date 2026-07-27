@@ -1,10 +1,10 @@
 import { HttpError } from "../shared/errors";
 import {
-  addBackendBreadcrumb,
-  captureBackendWarning,
+  addBackendRuntimeBreadcrumb,
+  captureBackendRuntimeWarning,
   createBackendRuntimeObservationScope,
-  type BackendObservationScope,
-} from "../observability/sentry";
+} from "../observability/runtime";
+import type { BackendObservationScope } from "../observability/sentry/events";
 
 const transientDatabaseSqlStates: ReadonlySet<string> = new Set([
   "40001",
@@ -141,7 +141,7 @@ function logDatabaseTransientRetry(
   delayMs: number,
   error: unknown,
 ): void {
-  addBackendBreadcrumb({
+  addBackendRuntimeBreadcrumb({
     action: "database_transient_retry",
     scope: getObservationScope(),
     details: {
@@ -255,7 +255,7 @@ export function toDatabaseCommitBoundaryError(error: unknown): unknown {
 
 export function logDatabasePoolError(poolName: string, error: unknown): void {
   try {
-    captureBackendWarning({
+    captureBackendRuntimeWarning({
       action: "database_pool_error",
       scope: createBackendRuntimeObservationScope(),
       details: {

@@ -1,6 +1,6 @@
 import {
-  addBackendBreadcrumb,
-} from "../../observability/sentry";
+  addBackendRuntimeBreadcrumb,
+} from "../../observability/runtime";
 import { HttpError, type MediaAssetStorageErrorDetails } from "../../shared/errors";
 import type {
   MediaAssetStorageContext,
@@ -55,7 +55,7 @@ export async function runMediaAssetStorageOperationWithRetries<Result>(
         break;
       }
 
-      addBackendBreadcrumb({
+      addBackendRuntimeBreadcrumb({
         action: "media_asset_storage_retry",
         scope: context.observationScope,
         details: {

@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/aws-serverless";
+import type * as Sentry from "@sentry/aws-serverless";
 import {
   sanitizeBackendTelemetryValue,
   type SanitizedTelemetryValue,

@@ -13,7 +13,8 @@ import {
 import { authenticateAgentApiKey } from "../agent/apiKeys";
 import { getAuthConfig } from "./config";
 import { HttpError } from "../shared/errors";
-import { authenticateGuestSession, type GuestSessionPlatform } from "../guestAuth";
+import { authenticateGuestSession } from "../guestAuth/session";
+import type { GuestSessionPlatform } from "../guestAuth/types";
 import { loadCognitoIdentityMapping } from "./userIdentities";
 
 export type AuthTransport = "none" | "bearer" | "session" | "api_key" | "guest";
