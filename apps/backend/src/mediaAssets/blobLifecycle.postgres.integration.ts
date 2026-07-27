@@ -3,15 +3,29 @@ import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
-import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../database";
+import {
+  DatabaseDeadlineExceededError, transactionWithWorkspaceScope, transactionWithWorkspaceScopeDeadline, type DatabaseExecutor,
+} from "../database";
 import { unsafeTransaction } from "../database/unsafe";
 import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../testSupport/postgresIntegration";
 import {
+  assertDirectMediaBlobStorageCapabilityForMutation,
+  beginDirectMediaBlobWriterAttemptWithOwner,
   claimMediaBlobCleanupInExecutor, failMediaBlobWriterInExecutor,
+  fenceDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor,
+  finishDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor,
   finalizeMediaBlobWriterInExecutor, markMediaBlobWriterAmbiguousInExecutor,
+  mediaBlobCleanupDelayMs,
   MediaBlobLifecycleBusyError, MediaBlobLifecycleConflictError, MediaBlobWriterFenceError,
   reconcileMediaBlobWriterInExecutor, reserveMediaBlobWriterInExecutor,
+  resolveDirectMediaBlobWriterAttemptAfterAccessRevocation,
+  resolveDirectMediaBlobWriterAttemptFailureWithOwner,
   terminalizeMediaBlobWriterFailureInExecutor,
+  transactionWithDirectMediaBlobWriterApplyDeadline,
+  type DirectMediaBlobWriterAttemptInput,
+  type DirectMediaBlobWriterAttemptLease,
+  type DirectMediaBlobWriterApplyExecutor,
+  type DirectMediaBlobStorageCapability,
   type MediaBlobWriterReservationInput,
 } from "./blobLifecycle";
 import { createImageNormalizedMediaAssetForWorkspace } from ".";
@@ -38,6 +52,35 @@ function input(workspaceId: string, mediaAssetId: string, operationId: string, s
     sha256, storageKey: buildMediaBlobStorageKey(sha256), mimeType: "image/jpeg",
     sizeBytes: 42, normalizationVersion: imageJpegCardMediaBlobNormalizationVersion,
   };
+}
+function directAttemptInput(
+  fixture: Pick<PostgresIntegrationFixture, "userId" | "workspaceId" | "replicaId" | "createdAt">,
+  sha256: string,
+): DirectMediaBlobWriterAttemptInput {
+  return {
+    attemptToken: randomUUID(), userId: fixture.userId, workspaceId: fixture.workspaceId,
+    mediaAssetId: randomUUID(), operationId: randomUUID(),
+    lastModifiedByReplicaId: fixture.replicaId, sha256,
+    storageKey: buildMediaBlobStorageKey(sha256), mimeType: "image/jpeg", sizeBytes: 42,
+    normalizationVersion: imageJpegCardMediaBlobNormalizationVersion, sourceUrl: null,
+    assetCreatedAt: fixture.createdAt, clientUpdatedAt: fixture.createdAt,
+  };
+}
+function createDirectAttemptDeadline(): string {
+  return new Date(Date.now() + 30_000).toISOString();
+}
+function createDirectAttemptLease(): DirectMediaBlobWriterAttemptLease {
+  return { leaseDurationMs: 60_000, operationDeadlineAt: createDirectAttemptDeadline() };
+}
+async function insertDirectAttemptAsset(
+  executor: DatabaseExecutor, input: DirectMediaBlobWriterAttemptInput,
+): Promise<void> {
+  await executor.query(
+    `WITH blob AS (INSERT INTO content.media_blobs (media_blob_id,sha256,mime_type,size_bytes,storage_key,normalization_version) VALUES ($1,$2,$3,$4,$5,$6) RETURNING media_blob_id) INSERT INTO content.media_assets (media_asset_id,workspace_id,media_blob_id,source_url,created_at,client_updated_at,last_modified_by_replica_id,last_operation_id) SELECT $7,$8,media_blob_id,$9,$10,$11,$12,$13 FROM blob`,
+    [randomUUID(), input.sha256, input.mimeType, input.sizeBytes, input.storageKey,
+      input.normalizationVersion, input.mediaAssetId, input.workspaceId, input.sourceUrl,
+      input.assetCreatedAt, input.clientUpdatedAt, input.lastModifiedByReplicaId, input.operationId],
+  );
 }
 function hasSqlState(error: unknown, sqlState: string): boolean { return typeof error === "object" && error !== null && "code" in error && error.code === sqlState; }
 async function createCleanupCandidate(
@@ -203,7 +246,7 @@ async function assertLifecycleMigrationUpgrade(fixture: PostgresIntegrationFixtu
     client.release();
   }
 }
-test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and global grants", async () => {
+test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and global grants", async (testContext) => {
   await withPostgresIntegrationFixture(async (fixture) => {
     const referencedSha = createUniqueSha256();
     const cleanupSha = createUniqueSha256();
@@ -215,12 +258,26 @@ test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and g
     const referenceLeaseSha = createUniqueSha256();
     const reservationLeaseSha = createUniqueSha256();
     const revokedSha = createUniqueSha256();
+    const attemptSha = createUniqueSha256();
+    const failedAttemptSha = createUniqueSha256();
+    const takeoverAttemptSha = createUniqueSha256();
+    const revokedAttemptSha = createUniqueSha256();
+    const abortedAttemptSha = createUniqueSha256();
+    const snapshotAttemptSha = createUniqueSha256();
+    const deadlineAttemptSha = createUniqueSha256();
+    const deniedAttemptSha = createUniqueSha256();
+    const attemptFixtureSha256s = [
+      attemptSha, failedAttemptSha, takeoverAttemptSha, revokedAttemptSha, abortedAttemptSha,
+      snapshotAttemptSha, deadlineAttemptSha, deniedAttemptSha,
+    ];
     const fixtureSha256s = [
       referencedSha, cleanupSha, mediaRaceSha, catalogRaceSha, legacySha, backfillSha, leaseWaitSha,
-      referenceLeaseSha, reservationLeaseSha, revokedSha,
+      referenceLeaseSha, reservationLeaseSha, revokedSha, ...attemptFixtureSha256s,
     ];
     const cleanupBlobId = randomUUID();
     const concurrentWorkspaceId = randomUUID();
+    const abortedWorkspaceId = randomUUID();
+    const abortedReplicaId = randomUUID();
     const authorId = randomUUID();
     const packageId = randomUUID();
     const catalogSlug = `lifecycle-${randomUUID()}`;
@@ -236,6 +293,302 @@ test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and g
       sizeBytes: 0,
     };
     try {
+      const attemptInput = directAttemptInput(fixture, attemptSha);
+      const initialLease = createDirectAttemptLease();
+      const attempt = await beginDirectMediaBlobWriterAttemptWithOwner(attemptInput, initialLease);
+      assert.equal(attempt.status, "acquired");
+      if (!("reservationToken" in attempt)) throw new Error("Direct attempt did not return a token.");
+      assert.equal((await fixture.ownerPool.query<{ committed: boolean }>(
+        "SELECT EXISTS (SELECT 1 FROM content.media_blob_writer_attempts WHERE attempt_token=$1 AND reservation_token=$2) AS committed",
+        [attemptInput.attemptToken, attempt.reservationToken],
+      )).rows[0]?.committed, true);
+      const exactAttempt = { ...attemptInput, reservationToken: attempt.reservationToken,
+        normalizationVersion: attempt.normalizationVersion };
+      assert.doesNotThrow(() => assertDirectMediaBlobStorageCapabilityForMutation(
+        attempt.storageCapability, exactAttempt,
+      ));
+      for (const mismatch of [
+        { ...exactAttempt, attemptToken: randomUUID() },
+        { ...exactAttempt, reservationToken: randomUUID() },
+        { ...exactAttempt, sourceUrl: "https://mismatch.invalid/" },
+      ]) assert.throws(
+        () => assertDirectMediaBlobStorageCapabilityForMutation(
+          attempt.storageCapability, mismatch,
+        ),
+        MediaBlobWriterFenceError,
+      );
+      assert.throws(() => assertDirectMediaBlobStorageCapabilityForMutation(
+        Object.freeze({}) as DirectMediaBlobStorageCapability, exactAttempt,
+      ), MediaBlobWriterFenceError);
+      for (const copy of [
+        Object.freeze({ ...attempt.storageCapability }),
+        Object.freeze(Object.create(attempt.storageCapability)),
+        Object.freeze(structuredClone(attempt.storageCapability)),
+      ] as ReadonlyArray<DirectMediaBlobStorageCapability>) {
+        assert.throws(() => assertDirectMediaBlobStorageCapabilityForMutation(
+          copy, exactAttempt,
+        ), MediaBlobWriterFenceError);
+      }
+      const dateNowMock = testContext.mock.method(
+        Date, "now", () => Date.parse(initialLease.operationDeadlineAt),
+      );
+      try {
+        assert.throws(() => assertDirectMediaBlobStorageCapabilityForMutation(
+          attempt.storageCapability, exactAttempt,
+        ), MediaBlobWriterFenceError);
+      } finally {
+        dateNowMock.mock.restore();
+      }
+      const snapshotBase = directAttemptInput(fixture, snapshotAttemptSha);
+      let sourceUrlReads = 0;
+      const getterInput = Object.defineProperty({ ...snapshotBase }, "sourceUrl", {
+        enumerable: true,
+        get: () => (sourceUrlReads += 1) === 1 ? null : "https://mutated.invalid/",
+      }) as DirectMediaBlobWriterAttemptInput;
+      const snapshotAttempt = await beginDirectMediaBlobWriterAttemptWithOwner(
+        getterInput, createDirectAttemptLease(),
+      );
+      assert.equal(sourceUrlReads, 1);
+      if (!("reservationToken" in snapshotAttempt)) throw new Error("Snapshot attempt did not acquire.");
+      const exactSnapshot = { ...snapshotBase, reservationToken: snapshotAttempt.reservationToken,
+        normalizationVersion: snapshotAttempt.normalizationVersion };
+      assert.doesNotThrow(() => assertDirectMediaBlobStorageCapabilityForMutation(
+        snapshotAttempt.storageCapability, exactSnapshot,
+      ));
+      assert.equal(await resolveDirectMediaBlobWriterAttemptFailureWithOwner(
+        exactSnapshot, mediaBlobCleanupDelayMs, createDirectAttemptDeadline(),
+      ), "unreferenced");
+      assert.equal((await beginDirectMediaBlobWriterAttemptWithOwner(
+        snapshotBase, createDirectAttemptLease(),
+      )).status, "unreferenced");
+      const invalidSourceInput = directAttemptInput(fixture, createUniqueSha256());
+      Object.defineProperty(invalidSourceInput, "sourceUrl", { value: 42 });
+      assert.throws(() => beginDirectMediaBlobWriterAttemptWithOwner(
+        invalidSourceInput, createDirectAttemptLease()), TypeError);
+      const deadlineHolder = await fixture.ownerPool.connect();
+      try {
+        await deadlineHolder.query("BEGIN");
+        await deadlineHolder.query(
+          "SELECT pg_advisory_xact_lock(hashtextextended($1||':'||$2::text,0))",
+          [fixture.userId, fixture.workspaceId],
+        );
+        const deadlineFailure = (error: unknown): boolean =>
+          error instanceof DatabaseDeadlineExceededError || hasSqlState(error, "55P03") || hasSqlState(error, "57014");
+        await assert.rejects(beginDirectMediaBlobWriterAttemptWithOwner(
+          directAttemptInput(fixture, deadlineAttemptSha), { leaseDurationMs: 2_000,
+            operationDeadlineAt: new Date(Date.now() + 500).toISOString() }), deadlineFailure);
+        await assert.rejects(resolveDirectMediaBlobWriterAttemptFailureWithOwner(
+          exactAttempt, mediaBlobCleanupDelayMs,
+          new Date(Date.now() + 500).toISOString()), deadlineFailure);
+        await assert.rejects(resolveDirectMediaBlobWriterAttemptAfterAccessRevocation(
+          exactAttempt, mediaBlobCleanupDelayMs,
+          new Date(Date.now() + 500).toISOString()), deadlineFailure);
+        const applyLockDeadline = new Date(Date.now() + 500).toISOString();
+        await assert.rejects(transactionWithDirectMediaBlobWriterApplyDeadline(
+          exactAttempt,
+          applyLockDeadline,
+          (executor, snapshot, exactDeadline) =>
+            fenceDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+              executor, snapshot, mediaBlobCleanupDelayMs, exactDeadline,
+            ),
+        ), deadlineFailure);
+      } finally {
+        await deadlineHolder.query("ROLLBACK");
+        deadlineHolder.release();
+      }
+      const renewed = await beginDirectMediaBlobWriterAttemptWithOwner(
+        attemptInput, createDirectAttemptLease(),
+      );
+      assert.equal(renewed.status, "replayed");
+      if (!("reservationToken" in renewed)) throw new Error("Renewal did not return a token.");
+      assert.equal(renewed.reservationToken, attempt.reservationToken);
+      assert.doesNotThrow(() => assertDirectMediaBlobStorageCapabilityForMutation(
+        renewed.storageCapability, exactAttempt,
+      ));
+      assert.equal(
+        (await beginDirectMediaBlobWriterAttemptWithOwner(
+          { ...attemptInput, attemptToken: randomUUID() }, createDirectAttemptLease(),
+        )).status,
+        "busy",
+      );
+      assert.equal((await beginDirectMediaBlobWriterAttemptWithOwner(
+        { ...directAttemptInput(fixture, createUniqueSha256()),
+          lastModifiedByReplicaId: randomUUID() }, createDirectAttemptLease(),
+      )).status, "replica_mismatch");
+      assert.equal(
+        await resolveDirectMediaBlobWriterAttemptAfterAccessRevocation(
+          exactAttempt, mediaBlobCleanupDelayMs, createDirectAttemptDeadline(),
+        ),
+        "access_active",
+      );
+      const ordinaryExecutorDeadline = createDirectAttemptDeadline();
+      await assert.rejects(transactionWithWorkspaceScopeDeadline(
+        { userId: fixture.userId, workspaceId: fixture.workspaceId },
+        Date.parse(ordinaryExecutorDeadline),
+        (executor) => fenceDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+          executor as DirectMediaBlobWriterApplyExecutor,
+          exactAttempt, mediaBlobCleanupDelayMs, ordinaryExecutorDeadline,
+        ),
+      ), TypeError);
+      const rollbackDeadline = createDirectAttemptDeadline();
+      let rolledBackExecutor: DirectMediaBlobWriterApplyExecutor | null = null;
+      await assert.rejects(transactionWithDirectMediaBlobWriterApplyDeadline(
+        exactAttempt,
+        rollbackDeadline,
+        async (executor, snapshot, exactDeadline) => {
+          rolledBackExecutor = executor;
+          const copiedExecutor: DatabaseExecutor = Object.freeze({ ...executor });
+          const wrappedExecutor: DatabaseExecutor = Object.freeze({ query: executor.query });
+          for (const lookalike of [
+            copiedExecutor as DirectMediaBlobWriterApplyExecutor,
+            wrappedExecutor as DirectMediaBlobWriterApplyExecutor,
+          ]) {
+            assert.throws(() => fenceDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+              lookalike, snapshot, mediaBlobCleanupDelayMs, exactDeadline,
+            ), TypeError);
+          }
+          const mismatchedDeadline = new Date(Date.parse(exactDeadline) + 1).toISOString();
+          assert.throws(() => fenceDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+            executor, snapshot, mediaBlobCleanupDelayMs, mismatchedDeadline,
+          ), TypeError);
+          assert.throws(() => finishDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+            executor, snapshot, mediaBlobCleanupDelayMs, mismatchedDeadline,
+          ), TypeError);
+          for (const mismatchedAttempt of [
+            exactSnapshot,
+            { ...snapshot, attemptToken: exactSnapshot.attemptToken },
+            { ...snapshot, reservationToken: exactSnapshot.reservationToken },
+            { ...snapshot, sourceUrl: "https://mismatched-payload.invalid/" },
+          ]) {
+            assert.throws(() => fenceDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+              executor, mismatchedAttempt, mediaBlobCleanupDelayMs, exactDeadline,
+            ), TypeError);
+            assert.throws(() => finishDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+              executor, mismatchedAttempt, mediaBlobCleanupDelayMs, exactDeadline,
+            ), TypeError);
+          }
+          assert.equal(await fenceDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+            executor, snapshot, mediaBlobCleanupDelayMs, exactDeadline,
+          ), "ready");
+          throw new Error("Direct writer apply rollback evidence.");
+        },
+      ), /Direct writer apply rollback evidence/u);
+      const exactRolledBackExecutor = rolledBackExecutor;
+      if (exactRolledBackExecutor === null) {
+        throw new Error("Apply executor did not enter rollback evidence.");
+      }
+      assert.throws(() => fenceDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+        exactRolledBackExecutor, exactAttempt, mediaBlobCleanupDelayMs, rollbackDeadline,
+      ), TypeError);
+      const applyDeadline = createDirectAttemptDeadline();
+      await transactionWithDirectMediaBlobWriterApplyDeadline(
+        exactAttempt,
+        applyDeadline,
+        async (executor, snapshot, exactDeadline) => {
+          assert.equal(await fenceDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+            executor, snapshot, mediaBlobCleanupDelayMs, exactDeadline,
+          ), "ready");
+          await insertDirectAttemptAsset(executor, snapshot);
+          assert.equal(await finishDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+            executor, snapshot, mediaBlobCleanupDelayMs, exactDeadline,
+          ), "live_applied");
+        },
+      );
+      assert.equal((await beginDirectMediaBlobWriterAttemptWithOwner(
+        attemptInput, createDirectAttemptLease(),
+      )).status, "live_applied");
+      assert.equal(await resolveDirectMediaBlobWriterAttemptFailureWithOwner(
+        exactAttempt, mediaBlobCleanupDelayMs, createDirectAttemptDeadline(),
+      ), "live_applied");
+      const failedInput = directAttemptInput(fixture, failedAttemptSha);
+      const failed = await beginDirectMediaBlobWriterAttemptWithOwner(
+        failedInput, createDirectAttemptLease(),
+      );
+      if (!("reservationToken" in failed)) throw new Error("Failed attempt did not acquire.");
+      const exactFailed = { ...failedInput, reservationToken: failed.reservationToken,
+        normalizationVersion: failed.normalizationVersion };
+      assert.equal(await resolveDirectMediaBlobWriterAttemptFailureWithOwner(
+        { ...exactFailed, reservationToken: randomUUID() },
+        mediaBlobCleanupDelayMs, createDirectAttemptDeadline(),
+      ), "writer_conflict");
+      assert.equal(await resolveDirectMediaBlobWriterAttemptFailureWithOwner(
+        exactFailed, mediaBlobCleanupDelayMs, createDirectAttemptDeadline(),
+      ), "unreferenced");
+      assert.equal(await resolveDirectMediaBlobWriterAttemptFailureWithOwner(
+        exactFailed, mediaBlobCleanupDelayMs, createDirectAttemptDeadline(),
+      ), "unreferenced");
+      const terminalReplayDeadline = createDirectAttemptDeadline();
+      assert.equal(await transactionWithDirectMediaBlobWriterApplyDeadline(
+        exactFailed,
+        terminalReplayDeadline,
+        (executor, snapshot, exactDeadline) =>
+          finishDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+            executor, snapshot, mediaBlobCleanupDelayMs, exactDeadline),
+      ), "unreferenced");
+      const takeoverInput = directAttemptInput(fixture, takeoverAttemptSha);
+      const expiring = await beginDirectMediaBlobWriterAttemptWithOwner(
+        takeoverInput, createDirectAttemptLease(),
+      );
+      if (!("reservationToken" in expiring)) throw new Error("Expiring attempt did not acquire.");
+      await fixture.ownerPool.query("UPDATE content.media_blob_writer_attempts SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE attempt_token=$1", [takeoverInput.attemptToken]);
+      const takeoverInputNext = { ...takeoverInput, attemptToken: randomUUID() };
+      const takeover = await beginDirectMediaBlobWriterAttemptWithOwner(
+        takeoverInputNext, createDirectAttemptLease(),
+      );
+      assert.equal(takeover.status, "expired_takeover");
+      assert.equal(await resolveDirectMediaBlobWriterAttemptFailureWithOwner(
+        { ...takeoverInput, reservationToken: expiring.reservationToken,
+          normalizationVersion: expiring.normalizationVersion }, mediaBlobCleanupDelayMs,
+        createDirectAttemptDeadline(),
+      ), "stale_attempt");
+      const revokedAttemptInput = directAttemptInput(fixture, revokedAttemptSha);
+      const revoked = await beginDirectMediaBlobWriterAttemptWithOwner(
+        revokedAttemptInput, createDirectAttemptLease(),
+      );
+      if (!("reservationToken" in revoked)) throw new Error("Revoked attempt did not acquire.");
+      const exactRevoked = { ...revokedAttemptInput, reservationToken: revoked.reservationToken,
+        normalizationVersion: revoked.normalizationVersion };
+      await fixture.ownerPool.query("DELETE FROM org.workspace_memberships WHERE workspace_id=$1 AND user_id=$2", [fixture.workspaceId, fixture.userId]);
+      assert.equal((await beginDirectMediaBlobWriterAttemptWithOwner(
+        directAttemptInput(fixture, deniedAttemptSha), createDirectAttemptLease(),
+      )).status, "access_denied");
+      assert.equal(await resolveDirectMediaBlobWriterAttemptFailureWithOwner(
+        exactRevoked, mediaBlobCleanupDelayMs, createDirectAttemptDeadline(),
+      ), "access_denied");
+      assert.equal(await resolveDirectMediaBlobWriterAttemptAfterAccessRevocation(
+        exactRevoked, mediaBlobCleanupDelayMs, createDirectAttemptDeadline(),
+      ), "busy");
+      await fixture.ownerPool.query("UPDATE content.media_blob_writer_attempts SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE attempt_token=$1", [revokedAttemptInput.attemptToken]);
+      assert.equal(await resolveDirectMediaBlobWriterAttemptAfterAccessRevocation(
+        exactRevoked, mediaBlobCleanupDelayMs, createDirectAttemptDeadline()), "unreferenced");
+      assert.equal(await resolveDirectMediaBlobWriterAttemptAfterAccessRevocation(
+        exactRevoked, mediaBlobCleanupDelayMs, createDirectAttemptDeadline(),
+      ), "unreferenced");
+      await fixture.ownerPool.query("INSERT INTO org.workspace_memberships(workspace_id,user_id,role) VALUES($1,$2,'owner')", [fixture.workspaceId, fixture.userId]);
+      await fixture.ownerPool.query(
+        `WITH workspace AS (
+           INSERT INTO org.workspaces (workspace_id,name,fsrs_client_updated_at,
+             fsrs_last_modified_by_replica_id,fsrs_last_operation_id)
+           VALUES ($1,'Aborted wrapper evidence',$2,$3,$4) RETURNING workspace_id),
+         membership AS (
+           INSERT INTO org.workspace_memberships(workspace_id,user_id,role) SELECT workspace_id,$5,'owner' FROM workspace)
+         INSERT INTO sync.workspace_replicas (replica_id,workspace_id,user_id,actor_kind,actor_key,platform,app_version)
+         VALUES ($3,$1,$5,'ai_chat',$6,'system','postgres-integration')`,
+        [abortedWorkspaceId, fixture.createdAt, abortedReplicaId, randomUUID(), fixture.userId,
+          `postgres-integration-${abortedReplicaId}`],
+      );
+      const abortedInput = directAttemptInput({
+        userId: fixture.userId, workspaceId: abortedWorkspaceId,
+        replicaId: abortedReplicaId, createdAt: fixture.createdAt,
+      }, abortedAttemptSha);
+      const aborted = await beginDirectMediaBlobWriterAttemptWithOwner(
+        abortedInput, createDirectAttemptLease(),
+      );
+      if (!("reservationToken" in aborted)) throw new Error("Aborted attempt did not acquire.");
+      await fixture.ownerPool.query("DELETE FROM org.workspaces WHERE workspace_id=$1", [abortedWorkspaceId]);
+      assert.equal((await beginDirectMediaBlobWriterAttemptWithOwner(
+        abortedInput, createDirectAttemptLease(),
+      )).status, "aborted");
       await fixture.ownerPool.query(
         `WITH inserted_workspace AS (
            INSERT INTO org.workspaces
@@ -565,8 +918,13 @@ test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and g
         }),
       ), "unreferenced");
     } finally {
+      await fixture.ownerPool.query(
+        "DELETE FROM org.workspaces WHERE workspace_id = $1", [abortedWorkspaceId],
+      );
       await fixture.ownerPool.query("DELETE FROM catalog.packages WHERE package_id = $1", [packageId]);
       await fixture.ownerPool.query("DELETE FROM catalog.authors WHERE author_id = $1", [authorId]);
+      await fixture.ownerPool.query("DELETE FROM content.media_assets WHERE media_blob_id IN (SELECT media_blob_id FROM content.media_blobs WHERE sha256=ANY($1::text[]))", [attemptFixtureSha256s]);
+      await fixture.ownerPool.query("DELETE FROM content.media_blob_writer_attempts WHERE sha256=ANY($1::text[])", [attemptFixtureSha256s]);
       await fixture.ownerPool.query(
         "DELETE FROM content.media_blob_writer_reservations WHERE sha256 = ANY($1::text[])",
         [fixtureSha256s],
@@ -585,10 +943,12 @@ test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and g
          WHERE lifecycles.sha256 = ANY($1::text[])
            AND NOT EXISTS (SELECT 1 FROM content.media_blobs AS blobs
                            WHERE blobs.sha256 = lifecycles.sha256)
-           AND NOT EXISTS (SELECT 1 FROM content.media_blob_writer_reservations AS reservations
+          AND NOT EXISTS (SELECT 1 FROM content.media_blob_writer_reservations AS reservations
                            WHERE reservations.sha256 = lifecycles.sha256)`,
         [fixtureSha256s],
       );
+      const attemptResidue = (await fixture.ownerPool.query(`SELECT (SELECT count(*)::int FROM content.media_blob_writer_attempts WHERE sha256=ANY($1::text[])) AS attempts,(SELECT count(*)::int FROM content.media_blob_writer_reservations WHERE sha256=ANY($1::text[])) AS reservations,(SELECT count(*)::int FROM content.media_blob_lifecycles WHERE sha256=ANY($1::text[])) AS lifecycles,(SELECT count(*)::int FROM content.media_blobs WHERE sha256=ANY($1::text[])) AS blobs`, [attemptFixtureSha256s])).rows[0];
+      assert.deepEqual(attemptResidue, { attempts: 0, reservations: 0, lifecycles: 0, blobs: 0 });
       await fixture.ownerPool.query(
         "DELETE FROM org.workspaces WHERE workspace_id = $1",
         [concurrentWorkspaceId],

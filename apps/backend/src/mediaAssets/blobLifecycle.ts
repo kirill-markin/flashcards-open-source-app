@@ -1,16 +1,25 @@
-import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../database";
-import { unsafeTransaction } from "../database/unsafe";
+import {
+  applyWorkspaceDatabaseScopeInExecutor,
+  transactionWithWorkspaceScope,
+  transactionWithWorkspaceScopeDeadline,
+  type DatabaseExecutor,
+} from "../database";
+import { unsafeTransaction, unsafeTransactionWithDeadline } from "../database/unsafe";
 import { HttpError } from "../shared/errors";
 import { buildMediaBlobStorageKey } from "./storageKeys";
 import {
   mediaBlobNormalizationVersions,
   passthroughMediaBlobNormalizationVersion,
   type MediaBlobNormalizationVersion,
+  type TimestampValue,
 } from "./types";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const sha256Pattern = /^[0-9a-f]{64}$/u;
 const mimeTypePattern = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/u;
 const maximumOperationIdLength = 1_024;
+const maximumMediaBlobWriterAttemptLeaseDurationMs = 3_600_000;
+const maximumMediaBlobWriterOperationDeadlineMs = 3_600_000;
+const maximumMediaBlobCleanupDelayMs = 604_800_000;
 export const mediaBlobCleanupDelayMs = 3_600_000;
 export const mediaBlobWriterKinds = ["direct_ingestion", "multipart_completion", "generated_promotion"] as const;
 export type MediaBlobWriterKind = typeof mediaBlobWriterKinds[number];
@@ -41,6 +50,60 @@ export type DirectMediaBlobWriterResolutionInput = Readonly<{
 }>;
 export type DirectMediaBlobWriterReservationInput =
   DirectMediaBlobWriterResolutionInput & Readonly<{ normalizationVersion: MediaBlobNormalizationVersion }>;
+export type DirectMediaBlobWriterAttemptInput = DirectMediaBlobWriterReservationInput & Readonly<{
+  attemptToken: string; sourceUrl: string | null; assetCreatedAt: string; clientUpdatedAt: string;
+}>;
+export type DirectMediaBlobWriterAttemptExactInput =
+  DirectMediaBlobWriterAttemptInput & Readonly<{ reservationToken: string }>;
+export type DirectMediaBlobWriterAttemptLease = Readonly<{
+  leaseDurationMs: number; operationDeadlineAt: string;
+}>;
+declare const directMediaBlobStorageCapabilityType: unique symbol;
+declare const directMediaBlobWriterApplyExecutorType: unique symbol;
+type DirectMediaBlobStorageCapabilityPayload = Readonly<{
+  writerKind: "direct_ingestion"; attemptToken: string; reservationToken: string;
+  leaseExpiresAt: string; operationDeadlineAt: string; userId: string;
+  workspaceId: string; mediaAssetId: string; operationId: string;
+  lastModifiedByReplicaId: string; sha256: string; storageKey: string;
+  mimeType: string; sizeBytes: number; normalizationVersion: MediaBlobNormalizationVersion;
+  sourceUrl: string | null; assetCreatedAt: string; clientUpdatedAt: string;
+}>;
+type DirectMediaBlobWriterApplyExecutorClaim = Readonly<{
+  input: DirectMediaBlobWriterAttemptExactInput;
+  operationDeadlineAt: string;
+  operationDeadlineAtMs: number;
+}>;
+export type DirectMediaBlobStorageCapability = Readonly<{
+  readonly [directMediaBlobStorageCapabilityType]: true;
+}>;
+export type DirectMediaBlobWriterApplyExecutor = DatabaseExecutor & Readonly<{
+  readonly [directMediaBlobWriterApplyExecutorType]: true;
+}>;
+const directAttemptTerminalStatuses = ["already_applied", "live_applied", "peer_conflict",
+  "referenced", "unreferenced", "aborted", "stale_attempt"] as const;
+const directAttemptRejectionStatuses = ["access_denied", "replica_mismatch",
+  "ownership_mismatch", "writer_conflict", "cleanup_claimed", "stale"] as const;
+const directAttemptBeginStatuses = [...directAttemptTerminalStatuses,
+  ...directAttemptRejectionStatuses, "busy"] as const;
+const directAttemptFenceStatuses = [...directAttemptTerminalStatuses,
+  ...directAttemptRejectionStatuses, "ready"] as const;
+const directAttemptFinishStatuses = [...directAttemptTerminalStatuses,
+  ...directAttemptRejectionStatuses] as const;
+const directAttemptFailureStatuses = [...directAttemptFinishStatuses] as const;
+const directAttemptRevocationStatuses =
+  [...directAttemptFinishStatuses, "access_active", "busy"] as const;
+export type DirectMediaBlobWriterAttemptFenceStatus = typeof directAttemptFenceStatuses[number];
+export type DirectMediaBlobWriterAttemptFinishStatus = typeof directAttemptFinishStatuses[number];
+export type DirectMediaBlobWriterAttemptFailureStatus = typeof directAttemptFailureStatuses[number];
+export type DirectMediaBlobWriterAttemptRevocationStatus = typeof directAttemptRevocationStatuses[number];
+export type DirectMediaBlobWriterAttemptResult =
+  | Readonly<{
+    status: "acquired" | "replayed" | "expired_takeover";
+    reservationToken: string; normalizationVersion: MediaBlobNormalizationVersion;
+    leaseExpiresAt: string; storageCapability: DirectMediaBlobStorageCapability;
+  }>
+  | Readonly<{ status: "busy"; leaseExpiresAt: string }>
+  | Readonly<{ status: Exclude<typeof directAttemptBeginStatuses[number], "busy"> }>;
 type ReservationRow = Readonly<{
   reservation_token: string | null; reservation_state: string | null;
   reservation_status: string; normalization_version: string;
@@ -48,7 +111,16 @@ type ReservationRow = Readonly<{
 type BooleanRow = Readonly<{ transitioned: boolean }>;
 type ReconciliationRow = Readonly<{ reconciliation_status: string }>;
 type DirectResolutionRow = Readonly<{ resolution_status: string }>;
+type AttemptBeginRow = Readonly<{
+  attempt_status: string; reservation_token: string | null;
+  normalization_version: string | null; lease_expires_at: TimestampValue | null;
+}>;
+type AttemptStatusRow = Readonly<{ attempt_status: string }>;
 type CleanupClaimRow = Readonly<{ lease_token: string | null }>;
+const directMediaBlobStorageCapabilityClaims =
+  new WeakMap<DirectMediaBlobStorageCapability, DirectMediaBlobStorageCapabilityPayload>();
+const directMediaBlobWriterApplyExecutorClaims =
+  new WeakMap<DirectMediaBlobWriterApplyExecutor, DirectMediaBlobWriterApplyExecutorClaim>();
 export class MediaBlobLifecycleBusyError extends HttpError {
   constructor() { super( 503, "Media bytes are temporarily fenced by cleanup. Retry shortly.", "MEDIA_BLOB_LIFECYCLE_BUSY", ); this.name = "MediaBlobLifecycleBusyError";
   }
@@ -63,6 +135,11 @@ export class MediaBlobWriterFenceError extends Error {
 }
 export function assertMediaBlobWriterReservationToken(reservationToken: string): void {
   if (!uuidPattern.test(reservationToken)) { throw new TypeError("mediaBlobWriterReservationToken must be a lowercase UUID.");
+  }
+}
+export function assertMediaBlobWriterAttemptToken(attemptToken: string): void {
+  if (!uuidPattern.test(attemptToken)) {
+    throw new TypeError("mediaBlobWriterAttemptToken must be a lowercase UUID.");
   }
 }
 function assertReservationInput(input: MediaBlobWriterReservationInput): void {
@@ -95,6 +172,191 @@ function requireNormalizationVersion(value: string): MediaBlobNormalizationVersi
 function assertHistoricalWriterOwner(userId: string, replicaId: string): void {
   if (userId !== userId.trim() || userId.length === 0) throw new TypeError("userId must be non-empty and trimmed.");
   if (!uuidPattern.test(replicaId)) throw new TypeError("lastModifiedByReplicaId must be a lowercase UUID.");
+}
+function requireIsoTimestamp(value: TimestampValue, fieldName: string): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) throw new TypeError(`${fieldName} must be a valid timestamp.`);
+  return date.toISOString();
+}
+function assertPositiveBoundedDuration(value: number, fieldName: string, maximumMs: number): void {
+  if (!Number.isSafeInteger(value) || value < 1 || value > maximumMs) {
+    throw new RangeError(`${fieldName} must be an integer between 1 and ${maximumMs}.`);
+  }
+}
+type DirectMediaBlobWriterOperationDeadline = Readonly<{
+  operationDeadlineAt: string;
+  operationDeadlineAtMs: number;
+}>;
+function snapshotDirectAttemptOperationDeadline(
+  rawOperationDeadlineAt: string,
+): DirectMediaBlobWriterOperationDeadline {
+  if (typeof rawOperationDeadlineAt !== "string") {
+    throw new TypeError("operationDeadlineAt must be an ISO timestamp string.");
+  }
+  const operationDeadlineAt = requireIsoTimestamp(rawOperationDeadlineAt, "operationDeadlineAt");
+  const operationDeadlineAtMs = Date.parse(operationDeadlineAt);
+  const remainingMs = operationDeadlineAtMs - Date.now();
+  if (remainingMs <= 0 || remainingMs > maximumMediaBlobWriterOperationDeadlineMs) {
+    throw new RangeError(
+      `operationDeadlineAt must be within the next ${maximumMediaBlobWriterOperationDeadlineMs} milliseconds.`,
+    );
+  }
+  return Object.freeze({ operationDeadlineAt, operationDeadlineAtMs });
+}
+type DirectMediaBlobWriterAttemptLeaseSnapshot =
+  DirectMediaBlobWriterAttemptLease & DirectMediaBlobWriterOperationDeadline;
+function snapshotDirectAttemptLease(
+  lease: DirectMediaBlobWriterAttemptLease,
+): DirectMediaBlobWriterAttemptLeaseSnapshot {
+  if (typeof lease !== "object" || lease === null) {
+    throw new TypeError("Direct writer attempt lease must be an object.");
+  }
+  const leaseDurationMs = lease.leaseDurationMs;
+  const deadline = snapshotDirectAttemptOperationDeadline(lease.operationDeadlineAt);
+  assertPositiveBoundedDuration(
+    leaseDurationMs,
+    "leaseDurationMs",
+    maximumMediaBlobWriterAttemptLeaseDurationMs,
+  );
+  const remainingMs = deadline.operationDeadlineAtMs - Date.now();
+  if (remainingMs >= leaseDurationMs) {
+    throw new RangeError("operationDeadlineAt must expire strictly before the writer attempt lease.");
+  }
+  return Object.freeze({ leaseDurationMs, ...deadline });
+}
+function snapshotDirectAttemptInput(
+  input: DirectMediaBlobWriterAttemptInput,
+): DirectMediaBlobWriterAttemptInput {
+  if (typeof input !== "object" || input === null) {
+    throw new TypeError("Direct writer attempt input must be an object.");
+  }
+  const snapshot = {
+    attemptToken: input.attemptToken, userId: input.userId, workspaceId: input.workspaceId,
+    mediaAssetId: input.mediaAssetId, operationId: input.operationId,
+    lastModifiedByReplicaId: input.lastModifiedByReplicaId, sha256: input.sha256,
+    storageKey: input.storageKey, mimeType: input.mimeType, sizeBytes: input.sizeBytes,
+    normalizationVersion: input.normalizationVersion, sourceUrl: input.sourceUrl,
+    assetCreatedAt: input.assetCreatedAt, clientUpdatedAt: input.clientUpdatedAt,
+  };
+  if ([
+    snapshot.attemptToken, snapshot.userId, snapshot.workspaceId, snapshot.mediaAssetId,
+    snapshot.operationId, snapshot.lastModifiedByReplicaId, snapshot.sha256,
+    snapshot.storageKey, snapshot.mimeType, snapshot.assetCreatedAt, snapshot.clientUpdatedAt,
+  ].some((value) => typeof value !== "string")) {
+    throw new TypeError("Direct writer attempt string fields must be strings.");
+  }
+  if (snapshot.sourceUrl !== null && typeof snapshot.sourceUrl !== "string") {
+    throw new TypeError("sourceUrl must be a string or null.");
+  }
+  const canonical = Object.freeze({
+    ...snapshot,
+    assetCreatedAt: requireIsoTimestamp(snapshot.assetCreatedAt, "assetCreatedAt"),
+    clientUpdatedAt: requireIsoTimestamp(snapshot.clientUpdatedAt, "clientUpdatedAt"),
+  });
+  assertMediaBlobWriterAttemptToken(canonical.attemptToken);
+  assertReservationInput({ ...canonical, writerKind: "direct_ingestion" });
+  assertHistoricalWriterOwner(canonical.userId, canonical.lastModifiedByReplicaId);
+  return canonical;
+}
+function snapshotDirectAttemptExactInput(
+  input: DirectMediaBlobWriterAttemptExactInput,
+): DirectMediaBlobWriterAttemptExactInput {
+  const reservationToken = input.reservationToken;
+  const snapshot = snapshotDirectAttemptInput(input);
+  if (typeof reservationToken !== "string") {
+    throw new TypeError("reservationToken must be a string.");
+  }
+  assertMediaBlobWriterReservationToken(reservationToken);
+  return Object.freeze({ ...snapshot, reservationToken });
+}
+function toDirectAttemptParams(
+  input: DirectMediaBlobWriterAttemptInput,
+): ReadonlyArray<string | number | null> {
+  return [
+    input.userId, input.workspaceId, input.mediaAssetId, input.operationId,
+    input.lastModifiedByReplicaId, input.sha256, input.storageKey, input.mimeType,
+    input.sizeBytes, input.normalizationVersion, input.sourceUrl,
+    input.assetCreatedAt, input.clientUpdatedAt,
+  ];
+}
+function requireDirectAttemptStatus<Status extends string>(
+  value: string | undefined,
+  statuses: ReadonlyArray<Status>,
+  operation: string,
+): Status {
+  const status = statuses.find((candidate) => candidate === value);
+  if (status === undefined) {
+    throw new TypeError(`PostgreSQL returned an invalid direct writer attempt status. operation=${operation}`);
+  }
+  return status;
+}
+function createDirectMediaBlobStorageCapability(
+  input: DirectMediaBlobWriterAttemptExactInput,
+  leaseExpiresAt: string,
+  operationDeadlineAt: string,
+): DirectMediaBlobStorageCapability {
+  const payload: DirectMediaBlobStorageCapabilityPayload = Object.freeze({
+    writerKind: "direct_ingestion", attemptToken: input.attemptToken,
+    reservationToken: input.reservationToken, leaseExpiresAt, operationDeadlineAt,
+    userId: input.userId, workspaceId: input.workspaceId,
+    mediaAssetId: input.mediaAssetId, operationId: input.operationId,
+    lastModifiedByReplicaId: input.lastModifiedByReplicaId, sha256: input.sha256,
+    storageKey: input.storageKey, mimeType: input.mimeType, sizeBytes: input.sizeBytes,
+    normalizationVersion: input.normalizationVersion, sourceUrl: input.sourceUrl,
+    assetCreatedAt: requireIsoTimestamp(input.assetCreatedAt, "assetCreatedAt"),
+    clientUpdatedAt: requireIsoTimestamp(input.clientUpdatedAt, "clientUpdatedAt"),
+  });
+  const capability = Object.freeze({}) as DirectMediaBlobStorageCapability;
+  directMediaBlobStorageCapabilityClaims.set(capability, payload);
+  return capability;
+}
+function hasExactDirectMediaBlobWriterAttemptInput(
+  expected: DirectMediaBlobWriterAttemptExactInput,
+  actual: DirectMediaBlobWriterAttemptExactInput,
+): boolean {
+  return expected.attemptToken === actual.attemptToken
+    && expected.reservationToken === actual.reservationToken
+    && expected.userId === actual.userId
+    && expected.workspaceId === actual.workspaceId
+    && expected.mediaAssetId === actual.mediaAssetId
+    && expected.operationId === actual.operationId
+    && expected.lastModifiedByReplicaId === actual.lastModifiedByReplicaId
+    && expected.sha256 === actual.sha256
+    && expected.storageKey === actual.storageKey
+    && expected.mimeType === actual.mimeType
+    && expected.sizeBytes === actual.sizeBytes
+    && expected.normalizationVersion === actual.normalizationVersion
+    && expected.sourceUrl === actual.sourceUrl
+    && expected.assetCreatedAt === actual.assetCreatedAt
+    && expected.clientUpdatedAt === actual.clientUpdatedAt;
+}
+function assertDirectMediaBlobStorageCapabilityForMutationAtTime(
+  capability: DirectMediaBlobStorageCapability,
+  input: DirectMediaBlobWriterAttemptExactInput,
+  observedAtMs: number,
+): void {
+  const exactInput = snapshotDirectAttemptExactInput(input);
+  const payload = typeof capability === "object" && capability !== null
+    ? directMediaBlobStorageCapabilityClaims.get(capability)
+    : undefined;
+  const exactMatch = payload !== undefined
+    && Object.isFrozen(capability)
+    && Object.isFrozen(payload)
+    && payload.writerKind === "direct_ingestion"
+    && hasExactDirectMediaBlobWriterAttemptInput(payload, exactInput);
+  if (!exactMatch) throw new MediaBlobWriterFenceError("verify_direct_storage_capability");
+  if (
+    Date.parse(payload.leaseExpiresAt) <= observedAtMs
+    || Date.parse(payload.operationDeadlineAt) <= observedAtMs
+  ) {
+    throw new MediaBlobWriterFenceError("verify_direct_storage_capability_expired");
+  }
+}
+export function assertDirectMediaBlobStorageCapabilityForMutation(
+  capability: DirectMediaBlobStorageCapability,
+  input: DirectMediaBlobWriterAttemptExactInput,
+): void {
+  assertDirectMediaBlobStorageCapabilityForMutationAtTime(capability, input, Date.now());
 }
 export async function reserveMediaBlobWriterInExecutor(
   executor: DatabaseExecutor, input: MediaBlobWriterReservationInput,
@@ -151,6 +413,250 @@ export async function reserveDirectMediaBlobWriterWithOwner(
 ): Promise<MediaBlobWriterReservation> {
   return transactionWithWorkspaceScope( { userId: input.userId, workspaceId: input.workspaceId },
     (executor) => reserveDirectMediaBlobWriterWithOwnerInExecutor(executor, input));
+}
+async function beginDirectMediaBlobWriterAttemptSnapshotInExecutor(
+  executor: DatabaseExecutor,
+  input: DirectMediaBlobWriterAttemptInput,
+  lease: DirectMediaBlobWriterAttemptLeaseSnapshot,
+): Promise<DirectMediaBlobWriterAttemptResult> {
+  const result = await executor.query<AttemptBeginRow>(
+    `SELECT attempt_status, reservation_token, normalization_version, lease_expires_at
+     FROM content.begin_direct_media_blob_writer_attempt_with_owner(
+       $1,$2,ROW($3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+       ::content.direct_media_blob_writer_attempt_payload
+     )`,
+    [input.attemptToken, lease.leaseDurationMs, ...toDirectAttemptParams(input)],
+  );
+  if (result.rows.length !== 1) {
+    throw new TypeError("PostgreSQL returned an invalid direct writer attempt row count.");
+  }
+  const row = result.rows[0];
+  if (row?.attempt_status === "acquired" || row?.attempt_status === "replayed"
+    || row?.attempt_status === "expired_takeover") {
+    if (row.reservation_token === null || row.normalization_version === null
+      || row.lease_expires_at === null) {
+      throw new TypeError("PostgreSQL returned an incomplete direct writer attempt acquisition.");
+    }
+    assertMediaBlobWriterReservationToken(row.reservation_token);
+    const normalizationVersion = requireNormalizationVersion(row.normalization_version);
+    const leaseExpiresAt = requireIsoTimestamp(row.lease_expires_at, "leaseExpiresAt");
+    if (Date.parse(leaseExpiresAt) <= lease.operationDeadlineAtMs) {
+      throw new TypeError("PostgreSQL returned a writer lease that does not cover the operation deadline.");
+    }
+    const exactInput = Object.freeze({
+      ...input,
+      reservationToken: row.reservation_token,
+      normalizationVersion,
+    });
+    return {
+      status: row.attempt_status,
+      reservationToken: row.reservation_token,
+      normalizationVersion,
+      leaseExpiresAt,
+      storageCapability: createDirectMediaBlobStorageCapability(
+        exactInput,
+        leaseExpiresAt,
+        lease.operationDeadlineAt,
+      ),
+    };
+  }
+  const status = requireDirectAttemptStatus(
+    row?.attempt_status, directAttemptBeginStatuses, "begin_direct_writer_attempt",
+  );
+  if (row.reservation_token !== null) {
+    throw new TypeError("PostgreSQL returned an invalid direct writer attempt acquisition result.");
+  }
+  if (status === "cleanup_claimed") {
+    if (row.normalization_version === null || row.lease_expires_at !== null) {
+      throw new TypeError("PostgreSQL returned an invalid cleanup-claimed writer result.");
+    }
+    requireNormalizationVersion(row.normalization_version);
+    return { status };
+  }
+  if (row.normalization_version !== null) {
+    throw new TypeError("PostgreSQL returned an unexpected direct writer normalization version.");
+  }
+  if (status === "busy") {
+    if (row.lease_expires_at === null) {
+      throw new TypeError("PostgreSQL returned a busy direct writer attempt without its lease expiry.");
+    }
+    return { status, leaseExpiresAt: requireIsoTimestamp(row.lease_expires_at, "leaseExpiresAt") };
+  }
+  if (row.lease_expires_at !== null) {
+    throw new TypeError("PostgreSQL returned an unexpected direct writer attempt lease.");
+  }
+  return { status };
+}
+export function beginDirectMediaBlobWriterAttemptWithOwner(
+  input: DirectMediaBlobWriterAttemptInput,
+  lease: DirectMediaBlobWriterAttemptLease,
+): Promise<DirectMediaBlobWriterAttemptResult> {
+  const snapshot = snapshotDirectAttemptInput(input);
+  const leaseSnapshot = snapshotDirectAttemptLease(lease);
+  return transactionWithWorkspaceScopeDeadline(
+    { userId: snapshot.userId, workspaceId: snapshot.workspaceId },
+    leaseSnapshot.operationDeadlineAtMs,
+    (executor) => beginDirectMediaBlobWriterAttemptSnapshotInExecutor(
+      executor, snapshot, leaseSnapshot,
+    ),
+  );
+}
+async function queryDirectAttemptStatus<Status extends string>(
+  executor: DatabaseExecutor,
+  sql: string,
+  input: DirectMediaBlobWriterAttemptExactInput,
+  cleanupDelayMs: number,
+  statuses: ReadonlyArray<Status>,
+  operation: string,
+): Promise<Status> {
+  assertPositiveBoundedDuration(
+    cleanupDelayMs,
+    "cleanupDelayMs",
+    maximumMediaBlobCleanupDelayMs,
+  );
+  const result = await executor.query<AttemptStatusRow>(sql, [
+    input.attemptToken, input.reservationToken, ...toDirectAttemptParams(input),
+    cleanupDelayMs,
+  ]);
+  if (result.rows.length !== 1) {
+    throw new TypeError(`PostgreSQL returned an invalid direct writer status row count. operation=${operation}`);
+  }
+  return requireDirectAttemptStatus(result.rows[0]?.attempt_status, statuses, operation);
+}
+function createDirectMediaBlobWriterApplyExecutor(
+  executor: DatabaseExecutor,
+  input: DirectMediaBlobWriterAttemptExactInput,
+  deadline: DirectMediaBlobWriterOperationDeadline,
+): DirectMediaBlobWriterApplyExecutor {
+  const applyExecutor = Object.freeze(executor) as DirectMediaBlobWriterApplyExecutor;
+  directMediaBlobWriterApplyExecutorClaims.set(applyExecutor, Object.freeze({
+    input,
+    operationDeadlineAt: deadline.operationDeadlineAt,
+    operationDeadlineAtMs: deadline.operationDeadlineAtMs,
+  }));
+  return applyExecutor;
+}
+function assertDirectMediaBlobWriterApplyExecutor(
+  executor: DirectMediaBlobWriterApplyExecutor,
+  input: DirectMediaBlobWriterAttemptExactInput,
+  deadline: DirectMediaBlobWriterOperationDeadline,
+): void {
+  const claim = typeof executor === "object" && executor !== null
+    ? directMediaBlobWriterApplyExecutorClaims.get(executor)
+    : undefined;
+  if (
+    claim === undefined
+    || claim.operationDeadlineAt !== deadline.operationDeadlineAt
+    || claim.operationDeadlineAtMs !== deadline.operationDeadlineAtMs
+    || !hasExactDirectMediaBlobWriterAttemptInput(claim.input, input)
+  ) {
+    throw new TypeError("Direct writer apply executor does not match its exact attempt and deadline.");
+  }
+}
+export function transactionWithDirectMediaBlobWriterApplyDeadline<Result>(
+  input: DirectMediaBlobWriterAttemptExactInput,
+  operationDeadlineAt: string,
+  callback: (
+    executor: DirectMediaBlobWriterApplyExecutor,
+    snapshot: DirectMediaBlobWriterAttemptExactInput,
+    exactOperationDeadlineAt: string,
+  ) => Promise<Result>,
+): Promise<Result> {
+  const snapshot = snapshotDirectAttemptExactInput(input);
+  const deadline = snapshotDirectAttemptOperationDeadline(operationDeadlineAt);
+  return transactionWithWorkspaceScopeDeadline(
+    { userId: snapshot.userId, workspaceId: snapshot.workspaceId },
+    deadline.operationDeadlineAtMs,
+    async (executor) => {
+      const applyExecutor = createDirectMediaBlobWriterApplyExecutor(
+        executor, snapshot, deadline,
+      );
+      try {
+        return await callback(applyExecutor, snapshot, deadline.operationDeadlineAt);
+      } finally {
+        directMediaBlobWriterApplyExecutorClaims.delete(applyExecutor);
+      }
+    },
+  );
+}
+export function fenceDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+  executor: DirectMediaBlobWriterApplyExecutor,
+  input: DirectMediaBlobWriterAttemptExactInput,
+  cleanupDelayMs: number,
+  operationDeadlineAt: string,
+): Promise<DirectMediaBlobWriterAttemptFenceStatus> {
+  const snapshot = snapshotDirectAttemptExactInput(input);
+  const deadline = snapshotDirectAttemptOperationDeadline(operationDeadlineAt);
+  assertDirectMediaBlobWriterApplyExecutor(executor, snapshot, deadline);
+  return queryDirectAttemptStatus(
+    executor,
+    `SELECT content.fence_direct_media_blob_writer_attempt_apply_with_owner(
+       $1,$2,ROW($3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+       ::content.direct_media_blob_writer_attempt_payload,$16
+    ) AS attempt_status`,
+    snapshot, cleanupDelayMs, directAttemptFenceStatuses, "fence_direct_writer_attempt_apply",
+  );
+}
+export function finishDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+  executor: DirectMediaBlobWriterApplyExecutor,
+  input: DirectMediaBlobWriterAttemptExactInput,
+  cleanupDelayMs: number,
+  operationDeadlineAt: string,
+): Promise<DirectMediaBlobWriterAttemptFinishStatus> {
+  const snapshot = snapshotDirectAttemptExactInput(input);
+  const deadline = snapshotDirectAttemptOperationDeadline(operationDeadlineAt);
+  assertDirectMediaBlobWriterApplyExecutor(executor, snapshot, deadline);
+  return queryDirectAttemptStatus(
+    executor,
+    `SELECT content.finish_direct_media_blob_writer_attempt_apply_with_owner(
+       $1,$2,ROW($3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+       ::content.direct_media_blob_writer_attempt_payload,$16
+    ) AS attempt_status`,
+    snapshot, cleanupDelayMs, directAttemptFinishStatuses, "finish_direct_writer_attempt_apply",
+  );
+}
+export function resolveDirectMediaBlobWriterAttemptFailureWithOwner(
+  input: DirectMediaBlobWriterAttemptExactInput,
+  cleanupDelayMs: number,
+  operationDeadlineAt: string,
+): Promise<DirectMediaBlobWriterAttemptFailureStatus> {
+  const snapshot = snapshotDirectAttemptExactInput(input);
+  const deadline = snapshotDirectAttemptOperationDeadline(operationDeadlineAt);
+  return transactionWithWorkspaceScopeDeadline(
+    { userId: snapshot.userId, workspaceId: snapshot.workspaceId },
+    deadline.operationDeadlineAtMs,
+    (executor) => queryDirectAttemptStatus(
+      executor,
+      `SELECT content.resolve_direct_media_blob_writer_attempt_failure_with_owner(
+         $1,$2,ROW($3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+         ::content.direct_media_blob_writer_attempt_payload,$16
+       ) AS attempt_status`,
+      snapshot, cleanupDelayMs, directAttemptFailureStatuses, "resolve_direct_writer_attempt_failure",
+    ),
+  );
+}
+export function resolveDirectMediaBlobWriterAttemptAfterAccessRevocation(
+  input: DirectMediaBlobWriterAttemptExactInput,
+  cleanupDelayMs: number,
+  operationDeadlineAt: string,
+): Promise<DirectMediaBlobWriterAttemptRevocationStatus> {
+  const snapshot = snapshotDirectAttemptExactInput(input);
+  const deadline = snapshotDirectAttemptOperationDeadline(operationDeadlineAt);
+  return unsafeTransactionWithDeadline(deadline.operationDeadlineAtMs, async (executor) => {
+    await applyWorkspaceDatabaseScopeInExecutor(
+      executor,
+      { userId: snapshot.userId, workspaceId: snapshot.workspaceId },
+    );
+    return queryDirectAttemptStatus(
+      executor,
+      `SELECT content.resolve_direct_media_blob_writer_attempt_after_access_revocation(
+         $1,$2,ROW($3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+         ::content.direct_media_blob_writer_attempt_payload,$16
+       ) AS attempt_status`,
+      snapshot, cleanupDelayMs, directAttemptRevocationStatuses,
+      "resolve_direct_writer_attempt_after_access_revocation",
+    );
+  });
 }
 export async function finalizeMediaBlobWriterInExecutor(
   executor: DatabaseExecutor,
