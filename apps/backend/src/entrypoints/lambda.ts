@@ -7,6 +7,18 @@ import {
   normalizeCaughtError,
   wrapBackendHandler,
 } from "../observability/sentry";
+import {
+  createAgentApiKeyErrorEnvelope,
+  isAgentApiKeyAuthorizationHeader,
+} from "../agent/envelope";
+import {
+  createCredentialedBrowserCorsResponseHeaders,
+  getAllowedBrowserOrigins,
+} from "../server/browserCors";
+import {
+  isDirectImageIngestionPostTarget,
+  readApiGatewayRequestTarget,
+} from "../server/directImageIngestionRouting";
 
 initializeBackendSentry("backend-api");
 
@@ -82,6 +94,16 @@ function getBackendApiRequestContext(event: LambdaEvent, context: Context): Back
   };
 }
 
+function requirePublicApiBaseUrl(): string {
+  const publicApiBaseUrl = process.env.PUBLIC_API_BASE_URL?.trim();
+  if (publicApiBaseUrl === undefined || publicApiBaseUrl === "") {
+    throw new Error(
+      "PUBLIC_API_BASE_URL is required for shared direct image ingestion guard API-key error envelopes.",
+    );
+  }
+  return publicApiBaseUrl;
+}
+
 const backendApiBootstrapHandler: BackendApiHandler = async (event, context) => {
   const requestContext = getBackendApiRequestContext(event, context);
   const observationScope = createBackendObservationScope(
@@ -97,6 +119,47 @@ const backendApiBootstrapHandler: BackendApiHandler = async (event, context) => 
     null,
     null,
   );
+  if (isDirectImageIngestionPostTarget(readApiGatewayRequestTarget(event))) {
+    const requestId = requestContext.requestId ?? context.awsRequestId;
+    const requestHeaders = Object.entries(event.headers ?? {});
+    const readRequestHeader = (headerName: string): string | null =>
+      requestHeaders.find(
+        ([name, value]) =>
+          name.toLowerCase() === headerName && typeof value === "string",
+      )?.[1] ?? null;
+    const code = "DIRECT_IMAGE_INGESTION_ROUTE_UNAVAILABLE";
+    const message =
+      "Direct image ingestion is available only through its bounded API route.";
+    const body = isAgentApiKeyAuthorizationHeader(
+      readRequestHeader("authorization"),
+    )
+      ? createAgentApiKeyErrorEnvelope(
+        requirePublicApiBaseUrl(),
+        code,
+        message,
+        404,
+        requestId,
+        undefined,
+      )
+      : {
+        error: message,
+        requestId,
+        code,
+      };
+    return {
+      statusCode: 404,
+      isBase64Encoded: false,
+      headers: {
+        "content-type": "application/json; charset=UTF-8",
+        "x-request-id": requestId,
+        ...createCredentialedBrowserCorsResponseHeaders(
+          readRequestHeader("origin"),
+          getAllowedBrowserOrigins(),
+        ),
+      },
+      body: JSON.stringify(body),
+    };
+  }
   let runtime: BackendApiRuntime | null = null;
   try {
     runtime = await getBackendApiRuntime();
