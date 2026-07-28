@@ -85,12 +85,20 @@ const createdRolesByMigration = new Map([
 ]);
 const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0097_direct_multipart_writer_attempt_fencing.sql",
-    expectedMigrationCount: 99,
+    migrationFileName: "0098_multipart_writer_abort_and_terminal_replay.sql",
+    expectedMigrationCount: 100,
     testFiles: Object.freeze([
       "src/database/deadline.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle.postgres.integration.ts",
       "src/mediaAssets/directIngestionApply.postgres.integration.ts",
+      "src/mediaAssets/multipartWriterAbortReplay.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
+    migrationFileName: "0097_direct_multipart_writer_attempt_fencing.sql",
+    expectedMigrationCount: 99,
+    testFiles: Object.freeze([
+      "src/mediaAssets/multipartWriterAbortReplay.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
