@@ -9,6 +9,7 @@
     "start": "node dist/entrypoints/index.js",
     "lint": "tsc --noEmit",
     "test": "npm run bundle --prefix ../../api && node scripts/run-tests.mjs",
+    "test:postgres-integration": "node scripts/run-postgres-integrations.mjs",
     "test:mcp": "npm run bundle --prefix ../../api && node --test --import tsx src/entrypoints/lambda-mcp.test.ts src/mcp/server.test.ts"
   },
   "dependencies": {

@@ -168,6 +168,21 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.aws_changed == 'true' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres-integration-${{ github.run_id }}-${{ github.run_attempt }}
+          POSTGRES_USER: postgres_integration
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres_integration -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - uses: actions/checkout@v7
@@ -219,6 +234,11 @@ jobs:
       - name: Test backend MCP protocol
         if: ${{ needs.changes.outputs.backend_changed == 'true' }}
         run: npm run test:mcp --prefix apps/backend
+
+      - name: Test PostgreSQL 18 lifecycle and 0096 to 0097 security boundaries
+        env:
+          POSTGRES_INTEGRATION_ADMIN_URL: postgresql://postgres_integration:postgres-integration-${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:5432/postgres?sslmode=disable
+        run: npm run test:postgres-integration --prefix apps/backend
 
       - name: Build web app
         if: ${{ needs.changes.outputs.web_changed == 'true' }}
