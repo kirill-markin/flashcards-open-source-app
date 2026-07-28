@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import {
   CognitoJwtInvalidClientIdError,
@@ -10,6 +11,8 @@ import {
   JwtWithoutValidKidError,
   WaitPeriodNotYetEndedJwkError,
 } from "aws-jwt-verify/error";
+import { SimpleFetcher, type Fetcher } from "aws-jwt-verify/https";
+import { SimpleJwksCache } from "aws-jwt-verify/jwk";
 import { authenticateAgentApiKey } from "../agent/apiKeys";
 import { getAuthConfig } from "./config";
 import { HttpError } from "../shared/errors";
@@ -80,23 +83,73 @@ export function createJwtAuthBoundaryError(error: unknown): AuthError | HttpErro
 }
 
 let verifier: ReturnType<typeof CognitoJwtVerifier.create> | undefined;
+let directRequestVerifier:
+  ReturnType<typeof CognitoJwtVerifier.create> | undefined;
+const directAuthenticationAbortSignalStorage =
+  new AsyncLocalStorage<AbortSignal>();
 
-function getVerifier(): ReturnType<typeof CognitoJwtVerifier.create> {
-  if (verifier) return verifier;
+class DirectAuthenticationJwksFetcher implements Fetcher {
+  readonly #fetcher: Fetcher;
 
+  constructor(fetcher: Fetcher) {
+    this.#fetcher = fetcher;
+  }
+
+  readonly fetch: Fetcher["fetch"] = (
+    uri,
+    requestOptions,
+    data,
+  ) => {
+    const abortSignal = directAuthenticationAbortSignalStorage.getStore();
+    return this.#fetcher.fetch(
+      uri,
+      abortSignal === undefined
+        ? requestOptions
+        : { ...requestOptions, signal: abortSignal },
+      data,
+    );
+  };
+}
+
+function getVerifierConfig(): Readonly<{
+  userPoolId: string;
+  tokenUse: "id";
+  clientId: string;
+}> {
   const userPoolId = process.env.COGNITO_USER_POOL_ID;
   const clientId = process.env.COGNITO_CLIENT_ID;
   if (!userPoolId || !clientId) {
     throw new Error("COGNITO_USER_POOL_ID and COGNITO_CLIENT_ID are required when AUTH_MODE=cognito");
   }
 
-  verifier = CognitoJwtVerifier.create({
+  return {
     userPoolId,
     tokenUse: "id",
     clientId,
-  });
+  };
+}
+
+function getVerifier(): ReturnType<typeof CognitoJwtVerifier.create> {
+  if (verifier) return verifier;
+
+  verifier = CognitoJwtVerifier.create(getVerifierConfig());
 
   return verifier;
+}
+
+function getDirectRequestVerifier():
+  ReturnType<typeof CognitoJwtVerifier.create> {
+  if (directRequestVerifier) return directRequestVerifier;
+
+  directRequestVerifier = CognitoJwtVerifier.create(
+    getVerifierConfig(),
+    {
+      jwksCache: new SimpleJwksCache({
+        fetcher: new DirectAuthenticationJwksFetcher(new SimpleFetcher()),
+      }),
+    },
+  );
+  return directRequestVerifier;
 }
 
 type ParsedAuthorizationHeader =
@@ -157,9 +210,12 @@ export function extractVerifiedIdTokenIdentity(payload: VerifiedIdTokenPayload):
   };
 }
 
-async function verifyIdToken(token: string): Promise<AuthenticatedUserIdentity> {
+async function verifyIdTokenWithVerifier(
+  token: string,
+  tokenVerifier: ReturnType<typeof CognitoJwtVerifier.create>,
+): Promise<AuthenticatedUserIdentity> {
   try {
-    const payload = await getVerifier().verify(token);
+    const payload = await tokenVerifier.verify(token);
     return extractVerifiedIdTokenIdentity(payload as VerifiedIdTokenPayload);
   } catch (err) {
     const boundaryError = createJwtAuthBoundaryError(err);
@@ -171,12 +227,94 @@ async function verifyIdToken(token: string): Promise<AuthenticatedUserIdentity> 
   }
 }
 
-/**
- * Authenticates one request using the validated backend auth config rather
- * than raw env defaults. App startup must already have rejected missing or
- * unsafe auth configuration before any request reaches this function.
- */
-export async function authenticateRequest(request: AuthRequest): Promise<AuthResult> {
+async function verifyIdToken(token: string): Promise<AuthenticatedUserIdentity> {
+  return verifyIdTokenWithVerifier(token, getVerifier());
+}
+
+async function verifyIdTokenForDirectRequest(
+  token: string,
+  abortSignal: AbortSignal,
+): Promise<AuthenticatedUserIdentity> {
+  return directAuthenticationAbortSignalStorage.run(
+    abortSignal,
+    () => verifyIdTokenWithVerifier(token, getDirectRequestVerifier()),
+  );
+}
+
+type AuthenticationOperationRunner = <Result>(
+  operation: () => Promise<Result>,
+) => Promise<Result>;
+
+export type AuthenticateRequestDependencies = Readonly<{
+  authenticateAgentApiKeyFn: typeof authenticateAgentApiKey;
+  authenticateGuestSessionFn: typeof authenticateGuestSession;
+  loadCognitoIdentityMappingFn: typeof loadCognitoIdentityMapping;
+  verifyIdTokenFn: (token: string) => Promise<AuthenticatedUserIdentity>;
+}>;
+
+function runAuthenticationOperation<Result>(
+  operation: () => Promise<Result>,
+): Promise<Result> {
+  return operation();
+}
+
+function runAuthenticationOperationWithAbortSignal<Result>(
+  abortSignal: AbortSignal,
+  operation: () => Promise<Result>,
+): Promise<Result> {
+  abortSignal.throwIfAborted();
+  return new Promise<Result>((resolve, reject) => {
+    let settled = false;
+    const settleResult = (value: Result): void => {
+      if (settled) return;
+      settled = true;
+      abortSignal.removeEventListener("abort", handleAbort);
+      resolve(value);
+    };
+    const settleError = (error: unknown): void => {
+      if (settled) return;
+      settled = true;
+      abortSignal.removeEventListener("abort", handleAbort);
+      reject(error);
+    };
+    const handleAbort = (): void => {
+      settleError(abortSignal.reason);
+    };
+
+    abortSignal.addEventListener("abort", handleAbort, { once: true });
+    if (abortSignal.aborted) {
+      handleAbort();
+      return;
+    }
+
+    let operationPromise: Promise<Result>;
+    try {
+      operationPromise = operation();
+    } catch (error) {
+      settleError(error);
+      return;
+    }
+    operationPromise.then(
+      settleResult,
+      settleError,
+    );
+  });
+}
+
+function createAbortAwareAuthenticationOperationRunner(
+  abortSignal: AbortSignal,
+): AuthenticationOperationRunner {
+  return <Result>(
+    operation: () => Promise<Result>,
+  ): Promise<Result> =>
+    runAuthenticationOperationWithAbortSignal(abortSignal, operation);
+}
+
+async function authenticateRequestWithDependencies(
+  request: AuthRequest,
+  runOperation: AuthenticationOperationRunner,
+  dependencies: AuthenticateRequestDependencies,
+): Promise<AuthResult> {
   const authConfig = getAuthConfig();
 
   if (authConfig.mode === "none") {
@@ -195,7 +333,9 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
 
   const parsedAuthorization = parseAuthorizationHeader(request.authorizationHeader);
   if (parsedAuthorization.scheme === "api_key") {
-    const auth = await authenticateAgentApiKey(parsedAuthorization.token);
+    const auth = await runOperation(
+      () => dependencies.authenticateAgentApiKeyFn(parsedAuthorization.token),
+    );
     return {
       userId: auth.userId,
       email: null,
@@ -210,8 +350,12 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
   }
 
   if (parsedAuthorization.scheme === "bearer") {
-    const identity = await verifyIdToken(parsedAuthorization.token);
-    const mapping = await loadCognitoIdentityMapping(identity.userId);
+    const identity = await runOperation(
+      () => dependencies.verifyIdTokenFn(parsedAuthorization.token),
+    );
+    const mapping = await runOperation(
+      () => dependencies.loadCognitoIdentityMappingFn(identity.userId),
+    );
     return {
       ...identity,
       userId: mapping?.userId ?? identity.userId,
@@ -225,7 +369,9 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
   }
 
   if (parsedAuthorization.scheme === "guest") {
-    const guestSession = await authenticateGuestSession(parsedAuthorization.token);
+    const guestSession = await runOperation(
+      () => dependencies.authenticateGuestSessionFn(parsedAuthorization.token),
+    );
     return {
       userId: guestSession.userId,
       email: null,
@@ -239,9 +385,14 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
     };
   }
 
-  if (request.sessionToken !== undefined && request.sessionToken !== "") {
-    const identity = await verifyIdToken(request.sessionToken);
-    const mapping = await loadCognitoIdentityMapping(identity.userId);
+  const sessionToken = request.sessionToken;
+  if (sessionToken !== undefined && sessionToken !== "") {
+    const identity = await runOperation(
+      () => dependencies.verifyIdTokenFn(sessionToken),
+    );
+    const mapping = await runOperation(
+      () => dependencies.loadCognitoIdentityMappingFn(identity.userId),
+    );
     return {
       ...identity,
       userId: mapping?.userId ?? identity.userId,
@@ -255,6 +406,54 @@ export async function authenticateRequest(request: AuthRequest): Promise<AuthRes
   }
 
   throw new AuthError(401, "Missing authentication token");
+}
+
+/**
+ * Authenticates one request using the validated backend auth config rather
+ * than raw env defaults. App startup must already have rejected missing or
+ * unsafe auth configuration before any request reaches this function.
+ */
+export async function authenticateRequest(request: AuthRequest): Promise<AuthResult> {
+  return authenticateRequestWithDependencies(
+    request,
+    runAuthenticationOperation,
+    {
+      authenticateAgentApiKeyFn: authenticateAgentApiKey,
+      authenticateGuestSessionFn: authenticateGuestSession,
+      loadCognitoIdentityMappingFn: loadCognitoIdentityMapping,
+      verifyIdTokenFn: verifyIdToken,
+    },
+  );
+}
+
+export function authenticateRequestWithAbortSignalAndDependencies(
+  request: AuthRequest,
+  abortSignal: AbortSignal,
+  dependencies: AuthenticateRequestDependencies,
+): Promise<AuthResult> {
+  abortSignal.throwIfAborted();
+  return authenticateRequestWithDependencies(
+    request,
+    createAbortAwareAuthenticationOperationRunner(abortSignal),
+    dependencies,
+  );
+}
+
+export function authenticateRequestWithAbortSignal(
+  request: AuthRequest,
+  abortSignal: AbortSignal,
+): Promise<AuthResult> {
+  return authenticateRequestWithAbortSignalAndDependencies(
+    request,
+    abortSignal,
+    {
+      authenticateAgentApiKeyFn: authenticateAgentApiKey,
+      authenticateGuestSessionFn: authenticateGuestSession,
+      loadCognitoIdentityMappingFn: loadCognitoIdentityMapping,
+      verifyIdTokenFn: (token) =>
+        verifyIdTokenForDirectRequest(token, abortSignal),
+    },
+  );
 }
 
 export class AuthError extends Error {

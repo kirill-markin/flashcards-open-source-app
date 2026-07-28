@@ -1,6 +1,10 @@
 import type { S3Client } from "@aws-sdk/client-s3";
 import type { BackendObservationScope } from "../../observability/sentry/events";
 import type {
+  DirectMediaBlobStorageCapability,
+  DirectMediaBlobWriterAttemptExactInput,
+} from "../blobLifecycle";
+import type {
   CompleteMediaAssetUploadPartInput,
   MediaAssetUploadSessionPartRequest,
 } from "../types";
@@ -50,6 +54,9 @@ export type PresignMultipartMediaAssetUploadPartsInput = Readonly<{
 }>;
 
 export type StoreMediaAssetBlobBytesInput = Readonly<{
+  writer: DirectMediaBlobWriterAttemptExactInput;
+  storageCapability: DirectMediaBlobStorageCapability;
+  signal: AbortSignal;
   workspaceId: string;
   mediaAssetId: string;
   storageKey: string;

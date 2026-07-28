@@ -47,6 +47,27 @@ test("createPresignedMediaAssetUploadWithDependencies signs all returned require
   assert.equal(upload.headers["x-amz-meta-flashcards-last-operation-id-sha256"], testLastOperationIdSha256);
 });
 
+test("createPresignedMediaAssetUploadWithDependencies rejects permanent blob targets", async () => {
+  await assert.rejects(
+    createPresignedMediaAssetUploadWithDependencies(
+      {
+        workspaceId: testWorkspaceId,
+        mediaAssetId: testMediaAssetId,
+        storageKey: testBlobStorageKey,
+        mimeType: "image/png",
+        sha256: "a".repeat(64),
+        lastOperationId: testLastOperationId,
+        observationScope: testObservationScope,
+      },
+      {
+        s3Client: createTestS3Client(),
+        getMediaAssetsStorageConfigFn: getTestMediaAssetsStorageConfig,
+      },
+    ),
+    TypeError,
+  );
+});
+
 test("createPresignedMediaAssetUploadPartsWithDependencies signs per-part checksum headers", async () => {
   const partUrls = await createPresignedMediaAssetUploadPartsWithDependencies(
     {

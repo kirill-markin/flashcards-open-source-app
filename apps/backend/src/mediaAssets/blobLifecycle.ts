@@ -20,6 +20,7 @@ const maximumOperationIdLength = 1_024;
 const maximumMediaBlobWriterAttemptLeaseDurationMs = 3_600_000;
 const maximumMediaBlobWriterOperationDeadlineMs = 3_600_000;
 const maximumMediaBlobCleanupDelayMs = 604_800_000;
+const directMediaBlobWriterLeaseDatabaseSkewMarginMs = 100;
 export const mediaBlobCleanupDelayMs = 3_600_000;
 export const mediaBlobWriterKinds = ["direct_ingestion", "multipart_completion", "generated_promotion"] as const;
 export type MediaBlobWriterKind = typeof mediaBlobWriterKinds[number];
@@ -56,7 +57,7 @@ export type DirectMediaBlobWriterAttemptInput = DirectMediaBlobWriterReservation
 export type DirectMediaBlobWriterAttemptExactInput =
   DirectMediaBlobWriterAttemptInput & Readonly<{ reservationToken: string }>;
 export type DirectMediaBlobWriterAttemptLease = Readonly<{
-  leaseDurationMs: number; operationDeadlineAt: string;
+  leaseTargetAt: string; operationDeadlineAt: string;
 }>;
 declare const directMediaBlobStorageCapabilityType: unique symbol;
 declare const directMediaBlobWriterApplyExecutorType: unique symbol;
@@ -122,7 +123,7 @@ const directMediaBlobStorageCapabilityClaims =
 const directMediaBlobWriterApplyExecutorClaims =
   new WeakMap<DirectMediaBlobWriterApplyExecutor, DirectMediaBlobWriterApplyExecutorClaim>();
 export class MediaBlobLifecycleBusyError extends HttpError {
-  constructor() { super( 503, "Media bytes are temporarily fenced by cleanup. Retry shortly.", "MEDIA_BLOB_LIFECYCLE_BUSY", ); this.name = "MediaBlobLifecycleBusyError";
+  constructor() { super( 503, "Media bytes are temporarily fenced by cleanup. Retry shortly.", "MEDIA_BLOB_LIFECYCLE_BUSY", { retryAfterSeconds: 1 }, ); this.name = "MediaBlobLifecycleBusyError";
   }
 }
 export class MediaBlobLifecycleConflictError extends HttpError {
@@ -187,6 +188,23 @@ type DirectMediaBlobWriterOperationDeadline = Readonly<{
   operationDeadlineAt: string;
   operationDeadlineAtMs: number;
 }>;
+type DirectMediaBlobWriterAttemptLeaseSnapshot =
+  DirectMediaBlobWriterOperationDeadline & Readonly<{
+    leaseTargetAt: string;
+    leaseTargetAtMs: number;
+  }>;
+export class MediaBlobWriterLeaseDeadlineError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "MediaBlobWriterLeaseDeadlineError";
+  }
+}
+export class MediaBlobWriterOperationDeadlineExpiredError extends Error {
+  constructor() {
+    super("Direct media blob writer operation deadline has expired.");
+    this.name = "MediaBlobWriterOperationDeadlineExpiredError";
+  }
+}
 function snapshotDirectAttemptOperationDeadline(
   rawOperationDeadlineAt: string,
 ): DirectMediaBlobWriterOperationDeadline {
@@ -196,33 +214,60 @@ function snapshotDirectAttemptOperationDeadline(
   const operationDeadlineAt = requireIsoTimestamp(rawOperationDeadlineAt, "operationDeadlineAt");
   const operationDeadlineAtMs = Date.parse(operationDeadlineAt);
   const remainingMs = operationDeadlineAtMs - Date.now();
-  if (remainingMs <= 0 || remainingMs > maximumMediaBlobWriterOperationDeadlineMs) {
+  if (remainingMs <= 0) {
+    throw new MediaBlobWriterOperationDeadlineExpiredError();
+  }
+  if (remainingMs > maximumMediaBlobWriterOperationDeadlineMs) {
     throw new RangeError(
       `operationDeadlineAt must be within the next ${maximumMediaBlobWriterOperationDeadlineMs} milliseconds.`,
     );
   }
   return Object.freeze({ operationDeadlineAt, operationDeadlineAtMs });
 }
-type DirectMediaBlobWriterAttemptLeaseSnapshot =
-  DirectMediaBlobWriterAttemptLease & DirectMediaBlobWriterOperationDeadline;
 function snapshotDirectAttemptLease(
   lease: DirectMediaBlobWriterAttemptLease,
 ): DirectMediaBlobWriterAttemptLeaseSnapshot {
   if (typeof lease !== "object" || lease === null) {
     throw new TypeError("Direct writer attempt lease must be an object.");
   }
-  const leaseDurationMs = lease.leaseDurationMs;
   const deadline = snapshotDirectAttemptOperationDeadline(lease.operationDeadlineAt);
+  if (typeof lease.leaseTargetAt !== "string") {
+    throw new TypeError("leaseTargetAt must be an ISO timestamp string.");
+  }
+  const leaseTargetAt = requireIsoTimestamp(lease.leaseTargetAt, "leaseTargetAt");
+  const leaseTargetAtMs = Date.parse(leaseTargetAt);
+  const remainingLeaseMs = leaseTargetAtMs - Date.now();
+  if (
+    remainingLeaseMs <= 0
+    || remainingLeaseMs > maximumMediaBlobWriterAttemptLeaseDurationMs
+    || leaseTargetAtMs <= deadline.operationDeadlineAtMs
+  ) {
+    throw new MediaBlobWriterLeaseDeadlineError(
+      "leaseTargetAt must be a future timestamp strictly after operationDeadlineAt.",
+    );
+  }
+  return Object.freeze({ leaseTargetAt, leaseTargetAtMs, ...deadline });
+}
+function deriveDirectAttemptLeaseDurationMs(
+  lease: DirectMediaBlobWriterAttemptLeaseSnapshot,
+): number {
+  const nowMs = Date.now();
+  const leaseDurationMs = Math.floor(
+    lease.leaseTargetAtMs
+    - nowMs
+    - directMediaBlobWriterLeaseDatabaseSkewMarginMs,
+  );
   assertPositiveBoundedDuration(
     leaseDurationMs,
     "leaseDurationMs",
     maximumMediaBlobWriterAttemptLeaseDurationMs,
   );
-  const remainingMs = deadline.operationDeadlineAtMs - Date.now();
-  if (remainingMs >= leaseDurationMs) {
-    throw new RangeError("operationDeadlineAt must expire strictly before the writer attempt lease.");
+  if (lease.operationDeadlineAtMs - nowMs >= leaseDurationMs) {
+    throw new MediaBlobWriterLeaseDeadlineError(
+      "Insufficient exact writer lease budget remains for the operation deadline.",
+    );
   }
-  return Object.freeze({ leaseDurationMs, ...deadline });
+  return leaseDurationMs;
 }
 function snapshotDirectAttemptInput(
   input: DirectMediaBlobWriterAttemptInput,
@@ -419,13 +464,14 @@ async function beginDirectMediaBlobWriterAttemptSnapshotInExecutor(
   input: DirectMediaBlobWriterAttemptInput,
   lease: DirectMediaBlobWriterAttemptLeaseSnapshot,
 ): Promise<DirectMediaBlobWriterAttemptResult> {
+  const leaseDurationMs = deriveDirectAttemptLeaseDurationMs(lease);
   const result = await executor.query<AttemptBeginRow>(
     `SELECT attempt_status, reservation_token, normalization_version, lease_expires_at
      FROM content.begin_direct_media_blob_writer_attempt_with_owner(
        $1,$2,ROW($3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
        ::content.direct_media_blob_writer_attempt_payload
      )`,
-    [input.attemptToken, lease.leaseDurationMs, ...toDirectAttemptParams(input)],
+    [input.attemptToken, leaseDurationMs, ...toDirectAttemptParams(input)],
   );
   if (result.rows.length !== 1) {
     throw new TypeError("PostgreSQL returned an invalid direct writer attempt row count.");
@@ -440,8 +486,14 @@ async function beginDirectMediaBlobWriterAttemptSnapshotInExecutor(
     assertMediaBlobWriterReservationToken(row.reservation_token);
     const normalizationVersion = requireNormalizationVersion(row.normalization_version);
     const leaseExpiresAt = requireIsoTimestamp(row.lease_expires_at, "leaseExpiresAt");
-    if (Date.parse(leaseExpiresAt) <= lease.operationDeadlineAtMs) {
-      throw new TypeError("PostgreSQL returned a writer lease that does not cover the operation deadline.");
+    const leaseExpiresAtMs = Date.parse(leaseExpiresAt);
+    if (
+      leaseExpiresAtMs <= lease.operationDeadlineAtMs
+      || leaseExpiresAtMs > lease.leaseTargetAtMs
+    ) {
+      throw new MediaBlobWriterLeaseDeadlineError(
+        "PostgreSQL returned a writer lease outside the exact operation window.",
+      );
     }
     const exactInput = Object.freeze({
       ...input,

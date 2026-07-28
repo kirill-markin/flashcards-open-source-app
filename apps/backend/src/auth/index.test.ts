@@ -12,10 +12,13 @@ import { Hono } from "hono";
 import { type ContentfulStatusCode } from "hono/utils/http-status";
 import {
   authVerificationTemporarilyUnavailableCode,
+  authenticateRequestWithAbortSignalAndDependencies,
   createJwtAuthBoundaryError,
   isTerminalJwtAuthFailure,
   AuthError,
+  type AuthenticatedUserIdentity,
 } from "./index";
+import { resetAuthConfigForTests } from "./config";
 import { HttpError } from "../shared/errors";
 import type { AppEnv } from "../server/app";
 import { createSystemRoutes } from "../routes/system";
@@ -90,4 +93,66 @@ test("GET /me returns 500 when session verification fails with a non-terminal ve
 
   assert.equal(response.status, 500);
   assert.equal(payload.code, "INTERNAL_ERROR");
+});
+
+test("signal-aware authentication aborts in-flight verification before identity mapping", async () => {
+  const originalAuthMode = process.env.AUTH_MODE;
+  process.env.AUTH_MODE = "cognito";
+  resetAuthConfigForTests();
+  const controller = new AbortController();
+  const deadlineError = new HttpError(
+    503,
+    "Media image ingestion cannot safely finish within its request deadline.",
+    "MEDIA_ASSET_INGESTION_DEADLINE_EXCEEDED",
+    { retryAfterSeconds: 1 },
+  );
+  let rejectVerification:
+  ((reason?: unknown) => void) | undefined;
+  const verification = new Promise<AuthenticatedUserIdentity>(
+    (_resolve, reject) => {
+      rejectVerification = reject;
+    },
+  );
+  let identityMappingCalls = 0;
+
+  try {
+    const authentication =
+      authenticateRequestWithAbortSignalAndDependencies(
+        {
+          authorizationHeader: "Bearer pending-token",
+          sessionToken: undefined,
+        },
+        controller.signal,
+        {
+          authenticateAgentApiKeyFn: async () => {
+            throw new Error("Unexpected API-key authentication.");
+          },
+          authenticateGuestSessionFn: async () => {
+            throw new Error("Unexpected guest authentication.");
+          },
+          loadCognitoIdentityMappingFn: async () => {
+            identityMappingCalls += 1;
+            return null;
+          },
+          verifyIdTokenFn: () => verification,
+        },
+      );
+
+    controller.abort(deadlineError);
+    await assert.rejects(authentication, (error: unknown) => {
+      assert.equal(error, deadlineError);
+      return true;
+    });
+
+    rejectVerification?.(new Error("Late verifier rejection."));
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(identityMappingCalls, 0);
+  } finally {
+    if (originalAuthMode === undefined) {
+      delete process.env.AUTH_MODE;
+    } else {
+      process.env.AUTH_MODE = originalAuthMode;
+    }
+    resetAuthConfigForTests();
+  }
 });

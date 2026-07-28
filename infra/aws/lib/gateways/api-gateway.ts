@@ -44,6 +44,7 @@ export interface ApiGatewayProps {
 export interface ApiGatewayResult {
   restApi: apigw.RestApi;
   backendFn: lambdaNodejs.NodejsFunction;
+  directImageIngestionFn: lambdaNodejs.NodejsFunction;
   chatWorkerFn: lambdaNodejs.NodejsFunction;
   chatLiveFn: lambdaNodejs.NodejsFunction;
   chatLiveFunctionUrl: lambda.FunctionUrl;
@@ -79,6 +80,45 @@ interface BackendFunctionProps {
   memorySize: number;
   architecture: lambda.Architecture;
   bundling: lambdaNodejs.BundlingOptions;
+}
+
+interface DirectImageIngestionFunctionProps {
+  baseDomain: string;
+  siteBaseUrl: string | undefined;
+  vpc: ec2.Vpc;
+  lambdaSg: ec2.SecurityGroup;
+  db: rds.DatabaseInstance;
+  backendDbSecret: cdk.aws_secretsmanager.Secret;
+  backendCsrfSecret: cdk.aws_secretsmanager.Secret;
+  allowedOrigins: string[];
+  userPoolId: string;
+  userPoolClientId: string;
+  demoEmailDostip: string | undefined;
+  guestAiWeightedMonthlyTokenCap: string | undefined;
+  mediaAssetsBucket: s3.IBucket;
+}
+
+export const publicRestApiDefaultIntegrationTimeoutSeconds = 29;
+export const directImageIngestionMaximumOnDemandInitSeconds = 10;
+export const directImageIngestionLambdaTimeoutSeconds = 15;
+
+export function addDirectImageIngestionApiRoutes(
+  restApi: apigw.RestApi,
+  sharedIntegration: apigw.Integration,
+  directIntegration: apigw.Integration,
+): apigw.Resource {
+  const workspaces = restApi.root.addResource("workspaces");
+  workspaces.addMethod("ANY", sharedIntegration);
+  const workspace = workspaces.addResource("{workspaceId}");
+  workspace.addMethod("ANY", sharedIntegration);
+  workspace.addResource("{proxy+}").addMethod("ANY", sharedIntegration);
+  const mediaAssets = workspace.addResource("media-assets");
+  mediaAssets.addMethod("ANY", sharedIntegration);
+  mediaAssets.addResource("{proxy+}").addMethod("ANY", sharedIntegration);
+  const directImages = mediaAssets.addResource("images");
+  directImages.addMethod("ANY", sharedIntegration);
+  directImages.addMethod("POST", directIntegration);
+  return directImages;
 }
 
 interface GlobalMetricsConfig {
@@ -402,6 +442,18 @@ export function createMediaAssetsObjectPolicyStatement(bucket: s3.IBucket): cdk.
   });
 }
 
+export function createDirectImageIngestionObjectPolicyStatement(
+  bucket: s3.IBucket,
+): cdk.aws_iam.PolicyStatement {
+  return new cdk.aws_iam.PolicyStatement({
+    actions: [
+      "s3:GetObject",
+      "s3:PutObject",
+    ],
+    resources: [bucket.arnForObjects("media/blobs/*")],
+  });
+}
+
 function addMediaAssetsEnvironment(
   fn: lambdaNodejs.NodejsFunction,
   bucket: s3.IBucket,
@@ -558,10 +610,75 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
   return fn;
 }
 
+function createDirectImageIngestionFunction(
+  scope: Construct,
+  props: DirectImageIngestionFunctionProps,
+): lambdaNodejs.NodejsFunction {
+  if (
+    directImageIngestionMaximumOnDemandInitSeconds
+      + directImageIngestionLambdaTimeoutSeconds
+      >= publicRestApiDefaultIntegrationTimeoutSeconds
+  ) {
+    throw new Error("Direct image ingestion Lambda timing margins are invalid.");
+  }
+
+  const fn = new lambdaNodejs.NodejsFunction(scope, "DirectImageIngestionHandler", {
+    entry: resolveFromRepoRoot(
+      "apps",
+      "backend",
+      "src",
+      "entrypoints",
+      "lambda-direct-image-ingestion.ts",
+    ),
+    handler: "handler",
+    runtime: lambda.Runtime.NODEJS_24_X,
+    architecture: lambda.Architecture.ARM_64,
+    timeout: cdk.Duration.seconds(directImageIngestionLambdaTimeoutSeconds),
+    memorySize: 1024,
+    loggingFormat: lambda.LoggingFormat.JSON,
+    vpc: props.vpc,
+    vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+    securityGroups: [props.lambdaSg],
+    ...backendNodejsProjectPaths,
+    bundling: createLambdaBundling({
+      nodeModules: ["sharp"],
+      forceDockerBundling: true,
+    }),
+    environment: {
+      NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
+      DB_SECRET_ARN: props.backendDbSecret.secretArn,
+      DB_HOST: props.db.dbInstanceEndpointAddress,
+      DB_NAME: "flashcards",
+      AUTH_MODE: "cognito",
+      COGNITO_USER_POOL_ID: props.userPoolId,
+      COGNITO_CLIENT_ID: props.userPoolClientId,
+      COGNITO_REGION: cdk.Stack.of(scope).region,
+      BACKEND_ALLOWED_ORIGINS: props.allowedOrigins.join(","),
+      BACKEND_CSRF_SECRET_ARN: props.backendCsrfSecret.secretArn,
+      PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
+      PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
+      PUBLIC_SITE_BASE_URL: props.siteBaseUrl ?? `https://${props.baseDomain}`,
+      GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP:
+        props.guestAiWeightedMonthlyTokenCap ?? "0",
+      MEDIA_ASSETS_S3_BUCKET_NAME: props.mediaAssetsBucket.bucketName,
+      ...(props.demoEmailDostip === undefined || props.demoEmailDostip === ""
+        ? {}
+        : { DEMO_EMAIL_DOSTIP: props.demoEmailDostip }),
+    },
+  });
+
+  props.backendDbSecret.grantRead(fn);
+  props.backendCsrfSecret.grantRead(fn);
+  fn.addToRolePolicy(
+    createDirectImageIngestionObjectPolicyStatement(props.mediaAssetsBucket),
+  );
+  return fn;
+}
+
 /**
  * Builds the public REST API edge. The backend Hono app remains the route
- * source of truth behind a greedy proxy so the CloudFormation template stays
- * under the per-stack resource limit.
+ * source of truth behind a greedy proxy, with direct image ingestion mapped
+ * explicitly to its bounded Lambda runtime.
  */
 export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGatewayResult {
   const publicSiteOrigin = props.siteBaseUrl ?? `https://${props.baseDomain}`;
@@ -641,6 +758,21 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       nodeModules: ["sharp"],
       forceDockerBundling: true,
     }),
+  });
+  const directImageIngestionFn = createDirectImageIngestionFunction(scope, {
+    baseDomain: props.baseDomain,
+    siteBaseUrl: props.siteBaseUrl,
+    vpc: props.vpc,
+    lambdaSg: props.lambdaSg,
+    db: props.db,
+    backendDbSecret: props.backendDbSecret,
+    backendCsrfSecret,
+    allowedOrigins,
+    userPoolId: props.userPoolId,
+    userPoolClientId: props.userPoolClientId,
+    demoEmailDostip: props.demoEmailDostip,
+    guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
+    mediaAssetsBucket: props.mediaAssetsBucket,
   });
   const chatWorkerFn = createBackendFunction(scope, {
     constructId: "ChatRunWorkerHandler",
@@ -775,6 +907,14 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const integration = new apigw.LambdaIntegration(backendFn, {
     scopePermissionToMethod: false,
   });
+  const directImageIngestionIntegration = new apigw.LambdaIntegration(
+    directImageIngestionFn,
+    {
+      timeout: cdk.Duration.seconds(
+        publicRestApiDefaultIntegrationTimeoutSeconds,
+      ),
+    },
+  );
 
   const notFoundIntegration = createLegacyAuthNotFoundIntegration();
   const notFoundMethodOptions: apigw.MethodOptions = {
@@ -803,6 +943,12 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const legacyAuth = restApi.root.addResource("auth");
   legacyAuth.addMethod("ANY", notFoundIntegration, notFoundMethodOptions);
   legacyAuth.addResource("{proxy+}").addMethod("ANY", notFoundIntegration, notFoundMethodOptions);
+
+  addDirectImageIngestionApiRoutes(
+    restApi,
+    integration,
+    directImageIngestionIntegration,
+  );
 
   restApi.root.addMethod("GET", integration);
   restApi.root.addResource("{proxy+}").addMethod("ANY", integration);
@@ -834,5 +980,12 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     description: "Lambda Function URL for the SSE live chat stream",
   });
 
-  return { restApi, backendFn, chatWorkerFn, chatLiveFn, chatLiveFunctionUrl };
+  return {
+    restApi,
+    backendFn,
+    directImageIngestionFn,
+    chatWorkerFn,
+    chatLiveFn,
+    chatLiveFunctionUrl,
+  };
 }

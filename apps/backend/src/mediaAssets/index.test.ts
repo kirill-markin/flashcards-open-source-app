@@ -15,6 +15,7 @@ import {
   parseMediaAssetUploadIntentInput,
   parseMediaAssetUploadSessionCreateInput,
   readMediaAssetImageIngestionBytes,
+  readMediaAssetImageIngestionBytesWithAbortSignal,
 } from "./validators";
 
 const testWorkspaceId = "11111111-1111-4111-8111-111111111111";
@@ -103,6 +104,37 @@ test("media asset upload validators keep direct uploads compatible and cap multi
       return true;
     },
   );
+});
+
+test("deadline-aware image request reading cancels its underlying body stream", async () => {
+  const controller = new AbortController();
+  const deadlineError = new HttpError(
+    503,
+    "Image ingestion deadline reached.",
+    "MEDIA_ASSET_INGESTION_DEADLINE_EXCEEDED",
+  );
+  let cancelReason: unknown = null;
+  const body = new ReadableStream<Uint8Array>({
+    pull: async () => new Promise<void>(() => {}),
+    cancel: (reason) => {
+      cancelReason = reason;
+    },
+  });
+  const request = new Request("https://example.com/media", {
+    method: "POST",
+    headers: { "content-type": "image/png" },
+    body,
+    duplex: "half",
+  });
+
+  const read = readMediaAssetImageIngestionBytesWithAbortSignal(
+    request,
+    controller.signal,
+  );
+  setImmediate(() => controller.abort(deadlineError));
+
+  await assert.rejects(read, (error: unknown) => error === deadlineError);
+  assert.equal(cancelReason, deadlineError);
 });
 
 test("media asset image ingestion validators parse metadata headers and reject oversized originals", async () => {

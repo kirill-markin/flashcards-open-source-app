@@ -6,6 +6,10 @@ import {
   AuthError,
   authVerificationTemporarilyUnavailableCode,
 } from "../auth";
+import {
+  createAgentErrorInstructions,
+  isAgentApiKeyAuthorizationHeader,
+} from "../agent/envelope";
 import { getAuthConfig } from "../auth/config";
 import { createPublicHttpErrorDetails, HttpError, type PublicHttpErrorDetails } from "../shared/errors";
 import { createChatRoutes } from "../routes/chat";
@@ -40,47 +44,14 @@ import {
 } from "../observability/sentry";
 import { hasReportedBackendException } from "../observability/reporting";
 import { getHttpErrorResponseHeaders } from "./httpErrorResponseHeaders";
+import {
+  browserCorsAllowHeaders,
+  browserCorsExposeHeaders,
+} from "./browserCors";
+import type { AppEnv } from "./appEnv";
 
 export { getHttpErrorResponseHeaders } from "./httpErrorResponseHeaders";
-
-export type AppEnv = {
-  Variables: {
-    requestId: string;
-    clientAppVersion: string | null;
-    clientPlatform: string | null;
-  };
-};
-
-const browserCorsAllowHeaders = [
-  "content-type",
-  "authorization",
-  "x-csrf-token",
-  "sentry-trace",
-  "baggage",
-  "x-chat-request-id",
-  "x-chat-resume-attempt-id",
-  "x-client-platform",
-  "x-client-version",
-  "x-media-asset-id",
-  "x-media-source-url",
-  "x-media-created-at",
-  "x-media-client-updated-at",
-  "x-media-last-modified-by-replica-id",
-  "x-media-last-operation-id",
-] as const;
-
-const browserCorsExposeHeaders = [
-  "cache-control",
-  "content-disposition",
-  "content-encoding",
-  "content-length",
-  "content-type",
-  "x-request-id",
-  "x-amz-apigw-id",
-  "x-amzn-requestid",
-  "x-chat-request-id",
-  "retry-after",
-] as const;
+export type { AppEnv } from "./appEnv";
 
 const globalSnapshotCorsAllowHeaders = [
   "content-type",
@@ -130,49 +101,12 @@ export function createPublicHttpErrorBody(error: HttpError, requestId: string): 
   };
 }
 
-function usesApiKeyAuthorizationHeader(request: Request): boolean {
-  const authorizationHeader = request.headers.get("authorization");
-  return authorizationHeader !== null && authorizationHeader.startsWith("ApiKey ");
-}
-
 function isAgentConnectionManagementPath(pathname: string): boolean {
   return pathname.endsWith("/agent-api-keys") || pathname.includes("/agent-api-keys/");
 }
 
 export function createAgentInstructions(code: string | null, statusCode: number): string {
-  switch (code) {
-    case "SERVICE_UNAVAILABLE":
-      return "Retry the same request after the Retry-After delay. If it fails again, treat it as a server-side error and stop changing the request. Use requestId when debugging.";
-    case authVerificationTemporarilyUnavailableCode:
-      return "Retry the same authenticated request after the Retry-After delay without changing the token. If it keeps failing, sign in again and use requestId when debugging.";
-    case "AUTH_UNAUTHORIZED":
-    case "AGENT_API_KEY_INVALID":
-      return "Use a valid non-revoked API key in the Authorization header as: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY after exporting it once. If needed, restart from GET /v1/agent.";
-    case "QUERY_INVALID_SQL":
-    case "QUERY_UNSUPPORTED_SYNTAX":
-      return "Fix the sql string using error.message and any error.details.validationIssues, then retry the same endpoint: POST /v1/agent/sql/query for reads or POST /v1/agent/sql/execute for writes. Use docs.openapiUrl for the published SQL dialect.";
-    case "WORKSPACE_SELECTION_REQUIRED":
-      return "Call GET /v1/agent/me, then GET /v1/agent/workspaces?limit=100. A first workspace is auto-provisioned for new users. If data.nextCursor is not null, continue with the same limit and cursor=data.nextCursor. If multiple workspaces exist, select one with POST /v1/agent/workspaces/{workspaceId}/select before calling POST /v1/agent/sql/query or POST /v1/agent/sql/execute.";
-    case "WORKSPACE_ID_REQUIRED":
-    case "WORKSPACE_ID_INVALID":
-      return "Provide a valid workspaceId UUID in the request URL, then retry the action.";
-    case "DATABASE_COMMIT_OUTCOME_UNKNOWN":
-      return "Do not blindly replay the same request. Reload and check the current state first, then retry only if the requested change is confirmed absent. Use requestId when debugging.";
-  }
-
-  if (statusCode >= 500) {
-    return "Retry the same request once. If it fails again, treat it as a server-side error and stop changing the request. Use requestId when debugging.";
-  }
-
-  if (statusCode === 404) {
-    return "Verify that the referenced resource id exists in the selected workspace, then retry only after correcting the id.";
-  }
-
-  if (statusCode >= 400) {
-    return "Fix the request using error.message and any error.details.validationIssues, then retry the same request.";
-  }
-
-  return "If the issue persists, reload account context from GET /v1/agent/me or restart from GET /v1/agent.";
+  return createAgentErrorInstructions(code, statusCode);
 }
 
 function applyHttpErrorResponseHeaders(
@@ -336,7 +270,9 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
         },
       });
     }
-    const apiKeyRequest = usesApiKeyAuthorizationHeader(context.req.raw);
+    const apiKeyRequest = isAgentApiKeyAuthorizationHeader(
+      context.req.header("authorization"),
+    );
     const agentConnectionManagementRequest = isAgentConnectionManagementPath(context.req.path);
     const publicCatalogRequest = isPublicCatalogPath(context.req.path);
 

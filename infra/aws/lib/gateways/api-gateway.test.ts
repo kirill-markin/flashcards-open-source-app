@@ -8,13 +8,21 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Template } from "aws-cdk-lib/assertions";
 import {
+  addDirectImageIngestionApiRoutes,
   addTextContentHandlingToMockOptionsMethods,
   createLegacyAuthNotFoundIntegration,
+  createDirectImageIngestionObjectPolicyStatement,
   createMediaAssetsObjectPolicyStatement,
   createChatLiveFunctionUrlCorsOptions,
   createGatewayErrorResponseHeaders,
+  directImageIngestionLambdaTimeoutSeconds,
+  directImageIngestionMaximumOnDemandInitSeconds,
   globalMetricsCorsPreflightOptions,
+  publicRestApiDefaultIntegrationTimeoutSeconds,
 } from "./api-gateway";
+import {
+  createDirectImageIngestionHandled5xxFilterPattern,
+} from "../monitoring";
 
 function loadApiGatewaySource(): string {
   const apiGatewayPath = resolve(process.cwd(), "lib/gateways/api-gateway.ts");
@@ -65,7 +73,7 @@ test("API Gateway proxy accepts browser-safe binary bodies", () => {
   );
 });
 
-test("backend API and chat worker package sharp with ARM64 Docker bundling and managed media access", () => {
+test("backend, direct ingestion, and chat worker package sharp with ARM64 Docker bundling", () => {
   const apiGatewaySource = loadApiGatewaySource();
   const backendConfiguration = getBackendFunctionConfiguration(apiGatewaySource, "BackendHandler");
   const chatWorkerConfiguration = getBackendFunctionConfiguration(apiGatewaySource, "ChatRunWorkerHandler");
@@ -81,14 +89,18 @@ test("backend API and chat worker package sharp with ARM64 Docker bundling and m
   );
   assert.match(
     apiGatewaySource,
+    /"DirectImageIngestionHandler"[\s\S]*lambda-direct-image-ingestion\.ts[\s\S]*timeout: cdk\.Duration\.seconds\(directImageIngestionLambdaTimeoutSeconds\)[\s\S]*memorySize: 1024[\s\S]*architecture: lambda\.Architecture\.ARM_64[\s\S]*nodeModules: \["sharp"\][\s\S]*forceDockerBundling: true/,
+  );
+  assert.match(
+    apiGatewaySource,
     /hostPath: resolveFromRepoRoot\(\)[\s\S]*containerPath: dockerBundlingRepoRootPath/,
   );
   assert.match(
     apiGatewaySource,
     /SENTRY_BACKEND_CLI_PATH: `\$\{dockerBundlingRepoRootPath\}\/apps\/backend\/node_modules\/\.bin\/sentry-cli`/,
   );
-  assert.equal(apiGatewaySource.match(/mediaAssetsBucket: props\.mediaAssetsBucket/g)?.length, 2);
-  assert.equal(apiGatewaySource.match(/nodeModules: \["sharp"\]/g)?.length, 2);
+  assert.equal(apiGatewaySource.match(/mediaAssetsBucket: props\.mediaAssetsBucket/g)?.length, 3);
+  assert.equal(apiGatewaySource.match(/nodeModules: \["sharp"\]/g)?.length, 3);
   assert.doesNotMatch(
     chatLiveConfiguration,
     /mediaAssetsBucket: props\.mediaAssetsBucket/,
@@ -97,6 +109,105 @@ test("backend API and chat worker package sharp with ARM64 Docker bundling and m
     chatLiveConfiguration,
     /nodeModules: \["sharp"\]/,
   );
+});
+
+test("direct ingestion has a hard service envelope and one explicit API Gateway owner", () => {
+  const apiGatewaySource = loadApiGatewaySource();
+
+  assert.equal(directImageIngestionMaximumOnDemandInitSeconds, 10);
+  assert.equal(directImageIngestionLambdaTimeoutSeconds, 15);
+  assert.equal(
+    publicRestApiDefaultIntegrationTimeoutSeconds
+      - directImageIngestionMaximumOnDemandInitSeconds
+      - directImageIngestionLambdaTimeoutSeconds,
+    4,
+  );
+  assert.ok(
+    directImageIngestionMaximumOnDemandInitSeconds
+      + directImageIngestionLambdaTimeoutSeconds
+      < publicRestApiDefaultIntegrationTimeoutSeconds,
+  );
+  assert.match(
+    apiGatewaySource,
+    /addDirectImageIngestionApiRoutes\(\s*restApi,\s*integration,\s*directImageIngestionIntegration,\s*\);/,
+  );
+  assert.equal(
+    apiGatewaySource.match(
+      /new apigw\.LambdaIntegration\(\s*directImageIngestionFn,/g,
+    )?.length,
+    1,
+  );
+});
+
+test("direct ingestion monitoring covers handled HTTP 5xx and thrown Lambda failures", () => {
+  const monitoringSource = readFileSync(
+    resolve(process.cwd(), "lib/monitoring.ts"),
+    "utf8",
+  );
+  const handled5xxPattern =
+    createDirectImageIngestionHandled5xxFilterPattern().logPatternString;
+
+  assert.match(
+    handled5xxPattern,
+    /direct_image_ingestion_handled_http_5xx/,
+  );
+  assert.match(handled5xxPattern, /\$\.message\.statusCode >= 500/);
+  assert.match(handled5xxPattern, /\$\.message\.statusCode < 600/);
+  assert.match(
+    monitoringSource,
+    /\$\.message\.action/,
+  );
+  assert.match(
+    monitoringSource,
+    /DirectImageIngestionLambdaErrorAlarm[\s\S]*directImageIngestionFn\.metricErrors/,
+  );
+  assert.match(
+    monitoringSource,
+    /DirectImageIngestionHandled5xxMetricFilter[\s\S]*directImageIngestionFn\.logGroup[\s\S]*DirectImageIngestionHandled5xxAlarm/,
+  );
+  assert.match(
+    loadApiGatewaySource(),
+    /DirectImageIngestionHandler[\s\S]*loggingFormat: lambda\.LoggingFormat\.JSON/,
+  );
+});
+
+test("direct ingestion route keeps shared workspace fallbacks without synthesis", () => {
+  const stack = new cdk.Stack();
+  const restApi = new apigw.RestApi(stack, "Api");
+  const sharedIntegration = new apigw.MockIntegration({
+    integrationResponses: [{ statusCode: "200" }],
+  });
+  const directIntegration = new apigw.MockIntegration({
+    integrationResponses: [{ statusCode: "201" }],
+  });
+
+  const directImages = addDirectImageIngestionApiRoutes(
+    restApi,
+    sharedIntegration,
+    directIntegration,
+  );
+
+  assert.equal(
+    directImages.path,
+    "/workspaces/{workspaceId}/media-assets/images",
+  );
+  assert.doesNotThrow(() => directImages.node.findChild("ANY"));
+  assert.doesNotThrow(() => directImages.node.findChild("POST"));
+  const workspaces = restApi.root.getResource("workspaces");
+  const workspace = workspaces?.getResource("{workspaceId}");
+  const mediaAssets = workspace?.getResource("media-assets");
+  assert.notEqual(workspace?.getResource("{proxy+}"), undefined);
+  assert.notEqual(mediaAssets?.getResource("{proxy+}"), undefined);
+});
+
+test("custom-domain mapping strips one v1 segment before direct route selection", () => {
+  const apiGatewaySource = loadApiGatewaySource();
+  assert.match(apiGatewaySource, /basePath: "v1"/);
+  assert.match(
+    apiGatewaySource,
+    /addDirectImageIngestionApiRoutes\(\s*restApi,\s*integration,\s*directImageIngestionIntegration,\s*\);/,
+  );
+  assertApiGatewayUsesBackendProxy(apiGatewaySource);
 });
 
 test("API Gateway browser CORS allows PUT for admin updates", () => {
@@ -250,6 +361,27 @@ test("media asset object IAM covers blob multipart transfer permissions", () => 
   assert.match(policyJson, /media\/blobs\/\*/);
   assert.match(policyJson, /media\/uploads\/\*/);
   assert.doesNotMatch(policyJson, /media-assets\/\*/);
+});
+
+test("direct ingestion object IAM is limited to permanent blob reads and writes", () => {
+  const stack = new cdk.Stack();
+  const bucket = new s3.Bucket(stack, "MediaAssetsBucket");
+  const fn = new lambda.Function(stack, "DirectImageIngestionHandler", {
+    runtime: lambda.Runtime.NODEJS_24_X,
+    handler: "index.handler",
+    code: lambda.Code.fromInline("exports.handler = async () => ({ statusCode: 200 });"),
+  });
+  fn.addToRolePolicy(createDirectImageIngestionObjectPolicyStatement(bucket));
+
+  const template = Template.fromStack(stack);
+  const policyJson = JSON.stringify(template.findResources("AWS::IAM::Policy"));
+
+  assert.match(policyJson, /s3:GetObject/);
+  assert.match(policyJson, /s3:PutObject/);
+  assert.match(policyJson, /media\/blobs\/\*/);
+  assert.doesNotMatch(policyJson, /s3:AbortMultipartUpload/);
+  assert.doesNotMatch(policyJson, /s3:ListMultipartUploadParts/);
+  assert.doesNotMatch(policyJson, /media\/uploads\/\*/);
 });
 
 test("default API Gateway generated errors expose supported request id headers", () => {

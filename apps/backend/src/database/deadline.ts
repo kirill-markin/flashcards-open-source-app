@@ -358,9 +358,10 @@ async function settleStartedExecutorOperations(
   if (hasError) throw firstError;
 }
 
-export async function transactionWithPostgresDeadline<Result>(
+async function transactionWithPostgresDeadlineAndBegin<Result>(
   pool: pg.Pool,
   deadlineAtMs: number,
+  beginStatement: string,
   callback: (executor: DatabaseExecutor) => Promise<Result>,
 ): Promise<Result> {
   validateDatabaseDeadline(deadlineAtMs);
@@ -382,7 +383,13 @@ export async function transactionWithPostgresDeadline<Result>(
   };
   try {
     try {
-      await executeClientQuery(client, deadlineAtMs, "transaction_begin", "BEGIN", []);
+      await executeClientQuery(
+        client,
+        deadlineAtMs,
+        "transaction_begin",
+        beginStatement,
+        [],
+      );
     } catch (error) {
       releaseError = toReleaseError(error);
       throw error;
@@ -501,6 +508,45 @@ export async function transactionWithPostgresDeadline<Result>(
   } finally {
     client.release(releaseError);
   }
+}
+
+export async function transactionWithPostgresDeadline<Result>(
+  pool: pg.Pool,
+  deadlineAtMs: number,
+  callback: (executor: DatabaseExecutor) => Promise<Result>,
+): Promise<Result> {
+  return transactionWithPostgresDeadlineAndBegin(
+    pool,
+    deadlineAtMs,
+    "BEGIN",
+    callback,
+  );
+}
+
+export async function repeatableReadTransactionWithPostgresDeadline<Result>(
+  pool: pg.Pool,
+  deadlineAtMs: number,
+  callback: (executor: DatabaseExecutor) => Promise<Result>,
+): Promise<Result> {
+  return transactionWithPostgresDeadlineAndBegin(
+    pool,
+    deadlineAtMs,
+    "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+    callback,
+  );
+}
+
+export async function repeatableReadReadOnlyTransactionWithPostgresDeadline<Result>(
+  pool: pg.Pool,
+  deadlineAtMs: number,
+  callback: (executor: DatabaseExecutor) => Promise<Result>,
+): Promise<Result> {
+  return transactionWithPostgresDeadlineAndBegin(
+    pool,
+    deadlineAtMs,
+    "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",
+    callback,
+  );
 }
 
 export async function queryWithPostgresDeadline<Row extends pg.QueryResultRow>(

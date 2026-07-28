@@ -90,6 +90,7 @@ const boundaryDefinitions = Object.freeze([
     testFiles: Object.freeze([
       "src/database/deadline.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle.postgres.integration.ts",
+      "src/mediaAssets/directIngestionApply.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

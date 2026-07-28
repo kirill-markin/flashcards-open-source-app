@@ -49,14 +49,22 @@ export async function getDatabaseCredentialsSecretWithAbortSignal(
   return loadDatabaseCredentialsSecret(secretArn, abortSignal);
 }
 
-export async function getBackendCsrfSecret(secretArn: string): Promise<string> {
+async function loadBackendCsrfSecret(
+  secretArn: string,
+  abortSignal: AbortSignal | null,
+): Promise<string> {
   if (resolvedBackendCsrfSecret !== undefined) {
     return resolvedBackendCsrfSecret;
   }
 
+  abortSignal?.throwIfAborted();
   // CSRF signing key is immutable for the lifetime of the Lambda process,
   // so caching avoids a Secrets Manager read on every request.
-  const response = await secretsClient.send(new GetSecretValueCommand({ SecretId: secretArn }));
+  const command = new GetSecretValueCommand({ SecretId: secretArn });
+  const response = abortSignal === null
+    ? await secretsClient.send(command)
+    : await secretsClient.send(command, { abortSignal });
+  abortSignal?.throwIfAborted();
   if (!response.SecretString) {
     throw new Error(`Secret ${secretArn} does not contain SecretString`);
   }
@@ -68,6 +76,17 @@ export async function getBackendCsrfSecret(secretArn: string): Promise<string> {
 
   resolvedBackendCsrfSecret = value;
   return resolvedBackendCsrfSecret;
+}
+
+export async function getBackendCsrfSecret(secretArn: string): Promise<string> {
+  return loadBackendCsrfSecret(secretArn, null);
+}
+
+export async function getBackendCsrfSecretWithAbortSignal(
+  secretArn: string,
+  abortSignal: AbortSignal,
+): Promise<string> {
+  return loadBackendCsrfSecret(secretArn, abortSignal);
 }
 
 export async function getBackendChatLiveAuthSecret(secretArn: string): Promise<string> {

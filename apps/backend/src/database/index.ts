@@ -2,6 +2,7 @@ import type pg from "pg";
 import {
   applyUserDatabaseScopeInExecutor,
   applyWorkspaceDatabaseScopeInExecutor,
+  runDatabaseOperationsWithDeadline,
   unsafeRepeatableReadReadOnlyTransaction,
   unsafeTransaction,
   unsafeTransactionWithDeadline,
@@ -13,6 +14,7 @@ import {
 export {
   applyUserDatabaseScopeInExecutor,
   applyWorkspaceDatabaseScopeInExecutor,
+  runDatabaseOperationsWithDeadline,
 };
 export type {
   DatabaseExecutor,
