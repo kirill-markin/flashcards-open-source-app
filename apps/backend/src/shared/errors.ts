@@ -41,6 +41,7 @@ export type HttpErrorDetails = Readonly<{
   validationIssues?: ReadonlyArray<ValidationIssueSummary>;
   syncConflict?: SyncConflictDetails;
   mediaAssetStorage?: MediaAssetStorageErrorDetails;
+  retryAfterSeconds?: number;
 }>;
 
 export type PublicSyncConflictDetails = Readonly<{

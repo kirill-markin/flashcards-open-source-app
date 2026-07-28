@@ -1,7 +1,10 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { AuthRequest } from "./index";
 import { HttpError } from "../shared/errors";
-import { getBackendCsrfSecret } from "../aws/secrets";
+import {
+  getBackendCsrfSecret,
+  getBackendCsrfSecretWithAbortSignal,
+} from "../aws/secrets";
 
 /**
  * Request fields used to authenticate the caller and validate browser-only
@@ -120,6 +123,17 @@ export async function getSessionCsrfToken(sessionToken: string): Promise<string>
   return createSessionCsrfToken(sessionToken, csrfSecret);
 }
 
+async function getSessionCsrfTokenWithAbortSignal(
+  sessionToken: string,
+  abortSignal: AbortSignal,
+): Promise<string> {
+  const csrfSecret = await getBackendCsrfSecretWithAbortSignal(
+    getBackendCsrfSecretArn(),
+    abortSignal,
+  );
+  return createSessionCsrfToken(sessionToken, csrfSecret);
+}
+
 /**
  * Applies browser CSRF checks only to unsafe requests authenticated by the
  * shared session cookie. Bearer-token requests are intentionally excluded.
@@ -129,6 +143,35 @@ export async function enforceSessionCsrfProtection(
   requestAuthInputs: RequestAuthInputs,
   allowedOrigins: ReadonlyArray<string>,
 ): Promise<void> {
+  return enforceSessionCsrfProtectionWithSignal(
+    method,
+    requestAuthInputs,
+    allowedOrigins,
+    null,
+  );
+}
+
+export async function enforceSessionCsrfProtectionWithAbortSignal(
+  method: string,
+  requestAuthInputs: RequestAuthInputs,
+  allowedOrigins: ReadonlyArray<string>,
+  abortSignal: AbortSignal,
+): Promise<void> {
+  return enforceSessionCsrfProtectionWithSignal(
+    method,
+    requestAuthInputs,
+    allowedOrigins,
+    abortSignal,
+  );
+}
+
+async function enforceSessionCsrfProtectionWithSignal(
+  method: string,
+  requestAuthInputs: RequestAuthInputs,
+  allowedOrigins: ReadonlyArray<string>,
+  abortSignal: AbortSignal | null,
+): Promise<void> {
+  abortSignal?.throwIfAborted();
   if (!isUnsafeMethod(method)) {
     return;
   }
@@ -155,7 +198,10 @@ export async function enforceSessionCsrfProtection(
     throw new Error("Session token is required for session-based CSRF protection");
   }
 
-  const expectedToken = await getSessionCsrfToken(sessionToken);
+  const expectedToken = abortSignal === null
+    ? await getSessionCsrfToken(sessionToken)
+    : await getSessionCsrfTokenWithAbortSignal(sessionToken, abortSignal);
+  abortSignal?.throwIfAborted();
   if (!isMatchingToken(expectedToken, csrfToken)) {
     throw new HttpError(403, "Invalid X-CSRF-Token header", "SESSION_CSRF_TOKEN_INVALID");
   }

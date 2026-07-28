@@ -1,11 +1,26 @@
 import {
   queryWithWorkspaceScopeReadOnly,
   transactionWithWorkspaceScope,
+  transactionWithWorkspaceScopeDeadline,
   transactionWithWorkspaceScopeReadOnly,
+  type DatabaseExecutor,
 } from "../database";
 import { HttpError } from "../shared/errors";
+import { findSyncConflictWorkspaceIdInExecutor } from "../sync/conflicts/fork";
+import {
+  fenceDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor,
+  finishDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor,
+  mediaBlobCleanupDelayMs,
+  MediaBlobLifecycleBusyError,
+  MediaBlobWriterFenceError,
+  transactionWithDirectMediaBlobWriterApplyDeadline,
+  type DirectMediaBlobWriterAttemptExactInput,
+  type DirectMediaBlobWriterAttemptFenceStatus,
+  type DirectMediaBlobWriterAttemptFinishStatus,
+} from "./blobLifecycle";
 import {
   assertMediaBlobMatchesMetadata,
+  findMediaAssetRowForUpdateInExecutor,
   findMediaBlobRowBySha256InExecutor,
   MEDIA_ASSET_COLUMNS,
   MEDIA_ASSET_JOIN_CLAUSE,
@@ -41,7 +56,6 @@ export {
   mapMediaBlobRow,
   upsertMediaAssetSnapshotInExecutor,
 };
-export * from "./uploadSessions";
 
 type ExistingMediaAssetIntentRow = Readonly<{
   ok: number;
@@ -141,8 +155,9 @@ export async function assertImageMediaAssetIngestionPreconditionsForWorkspace(
   userId: string,
   workspaceId: string,
   input: MediaAssetImageIngestionMetadataInput,
+  deadlineAtMs: number,
 ): Promise<void> {
-  await transactionWithWorkspaceScopeReadOnly({ userId, workspaceId }, async (executor) => {
+  await transactionWithWorkspaceScopeDeadline({ userId, workspaceId }, deadlineAtMs, async (executor) => {
     await assertReplicaBelongsToWorkspaceInExecutor(executor, workspaceId, input.lastModifiedByReplicaId);
   });
 }
@@ -151,9 +166,10 @@ export async function loadReusableImageMediaBlobForWorkspace(
   userId: string,
   workspaceId: string,
   input: NormalizedImageMediaAssetInput,
+  deadlineAtMs: number,
 ): Promise<MediaBlob | null> {
   const normalizedInput = normalizeMediaAssetSnapshotInput(toMediaAssetSnapshotInputFromNormalizedImage(input));
-  return transactionWithWorkspaceScopeReadOnly({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeDeadline({ userId, workspaceId }, deadlineAtMs, async (executor) => {
     const row = await findMediaBlobRowBySha256InExecutor(executor, normalizedInput.sha256);
     if (row === null) {
       return null;
@@ -188,6 +204,158 @@ export async function createImageNormalizedMediaAssetForWorkspace(
       applied: result.applied,
     };
   });
+}
+
+type DirectWriterApplyStatus =
+  | DirectMediaBlobWriterAttemptFenceStatus
+  | DirectMediaBlobWriterAttemptFinishStatus;
+
+async function loadReplayedImageNormalizedMediaAssetInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  input: NormalizedImageMediaAssetInput,
+  status: "already_applied" | "live_applied" | "referenced" | "peer_conflict",
+): Promise<MediaAssetMutationResult> {
+  const row = await findMediaAssetRowForUpdateInExecutor(
+    executor,
+    workspaceId,
+    input.mediaAssetId,
+  );
+  if (row === null) {
+    const conflictWorkspaceId = await findSyncConflictWorkspaceIdInExecutor(
+      executor,
+      { entityType: "media_asset", entityId: input.mediaAssetId },
+    );
+    if (status !== "peer_conflict" || conflictWorkspaceId === null) {
+      throw new MediaBlobWriterFenceError("direct_terminal_asset");
+    }
+    throw new HttpError(
+      409,
+      "mediaAssetId conflicts with an existing media asset.",
+      "MEDIA_ASSET_ID_CONFLICT",
+    );
+  }
+  if (
+    row.sha256 !== input.sha256
+    || row.mime_type !== imageJpegCardMediaBlobMimeType
+    || Number(row.size_bytes) !== input.sizeBytes
+  ) {
+    throw new HttpError(
+      409,
+      "mediaAssetId is already registered with different file metadata.",
+      "MEDIA_ASSET_ID_CONFLICT",
+    );
+  }
+  return { mediaAsset: mapMediaAssetRow(row), applied: false };
+}
+
+export async function applyImageNormalizedMediaAssetWithDirectWriterForWorkspace(
+  userId: string,
+  workspaceId: string,
+  input: NormalizedImageMediaAssetInput,
+  writer: DirectMediaBlobWriterAttemptExactInput,
+  operationDeadlineAt: string,
+): Promise<MediaAssetMutationResult> {
+  if (userId !== writer.userId || workspaceId !== writer.workspaceId) {
+    throw new MediaBlobWriterFenceError("direct_apply_scope");
+  }
+  return transactionWithDirectMediaBlobWriterApplyDeadline(
+    writer,
+    operationDeadlineAt,
+    async (executor, snapshot, exactOperationDeadlineAt) => {
+      const fence = await fenceDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+        executor,
+        snapshot,
+        mediaBlobCleanupDelayMs,
+        exactOperationDeadlineAt,
+      );
+      const terminalReplay = fence === "already_applied" || fence === "live_applied"
+        || fence === "referenced" || fence === "peer_conflict";
+      if (fence !== "ready" && !terminalReplay) {
+        throwDirectWriterAttemptStatus(fence);
+      }
+      if (terminalReplay) {
+        return loadReplayedImageNormalizedMediaAssetInExecutor(
+          executor,
+          workspaceId,
+          input,
+          fence,
+        );
+      }
+      const result = await upsertMediaAssetSnapshotWithBlobNormalizationInExecutor(
+        executor,
+        workspaceId,
+        toMediaAssetSnapshotInputFromNormalizedImage(input),
+        toMediaAssetMutationMetadataFromNormalizedImage(input),
+        snapshot.normalizationVersion,
+      );
+      const finish = await finishDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
+        executor,
+        snapshot,
+        mediaBlobCleanupDelayMs,
+        exactOperationDeadlineAt,
+      );
+      if (
+        finish === "already_applied"
+        || finish === "referenced"
+        || finish === "peer_conflict"
+      ) {
+        return loadReplayedImageNormalizedMediaAssetInExecutor(
+          executor,
+          workspaceId,
+          input,
+          finish,
+        );
+      }
+      if (finish !== "live_applied") throwDirectWriterAttemptStatus(finish);
+      return { mediaAsset: result.mediaAsset, applied: true };
+    },
+  );
+}
+
+function throwDirectWriterAttemptStatus(
+  status: DirectWriterApplyStatus,
+): never {
+  if (status === "cleanup_claimed") throw new MediaBlobLifecycleBusyError();
+  if (status === "access_denied") {
+    throw new HttpError(
+      403, "Workspace access changed during media ingestion.", "WORKSPACE_ACCESS_DENIED",
+    );
+  }
+  if (status === "replica_mismatch") {
+    throw new HttpError(
+      400,
+      "lastModifiedByReplicaId must reference a workspace replica accessible to the authenticated user.",
+      "MEDIA_ASSET_REPLICA_INVALID",
+    );
+  }
+  if (status === "ready") {
+    throw new MediaBlobWriterFenceError(`direct_attempt_${status}`);
+  }
+  throw new HttpError(
+    409,
+    `Media ingestion conflicts with its current writer state. status=${status}`,
+    "MEDIA_ASSET_ID_CONFLICT",
+  );
+}
+
+export async function replayImageNormalizedMediaAssetForWorkspace(
+  userId: string,
+  workspaceId: string,
+  input: NormalizedImageMediaAssetInput,
+  status: "already_applied" | "live_applied" | "referenced" | "peer_conflict",
+  requestDeadlineAtMs: number,
+): Promise<MediaAssetMutationResult> {
+  return transactionWithWorkspaceScopeDeadline(
+    { userId, workspaceId },
+    requestDeadlineAtMs,
+    (executor) => loadReplayedImageNormalizedMediaAssetInExecutor(
+      executor,
+      workspaceId,
+      input,
+      status,
+    ),
+  );
 }
 
 export async function loadMediaAssetForWorkspace(

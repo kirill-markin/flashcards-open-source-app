@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import pg from "pg";
 import {
   getDatabaseUrl,
@@ -15,12 +16,15 @@ import {
 } from "../observability/runtime";
 import {
   queryWithPostgresDeadline,
+  repeatableReadReadOnlyTransactionWithPostgresDeadline,
+  repeatableReadTransactionWithPostgresDeadline,
   resolvePostgresPoolUntilDeadline,
   transactionWithPostgresDeadline,
   validateDatabaseDeadline,
 } from "./deadline";
 
 let pool: pg.Pool | undefined;
+const databaseDeadlineStorage = new AsyncLocalStorage<number>();
 
 export type SqlValue = string | number | boolean | Date | null | ReadonlyArray<string> | ReadonlyArray<number>;
 
@@ -87,6 +91,22 @@ async function getPoolUntilDeadline(deadlineAtMs: number): Promise<pg.Pool> {
     deadlineAtMs,
     async (abortSignal) => initializePoolUntilDeadline(deadlineAtMs, abortSignal),
   );
+}
+
+function resolveEffectiveDatabaseDeadline(deadlineAtMs: number): number {
+  const inheritedDeadlineAtMs = databaseDeadlineStorage.getStore();
+  return inheritedDeadlineAtMs === undefined
+    ? deadlineAtMs
+    : Math.min(deadlineAtMs, inheritedDeadlineAtMs);
+}
+
+export function runDatabaseOperationsWithDeadline<Result>(
+  deadlineAtMs: number,
+  callback: () => Promise<Result>,
+): Promise<Result> {
+  const effectiveDeadlineAtMs = resolveEffectiveDatabaseDeadline(deadlineAtMs);
+  validateDatabaseDeadline(effectiveDeadlineAtMs);
+  return databaseDeadlineStorage.run(effectiveDeadlineAtMs, callback);
 }
 
 async function executeQuery<Row extends pg.QueryResultRow>(
@@ -191,6 +211,10 @@ export async function unsafeQuery<Row extends pg.QueryResultRow>(
   text: string,
   params: ReadonlyArray<SqlValue>,
 ): Promise<pg.QueryResult<Row>> {
+  const deadlineAtMs = databaseDeadlineStorage.getStore();
+  if (deadlineAtMs !== undefined) {
+    return unsafeQueryWithDeadline(deadlineAtMs, text, params);
+  }
   return executeQuery<Row>(await getPool(), text, params);
 }
 
@@ -199,10 +223,11 @@ export async function unsafeQueryWithDeadline<Row extends pg.QueryResultRow>(
   text: string,
   params: ReadonlyArray<SqlValue>,
 ): Promise<pg.QueryResult<Row>> {
-  validateDatabaseDeadline(deadlineAtMs);
+  const effectiveDeadlineAtMs = resolveEffectiveDatabaseDeadline(deadlineAtMs);
+  validateDatabaseDeadline(effectiveDeadlineAtMs);
   return queryWithPostgresDeadline<Row>(
-    await getPoolUntilDeadline(deadlineAtMs),
-    deadlineAtMs,
+    await getPoolUntilDeadline(effectiveDeadlineAtMs),
+    effectiveDeadlineAtMs,
     text,
     params,
   );
@@ -215,6 +240,10 @@ export async function unsafeQueryWithDeadline<Row extends pg.QueryResultRow>(
 export async function unsafeTransaction<Result>(
   callback: (executor: DatabaseExecutor) => Promise<Result>,
 ): Promise<Result> {
+  const deadlineAtMs = databaseDeadlineStorage.getStore();
+  if (deadlineAtMs !== undefined) {
+    return unsafeTransactionWithDeadline(deadlineAtMs, callback);
+  }
   return unsafeTransactionWithBeginStatement("BEGIN", callback);
 }
 
@@ -222,10 +251,11 @@ export async function unsafeTransactionWithDeadline<Result>(
   deadlineAtMs: number,
   callback: (executor: DatabaseExecutor) => Promise<Result>,
 ): Promise<Result> {
-  validateDatabaseDeadline(deadlineAtMs);
+  const effectiveDeadlineAtMs = resolveEffectiveDatabaseDeadline(deadlineAtMs);
+  validateDatabaseDeadline(effectiveDeadlineAtMs);
   return transactionWithPostgresDeadline(
-    await getPoolUntilDeadline(deadlineAtMs),
-    deadlineAtMs,
+    await getPoolUntilDeadline(effectiveDeadlineAtMs),
+    effectiveDeadlineAtMs,
     callback,
   );
 }
@@ -233,6 +263,14 @@ export async function unsafeTransactionWithDeadline<Result>(
 export async function unsafeRepeatableReadTransaction<Result>(
   callback: (executor: DatabaseExecutor) => Promise<Result>,
 ): Promise<Result> {
+  const deadlineAtMs = databaseDeadlineStorage.getStore();
+  if (deadlineAtMs !== undefined) {
+    return repeatableReadTransactionWithPostgresDeadline(
+      await getPoolUntilDeadline(deadlineAtMs),
+      deadlineAtMs,
+      callback,
+    );
+  }
   return unsafeTransactionWithBeginStatement(
     "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ",
     callback,
@@ -242,6 +280,14 @@ export async function unsafeRepeatableReadTransaction<Result>(
 export async function unsafeRepeatableReadReadOnlyTransaction<Result>(
   callback: (executor: DatabaseExecutor) => Promise<Result>,
 ): Promise<Result> {
+  const deadlineAtMs = databaseDeadlineStorage.getStore();
+  if (deadlineAtMs !== undefined) {
+    return repeatableReadReadOnlyTransactionWithPostgresDeadline(
+      await getPoolUntilDeadline(deadlineAtMs),
+      deadlineAtMs,
+      callback,
+    );
+  }
   return unsafeTransactionWithBeginStatement(
     "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",
     callback,

@@ -405,6 +405,67 @@ export async function readMediaAssetImageIngestionBytes(request: Request): Promi
   return bytes;
 }
 
+export async function readMediaAssetImageIngestionBytesWithAbortSignal(
+  request: Request,
+  abortSignal: AbortSignal,
+): Promise<Buffer> {
+  abortSignal.throwIfAborted();
+  assertImageIngestionContentType(request.headers);
+  const contentLength = parseContentLength(request.headers);
+  if (contentLength !== null) {
+    assertImageIngestionByteLengthInRange(contentLength);
+  }
+
+  const body = request.body;
+  if (body === null) {
+    assertImageIngestionByteLengthInRange(0);
+    return Buffer.alloc(0);
+  }
+  const reader = body.getReader();
+  const chunks: Array<Buffer> = [];
+  let byteLength = 0;
+  let rejectForAbort: ((reason: unknown) => void) | null = null;
+  const aborted = new Promise<never>((_resolve, reject) => {
+    rejectForAbort = reject;
+  });
+  const onAbort = (): void => {
+    rejectForAbort?.(
+      abortSignal.reason ?? new DOMException("The operation was aborted.", "AbortError"),
+    );
+  };
+  abortSignal.addEventListener("abort", onAbort, { once: true });
+
+  try {
+    for (;;) {
+      abortSignal.throwIfAborted();
+      const result = await Promise.race([reader.read(), aborted]);
+      if (result.done) break;
+      const chunk = Buffer.from(result.value);
+      byteLength += chunk.byteLength;
+      assertImageIngestionByteLengthInRange(byteLength);
+      chunks.push(chunk);
+    }
+  } catch (error) {
+    try {
+      await reader.cancel(error);
+    } catch (cancelError) {
+      throw new AggregateError(
+        [error, cancelError],
+        "Image request body failed and its stream could not be cancelled.",
+      );
+    }
+    throw error;
+  } finally {
+    abortSignal.removeEventListener("abort", onAbort);
+    reader.releaseLock();
+  }
+
+  abortSignal.throwIfAborted();
+  const bytes = Buffer.concat(chunks, byteLength);
+  assertImageIngestionByteLengthInRange(bytes.byteLength);
+  return bytes;
+}
+
 export function parseMediaAssetImageIngestionMetadataHeaders(
   headers: Headers,
 ): MediaAssetImageIngestionMetadataInput {

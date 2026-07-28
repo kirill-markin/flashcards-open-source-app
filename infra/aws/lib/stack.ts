@@ -318,6 +318,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       authRestApi: authApi.restApi,
       mcpHttpApi: mcpApi.httpApi,
       backendFn: api.backendFn,
+      directImageIngestionFn: api.directImageIngestionFn,
       authFn: authApi.authFn,
       mcpFn: mcpApi.mcpFn,
       authApiAccessLogGroup: authApi.accessLogGroup,

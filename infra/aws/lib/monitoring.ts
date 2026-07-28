@@ -31,6 +31,7 @@ export interface MonitoringProps {
   authRestApi: apigw.RestApi;
   mcpHttpApi: apigwv2.HttpApi;
   backendFn: lambda.IFunction;
+  directImageIngestionFn: lambda.Function;
   authFn: lambda.IFunction;
   mcpFn: lambda.IFunction;
   authApiAccessLogGroup: logs.ILogGroup;
@@ -51,10 +52,29 @@ export interface MonitoringResult {
 const authApiAccessLog5xxMetricNamespace: string = "FlashcardsOpenSourceApp/Auth";
 const authApiAccessLog5xxMetricName: string = "AuthApiAccessLog5xx";
 const authApiAccessLog5xxStatuses: ReadonlyArray<string> = ["500", "501", "502", "503", "504"];
+const directImageIngestionHandled5xxMetricNamespace: string =
+  "FlashcardsOpenSourceApp/DirectImageIngestion";
+const directImageIngestionHandled5xxMetricName: string =
+  "DirectImageIngestionHandledHttp5xx";
+const directImageIngestionHandled5xxAction: string =
+  "direct_image_ingestion_handled_http_5xx";
 
 function createAuthApiAccessLog5xxFilterPattern(): logs.IFilterPattern {
   return logs.FilterPattern.any(
     ...authApiAccessLog5xxStatuses.map((status: string) => logs.FilterPattern.stringValue("$.status", "=", status)),
+  );
+}
+
+export function createDirectImageIngestionHandled5xxFilterPattern():
+logs.IFilterPattern {
+  return logs.FilterPattern.all(
+    logs.FilterPattern.stringValue(
+      "$.message.action",
+      "=",
+      directImageIngestionHandled5xxAction,
+    ),
+    logs.FilterPattern.numberValue("$.message.statusCode", ">=", 500),
+    logs.FilterPattern.numberValue("$.message.statusCode", "<", 600),
   );
 }
 
@@ -154,6 +174,42 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     threshold: 1,
     evaluationPeriods: 1,
     alarmDescription: "Backend Lambda had errors",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  new cloudwatch.Alarm(scope, "DirectImageIngestionLambdaErrorAlarm", {
+    metric: props.directImageIngestionFn.metricErrors({
+      period: cdk.Duration.minutes(15),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Direct image ingestion Lambda had errors",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  const directImageIngestionHandled5xxMetricFilter = new logs.MetricFilter(
+    scope,
+    "DirectImageIngestionHandled5xxMetricFilter",
+    {
+      logGroup: props.directImageIngestionFn.logGroup,
+      filterPattern: createDirectImageIngestionHandled5xxFilterPattern(),
+      metricNamespace: directImageIngestionHandled5xxMetricNamespace,
+      metricName: directImageIngestionHandled5xxMetricName,
+      metricValue: "1",
+      defaultValue: 0,
+    },
+  );
+
+  new cloudwatch.Alarm(scope, "DirectImageIngestionHandled5xxAlarm", {
+    metric: directImageIngestionHandled5xxMetricFilter.metric({
+      period: cdk.Duration.minutes(5),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription:
+      "Direct image ingestion returned a handled HTTP 5xx response",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
 

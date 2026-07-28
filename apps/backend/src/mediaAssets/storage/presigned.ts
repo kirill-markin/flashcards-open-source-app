@@ -21,6 +21,7 @@ import type {
   PresignMediaAssetUploadInput,
   PresignMultipartMediaAssetUploadPartsInput,
 } from "./contracts";
+import { buildMediaUploadStagingStorageKey } from "../storageKeys";
 import {
   createMediaAssetStorageError,
   runMediaAssetStorageOperationWithRetries,
@@ -35,6 +36,15 @@ export async function createPresignedMediaAssetUploadWithDependencies(
   input: PresignMediaAssetUploadInput,
   dependencies: MediaAssetStorageDependencies,
 ): Promise<PresignedMediaAssetUpload> {
+  if (
+    input.storageKey !== buildMediaUploadStagingStorageKey(
+      input.workspaceId,
+      input.mediaAssetId,
+      input.lastOperationId,
+    )
+  ) {
+    throw new TypeError("Presigned media uploads must target their exact staging key.");
+  }
   const config = dependencies.getMediaAssetsStorageConfigFn();
   const context: MediaAssetStorageContext = {
     workspaceId: input.workspaceId,

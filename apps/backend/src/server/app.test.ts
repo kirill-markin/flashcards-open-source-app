@@ -12,6 +12,7 @@ import {
 import { resetAuthConfigForTests } from "../auth/config";
 import { HttpError } from "../shared/errors";
 import { resetGuestAiQuotaConfigForTests } from "../guestAiQuota/config";
+import { MediaBlobLifecycleBusyError } from "../mediaAssets/blobLifecycle";
 
 const originalAuthMode = process.env.AUTH_MODE;
 const originalAllowInsecureLocalAuth = process.env.ALLOW_INSECURE_LOCAL_AUTH;
@@ -80,11 +81,53 @@ test("getHttpErrorResponseHeaders adds Retry-After for temporary auth verificati
   );
 });
 
+test("getHttpErrorResponseHeaders carries bounded writer and deadline retry guidance", () => {
+  for (const [statusCode, code, retryAfterSeconds] of [
+    [409, "MEDIA_ASSET_WRITER_BUSY", 7],
+    [503, "MEDIA_ASSET_INGESTION_DEADLINE_EXCEEDED", 1],
+  ] as const) {
+    assert.deepEqual(
+      getHttpErrorResponseHeaders(
+        new HttpError(
+          statusCode,
+          "Retry this request.",
+          code,
+          { retryAfterSeconds },
+        ),
+      ),
+      [["Retry-After", retryAfterSeconds.toString()]],
+    );
+  }
+});
+
+test("getHttpErrorResponseHeaders carries centralized lifecycle busy retry guidance", () => {
+  const error = new MediaBlobLifecycleBusyError();
+
+  assert.equal(error.details?.retryAfterSeconds, 1);
+  assert.deepEqual(
+    getHttpErrorResponseHeaders(error),
+    [["Retry-After", "1"]],
+  );
+});
+
 test("createAgentInstructions tells API-key agents to honor Retry-After on service unavailable", () => {
   assert.equal(
     createAgentInstructions("SERVICE_UNAVAILABLE", 503),
     "Retry the same request after the Retry-After delay. If it fails again, treat it as a server-side error and stop changing the request. Use requestId when debugging.",
   );
+});
+
+test("createAgentInstructions retries transient direct ingestion requests unchanged", () => {
+  for (const [code, statusCode] of [
+    ["MEDIA_BLOB_LIFECYCLE_BUSY", 503],
+    ["MEDIA_ASSET_WRITER_BUSY", 409],
+    ["MEDIA_ASSET_INGESTION_DEADLINE_EXCEEDED", 503],
+  ] as const) {
+    assert.equal(
+      createAgentInstructions(code, statusCode),
+      "Retry the unchanged request after the Retry-After delay. If it fails again, stop and use requestId when debugging.",
+    );
+  }
 });
 
 test("createAgentInstructions tells agents to retry temporary auth verification failures", () => {

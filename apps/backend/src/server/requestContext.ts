@@ -1,5 +1,10 @@
-import { authenticateRequest, type AuthTransport } from "../auth";
-import type { GuestSessionPlatform } from "../guestAuth";
+import {
+  authenticateRequest,
+  authenticateRequestWithAbortSignal,
+  type AuthResult,
+  type AuthTransport,
+} from "../auth";
+import type { GuestSessionPlatform } from "../guestAuth/types";
 import { isDeletedSubject } from "../auth/deletedSubjects";
 import { HttpError } from "../shared/errors";
 import {
@@ -7,13 +12,15 @@ import {
   ensureUserProfile,
   type AccountPreferences,
 } from "../auth/ensureUser";
-import { assertUserHasWorkspaceAccess } from "../workspaces";
+import { assertUserHasWorkspaceAccess } from "../workspaces/selection";
 import {
   enforceSessionCsrfProtection,
+  enforceSessionCsrfProtectionWithAbortSignal,
   extractRequestAuthInputs,
   toAuthRequest,
   type RequestAuthInputs,
 } from "../auth/requestSecurity";
+import { getAllowedBrowserOrigins } from "./browserCors";
 
 export type RequestContext = Readonly<{
   userId: string;
@@ -51,6 +58,14 @@ type LoadRequestContextDependencies = Readonly<{
   ensureUserProfileFn: typeof ensureUserProfile;
 }>;
 
+type LoadRequestContextWithAbortSignalDependencies = Readonly<{
+  authenticateRequestWithAbortSignalFn:
+    typeof authenticateRequestWithAbortSignal;
+  isDeletedSubjectFn: typeof isDeletedSubject;
+  ensureCognitoUserProfileFn: typeof ensureCognitoUserProfile;
+  ensureUserProfileFn: typeof ensureUserProfile;
+}>;
+
 const chatWorkspaceSelectionRequiredError: WorkspaceSelectionErrorConfig = {
   statusCode: 409,
   message: "Select a workspace before using this endpoint",
@@ -70,11 +85,7 @@ const mcpWorkspaceSelectionRequiredError: WorkspaceSelectionErrorConfig = {
 };
 
 export function getAllowedOrigins(): Array<string> {
-  const raw = process.env.BACKEND_ALLOWED_ORIGINS ?? "http://localhost:3000,http://localhost:3001";
-  return raw
-    .split(",")
-    .map((value) => value.trim())
-    .filter((value) => value !== "");
+  return getAllowedBrowserOrigins();
 }
 
 export async function loadRequestContextWithDependencies(
@@ -82,13 +93,35 @@ export async function loadRequestContextWithDependencies(
   dependencies: LoadRequestContextDependencies,
 ): Promise<RequestContext> {
   const auth = await dependencies.authenticateRequestFn(toAuthRequest(requestAuthInputs));
+  return loadAuthenticatedRequestContext(
+    auth,
+    dependencies,
+    () => {},
+  );
+}
+
+async function loadAuthenticatedRequestContext(
+  auth: AuthResult,
+  dependencies: Readonly<{
+    isDeletedSubjectFn: typeof isDeletedSubject;
+    ensureCognitoUserProfileFn: typeof ensureCognitoUserProfile;
+    ensureUserProfileFn: typeof ensureUserProfile;
+  }>,
+  assertRequestActive: () => void,
+): Promise<RequestContext> {
+  assertRequestActive();
   const subjectUserId = auth.subjectUserId;
-  if (auth.transport !== "none" && await dependencies.isDeletedSubjectFn(subjectUserId)) {
-    throw new HttpError(410, "This account has already been deleted.", "ACCOUNT_DELETED");
+  if (auth.transport !== "none") {
+    const deleted = await dependencies.isDeletedSubjectFn(subjectUserId);
+    assertRequestActive();
+    if (deleted) {
+      throw new HttpError(410, "This account has already been deleted.", "ACCOUNT_DELETED");
+    }
   }
   const userProfile = auth.transport === "bearer" || auth.transport === "session"
     ? await dependencies.ensureCognitoUserProfileFn(auth.subjectUserId, auth.email)
     : await dependencies.ensureUserProfileFn(auth.userId, auth.email);
+  assertRequestActive();
   const selectedWorkspaceId = auth.transport === "api_key"
     ? auth.selectedWorkspaceId
     : userProfile.selectedWorkspaceId;
@@ -108,6 +141,24 @@ export async function loadRequestContextWithDependencies(
   };
 }
 
+export async function loadRequestContextWithAbortSignalAndDependencies(
+  requestAuthInputs: RequestAuthInputs,
+  abortSignal: AbortSignal,
+  dependencies: LoadRequestContextWithAbortSignalDependencies,
+): Promise<RequestContext> {
+  abortSignal.throwIfAborted();
+  const auth = await dependencies.authenticateRequestWithAbortSignalFn(
+    toAuthRequest(requestAuthInputs),
+    abortSignal,
+  );
+  abortSignal.throwIfAborted();
+  return loadAuthenticatedRequestContext(
+    auth,
+    dependencies,
+    () => abortSignal.throwIfAborted(),
+  );
+}
+
 export async function loadRequestContext(
   requestAuthInputs: RequestAuthInputs,
 ): Promise<RequestContext> {
@@ -117,6 +168,23 @@ export async function loadRequestContext(
     ensureCognitoUserProfileFn: ensureCognitoUserProfile,
     ensureUserProfileFn: ensureUserProfile,
   });
+}
+
+export async function loadRequestContextWithAbortSignal(
+  requestAuthInputs: RequestAuthInputs,
+  abortSignal: AbortSignal,
+): Promise<RequestContext> {
+  return loadRequestContextWithAbortSignalAndDependencies(
+    requestAuthInputs,
+    abortSignal,
+    {
+      authenticateRequestWithAbortSignalFn:
+        authenticateRequestWithAbortSignal,
+      isDeletedSubjectFn: isDeletedSubject,
+      ensureCognitoUserProfileFn: ensureCognitoUserProfile,
+      ensureUserProfileFn: ensureUserProfile,
+    },
+  );
 }
 
 export async function loadRequestContextFromRequest(
@@ -133,6 +201,38 @@ export async function loadRequestContextFromRequest(
     await enforceSessionCsrfProtection(request.method, requestAuthInputs, allowedOrigins);
   }
 
+  return {
+    requestAuthInputs,
+    requestContext,
+  };
+}
+
+export async function loadRequestContextFromRequestWithAbortSignal(
+  request: Request,
+  allowedOrigins: ReadonlyArray<string>,
+  abortSignal: AbortSignal,
+): Promise<Readonly<{
+  requestAuthInputs: RequestAuthInputs;
+  requestContext: RequestContext;
+}>> {
+  abortSignal.throwIfAborted();
+  const requestAuthInputs = extractRequestAuthInputs(request);
+  const requestContext = await loadRequestContextWithAbortSignal(
+    requestAuthInputs,
+    abortSignal,
+  );
+  abortSignal.throwIfAborted();
+
+  if (requestContext.transport === "session") {
+    await enforceSessionCsrfProtectionWithAbortSignal(
+      request.method,
+      requestAuthInputs,
+      allowedOrigins,
+      abortSignal,
+    );
+  }
+
+  abortSignal.throwIfAborted();
   return {
     requestAuthInputs,
     requestContext,

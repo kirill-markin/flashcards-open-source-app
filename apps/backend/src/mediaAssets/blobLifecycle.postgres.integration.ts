@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { setTimeout as wait } from "node:timers/promises";
 import test from "node:test";
 import {
   DatabaseDeadlineExceededError, transactionWithWorkspaceScope, transactionWithWorkspaceScopeDeadline, type DatabaseExecutor,
@@ -16,7 +17,8 @@ import {
   finishDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor,
   finalizeMediaBlobWriterInExecutor, markMediaBlobWriterAmbiguousInExecutor,
   mediaBlobCleanupDelayMs,
-  MediaBlobLifecycleBusyError, MediaBlobLifecycleConflictError, MediaBlobWriterFenceError,
+  MediaBlobLifecycleBusyError, MediaBlobLifecycleConflictError,
+  MediaBlobWriterFenceError, MediaBlobWriterLeaseDeadlineError,
   reconcileMediaBlobWriterInExecutor, reserveMediaBlobWriterInExecutor,
   resolveDirectMediaBlobWriterAttemptAfterAccessRevocation,
   resolveDirectMediaBlobWriterAttemptFailureWithOwner,
@@ -70,7 +72,11 @@ function createDirectAttemptDeadline(): string {
   return new Date(Date.now() + 30_000).toISOString();
 }
 function createDirectAttemptLease(): DirectMediaBlobWriterAttemptLease {
-  return { leaseDurationMs: 60_000, operationDeadlineAt: createDirectAttemptDeadline() };
+  const nowMs = Date.now();
+  return {
+    leaseTargetAt: new Date(nowMs + 60_000).toISOString(),
+    operationDeadlineAt: new Date(nowMs + 30_000).toISOString(),
+  };
 }
 async function insertDirectAttemptAsset(
   executor: DatabaseExecutor, input: DirectMediaBlobWriterAttemptInput,
@@ -246,6 +252,94 @@ async function assertLifecycleMigrationUpgrade(fixture: PostgresIntegrationFixtu
     client.release();
   }
 }
+
+async function waitForDirectAttemptAdvisoryLock(
+  fixture: PostgresIntegrationFixture,
+): Promise<void> {
+  const deadlineAtMs = Date.now() + 2_000;
+  for (;;) {
+    const waiting = (await fixture.ownerPool.query<{ waiting: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1
+         FROM pg_stat_activity
+         WHERE usename = 'backend_app'
+           AND wait_event_type = 'Lock'
+           AND query LIKE '%begin_direct_media_blob_writer_attempt_with_owner%'
+       ) AS waiting`,
+    )).rows[0]?.waiting;
+    if (waiting === true) return;
+    if (Date.now() >= deadlineAtMs) {
+      throw new Error("Direct writer attempt did not reach its advisory lock.");
+    }
+    await wait(10);
+  }
+}
+
+test("direct writer acquisition rolls back a lease extended by lock latency", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const sha256 = createUniqueSha256();
+    const attemptInput = directAttemptInput(fixture, sha256);
+    const holder = await fixture.ownerPool.connect();
+    let holderCommitted = false;
+    try {
+      await holder.query("BEGIN");
+      await holder.query(
+        "SELECT pg_advisory_xact_lock(hashtextextended($1||':'||$2::text,0))",
+        [fixture.userId, fixture.workspaceId],
+      );
+      const nowMs = Date.now();
+      const outcome = beginDirectMediaBlobWriterAttemptWithOwner(
+        attemptInput,
+        {
+          operationDeadlineAt: new Date(nowMs + 4_000).toISOString(),
+          leaseTargetAt: new Date(nowMs + 5_000).toISOString(),
+        },
+      ).then(
+        (value) => ({ value, error: null }),
+        (error: unknown) => ({ value: null, error }),
+      );
+      await waitForDirectAttemptAdvisoryLock(fixture);
+      await wait(250);
+      await holder.query("COMMIT");
+      holderCommitted = true;
+
+      const settled = await outcome;
+      assert.equal(settled.value, null);
+      assert.ok(settled.error instanceof MediaBlobWriterLeaseDeadlineError);
+      const residue = (await fixture.ownerPool.query<{
+        attempt_exists: boolean;
+        reservation_exists: boolean;
+        lifecycle_exists: boolean;
+      }>(
+        `SELECT
+           EXISTS (
+             SELECT 1 FROM content.media_blob_writer_attempts
+             WHERE attempt_token = $1
+           ) AS attempt_exists,
+           EXISTS (
+             SELECT 1 FROM content.media_blob_writer_reservations
+             WHERE sha256 = $2
+           ) AS reservation_exists,
+           EXISTS (
+             SELECT 1 FROM content.media_blob_lifecycles
+             WHERE sha256 = $2
+           ) AS lifecycle_exists`,
+        [attemptInput.attemptToken, sha256],
+      )).rows[0];
+      assert.deepEqual(residue, {
+        attempt_exists: false,
+        reservation_exists: false,
+        lifecycle_exists: false,
+      });
+    } finally {
+      if (!holderCommitted) {
+        await holder.query("ROLLBACK");
+      }
+      holder.release();
+    }
+  });
+});
+
 test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and global grants", async (testContext) => {
   await withPostgresIntegrationFixture(async (fixture) => {
     const referencedSha = createUniqueSha256();
@@ -374,9 +468,12 @@ test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and g
         );
         const deadlineFailure = (error: unknown): boolean =>
           error instanceof DatabaseDeadlineExceededError || hasSqlState(error, "55P03") || hasSqlState(error, "57014");
+        const deadlineNowMs = Date.now();
         await assert.rejects(beginDirectMediaBlobWriterAttemptWithOwner(
-          directAttemptInput(fixture, deadlineAttemptSha), { leaseDurationMs: 2_000,
-            operationDeadlineAt: new Date(Date.now() + 500).toISOString() }), deadlineFailure);
+          directAttemptInput(fixture, deadlineAttemptSha), {
+            leaseTargetAt: new Date(deadlineNowMs + 2_000).toISOString(),
+            operationDeadlineAt: new Date(deadlineNowMs + 500).toISOString(),
+          }), deadlineFailure);
         await assert.rejects(resolveDirectMediaBlobWriterAttemptFailureWithOwner(
           exactAttempt, mediaBlobCleanupDelayMs,
           new Date(Date.now() + 500).toISOString()), deadlineFailure);
