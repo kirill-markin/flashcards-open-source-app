@@ -85,6 +85,13 @@ const createdRolesByMigration = new Map([
 ]);
 const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0100_multipart_replacement_creation_claim.sql",
+    expectedMigrationCount: 102,
+    testFiles: Object.freeze([
+      "src/mediaAssets/multipartReplacementCreationClaim.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0099_durable_multipart_completion_reconciliation.sql",
     expectedMigrationCount: 101,
     testFiles: Object.freeze([
