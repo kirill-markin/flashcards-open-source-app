@@ -10,6 +10,7 @@ import {
 } from "./config";
 import type {
   AbortMultipartMediaAssetUploadInput,
+  AbortMultipartMediaAssetUploadUntilDeadlineInput,
   AssertMediaAssetObjectInput,
   CompleteMultipartMediaAssetUploadInput,
   CreateMultipartMediaAssetUploadInput,
@@ -19,7 +20,9 @@ import type {
 import {
   createMediaAssetStorageError,
   isNoSuchMultipartUploadError,
+  rethrowMediaAssetStorageAbortReason,
   runMediaAssetStorageOperationWithRetries,
+  runMediaAssetStorageOperationWithRetriesAndAbortSignal,
 } from "./errors";
 import {
   hashMediaAssetObjectContentWithDependencies,
@@ -47,16 +50,20 @@ export async function createMultipartMediaAssetUploadWithDependencies(
   const uploadProofMetadata = createUploadProofMetadata(input);
 
   try {
-    const response = await runMediaAssetStorageOperationWithRetries(
+    const response = await runMediaAssetStorageOperationWithRetriesAndAbortSignal(
       context,
       "create_multipart_upload",
-      async () => dependencies.s3Client.send(new CreateMultipartUploadCommand({
-        Bucket: config.bucketName,
-        Key: input.stagingStorageKey,
-        ContentType: input.mimeType,
-        ChecksumAlgorithm: "SHA256",
-        Metadata: uploadProofMetadata,
-      })),
+      input.signal,
+      async () => dependencies.s3Client.send(
+        new CreateMultipartUploadCommand({
+          Bucket: config.bucketName,
+          Key: input.stagingStorageKey,
+          ContentType: input.mimeType,
+          ChecksumAlgorithm: "SHA256",
+          Metadata: uploadProofMetadata,
+        }),
+        { abortSignal: input.signal },
+      ),
     );
     if (response.UploadId === undefined || response.UploadId.trim() === "") {
       throw new Error(
@@ -70,6 +77,7 @@ export async function createMultipartMediaAssetUploadWithDependencies(
       expiresAt: createExpiresAt(multipartUploadExpiresSeconds),
     };
   } catch (error) {
+    rethrowMediaAssetStorageAbortReason(input.signal);
     throw createMediaAssetStorageError(context, "create_multipart_upload", error);
   }
 }
@@ -166,6 +174,42 @@ export async function abortMultipartMediaAssetUploadWithDependencies(
       })),
     );
   } catch (error) {
+    if (isNoSuchMultipartUploadError(error)) {
+      return;
+    }
+
+    throw createMediaAssetStorageError(context, "abort_multipart_upload", error);
+  }
+}
+
+export async function abortMultipartMediaAssetUploadUntilDeadlineWithDependencies(
+  input: AbortMultipartMediaAssetUploadUntilDeadlineInput,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<void> {
+  const config = dependencies.getMediaAssetsStorageConfigFn();
+  const context: MediaAssetStorageContext = {
+    workspaceId: input.workspaceId,
+    mediaAssetId: input.mediaAssetId,
+    storageKey: input.stagingStorageKey,
+    observationScope: input.observationScope,
+  };
+
+  try {
+    await runMediaAssetStorageOperationWithRetriesAndAbortSignal(
+      context,
+      "abort_multipart_upload",
+      input.signal,
+      async () => dependencies.s3Client.send(
+        new AbortMultipartUploadCommand({
+          Bucket: config.bucketName,
+          Key: input.stagingStorageKey,
+          UploadId: input.s3UploadId,
+        }),
+        { abortSignal: input.signal },
+      ),
+    );
+  } catch (error) {
+    rethrowMediaAssetStorageAbortReason(input.signal);
     if (isNoSuchMultipartUploadError(error)) {
       return;
     }

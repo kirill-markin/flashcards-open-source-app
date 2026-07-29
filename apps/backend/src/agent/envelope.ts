@@ -81,6 +81,9 @@ export function createAgentErrorInstructions(
     case "MEDIA_ASSET_WRITER_BUSY":
     case "MEDIA_ASSET_INGESTION_DEADLINE_EXCEEDED":
       return "Retry the unchanged request after the Retry-After delay. If it fails again, stop and use requestId when debugging.";
+    case "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS":
+    case "MEDIA_ASSET_UPLOAD_SESSION_CREATION_IN_PROGRESS":
+      return "Wait for the Retry-After delay, then retry the unchanged session creation request. Do not start a parallel byte upload.";
     case "AUTH_UNAUTHORIZED":
     case "AGENT_API_KEY_INVALID":
       return "Use a valid non-revoked API key in the Authorization header as: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY after exporting it once. If needed, restart from GET /v1/agent.";

@@ -89,6 +89,7 @@ const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 102,
     testFiles: Object.freeze([
       "src/mediaAssets/multipartReplacementCreationClaim.postgres.integration.ts",
+      "src/mediaAssets/multipartUploadSessionCreation.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

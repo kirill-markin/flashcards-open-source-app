@@ -384,6 +384,50 @@ test("published OpenAPI shares the backend last operation identifier contract", 
   }
 });
 
+test("multipart session create documents retryable replacement gating and exact 201 replay", () => {
+  const openApiDocument = loadPublishedOpenApiDocument();
+  const operation = openApiDocument.paths?.[
+    "/workspaces/{workspaceId}/media-assets/upload-sessions"
+  ]?.post as OpenApiOperationForTest | undefined;
+  assert.ok(operation !== undefined);
+  const serializedOperation = JSON.stringify(operation);
+  assert.match(
+    serializedOperation,
+    /MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS/u,
+  );
+  assert.match(
+    serializedOperation,
+    /MEDIA_ASSET_UPLOAD_SESSION_CREATION_IN_PROGRESS/u,
+  );
+  assert.match(serializedOperation, /Retry-After/u);
+  assert.match(operation.description ?? "", /same active session/u);
+
+  const discovery = createAgentDiscoveryEnvelope(testAgentRequestUrl);
+  assert.match(
+    discovery.instructions,
+    /MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS/u,
+  );
+  assert.match(
+    discovery.instructions,
+    /MEDIA_ASSET_UPLOAD_SESSION_CREATION_IN_PROGRESS/u,
+  );
+  assert.match(
+    discovery.instructions,
+    /retry the same create request unchanged/u,
+  );
+  for (const path of ["/", "/agent"] as const) {
+    const serializedPath = JSON.stringify(openApiDocument.paths?.[path] ?? {});
+    assert.match(
+      serializedPath,
+      /MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS/u,
+    );
+    assert.match(
+      serializedPath,
+      /MEDIA_ASSET_UPLOAD_SESSION_CREATION_IN_PROGRESS/u,
+    );
+  }
+});
+
 test("agent discovery advertises the published media, package, and catalog surface", () => {
   const apiBaseUrl = "https://api.flashcards-open-source-app.com/v1";
   const discoveryEnvelope = createAgentDiscoveryEnvelope(`${apiBaseUrl}/agent`);

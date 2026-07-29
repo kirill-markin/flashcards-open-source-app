@@ -32,9 +32,14 @@ import {
 
 test("createMultipartMediaAssetUploadWithDependencies starts uploads at a session-scoped staging key", async () => {
   const sentCommands: Array<string> = [];
+  const signal = new AbortController().signal;
   const client = createTestS3Client();
-  client.send = (async (command: unknown) => {
+  client.send = (async (
+    command: unknown,
+    options?: Readonly<{ abortSignal?: AbortSignal }>,
+  ) => {
     if (command instanceof CreateMultipartUploadCommand) {
+      assert.equal(options?.abortSignal, signal);
       assert.equal(command.input.ChecksumType, undefined);
       sentCommands.push([
         String(command.input.Key),
@@ -50,6 +55,7 @@ test("createMultipartMediaAssetUploadWithDependencies starts uploads at a sessio
 
   const upload = await createMultipartMediaAssetUploadWithDependencies(
     {
+      signal,
       workspaceId: testWorkspaceId,
       mediaAssetId: testMediaAssetId,
       stagingStorageKey: testStagingStorageKey,
@@ -70,6 +76,46 @@ test("createMultipartMediaAssetUploadWithDependencies starts uploads at a sessio
   assert.deepEqual(sentCommands, [
     `${testStagingStorageKey}:image/png:SHA256:${testSha256}`,
   ]);
+});
+
+test("multipart creation preserves its claim-deadline abort reason", async () => {
+  const controller = new AbortController();
+  const deadlineError = new HttpError(
+    503,
+    "Multipart creation claim deadline reached.",
+    "MEDIA_ASSET_UPLOAD_SESSION_CREATION_IN_PROGRESS",
+    { retryAfterSeconds: 1 },
+  );
+  const client = createTestS3Client();
+  client.send = (async (
+    command: unknown,
+    options?: Readonly<{ abortSignal?: AbortSignal }>,
+  ) => {
+    assert.ok(command instanceof CreateMultipartUploadCommand);
+    assert.equal(options?.abortSignal, controller.signal);
+    controller.abort(deadlineError);
+    throw createS3Error(500, "InternalError", "Retryable failure");
+  }) as S3Client["send"];
+
+  await assert.rejects(
+    createMultipartMediaAssetUploadWithDependencies(
+      {
+        signal: controller.signal,
+        workspaceId: testWorkspaceId,
+        mediaAssetId: testMediaAssetId,
+        stagingStorageKey: testStagingStorageKey,
+        mimeType: "image/png",
+        sha256: testSha256,
+        lastOperationId: testLastOperationId,
+        observationScope: testObservationScope,
+      },
+      {
+        s3Client: client,
+        getMediaAssetsStorageConfigFn: getTestMediaAssetsStorageConfig,
+      },
+    ),
+    (error: unknown): boolean => error === deadlineError,
+  );
 });
 
 test("completeMultipartMediaAssetUploadWithDependencies completes parts and validates the stored blob", async () => {

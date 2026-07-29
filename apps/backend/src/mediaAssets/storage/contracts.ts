@@ -35,6 +35,7 @@ export type PresignMediaAssetDownloadInput = Readonly<{
 }>;
 
 export type CreateMultipartMediaAssetUploadInput = Readonly<{
+  signal: AbortSignal;
   workspaceId: string;
   mediaAssetId: string;
   stagingStorageKey: string;
@@ -134,6 +135,10 @@ export type AbortMultipartMediaAssetUploadInput = Readonly<{
   s3UploadId: string;
   observationScope: BackendObservationScope;
 }>;
+
+export type AbortMultipartMediaAssetUploadUntilDeadlineInput =
+  AbortMultipartMediaAssetUploadInput
+  & Readonly<{ signal: AbortSignal }>;
 
 export type PromoteMediaAssetUploadInput = Readonly<{
   workspaceId: string;

@@ -10,6 +10,7 @@ import {
 } from "./config";
 import type {
   AbortMultipartMediaAssetUploadInput,
+  AbortMultipartMediaAssetUploadUntilDeadlineInput,
   AssertMediaAssetObjectInput,
   CompleteMultipartMediaAssetUploadInput,
   CreateMultipartMediaAssetUploadInput,
@@ -24,6 +25,7 @@ import type {
 } from "./contracts";
 import {
   abortMultipartMediaAssetUploadWithDependencies,
+  abortMultipartMediaAssetUploadUntilDeadlineWithDependencies,
   completeMultipartMediaAssetUploadWithDependencies,
   createMultipartMediaAssetUploadWithDependencies,
 } from "./multipart";
@@ -63,6 +65,7 @@ export { getMediaAssetsStorageConfig } from "./config";
 export type { MediaAssetsStorageConfig } from "./config";
 export type {
   AbortMultipartMediaAssetUploadInput,
+  AbortMultipartMediaAssetUploadUntilDeadlineInput,
   AssertMediaAssetObjectInput,
   CompleteMultipartMediaAssetUploadInput,
   CreateMultipartMediaAssetUploadInput,
@@ -78,6 +81,7 @@ export type {
 } from "./contracts";
 export {
   abortMultipartMediaAssetUploadWithDependencies,
+  abortMultipartMediaAssetUploadUntilDeadlineWithDependencies,
   completeMultipartMediaAssetUploadWithDependencies,
   createMultipartMediaAssetUploadWithDependencies,
 } from "./multipart";
@@ -189,6 +193,15 @@ export async function abortMultipartMediaAssetUpload(
   input: AbortMultipartMediaAssetUploadInput,
 ): Promise<void> {
   return abortMultipartMediaAssetUploadWithDependencies(input, {
+    s3Client: getMediaAssetsS3Client(),
+    getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
+  });
+}
+
+export async function abortMultipartMediaAssetUploadUntilDeadline(
+  input: AbortMultipartMediaAssetUploadUntilDeadlineInput,
+): Promise<void> {
+  return abortMultipartMediaAssetUploadUntilDeadlineWithDependencies(input, {
     s3Client: getMediaAssetsS3Client(),
     getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
   });

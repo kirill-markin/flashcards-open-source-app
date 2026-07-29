@@ -130,6 +130,18 @@ test("createAgentInstructions retries transient direct ingestion requests unchan
   }
 });
 
+test("createAgentInstructions retries blocked multipart session creation unchanged", () => {
+  for (const code of [
+    "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+    "MEDIA_ASSET_UPLOAD_SESSION_CREATION_IN_PROGRESS",
+  ] as const) {
+    assert.equal(
+      createAgentInstructions(code, 503),
+      "Wait for the Retry-After delay, then retry the unchanged session creation request. Do not start a parallel byte upload.",
+    );
+  }
+});
+
 test("createAgentInstructions tells agents to retry temporary auth verification failures", () => {
   assert.equal(
     createAgentInstructions(authVerificationTemporarilyUnavailableCode, 503),

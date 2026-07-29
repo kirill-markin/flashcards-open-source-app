@@ -129,7 +129,11 @@ get:
               assets, create a multipart upload session with POST
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions.
               If status is already_available, use the returned mediaAsset and
-              skip byte upload. If status is upload_required, request signed
+              skip byte upload. If create returns 503
+              MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS or
+              MEDIA_ASSET_UPLOAD_SESSION_CREATION_IN_PROGRESS, wait for
+              Retry-After and retry the same create request unchanged; do not
+              start a parallel byte upload. If status is upload_required, request signed
               part URLs with POST
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts,
               upload each part directly to S3 with the returned signed URL, method, and
