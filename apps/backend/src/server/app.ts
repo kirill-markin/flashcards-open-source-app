@@ -7,6 +7,7 @@ import {
   authVerificationTemporarilyUnavailableCode,
 } from "../auth";
 import {
+  createAgentApiKeyErrorEnvelope,
   createAgentErrorInstructions,
   isAgentApiKeyAuthorizationHeader,
 } from "../agent/envelope";
@@ -30,7 +31,6 @@ import { createGuestAuthRoutes } from "../routes/guestAuth";
 import { createWorkspaceRoutes } from "../routes/workspaces/index";
 import {
   createAgentConnectionManagementErrorEnvelope,
-  createAgentSetupErrorEnvelope,
 } from "../agent/setup";
 import { getGuestAiWeightedMonthlyTokenCap } from "../guestAiQuota/config";
 import { logRequestError } from "./logging";
@@ -105,8 +105,12 @@ function isAgentConnectionManagementPath(pathname: string): boolean {
   return pathname.endsWith("/agent-api-keys") || pathname.includes("/agent-api-keys/");
 }
 
-export function createAgentInstructions(code: string | null, statusCode: number): string {
-  return createAgentErrorInstructions(code, statusCode);
+export function createAgentInstructions(
+  code: string | null,
+  statusCode: number,
+  requestUrl: string,
+): string {
+  return createAgentErrorInstructions(code, statusCode, requestUrl);
 }
 
 function applyHttpErrorResponseHeaders(
@@ -287,12 +291,13 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
       }
       if (apiKeyRequest) {
         return context.json(
-          createAgentSetupErrorEnvelope(
+          createAgentApiKeyErrorEnvelope(
             context.req.url,
             "AUTH_UNAUTHORIZED",
             "Authentication failed. Sign in again.",
-            createAgentInstructions("AUTH_UNAUTHORIZED", error.statusCode),
+            error.statusCode,
             requestId,
+            undefined,
           ),
         );
       }
@@ -321,11 +326,11 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
       }
       if (apiKeyRequest) {
         return context.json(
-          createAgentSetupErrorEnvelope(
+          createAgentApiKeyErrorEnvelope(
             context.req.url,
             error.code ?? "REQUEST_FAILED",
             error.message,
-            createAgentInstructions(error.code, error.statusCode),
+            error.statusCode,
             requestId,
             createPublicHttpErrorDetails(error.details) ?? undefined,
           ),
@@ -354,12 +359,13 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
     }
     if (apiKeyRequest) {
       return context.json(
-        createAgentSetupErrorEnvelope(
+        createAgentApiKeyErrorEnvelope(
           context.req.url,
           "INTERNAL_ERROR",
           "Request failed. Try again.",
-          createAgentInstructions("INTERNAL_ERROR", 500),
+          500,
           requestId,
+          undefined,
         ),
       );
     }

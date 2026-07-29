@@ -11,14 +11,20 @@ import {
   type DirectMediaBlobStorageCapability,
   type DirectMediaBlobWriterAttemptExactInput,
 } from "../blobLifecycle";
+import type {
+  MultipartMediaBlobStorageCapability,
+  MultipartMediaBlobWriterAttemptExactInput,
+} from "../uploadSessions";
 import { createPublicHttpErrorDetails, HttpError } from "../../shared/errors";
 import {
   assertMediaAssetObjectMatchesWithDependencies,
   loadMediaAssetObjectMetadataWithDependencies,
-  promoteMediaAssetUploadToBlobWithDependencies,
   storeMediaAssetBlobBytesIfAbsentWithDependencies,
 } from ".";
-import { storeMediaAssetBlobBytesIfAbsentWithCapabilityVerifier } from "./promotion";
+import {
+  promoteMediaAssetUploadToBlobWithCapabilityVerifier,
+  storeMediaAssetBlobBytesIfAbsentWithCapabilityVerifier,
+} from "./promotion";
 import {
   createFailingS3Client,
   createHeadObjectResponse,
@@ -56,6 +62,32 @@ const testWriter: DirectMediaBlobWriterAttemptExactInput = {
 };
 const testStorageCapability =
   Object.freeze({}) as DirectMediaBlobStorageCapability;
+const testMultipartStorageCapability =
+  Object.freeze({}) as MultipartMediaBlobStorageCapability;
+const testMultipartWriter: MultipartMediaBlobWriterAttemptExactInput = {
+  attemptToken: "66666666-6666-4666-8666-666666666666",
+  reservationToken: "77777777-7777-4777-8777-777777777777",
+  userId: "user-1",
+  workspaceId: testWorkspaceId,
+  sessionId: "33333333-3333-4333-8333-333333333333",
+  mediaAssetId: testMediaAssetId,
+  lastModifiedByReplicaId: "88888888-8888-4888-8888-888888888888",
+  lastOperationId: testLastOperationId,
+  sha256: testSha256,
+  stagingStorageKey: testStagingStorageKey,
+  blobStorageKey: testBlobStorageKey,
+  s3UploadId: "s3-upload-id-1",
+  mimeType: "image/png",
+  sizeBytes: 42,
+  partSizeBytes: 42,
+  partCount: 1,
+  sourceUrl: null,
+  assetCreatedAt: "2026-07-27T10:00:00.000Z",
+  clientUpdatedAt: "2026-07-27T10:00:00.000Z",
+  expiresAt: "2099-07-27T11:00:00.000Z",
+  normalizationVersion: "passthrough-v1",
+  completedPartsFingerprint: "9".repeat(64),
+};
 
 function createDirectStoreInput(
   signal: AbortSignal,
@@ -568,11 +600,16 @@ test("promoteMediaAssetUploadToBlobWithDependencies reuses an existing blob afte
     throw new Error(`Unexpected S3 command ${getUnexpectedS3CommandName(command)}`);
   }) as S3Client["send"];
 
-  await promoteMediaAssetUploadToBlobWithDependencies(
+  await promoteMediaAssetUploadToBlobWithCapabilityVerifier(
     {
+      writer: testMultipartWriter,
+      getStorageCapability: async () =>
+        testMultipartStorageCapability,
+      assertStorageMutationAuthorized: () => {},
+      signal: new AbortController().signal,
       workspaceId: testWorkspaceId,
       mediaAssetId: testMediaAssetId,
-      uploadStorageKey: testUploadStorageKey,
+      uploadStorageKey: testStagingStorageKey,
       blobStorageKey: testBlobStorageKey,
       mimeType: "image/png",
       sizeBytes: 42,
@@ -584,10 +621,145 @@ test("promoteMediaAssetUploadToBlobWithDependencies reuses an existing blob afte
       s3Client: client,
       getMediaAssetsStorageConfigFn: getTestMediaAssetsStorageConfig,
     },
+    () => {},
   );
 
   assert.deepEqual(sentCommands, [
-    `head:${testUploadStorageKey}`,
+    `head:${testStagingStorageKey}`,
     `head:${testBlobStorageKey}`,
   ]);
+});
+
+test("multipart promotion verifies authority before permanent copy", async () => {
+  const sentCommands: Array<string> = [];
+  let blobHeadCalls = 0;
+  let capabilityChecks = 0;
+  const client = createTestS3Client();
+  client.send = (async (command: unknown) => {
+    if (command instanceof HeadObjectCommand) {
+      const key = String(command.input.Key);
+      sentCommands.push(`head:${key}`);
+      if (key === testBlobStorageKey) {
+        blobHeadCalls += 1;
+        if (blobHeadCalls <= 3) {
+          throw createS3Error(404, "NoSuchKey", "Blob does not exist");
+        }
+      }
+      return createHeadObjectResponse({
+        sizeBytes: 42,
+        mimeType: "image/png",
+        sha256: testSha256,
+      });
+    }
+    if (command instanceof CopyObjectCommand) {
+      sentCommands.push(`copy:${String(command.input.Key)}`);
+      assert.equal(
+        command.input.CopySource,
+        `test-media-assets-bucket/${testStagingStorageKey}`,
+      );
+      assert.equal(command.input.IfNoneMatch, "*");
+      return {};
+    }
+    throw new Error(`Unexpected S3 command ${getUnexpectedS3CommandName(command)}`);
+  }) as S3Client["send"];
+
+  await promoteMediaAssetUploadToBlobWithCapabilityVerifier(
+    {
+      writer: testMultipartWriter,
+      getStorageCapability: async () =>
+        testMultipartStorageCapability,
+      assertStorageMutationAuthorized: () => {},
+      signal: new AbortController().signal,
+      workspaceId: testWorkspaceId,
+      mediaAssetId: testMediaAssetId,
+      uploadStorageKey: testStagingStorageKey,
+      blobStorageKey: testBlobStorageKey,
+      mimeType: "image/png",
+      sizeBytes: 42,
+      sha256: testSha256,
+      lastOperationId: testLastOperationId,
+      observationScope: testObservationScope,
+    },
+    {
+      s3Client: client,
+      getMediaAssetsStorageConfigFn: getTestMediaAssetsStorageConfig,
+    },
+    (capability, writer) => {
+      capabilityChecks += 1;
+      assert.equal(capability, testMultipartStorageCapability);
+      assert.equal(writer, testMultipartWriter);
+    },
+  );
+
+  assert.equal(capabilityChecks, 3);
+  assert.deepEqual(sentCommands, [
+    `head:${testStagingStorageKey}`,
+    `head:${testBlobStorageKey}`,
+    `head:${testBlobStorageKey}`,
+    `head:${testBlobStorageKey}`,
+    `copy:${testBlobStorageKey}`,
+    `head:${testBlobStorageKey}`,
+  ]);
+});
+
+test("multipart promotion preserves the deadline reason and stops copy retries", async () => {
+  const controller = new AbortController();
+  const deadlineError = new HttpError(
+    503,
+    "Multipart completion deadline reached.",
+    "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_DEADLINE_EXCEEDED",
+    { retryAfterSeconds: 1 },
+  );
+  let copyAttempts = 0;
+  const client = createTestS3Client();
+  client.send = (async (
+    command: unknown,
+    options?: Readonly<{ abortSignal?: AbortSignal }>,
+  ) => {
+    assert.equal(options?.abortSignal, controller.signal);
+    if (command instanceof HeadObjectCommand) {
+      if (command.input.Key === testBlobStorageKey) {
+        throw createS3Error(404, "NoSuchKey", "Blob does not exist");
+      }
+      return createHeadObjectResponse({
+        sizeBytes: 42,
+        mimeType: "image/png",
+        sha256: testSha256,
+      });
+    }
+    if (command instanceof CopyObjectCommand) {
+      copyAttempts += 1;
+      controller.abort(deadlineError);
+      throw createS3Error(500, "InternalError", "Retryable failure");
+    }
+    throw new Error(`Unexpected S3 command ${getUnexpectedS3CommandName(command)}`);
+  }) as S3Client["send"];
+
+  await assert.rejects(
+    promoteMediaAssetUploadToBlobWithCapabilityVerifier(
+      {
+        writer: testMultipartWriter,
+        getStorageCapability: async () =>
+          testMultipartStorageCapability,
+        assertStorageMutationAuthorized: () => {},
+        signal: controller.signal,
+        workspaceId: testWorkspaceId,
+        mediaAssetId: testMediaAssetId,
+        uploadStorageKey: testStagingStorageKey,
+        blobStorageKey: testBlobStorageKey,
+        mimeType: "image/png",
+        sizeBytes: 42,
+        sha256: testSha256,
+        lastOperationId: testLastOperationId,
+        observationScope: testObservationScope,
+      },
+      {
+        s3Client: client,
+        getMediaAssetsStorageConfigFn: getTestMediaAssetsStorageConfig,
+      },
+      () => {},
+    ),
+    (error: unknown) => error === deadlineError,
+  );
+  assert.equal(copyAttempts, 1);
 });

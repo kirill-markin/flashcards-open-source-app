@@ -1,9 +1,12 @@
 import {
   AbortMultipartUploadCommand,
   CompleteMultipartUploadCommand,
+  CopyObjectCommand,
   CreateMultipartUploadCommand,
 } from "@aws-sdk/client-s3";
 import type { CreatedMultipartMediaAssetUpload } from "../types";
+import { MediaBlobWriterFenceError } from "../blobLifecycle";
+import { HttpError } from "../../shared/errors";
 import {
   createExpiresAt,
   multipartUploadExpiresSeconds,
@@ -24,17 +27,147 @@ import {
   runMediaAssetStorageOperationWithRetries,
   runMediaAssetStorageOperationWithRetriesAndAbortSignal,
 } from "./errors";
+import { loadMediaAssetObjectMetadataWithAbortSignalAndDependencies } from "./objects";
 import {
-  hashMediaAssetObjectContentWithDependencies,
-  loadMediaAssetObjectMetadataWithDependencies,
-} from "./objects";
-import {
-  assertMediaAssetObjectContentHashMatches,
+  assertMediaAssetObjectMetadataMatches,
   assertMediaAssetObjectShapeAndProofMatches,
   createUploadProofMetadata,
   toBase64Sha256Digest,
 } from "./proof";
-import { promoteVerifiedMediaAssetUploadToBlobWithDependencies } from "./promotion";
+import {
+  createMediaAssetCopySource,
+  promoteVerifiedMediaAssetUploadToBlobWithCapabilityVerifier,
+} from "./promotion";
+import {
+  assertMultipartMediaBlobStorageCapabilityForMutation,
+  createMediaAssetUploadSessionCompletedPartsFingerprint,
+  type MultipartMediaBlobStorageCapability,
+  type MultipartMediaBlobWriterAttemptExactInput,
+} from "../uploadSessions";
+
+type MultipartMediaBlobStorageCapabilityVerifier = (
+  capability: MultipartMediaBlobStorageCapability,
+  writer: MultipartMediaBlobWriterAttemptExactInput,
+) => void;
+
+function assertMultipartCompletionInputMatchesWriter(
+  input: CompleteMultipartMediaAssetUploadInput,
+): void {
+  if (
+    input.workspaceId !== input.writer.workspaceId
+    || input.mediaAssetId !== input.writer.mediaAssetId
+    || input.stagingStorageKey !== input.writer.stagingStorageKey
+    || input.blobStorageKey !== input.writer.blobStorageKey
+    || input.s3UploadId !== input.writer.s3UploadId
+    || input.mimeType !== input.writer.mimeType
+    || input.sizeBytes !== input.writer.sizeBytes
+    || input.sha256 !== input.writer.sha256
+    || input.lastOperationId !== input.writer.lastOperationId
+    || createMediaAssetUploadSessionCompletedPartsFingerprint(input.parts)
+      !== input.writer.completedPartsFingerprint
+  ) {
+    throw new MediaBlobWriterFenceError(
+      "verify_multipart_storage_input",
+    );
+  }
+}
+
+async function assertMultipartCompletionMutationAuthorized(
+  input: CompleteMultipartMediaAssetUploadInput,
+  verifyCapability: MultipartMediaBlobStorageCapabilityVerifier,
+): Promise<void> {
+  input.signal.throwIfAborted();
+  assertMultipartCompletionInputMatchesWriter(input);
+  const storageCapability = await input.getStorageCapability();
+  input.signal.throwIfAborted();
+  verifyCapability(storageCapability, input.writer);
+}
+
+async function normalizeMultipartStagingObjectWithDependencies(
+  input: CompleteMultipartMediaAssetUploadInput,
+  stagingObjectInput: AssertMediaAssetObjectInput,
+  dependencies: MediaAssetStorageDependencies,
+  verifyCapability: MultipartMediaBlobStorageCapabilityVerifier,
+): Promise<void> {
+  const config = dependencies.getMediaAssetsStorageConfigFn();
+  const context: MediaAssetStorageContext = {
+    workspaceId: input.workspaceId,
+    mediaAssetId: input.mediaAssetId,
+    storageKey: input.stagingStorageKey,
+    observationScope: input.observationScope,
+  };
+
+  try {
+    await runMediaAssetStorageOperationWithRetriesAndAbortSignal(
+      context,
+      "copy_object",
+      input.signal,
+      async () => {
+        const sourceMetadata =
+          await loadMediaAssetObjectMetadataWithAbortSignalAndDependencies(
+            stagingObjectInput,
+            input.signal,
+            dependencies,
+          );
+        assertMediaAssetObjectShapeAndProofMatches(
+          stagingObjectInput,
+          sourceMetadata,
+        );
+        if (sourceMetadata.checksumType === "FULL_OBJECT") {
+          assertMediaAssetObjectMetadataMatches(
+            stagingObjectInput,
+            sourceMetadata,
+          );
+          return;
+        }
+        if (sourceMetadata.eTag === null) {
+          throw new Error(
+            `S3 head_object did not return ETag for multipart staging object workspaceId=${input.workspaceId} mediaAssetId=${input.mediaAssetId}.`,
+          );
+        }
+
+        await assertMultipartCompletionMutationAuthorized(
+          input,
+          verifyCapability,
+        );
+        input.assertStorageMutationAuthorized();
+        await dependencies.s3Client.send(new CopyObjectCommand({
+          Bucket: config.bucketName,
+          Key: input.stagingStorageKey,
+          CopySource: createMediaAssetCopySource(
+            config.bucketName,
+            input.stagingStorageKey,
+          ),
+          CopySourceIfMatch: sourceMetadata.eTag,
+          ContentType: input.mimeType,
+          ChecksumAlgorithm: "SHA256",
+          MetadataDirective: "REPLACE",
+          Metadata: createUploadProofMetadata(input),
+        }), { abortSignal: input.signal });
+      },
+    );
+
+    const normalizedMetadata =
+      await loadMediaAssetObjectMetadataWithAbortSignalAndDependencies(
+        stagingObjectInput,
+        input.signal,
+        dependencies,
+      );
+    assertMediaAssetObjectMetadataMatches(
+      stagingObjectInput,
+      normalizedMetadata,
+    );
+  } catch (error) {
+    rethrowMediaAssetStorageAbortReason(input.signal);
+    if (
+      error instanceof HttpError
+      || error instanceof MediaBlobWriterFenceError
+    ) {
+      throw error;
+    }
+    throw createMediaAssetStorageError(context, "copy_object", error);
+  }
+}
 
 export async function createMultipartMediaAssetUploadWithDependencies(
   input: CreateMultipartMediaAssetUploadInput,
@@ -86,6 +219,19 @@ export async function completeMultipartMediaAssetUploadWithDependencies(
   input: CompleteMultipartMediaAssetUploadInput,
   dependencies: MediaAssetStorageDependencies,
 ): Promise<void> {
+  return completeMultipartMediaAssetUploadWithCapabilityVerifier(
+    input,
+    dependencies,
+    assertMultipartMediaBlobStorageCapabilityForMutation,
+  );
+}
+
+export async function completeMultipartMediaAssetUploadWithCapabilityVerifier(
+  input: CompleteMultipartMediaAssetUploadInput,
+  dependencies: MediaAssetStorageDependencies,
+  verifyCapability: MultipartMediaBlobStorageCapabilityVerifier,
+): Promise<void> {
+  await assertMultipartCompletionMutationAuthorized(input, verifyCapability);
   const config = dependencies.getMediaAssetsStorageConfigFn();
   const context: MediaAssetStorageContext = {
     workspaceId: input.workspaceId,
@@ -102,19 +248,31 @@ export async function completeMultipartMediaAssetUploadWithDependencies(
     }));
 
   try {
-    await runMediaAssetStorageOperationWithRetries(
+    await runMediaAssetStorageOperationWithRetriesAndAbortSignal(
       context,
       "complete_multipart_upload",
-      async () => dependencies.s3Client.send(new CompleteMultipartUploadCommand({
-        Bucket: config.bucketName,
-        Key: input.stagingStorageKey,
-        UploadId: input.s3UploadId,
-        MultipartUpload: {
-          Parts: completedParts,
-        },
-      })),
+      input.signal,
+      async () => {
+        await assertMultipartCompletionMutationAuthorized(
+          input,
+          verifyCapability,
+        );
+        input.assertStorageMutationAuthorized();
+        return dependencies.s3Client.send(new CompleteMultipartUploadCommand({
+          Bucket: config.bucketName,
+          Key: input.stagingStorageKey,
+          UploadId: input.s3UploadId,
+          MultipartUpload: {
+            Parts: completedParts,
+          },
+        }), { abortSignal: input.signal });
+      },
     );
   } catch (error) {
+    rethrowMediaAssetStorageAbortReason(input.signal);
+    if (error instanceof MediaBlobWriterFenceError) {
+      throw error;
+    }
     if (isNoSuchMultipartUploadError(error) === false) {
       throw createMediaAssetStorageError(context, "complete_multipart_upload", error);
     }
@@ -130,13 +288,20 @@ export async function completeMultipartMediaAssetUploadWithDependencies(
     lastOperationId: input.lastOperationId,
     observationScope: input.observationScope,
   };
-  const stagingObjectMetadata = await loadMediaAssetObjectMetadataWithDependencies(stagingObjectInput, dependencies);
-  assertMediaAssetObjectShapeAndProofMatches(stagingObjectInput, stagingObjectMetadata);
-  const stagingObjectContent = await hashMediaAssetObjectContentWithDependencies(stagingObjectInput, dependencies);
-  assertMediaAssetObjectContentHashMatches(stagingObjectInput, stagingObjectContent);
+  await normalizeMultipartStagingObjectWithDependencies(
+    input,
+    stagingObjectInput,
+    dependencies,
+    verifyCapability,
+  );
 
-  await promoteVerifiedMediaAssetUploadToBlobWithDependencies(
+  await promoteVerifiedMediaAssetUploadToBlobWithCapabilityVerifier(
     {
+      writer: input.writer,
+      getStorageCapability: input.getStorageCapability,
+      assertStorageMutationAuthorized:
+        input.assertStorageMutationAuthorized,
+      signal: input.signal,
       workspaceId: input.workspaceId,
       mediaAssetId: input.mediaAssetId,
       uploadStorageKey: input.stagingStorageKey,
@@ -148,6 +313,7 @@ export async function completeMultipartMediaAssetUploadWithDependencies(
       observationScope: input.observationScope,
     },
     dependencies,
+    verifyCapability,
   );
 }
 
@@ -164,16 +330,18 @@ export async function abortMultipartMediaAssetUploadWithDependencies(
   };
 
   try {
-    await runMediaAssetStorageOperationWithRetries(
+    await runMediaAssetStorageOperationWithRetriesAndAbortSignal(
       context,
       "abort_multipart_upload",
+      input.signal,
       async () => dependencies.s3Client.send(new AbortMultipartUploadCommand({
         Bucket: config.bucketName,
         Key: input.stagingStorageKey,
         UploadId: input.s3UploadId,
-      })),
+      }), { abortSignal: input.signal }),
     );
   } catch (error) {
+    rethrowMediaAssetStorageAbortReason(input.signal);
     if (isNoSuchMultipartUploadError(error)) {
       return;
     }
@@ -186,34 +354,5 @@ export async function abortMultipartMediaAssetUploadUntilDeadlineWithDependencie
   input: AbortMultipartMediaAssetUploadUntilDeadlineInput,
   dependencies: MediaAssetStorageDependencies,
 ): Promise<void> {
-  const config = dependencies.getMediaAssetsStorageConfigFn();
-  const context: MediaAssetStorageContext = {
-    workspaceId: input.workspaceId,
-    mediaAssetId: input.mediaAssetId,
-    storageKey: input.stagingStorageKey,
-    observationScope: input.observationScope,
-  };
-
-  try {
-    await runMediaAssetStorageOperationWithRetriesAndAbortSignal(
-      context,
-      "abort_multipart_upload",
-      input.signal,
-      async () => dependencies.s3Client.send(
-        new AbortMultipartUploadCommand({
-          Bucket: config.bucketName,
-          Key: input.stagingStorageKey,
-          UploadId: input.s3UploadId,
-        }),
-        { abortSignal: input.signal },
-      ),
-    );
-  } catch (error) {
-    rethrowMediaAssetStorageAbortReason(input.signal);
-    if (isNoSuchMultipartUploadError(error)) {
-      return;
-    }
-
-    throw createMediaAssetStorageError(context, "abort_multipart_upload", error);
-  }
+  return abortMultipartMediaAssetUploadWithDependencies(input, dependencies);
 }

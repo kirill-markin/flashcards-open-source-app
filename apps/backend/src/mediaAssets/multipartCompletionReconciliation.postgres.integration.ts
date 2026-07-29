@@ -24,12 +24,15 @@ import {
 } from "./multipartCompletionReconciliation";
 import { isValidMediaAssetLastOperationId } from "./lastOperationId";
 import {
-  beginMediaAssetUploadSessionAbortForWorkspace,
+  beginMediaAssetUploadSessionCompletionAttemptWithOwner,
   beginMediaAssetUploadSessionCompletionForWorkspace,
   completeMediaAssetUploadSessionForWorkspace,
+  createMediaAssetUploadSessionCompletedPartsFingerprint,
   markMediaAssetUploadSessionAbortedForWorkspace,
   recordMediaAssetUploadSessionForWorkspace,
+  type MultipartMediaBlobWriterAttemptInput,
 } from "./uploadSessions";
+import { passthroughMediaBlobNormalizationVersion } from "./types";
 import {
   buildMediaBlobStorageKey,
   buildMediaMultipartUploadStagingStorageKey,
@@ -1434,13 +1437,13 @@ test("migration 0099 rejects a legacy active session before storage and allows c
       reservations: 0,
     });
 
-    const abortStart = await beginMediaAssetUploadSessionAbortForWorkspace(
-      migration0099LegacyUserId,
-      migration0099LegacyWorkspaceId,
-      migration0099LegacyActiveSessionId,
+    const abortTransition = await fixture.ownerPool.query(
+      `UPDATE content.media_upload_sessions
+       SET state='aborting'
+       WHERE media_upload_session_id=$1`,
+      [migration0099LegacyActiveSessionId],
     );
-    assert.equal(abortStart.status, "abort_required");
-    assert.equal(abortStart.uploadSession.state, "aborting");
+    assert.equal(abortTransition.rowCount, 1);
     const aborted = await markMediaAssetUploadSessionAbortedForWorkspace(
       migration0099LegacyUserId,
       migration0099LegacyWorkspaceId,
@@ -1487,6 +1490,45 @@ test("migration 0099 rejects a legacy active session before storage and allows c
         [{ partNumber: 1 }],
       );
     assert.equal(replacementStart.status, "complete_required");
+    const replacementParts = [{
+      partNumber: 1,
+      eTag: "\"migration-0099-replacement\"",
+      sha256: digest(),
+    }];
+    const replacementSession = replacementStart.uploadSession;
+    const replacementAttemptInput: MultipartMediaBlobWriterAttemptInput = {
+      userId: migration0099LegacyUserId,
+      workspaceId: replacementSession.workspaceId,
+      sessionId: replacementSession.sessionId,
+      mediaAssetId: replacementSession.mediaAssetId,
+      lastModifiedByReplicaId: replacementSession.lastModifiedByReplicaId,
+      lastOperationId: replacementSession.lastOperationId,
+      sha256: replacementSession.mediaBlobSha256,
+      stagingStorageKey: replacementSession.stagingStorageKey,
+      blobStorageKey: replacementSession.blobStorageKey,
+      s3UploadId: replacementSession.s3UploadId,
+      mimeType: replacementSession.mimeType,
+      sizeBytes: replacementSession.sizeBytes,
+      partSizeBytes: replacementSession.partSizeBytes,
+      partCount: replacementSession.partCount,
+      sourceUrl: replacementSession.sourceUrl,
+      assetCreatedAt: replacementSession.assetCreatedAt,
+      clientUpdatedAt: replacementSession.clientUpdatedAt,
+      expiresAt: replacementSession.expiresAt,
+      attemptToken: randomUUID(),
+      normalizationVersion: passthroughMediaBlobNormalizationVersion,
+      completedPartsFingerprint:
+        createMediaAssetUploadSessionCompletedPartsFingerprint(
+          replacementParts,
+        ),
+    };
+    const replacementAttempt =
+      await beginMediaAssetUploadSessionCompletionAttemptWithOwner(
+        replacementAttemptInput,
+        60_000,
+      );
+    assert.equal(replacementAttempt.status, "acquired");
+    assert.ok("reservationToken" in replacementAttempt);
     const mediaAssetBeforeReplacementCompletion =
       await fixture.ownerPool.query<Readonly<{ media_asset_id: string }>>(
         `SELECT media_asset_id
@@ -1503,6 +1545,11 @@ test("migration 0099 rejects a legacy active session before storage and allows c
       migration0099LegacyUserId,
       migration0099LegacyWorkspaceId,
       replacementSessionId,
+      {
+        ...replacementAttemptInput,
+        reservationToken: replacementAttempt.reservationToken,
+        normalizationVersion: replacementAttempt.normalizationVersion,
+      },
     );
     assert.equal(
       completed.mediaAsset.lastOperationId,
@@ -1557,8 +1604,8 @@ test("migration 0099 rejects a legacy active session before storage and allows c
       legacy_state: "aborted",
       replacement_state: "completed",
       completing_sessions: 0,
-      attempts: 0,
-      reservations: 0,
+      attempts: 1,
+      reservations: 1,
     });
   });
 });

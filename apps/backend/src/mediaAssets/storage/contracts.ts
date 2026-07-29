@@ -8,6 +8,10 @@ import type {
   CompleteMediaAssetUploadPartInput,
   MediaAssetUploadSessionPartRequest,
 } from "../types";
+import type {
+  MultipartMediaBlobStorageCapability,
+  MultipartMediaBlobWriterAttemptExactInput,
+} from "../uploadSessions";
 import type { getMediaAssetsStorageConfig } from "./config";
 
 export type MediaAssetStorageContext = Readonly<{
@@ -98,6 +102,10 @@ export type LoadedMediaAssetObjectBytes = Readonly<{
 }>;
 
 export type CompleteMultipartMediaAssetUploadInput = Readonly<{
+  writer: MultipartMediaBlobWriterAttemptExactInput;
+  getStorageCapability: () => Promise<MultipartMediaBlobStorageCapability>;
+  assertStorageMutationAuthorized: () => void;
+  signal: AbortSignal;
   workspaceId: string;
   mediaAssetId: string;
   stagingStorageKey: string;
@@ -129,6 +137,7 @@ export type ReconcileMultipartMediaAssetUploadInput = Readonly<{
 }>;
 
 export type AbortMultipartMediaAssetUploadInput = Readonly<{
+  signal: AbortSignal;
   workspaceId: string;
   mediaAssetId: string;
   stagingStorageKey: string;
@@ -141,6 +150,10 @@ export type AbortMultipartMediaAssetUploadUntilDeadlineInput =
   & Readonly<{ signal: AbortSignal }>;
 
 export type PromoteMediaAssetUploadInput = Readonly<{
+  writer: MultipartMediaBlobWriterAttemptExactInput;
+  getStorageCapability: () => Promise<MultipartMediaBlobStorageCapability>;
+  assertStorageMutationAuthorized: () => void;
+  signal: AbortSignal;
   workspaceId: string;
   mediaAssetId: string;
   uploadStorageKey: string;

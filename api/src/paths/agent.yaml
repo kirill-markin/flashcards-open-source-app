@@ -33,7 +33,7 @@ get:
                 - Read cards and decks through POST /agent/sql/query (read-only)
                 - Write cards and decks through POST /agent/sql/execute (INSERT, UPDATE, DELETE)
                 - Ingest JPEG, PNG, and WebP media images through the workspace-scoped image endpoint
-                - Upload and complete media assets through workspace-scoped direct transfer endpoints
+                - Upload and durably complete media assets through workspace-scoped direct transfer endpoints with retry-safe reconciliation
                 - Read media asset metadata and create download URLs through workspace-scoped media endpoints
                 - Preview and download portable workspace package ZIP exports, and preview or confirm ZIP imports
                 - Preview and install published catalog package versions into a workspace
@@ -139,7 +139,51 @@ get:
               upload each part directly to S3 with the returned signed URL, method, and
               headers, then complete the upload with POST
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/complete.
-              Abort unused sessions with POST
+              If completion returns 503
+              MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS or
+              MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_DEADLINE_EXCEEDED, wait
+              for Retry-After and retry the same completion with the same
+              session and parts; do not abort or replace the upload. A
+              completion that returns 409
+              MEDIA_ASSET_UPLOAD_SESSION_EXPIRED means the backend has closed
+              the expired session; create a fresh upload session and upload the
+              bytes again instead of retrying the same completion request. For
+              other completion or abort conflicts, follow error.code:
+              MEDIA_ASSET_UPLOAD_SESSION_RESTART_REQUIRED means abort the
+              legacy session if it is still open and create a fresh upload;
+              MEDIA_ASSET_UPLOAD_SESSION_COMPLETED means reload or replay the
+              completed asset and do not retry abort;
+              MEDIA_ASSET_UPLOAD_SESSION_STATE_CONFLICT,
+              MEDIA_ASSET_UPLOAD_MISMATCH,
+              MEDIA_ASSET_UPLOAD_PROOF_MISMATCH, or
+              MEDIA_ASSET_UPLOAD_NOT_FOUND means reload canonical session and
+              media-asset state before acting, without blindly replaying or
+              assuming rollback. If completion or abort returns
+              MEDIA_ASSET_UPLOAD_SESSION_ACCESS_DENIED,
+              WORKSPACE_ACCESS_DENIED, or MEDIA_ASSET_REPLICA_INVALID, reload
+              workspace access, replicas, session, and media-asset state before
+              retrying with restored access and a currently accessible replica;
+              do not assume rollback. If completion or abort returns 404
+              MEDIA_ASSET_UPLOAD_SESSION_NOT_FOUND, reload canonical
+              upload-session and media-asset state and verify sessionId before
+              retrying or creating replacement state; the identifier may be
+              wrong or stale. If completion or abort returns
+              DATABASE_COMMIT_OUTCOME_UNKNOWN, reload or replay the exact
+              action first because rollback is not guaranteed.
+              MEDIA_ASSET_STORAGE_UNAVAILABLE, MEDIA_BLOB_LIFECYCLE_BUSY, and
+              SERVICE_UNAVAILABLE may also follow admitted work; follow the
+              action-specific error instructions and do not assume rollback.
+              While a
+              foreground writer is live, abort returns 503; while durable
+              completion is pending or leased, abort returns 409. Both abort
+              responses leave upload state and S3 unchanged. Replacement
+              session creation returns 503
+              MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS before creating
+              another multipart upload. Concurrent replacement creation returns
+              503 MEDIA_ASSET_UPLOAD_SESSION_CREATION_IN_PROGRESS. Retry either
+              create response unchanged after Retry-After. After reconciliation applies,
+              retrying session creation returns already_available. Abort unused
+              sessions with POST
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/abort.
               Use GET
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/media-assets/{mediaAssetId}

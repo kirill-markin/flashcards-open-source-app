@@ -1,10 +1,13 @@
 const directImageIngestionPathPattern =
   /^\/(?:v1\/)*workspaces\/[^/]+\/media-assets\/images\/?$/u;
 
-type RequestTarget = Readonly<{
+export type RequestTarget = Readonly<{
   method: string;
   path: string;
 }>;
+
+const multipartCompletionPathPattern =
+  /^\/(?:v1\/)*workspaces\/[^/]+\/media-assets\/upload-sessions\/[^/]+\/complete\/?$/u;
 
 function toRecord(value: unknown): Readonly<Record<string, unknown>> | null {
   return typeof value === "object" && value !== null
@@ -37,4 +40,12 @@ export function isDirectImageIngestionPostTarget(
   return target !== null
     && target.method === "POST"
     && directImageIngestionPathPattern.test(target.path);
+}
+
+export function isMultipartCompletionPostTarget(
+  target: RequestTarget | null,
+): boolean {
+  return target !== null
+    && target.method === "POST"
+    && multipartCompletionPathPattern.test(target.path);
 }
