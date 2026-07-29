@@ -148,7 +148,7 @@ npx cdk deploy --all --require-approval never \
 echo "=== Run database migrations ==="
 bash "${ROOT_DIR}/scripts/deploy/migrate-aws.sh" \
   --stack-name "$STACK_NAME" \
-  --require-migration 0100_multipart_replacement_creation_claim.sql
+  --require-migration 0101_multipart_foreground_completion_fencing.sql
 
 echo "=== CDK deploy with reconciliation schedule enabled ==="
 npx cdk deploy --all --require-approval never \

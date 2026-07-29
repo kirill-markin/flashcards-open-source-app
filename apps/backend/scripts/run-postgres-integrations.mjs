@@ -85,6 +85,14 @@ const createdRolesByMigration = new Map([
 ]);
 const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0101_multipart_foreground_completion_fencing.sql",
+    expectedMigrationCount: 103,
+    testFiles: Object.freeze([
+      "src/mediaAssets/atomicMultipartWriter.postgres.integration.ts",
+      "src/mediaAssets/multipartForegroundFencing.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0100_multipart_replacement_creation_claim.sql",
     expectedMigrationCount: 102,
     testFiles: Object.freeze([
