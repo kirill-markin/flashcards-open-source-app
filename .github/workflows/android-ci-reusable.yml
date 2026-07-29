@@ -117,6 +117,7 @@ jobs:
           api-level: "37.0"
           target: google_apis
           arch: x86_64
+          ram-size: 4096M
           disable-animations: true
           emulator-options: -no-window -gpu auto -no-snapshot -noaudio -no-boot-anim
           script: cd apps/android && ANDROID_VERSION_CODE="${{ inputs.android_version_code }}" ./gradlew --no-daemon :data:local:connectedDebugAndroidTest
