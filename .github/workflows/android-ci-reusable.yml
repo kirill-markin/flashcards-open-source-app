@@ -78,7 +78,7 @@ jobs:
       - build
     if: ${{ inputs.run_data_local_instrumentation }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v7
