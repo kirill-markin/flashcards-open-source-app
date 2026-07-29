@@ -121,6 +121,7 @@ jobs:
           ram-size: 4096M
           # emulator-runner v2.38.0 writes hw.heapSize, but the emulator reads vm.heapSize.
           pre-emulator-launch-script: |
+            adb start-server
             echo "vm.heapSize=512" >> "${ANDROID_AVD_HOME}/test.avd/config.ini"
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim
