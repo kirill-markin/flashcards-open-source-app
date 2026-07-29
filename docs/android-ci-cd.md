@@ -76,7 +76,7 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 - Runs `:app:lintDebug`
 - Delegates the GitHub-hosted Android Gradle entrypoints to repo-root shell scripts in `scripts/android/`
 - Uploads the debug APK, Android test APK, unit test reports, and lint report as workflow artifacts
-- Boots a headless Android 17 / API 37 emulator in GitHub Actions with `-gpu auto`
+- Boots a headless Android 17 / API 37 emulator in GitHub Actions with `-gpu swiftshader`
 - Runs `:data:local:connectedDebugAndroidTest` on that emulator
 - Uploads `data:local` instrumentation reports from the emulator run when the Gradle task produced them
 - Reuses the caller-provided `ANDROID_VERSION_CODE` across Android CI/build artifacts
