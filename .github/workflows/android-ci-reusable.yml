@@ -119,6 +119,7 @@ jobs:
           arch: x86_64
           profile: pixel_7_pro
           ram-size: 4096M
+          heap-size: 512M
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim
           script: cd apps/android && ANDROID_VERSION_CODE="${{ inputs.android_version_code }}" ./gradlew --no-daemon :data:local:connectedDebugAndroidTest
