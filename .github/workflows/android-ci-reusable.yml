@@ -92,17 +92,70 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6.2.0
 
+      - name: Install Android SDK Command-line Tools 22.0
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          cmdline_tools_root="${ANDROID_SDK_ROOT}/cmdline-tools"
+          runner_image_tools="${cmdline_tools_root}/latest"
+          runner_image_backup="${cmdline_tools_root}/latest-runner-image-12.0"
+          installed_tools="${cmdline_tools_root}/22.0"
+
+          "${runner_image_tools}/bin/sdkmanager" "cmdline-tools;22.0"
+
+          if [[ ! -x "${installed_tools}/bin/sdkmanager" || ! -x "${installed_tools}/bin/avdmanager" ]]; then
+            echo "::error::Command-line Tools 22.0 did not install correctly at ${installed_tools}."
+            exit 1
+          fi
+          if [[ -e "${runner_image_backup}" || -L "${runner_image_backup}" ]]; then
+            echo "::error::Cannot preserve the runner's Command-line Tools because ${runner_image_backup} already exists."
+            exit 1
+          fi
+
+          mv "${runner_image_tools}" "${runner_image_backup}"
+          ln -s "22.0" "${runner_image_tools}"
+          echo "${installed_tools}/bin" >> "${GITHUB_PATH}"
+
       - name: Install Android SDK packages
         env:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
-          yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
-          "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" \
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager \
             "platform-tools" \
             "emulator" \
             "platforms;android-37.0" \
             "build-tools;37.0.0" \
             "system-images;android-37.0;google_apis;x86_64"
+
+      - name: Create and validate Android 17 AVD
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          set -euo pipefail
+
+          export ANDROID_AVD_HOME="${HOME}/.android/avd"
+          avdmanager_path="${ANDROID_SDK_ROOT}/cmdline-tools/22.0/bin/avdmanager"
+          avd_root_ini="${ANDROID_AVD_HOME}/test.ini"
+
+          mkdir -p "${ANDROID_AVD_HOME}"
+          echo no | "${avdmanager_path}" create avd \
+            --force \
+            --name "test" \
+            --package "system-images;android-37.0;google_apis;x86_64" \
+            --device "pixel_7_pro"
+
+          if [[ ! -f "${avd_root_ini}" ]]; then
+            echo "::error::Expected AVD root INI at ${avd_root_ini}, but the file does not exist."
+            exit 1
+          fi
+
+          actual_target="$(sed -n '/^target=/p' "${avd_root_ini}")"
+          if [[ "${actual_target}" != "target=android-37.0" ]]; then
+            echo "::error::Expected ${avd_root_ini} to contain exactly target=android-37.0, found: ${actual_target:-no target entry}."
+            exit 1
+          fi
+          echo "Validated ${avd_root_ini}: ${actual_target}"
 
       - name: Enable KVM access
         run: |
@@ -119,10 +172,10 @@ jobs:
           arch: x86_64
           profile: pixel_7_pro
           ram-size: 4096M
+          avd-name: test
+          force-avd-creation: false
           # emulator-runner v2.38.0 writes hw.heapSize, but the emulator reads vm.heapSize.
-          pre-emulator-launch-script: |
-            adb start-server
-            echo "vm.heapSize=512" >> "${ANDROID_AVD_HOME}/test.avd/config.ini"
+          pre-emulator-launch-script: adb start-server && echo "vm.heapSize=512" >> "$HOME/.android/avd/test.avd/config.ini"
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim
           script: cd apps/android && ANDROID_VERSION_CODE="${{ inputs.android_version_code }}" ./gradlew --no-daemon :data:local:connectedDebugAndroidTest
