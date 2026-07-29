@@ -186,6 +186,27 @@ test("workspace package import card persistence returns empty results without op
   assert.deepEqual(harness.createCardCalls, []);
 });
 
+test("workspace package import card persistence rejects unsafe prefixes before opening a transaction", async () => {
+  const harness = createPersistenceHarness();
+
+  await assert.rejects(
+    () => persistWorkspacePackageImportCardsWithDependencies(
+      {
+        ...createPersistenceInput([]),
+        operationIdPrefix: " unsafe-prefix",
+      },
+      harness.dependencies,
+    ),
+    (error: unknown): boolean => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.code, "WORKSPACE_PACKAGE_IMPORT_INPUT_INVALID");
+      return true;
+    },
+  );
+  assert.deepEqual(harness.transactionCalls, []);
+  assert.deepEqual(harness.createCardCalls, []);
+});
+
 test("workspace package import card persistence maps one planned card inside one transaction", async () => {
   const plannedCard = createPlannedCard(
     "Prompt",

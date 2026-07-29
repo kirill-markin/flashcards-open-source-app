@@ -43,6 +43,7 @@ export interface MonitoringProps {
   streakLeaderboardSnapshotFn: lambda.IFunction;
   progressActiveDaysBackfillFn: lambda.IFunction;
   generatedMediaPromotionFn: lambda.IFunction;
+  multipartCompletionReconciliationFn: lambda.Function;
 }
 
 export interface MonitoringResult {
@@ -58,6 +59,12 @@ const directImageIngestionHandled5xxMetricName: string =
   "DirectImageIngestionHandledHttp5xx";
 const directImageIngestionHandled5xxAction: string =
   "direct_image_ingestion_handled_http_5xx";
+const multipartCompletionReconciliationFailureMetricNamespace: string =
+  "FlashcardsOpenSourceApp/MultipartCompletionReconciliation";
+const multipartCompletionReconciliationFailureMetricName: string =
+  "FailedJobs";
+export const multipartCompletionReconciliationFailureMetricValue: string =
+  "1";
 
 function createAuthApiAccessLog5xxFilterPattern(): logs.IFilterPattern {
   return logs.FilterPattern.any(
@@ -75,6 +82,17 @@ logs.IFilterPattern {
     ),
     logs.FilterPattern.numberValue("$.message.statusCode", ">=", 500),
     logs.FilterPattern.numberValue("$.message.statusCode", "<", 600),
+  );
+}
+
+export function createMultipartCompletionReconciliationFailureFilterPattern():
+logs.IFilterPattern {
+  return logs.FilterPattern.all(
+    logs.FilterPattern.stringValue(
+      "$.message.action",
+      "=",
+      "multipart_completion_reconciliation_job_terminally_failed",
+    ),
   );
 }
 
@@ -399,6 +417,72 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     alarmDescription: "Generated-media promotion Lambda has not run for ten minutes",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  new cloudwatch.Alarm(
+    scope,
+    "MultipartCompletionReconciliationLambdaErrorAlarm",
+    {
+      metric: props.multipartCompletionReconciliationFn.metricErrors({
+        period: cdk.Duration.minutes(5),
+        statistic: "Sum",
+      }),
+      threshold: 1,
+      evaluationPeriods: 1,
+      alarmDescription:
+        "Multipart completion reconciliation Lambda had unhandled errors",
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    },
+  ).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  new cloudwatch.Alarm(
+    scope,
+    "MultipartCompletionReconciliationStaleAlarm",
+    {
+      metric: props.multipartCompletionReconciliationFn.metricInvocations({
+        period: cdk.Duration.minutes(5),
+        statistic: "Sum",
+      }),
+      threshold: 1,
+      comparisonOperator:
+        cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+      evaluationPeriods: 2,
+      datapointsToAlarm: 2,
+      alarmDescription:
+        "Multipart completion reconciliation Lambda has not run for ten minutes",
+      treatMissingData: cloudwatch.TreatMissingData.BREACHING,
+    },
+  ).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  const multipartCompletionReconciliationFailureMetricFilter =
+    new logs.MetricFilter(
+      scope,
+      "MultipartCompletionReconciliationFailureMetricFilter",
+      {
+        logGroup: props.multipartCompletionReconciliationFn.logGroup,
+        filterPattern:
+          createMultipartCompletionReconciliationFailureFilterPattern(),
+        metricNamespace:
+          multipartCompletionReconciliationFailureMetricNamespace,
+        metricName: multipartCompletionReconciliationFailureMetricName,
+        metricValue: multipartCompletionReconciliationFailureMetricValue,
+        defaultValue: 0,
+      },
+    );
+  new cloudwatch.Alarm(
+    scope,
+    "MultipartCompletionReconciliationFailedJobsAlarm",
+    {
+      metric: multipartCompletionReconciliationFailureMetricFilter.metric({
+        period: cdk.Duration.minutes(5),
+        statistic: "Sum",
+      }),
+      threshold: 1,
+      evaluationPeriods: 1,
+      alarmDescription:
+        "Multipart completion reconciliation terminally failed one or more jobs",
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    },
+  ).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
 
   return { alertTopic };
 }

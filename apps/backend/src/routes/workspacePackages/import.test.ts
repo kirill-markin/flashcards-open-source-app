@@ -15,6 +15,7 @@ import {
   workspacePackageImportConfirmRouteMaxZipBytes,
   workspacePackageImportPreviewRouteMaxZipBytes,
 } from "./index";
+import { workspacePackageImportOperationIdPrefixMaximumLength } from "../../workspacePackages/import/operationIds";
 import {
   cardId,
   createRequestContext,
@@ -669,6 +670,36 @@ test("POST /workspaces/:workspaceId/packages/import rejects malformed multipart,
       expectedCode: "WORKSPACE_PACKAGE_IMPORT_OPTIONS_INVALID",
       errorPattern: /options are invalid/,
       detailsPattern: /lastModifiedByReplicaId/,
+    },
+    {
+      name: "unsafe operation id prefix",
+      createRequestInit: () => ({
+        method: "POST",
+        body: createWorkspacePackageImportConfirmFormData(zipBytes, {
+          ...validOptions,
+          operationIdPrefix: "unsafe\u00a0prefix",
+        }),
+      }),
+      expectedStatus: 400,
+      expectedCode: "WORKSPACE_PACKAGE_IMPORT_OPTIONS_INVALID",
+      errorPattern: /options are invalid/,
+      detailsPattern: /operationIdPrefix/,
+    },
+    {
+      name: "oversized operation id prefix",
+      createRequestInit: () => ({
+        method: "POST",
+        body: createWorkspacePackageImportConfirmFormData(zipBytes, {
+          ...validOptions,
+          operationIdPrefix: "a".repeat(
+            workspacePackageImportOperationIdPrefixMaximumLength + 1,
+          ),
+        }),
+      }),
+      expectedStatus: 400,
+      expectedCode: "WORKSPACE_PACKAGE_IMPORT_OPTIONS_INVALID",
+      errorPattern: /options are invalid/,
+      detailsPattern: /operationIdPrefix/,
     },
   ];
 

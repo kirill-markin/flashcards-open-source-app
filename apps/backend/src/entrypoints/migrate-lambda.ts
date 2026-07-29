@@ -21,6 +21,7 @@ type MigrationLambdaRuntimeRoleResult = Readonly<{
 
 type MigrationLambdaResult = Readonly<{
   appliedMigrations: ReadonlyArray<string>;
+  installedMigrations: ReadonlyArray<string>;
   appliedViews: ReadonlyArray<string>;
   configuredRuntimeRoles: ReadonlyArray<MigrationLambdaRuntimeRoleResult>;
 }>;

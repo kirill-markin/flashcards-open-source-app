@@ -54,6 +54,7 @@ function createMediaAssetUploadMismatchError(
   const mismatchedFields = [
     ...(objectMetadata.sizeBytes === input.sizeBytes ? [] : ["sizeBytes"]),
     ...(objectMetadata.mimeType === input.mimeType ? [] : ["mimeType"]),
+    ...(objectMetadata.checksumType === "FULL_OBJECT" ? [] : ["checksumType"]),
     ...(objectMetadata.checksumSha256 === input.sha256 ? [] : ["sha256"]),
   ];
 
@@ -119,7 +120,10 @@ export function assertMediaAssetObjectContentMatches(
   objectMetadata: MediaAssetObjectMetadata,
 ): void {
   assertMediaAssetObjectShapeMatches(input, objectMetadata);
-  if (objectMetadata.checksumSha256 !== input.sha256) {
+  if (
+    objectMetadata.checksumType !== "FULL_OBJECT"
+    || objectMetadata.checksumSha256 !== input.sha256
+  ) {
     throw createMediaAssetUploadMismatchError(input, objectMetadata);
   }
 }

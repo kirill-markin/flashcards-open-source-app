@@ -43,6 +43,7 @@ import {
   mediaBlobNormalizationVersions,
   passthroughMediaBlobNormalizationVersion,
 } from "../types";
+import { isValidMediaAssetLastOperationId } from "../lastOperationId";
 import { assertReplicaBelongsToWorkspaceInExecutor } from "../workspaceReplicas";
 
 export type MediaAssetUploadSessionWriterClosure =
@@ -114,6 +115,12 @@ type OwnedMultipartReservationRow = Readonly<{
   reservation_token: string | null; reservation_state: string | null;
   reservation_status: string; normalization_version: string;
 }>;
+type MediaAssetUploadSessionCompletionStartTransition =
+  | MediaAssetUploadSessionCompletionStartResult
+  | Readonly<{
+    status: "legacy_operation_id_restart_required";
+    sessionId: string;
+  }>;
 
 const MEDIA_UPLOAD_SESSION_COLUMNS = [
   "media_upload_session_id",
@@ -309,6 +316,20 @@ function createMediaAssetUploadSessionNotFoundError(sessionId: string): HttpErro
     404,
     `Media asset upload session not found. sessionId=${sessionId}`,
     "MEDIA_ASSET_UPLOAD_SESSION_NOT_FOUND",
+  );
+}
+
+function createMediaAssetUploadSessionRestartRequiredError(
+  sessionId: string,
+): HttpError {
+  return new HttpError(
+    409,
+    [
+      "Media asset upload session uses a legacy operation identifier.",
+      "Abort this upload session and create a new upload session before retrying completion.",
+      `sessionId=${sessionId}`,
+    ].join(" "),
+    "MEDIA_ASSET_UPLOAD_SESSION_RESTART_REQUIRED",
   );
 }
 
@@ -551,8 +572,22 @@ export async function beginMediaAssetUploadSessionCompletionForWorkspace(
   sessionId: string,
   parts: ReadonlyArray<Readonly<{ partNumber: number }>>,
 ): Promise<MediaAssetUploadSessionCompletionStartResult> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
-    beginMediaAssetUploadSessionCompletionInExecutor(executor, workspaceId, sessionId, parts));
+  const transition = await transactionWithWorkspaceScope(
+    { userId, workspaceId },
+    async (executor) =>
+      beginMediaAssetUploadSessionCompletionInExecutor(
+        executor,
+        workspaceId,
+        sessionId,
+        parts,
+      ),
+  );
+  if (transition.status === "legacy_operation_id_restart_required") {
+    throw createMediaAssetUploadSessionRestartRequiredError(
+      transition.sessionId,
+    );
+  }
+  return transition;
 }
 
 export async function beginMediaAssetUploadSessionCompletionInExecutor(
@@ -560,7 +595,7 @@ export async function beginMediaAssetUploadSessionCompletionInExecutor(
   workspaceId: string,
   sessionId: string,
   parts: ReadonlyArray<Readonly<{ partNumber: number }>>,
-): Promise<MediaAssetUploadSessionCompletionStartResult> {
+): Promise<MediaAssetUploadSessionCompletionStartTransition> {
   const row = await findMediaAssetUploadSessionRowForUpdateInExecutor(executor, workspaceId, sessionId);
   if (row === null) {
     throw createMediaAssetUploadSessionNotFoundError(sessionId);
@@ -576,6 +611,28 @@ export async function beginMediaAssetUploadSessionCompletionInExecutor(
   }
 
   assertMediaAssetUploadSessionCanComplete(session);
+  if (isValidMediaAssetLastOperationId(session.lastOperationId) === false) {
+    if (session.state === "completing") {
+      const result = await executor.query<Readonly<{ state: string }>>(
+        `UPDATE content.media_upload_sessions
+         SET state = 'active'
+         WHERE workspace_id = $1
+           AND media_upload_session_id = $2
+           AND state = 'completing'
+         RETURNING state`,
+        [workspaceId, sessionId],
+      );
+      if (result.rows[0]?.state !== "active") {
+        throw new Error(
+          `Legacy media asset upload session recovery did not return an active row. sessionId=${sessionId}`,
+        );
+      }
+    }
+    return {
+      status: "legacy_operation_id_restart_required",
+      sessionId,
+    };
+  }
   assertMediaAssetUploadSessionCompletionPartsMatch(session, parts);
   if (session.state === "completing") {
     return {

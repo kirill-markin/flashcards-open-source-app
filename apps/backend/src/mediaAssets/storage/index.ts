@@ -19,6 +19,7 @@ import type {
   PresignMediaAssetUploadInput,
   PresignMultipartMediaAssetUploadPartsInput,
   PromoteMediaAssetUploadInput,
+  ReconcileMultipartMediaAssetUploadInput,
   StoreMediaAssetBlobBytesInput,
 } from "./contracts";
 import {
@@ -26,6 +27,7 @@ import {
   completeMultipartMediaAssetUploadWithDependencies,
   createMultipartMediaAssetUploadWithDependencies,
 } from "./multipart";
+import { reconcileMultipartMediaAssetUploadWithDependencies } from "./multipartReconciliation";
 import {
   assertMediaAssetObjectMatchesWithDependencies,
   loadMediaAssetObjectBytesWithDependencies,
@@ -71,6 +73,7 @@ export type {
   PresignMediaAssetUploadInput,
   PresignMultipartMediaAssetUploadPartsInput,
   PromoteMediaAssetUploadInput,
+  ReconcileMultipartMediaAssetUploadInput,
   StoreMediaAssetBlobBytesInput,
 } from "./contracts";
 export {
@@ -78,6 +81,14 @@ export {
   completeMultipartMediaAssetUploadWithDependencies,
   createMultipartMediaAssetUploadWithDependencies,
 } from "./multipart";
+export {
+  createMultipartCompletedPartsFingerprint,
+  reconcileMultipartMediaAssetUploadWithDependencies,
+} from "./multipartReconciliation";
+export {
+  MultipartCompletionReconciliationStorageTerminalError,
+  MultipartCompletionReconciliationStorageTransientError,
+} from "./errors";
 export {
   assertMediaAssetObjectMatchesWithDependencies,
   loadMediaAssetObjectBytesWithDependencies,
@@ -178,6 +189,15 @@ export async function abortMultipartMediaAssetUpload(
   input: AbortMultipartMediaAssetUploadInput,
 ): Promise<void> {
   return abortMultipartMediaAssetUploadWithDependencies(input, {
+    s3Client: getMediaAssetsS3Client(),
+    getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
+  });
+}
+
+export async function reconcileMultipartMediaAssetUpload(
+  input: ReconcileMultipartMediaAssetUploadInput,
+): Promise<void> {
+  return reconcileMultipartMediaAssetUploadWithDependencies(input, {
     s3Client: getMediaAssetsS3Client(),
     getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
   });

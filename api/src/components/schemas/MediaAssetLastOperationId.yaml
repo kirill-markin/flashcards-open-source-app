@@ -1,0 +1,8 @@
+type: string
+minLength: 1
+maxLength: 1024
+pattern: '^([!-~]|[!-~][ -~]*[!-~])$'
+description: >-
+  A printable ASCII identifier without leading or trailing spaces. UUIDs,
+  ULIDs, and identifiers with ASCII suffixes are supported.
+example: 43b7ec15-8f61-4f10-9cd2-c467c77804ba

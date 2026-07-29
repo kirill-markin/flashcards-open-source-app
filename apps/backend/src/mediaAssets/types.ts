@@ -285,6 +285,7 @@ export type PresignedMediaAssetUploadPart = Readonly<{
 export type MediaAssetObjectMetadata = Readonly<{
   sizeBytes: number | null;
   mimeType: string | null;
+  eTag: string | null;
   checksumSha256: string | null;
   checksumType: "COMPOSITE" | "FULL_OBJECT" | null;
   uploadProof: Readonly<{

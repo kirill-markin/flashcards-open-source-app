@@ -54,7 +54,4 @@ properties:
   lastModifiedByReplicaId:
     $ref: ./UuidString.yaml
   lastOperationId:
-    type: string
-    minLength: 1
-    maxLength: 1024
-    example: import-media-asset-43b7ec15
+    $ref: ./MediaAssetLastOperationId.yaml

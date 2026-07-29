@@ -141,11 +141,23 @@ echo "=== CDK bootstrap ==="
 cd "$CDK_DIR"
 npx cdk bootstrap --region "$REGION"
 
-echo "=== CDK deploy ==="
-npx cdk deploy --all --require-approval never
+echo "=== CDK deploy with reconciliation schedule disabled ==="
+npx cdk deploy --all --require-approval never \
+  -c multipartCompletionReconciliationScheduleState=DISABLED
 
 echo "=== Run database migrations ==="
-bash "${ROOT_DIR}/scripts/deploy/migrate-aws.sh" --stack-name "$STACK_NAME"
+bash "${ROOT_DIR}/scripts/deploy/migrate-aws.sh" \
+  --stack-name "$STACK_NAME" \
+  --require-migration 0099_durable_multipart_completion_reconciliation.sql
+
+echo "=== CDK deploy with reconciliation schedule enabled ==="
+npx cdk deploy --all --require-approval never \
+  -c multipartCompletionReconciliationScheduleState=ENABLED
+
+echo "=== Verify reconciliation schedule ==="
+bash "${ROOT_DIR}/scripts/checks/check-multipart-completion-reconciliation-schedule.sh" \
+  --stack-name "$STACK_NAME" \
+  --region "$REGION"
 
 echo "=== Seed global metrics snapshot ==="
 bash "${ROOT_DIR}/scripts/generate/generate-global-metrics-snapshot.sh" --stack-name "$STACK_NAME"

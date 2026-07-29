@@ -20,6 +20,7 @@ import type {
   MediaAssetSyncMutationResult,
   MediaBlobNormalizationVersion,
 } from "../types";
+import { isValidMediaAssetLastOperationId } from "../lastOperationId";
 import { passthroughMediaBlobNormalizationVersion } from "../types";
 import { expectMediaAssetSourceUrl } from "../validators";
 import {
@@ -53,6 +54,14 @@ function toInputLwwMetadata(metadata: MediaAssetMutationMetadata): LwwMetadata {
 export function normalizeMediaAssetMutationMetadata(
   metadata: MediaAssetMutationMetadata,
 ): MediaAssetMutationMetadata {
+  if (isValidMediaAssetLastOperationId(metadata.lastOperationId) === false) {
+    throw new HttpError(
+      400,
+      "lastOperationId must be 1 to 1024 printable ASCII characters without leading or trailing spaces",
+      "MEDIA_ASSET_LAST_OPERATION_ID_INVALID",
+    );
+  }
+
   return {
     clientUpdatedAt: normalizeIsoTimestamp(metadata.clientUpdatedAt, "clientUpdatedAt"),
     lastModifiedByReplicaId: metadata.lastModifiedByReplicaId,
@@ -260,9 +269,9 @@ export async function upsertMediaAssetSnapshotWithBlobNormalizationInExecutor(
   metadata: MediaAssetMutationMetadata,
   normalizationVersion: MediaBlobNormalizationVersion,
 ): Promise<MediaAssetSyncMutationResult> {
-  const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
   const normalizedInput = normalizeMediaAssetSnapshotInput(input);
   const normalizedMetadata = normalizeMediaAssetMutationMetadata(metadata);
+  const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
 
   let existingRow = await findMediaAssetRowForUpdateInExecutor(executor, workspaceId, normalizedInput.mediaAssetId);
   if (existingRow === null) {

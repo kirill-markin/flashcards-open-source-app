@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import {
+  catalogPackageInstallOperationIdPrefixMaximumLength,
   installCatalogPackageVersion,
+  isValidCatalogPackageInstallOperationIdPrefix,
   previewCatalogPackageInstall,
 } from "../catalog";
 import type {
@@ -53,6 +55,25 @@ function parseCatalogPackageVersionIdParam(value: string | undefined): string {
   }
 }
 
+function parseCatalogPackageInstallOperationIdPrefix(value: unknown): string {
+  if (
+    typeof value === "string"
+    && isValidCatalogPackageInstallOperationIdPrefix(value)
+  ) {
+    return value;
+  }
+
+  throw new HttpError(
+    400,
+    [
+      "operationIdPrefix must be",
+      `1 to ${catalogPackageInstallOperationIdPrefixMaximumLength}`,
+      "printable ASCII characters without leading or trailing spaces.",
+    ].join(" "),
+    "CATALOG_PACKAGE_INSTALL_INVALID_INPUT",
+  );
+}
+
 function parseCatalogPackageInstallConfirmInput(value: unknown): CatalogPackageInstallConfirmInput {
   const record = expectRecord(value);
   return {
@@ -60,7 +81,7 @@ function parseCatalogPackageInstallConfirmInput(value: unknown): CatalogPackageI
     installedAt: expectNonEmptyString(record.installedAt, "installedAt"),
     clientUpdatedAt: expectNonEmptyString(record.clientUpdatedAt, "clientUpdatedAt"),
     lastModifiedByReplicaId: expectUuidString(record.lastModifiedByReplicaId, "lastModifiedByReplicaId"),
-    operationIdPrefix: expectNonEmptyString(record.operationIdPrefix, "operationIdPrefix"),
+    operationIdPrefix: parseCatalogPackageInstallOperationIdPrefix(record.operationIdPrefix),
   };
 }
 

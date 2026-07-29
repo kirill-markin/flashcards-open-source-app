@@ -66,6 +66,7 @@ function createUploadSessionCompletionExecutor(): Readonly<{
   getSessionState: () => MediaAssetUploadSessionRow["state"];
   getCompletionUpdateCount: () => number;
   getRecoveryUpdateCount: () => number;
+  setLastOperationId: (lastOperationId: string) => void;
 }> {
   let sessionRow = createMediaAssetUploadSessionRow("active");
   let completionUpdateCount = 0;
@@ -116,6 +117,12 @@ function createUploadSessionCompletionExecutor(): Readonly<{
     getSessionState: () => sessionRow.state,
     getCompletionUpdateCount: () => completionUpdateCount,
     getRecoveryUpdateCount: () => recoveryUpdateCount,
+    setLastOperationId: (lastOperationId: string) => {
+      sessionRow = {
+        ...sessionRow,
+        last_operation_id: lastOperationId,
+      };
+    },
   };
 }
 
@@ -213,4 +220,50 @@ test("recoverMediaAssetUploadSessionCompletionInExecutor restores storage-reject
   assert.equal(retried.uploadSession.state, "completing");
   assert.equal(completion.getSessionState(), "completing");
   assert.equal(completion.getCompletionUpdateCount(), 2);
+});
+
+test("legacy upload-session identity stays abortable before storage completion", async () => {
+  const active = createUploadSessionCompletionExecutor();
+  active.setLastOperationId("legacy\u00a0operation");
+
+  assert.deepEqual(
+    await beginMediaAssetUploadSessionCompletionInExecutor(
+      active.executor,
+      testWorkspaceId,
+      testUploadSessionId,
+      [{ partNumber: 1 }, { partNumber: 2 }],
+    ),
+    {
+      status: "legacy_operation_id_restart_required",
+      sessionId: testUploadSessionId,
+    },
+  );
+  assert.equal(active.getSessionState(), "active");
+  assert.equal(active.getCompletionUpdateCount(), 0);
+  assert.equal(active.getRecoveryUpdateCount(), 0);
+
+  const completing = createUploadSessionCompletionExecutor();
+  const started = await beginMediaAssetUploadSessionCompletionInExecutor(
+    completing.executor,
+    testWorkspaceId,
+    testUploadSessionId,
+    [{ partNumber: 1 }, { partNumber: 2 }],
+  );
+  assert.equal(started.status, "complete_required");
+  completing.setLastOperationId("legacy\u00a0operation");
+
+  assert.deepEqual(
+    await beginMediaAssetUploadSessionCompletionInExecutor(
+      completing.executor,
+      testWorkspaceId,
+      testUploadSessionId,
+      [{ partNumber: 1 }, { partNumber: 2 }],
+    ),
+    {
+      status: "legacy_operation_id_restart_required",
+      sessionId: testUploadSessionId,
+    },
+  );
+  assert.equal(completing.getSessionState(), "active");
+  assert.equal(completing.getRecoveryUpdateCount(), 1);
 });

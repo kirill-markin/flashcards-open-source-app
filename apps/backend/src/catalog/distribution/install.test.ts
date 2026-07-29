@@ -5,6 +5,7 @@ import type { DatabaseExecutor, SqlValue } from "../../database";
 import { createCatalogInstallRoutes } from "../../routes/catalogInstall";
 import { HttpError } from "../../shared/errors";
 import {
+  catalogPackageInstallOperationIdPrefixMaximumLength,
   installCatalogPackageVersionInExecutor,
   previewCatalogPackageInstallInExecutor,
 } from "./install";
@@ -283,6 +284,48 @@ test("catalog install rejects invalid client timestamps as bad input", async () 
   assert.equal(queryCount, 0);
 });
 
+test("catalog install rejects unsafe operation prefixes before database work", async () => {
+  let queryCount = 0;
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(): Promise<pg.QueryResult<Row>> {
+      queryCount += 1;
+      throw new Error("operationIdPrefix validation should run before database queries");
+    },
+  };
+  const invalidPrefixes = [
+    " leading-space",
+    "trailing-space ",
+    "unsafe\nprefix",
+    "unsafe\u00a0prefix",
+    "a".repeat(catalogPackageInstallOperationIdPrefixMaximumLength + 1),
+  ];
+
+  for (const operationIdPrefix of invalidPrefixes) {
+    await assert.rejects(
+      installCatalogPackageVersionInExecutor(
+        executor,
+        testWorkspaceId,
+        testPackageVersionId,
+        {
+          installId: "catalog-install-invalid-operation-prefix",
+          installedAt: testInstallTimestamp,
+          clientUpdatedAt: testInstallTimestamp,
+          lastModifiedByReplicaId: testWorkspaceReplicaId,
+          operationIdPrefix,
+        },
+      ),
+      (error: unknown): boolean => {
+        assert.ok(error instanceof HttpError);
+        assert.equal(error.statusCode, 400);
+        assert.equal(error.code, "CATALOG_PACKAGE_INSTALL_INVALID_INPUT");
+        assert.match(error.message, /operationIdPrefix.*printable ASCII/);
+        return true;
+      },
+    );
+  }
+  assert.equal(queryCount, 0);
+});
+
 test("catalog install rejects invalid package card source createdAt", async () => {
   const queries: Array<Readonly<{ text: string; params: ReadonlyArray<SqlValue> }>> = [];
   const installInput = {
@@ -497,4 +540,71 @@ test("catalog install route rejects unauthorized workspace access before install
     },
   );
   assert.equal(previewCalled, false);
+});
+
+test("catalog install route rejects unsafe operation prefixes without sanitizing them", async () => {
+  let installCalled = false;
+  const app = createCatalogInstallRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {
+        authorizationHeader: undefined,
+        sessionToken: undefined,
+        csrfTokenHeader: undefined,
+        originHeader: undefined,
+        refererHeader: undefined,
+        secFetchSiteHeader: undefined,
+      },
+      requestContext: {
+        userId: "user-1",
+        subjectUserId: "subject-user-1",
+        selectedWorkspaceId: null,
+        email: "user@example.com",
+        locale: "en",
+        userSettingsCreatedAt: testTimestamp,
+        preferences: {
+          reviewReactionAnimationsEnabled: true,
+        },
+        transport: "api_key",
+        connectionId: "connection-1",
+        guestSessionId: null,
+        guestPlatform: null,
+      },
+    }),
+    assertUserHasWorkspaceAccessFn: async () => undefined,
+    installCatalogPackageVersionFn: async () => {
+      installCalled = true;
+      throw new Error("catalog install must not run for an unsafe operationIdPrefix");
+    },
+  });
+  app.onError((error) => {
+    throw error;
+  });
+
+  await assert.rejects(
+    async () => app.request(
+      `http://localhost/workspaces/${testWorkspaceId}/catalog/package-versions/${testPackageVersionId}/install`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          installId: "catalog-install-route-invalid-prefix",
+          installedAt: testInstallTimestamp,
+          clientUpdatedAt: testInstallTimestamp,
+          lastModifiedByReplicaId: testWorkspaceReplicaId,
+          operationIdPrefix: " trailing-space ",
+        }),
+      },
+    ),
+    (error: unknown): boolean => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.statusCode, 400);
+      assert.equal(error.code, "CATALOG_PACKAGE_INSTALL_INVALID_INPUT");
+      assert.match(error.message, /operationIdPrefix.*printable ASCII/);
+      return true;
+    },
+  );
+  assert.equal(installCalled, false);
 });

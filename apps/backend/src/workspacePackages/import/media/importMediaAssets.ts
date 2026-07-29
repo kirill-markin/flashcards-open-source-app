@@ -8,6 +8,11 @@ import type { MediaAsset } from "../../../mediaAssets/types";
 import type { BackendObservationScope } from "../../../observability/sentry";
 import { HttpError } from "../../../shared/errors";
 import { validateUniquePortableMediaPaths } from "../../markdownMedia";
+import { workspacePackageImportZipDefaultMaxMediaFiles } from "../importZip";
+import {
+  assertValidWorkspacePackageImportOperationIdPrefix,
+  buildWorkspacePackageImportMediaLastOperationId,
+} from "../operationIds";
 import type { WorkspacePackageImportReferencedMediaFile } from "./importMedia";
 
 export type WorkspacePackageImportMediaAssetIngestionInput = Readonly<{
@@ -67,10 +72,6 @@ function assertReferencedMediaFilesHaveUniquePortablePaths(
   }
 }
 
-function buildMediaImportLastOperationId(operationIdPrefix: string, mediaFileIndex: number): string {
-  return `${operationIdPrefix}:media:${mediaFileIndex}`;
-}
-
 function buildImageMediaAssetIngestionInput(
   input: WorkspacePackageImportMediaAssetIngestionInput,
   mediaFile: WorkspacePackageImportReferencedMediaFile,
@@ -86,7 +87,10 @@ function buildImageMediaAssetIngestionInput(
       createdAt: input.createdAt,
       clientUpdatedAt: input.clientUpdatedAt,
       lastModifiedByReplicaId: input.lastModifiedByReplicaId,
-      lastOperationId: buildMediaImportLastOperationId(input.operationIdPrefix, mediaFileIndex),
+      lastOperationId: buildWorkspacePackageImportMediaLastOperationId(
+        input.operationIdPrefix,
+        mediaFileIndex,
+      ),
     },
     imageBytes: mediaFile.bytes,
     observationScope: input.observationScope,
@@ -111,6 +115,18 @@ export async function ingestWorkspacePackageImportMediaAssetsWithDependencies(
   input: WorkspacePackageImportMediaAssetIngestionInput,
   dependencies: WorkspacePackageImportMediaAssetIngestionDependencies,
 ): Promise<WorkspacePackageImportMediaAssetIngestionResult> {
+  assertValidWorkspacePackageImportOperationIdPrefix(input.operationIdPrefix);
+  if (input.referencedMediaFiles.length > workspacePackageImportZipDefaultMaxMediaFiles) {
+    throw new HttpError(
+      400,
+      [
+        "Workspace package contains too many referenced media files.",
+        `mediaFileCount=${input.referencedMediaFiles.length}`,
+        `maximumCount=${workspacePackageImportZipDefaultMaxMediaFiles}`,
+      ].join(" "),
+      "WORKSPACE_PACKAGE_IMPORT_INPUT_INVALID",
+    );
+  }
   assertReferencedMediaFilesHaveUniquePortablePaths(input.referencedMediaFiles);
 
   const importedMediaAssets: Array<WorkspacePackageImportedMediaAsset> = [];

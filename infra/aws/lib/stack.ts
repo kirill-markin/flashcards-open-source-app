@@ -20,6 +20,10 @@ import { communityLeaderboard } from "./scheduled-jobs/community-leaderboard";
 import { streakLeaderboard } from "./scheduled-jobs/streak-leaderboard";
 import { progressActiveDaysBackfill } from "./scheduled-jobs/progress-active-days-backfill";
 import { generatedMediaPromotion } from "./scheduled-jobs/generated-media-promotion";
+import {
+  multipartCompletionReconciliation,
+  type MultipartCompletionReconciliationScheduleState,
+} from "./scheduled-jobs/multipart-completion-reconciliation";
 import { mediaAssets } from "./media-assets";
 
 function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefined {
@@ -39,6 +43,24 @@ function getOptionalRawContextValue(stack: cdk.Stack, key: string): string | und
   }
 
   return value;
+}
+
+function getMultipartCompletionReconciliationScheduleState(
+  stack: cdk.Stack,
+): MultipartCompletionReconciliationScheduleState {
+  const value = getOptionalContextValue(
+    stack,
+    "multipartCompletionReconciliationScheduleState",
+  );
+  if (value === undefined) {
+    return "DISABLED";
+  }
+  if (value === "DISABLED" || value === "ENABLED") {
+    return value;
+  }
+  throw new Error(
+    "multipartCompletionReconciliationScheduleState must be DISABLED or ENABLED",
+  );
 }
 
 interface BackendSentryContext {
@@ -157,6 +179,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     // When disabled, no client can fetch global stats from that endpoint.
     const rawGlobalMetricsVisible = getOptionalRawContextValue(this, "globalMetricsVisible");
     const globalMetricsVisible = rawGlobalMetricsVisible === "true";
+    const multipartCompletionReconciliationScheduleState =
+      getMultipartCompletionReconciliationScheduleState(this);
     const analyticsAccessRequested =
       analyticsSshPublicKeysValue !== undefined ||
       analyticsSshAllowedCidrsValue !== undefined ||
@@ -204,6 +228,16 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       mediaAssetsBucket: mediaAssetsResult.bucket,
       ...sentryContext,
     });
+    const multipartCompletionReconciliationResult =
+      multipartCompletionReconciliation(this, {
+        vpc: net.vpc,
+        lambdaSg: net.lambdaSg,
+        db: dbResult.db,
+        backendDbSecret: dbResult.backendDbSecret,
+        mediaAssetsBucket: mediaAssetsResult.bucket,
+        scheduleState: multipartCompletionReconciliationScheduleState,
+        ...sentryContext,
+      });
     let analyticsAccessResult: AnalyticsAccessResult | undefined;
     if (analyticsAccessRequested) {
       if (analyticsSshPublicKeysValue === undefined) {
@@ -330,6 +364,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       streakLeaderboardSnapshotFn: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFn: progressActiveDaysBackfillResult.backfillFunction,
       generatedMediaPromotionFn: generatedMediaPromotionResult.promotionFunction,
+      multipartCompletionReconciliationFn:
+        multipartCompletionReconciliationResult.reconciliationFunction,
     });
 
     ciCd(this, {
@@ -344,6 +380,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       streakLeaderboardSnapshotFn: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFn: progressActiveDaysBackfillResult.backfillFunction,
       migrationFn,
+      multipartCompletionReconciliationScheduleArn:
+        multipartCompletionReconciliationResult.reconciliationScheduleArn,
       userPoolArn: authResult.userPool.userPoolArn,
       webBucket: web.bucket,
       webDistribution: web.distribution,
@@ -387,6 +425,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       apexRedirectDistribution: web.apexRedirectDistribution,
       apexRedirectCustomDomain: web.apexRedirectCustomDomain,
       mediaAssetsBucket: mediaAssetsResult.bucket,
+      multipartCompletionReconciliationScheduleName:
+        multipartCompletionReconciliationResult.reconciliationScheduleName,
       dbAccessInstance: analyticsAccessResult?.dbAccessInstance,
       reportingDbSecret: dbResult.reportingDbSecret,
       analyticsSshUsername: analyticsAccessResult?.sshUsername,

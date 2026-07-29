@@ -17,11 +17,22 @@ export interface CiCdProps {
   streakLeaderboardSnapshotFn: lambda.IFunction;
   progressActiveDaysBackfillFn: lambda.IFunction;
   migrationFn: lambda.IFunction;
+  multipartCompletionReconciliationScheduleArn: string;
   userPoolArn: string;
   webBucket: s3.IBucket;
   webDistribution: cloudfront.Distribution;
   adminBucket: s3.IBucket;
   adminDistribution: cloudfront.Distribution;
+}
+
+export function createMultipartCompletionReconciliationScheduleReadStatement(
+  scheduleArn: string,
+): iam.PolicyStatement {
+  return new iam.PolicyStatement({
+    sid: "ReadMultipartCompletionReconciliationSchedule",
+    actions: ["scheduler:GetSchedule"],
+    resources: [scheduleArn],
+  });
 }
 
 export function ciCd(scope: Construct, props: CiCdProps): void {
@@ -52,6 +63,9 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
       actions: ["lambda:InvokeFunction"],
       resources: [props.migrationFn.functionArn],
     }),
+    createMultipartCompletionReconciliationScheduleReadStatement(
+      props.multipartCompletionReconciliationScheduleArn,
+    ),
     new iam.PolicyStatement({
       sid: "ReadAuthLambdaConfiguration",
       actions: ["lambda:GetFunctionConfiguration"],

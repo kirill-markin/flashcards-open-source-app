@@ -477,6 +477,29 @@ test("mapMediaAssetRow omits backend-only blob storage fields from public media 
   assert.equal(Object.prototype.hasOwnProperty.call(mediaAsset, "normalizationVersion"), false);
 });
 
+test("mapMediaAssetRow preserves legacy non-canonical operation identifiers on reads", () => {
+  const mediaBlob = createMediaBlobRow({
+    mediaBlobId: testMediaBlobId,
+    mimeType: "image/png",
+    sizeBytes: 42,
+    sha256: testSha256,
+    storageKey: testStorageKey,
+  });
+  const legacyLastOperationId = "legacy\u00a0operation";
+  const mediaAsset = mapMediaAssetRow(createMediaAssetRow({
+    mediaAssetId: testMediaAssetId,
+    mediaBlob,
+    sourceUrl: null,
+    clientUpdatedAt: "2026-02-28T09:00:00.000Z",
+    lastModifiedByReplicaId: "replica-old",
+    lastOperationId: legacyLastOperationId,
+    updatedAt: "2026-02-28T09:00:00.000Z",
+    deletedAt: null,
+  }));
+
+  assert.equal(mediaAsset.lastOperationId, legacyLastOperationId);
+});
+
 test("mapMediaBlobRow exposes backend-only blob normalization version", () => {
   const mediaBlob = mapMediaBlobRow(createMediaBlobRow({
     mediaBlobId: testMediaBlobId,
@@ -518,6 +541,36 @@ test("upsertMediaAssetSnapshotInExecutor reuses one blob row for duplicate logic
   assert.equal(blobRowsBySha256.size, 1);
   assert.equal(assetRowsById.get(testMediaAssetId)?.media_blob_id, testMediaBlobId);
   assert.equal(assetRowsById.get(secondMediaAssetId)?.media_blob_id, testMediaBlobId);
+});
+
+test("upsertMediaAssetSnapshotInExecutor rejects unsafe last operation identifiers before database work", async () => {
+  let queryCount = 0;
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(): Promise<pg.QueryResult<Row>> {
+      queryCount += 1;
+      throw new Error("lastOperationId validation should run before database queries");
+    },
+  };
+
+  await assert.rejects(
+    upsertMediaAssetSnapshotInExecutor(
+      executor,
+      testWorkspaceId,
+      createSnapshotInput(testMediaAssetId),
+      {
+        clientUpdatedAt: "2026-02-28T10:00:00.000Z",
+        lastModifiedByReplicaId: "replica-new",
+        lastOperationId: "unsafe\u00a0operation",
+      },
+    ),
+    (error: unknown): boolean => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.statusCode, 400);
+      assert.equal(error.code, "MEDIA_ASSET_LAST_OPERATION_ID_INVALID");
+      return true;
+    },
+  );
+  assert.equal(queryCount, 0);
 });
 
 test("upsertMediaAssetSnapshotInExecutor rejects sha256 blob metadata collisions", async () => {

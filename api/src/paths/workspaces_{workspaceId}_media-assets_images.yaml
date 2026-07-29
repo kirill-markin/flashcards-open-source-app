@@ -48,9 +48,7 @@ post:
       in: header
       required: true
       schema:
-        type: string
-        minLength: 1
-        maxLength: 1024
+        $ref: ../components/schemas/MediaAssetLastOperationId.yaml
   requestBody:
     required: true
     content:

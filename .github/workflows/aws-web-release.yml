@@ -14,6 +14,7 @@ on:
       - 'scripts/checks/check-agent-api-smoke.sh'
       - 'scripts/checks/check-api-health.sh'
       - 'scripts/checks/check-demo-cognito-users.sh'
+      - 'scripts/checks/check-multipart-completion-reconciliation-schedule.sh'
       - 'scripts/checks/check-mcp-smoke.sh'
       - 'scripts/checks/check-public-endpoints.sh'
       - 'scripts/deploy/deploy-admin.sh'
@@ -64,7 +65,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          aws_release_script_pattern='^scripts/(checks/(check-agent-api-smoke|check-api-health|check-demo-cognito-users|check-mcp-smoke|check-public-endpoints)\.sh|deploy/(deploy-admin|deploy-web|migrate-aws)\.sh|generate/(generate-global-metrics-snapshot\.sh|write-ci-cdk-context\.py))$'
+          aws_release_script_pattern='^scripts/(checks/(check-agent-api-smoke|check-api-health|check-demo-cognito-users|check-mcp-smoke|check-multipart-completion-reconciliation-schedule|check-public-endpoints)\.sh|deploy/(deploy-admin|deploy-web|migrate-aws)\.sh|generate/(generate-global-metrics-snapshot\.sh|write-ci-cdk-context\.py))$'
 
           changed_files_path="${RUNNER_TEMP}/changed-files.txt"
           before_sha="${PUSH_BEFORE_SHA:-}"
@@ -358,7 +359,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: CDK deploy
+      - name: CDK deploy with reconciliation schedule disabled
         working-directory: infra/aws
         env:
           AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
@@ -401,13 +402,31 @@ jobs:
           python3 ../../scripts/generate/write-ci-cdk-context.py \
             --output cdk.context.local.json \
             --aws-deploy-role-arn "${AWS_DEPLOY_ROLE_ARN}"
-          npx cdk deploy --all --require-approval never
+          npx cdk deploy --all --require-approval never \
+            -c multipartCompletionReconciliationScheduleState=DISABLED
+
+      - name: Run database migrations
+        run: |
+          bash scripts/deploy/migrate-aws.sh \
+            --stack-name ${{ env.STACK_NAME }} \
+            --require-migration 0099_durable_multipart_completion_reconciliation.sql
+
+      - name: CDK deploy with reconciliation schedule enabled
+        working-directory: infra/aws
+        env:
+          SENTRY_UPLOAD_BACKEND_SOURCEMAPS: false
+        run: |
+          npx cdk deploy --all --require-approval never \
+            -c multipartCompletionReconciliationScheduleState=ENABLED
+
+      - name: Verify reconciliation schedule is enabled
+        run: |
+          bash scripts/checks/check-multipart-completion-reconciliation-schedule.sh \
+            --stack-name ${{ env.STACK_NAME }} \
+            --region ${{ env.AWS_REGION }}
 
       - name: Check demo Cognito users
         run: bash scripts/checks/check-demo-cognito-users.sh --stack-name ${{ env.STACK_NAME }} --region ${{ env.AWS_REGION }}
-
-      - name: Run database migrations
-        run: bash scripts/deploy/migrate-aws.sh --stack-name ${{ env.STACK_NAME }}
 
       - name: Seed global metrics snapshot
         run: bash scripts/generate/generate-global-metrics-snapshot.sh --stack-name ${{ env.STACK_NAME }}

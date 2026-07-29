@@ -534,12 +534,19 @@ async function apply0098UpgradeAndAssertSecurity(
       );
       await client.query("COMMIT");
     } else {
+      const expectedBaseline = baseline.latest
+        === "0099_durable_multipart_completion_reconciliation.sql"
+        ? {
+            migrations: 101,
+            latest: "0099_durable_multipart_completion_reconciliation.sql",
+          }
+        : {
+            migrations: 100,
+            latest: "0098_multipart_writer_abort_and_terminal_replay.sql",
+          };
       assert.deepEqual(
         { migrations: baseline.migrations, latest: baseline.latest },
-        {
-          migrations: 100,
-          latest: "0098_multipart_writer_abort_and_terminal_replay.sql",
-        },
+        expectedBaseline,
       );
       assert.equal(baseline.history_index_present, true);
     }

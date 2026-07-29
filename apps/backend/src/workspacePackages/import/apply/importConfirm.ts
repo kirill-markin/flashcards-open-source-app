@@ -32,6 +32,7 @@ import {
   type WorkspacePackageImportPlanOptions,
   type WorkspacePackageImportPlanPreflightInput,
 } from "../planning/importPlan";
+import { assertValidWorkspacePackageImportOperationIdPrefix } from "../operationIds";
 
 export type WorkspacePackageImportConfirmInput = Readonly<{
   userId: string;
@@ -219,6 +220,7 @@ export async function confirmWorkspacePackageImportWithDependencies(
   input: WorkspacePackageImportConfirmInput,
   dependencies: WorkspacePackageImportConfirmDependencies,
 ): Promise<WorkspacePackageImportConfirmResult> {
+  assertValidWorkspacePackageImportOperationIdPrefix(input.operationIdPrefix);
   await dependencies.assertReplicaBelongsToWorkspaceFn(
     input.userId,
     input.workspaceId,

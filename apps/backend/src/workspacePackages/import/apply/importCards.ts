@@ -11,6 +11,11 @@ import {
   type WorkspaceDatabaseScope,
 } from "../../../database";
 import { HttpError } from "../../../shared/errors";
+import { workspacePackageImportZipDefaultMaxCards } from "../importZip";
+import {
+  assertValidWorkspacePackageImportOperationIdPrefix,
+  buildWorkspacePackageImportCardLastOperationId,
+} from "../operationIds";
 import type { WorkspacePackageImportPlannedCard } from "../planning/importPlan";
 
 const workspacePackageImportCardPersistenceBatchSize = 100;
@@ -80,10 +85,6 @@ function createCardPersistenceError(
   return new Error(message);
 }
 
-function buildImportCardLastOperationId(operationIdPrefix: string, cardIndex: number): string {
-  return `${operationIdPrefix}:card:${cardIndex}`;
-}
-
 function buildBulkCreateCardItem(
   input: WorkspacePackageImportCardPersistenceInput,
   plannedCard: WorkspacePackageImportPlannedCard,
@@ -100,7 +101,10 @@ function buildBulkCreateCardItem(
     metadata: {
       clientUpdatedAt: input.clientUpdatedAt,
       lastModifiedByReplicaId: input.lastModifiedByReplicaId,
-      lastOperationId: buildImportCardLastOperationId(input.operationIdPrefix, cardIndex),
+      lastOperationId: buildWorkspacePackageImportCardLastOperationId(
+        input.operationIdPrefix,
+        cardIndex,
+      ),
     },
   };
 }
@@ -140,6 +144,18 @@ export async function persistWorkspacePackageImportCardsWithDependencies(
   input: WorkspacePackageImportCardPersistenceInput,
   dependencies: WorkspacePackageImportCardPersistenceDependencies,
 ): Promise<WorkspacePackageImportCardPersistenceResult> {
+  assertValidWorkspacePackageImportOperationIdPrefix(input.operationIdPrefix);
+  if (input.plannedCards.length > workspacePackageImportZipDefaultMaxCards) {
+    throw new HttpError(
+      400,
+      [
+        "Workspace package contains too many cards.",
+        `cardCount=${input.plannedCards.length}`,
+        `maximumCount=${workspacePackageImportZipDefaultMaxCards}`,
+      ].join(" "),
+      "WORKSPACE_PACKAGE_IMPORT_INPUT_INVALID",
+    );
+  }
   const items = input.plannedCards.map((plannedCard, cardIndex) => buildBulkCreateCardItem(
     input,
     plannedCard,

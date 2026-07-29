@@ -13,7 +13,9 @@ function getLogRecordDetails(event: BackendLogEvent): unknown {
   return "error" in event ? redactCloudWatchExceptionDetailTextFields(event.details) : event.details;
 }
 
-function createCloudWatchRecord(event: BackendLogEvent): SanitizedTelemetryValue {
+export function createCloudWatchRecord(
+  event: BackendLogEvent,
+): SanitizedTelemetryValue {
   const errorContext = "error" in event ? getBackendErrorLogDetails(event.error) : {};
   const message = "message" in event ? { message: event.message } : {};
   return sanitizeCloudWatchLogValue({

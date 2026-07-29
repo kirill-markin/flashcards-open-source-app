@@ -9,6 +9,7 @@ export type BackendService =
   | "streak-leaderboard-snapshot"
   | "progress-active-days-backfill"
   | "generated-media-promotion"
+  | "multipart-completion-reconciliation"
   | "migration";
 
 export type BackendObservationScope = Readonly<{
@@ -685,6 +686,38 @@ export type GeneratedMediaPromotionBatchDetails = Readonly<{
   }>>;
 }>;
 
+export type MultipartCompletionFailureReportBatchDetails = Readonly<{
+  maximumReports: number;
+  claimed: number;
+  ambiguous: number;
+  leaseLost: number;
+  reported: number;
+  results: ReadonlyArray<Readonly<{
+    failureEventId: string;
+    outcome: string;
+  }>>;
+}>;
+
+export type MultipartCompletionReconciliationBatchDetails = Readonly<{
+  maximumJobs: number; claimed: number; applied: number; ambiguous: number;
+  failed: number; interrupted: number; leaseLost: number; rescheduled: number;
+  results: ReadonlyArray<Readonly<{
+    attemptToken: string; outcome: string; retryCount: number;
+    errorCode: string | null;
+  }>>;
+  failureReports: MultipartCompletionFailureReportBatchDetails;
+}>;
+
+export type MultipartCompletionReconciliationTerminalFailureDetails =
+  Readonly<{
+    failureEventId: string;
+    attemptToken: string;
+    workspaceId: string;
+    retryCount: number;
+    errorCode: string;
+    deliveryAttempt: number;
+  }>;
+
 export type DatabaseTransientRetryDetails = Readonly<{
   attempt: number;
   maxAttempts: number;
@@ -733,6 +766,7 @@ export type MediaAssetStorageRetryDetails = Readonly<{
     | "create_presigned_part_upload"
     | "complete_multipart_upload"
     | "abort_multipart_upload"
+    | "list_multipart_upload_parts"
     | "head_object"
     | "get_object"
     | "copy_object"
@@ -743,6 +777,16 @@ export type MediaAssetStorageRetryDetails = Readonly<{
   mediaAssetId: string;
   statusCode: number | null;
   errorClass: string;
+}>;
+
+export type MediaAssetStorageTerminalDetails = Readonly<{
+  operation: MediaAssetStorageRetryDetails["operation"];
+  workspaceId: string;
+  mediaAssetId: string;
+  statusCode: number | null;
+  errorClass: string;
+  awsRequestId: string | null;
+  awsExtendedRequestId: string | null;
 }>;
 
 export type FeedbackEmailRetryDetails = Readonly<{
@@ -785,9 +829,12 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"streak_leaderboard_snapshot_generated", StreakLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"progress_active_days_backfill_completed", ProgressActiveDaysBackfillCompletedDetails>
   | EventByAction<"generated_media_promotion_batch_completed", GeneratedMediaPromotionBatchDetails>
+  | EventByAction<"multipart_completion_reconciliation_batch_completed", MultipartCompletionReconciliationBatchDetails>
+  | EventByAction<"multipart_completion_reconciliation_job_terminally_failed", MultipartCompletionReconciliationTerminalFailureDetails>
   | EventByAction<"database_transient_retry", DatabaseTransientRetryDetails>
   | EventByAction<"global_metrics_s3_retry", GlobalMetricsS3RetryDetails>
   | EventByAction<"media_asset_storage_retry", MediaAssetStorageRetryDetails>
+  | EventByAction<"media_asset_storage_terminal", MediaAssetStorageTerminalDetails>
   | EventByAction<"sync_push", SyncPushDetails>
   | EventByAction<"sync_push_error", SyncConflictFailureDetailsFor<SyncPushDetails>>
   | EventByAction<"sync_pull", SyncPullDetails>
@@ -1047,6 +1094,9 @@ export type BackendExceptionEvent =
     error: Error;
   }>)
   | (EventByAction<"generated_media_promotion_batch_failed", GeneratedMediaPromotionBatchDetails> & Readonly<{
+    error: Error;
+  }>)
+  | (EventByAction<"multipart_completion_reconciliation_batch_failed", MultipartCompletionReconciliationBatchDetails> & Readonly<{
     error: Error;
   }>)
   | (EventByAction<"migration_failed", MigrationFailureDetails> & Readonly<{ error: Error }>)

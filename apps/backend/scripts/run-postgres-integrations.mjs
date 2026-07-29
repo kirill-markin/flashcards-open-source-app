@@ -85,6 +85,17 @@ const createdRolesByMigration = new Map([
 ]);
 const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0099_durable_multipart_completion_reconciliation.sql",
+    expectedMigrationCount: 101,
+    testFiles: Object.freeze([
+      "src/database/deadline.postgres.integration.ts",
+      "src/mediaAssets/blobLifecycle.postgres.integration.ts",
+      "src/mediaAssets/directIngestionApply.postgres.integration.ts",
+      "src/mediaAssets/multipartCompletionReconciliation.postgres.integration.ts",
+      "src/mediaAssets/multipartWriterAbortReplay.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0098_multipart_writer_abort_and_terminal_replay.sql",
     expectedMigrationCount: 100,
     testFiles: Object.freeze([
@@ -1993,6 +2004,228 @@ async function assertHistoricalSeedBoundary(client) {
   );
 }
 
+async function seedMigration0099LegacyInvalidMediaAsset(client) {
+  const userId = "migration-0099-legacy-invalid-media-asset";
+  const workspaceId = "09900000-0000-4000-8000-000000000001";
+  const replicaId = "09900000-0000-4000-8000-000000000002";
+  const mediaBlobId = "09900000-0000-4000-8000-000000000003";
+  const mediaAssetId = "09900000-0000-4000-8000-000000000004";
+  const sha256 = "9".repeat(64);
+  const timestamp = "2026-07-29T00:00:00.000Z";
+
+  await client.query(
+    "INSERT INTO org.user_settings (user_id) VALUES ($1)",
+    [userId],
+  );
+  await client.query(
+    `INSERT INTO org.workspaces (
+       workspace_id, name, fsrs_client_updated_at,
+       fsrs_last_modified_by_replica_id, fsrs_last_operation_id
+     ) VALUES ($1, $2, $3, $4, $5)`,
+    [
+      workspaceId,
+      "Migration 0099 legacy media asset",
+      timestamp,
+      replicaId,
+      "migration-0099-legacy-workspace",
+    ],
+  );
+  await client.query(
+    `INSERT INTO org.workspace_memberships (
+       workspace_id, user_id, role
+     ) VALUES ($1, $2, 'owner')`,
+    [workspaceId, userId],
+  );
+  await client.query(
+    `INSERT INTO sync.workspace_replicas (
+       replica_id, workspace_id, user_id, actor_kind, installation_id,
+       actor_key, platform, app_version
+     ) VALUES ($1, $2, $3, 'ai_chat', NULL, $4, 'system', $5)`,
+    [
+      replicaId,
+      workspaceId,
+      userId,
+      "migration-0099-legacy-replica",
+      "postgres-integration",
+    ],
+  );
+  await client.query(
+    `INSERT INTO content.media_blobs (
+       media_blob_id, sha256, mime_type, size_bytes, storage_key,
+       normalization_version
+     ) VALUES ($1, $2, 'image/png', 1, $3, 'passthrough-v1')`,
+    [
+      mediaBlobId,
+      sha256,
+      `media/blobs/sha256/${sha256.slice(0, 2)}/${sha256.slice(2, 4)}/${sha256}`,
+    ],
+  );
+  await client.query(
+    `INSERT INTO content.media_assets (
+       media_asset_id, workspace_id, media_blob_id, source_url, created_at,
+       client_updated_at, last_modified_by_replica_id, last_operation_id
+     ) VALUES ($1, $2, $3, NULL, $4, $4, $5, $6)`,
+    [
+      mediaAssetId,
+      workspaceId,
+      mediaBlobId,
+      timestamp,
+      replicaId,
+      "migration-0099-legacy-\u00a0operation",
+    ],
+  );
+
+  const legacyActiveSessionId =
+    "09940000-0000-4000-8000-000000000001";
+  const legacyActiveMediaAssetId =
+    "09940000-0000-4000-8000-000000000002";
+  const legacyActiveSha256 = "d".repeat(64);
+  await client.query(
+    `INSERT INTO content.media_upload_sessions (
+       media_upload_session_id, workspace_id, media_asset_id,
+       media_blob_sha256, staging_storage_key, blob_storage_key,
+       s3_upload_id, mime_type, size_bytes, part_size_bytes, part_count,
+       state, source_url, asset_created_at, client_updated_at,
+       last_modified_by_replica_id, last_operation_id, expires_at
+     ) VALUES (
+       $1, $2, $3, $4, $5, $6, 'migration-0099-legacy-active-upload',
+       'application/octet-stream', 1, 1, 1, 'active', NULL, $7, $7, $8,
+       'migration-0099-legacy-\u00a0active', '2099-07-29T00:00:00.000Z'
+     )`,
+    [
+      legacyActiveSessionId,
+      workspaceId,
+      legacyActiveMediaAssetId,
+      legacyActiveSha256,
+      `media/uploads/workspaces/${workspaceId}/assets/${legacyActiveMediaAssetId}/sessions/${legacyActiveSessionId}`,
+      `media/blobs/sha256/${legacyActiveSha256.slice(0, 2)}/${legacyActiveSha256.slice(2, 4)}/${legacyActiveSha256}`,
+      timestamp,
+      replicaId,
+    ],
+  );
+
+  const legacyAttemptFixtures = [
+    {
+      kind: "replay",
+      sessionId: "09910000-0000-4000-8000-000000000001",
+      mediaAssetId: "09910000-0000-4000-8000-000000000002",
+      attemptToken: "09910000-0000-4000-8000-000000000003",
+      sha256: "a".repeat(64),
+      lastOperationId: "migration-0099-legacy-\u00a0replay",
+      partsFingerprint: "1".repeat(64),
+    },
+    {
+      kind: "cleanup",
+      sessionId: "09920000-0000-4000-8000-000000000001",
+      mediaAssetId: "09920000-0000-4000-8000-000000000002",
+      attemptToken: "09920000-0000-4000-8000-000000000003",
+      sha256: "b".repeat(64),
+      lastOperationId: "migration-0099-legacy-\u00a0cleanup",
+      partsFingerprint: "2".repeat(64),
+    },
+    {
+      kind: "handoff",
+      sessionId: "09930000-0000-4000-8000-000000000001",
+      mediaAssetId: "09930000-0000-4000-8000-000000000002",
+      attemptToken: "09930000-0000-4000-8000-000000000003",
+      sha256: "c".repeat(64),
+      lastOperationId: "migration-0099-legacy-\u00a0handoff",
+      partsFingerprint: "3".repeat(64),
+    },
+  ];
+  const sessionExpiresAt = "2099-07-29T00:00:00.000Z";
+  await client.query(
+    "SELECT set_config('app.user_id',$1,true),set_config('app.workspace_id',$2,true)",
+    [userId, workspaceId],
+  );
+  for (const fixture of legacyAttemptFixtures) {
+    const stagingStorageKey =
+      `media/uploads/workspaces/${workspaceId}/assets/${fixture.mediaAssetId}/sessions/${fixture.sessionId}`;
+    const blobStorageKey =
+      `media/blobs/sha256/${fixture.sha256.slice(0, 2)}/${fixture.sha256.slice(2, 4)}/${fixture.sha256}`;
+    const uploadId = `migration-0099-${fixture.kind}-upload`;
+    await client.query(
+      `INSERT INTO content.media_upload_sessions (
+         media_upload_session_id, workspace_id, media_asset_id,
+         media_blob_sha256, staging_storage_key, blob_storage_key,
+         s3_upload_id, mime_type, size_bytes, part_size_bytes, part_count,
+         state, source_url, asset_created_at, client_updated_at,
+         last_modified_by_replica_id, last_operation_id, expires_at
+       ) VALUES (
+         $1, $2, $3, $4, $5, $6, $7, 'application/octet-stream',
+         1, 1, 1, 'completing', NULL, $8, $8, $9, $10, $11
+       )`,
+      [
+        fixture.sessionId,
+        workspaceId,
+        fixture.mediaAssetId,
+        fixture.sha256,
+        stagingStorageKey,
+        blobStorageKey,
+        uploadId,
+        timestamp,
+        replicaId,
+        fixture.lastOperationId,
+        sessionExpiresAt,
+      ],
+    );
+    const begun = await client.query(
+      `SELECT attempt_status, reservation_token
+       FROM content.begin_media_upload_session_completion_attempt_with_owner(
+         $1,
+         3600000,
+         ROW(
+           $2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
+           'application/octet-stream',1,1,1,NULL,$12,$12,$13,
+           'passthrough-v1',$14
+         )::content.multipart_media_blob_writer_attempt_payload
+       )`,
+      [
+        fixture.attemptToken,
+        userId,
+        workspaceId,
+        fixture.sessionId,
+        fixture.mediaAssetId,
+        replicaId,
+        fixture.lastOperationId,
+        fixture.sha256,
+        stagingStorageKey,
+        blobStorageKey,
+        uploadId,
+        timestamp,
+        sessionExpiresAt,
+        fixture.partsFingerprint,
+      ],
+    );
+    if (
+      begun.rows[0]?.attempt_status !== "acquired"
+      || typeof begun.rows[0]?.reservation_token !== "string"
+    ) {
+      throw new Error(
+        `Migration 0099 legacy multipart attempt seed failed. kind=${fixture.kind} result=${JSON.stringify(begun.rows[0])}`,
+      );
+    }
+  }
+  await client.query(
+    `UPDATE content.media_blob_writer_attempts
+     SET state='cancelled', outcome='aborted', terminal_at=$2
+     WHERE attempt_token=$1`,
+    [legacyAttemptFixtures[0].attemptToken, timestamp],
+  );
+  await client.query(
+    `UPDATE content.media_upload_sessions
+     SET state='aborted', aborted_at=$2
+     WHERE media_upload_session_id=$1`,
+    [legacyAttemptFixtures[0].sessionId, timestamp],
+  );
+  await client.query(
+    `UPDATE content.media_upload_sessions
+     SET state='aborting'
+     WHERE media_upload_session_id=$1`,
+    [legacyAttemptFixtures[1].sessionId],
+  );
+}
+
 async function createExpectedMigrationRoles(
   client,
   fileName,
@@ -2122,6 +2355,16 @@ async function applySingleMigration(
           join(migrationsDirectory, fileName),
           "utf8",
         );
+        if (
+          fileName
+          === "0099_durable_multipart_completion_reconciliation.sql"
+        ) {
+          await client.query("BEGIN");
+          transactionStarted = true;
+          await seedMigration0099LegacyInvalidMediaAsset(client);
+          await client.query("COMMIT");
+          transactionStarted = false;
+        }
         await client.query("BEGIN");
         transactionStarted = true;
         if (
