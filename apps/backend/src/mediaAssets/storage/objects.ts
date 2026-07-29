@@ -15,7 +15,9 @@ import type {
 } from "./contracts";
 import {
   createMediaAssetStorageError,
+  rethrowMediaAssetStorageAbortReason,
   runMediaAssetStorageOperationWithRetries,
+  runMediaAssetStorageOperationWithRetriesAndAbortSignal,
 } from "./errors";
 import {
   assertMediaAssetObjectMetadataMatches,
@@ -151,6 +153,58 @@ export async function loadMediaAssetObjectMetadataWithDependencies(
       },
     };
   } catch (error) {
+    throw createMediaAssetStorageError(context, "head_object", error);
+  }
+}
+
+export async function loadMediaAssetObjectMetadataWithAbortSignalAndDependencies(
+  input: AssertMediaAssetObjectInput,
+  signal: AbortSignal,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<MediaAssetObjectMetadata> {
+  const config = dependencies.getMediaAssetsStorageConfigFn();
+  const context: MediaAssetStorageContext = {
+    workspaceId: input.workspaceId,
+    mediaAssetId: input.mediaAssetId,
+    storageKey: input.storageKey,
+    observationScope: input.observationScope,
+  };
+
+  try {
+    const response =
+      await runMediaAssetStorageOperationWithRetriesAndAbortSignal(
+        context,
+        "head_object",
+        signal,
+        async () => dependencies.s3Client.send(new HeadObjectCommand({
+          Bucket: config.bucketName,
+          Key: input.storageKey,
+          ChecksumMode: "ENABLED",
+        }), { abortSignal: signal }),
+      );
+
+    return {
+      sizeBytes: typeof response.ContentLength === "number"
+        ? response.ContentLength
+        : null,
+      mimeType: typeof response.ContentType === "string"
+        ? response.ContentType
+        : null,
+      eTag: typeof response.ETag === "string" ? response.ETag : null,
+      checksumSha256: toHexSha256Digest(response.ChecksumSHA256),
+      checksumType: response.ChecksumType ?? null,
+      uploadProof: {
+        workspaceId:
+          response.Metadata?.[uploadProofWorkspaceIdKey] ?? null,
+        mediaAssetId:
+          response.Metadata?.[uploadProofMediaAssetIdKey] ?? null,
+        lastOperationIdSha256:
+          response.Metadata?.[uploadProofLastOperationIdSha256Key] ?? null,
+        sha256: response.Metadata?.[uploadProofSha256Key] ?? null,
+      },
+    };
+  } catch (error) {
+    rethrowMediaAssetStorageAbortReason(signal);
     throw createMediaAssetStorageError(context, "head_object", error);
   }
 }

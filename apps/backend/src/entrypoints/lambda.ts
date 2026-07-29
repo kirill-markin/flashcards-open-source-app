@@ -17,8 +17,15 @@ import {
 } from "../server/browserCors";
 import {
   isDirectImageIngestionPostTarget,
+  isMultipartCompletionPostTarget,
   readApiGatewayRequestTarget,
 } from "../server/directImageIngestionRouting";
+import {
+  createMultipartCompletionRequestTiming,
+  readMultipartCompletionIngressAtMs,
+  runWithMultipartCompletionRequestTiming,
+  type MultipartCompletionRequestTiming,
+} from "../server/multipartCompletionRequestTiming";
 
 initializeBackendSentry("backend-api");
 
@@ -160,31 +167,49 @@ const backendApiBootstrapHandler: BackendApiHandler = async (event, context) => 
       body: JSON.stringify(body),
     };
   }
-  let runtime: BackendApiRuntime | null = null;
-  try {
-    runtime = await getBackendApiRuntime();
-    return await runtime.handleRequest(event, context);
-  } catch (error) {
-    if (runtime === null) {
-      const normalizedError = normalizeCaughtError(error);
-      captureBackendException({
-        action: "request_failed",
-        error: normalizedError,
-        scope: observationScope,
-        details: {
-          statusCode: 500,
-          code: "INTERNAL_ERROR",
-          message: normalizedError.message,
-          validationIssues: [],
-        },
-      });
+  const handleRequest = async (): Promise<APIGatewayProxyResult> => {
+    let runtime: BackendApiRuntime | null = null;
+    try {
+      runtime = await getBackendApiRuntime();
+      return await runtime.handleRequest(event, context);
+    } catch (error) {
+      if (runtime === null) {
+        const normalizedError = normalizeCaughtError(error);
+        captureBackendException({
+          action: "request_failed",
+          error: normalizedError,
+          scope: observationScope,
+          details: {
+            statusCode: 500,
+            code: "INTERNAL_ERROR",
+            message: normalizedError.message,
+            validationIssues: [],
+          },
+        });
+      }
+      throw error;
+    } finally {
+      if (runtime !== null) {
+        await runtime.flushLangfuseTelemetry(observationScope);
+      }
     }
-    throw error;
-  } finally {
-    if (runtime !== null) {
-      await runtime.flushLangfuseTelemetry(observationScope);
-    }
+  };
+
+  const requestTarget = readApiGatewayRequestTarget(event);
+  if (!isMultipartCompletionPostTarget(requestTarget)) {
+    return handleRequest();
   }
+
+  const ingressAtMs = readMultipartCompletionIngressAtMs(event);
+  const timing: MultipartCompletionRequestTiming | null =
+    ingressAtMs === null
+      ? null
+      : createMultipartCompletionRequestTiming(
+        ingressAtMs,
+        Date.now(),
+        context.getRemainingTimeInMillis(),
+      );
+  return runWithMultipartCompletionRequestTiming(timing, handleRequest);
 };
 
 /**

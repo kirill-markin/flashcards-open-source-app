@@ -291,6 +291,16 @@ export type MediaAssetRouteDetails = Readonly<{
   applied?: boolean;
 }>;
 
+export type MultipartCompletionResolutionRetryDetails = Readonly<{
+  attempt: number;
+  delayMs: number;
+  leaseExpiresAtMs: number;
+  sqlState: string | null;
+  errorCode: string | null;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
 export type GuestUpgradeCompleteDetails = Readonly<{
   statusCode: number;
   selectionType: string;
@@ -939,6 +949,10 @@ export type BackendWarningEvent =
   }>> & Readonly<{ message: string }>)
   | EventByAction<"unsafe_transaction_rollback_failed", DatabaseRollbackFailureDetails>
   | EventByAction<"database_pool_error", DatabasePoolErrorDetails>
+  | EventByAction<
+    "media_asset_upload_session_completion_resolution_retry",
+    MultipartCompletionResolutionRetryDetails
+  >
   | EventByAction<"feedback_notification_email_retry", FeedbackEmailRetryDetails>
   | EventByAction<"feedback_notification_email_failed", FeedbackEmailFailureDetails>
   | EventByAction<"reporting_read_only_transaction_rollback_failed", DatabaseRollbackFailureDetails>

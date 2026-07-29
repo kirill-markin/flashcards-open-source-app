@@ -11,6 +11,11 @@ import {
   type DirectMediaBlobStorageCapability,
   type DirectMediaBlobWriterAttemptExactInput,
 } from "../blobLifecycle";
+import {
+  assertMultipartMediaBlobStorageCapabilityForMutation,
+  type MultipartMediaBlobStorageCapability,
+  type MultipartMediaBlobWriterAttemptExactInput,
+} from "../uploadSessions";
 import type { BackendObservationScope } from "../../observability/sentry/events";
 import { HttpError } from "../../shared/errors";
 import type {
@@ -25,9 +30,14 @@ import {
   getS3ErrorStatusCode,
   isCopyObjectIfNoneMatchFailure,
   isMediaAssetObjectNotFoundError,
+  rethrowMediaAssetStorageAbortReason,
   runMediaAssetStorageOperationWithRetries,
+  runMediaAssetStorageOperationWithRetriesAndAbortSignal,
 } from "./errors";
-import { loadMediaAssetObjectMetadataWithDependencies } from "./objects";
+import {
+  loadMediaAssetObjectMetadataWithAbortSignalAndDependencies,
+  loadMediaAssetObjectMetadataWithDependencies,
+} from "./objects";
 import {
   assertMediaAssetObjectContentMatches,
   assertMediaAssetObjectMetadataMatches,
@@ -37,12 +47,18 @@ import {
 } from "./proof";
 
 type CopyMediaAssetObjectInput = Readonly<{
+  writer: MultipartMediaBlobWriterAttemptExactInput;
+  getStorageCapability: () => Promise<MultipartMediaBlobStorageCapability>;
+  assertStorageMutationAuthorized: () => void;
+  signal: AbortSignal;
   workspaceId: string;
   mediaAssetId: string;
-  sourceStorageKey: string;
-  destinationStorageKey: string;
+  uploadStorageKey: string;
+  blobStorageKey: string;
   mimeType: string;
+  sizeBytes: number;
   sha256: string;
+  lastOperationId: string;
   observationScope: BackendObservationScope;
 }>;
 
@@ -50,33 +66,50 @@ type DirectMediaBlobStorageCapabilityVerifier = (
   capability: DirectMediaBlobStorageCapability,
   writer: DirectMediaBlobWriterAttemptExactInput,
 ) => void;
+type MultipartMediaBlobStorageCapabilityVerifier = (
+  capability: MultipartMediaBlobStorageCapability,
+  writer: MultipartMediaBlobWriterAttemptExactInput,
+) => void;
 
-function createCopySource(bucketName: string, storageKey: string): string {
+export function createMediaAssetCopySource(
+  bucketName: string,
+  storageKey: string,
+): string {
   return `${bucketName}/${storageKey.split("/").map(encodeURIComponent).join("/")}`;
 }
 
 async function copyMediaAssetObjectIfAbsentWithDependencies(
   input: CopyMediaAssetObjectInput,
   dependencies: MediaAssetStorageDependencies,
+  verifyCapability: MultipartMediaBlobStorageCapabilityVerifier,
 ): Promise<void> {
   const config = dependencies.getMediaAssetsStorageConfigFn();
   const context: MediaAssetStorageContext = {
     workspaceId: input.workspaceId,
     mediaAssetId: input.mediaAssetId,
-    storageKey: input.destinationStorageKey,
+    storageKey: input.blobStorageKey,
     observationScope: input.observationScope,
   };
 
   try {
-    await runMediaAssetStorageOperationWithRetries(
+    await runMediaAssetStorageOperationWithRetriesAndAbortSignal(
       context,
       "copy_object",
+      input.signal,
       async () => {
+        await assertMultipartPromotionMutationAuthorized(
+          input,
+          verifyCapability,
+        );
+        input.assertStorageMutationAuthorized();
         try {
           await dependencies.s3Client.send(new CopyObjectCommand({
             Bucket: config.bucketName,
-            Key: input.destinationStorageKey,
-            CopySource: createCopySource(config.bucketName, input.sourceStorageKey),
+            Key: input.blobStorageKey,
+            CopySource: createMediaAssetCopySource(
+              config.bucketName,
+              input.uploadStorageKey,
+            ),
             ContentType: input.mimeType,
             ChecksumAlgorithm: "SHA256",
             IfNoneMatch: "*",
@@ -84,7 +117,7 @@ async function copyMediaAssetObjectIfAbsentWithDependencies(
             Metadata: {
               [uploadProofSha256Key]: input.sha256,
             },
-          }));
+          }), { abortSignal: input.signal });
         } catch (error) {
           if (isCopyObjectIfNoneMatchFailure(error)) {
             return;
@@ -95,8 +128,42 @@ async function copyMediaAssetObjectIfAbsentWithDependencies(
       },
     );
   } catch (error) {
+    rethrowMediaAssetStorageAbortReason(input.signal);
+    if (error instanceof MediaBlobWriterFenceError) {
+      throw error;
+    }
     throw createMediaAssetStorageError(context, "copy_object", error);
   }
+}
+
+function assertMultipartPromotionInputMatchesWriter(
+  input: PromoteMediaAssetUploadInput,
+): void {
+  if (
+    input.workspaceId !== input.writer.workspaceId
+    || input.mediaAssetId !== input.writer.mediaAssetId
+    || input.uploadStorageKey !== input.writer.stagingStorageKey
+    || input.blobStorageKey !== input.writer.blobStorageKey
+    || input.mimeType !== input.writer.mimeType
+    || input.sizeBytes !== input.writer.sizeBytes
+    || input.sha256 !== input.writer.sha256
+    || input.lastOperationId !== input.writer.lastOperationId
+  ) {
+    throw new MediaBlobWriterFenceError(
+      "verify_multipart_promotion_input",
+    );
+  }
+}
+
+async function assertMultipartPromotionMutationAuthorized(
+  input: PromoteMediaAssetUploadInput,
+  verifyCapability: MultipartMediaBlobStorageCapabilityVerifier,
+): Promise<void> {
+  input.signal.throwIfAborted();
+  assertMultipartPromotionInputMatchesWriter(input);
+  const storageCapability = await input.getStorageCapability();
+  input.signal.throwIfAborted();
+  verifyCapability(storageCapability, input.writer);
 }
 
 function assertDirectStorageInputMatchesWriter(
@@ -264,6 +331,19 @@ export async function promoteVerifiedMediaAssetUploadToBlobWithDependencies(
   input: PromoteMediaAssetUploadInput,
   dependencies: MediaAssetStorageDependencies,
 ): Promise<void> {
+  return promoteVerifiedMediaAssetUploadToBlobWithCapabilityVerifier(
+    input,
+    dependencies,
+    assertMultipartMediaBlobStorageCapabilityForMutation,
+  );
+}
+
+export async function promoteVerifiedMediaAssetUploadToBlobWithCapabilityVerifier(
+  input: PromoteMediaAssetUploadInput,
+  dependencies: MediaAssetStorageDependencies,
+  verifyCapability: MultipartMediaBlobStorageCapabilityVerifier,
+): Promise<void> {
+  await assertMultipartPromotionMutationAuthorized(input, verifyCapability);
   const uploadObjectInput: AssertMediaAssetObjectInput = {
     workspaceId: input.workspaceId,
     mediaAssetId: input.mediaAssetId,
@@ -280,27 +360,46 @@ export async function promoteVerifiedMediaAssetUploadToBlobWithDependencies(
   };
 
   try {
-    const existingBlobMetadata = await loadMediaAssetObjectMetadataWithDependencies(blobObjectInput, dependencies);
+    const existingBlobMetadata =
+      await loadMediaAssetObjectMetadataWithAbortSignalAndDependencies(
+        blobObjectInput,
+        input.signal,
+        dependencies,
+      );
     assertMediaAssetObjectContentMatches(blobObjectInput, existingBlobMetadata);
   } catch (error) {
+    rethrowMediaAssetStorageAbortReason(input.signal);
     if (isMediaAssetObjectNotFoundError(error) === false) {
       throw error;
     }
 
     await copyMediaAssetObjectIfAbsentWithDependencies(
       {
+        writer: input.writer,
+        getStorageCapability: input.getStorageCapability,
+        assertStorageMutationAuthorized:
+          input.assertStorageMutationAuthorized,
+        signal: input.signal,
         workspaceId: input.workspaceId,
         mediaAssetId: input.mediaAssetId,
-        sourceStorageKey: input.uploadStorageKey,
-        destinationStorageKey: input.blobStorageKey,
+        uploadStorageKey: input.uploadStorageKey,
+        blobStorageKey: input.blobStorageKey,
         mimeType: input.mimeType,
+        sizeBytes: input.sizeBytes,
         sha256: input.sha256,
+        lastOperationId: input.lastOperationId,
         observationScope: input.observationScope,
       },
       dependencies,
+      verifyCapability,
     );
 
-    const copiedBlobMetadata = await loadMediaAssetObjectMetadataWithDependencies(blobObjectInput, dependencies);
+    const copiedBlobMetadata =
+      await loadMediaAssetObjectMetadataWithAbortSignalAndDependencies(
+        blobObjectInput,
+        input.signal,
+        dependencies,
+      );
     assertMediaAssetObjectContentMatches(blobObjectInput, copiedBlobMetadata);
   }
 }
@@ -309,6 +408,19 @@ export async function promoteMediaAssetUploadToBlobWithDependencies(
   input: PromoteMediaAssetUploadInput,
   dependencies: MediaAssetStorageDependencies,
 ): Promise<void> {
+  return promoteMediaAssetUploadToBlobWithCapabilityVerifier(
+    input,
+    dependencies,
+    assertMultipartMediaBlobStorageCapabilityForMutation,
+  );
+}
+
+export async function promoteMediaAssetUploadToBlobWithCapabilityVerifier(
+  input: PromoteMediaAssetUploadInput,
+  dependencies: MediaAssetStorageDependencies,
+  verifyCapability: MultipartMediaBlobStorageCapabilityVerifier,
+): Promise<void> {
+  await assertMultipartPromotionMutationAuthorized(input, verifyCapability);
   const uploadObjectInput: AssertMediaAssetObjectInput = {
     workspaceId: input.workspaceId,
     mediaAssetId: input.mediaAssetId,
@@ -319,8 +431,17 @@ export async function promoteMediaAssetUploadToBlobWithDependencies(
     lastOperationId: input.lastOperationId,
     observationScope: input.observationScope,
   };
-  const uploadObjectMetadata = await loadMediaAssetObjectMetadataWithDependencies(uploadObjectInput, dependencies);
+  const uploadObjectMetadata =
+    await loadMediaAssetObjectMetadataWithAbortSignalAndDependencies(
+      uploadObjectInput,
+      input.signal,
+      dependencies,
+    );
   assertMediaAssetObjectMetadataMatches(uploadObjectInput, uploadObjectMetadata);
 
-  await promoteVerifiedMediaAssetUploadToBlobWithDependencies(input, dependencies);
+  await promoteVerifiedMediaAssetUploadToBlobWithCapabilityVerifier(
+    input,
+    dependencies,
+    verifyCapability,
+  );
 }

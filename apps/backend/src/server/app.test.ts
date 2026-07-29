@@ -13,11 +13,20 @@ import { resetAuthConfigForTests } from "../auth/config";
 import { HttpError } from "../shared/errors";
 import { resetGuestAiQuotaConfigForTests } from "../guestAiQuota/config";
 import { MediaBlobLifecycleBusyError } from "../mediaAssets/blobLifecycle";
+import { createAgentApiKeyErrorEnvelope } from "../agent/envelope";
 
 const originalAuthMode = process.env.AUTH_MODE;
 const originalAllowInsecureLocalAuth = process.env.ALLOW_INSECURE_LOCAL_AUTH;
 const originalBackendAllowedOrigins = process.env.BACKEND_ALLOWED_ORIGINS;
 const originalPublicSiteBaseUrl = process.env.PUBLIC_SITE_BASE_URL;
+const testAgentRequestUrl =
+  "https://api.flashcards-open-source-app.com/v1/agent/sql/query";
+const testMultipartCompletionRequestUrl =
+  "https://api.flashcards-open-source-app.com/v1/workspaces/22222222-2222-4222-8222-222222222222/media-assets/upload-sessions/33333333-3333-4333-8333-333333333333/complete";
+const testMultipartAbortRequestUrl =
+  "https://api.flashcards-open-source-app.com/v1/workspaces/22222222-2222-4222-8222-222222222222/media-assets/upload-sessions/33333333-3333-4333-8333-333333333333/abort";
+const testMultipartCreateRequestUrl =
+  "https://api.flashcards-open-source-app.com/v1/workspaces/22222222-2222-4222-8222-222222222222/media-assets/upload-sessions";
 
 function restoreBackendAppTestEnvironment(): void {
   if (originalAuthMode === undefined) {
@@ -85,6 +94,10 @@ test("getHttpErrorResponseHeaders carries bounded writer and deadline retry guid
   for (const [statusCode, code, retryAfterSeconds] of [
     [409, "MEDIA_ASSET_WRITER_BUSY", 7],
     [503, "MEDIA_ASSET_INGESTION_DEADLINE_EXCEEDED", 1],
+    [503, "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_DEADLINE_EXCEEDED", 1],
+    [503, "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS", 1],
+    [409, "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS", 1],
+    [503, "MEDIA_ASSET_UPLOAD_SESSION_CREATION_IN_PROGRESS", 7],
   ] as const) {
     assert.deepEqual(
       getHttpErrorResponseHeaders(
@@ -112,7 +125,11 @@ test("getHttpErrorResponseHeaders carries centralized lifecycle busy retry guida
 
 test("createAgentInstructions tells API-key agents to honor Retry-After on service unavailable", () => {
   assert.equal(
-    createAgentInstructions("SERVICE_UNAVAILABLE", 503),
+    createAgentInstructions(
+      "SERVICE_UNAVAILABLE",
+      503,
+      testAgentRequestUrl,
+    ),
     "Retry the same request after the Retry-After delay. If it fails again, treat it as a server-side error and stop changing the request. Use requestId when debugging.",
   );
 });
@@ -124,36 +141,232 @@ test("createAgentInstructions retries transient direct ingestion requests unchan
     ["MEDIA_ASSET_INGESTION_DEADLINE_EXCEEDED", 503],
   ] as const) {
     assert.equal(
-      createAgentInstructions(code, statusCode),
+      createAgentInstructions(code, statusCode, testAgentRequestUrl),
       "Retry the unchanged request after the Retry-After delay. If it fails again, stop and use requestId when debugging.",
     );
   }
 });
 
-test("createAgentInstructions retries blocked multipart session creation unchanged", () => {
+test("createAgentInstructions preserves durable multipart completion recovery", () => {
+  assert.equal(
+    createAgentInstructions(
+      "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_DEADLINE_EXCEEDED",
+      503,
+      testMultipartCompletionRequestUrl,
+    ),
+    "Wait for the Retry-After delay, then retry the same completion with the unchanged session and parts. Do not abort the session or create a replacement upload.",
+  );
+  assert.equal(
+    createAgentInstructions(
+      "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+      503,
+      testMultipartCompletionRequestUrl,
+    ),
+    "Completion has a live writer or was accepted for durable processing. Wait for Retry-After, then retry the unchanged completion with the same session and parts; do not abort or replace the upload.",
+  );
+  assert.equal(
+    createAgentInstructions(
+      "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+      409,
+      testMultipartCompletionRequestUrl,
+    ),
+    "Expiry cleanup was denied because completion is being durably reconciled; abort admission made no database or S3 mutation. Wait for Retry-After, then retry the unchanged completion with the same session and parts.",
+  );
+  assert.equal(
+    createAgentInstructions(
+      "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+      409,
+      testMultipartAbortRequestUrl,
+    ),
+    "Abort admission was denied and this abort made no database or S3 mutation. Wait for Retry-After, then retry completion or session creation to observe the durable outcome; do not start a replacement byte upload or retry abort while completion remains active.",
+  );
+  assert.equal(
+    createAgentInstructions(
+      "MEDIA_ASSET_UPLOAD_SESSION_EXPIRED",
+      409,
+      testMultipartCompletionRequestUrl,
+    ),
+    "This expired upload session has already been closed. Create a fresh multipart upload session, upload the bytes again, and complete the new session; do not retry this completion request.",
+  );
+  assert.equal(
+    createAgentInstructions(
+      "MEDIA_ASSET_UPLOAD_SESSION_RESTART_REQUIRED",
+      409,
+      testMultipartCompletionRequestUrl,
+    ),
+    "This legacy upload session cannot complete durably. Abort it if it is still open, then create a fresh multipart upload session, upload the bytes again, and complete the new session.",
+  );
+  assert.equal(
+    createAgentInstructions(
+      "MEDIA_ASSET_UPLOAD_SESSION_COMPLETED",
+      409,
+      testMultipartCompletionRequestUrl,
+    ),
+    "Completion already won for this upload session. Reload and use the completed media asset, or replay the original completion only to retrieve its idempotent result. Do not retry abort or create a replacement upload.",
+  );
+  assert.equal(
+    createAgentInstructions(
+      "MEDIA_ASSET_UPLOAD_SESSION_STATE_CONFLICT",
+      409,
+      testMultipartCompletionRequestUrl,
+    ),
+    "Reload the upload session and media asset to determine their canonical state before choosing the next action. Do not blindly replay completion or abort, and do not assume earlier storage work was rolled back.",
+  );
   for (const code of [
-    "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
-    "MEDIA_ASSET_UPLOAD_SESSION_CREATION_IN_PROGRESS",
-  ] as const) {
+    "MEDIA_ASSET_UPLOAD_MISMATCH",
+    "MEDIA_ASSET_UPLOAD_PROOF_MISMATCH",
+  ]) {
     assert.equal(
-      createAgentInstructions(code, 503),
-      "Wait for the Retry-After delay, then retry the unchanged session creation request. Do not start a parallel byte upload.",
+      createAgentInstructions(
+        code,
+        409,
+        testMultipartCompletionRequestUrl,
+      ),
+      "Reload the upload session and media asset before taking another action. Do not blindly replay the mismatched completion or assume rollback; if no completed asset exists, close the stale session as allowed and create a fresh upload with the correct bytes and metadata.",
     );
   }
+  assert.equal(
+    createAgentInstructions(
+      "MEDIA_ASSET_UPLOAD_NOT_FOUND",
+      409,
+      testMultipartCompletionRequestUrl,
+    ),
+    "Reload the upload session and media asset before taking another action. Do not blindly replay or assume rollback; if no completion is pending or applied, create a fresh upload session and upload the bytes again.",
+  );
+  assert.equal(
+    createAgentInstructions(
+      "MEDIA_ASSET_UPLOAD_SESSION_ACCESS_DENIED",
+      403,
+      testMultipartCompletionRequestUrl,
+    ),
+    "Reload account, workspace access, upload-session, and media-asset state. Do not retry completion until access is restored, and do not assume earlier storage work was rolled back.",
+  );
+  assert.match(
+    createAgentInstructions(
+      "WORKSPACE_ACCESS_DENIED",
+      403,
+      testMultipartCompletionRequestUrl,
+    ),
+    /Completion may have performed storage work.*do not assume rollback/,
+  );
+  assert.match(
+    createAgentInstructions(
+      "WORKSPACE_ACCESS_DENIED",
+      403,
+      testMultipartAbortRequestUrl,
+    ),
+    /before abort admission or after admitted S3 work.*do not assume rollback/,
+  );
+  assert.equal(
+    createAgentInstructions(
+      "MEDIA_ASSET_REPLICA_INVALID",
+      400,
+      testMultipartCompletionRequestUrl,
+    ),
+    "Reload the workspace replicas, upload session, and media asset before retrying with a currently accessible lastModifiedByReplicaId. Do not assume earlier storage work was rolled back.",
+  );
+  assert.equal(
+    createAgentInstructions(
+      "MEDIA_ASSET_UPLOAD_SESSION_CREATION_IN_PROGRESS",
+      503,
+      testMultipartCreateRequestUrl,
+    ),
+    "Wait for the Retry-After delay, then retry the unchanged session creation request. Do not start a parallel byte upload.",
+  );
 });
 
 test("createAgentInstructions tells agents to retry temporary auth verification failures", () => {
   assert.equal(
-    createAgentInstructions(authVerificationTemporarilyUnavailableCode, 503),
+    createAgentInstructions(
+      authVerificationTemporarilyUnavailableCode,
+      503,
+      testAgentRequestUrl,
+    ),
     "Retry the same authenticated request after the Retry-After delay without changing the token. If it keeps failing, sign in again and use requestId when debugging.",
   );
 });
 
 test("createAgentInstructions tells API-key agents to verify unknown commit outcomes before retrying", () => {
   assert.equal(
-    createAgentInstructions("DATABASE_COMMIT_OUTCOME_UNKNOWN", 500),
+    createAgentInstructions(
+      "DATABASE_COMMIT_OUTCOME_UNKNOWN",
+      500,
+      testAgentRequestUrl,
+    ),
     "Do not blindly replay the same request. Reload and check the current state first, then retry only if the requested change is confirmed absent. Use requestId when debugging.",
   );
+});
+
+test("multipart completion and abort envelopes preserve action-specific recovery", () => {
+  const createEnvelope = (
+    requestUrl: string,
+    code: string,
+    statusCode: number,
+  ) => createAgentApiKeyErrorEnvelope(
+    requestUrl,
+    code,
+    "Test multipart failure.",
+    statusCode,
+    "request-1",
+    undefined,
+  );
+
+  for (const code of [
+    "MEDIA_ASSET_STORAGE_UNAVAILABLE",
+    "MEDIA_BLOB_LIFECYCLE_BUSY",
+    "SERVICE_UNAVAILABLE",
+  ]) {
+    const completion = createEnvelope(
+      testMultipartCompletionRequestUrl,
+      code,
+      503,
+    );
+    const abort = createEnvelope(
+      testMultipartAbortRequestUrl,
+      code,
+      503,
+    );
+    assert.match(completion.instructions, /completion|Completion/);
+    assert.match(completion.instructions, /not assume rollback|unknown storage/);
+    assert.match(abort.instructions, /abort|Abort/);
+    assert.match(abort.instructions, /not assume rollback|S3 abort completed/);
+    assert.equal(completion.error.code, code);
+    assert.equal(abort.error.code, code);
+  }
+
+  const completionPending = createEnvelope(
+    testMultipartCompletionRequestUrl,
+    "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+    409,
+  );
+  const abortPending = createEnvelope(
+    testMultipartAbortRequestUrl,
+    "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+    409,
+  );
+  assert.match(completionPending.instructions, /Expiry cleanup/);
+  assert.doesNotMatch(completionPending.instructions, /This abort/);
+  assert.match(abortPending.instructions, /this abort made no database or S3 mutation/);
+
+  for (const requestUrl of [
+    testMultipartCompletionRequestUrl,
+    testMultipartAbortRequestUrl,
+  ]) {
+    const unknown = createEnvelope(
+      requestUrl,
+      "DATABASE_COMMIT_OUTCOME_UNKNOWN",
+      500,
+    );
+    const notFound = createEnvelope(
+      requestUrl,
+      "MEDIA_ASSET_UPLOAD_SESSION_NOT_FOUND",
+      404,
+    );
+    assert.match(unknown.instructions, /outcome is unknown/);
+    assert.match(unknown.instructions, /rollback is not guaranteed/);
+    assert.match(notFound.instructions, /Reload canonical/);
+    assert.match(notFound.instructions, /sessionId/);
+  }
 });
 
 test("app error handler returns Retry-After for service unavailable responses", async () => {

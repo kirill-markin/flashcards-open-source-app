@@ -49,6 +49,8 @@ type OpenApiRequestBodyForTest = Readonly<{
   content?: Readonly<Record<string, OpenApiMediaTypeForTest>>;
 }>;
 type OpenApiResponseForTest = Readonly<{
+  description?: string;
+  headers?: Readonly<Record<string, object>>;
   content?: Readonly<Record<string, OpenApiMediaTypeForTest>>;
 }>;
 type OpenApiOperationForTest = Readonly<{
@@ -474,6 +476,70 @@ test("agent discovery advertises the published media, package, and catalog surfa
   assert.match(discoveryEnvelope.instructions, /media-assets\/upload-sessions\/\{sessionId\}\/parts/);
   assert.match(discoveryEnvelope.instructions, /media-assets\/upload-sessions\/\{sessionId\}\/complete/);
   assert.match(discoveryEnvelope.instructions, /media-assets\/upload-sessions\/\{sessionId\}\/abort/);
+  assert.match(
+    discoveryEnvelope.instructions,
+    /MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS/,
+  );
+  assert.match(
+    discoveryEnvelope.instructions,
+    /MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_DEADLINE_EXCEEDED/,
+  );
+  assert.match(
+    discoveryEnvelope.instructions,
+    /completion returns 409 MEDIA_ASSET_UPLOAD_SESSION_EXPIRED/,
+  );
+  assert.match(
+    discoveryEnvelope.instructions,
+    /create a fresh upload session and upload the bytes again instead of retrying the same completion request/,
+  );
+  for (const errorCode of [
+    "MEDIA_ASSET_UPLOAD_SESSION_RESTART_REQUIRED",
+    "MEDIA_ASSET_UPLOAD_SESSION_COMPLETED",
+    "MEDIA_ASSET_UPLOAD_SESSION_STATE_CONFLICT",
+    "MEDIA_ASSET_UPLOAD_MISMATCH",
+    "MEDIA_ASSET_UPLOAD_PROOF_MISMATCH",
+    "MEDIA_ASSET_UPLOAD_NOT_FOUND",
+    "MEDIA_ASSET_UPLOAD_SESSION_ACCESS_DENIED",
+    "WORKSPACE_ACCESS_DENIED",
+    "MEDIA_ASSET_REPLICA_INVALID",
+  ]) {
+    assert.match(
+      discoveryEnvelope.instructions,
+      new RegExp(errorCode),
+    );
+  }
+  assert.match(
+    discoveryEnvelope.instructions,
+    /reload canonical session and media-asset state before acting/,
+  );
+  assert.match(
+    discoveryEnvelope.instructions,
+    /without blindly replaying or assuming rollback/,
+  );
+  assert.match(
+    discoveryEnvelope.instructions,
+    /MEDIA_ASSET_UPLOAD_SESSION_CREATION_IN_PROGRESS/,
+  );
+  assert.match(
+    discoveryEnvelope.instructions,
+    /foreground writer is live, abort returns 503/,
+  );
+  assert.match(
+    discoveryEnvelope.instructions,
+    /completion is pending or leased, abort returns 409/,
+  );
+  assert.match(
+    discoveryEnvelope.instructions,
+    /Both abort responses leave upload state and S3 unchanged/,
+  );
+  assert.match(
+    discoveryEnvelope.instructions,
+    /replacement session creation returns 503/,
+  );
+  assert.match(
+    discoveryEnvelope.instructions,
+    /session creation returns already_available/,
+  );
   assertDoesNotAdvertiseUploadIntentFlow(discoveryEnvelope.instructions, "Agent discovery instructions");
   assert.match(discoveryEnvelope.instructions, /media-assets\/\{mediaAssetId\}\/download-url/);
   assert.match(discoveryEnvelope.instructions, /packages\/export\/preview/);
@@ -489,6 +555,255 @@ test("agent discovery advertises the published media, package, and catalog surfa
   assert.match(discoveryEnvelope.instructions, /catalog\/package-versions\/\{packageVersionId\}\/install/);
   assert.match(discoveryEnvelope.instructions, /data\.agentWorkspaceReplicaId/);
   assert.match(discoveryEnvelope.instructions, /lastModifiedByReplicaId/);
+});
+
+test("multipart upload OpenAPI publishes durable completion recovery contracts", () => {
+  const openApiDocument = loadPublishedOpenApiDocument();
+  const discoveryEnvelope = createAgentDiscoveryEnvelope(
+    "https://api.flashcards-open-source-app.com/v1/agent",
+  );
+  const createOperation = openApiDocument.paths?.[
+    "/workspaces/{workspaceId}/media-assets/upload-sessions"
+  ]?.post as OpenApiOperationForTest | undefined;
+  const completeOperation = openApiDocument.paths?.[
+    "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/complete"
+  ]?.post as OpenApiOperationForTest | undefined;
+  const abortOperation = openApiDocument.paths?.[
+    "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/abort"
+  ]?.post as OpenApiOperationForTest | undefined;
+
+  assert.ok(createOperation !== undefined);
+  assert.ok(completeOperation !== undefined);
+  assert.ok(abortOperation !== undefined);
+  assert.ok(createOperation.responses?.["503"]?.headers?.["Retry-After"]);
+  assert.ok(completeOperation.responses?.["409"]?.headers?.["Retry-After"]);
+  assert.ok(completeOperation.responses?.["503"]?.headers?.["Retry-After"]);
+  assert.ok(abortOperation.responses?.["409"]?.headers?.["Retry-After"]);
+  assert.ok(abortOperation.responses?.["503"]?.headers?.["Retry-After"]);
+  const completeUnavailableResponse =
+    JSON.stringify(completeOperation.responses?.["503"]);
+  const completeInvalidResponse =
+    JSON.stringify(completeOperation.responses?.["400"]);
+  const completeAccessResponse =
+    JSON.stringify(completeOperation.responses?.["403"]);
+  const completeAccessDescription =
+    completeOperation.responses?.["403"]?.description ?? "";
+  const completeConflictResponse =
+    JSON.stringify(completeOperation.responses?.["409"]);
+  const completeConflictDescription =
+    completeOperation.responses?.["409"]?.description ?? "";
+  const completeNotFoundResponse =
+    JSON.stringify(completeOperation.responses?.["404"]);
+  const completeUnknownOutcomeResponse =
+    JSON.stringify(completeOperation.responses?.["500"]);
+  const abortUnavailableResponse =
+    JSON.stringify(abortOperation.responses?.["503"]);
+  const abortAccessResponse =
+    JSON.stringify(abortOperation.responses?.["403"]);
+  const abortNotFoundResponse =
+    JSON.stringify(abortOperation.responses?.["404"]);
+  const abortUnknownOutcomeResponse =
+    JSON.stringify(abortOperation.responses?.["500"]);
+  const abortUnavailableDescription =
+    abortOperation.responses?.["503"]?.description ?? "";
+  assert.match(
+    JSON.stringify(createOperation.responses?.["503"]),
+    /MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS/,
+  );
+  assert.match(
+    JSON.stringify(createOperation.responses?.["503"]),
+    /MEDIA_ASSET_UPLOAD_SESSION_CREATION_IN_PROGRESS/,
+  );
+  assert.match(
+    completeUnavailableResponse,
+    /same session and parts/,
+  );
+  assert.match(
+    completeUnavailableResponse,
+    /MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_DEADLINE_EXCEEDED/,
+  );
+  for (const errorCode of [
+    "MEDIA_ASSET_STORAGE_UNAVAILABLE",
+    "MEDIA_BLOB_LIFECYCLE_BUSY",
+    "SERVICE_UNAVAILABLE",
+  ]) {
+    assert.match(completeUnavailableResponse, new RegExp(errorCode));
+    assert.match(abortUnavailableResponse, new RegExp(errorCode));
+  }
+  assert.match(completeUnavailableResponse, /do not assume rollback/);
+  for (const errorCode of [
+    "MEDIA_ASSET_PARTS_REQUIRED",
+    "MEDIA_ASSET_PART_COUNT_INVALID",
+    "MEDIA_ASSET_PART_NUMBER_INVALID",
+    "MEDIA_ASSET_DUPLICATE_PART_NUMBER",
+    "MEDIA_ASSET_PART_COUNT_MISMATCH",
+    "MEDIA_ASSET_PART_SEQUENCE_INVALID",
+    "MEDIA_ASSET_REPLICA_INVALID",
+  ]) {
+    assert.match(completeInvalidResponse, new RegExp(errorCode));
+  }
+  assert.match(completeInvalidResponse, /detected before storage/);
+  assert.match(completeInvalidResponse, /do not assume rollback/);
+  for (const errorCode of [
+    "MEDIA_ASSET_UPLOAD_SESSION_ACCESS_DENIED",
+    "WORKSPACE_ACCESS_DENIED",
+  ]) {
+    assert.match(completeAccessResponse, new RegExp(errorCode));
+  }
+  assert.match(completeAccessDescription, /before storage/);
+  assert.match(
+    completeAccessDescription,
+    /during exact\s+resolution after storage work/,
+  );
+  assert.match(completeAccessDescription, /do not assume rollback/);
+  assert.match(abortAccessResponse, /WORKSPACE_ACCESS_DENIED/);
+  assert.match(abortAccessResponse, /before S3 abort admission/);
+  assert.match(abortAccessResponse, /after admitted S3 work/);
+  assert.match(abortAccessResponse, /do not assume rollback/);
+  for (const errorCode of [
+    "MEDIA_ASSET_UPLOAD_SESSION_RESTART_REQUIRED",
+    "MEDIA_ASSET_UPLOAD_SESSION_EXPIRED",
+    "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+    "MEDIA_ASSET_UPLOAD_SESSION_COMPLETED",
+    "MEDIA_ASSET_UPLOAD_SESSION_STATE_CONFLICT",
+    "MEDIA_ASSET_UPLOAD_MISMATCH",
+    "MEDIA_ASSET_UPLOAD_PROOF_MISMATCH",
+    "MEDIA_ASSET_UPLOAD_NOT_FOUND",
+  ]) {
+    assert.match(completeConflictResponse, new RegExp(errorCode));
+  }
+  assert.match(completeConflictDescription, /before writer acquisition/);
+  assert.match(
+    completeConflictDescription,
+    /session\s+cannot be completed; create a fresh upload session/,
+  );
+  assert.match(
+    completeConflictDescription,
+    /instead of retrying the same completion request/,
+  );
+  assert.match(
+    completeConflictDescription,
+    /Abort admission made no database or S3\s+mutation/,
+  );
+  assert.match(
+    completeConflictDescription,
+    /another completion won before\s+or during expiry cleanup/,
+  );
+  assert.match(
+    completeConflictDescription,
+    /before storage\s+or during exact resolution after storage work/,
+  );
+  assert.match(completeConflictResponse, /do not assume rollback/);
+  assert.match(
+    completeNotFoundResponse,
+    /MEDIA_ASSET_UPLOAD_SESSION_NOT_FOUND/,
+  );
+  assert.match(completeNotFoundResponse, /wrong or stale/);
+  assert.match(completeNotFoundResponse, /during exact resolution/);
+  assert.match(completeNotFoundResponse, /Do not blindly retry/);
+  assert.match(
+    completeUnknownOutcomeResponse,
+    /DATABASE_COMMIT_OUTCOME_UNKNOWN/,
+  );
+  assert.match(
+    completeUnknownOutcomeResponse,
+    /rollback is not guaranteed/,
+  );
+  assert.match(completeUnknownOutcomeResponse, /Reload or replay/);
+  assert.match(
+    abortNotFoundResponse,
+    /MEDIA_ASSET_UPLOAD_SESSION_NOT_FOUND/,
+  );
+  assert.match(abortNotFoundResponse, /before abort admission/);
+  assert.match(abortNotFoundResponse, /after admitted S3 work/);
+  assert.match(abortNotFoundResponse, /Do not assume rollback/);
+  assert.match(
+    abortUnknownOutcomeResponse,
+    /DATABASE_COMMIT_OUTCOME_UNKNOWN/,
+  );
+  assert.match(abortUnknownOutcomeResponse, /rollback is not guaranteed/);
+  assert.match(abortUnknownOutcomeResponse, /Reload/);
+  for (const discoveryContract of [
+    discoveryEnvelope.instructions,
+    JSON.stringify(openApiDocument.paths?.["/"]),
+    JSON.stringify(openApiDocument.paths?.["/agent"]),
+  ]) {
+    assert.match(
+      discoveryContract,
+      /MEDIA_ASSET_UPLOAD_SESSION_EXPIRED/,
+    );
+    assert.match(
+      discoveryContract,
+      /fresh upload session/,
+    );
+    assert.match(
+      discoveryContract,
+      /instead of retrying the same completion request/,
+    );
+    for (const errorCode of [
+      "MEDIA_ASSET_UPLOAD_SESSION_RESTART_REQUIRED",
+      "MEDIA_ASSET_UPLOAD_SESSION_COMPLETED",
+      "MEDIA_ASSET_UPLOAD_SESSION_STATE_CONFLICT",
+      "MEDIA_ASSET_UPLOAD_MISMATCH",
+      "MEDIA_ASSET_UPLOAD_PROOF_MISMATCH",
+      "MEDIA_ASSET_UPLOAD_NOT_FOUND",
+      "MEDIA_ASSET_UPLOAD_SESSION_ACCESS_DENIED",
+      "WORKSPACE_ACCESS_DENIED",
+      "MEDIA_ASSET_REPLICA_INVALID",
+      "DATABASE_COMMIT_OUTCOME_UNKNOWN",
+      "MEDIA_ASSET_STORAGE_UNAVAILABLE",
+      "MEDIA_BLOB_LIFECYCLE_BUSY",
+      "SERVICE_UNAVAILABLE",
+    ]) {
+      assert.match(discoveryContract, new RegExp(errorCode));
+    }
+    assert.match(
+      discoveryContract,
+      /404 MEDIA_ASSET_UPLOAD_SESSION_NOT_FOUND/,
+    );
+    assert.match(discoveryContract, /verify sessionId/);
+    assert.match(
+      discoveryContract,
+      /rollback is not guaranteed/,
+    );
+    assert.match(
+      discoveryContract,
+      /reload canonical session and media-asset state before acting/,
+    );
+    assert.match(
+      discoveryContract,
+      /without blindly replaying or assuming rollback/,
+    );
+  }
+  const abortConflictResponse =
+    JSON.stringify(abortOperation.responses?.["409"]);
+  assert.match(
+    abortConflictResponse,
+    /MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS/,
+  );
+  assert.match(
+    abortConflictResponse,
+    /MEDIA_ASSET_UPLOAD_SESSION_COMPLETED/,
+  );
+  assert.match(
+    abortConflictResponse,
+    /MEDIA_ASSET_UPLOAD_SESSION_STATE_CONFLICT/,
+  );
+  assert.match(abortConflictResponse, /no database/);
+  assert.match(abortConflictResponse, /or S3 mutation occurred/);
+  assert.match(abortConflictResponse, /pre-S3 abort admission/);
+  assert.match(abortConflictResponse, /post-S3/);
+  assert.match(
+    abortOperation.responses?.["409"]?.description ?? "",
+    /S3 abort work may or may not have run/,
+  );
+  assert.match(abortConflictResponse, /do not assume rollback/);
+  assert.match(abortUnavailableResponse, /live foreground writer/);
+  assert.match(
+    abortUnavailableDescription,
+    /no database\s+or S3 mutation occurred/,
+  );
+  assert.match(abortUnavailableResponse, /do not assume rollback/);
 });
 
 test("media asset image ingestion publishes the transport-safe original body limit", () => {

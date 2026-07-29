@@ -12,7 +12,6 @@ import {
 } from "../routes/mediaAssets";
 import {
   acquireMediaAssetUploadSessionCreationClaimForWorkspace,
-  beginMediaAssetUploadSessionAbortForWorkspace,
   createMediaAssetFromAvailableBlobForWorkspace,
   loadMediaAssetUploadSessionCreationReplayForWorkspace,
   recordMediaAssetUploadSessionForWorkspace,
@@ -451,12 +450,13 @@ test("claimed aborting session blocks replacement creation with a retryable crea
     );
     assert.equal(original.sessionResult.status, "upload_required");
     if (original.sessionResult.status !== "upload_required") return;
-    const abortStart = await beginMediaAssetUploadSessionAbortForWorkspace(
-      fixture.userId,
-      fixture.workspaceId,
-      original.sessionResult.uploadSession.sessionId,
+    const abortTransition = await fixture.ownerPool.query(
+      `UPDATE content.media_upload_sessions
+       SET state='aborting'
+       WHERE media_upload_session_id=$1`,
+      [original.sessionResult.uploadSession.sessionId],
     );
-    assert.equal(abortStart.uploadSession.state, "aborting");
+    assert.equal(abortTransition.rowCount, 1);
 
     await assert.rejects(
       createAtBoundary(
@@ -501,13 +501,13 @@ test("finalized persistence recovery preserves the retryable aborting response",
       fixture,
       "MEDIA_ASSET_UPLOAD_SESSION_CREATION_IN_PROGRESS",
       async (transitionFixture, session) => {
-        const abortStart =
-          await beginMediaAssetUploadSessionAbortForWorkspace(
-            transitionFixture.userId,
-            transitionFixture.workspaceId,
-            session.sessionId,
-          );
-        assert.equal(abortStart.uploadSession.state, "aborting");
+        const abortTransition = await transitionFixture.ownerPool.query(
+          `UPDATE content.media_upload_sessions
+           SET state='aborting'
+           WHERE media_upload_session_id=$1`,
+          [session.sessionId],
+        );
+        assert.equal(abortTransition.rowCount, 1);
       },
     );
   });

@@ -2,11 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   isDirectImageIngestionPostTarget,
+  isMultipartCompletionPostTarget,
   readApiGatewayRequestTarget,
 } from "./directImageIngestionRouting";
 
 const workspaceId = "11111111-1111-4111-8111-111111111111";
 const directPath = `/workspaces/${workspaceId}/media-assets/images`;
+const multipartSessionId = "22222222-2222-4222-8222-222222222222";
+const multipartCompletionPath =
+  `/workspaces/${workspaceId}/media-assets/upload-sessions/${multipartSessionId}/complete`;
 
 function createRestApiEvent(path: string, method: string): unknown {
   return {
@@ -38,6 +42,12 @@ function createHttpApiEvent(path: string, method: string): unknown {
 
 function matchesDirectImagePost(event: unknown): boolean {
   return isDirectImageIngestionPostTarget(
+    readApiGatewayRequestTarget(event),
+  );
+}
+
+function matchesMultipartCompletionPost(event: unknown): boolean {
+  return isMultipartCompletionPostTarget(
     readApiGatewayRequestTarget(event),
   );
 }
@@ -94,6 +104,53 @@ test("shared Lambda preserves other methods and unrelated shared routes", () => 
         matchesDirectImagePost(createEvent(path, method)),
         false,
         label,
+      );
+    }
+  }
+});
+
+test("shared Lambda matches multipart completion POST paths across REST v1 and HTTP v2 events", () => {
+  const completionPaths = [
+    multipartCompletionPath,
+    `${multipartCompletionPath}/`,
+    `/v1${multipartCompletionPath}`,
+    `/v1/v1${multipartCompletionPath}`,
+  ];
+  const eventFactories = [createRestApiEvent, createHttpApiEvent] as const;
+
+  for (const createEvent of eventFactories) {
+    for (const path of completionPaths) {
+      assert.equal(
+        matchesMultipartCompletionPost(createEvent(path, "POST")),
+        true,
+        path,
+      );
+    }
+  }
+});
+
+test("multipart completion timing guard excludes other methods and adjacent routes", () => {
+  const excludedTargets = [
+    [multipartCompletionPath, "GET"],
+    [multipartCompletionPath, "OPTIONS"],
+    [
+      `/workspaces/${workspaceId}/media-assets/upload-sessions/${multipartSessionId}/abort`,
+      "POST",
+    ],
+    [
+      `/workspaces/${workspaceId}/media-assets/upload-sessions/${multipartSessionId}/parts`,
+      "POST",
+    ],
+    [`${multipartCompletionPath}/unexpected`, "POST"],
+  ] as const;
+  const eventFactories = [createRestApiEvent, createHttpApiEvent] as const;
+
+  for (const createEvent of eventFactories) {
+    for (const [path, method] of excludedTargets) {
+      assert.equal(
+        matchesMultipartCompletionPost(createEvent(path, method)),
+        false,
+        `${method} ${path}`,
       );
     }
   }
