@@ -10,11 +10,11 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@aws-sdk/client-secrets-manager": "^3.1087.0",
-    "@hono/node-server": "^2.0.9",
-    "@sentry/aws-serverless": "^10.65.0",
+    "@aws-sdk/client-secrets-manager": "^3.1097.0",
+    "@hono/node-server": "^2.0.12",
+    "@sentry/aws-serverless": "^10.68.0",
     "aws-jwt-verify": "^5.2.1",
-    "hono": "^4.12.30",
+    "hono": "^4.12.32",
     "pg": "^8.22.0"
   },
   "devDependencies": {

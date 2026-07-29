@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 type SettingsTab = "general" | "current-workspace" | "workspace" | "account" | "device" | "access" | "test";
 

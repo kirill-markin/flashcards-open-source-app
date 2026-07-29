@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.flashcardsopensourceapp.feature.review"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 34

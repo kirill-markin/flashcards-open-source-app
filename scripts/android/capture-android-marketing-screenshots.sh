@@ -21,18 +21,18 @@ file_names=(
 if [[ "$(adb get-state 2>/dev/null)" != "device" ]]; then
     cat >&2 <<'EOF'
 No Android device or emulator is connected.
-Start one headless API 36 emulator first, for example:
-  emulator @Medium_Phone_API_36.1 -no-window -no-audio -gpu auto
+Start one headless API 37 emulator first, for example:
+  emulator @Medium_Phone_API_37.0 -no-window -no-audio -gpu auto
 
 If the local emulator is flaky and you need more startup visibility, use:
-  emulator @Medium_Phone_API_36.1 -no-window -no-audio -gpu auto -verbose -debug init,metrics -logcat '*:s ActivityManager:i AndroidTestOrchestrator:i TestRunner:i'
+  emulator @Medium_Phone_API_37.0 -no-window -no-audio -gpu auto -verbose -debug init,metrics -logcat '*:s ActivityManager:i AndroidTestOrchestrator:i TestRunner:i'
 EOF
     exit 1
 fi
 
 device_sdk="$(adb shell getprop ro.build.version.sdk | tr -d '\r')"
-if [[ "$device_sdk" != "36" ]]; then
-    echo "Connected Android device must run API 36. Current SDK: $device_sdk" >&2
+if [[ "$device_sdk" != "37" ]]; then
+    echo "Connected Android device must run API 37. Current SDK: $device_sdk" >&2
     exit 1
 fi
 

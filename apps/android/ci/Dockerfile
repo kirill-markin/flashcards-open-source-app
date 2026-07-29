@@ -1,8 +1,8 @@
-FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:576.0.0-stable
+FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:577.0.0-stable
 
-ARG ANDROID_CMDLINE_TOOLS_VERSION=15641748
+ARG ANDROID_CMDLINE_TOOLS_VERSION=15859902
 ARG ANDROID_BUILD_TOOLS_VERSION=37.0.0
-ARG ANDROID_PLATFORM_VERSION=36
+ARG ANDROID_PLATFORM_VERSION=37.0
 
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV ANDROID_SDK_ROOT=/opt/android-sdk

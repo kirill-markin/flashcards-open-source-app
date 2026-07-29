@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import type { ReviewRating } from "../../../../../backend/src/scheduling";
 import { useI18n } from "../../../i18n";
 import { cardsRoute, chatRoute } from "../../../routes";

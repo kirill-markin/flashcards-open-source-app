@@ -2,7 +2,7 @@
 import "fake-indexeddb/auto";
 import { act } from "react";
 import ReactDOM from "react-dom/client";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppErrorDialogProvider } from "../../appError/AppErrorContext";
 import type { AppDataContextValue } from "../../appData";

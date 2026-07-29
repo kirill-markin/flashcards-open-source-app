@@ -67,17 +67,17 @@ For marketing screenshot generation, the visible emulator UI is unnecessary and 
 1. Stop all Android emulators.
 2. Stop all booted iOS simulators.
 3. Verify `adb devices` is empty before starting a new Android run.
-4. Start exactly one Android API 36 emulator in headless mode, currently `Medium_Phone_API_36.1`.
+4. Start exactly one Android API 37 emulator in headless mode, currently `Medium_Phone_API_37.0`.
    Recommended local command:
 
    ```bash
-   emulator @Medium_Phone_API_36.1 -no-window -no-audio -gpu auto
+   emulator @Medium_Phone_API_37.0 -no-window -no-audio -gpu auto
    ```
 
    If the emulator still needs startup diagnosis on a weak machine, keep the same headless shape and add only temporary debug flags:
 
    ```bash
-   emulator @Medium_Phone_API_36.1 -no-window -no-audio -gpu auto -verbose -debug init,metrics -logcat '*:s ActivityManager:i AndroidTestOrchestrator:i TestRunner:i'
+   emulator @Medium_Phone_API_37.0 -no-window -no-audio -gpu auto -verbose -debug init,metrics -logcat '*:s ActivityManager:i AndroidTestOrchestrator:i TestRunner:i'
    ```
 
    Avoid forcing the deprecated `-gpu swiftshader_indirect` mode for this local screenshot flow.
@@ -143,7 +143,7 @@ bash scripts/android/capture-android-marketing-screenshots.sh
 
 Each wrapper script does the following:
 
-1. Verifies that an Android API 36 device is connected.
+1. Verifies that an Android API 37 device is connected.
 2. Dismisses blocking system dialogs.
 3. Runs one manual-only instrumentation class through `:app:connectedMarketingScreenshotAndroidTest`.
 4. Pulls the generated PNG file or files from `/sdcard/Download/flashcards-marketing-screenshots/` into the committed media directory.
