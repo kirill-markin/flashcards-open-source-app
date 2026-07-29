@@ -113,7 +113,8 @@ jobs:
       - name: Run data:local instrumentation suite on emulator
         uses: reactivecircus/android-emulator-runner@v2.38.0
         with:
-          api-level: 37.0
+          # Quote the SDK package ID so YAML preserves 37.0 instead of normalizing it to 37.
+          api-level: "37.0"
           target: google_apis
           arch: x86_64
           disable-animations: true
