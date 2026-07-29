@@ -49,8 +49,8 @@ The unified screenshot flow captures an exam-prep concept card about opportunity
 
 Prerequisites:
 
-- Start a local Android emulator or device on API 36.
-- For a local headless emulator, prefer `emulator @Medium_Phone_API_36.1 -no-window -no-audio -gpu auto`.
+- Start a local Android emulator or device on API 37.
+- For a local headless emulator, prefer `emulator @Medium_Phone_API_37.0 -no-window -no-audio -gpu auto`.
 - Run from the repository root.
 
 Command:

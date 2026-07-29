@@ -13,29 +13,29 @@
     "test:mcp": "npm run bundle --prefix ../../api && node --test --import tsx src/entrypoints/lambda-mcp.test.ts src/mcp/server.test.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-cognito-identity-provider": "^3.1087.0",
-    "@aws-sdk/client-lambda": "^3.1087.0",
-    "@aws-sdk/client-s3": "^3.1087.0",
-    "@aws-sdk/client-secrets-manager": "^3.1087.0",
-    "@aws-sdk/s3-request-presigner": "^3.1087.0",
-    "@hono/node-server": "^2.0.9",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1097.0",
+    "@aws-sdk/client-lambda": "^3.1097.0",
+    "@aws-sdk/client-s3": "^3.1097.0",
+    "@aws-sdk/client-secrets-manager": "^3.1097.0",
+    "@aws-sdk/s3-request-presigner": "^3.1097.0",
+    "@hono/node-server": "^2.0.12",
     "@langfuse/openai": "^5.9.1",
     "@langfuse/otel": "^5.9.1",
     "@langfuse/tracing": "^5.9.1",
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "@opentelemetry/instrumentation": "^0.220.0",
-    "@opentelemetry/sdk-trace-base": "^2.9.0",
-    "@sentry/aws-serverless": "^10.65.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@opentelemetry/instrumentation": "^0.221.0",
+    "@opentelemetry/sdk-trace-base": "^2.10.0",
+    "@sentry/aws-serverless": "^10.68.0",
     "aws-jwt-verify": "^5.2.1",
-    "hono": "^4.12.30",
-    "openai": "^6.47.0",
+    "hono": "^4.12.32",
+    "openai": "^7.1.0",
     "pg": "^8.22.0",
     "sharp": "^0.35.3",
     "yauzl": "^3.4.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@sentry/cli": "^3.6.0",
+    "@sentry/cli": "^3.6.2",
     "@types/aws-lambda": "^8.10.162",
     "@types/node": "^24.13.3",
     "@types/pg": "^8.20.0",
@@ -45,7 +45,7 @@
   },
   "overrides": {
     "protobufjs": "^8.7.1",
-    "undici": "6.27.0"
+    "undici": "6.28.0"
   },
   "engines": {
     "node": "24.x"

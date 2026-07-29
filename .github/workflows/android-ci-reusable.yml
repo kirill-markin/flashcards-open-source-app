@@ -39,7 +39,7 @@ jobs:
           yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
           "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" \
             "platform-tools" \
-            "platforms;android-36" \
+            "platforms;android-37.0" \
             "build-tools;37.0.0"
 
       - name: Run Android unit tests, build debug artifacts, and lint
@@ -100,9 +100,9 @@ jobs:
           "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" \
             "platform-tools" \
             "emulator" \
-            "platforms;android-36" \
+            "platforms;android-37.0" \
             "build-tools;37.0.0" \
-            "system-images;android-36;google_apis;x86_64"
+            "system-images;android-37.0;google_apis;x86_64"
 
       - name: Enable KVM access
         run: |
@@ -113,7 +113,7 @@ jobs:
       - name: Run data:local instrumentation suite on emulator
         uses: reactivecircus/android-emulator-runner@v2.38.0
         with:
-          api-level: 36
+          api-level: 37.0
           target: google_apis
           arch: x86_64
           disable-animations: true

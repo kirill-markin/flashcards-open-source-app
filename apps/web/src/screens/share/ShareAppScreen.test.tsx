@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import ReactDOM from "react-dom/client";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../i18n";
 import { reviewRoute, shareRoute } from "../../routes";

@@ -16,16 +16,16 @@ We do not want an Android app that imitates iPhone UI. We want a modern Android 
 - UI stack: Jetpack Compose
 - Design system: Material 3
 - Minimum supported Android version: Android 14, `minSdk = 34`
-- Compile target: Android 16, `compileSdk = 36`
-- Runtime target: Android 16, `targetSdk = 36`
-- Testing focus: Android 16 / API 36 only
+- Compile target: Android 17, `compileSdk = 37`
+- Runtime target: Android 17, `targetSdk = 37`
+- Testing focus: Android 17 / API 37 only
 - Primary local storage: Room on top of SQLite
 
-The development focus is Android 14, 15, and 16. We do not spend effort validating or polishing older Android versions.
+The development focus is Android 14, 15, 16, and 17. We do not spend effort validating or polishing older Android versions.
 
 ## Dependency Version Pin
 
-AndroidX and other dependency versions in `gradle/libs.versions.toml` must stay at the highest versions still compatible with `compileSdk = 36`, our stable baseline. Some newer releases — currently `androidx.core:core-ktx >= 1.19.0` and `androidx.lifecycle >= 2.11.0` — require `compileSdk = 37` (Android 17), which is not yet a stable SDK, so they fail the Android build at `:app:checkDebugAarMetadata`. Do not bump these past their `compileSdk 36`-compatible versions (`coreKtx = 1.18.0`, `lifecycle = 2.10.0`) until the whole app intentionally moves to `compileSdk 37`. Automated dependency-drift updates must respect this pin, because Gradle is not run during their validation and cannot catch the break locally.
+AndroidX and other dependency versions in `gradle/libs.versions.toml` must stay at the highest stable versions compatible with `compileSdk = 37`, our current stable baseline. Automated dependency-drift updates must not adopt dependencies that require a preview SDK beyond API 37, because Gradle is not run during their validation and cannot catch that break locally.
 
 ## Design Rule
 
@@ -149,8 +149,8 @@ For the current Android Play Store feature graphics, the expected workflow is:
 
 The current local Android app uses:
 
-- `compileSdk = 36`
-- `targetSdk = 36`
+- `compileSdk = 37`
+- `targetSdk = 37`
 - `minSdk = 34`
 - Room on top of SQLite for local storage
 - Material 3 + Compose + Navigation Compose + `NavigationSuiteScaffold`
@@ -162,7 +162,7 @@ Test only on the final supported Android target.
 - Do not try to cover the Android app exhaustively with tests
 - Do not add isolated unit tests by default
 - Prefer native integration, parity, and instrumentation tests when they validate a real module boundary or user flow
-- Run Android tests only against Android 16 / API 36
+- Run Android tests only against Android 17 / API 37
 - Do not spend time on test matrices for older API levels
 - Do not add compatibility code for older Android versions unless explicitly requested
 - Prefer background local emulator runs without a visible emulator window by default

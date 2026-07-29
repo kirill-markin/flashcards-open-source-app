@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "com.flashcardsopensourceapp.core.observability"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 34

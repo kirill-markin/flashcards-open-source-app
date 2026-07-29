@@ -7,7 +7,7 @@ import {
   useLocation,
   useNavigationType,
   type Routes,
-} from "react-router-dom";
+} from "react-router";
 import webPackageInfo from "../../package.json";
 import { getAppConfig } from "../config";
 

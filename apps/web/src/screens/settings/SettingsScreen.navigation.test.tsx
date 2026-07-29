@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, type ReactElement } from "react";
 import ReactDOM from "react-dom/client";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppDataContextValue } from "../../appData";
 import { AppErrorDialogProvider } from "../../appError/AppErrorContext";

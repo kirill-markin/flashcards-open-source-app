@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type ReactElement } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router";
 import { useAppData } from "../../../../appData";
 import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
 import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition } from "../../../../deckFilters";

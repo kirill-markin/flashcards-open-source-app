@@ -135,12 +135,12 @@ fun sentryTracesSampleRateLiteral(buildTypeName: String): String {
 
 android {
     namespace = "com.flashcardsopensourceapp.app"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.flashcardsopensourceapp.app"
         minSdk = androidMinSdk
-        targetSdk = 36
+        targetSdk = 37
         versionCode = androidVersionCode ?: 1
         versionName = "1.17.0"
         testInstrumentationRunner = "com.flashcardsopensourceapp.app.FlashcardsAndroidTestRunner"

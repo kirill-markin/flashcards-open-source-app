@@ -76,7 +76,7 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 - Runs `:app:lintDebug`
 - Delegates the GitHub-hosted Android Gradle entrypoints to repo-root shell scripts in `scripts/android/`
 - Uploads the debug APK, Android test APK, unit test reports, and lint report as workflow artifacts
-- Boots a headless Android 16 / API 36 emulator in GitHub Actions with `-gpu auto`
+- Boots a headless Android 17 / API 37 emulator in GitHub Actions with `-gpu auto`
 - Runs `:data:local:connectedDebugAndroidTest` on that emulator
 - Uploads `data:local` instrumentation reports from the emulator run when the Gradle task produced them
 - Reuses the caller-provided `ANDROID_VERSION_CODE` across Android CI/build artifacts
@@ -93,7 +93,7 @@ The automatic Android CI flow is:
 
 1. `android-ci.yml` starts on `push main` for Android-impacting changes
 2. Android unit tests, debug builds, and lint run in GitHub Actions
-3. `data:local` Android instrumentation runs on a GitHub-hosted Android 16 emulator
+3. `data:local` Android instrumentation runs on a GitHub-hosted Android 17 emulator
 4. The workflow stops there: no Firebase Test Lab submission and no Google Play draft upload
 
 The manual Android release flow is:
@@ -323,9 +323,9 @@ gcloud services enable androidpublisher.googleapis.com \
 
 ### 7. Choose the Firebase Test Lab device
 
-This repository intentionally tests Android 16 / API 36 only.
+This repository intentionally tests Android 17 / API 37 only.
 
-Before setting the GitHub variables, list supported Test Lab devices for your project and choose a device that supports API 36:
+Before setting the GitHub variables, list supported Test Lab devices for your project and choose a device that supports API 37:
 
 ```bash
 gcloud firebase test android models list --project "YOUR_GCP_PROJECT_ID"
@@ -401,7 +401,7 @@ For local instrumentation runs, prefer one clean emulator only:
 
 - stop all running Android emulators before the run
 - verify `adb devices` shows only one target emulator before starting Gradle
-- when launching a local headless emulator manually, prefer `emulator @Medium_Phone_API_36.1 -no-window -no-audio -gpu auto`
+- when launching a local headless emulator manually, prefer `emulator @Medium_Phone_API_37.0 -no-window -no-audio -gpu auto`
 - for temporary local startup diagnosis only, keep the same command and add `-verbose -debug init,metrics -logcat '*:s ActivityManager:i AndroidTestOrchestrator:i TestRunner:i'`
 - prefer a clean rebuild and one clean test run when validating a local fix
 - do not reuse a second emulator or a half-failed prior emulator session for the same verification pass

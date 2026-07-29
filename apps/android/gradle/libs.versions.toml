@@ -1,20 +1,16 @@
 [versions]
-agp = "9.3.0"
+agp = "9.3.1"
 kotlin = "2.4.10"
 ksp = "2.3.10"
-# Pinned for compileSdk 36 (our stable baseline — see apps/android/README.md):
-# coreKtx >= 1.19.0 requires compileSdk 37 (Android 17, not yet stable) and breaks the Android build.
-coreKtx = "1.18.0"
+coreKtx = "1.19.0"
 splashscreen = "1.2.0"
 activityCompose = "1.13.0"
-# Pinned for compileSdk 36: lifecycle >= 2.11.0 requires compileSdk 37 (see coreKtx note above).
-lifecycle = "2.10.0"
+lifecycle = "2.11.0"
 navigationCompose = "2.9.8"
 composeBom = "2026.06.01"
 lottieCompose = "6.7.1"
 coil = "3.5.0"
-# Pinned for compileSdk 36: markdown renderer >= 0.42.0 requires compileSdk 37.
-markdownRenderer = "0.41.0"
+markdownRenderer = "0.43.0"
 room = "2.8.4"
 work = "2.11.2"
 adaptive = "1.2.0"
@@ -28,10 +24,10 @@ espresso = "3.7.0"
 uiautomator = "2.4.0"
 testOrchestrator = "1.6.1"
 securityCrypto = "1.1.0"
-json = "20260522"
+json = "20260719"
 okhttp = "5.4.0"
-sentry = "8.48.0"
-sentryAndroidGradlePlugin = "6.14.0"
+sentry = "8.50.1"
+sentryAndroidGradlePlugin = "6.16.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

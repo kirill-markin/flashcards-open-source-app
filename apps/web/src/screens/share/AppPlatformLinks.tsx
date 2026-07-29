@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 const appStoreBadgeSrc: string = "/home/app-store-badge.svg";
 const googlePlayLockupSrc: string = "/home/google-play-lockup.png";

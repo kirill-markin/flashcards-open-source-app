@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { useAppData } from "../../../appData";
 import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { getCardFilterActiveDimensionCount, normalizeCardFilter } from "../../../cardFilters";
