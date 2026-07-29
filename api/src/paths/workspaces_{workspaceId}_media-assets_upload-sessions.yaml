@@ -8,7 +8,13 @@ post:
     and no byte upload is needed. Otherwise, the backend creates a short-lived
     multipart transfer session and returns a backend session id for presigned
     part URL requests. Card-editor media authoring should send bytes directly
-    to the returned S3 part URLs, not to this backend route.
+    to the returned S3 part URLs, not to this backend route. If an earlier
+    completion for the same logical media asset is pending in durable
+    reconciliation, or another exact replacement-creation claim is live, this
+    route returns a retryable 503 before creating another S3 multipart upload.
+    Retry the unchanged request after Retry-After. A retry of a successfully
+    committed create response returns the same active session as a normal 201
+    without creating another S3 multipart upload.
   security:
     - ApiKeyHeader: []
   parameters:
@@ -31,11 +37,42 @@ post:
           schema:
             $ref: ../components/schemas/MediaAssetUploadSessionCreateResponse.yaml
     '201':
-      description: Multipart upload session created
+      description: Multipart upload session created or its exact active result replayed
       content:
         application/json:
           schema:
             $ref: ../components/schemas/MediaAssetUploadSessionCreateResponse.yaml
+    '503':
+      description: >-
+        MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS means a previously
+        accepted completion for this media asset is being durably reconciled.
+        MEDIA_ASSET_UPLOAD_SESSION_CREATION_IN_PROGRESS means another exact
+        replacement-creation claim owns this media asset. No replacement
+        multipart upload was created. Retry the same create request after
+        Retry-After.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying the same session create request.
+          schema:
+            type: string
+          example: '1'
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AgentErrorEnvelope.yaml
+          example:
+            ok: false
+            data: {}
+            instructions: >-
+              Wait for Retry-After and retry this create request unchanged. Do
+              not start another byte upload while completion or another
+              replacement creation is pending.
+            docs:
+              openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
+              docsUrl: https://flashcards-open-source-app.com/docs/
+            error:
+              code: MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS
+              message: Multipart completion is being durably reconciled for this media asset.
     default:
       description: Authenticated request error
       content:
