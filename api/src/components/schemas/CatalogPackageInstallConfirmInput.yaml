@@ -25,7 +25,10 @@ properties:
   operationIdPrefix:
     type: string
     minLength: 1
-    maxLength: 160
+    maxLength: 1007
+    pattern: '^([!-~]|[!-~][ -~]*[!-~])$'
     description: >-
-      Prefix used to derive per-card and per-media sync operation ids. The
-      backend rejects conflicts with existing workspace operation ids.
+      Printable ASCII prefix without leading or trailing spaces. The maximum
+      reserves space for the longest :media:<index> suffix supported by the
+      catalog installer. The backend rejects conflicts with existing workspace
+      operation ids.

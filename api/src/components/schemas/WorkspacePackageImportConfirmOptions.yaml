@@ -39,3 +39,9 @@ properties:
   operationIdPrefix:
     type: string
     minLength: 1
+    maxLength: 1013
+    pattern: '^([!-~]|[!-~][ -~]*[!-~])$'
+    description: >-
+      Printable ASCII prefix without leading or trailing spaces. The maximum
+      reserves space for the longest :media:<index> suffix supported by a
+      workspace package import.

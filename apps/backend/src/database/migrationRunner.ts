@@ -5,6 +5,7 @@ import { getDatabaseCredentialsSecret } from "../aws/secrets";
 
 interface MigrationRunResult {
   appliedMigrations: ReadonlyArray<string>;
+  installedMigrations: ReadonlyArray<string>;
   appliedViews: ReadonlyArray<string>;
   configuredRuntimeRoles: ReadonlyArray<RuntimeRoleConfigurationResult>;
 }
@@ -178,6 +179,15 @@ async function applyPendingMigrations(
   return appliedMigrations;
 }
 
+async function listInstalledMigrations(
+  client: pg.Client,
+): Promise<ReadonlyArray<string>> {
+  const result = await client.query<Readonly<{ filename: string }>>(
+    "SELECT filename FROM public.schema_migrations ORDER BY filename",
+  );
+  return result.rows.map((row) => row.filename);
+}
+
 async function applyViews(client: pg.Client, directoryPath: string): Promise<ReadonlyArray<string>> {
   const appliedViews: Array<string> = [];
   const viewFiles = await listSqlFiles(directoryPath);
@@ -316,6 +326,7 @@ export async function runMigrations(): Promise<MigrationRunResult> {
   try {
     await ensureSchemaMigrationsTable(client);
     const appliedMigrations = await applyPendingMigrations(client, getMigrationsDirectoryPath());
+    const installedMigrations = await listInstalledMigrations(client);
     const appliedViews = await applyViews(client, getViewsDirectoryPath());
     await syncBootstrapAdminGrants(client, process.env.ADMIN_EMAILS);
     const managedRuntimeRoles = getManagedRuntimeRoles({
@@ -334,6 +345,7 @@ export async function runMigrations(): Promise<MigrationRunResult> {
 
     return {
       appliedMigrations,
+      installedMigrations,
       appliedViews,
       configuredRuntimeRoles,
     };

@@ -9,22 +9,106 @@ import type {
 
 const maxS3AttemptCount = 3;
 
-export function getS3ErrorStatusCode(error: unknown): number | null {
+export const mediaAssetStorageMaximumAttemptCount = maxS3AttemptCount;
+
+export type MultipartCompletionReconciliationStorageTerminalErrorCode =
+  | "MULTIPART_UPLOAD_NOT_FOUND"
+  | "MULTIPART_PARTS_INVALID"
+  | "MULTIPART_PARTS_FINGERPRINT_MISMATCH"
+  | "MULTIPART_STAGING_OBJECT_MISMATCH"
+  | "MULTIPART_BLOB_OBJECT_MISMATCH"
+  | "S3_REQUEST_REJECTED";
+
+export type MultipartCompletionReconciliationS3Diagnostics = Readonly<{
+  operation: MediaAssetStorageOperation;
+  statusCode: number | null;
+  errorClass: string;
+  awsRequestId: string | null;
+  awsExtendedRequestId: string | null;
+}>;
+
+export class MultipartCompletionReconciliationStorageTransientError extends Error {
+  readonly code = "MULTIPART_STORAGE_TRANSIENT";
+  readonly safeMessage =
+    "Multipart completion storage is temporarily unavailable.";
+
+  constructor(
+    readonly operation: MediaAssetStorageOperation,
+    readonly statusCode: number | null,
+    cause: unknown,
+  ) {
+    super(
+      `Multipart completion reconciliation storage operation failed transiently. operation=${operation}; statusCode=${String(statusCode)}`,
+      { cause },
+    );
+    this.name = "MultipartCompletionReconciliationStorageTransientError";
+  }
+}
+
+export class MultipartCompletionReconciliationStorageTerminalError extends Error {
+  readonly safeMessage: string;
+
+  constructor(
+    readonly code: MultipartCompletionReconciliationStorageTerminalErrorCode,
+    safeMessage: string,
+    readonly s3Diagnostics:
+      MultipartCompletionReconciliationS3Diagnostics | null,
+    cause: unknown | null,
+  ) {
+    super(safeMessage, { cause });
+    this.name = "MultipartCompletionReconciliationStorageTerminalError";
+    this.safeMessage = safeMessage;
+  }
+}
+
+type S3ResponseMetadata = Readonly<{
+  httpStatusCode?: unknown;
+  requestId?: unknown;
+  extendedRequestId?: unknown;
+}>;
+
+function getS3ResponseMetadata(error: unknown): S3ResponseMetadata | null {
   if (typeof error !== "object" || error === null || !("$metadata" in error)) {
     return null;
   }
 
-  const metadata = (error as Readonly<{
-    $metadata?: Readonly<{
-      httpStatusCode?: unknown;
-    }>;
-  }>).$metadata;
+  const metadata = (error as Readonly<{ $metadata?: unknown }>).$metadata;
+  return typeof metadata === "object" && metadata !== null
+    ? metadata as S3ResponseMetadata
+    : null;
+}
 
+export function getS3ErrorStatusCode(error: unknown): number | null {
+  const metadata = getS3ResponseMetadata(error);
   return typeof metadata?.httpStatusCode === "number" ? metadata.httpStatusCode : null;
 }
 
 function getS3ErrorName(error: unknown): string {
-  return error instanceof Error ? error.name : "UnknownError";
+  const errorName = error instanceof Error ? error.name : "UnknownError";
+  return /^[A-Za-z0-9._-]{1,128}$/u.test(errorName)
+    ? errorName
+    : "UnknownError";
+}
+
+function getSafeAwsRequestId(value: unknown): string | null {
+  return typeof value === "string"
+    && /^[\x21-\x7e]{1,512}$/u.test(value)
+    ? value
+    : null;
+}
+
+export function createMultipartCompletionReconciliationS3Diagnostics(
+  operation: MediaAssetStorageOperation,
+  error: unknown,
+): MultipartCompletionReconciliationS3Diagnostics {
+  const metadata = getS3ResponseMetadata(error);
+  return {
+    operation,
+    statusCode: getS3ErrorStatusCode(error),
+    errorClass: getS3ErrorName(error),
+    awsRequestId: getSafeAwsRequestId(metadata?.requestId),
+    awsExtendedRequestId: getSafeAwsRequestId(metadata?.extendedRequestId),
+  };
 }
 
 function isHeadObjectUploadNotAvailableStatusCode(statusCode: number | null): boolean {
@@ -44,12 +128,28 @@ export async function runMediaAssetStorageOperationWithRetries<Result>(
   operation: MediaAssetStorageOperation,
   run: () => Promise<Result>,
 ): Promise<Result> {
+  return runMediaAssetStorageOperationWithRetriesAndOptionalAbortSignal(
+    context,
+    operation,
+    null,
+    run,
+  );
+}
+
+async function runMediaAssetStorageOperationWithRetriesAndOptionalAbortSignal<Result>(
+  context: MediaAssetStorageContext,
+  operation: MediaAssetStorageOperation,
+  signal: AbortSignal | null,
+  run: () => Promise<Result>,
+): Promise<Result> {
   let lastError: unknown = null;
 
   for (let attempt = 1; attempt <= maxS3AttemptCount; attempt += 1) {
+    signal?.throwIfAborted();
     try {
       return await run();
     } catch (error) {
+      signal?.throwIfAborted();
       lastError = error;
       if (attempt === maxS3AttemptCount) {
         break;
@@ -78,6 +178,24 @@ export async function runMediaAssetStorageOperationWithRetries<Result>(
   }
 
   throw lastError;
+}
+
+export function runMediaAssetStorageOperationWithRetriesAndAbortSignal<Result>(
+  context: MediaAssetStorageContext,
+  operation: MediaAssetStorageOperation,
+  signal: AbortSignal,
+  run: () => Promise<Result>,
+): Promise<Result> {
+  return runMediaAssetStorageOperationWithRetriesAndOptionalAbortSignal(
+    context,
+    operation,
+    signal,
+    run,
+  );
+}
+
+export function rethrowMediaAssetStorageAbortReason(signal: AbortSignal): void {
+  if (signal.aborted) signal.throwIfAborted();
 }
 
 export function createMediaAssetStorageError(

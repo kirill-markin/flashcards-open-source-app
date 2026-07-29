@@ -1,4 +1,7 @@
-import { S3Client } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  S3ServiceException,
+} from "@aws-sdk/client-s3";
 import {
   createBackendObservationScope,
   type BackendObservationScope,
@@ -10,11 +13,7 @@ import {
   buildMediaUploadStagingStorageKey,
 } from "../storageKeys";
 
-export type S3Error = Error & {
-  $metadata: Readonly<{
-    httpStatusCode: number;
-  }>;
-};
+export type S3Error = S3ServiceException;
 
 export const testWorkspaceId = "11111111-1111-4111-8111-111111111111";
 export const testMediaAssetId = "22222222-2222-4222-8222-222222222222";
@@ -55,12 +54,12 @@ export function getTestMediaAssetsStorageConfig(): MediaAssetsStorageConfig {
 }
 
 export function createS3Error(statusCode: number, name: string, message: string): S3Error {
-  const error = new Error(message) as S3Error;
-  error.name = name;
-  error.$metadata = {
-    httpStatusCode: statusCode,
-  };
-  return error;
+  return new S3ServiceException({
+    name,
+    $fault: statusCode >= 500 ? "server" : "client",
+    $metadata: { httpStatusCode: statusCode },
+    message,
+  });
 }
 
 export function createFailingS3Client(error: S3Error): S3Client {
@@ -96,9 +95,11 @@ export function createHeadObjectResponse(fixture: Readonly<{
   lastOperationIdSha256?: string;
   checksumSha256?: string;
   checksumType?: "COMPOSITE" | "FULL_OBJECT";
+  eTag?: string;
 }>): Readonly<{
   ContentLength: number;
   ContentType: string;
+  ETag: string;
   ChecksumSHA256: string;
   ChecksumType: "COMPOSITE" | "FULL_OBJECT";
   Metadata: Readonly<Record<string, string>>;
@@ -106,6 +107,7 @@ export function createHeadObjectResponse(fixture: Readonly<{
   return {
     ContentLength: fixture.sizeBytes,
     ContentType: fixture.mimeType,
+    ETag: fixture.eTag ?? "\"test-object-etag\"",
     ChecksumSHA256: Buffer.from(fixture.checksumSha256 ?? fixture.sha256, "hex").toString("base64"),
     ChecksumType: fixture.checksumType ?? "FULL_OBJECT",
     Metadata: {

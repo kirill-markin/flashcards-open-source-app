@@ -349,6 +349,28 @@ test("workspace package import confirmation rejects wrong workspace replica befo
   assert.equal(harness.calls.persistInputs.length, 0);
 });
 
+test("workspace package import confirmation rejects unsafe operation prefixes before external work", async () => {
+  const harness = createConfirmHarness(createCardsJson());
+
+  await assert.rejects(
+    () => confirmWorkspacePackageImportWithDependencies(
+      {
+        ...createConfirmInput(),
+        operationIdPrefix: "unsafe\u00a0prefix",
+      },
+      harness.dependencies,
+    ),
+    (error: unknown): boolean => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.statusCode, 400);
+      assert.equal(error.code, "WORKSPACE_PACKAGE_IMPORT_INPUT_INVALID");
+      assert.match(error.message, /operationIdPrefix.*printable ASCII/);
+      return true;
+    },
+  );
+  assert.deepEqual(harness.calls.order, []);
+});
+
 test("workspace package import confirmation validates semantic options before media ingestion", async () => {
   const harness = createConfirmHarness(createCardsJson());
   const baseInput = createConfirmInput();

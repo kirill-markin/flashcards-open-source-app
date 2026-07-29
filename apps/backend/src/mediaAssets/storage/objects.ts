@@ -140,6 +140,7 @@ export async function loadMediaAssetObjectMetadataWithDependencies(
     return {
       sizeBytes: typeof response.ContentLength === "number" ? response.ContentLength : null,
       mimeType: typeof response.ContentType === "string" ? response.ContentType : null,
+      eTag: typeof response.ETag === "string" ? response.ETag : null,
       checksumSha256: toHexSha256Digest(response.ChecksumSHA256),
       checksumType: response.ChecksumType ?? null,
       uploadProof: {

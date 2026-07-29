@@ -177,6 +177,7 @@ async function assertStoredMediaAssetBlobObjectContentMatchesWithDependencies(
   }
   assertMediaAssetObjectContentMatches(blobObjectInput, {
     sizeBytes: response.ContentLength ?? null, mimeType: response.ContentType ?? null,
+    eTag: response.ETag ?? null,
     checksumSha256: toHexSha256Digest(response.ChecksumSHA256),
     checksumType: response.ChecksumType ?? null,
     uploadProof: {

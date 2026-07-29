@@ -44,6 +44,7 @@ export interface OutputsProps {
   apexRedirectDistribution: cloudfront.Distribution | undefined;
   apexRedirectCustomDomain: string | undefined;
   mediaAssetsBucket: s3.IBucket;
+  multipartCompletionReconciliationScheduleName: string;
   dbAccessInstance?: ec2.Instance;
   analyticsSshUsername?: string;
 }
@@ -143,6 +144,16 @@ export function outputs(scope: Construct, props: OutputsProps): void {
     value: props.migrationFn.functionName,
     description: "Lambda function name for database migrations",
   });
+
+  new cdk.CfnOutput(
+    scope,
+    "MultipartCompletionReconciliationScheduleName",
+    {
+      value: props.multipartCompletionReconciliationScheduleName,
+      description:
+        "EventBridge Scheduler name for multipart completion reconciliation",
+    },
+  );
 
   new cdk.CfnOutput(scope, "GlobalMetricsSnapshotFunctionName", {
     value: props.globalMetricsSnapshotFunction.functionName,

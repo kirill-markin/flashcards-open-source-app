@@ -110,6 +110,23 @@ export type CompleteMultipartMediaAssetUploadInput = Readonly<{
   observationScope: BackendObservationScope;
 }>;
 
+export type ReconcileMultipartMediaAssetUploadInput = Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
+  stagingStorageKey: string;
+  blobStorageKey: string;
+  s3UploadId: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+  lastOperationId: string;
+  partCount: number;
+  completedPartsFingerprint: string;
+  renewLease: () => Promise<void>;
+  signal: AbortSignal;
+  observationScope: BackendObservationScope;
+}>;
+
 export type AbortMultipartMediaAssetUploadInput = Readonly<{
   workspaceId: string;
   mediaAssetId: string;
@@ -137,6 +154,7 @@ export type MediaAssetStorageOperation =
   | "create_presigned_part_upload"
   | "complete_multipart_upload"
   | "abort_multipart_upload"
+  | "list_multipart_upload_parts"
   | "head_object"
   | "get_object"
   | "copy_object"

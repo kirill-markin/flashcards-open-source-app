@@ -6,6 +6,11 @@ import {
 } from "../../database";
 import type { CardMetadata, CardSourceMetadata } from "../../cards/types";
 import { normalizeCardMetadata } from "../../cards/shared";
+import {
+  isValidMediaAssetLastOperationId,
+  isValidMediaAssetLastOperationIdPrefix,
+  maximumMediaAssetLastOperationIdLength,
+} from "../../mediaAssets/lastOperationId";
 import { assertReplicaBelongsToWorkspaceInExecutor } from "../../mediaAssets/workspaceReplicas";
 import { HttpError } from "../../shared/errors";
 import { normalizeIsoTimestamp } from "../../sync/conflicts/lww";
@@ -33,6 +38,19 @@ import type {
 } from "../types";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const maximumJavaScriptArrayIndex = 4_294_967_294;
+const catalogPackageInstallMediaLastOperationIdMaximumSuffix =
+  `:media:${maximumJavaScriptArrayIndex}`;
+const catalogPackageInstallCardLastOperationIdMaximumSuffix =
+  `:card:${maximumJavaScriptArrayIndex}`;
+const catalogPackageInstallLastOperationIdMaximumSuffixLength = Math.max(
+  catalogPackageInstallMediaLastOperationIdMaximumSuffix.length,
+  catalogPackageInstallCardLastOperationIdMaximumSuffix.length,
+);
+
+export const catalogPackageInstallOperationIdPrefixMaximumLength =
+  maximumMediaAssetLastOperationIdLength
+  - catalogPackageInstallLastOperationIdMaximumSuffixLength;
 
 type CatalogPackageInstallVersionRow = Readonly<{
   package_version_id: string;
@@ -126,6 +144,31 @@ function normalizeBoundedNonEmptyString(value: string, fieldName: string, maximu
   return normalizedValue;
 }
 
+export function isValidCatalogPackageInstallOperationIdPrefix(
+  value: string,
+): boolean {
+  return isValidMediaAssetLastOperationIdPrefix(
+    value,
+    catalogPackageInstallOperationIdPrefixMaximumLength,
+  );
+}
+
+function normalizeCatalogPackageInstallOperationIdPrefix(value: string): string {
+  if (isValidCatalogPackageInstallOperationIdPrefix(value)) {
+    return value;
+  }
+
+  throw new HttpError(
+    400,
+    [
+      "operationIdPrefix must be",
+      `1 to ${catalogPackageInstallOperationIdPrefixMaximumLength}`,
+      "printable ASCII characters without leading or trailing spaces.",
+    ].join(" "),
+    "CATALOG_PACKAGE_INSTALL_INVALID_INPUT",
+  );
+}
+
 function normalizeCatalogInstallIsoTimestamp(value: string, fieldName: string): string {
   try {
     return normalizeIsoTimestamp(value, fieldName);
@@ -146,7 +189,7 @@ function normalizeCatalogPackageInstallConfirmInput(
     installedAt: normalizeCatalogInstallIsoTimestamp(input.installedAt, "installedAt"),
     clientUpdatedAt: normalizeCatalogInstallIsoTimestamp(input.clientUpdatedAt, "clientUpdatedAt"),
     lastModifiedByReplicaId: normalizeUuidString(input.lastModifiedByReplicaId, "lastModifiedByReplicaId"),
-    operationIdPrefix: normalizeBoundedNonEmptyString(input.operationIdPrefix, "operationIdPrefix", 160),
+    operationIdPrefix: normalizeCatalogPackageInstallOperationIdPrefix(input.operationIdPrefix),
   };
 }
 
@@ -318,11 +361,29 @@ function createCatalogPackageInstallPreview(
 }
 
 function buildCatalogInstallMediaOperationId(operationIdPrefix: string, mediaAssetIndex: number): string {
-  return `${operationIdPrefix}:media:${mediaAssetIndex}`;
+  const lastOperationId = `${operationIdPrefix}:media:${mediaAssetIndex}`;
+  if (isValidMediaAssetLastOperationId(lastOperationId)) {
+    return lastOperationId;
+  }
+
+  throw new HttpError(
+    400,
+    "Derived catalog media lastOperationId is invalid.",
+    "CATALOG_PACKAGE_INSTALL_INVALID_INPUT",
+  );
 }
 
 function buildCatalogInstallCardOperationId(operationIdPrefix: string, cardIndex: number): string {
-  return `${operationIdPrefix}:card:${cardIndex}`;
+  const lastOperationId = `${operationIdPrefix}:card:${cardIndex}`;
+  if (isValidMediaAssetLastOperationId(lastOperationId)) {
+    return lastOperationId;
+  }
+
+  throw new HttpError(
+    400,
+    "Derived catalog card lastOperationId is invalid.",
+    "CATALOG_PACKAGE_INSTALL_INVALID_INPUT",
+  );
 }
 
 function buildCatalogInstallOperationIds(

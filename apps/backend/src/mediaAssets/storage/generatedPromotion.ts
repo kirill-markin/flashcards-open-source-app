@@ -96,13 +96,15 @@ async function runS3<Result>(
   throw new GeneratedMediaPromotionStorageTransientError(lastStatusCode);
 }
 function toMetadata(response: Readonly<{
-  ContentLength?: number; ContentType?: string; ChecksumSHA256?: string;
+  ContentLength?: number; ContentType?: string; ETag?: string;
+  ChecksumSHA256?: string;
   ChecksumType?: "COMPOSITE" | "FULL_OBJECT";
   Metadata?: Readonly<Record<string, string>>;
 }>): GeneratedMediaObjectMetadata {
   return {
     sizeBytes: response.ContentLength ?? null,
     mimeType: response.ContentType ?? null,
+    eTag: response.ETag ?? null,
     checksumSha256: toHexSha256Digest(response.ChecksumSHA256),
     checksumType: response.ChecksumType ?? null,
     customMetadata: response.Metadata ?? {},

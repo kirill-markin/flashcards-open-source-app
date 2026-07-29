@@ -6,6 +6,7 @@ import {
   buildMediaMultipartUploadStagingStorageKey,
   buildMediaUploadStagingStorageKey,
 } from "./storageKeys";
+import { isValidMediaAssetLastOperationId } from "./lastOperationId";
 import {
   maximumImageIngestionOriginalBytes,
   maximumMultipartUploadBytes,
@@ -104,6 +105,60 @@ test("media asset upload validators keep direct uploads compatible and cap multi
       return true;
     },
   );
+});
+
+test("media asset upload validators reject unsafe last operation identifiers", () => {
+  assert.throws(
+    () => parseMediaAssetUploadSessionCreateInput({
+      mediaAssetId: testMediaAssetId,
+      mimeType: "image/png",
+      sizeBytes: 42,
+      sha256: testSha256,
+      partSizeBytes: 42,
+      partCount: 1,
+      sourceUrl: null,
+      createdAt: "2026-02-28T09:00:00.000Z",
+      clientUpdatedAt: "2026-02-28T10:00:00.000Z",
+      lastModifiedByReplicaId: "55555555-5555-4555-8555-555555555555",
+      lastOperationId: "operation\nmultipart",
+    }),
+    (error: unknown): boolean => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.statusCode, 400);
+      assert.equal(error.code, "MEDIA_ASSET_LAST_OPERATION_ID_INVALID");
+      return true;
+    },
+  );
+});
+
+test("media asset last operation identifiers use one printable ASCII contract", () => {
+  const accepted = [
+    "550e8400-e29b-41d4-a716-446655440000",
+    "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "550e8400-e29b-41d4-a716-446655440000:media:99",
+    "operation with internal spaces",
+    "a".repeat(1_024),
+  ];
+  const rejected = [
+    "",
+    " leading-space",
+    "trailing-space ",
+    "operation\tcontrol",
+    "operation\ncontrol",
+    "operation\u00a0nbsp",
+    "operation-😀",
+    "😀".repeat(512),
+    "\ud800",
+    "\udc00",
+    "a".repeat(1_025),
+  ];
+
+  for (const value of accepted) {
+    assert.equal(isValidMediaAssetLastOperationId(value), true, value);
+  }
+  for (const value of rejected) {
+    assert.equal(isValidMediaAssetLastOperationId(value), false, value);
+  }
 });
 
 test("deadline-aware image request reading cancels its underlying body stream", async () => {

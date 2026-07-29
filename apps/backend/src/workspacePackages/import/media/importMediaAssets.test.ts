@@ -22,6 +22,10 @@ import {
   type WorkspacePackageImportMediaAssetIngestionInput,
   type WorkspacePackageImportReferencedMediaFile,
 } from "../../index";
+import {
+  buildWorkspacePackageImportMediaLastOperationId,
+  workspacePackageImportOperationIdPrefixMaximumLength,
+} from "../operationIds";
 
 const testUserId = "user-1";
 const testWorkspaceId = "11111111-1111-4111-8111-111111111111";
@@ -218,6 +222,37 @@ test("workspace package import media asset ingestion rejects duplicate portable 
     /referencedMediaFiles contain duplicate or invalid portable paths.*media\/duplicate\.png/,
   );
   assert.deepEqual(harness.calls, []);
+});
+
+test("workspace package import media asset ingestion rejects unsafe prefixes before ingestion", async () => {
+  const mediaFile = createMediaFile("media/image.png", Buffer.from("image bytes"));
+  const harness = createIngestionHarness(["asset-1"]);
+
+  await assert.rejects(
+    () => ingestWorkspacePackageImportMediaAssetsWithDependencies(
+      {
+        ...createTestInput([mediaFile]),
+        operationIdPrefix: "unsafe\nprefix",
+      },
+      harness.dependencies,
+    ),
+    (error: unknown): boolean => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.code, "WORKSPACE_PACKAGE_IMPORT_INPUT_INVALID");
+      return true;
+    },
+  );
+  assert.deepEqual(harness.calls, []);
+});
+
+test("workspace package import operation prefix reserves the maximum media suffix", () => {
+  const lastOperationId = buildWorkspacePackageImportMediaLastOperationId(
+    "a".repeat(workspacePackageImportOperationIdPrefixMaximumLength),
+    9_999,
+  );
+
+  assert.equal(lastOperationId.length, 1_024);
+  assert.match(lastOperationId, /:media:9999$/);
 });
 
 test("workspace package import media asset ingestion includes portable path when ingestion fails", async () => {

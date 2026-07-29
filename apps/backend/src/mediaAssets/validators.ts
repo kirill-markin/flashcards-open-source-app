@@ -12,11 +12,11 @@ import type {
   MediaAssetUploadSessionCreateInput,
   MediaAssetUploadSessionPartUrlsInput,
 } from "./types";
+import { isValidMediaAssetLastOperationId } from "./lastOperationId";
 
 const mimeTypePattern = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/i;
 const sha256Pattern = /^[0-9a-f]{64}$/i;
 const maximumSourceUrlLength = 2_048;
-const maximumLastOperationIdLength = 1_024;
 const maximumETagLength = 256;
 export const maximumSinglePutUploadBytes = 5_368_709_120;
 export const minimumMultipartPartSizeBytes = 5_242_880;
@@ -219,12 +219,18 @@ export function expectMediaAssetSourceUrl(value: unknown, fieldName: string): st
 }
 
 function expectLastOperationId(value: unknown, fieldName: string): string {
-  const lastOperationId = expectNonEmptyString(value, fieldName);
-  if (lastOperationId.length > maximumLastOperationIdLength) {
-    throw new HttpError(400, `${fieldName} must be at most ${maximumLastOperationIdLength} characters`);
+  if (
+    typeof value !== "string"
+    || isValidMediaAssetLastOperationId(value) === false
+  ) {
+    throw new HttpError(
+      400,
+      `${fieldName} must be 1 to 1024 printable ASCII characters without leading or trailing spaces`,
+      "MEDIA_ASSET_LAST_OPERATION_ID_INVALID",
+    );
   }
 
-  return lastOperationId;
+  return value;
 }
 
 function expectPartNumber(value: unknown, fieldName: string): number {

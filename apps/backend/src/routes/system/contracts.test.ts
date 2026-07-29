@@ -8,12 +8,24 @@ import {
   createAgentWorkspaceReadyEnvelope,
   createAgentWorkspacesEnvelope,
 } from "../../agent/setup";
+import {
+  catalogPackageInstallOperationIdPrefixMaximumLength,
+  isValidCatalogPackageInstallOperationIdPrefix,
+} from "../../catalog";
+import {
+  isValidMediaAssetLastOperationId,
+  maximumMediaAssetLastOperationIdLength,
+} from "../../mediaAssets/lastOperationId";
 import { loadOpenApiDocument } from "../../shared/openapi";
 import { maximumImageIngestionOriginalBytes } from "../../mediaAssets/validators";
 import {
   workspacePackageImportConfirmRouteMaxZipBytes,
   workspacePackageImportPreviewRouteMaxZipBytes,
 } from "../workspacePackages";
+import {
+  isValidWorkspacePackageImportOperationIdPrefix,
+  workspacePackageImportOperationIdPrefixMaximumLength,
+} from "../../workspacePackages/import/operationIds";
 import type { RequestContext } from "../../server/requestContext";
 import type { WorkspaceSummary } from "../../workspaces";
 
@@ -22,9 +34,12 @@ const operationMethodNames = ["get", "post", "put", "patch", "delete", "options"
 type OperationMethodName = (typeof operationMethodNames)[number];
 type PathItemForTest = Readonly<Partial<Record<OperationMethodName, object>>>;
 type OpenApiBinarySchemaForTest = Readonly<{
+  $ref?: string;
   type?: string;
   format?: string;
+  minLength?: number;
   maxLength?: number;
+  pattern?: string;
   properties?: Readonly<Record<string, OpenApiBinarySchemaForTest>>;
 }>;
 type OpenApiMediaTypeForTest = Readonly<{
@@ -291,6 +306,82 @@ test("published OpenAPI exposes the curated agent, media transfer, and admin cat
     "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download-url"
   ]?.get as OpenApiOperationForTest | undefined;
   assert.ok(publicCatalogDownloadUrlOperation?.responses?.["415"] !== undefined);
+});
+
+test("published OpenAPI shares the backend last operation identifier contract", () => {
+  const schemas = loadPublishedOpenApiDocument().components?.schemas ?? {};
+  const canonicalSchema = schemas.MediaAssetLastOperationId as OpenApiBinarySchemaForTest | undefined;
+  const responseSchema =
+    schemas.MediaAssetLastOperationIdResponse as OpenApiBinarySchemaForTest | undefined;
+  const mediaAssetSchema = schemas.MediaAsset as OpenApiBinarySchemaForTest | undefined;
+  const uploadSessionSchema =
+    schemas.MediaAssetUploadSessionCreateInput as OpenApiBinarySchemaForTest | undefined;
+  const workspaceImportSchema =
+    schemas.WorkspacePackageImportConfirmOptions as OpenApiBinarySchemaForTest | undefined;
+  const catalogInstallSchema =
+    schemas.CatalogPackageInstallConfirmInput as OpenApiBinarySchemaForTest | undefined;
+  const mediaAssetLastOperationId = mediaAssetSchema?.properties?.lastOperationId;
+  const uploadSessionLastOperationId =
+    uploadSessionSchema?.properties?.lastOperationId;
+  const workspaceImportPrefix = workspaceImportSchema?.properties?.operationIdPrefix;
+  const catalogInstallPrefix = catalogInstallSchema?.properties?.operationIdPrefix;
+
+  assert.equal(canonicalSchema?.minLength, 1);
+  assert.equal(canonicalSchema?.maxLength, maximumMediaAssetLastOperationIdLength);
+  assert.equal(responseSchema?.minLength, 1);
+  assert.equal(responseSchema?.maxLength, undefined);
+  assert.equal(
+    mediaAssetLastOperationId?.$ref,
+    "#/components/schemas/MediaAssetLastOperationIdResponse",
+  );
+  assert.equal(
+    uploadSessionLastOperationId?.$ref,
+    "#/components/schemas/MediaAssetLastOperationId",
+  );
+  assert.equal(
+    workspaceImportPrefix?.maxLength,
+    workspacePackageImportOperationIdPrefixMaximumLength,
+  );
+  assert.equal(
+    catalogInstallPrefix?.maxLength,
+    catalogPackageInstallOperationIdPrefixMaximumLength,
+  );
+
+  const canonicalPattern = new RegExp(canonicalSchema?.pattern ?? "");
+  const responsePattern = new RegExp(responseSchema?.pattern ?? "");
+  const workspaceImportPattern = new RegExp(workspaceImportPrefix?.pattern ?? "");
+  const catalogInstallPattern = new RegExp(catalogInstallPrefix?.pattern ?? "");
+  const values = [
+    "550e8400-e29b-41d4-a716-446655440000",
+    "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "operation with internal spaces",
+    " leading-space",
+    "trailing-space ",
+    "operation\ncontrol",
+    "operation\u00a0nbsp",
+  ];
+  for (const value of values) {
+    assert.equal(canonicalPattern.test(value), isValidMediaAssetLastOperationId(value), value);
+    assert.equal(
+      workspaceImportPattern.test(value),
+      isValidWorkspacePackageImportOperationIdPrefix(value),
+      value,
+    );
+    assert.equal(
+      catalogInstallPattern.test(value),
+      isValidCatalogPackageInstallOperationIdPrefix(value),
+      value,
+    );
+  }
+  for (const [value, expected] of [
+    ["", false],
+    ["   ", false],
+    ["legacy\u00a0operation", true],
+    ["legacy-操作", true],
+    ["legacy\noperation", true],
+  ] as const) {
+    assert.equal(responsePattern.test(value), expected, value);
+  }
 });
 
 test("agent discovery advertises the published media, package, and catalog surface", () => {

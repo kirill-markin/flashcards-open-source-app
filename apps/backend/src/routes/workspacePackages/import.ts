@@ -9,6 +9,10 @@ import {
   type WorkspacePackageImportPlanOptions,
   type WorkspacePackageImportPreview,
 } from "../../workspacePackages";
+import {
+  isValidWorkspacePackageImportOperationIdPrefix,
+  workspacePackageImportOperationIdPrefixMaximumLength,
+} from "../../workspacePackages/import/operationIds";
 import { assertUserHasWorkspaceAccess } from "../../workspaces";
 import {
   loadRequestContextFromRequest,
@@ -70,7 +74,11 @@ const workspacePackageImportConfirmRouteOptionsSchema = z.object({
   importId: z.string().min(1),
   clientUpdatedAt: workspacePackageImportConfirmTimestampSchema,
   lastModifiedByReplicaId: workspacePackageImportConfirmUuidSchema,
-  operationIdPrefix: z.string().min(1),
+  operationIdPrefix: z.string()
+    .max(workspacePackageImportOperationIdPrefixMaximumLength)
+    .refine(isValidWorkspacePackageImportOperationIdPrefix, {
+      message: "operationIdPrefix must use printable ASCII without leading or trailing spaces",
+    }),
 }).refine(
   (input): boolean => input.addImportTag === false || input.importTag.trim() !== "",
   {

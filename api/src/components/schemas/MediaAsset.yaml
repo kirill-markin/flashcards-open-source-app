@@ -44,7 +44,7 @@ properties:
   lastModifiedByReplicaId:
     $ref: ./UuidString.yaml
   lastOperationId:
-    type: string
+    $ref: ./MediaAssetLastOperationIdResponse.yaml
   updatedAt:
     type: string
     format: date-time

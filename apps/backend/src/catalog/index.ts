@@ -41,8 +41,10 @@ export {
   loadPublicCatalogPackageVersionCardPreviewInExecutor,
 } from "./distribution/public";
 export {
+  catalogPackageInstallOperationIdPrefixMaximumLength,
   installCatalogPackageVersion,
   installCatalogPackageVersionInExecutor,
+  isValidCatalogPackageInstallOperationIdPrefix,
   previewCatalogPackageInstall,
   previewCatalogPackageInstallInExecutor,
 } from "./distribution/install";
