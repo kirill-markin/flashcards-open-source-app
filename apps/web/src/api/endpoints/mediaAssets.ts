@@ -33,10 +33,12 @@ export async function loadMediaAssetDownloadUrl(
 export async function createMediaAssetUploadSession(
   workspaceId: string,
   input: MediaAssetUploadSessionCreateInput,
+  signal: AbortSignal,
 ): Promise<MediaAssetUploadSessionCreateResult> {
   return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/media-assets/upload-sessions`, {
     method: "POST",
     body: JSON.stringify(input),
+    signal,
   }, allowAuthRecoveryWithTransientNetworkRetry), `POST /workspaces/${workspaceId}/media-assets/upload-sessions`, parseMediaAssetUploadSessionCreateResponse);
 }
 
@@ -44,10 +46,12 @@ export async function createMediaAssetUploadPartUrls(
   workspaceId: string,
   sessionId: string,
   input: MediaAssetUploadSessionPartUrlsInput,
+  signal: AbortSignal,
 ): Promise<MediaAssetUploadSessionPartUrlsResult> {
   return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/media-assets/upload-sessions/${sessionId}/parts`, {
     method: "POST",
     body: JSON.stringify(input),
+    signal,
   }, allowAuthRecoveryWithTransientNetworkRetry), `POST /workspaces/${workspaceId}/media-assets/upload-sessions/${sessionId}/parts`, parseMediaAssetUploadSessionPartUrlsResponse);
 }
 
@@ -55,10 +59,12 @@ export async function completeMediaAssetUploadSession(
   workspaceId: string,
   sessionId: string,
   input: CompleteMediaAssetUploadSessionInput,
+  signal: AbortSignal,
 ): Promise<MediaAssetUploadSessionCompleteResult> {
   return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/media-assets/upload-sessions/${sessionId}/complete`, {
     method: "POST",
     body: JSON.stringify(input),
+    signal,
   }, allowAuthRecoveryWithTransientNetworkRetry), `POST /workspaces/${workspaceId}/media-assets/upload-sessions/${sessionId}/complete`, parseMediaAssetUploadSessionCompleteResponse);
 }
 

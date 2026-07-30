@@ -143,6 +143,46 @@ class CloudRemoteHttpClientTest {
     }
 
     @Test
+    fun completionFailurePreservesRetryAfterDelay() = runBlocking {
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext(
+            "/workspaces/workspace-1/media-assets/upload-sessions/session-1/complete"
+        ) { exchange ->
+            writeCloudTestResponse(
+                exchange = exchange,
+                statusCode = 503,
+                body = """
+                    {
+                      "error": "Completion is still being applied",
+                      "code": "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+                      "requestId": "completion-request-1"
+                    }
+                """.trimIndent(),
+                headers = mapOf("Retry-After" to "2")
+            )
+        }
+        server.start()
+
+        try {
+            val client = CloudJsonHttpClient(okHttpClient = OkHttpClient())
+            try {
+                client.postJson(
+                    baseUrl = "http://127.0.0.1:${server.address.port}",
+                    path = "/workspaces/workspace-1/media-assets/upload-sessions/session-1/complete",
+                    authorizationHeader = null,
+                    body = JSONObject().put("parts", JSONArray())
+                )
+                throw AssertionError("Expected CloudRemoteException")
+            } catch (error: CloudRemoteException) {
+                assertEquals("MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS", error.errorCode)
+                assertEquals(2_000L, error.retryAfterDelayMillis)
+            }
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
     fun postJsonForBytesSendsJsonAndReadsBinaryResponse() = runBlocking {
         val zipBytes = byteArrayOf(0x50.toByte(), 0x4b.toByte(), 0x03.toByte(), 0x04.toByte())
         var requestAcceptHeader: String? = null

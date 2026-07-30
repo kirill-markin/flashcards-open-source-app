@@ -63,7 +63,11 @@ describe("media asset API endpoints", () => {
       }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await createMediaAssetUploadSession("workspace-1", uploadSessionCreateInput);
+    const result = await createMediaAssetUploadSession(
+      "workspace-1",
+      uploadSessionCreateInput,
+      new AbortController().signal,
+    );
 
     const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
     expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:8080/v1/workspaces/workspace-1/media-assets/upload-sessions");
@@ -131,6 +135,7 @@ describe("media asset API endpoints", () => {
       "workspace-1",
       "55555555-5555-4555-8555-555555555555",
       partUrlsInput,
+      new AbortController().signal,
     )).resolves.toEqual({
       sessionId: "55555555-5555-4555-8555-555555555555",
       partUrls: [
@@ -149,6 +154,7 @@ describe("media asset API endpoints", () => {
       "workspace-1",
       "55555555-5555-4555-8555-555555555555",
       completeInput,
+      new AbortController().signal,
     )).resolves.toEqual({
       mediaAsset: mediaAssetFixture,
       applied: true,

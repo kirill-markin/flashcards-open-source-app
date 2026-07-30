@@ -64,19 +64,38 @@ struct MediaUploadTransferRunner {
         var claim = MediaUploadTransferClaim(entry: entry, claimedAt: claimedAt)
 
         do {
-            let mediaAsset = try await self.uploadClaimedEntry(
+            let result = try await self.uploadClaimedEntry(
                 entry: entry,
                 linkedSession: linkedSession,
                 installationId: installationId,
                 claim: &claim
             )
-            try self.persistSucceededUpload(
-                entry: entry,
-                claimedAt: claim.claimedAt,
-                mediaAsset: mediaAsset
-            )
+            do {
+                try self.persistSucceededUpload(
+                    entry: entry,
+                    claimedAt: claim.claimedAt,
+                    mediaAsset: result.mediaAsset
+                )
+            } catch {
+                if let completionCause = result.retryableCompletionCause {
+                    throw MediaUploadCompletionTerminalError(
+                        reason: .interrupted,
+                        completionCause: completionCause,
+                        interruptionCause: error
+                    )
+                }
+                throw error
+            }
         } catch {
-            if isRequestCancellationError(error: error) {
+            if let terminalError = error as? MediaUploadCompletionTerminalError {
+                try self.recordCompletionTerminalUpload(
+                    entry: entry,
+                    error: terminalError
+                )
+                return
+            }
+            if error is MediaUploadCompletionTerminalError == false,
+               isRequestCancellationError(error: error) {
                 throw error
             }
 
@@ -93,7 +112,7 @@ struct MediaUploadTransferRunner {
         linkedSession: CloudLinkedSession,
         installationId: String,
         claim: inout MediaUploadTransferClaim
-    ) async throws -> MediaAsset {
+    ) async throws -> MediaUploadClaimedResult {
         try self.renewUploadClaim(claim: &claim)
         let plan = try await makeMediaUploadTransferPlanOffMain(databaseURL: self.database.databaseURL, entry: entry)
         try self.renewUploadClaim(claim: &claim)
@@ -134,7 +153,10 @@ struct MediaUploadTransferRunner {
                 )
             }
             try validateUploadedMediaAsset(mediaAsset: mediaAsset, entry: entry, plan: plan)
-            return mediaAsset
+            return MediaUploadClaimedResult(
+                mediaAsset: mediaAsset,
+                retryableCompletionCause: nil
+            )
         case .uploadRequired:
             guard let uploadSession = createResponse.uploadSession else {
                 throw MediaUploadTransferFailure(
@@ -158,8 +180,8 @@ struct MediaUploadTransferRunner {
         uploadSession: MediaAssetUploadSessionMetadata,
         plan: MediaUploadTransferPlan,
         claim: inout MediaUploadTransferClaim
-    ) async throws -> MediaAsset {
-        let completeResponse: MediaAssetUploadSessionCompleteResponse
+    ) async throws -> MediaUploadClaimedResult {
+        let completionResult: MediaUploadCompletionReplayResult
         do {
             let completedParts = try await self.uploadParts(
                 entry: entry,
@@ -168,16 +190,30 @@ struct MediaUploadTransferRunner {
                 plan: plan,
                 claim: &claim
             )
-            try self.renewUploadClaim(claim: &claim)
-            completeResponse = try await self.cloudSyncService.completeMediaAssetUploadSession(
-                apiBaseUrl: linkedSession.apiBaseUrl,
-                authorizationHeader: linkedSession.authorization.headerValue,
-                workspaceId: entry.workspaceId,
-                sessionId: uploadSession.sessionId,
-                request: MediaAssetUploadSessionCompleteRequest(parts: completedParts)
+            let completeRequest = MediaAssetUploadSessionCompleteRequest(parts: completedParts)
+            completionResult = try await retryMediaUploadSessionCompletion(
+                validateOwnership: {
+                    try self.renewUploadClaim(claim: &claim)
+                },
+                complete: {
+                    try await self.cloudSyncService.completeMediaAssetUploadSession(
+                        apiBaseUrl: linkedSession.apiBaseUrl,
+                        authorizationHeader: linkedSession.authorization.headerValue,
+                        workspaceId: entry.workspaceId,
+                        sessionId: uploadSession.sessionId,
+                        request: completeRequest
+                    )
+                },
+                sleep: { delayNanoseconds in
+                    try await Task.sleep(nanoseconds: delayNanoseconds)
+                }
             )
         } catch {
-            if isRequestCancellationError(error: error) {
+            if error is MediaUploadCompletionTerminalError == false,
+               isRequestCancellationError(error: error) {
+                throw error
+            }
+            if !shouldAbortMediaUploadSessionAfterFailure(error: error) {
                 throw error
             }
 
@@ -211,8 +247,26 @@ struct MediaUploadTransferRunner {
             throw error
         }
 
-        try validateUploadedMediaAsset(mediaAsset: completeResponse.mediaAsset, entry: entry, plan: plan)
-        return completeResponse.mediaAsset
+        do {
+            try validateUploadedMediaAsset(
+                mediaAsset: completionResult.response.mediaAsset,
+                entry: entry,
+                plan: plan
+            )
+        } catch {
+            if let completionCause = completionResult.retryableCompletionCause {
+                throw MediaUploadCompletionTerminalError(
+                    reason: .interrupted,
+                    completionCause: completionCause,
+                    interruptionCause: error
+                )
+            }
+            throw error
+        }
+        return MediaUploadClaimedResult(
+            mediaAsset: completionResult.response.mediaAsset,
+            retryableCompletionCause: completionResult.retryableCompletionCause
+        )
     }
 
     private func uploadParts(
@@ -352,6 +406,20 @@ struct MediaUploadTransferRunner {
             errorMessage: failure.message,
             nextAttemptAt: nextAttemptAt,
             updatedAt: formatIsoTimestamp(date: now)
+        )
+    }
+
+    private func recordCompletionTerminalUpload(
+        entry: MediaTransferQueueEntry,
+        error: MediaUploadCompletionTerminalError
+    ) throws {
+        let failure = mediaUploadFailure(error: error)
+        _ = try self.database.mediaTransferStore.markTransferCompletionTerminal(
+            transferId: entry.transferId,
+            kind: entry.kind,
+            errorMessage: failure.message,
+            nextAttemptAt: mediaUploadPermanentFailureNextAttemptAt,
+            updatedAt: nowIsoTimestamp()
         )
     }
 }

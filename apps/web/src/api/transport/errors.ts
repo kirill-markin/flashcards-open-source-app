@@ -6,6 +6,7 @@ type ApiErrorParams = Readonly<{
   message: string;
   code: string | null;
   requestId: string | null;
+  retryAfterMs: number | null;
   endpoint: string;
   responseBodyKind: ApiResponseBodyKind;
 }>;
@@ -14,6 +15,7 @@ export class ApiError extends Error {
   readonly statusCode: number;
   readonly code: string | null;
   readonly requestId: string | null;
+  readonly retryAfterMs: number | null;
   readonly endpoint: string;
   readonly responseBodyKind: ApiResponseBodyKind;
 
@@ -22,6 +24,7 @@ export class ApiError extends Error {
     this.statusCode = params.statusCode;
     this.code = params.code;
     this.requestId = params.requestId;
+    this.retryAfterMs = params.retryAfterMs;
     this.endpoint = params.endpoint;
     this.responseBodyKind = params.responseBodyKind;
   }
@@ -45,6 +48,7 @@ export class ApiNetworkError extends ApiError {
       message: `The API is unavailable. Try again. (${params.endpoint}; ${params.originalErrorName}: ${params.originalErrorMessage})`,
       code: apiNetworkErrorCode,
       requestId: null,
+      retryAfterMs: null,
       endpoint: params.endpoint,
       responseBodyKind: "empty",
     });

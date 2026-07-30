@@ -619,6 +619,7 @@ describe("WorkspaceImportScreen package import", () => {
       message: "ZIP entry is not supported: gemini-code-1784560458635.txt",
       code: "WORKSPACE_PACKAGE_IMPORT_PREVIEW_ZIP_INVALID",
       requestId: "7684327b-64e3-41b2-a4f0-7bf428d4e225",
+      retryAfterMs: null,
       endpoint: "POST /workspaces/workspace-1/packages/import/preview",
       responseBodyKind: "json",
     }));

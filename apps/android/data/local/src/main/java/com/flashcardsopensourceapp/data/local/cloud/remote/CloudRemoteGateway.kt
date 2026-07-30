@@ -73,8 +73,28 @@ class CloudRemoteException(
     val errorCode: String?,
     val requestId: String?,
     val syncConflict: CloudSyncConflictDetails?,
+    val retryAfterDelayMillis: Long?,
     override val androidObservationAlreadyCaptured: Boolean
-) : Exception(message), AndroidAlreadyObservedThrowable
+) : Exception(message), AndroidAlreadyObservedThrowable {
+    constructor(
+        message: String,
+        statusCode: Int?,
+        responseBody: String?,
+        errorCode: String?,
+        requestId: String?,
+        syncConflict: CloudSyncConflictDetails?,
+        androidObservationAlreadyCaptured: Boolean
+    ) : this(
+        message = message,
+        statusCode = statusCode,
+        responseBody = responseBody,
+        errorCode = errorCode,
+        requestId = requestId,
+        syncConflict = syncConflict,
+        retryAfterDelayMillis = null,
+        androidObservationAlreadyCaptured = androidObservationAlreadyCaptured
+    )
+}
 
 interface CloudRemoteGateway {
     suspend fun validateConfiguration(configuration: CloudServiceConfiguration)

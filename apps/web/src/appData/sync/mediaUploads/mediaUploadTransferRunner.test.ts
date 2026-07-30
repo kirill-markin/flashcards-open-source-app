@@ -12,13 +12,16 @@ import {
   claimNextDueMediaTransferByKind,
   enqueueMediaTransferUpload,
   loadMediaTransferQueueRecord,
+  markMediaTransferSucceeded,
   type MediaTransferQueueRecord,
   type RenewInProgressMediaTransferClaimInput,
   writeMediaBlobCacheRecord,
 } from "../../../localDb/mediaTransfers";
 import { putCloudSettings } from "../../../localDb/sync/cloudSettings";
 import type { CloudSettings, MediaAsset } from "../../../types";
-import { processDueMediaUploadTransfersForWorkspace } from "./mediaUploadTransferRunner";
+import {
+  processDueMediaUploadTransfersForWorkspace as runDueMediaUploadTransfersForWorkspace,
+} from "./mediaUploadTransferRunner";
 
 type RenewMediaTransferClaim = (input: RenewInProgressMediaTransferClaimInput) => Promise<MediaTransferQueueRecord>;
 
@@ -45,6 +48,13 @@ const createdAt = "2026-03-10T09:00:00.000Z";
 const helloWorldSha256 = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9";
 const textMimeType = "text/plain";
 const futurePartUrlExpiresAt = "9999-12-31T23:59:59.999Z";
+
+function processDueMediaUploadTransfersForWorkspace(testWorkspaceId: string): Promise<void> {
+  return runDueMediaUploadTransfersForWorkspace(
+    testWorkspaceId,
+    new AbortController().signal,
+  );
+}
 
 function toTestUuidFromHexDigest(hexDigest: string): string {
   const baseHex = hexDigest.slice(0, 32).split("");
@@ -193,6 +203,60 @@ function createBadRequestResponse(): Response {
   });
 }
 
+function createCompletionErrorResponse(code: string, retryAfterSeconds: number | null): Response {
+  const headers = new Headers({
+    "Content-Type": "application/json",
+  });
+  if (retryAfterSeconds !== null) {
+    headers.set("Retry-After", String(retryAfterSeconds));
+  }
+
+  return new Response(JSON.stringify({
+    error: "Completion is still being applied",
+    code,
+    requestId: "completion-request-1",
+  }), {
+    status: 503,
+    headers,
+  });
+}
+
+type TestFetchResponse = Response | (() => Promise<Response>);
+
+function createSinglePartUploadFetchMock(
+  completionResponses: ReadonlyArray<TestFetchResponse>,
+): ReturnType<typeof vi.fn<(...args: Array<unknown>) => Promise<Response>>> {
+  const responses: ReadonlyArray<TestFetchResponse> = [
+    createUploadRequiredResponse(),
+    createJsonResponse({
+      sessionId: "55555555-5555-4555-8555-555555555555",
+      partUrls: [{
+        partNumber: 1,
+        method: "PUT",
+        url: "https://uploads.example.test/part-1",
+        expiresAt: futurePartUrlExpiresAt,
+        headers: {},
+      }],
+    }),
+    new Response("", {
+      status: 200,
+      headers: {
+        ETag: "\"etag-1\"",
+      },
+    }),
+    ...completionResponses,
+  ];
+  let responseIndex = 0;
+  return vi.fn(async (): Promise<Response> => {
+    const response = responses[responseIndex];
+    if (response === undefined) {
+      throw new Error(`Unexpected media upload request index: ${responseIndex}`);
+    }
+    responseIndex += 1;
+    return typeof response === "function" ? response() : response;
+  });
+}
+
 async function seedQueuedUpload(blob: Blob): Promise<void> {
   await writeMediaBlobCacheRecord({
     sha256: helloWorldSha256,
@@ -237,6 +301,21 @@ function parseRequestBody(requestInit: RequestInit | undefined): unknown {
   }
 
   return JSON.parse(body) as unknown;
+}
+
+async function waitForFetchCallCount(
+  fetchMock: ReturnType<typeof vi.fn<(...args: Array<unknown>) => Promise<Response>>>,
+  expectedCallCount: number,
+): Promise<void> {
+  for (let attemptCount = 0; attemptCount < 20; attemptCount += 1) {
+    if (fetchMock.mock.calls.length >= expectedCallCount) {
+      return;
+    }
+    await new Promise((resolve) => {
+      window.setTimeout(resolve, 0);
+    });
+  }
+  throw new Error(`Expected media upload fetch call count: ${expectedCallCount}`);
 }
 
 describe("media upload transfer runner", () => {
@@ -303,7 +382,11 @@ describe("media upload transfer runner", () => {
       lastOperationId: transferId,
     });
     expect(workspaceReplicaId).not.toBe(installationId);
-    expect(parseRequestBody(fetchMock.mock.calls[1]?.[1] as RequestInit | undefined)).toEqual({
+    const lifecycleSignal = createSessionInit?.signal;
+    expect(lifecycleSignal).toBeInstanceOf(AbortSignal);
+    const partUrlsInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
+    expect(partUrlsInit?.signal).toBe(lifecycleSignal);
+    expect(parseRequestBody(partUrlsInit)).toEqual({
       parts: [
         {
           partNumber: 1,
@@ -315,9 +398,12 @@ describe("media upload transfer runner", () => {
     const signedPutInit = fetchMock.mock.calls[2]?.[1] as RequestInit | undefined;
     expect(fetchMock.mock.calls[2]?.[0]).toBe("https://uploads.example.test/part-1");
     expect(signedPutInit?.method).toBe("PUT");
+    expect(signedPutInit?.signal).toBe(lifecycleSignal);
     expect((signedPutInit?.headers as Readonly<Record<string, string>> | undefined)?.["x-amz-checksum-sha256"]).toBe("checksum-1");
     await expect((signedPutInit?.body as Blob).text()).resolves.toBe("hello world");
-    expect(parseRequestBody(fetchMock.mock.calls[3]?.[1] as RequestInit | undefined)).toEqual({
+    const completionInit = fetchMock.mock.calls[3]?.[1] as RequestInit | undefined;
+    expect(completionInit?.signal).toBeInstanceOf(AbortSignal);
+    expect(parseRequestBody(completionInit)).toEqual({
       parts: [
         {
           partNumber: 1,
@@ -333,6 +419,550 @@ describe("media upload transfer runner", () => {
       status: "completed",
       lastError: null,
       completedAt: expect.any(String),
+    }));
+  });
+
+  it("cancels a pending signed PUT on lifecycle discard and keeps pre-completion abort cleanup", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    await seedQueuedUpload(createTestBlob(["hello world"], textMimeType));
+    const abortController = new AbortController();
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createUploadRequiredResponse())
+      .mockResolvedValueOnce(createJsonResponse({
+        sessionId: "55555555-5555-4555-8555-555555555555",
+        partUrls: [{
+          partNumber: 1,
+          method: "PUT",
+          url: "https://uploads.example.test/part-1",
+          expiresAt: futurePartUrlExpiresAt,
+          headers: {},
+        }],
+      }))
+      .mockImplementationOnce(async (_url, initValue) => {
+        const requestInit = initValue as RequestInit | undefined;
+        const signal = requestInit?.signal;
+        if (signal === null || signal === undefined) {
+          throw new Error("Expected signed PUT lifecycle signal");
+        }
+        return new Promise<Response>((_resolve, reject) => {
+          if (signal.aborted) {
+            reject(signal.reason);
+            return;
+          }
+          signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+        });
+      })
+      .mockResolvedValueOnce(createAbortResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    const uploadPromise = runDueMediaUploadTransfersForWorkspace(
+      workspaceId,
+      abortController.signal,
+    );
+    await waitForFetchCallCount(fetchMock, 3);
+    abortController.abort(new Error("Media upload workspace lifecycle discarded"));
+    await uploadPromise;
+
+    const signedPutInit = fetchMock.mock.calls[2]?.[1] as RequestInit | undefined;
+    expect(signedPutInit?.signal).toBe(abortController.signal);
+    expect(fetchMock.mock.calls.filter((call) => call[0] === "https://uploads.example.test/part-1")).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/complete"))).toHaveLength(0);
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/abort"))).toHaveLength(1);
+    await expect(loadMediaTransferQueueRecord(transferId)).resolves.toEqual(expect.objectContaining({
+      status: "failed",
+      lastError: expect.stringContaining("Media upload workspace lifecycle discarded"),
+    }));
+  });
+
+  it("retries deadline and in-progress completion responses with the same session and parts", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    await seedQueuedUpload(createTestBlob(["hello world"], textMimeType));
+    const setTimeoutSpy = vi.spyOn(window, "setTimeout").mockImplementation((handler) => {
+      if (typeof handler === "function") {
+        handler();
+      }
+      return 1;
+    });
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createUploadRequiredResponse())
+      .mockResolvedValueOnce(createJsonResponse({
+        sessionId: "55555555-5555-4555-8555-555555555555",
+        partUrls: [
+          {
+            partNumber: 1,
+            method: "PUT",
+            url: "https://uploads.example.test/part-1",
+            expiresAt: futurePartUrlExpiresAt,
+            headers: {},
+          },
+        ],
+      }))
+      .mockResolvedValueOnce(new Response("", {
+        status: 200,
+        headers: {
+          ETag: "\"etag-1\"",
+        },
+      }))
+      .mockResolvedValueOnce(createCompletionErrorResponse(
+        "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_DEADLINE_EXCEEDED",
+        null,
+      ))
+      .mockResolvedValueOnce(createCompletionErrorResponse(
+        "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+        1,
+      ))
+      .mockResolvedValueOnce(createJsonResponse({
+        mediaAsset: mediaAssetFixture,
+        applied: false,
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    let retryDelays: Array<number | undefined> = [];
+    try {
+      await processDueMediaUploadTransfersForWorkspace(workspaceId);
+      retryDelays = setTimeoutSpy.mock.calls.map((call) => call[1]);
+    } finally {
+      setTimeoutSpy.mockRestore();
+      randomSpy.mockRestore();
+    }
+
+    const completionCalls = fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/complete"));
+    expect(completionCalls).toHaveLength(3);
+    expect(completionCalls.map((call) => String(call[0]))).toEqual([
+      expect.stringContaining("/upload-sessions/55555555-5555-4555-8555-555555555555/complete"),
+      expect.stringContaining("/upload-sessions/55555555-5555-4555-8555-555555555555/complete"),
+      expect.stringContaining("/upload-sessions/55555555-5555-4555-8555-555555555555/complete"),
+    ]);
+    expect(completionCalls.map((call) => parseRequestBody(call[1] as RequestInit | undefined))).toEqual([
+      {
+        parts: [{
+          partNumber: 1,
+          eTag: "\"etag-1\"",
+          sha256: helloWorldSha256,
+        }],
+      },
+      {
+        parts: [{
+          partNumber: 1,
+          eTag: "\"etag-1\"",
+          sha256: helloWorldSha256,
+        }],
+      },
+      {
+        parts: [{
+          partNumber: 1,
+          eTag: "\"etag-1\"",
+          sha256: helloWorldSha256,
+        }],
+      },
+    ]);
+    expect(fetchMock.mock.calls.filter((call) => call[0] === "https://uploads.example.test/part-1")).toHaveLength(1);
+    expect(fetchMock.mock.calls.some((call) => String(call[0]).endsWith("/abort"))).toBe(false);
+    expect(retryDelays).toContain(1000);
+    await expect(loadMediaTransferQueueRecord(transferId)).resolves.toEqual(expect.objectContaining({
+      status: "completed",
+      lastError: null,
+    }));
+  });
+
+  it("does not abort a completion-in-progress session after same-session retries exhaust", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    await seedQueuedUpload(createTestBlob(["hello world"], textMimeType));
+    const setTimeoutSpy = vi.spyOn(window, "setTimeout").mockImplementation((handler) => {
+      if (typeof handler === "function") {
+        handler();
+      }
+      return 1;
+    });
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createUploadRequiredResponse())
+      .mockResolvedValueOnce(createJsonResponse({
+        sessionId: "55555555-5555-4555-8555-555555555555",
+        partUrls: [{
+          partNumber: 1,
+          method: "PUT",
+          url: "https://uploads.example.test/part-1",
+          expiresAt: futurePartUrlExpiresAt,
+          headers: {},
+        }],
+      }))
+      .mockResolvedValueOnce(new Response("", {
+        status: 200,
+        headers: {
+          ETag: "\"etag-1\"",
+        },
+      }))
+      .mockImplementation(async () => createCompletionErrorResponse(
+        "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+        0,
+      ));
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      await processDueMediaUploadTransfersForWorkspace(workspaceId);
+    } finally {
+      setTimeoutSpy.mockRestore();
+    }
+
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/complete"))).toHaveLength(4);
+    expect(fetchMock.mock.calls.filter((call) => call[0] === "https://uploads.example.test/part-1")).toHaveLength(1);
+    expect(fetchMock.mock.calls.some((call) => String(call[0]).endsWith("/abort"))).toBe(false);
+    await expect(loadMediaTransferQueueRecord(transferId)).resolves.toEqual(expect.objectContaining({
+      status: "failed",
+      nextAttemptAt: "9999-12-31T23:59:59.999Z",
+      lastError: expect.stringContaining("MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS"),
+    }));
+
+    const requestCountAfterExhaustion = fetchMock.mock.calls.length;
+    await processDueMediaUploadTransfersForWorkspace(workspaceId);
+    expect(fetchMock).toHaveBeenCalledTimes(requestCountAfterExhaustion);
+  });
+
+  it("preserves a concurrently completed transfer when a later terminal completion response arrives", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    await seedQueuedUpload(createTestBlob(["hello world"], textMimeType));
+    const setTimeoutSpy = vi.spyOn(window, "setTimeout").mockImplementation((handler) => {
+      if (typeof handler === "function") {
+        handler();
+      }
+      return 1;
+    });
+    const fetchMock = createSinglePartUploadFetchMock([
+      createCompletionErrorResponse(
+        "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+        0,
+      ),
+      async (): Promise<Response> => {
+        await markMediaTransferSucceeded(
+          transferId,
+          "2026-03-10T09:10:00.000Z",
+        );
+        return new Response(JSON.stringify({
+          error: "Completion payload is invalid",
+          code: "MEDIA_ASSET_UPLOAD_PROOF_MISMATCH",
+          requestId: "completion-request-terminal",
+        }), {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      await processDueMediaUploadTransfersForWorkspace(workspaceId);
+    } finally {
+      setTimeoutSpy.mockRestore();
+    }
+
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/complete"))).toHaveLength(2);
+    expect(fetchMock.mock.calls.filter((call) => call[0] === "https://uploads.example.test/part-1")).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/abort"))).toHaveLength(0);
+    await expect(loadMediaTransferQueueRecord(transferId)).resolves.toEqual(expect.objectContaining({
+      status: "completed",
+      completedAt: "2026-03-10T09:10:00.000Z",
+      lastError: null,
+    }));
+
+    const requestCountAfterFailure = fetchMock.mock.calls.length;
+    await processDueMediaUploadTransfersForWorkspace(workspaceId);
+    expect(fetchMock).toHaveBeenCalledTimes(requestCountAfterFailure);
+  });
+
+  it("terminalizes an invalid replay asset after durable completion begins", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    await seedQueuedUpload(createTestBlob(["hello world"], textMimeType));
+    const setTimeoutSpy = vi.spyOn(window, "setTimeout").mockImplementation((handler) => {
+      if (typeof handler === "function") {
+        handler();
+      }
+      return 1;
+    });
+    const fetchMock = createSinglePartUploadFetchMock([
+      createCompletionErrorResponse(
+        "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_DEADLINE_EXCEEDED",
+        0,
+      ),
+      createJsonResponse({
+        mediaAsset: {
+          ...mediaAssetFixture,
+          mediaAssetId: "77777777-7777-4777-8777-777777777777",
+        },
+        applied: false,
+      }),
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      await processDueMediaUploadTransfersForWorkspace(workspaceId);
+    } finally {
+      setTimeoutSpy.mockRestore();
+    }
+
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/complete"))).toHaveLength(2);
+    expect(fetchMock.mock.calls.filter((call) => call[0] === "https://uploads.example.test/part-1")).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/abort"))).toHaveLength(0);
+    await expect(loadMediaTransferQueueRecord(transferId)).resolves.toEqual(expect.objectContaining({
+      status: "failed",
+      nextAttemptAt: "9999-12-31T23:59:59.999Z",
+      lastError: expect.stringMatching(
+        /MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_DEADLINE_EXCEEDED.*Media upload asset id mismatch/,
+      ),
+    }));
+
+    const requestCountAfterFailure = fetchMock.mock.calls.length;
+    await processDueMediaUploadTransfersForWorkspace(workspaceId);
+    expect(fetchMock).toHaveBeenCalledTimes(requestCountAfterFailure);
+  });
+
+  it("exits completion backoff promptly when the upload claim is cancelled", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    await seedQueuedUpload(createTestBlob(["hello world"], textMimeType));
+    let heartbeatInterval: (() => void) | null = null;
+    const setIntervalSpy = vi.spyOn(window, "setInterval").mockImplementation((handler, timeout) => {
+      if (timeout === 300000 && typeof handler === "function") {
+        heartbeatInterval = handler as () => void;
+      }
+      return 1;
+    });
+    const clearIntervalSpy = vi.spyOn(window, "clearInterval").mockImplementation(() => undefined);
+    const setTimeoutSpy = vi.spyOn(window, "setTimeout").mockImplementation(() => {
+      if (heartbeatInterval === null) {
+        throw new Error("Expected upload heartbeat interval");
+      }
+      heartbeatInterval();
+      return 2;
+    });
+    const clearTimeoutSpy = vi.spyOn(window, "clearTimeout").mockImplementation(() => undefined);
+    mediaTransferRenewMock.renewInProgressMediaTransferClaim.mockImplementation(async (input) => {
+      if (mediaTransferRenewMock.renewInProgressMediaTransferClaim.mock.calls.length > 1) {
+        throw new Error("Upload claim cancelled during completion backoff");
+      }
+      if (mediaTransferRenewMock.defaultRenewInProgressMediaTransferClaim === null) {
+        throw new Error("Expected media transfer claim renewal default implementation");
+      }
+      return mediaTransferRenewMock.defaultRenewInProgressMediaTransferClaim(input);
+    });
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createUploadRequiredResponse())
+      .mockResolvedValueOnce(createJsonResponse({
+        sessionId: "55555555-5555-4555-8555-555555555555",
+        partUrls: [{
+          partNumber: 1,
+          method: "PUT",
+          url: "https://uploads.example.test/part-1",
+          expiresAt: futurePartUrlExpiresAt,
+          headers: {},
+        }],
+      }))
+      .mockResolvedValueOnce(new Response("", {
+        status: 200,
+        headers: {
+          ETag: "\"etag-1\"",
+        },
+      }))
+      .mockResolvedValueOnce(createCompletionErrorResponse(
+        "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+        60,
+      ));
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      await processDueMediaUploadTransfersForWorkspace(workspaceId);
+    } finally {
+      setIntervalSpy.mockRestore();
+      clearIntervalSpy.mockRestore();
+      setTimeoutSpy.mockRestore();
+      clearTimeoutSpy.mockRestore();
+    }
+
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/complete"))).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter((call) => call[0] === "https://uploads.example.test/part-1")).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/abort"))).toHaveLength(0);
+    await expect(loadMediaTransferQueueRecord(transferId)).resolves.toEqual(expect.objectContaining({
+      status: "failed",
+      nextAttemptAt: "9999-12-31T23:59:59.999Z",
+      lastError: expect.stringContaining("Upload claim cancelled during completion backoff"),
+    }));
+
+    const requestCountAfterCancellation = fetchMock.mock.calls.length;
+    await processDueMediaUploadTransfersForWorkspace(workspaceId);
+    expect(fetchMock).toHaveBeenCalledTimes(requestCountAfterCancellation);
+  });
+
+  it("terminalizes lifecycle discard during completion backoff without continuing completion", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    await seedQueuedUpload(createTestBlob(["hello world"], textMimeType));
+    const abortController = new AbortController();
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createUploadRequiredResponse())
+      .mockResolvedValueOnce(createJsonResponse({
+        sessionId: "55555555-5555-4555-8555-555555555555",
+        partUrls: [{
+          partNumber: 1,
+          method: "PUT",
+          url: "https://uploads.example.test/part-1",
+          expiresAt: futurePartUrlExpiresAt,
+          headers: {},
+        }],
+      }))
+      .mockResolvedValueOnce(new Response("", {
+        status: 200,
+        headers: {
+          ETag: "\"etag-1\"",
+        },
+      }))
+      .mockImplementationOnce(async () => {
+        queueMicrotask(() => {
+          abortController.abort(new Error("Media upload lifecycle discarded during completion backoff"));
+        });
+        return createCompletionErrorResponse(
+          "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+          60,
+        );
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await runDueMediaUploadTransfersForWorkspace(
+      workspaceId,
+      abortController.signal,
+    );
+
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/complete"))).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter((call) => call[0] === "https://uploads.example.test/part-1")).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/abort"))).toHaveLength(0);
+    await expect(loadMediaTransferQueueRecord(transferId)).resolves.toEqual(expect.objectContaining({
+      status: "failed",
+      nextAttemptAt: "9999-12-31T23:59:59.999Z",
+      lastError: expect.stringContaining("Media upload lifecycle discarded during completion backoff"),
+    }));
+
+    const requestCountAfterDiscard = fetchMock.mock.calls.length;
+    await processDueMediaUploadTransfersForWorkspace(workspaceId);
+    expect(fetchMock).toHaveBeenCalledTimes(requestCountAfterDiscard);
+  });
+
+  it("preserves durable completion state when the heartbeat fails during replay success", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    await seedQueuedUpload(createTestBlob(["hello world"], textMimeType));
+    let heartbeatInterval: (() => void) | null = null;
+    const setIntervalSpy = vi.spyOn(window, "setInterval").mockImplementation((handler, timeout) => {
+      if (timeout === 300000 && typeof handler === "function") {
+        heartbeatInterval = handler as () => void;
+      }
+      return 1;
+    });
+    const clearIntervalSpy = vi.spyOn(window, "clearInterval").mockImplementation(() => undefined);
+    mediaTransferRenewMock.renewInProgressMediaTransferClaim.mockImplementation(async (input) => {
+      if (mediaTransferRenewMock.renewInProgressMediaTransferClaim.mock.calls.length > 1) {
+        throw new Error("Upload claim lost during completion replay");
+      }
+      if (mediaTransferRenewMock.defaultRenewInProgressMediaTransferClaim === null) {
+        throw new Error("Expected media transfer claim renewal default implementation");
+      }
+      return mediaTransferRenewMock.defaultRenewInProgressMediaTransferClaim(input);
+    });
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createUploadRequiredResponse())
+      .mockResolvedValueOnce(createJsonResponse({
+        sessionId: "55555555-5555-4555-8555-555555555555",
+        partUrls: [{
+          partNumber: 1,
+          method: "PUT",
+          url: "https://uploads.example.test/part-1",
+          expiresAt: futurePartUrlExpiresAt,
+          headers: {},
+        }],
+      }))
+      .mockResolvedValueOnce(new Response("", {
+        status: 200,
+        headers: {
+          ETag: "\"etag-1\"",
+        },
+      }))
+      .mockResolvedValueOnce(createCompletionErrorResponse(
+        "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+        0,
+      ))
+      .mockImplementationOnce(async () => {
+        if (heartbeatInterval === null) {
+          throw new Error("Expected upload heartbeat interval");
+        }
+        heartbeatInterval();
+        return createJsonResponse({
+          mediaAsset: mediaAssetFixture,
+          applied: false,
+        });
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      await processDueMediaUploadTransfersForWorkspace(workspaceId);
+    } finally {
+      setIntervalSpy.mockRestore();
+      clearIntervalSpy.mockRestore();
+    }
+
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/complete"))).toHaveLength(2);
+    expect(fetchMock.mock.calls.filter((call) => call[0] === "https://uploads.example.test/part-1")).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/abort"))).toHaveLength(0);
+    const replayRequestInit = fetchMock.mock.calls[4]?.[1] as RequestInit | undefined;
+    expect(replayRequestInit?.signal?.aborted).toBe(true);
+    await expect(loadMediaTransferQueueRecord(transferId)).resolves.toEqual(expect.objectContaining({
+      status: "failed",
+      nextAttemptAt: "9999-12-31T23:59:59.999Z",
+      lastError: expect.stringContaining("Upload claim lost during completion replay"),
+    }));
+
+    const requestCountAfterClaimLoss = fetchMock.mock.calls.length;
+    await processDueMediaUploadTransfersForWorkspace(workspaceId);
+    expect(fetchMock).toHaveBeenCalledTimes(requestCountAfterClaimLoss);
+  });
+
+  it("aborts the upload session after a terminal completion failure", async () => {
+    primeSessionCsrfToken("csrf-token-1");
+    await seedQueuedUpload(createTestBlob(["hello world"], textMimeType));
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createUploadRequiredResponse())
+      .mockResolvedValueOnce(createJsonResponse({
+        sessionId: "55555555-5555-4555-8555-555555555555",
+        partUrls: [{
+          partNumber: 1,
+          method: "PUT",
+          url: "https://uploads.example.test/part-1",
+          expiresAt: futurePartUrlExpiresAt,
+          headers: {},
+        }],
+      }))
+      .mockResolvedValueOnce(new Response("", {
+        status: 200,
+        headers: {
+          ETag: "\"etag-1\"",
+        },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        error: "Completion payload is invalid",
+        code: "MEDIA_ASSET_UPLOAD_PROOF_MISMATCH",
+      }), {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }))
+      .mockResolvedValueOnce(createAbortResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await processDueMediaUploadTransfersForWorkspace(workspaceId);
+
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/complete"))).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith("/abort"))).toHaveLength(1);
+    await expect(loadMediaTransferQueueRecord(transferId)).resolves.toEqual(expect.objectContaining({
+      status: "failed",
+      nextAttemptAt: "9999-12-31T23:59:59.999Z",
+      lastError: expect.stringContaining("MEDIA_ASSET_UPLOAD_PROOF_MISMATCH"),
     }));
   });
 

@@ -541,6 +541,52 @@ struct MediaTransferStore {
         return try self.loadTransfer(transferId: normalizedTransferId)
     }
 
+    func markTransferCompletionTerminal(
+        transferId: String,
+        kind: MediaTransferKind,
+        errorMessage: String,
+        nextAttemptAt: String,
+        updatedAt: String
+    ) throws -> MediaTransferQueueEntry {
+        let normalizedTransferId = try nonEmptyMediaTransferText(value: transferId, fieldName: "Media transfer id")
+        let normalizedErrorMessage = try nonEmptyMediaTransferText(
+            value: errorMessage,
+            fieldName: "Media transfer error message"
+        )
+        let normalizedNextAttemptAt = try nonEmptyMediaTransferText(
+            value: nextAttemptAt,
+            fieldName: "Media transfer nextAttemptAt"
+        )
+        let normalizedUpdatedAt = try nonEmptyMediaTransferText(value: updatedAt, fieldName: "Media transfer updatedAt")
+        let updatedRows = try self.core.execute(
+            sql: """
+            UPDATE media_transfer_queue
+            SET
+                status = 'failed',
+                attempt_count = attempt_count + 1,
+                next_attempt_at = ?,
+                claimed_at = NULL,
+                last_error = ?,
+                updated_at = ?
+            WHERE transfer_id = ?
+                AND kind = ?
+                AND status = 'in_progress'
+            """,
+            values: [
+                .text(normalizedNextAttemptAt),
+                .text(normalizedErrorMessage),
+                .text(normalizedUpdatedAt),
+                .text(normalizedTransferId),
+                .text(kind.rawValue)
+            ]
+        )
+        guard updatedRows > 0 else {
+            try self.throwMissingActiveClaimError(transferId: normalizedTransferId)
+        }
+
+        return try self.loadTransfer(transferId: normalizedTransferId)
+    }
+
     func loadOptionalBlobCacheEntry(sha256: String) throws -> MediaBlobCacheEntry? {
         let normalizedSha256 = try normalizedMediaSha256(sha256: sha256)
         let rows = try self.core.query(

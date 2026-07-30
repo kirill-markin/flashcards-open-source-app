@@ -10,8 +10,8 @@ private let cloudSyncResponseDecodingFailedMessage: String = "Failed to decode c
 private let mediaAssetUploadPartPutMaxAttempts: Int = 3
 private let mediaAssetUploadPartPutRetryDelayNanoseconds: UInt64 = 500_000_000
 private let mediaAssetUploadPartPutResponseBodyMaxBytes: Int = 2_048
-private let cloudSyncTransportMaxAttempts: Int = 3
-private let cloudSyncTransportRetryDelayNanoseconds: UInt64 = 500_000_000
+let cloudSyncTransportMaxAttempts: Int = 3
+let cloudSyncTransportRetryDelayNanoseconds: UInt64 = 500_000_000
 private let progressLeaderboardProfileBasePath: String = "/me/progress/leaderboards/profiles"
 private let workspacePackageExportContentType: String = "application/zip"
 private let workspacePackageImportFileName: String = "flashcards.zip"
@@ -540,7 +540,13 @@ struct CloudSyncTransport {
         let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
 
         if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
-            let errorDetails = decodeCloudApiErrorDetails(data: data, requestId: requestId)
+            let errorDetails = decodeCloudApiErrorDetails(
+                data: data,
+                requestId: requestId,
+                retryAfterDelayNanoseconds: cloudRetryAfterDelayNanoseconds(
+                    value: httpResponse.value(forHTTPHeaderField: "Retry-After")
+                )
+            )
             logCloudFlowPhase(
                 phase: phase,
                 outcome: "failure",
