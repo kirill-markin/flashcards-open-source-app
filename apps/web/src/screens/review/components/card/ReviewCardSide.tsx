@@ -7,9 +7,13 @@ import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   ManagedMediaReference,
-  parseManagedMediaAssetId,
+  parseManagedMediaUrlReference,
   reviewMarkdownUrlTransform,
 } from "./ReviewManagedMedia";
+import {
+  parseManagedImageMarkdownReferences,
+  type ManagedMediaReferenceState,
+} from "../../../../media/managedMediaMarkdown";
 import { classifyReviewContentPresentation } from "./reviewContentPresentation";
 
 const REVIEW_MARKDOWN_FENCE_PATTERN = /^\s{0,3}(`{3,}|~{3,})/;
@@ -54,8 +58,12 @@ function reviewMarkdownClassName(tagName: string): string {
   return `review-markdown-${tagName}`;
 }
 
-function createManagedMediaReferenceKey(workspaceId: string | null, mediaAssetId: string): string {
-  return JSON.stringify([workspaceId, mediaAssetId]);
+function createManagedMediaReferenceKey(
+  workspaceId: string | null,
+  mediaAssetId: string,
+  referenceState: ManagedMediaReferenceState,
+): string {
+  return JSON.stringify([workspaceId, mediaAssetId, referenceState]);
 }
 
 function useReviewMarkdownRenderContext(): ReviewMarkdownRenderContextValue {
@@ -129,15 +137,16 @@ export function normalizeReviewMarkdownForWeb(text: string): string {
 const reviewMarkdownComponents: Components = {
   a: function ReviewMarkdownAnchor({ children, href, title }) {
     const { localReadVersion, workspaceId } = useReviewMarkdownRenderContext();
-    const mediaAssetId = parseManagedMediaAssetId(href);
-    if (mediaAssetId !== null) {
+    const mediaReference = parseManagedMediaUrlReference(href);
+    if (mediaReference !== null) {
       return (
         <ManagedMediaReference
-          key={createManagedMediaReferenceKey(workspaceId, mediaAssetId)}
+          key={createManagedMediaReferenceKey(workspaceId, mediaReference.mediaAssetId, mediaReference.state)}
           altText=""
           localReadVersion={localReadVersion}
-          mediaAssetId={mediaAssetId}
+          mediaAssetId={mediaReference.mediaAssetId}
           referencePresentation="link"
+          referenceState={mediaReference.state}
           workspaceId={workspaceId}
         >
           {children}
@@ -206,15 +215,16 @@ const reviewMarkdownComponents: Components = {
   },
   img: function ReviewMarkdownImage({ alt, src, title }) {
     const { localReadVersion, workspaceId } = useReviewMarkdownRenderContext();
-    const mediaAssetId = parseManagedMediaAssetId(src);
-    if (mediaAssetId !== null) {
+    const mediaReference = parseManagedMediaUrlReference(src);
+    if (mediaReference !== null) {
       return (
         <ManagedMediaReference
-          key={createManagedMediaReferenceKey(workspaceId, mediaAssetId)}
+          key={createManagedMediaReferenceKey(workspaceId, mediaReference.mediaAssetId, mediaReference.state)}
           altText={alt ?? ""}
           localReadVersion={localReadVersion}
-          mediaAssetId={mediaAssetId}
+          mediaAssetId={mediaReference.mediaAssetId}
           referencePresentation="image"
+          referenceState={mediaReference.state}
           workspaceId={workspaceId}
         >
           {alt ?? ""}
@@ -342,7 +352,9 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
     text,
     workspaceId,
   } = props;
-  const presentationMode = classifyReviewContentPresentation(text);
+  const presentationMode = parseManagedImageMarkdownReferences(text).length > 0
+    ? "markdown"
+    : classifyReviewContentPresentation(text);
 
   return (
     <div

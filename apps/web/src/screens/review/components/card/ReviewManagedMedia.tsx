@@ -15,10 +15,14 @@ import {
   writeMediaBlobCacheRecord,
   type MediaBlobCacheRecord,
 } from "../../../../localDb/mediaTransfers";
-import { parseManagedMediaAssetId } from "../../../../media/managedMediaMarkdown";
+import {
+  parseManagedMediaAssetId,
+  parseManagedMediaUrlReference,
+  type ManagedMediaReferenceState,
+} from "../../../../media/managedMediaMarkdown";
 import type { MediaAsset } from "../../../../types";
 
-export { parseManagedMediaAssetId };
+export { parseManagedMediaAssetId, parseManagedMediaUrlReference };
 
 const MANAGED_MEDIA_DOWNLOAD_ATTEMPT_COUNT = 2;
 const MANAGED_MEDIA_DOWNLOAD_RANGE_SIZE_BYTES = 4 * 1024 * 1024;
@@ -582,12 +586,55 @@ function ManagedMediaFallback(props: Readonly<{
   );
 }
 
+function GeneratedImagePlaceholder(props: Readonly<{
+  label: string;
+  mediaAssetId: string;
+  state: Exclude<ManagedMediaReferenceState, "ready">;
+}>): ReactElement {
+  const { label, mediaAssetId, state } = props;
+  const { t } = useI18n();
+  const isPending = state === "pending";
+
+  return (
+    <span
+      className="review-markdown-managed-media review-markdown-media-image-placeholder"
+      data-fcasset-id={mediaAssetId}
+      data-state={state}
+      aria-busy={isPending ? "true" : undefined}
+      aria-label={t(
+        isPending
+          ? "reviewScreen.media.imagePendingAccessible"
+          : "reviewScreen.media.imageFailedAccessible",
+        { label },
+      )}
+      role={isPending ? "status" : "alert"}
+    >
+      {isPending ? null : (
+        <svg
+          className="review-markdown-media-image-placeholder-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path d="M12 8V13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M12 16.5H12.01" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+          <path d="M10.2 4.9L3.5 16.5C2.8 17.7 3.7 19.2 5.1 19.2H18.9C20.3 19.2 21.2 17.7 20.5 16.5L13.8 4.9C13 3.7 11 3.7 10.2 4.9Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+        </svg>
+      )}
+      <span className="review-markdown-media-image-placeholder-copy">
+        {t(isPending ? "reviewScreen.media.imagePending" : "reviewScreen.media.imageFailed")}
+      </span>
+    </span>
+  );
+}
+
 export function ManagedMediaReference(props: Readonly<{
   altText: string;
   children: ReactNode;
   localReadVersion: number;
   mediaAssetId: string;
   referencePresentation: ManagedMediaReferencePresentation;
+  referenceState: ManagedMediaReferenceState;
   workspaceId: string | null;
 }>): ReactElement {
   const {
@@ -596,6 +643,7 @@ export function ManagedMediaReference(props: Readonly<{
     localReadVersion,
     mediaAssetId,
     referencePresentation,
+    referenceState,
     workspaceId,
   } = props;
   const { t } = useI18n();
@@ -626,7 +674,9 @@ export function ManagedMediaReference(props: Readonly<{
     };
   }
 
-  const committedObjectUrlLease = loadState.status === "ready" ? loadState.objectUrlLease : null;
+  const committedObjectUrlLease = referenceState === "ready" && loadState.status === "ready"
+    ? loadState.objectUrlLease
+    : null;
 
   useEffect(() => {
     if (committedObjectUrlLease === null) {
@@ -643,6 +693,10 @@ export function ManagedMediaReference(props: Readonly<{
   }, [committedObjectUrlLease]);
 
   useEffect(() => {
+    if (referenceState !== "ready") {
+      return undefined;
+    }
+
     let isCancelled = false;
     let provisionalObjectUrlLease: ManagedMediaObjectUrlLease | null = null;
 
@@ -741,7 +795,25 @@ export function ManagedMediaReference(props: Readonly<{
       isCancelled = true;
       releaseProvisionalObjectUrlLease();
     };
-  }, [localReadVersion, mediaAssetId, workspaceId]);
+  }, [localReadVersion, mediaAssetId, referenceState, workspaceId]);
+
+  const childrenText = readTextFromReactNode(children);
+  if (referenceState !== "ready") {
+    const trimmedAltText = altText.trim();
+    const trimmedChildrenText = childrenText.trim();
+    const label = trimmedAltText !== ""
+      ? trimmedAltText
+      : trimmedChildrenText !== ""
+        ? trimmedChildrenText
+        : t("reviewScreen.media.imageAlt");
+    return (
+      <GeneratedImagePlaceholder
+        label={label}
+        mediaAssetId={mediaAssetId}
+        state={referenceState}
+      />
+    );
+  }
 
   if (loadState.status === "loading") {
     if (referencePresentation === "image") {
@@ -777,7 +849,6 @@ export function ManagedMediaReference(props: Readonly<{
   }
 
   const mediaKind = classifyManagedMediaKind(loadState.mediaAsset.mimeType);
-  const childrenText = readTextFromReactNode(children);
   const fallbackLabel = mediaKind === "audio"
     ? t("reviewScreen.media.audioLabel")
     : mediaKind === "video"
