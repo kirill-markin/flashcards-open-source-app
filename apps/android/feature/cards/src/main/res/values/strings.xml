@@ -42,6 +42,9 @@
     <string name="cards_editor_adding_image_content_description">Adding image</string>
     <string name="cards_editor_image_label">Image</string>
     <string name="cards_editor_image_loading">Loading image</string>
+    <string name="cards_editor_image_processing">Processing image...</string>
+    <string name="cards_editor_image_processing_failed">Image processing failed</string>
+    <string name="cards_editor_image_status_content_description">%1$s. %2$s</string>
     <string name="cards_editor_image_unavailable">Image unavailable</string>
     <string name="cards_editor_remove_image">Remove</string>
     <string name="cards_editor_image_reference_missing">The image reference is no longer in this card text.</string>

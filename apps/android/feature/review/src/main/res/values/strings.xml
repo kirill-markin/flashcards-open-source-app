@@ -67,6 +67,9 @@
     <string name="review_media_image_label">Managed image</string>
     <string name="review_media_loading">Loading media...</string>
     <string name="review_media_open_attachment">Open</string>
+    <string name="review_media_processing">Processing image...</string>
+    <string name="review_media_processing_failed">Image processing failed</string>
+    <string name="review_media_status_content_description">%1$s. %2$s</string>
     <string name="review_media_unavailable">Media unavailable</string>
     <string name="review_media_video_label">Video attachment</string>
     <string name="review_no_back_text">No back text</string>

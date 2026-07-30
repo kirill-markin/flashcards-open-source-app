@@ -49,7 +49,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -58,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
+import com.flashcardsopensourceapp.data.local.model.media.ManagedMediaReferenceState
 import com.flashcardsopensourceapp.feature.cards.R
 import com.flashcardsopensourceapp.feature.cards.cardTextEditorAddMediaButtonTag
 import com.flashcardsopensourceapp.feature.cards.cardTextEditorManagedMediaPreviewItemTag
@@ -67,7 +71,15 @@ import kotlinx.coroutines.CancellationException
 private sealed interface CardEditorManagedImagePreviewState {
     data object Loading : CardEditorManagedImagePreviewState
     data class Ready(val uri: String) : CardEditorManagedImagePreviewState
+    data object Pending : CardEditorManagedImagePreviewState
+    data object Failed : CardEditorManagedImagePreviewState
     data object Unavailable : CardEditorManagedImagePreviewState
+}
+
+private enum class CardEditorManagedImagePlaceholderStyle {
+    PROGRESS,
+    UNAVAILABLE,
+    WARNING
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -233,9 +245,25 @@ private fun CardEditorManagedImagePreviewItem(
 ) {
     val currentLoadManagedImageUri = rememberUpdatedState(newValue = onLoadManagedImageUri)
     val previewState by produceState<CardEditorManagedImagePreviewState>(
-        initialValue = CardEditorManagedImagePreviewState.Loading,
-        key1 = reference.mediaAssetId
+        initialValue = cardEditorManagedImageReferencePreviewState(state = reference.state),
+        key1 = reference.mediaAssetId,
+        key2 = reference.state
     ) {
+        when (reference.state) {
+            ManagedMediaReferenceState.PENDING -> {
+                value = CardEditorManagedImagePreviewState.Pending
+                return@produceState
+            }
+
+            ManagedMediaReferenceState.FAILED -> {
+                value = CardEditorManagedImagePreviewState.Failed
+                return@produceState
+            }
+
+            ManagedMediaReferenceState.READY -> {
+                value = CardEditorManagedImagePreviewState.Loading
+            }
+        }
         value = try {
             CardEditorManagedImagePreviewState.Ready(
                 uri = currentLoadManagedImageUri.value(reference.mediaAssetId)
@@ -293,15 +321,57 @@ private fun CardEditorManagedImagePreviewSurface(
     label: String
 ) {
     when (state) {
-        CardEditorManagedImagePreviewState.Loading -> CardEditorManagedImagePlaceholder(
-            label = stringResource(id = R.string.cards_editor_image_loading),
-            isLoading = true
-        )
+        CardEditorManagedImagePreviewState.Loading -> {
+            val statusText = stringResource(id = R.string.cards_editor_image_loading)
+            CardEditorManagedImagePlaceholder(
+                label = statusText,
+                accessibilityLabel = stringResource(
+                    id = R.string.cards_editor_image_status_content_description,
+                    label,
+                    statusText
+                ),
+                style = CardEditorManagedImagePlaceholderStyle.PROGRESS
+            )
+        }
 
-        CardEditorManagedImagePreviewState.Unavailable -> CardEditorManagedImagePlaceholder(
-            label = stringResource(id = R.string.cards_editor_image_unavailable),
-            isLoading = false
-        )
+        CardEditorManagedImagePreviewState.Pending -> {
+            val statusText = stringResource(id = R.string.cards_editor_image_processing)
+            CardEditorManagedImagePlaceholder(
+                label = statusText,
+                accessibilityLabel = stringResource(
+                    id = R.string.cards_editor_image_status_content_description,
+                    label,
+                    statusText
+                ),
+                style = CardEditorManagedImagePlaceholderStyle.PROGRESS
+            )
+        }
+
+        CardEditorManagedImagePreviewState.Failed -> {
+            val statusText = stringResource(id = R.string.cards_editor_image_processing_failed)
+            CardEditorManagedImagePlaceholder(
+                label = statusText,
+                accessibilityLabel = stringResource(
+                    id = R.string.cards_editor_image_status_content_description,
+                    label,
+                    statusText
+                ),
+                style = CardEditorManagedImagePlaceholderStyle.WARNING
+            )
+        }
+
+        CardEditorManagedImagePreviewState.Unavailable -> {
+            val statusText = stringResource(id = R.string.cards_editor_image_unavailable)
+            CardEditorManagedImagePlaceholder(
+                label = statusText,
+                accessibilityLabel = stringResource(
+                    id = R.string.cards_editor_image_status_content_description,
+                    label,
+                    statusText
+                ),
+                style = CardEditorManagedImagePlaceholderStyle.UNAVAILABLE
+            )
+        }
 
         is CardEditorManagedImagePreviewState.Ready -> CardEditorManagedImage(
             uri = state.uri,
@@ -335,15 +405,27 @@ private fun CardEditorManagedImage(
             contentDescription = label,
             contentScale = ContentScale.Crop,
             loading = {
+                val statusText = stringResource(id = R.string.cards_editor_image_loading)
                 CardEditorManagedImagePlaceholder(
-                    label = stringResource(id = R.string.cards_editor_image_loading),
-                    isLoading = true
+                    label = statusText,
+                    accessibilityLabel = stringResource(
+                        id = R.string.cards_editor_image_status_content_description,
+                        label,
+                        statusText
+                    ),
+                    style = CardEditorManagedImagePlaceholderStyle.PROGRESS
                 )
             },
             error = {
+                val statusText = stringResource(id = R.string.cards_editor_image_unavailable)
                 CardEditorManagedImagePlaceholder(
-                    label = stringResource(id = R.string.cards_editor_image_unavailable),
-                    isLoading = false
+                    label = statusText,
+                    accessibilityLabel = stringResource(
+                        id = R.string.cards_editor_image_status_content_description,
+                        label,
+                        statusText
+                    ),
+                    style = CardEditorManagedImagePlaceholderStyle.UNAVAILABLE
                 )
             },
             modifier = Modifier
@@ -352,6 +434,16 @@ private fun CardEditorManagedImage(
                 .clip(RoundedCornerShape(8.dp))
                 .background(color = MaterialTheme.colorScheme.surfaceContainerHighest)
         )
+    }
+}
+
+private fun cardEditorManagedImageReferencePreviewState(
+    state: ManagedMediaReferenceState
+): CardEditorManagedImagePreviewState {
+    return when (state) {
+        ManagedMediaReferenceState.READY -> CardEditorManagedImagePreviewState.Loading
+        ManagedMediaReferenceState.PENDING -> CardEditorManagedImagePreviewState.Pending
+        ManagedMediaReferenceState.FAILED -> CardEditorManagedImagePreviewState.Failed
     }
 }
 
@@ -365,40 +457,63 @@ private fun cardEditorManagedImageMemoryCacheKey(
 @Composable
 private fun CardEditorManagedImagePlaceholder(
     label: String,
-    isLoading: Boolean
+    accessibilityLabel: String,
+    style: CardEditorManagedImagePlaceholderStyle
 ) {
+    val containerColor = when (style) {
+        CardEditorManagedImagePlaceholderStyle.PROGRESS,
+        CardEditorManagedImagePlaceholderStyle.UNAVAILABLE -> MaterialTheme.colorScheme.surfaceContainerHighest
+
+        CardEditorManagedImagePlaceholderStyle.WARNING -> MaterialTheme.colorScheme.errorContainer
+    }
+    val contentColor = when (style) {
+        CardEditorManagedImagePlaceholderStyle.PROGRESS,
+        CardEditorManagedImagePlaceholderStyle.UNAVAILABLE -> MaterialTheme.colorScheme.onSurfaceVariant
+
+        CardEditorManagedImagePlaceholderStyle.WARNING -> MaterialTheme.colorScheme.onErrorContainer
+    }
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 104.dp)
+            .clearAndSetSemantics {
+                contentDescription = accessibilityLabel
+                if (style == CardEditorManagedImagePlaceholderStyle.PROGRESS) {
+                    progressBarRangeInfo = ProgressBarRangeInfo.Indeterminate
+                }
+            }
             .clip(RoundedCornerShape(8.dp))
-            .background(color = MaterialTheme.colorScheme.surfaceContainerHighest)
+            .background(color = containerColor)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(12.dp)
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            } else {
-                Icon(
+            when (style) {
+                CardEditorManagedImagePlaceholderStyle.PROGRESS -> CircularProgressIndicator(
+                    color = contentColor,
+                    modifier = Modifier.size(24.dp)
+                )
+
+                CardEditorManagedImagePlaceholderStyle.UNAVAILABLE,
+                CardEditorManagedImagePlaceholderStyle.WARNING -> Icon(
                     imageVector = Icons.Outlined.WarningAmber,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = contentColor,
                     modifier = Modifier.size(24.dp)
                 )
             }
             Icon(
                 imageVector = Icons.Outlined.Image,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = contentColor,
                 modifier = Modifier.size(20.dp)
             )
             Text(
                 text = label,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = contentColor,
                 style = MaterialTheme.typography.bodySmall
             )
         }

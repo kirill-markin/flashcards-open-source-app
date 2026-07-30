@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.cards.editor
 
+import com.flashcardsopensourceapp.data.local.model.media.ManagedMediaReferenceState
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
 
 enum class CardEditorTextField {
@@ -24,6 +25,7 @@ data class CardEditorTextSelection(
 data class CardEditorManagedImageReference(
     val referenceKey: String,
     val mediaAssetId: String,
+    val state: ManagedMediaReferenceState,
     val label: String?
 ) {
     init {

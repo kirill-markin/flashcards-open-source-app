@@ -4,6 +4,17 @@ private const val managedMediaAssetSchemePrefix: String = "fcasset:"
 private const val managedImageFallbackAltText: String = "Image"
 private val managedMediaAssetReferenceRegex: Regex = Regex("""fcasset:([^\s)]+)""")
 
+enum class ManagedMediaReferenceState {
+    READY,
+    PENDING,
+    FAILED
+}
+
+data class ManagedMediaReference(
+    val mediaAssetId: String,
+    val state: ManagedMediaReferenceState
+)
+
 fun managedImageMarkdownReference(
     mediaAssetId: String,
     altText: String
@@ -16,9 +27,51 @@ fun managedImageMarkdownReference(
 fun extractManagedMediaAssetReferences(markdown: String): Set<String> {
     return managedMediaAssetReferenceRegex
         .findAll(input = markdown)
-        .map { matchResult -> matchResult.groupValues[1].trim() }
-        .filter { mediaAssetId -> mediaAssetId.isNotEmpty() }
+        .mapNotNull { matchResult ->
+            parseManagedMediaReference(reference = matchResult.value)?.mediaAssetId
+        }
         .toSet()
+}
+
+fun parseManagedMediaReference(reference: String): ManagedMediaReference? {
+    val normalizedReference: String = reference.trim()
+    if (normalizedReference.startsWith(prefix = managedMediaAssetSchemePrefix, ignoreCase = true).not()) {
+        return null
+    }
+
+    val rawReference: String = normalizedReference
+        .drop(n = managedMediaAssetSchemePrefix.length)
+        .trimStart('/')
+        .substringBefore(delimiter = "#")
+    val mediaAssetId: String = rawReference.substringBefore(delimiter = "?").trim()
+    if (mediaAssetId.isEmpty()) {
+        return null
+    }
+
+    val state: ManagedMediaReferenceState = parseManagedMediaReferenceState(
+        query = rawReference.substringAfter(delimiter = "?", missingDelimiterValue = "")
+    )
+    return ManagedMediaReference(
+        mediaAssetId = mediaAssetId,
+        state = state
+    )
+}
+
+private fun parseManagedMediaReferenceState(query: String): ManagedMediaReferenceState {
+    val stateValues: List<String> = query
+        .split(separator = "&")
+        .mapNotNull { queryPart ->
+            val parameterName: String = queryPart.substringBefore(delimiter = "=")
+            if (parameterName != "state") {
+                return@mapNotNull null
+            }
+            queryPart.substringAfter(delimiter = "=", missingDelimiterValue = "")
+        }
+    return when (stateValues.singleOrNull()) {
+        "pending" -> ManagedMediaReferenceState.PENDING
+        "failed" -> ManagedMediaReferenceState.FAILED
+        else -> ManagedMediaReferenceState.READY
+    }
 }
 
 private fun normalizeManagedMediaAssetId(mediaAssetId: String): String {
