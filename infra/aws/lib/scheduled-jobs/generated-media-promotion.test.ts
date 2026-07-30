@@ -94,7 +94,7 @@ test("shared worker has exact permanent-prefix access and no public route", () =
   );
 });
 
-test("release disables cleanup until migration 0102 is confirmed", () => {
+test("release disables cleanup until migration 0103 is confirmed", () => {
   for (const relativePath of [
     "../../.github/workflows/aws-web-release.yml",
     "../../scripts/deploy/bootstrap.sh",
@@ -107,7 +107,7 @@ test("release disables cleanup until migration 0102 is confirmed", () => {
       "mediaBlobCleanupEnabled=false",
     );
     const migration = source.indexOf(
-      "--require-migration 0102_media_blob_cleanup_reconciler.sql",
+      "--require-migration 0103_ai_chat_initiating_auth_classification.sql",
     );
     const enabled = source.indexOf(
       "generatedMediaPromotionScheduleState=ENABLED",

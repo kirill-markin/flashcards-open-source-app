@@ -85,6 +85,13 @@ const createdRolesByMigration = new Map([
 ]);
 const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0103_ai_chat_initiating_auth_classification.sql",
+    expectedMigrationCount: 105,
+    testFiles: Object.freeze([
+      "src/database/aiChatInitiatingAuthClassification.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0102_media_blob_cleanup_reconciler.sql",
     expectedMigrationCount: 104,
     testFiles: Object.freeze([
@@ -2249,6 +2256,83 @@ async function seedMigration0099LegacyInvalidMediaAsset(client) {
   );
 }
 
+async function seedMigration0103LegacyChatRun(client) {
+  const userId = "migration-0103-legacy-chat-user";
+  const workspaceId = "10300000-0000-4000-8000-000000000001";
+  const replicaId = "10300000-0000-4000-8000-000000000002";
+  const sessionId = "10300000-0000-4000-8000-000000000003";
+  const assistantItemId = "10300000-0000-4000-8000-000000000004";
+  const runId = "10300000-0000-4000-8000-000000000005";
+  const timestamp = "2026-07-30T00:00:00.000Z";
+
+  await client.query(
+    "INSERT INTO org.user_settings (user_id) VALUES ($1)",
+    [userId],
+  );
+  await client.query(
+    `INSERT INTO org.workspaces (
+       workspace_id, name, fsrs_client_updated_at,
+       fsrs_last_modified_by_replica_id, fsrs_last_operation_id
+     ) VALUES ($1, $2, $3, $4, $5)`,
+    [
+      workspaceId,
+      "Migration 0103 legacy chat run",
+      timestamp,
+      replicaId,
+      "migration-0103-legacy-workspace",
+    ],
+  );
+  await client.query(
+    `INSERT INTO org.workspace_memberships (
+       workspace_id, user_id, role
+     ) VALUES ($1, $2, 'owner')`,
+    [workspaceId, userId],
+  );
+  await client.query(
+    `INSERT INTO sync.workspace_replicas (
+       replica_id, workspace_id, user_id, actor_kind, installation_id,
+       actor_key, platform, app_version
+     ) VALUES ($1, $2, $3, 'ai_chat', NULL, $4, 'system', $5)`,
+    [
+      replicaId,
+      workspaceId,
+      userId,
+      "migration-0103-legacy-replica",
+      "postgres-integration",
+    ],
+  );
+  await client.query(
+    `INSERT INTO ai.chat_sessions (
+       session_id, user_id, workspace_id, status, active_run_id
+     ) VALUES ($1, $2, $3, 'running', $4)`,
+    [sessionId, userId, workspaceId, runId],
+  );
+  await client.query(
+    `INSERT INTO ai.chat_items (
+       item_id, session_id, item_kind, state, payload
+     ) VALUES (
+       $1, $2, 'message', 'in_progress',
+       '{"role":"assistant","content":[]}'::jsonb
+     )`,
+    [assistantItemId, sessionId],
+  );
+  await client.query(
+    `INSERT INTO ai.chat_runs (
+       run_id, session_id, assistant_item_id, status, request_id, model_id,
+       reasoning_effort, timezone, turn_input
+     ) VALUES (
+       $1, $2, $3, 'queued', $4, 'gpt-5.4', 'medium', 'Europe/Madrid',
+       '[]'::jsonb
+     )`,
+    [
+      runId,
+      sessionId,
+      assistantItemId,
+      "migration-0103-legacy-request",
+    ],
+  );
+}
+
 async function createExpectedMigrationRoles(
   client,
   fileName,
@@ -2385,6 +2469,16 @@ async function applySingleMigration(
           await client.query("BEGIN");
           transactionStarted = true;
           await seedMigration0099LegacyInvalidMediaAsset(client);
+          await client.query("COMMIT");
+          transactionStarted = false;
+        }
+        if (
+          fileName
+          === "0103_ai_chat_initiating_auth_classification.sql"
+        ) {
+          await client.query("BEGIN");
+          transactionStarted = true;
+          await seedMigration0103LegacyChatRun(client);
           await client.query("COMMIT");
           transactionStarted = false;
         }
