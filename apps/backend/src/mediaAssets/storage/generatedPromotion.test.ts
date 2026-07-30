@@ -2,11 +2,19 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
 import { CopyObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import type {
+  GeneratedMediaBlobStorageCapability,
+  GeneratedMediaBlobWriterExactInput,
+} from "../../chat/cardImages/promotionJobs";
+import { MediaBlobWriterFenceError } from "../blobLifecycle";
 import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../storageKeys";
+import { imageJpegCardMediaBlobNormalizationVersion } from "../types";
 import {
   GeneratedMediaPromotionStorageTerminalError,
   GeneratedMediaPromotionStorageTransientError,
+  getGeneratedMediaPromotionS3Client,
   loadGeneratedMediaStagingObjectWithDependencies,
+  promoteGeneratedMediaObjectWithCapabilityVerifier,
   promoteGeneratedMediaObjectWithDependencies,
   storeGeneratedMediaStagingObjectWithDependencies,
   type GeneratedMediaObjectPromotionInput,
@@ -20,14 +28,49 @@ import {
 const operationId = "33333333-3333-4333-8333-333333333333";
 const mimeType = "image/jpeg";
 const sizeBytes = 42;
+const reservationToken = "77777777-7777-4777-8777-777777777777";
+const storageCapability = Object.freeze({}) as GeneratedMediaBlobStorageCapability;
+type CapabilityVerifier = (
+  capability: GeneratedMediaBlobStorageCapability,
+  writer: GeneratedMediaBlobWriterExactInput,
+) => void;
 function input(signal: AbortSignal): GeneratedMediaObjectPromotionInput {
-  return {
+  const promotion = {
     workspaceId: testWorkspaceId, mediaAssetId: testMediaAssetId, operationId,
     stagingStorageKey: buildMediaUploadStagingStorageKey(testWorkspaceId, testMediaAssetId, operationId),
     blobStorageKey: buildMediaBlobStorageKey(testSha256),
     mimeType, sizeBytes, sha256: testSha256,
     observationScope: testObservationScope, signal,
   };
+  const writer: GeneratedMediaBlobWriterExactInput = Object.freeze({
+    jobId: "88888888-8888-4888-8888-888888888888",
+    operationId: promotion.operationId,
+    userId: "user-1",
+    workspaceId: promotion.workspaceId,
+    cardId: "99999999-9999-4999-8999-999999999999",
+    targetSide: "back",
+    altText: "Generated image",
+    mediaAssetId: promotion.mediaAssetId,
+    replicaId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    stagingStorageKey: promotion.stagingStorageKey,
+    blobStorageKey: promotion.blobStorageKey,
+    sha256: promotion.sha256,
+    mimeType: promotion.mimeType,
+    sizeBytes: promotion.sizeBytes,
+    state: "leased",
+    retryCount: 0,
+    nextAttemptAt: "2099-07-30T09:00:00.000Z",
+    leaseToken: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    leaseOwner: "test-worker",
+    leaseExpiresAt: "2099-07-30T09:05:00.000Z",
+    lastError: null,
+    createdAt: "2099-07-30T09:00:00.000Z",
+    updatedAt: "2099-07-30T09:00:00.000Z",
+    reservationToken,
+    normalizationVersion: imageJpegCardMediaBlobNormalizationVersion,
+    reservationState: "active",
+  });
+  return { ...promotion, writer, storageCapability };
 }
 function headResponse(
   promotionInput: GeneratedMediaObjectPromotionInput,
@@ -62,11 +105,28 @@ async function promote(
   promotionInput: GeneratedMediaObjectPromotionInput,
   send: S3Client["send"],
 ): Promise<void> {
+  return promoteWithVerifier(promotionInput, send, verifyTestCapability);
+}
+async function promoteWithVerifier(
+  promotionInput: GeneratedMediaObjectPromotionInput,
+  send: S3Client["send"],
+  verifyCapability: CapabilityVerifier,
+): Promise<void> {
   const client = createTestS3Client();
   client.send = send;
-  await promoteGeneratedMediaObjectWithDependencies(promotionInput, {
-    s3Client: client, getMediaAssetsStorageConfigFn: getTestMediaAssetsStorageConfig,
-  });
+  await promoteGeneratedMediaObjectWithCapabilityVerifier(
+    promotionInput,
+    {
+      s3Client: client, getMediaAssetsStorageConfigFn: getTestMediaAssetsStorageConfig,
+    },
+    verifyCapability,
+  );
+}
+function verifyTestCapability(
+  capability: GeneratedMediaBlobStorageCapability,
+  _writer: GeneratedMediaBlobWriterExactInput,
+): void {
+  assert.equal(capability, storageCapability);
 }
 function stagingInput(bytes: Buffer): StoreGeneratedMediaStagingObjectInput {
   const sha256 = createHash("sha256").update(bytes).digest("hex");
@@ -148,23 +208,31 @@ test("generated promotion handles 409/412 and cross-workspace reuses a tenant-ne
       reusedIdentity.workspaceId, reusedIdentity.mediaAssetId, reusedIdentity.operationId,
     ),
   };
+  const exactReusedInput: GeneratedMediaObjectPromotionInput = {
+    ...reusedInput,
+    writer: Object.freeze({
+      ...reusedInput.writer,
+      ...reusedIdentity,
+      stagingStorageKey: reusedInput.stagingStorageKey,
+    }),
+  };
   let copied = false;
-  await promote(reusedInput, (async (command: unknown) => {
+  await promote(exactReusedInput, (async (command: unknown) => {
     if (command instanceof CopyObjectCommand) copied = true;
-    if (command instanceof HeadObjectCommand && command.input.Key === reusedInput.stagingStorageKey) {
-      return stagingResponse(reusedInput);
+    if (command instanceof HeadObjectCommand && command.input.Key === exactReusedInput.stagingStorageKey) {
+      return stagingResponse(exactReusedInput);
     }
-    return permanentResponse(reusedInput);
+    return permanentResponse(exactReusedInput);
   }) as S3Client["send"]);
   assert.equal(copied, false);
   await assert.rejects(
-    promote(reusedInput, (async (command: unknown) => {
-      if (command instanceof HeadObjectCommand && command.input.Key === reusedInput.stagingStorageKey) {
-        return stagingResponse(reusedInput);
+    promote(exactReusedInput, (async (command: unknown) => {
+      if (command instanceof HeadObjectCommand && command.input.Key === exactReusedInput.stagingStorageKey) {
+        return stagingResponse(exactReusedInput);
       }
-      return headResponse(reusedInput, {
-        "flashcards-sha256": reusedInput.sha256, "tenant-user-id": "private-user",
-      }, reusedInput.sha256);
+      return headResponse(exactReusedInput, {
+        "flashcards-sha256": exactReusedInput.sha256, "tenant-user-id": "private-user",
+      }, exactReusedInput.sha256);
     }) as S3Client["send"]),
     (error: unknown) => error instanceof GeneratedMediaPromotionStorageTerminalError
       && error.code === "PERMANENT_BLOB_CONFLICT",
@@ -234,6 +302,33 @@ test("generated promotion terminates corrupt objects, bounds retry, and obeys it
   );
   assert.equal(blobHeads, 1);
   assert.equal(copyAttempts, 3);
+  let authorizationChecks = 0;
+  let revalidatedCopyAttempts = 0;
+  const revalidationInput = input(new AbortController().signal);
+  await assert.rejects(
+    promoteWithVerifier(
+      revalidationInput,
+      (async (command: unknown) => {
+        if (command instanceof HeadObjectCommand) {
+          if (command.input.Key === revalidationInput.stagingStorageKey) {
+            return stagingResponse(revalidationInput);
+          }
+          throw createS3Error(404, "NotFound", "missing");
+        }
+        revalidatedCopyAttempts += 1;
+        throw createS3Error(409, "ConditionalRequestConflict", "retry");
+      }) as S3Client["send"],
+      () => {
+        authorizationChecks += 1;
+        if (authorizationChecks === 4) {
+          throw new MediaBlobWriterFenceError("test_retry_revalidation");
+        }
+      },
+    ),
+    MediaBlobWriterFenceError,
+  );
+  assert.equal(authorizationChecks, 4);
+  assert.equal(revalidatedCopyAttempts, 1);
   const abortController = new AbortController();
   const deadlineInput = input(abortController.signal);
   let deadlineCopyAttempts = 0;
@@ -254,4 +349,40 @@ test("generated promotion terminates corrupt objects, bounds retry, and obeys it
   setTimeout(() => abortController.abort(deadlineReason), 10);
   await assert.rejects(operation, (error: unknown) => error === deadlineReason);
   assert.equal(deadlineCopyAttempts, 1);
+});
+
+test("generated promotion rejects forged capabilities and mismatched payloads before S3", async () => {
+  for (const promotionInput of [
+    input(new AbortController().signal),
+    {
+      ...input(new AbortController().signal),
+      sha256: "0".repeat(64),
+      blobStorageKey: buildMediaBlobStorageKey("0".repeat(64)),
+    },
+  ]) {
+    let calls = 0;
+    await assert.rejects(
+      promoteGeneratedMediaObjectWithDependencies(
+        promotionInput,
+        {
+          s3Client: Object.assign(createTestS3Client(), {
+            send: async () => {
+              calls += 1;
+              return {};
+            },
+          }),
+          getMediaAssetsStorageConfigFn: getTestMediaAssetsStorageConfig,
+        },
+      ),
+      MediaBlobWriterFenceError,
+    );
+    assert.equal(calls, 0);
+  }
+});
+
+test("production generated promotion disables SDK-internal retries", async () => {
+  assert.equal(
+    await getGeneratedMediaPromotionS3Client().config.maxAttempts(),
+    1,
+  );
 });

@@ -9,22 +9,28 @@ import {
   upsertMediaAssetSnapshotWithBlobNormalizationInExecutor,
 } from "../../mediaAssets/persistence";
 import {
+  finalizeMediaBlobWriterInExecutor,
+} from "../../mediaAssets/blobLifecycle";
+import {
   GeneratedMediaPromotionStorageTerminalError, GeneratedMediaPromotionStorageTransientError,
   promoteGeneratedMediaObject,
 } from "../../mediaAssets/storage";
-import {
-  imageJpegCardMediaBlobMimeType, imageJpegCardMediaBlobNormalizationVersion,
-  passthroughMediaBlobNormalizationVersion, type MediaAsset,
-} from "../../mediaAssets/types";
+import type { MediaAsset } from "../../mediaAssets/types";
 import type { BackendObservationScope } from "../../observability/sentry";
 import { HttpError } from "../../shared/errors";
 import { lockWorkspaceSyncMetadataForHotChangesInExecutor } from "../../sync/replication/changes";
 import {
   applyGeneratedMediaPromotionJobScopeWithExecutor, claimGeneratedMediaPromotionJobs,
+  failGeneratedMediaPromotionJobAfterAccessRevocation,
+  failGeneratedMediaPromotionJobWithBlobWriterInExecutor,
   failGeneratedMediaPromotionJobWithExecutor, GeneratedMediaPromotionJobAccessRevokedError,
   GeneratedMediaPromotionJobLeaseLostError,
+  isGeneratedMediaPromotionOperationAppliedWithExecutor,
+  markGeneratedMediaBlobWriterAmbiguous,
   markGeneratedMediaPromotionJobAppliedWithExecutor, rescheduleGeneratedMediaPromotionJobWithExecutor,
-  type ClaimedGeneratedMediaPromotionJob, type SafeGeneratedMediaPromotionJobError,
+  reserveGeneratedMediaBlobWriter,
+  type ClaimedGeneratedMediaPromotionJob, type GeneratedMediaBlobWriterReservation,
+  type SafeGeneratedMediaPromotionJobError,
 } from "./promotionJobs";
 const maximumJobAttempts = 5;
 const retryBaseDelayMs = 30_000;
@@ -52,9 +58,13 @@ export type GeneratedMediaPromotionBatchResult = Readonly<{
 }>;
 export type GeneratedMediaPromotionProcessorDependencies = Readonly<{
   claimJobsFn: typeof claimGeneratedMediaPromotionJobs; promoteObjectFn: typeof promoteGeneratedMediaObject;
+  reserveWriterFn: typeof reserveGeneratedMediaBlobWriter;
   applyJobFn: typeof applyGeneratedMediaPromotionJob;
   rescheduleJobFn: typeof rescheduleGeneratedMediaPromotionJob;
-  failJobFn: typeof failGeneratedMediaPromotionJob; nowFn: () => number;
+  failJobFn: typeof failGeneratedMediaPromotionJob;
+  failAfterAccessRevocationFn: typeof failGeneratedMediaPromotionJobAfterAccessRevocation;
+  markWriterAmbiguousFn: typeof markGeneratedMediaBlobWriterAmbiguous;
+  nowFn: () => number;
 }>;
 function assertPersistedMediaIdentity(
   mediaAsset: MediaAsset,
@@ -80,8 +90,16 @@ function assertPersistedMediaIdentity(
 }
 async function applyGeneratedMediaPromotionJobInExecutor(
   executor: DatabaseExecutor,
-  job: ClaimedGeneratedMediaPromotionJob,
+  reservation: GeneratedMediaBlobWriterReservation,
 ): Promise<void> {
+  const job = reservation.writer;
+  if (await isGeneratedMediaPromotionOperationAppliedWithExecutor(
+    executor,
+    job.jobId,
+    job.operationId,
+  )) {
+    return;
+  }
   await applyGeneratedMediaPromotionJobScopeWithExecutor(executor, job);
   await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, job.workspaceId);
   const existingRow = await findMediaAssetRowForUpdateInExecutor(
@@ -102,11 +120,15 @@ async function applyGeneratedMediaPromotionJobInExecutor(
       clientUpdatedAt: job.createdAt, lastModifiedByReplicaId: job.replicaId,
       lastOperationId: job.operationId,
     },
-    job.mimeType === imageJpegCardMediaBlobMimeType
-      ? imageJpegCardMediaBlobNormalizationVersion
-      : passthroughMediaBlobNormalizationVersion,
+    reservation.normalizationVersion,
   );
   assertPersistedMediaIdentity(mediaResult.mediaAsset, job);
+  await finalizeMediaBlobWriterInExecutor(executor, {
+    reservationToken: reservation.reservationToken,
+    sha256: job.sha256,
+    workspaceId: job.workspaceId,
+    mediaAssetId: job.mediaAssetId,
+  });
   await appendManagedImageToCardSideInExecutor(
     executor, job.workspaceId,
     {
@@ -121,11 +143,11 @@ async function applyGeneratedMediaPromotionJobInExecutor(
   await markGeneratedMediaPromotionJobAppliedWithExecutor(executor, job);
 }
 export async function applyGeneratedMediaPromotionJob(
-  job: ClaimedGeneratedMediaPromotionJob,
+  reservation: GeneratedMediaBlobWriterReservation,
   deadlineAtMs: number,
 ): Promise<void> {
   return unsafeTransactionWithDeadline(deadlineAtMs, async (executor) => (
-    applyGeneratedMediaPromotionJobInExecutor(executor, job)
+    applyGeneratedMediaPromotionJobInExecutor(executor, reservation)
   ));
 }
 export async function rescheduleGeneratedMediaPromotionJob(
@@ -142,9 +164,17 @@ export async function failGeneratedMediaPromotionJob(
   job: ClaimedGeneratedMediaPromotionJob,
   deadlineAtMs: number,
   error: SafeGeneratedMediaPromotionJobError,
+  reservation: GeneratedMediaBlobWriterReservation | null,
 ): Promise<void> {
   return unsafeTransactionWithDeadline(deadlineAtMs, async (executor) => {
-    await failGeneratedMediaPromotionJobWithExecutor(executor, { ...job, error });
+    if (reservation === null) {
+      await failGeneratedMediaPromotionJobWithExecutor(executor, { ...job, error });
+      return;
+    }
+    await failGeneratedMediaPromotionJobWithBlobWriterInExecutor(executor, {
+      ...reservation.writer,
+      error,
+    });
   });
 }
 function terminalError(error: unknown): SafeGeneratedMediaPromotionJobError | null {
@@ -174,6 +204,7 @@ function terminalError(error: unknown): SafeGeneratedMediaPromotionJobError | nu
 function isTransientFailure(error: unknown): boolean {
   return error instanceof GeneratedMediaPromotionStorageTransientError
     || error instanceof TransientDatabaseHttpError
+    || (error instanceof HttpError && error.code === "MEDIA_BLOB_LIFECYCLE_BUSY")
     || isTransientDatabaseError(error);
 }
 function retryError(error: unknown): SafeGeneratedMediaPromotionJobError {
@@ -201,6 +232,7 @@ async function settleKnownFailure(
   dependencies: GeneratedMediaPromotionProcessorDependencies,
   error: SafeGeneratedMediaPromotionJobError,
   retryable: boolean,
+  reservation: GeneratedMediaBlobWriterReservation | null,
 ): Promise<GeneratedMediaPromotionJobResult> {
   try {
     if (retryable && job.retryCount < maximumJobAttempts - 1) {
@@ -215,7 +247,12 @@ async function settleKnownFailure(
         message: "Generated-media promotion exhausted its bounded transient retry budget.",
       }
       : error;
-    await dependencies.failJobFn(job, input.deadlineAtMs, terminalErrorValue);
+    await dependencies.failJobFn(
+      job,
+      input.deadlineAtMs,
+      terminalErrorValue,
+      reservation,
+    );
     return result(job, "failed", terminalErrorValue.code);
   } catch (transitionError) {
     if (transitionError instanceof GeneratedMediaPromotionJobLeaseLostError) {
@@ -233,23 +270,22 @@ async function settleKnownFailure(
     throw transitionError;
   }
 }
-export async function processClaimedGeneratedMediaPromotionJobWithDependencies(
+
+async function settleAccessRevocation(
   job: ClaimedGeneratedMediaPromotionJob,
   input: GeneratedMediaPromotionBatchInput,
   dependencies: GeneratedMediaPromotionProcessorDependencies,
 ): Promise<GeneratedMediaPromotionJobResult> {
   try {
-    input.signal.throwIfAborted();
-    await dependencies.promoteObjectFn({
-      workspaceId: job.workspaceId, mediaAssetId: job.mediaAssetId,
-      operationId: job.operationId, stagingStorageKey: job.stagingStorageKey,
-      blobStorageKey: job.blobStorageKey, mimeType: job.mimeType,
-      sizeBytes: job.sizeBytes, sha256: job.sha256,
-      observationScope: input.observationScope, signal: input.signal,
-    });
-    input.signal.throwIfAborted();
-    await dependencies.applyJobFn(job, input.deadlineAtMs);
-    return result(job, "applied", null);
+    const outcome = await dependencies.failAfterAccessRevocationFn(
+      job,
+      input.deadlineAtMs,
+    );
+    if (outcome === "applied") return result(job, "applied", null);
+    if (outcome === "failed") {
+      return result(job, "failed", "WORKSPACE_ACCESS_REVOKED");
+    }
+    return result(job, "interrupted", "WORKSPACE_ACCESS_RECHECK_REQUIRED");
   } catch (error) {
     if (error instanceof GeneratedMediaPromotionJobLeaseLostError) {
       return result(job, "lease_lost", null);
@@ -260,12 +296,120 @@ export async function processClaimedGeneratedMediaPromotionJobWithDependencies(
     if (input.signal.aborted || error instanceof DatabaseDeadlineExceededError) {
       return result(job, "interrupted", "WORKER_DEADLINE");
     }
+    throw error;
+  }
+}
+
+export async function processClaimedGeneratedMediaPromotionJobWithDependencies(
+  job: ClaimedGeneratedMediaPromotionJob,
+  input: GeneratedMediaPromotionBatchInput,
+  dependencies: GeneratedMediaPromotionProcessorDependencies,
+): Promise<GeneratedMediaPromotionJobResult> {
+  let reservation: GeneratedMediaBlobWriterReservation | null = null;
+  try {
+    input.signal.throwIfAborted();
+    reservation = await dependencies.reserveWriterFn(job, input.deadlineAtMs);
+    if (reservation.state === "finalized" || reservation.state === "ambiguous") {
+      await dependencies.applyJobFn(reservation, input.deadlineAtMs);
+      return result(job, "applied", null);
+    }
+    const writer = reservation.writer;
+    await dependencies.promoteObjectFn({
+      writer,
+      storageCapability: reservation.storageCapability,
+      workspaceId: writer.workspaceId, mediaAssetId: writer.mediaAssetId,
+      operationId: writer.operationId, stagingStorageKey: writer.stagingStorageKey,
+      blobStorageKey: writer.blobStorageKey, mimeType: writer.mimeType,
+      sizeBytes: writer.sizeBytes, sha256: writer.sha256,
+      observationScope: input.observationScope, signal: input.signal,
+    });
+    input.signal.throwIfAborted();
+    await dependencies.applyJobFn(reservation, input.deadlineAtMs);
+    return result(job, "applied", null);
+  } catch (error) {
+    if (error instanceof GeneratedMediaPromotionJobLeaseLostError) {
+      return result(job, "lease_lost", null);
+    }
+    if (error instanceof GeneratedMediaPromotionJobAccessRevokedError) {
+      return settleAccessRevocation(
+        reservation?.writer ?? job,
+        input,
+        dependencies,
+      );
+    }
+    if (error instanceof DatabaseCommitOutcomeUnknownError) {
+      if (reservation === null) {
+        return result(job, "ambiguous", "DATABASE_COMMIT_OUTCOME_UNKNOWN");
+      }
+      let ambiguityTransitionError: unknown = null;
+      try {
+        await dependencies.markWriterAmbiguousFn(
+          reservation,
+          input.deadlineAtMs,
+        );
+      } catch (transitionError) {
+        ambiguityTransitionError = transitionError;
+      }
+      try {
+        await dependencies.applyJobFn(reservation, input.deadlineAtMs);
+        return result(job, "applied", null);
+      } catch (operationReplayError) {
+        if (operationReplayError instanceof GeneratedMediaPromotionJobLeaseLostError) {
+          return result(job, "lease_lost", null);
+        }
+        if (operationReplayError instanceof GeneratedMediaPromotionJobAccessRevokedError) {
+          return settleAccessRevocation(reservation.writer, input, dependencies);
+        }
+        if (
+          operationReplayError instanceof DatabaseCommitOutcomeUnknownError
+          || operationReplayError instanceof DatabaseDeadlineExceededError
+          || isTransientFailure(operationReplayError)
+        ) {
+          return result(job, "ambiguous", "DATABASE_COMMIT_OUTCOME_UNKNOWN");
+        }
+        const knownTerminalError = terminalError(operationReplayError);
+        if (knownTerminalError !== null) {
+          return settleKnownFailure(
+            job,
+            input,
+            dependencies,
+            knownTerminalError,
+            false,
+            reservation,
+          );
+        }
+        if (ambiguityTransitionError !== null) {
+          throw new AggregateError(
+            [ambiguityTransitionError, operationReplayError],
+            "Generated-media promotion ambiguity transition and deterministic operation replay both failed.",
+          );
+        }
+        throw operationReplayError;
+      }
+    }
+    if (input.signal.aborted || error instanceof DatabaseDeadlineExceededError) {
+      return result(job, "interrupted", "WORKER_DEADLINE");
+    }
     if (isTransientFailure(error)) {
-      return settleKnownFailure(job, input, dependencies, retryError(error), true);
+      return settleKnownFailure(
+        job,
+        input,
+        dependencies,
+        retryError(error),
+        true,
+        reservation,
+      );
     }
     const knownTerminalError = terminalError(error);
     if (knownTerminalError !== null) {
-      return settleKnownFailure(job, input, dependencies, knownTerminalError, false);
+      return settleKnownFailure(
+        job,
+        input,
+        dependencies,
+        knownTerminalError,
+        false,
+        reservation,
+      );
     }
     throw error;
   }
@@ -313,10 +457,13 @@ export async function runGeneratedMediaPromotionBatchWithDependencies(
 }
 const defaultDependencies: GeneratedMediaPromotionProcessorDependencies = {
   claimJobsFn: claimGeneratedMediaPromotionJobs,
+  reserveWriterFn: reserveGeneratedMediaBlobWriter,
   promoteObjectFn: promoteGeneratedMediaObject,
   applyJobFn: applyGeneratedMediaPromotionJob,
   rescheduleJobFn: rescheduleGeneratedMediaPromotionJob,
   failJobFn: failGeneratedMediaPromotionJob,
+  failAfterAccessRevocationFn: failGeneratedMediaPromotionJobAfterAccessRevocation,
+  markWriterAmbiguousFn: markGeneratedMediaBlobWriterAmbiguous,
   nowFn: Date.now,
 };
 export async function runGeneratedMediaPromotionBatch(
