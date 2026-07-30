@@ -33,10 +33,7 @@ import java.security.MessageDigest
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -85,7 +82,7 @@ class LocalMediaUploadTransferRepositoryCompletionRetryTest {
                 ),
                 CompletionOutcome.Success(
                     applied = false,
-                    cancelBeforeReturn = false
+                    waitForCancellationBeforeReturn = false
                 )
             )
         )
@@ -174,7 +171,7 @@ class LocalMediaUploadTransferRepositoryCompletionRetryTest {
                 ),
                 CompletionOutcome.Success(
                     applied = false,
-                    cancelBeforeReturn = true
+                    waitForCancellationBeforeReturn = true
                 )
             )
         )
@@ -182,7 +179,10 @@ class LocalMediaUploadTransferRepositoryCompletionRetryTest {
             context.repository.runDueUploads()
         }
 
-        joinAll(uploadJob)
+        context.remoteGateway.replaySuccessReady.await()
+        uploadJob.cancel(CancellationException("Upload worker cancelled after completion replay"))
+        context.remoteGateway.releaseReplaySuccess.complete(Unit)
+        uploadJob.join()
 
         assertEquals(1, context.remoteGateway.createRequests.size)
         assertEquals(1, context.signedPutUploader.uploadedBodies.size)
@@ -204,7 +204,10 @@ class LocalMediaUploadTransferRepositoryCompletionRetryTest {
                     code = "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
                     retryAfterDelayMillis = 0L
                 ),
-                CompletionOutcome.Terminal(code = "MEDIA_ASSET_UPLOAD_PROOF_MISMATCH")
+                CompletionOutcome.Terminal(
+                    code = "MEDIA_ASSET_UPLOAD_PROOF_MISMATCH",
+                    message = terminalCompletionMessage
+                )
             )
         )
 
@@ -264,7 +267,10 @@ class LocalMediaUploadTransferRepositoryCompletionRetryTest {
     fun repositoryAbortsTerminalCompletionFailure() = runBlocking {
         val context = createRepositoryContext(
             completionOutcomes = listOf(
-                CompletionOutcome.Terminal(code = "MEDIA_ASSET_UPLOAD_PROOF_MISMATCH")
+                CompletionOutcome.Terminal(
+                    code = "MEDIA_ASSET_UPLOAD_PROOF_MISMATCH",
+                    message = terminalCompletionMessage
+                )
             )
         )
 
@@ -276,7 +282,8 @@ class LocalMediaUploadTransferRepositoryCompletionRetryTest {
         assertEquals(listOf(sessionId), context.remoteGateway.abortSessionIds)
         val failedTransfer = loadTransfer()
         assertEquals(MediaTransferStatus.FAILED.wireKey, failedTransfer.status)
-        assertTrue(failedTransfer.lastError?.contains("MEDIA_ASSET_UPLOAD_PROOF_MISMATCH") == true)
+        assertTrue(failedTransfer.lastError?.contains(terminalCompletionMessage) == true)
+        assertTrue(failedTransfer.lastError?.contains("completion-request-terminal") == true)
     }
 
     private suspend fun createRepositoryContext(
@@ -356,6 +363,8 @@ class LocalMediaUploadTransferRepositoryCompletionRetryTest {
         const val sessionId: String = completionTestSessionId
         const val transferId: String = "media-upload-transfer-1"
         const val nowMillis: Long = 1_000L
+        const val terminalCompletionMessage: String =
+            "Uploaded media asset proof does not match the authenticated upload session"
     }
 }
 
@@ -373,13 +382,14 @@ private sealed interface CompletionOutcome {
 
     data class Success(
         val applied: Boolean,
-        val cancelBeforeReturn: Boolean
+        val waitForCancellationBeforeReturn: Boolean
     ) : CompletionOutcome
 
     data object InvalidSuccess : CompletionOutcome
 
     data class Terminal(
-        val code: String
+        val code: String,
+        val message: String
     ) : CompletionOutcome
 }
 
@@ -399,6 +409,8 @@ private class RecordingMediaUploadGateway(
     val completionRequests = mutableListOf<CompleteMediaAssetUploadSessionRequest>()
     val abortSessionIds = mutableListOf<String>()
     val firstCompletionAttempt = CompletableDeferred<Unit>()
+    val replaySuccessReady = CompletableDeferred<Unit>()
+    val releaseReplaySuccess = CompletableDeferred<Unit>()
 
     override suspend fun fetchCloudAccount(
         apiBaseUrl: String,
@@ -489,10 +501,9 @@ private class RecordingMediaUploadGateway(
                 androidObservationAlreadyCaptured = false
             )
             is CompletionOutcome.Success -> {
-                if (outcome.cancelBeforeReturn) {
-                    currentCoroutineContext().cancel(
-                        CancellationException("Upload worker cancelled after completion replay")
-                    )
+                if (outcome.waitForCancellationBeforeReturn) {
+                    replaySuccessReady.complete(Unit)
+                    releaseReplaySuccess.await()
                 }
                 MediaAssetUploadCompletion(
                     mediaAsset = createMediaAsset(),
@@ -506,9 +517,15 @@ private class RecordingMediaUploadGateway(
                 applied = false
             )
             is CompletionOutcome.Terminal -> throw CloudRemoteException(
-                message = "Completion payload is invalid",
-                statusCode = 400,
-                responseBody = """{"code":"${outcome.code}"}""",
+                message = "${outcome.message} Reference: completion-request-terminal",
+                statusCode = 409,
+                responseBody = """
+                    {
+                      "error": "${outcome.message}",
+                      "requestId": "completion-request-terminal",
+                      "code": "${outcome.code}"
+                    }
+                """.trimIndent(),
                 errorCode = outcome.code,
                 requestId = "completion-request-terminal",
                 syncConflict = null,
