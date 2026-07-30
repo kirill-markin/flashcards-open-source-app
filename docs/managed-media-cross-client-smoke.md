@@ -70,3 +70,11 @@ If any path fails, capture:
 - card id, if visible in diagnostics or logs
 - approximate timestamp and timezone
 - whether the source client still shows a pending or failed upload state
+
+## Generated Image Chat Tool
+
+After this change is merged and deployed, make the next permitted real image request from a signed-in production chat:
+
+- Explicitly request one teaching-relevant image, confirm the assistant inspects the card first, names the card and side, and attaches exactly one canonical managed-media reference to that side; sync Web, iOS, and Android and confirm it renders everywhere without front-side answer leakage.
+- Do not make additional real image requests for cap, retry, replay, cancellation, claim-loss, or guest checks. Use the deployed automated test results and structured logs to confirm those paths, including that guest chat stays SQL-only.
+- Record only model/status/request ID/duration and card/media IDs, never prompts, alt text, image bytes/base64, signed URLs, storage keys, or tool output.

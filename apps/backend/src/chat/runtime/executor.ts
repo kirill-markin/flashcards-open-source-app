@@ -11,6 +11,9 @@ import type {
   ContentPart,
 } from "../types";
 import {
+  InactiveChatRunClaimError,
+} from "../runs";
+import {
   startBackendSpan,
 } from "../../observability/sentry";
 import {
@@ -21,6 +24,9 @@ import {
   upsertAssistantToolCallContent,
 } from "./assistantContent";
 import {
+  CHAT_WORKER_INACTIVE_RECONCILIATION_MAXIMUM_MS,
+  CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS,
+  CHAT_WORKER_TERMINAL_PERSISTENCE_RESERVE_MS,
   createChatRuntimeControl,
   DEADLINE_REACHED_MESSAGE,
 } from "./control";
@@ -70,6 +76,19 @@ function rethrowTerminalPersistenceError(error: unknown): never {
     throw error.originalError;
   }
   throw error;
+}
+
+function calculateInactiveRunReconciliationDeadlineAtMs(
+  remainingRuntimeMs: number,
+): number {
+  const availableReconciliationMs = Math.max(
+    0,
+    remainingRuntimeMs - CHAT_WORKER_TERMINAL_PERSISTENCE_RESERVE_MS,
+  );
+  return Date.now() + Math.min(
+    availableReconciliationMs,
+    CHAT_WORKER_INACTIVE_RECONCILIATION_MAXIMUM_MS,
+  );
 }
 
 /**
@@ -171,6 +190,21 @@ export async function runPersistedChatSessionWithDeps(
     }),
   );
 
+  const reconcileInactiveRun = async (): Promise<
+    Awaited<ReturnType<ChatRuntimeDependencies["reconcileInactiveChatRun"]>>
+  > => dependencies.reconcileInactiveChatRun(
+    params.userId,
+    params.workspaceId,
+    {
+      runId: params.runId,
+      sessionId: params.sessionId,
+      claimToken: params.claimToken,
+      databaseDeadlineAtMs: calculateInactiveRunReconciliationDeadlineAtMs(
+        params.getRemainingTimeInMillis(),
+      ),
+    },
+  );
+
   const persistCompleted = async (
     assistantOpenAIItems: ReadonlyArray<StoredOpenAIReplayItem>,
   ): Promise<ChatWorkerRunResult> => persistTerminalResult(
@@ -214,6 +248,9 @@ export async function runPersistedChatSessionWithDeps(
       return beforeObservationDeadlineResult;
     }
 
+    const generatedImageOperationDeadlineMs = Date.now()
+      + Math.max(0, params.getRemainingTimeInMillis() - CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS);
+
     await dependencies.startChatTurnObservation(
       {
         requestId: params.requestId,
@@ -240,10 +277,13 @@ export async function runPersistedChatSessionWithDeps(
           "ai.openai",
           async () => dependencies.startOpenAILoop({
             requestId: params.requestId,
+            runId: params.runId,
             claimToken: params.claimToken,
             userId: params.userId,
             workspaceId: params.workspaceId,
             sessionId: params.sessionId,
+            generatedImageEligible: params.generatedImageEligible,
+            generatedImageOperationDeadlineMs,
             modelId: params.modelId,
             reasoningEffort: params.reasoningEffort,
             timezone: params.timezone,
@@ -298,6 +338,15 @@ export async function runPersistedChatSessionWithDeps(
         }
 
         if (control.getOwnershipLost()) {
+          throw new ChatRunOwnershipLostError(params.runId);
+        }
+
+        if (completion.terminationReason === "run_inactive") {
+          const inactiveOutcome = await reconcileInactiveRun();
+          if (inactiveOutcome === "user_cancelled") {
+            runtimeResult = await persistCancelled("user_cancelled");
+            return;
+          }
           throw new ChatRunOwnershipLostError(params.runId);
         }
 
@@ -363,6 +412,26 @@ export async function runPersistedChatSessionWithDeps(
   } catch (error) {
     if (error instanceof TerminalPersistenceError) {
       throw error.originalError;
+    }
+
+    if (error instanceof InactiveChatRunClaimError) {
+      let inactiveOutcome: Awaited<
+        ReturnType<ChatRuntimeDependencies["reconcileInactiveChatRun"]>
+      >;
+      try {
+        inactiveOutcome = await reconcileInactiveRun();
+      } catch (reconciliationError) {
+        return persistFailed(reconciliationError).catch(rethrowTerminalPersistenceError);
+      }
+      if (inactiveOutcome === "user_cancelled") {
+        return persistCancelled("user_cancelled").catch(rethrowTerminalPersistenceError);
+      }
+      return {
+        outcome: "ownership_lost",
+        abortReason: "ownership_lost",
+        runStatus: null,
+        sessionState: null,
+      };
     }
 
     const abortReason = control.getAbortReason();

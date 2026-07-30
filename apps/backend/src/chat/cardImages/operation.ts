@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import type { CardTextSide } from "../../cards";
-import { transactionWithWorkspaceScopeDeadline } from "../../database";
+import {
+  transactionWithWorkspaceScopeDeadline,
+} from "../../database";
 import { DatabaseCommitOutcomeUnknownError } from "../../database/transient";
 import { normalizeImageBytesForCard } from "../../mediaAssets/ingestion/imageNormalization";
 import {
@@ -15,13 +17,24 @@ import {
 import { assertReplicaBelongsToWorkspaceInExecutor } from "../../mediaAssets/workspaceReplicas";
 import { expectNonEmptyString, expectUuidString } from "../../server/requestParsing";
 import { HttpError } from "../../shared/errors";
-import { assertActiveChatRunClaimWithExecutor } from "../runs/claimFence";
+import { isGeneratedImageOperationKey } from "../generatedImageOperationIdentity";
+import {
+  assertActiveChatRunClaimWithExecutor,
+  InactiveChatRunClaimError,
+} from "../runs/claimFence";
+import {
+  markGeneratedCardImageProviderStarted,
+  type MarkGeneratedCardImageProviderStartedParams,
+  type MarkGeneratedCardImageProviderStartedResult,
+} from "../openai/tools/generatedImageAttemptBudget";
 import { deriveGeneratedCardImageOperationMetadata } from "./metadata";
 import { createOpenAIGeneratedCardImageProvider } from "./openaiAdapter";
 import { withGeneratedCardImageOperationLock } from "./operationLock";
 import { enqueueGeneratedMediaPromotionJob, type EnqueueGeneratedMediaPromotionJobResult } from "./promotionJobs";
 import {
   GeneratedCardImageDeadlineExceededError,
+  GeneratedCardImageProviderOutcomeUnknownError,
+  GeneratedCardImageStagingOutcomeUnknownError,
   type GeneratedProviderImage,
   type OpenAIImageGenerationInput,
 } from "./providerTypes";
@@ -30,10 +43,13 @@ import type {
   GeneratedCardImageOperationMetadata,
   GeneratedCardImageResult,
 } from "./types";
+import {
+  countUnicodeCodePoints,
+  hasValidGeneratedImageAltTextCharactersAndLength,
+  maximumGeneratedImageAltTextCodePoints,
+  maximumGeneratedImagePromptCodePoints,
+} from "./contract";
 
-const maximumGeneratedCardImagePromptCharacters = 32_000;
-const maximumGeneratedCardImageAltTextCharacters = 2_000;
-const controlCharacterPattern = /[\u0000-\u001f\u007f-\u009f]/u;
 const maximumTimerDelayMs = 2_147_483_647;
 
 export type PreparedGeneratedCardImage = GeneratedMediaStagingObject & Readonly<{ reused: boolean }>;
@@ -50,6 +66,9 @@ export type GeneratedCardImageOperationDependencies = Readonly<{
 }>;
 
 export type GeneratedCardImageExternalDependencies = Readonly<{
+  markProviderStartedFn: (
+    params: MarkGeneratedCardImageProviderStartedParams,
+  ) => Promise<MarkGeneratedCardImageProviderStartedResult>;
   generateProviderImageFn: (input: OpenAIImageGenerationInput) => Promise<GeneratedProviderImage>;
   normalizeImageBytesForCardFn: typeof normalizeImageBytesForCard;
   loadGeneratedMediaStagingObjectFn: typeof loadGeneratedMediaStagingObject;
@@ -64,22 +83,36 @@ function normalizeTargetSide(targetSide: CardTextSide): CardTextSide {
   return targetSide;
 }
 
+function normalizeGeneratedCardImageAltText(value: unknown): string {
+  if (typeof value !== "string") {
+    throw new HttpError(400, "altText must be a string");
+  }
+  if (!hasValidGeneratedImageAltTextCharactersAndLength(value)) {
+    throw new HttpError(
+      400,
+      `altText must be at most ${maximumGeneratedImageAltTextCodePoints} characters without control characters`,
+    );
+  }
+  return expectNonEmptyString(value, "altText");
+}
+
 function normalizeGeneratedCardImageInput(input: GeneratedCardImageInput): GeneratedCardImageInput {
+  const operationKey = expectNonEmptyString(input.operationKey, "operationKey");
+  if (!isGeneratedImageOperationKey(operationKey)) {
+    throw new HttpError(
+      400,
+      "operationKey must identify a positive run-scoped generated-image ordinal",
+    );
+  }
   const imagePrompt = expectNonEmptyString(input.imagePrompt, "imagePrompt");
-  if (imagePrompt.length > maximumGeneratedCardImagePromptCharacters) {
+  if (countUnicodeCodePoints(imagePrompt) > maximumGeneratedImagePromptCodePoints) {
     throw new HttpError(400,
-      `imagePrompt must be at most ${maximumGeneratedCardImagePromptCharacters} characters`);
+      `imagePrompt must be at most ${maximumGeneratedImagePromptCodePoints} characters`);
   }
-  const altText = expectNonEmptyString(input.altText, "altText");
-  if (
-    altText.length > maximumGeneratedCardImageAltTextCharacters
-    || controlCharacterPattern.test(altText)
-  ) {
-    throw new HttpError(400,
-      `altText must be at most ${maximumGeneratedCardImageAltTextCharacters} characters without control characters`);
-  }
+  const altText = normalizeGeneratedCardImageAltText(input.altText);
   return {
     runId: expectUuidString(input.runId, "runId"),
+    operationKey,
     sessionId: expectUuidString(input.sessionId, "sessionId"),
     claimToken: expectNonEmptyString(input.claimToken, "claimToken"),
     userId: expectNonEmptyString(input.userId, "userId"),
@@ -123,9 +156,6 @@ async function withGeneratedCardImageDeadline<Result>(
   };
   try {
     return await run(deadlineInput);
-  } catch (error) {
-    if (deadlineController.signal.aborted) throw deadlineError;
-    throw error;
   } finally {
     clearTimeout(deadlineTimer);
   }
@@ -167,6 +197,27 @@ async function prepareStagedGeneratedCardImage(
   };
   const existing = await dependencies.loadGeneratedMediaStagingObjectFn(stagingInput);
   if (existing !== null) return { ...existing, reused: true };
+  const providerStart = await dependencies.markProviderStartedFn({
+    userId: input.userId,
+    workspaceId: input.workspaceId,
+    runId: input.runId,
+    sessionId: input.sessionId,
+    claimToken: input.claimToken,
+    operationKey: input.operationKey,
+    databaseDeadlineAtMs: input.operationDeadlineMs,
+  });
+  if (providerStart.status === "previously_started") {
+    throw new GeneratedCardImageProviderOutcomeUnknownError(
+      input.runId,
+      input.operationKey,
+    );
+  }
+  if (providerStart.status !== "first_started") {
+    throw new Error(
+      `Generated card image provider start returned an invalid result. runId=${input.runId}; operationKey=${input.operationKey}`,
+    );
+  }
+  input.signal.throwIfAborted();
   const generatedImage = await dependencies.generateProviderImageFn({
     userId: input.userId, imagePrompt: input.imagePrompt,
     observationContext: input.observationContext,
@@ -175,13 +226,25 @@ async function prepareStagedGeneratedCardImage(
   input.signal.throwIfAborted();
   const normalizedImage = await dependencies.normalizeImageBytesForCardFn(generatedImage.bytes);
   input.signal.throwIfAborted();
-  const staged = await dependencies.storeGeneratedMediaStagingObjectFn({
-    ...stagingInput,
-    mimeType: normalizedImage.mimeType,
-    sizeBytes: normalizedImage.sizeBytes,
-    sha256: createHash("sha256").update(normalizedImage.bytes).digest("hex"),
-    bytes: normalizedImage.bytes,
-  });
+  let staged: GeneratedMediaStagingObject;
+  try {
+    staged = await dependencies.storeGeneratedMediaStagingObjectFn({
+      ...stagingInput,
+      mimeType: normalizedImage.mimeType,
+      sizeBytes: normalizedImage.sizeBytes,
+      sha256: createHash("sha256").update(normalizedImage.bytes).digest("hex"),
+      bytes: normalizedImage.bytes,
+    });
+  } catch (error) {
+    if (input.signal.aborted && error === input.signal.reason) {
+      throw error;
+    }
+    throw new GeneratedCardImageStagingOutcomeUnknownError(
+      input.runId,
+      input.operationKey,
+      error,
+    );
+  }
   input.signal.throwIfAborted();
   return { ...staged, reused: false };
 }
@@ -207,6 +270,18 @@ async function enqueueGeneratedCardImagePromotion(
   });
 }
 
+function isConfirmedPromotionEnqueueResult(
+  result: unknown,
+  expectedJobId: string,
+): result is EnqueueGeneratedMediaPromotionJobResult {
+  return typeof result === "object"
+    && result !== null
+    && "outcome" in result
+    && (result.outcome === "created" || result.outcome === "existing")
+    && "jobId" in result
+    && result.jobId === expectedJobId;
+}
+
 async function enqueueGeneratedCardImagePromotionWithCommitReconciliation(
   input: GeneratedCardImageInput,
   operationMetadata: GeneratedCardImageOperationMetadata,
@@ -216,9 +291,31 @@ async function enqueueGeneratedCardImagePromotionWithCommitReconciliation(
   try {
     return await enqueuePromotionJobFn(input, operationMetadata, preparedImage);
   } catch (error) {
-    if (!(error instanceof DatabaseCommitOutcomeUnknownError)) throw error;
-    assertGeneratedCardImageOperationActive(input);
-    return enqueuePromotionJobFn(input, operationMetadata, preparedImage);
+    if (!(error instanceof DatabaseCommitOutcomeUnknownError)) {
+      throw error;
+    }
+    if (input.signal.aborted || input.operationDeadlineMs <= Date.now()) {
+      throw error;
+    }
+    let reconciliationResult: EnqueueGeneratedMediaPromotionJobResult;
+    try {
+      reconciliationResult = await enqueuePromotionJobFn(
+        input,
+        operationMetadata,
+        preparedImage,
+      );
+    } catch {
+      throw error;
+    }
+    if (
+      !isConfirmedPromotionEnqueueResult(
+        reconciliationResult,
+        operationMetadata.operationId,
+      )
+    ) {
+      throw error;
+    }
+    return reconciliationResult;
   }
 }
 
@@ -243,7 +340,7 @@ export async function generateCardImageWithDependencies(
   const normalizedInput = normalizeGeneratedCardImageInput(input);
   assertGeneratedCardImageOperationActive(normalizedInput);
   const operationMetadata = deriveGeneratedCardImageOperationMetadata(
-    normalizedInput.runId, normalizedInput.cardId, normalizedInput.targetSide,
+    normalizedInput.runId, normalizedInput.operationKey,
   );
   await dependencies.assertPreconditionsFn(normalizedInput);
   assertGeneratedCardImageOperationActive(normalizedInput);
@@ -279,6 +376,7 @@ export async function generateCardImageWithDependencies(
 }
 
 const defaultExternalDependencies: GeneratedCardImageExternalDependencies = {
+  markProviderStartedFn: markGeneratedCardImageProviderStarted,
   generateProviderImageFn: async (input) => createOpenAIGeneratedCardImageProvider().generate(input),
   normalizeImageBytesForCardFn: normalizeImageBytesForCard,
   loadGeneratedMediaStagingObjectFn: loadGeneratedMediaStagingObject,

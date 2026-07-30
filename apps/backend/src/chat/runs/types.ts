@@ -29,6 +29,7 @@ export type PreparedChatRun = Readonly<{
   runState: ChatSessionRunState;
   deduplicated: boolean;
   shouldInvokeWorker: boolean;
+  initiatingAuthIsSignedIn: boolean;
 }>;
 
 export type ChatRunDiagnostics = Readonly<{
@@ -59,6 +60,7 @@ export type ClaimedChatRun = Readonly<{
   assistantItemId: string;
   localMessages: ReadonlyArray<ServerChatMessage>;
   turnInput: ReadonlyArray<ContentPart>;
+  initiatingAuthIsSignedIn: boolean;
   diagnostics: ChatRunDiagnostics;
 }>;
 

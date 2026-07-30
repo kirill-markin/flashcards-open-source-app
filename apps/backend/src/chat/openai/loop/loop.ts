@@ -29,7 +29,7 @@ import {
   type StoredOpenAIReplayMessage,
 } from "../replayItems";
 import {
-  OPENAI_CHAT_TOOLS,
+  buildOpenAIChatTools,
   type ExecutedChatToolCall,
 } from "../tools/tools";
 import { buildOpenAISafetyIdentifier } from "../safetyIdentifier";
@@ -44,6 +44,8 @@ import {
   type ChatRuntimeReasoningEffort,
 } from "../../config";
 import type { ChatRunClaimToken } from "../../runs";
+import { createGeneratedImageOperationKey } from "../../generatedImageOperationIdentity";
+import { GENERATED_IMAGE_TOOL_NAME } from "../tools/generatedImageToolContract";
 
 export const CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS = 30;
 const MAX_REASONING_ITEMS = 8;
@@ -77,17 +79,23 @@ type OpenAILoopDependencies = Readonly<{
   getObservedOpenAIClient: typeof getObservedOpenAIClient;
   runOneToolCall: (params: Readonly<{
     item: OpenAI.Responses.ResponseFunctionToolCall;
+    requestId: string;
+    runId: string;
+    sessionId: string;
+    operationKey: string;
+    generatedImageEligible: boolean;
     claimToken: ChatRunClaimToken;
     userId: string;
     workspaceId: string;
     signal: AbortSignal | null;
+    generatedImageOperationDeadlineMs: number;
     rootObservation: LangfuseObservation | null;
   }>) => Promise<ExecutedChatToolCall>;
 }>;
 
 export type OpenAILoopCompletion = Readonly<{
   openaiItems: ReadonlyArray<StoredOpenAIReplayItem>;
-  terminationReason: "completed" | "stopped_before_next_step";
+  terminationReason: "completed" | "stopped_before_next_step" | "run_inactive";
 }>;
 
 export type OpenAILoopEventSink = (
@@ -115,6 +123,7 @@ type OpenAIResponsesRequest = Readonly<{
   }>;
   prompt_cache_key: string;
   safety_identifier: string;
+  parallel_tool_calls?: false;
 }>;
 
 type BuildOpenAIResponsesRequestParams = Readonly<{
@@ -130,10 +139,13 @@ type BuildOpenAIResponsesRequestParams = Readonly<{
 
 export type StartOpenAILoopParams = Readonly<{
   requestId: string;
+  runId: string;
   claimToken: ChatRunClaimToken;
   userId: string;
   workspaceId: string;
   sessionId: string;
+  generatedImageEligible: boolean;
+  generatedImageOperationDeadlineMs: number;
   modelId: ChatRuntimeModelId;
   reasoningEffort: ChatRuntimeReasoningEffort;
   timezone: string;
@@ -281,10 +293,16 @@ async function getFinalResponseFromStream(
 async function runOneToolCall(
   params: Readonly<{
     item: OpenAI.Responses.ResponseFunctionToolCall;
+    requestId: string;
+    runId: string;
+    sessionId: string;
+    operationKey: string;
+    generatedImageEligible: boolean;
     claimToken: ChatRunClaimToken;
     userId: string;
     workspaceId: string;
     signal: AbortSignal | null;
+    generatedImageOperationDeadlineMs: number;
     rootObservation: LangfuseObservation | null;
   }>,
 ): Promise<ExecutedChatToolCall> {
@@ -343,17 +361,29 @@ function buildToolLimitFallbackText(): string {
  * reasoning items left unpaired by the dropped calls are dropped too. The
  * user-visible answer is preserved via the streamed deltas regardless.
  */
-function dropUnpairedFunctionCalls(
+function pruneUnpairedToolReplayItems(
   items: ReadonlyArray<StoredOpenAIReplayItem>,
 ): ReadonlyArray<StoredOpenAIReplayItem> {
-  const withoutFunctionCalls = items.filter((item) => item.type !== "function_call");
+  const functionCallIds = new Set(
+    items.filter((item) => item.type === "function_call").map((item) => item.call_id),
+  );
+  const outputCallIds = new Set(
+    items.filter((item) => item.type === "function_call_output").map((item) => item.call_id),
+  );
+  const pairedItems = items.filter((item) => {
+    if (item.type === "function_call") {
+      return outputCallIds.has(item.call_id);
+    }
+    if (item.type === "function_call_output") {
+      return functionCallIds.has(item.call_id);
+    }
+    return true;
+  });
   const kept: Array<StoredOpenAIReplayItem> = [];
 
-  // Walk from the end so a `reasoning` item is kept only when a later item that
-  // survives the function-call drop follows it in the same response output.
   let hasFollowingKeptItem = false;
-  for (let index = withoutFunctionCalls.length - 1; index >= 0; index -= 1) {
-    const item = withoutFunctionCalls[index];
+  for (let index = pairedItems.length - 1; index >= 0; index -= 1) {
+    const item = pairedItems[index];
     if (item.type === "reasoning" && !hasFollowingKeptItem) {
       continue;
     }
@@ -432,6 +462,10 @@ function buildOpenAIResponsesRequest(params: BuildOpenAIResponsesRequestParams):
     },
     prompt_cache_key: buildPromptCacheKey(params.sessionId),
     safety_identifier: buildOpenAISafetyIdentifier(params.userId),
+    ...(params.tools.some((tool) => tool.type === "function"
+      && tool.name === "add_generated_image_to_card")
+      ? { parallel_tool_calls: false as const }
+      : {}),
   };
 }
 
@@ -454,7 +488,7 @@ function createStoppedBeforeNextStepCompletion(
   continuationItems: ReadonlyArray<StoredOpenAIReplayItem>,
 ): OpenAILoopCompletion {
   return {
-    openaiItems: continuationItems,
+    openaiItems: pruneUnpairedToolReplayItems(continuationItems),
     terminationReason: "stopped_before_next_step",
   };
 }
@@ -706,7 +740,7 @@ async function completeToolLimitSummaryTurn(
   // truncated call is dropped so it is never persisted as an orphan replay item.
   if ((summaryCall.forceComplete || summaryCall.functionCalls.length === 0) && finalAssistantText.length > 0) {
     continuationItems.push(...(summaryCall.forceComplete
-      ? dropUnpairedFunctionCalls(summaryCall.replayItems)
+      ? pruneUnpairedToolReplayItems(summaryCall.replayItems)
       : summaryCall.replayItems));
     if (summaryCall.streamedText.length === 0) {
       await emitSyntheticAssistantDelta(onEvent, finalAssistantText, summaryCallIndex - 1);
@@ -779,6 +813,7 @@ async function runModelCallWithOverflowRetry(
       params.localMessages,
       params.turnInput,
       params.timezone,
+      params.generatedImageEligible,
       REDUCED_HISTORY_REPLAY_TOKEN_BUDGET,
     );
     return {
@@ -804,8 +839,11 @@ async function runLoopWithDeps(
     params.localMessages,
     params.turnInput,
     params.timezone,
+    params.generatedImageEligible,
   );
   const continuationItems: Array<StoredOpenAIReplayItem> = [];
+  const tools = buildOpenAIChatTools(params.generatedImageEligible);
+  let generatedImageOperationCount = 0;
 
   for (let callIndex = 1; callIndex <= CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS; callIndex += 1) {
     if (shouldStopBeforeNextStep(params)) {
@@ -828,7 +866,7 @@ async function runLoopWithDeps(
           modelId: params.modelId,
           reasoningEffort: params.reasoningEffort,
           extraInput: [],
-          tools: OPENAI_CHAT_TOOLS,
+          tools,
         }),
         callIndex,
       );
@@ -849,7 +887,7 @@ async function runLoopWithDeps(
     // so neither is persisted as an unpaired replay item that the Responses API
     // would reject on a later turn.
     if (modelCall.forceComplete) {
-      continuationItems.push(...dropUnpairedFunctionCalls(modelCall.replayItems));
+      continuationItems.push(...pruneUnpairedToolReplayItems(modelCall.replayItems));
       await onEvent({ type: "done" });
       return {
         openaiItems: continuationItems,
@@ -872,7 +910,15 @@ async function runLoopWithDeps(
     }
 
     let toolStates = modelCall.toolStates;
-    for (const functionCall of modelCall.functionCalls) {
+    for (
+      let functionCallIndex = 0;
+      functionCallIndex < modelCall.functionCalls.length;
+      functionCallIndex += 1
+    ) {
+      const functionCall = modelCall.functionCalls[functionCallIndex];
+      const operationKey = functionCall.name === GENERATED_IMAGE_TOOL_NAME
+        ? createGeneratedImageOperationKey(++generatedImageOperationCount)
+        : "not-generated-image";
       if (shouldStopBeforeNextStep(params)) {
         return createStoppedBeforeNextStepCompletion(continuationItems);
       }
@@ -881,12 +927,25 @@ async function runLoopWithDeps(
       try {
         const output = await dependencies.runOneToolCall({
           item: functionCall,
+          requestId: params.requestId,
+          runId: params.runId,
+          sessionId: params.sessionId,
+          operationKey,
+          generatedImageEligible: params.generatedImageEligible,
           claimToken: params.claimToken,
           userId: params.userId,
           workspaceId: params.workspaceId,
           signal: params.signal ?? null,
+          generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
           rootObservation: params.rootObservation,
         });
+        if (output.stopReason !== null) {
+          return {
+            openaiItems: pruneUnpairedToolReplayItems(continuationItems),
+            terminationReason: output.stopReason === "run_inactive"
+              ? "run_inactive" : "stopped_before_next_step",
+          };
+        }
         const update = applyToolCallOutput(
           toolStates,
           {
@@ -897,7 +956,7 @@ async function runLoopWithDeps(
           },
           output.output,
           Date.now(),
-          output.succeeded && output.isMutating,
+          output.shouldInvalidateMainContent,
         );
         toolStates = update.toolStates;
         if (update.event !== null) {

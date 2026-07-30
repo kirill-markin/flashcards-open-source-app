@@ -48,6 +48,7 @@ test("POST /chat can return an active run before the current turn appears in mes
         runState: "running",
         deduplicated: true,
         shouldInvokeWorker: false,
+        initiatingAuthIsSignedIn: true,
       };
     },
     invokeChatWorkerFn: async () => {
@@ -134,6 +135,7 @@ test("POST /chat dispatches worker without a route-supplied trace carrier", asyn
     runId: string;
     userId: string;
     workspaceId: string;
+    initiatingAuthIsSignedIn: boolean;
     routeRequestId?: string | null;
     chatRequestId?: string | null;
     sessionId?: string | null;
@@ -154,12 +156,14 @@ test("POST /chat dispatches worker without a route-supplied trace carrier", asyn
       clientRequestId,
       timezone,
       uiLocale,
+      initiatingAuthIsSignedIn,
     ) => {
       assert.equal(requestedSessionId, SESSION_ONE);
       assert.equal(content.length, 1);
       assert.equal(clientRequestId, "client-request-dispatch");
       assert.equal(timezone, "Europe/Madrid");
       assert.equal(uiLocale, null);
+      assert.equal(initiatingAuthIsSignedIn, true);
       return {
         sessionId: SESSION_ONE,
         runId: "run-dispatch",
@@ -167,6 +171,7 @@ test("POST /chat dispatches worker without a route-supplied trace carrier", asyn
         runState: "running",
         deduplicated: false,
         shouldInvokeWorker: true,
+        initiatingAuthIsSignedIn: false,
       };
     },
     invokeChatWorkerFn: async (payload) => {
@@ -235,6 +240,7 @@ test("POST /chat dispatches worker without a route-supplied trace carrier", asyn
     routeRequestId: "route-request-dispatch",
     chatRequestId: "client-request-dispatch",
     sessionId: SESSION_ONE,
+    initiatingAuthIsSignedIn: false,
   });
   assert.equal(workerInvocationIncludesTraceContext, false);
   assert.notEqual(liveTraceContext, undefined);
@@ -314,6 +320,7 @@ test("POST /chat without uiLocale preserves the legacy request contract", async 
         runState: "running",
         deduplicated: false,
         shouldInvokeWorker: false,
+        initiatingAuthIsSignedIn: true,
       };
     },
     getRecoveredChatSessionSnapshotFn: async () => createRunningSnapshot([]),

@@ -11,11 +11,19 @@ export type ChatWorkerEvent = Readonly<{
   runId: string;
   userId: string;
   workspaceId: string;
+  initiatingAuthIsSignedIn?: boolean;
   routeRequestId?: string | null;
   chatRequestId?: string | null;
   sessionId?: string | null;
   traceContext?: BackendTraceCarrier | null;
 }>;
+
+export function isGeneratedImageEligibleForWorker(
+  event: ChatWorkerEvent,
+  initiatingAuthIsSignedIn: boolean,
+): boolean {
+  return event.initiatingAuthIsSignedIn === true && initiatingAuthIsSignedIn;
+}
 
 type ChatWorkerExecutionContext = Readonly<{
   lambdaRequestId: string | null;
@@ -100,6 +108,10 @@ export async function handleChatWorkerEvent(
     assistantItemId: claimedRun.assistantItemId,
     localMessages: claimedRun.localMessages,
     turnInput: claimedRun.turnInput,
+    generatedImageEligible: isGeneratedImageEligibleForWorker(
+      event,
+      claimedRun.initiatingAuthIsSignedIn,
+    ),
     diagnostics: claimedRun.diagnostics,
     getRemainingTimeInMillis: executionContext.getRemainingTimeInMillis,
   });

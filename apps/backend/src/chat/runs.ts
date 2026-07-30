@@ -15,9 +15,10 @@ export type {
 
 export {
   assertActiveChatRunClaimWithExecutor,
+  getChatRunClaimStateWithExecutor,
   InactiveChatRunClaimError,
 } from "./runs/claimFence";
-export type { ChatRunClaimFenceParams } from "./runs/claimFence";
+export type { ChatRunClaimFenceParams, ChatRunClaimState } from "./runs/claimFence";
 
 export {
   getChatRunSnapshot,
@@ -33,6 +34,7 @@ export {
   persistClaimedChatRunCancelled,
   persistClaimedChatRunTerminalError,
   prepareChatRun,
+  reconcileInactiveClaimedChatRun,
   requestChatRunCancellation,
   touchClaimedChatRunHeartbeat,
 } from "./runs/lifecycleService";

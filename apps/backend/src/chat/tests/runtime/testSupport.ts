@@ -91,6 +91,7 @@ export function createParams(): StartPersistedChatRunParams {
     assistantItemId: "assistant-item-1",
     localMessages: [],
     turnInput: [{ type: "text", text: "hello" }],
+    generatedImageEligible: false,
     diagnostics: {
       requestId: "chat-request-1",
       userId: "user-1",
@@ -116,6 +117,7 @@ export function createDependencies(overrides: DependencyOverrides): ChatRuntimeD
     completeChatRun: async () => undefined,
     persistAssistantCancelled: async () => undefined,
     persistAssistantTerminalError: async () => undefined,
+    reconcileInactiveChatRun: async () => "ownership_lost",
     touchChatRunHeartbeat: async () => ({
       cancellationRequested: false,
       ownershipLost: false,

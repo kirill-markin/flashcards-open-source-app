@@ -2,7 +2,7 @@ import {
   applyUserDatabaseScopeInExecutor,
   type DatabaseExecutor,
 } from "../database";
-import { unsafeQuery } from "../database/unsafe";
+import { unsafeQuery, unsafeTransactionWithDeadline } from "../database/unsafe";
 
 export type CognitoIdentityMapping = Readonly<{
   providerSubject: string;
@@ -128,4 +128,12 @@ export async function hasCognitoIdentityMappingForUserInExecutor(
   );
 
   return result.rows[0] !== undefined;
+}
+
+export async function hasCognitoIdentityMappingForUser(
+  userId: string, databaseDeadlineAtMs: number,
+): Promise<boolean> {
+  return unsafeTransactionWithDeadline(databaseDeadlineAtMs,
+    async (executor) => hasCognitoIdentityMappingForUserInExecutor(executor, userId),
+  );
 }

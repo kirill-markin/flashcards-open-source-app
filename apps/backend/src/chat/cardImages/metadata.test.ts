@@ -2,18 +2,21 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { deriveGeneratedCardImageOperationMetadata } from "./metadata";
 const runId = "11111111-1111-4111-8111-111111111111";
-const cardId = "22222222-2222-4222-8222-222222222222";
+const operationKey = "generated-image:1";
 test("generated image metadata matches its stable contract vector", () => {
-  const front = deriveGeneratedCardImageOperationMetadata(runId, cardId, "front");
+  const original = deriveGeneratedCardImageOperationMetadata(runId, operationKey);
   const retry = deriveGeneratedCardImageOperationMetadata(
-    runId.toUpperCase(), cardId.toUpperCase(), "front",
+    runId.toUpperCase(), operationKey,
   );
-  assert.equal(front.operationId, "0e6e709f-ca5b-5992-9f23-46917d55e9f9");
-  assert.equal(front.mediaAssetId, "1a7ca68f-9a72-564e-98b2-17f97f6ac54e");
-  assert.deepEqual(retry, front);
+  assert.equal(original.operationId, "b94760f3-5c29-50a8-9d7c-9ac94f7a5926");
+  assert.equal(original.mediaAssetId, "e6ea0d07-3f7d-5d94-9e93-92a90215b232");
+  assert.deepEqual(retry, original);
 });
-test("generated image metadata separates card sides", () => {
-  const back = deriveGeneratedCardImageOperationMetadata(runId, cardId, "back");
-  assert.equal(back.operationId, "39f32f10-3901-55ee-b9b4-e9966cff86e1");
-  assert.equal(back.mediaAssetId, "2c574654-675a-5ade-a6f2-1c32f0f57353");
+test("generated image metadata separates run-scoped image ordinals", () => {
+  const second = deriveGeneratedCardImageOperationMetadata(
+    runId,
+    "generated-image:2",
+  );
+  assert.equal(second.operationId, "a35197b0-e582-5daa-bb8b-954d1c23de7d");
+  assert.equal(second.mediaAssetId, "a3fc2152-e51f-5d1b-829a-40580ffd5ecb");
 });

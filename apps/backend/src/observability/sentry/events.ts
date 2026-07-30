@@ -540,6 +540,7 @@ export type GeneratedCardImageProviderDetails = Readonly<{
   attempt: number;
   maximumAttempts: number;
   retryDelayMs: number | null;
+  durationMs: number;
   requestTimeoutMs: number;
   retrySkippedForBudget: boolean;
   providerStatus: number | null;

@@ -85,6 +85,15 @@ function buildToolCallRulesSection(): string {
   ]);
 }
 
+function buildGeneratedImagePolicySection(): string {
+  return joinLines([
+    "Generated-image policy:",
+    "- Use only for an explicit image request or delegated visual augmentation; inspect the target card with sql first, then announce the selected card and side.",
+    "- Prefer the back unless specified otherwise; create teaching-relevant imagery with focused, private-data-free, moderation-compliant prompts, and never put an answer or answer-revealing image on the front.",
+    "- Treat queued as accepted for durable attachment processing, not as proof that presentation is already visible; for already_queued, failure, ambiguity, or cancellation, never claim a new image or expose fcasset markdown, base64, or storage internals.",
+  ]);
+}
+
 function buildRepairSection(): string {
   return joinLines([
     "If a previous tool call was rejected for invalid arguments, correct the tool call shape and continue without repeating earlier assistant text.",
@@ -113,7 +122,10 @@ function buildDatetimeSection(timezone: string): string {
 /**
  * Builds the canonical system instructions for backend-owned chat turns.
  */
-export function buildSystemInstructions(timezone: string): string {
+export function buildSystemInstructions(
+  timezone: string,
+  generatedImageEligible: boolean,
+): string {
   return buildPromptFromSections([
     buildAssistantRoleSection(),
     buildWorkspaceSection(),
@@ -122,6 +134,7 @@ export function buildSystemInstructions(timezone: string): string {
     buildPlainTextChatFormattingSection(),
     buildWritePolicySection(),
     buildToolCallRulesSection(),
+    generatedImageEligible ? buildGeneratedImagePolicySection() : "",
     buildRepairSection(),
     "Be concise, direct, and operational.",
     buildDatetimeSection(timezone),

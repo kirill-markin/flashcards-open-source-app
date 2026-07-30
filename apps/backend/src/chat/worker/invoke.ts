@@ -17,6 +17,7 @@ export type ChatWorkerDispatch = Readonly<{
   runId: string;
   userId: string;
   workspaceId: string;
+  initiatingAuthIsSignedIn: boolean;
   routeRequestId?: string | null;
   chatRequestId?: string | null;
   sessionId?: string | null;
@@ -26,6 +27,7 @@ export type ChatWorkerInvocation = Readonly<{
   runId: string;
   userId: string;
   workspaceId: string;
+  initiatingAuthIsSignedIn?: boolean;
   routeRequestId?: string | null;
   chatRequestId?: string | null;
   sessionId?: string | null;
@@ -82,6 +84,7 @@ function createChatWorkerInvocation(
     runId: payload.runId,
     userId: payload.userId,
     workspaceId: payload.workspaceId,
+    initiatingAuthIsSignedIn: payload.initiatingAuthIsSignedIn,
     routeRequestId: payload.routeRequestId ?? null,
     chatRequestId: payload.chatRequestId ?? null,
     sessionId: payload.sessionId ?? null,

@@ -24,7 +24,9 @@ import {
   generatedCardImageOutputFormat,
   generatedCardImageQuality,
   generatedCardImageSize,
+  isOpenAIImageGenerationProviderError,
   OpenAIGeneratedCardImageProvider,
+  OpenAIImageGenerationResponseError,
 } from "./openaiAdapter";
 import type {
   OpenAIImageGenerationInput,
@@ -556,6 +558,119 @@ test("provider uses the official SDK request path and keeps provider telemetry c
   );
 });
 
+test("provider preserves unexpected SDK invocation errors unchanged", async () => {
+  const unexpectedError = new Error(
+    "OpenAI image SDK invocation failed before returning a provider request.",
+  );
+  const client = {
+    images: {
+      generate: (): never => {
+        throw unexpectedError;
+      },
+    },
+  } as unknown as OpenAI;
+
+  await assert.rejects(
+    new OpenAIGeneratedCardImageProvider(client).generate(
+      createProviderInput(
+        "Draw an unexpected SDK invocation diagram.",
+        new AbortController().signal,
+        null,
+      ),
+    ),
+    (error: unknown) => error === unexpectedError,
+  );
+});
+
+test("provider preserves base and unselected OpenAI SDK errors unchanged", async () => {
+  class UnselectedBadRequestError extends OpenAI.BadRequestError {}
+
+  const headers = new Headers({ "x-request-id": "req_unselected_sdk_error" });
+  const baseCause = new Error("Unexpected base API error cause.");
+  const subclassCause = new Error("Unexpected SDK subclass cause.");
+  const unexpectedErrors = [
+    Object.assign(
+      new OpenAI.APIError(
+        418,
+        { message: "Unexpected base API error." },
+        "Unexpected base API error.",
+        headers,
+      ),
+      { cause: baseCause },
+    ),
+    Object.assign(
+      new UnselectedBadRequestError(
+        400,
+        { message: "Unexpected SDK subclass error." },
+        "Unexpected SDK subclass error.",
+        headers,
+      ),
+      { cause: subclassCause },
+    ),
+  ] as const;
+
+  for (const unexpectedError of unexpectedErrors) {
+    const client = {
+      images: {
+        generate: (): never => {
+          throw unexpectedError;
+        },
+      },
+    } as unknown as OpenAI;
+
+    const capturedError = await captureThrownError(
+      new OpenAIGeneratedCardImageProvider(client).generate(
+        createProviderInput(
+          "Draw an unexpected SDK error diagram.",
+          new AbortController().signal,
+          null,
+        ),
+      ),
+    );
+    assert.equal(capturedError, unexpectedError);
+    assert.equal(capturedError.cause, unexpectedError.cause);
+  }
+});
+
+test("provider preserves unexpected telemetry failures after a successful request", async () => {
+  const unexpectedError = new Error(
+    "Generated-image provider telemetry update failed.",
+  );
+  const childObservation = {
+    updateOtelSpanAttributes: (): never => {
+      throw unexpectedError;
+    },
+    end: (): void => undefined,
+  };
+  const rootObservation = {
+    startObservation: () => childObservation,
+  } as unknown as LangfuseObservation;
+
+  await withProviderTestServer(
+    (_request, _requestNumber, response) => {
+      writeJsonResponse(response, 200, "req_unexpected_telemetry", {
+        created: 1_721_000_000,
+        data: [{ b64_json: Buffer.from("image").toString("base64") }],
+      });
+    },
+    async (server) => {
+      const { result: error } = await withProviderTelemetryCapture(async () =>
+        captureThrownError(
+          createProvider(server.baseURL).generate(
+            createProviderInput(
+              "Draw an unexpected telemetry diagram.",
+              new AbortController().signal,
+              rootObservation,
+            ),
+          ),
+        ));
+
+      assert.equal(server.requests.length, 1);
+      assert.equal(error, unexpectedError);
+    },
+  );
+});
+
 test("provider requires exactly one non-empty base64 image", async () => {
   const invalidResponses: ReadonlyArray<Readonly<Record<string, unknown>>> = [
     {
@@ -639,7 +754,9 @@ test("provider requires exactly one non-empty base64 image", async () => {
 
       assert.equal(server.requests.length, invalidResponses.length + 1);
       for (const [index, error] of errors.entries()) {
-        assert.equal(error.name, "OpenAIImageGenerationError");
+        assert.ok(error instanceof OpenAIImageGenerationResponseError);
+        assert.equal(error.name, "OpenAIImageGenerationResponseError");
+        assert.equal(isOpenAIImageGenerationProviderError(error), false);
         assert.equal(getErrorField(error, "status"), 200);
         assert.equal(
           getErrorField(error, "requestID"),
@@ -649,6 +766,7 @@ test("provider requires exactly one non-empty base64 image", async () => {
         );
         assert.equal(getErrorField(error, "type"), "invalid_response");
         assert.equal(getErrorField(error, "code"), "invalid_image_response");
+        assert.ok(getErrorField(error, "cause") instanceof Error);
       }
       assert.equal(
         JSON.stringify(capture).includes(malformedJsonBody),
@@ -804,6 +922,7 @@ test("provider does not retry invalid, authentication, permission, conflict, or 
   const failureCases = [
     {
       statusCode: 400,
+      errorConstructor: OpenAI.BadRequestError,
       requestId: "req_invalid_request",
       error: {
         message: "Invalid size.",
@@ -814,6 +933,7 @@ test("provider does not retry invalid, authentication, permission, conflict, or 
     },
     {
       statusCode: 401,
+      errorConstructor: OpenAI.AuthenticationError,
       requestId: "req_authentication",
       error: {
         message: "Invalid API key.",
@@ -824,6 +944,7 @@ test("provider does not retry invalid, authentication, permission, conflict, or 
     },
     {
       statusCode: 403,
+      errorConstructor: OpenAI.PermissionDeniedError,
       requestId: "req_permission",
       error: {
         message: "Model access denied.",
@@ -834,6 +955,7 @@ test("provider does not retry invalid, authentication, permission, conflict, or 
     },
     {
       statusCode: 409,
+      errorConstructor: OpenAI.ConflictError,
       requestId: "req_conflict",
       error: {
         message: "Request conflict.",
@@ -844,6 +966,7 @@ test("provider does not retry invalid, authentication, permission, conflict, or 
     },
     {
       statusCode: 400,
+      errorConstructor: OpenAI.BadRequestError,
       requestId: "req_moderation",
       error: {
         message: "Image generation blocked.",
@@ -902,6 +1025,9 @@ test("provider does not retry invalid, authentication, permission, conflict, or 
         assert.equal(getErrorField(error, "type"), failureCase.error.type);
         assert.equal(getErrorField(error, "code"), failureCase.error.code);
         assert.equal(getErrorField(error, "param"), failureCase.error.param);
+        const providerCause = getErrorField(error, "cause");
+        assert.ok(providerCause instanceof Error);
+        assert.equal(providerCause.constructor, failureCase.errorConstructor);
 
         const warningRecord = parseJsonObject(capture.cloudWatchWarnings[index] ?? "");
         assert.equal(warningRecord.action, "generated_card_image_provider_failed");

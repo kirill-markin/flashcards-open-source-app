@@ -186,6 +186,7 @@ function createProviderDetails(
   attempt: number,
   retryDelay: number | null,
   metadata: OpenAIImageFailureMetadata,
+  durationMs: number,
   requestTimeoutMs: number,
   retrySkippedForBudget: boolean,
 ): GeneratedCardImageProviderDetails {
@@ -198,6 +199,7 @@ function createProviderDetails(
     attempt,
     maximumAttempts: generatedCardImageMaximumProviderAttempts,
     retryDelayMs: retryDelay,
+    durationMs,
     requestTimeoutMs,
     retrySkippedForBudget,
     providerStatus: metadata.status,
@@ -215,6 +217,7 @@ function createSuccessProviderDetails(
   imagePrompt: string,
   attempt: number,
   providerRequestId: string | null,
+  durationMs: number,
   requestTimeoutMs: number,
 ): GeneratedCardImageProviderDetails {
   return {
@@ -226,6 +229,7 @@ function createSuccessProviderDetails(
     attempt,
     maximumAttempts: generatedCardImageMaximumProviderAttempts,
     retryDelayMs: null,
+    durationMs,
     requestTimeoutMs,
     retrySkippedForBudget: false,
     providerStatus: 200,
@@ -280,7 +284,41 @@ function providerFailureHint(metadata: OpenAIImageFailureMetadata): string {
   return "Review the safe provider fields and correct the image request before retrying.";
 }
 
-function createMappedProviderError(error: unknown, metadata: OpenAIImageFailureMetadata): Error {
+const mappedOpenAIImageError = Symbol("mappedOpenAIImageError");
+type MappedOpenAIImageError = Error & Readonly<{
+  [mappedOpenAIImageError]: true;
+  status: number | null;
+  code: string | null;
+}>;
+
+export function isOpenAIImageGenerationProviderError(error: unknown): error is MappedOpenAIImageError {
+  return error instanceof Error
+    && mappedOpenAIImageError in error
+    && error[mappedOpenAIImageError] === true;
+}
+
+function isExpectedOpenAIImageGenerationFailure(error: unknown): boolean {
+  if (isOpenAIImageGenerationProviderError(error)) {
+    return true;
+  }
+  if (error instanceof OpenAI.APIError === false) {
+    return false;
+  }
+  return [
+    OpenAI.APIConnectionError,
+    OpenAI.APIConnectionTimeoutError,
+    OpenAI.BadRequestError,
+    OpenAI.AuthenticationError,
+    OpenAI.PermissionDeniedError,
+    OpenAI.NotFoundError,
+    OpenAI.ConflictError,
+    OpenAI.UnprocessableEntityError,
+    OpenAI.RateLimitError,
+    OpenAI.InternalServerError,
+  ].some((expectedConstructor) => error.constructor === expectedConstructor);
+}
+
+function createMappedProviderError(error: unknown, metadata: OpenAIImageFailureMetadata): MappedOpenAIImageError {
   return Object.assign(
     new Error(
       [
@@ -291,6 +329,7 @@ function createMappedProviderError(error: unknown, metadata: OpenAIImageFailureM
       { cause: error },
     ),
     {
+      [mappedOpenAIImageError]: true as const,
       name: "OpenAIImageGenerationError",
       status: metadata.status,
       requestID: metadata.requestId,
@@ -303,21 +342,36 @@ function createMappedProviderError(error: unknown, metadata: OpenAIImageFailureM
   );
 }
 
+export class OpenAIImageGenerationResponseError extends Error {
+  readonly status: number;
+  readonly requestID: string | null;
+  readonly type = "invalid_response";
+  readonly code = "invalid_image_response";
+
+  constructor(
+    message: string,
+    providerStatus: number,
+    providerRequestId: string | null,
+    cause: unknown,
+  ) {
+    super(message, { cause });
+    this.name = "OpenAIImageGenerationResponseError";
+    this.status = providerStatus;
+    this.requestID = providerRequestId;
+  }
+}
+
 function createInvalidProviderResponseError(
   message: string,
   providerStatus: number,
   providerRequestId: string | null,
   cause: unknown,
-): Error {
-  return Object.assign(
-    new Error(message, { cause }),
-    {
-      name: "OpenAIImageGenerationResponseError",
-      status: providerStatus,
-      requestID: providerRequestId,
-      type: "invalid_response",
-      code: "invalid_image_response",
-    },
+): OpenAIImageGenerationResponseError {
+  return new OpenAIImageGenerationResponseError(
+    message,
+    providerStatus,
+    providerRequestId,
+    cause,
   );
 }
 
@@ -469,10 +523,10 @@ export class OpenAIGeneratedCardImageProvider {
       },
     ) ?? null;
     let providerResultRecorded = false;
-
     try {
       for (let attempt = 1; attempt <= generatedCardImageMaximumProviderAttempts; attempt += 1) {
         input.signal.throwIfAborted();
+        const attemptStartedAt = Date.now();
         const requestTimeoutMs = providerRequestTimeoutMs(input.operationDeadlineMs);
         const providerDeadline = createProviderDeadlineController(requestTimeoutMs);
         const requestSignal = AbortSignal.any([
@@ -517,6 +571,7 @@ export class OpenAIGeneratedCardImageProvider {
             input.imagePrompt,
             attempt,
             providerRequestId,
+            Date.now() - attemptStartedAt,
             requestTimeoutMs,
           );
           addBackendBreadcrumb({
@@ -525,10 +580,7 @@ export class OpenAIGeneratedCardImageProvider {
             details,
           });
           providerObservation?.updateOtelSpanAttributes({
-            output: {
-              result: "success",
-            },
-            metadata: details,
+            output: { result: "success" }, metadata: details,
           });
           providerResultRecorded = true;
           return {
@@ -547,6 +599,7 @@ export class OpenAIGeneratedCardImageProvider {
               attempt,
               null,
               metadata,
+              Date.now() - attemptStartedAt,
               requestTimeoutMs,
               false,
             );
@@ -563,6 +616,9 @@ export class OpenAIGeneratedCardImageProvider {
             providerResultRecorded = true;
             throw new GeneratedCardImageDeadlineExceededError(error);
           }
+          if (isExpectedOpenAIImageGenerationFailure(error) === false) {
+            throw error;
+          }
 
           if (
             attempt < generatedCardImageMaximumProviderAttempts
@@ -575,6 +631,7 @@ export class OpenAIGeneratedCardImageProvider {
                 attempt,
                 delayMs,
                 metadata,
+                Date.now() - attemptStartedAt,
                 requestTimeoutMs,
                 false,
               );
@@ -596,6 +653,7 @@ export class OpenAIGeneratedCardImageProvider {
               attempt,
               delayMs,
               metadata,
+              Date.now() - attemptStartedAt,
               requestTimeoutMs,
               true,
             );
@@ -618,6 +676,7 @@ export class OpenAIGeneratedCardImageProvider {
             attempt,
             null,
             metadata,
+            Date.now() - attemptStartedAt,
             requestTimeoutMs,
             false,
           );
@@ -628,10 +687,7 @@ export class OpenAIGeneratedCardImageProvider {
             details,
           });
           providerObservation?.updateOtelSpanAttributes({
-            output: {
-              result: "error",
-            },
-            metadata: details,
+            output: { result: "error" }, metadata: details,
           });
           providerResultRecorded = true;
           throw createMappedProviderError(error, metadata);

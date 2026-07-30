@@ -1,5 +1,6 @@
 import type OpenAI from "openai";
 import type { LangfuseObservation } from "@langfuse/tracing";
+import { createBackendObservationScope } from "../../../observability/sentry";
 import {
   executeChatToolCall,
   type ExecutedChatToolCall,
@@ -16,6 +17,8 @@ type ToolTelemetryMetadata = Readonly<{
   ok: boolean | null;
   errorClass: string | null;
   errorMessage: string | null;
+  generatedImageAttempt: number | null;
+  generatedImageStatus: string | null;
 }>;
 
 function getToolArgumentLength(argumentsJson: string): number {
@@ -52,8 +55,10 @@ function buildToolTelemetryMetadata(
     ok: boolean | null;
     errorClass: string | null;
     errorMessage: string | null;
+    result: ExecutedChatToolCall | null;
   }>,
 ): ToolTelemetryMetadata {
+  const generatedImage = params.result?.generatedImageTelemetry ?? null;
   return {
     toolName: params.toolName,
     toolCallId: params.toolCallId,
@@ -64,6 +69,8 @@ function buildToolTelemetryMetadata(
     ok: params.ok,
     errorClass: params.errorClass,
     errorMessage: params.errorMessage,
+    generatedImageAttempt: generatedImage?.attempt ?? null,
+    generatedImageStatus: generatedImage?.status ?? null,
   };
 }
 
@@ -73,10 +80,16 @@ function buildToolTelemetryMetadata(
 export async function runOneToolCall(
   params: Readonly<{
     item: OpenAI.Responses.ResponseFunctionToolCall;
+    requestId: string;
+    runId: string;
+    sessionId: string;
+    operationKey: string;
+    generatedImageEligible: boolean;
     claimToken: ChatRunClaimToken;
     userId: string;
     workspaceId: string;
     signal: AbortSignal | null;
+    generatedImageOperationDeadlineMs: number;
     rootObservation: LangfuseObservation | null;
   }>,
 ): Promise<ExecutedChatToolCall> {
@@ -96,6 +109,7 @@ export async function runOneToolCall(
         ok: null,
         errorClass: null,
         errorMessage: null,
+        result: null,
       }),
     },
     {
@@ -110,10 +124,22 @@ export async function runOneToolCall(
       params.item.name,
       params.item.arguments,
       {
+        runId: params.runId,
+        sessionId: params.sessionId,
+        operationKey: params.operationKey,
+        generatedImageEligible: params.generatedImageEligible,
         userId: params.userId,
         workspaceId: params.workspaceId,
         claimToken: params.claimToken,
         signal: params.signal,
+        generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
+        generatedImageObservationContext: {
+          scope: createBackendObservationScope(
+            "chat-worker", null, null, null, params.userId, params.workspaceId,
+            params.requestId, params.runId, params.sessionId, null, null,
+          ),
+          rootObservation: params.rootObservation,
+        },
       },
     );
 
@@ -131,6 +157,7 @@ export async function runOneToolCall(
         ok: true,
         errorClass: null,
         errorMessage: null,
+        result,
       }),
     });
     toolObservation?.end();
@@ -149,6 +176,7 @@ export async function runOneToolCall(
         ok: false,
         errorClass: getErrorClass(error),
         errorMessage: getSafeErrorMessage(error),
+        result: null,
       }),
     });
     toolObservation?.end();

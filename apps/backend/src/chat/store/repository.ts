@@ -52,6 +52,17 @@ export type ChatItemPayload = Readonly<{
   openaiItems?: ReadonlyArray<StoredOpenAIReplayItem>;
   /** Internal durable state; normal chat-item mappers intentionally omit it. */
   generatedCardImageAttemptCount?: 0 | 1 | 2 | 3;
+  /** Internal durable state; normal chat-item mappers intentionally omit it. */
+  generatedCardImageOperations?: ReadonlyArray<Readonly<{
+    operationKey: string;
+    attempt: 1 | 2 | 3;
+    payload: Readonly<{
+      cardId: string;
+      targetSide: "front" | "back";
+      imagePrompt: string;
+      altText: string;
+    }> | null;
+  }>>;
 }>;
 
 export type ChatItemRow = Readonly<{
@@ -245,15 +256,25 @@ const INSERT_CHAT_ITEM_SQL = `
 const UPDATE_CHAT_ITEM_SQL = `
   WITH updated_item AS (
     UPDATE ai.chat_items
-    SET payload = CASE
-          WHEN payload ? 'generatedCardImageAttemptCount'
-          THEN jsonb_set(
-            $2::jsonb,
-            '{generatedCardImageAttemptCount}',
-            payload->'generatedCardImageAttemptCount',
-            true
+    SET payload = (
+          $2::jsonb - ARRAY[
+            'generatedCardImageAttemptCount',
+            'generatedCardImageOperations'
+          ]::text[]
+        ) || jsonb_strip_nulls(jsonb_build_object(
+          'generatedCardImageAttemptCount',
+          CASE
+            WHEN payload ? 'generatedCardImageAttemptCount'
+            THEN payload->'generatedCardImageAttemptCount'
+            ELSE NULL
+          END
+        )) || CASE
+          WHEN payload ? 'generatedCardImageOperations'
+          THEN jsonb_build_object(
+            'generatedCardImageOperations',
+            payload->'generatedCardImageOperations'
           )
-          ELSE $2::jsonb
+          ELSE '{}'::jsonb
         END,
         state = $3,
         updated_at = now()
@@ -365,15 +386,25 @@ const UPDATE_CHAT_SESSION_ACTIVE_COMPOSER_SUGGESTION_GENERATION_SQL = `
 const UPDATE_CHAT_ITEM_AND_INVALIDATE_MAIN_CONTENT_SQL = `
   WITH updated_item AS (
     UPDATE ai.chat_items
-    SET payload = CASE
-          WHEN payload ? 'generatedCardImageAttemptCount'
-          THEN jsonb_set(
-            $2::jsonb,
-            '{generatedCardImageAttemptCount}',
-            payload->'generatedCardImageAttemptCount',
-            true
+    SET payload = (
+          $2::jsonb - ARRAY[
+            'generatedCardImageAttemptCount',
+            'generatedCardImageOperations'
+          ]::text[]
+        ) || jsonb_strip_nulls(jsonb_build_object(
+          'generatedCardImageAttemptCount',
+          CASE
+            WHEN payload ? 'generatedCardImageAttemptCount'
+            THEN payload->'generatedCardImageAttemptCount'
+            ELSE NULL
+          END
+        )) || CASE
+          WHEN payload ? 'generatedCardImageOperations'
+          THEN jsonb_build_object(
+            'generatedCardImageOperations',
+            payload->'generatedCardImageOperations'
           )
-          ELSE $2::jsonb
+          ELSE '{}'::jsonb
         END,
         state = $3,
         updated_at = now()

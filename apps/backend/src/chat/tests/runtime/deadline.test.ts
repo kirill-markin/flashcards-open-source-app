@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { DatabaseDeadlineExceededError } from "../../../database";
 import {
   runPersistedChatSessionWithDeps,
 } from "../../runtime";
+import {
+  CHAT_WORKER_INACTIVE_RECONCILIATION_MAXIMUM_MS,
+  CHAT_WORKER_TERMINAL_PERSISTENCE_RESERVE_MS,
+} from "../../runtime/control";
 import type {
   OpenAILoopCompletion,
   OpenAILoopEventSink,
@@ -110,6 +115,142 @@ test("runPersistedChatSessionWithDeps re-checks the deadline after task protecti
   });
   assert.equal(findLog(logs, "chat_worker_abort_requested")?.abortReason, "deadline_reached");
   assert.equal(findLog(logs, "chat_worker_provider_call_started"), undefined);
+});
+
+test("run-inactive reconciliation gets a fresh bounded deadline after the image deadline expires", async () => {
+  for (const inactiveOutcome of ["user_cancelled", "ownership_lost"] as const) {
+    const remainingRuntimeValues = [
+      CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS + 60_000,
+      CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS,
+      CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS - 1,
+    ];
+    let remainingRuntimeIndex = 0;
+    let imageOperationDeadlineMs = 0;
+    let reconciliationDeadlineMs = 0;
+    let reconciliationStartedAtMs = 0;
+    let cancelledPersistCount = 0;
+    let terminalPersistCount = 0;
+
+    const result = await runPersistedChatSessionWithDeps(
+      {
+        ...createParams(),
+        getRemainingTimeInMillis: (): number => {
+          const value = remainingRuntimeValues[remainingRuntimeIndex]
+            ?? remainingRuntimeValues.at(-1)
+            ?? 0;
+          remainingRuntimeIndex += 1;
+          return value;
+        },
+      },
+      createDependencies({
+        startOpenAILoop: async (
+          params: StartOpenAILoopParams,
+        ): Promise<OpenAILoopCompletion> => {
+          imageOperationDeadlineMs = params.generatedImageOperationDeadlineMs;
+          return { openaiItems: [], terminationReason: "run_inactive" };
+        },
+        reconcileInactiveChatRun: async (_userId, _workspaceId, params) => {
+          reconciliationStartedAtMs = Date.now();
+          reconciliationDeadlineMs = params.databaseDeadlineAtMs;
+          return inactiveOutcome;
+        },
+        persistAssistantCancelled: async () => {
+          cancelledPersistCount += 1;
+        },
+        persistAssistantTerminalError: async () => {
+          terminalPersistCount += 1;
+        },
+      }),
+    );
+
+    assert.ok(imageOperationDeadlineMs <= reconciliationStartedAtMs);
+    assert.ok(reconciliationDeadlineMs > reconciliationStartedAtMs);
+    assert.ok(
+      reconciliationDeadlineMs - reconciliationStartedAtMs
+      <= CHAT_WORKER_INACTIVE_RECONCILIATION_MAXIMUM_MS,
+    );
+    assert.deepEqual(
+      result,
+      inactiveOutcome === "user_cancelled"
+        ? {
+          outcome: "cancelled",
+          abortReason: "user_cancelled",
+          runStatus: "cancelled",
+          sessionState: "idle",
+        }
+        : {
+          outcome: "ownership_lost",
+          abortReason: "ownership_lost",
+          runStatus: null,
+          sessionState: null,
+        },
+    );
+    assert.equal(
+      cancelledPersistCount,
+      inactiveOutcome === "user_cancelled" ? 1 : 0,
+    );
+    assert.equal(terminalPersistCount, 0);
+  }
+});
+
+test("run-inactive reconciliation keeps insufficient remaining runtime explicit", async () => {
+  const remainingRuntimeValues = [
+    CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS + 60_000,
+    CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS,
+    CHAT_WORKER_TERMINAL_PERSISTENCE_RESERVE_MS,
+  ];
+  let remainingRuntimeIndex = 0;
+  let reconciliationDeadlineMs = 0;
+  let reconciliationCallCount = 0;
+  let terminalPersistCount = 0;
+
+  const logs = await withCapturedLogs(async () => {
+    const result = await runPersistedChatSessionWithDeps(
+      {
+        ...createParams(),
+        getRemainingTimeInMillis: (): number => {
+          const value = remainingRuntimeValues[remainingRuntimeIndex]
+            ?? remainingRuntimeValues.at(-1)
+            ?? 0;
+          remainingRuntimeIndex += 1;
+          return value;
+        },
+      },
+      createDependencies({
+        startOpenAILoop: async (): Promise<OpenAILoopCompletion> => ({
+          openaiItems: [],
+          terminationReason: "run_inactive",
+        }),
+        reconcileInactiveChatRun: async (_userId, _workspaceId, params) => {
+          reconciliationCallCount += 1;
+          reconciliationDeadlineMs = params.databaseDeadlineAtMs;
+          throw new DatabaseDeadlineExceededError(
+            "pool_checkout",
+            params.databaseDeadlineAtMs,
+            null,
+          );
+        },
+        persistAssistantTerminalError: async () => {
+          terminalPersistCount += 1;
+        },
+      }),
+    );
+
+    assert.deepEqual(result, {
+      outcome: "failed",
+      abortReason: null,
+      runStatus: "failed",
+      sessionState: "idle",
+    });
+  });
+
+  assert.equal(reconciliationCallCount, 1);
+  assert.ok(reconciliationDeadlineMs <= Date.now());
+  assert.equal(terminalPersistCount, 1);
+  assert.equal(
+    findLog(logs, "chat_worker_terminal_state_persisted")?.errorClass,
+    "DatabaseDeadlineExceededError",
+  );
 });
 
 test("runPersistedChatSessionWithDeps interrupts gracefully on the soft deadline and finalizes partial assistant state", async () => {

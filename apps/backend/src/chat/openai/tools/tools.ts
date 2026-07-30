@@ -3,8 +3,17 @@
  * The runtime always routes provider tool calls through this module so SQL validation and output envelopes stay consistent.
  */
 import type OpenAI from "openai";
+import { hasCognitoIdentityMappingForUser } from "../../../auth/userIdentities";
+import {
+  DatabaseCommitOutcomeUnknownError,
+  TransientDatabaseHttpError,
+} from "../../../database/transient";
+import { GeneratedMediaPromotionStorageTransientError } from "../../../mediaAssets/storage";
 import { HttpError } from "../../../shared/errors";
-import { ensureAIChatSyncReplica } from "../../../sync/identity/aiChatIdentity";
+import {
+  ensureAIChatSyncReplica,
+  ensureAIChatSyncReplicaWithDeadline,
+} from "../../../sync/identity/aiChatIdentity";
 import { executeAgentSql } from "../../../aiTools/agentSql";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
@@ -17,25 +26,81 @@ import {
   SQL_TOOL_ARGUMENT_VALIDATOR,
   SQL_TOOL_NAME,
 } from "../../../aiTools/toolContract/sqlToolContract";
-import type { ChatRunClaimToken } from "../../runs";
+import { generateCardImage, type GeneratedCardImageObservationContext } from "../../cardImages";
+import { isOpenAIImageGenerationProviderError } from "../../cardImages/openaiAdapter";
+import {
+  GeneratedCardImageDeadlineExceededError,
+  GeneratedCardImageProviderOutcomeUnknownError,
+  GeneratedCardImageStagingOutcomeUnknownError,
+} from "../../cardImages/providerTypes";
+import { InactiveChatRunClaimError, type ChatRunClaimToken } from "../../runs";
+import {
+  bindGeneratedCardImageAttemptPayload,
+  maximumGeneratedCardImageAttemptsPerRun,
+  reserveGeneratedCardImageAttempt,
+  type BindGeneratedCardImageAttemptPayloadParams,
+  type GeneratedCardImageAttemptReservation,
+  type GeneratedCardImageAttemptReservationParams,
+  type GeneratedCardImageImmutablePayload,
+} from "./generatedImageAttemptBudget";
+import {
+  GENERATED_IMAGE_TOOL_ARGUMENT_VALIDATOR,
+  GENERATED_IMAGE_TOOL_NAME,
+  OPENAI_GENERATED_IMAGE_TOOL,
+} from "./generatedImageToolContract";
 
 export type OpenAIToolContext = Readonly<{
+  runId: string;
+  sessionId: string;
   userId: string;
   workspaceId: string;
   claimToken: ChatRunClaimToken;
+  operationKey: string;
+  generatedImageEligible: boolean;
   signal: AbortSignal | null;
+  generatedImageOperationDeadlineMs: number;
+  generatedImageObservationContext: GeneratedCardImageObservationContext;
+}>;
+
+export type GeneratedImageToolTelemetry = Readonly<{
+  attempt: number | null;
+  status: string;
 }>;
 
 export type ExecutedChatToolCall = Readonly<{
   output: string;
   isMutating: boolean;
   succeeded: boolean;
+  shouldInvalidateMainContent: boolean;
+  stopReason: "deadline_reached" | "run_inactive" | null;
+  generatedImageTelemetry: GeneratedImageToolTelemetry | null;
 }>;
 
-type OpenAIToolDependencies = Readonly<{
+export type OpenAIToolDependencies = Readonly<{
   executeAgentSql: typeof executeAgentSql;
   createToolDependencies: (context: OpenAIToolContext) => AgentToolOperationDependencies;
+  reserveGeneratedCardImageAttempt: (
+    params: GeneratedCardImageAttemptReservationParams,
+  ) => Promise<GeneratedCardImageAttemptReservation>;
+  bindGeneratedCardImageAttemptPayload: (
+    params: BindGeneratedCardImageAttemptPayloadParams,
+  ) => Promise<GeneratedCardImageImmutablePayload>;
+  hasCognitoIdentityMappingForUser: typeof hasCognitoIdentityMappingForUser;
+  ensureAIChatSyncReplicaWithDeadline: typeof ensureAIChatSyncReplicaWithDeadline;
+  generateCardImage: typeof generateCardImage;
 }>;
+
+type GeneratedImageToolSafeErrorCode = "MEDIA_ASSET_STORAGE_UNAVAILABLE";
+
+function getGeneratedImageToolSafeErrorCode(
+  error: unknown,
+): GeneratedImageToolSafeErrorCode | null {
+  return error instanceof GeneratedMediaPromotionStorageTransientError
+    && error.constructor === GeneratedMediaPromotionStorageTransientError
+    && error.code === "S3_TRANSIENT"
+    ? "MEDIA_ASSET_STORAGE_UNAVAILABLE"
+    : null;
+}
 
 type ToolErrorPayload = Readonly<{
   error: Readonly<{
@@ -59,7 +124,12 @@ function createToolDependencies(context: OpenAIToolContext): AgentToolOperationD
   return {
     ...DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
     ensureAgentSyncReplica: async (workspaceId: string, userId: string): Promise<string> =>
-      ensureAIChatSyncReplica(workspaceId, userId, "web", context.signal),
+      ensureAIChatSyncReplica(
+        workspaceId,
+        userId,
+        "web",
+        context.signal,
+      ),
   };
 }
 
@@ -169,7 +239,278 @@ export const OPENAI_CHAT_TOOLS: ReadonlyArray<OpenAI.Responses.FunctionTool> = [
 const DEFAULT_OPENAI_TOOL_DEPENDENCIES: OpenAIToolDependencies = {
   executeAgentSql,
   createToolDependencies,
+  reserveGeneratedCardImageAttempt,
+  bindGeneratedCardImageAttemptPayload,
+  hasCognitoIdentityMappingForUser,
+  ensureAIChatSyncReplicaWithDeadline,
+  generateCardImage,
 };
+
+export function buildOpenAIChatTools(
+  generatedImageEligible: boolean,
+): ReadonlyArray<OpenAI.Responses.FunctionTool> {
+  return generatedImageEligible
+    ? [OPENAI_SQL_TOOL, OPENAI_GENERATED_IMAGE_TOOL]
+    : OPENAI_CHAT_TOOLS;
+}
+
+type GeneratedImageExecutionState =
+  Omit<ExecutedChatToolCall, "output" | "generatedImageTelemetry"> & Readonly<{
+    attempt: number | null;
+    status: string;
+  }>;
+
+function createGeneratedImageResult(
+  payload: Readonly<Record<string, unknown>>,
+  execution: GeneratedImageExecutionState,
+): ExecutedChatToolCall {
+  const { attempt, status, ...executionResult } = execution;
+  return {
+    output: JSON.stringify({ tool: GENERATED_IMAGE_TOOL_NAME, ...payload }),
+    ...executionResult,
+    generatedImageTelemetry: { attempt, status },
+  };
+}
+
+function createGeneratedImageErrorResult(
+  code: string,
+  retryable: boolean,
+  attempt: number | null,
+  shouldInvalidateMainContent: boolean,
+  stopReason: ExecutedChatToolCall["stopReason"],
+): ExecutedChatToolCall {
+  return createGeneratedImageResult(
+    { ok: false, code, retryable, ...(attempt === null ? {} : { attempt }) },
+    {
+      attempt,
+      status: code,
+      succeeded: false,
+      isMutating: false,
+      shouldInvalidateMainContent,
+      stopReason,
+    },
+  );
+}
+
+type GeneratedImageOperationSignals = Readonly<{
+  operation: AbortSignal;
+  deadline: AbortSignal;
+}>;
+
+function createOperationSignals(
+  runSignal: AbortSignal | null,
+  operationDeadlineMs: number,
+): GeneratedImageOperationSignals {
+  const remainingMs = operationDeadlineMs - Date.now();
+  const deadlineSignal = remainingMs <= 0
+    ? AbortSignal.abort(new GeneratedCardImageDeadlineExceededError(null))
+    : AbortSignal.timeout(remainingMs);
+  return {
+    operation: runSignal === null
+      ? deadlineSignal
+      : AbortSignal.any([runSignal, deadlineSignal]),
+    deadline: deadlineSignal,
+  };
+}
+
+async function executeGeneratedImageToolCall(
+  rawArguments: string,
+  context: OpenAIToolContext,
+  dependencies: OpenAIToolDependencies,
+): Promise<ExecutedChatToolCall> {
+  context.signal?.throwIfAborted();
+  if (context.generatedImageEligible === false) {
+    return createGeneratedImageErrorResult(
+      "sign_in_required",
+      false,
+      null,
+      false,
+      null,
+    );
+  }
+  const operationSignals = createOperationSignals(
+    context.signal,
+    context.generatedImageOperationDeadlineMs,
+  );
+  const operationSignal = operationSignals.operation;
+  let attempt: number | null = null;
+  try {
+    operationSignal.throwIfAborted();
+    const reservation = await dependencies.reserveGeneratedCardImageAttempt({
+      userId: context.userId,
+      workspaceId: context.workspaceId,
+      runId: context.runId,
+      sessionId: context.sessionId,
+      claimToken: context.claimToken,
+      operationKey: context.operationKey,
+      databaseDeadlineAtMs: context.generatedImageOperationDeadlineMs,
+    });
+    operationSignal.throwIfAborted();
+    if (reservation.status === "run_inactive") {
+      return createGeneratedImageErrorResult("run_inactive", false, null, false, "run_inactive");
+    }
+    if (reservation.status === "limit_reached") {
+      return createGeneratedImageErrorResult("limit_reached", false, null, false, null);
+    }
+    attempt = reservation.attempt;
+
+    let immutablePayload = reservation.payload;
+    if (immutablePayload === null) {
+      let rawArgumentsValue: unknown;
+      try {
+        rawArgumentsValue = JSON.parse(rawArguments);
+      } catch {
+        return createGeneratedImageErrorResult(
+          "invalid_arguments",
+          reservation.attempt < maximumGeneratedCardImageAttemptsPerRun,
+          reservation.attempt,
+          false,
+          null,
+        );
+      }
+      const parsed = GENERATED_IMAGE_TOOL_ARGUMENT_VALIDATOR.safeParse(rawArgumentsValue);
+      if (parsed.success === false) {
+        return createGeneratedImageErrorResult(
+          "invalid_arguments",
+          reservation.attempt < maximumGeneratedCardImageAttemptsPerRun,
+          reservation.attempt,
+          false,
+          null,
+        );
+      }
+      immutablePayload = await dependencies.bindGeneratedCardImageAttemptPayload({
+        userId: context.userId,
+        workspaceId: context.workspaceId,
+        runId: context.runId,
+        sessionId: context.sessionId,
+        claimToken: context.claimToken,
+        operationKey: context.operationKey,
+        attempt: reservation.attempt,
+        payload: parsed.data,
+        databaseDeadlineAtMs: context.generatedImageOperationDeadlineMs,
+      });
+      operationSignal.throwIfAborted();
+    }
+
+    const signedIn = await dependencies.hasCognitoIdentityMappingForUser(
+      context.userId, context.generatedImageOperationDeadlineMs,
+    );
+    operationSignal.throwIfAborted();
+    if (signedIn === false) {
+      return createGeneratedImageErrorResult(
+        "sign_in_required",
+        false,
+        reservation.attempt,
+        false,
+        null,
+      );
+    }
+
+    const replicaId = await dependencies.ensureAIChatSyncReplicaWithDeadline(
+      context.workspaceId,
+      context.userId,
+      "web",
+      operationSignal,
+      context.generatedImageOperationDeadlineMs,
+    );
+    operationSignal.throwIfAborted();
+    const result = await dependencies.generateCardImage({
+      runId: context.runId,
+      sessionId: context.sessionId,
+      claimToken: context.claimToken,
+      operationKey: context.operationKey,
+      userId: context.userId,
+      workspaceId: context.workspaceId,
+      cardId: immutablePayload.cardId,
+      targetSide: immutablePayload.targetSide,
+      imagePrompt: immutablePayload.imagePrompt,
+      altText: immutablePayload.altText,
+      replicaId,
+      observationContext: context.generatedImageObservationContext,
+      signal: operationSignal,
+      operationDeadlineMs: context.generatedImageOperationDeadlineMs,
+    });
+    const mutated = result.status === "queued";
+    return createGeneratedImageResult(
+      {
+        ok: true,
+        status: result.status,
+        retryable: false,
+        attempt: reservation.attempt,
+        cardId: result.cardId,
+        targetSide: result.targetSide,
+        mediaAssetId: result.mediaAssetId,
+      },
+      {
+        attempt: reservation.attempt,
+        status: result.status,
+        succeeded: true,
+        isMutating: mutated,
+        shouldInvalidateMainContent: mutated,
+        stopReason: null,
+      },
+    );
+  } catch (error) {
+    if (
+      error instanceof DatabaseCommitOutcomeUnknownError
+      || error instanceof InactiveChatRunClaimError
+      || error instanceof GeneratedCardImageProviderOutcomeUnknownError
+      || error instanceof GeneratedCardImageStagingOutcomeUnknownError
+    ) {
+      throw error;
+    }
+    context.signal?.throwIfAborted();
+    if (error instanceof TransientDatabaseHttpError) {
+      throw error;
+    }
+    if (
+      operationSignals.deadline.aborted
+      && error === operationSignals.deadline.reason
+    ) {
+      return createGeneratedImageErrorResult(
+        "deadline_reached",
+        false,
+        attempt,
+        false,
+        "deadline_reached",
+      );
+    }
+    const safeErrorCode = getGeneratedImageToolSafeErrorCode(error);
+    if (safeErrorCode !== null) {
+      const retryable = attempt !== null
+        && attempt < maximumGeneratedCardImageAttemptsPerRun;
+      return createGeneratedImageErrorResult(
+        safeErrorCode,
+        retryable,
+        attempt,
+        false,
+        null,
+      );
+    }
+    if (isOpenAIImageGenerationProviderError(error)) {
+      const providerStatus = error.status;
+      const code = error.code === "moderation_blocked"
+        ? "moderation_blocked"
+        : providerStatus === 401 || providerStatus === 403
+          ? "provider_permission_denied"
+          : providerStatus === 429
+            || (providerStatus !== null && providerStatus >= 500 && providerStatus <= 599)
+            ? "provider_unavailable"
+            : "provider_failed";
+      const retryable = code === "provider_unavailable"
+        && attempt !== null
+        && attempt < maximumGeneratedCardImageAttemptsPerRun;
+      return createGeneratedImageErrorResult(
+        code,
+        retryable,
+        attempt,
+        false,
+        null,
+      );
+    }
+    throw error;
+  }
+}
 
 /**
  * Executes one provider tool call with injectable dependencies for tests and loop orchestration.
@@ -180,6 +521,9 @@ export async function executeChatToolCallWithDependencies(
   context: OpenAIToolContext,
   dependencies: OpenAIToolDependencies,
 ): Promise<ExecutedChatToolCall> {
+  if (toolName === GENERATED_IMAGE_TOOL_NAME) {
+    return executeGeneratedImageToolCall(rawArguments, context, dependencies);
+  }
   if (toolName !== SQL_TOOL_NAME) {
     throw new Error(`Unsupported OpenAI tool call: ${toolName}`);
   }
@@ -208,6 +552,9 @@ export async function executeChatToolCallWithDependencies(
       }),
       isMutating,
       succeeded: true,
+      shouldInvalidateMainContent: isMutating,
+      stopReason: null,
+      generatedImageTelemetry: null,
     };
   } catch (error) {
     const payload: ToolErrorPayload = error instanceof HttpError
@@ -226,6 +573,9 @@ export async function executeChatToolCallWithDependencies(
       output: createToolErrorResult(payload),
       isMutating,
       succeeded: false,
+      shouldInvalidateMainContent: false,
+      stopReason: null,
+      generatedImageTelemetry: null,
     };
   }
 }

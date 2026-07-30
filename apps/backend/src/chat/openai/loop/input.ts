@@ -263,12 +263,13 @@ export async function buildChatCompletionInputWithBudget(
   localMessages: ReadonlyArray<ServerChatMessage>,
   turnInput: ReadonlyArray<ContentPart>,
   timezone: string,
+  generatedImageEligible: boolean,
   budgetTokens: number,
 ): Promise<ReadonlyArray<OpenAIInputItem>> {
   const input: Array<OpenAIInputItem> = [{
     role: "system",
     type: "message",
-    content: buildSystemInstructions(timezone),
+    content: buildSystemInstructions(timezone, generatedImageEligible),
   }];
 
   const turnTokens = turnInput.reduce(
@@ -304,11 +305,13 @@ export async function buildChatCompletionInput(
   localMessages: ReadonlyArray<ServerChatMessage>,
   turnInput: ReadonlyArray<ContentPart>,
   timezone: string,
+  generatedImageEligible: boolean,
 ): Promise<ReadonlyArray<OpenAIInputItem>> {
   return buildChatCompletionInputWithBudget(
     localMessages,
     turnInput,
     timezone,
+    generatedImageEligible,
     CHAT_HISTORY_REPLAY_TOKEN_BUDGET,
   );
 }
