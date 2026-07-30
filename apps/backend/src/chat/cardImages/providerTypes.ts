@@ -28,3 +28,26 @@ export class GeneratedCardImageDeadlineExceededError extends Error {
     this.name = "GeneratedCardImageDeadlineExceededError";
   }
 }
+
+export class GeneratedCardImageProviderOutcomeUnknownError extends Error {
+  readonly code = "GENERATED_CARD_IMAGE_PROVIDER_OUTCOME_UNKNOWN";
+
+  constructor(runId: string, operationKey: string) {
+    super(
+      `OpenAI image generation may already have started, so it cannot be retried automatically. runId=${runId}; operationKey=${operationKey}`,
+    );
+    this.name = "GeneratedCardImageProviderOutcomeUnknownError";
+  }
+}
+
+export class GeneratedCardImageStagingOutcomeUnknownError extends Error {
+  readonly code = "GENERATED_CARD_IMAGE_STAGING_OUTCOME_UNKNOWN";
+
+  constructor(runId: string, operationKey: string, cause: unknown) {
+    super(
+      `OpenAI returned generated image bytes, but managed-media staging did not confirm persistence, so this operation cannot be retried automatically. runId=${runId}; operationKey=${operationKey}`,
+      { cause },
+    );
+    this.name = "GeneratedCardImageStagingOutcomeUnknownError";
+  }
+}

@@ -65,6 +65,7 @@ function createRunRow(
     started_at: null,
     finished_at: null,
     last_error_message: null,
+    initiating_auth_is_signed_in: false,
     ...overrides,
   };
 }

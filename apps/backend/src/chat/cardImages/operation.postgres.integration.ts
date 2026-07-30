@@ -18,6 +18,11 @@ import { createBackendObservationScope } from "../../observability/sentry";
 import { HttpError } from "../../shared/errors";
 import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../testSupport/postgresIntegration";
 import { claimChatRun, InactiveChatRunClaimError, prepareChatRun, type ClaimedChatRun } from "../runs";
+import {
+  bindGeneratedCardImageAttemptPayload,
+  markGeneratedCardImageProviderStarted,
+  reserveGeneratedCardImageAttempt,
+} from "../openai/tools/generatedImageAttemptBudget";
 import { deriveGeneratedCardImageOperationMetadata } from "./metadata";
 import { createGeneratedCardImageOperationDependencies, generateCardImageWithDependencies } from "./operation";
 import {
@@ -25,6 +30,9 @@ import {
   withGeneratedCardImageOperationLock, type GeneratedCardImageOperationLockInput,
 } from "./operationLock";
 import { enqueueGeneratedMediaPromotionJob } from "./promotionJobs";
+import {
+  GeneratedCardImageProviderOutcomeUnknownError,
+} from "./providerTypes";
 import type { GeneratedCardImageInput } from "./types";
 const normalizedBytes = Buffer.from("deterministic-local-normalized-image");
 const normalizedSha256 = "8349792a6784cfdc5061b34e1184c85bcdb13719e86ac4be576e52e5e8c5f603";
@@ -71,7 +79,10 @@ function createInput(
   targetSide: "front" | "back", signal: AbortSignal,
 ): GeneratedCardImageInput {
   return {
-    runId: run.runId, sessionId: run.sessionId, claimToken: run.claimToken,
+    runId: run.runId,
+    operationKey: "generated-image:1",
+    sessionId: run.sessionId,
+    claimToken: run.claimToken,
     userId: fixture.userId, workspaceId: fixture.workspaceId,
     cardId: fixture.cardId, targetSide,
     imagePrompt: "Draw a deterministic integration diagram.",
@@ -92,13 +103,42 @@ async function createClaimedImageRun(fixture: PostgresIntegrationFixture): Promi
   const prepared = await prepareChatRun(
     fixture.userId, fixture.workspaceId, undefined,
     [{ type: "text", text: "Generate an image for this card." }],
-    randomUUID(), "Europe/Madrid", null,
+    randomUUID(), "Europe/Madrid", null, true,
   );
   const claimed = await claimChatRun(fixture.userId, fixture.workspaceId, prepared.runId);
   if (claimed === null) {
     throw new Error(`Failed to claim generated image integration run. runId=${prepared.runId}`);
   }
   return claimed;
+}
+async function reserveAndBindGeneratedImageOperation(
+  fixture: PostgresIntegrationFixture,
+  run: ClaimedChatRun,
+): Promise<void> {
+  const params = {
+    userId: fixture.userId,
+    workspaceId: fixture.workspaceId,
+    runId: run.runId,
+    sessionId: run.sessionId,
+    claimToken: run.claimToken,
+    operationKey: "generated-image:1",
+    databaseDeadlineAtMs: Date.now() + 120_000,
+  };
+  assert.deepEqual(await reserveGeneratedCardImageAttempt(params), {
+    status: "reserved",
+    attempt: 1,
+    payload: null,
+  });
+  await bindGeneratedCardImageAttemptPayload({
+    ...params,
+    attempt: 1,
+    payload: {
+      cardId: fixture.cardId,
+      targetSide: "back",
+      imagePrompt: "Draw a deterministic integration diagram.",
+      altText: "Generated integration diagram",
+    },
+  });
 }
 async function waitForLockAttemptCount(fixture: PostgresIntegrationFixture, expectedCount: number): Promise<void> {
   await waitForValue(async () => {
@@ -193,7 +233,11 @@ test("generated image operation reconciles ambiguous enqueue without early card 
   try {
     await withPostgresIntegrationFixture(async (fixture) => {
       const run = await createClaimedImageRun(fixture);
-      const operationMetadata = deriveGeneratedCardImageOperationMetadata(run.runId, fixture.cardId, "back");
+      await reserveAndBindGeneratedImageOperation(fixture, run);
+      const operationMetadata = deriveGeneratedCardImageOperationMetadata(
+        run.runId,
+        "generated-image:1",
+      );
       const providerStarted = createDeferred();
       const releaseProvider = createDeferred();
       let providerCalls = 0;
@@ -201,11 +245,15 @@ test("generated image operation reconciles ambiguous enqueue without early card 
       let enqueueCalls = 0;
       let stagedObject: GeneratedMediaStagingObject | null = null;
       const dependencies = createGeneratedCardImageOperationDependencies({
+        markProviderStartedFn: markGeneratedCardImageProviderStarted,
         generateProviderImageFn: async () => {
           providerCalls += 1;
           providerStarted.resolve();
           await releaseProvider.promise;
-          return { bytes: Buffer.from("deterministic-provider-image"), providerRequestId: null };
+          return {
+            bytes: Buffer.from("deterministic-provider-image"),
+            providerRequestId: null,
+          };
         },
         normalizeImageBytesForCardFn: async () => ({
           bytes: normalizedBytes, mimeType: imageJpegCardMediaBlobMimeType,
@@ -349,6 +397,86 @@ test("generated image operation reconciles ambiguous enqueue without early card 
           [fixture.workspaceId],
         );
       }
+    });
+  } finally {
+    await closeSessionAdvisoryLockPoolForTests();
+  }
+});
+test("persisted provider start blocks replay without staging and permits staged reuse", async () => {
+  try {
+    await withPostgresIntegrationFixture(async (fixture) => {
+      const run = await createClaimedImageRun(fixture);
+      await reserveAndBindGeneratedImageOperation(fixture, run);
+      const input = createInput(
+        fixture,
+        run,
+        "back",
+        new AbortController().signal,
+      );
+      const metadata = deriveGeneratedCardImageOperationMetadata(
+        run.runId,
+        input.operationKey,
+      );
+      assert.deepEqual(
+        await markGeneratedCardImageProviderStarted({
+          userId: fixture.userId,
+          workspaceId: fixture.workspaceId,
+          runId: run.runId,
+          sessionId: run.sessionId,
+          claimToken: run.claimToken,
+          operationKey: input.operationKey,
+          databaseDeadlineAtMs: input.operationDeadlineMs,
+        }),
+        { status: "first_started" },
+      );
+
+      let providerCalls = 0;
+      let providerStartCalls = 0;
+      let stagedObject: GeneratedMediaStagingObject | null = null;
+      const dependencies = createGeneratedCardImageOperationDependencies({
+        markProviderStartedFn: async (params) => {
+          providerStartCalls += 1;
+          return markGeneratedCardImageProviderStarted(params);
+        },
+        generateProviderImageFn: async () => {
+          providerCalls += 1;
+          throw new Error("Provider must not run after a durable provider start.");
+        },
+        normalizeImageBytesForCardFn: async () => {
+          throw new Error("Normalization must not run after a durable provider start.");
+        },
+        loadGeneratedMediaStagingObjectFn: async () => stagedObject,
+        storeGeneratedMediaStagingObjectFn: async () => {
+          throw new Error("Storage must not run after a durable provider start.");
+        },
+        enqueueGeneratedMediaPromotionJobFn: async (job) => ({
+          outcome: "created",
+          jobId: job.jobId,
+        }),
+      });
+
+      await assert.rejects(
+        generateCardImageWithDependencies(input, dependencies),
+        (error: unknown) =>
+          error instanceof GeneratedCardImageProviderOutcomeUnknownError,
+      );
+      assert.equal(providerStartCalls, 1);
+      assert.equal(providerCalls, 0);
+
+      stagedObject = {
+        stagingStorageKey: `media/uploads/${metadata.operationId}`,
+        mimeType: imageJpegCardMediaBlobMimeType,
+        sizeBytes: normalizedBytes.byteLength,
+        sha256: normalizedSha256,
+      };
+      const replay = await generateCardImageWithDependencies(
+        createInput(fixture, run, "back", new AbortController().signal),
+        dependencies,
+      );
+      assert.equal(replay.status, "queued");
+      assert.equal(replay.reused, true);
+      assert.equal(providerStartCalls, 1);
+      assert.equal(providerCalls, 0);
     });
   } finally {
     await closeSessionAdvisoryLockPoolForTests();

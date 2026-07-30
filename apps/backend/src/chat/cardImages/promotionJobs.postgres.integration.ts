@@ -34,6 +34,7 @@ import {
   type EnqueueGeneratedMediaPromotionJobInput,
   type GeneratedMediaBlobStorageCapability,
 } from "./promotionJobs";
+import { maximumGeneratedImageAltTextCodePoints } from "./contract";
 import {
   applyGeneratedMediaPromotionJob, failGeneratedMediaPromotionJob,
   processClaimedGeneratedMediaPromotionJobWithDependencies,
@@ -726,6 +727,61 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
     );
   });
 });
+
+test("promotion job payload uses Unicode code points for alt-text limits", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const run = await createRun(fixture);
+    const altText = "😀".repeat(maximumGeneratedImageAltTextCodePoints);
+    const input = {
+      ...createInput(fixture, run),
+      altText,
+    };
+
+    assert.deepEqual(
+      await enqueueGeneratedMediaPromotionJob(input),
+      { outcome: "created", jobId: input.jobId },
+    );
+    const jobs = await claim("unicode-alt-text-worker", 1);
+    assert.equal(jobs.length, 1);
+    assert.equal(jobs[0]?.jobId, input.jobId);
+    assert.equal(jobs[0]?.altText, altText);
+    assert.equal(
+      Array.from(jobs[0]?.altText ?? "").length,
+      maximumGeneratedImageAltTextCodePoints,
+    );
+  });
+});
+
+test("promotion job payload rejects raw alt text outside the shared contract", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const run = await createRun(fixture);
+    const input = createInput(fixture, run);
+    for (const altText of [
+      "line\nbreak",
+      "tab\ttext",
+      "\nleading-c0",
+      "trailing-c0\t",
+      "nul\u0000text",
+      "unit\u001fseparator",
+      "\u007fleading-del",
+      "trailing-del\u007f",
+      "delete\u007ftext",
+      "\u0085leading-c1",
+      "trailing-c1\u009f",
+      "c1\u009ftext",
+      "😀".repeat(maximumGeneratedImageAltTextCodePoints + 1),
+      ` ${"😀".repeat(maximumGeneratedImageAltTextCodePoints)} `,
+    ]) {
+      await assert.rejects(
+        enqueueGeneratedMediaPromotionJob({ ...input, altText }),
+        (error: unknown) =>
+          error instanceof TypeError
+          && error.message.includes("without control characters"),
+      );
+    }
+  });
+});
+
 test("access revocation resolves an exact generated writer and fences stale leases", async () => {
   await withPostgresIntegrationFixture(async (fixture) => {
     await assertRevocationMigrationUpgrade(fixture);

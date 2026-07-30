@@ -22,6 +22,10 @@ import {
 } from "../../mediaAssets/types";
 import { assertReplicaBelongsToWorkspaceInExecutor } from "../../mediaAssets/workspaceReplicas";
 import { assertActiveChatRunClaimWithExecutor, type ChatRunClaimFenceParams } from "../runs/claimFence";
+import {
+  hasValidGeneratedImageAltTextCharactersAndLength,
+  maximumGeneratedImageAltTextCodePoints,
+} from "./contract";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const sha256Pattern = /^[0-9a-f]{64}$/u;
 const mimeTypePattern = /^[a-z0-9][a-z0-9.+-]*\/[a-z0-9][a-z0-9.+-]*$/u;
@@ -177,12 +181,13 @@ function requirePayload(payload: GeneratedMediaPromotionJobPayload): void {
     throw new TypeError("userId must be non-empty, trimmed, and contain no control characters.");
   }
   if (
-    payload.altText !== payload.altText.trim()
-    || payload.altText.length < 1
-    || payload.altText.length > 2000
-    || controlCharacterPattern.test(payload.altText)
+    !hasValidGeneratedImageAltTextCharactersAndLength(payload.altText)
+    || payload.altText !== payload.altText.trim()
+    || payload.altText === ""
   ) {
-    throw new TypeError("altText must be 1 to 2000 trimmed characters without control characters.");
+    throw new TypeError(
+      `altText must be 1 to ${maximumGeneratedImageAltTextCodePoints} trimmed Unicode code points without control characters.`,
+    );
   }
   if (!sha256Pattern.test(payload.sha256)) {
     throw new TypeError("sha256 must be a normalized lowercase SHA-256 digest.");

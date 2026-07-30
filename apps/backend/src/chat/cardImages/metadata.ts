@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import type { CardTextSide } from "../../cards";
 import type { GeneratedCardImageOperationMetadata } from "./types";
 
 const generatedCardImageOperationNamespace = "flashcards-open-source-app:generated-card-image:v1";
@@ -7,12 +6,11 @@ const generatedCardImageOperationNamespace = "flashcards-open-source-app:generat
 function deterministicUuidFromOperationIdentity(
   purpose: "operation" | "media-asset",
   runId: string,
-  cardId: string,
-  targetSide: CardTextSide,
+  operationKey: string,
 ): string {
   const digest = createHash("sha256")
     .update(JSON.stringify(
-      [generatedCardImageOperationNamespace, purpose, runId.toLowerCase(), cardId.toLowerCase(), targetSide],
+      [generatedCardImageOperationNamespace, purpose, runId.toLowerCase(), operationKey],
     ))
     .digest();
   const uuidBytes = Buffer.from(digest.subarray(0, 16));
@@ -31,13 +29,12 @@ function deterministicUuidFromOperationIdentity(
 
 export function deriveGeneratedCardImageOperationMetadata(
   runId: string,
-  cardId: string,
-  targetSide: CardTextSide,
+  operationKey: string,
 ): GeneratedCardImageOperationMetadata {
-  const operationId = deterministicUuidFromOperationIdentity("operation", runId, cardId, targetSide);
+  const operationId = deterministicUuidFromOperationIdentity("operation", runId, operationKey);
   return {
     operationId,
-    mediaAssetId: deterministicUuidFromOperationIdentity("media-asset", runId, cardId, targetSide),
+    mediaAssetId: deterministicUuidFromOperationIdentity("media-asset", runId, operationKey),
     mediaLastOperationId: `generated-card-image:${operationId}:media`,
     cardLastOperationId: `generated-card-image:${operationId}:card`,
   };

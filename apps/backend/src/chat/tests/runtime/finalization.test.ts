@@ -6,6 +6,9 @@ import {
 import {
   runPersistedChatSessionWithDeps,
 } from "../../runtime";
+import {
+  InactiveChatRunClaimError,
+} from "../../runs";
 import type {
   OpenAILoopCompletion,
   OpenAILoopEventSink,
@@ -94,6 +97,30 @@ test("runPersistedChatSessionWithDeps maps stale failed, cancelled, and interrup
   ]);
 });
 
+test("run-inactive completion and thrown claim errors reconcile cancellation and ownership", async () => {
+  let cancelledPersistCount = 0;
+  const outcomes = await Promise.all(
+    (["completion", "thrown_claim"] as const).flatMap((inactiveMode) =>
+      (["user_cancelled", "ownership_lost"] as const).map((inactiveOutcome) =>
+        runPersistedChatSessionWithDeps(createParams(), createDependencies({
+          startOpenAILoop: async () => {
+            if (inactiveMode === "thrown_claim") {
+              throw new InactiveChatRunClaimError(createParams().runId);
+            }
+            return { openaiItems: [], terminationReason: "run_inactive" };
+          },
+          reconcileInactiveChatRun: async () => inactiveOutcome,
+          persistAssistantCancelled: async () => { cancelledPersistCount += 1; },
+        }))),
+    ),
+  );
+  assert.deepEqual(
+    outcomes.map((result) => result.outcome),
+    ["cancelled", "ownership_lost", "cancelled", "ownership_lost"],
+  );
+  assert.equal(cancelledPersistCount, 2);
+});
+
 test("runPersistedChatSessionWithDeps preserves every terminal persistence infrastructure error", async () => {
   const assertInfrastructureErrorPropagates = async (
     operation: string,
@@ -145,16 +172,20 @@ test("runPersistedChatSessionWithDeps completes a successful run and persists co
   let composerSuggestionUserId: string | null = null;
   let composerSuggestionUiLocale: string | null | undefined = undefined;
   const observedClaimTokens: Array<string> = [];
+  let generatedImageDeadlineMs = 0;
+  const startedAtMs = Date.now();
 
   const logs = await withCapturedLogs(async () => {
     const result = await runPersistedChatSessionWithDeps(
-      createParams(),
+      { ...createParams(), generatedImageEligible: true },
       createDependencies({
         startOpenAILoop: async (
           params: StartOpenAILoopParams,
           onEvent: OpenAILoopEventSink,
         ): Promise<OpenAILoopCompletion> => {
           observedClaimTokens.push(params.claimToken);
+          assert.equal(params.generatedImageEligible, true);
+          generatedImageDeadlineMs = params.generatedImageOperationDeadlineMs;
           await onEvent({
             type: "delta",
             text: "done",
@@ -209,6 +240,8 @@ test("runPersistedChatSessionWithDeps completes a successful run and persists co
   assert.equal(completedPersistCount, 1);
   assert.equal(composerSuggestionUserId, "user-1");
   assert.equal(composerSuggestionUiLocale, "es-MX");
+  assert.ok(generatedImageDeadlineMs >= startedAtMs + 719_000);
+  assert.ok(generatedImageDeadlineMs <= Date.now() + 720_000);
   assert.deepEqual(observedClaimTokens, Array.from({ length: 3 }, () => createParams().claimToken));
   assert.equal(findLog(logs, "chat_worker_terminal_state_persisted")?.runStatus, "completed");
 });

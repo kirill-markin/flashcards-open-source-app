@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import {
+  bindGeneratedCardImageAttemptPayload,
+  markGeneratedCardImageProviderStarted,
   reserveGeneratedCardImageAttempt,
   reserveGeneratedCardImageAttemptWithExecutor,
   type GeneratedCardImageAttemptReservation,
+  type GeneratedCardImageAttemptReservationParams,
 } from "../openai/tools/generatedImageAttemptBudget";
 import { HttpError } from "../../shared/errors";
 import {
@@ -15,8 +18,11 @@ import {
   type PostgresIntegrationFixture,
   withPostgresIntegrationFixture,
 } from "../../testSupport/postgresIntegration";
-import { claimChatRun } from "./lifecycleService";
-import type { ChatRunClaimFenceParams } from "./claimFence";
+import {
+  claimChatRun,
+  prepareChatRun,
+  reconcileInactiveClaimedChatRun,
+} from "./lifecycleService";
 
 type ChatRunFixture = Readonly<{
   sessionId: string;
@@ -30,6 +36,7 @@ type AssistantPayloadRow = Readonly<{
   payload: Readonly<{
     content?: unknown;
     generatedCardImageAttemptCount?: unknown;
+    generatedCardImageOperations?: unknown;
     reservationSentinel?: unknown;
   }>;
 }>;
@@ -101,13 +108,16 @@ function createReservationParams(
   fixture: PostgresIntegrationFixture,
   run: ChatRunFixture,
   claimToken: string,
-): ChatRunClaimFenceParams {
+  operationKey: string,
+): GeneratedCardImageAttemptReservationParams {
   return {
     userId: fixture.userId,
     workspaceId: fixture.workspaceId,
     runId: run.runId,
     sessionId: run.sessionId,
     claimToken,
+    operationKey,
+    databaseDeadlineAtMs: Date.now() + 120_000,
   };
 }
 
@@ -127,7 +137,7 @@ async function loadAssistantPayload(
 }
 
 async function reserveThenRunSentinel(
-  params: ChatRunClaimFenceParams,
+  params: GeneratedCardImageAttemptReservationParams,
   onReserved: () => void,
 ): Promise<GeneratedCardImageAttemptReservation> {
   const reservation = await reserveGeneratedCardImageAttempt(params);
@@ -147,27 +157,25 @@ function hasErrorCode(error: unknown, expectedCode: string): boolean {
 test("generated image attempt reservations are durable, fenced, and concurrency-safe", async () => {
   await withPostgresIntegrationFixture(async (fixture) => {
     const sequentialRun = await createChatRunFixture(fixture);
-    const sequentialParams = createReservationParams(
-      fixture,
-      sequentialRun,
-      sequentialRun.claimToken,
-    );
     let postReservationCallCount = 0;
     const sequentialResults: Array<GeneratedCardImageAttemptReservation> = [];
-    for (let workerIndex = 0; workerIndex < 2; workerIndex += 1) {
-      for (let attemptIndex = 0; attemptIndex < 2; attemptIndex += 1) {
-        sequentialResults.push(await reserveThenRunSentinel(
-          sequentialParams,
-          (): void => {
-            postReservationCallCount += 1;
-          },
-        ));
-      }
+    for (let operationIndex = 1; operationIndex <= 4; operationIndex += 1) {
+      sequentialResults.push(await reserveThenRunSentinel(
+        createReservationParams(
+          fixture,
+          sequentialRun,
+          sequentialRun.claimToken,
+          `generated-image:${String(operationIndex)}`,
+        ),
+        (): void => {
+          postReservationCallCount += 1;
+        },
+      ));
     }
     assert.deepEqual(sequentialResults, [
-      { status: "reserved", attempt: 1 },
-      { status: "reserved", attempt: 2 },
-      { status: "reserved", attempt: 3 },
+      { status: "reserved", attempt: 1, payload: null },
+      { status: "reserved", attempt: 2, payload: null },
+      { status: "reserved", attempt: 3, payload: null },
       { status: "limit_reached" },
     ]);
     assert.equal(postReservationCallCount, 3);
@@ -179,15 +187,17 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
     assert.deepEqual(sequentialPayload.reservationSentinel, { preserved: true });
 
     const concurrentRun = await createChatRunFixture(fixture);
-    const concurrentParams = createReservationParams(
-      fixture,
-      concurrentRun,
-      concurrentRun.claimToken,
-    );
     const concurrentResults = await Promise.all(
       Array.from(
         { length: 4 },
-        async () => reserveGeneratedCardImageAttempt(concurrentParams),
+        async (_value, index) => reserveGeneratedCardImageAttempt(
+          createReservationParams(
+            fixture,
+            concurrentRun,
+            concurrentRun.claimToken,
+            `generated-image:${String(index + 1)}`,
+          ),
+        ),
       ),
     );
     const concurrentAttempts = concurrentResults.flatMap((result) =>
@@ -208,10 +218,12 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
       fixture,
       inactiveRun,
       inactiveRun.claimToken,
+      "generated-image:1",
     );
     assert.deepEqual(await reserveGeneratedCardImageAttempt(inactiveParams), {
       status: "reserved",
       attempt: 1,
+      payload: null,
     });
     await fixture.ownerPool.query(
       "UPDATE ai.chat_runs SET cancel_requested_at = now() WHERE run_id = $1",
@@ -221,6 +233,8 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
       await reserveGeneratedCardImageAttempt(inactiveParams),
       { status: "run_inactive" },
     );
+    assert.equal(await reconcileInactiveClaimedChatRun(
+      fixture.userId, fixture.workspaceId, inactiveParams), "user_cancelled");
     await fixture.ownerPool.query(
       "UPDATE ai.chat_runs SET cancel_requested_at = NULL WHERE run_id = $1",
       [inactiveRun.runId],
@@ -233,6 +247,8 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
       await reserveGeneratedCardImageAttempt(inactiveParams),
       { status: "run_inactive" },
     );
+    assert.equal(await reconcileInactiveClaimedChatRun(
+      fixture.userId, fixture.workspaceId, inactiveParams), "ownership_lost");
     assert.equal(
       (await loadAssistantPayload(fixture, inactiveRun.assistantItemId))
         .generatedCardImageAttemptCount,
@@ -244,11 +260,27 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
       fixture,
       reclaimedRun,
       reclaimedRun.claimToken,
+      "generated-image:1",
     );
     assert.deepEqual(await reserveGeneratedCardImageAttempt(firstClaimParams), {
       status: "reserved",
       attempt: 1,
+      payload: null,
     });
+    const originalPayload = {
+      cardId: randomUUID(),
+      targetSide: "back" as const,
+      imagePrompt: "Original stable prompt",
+      altText: "Original stable alt text",
+    };
+    assert.deepEqual(
+      await bindGeneratedCardImageAttemptPayload({
+        ...firstClaimParams,
+        attempt: 1,
+        payload: originalPayload,
+      }),
+      originalPayload,
+    );
     const reclaimedClaim = await claimChatRun(
       fixture.userId,
       fixture.workspaceId,
@@ -265,8 +297,31 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
         fixture,
         reclaimedRun,
         reclaimedClaim.claimToken,
+        "generated-image:1",
       )),
-      { status: "reserved", attempt: 2 },
+      { status: "reserved", attempt: 1, payload: originalPayload },
+    );
+    assert.deepEqual(
+      await bindGeneratedCardImageAttemptPayload({
+        ...createReservationParams(
+          fixture,
+          reclaimedRun,
+          reclaimedClaim.claimToken,
+          "generated-image:1",
+        ),
+        attempt: 1,
+        payload: {
+          ...originalPayload,
+          imagePrompt: "Regenerated wording must not replace the original prompt",
+          altText: "Regenerated wording",
+        },
+      }),
+      originalPayload,
+    );
+    assert.equal(
+      (await loadAssistantPayload(fixture, reclaimedRun.assistantItemId))
+        .generatedCardImageAttemptCount,
+      1,
     );
 
     const rewriteRun = await createChatRunFixture(fixture);
@@ -274,6 +329,7 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
       fixture,
       rewriteRun,
       rewriteRun.claimToken,
+      "generated-image:1",
     );
     assert.equal(
       (await reserveGeneratedCardImageAttempt(rewriteParams)).status,
@@ -308,6 +364,11 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
       rewriteRun.assistantItemId,
     );
     assert.equal(rewrittenPayload.generatedCardImageAttemptCount, 1);
+    assert.deepEqual(rewrittenPayload.generatedCardImageOperations, [{
+      operationKey: "generated-image:1",
+      attempt: 1,
+      payload: null,
+    }]);
     assert.deepEqual(rewrittenPayload.content, [
       { type: "text", text: "Mutating tool update" },
     ]);
@@ -319,6 +380,11 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
       }),
       (error: unknown) => hasErrorCode(error, "22P02"),
     );
+    await assert.rejects(
+      reserveGeneratedCardImageAttempt(
+        { ...rewriteParams, databaseDeadlineAtMs: Date.now() - 1 }),
+      (error: unknown) => hasErrorCode(error, "DATABASE_DEADLINE_EXCEEDED"),
+    );
 
     const databaseBoundaryError = new HttpError(503, "Database boundary sentinel", "DATABASE_BOUNDARY_SENTINEL");
     await assert.rejects(
@@ -329,5 +395,123 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
       (error: unknown) => error === databaseBoundaryError
         && databaseBoundaryError.code === "DATABASE_BOUNDARY_SENTINEL",
     );
+  });
+});
+
+test("generated image provider starts are durable, claim-fenced, and concurrency-safe", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const run = await createChatRunFixture(fixture);
+    const params = createReservationParams(
+      fixture,
+      run,
+      run.claimToken,
+      "generated-image:1",
+    );
+    assert.deepEqual(await reserveGeneratedCardImageAttempt(params), {
+      status: "reserved",
+      attempt: 1,
+      payload: null,
+    });
+    const payload = {
+      cardId: fixture.cardId,
+      targetSide: "back" as const,
+      imagePrompt: "Draw a durable provider-start fence.",
+      altText: "Durable provider-start fence",
+    };
+    assert.deepEqual(
+      await bindGeneratedCardImageAttemptPayload({
+        ...params,
+        attempt: 1,
+        payload,
+      }),
+      payload,
+    );
+
+    assert.deepEqual(
+      (await loadAssistantPayload(fixture, run.assistantItemId))
+        .generatedCardImageOperations,
+      [{
+        operationKey: "generated-image:1",
+        attempt: 1,
+        payload,
+      }],
+    );
+
+    const concurrentResults = await Promise.all([
+      markGeneratedCardImageProviderStarted(params),
+      markGeneratedCardImageProviderStarted(params),
+    ]);
+    assert.deepEqual(
+      concurrentResults.map((result) => result.status).sort(),
+      ["first_started", "previously_started"],
+    );
+    assert.deepEqual(
+      (await loadAssistantPayload(fixture, run.assistantItemId))
+        .generatedCardImageOperations,
+      [{
+        operationKey: "generated-image:1",
+        attempt: 1,
+        payload,
+        providerStarted: true,
+      }],
+    );
+
+    const reclaimed = await claimChatRun(
+      fixture.userId,
+      fixture.workspaceId,
+      run.runId,
+    );
+    assert.ok(reclaimed);
+    assert.notEqual(reclaimed.claimToken, run.claimToken);
+    await assert.rejects(
+      markGeneratedCardImageProviderStarted(params),
+      /Chat run claim is no longer active/u,
+    );
+    assert.deepEqual(
+      await markGeneratedCardImageProviderStarted({
+        ...params,
+        claimToken: reclaimed.claimToken,
+      }),
+      { status: "previously_started" },
+    );
+  });
+});
+
+test("chat run deduplication preserves the initiating guest classification after sign-in", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const requestId = randomUUID();
+    const content = [{ type: "text" as const, text: "Generate an image." }];
+    const guestRun = await prepareChatRun(
+      fixture.userId,
+      fixture.workspaceId,
+      undefined,
+      content,
+      requestId,
+      "Europe/Madrid",
+      null,
+      false,
+    );
+    assert.equal(guestRun.initiatingAuthIsSignedIn, false);
+
+    const signedInReplay = await prepareChatRun(
+      fixture.userId,
+      fixture.workspaceId,
+      guestRun.sessionId,
+      content,
+      requestId,
+      "Europe/Madrid",
+      null,
+      true,
+    );
+    assert.equal(signedInReplay.deduplicated, true);
+    assert.equal(signedInReplay.initiatingAuthIsSignedIn, false);
+
+    const claimed = await claimChatRun(
+      fixture.userId,
+      fixture.workspaceId,
+      guestRun.runId,
+    );
+    assert.ok(claimed);
+    assert.equal(claimed.initiatingAuthIsSignedIn, false);
   });
 });

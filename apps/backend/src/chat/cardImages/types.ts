@@ -4,6 +4,7 @@ import type { GeneratedCardImageObservationContext } from "./providerTypes";
 
 export type GeneratedCardImageInput = Readonly<{
   runId: string;
+  operationKey: string;
   sessionId: string;
   claimToken: ChatRunClaimToken;
   userId: string;

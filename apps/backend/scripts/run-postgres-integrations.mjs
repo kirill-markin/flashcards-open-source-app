@@ -88,6 +88,10 @@ const boundaryDefinitions = Object.freeze([
     migrationFileName: "0103_ai_chat_initiating_auth_classification.sql",
     expectedMigrationCount: 105,
     testFiles: Object.freeze([
+      "src/cards/generatedImageAppend.postgres.integration.ts",
+      "src/chat/cardImages/operation.postgres.integration.ts",
+      "src/chat/cardImages/promotionJobs.postgres.integration.ts",
+      "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
       "src/database/aiChatInitiatingAuthClassification.postgres.integration.ts",
     ]),
   }),

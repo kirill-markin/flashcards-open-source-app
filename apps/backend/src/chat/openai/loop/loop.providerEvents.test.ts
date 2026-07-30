@@ -303,6 +303,9 @@ test("startOpenAILoopWithDeps retries a callIndex > 1 overflow once with the red
         output: "{\"ok\":true}",
         isMutating: false,
         succeeded: true,
+        shouldInvalidateMainContent: false,
+        stopReason: null,
+        generatedImageTelemetry: null,
       };
     },
   };

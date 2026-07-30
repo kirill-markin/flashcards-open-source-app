@@ -20,6 +20,8 @@ import type {
 } from "../worker/logging";
 
 export const CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS = 180_000;
+export const CHAT_WORKER_INACTIVE_RECONCILIATION_MAXIMUM_MS = 10_000;
+export const CHAT_WORKER_TERMINAL_PERSISTENCE_RESERVE_MS = 10_000;
 export const DEADLINE_REACHED_MESSAGE = "This response took too long, so I stopped the run before the server timeout. Please try again or split the request into smaller steps.";
 
 type InitialHeartbeatResult =

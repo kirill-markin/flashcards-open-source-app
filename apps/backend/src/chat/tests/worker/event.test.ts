@@ -7,7 +7,10 @@ import type {
   BackendTraceCarrier,
   ChatWorkerDispatchFailureDetails,
 } from "../../../observability/sentry";
-import type { ChatWorkerEvent } from "../../worker";
+import {
+  isGeneratedImageEligibleForWorker,
+  type ChatWorkerEvent,
+} from "../../worker";
 import {
   invokeChatWorkerOrPersistFailureWithDependencies,
   invokeChatWorkerWithDependencies,
@@ -64,6 +67,7 @@ test("invokeChatWorkerWithDependencies copies trace context into the Lambda even
     runId: "run-2",
     userId: "user-2",
     workspaceId: "workspace-2",
+    initiatingAuthIsSignedIn: true,
   }, {
     getTraceCarrier: () => traceContext,
     getFunctionName: () => "chat-worker-test",
@@ -85,6 +89,7 @@ test("invokeChatWorkerWithDependencies copies trace context into the Lambda even
     runId: "run-2",
     userId: "user-2",
     workspaceId: "workspace-2",
+    initiatingAuthIsSignedIn: true,
     routeRequestId: null,
     chatRequestId: null,
     sessionId: null,
@@ -104,6 +109,7 @@ test("invokeChatWorkerOrPersistFailureWithDependencies captures dispatch failure
       runId: "run-3",
       userId: "user-3",
       workspaceId: "workspace-3",
+      initiatingAuthIsSignedIn: false,
       routeRequestId: "route-request-3",
       chatRequestId: "client-request-3",
       sessionId: "session-3",
@@ -149,4 +155,22 @@ test("invokeChatWorkerOrPersistFailureWithDependencies captures dispatch failure
   assert.equal(capturedEvent.scope.chatRequestId, "client-request-3");
   assert.equal(capturedEvent.scope.runId, "run-3");
   assert.equal(capturedEvent.scope.sessionId, "session-3");
+});
+
+test("generated image eligibility requires both immutable run state and the original worker event", () => {
+  const baseEvent: ChatWorkerEvent = {
+    runId: "run-auth",
+    userId: "user-auth",
+    workspaceId: "workspace-auth",
+  };
+
+  assert.equal(isGeneratedImageEligibleForWorker(baseEvent, true), false);
+  assert.equal(isGeneratedImageEligibleForWorker({
+    ...baseEvent,
+    initiatingAuthIsSignedIn: true,
+  }, false), false);
+  assert.equal(isGeneratedImageEligibleForWorker({
+    ...baseEvent,
+    initiatingAuthIsSignedIn: true,
+  }, true), true);
 });

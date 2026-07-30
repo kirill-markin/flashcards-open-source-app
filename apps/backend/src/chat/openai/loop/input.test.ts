@@ -20,7 +20,7 @@ test("buildChatCompletionInput serializes card parts into deterministic XML befo
       type: "text",
       text: "Improve this card.",
     },
-  ], "Europe/Madrid");
+  ], "Europe/Madrid", true);
 
   assert.equal(input.length, 2);
   const userMessage = input[1];
@@ -57,7 +57,7 @@ test("buildChatCompletionInput serializes normalized CSV attachment media type i
       mediaType: "text/csv",
       base64Data: "ZnJvbnQsYmFjaw==",
     },
-  ], "Europe/Madrid");
+  ], "Europe/Madrid", true);
 
   assert.equal(input.length, 2);
   const userMessage = input[1];
@@ -80,7 +80,7 @@ test("buildChatCompletionInput serializes normalized XML attachment media type i
       mediaType: "text/xml",
       base64Data: "PGNhcmRzIC8+",
     },
-  ], "Europe/Madrid");
+  ], "Europe/Madrid", true);
 
   assert.equal(input.length, 2);
   const userMessage = input[1];
@@ -113,7 +113,7 @@ test("buildChatCompletionInput normalizes persisted history attachment aliases b
       type: "text",
       text: "Continue.",
     },
-  ], "Europe/Madrid");
+  ], "Europe/Madrid", true);
 
   assert.equal(input.length, 3);
   const historyMessage = input[1];
@@ -147,7 +147,7 @@ test("buildChatCompletionInput rejects invalid persisted history attachments wit
         type: "text",
         text: "Continue.",
       },
-    ], "Europe/Madrid"),
+    ], "Europe/Madrid", true),
     (error: unknown) => error instanceof HttpError
       && error.statusCode === 400
       && error.code === chatAttachmentUnsupportedTypeCode

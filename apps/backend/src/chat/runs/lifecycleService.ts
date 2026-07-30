@@ -1,5 +1,6 @@
 import {
   transactionWithWorkspaceScope,
+  transactionWithWorkspaceScopeDeadline,
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
 } from "../../database";
@@ -39,6 +40,7 @@ import { finalizePendingToolCallContent } from "../history";
 import { FAILED_TOOL_CALL_OUTPUT } from "../store";
 import type { ContentPart } from "../types";
 import { isChatRunHeartbeatStale } from "../worker/lease";
+import { getChatRunClaimStateWithExecutor } from "./claimFence";
 import {
   createDiagnostics,
   finalizeCancelledRunWithExecutor,
@@ -78,6 +80,7 @@ export async function prepareChatRun(
   requestId: string,
   timezone: string,
   uiLocale: ChatComposerSuggestionsLocale | null,
+  initiatingAuthIsSignedIn: boolean,
 ): Promise<PreparedChatRun> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const scope = { userId, workspaceId };
@@ -100,6 +103,7 @@ export async function prepareChatRun(
         runState: mapChatRunStatusToSessionRunState(existingRun.status),
         deduplicated: true,
         shouldInvokeWorker: existingRun.status === "queued",
+        initiatingAuthIsSignedIn: existingRun.initiating_auth_is_signed_in,
       };
     }
 
@@ -133,6 +137,7 @@ export async function prepareChatRun(
       timezone,
       uiLocale,
       turnInput: content,
+      initiatingAuthIsSignedIn,
     });
     const costPolicy = await decideChatCostPolicyWithExecutor(executor, scope, timezone);
     const run = await updateChatRunPolicySnapshotWithExecutor(executor, scope, {
@@ -166,6 +171,7 @@ export async function prepareChatRun(
       runState: mapChatRunStatusToSessionRunState(run.status),
       deduplicated: false,
       shouldInvokeWorker: true,
+      initiatingAuthIsSignedIn: run.initiating_auth_is_signed_in,
     };
   });
 }
@@ -243,6 +249,7 @@ export async function claimChatRun(
       assistantItemId: claimedRun.assistant_item_id,
       localMessages: messages,
       turnInput: claimedRun.turn_input,
+      initiatingAuthIsSignedIn: claimedRun.initiating_auth_is_signed_in,
       diagnostics: createDiagnostics(scope, claimedRun, messages, {
         aiCostMode: claimedRun.ai_cost_mode,
         chatTurnsLast7d: claimedRun.chat_turns_last_7d,
@@ -349,6 +356,27 @@ export async function touchClaimedChatRunHeartbeat(
       ownershipLost: false,
     };
   });
+}
+
+export async function reconcileInactiveClaimedChatRun(
+  userId: string,
+  workspaceId: string,
+  params: Readonly<{
+    runId: string;
+    sessionId: string;
+    claimToken: ChatRunClaimToken;
+    databaseDeadlineAtMs: number;
+  }>,
+): Promise<"user_cancelled" | "ownership_lost"> {
+  const state = await transactionWithWorkspaceScopeDeadline(
+    { userId, workspaceId },
+    params.databaseDeadlineAtMs,
+    async (executor) => getChatRunClaimStateWithExecutor(
+      executor,
+      { userId, workspaceId, ...params },
+    ),
+  );
+  return state === "cancellation_requested" ? "user_cancelled" : "ownership_lost";
 }
 
 /**

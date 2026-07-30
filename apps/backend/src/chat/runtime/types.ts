@@ -43,6 +43,7 @@ export type StartPersistedChatRunParams = Readonly<{
   assistantItemId: string;
   localMessages: ReadonlyArray<ServerChatMessage>;
   turnInput: ReadonlyArray<ContentPart>;
+  generatedImageEligible: boolean;
   diagnostics: ChatRunDiagnostics;
   getRemainingTimeInMillis: () => number;
 }>;

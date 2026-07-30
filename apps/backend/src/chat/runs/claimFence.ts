@@ -3,7 +3,7 @@ import type {
   WorkspaceDatabaseScope,
 } from "../../database";
 import {
-  selectChatRunForUpdateWithExecutor,
+  selectChatRunClaimForUpdateWithExecutor,
   selectSessionForUpdateWithExecutor,
 } from "./repository";
 import type { ChatRunClaimToken } from "./types";
@@ -13,6 +13,8 @@ export type ChatRunClaimFenceParams = WorkspaceDatabaseScope & Readonly<{
   sessionId: string;
   claimToken: ChatRunClaimToken;
 }>;
+
+export type ChatRunClaimState = "active" | "cancellation_requested" | "ownership_lost";
 
 export class InactiveChatRunClaimError extends Error {
   public constructor(runId: string) {
@@ -24,28 +26,41 @@ export class InactiveChatRunClaimError extends Error {
 /**
  * Locks and verifies a worker claim inside the caller's existing transaction.
  */
-export async function assertActiveChatRunClaimWithExecutor(
+export async function getChatRunClaimStateWithExecutor(
   executor: DatabaseExecutor,
   params: ChatRunClaimFenceParams,
-): Promise<void> {
+): Promise<ChatRunClaimState> {
   const scope = {
     userId: params.userId,
     workspaceId: params.workspaceId,
   };
-  const run = await selectChatRunForUpdateWithExecutor(executor, scope, params.runId);
+  const run = await selectChatRunClaimForUpdateWithExecutor(
+    executor,
+    scope,
+    params.runId,
+  );
   if (run === null) {
-    throw new InactiveChatRunClaimError(params.runId);
+    return "ownership_lost";
   }
 
   const session = await selectSessionForUpdateWithExecutor(executor, scope, run.session_id);
   if (
     run.session_id !== params.sessionId
     || run.status !== "running"
-    || run.cancel_requested_at !== null
     || run.worker_claimed_at !== params.claimToken
     || session.status !== "running"
     || session.active_run_id !== run.run_id
   ) {
+    return "ownership_lost";
+  }
+  return run.cancel_requested_at === null ? "active" : "cancellation_requested";
+}
+
+export async function assertActiveChatRunClaimWithExecutor(
+  executor: DatabaseExecutor,
+  params: ChatRunClaimFenceParams,
+): Promise<void> {
+  if (await getChatRunClaimStateWithExecutor(executor, params) !== "active") {
     throw new InactiveChatRunClaimError(params.runId);
   }
 }

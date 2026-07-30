@@ -1,4 +1,9 @@
-import { ensureSystemWorkspaceReplica, type SyncClientPlatform } from "./replica";
+import { transactionWithWorkspaceScopeDeadline } from "../../database";
+import {
+  ensureSystemWorkspaceReplica,
+  ensureSystemWorkspaceReplicaInExecutor,
+  type SyncClientPlatform,
+} from "./replica";
 
 /**
  * Backend-executed AI chat writes must show up through the normal sync flow,
@@ -12,7 +17,6 @@ export async function ensureAIChatSyncReplica(
   devicePlatform: SyncClientPlatform,
   signal: AbortSignal | null,
 ): Promise<string> {
-  signal?.throwIfAborted();
   return ensureSystemWorkspaceReplica({
     workspaceId,
     userId,
@@ -22,4 +26,29 @@ export async function ensureAIChatSyncReplica(
     appVersion: `ai-chat:${devicePlatform}:chat`,
     signal,
   });
+}
+
+export async function ensureAIChatSyncReplicaWithDeadline(
+  workspaceId: string,
+  userId: string,
+  devicePlatform: SyncClientPlatform,
+  signal: AbortSignal,
+  databaseDeadlineAtMs: number,
+): Promise<string> {
+  signal.throwIfAborted();
+  const replicaId = await transactionWithWorkspaceScopeDeadline(
+    { userId, workspaceId },
+    databaseDeadlineAtMs,
+    async (executor) => ensureSystemWorkspaceReplicaInExecutor(
+      executor, {
+        workspaceId, userId, actorKind: "ai_chat",
+        actorKey: `${devicePlatform}:chat`,
+        platform: devicePlatform,
+        appVersion: `ai-chat:${devicePlatform}:chat`,
+        signal,
+      },
+    ),
+  );
+  signal.throwIfAborted();
+  return replicaId;
 }

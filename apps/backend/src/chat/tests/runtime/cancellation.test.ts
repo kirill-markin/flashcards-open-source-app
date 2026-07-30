@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
+} from "../../../aiTools/agentSql/operations";
+import {
+  createBackendObservationScope,
+} from "../../../observability/sentry";
+import {
   runPersistedChatSessionWithDeps,
 } from "../../runtime";
 import type {
@@ -8,6 +14,13 @@ import type {
   OpenAILoopEventSink,
   StartOpenAILoopParams,
 } from "../../openai/loop";
+import {
+  executeChatToolCallWithDependencies,
+  type OpenAIToolDependencies,
+} from "../../openai/tools/tools";
+import {
+  GENERATED_IMAGE_TOOL_NAME,
+} from "../../openai/tools/generatedImageToolContract";
 import {
   CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS,
   createAbortError,
@@ -90,6 +103,129 @@ test("runPersistedChatSessionWithDeps finalizes a cancelled run when the user st
   assert.equal(cancelledPersistCount, 1);
   assert.equal(terminalPersistCount, 0);
   assert.equal(findLog(logs, "chat_worker_abort_requested")?.abortReason, "user_cancelled");
+  assert.equal(findLog(logs, "chat_worker_provider_call_aborted")?.abortReason, "user_cancelled");
+  assert.equal(findLog(logs, "chat_worker_terminal_state_persisted")?.runStatus, "cancelled");
+});
+
+test("generated-image dependency races surface cancellation to the runtime terminal boundary", async () => {
+  let heartbeatCallCount = 0;
+  let cancelledPersistCount = 0;
+  let terminalPersistCount = 0;
+  const dependencyStarted = createDeferredPromise<void>();
+  const secondaryError = new Error(
+    "Replica database lookup rejected after the run was cancelled.",
+  );
+  const runId = "11111111-1111-4111-8111-111111111111";
+  const sessionId = "22222222-2222-4222-8222-222222222222";
+  const workspaceId = "33333333-3333-4333-8333-333333333333";
+  const cardId = "44444444-4444-4444-8444-444444444444";
+  const replicaId = "55555555-5555-4555-8555-555555555555";
+
+  const logs = await withCapturedLogs(async () => {
+    await withControlledHeartbeat(async ({ tick }) => {
+      const runtimePromise = runPersistedChatSessionWithDeps(
+        {
+          ...createParams(),
+          runId,
+          sessionId,
+          workspaceId,
+          generatedImageEligible: true,
+        },
+        createDependencies({
+          touchChatRunHeartbeat: async () => {
+            heartbeatCallCount += 1;
+            return {
+              cancellationRequested: heartbeatCallCount > 1,
+              ownershipLost: false,
+            };
+          },
+          startOpenAILoop: async (
+            params: StartOpenAILoopParams,
+          ): Promise<OpenAILoopCompletion> => {
+            const toolDependencies: OpenAIToolDependencies = {
+              executeAgentSql: async () => {
+                throw new Error("SQL was not expected.");
+              },
+              createToolDependencies: () => DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
+              reserveGeneratedCardImageAttempt: async () => ({
+                status: "reserved",
+                attempt: 1,
+                payload: null,
+              }),
+              bindGeneratedCardImageAttemptPayload: async (binding) => binding.payload,
+              hasCognitoIdentityMappingForUser: async () => true,
+              ensureAIChatSyncReplicaWithDeadline: async () => replicaId,
+              generateCardImage: async () =>
+                new Promise((resolve, reject) => {
+                  params.signal?.addEventListener("abort", () => {
+                    reject(secondaryError);
+                  }, { once: true });
+                  dependencyStarted.resolve();
+                }),
+            };
+            await executeChatToolCallWithDependencies(
+              GENERATED_IMAGE_TOOL_NAME,
+              JSON.stringify({
+                cardId,
+                targetSide: "back",
+                imagePrompt: "Draw a cancellation race diagram.",
+                altText: "Cancellation race diagram",
+              }),
+              {
+                runId,
+                sessionId,
+                userId: params.userId,
+                workspaceId,
+                claimToken: params.claimToken,
+                operationKey: "generated-image:1",
+                generatedImageEligible: true,
+                signal: params.signal ?? null,
+                generatedImageOperationDeadlineMs:
+                  params.generatedImageOperationDeadlineMs,
+                generatedImageObservationContext: {
+                  scope: createBackendObservationScope(
+                    "chat-worker",
+                    null,
+                    null,
+                    null,
+                    params.userId,
+                    workspaceId,
+                    params.requestId,
+                    runId,
+                    sessionId,
+                    null,
+                    null,
+                  ),
+                  rootObservation: null,
+                },
+              },
+              toolDependencies,
+            );
+            return createCompletedLoopCompletion();
+          },
+          persistAssistantCancelled: async () => {
+            cancelledPersistCount += 1;
+          },
+          persistAssistantTerminalError: async () => {
+            terminalPersistCount += 1;
+          },
+        }),
+      );
+
+      await dependencyStarted.promise;
+      await tick();
+
+      assert.deepEqual(await runtimePromise, {
+        outcome: "cancelled",
+        abortReason: "user_cancelled",
+        runStatus: "cancelled",
+        sessionState: "idle",
+      });
+    });
+  });
+
+  assert.equal(cancelledPersistCount, 1);
+  assert.equal(terminalPersistCount, 0);
   assert.equal(findLog(logs, "chat_worker_provider_call_aborted")?.abortReason, "user_cancelled");
   assert.equal(findLog(logs, "chat_worker_terminal_state_persisted")?.runStatus, "cancelled");
 });

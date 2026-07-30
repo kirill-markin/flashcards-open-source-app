@@ -177,6 +177,7 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
         // null fallback until the minimum supported first-party AI client
         // version is greater than 1.5.0.
         body.uiLocale ?? null,
+        requestContext.transport === "bearer" || requestContext.transport === "session",
       ));
     } catch (error) {
       return mapStoreError(error);
@@ -190,6 +191,7 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
         routeRequestId: requestId,
         chatRequestId: body.clientRequestId,
         sessionId: preparedRun.sessionId,
+        initiatingAuthIsSignedIn: preparedRun.initiatingAuthIsSignedIn,
       }));
     }
 

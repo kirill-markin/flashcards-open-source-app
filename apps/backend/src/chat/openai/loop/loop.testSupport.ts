@@ -6,6 +6,14 @@ import {
 } from "./loop";
 
 export type OpenAILoopDependencies = Parameters<typeof startOpenAILoopWithDeps>[2];
+type TestToolCallResult = Readonly<{
+  output: string;
+  isMutating: boolean;
+  succeeded: boolean;
+  shouldInvalidateMainContent?: boolean;
+  stopReason?: "deadline_reached" | "run_inactive" | null;
+  generatedImageTelemetry?: null;
+}>;
 export type OpenAIResponseStream = AsyncIterable<OpenAI.Responses.ResponseStreamEvent> & Readonly<{
   finalResponse?: () => Promise<OpenAI.Responses.Response>;
 }>;
@@ -15,10 +23,13 @@ export function createParams(
 ): StartOpenAILoopParams {
   return {
     requestId: "request-1",
+    runId: "00000000-0000-4000-8000-000000000001",
     claimToken: "2026-07-24 10:11:12.123456+00",
     userId: "user-1",
     workspaceId: "workspace-1",
     sessionId: "session-1",
+    generatedImageEligible: false,
+    generatedImageOperationDeadlineMs: Date.now() + 600_000,
     modelId: "gpt-5.4",
     reasoningEffort: "medium",
     timezone: "Europe/Madrid",
@@ -306,7 +317,9 @@ export function createSdkAbortedResponseStream(
 
 export function createDependencies(
   streamFactory: (request: OpenAI.Responses.ResponseCreateParams) => OpenAIResponseStream,
-  runOneToolCall: OpenAILoopDependencies["runOneToolCall"],
+  runOneToolCall: (
+    params: Parameters<OpenAILoopDependencies["runOneToolCall"]>[0],
+  ) => Promise<TestToolCallResult>,
 ): OpenAILoopDependencies {
   return {
     buildChatCompletionInput: async () => [],
@@ -316,7 +329,16 @@ export function createDependencies(
         stream: (request: OpenAI.Responses.ResponseCreateParams) => streamFactory(request),
       },
     } as unknown as OpenAI),
-    runOneToolCall,
+    runOneToolCall: async (params) => {
+      const result = await runOneToolCall(params);
+      return {
+        ...result,
+        shouldInvalidateMainContent: result.shouldInvalidateMainContent
+          ?? (result.succeeded && result.isMutating),
+        stopReason: result.stopReason ?? null,
+        generatedImageTelemetry: result.generatedImageTelemetry ?? null,
+      };
+    },
   };
 }
 
