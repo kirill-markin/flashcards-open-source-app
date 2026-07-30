@@ -39,11 +39,18 @@ enum ReviewManagedMarkdownBlock {
 
 struct ReviewManagedMediaReference: Hashable {
     let mediaAssetId: String
+    let state: ManagedMediaAssetReferenceState
     let label: String?
     let isImageSyntax: Bool
 
-    init(mediaAssetId: String, label: String?, isImageSyntax: Bool) {
+    init(
+        mediaAssetId: String,
+        state: ManagedMediaAssetReferenceState,
+        label: String?,
+        isImageSyntax: Bool
+    ) {
         self.mediaAssetId = mediaAssetId
+        self.state = state
         self.label = label
         self.isImageSyntax = isImageSyntax
     }
@@ -274,9 +281,13 @@ private func splitReviewManagedMediaLine(line: String) -> [ReviewManagedMarkdown
     var didFindManagedMedia = false
 
     for match in matches {
-        guard let urlRange = Range(match.range(at: 3), in: line),
-              let matchRange = Range(match.range, in: line),
-              let mediaAssetId = parseManagedMediaAssetId(reference: String(line[urlRange])) else {
+        guard let urlRange = Range(match.range(at: 3), in: line) else {
+            continue
+        }
+        let rawReference = String(line[urlRange])
+        guard let mediaAssetId = parseManagedMediaAssetId(reference: rawReference),
+              let state = managedMediaAssetReferenceState(reference: rawReference),
+              let matchRange = Range(match.range, in: line) else {
             continue
         }
 
@@ -289,6 +300,7 @@ private func splitReviewManagedMediaLine(line: String) -> [ReviewManagedMarkdown
             .managedMedia(
                 ReviewManagedMediaReference(
                     mediaAssetId: mediaAssetId,
+                    state: state,
                     label: label,
                     isImageSyntax: isImageSyntax
                 )
@@ -338,8 +350,12 @@ private func reviewSpeakableTextReplacingManagedMediaReferences(text: String) ->
     var output = text
 
     for match in matches {
-        guard let urlRange = Range(match.range(at: 3), in: output),
-              parseManagedMediaAssetId(reference: String(output[urlRange])) != nil,
+        guard let urlRange = Range(match.range(at: 3), in: output) else {
+            continue
+        }
+        let rawReference = String(output[urlRange])
+        guard parseManagedMediaAssetId(reference: rawReference) != nil,
+              managedMediaAssetReferenceState(reference: rawReference) != nil,
               let matchRange = Range(match.range, in: output) else {
             continue
         }

@@ -34,6 +34,10 @@ struct ReviewView: View {
         editorSessionId: UUID(),
         frontText: "",
         backText: "",
+        frontTextSelection: nil,
+        backTextSelection: nil,
+        observedFrontText: nil,
+        observedBackText: nil,
         tags: [],
         mediaAssetIdsReadyForUpload: []
     )
@@ -163,6 +167,7 @@ struct ReviewView: View {
         }
         .task(id: store.localReadVersion) {
             await self.reloadReviewMetadata()
+            self.reconcileEditingCardFormState()
         }
         .safeAreaBar(edge: .bottom, spacing: 0) {
             reviewBottomAccessory

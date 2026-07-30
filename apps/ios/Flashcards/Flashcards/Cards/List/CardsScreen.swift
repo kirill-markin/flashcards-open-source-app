@@ -97,6 +97,10 @@ struct CardsScreen: View {
         editorSessionId: UUID(),
         frontText: "",
         backText: "",
+        frontTextSelection: nil,
+        backTextSelection: nil,
+        observedFrontText: nil,
+        observedBackText: nil,
         tags: [],
         mediaAssetIdsReadyForUpload: []
     )
@@ -269,6 +273,10 @@ struct CardsScreen: View {
             editorSessionId: UUID(),
             frontText: "",
             backText: "",
+            frontTextSelection: nil,
+            backTextSelection: nil,
+            observedFrontText: nil,
+            observedBackText: nil,
             tags: [],
             mediaAssetIdsReadyForUpload: []
         )
@@ -282,6 +290,10 @@ struct CardsScreen: View {
             editorSessionId: UUID(),
             frontText: card.frontText,
             backText: card.backText,
+            frontTextSelection: nil,
+            backTextSelection: nil,
+            observedFrontText: card.frontText,
+            observedBackText: card.backText,
             tags: card.tags,
             mediaAssetIdsReadyForUpload: []
         )
@@ -308,9 +320,21 @@ struct CardsScreen: View {
             return nil
         }
 
-        return self.cardsSnapshot.cards.first { card in
+        return store.cards.first { card in
             card.cardId == editingCardId
         }
+    }
+
+    private func reconcileEditingCardFormState() {
+        guard self.editorPresentation?.isEditing == true,
+              let refreshedCard = self.editingCard() else {
+            return
+        }
+
+        self.cardFormState = cardFormStateByReconcilingMediaLifecycle(
+            formState: self.cardFormState,
+            refreshedCard: refreshedCard
+        )
     }
 
     private func isEditingCardDirty() -> Bool {
@@ -528,6 +552,7 @@ struct CardsScreen: View {
                 searchText: self.searchText,
                 filter: self.committedFilter
             )
+            self.reconcileEditingCardFormState()
             let tagsSummary = try database.loadWorkspaceTagsSummary(workspaceId: workspaceId)
             self.cardsLoadErrorMessage = ""
             self.availableTagSuggestions = tagsSummary.tags.map { tagSummary in

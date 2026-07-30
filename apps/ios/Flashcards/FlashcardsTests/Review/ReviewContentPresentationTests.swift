@@ -7,7 +7,10 @@ final class ReviewContentPresentationTests: XCTestCase {
         let renderedContent = makeReviewRenderedContent(
             text: """
             Intro
-            ![Diagram](fcasset://00000000-0000-4000-8000-000000000001?download=1)
+            ![Ready diagram](fcasset://00000000-0000-4000-8000-000000000001?download=1)
+            ![Pending diagram](fcasset:00000000-0000-4000-8000-000000000002?state=pending)
+            ![Failed diagram](fcasset:00000000-0000-4000-8000-000000000003?download=1&state=failed)
+            ![Unknown state](fcasset:00000000-0000-4000-8000-000000000004?state=processing)
             [External](https://example.com/file.png)
             """
         )
@@ -17,15 +20,25 @@ final class ReviewContentPresentationTests: XCTestCase {
             return
         }
 
-        XCTAssertEqual(managedContent.blocks.count, 3)
-        guard case .managedMedia(let reference) = managedContent.blocks[1] else {
-            XCTFail("Expected managed media block")
+        XCTAssertEqual(managedContent.blocks.count, 6)
+        guard case .managedMedia(let readyReference) = managedContent.blocks[1],
+              case .managedMedia(let pendingReference) = managedContent.blocks[2],
+              case .managedMedia(let failedReference) = managedContent.blocks[3],
+              case .managedMedia(let unknownStateReference) = managedContent.blocks[4] else {
+            XCTFail("Expected ready, pending, failed, and forward-compatible managed media blocks")
             return
         }
 
-        XCTAssertEqual(reference.mediaAssetId, "00000000-0000-4000-8000-000000000001")
-        XCTAssertEqual(reference.label, "Diagram")
-        XCTAssertTrue(reference.isImageSyntax)
+        XCTAssertEqual(readyReference.mediaAssetId, "00000000-0000-4000-8000-000000000001")
+        XCTAssertEqual(readyReference.state, .ready)
+        XCTAssertEqual(readyReference.label, "Ready diagram")
+        XCTAssertTrue(readyReference.isImageSyntax)
+        XCTAssertEqual(pendingReference.mediaAssetId, "00000000-0000-4000-8000-000000000002")
+        XCTAssertEqual(pendingReference.state, .pending)
+        XCTAssertEqual(failedReference.mediaAssetId, "00000000-0000-4000-8000-000000000003")
+        XCTAssertEqual(failedReference.state, .failed)
+        XCTAssertEqual(unknownStateReference.mediaAssetId, "00000000-0000-4000-8000-000000000004")
+        XCTAssertEqual(unknownStateReference.state, .ready)
     }
 
     func testManagedMediaSpeakableTextUsesLabel() {

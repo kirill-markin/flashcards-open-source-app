@@ -32,6 +32,10 @@ struct CardFormState {
     var editorSessionId: UUID
     var frontText: String
     var backText: String
+    var frontTextSelection: TextSelection?
+    var backTextSelection: TextSelection?
+    var observedFrontText: String?
+    var observedBackText: String?
     var tags: [String]
     var mediaAssetIdsReadyForUpload: Set<String>
 }
@@ -49,6 +53,39 @@ func cardEditorInlineErrorMessage(error: Error) -> String? {
     case .database, .uninitialized:
         return nil
     }
+}
+
+func cardFormStateByReconcilingMediaLifecycle(
+    formState: CardFormState,
+    refreshedCard: Card
+) -> CardFormState {
+    var nextFormState = formState
+
+    if let observedFrontText = formState.observedFrontText {
+        let frontReconciliation = cardEditorTextByReconcilingMediaLifecycle(
+            text: formState.frontText,
+            selection: formState.frontTextSelection,
+            observedText: observedFrontText,
+            refreshedText: refreshedCard.frontText
+        )
+        nextFormState.frontText = frontReconciliation.text
+        nextFormState.frontTextSelection = frontReconciliation.selection
+    }
+
+    if let observedBackText = formState.observedBackText {
+        let backReconciliation = cardEditorTextByReconcilingMediaLifecycle(
+            text: formState.backText,
+            selection: formState.backTextSelection,
+            observedText: observedBackText,
+            refreshedText: refreshedCard.backText
+        )
+        nextFormState.backText = backReconciliation.text
+        nextFormState.backTextSelection = backReconciliation.selection
+    }
+
+    nextFormState.observedFrontText = refreshedCard.frontText
+    nextFormState.observedBackText = refreshedCard.backText
+    return nextFormState
 }
 
 private enum CardTextField: String {
@@ -121,6 +158,7 @@ struct CardEditorScreen: View {
                         CardTextEditorScreen(
                             field: .front,
                             text: $formState.frontText,
+                            textSelection: $formState.frontTextSelection,
                             editorSessionId: $formState.editorSessionId,
                             mediaAssetIdsReadyForUpload: $formState.mediaAssetIdsReadyForUpload
                         )
@@ -136,6 +174,7 @@ struct CardEditorScreen: View {
                         CardTextEditorScreen(
                             field: .back,
                             text: $formState.backText,
+                            textSelection: $formState.backTextSelection,
                             editorSessionId: $formState.editorSessionId,
                             mediaAssetIdsReadyForUpload: $formState.mediaAssetIdsReadyForUpload
                         )
@@ -232,12 +271,12 @@ private struct CardTextEditorScreen: View {
 
     let field: CardTextField
     @Binding var text: String
+    @Binding var textSelection: TextSelection?
     @Binding var editorSessionId: UUID
     @Binding var mediaAssetIdsReadyForUpload: Set<String>
     @FocusState private var isTextEditorFocused: Bool
     @State private var isPhotoPickerPresented: Bool = false
     @State private var selectedPhotoItem: PhotosPickerItem?
-    @State private var textSelection: TextSelection?
     @State private var isImportingImage: Bool = false
     @State private var imageImportTask: Task<Void, Never>?
     @State private var activeImageImportId: UUID?
@@ -542,8 +581,33 @@ private struct CardEditorMarkdownInsertion {
 private struct CardEditorManagedImageMatch {
     let occurrence: Int
     let mediaAssetId: String
+    let state: ManagedMediaAssetReferenceState
+    let destination: String
+    let destinationRange: Range<String.Index>
     let label: String?
     let range: Range<String.Index>
+}
+
+private struct CardEditorManagedImageDestinationTransition {
+    let mediaAssetIdUTF8: [UInt8]
+    let observedDestinationUTF8: [UInt8]
+    let refreshedDestination: String
+}
+
+private struct CardEditorTextReplacement {
+    let range: Range<String.Index>
+    let text: String
+}
+
+private struct CardEditorTextOffsetReplacement {
+    let lowerBound: Int
+    let upperBound: Int
+    let textCount: Int
+}
+
+private struct CardEditorTextReconciliation {
+    let text: String
+    let selection: TextSelection?
 }
 
 private func formatCardTextPreview(text: String) -> String {
@@ -566,6 +630,7 @@ private func cardEditorManagedImageReferences(text: String) -> [CardEditorManage
             mediaAssetId: match.mediaAssetId,
             reviewReference: ReviewManagedMediaReference(
                 mediaAssetId: match.mediaAssetId,
+                state: match.state,
                 label: match.label,
                 isImageSyntax: true
             )
@@ -610,6 +675,185 @@ private func cardEditorTextByRemovingManagedImageReference(
     }
 
     return text
+}
+
+private func cardEditorTextByReconcilingMediaLifecycle(
+    text: String,
+    selection: TextSelection?,
+    observedText: String,
+    refreshedText: String
+) -> CardEditorTextReconciliation {
+    let transitions = cardEditorManagedImageDestinationTransitions(
+        observedText: observedText,
+        refreshedText: refreshedText
+    )
+    let draftMatchesByMediaAssetIdUTF8 = Dictionary(
+        grouping: cardEditorManagedImageMatches(text: text),
+        by: { Array($0.mediaAssetId.utf8) }
+    )
+    let replacements = transitions.compactMap { transition in
+        guard let draftMatches = draftMatchesByMediaAssetIdUTF8[transition.mediaAssetIdUTF8],
+              draftMatches.count == 1,
+              let draftMatch = draftMatches.first,
+              Array(draftMatch.destination.utf8) == transition.observedDestinationUTF8 else {
+            return nil
+        }
+
+        return CardEditorTextReplacement(
+            range: draftMatch.destinationRange,
+            text: transition.refreshedDestination
+        )
+    }.sorted { first, second in
+        first.range.lowerBound < second.range.lowerBound
+    }
+
+    guard replacements.isEmpty == false else {
+        return CardEditorTextReconciliation(text: text, selection: selection)
+    }
+
+    var nextText = text
+    for replacement in replacements.reversed() {
+        nextText.replaceSubrange(replacement.range, with: replacement.text)
+    }
+
+    return CardEditorTextReconciliation(
+        text: nextText,
+        selection: cardEditorTextSelectionByApplyingReplacements(
+            selection: selection,
+            text: text,
+            nextText: nextText,
+            replacements: replacements
+        )
+    )
+}
+
+private func cardEditorManagedImageDestinationTransitions(
+    observedText: String,
+    refreshedText: String
+) -> [CardEditorManagedImageDestinationTransition] {
+    let observedMatchesByMediaAssetIdUTF8 = Dictionary(
+        grouping: cardEditorManagedImageMatches(text: observedText),
+        by: { Array($0.mediaAssetId.utf8) }
+    )
+    let refreshedMatchesByMediaAssetIdUTF8 = Dictionary(
+        grouping: cardEditorManagedImageMatches(text: refreshedText),
+        by: { Array($0.mediaAssetId.utf8) }
+    )
+    var transitions: [CardEditorManagedImageDestinationTransition] = []
+
+    for (mediaAssetIdUTF8, observedMatches) in observedMatchesByMediaAssetIdUTF8 {
+        guard observedMatches.count == 1,
+              let observedMatch = observedMatches.first,
+              observedMatch.state != .ready,
+              let refreshedMatches = refreshedMatchesByMediaAssetIdUTF8[mediaAssetIdUTF8],
+              refreshedMatches.count == 1,
+              let refreshedMatch = refreshedMatches.first else {
+            continue
+        }
+
+        let observedDestinationUTF8 = Array(observedMatch.destination.utf8)
+        let refreshedDestinationUTF8 = Array(refreshedMatch.destination.utf8)
+        guard observedMatch.state != refreshedMatch.state,
+              observedDestinationUTF8 != refreshedDestinationUTF8 else {
+            continue
+        }
+
+        transitions.append(
+            CardEditorManagedImageDestinationTransition(
+                mediaAssetIdUTF8: mediaAssetIdUTF8,
+                observedDestinationUTF8: observedDestinationUTF8,
+                refreshedDestination: refreshedMatch.destination
+            )
+        )
+    }
+
+    return transitions
+}
+
+private func cardEditorTextSelectionByApplyingReplacements(
+    selection: TextSelection?,
+    text: String,
+    nextText: String,
+    replacements: [CardEditorTextReplacement]
+) -> TextSelection? {
+    guard let selection else {
+        return nil
+    }
+
+    let offsetReplacements = replacements.map { replacement in
+        CardEditorTextOffsetReplacement(
+            lowerBound: text.distance(from: text.startIndex, to: replacement.range.lowerBound),
+            upperBound: text.distance(from: text.startIndex, to: replacement.range.upperBound),
+            textCount: replacement.text.count
+        )
+    }
+
+    switch selection.indices {
+    case .selection(let range):
+        return TextSelection(
+            range: cardEditorTextRangeByApplyingReplacements(
+                range: range,
+                text: text,
+                nextText: nextText,
+                replacements: offsetReplacements
+            )
+        )
+    case .multiSelection(let ranges):
+        let nextRanges = ranges.ranges.map { range in
+            cardEditorTextRangeByApplyingReplacements(
+                range: range,
+                text: text,
+                nextText: nextText,
+                replacements: offsetReplacements
+            )
+        }
+        return TextSelection(ranges: RangeSet(nextRanges))
+    @unknown default:
+        return nil
+    }
+}
+
+private func cardEditorTextRangeByApplyingReplacements(
+    range: Range<String.Index>,
+    text: String,
+    nextText: String,
+    replacements: [CardEditorTextOffsetReplacement]
+) -> Range<String.Index> {
+    let lowerOffset = cardEditorTextOffsetByApplyingReplacements(
+        offset: text.distance(from: text.startIndex, to: range.lowerBound),
+        replacements: replacements
+    )
+    let upperOffset = cardEditorTextOffsetByApplyingReplacements(
+        offset: text.distance(from: text.startIndex, to: range.upperBound),
+        replacements: replacements
+    )
+    let lowerBound = nextText.index(nextText.startIndex, offsetBy: lowerOffset)
+    let upperBound = nextText.index(nextText.startIndex, offsetBy: upperOffset)
+    return lowerBound..<upperBound
+}
+
+private func cardEditorTextOffsetByApplyingReplacements(
+    offset: Int,
+    replacements: [CardEditorTextOffsetReplacement]
+) -> Int {
+    var appliedOffset = 0
+
+    for replacement in replacements {
+        if offset < replacement.lowerBound {
+            break
+        }
+        if offset == replacement.upperBound {
+            return replacement.lowerBound + appliedOffset + replacement.textCount
+        }
+        if offset < replacement.upperBound {
+            let relativeOffset = offset - replacement.lowerBound
+            return replacement.lowerBound + appliedOffset + min(relativeOffset, replacement.textCount)
+        }
+
+        appliedOffset += replacement.textCount - (replacement.upperBound - replacement.lowerBound)
+    }
+
+    return offset + appliedOffset
 }
 
 private func cardEditorManagedImageMatches(text: String) -> [CardEditorManagedImageMatch] {
@@ -657,9 +901,13 @@ private func cardEditorManagedImageMatchesInLine(
 
     for match in matches {
         guard match.range(at: 1).location != NSNotFound,
-              let urlRange = Range(match.range(at: 3), in: line),
-              let matchRange = Range(match.range, in: line),
-              let mediaAssetId = parseManagedMediaAssetId(reference: String(line[urlRange])) else {
+              let urlRange = Range(match.range(at: 3), in: line) else {
+            continue
+        }
+        let rawReference = String(line[urlRange])
+        guard let mediaAssetId = parseManagedMediaAssetId(reference: rawReference),
+              let state = managedMediaAssetReferenceState(reference: rawReference),
+              let matchRange = Range(match.range, in: line) else {
             continue
         }
 
@@ -667,6 +915,14 @@ private func cardEditorManagedImageMatchesInLine(
             CardEditorManagedImageMatch(
                 occurrence: nextOccurrence + imageMatches.count,
                 mediaAssetId: mediaAssetId,
+                state: state,
+                destination: rawReference,
+                destinationRange: cardEditorOriginalLineRange(
+                    text: text,
+                    line: line,
+                    lineRange: lineRange,
+                    matchRange: urlRange
+                ),
                 label: cardEditorManagedMediaLabel(text: line, match: match),
                 range: cardEditorOriginalLineRange(
                     text: text,
