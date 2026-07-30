@@ -224,10 +224,14 @@ describe("useWorkspaceSession bootstrap", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const networkSyncError = new ApiNetworkError({
+      statusCode: 0,
+      requestId: null,
+      responseBodyKind: "empty",
       endpoint: "POST /sync/push",
       originalErrorName: "TypeError",
       originalErrorMessage: "Failed to fetch",
       attemptCount: 4,
+      source: "fetch",
     });
     const runSyncForWorkspaceMock = vi.fn(async (_workspace: WorkspaceSummary): Promise<void> => {
       const wasCaptured = observeSyncFailure({

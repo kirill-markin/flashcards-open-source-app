@@ -57,6 +57,39 @@ function createWorkspacesResponse(): Response {
   });
 }
 
+function createFailingResponse(
+  error: Error,
+  requestId: string,
+  statusCode: number,
+  contentType: string,
+): Response {
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      controller.error(error);
+    },
+  });
+
+  return new Response(stream, {
+    status: statusCode,
+    headers: {
+      "Content-Type": contentType,
+      "X-Request-Id": requestId,
+    },
+  });
+}
+
+function createFailingJsonResponse(
+  error: Error,
+  requestId: string,
+  statusCode: number,
+): Response {
+  return createFailingResponse(error, requestId, statusCode, "application/json");
+}
+
+function createFailingBlobResponse(error: Error, requestId: string): Response {
+  return createFailingResponse(error, requestId, 200, "application/octet-stream");
+}
+
 type DeferredResponsePromise = Readonly<{
   promise: Promise<Response>;
   reject: (error: Error) => void;
@@ -494,6 +527,57 @@ describe("unsafe request session transport", () => {
     expect(new Headers(retriedRequestInit?.headers).get("X-CSRF-Token")).toBe("csrf-token-2");
   });
 
+  it("retries a failed stale-CSRF response body read with the shared network budget", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
+    primeSessionCsrfToken("csrf-token-1");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createFailingJsonResponse(
+        new TypeError("Load failed"),
+        "csrf-request-1",
+        403,
+      ))
+      .mockResolvedValueOnce(createNewChatSessionResponse("session-1"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createTransportBackedChatSession("session-1")).resolves.toMatchObject({
+      sessionId: "session-1",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(consoleWarnSpy).toHaveBeenCalledWith("API transport retry", expect.objectContaining({
+      endpoint: "POST /chat/new",
+      attemptCount: 1,
+      source: "response_body",
+      statusCode: 403,
+      requestId: "csrf-request-1",
+    }));
+  });
+
+  it("does not retry a failed stale-CSRF response body read without network retry", async () => {
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
+    primeSessionCsrfToken("csrf-token-1");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createFailingJsonResponse(
+        new TypeError("Load failed"),
+        "csrf-request-no-retry",
+        403,
+      ));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(stopChatRun("session-1", "workspace-1", null)).rejects.toMatchObject({
+      statusCode: 403,
+      code: "API_NETWORK_ERROR",
+      requestId: "csrf-request-no-retry",
+      endpoint: "POST /chat/stop",
+      attemptCount: 1,
+      source: "response_body",
+    } satisfies Partial<ApiNetworkError>);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+  });
+
   it("uses normal auth recovery when the retry after stale CSRF returns unauthorized", async () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(createSessionResponse({
@@ -643,6 +727,122 @@ describe("API transport network retry", () => {
       originalErrorName: "TypeError",
       originalErrorMessage: "Failed to fetch",
     }));
+  });
+
+  it("retries a response body read failure with response metadata", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createFailingJsonResponse(new TypeError("Load failed"), "request-1", 200))
+      .mockResolvedValueOnce(createSessionResponse(null));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getSession()).resolves.toMatchObject({
+      userId: "user-1",
+      selectedWorkspaceId: "workspace-1",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(consoleWarnSpy).toHaveBeenCalledWith("API transport retry", expect.objectContaining({
+      endpoint: "GET /me",
+      attemptCount: 1,
+      maximumAttemptCount: 4,
+      nextAttemptCount: 2,
+      source: "response_body",
+      statusCode: 200,
+      requestId: "request-1",
+      originalErrorName: "TypeError",
+      originalErrorMessage: "Load failed",
+    }));
+  });
+
+  it("shares one retry budget across fetch and response body failures", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createFailingJsonResponse(new TypeError("Load failed"), "request-1", 200))
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValueOnce(createFailingJsonResponse(new TypeError("Load failed"), "request-3", 200))
+      .mockResolvedValueOnce(createSessionResponse(null));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getSession()).resolves.toMatchObject({
+      userId: "user-1",
+      selectedWorkspaceId: "workspace-1",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(consoleWarnSpy.mock.calls.map((call) => call[1])).toEqual([
+      expect.objectContaining({
+        attemptCount: 1,
+        source: "response_body",
+        requestId: "request-1",
+      }),
+      expect.objectContaining({
+        attemptCount: 2,
+        source: "fetch",
+        requestId: null,
+      }),
+      expect.objectContaining({
+        attemptCount: 3,
+        source: "response_body",
+        requestId: "request-3",
+      }),
+    ]);
+  });
+
+  it("raises a structured API network error after response body retry attempts are exhausted", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockImplementation(() => Promise.resolve(
+        createFailingJsonResponse(new TypeError("Load failed"), "request-terminal", 200),
+      ));
+    vi.stubGlobal("fetch", fetchMock);
+    const sessionPromise = getSession();
+
+    await expect(sessionPromise).rejects.toBeInstanceOf(ApiNetworkError);
+    await expect(sessionPromise).rejects.toMatchObject({
+      statusCode: 200,
+      code: "API_NETWORK_ERROR",
+      requestId: "request-terminal",
+      endpoint: "GET /me",
+      responseBodyKind: "empty",
+      originalErrorName: "TypeError",
+      originalErrorMessage: "Load failed",
+      attemptCount: 4,
+      source: "response_body",
+    } satisfies Partial<ApiNetworkError>);
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not retry response body failures when network retry is disabled", async () => {
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createFailingJsonResponse(
+        new TypeError("Load failed"),
+        "request-no-retry",
+        200,
+      ));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(requestJson(
+      "/response-body-no-retry",
+      { method: "GET" },
+      allowAuthRecovery,
+    )).rejects.toMatchObject({
+      statusCode: 200,
+      code: "API_NETWORK_ERROR",
+      requestId: "request-no-retry",
+      endpoint: "GET /response-body-no-retry",
+      attemptCount: 1,
+      source: "response_body",
+    } satisfies Partial<ApiNetworkError>);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
   });
 
   it("raises a structured API network error after session bootstrap retry attempts are exhausted", async () => {
@@ -1036,6 +1236,93 @@ describe("API transport network retry", () => {
 });
 
 describe("API transport binary responses", () => {
+  it("retries a successful response whose blob body cannot be read", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createFailingBlobResponse(new TypeError("Load failed"), "blob-request-1"))
+      .mockResolvedValueOnce(new Response("workspace-package", {
+        status: 200,
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "X-Request-Id": "blob-request-2",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const payload = await requestBlob(
+      "/workspaces/workspace-1/packages/export",
+      { method: "GET" },
+      allowAuthRecoveryWithTransientNetworkRetry,
+    );
+
+    await expect(payload.blob.text()).resolves.toBe("workspace-package");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(consoleWarnSpy).toHaveBeenCalledWith("API transport retry", expect.objectContaining({
+      endpoint: "GET /workspaces/workspace-1/packages/export",
+      attemptCount: 1,
+      source: "response_body",
+      statusCode: 200,
+      requestId: "blob-request-1",
+    }));
+  });
+
+  it("does not retry a blob body read failure without network retry", async () => {
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createFailingBlobResponse(
+        new TypeError("Load failed"),
+        "blob-request-no-retry",
+      ));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(requestBlob(
+      "/workspaces/workspace-1/packages/export",
+      { method: "GET" },
+      allowAuthRecovery,
+    )).rejects.toMatchObject({
+      statusCode: 200,
+      code: "API_NETWORK_ERROR",
+      requestId: "blob-request-no-retry",
+      endpoint: "GET /workspaces/workspace-1/packages/export",
+      attemptCount: 1,
+      source: "response_body",
+    } satisfies Partial<ApiNetworkError>);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+  });
+
+  it("raises a structured API network error after blob body retry attempts are exhausted", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockImplementation(() => Promise.resolve(createFailingBlobResponse(
+        new TypeError("Load failed"),
+        "blob-request-terminal",
+      )));
+    vi.stubGlobal("fetch", fetchMock);
+    const blobPromise = requestBlob(
+      "/workspaces/workspace-1/packages/export",
+      { method: "GET" },
+      allowAuthRecoveryWithTransientNetworkRetry,
+    );
+
+    await expect(blobPromise).rejects.toMatchObject({
+      statusCode: 200,
+      code: "API_NETWORK_ERROR",
+      requestId: "blob-request-terminal",
+      endpoint: "GET /workspaces/workspace-1/packages/export",
+      originalErrorName: "TypeError",
+      originalErrorMessage: "Load failed",
+      attemptCount: 4,
+      source: "response_body",
+    } satisfies Partial<ApiNetworkError>);
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
+  });
+
   it("converts non-OK JSON errors into ApiError metadata", async () => {
     primeSessionCsrfToken("csrf-token-1");
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()

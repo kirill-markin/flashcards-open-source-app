@@ -2,7 +2,12 @@ import {
   ApiContractError,
   enrichApiContractError,
 } from "../../apiContracts/core";
-import { ApiError, type ApiResponseBodyKind } from "./errors";
+import {
+  ApiError,
+  ApiNetworkError,
+  createApiNetworkError,
+  type ApiResponseBodyKind,
+} from "./errors";
 
 type JsonObject = Readonly<{
   readonly [key: string]: unknown;
@@ -21,6 +26,11 @@ export type ParsedResponsePayload = Readonly<{
 }>;
 
 export type ContractResponseParser<ParsedValue> = (value: unknown, endpoint: string) => ParsedValue;
+
+export type ResponseBodyReadErrorContext = Readonly<{
+  attemptCount: number;
+  endpoint: string;
+}>;
 
 function isJsonObject(value: unknown): value is JsonObject {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -70,6 +80,22 @@ function getHeaderRequestId(response: Response): string | null {
     ?? response.headers.get("X-Amzn-RequestId")
     ?? response.headers.get("X-Amz-Apigw-Id");
   return requestId === null || requestId.trim() === "" ? null : requestId;
+}
+
+function createResponseBodyNetworkError(
+  response: Response,
+  error: unknown,
+  context: ResponseBodyReadErrorContext,
+): ApiNetworkError {
+  return createApiNetworkError({
+    statusCode: response.status,
+    requestId: getHeaderRequestId(response),
+    responseBodyKind: "empty",
+    endpoint: context.endpoint,
+    error,
+    attemptCount: context.attemptCount,
+    source: "response_body",
+  });
 }
 
 function getRetryAfterMs(response: Response): number | null {
@@ -128,8 +154,34 @@ export async function readJsonResponse(response: Response): Promise<ParsedRespon
   }
 }
 
-export async function parseJsonPayload(response: Response, endpoint: string): Promise<ParsedResponsePayload> {
-  const payload = await readJsonResponse(response);
+async function readJsonResponseWithNetworkError(
+  response: Response,
+  context: ResponseBodyReadErrorContext,
+): Promise<ParsedResponsePayload> {
+  try {
+    return await readJsonResponse(response);
+  } catch (error) {
+    throw createResponseBodyNetworkError(response, error, context);
+  }
+}
+
+export async function readBlobResponse(
+  response: Response,
+  bodyReadErrorContext: ResponseBodyReadErrorContext,
+): Promise<Blob> {
+  try {
+    return await response.blob();
+  } catch (error) {
+    throw createResponseBodyNetworkError(response, error, bodyReadErrorContext);
+  }
+}
+
+export async function parseJsonPayload(
+  response: Response,
+  endpoint: string,
+  bodyReadErrorContext: ResponseBodyReadErrorContext,
+): Promise<ParsedResponsePayload> {
+  const payload = await readJsonResponseWithNetworkError(response, bodyReadErrorContext);
 
   if (!response.ok) {
     const fallbackMessage = typeof payload.value === "string" ? payload.value : `Request failed with status ${response.status}`;
@@ -147,12 +199,17 @@ export async function parseJsonPayload(response: Response, endpoint: string): Pr
   return payload;
 }
 
-export async function isRecoverableSessionCsrfResponse(response: Response): Promise<boolean> {
+export async function isRecoverableSessionCsrfResponse(
+  response: Response,
+  bodyReadErrorContext: ResponseBodyReadErrorContext,
+): Promise<boolean> {
   if (response.status !== 403) {
     return false;
   }
 
-  return isRecoverableSessionCsrfPayload((await readJsonResponse(response.clone())).value);
+  return isRecoverableSessionCsrfPayload(
+    (await readJsonResponseWithNetworkError(response.clone(), bodyReadErrorContext)).value,
+  );
 }
 
 export function parseContractResponse<ParsedValue>(

@@ -139,10 +139,14 @@ describe("useProgressSource lifecycle", () => {
 
   it("keeps leaderboard API network failures inline without technical capture", async () => {
     const networkError = new ApiNetworkError({
+      statusCode: 0,
+      requestId: null,
+      responseBodyKind: "empty",
       endpoint: "GET /me/progress/leaderboard",
       originalErrorName: "TypeError",
       originalErrorMessage: "Failed to fetch",
       attemptCount: 3,
+      source: "fetch",
     });
     loadProgressLeaderboardMock.mockRejectedValueOnce(networkError);
 

@@ -361,10 +361,14 @@ describe("Sentry privacy sanitizer", () => {
     const event: WebExceptionEvent = {
       action: "chat_snapshot_failed",
       error: new ApiNetworkError({
+        statusCode: 0,
+        requestId: null,
+        responseBodyKind: "empty",
         endpoint: "GET /chat",
         originalErrorName: "TypeError",
         originalErrorMessage: "Failed to fetch",
         attemptCount: 3,
+        source: "fetch",
       }),
       scope,
       details: {
@@ -384,10 +388,14 @@ describe("Sentry privacy sanitizer", () => {
   it("treats browser API network app operation errors as expected", () => {
     const wasCaptured = captureAppOperationError(
       new ApiNetworkError({
+        statusCode: 0,
+        requestId: null,
+        responseBodyKind: "empty",
         endpoint: "GET /me",
         originalErrorName: "TypeError",
         originalErrorMessage: "Failed to fetch",
         attemptCount: 3,
+        source: "fetch",
       }),
       {
         feature: "app",
