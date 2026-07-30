@@ -16,7 +16,7 @@ import com.flashcardsopensourceapp.data.local.repository.progress.inputs.createP
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressObservationVersions
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressRefreshCoordinator
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressRemoteRefreshSyncMode
-import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressRefreshWarning
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressRemoteLoadFailure
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressLeaderboardStoreInputs
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressLeaderboardStoreState
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.createProgressLeaderboardScopeKey
@@ -140,7 +140,7 @@ internal class ProgressLeaderboardOrchestration(
             if (shouldSuppressRemoteLoadWarning(refreshStoreState = refreshStoreState)) {
                 return
             }
-            logProgressRefreshWarning(
+            logProgressRemoteLoadFailure(
                 observability = observability,
                 observationVersions = observationVersions,
                 event = "progress_leaderboard_remote_load_failed",
