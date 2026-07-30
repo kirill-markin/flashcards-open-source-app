@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import test from "node:test";
 import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../../database";
 import {
+  MediaBlobWriterFenceError,
   reserveMediaBlobWriterInExecutor,
   type MediaBlobWriterReservation,
 } from "../../mediaAssets/blobLifecycle";
@@ -14,8 +15,10 @@ import { imageJpegCardMediaBlobNormalizationVersion } from "../../mediaAssets/ty
 import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../testSupport/postgresIntegration";
 import { InactiveChatRunClaimError } from "../runs/claimFence";
 import {
+  assertGeneratedMediaBlobStorageCapabilityForMutation,
   claimGeneratedMediaPromotionJobs,
   enqueueGeneratedMediaPromotionJob,
+  failGeneratedMediaPromotionJobAfterAccessRevocation,
   failGeneratedMediaPromotionJobAfterAccessRevocationWithExecutor,
   failGeneratedMediaPromotionJobWithExecutor,
   failGeneratedMediaPromotionJobWithBlobWriterInExecutor,
@@ -24,9 +27,12 @@ import {
   isGeneratedMediaPromotionOperationAppliedWithExecutor,
   markGeneratedMediaPromotionBlobWriterAmbiguousWithExecutor,
   markGeneratedMediaPromotionJobAppliedWithExecutor,
+  markGeneratedMediaBlobWriterAmbiguous,
+  reserveGeneratedMediaBlobWriter,
   rescheduleGeneratedMediaPromotionJobWithExecutor,
   type ClaimedGeneratedMediaPromotionJob,
   type EnqueueGeneratedMediaPromotionJobInput,
+  type GeneratedMediaBlobStorageCapability,
 } from "./promotionJobs";
 import {
   applyGeneratedMediaPromotionJob, failGeneratedMediaPromotionJob,
@@ -143,6 +149,55 @@ function withSha256(
   sha256: string,
 ): EnqueueGeneratedMediaPromotionJobInput {
   return { ...input, sha256, blobStorageKey: buildMediaBlobStorageKey(sha256) };
+}
+function immutablePayloadMismatches(
+  job: ClaimedGeneratedMediaPromotionJob,
+): ReadonlyArray<ClaimedGeneratedMediaPromotionJob> {
+  const operationId = randomUUID();
+  const workspaceId = randomUUID();
+  const mediaAssetId = randomUUID();
+  const sha256 = uniqueSha256();
+  return [
+    {
+      ...job,
+      operationId,
+      stagingStorageKey: buildMediaUploadStagingStorageKey(
+        job.workspaceId,
+        job.mediaAssetId,
+        operationId,
+      ),
+    },
+    { ...job, userId: "forged-generated-promotion-user" },
+    {
+      ...job,
+      workspaceId,
+      stagingStorageKey: buildMediaUploadStagingStorageKey(
+        workspaceId,
+        job.mediaAssetId,
+        job.operationId,
+      ),
+    },
+    { ...job, cardId: randomUUID() },
+    { ...job, targetSide: job.targetSide === "front" ? "back" : "front" },
+    { ...job, altText: "Forged immutable alt text" },
+    {
+      ...job,
+      mediaAssetId,
+      stagingStorageKey: buildMediaUploadStagingStorageKey(
+        job.workspaceId,
+        mediaAssetId,
+        job.operationId,
+      ),
+    },
+    { ...job, replicaId: randomUUID() },
+    {
+      ...job,
+      sha256,
+      blobStorageKey: buildMediaBlobStorageKey(sha256),
+    },
+    { ...job, mimeType: "image/png" },
+    { ...job, sizeBytes: job.sizeBytes + 1 },
+  ];
 }
 async function reserveGeneratedWriter(
   fixture: PostgresIntegrationFixture,
@@ -269,7 +324,7 @@ async function assertRevocationMigrationUpgrade(
     client.release();
   }
 }
-test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS", async () => {
+test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS", async (testContext) => {
   await withPostgresIntegrationFixture(async (fixture) => {
     const run = await createRun(fixture);
     const concurrentInput = { ...createInput(fixture, run), targetSide: "front" as const };
@@ -354,7 +409,112 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
         })),
       GeneratedMediaPromotionJobLeaseLostError,
     );
-    await applyGeneratedMediaPromotionJob(applied, Date.now() + 10_000);
+    for (const mismatchedJob of immutablePayloadMismatches(applied)) {
+      await assert.rejects(
+        reserveGeneratedMediaBlobWriter(mismatchedJob, Date.now() + 10_000),
+        GeneratedMediaPromotionJobLeaseLostError,
+      );
+    }
+    assert.equal((await fixture.ownerPool.query<{ count: string }>(
+      `SELECT count(*)::text AS count
+       FROM content.media_blob_writer_reservations
+       WHERE writer_kind = 'generated_promotion'
+         AND workspace_id = $1
+         AND media_asset_id = $2
+         AND operation_id = $3`,
+      [applied.workspaceId, applied.mediaAssetId, applied.operationId],
+    )).rows[0]?.count, "0");
+    let forgedStorageCalls = 0;
+    let forgedApplyCalls = 0;
+    const forgedResult = await processClaimedGeneratedMediaPromotionJobWithDependencies(
+      { ...applied, altText: "Forged processor payload" },
+      {
+        leaseOwner: applied.leaseOwner, leaseDurationMs: 60_000,
+        maximumJobs: 1, deadlineAtMs: Date.now() + 10_000,
+        observationScope: testObservationScope, signal: new AbortController().signal,
+      },
+      {
+        claimJobsFn: async () => [],
+        reserveWriterFn: reserveGeneratedMediaBlobWriter,
+        promoteObjectFn: async () => {
+          forgedStorageCalls += 1;
+        },
+        applyJobFn: async () => {
+          forgedApplyCalls += 1;
+        },
+        rescheduleJobFn: async () => {
+          assert.fail("A forged job must not be rescheduled.");
+        },
+        failJobFn: async () => {
+          assert.fail("A forged job must not reach failure application.");
+        },
+        failAfterAccessRevocationFn: async () => {
+          assert.fail("A forged job must not reach access-revocation resolution.");
+        },
+        markWriterAmbiguousFn: async () => {
+          assert.fail("A forged job must not mark a writer ambiguous.");
+        },
+        nowFn: Date.now,
+      },
+    );
+    assert.equal(forgedResult.outcome, "lease_lost");
+    assert.equal(forgedStorageCalls, 0);
+    assert.equal(forgedApplyCalls, 0);
+    const appliedWriter = await reserveGeneratedMediaBlobWriter(applied, Date.now() + 10_000);
+    assert.doesNotThrow(() => assertGeneratedMediaBlobStorageCapabilityForMutation(
+      appliedWriter.storageCapability,
+      appliedWriter.writer,
+    ));
+    for (const mismatchedWriter of [
+      { ...appliedWriter.writer, reservationToken: randomUUID() },
+      { ...appliedWriter.writer, altText: "Mismatched immutable generated payload" },
+    ]) {
+      assert.throws(
+        () => assertGeneratedMediaBlobStorageCapabilityForMutation(
+          appliedWriter.storageCapability,
+          mismatchedWriter,
+        ),
+        MediaBlobWriterFenceError,
+      );
+    }
+    assert.throws(
+      () => assertGeneratedMediaBlobStorageCapabilityForMutation(
+        Object.freeze({}) as GeneratedMediaBlobStorageCapability,
+        appliedWriter.writer,
+      ),
+      MediaBlobWriterFenceError,
+    );
+    for (const copiedCapability of [
+      Object.freeze({ ...appliedWriter.storageCapability }),
+      Object.freeze(Object.create(appliedWriter.storageCapability)),
+      Object.freeze(structuredClone(appliedWriter.storageCapability)),
+    ] as ReadonlyArray<GeneratedMediaBlobStorageCapability>) {
+      assert.throws(
+        () => assertGeneratedMediaBlobStorageCapabilityForMutation(
+          copiedCapability,
+          appliedWriter.writer,
+        ),
+        MediaBlobWriterFenceError,
+      );
+    }
+    const dateNowMock = testContext.mock.method(
+      Date,
+      "now",
+      () => Date.parse(appliedWriter.writer.leaseExpiresAt),
+    );
+    try {
+      assert.throws(
+        () => assertGeneratedMediaBlobStorageCapabilityForMutation(
+          appliedWriter.storageCapability,
+          appliedWriter.writer,
+        ),
+        MediaBlobWriterFenceError,
+      );
+    } finally {
+      dateNowMock.mock.restore();
+    }
+    await applyGeneratedMediaPromotionJob(appliedWriter, Date.now() + 10_000);
+    await applyGeneratedMediaPromotionJob(appliedWriter, Date.now() + 10_000);
     await transition(fixture, async (executor) => {
       assert.equal(await isGeneratedMediaPromotionOperationAppliedWithExecutor(
         executor, applied.jobId, applied.operationId,
@@ -480,12 +640,30 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
     const terminalInput = inputs[3];
     if (terminalInput === undefined) throw new Error("Missing terminal input.");
     const terminal = byJobId(claimed, terminalInput.jobId);
+    const terminalWriter = await reserveGeneratedMediaBlobWriter(terminal, Date.now() + 10_000);
+    await transition(fixture, (executor) =>
+      rescheduleGeneratedMediaPromotionJobWithExecutor(executor, {
+        ...terminal,
+        nextAttemptAt: new Date(Date.now() + 60_000),
+        error: {
+          code: "DATABASE_TRANSIENT",
+          message: "Generated writer retry must recover without an in-memory token.",
+        },
+      }));
+    await fixture.ownerPool.query(
+      "UPDATE content.generated_media_promotion_jobs SET next_attempt_at = created_at WHERE job_id = $1",
+      [terminal.jobId],
+    );
     await fixture.ownerPool.query(
       "DELETE FROM org.workspace_memberships WHERE workspace_id = $1 AND user_id = $2",
       [fixture.workspaceId, fixture.userId],
     );
+    const reclaimedTerminal = byJobId(
+      await claim("integration-revoked", 1),
+      terminal.jobId,
+    );
     const revokedResult = await processClaimedGeneratedMediaPromotionJobWithDependencies(
-      terminal,
+      reclaimedTerminal,
       {
         leaseOwner: "integration-revoked", leaseDurationMs: 60_000,
         maximumJobs: 1, deadlineAtMs: Date.now() + 10_000,
@@ -493,15 +671,22 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
       },
       {
         claimJobsFn: claimGeneratedMediaPromotionJobs,
+        reserveWriterFn: reserveGeneratedMediaBlobWriter,
         promoteObjectFn: async () => {},
         applyJobFn: applyGeneratedMediaPromotionJob,
         rescheduleJobFn: rescheduleGeneratedMediaPromotionJob,
         failJobFn: failGeneratedMediaPromotionJob,
+        failAfterAccessRevocationFn: failGeneratedMediaPromotionJobAfterAccessRevocation,
+        markWriterAmbiguousFn: markGeneratedMediaBlobWriterAmbiguous,
         nowFn: Date.now,
       },
     );
     assert.equal(revokedResult.outcome, "failed");
     assert.equal(revokedResult.errorCode, "WORKSPACE_ACCESS_REVOKED");
+    assert.equal((await fixture.ownerPool.query<{ state: string }>(
+      "SELECT state FROM content.media_blob_writer_reservations WHERE reservation_token = $1",
+      [terminalWriter.reservationToken],
+    )).rows[0]?.state, "unreferenced");
     await assert.rejects(
       transition(fixture, async (executor) =>
         failGeneratedMediaPromotionJobWithExecutor(executor, {
@@ -573,8 +758,8 @@ test("access revocation resolves an exact generated writer and fences stale leas
       fixture, metadataConflict, conflictingSha256,
     );
     assert.equal(
-      await failGeneratedMediaPromotionJobAfterAccessRevocationWithExecutor(
-        fixture.runtimePool, rescheduled,
+      await failGeneratedMediaPromotionJobAfterAccessRevocation(
+        rescheduled, Date.now() + 10_000,
       ),
       "access_active",
     );
@@ -621,8 +806,8 @@ test("access revocation resolves an exact generated writer and fences stale leas
       [fixture.workspaceId, fixture.userId],
     );
     assert.equal(
-      await failGeneratedMediaPromotionJobAfterAccessRevocationWithExecutor(
-        fixture.runtimePool, ambiguous,
+      await failGeneratedMediaPromotionJobAfterAccessRevocation(
+        ambiguous, Date.now() + 10_000,
       ),
       "access_active",
     );
@@ -668,12 +853,27 @@ test("access revocation resolves an exact generated writer and fences stale leas
       ),
       "failed",
     );
-    assert.equal(
-      await failGeneratedMediaPromotionJobAfterAccessRevocationWithExecutor(
-        fixture.runtimePool, ambiguous,
-      ),
-      "failed",
+    const ambiguousResult = await processClaimedGeneratedMediaPromotionJobWithDependencies(
+      ambiguous,
+      {
+        leaseOwner: "revocation-integration-initial", leaseDurationMs: 60_000,
+        maximumJobs: 1, deadlineAtMs: Date.now() + 10_000,
+        observationScope: testObservationScope, signal: new AbortController().signal,
+      },
+      {
+        claimJobsFn: claimGeneratedMediaPromotionJobs,
+        reserveWriterFn: reserveGeneratedMediaBlobWriter,
+        promoteObjectFn: async () => {},
+        applyJobFn: applyGeneratedMediaPromotionJob,
+        rescheduleJobFn: rescheduleGeneratedMediaPromotionJob,
+        failJobFn: failGeneratedMediaPromotionJob,
+        failAfterAccessRevocationFn: failGeneratedMediaPromotionJobAfterAccessRevocation,
+        markWriterAmbiguousFn: markGeneratedMediaBlobWriterAmbiguous,
+        nowFn: Date.now,
+      },
     );
+    assert.equal(ambiguousResult.outcome, "failed");
+    assert.equal(ambiguousResult.errorCode, "WORKSPACE_ACCESS_REVOKED");
     assert.equal(
       await failGeneratedMediaPromotionJobAfterAccessRevocationWithExecutor(
         fixture.runtimePool, absent,

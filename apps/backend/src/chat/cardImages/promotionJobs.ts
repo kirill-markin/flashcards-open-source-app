@@ -3,9 +3,16 @@ import {
   type DatabaseExecutor,
   type SqlValue,
 } from "../../database";
-import { unsafeQueryWithDeadline } from "../../database/unsafe";
+import { unsafeQueryWithDeadline, unsafeTransactionWithDeadline } from "../../database/unsafe";
+import {
+  MediaBlobWriterFenceError,
+  reserveMediaBlobWriterInExecutor,
+  type MediaBlobWriterReservation,
+  type MediaBlobWriterReservationInput,
+} from "../../mediaAssets/blobLifecycle";
 import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../../mediaAssets/storageKeys";
 import {
+  imageJpegCardMediaBlobNormalizationVersion,
   mediaBlobNormalizationVersions,
   type MediaBlobNormalizationVersion,
 } from "../../mediaAssets/types";
@@ -63,6 +70,19 @@ export type GeneratedMediaPromotionBlobWriterInput =
     reservationToken: string;
     normalizationVersion: MediaBlobNormalizationVersion;
   }>;
+export type GeneratedMediaBlobWriterExactInput =
+  GeneratedMediaPromotionBlobWriterInput & Readonly<{
+    reservationState: MediaBlobWriterReservation["state"];
+  }>;
+declare const generatedMediaBlobStorageCapabilityType: unique symbol;
+export type GeneratedMediaBlobStorageCapability = Readonly<{
+  readonly [generatedMediaBlobStorageCapabilityType]: true;
+}>;
+export type GeneratedMediaBlobWriterReservation =
+  MediaBlobWriterReservation & Readonly<{
+    writer: GeneratedMediaBlobWriterExactInput;
+    storageCapability: GeneratedMediaBlobStorageCapability;
+  }>;
 export type FailGeneratedMediaPromotionJobWithBlobWriterInput =
   GeneratedMediaPromotionBlobWriterInput & Readonly<{ error: SafeGeneratedMediaPromotionJobError }>;
 export type GeneratedMediaPromotionAccessRevocationOutcome =
@@ -100,6 +120,8 @@ type AppliedScopeRow = Readonly<{ scope_status: string }>;
 type OperationAppliedRow = Readonly<{ applied: boolean }>;
 type AccessRevocationRow = Readonly<{ revocation_status: string }>;
 type InsertedRow = Readonly<{ job_id: string }>;
+const generatedMediaBlobStorageCapabilityClaims =
+  new WeakMap<GeneratedMediaBlobStorageCapability, GeneratedMediaBlobWriterExactInput>();
 export class GeneratedMediaPromotionJobConflictError extends Error {
   readonly code = "GENERATED_MEDIA_PROMOTION_JOB_CONFLICT";
   constructor(jobId: string, operationId: string, fieldName: string) {
@@ -188,6 +210,131 @@ function requireBlobWriterInput(input: GeneratedMediaPromotionBlobWriterInput): 
   requireUuid(input.reservationToken, "reservationToken");
   if (!mediaBlobNormalizationVersions.some((version) => version === input.normalizationVersion)) {
     throw new TypeError("normalizationVersion is unsupported.");
+  }
+}
+function snapshotGeneratedMediaBlobWriterExactInput(
+  input: GeneratedMediaBlobWriterExactInput,
+): GeneratedMediaBlobWriterExactInput {
+  const lastErrorInput = input.lastError;
+  const lastError = lastErrorInput === null
+    ? null
+    : Object.freeze({
+      code: lastErrorInput.code,
+      message: lastErrorInput.message,
+    });
+  const snapshot: GeneratedMediaBlobWriterExactInput = {
+    jobId: input.jobId,
+    operationId: input.operationId,
+    userId: input.userId,
+    workspaceId: input.workspaceId,
+    cardId: input.cardId,
+    targetSide: input.targetSide,
+    altText: input.altText,
+    mediaAssetId: input.mediaAssetId,
+    replicaId: input.replicaId,
+    stagingStorageKey: input.stagingStorageKey,
+    blobStorageKey: input.blobStorageKey,
+    sha256: input.sha256,
+    mimeType: input.mimeType,
+    sizeBytes: input.sizeBytes,
+    state: input.state,
+    retryCount: input.retryCount,
+    nextAttemptAt: input.nextAttemptAt,
+    leaseToken: input.leaseToken,
+    leaseOwner: input.leaseOwner,
+    leaseExpiresAt: input.leaseExpiresAt,
+    lastError,
+    createdAt: input.createdAt,
+    updatedAt: input.updatedAt,
+    reservationToken: input.reservationToken,
+    normalizationVersion: input.normalizationVersion,
+    reservationState: input.reservationState,
+  };
+  requireBlobWriterInput(snapshot);
+  if (snapshot.state !== "leased") {
+    throw new MediaBlobWriterFenceError("snapshot_generated_storage_writer_state");
+  }
+  if (
+    snapshot.leaseOwner !== snapshot.leaseOwner.trim()
+    || snapshot.leaseOwner.length < 1
+    || snapshot.leaseOwner.length > 200
+    || controlCharacterPattern.test(snapshot.leaseOwner)
+  ) {
+    throw new TypeError(
+      "leaseOwner must be 1 to 200 trimmed characters without control characters.",
+    );
+  }
+  const leaseExpiresAtMs = Date.parse(snapshot.leaseExpiresAt);
+  if (!Number.isFinite(leaseExpiresAtMs)) {
+    throw new TypeError("leaseExpiresAt must be a valid timestamp.");
+  }
+  return Object.freeze(snapshot);
+}
+function hasExactGeneratedMediaBlobWriterInput(
+  expected: GeneratedMediaBlobWriterExactInput,
+  actual: GeneratedMediaBlobWriterExactInput,
+): boolean {
+  return expected.jobId === actual.jobId
+    && expected.operationId === actual.operationId
+    && expected.userId === actual.userId
+    && expected.workspaceId === actual.workspaceId
+    && expected.cardId === actual.cardId
+    && expected.targetSide === actual.targetSide
+    && expected.altText === actual.altText
+    && expected.mediaAssetId === actual.mediaAssetId
+    && expected.replicaId === actual.replicaId
+    && expected.stagingStorageKey === actual.stagingStorageKey
+    && expected.blobStorageKey === actual.blobStorageKey
+    && expected.sha256 === actual.sha256
+    && expected.mimeType === actual.mimeType
+    && expected.sizeBytes === actual.sizeBytes
+    && expected.state === actual.state
+    && expected.retryCount === actual.retryCount
+    && expected.nextAttemptAt === actual.nextAttemptAt
+    && expected.leaseToken === actual.leaseToken
+    && expected.leaseOwner === actual.leaseOwner
+    && expected.leaseExpiresAt === actual.leaseExpiresAt
+    && expected.lastError?.code === actual.lastError?.code
+    && expected.lastError?.message === actual.lastError?.message
+    && expected.createdAt === actual.createdAt
+    && expected.updatedAt === actual.updatedAt
+    && expected.reservationToken === actual.reservationToken
+    && expected.normalizationVersion === actual.normalizationVersion
+    && expected.reservationState === actual.reservationState;
+}
+function createGeneratedMediaBlobStorageCapability(
+  input: GeneratedMediaBlobWriterExactInput,
+): Readonly<{
+  writer: GeneratedMediaBlobWriterExactInput;
+  storageCapability: GeneratedMediaBlobStorageCapability;
+}> {
+  const writer = snapshotGeneratedMediaBlobWriterExactInput(input);
+  if (Date.parse(writer.leaseExpiresAt) <= Date.now()) {
+    throw new MediaBlobWriterFenceError("issue_generated_storage_capability_expired");
+  }
+  const storageCapability = Object.freeze({}) as GeneratedMediaBlobStorageCapability;
+  generatedMediaBlobStorageCapabilityClaims.set(storageCapability, writer);
+  return Object.freeze({ writer, storageCapability });
+}
+export function assertGeneratedMediaBlobStorageCapabilityForMutation(
+  storageCapability: GeneratedMediaBlobStorageCapability,
+  writer: GeneratedMediaBlobWriterExactInput,
+): void {
+  const exactWriter = snapshotGeneratedMediaBlobWriterExactInput(writer);
+  const claim = typeof storageCapability === "object" && storageCapability !== null
+    ? generatedMediaBlobStorageCapabilityClaims.get(storageCapability)
+    : undefined;
+  if (
+    claim === undefined
+    || !Object.isFrozen(storageCapability)
+    || !Object.isFrozen(claim)
+    || !hasExactGeneratedMediaBlobWriterInput(claim, exactWriter)
+    || claim.reservationState !== "active"
+  ) {
+    throw new MediaBlobWriterFenceError("verify_generated_storage_capability");
+  }
+  if (Date.parse(claim.leaseExpiresAt) <= Date.now()) {
+    throw new MediaBlobWriterFenceError("verify_generated_storage_capability_expired");
   }
 }
 function blobWriterTransitionParams(
@@ -441,6 +588,15 @@ export async function failGeneratedMediaPromotionJobAfterAccessRevocationWithExe
     `PostgreSQL returned an invalid promotion access-revocation status. jobId=${input.jobId}`,
   );
 }
+
+export async function failGeneratedMediaPromotionJobAfterAccessRevocation(
+  job: ClaimedGeneratedMediaPromotionJob,
+  deadlineAtMs: number,
+): Promise<GeneratedMediaPromotionAccessRevocationOutcome> {
+  return unsafeTransactionWithDeadline(deadlineAtMs, (executor) =>
+    failGeneratedMediaPromotionJobAfterAccessRevocationWithExecutor(executor, job));
+}
+
 export async function applyGeneratedMediaPromotionJobScopeWithExecutor(
   executor: DatabaseExecutor,
   input: GeneratedMediaPromotionJobLeaseInput,
@@ -496,4 +652,73 @@ export async function failGeneratedMediaPromotionJobWithExecutor(
     [input.jobId, input.leaseToken, input.error.code, input.error.message],
     input.jobId,
   );
+}
+
+function toBlobWriterInput(job: ClaimedGeneratedMediaPromotionJob): MediaBlobWriterReservationInput {
+  return {
+    writerKind: "generated_promotion",
+    workspaceId: job.workspaceId,
+    mediaAssetId: job.mediaAssetId,
+    operationId: job.operationId,
+    sha256: job.sha256,
+    storageKey: job.blobStorageKey,
+    mimeType: job.mimeType,
+    sizeBytes: job.sizeBytes,
+    normalizationVersion: imageJpegCardMediaBlobNormalizationVersion,
+  };
+}
+
+function toGeneratedMediaPromotionBlobWriterInput(
+  job: ClaimedGeneratedMediaPromotionJob,
+  reservation: MediaBlobWriterReservation,
+): GeneratedMediaPromotionBlobWriterInput {
+  return {
+    ...job,
+    reservationToken: reservation.reservationToken,
+    normalizationVersion: reservation.normalizationVersion,
+  };
+}
+
+async function lockExactGeneratedMediaPromotionJobForWriterReservation(
+  executor: DatabaseExecutor,
+  job: ClaimedGeneratedMediaPromotionJob,
+): Promise<void> {
+  const status = await failGeneratedMediaPromotionJobAfterAccessRevocationWithExecutor(
+    executor,
+    job,
+  );
+  if (status !== "access_active") {
+    throw new GeneratedMediaPromotionJobLeaseLostError(job.jobId);
+  }
+}
+
+export async function reserveGeneratedMediaBlobWriter(
+  job: ClaimedGeneratedMediaPromotionJob,
+  deadlineAtMs: number,
+): Promise<GeneratedMediaBlobWriterReservation> {
+  return unsafeTransactionWithDeadline(deadlineAtMs, async (executor) => {
+    await applyGeneratedMediaPromotionJobScopeWithExecutor(executor, job);
+    await lockExactGeneratedMediaPromotionJobForWriterReservation(executor, job);
+    const reservation = await reserveMediaBlobWriterInExecutor(
+      executor,
+      toBlobWriterInput(job),
+    );
+    const capability = createGeneratedMediaBlobStorageCapability({
+      ...toGeneratedMediaPromotionBlobWriterInput(job, reservation),
+      reservationState: reservation.state,
+    });
+    return Object.freeze({ ...reservation, ...capability });
+  });
+}
+
+export async function markGeneratedMediaBlobWriterAmbiguous(
+  reservation: GeneratedMediaBlobWriterReservation,
+  deadlineAtMs: number,
+): Promise<void> {
+  return unsafeTransactionWithDeadline(deadlineAtMs, async (executor) => {
+    await markGeneratedMediaPromotionBlobWriterAmbiguousWithExecutor(
+      executor,
+      reservation.writer,
+    );
+  });
 }
