@@ -117,10 +117,14 @@ extension FlashcardsStore {
                 unavailableReason: nil
             )
         } catch {
-            self.captureReviewManagedMediaLoadFailure(
-                error: error,
-                stage: "cache_download"
-            )
+            let isExpectedCancellation: Bool =
+                Task.isCancelled && isRequestCancellationError(error: error)
+            if isExpectedCancellation == false {
+                self.captureReviewManagedMediaLoadFailure(
+                    error: error,
+                    stage: "cache_download"
+                )
+            }
             return ReviewManagedMediaLoadResult(
                 mediaAsset: localMediaAsset,
                 mediaURL: nil,
