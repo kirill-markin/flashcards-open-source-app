@@ -28,6 +28,7 @@ import { ApiError, ApiNetworkError, AuthRedirectError } from "./errors";
 import { pullSyncChanges } from "../endpoints/sync";
 import {
   allowAuthRecovery,
+  allowAuthRecoveryWithTransientNetworkRetry,
   getSession,
   primeSessionCsrfToken,
   requestBlob,
@@ -590,6 +591,34 @@ describe("unsafe request session transport", () => {
 });
 
 describe("API transport network retry", () => {
+  it("cancels a pending transient network retry wait", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    vi.stubGlobal("fetch", fetchMock);
+    const abortController = new AbortController();
+    const abortReason = new Error("Media upload lifecycle discarded during transport retry");
+    const requestPromise = requestJson(
+      "/media-upload-retry-cancellation",
+      {
+        method: "GET",
+        signal: abortController.signal,
+      },
+      allowAuthRecoveryWithTransientNetworkRetry,
+    );
+
+    await waitForFetchCallCount(fetchMock, 1);
+    for (let attemptCount = 0; attemptCount < 20 && consoleWarnSpy.mock.calls.length === 0; attemptCount += 1) {
+      await Promise.resolve();
+    }
+    expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+    abortController.abort(abortReason);
+
+    await expect(requestPromise).rejects.toBe(abortReason);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("retries a transient network failure for session bootstrap reads", async () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});

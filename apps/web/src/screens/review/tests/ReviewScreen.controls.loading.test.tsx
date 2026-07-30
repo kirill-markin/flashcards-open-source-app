@@ -136,6 +136,7 @@ describe("ReviewScreen loading controls", () => {
       message: "Workspace not found",
       code: "WORKSPACE_NOT_FOUND",
       requestId: "request-1",
+      retryAfterMs: null,
       endpoint: "POST /workspaces/workspace-1/sync/pull",
       responseBodyKind: "json",
     });

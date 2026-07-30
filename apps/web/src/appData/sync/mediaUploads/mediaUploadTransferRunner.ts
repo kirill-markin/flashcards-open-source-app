@@ -1,8 +1,10 @@
 import {
   ApiContractError,
   ApiError,
+  apiNetworkRetryMaximumAttemptCount,
   abortMediaAssetUploadSession,
   completeMediaAssetUploadSession,
+  createApiNetworkRetryDelayMs,
   createMediaAssetUploadPartUrls,
   createMediaAssetUploadSession,
   isAuthRedirectError,
@@ -13,6 +15,7 @@ import {
   loadMediaBlobCacheRecord,
   markClaimedMediaTransferFailed,
   markClaimedMediaTransferSucceeded,
+  markMediaUploadTransferCompletionTerminal,
   recoverStaleInProgressMediaTransfersByKind,
   renewInProgressMediaTransferClaim,
   type MediaBlobCacheRecord,
@@ -54,9 +57,16 @@ type MediaUploadFailure = Readonly<{
 }>;
 
 type MediaUploadClaimHeartbeat = Readonly<{
+  failureSignal: AbortSignal;
   getClaimedAt: () => string;
   throwIfFailed: () => Promise<void>;
+  waitForFailure: () => Promise<void>;
   stop: () => Promise<unknown | null>;
+}>;
+
+type MediaUploadCompletionResult = Readonly<{
+  mediaAsset: MediaAsset;
+  retryableCompletionCause: ApiError | null;
 }>;
 
 class RetryableMediaUploadError extends Error {
@@ -70,6 +80,33 @@ class PermanentMediaUploadError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "PermanentMediaUploadError";
+  }
+}
+
+type MediaUploadCompletionTerminalReason = "retry_exhausted" | "interrupted";
+
+class MediaUploadCompletionTerminalError extends PermanentMediaUploadError {
+  readonly reason: MediaUploadCompletionTerminalReason;
+  readonly completionCause: ApiError;
+  readonly interruptionCause: Error | null;
+
+  constructor(
+    reason: MediaUploadCompletionTerminalReason,
+    completionCause: ApiError,
+    interruptionCause: Error | null,
+  ) {
+    const interruptionDescription = interruptionCause === null
+      ? "none"
+      : describeUploadError(interruptionCause);
+    super(
+      `Media upload completion stopped for this local run: reason=${reason}, `
+      + `completionError=${describeApiError(completionCause)}, `
+      + `interruptionError=${interruptionDescription}`,
+    );
+    this.name = "MediaUploadCompletionTerminalError";
+    this.reason = reason;
+    this.completionCause = completionCause;
+    this.interruptionCause = interruptionCause;
   }
 }
 
@@ -91,6 +128,10 @@ const retryableUploadSessionErrorCodes: ReadonlySet<string> = new Set([
   "MEDIA_ASSET_UPLOAD_SESSION_NOT_FOUND",
   "MEDIA_ASSET_UPLOAD_SESSION_RECOVERY_FAILED",
 ]);
+const sameSessionCompletionRetryErrorCodes: ReadonlySet<string> = new Set([
+  "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_DEADLINE_EXCEEDED",
+  "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+]);
 
 function isBrowserOnline(): boolean {
   return typeof navigator === "undefined" || navigator.onLine !== false;
@@ -104,12 +145,33 @@ function readErrorName(error: unknown): string {
   return typeof error;
 }
 
+function readUploadLifecycleCancellationError(signal: AbortSignal): Error {
+  const reason: unknown = signal.reason;
+  if (reason instanceof Error) {
+    return reason;
+  }
+  if (typeof reason === "string" && reason.trim() !== "") {
+    return new Error(reason);
+  }
+  return new Error("Media upload lifecycle was cancelled");
+}
+
+function throwIfUploadLifecycleCancelled(signal: AbortSignal): void {
+  if (signal.aborted) {
+    throw readUploadLifecycleCancellationError(signal);
+  }
+}
+
 function readErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim() !== "") {
     return error.message;
   }
 
   return String(error);
+}
+
+function normalizeMediaUploadError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(readErrorMessage(error));
 }
 
 function bytesToHex(bytes: Uint8Array): string {
@@ -419,6 +481,11 @@ function startUploadClaimHeartbeat(transfer: MediaTransferQueueRecord): MediaUpl
   let heartbeatError: unknown = null;
   let renewalTask: Promise<void> = Promise.resolve();
   let didStop = false;
+  let resolveHeartbeatFailure: (() => void) | null = null;
+  const heartbeatFailureController = new AbortController();
+  const heartbeatFailurePromise = new Promise<void>((resolve) => {
+    resolveHeartbeatFailure = resolve;
+  });
 
   const queueRenewal = (): void => {
     if (heartbeatError !== null || didStop) {
@@ -431,6 +498,8 @@ function startUploadClaimHeartbeat(transfer: MediaTransferQueueRecord): MediaUpl
       })
       .catch((error: unknown): void => {
         heartbeatError = error;
+        heartbeatFailureController.abort(error);
+        resolveHeartbeatFailure?.();
       });
   };
 
@@ -438,6 +507,7 @@ function startUploadClaimHeartbeat(transfer: MediaTransferQueueRecord): MediaUpl
   queueRenewal();
 
   return {
+    failureSignal: heartbeatFailureController.signal,
     getClaimedAt: () => claimedAt,
     throwIfFailed: async (): Promise<void> => {
       await renewalTask;
@@ -445,6 +515,7 @@ function startUploadClaimHeartbeat(transfer: MediaTransferQueueRecord): MediaUpl
         throw heartbeatError;
       }
     },
+    waitForFailure: () => heartbeatFailurePromise,
     stop: async (): Promise<unknown | null> => {
       if (didStop === false) {
         didStop = true;
@@ -479,12 +550,25 @@ async function markUploadTransferFailed(
   const nextAttemptAt = failure.kind === "retryable"
     ? createRetryNextAttemptAt(transfer, failedAt)
     : permanentlyFailedNextAttemptAt;
+  const lastError = `Media upload transfer failed (${failure.kind}): transferId=${transfer.transferId}, workspaceId=${transfer.workspaceId}, mediaAssetId=${transfer.mediaAssetId}, error=${failure.message}`;
+  if (error instanceof MediaUploadCompletionTerminalError) {
+    await markMediaUploadTransferCompletionTerminal({
+      transferId: transfer.transferId,
+      workspaceId: transfer.workspaceId,
+      mediaAssetId: transfer.mediaAssetId,
+      failedAt,
+      lastError,
+      nextAttemptAt: permanentlyFailedNextAttemptAt,
+    });
+    return;
+  }
+
   await markClaimedMediaTransferFailed({
     transferId: transfer.transferId,
     kind: "upload",
     expectedClaimedAt: claimedAt,
     failedAt,
-    lastError: `Media upload transfer failed (${failure.kind}): transferId=${transfer.transferId}, workspaceId=${transfer.workspaceId}, mediaAssetId=${transfer.mediaAssetId}, error=${failure.message}`,
+    lastError,
     nextAttemptAt,
   });
 }
@@ -504,9 +588,25 @@ async function markAuthRedirectUploadTransferRetryable(
   });
 }
 
-async function waitForSignedPartUploadRetry(): Promise<void> {
-  await new Promise<void>((resolve) => {
-    window.setTimeout(resolve, signedPartUploadRetryDelayMs);
+async function waitForSignedPartUploadRetry(signal: AbortSignal): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    let timerId: number | null = null;
+    const abortHandler = (): void => {
+      if (timerId !== null) {
+        window.clearTimeout(timerId);
+      }
+      reject(readUploadLifecycleCancellationError(signal));
+    };
+    if (signal.aborted) {
+      abortHandler();
+      return;
+    }
+
+    timerId = window.setTimeout((): void => {
+      signal.removeEventListener("abort", abortHandler);
+      resolve();
+    }, signedPartUploadRetryDelayMs);
+    signal.addEventListener("abort", abortHandler, { once: true });
   });
 }
 
@@ -707,6 +807,7 @@ async function uploadSignedPartOnce(
   partUrl: MediaAssetUploadPartUrl,
   part: PlannedUploadPart,
   blob: Blob,
+  signal: AbortSignal,
 ): Promise<string> {
   assertSignedPartUrlUsable(transfer, partUrl, part);
   let response: Response;
@@ -715,6 +816,7 @@ async function uploadSignedPartOnce(
       method: partUrl.method,
       headers: partUrl.headers,
       body: blob.slice(part.startByte, part.endByte),
+      signal,
     });
   } catch (error) {
     throw new RetryableMediaUploadError(`Media upload part request failed: transferId=${transfer.transferId}, partNumber=${part.partNumber}, errorName=${readErrorName(error)}`);
@@ -744,15 +846,16 @@ async function uploadSignedPart(
   part: PlannedUploadPart,
   blob: Blob,
   heartbeat: MediaUploadClaimHeartbeat,
+  signal: AbortSignal,
 ): Promise<UploadedMediaPart> {
   let attemptNumber = 1;
   while (true) {
     try {
-      const partUrl = await loadPartUrl(transfer, sessionId, part);
+      const partUrl = await loadPartUrl(transfer, sessionId, part, signal);
       await heartbeat.throwIfFailed();
       return {
         partNumber: part.partNumber,
-        eTag: await uploadSignedPartOnce(transfer, partUrl, part, blob),
+        eTag: await uploadSignedPartOnce(transfer, partUrl, part, blob, signal),
         sha256: part.sha256,
       };
     } catch (error) {
@@ -761,7 +864,7 @@ async function uploadSignedPart(
       }
 
       warnSignedPartUploadRetry(transfer, part.partNumber, attemptNumber, error);
-      await waitForSignedPartUploadRetry();
+      await waitForSignedPartUploadRetry(signal);
       attemptNumber += 1;
     }
   }
@@ -784,13 +887,14 @@ async function loadPartUrls(
   transfer: MediaTransferQueueRecord,
   sessionId: string,
   parts: ReadonlyArray<PlannedUploadPart>,
+  signal: AbortSignal,
 ): Promise<ReadonlyArray<MediaAssetUploadPartUrl>> {
   const response = await createMediaAssetUploadPartUrls(transfer.workspaceId, sessionId, {
     parts: parts.map((part) => ({
       partNumber: part.partNumber,
       sha256: part.sha256,
     })),
-  });
+  }, signal);
   if (response.sessionId !== sessionId) {
     throw new PermanentMediaUploadError(`Media upload part URL session mismatch: transferId=${transfer.transferId}, expectedSessionId=${sessionId}, actualSessionId=${response.sessionId}`);
   }
@@ -802,8 +906,9 @@ async function loadPartUrl(
   transfer: MediaTransferQueueRecord,
   sessionId: string,
   part: PlannedUploadPart,
+  signal: AbortSignal,
 ): Promise<MediaAssetUploadPartUrl> {
-  const [partUrl] = await loadPartUrls(transfer, sessionId, [part]);
+  const [partUrl] = await loadPartUrls(transfer, sessionId, [part], signal);
   if (partUrl === undefined) {
     throw new PermanentMediaUploadError(`Media upload part URL response was empty: transferId=${transfer.transferId}, partNumber=${part.partNumber}`);
   }
@@ -817,11 +922,19 @@ async function uploadParts(
   parts: ReadonlyArray<PlannedUploadPart>,
   blob: Blob,
   heartbeat: MediaUploadClaimHeartbeat,
+  signal: AbortSignal,
 ): Promise<ReadonlyArray<UploadedMediaPart>> {
   const uploadedParts: Array<UploadedMediaPart> = [];
   for (const part of parts) {
     await heartbeat.throwIfFailed();
-    uploadedParts.push(await uploadSignedPart(transfer, uploadSession.sessionId, part, blob, heartbeat));
+    uploadedParts.push(await uploadSignedPart(
+      transfer,
+      uploadSession.sessionId,
+      part,
+      blob,
+      heartbeat,
+      signal,
+    ));
   }
 
   return uploadedParts;
@@ -833,6 +946,147 @@ function toCompleteParts(uploadedParts: ReadonlyArray<UploadedMediaPart>): Reado
     eTag: part.eTag,
     sha256: part.sha256,
   }));
+}
+
+function isSameSessionCompletionRetryError(error: unknown): error is ApiError {
+  return error instanceof ApiError
+    && error.code !== null
+    && sameSessionCompletionRetryErrorCodes.has(error.code);
+}
+
+async function waitForCompletionRetry(
+  delayMs: number,
+  heartbeat: MediaUploadClaimHeartbeat,
+  signal: AbortSignal,
+): Promise<void> {
+  let timerId: number | null = null;
+  let abortHandler: (() => void) | null = null;
+  try {
+    await Promise.race([
+      new Promise<void>((resolve) => {
+        timerId = window.setTimeout(resolve, delayMs);
+      }),
+      heartbeat.waitForFailure(),
+      new Promise<void>((_resolve, reject) => {
+        abortHandler = () => {
+          reject(readUploadLifecycleCancellationError(signal));
+        };
+        if (signal.aborted) {
+          abortHandler();
+          return;
+        }
+        signal.addEventListener("abort", abortHandler, { once: true });
+      }),
+    ]);
+  } finally {
+    if (timerId !== null) {
+      window.clearTimeout(timerId);
+    }
+    if (abortHandler !== null) {
+      signal.removeEventListener("abort", abortHandler);
+    }
+  }
+
+  throwIfUploadLifecycleCancelled(signal);
+  await heartbeat.throwIfFailed();
+  throwIfUploadLifecycleCancelled(signal);
+}
+
+async function validateCompletionOwnership(
+  heartbeat: MediaUploadClaimHeartbeat,
+  signal: AbortSignal,
+  retryableCompletionCause: ApiError | null,
+): Promise<void> {
+  try {
+    throwIfUploadLifecycleCancelled(signal);
+    await heartbeat.throwIfFailed();
+    throwIfUploadLifecycleCancelled(signal);
+  } catch (error) {
+    if (retryableCompletionCause !== null) {
+      throw new MediaUploadCompletionTerminalError(
+        "interrupted",
+        retryableCompletionCause,
+        normalizeMediaUploadError(error),
+      );
+    }
+    throw error;
+  }
+}
+
+async function completeMultipartUploadSession(
+  transfer: MediaTransferQueueRecord,
+  uploadSession: MediaAssetUploadSession,
+  uploadedParts: ReadonlyArray<UploadedMediaPart>,
+  heartbeat: MediaUploadClaimHeartbeat,
+  signal: AbortSignal,
+): Promise<MediaUploadCompletionResult> {
+  const request = {
+    parts: toCompleteParts(uploadedParts),
+  };
+  const completionSignal = AbortSignal.any([signal, heartbeat.failureSignal]);
+  let attemptNumber = 1;
+  let lastRetryableCompletionError: ApiError | null = null;
+
+  while (true) {
+    await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError);
+
+    try {
+      const result = await completeMediaAssetUploadSession(
+        transfer.workspaceId,
+        uploadSession.sessionId,
+        request,
+        completionSignal,
+      );
+      await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError);
+      return {
+        mediaAsset: result.mediaAsset,
+        retryableCompletionCause: lastRetryableCompletionError,
+      };
+    } catch (error) {
+      if (error instanceof MediaUploadCompletionTerminalError) {
+        throw error;
+      }
+      if (isSameSessionCompletionRetryError(error) === false) {
+        await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError);
+        if (lastRetryableCompletionError !== null) {
+          throw new MediaUploadCompletionTerminalError(
+            "interrupted",
+            lastRetryableCompletionError,
+            normalizeMediaUploadError(error),
+          );
+        }
+        throw error;
+      }
+      lastRetryableCompletionError = error;
+      await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError);
+      if (attemptNumber >= apiNetworkRetryMaximumAttemptCount) {
+        throw new MediaUploadCompletionTerminalError("retry_exhausted", error, null);
+      }
+
+      const delayMs = error.retryAfterMs ?? createApiNetworkRetryDelayMs(attemptNumber);
+      console.warn("Media upload completion retry", {
+        transferId: transfer.transferId,
+        workspaceId: transfer.workspaceId,
+        mediaAssetId: transfer.mediaAssetId,
+        sessionId: uploadSession.sessionId,
+        code: error.code,
+        attemptNumber,
+        maximumAttemptCount: apiNetworkRetryMaximumAttemptCount,
+        nextAttemptNumber: attemptNumber + 1,
+        delayMs,
+      });
+      try {
+        await waitForCompletionRetry(delayMs, heartbeat, signal);
+      } catch (interruptionError) {
+        throw new MediaUploadCompletionTerminalError(
+          "interrupted",
+          error,
+          normalizeMediaUploadError(interruptionError),
+        );
+      }
+      attemptNumber += 1;
+    }
+  }
 }
 
 async function abortUploadSessionAfterFailure(
@@ -853,17 +1107,46 @@ async function runMultipartUploadSession(
   uploadSession: MediaAssetUploadSession,
   verifiedBytes: VerifiedUploadBytes,
   heartbeat: MediaUploadClaimHeartbeat,
-): Promise<MediaAsset> {
+  signal: AbortSignal,
+): Promise<MediaUploadCompletionResult> {
   try {
     const parts = await buildPlannedUploadParts(transfer, uploadSession, verifiedBytes.bytes);
-    const uploadedParts = await uploadParts(transfer, uploadSession, parts, verifiedBytes.blob, heartbeat);
-    await heartbeat.throwIfFailed();
-    const result = await completeMediaAssetUploadSession(transfer.workspaceId, uploadSession.sessionId, {
-      parts: toCompleteParts(uploadedParts),
-    });
-    assertUploadedMediaAssetMatchesTransfer(transfer, result.mediaAsset);
-    return result.mediaAsset;
+    const uploadedParts = await uploadParts(
+      transfer,
+      uploadSession,
+      parts,
+      verifiedBytes.blob,
+      heartbeat,
+      signal,
+    );
+    const result = await completeMultipartUploadSession(
+      transfer,
+      uploadSession,
+      uploadedParts,
+      heartbeat,
+      signal,
+    );
+    try {
+      assertUploadedMediaAssetMatchesTransfer(transfer, result.mediaAsset);
+    } catch (error) {
+      if (result.retryableCompletionCause !== null) {
+        throw new MediaUploadCompletionTerminalError(
+          "interrupted",
+          result.retryableCompletionCause,
+          normalizeMediaUploadError(error),
+        );
+      }
+      throw error;
+    }
+    return result;
   } catch (error) {
+    if (
+      error instanceof MediaUploadCompletionTerminalError
+      || isSameSessionCompletionRetryError(error)
+    ) {
+      throw error;
+    }
+
     const abortError = await abortUploadSessionAfterFailure(transfer, uploadSession.sessionId);
     throw combineUploadFailureWithAbortFailure(error, abortError);
   }
@@ -873,16 +1156,21 @@ async function uploadClaimedMediaTransfer(
   transfer: MediaTransferQueueRecord,
   installationId: string,
   heartbeat: MediaUploadClaimHeartbeat,
-): Promise<MediaAsset> {
+  signal: AbortSignal,
+): Promise<MediaUploadCompletionResult> {
   const lastModifiedByReplicaId = await buildClientWorkspaceReplicaId(transfer.workspaceId, installationId);
   const sessionCreateResult = await createMediaAssetUploadSession(
     transfer.workspaceId,
     buildUploadSessionCreateInput(transfer, lastModifiedByReplicaId),
+    signal,
   );
   assertUploadSessionCreateResultMatchesTransfer(transfer, sessionCreateResult);
   if (sessionCreateResult.status === "already_available") {
     assertUploadedMediaAssetMatchesTransfer(transfer, sessionCreateResult.mediaAsset);
-    return sessionCreateResult.mediaAsset;
+    return {
+      mediaAsset: sessionCreateResult.mediaAsset,
+      retryableCompletionCause: null,
+    };
   }
 
   let verifiedBytes: VerifiedUploadBytes;
@@ -893,22 +1181,33 @@ async function uploadClaimedMediaTransfer(
     throw combineUploadFailureWithAbortFailure(error, abortError);
   }
 
-  return runMultipartUploadSession(transfer, sessionCreateResult.uploadSession, verifiedBytes, heartbeat);
+  return runMultipartUploadSession(
+    transfer,
+    sessionCreateResult.uploadSession,
+    verifiedBytes,
+    heartbeat,
+    signal,
+  );
 }
 
 async function processClaimedUploadTransfer(
   transfer: MediaTransferQueueRecord,
   installationId: string,
+  signal: AbortSignal,
 ): Promise<void> {
   const heartbeat = startUploadClaimHeartbeat(transfer);
+  let retryableCompletionCause: ApiError | null = null;
   try {
-    const mediaAsset = await uploadClaimedMediaTransfer(transfer, installationId, heartbeat);
+    const result = await uploadClaimedMediaTransfer(transfer, installationId, heartbeat, signal);
+    retryableCompletionCause = result.retryableCompletionCause;
     const heartbeatError = await heartbeat.stop();
     if (heartbeatError !== null) {
       throw heartbeatError;
     }
 
-    await putMediaAsset(mediaAsset);
+    throwIfUploadLifecycleCancelled(signal);
+    await putMediaAsset(result.mediaAsset);
+    throwIfUploadLifecycleCancelled(signal);
     await markClaimedMediaTransferSucceeded({
       transferId: transfer.transferId,
       kind: "upload",
@@ -917,7 +1216,16 @@ async function processClaimedUploadTransfer(
     });
   } catch (error) {
     const heartbeatError = await heartbeat.stop();
-    const failureError = heartbeatError ?? error;
+    const interruptionError = heartbeatError ?? error;
+    const failureError = error instanceof MediaUploadCompletionTerminalError
+      ? error
+      : retryableCompletionCause === null
+        ? interruptionError
+        : new MediaUploadCompletionTerminalError(
+            "interrupted",
+            retryableCompletionCause,
+            normalizeMediaUploadError(interruptionError),
+          );
     if (isAuthRedirectError(failureError)) {
       await markAuthRedirectUploadTransferRetryable(transfer, heartbeat.getClaimedAt());
       throw failureError;
@@ -927,8 +1235,11 @@ async function processClaimedUploadTransfer(
   }
 }
 
-export async function processDueMediaUploadTransfersForWorkspace(workspaceId: string): Promise<void> {
-  if (isBrowserOnline() === false) {
+export async function processDueMediaUploadTransfersForWorkspace(
+  workspaceId: string,
+  signal: AbortSignal,
+): Promise<void> {
+  if (isBrowserOnline() === false || signal.aborted) {
     return;
   }
 
@@ -944,11 +1255,14 @@ export async function processDueMediaUploadTransfersForWorkspace(workspaceId: st
   const installationId = requireCloudInstallationId(cloudSettings);
   await recoverStaleUploadTransferClaims(workspaceId, new Date().toISOString());
   while (true) {
+    if (signal.aborted) {
+      return;
+    }
     const transfer = await claimNextDueMediaTransferByKind(workspaceId, "upload", new Date().toISOString());
     if (transfer === null) {
       return;
     }
 
-    await processClaimedUploadTransfer(transfer, installationId);
+    await processClaimedUploadTransfer(transfer, installationId, signal);
   }
 }

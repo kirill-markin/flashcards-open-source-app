@@ -17,6 +17,7 @@ export type ParsedResponsePayload = Readonly<{
   requestId: string | null;
   statusCode: number;
   code: string | null;
+  retryAfterMs: number | null;
 }>;
 
 export type ContractResponseParser<ParsedValue> = (value: unknown, endpoint: string) => ParsedValue;
@@ -71,6 +72,21 @@ function getHeaderRequestId(response: Response): string | null {
   return requestId === null || requestId.trim() === "" ? null : requestId;
 }
 
+function getRetryAfterMs(response: Response): number | null {
+  const value = response.headers.get("Retry-After")?.trim();
+  if (value === undefined || value === "") {
+    return null;
+  }
+
+  const delaySeconds = Number(value);
+  if (Number.isSafeInteger(delaySeconds) && delaySeconds >= 0) {
+    return delaySeconds * 1000;
+  }
+
+  const retryAtMs = Date.parse(value);
+  return Number.isFinite(retryAtMs) ? Math.max(0, retryAtMs - Date.now()) : null;
+}
+
 function resolveResponseBodyKind(response: Response): ApiResponseBodyKind {
   const contentType = response.headers.get("Content-Type") ?? "";
   return contentType.toLowerCase().includes("json") ? "invalid_json" : "text";
@@ -86,6 +102,7 @@ export async function readJsonResponse(response: Response): Promise<ParsedRespon
       requestId: headerRequestId,
       statusCode: response.status,
       code: null,
+      retryAfterMs: getRetryAfterMs(response),
     };
   }
 
@@ -97,6 +114,7 @@ export async function readJsonResponse(response: Response): Promise<ParsedRespon
       requestId: headerRequestId ?? getJsonRequestId(value),
       statusCode: response.status,
       code: getJsonErrorCode(value),
+      retryAfterMs: getRetryAfterMs(response),
     };
   } catch {
     return {
@@ -105,6 +123,7 @@ export async function readJsonResponse(response: Response): Promise<ParsedRespon
       requestId: headerRequestId,
       statusCode: response.status,
       code: null,
+      retryAfterMs: getRetryAfterMs(response),
     };
   }
 }
@@ -119,6 +138,7 @@ export async function parseJsonPayload(response: Response, endpoint: string): Pr
       message: getJsonErrorMessage(payload.value, fallbackMessage),
       code: payload.code,
       requestId: payload.requestId,
+      retryAfterMs: payload.retryAfterMs,
       endpoint,
       responseBodyKind: payload.bodyKind,
     });

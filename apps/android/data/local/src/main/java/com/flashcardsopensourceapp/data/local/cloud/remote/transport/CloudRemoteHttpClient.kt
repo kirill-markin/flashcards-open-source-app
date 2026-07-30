@@ -282,6 +282,9 @@ internal class CloudJsonHttpClient(
                 call.awaitOkHttpResponse().use { response ->
                     val statusCode = response.code
                     val requestId = readCloudResponseRequestId(response = response)
+                    val retryAfterDelayMillis = parseCloudRetryAfterDelayMillis(
+                        value = response.header("Retry-After")
+                    )
                     val responseContentType = response.body.contentType()
                         ?.toString()
                         ?.trim()
@@ -345,6 +348,7 @@ internal class CloudJsonHttpClient(
                                 errorCode = parsedError?.code,
                                 requestId = parsedError?.requestId,
                                 syncConflict = parsedError?.syncConflict,
+                                retryAfterDelayMillis = retryAfterDelayMillis,
                                 androidObservationAlreadyCaptured = androidObservationAlreadyCaptured
                             )
                         }
@@ -448,6 +452,9 @@ internal class CloudJsonHttpClient(
                 call.awaitOkHttpResponse().use { response ->
                     val statusCode = response.code
                     val requestId = readCloudResponseRequestId(response = response)
+                    val retryAfterDelayMillis = parseCloudRetryAfterDelayMillis(
+                        value = response.header("Retry-After")
+                    )
                     val responseContentType = response.body.contentType()
                         ?.toString()
                         ?.trim()
@@ -513,6 +520,7 @@ internal class CloudJsonHttpClient(
                                 errorCode = parsedError?.code,
                                 requestId = parsedError?.requestId,
                                 syncConflict = parsedError?.syncConflict,
+                                retryAfterDelayMillis = retryAfterDelayMillis,
                                 androidObservationAlreadyCaptured = androidObservationAlreadyCaptured
                             )
                         }

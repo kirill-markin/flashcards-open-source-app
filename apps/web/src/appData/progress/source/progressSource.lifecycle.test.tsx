@@ -118,6 +118,7 @@ describe("useProgressSource lifecycle", () => {
       message: "Authentication required.",
       code: "AUTH_UNAUTHORIZED",
       requestId: "request-1",
+      retryAfterMs: null,
       endpoint: "GET /me/progress/summary",
       responseBodyKind: "json",
     }));

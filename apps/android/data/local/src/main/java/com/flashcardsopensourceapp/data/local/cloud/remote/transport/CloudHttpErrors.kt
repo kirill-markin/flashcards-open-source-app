@@ -73,6 +73,8 @@ private val expectedCloudHttpFailureCodes: Set<String> = setOf(
     "MEDIA_ASSET_UPLOAD_NOT_FOUND",
     "MEDIA_ASSET_UPLOAD_PROOF_MISMATCH",
     "MEDIA_ASSET_UPLOAD_SESSION_ABORTED",
+    "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_DEADLINE_EXCEEDED",
+    "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
     "MEDIA_ASSET_UPLOAD_SESSION_COMPLETED",
     "MEDIA_ASSET_UPLOAD_SESSION_EXPIRED",
     "MEDIA_ASSET_UPLOAD_SESSION_ID_INVALID",
@@ -197,6 +199,14 @@ internal fun parseCloudErrorPayloadWithHeaderRequestId(
         requestId = normalizedRequestId,
         syncConflict = null
     )
+}
+
+internal fun parseCloudRetryAfterDelayMillis(value: String?): Long? {
+    val seconds = value?.trim()?.toLongOrNull() ?: return null
+    if (seconds < 0L || seconds > Long.MAX_VALUE / 1_000L) {
+        return null
+    }
+    return seconds * 1_000L
 }
 
 internal fun formatCloudRemoteErrorMessage(

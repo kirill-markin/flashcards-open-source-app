@@ -204,6 +204,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const localReadPromisesRef = useRef<Set<Promise<unknown>>>(new Set());
   const localMutationPromisesRef = useRef<Set<Promise<unknown>>>(new Set());
   const mediaUploadPromisesRef = useRef<Map<string, Promise<void>>>(new Map());
+  const mediaUploadAbortControllersRef = useRef<Map<string, AbortController>>(new Map());
   const mediaUploadNeedsRunWorkspaceIdsRef = useRef<Set<string>>(new Set());
   const mediaUploadRetryTimerIdsRef = useRef<Map<string, number>>(new Map());
   const runMediaUploadTransfersForWorkspaceRef = useRef<(workspace: WorkspaceSummary) => void>(() => undefined);
@@ -262,8 +263,18 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     mediaUploadRetryTimerIdsRef.current.clear();
   }, []);
 
+  const abortAllMediaUploadTransfers = useCallback(function abortAllMediaUploadTransfers(): void {
+    for (const controller of mediaUploadAbortControllersRef.current.values()) {
+      controller.abort(new Error("Media upload lifecycle was discarded"));
+    }
+    mediaUploadAbortControllersRef.current.clear();
+  }, []);
+
   const discardWorkspaceSync = useCallback(function discardWorkspaceSync(workspaceId: string): void {
     discardedSyncWorkspaceIdsRef.current.add(workspaceId);
+    mediaUploadAbortControllersRef.current.get(workspaceId)?.abort(
+      new Error(`Media upload workspace lifecycle was discarded: workspaceId=${workspaceId}`),
+    );
     clearMediaUploadRetryTimer(workspaceId);
     mediaUploadNeedsRunWorkspaceIdsRef.current.delete(workspaceId);
     needsResyncWorkspaceIdsRef.current.delete(workspaceId);
@@ -285,6 +296,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       const activeLocalReadTasks = [...localReadPromisesRef.current.values()];
       const activeLocalMutationTasks = [...localMutationPromisesRef.current.values()];
       const activeMediaUploadTasks = [...mediaUploadPromisesRef.current.values()];
+      abortAllMediaUploadTransfers();
       syncGenerationRef.current += 1;
       mediaUploadLifecycleGenerationRef.current += 1;
       syncPromisesRef.current.clear();
@@ -311,7 +323,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     })();
     discardAllSyncWorkPromiseRef.current = discardTask;
     return discardTask;
-  }, [clearAllMediaUploadRetryTimers, refreshSyncIndicator]);
+  }, [abortAllMediaUploadTransfers, clearAllMediaUploadRetryTimers, refreshSyncIndicator]);
 
   const requireWorkspaceSyncNotDiscarded = useCallback(function requireWorkspaceSyncNotDiscarded(
     workspaceId: string,
@@ -490,13 +502,21 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     }
 
     const mediaUploadLifecycleGeneration = mediaUploadLifecycleGenerationRef.current;
+    const abortController = new AbortController();
+    mediaUploadAbortControllersRef.current.set(workspace.workspaceId, abortController);
     const mediaUploadTask = (async (): Promise<void> => {
       if (await loadRunnableMediaUploadSession(workspace) === null) {
         return;
       }
 
-      await processDueMediaUploadTransfersForWorkspace(workspace.workspaceId);
+      await processDueMediaUploadTransfersForWorkspace(
+        workspace.workspaceId,
+        abortController.signal,
+      );
     })().finally(() => {
+      if (mediaUploadAbortControllersRef.current.get(workspace.workspaceId) === abortController) {
+        mediaUploadAbortControllersRef.current.delete(workspace.workspaceId);
+      }
       if (
         mediaUploadLifecycleGeneration === mediaUploadLifecycleGenerationRef.current
         && mediaUploadPromisesRef.current.get(workspace.workspaceId) === mediaUploadTask
@@ -533,12 +553,13 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     isSyncEngineMountedRef.current = true;
     return () => {
       isSyncEngineMountedRef.current = false;
+      abortAllMediaUploadTransfers();
       mediaUploadLifecycleGenerationRef.current += 1;
       mediaUploadPromisesRef.current.clear();
       mediaUploadNeedsRunWorkspaceIdsRef.current.clear();
       clearAllMediaUploadRetryTimers();
     };
-  }, [clearAllMediaUploadRetryTimers]);
+  }, [abortAllMediaUploadTransfers, clearAllMediaUploadRetryTimers]);
 
   useEffect(() => () => {
     if (activeWorkspaceId !== null) {

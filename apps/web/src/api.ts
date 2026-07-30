@@ -80,6 +80,8 @@ export {
   pushSyncOperations,
 } from "./api/endpoints/sync";
 export {
+  apiNetworkRetryMaximumAttemptCount,
+  createApiNetworkRetryDelayMs,
   getCachedSessionCsrfToken,
   getOptionalSession,
   getSession,

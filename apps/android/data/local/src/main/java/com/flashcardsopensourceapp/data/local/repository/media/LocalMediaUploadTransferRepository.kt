@@ -5,6 +5,8 @@ import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.calculateCloudHttpTransientRetryDelayMs
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.cloudHttpTransientRetryMaxAttemptCount
 import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.MediaAssetEntity
@@ -22,6 +24,7 @@ import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadPartRe
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadPartUrl
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadPartUrlsRequest
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadPartUrlsResponse
+import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadCompletion
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSession
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionCreateRequest
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionCreateResponse
@@ -43,6 +46,11 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.bui
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
 import java.io.EOFException
 import java.io.File
 import java.io.FileInputStream
@@ -58,6 +66,10 @@ private const val mediaUploadRetryMaxDelayMillis: Long = 3_600_000L
 private const val mediaUploadErrorMessageLimit: Int = 4_096
 private const val mediaUploadRetryMaxExponent: Int = 6
 private const val mediaUploadReplicaInvalidErrorCode: String = "MEDIA_ASSET_REPLICA_INVALID"
+private val mediaUploadSameSessionCompletionRetryErrorCodes: Set<String> = setOf(
+    "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_DEADLINE_EXCEEDED",
+    "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS"
+)
 
 data class MediaUploadTransferRunResult(
     val processedCount: Int,
@@ -218,28 +230,75 @@ class LocalMediaUploadTransferRepository(
                         uploadSession = uploadSession,
                         uploadFilePlan = uploadFilePlan
                     )
-                    val mediaAsset: MediaAsset = uploadMultipartBytes(
+                    val completionResult: MediaUploadCompletionReplayResult = uploadMultipartBytes(
                         transfer = transfer,
                         uploadFilePlan = uploadFilePlan,
                         uploadSession = uploadSession,
                         cloudSession = cloudSession
                     )
+                    val mediaAsset: MediaAsset = completionResult.completion.mediaAsset
+                    val retryableCompletionCause: CloudRemoteException? =
+                        completionResult.retryableCompletionCause
+                    try {
+                        requireMediaAssetMatchesTransfer(
+                            mediaAsset = mediaAsset,
+                            transfer = transfer
+                        )
+                    } catch (error: Exception) {
+                        if (retryableCompletionCause != null) {
+                            throw MediaUploadCompletionTerminalException(
+                                reason = MediaUploadCompletionTerminalReason.INTERRUPTED,
+                                completionCause = retryableCompletionCause,
+                                interruptionCause = error
+                            )
+                        }
+                        throw error
+                    }
+                    if (retryableCompletionCause == null) {
+                        persistSuccessfulUpload(
+                            transfer = transfer,
+                            uploadFilePlan = uploadFilePlan,
+                            mediaAsset = mediaAsset
+                        )
+                    } else {
+                        try {
+                            withContext(context = NonCancellable) {
+                                persistSuccessfulUpload(
+                                    transfer = transfer,
+                                    uploadFilePlan = uploadFilePlan,
+                                    mediaAsset = mediaAsset
+                                )
+                            }
+                        } catch (error: Exception) {
+                            throw MediaUploadCompletionTerminalException(
+                                reason = MediaUploadCompletionTerminalReason.INTERRUPTED,
+                                completionCause = retryableCompletionCause,
+                                interruptionCause = error
+                            )
+                        }
+                    }
                     activeUploadSession = null
-                    persistSuccessfulUpload(
-                        transfer = transfer,
-                        uploadFilePlan = uploadFilePlan,
-                        mediaAsset = mediaAsset
-                    )
                 }
+            }
+        } catch (error: MediaUploadCompletionTerminalException) {
+            try {
+                withContext(context = NonCancellable) {
+                    recordUploadFailure(transferEntity = transferEntity, error = error)
+                }
+            } catch (persistenceError: Exception) {
+                error.addSuppressed(persistenceError)
+                throw error
             }
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            abortActiveUploadSessionIfPossible(
-                activeUploadSession = activeUploadSession,
-                cloudSession = cloudSession,
-                cause = error
-            )
+            if (shouldAbortMediaUploadSessionAfterFailure(error = error)) {
+                abortActiveUploadSessionIfPossible(
+                    activeUploadSession = activeUploadSession,
+                    cloudSession = cloudSession,
+                    cause = error
+                )
+            }
             recordUploadFailure(transferEntity = transferEntity, error = error)
         }
     }
@@ -249,7 +308,7 @@ class LocalMediaUploadTransferRepository(
         uploadFilePlan: MediaUploadFilePlan,
         uploadSession: MediaAssetUploadSession,
         cloudSession: MediaUploadCloudSession
-    ): MediaAsset {
+    ): MediaUploadCompletionReplayResult {
         val completedParts = mutableListOf<CompleteMediaAssetUploadPart>()
         uploadFilePlan.parts.chunked(size = mediaUploadPartUrlBatchSize).forEach { partBatch ->
             requireUploadSessionNotExpired(uploadSession = uploadSession)
@@ -295,14 +354,23 @@ class LocalMediaUploadTransferRepository(
         }
 
         requireUploadSessionNotExpired(uploadSession = uploadSession)
-        val completion = remoteService.completeMediaAssetUploadSession(
-            apiBaseUrl = cloudSession.apiBaseUrl,
-            authorizationHeader = cloudSession.authorizationHeader,
-            workspaceId = transfer.workspaceId,
-            sessionId = uploadSession.sessionId,
-            request = CompleteMediaAssetUploadSessionRequest(parts = completedParts.sortedBy { part -> part.partNumber })
+        val completionRequest = CompleteMediaAssetUploadSessionRequest(
+            parts = completedParts.sortedBy { part -> part.partNumber }
         )
-        return completion.mediaAsset
+        return retryMediaUploadSessionCompletion(
+            complete = {
+                remoteService.completeMediaAssetUploadSession(
+                    apiBaseUrl = cloudSession.apiBaseUrl,
+                    authorizationHeader = cloudSession.authorizationHeader,
+                    workspaceId = transfer.workspaceId,
+                    sessionId = uploadSession.sessionId,
+                    request = completionRequest
+                )
+            },
+            wait = { delayMillis ->
+                delay(timeMillis = delayMillis)
+            }
+        )
     }
 
     private suspend fun persistSuccessfulUpload(
@@ -495,6 +563,143 @@ private class MediaUploadTransferSessionExpiredException(
     message: String,
     cause: Throwable?
 ) : IOException(message, cause)
+
+internal enum class MediaUploadCompletionTerminalReason(
+    val wireKey: String
+) {
+    RETRY_EXHAUSTED("retry_exhausted"),
+    INTERRUPTED("interrupted")
+}
+
+private fun renderMediaUploadCompletionInterruption(error: Exception?): String {
+    if (error == null) {
+        return "none"
+    }
+    if (error is CloudRemoteException) {
+        return buildString {
+            append(error.message)
+            append(" code=${error.errorCode ?: "none"}")
+            append(" status=${error.statusCode ?: "none"}")
+            append(" requestId=${error.requestId ?: "none"}")
+        }
+    }
+    return error.message ?: error::class.java.simpleName
+}
+
+internal class MediaUploadCompletionTerminalException(
+    val reason: MediaUploadCompletionTerminalReason,
+    val completionCause: CloudRemoteException,
+    val interruptionCause: Exception?
+) : Exception(
+    buildString {
+        append("Media upload completion stopped for this local run: ")
+        append("reason=${reason.wireKey}, ")
+        append("completionError=${completionCause.message}, ")
+        append("completionCode=${completionCause.errorCode ?: "none"}, ")
+        append("completionStatus=${completionCause.statusCode ?: "none"}, ")
+        append("completionRequestId=${completionCause.requestId ?: "none"}, ")
+        append("interruptionError=${renderMediaUploadCompletionInterruption(error = interruptionCause)}")
+    },
+    completionCause
+)
+
+internal data class MediaUploadCompletionReplayResult(
+    val completion: MediaAssetUploadCompletion,
+    val retryableCompletionCause: CloudRemoteException?
+)
+
+internal fun shouldAbortMediaUploadSessionAfterFailure(error: Exception): Boolean {
+    if (error is MediaUploadCompletionTerminalException) {
+        return false
+    }
+    return error !is CloudRemoteException ||
+        error.errorCode !in mediaUploadSameSessionCompletionRetryErrorCodes
+}
+
+internal suspend fun retryMediaUploadSessionCompletion(
+    complete: suspend () -> MediaAssetUploadCompletion,
+    wait: suspend (Long) -> Unit
+): MediaUploadCompletionReplayResult {
+    var attemptNumber = 1
+    var lastRetryableCompletionError: CloudRemoteException? = null
+    while (true) {
+        try {
+            currentCoroutineContext().ensureActive()
+        } catch (error: CancellationException) {
+            val completionError = lastRetryableCompletionError ?: throw error
+            throw MediaUploadCompletionTerminalException(
+                reason = MediaUploadCompletionTerminalReason.INTERRUPTED,
+                completionCause = completionError,
+                interruptionCause = error
+            )
+        }
+
+        try {
+            return MediaUploadCompletionReplayResult(
+                completion = complete(),
+                retryableCompletionCause = lastRetryableCompletionError
+            )
+        } catch (error: CancellationException) {
+            val completionError = lastRetryableCompletionError
+            if (completionError != null) {
+                throw MediaUploadCompletionTerminalException(
+                    reason = MediaUploadCompletionTerminalReason.INTERRUPTED,
+                    completionCause = completionError,
+                    interruptionCause = error
+                )
+            }
+            throw error
+        } catch (error: CloudRemoteException) {
+            val errorCode: String? = error.errorCode
+            if (
+                errorCode == null ||
+                mediaUploadSameSessionCompletionRetryErrorCodes.contains(element = errorCode).not()
+            ) {
+                val completionError = lastRetryableCompletionError
+                if (completionError != null) {
+                    throw MediaUploadCompletionTerminalException(
+                        reason = MediaUploadCompletionTerminalReason.INTERRUPTED,
+                        completionCause = completionError,
+                        interruptionCause = error
+                    )
+                }
+                throw error
+            }
+            lastRetryableCompletionError = error
+            if (attemptNumber >= cloudHttpTransientRetryMaxAttemptCount) {
+                throw MediaUploadCompletionTerminalException(
+                    reason = MediaUploadCompletionTerminalReason.RETRY_EXHAUSTED,
+                    completionCause = error,
+                    interruptionCause = null
+                )
+            }
+
+            try {
+                wait(
+                    error.retryAfterDelayMillis
+                        ?: calculateCloudHttpTransientRetryDelayMs(attemptNumber = attemptNumber)
+                )
+            } catch (waitError: Exception) {
+                throw MediaUploadCompletionTerminalException(
+                    reason = MediaUploadCompletionTerminalReason.INTERRUPTED,
+                    completionCause = error,
+                    interruptionCause = waitError
+                )
+            }
+            attemptNumber += 1
+        } catch (error: Exception) {
+            val completionError = lastRetryableCompletionError
+            if (completionError != null) {
+                throw MediaUploadCompletionTerminalException(
+                    reason = MediaUploadCompletionTerminalReason.INTERRUPTED,
+                    completionCause = completionError,
+                    interruptionCause = error
+                )
+            }
+            throw error
+        }
+    }
+}
 
 private fun toMediaTransferQueueItem(entity: MediaTransferQueueEntity): MediaTransferQueueItem {
     return MediaTransferQueueItem(
@@ -899,6 +1104,9 @@ private fun isPermanentMediaUploadFailure(error: Exception): Boolean {
         return false
     }
     if (error is MediaUploadTransferPermanentException) {
+        return true
+    }
+    if (error is MediaUploadCompletionTerminalException) {
         return true
     }
     if (error is CloudContractMismatchException) {

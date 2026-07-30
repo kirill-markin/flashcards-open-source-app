@@ -115,6 +115,15 @@ export type MarkMediaUploadTransferDueForRetryInput = Readonly<{
   retryAt: string;
 }>;
 
+export type MarkMediaUploadTransferCompletionTerminalInput = Readonly<{
+  transferId: string;
+  workspaceId: string;
+  mediaAssetId: string;
+  failedAt: string;
+  lastError: string;
+  nextAttemptAt: string;
+}>;
+
 function createQueuedMediaTransferRecord(
   input: EnqueueMediaTransferDownloadInput | EnqueueMediaTransferUploadInput,
   kind: MediaTransferKind,
@@ -905,6 +914,102 @@ export async function markMediaTransferFailed(
     }),
     "IndexedDB media transfer failure update failed",
   );
+}
+
+export async function markMediaUploadTransferCompletionTerminal(
+  input: MarkMediaUploadTransferCompletionTerminalInput,
+): Promise<MediaTransferQueueRecord> {
+  const errorPrefix = "IndexedDB media upload completion terminal update failed";
+  return closeDatabaseAfter(async (database) => new Promise<MediaTransferQueueRecord>((resolve, reject) => {
+    const transaction = database.transaction(["mediaTransferQueue"], "readwrite");
+    const store = transaction.objectStore("mediaTransferQueue");
+    const request = store.get(input.transferId);
+    let persistedRecord: MediaTransferQueueRecord | null = null;
+    let didReject = false;
+
+    const rejectOnce = (error: Error): void => {
+      if (didReject) {
+        return;
+      }
+
+      didReject = true;
+      rejectIndexedDbTransaction(transaction, reject, error);
+    };
+
+    request.onerror = () => {
+      rejectOnce(describeIndexedDbError(`${errorPrefix} lookup failed`, request.error));
+    };
+    request.onsuccess = () => {
+      const record = request.result as MediaTransferQueueRecord | undefined;
+      if (record === undefined) {
+        rejectOnce(new Error(`${errorPrefix}: transfer not found. transferId=${input.transferId}`));
+        return;
+      }
+
+      if (record.workspaceId !== input.workspaceId) {
+        rejectOnce(new Error(`${errorPrefix}: workspace mismatch. transferId=${input.transferId}, expectedWorkspaceId=${input.workspaceId}, actualWorkspaceId=${record.workspaceId}`));
+        return;
+      }
+
+      if (record.mediaAssetId !== input.mediaAssetId) {
+        rejectOnce(new Error(`${errorPrefix}: media asset mismatch. transferId=${input.transferId}, expectedMediaAssetId=${input.mediaAssetId}, actualMediaAssetId=${record.mediaAssetId}`));
+        return;
+      }
+
+      if (record.kind !== "upload") {
+        rejectOnce(new Error(`${errorPrefix}: transfer kind mismatch. transferId=${input.transferId}, expectedKind=upload, actualKind=${record.kind}`));
+        return;
+      }
+
+      if (record.status === "completed") {
+        persistedRecord = record;
+        return;
+      }
+
+      if (
+        record.status !== "queued"
+        && record.status !== "in_progress"
+        && record.status !== "failed"
+      ) {
+        rejectOnce(new Error(`${errorPrefix}: transfer has invalid terminalizable status. transferId=${input.transferId}, status=${record.status}`));
+        return;
+      }
+
+      persistedRecord = {
+        ...record,
+        status: "failed",
+        attemptCount: record.attemptCount + 1,
+        nextAttemptAt: input.nextAttemptAt,
+        lastError: input.lastError,
+        updatedAt: input.failedAt,
+        claimedAt: null,
+        completedAt: null,
+      };
+      const putRequest = store.put(persistedRecord);
+      putRequest.onerror = () => {
+        rejectOnce(describeIndexedDbError(`${errorPrefix} write failed`, putRequest.error));
+      };
+    };
+
+    transaction.onerror = () => {
+      if (didReject === false) {
+        reject(describeIndexedDbError(errorPrefix, transaction.error));
+      }
+    };
+    transaction.onabort = () => {
+      if (didReject === false) {
+        reject(describeIndexedDbError(`${errorPrefix} aborted`, transaction.error));
+      }
+    };
+    transaction.oncomplete = () => {
+      if (persistedRecord === null) {
+        reject(new Error(`${errorPrefix}: update did not complete. transferId=${input.transferId}`));
+        return;
+      }
+
+      resolve(persistedRecord);
+    };
+  }));
 }
 
 export async function markMediaUploadTransferDueForRetry(

@@ -36,7 +36,7 @@ const refreshSessionBaseRetryDelayMs = 100;
 const refreshSessionMaximumRetryDelayMs = 500;
 const refreshSessionReconciliationMaximumAttemptCount = 3;
 const refreshSessionReconciliationDelayMs = 200;
-const apiNetworkRetryMaximumAttemptCount = 4;
+export const apiNetworkRetryMaximumAttemptCount = 4;
 const apiNetworkRetryBaseDelayMs = 250;
 const apiNetworkRetryMaximumDelayMs = 2000;
 const uuidPathSegmentPattern = /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/giu;
@@ -235,16 +235,35 @@ function canReuseNetworkRetryPromise(
   return requestedNetworkRetryMode === "none" || activeNetworkRetryMode === "transient";
 }
 
-function createApiNetworkRetryDelayMs(attemptCount: number): number {
+export function createApiNetworkRetryDelayMs(attemptCount: number): number {
   const exponentialDelayMs = apiNetworkRetryBaseDelayMs * (2 ** (attemptCount - 1));
   const cappedDelayMs = Math.min(exponentialDelayMs, apiNetworkRetryMaximumDelayMs);
   return Math.floor(Math.random() * cappedDelayMs);
 }
 
-function waitForApiNetworkRetry(attemptCount: number): Promise<void> {
+function waitForApiNetworkRetry(
+  attemptCount: number,
+  signal: AbortSignal | null,
+): Promise<void> {
   const delayMs = createApiNetworkRetryDelayMs(attemptCount);
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, delayMs);
+  return new Promise((resolve, reject) => {
+    let timerId: number | null = null;
+    const abortHandler = (): void => {
+      if (timerId !== null) {
+        window.clearTimeout(timerId);
+      }
+      reject(signal?.reason);
+    };
+    if (signal?.aborted === true) {
+      abortHandler();
+      return;
+    }
+
+    timerId = window.setTimeout((): void => {
+      signal?.removeEventListener("abort", abortHandler);
+      resolve();
+    }, delayMs);
+    signal?.addEventListener("abort", abortHandler, { once: true });
   });
 }
 
@@ -287,6 +306,7 @@ async function performFetchWithNetworkRetry(
     } catch (error) {
       if (
         error instanceof ApiNetworkError === false
+        || init.signal?.aborted === true
         || options.networkRetryMode === "none"
         || hasRemainingNetworkRetryAttempt(attemptCount) === false
       ) {
@@ -294,7 +314,7 @@ async function performFetchWithNetworkRetry(
       }
 
       warnApiTransportRetry(error);
-      await waitForApiNetworkRetry(attemptCount);
+      await waitForApiNetworkRetry(attemptCount, init.signal ?? null);
       attemptCount += 1;
     }
   }
@@ -364,6 +384,7 @@ function createRefreshSessionNetworkError(error: unknown): ApiError {
     message: `The auth service is unavailable. Try again. (/api/refresh-session; ${message})`,
     code: null,
     requestId: null,
+    retryAfterMs: null,
     endpoint: refreshSessionEndpoint,
     responseBodyKind: "empty",
   });
@@ -377,6 +398,7 @@ async function createRefreshSessionResponseError(response: Response): Promise<Ap
     message: getJsonErrorMessage(payload.value, fallbackMessage),
     code: payload.code,
     requestId: payload.requestId,
+    retryAfterMs: payload.retryAfterMs,
     endpoint: refreshSessionEndpoint,
     responseBodyKind: payload.bodyKind,
   });

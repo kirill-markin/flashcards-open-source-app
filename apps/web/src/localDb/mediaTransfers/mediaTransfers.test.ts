@@ -16,8 +16,10 @@ import {
   loadMediaUploadTransfersForWorkspaceMediaAssets,
   loadNextPendingMediaTransferAttemptAtByKind,
   markClaimedMediaTransferSucceeded,
+  markMediaUploadTransferCompletionTerminal,
   markMediaUploadTransferDueForRetry,
   markMediaTransferFailed,
+  markMediaTransferSucceeded,
   persistLocalMediaUpload,
   recoverStaleInProgressMediaTransfersByKind,
   renewInProgressMediaTransferClaim,
@@ -275,6 +277,73 @@ describe("localDb media transfers", () => {
       kind: "upload",
       status: "in_progress",
       claimedAt: "2026-03-10T09:10:00.000Z",
+    }));
+  });
+
+  it("terminalizes a matching upload without reverting a concurrently completed row", async () => {
+    await enqueueMediaTransferUpload({
+      transferId: "completed-upload-transfer",
+      workspaceId: "workspace-1",
+      mediaAssetId: "completed-media-asset-upload",
+      sha256: "2e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      mimeType: "image/png",
+      sizeBytes: 42817,
+      sourceBlobCacheKey: "2e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      createdAt: "2026-03-10T09:00:00.000Z",
+      nextAttemptAt: "2026-03-10T09:00:00.000Z",
+    });
+    await markMediaTransferSucceeded(
+      "completed-upload-transfer",
+      "2026-03-10T09:05:00.000Z",
+    );
+    const completedRecord = await loadMediaTransferQueueRecord("completed-upload-transfer");
+
+    await expect(markMediaUploadTransferCompletionTerminal({
+      transferId: "completed-upload-transfer",
+      workspaceId: "workspace-1",
+      mediaAssetId: "completed-media-asset-upload",
+      failedAt: "2026-03-10T09:10:00.000Z",
+      lastError: "completion replay failed",
+      nextAttemptAt: "9999-12-31T23:59:59.999Z",
+    })).resolves.toEqual(completedRecord);
+    await expect(loadMediaTransferQueueRecord("completed-upload-transfer")).resolves.toEqual(completedRecord);
+
+    await enqueueMediaTransferUpload({
+      transferId: "terminal-upload-transfer",
+      workspaceId: "workspace-1",
+      mediaAssetId: "terminal-media-asset-upload",
+      sha256: "3e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      mimeType: "image/png",
+      sizeBytes: 42817,
+      sourceBlobCacheKey: "3e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      createdAt: "2026-03-10T09:15:00.000Z",
+      nextAttemptAt: "2026-03-10T09:15:00.000Z",
+    });
+    await claimNextDueMediaTransferByKind(
+      "workspace-1",
+      "upload",
+      "2026-03-10T09:20:00.000Z",
+    );
+
+    await expect(markMediaUploadTransferCompletionTerminal({
+      transferId: "terminal-upload-transfer",
+      workspaceId: "workspace-1",
+      mediaAssetId: "terminal-media-asset-upload",
+      failedAt: "2026-03-10T09:25:00.000Z",
+      lastError: "completion replay failed",
+      nextAttemptAt: "9999-12-31T23:59:59.999Z",
+    })).resolves.toEqual(expect.objectContaining({
+      transferId: "terminal-upload-transfer",
+      workspaceId: "workspace-1",
+      mediaAssetId: "terminal-media-asset-upload",
+      kind: "upload",
+      status: "failed",
+      attemptCount: 1,
+      nextAttemptAt: "9999-12-31T23:59:59.999Z",
+      lastError: "completion replay failed",
+      updatedAt: "2026-03-10T09:25:00.000Z",
+      claimedAt: null,
+      completedAt: null,
     }));
   });
 
