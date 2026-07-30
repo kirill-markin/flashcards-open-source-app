@@ -14,7 +14,7 @@ extension ReviewView {
             return nil
         }
 
-        return store.effectiveReviewQueue.first { card in
+        return store.cards.first { card in
             card.cardId == editingCardId
         }
     }
@@ -31,6 +31,18 @@ extension ReviewView {
         return normalizedInput.frontText != editingCard.frontText
             || normalizedInput.backText != editingCard.backText
             || normalizedInput.tags != editingCard.tags
+    }
+
+    func reconcileEditingCardFormState() {
+        guard self.isEditorPresented,
+              let refreshedCard = self.editingCard() else {
+            return
+        }
+
+        self.cardFormState = cardFormStateByReconcilingMediaLifecycle(
+            formState: self.cardFormState,
+            refreshedCard: refreshedCard
+        )
     }
 
     func saveEditedCardForAIHandoff() -> AIChatCardReference? {
@@ -72,6 +84,10 @@ extension ReviewView {
             editorSessionId: UUID(),
             frontText: card.frontText,
             backText: card.backText,
+            frontTextSelection: nil,
+            backTextSelection: nil,
+            observedFrontText: card.frontText,
+            observedBackText: card.backText,
             tags: card.tags,
             mediaAssetIdsReadyForUpload: []
         )

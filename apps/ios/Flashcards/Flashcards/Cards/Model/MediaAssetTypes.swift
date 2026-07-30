@@ -10,6 +10,12 @@ private let managedMediaFenceExpression = makeManagedMediaAssetRegularExpression
     pattern: #"^\s{0,3}(`{3,}|~{3,})"#
 )
 
+enum ManagedMediaAssetReferenceState: Hashable, Sendable {
+    case ready
+    case pending
+    case failed
+}
+
 // Keep in sync with apps/backend/src/media/assets.ts::MediaAssetRecord and
 // apps/web/src/types.ts::MediaAsset.
 struct MediaAsset: Codable, Identifiable, Hashable, Sendable {
@@ -170,6 +176,47 @@ func managedMediaAssetId(reference: String) -> String? {
 
     let mediaAssetId = rawAssetId.trimmingCharacters(in: .whitespacesAndNewlines)
     return mediaAssetId.isEmpty ? nil : mediaAssetId
+}
+
+func managedMediaAssetReferenceState(reference: String) -> ManagedMediaAssetReferenceState? {
+    let trimmedReference = reference.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard managedMediaAssetId(reference: trimmedReference) != nil else {
+        return nil
+    }
+
+    guard let queryStart = trimmedReference.firstIndex(of: "?") else {
+        return .ready
+    }
+    if let fragmentStart = trimmedReference.firstIndex(of: "#"),
+       fragmentStart < queryStart {
+        return .ready
+    }
+
+    let queryValueStart = trimmedReference.index(after: queryStart)
+    let queryEnd = trimmedReference[queryValueStart...].firstIndex(of: "#") ?? trimmedReference.endIndex
+    let query = trimmedReference[queryValueStart..<queryEnd]
+    var state: ManagedMediaAssetReferenceState?
+
+    for queryItem in query.split(separator: "&", omittingEmptySubsequences: false) {
+        let nameAndValue = queryItem.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+        guard nameAndValue.first == "state" else {
+            continue
+        }
+        guard state == nil, nameAndValue.count == 2 else {
+            return .ready
+        }
+
+        switch nameAndValue[1] {
+        case "pending":
+            state = .pending
+        case "failed":
+            state = .failed
+        default:
+            state = .ready
+        }
+    }
+
+    return state ?? .ready
 }
 
 func managedMediaAssetIdsReferencedInMarkdown(text: String) -> Set<String> {

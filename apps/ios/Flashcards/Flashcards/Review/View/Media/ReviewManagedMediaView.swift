@@ -35,10 +35,16 @@ private enum ReviewManagedMediaCategory {
 
 private struct ReviewManagedMediaTaskID: Hashable {
     let mediaAssetId: String
+    let state: ManagedMediaAssetReferenceState
     let workspaceId: String?
 
-    init(mediaAssetId: String, workspaceId: String?) {
+    init(
+        mediaAssetId: String,
+        state: ManagedMediaAssetReferenceState,
+        workspaceId: String?
+    ) {
         self.mediaAssetId = mediaAssetId
+        self.state = state
         self.workspaceId = workspaceId
     }
 }
@@ -55,21 +61,36 @@ struct ReviewManagedMediaView: View {
 
     var body: some View {
         Group {
-            if isLoading {
-                initialLoadingView
-            } else if let loadResult,
-                      let mediaAsset = loadResult.mediaAsset,
-                      let mediaURL = loadResult.mediaURL {
-                readyView(mediaAsset: mediaAsset, mediaURL: mediaURL)
-            } else {
-                unavailableView(unavailableReason: loadResult?.unavailableReason)
+            switch reference.state {
+            case .pending:
+                generatedImagePendingView
+            case .failed:
+                generatedImageFailedView
+            case .ready:
+                if isLoading {
+                    initialLoadingView
+                } else if let loadResult,
+                          let mediaAsset = loadResult.mediaAsset,
+                          let mediaURL = loadResult.mediaURL {
+                    readyView(mediaAsset: mediaAsset, mediaURL: mediaURL)
+                } else {
+                    unavailableView(unavailableReason: loadResult?.unavailableReason)
+                }
             }
         }
         .task(id: taskID) { [taskID] in
             self.localRefreshTask?.cancel()
+            guard taskID.state == .ready else {
+                self.loadResult = nil
+                self.isLoading = true
+                return
+            }
             await self.loadManagedMedia(taskID: taskID, showsLoadingIndicator: true)
         }
         .onChange(of: store.localReadVersion) { _, _ in
+            guard self.reference.state == .ready else {
+                return
+            }
             self.startLocalRefresh(taskID: self.taskID)
         }
         .onDisappear {
@@ -81,6 +102,7 @@ struct ReviewManagedMediaView: View {
     private var taskID: ReviewManagedMediaTaskID {
         ReviewManagedMediaTaskID(
             mediaAssetId: reference.mediaAssetId,
+            state: reference.state,
             workspaceId: store.workspace?.workspaceId
         )
     }
@@ -123,6 +145,65 @@ struct ReviewManagedMediaView: View {
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(loadingMediaLabel)
+    }
+
+    private var generatedImagePendingView: some View {
+        RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius)
+            .fill(mediaBackgroundStyle)
+            .aspectRatio(reviewManagedImagePlaceholderAspectRatio, contentMode: .fit)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .overlay {
+                VStack(spacing: 10) {
+                    ProgressView()
+                        .controlSize(.regular)
+                    Text(generatedImageProcessingLabel)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(12)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(generatedImageAccessibilityLabel)
+            .accessibilityValue(generatedImageProcessingLabel)
+    }
+
+    private var generatedImageFailedView: some View {
+        RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius)
+            .fill(mediaBackgroundStyle)
+            .aspectRatio(reviewManagedImagePlaceholderAspectRatio, contentMode: .fit)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .overlay {
+                VStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.orange)
+                    Text(generatedImageFailureLabel)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(12)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(generatedImageAccessibilityLabel)
+            .accessibilityValue(generatedImageFailureLabel)
+    }
+
+    private var generatedImageAccessibilityLabel: String {
+        if let label = reference.label, label.isEmpty == false {
+            return label
+        }
+
+        return String(localized: "Managed image", table: reviewManagedMediaStringsTableName)
+    }
+
+    private var generatedImageProcessingLabel: String {
+        String(localized: "Processing image...", table: reviewManagedMediaStringsTableName)
+    }
+
+    private var generatedImageFailureLabel: String {
+        String(localized: "Image couldn't be attached", table: reviewManagedMediaStringsTableName)
     }
 
     private func readyView(mediaAsset: MediaAsset, mediaURL: URL) -> some View {
@@ -238,7 +319,7 @@ struct ReviewManagedMediaView: View {
     }
 
     private func loadManagedMedia(taskID: ReviewManagedMediaTaskID, showsLoadingIndicator: Bool) async {
-        guard taskID == self.taskID else {
+        guard taskID.state == .ready, taskID == self.taskID else {
             return
         }
 
