@@ -237,45 +237,12 @@ class LocalMediaUploadTransferRepository(
                         cloudSession = cloudSession
                     )
                     val mediaAsset: MediaAsset = completionResult.completion.mediaAsset
-                    val retryableCompletionCause: CloudRemoteException? =
-                        completionResult.retryableCompletionCause
-                    try {
-                        requireMediaAssetMatchesTransfer(
-                            mediaAsset = mediaAsset,
-                            transfer = transfer
-                        )
-                    } catch (error: Exception) {
-                        if (retryableCompletionCause != null) {
-                            throw MediaUploadCompletionTerminalException(
-                                reason = MediaUploadCompletionTerminalReason.INTERRUPTED,
-                                completionCause = retryableCompletionCause,
-                                interruptionCause = error
-                            )
-                        }
-                        throw error
-                    }
-                    if (retryableCompletionCause == null) {
+                    if (completionResult.retryableCompletionCause == null) {
                         persistSuccessfulUpload(
                             transfer = transfer,
                             uploadFilePlan = uploadFilePlan,
                             mediaAsset = mediaAsset
                         )
-                    } else {
-                        try {
-                            withContext(context = NonCancellable) {
-                                persistSuccessfulUpload(
-                                    transfer = transfer,
-                                    uploadFilePlan = uploadFilePlan,
-                                    mediaAsset = mediaAsset
-                                )
-                            }
-                        } catch (error: Exception) {
-                            throw MediaUploadCompletionTerminalException(
-                                reason = MediaUploadCompletionTerminalReason.INTERRUPTED,
-                                completionCause = retryableCompletionCause,
-                                interruptionCause = error
-                            )
-                        }
                     }
                     activeUploadSession = null
                 }
@@ -369,6 +336,13 @@ class LocalMediaUploadTransferRepository(
             },
             wait = { delayMillis ->
                 delay(timeMillis = delayMillis)
+            },
+            persistReplaySuccess = { completion ->
+                persistSuccessfulUpload(
+                    transfer = transfer,
+                    uploadFilePlan = uploadFilePlan,
+                    mediaAsset = completion.mediaAsset
+                )
             }
         )
     }
@@ -618,7 +592,8 @@ internal fun shouldAbortMediaUploadSessionAfterFailure(error: Exception): Boolea
 
 internal suspend fun retryMediaUploadSessionCompletion(
     complete: suspend () -> MediaAssetUploadCompletion,
-    wait: suspend (Long) -> Unit
+    wait: suspend (Long) -> Unit,
+    persistReplaySuccess: suspend (MediaAssetUploadCompletion) -> Unit
 ): MediaUploadCompletionReplayResult {
     var attemptNumber = 1
     var lastRetryableCompletionError: CloudRemoteException? = null
@@ -635,9 +610,19 @@ internal suspend fun retryMediaUploadSessionCompletion(
         }
 
         try {
+            val completionError: CloudRemoteException? = lastRetryableCompletionError
+            val completion: MediaAssetUploadCompletion = if (completionError == null) {
+                complete()
+            } else {
+                withContext(context = NonCancellable) {
+                    val replayCompletion: MediaAssetUploadCompletion = complete()
+                    persistReplaySuccess(replayCompletion)
+                    replayCompletion
+                }
+            }
             return MediaUploadCompletionReplayResult(
-                completion = complete(),
-                retryableCompletionCause = lastRetryableCompletionError
+                completion = completion,
+                retryableCompletionCause = completionError
             )
         } catch (error: CancellationException) {
             val completionError = lastRetryableCompletionError

@@ -57,6 +57,8 @@ class MediaUploadCompletionRetryTest {
             },
             wait = { delayMillis ->
                 retryDelays += delayMillis
+            },
+            persistReplaySuccess = {
             }
         )
 
@@ -86,6 +88,8 @@ class MediaUploadCompletionRetryTest {
                 },
                 wait = {
                     throw CancellationException("Upload worker cancelled")
+                },
+                persistReplaySuccess = {
                 }
             )
             fail("Expected cancellation")
@@ -113,6 +117,8 @@ class MediaUploadCompletionRetryTest {
                 },
                 wait = {
                     retryDelayCount += 1
+                },
+                persistReplaySuccess = {
                 }
             )
             fail("Expected retry exhaustion")
@@ -141,6 +147,8 @@ class MediaUploadCompletionRetryTest {
                 },
                 wait = {
                     retryDelayCount += 1
+                },
+                persistReplaySuccess = {
                 }
             )
             fail("Expected terminal completion failure")
