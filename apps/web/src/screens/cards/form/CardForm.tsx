@@ -164,7 +164,9 @@ function collectReferencedMediaAssetIds(
   const mediaAssetIds = new Set<string>();
   for (const fieldReferences of references) {
     for (const reference of fieldReferences) {
-      mediaAssetIds.add(reference.mediaAssetId);
+      if (reference.state === "ready") {
+        mediaAssetIds.add(reference.mediaAssetId);
+      }
     }
   }
 
@@ -314,7 +316,7 @@ function ManagedMediaReferenceStrip(props: Readonly<{
         return (
           <div
             className="card-form-managed-media-reference"
-            key={`${reference.mediaAssetId}:${reference.startIndex}`}
+            key={`${reference.mediaAssetId}:${reference.state}:${reference.startIndex}`}
             data-fcasset-id={reference.mediaAssetId}
           >
             <div className="card-form-managed-media-body">
@@ -324,6 +326,7 @@ function ManagedMediaReferenceStrip(props: Readonly<{
                   localReadVersion={localReadVersion}
                   mediaAssetId={reference.mediaAssetId}
                   referencePresentation="image"
+                  referenceState={reference.state}
                   workspaceId={workspaceId}
                 >
                   {referenceLabel}

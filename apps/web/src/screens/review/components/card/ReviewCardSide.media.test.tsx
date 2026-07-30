@@ -6,6 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../../../i18n";
 import { createStorageMock } from "../../../../api/ApiTestSupport";
 import type { MediaBlobCacheRecord } from "../../../../localDb/mediaTransfers";
+import {
+  CardFormFields,
+  createCardFormManagedMediaState,
+  type CardFormState,
+} from "../../../cards/form/CardForm";
 import type { MediaAsset } from "../../../../types";
 import { ReviewCardSide } from "./ReviewCardSide";
 
@@ -13,6 +18,7 @@ const mediaMocks = vi.hoisted(() => ({
   loadMediaAssetDownloadUrlMock: vi.fn(),
   loadMediaAssetRecordMock: vi.fn(),
   loadMediaBlobCacheRecordMock: vi.fn(),
+  loadMediaUploadTransfersForWorkspaceMediaAssetsMock: vi.fn(),
   writeMediaBlobCacheRecordMock: vi.fn(),
 }));
 
@@ -26,6 +32,7 @@ vi.mock("../../../../localDb/mediaAssets", () => ({
 
 vi.mock("../../../../localDb/mediaTransfers", () => ({
   loadMediaBlobCacheRecord: mediaMocks.loadMediaBlobCacheRecordMock,
+  loadMediaUploadTransfersForWorkspaceMediaAssets: mediaMocks.loadMediaUploadTransfersForWorkspaceMediaAssetsMock,
   writeMediaBlobCacheRecord: mediaMocks.writeMediaBlobCacheRecordMock,
 }));
 
@@ -157,6 +164,31 @@ function createReviewCardSideRoot(
   return root;
 }
 
+function renderCardFormFields(
+  root: ReactDOM.Root,
+  formState: CardFormState,
+): void {
+  act(() => {
+    root.render(
+      <I18nProvider>
+        <CardFormFields
+          tagSuggestions={[]}
+          currentCard={null}
+          formState={formState}
+          formIdPrefix="managed-media-test"
+          isSaving={false}
+          localReadVersion={0}
+          managedMediaState={createCardFormManagedMediaState()}
+          workspaceId="workspace-1"
+          onChange={() => undefined}
+          onPrepareImageMedia={async (): Promise<null> => null}
+          onRetryMediaUploadTransfer={async (): Promise<void> => undefined}
+        />
+      </I18nProvider>,
+    );
+  });
+}
+
 describe("ReviewCardSide managed media rendering", () => {
   let container: HTMLDivElement;
   let createObjectURLMock: ReturnType<typeof vi.fn<(blob: Blob) => string>>;
@@ -207,7 +239,9 @@ describe("ReviewCardSide managed media rendering", () => {
     mediaMocks.loadMediaAssetDownloadUrlMock.mockReset();
     mediaMocks.loadMediaAssetRecordMock.mockReset();
     mediaMocks.loadMediaBlobCacheRecordMock.mockReset();
+    mediaMocks.loadMediaUploadTransfersForWorkspaceMediaAssetsMock.mockReset();
     mediaMocks.writeMediaBlobCacheRecordMock.mockReset();
+    mediaMocks.loadMediaUploadTransfersForWorkspaceMediaAssetsMock.mockResolvedValue([]);
     mediaMocks.writeMediaBlobCacheRecordMock.mockResolvedValue(undefined);
   });
 
@@ -221,6 +255,188 @@ describe("ReviewCardSide managed media rendering", () => {
     window.localStorage.clear();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it("renders explicit generated-image states without managed-media registry or download work", () => {
+    root = createReviewCardSideRoot(container, [
+      "![Pending diagram](fcasset:pending-asset?state=pending)",
+      "![Failed diagram](fcasset:failed-asset?state=failed)",
+    ].join("\n\n"), 0);
+
+    const pendingPlaceholder = container.querySelector('[data-state="pending"]');
+    if (!(pendingPlaceholder instanceof HTMLElement)) {
+      throw new Error("Pending generated-image placeholder was not rendered");
+    }
+    expect(pendingPlaceholder.getAttribute("data-fcasset-id")).toBe("pending-asset");
+    expect(pendingPlaceholder.getAttribute("role")).toBe("status");
+    expect(pendingPlaceholder.getAttribute("aria-busy")).toBe("true");
+    expect(pendingPlaceholder.getAttribute("aria-label")).toBe(
+      "Pending diagram. Image is being prepared. It will appear soon.",
+    );
+    expect(pendingPlaceholder.textContent).toBe("Image is being prepared. It will appear soon.");
+
+    const failedPlaceholder = container.querySelector('[data-state="failed"]');
+    if (!(failedPlaceholder instanceof HTMLElement)) {
+      throw new Error("Failed generated-image placeholder was not rendered");
+    }
+    expect(failedPlaceholder.getAttribute("data-fcasset-id")).toBe("failed-asset");
+    expect(failedPlaceholder.getAttribute("role")).toBe("alert");
+    expect(failedPlaceholder.getAttribute("aria-label")).toBe(
+      "Failed diagram. The image could not be prepared.",
+    );
+    expect(failedPlaceholder.textContent).toBe("The image could not be prepared.");
+
+    expect(mediaMocks.loadMediaAssetRecordMock).not.toHaveBeenCalled();
+    expect(mediaMocks.loadMediaBlobCacheRecordMock).not.toHaveBeenCalled();
+    expect(mediaMocks.loadMediaAssetDownloadUrlMock).not.toHaveBeenCalled();
+  });
+
+  it("renders definition-backed generated-image states using normalized GFM identifiers", () => {
+    root = createReviewCardSideRoot(container, [
+      "![Pending reference][ Pending   Image ]",
+      "",
+      "![Failed reference][FAILED IMAGE]",
+      "",
+      "[pending image]: <fcasset:pending-reference?variant=large&amp;state=pending#preview> \"Generated\"",
+      "[failed image]: fcasset:failed-reference?state=failed \"Failed\"",
+    ].join("\n"), 0);
+
+    const pendingPlaceholder = container.querySelector('[data-fcasset-id="pending-reference"]');
+    const failedPlaceholder = container.querySelector('[data-fcasset-id="failed-reference"]');
+    expect(pendingPlaceholder?.getAttribute("data-state")).toBe("pending");
+    expect(pendingPlaceholder?.getAttribute("aria-label")).toBe(
+      "Pending reference. Image is being prepared. It will appear soon.",
+    );
+    expect(failedPlaceholder?.getAttribute("data-state")).toBe("failed");
+    expect(failedPlaceholder?.getAttribute("aria-label")).toBe(
+      "Failed reference. The image could not be prepared.",
+    );
+    expect(mediaMocks.loadMediaAssetRecordMock).not.toHaveBeenCalled();
+    expect(mediaMocks.loadMediaBlobCacheRecordMock).not.toHaveBeenCalled();
+    expect(mediaMocks.loadMediaAssetDownloadUrlMock).not.toHaveBeenCalled();
+  });
+
+  it("uses the outer image destination when alt content contains destination-like delimiters", () => {
+    const markdown = [
+      "![Code `](` alt](fcasset:code-alt?state=pending)",
+      "",
+      "![Repeated `](fcasset:repeated-alt?state=pending)` destination](fcasset:repeated-alt?state=pending)",
+      "",
+      "![Escaped \\]( alt](fcasset:escaped-alt?state=failed)",
+      "",
+      "![Nested [label](target) alt](fcasset:nested-alt?state=pending)",
+    ].join("\n");
+    root = createReviewCardSideRoot(container, markdown, 0);
+
+    expect(container.querySelector('[data-fcasset-id="code-alt"]')?.getAttribute("data-state")).toBe("pending");
+    expect(container.querySelector('[data-fcasset-id="repeated-alt"]')?.getAttribute("data-state")).toBe("pending");
+    expect(container.querySelector('[data-fcasset-id="escaped-alt"]')?.getAttribute("data-state")).toBe("failed");
+    expect(container.querySelector('[data-fcasset-id="nested-alt"]')?.getAttribute("data-state")).toBe("pending");
+    expect(container.querySelectorAll("[data-state]")).toHaveLength(4);
+    expect(mediaMocks.loadMediaAssetRecordMock).not.toHaveBeenCalled();
+    expect(mediaMocks.loadMediaBlobCacheRecordMock).not.toHaveBeenCalled();
+    expect(mediaMocks.loadMediaAssetDownloadUrlMock).not.toHaveBeenCalled();
+
+    renderCardFormFields(root, {
+      frontText: markdown,
+      backText: "",
+      tags: [],
+    });
+
+    expect(container.querySelector('[data-fcasset-id="code-alt"] [data-state="pending"]')).not.toBeNull();
+    expect(container.querySelector('[data-fcasset-id="repeated-alt"] [data-state="pending"]')).not.toBeNull();
+    expect(container.querySelector('[data-fcasset-id="escaped-alt"] [data-state="failed"]')).not.toBeNull();
+    expect(container.querySelector('[data-fcasset-id="nested-alt"] [data-state="pending"]')).not.toBeNull();
+    expect(container.querySelectorAll("[data-state]")).toHaveLength(4);
+  });
+
+  it("keeps unknown generated-image states on the normal ready-media path", async () => {
+    const imageBlob = new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" });
+    const mediaAsset = makeMediaAsset("image-asset", "image/png", imageSha256, imageBlob.size);
+    mediaMocks.loadMediaAssetRecordMock.mockResolvedValue(mediaAsset);
+    mediaMocks.loadMediaBlobCacheRecordMock.mockResolvedValue(makeCacheRecord(mediaAsset, imageBlob));
+
+    root = createReviewCardSideRoot(container, "![Diagram](fcasset:image-asset?state=queued)", 0);
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".review-markdown-media-image")).not.toBeNull();
+    });
+
+    expect(mediaMocks.loadMediaAssetRecordMock).toHaveBeenCalledWith("workspace-1", "image-asset");
+    expect(container.querySelector("[data-state]")).toBeNull();
+  });
+
+  it("rerenders a synced pending marker as ready media when card text changes", async () => {
+    root = createReviewCardSideRoot(container, "![Diagram](fcasset:image-asset?state=pending)", 0);
+
+    expect(container.querySelector('[data-state="pending"]')).not.toBeNull();
+    expect(mediaMocks.loadMediaAssetRecordMock).not.toHaveBeenCalled();
+
+    const imageBlob = new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" });
+    const mediaAsset = makeMediaAsset("image-asset", "image/png", imageSha256, imageBlob.size);
+    mediaMocks.loadMediaAssetRecordMock.mockResolvedValue(mediaAsset);
+    mediaMocks.loadMediaBlobCacheRecordMock.mockResolvedValue(makeCacheRecord(mediaAsset, imageBlob));
+
+    renderReviewCardSide(root, "![Diagram](fcasset:image-asset)", 1);
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".review-markdown-media-image")).not.toBeNull();
+    });
+
+    expect(container.querySelector('[data-state="pending"]')).toBeNull();
+    expect(mediaMocks.loadMediaAssetRecordMock).toHaveBeenCalledWith("workspace-1", "image-asset");
+  });
+
+  it("keeps generated-image markers as Markdown while showing their states in the card form strip", () => {
+    const frontText = [
+      "Question",
+      "",
+      "![Pending diagram][ Pending   Image ]",
+      "",
+      "`![Inline code](fcasset:inline-code-asset?state=pending)`",
+      "",
+      '[pending image]: <fcasset:pending-asset?variant=large&amp;state=pending#preview> "Generated"',
+    ].join("\n");
+    const backText = [
+      "Answer",
+      "",
+      "![Failed diagram][failed image]",
+      "",
+      "[Not an image][failed image]",
+      "",
+      "```md",
+      "![Fenced code](fcasset:fenced-code-asset?state=failed)",
+      "```",
+      "",
+      '[FAILED IMAGE]: fcasset:failed-asset?state=failed "Generation failed"',
+    ].join("\n");
+    root = ReactDOM.createRoot(container);
+
+    renderCardFormFields(root, {
+      frontText,
+      backText,
+      tags: [],
+    });
+
+    const frontTextarea = container.querySelector('[data-testid="card-form-front-text"]');
+    const backTextarea = container.querySelector('[data-testid="card-form-back-text"]');
+    if (!(frontTextarea instanceof HTMLTextAreaElement) || !(backTextarea instanceof HTMLTextAreaElement)) {
+      throw new Error("Card form Markdown textareas were not rendered");
+    }
+    expect(frontTextarea.value).toBe(frontText);
+    expect(backTextarea.value).toBe(backText);
+    const pendingPlaceholder = container.querySelector('[data-state="pending"]');
+    const failedPlaceholder = container.querySelector('[data-state="failed"]');
+    expect(pendingPlaceholder?.getAttribute("data-fcasset-id")).toBe("pending-asset");
+    expect(pendingPlaceholder?.textContent).toBe(
+      "Image is being prepared. It will appear soon.",
+    );
+    expect(failedPlaceholder?.getAttribute("data-fcasset-id")).toBe("failed-asset");
+    expect(failedPlaceholder?.getAttribute("role")).toBe("alert");
+    expect(container.querySelectorAll("[data-state]")).toHaveLength(2);
+    expect(mediaMocks.loadMediaUploadTransfersForWorkspaceMediaAssetsMock).not.toHaveBeenCalled();
+    expect(mediaMocks.loadMediaAssetRecordMock).not.toHaveBeenCalled();
+    expect(mediaMocks.loadMediaAssetDownloadUrlMock).not.toHaveBeenCalled();
   });
 
   it("renders an image-shaped placeholder until a managed image has decoded", async () => {

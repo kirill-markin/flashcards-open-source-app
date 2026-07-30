@@ -202,6 +202,24 @@
   font-size: 12px;
 }
 
+.card-form-managed-media-preview .review-markdown-media-image-placeholder {
+  height: 72px;
+  min-height: 72px;
+  aspect-ratio: auto;
+  gap: 4px;
+  padding: 6px;
+}
+
+.card-form-managed-media-preview .review-markdown-media-image-placeholder-copy {
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.card-form-managed-media-preview .review-markdown-media-image-placeholder-icon {
+  width: 16px;
+  height: 16px;
+}
+
 .card-form-managed-media-upload-state {
   display: flex;
   flex-wrap: wrap;
