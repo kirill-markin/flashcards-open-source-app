@@ -49,6 +49,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
@@ -57,6 +61,7 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
+import com.flashcardsopensourceapp.data.local.model.media.ManagedMediaReferenceState
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -79,6 +84,11 @@ private enum class ReviewManagedMediaCategory {
     AUDIO,
     VIDEO,
     ATTACHMENT
+}
+
+private enum class ReviewManagedMediaImageStateStyle {
+    PROGRESS,
+    WARNING
 }
 
 private sealed interface ReviewManagedMediaFileState {
@@ -117,6 +127,45 @@ internal fun ReviewManagedMediaContent(
         mediaAsset = mediaAsset,
         categoryLabel = categoryLabel
     )
+    when (reference.state) {
+        ManagedMediaReferenceState.PENDING -> {
+            val supportingText = stringResource(id = R.string.review_media_processing)
+            ReviewManagedMediaImageState(
+                label = label,
+                supportingText = supportingText,
+                accessibilityLabel = stringResource(
+                    id = R.string.review_media_status_content_description,
+                    label,
+                    supportingText
+                ),
+                style = ReviewManagedMediaImageStateStyle.PROGRESS,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+            )
+            return
+        }
+
+        ManagedMediaReferenceState.FAILED -> {
+            val supportingText = stringResource(id = R.string.review_media_processing_failed)
+            ReviewManagedMediaImageState(
+                label = label,
+                supportingText = supportingText,
+                accessibilityLabel = stringResource(
+                    id = R.string.review_media_status_content_description,
+                    label,
+                    supportingText
+                ),
+                style = ReviewManagedMediaImageStateStyle.WARNING,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+            )
+            return
+        }
+
+        ManagedMediaReferenceState.READY -> Unit
+    }
     if (isUnavailable) {
         ReviewManagedMediaPlaceholderRow(
             label = label,
@@ -178,25 +227,39 @@ private fun ReviewManagedMediaImageFile(
     }
 
     when (val state = mediaFileState) {
-        ReviewManagedMediaFileState.Loading -> ReviewManagedMediaImageState(
-            label = label,
-            supportingText = stringResource(id = R.string.review_media_loading),
-            icon = Icons.Outlined.Image,
-            showProgress = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
-        )
+        ReviewManagedMediaFileState.Loading -> {
+            val supportingText = stringResource(id = R.string.review_media_loading)
+            ReviewManagedMediaImageState(
+                label = label,
+                supportingText = supportingText,
+                accessibilityLabel = stringResource(
+                    id = R.string.review_media_status_content_description,
+                    label,
+                    supportingText
+                ),
+                style = ReviewManagedMediaImageStateStyle.PROGRESS,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+            )
+        }
 
-        ReviewManagedMediaFileState.Unavailable -> ReviewManagedMediaImageState(
-            label = label,
-            supportingText = stringResource(id = R.string.review_media_unavailable),
-            icon = Icons.Outlined.WarningAmber,
-            showProgress = false,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
-        )
+        ReviewManagedMediaFileState.Unavailable -> {
+            val supportingText = stringResource(id = R.string.review_media_unavailable)
+            ReviewManagedMediaImageState(
+                label = label,
+                supportingText = supportingText,
+                accessibilityLabel = stringResource(
+                    id = R.string.review_media_status_content_description,
+                    label,
+                    supportingText
+                ),
+                style = ReviewManagedMediaImageStateStyle.WARNING,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+            )
+        }
 
         is ReviewManagedMediaFileState.Ready -> ReviewManagedMediaImage(
             label = label,
@@ -239,11 +302,16 @@ private fun ReviewManagedMediaImage(
             contentDescription = label,
             contentScale = ContentScale.Fit,
             loading = {
+                val supportingText = stringResource(id = R.string.review_media_loading)
                 ReviewManagedMediaImageState(
                     label = label,
-                    supportingText = stringResource(id = R.string.review_media_loading),
-                    icon = Icons.Outlined.Image,
-                    showProgress = true,
+                    supportingText = supportingText,
+                    accessibilityLabel = stringResource(
+                        id = R.string.review_media_status_content_description,
+                        label,
+                        supportingText
+                    ),
+                    style = ReviewManagedMediaImageStateStyle.PROGRESS,
                     modifier = Modifier.fillMaxSize()
                 )
             },
@@ -255,11 +323,16 @@ private fun ReviewManagedMediaImage(
                 )
             },
             error = {
+                val supportingText = stringResource(id = R.string.review_media_unavailable)
                 ReviewManagedMediaImageState(
                     label = label,
-                    supportingText = stringResource(id = R.string.review_media_unavailable),
-                    icon = Icons.Outlined.WarningAmber,
-                    showProgress = false,
+                    supportingText = supportingText,
+                    accessibilityLabel = stringResource(
+                        id = R.string.review_media_status_content_description,
+                        label,
+                        supportingText
+                    ),
+                    style = ReviewManagedMediaImageStateStyle.WARNING,
                     modifier = Modifier.fillMaxSize()
                 )
             },
@@ -323,41 +396,56 @@ private fun reviewManagedMediaImageAspectRatio(
 private fun ReviewManagedMediaImageState(
     label: String,
     supportingText: String,
-    icon: ImageVector,
-    showProgress: Boolean,
+    accessibilityLabel: String,
+    style: ReviewManagedMediaImageStateStyle,
     modifier: Modifier
 ) {
+    val containerColor = when (style) {
+        ReviewManagedMediaImageStateStyle.PROGRESS -> MaterialTheme.colorScheme.surfaceContainerHighest
+        ReviewManagedMediaImageStateStyle.WARNING -> MaterialTheme.colorScheme.errorContainer
+    }
+    val contentColor = when (style) {
+        ReviewManagedMediaImageStateStyle.PROGRESS -> MaterialTheme.colorScheme.onSurfaceVariant
+        ReviewManagedMediaImageStateStyle.WARNING -> MaterialTheme.colorScheme.onErrorContainer
+    }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
+            .clearAndSetSemantics {
+                contentDescription = accessibilityLabel
+                if (style == ReviewManagedMediaImageStateStyle.PROGRESS) {
+                    progressBarRangeInfo = ProgressBarRangeInfo.Indeterminate
+                }
+            }
             .background(
-                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                color = containerColor,
                 shape = RoundedCornerShape(reviewManagedMediaSurfaceCornerRadius)
             )
             .padding(16.dp)
     ) {
-        if (showProgress) {
-            CircularProgressIndicator(
+        when (style) {
+            ReviewManagedMediaImageStateStyle.PROGRESS -> CircularProgressIndicator(
+                color = contentColor,
                 modifier = Modifier.size(reviewManagedMediaIconSize)
             )
-        } else {
-            Icon(
-                imageVector = icon,
+
+            ReviewManagedMediaImageStateStyle.WARNING -> Icon(
+                imageVector = Icons.Outlined.WarningAmber,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = contentColor,
                 modifier = Modifier.size(reviewManagedMediaIconSize)
             )
         }
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface
+            color = contentColor
         )
         Text(
             text = supportingText,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = contentColor
         )
     }
 }

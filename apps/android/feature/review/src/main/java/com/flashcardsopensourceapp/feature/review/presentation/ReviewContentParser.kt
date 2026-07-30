@@ -1,6 +1,8 @@
 package com.flashcardsopensourceapp.feature.review
 
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
+import com.flashcardsopensourceapp.data.local.model.media.ManagedMediaReference
+import com.flashcardsopensourceapp.data.local.model.media.parseManagedMediaReference
 
 /*
  Keep review content presentation heuristics aligned with:
@@ -27,8 +29,6 @@ private val reviewMarkdownLinkOrImageRegex: Regex = Regex(
 )
 private val reviewFenceOpeningRegex: Regex = Regex(pattern = """^\s{0,3}(`{3,}|~{3,})(.*)$""")
 private val reviewFenceClosingRegex: Regex = Regex(pattern = """^\s{0,3}(`{3,}|~{3,})\s*$""")
-private const val reviewManagedMediaSchemePrefix: String = "fcasset:"
-
 private data class ReviewManagedMediaMatch(
     val range: IntRange,
     val reference: ReviewManagedMediaReference
@@ -121,24 +121,7 @@ internal fun isReviewFenceClosingLine(
 }
 
 internal fun parseReviewManagedMediaAssetId(reference: String): String? {
-    val trimmedReference: String = reference.trim()
-    if (trimmedReference.lowercase().startsWith(prefix = reviewManagedMediaSchemePrefix).not()) {
-        return null
-    }
-
-    var rawAssetId: String = trimmedReference.drop(n = reviewManagedMediaSchemePrefix.length)
-    while (rawAssetId.startsWith(prefix = "/")) {
-        rawAssetId = rawAssetId.drop(n = 1)
-    }
-
-    val fragmentOrQueryStart: Int = rawAssetId.indexOfAny(chars = charArrayOf('?', '#'))
-    val mediaAssetId: String = if (fragmentOrQueryStart >= 0) {
-        rawAssetId.substring(startIndex = 0, endIndex = fragmentOrQueryStart)
-    } else {
-        rawAssetId
-    }.trim()
-
-    return mediaAssetId.ifEmpty { null }
+    return parseManagedMediaReference(reference = reference)?.mediaAssetId
 }
 
 private fun makeReviewManagedMarkdownContent(
@@ -204,17 +187,18 @@ private fun findReviewManagedMediaMatches(
             } else {
                 reviewManagedMediaReferenceRegex.findAll(input = line).forEach { match ->
                     val rawReference: String = match.groups[3]?.value ?: return@forEach
-                    val mediaAssetId: String = parseReviewManagedMediaAssetId(
+                    val parsedReference: ManagedMediaReference = parseManagedMediaReference(
                         reference = rawReference
                     ) ?: return@forEach
                     add(
                         ReviewManagedMediaMatch(
                             range = (lineStart + match.range.first)..(lineStart + match.range.last),
                             reference = ReviewManagedMediaReference(
-                                mediaAssetId = mediaAssetId,
+                                mediaAssetId = parsedReference.mediaAssetId,
+                                state = parsedReference.state,
                                 label = match.groups[2]?.value?.trim()?.ifEmpty { null },
                                 isImageSyntax = match.groups[1] != null,
-                                mediaAsset = mediaAssetsById[mediaAssetId]
+                                mediaAsset = mediaAssetsById[parsedReference.mediaAssetId]
                             )
                         )
                     )

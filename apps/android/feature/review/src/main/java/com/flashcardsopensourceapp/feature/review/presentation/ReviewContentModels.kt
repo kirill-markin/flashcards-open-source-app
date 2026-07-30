@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.review
 
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
+import com.flashcardsopensourceapp.data.local.model.media.ManagedMediaReferenceState
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 
@@ -40,6 +41,7 @@ sealed interface ReviewManagedMarkdownBlock {
 
 data class ReviewManagedMediaReference(
     val mediaAssetId: String,
+    val state: ManagedMediaReferenceState,
     val label: String?,
     val isImageSyntax: Boolean,
     val mediaAsset: MediaAsset?

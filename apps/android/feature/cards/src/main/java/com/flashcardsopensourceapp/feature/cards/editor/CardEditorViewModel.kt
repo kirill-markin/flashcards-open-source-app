@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.flashcardsopensourceapp.data.local.model.cards.CardDraft
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTags
+import com.flashcardsopensourceapp.data.local.model.media.ManagedMediaReference
+import com.flashcardsopensourceapp.data.local.model.media.ManagedMediaReferenceState
+import com.flashcardsopensourceapp.data.local.model.media.parseManagedMediaReference
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
@@ -63,14 +66,40 @@ class CardEditorViewModel(
         } else {
             cardsRepository.observeCard(cardId = editingCardId)
         }
+        var previousObservedCard: CardSummary? = null
 
         viewModelScope.launch {
             cardFlow.collect { card ->
-                if (card == null || inputState.value.hasLoadedInitialValues) {
+                if (card == null) {
                     return@collect
                 }
 
+                val previousCard: CardSummary? = previousObservedCard
                 inputState.update { state ->
+                    if (state.hasLoadedInitialValues && previousCard != null) {
+                        val refreshedFrontText = refreshManagedImageReferenceStates(
+                            text = state.frontText,
+                            selection = state.frontTextSelection,
+                            previousObservedText = previousCard.frontText,
+                            observedText = card.frontText
+                        )
+                        val refreshedBackText = refreshManagedImageReferenceStates(
+                            text = state.backText,
+                            selection = state.backTextSelection,
+                            previousObservedText = previousCard.backText,
+                            observedText = card.backText
+                        )
+                        return@update state.copy(
+                            frontText = refreshedFrontText.text,
+                            backText = refreshedBackText.text,
+                            frontTextSelection = refreshedFrontText.selection,
+                            backTextSelection = refreshedBackText.selection
+                        )
+                    }
+                    if (state.hasLoadedInitialValues) {
+                        return@update state
+                    }
+
                     state.copy(
                         frontText = card.frontText,
                         backText = card.backText,
@@ -78,6 +107,7 @@ class CardEditorViewModel(
                         hasLoadedInitialValues = true
                     )
                 }
+                previousObservedCard = card
             }
         }
 
@@ -423,10 +453,18 @@ private data class CardEditorTextEditResult(
     val selection: CardEditorTextSelection
 )
 
+private data class ManagedImageReferenceIdentity(
+    val mediaAssetId: String,
+    val markdownWithoutDestination: String
+)
+
 private data class ManagedImageReferenceMatch(
     val reference: CardEditorManagedImageReference,
+    val identity: ManagedImageReferenceIdentity,
     val startIndex: Int,
-    val endIndexExclusive: Int
+    val endIndexExclusive: Int,
+    val destination: String,
+    val destinationRange: IntRange
 )
 
 private fun validateCardEditorInput(
@@ -463,7 +501,7 @@ private fun toggleTagSelection(selectedTags: List<String>, tag: String): List<St
     return selectedTags + tag
 }
 
-private val managedImageMarkdownRegex = Regex("""!\[([^\]\n]*)]\(fcasset:([^\s)]+)\)""")
+private val managedImageMarkdownRegex = Regex("""!\[([^\]\n]*)]\((fcasset:[^\s)]+)\)""")
 
 private fun insertMarkdownAtSelection(
     text: String,
@@ -525,22 +563,165 @@ private fun parseManagedImageReferences(text: String): List<CardEditorManagedIma
 }
 
 private fun findManagedImageReferenceMatches(text: String): List<ManagedImageReferenceMatch> {
-    return managedImageMarkdownRegex.findAll(input = text).map { match ->
+    return managedImageMarkdownRegex.findAll(input = text).mapNotNull { match ->
         val startIndex = match.range.first
         val endIndexExclusive = match.range.last + 1
         val rawLabel = match.groupValues[1].trim()
         val label = if (rawLabel.isEmpty()) null else rawLabel
-        val mediaAssetId = match.groupValues[2].trim()
+        val destinationGroup: MatchGroup = match.groups[2] ?: return@mapNotNull null
+        val parsedReference: ManagedMediaReference = parseManagedMediaReference(
+            reference = destinationGroup.value
+        ) ?: return@mapNotNull null
         ManagedImageReferenceMatch(
             reference = CardEditorManagedImageReference(
-                referenceKey = "$startIndex:$endIndexExclusive:$mediaAssetId",
-                mediaAssetId = mediaAssetId,
+                referenceKey = "$startIndex:$endIndexExclusive:${parsedReference.mediaAssetId}",
+                mediaAssetId = parsedReference.mediaAssetId,
+                state = parsedReference.state,
                 label = label
             ),
+            identity = ManagedImageReferenceIdentity(
+                mediaAssetId = parsedReference.mediaAssetId,
+                markdownWithoutDestination = text.substring(
+                    startIndex = startIndex,
+                    endIndex = destinationGroup.range.first
+                ) + text.substring(
+                    startIndex = destinationGroup.range.last + 1,
+                    endIndex = endIndexExclusive
+                )
+            ),
             startIndex = startIndex,
-            endIndexExclusive = endIndexExclusive
+            endIndexExclusive = endIndexExclusive,
+            destination = destinationGroup.value,
+            destinationRange = destinationGroup.range
         )
     }.toList()
+}
+
+private fun refreshManagedImageReferenceStates(
+    text: String,
+    selection: CardEditorTextSelection,
+    previousObservedText: String,
+    observedText: String
+): CardEditorTextEditResult {
+    val replacements: List<Pair<ManagedImageReferenceMatch, String>> =
+        managedImageReferenceReplacements(
+            previousObservedText = previousObservedText,
+            currentText = text,
+            observedText = observedText
+        ).sortedBy { (match, _) ->
+            match.destinationRange.first
+        }
+
+    var refreshedText: String = text
+    var refreshedSelection: CardEditorTextSelection = selection
+    replacements.asReversed().forEach { (match, replacement) ->
+        refreshedText = refreshedText.replaceRange(
+            range = match.destinationRange,
+            replacement = replacement
+        )
+        refreshedSelection = shiftSelectionAfterReplacement(
+            selection = refreshedSelection,
+            replacedStartIndex = match.destinationRange.first,
+            replacedEndIndexExclusive = match.destinationRange.last + 1,
+            replacementLength = replacement.length
+        )
+    }
+
+    return CardEditorTextEditResult(
+        text = refreshedText,
+        selection = clampCardEditorTextSelection(
+            selection = refreshedSelection,
+            text = refreshedText
+        )
+    )
+}
+
+private fun managedImageReferenceReplacements(
+    previousObservedText: String,
+    currentText: String,
+    observedText: String
+): List<Pair<ManagedImageReferenceMatch, String>> {
+    val previousMatchesByIdentity:
+        Map<ManagedImageReferenceIdentity, List<ManagedImageReferenceMatch>> =
+        findManagedImageReferenceMatches(text = previousObservedText).groupBy { match ->
+            match.identity
+        }
+    val currentMatchesByIdentity:
+        Map<ManagedImageReferenceIdentity, List<ManagedImageReferenceMatch>> =
+        findManagedImageReferenceMatches(text = currentText).groupBy { match ->
+            match.identity
+        }
+    val observedMatchesByIdentity:
+        Map<ManagedImageReferenceIdentity, List<ManagedImageReferenceMatch>> =
+        findManagedImageReferenceMatches(text = observedText).groupBy { match ->
+            match.identity
+        }
+
+    return previousMatchesByIdentity.flatMap { (identity, previousMatches) ->
+        val currentMatches: List<ManagedImageReferenceMatch> = currentMatchesByIdentity[
+            identity
+        ] ?: return@flatMap emptyList()
+        val observedMatches: List<ManagedImageReferenceMatch> = observedMatchesByIdentity[
+            identity
+        ] ?: return@flatMap emptyList()
+        if (currentMatches.size != previousMatches.size ||
+            observedMatches.size != previousMatches.size
+        ) {
+            return@flatMap emptyList()
+        }
+
+        if (previousMatches.size == 1) {
+            val previousMatch: ManagedImageReferenceMatch = previousMatches.single()
+            val currentMatch: ManagedImageReferenceMatch = currentMatches.single()
+            val observedMatch: ManagedImageReferenceMatch = observedMatches.single()
+            if (previousMatch.reference.state == ManagedMediaReferenceState.READY ||
+                currentMatch.destination != previousMatch.destination ||
+                previousMatch.destination == observedMatch.destination
+            ) {
+                return@flatMap emptyList()
+            }
+            return@flatMap listOf(currentMatch to observedMatch.destination)
+        }
+
+        duplicateManagedImageReferenceReplacements(
+            previousMatches = previousMatches,
+            currentMatches = currentMatches,
+            observedMatches = observedMatches
+        )
+    }
+}
+
+private fun duplicateManagedImageReferenceReplacements(
+    previousMatches: List<ManagedImageReferenceMatch>,
+    currentMatches: List<ManagedImageReferenceMatch>,
+    observedMatches: List<ManagedImageReferenceMatch>
+): List<Pair<ManagedImageReferenceMatch, String>> {
+    val previousDestinationCounts: Map<String, Int> =
+        previousMatches.groupingBy(ManagedImageReferenceMatch::destination).eachCount()
+    val currentDestinationCounts: Map<String, Int> =
+        currentMatches.groupingBy(ManagedImageReferenceMatch::destination).eachCount()
+    if (currentDestinationCounts != previousDestinationCounts) {
+        return emptyList()
+    }
+
+    val observedDestination: String = observedMatches
+        .map(ManagedImageReferenceMatch::destination)
+        .distinct()
+        .singleOrNull()
+        ?: return emptyList()
+    val eligiblePreviousDestinations: Set<String> = previousMatches
+        .filter { match ->
+            match.reference.state != ManagedMediaReferenceState.READY &&
+                match.destination != observedDestination
+        }
+        .mapTo(destination = mutableSetOf(), transform = ManagedImageReferenceMatch::destination)
+    return currentMatches.mapNotNull { currentMatch ->
+        if (currentMatch.destination in eligiblePreviousDestinations) {
+            currentMatch to observedDestination
+        } else {
+            null
+        }
+    }
 }
 
 private fun clampCardEditorTextSelection(
@@ -552,6 +733,44 @@ private fun clampCardEditorTextSelection(
     val normalizedStart = minOf(start, end)
     val normalizedEnd = maxOf(start, end)
     return CardEditorTextSelection(start = normalizedStart, end = normalizedEnd)
+}
+
+private fun shiftSelectionAfterReplacement(
+    selection: CardEditorTextSelection,
+    replacedStartIndex: Int,
+    replacedEndIndexExclusive: Int,
+    replacementLength: Int
+): CardEditorTextSelection {
+    val shiftedStart: Int = shiftTextOffsetAfterReplacement(
+        offset = selection.start,
+        replacedStartIndex = replacedStartIndex,
+        replacedEndIndexExclusive = replacedEndIndexExclusive,
+        replacementLength = replacementLength
+    )
+    val shiftedEnd: Int = shiftTextOffsetAfterReplacement(
+        offset = selection.end,
+        replacedStartIndex = replacedStartIndex,
+        replacedEndIndexExclusive = replacedEndIndexExclusive,
+        replacementLength = replacementLength
+    )
+    return CardEditorTextSelection(
+        start = minOf(shiftedStart, shiftedEnd),
+        end = maxOf(shiftedStart, shiftedEnd)
+    )
+}
+
+private fun shiftTextOffsetAfterReplacement(
+    offset: Int,
+    replacedStartIndex: Int,
+    replacedEndIndexExclusive: Int,
+    replacementLength: Int
+): Int {
+    val replacedLength: Int = replacedEndIndexExclusive - replacedStartIndex
+    return when {
+        offset <= replacedStartIndex -> offset
+        offset >= replacedEndIndexExclusive -> offset + replacementLength - replacedLength
+        else -> replacedStartIndex + minOf(offset - replacedStartIndex, replacementLength)
+    }
 }
 
 private fun shiftSelectionAfterRemoval(
