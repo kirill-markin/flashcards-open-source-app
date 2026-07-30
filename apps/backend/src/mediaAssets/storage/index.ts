@@ -5,6 +5,7 @@ import type {
   PresignedMediaAssetUploadPart,
 } from "../types";
 import {
+  getMediaBlobCleanupS3Client,
   getMediaAssetsS3Client,
   getMediaAssetsStorageConfig,
 } from "./config";
@@ -14,6 +15,7 @@ import type {
   AssertMediaAssetObjectInput,
   CompleteMultipartMediaAssetUploadInput,
   CreateMultipartMediaAssetUploadInput,
+  DeletePermanentMediaBlobInput,
   LoadedMediaAssetObjectBytes,
   LoadMediaAssetObjectBytesInput,
   PresignMediaAssetDownloadInput,
@@ -23,6 +25,7 @@ import type {
   ReconcileMultipartMediaAssetUploadInput,
   StoreMediaAssetBlobBytesInput,
 } from "./contracts";
+import { deletePermanentMediaBlobWithDependencies } from "./blobCleanup";
 import {
   abortMultipartMediaAssetUploadWithDependencies,
   abortMultipartMediaAssetUploadUntilDeadlineWithDependencies,
@@ -69,6 +72,7 @@ export type {
   AssertMediaAssetObjectInput,
   CompleteMultipartMediaAssetUploadInput,
   CreateMultipartMediaAssetUploadInput,
+  DeletePermanentMediaBlobInput,
   LoadedMediaAssetObjectBytes,
   LoadMediaAssetObjectBytesInput,
   MediaAssetStorageDependencies,
@@ -79,6 +83,14 @@ export type {
   ReconcileMultipartMediaAssetUploadInput,
   StoreMediaAssetBlobBytesInput,
 } from "./contracts";
+export {
+  deletePermanentMediaBlobWithDependencies,
+  MediaBlobCleanupStorageAmbiguousDeleteError,
+  MediaBlobCleanupStorageConditionalConflictError,
+  MediaBlobCleanupStorageTerminalError,
+  MediaBlobCleanupStorageTransientError,
+  type PermanentMediaBlobDeleteOutcome,
+} from "./blobCleanup";
 export {
   abortMultipartMediaAssetUploadWithDependencies,
   abortMultipartMediaAssetUploadUntilDeadlineWithDependencies,
@@ -113,6 +125,15 @@ export async function createMultipartMediaAssetUpload(
 ): Promise<CreatedMultipartMediaAssetUpload> {
   return createMultipartMediaAssetUploadWithDependencies(input, {
     s3Client: getMediaAssetsS3Client(),
+    getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
+  });
+}
+
+export async function deletePermanentMediaBlob(
+  input: DeletePermanentMediaBlobInput,
+): Promise<import("./blobCleanup").PermanentMediaBlobDeleteOutcome> {
+  return deletePermanentMediaBlobWithDependencies(input, {
+    s3Client: getMediaBlobCleanupS3Client(),
     getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
   });
 }

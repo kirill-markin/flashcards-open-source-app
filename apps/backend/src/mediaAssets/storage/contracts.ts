@@ -21,6 +21,17 @@ export type MediaAssetStorageContext = Readonly<{
   observationScope: BackendObservationScope;
 }>;
 
+export type DeletePermanentMediaBlobInput = Readonly<{
+  sha256: string;
+  storageKey: string;
+  cleanupGeneration: number;
+  renewLease: (
+    operation: "head_object" | "delete_object",
+  ) => Promise<void>;
+  signal: AbortSignal;
+  observationScope: BackendObservationScope;
+}>;
+
 export type PresignMediaAssetUploadInput = Readonly<{
   workspaceId: string;
   mediaAssetId: string;

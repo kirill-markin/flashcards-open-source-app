@@ -5,6 +5,10 @@ import {
 } from "../../database";
 import { unsafeQueryWithDeadline, unsafeTransactionWithDeadline } from "../../database/unsafe";
 import {
+  getDatabaseErrorFields,
+} from "../../database/transient";
+import {
+  MediaBlobLifecycleBusyError,
   MediaBlobWriterFenceError,
   reserveMediaBlobWriterInExecutor,
   type MediaBlobWriterReservation,
@@ -23,6 +27,8 @@ const sha256Pattern = /^[0-9a-f]{64}$/u;
 const mimeTypePattern = /^[a-z0-9][a-z0-9.+-]*\/[a-z0-9][a-z0-9.+-]*$/u;
 const safeErrorCodePattern = /^[A-Z][A-Z0-9_]{0,63}$/u;
 const controlCharacterPattern = /[\u0000-\u001f\u007f-\u009f]/u;
+const cleanupAdmissionConstraint =
+  "generated_media_promotion_cleanup_admission";
 export type GeneratedMediaPromotionJobPayload = Readonly<{
   jobId: string;
   operationId: string;
@@ -87,6 +93,15 @@ export type FailGeneratedMediaPromotionJobWithBlobWriterInput =
   GeneratedMediaPromotionBlobWriterInput & Readonly<{ error: SafeGeneratedMediaPromotionJobError }>;
 export type GeneratedMediaPromotionAccessRevocationOutcome =
   "access_active" | "applied" | "failed";
+
+function isCleanupAdmissionFenceError(error: unknown): boolean {
+  return getDatabaseErrorFields(error).sqlState === "55P03"
+    && typeof error === "object"
+    && error !== null
+    && "constraint" in error
+    && error.constraint === cleanupAdmissionConstraint;
+}
+
 type StoredPayloadRow = Readonly<{
   job_id: string;
   operation_id: string;
@@ -421,49 +436,56 @@ export async function enqueueGeneratedMediaPromotionJob(
   input: EnqueueGeneratedMediaPromotionJobInput,
 ): Promise<EnqueueGeneratedMediaPromotionJobResult> {
   requirePayload(input);
-  return transactionWithWorkspaceScopeDeadline(
-    { userId: input.userId, workspaceId: input.workspaceId },
-    input.deadlineAtMs,
-    async (executor) => {
-      await assertActiveChatRunClaimWithExecutor(executor, input);
-      await assertReplicaBelongsToWorkspaceInExecutor(executor, input.workspaceId, input.replicaId);
-      const inserted = await executor.query<InsertedRow>(
-        `INSERT INTO content.generated_media_promotion_jobs (
-           job_id, operation_id, user_id, workspace_id, card_id, target_side, alt_text,
-           media_asset_id, replica_id, staging_storage_key, blob_storage_key,
-           sha256, mime_type, size_bytes
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-         ON CONFLICT DO NOTHING
-         RETURNING job_id`,
-        [
-          input.jobId, input.operationId, input.userId, input.workspaceId,
-          input.cardId, input.targetSide, input.altText, input.mediaAssetId, input.replicaId,
-          input.stagingStorageKey, input.blobStorageKey, input.sha256,
-          input.mimeType, input.sizeBytes,
-        ],
-      );
-      if (inserted.rows[0]?.job_id === input.jobId) {
-        return { outcome: "created", jobId: input.jobId };
-      }
-      const existing = await executor.query<StoredPayloadRow>(
-        `SELECT ${storedPayloadColumns}
-         FROM content.generated_media_promotion_jobs
-         WHERE job_id = $1 OR operation_id = $2`,
-        [input.jobId, input.operationId],
-      );
-      const mismatch = existing.rows.length === 1
-        ? findPayloadMismatch(toPayload(existing.rows[0] as StoredPayloadRow), input)
-        : "jobId";
-      if (mismatch !== null) {
-        throw new GeneratedMediaPromotionJobConflictError(
-          input.jobId,
-          input.operationId,
-          mismatch,
+  try {
+    return await transactionWithWorkspaceScopeDeadline(
+      { userId: input.userId, workspaceId: input.workspaceId },
+      input.deadlineAtMs,
+      async (executor) => {
+        await assertActiveChatRunClaimWithExecutor(executor, input);
+        await assertReplicaBelongsToWorkspaceInExecutor(executor, input.workspaceId, input.replicaId);
+        const inserted = await executor.query<InsertedRow>(
+          `INSERT INTO content.generated_media_promotion_jobs (
+             job_id, operation_id, user_id, workspace_id, card_id, target_side, alt_text,
+             media_asset_id, replica_id, staging_storage_key, blob_storage_key,
+             sha256, mime_type, size_bytes
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+           ON CONFLICT DO NOTHING
+           RETURNING job_id`,
+          [
+            input.jobId, input.operationId, input.userId, input.workspaceId,
+            input.cardId, input.targetSide, input.altText, input.mediaAssetId, input.replicaId,
+            input.stagingStorageKey, input.blobStorageKey, input.sha256,
+            input.mimeType, input.sizeBytes,
+          ],
         );
-      }
-      return { outcome: "existing", jobId: input.jobId };
-    },
-  );
+        if (inserted.rows[0]?.job_id === input.jobId) {
+          return { outcome: "created", jobId: input.jobId };
+        }
+        const existing = await executor.query<StoredPayloadRow>(
+          `SELECT ${storedPayloadColumns}
+           FROM content.generated_media_promotion_jobs
+           WHERE job_id = $1 OR operation_id = $2`,
+          [input.jobId, input.operationId],
+        );
+        const mismatch = existing.rows.length === 1
+          ? findPayloadMismatch(toPayload(existing.rows[0] as StoredPayloadRow), input)
+          : "jobId";
+        if (mismatch !== null) {
+          throw new GeneratedMediaPromotionJobConflictError(
+            input.jobId,
+            input.operationId,
+            mismatch,
+          );
+        }
+        return { outcome: "existing", jobId: input.jobId };
+      },
+    );
+  } catch (error) {
+    if (isCleanupAdmissionFenceError(error)) {
+      throw new MediaBlobLifecycleBusyError();
+    }
+    throw error;
+  }
 }
 export async function claimGeneratedMediaPromotionJobs(
   input: ClaimGeneratedMediaPromotionJobsInput,

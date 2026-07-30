@@ -44,6 +44,7 @@ export interface OutputsProps {
   apexRedirectDistribution: cloudfront.Distribution | undefined;
   apexRedirectCustomDomain: string | undefined;
   mediaAssetsBucket: s3.IBucket;
+  generatedMediaPromotionScheduleName: string;
   multipartCompletionReconciliationScheduleName: string;
   dbAccessInstance?: ec2.Instance;
   analyticsSshUsername?: string;
@@ -144,6 +145,16 @@ export function outputs(scope: Construct, props: OutputsProps): void {
     value: props.migrationFn.functionName,
     description: "Lambda function name for database migrations",
   });
+
+  new cdk.CfnOutput(
+    scope,
+    "GeneratedMediaPromotionScheduleName",
+    {
+      value: props.generatedMediaPromotionScheduleName,
+      description:
+        "EventBridge Scheduler name for generated-media promotion and blob cleanup",
+    },
+  );
 
   new cdk.CfnOutput(
     scope,

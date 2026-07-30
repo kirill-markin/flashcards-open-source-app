@@ -143,18 +143,22 @@ npx cdk bootstrap --region "$REGION"
 
 echo "=== CDK deploy with reconciliation schedule disabled ==="
 npx cdk deploy --all --require-approval never \
+  -c generatedMediaPromotionScheduleState=DISABLED \
+  -c mediaBlobCleanupEnabled=false \
   -c multipartCompletionReconciliationScheduleState=DISABLED
 
 echo "=== Run database migrations ==="
 bash "${ROOT_DIR}/scripts/deploy/migrate-aws.sh" \
   --stack-name "$STACK_NAME" \
-  --require-migration 0101_multipart_foreground_completion_fencing.sql
+  --require-migration 0102_media_blob_cleanup_reconciler.sql
 
 echo "=== CDK deploy with reconciliation schedule enabled ==="
 npx cdk deploy --all --require-approval never \
+  -c generatedMediaPromotionScheduleState=ENABLED \
+  -c mediaBlobCleanupEnabled=true \
   -c multipartCompletionReconciliationScheduleState=ENABLED
 
-echo "=== Verify reconciliation schedule ==="
+echo "=== Verify cleanup-capable reconciliation schedules ==="
 bash "${ROOT_DIR}/scripts/checks/check-multipart-completion-reconciliation-schedule.sh" \
   --stack-name "$STACK_NAME" \
   --region "$REGION"

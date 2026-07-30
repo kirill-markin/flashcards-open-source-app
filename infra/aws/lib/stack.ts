@@ -19,7 +19,10 @@ import { globalMetrics } from "./scheduled-jobs/global-metrics";
 import { communityLeaderboard } from "./scheduled-jobs/community-leaderboard";
 import { streakLeaderboard } from "./scheduled-jobs/streak-leaderboard";
 import { progressActiveDaysBackfill } from "./scheduled-jobs/progress-active-days-backfill";
-import { generatedMediaPromotion } from "./scheduled-jobs/generated-media-promotion";
+import {
+  generatedMediaPromotion,
+  type GeneratedMediaPromotionScheduleState,
+} from "./scheduled-jobs/generated-media-promotion";
 import {
   multipartCompletionReconciliation,
   type MultipartCompletionReconciliationScheduleState,
@@ -45,13 +48,11 @@ function getOptionalRawContextValue(stack: cdk.Stack, key: string): string | und
   return value;
 }
 
-function getMultipartCompletionReconciliationScheduleState(
+function getScheduledJobState(
   stack: cdk.Stack,
-): MultipartCompletionReconciliationScheduleState {
-  const value = getOptionalContextValue(
-    stack,
-    "multipartCompletionReconciliationScheduleState",
-  );
+  contextKey: string,
+): "DISABLED" | "ENABLED" {
+  const value = getOptionalContextValue(stack, contextKey);
   if (value === undefined) {
     return "DISABLED";
   }
@@ -59,8 +60,16 @@ function getMultipartCompletionReconciliationScheduleState(
     return value;
   }
   throw new Error(
-    "multipartCompletionReconciliationScheduleState must be DISABLED or ENABLED",
+    `${contextKey} must be DISABLED or ENABLED`,
   );
+}
+
+function getMediaBlobCleanupEnabled(stack: cdk.Stack): boolean {
+  const value = stack.node.tryGetContext("mediaBlobCleanupEnabled");
+  if (value === undefined) return false;
+  if (value === true || value === "true") return true;
+  if (value === false || value === "false") return false;
+  throw new Error("mediaBlobCleanupEnabled must be true or false");
 }
 
 interface BackendSentryContext {
@@ -179,8 +188,17 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     // When disabled, no client can fetch global stats from that endpoint.
     const rawGlobalMetricsVisible = getOptionalRawContextValue(this, "globalMetricsVisible");
     const globalMetricsVisible = rawGlobalMetricsVisible === "true";
-    const multipartCompletionReconciliationScheduleState =
-      getMultipartCompletionReconciliationScheduleState(this);
+    const generatedMediaPromotionScheduleState:
+      GeneratedMediaPromotionScheduleState = getScheduledJobState(
+        this,
+        "generatedMediaPromotionScheduleState",
+      );
+    const mediaBlobCleanupEnabled = getMediaBlobCleanupEnabled(this);
+    const multipartCompletionReconciliationScheduleState:
+      MultipartCompletionReconciliationScheduleState = getScheduledJobState(
+        this,
+        "multipartCompletionReconciliationScheduleState",
+      );
     const analyticsAccessRequested =
       analyticsSshPublicKeysValue !== undefined ||
       analyticsSshAllowedCidrsValue !== undefined ||
@@ -226,6 +244,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       db: dbResult.db,
       backendDbSecret: dbResult.backendDbSecret,
       mediaAssetsBucket: mediaAssetsResult.bucket,
+      mediaBlobCleanupEnabled,
+      scheduleState: generatedMediaPromotionScheduleState,
       ...sentryContext,
     });
     const multipartCompletionReconciliationResult =
@@ -380,6 +400,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       streakLeaderboardSnapshotFn: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFn: progressActiveDaysBackfillResult.backfillFunction,
       migrationFn,
+      generatedMediaPromotionScheduleArn:
+        generatedMediaPromotionResult.promotionScheduleArn,
       multipartCompletionReconciliationScheduleArn:
         multipartCompletionReconciliationResult.reconciliationScheduleArn,
       userPoolArn: authResult.userPool.userPoolArn,
@@ -425,6 +447,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       apexRedirectDistribution: web.apexRedirectDistribution,
       apexRedirectCustomDomain: web.apexRedirectCustomDomain,
       mediaAssetsBucket: mediaAssetsResult.bucket,
+      generatedMediaPromotionScheduleName:
+        generatedMediaPromotionResult.promotionScheduleName,
       multipartCompletionReconciliationScheduleName:
         multipartCompletionReconciliationResult.reconciliationScheduleName,
       dbAccessInstance: analyticsAccessResult?.dbAccessInstance,
