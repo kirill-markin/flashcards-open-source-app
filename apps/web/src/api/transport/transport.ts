@@ -3,12 +3,18 @@ import { markBrowserReauthRequired } from "../../accountDeletion";
 import { getAppConfig } from "../../config";
 import type { SessionInfo } from "../../types";
 import { buildLoginUrl, getPreferredAuthUiLocale } from "../authUrls";
-import { ApiError, ApiNetworkError, AuthRedirectError } from "./errors";
+import {
+  ApiError,
+  ApiNetworkError,
+  AuthRedirectError,
+  createApiNetworkError,
+} from "./errors";
 import {
   getJsonErrorMessage,
   isRecoverableSessionCsrfResponse,
   parseContractResponse,
   parseJsonPayload,
+  readBlobResponse,
   readJsonResponse,
   type ParsedResponsePayload,
 } from "./response";
@@ -19,6 +25,7 @@ export type AuthRecoveryMode = "allow" | "skip";
 export type NetworkRetryMode = "none" | "transient";
 type NavigateToUrl = (url: string) => void;
 type PrepareForAuthRedirect = () => void;
+type NetworkRequestAttempt<Result> = (attemptCount: number) => Promise<Result>;
 export type BlobResponsePayload = Readonly<{
   blob: Blob;
   headers: Headers;
@@ -193,34 +200,20 @@ function createHeaders(init: RequestInit): Headers {
   return headers;
 }
 
-function readOriginalErrorName(error: unknown): string {
-  if (error instanceof Error && error.name.trim() !== "") {
-    return error.name;
-  }
-
-  return typeof error;
-}
-
-function readOriginalErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim() !== "") {
-    return error.message;
-  }
-
-  const errorMessage = String(error);
-  return errorMessage.trim() === "" ? "Unknown fetch failure" : errorMessage;
-}
-
-function createApiNetworkError(
+function createFetchApiNetworkError(
   pathname: string,
   init: RequestInit,
   error: unknown,
   attemptCount: number,
 ): ApiNetworkError {
-  return new ApiNetworkError({
+  return createApiNetworkError({
+    statusCode: 0,
+    requestId: null,
+    responseBodyKind: "empty",
     endpoint: buildSanitizedRequestEndpoint(pathname, init),
-    originalErrorName: readOriginalErrorName(error),
-    originalErrorMessage: readOriginalErrorMessage(error),
+    error,
     attemptCount,
+    source: "fetch",
   });
 }
 
@@ -273,6 +266,9 @@ function warnApiTransportRetry(error: ApiNetworkError): void {
     attemptCount: error.attemptCount,
     maximumAttemptCount: apiNetworkRetryMaximumAttemptCount,
     nextAttemptCount: error.attemptCount + 1,
+    source: error.source,
+    statusCode: error.statusCode,
+    requestId: error.requestId,
     originalErrorName: error.originalErrorName,
     originalErrorMessage: error.originalErrorMessage,
   });
@@ -289,23 +285,26 @@ async function performFetch(pathname: string, init: RequestInit, attemptCount: n
       headers,
     });
   } catch (error) {
-    throw createApiNetworkError(pathname, init, error, attemptCount);
+    throw createFetchApiNetworkError(pathname, init, error, attemptCount);
   }
 }
 
-async function performFetchWithNetworkRetry(
-  pathname: string,
+async function performWithNetworkRetry<Result>(
+  endpoint: string,
   init: RequestInit,
   options: RequestOptions,
-): Promise<Response> {
+  performAttempt: NetworkRequestAttempt<Result>,
+): Promise<Result> {
   let attemptCount = 1;
 
   while (true) {
     try {
-      return await performFetch(pathname, init, attemptCount);
+      return await performAttempt(attemptCount);
     } catch (error) {
       if (
         error instanceof ApiNetworkError === false
+        || error.endpoint !== endpoint
+        || error.attemptCount !== attemptCount
         || init.signal?.aborted === true
         || options.networkRetryMode === "none"
         || hasRemainingNetworkRetryAttempt(attemptCount) === false
@@ -649,12 +648,14 @@ async function requestResponse(
   pathname: string,
   init: RequestInit,
   options: RequestOptions,
+  attemptCount: number,
 ): Promise<Response> {
   if (isUnsafeMethod(getMethod(init))) {
     await ensureSessionTransportReadyForUnsafeRequest(options);
   }
 
-  let response: Response = await performFetchWithNetworkRetry(pathname, init, options);
+  const endpoint = buildSanitizedRequestEndpoint(pathname, init);
+  let response: Response = await performFetch(pathname, init, attemptCount);
   if (options.authRecoveryMode === "skip") {
     return response;
   }
@@ -669,18 +670,21 @@ async function requestResponse(
 
       didRecoverSession = true;
       await recoverSession(options);
-      response = await performFetchWithNetworkRetry(pathname, init, options);
+      response = await performFetch(pathname, init, attemptCount);
       continue;
     }
 
     if (
       didRecoverSessionCsrf === false
       && isUnsafeMethod(getMethod(init))
-      && await isRecoverableSessionCsrfResponse(response)
+      && await isRecoverableSessionCsrfResponse(response, {
+        attemptCount,
+        endpoint,
+      })
     ) {
       didRecoverSessionCsrf = true;
       await recoverSessionCsrf(options);
-      response = await performFetchWithNetworkRetry(pathname, init, options);
+      response = await performFetch(pathname, init, attemptCount);
       continue;
     }
 
@@ -693,8 +697,18 @@ export async function requestJson(
   init: RequestInit,
   options: RequestOptions,
 ): Promise<ParsedResponsePayload> {
-  const response = await requestResponse(pathname, init, options);
-  return parseJsonPayload(response, buildRequestEndpoint(pathname, init));
+  const endpoint = buildSanitizedRequestEndpoint(pathname, init);
+  return performWithNetworkRetry(endpoint, init, options, async (attemptCount: number) => {
+    const response = await requestResponse(pathname, init, options, attemptCount);
+    return parseJsonPayload(
+      response,
+      buildRequestEndpoint(pathname, init),
+      {
+        attemptCount,
+        endpoint,
+      },
+    );
+  });
 }
 
 export async function requestBlob(
@@ -702,18 +716,27 @@ export async function requestBlob(
   init: RequestInit,
   options: RequestOptions,
 ): Promise<BlobResponsePayload> {
-  const response = await requestResponse(pathname, init, options);
   const endpoint = buildRequestEndpoint(pathname, init);
-  if (!response.ok) {
-    await parseJsonPayload(response, endpoint);
-    throw new Error(`Non-OK blob response for ${endpoint} did not raise an API error`);
-  }
+  const sanitizedEndpoint = buildSanitizedRequestEndpoint(pathname, init);
+  return performWithNetworkRetry(sanitizedEndpoint, init, options, async (attemptCount: number) => {
+    const response = await requestResponse(pathname, init, options, attemptCount);
+    if (!response.ok) {
+      await parseJsonPayload(response, endpoint, {
+        attemptCount,
+        endpoint: sanitizedEndpoint,
+      });
+      throw new Error(`Non-OK blob response for ${endpoint} did not raise an API error`);
+    }
 
-  return {
-    blob: await response.blob(),
-    headers: response.headers,
-    statusCode: response.status,
-  };
+    return {
+      blob: await readBlobResponse(response, {
+        attemptCount,
+        endpoint: sanitizedEndpoint,
+      }),
+      headers: response.headers,
+      statusCode: response.status,
+    };
+  });
 }
 
 /**
