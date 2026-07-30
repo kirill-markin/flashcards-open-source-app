@@ -17,6 +17,7 @@ export interface CiCdProps {
   streakLeaderboardSnapshotFn: lambda.IFunction;
   progressActiveDaysBackfillFn: lambda.IFunction;
   migrationFn: lambda.IFunction;
+  generatedMediaPromotionScheduleArn: string;
   multipartCompletionReconciliationScheduleArn: string;
   userPoolArn: string;
   webBucket: s3.IBucket;
@@ -30,6 +31,16 @@ export function createMultipartCompletionReconciliationScheduleReadStatement(
 ): iam.PolicyStatement {
   return new iam.PolicyStatement({
     sid: "ReadMultipartCompletionReconciliationSchedule",
+    actions: ["scheduler:GetSchedule"],
+    resources: [scheduleArn],
+  });
+}
+
+export function createGeneratedMediaPromotionScheduleReadStatement(
+  scheduleArn: string,
+): iam.PolicyStatement {
+  return new iam.PolicyStatement({
+    sid: "ReadGeneratedMediaPromotionSchedule",
     actions: ["scheduler:GetSchedule"],
     resources: [scheduleArn],
   });
@@ -63,6 +74,9 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
       actions: ["lambda:InvokeFunction"],
       resources: [props.migrationFn.functionArn],
     }),
+    createGeneratedMediaPromotionScheduleReadStatement(
+      props.generatedMediaPromotionScheduleArn,
+    ),
     createMultipartCompletionReconciliationScheduleReadStatement(
       props.multipartCompletionReconciliationScheduleArn,
     ),

@@ -13,9 +13,18 @@ export interface GeneratedMediaPromotionProps {
   vpc: ec2.Vpc; lambdaSg: ec2.SecurityGroup; db: rds.DatabaseInstance;
   backendDbSecret: cdk.aws_secretsmanager.Secret; mediaAssetsBucket: s3.IBucket;
   sentryDsnSecretArn: string; sentryEnvironment: string; sentryRelease: string; sentryTracesSampleRate: string;
+  mediaBlobCleanupEnabled: boolean;
+  scheduleState: GeneratedMediaPromotionScheduleState;
 }
-export interface GeneratedMediaPromotionResult { promotionFunction: lambdaNodejs.NodejsFunction }
+export interface GeneratedMediaPromotionResult {
+  promotionFunction: lambdaNodejs.NodejsFunction;
+  promotionScheduleArn: string;
+  promotionScheduleName: string;
+}
+export type GeneratedMediaPromotionScheduleState = "DISABLED" | "ENABLED";
 export const generatedMediaPromotionScheduleExpression = "rate(1 minute)";
+export const generatedMediaPromotionScheduleName =
+  "flashcards-open-source-app-generated-media-promotion";
 export function generatedMediaPromotion(
   scope: Construct, props: GeneratedMediaPromotionProps): GeneratedMediaPromotionResult {
   const promotionFunction = new lambdaNodejs.NodejsFunction(
@@ -42,6 +51,7 @@ export function generatedMediaPromotion(
         NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
         DB_SECRET_ARN: props.backendDbSecret.secretArn, DB_HOST: props.db.dbInstanceEndpointAddress,
         DB_NAME: "flashcards", MEDIA_ASSETS_S3_BUCKET_NAME: props.mediaAssetsBucket.bucketName,
+        MEDIA_BLOB_CLEANUP_ENABLED: props.mediaBlobCleanupEnabled ? "true" : "false",
         SENTRY_ENVIRONMENT: props.sentryEnvironment, SENTRY_RELEASE: props.sentryRelease,
         SENTRY_TRACES_SAMPLE_RATE: props.sentryTracesSampleRate,
       },
@@ -54,12 +64,24 @@ export function generatedMediaPromotion(
   promotionFunction.addEnvironment("SENTRY_DSN", sentryDsnSecret.secretValue.unsafeUnwrap());
   promotionFunction.addToRolePolicy(new iam.PolicyStatement({
     actions: ["s3:GetObject"],
-    resources: [props.mediaAssetsBucket.arnForObjects("media/uploads/*"),
-      props.mediaAssetsBucket.arnForObjects("media/blobs/*")],
+    resources: [props.mediaAssetsBucket.arnForObjects("media/uploads/*")],
+  }));
+  promotionFunction.addToRolePolicy(new iam.PolicyStatement({
+    actions: ["s3:GetObject"],
+    resources: [props.mediaAssetsBucket.arnForObjects("media/blobs/sha256/*")],
   }));
   promotionFunction.addToRolePolicy(new iam.PolicyStatement({
     actions: ["s3:PutObject"],
-    resources: [props.mediaAssetsBucket.arnForObjects("media/blobs/*")],
+    resources: [props.mediaAssetsBucket.arnForObjects("media/blobs/sha256/*")],
+  }));
+  promotionFunction.addToRolePolicy(new iam.PolicyStatement({
+    actions: ["s3:DeleteObject"],
+    resources: [props.mediaAssetsBucket.arnForObjects("media/blobs/sha256/*")],
+    conditions: {
+      Null: {
+        "s3:if-match": "false",
+      },
+    },
   }));
   const schedulerRole = new iam.Role(scope, "GeneratedMediaPromotionSchedulerRole",
     { assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com") });
@@ -67,13 +89,23 @@ export function generatedMediaPromotion(
     actions: ["lambda:InvokeFunction"],
     resources: [promotionFunction.functionArn],
   }));
-  new scheduler.CfnSchedule(scope, "GeneratedMediaPromotionSchedule", {
-    description: "Reconcile durable generated-media promotion jobs", flexibleTimeWindow: { mode: "OFF" },
-    scheduleExpression: generatedMediaPromotionScheduleExpression,
-    scheduleExpressionTimezone: "UTC",
-    state: "ENABLED", target: {
-      arn: promotionFunction.functionArn, input: "{}", roleArn: schedulerRole.roleArn,
+  const promotionSchedule = new scheduler.CfnSchedule(
+    scope,
+    "GeneratedMediaPromotionSchedule",
+    {
+      description: "Reconcile generated-media promotions and orphaned permanent blobs",
+      flexibleTimeWindow: { mode: "OFF" },
+      name: generatedMediaPromotionScheduleName,
+      scheduleExpression: generatedMediaPromotionScheduleExpression,
+      scheduleExpressionTimezone: "UTC",
+      state: props.scheduleState, target: {
+        arn: promotionFunction.functionArn, input: "{}", roleArn: schedulerRole.roleArn,
+      },
     },
-  });
-  return { promotionFunction };
+  );
+  return {
+    promotionFunction,
+    promotionScheduleArn: promotionSchedule.attrArn,
+    promotionScheduleName: generatedMediaPromotionScheduleName,
+  };
 }

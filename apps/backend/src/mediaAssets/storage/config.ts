@@ -9,6 +9,7 @@ export const downloadUrlExpiresSeconds = 60 * 60;
 export const multipartUploadExpiresSeconds = 24 * 60 * 60;
 
 let mediaAssetsS3Client: S3Client | undefined;
+let mediaBlobCleanupS3Client: S3Client | undefined;
 
 export function getMediaAssetsS3Client(): S3Client {
   if (mediaAssetsS3Client !== undefined) {
@@ -17,6 +18,15 @@ export function getMediaAssetsS3Client(): S3Client {
 
   mediaAssetsS3Client = new S3Client({});
   return mediaAssetsS3Client;
+}
+
+export function getMediaBlobCleanupS3Client(): S3Client {
+  if (mediaBlobCleanupS3Client !== undefined) {
+    return mediaBlobCleanupS3Client;
+  }
+
+  mediaBlobCleanupS3Client = new S3Client({ maxAttempts: 1 });
+  return mediaBlobCleanupS3Client;
 }
 
 function getRequiredMediaAssetsEnv(envName: string): string {

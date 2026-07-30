@@ -205,7 +205,7 @@ test("release deploys the schedule disabled, migrates, then enables and verifies
     "multipartCompletionReconciliationScheduleState=DISABLED",
   );
   const requiredMigration = workflow.indexOf(
-    "--require-migration 0101_multipart_foreground_completion_fencing.sql",
+    "--require-migration 0102_media_blob_cleanup_reconciler.sql",
   );
   const enabledDeploy = workflow.indexOf(
     "multipartCompletionReconciliationScheduleState=ENABLED",
@@ -221,7 +221,7 @@ test("release deploys the schedule disabled, migrates, then enables and verifies
   assert.ok(scheduleVerification > enabledDeploy);
   assert.match(
     workflow,
-    /name: Verify reconciliation schedule is enabled/,
+    /name: Verify cleanup-capable reconciliation schedules are enabled/,
   );
 
   const outputsSource = readLibSource("lib/outputs.ts");
@@ -234,10 +234,10 @@ test("release deploys the schedule disabled, migrates, then enables and verifies
   );
   assert.match(
     verificationScript,
-    /OutputKey=='MultipartCompletionReconciliationScheduleName'/,
+    /check_schedule "MultipartCompletionReconciliationScheduleName"/,
   );
   assert.match(verificationScript, /aws scheduler get-schedule/);
-  assert.match(verificationScript, /SCHEDULE_STATE" != "ENABLED"/);
+  assert.match(verificationScript, /schedule_state" != "ENABLED"/);
 
   const bootstrapScript = readLibSource(
     "../../scripts/deploy/bootstrap.sh",
@@ -246,7 +246,7 @@ test("release deploys the schedule disabled, migrates, then enables and verifies
     "multipartCompletionReconciliationScheduleState=DISABLED",
   );
   const bootstrapMigration = bootstrapScript.indexOf(
-    "--require-migration 0101_multipart_foreground_completion_fencing.sql",
+    "--require-migration 0102_media_blob_cleanup_reconciler.sql",
   );
   const bootstrapEnabled = bootstrapScript.indexOf(
     "multipartCompletionReconciliationScheduleState=ENABLED",

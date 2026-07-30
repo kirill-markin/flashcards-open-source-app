@@ -403,13 +403,15 @@ jobs:
             --output cdk.context.local.json \
             --aws-deploy-role-arn "${AWS_DEPLOY_ROLE_ARN}"
           npx cdk deploy --all --require-approval never \
+            -c generatedMediaPromotionScheduleState=DISABLED \
+            -c mediaBlobCleanupEnabled=false \
             -c multipartCompletionReconciliationScheduleState=DISABLED
 
       - name: Run database migrations
         run: |
           bash scripts/deploy/migrate-aws.sh \
             --stack-name ${{ env.STACK_NAME }} \
-            --require-migration 0101_multipart_foreground_completion_fencing.sql
+            --require-migration 0102_media_blob_cleanup_reconciler.sql
 
       - name: CDK deploy with reconciliation schedule enabled
         working-directory: infra/aws
@@ -417,9 +419,11 @@ jobs:
           SENTRY_UPLOAD_BACKEND_SOURCEMAPS: false
         run: |
           npx cdk deploy --all --require-approval never \
+            -c generatedMediaPromotionScheduleState=ENABLED \
+            -c mediaBlobCleanupEnabled=true \
             -c multipartCompletionReconciliationScheduleState=ENABLED
 
-      - name: Verify reconciliation schedule is enabled
+      - name: Verify cleanup-capable reconciliation schedules are enabled
         run: |
           bash scripts/checks/check-multipart-completion-reconciliation-schedule.sh \
             --stack-name ${{ env.STACK_NAME }} \

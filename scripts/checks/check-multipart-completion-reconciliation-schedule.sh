@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verify that the deployed multipart completion reconciliation schedule is enabled.
+# Verify that both cleanup-capable reconciliation schedules are enabled.
 
 set -euo pipefail
 
@@ -19,26 +19,35 @@ if [[ -z "$REGION" ]]; then
   exit 1
 fi
 
-SCHEDULE_NAME="$(aws cloudformation describe-stacks \
-  --stack-name "$STACK_NAME" \
-  --region "$REGION" \
-  --query "Stacks[0].Outputs[?OutputKey=='MultipartCompletionReconciliationScheduleName'].OutputValue" \
-  --output text)"
+check_schedule() {
+  local output_key="$1"
+  local schedule_name
+  local schedule_state
 
-if [[ -z "$SCHEDULE_NAME" || "$SCHEDULE_NAME" == "None" ]]; then
-  echo "ERROR: MultipartCompletionReconciliationScheduleName output not found." >&2
-  exit 1
-fi
+  schedule_name="$(aws cloudformation describe-stacks \
+    --stack-name "$STACK_NAME" \
+    --region "$REGION" \
+    --query "Stacks[0].Outputs[?OutputKey=='${output_key}'].OutputValue" \
+    --output text)"
 
-SCHEDULE_STATE="$(aws scheduler get-schedule \
-  --name "$SCHEDULE_NAME" \
-  --region "$REGION" \
-  --query State \
-  --output text)"
+  if [[ -z "$schedule_name" || "$schedule_name" == "None" ]]; then
+    echo "ERROR: ${output_key} output not found." >&2
+    exit 1
+  fi
 
-if [[ "$SCHEDULE_STATE" != "ENABLED" ]]; then
-  echo "ERROR: Schedule ${SCHEDULE_NAME} is ${SCHEDULE_STATE}; expected ENABLED." >&2
-  exit 1
-fi
+  schedule_state="$(aws scheduler get-schedule \
+    --name "$schedule_name" \
+    --region "$REGION" \
+    --query State \
+    --output text)"
 
-echo "Multipart completion reconciliation schedule is enabled: ${SCHEDULE_NAME}"
+  if [[ "$schedule_state" != "ENABLED" ]]; then
+    echo "ERROR: Schedule ${schedule_name} is ${schedule_state}; expected ENABLED." >&2
+    exit 1
+  fi
+
+  echo "Reconciliation schedule is enabled: ${schedule_name}"
+}
+
+check_schedule "GeneratedMediaPromotionScheduleName"
+check_schedule "MultipartCompletionReconciliationScheduleName"

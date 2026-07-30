@@ -696,6 +696,54 @@ export type GeneratedMediaPromotionBatchDetails = Readonly<{
   }>>;
 }>;
 
+export type MediaBlobCleanupBatchDetails = Readonly<{
+  maximumCandidates: number;
+  claimed: number;
+  deleted: number;
+  notFound: number;
+  blocked: number;
+  stale: number;
+  alreadyCompleted: number;
+  retryScheduled: number;
+  reconciliationRequired: number;
+  interrupted: number;
+  results: ReadonlyArray<Readonly<{
+    sha256: string;
+    cleanupGeneration: number;
+    outcome: string;
+  }>>;
+}>;
+
+export type MediaBlobCleanupRetryDetails = Readonly<{
+  phase:
+    | "claim"
+    | "authorize"
+    | "renew"
+    | "head_object"
+    | "delete_object"
+    | "complete"
+    | "record_failure";
+  attempt: number;
+  maxAttempts: number;
+  sha256: string | null;
+  cleanupGeneration: number | null;
+  statusCode: number | null;
+  errorCode: string | null;
+  errorClass: string;
+}>;
+
+export type MediaBlobCleanupFailureRecordedDetails = Readonly<{
+  phase: "authorize" | "renew" | "head_object" | "delete_object" | "complete";
+  disposition: "retry" | "terminal";
+  status: "retry_scheduled" | "reconciliation_required" | "completed" | "stale";
+  sha256: string;
+  cleanupGeneration: number;
+  failureCount: number;
+  nextAttemptAt: string | null;
+  errorCode: string;
+  errorClass: string;
+}>;
+
 export type MultipartCompletionFailureReportBatchDetails = Readonly<{
   maximumReports: number;
   claimed: number;
@@ -839,6 +887,9 @@ export type BackendBreadcrumbEvent =
   | EventByAction<"streak_leaderboard_snapshot_generated", StreakLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"progress_active_days_backfill_completed", ProgressActiveDaysBackfillCompletedDetails>
   | EventByAction<"generated_media_promotion_batch_completed", GeneratedMediaPromotionBatchDetails>
+  | EventByAction<"media_blob_cleanup_batch_completed", MediaBlobCleanupBatchDetails>
+  | EventByAction<"media_blob_cleanup_retry", MediaBlobCleanupRetryDetails>
+  | EventByAction<"media_blob_cleanup_failure_recorded", MediaBlobCleanupFailureRecordedDetails>
   | EventByAction<"multipart_completion_reconciliation_batch_completed", MultipartCompletionReconciliationBatchDetails>
   | EventByAction<"multipart_completion_reconciliation_job_terminally_failed", MultipartCompletionReconciliationTerminalFailureDetails>
   | EventByAction<"database_transient_retry", DatabaseTransientRetryDetails>
@@ -1108,6 +1159,9 @@ export type BackendExceptionEvent =
     error: Error;
   }>)
   | (EventByAction<"generated_media_promotion_batch_failed", GeneratedMediaPromotionBatchDetails> & Readonly<{
+    error: Error;
+  }>)
+  | (EventByAction<"media_blob_cleanup_batch_failed", MediaBlobCleanupBatchDetails> & Readonly<{
     error: Error;
   }>)
   | (EventByAction<"multipart_completion_reconciliation_batch_failed", MultipartCompletionReconciliationBatchDetails> & Readonly<{
