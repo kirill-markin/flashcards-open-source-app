@@ -25,15 +25,17 @@ import {
   replayMultipartDatabaseCommitUnknownUntilDeadline,
 } from "../mediaAssets/multipart/requestBoundary";
 import {
-  completeMultipartUploadSessionAtApplicationBoundary,
-  createMediaAssetsRoutes,
   createMultipartCompletionResolutionError,
   createMultipartWriterHeartbeat,
   isExpiredMultipartCompletionCleanupRequired,
   replayCompletedMultipartResultWithDependencies,
   resolveMultipartOperationExactlyUntilSafe,
+} from "../mediaAssets/multipart/writerLease";
+import {
+  completeMultipartUploadSessionAtApplicationBoundary,
   type MultipartCompletionApplicationDependencies,
-} from "./mediaAssets";
+} from "../mediaAssets/multipart/completionBoundary";
+import { createMediaAssetsRoutes } from "./mediaAssets";
 
 function createMediaAssetsTestApp(): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
