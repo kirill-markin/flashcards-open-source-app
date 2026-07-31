@@ -34,6 +34,7 @@ import {
   type MultipartMediaBlobWriterAttemptFailureStatus,
   type MultipartMediaBlobWriterAttemptHandoffStatus,
   type MultipartMediaBlobWriterAttemptInput,
+  type MultipartMediaBlobWriterAttemptResult,
 } from "../mediaAssets/uploadSessions";
 import {
   buildMediaBlobStorageKey,
@@ -1164,12 +1165,14 @@ async function replayCompletedMultipartResult(
   userId: string,
   session: MediaAssetUploadSession,
   replayDatabaseCommit: MultipartDatabaseCommitReplay,
+  loadMediaAssetForReplay:
+    typeof loadMediaAssetForCompletedUploadSessionReplayForWorkspace,
 ): Promise<Readonly<{ mediaAsset: MediaAsset; applied: false }>> {
   return replayCompletedMultipartResultWithDependencies(
     userId,
     session,
     replayDatabaseCommit,
-    loadMediaAssetForCompletedUploadSessionReplayForWorkspace,
+    loadMediaAssetForReplay,
   );
 }
 
@@ -1363,16 +1366,76 @@ type MultipartWriterLease = Readonly<{
   leaseExpiresAt: string;
 }>;
 
+type MultipartWriterLeaseRenewalOutcome =
+  | MultipartMediaBlobWriterAttemptBeginStatus
+  | "completion_pending"
+  | "acquired"
+  | "expired_takeover"
+  | "replayed_reservation_mismatch"
+  | "replayed_normalization_mismatch"
+  | "replayed_writer_mismatch";
+
+class MultipartWriterLeaseRenewalRejectedError extends Error {
+  readonly durableOutcome: MultipartWriterLeaseRenewalOutcome;
+  readonly fallbackError: Error;
+
+  constructor(
+    durableOutcome: MultipartWriterLeaseRenewalOutcome,
+    fallbackError: Error,
+  ) {
+    super(
+      `Multipart writer lease renewal no longer matched the exact foreground writer. durableOutcome=${durableOutcome}`,
+    );
+    this.name = "MultipartWriterLeaseRenewalRejectedError";
+    this.durableOutcome = durableOutcome;
+    this.fallbackError = fallbackError;
+  }
+}
+
+function createMultipartWriterLeaseRenewalFenceFallback(): Error {
+  const fenceError =
+    new MediaBlobWriterFenceError("multipart_attempt_renewal");
+  const fallbackError = createMultipartAttemptError("stale_attempt", null);
+  Object.defineProperty(fallbackError, "cause", {
+    value: fenceError,
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  });
+  return fallbackError;
+}
+
+function classifyMultipartWriterLeaseRenewalMismatch(
+  renewal: Extract<
+    MultipartMediaBlobWriterAttemptResult,
+    Readonly<{ reservationToken: string }>
+  >,
+  writer: MultipartMediaBlobWriterAttemptExactInput,
+): MultipartWriterLeaseRenewalOutcome {
+  if (renewal.status !== "replayed") return renewal.status;
+  const reservationMatches =
+    renewal.reservationToken === writer.reservationToken;
+  const normalizationMatches =
+    renewal.normalizationVersion === writer.normalizationVersion;
+  if (!reservationMatches && !normalizationMatches) {
+    return "replayed_writer_mismatch";
+  }
+  if (!reservationMatches) return "replayed_reservation_mismatch";
+  return "replayed_normalization_mismatch";
+}
+
 async function renewMultipartWriterLease(
   input: MultipartMediaBlobWriterAttemptInput,
   writer: MultipartMediaBlobWriterAttemptExactInput,
   writerLeaseTargetAtMs: number,
   operationDeadline: MultipartCompletionRequestDeadline,
   replayDatabaseCommit: MultipartDatabaseCommitReplay,
+  beginCompletionAttemptAtLeaseTargetWithOwnerUntilSettled:
+    typeof beginMediaAssetUploadSessionCompletionAttemptAtLeaseTargetWithOwnerUntilSettled,
 ): Promise<MultipartWriterLease> {
   const renewal = await replayDatabaseCommit(
     () =>
-      beginMediaAssetUploadSessionCompletionAttemptAtLeaseTargetWithOwnerUntilSettled(
+      beginCompletionAttemptAtLeaseTargetWithOwnerUntilSettled(
         input,
         writerLeaseTargetAtMs,
         operationDeadline.deadlineAtMs,
@@ -1380,12 +1443,15 @@ async function renewMultipartWriterLease(
       ),
   );
   if (!("reservationToken" in renewal)) {
-    if (renewal.status === "completion_pending") {
-      throw createMultipartCompletionHandedOffError();
-    }
-    throw createMultipartAttemptError(
+    const fallbackError = renewal.status === "completion_pending"
+      ? createMultipartCompletionHandedOffError()
+      : createMultipartAttemptError(
+        renewal.status,
+        "leaseExpiresAt" in renewal ? renewal.leaseExpiresAt : null,
+      );
+    throw new MultipartWriterLeaseRenewalRejectedError(
       renewal.status,
-      "leaseExpiresAt" in renewal ? renewal.leaseExpiresAt : null,
+      fallbackError,
     );
   }
   if (
@@ -1393,7 +1459,14 @@ async function renewMultipartWriterLease(
     || renewal.reservationToken !== writer.reservationToken
     || renewal.normalizationVersion !== writer.normalizationVersion
   ) {
-    throw new MediaBlobWriterFenceError("multipart_attempt_renewal");
+    const durableOutcome = classifyMultipartWriterLeaseRenewalMismatch(
+      renewal,
+      writer,
+    );
+    throw new MultipartWriterLeaseRenewalRejectedError(
+      durableOutcome,
+      createMultipartWriterLeaseRenewalFenceFallback(),
+    );
   }
   return {
     storageCapability: renewal.storageCapability,
@@ -1706,12 +1779,16 @@ export async function abortMultipartUploadSessionAtApplicationBoundary(
 
 export type MultipartCompletionApplicationDependencies = Readonly<{
   abortMultipartMediaAssetUploadFn: typeof abortMultipartMediaAssetUpload;
+  beginCompletionAttemptAtLeaseTargetWithOwnerUntilSettledFn:
+    typeof beginMediaAssetUploadSessionCompletionAttemptAtLeaseTargetWithOwnerUntilSettled;
   completeMultipartMediaAssetUploadFn:
     typeof completeMultipartMediaAssetUpload;
   completeMediaAssetUploadSessionForWorkspaceFn:
     typeof completeMediaAssetUploadSessionForWorkspace;
   handoffCompletionAttemptAfterAccessRevocationFn:
     typeof handoffMediaAssetUploadSessionCompletionAttemptAfterAccessRevocation;
+  loadMediaAssetForCompletedUploadSessionReplayForWorkspaceFn:
+    typeof loadMediaAssetForCompletedUploadSessionReplayForWorkspace;
   resolveCompletionAttemptFailureWithOwnerFn:
     typeof resolveMediaAssetUploadSessionCompletionAttemptFailureWithOwner;
 }>;
@@ -1719,11 +1796,15 @@ export type MultipartCompletionApplicationDependencies = Readonly<{
 const multipartCompletionApplicationDependencies:
 MultipartCompletionApplicationDependencies = Object.freeze({
   abortMultipartMediaAssetUploadFn: abortMultipartMediaAssetUpload,
+  beginCompletionAttemptAtLeaseTargetWithOwnerUntilSettledFn:
+    beginMediaAssetUploadSessionCompletionAttemptAtLeaseTargetWithOwnerUntilSettled,
   completeMultipartMediaAssetUploadFn: completeMultipartMediaAssetUpload,
   completeMediaAssetUploadSessionForWorkspaceFn:
     completeMediaAssetUploadSessionForWorkspace,
   handoffCompletionAttemptAfterAccessRevocationFn:
     handoffMediaAssetUploadSessionCompletionAttemptAfterAccessRevocation,
+  loadMediaAssetForCompletedUploadSessionReplayForWorkspaceFn:
+    loadMediaAssetForCompletedUploadSessionReplayForWorkspace,
   resolveCompletionAttemptFailureWithOwnerFn:
     resolveMediaAssetUploadSessionCompletionAttemptFailureWithOwner,
 });
@@ -1775,7 +1856,7 @@ async function handoffAcceptedMultipartAttempt(
   observationScope: BackendObservationScope,
   requestDeadline: MultipartCompletionRequestDeadline,
   replayDatabaseCommit: MultipartDatabaseCommitReplay,
-  dependencies: MultipartAttemptResolutionDependencies,
+  dependencies: MultipartCompletionApplicationDependencies,
 ): Promise<MultipartCompletionApplicationResult> {
   let resolution:
     MultipartExactResolutionResult<MultipartMediaBlobWriterAttemptHandoffStatus>;
@@ -1819,6 +1900,8 @@ async function handoffAcceptedMultipartAttempt(
       userId,
       session,
       replayDatabaseCommit,
+      dependencies
+        .loadMediaAssetForCompletedUploadSessionReplayForWorkspaceFn,
     );
   }
   if (
@@ -1841,7 +1924,7 @@ async function resolveRecoveredMultipartAttempt(
   observationScope: BackendObservationScope,
   requestDeadline: MultipartCompletionRequestDeadline,
   replayDatabaseCommit: MultipartDatabaseCommitReplay,
-  dependencies: MultipartAttemptResolutionDependencies,
+  dependencies: MultipartCompletionApplicationDependencies,
 ): Promise<MultipartCompletionApplicationResult> {
   let recovery:
     MultipartExactResolutionResult<Awaited<
@@ -1852,7 +1935,7 @@ async function resolveRecoveredMultipartAttempt(
   try {
     recovery = await resolveMultipartOperationExactlyUntilSafe(
       () =>
-        beginMediaAssetUploadSessionCompletionAttemptAtLeaseTargetWithOwnerUntilSettled(
+        dependencies.beginCompletionAttemptAtLeaseTargetWithOwnerUntilSettledFn(
           attemptInput,
           writerLeaseTargetAtMs,
           writerLeaseTargetAtMs,
@@ -1890,6 +1973,8 @@ async function resolveRecoveredMultipartAttempt(
         userId,
         session,
         replayDatabaseCommit,
+        dependencies
+          .loadMediaAssetForCompletedUploadSessionReplayForWorkspaceFn,
       );
     }
     throw completionError;
@@ -1951,6 +2036,8 @@ export async function completeMultipartUploadSessionAtApplicationBoundary(
       userId,
       session,
       replayResolutionDatabaseCommit,
+      dependencies
+        .loadMediaAssetForCompletedUploadSessionReplayForWorkspaceFn,
     );
   }
   if (
@@ -1991,6 +2078,8 @@ export async function completeMultipartUploadSessionAtApplicationBoundary(
         userId,
         completedSession,
         replayResolutionDatabaseCommit,
+        dependencies
+          .loadMediaAssetForCompletedUploadSessionReplayForWorkspaceFn,
       );
     }
   }
@@ -2032,7 +2121,7 @@ export async function completeMultipartUploadSessionAtApplicationBoundary(
   try {
     attempt = await replayOperationDatabaseCommit(
       () =>
-        beginMediaAssetUploadSessionCompletionAttemptAtLeaseTargetWithOwnerUntilSettled(
+        dependencies.beginCompletionAttemptAtLeaseTargetWithOwnerUntilSettledFn(
           attemptInput,
           writerLeaseTargetAtMs,
           operationDeadline.deadlineAtMs,
@@ -2074,6 +2163,8 @@ export async function completeMultipartUploadSessionAtApplicationBoundary(
         userId,
         session,
         replayResolutionDatabaseCommit,
+        dependencies
+          .loadMediaAssetForCompletedUploadSessionReplayForWorkspaceFn,
       );
     }
     if (
@@ -2084,6 +2175,8 @@ export async function completeMultipartUploadSessionAtApplicationBoundary(
         userId,
         session,
         replayResolutionDatabaseCommit,
+        dependencies
+          .loadMediaAssetForCompletedUploadSessionReplayForWorkspaceFn,
       );
     }
     if (
@@ -2127,6 +2220,8 @@ export async function completeMultipartUploadSessionAtApplicationBoundary(
           writerLeaseTargetAtMs,
           operationDeadline,
           replayOperationDatabaseCommit,
+          dependencies
+            .beginCompletionAttemptAtLeaseTargetWithOwnerUntilSettledFn,
         );
         return renewal;
       },
@@ -2195,6 +2290,47 @@ export async function completeMultipartUploadSessionAtApplicationBoundary(
         dependencies,
       );
     }
+    if (
+      completionError instanceof MultipartWriterLeaseRenewalRejectedError
+    ) {
+      try {
+        captureBackendWarning({
+          action: "media_asset_upload_session_completion_renewal_rejected",
+          scope: observationScope,
+          details: {
+            mediaAssetId: session.mediaAssetId,
+            sessionId: session.sessionId,
+            durableOutcome: completionError.durableOutcome,
+          },
+        });
+      } catch {
+        // Observability must not interrupt exact multipart attempt resolution.
+      }
+      if (
+        completionError.durableOutcome === "already_applied"
+        || completionError.durableOutcome === "live_applied"
+        || completionError.durableOutcome === "referenced"
+      ) {
+        return replayCompletedMultipartResult(
+          userId,
+          session,
+          replayResolutionDatabaseCommit,
+          dependencies
+            .loadMediaAssetForCompletedUploadSessionReplayForWorkspaceFn,
+        );
+      }
+      return handoffAcceptedMultipartAttempt(
+        completionError.fallbackError,
+        userId,
+        session,
+        exactWriter,
+        lastConfirmedLeaseExpiresAtMs,
+        observationScope,
+        requestDeadline,
+        replayResolutionDatabaseCommit,
+        dependencies,
+      );
+    }
     let exactResolution:
       MultipartExactResolutionResult<MultipartMediaBlobWriterAttemptHandoffStatus>;
     try {
@@ -2230,6 +2366,8 @@ export async function completeMultipartUploadSessionAtApplicationBoundary(
         userId,
         session,
         replayResolutionDatabaseCommit,
+        dependencies
+          .loadMediaAssetForCompletedUploadSessionReplayForWorkspaceFn,
       );
     }
     if (resolution === "handed_off" || resolution === "already_pending") {
