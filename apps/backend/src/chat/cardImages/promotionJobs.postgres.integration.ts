@@ -765,7 +765,15 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
        WHERE workspace_id = $1 AND card_id = $2`,
       [fixture.workspaceId, fixture.cardId],
     );
-    assert.equal(appliedCard.rows[0]?.back_text, "Original answer");
+    assert.equal(
+      appliedCard.rows[0]?.back_text,
+      [
+        "Original answer",
+        ...inputs.slice(1).map((input) => (
+          `![${input.altText}](fcasset:${input.mediaAssetId}?state=pending)`
+        )),
+      ].join("\n\n"),
+    );
     assert.equal(
       appliedCard.rows[0]?.front_text.match(new RegExp(`fcasset:${applied.mediaAssetId}`, "gu"))?.length,
       1,
@@ -1317,7 +1325,7 @@ test("ready promotion sync pages the media asset before the ready card", async (
     const job = byJobId(await claim("sync-order-worker", 1), input.jobId);
     const writer = await reserveGeneratedMediaBlobWriter(job, Date.now() + 10_000);
     await applyGeneratedMediaPromotionJob(writer, Date.now() + 10_000);
-    const installationId = `sync-order-${randomUUID()}`;
+    const installationId = randomUUID();
 
     const firstPage = await processSyncPull(
       fixture.workspaceId,
