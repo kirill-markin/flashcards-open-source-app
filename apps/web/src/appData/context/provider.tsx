@@ -23,8 +23,8 @@ import type {
 import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual } from "../domain";
 import type { AppDataContextValue, Props, SessionLoadState } from "./types";
 import { useProgressInvalidationRefresh } from "../progress/invalidation/progressInvalidation";
-import { isTestSeedBridgeEnabled, type AppDataTestSeedBridge } from "../sync/testSeedBridge";
-import { useSyncEngine } from "../sync/useSyncEngine";
+import { isTestSeedBridgeEnabled, type AppDataTestSeedBridge } from "../sync/local/testSeedBridge";
+import { useSyncEngine } from "../sync/engine/useSyncEngine";
 import { useWorkspaceSession } from "../session/useWorkspaceSession";
 import type { SessionVerificationState } from "../session/workspaceSessionTypes";
 import { loadWarmStartSnapshot, storeWarmStartSnapshot } from "../session/activation/warmStart";

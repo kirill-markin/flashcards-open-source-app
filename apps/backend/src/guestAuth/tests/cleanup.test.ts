@@ -7,7 +7,7 @@ import {
   deleteGuestSessionInExecutor,
   prepareGuestUpgradeInExecutor,
 } from "..";
-import { cleanupGuestSessionSourceInExecutor } from "../delete";
+import { cleanupGuestSessionSourceInExecutor } from "../delete/index";
 import {
   addWorkspaceMembership,
   createGuestUpgradeExecutor,

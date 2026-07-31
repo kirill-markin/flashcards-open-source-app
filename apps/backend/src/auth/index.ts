@@ -16,7 +16,7 @@ import { SimpleJwksCache } from "aws-jwt-verify/jwk";
 import { authenticateAgentApiKey } from "../agent/apiKeys";
 import { getAuthConfig } from "./config";
 import { HttpError } from "../shared/errors";
-import { authenticateGuestSession } from "../guestAuth/session";
+import { authenticateGuestSession } from "../guestAuth/session/index";
 import type { GuestSessionPlatform } from "../guestAuth/types";
 import { loadCognitoIdentityMapping } from "./userIdentities";
 
