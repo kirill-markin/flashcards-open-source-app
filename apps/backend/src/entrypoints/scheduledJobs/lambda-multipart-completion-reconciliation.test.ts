@@ -6,7 +6,7 @@ import {
   MultipartCompletionReconciliationBatchError,
   type MultipartCompletionFailureReportBatchResult,
   type MultipartCompletionReconciliationBatchResult,
-} from "../../mediaAssets/multipartCompletionReconciliation";
+} from "../../mediaAssets/multipart/completionReconciliation";
 import {
   calculateMultipartCompletionReconciliationDeadlineAtMs,
   getMultipartCompletionReconciliationFailureDetails,

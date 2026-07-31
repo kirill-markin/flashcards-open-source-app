@@ -1,26 +1,26 @@
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import test from "node:test";
-import { DatabaseDeadlineExceededError } from "../database";
-import { HttpError } from "../shared/errors";
+import { DatabaseDeadlineExceededError } from "../../database";
+import { HttpError } from "../../shared/errors";
 import {
   type PostgresIntegrationFixture,
   withPostgresIntegrationFixture,
-} from "../testSupport/postgresIntegration";
+} from "../../testSupport/postgresIntegration";
 import {
   applyImageNormalizedMediaAssetWithDirectWriterForWorkspace,
   replayImageNormalizedMediaAssetForWorkspace,
-} from ".";
+} from "..";
 import {
   beginDirectMediaBlobWriterAttemptWithOwner,
   type DirectMediaBlobWriterAttemptExactInput,
   type DirectMediaBlobWriterAttemptInput,
-} from "./blobLifecycle";
-import { buildMediaBlobStorageKey } from "./storageKeys";
+} from "../blobLifecycle";
+import { buildMediaBlobStorageKey } from "../storageKeys";
 import {
   imageJpegCardMediaBlobNormalizationVersion,
   type NormalizedImageMediaAssetInput,
-} from "./types";
+} from "../types";
 
 function createSha256(): string {
   return createHash("sha256").update(randomUUID()).digest("hex");

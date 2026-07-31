@@ -11,18 +11,18 @@ import {
   ListPartsCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-import { unsafeTransaction } from "../database/unsafe";
+import { unsafeTransaction } from "../../database/unsafe";
 import {
   DatabaseCommitOutcomeUnknownError,
   TransientDatabaseHttpError,
-} from "../database/transient";
-import { createBackendObservationScope } from "../observability/sentry";
-import { HttpError } from "../shared/errors";
-import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../testSupport/postgresIntegration";
+} from "../../database/transient";
+import { createBackendObservationScope } from "../../observability/sentry";
+import { HttpError } from "../../shared/errors";
+import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../testSupport/postgresIntegration";
 import {
   buildMediaBlobStorageKey,
   buildMediaMultipartUploadStagingStorageKey,
-} from "./storageKeys";
+} from "../storageKeys";
 import {
   acquireMediaAssetUploadSessionCreationClaimForWorkspace,
   beginMediaAssetUploadSessionAbortForWorkspace,
@@ -50,29 +50,29 @@ import {
   type MultipartMediaBlobWriterAttemptExactInput,
   type MultipartMediaBlobWriterAttemptInput,
   type MediaAssetUploadSessionCompletionWithOwnerInput,
-} from "./uploadSessions";
+} from "../uploadSessions";
 import {
   passthroughMediaBlobNormalizationVersion,
   type MediaBlobNormalizationVersion,
-} from "./types";
-import type { CompleteMediaAssetUploadPartInput } from "./types";
+} from "../types";
+import type { CompleteMediaAssetUploadPartInput } from "../types";
 import {
   completeMultipartMediaAssetUploadWithDependencies,
-} from "./storage/multipart";
+} from "../storage/multipart";
 import {
   applyMultipartCompletionReconciliation,
   claimMultipartCompletionReconciliations,
   renewMultipartCompletionReconciliationLease,
   type ClaimedMultipartCompletionReconciliation,
-} from "./multipartCompletionReconciliation";
+} from "./completionReconciliation";
 import {
   reconcileMultipartMediaAssetUploadWithDependencies,
-} from "./storage/multipartReconciliation";
+} from "../storage/multipartReconciliation";
 import {
   createS3Error,
   getTestMediaAssetsStorageConfig,
   getUnexpectedS3CommandName,
-} from "./storage/testHelpers";
+} from "../storage/testHelpers";
 import {
   abortMultipartUploadSessionAtApplicationBoundary,
   completeMultipartUploadSessionAtApplicationBoundary,
@@ -80,16 +80,16 @@ import {
   createMultipartUploadSessionAtApplicationBoundary,
   createMultipartWriterHeartbeat,
   isExpiredMultipartCompletionCleanupRequired,
-} from "../routes/mediaAssets";
+} from "../../routes/mediaAssets";
 import {
   createMultipartCompletionWriterLeaseTargetAtMs,
-} from "../server/multipartCompletionRequestTiming";
+} from "../../server/multipartCompletionRequestTiming";
 
 const migration0094 = readFileSync(resolve(
-  __dirname, "../../../../db/migrations/0094_direct_multipart_writer_abandonment.sql",
+  __dirname, "../../../../../db/migrations/0094_direct_multipart_writer_abandonment.sql",
 ), "utf8");
 const migration0095 = readFileSync(resolve(
-  __dirname, "../../../../db/migrations/0095_atomic_multipart_writer_completion.sql",
+  __dirname, "../../../../../db/migrations/0095_atomic_multipart_writer_completion.sql",
 ), "utf8");
 const closerStart = migration0094.indexOf(
   "CREATE FUNCTION content.close_media_upload_session_blob_writer(",

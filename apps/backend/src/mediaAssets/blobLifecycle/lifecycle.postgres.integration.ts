@@ -6,9 +6,9 @@ import { setTimeout as wait } from "node:timers/promises";
 import test from "node:test";
 import {
   DatabaseDeadlineExceededError, transactionWithWorkspaceScope, transactionWithWorkspaceScopeDeadline, type DatabaseExecutor,
-} from "../database";
-import { unsafeTransaction } from "../database/unsafe";
-import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../testSupport/postgresIntegration";
+} from "../../database";
+import { unsafeTransaction } from "../../database/unsafe";
+import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../testSupport/postgresIntegration";
 import {
   assertDirectMediaBlobStorageCapabilityForMutation,
   beginDirectMediaBlobWriterAttemptWithOwner,
@@ -29,10 +29,10 @@ import {
   type DirectMediaBlobWriterApplyExecutor,
   type DirectMediaBlobStorageCapability,
   type MediaBlobWriterReservationInput,
-} from "./blobLifecycle";
-import { createImageNormalizedMediaAssetForWorkspace } from ".";
-import { buildMediaBlobStorageKey } from "./storageKeys";
-import { imageJpegCardMediaBlobNormalizationVersion, passthroughMediaBlobNormalizationVersion } from "./types";
+} from "./index";
+import { createImageNormalizedMediaAssetForWorkspace } from "..";
+import { buildMediaBlobStorageKey } from "../storageKeys";
+import { imageJpegCardMediaBlobNormalizationVersion, passthroughMediaBlobNormalizationVersion } from "../types";
 type LifecycleUpgradeRow = Readonly<{
   storage_key: string; mime_type: string; size_bytes: string; normalization_version: string;
   created_at_matches: boolean; updated_at_matches: boolean; workspace_fence: boolean; catalog_fence: boolean;
@@ -43,10 +43,10 @@ type LifecycleUpgradeRow = Readonly<{
 }>;
 function createUniqueSha256(): string { return createHash("sha256").update(randomUUID()).digest("hex"); }
 const lifecycleMigrationSql = readFileSync(resolve(
-  __dirname, "../../../../db/migrations/0091_durable_media_blob_lifecycle.sql",
+  __dirname, "../../../../../db/migrations/0091_durable_media_blob_lifecycle.sql",
 ), "utf8");
 const writerSupportMigrationSql = readFileSync(resolve(
-  __dirname, "../../../../db/migrations/0092_media_blob_writer_support.sql",
+  __dirname, "../../../../../db/migrations/0092_media_blob_writer_support.sql",
 ), "utf8");
 function input(workspaceId: string, mediaAssetId: string, operationId: string, sha256: string): MediaBlobWriterReservationInput {
   return {

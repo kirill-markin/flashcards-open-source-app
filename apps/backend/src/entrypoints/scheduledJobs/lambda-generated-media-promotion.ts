@@ -7,7 +7,7 @@ import {
   MediaBlobCleanupBatchError,
   runMediaBlobCleanupBatch,
   type MediaBlobCleanupBatchResult,
-} from "../../mediaAssets/blobCleanupProcessor";
+} from "../../mediaAssets/blobLifecycle/cleanupProcessor";
 import {
   addBackendBreadcrumb, captureBackendException, createBackendObservationScope,
   type BackendObservationScope,

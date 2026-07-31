@@ -1,39 +1,39 @@
 import {
   DatabaseDeadlineExceededError,
   type DatabaseExecutor,
-} from "../database";
+} from "../../database";
 import {
   unsafeQueryWithDeadline,
   unsafeTransactionWithDeadline,
-} from "../database/unsafe";
+} from "../../database/unsafe";
 import {
   DatabaseCommitOutcomeUnknownError,
   isTransientDatabaseError,
   TransientDatabaseHttpError,
-} from "../database/transient";
+} from "../../database/transient";
 import type {
   BackendObservationScope,
   MultipartCompletionReconciliationTerminalFailureDetails,
-} from "../observability/sentry";
-import { mediaBlobCleanupDelayMs } from "./blobLifecycle";
-import { isValidMediaAssetLastOperationId } from "./lastOperationId";
+} from "../../observability/sentry";
+import { mediaBlobCleanupDelayMs } from "../blobLifecycle";
+import { isValidMediaAssetLastOperationId } from "../lastOperationId";
 import {
   upsertMediaAssetSnapshotWithBlobNormalizationInExecutor,
-} from "./persistence";
+} from "../persistence";
 import {
   MultipartCompletionReconciliationStorageTerminalError,
   MultipartCompletionReconciliationStorageTransientError,
   reconcileMultipartMediaAssetUpload,
-} from "./storage";
+} from "../storage";
 import {
   buildMediaBlobStorageKey,
   buildMediaMultipartUploadStagingStorageKey,
-} from "./storageKeys";
+} from "../storageKeys";
 import {
   mediaBlobNormalizationVersions,
   type MediaAsset,
   type MediaBlobNormalizationVersion,
-} from "./types";
+} from "../types";
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;

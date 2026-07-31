@@ -3,19 +3,19 @@ import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
-import { transactionWithWorkspaceScope } from "../database";
-import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../testSupport/postgresIntegration";
+import { transactionWithWorkspaceScope } from "../../database";
+import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../testSupport/postgresIntegration";
 import { resolveDirectMediaBlobWriterAfterAccessRevocation, reserveDirectMediaBlobWriterWithOwner,
   reserveMediaBlobWriterInExecutor,
   type DirectMediaBlobWriterReservationInput,
   type DirectMediaBlobWriterResolutionInput,
-  type MediaBlobWriterReservationInput } from "./blobLifecycle";
-import { buildMediaBlobStorageKey } from "./storageKeys";
+  type MediaBlobWriterReservationInput } from "../blobLifecycle";
+import { buildMediaBlobStorageKey } from "../storageKeys";
 import { closeMediaAssetUploadSessionBlobWriter,
   reserveMediaAssetUploadSessionBlobWriterWithOwner,
-  type MediaAssetUploadSessionWriterClosureInput } from "./uploadSessions";
-import { passthroughMediaBlobNormalizationVersion } from "./types";
-const migrationSql = readFileSync(resolve(__dirname, "../../../../db/migrations/0094_direct_multipart_writer_abandonment.sql"), "utf8");
+  type MediaAssetUploadSessionWriterClosureInput } from "../uploadSessions";
+import { passthroughMediaBlobNormalizationVersion } from "../types";
+const migrationSql = readFileSync(resolve(__dirname, "../../../../../db/migrations/0094_direct_multipart_writer_abandonment.sql"), "utf8");
 const signatures = {
   directReserve: "content.reserve_direct_media_blob_writer_with_owner(text,uuid,uuid,text,uuid,text,text,text,bigint,text)",
   multipartReserve: "content.reserve_media_upload_session_blob_writer_with_owner(text,uuid,uuid,text)",
