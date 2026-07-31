@@ -47,6 +47,8 @@ internal fun resetAndroidTestAppState() {
             clearTestOnlySharedPreferences(context = context)
             application.recreateAppGraphAndAwaitStartup()
             application.appGraph.cloudAccountRepository.logout()
+            application.closeAppGraph()
+            application.recreateAppGraphAndAwaitStartup()
         }
     }
     NotificationManagerCompat.from(context).cancelAll()
