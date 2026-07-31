@@ -25,6 +25,23 @@ Do not go directly from release-note drafting to a version bump unless the user
 explicitly confirms that the tag, GitHub Release, and manual platform release
 actions for the current version are already handled.
 
+## Release Note Delivery Format
+
+Deliver the summary from part 1 in every supported app locale, one fenced code
+block per locale, so each block can be copied straight into store metadata
+without reformatting. Put nothing but the release-note lines inside a block;
+keep commentary, reasoning, and the release-sequence reminder outside them.
+
+Use the supported app locale order declared in
+[ios-localization.md](ios-localization.md):
+
+`en`, `ar`, `zh-Hans`, `de`, `hi`, `ja`, `ru`, `es-MX`, `es-ES`
+
+Spanish always stays split into `es-MX` and `es-ES`; never collapse them into a
+generic `es` block. When the same notes are pasted into Google Play, keep this
+content and order and only remap the tag spellings per
+[google-play-store-metadata.md](google-play-store-metadata.md).
+
 ## Scope
 
 The repository has separate version surfaces for backend-related Node packages, the web app, Android, and iOS, but the default release policy is to use one shared semantic version across the whole project most of the time.
