@@ -74,10 +74,14 @@ import {
   getUnexpectedS3CommandName,
 } from "../storage/testHelpers";
 import {
+  createMultipartCompletionRequestDeadline,
+} from "./requestBoundary";
+import {
+  createMultipartUploadSessionAtApplicationBoundary,
+} from "./creationBoundary";
+import {
   abortMultipartUploadSessionAtApplicationBoundary,
   completeMultipartUploadSessionAtApplicationBoundary,
-  createMultipartCompletionRequestDeadline,
-  createMultipartUploadSessionAtApplicationBoundary,
   createMultipartWriterHeartbeat,
   isExpiredMultipartCompletionCleanupRequired,
 } from "../../routes/mediaAssets";
