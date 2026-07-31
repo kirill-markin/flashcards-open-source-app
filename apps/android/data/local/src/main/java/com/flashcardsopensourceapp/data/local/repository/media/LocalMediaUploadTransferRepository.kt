@@ -386,9 +386,10 @@ class LocalMediaUploadTransferRepository(
         val nowMillis: Long = timeProvider.currentTimeMillis()
         val errorMessage: String = renderMediaUploadError(error = error)
         if (isPermanentMediaUploadFailure(error = error)) {
-            database.mediaTransferDao().updateMediaTransferStatus(
+            database.mediaTransferDao().markMediaTransferPermanentlyFailed(
                 transferId = transferEntity.transferId,
                 status = MediaTransferStatus.FAILED.wireKey,
+                succeededStatus = MediaTransferStatus.SUCCEEDED.wireKey,
                 lastError = errorMessage,
                 updatedAtMillis = nowMillis
             )
@@ -398,6 +399,7 @@ class LocalMediaUploadTransferRepository(
         database.mediaTransferDao().markMediaTransferAttemptFailed(
             transferId = transferEntity.transferId,
             status = MediaTransferStatus.QUEUED.wireKey,
+            succeededStatus = MediaTransferStatus.SUCCEEDED.wireKey,
             nextAttemptAtMillis = nowMillis + calculateRetryDelayMillis(attemptCount = transferEntity.attemptCount),
             lastError = errorMessage,
             updatedAtMillis = nowMillis
@@ -597,6 +599,10 @@ internal suspend fun retryMediaUploadSessionCompletion(
 ): MediaUploadCompletionReplayResult {
     var attemptNumber = 1
     var lastRetryableCompletionError: CloudRemoteException? = null
+    // Set only after the replay success reached its durable local disposition. NonCancellable
+    // protects the replay body but not the resume boundary, so a cancelled run can still surface
+    // a throw here after the transfer row already committed as succeeded.
+    var durablyPersistedCompletion: MediaAssetUploadCompletion? = null
     while (true) {
         try {
             currentCoroutineContext().ensureActive()
@@ -617,6 +623,7 @@ internal suspend fun retryMediaUploadSessionCompletion(
                 withContext(context = NonCancellable) {
                     val replayCompletion: MediaAssetUploadCompletion = complete()
                     persistReplaySuccess(replayCompletion)
+                    durablyPersistedCompletion = replayCompletion
                     replayCompletion
                 }
             }
@@ -626,7 +633,7 @@ internal suspend fun retryMediaUploadSessionCompletion(
             )
         } catch (error: CancellationException) {
             val completionError = lastRetryableCompletionError
-            if (completionError != null) {
+            if (completionError != null && durablyPersistedCompletion == null) {
                 throw MediaUploadCompletionTerminalException(
                     reason = MediaUploadCompletionTerminalReason.INTERRUPTED,
                     completionCause = completionError,
@@ -674,7 +681,7 @@ internal suspend fun retryMediaUploadSessionCompletion(
             attemptNumber += 1
         } catch (error: Exception) {
             val completionError = lastRetryableCompletionError
-            if (completionError != null) {
+            if (completionError != null && durablyPersistedCompletion == null) {
                 throw MediaUploadCompletionTerminalException(
                     reason = MediaUploadCompletionTerminalReason.INTERRUPTED,
                     completionCause = completionError,

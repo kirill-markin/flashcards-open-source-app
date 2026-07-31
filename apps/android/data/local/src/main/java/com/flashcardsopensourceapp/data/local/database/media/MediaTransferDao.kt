@@ -269,16 +269,36 @@ interface MediaTransferDao {
         """
         UPDATE media_transfer_queue
         SET status = :status,
+            lastError = :lastError,
+            updatedAtMillis = :updatedAtMillis
+        WHERE transferId = :transferId
+            AND status != :succeededStatus
+        """
+    )
+    suspend fun markMediaTransferPermanentlyFailed(
+        transferId: String,
+        status: String,
+        succeededStatus: String,
+        lastError: String,
+        updatedAtMillis: Long
+    )
+
+    @Query(
+        """
+        UPDATE media_transfer_queue
+        SET status = :status,
             attemptCount = attemptCount + 1,
             nextAttemptAtMillis = :nextAttemptAtMillis,
             lastError = :lastError,
             updatedAtMillis = :updatedAtMillis
         WHERE transferId = :transferId
+            AND status != :succeededStatus
         """
     )
     suspend fun markMediaTransferAttemptFailed(
         transferId: String,
         status: String,
+        succeededStatus: String,
         nextAttemptAtMillis: Long,
         lastError: String,
         updatedAtMillis: Long
