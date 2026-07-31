@@ -1,9 +1,10 @@
 # Android CI/CD
 
-This repository uses one reusable Android validation workflow plus separate automatic CI and manual release entry workflows:
+This repository uses one reusable Android validation workflow plus three entry workflows: automatic pull request, automatic `push main`, and manual release:
 
 - GitHub Actions is the primary Android CI/CD entrypoint on `main`
 - `.github/workflows/android-ci-reusable.yml` contains the actual Android CI implementation
+- `.github/workflows/android-pr.yml` is the automatic pull-request Android validation workflow
 - `.github/workflows/android-ci.yml` is the automatic `push main` Android validation workflow
 - `.github/workflows/android-release.yml` is the manual Android release workflow
 - Firebase Test Lab runs only from the manual release workflow on Google-managed devices
@@ -60,6 +61,14 @@ This Android-specific sync is separate from the AWS deploy bootstrap script `bas
 
 ## What runs
 
+Pull-request GitHub Actions workflow: `.github/workflows/android-pr.yml`
+
+- Starts on `pull_request` when Android-impacting files change, excluding `apps/android/README.md` and `apps/android/docs/**`
+- Calls `.github/workflows/android-ci-reusable.yml` for the pull-request merge commit, so the gate covers what will actually land on `main`
+- Runs the GitHub-hosted `data:local` emulator instrumentation gate, so a failing `data:local` test fails the pull request first; the same suite still runs on `main` after merge
+- Does not upload a Google Play draft
+- Does not submit Firebase Test Lab
+
 Automatic GitHub Actions workflow: `.github/workflows/android-ci.yml`
 
 - Starts on `push main` when Android-impacting files change
@@ -88,6 +97,13 @@ Top-level release workflow Firebase job: `.github/workflows/android-release.yml`
 - Validates Firebase Test Lab configuration, authenticates to Google Cloud, downloads the debug APK artifacts, and submits the full app instrumentation package `com.flashcardsopensourceapp.app`, excluding `com.flashcardsopensourceapp.app.ManualOnlyAndroidTest`
 - Reuses the shared release identifier `vc<versionCode>-r<runId>a<attempt>-s<shortSha>` in Firebase result naming and traces results under `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>`
 - Requires Firebase Test Lab submission before the Play draft upload starts; the submission is asynchronous, so review the Firebase matrix result before publishing from Play Console
+
+The pull-request Android flow is:
+
+1. `android-pr.yml` starts on `pull_request` for Android-impacting changes and validates the pull-request merge commit
+2. It runs the same GitHub-hosted gate as `Android CI`: unit tests, debug builds, and lint first, then `data:local` instrumentation on the emulator once the build job succeeds
+3. The `android-pr-<pull request number>` concurrency group cancels superseded runs, so a new push replaces the in-flight emulator run instead of queueing another one
+4. The workflow stops there: no Firebase Test Lab submission and no Google Play draft upload
 
 The automatic Android CI flow is:
 

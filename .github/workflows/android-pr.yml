@@ -29,5 +29,5 @@ jobs:
       # merge result rather than the branch tip and gates on what will actually land on main.
       target_ref: ${{ github.sha }}
       android_version_code: ${{ github.run_number }}
-      run_data_local_instrumentation: false
+      run_data_local_instrumentation: true
     secrets: inherit
