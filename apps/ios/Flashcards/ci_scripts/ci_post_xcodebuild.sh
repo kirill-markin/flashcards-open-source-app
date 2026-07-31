@@ -162,6 +162,8 @@ load_local_env_file() {
 
         escaped_value=$(printf "%s" "${value}" | sed "s/'/'\\\\''/g")
         eval "${key}='${escaped_value}'"
+        # key holds a variable name, so exporting its expansion is intended.
+        # shellcheck disable=SC2163
         export "${key}"
         ;;
     esac

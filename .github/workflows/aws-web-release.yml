@@ -522,6 +522,8 @@ jobs:
 
           printf '127.0.0.1 app.flashcards-open-source-app.com\n' | sudo tee -a /etc/hosts >/dev/null
 
+          # The log redirect is meant to stay unprivileged; RUNNER_TEMP is runner-writable.
+          # shellcheck disable=SC2024
           sudo env PATH="${PATH}" node scripts/serve-dist-https.mjs \
             --host 0.0.0.0 \
             --port 443 \

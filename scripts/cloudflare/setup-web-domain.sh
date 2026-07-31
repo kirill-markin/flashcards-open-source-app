@@ -52,7 +52,7 @@ echo "Certificate ARN: ${CERT_ARN}"
 echo "Waiting for ACM to generate validation DNS record..."
 
 VALIDATION_JSON=""
-for i in $(seq 1 24); do
+for _ in $(seq 1 24); do
   VALIDATION_JSON=$(aws acm describe-certificate \
     --region "$REGION" \
     --certificate-arn "$CERT_ARN" \
