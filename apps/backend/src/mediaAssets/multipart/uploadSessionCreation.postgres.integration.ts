@@ -9,7 +9,7 @@ import { createBackendObservationScope } from "../../observability/sentry";
 import {
   createMultipartUploadSessionAtApplicationBoundary,
   type MultipartUploadSessionCreationApplicationDependencies,
-} from "../../routes/mediaAssets";
+} from "./creationBoundary";
 import {
   acquireMediaAssetUploadSessionCreationClaimForWorkspace,
   createMediaAssetFromAvailableBlobForWorkspace,

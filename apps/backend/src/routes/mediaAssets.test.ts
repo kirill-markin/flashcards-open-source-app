@@ -21,14 +21,16 @@ import {
   runWithMultipartCompletionRequestTiming,
 } from "../server/multipartCompletionRequestTiming";
 import {
+  createMultipartCompletionRequestDeadline,
+  replayMultipartDatabaseCommitUnknownUntilDeadline,
+} from "../mediaAssets/multipart/requestBoundary";
+import {
   completeMultipartUploadSessionAtApplicationBoundary,
   createMediaAssetsRoutes,
-  createMultipartCompletionRequestDeadline,
   createMultipartCompletionResolutionError,
   createMultipartWriterHeartbeat,
   isExpiredMultipartCompletionCleanupRequired,
   replayCompletedMultipartResultWithDependencies,
-  replayMultipartDatabaseCommitUnknownUntilDeadline,
   resolveMultipartOperationExactlyUntilSafe,
   type MultipartCompletionApplicationDependencies,
 } from "./mediaAssets";
