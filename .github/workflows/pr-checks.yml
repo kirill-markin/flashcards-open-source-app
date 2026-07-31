@@ -1,0 +1,282 @@
+name: PR Checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-24.04
+    outputs:
+      api_changed: ${{ steps.detect.outputs.api_changed }}
+      auth_changed: ${{ steps.detect.outputs.auth_changed }}
+      backend_changed: ${{ steps.detect.outputs.backend_changed }}
+      web_changed: ${{ steps.detect.outputs.web_changed }}
+      admin_changed: ${{ steps.detect.outputs.admin_changed }}
+      infra_changed: ${{ steps.detect.outputs.infra_changed }}
+      node_changed: ${{ steps.detect.outputs.node_changed }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed files
+        id: detect
+        run: |
+          set -euo pipefail
+
+          changed_files_path="${RUNNER_TEMP}/changed-files.txt"
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            printf '%s\n' 'workflow_dispatch (forced full PR checks)' > "${changed_files_path}"
+          else
+            git fetch --no-tags origin "${GITHUB_BASE_REF}"
+            git diff --name-only "origin/${GITHUB_BASE_REF}...HEAD" > "${changed_files_path}"
+          fi
+
+          api_changed=false
+          auth_changed=false
+          backend_changed=false
+          web_changed=false
+          admin_changed=false
+          infra_changed=false
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            api_changed=true
+            auth_changed=true
+            backend_changed=true
+            web_changed=true
+            admin_changed=true
+            infra_changed=true
+          else
+            if grep -Eq '^(api/|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
+              api_changed=true
+            fi
+
+            if grep -Eq '^(apps/auth/|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
+              auth_changed=true
+            fi
+
+            # The backend is contract-coupled to the spec: its contract tests bundle
+            # api/src/openapi.yaml and assert the handlers still agree with it.
+            if grep -Eq '^(apps/backend/|api/|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
+              backend_changed=true
+            fi
+
+            if grep -Eq '^(apps/web/|apps/backend/src/scheduling/|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
+              web_changed=true
+            fi
+
+            if grep -Eq '^(apps/admin/|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
+              admin_changed=true
+            fi
+
+            if grep -Eq '^(infra/|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
+              infra_changed=true
+            fi
+          fi
+
+          node_changed=false
+          if [[ "${api_changed}" == "true" || "${auth_changed}" == "true" || "${backend_changed}" == "true" \
+             || "${web_changed}" == "true" || "${admin_changed}" == "true" || "${infra_changed}" == "true" ]]; then
+            node_changed=true
+          fi
+
+          {
+            echo "api_changed=${api_changed}"
+            echo "auth_changed=${auth_changed}"
+            echo "backend_changed=${backend_changed}"
+            echo "web_changed=${web_changed}"
+            echo "admin_changed=${admin_changed}"
+            echo "infra_changed=${infra_changed}"
+            echo "node_changed=${node_changed}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Summarize changed areas
+        env:
+          API_CHANGED: ${{ steps.detect.outputs.api_changed }}
+          AUTH_CHANGED: ${{ steps.detect.outputs.auth_changed }}
+          BACKEND_CHANGED: ${{ steps.detect.outputs.backend_changed }}
+          WEB_CHANGED: ${{ steps.detect.outputs.web_changed }}
+          ADMIN_CHANGED: ${{ steps.detect.outputs.admin_changed }}
+          INFRA_CHANGED: ${{ steps.detect.outputs.infra_changed }}
+        run: |
+          set -euo pipefail
+
+          changed_files_path="${RUNNER_TEMP}/changed-files.txt"
+
+          {
+            echo "## PR check scope"
+            echo ""
+            echo "- API changed: \`${API_CHANGED}\`"
+            echo "- Auth changed: \`${AUTH_CHANGED}\`"
+            echo "- Backend changed: \`${BACKEND_CHANGED}\`"
+            echo "- Web changed: \`${WEB_CHANGED}\`"
+            echo "- Admin changed: \`${ADMIN_CHANGED}\`"
+            echo "- Infra changed: \`${INFRA_CHANGED}\`"
+            echo ""
+            echo "### Changed files"
+            echo ""
+            if [[ -s "${changed_files_path}" ]]; then
+              cat "${changed_files_path}"
+            else
+              echo "No changed files detected."
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  checks:
+    name: Type checks and builds
+    needs: changes
+    if: ${{ needs.changes.outputs.node_changed == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            apps/auth/package-lock.json
+            apps/backend/package-lock.json
+            apps/web/package-lock.json
+            apps/admin/package-lock.json
+            infra/aws/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefix api
+          npm ci --prefix apps/auth
+          npm ci --prefix apps/backend
+          npm ci --prefix apps/web
+          npm ci --prefix apps/admin
+          npm ci --prefix infra/aws
+
+      - name: Lint OpenAPI spec
+        if: ${{ needs.changes.outputs.api_changed == 'true' }}
+        run: npm run lint --prefix api
+
+      - name: Bundle OpenAPI spec
+        run: npm run bundle --prefix api
+
+      - name: Build auth app
+        if: ${{ needs.changes.outputs.auth_changed == 'true' }}
+        run: npm run build --prefix apps/auth
+
+      - name: Test auth app
+        if: ${{ needs.changes.outputs.auth_changed == 'true' }}
+        run: npm run test --prefix apps/auth
+
+      - name: Lint backend
+        if: ${{ needs.changes.outputs.backend_changed == 'true' }}
+        run: npm run lint --prefix apps/backend
+
+      - name: Build backend
+        if: ${{ needs.changes.outputs.backend_changed == 'true' }}
+        run: npm run build --prefix apps/backend
+
+      - name: Build web app
+        if: ${{ needs.changes.outputs.web_changed == 'true' }}
+        run: npm run build --prefix apps/web
+
+      - name: Build admin app
+        if: ${{ needs.changes.outputs.admin_changed == 'true' }}
+        run: npm run build --prefix apps/admin
+
+      - name: Build infra
+        if: ${{ needs.changes.outputs.infra_changed == 'true' }}
+        run: npm run build --prefix infra/aws
+
+      - name: Test infra
+        if: ${{ needs.changes.outputs.infra_changed == 'true' }}
+        run: npm run test --prefix infra/aws
+
+  backend_tests:
+    name: Backend test suites
+    needs: changes
+    if: ${{ needs.changes.outputs.backend_changed == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            apps/backend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefix api
+          npm ci --prefix apps/backend
+
+      - name: Test backend
+        run: npm test --prefix apps/backend
+
+  web_tests:
+    name: Web test suite
+    needs: changes
+    if: ${{ needs.changes.outputs.web_changed == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefix apps/web
+
+      - name: Test web app
+        run: npm test --prefix apps/web
+
+  static_checks:
+    name: Repository static checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Fetch base ref
+        run: |
+          set -euo pipefail
+
+          if [[ -n "${GITHUB_BASE_REF:-}" ]]; then
+            git fetch --no-tags origin "${GITHUB_BASE_REF}"
+          else
+            echo "No base ref to fetch for event ${GITHUB_EVENT_NAME}."
+          fi
+
+      - name: Run repository static checks
+        env:
+          PR_BASE_REF: ${{ github.base_ref }}
+        run: node scripts/checks/pr/run-all.mjs
