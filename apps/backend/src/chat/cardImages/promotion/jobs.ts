@@ -2,40 +2,40 @@ import {
   appendPendingManagedImageToCardSideInExecutor,
   hasPendingManagedImageOnCardSideInExecutor,
   ManagedImageMarkdownComplexitySettlementConflictError,
-} from "../../cards";
+} from "../../../cards";
 import {
   transactionWithWorkspaceScopeDeadline,
   type DatabaseExecutor,
   type SqlValue,
-} from "../../database";
-import { unsafeQueryWithDeadline, unsafeTransactionWithDeadline } from "../../database/unsafe";
+} from "../../../database";
+import { unsafeQueryWithDeadline, unsafeTransactionWithDeadline } from "../../../database/unsafe";
 import {
   getDatabaseErrorFields,
-} from "../../database/transient";
+} from "../../../database/transient";
 import {
   MediaBlobLifecycleBusyError,
   MediaBlobWriterFenceError,
   reserveMediaBlobWriterInExecutor,
   type MediaBlobWriterReservation,
   type MediaBlobWriterReservationInput,
-} from "../../mediaAssets/blobLifecycle";
-import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../../mediaAssets/storageKeys";
+} from "../../../mediaAssets/blobLifecycle";
+import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../../../mediaAssets/storageKeys";
 import {
   imageJpegCardMediaBlobNormalizationVersion,
   mediaBlobNormalizationVersions,
   type MediaBlobNormalizationVersion,
-} from "../../mediaAssets/types";
-import { assertReplicaBelongsToWorkspaceInExecutor } from "../../mediaAssets/workspaceReplicas";
-import { HttpError } from "../../shared/errors";
+} from "../../../mediaAssets/types";
+import { assertReplicaBelongsToWorkspaceInExecutor } from "../../../mediaAssets/workspaceReplicas";
+import { HttpError } from "../../../shared/errors";
 import {
   isMarkdownComplexityLimitError,
   rewriteMarkdownImageDestinationUrl,
-} from "../../workspacePackages/markdownMedia";
-import { assertActiveChatRunClaimWithExecutor, type ChatRunClaimFenceParams } from "../runs/claimFence";
+} from "../../../workspacePackages/markdownMedia";
+import { assertActiveChatRunClaimWithExecutor, type ChatRunClaimFenceParams } from "../../runs/claimFence";
 import {
   hasValidGeneratedImageAltTextCharactersAndLength,
   maximumGeneratedImageAltTextCodePoints,
-} from "./contract";
+} from "../contract";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const sha256Pattern = /^[0-9a-f]{64}$/u;
 const mimeTypePattern = /^[a-z0-9][a-z0-9.+-]*\/[a-z0-9][a-z0-9.+-]*$/u;

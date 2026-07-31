@@ -145,10 +145,10 @@ test("lifecycle promotion rollout is fenced by durable database protocol activat
     "../../db/migrations/0104_generated_image_placeholder_terminal_state.sql",
   );
   const admissionSource = readSource(
-    "../../apps/backend/src/chat/cardImages/promotionJobs.ts",
+    "../../apps/backend/src/chat/cardImages/promotion/jobs.ts",
   );
   const processorSource = readSource(
-    "../../apps/backend/src/chat/cardImages/promotionProcessor.ts",
+    "../../apps/backend/src/chat/cardImages/promotion/processor.ts",
   );
 
   const activationDrop = migrationSource.indexOf(

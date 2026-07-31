@@ -30,7 +30,7 @@ import {
 import { deriveGeneratedCardImageOperationMetadata } from "./metadata";
 import { createOpenAIGeneratedCardImageProvider } from "./openaiAdapter";
 import { withGeneratedCardImageOperationLock } from "./operationLock";
-import { enqueueGeneratedMediaPromotionJob, type EnqueueGeneratedMediaPromotionJobResult } from "./promotionJobs";
+import { enqueueGeneratedMediaPromotionJob, type EnqueueGeneratedMediaPromotionJobResult } from "./promotion/jobs";
 import {
   GeneratedCardImageDeadlineExceededError,
   GeneratedCardImageProviderOutcomeUnknownError,

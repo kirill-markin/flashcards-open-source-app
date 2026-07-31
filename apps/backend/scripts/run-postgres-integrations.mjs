@@ -90,7 +90,7 @@ const boundaryDefinitions = Object.freeze([
     testFiles: Object.freeze([
       "src/cards/generatedImageAppend.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",
-      "src/chat/cardImages/promotionJobs.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobs.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
       "src/database/aiChatInitiatingAuthClassification.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/cleanup.postgres.integration.ts",

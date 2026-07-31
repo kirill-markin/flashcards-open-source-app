@@ -17,7 +17,7 @@ import {
   generateCardImageWithDependencies,
   type GeneratedCardImageOperationDependencies,
 } from "./operation";
-import type { EnqueueGeneratedMediaPromotionJobResult } from "./promotionJobs";
+import type { EnqueueGeneratedMediaPromotionJobResult } from "./promotion/jobs";
 import {
   GeneratedCardImageProviderOutcomeUnknownError,
   GeneratedCardImageStagingOutcomeUnknownError,

@@ -5,27 +5,27 @@ import {
   markPendingManagedImageFailedOnCardSideInExecutor,
   markPendingManagedImageReadyOnCardSideInExecutor,
   type ManagedImageSettlementConflictError,
-} from "../../cards";
-import { DatabaseDeadlineExceededError, type DatabaseExecutor } from "../../database";
-import { unsafeTransactionWithDeadline } from "../../database/unsafe";
+} from "../../../cards";
+import { DatabaseDeadlineExceededError, type DatabaseExecutor } from "../../../database";
+import { unsafeTransactionWithDeadline } from "../../../database/unsafe";
 import {
   DatabaseCommitOutcomeUnknownError, isTransientDatabaseError, TransientDatabaseHttpError,
-} from "../../database/transient";
+} from "../../../database/transient";
 import {
   findMediaAssetRowForUpdateInExecutor, mapMediaAssetRow,
   upsertMediaAssetSnapshotWithBlobNormalizationInExecutor,
-} from "../../mediaAssets/persistence";
+} from "../../../mediaAssets/persistence";
 import {
   finalizeMediaBlobWriterInExecutor,
-} from "../../mediaAssets/blobLifecycle";
+} from "../../../mediaAssets/blobLifecycle";
 import {
   GeneratedMediaPromotionStorageTerminalError, GeneratedMediaPromotionStorageTransientError,
   promoteGeneratedMediaObject,
-} from "../../mediaAssets/storage";
-import type { MediaAsset } from "../../mediaAssets/types";
-import type { BackendObservationScope } from "../../observability/sentry";
-import { HttpError } from "../../shared/errors";
-import { lockWorkspaceSyncMetadataForHotChangesInExecutor } from "../../sync/replication/changes";
+} from "../../../mediaAssets/storage";
+import type { MediaAsset } from "../../../mediaAssets/types";
+import type { BackendObservationScope } from "../../../observability/sentry";
+import { HttpError } from "../../../shared/errors";
+import { lockWorkspaceSyncMetadataForHotChangesInExecutor } from "../../../sync/replication/changes";
 import {
   applyGeneratedMediaPromotionJobScopeWithExecutor, claimGeneratedMediaPromotionJobs,
   failGeneratedMediaPromotionJobAfterAccessRevocation,
@@ -39,7 +39,7 @@ import {
   reserveGeneratedMediaBlobWriter,
   type ClaimedGeneratedMediaPromotionJob, type GeneratedMediaBlobWriterReservation,
   type SafeGeneratedMediaPromotionJobError,
-} from "./promotionJobs";
+} from "./jobs";
 const maximumJobAttempts = 5;
 const retryBaseDelayMs = 30_000;
 const retryMaximumDelayMs = 15 * 60_000;

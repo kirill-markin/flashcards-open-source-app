@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type {
   GeneratedMediaPromotionBatchResult,
-} from "../../chat/cardImages/promotionProcessor";
+} from "../../chat/cardImages/promotion/processor";
 import {
   MediaBlobCleanupBatchError,
   type MediaBlobCleanupBatchResult,
