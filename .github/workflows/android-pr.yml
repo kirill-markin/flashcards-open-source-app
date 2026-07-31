@@ -2,6 +2,7 @@ name: Android PR
 
 on:
   pull_request:
+    branches: [main]
     paths:
       - 'apps/android/**'
       - '!apps/android/README.md'
