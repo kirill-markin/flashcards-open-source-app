@@ -557,7 +557,7 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
        SET front_text = replace(front_text, $1, '')
        WHERE workspace_id = $2 AND card_id = $3`,
       [
-        `![${concurrentInput.altText}](fcasset:${concurrentInput.mediaAssetId}?state=pending)`,
+        `\n\n![${concurrentInput.altText}](fcasset:${concurrentInput.mediaAssetId}?state=pending)`,
         fixture.workspaceId,
         fixture.cardId,
       ],
