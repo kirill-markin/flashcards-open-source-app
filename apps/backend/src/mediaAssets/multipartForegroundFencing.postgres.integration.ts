@@ -1417,6 +1417,69 @@ test("migration 0101 serializes abort, heartbeat, handoff, and access removal", 
   });
 });
 
+test("migration 0101 exposes a handoff that wins the foreground renewal race as already pending", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const payload = createPayload(fixture, randomUUID());
+    const attempt = await createAttempt(fixture, payload);
+    const blocker = await fixture.ownerPool.connect();
+    const handoffClient = await fixture.runtimePool.connect();
+    const renewalClient = await fixture.runtimePool.connect();
+    const clients = [blocker, handoffClient, renewalClient];
+    let raceError: Error | null = null;
+    try {
+      await blocker.query("BEGIN");
+      await lockMediaAsset(blocker, payload);
+      await handoffClient.query("BEGIN");
+      await beginScopedTransaction(
+        renewalClient,
+        fixture.userId,
+        fixture.workspaceId,
+      );
+      const blockerPid = await backendPid(blocker);
+      const handoffPid = await backendPid(handoffClient);
+      const renewalPid = await backendPid(renewalClient);
+      const handoffPromise = handoffAfterAccessRevocation(
+        handoffClient,
+        attempt.attemptToken,
+        attempt.reservationToken,
+        payload,
+      );
+      await waitUntilBlockedBy(blocker, handoffPid, blockerPid);
+      const renewalPromise = beginAttempt(
+        renewalClient,
+        attempt.attemptToken,
+        payload,
+      );
+      await waitUntilBlockedBy(blocker, renewalPid, handoffPid);
+
+      await blocker.query("COMMIT");
+      assert.equal(await handoffPromise, "handed_off");
+      await handoffClient.query("COMMIT");
+      assert.equal((await renewalPromise).attempt_status, "stale_attempt");
+      await renewalClient.query("COMMIT");
+    } catch (error) {
+      raceError = error instanceof Error ? error : new Error(String(error));
+      throw raceError;
+    } finally {
+      await releaseClients(clients, raceError);
+    }
+
+    assert.equal(
+      await handoffAfterAccessRevocation(
+        fixture.runtimePool,
+        attempt.attemptToken,
+        attempt.reservationToken,
+        payload,
+      ),
+      "already_pending",
+    );
+    const state = await readBoundaryState(fixture, attempt.attemptToken);
+    assert.equal(state.attempt_state, "expired");
+    assert.equal(state.attempt_outcome, "stale_attempt");
+    assert.equal(state.reconciliation_state, "pending");
+  });
+});
+
 test("migration 0101 uses one asset fence for cross-member abort and reconciliation", async () => {
   await withPostgresIntegrationFixture(async (fixture) => {
     const payload = createPayload(fixture, randomUUID());

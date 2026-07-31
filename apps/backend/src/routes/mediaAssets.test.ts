@@ -21,6 +21,7 @@ import {
   runWithMultipartCompletionRequestTiming,
 } from "../server/multipartCompletionRequestTiming";
 import {
+  completeMultipartUploadSessionAtApplicationBoundary,
   createMediaAssetsRoutes,
   createMultipartCompletionRequestDeadline,
   createMultipartCompletionResolutionError,
@@ -29,6 +30,7 @@ import {
   replayCompletedMultipartResultWithDependencies,
   replayMultipartDatabaseCommitUnknownUntilDeadline,
   resolveMultipartOperationExactlyUntilSafe,
+  type MultipartCompletionApplicationDependencies,
 } from "./mediaAssets";
 
 function createMediaAssetsTestApp(): Hono<AppEnv> {
@@ -95,6 +97,98 @@ function multipartResolutionTestScope() {
     null,
     null,
   );
+}
+
+type MultipartCompletionBoundaryTestContext = Readonly<{
+  timing: ReturnType<typeof createMultipartCompletionRequestTiming>;
+  operationDeadline: ReturnType<
+    typeof createMultipartCompletionRequestDeadline
+  >;
+  requestDeadline: ReturnType<
+    typeof createMultipartCompletionRequestDeadline
+  >;
+  storageCapability: MultipartMediaBlobStorageCapability;
+  run: (
+    dependencies: MultipartCompletionApplicationDependencies,
+  ) => ReturnType<typeof completeMultipartUploadSessionAtApplicationBoundary>;
+  dispose: () => void;
+}>;
+
+function createMultipartCompletionBoundaryTestContext():
+MultipartCompletionBoundaryTestContext {
+  const observedAtMs = Date.now();
+  const timing = createMultipartCompletionRequestTiming(
+    observedAtMs,
+    observedAtMs,
+    60_000,
+  );
+  const operationDeadline = createMultipartCompletionRequestDeadline(
+    timing.operationDeadlineAtMs,
+  );
+  const requestDeadline = createMultipartCompletionRequestDeadline(
+    timing.requestDeadlineAtMs,
+  );
+  const session = uploadSession(
+    "active",
+    new Date(observedAtMs + 60_000).toISOString(),
+  );
+  return {
+    timing,
+    operationDeadline,
+    requestDeadline,
+    storageCapability: {} as MultipartMediaBlobStorageCapability,
+    run: (dependencies) =>
+      completeMultipartUploadSessionAtApplicationBoundary(
+        "user-1",
+        session,
+        [{ partNumber: 1, eTag: "etag-1", sha256: "b".repeat(64) }],
+        "66666666-6666-4666-8666-666666666666",
+        multipartResolutionTestScope(),
+        operationDeadline,
+        timing.writerLeaseTargetAtMs,
+        requestDeadline,
+        dependencies,
+      ),
+    dispose: () => {
+      operationDeadline.dispose();
+      requestDeadline.dispose();
+    },
+  };
+}
+
+function createMultipartCompletionBoundaryTestDependencies(
+  beginCompletionAttemptAtLeaseTargetWithOwnerUntilSettledFn:
+    MultipartCompletionApplicationDependencies[
+      "beginCompletionAttemptAtLeaseTargetWithOwnerUntilSettledFn"
+    ],
+  completeMultipartMediaAssetUploadFn:
+    MultipartCompletionApplicationDependencies[
+      "completeMultipartMediaAssetUploadFn"
+    ],
+  handoffCompletionAttemptAfterAccessRevocationFn:
+    MultipartCompletionApplicationDependencies[
+      "handoffCompletionAttemptAfterAccessRevocationFn"
+    ],
+  resolveCompletionAttemptFailureWithOwnerFn:
+    MultipartCompletionApplicationDependencies[
+      "resolveCompletionAttemptFailureWithOwnerFn"
+    ],
+): MultipartCompletionApplicationDependencies {
+  return {
+    abortMultipartMediaAssetUploadFn: async () => {
+      throw new Error("Completion recovery must not abort storage.");
+    },
+    beginCompletionAttemptAtLeaseTargetWithOwnerUntilSettledFn,
+    completeMultipartMediaAssetUploadFn,
+    completeMediaAssetUploadSessionForWorkspaceFn: async () => {
+      throw new Error("Completion test must not enter database apply.");
+    },
+    handoffCompletionAttemptAfterAccessRevocationFn,
+    loadMediaAssetForCompletedUploadSessionReplayForWorkspaceFn: async () => {
+      throw new Error("Completion test must not replay a completed asset.");
+    },
+    resolveCompletionAttemptFailureWithOwnerFn,
+  };
 }
 
 test("expired multipart completion cleanup resumes only active or aborting sessions", () => {
@@ -446,4 +540,209 @@ test("multipart resolution preserves an actionable HTTP response and diagnostic 
   assert.deepEqual(error.details, resolutionError.details);
   assert.ok(error.cause instanceof AggregateError);
   assert.deepEqual(error.cause.errors, [completionError, resolutionError]);
+});
+
+test("multipart renewal hands a durable reconciliation race back to the existing retryable response", async () => {
+  const context = createMultipartCompletionBoundaryTestContext();
+  const reservationToken = "55555555-5555-4555-8555-555555555555";
+  let beginCalls = 0;
+  let handoffCalls = 0;
+  const dependencies = createMultipartCompletionBoundaryTestDependencies(
+    async () => {
+      beginCalls += 1;
+      if (beginCalls === 1) {
+        return {
+          status: "acquired",
+          reservationToken,
+          normalizationVersion: "passthrough-v1",
+          leaseExpiresAt:
+            new Date(
+              context.timing.writerLeaseTargetAtMs - 1_000,
+            ).toISOString(),
+          storageCapability: context.storageCapability,
+        };
+      }
+      return { status: "stale_attempt" };
+    },
+    async () => {
+      throw new Error("Rejected renewal must not enter storage.");
+    },
+    async () => {
+      handoffCalls += 1;
+      return "already_pending";
+    },
+    async () => {
+      throw new Error(
+        "Renewal ownership loss must use exact handoff resolution.",
+      );
+    },
+  );
+
+  try {
+    await assert.rejects(
+      context.run(dependencies),
+      (error: unknown): boolean => {
+        assert.ok(error instanceof HttpError);
+        assert.equal(error.statusCode, 503);
+        assert.equal(
+          error.code,
+          "MEDIA_ASSET_UPLOAD_SESSION_COMPLETION_IN_PROGRESS",
+        );
+        assert.equal(error.details?.retryAfterSeconds, 1);
+        return true;
+      },
+    );
+    assert.equal(beginCalls, 2);
+    assert.equal(handoffCalls, 1);
+  } finally {
+    context.dispose();
+  }
+});
+
+test("multipart renewal writer mismatch becomes the existing stale conflict instead of an internal fence error", async () => {
+  const context = createMultipartCompletionBoundaryTestContext();
+  let beginCalls = 0;
+  const dependencies = createMultipartCompletionBoundaryTestDependencies(
+    async () => {
+      beginCalls += 1;
+      return {
+        status: beginCalls === 1 ? "acquired" : "replayed",
+        reservationToken: beginCalls === 1
+          ? "55555555-5555-4555-8555-555555555555"
+          : "77777777-7777-4777-8777-777777777777",
+        normalizationVersion: "passthrough-v1",
+        leaseExpiresAt:
+          new Date(
+            context.timing.writerLeaseTargetAtMs - 1_000,
+          ).toISOString(),
+        storageCapability: context.storageCapability,
+      };
+    },
+    async () => {
+      throw new Error("Rejected renewal must not enter storage.");
+    },
+    async () => "stale_attempt",
+    async () => {
+      throw new Error(
+        "Renewal ownership loss must use exact handoff resolution.",
+      );
+    },
+  );
+
+  try {
+    await assert.rejects(
+      context.run(dependencies),
+      (error: unknown): boolean => {
+        assert.ok(error instanceof HttpError);
+        assert.equal(error.statusCode, 409);
+        assert.equal(
+          error.code,
+          "MEDIA_ASSET_UPLOAD_SESSION_STATE_CONFLICT",
+        );
+        assert.match(error.message, /status=stale_attempt/u);
+        return true;
+      },
+    );
+    assert.equal(beginCalls, 2);
+  } finally {
+    context.dispose();
+  }
+});
+
+test("multipart renewal replays an already applied durable result without handoff", async () => {
+  const context = createMultipartCompletionBoundaryTestContext();
+  const mediaAsset: MediaAsset = {
+    mediaAssetId: "33333333-3333-4333-8333-333333333333",
+    workspaceId: "22222222-2222-4222-8222-222222222222",
+    mimeType: "image/png",
+    sizeBytes: 42,
+    sha256: "a".repeat(64),
+    sourceUrl: null,
+    createdAt: "2026-07-28T10:00:00.000Z",
+    clientUpdatedAt: "2026-07-28T10:00:00.000Z",
+    lastModifiedByReplicaId: "44444444-4444-4444-8444-444444444444",
+    lastOperationId: "operation-1",
+    updatedAt: "2026-07-28T10:00:00.000Z",
+    deletedAt: null,
+  };
+  let beginCalls = 0;
+  const dependencies = {
+    ...createMultipartCompletionBoundaryTestDependencies(
+      async () => {
+        beginCalls += 1;
+        if (beginCalls === 1) {
+          return {
+            status: "acquired" as const,
+            reservationToken: "55555555-5555-4555-8555-555555555555",
+            normalizationVersion: "passthrough-v1" as const,
+            leaseExpiresAt:
+              new Date(
+                context.timing.writerLeaseTargetAtMs - 1_000,
+              ).toISOString(),
+            storageCapability: context.storageCapability,
+          };
+        }
+        return { status: "already_applied" as const };
+      },
+      async () => {
+        throw new Error("Applied renewal must not enter storage.");
+      },
+      async () => {
+        throw new Error("Applied renewal must not be handed off.");
+      },
+      async () => {
+        throw new Error("Applied renewal must not enter failure recovery.");
+      },
+    ),
+    loadMediaAssetForCompletedUploadSessionReplayForWorkspaceFn: async () =>
+      mediaAsset,
+  };
+
+  try {
+    assert.deepEqual(
+      await context.run(dependencies),
+      { mediaAsset, applied: false },
+    );
+    assert.equal(beginCalls, 2);
+  } finally {
+    context.dispose();
+  }
+});
+
+test("multipart storage failure remains authoritative after the exact writer is restored", async () => {
+  const context = createMultipartCompletionBoundaryTestContext();
+  const storageError = new Error("Multipart storage failed.");
+  let beginCalls = 0;
+  const dependencies = createMultipartCompletionBoundaryTestDependencies(
+    async () => {
+      beginCalls += 1;
+      return {
+        status: beginCalls === 1 ? "acquired" : "replayed",
+        reservationToken: "55555555-5555-4555-8555-555555555555",
+        normalizationVersion: "passthrough-v1",
+        leaseExpiresAt:
+          new Date(
+            context.timing.writerLeaseTargetAtMs - 1_000,
+          ).toISOString(),
+        storageCapability: context.storageCapability,
+      };
+    },
+    async () => {
+      throw storageError;
+    },
+    async () => {
+      throw new Error("Restorable storage failure must not be handed off.");
+    },
+    async () => "unreferenced_restored",
+  );
+
+  try {
+    await assert.rejects(
+      context.run(dependencies),
+      (error: unknown): boolean => error === storageError,
+    );
+    assert.equal(beginCalls, 2);
+  } finally {
+    context.dispose();
+  }
 });

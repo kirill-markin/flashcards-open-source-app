@@ -301,6 +301,12 @@ export type MultipartCompletionResolutionRetryDetails = Readonly<{
   errorMessage: string;
 }>;
 
+export type MultipartCompletionRenewalRejectedDetails = Readonly<{
+  mediaAssetId: string;
+  sessionId: string;
+  durableOutcome: string;
+}>;
+
 export type GuestUpgradeCompleteDetails = Readonly<{
   statusCode: number;
   selectionType: string;
@@ -1004,6 +1010,10 @@ export type BackendWarningEvent =
   | EventByAction<
     "media_asset_upload_session_completion_resolution_retry",
     MultipartCompletionResolutionRetryDetails
+  >
+  | EventByAction<
+    "media_asset_upload_session_completion_renewal_rejected",
+    MultipartCompletionRenewalRejectedDetails
   >
   | EventByAction<"feedback_notification_email_retry", FeedbackEmailRetryDetails>
   | EventByAction<"feedback_notification_email_failed", FeedbackEmailFailureDetails>

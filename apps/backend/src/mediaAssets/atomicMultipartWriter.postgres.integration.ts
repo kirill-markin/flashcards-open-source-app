@@ -27,6 +27,7 @@ import {
   acquireMediaAssetUploadSessionCreationClaimForWorkspace,
   beginMediaAssetUploadSessionAbortForWorkspace,
   beginMediaAssetUploadSessionCompletionAttemptAtLeaseTargetWithOwner,
+  beginMediaAssetUploadSessionCompletionAttemptAtLeaseTargetWithOwnerUntilSettled,
   beginMediaAssetUploadSessionCompletionAttemptWithOwner,
   beginMediaAssetUploadSessionCompletionAttemptWithOwnerUntilSettled,
   beginMediaAssetUploadSessionCompletionWithOwner,
@@ -212,8 +213,12 @@ function createApplicationDeadlines(
 }
 
 const applicationAttemptResolutionDependencies = Object.freeze({
+  beginCompletionAttemptAtLeaseTargetWithOwnerUntilSettledFn:
+    beginMediaAssetUploadSessionCompletionAttemptAtLeaseTargetWithOwnerUntilSettled,
   handoffCompletionAttemptAfterAccessRevocationFn:
     handoffMediaAssetUploadSessionCompletionAttemptAfterAccessRevocation,
+  loadMediaAssetForCompletedUploadSessionReplayForWorkspaceFn:
+    loadMediaAssetForCompletedUploadSessionReplayForWorkspace,
   resolveCompletionAttemptFailureWithOwnerFn:
     resolveMediaAssetUploadSessionCompletionAttemptFailureWithOwner,
 });
