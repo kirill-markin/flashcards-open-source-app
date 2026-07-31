@@ -6,6 +6,7 @@
 export type {
   AppendManagedImageToCardSideInput,
   AppendManagedImageToCardSideResult,
+  AppendPendingManagedImageToCardSideResult,
   BulkCreateCardItem,
   BulkDeleteCardItem,
   BulkDeleteCardsResult,
@@ -50,6 +51,7 @@ export {
 export {
   appendManagedImageToCardSideInExecutor,
   appendManagedImageToCardText,
+  appendPendingManagedImageToCardSideInExecutor,
   buildManagedImageMarkdownReference,
   createCard,
   createCards,
@@ -57,11 +59,22 @@ export {
   deleteCard,
   deleteCards,
   deleteCardInExecutor,
+  hasPendingManagedImageOnCardSideInExecutor,
+  isManagedImageSettlementConflictError,
+  managedImageMarkdownComplexitySettlementConflictCode,
+  ManagedImageMarkdownComplexitySettlementConflictError,
+  PendingManagedImageSettlementConflictError,
   updateCard,
   updateCards,
   updateCardInExecutor,
   upsertCardSnapshot,
   upsertCardSnapshotInExecutor,
+  markPendingManagedImageFailedOnCardSideInExecutor,
+  markPendingManagedImageReadyOnCardSideInExecutor,
+} from "./mutations";
+
+export type {
+  ManagedImageSettlementConflictError,
 } from "./mutations";
 
 export {

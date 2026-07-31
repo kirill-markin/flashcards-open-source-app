@@ -26,6 +26,7 @@ export type GeneratedCardImageResult = Readonly<{
   targetSide: CardTextSide;
   mediaRegistrationApplied: boolean;
   cardAppendApplied: boolean;
+  placeholderApplied: boolean;
   reused: boolean;
   sourceUrl: null;
 }>;

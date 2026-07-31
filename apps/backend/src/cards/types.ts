@@ -172,6 +172,11 @@ export type AppendManagedImageToCardSideResult = Readonly<{
   applied: boolean;
 }>;
 
+export type AppendPendingManagedImageToCardSideResult =
+  AppendManagedImageToCardSideResult & Readonly<{
+    placeholderApplied: boolean;
+  }>;
+
 export type CreateCardInput = Readonly<{
   frontText: string;
   backText: string;

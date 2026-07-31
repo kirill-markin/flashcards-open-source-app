@@ -94,7 +94,7 @@ test("shared worker has exact permanent-prefix access and no public route", () =
   );
 });
 
-test("release disables cleanup until migration 0103 is confirmed", () => {
+test("release disables cleanup until migration 0104 is confirmed", () => {
   for (const relativePath of [
     "../../.github/workflows/aws-web-release.yml",
     "../../scripts/deploy/bootstrap.sh",
@@ -107,7 +107,7 @@ test("release disables cleanup until migration 0103 is confirmed", () => {
       "mediaBlobCleanupEnabled=false",
     );
     const migration = source.indexOf(
-      "--require-migration 0103_ai_chat_initiating_auth_classification.sql",
+      "--require-migration 0104_generated_image_placeholder_terminal_state.sql",
     );
     const enabled = source.indexOf(
       "generatedMediaPromotionScheduleState=ENABLED",
@@ -137,6 +137,72 @@ test("release disables cleanup until migration 0103 is confirmed", () => {
   assert.match(
     verificationScript,
     /check_schedule "GeneratedMediaPromotionScheduleName"/u,
+  );
+});
+
+test("lifecycle promotion rollout is fenced by durable database protocol activation", () => {
+  const migrationSource = readSource(
+    "../../db/migrations/0104_generated_image_placeholder_terminal_state.sql",
+  );
+  const admissionSource = readSource(
+    "../../apps/backend/src/chat/cardImages/promotionJobs.ts",
+  );
+  const processorSource = readSource(
+    "../../apps/backend/src/chat/cardImages/promotionProcessor.ts",
+  );
+
+  const activationDrop = migrationSource.indexOf(
+    "DROP FUNCTION IF EXISTS content.generated_media_promotion_protocol_v2_active()",
+  );
+  const protocolColumn = migrationSource.indexOf(
+    "ADD COLUMN IF NOT EXISTS protocol_version INTEGER NOT NULL DEFAULT 1",
+  );
+  const currentClaim = migrationSource.indexOf(
+    "p_max_protocol_version INTEGER",
+  );
+  const legacyClaim = migrationSource.indexOf(
+    "p_limit,\n    1\n  );",
+  );
+  const activationCreate = migrationSource.indexOf(
+    "CREATE OR REPLACE FUNCTION content.generated_media_promotion_protocol_v2_active()",
+  );
+  assert.equal(activationDrop >= 0, true);
+  assert.equal(protocolColumn > activationDrop, true);
+  assert.equal(currentClaim > protocolColumn, true);
+  assert.equal(legacyClaim > currentClaim, true);
+  assert.equal(activationCreate > legacyClaim, true);
+  assert.match(
+    migrationSource,
+    /jobs\.protocol_version <= p_max_protocol_version/u,
+  );
+  assert.match(
+    migrationSource,
+    /p_error_code = 'GENERATED_IMAGE_MARKDOWN_COMPLEXITY_CONFLICT'\s+AND p_failed_card_text IS DISTINCT FROM p_expected_card_text/u,
+  );
+  assert.equal(
+    migrationSource.slice(activationCreate).trimEnd().endsWith("TO backend_app;"),
+    true,
+  );
+
+  assert.match(
+    admissionSource,
+    /assertGeneratedMediaPromotionLifecycleProtocolActiveInExecutor/u,
+  );
+  assert.match(
+    admissionSource,
+    /sha256, mime_type, size_bytes, protocol_version/u,
+  );
+  assert.match(
+    admissionSource,
+    /claim_generated_media_promotion_jobs\(\$1, \$2, \$3, \$4\)/u,
+  );
+  assert.match(
+    processorSource,
+    /protocolVersion === 1[\s\S]*appendManagedImageToCardSideInExecutor/u,
+  );
+  assert.match(
+    processorSource,
+    /markPendingManagedImageReadyOnCardSideInExecutor/u,
   );
 });
 

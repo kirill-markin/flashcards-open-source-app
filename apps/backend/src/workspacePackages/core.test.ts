@@ -4,8 +4,10 @@ import {
   extractMarkdownFcAssetIds,
   extractMarkdownImageFcAssetIds,
   extractMarkdownLinkDestinationUrls,
+  extractMarkdownManagedMediaLifecycleReferences,
   extractMarkdownNonCodeTextSegments,
   extractMarkdownPortableMediaPaths,
+  parseManagedMediaLifecycleReference,
   parseWorkspacePackageCardsJsonV1,
   rewriteMarkdownFcAssetUrlsToFcAssets,
   rewriteMarkdownFcAssetUrlsToPortablePaths,
@@ -23,6 +25,7 @@ import { extractReferencedWorkspacePackageExportMediaAssetIds } from "./export/e
 import { extractReferencedWorkspacePackageMediaPaths } from "./import/importZip";
 import {
   rewriteMarkdownFcAssetUrlsToSharedPortablePathsFromMap,
+  rewriteMarkdownImageDestinationUrl,
 } from "./markdownMedia";
 
 const testMetadata: WorkspacePackageCardMetadataV1 = {
@@ -194,6 +197,110 @@ test("Markdown media helpers skip fenced code blocks and inline code spans", () 
       "[real](fcasset:real-link)",
     ].join("\n"),
   );
+});
+
+test("Markdown image destination replacement preserves links and code examples", () => {
+  const pendingUrl = "fcasset:11111111-1111-4111-8111-111111111111?state=pending";
+  const readyUrl = "fcasset:11111111-1111-4111-8111-111111111111";
+  const markdown = [
+    `\`![inline code](${pendingUrl})\``,
+    "```markdown",
+    `![fenced code](${pendingUrl})`,
+    "```",
+    `[source link](${pendingUrl})`,
+    `![active image](${pendingUrl})`,
+  ].join("\n");
+
+  assert.equal(
+    rewriteMarkdownImageDestinationUrl(markdown, pendingUrl, readyUrl),
+    [
+      `\`![inline code](${pendingUrl})\``,
+      "```markdown",
+      `![fenced code](${pendingUrl})`,
+      "```",
+      `[source link](${pendingUrl})`,
+      `![active image](${readyUrl})`,
+    ].join("\n"),
+  );
+});
+
+test("managed media lifecycle references are typed and block non-ready package exports", () => {
+  const mediaAssetId = "11111111-1111-4111-8111-111111111111";
+  const readyUrl = `fcasset:${mediaAssetId}`;
+  const pendingUrl = `${readyUrl}?state=pending`;
+  const failedUrl = `${readyUrl}?state=failed`;
+  const markdown = [
+    `![ready](${readyUrl})`,
+    `![pending](${pendingUrl})`,
+    `[failed source](${failedUrl})`,
+    `\`![literal](${pendingUrl})\``,
+  ].join("\n");
+
+  assert.deepEqual(parseManagedMediaLifecycleReference(readyUrl), {
+    mediaAssetId,
+    state: "ready",
+    destination: readyUrl,
+  });
+  assert.deepEqual(
+    extractMarkdownManagedMediaLifecycleReferences(markdown),
+    [
+      { mediaAssetId, state: "ready", destination: readyUrl, isImage: true },
+      { mediaAssetId, state: "pending", destination: pendingUrl, isImage: true },
+      { mediaAssetId, state: "failed", destination: failedUrl, isImage: false },
+    ],
+  );
+  assert.throws(
+    () => extractReferencedWorkspacePackageExportMediaAssetIds([{
+      card_id: "card-1",
+      front_text: markdown,
+      back_text: "Answer",
+      card_type: "basic",
+      metadata: null,
+      tags: [],
+    }]),
+    (error: unknown) => error instanceof HttpError
+      && error.statusCode === 409
+      && error.code === "WORKSPACE_PACKAGE_EXPORT_MANAGED_MEDIA_NOT_READY"
+      && error.message.includes(pendingUrl)
+      && error.message.includes(failedUrl)
+      && error.message.includes("retry after promotion and attachment settle")
+      && error.message.includes("Failed managed media is terminal")
+      && error.message.includes("remove the reference or regenerate and reattach the image"),
+  );
+
+  const unsupportedUrls = [
+    `FCASSET:${mediaAssetId}`,
+    `FCASSET:${mediaAssetId}?state=pending`,
+    `FcAsSeT:${mediaAssetId}?state=failed`,
+    `${readyUrl}?state=ready`,
+    `${readyUrl}?state`,
+    `${readyUrl}?state=`,
+    `${readyUrl}?state=unknown`,
+    `${readyUrl}?state=pending&state=failed`,
+    `${readyUrl}?v=1`,
+    `${readyUrl}?state=pending&v=1`,
+    `${readyUrl}#preview`,
+    `${readyUrl}?state=failed#preview`,
+    `${readyUrl}?state=pending&amp;v=1`,
+  ];
+  for (const unsupportedUrl of unsupportedUrls) {
+    assert.equal(parseManagedMediaLifecycleReference(unsupportedUrl), null);
+    assert.throws(
+      () => extractReferencedWorkspacePackageExportMediaAssetIds([{
+        card_id: "card-1",
+        front_text: `![unsupported](${unsupportedUrl})`,
+        back_text: "Answer",
+        card_type: "basic",
+        metadata: null,
+        tags: [],
+      }]),
+      (error: unknown) => error instanceof HttpError
+        && error.statusCode === 409
+        && error.code === "WORKSPACE_PACKAGE_EXPORT_MANAGED_MEDIA_NOT_READY"
+        && error.message.includes("Unsupported managed media lifecycle URLs")
+        && error.message.includes(unsupportedUrl),
+    );
+  }
 });
 
 test("Markdown portable media helpers rewrite only package media destinations", () => {

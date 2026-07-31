@@ -440,13 +440,14 @@ async function executeGeneratedImageToolCall(
         cardId: result.cardId,
         targetSide: result.targetSide,
         mediaAssetId: result.mediaAssetId,
+        placeholderApplied: result.placeholderApplied,
       },
       {
         attempt: reservation.attempt,
         status: result.status,
         succeeded: true,
         isMutating: mutated,
-        shouldInvalidateMainContent: mutated,
+        shouldInvalidateMainContent: result.placeholderApplied,
         stopReason: null,
       },
     );

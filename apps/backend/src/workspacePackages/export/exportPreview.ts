@@ -5,7 +5,10 @@ import {
 } from "../../database";
 import { MEDIA_ASSET_JOIN_CLAUSE } from "../../mediaAssets";
 import { HttpError } from "../../shared/errors";
-import { extractMarkdownFcAssetIds } from "../markdownMedia";
+import {
+  extractMarkdownFcAssetIds,
+  extractMarkdownManagedMediaLifecycleIssues,
+} from "../markdownMedia";
 import type { WorkspacePackageMetadataV1 } from "../types";
 
 export const workspacePackageExportPreviewDefaultMaxSelectedCards = 5_000;
@@ -399,8 +402,23 @@ export function extractReferencedWorkspacePackageExportMediaAssetIds(
   cards: ReadonlyArray<WorkspacePackageExportSelectedCardRow>,
 ): ReadonlyArray<string> {
   const mediaAssetIds = new Set<string>();
+  const pendingDestinations = new Set<string>();
+  const failedDestinations = new Set<string>();
+  const unsupportedDestinations = new Set<string>();
 
   for (const card of cards) {
+    for (const markdown of [card.front_text, card.back_text]) {
+      const issues = extractMarkdownManagedMediaLifecycleIssues(markdown);
+      for (const destination of issues.pendingDestinations) {
+        pendingDestinations.add(destination);
+      }
+      for (const destination of issues.failedDestinations) {
+        failedDestinations.add(destination);
+      }
+      for (const destination of issues.unsupportedDestinations) {
+        unsupportedDestinations.add(destination);
+      }
+    }
     for (const mediaAssetId of extractMarkdownFcAssetIds(card.front_text)) {
       mediaAssetIds.add(mediaAssetId);
     }
@@ -408,6 +426,37 @@ export function extractReferencedWorkspacePackageExportMediaAssetIds(
     for (const mediaAssetId of extractMarkdownFcAssetIds(card.back_text)) {
       mediaAssetIds.add(mediaAssetId);
     }
+  }
+  if (
+    pendingDestinations.size !== 0
+    || failedDestinations.size !== 0
+    || unsupportedDestinations.size !== 0
+  ) {
+    const remediation: Array<string> = [];
+    if (pendingDestinations.size !== 0) {
+      remediation.push(
+        "Pending managed media is still being promoted and attached; retry after promotion and attachment settle. "
+          + `pendingManagedMedia=${[...pendingDestinations].join(",")}`,
+      );
+    }
+    if (failedDestinations.size !== 0) {
+      remediation.push(
+        "Failed managed media is terminal; remove the reference or regenerate and reattach the image. "
+          + `failedManagedMedia=${[...failedDestinations].join(",")}`,
+      );
+    }
+    if (unsupportedDestinations.size !== 0) {
+      remediation.push(
+        "Unsupported managed media lifecycle URLs must use fcasset:<id>, "
+          + "fcasset:<id>?state=pending, or fcasset:<id>?state=failed. "
+          + `unsupportedManagedMedia=${[...unsupportedDestinations].join(",")}`,
+      );
+    }
+    throw new HttpError(
+      409,
+      `Workspace package export requires valid ready managed media references. ${remediation.join(" ")}`,
+      "WORKSPACE_PACKAGE_EXPORT_MANAGED_MEDIA_NOT_READY",
+    );
   }
 
   return [...mediaAssetIds];

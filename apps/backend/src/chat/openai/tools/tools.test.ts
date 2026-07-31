@@ -127,6 +127,7 @@ const dependencies: OpenAIToolDependencies = {
     mediaAssetId,
     mediaRegistrationApplied: false,
     cardAppendApplied: false,
+    placeholderApplied: true,
     reused: false,
     sourceUrl: null,
   }),
@@ -277,11 +278,12 @@ test("generated image execution reserves and binds before identity or external w
   assert.deepEqual(
     [
       JSON.parse(result.output).status,
+      JSON.parse(result.output).placeholderApplied,
       result.succeeded,
       result.shouldInvalidateMainContent,
       /fcasset|base64|imagePrompt/u.test(result.output),
     ],
-    ["queued", true, true, false],
+    ["queued", true, true, true, false],
   );
 });
 
@@ -308,6 +310,7 @@ test("reclaimed execution reuses immutable payload when model wording changes", 
       return {
         ...await dependencies.generateCardImage(input),
         status: "already_queued",
+        placeholderApplied: false,
         reused: true,
       };
     },
@@ -315,6 +318,7 @@ test("reclaimed execution reuses immutable payload when model wording changes", 
 
   assert.equal(bindCallCount, 0);
   assert.equal(JSON.parse(result.output).status, "already_queued");
+  assert.equal(JSON.parse(result.output).placeholderApplied, false);
   assert.equal(result.shouldInvalidateMainContent, false);
 });
 

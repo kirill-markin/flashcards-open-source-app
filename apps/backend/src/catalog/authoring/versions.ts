@@ -26,8 +26,10 @@ import {
 } from "../rows";
 import {
   extractMarkdownFcAssetIds,
+  extractMarkdownManagedMediaLifecycleIssues,
   rewriteMarkdownFcAssetUrlsToFcAssets,
 } from "../../workspacePackages";
+import type { ManagedMediaLifecycleIssues } from "../../workspacePackages";
 import type {
   CatalogPackageCardSnapshotInput,
   CatalogPackageStatus,
@@ -53,6 +55,62 @@ type CatalogWorkspaceMediaAssetRow = Readonly<{
   media_asset_id: string;
   media_blob_id: string;
 }>;
+
+function collectCardManagedMediaLifecycleIssues(
+  frontText: string,
+  backText: string,
+): ManagedMediaLifecycleIssues {
+  const pendingDestinations = new Set<string>();
+  const failedDestinations = new Set<string>();
+  const unsupportedDestinations = new Set<string>();
+  for (const markdown of [frontText, backText]) {
+    const issues = extractMarkdownManagedMediaLifecycleIssues(markdown);
+    for (const destination of issues.pendingDestinations) {
+      pendingDestinations.add(destination);
+    }
+    for (const destination of issues.failedDestinations) {
+      failedDestinations.add(destination);
+    }
+    for (const destination of issues.unsupportedDestinations) {
+      unsupportedDestinations.add(destination);
+    }
+  }
+  return {
+    pendingDestinations: [...pendingDestinations],
+    failedDestinations: [...failedDestinations],
+    unsupportedDestinations: [...unsupportedDestinations],
+  };
+}
+
+function describeManagedMediaLifecycleIssues(issues: ManagedMediaLifecycleIssues): string {
+  const remediation: Array<string> = [];
+  if (issues.pendingDestinations.length !== 0) {
+    remediation.push(
+      "Pending managed media is still being promoted and attached; retry after promotion and attachment settle. "
+        + `pendingManagedMedia=${issues.pendingDestinations.join(",")}`,
+    );
+  }
+  if (issues.failedDestinations.length !== 0) {
+    remediation.push(
+      "Failed managed media is terminal; remove the reference or regenerate and reattach the image. "
+        + `failedManagedMedia=${issues.failedDestinations.join(",")}`,
+    );
+  }
+  if (issues.unsupportedDestinations.length !== 0) {
+    remediation.push(
+      "Unsupported managed media lifecycle URLs must use fcasset:<id>, "
+        + "fcasset:<id>?state=pending, or fcasset:<id>?state=failed. "
+        + `unsupportedManagedMedia=${issues.unsupportedDestinations.join(",")}`,
+    );
+  }
+  return remediation.join(" ");
+}
+
+function hasManagedMediaLifecycleIssues(issues: ManagedMediaLifecycleIssues): boolean {
+  return issues.pendingDestinations.length !== 0
+    || issues.failedDestinations.length !== 0
+    || issues.unsupportedDestinations.length !== 0;
+}
 
 export function isCatalogPackageVersionStatusTransitionAllowed(
   fromStatus: CatalogPackageStatus,
@@ -100,13 +158,24 @@ function normalizeCatalogPackageCardSnapshotInput(
   if (Number.isSafeInteger(card.ordinal) === false || card.ordinal < 1) {
     throw new HttpError(400, "card.ordinal must be a positive safe integer", "CATALOG_INVALID_INPUT");
   }
+  const frontText = normalizeNonEmptyString(card.frontText, "card.frontText");
+  const backText = normalizeNonEmptyString(card.backText, "card.backText");
+  const managedMediaIssues = collectCardManagedMediaLifecycleIssues(frontText, backText);
+  if (hasManagedMediaLifecycleIssues(managedMediaIssues)) {
+    throw new HttpError(
+      409,
+      "Catalog package cards require valid ready managed media references. "
+        + describeManagedMediaLifecycleIssues(managedMediaIssues),
+      "CATALOG_MANAGED_MEDIA_NOT_READY",
+    );
+  }
 
   return {
     packageCardId: card.packageCardId,
     stableCardKey: normalizeNonEmptyString(card.stableCardKey, "card.stableCardKey"),
     ordinal: card.ordinal,
-    frontText: normalizeNonEmptyString(card.frontText, "card.frontText"),
-    backText: normalizeNonEmptyString(card.backText, "card.backText"),
+    frontText,
+    backText,
     cardType: normalizeNonEmptyString(card.cardType, "card.cardType"),
     metadata: card.metadata,
     tags: normalizeTextArray(card.tags, "card.tags", false),
@@ -454,7 +523,22 @@ function normalizeWorkspaceMediaAssetIds(mediaAssetIds: ReadonlyArray<string>): 
   return [...new Set(normalizedMediaAssetIds)];
 }
 
+function assertWorkspaceCardManagedMediaReady(row: CatalogWorkspaceCardRow): void {
+  const managedMediaIssues = collectCardManagedMediaLifecycleIssues(row.front_text, row.back_text);
+  if (!hasManagedMediaLifecycleIssues(managedMediaIssues)) {
+    return;
+  }
+
+  throw new HttpError(
+    409,
+    "Workspace catalog versions require valid ready managed media references before publication. "
+      + `cardId=${row.card_id} ${describeManagedMediaLifecycleIssues(managedMediaIssues)}`,
+    "CATALOG_WORKSPACE_MANAGED_MEDIA_NOT_READY",
+  );
+}
+
 function getWorkspaceCardMediaAssetIds(row: CatalogWorkspaceCardRow): ReadonlyArray<string> {
+  assertWorkspaceCardManagedMediaReady(row);
   return normalizeWorkspaceMediaAssetIds([
     ...extractMarkdownFcAssetIds(row.front_text),
     ...extractMarkdownFcAssetIds(row.back_text),
@@ -462,6 +546,9 @@ function getWorkspaceCardMediaAssetIds(row: CatalogWorkspaceCardRow): ReadonlyAr
 }
 
 function getWorkspaceCardsMediaAssetIds(rows: ReadonlyArray<CatalogWorkspaceCardRow>): ReadonlyArray<string> {
+  for (const row of rows) {
+    assertWorkspaceCardManagedMediaReady(row);
+  }
   return normalizeWorkspaceMediaAssetIds(rows.flatMap((row) => [
     ...extractMarkdownFcAssetIds(row.front_text),
     ...extractMarkdownFcAssetIds(row.back_text),
