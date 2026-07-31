@@ -3,20 +3,20 @@ import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
-import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../../database";
+import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../../../database";
 import {
   MediaBlobWriterFenceError,
   reserveMediaBlobWriterInExecutor,
   type MediaBlobWriterReservation,
-} from "../../mediaAssets/blobLifecycle";
-import { GeneratedMediaPromotionStorageTerminalError } from "../../mediaAssets/storage";
-import { testObservationScope } from "../../mediaAssets/storage/testHelpers";
-import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../../mediaAssets/storageKeys";
-import { imageJpegCardMediaBlobNormalizationVersion } from "../../mediaAssets/types";
-import { processSyncPull } from "../../sync";
-import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../testSupport/postgresIntegration";
-import { extractMarkdownImageDestinationUrls } from "../../workspacePackages/markdownMedia";
-import { InactiveChatRunClaimError } from "../runs/claimFence";
+} from "../../../mediaAssets/blobLifecycle";
+import { GeneratedMediaPromotionStorageTerminalError } from "../../../mediaAssets/storage";
+import { testObservationScope } from "../../../mediaAssets/storage/testHelpers";
+import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../../../mediaAssets/storageKeys";
+import { imageJpegCardMediaBlobNormalizationVersion } from "../../../mediaAssets/types";
+import { processSyncPull } from "../../../sync";
+import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../../testSupport/postgresIntegration";
+import { extractMarkdownImageDestinationUrls } from "../../../workspacePackages/markdownMedia";
+import { InactiveChatRunClaimError } from "../../runs/claimFence";
 import {
   assertGeneratedMediaBlobStorageCapabilityForMutation,
   claimGeneratedMediaPromotionJobs,
@@ -37,13 +37,13 @@ import {
   type ClaimedGeneratedMediaPromotionJob,
   type EnqueueGeneratedMediaPromotionJobInput,
   type GeneratedMediaBlobStorageCapability,
-} from "./promotionJobs";
-import { maximumGeneratedImageAltTextCodePoints } from "./contract";
+} from "./jobs";
+import { maximumGeneratedImageAltTextCodePoints } from "../contract";
 import {
   applyGeneratedMediaPromotionJob, failGeneratedMediaPromotionJob,
   processClaimedGeneratedMediaPromotionJobWithDependencies,
   rescheduleGeneratedMediaPromotionJob,
-} from "./promotionProcessor";
+} from "./processor";
 type RunFixture = Readonly<{ sessionId: string; runId: string; claimToken: string }>;
 type ClaimTokenRow = Readonly<{ claim_token: string }>;
 type JobStateRow = Readonly<{ state: string; retry_count: number;
@@ -80,7 +80,7 @@ type RevocationUpgradeRow = Readonly<{
   protocol_activation_exists: boolean; protocol_activation_backend_execute: boolean;
 }>;
 const placeholderTerminalStateMigrationSql = readFileSync(resolve(
-  __dirname, "../../../../../db/migrations/0104_generated_image_placeholder_terminal_state.sql",
+  __dirname, "../../../../../../db/migrations/0104_generated_image_placeholder_terminal_state.sql",
 ), "utf8");
 async function createRun(fixture: PostgresIntegrationFixture): Promise<RunFixture> {
   const sessionId = randomUUID();

@@ -6,7 +6,7 @@ import {
   assertGeneratedMediaBlobStorageCapabilityForMutation,
   type GeneratedMediaBlobStorageCapability,
   type GeneratedMediaBlobWriterExactInput,
-} from "../../chat/cardImages/promotionJobs";
+} from "../../chat/cardImages/promotion/jobs";
 import { addBackendBreadcrumb, type BackendObservationScope } from "../../observability/sentry";
 import { MediaBlobWriterFenceError } from "../blobLifecycle";
 import { imageJpegCardMediaBlobMimeType, type MediaAssetObjectMetadata } from "../types";

@@ -29,7 +29,7 @@ import {
   GeneratedCardImageOperationLockAbortedError,
   withGeneratedCardImageOperationLock, type GeneratedCardImageOperationLockInput,
 } from "./operationLock";
-import { enqueueGeneratedMediaPromotionJob } from "./promotionJobs";
+import { enqueueGeneratedMediaPromotionJob } from "./promotion/jobs";
 import {
   GeneratedCardImageProviderOutcomeUnknownError,
 } from "./providerTypes";

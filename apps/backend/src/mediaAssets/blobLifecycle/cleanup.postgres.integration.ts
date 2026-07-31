@@ -5,7 +5,7 @@ import test from "node:test";
 import {
   enqueueGeneratedMediaPromotionJob,
   type EnqueueGeneratedMediaPromotionJobInput,
-} from "../../chat/cardImages/promotionJobs";
+} from "../../chat/cardImages/promotion/jobs";
 import {
   transactionWithWorkspaceScope,
 } from "../../database";

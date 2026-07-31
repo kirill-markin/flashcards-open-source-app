@@ -5,7 +5,7 @@ import { CopyObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from
 import type {
   GeneratedMediaBlobStorageCapability,
   GeneratedMediaBlobWriterExactInput,
-} from "../../chat/cardImages/promotionJobs";
+} from "../../chat/cardImages/promotion/jobs";
 import { MediaBlobWriterFenceError } from "../blobLifecycle";
 import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../storageKeys";
 import { imageJpegCardMediaBlobNormalizationVersion } from "../types";

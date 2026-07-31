@@ -2,7 +2,7 @@ import type { Handler } from "aws-lambda";
 import {
   runGeneratedMediaPromotionBatch,
   type GeneratedMediaPromotionBatchResult,
-} from "../../chat/cardImages/promotionProcessor";
+} from "../../chat/cardImages/promotion/processor";
 import {
   MediaBlobCleanupBatchError,
   runMediaBlobCleanupBatch,

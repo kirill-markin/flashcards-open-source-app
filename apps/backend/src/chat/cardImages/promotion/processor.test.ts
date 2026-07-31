@@ -3,19 +3,19 @@ import test from "node:test";
 import {
   DatabaseCommitOutcomeUnknownError,
   TransientDatabaseHttpError,
-} from "../../database/transient";
-import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../../mediaAssets/storageKeys";
+} from "../../../database/transient";
+import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../../../mediaAssets/storageKeys";
 import {
   testMediaAssetId, testObservationScope, testSha256, testWorkspaceId,
-} from "../../mediaAssets/storage/testHelpers";
-import { imageJpegCardMediaBlobNormalizationVersion } from "../../mediaAssets/types";
+} from "../../../mediaAssets/storage/testHelpers";
+import { imageJpegCardMediaBlobNormalizationVersion } from "../../../mediaAssets/types";
 import {
   GeneratedMediaPromotionJobAccessRevokedError,
   type ClaimedGeneratedMediaPromotionJob,
   type GeneratedMediaBlobStorageCapability,
   type GeneratedMediaBlobWriterReservation,
-} from "./promotionJobs";
-import { processClaimedGeneratedMediaPromotionJobWithDependencies } from "./promotionProcessor";
+} from "./jobs";
+import { processClaimedGeneratedMediaPromotionJobWithDependencies } from "./processor";
 const jobId = "33333333-3333-4333-8333-333333333333";
 const operationId = "44444444-4444-4444-8444-444444444444";
 const timestamp = "2026-07-25T00:00:00.000Z";
