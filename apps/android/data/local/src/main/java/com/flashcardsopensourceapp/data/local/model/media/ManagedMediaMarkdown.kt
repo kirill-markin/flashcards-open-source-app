@@ -59,7 +59,7 @@ fun parseManagedMediaReference(reference: String): ManagedMediaReference? {
 
 private fun parseManagedMediaReferenceState(query: String): ManagedMediaReferenceState {
     val stateValues: List<String> = query
-        .split(separator = "&")
+        .split("&")
         .mapNotNull { queryPart ->
             val parameterName: String = queryPart.substringBefore(delimiter = "=")
             if (parameterName != "state") {
