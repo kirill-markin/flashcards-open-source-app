@@ -691,7 +691,7 @@ private func cardEditorTextByReconcilingMediaLifecycle(
         grouping: cardEditorManagedImageMatches(text: text),
         by: { Array($0.mediaAssetId.utf8) }
     )
-    let replacements = transitions.compactMap { transition in
+    let replacements = transitions.compactMap { transition -> CardEditorTextReplacement? in
         guard let draftMatches = draftMatchesByMediaAssetIdUTF8[transition.mediaAssetIdUTF8],
               draftMatches.count == 1,
               let draftMatch = draftMatches.first,
