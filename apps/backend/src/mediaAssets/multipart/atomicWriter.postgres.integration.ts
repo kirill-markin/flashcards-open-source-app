@@ -80,11 +80,13 @@ import {
   createMultipartUploadSessionAtApplicationBoundary,
 } from "./creationBoundary";
 import {
-  abortMultipartUploadSessionAtApplicationBoundary,
-  completeMultipartUploadSessionAtApplicationBoundary,
   createMultipartWriterHeartbeat,
   isExpiredMultipartCompletionCleanupRequired,
-} from "../../routes/mediaAssets";
+} from "./writerLease";
+import {
+  abortMultipartUploadSessionAtApplicationBoundary,
+  completeMultipartUploadSessionAtApplicationBoundary,
+} from "./completionBoundary";
 import {
   createMultipartCompletionWriterLeaseTargetAtMs,
 } from "../../server/multipartCompletionRequestTiming";
