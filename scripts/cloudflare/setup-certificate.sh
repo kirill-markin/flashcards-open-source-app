@@ -47,8 +47,6 @@ openssl req -new -newkey rsa:2048 -nodes \
   -out "$CSR_FILE" \
   -subj "/CN=${DOMAIN}" 2>/dev/null
 
-CSR_PEM=$(cat "$CSR_FILE")
-
 # --- Create Origin Certificate via Cloudflare API ---
 CERT_RESPONSE=$(curl -s -X POST "https://api.cloudflare.com/client/v4/certificates" \
   -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \

@@ -4,7 +4,10 @@ DEPLOY_CONFIG_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "${DEPLOY_CONFIG_LIB_DIR}/root-env.sh"
 
+# The tag key/value pair is consumed by scripts that source this library, not here.
+# shellcheck disable=SC2034
 DEPLOY_CONFIG_PROJECT_TAG_KEY="flashcards:project"
+# shellcheck disable=SC2034
 DEPLOY_CONFIG_PROJECT_TAG_VALUE="flashcards-open-source-app"
 DEPLOY_CONFIG_PURPOSE_TAG_KEY="flashcards:purpose"
 
