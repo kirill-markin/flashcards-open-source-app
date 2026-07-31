@@ -47,6 +47,10 @@ For the optional private analytical DB access path, granted reporting permission
 ## Release Gates and Monitoring
 
 Pushes to `main` use three independent release streams: AWS/web, Android, and iOS.
+Pull-request checks stay deliberately light and fast: do not add heavy mobile build or test jobs to pull-request workflows.
+The `Android PR` build, unit test, and lint run in `.github/workflows/android-pr.yml` (about 5 minutes) is an accepted exception and stays; the heavier emulator and Firebase Test Lab suites stay out of pull requests.
+Nothing compiles iOS before merge by design, though `PR Checks` still runs the static iOS checks.
+Swift builds and tests run in Xcode Cloud, whose workflow definitions live in App Store Connect; its in-repo build inputs are documented in [docs/ios-ci-cd.md](docs/ios-ci-cd.md).
 Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.
 Details, rollback rules, and live smoke references: [docs/release-gates.md](docs/release-gates.md).
 
