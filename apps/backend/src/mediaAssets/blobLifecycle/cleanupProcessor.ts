@@ -1,14 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { setTimeout as wait } from "node:timers/promises";
-import { DatabaseDeadlineExceededError } from "../database";
+import { DatabaseDeadlineExceededError } from "../../database";
 import {
   DatabaseCommitOutcomeUnknownError,
   getDatabaseErrorFields,
   isTransientDatabaseError,
   TransientDatabaseHttpError,
-} from "../database/transient";
-import { addBackendRuntimeBreadcrumb } from "../observability/runtime";
-import type { BackendObservationScope } from "../observability/sentry";
+} from "../../database/transient";
+import { addBackendRuntimeBreadcrumb } from "../../observability/runtime";
+import type { BackendObservationScope } from "../../observability/sentry";
 import {
   authorizeMediaBlobCleanup,
   claimNextMediaBlobCleanup,
@@ -19,7 +19,7 @@ import {
   type MediaBlobCleanupFailureDisposition,
   type MediaBlobCleanupFailurePhase,
   type MediaBlobCleanupLeaseRenewalPhase,
-} from "./blobCleanupRepository";
+} from "./cleanupRepository";
 import {
   deletePermanentMediaBlob,
   MediaBlobCleanupStorageAmbiguousDeleteError,
@@ -27,7 +27,7 @@ import {
   MediaBlobCleanupStorageTerminalError,
   MediaBlobCleanupStorageTransientError,
   type PermanentMediaBlobDeleteOutcome,
-} from "./storage";
+} from "../storage";
 
 const minimumNewCandidateBudgetMs = 1_000;
 const cleanupLeaseFinalizationReserveMs = 1_000;

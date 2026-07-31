@@ -6,8 +6,8 @@ import type pg from "pg";
 import {
   type PostgresIntegrationFixture,
   withPostgresIntegrationFixture,
-} from "../testSupport/postgresIntegration";
-import { buildMediaBlobStorageKey } from "./storageKeys";
+} from "../../testSupport/postgresIntegration";
+import { buildMediaBlobStorageKey } from "../storageKeys";
 
 type MultipartPayload = Readonly<{
   userId: string;

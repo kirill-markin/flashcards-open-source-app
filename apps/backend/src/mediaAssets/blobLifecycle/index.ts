@@ -3,16 +3,16 @@ import {
   transactionWithWorkspaceScope,
   transactionWithWorkspaceScopeDeadline,
   type DatabaseExecutor,
-} from "../database";
-import { unsafeTransaction, unsafeTransactionWithDeadline } from "../database/unsafe";
-import { HttpError } from "../shared/errors";
-import { buildMediaBlobStorageKey } from "./storageKeys";
+} from "../../database";
+import { unsafeTransaction, unsafeTransactionWithDeadline } from "../../database/unsafe";
+import { HttpError } from "../../shared/errors";
+import { buildMediaBlobStorageKey } from "../storageKeys";
 import {
   mediaBlobNormalizationVersions,
   passthroughMediaBlobNormalizationVersion,
   type MediaBlobNormalizationVersion,
   type TimestampValue,
-} from "./types";
+} from "../types";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const sha256Pattern = /^[0-9a-f]{64}$/u;
 const mimeTypePattern = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/u;

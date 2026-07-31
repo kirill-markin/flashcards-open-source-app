@@ -6,7 +6,7 @@ import type {
 import {
   MediaBlobCleanupBatchError,
   type MediaBlobCleanupBatchResult,
-} from "../../mediaAssets/blobCleanupProcessor";
+} from "../../mediaAssets/blobLifecycle/cleanupProcessor";
 import { createBackendObservationScope } from "../../observability/sentry";
 import {
   readMediaBlobCleanupEnabled,

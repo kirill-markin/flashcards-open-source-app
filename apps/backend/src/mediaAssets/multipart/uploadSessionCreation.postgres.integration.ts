@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import test from "node:test";
-import { DatabaseCommitOutcomeUnknownError } from "../database/transient";
-import { HttpError } from "../shared/errors";
-import { getHttpErrorResponseHeaders } from "../server/httpErrorResponseHeaders";
-import { createBackendObservationScope } from "../observability/sentry";
+import { DatabaseCommitOutcomeUnknownError } from "../../database/transient";
+import { HttpError } from "../../shared/errors";
+import { getHttpErrorResponseHeaders } from "../../server/httpErrorResponseHeaders";
+import { createBackendObservationScope } from "../../observability/sentry";
 import {
   createMultipartUploadSessionAtApplicationBoundary,
   type MultipartUploadSessionCreationApplicationDependencies,
-} from "../routes/mediaAssets";
+} from "../../routes/mediaAssets";
 import {
   acquireMediaAssetUploadSessionCreationClaimForWorkspace,
   createMediaAssetFromAvailableBlobForWorkspace,
@@ -17,19 +17,19 @@ import {
   recordMediaAssetUploadSessionForWorkspace,
   recordMediaAssetUploadSessionWithCreationClaimForWorkspace,
   releaseMediaAssetUploadSessionCreationClaimForWorkspace,
-} from "./uploadSessions";
+} from "../uploadSessions";
 import {
   buildMediaBlobStorageKey,
   buildMediaMultipartUploadStagingStorageKey,
-} from "./storageKeys";
+} from "../storageKeys";
 import type {
   MediaAssetUploadSession,
   MediaAssetUploadSessionCreateInput,
-} from "./types";
+} from "../types";
 import {
   type PostgresIntegrationFixture,
   withPostgresIntegrationFixture,
-} from "../testSupport/postgresIntegration";
+} from "../../testSupport/postgresIntegration";
 
 type CountRow = Readonly<{ count: number }>;
 type ClaimStateRow = Readonly<{

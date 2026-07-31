@@ -6,7 +6,7 @@ import {
   runMultipartCompletionReconciliationBatch,
   type MultipartCompletionFailureReportBatchResult,
   type MultipartCompletionReconciliationBatchResult,
-} from "../../mediaAssets/multipartCompletionReconciliation";
+} from "../../mediaAssets/multipart/completionReconciliation";
 import { createCloudWatchRecord } from "../../observability/cloudWatch";
 import {
   addBackendSentryBreadcrumb,

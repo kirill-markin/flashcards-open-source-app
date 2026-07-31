@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { DatabaseDeadlineExceededError } from "../database";
-import { DatabaseCommitOutcomeUnknownError } from "../database/transient";
-import { createBackendObservationScope } from "../observability/sentry";
-import { HttpError } from "../shared/errors";
+import { DatabaseDeadlineExceededError } from "../../database";
+import { DatabaseCommitOutcomeUnknownError } from "../../database/transient";
+import { createBackendObservationScope } from "../../observability/sentry";
+import { HttpError } from "../../shared/errors";
 import {
   MultipartCompletionReconciliationStorageTerminalError,
   MultipartCompletionReconciliationStorageTransientError,
-} from "./storage";
+} from "../storage";
 import {
   buildMediaBlobStorageKey,
   buildMediaMultipartUploadStagingStorageKey,
-} from "./storageKeys";
+} from "../storageKeys";
 import {
   MultipartCompletionFailureReportBatchError,
   MultipartCompletionFailureReportLeaseLostError,
@@ -29,7 +29,7 @@ import {
   type MultipartCompletionReconciliationBatchInput,
   type MultipartCompletionReconciliationProcessorDependencies,
   type MultipartCompletionReconciliationSafeError,
-} from "./multipartCompletionReconciliation";
+} from "./completionReconciliation";
 
 const workspaceId = "11111111-1111-4111-8111-111111111111";
 const sessionId = "22222222-2222-4222-8222-222222222222";

@@ -5,14 +5,14 @@ import test from "node:test";
 import {
   enqueueGeneratedMediaPromotionJob,
   type EnqueueGeneratedMediaPromotionJobInput,
-} from "../chat/cardImages/promotionJobs";
+} from "../../chat/cardImages/promotionJobs";
 import {
   transactionWithWorkspaceScope,
-} from "../database";
+} from "../../database";
 import {
   type PostgresIntegrationFixture,
   withPostgresIntegrationFixture,
-} from "../testSupport/postgresIntegration";
+} from "../../testSupport/postgresIntegration";
 import {
   authorizeMediaBlobCleanup,
   claimNextMediaBlobCleanup,
@@ -20,16 +20,16 @@ import {
   recordMediaBlobCleanupFailure,
   renewMediaBlobCleanupLease,
   type MediaBlobCleanupClaim,
-} from "./blobCleanupRepository";
+} from "./cleanupRepository";
 import {
   MediaBlobLifecycleBusyError,
   reserveMediaBlobWriterInExecutor,
-} from "./blobLifecycle";
+} from "./index";
 import {
   buildMediaBlobStorageKey,
   buildMediaUploadStagingStorageKey,
-} from "./storageKeys";
-import { imageJpegCardMediaBlobNormalizationVersion } from "./types";
+} from "../storageKeys";
+import { imageJpegCardMediaBlobNormalizationVersion } from "../types";
 
 const deadlineOffsetMs = 30_000;
 type RunFixture = Readonly<{

@@ -93,23 +93,23 @@ const boundaryDefinitions = Object.freeze([
       "src/chat/cardImages/promotionJobs.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
       "src/database/aiChatInitiatingAuthClassification.postgres.integration.ts",
-      "src/mediaAssets/mediaBlobCleanup.postgres.integration.ts",
+      "src/mediaAssets/blobLifecycle/cleanup.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
     migrationFileName: "0101_multipart_foreground_completion_fencing.sql",
     expectedMigrationCount: 103,
     testFiles: Object.freeze([
-      "src/mediaAssets/atomicMultipartWriter.postgres.integration.ts",
-      "src/mediaAssets/multipartForegroundFencing.postgres.integration.ts",
+      "src/mediaAssets/multipart/atomicWriter.postgres.integration.ts",
+      "src/mediaAssets/multipart/foregroundFencing.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
     migrationFileName: "0100_multipart_replacement_creation_claim.sql",
     expectedMigrationCount: 102,
     testFiles: Object.freeze([
-      "src/mediaAssets/multipartReplacementCreationClaim.postgres.integration.ts",
-      "src/mediaAssets/multipartUploadSessionCreation.postgres.integration.ts",
+      "src/mediaAssets/multipart/replacementCreationClaim.postgres.integration.ts",
+      "src/mediaAssets/multipart/uploadSessionCreation.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -117,10 +117,10 @@ const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 101,
     testFiles: Object.freeze([
       "src/database/deadline.postgres.integration.ts",
-      "src/mediaAssets/blobLifecycle.postgres.integration.ts",
-      "src/mediaAssets/directIngestionApply.postgres.integration.ts",
-      "src/mediaAssets/multipartCompletionReconciliation.postgres.integration.ts",
-      "src/mediaAssets/multipartWriterAbortReplay.postgres.integration.ts",
+      "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
+      "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
+      "src/mediaAssets/multipart/completionReconciliation.postgres.integration.ts",
+      "src/mediaAssets/multipart/writerAbortReplay.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -128,23 +128,23 @@ const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 100,
     testFiles: Object.freeze([
       "src/database/deadline.postgres.integration.ts",
-      "src/mediaAssets/blobLifecycle.postgres.integration.ts",
-      "src/mediaAssets/directIngestionApply.postgres.integration.ts",
-      "src/mediaAssets/multipartWriterAbortReplay.postgres.integration.ts",
+      "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
+      "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
+      "src/mediaAssets/multipart/writerAbortReplay.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
     migrationFileName: "0097_direct_multipart_writer_attempt_fencing.sql",
     expectedMigrationCount: 99,
     testFiles: Object.freeze([
-      "src/mediaAssets/multipartWriterAbortReplay.postgres.integration.ts",
+      "src/mediaAssets/multipart/writerAbortReplay.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
     migrationFileName: "0096_atomic_multipart_completion_resolution.sql",
     expectedMigrationCount: 98,
     testFiles: Object.freeze([
-      "src/mediaAssets/mediaBlobWriterAttempts.postgres.integration.ts",
+      "src/mediaAssets/multipart/writerAttempts.postgres.integration.ts",
     ]),
   }),
 ]);

@@ -3,15 +3,15 @@ import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
-import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../testSupport/postgresIntegration";
-import { buildMediaBlobStorageKey } from "./storageKeys";
+import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../testSupport/postgresIntegration";
+import { buildMediaBlobStorageKey } from "../storageKeys";
 import { beginMediaAssetUploadSessionCompletionWithOwner, fenceMediaAssetUploadSessionCompletionApplyWithOwner,
   fenceMediaAssetUploadSessionCompletionApplyWithOwnerInExecutor, resolveMediaAssetUploadSessionCompletionAfterAccessRevocation,
   resolveMediaAssetUploadSessionCompletionAfterAccessRevocationInExecutor, resolveMediaAssetUploadSessionCompletionFailureWithOwner,
-  type MediaAssetUploadSessionCompletionResolutionInput, type MediaAssetUploadSessionCompletionRevocationInput, type MediaAssetUploadSessionCompletionWithOwnerInput } from "./uploadSessions";
-import { compareLwwMetadata } from "../sync/conflicts/lww";
-import { imageJpegCardMediaBlobNormalizationVersion, passthroughMediaBlobNormalizationVersion } from "./types";
-const migration0096 = readFileSync(resolve(__dirname, "../../../../db/migrations/0096_atomic_multipart_completion_resolution.sql"), "utf8");
+  type MediaAssetUploadSessionCompletionResolutionInput, type MediaAssetUploadSessionCompletionRevocationInput, type MediaAssetUploadSessionCompletionWithOwnerInput } from "../uploadSessions";
+import { compareLwwMetadata } from "../../sync/conflicts/lww";
+import { imageJpegCardMediaBlobNormalizationVersion, passthroughMediaBlobNormalizationVersion } from "../types";
+const migration0096 = readFileSync(resolve(__dirname, "../../../../../db/migrations/0096_atomic_multipart_completion_resolution.sql"), "utf8");
 const signatures = {
   apply: "content.fence_media_upload_session_completion_apply_with_owner(text,uuid,uuid,uuid,uuid,text,text,text,text,text,text,bigint,bigint,integer,text,timestamp with time zone,timestamp with time zone,timestamp with time zone,uuid,text,integer)",
   failure: "content.resolve_media_upload_session_completion_failure_with_owner(text,uuid,uuid,uuid,uuid,text,text,text,text,text,text,bigint,bigint,integer,text,timestamp with time zone,timestamp with time zone,timestamp with time zone,uuid,text,integer)",

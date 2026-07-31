@@ -7,8 +7,8 @@ import type pg from "pg";
 import {
   type PostgresIntegrationFixture,
   withPostgresIntegrationFixture,
-} from "../testSupport/postgresIntegration";
-import { buildMediaBlobStorageKey } from "./storageKeys";
+} from "../../testSupport/postgresIntegration";
+import { buildMediaBlobStorageKey } from "../storageKeys";
 
 type MultipartPayload = Readonly<{
   userId: string;
@@ -61,7 +61,7 @@ type QueryExecutor = Pick<pg.PoolClient | pg.Pool, "query">;
 const cleanupDelayMs = 3_600_000;
 const migration0098 = readFileSync(resolve(
   __dirname,
-  "../../../../db/migrations/0098_multipart_writer_abort_and_terminal_replay.sql",
+  "../../../../../db/migrations/0098_multipart_writer_abort_and_terminal_replay.sql",
 ), "utf8");
 const multipartRow = `ROW(
   $3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
