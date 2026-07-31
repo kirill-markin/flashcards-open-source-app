@@ -93,12 +93,6 @@ const boundaryDefinitions = Object.freeze([
       "src/chat/cardImages/promotionJobs.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
       "src/database/aiChatInitiatingAuthClassification.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0102_media_blob_cleanup_reconciler.sql",
-    expectedMigrationCount: 104,
-    testFiles: Object.freeze([
       "src/mediaAssets/mediaBlobCleanup.postgres.integration.ts",
     ]),
   }),
