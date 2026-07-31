@@ -1,6 +1,8 @@
 import {
+  forwardRef,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -9,7 +11,10 @@ import {
   type RefObject,
 } from "react";
 import { useI18n } from "../../../i18n";
-import { CardFormTagsField } from "./CardFormTagsField";
+import {
+  CardFormTagsField,
+  type CardFormTagsFieldHandle,
+} from "./CardFormTagsField";
 import {
   loadMediaUploadTransfersForWorkspaceMediaAssets,
   type MediaUploadTransferForMediaAsset,
@@ -23,6 +28,10 @@ import {
 import type { Card, TagSuggestion } from "../../../types";
 import { formatNullableDateTime } from "../../shared/featureFormatting";
 import { ManagedMediaReference } from "../../review/components/card/ReviewManagedMedia";
+import type {
+  GeneratedMediaLifecycleTextReplacement,
+  GeneratedMediaLifecycleTextReplacements,
+} from "./cardFormMediaLifecycle";
 
 export type CardFormState = Readonly<{
   frontText: string;
@@ -73,6 +82,23 @@ type ManagedMediaInsertion = Readonly<{
 type TextareaSelection = Readonly<{
   start: number;
   end: number;
+}>;
+
+export type CardFormTextareaSelectionSnapshot = Readonly<{
+  direction: "backward" | "forward" | "none";
+  end: number;
+  field: CardFormManagedMediaField;
+  start: number;
+  textareaId: string;
+}>;
+
+export type CardFormTextareaSelectionRestore = Readonly<{
+  animationFrameId: number;
+  selection: CardFormTextareaSelectionSnapshot;
+}>;
+
+export type CardFormFieldsHandle = Readonly<{
+  commitTagsDraft: () => void;
 }>;
 
 type CardFormMediaUploadDisplayState = Readonly<{
@@ -128,6 +154,218 @@ export function isCardFormManagedMediaProcessing(managedMediaState: CardFormMana
 
 function clampSelectionIndex(index: number, textLength: number): number {
   return Math.max(0, Math.min(index, textLength));
+}
+
+function isHighSurrogate(codeUnit: number): boolean {
+  return codeUnit >= 0xD800 && codeUnit <= 0xDBFF;
+}
+
+function isLowSurrogate(codeUnit: number): boolean {
+  return codeUnit >= 0xDC00 && codeUnit <= 0xDFFF;
+}
+
+function clampSelectionIndexToCodePointBoundary(
+  index: number,
+  text: string,
+  direction: "backward" | "forward",
+): number {
+  const clampedIndex = clampSelectionIndex(index, text.length);
+  if (
+    clampedIndex === 0
+    || clampedIndex === text.length
+    || isHighSurrogate(text.charCodeAt(clampedIndex - 1)) === false
+    || isLowSurrogate(text.charCodeAt(clampedIndex)) === false
+  ) {
+    return clampedIndex;
+  }
+
+  return direction === "backward"
+    ? clampedIndex - 1
+    : clampedIndex + 1;
+}
+
+function clampTextareaSelectionToCodePointBoundaries(
+  selection: TextareaSelection,
+  text: string,
+): TextareaSelection {
+  if (selection.start === selection.end) {
+    const caretIndex = clampSelectionIndexToCodePointBoundary(
+      selection.start,
+      text,
+      "forward",
+    );
+    return {
+      start: caretIndex,
+      end: caretIndex,
+    };
+  }
+
+  return {
+    start: clampSelectionIndexToCodePointBoundary(
+      selection.start,
+      text,
+      "backward",
+    ),
+    end: clampSelectionIndexToCodePointBoundary(
+      selection.end,
+      text,
+      "forward",
+    ),
+  };
+}
+
+function remapTextareaSelectionIndexAtReplacement(
+  index: number,
+  replacement: GeneratedMediaLifecycleTextReplacement,
+  offset: number,
+): number | null {
+  const replacementLength = replacement.markdown.length;
+  if (index < replacement.startIndex) {
+    return index + offset;
+  }
+  if (index === replacement.endIndex) {
+    return replacement.startIndex + offset + replacementLength;
+  }
+  if (index <= replacement.endIndex) {
+    return replacement.startIndex
+      + offset
+      + Math.min(index - replacement.startIndex, replacementLength);
+  }
+  return null;
+}
+
+function remapTextareaSelection(
+  selection: TextareaSelection,
+  replacements: ReadonlyArray<GeneratedMediaLifecycleTextReplacement>,
+): TextareaSelection {
+  let offset = 0;
+  let mappedStart: number | null = null;
+  let mappedEnd: number | null = null;
+  let previousEndIndex = 0;
+  for (const replacement of replacements) {
+    if (
+      replacement.startIndex < previousEndIndex
+      || replacement.endIndex < replacement.startIndex
+    ) {
+      throw new Error("Card form textarea selection replacements must be non-overlapping and source ordered");
+    }
+
+    if (mappedStart === null) {
+      mappedStart = remapTextareaSelectionIndexAtReplacement(
+        selection.start,
+        replacement,
+        offset,
+      );
+    }
+    if (mappedEnd === null) {
+      mappedEnd = remapTextareaSelectionIndexAtReplacement(
+        selection.end,
+        replacement,
+        offset,
+      );
+    }
+    offset += replacement.markdown.length - (
+      replacement.endIndex - replacement.startIndex
+    );
+    previousEndIndex = replacement.endIndex;
+  }
+
+  return {
+    start: mappedStart ?? selection.start + offset,
+    end: mappedEnd ?? selection.end + offset,
+  };
+}
+
+export function captureCardFormTextareaSelection(
+  formIdPrefix: string,
+): CardFormTextareaSelectionSnapshot | null {
+  const activeElement = document.activeElement;
+  if (!(activeElement instanceof HTMLTextAreaElement)) {
+    return null;
+  }
+
+  const field = activeElement.id === `${formIdPrefix}-front-text`
+    ? "frontText"
+    : activeElement.id === `${formIdPrefix}-back-text`
+      ? "backText"
+      : null;
+  if (field === null) {
+    return null;
+  }
+
+  return {
+    direction: activeElement.selectionDirection,
+    end: activeElement.selectionEnd,
+    field,
+    start: activeElement.selectionStart,
+    textareaId: activeElement.id,
+  };
+}
+
+export function scheduleCardFormTextareaSelectionRestore(
+  selection: CardFormTextareaSelectionSnapshot | null,
+  replacements: GeneratedMediaLifecycleTextReplacements,
+  nextFormState: CardFormState,
+  shouldRestore: () => boolean,
+  onFinished: () => void,
+): CardFormTextareaSelectionRestore | null {
+  if (selection === null) {
+    return null;
+  }
+
+  const mappedSelection = clampTextareaSelectionToCodePointBoundaries(
+    remapTextareaSelection(
+      selection,
+      replacements[selection.field],
+    ),
+    nextFormState[selection.field],
+  );
+  const mappedSnapshot: CardFormTextareaSelectionSnapshot = {
+    ...selection,
+    start: mappedSelection.start,
+    end: mappedSelection.end,
+  };
+  const animationFrameId = window.requestAnimationFrame(() => {
+    try {
+      if (shouldRestore() === false) {
+        return;
+      }
+
+      const textarea = document.getElementById(mappedSnapshot.textareaId);
+      if (
+        !(textarea instanceof HTMLTextAreaElement)
+        || (
+          document.activeElement !== document.body
+          && document.activeElement !== textarea
+        )
+      ) {
+        return;
+      }
+
+      const finalSelection = clampTextareaSelectionToCodePointBoundaries(
+        mappedSnapshot,
+        textarea.value,
+      );
+      textarea.focus();
+      textarea.setSelectionRange(
+        finalSelection.start,
+        finalSelection.end,
+        mappedSnapshot.direction,
+      );
+    } finally {
+      onFinished();
+    }
+  });
+  return {
+    animationFrameId,
+    selection: mappedSnapshot,
+  };
+}
+
+export function cancelCardFormTextareaSelectionRestore(
+  restore: CardFormTextareaSelectionRestore,
+): void {
+  window.cancelAnimationFrame(restore.animationFrameId);
 }
 
 function buildManagedMediaInsertion(
@@ -374,7 +612,10 @@ function ManagedMediaReferenceStrip(props: Readonly<{
   );
 }
 
-export function CardFormFields(props: Props): ReactElement {
+export const CardFormFields = forwardRef<CardFormFieldsHandle, Props>(function CardFormFields(
+  props,
+  ref,
+): ReactElement {
   const {
     tagSuggestions,
     currentCard,
@@ -396,6 +637,7 @@ export function CardFormFields(props: Props): ReactElement {
   const backTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const frontImageInputRef = useRef<HTMLInputElement | null>(null);
   const backImageInputRef = useRef<HTMLInputElement | null>(null);
+  const tagsFieldRef = useRef<CardFormTagsFieldHandle | null>(null);
   const formStateRef = useRef<CardFormState>(formState);
   const uploadTransferLoadSequenceRef = useRef<number>(0);
   const [uploadTransfersByMediaAssetId, setUploadTransfersByMediaAssetId] = useState<ReadonlyMap<string, MediaTransferQueueRecord>>(
@@ -417,6 +659,12 @@ export function CardFormFields(props: Props): ReactElement {
     [backManagedMediaReferences, frontManagedMediaReferences],
   );
   formStateRef.current = formState;
+
+  useImperativeHandle(ref, () => ({
+    commitTagsDraft: (): void => {
+      tagsFieldRef.current?.commitDraft();
+    },
+  }), []);
 
   const loadUploadTransferStatuses = useCallback(async function loadUploadTransferStatuses(): Promise<void> {
     const requestSequence = uploadTransferLoadSequenceRef.current + 1;
@@ -635,6 +883,7 @@ export function CardFormFields(props: Props): ReactElement {
             <span>{t("cardForm.fields.tags")}</span>
           </label>
           <CardFormTagsField
+            ref={tagsFieldRef}
             value={formState.tags}
             suggestions={tagSuggestions}
             inputId={tagsFieldId}
@@ -673,4 +922,4 @@ export function CardFormFields(props: Props): ReactElement {
       </aside>
     </div>
   );
-}
+});

@@ -966,6 +966,7 @@ const enCatalog = {
     errors: {
       cardIdRequired: "Card ID is required",
       cardNotFound: "Card not found",
+      mediaLifecycleConflict: "A managed image changed while this card was open. Remove or edit the outdated pending or failed image reference before saving or using Edit with AI.",
     },
     fields: {
       back: "Back",

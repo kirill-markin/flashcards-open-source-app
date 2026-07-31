@@ -968,6 +968,7 @@ const arCatalog: TranslationCatalog = {
     errors: {
       cardIdRequired: "معرّف البطاقة مطلوب",
       cardNotFound: "لم يتم العثور على البطاقة",
+      mediaLifecycleConflict: "تغيّرت صورة مُدارة أثناء فتح هذه البطاقة. أزل مرجع الصورة القديم بحالة الانتظار أو الفشل أو عدّله قبل الحفظ أو استخدام «التعديل بالذكاء الاصطناعي».",
     },
     fields: {
       back: "الخلف",

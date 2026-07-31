@@ -968,6 +968,7 @@ const deCatalog: TranslationCatalog = {
     errors: {
       cardIdRequired: "Karten-ID ist erforderlich",
       cardNotFound: "Karte nicht gefunden",
+      mediaLifecycleConflict: "Ein verwaltetes Bild wurde geändert, während diese Karte geöffnet war. Entferne oder bearbeite den veralteten Bildverweis mit dem Status „Ausstehend“ oder „Fehlgeschlagen“, bevor du speicherst oder „Mit AI bearbeiten“ verwendest.",
     },
     fields: {
       back: "Rückseite",

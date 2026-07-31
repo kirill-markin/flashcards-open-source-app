@@ -968,6 +968,7 @@ const esMxCatalog: TranslationCatalog = {
     errors: {
       cardIdRequired: "El ID de la tarjeta es obligatorio",
       cardNotFound: "Tarjeta no encontrada",
+      mediaLifecycleConflict: "Una imagen administrada cambió mientras esta tarjeta estaba abierta. Elimina o edita la referencia de imagen pendiente o fallida que quedó obsoleta antes de guardar o usar “Editar con IA”.",
     },
     fields: {
       back: "Reverso",
