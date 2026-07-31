@@ -279,7 +279,9 @@ function isConfirmedPromotionEnqueueResult(
     && "outcome" in result
     && (result.outcome === "created" || result.outcome === "existing")
     && "jobId" in result
-    && result.jobId === expectedJobId;
+    && result.jobId === expectedJobId
+    && "placeholderApplied" in result
+    && typeof result.placeholderApplied === "boolean";
 }
 
 async function enqueueGeneratedCardImagePromotionWithCommitReconciliation(
@@ -367,6 +369,7 @@ export async function generateCardImageWithDependencies(
           targetSide: lockedInput.targetSide,
           mediaRegistrationApplied: false,
           cardAppendApplied: false,
+          placeholderApplied: enqueueResult.placeholderApplied,
           reused: preparedImage.reused || enqueueResult.outcome === "existing",
           sourceUrl: null,
         };

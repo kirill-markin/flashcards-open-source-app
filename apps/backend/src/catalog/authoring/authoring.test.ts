@@ -6,6 +6,7 @@ import { HttpError } from "../../shared/errors";
 import { attachCatalogPackageDraftMediaAssetInExecutor } from "./draftMedia";
 import { createCatalogPackageDraftInExecutor, updateCatalogPackageDraftInExecutor } from "./drafts";
 import {
+  createCatalogPackageVersionFromCardsInExecutor,
   createCatalogPackageVersionFromWorkspaceSelectionInExecutor,
   publishCatalogPackageVersionInExecutor,
 } from "./versions";
@@ -675,4 +676,101 @@ test("workspace-selected catalog versions reject invalid managed media reference
     },
   );
   assert.equal(queries.length, 2);
+});
+
+test("workspace-selected catalog versions reject non-ready managed media references", async () => {
+  const pendingUrl = `fcasset:${testWorkspaceMediaAssetId}?state=pending`;
+  const unsupportedUrl = `FcAsSeT:${testWorkspaceMediaAssetId}?state=pending`;
+  const queries: Array<string> = [];
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> {
+      queries.push(text);
+      if (text.includes("set_config('app.user_id'")) {
+        assert.deepEqual(params, ["admin-user-id", testWorkspaceId]);
+        return createQueryResult([]);
+      }
+
+      if (text.includes("FROM content.cards")) {
+        assert.deepEqual(params, [testWorkspaceId, [testWorkspaceCardId]]);
+        return createQueryResult([{
+          card_id: testWorkspaceCardId,
+          front_text: `Prompt ![diagram](${pendingUrl}) ![unsupported](${unsupportedUrl})`,
+          back_text: "Answer",
+          card_type: "basic",
+          metadata: { version: 1, source: null },
+          tags: [],
+        } as unknown as Row]);
+      }
+
+      throw new Error(`Unexpected query: ${text}`);
+    },
+  };
+
+  await assert.rejects(
+    createCatalogPackageVersionFromWorkspaceSelectionInExecutor(
+      executor,
+      testPackageId,
+      {
+        packageVersionId: testPackageVersionId,
+        workspaceId: testWorkspaceId,
+        cardIds: [testWorkspaceCardId],
+      },
+      "admin-user-id",
+      "admin@example.com",
+    ),
+    (error: unknown) => error instanceof HttpError
+      && error.statusCode === 409
+      && error.code === "CATALOG_WORKSPACE_MANAGED_MEDIA_NOT_READY"
+      && error.message.includes(pendingUrl)
+      && error.message.includes(unsupportedUrl)
+      && error.message.includes("retry after promotion and attachment settle")
+      && error.message.includes("Unsupported managed media lifecycle URLs"),
+  );
+  assert.equal(queries.length, 2);
+});
+
+test("direct catalog card snapshots reject non-ready managed media references", async () => {
+  const failedUrl = `fcasset:${testPackageMediaKey}?state=failed`;
+  const unsupportedUrl = `fcasset:${testPackageMediaKey}?state=ready`;
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      _params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> {
+      throw new Error(`Catalog normalization unexpectedly queried PostgreSQL: ${text}`);
+    },
+  };
+
+  await assert.rejects(
+    createCatalogPackageVersionFromCardsInExecutor(
+      executor,
+      testPackageId,
+      {
+        packageVersionId: testPackageVersionId,
+        cards: [{
+          packageCardId: testWorkspaceCardId,
+          stableCardKey: "card-1",
+          ordinal: 1,
+          frontText: `Prompt ![failed](${failedUrl}) ![unsupported](${unsupportedUrl})`,
+          backText: "Answer",
+          cardType: "basic",
+          metadata: { version: 1, source: null },
+          tags: [],
+          mediaAssetKeys: [],
+        }],
+      },
+      "admin@example.com",
+    ),
+    (error: unknown) => error instanceof HttpError
+      && error.statusCode === 409
+      && error.code === "CATALOG_MANAGED_MEDIA_NOT_READY"
+      && error.message.includes(failedUrl)
+      && error.message.includes(unsupportedUrl)
+      && error.message.includes("Failed managed media is terminal")
+      && error.message.includes("remove the reference or regenerate and reattach the image")
+      && error.message.includes("Unsupported managed media lifecycle URLs"),
+  );
 });

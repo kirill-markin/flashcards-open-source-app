@@ -1,4 +1,9 @@
 import {
+  appendPendingManagedImageToCardSideInExecutor,
+  hasPendingManagedImageOnCardSideInExecutor,
+  ManagedImageMarkdownComplexitySettlementConflictError,
+} from "../../cards";
+import {
   transactionWithWorkspaceScopeDeadline,
   type DatabaseExecutor,
   type SqlValue,
@@ -21,6 +26,11 @@ import {
   type MediaBlobNormalizationVersion,
 } from "../../mediaAssets/types";
 import { assertReplicaBelongsToWorkspaceInExecutor } from "../../mediaAssets/workspaceReplicas";
+import { HttpError } from "../../shared/errors";
+import {
+  isMarkdownComplexityLimitError,
+  rewriteMarkdownImageDestinationUrl,
+} from "../../workspacePackages/markdownMedia";
 import { assertActiveChatRunClaimWithExecutor, type ChatRunClaimFenceParams } from "../runs/claimFence";
 import {
   hasValidGeneratedImageAltTextCharactersAndLength,
@@ -33,6 +43,10 @@ const safeErrorCodePattern = /^[A-Z][A-Z0-9_]{0,63}$/u;
 const controlCharacterPattern = /[\u0000-\u001f\u007f-\u009f]/u;
 const cleanupAdmissionConstraint =
   "generated_media_promotion_cleanup_admission";
+const generatedMediaPromotionLifecycleProtocolVersion = 2;
+const generatedMediaPromotionLifecycleProtocolMarker =
+  "content.generated_media_promotion_protocol_v2_active()";
+export type GeneratedMediaPromotionProtocolVersion = 1 | 2;
 export type GeneratedMediaPromotionJobPayload = Readonly<{
   jobId: string;
   operationId: string;
@@ -52,7 +66,11 @@ export type GeneratedMediaPromotionJobPayload = Readonly<{
 export type EnqueueGeneratedMediaPromotionJobInput = ChatRunClaimFenceParams
   & GeneratedMediaPromotionJobPayload & Readonly<{ deadlineAtMs: number }>;
 export type EnqueueGeneratedMediaPromotionJobResult =
-  Readonly<{ outcome: "created" | "existing"; jobId: string }>;
+  Readonly<{
+    outcome: "created" | "existing";
+    jobId: string;
+    placeholderApplied: boolean;
+  }>;
 export type ClaimedGeneratedMediaPromotionJob =
   GeneratedMediaPromotionJobPayload
   & Readonly<{
@@ -96,7 +114,7 @@ export type GeneratedMediaBlobWriterReservation =
 export type FailGeneratedMediaPromotionJobWithBlobWriterInput =
   GeneratedMediaPromotionBlobWriterInput & Readonly<{ error: SafeGeneratedMediaPromotionJobError }>;
 export type GeneratedMediaPromotionAccessRevocationOutcome =
-  "access_active" | "applied" | "failed";
+  "access_active" | "applied" | "failed" | "failed_markdown_complexity";
 
 function isCleanupAdmissionFenceError(error: unknown): boolean {
   return getDatabaseErrorFields(error).sqlState === "55P03"
@@ -137,10 +155,28 @@ type ClaimedJobRow = StoredPayloadRow & Readonly<{
 type TransitionRow = Readonly<{ transitioned: boolean }>;
 type AppliedScopeRow = Readonly<{ scope_status: string }>;
 type OperationAppliedRow = Readonly<{ applied: boolean }>;
+type ProtocolActivationRow = Readonly<{ active: boolean }>;
+type ProtocolVersionRow = Readonly<{ protocol_version: number }>;
+type AccessRevocationLockRow = Readonly<{
+  revocation_status: string;
+  card_text: string | null;
+}>;
 type AccessRevocationRow = Readonly<{ revocation_status: string }>;
 type InsertedRow = Readonly<{ job_id: string }>;
 const generatedMediaBlobStorageCapabilityClaims =
   new WeakMap<GeneratedMediaBlobStorageCapability, GeneratedMediaBlobWriterExactInput>();
+
+function accessRevocationPayloadParams(
+  input: ClaimedGeneratedMediaPromotionJob,
+): ReadonlyArray<SqlValue> {
+  return [
+    input.jobId, input.leaseToken, input.operationId, input.userId,
+    input.workspaceId, input.cardId, input.targetSide, input.altText,
+    input.mediaAssetId, input.replicaId, input.stagingStorageKey,
+    input.blobStorageKey, input.sha256, input.mimeType, input.sizeBytes,
+  ];
+}
+
 export class GeneratedMediaPromotionJobConflictError extends Error {
   readonly code = "GENERATED_MEDIA_PROMOTION_JOB_CONFLICT";
   constructor(jobId: string, operationId: string, fieldName: string) {
@@ -162,6 +198,16 @@ export class GeneratedMediaPromotionJobAccessRevokedError extends Error {
   constructor(jobId: string) {
     super(`Generated-media promotion job workspace access was revoked. jobId=${jobId}`);
     this.name = "GeneratedMediaPromotionJobAccessRevokedError";
+  }
+}
+export class GeneratedMediaPromotionProtocolInactiveError extends Error {
+  readonly code = "GENERATED_MEDIA_PROMOTION_PROTOCOL_INACTIVE";
+  constructor() {
+    super(
+      "Generated-media promotion protocol v2 is not active. "
+        + "Complete migration 0104 before admitting lifecycle-marker jobs.",
+    );
+    this.name = "GeneratedMediaPromotionProtocolInactiveError";
   }
 }
 function requireUuid(value: string, fieldName: string): void {
@@ -403,6 +449,57 @@ function toIsoString(value: Date, fieldName: string): string {
   }
   return value.toISOString();
 }
+function parseGeneratedMediaPromotionProtocolVersion(
+  value: number,
+): GeneratedMediaPromotionProtocolVersion {
+  if (value !== 1 && value !== 2) {
+    throw new TypeError(
+      `PostgreSQL returned an invalid generated-media promotion protocol version. protocolVersion=${value}`,
+    );
+  }
+  return value;
+}
+async function assertGeneratedMediaPromotionLifecycleProtocolActiveInExecutor(
+  executor: DatabaseExecutor,
+): Promise<void> {
+  const result = await executor.query<ProtocolActivationRow>(
+    `SELECT COALESCE(
+       has_function_privilege(
+         current_user,
+         to_regprocedure($1),
+         'EXECUTE'
+       ),
+       FALSE
+     ) AS active`,
+    [generatedMediaPromotionLifecycleProtocolMarker],
+  );
+  const active = result.rows[0]?.active;
+  if (typeof active !== "boolean") {
+    throw new TypeError("PostgreSQL returned an invalid generated-media protocol activation state.");
+  }
+  if (!active) {
+    throw new GeneratedMediaPromotionProtocolInactiveError();
+  }
+}
+export async function loadGeneratedMediaPromotionProtocolVersionInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  jobId: string,
+): Promise<GeneratedMediaPromotionProtocolVersion> {
+  requireUuid(workspaceId, "workspaceId");
+  requireUuid(jobId, "jobId");
+  const result = await executor.query<ProtocolVersionRow>(
+    `SELECT protocol_version
+     FROM content.generated_media_promotion_jobs
+     WHERE workspace_id = $1 AND job_id = $2`,
+    [workspaceId, jobId],
+  );
+  const protocolVersion = result.rows[0]?.protocol_version;
+  if (protocolVersion === undefined) {
+    throw new GeneratedMediaPromotionJobLeaseLostError(jobId);
+  }
+  return parseGeneratedMediaPromotionProtocolVersion(protocolVersion);
+}
 function toClaimedJob(row: ClaimedJobRow): ClaimedGeneratedMediaPromotionJob {
   if (
     row.state !== "leased"
@@ -448,23 +545,53 @@ export async function enqueueGeneratedMediaPromotionJob(
       async (executor) => {
         await assertActiveChatRunClaimWithExecutor(executor, input);
         await assertReplicaBelongsToWorkspaceInExecutor(executor, input.workspaceId, input.replicaId);
+        await assertGeneratedMediaPromotionLifecycleProtocolActiveInExecutor(executor);
         const inserted = await executor.query<InsertedRow>(
           `INSERT INTO content.generated_media_promotion_jobs (
              job_id, operation_id, user_id, workspace_id, card_id, target_side, alt_text,
              media_asset_id, replica_id, staging_storage_key, blob_storage_key,
-             sha256, mime_type, size_bytes
-           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+             sha256, mime_type, size_bytes, protocol_version
+           ) VALUES (
+             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+           )
            ON CONFLICT DO NOTHING
            RETURNING job_id`,
           [
             input.jobId, input.operationId, input.userId, input.workspaceId,
             input.cardId, input.targetSide, input.altText, input.mediaAssetId, input.replicaId,
             input.stagingStorageKey, input.blobStorageKey, input.sha256,
-            input.mimeType, input.sizeBytes,
+            input.mimeType, input.sizeBytes, generatedMediaPromotionLifecycleProtocolVersion,
           ],
         );
-        if (inserted.rows[0]?.job_id === input.jobId) {
-          return { outcome: "created", jobId: input.jobId };
+        const insertedRow = inserted.rows[0];
+        if (insertedRow?.job_id === input.jobId) {
+          const placeholder = await appendPendingManagedImageToCardSideInExecutor(
+            executor,
+            input.workspaceId,
+            {
+              cardId: input.cardId,
+              targetSide: input.targetSide,
+              mediaAssetId: input.mediaAssetId,
+              altText: input.altText,
+            },
+            {
+              clientUpdatedAt: new Date().toISOString(),
+              lastModifiedByReplicaId: input.replicaId,
+              lastOperationId: input.operationId,
+            },
+          );
+          if (!placeholder.placeholderApplied) {
+            throw new HttpError(
+              409,
+              "The generated-image placeholder conflicts with an existing managed image reference.",
+              "GENERATED_IMAGE_PLACEHOLDER_CONFLICT",
+            );
+          }
+          return {
+            outcome: "created",
+            jobId: input.jobId,
+            placeholderApplied: true,
+          };
         }
         const existing = await executor.query<StoredPayloadRow>(
           `SELECT ${storedPayloadColumns}
@@ -482,7 +609,21 @@ export async function enqueueGeneratedMediaPromotionJob(
             mismatch,
           );
         }
-        return { outcome: "existing", jobId: input.jobId };
+        const placeholderApplied = await hasPendingManagedImageOnCardSideInExecutor(
+          executor,
+          input.workspaceId,
+          {
+            cardId: input.cardId,
+            targetSide: input.targetSide,
+            mediaAssetId: input.mediaAssetId,
+            altText: input.altText,
+          },
+        );
+        return {
+          outcome: "existing",
+          jobId: input.jobId,
+          placeholderApplied,
+        };
       },
     );
   } catch (error) {
@@ -512,8 +653,13 @@ export async function claimGeneratedMediaPromotionJobs(
   }
   const result = await unsafeQueryWithDeadline<ClaimedJobRow>(
     input.deadlineAtMs,
-    "SELECT * FROM content.claim_generated_media_promotion_jobs($1, $2, $3)",
-    [input.leaseOwner, input.leaseDurationMs, input.limit],
+    "SELECT * FROM content.claim_generated_media_promotion_jobs($1, $2, $3, $4)",
+    [
+      input.leaseOwner,
+      input.leaseDurationMs,
+      input.limit,
+      generatedMediaPromotionLifecycleProtocolVersion,
+    ],
   );
   return result.rows.map(toClaimedJob);
 }
@@ -588,26 +734,99 @@ export async function failGeneratedMediaPromotionJobWithBlobWriterInExecutor(
     input.jobId,
   );
 }
+async function lockGeneratedMediaPromotionJobAfterAccessRevocationWithExecutor(
+  executor: DatabaseExecutor,
+  input: ClaimedGeneratedMediaPromotionJob,
+): Promise<AccessRevocationLockRow> {
+  requirePayload(input);
+  requireUuid(input.leaseToken, "leaseToken");
+  const payloadParams = accessRevocationPayloadParams(input);
+  const lockResult = await executor.query<AccessRevocationLockRow>(
+    `SELECT revocation_status, card_text
+     FROM content.lock_generated_media_promotion_job_after_access_revocation(
+       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+     )`,
+    payloadParams,
+  );
+  const lockRow = lockResult.rows[0];
+  const lockStatus = lockRow?.revocation_status;
+  if (lockStatus === "stale") {
+    throw new GeneratedMediaPromotionJobLeaseLostError(input.jobId);
+  }
+  if (
+    lockRow === undefined
+    || (
+      lockStatus !== "access_active"
+      && lockStatus !== "access_revoked"
+      && lockStatus !== "applied"
+    )
+  ) {
+    throw new TypeError(
+      `PostgreSQL returned an invalid promotion access-revocation lock status. jobId=${input.jobId}`,
+    );
+  }
+  return lockRow;
+}
+
 export async function failGeneratedMediaPromotionJobAfterAccessRevocationWithExecutor(
   executor: DatabaseExecutor,
   input: ClaimedGeneratedMediaPromotionJob,
 ): Promise<GeneratedMediaPromotionAccessRevocationOutcome> {
-  requirePayload(input);
-  requireUuid(input.leaseToken, "leaseToken");
+  const lockRow = await lockGeneratedMediaPromotionJobAfterAccessRevocationWithExecutor(
+    executor,
+    input,
+  );
+  const lockStatus = lockRow.revocation_status;
+  if (lockStatus === "access_active" || lockStatus === "applied") return lockStatus;
+  const pendingUrl = `fcasset:${input.mediaAssetId}?state=pending`;
+  const failedUrl = `fcasset:${input.mediaAssetId}?state=failed`;
+  let settlementConflict:
+    ManagedImageMarkdownComplexitySettlementConflictError | null = null;
+  let failedCardText = lockRow.card_text;
+  if (lockRow.card_text !== null) {
+    try {
+      failedCardText = rewriteMarkdownImageDestinationUrl(
+        lockRow.card_text,
+        pendingUrl,
+        failedUrl,
+      );
+    } catch (error) {
+      if (!isMarkdownComplexityLimitError(error)) throw error;
+      settlementConflict =
+        new ManagedImageMarkdownComplexitySettlementConflictError(input.targetSide);
+    }
+  }
+  const failureError: SafeGeneratedMediaPromotionJobError =
+    settlementConflict === null
+      ? {
+        code: "WORKSPACE_ACCESS_REVOKED",
+        message: "Workspace access was revoked before generated-media promotion completed.",
+      }
+      : {
+        code: settlementConflict.conflictCode,
+        message: settlementConflict.message,
+      };
+  requireSafeError(failureError);
   const result = await executor.query<AccessRevocationRow>(
     `SELECT content.fail_generated_media_promotion_job_after_access_revocation(
-       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
+       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+       $16, $17, $18, $19
      ) AS revocation_status`,
     [
-      input.jobId, input.leaseToken, input.operationId, input.userId,
-      input.workspaceId, input.cardId, input.targetSide, input.altText,
-      input.mediaAssetId, input.replicaId, input.stagingStorageKey,
-      input.blobStorageKey, input.sha256, input.mimeType, input.sizeBytes,
+      ...accessRevocationPayloadParams(input),
+      lockRow.card_text,
+      failedCardText,
+      failureError.code,
       3_600_000,
     ],
   );
   const status = result.rows[0]?.revocation_status;
-  if (status === "access_active" || status === "applied" || status === "failed") return status;
+  if (status === "access_active" || status === "applied") return status;
+  if (status === "failed") {
+    return settlementConflict === null
+      ? "failed"
+      : "failed_markdown_complexity";
+  }
   if (status === "stale") {
     throw new GeneratedMediaPromotionJobLeaseLostError(input.jobId);
   }
@@ -710,13 +929,17 @@ async function lockExactGeneratedMediaPromotionJobForWriterReservation(
   executor: DatabaseExecutor,
   job: ClaimedGeneratedMediaPromotionJob,
 ): Promise<void> {
-  const status = await failGeneratedMediaPromotionJobAfterAccessRevocationWithExecutor(
+  const lock = await lockGeneratedMediaPromotionJobAfterAccessRevocationWithExecutor(
     executor,
     job,
   );
-  if (status !== "access_active") {
-    throw new GeneratedMediaPromotionJobLeaseLostError(job.jobId);
+  if (lock.revocation_status === "access_active") {
+    return;
   }
+  if (lock.revocation_status === "access_revoked") {
+    throw new GeneratedMediaPromotionJobAccessRevokedError(job.jobId);
+  }
+  throw new GeneratedMediaPromotionJobLeaseLostError(job.jobId);
 }
 
 export async function reserveGeneratedMediaBlobWriter(

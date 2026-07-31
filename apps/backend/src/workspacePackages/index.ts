@@ -2,8 +2,11 @@ export {
   extractMarkdownFcAssetIds,
   extractMarkdownImageFcAssetIds,
   extractMarkdownLinkDestinationUrls,
+  extractMarkdownManagedMediaLifecycleIssues,
+  extractMarkdownManagedMediaLifecycleReferences,
   extractMarkdownNonCodeTextSegments,
   extractMarkdownPortableMediaPaths,
+  parseManagedMediaLifecycleReference,
   rewriteMarkdownFcAssetUrlsToPortablePaths,
   rewriteMarkdownFcAssetUrlsToPortablePathsFromMap,
   rewriteMarkdownFcAssetUrlsToFcAssets,
@@ -17,6 +20,9 @@ export {
 export type {
   FcAssetIdResolver,
   FcAssetPortablePathResolver,
+  ManagedMediaLifecycleIssues,
+  ManagedMediaLifecycleReference,
+  ManagedMediaLifecycleState,
   PortableMediaAssetIdResolver,
 } from "./markdownMedia";
 

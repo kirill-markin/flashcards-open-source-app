@@ -1,4 +1,11 @@
-import { appendManagedImageToCardSideInExecutor } from "../../cards";
+import {
+  appendManagedImageToCardSideInExecutor,
+  isManagedImageSettlementConflictError,
+  managedImageMarkdownComplexitySettlementConflictCode,
+  markPendingManagedImageFailedOnCardSideInExecutor,
+  markPendingManagedImageReadyOnCardSideInExecutor,
+  type ManagedImageSettlementConflictError,
+} from "../../cards";
 import { DatabaseDeadlineExceededError, type DatabaseExecutor } from "../../database";
 import { unsafeTransactionWithDeadline } from "../../database/unsafe";
 import {
@@ -26,6 +33,7 @@ import {
   failGeneratedMediaPromotionJobWithExecutor, GeneratedMediaPromotionJobAccessRevokedError,
   GeneratedMediaPromotionJobLeaseLostError,
   isGeneratedMediaPromotionOperationAppliedWithExecutor,
+  loadGeneratedMediaPromotionProtocolVersionInExecutor,
   markGeneratedMediaBlobWriterAmbiguous,
   markGeneratedMediaPromotionJobAppliedWithExecutor, rescheduleGeneratedMediaPromotionJobWithExecutor,
   reserveGeneratedMediaBlobWriter,
@@ -36,6 +44,16 @@ const maximumJobAttempts = 5;
 const retryBaseDelayMs = 30_000;
 const retryMaximumDelayMs = 15 * 60_000;
 const minimumNewJobBudgetMs = 1_000;
+
+function toSafeManagedImageSettlementConflict(
+  error: ManagedImageSettlementConflictError,
+): SafeGeneratedMediaPromotionJobError {
+  return {
+    code: error.conflictCode,
+    message: error.message,
+  };
+}
+
 export type GeneratedMediaPromotionJobOutcome =
   | "applied"
   | "ambiguous"
@@ -91,64 +109,99 @@ function assertPersistedMediaIdentity(
 async function applyGeneratedMediaPromotionJobInExecutor(
   executor: DatabaseExecutor,
   reservation: GeneratedMediaBlobWriterReservation,
-): Promise<void> {
+): Promise<ManagedImageSettlementConflictError | null> {
   const job = reservation.writer;
   if (await isGeneratedMediaPromotionOperationAppliedWithExecutor(
     executor,
     job.jobId,
     job.operationId,
   )) {
-    return;
+    return null;
   }
   await applyGeneratedMediaPromotionJobScopeWithExecutor(executor, job);
-  await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, job.workspaceId);
-  const existingRow = await findMediaAssetRowForUpdateInExecutor(
-    executor, job.workspaceId, job.mediaAssetId,
-  );
-  if (existingRow !== null) {
-    assertPersistedMediaIdentity(mapMediaAssetRow(existingRow), job);
-  }
-  const mediaResult = await upsertMediaAssetSnapshotWithBlobNormalizationInExecutor(
+  const protocolVersion = await loadGeneratedMediaPromotionProtocolVersionInExecutor(
     executor,
     job.workspaceId,
-    {
-      mediaAssetId: job.mediaAssetId, mimeType: job.mimeType,
-      sizeBytes: job.sizeBytes, sha256: job.sha256,
-      sourceUrl: null, createdAt: job.createdAt, deletedAt: null,
-    },
-    {
-      clientUpdatedAt: job.createdAt, lastModifiedByReplicaId: job.replicaId,
-      lastOperationId: job.operationId,
-    },
-    reservation.normalizationVersion,
+    job.jobId,
   );
-  assertPersistedMediaIdentity(mediaResult.mediaAsset, job);
-  await finalizeMediaBlobWriterInExecutor(executor, {
-    reservationToken: reservation.reservationToken,
-    sha256: job.sha256,
-    workspaceId: job.workspaceId,
-    mediaAssetId: job.mediaAssetId,
-  });
-  await appendManagedImageToCardSideInExecutor(
-    executor, job.workspaceId,
-    {
-      cardId: job.cardId, targetSide: job.targetSide,
-      mediaAssetId: job.mediaAssetId, altText: job.altText,
-    },
-    {
-      clientUpdatedAt: job.createdAt, lastModifiedByReplicaId: job.replicaId,
-      lastOperationId: job.operationId,
-    },
-  );
+  await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, job.workspaceId);
+  const cardMutationInput = {
+    cardId: job.cardId, targetSide: job.targetSide,
+    mediaAssetId: job.mediaAssetId, altText: job.altText,
+  };
+  const cardMutationMetadata = {
+    clientUpdatedAt: job.createdAt, lastModifiedByReplicaId: job.replicaId,
+    lastOperationId: job.operationId,
+  };
+  const registerMediaAsset = async (lockedExecutor: DatabaseExecutor): Promise<void> => {
+    const existingRow = await findMediaAssetRowForUpdateInExecutor(
+      lockedExecutor,
+      job.workspaceId,
+      job.mediaAssetId,
+    );
+    if (existingRow !== null) {
+      assertPersistedMediaIdentity(mapMediaAssetRow(existingRow), job);
+    }
+    const mediaResult = await upsertMediaAssetSnapshotWithBlobNormalizationInExecutor(
+      lockedExecutor,
+      job.workspaceId,
+      {
+        mediaAssetId: job.mediaAssetId, mimeType: job.mimeType,
+        sizeBytes: job.sizeBytes, sha256: job.sha256,
+        sourceUrl: null, createdAt: job.createdAt, deletedAt: null,
+      },
+      {
+        clientUpdatedAt: job.createdAt, lastModifiedByReplicaId: job.replicaId,
+        lastOperationId: job.operationId,
+      },
+      reservation.normalizationVersion,
+    );
+    assertPersistedMediaIdentity(mediaResult.mediaAsset, job);
+    await finalizeMediaBlobWriterInExecutor(lockedExecutor, {
+      reservationToken: reservation.reservationToken,
+      sha256: job.sha256,
+      workspaceId: job.workspaceId,
+      mediaAssetId: job.mediaAssetId,
+    });
+  };
+  if (protocolVersion === 2) {
+    try {
+      await markPendingManagedImageReadyOnCardSideInExecutor(
+        executor,
+        job.workspaceId,
+        cardMutationInput,
+        cardMutationMetadata,
+        registerMediaAsset,
+      );
+    } catch (error) {
+      if (!isManagedImageSettlementConflictError(error)) throw error;
+      await failGeneratedMediaPromotionJobWithBlobWriterInExecutor(executor, {
+        ...reservation.writer,
+        error: toSafeManagedImageSettlementConflict(error),
+      });
+      return error;
+    }
+  }
+  if (protocolVersion === 1) {
+    await registerMediaAsset(executor);
+    await appendManagedImageToCardSideInExecutor(
+      executor,
+      job.workspaceId,
+      cardMutationInput,
+      cardMutationMetadata,
+    );
+  }
   await markGeneratedMediaPromotionJobAppliedWithExecutor(executor, job);
+  return null;
 }
 export async function applyGeneratedMediaPromotionJob(
   reservation: GeneratedMediaBlobWriterReservation,
   deadlineAtMs: number,
 ): Promise<void> {
-  return unsafeTransactionWithDeadline(deadlineAtMs, async (executor) => (
+  const settlementConflict = await unsafeTransactionWithDeadline(deadlineAtMs, async (executor) => (
     applyGeneratedMediaPromotionJobInExecutor(executor, reservation)
   ));
+  if (settlementConflict !== null) throw settlementConflict;
 }
 export async function rescheduleGeneratedMediaPromotionJob(
   job: ClaimedGeneratedMediaPromotionJob,
@@ -166,16 +219,57 @@ export async function failGeneratedMediaPromotionJob(
   error: SafeGeneratedMediaPromotionJobError,
   reservation: GeneratedMediaBlobWriterReservation | null,
 ): Promise<void> {
-  return unsafeTransactionWithDeadline(deadlineAtMs, async (executor) => {
-    if (reservation === null) {
-      await failGeneratedMediaPromotionJobWithExecutor(executor, { ...job, error });
-      return;
-    }
-    await failGeneratedMediaPromotionJobWithBlobWriterInExecutor(executor, {
-      ...reservation.writer,
-      error,
-    });
-  });
+  const settlementConflict = await unsafeTransactionWithDeadline(
+    deadlineAtMs,
+    async (executor): Promise<ManagedImageSettlementConflictError | null> => {
+      await applyGeneratedMediaPromotionJobScopeWithExecutor(executor, job);
+      const protocolVersion = await loadGeneratedMediaPromotionProtocolVersionInExecutor(
+        executor,
+        job.workspaceId,
+        job.jobId,
+      );
+      let terminalErrorValue = error;
+      let cardSettlementConflict: ManagedImageSettlementConflictError | null = null;
+      if (protocolVersion === 2) {
+        try {
+          await markPendingManagedImageFailedOnCardSideInExecutor(
+            executor,
+            job.workspaceId,
+            {
+              cardId: job.cardId,
+              targetSide: job.targetSide,
+              mediaAssetId: job.mediaAssetId,
+              altText: job.altText,
+            },
+            {
+              clientUpdatedAt: job.createdAt,
+              lastModifiedByReplicaId: job.replicaId,
+              lastOperationId: job.operationId,
+            },
+          );
+        } catch (transitionError) {
+          if (!isManagedImageSettlementConflictError(transitionError)) {
+            throw transitionError;
+          }
+          cardSettlementConflict = transitionError;
+          terminalErrorValue = toSafeManagedImageSettlementConflict(transitionError);
+        }
+      }
+      if (reservation === null) {
+        await failGeneratedMediaPromotionJobWithExecutor(
+          executor,
+          { ...job, error: terminalErrorValue },
+        );
+        return cardSettlementConflict;
+      }
+      await failGeneratedMediaPromotionJobWithBlobWriterInExecutor(executor, {
+        ...reservation.writer,
+        error: terminalErrorValue,
+      });
+      return cardSettlementConflict;
+    },
+  );
+  if (settlementConflict !== null) throw settlementConflict;
 }
 function terminalError(error: unknown): SafeGeneratedMediaPromotionJobError | null {
   if (error instanceof GeneratedMediaPromotionStorageTerminalError) {
@@ -258,8 +352,14 @@ async function settleKnownFailure(
     if (transitionError instanceof GeneratedMediaPromotionJobLeaseLostError) {
       return result(job, "lease_lost", null);
     }
+    if (isManagedImageSettlementConflictError(transitionError)) {
+      return result(job, "failed", transitionError.conflictCode);
+    }
     if (transitionError instanceof DatabaseCommitOutcomeUnknownError) {
       return result(job, "ambiguous", "DATABASE_COMMIT_OUTCOME_UNKNOWN");
+    }
+    if (transitionError instanceof GeneratedMediaPromotionJobAccessRevokedError) {
+      return settleAccessRevocation(job, input, dependencies);
     }
     if (
       input.signal.aborted
@@ -284,6 +384,13 @@ async function settleAccessRevocation(
     if (outcome === "applied") return result(job, "applied", null);
     if (outcome === "failed") {
       return result(job, "failed", "WORKSPACE_ACCESS_REVOKED");
+    }
+    if (outcome === "failed_markdown_complexity") {
+      return result(
+        job,
+        "failed",
+        managedImageMarkdownComplexitySettlementConflictCode,
+      );
     }
     return result(job, "interrupted", "WORKSPACE_ACCESS_RECHECK_REQUIRED");
   } catch (error) {
@@ -330,6 +437,9 @@ export async function processClaimedGeneratedMediaPromotionJobWithDependencies(
     if (error instanceof GeneratedMediaPromotionJobLeaseLostError) {
       return result(job, "lease_lost", null);
     }
+    if (isManagedImageSettlementConflictError(error)) {
+      return result(job, "failed", error.conflictCode);
+    }
     if (error instanceof GeneratedMediaPromotionJobAccessRevokedError) {
       return settleAccessRevocation(
         reservation?.writer ?? job,
@@ -356,6 +466,9 @@ export async function processClaimedGeneratedMediaPromotionJobWithDependencies(
       } catch (operationReplayError) {
         if (operationReplayError instanceof GeneratedMediaPromotionJobLeaseLostError) {
           return result(job, "lease_lost", null);
+        }
+        if (isManagedImageSettlementConflictError(operationReplayError)) {
+          return result(job, "failed", operationReplayError.conflictCode);
         }
         if (operationReplayError instanceof GeneratedMediaPromotionJobAccessRevokedError) {
           return settleAccessRevocation(reservation.writer, input, dependencies);

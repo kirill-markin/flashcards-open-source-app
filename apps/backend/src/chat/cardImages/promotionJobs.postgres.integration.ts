@@ -9,10 +9,13 @@ import {
   reserveMediaBlobWriterInExecutor,
   type MediaBlobWriterReservation,
 } from "../../mediaAssets/blobLifecycle";
+import { GeneratedMediaPromotionStorageTerminalError } from "../../mediaAssets/storage";
 import { testObservationScope } from "../../mediaAssets/storage/testHelpers";
 import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../../mediaAssets/storageKeys";
 import { imageJpegCardMediaBlobNormalizationVersion } from "../../mediaAssets/types";
+import { processSyncPull } from "../../sync";
 import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../testSupport/postgresIntegration";
+import { extractMarkdownImageDestinationUrls } from "../../workspacePackages/markdownMedia";
 import { InactiveChatRunClaimError } from "../runs/claimFence";
 import {
   assertGeneratedMediaBlobStorageCapabilityForMutation,
@@ -24,6 +27,7 @@ import {
   failGeneratedMediaPromotionJobWithBlobWriterInExecutor,
   GeneratedMediaPromotionJobConflictError,
   GeneratedMediaPromotionJobLeaseLostError,
+  GeneratedMediaPromotionProtocolInactiveError,
   isGeneratedMediaPromotionOperationAppliedWithExecutor,
   markGeneratedMediaPromotionBlobWriterAmbiguousWithExecutor,
   markGeneratedMediaPromotionJobAppliedWithExecutor,
@@ -53,14 +57,30 @@ type RevocationStateRow = Readonly<{
 type AccessNoOpStateRow = Readonly<{
   job_state: string; job_error_code: string | null; reservation_state: string;
 }>;
+type PlaceholderConflictStateRow = Readonly<{
+  job_id: string; job_state: string; job_error_code: string | null;
+  reservation_state: string; cleanup_scheduled: boolean; media_asset_count: string;
+}>;
+type AccessRevocationBoundaryRow = Readonly<{ revocation_status: string }>;
+type HotChangeIdRow = Readonly<{ change_id: string | number }>;
 type RevocationUpgradeRow = Readonly<{
   function_exists: boolean; security_definer: boolean; exact_search_path: boolean;
   backend_execute: boolean; auth_execute: boolean; reporting_execute: boolean;
+  lock_function_exists: boolean; lock_security_definer: boolean;
+  lock_exact_search_path: boolean; lock_backend_execute: boolean;
+  lock_auth_execute: boolean; lock_reporting_execute: boolean;
+  compatibility_function_exists: boolean; compatibility_backend_execute: boolean;
   backend_reservation_select: boolean; backend_job_update: boolean;
   writer_support_function_exists: boolean;
+  protocol_column_exists: boolean; protocol_constraint_exists: boolean;
+  backend_protocol_select: boolean; backend_protocol_insert: boolean;
+  legacy_claim_backend_execute: boolean; current_claim_function_exists: boolean;
+  current_claim_security_definer: boolean; current_claim_exact_search_path: boolean;
+  current_claim_backend_execute: boolean; current_claim_auth_execute: boolean;
+  protocol_activation_exists: boolean; protocol_activation_backend_execute: boolean;
 }>;
-const revocationMigrationSql = readFileSync(resolve(
-  __dirname, "../../../../../db/migrations/0093_generated_media_writer_revocation.sql",
+const placeholderTerminalStateMigrationSql = readFileSync(resolve(
+  __dirname, "../../../../../db/migrations/0104_generated_image_placeholder_terminal_state.sql",
 ), "utf8");
 async function createRun(fixture: PostgresIntegrationFixture): Promise<RunFixture> {
   const sessionId = randomUUID();
@@ -139,6 +159,32 @@ Promise<ReadonlyArray<ClaimedGeneratedMediaPromotionJob>> {
     leaseOwner, leaseDurationMs: 60_000, limit, deadlineAtMs: Date.now() + 10_000,
   });
 }
+async function callAccessRevocationBoundary(
+  executor: DatabaseExecutor,
+  job: ClaimedGeneratedMediaPromotionJob,
+  expectedCardText: string,
+  failedCardText: string,
+  errorCode: "GENERATED_IMAGE_MARKDOWN_COMPLEXITY_CONFLICT",
+): Promise<string> {
+  const result = await executor.query<AccessRevocationBoundaryRow>(
+    `SELECT content.fail_generated_media_promotion_job_after_access_revocation(
+       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+       $16, $17, $18, $19
+     ) AS revocation_status`,
+    [
+      job.jobId, job.leaseToken, job.operationId, job.userId,
+      job.workspaceId, job.cardId, job.targetSide, job.altText,
+      job.mediaAssetId, job.replicaId, job.stagingStorageKey,
+      job.blobStorageKey, job.sha256, job.mimeType, job.sizeBytes,
+      expectedCardText, failedCardText, errorCode, 3_600_000,
+    ],
+  );
+  const status = result.rows[0]?.revocation_status;
+  if (status === undefined) {
+    throw new Error(`Access-revocation boundary returned no status. jobId=${job.jobId}`);
+  }
+  return status;
+}
 function hasPostgresCode(error: unknown, code: string): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === code;
 }
@@ -150,6 +196,37 @@ function withSha256(
   sha256: string,
 ): EnqueueGeneratedMediaPromotionJobInput {
   return { ...input, sha256, blobStorageKey: buildMediaBlobStorageKey(sha256) };
+}
+async function loadPlaceholderConflictStates(
+  fixture: PostgresIntegrationFixture,
+  inputs: ReadonlyArray<EnqueueGeneratedMediaPromotionJobInput>,
+): Promise<ReadonlyArray<PlaceholderConflictStateRow>> {
+  const result = await fixture.ownerPool.query<PlaceholderConflictStateRow>(
+    `SELECT
+       jobs.job_id::text AS job_id,
+       jobs.state AS job_state,
+       jobs.last_error_code AS job_error_code,
+       reservations.state AS reservation_state,
+       lifecycles.cleanup_eligible_at IS NOT NULL AS cleanup_scheduled,
+       (
+         SELECT count(*)::text
+         FROM content.media_assets AS media_assets
+         WHERE media_assets.workspace_id = jobs.workspace_id
+           AND media_assets.media_asset_id = jobs.media_asset_id
+       ) AS media_asset_count
+     FROM content.generated_media_promotion_jobs AS jobs
+     INNER JOIN content.media_blob_writer_reservations AS reservations
+       ON reservations.writer_kind = 'generated_promotion'
+      AND reservations.workspace_id = jobs.workspace_id
+      AND reservations.media_asset_id = jobs.media_asset_id
+      AND reservations.operation_id = jobs.operation_id::text
+     INNER JOIN content.media_blob_lifecycles AS lifecycles
+       ON lifecycles.sha256 = jobs.sha256
+     WHERE jobs.job_id = ANY($1::uuid[])
+     ORDER BY jobs.job_id`,
+    [inputs.map((input) => input.jobId)],
+  );
+  return result.rows;
 }
 function immutablePayloadMismatches(
   job: ClaimedGeneratedMediaPromotionJob,
@@ -230,10 +307,11 @@ async function rawRevocationStatus(
   params: ReadonlyArray<string | number>,
 ): Promise<string> {
   const result = await fixture.runtimePool.query<{ revocation_status: string }>(
-    `SELECT content.fail_generated_media_promotion_job_after_access_revocation(
-       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
-     ) AS revocation_status`,
-    [...params],
+    `SELECT revocation_status
+     FROM content.lock_generated_media_promotion_job_after_access_revocation(
+       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
+     )`,
+    params.slice(0, 15),
   );
   const status = result.rows[0]?.revocation_status;
   if (status === undefined) throw new Error("PostgreSQL returned no revocation status.");
@@ -263,35 +341,57 @@ async function assertRevocationMigrationUpgrade(
   const client = await fixture.ownerPool.connect();
   try {
     await client.query("BEGIN");
-    await client.query(`
-      DROP FUNCTION content.fail_generated_media_promotion_job_after_access_revocation(
-        UUID, UUID, UUID, TEXT, UUID, UUID, TEXT, TEXT, UUID, UUID, TEXT, TEXT,
-        TEXT, TEXT, BIGINT, INTEGER
-      )
-    `);
-    await client.query(revocationMigrationSql);
+    await client.query(placeholderTerminalStateMigrationSql);
     const upgrade = await client.query<RevocationUpgradeRow>(
       `SELECT
          to_regprocedure(
-           'content.fail_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint,integer)'
+           'content.fail_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint,text,text,text,integer)'
          ) IS NOT NULL AS function_exists,
          procedures.prosecdef AS security_definer,
          procedures.proconfig = ARRAY['search_path=pg_catalog'] AS exact_search_path,
          has_function_privilege(
            'backend_app',
-           'content.fail_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint,integer)',
+           'content.fail_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint,text,text,text,integer)',
            'EXECUTE'
          ) AS backend_execute,
          has_function_privilege(
            'auth_app',
-           'content.fail_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint,integer)',
+           'content.fail_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint,text,text,text,integer)',
            'EXECUTE'
          ) AS auth_execute,
          has_function_privilege(
            'reporting_readonly',
-           'content.fail_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint,integer)',
+           'content.fail_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint,text,text,text,integer)',
            'EXECUTE'
          ) AS reporting_execute,
+         to_regprocedure(
+           'content.lock_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint)'
+         ) IS NOT NULL AS lock_function_exists,
+         lock_procedures.prosecdef AS lock_security_definer,
+         lock_procedures.proconfig = ARRAY['search_path=pg_catalog'] AS lock_exact_search_path,
+         has_function_privilege(
+           'backend_app',
+           'content.lock_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint)',
+           'EXECUTE'
+         ) AS lock_backend_execute,
+         has_function_privilege(
+           'auth_app',
+           'content.lock_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint)',
+           'EXECUTE'
+         ) AS lock_auth_execute,
+         has_function_privilege(
+           'reporting_readonly',
+           'content.lock_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint)',
+           'EXECUTE'
+         ) AS lock_reporting_execute,
+         to_regprocedure(
+           'content.fail_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint,integer)'
+         ) IS NOT NULL AS compatibility_function_exists,
+         has_function_privilege(
+           'backend_app',
+           'content.fail_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint,integer)',
+           'EXECUTE'
+         ) AS compatibility_backend_execute,
          has_table_privilege(
            'backend_app', 'content.media_blob_writer_reservations', 'SELECT'
          ) AS backend_reservation_select,
@@ -300,10 +400,74 @@ async function assertRevocationMigrationUpgrade(
          ) AS backend_job_update,
          to_regprocedure(
            'content.fail_generated_media_promotion_job_with_blob_writer(uuid,uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint,text,text,text,integer)'
-         ) IS NOT NULL AS writer_support_function_exists
+         ) IS NOT NULL AS writer_support_function_exists,
+         EXISTS (
+           SELECT 1
+           FROM information_schema.columns AS columns
+           WHERE columns.table_schema = 'content'
+             AND columns.table_name = 'generated_media_promotion_jobs'
+             AND columns.column_name = 'protocol_version'
+             AND columns.is_nullable = 'NO'
+             AND columns.column_default = '1'
+         ) AS protocol_column_exists,
+         EXISTS (
+           SELECT 1
+           FROM pg_catalog.pg_constraint AS constraints
+           WHERE constraints.conrelid = 'content.generated_media_promotion_jobs'::regclass
+             AND constraints.conname = 'generated_media_promotion_jobs_protocol_version'
+         ) AS protocol_constraint_exists,
+         has_column_privilege(
+           'backend_app',
+           'content.generated_media_promotion_jobs',
+           'protocol_version',
+           'SELECT'
+         ) AS backend_protocol_select,
+         has_column_privilege(
+           'backend_app',
+           'content.generated_media_promotion_jobs',
+           'protocol_version',
+           'INSERT'
+         ) AS backend_protocol_insert,
+         has_function_privilege(
+           'backend_app',
+           'content.claim_generated_media_promotion_jobs(text,integer,integer)',
+           'EXECUTE'
+         ) AS legacy_claim_backend_execute,
+         to_regprocedure(
+           'content.claim_generated_media_promotion_jobs(text,integer,integer,integer)'
+         ) IS NOT NULL AS current_claim_function_exists,
+         current_claim_procedures.prosecdef AS current_claim_security_definer,
+         current_claim_procedures.proconfig = ARRAY['search_path=pg_catalog']
+           AS current_claim_exact_search_path,
+         has_function_privilege(
+           'backend_app',
+           'content.claim_generated_media_promotion_jobs(text,integer,integer,integer)',
+           'EXECUTE'
+         ) AS current_claim_backend_execute,
+         has_function_privilege(
+           'auth_app',
+           'content.claim_generated_media_promotion_jobs(text,integer,integer,integer)',
+           'EXECUTE'
+         ) AS current_claim_auth_execute,
+         to_regprocedure(
+           'content.generated_media_promotion_protocol_v2_active()'
+         ) IS NOT NULL AS protocol_activation_exists,
+         has_function_privilege(
+           'backend_app',
+           'content.generated_media_promotion_protocol_v2_active()',
+           'EXECUTE'
+         ) AS protocol_activation_backend_execute
        FROM pg_proc AS procedures
+       CROSS JOIN pg_proc AS lock_procedures
+       CROSS JOIN pg_proc AS current_claim_procedures
        WHERE procedures.oid = to_regprocedure(
-         'content.fail_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint,integer)'
+         'content.fail_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint,text,text,text,integer)'
+       )
+         AND lock_procedures.oid = to_regprocedure(
+           'content.lock_generated_media_promotion_job_after_access_revocation(uuid,uuid,uuid,text,uuid,uuid,text,text,uuid,uuid,text,text,text,text,bigint)'
+       )
+         AND current_claim_procedures.oid = to_regprocedure(
+           'content.claim_generated_media_promotion_jobs(text,integer,integer,integer)'
        )`,
     );
     assert.deepEqual(upgrade.rows[0], {
@@ -313,9 +477,29 @@ async function assertRevocationMigrationUpgrade(
       backend_execute: true,
       auth_execute: false,
       reporting_execute: false,
+      lock_function_exists: true,
+      lock_security_definer: true,
+      lock_exact_search_path: true,
+      lock_backend_execute: true,
+      lock_auth_execute: false,
+      lock_reporting_execute: false,
+      compatibility_function_exists: true,
+      compatibility_backend_execute: true,
       backend_reservation_select: false,
       backend_job_update: false,
       writer_support_function_exists: true,
+      protocol_column_exists: true,
+      protocol_constraint_exists: true,
+      backend_protocol_select: true,
+      backend_protocol_insert: true,
+      legacy_claim_backend_execute: true,
+      current_claim_function_exists: true,
+      current_claim_security_definer: true,
+      current_claim_exact_search_path: true,
+      current_claim_backend_execute: true,
+      current_claim_auth_execute: false,
+      protocol_activation_exists: true,
+      protocol_activation_backend_execute: true,
     });
     await client.query("ROLLBACK");
   } catch (error) {
@@ -362,7 +546,39 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
     ]);
     assert.deepEqual(
       await enqueueGeneratedMediaPromotionJob(concurrentInput),
-      { outcome: "existing", jobId: concurrentInput.jobId },
+      {
+        outcome: "existing",
+        jobId: concurrentInput.jobId,
+        placeholderApplied: true,
+      },
+    );
+    await fixture.ownerPool.query(
+      `UPDATE content.cards
+       SET front_text = replace(front_text, $1, '')
+       WHERE workspace_id = $2 AND card_id = $3`,
+      [
+        `![${concurrentInput.altText}](fcasset:${concurrentInput.mediaAssetId}?state=pending)`,
+        fixture.workspaceId,
+        fixture.cardId,
+      ],
+    );
+    assert.deepEqual(
+      await enqueueGeneratedMediaPromotionJob(concurrentInput),
+      {
+        outcome: "existing",
+        jobId: concurrentInput.jobId,
+        placeholderApplied: false,
+      },
+    );
+    await fixture.ownerPool.query(
+      `UPDATE content.cards
+       SET front_text = front_text || E'\\n\\n' || $1
+       WHERE workspace_id = $2 AND card_id = $3`,
+      [
+        `![${concurrentInput.altText}](fcasset:${concurrentInput.mediaAssetId}?state=pending)`,
+        fixture.workspaceId,
+        fixture.cardId,
+      ],
     );
     await assert.rejects(
       enqueueGeneratedMediaPromotionJob({
@@ -380,6 +596,18 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
     for (const input of inputs.slice(1)) {
       assert.equal((await enqueueGeneratedMediaPromotionJob(input)).outcome, "created");
     }
+    const protocolVersions = await fixture.ownerPool.query<{ protocol_version: number }>(
+      `SELECT DISTINCT protocol_version
+       FROM content.generated_media_promotion_jobs
+       WHERE job_id = ANY($1::uuid[])`,
+      [inputs.map((input) => input.jobId)],
+    );
+    assert.deepEqual(protocolVersions.rows, [{ protocol_version: 2 }]);
+    const oldWorkerClaims = await fixture.runtimePool.query<{ job_id: string }>(
+      "SELECT job_id FROM content.claim_generated_media_promotion_jobs($1, $2, $3)",
+      ["pre-lifecycle-worker", 60_000, inputs.length],
+    );
+    assert.deepEqual(oldWorkerClaims.rows, []);
     const wrongScopeCount = await transactionWithWorkspaceScope(
       { userId: fixture.userId, workspaceId: randomUUID() },
       async (executor) => executor.query<{ count: string }>(
@@ -514,6 +742,11 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
     } finally {
       dateNowMock.mock.restore();
     }
+    const promotionDeletedAt = new Date(Date.parse(fixture.createdAt) + 60_000).toISOString();
+    await fixture.ownerPool.query(
+      "UPDATE content.cards SET deleted_at = $1 WHERE workspace_id = $2 AND card_id = $3",
+      [promotionDeletedAt, fixture.workspaceId, fixture.cardId],
+    );
     await applyGeneratedMediaPromotionJob(appliedWriter, Date.now() + 10_000);
     await applyGeneratedMediaPromotionJob(appliedWriter, Date.now() + 10_000);
     await transition(fixture, async (executor) => {
@@ -524,8 +757,12 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
         executor, applied.jobId, randomUUID(),
       ), false);
     });
-    const appliedCard = await fixture.ownerPool.query<{ front_text: string; back_text: string }>(
-      "SELECT front_text, back_text FROM content.cards WHERE workspace_id = $1 AND card_id = $2",
+    const appliedCard = await fixture.ownerPool.query<{
+      front_text: string; back_text: string; deleted_at: Date;
+    }>(
+      `SELECT front_text, back_text, deleted_at
+       FROM content.cards
+       WHERE workspace_id = $1 AND card_id = $2`,
       [fixture.workspaceId, fixture.cardId],
     );
     assert.equal(appliedCard.rows[0]?.back_text, "Original answer");
@@ -534,6 +771,7 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
       1,
     );
     assert.ok(appliedCard.rows[0]?.front_text.startsWith("Original question\n\n![Generated integration image]"));
+    assert.equal(appliedCard.rows[0]?.deleted_at.toISOString(), promotionDeletedAt);
     assert.equal(
       (await fixture.ownerPool.query<{ count: string }>(
         "SELECT count(*)::text AS count FROM content.media_assets WHERE media_asset_id = $1",
@@ -566,18 +804,11 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
     const reclaimedInput = inputs[2];
     if (reclaimedInput === undefined) throw new Error("Missing reclaim input.");
     const expired = byJobId(claimed, reclaimedInput.jobId);
-    const writer = await transition(fixture, async (executor) =>
-      reserveMediaBlobWriterInExecutor(executor, {
-        writerKind: "generated_promotion", workspaceId: expired.workspaceId,
-        mediaAssetId: expired.mediaAssetId, operationId: expired.operationId,
-        sha256: expired.sha256, storageKey: expired.blobStorageKey,
-        mimeType: expired.mimeType, sizeBytes: expired.sizeBytes,
-        normalizationVersion: imageJpegCardMediaBlobNormalizationVersion,
-      }));
-    const writerInput = {
-      ...expired, reservationToken: writer.reservationToken,
-      normalizationVersion: writer.normalizationVersion,
-    };
+    const writer = await reserveGeneratedMediaBlobWriter(
+      expired,
+      Date.now() + 10_000,
+    );
+    const writerInput = writer.writer;
     await assert.rejects(
       transition(fixture, (executor) =>
         markGeneratedMediaPromotionBlobWriterAmbiguousWithExecutor(executor, {
@@ -622,12 +853,16 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
         })),
       GeneratedMediaPromotionJobLeaseLostError,
     );
-    await transition(fixture, async (executor) =>
-      failGeneratedMediaPromotionJobWithBlobWriterInExecutor(executor, {
-        ...reclaimed, reservationToken: writer.reservationToken,
-        normalizationVersion: writer.normalizationVersion,
-        error: { code: "CORRUPT_STAGING", message: "Staged object proof is invalid." },
-      }));
+    const reclaimedWriter = await reserveGeneratedMediaBlobWriter(
+      reclaimed,
+      Date.now() + 10_000,
+    );
+    await failGeneratedMediaPromotionJob(
+      reclaimed,
+      Date.now() + 10_000,
+      { code: "CORRUPT_STAGING", message: "Staged object proof is invalid." },
+      reclaimedWriter,
+    );
     assert.deepEqual((await fixture.ownerPool.query<{
       job_state: string; reservation_state: string;
     }>(
@@ -638,6 +873,19 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
        WHERE jobs.job_id = $1`,
       [reclaimed.jobId, writer.reservationToken],
     )).rows[0], { job_state: "failed", reservation_state: "unreferenced" });
+    const failedCard = await fixture.ownerPool.query<{ back_text: string; deleted_at: Date }>(
+      `SELECT back_text, deleted_at
+       FROM content.cards
+       WHERE workspace_id = $1 AND card_id = $2`,
+      [fixture.workspaceId, fixture.cardId],
+    );
+    assert.equal(
+      failedCard.rows[0]?.back_text.includes(
+        `![Generated integration image](fcasset:${reclaimed.mediaAssetId}?state=failed)`,
+      ),
+      true,
+    );
+    assert.equal(failedCard.rows[0]?.deleted_at.toISOString(), promotionDeletedAt);
     const terminalInput = inputs[3];
     if (terminalInput === undefined) throw new Error("Missing terminal input.");
     const terminal = byJobId(claimed, terminalInput.jobId);
@@ -728,6 +976,485 @@ test("promotion jobs enforce enqueue identity, global leasing, fencing, and RLS"
   });
 });
 
+test("promotion settlement preserves card text when the expected pending marker is absent or duplicated", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const run = await createRun(fixture);
+    const removedInput = withSha256(createInput(fixture, run), uniqueSha256());
+    const movedInput = withSha256(createInput(fixture, run), uniqueSha256());
+    const duplicatedInput = withSha256(createInput(fixture, run), uniqueSha256());
+    const inputs = [removedInput, movedInput, duplicatedInput];
+    for (const input of inputs) {
+      assert.equal((await enqueueGeneratedMediaPromotionJob(input)).outcome, "created");
+    }
+    const pendingMarker = (input: EnqueueGeneratedMediaPromotionJobInput): string => (
+      `![${input.altText}](fcasset:${input.mediaAssetId}?state=pending)`
+    );
+    const removedMarker = pendingMarker(removedInput);
+    const movedMarker = pendingMarker(movedInput);
+    const duplicatedMarker = pendingMarker(duplicatedInput);
+    await fixture.ownerPool.query(
+      `UPDATE content.cards
+       SET front_text = front_text || E'\\n\\n' || $1,
+           back_text = replace(replace(back_text, $2, ''), $1, '')
+             || E'\\n\\n' || $3
+       WHERE workspace_id = $4 AND card_id = $5`,
+      [
+        movedMarker,
+        removedMarker,
+        duplicatedMarker,
+        fixture.workspaceId,
+        fixture.cardId,
+      ],
+    );
+    const expectedCard = (await fixture.ownerPool.query<{
+      front_text: string; back_text: string;
+    }>(
+      `SELECT front_text, back_text
+       FROM content.cards
+       WHERE workspace_id = $1 AND card_id = $2`,
+      [fixture.workspaceId, fixture.cardId],
+    )).rows[0];
+    if (expectedCard === undefined) throw new Error("Conflict test card was not found.");
+    assert.equal(expectedCard.front_text.includes(movedMarker), true);
+    assert.equal(expectedCard.back_text.includes(removedMarker), false);
+    assert.equal(expectedCard.back_text.includes(movedMarker), false);
+    assert.equal(
+      expectedCard.back_text.split(duplicatedMarker).length - 1,
+      2,
+    );
+
+    const claimed = await claim("placeholder-conflict-worker", inputs.length);
+    assert.equal(claimed.length, inputs.length);
+    for (const input of inputs) {
+      const job = byJobId(claimed, input.jobId);
+      const jobResult = await processClaimedGeneratedMediaPromotionJobWithDependencies(
+        job,
+        {
+          leaseOwner: job.leaseOwner,
+          leaseDurationMs: 60_000,
+          maximumJobs: 1,
+          deadlineAtMs: Date.now() + 10_000,
+          observationScope: testObservationScope,
+          signal: new AbortController().signal,
+        },
+        {
+          claimJobsFn: claimGeneratedMediaPromotionJobs,
+          reserveWriterFn: reserveGeneratedMediaBlobWriter,
+          promoteObjectFn: async () => {},
+          applyJobFn: applyGeneratedMediaPromotionJob,
+          rescheduleJobFn: rescheduleGeneratedMediaPromotionJob,
+          failJobFn: async () => {
+            assert.fail("The locked apply transaction must terminalize marker conflicts.");
+          },
+          failAfterAccessRevocationFn: async () => {
+            assert.fail("Marker conflicts must not use access-revocation settlement.");
+          },
+          markWriterAmbiguousFn: markGeneratedMediaBlobWriterAmbiguous,
+          nowFn: Date.now,
+        },
+      );
+      assert.equal(jobResult.outcome, "failed");
+      assert.equal(
+        jobResult.errorCode,
+        "GENERATED_IMAGE_PENDING_MARKER_CONFLICT",
+      );
+    }
+
+    const settledCard = (await fixture.ownerPool.query<{
+      front_text: string; back_text: string;
+    }>(
+      `SELECT front_text, back_text
+       FROM content.cards
+       WHERE workspace_id = $1 AND card_id = $2`,
+      [fixture.workspaceId, fixture.cardId],
+    )).rows[0];
+    assert.deepEqual(settledCard, expectedCard);
+    assert.deepEqual(
+      await loadPlaceholderConflictStates(fixture, inputs),
+      inputs
+        .map((input) => ({
+          job_id: input.jobId,
+          job_state: "failed",
+          job_error_code: "GENERATED_IMAGE_PENDING_MARKER_CONFLICT",
+          reservation_state: "unreferenced",
+          cleanup_scheduled: true,
+          media_asset_count: "0",
+        }))
+        .sort((left, right) => left.job_id.localeCompare(right.job_id)),
+    );
+  });
+});
+
+test("parser-limit Markdown terminalizes success, failure, and revoked jobs without changing card text", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const run = await createRun(fixture);
+    const successInput = withSha256(createInput(fixture, run), uniqueSha256());
+    const failureInput = withSha256(createInput(fixture, run), uniqueSha256());
+    const revokedInput = withSha256(createInput(fixture, run), uniqueSha256());
+    const inputs = [successInput, failureInput, revokedInput];
+    for (const input of inputs) {
+      assert.equal((await enqueueGeneratedMediaPromotionJob(input)).outcome, "created");
+    }
+    const parserLimitMarkdown = "[".repeat(1_001);
+    await fixture.ownerPool.query(
+      `UPDATE content.cards
+       SET back_text = $1
+       WHERE workspace_id = $2 AND card_id = $3`,
+      [parserLimitMarkdown, fixture.workspaceId, fixture.cardId],
+    );
+    const claimed = await claim("parser-complexity-worker", inputs.length);
+    assert.equal(claimed.length, inputs.length);
+    const processorInput = (job: ClaimedGeneratedMediaPromotionJob) => ({
+      leaseOwner: job.leaseOwner,
+      leaseDurationMs: 60_000,
+      maximumJobs: 1,
+      deadlineAtMs: Date.now() + 10_000,
+      observationScope: testObservationScope,
+      signal: new AbortController().signal,
+    });
+    const dependencies = {
+      claimJobsFn: claimGeneratedMediaPromotionJobs,
+      reserveWriterFn: reserveGeneratedMediaBlobWriter,
+      promoteObjectFn: async () => {},
+      applyJobFn: applyGeneratedMediaPromotionJob,
+      rescheduleJobFn: rescheduleGeneratedMediaPromotionJob,
+      failJobFn: failGeneratedMediaPromotionJob,
+      failAfterAccessRevocationFn: failGeneratedMediaPromotionJobAfterAccessRevocation,
+      markWriterAmbiguousFn: markGeneratedMediaBlobWriterAmbiguous,
+      nowFn: Date.now,
+    };
+
+    const successJob = byJobId(claimed, successInput.jobId);
+    const successResult = await processClaimedGeneratedMediaPromotionJobWithDependencies(
+      successJob,
+      processorInput(successJob),
+      dependencies,
+    );
+    assert.deepEqual(
+      { outcome: successResult.outcome, errorCode: successResult.errorCode },
+      {
+        outcome: "failed",
+        errorCode: "GENERATED_IMAGE_MARKDOWN_COMPLEXITY_CONFLICT",
+      },
+    );
+
+    const failureJob = byJobId(claimed, failureInput.jobId);
+    const failureResult = await processClaimedGeneratedMediaPromotionJobWithDependencies(
+      failureJob,
+      processorInput(failureJob),
+      {
+        ...dependencies,
+        promoteObjectFn: async () => {
+          throw new GeneratedMediaPromotionStorageTerminalError(
+            "STAGING_OBJECT_INVALID",
+            "The staged generated image failed integrity validation.",
+            null,
+          );
+        },
+      },
+    );
+    assert.deepEqual(
+      { outcome: failureResult.outcome, errorCode: failureResult.errorCode },
+      {
+        outcome: "failed",
+        errorCode: "GENERATED_IMAGE_MARKDOWN_COMPLEXITY_CONFLICT",
+      },
+    );
+
+    const revokedJob = byJobId(claimed, revokedInput.jobId);
+    await reserveGeneratedMediaBlobWriter(revokedJob, Date.now() + 10_000);
+    await fixture.ownerPool.query(
+      "DELETE FROM org.workspace_memberships WHERE workspace_id = $1 AND user_id = $2",
+      [fixture.workspaceId, fixture.userId],
+    );
+    assert.equal(
+      await failGeneratedMediaPromotionJobAfterAccessRevocation(
+        revokedJob,
+        Date.now() + 10_000,
+      ),
+      "failed_markdown_complexity",
+    );
+
+    assert.equal(
+      (await fixture.ownerPool.query<{ back_text: string }>(
+        `SELECT back_text
+         FROM content.cards
+         WHERE workspace_id = $1 AND card_id = $2`,
+        [fixture.workspaceId, fixture.cardId],
+      )).rows[0]?.back_text,
+      parserLimitMarkdown,
+    );
+    assert.deepEqual(
+      await loadPlaceholderConflictStates(fixture, inputs),
+      inputs
+        .map((input) => ({
+          job_id: input.jobId,
+          job_state: "failed",
+          job_error_code: "GENERATED_IMAGE_MARKDOWN_COMPLEXITY_CONFLICT",
+          reservation_state: "unreferenced",
+          cleanup_scheduled: true,
+          media_asset_count: "0",
+        }))
+        .sort((left, right) => left.job_id.localeCompare(right.job_id)),
+    );
+    assert.deepEqual(await claim("parser-complexity-reclaimer", inputs.length), []);
+  });
+});
+
+test("Markdown-complexity revocation settlement accepts only byte-preserving card text", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const run = await createRun(fixture);
+    const input = withSha256(createInput(fixture, run), uniqueSha256());
+    assert.equal((await enqueueGeneratedMediaPromotionJob(input)).outcome, "created");
+    const job = byJobId(await claim("complexity-boundary-worker", 1), input.jobId);
+    await reserveGeneratedMediaBlobWriter(job, Date.now() + 10_000);
+    const pendingCardText = (await fixture.ownerPool.query<{ back_text: string }>(
+      `SELECT back_text
+       FROM content.cards
+       WHERE workspace_id = $1 AND card_id = $2`,
+      [fixture.workspaceId, fixture.cardId],
+    )).rows[0]?.back_text;
+    if (pendingCardText === undefined) {
+      throw new Error("Complexity-boundary fixture card was not found.");
+    }
+    const failedCardText = pendingCardText.replace(
+      `fcasset:${input.mediaAssetId}?state=pending`,
+      `fcasset:${input.mediaAssetId}?state=failed`,
+    );
+    assert.notEqual(failedCardText, pendingCardText);
+    await fixture.ownerPool.query(
+      "DELETE FROM org.workspace_memberships WHERE workspace_id = $1 AND user_id = $2",
+      [fixture.workspaceId, fixture.userId],
+    );
+
+    assert.equal(
+      await transition(fixture, (executor) => callAccessRevocationBoundary(
+        executor,
+        job,
+        pendingCardText,
+        failedCardText,
+        "GENERATED_IMAGE_MARKDOWN_COMPLEXITY_CONFLICT",
+      )),
+      "stale",
+    );
+    assert.deepEqual(
+      (await fixture.ownerPool.query<{
+        card_text: string; job_state: string; reservation_state: string;
+      }>(
+        `SELECT cards.back_text AS card_text,
+                jobs.state AS job_state,
+                reservations.state AS reservation_state
+         FROM content.cards AS cards
+         INNER JOIN content.generated_media_promotion_jobs AS jobs
+           ON jobs.workspace_id = cards.workspace_id
+          AND jobs.card_id = cards.card_id
+         INNER JOIN content.media_blob_writer_reservations AS reservations
+           ON reservations.workspace_id = jobs.workspace_id
+          AND reservations.media_asset_id = jobs.media_asset_id
+          AND reservations.operation_id = jobs.operation_id::text
+         WHERE jobs.job_id = $1`,
+        [input.jobId],
+      )).rows[0],
+      {
+        card_text: pendingCardText,
+        job_state: "leased",
+        reservation_state: "active",
+      },
+    );
+
+    assert.equal(
+      await transition(fixture, (executor) => callAccessRevocationBoundary(
+        executor,
+        job,
+        pendingCardText,
+        pendingCardText,
+        "GENERATED_IMAGE_MARKDOWN_COMPLEXITY_CONFLICT",
+      )),
+      "failed",
+    );
+    assert.equal(
+      (await fixture.ownerPool.query<{ back_text: string }>(
+        `SELECT back_text
+         FROM content.cards
+         WHERE workspace_id = $1 AND card_id = $2`,
+        [fixture.workspaceId, fixture.cardId],
+      )).rows[0]?.back_text,
+      pendingCardText,
+    );
+    assert.deepEqual(
+      await loadPlaceholderConflictStates(fixture, [input]),
+      [{
+        job_id: input.jobId,
+        job_state: "failed",
+        job_error_code: "GENERATED_IMAGE_MARKDOWN_COMPLEXITY_CONFLICT",
+        reservation_state: "unreferenced",
+        cleanup_scheduled: true,
+        media_asset_count: "0",
+      }],
+    );
+  });
+});
+
+test("ready promotion sync pages the media asset before the ready card", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const run = await createRun(fixture);
+    const input = withSha256(createInput(fixture, run), uniqueSha256());
+    assert.equal((await enqueueGeneratedMediaPromotionJob(input)).outcome, "created");
+    const pendingChange = await fixture.ownerPool.query<HotChangeIdRow>(
+      `SELECT change_id
+       FROM sync.hot_changes
+       WHERE workspace_id = $1
+         AND entity_type = 'card'
+         AND entity_id = $2
+         AND operation_id = $3
+       ORDER BY change_id DESC
+       LIMIT 1`,
+      [fixture.workspaceId, fixture.cardId, input.operationId],
+    );
+    const pendingChangeId = Number(pendingChange.rows[0]?.change_id);
+    assert.equal(Number.isSafeInteger(pendingChangeId), true);
+
+    const job = byJobId(await claim("sync-order-worker", 1), input.jobId);
+    const writer = await reserveGeneratedMediaBlobWriter(job, Date.now() + 10_000);
+    await applyGeneratedMediaPromotionJob(writer, Date.now() + 10_000);
+    const installationId = `sync-order-${randomUUID()}`;
+
+    const firstPage = await processSyncPull(
+      fixture.workspaceId,
+      fixture.userId,
+      {
+        installationId,
+        platform: "web",
+        appVersion: "postgres-integration",
+        afterHotChangeId: pendingChangeId,
+        limit: 1,
+        includeMediaAssets: true,
+      },
+    );
+    assert.equal(firstPage.hasMore, true);
+    assert.equal(firstPage.changes.length, 1);
+    assert.equal(firstPage.changes[0]?.entityType, "media_asset");
+    assert.equal(firstPage.changes[0]?.entityId, input.mediaAssetId);
+
+    const secondPage = await processSyncPull(
+      fixture.workspaceId,
+      fixture.userId,
+      {
+        installationId,
+        platform: "web",
+        appVersion: "postgres-integration",
+        afterHotChangeId: firstPage.nextHotChangeId,
+        limit: 1,
+        includeMediaAssets: true,
+      },
+    );
+    assert.equal(secondPage.hasMore, false);
+    assert.equal(secondPage.changes.length, 1);
+    const readyCardChange = secondPage.changes[0];
+    assert.equal(readyCardChange?.entityType, "card");
+    assert.equal(readyCardChange?.entityId, input.cardId);
+    if (readyCardChange?.entityType !== "card") {
+      throw new Error("Second sync page did not contain the ready card.");
+    }
+    assert.deepEqual(
+      extractMarkdownImageDestinationUrls(readyCardChange.payload.backText),
+      [`fcasset:${input.mediaAssetId}`],
+    );
+  });
+});
+
+test("protocol activation fences lifecycle jobs from pre-change workers", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const run = await createRun(fixture);
+    const input = createInput(fixture, run);
+    const client = await fixture.ownerPool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        "DROP FUNCTION content.generated_media_promotion_protocol_v2_active()",
+      );
+      await client.query("COMMIT");
+
+      await assert.rejects(
+        enqueueGeneratedMediaPromotionJob(input),
+        GeneratedMediaPromotionProtocolInactiveError,
+      );
+      assert.equal(
+        (await fixture.ownerPool.query<{ count: string }>(
+          "SELECT count(*)::text AS count FROM content.generated_media_promotion_jobs WHERE job_id = $1",
+          [input.jobId],
+        )).rows[0]?.count,
+        "0",
+      );
+      assert.deepEqual(
+        extractMarkdownImageDestinationUrls(
+          (await fixture.ownerPool.query<{ back_text: string }>(
+            `SELECT back_text
+             FROM content.cards
+             WHERE workspace_id = $1 AND card_id = $2`,
+            [fixture.workspaceId, fixture.cardId],
+          )).rows[0]?.back_text ?? "",
+        ),
+        [],
+      );
+
+      await client.query("BEGIN");
+      await client.query(placeholderTerminalStateMigrationSql);
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    assert.deepEqual(
+      await enqueueGeneratedMediaPromotionJob(input),
+      {
+        outcome: "created",
+        jobId: input.jobId,
+        placeholderApplied: true,
+      },
+    );
+    assert.deepEqual(
+      (await fixture.runtimePool.query<{ job_id: string }>(
+        "SELECT job_id FROM content.claim_generated_media_promotion_jobs($1, $2, $3)",
+        ["pre-lifecycle-worker", 60_000, 1],
+      )).rows,
+      [],
+    );
+
+    const claimed = await claim("lifecycle-worker", 1);
+    assert.equal(claimed[0]?.jobId, input.jobId);
+    const writer = await reserveGeneratedMediaBlobWriter(
+      byJobId(claimed, input.jobId),
+      Date.now() + 10_000,
+    );
+    await applyGeneratedMediaPromotionJob(writer, Date.now() + 10_000);
+
+    assert.deepEqual(
+      (await fixture.ownerPool.query<{ state: string; protocol_version: number }>(
+        `SELECT state, protocol_version
+         FROM content.generated_media_promotion_jobs
+         WHERE job_id = $1`,
+        [input.jobId],
+      )).rows[0],
+      { state: "applied", protocol_version: 2 },
+    );
+    assert.deepEqual(
+      extractMarkdownImageDestinationUrls(
+        (await fixture.ownerPool.query<{ back_text: string }>(
+          `SELECT back_text
+           FROM content.cards
+           WHERE workspace_id = $1 AND card_id = $2`,
+          [fixture.workspaceId, fixture.cardId],
+        )).rows[0]?.back_text ?? "",
+      ),
+      [`fcasset:${input.mediaAssetId}`],
+    );
+  });
+});
+
 test("promotion job payload uses Unicode code points for alt-text limits", async () => {
   await withPostgresIntegrationFixture(async (fixture) => {
     const run = await createRun(fixture);
@@ -739,7 +1466,11 @@ test("promotion job payload uses Unicode code points for alt-text limits", async
 
     assert.deepEqual(
       await enqueueGeneratedMediaPromotionJob(input),
-      { outcome: "created", jobId: input.jobId },
+      {
+        outcome: "created",
+        jobId: input.jobId,
+        placeholderApplied: true,
+      },
     );
     const jobs = await claim("unicode-alt-text-worker", 1);
     assert.equal(jobs.length, 1);
@@ -876,6 +1607,24 @@ test("access revocation resolves an exact generated writer and fences stale leas
         job_error_code: "DATABASE_COMMIT_OUTCOME_UNKNOWN",
         reservation_state: "ambiguous",
       },
+    );
+    const parserFencePendingUrl =
+      `fcasset:${rescheduled.mediaAssetId}?state=pending`;
+    const parserFenceLink = `[Literal lifecycle link](${parserFencePendingUrl})`;
+    const parserFenceInlineCode = `\`![Literal lifecycle image](${parserFencePendingUrl})\``;
+    const deletedAt = new Date(Date.parse(fixture.createdAt) + 120_000).toISOString();
+    await fixture.ownerPool.query(
+      `UPDATE content.cards
+       SET back_text = back_text || E'\\n\\n' || $1 || E'\\n' || $2,
+           deleted_at = $3
+       WHERE workspace_id = $4 AND card_id = $5`,
+      [
+        parserFenceLink,
+        parserFenceInlineCode,
+        deletedAt,
+        fixture.workspaceId,
+        fixture.cardId,
+      ],
     );
     await fixture.ownerPool.query(
       "DELETE FROM org.workspace_memberships WHERE workspace_id = $1 AND user_id = $2",
@@ -1037,6 +1786,59 @@ test("access revocation resolves an exact generated writer and fences stale leas
       reservation_state: "active",
       reservation_sha256: conflictingSha256,
     });
+    const terminalizedCard = await fixture.ownerPool.query<{
+      back_text: string;
+      card_hot_changes: string;
+      deleted_at: Date;
+    }>(
+      `SELECT
+         cards.back_text,
+         cards.deleted_at,
+         (
+           SELECT count(*)::TEXT
+           FROM sync.hot_changes AS changes
+           WHERE changes.workspace_id = cards.workspace_id
+             AND changes.entity_type = 'card'
+             AND changes.entity_id = cards.card_id::TEXT
+         ) AS card_hot_changes
+       FROM content.cards AS cards
+       WHERE cards.workspace_id = $1 AND cards.card_id = $2`,
+      [fixture.workspaceId, fixture.cardId],
+    );
+    const terminalizedCardRow = terminalizedCard.rows[0];
+    assert.ok(terminalizedCardRow);
+    const terminalizedImageDestinations = extractMarkdownImageDestinationUrls(
+      terminalizedCardRow.back_text,
+    );
+    for (const failedJob of [
+      reclaimedRescheduled,
+      ambiguous,
+      absent,
+      replacement,
+    ]) {
+      assert.equal(
+        terminalizedImageDestinations.includes(
+          `fcasset:${failedJob.mediaAssetId}?state=failed`,
+        ),
+        true,
+      );
+      assert.equal(
+        terminalizedImageDestinations.includes(
+          `fcasset:${failedJob.mediaAssetId}?state=pending`,
+        ),
+        false,
+      );
+    }
+    assert.equal(
+      terminalizedCardRow.back_text.includes(
+        `fcasset:${metadataConflict.mediaAssetId}?state=pending`,
+      ),
+      true,
+    );
+    assert.equal(terminalizedCardRow.back_text.includes(parserFenceLink), true);
+    assert.equal(terminalizedCardRow.back_text.includes(parserFenceInlineCode), true);
+    assert.equal(terminalizedCardRow.deleted_at.toISOString(), deletedAt);
+    assert.equal(terminalizedCardRow.card_hot_changes, "10");
     await assert.rejects(
       fixture.runtimePool.query(
         "SELECT reservation_token FROM content.media_blob_writer_reservations LIMIT 1",

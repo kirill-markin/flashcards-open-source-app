@@ -6,6 +6,21 @@ type MarkdownUrlRewrite = Readonly<{
   replacementUrl: string;
 }>;
 
+export type ManagedMediaLifecycleState = "ready" | "pending" | "failed";
+
+export type ManagedMediaLifecycleReference = Readonly<{
+  mediaAssetId: string;
+  state: ManagedMediaLifecycleState;
+  destination: string;
+  isImage: boolean;
+}>;
+
+export type ManagedMediaLifecycleIssues = Readonly<{
+  pendingDestinations: ReadonlyArray<string>;
+  failedDestinations: ReadonlyArray<string>;
+  unsupportedDestinations: ReadonlyArray<string>;
+}>;
+
 type MarkdownLinkDestination = Readonly<{
   labelStartIndex: number;
   labelEndIndex: number;
@@ -169,6 +184,9 @@ export type FcAssetIdResolver = (assetId: string) => string;
 export type PortableMediaAssetIdResolver = (portableMediaPath: string) => string;
 
 const fcAssetUrlPattern = /^fcasset:([A-Za-z0-9][A-Za-z0-9._-]*)$/;
+const managedMediaLifecycleUrlPattern =
+  /^fcasset:([A-Za-z0-9][A-Za-z0-9._-]*)(?:\?state=(pending|failed))?$/;
+const managedMediaSchemePrefix = "fcasset:";
 const absoluteUrlPattern = /^[A-Za-z][A-Za-z0-9+.-]*:/;
 const localMediaPathWithLeadingDotSegmentsPattern = /^(?:\.\.?[\\/])+media(?:[\\/]|$)/;
 const portableMediaPathSegmentPattern = /^[A-Za-z0-9._-]+$/;
@@ -195,6 +213,8 @@ const markdownAtxHeadingStart: MarkdownBlockStart = { kind: "atx-heading" };
 const markdownLineChunkCapacity = 8_192;
 const markdownMaximumInlineLabelDepth = 1_000;
 const markdownMaximumLinkDestinationParenthesisDepth = 32;
+const markdownComplexityLimitErrorCode =
+  "MARKDOWN_COMPLEXITY_LIMIT_EXCEEDED";
 
 class MarkdownComplexityError extends Error {
   readonly sourceIndex: number;
@@ -215,8 +235,13 @@ function translateMarkdownComplexityError(error: MarkdownComplexityError): HttpE
   return new HttpError(
     400,
     error.message,
-    "MARKDOWN_COMPLEXITY_LIMIT_EXCEEDED",
+    markdownComplexityLimitErrorCode,
   );
+}
+
+export function isMarkdownComplexityLimitError(error: unknown): error is HttpError {
+  return error instanceof HttpError
+    && error.code === markdownComplexityLimitErrorCode;
 }
 
 function runMarkdownHelper<Result>(operation: () => Result): Result {
@@ -237,6 +262,30 @@ function matchFcAssetId(url: string): string | null {
   }
 
   return match[1] ?? null;
+}
+
+export function parseManagedMediaLifecycleReference(
+  destination: string,
+): Omit<ManagedMediaLifecycleReference, "isImage"> | null {
+  const match = managedMediaLifecycleUrlPattern.exec(destination);
+  if (match === null) {
+    return null;
+  }
+  const mediaAssetId = match[1];
+  const lifecycleState = match[2];
+  if (mediaAssetId === undefined) {
+    return null;
+  }
+  const state: ManagedMediaLifecycleState = lifecycleState === "pending"
+    ? "pending"
+    : lifecycleState === "failed"
+      ? "failed"
+      : "ready";
+  return {
+    mediaAssetId,
+    state,
+    destination,
+  };
 }
 
 function countRepeatedCharacter(markdown: string, index: number, marker: "`" | "~"): number {
@@ -2899,6 +2948,91 @@ export function extractMarkdownImageFcAssetIds(markdown: string): ReadonlyArray<
   return runMarkdownHelper(() => extractMarkdownImageFcAssetIdsUnchecked(markdown));
 }
 
+function extractMarkdownImageDestinationUrlsUnchecked(markdown: string): ReadonlyArray<string> {
+  const destinations: Array<string> = [];
+  for (const destination of iterateMarkdownActiveDestinations(markdown)) {
+    if (!destination.hasDestination || !destination.isImage) {
+      continue;
+    }
+    destinations.push(destination.destination);
+  }
+  return destinations;
+}
+
+export function extractMarkdownImageDestinationUrls(markdown: string): ReadonlyArray<string> {
+  return runMarkdownHelper(() => extractMarkdownImageDestinationUrlsUnchecked(markdown));
+}
+
+function extractMarkdownManagedMediaLifecycleReferencesUnchecked(
+  markdown: string,
+): ReadonlyArray<ManagedMediaLifecycleReference> {
+  const references: Array<ManagedMediaLifecycleReference> = [];
+  for (const destination of iterateMarkdownActiveDestinations(markdown)) {
+    if (!destination.hasDestination) {
+      continue;
+    }
+    const reference = parseManagedMediaLifecycleReference(destination.destination);
+    if (reference === null) {
+      continue;
+    }
+    references.push({
+      ...reference,
+      isImage: destination.isImage,
+    });
+  }
+  return references;
+}
+
+export function extractMarkdownManagedMediaLifecycleReferences(
+  markdown: string,
+): ReadonlyArray<ManagedMediaLifecycleReference> {
+  return runMarkdownHelper(() => (
+    extractMarkdownManagedMediaLifecycleReferencesUnchecked(markdown)
+  ));
+}
+
+function extractMarkdownManagedMediaLifecycleIssuesUnchecked(
+  markdown: string,
+): ManagedMediaLifecycleIssues {
+  const pendingDestinations: Array<string> = [];
+  const failedDestinations: Array<string> = [];
+  const unsupportedDestinations: Array<string> = [];
+  for (const destination of iterateMarkdownActiveDestinations(markdown)) {
+    if (!destination.hasDestination) {
+      continue;
+    }
+    const reference = parseManagedMediaLifecycleReference(destination.destination);
+    if (reference?.state === "pending") {
+      pendingDestinations.push(reference.destination);
+      continue;
+    }
+    if (reference?.state === "failed") {
+      failedDestinations.push(reference.destination);
+      continue;
+    }
+    if (
+      reference === null
+      && destination.destination.slice(0, managedMediaSchemePrefix.length).toLowerCase()
+        === managedMediaSchemePrefix
+    ) {
+      unsupportedDestinations.push(destination.destination);
+    }
+  }
+  return {
+    pendingDestinations,
+    failedDestinations,
+    unsupportedDestinations,
+  };
+}
+
+export function extractMarkdownManagedMediaLifecycleIssues(
+  markdown: string,
+): ManagedMediaLifecycleIssues {
+  return runMarkdownHelper(() => (
+    extractMarkdownManagedMediaLifecycleIssuesUnchecked(markdown)
+  ));
+}
+
 function extractMarkdownLinkDestinationUrlsUnchecked(markdown: string): ReadonlyArray<string> {
   const destinations: Array<string> = [];
   for (const linkDestination of iterateMarkdownActiveDestinations(markdown)) {
@@ -2913,6 +3047,41 @@ function extractMarkdownLinkDestinationUrlsUnchecked(markdown: string): Readonly
 
 export function extractMarkdownLinkDestinationUrls(markdown: string): ReadonlyArray<string> {
   return runMarkdownHelper(() => extractMarkdownLinkDestinationUrlsUnchecked(markdown));
+}
+
+export function rewriteMarkdownImageDestinationUrl(
+  markdown: string,
+  currentUrl: string,
+  replacementUrl: string,
+): string {
+  return runMarkdownHelper(() => {
+    const rewrites: Array<MarkdownUrlRewrite> = [];
+    for (const destination of iterateMarkdownActiveDestinations(markdown)) {
+      if (
+        !destination.hasDestination
+        || !destination.isImage
+        || destination.destination !== currentUrl
+      ) {
+        continue;
+      }
+      rewrites.push({
+        startIndex: destination.startIndex,
+        endIndex: destination.endIndex,
+        replacementUrl,
+      });
+    }
+
+    let rewrittenMarkdown = "";
+    let cursorIndex = 0;
+    for (const rewrite of rewrites) {
+      rewrittenMarkdown += markdown.slice(cursorIndex, rewrite.startIndex);
+      rewrittenMarkdown += rewrite.replacementUrl;
+      cursorIndex = rewrite.endIndex;
+    }
+    return rewrites.length === 0
+      ? markdown
+      : rewrittenMarkdown + markdown.slice(cursorIndex);
+  });
 }
 
 function extractMarkdownPortableMediaPathsUnchecked(markdown: string): ReadonlyArray<string> {

@@ -131,7 +131,11 @@ test("generated image orchestration stages before durable enqueue", async () => 
       assert.equal(input.signal.aborted, false);
       assert.deepEqual(operationMetadata, metadata);
       assert.equal(preparedImage.stagingStorageKey, "media/uploads/test");
-      return { outcome: "created", jobId: metadata.operationId };
+      return {
+        outcome: "created",
+        jobId: metadata.operationId,
+        placeholderApplied: true,
+      };
     },
   };
 
@@ -148,6 +152,7 @@ test("generated image orchestration stages before durable enqueue", async () => 
     targetSide: "back",
     mediaRegistrationApplied: false,
     cardAppendApplied: false,
+    placeholderApplied: true,
     reused: false,
     sourceUrl: null,
   });
@@ -369,7 +374,11 @@ test("generated image operation validates raw Unicode length before normalizing 
     }),
     enqueuePromotionJobFn: async (input) => {
       assert.equal(input.altText, altText);
-      return { outcome: "created", jobId: metadata.operationId };
+      return {
+        outcome: "created",
+        jobId: metadata.operationId,
+        placeholderApplied: true,
+      };
     },
   };
 
@@ -434,7 +443,11 @@ test("ambiguous enqueue accepts only a confirmed reconciliation result", async (
         if (enqueueCallCount === 1) {
           throw commitUnknownError;
         }
-        return { outcome, jobId: metadata.operationId };
+        return {
+          outcome,
+          jobId: metadata.operationId,
+          placeholderApplied: true,
+        };
       }),
     );
 
@@ -449,7 +462,11 @@ test("ambiguous enqueue preserves the original error for inconclusive reconcilia
     undefined,
     null,
     { outcome: "pending", jobId: metadata.operationId },
-    { outcome: "existing", jobId: "66666666-6666-4666-8666-666666666666" },
+    {
+      outcome: "existing",
+      jobId: "66666666-6666-4666-8666-666666666666",
+      placeholderApplied: true,
+    },
   ];
 
   for (const inconclusiveResult of inconclusiveResults) {

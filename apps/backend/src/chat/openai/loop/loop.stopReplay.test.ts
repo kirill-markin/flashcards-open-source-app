@@ -284,6 +284,7 @@ test("generated image reuse is stable when reclaim changes preceding SQL call co
       return {
         outcome: existing ? "existing" : "created",
         jobId: metadata.operationId,
+        placeholderApplied: true,
       };
     },
   };

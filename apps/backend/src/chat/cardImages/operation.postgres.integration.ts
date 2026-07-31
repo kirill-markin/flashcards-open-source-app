@@ -306,6 +306,7 @@ test("generated image operation reconciles ambiguous enqueue without early card 
         assert.equal(storageCalls, 1);
         assert.deepEqual(results.map((result) => result.reused).sort(), [true, true]);
         assert.equal(results.every((result) => result.cardAppendApplied === false), true);
+        assert.equal(results.every((result) => result.placeholderApplied), true);
         assert.deepEqual(results.map((result) => result.status), ["already_queued", "already_queued"]);
         assert.equal(enqueueCalls, 3);
         assert.equal(await countMediaAsset(fixture, operationMetadata.mediaAssetId), 0);
@@ -313,7 +314,10 @@ test("generated image operation reconciles ambiguous enqueue without early card 
           "SELECT back_text FROM content.cards WHERE workspace_id = $1 AND card_id = $2",
           [fixture.workspaceId, fixture.cardId],
         );
-        assert.equal(card.rows[0]?.back_text, "Original answer");
+        assert.equal(
+          card.rows[0]?.back_text,
+          `Original answer\n\n![Generated integration diagram](fcasset:${operationMetadata.mediaAssetId}?state=pending)`,
+        );
         const job = await fixture.ownerPool.query<PromotionJobRow>(
           `SELECT user_id, operation_id, card_id, replica_id, sha256, state
            FROM content.generated_media_promotion_jobs
@@ -358,6 +362,7 @@ test("generated image operation reconciles ambiguous enqueue without early card 
         );
         assert.equal(completedRetry.reused, true);
         assert.equal(completedRetry.cardAppendApplied, false);
+        assert.equal(completedRetry.placeholderApplied, true);
         assert.equal(completedRetry.status, "already_queued");
         assert.equal(providerCalls, 1);
         await closeSessionAdvisoryLockPoolForTests();
@@ -452,6 +457,7 @@ test("persisted provider start blocks replay without staging and permits staged 
         enqueueGeneratedMediaPromotionJobFn: async (job) => ({
           outcome: "created",
           jobId: job.jobId,
+          placeholderApplied: true,
         }),
       });
 

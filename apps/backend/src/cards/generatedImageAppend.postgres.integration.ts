@@ -1,10 +1,16 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
 import type { DatabaseExecutor, SqlValue } from "../database";
 import { HttpError } from "../shared/errors";
 import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../testSupport/postgresIntegration";
-import { appendManagedImageToCardSideInExecutor } from "./index";
+import {
+  appendManagedImageToCardSideInExecutor,
+  appendPendingManagedImageToCardSideInExecutor,
+  markPendingManagedImageFailedOnCardSideInExecutor,
+  markPendingManagedImageReadyOnCardSideInExecutor,
+} from "./index";
 import type { AppendManagedImageToCardSideInput, AppendManagedImageToCardSideResult } from "./types";
 
 const futureClientUpdatedAt = "2099-01-01T00:00:00.000Z";
@@ -306,5 +312,274 @@ test("card image append is atomic, lock-safe, RLS-scoped, and duplicate-free", a
         assert.equal(await countCardHotChanges(fixture), 1);
       }
     }
+  });
+});
+
+test("generated image placeholders transition in place without changing unrelated Markdown", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const mediaAssetId = randomUUID();
+    const input: AppendManagedImageToCardSideInput = {
+      cardId: fixture.cardId,
+      targetSide: "back",
+      mediaAssetId,
+      altText: "Generated lifecycle image",
+    };
+    const metadata = {
+      clientUpdatedAt: fixture.createdAt,
+      lastModifiedByReplicaId: fixture.replicaId,
+      lastOperationId: randomUUID(),
+    };
+    const pendingUrl = `fcasset:${mediaAssetId}?state=pending`;
+    const readyUrl = `fcasset:${mediaAssetId}`;
+    const failedUrl = `fcasset:${mediaAssetId}?state=failed`;
+
+    const pending = await withRuntimeTransaction(
+      fixture,
+      fixture.workspaceId,
+      (executor) => appendPendingManagedImageToCardSideInExecutor(
+        executor,
+        fixture.workspaceId,
+        input,
+        metadata,
+      ),
+    );
+    assert.equal(pending.applied, true);
+    assert.equal(pending.placeholderApplied, true);
+    assert.equal(
+      pending.card.backText,
+      `Original answer\n\n![Generated lifecycle image](${pendingUrl})`,
+    );
+
+    const pendingRetry = await withRuntimeTransaction(
+      fixture,
+      fixture.workspaceId,
+      (executor) => appendPendingManagedImageToCardSideInExecutor(
+        executor,
+        fixture.workspaceId,
+        { ...input, altText: "Changed retry alt text" },
+        { ...metadata, lastOperationId: randomUUID() },
+      ),
+    );
+    assert.equal(pendingRetry.applied, false);
+    assert.equal(pendingRetry.placeholderApplied, true);
+
+    await fixture.ownerPool.query(
+      `UPDATE content.cards
+       SET back_text = $1 || E'\\n\\n' || back_text || E'\\n\\nConcurrent editor suffix'
+       WHERE workspace_id = $2 AND card_id = $3`,
+      ["Concurrent editor prefix", fixture.workspaceId, fixture.cardId],
+    );
+    const ready = await withRuntimeTransaction(
+      fixture,
+      fixture.workspaceId,
+      (executor) => markPendingManagedImageReadyOnCardSideInExecutor(
+        executor,
+        fixture.workspaceId,
+        input,
+        { ...metadata, lastOperationId: randomUUID() },
+        async () => {},
+      ),
+    );
+    assert.equal(ready.applied, true);
+    assert.equal(ready.card.backText.includes(pendingUrl), false);
+    assert.equal(ready.card.backText.includes(`![Generated lifecycle image](${readyUrl})`), true);
+    assert.equal(ready.card.backText.startsWith("Concurrent editor prefix\n\nOriginal answer"), true);
+    assert.equal(ready.card.backText.endsWith("Concurrent editor suffix"), true);
+
+    const failAfterReady = await withRuntimeTransaction(
+      fixture,
+      fixture.workspaceId,
+      (executor) => markPendingManagedImageFailedOnCardSideInExecutor(
+        executor,
+        fixture.workspaceId,
+        input,
+        { ...metadata, lastOperationId: randomUUID() },
+      ),
+    );
+    assert.equal(failAfterReady.applied, false);
+    assert.equal(failAfterReady.card.backText.includes(readyUrl), true);
+
+    const failedMediaAssetId = randomUUID();
+    const failedInput = {
+      ...input,
+      mediaAssetId: failedMediaAssetId,
+      altText: "Failed generated lifecycle image",
+    };
+    await withRuntimeTransaction(
+      fixture,
+      fixture.workspaceId,
+      (executor) => appendPendingManagedImageToCardSideInExecutor(
+        executor,
+        fixture.workspaceId,
+        failedInput,
+        { ...metadata, lastOperationId: randomUUID() },
+      ),
+    );
+    const failed = await withRuntimeTransaction(
+      fixture,
+      fixture.workspaceId,
+      (executor) => markPendingManagedImageFailedOnCardSideInExecutor(
+        executor,
+        fixture.workspaceId,
+        failedInput,
+        { ...metadata, lastOperationId: randomUUID() },
+      ),
+    );
+    assert.equal(failed.applied, true);
+    assert.equal(
+      failed.card.backText.includes(
+        `![Failed generated lifecycle image](fcasset:${failedMediaAssetId}?state=failed)`,
+      ),
+      true,
+    );
+    assert.equal(failed.card.backText.includes(failedUrl), false);
+
+    const fencedMediaAssetId = randomUUID();
+    const fencedPendingUrl = `fcasset:${fencedMediaAssetId}?state=pending`;
+    await fixture.ownerPool.query(
+      "UPDATE content.cards SET back_text = $1 WHERE workspace_id = $2 AND card_id = $3",
+      [
+        ["```markdown", `![Literal](${fencedPendingUrl})`, "```", "Visible answer"].join("\n"),
+        fixture.workspaceId,
+        fixture.cardId,
+      ],
+    );
+    const fencedInput = {
+      ...input,
+      mediaAssetId: fencedMediaAssetId,
+      altText: "Active generated image",
+    };
+    await withRuntimeTransaction(
+      fixture,
+      fixture.workspaceId,
+      (executor) => appendPendingManagedImageToCardSideInExecutor(
+        executor,
+        fixture.workspaceId,
+        fencedInput,
+        { ...metadata, lastOperationId: randomUUID() },
+      ),
+    );
+    const fencedReady = await withRuntimeTransaction(
+      fixture,
+      fixture.workspaceId,
+      (executor) => markPendingManagedImageReadyOnCardSideInExecutor(
+        executor,
+        fixture.workspaceId,
+        fencedInput,
+        { ...metadata, lastOperationId: randomUUID() },
+        async () => {},
+      ),
+    );
+    assert.equal(
+      fencedReady.card.backText,
+      [
+        "```markdown",
+        `![Literal](${fencedPendingUrl})`,
+        "```",
+        "Visible answer",
+        "",
+        `![Active generated image](fcasset:${fencedMediaAssetId})`,
+      ].join("\n"),
+    );
+
+    const tombstonedReadyInput = {
+      ...input,
+      mediaAssetId: randomUUID(),
+      altText: "Tombstoned ready image",
+    };
+    await withRuntimeTransaction(
+      fixture,
+      fixture.workspaceId,
+      (executor) => appendPendingManagedImageToCardSideInExecutor(
+        executor,
+        fixture.workspaceId,
+        tombstonedReadyInput,
+        { ...metadata, lastOperationId: randomUUID() },
+      ),
+    );
+    const firstDeletedAt = new Date(Date.parse(fixture.createdAt) + 60_000).toISOString();
+    await fixture.ownerPool.query(
+      "UPDATE content.cards SET deleted_at = $1 WHERE workspace_id = $2 AND card_id = $3",
+      [firstDeletedAt, fixture.workspaceId, fixture.cardId],
+    );
+    const tombstonedReady = await withRuntimeTransaction(
+      fixture,
+      fixture.workspaceId,
+      (executor) => markPendingManagedImageReadyOnCardSideInExecutor(
+        executor,
+        fixture.workspaceId,
+        tombstonedReadyInput,
+        { ...metadata, lastOperationId: randomUUID() },
+        async () => {},
+      ),
+    );
+    assert.equal(tombstonedReady.applied, true);
+    assert.equal(tombstonedReady.card.deletedAt, firstDeletedAt);
+    assert.equal(
+      tombstonedReady.card.backText.includes(
+        `fcasset:${tombstonedReadyInput.mediaAssetId}?state=pending`,
+      ),
+      false,
+    );
+    assert.equal(
+      tombstonedReady.card.backText.includes(`fcasset:${tombstonedReadyInput.mediaAssetId}`),
+      true,
+    );
+    await assert.rejects(
+      withRuntimeTransaction(
+        fixture,
+        fixture.workspaceId,
+        (executor) => appendPendingManagedImageToCardSideInExecutor(
+          executor,
+          fixture.workspaceId,
+          { ...input, mediaAssetId: randomUUID(), altText: "Blocked tombstone append" },
+          { ...metadata, lastOperationId: randomUUID() },
+        ),
+      ),
+      (error: unknown) => error instanceof HttpError && error.statusCode === 404,
+    );
+
+    await fixture.ownerPool.query(
+      "UPDATE content.cards SET deleted_at = NULL WHERE workspace_id = $1 AND card_id = $2",
+      [fixture.workspaceId, fixture.cardId],
+    );
+    const tombstonedFailedInput = {
+      ...input,
+      mediaAssetId: randomUUID(),
+      altText: "Tombstoned failed image",
+    };
+    await withRuntimeTransaction(
+      fixture,
+      fixture.workspaceId,
+      (executor) => appendPendingManagedImageToCardSideInExecutor(
+        executor,
+        fixture.workspaceId,
+        tombstonedFailedInput,
+        { ...metadata, lastOperationId: randomUUID() },
+      ),
+    );
+    const secondDeletedAt = new Date(Date.parse(firstDeletedAt) + 60_000).toISOString();
+    await fixture.ownerPool.query(
+      "UPDATE content.cards SET deleted_at = $1 WHERE workspace_id = $2 AND card_id = $3",
+      [secondDeletedAt, fixture.workspaceId, fixture.cardId],
+    );
+    const tombstonedFailed = await withRuntimeTransaction(
+      fixture,
+      fixture.workspaceId,
+      (executor) => markPendingManagedImageFailedOnCardSideInExecutor(
+        executor,
+        fixture.workspaceId,
+        tombstonedFailedInput,
+        { ...metadata, lastOperationId: randomUUID() },
+      ),
+    );
+    assert.equal(tombstonedFailed.applied, true);
+    assert.equal(tombstonedFailed.card.deletedAt, secondDeletedAt);
+    assert.equal(
+      tombstonedFailed.card.backText.includes(
+        `fcasset:${tombstonedFailedInput.mediaAssetId}?state=failed`,
+      ),
+      true,
+    );
   });
 });

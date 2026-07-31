@@ -45,6 +45,23 @@ Managed media persists in card text as one of these forms:
 [label](fcasset:<mediaAssetId>)
 ```
 
+Generated images use an image-only lifecycle reference on the exact requested
+card side:
+
+```text
+pending = ![label](fcasset:<mediaAssetId>?state=pending)
+ready   = ![label](fcasset:<mediaAssetId>)
+failed  = ![label](fcasset:<mediaAssetId>?state=failed)
+```
+
+The pending marker is written atomically with durable background-promotion
+admission. Successful promotion removes the query state; terminal failure
+changes `state=pending` to `state=failed`. Card text never contains a localized
+status sentence, staging URL, or image payload. Each client owns localized
+pending and failed presentation and extracts the media asset ID before the query
+parameters. Pending and failed references are not exportable or publishable
+managed media.
+
 Outside fenced code, clients render these references with their existing
 managed-media UI. An `fcasset:` URL must never be sent to a generic network
 image loader. Inside fenced code, the same text is literal code and must not

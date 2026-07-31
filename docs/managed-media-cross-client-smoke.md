@@ -75,6 +75,28 @@ If any path fails, capture:
 
 After this change is merged and deployed, make the next permitted real image request from a signed-in production chat:
 
-- Explicitly request one teaching-relevant image, confirm the assistant inspects the card first, names the card and side, and attaches exactly one canonical managed-media reference to that side; sync Web, iOS, and Android and confirm it renders everywhere without front-side answer leakage.
-- Do not make additional real image requests for cap, retry, replay, cancellation, claim-loss, or guest checks. Use the deployed automated test results and structured logs to confirm those paths, including that guest chat stays SQL-only.
+- Explicitly request one teaching-relevant image and confirm the assistant
+  inspects the card first and names the card and side.
+- While background promotion is outstanding, inspect the requested side and
+  confirm it contains exactly one pending marker:
+  `![<alt>](fcasset:<mediaAssetId>?state=pending)`. Ordinary card text on both
+  sides must remain unchanged.
+- After promotion completes, sync Web, iOS, and Android. Confirm the same
+  marker becomes `![<alt>](fcasset:<mediaAssetId>)`, the image renders
+  everywhere, and no answer-revealing content appears on the front.
+- Confirm the pending and ready writes each appear as card hot-sync changes
+  with the generated operation metadata. The media asset registration and
+  query-free card marker must become durable in the same promotion
+  transaction.
+- Do not make additional real image requests for cap, retry, replay,
+  cancellation, claim-loss, guest, or terminal-failure checks. Use the
+  deployed automated Postgres integration result and structured promotion-job
+  logs to confirm that retries retain `?state=pending`, terminal failures
+  change a still-present marker to `?state=failed`, access revocation performs
+  the same transition, and guest chat stays SQL-only.
+- For failure evidence without another paid image request, use the automated
+  fixture's deterministic staged bytes and correlate the promotion `jobId`,
+  `workspaceId`, terminal `errorCode`, and outcome in structured logs. Confirm
+  the corresponding card hot-change record and failed marker; do not inject a
+  production failure or replay a provider request.
 - Record only model/status/request ID/duration and card/media IDs, never prompts, alt text, image bytes/base64, signed URLs, storage keys, or tool output.
