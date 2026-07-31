@@ -12,6 +12,8 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
@@ -399,6 +401,59 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         )
         composeRule.onNodeWithTag(aiComposerMessageFieldTag).assertIsNotFocused()
         assertTrue(didSend)
+    }
+
+    @Test
+    fun conversationSurfaceTapClearsComposerFocus() {
+        composeRule.setContent {
+            FlashcardsTheme {
+                AiRoute(
+                    uiState = makeAiUiState(),
+                    onAcceptConsent = {},
+                    onDraftMessageChange = {},
+                    onApplyComposerSuggestion = {},
+                    onSendMessage = {},
+                    onCancelStreaming = {},
+                    onNewChat = {},
+                    onOpenAccountStatus = {},
+                    onDismissErrorMessage = {},
+                    onDismissAlert = {},
+                    onAddPendingAttachment = {},
+                    onRemovePendingAttachment = {},
+                    onStartDictationPermissionRequest = {},
+                    onStartDictationRecording = {},
+                    onTranscribeRecordedAudio = { _, _, _ -> },
+                    onCancelDictation = {},
+                    onScreenVisible = {},
+                    onScreenHidden = {},
+                    onWarmUpSessionIfNeeded = {},
+                    onRetryConversationLoad = {},
+                    onShowAlert = {},
+                    onShowErrorMessage = {},
+                    technicalErrorController = NoOpTechnicalErrorController
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000L) {
+            composeRule.onAllNodesWithTag(aiComposerMessageFieldTag)
+                .fetchSemanticsNodes()
+                .singleOrNull()
+                ?.config
+                ?.getOrNull(SemanticsProperties.Focused) == true
+        }
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).assertIsFocused()
+
+        composeRule.onNodeWithTag(aiConversationSurfaceTag).performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000L) {
+            composeRule.onAllNodesWithTag(aiComposerMessageFieldTag)
+                .fetchSemanticsNodes()
+                .singleOrNull()
+                ?.config
+                ?.getOrNull(SemanticsProperties.Focused) == false
+        }
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).assertIsNotFocused()
     }
 
     @Test
