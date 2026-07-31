@@ -968,6 +968,7 @@ export const jaCatalog = {
     errors: {
       cardIdRequired: "カード ID は必須です",
       cardNotFound: "カードが見つかりません",
+      mediaLifecycleConflict: "このカードを開いている間に管理対象の画像が変更されました。保存または「AI で編集」を使用する前に、古い保留中または失敗状態の画像参照を削除するか編集してください。",
     },
     fields: {
       back: "裏面",

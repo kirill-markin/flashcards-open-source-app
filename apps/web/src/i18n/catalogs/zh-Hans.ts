@@ -968,6 +968,7 @@ export const zhHansCatalog = {
     errors: {
       cardIdRequired: "卡片 ID 为必填项",
       cardNotFound: "未找到卡片",
+      mediaLifecycleConflict: "此卡片打开期间，受管理的图片已发生变化。保存或使用“通过 AI 编辑”前，请删除或编辑过期的待处理或失败图片引用。",
     },
     fields: {
       back: "背面",

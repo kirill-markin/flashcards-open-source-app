@@ -968,6 +968,7 @@ const hiCatalog: TranslationCatalog = {
     errors: {
       cardIdRequired: "कार्ड ID आवश्यक है",
       cardNotFound: "कार्ड नहीं मिला",
+      mediaLifecycleConflict: "यह कार्ड खुला रहने के दौरान एक प्रबंधित इमेज बदल गई। सेव करने या AI से संपादित करें का उपयोग करने से पहले पुराने लंबित या विफल इमेज रेफ़रेंस को हटाएँ या संपादित करें।",
     },
     fields: {
       back: "पीछे",
