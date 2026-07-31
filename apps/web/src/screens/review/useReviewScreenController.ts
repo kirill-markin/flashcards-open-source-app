@@ -247,6 +247,7 @@ export function useReviewScreenController(
     selectedReviewFilter: resolvedReviewFilter,
   });
   const {
+    captureEditorPresentationToken,
     editorErrorMessage,
     editingCard,
     editorFormState,
@@ -256,14 +257,18 @@ export function useReviewScreenController(
     handleEditorSave,
     handlePrepareImageMedia,
     handleOpenEditor,
+    handleCloseEditor,
+    handleCloseEditorIfCurrent,
     isEditorPresented,
     isEditorSaving,
+    isEditorSubmissionAllowed,
+    isEditorSubmissionBlocked,
     managedMediaState,
     setEditorFormState,
-    setIsEditorPresented,
   } = useReviewCardEditor({
     deleteCardItem,
     installationId: cloudSettings?.installationId ?? null,
+    localReadVersion,
     queueCards,
     runMediaUploadTransfers,
     selectedCard,
@@ -765,10 +770,14 @@ export function useReviewScreenController(
   }
 
   async function handleEditorAiHandoff(): Promise<void> {
-    if (editingCard === null) {
+    if (editingCard === null || isEditorSubmissionAllowed() === false) {
       return;
     }
 
+    const presentationToken = captureEditorPresentationToken();
+    if (presentationToken === null) {
+      return;
+    }
     const cardForHandoff = isCardFormStateDirty(editingCard, editorFormState)
       ? await handleEditorSaveForAiHandoff()
       : editingCard;
@@ -778,12 +787,8 @@ export function useReviewScreenController(
 
     const didHandoff = await handoffCardToAi(cardForHandoff);
     if (didHandoff) {
-      setIsEditorPresented(false);
+      handleCloseEditorIfCurrent(presentationToken);
     }
-  }
-
-  function handleCloseEditor(): void {
-    setIsEditorPresented(false);
   }
 
   function handleDismissHardReminder(): void {
@@ -928,6 +933,7 @@ export function useReviewScreenController(
       formState: editorFormState,
       isEditorPresented,
       isEditorSaving,
+      isSubmissionBlocked: isEditorSubmissionBlocked,
       localReadVersion,
       managedMediaState,
       workspaceId: activeWorkspace?.workspaceId ?? null,

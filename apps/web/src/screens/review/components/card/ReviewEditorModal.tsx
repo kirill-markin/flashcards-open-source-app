@@ -16,6 +16,7 @@ export type ReviewEditorModalProps = Readonly<{
   formState: CardFormState;
   isEditorPresented: boolean;
   isEditorSaving: boolean;
+  isSubmissionBlocked: boolean;
   localReadVersion: number;
   managedMediaState: CardFormManagedMediaState;
   workspaceId: string | null;
@@ -36,6 +37,7 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
     formState,
     isEditorPresented,
     isEditorSaving,
+    isSubmissionBlocked,
     localReadVersion,
     managedMediaState,
     workspaceId,
@@ -67,7 +69,7 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
             <button
               type="button"
               className="ghost-btn review-editor-ai-btn"
-              disabled={isEditorSaving || isAuthoringMedia}
+              disabled={isEditorSaving || isAuthoringMedia || isSubmissionBlocked}
               onClick={() => void onEditWithAi()}
               data-testid="review-editor-edit-with-ai"
             >
@@ -78,6 +80,7 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
               className="ghost-btn"
               disabled={isEditorSaving || isAuthoringMedia}
               onClick={onClose}
+              data-testid="review-editor-cancel"
             >
               {t("common.cancel")}
             </button>
@@ -92,7 +95,7 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
             <button
               type="button"
               className="primary-btn"
-              disabled={isEditorSaving || isAuthoringMedia}
+              disabled={isEditorSaving || isAuthoringMedia || isSubmissionBlocked}
               onClick={() => void onSave()}
             >
               {isEditorSaving ? t("reviewEditor.saving") : t("reviewEditor.save")}
@@ -100,7 +103,18 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
           </div>
         </div>
 
-        {editorErrorMessage !== "" ? <p className="error-banner">{editorErrorMessage}</p> : null}
+        {isSubmissionBlocked ? (
+          <p
+            className="error-banner"
+            role="alert"
+            data-testid="review-editor-lifecycle-conflict"
+          >
+            {t("cardForm.errors.mediaLifecycleConflict")}
+          </p>
+        ) : null}
+        {editorErrorMessage !== "" ? (
+          <p className="error-banner" role="alert">{editorErrorMessage}</p>
+        ) : null}
 
         <CardFormFields
           tagSuggestions={tagSuggestions}
