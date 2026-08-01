@@ -132,6 +132,9 @@
 "settings.inviteFriend.button" = "Пригласить друга";
 "settings.section.share" = "Поделиться";
 "settings.row.shareApp" = "Поделиться Flashcards";
+"settings.section.feedback" = "Обратная связь";
+"settings.row.reviewInAppStore" = "Оставить отзыв в App Store";
+"settings.row.sharePrivateFeedback" = "Отправить личный отзыв";
 "settings.section.account" = "Аккаунт";
 "settings.section.general" = "Общие";
 "settings.section.support" = "Поддержка";

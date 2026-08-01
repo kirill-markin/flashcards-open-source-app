@@ -132,6 +132,9 @@
 "settings.inviteFriend.button" = "Invitar amigo";
 "settings.section.share" = "Compartir";
 "settings.row.shareApp" = "Compartir Flashcards";
+"settings.section.feedback" = "Comentarios";
+"settings.row.reviewInAppStore" = "Calificar en App Store";
+"settings.row.sharePrivateFeedback" = "Compartir comentarios en privado";
 "settings.section.account" = "Cuenta";
 "settings.section.general" = "General";
 "settings.section.support" = "Soporte";

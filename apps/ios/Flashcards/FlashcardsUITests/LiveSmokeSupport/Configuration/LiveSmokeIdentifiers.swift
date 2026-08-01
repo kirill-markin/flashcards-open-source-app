@@ -25,6 +25,8 @@ enum LiveSmokeIdentifier {
     static let progressLeaderboardSection: String = "progress.leaderboardSection"
     static let cardsScreen: String = "cards.screen"
     static let settingsScreen: String = "settings.screen"
+    static let settingsReviewInAppStoreRow: String = "settings.reviewInAppStoreRow"
+    static let settingsPrivateFeedbackRow: String = "settings.privateFeedbackRow"
     static let settingsAccountStatusRow: String = "settings.accountStatusRow"
     static let settingsCurrentWorkspaceRow: String = "settings.currentWorkspaceRow"
     static let settingsReviewRemindersRow: String = "settings.reviewRemindersRow"

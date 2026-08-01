@@ -132,6 +132,9 @@
 "settings.inviteFriend.button" = "邀请朋友";
 "settings.section.share" = "分享";
 "settings.row.shareApp" = "分享 Flashcards";
+"settings.section.feedback" = "反馈";
+"settings.row.reviewInAppStore" = "在 App Store 中评价";
+"settings.row.sharePrivateFeedback" = "私下分享反馈";
 "settings.section.account" = "账户";
 "settings.section.general" = "通用";
 "settings.section.support" = "支持";
