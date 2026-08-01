@@ -50,6 +50,7 @@ import com.flashcardsopensourceapp.feature.settings.localSyncDiagnostics.LocalSy
 import com.flashcardsopensourceapp.feature.settings.localSyncDiagnostics.createLocalSyncDiagnosticsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.notifications.NotificationDiagnosticsRoute
 import com.flashcardsopensourceapp.feature.settings.notifications.NotificationDiagnosticsUiState
+import com.flashcardsopensourceapp.feature.settings.openExternalUrl
 import com.flashcardsopensourceapp.feature.settings.review.ReviewAnimationsRoute
 import com.flashcardsopensourceapp.feature.settings.settingsInviteFriendDisplayNameFieldTag
 import com.flashcardsopensourceapp.feature.settings.shareFlashcardsApp
@@ -104,6 +105,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         val shareText: String = stringResource(
             id = com.flashcardsopensourceapp.feature.settings.R.string.settings_share_app_text
         )
+        val googlePlayUrl: String = stringResource(
+            id = com.flashcardsopensourceapp.feature.settings.R.string.flashcards_google_play_url
+        )
 
         LaunchedEffect(settingsViewModel) {
             settingsViewModel.refreshAccountContextAsync()
@@ -137,6 +141,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                     title = shareChooserTitle,
                     text = shareText
                 )
+            },
+            onReviewApp = {
+                openExternalUrl(context = context, url = googlePlayUrl)
             },
             onOpenAccountStatus = {
                 navController.navigate(route = SettingsAccountStatusDestination.route)

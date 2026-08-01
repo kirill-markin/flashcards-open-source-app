@@ -3,6 +3,7 @@
     <string name="flashcards_terms_of_service_url" translatable="false">https://flashcards-open-source-app.com/terms/</string>
     <string name="flashcards_support_url" translatable="false">https://flashcards-open-source-app.com/support/</string>
     <string name="flashcards_share_url" translatable="false">https://app.flashcards-open-source-app.com/share</string>
+    <string name="flashcards_google_play_url" translatable="false">https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app</string>
     <string name="flashcards_repository_url" translatable="false">https://github.com/kirill-markin/flashcards-open-source-app</string>
     <string name="third_party_notices_url" translatable="false">https://github.com/kirill-markin/flashcards-open-source-app/blob/main/THIRD_PARTY_NOTICES.md</string>
     <string name="review_owl_animation_url" translatable="false">https://iconscout.com/free-lottie-animation/free-owl-animation_12152606</string>
@@ -73,6 +74,7 @@
 
     <string name="settings_root_title">Settings</string>
     <string name="settings_section_share">Share</string>
+    <string name="settings_section_feedback">Feedback</string>
     <string name="settings_section_account">Account</string>
     <string name="settings_section_general">General</string>
     <string name="settings_section_support">Support</string>
@@ -86,6 +88,8 @@
     <string name="settings_root_feedback_summary">Share an idea to improve the app</string>
     <string name="settings_share_app_title">Share app</string>
     <string name="settings_share_app_summary">Send the iOS, Android, and web app link</string>
+    <string name="settings_review_in_google_play_title">Review in Google Play</string>
+    <string name="settings_share_private_feedback_title">Share private feedback</string>
     <string name="settings_share_app_chooser_title">Share Flashcards</string>
     <string name="settings_share_app_text">Study with Flashcards. Your cards stay available across iOS, Android, and the web.</string>
     <string name="settings_root_test_title">Test</string>
