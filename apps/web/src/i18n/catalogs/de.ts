@@ -386,6 +386,7 @@ const deCatalog: TranslationCatalog = {
     },
     groups: {
       share: "Teilen",
+      feedback: "Feedback",
       account: "Konto",
       general: "Allgemein",
       support: "Support",
@@ -399,6 +400,14 @@ const deCatalog: TranslationCatalog = {
       shareText: "Öffne Flashcards auf iOS, Android oder im Web.",
       shared: "Teilen-Dialog geöffnet.",
       shareUnavailable: "Teilen ist in diesem Browser nicht verfügbar.",
+    },
+    reviewAppStore: {
+      title: "Im App Store bewerten",
+      description: "Bewerte Flashcards auf der Produktseite im App Store.",
+    },
+    privateFeedback: {
+      title: "Privates Feedback teilen",
+      description: "Sende Feedback direkt an das Flashcards-Team.",
     },
     currentWorkspace: {
       title: "Arbeitsbereich",

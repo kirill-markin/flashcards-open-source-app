@@ -42,10 +42,13 @@ import { useTestMode } from "../../testMode";
 import { FriendInviteCreateDialog } from "../friends/FriendInviteCreateDialog";
 import {
   SettingsActionCard,
+  SettingsExternalLinkCard,
   SettingsGroup,
   SettingsNavigationCard,
   SettingsShell,
 } from "./SettingsShared";
+
+const appStoreListingUrl = "https://apps.apple.com/app/id6760538964";
 
 type LocaleNameTranslationKey = `locale.names.${Locale}`;
 
@@ -182,6 +185,24 @@ export function SettingsScreen(): ReactElement {
             {shareErrorMessage}
           </p>
         )}
+      </SettingsGroup>
+
+      <SettingsGroup title={t("settingsHome.groups.feedback")} testId="settings-group-feedback">
+        <div className="settings-nav-list">
+          <SettingsExternalLinkCard
+            title={t("settingsHome.reviewAppStore.title")}
+            description={t("settingsHome.reviewAppStore.description")}
+            href={appStoreListingUrl}
+            testId="settings-row-review-app-store"
+          />
+          <SettingsNavigationCard
+            title={t("settingsHome.privateFeedback.title")}
+            description={t("settingsHome.privateFeedback.description")}
+            value={null}
+            to={settingsFeedbackRoute}
+            testId="settings-row-private-feedback"
+          />
+        </div>
       </SettingsGroup>
 
       <SettingsGroup title={t("settingsHome.groups.account")}>
