@@ -3,7 +3,7 @@
   "name": "com.flashcards-open-source-app/flashcards",
   "title": "Flashcards Open Source App",
   "description": "Read and write open-source flashcards through split read/write MCP tools.",
-  "version": "1.17.0",
+  "version": "1.18.0",
   "websiteUrl": "https://flashcards-open-source-app.com",
   "icons": [
     {
