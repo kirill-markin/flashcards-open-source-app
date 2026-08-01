@@ -386,6 +386,7 @@ const arCatalog: TranslationCatalog = {
     },
     groups: {
       share: "مشاركة",
+      feedback: "الملاحظات",
       account: "الحساب",
       general: "عام",
       support: "الدعم",
@@ -399,6 +400,14 @@ const arCatalog: TranslationCatalog = {
       shareText: "افتح Flashcards على iOS أو Android أو الويب.",
       shared: "تم فتح نافذة المشاركة.",
       shareUnavailable: "المشاركة غير متاحة في هذا المتصفح.",
+    },
+    reviewAppStore: {
+      title: "قيّم في App Store",
+      description: "قيّم Flashcards في صفحة التطبيق على App Store.",
+    },
+    privateFeedback: {
+      title: "شارك ملاحظاتك بشكل خاص",
+      description: "أرسل ملاحظاتك مباشرةً إلى فريق Flashcards.",
     },
     currentWorkspace: {
       title: "مساحة العمل",

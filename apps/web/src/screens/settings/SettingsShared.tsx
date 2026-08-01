@@ -30,9 +30,17 @@ type SettingsActionCardProps = Readonly<{
   workspaceManagementState?: "locked" | "ready";
 }>;
 
+type SettingsExternalLinkCardProps = Readonly<{
+  title: string;
+  description: string;
+  href: string;
+  testId: string;
+}>;
+
 type SettingsGroupProps = Readonly<{
   title?: string;
   children: ReactNode;
+  testId?: string;
 }>;
 
 export function SettingsShell(props: SettingsShellProps): ReactElement {
@@ -93,11 +101,30 @@ export function SettingsActionCard(props: SettingsActionCardProps): ReactElement
   );
 }
 
-export function SettingsGroup(props: SettingsGroupProps): ReactElement {
-  const { title, children } = props;
+export function SettingsExternalLinkCard(props: SettingsExternalLinkCardProps): ReactElement {
+  const { title, description, href, testId } = props;
 
   return (
-    <section className="settings-group">
+    <a
+      className="settings-nav-card content-card"
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      data-testid={testId}
+    >
+      <div className="settings-nav-card-copy">
+        <strong className="panel-subtitle">{title}</strong>
+        <p className="subtitle">{description}</p>
+      </div>
+    </a>
+  );
+}
+
+export function SettingsGroup(props: SettingsGroupProps): ReactElement {
+  const { title, children, testId } = props;
+
+  return (
+    <section className="settings-group" data-testid={testId}>
       {title === undefined ? null : <h2 className="panel-subtitle">{title}</h2>}
       {children}
     </section>

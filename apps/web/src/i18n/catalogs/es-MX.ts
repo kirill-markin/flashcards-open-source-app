@@ -386,6 +386,7 @@ const esMxCatalog: TranslationCatalog = {
     },
     groups: {
       share: "Compartir",
+      feedback: "Comentarios",
       account: "Cuenta",
       general: "General",
       support: "Soporte",
@@ -399,6 +400,14 @@ const esMxCatalog: TranslationCatalog = {
       shareText: "Abre Flashcards en iOS, Android o la web.",
       shared: "Se abrió la hoja para compartir.",
       shareUnavailable: "Compartir no está disponible en este navegador.",
+    },
+    reviewAppStore: {
+      title: "Calificar en App Store",
+      description: "Califica Flashcards en su ficha de App Store.",
+    },
+    privateFeedback: {
+      title: "Compartir comentarios privados",
+      description: "Envía tus comentarios directamente al equipo de Flashcards.",
     },
     currentWorkspace: {
       title: "Espacio de trabajo",

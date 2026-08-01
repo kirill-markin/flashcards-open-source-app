@@ -386,6 +386,7 @@ export const zhHansCatalog = {
     },
     groups: {
       share: "分享",
+      feedback: "反馈",
       account: "账户",
       general: "通用",
       support: "支持",
@@ -399,6 +400,14 @@ export const zhHansCatalog = {
       shareText: "在 iOS、Android 或网页版打开 Flashcards。",
       shared: "分享面板已打开。",
       shareUnavailable: "此浏览器不支持分享。",
+    },
+    reviewAppStore: {
+      title: "在 App Store 中评价",
+      description: "在 App Store 产品页为 Flashcards 评分。",
+    },
+    privateFeedback: {
+      title: "分享私密反馈",
+      description: "直接向 Flashcards 团队发送反馈。",
     },
     currentWorkspace: {
       title: "工作区",
