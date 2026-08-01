@@ -386,6 +386,7 @@ export const jaCatalog = {
     },
     groups: {
       share: "共有",
+      feedback: "フィードバック",
       account: "アカウント",
       general: "一般",
       support: "サポート",
@@ -399,6 +400,14 @@ export const jaCatalog = {
       shareText: "Flashcards を iOS、Android、または Web で開きます。",
       shared: "共有シートを開きました。",
       shareUnavailable: "このブラウザでは共有を利用できません。",
+    },
+    reviewAppStore: {
+      title: "App Store でレビューする",
+      description: "App Store の製品ページで Flashcards を評価します。",
+    },
+    privateFeedback: {
+      title: "非公開のフィードバックを共有",
+      description: "Flashcards チームにフィードバックを直接送信します。",
     },
     currentWorkspace: {
       title: "ワークスペース",

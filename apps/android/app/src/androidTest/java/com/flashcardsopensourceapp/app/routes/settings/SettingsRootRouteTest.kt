@@ -31,6 +31,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsDeleteAccountRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteCurrentWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeviceDiagnosticsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsFeedbackSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsFeedbackRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsGeneralSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsImportRowTag
@@ -39,7 +40,9 @@ import com.flashcardsopensourceapp.feature.settings.settingsLanguageRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLeaderboardParticipationRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLegalRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsOpenSourceRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsPrivateFeedbackRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsResetStudyProgressRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsReviewAppRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsReviewAnimationsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsReviewRemindersRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsRootScreenTag
@@ -57,6 +60,7 @@ import com.flashcardsopensourceapp.feature.settings.testSettingsNotificationDiag
 import com.flashcardsopensourceapp.feature.settings.testSettingsTechnicalErrorRowTag
 import com.flashcardsopensourceapp.feature.settings.testSettingsScreenTag
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -81,6 +85,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
 
         listOf(
             settingsShareSectionTag,
+            settingsFeedbackSectionTag,
             settingsAccountSectionTag,
             settingsGeneralSectionTag,
             settingsSupportSectionTag,
@@ -92,6 +97,8 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         listOf(
             settingsInviteFriendButtonTag,
             settingsShareAppRowTag,
+            settingsReviewAppRowTag,
+            settingsPrivateFeedbackRowTag,
             settingsAccountStatusRowTag,
             settingsCurrentWorkspaceRowTag,
             settingsReviewRemindersRowTag,
@@ -118,6 +125,15 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         ).forEach { rowTag ->
             assertRootRowVisible(rowTag = rowTag)
         }
+        assertRootItemsInOrder(
+            itemTags = listOf(
+                settingsShareAppRowTag,
+                settingsFeedbackSectionTag,
+                settingsReviewAppRowTag,
+                settingsPrivateFeedbackRowTag,
+                settingsAccountSectionTag
+            )
+        )
         composeRule.onAllNodesWithTag(settingsTestRowTag).assertCountEquals(0)
 
         assertRowClick(
@@ -128,6 +144,16 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertRowClick(
             rowTag = settingsShareAppRowTag,
             expectedClick = "share_app",
+            clickedRows = clickedRows
+        )
+        assertRowClick(
+            rowTag = settingsReviewAppRowTag,
+            expectedClick = "review_app",
+            clickedRows = clickedRows
+        )
+        assertRowClick(
+            rowTag = settingsPrivateFeedbackRowTag,
+            expectedClick = "feedback",
             clickedRows = clickedRows
         )
         assertRowClick(
@@ -173,6 +199,11 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertRowClick(
             rowTag = settingsImportRowTag,
             expectedClick = "import",
+            clickedRows = clickedRows
+        )
+        assertRowClick(
+            rowTag = settingsFeedbackRowTag,
+            expectedClick = "feedback",
             clickedRows = clickedRows
         )
         assertRowClick(
@@ -305,6 +336,9 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onShareApp = {
                         clickedRows += "share_app"
                     },
+                    onReviewApp = {
+                        clickedRows += "review_app"
+                    },
                     onOpenAccountStatus = {
                         clickedRows += "account_status"
                     },
@@ -390,6 +424,19 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     private fun assertRootRowVisible(rowTag: String) {
         scrollSettingsRootTargetIntoView(targetTag = rowTag)
         composeRule.onNodeWithTag(testTag = rowTag).assertIsDisplayed()
+    }
+
+    private fun assertRootItemsInOrder(itemTags: List<String>) {
+        scrollSettingsRootTargetIntoView(targetTag = itemTags.last())
+        val topPositions: List<Float> = itemTags.map { itemTag ->
+            composeRule.onNodeWithTag(testTag = itemTag)
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
+                .top
+        }
+
+        assertTrue(topPositions.zipWithNext().all { positions -> positions.first < positions.second })
     }
 
     private fun assertRowClick(

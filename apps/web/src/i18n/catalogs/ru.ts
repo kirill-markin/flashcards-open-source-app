@@ -386,6 +386,7 @@ export const ruCatalog = {
     },
     groups: {
       share: "Поделиться",
+      feedback: "Обратная связь",
       account: "Аккаунт",
       general: "Общие",
       support: "Поддержка",
@@ -399,6 +400,14 @@ export const ruCatalog = {
       shareText: "Откройте Flashcards на iOS, Android или в вебе.",
       shared: "Окно отправки открыто.",
       shareUnavailable: "Отправка недоступна в этом браузере.",
+    },
+    reviewAppStore: {
+      title: "Оценить в App Store",
+      description: "Оцените Flashcards на странице приложения в App Store.",
+    },
+    privateFeedback: {
+      title: "Отправить личный отзыв",
+      description: "Отправьте отзыв напрямую команде Flashcards.",
     },
     currentWorkspace: {
       title: "Рабочее пространство",

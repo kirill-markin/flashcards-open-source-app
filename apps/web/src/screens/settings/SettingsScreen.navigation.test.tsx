@@ -329,11 +329,13 @@ describe("SettingsScreen navigation", () => {
 
     expect(textContent()).toContain("Account");
     expect(textContent()).toContain("Share");
+    expect(textContent()).toContain("Feedback");
     expect(textContent()).toContain("General");
     expect(textContent()).toContain("Support");
     expect(textContent()).toContain("Advanced");
     expectGroupLabelNotClickable("Account");
     expectGroupLabelNotClickable("Share");
+    expectGroupLabelNotClickable("Feedback");
     expectGroupLabelNotClickable("General");
     expectGroupLabelNotClickable("Support");
     expectGroupLabelNotClickable("Advanced");
@@ -362,13 +364,18 @@ describe("SettingsScreen navigation", () => {
       "settings-row-reset-study-progress",
       "settings-row-delete-current-workspace",
       "settings-row-delete-account",
+      "settings-row-review-app-store",
+      "settings-row-private-feedback",
     ].forEach(expectRowVisible);
     expectRowVisible("settings-invite-open");
     expectRowVisible("settings-share-app-open");
     expect(getContainer().querySelector("[data-testid='settings-invite-open']")?.textContent).toBe("Invite friend");
     expect(rowIndex("settings-invite-open")).toBeLessThan(rowIndex("settings-row-account-status"));
     expect(rowIndex("settings-invite-open")).toBeLessThan(rowIndex("settings-share-app-open"));
-    expect(rowIndex("settings-share-app-open")).toBeLessThan(rowIndex("settings-row-account-status"));
+    expect(rowIndex("settings-share-app-open")).toBeLessThan(rowIndex("settings-group-feedback"));
+    expect(rowIndex("settings-group-feedback")).toBeLessThan(rowIndex("settings-row-review-app-store"));
+    expect(rowIndex("settings-row-review-app-store")).toBeLessThan(rowIndex("settings-row-private-feedback"));
+    expect(rowIndex("settings-row-private-feedback")).toBeLessThan(rowIndex("settings-row-account-status"));
     expect(rowIndex("settings-row-review-reminders")).toBeLessThan(rowIndex("settings-row-review-animations"));
     expect(rowIndex("settings-row-review-animations")).toBeLessThan(rowIndex("settings-row-ai-chat-suggestions"));
     expect(rowIndex("settings-row-ai-chat-suggestions")).toBeLessThan(rowIndex("settings-row-leaderboard-participation"));
@@ -475,10 +482,24 @@ describe("SettingsScreen navigation", () => {
     expect(currentPathname()).toBe(accountDangerZoneRoute);
   });
 
-  it("navigates the Send feedback row to the feedback settings screen", async () => {
+  it("navigates both feedback rows to the feedback settings screen", async () => {
     await renderSettingsScreen();
+
+    await clickRow("settings-row-private-feedback");
+    expect(currentPathname()).toBe(settingsFeedbackRoute);
+
     await clickRow("settings-row-feedback");
 
     expect(currentPathname()).toBe(settingsFeedbackRoute);
+  });
+
+  it("opens the locale-neutral App Store listing externally", async () => {
+    await renderSettingsScreen();
+
+    const reviewLink = getContainer().querySelector("[data-testid='settings-row-review-app-store']");
+    expect(reviewLink).toBeInstanceOf(HTMLAnchorElement);
+    expect(reviewLink?.getAttribute("href")).toBe("https://apps.apple.com/app/id6760538964");
+    expect(reviewLink?.getAttribute("target")).toBe("_blank");
+    expect(reviewLink?.getAttribute("rel")).toBe("noreferrer");
   });
 });

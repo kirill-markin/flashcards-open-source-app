@@ -384,6 +384,7 @@ const enCatalog = {
     },
     groups: {
       share: "Share",
+      feedback: "Feedback",
       account: "Account",
       general: "General",
       support: "Support",
@@ -397,6 +398,14 @@ const enCatalog = {
       shareText: "Open Flashcards on iOS, Android, or the web.",
       shared: "Share sheet opened.",
       shareUnavailable: "Sharing is not available in this browser.",
+    },
+    reviewAppStore: {
+      title: "Review in App Store",
+      description: "Rate Flashcards on its App Store listing.",
+    },
+    privateFeedback: {
+      title: "Share private feedback",
+      description: "Send feedback directly to the Flashcards team.",
     },
     currentWorkspace: {
       title: "Workspace",

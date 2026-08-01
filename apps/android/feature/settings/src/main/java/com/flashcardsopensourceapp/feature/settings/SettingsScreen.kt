@@ -89,6 +89,7 @@ fun SettingsRoute(
     uiState: SettingsUiState,
     onOpenFriendInvite: () -> Unit,
     onShareApp: () -> Unit,
+    onReviewApp: () -> Unit,
     onOpenAccountStatus: () -> Unit,
     onOpenCurrentWorkspace: () -> Unit,
     onOpenReviewReminders: () -> Unit,
@@ -147,6 +148,33 @@ fun SettingsRoute(
                     attentionCount = null,
                     testTag = settingsShareAppRowTag,
                     onClick = onShareApp
+                )
+            }
+
+            item {
+                SettingsRootSectionTitle(
+                    title = stringResource(R.string.settings_section_feedback),
+                    testTag = settingsFeedbackSectionTag
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_review_in_google_play_title),
+                    summary = null,
+                    attentionCount = null,
+                    testTag = settingsReviewAppRowTag,
+                    onClick = onReviewApp
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_share_private_feedback_title),
+                    summary = null,
+                    attentionCount = null,
+                    testTag = settingsPrivateFeedbackRowTag,
+                    onClick = onOpenFeedback
                 )
             }
 

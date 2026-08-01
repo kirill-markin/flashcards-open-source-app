@@ -29,7 +29,17 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
 
     @MainActor
     private func verifySettingsInformationArchitecture() throws {
-        try self.assertTextExists("Account", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertTextExists("Feedback", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.settingsReviewInAppStoreRow,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.settingsPrivateFeedbackRow,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+
+        try self.assertTextExistsScrollingIntoView("Account", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsAccountStatusRow)
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.accountStatusSignInButton,

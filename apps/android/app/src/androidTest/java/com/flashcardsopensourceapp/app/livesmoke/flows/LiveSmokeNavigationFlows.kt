@@ -41,6 +41,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsDeleteAccountRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeleteCurrentWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsDeviceDiagnosticsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsExportRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsFeedbackSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsFeedbackRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsGeneralSectionTag
 import com.flashcardsopensourceapp.feature.settings.settingsImportRowTag
@@ -48,7 +49,9 @@ import com.flashcardsopensourceapp.feature.settings.settingsLanguageRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLeaderboardParticipationRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsLegalRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsOpenSourceRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsPrivateFeedbackRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsResetStudyProgressRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsReviewAppRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsReviewRemindersRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsRootScreenTag
 import com.flashcardsopensourceapp.feature.settings.settingsSchedulingRowTag
@@ -110,6 +113,7 @@ internal fun LiveSmokeContext.openSettingsRow(rowTag: String, rowLabel: String, 
 internal fun LiveSmokeContext.assertSettingsInformationArchitecture() {
     openSettingsTab()
     listOf(
+        settingsFeedbackSectionTag to "Feedback",
         settingsAccountSectionTag to "Account",
         settingsGeneralSectionTag to "General",
         settingsSupportSectionTag to "Support",
@@ -125,6 +129,8 @@ internal fun LiveSmokeContext.assertSettingsInformationArchitecture() {
     }
 
     listOf(
+        settingsReviewAppRowTag to "Review in Google Play",
+        settingsPrivateFeedbackRowTag to "Share private feedback",
         settingsAccountStatusRowTag to "Account status",
         settingsCurrentWorkspaceRowTag to "Workspace",
         settingsReviewRemindersRowTag to "Notifications",

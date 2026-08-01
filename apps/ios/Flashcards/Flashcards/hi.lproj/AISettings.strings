@@ -132,6 +132,9 @@
 "settings.inviteFriend.button" = "दोस्त को आमंत्रित करें";
 "settings.section.share" = "साझा करें";
 "settings.row.shareApp" = "Flashcards साझा करें";
+"settings.section.feedback" = "प्रतिक्रिया";
+"settings.row.reviewInAppStore" = "App Store पर समीक्षा करें";
+"settings.row.sharePrivateFeedback" = "निजी प्रतिक्रिया साझा करें";
 "settings.section.account" = "खाता";
 "settings.section.general" = "सामान्य";
 "settings.section.support" = "सहायता";

@@ -386,6 +386,7 @@ const hiCatalog: TranslationCatalog = {
     },
     groups: {
       share: "शेयर करें",
+      feedback: "फ़ीडबैक",
       account: "खाता",
       general: "सामान्य",
       support: "सहायता",
@@ -399,6 +400,14 @@ const hiCatalog: TranslationCatalog = {
       shareText: "Flashcards को iOS, Android या वेब पर खोलें।",
       shared: "शेयर शीट खुल गई।",
       shareUnavailable: "इस ब्राउज़र में शेयरिंग उपलब्ध नहीं है।",
+    },
+    reviewAppStore: {
+      title: "App Store पर रिव्यू करें",
+      description: "App Store लिस्टिंग पर Flashcards को रेट करें।",
+    },
+    privateFeedback: {
+      title: "निजी फ़ीडबैक साझा करें",
+      description: "Flashcards टीम को सीधे फ़ीडबैक भेजें।",
     },
     currentWorkspace: {
       title: "वर्कस्पेस",

@@ -48,6 +48,13 @@ let flashcardsAppShareUrl: URL = {
     }
     return url
 }()
+let flashcardsAppStoreUrl: URL = {
+    let urlString: String = "https://apps.apple.com/app/id6760538964"
+    guard let url = URL(string: urlString) else {
+        preconditionFailure("Flashcards App Store URL is invalid: \(urlString)")
+    }
+    return url
+}()
 
 var flashcardsPrivacyPolicyUrl: String {
     flashcardsLegalSupportConfiguration.privacyPolicyUrl
