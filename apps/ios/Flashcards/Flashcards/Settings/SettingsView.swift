@@ -64,6 +64,28 @@ struct SettingsView: View {
                 .accessibilityIdentifier(UITestIdentifier.settingsShareAppRow)
             }
 
+            Section(aiSettingsLocalized("settings.section.feedback", "Feedback")) {
+                Link(destination: flashcardsAppStoreUrl) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.reviewInAppStore", "Review in App Store"),
+                        value: nil,
+                        systemImage: "star",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsReviewInAppStoreRow)
+
+                NavigationLink(value: SettingsNavigationDestination.feedback) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.sharePrivateFeedback", "Share private feedback"),
+                        value: nil,
+                        systemImage: "text.bubble",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsPrivateFeedbackRow)
+            }
+
             Section(aiSettingsLocalized("settings.section.account", "Account")) {
                 NavigationLink(value: SettingsNavigationDestination.accountStatus) {
                     SettingsNavigationRow(
