@@ -15,8 +15,13 @@ import {
   buildMediaUploadStagingStorageKey,
 } from "../../mediaAssets/storageKeys";
 import { assertReplicaBelongsToWorkspaceInExecutor } from "../../mediaAssets/workspaceReplicas";
-import { expectNonEmptyString, expectUuidString } from "../../server/requestParsing";
+import {
+  expectNonEmptyString,
+  expectUuidString,
+  expectWorkspaceIdString,
+} from "../../server/requestParsing";
 import { HttpError } from "../../shared/errors";
+import { isLowercaseWorkspaceId } from "../../workspaces/identity";
 import { isGeneratedImageOperationKey } from "../generatedImageOperationIdentity";
 import {
   assertActiveChatRunClaimWithExecutor,
@@ -96,6 +101,15 @@ function normalizeGeneratedCardImageAltText(value: unknown): string {
   return expectNonEmptyString(value, "altText");
 }
 
+function normalizeGeneratedCardImageWorkspaceId(value: unknown): string {
+  const workspaceId = expectWorkspaceIdString(value, "workspaceId");
+  if (!isLowercaseWorkspaceId(workspaceId)) {
+    throw new HttpError(400, "workspaceId must be a UUID");
+  }
+
+  return workspaceId;
+}
+
 function normalizeGeneratedCardImageInput(input: GeneratedCardImageInput): GeneratedCardImageInput {
   const operationKey = expectNonEmptyString(input.operationKey, "operationKey");
   if (!isGeneratedImageOperationKey(operationKey)) {
@@ -116,7 +130,7 @@ function normalizeGeneratedCardImageInput(input: GeneratedCardImageInput): Gener
     sessionId: expectUuidString(input.sessionId, "sessionId"),
     claimToken: expectNonEmptyString(input.claimToken, "claimToken"),
     userId: expectNonEmptyString(input.userId, "userId"),
-    workspaceId: expectUuidString(input.workspaceId, "workspaceId"),
+    workspaceId: normalizeGeneratedCardImageWorkspaceId(input.workspaceId),
     cardId: expectUuidString(input.cardId, "cardId"),
     targetSide: normalizeTargetSide(input.targetSide),
     imagePrompt,
