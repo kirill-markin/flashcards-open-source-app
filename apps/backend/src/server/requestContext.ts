@@ -257,7 +257,7 @@ export function parseWorkspaceIdParam(value: string | undefined): string {
     throw new HttpError(400, "workspaceId must be a UUID", "WORKSPACE_ID_INVALID");
   }
 
-  return normalizedValue;
+  return normalizedValue.toLowerCase();
 }
 
 export function parseOptionalWorkspaceIdParam(value: string | undefined): string | undefined {
