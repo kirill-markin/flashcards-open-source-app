@@ -5,6 +5,9 @@ required:
   - mediaAssetCount
   - installId
   - installedAt
+  - keptTagCount
+  - removedTagCount
+  - importTag
 properties:
   cardCount:
     type: integer
@@ -17,3 +20,13 @@ properties:
   installedAt:
     type: string
     format: date-time
+  keptTagCount:
+    type: integer
+    minimum: 0
+  removedTagCount:
+    type: integer
+    minimum: 0
+  importTag:
+    type:
+      - string
+      - 'null'

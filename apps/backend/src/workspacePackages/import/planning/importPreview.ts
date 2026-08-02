@@ -1,5 +1,9 @@
 import { Buffer } from "node:buffer";
 import {
+  buildSuggestedCardImportTag,
+  planCardImportTags,
+} from "../../../shared/cardImportTags";
+import {
   assertReferencedWorkspacePackageMediaFilesExist,
   assertWorkspacePackageCardCountWithinLimit,
   collectWorkspacePackageZipEntries,
@@ -19,10 +23,7 @@ import {
   type CollectedWorkspacePackageZip,
   type WorkspacePackageImportZipLimits,
 } from "../importZip";
-import type {
-  PortableWorkspacePackageCardV1,
-  WorkspacePackageCardsJsonV1,
-} from "../../types";
+import type { WorkspacePackageCardsJsonV1 } from "../../types";
 
 export const workspacePackageImportPreviewDefaultMaxZipBytes = workspacePackageImportZipDefaultMaxZipBytes;
 export const workspacePackageImportPreviewDefaultMaxEntries = workspacePackageImportZipDefaultMaxEntries;
@@ -144,45 +145,6 @@ function toPackageMetadataPreview(cardsJson: WorkspacePackageCardsJsonV1): Works
   };
 }
 
-function compareTagCounts(
-  left: WorkspacePackageImportPreviewTagCount,
-  right: WorkspacePackageImportPreviewTagCount,
-): number {
-  const countDifference = right.cardsCount - left.cardsCount;
-  if (countDifference !== 0) {
-    return countDifference;
-  }
-
-  const normalizedTagDifference = left.tag.toLowerCase().localeCompare(right.tag.toLowerCase());
-  if (normalizedTagDifference !== 0) {
-    return normalizedTagDifference;
-  }
-
-  return left.tag.localeCompare(right.tag);
-}
-
-function buildImportPreviewTagCounts(
-  cards: ReadonlyArray<PortableWorkspacePackageCardV1>,
-): ReadonlyArray<WorkspacePackageImportPreviewTagCount> {
-  const tagCounts = new Map<string, number>();
-
-  for (const card of cards) {
-    for (const tag of card.tags) {
-      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
-    }
-  }
-
-  return [...tagCounts.entries()]
-    .map(([tag, cardsCount]) => ({ tag, cardsCount }))
-    .sort(compareTagCounts);
-}
-
-function getPackageTagValues(
-  tagCounts: ReadonlyArray<WorkspacePackageImportPreviewTagCount>,
-): ReadonlyArray<string> {
-  return tagCounts.map((tagCount) => tagCount.tag);
-}
-
 function getLowercaseFileExtension(mediaPath: string): string | null {
   const fileName = mediaPath.slice(mediaPath.lastIndexOf("/") + 1);
   const extensionSeparatorIndex = fileName.lastIndexOf(".");
@@ -212,19 +174,13 @@ export function buildSuggestedWorkspacePackageImportTag(
   generatedAt: string,
   existingWorkspaceTags: ReadonlyArray<string>,
 ): string {
-  const normalizedGeneratedAt = normalizeIsoTimestamp(generatedAt, "generatedAt");
-  const normalizedExistingTags = normalizeUniqueTextValues(existingWorkspaceTags, "existingWorkspaceTags");
-  const existingTags = new Set(normalizedExistingTags);
-  const importDate = normalizedGeneratedAt.slice(0, 10);
-  let suffix = 0;
-  let suggestedImportTag = `import:${importDate}-${suffix}`;
-
-  while (existingTags.has(suggestedImportTag)) {
-    suffix += 1;
-    suggestedImportTag = `import:${importDate}-${suffix}`;
+  try {
+    return buildSuggestedCardImportTag(generatedAt, existingWorkspaceTags);
+  } catch (error) {
+    throw createWorkspacePackageImportInputError(
+      error instanceof Error ? error.message : String(error),
+    );
   }
-
-  return suggestedImportTag;
 }
 
 export function normalizeWorkspacePackageImportTagPolicy(
@@ -254,21 +210,6 @@ export function createDefaultWorkspacePackageImportTagPolicy(
   return normalizeWorkspacePackageImportTagPolicy({ removedTags: [] }, packageTags);
 }
 
-function buildDefaultImportOptions(
-  tagCounts: ReadonlyArray<WorkspacePackageImportPreviewTagCount>,
-  suggestedImportTag: string,
-): WorkspacePackageImportDefaultOptions {
-  const packageTags = getPackageTagValues(tagCounts);
-  const tagPolicy = createDefaultWorkspacePackageImportTagPolicy(packageTags);
-
-  return {
-    addImportTag: true,
-    suggestedImportTag,
-    keptTags: tagPolicy.keptTags,
-    removedTags: tagPolicy.removedTags,
-  };
-}
-
 export async function previewWorkspacePackageZipImportWithLimits(
   input: WorkspacePackageImportPreviewInput,
   limits: WorkspacePackageImportPreviewLimits,
@@ -292,7 +233,11 @@ export async function previewWorkspacePackageZipImportWithLimits(
 
   const cardsJson = parseWorkspacePackageCardsJsonBytes(collectedZip.cardsJsonBytes);
   assertWorkspacePackageCardCountWithinLimit(cardsJson.cards.length, normalizedLimits.maxCards);
-  const tagCounts = buildImportPreviewTagCounts(cardsJson.cards);
+  const tagPlan = planCardImportTags(cardsJson.cards, {
+    addImportTag: true,
+    importTag: suggestedImportTag,
+    removeTags: [],
+  });
   const referencedMediaPaths = extractReferencedWorkspacePackageMediaPaths(cardsJson.cards);
   assertReferencedWorkspacePackageMediaFilesExist(referencedMediaPaths, collectedZip.mediaEntriesByPath);
 
@@ -300,14 +245,16 @@ export async function previewWorkspacePackageZipImportWithLimits(
     sourceKind: "zip",
     packageMetadata: toPackageMetadataPreview(cardsJson),
     cardCount: cardsJson.cards.length,
-    tagCounts,
+    tagCounts: tagPlan.sourceTagCounts,
     referencedMediaCount: referencedMediaPaths.length,
     packageMediaFileCount: collectedZip.mediaPaths.length,
     warnings: buildUnsupportedMediaWarnings(referencedMediaPaths),
-    defaultOptions: buildDefaultImportOptions(
-      tagCounts,
+    defaultOptions: {
+      addImportTag: true,
       suggestedImportTag,
-    ),
+      keptTags: tagPlan.keptTags,
+      removedTags: tagPlan.removedTags,
+    },
   };
 }
 

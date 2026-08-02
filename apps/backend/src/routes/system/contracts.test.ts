@@ -40,6 +40,8 @@ type OpenApiBinarySchemaForTest = Readonly<{
   minLength?: number;
   maxLength?: number;
   pattern?: string;
+  default?: string | boolean | ReadonlyArray<string>;
+  required?: ReadonlyArray<string>;
   properties?: Readonly<Record<string, OpenApiBinarySchemaForTest>>;
 }>;
 type OpenApiMediaTypeForTest = Readonly<{
@@ -383,6 +385,38 @@ test("published OpenAPI shares the backend last operation identifier contract", 
     ["legacy\noperation", true],
   ] as const) {
     assert.equal(responsePattern.test(value), expected, value);
+  }
+});
+
+test("catalog install discovery and OpenAPI publish shared tag choices", () => {
+  const openApiDocument = loadPublishedOpenApiDocument();
+  const schemas = openApiDocument.components?.schemas ?? {};
+  const previewSchema = schemas.CatalogPackageInstallPreviewResponse as OpenApiBinarySchemaForTest | undefined;
+  const confirmInputSchema = schemas.CatalogPackageInstallConfirmInput as OpenApiBinarySchemaForTest | undefined;
+  const confirmSummarySchema = schemas.CatalogPackageInstallConfirmSummary as OpenApiBinarySchemaForTest | undefined;
+  const discoveryEnvelope = createAgentDiscoveryEnvelope(testAgentRequestUrl);
+
+  assert.ok(previewSchema?.required?.includes("tagCounts"));
+  assert.ok(previewSchema?.required?.includes("defaultOptions"));
+  assert.equal(confirmInputSchema?.required?.includes("addImportTag"), false);
+  assert.equal(confirmInputSchema?.required?.includes("importTag"), false);
+  assert.equal(confirmInputSchema?.required?.includes("removeTags"), false);
+  assert.equal(confirmInputSchema?.properties?.addImportTag?.default, false);
+  assert.equal(confirmInputSchema?.properties?.importTag?.default, "");
+  assert.deepEqual(confirmInputSchema?.properties?.removeTags?.default, []);
+  assert.ok(confirmSummarySchema?.required?.includes("keptTagCount"));
+  assert.ok(confirmSummarySchema?.required?.includes("removedTagCount"));
+  assert.ok(confirmSummarySchema?.required?.includes("importTag"));
+  assert.match(discoveryEnvelope.instructions, /source tagCounts and defaultOptions/);
+  assert.match(discoveryEnvelope.instructions, /addImportTag, importTag, and removeTags/);
+  assert.match(discoveryEnvelope.instructions, /Omitting all three tag options preserves source tags/);
+  assert.match(discoveryEnvelope.instructions, /catalog ordinal order/);
+
+  for (const path of ["/", "/agent"] as const) {
+    const serializedPath = JSON.stringify(openApiDocument.paths?.[path] ?? {});
+    assert.match(serializedPath, /source tagCounts and defaultOptions/);
+    assert.match(serializedPath, /addImportTag, importTag, and removeTags/);
+    assert.match(serializedPath, /catalog ordinal order/);
   }
 });
 

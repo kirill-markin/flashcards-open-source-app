@@ -356,9 +356,28 @@ export type CatalogPackageInstallPreviewSummary = Readonly<{
   mediaAssetCount: number;
 }>;
 
+export type CatalogPackageInstallTagCount = Readonly<{
+  tag: string;
+  cardsCount: number;
+}>;
+
+export type CatalogPackageInstallDefaultOptions = Readonly<{
+  addImportTag: boolean;
+  suggestedImportTag: string;
+  keptTags: ReadonlyArray<string>;
+  removedTags: ReadonlyArray<string>;
+}>;
+
+export type CatalogPackageInstallPreviewInput = Readonly<{
+  generatedAt: string;
+  existingWorkspaceTags: ReadonlyArray<string>;
+}>;
+
 export type CatalogPackageInstallPreview = Readonly<{
   packageVersion: CatalogPackageInstallPackageVersion;
   summary: CatalogPackageInstallPreviewSummary;
+  tagCounts: ReadonlyArray<CatalogPackageInstallTagCount>;
+  defaultOptions: CatalogPackageInstallDefaultOptions;
 }>;
 
 export type CatalogPackageInstallConfirmInput = Readonly<{
@@ -367,6 +386,9 @@ export type CatalogPackageInstallConfirmInput = Readonly<{
   clientUpdatedAt: string;
   lastModifiedByReplicaId: string;
   operationIdPrefix: string;
+  addImportTag?: boolean;
+  importTag?: string;
+  removeTags?: ReadonlyArray<string>;
 }>;
 
 export type CatalogInstalledCard = Readonly<{
@@ -387,6 +409,9 @@ export type CatalogPackageInstallResultSummary = Readonly<{
   mediaAssetCount: number;
   installId: string;
   installedAt: string;
+  keptTagCount: number;
+  removedTagCount: number;
+  importTag: string | null;
 }>;
 
 export type CatalogPackageInstallResult = Readonly<{

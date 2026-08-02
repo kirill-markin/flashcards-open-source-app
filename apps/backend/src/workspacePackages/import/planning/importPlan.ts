@@ -1,5 +1,9 @@
 import { normalizeIsoTimestamp } from "../../../sync/conflicts/lww";
 import {
+  planCardImportTags,
+  type CardImportTagPlan,
+} from "../../../shared/cardImportTags";
+import {
   rewriteMarkdownPortableMediaUrlsToFcAssets,
 } from "../../markdownMedia";
 import {
@@ -52,12 +56,6 @@ export type WorkspacePackageImportPlan = Readonly<{
 
 type WorkspacePackageImportPlanNormalizedOptions = WorkspacePackageImportPlanOptions;
 
-type WorkspacePackageImportPlanTagPolicy = Readonly<{
-  keptTags: ReadonlyArray<string>;
-  removedTags: ReadonlyArray<string>;
-  removedTagSet: ReadonlySet<string>;
-}>;
-
 function createImportPlanInputError(message: string): TypeError {
   return new TypeError(`Invalid workspace package import plan input: ${message}`);
 }
@@ -79,44 +77,16 @@ function normalizeRequiredIsoTimestamp(value: string, fieldName: string): string
   return normalizeIsoTimestamp(normalizeRequiredText(value, fieldName), fieldName);
 }
 
-function normalizeRequiredUniqueTextValues(
-  values: ReadonlyArray<string>,
-  fieldName: string,
-): ReadonlyArray<string> {
-  const normalizedValues: Array<string> = [];
-  const seenValues = new Set<string>();
-
-  values.forEach((value, index) => {
-    const normalizedValue = normalizeRequiredText(value, `${fieldName}[${index}]`);
-    if (seenValues.has(normalizedValue)) {
-      throw createImportPlanInputError(`${fieldName} must not contain duplicates`);
-    }
-
-    seenValues.add(normalizedValue);
-    normalizedValues.push(normalizedValue);
-  });
-
-  return normalizedValues;
-}
-
 function normalizeImportPlanOptions(
   options: WorkspacePackageImportPlanOptions,
 ): WorkspacePackageImportPlanNormalizedOptions {
   return {
     addImportTag: options.addImportTag,
-    importTag: normalizeImportTag(options.addImportTag, options.importTag),
-    removeTags: normalizeRequiredUniqueTextValues(options.removeTags, "options.removeTags"),
+    importTag: options.importTag,
+    removeTags: options.removeTags,
     importedAt: normalizeRequiredIsoTimestamp(options.importedAt, "options.importedAt"),
     importId: normalizeRequiredText(options.importId, "options.importId"),
   };
-}
-
-function normalizeImportTag(addImportTag: boolean, importTag: string): string {
-  if (addImportTag) {
-    return normalizeRequiredText(importTag, "options.importTag");
-  }
-
-  return importTag.trim();
 }
 
 function normalizeImportPlanCardsJson(cardsJson: WorkspacePackageCardsJsonV1): WorkspacePackageCardsJsonV1 {
@@ -127,71 +97,17 @@ function normalizeImportPlanCardsJson(cardsJson: WorkspacePackageCardsJsonV1): W
   }
 }
 
-function collectPackageTags(
-  cards: ReadonlyArray<PortableWorkspacePackageCardV1>,
-): ReadonlyArray<string> {
-  const packageTags: Array<string> = [];
-  const seenTags = new Set<string>();
-
-  for (const card of cards) {
-    for (const tag of card.tags) {
-      if (seenTags.has(tag)) {
-        continue;
-      }
-
-      seenTags.add(tag);
-      packageTags.push(tag);
-    }
-  }
-
-  return packageTags;
-}
-
-function buildImportPlanTagPolicy(
+function createWorkspacePackageImportTagPlan(
   cards: ReadonlyArray<PortableWorkspacePackageCardV1>,
   options: WorkspacePackageImportPlanNormalizedOptions,
-): WorkspacePackageImportPlanTagPolicy {
-  const packageTags = collectPackageTags(cards);
-  const packageTagSet = new Set(packageTags);
-  const unknownRemovedTags = options.removeTags.filter((tag) => packageTagSet.has(tag) === false);
-  if (unknownRemovedTags.length !== 0) {
+): CardImportTagPlan {
+  try {
+    return planCardImportTags(cards, options);
+  } catch (error) {
     throw createImportPlanInputError(
-      `options.removeTags must contain only exact package tag values. unknownTags=${unknownRemovedTags.join(",")}`,
+      `tag options are invalid. reason=${getErrorMessage(error)}`,
     );
   }
-
-  const removedTagSet = new Set(options.removeTags);
-  return {
-    keptTags: packageTags.filter((tag) => removedTagSet.has(tag) === false),
-    removedTags: options.removeTags,
-    removedTagSet,
-  };
-}
-
-function dedupeTags(tags: ReadonlyArray<string>): ReadonlyArray<string> {
-  const dedupedTags: Array<string> = [];
-  const seenTags = new Set<string>();
-
-  for (const tag of tags) {
-    if (seenTags.has(tag)) {
-      continue;
-    }
-
-    seenTags.add(tag);
-    dedupedTags.push(tag);
-  }
-
-  return dedupedTags;
-}
-
-function planCardTags(
-  cardTags: ReadonlyArray<string>,
-  options: WorkspacePackageImportPlanNormalizedOptions,
-  tagPolicy: WorkspacePackageImportPlanTagPolicy,
-): ReadonlyArray<string> {
-  const keptCardTags = cardTags.filter((tag) => tagPolicy.removedTagSet.has(tag) === false);
-  const finalTags = options.addImportTag ? [...keptCardTags, options.importTag] : keptCardTags;
-  return dedupeTags(finalTags);
 }
 
 function toPackageSourceMetadata(
@@ -273,9 +189,9 @@ function rewriteCardMarkdown(
 function planCard(
   card: PortableWorkspacePackageCardV1,
   cardIndex: number,
+  tags: ReadonlyArray<string>,
   packageSource: WorkspacePackageCardSourceMetadataV1,
   options: WorkspacePackageImportPlanNormalizedOptions,
-  tagPolicy: WorkspacePackageImportPlanTagPolicy,
   mediaAssetIdsByPortablePath: ReadonlyMap<string, string>,
   referencedMediaPaths: Set<string>,
 ): WorkspacePackageImportPlannedCard {
@@ -294,24 +210,36 @@ function planCard(
       cardIndex,
       "backText",
     ),
-    tags: planCardTags(card.tags, options, tagPolicy),
+    tags,
     cardType: card.cardType,
     metadata: planCardMetadata(card, packageSource, options),
   };
+}
+
+function getPlannedCardTags(
+  cardTags: ReadonlyArray<ReadonlyArray<string>>,
+  cardIndex: number,
+): ReadonlyArray<string> {
+  const tags = cardTags[cardIndex];
+  if (tags === undefined) {
+    throw new Error(`Missing planned card tags. cardIndex=${cardIndex}`);
+  }
+
+  return tags;
 }
 
 export function planWorkspacePackageImport(input: WorkspacePackageImportPlanInput): WorkspacePackageImportPlan {
   const cardsJson = normalizeImportPlanCardsJson(input.cardsJson);
   const options = normalizeImportPlanOptions(input.options);
   const packageSource = toPackageSourceMetadata(cardsJson);
-  const tagPolicy = buildImportPlanTagPolicy(cardsJson.cards, options);
+  const tagPlan = createWorkspacePackageImportTagPlan(cardsJson.cards, options);
   const referencedMediaPaths = new Set<string>();
   const plannedCards = cardsJson.cards.map((card, cardIndex) => planCard(
     card,
     cardIndex,
+    getPlannedCardTags(tagPlan.cardTags, cardIndex),
     packageSource,
     options,
-    tagPolicy,
     input.mediaAssetIdsByPortablePath,
     referencedMediaPaths,
   ));
@@ -320,9 +248,9 @@ export function planWorkspacePackageImport(input: WorkspacePackageImportPlanInpu
     cards: plannedCards,
     summary: {
       cardCount: plannedCards.length,
-      keptTagCount: tagPolicy.keptTags.length,
-      removedTagCount: tagPolicy.removedTags.length,
-      importTag: options.addImportTag ? options.importTag : null,
+      keptTagCount: tagPlan.keptTags.length,
+      removedTagCount: tagPlan.removedTags.length,
+      importTag: tagPlan.importTag,
       referencedMediaCount: referencedMediaPaths.size,
     },
   };
@@ -333,5 +261,5 @@ export function validateWorkspacePackageImportPlanPreflight(
 ): void {
   const cardsJson = normalizeImportPlanCardsJson(input.cardsJson);
   const options = normalizeImportPlanOptions(input.options);
-  buildImportPlanTagPolicy(cardsJson.cards, options);
+  createWorkspacePackageImportTagPlan(cardsJson.cards, options);
 }
