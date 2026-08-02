@@ -11,6 +11,8 @@ import {
   chatRequestTooLargeCode,
   chatRequestTooLargeMessage,
   parseChatRequestBody,
+  parseNewChatRequestBody,
+  parseStopChatRequestBody,
 } from "../../http/contract";
 import {
   chatAttachmentUnsupportedTypeCode,
@@ -19,6 +21,7 @@ import {
 import type { ChatSessionSnapshot, PersistedChatMessageItem } from "../../store";
 
 const SESSION_ONE = "11111111-1111-4111-8111-111111111111";
+const LEGACY_POSTGRES_WORKSPACE_ID = "35274129-ef97-d366-954c-955b4bb0fbf0";
 const PLAIN_TEXT_BASE64 = "cGxhaW4gdGV4dA==";
 const VALID_PDF_BASE64 = "JVBERi0xLjEKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAxIDFdID4+CmVuZG9iagp4cmVmCjAgNAowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1Jvb3QgMSAwIFIgL1NpemUgNCA+PgpzdGFydHhyZWYKMTgyCiUlRU9GCg==";
 const TRUNCATED_PDF_BASE64 = "JVBERi0xLjcK";
@@ -167,6 +170,122 @@ function findLog(
 ): StructuredLogRecord | undefined {
   return records.find((record) => record.action === action);
 }
+
+const workspaceRequestBodyCases: ReadonlyArray<Readonly<{
+  name: string;
+  parse: (value: unknown) => Readonly<{ workspaceId?: string }>;
+  body: Readonly<Record<string, unknown>>;
+}>> = [
+  {
+    name: "chat start",
+    parse: parseChatRequestBody,
+    body: {
+      sessionId: SESSION_ONE,
+      clientRequestId: "client-request-1",
+      content: [{ type: "text", text: "hello" }],
+      timezone: "Europe/Madrid",
+    },
+  },
+  {
+    name: "new chat",
+    parse: parseNewChatRequestBody,
+    body: {
+      sessionId: SESSION_ONE,
+    },
+  },
+  {
+    name: "stop chat",
+    parse: parseStopChatRequestBody,
+    body: {
+      sessionId: SESSION_ONE,
+      runId: SESSION_ONE,
+    },
+  },
+];
+
+test("chat request bodies accept and trim legacy PostgreSQL workspace IDs", () => {
+  for (const requestBodyCase of workspaceRequestBodyCases) {
+    assert.equal(
+      requestBodyCase.parse({
+        ...requestBodyCase.body,
+        workspaceId: ` \n${LEGACY_POSTGRES_WORKSPACE_ID}\t`,
+      }).workspaceId,
+      LEGACY_POSTGRES_WORKSPACE_ID,
+      requestBodyCase.name,
+    );
+    assert.equal(
+      requestBodyCase.parse(requestBodyCase.body).workspaceId,
+      undefined,
+      requestBodyCase.name,
+    );
+    assert.equal(
+      requestBodyCase.parse({
+        ...requestBodyCase.body,
+        workspaceId: LEGACY_POSTGRES_WORKSPACE_ID.toUpperCase(),
+      }).workspaceId,
+      LEGACY_POSTGRES_WORKSPACE_ID,
+      requestBodyCase.name,
+    );
+  }
+});
+
+test("chat workspace fields preserve their public validation errors", () => {
+  const invalidWorkspaceIds: ReadonlyArray<Readonly<{
+    value: unknown;
+    message: string;
+  }>> = [
+    { value: 42, message: "workspaceId must be a string" },
+    { value: " \t\n", message: "workspaceId must not be empty" },
+    { value: "not-a-uuid", message: "workspaceId must be a UUID" },
+  ];
+
+  for (const requestBodyCase of workspaceRequestBodyCases) {
+    for (const invalidWorkspaceId of invalidWorkspaceIds) {
+      assert.throws(
+        () => requestBodyCase.parse({
+          ...requestBodyCase.body,
+          workspaceId: invalidWorkspaceId.value,
+        }),
+        (error: unknown) => error instanceof HttpError
+          && error.statusCode === 400
+          && error.code === null
+          && error.message === invalidWorkspaceId.message,
+        `${requestBodyCase.name}: ${invalidWorkspaceId.message}`,
+      );
+    }
+  }
+});
+
+test("chat session and run fields keep strict UUID validation", () => {
+  assert.throws(
+    () => parseChatRequestBody({
+      sessionId: LEGACY_POSTGRES_WORKSPACE_ID,
+      clientRequestId: "client-request-1",
+      content: [{ type: "text", text: "hello" }],
+      timezone: "Europe/Madrid",
+      workspaceId: LEGACY_POSTGRES_WORKSPACE_ID,
+    }),
+    (error: unknown) => error instanceof HttpError
+      && error.message === "sessionId must be a UUID",
+  );
+  assert.throws(
+    () => parseNewChatRequestBody({
+      sessionId: LEGACY_POSTGRES_WORKSPACE_ID,
+      workspaceId: LEGACY_POSTGRES_WORKSPACE_ID,
+    }),
+    (error: unknown) => error instanceof HttpError
+      && error.message === "sessionId must be a UUID",
+  );
+  assert.throws(
+    () => parseStopChatRequestBody({
+      sessionId: SESSION_ONE,
+      runId: LEGACY_POSTGRES_WORKSPACE_ID,
+      workspaceId: LEGACY_POSTGRES_WORKSPACE_ID,
+    }),
+    (error: unknown) => error instanceof HttpError
+      && error.message === "runId must be a UUID",
+  );
+});
 
 test("parseChatRequestBody normalizes supported attachment media type aliases", () => {
   const cases = [

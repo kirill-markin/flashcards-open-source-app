@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { DatabaseExecutor } from "../../database";
 import { HttpError } from "../../shared/errors";
+import { isLowercaseWorkspaceId } from "../../workspaces/identity";
 import {
   assertMediaBlobWriterAttemptToken,
   assertMediaBlobWriterReservationToken,
@@ -366,10 +367,12 @@ export function snapshotMultipartAttemptInput(
     throw new TypeError("sourceUrl must be a string or null.");
   }
   assertMediaBlobWriterAttemptToken(snapshot.attemptToken);
+  if (!isLowercaseWorkspaceId(snapshot.workspaceId)) {
+    throw new TypeError("Multipart writer attempt identity is invalid.");
+  }
   if (
     snapshot.userId !== snapshot.userId.trim()
     || snapshot.userId.length === 0
-    || !uuidPattern.test(snapshot.workspaceId)
     || !uuidPattern.test(snapshot.sessionId)
     || !uuidPattern.test(snapshot.mediaAssetId)
     || !uuidPattern.test(snapshot.lastModifiedByReplicaId)

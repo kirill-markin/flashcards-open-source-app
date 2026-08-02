@@ -9,6 +9,7 @@ import type { RequestContext } from "../../../server/requestContext";
 
 const SESSION_ONE = "11111111-1111-4111-8111-111111111111";
 const EXPLICIT_WORKSPACE_ID = "33333333-3333-4333-8333-333333333333";
+const LEGACY_POSTGRES_WORKSPACE_ID = "35274129-ef97-d366-954c-955b4bb0fbf0";
 const LEGACY_WORKSPACE_ID = "workspace-legacy";
 
 function createRequestContext(): RequestContext {
@@ -95,6 +96,99 @@ test("POST /chat/transcriptions prefers an explicit workspaceId multipart field 
   assert.deepEqual(await response.json(), {
     text: "hello",
     sessionId: SESSION_ONE,
+  });
+});
+
+test("POST /chat/transcriptions accepts and trims a legacy PostgreSQL workspaceId multipart field", async () => {
+  const requestedWorkspaceIds: string[] = [];
+  const app = createChatTranscriptionsRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    getRecoveredChatSessionSnapshotFn: async (_userId, workspaceId, sessionId) => {
+      requestedWorkspaceIds.push(workspaceId);
+      return {
+        sessionId: sessionId ?? SESSION_ONE,
+        runState: "idle",
+        activeRunId: null,
+        updatedAt: 1,
+        activeRunHeartbeatAt: null,
+        composerSuggestions: [],
+        mainContentInvalidationVersion: 0,
+        messages: [],
+      };
+    },
+    transcribeAudioFn: async () => "hello",
+  });
+
+  const formData = new FormData();
+  formData.set("file", new File(["audio"], "note.m4a", { type: "audio/m4a" }));
+  formData.set("source", "web");
+  formData.set("sessionId", SESSION_ONE);
+  formData.set("workspaceId", ` \n${LEGACY_POSTGRES_WORKSPACE_ID}\t`);
+
+  const response = await app.request("http://localhost/chat/transcriptions", {
+    method: "POST",
+    body: formData,
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(requestedWorkspaceIds, [LEGACY_POSTGRES_WORKSPACE_ID]);
+  assert.deepEqual(await response.json(), {
+    text: "hello",
+    sessionId: SESSION_ONE,
+  });
+});
+
+test("POST /chat/transcriptions preserves malformed workspaceId validation", async () => {
+  let sessionRecoveryRequested = false;
+  const routes = createChatTranscriptionsRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    getRecoveredChatSessionSnapshotFn: async () => {
+      sessionRecoveryRequested = true;
+      throw new Error("Malformed workspaceId must stop before session recovery");
+    },
+    transcribeAudioFn: async () => "hello",
+  });
+  const app = new Hono();
+  app.onError((error, context) => {
+    const httpError = toHttpErrorLike(error);
+    if (httpError === null) {
+      throw error;
+    }
+
+    context.status(httpError.statusCode as ContentfulStatusCode);
+    return context.json({
+      error: httpError.message,
+      requestId: null,
+      code: httpError.code,
+    });
+  });
+  app.route("/", routes);
+
+  const formData = new FormData();
+  formData.set("file", new File(["audio"], "note.m4a", { type: "audio/m4a" }));
+  formData.set("source", "web");
+  formData.set("sessionId", SESSION_ONE);
+  formData.set("workspaceId", "not-a-uuid");
+
+  const response = await app.request("http://localhost/chat/transcriptions", {
+    method: "POST",
+    body: formData,
+  });
+
+  assert.equal(sessionRecoveryRequested, false);
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), {
+    error: "workspaceId must be a UUID",
+    requestId: null,
+    code: null,
   });
 });
 

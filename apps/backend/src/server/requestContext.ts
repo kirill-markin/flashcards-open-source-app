@@ -14,6 +14,10 @@ import {
 } from "../auth/ensureUser";
 import { assertUserHasWorkspaceAccess } from "../workspaces/selection";
 import {
+  isWorkspaceId,
+  normalizeWorkspaceId,
+} from "../workspaces/identity";
+import {
   enforceSessionCsrfProtection,
   enforceSessionCsrfProtectionWithAbortSignal,
   extractRequestAuthInputs,
@@ -244,17 +248,16 @@ export function parseWorkspaceIdParam(value: string | undefined): string {
     throw new HttpError(400, "workspaceId is required", "WORKSPACE_ID_REQUIRED");
   }
 
-  const trimmedValue = value.trim();
-  if (trimmedValue === "") {
+  const normalizedValue = normalizeWorkspaceId(value);
+  if (normalizedValue === "") {
     throw new HttpError(400, "workspaceId must not be empty", "WORKSPACE_ID_INVALID");
   }
 
-  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!uuidPattern.test(trimmedValue)) {
+  if (!isWorkspaceId(normalizedValue)) {
     throw new HttpError(400, "workspaceId must be a UUID", "WORKSPACE_ID_INVALID");
   }
 
-  return trimmedValue;
+  return normalizedValue.toLowerCase();
 }
 
 export function parseOptionalWorkspaceIdParam(value: string | undefined): string | undefined {

@@ -22,7 +22,7 @@ post:
       in: path
       required: true
       schema:
-        $ref: ../components/schemas/UuidString.yaml
+        $ref: ../components/schemas/WorkspaceIdString.yaml
   requestBody:
     required: true
     content:

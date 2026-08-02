@@ -31,7 +31,7 @@ import {
   type MultipartCompletionReconciliationSafeError,
 } from "./completionReconciliation";
 
-const workspaceId = "11111111-1111-4111-8111-111111111111";
+const workspaceId = "35274129-ef97-d366-954c-955b4bb0fbf0";
 const sessionId = "22222222-2222-4222-8222-222222222222";
 const mediaAssetId = "33333333-3333-4333-8333-333333333333";
 const replicaId = "44444444-4444-4444-8444-444444444444";
@@ -163,6 +163,36 @@ function createFailureReportInput(
     signal,
   };
 }
+
+test("failure reports reject uppercase legacy workspace IDs", async () => {
+  const dependencies: MultipartCompletionFailureReportProcessorDependencies = {
+    claimReportsFn: async () => [],
+    deliverReportFn: async () => {
+      throw new Error("Uppercase workspace reports must fail before delivery.");
+    },
+    finishReportFn: async () => {
+      throw new Error("Uppercase workspace reports must fail before acknowledgement.");
+    },
+    nowFn: () => nowMs,
+  };
+
+  await assert.rejects(
+    processClaimedMultipartCompletionFailureReportWithDependencies(
+      {
+        ...createFailureReport(1),
+        workspaceId: workspaceId.toUpperCase(),
+      },
+      createFailureReportInput(
+        new AbortController().signal,
+        () => {
+          throw new Error("Uppercase workspace reports must fail before emission.");
+        },
+      ),
+      dependencies,
+    ),
+    /workspaceId must be a lowercase UUID/,
+  );
+});
 
 test("renews the exact lease during storage and applies one completion", async () => {
   const job = createJob(0);

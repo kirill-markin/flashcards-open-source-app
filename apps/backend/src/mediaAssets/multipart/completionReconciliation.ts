@@ -15,6 +15,7 @@ import type {
   BackendObservationScope,
   MultipartCompletionReconciliationTerminalFailureDetails,
 } from "../../observability/sentry";
+import { isLowercaseWorkspaceId } from "../../workspaces/identity";
 import { mediaBlobCleanupDelayMs } from "../blobLifecycle";
 import { isValidMediaAssetLastOperationId } from "../lastOperationId";
 import {
@@ -293,12 +294,18 @@ function requireUuid(value: string, fieldName: string): void {
   }
 }
 
+function requireWorkspaceId(value: string): void {
+  if (isLowercaseWorkspaceId(value) === false) {
+    throw new TypeError("workspaceId must be a lowercase UUID.");
+  }
+}
+
 function requireClaimedJob(
   job: ClaimedMultipartCompletionReconciliation,
 ): void {
   requireUuid(job.attemptToken, "attemptToken");
   requireUuid(job.reservationToken, "reservationToken");
-  requireUuid(job.workspaceId, "workspaceId");
+  requireWorkspaceId(job.workspaceId);
   requireUuid(job.sessionId, "sessionId");
   requireUuid(job.mediaAssetId, "mediaAssetId");
   requireUuid(job.replicaId, "replicaId");
@@ -373,7 +380,7 @@ function requireClaimedFailureReport(
 ): void {
   requireUuid(report.failureEventId, "failureEventId");
   requireUuid(report.attemptToken, "attemptToken");
-  requireUuid(report.workspaceId, "workspaceId");
+  requireWorkspaceId(report.workspaceId);
   requireUuid(report.leaseToken, "leaseToken");
   if (
     report.leaseOwner !== report.leaseOwner.trim()

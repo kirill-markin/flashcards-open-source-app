@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { HttpError, type HttpErrorDetails, type ValidationIssueSummary } from "../shared/errors";
 import {
+  isWorkspaceId,
+  normalizeWorkspaceId,
+} from "../workspaces/identity";
+import {
   feedbackMessageMaxCharacters,
   type FeedbackPromptEventInput,
   type FeedbackSubmissionInput,
@@ -8,6 +12,21 @@ import {
 
 const uuidStringSchema = z.string().uuid().transform((value) => value.toLowerCase());
 const nullableUuidStringSchema = uuidStringSchema.nullable();
+const workspaceIdStringSchema = z.string()
+  .transform(normalizeWorkspaceId)
+  .superRefine((value, context) => {
+    if (!isWorkspaceId(value)) {
+      context.addIssue({
+        origin: "string",
+        code: "invalid_format",
+        format: "uuid",
+        input: value,
+        message: "Invalid UUID",
+      });
+    }
+  })
+  .transform((value) => value.toLowerCase());
+const nullableWorkspaceIdStringSchema = workspaceIdStringSchema.nullable();
 const platformSchema = z.enum(["ios", "android", "web"]);
 const promptEventTypeSchema = z.enum(["automatic_prompt_shown", "automatic_prompt_dismissed"]);
 const submissionTriggerSchema = z.enum(["automatic", "settings"]);
@@ -19,7 +38,7 @@ const messageSchema = z.string()
 
 const feedbackPromptEventInputSchema = z.strictObject({
   feedbackPromptEventId: uuidStringSchema,
-  workspaceId: nullableUuidStringSchema,
+  workspaceId: nullableWorkspaceIdStringSchema,
   installationId: nullableUuidStringSchema,
   platform: platformSchema,
   appVersion: requiredNullableTextSchema,
@@ -31,7 +50,7 @@ const feedbackPromptEventInputSchema = z.strictObject({
 
 const feedbackSubmissionInputSchema = z.strictObject({
   feedbackSubmissionId: uuidStringSchema,
-  workspaceId: nullableUuidStringSchema,
+  workspaceId: nullableWorkspaceIdStringSchema,
   installationId: nullableUuidStringSchema,
   platform: platformSchema,
   appVersion: requiredNullableTextSchema,

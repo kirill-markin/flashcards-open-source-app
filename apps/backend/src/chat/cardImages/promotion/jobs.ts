@@ -27,6 +27,7 @@ import {
 } from "../../../mediaAssets/types";
 import { assertReplicaBelongsToWorkspaceInExecutor } from "../../../mediaAssets/workspaceReplicas";
 import { HttpError } from "../../../shared/errors";
+import { isLowercaseWorkspaceId } from "../../../workspaces/identity";
 import {
   isMarkdownComplexityLimitError,
   rewriteMarkdownImageDestinationUrl,
@@ -215,10 +216,15 @@ function requireUuid(value: string, fieldName: string): void {
     throw new TypeError(`${fieldName} must be a lowercase UUID.`);
   }
 }
+function requireWorkspaceId(value: string): void {
+  if (!isLowercaseWorkspaceId(value)) {
+    throw new TypeError("workspaceId must be a lowercase UUID.");
+  }
+}
 function requirePayload(payload: GeneratedMediaPromotionJobPayload): void {
   requireUuid(payload.jobId, "jobId");
   requireUuid(payload.operationId, "operationId");
-  requireUuid(payload.workspaceId, "workspaceId");
+  requireWorkspaceId(payload.workspaceId);
   requireUuid(payload.cardId, "cardId");
   requireUuid(payload.mediaAssetId, "mediaAssetId");
   requireUuid(payload.replicaId, "replicaId");
@@ -486,7 +492,7 @@ export async function loadGeneratedMediaPromotionProtocolVersionInExecutor(
   workspaceId: string,
   jobId: string,
 ): Promise<GeneratedMediaPromotionProtocolVersion> {
-  requireUuid(workspaceId, "workspaceId");
+  requireWorkspaceId(workspaceId);
   requireUuid(jobId, "jobId");
   const result = await executor.query<ProtocolVersionRow>(
     `SELECT protocol_version

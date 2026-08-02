@@ -32,6 +32,8 @@ import type { AuthenticatedMcpAccessToken } from "../auth/mcpTokens";
 const SERVER_NAME = "flashcards-open-source-app";
 const SERVER_VERSION = "v1";
 
+const workspaceIdStringSchema = z.string().trim().check(z.guid()).toLowerCase();
+
 /**
  * Descriptions for the split MCP `sql_query` (read-only) and `sql_execute`
  * (write) tools. Reuse the published split tool-call descriptions so the MCP
@@ -393,9 +395,7 @@ export function createMcpServerWithDependencies(
           .describe(
             "One or more read statements in the published Flashcards SQL dialect (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT).",
           ),
-        workspaceId: z
-          .string()
-          .uuid()
+        workspaceId: workspaceIdStringSchema
           .optional()
           .describe(
             "Optional workspace UUID from the list_workspaces tool; omit to use your currently selected default workspace.",
@@ -446,9 +446,7 @@ export function createMcpServerWithDependencies(
           .describe(
             "One or more write statements in the published Flashcards SQL dialect (INSERT, UPDATE, DELETE).",
           ),
-        workspaceId: z
-          .string()
-          .uuid()
+        workspaceId: workspaceIdStringSchema
           .optional()
           .describe(
             "Optional workspace UUID from the list_workspaces tool; omit to use your currently selected default workspace.",

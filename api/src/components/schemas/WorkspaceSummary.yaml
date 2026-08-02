@@ -7,7 +7,7 @@ required:
   - isSelected
 properties:
   workspaceId:
-    $ref: ./UuidString.yaml
+    $ref: ./WorkspaceIdString.yaml
   name:
     type: string
   createdAt:

@@ -15,7 +15,7 @@ post:
       in: path
       required: true
       schema:
-        $ref: ../components/schemas/UuidString.yaml
+        $ref: ../components/schemas/WorkspaceIdString.yaml
     - name: x-media-asset-id
       in: header
       required: true

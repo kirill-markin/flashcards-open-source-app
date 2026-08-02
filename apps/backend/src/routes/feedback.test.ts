@@ -45,6 +45,7 @@ type FeedbackTestAppOptions = Readonly<{
 }>;
 
 const workspaceId = "11111111-1111-4111-8111-111111111111";
+const legacyPostgresWorkspaceId = "35274129-ef97-d366-954c-955b4bb0fbf0";
 const promptEventId = "22222222-2222-4222-8222-222222222222";
 const submissionId = "33333333-3333-4333-8333-333333333333";
 const installationId = "44444444-4444-4444-8444-444444444444";
@@ -417,6 +418,69 @@ test("POST /feedback/submissions records submission state and does not duplicate
   assert.equal(state.sentEmails.length, 1);
   assert.equal(state.sentEmails[0]?.message, "Please make review faster.");
   assert.equal(state.submissions.get(submissionId)?.emailNotificationStatus, "sent");
+});
+
+test("POST feedback routes preserve a legacy PostgreSQL workspace ID", async () => {
+  const state = createEmptyStoreState(null);
+  const app = createFeedbackTestApp({
+    transport: "bearer",
+    state,
+    loadRequestContextError: null,
+  });
+
+  const promptResponse = await postJson(app, "/feedback/prompt-events", {
+    ...createPromptEventBody(),
+    workspaceId: legacyPostgresWorkspaceId,
+  });
+  const submissionResponse = await postJson(app, "/feedback/submissions", {
+    ...createSubmissionBody("Legacy workspace feedback."),
+    workspaceId: ` \n${legacyPostgresWorkspaceId.toUpperCase()}\t`,
+  });
+
+  assert.equal(promptResponse.status, 200);
+  assert.equal(submissionResponse.status, 200);
+  assert.equal(
+    state.promptEvents.get(promptEventId)?.workspaceId,
+    legacyPostgresWorkspaceId,
+  );
+  assert.equal(
+    state.submissions.get(submissionId)?.workspaceId,
+    legacyPostgresWorkspaceId,
+  );
+  assert.equal(state.sentEmails[0]?.workspaceId, legacyPostgresWorkspaceId);
+});
+
+test("POST feedback routes keep non-workspace identities on strict UUID validation", async () => {
+  const state = createEmptyStoreState(null);
+  const app = createFeedbackTestApp({
+    transport: "bearer",
+    state,
+    loadRequestContextError: null,
+  });
+
+  const promptResponse = await postJson(app, "/feedback/prompt-events", {
+    ...createPromptEventBody(),
+    installationId: legacyPostgresWorkspaceId,
+  });
+  const submissionResponse = await postJson(app, "/feedback/submissions", {
+    ...createSubmissionBody("Strict identity validation."),
+    feedbackSubmissionId: legacyPostgresWorkspaceId,
+  });
+
+  assert.equal(promptResponse.status, 400);
+  assert.equal(submissionResponse.status, 400);
+  assert.deepEqual(await promptResponse.json(), {
+    error: "Feedback request is invalid.",
+    requestId: "request-1",
+    code: "FEEDBACK_INVALID_INPUT",
+  });
+  assert.deepEqual(await submissionResponse.json(), {
+    error: "Feedback request is invalid.",
+    requestId: "request-1",
+    code: "FEEDBACK_INVALID_INPUT",
+  });
+  assert.equal(state.promptEvents.size, 0);
+  assert.equal(state.submissions.size, 0);
 });
 
 test("POST /feedback/submissions rejects empty and too-long messages", async () => {
