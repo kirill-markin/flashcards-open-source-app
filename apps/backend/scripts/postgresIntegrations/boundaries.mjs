@@ -71,8 +71,8 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0104_generated_image_placeholder_terminal_state.sql",
-    expectedMigrationCount: 106,
+    migrationFileName: "0105_catalog_test_content.sql",
+    expectedMigrationCount: 107,
     testFiles: Object.freeze([
       "src/cards/generatedImageAppend.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",

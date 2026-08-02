@@ -205,7 +205,7 @@ test("release deploys the schedule disabled, migrates, then enables and verifies
     "multipartCompletionReconciliationScheduleState=DISABLED",
   );
   const requiredMigration = workflow.indexOf(
-    "--require-migration 0104_generated_image_placeholder_terminal_state.sql",
+    "--require-migration 0105_catalog_test_content.sql",
   );
   const enabledDeploy = workflow.indexOf(
     "multipartCompletionReconciliationScheduleState=ENABLED",
@@ -246,7 +246,7 @@ test("release deploys the schedule disabled, migrates, then enables and verifies
     "multipartCompletionReconciliationScheduleState=DISABLED",
   );
   const bootstrapMigration = bootstrapScript.indexOf(
-    "--require-migration 0104_generated_image_placeholder_terminal_state.sql",
+    "--require-migration 0105_catalog_test_content.sql",
   );
   const bootstrapEnabled = bootstrapScript.indexOf(
     "multipartCompletionReconciliationScheduleState=ENABLED",

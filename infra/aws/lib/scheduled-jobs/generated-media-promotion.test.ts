@@ -94,7 +94,7 @@ test("shared worker has exact permanent-prefix access and no public route", () =
   );
 });
 
-test("release disables cleanup until migration 0104 is confirmed", () => {
+test("release disables cleanup until the latest migration is confirmed", () => {
   for (const relativePath of [
     "../../.github/workflows/aws-web-release.yml",
     "../../scripts/deploy/bootstrap.sh",
@@ -107,7 +107,7 @@ test("release disables cleanup until migration 0104 is confirmed", () => {
       "mediaBlobCleanupEnabled=false",
     );
     const migration = source.indexOf(
-      "--require-migration 0104_generated_image_placeholder_terminal_state.sql",
+      "--require-migration 0105_catalog_test_content.sql",
     );
     const enabled = source.indexOf(
       "generatedMediaPromotionScheduleState=ENABLED",
