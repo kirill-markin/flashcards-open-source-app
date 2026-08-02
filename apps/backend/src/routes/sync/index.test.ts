@@ -10,6 +10,7 @@ import type { GuestSessionPlatform } from "../../guestAuth";
 import { createSyncRoutes } from "./index";
 
 const workspaceId = "11111111-1111-4111-8111-111111111111";
+const legacyWorkspaceId = "35274129-ef97-d366-954c-955b4bb0fbf0";
 
 function createCodedError(code: string, message: string): Error & Readonly<{ code: string }> {
   const error = new Error(message) as Error & { code: string };
@@ -201,6 +202,68 @@ test("POST /sync/push accepts card payloads without legacy effortLevel", async (
       },
     ],
   });
+  assert.equal(processCalls, 1);
+});
+
+test("POST /sync/bootstrap preserves a legacy PostgreSQL workspace ID", async () => {
+  let accessCheckCalls = 0;
+  let processCalls = 0;
+  const routes = createSyncRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    assertUserHasWorkspaceAccessFn: async (userId, requestedWorkspaceId) => {
+      accessCheckCalls += 1;
+      assert.equal(userId, "user-1");
+      assert.equal(requestedWorkspaceId, legacyWorkspaceId);
+    },
+    processSyncBootstrapFn: async (requestedWorkspaceId, userId, input) => {
+      processCalls += 1;
+      assert.equal(requestedWorkspaceId, legacyWorkspaceId);
+      assert.equal(userId, "user-1");
+      assert.equal(input.mode, "pull");
+      return {
+        mode: "pull",
+        entries: [],
+        nextCursor: null,
+        hasMore: false,
+        bootstrapHotChangeId: 0,
+        remoteIsEmpty: true,
+      };
+    },
+  });
+  const app = createSyncTestApp(routes);
+
+  const response = await app.request(
+    `http://localhost/workspaces/${legacyWorkspaceId}/sync/bootstrap`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        mode: "pull",
+        installationId: "install-1",
+        platform: "web",
+        appVersion: "1.0.0",
+        cursor: null,
+        limit: 100,
+      }),
+    },
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    mode: "pull",
+    entries: [],
+    nextCursor: null,
+    hasMore: false,
+    bootstrapHotChangeId: 0,
+    remoteIsEmpty: true,
+  });
+  assert.equal(accessCheckCalls, 1);
   assert.equal(processCalls, 1);
 });
 

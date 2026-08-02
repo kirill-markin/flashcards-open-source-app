@@ -7,7 +7,7 @@ required:
   - retryable
 properties:
   workspaceId:
-    $ref: ./UuidString.yaml
+    $ref: ./WorkspaceIdString.yaml
   mediaAssetId:
     $ref: ./UuidString.yaml
   reason:

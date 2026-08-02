@@ -12,7 +12,7 @@ import {
   getBackendErrorLogDetails,
   type ChatTranscriptionFailureDetails,
 } from "../observability/sentry";
-import { expectUuidString } from "../server/requestParsing";
+import { expectWorkspaceIdString } from "../server/requestParsing";
 import { getObservedOpenAIClient } from "./openai/client";
 import {
   classifyChatTranscriptionFailure,
@@ -139,7 +139,7 @@ export async function parseChatTranscriptionUpload(request: Request): Promise<Ch
   const workspaceValue = formData.get("workspaceId");
   const workspaceId = workspaceValue === null
     ? undefined
-    : expectUuidString(workspaceValue, "workspaceId");
+    : expectWorkspaceIdString(workspaceValue, "workspaceId");
 
   return {
     file: fileValue,

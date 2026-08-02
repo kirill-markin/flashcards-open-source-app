@@ -62,7 +62,7 @@ properties:
       - 'null'
   sourceWorkspaceId:
     oneOf:
-      - $ref: ./UuidString.yaml
+      - $ref: ./WorkspaceIdString.yaml
       - type: 'null'
   cardCount:
     type: integer

@@ -17,7 +17,7 @@ properties:
   mediaAssetId:
     $ref: ./UuidString.yaml
   workspaceId:
-    $ref: ./UuidString.yaml
+    $ref: ./WorkspaceIdString.yaml
   mimeType:
     type: string
     example: image/png
