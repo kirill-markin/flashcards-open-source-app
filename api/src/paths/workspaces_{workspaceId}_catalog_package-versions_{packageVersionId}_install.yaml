@@ -14,9 +14,14 @@ post:
     options preserve source tags without adding an import tag. Cards are
     inserted in ordinal order with unique createdAt timestamps one millisecond
     apart; metadata.source.importedAt remains the common installedAt value. The
-    route is intentionally not silently
-    idempotent: installId and derived operation ids must be unique in the
-    workspace, and conflicts return a 409 error.
+    caller-provided installId is a workspace-scoped idempotency key. After a
+    completed install, an identical normalized retry returns the exact original
+    successful result without creating more cards, media assets, or sync
+    operations. Reusing installId with a different request returns
+    CATALOG_PACKAGE_INSTALL_IDEMPOTENCY_CONFLICT. A new installId performs an
+    explicit repeat import. Derived operation ids must remain unique; unrelated
+    operation collisions return CATALOG_PACKAGE_INSTALL_OPERATION_ALREADY_EXISTS
+    and are never treated as a successful replay.
   security:
     - ApiKeyHeader: []
   parameters:

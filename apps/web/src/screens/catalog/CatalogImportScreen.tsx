@@ -101,13 +101,6 @@ function isCatalogVersionUnavailableError(error: unknown): boolean {
   );
 }
 
-function isCatalogInstallAlreadyAppliedError(error: unknown): boolean {
-  return error instanceof ApiError && (
-    error.code === "CATALOG_PACKAGE_INSTALL_ID_ALREADY_EXISTS"
-    || error.code === "CATALOG_PACKAGE_INSTALL_OPERATION_ALREADY_EXISTS"
-  );
-}
-
 function isSameCatalogWorkspaceIdentity(
   left: CatalogWorkspaceIdentity | null,
   right: CatalogWorkspaceIdentity,
@@ -717,22 +710,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
         return;
       }
       if (isAuthRedirectError(error)) {
-        return;
-      }
-      if (isCatalogInstallAlreadyAppliedError(error)) {
-        if (currentAttempt === null) {
-          throw new Error("Catalog install conflict is missing its local attempt identity");
-        }
-        setPreview(null);
-        setPreviewIdentity(null);
-        installAttemptRef.current = null;
-        setInstallAttempt(null);
-        setSuccessMessage(buildCatalogImportSuccessMessage(
-          currentAttempt.cardCount,
-          currentAttempt.importTag,
-          t,
-        ));
-        void runPostInstallSync(currentAttempt.identity);
         return;
       }
       if (isCatalogVersionUnavailableError(error)) {

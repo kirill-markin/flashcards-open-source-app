@@ -94,7 +94,7 @@ function normalizeCardTags(
   ));
 }
 
-function normalizeOptions(options: CardImportTagOptions): CardImportTagOptions {
+export function normalizeCardImportTagOptions(options: CardImportTagOptions): CardImportTagOptions {
   if (typeof options.addImportTag !== "boolean") {
     throw createCardImportTagInputError("options.addImportTag must be a boolean");
   }
@@ -190,7 +190,7 @@ export function planCardImportTags(
     throw createCardImportTagInputError("cards must be an array");
   }
 
-  const normalizedOptions = normalizeOptions(options);
+  const normalizedOptions = normalizeCardImportTagOptions(options);
   const sourceCardTags = cards.map((card, cardIndex) => normalizeCardTags(card.tags, cardIndex));
   const sourceTagCounts = buildSourceTagCounts(sourceCardTags);
   const sourceTags = sourceTagCounts.map((tagCount) => tagCount.tag);

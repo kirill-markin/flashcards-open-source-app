@@ -20,8 +20,13 @@ import {
   testTimestamp,
   testWorkspaceCardId,
   testWorkspaceId,
+  testWorkspaceMediaAssetId,
 } from "../testSupport";
-import type { CatalogPackageStatus } from "../types";
+import type {
+  CatalogPackageInstallConfirmInput,
+  CatalogPackageInstallResult,
+  CatalogPackageStatus,
+} from "../types";
 
 const testWorkspaceReplicaId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const testInstallTimestamp = "2026-04-19T10:30:00.000Z";
@@ -47,6 +52,90 @@ function createPackageInstallVersionRow(status: CatalogPackageStatus): Readonly<
     author_id: testAuthorId,
     author_slug: "open-cards",
     author_display_name: "Open Cards",
+  };
+}
+
+function createStoredCatalogPackageInstallResult(installId: string): CatalogPackageInstallResult {
+  return {
+    packageVersion: {
+      packageVersionId: testPackageVersionId,
+      packageId: testPackageId,
+      versionNumber: 1,
+      slug: "spanish-basics",
+      title: "Spanish Basics",
+      summary: "Core Spanish prompts.",
+      description: "Core Spanish flashcards for beginners.",
+      languageTags: ["en", "es"],
+      topicTags: ["language"],
+      license: "CC-BY-4.0",
+      contentWarning: null,
+      coverPackageMediaKey: null,
+      cardCount: 1,
+      createdAt: testTimestamp,
+      publishedAt: testTimestamp,
+      author: {
+        authorId: testAuthorId,
+        slug: "open-cards",
+        displayName: "Open Cards",
+      },
+    },
+    installedCards: [{
+      packageCardId: testWorkspaceCardId,
+      stableCardKey: "hola-card",
+      ordinal: 1,
+      cardId: testWorkspaceCardId,
+    }],
+    installedMediaAssets: [{
+      packageMediaAssetId: testPackageMediaAssetId,
+      packageMediaKey: testPackageMediaKey,
+      mediaAssetId: testWorkspaceMediaAssetId,
+    }],
+    summary: {
+      cardCount: 1,
+      mediaAssetCount: 1,
+      installId,
+      installedAt: testInstallTimestamp,
+      keptTagCount: 1,
+      removedTagCount: 0,
+      importTag: null,
+    },
+  };
+}
+
+function createCatalogPackageInstallReplayExecutor(
+  input: CatalogPackageInstallConfirmInput,
+  installResult: unknown,
+): DatabaseExecutor {
+  return {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("INSERT INTO sync.workspace_sync_metadata")) {
+        assert.deepEqual(params, [testWorkspaceId]);
+        return createQueryResult([]);
+      }
+      if (text.includes("FROM sync.workspace_sync_metadata") && text.includes("FOR UPDATE")) {
+        assert.deepEqual(params, [testWorkspaceId]);
+        return createQueryResult([{ workspace_id: testWorkspaceId } as unknown as Row]);
+      }
+      if (text.includes("FROM sync.catalog_package_install_idempotency")) {
+        assert.deepEqual(params, [testWorkspaceId, input.installId]);
+        return createQueryResult([{
+          package_version_id: testPackageVersionId,
+          installed_at: testInstallTimestamp,
+          client_updated_at: testInstallTimestamp,
+          last_modified_by_replica_id: testWorkspaceReplicaId,
+          operation_id_prefix: input.operationIdPrefix,
+          add_import_tag: false,
+          import_tag: null,
+          remove_tags: [],
+          install_result: installResult,
+        } as unknown as Row]);
+      }
+
+      throw new Error(`Unexpected query: ${text}`);
+    },
   };
 }
 
@@ -99,6 +188,123 @@ test("catalog install preview exposes source tag counts and ZIP-compatible defau
   });
 });
 
+test("catalog install rejects stored replay results that violate the published response contract", async () => {
+  const installInput: CatalogPackageInstallConfirmInput = {
+    installId: "catalog-install-stored-contract",
+    installedAt: testInstallTimestamp,
+    clientUpdatedAt: testInstallTimestamp,
+    lastModifiedByReplicaId: testWorkspaceReplicaId,
+    operationIdPrefix: "catalog-install-stored-contract",
+  };
+  const validResult = createStoredCatalogPackageInstallResult(installInput.installId);
+  const invalidResults: ReadonlyArray<Readonly<{ name: string; result: unknown }>> = [
+    {
+      name: "invalid UUID",
+      result: {
+        ...validResult,
+        packageVersion: {
+          ...validResult.packageVersion,
+          author: { ...validResult.packageVersion.author, authorId: "not-a-uuid" },
+        },
+      },
+    },
+    {
+      name: "invalid date-time",
+      result: {
+        ...validResult,
+        packageVersion: { ...validResult.packageVersion, createdAt: "not-a-date-time" },
+      },
+    },
+    {
+      name: "nonpositive version number",
+      result: {
+        ...validResult,
+        packageVersion: { ...validResult.packageVersion, versionNumber: 0 },
+      },
+    },
+    {
+      name: "negative response count",
+      result: {
+        ...validResult,
+        summary: { ...validResult.summary, cardCount: -1 },
+      },
+    },
+  ];
+
+  for (const invalidResult of invalidResults) {
+    await assert.rejects(
+      installCatalogPackageVersionInExecutor(
+        createCatalogPackageInstallReplayExecutor(installInput, invalidResult.result),
+        testWorkspaceId,
+        testPackageVersionId,
+        installInput,
+      ),
+      (error: unknown): boolean => {
+        assert.ok(error instanceof HttpError);
+        assert.equal(error.statusCode, 500);
+        assert.equal(error.code, "CATALOG_PACKAGE_INSTALL_STORED_RESULT_INVALID");
+        assert.match(error.message, /cannot be replayed safely/);
+        assert.match(error.message, /Repair the catalog install idempotency record/);
+        return true;
+      },
+      invalidResult.name,
+    );
+  }
+});
+
+test("catalog install rejects a contract-valid stored result that mismatches its durable identity", async () => {
+  const installInput: CatalogPackageInstallConfirmInput = {
+    installId: "catalog-install-stored-identity",
+    installedAt: testInstallTimestamp,
+    clientUpdatedAt: testInstallTimestamp,
+    lastModifiedByReplicaId: testWorkspaceReplicaId,
+    operationIdPrefix: "catalog-install-stored-identity",
+  };
+  const validResult = createStoredCatalogPackageInstallResult(installInput.installId);
+  const mismatchedResult: CatalogPackageInstallResult = {
+    ...validResult,
+    packageVersion: {
+      ...validResult.packageVersion,
+      packageVersionId: "99999999-9999-4999-8999-999999999999",
+      cardCount: 2,
+    },
+    summary: {
+      ...validResult.summary,
+      installId: "different-install-id",
+      installedAt: "2026-04-19T10:30:01.000Z",
+      cardCount: 2,
+      mediaAssetCount: 0,
+      removedTagCount: 1,
+      importTag: "different-import-tag",
+    },
+  };
+
+  await assert.rejects(
+    installCatalogPackageVersionInExecutor(
+      createCatalogPackageInstallReplayExecutor(installInput, mismatchedResult),
+      testWorkspaceId,
+      testPackageVersionId,
+      installInput,
+    ),
+    (error: unknown): boolean => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.statusCode, 500);
+      assert.equal(error.code, "CATALOG_PACKAGE_INSTALL_STORED_RESULT_INVALID");
+      assert.match(error.message, /does not match its durable request identity/);
+      assert.match(error.message, /summary\.installId/);
+      assert.match(error.message, /packageVersion\.packageVersionId/);
+      assert.match(error.message, /summary\.installedAt/);
+      assert.match(error.message, /summary\.importTag/);
+      assert.match(error.message, /summary\.cardCount/);
+      assert.match(error.message, /packageVersion\.cardCount/);
+      assert.match(error.message, /summary\.mediaAssetCount/);
+      assert.match(error.message, /summary\.removedTagCount/);
+      assert.match(error.message, /Repair the catalog install idempotency record/);
+      return true;
+    },
+  );
+});
+
 test("catalog install creates logical media assets from existing blobs and rewrites card markdown", async () => {
   const queries: Array<Readonly<{ text: string; params: ReadonlyArray<SqlValue> }>> = [];
   let insertedMediaAssetId: string | null = null;
@@ -116,6 +322,11 @@ test("catalog install creates logical media assets from existing blobs and rewri
       params: ReadonlyArray<SqlValue>,
     ): Promise<pg.QueryResult<Row>> {
       queries.push({ text, params });
+
+      if (text.includes("FROM sync.catalog_package_install_idempotency")) {
+        assert.deepEqual(params, [testWorkspaceId, installInput.installId]);
+        return createQueryResult([]);
+      }
 
       if (text.includes("FROM catalog.package_versions AS package_versions")) {
         assert.match(text, /FOR SHARE OF package_versions/);
@@ -248,6 +459,22 @@ test("catalog install creates logical media assets from existing blobs and rewri
         return createQueryResult([{ change_id: 1 } as unknown as Row]);
       }
 
+      if (text.includes("INSERT INTO sync.catalog_package_install_idempotency")) {
+        assert.deepEqual(params.slice(0, 10), [
+          testWorkspaceId,
+          installInput.installId,
+          testPackageVersionId,
+          testInstallTimestamp,
+          testInstallTimestamp,
+          testWorkspaceReplicaId,
+          "catalog-install-1",
+          false,
+          null,
+          [],
+        ]);
+        return createQueryResult([]);
+      }
+
       throw new Error(`Unexpected query: ${text}`);
     },
   };
@@ -341,6 +568,9 @@ test("catalog install preserves catalog order with millisecond timestamps and on
       text: string,
       params: ReadonlyArray<SqlValue>,
     ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("FROM sync.catalog_package_install_idempotency")) {
+        return createQueryResult([]);
+      }
       if (text.includes("FROM catalog.package_versions AS package_versions")) {
         return createQueryResult([{
           ...createPackageInstallVersionRow("published"),
@@ -383,6 +613,9 @@ test("catalog install preserves catalog order with millisecond timestamps and on
       }
       if (text.includes("INSERT INTO sync.hot_changes")) {
         return createQueryResult([{ change_id: insertedCards.length } as unknown as Row]);
+      }
+      if (text.includes("INSERT INTO sync.catalog_package_install_idempotency")) {
+        return createQueryResult([]);
       }
 
       throw new Error(`Unexpected query: ${text}`);
@@ -497,6 +730,15 @@ test("catalog install rejects unknown removed tags before workspace writes", asy
       _params: ReadonlyArray<SqlValue>,
     ): Promise<pg.QueryResult<Row>> {
       queries.push(text);
+      if (text.includes("INSERT INTO sync.workspace_sync_metadata")) {
+        return createQueryResult([]);
+      }
+      if (text.includes("FROM sync.workspace_sync_metadata") && text.includes("FOR UPDATE")) {
+        return createQueryResult([{ workspace_id: testWorkspaceId } as unknown as Row]);
+      }
+      if (text.includes("FROM sync.catalog_package_install_idempotency")) {
+        return createQueryResult([]);
+      }
       if (text.includes("FROM catalog.package_versions AS package_versions")) {
         return createQueryResult([createPackageInstallVersionRow("published") as unknown as Row]);
       }
@@ -545,8 +787,9 @@ test("catalog install rejects unknown removed tags before workspace writes", asy
       return true;
     },
   );
-  assert.equal(queries.length, 3);
-  assert.equal(queries.some((query) => query.includes("INSERT INTO")), false);
+  assert.equal(queries.some((query) => query.includes("INSERT INTO content.")), false);
+  assert.equal(queries.some((query) => query.includes("INSERT INTO sync.hot_changes")), false);
+  assert.equal(queries.some((query) => query.includes("INSERT INTO sync.catalog_package_install_idempotency")), false);
 });
 
 test("catalog install rejects unsafe operation prefixes before database work", async () => {
@@ -606,6 +849,11 @@ test("catalog install rejects invalid package card source createdAt", async () =
       params: ReadonlyArray<SqlValue>,
     ): Promise<pg.QueryResult<Row>> {
       queries.push({ text, params });
+
+      if (text.includes("FROM sync.catalog_package_install_idempotency")) {
+        assert.deepEqual(params, [testWorkspaceId, installInput.installId]);
+        return createQueryResult([]);
+      }
 
       if (text.includes("FROM catalog.package_versions AS package_versions")) {
         assert.match(text, /FOR SHARE OF package_versions/);
@@ -726,6 +974,15 @@ test("catalog install rejects unpublished and delisted package versions", async 
       text: string,
       params: ReadonlyArray<SqlValue>,
     ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("INSERT INTO sync.workspace_sync_metadata")) {
+        return createQueryResult([]);
+      }
+      if (text.includes("FROM sync.workspace_sync_metadata") && text.includes("FOR UPDATE")) {
+        return createQueryResult([{ workspace_id: testWorkspaceId } as unknown as Row]);
+      }
+      if (text.includes("FROM sync.catalog_package_install_idempotency")) {
+        return createQueryResult([]);
+      }
       assert.match(text, /FROM catalog\.package_versions AS package_versions/);
       assert.match(text, /FOR SHARE OF package_versions/);
       assert.deepEqual(params, [testPackageVersionId]);

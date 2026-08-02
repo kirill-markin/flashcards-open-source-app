@@ -599,13 +599,10 @@ describe("CatalogImportScreen", () => {
     expect(container.querySelector("[data-testid='workspace-import-success']")?.textContent).toContain("Imported 2 cards with tag custom-tag");
   });
 
-  it.each([
-    "CATALOG_PACKAGE_INSTALL_ID_ALREADY_EXISTS",
-    "CATALOG_PACKAGE_INSTALL_OPERATION_ALREADY_EXISTS",
-  ])("reuses one install identity after an ambiguous response and reconciles %s", async (conflictCode) => {
+  it("reuses one install identity after an ambiguous response and accepts the verified replay result", async () => {
     confirmCatalogPackageInstallMock
       .mockRejectedValueOnce(new Error("Catalog install response was lost"))
-      .mockRejectedValueOnce(createCatalogInstallConflict(conflictCode));
+      .mockResolvedValueOnce(createInstallResult("44444444-4444-4444-8444-444444444444"));
 
     await renderRoute(`/catalog/import/${packageVersionId}`);
     await waitForCondition("Catalog preview was not rendered", () => (
@@ -638,6 +635,30 @@ describe("CatalogImportScreen", () => {
     expect(firstOptions?.installId).toBe("44444444-4444-4444-8444-444444444444");
     expect(retryOptions).toEqual(firstOptions);
     expect(crypto.randomUUID).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps an unverified operation collision visible and does not start reconciliation sync", async () => {
+    confirmCatalogPackageInstallMock.mockRejectedValueOnce(
+      createCatalogInstallConflict("CATALOG_PACKAGE_INSTALL_OPERATION_ALREADY_EXISTS"),
+    );
+
+    await renderRoute(`/catalog/import/${packageVersionId}`);
+    await waitForCondition("Catalog preview was not rendered", () => (
+      container.querySelector("[data-testid='workspace-package-import-preview']") !== null
+    ));
+    const confirmButton = container.querySelector("[data-testid='workspace-package-import-confirm-button']");
+    if (!(confirmButton instanceof HTMLButtonElement)) {
+      throw new Error("Catalog confirm button was not found");
+    }
+
+    await act(async () => confirmButton.click());
+    await waitForCondition("Catalog operation collision was not rendered", () => (
+      container.querySelector("[data-testid='workspace-import-error']") !== null
+    ));
+
+    expect(container.querySelector("[data-testid='workspace-import-success']")).toBeNull();
+    expect(vi.mocked(appData.refreshLocalData)).toHaveBeenCalledTimes(1);
+    expect(confirmCatalogPackageInstallMock).toHaveBeenCalledTimes(1);
   });
 
   it("creates a new install identity only after an explicit repeat preview", async () => {
