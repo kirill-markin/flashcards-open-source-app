@@ -14,7 +14,7 @@ post:
       in: path
       required: true
       schema:
-        $ref: ../components/schemas/UuidString.yaml
+        $ref: ../components/schemas/WorkspaceIdString.yaml
     - name: sessionId
       in: path
       required: true

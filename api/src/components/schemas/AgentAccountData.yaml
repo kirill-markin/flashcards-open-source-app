@@ -11,7 +11,7 @@ properties:
     type: string
   selectedWorkspaceId:
     anyOf:
-      - $ref: ./UuidString.yaml
+      - $ref: ./WorkspaceIdString.yaml
       - type: 'null'
   agentWorkspaceReplicaId:
     description: >-

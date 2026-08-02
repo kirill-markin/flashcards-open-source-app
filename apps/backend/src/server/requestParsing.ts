@@ -1,4 +1,8 @@
 import { HttpError } from "../shared/errors";
+import {
+  isWorkspaceId,
+  normalizeWorkspaceId,
+} from "../workspaces/identity";
 
 export async function parseJsonBody(request: Request): Promise<unknown> {
   try {
@@ -64,6 +68,15 @@ export function expectUuidString(value: unknown, fieldName: string): string {
   }
 
   return trimmedValue.toLowerCase();
+}
+
+export function expectWorkspaceIdString(value: unknown, fieldName: string): string {
+  const normalizedValue = normalizeWorkspaceId(expectNonEmptyString(value, fieldName));
+  if (!isWorkspaceId(normalizedValue)) {
+    throw new HttpError(400, `${fieldName} must be a UUID`);
+  }
+
+  return normalizedValue.toLowerCase();
 }
 
 export function expectNullableNonEmptyString(value: unknown, fieldName: string): string | null {
