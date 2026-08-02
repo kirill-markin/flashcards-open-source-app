@@ -22,6 +22,7 @@ import {
   createMultipartUploadSessionAtApplicationBoundary,
   multipartUploadSessionCreationApplicationDependencies,
   multipartUploadSessionCreationClaimLeaseDurationMs,
+  type MultipartUploadSessionCreationApplicationDependencies,
 } from "../mediaAssets/multipart/creationBoundary";
 import {
   mapMultipartCompletionDeadlineError,
@@ -65,18 +66,30 @@ import {
 import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
 import type { AppEnv } from "../server/app";
 import { runDatabaseOperationsWithDeadline } from "../database";
-import { createDirectImageIngestionRoutes } from "./directImageIngestion";
+import {
+  createDirectImageIngestionRoutes,
+  type DirectImageIngestionRoutesOptions,
+} from "./directImageIngestion";
 import {
   createStandaloneMultipartCompletionRequestTiming,
   getMultipartCompletionRequestTimingContext,
 } from "../server/multipartCompletionRequestTiming";
 
-type MediaAssetsRoutesOptions = Readonly<{
-  allowedOrigins: ReadonlyArray<string>;
+type MediaAssetsRoutesOptions = DirectImageIngestionRoutesOptions & Readonly<{
+  loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
+  multipartUploadSessionCreationApplicationDependencies?:
+    MultipartUploadSessionCreationApplicationDependencies;
 }>;
 
 export function createMediaAssetsRoutes(options: MediaAssetsRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+  const loadRequestContextFromRequestFn =
+    options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
+  const assertUserHasWorkspaceAccessFn =
+    options.assertUserHasWorkspaceAccessFn ?? assertUserHasWorkspaceAccess;
+  const multipartUploadSessionCreationDependencies =
+    options.multipartUploadSessionCreationApplicationDependencies
+    ?? multipartUploadSessionCreationApplicationDependencies;
 
   app.route("/", createDirectImageIngestionRoutes(options));
 
@@ -88,10 +101,10 @@ export function createMediaAssetsRoutes(options: MediaAssetsRoutesOptions): Hono
     let sessionId: string | null = null;
 
     try {
-      const loadedContext = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+      const loadedContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
       requestContext = loadedContext.requestContext;
       workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
-      await assertUserHasWorkspaceAccess(loadedContext.requestContext.userId, workspaceId);
+      await assertUserHasWorkspaceAccessFn(loadedContext.requestContext.userId, workspaceId);
       const input = parseMediaAssetUploadSessionCreateInput(await parseJsonBody(context.req.raw));
       mediaAssetId = input.mediaAssetId;
       sessionId = randomUUID();
@@ -111,7 +124,7 @@ export function createMediaAssetsRoutes(options: MediaAssetsRoutesOptions): Hono
           scope,
           context.req.raw.signal,
           multipartUploadSessionCreationClaimLeaseDurationMs,
-          multipartUploadSessionCreationApplicationDependencies,
+          multipartUploadSessionCreationDependencies,
         );
       const sessionResult = applicationResult.sessionResult;
       if (sessionResult.status === "already_available") {

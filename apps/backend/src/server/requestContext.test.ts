@@ -8,6 +8,7 @@ import {
 } from "./requestContext";
 
 const legacyWorkspaceId = "35274129-ef97-d366-954c-955b4bb0fbf0";
+const uppercaseLegacyWorkspaceId = legacyWorkspaceId.toUpperCase();
 const versionFourWorkspaceId = "11111111-1111-4111-8111-111111111111";
 
 test("workspace request parameters accept PostgreSQL UUID text", () => {
@@ -16,6 +17,7 @@ test("workspace request parameters accept PostgreSQL UUID text", () => {
     parseOptionalWorkspaceIdParam,
   ]) {
     assert.equal(parseWorkspaceId(legacyWorkspaceId), legacyWorkspaceId);
+    assert.equal(parseWorkspaceId(uppercaseLegacyWorkspaceId), legacyWorkspaceId);
     assert.equal(parseWorkspaceId(versionFourWorkspaceId), versionFourWorkspaceId);
     assert.equal(
       parseWorkspaceId(` \n${legacyWorkspaceId}\t`),
