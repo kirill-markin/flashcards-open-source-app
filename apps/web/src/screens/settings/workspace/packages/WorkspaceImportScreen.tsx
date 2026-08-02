@@ -7,19 +7,19 @@ import {
 import { useAppData } from "../../../../appData";
 import { requireCloudInstallationId } from "../../../../appData/sync/local/syncCloudSettings";
 import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
-import { type TranslationKey, useI18n } from "../../../../i18n";
+import { type TranslationKey, type TranslationValues, useI18n } from "../../../../i18n";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import type {
   WorkspacePackageImportConfirmOptions,
   WorkspacePackageImportPreviewResponse,
 } from "../../../../types";
 import { SettingsShell } from "../../SettingsShared";
-
-type PackageMetadataRow = Readonly<{
-  label: string;
-  value: string;
-  href: string | null;
-}>;
+import { WorkspaceImportPresentation } from "./WorkspaceImportPresentation";
+import type {
+  WorkspaceImportOptions,
+  WorkspaceImportPreviewMetadataRow,
+  WorkspaceImportPreviewModel,
+} from "./workspaceImportPresentationModel";
 
 type PackageImportPreviewIdentity = Readonly<{
   workspaceId: string;
@@ -69,6 +69,93 @@ function formatPackageMetadataCreatedAt(
   return formatDateTimeValue(dateValue);
 }
 
+function buildWorkspaceImportPreviewModel(
+  preview: WorkspacePackageImportPreviewResponse,
+  t: (key: TranslationKey, values?: TranslationValues) => string,
+  formatDateTimeValue: (dateValue: Date) => string,
+  formatNumberValue: (value: number) => string,
+): WorkspaceImportPreviewModel {
+  const metadataRows: ReadonlyArray<WorkspaceImportPreviewMetadataRow> = [
+    preview.packageMetadata.label === null ? null : {
+      id: "label",
+      label: t("workspaceImport.previewMetadataLabel"),
+      value: preview.packageMetadata.label,
+      href: null,
+    },
+    preview.packageMetadata.author === null ? null : {
+      id: "author",
+      label: t("workspaceImport.previewMetadataAuthor"),
+      value: preview.packageMetadata.author,
+      href: null,
+    },
+    preview.packageMetadata.comment === null ? null : {
+      id: "comment",
+      label: t("workspaceImport.previewMetadataComment"),
+      value: preview.packageMetadata.comment,
+      href: null,
+    },
+    preview.packageMetadata.createdAt === null ? null : {
+      id: "created-at",
+      label: t("workspaceImport.previewMetadataCreatedAt"),
+      value: formatPackageMetadataCreatedAt(preview.packageMetadata.createdAt, formatDateTimeValue),
+      href: null,
+    },
+    preview.packageMetadata.sourceUrl === null ? null : {
+      id: "source-url",
+      label: t("workspaceImport.previewMetadataSourceUrl"),
+      value: preview.packageMetadata.sourceUrl,
+      href: buildSafeMetadataHttpUrl(preview.packageMetadata.sourceUrl),
+    },
+  ].filter((row): row is WorkspaceImportPreviewMetadataRow => row !== null);
+
+  return {
+    statistics: [
+      {
+        id: "source",
+        label: t("workspaceImport.previewSourceLabel"),
+        value: t("workspaceImport.previewSourceZip"),
+        testId: "workspace-package-import-preview-source",
+      },
+      {
+        id: "cards",
+        label: t("workspaceImport.previewCardsLabel"),
+        value: formatNumberValue(preview.cardCount),
+        testId: "workspace-package-import-preview-card-count",
+      },
+      {
+        id: "referenced-media",
+        label: t("workspaceImport.previewReferencedMediaLabel"),
+        value: formatNumberValue(preview.referencedMediaCount),
+        testId: "workspace-package-import-preview-referenced-media-count",
+      },
+      {
+        id: "package-media",
+        label: t("workspaceImport.previewPackageMediaLabel"),
+        value: formatNumberValue(preview.packageMediaFileCount),
+        testId: "workspace-package-import-preview-package-media-count",
+      },
+    ],
+    metadataRows,
+    warnings: preview.warnings.map((warning) => ({
+      id: `${warning.code}:${warning.mediaPath}:${warning.message}`,
+      message: warning.mediaPath === ""
+        ? warning.message
+        : t("workspaceImport.previewWarningWithPath", {
+          message: warning.message,
+          path: warning.mediaPath,
+        }),
+    })),
+    tags: preview.tagCounts.map((tagCount) => ({
+      tag: tagCount.tag,
+      removalLabel: t("workspaceImport.previewRemoveTagLabel", {
+        tag: tagCount.tag,
+        count: tagCount.cardsCount,
+      }),
+    })),
+    suggestedImportTag: preview.defaultOptions.suggestedImportTag,
+  };
+}
+
 export function WorkspaceImportScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, isSessionVerified, refreshLocalData, session } = useAppData();
   const { showCapturedTechnicalError } = useAppErrorDialog();
@@ -76,12 +163,14 @@ export function WorkspaceImportScreen(): ReactElement {
   const packageImportInputRef = useRef<HTMLInputElement | null>(null);
   const [isPackagePreviewing, setIsPackagePreviewing] = useState<boolean>(false);
   const [isPackageImporting, setIsPackageImporting] = useState<boolean>(false);
-  const [shouldTagPackageImport, setShouldTagPackageImport] = useState<boolean>(true);
   const [packageImportFile, setPackageImportFile] = useState<File | null>(null);
   const [packageImportPreview, setPackageImportPreview] = useState<WorkspacePackageImportPreviewResponse | null>(null);
   const [packageImportPreviewIdentity, setPackageImportPreviewIdentity] = useState<PackageImportPreviewIdentity | null>(null);
-  const [packageImportTag, setPackageImportTag] = useState<string>("");
-  const [packageImportRemoveTags, setPackageImportRemoveTags] = useState<ReadonlyArray<string>>([]);
+  const [packageImportOptions, setPackageImportOptions] = useState<WorkspaceImportOptions>({
+    addImportTag: true,
+    importTag: "",
+    removeTags: [],
+  });
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
   const technicalErrorMessage = t("appError.technicalError.message");
@@ -98,35 +187,9 @@ export function WorkspaceImportScreen(): ReactElement {
     && packageImportPreviewIdentity.workspaceId === activeWorkspaceId
     && packageImportPreviewIdentity.installationId === currentInstallationId;
   const isPackageImportControlDisabled = !isPackageImportAvailable || isPackageImportBusy;
-  const packageImportMetadataRows: ReadonlyArray<PackageMetadataRow> = packageImportPreview === null
-    ? []
-    : [
-      packageImportPreview.packageMetadata.label === null ? null : {
-        label: t("workspaceImport.previewMetadataLabel"),
-        value: packageImportPreview.packageMetadata.label,
-        href: null,
-      },
-      packageImportPreview.packageMetadata.author === null ? null : {
-        label: t("workspaceImport.previewMetadataAuthor"),
-        value: packageImportPreview.packageMetadata.author,
-        href: null,
-      },
-      packageImportPreview.packageMetadata.comment === null ? null : {
-        label: t("workspaceImport.previewMetadataComment"),
-        value: packageImportPreview.packageMetadata.comment,
-        href: null,
-      },
-      packageImportPreview.packageMetadata.createdAt === null ? null : {
-        label: t("workspaceImport.previewMetadataCreatedAt"),
-        value: formatPackageMetadataCreatedAt(packageImportPreview.packageMetadata.createdAt, formatDateTime),
-        href: null,
-      },
-      packageImportPreview.packageMetadata.sourceUrl === null ? null : {
-        label: t("workspaceImport.previewMetadataSourceUrl"),
-        value: packageImportPreview.packageMetadata.sourceUrl,
-        href: buildSafeMetadataHttpUrl(packageImportPreview.packageMetadata.sourceUrl),
-      },
-    ].filter((row): row is PackageMetadataRow => row !== null);
+  const packageImportPreviewModel = packageImportPreview === null
+    ? null
+    : buildWorkspaceImportPreviewModel(packageImportPreview, t, formatDateTime, formatNumber);
 
   function captureWorkspaceImportError(error: unknown): boolean {
     return captureAppOperationError(error, {
@@ -143,8 +206,11 @@ export function WorkspaceImportScreen(): ReactElement {
     setPackageImportFile(null);
     setPackageImportPreview(null);
     setPackageImportPreviewIdentity(null);
-    setPackageImportTag("");
-    setPackageImportRemoveTags([]);
+    setPackageImportOptions({
+      addImportTag: true,
+      importTag: "",
+      removeTags: [],
+    });
   }
 
   useEffect(() => {
@@ -180,9 +246,11 @@ export function WorkspaceImportScreen(): ReactElement {
         workspaceId: activeWorkspace.workspaceId,
         installationId: currentInstallationId,
       });
-      setShouldTagPackageImport(preview.defaultOptions.addImportTag);
-      setPackageImportTag(preview.defaultOptions.suggestedImportTag);
-      setPackageImportRemoveTags([...preview.defaultOptions.removedTags]);
+      setPackageImportOptions({
+        addImportTag: preview.defaultOptions.addImportTag,
+        importTag: preview.defaultOptions.suggestedImportTag,
+        removeTags: [...preview.defaultOptions.removedTags],
+      });
     } catch (error) {
       const validationErrorMessage = getWorkspacePackageValidationErrorMessage(error, t);
       if (validationErrorMessage !== null) {
@@ -204,7 +272,7 @@ export function WorkspaceImportScreen(): ReactElement {
     }
   }
 
-  async function confirmPackageImport(): Promise<void> {
+  async function confirmPackageImport(importOptions: WorkspaceImportOptions): Promise<void> {
     if (!isPackageImportAvailable) {
       resetPackageImportPreview();
       setErrorMessage(t("workspaceImport.workspaceUnavailable"));
@@ -219,8 +287,8 @@ export function WorkspaceImportScreen(): ReactElement {
       return;
     }
 
-    const confirmedPackageImportTag = packageImportTag.trim();
-    if (shouldTagPackageImport && confirmedPackageImportTag === "") {
+    const confirmedPackageImportTag = importOptions.importTag.trim();
+    if (importOptions.addImportTag && confirmedPackageImportTag === "") {
       setErrorMessage(t("workspaceImport.importTagRequired"));
       setSuccessMessage("");
       return;
@@ -234,9 +302,9 @@ export function WorkspaceImportScreen(): ReactElement {
       const importId = crypto.randomUUID().toLowerCase();
       const importedAt = new Date().toISOString();
       const options: WorkspacePackageImportConfirmOptions = {
-        addImportTag: shouldTagPackageImport,
+        addImportTag: importOptions.addImportTag,
         importTag: confirmedPackageImportTag,
-        removeTags: packageImportRemoveTags,
+        removeTags: importOptions.removeTags,
         importedAt,
         importId,
         clientUpdatedAt: importedAt,
@@ -280,22 +348,6 @@ export function WorkspaceImportScreen(): ReactElement {
     void previewPackageImportFile(file);
   }
 
-  function updateShouldTagPackageImport(shouldTagImport: boolean): void {
-    if (shouldTagImport && packageImportTag.trim() === "" && packageImportPreview !== null) {
-      setPackageImportTag(packageImportPreview.defaultOptions.suggestedImportTag);
-    }
-
-    setShouldTagPackageImport(shouldTagImport);
-  }
-
-  function togglePackageImportRemovedTag(tag: string): void {
-    setPackageImportRemoveTags((currentTags) => (
-      currentTags.includes(tag)
-        ? currentTags.filter((currentTag) => currentTag !== tag)
-        : [...currentTags, tag]
-    ));
-  }
-
   return (
     <SettingsShell
       title={t("workspaceImport.title")}
@@ -303,152 +355,44 @@ export function WorkspaceImportScreen(): ReactElement {
       activeTab="workspace"
     >
       <section className="settings-group">
-        <article className="content-card workspace-export-format-card">
-          <div className="settings-nav-card-copy">
-            <strong className="panel-subtitle">{t("workspaceImport.packageTitle")}</strong>
-            <p className="subtitle">{t("workspaceImport.packageDescription")}</p>
-          </div>
-          <label className="workspace-import-tag-control">
-            <input
-              type="checkbox"
-              checked={shouldTagPackageImport}
-              disabled={isPackageImportControlDisabled}
-              data-testid="workspace-package-import-tag-checkbox"
-              onChange={(event) => updateShouldTagPackageImport(event.currentTarget.checked)}
-            />
-            <span className="workspace-import-tag-copy">
-              <span>{t("workspaceImport.importTagLabel")}</span>
-              <span className="subtitle">{t("workspaceImport.importTagDescription")}</span>
-            </span>
-          </label>
-          <input
-            ref={packageImportInputRef}
-            type="file"
-            accept=".zip,application/zip,application/x-zip-compressed"
-            disabled={isPackageImportControlDisabled}
-            data-testid="workspace-package-import-file-input"
-            style={{ display: "none" }}
-            onChange={handlePackageImportInputChange}
-          />
-          {packageImportPreview === null ? null : (
-            <section className="workspace-import-preview" data-testid="workspace-package-import-preview">
-              <div className="workspace-import-preview-stats">
-                <div className="workspace-import-preview-stat">
-                  <span className="subtitle">{t("workspaceImport.previewSourceLabel")}</span>
-                  <strong data-testid="workspace-package-import-preview-source">
-                    {t("workspaceImport.previewSourceZip")}
-                  </strong>
-                </div>
-                <div className="workspace-import-preview-stat">
-                  <span className="subtitle">{t("workspaceImport.previewCardsLabel")}</span>
-                  <strong data-testid="workspace-package-import-preview-card-count">{formatNumber(packageImportPreview.cardCount)}</strong>
-                </div>
-                <div className="workspace-import-preview-stat">
-                  <span className="subtitle">{t("workspaceImport.previewReferencedMediaLabel")}</span>
-                  <strong data-testid="workspace-package-import-preview-referenced-media-count">{formatNumber(packageImportPreview.referencedMediaCount)}</strong>
-                </div>
-                <div className="workspace-import-preview-stat">
-                  <span className="subtitle">{t("workspaceImport.previewPackageMediaLabel")}</span>
-                  <strong data-testid="workspace-package-import-preview-package-media-count">{formatNumber(packageImportPreview.packageMediaFileCount)}</strong>
-                </div>
-              </div>
-              {shouldTagPackageImport ? (
-                <label className="workspace-import-tag-field" htmlFor="workspace-package-import-tag-input">
-                  <span>{t("workspaceImport.importTagValueLabel")}</span>
-                  <input
-                    id="workspace-package-import-tag-input"
-                    type="text"
-                    value={packageImportTag}
-                    disabled={isPackageImportControlDisabled}
-                    data-testid="workspace-package-import-tag-input"
-                    onChange={(event) => setPackageImportTag(event.currentTarget.value)}
-                  />
-                </label>
-              ) : null}
-              {packageImportMetadataRows.length === 0 ? null : (
-                <dl className="workspace-import-preview-metadata" data-testid="workspace-package-import-preview-metadata">
-                  {packageImportMetadataRows.map((row) => (
-                    <div key={row.label} className="workspace-import-preview-metadata-row">
-                      <dt>{row.label}</dt>
-                      <dd>
-                        {row.href === null ? row.value : (
-                          <a href={row.href} target="_blank" rel="noreferrer">{row.value}</a>
-                        )}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-              {packageImportPreview.warnings.length === 0 ? null : (
-                <div className="workspace-import-preview-warnings" data-testid="workspace-package-import-preview-warnings">
-                  <strong>{t("workspaceImport.previewWarningsTitle")}</strong>
-                  <ul>
-                    {packageImportPreview.warnings.map((warning) => (
-                      <li key={`${warning.code}:${warning.mediaPath}:${warning.message}`}>
-                        {warning.mediaPath === ""
-                          ? warning.message
-                          : t("workspaceImport.previewWarningWithPath", {
-                            message: warning.message,
-                            path: warning.mediaPath,
-                          })}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {packageImportPreview.tagCounts.length === 0 ? null : (
-                <div className="workspace-import-preview-tags">
-                  <strong>{t("workspaceImport.previewTagsTitle")}</strong>
-                  <div className="workspace-import-preview-tag-list">
-                    {packageImportPreview.tagCounts.map((tagCount) => (
-                      <label key={tagCount.tag} className="workspace-import-preview-tag-control">
-                        <input
-                          type="checkbox"
-                          checked={packageImportRemoveTags.includes(tagCount.tag)}
-                          disabled={isPackageImportControlDisabled}
-                          data-testid="workspace-package-remove-tag-checkbox"
-                          data-tag={tagCount.tag}
-                          onChange={() => togglePackageImportRemovedTag(tagCount.tag)}
-                        />
-                        <span>{t("workspaceImport.previewRemoveTagLabel", {
-                          tag: tagCount.tag,
-                          count: tagCount.cardsCount,
-                        })}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </section>
-          )}
-          <div className="workspace-export-actions">
-            <button
-              className="primary-btn"
-              type="button"
-              disabled={isPackageImportControlDisabled}
-              data-testid="workspace-package-import-button"
-              onClick={() => packageImportInputRef.current?.click()}
-            >
-              {isPackagePreviewing ? t("workspaceImport.packagePreviewing") : t("workspaceImport.packageImportButton")}
-            </button>
-            <button
-              className="primary-btn"
-              type="button"
-              disabled={!isPackageImportPreviewCurrent || isPackageImportBusy}
-              data-testid="workspace-package-import-confirm-button"
-              onClick={() => void confirmPackageImport()}
-            >
-              {isPackageImporting ? t("workspaceImport.packageImporting") : t("workspaceImport.packageConfirmButton")}
-            </button>
-          </div>
-          {activeWorkspace !== null && !isPackageImportAvailable ? (
-            <p className="subtitle" data-testid="workspace-package-import-unavailable">
-              {isSessionVerified ? t("workspaceImport.workspaceUnavailable") : t("loading.restoringSession")}
-            </p>
-          ) : null}
-        </article>
-        {errorMessage !== "" ? <p className="error-banner" role="alert" data-testid="workspace-import-error">{errorMessage}</p> : null}
-        {successMessage !== "" ? <p className="subtitle" data-testid="workspace-import-success">{successMessage}</p> : null}
+        <input
+          ref={packageImportInputRef}
+          type="file"
+          accept=".zip,application/zip,application/x-zip-compressed"
+          disabled={isPackageImportControlDisabled}
+          data-testid="workspace-package-import-file-input"
+          style={{ display: "none" }}
+          onChange={handlePackageImportInputChange}
+        />
+        <WorkspaceImportPresentation
+          copy={{
+            title: t("workspaceImport.packageTitle"),
+            description: t("workspaceImport.packageDescription"),
+            importTagLabel: t("workspaceImport.importTagLabel"),
+            importTagDescription: t("workspaceImport.importTagDescription"),
+            importTagValueLabel: t("workspaceImport.importTagValueLabel"),
+            warningsTitle: t("workspaceImport.previewWarningsTitle"),
+            tagsTitle: t("workspaceImport.previewTagsTitle"),
+            selectionActionLabel: isPackagePreviewing
+              ? t("workspaceImport.packagePreviewing")
+              : t("workspaceImport.packageImportButton"),
+            confirmActionLabel: t("workspaceImport.packageConfirmButton"),
+            confirmingActionLabel: t("workspaceImport.packageImporting"),
+          }}
+          preview={packageImportPreviewModel}
+          options={packageImportOptions}
+          isControlDisabled={isPackageImportControlDisabled}
+          canConfirm={isPackageImportPreviewCurrent && !isPackageImportBusy}
+          isConfirming={isPackageImporting}
+          unavailableMessage={activeWorkspace !== null && !isPackageImportAvailable
+            ? isSessionVerified ? t("workspaceImport.workspaceUnavailable") : t("loading.restoringSession")
+            : null}
+          errorMessage={errorMessage}
+          successMessage={successMessage}
+          onSelect={() => packageImportInputRef.current?.click()}
+          onOptionsChange={setPackageImportOptions}
+          onConfirm={(options) => void confirmPackageImport(options)}
+        />
       </section>
     </SettingsShell>
   );
