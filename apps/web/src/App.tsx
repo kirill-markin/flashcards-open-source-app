@@ -38,6 +38,7 @@ import {
   accountSupportRoute,
   buildSettingsDeckDetailRoute,
   buildSettingsDeckEditRoute,
+  catalogImportRoutePattern,
   cardsRoute,
   chatRoute,
   friendInviteRoutePattern,
@@ -194,6 +195,9 @@ const WorkspaceExportScreen = lazy(async () => import("./screens/settings/worksp
 })));
 const WorkspaceImportScreen = lazy(async () => import("./screens/settings/workspace/packages/WorkspaceImportScreen").then((module) => ({
   default: module.WorkspaceImportScreen,
+})));
+const CatalogImportScreen = lazy(async () => import("./screens/catalog/CatalogImportScreen").then((module) => ({
+  default: module.CatalogImportScreen,
 })));
 
 function RouteContentFallback(props: Readonly<{ messageKey: TranslationKey }>): ReactElement {
@@ -905,6 +909,10 @@ export default function App(): ReactElement {
                 element={renderDeferredRoute(<FriendInvitePreviewScreen />, "friendInvite.loading")}
               />
               <Route path={friendInviteRoutePattern} element={<FriendInviteScreen />} />
+              <Route
+                path={catalogImportRoutePattern}
+                element={renderDeferredRoute(<CatalogImportScreen />, "catalogImport.loading")}
+              />
               <Route path={shareRoute} element={<ShareAppScreen />} />
               <Route path="/*" element={<AuthenticatedApp />} />
             </SentryRoutes>
