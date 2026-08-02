@@ -8,3 +8,7 @@ export function normalizeWorkspaceId(value: string): string {
 export function isWorkspaceId(value: string): boolean {
   return workspaceIdPattern.test(value);
 }
+
+export function isLowercaseWorkspaceId(value: string): boolean {
+  return isWorkspaceId(value) && value === value.toLowerCase();
+}
