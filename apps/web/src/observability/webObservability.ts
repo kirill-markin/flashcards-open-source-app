@@ -396,6 +396,7 @@ export type WebAppOperation =
   | "workspace_reset_execute"
   | "workspace_export"
   | "workspace_import"
+  | "catalog_import"
   | "media_upload_transfers"
   | "refresh_local_metadata";
 

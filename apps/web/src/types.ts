@@ -9,3 +9,4 @@ export * from "./types/study";
 export * from "./types/sync";
 export * from "./types/workspacePackageExport";
 export * from "./types/workspacePackageImport";
+export * from "./types/catalog";
