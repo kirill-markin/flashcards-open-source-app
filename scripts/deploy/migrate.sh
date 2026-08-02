@@ -35,7 +35,16 @@ for f in "$ROOT_DIR"/db/migrations/*.sql; do
     continue
   fi
   echo "  Applying $BASENAME"
-  run_psql -v ON_ERROR_STOP=1 -f "$f"
+  # --single-transaction: several migrations rely on being run as one
+  # transaction per file — e.g. db/migrations/0035_sync_installations_and_
+  # workspace_replicas.sql's `ON COMMIT DROP` scratch temp tables (dropped
+  # before the next statement can use them without this), and org.workspaces'
+  # fk_workspaces_fsrs_last_modified_replica, which is DEFERRABLE INITIALLY
+  # DEFERRED specifically so a circular insert order across two tables can
+  # be checked once at commit instead of per statement. Without this flag,
+  # psql autocommits each statement individually and both patterns break on
+  # a from-scratch migrate run.
+  run_psql --single-transaction -v ON_ERROR_STOP=1 -f "$f"
   echo "INSERT INTO schema_migrations (filename) VALUES (:'fname')" | run_psql -v "fname=$BASENAME"
 done
 
@@ -69,7 +78,7 @@ WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'role_name')
 SQL
 fi
 
-run_psql -v "admin_emails=${ADMIN_EMAILS:-}" <<'SQL'
+run_psql --single-transaction -v "admin_emails=${ADMIN_EMAILS:-}" <<'SQL'
 CREATE TEMP TABLE desired_bootstrap_admins (
   email TEXT PRIMARY KEY
 ) ON COMMIT DROP;
