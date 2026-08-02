@@ -108,6 +108,8 @@ paths:
     $ref: paths/workspaces_{workspaceId}_packages_import_preview.yaml
   /workspaces/{workspaceId}/packages/import:
     $ref: paths/workspaces_{workspaceId}_packages_import.yaml
+  /catalog:
+    $ref: paths/catalog.yaml
   /catalog/packages:
     $ref: paths/catalog_packages.yaml
   /catalog/packages/{packageSlug}:

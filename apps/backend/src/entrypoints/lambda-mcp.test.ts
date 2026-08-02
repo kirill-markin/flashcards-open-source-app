@@ -9,4 +9,13 @@ test("MCP Lambda entrypoint does not import the backend Hono app", () => {
   const backendAppImportPattern = /from\s+["']\.\.\/server\/app["']|import\s*\(\s*["']\.\.\/server\/app["']\s*\)/;
 
   assert.equal(backendAppImportPattern.test(source), false);
+  assert.match(source, /import \{ parsePublicOrigin \} from "\.\.\/shared\/publicUrls";/);
+  assert.match(
+    source,
+    /return parsePublicOrigin\(configuredValue, "PUBLIC_SITE_BASE_URL"\);/,
+  );
+  assert.match(
+    source,
+    /return parsePublicOrigin\(`https:\/\/\$\{baseDomain\}`, "PUBLIC_SITE_BASE_URL"\);/,
+  );
 });

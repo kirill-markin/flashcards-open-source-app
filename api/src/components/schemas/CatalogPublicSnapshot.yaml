@@ -1,0 +1,47 @@
+type: object
+additionalProperties: false
+required:
+  - schemaVersion
+  - generatedAt
+  - authors
+  - packages
+  - packageVersions
+  - cards
+  - mediaAssets
+  - collections
+  - collectionPackages
+properties:
+  schemaVersion:
+    type: integer
+    const: 1
+  generatedAt:
+    type: string
+    format: date-time
+  authors:
+    type: array
+    items:
+      $ref: ./CatalogPublicSnapshotAuthor.yaml
+  packages:
+    type: array
+    items:
+      $ref: ./CatalogPublicSnapshotPackage.yaml
+  packageVersions:
+    type: array
+    items:
+      $ref: ./CatalogPublicSnapshotPackageVersion.yaml
+  cards:
+    type: array
+    items:
+      $ref: ./CatalogPublicSnapshotCard.yaml
+  mediaAssets:
+    type: array
+    items:
+      $ref: ./CatalogPublicSnapshotMediaAsset.yaml
+  collections:
+    type: array
+    items:
+      $ref: ./CatalogPublicSnapshotCollection.yaml
+  collectionPackages:
+    type: array
+    items:
+      $ref: ./CatalogPublicSnapshotCollectionPackage.yaml

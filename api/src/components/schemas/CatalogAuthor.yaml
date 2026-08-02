@@ -21,10 +21,7 @@ properties:
       - string
       - 'null'
   websiteUrl:
-    type:
-      - string
-      - 'null'
-    format: uri
+    $ref: ./CatalogAuthorWebsiteUrl.yaml
   createdAt:
     type: string
     format: date-time

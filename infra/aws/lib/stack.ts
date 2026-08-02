@@ -28,6 +28,7 @@ import {
   type MultipartCompletionReconciliationScheduleState,
 } from "./scheduled-jobs/multipart-completion-reconciliation";
 import { mediaAssets } from "./media-assets";
+import { parsePublicOrigin } from "./public-origin";
 
 function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefined {
   const value = stack.node.tryGetContext(key);
@@ -168,7 +169,10 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     // the discovery legal links and MCP implementation metadata. Defaults inside
     // each gateway to `https://<baseDomain>` when unset, so prod works without
     // setting the GitHub var.
-    const siteBaseUrl = getOptionalContextValue(this, "siteBaseUrl");
+    const configuredSiteBaseUrl = getOptionalRawContextValue(this, "siteBaseUrl");
+    const siteBaseUrl = configuredSiteBaseUrl === undefined
+      ? undefined
+      : parsePublicOrigin(configuredSiteBaseUrl, "siteBaseUrl");
     const sentryContext = validateBackendSentryContext({
       sentryDsnSecretArn: getOptionalContextValue(this, "sentryDsnSecretArn"),
       sentryEnvironment: getOptionalContextValue(this, "sentryEnvironment"),

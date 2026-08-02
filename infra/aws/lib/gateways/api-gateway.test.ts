@@ -63,6 +63,45 @@ test("API Gateway keeps global snapshot and legacy auth as explicit edge routes"
   assert.match(apiGatewaySource, /legacyAuth\.addMethod\("ANY", notFoundIntegration, notFoundMethodOptions\);/);
 });
 
+test("API Gateway exposes catalog with site, app, and local credential-free CORS origins", () => {
+  const apiGatewaySource = loadApiGatewaySource();
+
+  assert.match(
+    apiGatewaySource,
+    /const publicAppOrigin = parsePublicOrigin\(\s*`https:\/\/app\.\$\{props\.baseDomain\}`,\s*"appBaseUrl",\s*\);/,
+  );
+  assert.match(
+    apiGatewaySource,
+    /const publicSiteOrigin = parsePublicOrigin\(\s*props\.siteBaseUrl \?\? `https:\/\/\$\{props\.baseDomain\}`,\s*"siteBaseUrl",\s*\);/,
+  );
+  assert.match(
+    apiGatewaySource,
+    /const publicCatalogAllowedOrigins = \[\s*publicSiteOrigin,\s*publicAppOrigin,\s*"http:\/\/localhost:3000",\s*\];/,
+  );
+  assert.match(
+    apiGatewaySource,
+    /const catalog = restApi\.root\.addResource\("catalog",[\s\S]*catalog\.addMethod\("GET", integration\);/,
+  );
+  assert.match(
+    apiGatewaySource,
+    /PUBLIC_APP_BASE_URL: props\.publicAppOrigin/,
+  );
+  const publicCatalogCorsStart = apiGatewaySource.indexOf(
+    "function createPublicCatalogCorsPreflightOptions",
+  );
+  const publicCatalogCorsEnd = apiGatewaySource.indexOf("\n}\n", publicCatalogCorsStart);
+  assert.notEqual(publicCatalogCorsStart, -1);
+  assert.notEqual(publicCatalogCorsEnd, -1);
+  const publicCatalogCorsSource = apiGatewaySource.slice(
+    publicCatalogCorsStart,
+    publicCatalogCorsEnd,
+  );
+  assert.match(publicCatalogCorsSource, /allowOrigins: allowedOrigins/);
+  assert.match(publicCatalogCorsSource, /allowMethods: \["GET", "OPTIONS"\]/);
+  assert.doesNotMatch(publicCatalogCorsSource, /allowCredentials/);
+  assert.doesNotMatch(publicCatalogCorsSource, /\["\*"\]/);
+});
+
 test("API Gateway proxy accepts browser-safe binary bodies", () => {
   const apiGatewaySource = loadApiGatewaySource();
 

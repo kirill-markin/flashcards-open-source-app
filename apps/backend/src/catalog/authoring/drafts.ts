@@ -11,10 +11,15 @@ import {
 import { assertDraftMediaKeysExistInExecutor } from "./draftMedia";
 import { rethrowCatalogPersistenceError } from "../errors";
 import {
+  getPublicCatalogAuthorEligibilityIssue,
+  getPublicCatalogPackageEligibilityIssue,
+} from "../publicSafety";
+import {
   catalogPackageColumns,
   catalogPackageMediaAssetColumns,
   mapCatalogPackageMediaAssetRow,
   mapCatalogPackageRow,
+  lockCatalogPackageInExecutor,
 } from "../rows";
 import type {
   CatalogPackage,
@@ -25,10 +30,55 @@ import type {
   UpdateCatalogPackageDraftInput,
 } from "../types";
 
+type CatalogPackageSelectedAuthorRow = Readonly<{
+  slug: string;
+  display_name: string;
+  bio: string | null;
+  website_url: string | null;
+}>;
+
+async function assertCatalogPackageSelectedAuthorPubliclyEligibleInExecutor(
+  executor: DatabaseExecutor,
+  authorId: string,
+): Promise<void> {
+  const result = await executor.query<CatalogPackageSelectedAuthorRow>(
+    [
+      "SELECT slug, display_name, bio, website_url",
+      "FROM catalog.authors",
+      "WHERE author_id = $1",
+      "FOR UPDATE",
+    ].join(" "),
+    [authorId],
+  );
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new HttpError(
+      404,
+      `Catalog author not found. authorId=${authorId}`,
+      "CATALOG_AUTHOR_NOT_FOUND",
+    );
+  }
+
+  const issue = getPublicCatalogAuthorEligibilityIssue({
+    slug: row.slug,
+    displayName: row.display_name,
+    bio: row.bio,
+    websiteUrl: row.website_url,
+  });
+  if (issue !== null) {
+    const field = issue.reason === "invalid_author_website_url" ? "websiteUrl" : issue.field;
+    throw new HttpError(
+      409,
+      `Selected catalog author is not eligible for public presentation. authorId=${authorId} field=${field}`,
+      "CATALOG_PACKAGE_AUTHOR_NOT_PUBLICLY_ELIGIBLE",
+    );
+  }
+}
+
 function normalizeCreateCatalogPackageDraftInput(
   input: CreateCatalogPackageDraftInput,
 ): CreateCatalogPackageDraftInput {
-  return {
+  const normalizedInput = {
     packageId: input.packageId,
     authorId: input.authorId,
     slug: normalizeSlug(input.slug, "slug"),
@@ -40,6 +90,18 @@ function normalizeCreateCatalogPackageDraftInput(
     license: normalizeNonEmptyString(input.license, "license"),
     contentWarning: normalizeNullableString(input.contentWarning, "contentWarning"),
   };
+  const publicEligibilityIssue = getPublicCatalogPackageEligibilityIssue({
+    slug: normalizedInput.slug,
+  });
+  if (publicEligibilityIssue !== null) {
+    throw new HttpError(
+      400,
+      `Catalog package is not eligible for public presentation. field=${publicEligibilityIssue.field} reason=contains a private or managed-storage media reference`,
+      "CATALOG_PACKAGE_NOT_PUBLICLY_ELIGIBLE",
+    );
+  }
+
+  return normalizedInput;
 }
 
 function normalizeUpdateCatalogPackageDraftInput(
@@ -59,6 +121,10 @@ export async function createCatalogPackageDraftInExecutor(
 ): Promise<CatalogPackage> {
   const normalizedInput = normalizeCreateCatalogPackageDraftInput(input);
   try {
+    await assertCatalogPackageSelectedAuthorPubliclyEligibleInExecutor(
+      executor,
+      normalizedInput.authorId,
+    );
     const result = await executor.query<CatalogPackageRow>(
       [
         "INSERT INTO catalog.packages",
@@ -100,6 +166,11 @@ export async function updateCatalogPackageDraftInExecutor(
 ): Promise<CatalogPackage> {
   const normalizedInput = normalizeUpdateCatalogPackageDraftInput(input);
   try {
+    await lockCatalogPackageInExecutor(executor, normalizedInput.packageId);
+    await assertCatalogPackageSelectedAuthorPubliclyEligibleInExecutor(
+      executor,
+      normalizedInput.authorId,
+    );
     await assertDraftMediaKeysExistInExecutor(
       executor,
       normalizedInput.packageId,

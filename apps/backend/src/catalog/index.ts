@@ -33,6 +33,8 @@ export {
 export {
   listPublicCatalogPackages,
   listPublicCatalogPackagesInExecutor,
+  loadPublicCatalogSnapshot,
+  loadPublicCatalogSnapshotInExecutor,
   loadPublicCatalogPackageDetail,
   loadPublicCatalogPackageDetailInExecutor,
   loadPublicCatalogPackageMediaForDownload,

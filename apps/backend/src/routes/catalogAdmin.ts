@@ -115,6 +115,20 @@ function expectNullableNonEmptyString(value: unknown, fieldName: string): string
   return expectNonEmptyString(value, fieldName);
 }
 
+function expectNullableAuthorWebsiteUrl(value: unknown): string | null {
+  if (value === null) {
+    return null;
+  }
+  if (typeof value !== "string") {
+    throw new HttpError(400, "websiteUrl must be a string");
+  }
+  if (value === "") {
+    throw new HttpError(400, "websiteUrl must not be empty");
+  }
+
+  return value;
+}
+
 function expectStringArray(value: unknown, fieldName: string): ReadonlyArray<string> {
   if (!Array.isArray(value)) {
     throw new HttpError(400, `${fieldName} must be an array`);
@@ -158,7 +172,7 @@ function parseAuthorCreateInput(record: Readonly<Record<string, unknown>>): Upse
     slug: expectNonEmptyString(record.slug, "slug"),
     displayName: expectNonEmptyString(record.displayName, "displayName"),
     bio: expectNullableNonEmptyString(record.bio, "bio"),
-    websiteUrl: expectNullableNonEmptyString(record.websiteUrl, "websiteUrl"),
+    websiteUrl: expectNullableAuthorWebsiteUrl(record.websiteUrl),
   };
 }
 
@@ -171,7 +185,7 @@ function parseAuthorUpdateInput(
     slug: expectNonEmptyString(record.slug, "slug"),
     displayName: expectNonEmptyString(record.displayName, "displayName"),
     bio: expectNullableNonEmptyString(record.bio, "bio"),
-    websiteUrl: expectNullableNonEmptyString(record.websiteUrl, "websiteUrl"),
+    websiteUrl: expectNullableAuthorWebsiteUrl(record.websiteUrl),
   };
 }
 
