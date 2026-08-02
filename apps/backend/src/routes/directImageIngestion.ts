@@ -38,8 +38,15 @@ import {
   getDirectImageIngestionRequestTiming,
 } from "../server/directImageIngestionRequestTiming";
 
-type DirectImageIngestionRoutesOptions = Readonly<{
+export type DirectImageIngestionRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
+  loadRequestContextFromRequestWithAbortSignalFn?:
+    typeof loadRequestContextFromRequestWithAbortSignal;
+  assertUserHasWorkspaceAccessFn?: typeof assertUserHasWorkspaceAccess;
+  assertImageMediaAssetIngestionPreconditionsForWorkspaceFn?:
+    typeof assertImageMediaAssetIngestionPreconditionsForWorkspace;
+  ingestImageMediaAssetWithRequestDeadlineFn?:
+    typeof ingestImageMediaAssetWithRequestDeadline;
 }>;
 
 function createDirectImageIngestionScope(
@@ -131,6 +138,17 @@ export function createDirectImageIngestionRoutes(
   options: DirectImageIngestionRoutesOptions,
 ): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+  const loadRequestContextFromRequestWithAbortSignalFn =
+    options.loadRequestContextFromRequestWithAbortSignalFn
+    ?? loadRequestContextFromRequestWithAbortSignal;
+  const assertUserHasWorkspaceAccessFn =
+    options.assertUserHasWorkspaceAccessFn ?? assertUserHasWorkspaceAccess;
+  const assertImageMediaAssetIngestionPreconditionsForWorkspaceFn =
+    options.assertImageMediaAssetIngestionPreconditionsForWorkspaceFn
+    ?? assertImageMediaAssetIngestionPreconditionsForWorkspace;
+  const ingestImageMediaAssetWithRequestDeadlineFn =
+    options.ingestImageMediaAssetWithRequestDeadlineFn
+    ?? ingestImageMediaAssetWithRequestDeadline;
 
   app.post("/workspaces/:workspaceId/media-assets/images", async (context) => {
     let userId: string | null = null;
@@ -145,7 +163,7 @@ export function createDirectImageIngestionRoutes(
       const prepared = await runDatabaseOperationsWithDeadline(
         ingestionDeadline.preprocessingDeadlineAtMs,
         async () => {
-          const loadedContext = await loadRequestContextFromRequestWithAbortSignal(
+          const loadedContext = await loadRequestContextFromRequestWithAbortSignalFn(
             context.req.raw,
             options.allowedOrigins,
             ingestionDeadline.preprocessingSignal,
@@ -154,7 +172,7 @@ export function createDirectImageIngestionRoutes(
           workspaceId = parseWorkspaceIdParam(
             context.req.param("workspaceId"),
           );
-          await assertUserHasWorkspaceAccess(
+          await assertUserHasWorkspaceAccessFn(
             loadedContext.requestContext.userId,
             workspaceId,
           );
@@ -162,7 +180,7 @@ export function createDirectImageIngestionRoutes(
             context.req.raw.headers,
           );
           mediaAssetId = metadata.mediaAssetId;
-          await assertImageMediaAssetIngestionPreconditionsForWorkspace(
+          await assertImageMediaAssetIngestionPreconditionsForWorkspaceFn(
             loadedContext.requestContext.userId,
             workspaceId,
             metadata,
@@ -191,7 +209,7 @@ export function createDirectImageIngestionRoutes(
       );
       const result = await runDatabaseOperationsWithDeadline(
         ingestionDeadline.requestDeadlineAtMs,
-        () => ingestImageMediaAssetWithRequestDeadline({
+        () => ingestImageMediaAssetWithRequestDeadlineFn({
           userId: prepared.loadedContext.requestContext.userId,
           workspaceId: prepared.workspaceId,
           metadata: prepared.metadata,

@@ -12,7 +12,7 @@ post:
       name: workspaceId
       required: true
       schema:
-        $ref: ../components/schemas/UuidString.yaml
+        $ref: ../components/schemas/WorkspaceIdString.yaml
   responses:
     '200':
       description: Workspace selected

@@ -797,9 +797,6 @@ async function assertHistoricalSeedBoundary(client) {
       `Historical migration 0018 test boundary has unexpected scratch data. state=${JSON.stringify(state)}`,
     );
   }
-  await client.query(
-    "DELETE FROM org.user_settings WHERE user_id = 'local'",
-  );
 }
 
 async function seedMigration0099LegacyInvalidMediaAsset(client) {
@@ -1256,9 +1253,9 @@ async function applySingleMigration(
           fileName
           === "0018_auto_provision_workspaces_and_scheduler_seed.sql"
         ) {
-          // The historical 0001 scratch seed has no device. Migration 0018
-          // inserts its workspace before its device and cannot satisfy that old
-          // fixture's FK. Production data never used this scratch seed.
+          // The 0001 local-development seed exercises migration 0018's
+          // workspace/device cycle. Its deferred FK is satisfied when the
+          // migration transaction inserts the corresponding device.
           await assertHistoricalSeedBoundary(client);
         }
         // Every migration gets its own production-like session and transaction.

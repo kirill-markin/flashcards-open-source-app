@@ -13,7 +13,7 @@ get:
       in: path
       required: true
       schema:
-        $ref: ../components/schemas/UuidString.yaml
+        $ref: ../components/schemas/WorkspaceIdString.yaml
     - name: mediaAssetId
       in: path
       required: true

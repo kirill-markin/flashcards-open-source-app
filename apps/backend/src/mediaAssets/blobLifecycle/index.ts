@@ -6,6 +6,7 @@ import {
 } from "../../database";
 import { unsafeTransaction, unsafeTransactionWithDeadline } from "../../database/unsafe";
 import { HttpError } from "../../shared/errors";
+import { isLowercaseWorkspaceId } from "../../workspaces/identity";
 import { buildMediaBlobStorageKey } from "../storageKeys";
 import {
   mediaBlobNormalizationVersions,
@@ -146,7 +147,9 @@ export function assertMediaBlobWriterAttemptToken(attemptToken: string): void {
 function assertReservationInput(input: MediaBlobWriterReservationInput): void {
   if (!mediaBlobWriterKinds.includes(input.writerKind)) { throw new TypeError("writerKind is unsupported.");
   }
-  if (!uuidPattern.test(input.workspaceId) || !uuidPattern.test(input.mediaAssetId)) { throw new TypeError("workspaceId and mediaAssetId must be lowercase UUIDs.");
+  if (!isLowercaseWorkspaceId(input.workspaceId)) { throw new TypeError("workspaceId and mediaAssetId must be lowercase UUIDs.");
+  }
+  if (!uuidPattern.test(input.mediaAssetId)) { throw new TypeError("workspaceId and mediaAssetId must be lowercase UUIDs.");
   }
   if ( input.operationId !== input.operationId.trim() || input.operationId.length < 1 || input.operationId.length > maximumOperationIdLength
   ) { throw new TypeError(`operationId must be 1 to ${maximumOperationIdLength} trimmed characters.`);

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
+import type { RequestAuthInputs } from "../auth/requestSecurity";
 import {
   DatabaseCommitOutcomeUnknownError,
   TransientDatabaseHttpError,
@@ -16,6 +17,7 @@ import type {
 import { createBackendObservationScope } from "../observability/sentry";
 import { HttpError } from "../shared/errors";
 import type { AppEnv } from "../server/appEnv";
+import type { RequestContext } from "../server/requestContext";
 import {
   createMultipartCompletionRequestTiming,
   runWithMultipartCompletionRequestTiming,
@@ -37,7 +39,48 @@ import {
 } from "../mediaAssets/multipart/completionBoundary";
 import { createMediaAssetsRoutes } from "./mediaAssets";
 
-function createMediaAssetsTestApp(): Hono<AppEnv> {
+const legacyWorkspaceId = "35274129-ef97-d366-954c-955b4bb0fbf0";
+const uppercaseLegacyWorkspaceId = legacyWorkspaceId.toUpperCase();
+const testMediaAssetId = "33333333-3333-4333-8333-333333333333";
+const testReplicaId = "44444444-4444-4444-8444-444444444444";
+const testTimestamp = "2026-07-28T10:00:00.000Z";
+
+const requestAuthInputs: RequestAuthInputs = {
+  authorizationHeader: undefined,
+  sessionToken: undefined,
+  csrfTokenHeader: undefined,
+  originHeader: undefined,
+  refererHeader: undefined,
+  secFetchSiteHeader: undefined,
+};
+
+const requestContext: RequestContext = {
+  userId: "user-1",
+  subjectUserId: "subject-1",
+  selectedWorkspaceId: legacyWorkspaceId,
+  email: "user@example.com",
+  locale: "en",
+  userSettingsCreatedAt: testTimestamp,
+  preferences: {
+    reviewReactionAnimationsEnabled: true,
+  },
+  transport: "bearer",
+  connectionId: null,
+  guestSessionId: null,
+  guestPlatform: null,
+};
+
+function createLoadedRequestContext(): Readonly<{
+  requestAuthInputs: RequestAuthInputs;
+  requestContext: RequestContext;
+}> {
+  return {
+    requestAuthInputs,
+    requestContext,
+  };
+}
+
+function createMediaAssetsRouteTestApp(routes: Hono<AppEnv>): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   app.use("*", async (context, next) => {
     context.set("requestId", "request-1");
@@ -54,8 +97,14 @@ function createMediaAssetsTestApp(): Hono<AppEnv> {
     }
     throw error;
   });
-  app.route("/", createMediaAssetsRoutes({ allowedOrigins: [] }));
+  app.route("/", routes);
   return app;
+}
+
+function createMediaAssetsTestApp(): Hono<AppEnv> {
+  return createMediaAssetsRouteTestApp(
+    createMediaAssetsRoutes({ allowedOrigins: [] }),
+  );
 }
 
 function uploadSession(
@@ -194,6 +243,145 @@ function createMultipartCompletionBoundaryTestDependencies(
     resolveCompletionAttemptFailureWithOwnerFn,
   };
 }
+
+test("uppercase historical workspace path reaches direct image ingestion as lowercase", async () => {
+  const forwardedWorkspaceIds: Array<string> = [];
+  const app = createMediaAssetsRouteTestApp(createMediaAssetsRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestWithAbortSignalFn: async () =>
+      createLoadedRequestContext(),
+    assertUserHasWorkspaceAccessFn: async (_userId, workspaceId) => {
+      forwardedWorkspaceIds.push(workspaceId);
+    },
+    assertImageMediaAssetIngestionPreconditionsForWorkspaceFn:
+      async (_userId, workspaceId) => {
+        forwardedWorkspaceIds.push(workspaceId);
+      },
+    ingestImageMediaAssetWithRequestDeadlineFn: async (input) => {
+      forwardedWorkspaceIds.push(input.workspaceId);
+      return {
+        mediaAsset: {
+          mediaAssetId: testMediaAssetId,
+          workspaceId: input.workspaceId,
+          mimeType: "image/jpeg",
+          sizeBytes: 1,
+          sha256: "a".repeat(64),
+          sourceUrl: null,
+          createdAt: testTimestamp,
+          clientUpdatedAt: testTimestamp,
+          lastModifiedByReplicaId: testReplicaId,
+          lastOperationId: "operation-1",
+          updatedAt: testTimestamp,
+          deletedAt: null,
+        },
+        applied: true,
+      };
+    },
+  }));
+
+  const response = await app.request(
+    `http://localhost/workspaces/${uppercaseLegacyWorkspaceId}/media-assets/images`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "image/png",
+        "x-media-asset-id": testMediaAssetId,
+        "x-media-created-at": testTimestamp,
+        "x-media-client-updated-at": testTimestamp,
+        "x-media-last-modified-by-replica-id": testReplicaId,
+        "x-media-last-operation-id": "operation-1",
+      },
+      body: new Uint8Array([1]),
+    },
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(forwardedWorkspaceIds, [
+    legacyWorkspaceId,
+    legacyWorkspaceId,
+    legacyWorkspaceId,
+  ]);
+});
+
+test("uppercase historical workspace path reaches multipart create and replay as lowercase", async () => {
+  const forwardedWorkspaceIds: Array<string> = [];
+  const session = uploadSession(
+    "active",
+    new Date(Date.now() + 60_000).toISOString(),
+  );
+  const app = createMediaAssetsRouteTestApp(createMediaAssetsRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => createLoadedRequestContext(),
+    assertUserHasWorkspaceAccessFn: async (_userId, workspaceId) => {
+      assert.equal(workspaceId, legacyWorkspaceId);
+    },
+    multipartUploadSessionCreationApplicationDependencies: {
+      abortMultipartMediaAssetUploadUntilDeadlineFn: async () => {
+        throw new Error("Finalized creation replay must not abort storage.");
+      },
+      acquireCreationClaimFn: async (_userId, workspaceId) => {
+        forwardedWorkspaceIds.push(workspaceId);
+        return {
+          status: "finalized",
+          uploadSessionId: session.sessionId,
+        };
+      },
+      createMediaAssetFromAvailableBlobForWorkspaceFn: async () => {
+        throw new Error("Finalized creation replay must not create media.");
+      },
+      createMultipartMediaAssetUploadFn: async () => {
+        throw new Error("Finalized creation replay must not create storage.");
+      },
+      loadCreationReplayFn: async (_userId, workspaceId) => {
+        forwardedWorkspaceIds.push(workspaceId);
+        return {
+          state: "active",
+          uploadSession: {
+            ...session,
+            workspaceId,
+          },
+        };
+      },
+      recordUploadSessionWithCreationClaimFn: async () => {
+        throw new Error("Finalized creation replay must not record a session.");
+      },
+      releaseCreationClaimFn: async () => {
+        throw new Error("Finalized creation replay must not release its claim.");
+      },
+    },
+  }));
+  const requestBody = JSON.stringify({
+    mediaAssetId: testMediaAssetId,
+    mimeType: "image/png",
+    sizeBytes: 1,
+    sha256: "a".repeat(64),
+    partSizeBytes: 1,
+    partCount: 1,
+    sourceUrl: null,
+    createdAt: testTimestamp,
+    clientUpdatedAt: testTimestamp,
+    lastModifiedByReplicaId: testReplicaId,
+    lastOperationId: "operation-1",
+  });
+  const requestUrl =
+    `http://localhost/workspaces/${uppercaseLegacyWorkspaceId}/media-assets/upload-sessions`;
+
+  const replayResponse = await app.request(requestUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: requestBody,
+  });
+
+  assert.equal(replayResponse.status, 201);
+  const replayResponseBody = await replayResponse.json() as Readonly<{
+    workspaceId: string;
+  }>;
+  assert.equal(replayResponseBody.workspaceId, legacyWorkspaceId);
+  assert.deepEqual(forwardedWorkspaceIds, [
+    legacyWorkspaceId,
+    legacyWorkspaceId,
+  ]);
+});
 
 test("expired multipart completion cleanup resumes only active or aborting sessions", () => {
   const expiredAt = new Date(Date.now() - 60_000).toISOString();

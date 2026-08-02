@@ -81,6 +81,7 @@ export const boundaryDefinitions = Object.freeze([
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
       "src/database/aiChatInitiatingAuthClassification.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/cleanup.postgres.integration.ts",
+      "src/sync/freshBootstrap.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

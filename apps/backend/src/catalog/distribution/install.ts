@@ -26,6 +26,10 @@ import {
 } from "../../sync/replication/changes";
 import { rewriteMarkdownFcAssetUrlsToFcAssets } from "../../workspacePackages";
 import {
+  isLowercaseWorkspaceId,
+  normalizeWorkspaceId,
+} from "../../workspaces/identity";
+import {
   normalizeNonEmptyString,
   toIsoString,
   toOptionalIsoString,
@@ -145,6 +149,21 @@ function normalizeUuidString(value: string, fieldName: string): string {
   const normalizedValue = normalizeNonEmptyString(value, fieldName).toLowerCase();
   if (uuidPattern.test(normalizedValue) === false) {
     throw new HttpError(400, `${fieldName} must be a UUID`, "CATALOG_PACKAGE_INSTALL_INVALID_INPUT");
+  }
+
+  return normalizedValue;
+}
+
+function normalizeCatalogWorkspaceId(value: string): string {
+  const normalizedValue = normalizeWorkspaceId(
+    normalizeNonEmptyString(value, "workspaceId"),
+  ).toLowerCase();
+  if (isLowercaseWorkspaceId(normalizedValue) === false) {
+    throw new HttpError(
+      400,
+      "workspaceId must be a UUID",
+      "CATALOG_PACKAGE_INSTALL_INVALID_INPUT",
+    );
   }
 
   return normalizedValue;
@@ -942,7 +961,7 @@ export async function installCatalogPackageVersionInExecutor(
   packageVersionId: string,
   input: CatalogPackageInstallConfirmInput,
 ): Promise<CatalogPackageInstallResult> {
-  const normalizedWorkspaceId = normalizeUuidString(workspaceId, "workspaceId");
+  const normalizedWorkspaceId = normalizeCatalogWorkspaceId(workspaceId);
   const normalizedPackageVersionId = normalizeUuidString(packageVersionId, "packageVersionId");
   const normalizedInput = normalizeCatalogPackageInstallConfirmInput(input);
   const versionRow = await loadCatalogPackageInstallVersionForInstallInExecutor(

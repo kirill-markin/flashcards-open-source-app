@@ -19,6 +19,7 @@ const LIST_WORKSPACES_TOOL_NAME = "list_workspaces";
 const RESOURCE_URL = "https://mcp.flashcards-open-source-app.com/mcp";
 const WEBSITE_URL = "https://flashcards-open-source-app.com";
 const ICON_URL = "https://mcp.flashcards-open-source-app.com/icon.svg";
+const LEGACY_POSTGRES_WORKSPACE_ID = "35274129-ef97-d366-954c-955b4bb0fbf0";
 
 type ResolveWorkspaceCall = Readonly<{
   requestContext: WorkspaceRequestContext;
@@ -134,6 +135,13 @@ function requireTool(tools: ReadonlyArray<ListedTool>, name: string): ListedTool
   return tool;
 }
 
+function readWorkspaceIdInputSchema(tool: ListedTool): JsonObject {
+  const inputSchema: unknown = tool.inputSchema;
+  assert.ok(isJsonObject(inputSchema), `Expected ${tool.name} input schema to be an object`);
+  const properties = readJsonObject(inputSchema, "properties");
+  return readJsonObject(properties, "workspaceId");
+}
+
 function createFakeDependencyCalls(): FakeDependencyCalls {
   return {
     resolveAccessibleMcpWorkspaceIds: [],
@@ -219,7 +227,7 @@ function createFakeDependencies(
 
 test("MCP server exposes workspace and SQL tools through the protocol path", async () => {
   const selectedWorkspaceId = "11111111-1111-4111-8111-111111111111";
-  const requestedWorkspaceId = "22222222-2222-4222-8222-222222222222";
+  const requestedWorkspaceId = LEGACY_POSTGRES_WORKSPACE_ID;
   const connection: AuthenticatedMcpAccessToken = {
     userId: "user-mcp-smoke",
     connectionId: "connection-mcp-smoke",
@@ -279,6 +287,13 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
       destructiveHint: true,
       openWorldHint: false,
     });
+    for (const tool of [sqlQueryTool, sqlExecuteTool]) {
+      const workspaceIdSchema = readWorkspaceIdInputSchema(tool);
+      assert.equal(readJsonString(workspaceIdSchema, "format"), "uuid", tool.name);
+      const workspaceIdPattern = new RegExp(readJsonString(workspaceIdSchema, "pattern"));
+      assert.equal(workspaceIdPattern.test(LEGACY_POSTGRES_WORKSPACE_ID), true, tool.name);
+      assert.equal(workspaceIdPattern.test("not-a-uuid"), false, tool.name);
+    }
 
     const listWorkspacesResult = await client.callTool({
       name: LIST_WORKSPACES_TOOL_NAME,
@@ -299,17 +314,36 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
     assert.notEqual(sqlQueryEnvelope.instructions, "");
     assert.notEqual(sqlQueryEnvelope.docs.openapiUrl, "");
 
+    const executeSql = "UPDATE cards SET back_text = 'Paris' WHERE card_id = 'card-1'";
+    const sqlExecuteResult = await client.callTool({
+      name: SQL_EXECUTE_TOOL_NAME,
+      arguments: { sql: executeSql, workspaceId: requestedWorkspaceId },
+    });
+    const sqlExecuteEnvelope = parseAgentEnvelope(readSingleTextContent(sqlExecuteResult));
+    assert.equal(sqlExecuteEnvelope.data.sql, executeSql);
+    assert.notEqual(sqlExecuteEnvelope.instructions, "");
+    assert.notEqual(sqlExecuteEnvelope.docs.openapiUrl, "");
+
     assert.deepEqual(calls.listWorkspaces, [{
       userId: connection.userId,
       selectedWorkspaceId: connection.selectedWorkspaceId,
     }]);
-    assert.deepEqual(calls.resolveAccessibleMcpWorkspaceIds, [{
-      requestContext: {
-        userId: connection.userId,
-        selectedWorkspaceId: connection.selectedWorkspaceId,
+    assert.deepEqual(calls.resolveAccessibleMcpWorkspaceIds, [
+      {
+        requestContext: {
+          userId: connection.userId,
+          selectedWorkspaceId: connection.selectedWorkspaceId,
+        },
+        explicitWorkspaceId: requestedWorkspaceId,
       },
-      explicitWorkspaceId: requestedWorkspaceId,
-    }]);
+      {
+        requestContext: {
+          userId: connection.userId,
+          selectedWorkspaceId: connection.selectedWorkspaceId,
+        },
+        explicitWorkspaceId: requestedWorkspaceId,
+      },
+    ]);
     assert.deepEqual(calls.sqlQueries, [{
       context: {
         userId: connection.userId,
@@ -319,6 +353,62 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
       },
       sql,
     }]);
+    assert.deepEqual(calls.sqlExecutes, [{
+      context: {
+        userId: connection.userId,
+        workspaceId: requestedWorkspaceId,
+        selectedWorkspaceId: connection.selectedWorkspaceId,
+        connectionId: connection.connectionId,
+      },
+      sql: executeSql,
+    }]);
+  } finally {
+    await client.close();
+    await server.close();
+  }
+});
+
+test("MCP SQL tools reject malformed workspace IDs before access resolution", async () => {
+  const selectedWorkspaceId = "11111111-1111-4111-8111-111111111111";
+  const connection: AuthenticatedMcpAccessToken = {
+    userId: "user-mcp-smoke",
+    connectionId: "connection-mcp-smoke",
+    selectedWorkspaceId,
+  };
+  const calls = createFakeDependencyCalls();
+  const server = createMcpServerWithDependencies(
+    connection,
+    RESOURCE_URL,
+    WEBSITE_URL,
+    ICON_URL,
+    createFakeDependencies(calls, []),
+  );
+  const client = new Client({ name: "mcp-protocol-smoke", version: "1.0.0" });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+  await server.connect(serverTransport);
+  await client.connect(clientTransport);
+
+  try {
+    for (const toolCall of [
+      {
+        name: SQL_QUERY_TOOL_NAME,
+        sql: "SELECT * FROM cards LIMIT 1",
+      },
+      {
+        name: SQL_EXECUTE_TOOL_NAME,
+        sql: "DELETE FROM cards WHERE card_id = 'card-1'",
+      },
+    ]) {
+      const result = await client.callTool({
+        name: toolCall.name,
+        arguments: { sql: toolCall.sql, workspaceId: "not-a-uuid" },
+      });
+      assert.equal(result.isError, true, toolCall.name);
+    }
+
+    assert.deepEqual(calls.resolveAccessibleMcpWorkspaceIds, []);
+    assert.deepEqual(calls.sqlQueries, []);
     assert.deepEqual(calls.sqlExecutes, []);
   } finally {
     await client.close();

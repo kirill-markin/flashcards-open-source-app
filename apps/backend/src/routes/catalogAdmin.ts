@@ -35,6 +35,7 @@ import {
   expectNonEmptyString,
   expectRecord,
   expectUuidString,
+  expectWorkspaceIdString,
   parseJsonBodyWithByteLimit,
 } from "../server/requestParsing";
 import { HttpError } from "../shared/errors";
@@ -269,7 +270,7 @@ function parseCreatePackageVersionFromWorkspaceInput(
 ): CreateCatalogPackageVersionFromWorkspaceInput {
   return {
     packageVersionId: expectUuidString(record.packageVersionId, "packageVersionId"),
-    workspaceId: expectUuidString(record.workspaceId, "workspaceId"),
+    workspaceId: expectWorkspaceIdString(record.workspaceId, "workspaceId"),
     cardIds: expectStringArray(record.cardIds, "cardIds").map((cardId, index) => (
       expectUuidString(cardId, `cardIds[${index}]`)
     )),

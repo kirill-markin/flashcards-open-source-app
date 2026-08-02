@@ -11,6 +11,7 @@ import {
   expectNonEmptyString,
   expectRecord,
   expectUuidString,
+  expectWorkspaceIdString,
 } from "../../server/requestParsing";
 
 export const chatMaximumStartRunRequestBytes = 5 * 1024 * 1024;
@@ -269,7 +270,7 @@ function parseOptionalWorkspaceIdField(value: unknown): string | undefined {
     return undefined;
   }
 
-  return expectUuidString(value, "workspaceId");
+  return expectWorkspaceIdString(value, "workspaceId");
 }
 
 /**
