@@ -14,6 +14,17 @@ import {
   toSafeNumber,
 } from "../common";
 import {
+  maximumPublicCatalogMediaDownloadBytes,
+  publicCatalogMediaDownloadMimeTypes,
+} from "../publicMediaDelivery";
+import {
+  getPublicCatalogVersionEligibilityIssue,
+  type PublicCatalogAuthorEligibilityInput,
+  type PublicCatalogPackageEligibilityInput,
+  type PublicCatalogVersionEligibilityIssue,
+  type PublicCatalogVersionMediaAssetInput,
+} from "../publicSafety";
+import {
   assertDraftMediaKeysExistInExecutor,
   insertCatalogPackageVersionMediaAssetsInExecutor,
   loadCatalogPackageDraftMediaKeysInExecutor,
@@ -54,6 +65,31 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 type CatalogWorkspaceMediaAssetRow = Readonly<{
   media_asset_id: string;
   media_blob_id: string;
+}>;
+
+type CatalogPackageVersionPublicMediaRow = Readonly<{
+  package_media_key: string;
+  alt_text: string | null;
+  credit: string | null;
+  license: string | null;
+  mime_type: string;
+  size_bytes: string | number;
+}>;
+
+type CatalogPackageVersionPublicAuthorRow = Readonly<{
+  author_slug: string;
+  display_name: string;
+  bio: string | null;
+  website_url: string | null;
+}>;
+
+type CatalogPackageVersionPublicCardRow = Readonly<{
+  package_card_id: string;
+  front_text: string;
+  back_text: string;
+  card_type: string;
+  tags: ReadonlyArray<string>;
+  media_asset_keys: ReadonlyArray<string>;
 }>;
 
 function collectCardManagedMediaLifecycleIssues(
@@ -284,6 +320,204 @@ async function loadPackageVersionForUpdateInExecutor(
   }
 
   return row;
+}
+
+async function loadCatalogPackageVersionPublicMediaInExecutor(
+  executor: DatabaseExecutor,
+  packageVersionId: string,
+): Promise<ReadonlyArray<PublicCatalogVersionMediaAssetInput>> {
+  const result = await executor.query<CatalogPackageVersionPublicMediaRow>(
+    [
+      "SELECT",
+      "media_assets.package_media_key AS package_media_key,",
+      "media_assets.alt_text AS alt_text,",
+      "media_assets.credit AS credit,",
+      "media_assets.license AS license,",
+      "media_blobs.mime_type AS mime_type,",
+      "media_blobs.size_bytes AS size_bytes",
+      "FROM catalog.package_media_assets AS media_assets",
+      "INNER JOIN content.media_blobs AS media_blobs",
+      "ON media_blobs.media_blob_id = media_assets.media_blob_id",
+      "WHERE media_assets.package_version_id = $1",
+      "ORDER BY media_assets.package_media_key ASC",
+      "FOR UPDATE OF media_assets",
+    ].join(" "),
+    [packageVersionId],
+  );
+
+  return result.rows.map((row) => ({
+    packageMediaKey: row.package_media_key,
+    altText: row.alt_text,
+    credit: row.credit,
+    license: row.license,
+    mimeType: row.mime_type,
+    sizeBytes: row.size_bytes,
+  }));
+}
+
+async function loadCatalogPackageVersionPublicRelationsInExecutor(
+  executor: DatabaseExecutor,
+  packageId: string,
+): Promise<Readonly<{
+  package: PublicCatalogPackageEligibilityInput;
+  author: PublicCatalogAuthorEligibilityInput;
+}>> {
+  const packageRow = await lockCatalogPackageInExecutor(executor, packageId);
+  const result = await executor.query<CatalogPackageVersionPublicAuthorRow>(
+    [
+      "SELECT slug AS author_slug, display_name, bio, website_url",
+      "FROM catalog.authors",
+      "WHERE author_id = $1",
+      "FOR UPDATE",
+    ].join(" "),
+    [packageRow.author_id],
+  );
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new Error(
+      `Catalog package author relationship is missing. packageId=${packageId}`,
+    );
+  }
+
+  return {
+    package: { slug: packageRow.slug },
+    author: {
+      slug: row.author_slug,
+      displayName: row.display_name,
+      bio: row.bio,
+      websiteUrl: row.website_url,
+    },
+  };
+}
+
+function throwCatalogPackageVersionPublicEligibilityIssue(
+  packageVersionId: string,
+  issue: PublicCatalogVersionEligibilityIssue,
+): never {
+  if (issue.reason === "unresolved_media_reference") {
+    throw new HttpError(
+      409,
+      [
+        "Catalog package version contains an unresolved required media reference.",
+        `packageVersionId=${packageVersionId}`,
+        `packageMediaKey=${issue.packageMediaKey}`,
+        `referenceSource=${issue.referenceSource}`,
+      ].join(" "),
+      "CATALOG_PACKAGE_VERSION_MEDIA_REFERENCE_NOT_FOUND",
+    );
+  }
+
+  if (
+    issue.reason === "unsafe_media_key"
+    || issue.reason === "media_too_large"
+    || issue.reason === "unsupported_media_type"
+    || issue.reason === "invalid_media_size"
+  ) {
+    const details = issue.reason === "unsafe_media_key"
+      ? [`packageMediaKey=${issue.packageMediaKey}`, "reason=package media key is not public"]
+      : issue.reason === "invalid_media_size"
+        ? [
+          `packageMediaKey=${issue.packageMediaKey}`,
+          `sizeBytes=${issue.sizeBytes}`,
+          "reason=asset size is outside the supported integer range",
+        ]
+      : [
+        `packageMediaKey=${issue.packageMediaKey}`,
+        `mimeType=${issue.mimeType}`,
+        `sizeBytes=${issue.sizeBytes}`,
+        issue.reason === "media_too_large"
+          ? `reason=asset exceeds maximum size of ${maximumPublicCatalogMediaDownloadBytes} bytes`
+          : `reason=MIME type is unsupported; supportedMimeTypes=${publicCatalogMediaDownloadMimeTypes.join(",")}`,
+      ];
+    throw new HttpError(
+      409,
+      [
+        "Catalog package version media asset is not publicly deliverable.",
+        `packageVersionId=${packageVersionId}`,
+        ...details,
+      ].join(" "),
+      "CATALOG_PACKAGE_VERSION_MEDIA_NOT_PUBLICLY_DELIVERABLE",
+    );
+  }
+
+  const source = issue.reason === "unsafe_package_field"
+    ? `packageField=${issue.field}`
+    : issue.reason === "unsafe_author_field"
+      ? `authorField=${issue.field}`
+      : issue.reason === "invalid_author_website_url"
+        ? "authorField=websiteUrl reason=website URL must be a valid absolute HTTP or HTTPS URI without credentials"
+        : issue.reason === "unsafe_version_field"
+          ? `versionField=${issue.field}`
+          : issue.reason === "unsafe_card_field" || issue.reason === "card_markdown_too_complex"
+            ? `cardField=${issue.field} packageCardId=${issue.packageCardId}`
+            : `mediaField=${issue.field} packageMediaKey=${issue.packageMediaKey}`;
+  const remediation = issue.reason === "invalid_author_website_url"
+    ? "Set the author website to an absolute HTTP or HTTPS URL without credentials before publishing."
+    : issue.reason === "card_markdown_too_complex"
+      ? "Simplify nested Markdown labels before publishing."
+    : "Remove direct managed-storage or private media references before publishing.";
+  throw new HttpError(
+    409,
+    [
+      "Catalog package version contains data that is unsafe for the public catalog.",
+      `packageVersionId=${packageVersionId}`,
+      source,
+      remediation,
+    ].join(" "),
+    "CATALOG_PACKAGE_VERSION_NOT_PUBLICLY_ELIGIBLE",
+  );
+}
+
+async function assertCatalogPackageVersionPubliclyEligibleInExecutor(
+  executor: DatabaseExecutor,
+  versionRow: CatalogPackageVersionRow,
+): Promise<void> {
+  const publicRelations = await loadCatalogPackageVersionPublicRelationsInExecutor(
+    executor,
+    versionRow.package_id,
+  );
+  const mediaAssets = await loadCatalogPackageVersionPublicMediaInExecutor(
+    executor,
+    versionRow.package_version_id,
+  );
+  const cardsResult = await executor.query<CatalogPackageVersionPublicCardRow>(
+    [
+      "SELECT package_card_id, front_text, back_text, card_type, tags, media_asset_keys",
+      "FROM catalog.package_cards",
+      "WHERE package_version_id = $1",
+      "ORDER BY ordinal ASC, package_card_id ASC",
+      "FOR UPDATE",
+    ].join(" "),
+    [versionRow.package_version_id],
+  );
+
+  const issue = getPublicCatalogVersionEligibilityIssue({
+    package: publicRelations.package,
+    author: publicRelations.author,
+    version: {
+      slug: versionRow.slug,
+      title: versionRow.title,
+      summary: versionRow.summary,
+      description: versionRow.description,
+      languageTags: versionRow.language_tags,
+      topicTags: versionRow.topic_tags,
+      license: versionRow.license,
+      contentWarning: versionRow.content_warning,
+      coverPackageMediaKey: versionRow.cover_package_media_key,
+    },
+    mediaAssets,
+    cards: cardsResult.rows.map((card) => ({
+      packageCardId: card.package_card_id,
+      frontText: card.front_text,
+      backText: card.back_text,
+      cardType: card.card_type,
+      tags: card.tags,
+      mediaAssetKeys: card.media_asset_keys,
+    })),
+  });
+  if (issue !== null) {
+    throwCatalogPackageVersionPublicEligibilityIssue(versionRow.package_version_id, issue);
+  }
 }
 
 async function assertNoMutablePackageVersionInExecutor(
@@ -872,6 +1106,10 @@ export async function publishCatalogPackageVersionInExecutor(
   }
 
   try {
+    await assertCatalogPackageVersionPubliclyEligibleInExecutor(
+      executor,
+      versionRow,
+    );
     const result = await executor.query<CatalogPackageVersionRow>(
       [
         "UPDATE catalog.package_versions",

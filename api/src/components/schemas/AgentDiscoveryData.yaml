@@ -73,6 +73,7 @@ properties:
       - workspacePackageExportUrlTemplate
       - workspacePackageImportPreviewUrlTemplate
       - workspacePackageImportUrlTemplate
+      - catalogSnapshotUrl
       - catalogPackagesUrl
       - catalogPackageDetailUrlTemplate
       - catalogPackageVersionCardsUrlTemplate
@@ -110,6 +111,8 @@ properties:
       workspacePackageImportPreviewUrlTemplate:
         type: string
       workspacePackageImportUrlTemplate:
+        type: string
+      catalogSnapshotUrl:
         type: string
       catalogPackagesUrl:
         type: string

@@ -1,0 +1,71 @@
+type: object
+additionalProperties: false
+required:
+  - packageVersionId
+  - packageId
+  - versionNumber
+  - status
+  - slug
+  - title
+  - summary
+  - description
+  - languageTags
+  - topicTags
+  - license
+  - contentWarning
+  - coverMediaAssetId
+  - cardCount
+  - updatedAt
+  - publishedAt
+  - installUrl
+properties:
+  packageVersionId:
+    $ref: ./UuidString.yaml
+  packageId:
+    $ref: ./UuidString.yaml
+  versionNumber:
+    type: integer
+    minimum: 1
+  status:
+    type: string
+    const: published
+  slug:
+    type: string
+  title:
+    type: string
+  summary:
+    type: string
+  description:
+    type: string
+  languageTags:
+    type: array
+    items:
+      type: string
+  topicTags:
+    type: array
+    items:
+      type: string
+  license:
+    type: string
+  contentWarning:
+    type:
+      - string
+      - 'null'
+  coverMediaAssetId:
+    oneOf:
+      - $ref: ./UuidString.yaml
+      - type: 'null'
+    description: Null when this eligible package version has no cover media asset.
+  cardCount:
+    type: integer
+    minimum: 0
+  updatedAt:
+    type: string
+    format: date-time
+  publishedAt:
+    type: string
+    format: date-time
+  installUrl:
+    type: string
+    format: uri
+    description: Absolute web-app URL that imports this exact package version.

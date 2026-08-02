@@ -1,0 +1,25 @@
+get:
+  tags:
+    - public-catalog
+  summary: Load the complete public catalog snapshot
+  description: >-
+    Returns one normalized, self-contained snapshot of publicly deliverable,
+    published, non-delisted catalog package versions and published collections.
+    Versions with undeliverable or unresolved required media are omitted; each
+    package points to its highest-numbered eligible emitted version, and packages
+    with no eligible version are omitted with their collection memberships. All
+    relationships resolve to IDs emitted in the same payload, and each package
+    version carries an absolute exact-version web installation URL.
+  responses:
+    '200':
+      description: Complete public catalog snapshot
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/CatalogPublicSnapshot.yaml
+    default:
+      description: Public catalog request error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PublicErrorEnvelope.yaml

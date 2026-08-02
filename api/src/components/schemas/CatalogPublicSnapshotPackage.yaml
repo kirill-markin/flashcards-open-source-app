@@ -1,0 +1,30 @@
+type: object
+additionalProperties: false
+required:
+  - packageId
+  - authorId
+  - slug
+  - status
+  - latestPackageVersionId
+  - versionCount
+  - publishedAt
+properties:
+  packageId:
+    $ref: ./UuidString.yaml
+  authorId:
+    $ref: ./UuidString.yaml
+  slug:
+    type: string
+  status:
+    type: string
+    const: published
+  latestPackageVersionId:
+    $ref: ./UuidString.yaml
+    description: Highest-numbered publicly deliverable package version emitted for this package.
+  versionCount:
+    type: integer
+    minimum: 1
+    description: Number of publicly deliverable package versions emitted for this package.
+  publishedAt:
+    type: string
+    format: date-time

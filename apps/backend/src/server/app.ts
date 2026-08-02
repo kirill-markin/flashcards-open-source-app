@@ -35,7 +35,10 @@ import {
 import { getGuestAiWeightedMonthlyTokenCap } from "../guestAiQuota/config";
 import { logRequestError } from "./logging";
 import { getAllowedOrigins } from "./requestContext";
-import { getPublicSiteBaseUrl } from "../shared/publicUrls";
+import {
+  getConfiguredPublicCatalogCorsOrigins,
+  validatePublicUrlConfiguration,
+} from "../shared/publicUrls";
 import {
   captureBackendException,
   continueBackendTrace,
@@ -75,7 +78,6 @@ const publicCatalogCorsExposeHeaders = [
 ] as const;
 const localPublicCatalogOrigins = [
   "http://localhost:3000",
-  "http://localhost:3001",
 ] as const;
 
 export function getRouteMountPaths(basePath: string): ReadonlyArray<string> {
@@ -167,16 +169,19 @@ function shouldCaptureRequestFailureException(error: unknown): boolean {
 }
 
 function isPublicCatalogPath(path: string): boolean {
-  return path.startsWith("/catalog/") || path.startsWith("/v1/catalog/");
+  return path === "/catalog"
+    || path.startsWith("/catalog/")
+    || path === "/v1/catalog"
+    || path.startsWith("/v1/catalog/");
 }
 
-function getPublicCatalogCorsOrigin(origin: string, requestUrl: string): string | null {
+function getPublicCatalogCorsOrigin(origin: string): string | null {
   if (origin === "") {
     return null;
   }
 
   const allowedOrigins = [
-    getPublicSiteBaseUrl(requestUrl),
+    ...getConfiguredPublicCatalogCorsOrigins(),
     ...localPublicCatalogOrigins,
   ];
   return allowedOrigins.includes(origin) ? origin : null;
@@ -185,7 +190,7 @@ function getPublicCatalogCorsOrigin(origin: string, requestUrl: string): string 
 function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono<AppEnv> {
   const app = new Hono<AppEnv>({ strict: false }).basePath(basePath);
   const publicCatalogCorsMiddleware = cors({
-    origin: (origin, context) => getPublicCatalogCorsOrigin(origin, context.req.url),
+    origin: (origin) => getPublicCatalogCorsOrigin(origin),
     allowMethods: ["GET", "OPTIONS"],
     allowHeaders: [...publicCatalogCorsAllowHeaders],
     exposeHeaders: [...publicCatalogCorsExposeHeaders],
@@ -413,6 +418,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
 export function createApp(basePath: string): Hono<AppEnv> {
   getAuthConfig();
   getGuestAiWeightedMonthlyTokenCap();
+  validatePublicUrlConfiguration();
   const allowedOrigins = getAllowedOrigins();
   const routeMountPaths = getRouteMountPaths(basePath);
   if (routeMountPaths.length === 1) {

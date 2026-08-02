@@ -8,6 +8,7 @@ import * as logs from "aws-cdk-lib/aws-logs";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
+import { parsePublicOrigin } from "../public-origin";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
 import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
 
@@ -54,7 +55,8 @@ interface BackendFunctionProps {
   constructId: string;
   entry: string;
   baseDomain: string;
-  siteBaseUrl: string | undefined;
+  publicAppOrigin: string;
+  publicSiteOrigin: string;
   vpc: ec2.Vpc;
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
@@ -84,7 +86,7 @@ interface BackendFunctionProps {
 
 interface DirectImageIngestionFunctionProps {
   baseDomain: string;
-  siteBaseUrl: string | undefined;
+  publicSiteOrigin: string;
   vpc: ec2.Vpc;
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
@@ -544,9 +546,10 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
       BACKEND_CHAT_LIVE_AUTH_SECRET_ARN: props.backendChatLiveAuthSecret.secretArn,
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
       PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
+      PUBLIC_APP_BASE_URL: props.publicAppOrigin,
       // Public marketing-site origin for the discovery legal links. Defaults to
       // the apex domain; an optional CDK `siteBaseUrl` context overrides it.
-      PUBLIC_SITE_BASE_URL: props.siteBaseUrl ?? `https://${props.baseDomain}`,
+      PUBLIC_SITE_BASE_URL: props.publicSiteOrigin,
       GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP: props.guestAiWeightedMonthlyTokenCap ?? "0",
       ...(langfuseConfig === null
         ? {}
@@ -657,7 +660,7 @@ function createDirectImageIngestionFunction(
       BACKEND_CSRF_SECRET_ARN: props.backendCsrfSecret.secretArn,
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
       PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
-      PUBLIC_SITE_BASE_URL: props.siteBaseUrl ?? `https://${props.baseDomain}`,
+      PUBLIC_SITE_BASE_URL: props.publicSiteOrigin,
       GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP:
         props.guestAiWeightedMonthlyTokenCap ?? "0",
       MEDIA_ASSETS_S3_BUCKET_NAME: props.mediaAssetsBucket.bucketName,
@@ -681,14 +684,21 @@ function createDirectImageIngestionFunction(
  * explicitly to its bounded Lambda runtime.
  */
 export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGatewayResult {
-  const publicSiteOrigin = props.siteBaseUrl ?? `https://${props.baseDomain}`;
+  const publicSiteOrigin = parsePublicOrigin(
+    props.siteBaseUrl ?? `https://${props.baseDomain}`,
+    "siteBaseUrl",
+  );
+  const publicAppOrigin = parsePublicOrigin(
+    `https://app.${props.baseDomain}`,
+    "appBaseUrl",
+  );
   const publicCatalogAllowedOrigins = [
     publicSiteOrigin,
+    publicAppOrigin,
     "http://localhost:3000",
-    "http://localhost:3001",
   ];
   const allowedOrigins = [
-    `https://app.${props.baseDomain}`,
+    publicAppOrigin,
     `https://admin.${props.baseDomain}`,
     "http://localhost:3000",
     "http://localhost:3001",
@@ -720,7 +730,8 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     constructId: "BackendHandler",
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda.ts"),
     baseDomain: props.baseDomain,
-    siteBaseUrl: props.siteBaseUrl,
+    publicAppOrigin,
+    publicSiteOrigin,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
     db: props.db,
@@ -761,7 +772,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   });
   const directImageIngestionFn = createDirectImageIngestionFunction(scope, {
     baseDomain: props.baseDomain,
-    siteBaseUrl: props.siteBaseUrl,
+    publicSiteOrigin,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
     db: props.db,
@@ -778,7 +789,8 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     constructId: "ChatRunWorkerHandler",
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-chat-worker.ts"),
     baseDomain: props.baseDomain,
-    siteBaseUrl: props.siteBaseUrl,
+    publicAppOrigin,
+    publicSiteOrigin,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
     db: props.db,
@@ -817,7 +829,8 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     constructId: "ChatLiveHandler",
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-chat-live.ts"),
     baseDomain: props.baseDomain,
-    siteBaseUrl: props.siteBaseUrl,
+    publicAppOrigin,
+    publicSiteOrigin,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
     db: props.db,
@@ -934,6 +947,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const catalog = restApi.root.addResource("catalog", {
     defaultCorsPreflightOptions: createPublicCatalogCorsPreflightOptions(publicCatalogAllowedOrigins),
   });
+  catalog.addMethod("GET", integration);
   catalog
     .addResource("{proxy+}", {
       defaultCorsPreflightOptions: createPublicCatalogCorsPreflightOptions(publicCatalogAllowedOrigins),

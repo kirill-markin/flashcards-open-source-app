@@ -29,7 +29,7 @@ This starts:
 5. `web` on port `3000`
 6. `admin` on port `3001`
 
-By default `AUTH_MODE=none`, so backend accepts local requests as `userId=local`. Set `AUTH_MODE=cognito` and fill the Cognito values in `.env` to test the real OTP flow locally.
+By default `AUTH_MODE=none`, so backend accepts local requests as `userId=local`. Set `AUTH_MODE=cognito` and fill the Cognito values in `.env` to test the real OTP flow locally. Keep `PUBLIC_APP_BASE_URL=http://localhost:3000`; authenticated local startup requires that explicit web-app origin for catalog install links and public catalog CORS.
 
 Set `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP=400000` in local `.env` if you want guest AI enabled locally. When this variable is missing or empty, backend defaults it to `0`, so guest AI fails closed with the existing limit-reached response.
 
@@ -46,7 +46,7 @@ The full local web smoke is intentionally separate from the deployed post-releas
 Use it only against the local stack:
 
 1. keep root `.env` in `AUTH_MODE=cognito`
-2. set `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_REGION`, and `SESSION_ENCRYPTION_KEY`
+2. set `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_REGION`, `SESSION_ENCRYPTION_KEY`, and `PUBLIC_APP_BASE_URL=http://localhost:3000`
 3. set `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` for the local review account
 4. start `make db-up`
 5. start `make auth-dev`
@@ -65,6 +65,15 @@ This split is deliberate:
 
 - local smoke validates the current branch without relying on production auth redirect allowlists
 - CI/CD post-deploy smoke still validates the deployed production path after release
+
+## Non-CDK/self-hosted backend runtime
+
+Set `PUBLIC_APP_BASE_URL` to the public origin of the web app, for example
+`https://app.example.com`. It is required unless the backend runs with the
+explicit local-only `AUTH_MODE=none` and `ALLOW_INSECURE_LOCAL_AUTH=true`
+policy. The value must be one exact HTTP(S) origin without credentials, path,
+query, fragment, or wildcard. CDK deployments inject
+`https://app.<baseDomain>` automatically.
 
 ## First AWS deploy
 

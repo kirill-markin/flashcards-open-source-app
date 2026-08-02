@@ -11,6 +11,10 @@ import {
 } from "../auth";
 import { resetAuthConfigForTests } from "../auth/config";
 import { HttpError } from "../shared/errors";
+import {
+  getPublicAppBaseUrl,
+  parsePublicOrigin,
+} from "../shared/publicUrls";
 import { resetGuestAiQuotaConfigForTests } from "../guestAiQuota/config";
 import { MediaBlobLifecycleBusyError } from "../mediaAssets/blobLifecycle";
 import { createAgentApiKeyErrorEnvelope } from "../agent/envelope";
@@ -19,6 +23,7 @@ const originalAuthMode = process.env.AUTH_MODE;
 const originalAllowInsecureLocalAuth = process.env.ALLOW_INSECURE_LOCAL_AUTH;
 const originalBackendAllowedOrigins = process.env.BACKEND_ALLOWED_ORIGINS;
 const originalPublicSiteBaseUrl = process.env.PUBLIC_SITE_BASE_URL;
+const originalPublicAppBaseUrl = process.env.PUBLIC_APP_BASE_URL;
 const testAgentRequestUrl =
   "https://api.flashcards-open-source-app.com/v1/agent/sql/query";
 const testMultipartCompletionRequestUrl =
@@ -52,6 +57,12 @@ function restoreBackendAppTestEnvironment(): void {
   } else {
     process.env.PUBLIC_SITE_BASE_URL = originalPublicSiteBaseUrl;
   }
+
+  if (originalPublicAppBaseUrl === undefined) {
+    delete process.env.PUBLIC_APP_BASE_URL;
+  } else {
+    process.env.PUBLIC_APP_BASE_URL = originalPublicAppBaseUrl;
+  }
 }
 
 function parseCommaSeparatedHeader(value: string): ReadonlyArray<string> {
@@ -63,6 +74,194 @@ test.afterEach(() => {
   resetAuthConfigForTests();
   resetGuestAiQuotaConfigForTests();
 });
+
+test("public origin parsing rejects raw controls and backslashes and accepts IPv6", () => {
+  for (const value of [
+    "https://exa\nmple.com",
+    "https://exa\u0085mple.com",
+    "https://example.com\\",
+  ] as const) {
+    assert.throws(
+      () => parsePublicOrigin(value, "PUBLIC_SITE_BASE_URL"),
+      /without control characters or backslashes/,
+    );
+  }
+  assert.equal(
+    parsePublicOrigin("https://[2001:db8::1]", "PUBLIC_SITE_BASE_URL"),
+    "https://[2001:db8::1]",
+  );
+});
+
+test("public origin parsing rejects non-canonical raw representations", () => {
+  for (const value of [
+    " https://example.com",
+    "https://example.com ",
+    "https://example.com/",
+    "HTTPS://EXAMPLE.COM",
+    "https://example.com:443",
+    "https://example.com:",
+    "https://example.com:0443",
+    "https://%65xample.com",
+  ] as const) {
+    assert.throws(
+      () => parsePublicOrigin(value, "PUBLIC_SITE_BASE_URL"),
+      /must be an absolute HTTP or HTTPS origin/,
+    );
+  }
+});
+
+test("public origin parsing rejects literal and encoded wildcard hosts", () => {
+  for (const value of [
+    "https://*.example.com",
+    "https://*",
+    "https://%2a.example.com",
+    "https://%2A",
+  ] as const) {
+    assert.throws(
+      () => parsePublicOrigin(value, "PUBLIC_SITE_BASE_URL"),
+      /absolute HTTP or HTTPS origin/,
+    );
+  }
+});
+
+test("public origin parsing rejects raw authority userinfo including empty credentials", () => {
+  for (const value of [
+    "https://user@example.com",
+    "https://@example.com",
+    "https://:@example.com",
+  ] as const) {
+    assert.throws(
+      () => parsePublicOrigin(value, "PUBLIC_SITE_BASE_URL"),
+      /without credentials/,
+    );
+  }
+});
+
+test("configured public origins allow only the fixed localhost development origin", () => {
+  assert.equal(
+    parsePublicOrigin("http://localhost:3000", "PUBLIC_APP_BASE_URL"),
+    "http://localhost:3000",
+  );
+  assert.equal(
+    parsePublicOrigin("https://192.0.2.1", "PUBLIC_APP_BASE_URL"),
+    "https://192.0.2.1",
+  );
+  for (const value of [
+    "http://localhost:3001",
+    "https://localhost:3000",
+    "http://app.localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://127.1:3000",
+    "http://2130706433:3000",
+    "http://0x7f000001:3000",
+    "http://[::1]:3000",
+    "http://[0:0:0:0:0:0:0:1]:3000",
+    "http://[::ffff:127.0.0.1]:3000",
+    "HTTP://LOCALHOST:3000",
+    "http://localhost:03000",
+    "http://%6cocalhost:3000",
+  ] as const) {
+    assert.throws(
+      () => parsePublicOrigin(value, "PUBLIC_APP_BASE_URL"),
+      /local or loopback origin must be exactly http:\/\/localhost:3000/,
+    );
+  }
+});
+
+test("app startup requires an explicit public app origin outside local development", () => {
+  process.env.AUTH_MODE = "cognito";
+  delete process.env.ALLOW_INSECURE_LOCAL_AUTH;
+  delete process.env.PUBLIC_APP_BASE_URL;
+  resetAuthConfigForTests();
+  resetGuestAiQuotaConfigForTests();
+
+  assert.throws(
+    () => createApp("/v1"),
+    /PUBLIC_APP_BASE_URL is required outside explicit local development/,
+  );
+});
+
+test("explicit local development uses only fixed localhost app origins", () => {
+  process.env.AUTH_MODE = "none";
+  process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
+  delete process.env.PUBLIC_APP_BASE_URL;
+  resetAuthConfigForTests();
+  resetGuestAiQuotaConfigForTests();
+
+  assert.doesNotThrow(() => createApp("/v1"));
+  assert.equal(
+    getPublicAppBaseUrl("http://localhost:8080/v1/catalog"),
+    "http://localhost:3000",
+  );
+  assert.equal(
+    getPublicAppBaseUrl("http://127.0.0.1:8080/v1/catalog"),
+    "http://localhost:3000",
+  );
+  assert.throws(
+    () => getPublicAppBaseUrl("https://api.untrusted.example/v1/catalog"),
+    /PUBLIC_APP_BASE_URL is required for non-local public catalog requests/,
+  );
+});
+
+const invalidPublicAppOrigins = [
+  " https://app.example.com",
+  "https://app.example.com/",
+  "HTTPS://APP.EXAMPLE.COM",
+  "https://app.example.com:443",
+  "https://app.example.com:",
+  "https://app.example.com/catalog",
+  "https://app.example.com/a/..",
+  "https://app.example.com/%2e",
+  "https://app.example.com/?",
+] as const;
+
+for (const publicAppBaseUrl of invalidPublicAppOrigins) {
+  test(`app startup rejects invalid public app origin ${publicAppBaseUrl}`, () => {
+    process.env.AUTH_MODE = "none";
+    process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
+    process.env.PUBLIC_APP_BASE_URL = publicAppBaseUrl;
+    resetAuthConfigForTests();
+    resetGuestAiQuotaConfigForTests();
+
+    assert.throws(
+      () => createApp("/v1"),
+      /PUBLIC_APP_BASE_URL must be an absolute HTTP or HTTPS origin/,
+    );
+  });
+}
+
+const invalidPublicSiteOrigins = [
+  "*",
+  " https://flashcards-open-source-app.com",
+  "https://flashcards-open-source-app.com/",
+  "HTTPS://FLASHCARDS-OPEN-SOURCE-APP.COM",
+  "https://flashcards-open-source-app.com:443",
+  "https://flashcards-open-source-app.com:",
+  "flashcards-open-source-app.com",
+  "ftp://flashcards-open-source-app.com",
+  "https://user:password@flashcards-open-source-app.com",
+  "https://flashcards-open-source-app.com/catalog",
+  "https://flashcards-open-source-app.com?source=catalog",
+  "https://flashcards-open-source-app.com#catalog",
+  "https://flashcards-open-source-app.com/a/..",
+  "https://flashcards-open-source-app.com/%2e",
+  "https://flashcards-open-source-app.com/?",
+] as const;
+
+for (const publicSiteBaseUrl of invalidPublicSiteOrigins) {
+  test(`app startup rejects invalid public site origin ${publicSiteBaseUrl}`, () => {
+    process.env.AUTH_MODE = "none";
+    process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
+    process.env.PUBLIC_SITE_BASE_URL = publicSiteBaseUrl;
+    resetAuthConfigForTests();
+    resetGuestAiQuotaConfigForTests();
+
+    assert.throws(
+      () => createApp("/v1"),
+      /PUBLIC_SITE_BASE_URL must be an absolute HTTP or HTTPS origin/,
+    );
+  });
+}
 
 test("getHttpErrorResponseHeaders adds Retry-After for service unavailable", () => {
   assert.deepEqual(
@@ -459,23 +658,34 @@ test("app browser CORS preflight allows chat metadata headers", async () => {
   assert.ok(parsedAllowHeaders.includes("x-client-version"));
 });
 
-test("app public catalog CORS allows website reads without credentialed backend access", async () => {
+test("app public catalog CORS allows production site, app, and local reads without credentials", async () => {
   process.env.AUTH_MODE = "none";
   process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
   process.env.BACKEND_ALLOWED_ORIGINS = "https://app.flashcards-open-source-app.com";
   process.env.PUBLIC_SITE_BASE_URL = "https://flashcards-open-source-app.com";
+  process.env.PUBLIC_APP_BASE_URL = "https://app.flashcards-open-source-app.com";
   resetAuthConfigForTests();
   resetGuestAiQuotaConfigForTests();
 
   const app = createApp("/v1");
-  const catalogResponse = await app.request("https://api.flashcards-open-source-app.com/v1/catalog/packages", {
-    method: "OPTIONS",
-    headers: {
-      origin: "https://flashcards-open-source-app.com",
-      "access-control-request-method": "GET",
-      "access-control-request-headers": "sentry-trace,x-client-version",
-    },
-  });
+  const requestCatalogPreflight = async (origin: string): Promise<Response> => (
+    app.request("https://api.flashcards-open-source-app.com/v1/catalog", {
+      method: "OPTIONS",
+      headers: {
+        origin,
+        "access-control-request-method": "GET",
+        "access-control-request-headers": "sentry-trace,x-client-version",
+      },
+    })
+  );
+  const siteResponse = await requestCatalogPreflight("https://flashcards-open-source-app.com");
+  const appResponse = await requestCatalogPreflight("https://app.flashcards-open-source-app.com");
+  const localResponse = await requestCatalogPreflight("http://localhost:3000");
+  const unrelatedResponse = await requestCatalogPreflight("https://unrelated.example.com");
+  const appGetResponse = await app.request(
+    "https://api.flashcards-open-source-app.com/v1/catalog/package-versions/not-a-uuid/cards",
+    { headers: { origin: "https://app.flashcards-open-source-app.com" } },
+  );
   const accountResponse = await app.request("https://api.flashcards-open-source-app.com/v1/agent/me", {
     method: "OPTIONS",
     headers: {
@@ -484,12 +694,103 @@ test("app public catalog CORS allows website reads without credentialed backend 
     },
   });
 
-  assert.equal(catalogResponse.status, 204);
-  assert.equal(catalogResponse.headers.get("access-control-allow-origin"), "https://flashcards-open-source-app.com");
-  assert.equal(catalogResponse.headers.get("access-control-allow-credentials"), null);
-  assert.equal(catalogResponse.headers.get("access-control-allow-methods"), "GET,OPTIONS");
+  assert.equal(siteResponse.status, 204);
+  assert.equal(siteResponse.headers.get("access-control-allow-origin"), "https://flashcards-open-source-app.com");
+  assert.equal(appResponse.status, 204);
+  assert.equal(appResponse.headers.get("access-control-allow-origin"), "https://app.flashcards-open-source-app.com");
+  assert.equal(appResponse.headers.get("access-control-allow-credentials"), null);
+  assert.equal(appResponse.headers.get("access-control-allow-methods"), "GET,OPTIONS");
+  assert.equal(localResponse.status, 204);
+  assert.equal(localResponse.headers.get("access-control-allow-origin"), "http://localhost:3000");
+  assert.equal(unrelatedResponse.status, 204);
+  assert.equal(unrelatedResponse.headers.get("access-control-allow-origin"), null);
+  assert.equal(appGetResponse.status, 400);
+  assert.equal(
+    appGetResponse.headers.get("access-control-allow-origin"),
+    "https://app.flashcards-open-source-app.com",
+  );
+  assert.equal(appGetResponse.headers.get("access-control-allow-credentials"), null);
   assert.equal(accountResponse.status, 204);
   assert.equal(accountResponse.headers.get("access-control-allow-origin"), null);
+});
+
+test("app public catalog CORS uses only fixed origins when local configuration is explicit", async () => {
+  process.env.AUTH_MODE = "none";
+  process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
+  delete process.env.PUBLIC_SITE_BASE_URL;
+  delete process.env.PUBLIC_APP_BASE_URL;
+  resetAuthConfigForTests();
+  resetGuestAiQuotaConfigForTests();
+
+  const app = createApp("/v1");
+  const requestPreflight = async (origin: string): Promise<Response> => app.request(
+    "http://localhost:8080/v1/catalog",
+    {
+      method: "OPTIONS",
+      headers: {
+        origin,
+        "access-control-request-method": "GET",
+      },
+    },
+  );
+  const localResponse = await requestPreflight("http://localhost:3000");
+  const adminLocalResponse = await requestPreflight("http://localhost:3001");
+  const loopbackResponse = await requestPreflight("http://127.0.0.1:3000");
+  const unrelatedResponse = await requestPreflight("https://untrusted.example");
+
+  assert.equal(localResponse.status, 204);
+  assert.equal(localResponse.headers.get("access-control-allow-origin"), "http://localhost:3000");
+  assert.equal(localResponse.headers.get("access-control-allow-credentials"), null);
+  assert.equal(adminLocalResponse.status, 204);
+  assert.equal(adminLocalResponse.headers.get("access-control-allow-origin"), null);
+  assert.equal(loopbackResponse.status, 204);
+  assert.equal(loopbackResponse.headers.get("access-control-allow-origin"), null);
+  assert.equal(unrelatedResponse.status, 204);
+  assert.equal(unrelatedResponse.headers.get("access-control-allow-origin"), null);
+});
+
+test("app public catalog CORS uses the configured self-hosted public app origin", async () => {
+  process.env.AUTH_MODE = "none";
+  process.env.ALLOW_INSECURE_LOCAL_AUTH = "true";
+  process.env.PUBLIC_SITE_BASE_URL = "https://cards.example.test";
+  process.env.PUBLIC_APP_BASE_URL = "https://study.cards.example.test";
+  resetAuthConfigForTests();
+  resetGuestAiQuotaConfigForTests();
+
+  const app = createApp("/v1");
+  const appOriginResponse = await app.request("https://api.cards.example.test/v1/catalog", {
+    method: "OPTIONS",
+    headers: {
+      origin: "https://study.cards.example.test",
+      "access-control-request-method": "GET",
+    },
+  });
+  const unrelatedResponse = await app.request("https://api.cards.example.test/v1/catalog", {
+    method: "OPTIONS",
+    headers: {
+      origin: "https://other.cards.example.test",
+      "access-control-request-method": "GET",
+    },
+  });
+  const appGetResponse = await app.request(
+    "https://api.cards.example.test/v1/catalog/package-versions/not-a-uuid/cards",
+    { headers: { origin: "https://study.cards.example.test" } },
+  );
+
+  assert.equal(appOriginResponse.status, 204);
+  assert.equal(
+    appOriginResponse.headers.get("access-control-allow-origin"),
+    "https://study.cards.example.test",
+  );
+  assert.equal(appOriginResponse.headers.get("access-control-allow-credentials"), null);
+  assert.equal(unrelatedResponse.status, 204);
+  assert.equal(unrelatedResponse.headers.get("access-control-allow-origin"), null);
+  assert.equal(appGetResponse.status, 400);
+  assert.equal(
+    appGetResponse.headers.get("access-control-allow-origin"),
+    "https://study.cards.example.test",
+  );
+  assert.equal(appGetResponse.headers.get("access-control-allow-credentials"), null);
 });
 
 test("app public catalog errors keep the public envelope when an API key header is present", async () => {

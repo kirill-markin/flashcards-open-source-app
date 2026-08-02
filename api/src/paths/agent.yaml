@@ -25,7 +25,7 @@ get:
                 sendCodeUrl: https://auth.flashcards-open-source-app.com/api/agent/send-code
                 verifyCodeUrl: https://auth.flashcards-open-source-app.com/api/agent/verify-code
               capabilitiesBeforeLogin:
-                - Read the public published package catalog, package detail, card previews, and package media download URLs
+                - Read the complete public catalog snapshot, package detail, card previews, and package media download URLs
               capabilitiesAfterLogin:
                 - Load account context
                 - Select a workspace
@@ -55,6 +55,7 @@ get:
                 workspacePackageExportUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/export
                 workspacePackageImportPreviewUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/import/preview
                 workspacePackageImportUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/import
+                catalogSnapshotUrl: https://api.flashcards-open-source-app.com/v1/catalog
                 catalogPackagesUrl: https://api.flashcards-open-source-app.com/v1/catalog/packages
                 catalogPackageDetailUrlTemplate: https://api.flashcards-open-source-app.com/v1/catalog/packages/{packageSlug}
                 catalogPackageVersionCardsUrlTemplate: https://api.flashcards-open-source-app.com/v1/catalog/package-versions/{packageVersionId}/cards
@@ -87,6 +88,8 @@ get:
                     headless/CLI use; same key as the REST agent surface.
             instructions: >-
               Public catalog reads do not require authentication: use GET
+              https://api.flashcards-open-source-app.com/v1/catalog for the
+              complete normalized snapshot, GET
               https://api.flashcards-open-source-app.com/v1/catalog/packages to
               list or search published packages, GET
               https://api.flashcards-open-source-app.com/v1/catalog/packages/{packageSlug}

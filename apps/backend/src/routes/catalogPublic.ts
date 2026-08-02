@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import {
   listPublicCatalogPackages,
+  loadPublicCatalogSnapshot,
   loadPublicCatalogPackageDetail,
   loadPublicCatalogPackageMediaForDownload,
   loadPublicCatalogPackageVersionCardPreview,
@@ -10,12 +11,17 @@ import {
   normalizePackageMediaKey,
   normalizeSlug,
 } from "../catalog/common";
+import {
+  getPublicCatalogMediaDeliveryIssue,
+  maximumPublicCatalogMediaDownloadBytes,
+} from "../catalog/publicMediaDelivery";
 import type {
   CatalogPublicPackageCardPreview,
   CatalogPublicPackageDetail,
   CatalogPublicPackageListInput,
   CatalogPublicPackageMediaDownloadSource,
   CatalogPublicPackageSummary,
+  CatalogPublicSnapshot,
 } from "../catalog/types";
 import {
   loadMediaAssetObjectBytes,
@@ -29,9 +35,16 @@ import {
 import type { AppEnv } from "../server/app";
 import { expectUuidString } from "../server/requestParsing";
 import { HttpError } from "../shared/errors";
-import { getPublicApiBaseUrl } from "../shared/publicUrls";
+import {
+  getPublicApiBaseUrl,
+  getPublicAppBaseUrl,
+} from "../shared/publicUrls";
 
 type CatalogPublicRoutesOptions = Readonly<{
+  loadPublicCatalogSnapshotFn?: (
+    publicApiBaseUrl: string,
+    publicAppBaseUrl: string,
+  ) => Promise<CatalogPublicSnapshot>;
   listPublicCatalogPackagesFn?: (
     input: CatalogPublicPackageListInput,
   ) => Promise<ReadonlyArray<CatalogPublicPackageSummary>>;
@@ -51,14 +64,6 @@ type CatalogPublicRoutesOptions = Readonly<{
 const defaultPackageListLimit = 50;
 const defaultCardPreviewLimit = 25;
 const maximumPublicCatalogLimit = 100;
-const maximumPublicCatalogMediaDownloadBytes = 4_500_000;
-const publicCatalogMediaDownloadMimeTypes = [
-  "application/pdf",
-  "audio/mpeg",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-] as const;
 
 function parseLimitQuery(
   value: string | undefined,
@@ -174,32 +179,28 @@ function createBackendDownloadUrl(
   ].join("/");
 }
 
-function assertPublicCatalogMediaProxySafe(mediaDownloadSource: CatalogPublicPackageMediaDownloadSource): void {
-  if (mediaDownloadSource.mediaAsset.sizeBytes <= maximumPublicCatalogMediaDownloadBytes) {
+function assertPublicCatalogMediaDownloadSupported(
+  mediaDownloadSource: CatalogPublicPackageMediaDownloadSource,
+): void {
+  const issue = getPublicCatalogMediaDeliveryIssue({
+    mimeType: mediaDownloadSource.mediaAsset.mimeType,
+    sizeBytes: mediaDownloadSource.mediaAsset.sizeBytes,
+  });
+  if (issue === null) {
     return;
   }
 
-  // TODO: Route public package media through CDN or streaming delivery before raising this proxy cap.
-  throw new HttpError(
-    413,
-    [
-      "Public catalog package media is too large for backend proxy download.",
-      `sizeBytes=${mediaDownloadSource.mediaAsset.sizeBytes}`,
-      `maxBytes=${maximumPublicCatalogMediaDownloadBytes}`,
-    ].join(" "),
-    "CATALOG_PUBLIC_MEDIA_DOWNLOAD_TOO_LARGE",
-  );
-}
-
-function isPublicCatalogMediaDownloadMimeTypeSupported(mimeType: string): boolean {
-  return publicCatalogMediaDownloadMimeTypes.some((supportedMimeType) => supportedMimeType === mimeType);
-}
-
-function assertPublicCatalogMediaDownloadMimeTypeSupported(
-  mediaDownloadSource: CatalogPublicPackageMediaDownloadSource,
-): void {
-  if (isPublicCatalogMediaDownloadMimeTypeSupported(mediaDownloadSource.mediaAsset.mimeType)) {
-    return;
+  if (issue.reason === "too_large") {
+    // TODO: Route public package media through CDN or streaming delivery before raising this proxy cap.
+    throw new HttpError(
+      413,
+      [
+        "Public catalog package media is too large for backend proxy download.",
+        `sizeBytes=${mediaDownloadSource.mediaAsset.sizeBytes}`,
+        `maxBytes=${maximumPublicCatalogMediaDownloadBytes}`,
+      ].join(" "),
+      "CATALOG_PUBLIC_MEDIA_DOWNLOAD_TOO_LARGE",
+    );
   }
 
   throw new HttpError(
@@ -209,15 +210,10 @@ function assertPublicCatalogMediaDownloadMimeTypeSupported(
   );
 }
 
-function assertPublicCatalogMediaDownloadSupported(
-  mediaDownloadSource: CatalogPublicPackageMediaDownloadSource,
-): void {
-  assertPublicCatalogMediaProxySafe(mediaDownloadSource);
-  assertPublicCatalogMediaDownloadMimeTypeSupported(mediaDownloadSource);
-}
-
 export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+  const loadPublicCatalogSnapshotFn = options.loadPublicCatalogSnapshotFn
+    ?? loadPublicCatalogSnapshot;
   const listPublicCatalogPackagesFn = options.listPublicCatalogPackagesFn ?? listPublicCatalogPackages;
   const loadPublicCatalogPackageDetailFn = options.loadPublicCatalogPackageDetailFn
     ?? loadPublicCatalogPackageDetail;
@@ -226,6 +222,11 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
   const loadPublicCatalogPackageMediaForDownloadFn = options.loadPublicCatalogPackageMediaForDownloadFn
     ?? loadPublicCatalogPackageMediaForDownload;
   const loadMediaAssetObjectBytesFn = options.loadMediaAssetObjectBytesFn ?? loadMediaAssetObjectBytes;
+
+  app.get("/catalog", async (context) => context.json(await loadPublicCatalogSnapshotFn(
+    getPublicApiBaseUrl(context.req.url),
+    getPublicAppBaseUrl(context.req.url),
+  )));
 
   app.get("/catalog/packages", async (context) => {
     const catalogPackages = await listPublicCatalogPackagesFn({
