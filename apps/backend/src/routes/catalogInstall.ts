@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { listWorkspaceTagsSummary } from "../cards";
 import {
   catalogPackageInstallOperationIdPrefixMaximumLength,
   installCatalogPackageVersion,
@@ -18,6 +19,7 @@ import {
 } from "../server/requestContext";
 import {
   expectNonEmptyString,
+  expectBoolean,
   expectRecord,
   expectUuidString,
   parseJsonBody,
@@ -28,6 +30,7 @@ export type CatalogInstallRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
   assertUserHasWorkspaceAccessFn?: typeof assertUserHasWorkspaceAccess;
+  listWorkspaceTagsSummaryFn?: typeof listWorkspaceTagsSummary;
   previewCatalogPackageInstallFn?: typeof previewCatalogPackageInstall;
   installCatalogPackageVersionFn?: typeof installCatalogPackageVersion;
 }>;
@@ -76,19 +79,56 @@ function parseCatalogPackageInstallOperationIdPrefix(value: unknown): string {
 
 function parseCatalogPackageInstallConfirmInput(value: unknown): CatalogPackageInstallConfirmInput {
   const record = expectRecord(value);
+  const addImportTag = record.addImportTag === undefined
+    ? false
+    : expectBoolean(record.addImportTag, "addImportTag");
+  const importTag = record.importTag === undefined
+    ? ""
+    : parseCatalogPackageInstallImportTag(record.importTag);
+  if (addImportTag && importTag.trim() === "") {
+    throw new HttpError(
+      400,
+      "importTag must not be empty when addImportTag is true",
+      "CATALOG_PACKAGE_INSTALL_INVALID_INPUT",
+    );
+  }
+
   return {
     installId: expectNonEmptyString(record.installId, "installId"),
     installedAt: expectNonEmptyString(record.installedAt, "installedAt"),
     clientUpdatedAt: expectNonEmptyString(record.clientUpdatedAt, "clientUpdatedAt"),
     lastModifiedByReplicaId: expectUuidString(record.lastModifiedByReplicaId, "lastModifiedByReplicaId"),
     operationIdPrefix: parseCatalogPackageInstallOperationIdPrefix(record.operationIdPrefix),
+    addImportTag,
+    importTag,
+    removeTags: parseCatalogPackageInstallRemoveTags(record.removeTags),
   };
+}
+
+function parseCatalogPackageInstallImportTag(value: unknown): string {
+  if (typeof value !== "string") {
+    throw new HttpError(400, "importTag must be a string", "CATALOG_PACKAGE_INSTALL_INVALID_INPUT");
+  }
+
+  return value;
+}
+
+function parseCatalogPackageInstallRemoveTags(value: unknown): ReadonlyArray<string> {
+  if (value === undefined) {
+    return [];
+  }
+  if (Array.isArray(value) === false) {
+    throw new HttpError(400, "removeTags must be an array", "CATALOG_PACKAGE_INSTALL_INVALID_INPUT");
+  }
+
+  return value.map((tag, index) => expectNonEmptyString(tag, `removeTags[${index}]`));
 }
 
 export function createCatalogInstallRoutes(options: CatalogInstallRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
   const assertUserHasWorkspaceAccessFn = options.assertUserHasWorkspaceAccessFn ?? assertUserHasWorkspaceAccess;
+  const listWorkspaceTagsSummaryFn = options.listWorkspaceTagsSummaryFn ?? listWorkspaceTagsSummary;
   const previewCatalogPackageInstallFn = options.previewCatalogPackageInstallFn ?? previewCatalogPackageInstall;
   const installCatalogPackageVersionFn = options.installCatalogPackageVersionFn ?? installCatalogPackageVersion;
 
@@ -97,10 +137,18 @@ export function createCatalogInstallRoutes(options: CatalogInstallRoutesOptions)
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
     const packageVersionId = parseCatalogPackageVersionIdParam(context.req.param("packageVersionId"));
     await assertUserHasWorkspaceAccessFn(loadedContext.requestContext.userId, workspaceId);
+    const existingWorkspaceTags = (await listWorkspaceTagsSummaryFn(
+      loadedContext.requestContext.userId,
+      workspaceId,
+    )).tags.map((tagSummary) => tagSummary.tag);
     const preview = await previewCatalogPackageInstallFn(
       loadedContext.requestContext.userId,
       workspaceId,
       packageVersionId,
+      {
+        generatedAt: new Date().toISOString(),
+        existingWorkspaceTags,
+      },
     );
 
     return context.json(preview satisfies CatalogPackageInstallPreviewResponse);

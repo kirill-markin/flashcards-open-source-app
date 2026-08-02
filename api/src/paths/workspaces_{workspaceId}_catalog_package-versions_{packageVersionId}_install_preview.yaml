@@ -3,9 +3,10 @@ post:
     - catalog-install
   summary: Preview a catalog package install
   description: >-
-    Returns the published catalog package version metadata and the number of
-    cards and logical media assets that would be created in the target
-    workspace. The path workspaceId is authoritative for workspace access.
+    Returns the published catalog package version metadata, source tag counts,
+    ZIP-import-compatible default tag options, and the number of cards and
+    logical media assets that would be created in the target workspace. The
+    path workspaceId is authoritative for workspace access.
     Draft, submitted, approved, rejected, needs_changes, and delisted package
     versions are rejected.
   security:

@@ -13,6 +13,11 @@ import {
 } from "../../mediaAssets/lastOperationId";
 import { assertReplicaBelongsToWorkspaceInExecutor } from "../../mediaAssets/workspaceReplicas";
 import { HttpError } from "../../shared/errors";
+import {
+  buildSuggestedCardImportTag,
+  planCardImportTags,
+  type CardImportTagPlan,
+} from "../../shared/cardImportTags";
 import { normalizeIsoTimestamp } from "../../sync/conflicts/lww";
 import {
   insertSyncChange,
@@ -31,6 +36,7 @@ import type {
   TimestampValue,
   CatalogPackageInstallConfirmInput,
   CatalogPackageInstallPreview,
+  CatalogPackageInstallPreviewInput,
   CatalogPackageInstallResult,
   CatalogPackageInstallPackageVersion,
   CatalogInstalledCard,
@@ -92,13 +98,26 @@ type CatalogPackageInstallCardRow = Readonly<{
   media_asset_keys: ReadonlyArray<string>;
 }>;
 
+type CatalogPackageInstallTagRow = Readonly<{
+  tags: ReadonlyArray<string>;
+}>;
+
 type CatalogPackageInstallOperationConflictRow = Readonly<{
   entity_type: string;
   entity_id: string;
   last_operation_id: string;
 }>;
 
-type NormalizedCatalogPackageInstallConfirmInput = CatalogPackageInstallConfirmInput;
+type NormalizedCatalogPackageInstallConfirmInput = Readonly<{
+  installId: string;
+  installedAt: string;
+  clientUpdatedAt: string;
+  lastModifiedByReplicaId: string;
+  operationIdPrefix: string;
+  addImportTag: boolean;
+  importTag: string;
+  removeTags: ReadonlyArray<string>;
+}>;
 
 const catalogPackageInstallVersionColumns = [
   "package_versions.package_version_id AS package_version_id",
@@ -190,6 +209,9 @@ function normalizeCatalogPackageInstallConfirmInput(
     clientUpdatedAt: normalizeCatalogInstallIsoTimestamp(input.clientUpdatedAt, "clientUpdatedAt"),
     lastModifiedByReplicaId: normalizeUuidString(input.lastModifiedByReplicaId, "lastModifiedByReplicaId"),
     operationIdPrefix: normalizeCatalogPackageInstallOperationIdPrefix(input.operationIdPrefix),
+    addImportTag: input.addImportTag === undefined ? false : input.addImportTag,
+    importTag: input.importTag === undefined ? "" : input.importTag,
+    removeTags: input.removeTags === undefined ? [] : input.removeTags,
   };
 }
 
@@ -347,15 +369,73 @@ async function loadCatalogPackageVersionCardsInExecutor(
   return result.rows;
 }
 
+async function loadCatalogPackageVersionTagRowsInExecutor(
+  executor: DatabaseExecutor,
+  packageVersionId: string,
+): Promise<ReadonlyArray<CatalogPackageInstallTagRow>> {
+  const result = await executor.query<CatalogPackageInstallTagRow>(
+    [
+      "SELECT tags",
+      "FROM catalog.package_cards",
+      "WHERE package_version_id = $1",
+      "ORDER BY ordinal ASC, package_card_id ASC",
+    ].join(" "),
+    [packageVersionId],
+  );
+
+  return result.rows;
+}
+
+function createCatalogPackageInstallTagPlan(
+  cards: ReadonlyArray<Readonly<{ tags: ReadonlyArray<string> }>>,
+  options: Readonly<{
+    addImportTag: boolean;
+    importTag: string;
+    removeTags: ReadonlyArray<string>;
+  }>,
+): CardImportTagPlan {
+  try {
+    return planCardImportTags(cards, options);
+  } catch (error) {
+    throw new HttpError(
+      400,
+      `Catalog package install tag options are invalid. reason=${error instanceof Error ? error.message : String(error)}`,
+      "CATALOG_PACKAGE_INSTALL_INVALID_INPUT",
+    );
+  }
+}
+
 function createCatalogPackageInstallPreview(
   row: CatalogPackageInstallVersionRow,
   mediaAssetCount: number,
+  tagRows: ReadonlyArray<CatalogPackageInstallTagRow>,
+  input: CatalogPackageInstallPreviewInput,
 ): CatalogPackageInstallPreview {
+  const suggestedImportTag = buildSuggestedCardImportTag(
+    input.generatedAt,
+    input.existingWorkspaceTags,
+  );
+  const tagPlan = createCatalogPackageInstallTagPlan(
+    tagRows,
+    {
+      addImportTag: true,
+      importTag: suggestedImportTag,
+      removeTags: [],
+    },
+  );
+
   return {
     packageVersion: mapCatalogPackageInstallPackageVersion(row),
     summary: {
       cardCount: toSafeNumber(row.card_count, "card_count"),
       mediaAssetCount,
+    },
+    tagCounts: tagPlan.sourceTagCounts,
+    defaultOptions: {
+      addImportTag: true,
+      suggestedImportTag,
+      keptTags: tagPlan.keptTags,
+      removedTags: tagPlan.removedTags,
     },
   };
 }
@@ -663,6 +743,8 @@ async function insertWorkspaceCardForCatalogInstallInExecutor(
   card: CatalogPackageInstallCardRow,
   input: NormalizedCatalogPackageInstallConfirmInput,
   metadata: CardMetadata,
+  tags: ReadonlyArray<string>,
+  createdAt: string,
   cardIndex: number,
   installedMediaAssetIdsByPackageMediaKey: ReadonlyMap<string, string>,
 ): Promise<void> {
@@ -695,8 +777,8 @@ async function insertWorkspaceCardForCatalogInstallInExecutor(
       ),
       card.card_type,
       JSON.stringify(metadata),
-      card.tags,
-      input.installedAt,
+      tags,
+      createdAt,
       input.clientUpdatedAt,
       input.lastModifiedByReplicaId,
       buildCatalogInstallCardOperationId(input.operationIdPrefix, cardIndex),
@@ -754,16 +836,50 @@ function buildInstalledMediaAssetIdsByPackageMediaKey(
   ]));
 }
 
+function buildOrderedCatalogInstallCardTimestamps(
+  installedAt: string,
+  cardCount: number,
+): ReadonlyArray<string> {
+  const installedAtMillis = new Date(installedAt).getTime();
+  return Array.from({ length: cardCount }, (_unused, cardIndex) => {
+    const timestampMillis = installedAtMillis - (cardCount - cardIndex - 1);
+    try {
+      return new Date(timestampMillis).toISOString();
+    } catch {
+      throw new HttpError(
+        400,
+        `installedAt is too early to assign ordered catalog card timestamps. installedAt=${installedAt} cardCount=${cardCount}`,
+        "CATALOG_PACKAGE_INSTALL_INVALID_INPUT",
+      );
+    }
+  });
+}
+
+function getCatalogInstallCardValue<Value>(
+  values: ReadonlyArray<Value>,
+  cardIndex: number,
+  fieldName: string,
+): Value {
+  const value = values[cardIndex];
+  if (value === undefined) {
+    throw new Error(`Missing catalog install card value. fieldName=${fieldName} cardIndex=${cardIndex}`);
+  }
+
+  return value;
+}
+
 async function installCatalogPackageCardsInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
   hotChangeWriteLock: HotChangeWriteLock,
   versionRow: CatalogPackageInstallVersionRow,
   cards: ReadonlyArray<CatalogPackageInstallCardRow>,
+  tagPlan: CardImportTagPlan,
   input: NormalizedCatalogPackageInstallConfirmInput,
   installedMediaAssetIdsByPackageMediaKey: ReadonlyMap<string, string>,
 ): Promise<ReadonlyArray<CatalogInstalledCard>> {
   const installedCards: Array<CatalogInstalledCard> = [];
+  const createdAtValues = buildOrderedCatalogInstallCardTimestamps(input.installedAt, cards.length);
 
   for (const [cardIndex, card] of cards.entries()) {
     const cardId = randomUUID();
@@ -774,6 +890,8 @@ async function installCatalogPackageCardsInExecutor(
       card,
       input,
       createCatalogPackageInstallCardMetadata(card, versionRow, input),
+      getCatalogInstallCardValue(tagPlan.cardTags, cardIndex, "tags"),
+      getCatalogInstallCardValue(createdAtValues, cardIndex, "createdAt"),
       cardIndex,
       installedMediaAssetIdsByPackageMediaKey,
     );
@@ -802,6 +920,7 @@ async function installCatalogPackageCardsInExecutor(
 export async function previewCatalogPackageInstallInExecutor(
   executor: DatabaseExecutor,
   packageVersionId: string,
+  input: CatalogPackageInstallPreviewInput,
 ): Promise<CatalogPackageInstallPreview> {
   const normalizedPackageVersionId = normalizeUuidString(packageVersionId, "packageVersionId");
   const versionRow = await loadCatalogPackageInstallVersionInExecutor(executor, normalizedPackageVersionId);
@@ -809,8 +928,12 @@ export async function previewCatalogPackageInstallInExecutor(
     executor,
     normalizedPackageVersionId,
   );
+  const tagRows = await loadCatalogPackageVersionTagRowsInExecutor(
+    executor,
+    normalizedPackageVersionId,
+  );
 
-  return createCatalogPackageInstallPreview(versionRow, mediaAssetCount);
+  return createCatalogPackageInstallPreview(versionRow, mediaAssetCount, tagRows, input);
 }
 
 export async function installCatalogPackageVersionInExecutor(
@@ -839,6 +962,7 @@ export async function installCatalogPackageVersionInExecutor(
       "CATALOG_PACKAGE_VERSION_EMPTY",
     );
   }
+  const tagPlan = createCatalogPackageInstallTagPlan(packageCards, normalizedInput);
 
   await assertCatalogInstallReplicaBelongsToWorkspaceInExecutor(
     executor,
@@ -872,6 +996,7 @@ export async function installCatalogPackageVersionInExecutor(
     hotChangeWriteLock,
     versionRow,
     packageCards,
+    tagPlan,
     normalizedInput,
     installedMediaAssetIdsByPackageMediaKey,
   );
@@ -885,6 +1010,9 @@ export async function installCatalogPackageVersionInExecutor(
       mediaAssetCount: installedMediaAssets.length,
       installId: normalizedInput.installId,
       installedAt: normalizedInput.installedAt,
+      keptTagCount: tagPlan.keptTags.length,
+      removedTagCount: tagPlan.removedTags.length,
+      importTag: tagPlan.importTag,
     },
   };
 }
@@ -893,9 +1021,10 @@ export async function previewCatalogPackageInstall(
   userId: string,
   workspaceId: string,
   packageVersionId: string,
+  input: CatalogPackageInstallPreviewInput,
 ): Promise<CatalogPackageInstallPreview> {
   return transactionWithWorkspaceScopeReadOnly({ userId, workspaceId }, async (executor) => (
-    previewCatalogPackageInstallInExecutor(executor, packageVersionId)
+    previewCatalogPackageInstallInExecutor(executor, packageVersionId, input)
   ));
 }
 

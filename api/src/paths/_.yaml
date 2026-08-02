@@ -192,12 +192,15 @@ get:
               multipart/form-data with file ZIP bytes up to 4000000 bytes and
               an options JSON string. Use POST
               /v1/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install/preview
-              to preview installing a published catalog package version, then
-              POST
+              to preview installing a published catalog package version and
+              read its source tagCounts and defaultOptions. Confirm with POST
               /v1/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install
-              with a unique installId and operationIdPrefix to create normal
-              cards and logical media assets without copying object-storage
-              bytes.
+              and pass addImportTag, importTag, and removeTags to apply those
+              choices alongside a unique installId and operationIdPrefix.
+              Omitting all three tag options preserves source tags without
+              adding an import tag. The install creates normal cards in catalog
+              ordinal order and logical media assets without copying
+              object-storage bytes.
               Use docs.openapiUrl for the published external agent contract.
             links:
               websiteUrl: https://flashcards-open-source-app.com/
