@@ -34,8 +34,11 @@ properties:
     minLength: 1
     maxLength: 128
     description: >-
-      Caller-generated import/install id. The backend rejects reuse in the same
-      workspace instead of silently deduplicating.
+      Caller-generated idempotency key scoped to the workspace. An identical
+      retry with the same normalized request returns the original successful
+      result without duplicating effects. Reuse with a different request
+      returns CATALOG_PACKAGE_INSTALL_IDEMPOTENCY_CONFLICT. Use a new installId
+      for an explicit repeat import.
   installedAt:
     type: string
     format: date-time

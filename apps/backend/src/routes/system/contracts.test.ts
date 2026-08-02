@@ -41,6 +41,7 @@ type OpenApiBinarySchemaForTest = Readonly<{
   minLength?: number;
   maxLength?: number;
   pattern?: string;
+  description?: string;
   default?: string | boolean | ReadonlyArray<string>;
   required?: ReadonlyArray<string>;
   properties?: Readonly<Record<string, OpenApiBinarySchemaForTest>>;
@@ -490,6 +491,8 @@ test("catalog install discovery and OpenAPI publish shared tag choices", () => {
   assert.equal(confirmInputSchema?.properties?.addImportTag?.default, false);
   assert.equal(confirmInputSchema?.properties?.importTag?.default, "");
   assert.deepEqual(confirmInputSchema?.properties?.removeTags?.default, []);
+  assert.match(confirmInputSchema?.properties?.installId?.description ?? "", /idempotency key/);
+  assert.match(confirmInputSchema?.properties?.installId?.description ?? "", /different request/);
   assert.ok(confirmSummarySchema?.required?.includes("keptTagCount"));
   assert.ok(confirmSummarySchema?.required?.includes("removedTagCount"));
   assert.ok(confirmSummarySchema?.required?.includes("importTag"));
@@ -497,12 +500,16 @@ test("catalog install discovery and OpenAPI publish shared tag choices", () => {
   assert.match(discoveryEnvelope.instructions, /addImportTag, importTag, and removeTags/);
   assert.match(discoveryEnvelope.instructions, /Omitting all three tag options preserves source tags/);
   assert.match(discoveryEnvelope.instructions, /catalog ordinal order/);
+  assert.match(discoveryEnvelope.instructions, /workspace-scoped idempotency key/);
+  assert.match(discoveryEnvelope.instructions, /not a successful replay/);
 
   for (const path of ["/", "/agent"] as const) {
     const serializedPath = JSON.stringify(openApiDocument.paths?.[path] ?? {});
     assert.match(serializedPath, /source tagCounts and defaultOptions/);
     assert.match(serializedPath, /addImportTag, importTag, and removeTags/);
     assert.match(serializedPath, /catalog ordinal order/);
+    assert.match(serializedPath, /workspace-scoped idempotency key/);
+    assert.match(serializedPath, /not a successful replay/);
   }
 });
 

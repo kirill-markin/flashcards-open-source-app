@@ -209,11 +209,16 @@ get:
               read its source tagCounts and defaultOptions. Confirm with POST
               https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install
               and pass addImportTag, importTag, and removeTags to apply those
-              choices alongside a unique installId and operationIdPrefix.
-              Omitting all three tag options preserves source tags without
-              adding an import tag. The install creates normal cards in catalog
-              ordinal order and logical media assets without copying
-              object-storage bytes. SELECT returns at most
+              choices alongside installId and operationIdPrefix. Treat installId
+              as a workspace-scoped idempotency key: retry an ambiguous response
+              with the same normalized request to receive the exact original
+              result, and use a new installId only for an explicit repeat import.
+              Reusing installId with a different request or colliding with
+              unrelated operation ids is a conflict, not a successful replay.
+              Omitting all three tag options preserves source tags without adding
+              an import tag. The install creates normal cards in catalog ordinal
+              order and logical media assets without copying object-storage bytes.
+              SELECT returns at most
               100 rows per statement, and INSERT, UPDATE, and DELETE may affect
               at most 100 rows per statement. If you need more than 100
               writes, split the work into multiple batches of at most 100
