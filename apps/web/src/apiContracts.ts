@@ -51,6 +51,11 @@ export {
   parseWorkspacePackageImportPreviewResponse,
 } from "./apiContracts/workspacePackageImport";
 export {
+  parseCatalogPackageInstallConfirmResponse,
+  parseCatalogPackageInstallPreviewResponse,
+  parseCatalogPublicSnapshotResponse,
+} from "./apiContracts/catalog";
+export {
   parseProgressReviewScheduleResponse,
   parseProgressSeriesResponse,
   parseProgressSummaryResponse,

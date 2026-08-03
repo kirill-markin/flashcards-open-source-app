@@ -23,6 +23,7 @@ import { authenticateMcpBearerToken } from "../auth/mcpTokens";
 import { createMcpServer } from "../mcp/server";
 import { HttpError } from "../shared/errors";
 import { getHttpErrorResponseHeaders } from "../server/httpErrorResponseHeaders";
+import { parsePublicOrigin } from "../shared/publicUrls";
 import {
   captureBackendException,
   createBackendObservationScope,
@@ -62,11 +63,11 @@ function getResourceUrl(baseDomain: string): string {
  */
 function getWebsiteUrl(baseDomain: string): string {
   const configuredValue = process.env.PUBLIC_SITE_BASE_URL;
-  if (configuredValue !== undefined && configuredValue.trim() !== "") {
-    return configuredValue.trim();
+  if (configuredValue !== undefined && configuredValue !== "") {
+    return parsePublicOrigin(configuredValue, "PUBLIC_SITE_BASE_URL");
   }
 
-  return `https://${baseDomain}`;
+  return parsePublicOrigin(`https://${baseDomain}`, "PUBLIC_SITE_BASE_URL");
 }
 
 /**
@@ -77,11 +78,7 @@ function getWebsiteUrl(baseDomain: string): string {
  * advertise their own icon without extra configuration.
  */
 function getIconUrl(baseDomain: string): string {
-  // Strip a trailing slash before appending the icon path so an operator who
-  // sets PUBLIC_SITE_BASE_URL with a trailing slash does not advertise a
-  // double-slash `//icon.svg` URL (mirrors stripTrailingSlash in
-  // src/shared/publicUrls.ts, the only other place this env value is consumed).
-  return `${getWebsiteUrl(baseDomain).replace(/\/+$/, "")}/icon.svg`;
+  return `${getWebsiteUrl(baseDomain)}/icon.svg`;
 }
 
 function getAuthorizationServerUrl(baseDomain: string): string {

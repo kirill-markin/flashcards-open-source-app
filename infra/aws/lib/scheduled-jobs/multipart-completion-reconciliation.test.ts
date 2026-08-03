@@ -197,7 +197,7 @@ test("monitoring covers worker errors, staleness, and terminal job failures", ()
   );
 });
 
-test("release deploys the schedule disabled, migrates, then enables and verifies it", () => {
+test("release deploys migration-gated runtime disabled, verifies migrations, then enables schedules", () => {
   const workflow = readLibSource(
     "../../.github/workflows/aws-web-release.yml",
   );
@@ -205,7 +205,7 @@ test("release deploys the schedule disabled, migrates, then enables and verifies
     "multipartCompletionReconciliationScheduleState=DISABLED",
   );
   const requiredMigration = workflow.indexOf(
-    "--require-migration 0104_generated_image_placeholder_terminal_state.sql",
+    "--require-migration 0106_catalog_install_idempotency.sql",
   );
   const enabledDeploy = workflow.indexOf(
     "multipartCompletionReconciliationScheduleState=ENABLED",
@@ -221,7 +221,21 @@ test("release deploys the schedule disabled, migrates, then enables and verifies
   assert.ok(scheduleVerification > enabledDeploy);
   assert.match(
     workflow,
+    /name: CDK deploy with migration-gated runtime and reconciliation schedule disabled/,
+  );
+  assert.match(
+    workflow,
+    /name: Verify required database migration/,
+  );
+  assert.match(
+    workflow,
     /name: Verify cleanup-capable reconciliation schedules are enabled/,
+  );
+
+  const stackSource = readLibSource("lib/stack.ts");
+  assert.match(
+    stackSource,
+    /databaseMigrationGate\([\s\S]*"0106_catalog_install_idempotency\.sql"[\s\S]*addDatabaseMigrationDependency\(api\.backendFn, migrationGate\)/,
   );
 
   const outputsSource = readLibSource("lib/outputs.ts");
@@ -246,7 +260,7 @@ test("release deploys the schedule disabled, migrates, then enables and verifies
     "multipartCompletionReconciliationScheduleState=DISABLED",
   );
   const bootstrapMigration = bootstrapScript.indexOf(
-    "--require-migration 0104_generated_image_placeholder_terminal_state.sql",
+    "--require-migration 0106_catalog_install_idempotency.sql",
   );
   const bootstrapEnabled = bootstrapScript.indexOf(
     "multipartCompletionReconciliationScheduleState=ENABLED",
@@ -258,6 +272,11 @@ test("release deploys the schedule disabled, migrates, then enables and verifies
   assert.ok(bootstrapMigration > bootstrapDisabled);
   assert.ok(bootstrapEnabled > bootstrapMigration);
   assert.ok(bootstrapVerification > bootstrapEnabled);
+  assert.match(
+    bootstrapScript,
+    /CDK deploy with migration-gated runtime and reconciliation schedule disabled/,
+  );
+  assert.match(bootstrapScript, /Verify required database migration/);
 });
 
 test("release verification can read only the exact reconciliation schedule", () => {

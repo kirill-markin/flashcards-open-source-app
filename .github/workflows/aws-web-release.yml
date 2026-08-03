@@ -359,7 +359,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: CDK deploy with reconciliation schedule disabled
+      - name: CDK deploy with migration-gated runtime and reconciliation schedule disabled
         working-directory: infra/aws
         env:
           AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
@@ -407,11 +407,11 @@ jobs:
             -c mediaBlobCleanupEnabled=false \
             -c multipartCompletionReconciliationScheduleState=DISABLED
 
-      - name: Run database migrations
+      - name: Verify required database migration
         run: |
           bash scripts/deploy/migrate-aws.sh \
             --stack-name ${{ env.STACK_NAME }} \
-            --require-migration 0104_generated_image_placeholder_terminal_state.sql
+            --require-migration 0106_catalog_install_idempotency.sql
 
       - name: CDK deploy with reconciliation schedule enabled
         working-directory: infra/aws

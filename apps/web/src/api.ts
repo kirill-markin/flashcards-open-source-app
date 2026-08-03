@@ -72,6 +72,11 @@ export {
   previewWorkspacePackageImport,
 } from "./api/endpoints/workspacePackageImport";
 export {
+  confirmCatalogPackageInstall,
+  loadPublicCatalog,
+  previewCatalogPackageInstall,
+} from "./api/endpoints/catalog";
+export {
   bootstrapPullSyncState,
   bootstrapPushSyncState,
   importReviewHistorySync,

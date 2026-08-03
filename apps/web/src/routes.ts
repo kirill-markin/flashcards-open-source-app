@@ -14,6 +14,7 @@ export const progressLeaderboardRoute: string = `${progressRoute}#${progressLead
 export const shareRoute: string = "/share";
 export const friendInviteRoutePrefix: string = "/invite";
 export const friendInviteRoutePattern: string = `${friendInviteRoutePrefix}/:token`;
+export const catalogImportRoutePattern: string = "/catalog/import/:packageVersionId";
 export const devPreviewsRoutePrefix: string = "/dev/previews";
 export const friendInvitePreviewRoutePrefix: string = `${devPreviewsRoutePrefix}/invite`;
 export const friendInvitePreviewIndexRoute: string = friendInvitePreviewRoutePrefix;

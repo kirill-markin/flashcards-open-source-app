@@ -27,7 +27,7 @@ get:
                 sendCodeUrl: https://auth.flashcards-open-source-app.com/api/agent/send-code
                 verifyCodeUrl: https://auth.flashcards-open-source-app.com/api/agent/verify-code
               capabilitiesBeforeLogin:
-                - Read the public published package catalog, package detail, card previews, and package media download URLs
+                - Read the complete public catalog snapshot, package detail, card previews, and package media download URLs
               capabilitiesAfterLogin:
                 - Load account context
                 - Select a workspace
@@ -57,6 +57,7 @@ get:
                 workspacePackageExportUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/export
                 workspacePackageImportPreviewUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/import/preview
                 workspacePackageImportUrlTemplate: https://api.flashcards-open-source-app.com/v1/workspaces/{workspaceId}/packages/import
+                catalogSnapshotUrl: https://api.flashcards-open-source-app.com/v1/catalog
                 catalogPackagesUrl: https://api.flashcards-open-source-app.com/v1/catalog/packages
                 catalogPackageDetailUrlTemplate: https://api.flashcards-open-source-app.com/v1/catalog/packages/{packageSlug}
                 catalogPackageVersionCardsUrlTemplate: https://api.flashcards-open-source-app.com/v1/catalog/package-versions/{packageVersionId}/cards
@@ -89,6 +90,7 @@ get:
                     headless/CLI use; same key as the REST agent surface.
             instructions: >-
               Public catalog reads do not require authentication: use GET
+              /v1/catalog for the complete normalized snapshot, GET
               /v1/catalog/packages to list or search published packages, GET
               /v1/catalog/packages/{packageSlug} for detail, GET
               /v1/catalog/package-versions/{packageVersionId}/cards for card
@@ -192,12 +194,19 @@ get:
               multipart/form-data with file ZIP bytes up to 4000000 bytes and
               an options JSON string. Use POST
               /v1/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install/preview
-              to preview installing a published catalog package version, then
-              POST
+              to preview installing a published catalog package version and
+              read its source tagCounts and defaultOptions. Confirm with POST
               /v1/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install
-              with a unique installId and operationIdPrefix to create normal
-              cards and logical media assets without copying object-storage
-              bytes.
+              and pass addImportTag, importTag, and removeTags to apply those
+              choices alongside installId and operationIdPrefix. Treat installId
+              as a workspace-scoped idempotency key: retry an ambiguous response
+              with the same normalized request to receive the exact original
+              result, and use a new installId only for an explicit repeat import.
+              Reusing installId with a different request or colliding with
+              unrelated operation ids is a conflict, not a successful replay.
+              Omitting all three tag options preserves source tags without adding
+              an import tag. The install creates normal cards in catalog ordinal
+              order and logical media assets without copying object-storage bytes.
               Use docs.openapiUrl for the published external agent contract.
             links:
               websiteUrl: https://flashcards-open-source-app.com/

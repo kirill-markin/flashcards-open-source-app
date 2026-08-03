@@ -206,6 +206,7 @@ required_paths = {
     "/workspaces/{workspaceId}/packages/export/preview",
     "/workspaces/{workspaceId}/packages/import",
     "/workspaces/{workspaceId}/packages/import/preview",
+    "/catalog",
     "/catalog/packages",
     "/catalog/packages/{packageSlug}",
     "/catalog/package-versions/{packageVersionId}/cards",

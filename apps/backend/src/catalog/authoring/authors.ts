@@ -11,6 +11,7 @@ import {
   catalogAuthorColumns,
   mapCatalogAuthorRow,
 } from "../rows";
+import { getPublicCatalogAuthorEligibilityIssue } from "../publicSafety";
 import type {
   CatalogAuthor,
   CatalogAuthorRow,
@@ -18,11 +19,30 @@ import type {
 } from "../types";
 
 function normalizeCatalogAuthorInput(input: UpsertCatalogAuthorInput): UpsertCatalogAuthorInput {
-  return {
+  const presentationInput = {
     authorId: input.authorId,
     slug: normalizeSlug(input.slug, "slug"),
     displayName: normalizeNonEmptyString(input.displayName, "displayName"),
     bio: normalizeNullableString(input.bio, "bio"),
+    websiteUrl: input.websiteUrl,
+  };
+  const publicEligibilityIssue = getPublicCatalogAuthorEligibilityIssue(presentationInput);
+  if (publicEligibilityIssue !== null) {
+    const field = publicEligibilityIssue.reason === "invalid_author_website_url"
+      ? "websiteUrl"
+      : publicEligibilityIssue.field;
+    const reason = publicEligibilityIssue.reason === "invalid_author_website_url"
+      ? "websiteUrl must be a valid absolute HTTP or HTTPS URI without credentials"
+      : `${field} contains a private or managed-storage media reference`;
+    throw new HttpError(
+      400,
+      `Catalog author is not eligible for public presentation. field=${field} reason=${reason}`,
+      "CATALOG_AUTHOR_NOT_PUBLICLY_ELIGIBLE",
+    );
+  }
+
+  return {
+    ...presentationInput,
     websiteUrl: normalizeNullableString(input.websiteUrl, "websiteUrl"),
   };
 }

@@ -141,16 +141,16 @@ echo "=== CDK bootstrap ==="
 cd "$CDK_DIR"
 npx cdk bootstrap --region "$REGION"
 
-echo "=== CDK deploy with reconciliation schedule disabled ==="
+echo "=== CDK deploy with migration-gated runtime and reconciliation schedule disabled ==="
 npx cdk deploy --all --require-approval never \
   -c generatedMediaPromotionScheduleState=DISABLED \
   -c mediaBlobCleanupEnabled=false \
   -c multipartCompletionReconciliationScheduleState=DISABLED
 
-echo "=== Run database migrations ==="
+echo "=== Verify required database migration ==="
 bash "${ROOT_DIR}/scripts/deploy/migrate-aws.sh" \
   --stack-name "$STACK_NAME" \
-  --require-migration 0104_generated_image_placeholder_terminal_state.sql
+  --require-migration 0106_catalog_install_idempotency.sql
 
 echo "=== CDK deploy with reconciliation schedule enabled ==="
 npx cdk deploy --all --require-approval never \

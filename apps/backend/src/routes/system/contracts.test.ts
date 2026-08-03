@@ -12,6 +12,7 @@ import {
   catalogPackageInstallOperationIdPrefixMaximumLength,
   isValidCatalogPackageInstallOperationIdPrefix,
 } from "../../catalog";
+import { isPublicCatalogAuthorWebsiteUrlValid } from "../../catalog/publicSafety";
 import {
   isValidMediaAssetLastOperationId,
   maximumMediaAssetLastOperationIdLength,
@@ -35,11 +36,14 @@ type OperationMethodName = (typeof operationMethodNames)[number];
 type PathItemForTest = Readonly<Partial<Record<OperationMethodName, object>>>;
 type OpenApiBinarySchemaForTest = Readonly<{
   $ref?: string;
-  type?: string;
+  type?: string | ReadonlyArray<string>;
   format?: string;
   minLength?: number;
   maxLength?: number;
   pattern?: string;
+  description?: string;
+  default?: string | boolean | ReadonlyArray<string>;
+  required?: ReadonlyArray<string>;
   properties?: Readonly<Record<string, OpenApiBinarySchemaForTest>>;
 }>;
 type OpenApiMediaTypeForTest = Readonly<{
@@ -102,6 +106,7 @@ const expectedPublishedApiMethods = {
   "/workspaces/{workspaceId}/packages/export": ["post"],
   "/workspaces/{workspaceId}/packages/import/preview": ["post"],
   "/workspaces/{workspaceId}/packages/import": ["post"],
+  "/catalog": ["get"],
   "/catalog/packages": ["get"],
   "/catalog/packages/{packageSlug}": ["get"],
   "/catalog/package-versions/{packageVersionId}/cards": ["get"],
@@ -134,6 +139,7 @@ const expectedAgentDiscoverySurfaceTemplates = {
   workspacePackageExportUrlTemplate: "/workspaces/{workspaceId}/packages/export",
   workspacePackageImportPreviewUrlTemplate: "/workspaces/{workspaceId}/packages/import/preview",
   workspacePackageImportUrlTemplate: "/workspaces/{workspaceId}/packages/import",
+  catalogSnapshotUrl: "/catalog",
   catalogPackagesUrl: "/catalog/packages",
   catalogPackageDetailUrlTemplate: "/catalog/packages/{packageSlug}",
   catalogPackageVersionCardsUrlTemplate: "/catalog/package-versions/{packageVersionId}/cards",
@@ -249,11 +255,16 @@ test("API Gateway proxy forwards public catalog routes", () => {
 test("API Gateway allows the public website origin for catalog browser reads", () => {
   const apiGatewaySource = loadApiGatewaySource();
 
-  assert.match(apiGatewaySource, /const publicSiteOrigin = props\.siteBaseUrl \?\? `https:\/\/\$\{props\.baseDomain\}`;/);
+  assert.match(
+    apiGatewaySource,
+    /const publicSiteOrigin = parsePublicOrigin\(\s*props\.siteBaseUrl \?\? `https:\/\/\$\{props\.baseDomain\}`,\s*"siteBaseUrl",\s*\);/,
+  );
   assert.match(apiGatewaySource, /const publicCatalogAllowedOrigins = \[\s*publicSiteOrigin,/);
-  assert.match(apiGatewaySource, /const allowedOrigins = \[\s*`https:\/\/app\.\$\{props\.baseDomain\}`/);
+  assert.match(apiGatewaySource, /const allowedOrigins = \[\s*publicAppOrigin/);
   assert.match(apiGatewaySource, /createPublicCatalogCorsPreflightOptions\(publicCatalogAllowedOrigins\)/);
+  assert.match(apiGatewaySource, /catalog\.addMethod\("GET", integration\);/);
   assert.match(apiGatewaySource, /\.addResource\("\{proxy\+}", \{\s*defaultCorsPreflightOptions: createPublicCatalogCorsPreflightOptions\(publicCatalogAllowedOrigins\),\s*\}\)\s*\.addMethod\("GET", integration\);/);
+  assert.match(apiGatewaySource, /PUBLIC_APP_BASE_URL: props\.publicAppOrigin/);
   assert.match(apiGatewaySource, /BACKEND_ALLOWED_ORIGINS: props\.allowedOrigins\.join\(","\)/);
 });
 
@@ -308,6 +319,84 @@ test("published OpenAPI exposes the curated agent, media transfer, and admin cat
     "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download-url"
   ]?.get as OpenApiOperationForTest | undefined;
   assert.ok(publicCatalogDownloadUrlOperation?.responses?.["415"] !== undefined);
+});
+
+test("published OpenAPI exposes the normalized public catalog snapshot contract", () => {
+  const openApiDocument = loadPublishedOpenApiDocument();
+  const schemas = openApiDocument.components?.schemas ?? {};
+  const snapshotSchema = schemas.CatalogPublicSnapshot as OpenApiBinarySchemaForTest | undefined;
+  const packageVersionSchema = schemas.CatalogPublicSnapshotPackageVersion as OpenApiBinarySchemaForTest | undefined;
+  const collectionPackageSchema = schemas.CatalogPublicSnapshotCollectionPackage as OpenApiBinarySchemaForTest | undefined;
+
+  assert.ok(openApiDocument.paths?.["/catalog"]?.get !== undefined);
+  for (const requiredField of [
+    "schemaVersion",
+    "generatedAt",
+    "authors",
+    "packages",
+    "packageVersions",
+    "cards",
+    "mediaAssets",
+    "collections",
+    "collectionPackages",
+  ]) {
+    assert.ok(snapshotSchema?.required?.includes(requiredField));
+  }
+  assert.ok(packageVersionSchema?.required?.includes("installUrl"));
+  assert.ok(packageVersionSchema?.required?.includes("coverMediaAssetId"));
+  assert.ok(collectionPackageSchema?.required?.includes("ordinal"));
+  assert.match(JSON.stringify(packageVersionSchema), /Absolute web-app URL that imports this exact package version/);
+});
+
+test("author website OpenAPI patterns match the canonical runtime URL policy", () => {
+  const openApiDocument = loadPublishedOpenApiDocument();
+  const schemas = openApiDocument.components?.schemas ?? {};
+  const websiteUrlSchema = schemas.CatalogAuthorWebsiteUrl as OpenApiBinarySchemaForTest | undefined;
+  const pattern = websiteUrlSchema?.pattern;
+  assert.equal(websiteUrlSchema?.format, "uri");
+  assert.notEqual(pattern, undefined, "CatalogAuthorWebsiteUrl must publish a pattern");
+  const schemaPattern = new RegExp(pattern ?? "");
+  const cases = [
+    ["HTTPS://authors.example.test/profile", true],
+    ["HtTp://[2001:db8::1]:8080/profile", true],
+    ["https://192.0.2.1:8443/profile", true],
+    ["https://authors.example.test:/profile", false],
+    ["https://authors.example.test:99999/profile", false],
+    ["https://999.999.999.999/profile", false],
+    ["https://[::::]/profile", false],
+    [" https://authors.example.test/profile", false],
+    ["https://authors.example.test/profile ", false],
+    ["https:///authors.example.test/profile", false],
+    ["https:////authors.example.test/profile", false],
+  ] as const;
+
+  for (const schemaName of [
+    "UpsertCatalogAuthorInput",
+    "UpdateCatalogAuthorInput",
+    "CatalogAuthor",
+    "CatalogPublicAuthor",
+    "CatalogPublicSnapshotAuthor",
+  ] as const) {
+    const schema = schemas[schemaName] as OpenApiBinarySchemaForTest | undefined;
+    assert.equal(
+      schema?.properties?.websiteUrl?.$ref,
+      "#/components/schemas/CatalogAuthorWebsiteUrl",
+      `${schemaName}.websiteUrl must reference the canonical URL schema`,
+    );
+  }
+
+  for (const [websiteUrl, expected] of cases) {
+    assert.equal(
+      schemaPattern.test(websiteUrl),
+      expected,
+      `CatalogAuthorWebsiteUrl pattern mismatch for ${websiteUrl}`,
+    );
+    assert.equal(
+      isPublicCatalogAuthorWebsiteUrlValid(websiteUrl),
+      expected,
+      `Runtime URL policy mismatch for ${websiteUrl}`,
+    );
+  }
 });
 
 test("published OpenAPI shares the backend last operation identifier contract", () => {
@@ -386,6 +475,44 @@ test("published OpenAPI shares the backend last operation identifier contract", 
   }
 });
 
+test("catalog install discovery and OpenAPI publish shared tag choices", () => {
+  const openApiDocument = loadPublishedOpenApiDocument();
+  const schemas = openApiDocument.components?.schemas ?? {};
+  const previewSchema = schemas.CatalogPackageInstallPreviewResponse as OpenApiBinarySchemaForTest | undefined;
+  const confirmInputSchema = schemas.CatalogPackageInstallConfirmInput as OpenApiBinarySchemaForTest | undefined;
+  const confirmSummarySchema = schemas.CatalogPackageInstallConfirmSummary as OpenApiBinarySchemaForTest | undefined;
+  const discoveryEnvelope = createAgentDiscoveryEnvelope(testAgentRequestUrl);
+
+  assert.ok(previewSchema?.required?.includes("tagCounts"));
+  assert.ok(previewSchema?.required?.includes("defaultOptions"));
+  assert.equal(confirmInputSchema?.required?.includes("addImportTag"), false);
+  assert.equal(confirmInputSchema?.required?.includes("importTag"), false);
+  assert.equal(confirmInputSchema?.required?.includes("removeTags"), false);
+  assert.equal(confirmInputSchema?.properties?.addImportTag?.default, false);
+  assert.equal(confirmInputSchema?.properties?.importTag?.default, "");
+  assert.deepEqual(confirmInputSchema?.properties?.removeTags?.default, []);
+  assert.match(confirmInputSchema?.properties?.installId?.description ?? "", /idempotency key/);
+  assert.match(confirmInputSchema?.properties?.installId?.description ?? "", /different request/);
+  assert.ok(confirmSummarySchema?.required?.includes("keptTagCount"));
+  assert.ok(confirmSummarySchema?.required?.includes("removedTagCount"));
+  assert.ok(confirmSummarySchema?.required?.includes("importTag"));
+  assert.match(discoveryEnvelope.instructions, /source tagCounts and defaultOptions/);
+  assert.match(discoveryEnvelope.instructions, /addImportTag, importTag, and removeTags/);
+  assert.match(discoveryEnvelope.instructions, /Omitting all three tag options preserves source tags/);
+  assert.match(discoveryEnvelope.instructions, /catalog ordinal order/);
+  assert.match(discoveryEnvelope.instructions, /workspace-scoped idempotency key/);
+  assert.match(discoveryEnvelope.instructions, /not a successful replay/);
+
+  for (const path of ["/", "/agent"] as const) {
+    const serializedPath = JSON.stringify(openApiDocument.paths?.[path] ?? {});
+    assert.match(serializedPath, /source tagCounts and defaultOptions/);
+    assert.match(serializedPath, /addImportTag, importTag, and removeTags/);
+    assert.match(serializedPath, /catalog ordinal order/);
+    assert.match(serializedPath, /workspace-scoped idempotency key/);
+    assert.match(serializedPath, /not a successful replay/);
+  }
+});
+
 test("multipart session create documents retryable replacement gating and exact 201 replay", () => {
   const openApiDocument = loadPublishedOpenApiDocument();
   const operation = openApiDocument.paths?.[
@@ -442,7 +569,7 @@ test("agent discovery advertises the published media, package, and catalog surfa
   assert.ok(discoveryDataSchema?.required?.includes("capabilitiesBeforeLogin"));
   assert.ok(discoveryDataSchema?.properties?.capabilitiesBeforeLogin !== undefined);
   assert.deepEqual(discoveryEnvelope.data.capabilitiesBeforeLogin, [
-    "Read the public published package catalog, package detail, card previews, and package media download URLs",
+    "Read the complete public catalog snapshot, package detail, card previews, and package media download URLs",
   ]);
   assert.equal(
     discoveryEnvelope.data.capabilitiesAfterLogin.some((capability) => /public published package catalog/.test(capability)),
@@ -546,6 +673,7 @@ test("agent discovery advertises the published media, package, and catalog surfa
   assert.match(discoveryEnvelope.instructions, /packages\/export/);
   assert.match(discoveryEnvelope.instructions, /packages\/import\/preview/);
   assert.match(discoveryEnvelope.instructions, /packages\/import/);
+  assert.match(discoveryEnvelope.instructions, /catalog for the complete normalized snapshot/);
   assert.match(discoveryEnvelope.instructions, /catalog\/packages/);
   assert.match(discoveryEnvelope.instructions, /catalog\/packages\/\{packageSlug\}/);
   assert.match(discoveryEnvelope.instructions, /catalog\/package-versions\/\{packageVersionId\}\/cards/);

@@ -284,6 +284,101 @@ export type CatalogPublicPackageMediaDownloadSource = Readonly<{
   sha256: string;
 }>;
 
+export const catalogPublicSnapshotSchemaVersion = 1 as const;
+
+export type CatalogPublicSnapshotAuthor = Readonly<{
+  authorId: string;
+  slug: string;
+  displayName: string;
+  bio: string | null;
+  websiteUrl: string | null;
+}>;
+
+export type CatalogPublicSnapshotPackage = Readonly<{
+  packageId: string;
+  authorId: string;
+  slug: string;
+  status: "published";
+  latestPackageVersionId: string;
+  versionCount: number;
+  publishedAt: string;
+}>;
+
+export type CatalogPublicSnapshotPackageVersion = Readonly<{
+  packageVersionId: string;
+  packageId: string;
+  versionNumber: number;
+  status: "published";
+  slug: string;
+  title: string;
+  summary: string;
+  description: string;
+  languageTags: ReadonlyArray<string>;
+  topicTags: ReadonlyArray<string>;
+  license: string;
+  contentWarning: string | null;
+  coverMediaAssetId: string | null;
+  cardCount: number;
+  updatedAt: string;
+  publishedAt: string;
+  installUrl: string;
+}>;
+
+export type CatalogPublicSnapshotCard = Readonly<{
+  packageCardId: string;
+  packageVersionId: string;
+  ordinal: number;
+  frontText: string;
+  backText: string;
+  cardType: string;
+  tags: ReadonlyArray<string>;
+  mediaAssetIds: ReadonlyArray<string>;
+}>;
+
+export type CatalogPublicSnapshotMediaAsset = Readonly<{
+  packageMediaAssetId: string;
+  packageVersionId: string;
+  packageMediaKey: string;
+  altText: string | null;
+  credit: string | null;
+  license: string | null;
+  mimeType: string;
+  sizeBytes: number;
+  downloadUrl: string;
+}>;
+
+export type CatalogPublicSnapshotCollection = Readonly<{
+  collectionId: string;
+  slug: string;
+  title: string;
+  summary: string;
+  description: string;
+  languageTags: ReadonlyArray<string>;
+  topicTags: ReadonlyArray<string>;
+  coverPackageId: string | null;
+  status: "published";
+  updatedAt: string;
+  publishedAt: string;
+}>;
+
+export type CatalogPublicSnapshotCollectionPackage = Readonly<{
+  collectionId: string;
+  packageId: string;
+  ordinal: number;
+}>;
+
+export type CatalogPublicSnapshot = Readonly<{
+  schemaVersion: typeof catalogPublicSnapshotSchemaVersion;
+  generatedAt: string;
+  authors: ReadonlyArray<CatalogPublicSnapshotAuthor>;
+  packages: ReadonlyArray<CatalogPublicSnapshotPackage>;
+  packageVersions: ReadonlyArray<CatalogPublicSnapshotPackageVersion>;
+  cards: ReadonlyArray<CatalogPublicSnapshotCard>;
+  mediaAssets: ReadonlyArray<CatalogPublicSnapshotMediaAsset>;
+  collections: ReadonlyArray<CatalogPublicSnapshotCollection>;
+  collectionPackages: ReadonlyArray<CatalogPublicSnapshotCollectionPackage>;
+}>;
+
 export type CatalogPackageDraft = Readonly<{
   catalogPackage: CatalogPackage;
   mediaAssets: ReadonlyArray<CatalogPackageMediaAsset>;
@@ -356,9 +451,28 @@ export type CatalogPackageInstallPreviewSummary = Readonly<{
   mediaAssetCount: number;
 }>;
 
+export type CatalogPackageInstallTagCount = Readonly<{
+  tag: string;
+  cardsCount: number;
+}>;
+
+export type CatalogPackageInstallDefaultOptions = Readonly<{
+  addImportTag: boolean;
+  suggestedImportTag: string;
+  keptTags: ReadonlyArray<string>;
+  removedTags: ReadonlyArray<string>;
+}>;
+
+export type CatalogPackageInstallPreviewInput = Readonly<{
+  generatedAt: string;
+  existingWorkspaceTags: ReadonlyArray<string>;
+}>;
+
 export type CatalogPackageInstallPreview = Readonly<{
   packageVersion: CatalogPackageInstallPackageVersion;
   summary: CatalogPackageInstallPreviewSummary;
+  tagCounts: ReadonlyArray<CatalogPackageInstallTagCount>;
+  defaultOptions: CatalogPackageInstallDefaultOptions;
 }>;
 
 export type CatalogPackageInstallConfirmInput = Readonly<{
@@ -367,6 +481,9 @@ export type CatalogPackageInstallConfirmInput = Readonly<{
   clientUpdatedAt: string;
   lastModifiedByReplicaId: string;
   operationIdPrefix: string;
+  addImportTag?: boolean;
+  importTag?: string;
+  removeTags?: ReadonlyArray<string>;
 }>;
 
 export type CatalogInstalledCard = Readonly<{
@@ -387,6 +504,9 @@ export type CatalogPackageInstallResultSummary = Readonly<{
   mediaAssetCount: number;
   installId: string;
   installedAt: string;
+  keptTagCount: number;
+  removedTagCount: number;
+  importTag: string | null;
 }>;
 
 export type CatalogPackageInstallResult = Readonly<{

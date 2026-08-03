@@ -7,16 +7,45 @@ required:
   - lastModifiedByReplicaId
   - operationIdPrefix
 properties:
+  addImportTag:
+    type: boolean
+    default: false
+    description: >-
+      When true, the backend appends importTag to every installed card after
+      applying removeTags. Omitted for backward compatibility means false.
+  importTag:
+    type: string
+    default: ''
+    description: >-
+      Explicit editable tag chosen by the client for this install. It must be
+      non-blank when addImportTag is true and is ignored otherwise. Omitted for
+      backward compatibility means an empty value.
+  removeTags:
+    type: array
+    default: []
+    description: >-
+      Exact catalog card tags to remove before the optional importTag is added.
+      Omitted for backward compatibility means no tags are removed.
+    items:
+      type: string
+      minLength: 1
   installId:
     type: string
     minLength: 1
     maxLength: 128
     description: >-
-      Caller-generated import/install id. The backend rejects reuse in the same
-      workspace instead of silently deduplicating.
+      Caller-generated idempotency key scoped to the workspace. An identical
+      retry with the same normalized request returns the original successful
+      result without duplicating effects. Reuse with a different request
+      returns CATALOG_PACKAGE_INSTALL_IDEMPOTENCY_CONFLICT. Use a new installId
+      for an explicit repeat import.
   installedAt:
     type: string
     format: date-time
+    description: >-
+      Common import timestamp stored in metadata.source.importedAt. Installed
+      card createdAt values end at this timestamp and are spaced one
+      millisecond apart in catalog ordinal order.
   clientUpdatedAt:
     type: string
     format: date-time
