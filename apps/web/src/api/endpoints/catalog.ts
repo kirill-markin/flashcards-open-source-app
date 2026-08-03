@@ -13,7 +13,7 @@ import { parseContractResponse } from "../transport/response";
 import {
   allowAuthRecovery,
   requestJson,
-  skipAuthRecoveryWithTransientNetworkRetry,
+  requestPublicJson,
 } from "../transport/transport";
 
 function encodePathSegment(value: string): string {
@@ -22,7 +22,7 @@ function encodePathSegment(value: string): string {
 
 export async function loadPublicCatalog(): Promise<CatalogPublicSnapshot> {
   return parseContractResponse(
-    await requestJson("/catalog", { method: "GET" }, skipAuthRecoveryWithTransientNetworkRetry),
+    await requestPublicJson("/catalog"),
     "GET /catalog",
     parseCatalogPublicSnapshotResponse,
   );

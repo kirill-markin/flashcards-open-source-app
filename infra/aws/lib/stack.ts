@@ -11,7 +11,11 @@ import { backupPlan } from "./backup";
 import { outputs } from "./outputs";
 import { webApp } from "./web";
 import { adminApp } from "./admin";
-import { migrationRunner } from "./migration-runner";
+import {
+  addDatabaseMigrationDependency,
+  databaseMigrationGate,
+  migrationRunner,
+} from "./migration-runner";
 import { authGateway } from "./gateways/auth-gateway";
 import { mcpGateway } from "./gateways/mcp-gateway";
 import { analyticsAccess, type AnalyticsAccessResult } from "./analytics-access";
@@ -333,6 +337,11 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       adminEmails,
       ...sentryContext,
     });
+    const migrationGate = databaseMigrationGate(
+      this,
+      migrationFn,
+      "0106_catalog_install_idempotency.sql",
+    );
     const api = apiGateway(this, {
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,
@@ -359,6 +368,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       userPoolArn: authResult.userPool.userPoolArn,
       userPoolClientId: authResult.userPoolClient.userPoolClientId,
     });
+    addDatabaseMigrationDependency(api.backendFn, migrationGate);
     const web = webApp(this, {
       baseDomain,
       webCertificateArnUsEast1,
