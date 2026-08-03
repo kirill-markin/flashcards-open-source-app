@@ -107,7 +107,7 @@ test("release disables cleanup until the latest migration is confirmed", () => {
       "mediaBlobCleanupEnabled=false",
     );
     const migration = source.indexOf(
-      "--require-migration 0106_catalog_install_idempotency.sql",
+      "--require-migration 0107_catalog_test_collection.sql",
     );
     const enabled = source.indexOf(
       "generatedMediaPromotionScheduleState=ENABLED",
