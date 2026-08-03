@@ -76,7 +76,7 @@ describe("catalog API endpoints", () => {
       },
     };
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
-      .mockResolvedValueOnce(createJsonResponse({
+      .mockResolvedValueOnce(new Response(JSON.stringify({
         schemaVersion: 1,
         generatedAt: "2026-08-02T10:00:00.000Z",
         authors: [{
@@ -106,6 +106,13 @@ describe("catalog API endpoints", () => {
         mediaAssets: [],
         collections: [],
         collectionPackages: [],
+      }), {
+        status: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "http://localhost:3000",
+          "Content-Type": "application/json",
+          "X-Request-Id": "catalog-request-id",
+        },
       }))
       .mockResolvedValueOnce(createJsonResponse(previewResponse))
       .mockResolvedValueOnce(createJsonResponse(confirmResponse));
@@ -130,12 +137,18 @@ describe("catalog API endpoints", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       "http://localhost:8080/v1/catalog",
-      expect.objectContaining({ method: "GET" }),
+      expect.objectContaining({
+        credentials: "omit",
+        method: "GET",
+      }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       `http://localhost:8080/v1/workspaces/${workspaceId}/catalog/package-versions/${packageVersionId}/install/preview`,
-      expect.objectContaining({ method: "POST" }),
+      expect.objectContaining({
+        credentials: "include",
+        method: "POST",
+      }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       3,
@@ -143,6 +156,42 @@ describe("catalog API endpoints", () => {
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify(options),
+        credentials: "include",
+      }),
+    );
+  });
+
+  it("preserves public catalog errors and request IDs without auth recovery", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        error: "Catalog request is invalid.",
+        code: "INVALID_CATALOG_REQUEST",
+        requestId: "body-request-id",
+      }), {
+        status: 400,
+        headers: {
+          "Access-Control-Allow-Origin": "http://localhost:3000",
+          "Content-Type": "application/json",
+          "X-Request-Id": "header-request-id",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadPublicCatalog()).rejects.toMatchObject({
+      code: "INVALID_CATALOG_REQUEST",
+      endpoint: "GET /catalog",
+      message: "Catalog request is invalid.",
+      requestId: "header-request-id",
+      responseBodyKind: "json",
+      statusCode: 400,
+    });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/v1/catalog",
+      expect.objectContaining({
+        credentials: "omit",
+        method: "GET",
       }),
     );
   });

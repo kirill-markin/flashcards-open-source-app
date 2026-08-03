@@ -2,6 +2,7 @@ import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
+import * as customResources from "aws-cdk-lib/custom-resources";
 import * as rds from "aws-cdk-lib/aws-rds";
 import { Construct } from "constructs";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
@@ -116,4 +117,33 @@ export function migrationRunner(scope: Construct, props: MigrationRunnerProps): 
   addOptionalSentryEnvironment(scope, migrationFn, props);
 
   return migrationFn;
+}
+
+/**
+ * Runs the current migration bundle during the stack deployment. A version
+ * token makes CloudFormation update this resource whenever the bundled
+ * migration Lambda changes.
+ */
+export function databaseMigrationGate(
+  scope: Construct,
+  migrationFn: lambda.Function,
+  requiredMigration: string,
+): cdk.CustomResource {
+  const provider = new customResources.Provider(scope, "DatabaseMigrationProvider", {
+    onEventHandler: migrationFn,
+  });
+  return new cdk.CustomResource(scope, "DatabaseMigrationGate", {
+    serviceToken: provider.serviceToken,
+    properties: {
+      MigrationBundleVersion: migrationFn.currentVersion.version,
+      RequiredMigration: requiredMigration,
+    },
+  });
+}
+
+export function addDatabaseMigrationDependency(
+  dependentRuntime: lambda.IFunction,
+  migrationGate: cdk.CustomResource,
+): void {
+  dependentRuntime.node.addDependency(migrationGate);
 }

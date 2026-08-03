@@ -274,14 +274,19 @@ function warnApiTransportRetry(error: ApiNetworkError): void {
   });
 }
 
-async function performFetch(pathname: string, init: RequestInit, attemptCount: number): Promise<Response> {
+async function performFetch(
+  pathname: string,
+  init: RequestInit,
+  credentials: RequestCredentials,
+  attemptCount: number,
+): Promise<Response> {
   const config = getAppConfig();
   const headers = createHeaders(init);
 
   try {
     return await fetch(`${config.apiBaseUrl}${pathname}`, {
       ...init,
-      credentials: "include",
+      credentials,
       headers,
     });
   } catch (error) {
@@ -655,7 +660,7 @@ async function requestResponse(
   }
 
   const endpoint = buildSanitizedRequestEndpoint(pathname, init);
-  let response: Response = await performFetch(pathname, init, attemptCount);
+  let response: Response = await performFetch(pathname, init, "include", attemptCount);
   if (options.authRecoveryMode === "skip") {
     return response;
   }
@@ -670,7 +675,7 @@ async function requestResponse(
 
       didRecoverSession = true;
       await recoverSession(options);
-      response = await performFetch(pathname, init, attemptCount);
+      response = await performFetch(pathname, init, "include", attemptCount);
       continue;
     }
 
@@ -684,7 +689,7 @@ async function requestResponse(
     ) {
       didRecoverSessionCsrf = true;
       await recoverSessionCsrf(options);
-      response = await performFetch(pathname, init, attemptCount);
+      response = await performFetch(pathname, init, "include", attemptCount);
       continue;
     }
 
@@ -700,6 +705,27 @@ export async function requestJson(
   const endpoint = buildSanitizedRequestEndpoint(pathname, init);
   return performWithNetworkRetry(endpoint, init, options, async (attemptCount: number) => {
     const response = await requestResponse(pathname, init, options, attemptCount);
+    return parseJsonPayload(
+      response,
+      buildRequestEndpoint(pathname, init),
+      {
+        attemptCount,
+        endpoint,
+      },
+    );
+  });
+}
+
+/**
+ * Loads public JSON without sending browser credentials. Public API routes use
+ * credential-free CORS and intentionally do not participate in auth recovery.
+ */
+export async function requestPublicJson(pathname: string): Promise<ParsedResponsePayload> {
+  const init: RequestInit = { method: "GET" };
+  const options = skipAuthRecoveryWithTransientNetworkRetry;
+  const endpoint = buildSanitizedRequestEndpoint(pathname, init);
+  return performWithNetworkRetry(endpoint, init, options, async (attemptCount: number) => {
+    const response = await performFetch(pathname, init, "omit", attemptCount);
     return parseJsonPayload(
       response,
       buildRequestEndpoint(pathname, init),
