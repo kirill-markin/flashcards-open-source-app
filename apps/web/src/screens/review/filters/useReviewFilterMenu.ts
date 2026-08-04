@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
   ALL_CARDS_REVIEW_FILTER,
+  isReviewFilterEqual,
   makeTagsReviewFilter,
   normalizeReviewFilterTags,
   normalizeTagKey,
@@ -247,22 +248,28 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
   } = params;
   const { t } = useI18n();
   const [isReviewFilterMenuOpen, setIsReviewFilterMenuOpen] = useState<boolean>(false);
+  const [reviewFilterDraft, setReviewFilterDraft] = useState<ReviewFilter | null>(null);
   const [reviewDeckSearchText, setReviewDeckSearchText] = useState<string>("");
   const [activeReviewFilterOptionKey, setActiveReviewFilterOptionKey] = useState<string | null>(null);
+  const openingReviewFilterRef = useRef<ReviewFilter | null>(null);
+  const reviewFilterDraftRef = useRef<ReviewFilter | null>(null);
   const reviewFilterTriggerRef = useRef<HTMLButtonElement | null>(null);
   const reviewFilterMenuRef = useRef<HTMLDivElement | null>(null);
   const reviewDeckSearchInputRef = useRef<HTMLInputElement | null>(null);
   const reviewFilterListboxRef = useRef<HTMLDivElement | null>(null);
+  const displayedReviewFilter = isReviewFilterMenuOpen && reviewFilterDraft !== null
+    ? reviewFilterDraft
+    : selectedReviewFilter;
   const reviewDeckFilterMenuItems = buildReviewDeckFilterMenuItems(
     deckSummaries,
-    selectedReviewFilter,
+    displayedReviewFilter,
     t("filters.allCards"),
     t("reviewFilterMenu.deckSmartFilterLabel"),
   );
   const reviewTagFilterMenuItems = buildReviewTagFilterMenuItems(
     deckSummaries,
     reviewTagSummaries,
-    selectedReviewFilter,
+    displayedReviewFilter,
   );
   const reviewFilterMenuItems = buildReviewFilterMenuItems(t("reviewFilterMenu.editDecks"));
   const totalReviewFilterChoicesCount = reviewDeckFilterMenuItems.length
@@ -351,8 +358,7 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
 
     function handleKeyDown(event: KeyboardEvent): void {
       if (event.key === "Escape") {
-        setIsReviewFilterMenuOpen(false);
-        reviewFilterTriggerRef.current?.focus();
+        closeReviewFilterMenuAndFocusTrigger();
       }
     }
 
@@ -361,26 +367,42 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
   }, [isReviewFilterMenuOpen]);
 
   function handleCloseMenu(): void {
+    const openingReviewFilter = openingReviewFilterRef.current;
+    const finalReviewFilterDraft = reviewFilterDraftRef.current;
+    openingReviewFilterRef.current = null;
+    reviewFilterDraftRef.current = null;
+    setReviewFilterDraft(null);
     setReviewDeckSearchText("");
     setActiveReviewFilterOptionKey(null);
     setIsReviewFilterMenuOpen(false);
+
+    if (
+      openingReviewFilter !== null
+      && finalReviewFilterDraft !== null
+      && isReviewFilterEqual(openingReviewFilter, finalReviewFilterDraft) === false
+    ) {
+      onSelectReviewFilter(finalReviewFilterDraft);
+    }
   }
 
   function handleReviewFilterMenuToggle(): void {
     setReviewDeckSearchText("");
     if (isReviewFilterMenuOpen) {
-      setActiveReviewFilterOptionKey(null);
-      setIsReviewFilterMenuOpen(false);
+      handleCloseMenu();
       return;
     }
 
+    openingReviewFilterRef.current = selectedReviewFilter;
+    reviewFilterDraftRef.current = selectedReviewFilter;
+    setReviewFilterDraft(selectedReviewFilter);
     setActiveReviewFilterOptionKey(findDefaultReviewFilterOptionKey(visibleReviewFilterChoiceMenuItems));
     setIsReviewFilterMenuOpen(true);
   }
 
   function handleReviewFilterSelect(optionKey: string, reviewFilter: ReviewFilter): void {
     setActiveReviewFilterOptionKey(optionKey);
-    onSelectReviewFilter(reviewFilter);
+    reviewFilterDraftRef.current = reviewFilter;
+    setReviewFilterDraft(reviewFilter);
   }
 
   function preventReviewFilterHandledKeyDown(event: ReactKeyboardEvent<HTMLInputElement | HTMLDivElement>): void {
@@ -389,9 +411,7 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
   }
 
   function closeReviewFilterMenuAndFocusTrigger(): void {
-    setReviewDeckSearchText("");
-    setActiveReviewFilterOptionKey(null);
-    setIsReviewFilterMenuOpen(false);
+    handleCloseMenu();
     reviewFilterTriggerRef.current?.focus();
   }
 
@@ -410,7 +430,7 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
       activeReviewFilterOptionKey,
     );
     if (activeReviewFilterOption !== null) {
-      onSelectReviewFilter(activeReviewFilterOption.reviewFilter);
+      handleReviewFilterSelect(activeReviewFilterOption.key, activeReviewFilterOption.reviewFilter);
     }
   }
 
