@@ -81,7 +81,21 @@ private enum FlashcardsUITestLaunchScenarioData {
     static let aiReviewCard: FlashcardsUITestFixtureCard = FlashcardsUITestFixtureCard(
         frontText: "Smoke guest AI review question",
         backText: "Smoke guest AI review answer",
-        tags: ["smoke-guest-ai-review"]
+        tags: [
+            "smoke-guest-ai-review",
+            "smoke-overflow-01",
+            "smoke-overflow-02",
+            "smoke-overflow-03",
+            "smoke-overflow-04",
+            "smoke-overflow-05",
+            "smoke-overflow-06",
+            "smoke-overflow-07",
+            "smoke-overflow-08",
+            "smoke-overflow-09",
+            "smoke-overflow-10",
+            "smoke-overflow-11",
+            "smoke-overflow-12"
+        ]
     )
 }
 

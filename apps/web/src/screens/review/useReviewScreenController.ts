@@ -248,6 +248,7 @@ export function useReviewScreenController(
     onSelectReviewFilter: selectReviewFilter,
     reviewTagSummaries,
     selectedReviewFilter,
+    workspaceId: activeWorkspace?.workspaceId ?? null,
   });
   const {
     captureEditorPresentationToken,

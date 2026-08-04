@@ -98,6 +98,13 @@ class ReviewViewModel(
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = null
     )
+    val workspaceId: StateFlow<String?> = workspaceState.map { workspace ->
+        workspace?.workspaceId
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        initialValue = null
+    )
     private val appMetadataState = workspaceRepository.observeAppMetadata().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
@@ -183,6 +190,23 @@ class ReviewViewModel(
         }
         persistSelectedReviewFilter(reviewFilter = reviewFilter)
         onReviewNotificationsChanged(ReviewNotificationsReconcileTrigger.FILTER_CHANGED)
+    }
+
+    fun selectFilterForWorkspaceIfUnchanged(
+        workspaceId: String,
+        openingFilter: ReviewFilter,
+        reviewFilter: ReviewFilter
+    ) {
+        if (
+            workspaceId != activeWorkspaceId
+            || draftState.value.requestedFilter != openingFilter
+            || uiState.value.isLoading
+            || reviewFilter == openingFilter
+        ) {
+            return
+        }
+
+        selectFilter(reviewFilter = reviewFilter)
     }
 
     fun selectFilterForHandoff(reviewFilter: ReviewFilter): Boolean {

@@ -72,6 +72,7 @@ internal fun ReviewTopBar(
         actions = {
             FilterChip(
                 selected = false,
+                enabled = isLoading.not(),
                 onClick = onOpenFilter,
                 label = {
                     Text(

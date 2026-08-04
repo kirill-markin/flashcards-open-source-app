@@ -17,6 +17,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -45,9 +46,10 @@ import java.util.Locale
 @Composable
 fun ReviewRoute(
     uiState: ReviewUiState,
+    workspaceId: String?,
     reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
     reviewReactionAnimationsEnabled: Boolean,
-    onSelectFilter: (ReviewFilter) -> Unit,
+    onSelectFilter: (String, ReviewFilter, ReviewFilter) -> Unit,
     onOpenPreview: () -> Unit,
     onOpenCurrentCard: (String) -> Unit,
     onOpenCurrentCardWithAi: (
@@ -75,8 +77,16 @@ fun ReviewRoute(
     onOpenProgress: () -> Unit,
     onScreenVisible: () -> Unit
 ) {
-    var isFilterSheetVisible by remember { mutableStateOf(value = false) }
-    var filterSheetSelection by remember { mutableStateOf<ReviewFilter?>(value = null) }
+    var filterSheetTransaction by rememberSaveable(
+        stateSaver = reviewFilterSheetTransactionSaver
+    ) {
+        mutableStateOf(
+            value = closedReviewFilterSheetTransaction(
+                workspaceId = workspaceId,
+                selection = uiState.requestedFilter
+            )
+        )
+    }
     var speechErrorMessage by remember { mutableStateOf(value = "") }
     var activeReviewReactionEvents by remember {
         mutableStateOf<List<ReviewReactionEvent>>(value = emptyList())
@@ -119,6 +129,25 @@ fun ReviewRoute(
             maximumActiveEvents = reviewReactionMaximumActiveEvents
         )
     }
+    fun finalizeFilterSheetSelection(): Unit {
+        val transaction: ReviewFilterSheetTransaction = filterSheetTransaction
+        if (transaction.isVisible.not()) {
+            return
+        }
+
+        filterSheetTransaction = closedReviewFilterSheetTransaction(
+            workspaceId = workspaceId,
+            selection = uiState.requestedFilter
+        )
+        val openingWorkspaceId: String = transaction.workspaceId ?: return
+        if (transaction.draftSelection != transaction.openingSelection) {
+            onSelectFilter(
+                openingWorkspaceId,
+                transaction.openingSelection,
+                transaction.draftSelection
+            )
+        }
+    }
     val onRateAgainWithReaction: () -> Unit = {
         emitReviewReaction(rating = ReviewRating.AGAIN)
         onRateAgain()
@@ -148,6 +177,23 @@ fun ReviewRoute(
     LaunchedEffect(reviewReactionAnimationsEnabled) {
         if (reviewReactionAnimationsEnabled.not()) {
             activeReviewReactionEvents = emptyList()
+        }
+    }
+
+    LaunchedEffect(workspaceId, uiState.requestedFilter, uiState.isLoading) {
+        val transaction: ReviewFilterSheetTransaction = filterSheetTransaction
+        if (
+            transaction.isVisible
+            && uiState.isLoading.not()
+            && (
+                transaction.workspaceId != workspaceId
+                    || transaction.openingSelection != uiState.requestedFilter
+                )
+        ) {
+            filterSheetTransaction = closedReviewFilterSheetTransaction(
+                workspaceId = workspaceId,
+                selection = uiState.requestedFilter
+            )
         }
     }
 
@@ -202,8 +248,12 @@ fun ReviewRoute(
                 reviewProgressBadge = uiState.reviewProgressBadge,
                 selectedFilterTitle = uiState.selectedFilterTitle,
                 onOpenFilter = {
-                    filterSheetSelection = uiState.requestedFilter
-                    isFilterSheetVisible = true
+                    if (workspaceId != null && uiState.isLoading.not()) {
+                        filterSheetTransaction = openReviewFilterSheetTransaction(
+                            workspaceId = workspaceId,
+                            selection = uiState.requestedFilter
+                        )
+                    }
                 },
                 onOpenPreview = onOpenPreview,
                 onOpenLeaderboard = onOpenLeaderboard,
@@ -300,32 +350,34 @@ fun ReviewRoute(
         }
     }
 
-    if (isFilterSheetVisible) {
+    if (
+        workspaceId != null
+        && filterSheetTransaction.isVisible
+        && filterSheetTransaction.workspaceId == workspaceId
+    ) {
         ReviewFilterSheet(
-            selectedFilter = filterSheetSelection ?: uiState.requestedFilter,
+            selectedFilter = filterSheetTransaction.draftSelection,
             availableDeckFilters = uiState.availableDeckFilters,
             availableTagFilters = uiState.availableTagFilters,
-            onDismiss = {
-                isFilterSheetVisible = false
-                filterSheetSelection = null
-            },
+            onDismiss = ::finalizeFilterSheetSelection,
             onSelectFilter = { nextFilter ->
-                filterSheetSelection = nextFilter
-                onSelectFilter(nextFilter)
+                filterSheetTransaction = filterSheetTransaction.copy(
+                    draftSelection = nextFilter
+                )
             },
             onToggleTag = { tagName ->
                 val nextFilter = toggleReviewTagFilter(
-                    selectedFilter = filterSheetSelection ?: uiState.requestedFilter,
+                    selectedFilter = filterSheetTransaction.draftSelection,
                     toggledTagName = tagName,
                     availableDeckFilters = uiState.availableDeckFilters,
                     availableTagFilters = uiState.availableTagFilters
                 )
-                filterSheetSelection = nextFilter
-                onSelectFilter(nextFilter)
+                filterSheetTransaction = filterSheetTransaction.copy(
+                    draftSelection = nextFilter
+                )
             },
             onManageDecks = {
-                isFilterSheetVisible = false
-                filterSheetSelection = null
+                finalizeFilterSheetSelection()
                 onOpenDeckManagement()
             }
         )
