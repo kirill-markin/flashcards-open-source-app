@@ -370,14 +370,20 @@ struct ReviewView: View {
 
     private var reviewFilterMenu: some View {
         Menu {
-            Button {
-                store.selectReviewFilter(reviewFilter: .allCards)
-            } label: {
-                if store.selectedReviewFilter == .allCards {
-                    Label(localizedAllCardsLabel(), systemImage: "checkmark")
-                } else {
-                    Text(localizedAllCardsLabel())
-                }
+            Toggle(
+                isOn: Binding(
+                    get: {
+                        store.selectedReviewFilter == .allCards
+                    },
+                    set: { isEnabled in
+                        let reviewFilter: ReviewFilter = isEnabled
+                            ? .allCards
+                            : makeReviewTagsFilter(tags: [])
+                        store.selectReviewFilter(reviewFilter: reviewFilter)
+                    }
+                )
+            ) {
+                Text(localizedAllCardsLabel())
             }
             .menuActionDismissBehavior(.disabled)
             .accessibilityIdentifier(UITestIdentifier.reviewFilterAllCardsAction)
