@@ -236,6 +236,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+        let decomposedTag = "E\u{301}clair"
 
         try self.insertCard(
             database: database,
@@ -261,6 +262,22 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
             createdAt: "2026-03-09T07:00:00.000Z",
             tags: ["plain"]
         )
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "duplicate-identity-tag-card",
+            dueAt: nil,
+            createdAt: "2026-03-09T07:30:00.000Z",
+            tags: ["Éclair", "éclair"]
+        )
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "decomposed-tag-card",
+            dueAt: nil,
+            createdAt: "2026-03-09T07:45:00.000Z",
+            tags: [decomposedTag]
+        )
 
         let resolvedReviewQuery = try database.loadResolvedReviewQuery(
             workspaceId: workspace.workspaceId,
@@ -278,15 +295,37 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
             reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
             now: now
         )
+        let tagSummary = try database.loadWorkspaceTagsSummary(workspaceId: workspace.workspaceId)
+        let matchingTagSummaries = tagSummary.tags.filter { summary in
+            normalizeTagKey(tag: summary.tag) == normalizeTagKey(tag: "éclair")
+        }
 
-        XCTAssertEqual(resolvedReviewQuery.reviewFilter, .tag(tag: "Éclair"))
+        guard case .tags(let resolvedTagNames) = resolvedReviewQuery.reviewFilter else {
+            XCTFail("Expected resolved tag review filter")
+            return
+        }
+        XCTAssertEqual(resolvedTagNames.count, 1)
+        XCTAssertEqual(normalizeTagKey(tag: resolvedTagNames[0]), normalizeTagKey(tag: "éclair"))
         guard case .tag(let exactTagNames) = resolvedReviewQuery.queryDefinition else {
             XCTFail("Expected resolved direct tag query definition")
             return
         }
-        XCTAssertEqual(Set<String>(exactTagNames), Set<String>(["Éclair", "éclair"]))
-        XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["lowercase-tag-card", "uppercase-tag-card"])
-        XCTAssertEqual(reviewCounts, ReviewCounts(dueCount: 2, totalCount: 2))
+        XCTAssertEqual(exactTagNames.count, 3)
+        XCTAssertTrue(exactTagNames.contains { tagName in
+            tagName.unicodeScalars.elementsEqual(decomposedTag.unicodeScalars)
+        })
+        XCTAssertEqual(
+            reviewHead.seedReviewQueue.map(\.cardId),
+            [
+                "duplicate-identity-tag-card",
+                "decomposed-tag-card",
+                "lowercase-tag-card",
+                "uppercase-tag-card"
+            ]
+        )
+        XCTAssertEqual(reviewCounts, ReviewCounts(dueCount: 4, totalCount: 4))
+        XCTAssertEqual(matchingTagSummaries.count, 1)
+        XCTAssertEqual(matchingTagSummaries.first?.cardsCount, 4)
     }
 
     func testSQLiteTagReviewFilterMatchesAnySelectedTagAndEmptySelectionMatchesNone() throws {

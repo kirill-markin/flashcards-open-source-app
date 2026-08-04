@@ -78,8 +78,8 @@ struct ReviewView: View {
             selectedTags = self.reviewDeckSummaries.first(where: { deckSummary in
                 deckSummary.deckId == deckId
             }).map { deckSummary in
-                resolveExactStoredTagNames(
-                    requestedTagNames: deckSummary.filterDefinition.tags,
+                selectedReviewDeckTagNames(
+                    deckFilterTagNames: deckSummary.filterDefinition.tags,
                     storedTagNames: storedTagNames
                 )
             } ?? []
@@ -119,8 +119,8 @@ struct ReviewView: View {
                 deckSummary.deckId == deckId
             })?.filterDefinition.tags ?? []
             let deckTagFilter = makeReviewTagsFilter(
-                tags: resolveReviewTagNamesPreservingUnmatched(
-                    requestedTagNames: deckTags,
+                tags: selectedReviewDeckTagNames(
+                    deckFilterTagNames: deckTags,
                     storedTagNames: storedTagNames
                 )
             )

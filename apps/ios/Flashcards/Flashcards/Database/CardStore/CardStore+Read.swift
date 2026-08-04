@@ -490,7 +490,7 @@ extension CardStore {
     ) throws -> CardsListSnapshot {
         let storedTagNames: [String]
         if let filter, filter.tags.isEmpty == false {
-            storedTagNames = try self.loadWorkspaceTagsSummary(workspaceId: workspaceId).tags.map(\.tag)
+            storedTagNames = try self.loadStoredTagNames(workspaceId: workspaceId)
         } else {
             storedTagNames = []
         }
@@ -523,20 +523,27 @@ extension CardStore {
      screens without scanning all card rows in SwiftUI.
      */
     func loadWorkspaceTagsSummary(workspaceId: String) throws -> WorkspaceTagsSummary {
-        let tags = try self.core.query(
+        let storedCardTags = try self.core.query(
             sql: """
-            SELECT tag, COUNT(*) AS cards_count
+            SELECT card_id, tag
             FROM card_tags
             WHERE workspace_id = ?
-            GROUP BY tag
             ORDER BY tag COLLATE NOCASE ASC, tag ASC
             """,
             values: [.text(workspaceId)]
         ) { statement in
-            WorkspaceTagSummary(
-                tag: DatabaseCore.columnText(statement: statement, index: 0),
-                cardsCount: Int(DatabaseCore.columnInt64(statement: statement, index: 1))
+            StoredCardTag(
+                cardId: DatabaseCore.columnText(statement: statement, index: 0),
+                tag: DatabaseCore.columnText(statement: statement, index: 1)
             )
+        }
+        let tags = makeWorkspaceTagSummaries(storedCardTags: storedCardTags).sorted { leftTag, rightTag in
+            let comparison = leftTag.tag.localizedCaseInsensitiveCompare(rightTag.tag)
+            if comparison != .orderedSame {
+                return comparison == .orderedAscending
+            }
+
+            return leftTag.tag < rightTag.tag
         }
         let totalCards = try self.core.scalarInt(
             sql: """
@@ -548,6 +555,20 @@ extension CardStore {
         )
 
         return WorkspaceTagsSummary(tags: tags, totalCards: totalCards)
+    }
+
+    func loadStoredTagNames(workspaceId: String) throws -> [String] {
+        try self.core.query(
+            sql: """
+            SELECT DISTINCT tag
+            FROM card_tags
+            WHERE workspace_id = ?
+            ORDER BY tag COLLATE NOCASE ASC, tag ASC
+            """,
+            values: [.text(workspaceId)]
+        ) { statement in
+            DatabaseCore.columnText(statement: statement, index: 0)
+        }
     }
 
     /**
