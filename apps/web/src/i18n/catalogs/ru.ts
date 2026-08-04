@@ -818,6 +818,7 @@ export const ruCatalog = {
     editDecks: "Редактировать колоды",
     empty: "Фильтры не найдены",
     menuAriaLabel: "Фильтр повторения",
+    noTags: "Нет тегов",
     openAriaLabel: "Открыть фильтр повторения",
     queueBadgeDue: "{{due}} к повторению",
     queueBadgeDueUpcoming: "{{due}} к повторению | {{upcoming}} впереди",

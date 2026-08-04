@@ -10,6 +10,11 @@ struct WorkspaceTagsSummary: Codable, Hashable, Sendable {
     let totalCards: Int
 }
 
+struct StoredCardTag: Hashable, Sendable {
+    let cardId: String
+    let tag: String
+}
+
 enum TagSuggestionCount: Hashable, Sendable {
     case loading
     case ready(cardsCount: Int)

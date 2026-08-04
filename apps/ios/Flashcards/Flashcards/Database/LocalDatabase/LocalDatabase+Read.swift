@@ -1,7 +1,7 @@
 import Foundation
 
 private func loadStoredTagNames(database: LocalDatabase, workspaceId: String) throws -> [String] {
-    try database.loadWorkspaceTagsSummary(workspaceId: workspaceId).tags.map(\.tag)
+    try database.cardStore.loadStoredTagNames(workspaceId: workspaceId)
 }
 
 extension LocalDatabase {
@@ -158,19 +158,12 @@ extension LocalDatabase {
                     )
                 )
             )
-        case .tag(let tag):
+        case .tags(let tags):
             let storedTagNames = try loadStoredTagNames(database: self, workspaceId: workspaceId)
-            guard let resolvedTagReviewQuery = resolveTagReviewQuery(
-                requestedTag: tag,
+            return resolveTagsReviewQuery(
+                requestedTags: tags,
                 storedTagNames: storedTagNames
-            ) else {
-                return ResolvedReviewQuery(
-                    reviewFilter: .allCards,
-                    queryDefinition: .allCards
-                )
-            }
-
-            return resolvedTagReviewQuery
+            )
         }
     }
 

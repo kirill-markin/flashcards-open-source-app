@@ -4,9 +4,9 @@ import androidx.room.Dao
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
-data class ReviewTagCountRow(
+data class ReviewTagCardRow(
     val tag: String,
-    val totalCount: Int
+    val cardId: String
 )
 
 @Dao
@@ -106,7 +106,7 @@ interface ReviewCountDao {
 
     @Query(
         """
-        SELECT tags.name AS tag, COUNT(DISTINCT cards.cardId) AS totalCount
+        SELECT DISTINCT tags.name AS tag, cards.cardId AS cardId
         FROM cards
         INNER JOIN card_tags ON card_tags.cardId = cards.cardId
         INNER JOIN tags ON tags.tagId = card_tags.tagId
@@ -114,8 +114,7 @@ interface ReviewCountDao {
             AND tags.workspaceId = cards.workspaceId
             AND cards.deletedAtMillis IS NULL
             AND (cards.dueAtMillis IS NULL OR cards.dueAtMillis <= :nowMillis)
-        GROUP BY tags.name
         """
     )
-    fun observeReviewTagDueCounts(workspaceId: String, nowMillis: Long): Flow<List<ReviewTagCountRow>>
+    fun observeReviewTagDueCards(workspaceId: String, nowMillis: Long): Flow<List<ReviewTagCardRow>>
 }

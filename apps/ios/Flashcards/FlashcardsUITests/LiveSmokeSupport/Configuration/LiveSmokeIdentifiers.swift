@@ -18,6 +18,8 @@ enum LiveSmokeIdentifier {
     static let rootTabCardsItem: String = "rootTab.cards.item"
     static let rootTabSettingsItem: String = "rootTab.settings.item"
     static let reviewScreen: String = "review.screen"
+    static let reviewFilterMenu: String = "review.filter.menu"
+    static let reviewFilterTagTogglePrefix: String = "review.filter.tag."
     static let aiScreen: String = "ai.screen"
     static let progressScreen: String = "progress.screen"
     static let progressStreakSection: String = "progress.streakSection"

@@ -3,6 +3,8 @@ package com.flashcardsopensourceapp.data.local.review
 import android.content.Context
 import androidx.core.content.edit
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
+import org.json.JSONArray
 import org.json.JSONObject
 
 private const val reviewPreferencesName: String = "flashcards-review-preferences"
@@ -12,10 +14,12 @@ private const val persistedReviewFilterKindKey: String = "kind"
 private const val persistedReviewFilterDeckIdKey: String = "deckId"
 private const val persistedReviewFilterEffortLevelKey: String = "effortLevel"
 private const val persistedReviewFilterTagKey: String = "tag"
+private const val persistedReviewFilterTagsKey: String = "tags"
 private const val persistedReviewFilterAllCardsKind: String = "allCards"
 private const val persistedReviewFilterDeckKind: String = "deck"
 private const val persistedReviewFilterEffortKind: String = "effort"
 private const val persistedReviewFilterTagKind: String = "tag"
+private const val persistedReviewFilterTagsKind: String = "tags"
 
 interface ReviewPreferencesStore {
     /** Loads the selected review filter for a workspace. */
@@ -99,9 +103,9 @@ private fun encodePersistedReviewFilter(reviewFilter: ReviewFilter): String {
             payload.put(persistedReviewFilterDeckIdKey, reviewFilter.deckId)
         }
 
-        is ReviewFilter.Tag -> {
-            payload.put(persistedReviewFilterKindKey, persistedReviewFilterTagKind)
-            payload.put(persistedReviewFilterTagKey, reviewFilter.tag)
+        is ReviewFilter.Tags -> {
+            payload.put(persistedReviewFilterKindKey, persistedReviewFilterTagsKind)
+            payload.put(persistedReviewFilterTagsKey, JSONArray(reviewFilter.tags))
         }
     }
 
@@ -133,7 +137,16 @@ private fun decodePersistedReviewFilter(rawValue: String): ReviewFilter {
             require(tag.isNotEmpty()) {
                 "Persisted review filter is missing tag."
             }
-            ReviewFilter.Tag(tag = tag)
+            makeReviewTagFilter(tagNames = listOf(tag))
+        }
+
+        persistedReviewFilterTagsKind -> {
+            val tagsPayload = payload.getJSONArray(persistedReviewFilterTagsKey)
+            makeReviewTagFilter(
+                tagNames = (0 until tagsPayload.length()).map { index ->
+                    tagsPayload.getString(index)
+                }
+            )
         }
 
         else -> {
@@ -145,8 +158,8 @@ private fun decodePersistedReviewFilter(rawValue: String): ReviewFilter {
 private fun decodeLegacyEffortReviewFilter(rawValue: String): ReviewFilter {
     return when (rawValue.trim().lowercase()) {
         "fast" -> ReviewFilter.AllCards
-        "medium" -> ReviewFilter.Tag(tag = "medium")
-        "long" -> ReviewFilter.Tag(tag = "long")
+        "medium" -> makeReviewTagFilter(tagNames = listOf("medium"))
+        "long" -> makeReviewTagFilter(tagNames = listOf("long"))
         else -> throw IllegalArgumentException("Persisted review filter has an unsupported effortLevel.")
     }
 }

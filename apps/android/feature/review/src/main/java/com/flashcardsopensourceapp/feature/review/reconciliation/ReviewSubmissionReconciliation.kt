@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.review
 
+import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
@@ -289,6 +290,7 @@ private fun hasOwnedDeckFilterOptionChange(
         val nextOption = nextOptionsByDeckId[previousOption.deckId] ?: return false
         val countDelta = previousOption.totalCount - nextOption.totalCount
         nextOption.title == previousOption.title &&
+            nextOption.tags == previousOption.tags &&
             countDelta >= 0 &&
             countDelta <= committedReviewedCards.size
     }
@@ -299,34 +301,33 @@ private fun hasOwnedTagFilterOptionChange(
     nextOptions: List<ReviewTagFilterOption>,
     committedReviewedCards: List<ReviewCard>
 ): Boolean {
-    val previousOptionsByTag = previousOptions.associateBy { option ->
-        option.tag
+    val previousOptionsByTagKey = previousOptions.associateBy { option ->
+        normalizeTagKey(tag = option.tag)
     }
-    val nextOptionsByTag = nextOptions.associateBy { option ->
-        option.tag
+    val nextOptionsByTagKey = nextOptions.associateBy { option ->
+        normalizeTagKey(tag = option.tag)
     }
     if (
-        nextOptionsByTag.keys.any { tag ->
-            previousOptionsByTag.containsKey(tag).not()
+        nextOptionsByTagKey.keys.any { tagKey ->
+            previousOptionsByTagKey.containsKey(tagKey).not()
         }
     ) {
         return false
     }
-    val committedReviewTags = committedReviewedCards.flatMap { reviewedCard ->
-        reviewedCard.tags
+    val committedReviewTagKeysByCard: List<Set<String>> = committedReviewedCards.map { reviewedCard ->
+        reviewedCard.tags.map { tag ->
+            normalizeTagKey(tag = tag)
+        }.toSet()
     }
 
     return previousOptions.all { previousOption ->
-        val expectedDelta = committedReviewTags.count { tag ->
-            tag == previousOption.tag
+        val tagKey: String = normalizeTagKey(tag = previousOption.tag)
+        val expectedDelta: Int = committedReviewTagKeysByCard.count { committedReviewTagKeys ->
+            committedReviewTagKeys.contains(tagKey)
         }
         val expectedCount = previousOption.totalCount - expectedDelta
-        val nextOption = nextOptionsByTag[previousOption.tag]
-        if (expectedCount <= 0) {
-            nextOption == null
-        } else {
-            nextOption?.totalCount == expectedCount
-        }
+        val nextOption = nextOptionsByTagKey[tagKey]
+        nextOption?.totalCount == maxOf(0, expectedCount)
     }
 }
 

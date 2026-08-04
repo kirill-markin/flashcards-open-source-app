@@ -75,6 +75,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                 ReviewRoute(
                     uiState = ReviewUiState(
                         isLoading = false,
+                        requestedFilter = ReviewFilter.AllCards,
                         selectedFilter = ReviewFilter.AllCards,
                         selectedFilterTitle = "All cards",
                         remainingCount = 4,

@@ -56,13 +56,15 @@ export function resolveReviewFilterTitle(
   reviewFilter: ReviewFilter,
   deckSummaries: ReadonlyArray<DeckSummary>,
   allCardsLabel: string,
+  noTagsLabel: string,
+  selectedTagsCountLabel: string,
 ): string {
   if (reviewFilter.kind === "allCards") {
     return allCardsLabel;
   }
 
-  if (reviewFilter.kind === "tag") {
-    return reviewFilter.tag;
+  if (reviewFilter.kind === "tags") {
+    return reviewFilter.tags.length === 0 ? noTagsLabel : selectedTagsCountLabel;
   }
 
   return deckSummaries.find((deck) => deck.deckId === reviewFilter.deckId)?.name ?? allCardsLabel;
@@ -125,8 +127,8 @@ function matchesResolvedReviewFilterForPreservation(
     return deckSummary === undefined ? false : matchesDeckFilterDefinition(deckSummary.filterDefinition, card);
   }
 
-  const requestedTagKey = normalizeTagKey(resolvedReviewFilter.tag);
-  return card.tags.some((tag) => normalizeTagKey(tag) === requestedTagKey);
+  const requestedTagKeys = new Set(resolvedReviewFilter.tags.map((tag) => normalizeTagKey(tag)));
+  return card.tags.some((tag) => requestedTagKeys.has(normalizeTagKey(tag)));
 }
 
 export function isPreservablePresentedCard(

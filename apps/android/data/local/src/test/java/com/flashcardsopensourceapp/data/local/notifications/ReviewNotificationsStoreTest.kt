@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.notifications
 
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -56,7 +57,8 @@ class ReviewNotificationsStoreTest {
                 kind = "deck",
                 deckId = "deck-1",
                 effortLevel = null,
-                tag = null
+                tag = null,
+                tags = null
             ),
             fallbackFrontText = fallbackFrontText,
             nowMillis = parseTimestampMillis(value = "2026-04-03T09:00:00Z"),
@@ -173,7 +175,8 @@ class ReviewNotificationsStoreTest {
                 kind = "tag",
                 deckId = null,
                 effortLevel = null,
-                tag = "biology"
+                tag = "biology",
+                tags = null
             ),
             fallbackFrontText = fallbackFrontText,
             nowMillis = parseTimestampMillis(value = "2026-04-03T10:16:00Z"),
@@ -297,15 +300,58 @@ class ReviewNotificationsStoreTest {
             kind = "effort",
             deckId = null,
             effortLevel = "MEDIUM",
-            tag = null
+            tag = null,
+            tags = null
         )
 
         assertEquals(
-            ReviewFilter.Tag(tag = "medium"),
+            ReviewFilter.Tags(tags = listOf("medium")),
             decodePersistedReviewFilter(filter = persistedFilter)
         )
         assertEquals("effort", persistedFilter.kind)
         assertEquals("MEDIUM", persistedFilter.effortLevel)
+    }
+
+    @Test
+    fun multiTagReviewFilterPersistsEmptyAndOrSelectionsWhileLegacyTagRemainsReadable() {
+        val selectedTags = ReviewFilter.Tags(tags = listOf("biology", "science"))
+        val emptyTags = ReviewFilter.Tags(tags = emptyList())
+        val legacyTag = PersistedReviewFilter(
+            kind = "tag",
+            deckId = null,
+            effortLevel = null,
+            tag = "legacy",
+            tags = null
+        )
+
+        assertEquals(
+            selectedTags,
+            decodePersistedReviewFilter(
+                filter = makePersistedReviewFilter(reviewFilter = selectedTags)
+            )
+        )
+        assertEquals(
+            emptyTags,
+            decodePersistedReviewFilter(
+                filter = makePersistedReviewFilter(reviewFilter = emptyTags)
+            )
+        )
+        assertEquals(
+            ReviewFilter.Tags(tags = listOf("legacy")),
+            decodePersistedReviewFilter(filter = legacyTag)
+        )
+    }
+
+    @Test
+    fun multiTagReviewFilterNormalizesDeduplicatesAndOrdersTags() {
+        val decomposedTag = "E\u0301clair"
+
+        assertEquals(
+            ReviewFilter.Tags(tags = listOf("Biology", "science", decomposedTag)),
+            makeReviewTagFilter(
+                tagNames = listOf(" science ", "biology", "Biology", " Éclair ", decomposedTag)
+            )
+        )
     }
 
     @Test
@@ -460,7 +506,8 @@ private fun makeCurrentCard(cardId: String, frontText: String): CurrentReviewNot
             kind = "allCards",
             deckId = null,
             effortLevel = null,
-            tag = null
+            tag = null,
+            tags = null
         ),
         cardId = cardId,
         frontText = frontText

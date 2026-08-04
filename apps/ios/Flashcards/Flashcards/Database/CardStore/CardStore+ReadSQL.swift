@@ -114,8 +114,8 @@ extension CardStore {
         case .allCards:
             return ReviewQuerySQL(clause: "", values: [])
         case .tag(let exactTagNames):
-            guard exactTagNames.isEmpty == false else {
-                throw LocalStoreError.database("Tag review query requires at least one exact tag name")
+            if exactTagNames.isEmpty {
+                return ReviewQuerySQL(clause: " AND 0 = 1", values: [])
             }
             let tagPlaceholders = Array(
                 repeating: "?",

@@ -19,6 +19,7 @@ import { putDeckInTransaction } from "../decks";
 import { loadProgressCacheState, markProgressCacheDirtyInTransaction } from "../../progress/progress";
 import { putReviewEventInTransaction } from "../../reviews/reviews";
 import { putMediaAssetInTransaction } from "../../mediaAssets";
+import { normalizeTag, normalizeTagKey } from "../../../appData/domain";
 
 type HotSyncStateUpdate = Readonly<{
   lastAppliedHotChangeId: number;
@@ -149,17 +150,33 @@ export async function hasHydratedReviewHistory(workspaceId: string): Promise<boo
 
 export async function loadWorkspaceTagsSummary(workspaceId: string): Promise<WorkspaceTagsSummary> {
   return closeDatabaseAfter(async (database) => {
-    const counts = new Map<string, number>();
+    const tagStatsByKey = new Map<string, Readonly<{
+      tag: string;
+      cardIds: Set<string>;
+    }>>();
     await iterateAllCardTags(database, workspaceId, (record) => {
-      counts.set(record.tag, (counts.get(record.tag) ?? 0) + 1);
+      const tagKey = normalizeTagKey(record.tag);
+      if (tagKey === "") {
+        return true;
+      }
+
+      const currentTagStats = tagStatsByKey.get(tagKey);
+      if (currentTagStats === undefined) {
+        tagStatsByKey.set(tagKey, {
+          tag: normalizeTag(record.tag),
+          cardIds: new Set([record.cardId]),
+        });
+      } else {
+        currentTagStats.cardIds.add(record.cardId);
+      }
       return true;
     });
 
     return {
-      tags: [...counts.entries()]
-        .map(([tag, cardsCount]) => ({
-          tag,
-          cardsCount,
+      tags: [...tagStatsByKey.values()]
+        .map((tagStats) => ({
+          tag: tagStats.tag,
+          cardsCount: tagStats.cardIds.size,
         }))
         .sort(compareTagSummaries),
       totalCards: await loadActiveCardCountWithDatabase(database, workspaceId),

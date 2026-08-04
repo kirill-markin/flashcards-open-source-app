@@ -787,7 +787,7 @@ extension FlashcardsStore {
         content.title = appDisplayName()
         content.body = payload.notificationBodyText
         content.sound = .default
-        content.userInfo = buildAppNotificationUserInfo(notificationType: .reviewReminder)
+        content.userInfo = buildReviewNotificationUserInfo(reviewFilter: payload.reviewFilter)
         if self.reviewNotificationsSettings.showAppIconBadge {
             content.badge = NSNumber(value: 1)
         }

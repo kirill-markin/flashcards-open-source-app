@@ -21,11 +21,16 @@ export async function pointerDownElementAsync(element: Element): Promise<void> {
   });
 }
 
-export async function pointerDownAndClickElementAsync(element: Element): Promise<void> {
+export async function pointerDownAndClickElementAsync(element: Element): Promise<boolean> {
+  let wasPointerDownPrevented = false;
   await act(async () => {
-    dispatchPointerDown(element);
+    const pointerDownEvent = new Event("pointerdown", { bubbles: true, cancelable: true });
+    element.dispatchEvent(pointerDownEvent);
+    wasPointerDownPrevented = pointerDownEvent.defaultPrevented;
     clickElement(element);
   });
+
+  return wasPointerDownPrevented;
 }
 
 export async function keydownElementAsync(element: HTMLElement, key: string): Promise<void> {

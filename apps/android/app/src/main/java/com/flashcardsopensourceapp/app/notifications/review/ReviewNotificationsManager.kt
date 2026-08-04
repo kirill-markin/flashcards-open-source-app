@@ -33,9 +33,11 @@ import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.review.loadTopActiveReviewCard
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
-import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.cards.decodeDeckFilterDefinitionJson
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
+import com.flashcardsopensourceapp.data.local.model.review.resolveReviewTagFilter
 import com.flashcardsopensourceapp.data.local.notifications.CurrentReviewNotificationCard
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationMode
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
@@ -385,8 +387,8 @@ class ReviewNotificationsManager(
             workspaceId = workspaceId,
             selectedReviewFilter = selectedReviewFilter
         )
-        val resolvedReviewFilter = when (reviewNotificationFilterPlan) {
-            is ReviewNotificationFilterPlan.Schedule -> reviewNotificationFilterPlan.reviewFilter
+        val scheduledFilterPlan = when (reviewNotificationFilterPlan) {
+            is ReviewNotificationFilterPlan.Schedule -> reviewNotificationFilterPlan
             ReviewNotificationFilterPlan.SuppressScheduledPayloads -> {
                 saveEmptyReviewSchedulingAndEmitSkippedDiagnostic(
                     stage = "filter_suppressed",
@@ -401,12 +403,15 @@ class ReviewNotificationsManager(
                 return
             }
         }
+        val persistedPayloadReviewFilter = makePersistedReviewFilter(
+            reviewFilter = scheduledFilterPlan.payloadReviewFilter
+        )
 
         val currentCard = loadCurrentReviewNotificationCard(
             workspaceId = workspaceId,
-            reviewFilter = resolvedReviewFilter,
+            reviewFilter = scheduledFilterPlan.queryReviewFilter,
             nowMillis = nowMillis
-        )
+        )?.copy(reviewFilter = persistedPayloadReviewFilter)
 
         val zoneId = ZoneId.systemDefault()
         val payloads = if (currentCard != null) {
@@ -444,12 +449,11 @@ class ReviewNotificationsManager(
                 }
             }
         } else {
-            val persistedReviewFilter = makePersistedReviewFilter(reviewFilter = resolvedReviewFilter)
             val fallbackFrontText = reviewTextProvider(context = context).notificationFallbackFrontText
             when (settings.selectedMode) {
                 ReviewNotificationMode.DAILY -> buildFallbackDailyReminderPayloads(
                     workspaceId = workspaceId,
-                    reviewFilter = persistedReviewFilter,
+                    reviewFilter = persistedPayloadReviewFilter,
                     fallbackFrontText = fallbackFrontText,
                     nowMillis = nowMillis,
                     zoneId = zoneId,
@@ -471,7 +475,7 @@ class ReviewNotificationsManager(
                         )
                     buildFallbackInactivityReminderPayloads(
                         workspaceId = workspaceId,
-                        reviewFilter = persistedReviewFilter,
+                        reviewFilter = persistedPayloadReviewFilter,
                         fallbackFrontText = fallbackFrontText,
                         nowMillis = nowMillis,
                         lastActiveAtMillis = lastActiveAtMillis,
@@ -751,9 +755,9 @@ class ReviewNotificationsManager(
                 nowMillis = nowMillis
             )
 
-            is ReviewFilter.Tag -> loadCurrentTagReviewNotificationCard(
+            is ReviewFilter.Tags -> loadCurrentTagsReviewNotificationCard(
                 workspaceId = workspaceId,
-                tag = reviewFilter.tag,
+                tags = reviewFilter.tags,
                 nowMillis = nowMillis
             )
         }
@@ -770,7 +774,7 @@ class ReviewNotificationsManager(
             )
 
             ReviewFilter.AllCards,
-            is ReviewFilter.Tag -> null
+            is ReviewFilter.Tags -> null
         }
 
         return resolveReviewNotificationFilterPlan(
@@ -837,20 +841,17 @@ class ReviewNotificationsManager(
         )
     }
 
-    private suspend fun loadCurrentTagReviewNotificationCard(
+    private suspend fun loadCurrentTagsReviewNotificationCard(
         workspaceId: String,
-        tag: String,
+        tags: List<String>,
         nowMillis: Long
     ): CurrentReviewNotificationCard? {
         val exactTagNames = loadExactStoredReviewTagNames(
             workspaceId = workspaceId,
-            requestedTagNames = listOf(tag)
+            requestedTagNames = tags
         )
         if (exactTagNames.isEmpty()) {
-            return loadCurrentAllCardsReviewNotificationCard(
-                workspaceId = workspaceId,
-                nowMillis = nowMillis
-            )
+            return null
         }
 
         val card = loadTopActiveReviewCard(
@@ -861,7 +862,9 @@ class ReviewNotificationsManager(
         ) ?: return null
 
         return CurrentReviewNotificationCard(
-            reviewFilter = makePersistedReviewFilter(reviewFilter = ReviewFilter.Tag(tag = tag)),
+            reviewFilter = makePersistedReviewFilter(
+                reviewFilter = makeReviewTagFilter(tagNames = exactTagNames)
+            ),
             cardId = card.cardId,
             frontText = card.frontText
         )
@@ -906,7 +909,8 @@ class ReviewNotificationsManager(
 
 internal sealed interface ReviewNotificationFilterPlan {
     data class Schedule(
-        val reviewFilter: ReviewFilter
+        val queryReviewFilter: ReviewFilter,
+        val payloadReviewFilter: ReviewFilter
     ) : ReviewNotificationFilterPlan
 
     data object SuppressScheduledPayloads : ReviewNotificationFilterPlan
@@ -918,22 +922,40 @@ internal fun resolveReviewNotificationFilterPlan(
     selectedDeckFilterDefinition: DeckFilterDefinition?
 ): ReviewNotificationFilterPlan {
     return when (selectedReviewFilter) {
-        ReviewFilter.AllCards -> ReviewNotificationFilterPlan.Schedule(reviewFilter = ReviewFilter.AllCards)
-        is ReviewFilter.Tag -> {
-            val exactTagName = resolveExactStoredReviewTagNames(
-                requestedTagNames = listOf(selectedReviewFilter.tag),
-                storedTagNames = activeReviewTagNames
-            ).firstOrNull()
-            val resolvedReviewFilter = exactTagName?.let { tagName ->
-                ReviewFilter.Tag(tag = tagName)
-            } ?: ReviewFilter.AllCards
+        ReviewFilter.AllCards -> ReviewNotificationFilterPlan.Schedule(
+            queryReviewFilter = ReviewFilter.AllCards,
+            payloadReviewFilter = ReviewFilter.AllCards
+        )
+        is ReviewFilter.Tags -> {
+            when (
+                val resolvedReviewFilter = resolveReviewTagFilter(
+                    selectedTagNames = selectedReviewFilter.tags,
+                    availableTagNames = activeReviewTagNames
+                )
+            ) {
+                is ReviewFilter.Tags -> if (resolvedReviewFilter.tags.isEmpty()) {
+                    ReviewNotificationFilterPlan.SuppressScheduledPayloads
+                } else {
+                    ReviewNotificationFilterPlan.Schedule(
+                        queryReviewFilter = resolvedReviewFilter,
+                        payloadReviewFilter = selectedReviewFilter
+                    )
+                }
 
-            ReviewNotificationFilterPlan.Schedule(reviewFilter = resolvedReviewFilter)
+                ReviewFilter.AllCards -> ReviewNotificationFilterPlan.Schedule(
+                    queryReviewFilter = ReviewFilter.AllCards,
+                    payloadReviewFilter = ReviewFilter.AllCards
+                )
+                is ReviewFilter.Deck -> error("Tag filter resolution cannot produce a deck filter.")
+            }
         }
 
         is ReviewFilter.Deck -> {
             if (selectedDeckFilterDefinition == null) {
-                return ReviewNotificationFilterPlan.Schedule(reviewFilter = ReviewFilter.AllCards)
+                return ReviewNotificationFilterPlan.Schedule(
+                    queryReviewFilter = ReviewFilter.AllCards,
+                    payloadReviewFilter = ReviewFilter.AllCards
+                )
             }
 
             if (hasImpossibleStoredTagDeckPredicate(
@@ -943,7 +965,10 @@ internal fun resolveReviewNotificationFilterPlan(
             ) {
                 ReviewNotificationFilterPlan.SuppressScheduledPayloads
             } else {
-                ReviewNotificationFilterPlan.Schedule(reviewFilter = selectedReviewFilter)
+                ReviewNotificationFilterPlan.Schedule(
+                    queryReviewFilter = selectedReviewFilter,
+                    payloadReviewFilter = selectedReviewFilter
+                )
             }
         }
     }

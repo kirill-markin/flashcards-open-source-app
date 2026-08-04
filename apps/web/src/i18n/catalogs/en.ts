@@ -816,6 +816,7 @@ const enCatalog = {
     editDecks: "Edit decks",
     empty: "No filters found",
     menuAriaLabel: "Review filter",
+    noTags: "No tags",
     openAriaLabel: "Open review filter",
     queueBadgeDue: "{{due}} due",
     queueBadgeDueUpcoming: "{{due}} due | {{upcoming}} upcoming",

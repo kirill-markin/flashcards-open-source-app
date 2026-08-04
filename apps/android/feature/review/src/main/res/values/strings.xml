@@ -101,4 +101,8 @@
         <item quantity="one">Review queue %d card.</item>
         <item quantity="other">Review queue %d cards.</item>
     </plurals>
+    <plurals name="review_filter_tag_count">
+        <item quantity="one">%d tag</item>
+        <item quantity="other">%d tags</item>
+    </plurals>
 </resources>

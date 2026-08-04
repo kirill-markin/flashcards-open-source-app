@@ -1,6 +1,11 @@
 import Foundation
 
 let appNotificationTapTypeUserInfoKey: String = "appNotificationTapType"
+let reviewNotificationFilterKindUserInfoKey: String = "reviewFilterKind"
+let reviewNotificationFilterDeckIdUserInfoKey: String = "reviewFilterDeckId"
+let reviewNotificationFilterEffortLevelUserInfoKey: String = "reviewFilterEffortLevel"
+let reviewNotificationFilterTagUserInfoKey: String = "reviewFilterTag"
+let reviewNotificationFilterTagsUserInfoKey: String = "reviewFilterTags"
 let pendingAppNotificationTapUserDefaultsKey: String = "pending-app-notification-tap"
 let pendingAppNotificationTapSchemaVersion: Int = 2
 let appNotificationPresentationOwnershipUserDefaultsKey: String = "app-notification-presentation-ownership"
@@ -25,6 +30,7 @@ struct AppNotificationTapFallback: Codable, Hashable, Sendable {
 
 enum AppNotificationTapRequest: Codable, Hashable, Sendable {
     case openReviewReminder(workspaceId: String)
+    case openFilteredReviewReminder(workspaceId: String, reviewFilter: PersistedReviewFilter)
     case openStrictReminder
     case fallback(AppNotificationTapFallback)
 }
@@ -56,9 +62,37 @@ func buildAppNotificationUserInfo(notificationType: AppNotificationTapType) -> [
     ]
 }
 
+func buildReviewNotificationUserInfo(reviewFilter: PersistedReviewFilter) -> [AnyHashable: Any] {
+    var userInfo = buildAppNotificationUserInfo(notificationType: .reviewReminder)
+    userInfo[reviewNotificationFilterKindUserInfoKey] = reviewFilter.kind.rawValue
+    if let deckId = reviewFilter.deckId {
+        userInfo[reviewNotificationFilterDeckIdUserInfoKey] = deckId
+    }
+    if let effortLevel = reviewFilter.effortLevel {
+        userInfo[reviewNotificationFilterEffortLevelUserInfoKey] = effortLevel
+    }
+    if let tag = reviewFilter.tag {
+        userInfo[reviewNotificationFilterTagUserInfoKey] = tag
+    }
+    if let tags = reviewFilter.tags {
+        userInfo[reviewNotificationFilterTagsUserInfoKey] = tags
+    }
+
+    return userInfo
+}
+
+func reviewReminderWorkspaceId(request: AppNotificationTapRequest) -> String? {
+    switch request {
+    case .openReviewReminder(let workspaceId), .openFilteredReviewReminder(let workspaceId, _):
+        return workspaceId
+    case .openStrictReminder, .fallback:
+        return nil
+    }
+}
+
 func appNotificationTapType(request: AppNotificationTapRequest) -> String {
     switch request {
-    case .openReviewReminder:
+    case .openReviewReminder, .openFilteredReviewReminder:
         return AppNotificationTapType.reviewReminder.rawValue
     case .openStrictReminder:
         return AppNotificationTapType.strictReminder.rawValue
@@ -190,7 +224,8 @@ func resolveAppNotificationOwnership(
     }
 
     switch request {
-    case .openReviewReminder(let notificationWorkspaceId):
+    case .openReviewReminder(let notificationWorkspaceId),
+         .openFilteredReviewReminder(let notificationWorkspaceId, _):
         guard notificationWorkspaceId == ownership.workspaceId else {
             return .suppressed(
                 AppNotificationTapFallback(
@@ -355,7 +390,41 @@ func parseAppNotificationTapRequest(
                 )
             )
         }
-        return .openReviewReminder(workspaceId: workspaceId)
+        guard let rawFilterKindValue = userInfo[reviewNotificationFilterKindUserInfoKey] else {
+            return .openReviewReminder(workspaceId: workspaceId)
+        }
+        guard let rawFilterKind = rawFilterKindValue as? String,
+              let filterKind = PersistedReviewFilterKind(rawValue: rawFilterKind) else {
+            return .fallback(
+                AppNotificationTapFallback(
+                    stage: "parse",
+                    reason: "invalid_review_reminder_filter_kind",
+                    notificationType: notificationType.rawValue,
+                    details: String(describing: rawFilterKindValue)
+                )
+            )
+        }
+        let reviewFilter = PersistedReviewFilter(
+            kind: filterKind,
+            deckId: userInfo[reviewNotificationFilterDeckIdUserInfoKey] as? String,
+            effortLevel: userInfo[reviewNotificationFilterEffortLevelUserInfoKey] as? String,
+            tag: userInfo[reviewNotificationFilterTagUserInfoKey] as? String,
+            tags: userInfo[reviewNotificationFilterTagsUserInfoKey] as? [String]
+        )
+        do {
+            _ = try makeReviewFilter(persistedReviewFilter: reviewFilter)
+        } catch {
+            return .fallback(
+                AppNotificationTapFallback(
+                    stage: "parse",
+                    reason: "invalid_review_reminder_filter",
+                    notificationType: notificationType.rawValue,
+                    details: Flashcards.errorMessage(error: error)
+                )
+            )
+        }
+
+        return .openFilteredReviewReminder(workspaceId: workspaceId, reviewFilter: reviewFilter)
     case .strictReminder:
         return .openStrictReminder
     }
@@ -365,7 +434,7 @@ func appNotificationTapWorkspaceOwnershipFallback(
     request: AppNotificationTapRequest,
     currentWorkspaceId: String?
 ) -> AppNotificationTapFallback? {
-    guard case .openReviewReminder(let notificationWorkspaceId) = request else {
+    guard let notificationWorkspaceId = reviewReminderWorkspaceId(request: request) else {
         return nil
     }
     guard notificationWorkspaceId == currentWorkspaceId else {

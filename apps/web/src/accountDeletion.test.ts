@@ -72,6 +72,11 @@ function seedLocalBrowserState(): void {
     version: 1,
     entries: [],
   }));
+  window.localStorage.setItem("selected-review-filter", JSON.stringify({ kind: "allCards" }));
+  window.localStorage.setItem("selected-review-filter:workspace-1", JSON.stringify({
+    kind: "tags",
+    tags: ["grammar"],
+  }));
   window.localStorage.setItem("flashcards-auth-reset-required", "1");
   markBrowserReauthRequired();
 }
@@ -81,6 +86,8 @@ function expectLocalBrowserStateCleared(): void {
   expect(window.localStorage.getItem("flashcards-chat-drafts::workspace-1")).toBeNull();
   expect(window.localStorage.getItem(SYNC_RESTORE_HISTORY_STORAGE_KEY)).toBeNull();
   expect(window.localStorage.getItem("flashcards-auth-reset-required")).toBeNull();
+  expect(window.localStorage.getItem("selected-review-filter")).toBeNull();
+  expect(window.localStorage.getItem("selected-review-filter:workspace-1")).toBeNull();
   expect(isBrowserReauthRequired()).toBe(false);
   expect(window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY)).toBe("installation-1");
   expect(window.localStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY)).toBe("ar");

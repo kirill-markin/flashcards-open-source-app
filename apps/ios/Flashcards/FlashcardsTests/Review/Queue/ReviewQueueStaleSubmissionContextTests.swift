@@ -33,7 +33,7 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
         )
         let existingFailure = ReviewSubmissionFailure(id: "existing-failure", message: "Existing failure")
         let publishedState = ReviewQueuePublishedState(
-            selectedReviewFilter: .tag(tag: "medium"),
+            selectedReviewFilter: makeReviewTagsFilter(tags: ["medium", "other"]),
             reviewQueue: [currentCard, submittedCard],
             presentedReviewCard: currentCard,
             reviewCounts: ReviewCounts(dueCount: 7, totalCount: 9),
@@ -103,7 +103,7 @@ final class ReviewQueueStaleSubmissionContextTests: XCTestCase {
             deletedAt: nil
         )
         let publishedState = Support.makePublishedState(
-            selectedReviewFilter: .tag(tag: "medium"),
+            selectedReviewFilter: makeReviewTagsFilter(tags: ["medium", "other"]),
             reviewQueue: [currentCard],
             presentedReviewCard: currentCard,
             pendingReviewCardIds: [submittedCard.cardId]

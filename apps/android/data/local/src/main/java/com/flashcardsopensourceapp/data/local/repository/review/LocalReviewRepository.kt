@@ -217,11 +217,16 @@ class LocalReviewRepository(
                     )
                 }
                 val tagFiltersFlow: Flow<List<com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption>> =
-                    database.reviewCountDao().observeReviewTagDueCounts(
+                    database.reviewCountDao().observeReviewTagDueCards(
                         workspaceId = queryBase.workspaceId,
                         nowMillis = queryBase.nowMillis
                     )
-                        .map(::buildReviewTagFilterOptionsFromRows)
+                        .map { rows ->
+                            buildReviewTagFilterOptionsFromRows(
+                                rows = rows,
+                                storedTagNames = queryBase.storedTagNames
+                            )
+                        }
 
                 combine(queueStateFlow, tagFiltersFlow) { queueState, tagFilters ->
                     val deckSummaries: List<DeckSummary> = loadReviewDeckSummaries(
@@ -548,16 +553,23 @@ class LocalReviewRepository(
                 dueCards = 0
             )
         }
-        val resolvedFilter: ReviewFilter = resolveReviewFilterFromTagNames(
-            selectedFilter = selectedFilter,
-            decks = decksForResolution,
-            tagNames = storedTagNames
-        )
-        if (resolvedFilter != selectedFilter) {
-            return null
+        val executableFilter: ReviewFilter = when (selectedFilter) {
+            is ReviewFilter.Tags -> selectedFilter
+            ReviewFilter.AllCards,
+            is ReviewFilter.Deck -> {
+                val resolvedFilter: ReviewFilter = resolveReviewFilterFromTagNames(
+                    selectedFilter = selectedFilter,
+                    decks = decksForResolution,
+                    tagNames = storedTagNames
+                )
+                if (resolvedFilter != selectedFilter) {
+                    return null
+                }
+                resolvedFilter
+            }
         }
         if (matchesReviewFilter(
-                filter = resolvedFilter,
+                filter = executableFilter,
                 decks = decksForResolution,
                 card = cardSummary
             ).not()

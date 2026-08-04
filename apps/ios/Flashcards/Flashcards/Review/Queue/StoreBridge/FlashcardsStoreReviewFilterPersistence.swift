@@ -5,6 +5,7 @@ enum PersistedReviewFilterKind: String, Codable {
     case deck
     case effort
     case tag
+    case tags
 }
 
 struct PersistedReviewFilter: Codable, Hashable, Sendable {
@@ -12,6 +13,7 @@ struct PersistedReviewFilter: Codable, Hashable, Sendable {
     let deckId: String?
     let effortLevel: String?
     let tag: String?
+    let tags: [String]?
 }
 
 let selectedReviewFilterUserDefaultsKey: String = "selected-review-filter"
@@ -32,11 +34,17 @@ func clearStoredReviewFilters(userDefaults: UserDefaults) {
 func makePersistedReviewFilter(reviewFilter: ReviewFilter) -> PersistedReviewFilter {
     switch reviewFilter {
     case .allCards:
-        return PersistedReviewFilter(kind: .allCards, deckId: nil, effortLevel: nil, tag: nil)
+        return PersistedReviewFilter(kind: .allCards, deckId: nil, effortLevel: nil, tag: nil, tags: nil)
     case .deck(let deckId):
-        return PersistedReviewFilter(kind: .deck, deckId: deckId, effortLevel: nil, tag: nil)
-    case .tag(let tag):
-        return PersistedReviewFilter(kind: .tag, deckId: nil, effortLevel: nil, tag: tag)
+        return PersistedReviewFilter(kind: .deck, deckId: deckId, effortLevel: nil, tag: nil, tags: nil)
+    case .tags(let tags):
+        return PersistedReviewFilter(
+            kind: .tags,
+            deckId: nil,
+            effortLevel: nil,
+            tag: nil,
+            tags: normalizedReviewTagNames(tags: tags)
+        )
     }
 }
 
@@ -59,13 +67,19 @@ func makeReviewFilter(persistedReviewFilter: PersistedReviewFilter) throws -> Re
             return .allCards
         }
 
-        return .tag(tag: tag)
+        return makeReviewTagsFilter(tags: [tag])
     case .tag:
         guard let tag = persistedReviewFilter.tag, tag.isEmpty == false else {
             throw LocalStoreError.validation("Persisted review filter is missing tag")
         }
 
-        return .tag(tag: tag)
+        return makeReviewTagsFilter(tags: [tag])
+    case .tags:
+        guard let tags = persistedReviewFilter.tags else {
+            throw LocalStoreError.validation("Persisted review filter is missing tags")
+        }
+
+        return makeReviewTagsFilter(tags: tags)
     }
 }
 

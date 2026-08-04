@@ -63,9 +63,34 @@ struct ReviewView: View {
             return self.reviewDeckSummaries.first(where: { deckSummary in
                 deckSummary.deckId == deckId
             })?.name ?? localizedAllCardsLabel()
-        case .tag(let tag):
-            return tag
+        case .tags(let tags):
+            return localizedReviewTagsFilterTitle(tags: tags)
         }
+    }
+
+    private var selectedReviewTagKeys: Set<String> {
+        let storedTagNames = self.reviewTagSummaries.map(\.tag)
+        let selectedTags: [String]
+        switch store.selectedReviewFilter {
+        case .allCards:
+            selectedTags = storedTagNames
+        case .deck(let deckId):
+            selectedTags = self.reviewDeckSummaries.first(where: { deckSummary in
+                deckSummary.deckId == deckId
+            }).map { deckSummary in
+                selectedReviewDeckTagNames(
+                    deckFilterTagNames: deckSummary.filterDefinition.tags,
+                    storedTagNames: storedTagNames
+                )
+            } ?? []
+        case .tags(let tags):
+            selectedTags = resolveExactStoredTagNames(
+                requestedTagNames: tags,
+                storedTagNames: storedTagNames
+            )
+        }
+
+        return Set(selectedTags.map(normalizeTagKey))
     }
 
     var areReviewReactionAnimationsEnabled: Bool {
@@ -80,15 +105,41 @@ struct ReviewView: View {
             return self.reviewDeckSummaries.first(where: { deckSummary in
                 deckSummary.deckId == deckId
             })?.name ?? localizedAllCardsLabel()
-        case .tag(let tag):
-            guard let tagSummary = reviewTagSummaries.first(where: { summary in
-                summary.tag == tag
-            }) else {
-                return tag
-            }
-
-            return "\(tagSummary.tag) (\(tagSummary.cardsCount.formatted()))"
+        case .tags(let tags):
+            return tags.joined(separator: ", ")
         }
+    }
+
+    private func selectReviewTag(tag: String) {
+        let storedTagNames = self.reviewTagSummaries.map(\.tag)
+        let nextReviewFilter: ReviewFilter
+        switch store.selectedReviewFilter {
+        case .deck(let deckId):
+            let deckTags = self.reviewDeckSummaries.first(where: { deckSummary in
+                deckSummary.deckId == deckId
+            })?.filterDefinition.tags ?? []
+            let deckTagFilter = makeReviewTagsFilter(
+                tags: selectedReviewDeckTagNames(
+                    deckFilterTagNames: deckTags,
+                    storedTagNames: storedTagNames
+                )
+            )
+            nextReviewFilter = reviewFilterByTogglingTag(
+                reviewFilter: deckTagFilter,
+                tag: tag,
+                decks: [],
+                storedTagNames: storedTagNames
+            )
+        case .allCards, .tags:
+            nextReviewFilter = reviewFilterByTogglingTag(
+                reviewFilter: store.selectedReviewFilter,
+                tag: tag,
+                decks: [],
+                storedTagNames: storedTagNames
+            )
+        }
+
+        store.selectReviewFilter(reviewFilter: nextReviewFilter)
     }
 
     private var currentCard: Card? {
@@ -317,29 +368,33 @@ struct ReviewView: View {
         }
     }
 
-    /// This menu intentionally stays as one SwiftUI `Menu` backed by multiple grouped `Picker`s.
-    /// The grouped picker structure preserves the platform's inset/alignment while still behaving like
-    /// one conceptual single-choice review scope list with inline actions such as `Edit decks`.
-    /// Do not flatten or replace this structure casually unless the review filter UX is being deliberately rewritten.
     private var reviewFilterMenu: some View {
         Menu {
-            Picker(
-                "",
-                selection: Binding(
-                    get: {
-                        store.selectedReviewFilter
-                    },
-                    set: { nextReviewFilter in
-                        store.selectReviewFilter(reviewFilter: nextReviewFilter)
-                    }
-                )
-            ) {
-                ForEach([ReviewFilter.allCards] + self.reviewDeckSummaries.map { deckSummary in
-                    .deck(deckId: deckSummary.deckId)
-                }) { reviewFilter in
-                    Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
-                        .tag(reviewFilter)
+            Button {
+                store.selectReviewFilter(reviewFilter: .allCards)
+            } label: {
+                if store.selectedReviewFilter == .allCards {
+                    Label(localizedAllCardsLabel(), systemImage: "checkmark")
+                } else {
+                    Text(localizedAllCardsLabel())
                 }
+            }
+            .menuActionDismissBehavior(.disabled)
+            .accessibilityIdentifier(UITestIdentifier.reviewFilterAllCardsAction)
+
+            ForEach(self.reviewDeckSummaries, id: \.deckId) { deckSummary in
+                let reviewFilter = ReviewFilter.deck(deckId: deckSummary.deckId)
+                Button {
+                    store.selectReviewFilter(reviewFilter: reviewFilter)
+                } label: {
+                    if store.selectedReviewFilter == reviewFilter {
+                        Label(reviewFilterMenuItemLabel(reviewFilter: reviewFilter), systemImage: "checkmark")
+                    } else {
+                        Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
+                    }
+                }
+                .menuActionDismissBehavior(.disabled)
+                .accessibilityIdentifier(UITestIdentifier.reviewFilterDeckActionPrefix + deckSummary.deckId)
             }
 
             Button {
@@ -351,23 +406,21 @@ struct ReviewView: View {
             Divider()
 
             if reviewTagSummaries.isEmpty == false {
-                Picker(
-                    "",
-                    selection: Binding(
-                        get: {
-                            store.selectedReviewFilter
-                        },
-                        set: { nextReviewFilter in
-                            store.selectReviewFilter(reviewFilter: nextReviewFilter)
-                        }
-                    )
-                ) {
-                    ForEach(reviewTagSummaries, id: \.tag) { tagSummary in
-                        let reviewFilter = ReviewFilter.tag(tag: tagSummary.tag)
-
-                        Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
-                            .tag(reviewFilter)
+                ForEach(reviewTagSummaries, id: \.tag) { tagSummary in
+                    Toggle(
+                        isOn: Binding(
+                            get: {
+                                self.selectedReviewTagKeys.contains(normalizeTagKey(tag: tagSummary.tag))
+                            },
+                            set: { _ in
+                                self.selectReviewTag(tag: tagSummary.tag)
+                            }
+                        )
+                    ) {
+                        Text("\(tagSummary.tag) (\(tagSummary.cardsCount.formatted()))")
                     }
+                    .menuActionDismissBehavior(.disabled)
+                    .accessibilityIdentifier(UITestIdentifier.reviewFilterTagTogglePrefix + tagSummary.tag)
                 }
 
                 Divider()
@@ -382,6 +435,7 @@ struct ReviewView: View {
                     .font(.caption.weight(.semibold))
             }
         }
+        .accessibilityIdentifier(UITestIdentifier.reviewFilterMenu)
     }
 
     private var reviewLoadingView: some View {

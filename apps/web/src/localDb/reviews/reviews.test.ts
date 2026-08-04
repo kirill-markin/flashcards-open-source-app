@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { replaceCards } from "../cards/cards";
 import { replaceDecks } from "../cards/decks";
+import { loadWorkspaceTagsSummary } from "../cards/workspace";
+import { parsePersistedReviewFilter } from "../../appData/context/reviewFilterPersistence";
 import {
   loadReviewQueueChunk,
   loadReviewQueueSnapshot,
@@ -37,8 +39,8 @@ describe("localDb reviews", () => {
         for (const reviewFilter of [
           { kind: "allCards" } as const,
           { kind: "deck", deckId: deckLongCode.deckId } as const,
-          { kind: "tag", tag: "medium" } as const,
-          { kind: "tag", tag: "grammar" } as const,
+          { kind: "tags", tags: ["medium"] } as const,
+          { kind: "tags", tags: ["grammar"] } as const,
         ]) {
           const result = await loadReviewQueueSnapshot(workspaceId, reviewFilter, 8);
           const legacyCards = legacyReviewCards(reviewFilter, sampleCards, [deckFastGrammar, deckLongCode], nowTimestamp);
@@ -95,7 +97,7 @@ describe("localDb reviews", () => {
       }
     });
 
-    it("matches local review tag and deck filters by normalized Unicode tag keys", async () => {
+    it("aggregates and matches canonically equivalent Unicode tags with deterministic display text", async () => {
       const nowTimestamp = Date.parse("2026-03-10T12:00:00.000Z");
       const originalNow = Date.now;
       Date.now = () => nowTimestamp;
@@ -105,7 +107,7 @@ describe("localDb reviews", () => {
           cardId: "unicode-tag-card",
           frontText: "Unicode tag",
           backText: "back",
-          tags: ["Éclair"],
+          tags: ["E\u0301clair"],
           dueAt: "2026-03-10T11:00:00.000Z",
           createdAt: "2026-03-10T09:00:00.000Z",
         });
@@ -117,34 +119,239 @@ describe("localDb reviews", () => {
           dueAt: "2026-03-10T11:05:00.000Z",
           createdAt: "2026-03-10T09:05:00.000Z",
         });
+        const equivalentUnicodeTagCard = makeCard({
+          cardId: "equivalent-unicode-tag-card",
+          frontText: "Equivalent Unicode tag",
+          backText: "back",
+          tags: ["Éclair"],
+          dueAt: "2026-03-10T11:02:00.000Z",
+          createdAt: "2026-03-10T09:02:00.000Z",
+        });
         const unicodeDeck = makeDeck({
           deckId: "deck-unicode-tag",
           name: "Unicode tag",
-          tags: ["éclair"],
+          tags: ["e\u0301clair"],
           createdAt: "2026-03-10T08:00:00.000Z",
         });
 
         await replaceDecks(workspaceId, [unicodeDeck]);
-        await replaceCards(workspaceId, [unicodeTagCard, otherCard]);
+        await replaceCards(workspaceId, [unicodeTagCard, equivalentUnicodeTagCard, otherCard]);
 
-        const tagQueueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "tag", tag: "éclair" }, 10);
+        const persistedFilter = parsePersistedReviewFilter(JSON.stringify({
+          kind: "tags",
+          tags: [" E\u0301CLAIR "],
+        }));
+        const tagQueueSnapshot = await loadReviewQueueSnapshot(workspaceId, persistedFilter, 10);
         const deckQueueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "deck", deckId: unicodeDeck.deckId }, 10);
-        const tagTimelinePage = await loadReviewTimelinePage(workspaceId, { kind: "tag", tag: "éclair" }, 10, 0);
+        const tagTimelinePage = await loadReviewTimelinePage(workspaceId, persistedFilter, 10, 0);
+        const tagsSummary = await loadWorkspaceTagsSummary(workspaceId);
 
         expect(tagQueueSnapshot.resolvedReviewFilter).toEqual({
-          kind: "tag",
-          tag: "Éclair",
+          kind: "tags",
+          tags: ["Éclair"],
         });
-        expect(tagQueueSnapshot.cards.map((card) => card.cardId)).toEqual(["unicode-tag-card"]);
+        expect(tagQueueSnapshot.cards.map((card) => card.cardId)).toEqual([
+          "unicode-tag-card",
+          "equivalent-unicode-tag-card",
+        ]);
         expect(tagQueueSnapshot.reviewCounts).toEqual({
-          dueCount: 1,
-          totalCount: 1,
+          dueCount: 2,
+          totalCount: 2,
         });
-        expect(deckQueueSnapshot.cards.map((card) => card.cardId)).toEqual(["unicode-tag-card"]);
-        expect(tagTimelinePage.cards.map((card) => card.cardId)).toEqual(["unicode-tag-card"]);
+        expect(deckQueueSnapshot.cards.map((card) => card.cardId)).toEqual([
+          "unicode-tag-card",
+          "equivalent-unicode-tag-card",
+        ]);
+        expect(tagTimelinePage.cards.map((card) => card.cardId)).toEqual([
+          "unicode-tag-card",
+          "equivalent-unicode-tag-card",
+        ]);
+        expect(tagsSummary.tags).toEqual([
+          { tag: "Éclair", cardsCount: 2 },
+          { tag: "code", cardsCount: 1 },
+        ]);
       } finally {
         Date.now = originalNow;
       }
+    });
+
+    it("matches multiple tags with OR semantics and preserves an explicit empty match-none filter", async () => {
+      const nowTimestamp = Date.parse("2026-03-10T12:00:00.000Z");
+      const originalNow = Date.now;
+      Date.now = () => nowTimestamp;
+
+      try {
+        const grammarCard = makeCard({
+          cardId: "grammar-card",
+          frontText: "Grammar",
+          backText: "back",
+          tags: ["grammar"],
+          dueAt: null,
+          createdAt: "2026-03-10T09:00:00.000Z",
+        });
+        const verbsCard = makeCard({
+          cardId: "verbs-card",
+          frontText: "Verbs",
+          backText: "back",
+          tags: ["verbs"],
+          dueAt: null,
+          createdAt: "2026-03-10T09:01:00.000Z",
+        });
+        const untaggedCard = makeCard({
+          cardId: "untagged-card",
+          frontText: "Untagged",
+          backText: "back",
+          tags: [],
+          dueAt: null,
+          createdAt: "2026-03-10T09:02:00.000Z",
+        });
+        await replaceCards(workspaceId, [grammarCard, verbsCard, untaggedCard]);
+
+        const multipleTagsSnapshot = await loadReviewQueueSnapshot(
+          workspaceId,
+          { kind: "tags", tags: ["missing", "verbs", "grammar"] },
+          10,
+        );
+        const emptyTagsSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "tags", tags: [] }, 10);
+        const allCardsSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "allCards" }, 10);
+
+        expect(multipleTagsSnapshot.resolvedReviewFilter).toEqual({
+          kind: "tags",
+          tags: ["grammar", "verbs"],
+        });
+        expect(multipleTagsSnapshot.cards.map((card) => card.cardId)).toEqual(["grammar-card", "verbs-card"]);
+        expect(multipleTagsSnapshot.reviewCounts).toEqual({ dueCount: 2, totalCount: 2 });
+        expect(emptyTagsSnapshot.resolvedReviewFilter).toEqual({ kind: "tags", tags: [] });
+        expect(emptyTagsSnapshot.cards).toEqual([]);
+        expect(emptyTagsSnapshot.reviewCounts).toEqual({ dueCount: 0, totalCount: 0 });
+        expect(allCardsSnapshot.cards.map((card) => card.cardId)).toEqual([
+          "grammar-card",
+          "verbs-card",
+          "untagged-card",
+        ]);
+      } finally {
+        Date.now = originalNow;
+      }
+    });
+
+    it("restores a persisted all-tag selection as All Cards only while it exactly matches the current tag set", async () => {
+      const grammarCard = makeCard({
+        cardId: "grammar-card",
+        frontText: "Grammar",
+        backText: "back",
+        tags: ["Grammar"],
+        dueAt: null,
+        createdAt: "2026-03-10T09:00:00.000Z",
+      });
+      const verbsCard = makeCard({
+        cardId: "verbs-card",
+        frontText: "Verbs",
+        backText: "back",
+        tags: ["verbs"],
+        dueAt: null,
+        createdAt: "2026-03-10T09:01:00.000Z",
+      });
+      const untaggedCard = makeCard({
+        cardId: "untagged-card",
+        frontText: "Untagged",
+        backText: "back",
+        tags: [],
+        dueAt: null,
+        createdAt: "2026-03-10T09:02:00.000Z",
+      });
+      const persistedFilter = parsePersistedReviewFilter(JSON.stringify({
+        kind: "tags",
+        tags: [" VERBS ", "grammar"],
+      }));
+      await replaceCards(workspaceId, [grammarCard, verbsCard, untaggedCard]);
+
+      const restoredAllTagsSnapshot = await loadReviewQueueSnapshot(workspaceId, persistedFilter, 10);
+
+      expect(restoredAllTagsSnapshot.resolvedReviewFilter).toEqual({ kind: "allCards" });
+      expect(restoredAllTagsSnapshot.cards.map((card) => card.cardId)).toEqual([
+        "grammar-card",
+        "verbs-card",
+        "untagged-card",
+      ]);
+      const promotedPersistedFilter = parsePersistedReviewFilter(
+        JSON.stringify(restoredAllTagsSnapshot.resolvedReviewFilter),
+      );
+      expect(promotedPersistedFilter).toEqual({ kind: "allCards" });
+
+      const codeCard = makeCard({
+        cardId: "code-card",
+        frontText: "Code",
+        backText: "back",
+        tags: ["code"],
+        dueAt: null,
+        createdAt: "2026-03-10T09:03:00.000Z",
+      });
+      await replaceCards(workspaceId, [grammarCard, verbsCard, untaggedCard, codeCard]);
+
+      const expandedTagSetSnapshot = await loadReviewQueueSnapshot(
+        workspaceId,
+        promotedPersistedFilter,
+        10,
+      );
+
+      expect(expandedTagSetSnapshot.resolvedReviewFilter).toEqual({ kind: "allCards" });
+      expect(expandedTagSetSnapshot.cards.map((card) => card.cardId)).toEqual([
+        "grammar-card",
+        "verbs-card",
+        "untagged-card",
+        "code-card",
+      ]);
+
+      await replaceCards(workspaceId, [grammarCard, untaggedCard]);
+
+      const missingPersistedTagSnapshot = await loadReviewQueueSnapshot(workspaceId, persistedFilter, 10);
+
+      expect(missingPersistedTagSnapshot.resolvedReviewFilter).toEqual({
+        kind: "tags",
+        tags: ["Grammar"],
+      });
+      expect(missingPersistedTagSnapshot.cards.map((card) => card.cardId)).toEqual(["grammar-card"]);
+    });
+
+    it("resolves selected tag ids and canonical tags in one cardTags transaction", async () => {
+      const transactionSpy = vi.spyOn(IDBDatabase.prototype, "transaction");
+      try {
+        await loadReviewQueueSnapshot(workspaceId, { kind: "tags", tags: ["grammar", "medium"] }, 10);
+
+        const cardTagsTransactions = transactionSpy.mock.calls.filter(([storeNames]) => {
+          const names = typeof storeNames === "string" ? [storeNames] : [...storeNames];
+          return names.includes("cardTags");
+        });
+        expect(cardTagsTransactions).toHaveLength(1);
+      } finally {
+        transactionSpy.mockRestore();
+      }
+    });
+
+    it("counts each card once when workspace tags differ only by case", async () => {
+      await replaceCards(workspaceId, [
+        makeCard({
+          cardId: "case-variant-card",
+          frontText: "Case variants",
+          backText: "back",
+          tags: ["Grammar", "grammar"],
+          dueAt: null,
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "lowercase-card",
+          frontText: "Lowercase",
+          backText: "back",
+          tags: ["grammar"],
+          dueAt: null,
+          createdAt: "2026-03-10T09:01:00.000Z",
+        }),
+      ]);
+
+      await expect(loadWorkspaceTagsSummary(workspaceId)).resolves.toEqual({
+        tags: [{ tag: "Grammar", cardsCount: 2 }],
+        totalCards: 2,
+      });
     });
   });
 
@@ -322,7 +529,7 @@ describe("localDb reviews", () => {
 
         const queueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "allCards" }, 10);
         const timelinePage = await loadReviewTimelinePage(workspaceId, { kind: "allCards" }, 10, 0);
-        const grammarQueueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "tag", tag: "grammar" }, 10);
+        const grammarQueueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "tags", tags: ["grammar"] }, 10);
 
         expect(queueSnapshot.cards.map((card) => card.cardId)).toEqual([
           "recent-1115",

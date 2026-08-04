@@ -26,7 +26,7 @@ class ReviewSubmissionStalenessTest {
             cardId = "other-pending-card",
             updatedAtMillis = 20L
         )
-        val newFilter = ReviewFilter.Tag(tag = "new")
+        val newFilter = ReviewFilter.Tags(tags = listOf("new"))
         val state = makePinnedReviewDraftState(
             requestedFilter = newFilter,
             presentedCard = null,
@@ -43,7 +43,7 @@ class ReviewSubmissionStalenessTest {
         val result = applyFailedReviewSubmission(
             state = state,
             submittedContext = makeReviewSubmissionSessionContext(
-                reviewFilter = ReviewFilter.Tag(tag = "old")
+                reviewFilter = ReviewFilter.Tags(tags = listOf("old"))
             ),
             currentContext = makeReviewSubmissionSessionContext(
                 reviewFilter = newFilter
@@ -123,7 +123,7 @@ class ReviewSubmissionStalenessTest {
             cardId = "other-pending-card",
             updatedAtMillis = 24L
         )
-        val newFilter = ReviewFilter.Tag(tag = "new")
+        val newFilter = ReviewFilter.Tags(tags = listOf("new"))
         val state = makePinnedReviewDraftState(
             requestedFilter = newFilter,
             presentedCard = null,
@@ -136,7 +136,7 @@ class ReviewSubmissionStalenessTest {
         val result = applySuccessfulReviewSubmission(
             state = state,
             submittedContext = makeReviewSubmissionSessionContext(
-                reviewFilter = ReviewFilter.Tag(tag = "old")
+                reviewFilter = ReviewFilter.Tags(tags = listOf("old"))
             ),
             currentContext = makeReviewSubmissionSessionContext(
                 reviewFilter = newFilter

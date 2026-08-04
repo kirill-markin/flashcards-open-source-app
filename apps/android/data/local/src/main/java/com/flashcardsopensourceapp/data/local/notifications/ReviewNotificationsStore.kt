@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.notifications
 import android.content.Context
 import androidx.core.content.edit
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -38,10 +39,12 @@ private const val reviewFilterKindKey: String = "kind"
 private const val reviewFilterDeckIdKey: String = "deckId"
 private const val reviewFilterEffortLevelKey: String = "effortLevel"
 private const val reviewFilterTagKey: String = "tag"
+private const val reviewFilterTagsKey: String = "tags"
 private const val reviewFilterAllCardsKind: String = "allCards"
 private const val reviewFilterDeckKind: String = "deck"
 private const val reviewFilterEffortKind: String = "effort"
 private const val reviewFilterTagKind: String = "tag"
+private const val reviewFilterTagsKind: String = "tags"
 
 enum class ReviewNotificationMode {
     DAILY,
@@ -79,7 +82,8 @@ data class PersistedReviewFilter(
     val kind: String,
     val deckId: String?,
     val effortLevel: String?,
-    val tag: String?
+    val tag: String?,
+    val tags: List<String>?
 )
 
 data class ScheduledReviewNotificationPayload(
@@ -418,21 +422,24 @@ fun makePersistedReviewFilter(reviewFilter: ReviewFilter): PersistedReviewFilter
             kind = reviewFilterAllCardsKind,
             deckId = null,
             effortLevel = null,
-            tag = null
+            tag = null,
+            tags = null
         )
 
         is ReviewFilter.Deck -> PersistedReviewFilter(
             kind = reviewFilterDeckKind,
             deckId = reviewFilter.deckId,
             effortLevel = null,
-            tag = null
+            tag = null,
+            tags = null
         )
 
-        is ReviewFilter.Tag -> PersistedReviewFilter(
-            kind = reviewFilterTagKind,
+        is ReviewFilter.Tags -> PersistedReviewFilter(
+            kind = reviewFilterTagsKind,
             deckId = null,
             effortLevel = null,
-            tag = reviewFilter.tag
+            tag = null,
+            tags = reviewFilter.tags
         )
     }
 }
@@ -453,8 +460,14 @@ fun decodePersistedReviewFilter(filter: PersistedReviewFilter): ReviewFilter {
             val tag = requireNotNull(filter.tag) {
                 "Persisted review filter is missing tag."
             }
-            ReviewFilter.Tag(tag = tag)
+            makeReviewTagFilter(tagNames = listOf(tag))
         }
+
+        reviewFilterTagsKind -> makeReviewTagFilter(
+            tagNames = requireNotNull(filter.tags) {
+                "Persisted review filter is missing tags."
+            }
+        )
 
         else -> {
             throw IllegalArgumentException("Persisted review filter has an unsupported kind.")
@@ -953,6 +966,9 @@ private fun encodePersistedReviewFilter(filter: PersistedReviewFilter): JSONObje
         if (filter.tag != null) {
             put(reviewFilterTagKey, filter.tag)
         }
+        if (filter.tags != null) {
+            put(reviewFilterTagsKey, JSONArray(filter.tags))
+        }
     }
 }
 
@@ -961,7 +977,12 @@ private fun decodePersistedReviewFilterPayload(payload: JSONObject): PersistedRe
         kind = payload.getString(reviewFilterKindKey),
         deckId = payload.optString(reviewFilterDeckIdKey).takeIf { it.isNotBlank() },
         effortLevel = payload.optString(reviewFilterEffortLevelKey).takeIf { it.isNotBlank() },
-        tag = payload.optString(reviewFilterTagKey).takeIf { it.isNotBlank() }
+        tag = payload.optString(reviewFilterTagKey).takeIf { it.isNotBlank() },
+        tags = payload.optJSONArray(reviewFilterTagsKey)?.let { tagsPayload ->
+            (0 until tagsPayload.length()).map { index ->
+                tagsPayload.getString(index)
+            }
+        }
     )
 
     return normalizeLegacyPersistedReviewFilter(filter = filter)
@@ -981,8 +1002,8 @@ private fun decodeLegacyPersistedEffortFilter(filter: PersistedReviewFilter): Re
     }
     return when (effortLevel.trim().lowercase()) {
         "fast" -> ReviewFilter.AllCards
-        "medium" -> ReviewFilter.Tag(tag = "medium")
-        "long" -> ReviewFilter.Tag(tag = "long")
+        "medium" -> makeReviewTagFilter(tagNames = listOf("medium"))
+        "long" -> makeReviewTagFilter(tagNames = listOf("long"))
         else -> throw IllegalArgumentException("Persisted review filter has an unsupported effortLevel.")
     }
 }

@@ -94,6 +94,7 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
             ReviewPreviewRoute(
                 uiState = ReviewUiState(
                     isLoading = false,
+                    requestedFilter = ReviewFilter.AllCards,
                     selectedFilter = ReviewFilter.AllCards,
                     selectedFilterTitle = previewTitle,
                     remainingCount = 1,

@@ -58,5 +58,11 @@ class ReviewNotificationsTestCase: XCTestCase {
 }
 
 extension PersistedReviewFilter {
-    static let allCards = PersistedReviewFilter(kind: .allCards, deckId: nil, effortLevel: nil, tag: nil)
+    static let allCards = PersistedReviewFilter(
+        kind: .allCards,
+        deckId: nil,
+        effortLevel: nil,
+        tag: nil,
+        tags: nil
+    )
 }

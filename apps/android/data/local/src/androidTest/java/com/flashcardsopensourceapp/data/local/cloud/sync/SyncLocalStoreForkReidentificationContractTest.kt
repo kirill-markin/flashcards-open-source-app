@@ -102,7 +102,7 @@ class SyncLocalStoreForkReidentificationContractTest {
         database.reviewLogDao().insertReviewLog(originalReviewLog)
         reviewPreferencesStore.saveSelectedReviewFilter(
             workspaceId = syncLocalStoreContractWorkspaceId,
-            reviewFilter = ReviewFilter.Tag(tag = "android")
+            reviewFilter = ReviewFilter.Tags(tags = listOf("android"))
         )
         syncLocalStore.enqueueCardUpsert(
             card = originalCard,

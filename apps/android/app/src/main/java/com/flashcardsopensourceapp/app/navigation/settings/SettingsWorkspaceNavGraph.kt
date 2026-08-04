@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
 import com.flashcardsopensourceapp.feature.settings.deck.DeckDetailRoute
 import com.flashcardsopensourceapp.feature.settings.deck.DeckEditorSaveResult
 import com.flashcardsopensourceapp.feature.settings.deck.DeckEditorRoute
@@ -289,7 +290,7 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
             onSearchQueryChange = workspaceTagsViewModel::updateSearchQuery,
             onOpenTagReview = { tag ->
                 appGraph.appHandoffCoordinator.requestReviewFilter(
-                    reviewFilter = ReviewFilter.Tag(tag = tag)
+                    reviewFilter = makeReviewTagFilter(tagNames = listOf(tag))
                 )
             },
             onBack = {

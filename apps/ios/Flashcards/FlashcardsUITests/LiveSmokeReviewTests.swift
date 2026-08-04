@@ -41,4 +41,43 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             )
         }
     }
+
+    @MainActor
+    func testLiveSmokeReviewTagMenuAppliesImmediatelyAndStaysOpenUntilOutsideTap() throws {
+        try self.launchApplication(launchScenario: .guestAIReviewCard, selectedTab: .review)
+        let tagToggleIdentifier = LiveSmokeIdentifier.reviewFilterTagTogglePrefix + "smoke-guest-ai-review"
+
+        try self.step("toggle the review tag without dismissing the menu") {
+            try self.tapButton(
+                identifier: LiveSmokeIdentifier.reviewFilterMenu,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.assertElementExists(
+                identifier: tagToggleIdentifier,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            self.app.descendants(matching: .any).matching(identifier: tagToggleIdentifier).firstMatch.tap()
+            try self.assertElementExists(
+                identifier: tagToggleIdentifier,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            self.app.descendants(matching: .any).matching(identifier: tagToggleIdentifier).firstMatch.tap()
+            try self.assertElementExists(
+                identifier: tagToggleIdentifier,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+        }
+
+        try self.step("dismiss the review tag menu with an outside tap") {
+            self.app.descendants(matching: .any).matching(identifier: LiveSmokeIdentifier.reviewScreen).firstMatch.tap()
+            try self.assertElementDoesNotExist(
+                identifier: tagToggleIdentifier,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.assertTextExists(
+                LiveSmokeLaunchFixtureData.aiReviewFrontText,
+                timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
+            )
+        }
+    }
 }

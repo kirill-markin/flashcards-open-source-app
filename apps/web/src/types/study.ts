@@ -220,8 +220,8 @@ export type ReviewFilter =
     deckId: string;
   }>
   | Readonly<{
-    kind: "tag";
-    tag: string;
+    kind: "tags";
+    tags: ReadonlyArray<string>;
   }>;
 
 export type ReviewEvent = Readonly<{

@@ -119,7 +119,15 @@ class ReviewTextProvider(
                 deck.deckId == selectedFilter.deckId
             }?.title ?: allCardsTitle()
 
-            is ReviewFilter.Tag -> selectedFilter.tag
+            is ReviewFilter.Tags -> when (selectedFilter.tags.size) {
+                0 -> resources.getString(R.string.review_no_tags_label)
+                1 -> selectedFilter.tags.single()
+                else -> resources.getQuantityString(
+                    R.plurals.review_filter_tag_count,
+                    selectedFilter.tags.size,
+                    selectedFilter.tags.size
+                )
+            }
         }
     }
 }

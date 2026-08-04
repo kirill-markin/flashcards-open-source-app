@@ -25,6 +25,7 @@ enum class ReviewEmptyState {
 
 data class ReviewUiState(
     val isLoading: Boolean,
+    val requestedFilter: ReviewFilter,
     val selectedFilter: ReviewFilter,
     val selectedFilterTitle: String,
     val remainingCount: Int,

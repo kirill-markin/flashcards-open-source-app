@@ -1,5 +1,5 @@
 import type { Card } from "../../../types";
-import { normalizeTagKey } from "../../../appData/domain";
+import { normalizeTag, normalizeTagKey } from "../../../appData/domain";
 import { describeIndexedDbError } from "../../core/database";
 
 export type CardTagRecord = Readonly<{
@@ -11,6 +11,12 @@ export type CardTagRecord = Readonly<{
 export type TagCardIdsLookup = Readonly<{
   cardIds: ReadonlySet<string>;
   canonicalTag: string | null;
+}>;
+
+export type ReviewTagFilterLookup = Readonly<{
+  cardIds: ReadonlySet<string>;
+  canonicalTags: ReadonlyArray<string>;
+  availableTagKeys: ReadonlySet<string>;
 }>;
 
 function putCardTags(cardTagsStore: IDBObjectStore, workspaceId: string, card: Card): void {
@@ -165,21 +171,43 @@ export async function loadAllowedCardIdsForTags(
   workspaceId: string,
   tags: ReadonlyArray<string>,
 ): Promise<ReadonlySet<string>> {
+  return (await loadReviewTagFilterLookupForTags(database, workspaceId, tags)).cardIds;
+}
+
+export async function loadReviewTagFilterLookupForTags(
+  database: IDBDatabase,
+  workspaceId: string,
+  tags: ReadonlyArray<string>,
+): Promise<ReviewTagFilterLookup> {
   const allowedCardIds = new Set<string>();
   const requestedTagKeys = new Set(tags.map((tag) => normalizeTagKey(tag)).filter((tagKey) => tagKey !== ""));
-  if (requestedTagKeys.size === 0) {
-    return allowedCardIds;
-  }
-
+  const canonicalTagsByKey = new Map<string, string>();
+  const availableTagKeys = new Set<string>();
   await iterateAllCardTags(database, workspaceId, (record) => {
-    if (requestedTagKeys.has(normalizeTagKey(record.tag))) {
-      allowedCardIds.add(record.cardId);
+    const tagKey = normalizeTagKey(record.tag);
+    if (tagKey !== "") {
+      availableTagKeys.add(tagKey);
+    }
+
+    if (requestedTagKeys.has(tagKey) === false) {
+      return true;
+    }
+
+    allowedCardIds.add(record.cardId);
+    if (canonicalTagsByKey.has(tagKey) === false) {
+      canonicalTagsByKey.set(tagKey, normalizeTag(record.tag));
     }
 
     return true;
   });
 
-  return allowedCardIds;
+  return {
+    cardIds: allowedCardIds,
+    canonicalTags: [...canonicalTagsByKey.entries()]
+      .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+      .map(([, tag]) => tag),
+    availableTagKeys,
+  };
 }
 
 export async function loadAllowedCardIdsForTag(
@@ -203,7 +231,7 @@ export async function loadAllowedCardIdsForTag(
     }
 
     allowedCardIds.add(record.cardId);
-    canonicalTag = canonicalTag ?? record.tag.trim();
+    canonicalTag = canonicalTag ?? normalizeTag(record.tag);
     return true;
   });
 

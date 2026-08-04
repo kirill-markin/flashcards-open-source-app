@@ -229,8 +229,8 @@ describe("useReviewScreenData submit", () => {
   it("does not mutate queue, presented card, or timeline after a stale workspace submit failure", async () => {
     const state = getState();
     state.appData.selectedReviewFilter = {
-      kind: "tag",
-      tag: "grammar",
+      kind: "tags",
+      tags: ["grammar"],
     };
     const submittedCard = createCard({
       cardId: "card-stale-failure-submit",
@@ -275,6 +275,7 @@ describe("useReviewScreenData submit", () => {
       dueAt: "2026-03-10T11:59:00.000Z",
     });
     const submitReviewPromise = createDeferredPromise<Card>();
+    const nextWorkspaceSnapshotPromise = createDeferredPromise<ReviewQueueSnapshot>();
     let latestResult: UseReviewScreenDataResult | null = null;
     let reviewPromise: Promise<ReviewSubmissionOutcome> | null = null;
     const hookContainer = document.createElement("div");
@@ -329,6 +330,9 @@ describe("useReviewScreenData submit", () => {
       state.reviewQueue = [newCanonicalHead, newCanonicalNext];
       state.reviewTimeline = [newCanonicalHead, newCanonicalNext, newTimelineTail];
       state.appData.localReadVersion = 1;
+      loadReviewQueueSnapshotMock.mockImplementation(
+        async (): Promise<ReviewQueueSnapshot> => nextWorkspaceSnapshotPromise.promise,
+      );
 
       await act(async () => {
         hookRoot.render(
@@ -345,19 +349,37 @@ describe("useReviewScreenData submit", () => {
         await Promise.resolve();
       });
 
+      expect(latestResult?.activeReviewQueue).toEqual([]);
+      expect(latestResult?.queueCards).toEqual([]);
+      expect(latestResult?.isInitialReviewLoad).toBe(true);
+      expect(await latestResult?.handleReview(oldNextCard, 2)).toBe("stale");
+      expect(state.appData.submitReviewItem).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        nextWorkspaceSnapshotPromise.resolve({
+          resolvedReviewFilter: state.appData.selectedReviewFilter,
+          cards: [newCanonicalHead, newCanonicalNext],
+          nextCursor: null,
+          reviewCounts: {
+            dueCount: 2,
+            totalCount: 2,
+          },
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
       const expectedActiveQueueCardIds = [
-        newPresentedCard.cardId,
         newCanonicalHead.cardId,
         newCanonicalNext.cardId,
       ];
       const expectedTimelineCardIds = [
-        newPresentedCard.cardId,
         newCanonicalHead.cardId,
         newCanonicalNext.cardId,
         newTimelineTail.cardId,
       ];
 
-      expect(state.appData.getCardById).toHaveBeenCalledWith(oldNextCard.cardId);
+      expect(state.appData.getCardById).not.toHaveBeenCalledWith(oldNextCard.cardId);
       expect(latestResult?.activeReviewQueue.map((queueCard) => queueCard.cardId)).toEqual(expectedActiveQueueCardIds);
       expect(latestResult?.queueCards.map((queueCard) => queueCard.cardId)).toEqual(expectedTimelineCardIds);
 
@@ -388,8 +410,8 @@ describe("useReviewScreenData submit", () => {
   it("does not rollback into a synchronously changed selected filter while the new review snapshot is loading", async () => {
     const state = getState();
     state.appData.selectedReviewFilter = {
-      kind: "tag",
-      tag: "grammar",
+      kind: "tags",
+      tags: ["grammar"],
     };
     const submittedCard = createCard({
       cardId: "card-stale-selected-filter-submit",
@@ -469,8 +491,8 @@ describe("useReviewScreenData submit", () => {
 
       loadReviewQueueSnapshotMock.mockImplementation(async (): Promise<ReviewQueueSnapshot> => nextSnapshotPromise.promise);
       state.appData.selectedReviewFilter = {
-        kind: "tag",
-        tag: "code",
+        kind: "tags",
+        tags: ["code"],
       };
       state.cards = [newFilterHead, newFilterNext];
       state.reviewQueue = [newFilterHead, newFilterNext];
@@ -492,6 +514,16 @@ describe("useReviewScreenData submit", () => {
         await Promise.resolve();
       });
 
+      expect(latestResult?.activeReviewQueue).toEqual([]);
+      expect(latestResult?.queueCards).toEqual([]);
+      expect(latestResult?.reviewCounts).toEqual({
+        dueCount: 0,
+        totalCount: 0,
+      });
+      expect(latestResult?.isInitialReviewLoad).toBe(true);
+      expect(await latestResult?.handleReview(oldNextCard, 2)).toBe("stale");
+      expect(state.appData.submitReviewItem).toHaveBeenCalledTimes(1);
+
       await act(async () => {
         submitReviewPromise.reject(new Error("Review submit failed"));
         const didReview = await reviewPromise;
@@ -506,7 +538,7 @@ describe("useReviewScreenData submit", () => {
       expect(state.appData.setErrorMessage).not.toHaveBeenCalledWith(technicalErrorMessage);
       expect(queryTechnicalErrorDialog()).toBeNull();
       expect(state.appData.getCardById).not.toHaveBeenCalledWith(submittedCard.cardId);
-      expect(latestResult?.activeReviewQueue.map((queueCard) => queueCard.cardId)).toEqual([oldNextCard.cardId]);
+      expect(latestResult?.activeReviewQueue).toEqual([]);
 
       await act(async () => {
         nextSnapshotPromise.resolve({
@@ -526,6 +558,84 @@ describe("useReviewScreenData submit", () => {
         newFilterHead.cardId,
         newFilterNext.cardId,
       ]);
+    } finally {
+      await act(async () => {
+        hookRoot.unmount();
+      });
+      hookContainer.remove();
+    }
+  });
+
+  it("immediately exposes an explicit empty tag selection as no actionable cards", async () => {
+    const state = getState();
+    const oldCard = createCard({
+      cardId: "card-before-empty-filter",
+      frontText: "Card before empty filter",
+      backText: "Answer before empty filter",
+      tags: ["grammar"],
+    });
+    const emptySnapshotPromise = createDeferredPromise<ReviewQueueSnapshot>();
+    let latestResult: UseReviewScreenDataResult | null = null;
+    const hookContainer = document.createElement("div");
+    const hookRoot = ReactDOM.createRoot(hookContainer);
+    state.cards = [oldCard];
+    state.reviewQueue = [oldCard];
+    state.reviewTimeline = [oldCard];
+    document.body.appendChild(hookContainer);
+
+    try {
+      await act(async () => {
+        hookRoot.render(
+          <I18nProvider>
+            <ReviewScreenDataHarness
+              onResult={(result) => {
+                latestResult = result;
+              }}
+              state={state}
+            />
+          </I18nProvider>,
+        );
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      loadReviewQueueSnapshotMock.mockImplementation(
+        async (): Promise<ReviewQueueSnapshot> => emptySnapshotPromise.promise,
+      );
+      state.appData.selectedReviewFilter = {
+        kind: "tags",
+        tags: [],
+      };
+      state.appData.localReadVersion = 1;
+
+      await act(async () => {
+        hookRoot.render(
+          <I18nProvider>
+            <ReviewScreenDataHarness
+              onResult={(result) => {
+                latestResult = result;
+              }}
+              state={state}
+            />
+          </I18nProvider>,
+        );
+        await Promise.resolve();
+      });
+
+      expect(latestResult?.activeReviewQueue).toEqual([]);
+      expect(latestResult?.queueCards).toEqual([]);
+      expect(latestResult?.reviewCounts).toEqual({
+        dueCount: 0,
+        totalCount: 0,
+      });
+      expect(latestResult?.resolvedReviewFilter).toEqual({
+        kind: "tags",
+        tags: [],
+      });
+      expect(latestResult?.selectedReviewFilterTitle).toBe("No tags");
+      expect(latestResult?.isInitialReviewLoad).toBe(false);
+      expect(await latestResult?.handleReview(oldCard, 2)).toBe("stale");
+      expect(state.appData.submitReviewItem).not.toHaveBeenCalled();
     } finally {
       await act(async () => {
         hookRoot.unmount();
@@ -671,8 +781,8 @@ describe("useReviewScreenData submit", () => {
   it("keeps the canonical head after a same-context submit failure when the fresh card no longer matches the filter", async () => {
     const state = getState();
     state.appData.selectedReviewFilter = {
-      kind: "tag",
-      tag: "grammar",
+      kind: "tags",
+      tags: ["grammar"],
     };
     const submittedCard = createCard({
       cardId: "card-filter-mismatch-submit",

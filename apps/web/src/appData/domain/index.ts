@@ -125,25 +125,57 @@ export function isReviewFilterEqual(left: ReviewFilter, right: ReviewFilter): bo
     return left.deckId === right.deckId;
   }
 
-  if (left.kind === "tag" && right.kind === "tag") {
-    return left.tag === right.tag;
+  if (left.kind === "tags" && right.kind === "tags") {
+    const leftTags = normalizeReviewFilterTags(left.tags);
+    const rightTags = normalizeReviewFilterTags(right.tags);
+    return leftTags.length === rightTags.length
+      && leftTags.every((tag, index) => normalizeTagKey(tag) === normalizeTagKey(rightTags[index] ?? ""));
   }
 
   return false;
 }
 
+export function normalizeTag(tag: string): string {
+  return tag.normalize("NFC").trim();
+}
+
 export function normalizeTagKey(tag: string): string {
-  return tag.trim().toLowerCase();
+  return normalizeTag(tag).toLowerCase();
 }
 
-function hasMatchingTag(tags: ReadonlyArray<string>, requestedTag: string): boolean {
-  const requestedTagKey = normalizeTagKey(requestedTag);
-  return tags.some((tag) => normalizeTagKey(tag) === requestedTagKey);
+export function normalizeReviewFilterTags(tags: ReadonlyArray<string>): ReadonlyArray<string> {
+  const tagsByKey = new Map<string, string>();
+  for (const tag of tags) {
+    const normalizedTag = normalizeTag(tag);
+    const tagKey = normalizeTagKey(normalizedTag);
+    if (tagKey !== "" && tagsByKey.has(tagKey) === false) {
+      tagsByKey.set(tagKey, normalizedTag);
+    }
+  }
+
+  return [...tagsByKey.entries()]
+    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+    .map(([, tag]) => tag);
 }
 
-function findMatchingTag(tags: ReadonlyArray<string>, requestedTag: string): string | null {
-  const requestedTagKey = normalizeTagKey(requestedTag);
-  return tags.find((tag) => normalizeTagKey(tag) === requestedTagKey)?.trim() ?? null;
+export function makeTagsReviewFilter(tags: ReadonlyArray<string>): ReviewFilter {
+  return {
+    kind: "tags",
+    tags: normalizeReviewFilterTags(tags),
+  };
+}
+
+export function normalizeReviewFilter(reviewFilter: ReviewFilter): ReviewFilter {
+  if (reviewFilter.kind === "tags") {
+    return makeTagsReviewFilter(reviewFilter.tags);
+  }
+
+  return reviewFilter;
+}
+
+function hasMatchingTags(tags: ReadonlyArray<string>, requestedTags: ReadonlyArray<string>): boolean {
+  const requestedTagKeys = new Set(requestedTags.map((tag) => normalizeTagKey(tag)));
+  return tags.some((tag) => requestedTagKeys.has(normalizeTagKey(tag)));
 }
 
 /** Keep deck matching semantics aligned with apps/ios/Flashcards/Flashcards/Cards/List/CardFilterSupport.swift and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/cards/FilterSupport.kt: tags match on any overlap. */
@@ -182,18 +214,31 @@ export function makeDeckCardStats(cards: ReadonlyArray<Card>, nowTimestamp: numb
 
 export function makeWorkspaceTagsSummary(cards: ReadonlyArray<Card>): WorkspaceTagsSummary {
   const activeCards = deriveActiveCards(cards);
-  const counts = activeCards.reduce((result, card) => {
+  const tagStatsByKey = activeCards.reduce((result, card) => {
     for (const tag of card.tags) {
-      result.set(tag, (result.get(tag) ?? 0) + 1);
+      const tagKey = normalizeTagKey(tag);
+      if (tagKey === "") {
+        continue;
+      }
+
+      const currentTagStats = result.get(tagKey);
+      if (currentTagStats === undefined) {
+        result.set(tagKey, {
+          tag: normalizeTag(tag),
+          cardIds: new Set([card.cardId]),
+        });
+      } else {
+        currentTagStats.cardIds.add(card.cardId);
+      }
     }
 
     return result;
-  }, new Map<string, number>());
+  }, new Map<string, Readonly<{ tag: string; cardIds: Set<string> }>>());
 
-  const tags: ReadonlyArray<WorkspaceTagSummary> = [...counts.entries()]
-    .map(([tag, cardsCount]) => ({
-      tag,
-      cardsCount,
+  const tags: ReadonlyArray<WorkspaceTagSummary> = [...tagStatsByKey.values()]
+    .map((tagStats) => ({
+      tag: tagStats.tag,
+      cardsCount: tagStats.cardIds.size,
     }))
     .sort((leftTag, rightTag) => {
       if (leftTag.cardsCount !== rightTag.cardsCount) {
@@ -209,15 +254,21 @@ export function makeWorkspaceTagsSummary(cards: ReadonlyArray<Card>): WorkspaceT
   };
 }
 
-function findActiveTag(tag: string, cards: ReadonlyArray<Card>): string | null {
-  for (const card of deriveActiveCards(cards)) {
-    const matchingTag = findMatchingTag(card.tags, tag);
-    if (matchingTag !== null) {
-      return matchingTag;
+function resolveActiveTags(tags: ReadonlyArray<string>, cards: ReadonlyArray<Card>): ReadonlyArray<string> {
+  const activeCards = deriveActiveCards(cards);
+  const canonicalTagsByKey = new Map<string, string>();
+  for (const card of activeCards) {
+    for (const tag of card.tags) {
+      const tagKey = normalizeTagKey(tag);
+      if (tagKey !== "" && canonicalTagsByKey.has(tagKey) === false) {
+        canonicalTagsByKey.set(tagKey, normalizeTag(tag));
+      }
     }
   }
 
-  return null;
+  return normalizeReviewFilterTags(tags)
+    .map((tag) => canonicalTagsByKey.get(normalizeTagKey(tag)) ?? null)
+    .filter((tag): tag is string => tag !== null);
 }
 
 export function resolveReviewFilter(
@@ -238,15 +289,7 @@ export function resolveReviewFilter(
     return reviewFilter;
   }
 
-  const matchingTag = findActiveTag(reviewFilter.tag, cards);
-  if (matchingTag === null) {
-    return ALL_CARDS_REVIEW_FILTER;
-  }
-
-  return {
-    kind: "tag",
-    tag: matchingTag,
-  };
+  return makeTagsReviewFilter(resolveActiveTags(reviewFilter.tags, cards));
 }
 
 export function cardsMatchingReviewFilter(
@@ -268,7 +311,7 @@ export function cardsMatchingReviewFilter(
     return cardsMatchingDeck(deck, cards);
   }
 
-  return deriveActiveCards(cards).filter((card) => hasMatchingTag(card.tags, resolvedReviewFilter.tag));
+  return deriveActiveCards(cards).filter((card) => hasMatchingTags(card.tags, resolvedReviewFilter.tags));
 }
 
 export function reviewFilterTitle(
@@ -286,7 +329,7 @@ export function reviewFilterTitle(
     return deck?.name ?? ALL_CARDS_DECK_LABEL;
   }
 
-  return resolvedReviewFilter.tag;
+  return resolvedReviewFilter.tags.join(", ");
 }
 
 export function shouldShowSwitchToAllCardsReviewAction(
@@ -551,7 +594,7 @@ export function normalizeRequiredDeckName(value: string): string {
 
 function normalizeDeckFilterDefinition(filterDefinition: DeckFilterDefinition): DeckFilterDefinition {
   const normalizedTags = filterDefinition.tags.reduce<Array<string>>((result, tag) => {
-    const normalizedTag = tag.trim();
+    const normalizedTag = normalizeTag(tag);
     const normalizedTagKey = normalizeTagKey(normalizedTag);
     if (normalizedTag === "" || result.some((existingTag) => normalizeTagKey(existingTag) === normalizedTagKey)) {
       return result;

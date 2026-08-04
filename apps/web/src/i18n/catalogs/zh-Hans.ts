@@ -818,6 +818,7 @@ export const zhHansCatalog = {
     editDecks: "编辑牌组",
     empty: "未找到筛选条件",
     menuAriaLabel: "复习筛选器",
+    noTags: "无标签",
     openAriaLabel: "打开复习筛选器",
     queueBadgeDue: "{{due}} 到期",
     queueBadgeDueUpcoming: "{{due}} 到期 | {{upcoming}} 即将到期",
