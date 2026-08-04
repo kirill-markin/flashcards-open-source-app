@@ -8,21 +8,23 @@ import org.junit.Test
 class ReviewRepositorySupportTest {
     @Test
     fun tagFilterOptionsAggregateDistinctCardsAcrossEquivalentStoredNames() {
+        val decomposedTag = "E\u0301clair"
         val rows = listOf(
             ReviewTagCardRow(tag = "éCLAIR", cardId = "shared-card"),
             ReviewTagCardRow(tag = "Éclair", cardId = "shared-card"),
+            ReviewTagCardRow(tag = decomposedTag, cardId = "shared-card"),
             ReviewTagCardRow(tag = "éCLAIR", cardId = "second-card"),
-            ReviewTagCardRow(tag = "Éclair", cardId = "third-card")
+            ReviewTagCardRow(tag = decomposedTag, cardId = "third-card")
         )
 
         assertEquals(
             listOf(
                 ReviewTagFilterOption(tag = "Future", totalCount = 0),
-                ReviewTagFilterOption(tag = "Éclair", totalCount = 3)
+                ReviewTagFilterOption(tag = decomposedTag, totalCount = 3)
             ),
             buildReviewTagFilterOptionsFromRows(
                 rows = rows,
-                storedTagNames = listOf("éCLAIR", "Future", "Éclair")
+                storedTagNames = listOf("éCLAIR", "Future", "Éclair", decomposedTag)
             )
         )
     }

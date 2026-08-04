@@ -344,9 +344,13 @@ class ReviewNotificationsStoreTest {
 
     @Test
     fun multiTagReviewFilterNormalizesDeduplicatesAndOrdersTags() {
+        val decomposedTag = "E\u0301clair"
+
         assertEquals(
-            ReviewFilter.Tags(tags = listOf("Biology", "science")),
-            makeReviewTagFilter(tagNames = listOf(" science ", "biology", "Biology"))
+            ReviewFilter.Tags(tags = listOf("Biology", "science", decomposedTag)),
+            makeReviewTagFilter(
+                tagNames = listOf(" science ", "biology", "Biology", " Éclair ", decomposedTag)
+            )
         )
     }
 

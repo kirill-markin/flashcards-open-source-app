@@ -122,13 +122,14 @@ class ReviewNotificationsManagerTest {
 
     @Test
     fun multiTagFilterDropsMissingTagsAndCanonicalizesEveryCurrentTagToAllCards() {
+        val decomposedTag = "E\u0301clair"
         val partialPlan: ReviewNotificationFilterPlan = resolveReviewNotificationFilterPlan(
-            selectedReviewFilter = makeReviewTagFilter(tagNames = listOf("Éclair", "missing")),
+            selectedReviewFilter = makeReviewTagFilter(tagNames = listOf(decomposedTag, "missing")),
             activeReviewTagNames = listOf("Éclair", "Plain"),
             selectedDeckFilterDefinition = null
         )
         val allTagsPlan: ReviewNotificationFilterPlan = resolveReviewNotificationFilterPlan(
-            selectedReviewFilter = makeReviewTagFilter(tagNames = listOf("Éclair", "Plain")),
+            selectedReviewFilter = makeReviewTagFilter(tagNames = listOf(decomposedTag, "Plain")),
             activeReviewTagNames = listOf("Éclair", "Plain"),
             selectedDeckFilterDefinition = null
         )
@@ -141,7 +142,7 @@ class ReviewNotificationsManagerTest {
         assertEquals(
             ReviewNotificationFilterPlan.Schedule(
                 queryReviewFilter = ReviewFilter.Tags(tags = listOf("Éclair")),
-                payloadReviewFilter = makeReviewTagFilter(tagNames = listOf("Éclair", "missing"))
+                payloadReviewFilter = makeReviewTagFilter(tagNames = listOf(decomposedTag, "missing"))
             ),
             partialPlan
         )

@@ -10,6 +10,8 @@ import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
+import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
 import com.flashcardsopensourceapp.data.local.notifications.ScheduledReviewNotificationPayload
 import com.flashcardsopensourceapp.data.local.notifications.SharedPreferencesReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.notifications.decodePersistedReviewFilter
@@ -283,7 +285,10 @@ class LocalReviewFilterContractTest {
     @Test
     fun reviewPreferencesPersistMultiTagSelectionPerWorkspaceAndDecodeLegacyValues() {
         val store = SharedPreferencesReviewPreferencesStore(context = runtime.context)
-        val firstWorkspaceFilter = ReviewFilter.Tags(tags = listOf("Alpha", "Beta"))
+        val decomposedTag = "E\u0301clair"
+        val firstWorkspaceFilter = makeReviewTagFilter(
+            tagNames = listOf("Alpha", " Éclair ", decomposedTag)
+        )
         val secondWorkspaceFilter = ReviewFilter.Tags(tags = emptyList())
         val missingTagFilter = ReviewFilter.Tags(tags = listOf("Alpha", "missing"))
         store.saveSelectedReviewFilter(workspaceId = "workspace-a", reviewFilter = firstWorkspaceFilter)
@@ -299,6 +304,10 @@ class LocalReviewFilterContractTest {
                 .putString("selected-review-filter::legacy-tag", "{\"kind\":\"tag\",\"tag\":\"Legacy\"}")
                 .putString("selected-review-filter::legacy-deck", "{\"kind\":\"deck\",\"deckId\":\"deck-1\"}")
                 .putString("selected-review-filter::legacy-effort", "{\"kind\":\"effort\",\"effortLevel\":\"MEDIUM\"}")
+                .putString(
+                    "selected-review-filter::unicode-tags",
+                    "{\"kind\":\"tags\",\"tags\":[\" Éclair \",\"$decomposedTag\"]}"
+                )
                 .commit()
         ) {
             "Could not seed legacy review preferences."
@@ -319,13 +328,20 @@ class LocalReviewFilterContractTest {
             ReviewFilter.Tags(tags = listOf("medium")),
             store.loadSelectedReviewFilter(workspaceId = "legacy-effort")
         )
+        assertEquals(
+            makeReviewTagFilter(tagNames = listOf("Éclair", decomposedTag)),
+            store.loadSelectedReviewFilter(workspaceId = "unicode-tags")
+        )
     }
 
     @Test
     fun scheduledNotificationPayloadCodecPreservesMultiTagAndLegacySingleTagFilters() {
         runtime.context.deleteSharedPreferences("flashcards-review-notifications")
         val store = SharedPreferencesReviewNotificationsStore(context = runtime.context)
-        val selectedFilter = ReviewFilter.Tags(tags = listOf("Alpha", "Beta"))
+        val decomposedTag = "E\u0301clair"
+        val selectedFilter = makeReviewTagFilter(
+            tagNames = listOf("Alpha", "Éclair", decomposedTag)
+        )
         store.saveScheduledPayloads(
             payloads = listOf(
                 ScheduledReviewNotificationPayload(
@@ -367,14 +383,20 @@ class LocalReviewFilterContractTest {
     }
 
     @Test
-    fun reviewRepositoryMatchesUnicodeTagFilterInBoundedQueueAndCounts(): Unit = runBlocking {
+    fun reviewRepositoryMatchesCanonicalUnicodeTagIdentityInBoundedQueueAndCounts(): Unit = runBlocking {
         val nowMillis = 12 * 60 * 60 * 1_000L
         val workspaceId = bootstrapTestWorkspace(runtime = runtime, currentTimeMillis = nowMillis)
         val reviewRepository = createTestReviewRepository(runtime = runtime)
-        val unicodeTag = TagEntity(
-            tagId = "tag-eclair",
+        val decomposedTagName = "E\u0301clair"
+        val composedTag = TagEntity(
+            tagId = "tag-eclair-composed",
             workspaceId = workspaceId,
             name = "Éclair"
+        )
+        val decomposedTag = TagEntity(
+            tagId = "tag-eclair-decomposed",
+            workspaceId = workspaceId,
+            name = decomposedTagName
         )
         val plainTag = TagEntity(
             tagId = "tag-plain",
@@ -385,10 +407,16 @@ class LocalReviewFilterContractTest {
         database.cardDao().insertCards(
             listOf(
                 makeNewReviewOrderingCardEntity(
-                    cardId = "unicode-tag-card",
+                    cardId = "composed-tag-card",
                     workspaceId = workspaceId,
                     createdAtMillis = 200L,
                     updatedAtMillis = 200L
+                ),
+                makeNewReviewOrderingCardEntity(
+                    cardId = "decomposed-tag-card",
+                    workspaceId = workspaceId,
+                    createdAtMillis = 150L,
+                    updatedAtMillis = 150L
                 ),
                 makeNewReviewOrderingCardEntity(
                     cardId = "plain-tag-card",
@@ -398,22 +426,29 @@ class LocalReviewFilterContractTest {
                 )
             )
         )
-        database.tagDao().insertTags(tags = listOf(unicodeTag, plainTag))
+        database.tagDao().insertTags(tags = listOf(composedTag, decomposedTag, plainTag))
         database.tagDao().insertCardTags(
             cardTags = listOf(
-                CardTagEntity(cardId = "unicode-tag-card", tagId = unicodeTag.tagId),
+                CardTagEntity(cardId = "composed-tag-card", tagId = composedTag.tagId),
+                CardTagEntity(cardId = "composed-tag-card", tagId = decomposedTag.tagId),
+                CardTagEntity(cardId = "decomposed-tag-card", tagId = decomposedTag.tagId),
                 CardTagEntity(cardId = "plain-tag-card", tagId = plainTag.tagId)
             )
         )
 
         val sessionSnapshot = reviewRepository.observeReviewSession(
-            selectedFilter = ReviewFilter.Tags(tags = listOf("éclair")),
+            selectedFilter = makeReviewTagFilter(tagNames = listOf("éclair", decomposedTagName)),
+            pendingReviewedCards = emptySet(),
+            presentedCardId = null
+        ).first()
+        val allTagsSnapshot = reviewRepository.observeReviewSession(
+            selectedFilter = makeReviewTagFilter(tagNames = listOf("ÉCLAIR", decomposedTagName, "plain")),
             pendingReviewedCards = emptySet(),
             presentedCardId = null
         ).first()
         val boundedQueueCardIds = database.reviewQueueDao().observeNewReviewQueueByAnyTags(
             workspaceId = workspaceId,
-            tagNames = listOf("Éclair"),
+            tagNames = listOf("Éclair", decomposedTagName),
             limit = 8
         ).first().map { card ->
             card.card.cardId
@@ -421,25 +456,33 @@ class LocalReviewFilterContractTest {
         val dueCount = database.reviewCountDao().observeReviewDueCountByAnyTags(
             workspaceId = workspaceId,
             nowMillis = nowMillis,
-            tagNames = listOf("Éclair")
+            tagNames = listOf("Éclair", decomposedTagName)
         ).first()
         val totalCount = database.reviewCountDao().observeReviewTotalCountByAnyTags(
             workspaceId = workspaceId,
-            tagNames = listOf("Éclair")
+            tagNames = listOf("Éclair", decomposedTagName)
         ).first()
 
-        assertEquals(ReviewFilter.Tags(tags = listOf("Éclair")), sessionSnapshot.selectedFilter)
-        assertEquals(listOf("unicode-tag-card"), sessionSnapshot.cards.map { card -> card.cardId })
-        assertEquals("unicode-tag-card", sessionSnapshot.presentedCard?.cardId)
-        assertEquals(1, sessionSnapshot.dueCount)
-        assertEquals(1, sessionSnapshot.remainingCount)
-        assertEquals(1, sessionSnapshot.totalCount)
-        assertEquals(listOf("unicode-tag-card"), boundedQueueCardIds)
-        assertEquals(1, dueCount)
-        assertEquals(1, totalCount)
-        assertTrue(sessionSnapshot.availableTagFilters.any { tag ->
-            tag.tag == "Éclair" && tag.totalCount == 1
-        })
+        assertEquals(makeReviewTagFilter(tagNames = listOf(decomposedTagName)), sessionSnapshot.selectedFilter)
+        assertEquals(
+            listOf("decomposed-tag-card", "composed-tag-card"),
+            sessionSnapshot.cards.map { card -> card.cardId }
+        )
+        assertEquals("decomposed-tag-card", sessionSnapshot.presentedCard?.cardId)
+        assertEquals(2, sessionSnapshot.dueCount)
+        assertEquals(2, sessionSnapshot.remainingCount)
+        assertEquals(2, sessionSnapshot.totalCount)
+        assertEquals(listOf("decomposed-tag-card", "composed-tag-card"), boundedQueueCardIds)
+        assertEquals(2, dueCount)
+        assertEquals(2, totalCount)
+        assertEquals(ReviewFilter.AllCards, allTagsSnapshot.selectedFilter)
+        assertEquals(3, allTagsSnapshot.totalCount)
+        assertEquals(
+            listOf(ReviewTagFilterOption(tag = decomposedTagName, totalCount = 2)),
+            sessionSnapshot.availableTagFilters.filter { tag ->
+                tag.tag != "Plain"
+            }
+        )
     }
 
     @Test
