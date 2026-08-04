@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { replaceCards } from "../cards/cards";
 import { replaceDecks } from "../cards/decks";
 import { loadWorkspaceTagsSummary } from "../cards/workspace";
+import { parsePersistedReviewFilter } from "../../appData/context/reviewFilterPersistence";
 import {
   loadReviewQueueChunk,
   loadReviewQueueSnapshot,
@@ -205,6 +206,75 @@ describe("localDb reviews", () => {
       } finally {
         Date.now = originalNow;
       }
+    });
+
+    it("restores a persisted all-tag selection as All Cards only while it exactly matches the current tag set", async () => {
+      const grammarCard = makeCard({
+        cardId: "grammar-card",
+        frontText: "Grammar",
+        backText: "back",
+        tags: ["Grammar"],
+        dueAt: null,
+        createdAt: "2026-03-10T09:00:00.000Z",
+      });
+      const verbsCard = makeCard({
+        cardId: "verbs-card",
+        frontText: "Verbs",
+        backText: "back",
+        tags: ["verbs"],
+        dueAt: null,
+        createdAt: "2026-03-10T09:01:00.000Z",
+      });
+      const untaggedCard = makeCard({
+        cardId: "untagged-card",
+        frontText: "Untagged",
+        backText: "back",
+        tags: [],
+        dueAt: null,
+        createdAt: "2026-03-10T09:02:00.000Z",
+      });
+      const persistedFilter = parsePersistedReviewFilter(JSON.stringify({
+        kind: "tags",
+        tags: [" VERBS ", "grammar"],
+      }));
+      await replaceCards(workspaceId, [grammarCard, verbsCard, untaggedCard]);
+
+      const restoredAllTagsSnapshot = await loadReviewQueueSnapshot(workspaceId, persistedFilter, 10);
+
+      expect(restoredAllTagsSnapshot.resolvedReviewFilter).toEqual({ kind: "allCards" });
+      expect(restoredAllTagsSnapshot.cards.map((card) => card.cardId)).toEqual([
+        "grammar-card",
+        "verbs-card",
+        "untagged-card",
+      ]);
+
+      const codeCard = makeCard({
+        cardId: "code-card",
+        frontText: "Code",
+        backText: "back",
+        tags: ["code"],
+        dueAt: null,
+        createdAt: "2026-03-10T09:03:00.000Z",
+      });
+      await replaceCards(workspaceId, [grammarCard, verbsCard, untaggedCard, codeCard]);
+
+      const expandedTagSetSnapshot = await loadReviewQueueSnapshot(workspaceId, persistedFilter, 10);
+
+      expect(expandedTagSetSnapshot.resolvedReviewFilter).toEqual({
+        kind: "tags",
+        tags: ["Grammar", "verbs"],
+      });
+      expect(expandedTagSetSnapshot.cards.map((card) => card.cardId)).toEqual(["grammar-card", "verbs-card"]);
+
+      await replaceCards(workspaceId, [grammarCard, untaggedCard]);
+
+      const missingPersistedTagSnapshot = await loadReviewQueueSnapshot(workspaceId, persistedFilter, 10);
+
+      expect(missingPersistedTagSnapshot.resolvedReviewFilter).toEqual({
+        kind: "tags",
+        tags: ["Grammar"],
+      });
+      expect(missingPersistedTagSnapshot.cards.map((card) => card.cardId)).toEqual(["grammar-card"]);
     });
 
     it("resolves selected tag ids and canonical tags in one cardTags transaction", async () => {

@@ -11,6 +11,7 @@ import {
   ALL_CARDS_REVIEW_FILTER,
   makeTagsReviewFilter,
   matchesDeckFilterDefinition,
+  normalizeTagKey,
   recentDuePriorityWindow,
 } from "../../appData/domain";
 import { loadReviewTagFilterLookupForTags } from "../cards/tags";
@@ -104,6 +105,19 @@ async function resolveReviewFilterFromIndexedDb(
   }
 
   const tagFilterLookup = await loadReviewTagFilterLookupForTags(database, workspaceId, reviewFilter.tags);
+  const requestedTagKeys = new Set(
+    reviewFilter.tags.map((tag) => normalizeTagKey(tag)).filter((tagKey) => tagKey !== ""),
+  );
+  const includesEveryAvailableTag = requestedTagKeys.size > 0
+    && requestedTagKeys.size === tagFilterLookup.availableTagKeys.size
+    && tagFilterLookup.canonicalTags.length === requestedTagKeys.size;
+  if (includesEveryAvailableTag) {
+    return {
+      resolvedReviewFilter: ALL_CARDS_REVIEW_FILTER,
+      deck: null,
+      allowedTagCardIds: null,
+    };
+  }
 
   return {
     resolvedReviewFilter: makeTagsReviewFilter(tagFilterLookup.canonicalTags),
