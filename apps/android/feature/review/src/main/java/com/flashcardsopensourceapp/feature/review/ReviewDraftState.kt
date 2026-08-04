@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.review
 
+import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
@@ -129,6 +130,29 @@ internal fun applyResolvedReviewFilter(
         isNotificationPermissionPromptVisible = false,
         isHardAnswerReminderVisible = false
     )
+}
+
+internal fun reviewFilterResolutionToApply(
+    requestedFilter: ReviewFilter,
+    resolvedFilter: ReviewFilter,
+    availableTagFilters: List<ReviewTagFilterOption>
+): ReviewFilter? {
+    if (requestedFilter == resolvedFilter) {
+        return null
+    }
+    if (requestedFilter is ReviewFilter.Tags) {
+        val availableTagKeys: Set<String> = availableTagFilters.map { tagFilter ->
+            normalizeTagKey(tag = tagFilter.tag)
+        }.toSet()
+        val hasMissingRequestedTag: Boolean = requestedFilter.tags.any { tagName ->
+            availableTagKeys.contains(normalizeTagKey(tag = tagName)).not()
+        }
+        if (hasMissingRequestedTag) {
+            return null
+        }
+    }
+
+    return resolvedFilter
 }
 
 internal fun nextReviewFilterGenerationAfterSelection(

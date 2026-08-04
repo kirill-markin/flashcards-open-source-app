@@ -31,7 +31,7 @@ internal const val reviewSessionQueueLookaheadSize: Int = 1
 internal sealed interface ReviewTagPredicate {
     data object None : ReviewTagPredicate
 
-    data object Impossible : ReviewTagPredicate
+    data object MatchNone : ReviewTagPredicate
 
     data class ExactTagNames(
         val tagNames: List<String>
@@ -110,10 +110,11 @@ internal fun makeReviewQueuePredicate(
             )
         }
 
-        is ReviewFilter.Tag -> ReviewQueuePredicate(
+        is ReviewFilter.Tags -> ReviewQueuePredicate(
             tagPredicate = makeReviewTagPredicate(
-                requestedTagNames = listOf(selectedFilter.tag),
-                storedTagNames = storedTagNames
+                requestedTagNames = selectedFilter.tags,
+                storedTagNames = storedTagNames,
+                emptySelectionMatchesNone = true
             )
         )
     }
@@ -126,14 +127,16 @@ internal fun makeReviewQueuePredicate(
     return ReviewQueuePredicate(
         tagPredicate = makeReviewTagPredicate(
             requestedTagNames = filterDefinition.tags,
-            storedTagNames = storedTagNames
+            storedTagNames = storedTagNames,
+            emptySelectionMatchesNone = false
         )
     )
 }
 
 private fun makeReviewTagPredicate(
     requestedTagNames: List<String>,
-    storedTagNames: List<String>
+    storedTagNames: List<String>,
+    emptySelectionMatchesNone: Boolean
 ): ReviewTagPredicate {
     val requestedTagKeys: List<String> = requestedTagNames.map { tagName ->
         normalizeTagKey(tag = tagName)
@@ -141,7 +144,11 @@ private fun makeReviewTagPredicate(
         tagKey.isNotEmpty()
     }.distinct()
     if (requestedTagKeys.isEmpty()) {
-        return ReviewTagPredicate.None
+        return if (emptySelectionMatchesNone) {
+            ReviewTagPredicate.MatchNone
+        } else {
+            ReviewTagPredicate.None
+        }
     }
 
     val requestedTagKeySet: Set<String> = requestedTagKeys.toSet()
@@ -150,7 +157,7 @@ private fun makeReviewTagPredicate(
     }.distinct()
 
     return if (exactTagNames.isEmpty()) {
-        ReviewTagPredicate.Impossible
+        ReviewTagPredicate.MatchNone
     } else {
         ReviewTagPredicate.ExactTagNames(tagNames = exactTagNames)
     }
@@ -169,7 +176,7 @@ internal fun observeActiveReviewQueue(
 
     val cutoffMillis = nowMillis - activeReviewRecentPriorityWindowMillis
     return when (val tagPredicate: ReviewTagPredicate = predicate.tagPredicate) {
-        ReviewTagPredicate.Impossible -> flowOf(emptyList<CardWithRelations>())
+        ReviewTagPredicate.MatchNone -> flowOf(emptyList<CardWithRelations>())
         ReviewTagPredicate.None -> database.reviewQueueDao().observeBucketedActiveReviewQueue(
             workspaceId = workspaceId,
             cutoffMillis = cutoffMillis,
@@ -194,7 +201,7 @@ internal fun observeReviewDueCount(
     predicate: ReviewQueuePredicate
 ): Flow<Int> {
     return when (val tagPredicate: ReviewTagPredicate = predicate.tagPredicate) {
-        ReviewTagPredicate.Impossible -> flowOf(0)
+        ReviewTagPredicate.MatchNone -> flowOf(0)
         ReviewTagPredicate.None -> database.reviewCountDao().observeReviewDueCount(
             workspaceId = workspaceId,
             nowMillis = nowMillis
@@ -214,7 +221,7 @@ internal fun observeReviewTotalCount(
     predicate: ReviewQueuePredicate
 ): Flow<Int> {
     return when (val tagPredicate: ReviewTagPredicate = predicate.tagPredicate) {
-        ReviewTagPredicate.Impossible -> flowOf(0)
+        ReviewTagPredicate.MatchNone -> flowOf(0)
         ReviewTagPredicate.None -> database.reviewCountDao().observeReviewTotalCount(workspaceId = workspaceId)
 
         is ReviewTagPredicate.ExactTagNames -> database.reviewCountDao().observeReviewTotalCountByAnyTags(
@@ -342,12 +349,18 @@ private fun isPreservablePresentedCard(
 }
 
 internal fun buildReviewTagFilterOptionsFromRows(
-    rows: List<ReviewTagCountRow>
+    rows: List<ReviewTagCountRow>,
+    storedTagNames: List<String>
 ): List<ReviewTagFilterOption> {
-    return rows.map { row ->
+    val countsByTagKey: Map<String, Int> = rows.associate { row ->
+        normalizeTagKey(tag = row.tag) to row.totalCount
+    }
+    return storedTagNames.distinctBy { tagName ->
+        normalizeTagKey(tag = tagName)
+    }.map { tagName ->
         ReviewTagFilterOption(
-            tag = row.tag,
-            totalCount = row.totalCount
+            tag = tagName,
+            totalCount = countsByTagKey[normalizeTagKey(tag = tagName)] ?: 0
         )
     }.sortedWith(
         compareBy<ReviewTagFilterOption> { option ->
@@ -399,7 +412,7 @@ internal suspend fun countReviewDueCards(
     predicate: ReviewQueuePredicate
 ): Int {
     return when (val tagPredicate: ReviewTagPredicate = predicate.tagPredicate) {
-        ReviewTagPredicate.Impossible -> 0
+        ReviewTagPredicate.MatchNone -> 0
         ReviewTagPredicate.None -> database.reviewCountDao().countReviewDueCards(
             workspaceId = workspaceId,
             nowMillis = nowMillis

@@ -38,6 +38,7 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                 ReviewPreviewRoute(
                     uiState = ReviewUiState(
                         isLoading = false,
+                        requestedFilter = ReviewFilter.AllCards,
                         selectedFilter = ReviewFilter.AllCards,
                         selectedFilterTitle = "All cards",
                         remainingCount = 0,
@@ -104,6 +105,7 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                 ReviewPreviewRoute(
                     uiState = ReviewUiState(
                         isLoading = false,
+                        requestedFilter = ReviewFilter.AllCards,
                         selectedFilter = ReviewFilter.AllCards,
                         selectedFilterTitle = "All cards",
                         remainingCount = 0,
@@ -156,6 +158,7 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                 ReviewPreviewRoute(
                     uiState = ReviewUiState(
                         isLoading = false,
+                        requestedFilter = ReviewFilter.AllCards,
                         selectedFilter = ReviewFilter.AllCards,
                         selectedFilterTitle = "All cards",
                         remainingCount = 0,

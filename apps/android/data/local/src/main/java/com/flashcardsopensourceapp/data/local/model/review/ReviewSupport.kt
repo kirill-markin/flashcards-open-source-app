@@ -64,10 +64,12 @@ fun matchesReviewFilter(filter: ReviewFilter, decks: List<DeckSummary>, card: Ca
             )
         }
 
-        is ReviewFilter.Tag -> {
-            val requestedTagKey = normalizeTagKey(tag = filter.tag)
+        is ReviewFilter.Tags -> {
+            val requestedTagKeys: Set<String> = filter.tags.map { tag ->
+                normalizeTagKey(tag = tag)
+            }.toSet()
             card.tags.any { tag ->
-                normalizeTagKey(tag = tag) == requestedTagKey
+                requestedTagKeys.contains(normalizeTagKey(tag = tag))
             }
         }
     }
@@ -106,17 +108,38 @@ fun resolveReviewFilterFromTagNames(
             }
         }
 
-        is ReviewFilter.Tag -> {
-            val matchingTag = tagNames.firstOrNull { tag ->
-                normalizeTagKey(tag = tag) == normalizeTagKey(tag = selectedFilter.tag)
-            }
+        is ReviewFilter.Tags -> resolveReviewTagFilter(
+            selectedTagNames = selectedFilter.tags,
+            availableTagNames = tagNames
+        )
+    }
+}
 
-            if (matchingTag == null) {
-                ReviewFilter.AllCards
-            } else {
-                ReviewFilter.Tag(tag = matchingTag)
-            }
+fun resolveReviewTagFilter(
+    selectedTagNames: List<String>,
+    availableTagNames: List<String>
+): ReviewFilter {
+    val normalizedSelectedTagNames: List<String> = normalizeReviewTagNames(tagNames = selectedTagNames)
+    val selectedTagKeys: Set<String> = normalizedSelectedTagNames.map { tagName ->
+        normalizeTagKey(tag = tagName)
+    }.toSet()
+    val resolvedTagNames: List<String> = normalizeReviewTagNames(
+        tagNames = availableTagNames.filter { availableTagName ->
+            selectedTagKeys.contains(normalizeTagKey(tag = availableTagName))
         }
+    )
+    val normalizedAvailableTagNames: List<String> = normalizeReviewTagNames(tagNames = availableTagNames)
+    val resolvedTagKeys: Set<String> = resolvedTagNames.map(::normalizeTagKey).toSet()
+    val availableTagKeys: Set<String> = normalizedAvailableTagNames.map(::normalizeTagKey).toSet()
+
+    return if (
+        normalizedAvailableTagNames.isNotEmpty() &&
+        resolvedTagKeys == selectedTagKeys &&
+        resolvedTagKeys == availableTagKeys
+    ) {
+        ReviewFilter.AllCards
+    } else {
+        makeReviewTagFilter(tagNames = resolvedTagNames)
     }
 }
 
@@ -130,7 +153,11 @@ fun reviewFilterTitle(
             deck.deckId == selectedFilter.deckId
         }?.name ?: "All cards"
 
-        is ReviewFilter.Tag -> selectedFilter.tag
+        is ReviewFilter.Tags -> when (selectedFilter.tags.size) {
+            0 -> "No tags"
+            1 -> selectedFilter.tags.single()
+            else -> "${selectedFilter.tags.size} tags"
+        }
     }
 }
 
@@ -185,7 +212,8 @@ fun buildReviewDeckFilterOptions(decks: List<DeckSummary>): List<ReviewDeckFilte
         ReviewDeckFilterOption(
             deckId = deck.deckId,
             title = deck.name,
-            totalCount = deck.dueCards
+            totalCount = deck.dueCards,
+            tags = normalizeReviewTagNames(tagNames = deck.filterDefinition.tags)
         )
     }.sortedWith(
         compareBy<ReviewDeckFilterOption> { option ->

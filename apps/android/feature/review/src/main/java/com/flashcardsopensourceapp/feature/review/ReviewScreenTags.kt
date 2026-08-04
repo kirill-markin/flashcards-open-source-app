@@ -16,3 +16,9 @@ const val reviewCurrentCardFrontContentTag: String = "review_current_card_front_
 const val reviewProgressBadgeTag: String = "review_progress_badge"
 const val reviewLeaderboardShortcutTag: String = "review_leaderboard_shortcut"
 const val reviewQueueButtonTag: String = "review_queue_button"
+const val reviewFilterSheetTag: String = "review_filter_sheet"
+const val reviewFilterAllCardsOptionTag: String = "review_filter_all_cards_option"
+
+fun reviewFilterDeckOptionTag(deckId: String): String = "review_filter_deck_option::$deckId"
+
+fun reviewFilterTagOptionTag(tag: String): String = "review_filter_tag_option::$tag"

@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.model.review
 
+import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.model.scheduling.FsrsCardState
 
 enum class ReviewRating {
@@ -16,9 +17,38 @@ sealed interface ReviewFilter {
         val deckId: String
     ) : ReviewFilter
 
-    data class Tag(
-        val tag: String
-    ) : ReviewFilter
+    data class Tags(
+        val tags: List<String>
+    ) : ReviewFilter {
+        init {
+            require(tags == normalizeReviewTagNames(tagNames = tags)) {
+                "Review tag selection must be normalized, deduplicated, and deterministically ordered."
+            }
+        }
+    }
+}
+
+fun normalizeReviewTagNames(tagNames: List<String>): List<String> {
+    return tagNames.map(String::trim)
+        .filter(String::isNotEmpty)
+        .groupBy { tagName ->
+            normalizeTagKey(tag = tagName)
+        }
+        .values
+        .map { equivalentTagNames ->
+            equivalentTagNames.minOrNull() ?: error("Normalized review tag group cannot be empty.")
+        }
+        .sortedWith(
+            compareBy<String> { tagName ->
+                normalizeTagKey(tag = tagName)
+            }.thenBy { tagName ->
+                tagName
+            }
+        )
+}
+
+fun makeReviewTagFilter(tagNames: List<String>): ReviewFilter.Tags {
+    return ReviewFilter.Tags(tags = normalizeReviewTagNames(tagNames = tagNames))
 }
 
 data class ReviewCard(
@@ -67,7 +97,8 @@ data class ReviewAnswerOption(
 data class ReviewDeckFilterOption(
     val deckId: String,
     val title: String,
-    val totalCount: Int
+    val totalCount: Int,
+    val tags: List<String>
 )
 
 data class ReviewTagFilterOption(
