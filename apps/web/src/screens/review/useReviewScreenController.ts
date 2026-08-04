@@ -54,6 +54,7 @@ import { buildReviewButtonOptions, type ReviewButtonOption } from "./components/
 import { type LastSubmittedReview, type ReviewSubmitState } from "./components/reviewScreenTypes";
 import { useReviewCardEditor } from "./components/card/useReviewCardEditor";
 import { useReviewScreenData, type ReviewSubmissionOutcome } from "./data/useReviewScreenData";
+import { resolveReviewFilterTitle } from "./data/reviewScreenDataState";
 import { useReviewFilterMenu } from "./filters/useReviewFilterMenu";
 import type { ReviewHardReminderDialogProps } from "./hardReminder/ReviewHardReminderDialog";
 import {
@@ -141,7 +142,7 @@ export function useReviewScreenController(
   } = useAppData();
   const reviewLeaderboardBadge = useReviewLeaderboardBadge();
   const reviewProgressBadge = useReviewProgressBadge();
-  const { locale, t, formatCount } = useI18n();
+  const { formatCount, locale, messages, t } = useI18n();
   const { showCapturedTechnicalError } = useAppErrorDialog();
   const [isAnswerVisible, setIsAnswerVisible] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -187,6 +188,7 @@ export function useReviewScreenController(
     handleReview: handleReviewData,
     hasLoadedReviewData,
     isInitialReviewLoad,
+    isReviewLoading,
     localWorkspaceCardCount,
     queueCards,
     resolvedReviewFilter,
@@ -244,7 +246,7 @@ export function useReviewScreenController(
     deckSummaries,
     onSelectReviewFilter: selectReviewFilter,
     reviewTagSummaries,
-    selectedReviewFilter: resolvedReviewFilter,
+    selectedReviewFilter,
   });
   const {
     captureEditorPresentationToken,
@@ -309,9 +311,21 @@ export function useReviewScreenController(
     };
   }
   const loadingReviewCurrentCard = reviewLoadingSnapshot?.currentCard ?? reviewLoadingSnapshot?.queuePreview[0] ?? null;
+  const requestedReviewFilterTitle = resolveReviewFilterTitle(
+    selectedReviewFilter,
+    deckSummaries,
+    t("filters.allCards"),
+    t("reviewFilterMenu.noTags"),
+    formatCount(
+      selectedReviewFilter.kind === "tags" ? selectedReviewFilter.tags.length : 0,
+      messages.common.countLabels.tag,
+    ),
+  );
   const visibleSelectedReviewFilterTitle = isInitialReviewLoad && reviewLoadingSnapshot !== null
     ? reviewLoadingSnapshot.resolvedReviewFilterTitle
-    : selectedReviewFilterTitle;
+    : isReviewLoading
+      ? requestedReviewFilterTitle
+      : selectedReviewFilterTitle;
   const visibleQueueCardsCount = isInitialReviewLoad && reviewLoadingSnapshot !== null
     ? reviewLoadingSnapshot.queuePreview.length
     : queueCards.length;

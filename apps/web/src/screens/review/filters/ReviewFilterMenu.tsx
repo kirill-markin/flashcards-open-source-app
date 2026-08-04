@@ -19,7 +19,7 @@ type ReviewFilterMenuProps = Readonly<{
   handleReviewFilterComboboxKeyDown: React.KeyboardEventHandler<HTMLInputElement>;
   handleReviewFilterListboxKeyDown: React.KeyboardEventHandler<HTMLDivElement>;
   handleReviewFilterMenuToggle: () => void;
-  handleReviewFilterSelect: (reviewFilter: ReviewFilter) => void;
+  handleReviewFilterSelect: (optionKey: string, reviewFilter: ReviewFilter) => void;
   hasVisibleReviewFilterChoices: boolean;
   isReviewFilterMenuOpen: boolean;
   reviewDeckSearchInputRef: React.RefObject<HTMLInputElement | null>;
@@ -89,6 +89,10 @@ function reviewFilterChoiceClassName(item: ReviewFilterChoiceMenuItem, activeRev
   }
 
   return classNames.join(" ");
+}
+
+function preventReviewFilterOptionPointerFocus(event: React.PointerEvent<HTMLDivElement>): void {
+  event.preventDefault();
 }
 
 export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
@@ -182,6 +186,7 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
           id={reviewFilterListboxId}
           className="review-filter-listbox"
           role="listbox"
+          aria-multiselectable="true"
           tabIndex={shouldShowReviewDeckSearch ? undefined : 0}
           aria-label={t("reviewFilterMenu.menuAriaLabel")}
           aria-activedescendant={shouldShowReviewDeckSearch ? undefined : activeReviewFilterOptionId ?? undefined}
@@ -196,7 +201,8 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
               aria-selected={item.isSelected}
               aria-label={item.subtitle === null ? undefined : `${item.label}. ${item.subtitle}`}
               data-review-filter-key={item.key}
-              onClick={() => handleReviewFilterSelect(item.reviewFilter)}
+              onPointerDown={preventReviewFilterOptionPointerFocus}
+              onClick={() => handleReviewFilterSelect(item.key, item.reviewFilter)}
             >
               <span className="review-filter-menu-item-slot" aria-hidden="true">
                 <span className={`review-filter-menu-item-check${item.isSelected ? " review-filter-menu-item-check-visible" : ""}`}>
@@ -225,7 +231,8 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
               role="option"
               aria-selected={tagItem.isSelected}
               data-review-filter-key={tagItem.key}
-              onClick={() => handleReviewFilterSelect(tagItem.reviewFilter)}
+              onPointerDown={preventReviewFilterOptionPointerFocus}
+              onClick={() => handleReviewFilterSelect(tagItem.key, tagItem.reviewFilter)}
             >
               <span className="review-filter-menu-item-slot" aria-hidden="true">
                 <span className={`review-filter-menu-item-check${tagItem.isSelected ? " review-filter-menu-item-check-visible" : ""}`}>

@@ -182,14 +182,15 @@ function resolveLegacyReviewFilter(
       : { kind: "allCards" };
   }
 
-  const requestedTagKey = normalizeTagKey(reviewFilter.tag);
-  const matchingTag = cards
-    .flatMap((card) => card.tags)
-    .find((tag) => normalizeTagKey(tag) === requestedTagKey);
-
-  return matchingTag !== undefined
-    ? { kind: "tag", tag: matchingTag }
-    : { kind: "allCards" };
+  const canonicalTagsByKey = new Map(
+    cards.flatMap((card) => card.tags).map((tag) => [normalizeTagKey(tag), tag] as const),
+  );
+  return {
+    kind: "tags",
+    tags: reviewFilter.tags
+      .map((tag) => canonicalTagsByKey.get(normalizeTagKey(tag)) ?? null)
+      .filter((tag): tag is string => tag !== null),
+  };
 }
 
 export function resolveLegacyReviewFilterForTest(
@@ -217,8 +218,8 @@ export function legacyReviewCards(
         return deck === undefined ? true : matchesDeckFilterDefinition(deck.filterDefinition, card);
       })
       : activeCards.filter((card) => {
-        const requestedTagKey = normalizeTagKey(resolvedReviewFilter.tag);
-        return card.tags.some((tag) => normalizeTagKey(tag) === requestedTagKey);
+        const requestedTagKeys = new Set(resolvedReviewFilter.tags.map((tag) => normalizeTagKey(tag)));
+        return card.tags.some((tag) => requestedTagKeys.has(normalizeTagKey(tag)));
       });
 
   return [...matchingCards].sort((leftCard, rightCard) => compareCardsForReviewOrder(leftCard, rightCard, nowTimestamp));

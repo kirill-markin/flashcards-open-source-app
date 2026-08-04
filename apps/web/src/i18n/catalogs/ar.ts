@@ -818,6 +818,7 @@ const arCatalog: TranslationCatalog = {
     editDecks: "حرّر المجموعات",
     empty: "لم يتم العثور على فلاتر",
     menuAriaLabel: "فلتر المراجعة",
+    noTags: "بدون وسوم",
     openAriaLabel: "افتح فلتر المراجعة",
     queueBadgeDue: "{{due}} مستحقة",
     queueBadgeDueUpcoming: "{{due}} مستحقة | {{upcoming}} قادمة",

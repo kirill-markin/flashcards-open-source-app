@@ -818,6 +818,7 @@ const hiCatalog: TranslationCatalog = {
     editDecks: "डेक संपादित करें",
     empty: "कोई फ़िल्टर नहीं मिला",
     menuAriaLabel: "रिव्यू फ़िल्टर",
+    noTags: "कोई टैग नहीं",
     openAriaLabel: "रिव्यू फ़िल्टर खोलें",
     queueBadgeDue: "{{due}} बाकी",
     queueBadgeDueUpcoming: "{{due}} बाकी | {{upcoming}} आने वाले",

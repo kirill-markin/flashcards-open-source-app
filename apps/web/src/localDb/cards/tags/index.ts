@@ -13,6 +13,11 @@ export type TagCardIdsLookup = Readonly<{
   canonicalTag: string | null;
 }>;
 
+export type ReviewTagFilterLookup = Readonly<{
+  cardIds: ReadonlySet<string>;
+  canonicalTags: ReadonlyArray<string>;
+}>;
+
 function putCardTags(cardTagsStore: IDBObjectStore, workspaceId: string, card: Card): void {
   if (card.deletedAt !== null) {
     return;
@@ -165,21 +170,44 @@ export async function loadAllowedCardIdsForTags(
   workspaceId: string,
   tags: ReadonlyArray<string>,
 ): Promise<ReadonlySet<string>> {
+  return (await loadReviewTagFilterLookupForTags(database, workspaceId, tags)).cardIds;
+}
+
+export async function loadReviewTagFilterLookupForTags(
+  database: IDBDatabase,
+  workspaceId: string,
+  tags: ReadonlyArray<string>,
+): Promise<ReviewTagFilterLookup> {
   const allowedCardIds = new Set<string>();
   const requestedTagKeys = new Set(tags.map((tag) => normalizeTagKey(tag)).filter((tagKey) => tagKey !== ""));
+  const canonicalTagsByKey = new Map<string, string>();
   if (requestedTagKeys.size === 0) {
-    return allowedCardIds;
+    return {
+      cardIds: allowedCardIds,
+      canonicalTags: [],
+    };
   }
 
   await iterateAllCardTags(database, workspaceId, (record) => {
-    if (requestedTagKeys.has(normalizeTagKey(record.tag))) {
-      allowedCardIds.add(record.cardId);
+    const tagKey = normalizeTagKey(record.tag);
+    if (requestedTagKeys.has(tagKey) === false) {
+      return true;
+    }
+
+    allowedCardIds.add(record.cardId);
+    if (canonicalTagsByKey.has(tagKey) === false) {
+      canonicalTagsByKey.set(tagKey, record.tag.trim());
     }
 
     return true;
   });
 
-  return allowedCardIds;
+  return {
+    cardIds: allowedCardIds,
+    canonicalTags: [...canonicalTagsByKey.entries()]
+      .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+      .map(([, tag]) => tag),
+  };
 }
 
 export async function loadAllowedCardIdsForTag(

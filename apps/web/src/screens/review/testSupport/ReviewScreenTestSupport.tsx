@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { act, useEffect, type ReactElement } from "react";
+import { act, StrictMode, useEffect, type ReactElement } from "react";
 import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, vi } from "vitest";
@@ -128,6 +128,7 @@ type ReviewScreenTestHarness = Readonly<{
   openReviewQueue: () => Promise<void>;
   openReviewFilterMenu: () => Promise<void>;
   renderReviewScreen: () => Promise<void>;
+  renderReviewScreenStrictMode: () => Promise<void>;
   rerenderReviewScreen: () => Promise<void>;
   revealAnswer: () => Promise<void>;
 }>;
@@ -347,15 +348,27 @@ function createDecksSnapshot(state: ReviewScreenTestState): DecksListSnapshot {
 }
 
 function createTagsSummary(state: ReviewScreenTestState): WorkspaceTagsSummary {
-  const counts = new Map<string, number>();
+  const tagStatsByKey = new Map<string, Readonly<{ tag: string; cardIds: Set<string> }>>();
   for (const card of state.cards) {
     for (const tag of card.tags) {
-      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+      const tagKey = tag.trim().toLowerCase();
+      const currentTagStats = tagStatsByKey.get(tagKey);
+      if (currentTagStats === undefined) {
+        tagStatsByKey.set(tagKey, {
+          tag: tag.trim(),
+          cardIds: new Set([card.cardId]),
+        });
+      } else {
+        currentTagStats.cardIds.add(card.cardId);
+      }
     }
   }
 
   return {
-    tags: [...counts.entries()].map(([tag, cardsCount]) => ({ tag, cardsCount })),
+    tags: [...tagStatsByKey.values()].map((tagStats) => ({
+      tag: tagStats.tag,
+      cardsCount: tagStats.cardIds.size,
+    })),
     totalCards: state.cards.length,
   };
 }
@@ -634,6 +647,27 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
     });
   }
 
+  async function renderReviewScreenStrictMode(): Promise<void> {
+    const currentRoot = root;
+    if (currentRoot === null) {
+      throw new Error("ReviewScreen test root is not ready");
+    }
+
+    await act(async () => {
+      currentRoot.render(
+        <StrictMode>
+          <I18nProvider>
+            <AppErrorDialogProvider>
+              <MemoryRouter>
+                <ReviewScreen />
+              </MemoryRouter>
+            </AppErrorDialogProvider>
+          </I18nProvider>
+        </StrictMode>,
+      );
+    });
+  }
+
   async function openReviewFilterMenu(): Promise<void> {
     const trigger = getContainer().querySelector(".review-filter-trigger");
     if (!(trigger instanceof HTMLButtonElement)) {
@@ -684,6 +718,7 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
     openReviewQueue,
     openReviewFilterMenu,
     renderReviewScreen,
+    renderReviewScreenStrictMode,
     rerenderReviewScreen: renderReviewScreen,
     revealAnswer,
   };

@@ -4,6 +4,7 @@ import {
   clickElementAsync,
   createCard,
   createDecks,
+  loadReviewQueueSnapshotMock,
   reviewStylesContain,
   setTextFieldValueAsync,
   setupReviewScreenTest,
@@ -13,6 +14,7 @@ import {
   flushReviewScreenPromises,
   getActiveReviewFilterOption,
   keydownElementAsync,
+  pointerDownAndClickElementAsync,
   pointerDownElementAsync,
 } from "./ReviewScreen.controlsTestSupport";
 
@@ -22,6 +24,7 @@ const {
   getState,
   openReviewFilterMenu,
   renderReviewScreen,
+  renderReviewScreenStrictMode,
   rerenderReviewScreen,
 } = setupReviewScreenTest();
 
@@ -235,8 +238,8 @@ describe("ReviewScreen filter controls", () => {
     state.reviewQueue = [];
     state.reviewTimeline = [];
     state.appData.selectedReviewFilter = {
-      kind: "tag",
-      tag: "empty",
+      kind: "tags",
+      tags: [],
     };
     state.appData.localReadVersion = 1;
 
@@ -274,7 +277,7 @@ describe("ReviewScreen filter controls", () => {
     expect(getContainer().querySelector("#review-queue-panel")).toBeNull();
   });
 
-  it("filters, closes, and selects items in the review filter menu", async () => {
+  it("filters, dismisses externally, and applies selections without closing the review filter menu", async () => {
     const state = getState();
     state.decks = createDecks(["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta"]);
     state.cards = [
@@ -304,7 +307,12 @@ describe("ReviewScreen filter controls", () => {
     }
 
     expect(listbox.classList.contains("review-filter-listbox")).toBe(true);
+    expect(listbox.getAttribute("aria-multiselectable")).toBe("true");
     expect(searchInput.getAttribute("aria-controls")).toBe(listbox.id);
+    expect(listbox.querySelector("[data-review-filter-key='allCards']")?.getAttribute("aria-selected")).toBe("true");
+    expect(listbox.querySelector("[data-review-filter-key='tag:grammar']")?.getAttribute("aria-selected")).toBe("true");
+    expect(listbox.querySelector("[data-review-filter-key='tag:verbs']")?.getAttribute("aria-selected")).toBe("true");
+    expect(listbox.querySelector("[data-review-filter-key='tag:medium']")?.getAttribute("aria-selected")).toBe("true");
     expect(reviewStylesContain(
       ".review-filter-menu",
       "display: flex",
@@ -373,15 +381,14 @@ describe("ReviewScreen filter controls", () => {
       kind: "deck",
       deckId: "deck-4",
     });
-    expect(queryReviewFilterMenu()).toBeNull();
+    expect(queryReviewFilterMenu()).not.toBeNull();
+    expect(document.activeElement).toBe(searchInput);
+
+    state.appData.selectReviewFilter.mockClear();
     const triggerAfterSearchKeyboardSelect = getContainer().querySelector(".review-filter-trigger");
     if (!(triggerAfterSearchKeyboardSelect instanceof HTMLButtonElement)) {
       throw new Error("Review filter trigger was not found after search keyboard selection");
     }
-    expect(document.activeElement).toBe(triggerAfterSearchKeyboardSelect);
-
-    state.appData.selectReviewFilter.mockClear();
-    await openReviewFilterMenu();
     await pointerDownElementAsync(triggerAfterSearchKeyboardSelect);
     expect(queryReviewFilterMenu()).not.toBeNull();
     await pointerDownElementAsync(getReviewFilterMenu());
@@ -403,9 +410,10 @@ describe("ReviewScreen filter controls", () => {
     await clickElementAsync(mediumOption);
 
     expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({
-      kind: "tag",
-      tag: "medium",
+      kind: "tags",
+      tags: ["grammar", "verbs"],
     });
+    expect(queryReviewFilterMenu()).not.toBeNull();
   });
 
   it("selects items by keyboard when the review filter menu has no search field", async () => {
@@ -456,12 +464,266 @@ describe("ReviewScreen filter controls", () => {
       kind: "deck",
       deckId: "deck-2",
     });
-    expect(queryReviewFilterMenu()).toBeNull();
+    expect(queryReviewFilterMenu()).not.toBeNull();
     const triggerAfterListboxKeyboardSelect = getContainer().querySelector(".review-filter-trigger");
     if (!(triggerAfterListboxKeyboardSelect instanceof HTMLButtonElement)) {
       throw new Error("Review filter trigger was not found after listbox keyboard selection");
     }
-    expect(document.activeElement).toBe(triggerAfterListboxKeyboardSelect);
+    expect(document.activeElement).toBe(listbox);
+  });
+
+  it("uses the pointer-selected option for the next keyboard selection", async () => {
+    const state = getState();
+    state.decks = createDecks(["Pointer deck"]);
+    const card = createCard({
+      cardId: "card-pointer-keyboard-filter",
+      frontText: "Front",
+      backText: "Back",
+    });
+    state.cards = [card];
+    state.reviewQueue = [card];
+    state.reviewTimeline = [card];
+
+    await renderReviewScreen();
+    await openReviewFilterMenu();
+
+    const listbox = getReviewFilterMenu().querySelector("[role='listbox']");
+    const deckOption = getReviewFilterMenu().querySelector("[data-review-filter-key='deck:deck-1']");
+    if (!(listbox instanceof HTMLElement) || !(deckOption instanceof HTMLElement)) {
+      throw new Error("Pointer-keyboard review filter controls were not found");
+    }
+
+    await clickElementAsync(deckOption);
+
+    expect(getActiveReviewFilterOption(listbox)).toBe(deckOption);
+    expect(listbox.getAttribute("aria-activedescendant")).toBe(deckOption.id);
+    expect(state.appData.selectReviewFilter).toHaveBeenLastCalledWith({
+      kind: "deck",
+      deckId: "deck-1",
+    });
+    state.appData.selectReviewFilter.mockClear();
+
+    await keydownElementAsync(listbox, " ");
+
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledTimes(1);
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({
+      kind: "deck",
+      deckId: "deck-1",
+    });
+    expect(queryReviewFilterMenu()).not.toBeNull();
+  });
+
+  it("keeps searchable pointer selection owned by the combobox for keyboard activation", async () => {
+    const state = getState();
+    state.decks = createDecks(["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta"]);
+    const card = createCard({
+      cardId: "card-search-pointer-keyboard-filter",
+      frontText: "Front",
+      backText: "Back",
+    });
+    state.cards = [card];
+    state.reviewQueue = [card];
+    state.reviewTimeline = [card];
+
+    await renderReviewScreen();
+    await openReviewFilterMenu();
+
+    const searchInput = getReviewFilterMenu().querySelector(".review-filter-search-input");
+    const deckOption = getReviewFilterMenu().querySelector("[data-review-filter-key='deck:deck-4']");
+    if (!(searchInput instanceof HTMLInputElement) || !(deckOption instanceof HTMLElement)) {
+      throw new Error("Searchable pointer-keyboard review filter controls were not found");
+    }
+    expect(document.activeElement).toBe(searchInput);
+
+    const wasPointerDownPrevented = await pointerDownAndClickElementAsync(deckOption);
+
+    expect(wasPointerDownPrevented).toBe(true);
+    expect(document.activeElement).toBe(searchInput);
+    expect(getActiveReviewFilterOption(searchInput)).toBe(deckOption);
+    expect(searchInput.getAttribute("aria-activedescendant")).toBe(deckOption.id);
+    state.appData.selectReviewFilter.mockClear();
+
+    await keydownElementAsync(searchInput, "Enter");
+
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledTimes(1);
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({
+      kind: "deck",
+      deckId: "deck-4",
+    });
+    expect(document.activeElement).toBe(searchInput);
+    expect(queryReviewFilterMenu()).not.toBeNull();
+  });
+
+  it("shows the resolved tag count after StrictMode replays the initial load effect", async () => {
+    const state = getState();
+    const card = createCard({
+      cardId: "strict-mode-resolved-filter-card",
+      frontText: "Front",
+      backText: "Back",
+      tags: ["grammar"],
+    });
+    state.cards = [card];
+    state.reviewQueue = [card];
+    state.reviewTimeline = [card];
+    state.appData.selectedReviewFilter = {
+      kind: "tags",
+      tags: ["grammar", "missing"],
+    };
+    loadReviewQueueSnapshotMock.mockResolvedValue({
+      resolvedReviewFilter: {
+        kind: "tags",
+        tags: ["grammar"],
+      },
+      cards: [card],
+      nextCursor: null,
+      reviewCounts: {
+        dueCount: 1,
+        totalCount: 1,
+      },
+    });
+
+    await renderReviewScreenStrictMode();
+
+    await vi.waitFor(() => {
+      const trigger = getContainer().querySelector("[data-testid='review-filter-trigger']");
+      if (!(trigger instanceof HTMLButtonElement)) {
+        throw new Error("Review filter trigger was not found after StrictMode loading");
+      }
+
+      expect(trigger.textContent).toContain("1 tag");
+      expect(trigger.textContent).not.toContain("2 tags");
+    });
+  });
+
+  it("materializes deck tags and canonicalizes a complete custom selection to All Cards", async () => {
+    const state = getState();
+    state.decks = [
+      ...createDecks(["Grammar and verbs"]),
+    ].map((deck) => ({
+      ...deck,
+      filterDefinition: {
+        version: 2,
+        tags: ["grammar", "verbs"],
+      },
+    }));
+    state.cards = [
+      createCard({ cardId: "grammar-card", tags: ["grammar"] }),
+      createCard({ cardId: "verbs-card", tags: ["verbs"] }),
+    ];
+    state.reviewQueue = state.cards;
+    state.reviewTimeline = state.cards;
+    state.appData.selectedReviewFilter = {
+      kind: "deck",
+      deckId: "deck-1",
+    };
+
+    await renderReviewScreen();
+    await openReviewFilterMenu();
+
+    const grammarOption = getReviewFilterMenu().querySelector("[data-review-filter-key='tag:grammar']");
+    if (!(grammarOption instanceof HTMLElement)) {
+      throw new Error("Grammar review filter option was not found");
+    }
+    expect(grammarOption.getAttribute("aria-selected")).toBe("true");
+    expect(getReviewFilterMenu().querySelector("[data-review-filter-key='deck:deck-1']")?.getAttribute("aria-selected")).toBe("true");
+
+    await clickElementAsync(grammarOption);
+
+    expect(state.appData.selectReviewFilter).toHaveBeenLastCalledWith({
+      kind: "tags",
+      tags: ["verbs"],
+    });
+    expect(queryReviewFilterMenu()).not.toBeNull();
+
+    state.appData.selectedReviewFilter = {
+      kind: "tags",
+      tags: ["grammar"],
+    };
+    await rerenderReviewScreen();
+    const verbsOption = getReviewFilterMenu().querySelector("[data-review-filter-key='tag:verbs']");
+    if (!(verbsOption instanceof HTMLElement)) {
+      throw new Error("Verbs review filter option was not found");
+    }
+
+    await clickElementAsync(verbsOption);
+
+    expect(state.appData.selectReviewFilter).toHaveBeenLastCalledWith({ kind: "allCards" });
+    expect(queryReviewFilterMenu()).not.toBeNull();
+  });
+
+  it("retains missing custom and preset tags while toggling visible tags", async () => {
+    const state = getState();
+    state.decks = createDecks(["Configured deck", "All tags deck"]).map((deck) => ({
+      ...deck,
+      filterDefinition: {
+        version: 2,
+        tags: deck.deckId === "deck-1" ? ["grammar", "missing"] : [],
+      },
+    }));
+    state.cards = [
+      createCard({ cardId: "visible-grammar-card", tags: ["grammar"] }),
+      createCard({ cardId: "visible-verbs-card", tags: ["verbs"] }),
+    ];
+    state.reviewQueue = state.cards;
+    state.reviewTimeline = state.cards;
+    state.appData.selectedReviewFilter = {
+      kind: "deck",
+      deckId: "deck-1",
+    };
+
+    await renderReviewScreen();
+    await openReviewFilterMenu();
+
+    const verbsFromConfiguredDeck = getReviewFilterMenu().querySelector("[data-review-filter-key='tag:verbs']");
+    if (!(verbsFromConfiguredDeck instanceof HTMLElement)) {
+      throw new Error("Verbs option was not found for the configured deck");
+    }
+    expect(verbsFromConfiguredDeck.getAttribute("aria-selected")).toBe("false");
+
+    await clickElementAsync(verbsFromConfiguredDeck);
+
+    expect(state.appData.selectReviewFilter).toHaveBeenLastCalledWith({
+      kind: "tags",
+      tags: ["grammar", "missing", "verbs"],
+    });
+
+    state.appData.selectedReviewFilter = {
+      kind: "tags",
+      tags: ["grammar", "missing"],
+    };
+    await rerenderReviewScreen();
+    const verbsFromCustomSelection = getReviewFilterMenu().querySelector("[data-review-filter-key='tag:verbs']");
+    if (!(verbsFromCustomSelection instanceof HTMLElement)) {
+      throw new Error("Verbs option was not found for the custom selection");
+    }
+
+    await clickElementAsync(verbsFromCustomSelection);
+
+    expect(state.appData.selectReviewFilter).toHaveBeenLastCalledWith({
+      kind: "tags",
+      tags: ["grammar", "missing", "verbs"],
+    });
+
+    state.appData.selectedReviewFilter = {
+      kind: "deck",
+      deckId: "deck-2",
+    };
+    await rerenderReviewScreen();
+    const grammarFromAllTagsDeck = getReviewFilterMenu().querySelector("[data-review-filter-key='tag:grammar']");
+    const verbsFromAllTagsDeck = getReviewFilterMenu().querySelector("[data-review-filter-key='tag:verbs']");
+    if (!(grammarFromAllTagsDeck instanceof HTMLElement) || !(verbsFromAllTagsDeck instanceof HTMLElement)) {
+      throw new Error("Visible tag options were not found for the all-tags deck");
+    }
+    expect(grammarFromAllTagsDeck.getAttribute("aria-selected")).toBe("true");
+    expect(verbsFromAllTagsDeck.getAttribute("aria-selected")).toBe("true");
+
+    await clickElementAsync(grammarFromAllTagsDeck);
+
+    expect(state.appData.selectReviewFilter).toHaveBeenLastCalledWith({
+      kind: "tags",
+      tags: ["verbs"],
+    });
+    expect(queryReviewFilterMenu()).not.toBeNull();
   });
 
   it("keeps review filter option ids unique for similar tag text", async () => {
@@ -488,5 +750,22 @@ describe("ReviewScreen filter controls", () => {
     expect(slashTagOption.id).not.toBe(escapedTagOption.id);
     expect(document.getElementById(slashTagOption.id)).toBe(slashTagOption);
     expect(document.getElementById(escapedTagOption.id)).toBe(escapedTagOption);
+  });
+
+  it("shows one unique-card count for case-insensitive tag variants", async () => {
+    const state = getState();
+    state.cards = [
+      createCard({ cardId: "case-variant-card", tags: ["Grammar", "grammar"] }),
+      createCard({ cardId: "lowercase-card", tags: ["grammar"] }),
+    ];
+    state.reviewQueue = state.cards;
+    state.reviewTimeline = state.cards;
+
+    await renderReviewScreen();
+    await openReviewFilterMenu();
+
+    const tagOptions = getReviewFilterMenu().querySelectorAll("[data-review-filter-key='tag:grammar']");
+    expect(tagOptions).toHaveLength(1);
+    expect(tagOptions[0]?.textContent).toContain("Grammar (2)");
   });
 });

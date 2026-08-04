@@ -1,8 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  ALL_CARDS_REVIEW_FILTER,
-  isReviewFilterEqual,
-} from "../../../appData/domain";
+import { ALL_CARDS_REVIEW_FILTER } from "../../../appData/domain";
 import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import { loadDecksListSnapshot } from "../../../localDb/cards/decks";
@@ -78,6 +75,10 @@ function isWorkspaceUnavailableError(error: unknown): boolean {
   return error instanceof Error && error.message === workspaceUnavailableErrorMessage;
 }
 
+function buildReviewDataContextKey(workspaceId: string | null, reviewFilterKey: string): string {
+  return JSON.stringify([workspaceId, reviewFilterKey]);
+}
+
 export type UseReviewScreenDataResult = Readonly<{
   activeReviewQueue: ReadonlyArray<Card>;
   deckSummaries: ReadonlyArray<DeckSummary>;
@@ -109,7 +110,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     submitReviewItem,
     userId,
   } = params;
-  const { t } = useI18n();
+  const { formatCount, messages, t } = useI18n();
   const { showCapturedTechnicalError } = useAppErrorDialog();
   const [canonicalReviewQueue, setCanonicalReviewQueue] = useState<ReadonlyArray<Card>>([]);
   const [queueCards, setQueueCards] = useState<ReadonlyArray<Card>>([]);
@@ -120,15 +121,14 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const [deckSummaries, setDeckSummaries] = useState<ReadonlyArray<DeckSummary>>([]);
   const [resolvedReviewFilter, setResolvedReviewFilter] = useState<ReviewFilter>(ALL_CARDS_REVIEW_FILTER);
   const [selectedReviewFilterTitle, setSelectedReviewFilterTitle] = useState<string>(t("filters.allCards"));
-  const [isReviewLoading, setIsReviewLoading] = useState<boolean>(true);
   const [localHotStateStatus, setLocalHotStateStatus] = useState<LocalHotStateStatus>("loading");
   const [localWorkspaceCardCount, setLocalWorkspaceCardCount] = useState<number>(0);
   const [reviewLoadErrorMessage, setReviewLoadErrorMessage] = useState<string>("");
   const [hasLoadedReviewData, setHasLoadedReviewData] = useState<boolean>(false);
+  const [loadedReviewDataContextKey, setLoadedReviewDataContextKey] = useState<string | null>(null);
   const [presentedCard, setPresentedCard] = useState<Card | null>(null);
   const activeWorkspaceIdRef = useRef<string | null>(activeWorkspaceId);
   const loadedWorkspaceIdRef = useRef<string | null>(null);
-  const previousReviewFilterRef = useRef<ReviewFilter | null>(null);
   const canonicalReviewQueueRef = useRef<ReadonlyArray<Card>>([]);
   const deckSummariesRef = useRef<ReadonlyArray<DeckSummary>>([]);
   const pendingReviewSnapshotsRef = useRef<ReadonlyMap<string, PendingReviewSnapshot>>(new Map());
@@ -140,6 +140,9 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const reviewSessionSignatureRef = useRef<ReviewSessionSignature | null>(null);
   const selectedReviewFilterKey = serializeReviewFilterKey(selectedReviewFilter);
   const selectedReviewFilterKeyRef = useRef<string>(selectedReviewFilterKey);
+  const reviewDataContextKey = buildReviewDataContextKey(activeWorkspaceId, selectedReviewFilterKey);
+  const reviewDataContextKeyRef = useRef<string>(reviewDataContextKey);
+  const loadedReviewDataContextKeyRef = useRef<string | null>(null);
   const observationIdentityRef = useRef<Readonly<{
     userId: string | null;
     installationId: string | null;
@@ -150,17 +153,46 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const reviewLoadingSnapshot = activeWorkspaceId === null
     ? null
     : readReviewLoadingSnapshot(activeWorkspaceId, selectedReviewFilter);
-  const hasColdEmptyLocalHotState = localHotStateStatus !== "hydrated" && localWorkspaceCardCount === 0;
+  const isCurrentReviewDataContextLoaded = loadedReviewDataContextKey === reviewDataContextKey;
+  const isCurrentWorkspaceLoaded = loadedWorkspaceIdRef.current === activeWorkspaceId;
+  const isExplicitEmptyTagsFilter = selectedReviewFilter.kind === "tags" && selectedReviewFilter.tags.length === 0;
+  const visibleLocalWorkspaceCardCount = isCurrentWorkspaceLoaded ? localWorkspaceCardCount : 0;
+  const hasColdEmptyLocalHotState = localHotStateStatus !== "hydrated" && visibleLocalWorkspaceCardCount === 0;
   const hasColdEmptyRestoreFailure = hasColdEmptyLocalHotState && isSyncing === false && appErrorMessage !== "";
-  const visibleHasLoadedReviewData = hasColdEmptyRestoreFailure ? false : hasLoadedReviewData;
+  const visibleHasLoadedReviewData = hasColdEmptyRestoreFailure
+    ? false
+    : isCurrentReviewDataContextLoaded
+      ? hasLoadedReviewData
+      : isExplicitEmptyTagsFilter;
   const visibleReviewLoadErrorMessage = reviewLoadErrorMessage !== ""
     ? reviewLoadErrorMessage
     : hasColdEmptyRestoreFailure
       ? t("appError.technicalError.message")
       : "";
   const isLocalEmptyHotStateRestoring = hasColdEmptyLocalHotState && hasColdEmptyRestoreFailure === false;
-  const isInitialReviewLoad = (isReviewLoading && visibleHasLoadedReviewData === false) || isLocalEmptyHotStateRestoring;
-  const activeReviewQueue = buildDisplayedReviewQueue(canonicalReviewQueue, presentedCard);
+  const isInitialReviewLoad = isExplicitEmptyTagsFilter
+    ? false
+    : isCurrentReviewDataContextLoaded === false
+      || isLocalEmptyHotStateRestoring;
+  const activeReviewQueue = isCurrentReviewDataContextLoaded
+    ? buildDisplayedReviewQueue(canonicalReviewQueue, presentedCard)
+    : [];
+  const visibleDeckSummaries = isCurrentWorkspaceLoaded ? deckSummaries : [];
+  const visibleSelectedReviewFilterTitle = isCurrentReviewDataContextLoaded
+    ? selectedReviewFilterTitle
+    : resolveReviewFilterTitle(
+      selectedReviewFilter,
+      visibleDeckSummaries,
+      t("filters.allCards"),
+      t("reviewFilterMenu.noTags"),
+      formatCount(
+        selectedReviewFilter.kind === "tags" ? selectedReviewFilter.tags.length : 0,
+        messages.common.countLabels.tag,
+      ),
+    );
+  activeWorkspaceIdRef.current = activeWorkspaceId;
+  selectedReviewFilterKeyRef.current = selectedReviewFilterKey;
+  reviewDataContextKeyRef.current = reviewDataContextKey;
   observationIdentityRef.current = {
     userId,
     installationId,
@@ -196,11 +228,6 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     setReviewQueueCursor(nextReviewQueueCursor);
   }
 
-  useEffect((): void => {
-    activeWorkspaceIdRef.current = activeWorkspaceId;
-    selectedReviewFilterKeyRef.current = selectedReviewFilterKey;
-  }, [activeWorkspaceId, selectedReviewFilterKey]);
-
   function applyFreshReviewSessionSignature(nextReviewSessionSignature: ReviewSessionSignature): void {
     const previousReviewSessionSignature = reviewSessionSignatureRef.current;
     if (
@@ -231,15 +258,9 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
 
   useEffect(() => {
     let isCancelled = false;
-    const previousReviewFilter = previousReviewFilterRef.current;
-    const shouldShowBlockingLoader = previousReviewFilter === null
-      || isReviewFilterEqual(previousReviewFilter, selectedReviewFilter) === false;
-    previousReviewFilterRef.current = selectedReviewFilter;
+    const shouldShowBlockingLoader = loadedReviewDataContextKeyRef.current !== reviewDataContextKey;
 
     async function loadReviewData(): Promise<void> {
-      if (shouldShowBlockingLoader) {
-        setIsReviewLoading(true);
-      }
       if (loadedWorkspaceIdRef.current !== activeWorkspaceId) {
         setLocalHotStateStatus("loading");
         setLocalWorkspaceCardCount(0);
@@ -278,6 +299,11 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           nextResolvedReviewFilter,
           decksSnapshot.deckSummaries,
           t("filters.allCards"),
+          t("reviewFilterMenu.noTags"),
+          formatCount(
+            nextResolvedReviewFilter.kind === "tags" ? nextResolvedReviewFilter.tags.length : 0,
+            messages.common.countLabels.tag,
+          ),
         );
         const previousPresentedCard = shouldShowBlockingLoader ? null : presentedCardRef.current;
         const resolvedPresentedCard = await resolvePresentedCard(
@@ -333,6 +359,8 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         setLocalWorkspaceCardCount(tagsSummary.totalCards);
         setLocalHotStateStatus(isHotStateHydrated ? "hydrated" : "unhydrated");
         loadedWorkspaceIdRef.current = activeWorkspaceId;
+        loadedReviewDataContextKeyRef.current = reviewDataContextKey;
+        setLoadedReviewDataContextKey(reviewDataContextKey);
         setTagSuggestions(toTagSuggestions(tagsSummary.tags));
         setDeckSummariesState(decksSnapshot.deckSummaries);
         writeReviewLoadingSnapshot({
@@ -369,10 +397,6 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         });
         showCapturedTechnicalError(error);
         setReviewLoadErrorMessage(t("appError.technicalError.message"));
-      } finally {
-        if (!isCancelled && shouldShowBlockingLoader) {
-          setIsReviewLoading(false);
-        }
       }
     }
 
@@ -381,9 +405,13 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     return () => {
       isCancelled = true;
     };
-  }, [activeWorkspaceId, getCardById, localReadVersion, selectedReviewFilter]);
+  }, [activeWorkspaceId, getCardById, localReadVersion, reviewDataContextKey, selectedReviewFilter]);
 
   async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<ReviewSubmissionOutcome> {
+    if (loadedReviewDataContextKeyRef.current !== reviewDataContextKeyRef.current) {
+      return "stale";
+    }
+
     const submissionContext: ReviewSubmissionContext = {
       cardId: card.cardId,
       deckSummaries: deckSummariesRef.current,
@@ -637,19 +665,19 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
 
   return {
     activeReviewQueue,
-    deckSummaries,
+    deckSummaries: visibleDeckSummaries,
     handleReview,
     hasLoadedReviewData: visibleHasLoadedReviewData,
     isInitialReviewLoad,
-    isReviewLoading,
-    localWorkspaceCardCount,
-    queueCards,
-    resolvedReviewFilter,
-    reviewCounts,
+    isReviewLoading: isExplicitEmptyTagsFilter === false && isCurrentReviewDataContextLoaded === false,
+    localWorkspaceCardCount: visibleLocalWorkspaceCardCount,
+    queueCards: isCurrentReviewDataContextLoaded ? queueCards : [],
+    resolvedReviewFilter: isCurrentReviewDataContextLoaded ? resolvedReviewFilter : selectedReviewFilter,
+    reviewCounts: isCurrentReviewDataContextLoaded ? reviewCounts : createEmptyReviewCounts(),
     reviewLoadErrorMessage: visibleReviewLoadErrorMessage,
     reviewLoadingSnapshot,
-    reviewTagSummaries,
-    selectedReviewFilterTitle,
-    tagSuggestions,
+    reviewTagSummaries: isCurrentWorkspaceLoaded ? reviewTagSummaries : [],
+    selectedReviewFilterTitle: visibleSelectedReviewFilterTitle,
+    tagSuggestions: isCurrentWorkspaceLoaded ? tagSuggestions : [],
   };
 }

@@ -100,8 +100,8 @@ describe("ReviewScreen presented card preservation", () => {
   it("does not preserve an omitted presented card after it stops matching the selected filter", async () => {
     const state = getState();
     state.appData.selectedReviewFilter = {
-      kind: "tag",
-      tag: "grammar",
+      kind: "tags",
+      tags: ["grammar"],
     };
     const currentCard = createCard({
       cardId: "card-current-filter",

@@ -27,7 +27,7 @@ export type WorkspaceSessionSetters = Readonly<{
   setSessionErrorMessage: Dispatch<SetStateAction<string>>;
   setSessionTechnicalError: Dispatch<SetStateAction<Error | null>>;
   setSession: Dispatch<SetStateAction<SessionInfo | null>>;
-  setActiveWorkspace: Dispatch<SetStateAction<WorkspaceSummary | null>>;
+  setActiveWorkspace: (activeWorkspace: WorkspaceSummary | null) => void;
   setAvailableWorkspaces: Dispatch<SetStateAction<ReadonlyArray<WorkspaceSummary>>>;
   setIsChoosingWorkspace: Dispatch<SetStateAction<boolean>>;
   setErrorMessage: Dispatch<SetStateAction<string>>;

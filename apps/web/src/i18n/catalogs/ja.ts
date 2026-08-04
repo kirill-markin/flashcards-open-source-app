@@ -818,6 +818,7 @@ export const jaCatalog = {
     editDecks: "デッキを編集",
     empty: "フィルターが見つかりません",
     menuAriaLabel: "復習フィルター",
+    noTags: "タグなし",
     openAriaLabel: "復習フィルターを開く",
     queueBadgeDue: "{{due}} 件期限あり",
     queueBadgeDueUpcoming: "{{due}} 件期限あり | {{upcoming}} 件予定",

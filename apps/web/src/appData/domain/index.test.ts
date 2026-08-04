@@ -13,6 +13,8 @@ import {
   doesCardMutationAffectReviewSchedule,
   matchesCardFilter,
   matchesDeckFilterDefinition,
+  makeTagsReviewFilter,
+  normalizeReviewFilterTags,
   normalizeTagKey,
   recentDuePriorityWindow,
   resolveReviewFilter,
@@ -284,6 +286,17 @@ describe("review tag matching domain", () => {
     expect(normalizeTagKey(" Éclair ")).toBe("éclair");
   });
 
+  it("normalizes, deduplicates, and deterministically orders explicit review tags", () => {
+    expect(normalizeReviewFilterTags([" verbs ", "Grammar", "grammar", ""])).toEqual([
+      "Grammar",
+      "verbs",
+    ]);
+    expect(makeTagsReviewFilter([])).toEqual({
+      kind: "tags",
+      tags: [],
+    });
+  });
+
   it("matches review tag filters by normalized key while preserving canonical stored tag text", () => {
     const matchingCard = {
       ...makeReviewOrderCard("unicode-tag", null, "2026-03-10T09:00:00.000Z", null),
@@ -294,13 +307,13 @@ describe("review tag matching domain", () => {
       tags: ["code"],
     };
     const reviewFilter = {
-      kind: "tag",
-      tag: "éclair",
+      kind: "tags",
+      tags: ["éclair"],
     } as const;
 
     expect(resolveReviewFilter(reviewFilter, [], [matchingCard, otherCard])).toEqual({
-      kind: "tag",
-      tag: "Éclair",
+      kind: "tags",
+      tags: ["Éclair"],
     });
     expect(cardsMatchingReviewFilter(reviewFilter, [], [matchingCard, otherCard]).map((card) => card.cardId)).toEqual([
       "unicode-tag",
@@ -317,6 +330,58 @@ describe("review tag matching domain", () => {
       version: 2,
       tags: ["éclair"],
     }, card)).toBe(true);
+  });
+
+  it("matches explicit review tags with OR semantics and keeps an empty selection match-none", () => {
+    const grammarCard = {
+      ...makeReviewOrderCard("grammar", null, "2026-03-10T09:00:00.000Z", null),
+      tags: ["grammar"],
+    };
+    const verbsCard = {
+      ...makeReviewOrderCard("verbs", null, "2026-03-10T09:01:00.000Z", null),
+      tags: ["verbs"],
+    };
+    const untaggedCard = makeReviewOrderCard("untagged", null, "2026-03-10T09:02:00.000Z", null);
+
+    expect(cardsMatchingReviewFilter(
+      { kind: "tags", tags: ["verbs", "grammar"] },
+      [],
+      [grammarCard, verbsCard, untaggedCard],
+    ).map((card) => card.cardId)).toEqual(["grammar", "verbs"]);
+    expect(cardsMatchingReviewFilter(
+      { kind: "tags", tags: [] },
+      [],
+      [grammarCard, verbsCard, untaggedCard],
+    )).toEqual([]);
+    expect(cardsMatchingReviewFilter(
+      { kind: "allCards" },
+      [],
+      [grammarCard, verbsCard, untaggedCard],
+    ).map((card) => card.cardId)).toEqual(["grammar", "verbs", "untagged"]);
+  });
+
+  it("removes missing requested tags without widening the filter to All Cards", () => {
+    const grammarCard = {
+      ...makeReviewOrderCard("grammar", null, "2026-03-10T09:00:00.000Z", null),
+      tags: ["Grammar"],
+    };
+
+    expect(resolveReviewFilter(
+      { kind: "tags", tags: ["missing", "grammar"] },
+      [],
+      [grammarCard],
+    )).toEqual({
+      kind: "tags",
+      tags: ["Grammar"],
+    });
+    expect(resolveReviewFilter(
+      { kind: "tags", tags: ["missing"] },
+      [],
+      [grammarCard],
+    )).toEqual({
+      kind: "tags",
+      tags: [],
+    });
   });
 
   it("matches card filter tags by normalized key", () => {

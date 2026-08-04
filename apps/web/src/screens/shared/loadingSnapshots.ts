@@ -1,6 +1,7 @@
 import type { Card, ReviewCounts, ReviewFilter } from "../../types";
 import type { LegacyEffortLevel } from "../../types/sync";
 import { appendLegacyEffortTag } from "../../legacyEffort";
+import { normalizeReviewFilterTags, normalizeTagKey } from "../../appData/domain";
 
 const SNAPSHOT_VERSION = 1;
 const REVIEW_LOADING_SNAPSHOT_KEY_PREFIX = "flashcards-review-loading-snapshot";
@@ -62,11 +63,22 @@ function buildCardsLoadingSnapshotStorageKey(workspaceId: string): string {
 }
 
 function buildLegacyEffortReviewFilterKey(reviewFilter: ReviewFilter): string | null {
-  if (reviewFilter.kind !== "tag" || (reviewFilter.tag !== "medium" && reviewFilter.tag !== "long")) {
+  const tag = reviewFilter.kind === "tags" && reviewFilter.tags.length === 1
+    ? reviewFilter.tags[0] ?? null
+    : null;
+  if (tag !== "medium" && tag !== "long") {
     return null;
   }
 
-  return `effort:${reviewFilter.tag}`;
+  return `effort:${tag}`;
+}
+
+function buildLegacyTagReviewFilterKey(reviewFilter: ReviewFilter): string | null {
+  if (reviewFilter.kind !== "tags" || reviewFilter.tags.length !== 1) {
+    return null;
+  }
+
+  return `tag:${reviewFilter.tags[0] ?? ""}`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -270,7 +282,9 @@ export function serializeReviewFilterKey(reviewFilter: ReviewFilter): string {
     return `deck:${reviewFilter.deckId}`;
   }
 
-  return `tag:${reviewFilter.tag}`;
+  return `tags:${normalizeReviewFilterTags(reviewFilter.tags)
+    .map((tag) => encodeURIComponent(normalizeTagKey(tag)))
+    .join(",")}`;
 }
 
 export function buildReviewLoadingCardPreview(card: Card): ReviewLoadingCardPreview {
@@ -308,6 +322,18 @@ export function readReviewLoadingSnapshot(
 
   if (snapshot !== null) {
     return snapshot;
+  }
+
+  const legacyTagReviewFilterKey = buildLegacyTagReviewFilterKey(reviewFilter);
+  if (legacyTagReviewFilterKey !== null) {
+    const legacyTagSnapshot = readReviewLoadingSnapshotForStoredKey(
+      workspaceId,
+      selectedReviewFilterKey,
+      legacyTagReviewFilterKey,
+    );
+    if (legacyTagSnapshot !== null) {
+      return legacyTagSnapshot;
+    }
   }
 
   const legacyEffortReviewFilterKey = buildLegacyEffortReviewFilterKey(reviewFilter);
