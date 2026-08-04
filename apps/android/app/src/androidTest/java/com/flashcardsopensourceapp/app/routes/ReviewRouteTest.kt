@@ -106,9 +106,10 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         isNotificationPermissionPromptVisible = false,
                         isHardAnswerReminderVisible = false
                     ),
+                    workspaceId = "review-route-test-workspace",
                     reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
                     reviewReactionAnimationsEnabled = true,
-                    onSelectFilter = {},
+                    onSelectFilter = { _, _ -> },
                     onOpenPreview = {
                         openPreviewCalls += 1
                     },

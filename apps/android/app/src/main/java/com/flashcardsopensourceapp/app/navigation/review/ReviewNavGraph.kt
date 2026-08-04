@@ -115,6 +115,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 )
             )
             val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
+            val workspaceId by reviewViewModel.workspaceId.collectAsStateWithLifecycle()
             val reviewFilterRequest by appGraph.appHandoffCoordinator.observeReviewFilter().collectAsStateWithLifecycle()
 
             LaunchedEffect(reviewFilterRequest?.requestId, uiState) {
@@ -127,9 +128,10 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
 
             ReviewRoute(
                 uiState = uiState,
+                workspaceId = workspaceId,
                 reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
                 reviewReactionAnimationsEnabled = reviewReactionAnimationsEnabledState.value,
-                onSelectFilter = reviewViewModel::selectFilter,
+                onSelectFilter = reviewViewModel::selectFilterForWorkspace,
                 onOpenPreview = {
                     reviewViewModel.refreshPreview()
                     navController.navigate(route = ReviewPreviewDestination.route)
