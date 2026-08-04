@@ -131,7 +131,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 workspaceId = workspaceId,
                 reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
                 reviewReactionAnimationsEnabled = reviewReactionAnimationsEnabledState.value,
-                onSelectFilter = reviewViewModel::selectFilterForWorkspace,
+                onSelectFilter = reviewViewModel::selectFilterForWorkspaceIfUnchanged,
                 onOpenPreview = {
                     reviewViewModel.refreshPreview()
                     navController.navigate(route = ReviewPreviewDestination.route)

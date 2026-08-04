@@ -192,8 +192,17 @@ class ReviewViewModel(
         onReviewNotificationsChanged(ReviewNotificationsReconcileTrigger.FILTER_CHANGED)
     }
 
-    fun selectFilterForWorkspace(workspaceId: String, reviewFilter: ReviewFilter) {
-        if (workspaceId != activeWorkspaceId) {
+    fun selectFilterForWorkspaceIfUnchanged(
+        workspaceId: String,
+        openingFilter: ReviewFilter,
+        reviewFilter: ReviewFilter
+    ) {
+        if (
+            workspaceId != activeWorkspaceId
+            || draftState.value.requestedFilter != openingFilter
+            || uiState.value.isLoading
+            || reviewFilter == openingFilter
+        ) {
             return
         }
 

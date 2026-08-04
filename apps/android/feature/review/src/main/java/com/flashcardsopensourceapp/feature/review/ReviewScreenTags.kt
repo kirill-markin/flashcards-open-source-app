@@ -18,6 +18,7 @@ const val reviewLeaderboardShortcutTag: String = "review_leaderboard_shortcut"
 const val reviewQueueButtonTag: String = "review_queue_button"
 const val reviewFilterSheetTag: String = "review_filter_sheet"
 const val reviewFilterAllCardsOptionTag: String = "review_filter_all_cards_option"
+const val reviewManageDecksButtonTag: String = "review_manage_decks_button"
 
 fun reviewFilterDeckOptionTag(deckId: String): String = "review_filter_deck_option::$deckId"
 
