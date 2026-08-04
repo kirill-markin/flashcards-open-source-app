@@ -22,6 +22,9 @@ const APP_LOCAL_STORAGE_PREFIX = "flashcards-";
 const APP_LOCAL_STORAGE_KEYS: ReadonlyArray<string> = [
   "selected-review-filter",
 ];
+const APP_LOCAL_STORAGE_KEY_PREFIXES: ReadonlyArray<string> = [
+  "selected-review-filter:",
+];
 const PRESERVED_BROWSER_LOCAL_STORAGE_KEYS: ReadonlyArray<string> = [
   INSTALLATION_ID_STORAGE_KEY,
   LOCALE_PREFERENCE_STORAGE_KEY,
@@ -196,7 +199,9 @@ function shouldRemoveAppLocalStorageKey(storageKey: string): boolean {
     return false;
   }
 
-  return storageKey.startsWith(APP_LOCAL_STORAGE_PREFIX) || APP_LOCAL_STORAGE_KEYS.includes(storageKey);
+  return storageKey.startsWith(APP_LOCAL_STORAGE_PREFIX)
+    || APP_LOCAL_STORAGE_KEYS.includes(storageKey)
+    || APP_LOCAL_STORAGE_KEY_PREFIXES.some((prefix) => storageKey.startsWith(prefix));
 }
 
 function isReauthMarkerStorageKey(storageKey: string): boolean {

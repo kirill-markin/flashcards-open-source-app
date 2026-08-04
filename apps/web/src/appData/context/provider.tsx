@@ -20,7 +20,7 @@ import type {
   WorkspaceSchedulerSettings,
   WorkspaceSummary,
 } from "../../types";
-import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual } from "../domain";
+import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual, normalizeReviewFilter } from "../domain";
 import type { AppDataContextValue, Props, SessionLoadState } from "./types";
 import { useProgressInvalidationRefresh } from "../progress/invalidation/progressInvalidation";
 import { isTestSeedBridgeEnabled, type AppDataTestSeedBridge } from "../sync/local/testSeedBridge";
@@ -28,75 +28,14 @@ import { useSyncEngine } from "../sync/engine/useSyncEngine";
 import { useWorkspaceSession } from "../session/useWorkspaceSession";
 import type { SessionVerificationState } from "../session/workspaceSessionTypes";
 import { loadWarmStartSnapshot, storeWarmStartSnapshot } from "../session/activation/warmStart";
+import {
+  activateWorkspaceReviewFilterState,
+  loadSelectedReviewFilterForWorkspace,
+  storeSelectedReviewFilterForWorkspace,
+  type WorkspaceReviewFilterState,
+} from "./reviewFilterPersistence";
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
-const SELECTED_REVIEW_FILTER_STORAGE_KEY = "selected-review-filter";
-
-function parsePersistedReviewFilter(value: string | null): ReviewFilter {
-  if (value === null) {
-    return ALL_CARDS_REVIEW_FILTER;
-  }
-
-  try {
-    const parsedValue = JSON.parse(value) as unknown;
-    if (
-      typeof parsedValue === "object"
-      && parsedValue !== null
-      && "kind" in parsedValue
-      && parsedValue.kind === "tag"
-      && "tag" in parsedValue
-      && typeof parsedValue.tag === "string"
-      && parsedValue.tag !== ""
-    ) {
-      return {
-        kind: "tag",
-        tag: parsedValue.tag,
-      };
-    }
-
-    if (
-      typeof parsedValue === "object"
-      && parsedValue !== null
-      && "kind" in parsedValue
-      && parsedValue.kind === "effort"
-      && "effortLevel" in parsedValue
-    ) {
-      if (parsedValue.effortLevel === "medium" || parsedValue.effortLevel === "long") {
-        return {
-          kind: "tag",
-          tag: parsedValue.effortLevel,
-        };
-      }
-
-      return {
-        kind: "allCards",
-      };
-    }
-
-    if (
-      typeof parsedValue === "object"
-      && parsedValue !== null
-      && "kind" in parsedValue
-      && parsedValue.kind === "deck"
-      && "deckId" in parsedValue
-      && typeof parsedValue.deckId === "string"
-      && parsedValue.deckId !== ""
-    ) {
-      return {
-        kind: "deck",
-        deckId: parsedValue.deckId,
-      };
-    }
-  } catch {
-    return ALL_CARDS_REVIEW_FILTER;
-  }
-
-  return ALL_CARDS_REVIEW_FILTER;
-}
-
-function loadSelectedReviewFilter(): ReviewFilter {
-  return parsePersistedReviewFilter(window.localStorage.getItem(SELECTED_REVIEW_FILTER_STORAGE_KEY));
-}
 
 function replaceSessionAccountPreferences(
   session: SessionInfo,
@@ -149,7 +88,31 @@ export function AppDataProvider(props: Props): ReactElement {
   const [sessionErrorMessage, setSessionErrorMessageState] = useState<string>("");
   const [sessionTechnicalError, setSessionTechnicalError] = useState<Error | null>(null);
   const [session, setSession] = useState<SessionInfo | null>(warmStartSnapshot?.session ?? null);
-  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceSummary | null>(warmStartSnapshot?.activeWorkspace ?? null);
+  const [workspaceReviewFilterState, setWorkspaceReviewFilterState] = useState<WorkspaceReviewFilterState>(() => {
+    const activeWorkspace = warmStartSnapshot?.activeWorkspace ?? null;
+    const workspaceId = activeWorkspace?.workspaceId ?? null;
+    return {
+      activeWorkspace,
+      selection: {
+        workspaceId,
+        reviewFilter: loadSelectedReviewFilterForWorkspace(workspaceId),
+      },
+    };
+  });
+  const workspaceReviewFilterStateRef = useRef<WorkspaceReviewFilterState>(workspaceReviewFilterState);
+  workspaceReviewFilterStateRef.current = workspaceReviewFilterState;
+  const activeWorkspace = workspaceReviewFilterState.activeWorkspace;
+  const setActiveWorkspace = useCallback(function setActiveWorkspace(
+    nextActiveWorkspace: WorkspaceSummary | null,
+  ): void {
+    const nextState = activateWorkspaceReviewFilterState(
+      workspaceReviewFilterStateRef.current,
+      nextActiveWorkspace,
+      loadSelectedReviewFilterForWorkspace,
+    );
+    workspaceReviewFilterStateRef.current = nextState;
+    setWorkspaceReviewFilterState(nextState);
+  }, []);
   const [availableWorkspaces, setAvailableWorkspaces] = useState<ReadonlyArray<WorkspaceSummary>>(
     warmStartSnapshot?.availableWorkspaces ?? [],
   );
@@ -161,8 +124,6 @@ export function AppDataProvider(props: Props): ReactElement {
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [errorMessage, setErrorMessageState] = useState<string>("");
   const [technicalError, setTechnicalError] = useState<Error | null>(null);
-  const [selectedReviewFilterState, setSelectedReviewFilterState] = useState<ReviewFilter>(loadSelectedReviewFilter);
-  const shouldSkipSelectedReviewFilterPersistRef = useRef<boolean>(false);
   const accountPreferencesMutationVersionRef = useRef<number>(0);
 
   const setSessionErrorMessage = useCallback<Dispatch<SetStateAction<string>>>((nextMessageAction): void => {
@@ -188,14 +149,19 @@ export function AppDataProvider(props: Props): ReactElement {
     setTechnicalError,
   });
 
+  const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
+  const selectedReviewFilterState = workspaceReviewFilterState.selection.reviewFilter;
+
   useEffect(() => {
-    if (shouldSkipSelectedReviewFilterPersistRef.current) {
-      shouldSkipSelectedReviewFilterPersistRef.current = false;
+    if (workspaceReviewFilterState.selection.workspaceId === null) {
       return;
     }
 
-    window.localStorage.setItem(SELECTED_REVIEW_FILTER_STORAGE_KEY, JSON.stringify(selectedReviewFilterState));
-  }, [selectedReviewFilterState]);
+    storeSelectedReviewFilterForWorkspace(
+      workspaceReviewFilterState.selection.workspaceId,
+      workspaceReviewFilterState.selection.reviewFilter,
+    );
+  }, [workspaceReviewFilterState.selection]);
 
   useEffect(() => {
     if (
@@ -273,28 +239,46 @@ export function AppDataProvider(props: Props): ReactElement {
   ]);
 
   const selectReviewFilter = useCallback(function selectReviewFilter(reviewFilter: ReviewFilter): void {
-    if (isReviewFilterEqual(selectedReviewFilterState, reviewFilter)) {
+    if (activeWorkspaceId === null || isReviewFilterEqual(selectedReviewFilterState, reviewFilter)) {
       return;
     }
 
-    setSelectedReviewFilterState(reviewFilter);
-  }, [selectedReviewFilterState]);
+    setWorkspaceReviewFilterState((currentState): WorkspaceReviewFilterState => ({
+      ...currentState,
+      selection: {
+        workspaceId: activeWorkspaceId,
+        reviewFilter: normalizeReviewFilter(reviewFilter),
+      },
+    }));
+  }, [activeWorkspaceId, selectedReviewFilterState]);
 
   const resetUserScopedUiState = useCallback(function resetUserScopedUiState(): void {
-    if (isReviewFilterEqual(selectedReviewFilterState, ALL_CARDS_REVIEW_FILTER) === false) {
-      shouldSkipSelectedReviewFilterPersistRef.current = true;
-    }
-
-    setSelectedReviewFilterState(ALL_CARDS_REVIEW_FILTER);
+    setWorkspaceReviewFilterState((currentState): WorkspaceReviewFilterState => ({
+      ...currentState,
+      selection: {
+        workspaceId: currentState.activeWorkspace?.workspaceId ?? null,
+        reviewFilter: ALL_CARDS_REVIEW_FILTER,
+      },
+    }));
     setWorkspaceSettings(null);
     setLocalReadVersion(0);
     setLocalCardCount(0);
     setIsSyncing(false);
-  }, [selectedReviewFilterState]);
+  }, []);
 
   const openReview = useCallback(function openReview(reviewFilter: ReviewFilter): void {
-    setSelectedReviewFilterState(reviewFilter);
-  }, []);
+    if (activeWorkspaceId === null) {
+      return;
+    }
+
+    setWorkspaceReviewFilterState((currentState): WorkspaceReviewFilterState => ({
+      ...currentState,
+      selection: {
+        workspaceId: activeWorkspaceId,
+        reviewFilter: normalizeReviewFilter(reviewFilter),
+      },
+    }));
+  }, [activeWorkspaceId]);
 
   const setAccountPreferences = useCallback(function setAccountPreferences(
     userId: string,

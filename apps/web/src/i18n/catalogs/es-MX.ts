@@ -818,6 +818,7 @@ const esMxCatalog: TranslationCatalog = {
     editDecks: "Editar mazos",
     empty: "No se encontraron filtros",
     menuAriaLabel: "Filtro de repaso",
+    noTags: "Sin etiquetas",
     openAriaLabel: "Abrir filtro de repaso",
     queueBadgeDue: "{{due}} pendientes",
     queueBadgeDueUpcoming: "{{due}} pendientes | {{upcoming}} próximas",

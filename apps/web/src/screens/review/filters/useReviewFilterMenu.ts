@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { ALL_CARDS_REVIEW_FILTER } from "../../../appData/domain";
+import {
+  ALL_CARDS_REVIEW_FILTER,
+  makeTagsReviewFilter,
+  normalizeReviewFilterTags,
+  normalizeTagKey,
+} from "../../../appData/domain";
 import { useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
 import { useI18n } from "../../../i18n";
 import { settingsDecksRoute } from "../../../routes";
@@ -39,7 +44,7 @@ export type UseReviewFilterMenuResult = Readonly<{
   handleReviewFilterComboboxKeyDown: (event: ReactKeyboardEvent<HTMLInputElement>) => void;
   handleReviewFilterListboxKeyDown: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
   handleReviewFilterMenuToggle: () => void;
-  handleReviewFilterSelect: (reviewFilter: ReviewFilter) => void;
+  handleReviewFilterSelect: (optionKey: string, reviewFilter: ReviewFilter) => void;
   hasVisibleReviewFilterChoices: boolean;
   isReviewFilterMenuOpen: boolean;
   reviewDeckSearchInputRef: React.RefObject<HTMLInputElement | null>;
@@ -64,7 +69,7 @@ function toReviewFilterMenuItemKey(reviewFilter: ReviewFilter): string {
     return `${REVIEW_FILTER_DECK_PREFIX}${reviewFilter.deckId}`;
   }
 
-  return `${REVIEW_FILTER_TAG_PREFIX}${reviewFilter.tag}`;
+  return `${REVIEW_FILTER_TAG_PREFIX}${reviewFilter.tags.map((tag) => encodeURIComponent(tag)).join(",")}`;
 }
 
 function buildReviewDeckFilterMenuItems(
@@ -99,23 +104,63 @@ function buildReviewDeckFilterMenuItems(
 }
 
 function buildReviewTagFilterMenuItems(
+  deckSummaries: ReadonlyArray<DeckSummary>,
   reviewTagSummaries: ReadonlyArray<WorkspaceTagSummary>,
   selectedReviewFilter: ReviewFilter,
 ): Array<ReviewFilterChoiceMenuItem> {
+  const availableTags = reviewTagSummaries.map((tagSummary) => tagSummary.tag);
+  const materializedTags = resolveMaterializedTags(selectedReviewFilter, deckSummaries, availableTags);
+  const selectedTagKeys = new Set(materializedTags.map((tag) => normalizeTagKey(tag)));
+  const availableTagKeys = new Set(availableTags.map((tag) => normalizeTagKey(tag)));
+
   return reviewTagSummaries.map((tagSummary) => {
-    const reviewFilter: ReviewFilter = {
-      kind: "tag",
-      tag: tagSummary.tag,
-    };
+    const tagKey = normalizeTagKey(tagSummary.tag);
+    const nextSelectedTags = selectedTagKeys.has(tagKey)
+      ? materializedTags.filter((tag) => normalizeTagKey(tag) !== tagKey)
+      : [...materializedTags, tagSummary.tag];
+    const normalizedNextSelectedTags = normalizeReviewFilterTags(nextSelectedTags);
+    const hasMissingSelectedTag = normalizedNextSelectedTags.some(
+      (tag) => availableTagKeys.has(normalizeTagKey(tag)) === false,
+    );
+    const isEveryAvailableTagSelected = normalizedNextSelectedTags.length === availableTagKeys.size
+      && normalizedNextSelectedTags.every((tag) => availableTagKeys.has(normalizeTagKey(tag)));
+    const reviewFilter = isEveryAvailableTagSelected && hasMissingSelectedTag === false
+      ? ALL_CARDS_REVIEW_FILTER
+      : makeTagsReviewFilter(normalizedNextSelectedTags);
 
     return {
-      key: toReviewFilterMenuItemKey(reviewFilter),
+      key: `${REVIEW_FILTER_TAG_PREFIX}${tagKey}`,
       label: `${tagSummary.tag} (${tagSummary.cardsCount})`,
       reviewFilter,
       subtitle: null,
-      isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(reviewFilter),
+      isSelected: selectedTagKeys.has(tagKey),
     };
   });
+}
+
+function resolveMaterializedTags(
+  selectedReviewFilter: ReviewFilter,
+  deckSummaries: ReadonlyArray<DeckSummary>,
+  availableTags: ReadonlyArray<string>,
+): ReadonlyArray<string> {
+  if (selectedReviewFilter.kind === "allCards") {
+    return normalizeReviewFilterTags(availableTags);
+  }
+
+  if (selectedReviewFilter.kind === "tags") {
+    return normalizeReviewFilterTags(selectedReviewFilter.tags);
+  }
+
+  const selectedDeck = deckSummaries.find(
+    (deck) => deck.deckId === selectedReviewFilter.deckId,
+  );
+  if (selectedDeck === undefined) {
+    return [];
+  }
+
+  return selectedDeck.filterDefinition.tags.length === 0
+    ? normalizeReviewFilterTags(availableTags)
+    : normalizeReviewFilterTags(selectedDeck.filterDefinition.tags);
 }
 
 function buildReviewFilterMenuItems(label: string): Array<ReviewFilterMenuItem> {
@@ -212,7 +257,11 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     t("filters.allCards"),
     t("reviewFilterMenu.deckSmartFilterLabel"),
   );
-  const reviewTagFilterMenuItems = buildReviewTagFilterMenuItems(reviewTagSummaries, selectedReviewFilter);
+  const reviewTagFilterMenuItems = buildReviewTagFilterMenuItems(
+    deckSummaries,
+    reviewTagSummaries,
+    selectedReviewFilter,
+  );
   const reviewFilterMenuItems = buildReviewFilterMenuItems(t("reviewFilterMenu.editDecks"));
   const totalReviewFilterChoicesCount = reviewDeckFilterMenuItems.length
     + reviewTagFilterMenuItems.length;
@@ -327,9 +376,9 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     setIsReviewFilterMenuOpen(true);
   }
 
-  function handleReviewFilterSelect(reviewFilter: ReviewFilter): void {
+  function handleReviewFilterSelect(optionKey: string, reviewFilter: ReviewFilter): void {
+    setActiveReviewFilterOptionKey(optionKey);
     onSelectReviewFilter(reviewFilter);
-    handleCloseMenu();
   }
 
   function preventReviewFilterHandledKeyDown(event: ReactKeyboardEvent<HTMLInputElement | HTMLDivElement>): void {
@@ -360,7 +409,6 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     );
     if (activeReviewFilterOption !== null) {
       onSelectReviewFilter(activeReviewFilterOption.reviewFilter);
-      closeReviewFilterMenuAndFocusTrigger();
     }
   }
 

@@ -9,10 +9,11 @@ import type {
 } from "../../types";
 import {
   ALL_CARDS_REVIEW_FILTER,
+  makeTagsReviewFilter,
   matchesDeckFilterDefinition,
   recentDuePriorityWindow,
 } from "../../appData/domain";
-import { loadAllowedCardIdsForTag } from "../cards/tags";
+import { loadReviewTagFilterLookupForTags } from "../cards/tags";
 import {
   iterateLocalStoredCardsByCreatedAtAsc,
   iterateLocalStoredCardsByCreatedAtDesc,
@@ -102,22 +103,12 @@ async function resolveReviewFilterFromIndexedDb(
     };
   }
 
-  const tagCardIdsLookup = await loadAllowedCardIdsForTag(database, workspaceId, reviewFilter.tag);
-  if (tagCardIdsLookup.cardIds.size === 0 || tagCardIdsLookup.canonicalTag === null) {
-    return {
-      resolvedReviewFilter: ALL_CARDS_REVIEW_FILTER,
-      deck: null,
-      allowedTagCardIds: null,
-    };
-  }
+  const tagFilterLookup = await loadReviewTagFilterLookupForTags(database, workspaceId, reviewFilter.tags);
 
   return {
-    resolvedReviewFilter: {
-      kind: "tag",
-      tag: tagCardIdsLookup.canonicalTag,
-    },
+    resolvedReviewFilter: makeTagsReviewFilter(tagFilterLookup.canonicalTags),
     deck: null,
-    allowedTagCardIds: tagCardIdsLookup.cardIds,
+    allowedTagCardIds: tagFilterLookup.cardIds,
   };
 }
 

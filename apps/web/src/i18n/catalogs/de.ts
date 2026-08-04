@@ -818,6 +818,7 @@ const deCatalog: TranslationCatalog = {
     editDecks: "Decks bearbeiten",
     empty: "Keine Filter gefunden",
     menuAriaLabel: "Wiederholungsfilter",
+    noTags: "Keine Tags",
     openAriaLabel: "Wiederholungsfilter öffnen",
     queueBadgeDue: "{{due}} fällig",
     queueBadgeDueUpcoming: "{{due}} fällig | {{upcoming}} anstehend",

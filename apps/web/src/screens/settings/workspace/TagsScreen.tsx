@@ -91,8 +91,8 @@ export function TagsScreen(): ReactElement {
 
   function handleOpenTagReview(tag: string): void {
     const reviewFilter: ReviewFilter = {
-      kind: "tag",
-      tag,
+      kind: "tags",
+      tags: [tag],
     };
 
     openReview(reviewFilter);
