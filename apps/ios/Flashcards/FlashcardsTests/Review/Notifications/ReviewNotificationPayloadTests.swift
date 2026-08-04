@@ -119,6 +119,60 @@ final class ReviewNotificationPayloadTests: ReviewNotificationsTestCase {
         XCTAssertEqual(result.payloads.count, 3)
     }
 
+    func testLoadScheduledReviewNotificationPayloadsSuppressesOnlyExplicitEmptyTagSelection() async throws {
+        let (database, databaseURL) = try makeTemporaryLocalDatabase()
+        defer {
+            try? database.close()
+            try? removeTemporaryDatabase(at: databaseURL)
+        }
+
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let calendar = makeCalendar()
+        let now = try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 9, minute: 0, calendar: calendar))
+        let settings = ReviewNotificationsSettings(
+            isEnabled: true,
+            selectedMode: .daily,
+            daily: DailyReviewNotificationsSettings(
+                hour: defaultDailyReminderHour,
+                minute: defaultDailyReminderMinute
+            ),
+            inactivity: InactivityReviewNotificationsSettings(
+                windowStartHour: defaultDailyReminderHour,
+                windowStartMinute: defaultDailyReminderMinute,
+                windowEndHour: defaultInactivityReminderWindowEndHour,
+                windowEndMinute: defaultInactivityReminderWindowEndMinute,
+                idleMinutes: 120
+            ),
+            showAppIconBadge: true
+        )
+        let allCardsResult = try await loadScheduledReviewNotificationPayloads(
+            snapshot: ReviewNotificationSchedulingSnapshot(
+                databaseURL: databaseURL,
+                workspaceId: workspace.workspaceId,
+                reviewFilter: .allCards,
+                now: now,
+                settings: settings,
+                lastActiveAt: nil,
+                pendingRequestLimit: 3
+            )
+        )
+        let emptyTagsResult = try await loadScheduledReviewNotificationPayloads(
+            snapshot: ReviewNotificationSchedulingSnapshot(
+                databaseURL: databaseURL,
+                workspaceId: workspace.workspaceId,
+                reviewFilter: makeReviewTagsFilter(tags: []),
+                now: now,
+                settings: settings,
+                lastActiveAt: nil,
+                pendingRequestLimit: 3
+            )
+        )
+
+        XCTAssertEqual(allCardsResult.payloads.count, 3)
+        XCTAssertTrue(allCardsResult.payloads.allSatisfy { $0.content == .fallback })
+        XCTAssertEqual(emptyTagsResult.payloads, [])
+    }
+
     func testRepeatedPayloadsUseReplacementCurrentCardAndUniqueIdentifiers() throws {
         let calendar = makeCalendar()
         let scheduledDates = [
@@ -199,6 +253,92 @@ final class ReviewNotificationPayloadTests: ReviewNotificationsTestCase {
         XCTAssertEqual(decodedPayload.notificationBodyText, reviewNotificationFallbackBodyText)
         XCTAssertNil(decodedPayload.cardId)
         XCTAssertEqual(decodedPayload.requestId, encodedPayload.requestId)
+    }
+
+    func testPersistedReviewFiltersDecodeLegacyKindsAndRoundTripMultipleTags() throws {
+        let decoder = JSONDecoder()
+        let legacyTag = try decoder.decode(
+            PersistedReviewFilter.self,
+            from: Data(#"{"kind":"tag","tag":"Biology"}"#.utf8)
+        )
+        let legacyDeck = try decoder.decode(
+            PersistedReviewFilter.self,
+            from: Data(#"{"kind":"deck","deckId":"deck-1"}"#.utf8)
+        )
+        let legacyEffort = try decoder.decode(
+            PersistedReviewFilter.self,
+            from: Data(#"{"kind":"effort","effortLevel":"medium"}"#.utf8)
+        )
+        let multiTagFilter = makeReviewTagsFilter(tags: [" chemistry ", "Biology", "biology"])
+        let persistedMultiTagFilter = makePersistedReviewFilter(reviewFilter: multiTagFilter)
+        let decodedMultiTagFilter = try decoder.decode(
+            PersistedReviewFilter.self,
+            from: JSONEncoder().encode(persistedMultiTagFilter)
+        )
+
+        XCTAssertEqual(try makeReviewFilter(persistedReviewFilter: legacyTag), makeReviewTagsFilter(tags: ["Biology"]))
+        XCTAssertEqual(try makeReviewFilter(persistedReviewFilter: legacyDeck), .deck(deckId: "deck-1"))
+        XCTAssertEqual(try makeReviewFilter(persistedReviewFilter: legacyEffort), makeReviewTagsFilter(tags: ["medium"]))
+        XCTAssertEqual(try makeReviewFilter(persistedReviewFilter: decodedMultiTagFilter), multiTagFilter)
+    }
+
+    func testSelectedMultipleTagFilterPersistsPerWorkspace() throws {
+        let suiteName = "ReviewFilterPersistenceTests-\(UUID().uuidString)"
+        guard let userDefaults = UserDefaults(suiteName: suiteName) else {
+            XCTFail("Expected isolated UserDefaults suite")
+            return
+        }
+        defer {
+            userDefaults.removePersistentDomain(forName: suiteName)
+        }
+        let reviewFilter = makeReviewTagsFilter(tags: ["Chemistry", "Biology"])
+        userDefaults.set(
+            try JSONEncoder().encode(makePersistedReviewFilter(reviewFilter: reviewFilter)),
+            forKey: makeSelectedReviewFilterUserDefaultsKey(workspaceId: "workspace-1")
+        )
+
+        XCTAssertEqual(
+            FlashcardsStore.loadSelectedReviewFilter(
+                userDefaults: userDefaults,
+                decoder: JSONDecoder(),
+                workspaceId: "workspace-1"
+            ),
+            reviewFilter
+        )
+        XCTAssertEqual(
+            FlashcardsStore.loadSelectedReviewFilter(
+                userDefaults: userDefaults,
+                decoder: JSONDecoder(),
+                workspaceId: "workspace-2"
+            ),
+            .allCards
+        )
+    }
+
+    func testReviewNotificationUserInfoCarriesMultipleTagFilterAndLegacyPayloadRemainsReadable() {
+        let persistedFilter = makePersistedReviewFilter(
+            reviewFilter: makeReviewTagsFilter(tags: ["Biology", "Chemistry"])
+        )
+        let requestIdentifier = makeReviewNotificationRequestIdentifier(
+            workspaceId: "workspace-1",
+            kind: "daily",
+            suffix: "2026-04-03-10-00"
+        )
+
+        XCTAssertEqual(
+            parseAppNotificationTapRequest(
+                userInfo: buildReviewNotificationUserInfo(reviewFilter: persistedFilter),
+                requestIdentifier: requestIdentifier
+            ),
+            .openFilteredReviewReminder(workspaceId: "workspace-1", reviewFilter: persistedFilter)
+        )
+        XCTAssertEqual(
+            parseAppNotificationTapRequest(
+                userInfo: buildAppNotificationUserInfo(notificationType: .reviewReminder),
+                requestIdentifier: requestIdentifier
+            ),
+            .openReviewReminder(workspaceId: "workspace-1")
+        )
     }
 
     func testFilterReviewNotificationRequestIdentifiersKeepsOnlyReviewNotifications() {

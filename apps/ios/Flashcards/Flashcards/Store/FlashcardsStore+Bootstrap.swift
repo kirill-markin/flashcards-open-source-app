@@ -1,5 +1,49 @@
 import Foundation
 
+private struct LoadedLocalReadModels {
+    let cards: [Card]
+    let decks: [Deck]
+    let deckItems: [DeckListItem]
+    let homeSnapshot: HomeSnapshot
+}
+
+private func loadLocalReadModels(
+    database: LocalDatabase,
+    snapshot: AppBootstrapSnapshot,
+    now: Date
+) throws -> LoadedLocalReadModels {
+    let cards = try database.loadActiveCards(workspaceId: snapshot.workspace.workspaceId)
+    let decks = try database.loadActiveDecks(workspaceId: snapshot.workspace.workspaceId)
+    let overviewSnapshot = try database.loadWorkspaceOverviewSnapshot(
+        workspaceId: snapshot.workspace.workspaceId,
+        workspaceName: snapshot.workspace.name,
+        now: now
+    )
+    return LoadedLocalReadModels(
+        cards: cards,
+        decks: decks,
+        deckItems: makeDeckListItems(decks: decks, cards: cards, now: now),
+        homeSnapshot: HomeSnapshot(
+            deckCount: overviewSnapshot.deckCount,
+            totalCards: overviewSnapshot.totalCards,
+            dueCount: overviewSnapshot.dueCount,
+            newCount: overviewSnapshot.newCount,
+            reviewedCount: overviewSnapshot.reviewedCount
+        )
+    )
+}
+
+private func loadResolvedReviewQueryForReload(
+    database: LocalDatabase,
+    workspaceId: String,
+    reviewFilter: ReviewFilter
+) throws -> ResolvedReviewQuery {
+    try database.loadResolvedReviewQuery(
+        workspaceId: workspaceId,
+        reviewFilter: reviewFilter
+    )
+}
+
 @MainActor
 extension FlashcardsStore {
     private func clearScheduledNotificationStorageForWorkspaceSwitch(
@@ -48,13 +92,43 @@ extension FlashcardsStore {
         now: Date,
         refreshVisibleProgress: Bool
     ) throws {
+        try self.reload(
+            now: now,
+            refreshVisibleProgress: refreshVisibleProgress,
+            resolvedReviewQueryLoader: loadResolvedReviewQueryForReload
+        )
+    }
+
+    private func reload(
+        now: Date,
+        refreshVisibleProgress: Bool,
+        resolvedReviewQueryLoader: (
+            LocalDatabase,
+            String,
+            ReviewFilter
+        ) throws -> ResolvedReviewQuery
+    ) throws {
         guard let database else {
             throw LocalStoreError.uninitialized("Local database is unavailable")
         }
 
         let bootstrapSnapshot = try database.loadBootstrapSnapshot()
+        let localReadModels = try loadLocalReadModels(
+            database: database,
+            snapshot: bootstrapSnapshot,
+            now: now
+        )
+        let reviewFilter = self.reviewFilterForReload(snapshot: bootstrapSnapshot)
+        let resolvedReviewQuery = try resolvedReviewQueryLoader(
+            database,
+            bootstrapSnapshot.workspace.workspaceId,
+            reviewFilter
+        )
         self.applyLoadedBootstrapSnapshot(
             snapshot: bootstrapSnapshot,
+            localReadModels: localReadModels,
+            resolvedReviewQuery: resolvedReviewQuery,
+            databaseURL: database.databaseURL,
             now: now,
             refreshVisibleProgress: refreshVisibleProgress
         )
@@ -66,8 +140,14 @@ extension FlashcardsStore {
         }
 
         let bootstrapSnapshot = try database.loadBootstrapSnapshot()
+        let localReadModels = try loadLocalReadModels(
+            database: database,
+            snapshot: bootstrapSnapshot,
+            now: now
+        )
         self.applyLoadedCredentialRecoveryGateSnapshot(
             snapshot: bootstrapSnapshot,
+            localReadModels: localReadModels,
             now: now
         )
     }
@@ -78,64 +158,38 @@ extension FlashcardsStore {
 
     private func applyLoadedCredentialRecoveryGateSnapshot(
         snapshot: AppBootstrapSnapshot,
+        localReadModels: LoadedLocalReadModels,
         now: Date
     ) {
-        self.applyLoadedLocalSnapshotContent(snapshot: snapshot, now: now)
+        self.applyLoadedLocalSnapshotContent(
+            snapshot: snapshot,
+            localReadModels: localReadModels
+        )
         self.localReadVersion += 1
     }
 
     private func applyLoadedLocalSnapshotContent(
         snapshot: AppBootstrapSnapshot,
-        now: Date
+        localReadModels: LoadedLocalReadModels
     ) {
+        self.reviewRuntime.invalidateReviewSource()
         self.workspace = snapshot.workspace
         self.userSettings = snapshot.userSettings
         self.schedulerSettings = snapshot.schedulerSettings
         self.cloudSettings = snapshot.cloudSettings
         self.reloadCachedAccountPreferencesForCurrentIdentity()
         self.reloadFeedbackPromptStateForCurrentIdentity()
-        self.cards = []
-        self.decks = []
-        self.deckItems = []
-        self.homeSnapshot = HomeSnapshot(
-            deckCount: 0,
-            totalCards: 0,
-            dueCount: 0,
-            newCount: 0,
-            reviewedCount: 0
-        )
-
-        if let database {
-            do {
-                let activeCards = try database.loadActiveCards(workspaceId: snapshot.workspace.workspaceId)
-                let activeDecks = try database.loadActiveDecks(workspaceId: snapshot.workspace.workspaceId)
-                let overviewSnapshot = try database.loadWorkspaceOverviewSnapshot(
-                    workspaceId: snapshot.workspace.workspaceId,
-                    workspaceName: snapshot.workspace.name,
-                    now: now
-                )
-                self.cards = activeCards
-                self.decks = activeDecks
-                self.deckItems = makeDeckListItems(
-                    decks: activeDecks,
-                    cards: activeCards,
-                    now: now
-                )
-                self.homeSnapshot = HomeSnapshot(
-                    deckCount: overviewSnapshot.deckCount,
-                    totalCards: overviewSnapshot.totalCards,
-                    dueCount: overviewSnapshot.dueCount,
-                    newCount: overviewSnapshot.newCount,
-                    reviewedCount: overviewSnapshot.reviewedCount
-                )
-            } catch {
-                self.globalErrorMessage = Flashcards.errorMessage(error: error)
-            }
-        }
+        self.cards = localReadModels.cards
+        self.decks = localReadModels.decks
+        self.deckItems = localReadModels.deckItems
+        self.homeSnapshot = localReadModels.homeSnapshot
     }
 
-    func applyLoadedBootstrapSnapshot(
+    private func applyLoadedBootstrapSnapshot(
         snapshot: AppBootstrapSnapshot,
+        localReadModels: LoadedLocalReadModels,
+        resolvedReviewQuery: ResolvedReviewQuery,
+        databaseURL: URL,
         now: Date,
         refreshVisibleProgress: Bool
     ) {
@@ -152,7 +206,10 @@ extension FlashcardsStore {
             self.resetReviewRuntimeForWorkspace(nextWorkspaceId: snapshot.workspace.workspaceId)
         }
 
-        self.applyLoadedLocalSnapshotContent(snapshot: snapshot, now: now)
+        self.applyLoadedLocalSnapshotContent(
+            snapshot: snapshot,
+            localReadModels: localReadModels
+        )
         self.globalErrorMessage = ""
         self.reloadReviewNotificationsSettings()
         self.reloadStrictRemindersSettings()
@@ -170,7 +227,12 @@ extension FlashcardsStore {
             self.prepareProgressForCurrentVisibleTab(now: now)
         }
         self.cachedAIChatStore?.refreshAccessContextIfNeeded()
-        self.refreshReviewState(now: now)
+        self.startResolvedReviewLoad(
+            resolvedReviewQuery: resolvedReviewQuery,
+            workspaceId: snapshot.workspace.workspaceId,
+            databaseURL: databaseURL,
+            now: now
+        )
         if didTransitionWorkspace == false {
             self.reconcileStrictReminders(trigger: .reviewHistoryImported, now: now)
         }
@@ -196,36 +258,39 @@ extension FlashcardsStore {
     private func refreshBootstrapSnapshotContentWithoutReset(now: Date) throws -> BootstrapSnapshotRefreshOutcome {
         let database = try requireLocalDatabase(database: self.database)
         let bootstrapSnapshot = try database.loadBootstrapSnapshot()
-        let nextCards = try database.loadActiveCards(workspaceId: bootstrapSnapshot.workspace.workspaceId)
-        let nextDecks = try database.loadActiveDecks(workspaceId: bootstrapSnapshot.workspace.workspaceId)
-        let nextDeckItems = makeDeckListItems(decks: nextDecks, cards: nextCards, now: now)
-        let nextHomeSnapshot = try database.loadWorkspaceOverviewSnapshot(
-            workspaceId: bootstrapSnapshot.workspace.workspaceId,
-            workspaceName: bootstrapSnapshot.workspace.name,
+        let localReadModels = try loadLocalReadModels(
+            database: database,
+            snapshot: bootstrapSnapshot,
             now: now
         )
-        let resolvedHomeSnapshot = HomeSnapshot(
-            deckCount: nextHomeSnapshot.deckCount,
-            totalCards: nextHomeSnapshot.totalCards,
-            dueCount: nextHomeSnapshot.dueCount,
-            newCount: nextHomeSnapshot.newCount,
-            reviewedCount: nextHomeSnapshot.reviewedCount
-        )
+        let nextCards = localReadModels.cards
+        let nextDecks = localReadModels.decks
+        let nextDeckItems = localReadModels.deckItems
+        let resolvedHomeSnapshot = localReadModels.homeSnapshot
 
         let previousWorkspaceId = self.workspace?.workspaceId
         let didSwitchWorkspace = previousWorkspaceId != bootstrapSnapshot.workspace.workspaceId
         let didTransitionWorkspace = previousWorkspaceId != nil && didSwitchWorkspace
         let workspaceChanged = self.workspace != bootstrapSnapshot.workspace
         let cardsChanged = self.cards != nextCards
+        let decksChanged = self.decks != nextDecks
+        let schedulerSettingsChanged = self.schedulerSettings != bootstrapSnapshot.schedulerSettings
+        let reviewSourceChanged = cardsChanged || decksChanged || schedulerSettingsChanged
+        let shouldRestartActiveReviewLoad = reviewSourceChanged
+            && (self.isReviewHeadLoading || self.isReviewCountsLoading || self.isReviewQueueChunkLoading)
         let didChange = workspaceChanged
             || self.userSettings != bootstrapSnapshot.userSettings
             || self.schedulerSettings != bootstrapSnapshot.schedulerSettings
             || self.cloudSettings != bootstrapSnapshot.cloudSettings
             || cardsChanged
-            || self.decks != nextDecks
+            || decksChanged
             || self.deckItems != nextDeckItems
             || self.homeSnapshot != resolvedHomeSnapshot
         let homeSnapshotChanged = self.homeSnapshot != resolvedHomeSnapshot
+
+        if reviewSourceChanged {
+            self.reviewRuntime.invalidateReviewSource()
+        }
 
         self.workspace = bootstrapSnapshot.workspace
         self.userSettings = bootstrapSnapshot.userSettings
@@ -238,6 +303,9 @@ extension FlashcardsStore {
         self.deckItems = nextDeckItems
         self.homeSnapshot = resolvedHomeSnapshot
         self.globalErrorMessage = ""
+        if shouldRestartActiveReviewLoad {
+            self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
+        }
         if didTransitionWorkspace {
             self.clearScheduledNotificationStorageForWorkspaceSwitch(
                 previousWorkspaceId: previousWorkspaceId,
@@ -272,7 +340,21 @@ extension FlashcardsStore {
         )
     }
 
+    private func reviewFilterForReload(snapshot: AppBootstrapSnapshot) -> ReviewFilter {
+        guard self.workspace?.workspaceId != snapshot.workspace.workspaceId else {
+            return self.selectedReviewFilter
+        }
+        return FlashcardsStore.loadSelectedReviewFilter(
+            userDefaults: self.userDefaults,
+            decoder: self.decoder,
+            workspaceId: snapshot.workspace.workspaceId
+        )
+    }
+
     func applyReviewPublishedState(reviewState: ReviewQueuePublishedState) {
+        if reviewState != self.currentReviewPublishedState() {
+            self.reviewRuntime.invalidateReviewReconciliation()
+        }
         self.selectedReviewFilter = reviewState.selectedReviewFilter
         self.reviewQueue = reviewState.reviewQueue
         self.presentedReviewCard = reviewState.presentedReviewCard
@@ -298,12 +380,50 @@ extension FlashcardsStore {
         )
     }
 
-    func refreshLocalReadModels(now: Date) {
+    func reloadAfterReviewSourceMutation(now: Date) throws {
+        try self.reloadAfterReviewSourceMutation(
+            now: now,
+            resolvedReviewQueryLoader: loadResolvedReviewQueryForReload
+        )
+    }
+
+    func reloadAfterReviewSourceMutation(
+        now: Date,
+        resolvedReviewQueryLoader: (
+            LocalDatabase,
+            String,
+            ReviewFilter
+        ) throws -> ResolvedReviewQuery
+    ) throws {
+        do {
+            try self.reload(
+                now: now,
+                refreshVisibleProgress: true,
+                resolvedReviewQueryLoader: resolvedReviewQueryLoader
+            )
+        } catch {
+            self.settleReviewSourceRefreshFailure(error: error)
+            throw error
+        }
+    }
+
+    @discardableResult
+    func refreshLocalReadModels(now: Date) -> Bool {
         do {
             try self.reload(now: now, refreshVisibleProgress: true)
+            return true
         } catch {
-            self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            self.settleReviewSourceRefreshFailure(error: error)
+            return false
         }
+    }
+
+    func settleReviewSourceRefreshFailure(error: Error) {
+        let settledReviewState = self.reviewRuntime.settleInvalidatedReviewLoads(
+            publishedState: self.currentReviewPublishedState()
+        )
+        self.applyReviewPublishedState(reviewState: settledReviewState)
+        self.globalErrorMessage = Flashcards.errorMessage(error: error)
     }
 
     func loadWorkspaceTagsSummary() throws -> WorkspaceTagsSummary {

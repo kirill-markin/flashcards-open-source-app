@@ -91,7 +91,7 @@ func makeReviewReminderAttentionState(
     guard let request = parseAppNotificationTapRequest(
         userInfo: notification.request.content.userInfo,
         requestIdentifier: requestId
-    ), case .openReviewReminder(let workspaceId) = request else {
+    ), let workspaceId = reviewReminderWorkspaceId(request: request) else {
         return nil
     }
 

@@ -17,8 +17,8 @@ private func reviewOperationFilterKind(reviewFilter: ReviewFilter) -> String {
         return "all_cards"
     case .deck:
         return "deck"
-    case .tag:
-        return "tag"
+    case .tags:
+        return "tags"
     }
 }
 
@@ -111,31 +111,41 @@ extension FlashcardsStore {
 
     @discardableResult
     func startReviewLoad(reviewFilter: ReviewFilter, now: Date) -> Bool {
-        guard let database = self.database else {
-            self.globalErrorMessage = "Local database is unavailable"
-            return false
-        }
-        guard let workspaceId = self.workspace?.workspaceId else {
-            self.globalErrorMessage = "Workspace is unavailable"
-            return false
-        }
-
-        let resolvedReviewQuery: ResolvedReviewQuery
         do {
-            resolvedReviewQuery = try database.loadResolvedReviewQuery(
-                workspaceId: workspaceId,
-                reviewFilter: reviewFilter
-            )
+            try self.startReviewLoadOrThrow(reviewFilter: reviewFilter, now: now)
+            return true
         } catch {
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
             return false
         }
+    }
 
+    func startReviewLoadOrThrow(reviewFilter: ReviewFilter, now: Date) throws {
+        let database = try requireLocalDatabase(database: self.database)
+        let workspaceId = try requireWorkspaceId(workspace: self.workspace)
+        let resolvedReviewQuery = try database.loadResolvedReviewQuery(
+            workspaceId: workspaceId,
+            reviewFilter: reviewFilter
+        )
+        self.startResolvedReviewLoad(
+            resolvedReviewQuery: resolvedReviewQuery,
+            workspaceId: workspaceId,
+            databaseURL: database.databaseURL,
+            now: now
+        )
+    }
+
+    func startResolvedReviewLoad(
+        resolvedReviewQuery: ResolvedReviewQuery,
+        workspaceId: String,
+        databaseURL: URL,
+        now: Date
+    ) {
         let plan = self.reviewRuntime.startReviewLoad(
             publishedState: self.currentReviewPublishedState(),
             resolvedReviewQuery: resolvedReviewQuery,
             workspaceId: workspaceId,
-            databaseURL: database.databaseURL,
+            databaseURL: databaseURL,
             now: now
         )
         self.applyReviewPublishedState(reviewState: plan.publishedState)
@@ -222,37 +232,6 @@ extension FlashcardsStore {
             task: headTask,
             requestId: plan.headRequest.requestId
         )
-        return true
-    }
-
-    func refreshReviewState(now: Date) {
-        let startedAt = Date()
-        let startState = self.currentReviewPublishedState()
-        addReviewForegroundOperationBreadcrumb(
-            store: self,
-            action: .reviewStateRefresh,
-            phase: .start,
-            startedAt: nil,
-            requestId: nil,
-            reviewFilter: startState.selectedReviewFilter,
-            reviewRefreshMode: nil,
-            reviewLoadKind: nil,
-            publishedState: startState,
-            errorSummary: nil
-        )
-        let didStart = self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
-        addReviewForegroundOperationBreadcrumb(
-            store: self,
-            action: .reviewStateRefresh,
-            phase: didStart ? .success : .failure,
-            startedAt: startedAt,
-            requestId: nil,
-            reviewFilter: self.selectedReviewFilter,
-            reviewRefreshMode: nil,
-            reviewLoadKind: nil,
-            publishedState: self.currentReviewPublishedState(),
-            errorSummary: didStart ? nil : self.globalErrorMessage
-        )
     }
 
     func refreshReviewState(now: Date, mode: ReviewRefreshMode) async throws -> Bool {
@@ -274,18 +253,18 @@ extension FlashcardsStore {
             let didRefresh: Bool
             switch mode {
             case .blockingReset:
-                let didStart = self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
+                try self.startReviewLoadOrThrow(reviewFilter: self.selectedReviewFilter, now: now)
                 addReviewForegroundOperationBreadcrumb(
                     store: self,
                     action: .reviewStateRefresh,
-                    phase: didStart ? .success : .failure,
+                    phase: .success,
                     startedAt: startedAt,
                     requestId: nil,
                     reviewFilter: self.selectedReviewFilter,
                     reviewRefreshMode: mode,
                     reviewLoadKind: nil,
                     publishedState: self.currentReviewPublishedState(),
-                    errorSummary: didStart ? nil : self.globalErrorMessage
+                    errorSummary: nil
                 )
                 return true
             case .backgroundReconcileSilently:
@@ -413,14 +392,19 @@ extension FlashcardsStore {
             return
         }
 
+        let requestedReviewFilter = self.selectedReviewFilter
         let resolvedReviewQuery: ResolvedReviewQuery
         do {
             resolvedReviewQuery = try requireLocalDatabase(database: self.database).loadResolvedReviewQuery(
                 workspaceId: workspaceId,
-                reviewFilter: self.selectedReviewFilter
+                reviewFilter: requestedReviewFilter
             )
         } catch {
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            return
+        }
+        guard resolvedReviewQuery.reviewFilter == requestedReviewFilter else {
+            self.startReviewLoad(reviewFilter: requestedReviewFilter, now: now)
             return
         }
 
@@ -584,90 +568,101 @@ extension FlashcardsStore {
                     reviewedTimeZone: request.reviewedTimeZone
                 )
             )
-            let now = Date()
-            let reviewedAt = parseIsoTimestamp(value: request.reviewedAtClient) ?? now
-            let reviewCount = self.recordSuccessfulReviewNotificationEffects(
-                reviewedAt: reviewedAt,
-                workspaceId: request.workspaceId,
-                now: now
-            )
-            guard self.reviewSubmissionRequestMatchesCurrentContext(request: request, now: now) else {
-                self.applyStaleReviewSubmissionCompletion(request: request)
-                return
-            }
+        } catch {
+            self.handleReviewSubmissionFailure(request: request, submissionError: error)
+            return
+        }
 
-            let bootstrapRefreshOutcome = try self.refreshBootstrapSnapshotWithoutProgressContextRefresh(now: now)
-            let didReconcileReviewState = try await self.reconcileReviewState(
+        let now = Date()
+        self.reviewRuntime.invalidateReviewSource()
+        let reviewedAt = parseIsoTimestamp(value: request.reviewedAtClient) ?? now
+        let reviewCount = self.recordSuccessfulReviewNotificationEffects(
+            reviewedAt: reviewedAt,
+            workspaceId: request.workspaceId,
+            now: now
+        )
+        guard self.reviewSubmissionRequestMatchesCurrentContext(request: request, now: now) else {
+            self.applyStaleSuccessfulReviewSubmissionCompletion(request: request, now: now)
+            return
+        }
+
+        let bootstrapRefreshOutcome: BootstrapSnapshotRefreshOutcome
+        let didReconcileReviewState: Bool
+        do {
+            bootstrapRefreshOutcome = try self.refreshBootstrapSnapshotWithoutProgressContextRefresh(now: now)
+            didReconcileReviewState = try await self.reconcileReviewState(
                 now: now,
                 trigger: .localReview
             )
-            let completionValidationContext = self.makeReviewSubmissionRollbackValidationContext(now: now)
-            guard self.reviewSubmissionRequestMatchesCurrentContext(
+        } catch {
+            self.applyStaleReviewSubmissionCompletion(request: request)
+            self.settleReviewSourceRefreshFailure(error: error)
+            return
+        }
+        let completionValidationContext = self.makeReviewSubmissionRollbackValidationContext(now: now)
+        guard self.reviewSubmissionRequestMatchesCurrentContext(
+            request: request,
+            validationContext: completionValidationContext
+        ) else {
+            self.applyStaleSuccessfulReviewSubmissionCompletion(request: request, now: now)
+            return
+        }
+
+        self.applyReviewPublishedState(
+            reviewState: self.reviewRuntime.completeReviewSubmission(
+                publishedState: self.currentReviewPublishedState(),
                 request: request,
                 validationContext: completionValidationContext
-            ) else {
-                self.applyStaleReviewSubmissionCompletion(request: request)
-                return
-            }
-
-            self.applyReviewPublishedState(
-                reviewState: self.reviewRuntime.completeReviewSubmission(
-                    publishedState: self.currentReviewPublishedState(),
-                    request: request,
-                    validationContext: completionValidationContext
-                )
             )
-            self.handleProgressLocalMutation(
-                now: now,
-                reviewedAtClient: request.reviewedAtClient,
-                reviewedTimeZone: request.reviewedTimeZone,
-                rating: request.rating
-            )
-            if bootstrapRefreshOutcome.didChange || didReconcileReviewState {
-                self.localReadVersion += 1
-            }
-            func triggerSuccessfulReviewCloudSync() {
-                self.triggerCloudSyncIfLinked(
-                    trigger: CloudSyncTrigger(
-                        source: .localMutation,
-                        now: now,
-                        extendsFastPolling: true,
-                        allowsVisibleChangeBanner: false,
-                        surfacesGlobalErrorMessage: false,
-                        capturesTechnicalFailures: false
-                    )
-                )
-            }
-
-            let shouldShowReviewNotificationPrePrompt = await self.resolveSuccessfulReviewNotificationPrePromptDecision(
-                reviewCount: reviewCount
-            )
-            guard self.successfulReviewSubmissionPromptContextMatchesCurrentState(
-                request: request,
-                now: Date()
-            ) else {
-                triggerSuccessfulReviewCloudSync()
-                return
-            }
-
-            self.handleSuccessfulReviewHardReminder(
-                rating: request.rating,
-                now: now
-            )
-            let didShowReviewNotificationPrePrompt = self.isReviewHardReminderPresented == false
-                && shouldShowReviewNotificationPrePrompt
-                && self.presentReviewNotificationPrePromptIfAllowed()
-            if didShowReviewNotificationPrePrompt == false
-                && self.isReviewNotificationPrePromptPresented == false
-                && self.isReviewHardReminderPresented == false
-                && self.pendingStoreReviewRequestAttempt == nil {
-                self.prepareStoreReviewRequestAttemptAfterSuccessfulReview(now: now)
-            }
-            self.startAutomaticFeedbackPromptCheckAfterSuccessfulReview(now: now)
-            triggerSuccessfulReviewCloudSync()
-        } catch {
-            self.handleReviewSubmissionFailure(request: request, submissionError: error)
+        )
+        self.handleProgressLocalMutation(
+            now: now,
+            reviewedAtClient: request.reviewedAtClient,
+            reviewedTimeZone: request.reviewedTimeZone,
+            rating: request.rating
+        )
+        if bootstrapRefreshOutcome.didChange || didReconcileReviewState {
+            self.localReadVersion += 1
         }
+        func triggerSuccessfulReviewCloudSync() {
+            self.triggerCloudSyncIfLinked(
+                trigger: CloudSyncTrigger(
+                    source: .localMutation,
+                    now: now,
+                    extendsFastPolling: true,
+                    allowsVisibleChangeBanner: false,
+                    surfacesGlobalErrorMessage: false,
+                    capturesTechnicalFailures: false
+                )
+            )
+        }
+
+        let shouldShowReviewNotificationPrePrompt = await self.resolveSuccessfulReviewNotificationPrePromptDecision(
+            reviewCount: reviewCount
+        )
+        guard self.successfulReviewSubmissionPromptContextMatchesCurrentState(
+            request: request,
+            now: Date()
+        ) else {
+            triggerSuccessfulReviewCloudSync()
+            return
+        }
+
+        self.handleSuccessfulReviewHardReminder(
+            rating: request.rating,
+            now: now
+        )
+        let didShowReviewNotificationPrePrompt = self.isReviewHardReminderPresented == false
+            && shouldShowReviewNotificationPrePrompt
+            && self.presentReviewNotificationPrePromptIfAllowed()
+        if didShowReviewNotificationPrePrompt == false
+            && self.isReviewNotificationPrePromptPresented == false
+            && self.isReviewHardReminderPresented == false
+            && self.pendingStoreReviewRequestAttempt == nil {
+            self.prepareStoreReviewRequestAttemptAfterSuccessfulReview(now: now)
+        }
+        self.startAutomaticFeedbackPromptCheckAfterSuccessfulReview(now: now)
+        triggerSuccessfulReviewCloudSync()
     }
 
     private func successfulReviewSubmissionPromptContextMatchesCurrentState(
@@ -734,6 +729,14 @@ extension FlashcardsStore {
                 request: request
             )
         )
+    }
+
+    private func applyStaleSuccessfulReviewSubmissionCompletion(
+        request: ReviewSubmissionRequest,
+        now: Date
+    ) {
+        self.applyStaleReviewSubmissionCompletion(request: request)
+        self.refreshLocalReadModels(now: now)
     }
 
     func handleReviewSubmissionFailure(request: ReviewSubmissionRequest, submissionError: Error) {
@@ -825,11 +828,14 @@ extension FlashcardsStore {
             throw LocalStoreError.uninitialized("Workspace is unavailable")
         }
 
+        let requestedReviewFilter = self.selectedReviewFilter
         let resolvedReviewQuery = try database.loadResolvedReviewQuery(
             workspaceId: workspaceId,
-            reviewFilter: self.selectedReviewFilter
+            reviewFilter: requestedReviewFilter
         )
         let currentReviewState = self.currentReviewPublishedState()
+        let reviewSourceVersion = self.reviewRuntime.currentReviewSourceVersion()
+        let reconciliationGeneration = self.reviewRuntime.beginReviewReconciliation()
         let currentEffectiveQueue = self.reviewRuntime.effectiveReviewQueue(publishedState: currentReviewState)
         let currentCardId = currentReviewCard(reviewQueue: currentEffectiveQueue)?.cardId
         let currentSignature = makeReviewSessionSignature(
@@ -863,7 +869,14 @@ extension FlashcardsStore {
         guard workspaceId == self.workspace?.workspaceId else {
             return false
         }
-        guard resolvedReviewQuery.reviewFilter == self.selectedReviewFilter else {
+        guard currentReviewState == self.currentReviewPublishedState() else {
+            return false
+        }
+        guard self.reviewRuntime.reviewSourceVersionMatches(sourceVersion: reviewSourceVersion) else {
+            self.startReviewLoad(reviewFilter: requestedReviewFilter, now: now)
+            return false
+        }
+        guard self.reviewRuntime.shouldApplyReviewReconciliation(generation: reconciliationGeneration) else {
             return false
         }
         let refreshedReviewQueue = reviewQueueWindowState.reviewQueue

@@ -131,7 +131,7 @@ struct TagsScreen: View {
     }
 
     private func openReview(tag: String) {
-        store.selectReviewFilter(reviewFilter: .tag(tag: tag))
+        store.selectReviewFilter(reviewFilter: makeReviewTagsFilter(tags: [tag]))
         navigation.selectTab(.review)
     }
 }

@@ -65,7 +65,7 @@ enum ReviewRating: Int, CaseIterable, Codable, Hashable, Identifiable, Sendable 
 enum ReviewFilter: Hashable, Identifiable, Sendable {
     case allCards
     case deck(deckId: String)
-    case tag(tag: String)
+    case tags(tags: [String])
 
     var id: String {
         switch self {
@@ -73,9 +73,47 @@ enum ReviewFilter: Hashable, Identifiable, Sendable {
             return "system-all-cards"
         case .deck(let deckId):
             return "deck:\(deckId)"
-        case .tag(let tag):
-            return "tag:\(tag)"
+        case .tags(let tags):
+            return "tags:\(tags.map(normalizeTagKey).joined(separator: "\u{1F}"))"
         }
+    }
+}
+
+func normalizedReviewTagNames(tags: [String]) -> [String] {
+    normalizeTags(values: tags, referenceTags: []).sorted { leftTag, rightTag in
+        let leftKey = normalizeTagKey(tag: leftTag)
+        let rightKey = normalizeTagKey(tag: rightTag)
+        if leftKey != rightKey {
+            return leftKey < rightKey
+        }
+
+        return leftTag < rightTag
+    }
+}
+
+func makeReviewTagsFilter(tags: [String]) -> ReviewFilter {
+    .tags(tags: normalizedReviewTagNames(tags: tags))
+}
+
+func localizedReviewTagsFilterTitle(tags: [String]) -> String {
+    switch tags.count {
+    case 0:
+        return String(localized: "No tags", table: "ReviewCards")
+    case 1:
+        return tags[0]
+    default:
+        let count = tags.count
+        return String(
+            localized: "\(count) tags",
+            table: "ReviewCards",
+            comment: "Review filter title for multiple selected tags"
+        )
+    }
+}
+
+extension ReviewFilter {
+    static func tag(tag: String) -> ReviewFilter {
+        makeReviewTagsFilter(tags: [tag])
     }
 }
 

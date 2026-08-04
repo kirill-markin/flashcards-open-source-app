@@ -289,6 +289,126 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
         XCTAssertEqual(reviewCounts, ReviewCounts(dueCount: 2, totalCount: 2))
     }
 
+    func testSQLiteTagReviewFilterMatchesAnySelectedTagAndEmptySelectionMatchesNone() throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "biology-card",
+            dueAt: nil,
+            createdAt: "2026-03-09T08:00:00.000Z",
+            tags: ["Biology"]
+        )
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "chemistry-card",
+            dueAt: nil,
+            createdAt: "2026-03-09T07:00:00.000Z",
+            tags: ["Chemistry"]
+        )
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "untagged-card",
+            dueAt: nil,
+            createdAt: "2026-03-09T06:00:00.000Z",
+            tags: []
+        )
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "physics-card",
+            dueAt: nil,
+            createdAt: "2026-03-09T05:00:00.000Z",
+            tags: ["Physics"]
+        )
+
+        let unionQuery = try database.loadResolvedReviewQuery(
+            workspaceId: workspace.workspaceId,
+            reviewFilter: makeReviewTagsFilter(tags: ["chemistry", "biology"])
+        )
+        let unionHead = try database.loadReviewHead(
+            workspaceId: workspace.workspaceId,
+            resolvedReviewFilter: unionQuery.reviewFilter,
+            reviewQueryDefinition: unionQuery.queryDefinition,
+            now: now,
+            limit: 8
+        )
+        let emptyQuery = try database.loadResolvedReviewQuery(
+            workspaceId: workspace.workspaceId,
+            reviewFilter: makeReviewTagsFilter(tags: [])
+        )
+        let emptyCounts = try database.loadReviewCounts(
+            workspaceId: workspace.workspaceId,
+            reviewQueryDefinition: emptyQuery.queryDefinition,
+            now: now
+        )
+        let missingTagQuery = try database.loadResolvedReviewQuery(
+            workspaceId: workspace.workspaceId,
+            reviewFilter: makeReviewTagsFilter(tags: ["Missing"])
+        )
+        let partiallyResolvedQuery = try database.loadResolvedReviewQuery(
+            workspaceId: workspace.workspaceId,
+            reviewFilter: makeReviewTagsFilter(tags: ["biology", "Missing"])
+        )
+        let reloadedPartiallyResolvedQuery = try database.loadResolvedReviewQuery(
+            workspaceId: workspace.workspaceId,
+            reviewFilter: partiallyResolvedQuery.reviewFilter
+        )
+        let restoredCompleteFilter = try makeReviewFilter(
+            persistedReviewFilter: makePersistedReviewFilter(
+                reviewFilter: makeReviewTagsFilter(tags: ["biology", "chemistry", "physics"])
+            )
+        )
+        let completeSelectionQuery = try database.loadResolvedReviewQuery(
+            workspaceId: workspace.workspaceId,
+            reviewFilter: restoredCompleteFilter
+        )
+        let notificationCard = try XCTUnwrap(
+            database.loadCurrentReviewNotificationCard(
+                workspaceId: workspace.workspaceId,
+                reviewFilter: partiallyResolvedQuery.reviewFilter,
+                now: now
+            )
+        )
+        let completeSelectionNotificationCard = try XCTUnwrap(
+            database.loadCurrentReviewNotificationCard(
+                workspaceId: workspace.workspaceId,
+                reviewFilter: restoredCompleteFilter,
+                now: now
+            )
+        )
+
+        XCTAssertEqual(unionQuery.reviewFilter, makeReviewTagsFilter(tags: ["Biology", "Chemistry"]))
+        XCTAssertEqual(unionHead.seedReviewQueue.map(\.cardId), ["chemistry-card", "biology-card"])
+        XCTAssertEqual(emptyQuery.reviewFilter, makeReviewTagsFilter(tags: []))
+        XCTAssertEqual(emptyCounts, ReviewCounts(dueCount: 0, totalCount: 0))
+        XCTAssertEqual(missingTagQuery.reviewFilter, makeReviewTagsFilter(tags: ["Missing"]))
+        XCTAssertEqual(missingTagQuery.queryDefinition, .tag(exactTagNames: []))
+        XCTAssertEqual(
+            partiallyResolvedQuery.reviewFilter,
+            makeReviewTagsFilter(tags: ["Biology", "Missing"])
+        )
+        XCTAssertEqual(partiallyResolvedQuery.queryDefinition, .tag(exactTagNames: ["Biology"]))
+        XCTAssertEqual(reloadedPartiallyResolvedQuery, partiallyResolvedQuery)
+        XCTAssertEqual(completeSelectionQuery.reviewFilter, .allCards)
+        XCTAssertEqual(completeSelectionQuery.queryDefinition, .allCards)
+        XCTAssertEqual(notificationCard.cardId, "biology-card")
+        XCTAssertEqual(
+            try makeReviewFilter(persistedReviewFilter: notificationCard.reviewFilter),
+            partiallyResolvedQuery.reviewFilter
+        )
+        XCTAssertEqual(completeSelectionNotificationCard.cardId, "physics-card")
+        XCTAssertEqual(
+            try makeReviewFilter(persistedReviewFilter: completeSelectionNotificationCard.reviewFilter),
+            .allCards
+        )
+    }
+
     func testSQLiteDeckReviewQueueOrdersNewCardsByCreatedAtAscending() throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
