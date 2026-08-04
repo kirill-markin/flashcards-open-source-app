@@ -25,6 +25,7 @@ internal fun initialReviewAppMetadataSummary(textProvider: ReviewTextProvider): 
 internal fun initialReviewUiState(textProvider: ReviewTextProvider): ReviewUiState {
     return ReviewUiState(
         isLoading = true,
+        requestedFilter = ReviewFilter.AllCards,
         selectedFilter = ReviewFilter.AllCards,
         selectedFilterTitle = textProvider.allCardsTitle(),
         remainingCount = 0,
@@ -123,6 +124,7 @@ internal fun mapToReviewUiState(
 
     return ReviewUiState(
         isLoading = sessionSnapshot.isLoading,
+        requestedFilter = state.requestedFilter,
         selectedFilter = sessionSnapshot.selectedFilter,
         selectedFilterTitle = textProvider.filterTitle(
             selectedFilter = sessionSnapshot.selectedFilter,

@@ -239,6 +239,7 @@
     <string name="settings_notification_diagnostics_filter_kind_label">Filter kind</string>
     <string name="settings_notification_diagnostics_filter_deck_label">Filter deck</string>
     <string name="settings_notification_diagnostics_filter_tag_label">Filter tag</string>
+    <string name="settings_notification_diagnostics_filter_tags_label">Filter tags</string>
     <string name="settings_notification_diagnostics_time_offset_label">Time offset</string>
 
     <string name="settings_cloud_status_disconnected">Disconnected</string>

@@ -103,7 +103,8 @@ data class NotificationDiagnosticsReviewPayloadUiState(
 data class NotificationDiagnosticsReviewFilterUiState(
     val kind: String,
     val deckId: String?,
-    val tag: String?
+    val tag: String?,
+    val tags: List<String>?
 )
 
 data class NotificationDiagnosticsStrictReminderPayloadUiState(

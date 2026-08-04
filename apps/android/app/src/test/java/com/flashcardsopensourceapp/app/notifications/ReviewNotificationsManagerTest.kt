@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.app.notifications.review.reviewReminderNotifi
 import com.flashcardsopensourceapp.app.notifications.strict.strictReminderNotificationTag
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -92,30 +93,71 @@ class ReviewNotificationsManagerTest {
     }
 
     @Test
-    fun directMissingTagFilterSchedulesAllCardsPlan() {
+    fun directMissingTagFilterSuppressesScheduledPayloads() {
         val plan: ReviewNotificationFilterPlan = resolveReviewNotificationFilterPlan(
-            selectedReviewFilter = ReviewFilter.Tag(tag = "missing-tag"),
+            selectedReviewFilter = ReviewFilter.Tags(tags = listOf("missing-tag")),
             activeReviewTagNames = listOf("Éclair", "Plain"),
             selectedDeckFilterDefinition = null
         )
 
         assertEquals(
-            ReviewNotificationFilterPlan.Schedule(reviewFilter = ReviewFilter.AllCards),
+            ReviewNotificationFilterPlan.SuppressScheduledPayloads,
             plan
         )
     }
 
     @Test
-    fun directDeletedOnlyTagFilterSchedulesAllCardsFromActiveReviewTagSource() {
+    fun directDeletedOnlyTagFilterSuppressesScheduledPayloads() {
         val plan: ReviewNotificationFilterPlan = resolveReviewNotificationFilterPlan(
-            selectedReviewFilter = ReviewFilter.Tag(tag = "stale"),
+            selectedReviewFilter = ReviewFilter.Tags(tags = listOf("stale")),
             activeReviewTagNames = listOf("Visible"),
             selectedDeckFilterDefinition = null
         )
 
         assertEquals(
-            ReviewNotificationFilterPlan.Schedule(reviewFilter = ReviewFilter.AllCards),
+            ReviewNotificationFilterPlan.SuppressScheduledPayloads,
             plan
+        )
+    }
+
+    @Test
+    fun multiTagFilterDropsMissingTagsAndCanonicalizesEveryCurrentTagToAllCards() {
+        val partialPlan: ReviewNotificationFilterPlan = resolveReviewNotificationFilterPlan(
+            selectedReviewFilter = makeReviewTagFilter(tagNames = listOf("Éclair", "missing")),
+            activeReviewTagNames = listOf("Éclair", "Plain"),
+            selectedDeckFilterDefinition = null
+        )
+        val allTagsPlan: ReviewNotificationFilterPlan = resolveReviewNotificationFilterPlan(
+            selectedReviewFilter = makeReviewTagFilter(tagNames = listOf("Éclair", "Plain")),
+            activeReviewTagNames = listOf("Éclair", "Plain"),
+            selectedDeckFilterDefinition = null
+        )
+        val missingPlusEveryRemainingTagPlan: ReviewNotificationFilterPlan = resolveReviewNotificationFilterPlan(
+            selectedReviewFilter = makeReviewTagFilter(tagNames = listOf("Éclair", "missing")),
+            activeReviewTagNames = listOf("Éclair"),
+            selectedDeckFilterDefinition = null
+        )
+
+        assertEquals(
+            ReviewNotificationFilterPlan.Schedule(
+                queryReviewFilter = ReviewFilter.Tags(tags = listOf("Éclair")),
+                payloadReviewFilter = makeReviewTagFilter(tagNames = listOf("Éclair", "missing"))
+            ),
+            partialPlan
+        )
+        assertEquals(
+            ReviewNotificationFilterPlan.Schedule(
+                queryReviewFilter = ReviewFilter.AllCards,
+                payloadReviewFilter = ReviewFilter.AllCards
+            ),
+            allTagsPlan
+        )
+        assertEquals(
+            ReviewNotificationFilterPlan.Schedule(
+                queryReviewFilter = ReviewFilter.Tags(tags = listOf("Éclair")),
+                payloadReviewFilter = makeReviewTagFilter(tagNames = listOf("Éclair", "missing"))
+            ),
+            missingPlusEveryRemainingTagPlan
         )
     }
 
@@ -145,7 +187,10 @@ class ReviewNotificationsManagerTest {
         )
 
         assertEquals(
-            ReviewNotificationFilterPlan.Schedule(reviewFilter = ReviewFilter.AllCards),
+            ReviewNotificationFilterPlan.Schedule(
+                queryReviewFilter = ReviewFilter.AllCards,
+                payloadReviewFilter = ReviewFilter.AllCards
+            ),
             plan
         )
     }
@@ -153,7 +198,7 @@ class ReviewNotificationsManagerTest {
     @Test
     fun validUnicodeCaseNormalizedTagAndDeckFiltersRemainSchedulable() {
         val tagPlan: ReviewNotificationFilterPlan = resolveReviewNotificationFilterPlan(
-            selectedReviewFilter = ReviewFilter.Tag(tag = "éclair"),
+            selectedReviewFilter = ReviewFilter.Tags(tags = listOf("éclair")),
             activeReviewTagNames = listOf("Éclair", "Привет"),
             selectedDeckFilterDefinition = null
         )
@@ -167,11 +212,17 @@ class ReviewNotificationsManagerTest {
         )
 
         assertEquals(
-            ReviewNotificationFilterPlan.Schedule(reviewFilter = ReviewFilter.Tag(tag = "Éclair")),
+            ReviewNotificationFilterPlan.Schedule(
+                queryReviewFilter = ReviewFilter.Tags(tags = listOf("Éclair")),
+                payloadReviewFilter = ReviewFilter.Tags(tags = listOf("éclair"))
+            ),
             tagPlan
         )
         assertEquals(
-            ReviewNotificationFilterPlan.Schedule(reviewFilter = ReviewFilter.Deck(deckId = "deck-1")),
+            ReviewNotificationFilterPlan.Schedule(
+                queryReviewFilter = ReviewFilter.Deck(deckId = "deck-1"),
+                payloadReviewFilter = ReviewFilter.Deck(deckId = "deck-1")
+            ),
             deckPlan
         )
     }

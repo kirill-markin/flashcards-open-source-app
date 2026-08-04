@@ -624,9 +624,11 @@ class ReviewViewModel(
                 if (reviewSessionState.requestedFilter != requestedFilter) {
                     return@collect
                 }
-                if (requestedFilter == sessionSnapshot.selectedFilter) {
-                    return@collect
-                }
+                val resolvedFilterToApply = reviewFilterResolutionToApply(
+                    requestedFilter = requestedFilter,
+                    resolvedFilter = sessionSnapshot.selectedFilter,
+                    availableTagFilters = sessionSnapshot.availableTagFilters
+                ) ?: return@collect
 
                 reviewFilterGeneration += 1L
                 lastObservedReviewSessionSignature = null
@@ -634,12 +636,12 @@ class ReviewViewModel(
                 draftState.update { state ->
                     applyResolvedReviewFilter(
                         state = state,
-                        reviewFilter = sessionSnapshot.selectedFilter
+                        reviewFilter = resolvedFilterToApply
                     )
                 }
                 reviewPreferencesStore.saveSelectedReviewFilter(
                     workspaceId = workspaceId,
-                    reviewFilter = sessionSnapshot.selectedFilter
+                    reviewFilter = resolvedFilterToApply
                 )
             }
         }

@@ -289,6 +289,7 @@ private fun hasOwnedDeckFilterOptionChange(
         val nextOption = nextOptionsByDeckId[previousOption.deckId] ?: return false
         val countDelta = previousOption.totalCount - nextOption.totalCount
         nextOption.title == previousOption.title &&
+            nextOption.tags == previousOption.tags &&
             countDelta >= 0 &&
             countDelta <= committedReviewedCards.size
     }
@@ -322,11 +323,7 @@ private fun hasOwnedTagFilterOptionChange(
         }
         val expectedCount = previousOption.totalCount - expectedDelta
         val nextOption = nextOptionsByTag[previousOption.tag]
-        if (expectedCount <= 0) {
-            nextOption == null
-        } else {
-            nextOption?.totalCount == expectedCount
-        }
+        nextOption?.totalCount == maxOf(0, expectedCount)
     }
 }
 

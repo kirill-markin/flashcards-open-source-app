@@ -76,6 +76,7 @@ fun ReviewRoute(
     onScreenVisible: () -> Unit
 ) {
     var isFilterSheetVisible by remember { mutableStateOf(value = false) }
+    var filterSheetSelection by remember { mutableStateOf<ReviewFilter?>(value = null) }
     var speechErrorMessage by remember { mutableStateOf(value = "") }
     var activeReviewReactionEvents by remember {
         mutableStateOf<List<ReviewReactionEvent>>(value = emptyList())
@@ -201,6 +202,7 @@ fun ReviewRoute(
                 reviewProgressBadge = uiState.reviewProgressBadge,
                 selectedFilterTitle = uiState.selectedFilterTitle,
                 onOpenFilter = {
+                    filterSheetSelection = uiState.requestedFilter
                     isFilterSheetVisible = true
                 },
                 onOpenPreview = onOpenPreview,
@@ -300,18 +302,30 @@ fun ReviewRoute(
 
     if (isFilterSheetVisible) {
         ReviewFilterSheet(
-            selectedFilter = uiState.selectedFilter,
+            selectedFilter = filterSheetSelection ?: uiState.requestedFilter,
             availableDeckFilters = uiState.availableDeckFilters,
             availableTagFilters = uiState.availableTagFilters,
             onDismiss = {
                 isFilterSheetVisible = false
+                filterSheetSelection = null
             },
             onSelectFilter = { nextFilter ->
+                filterSheetSelection = nextFilter
                 onSelectFilter(nextFilter)
-                isFilterSheetVisible = false
+            },
+            onToggleTag = { tagName ->
+                val nextFilter = toggleReviewTagFilter(
+                    selectedFilter = filterSheetSelection ?: uiState.requestedFilter,
+                    toggledTagName = tagName,
+                    availableDeckFilters = uiState.availableDeckFilters,
+                    availableTagFilters = uiState.availableTagFilters
+                )
+                filterSheetSelection = nextFilter
+                onSelectFilter(nextFilter)
             },
             onManageDecks = {
                 isFilterSheetVisible = false
+                filterSheetSelection = null
                 onOpenDeckManagement()
             }
         )

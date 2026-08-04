@@ -367,6 +367,14 @@ private fun NotificationDiagnosticsReviewPayloadCard(
                     label = stringResource(R.string.settings_notification_diagnostics_filter_tag_label),
                     value = tag
                 )
+            },
+            payload.reviewFilter.tags?.let { tags ->
+                NotificationDiagnosticsInfoRow(
+                    label = stringResource(R.string.settings_notification_diagnostics_filter_tags_label),
+                    value = tags.joinToString(separator = ", ").ifEmpty {
+                        context.getString(R.string.settings_none)
+                    }
+                )
             }
         )
     )

@@ -104,7 +104,7 @@ class LocalReviewQueueContractTest {
             presentedCardId = null
         ).first()
         val tagSnapshot = reviewRepository.observeReviewSession(
-            selectedFilter = ReviewFilter.Tag(tag = "ui"),
+            selectedFilter = ReviewFilter.Tags(tags = listOf("ui")),
             pendingReviewedCards = emptySet(),
             presentedCardId = null
         ).first()

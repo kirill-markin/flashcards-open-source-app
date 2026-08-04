@@ -73,6 +73,44 @@ class LocalReviewRollbackContractTest {
     }
 
     @Test
+    fun reviewRepositoryLoadsRollbackForPartiallyResolvedMissingTagFilter(): Unit = runBlocking {
+        val nowMillis = System.currentTimeMillis()
+        val workspaceId = bootstrapTestWorkspace(runtime = runtime, currentTimeMillis = nowMillis)
+        val reviewRepository = createTestReviewRepository(runtime = runtime)
+        val alphaTag = TagEntity(
+            tagId = "rollback-partial-alpha-tag",
+            workspaceId = workspaceId,
+            name = "Alpha"
+        )
+        val submittedCard = makeNewReviewOrderingCardEntity(
+            cardId = "rollback-partial-alpha-card",
+            workspaceId = workspaceId,
+            createdAtMillis = nowMillis,
+            updatedAtMillis = nowMillis
+        )
+        database.cardDao().insertCard(card = submittedCard)
+        database.tagDao().insertTags(tags = listOf(alphaTag))
+        database.tagDao().insertCardTags(
+            cardTags = listOf(
+                CardTagEntity(cardId = submittedCard.cardId, tagId = alphaTag.tagId)
+            )
+        )
+
+        val sessionSnapshot = reviewRepository.observeReviewSession(
+            selectedFilter = ReviewFilter.Tags(tags = listOf("Alpha", "missing")),
+            pendingReviewedCards = emptySet(),
+            presentedCardId = null
+        ).first()
+        val rollbackCard = reviewRepository.loadReviewCardForRollback(
+            selectedFilter = sessionSnapshot.selectedFilter,
+            cardId = submittedCard.cardId
+        )
+
+        assertEquals(ReviewFilter.Tags(tags = listOf("Alpha")), sessionSnapshot.selectedFilter)
+        assertEquals(submittedCard.cardId, rollbackCard?.cardId)
+    }
+
+    @Test
     fun reviewRepositoryRejectsRollbackForNonCurrentOrInactiveCards(): Unit = runBlocking {
         val nowMillis = System.currentTimeMillis()
         val oneDayMillis = 86_400_000L
@@ -211,7 +249,7 @@ class LocalReviewRollbackContractTest {
 
         val activeReviewTagNames = database.tagDao().loadReviewTagNames(workspaceId = workspaceId)
         val missingTagRollbackCard = reviewRepository.loadReviewCardForRollback(
-            selectedFilter = ReviewFilter.Tag(tag = "Stale"),
+            selectedFilter = ReviewFilter.Tags(tags = listOf("Stale")),
             cardId = visibleCard.cardId
         )
         val missingDeckRollbackCard = reviewRepository.loadReviewCardForRollback(

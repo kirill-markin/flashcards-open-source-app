@@ -387,9 +387,172 @@ class ReviewFilterAndSessionGenerationTest {
     }
 
     @Test
+    fun rapidOwnedReviewConsumesMatchingMarkerWhenTagRowsReachZero() {
+        val firstSubmittedCard = makePinnedReviewCard(
+            cardId = "rapid-zero-first-card",
+            tags = listOf("other"),
+            updatedAtMillis = 50L
+        )
+        val secondSubmittedCard = makePinnedReviewCard(
+            cardId = "rapid-zero-second-card",
+            tags = listOf("exhausted", "fast"),
+            updatedAtMillis = 51L
+        )
+        val nextCard = makePinnedReviewCard(
+            cardId = "rapid-zero-next-card",
+            tags = emptyList(),
+            updatedAtMillis = 52L
+        )
+        val firstPendingCard = PendingReviewedCard(
+            cardId = firstSubmittedCard.cardId,
+            updatedAtMillis = firstSubmittedCard.updatedAtMillis
+        )
+        val secondPendingCard = PendingReviewedCard(
+            cardId = secondSubmittedCard.cardId,
+            updatedAtMillis = secondSubmittedCard.updatedAtMillis
+        )
+        val previousSignature = createObservedReviewSessionSignature(
+            reviewCards = listOf(nextCard),
+            presentedCard = nextCard,
+            dueCount = 1,
+            remainingCount = 1,
+            totalCount = 2,
+            availableTagFilters = listOf(
+                ReviewTagFilterOption(tag = "exhausted", totalCount = 1),
+                ReviewTagFilterOption(tag = "fast", totalCount = 1),
+                ReviewTagFilterOption(tag = "other", totalCount = 0)
+            )
+        )
+        val nextSignature = createObservedReviewSessionSignature(
+            reviewCards = listOf(nextCard),
+            presentedCard = nextCard,
+            dueCount = 0,
+            remainingCount = 0,
+            totalCount = 2,
+            availableTagFilters = listOf(
+                ReviewTagFilterOption(tag = "exhausted", totalCount = 0),
+                ReviewTagFilterOption(tag = "fast", totalCount = 0),
+                ReviewTagFilterOption(tag = "other", totalCount = 0)
+            )
+        )
+        val state = makePinnedReviewDraftState(
+            requestedFilter = ReviewFilter.AllCards,
+            presentedCard = nextCard,
+            reviewedInSessionCount = 0,
+            pendingReviewedCards = setOf(firstPendingCard, secondPendingCard),
+            optimisticPreparedCurrentCard = makePreparedReviewCardPresentation(card = nextCard),
+            errorMessage = ""
+        )
+        val ownedReviewSubmissions = mapOf(
+            firstPendingCard to makeOwnedReviewSubmission(
+                pendingReviewedCard = firstPendingCard,
+                reviewedCard = firstSubmittedCard,
+                presentedCard = nextCard,
+                observationState = OwnedReviewSubmissionObservationState.COMMIT_PENDING_OBSERVATION
+            ),
+            secondPendingCard to makeOwnedReviewSubmission(
+                pendingReviewedCard = secondPendingCard,
+                reviewedCard = secondSubmittedCard,
+                presentedCard = nextCard,
+                observationState = OwnedReviewSubmissionObservationState.COMMIT_PENDING_OBSERVATION
+            )
+        )
+        val suppression = requireNotNull(
+            findOwnedReviewSessionObservationSuppression(
+                previousSignature = previousSignature,
+                nextSignature = nextSignature,
+                state = state,
+                ownedReviewSubmissions = ownedReviewSubmissions
+            )
+        )
+
+        assertFalse(
+            shouldAdvanceReviewSessionGeneration(
+                previousSignature = previousSignature,
+                nextSignature = nextSignature,
+                state = state,
+                ownedReviewSubmissions = ownedReviewSubmissions
+            )
+        )
+        assertEquals(setOf(secondPendingCard), suppression.consumedPendingReviewedCards)
+    }
+
+    @Test
+    fun concurrentDeckTagChangeAdvancesGenerationDuringOwnedReview() {
+        val submittedCard = makePinnedReviewCard(
+            cardId = "deck-definition-change-card",
+            tags = listOf("fast"),
+            updatedAtMillis = 53L
+        )
+        val pendingReviewedCard = PendingReviewedCard(
+            cardId = submittedCard.cardId,
+            updatedAtMillis = submittedCard.updatedAtMillis
+        )
+        val previousSignature = createObservedReviewSessionSignature(
+            reviewCards = emptyList(),
+            presentedCard = null,
+            dueCount = 1,
+            remainingCount = 1,
+            totalCount = 1,
+            availableTagFilters = listOf(ReviewTagFilterOption(tag = "fast", totalCount = 1))
+        )
+        val nextSignature = createObservedReviewSessionSignature(
+            reviewCards = emptyList(),
+            presentedCard = null,
+            dueCount = 0,
+            remainingCount = 0,
+            totalCount = 1,
+            availableTagFilters = listOf(ReviewTagFilterOption(tag = "fast", totalCount = 0))
+        ).copy(
+            availableDeckFilters = listOf(
+                ReviewDeckFilterOption(
+                    deckId = "all-fast",
+                    title = "All fast",
+                    totalCount = 0,
+                    tags = listOf("changed")
+                )
+            )
+        )
+        val state = makePinnedReviewDraftState(
+            requestedFilter = ReviewFilter.AllCards,
+            presentedCard = null,
+            reviewedInSessionCount = 0,
+            pendingReviewedCards = setOf(pendingReviewedCard),
+            optimisticPreparedCurrentCard = null,
+            errorMessage = ""
+        )
+        val ownedReviewSubmissions = mapOf(
+            pendingReviewedCard to makeOwnedReviewSubmission(
+                pendingReviewedCard = pendingReviewedCard,
+                reviewedCard = submittedCard,
+                presentedCard = null,
+                observationState = OwnedReviewSubmissionObservationState.COMMIT_PENDING_OBSERVATION
+            )
+        )
+
+        assertEquals(
+            null,
+            findOwnedReviewSessionObservationSuppression(
+                previousSignature = previousSignature,
+                nextSignature = nextSignature,
+                state = state,
+                ownedReviewSubmissions = ownedReviewSubmissions
+            )
+        )
+        assertTrue(
+            shouldAdvanceReviewSessionGeneration(
+                previousSignature = previousSignature,
+                nextSignature = nextSignature,
+                state = state,
+                ownedReviewSubmissions = ownedReviewSubmissions
+            )
+        )
+    }
+
+    @Test
     fun sameFilterSelectionDoesNotAdvanceFilterGeneration() {
         val currentGeneration = 7L
-        val activeFilter = ReviewFilter.Tag(tag = "active")
+        val activeFilter = ReviewFilter.Tags(tags = listOf("active"))
 
         assertEquals(
             currentGeneration,
@@ -406,6 +569,146 @@ class ReviewFilterAndSessionGenerationTest {
                 selectedFilter = ReviewFilter.AllCards,
                 currentFilterGeneration = currentGeneration
             )
+        )
+    }
+
+    @Test
+    fun missingRequestedTagsStayUnchangedAcrossRepeatedFilterResolutions() {
+        val requestedFilter = ReviewFilter.Tags(tags = listOf("Alpha", "missing"))
+        val resolvedQueryFilter = ReviewFilter.Tags(tags = listOf("Alpha"))
+        val availableTagFilters = listOf(
+            ReviewTagFilterOption(tag = "Alpha", totalCount = 1)
+        )
+
+        repeat(times = 2) {
+            assertEquals(
+                null,
+                reviewFilterResolutionToApply(
+                    requestedFilter = requestedFilter,
+                    resolvedFilter = resolvedQueryFilter,
+                    availableTagFilters = availableTagFilters
+                )
+            )
+        }
+        assertEquals(
+            ReviewFilter.AllCards,
+            reviewFilterResolutionToApply(
+                requestedFilter = ReviewFilter.Tags(tags = listOf("Alpha")),
+                resolvedFilter = ReviewFilter.AllCards,
+                availableTagFilters = availableTagFilters
+            )
+        )
+    }
+
+    @Test
+    fun checklistMaterializesDeckPresetSupportsEmptySelectionAndCanonicalizesAllTags() {
+        val deckFilters = listOf(
+            ReviewDeckFilterOption(
+                deckId = "deck-1",
+                title = "Deck 1",
+                totalCount = 2,
+                tags = listOf("Alpha", "Beta")
+            ),
+            ReviewDeckFilterOption(
+                deckId = "all-cards-deck",
+                title = "All cards deck",
+                totalCount = 3,
+                tags = emptyList()
+            )
+        )
+        val tagFilters = listOf("Alpha", "Beta", "Gamma").map { tagName ->
+            ReviewTagFilterOption(tag = tagName, totalCount = 1)
+        }
+
+        assertEquals(
+            listOf("Alpha", "Beta", "Gamma"),
+            selectedReviewTagNames(
+                selectedFilter = ReviewFilter.AllCards,
+                availableDeckFilters = deckFilters,
+                availableTagFilters = tagFilters
+            )
+        )
+        assertEquals(
+            ReviewFilter.Tags(tags = listOf("Alpha")),
+            toggleReviewTagFilter(
+                selectedFilter = ReviewFilter.Deck(deckId = "deck-1"),
+                toggledTagName = "Beta",
+                availableDeckFilters = deckFilters,
+                availableTagFilters = tagFilters
+            )
+        )
+        assertEquals(
+            listOf("Alpha", "Beta", "Gamma"),
+            selectedReviewTagNames(
+                selectedFilter = ReviewFilter.Deck(deckId = "all-cards-deck"),
+                availableDeckFilters = deckFilters,
+                availableTagFilters = tagFilters
+            )
+        )
+        assertEquals(
+            ReviewFilter.Tags(tags = listOf("Beta", "Gamma")),
+            toggleReviewTagFilter(
+                selectedFilter = ReviewFilter.Deck(deckId = "all-cards-deck"),
+                toggledTagName = "Alpha",
+                availableDeckFilters = deckFilters,
+                availableTagFilters = tagFilters
+            )
+        )
+        val allCardsMinusAlpha = toggleReviewTagFilter(
+            selectedFilter = ReviewFilter.AllCards,
+            toggledTagName = "Alpha",
+            availableDeckFilters = deckFilters,
+            availableTagFilters = tagFilters
+        )
+        assertEquals(ReviewFilter.Tags(tags = listOf("Beta", "Gamma")), allCardsMinusAlpha)
+        assertEquals(
+            ReviewFilter.AllCards,
+            toggleReviewTagFilter(
+                selectedFilter = allCardsMinusAlpha,
+                toggledTagName = "Alpha",
+                availableDeckFilters = deckFilters,
+                availableTagFilters = tagFilters
+            )
+        )
+        assertEquals(
+            ReviewFilter.Tags(tags = emptyList()),
+            toggleReviewTagFilter(
+                selectedFilter = ReviewFilter.AllCards,
+                toggledTagName = "Alpha",
+                availableDeckFilters = emptyList(),
+                availableTagFilters = listOf(ReviewTagFilterOption(tag = "Alpha", totalCount = 1))
+            )
+        )
+        assertEquals(
+            ReviewFilter.Tags(tags = listOf("Alpha", "Beta", "missing")),
+            toggleReviewTagFilter(
+                selectedFilter = ReviewFilter.Tags(tags = listOf("Alpha", "missing")),
+                toggledTagName = "Beta",
+                availableDeckFilters = deckFilters,
+                availableTagFilters = tagFilters
+            )
+        )
+        assertEquals(
+            ReviewFilter.Tags(tags = listOf("missing")),
+            toggleReviewTagFilter(
+                selectedFilter = ReviewFilter.Tags(tags = listOf("Alpha", "missing")),
+                toggledTagName = "Alpha",
+                availableDeckFilters = deckFilters,
+                availableTagFilters = tagFilters
+            )
+        )
+        var immediateSelection: ReviewFilter = ReviewFilter.AllCards
+        listOf("Alpha", "Beta").forEach { tagName ->
+            immediateSelection = toggleReviewTagFilter(
+                selectedFilter = immediateSelection,
+                toggledTagName = tagName,
+                availableDeckFilters = deckFilters,
+                availableTagFilters = tagFilters
+            )
+        }
+        assertEquals(
+            ReviewFilter.Tags(tags = listOf("Gamma")),
+            immediateSelection
         )
     }
 }
@@ -432,7 +735,8 @@ private fun createObservedReviewSessionSignature(
             ReviewDeckFilterOption(
                 deckId = "all-fast",
                 title = "All fast",
-                totalCount = dueCount
+                totalCount = dueCount,
+                tags = listOf("fast")
             )
         ),
         availableTagFilters = availableTagFilters

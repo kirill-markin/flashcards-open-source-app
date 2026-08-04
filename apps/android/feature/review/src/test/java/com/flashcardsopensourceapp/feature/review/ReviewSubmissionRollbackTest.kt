@@ -18,7 +18,7 @@ class ReviewSubmissionRollbackTest {
             cardId = submittedCard.cardId,
             updatedAtMillis = submittedCard.updatedAtMillis
         )
-        val currentFilter = ReviewFilter.Tag(tag = "current")
+        val currentFilter = ReviewFilter.Tags(tags = listOf("current"))
         val state = makePinnedReviewDraftState(
             requestedFilter = currentFilter,
             presentedCard = null,
@@ -45,6 +45,66 @@ class ReviewSubmissionRollbackTest {
     }
 
     @Test
+    fun partiallyResolvedMissingTagFailureRestoresSubmittedCard(): Unit = runBlocking {
+        val submittedCard = makePinnedReviewCard(
+            cardId = "submitted-partial-tag-card",
+            tags = listOf("Alpha"),
+            updatedAtMillis = 221L
+        )
+        val optimisticNextCard = makePinnedReviewCard(
+            cardId = "optimistic-partial-tag-next-card",
+            tags = listOf("Alpha"),
+            updatedAtMillis = 222L
+        )
+        val pendingReviewedCard = PendingReviewedCard(
+            cardId = submittedCard.cardId,
+            updatedAtMillis = submittedCard.updatedAtMillis
+        )
+        val requestedFilter = ReviewFilter.Tags(tags = listOf("Alpha", "missing"))
+        val executableFilter = ReviewFilter.Tags(tags = listOf("Alpha"))
+        val context = ReviewSubmissionSessionContext(
+            requestedFilter = requestedFilter,
+            observedRequestedFilter = requestedFilter,
+            selectedFilter = executableFilter,
+            sessionGeneration = 2L,
+            filterGeneration = 3L
+        )
+        val state = makePinnedReviewDraftState(
+            requestedFilter = requestedFilter,
+            presentedCard = optimisticNextCard,
+            reviewedInSessionCount = 1,
+            pendingReviewedCards = setOf(pendingReviewedCard),
+            optimisticPreparedCurrentCard = makePreparedReviewCardPresentation(card = optimisticNextCard),
+            errorMessage = ""
+        )
+
+        val rollbackLookup = resolveFailedReviewSubmissionRollback(
+            submittedContext = context,
+            currentContextBeforeLookup = context,
+            cardId = submittedCard.cardId,
+            loadRollbackCard = { selectedFilter: ReviewFilter, cardId: String ->
+                assertEquals(executableFilter, selectedFilter)
+                assertEquals(submittedCard.cardId, cardId)
+                submittedCard
+            },
+            captureCurrentContext = { context }
+        )
+        val result = applyFailedReviewSubmission(
+            state = state,
+            submittedContext = context,
+            currentContext = rollbackLookup.currentContext,
+            rollbackCard = rollbackLookup.rollbackCard,
+            pendingReviewedCard = pendingReviewedCard,
+            errorMessage = "Review save failed"
+        )
+
+        assertEquals(submittedCard, result.presentedCard)
+        assertEquals(null, result.optimisticPreparedCurrentCard)
+        assertEquals(emptySet<PendingReviewedCard>(), result.pendingReviewedCards)
+        assertEquals("Review save failed", result.errorMessage)
+    }
+
+    @Test
     fun currentFailedReviewWithInvalidRollbackCardPreservesPresentationAndSetsError() {
         val submittedCard = makePinnedReviewCard(
             cardId = "submitted-invalid-rollback-card",
@@ -61,7 +121,7 @@ class ReviewSubmissionRollbackTest {
             updatedAtMillis = 24L
         )
         val optimisticPreparedCurrentCard = makePreparedReviewCardPresentation(card = presentedCard)
-        val currentFilter = ReviewFilter.Tag(tag = "current")
+        val currentFilter = ReviewFilter.Tags(tags = listOf("current"))
         val state = makePinnedReviewDraftState(
             requestedFilter = currentFilter,
             presentedCard = presentedCard,
@@ -109,7 +169,7 @@ class ReviewSubmissionRollbackTest {
             filterGeneration = 3L
         )
         val staleContext = makeReviewSubmissionSessionContextWithGenerations(
-            reviewFilter = ReviewFilter.Tag(tag = "new"),
+            reviewFilter = ReviewFilter.Tags(tags = listOf("new")),
             sessionGeneration = 8L,
             filterGeneration = 4L
         )
@@ -128,7 +188,7 @@ class ReviewSubmissionRollbackTest {
             captureCurrentContext = { currentContext }
         )
         val state = makePinnedReviewDraftState(
-            requestedFilter = ReviewFilter.Tag(tag = "new"),
+            requestedFilter = ReviewFilter.Tags(tags = listOf("new")),
             presentedCard = null,
             reviewedInSessionCount = 9,
             pendingReviewedCards = setOf(submittedPendingCard, retainedOtherCard),
