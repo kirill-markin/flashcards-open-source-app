@@ -75,7 +75,12 @@ internal fun ReviewFilterSheet(
                     selected = selectedFilter == ReviewFilter.AllCards,
                     testTag = reviewFilterAllCardsOptionTag,
                     onClick = {
-                        onSelectFilter(ReviewFilter.AllCards)
+                        val nextFilter: ReviewFilter = if (selectedFilter == ReviewFilter.AllCards) {
+                            makeReviewTagFilter(tagNames = emptyList())
+                        } else {
+                            ReviewFilter.AllCards
+                        }
+                        onSelectFilter(nextFilter)
                     }
                 )
             }
