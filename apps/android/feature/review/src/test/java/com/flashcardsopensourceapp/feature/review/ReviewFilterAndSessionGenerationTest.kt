@@ -221,6 +221,66 @@ class ReviewFilterAndSessionGenerationTest {
     }
 
     @Test
+    fun ownedLocalReviewMatchesCommittedTagsByNormalizedKey() {
+        val submittedCard = makePinnedReviewCard(
+            cardId = "normalized-tag-card",
+            tags = listOf("éCLAIR", "Éclair"),
+            updatedAtMillis = 46L
+        )
+        val pendingReviewedCard = PendingReviewedCard(
+            cardId = submittedCard.cardId,
+            updatedAtMillis = submittedCard.updatedAtMillis
+        )
+        val previousSignature = createObservedReviewSessionSignature(
+            reviewCards = emptyList(),
+            presentedCard = null,
+            dueCount = 1,
+            remainingCount = 1,
+            totalCount = 1,
+            availableTagFilters = listOf(
+                ReviewTagFilterOption(tag = "Éclair", totalCount = 1)
+            )
+        )
+        val nextSignature = createObservedReviewSessionSignature(
+            reviewCards = emptyList(),
+            presentedCard = null,
+            dueCount = 0,
+            remainingCount = 0,
+            totalCount = 1,
+            availableTagFilters = listOf(
+                ReviewTagFilterOption(tag = "éCLAIR", totalCount = 0)
+            )
+        )
+        val state = makePinnedReviewDraftState(
+            requestedFilter = ReviewFilter.AllCards,
+            presentedCard = null,
+            reviewedInSessionCount = 0,
+            pendingReviewedCards = setOf(pendingReviewedCard),
+            optimisticPreparedCurrentCard = null,
+            errorMessage = ""
+        )
+        val ownedReviewSubmissions = mapOf(
+            pendingReviewedCard to makeOwnedReviewSubmission(
+                pendingReviewedCard = pendingReviewedCard,
+                reviewedCard = submittedCard,
+                presentedCard = null,
+                observationState = OwnedReviewSubmissionObservationState.COMMIT_PENDING_OBSERVATION
+            )
+        )
+
+        val suppression = requireNotNull(
+            findOwnedReviewSessionObservationSuppression(
+                previousSignature = previousSignature,
+                nextSignature = nextSignature,
+                state = state,
+                ownedReviewSubmissions = ownedReviewSubmissions
+            )
+        )
+
+        assertEquals(setOf(pendingReviewedCard), suppression.consumedPendingReviewedCards)
+    }
+
+    @Test
     fun localWritePendingMarkerDoesNotSuppressExternalDueDropWithUnchangedQueue() {
         val submittedCard = makePinnedReviewCard(
             cardId = "local-write-pending-card",

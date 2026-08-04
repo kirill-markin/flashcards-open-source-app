@@ -3,7 +3,7 @@ package com.flashcardsopensourceapp.data.local.repository.review
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardWithRelations
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
-import com.flashcardsopensourceapp.data.local.database.review.ReviewTagCountRow
+import com.flashcardsopensourceapp.data.local.database.review.ReviewTagCardRow
 import com.flashcardsopensourceapp.data.local.database.review.activeReviewRecentPriorityWindowMillis
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
@@ -349,18 +349,27 @@ private fun isPreservablePresentedCard(
 }
 
 internal fun buildReviewTagFilterOptionsFromRows(
-    rows: List<ReviewTagCountRow>,
+    rows: List<ReviewTagCardRow>,
     storedTagNames: List<String>
 ): List<ReviewTagFilterOption> {
-    val countsByTagKey: Map<String, Int> = rows.associate { row ->
-        normalizeTagKey(tag = row.tag) to row.totalCount
+    val cardIdsByTagKey: Map<String, Set<String>> = rows.groupBy { row ->
+        normalizeTagKey(tag = row.tag)
+    }.mapValues { (_, tagRows) ->
+        tagRows.map(ReviewTagCardRow::cardId).toSet()
     }
-    return storedTagNames.distinctBy { tagName ->
+    return storedTagNames.groupBy { tagName ->
         normalizeTagKey(tag = tagName)
-    }.map { tagName ->
+    }.map { (tagKey, equivalentTagNames) ->
+        val canonicalTagName: String = equivalentTagNames.minWith(
+            compareBy<String> { tagName ->
+                tagName.lowercase()
+            }.thenBy { tagName ->
+                tagName
+            }
+        )
         ReviewTagFilterOption(
-            tag = tagName,
-            totalCount = countsByTagKey[normalizeTagKey(tag = tagName)] ?: 0
+            tag = canonicalTagName,
+            totalCount = cardIdsByTagKey[tagKey]?.size ?: 0
         )
     }.sortedWith(
         compareBy<ReviewTagFilterOption> { option ->
