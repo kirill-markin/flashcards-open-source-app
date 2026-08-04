@@ -217,7 +217,7 @@ class LocalReviewRepository(
                     )
                 }
                 val tagFiltersFlow: Flow<List<com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption>> =
-                    database.reviewCountDao().observeReviewTagDueCounts(
+                    database.reviewCountDao().observeReviewTagDueCards(
                         workspaceId = queryBase.workspaceId,
                         nowMillis = queryBase.nowMillis
                     )
