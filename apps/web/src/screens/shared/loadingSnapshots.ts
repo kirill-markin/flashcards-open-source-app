@@ -116,6 +116,32 @@ function writeLocalStorageValue(key: string, value: string): void {
   fallbackLocalStorageState.set(key, value);
 }
 
+function removeLocalStorageValue(key: string): void {
+  const storage = window.localStorage as LocalStorageLike;
+  if (typeof storage.removeItem === "function") {
+    storage.removeItem(key);
+    return;
+  }
+
+  fallbackLocalStorageState.delete(key);
+}
+
+function listLocalStorageKeys(): ReadonlyArray<string> {
+  const storage = window.localStorage as LocalStorageLike;
+  if (typeof storage.key === "function" && typeof storage.length === "number") {
+    const keys: Array<string> = [];
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (key !== null) {
+        keys.push(key);
+      }
+    }
+    return keys;
+  }
+
+  return [...fallbackLocalStorageState.keys()];
+}
+
 export function clearLoadingSnapshotFallbackStorage(): void {
   fallbackLocalStorageState.clear();
 }
@@ -287,6 +313,40 @@ export function serializeReviewFilterKey(reviewFilter: ReviewFilter): string {
     .join(",")}`;
 }
 
+function canonicalizeStoredTagsReviewFilterKey(storedReviewFilterKey: string): string | null {
+  if (storedReviewFilterKey.startsWith("tags:") === false) {
+    return null;
+  }
+
+  const encodedTags = storedReviewFilterKey.slice("tags:".length);
+  try {
+    const tags = encodedTags === ""
+      ? []
+      : encodedTags.split(",").map((tag) => decodeURIComponent(tag));
+    return serializeReviewFilterKey({ kind: "tags", tags });
+  } catch {
+    return null;
+  }
+}
+
+function listCanonicalLegacyTagsReviewFilterKeys(
+  workspaceId: string,
+  selectedReviewFilterKey: string,
+): ReadonlyArray<string> {
+  const workspaceStorageKeyPrefix = `${REVIEW_LOADING_SNAPSHOT_KEY_PREFIX}:${workspaceId}:`;
+  const tagsStorageKeyPrefix = `${workspaceStorageKeyPrefix}tags:`;
+
+  return listLocalStorageKeys()
+    .filter((storageKey) => storageKey.startsWith(tagsStorageKeyPrefix))
+    .map((storageKey) => storageKey.slice(workspaceStorageKeyPrefix.length))
+    .filter((storedReviewFilterKey) => storedReviewFilterKey !== selectedReviewFilterKey)
+    .filter(
+      (storedReviewFilterKey) => canonicalizeStoredTagsReviewFilterKey(storedReviewFilterKey)
+        === selectedReviewFilterKey,
+    )
+    .sort((leftKey, rightKey) => leftKey.localeCompare(rightKey));
+}
+
 export function buildReviewLoadingCardPreview(card: Card): ReviewLoadingCardPreview {
   return {
     cardId: card.cardId,
@@ -322,6 +382,23 @@ export function readReviewLoadingSnapshot(
 
   if (snapshot !== null) {
     return snapshot;
+  }
+
+  if (reviewFilter.kind === "tags") {
+    const canonicalLegacyReviewFilterKeys = listCanonicalLegacyTagsReviewFilterKeys(
+      workspaceId,
+      selectedReviewFilterKey,
+    );
+    for (const canonicalLegacyReviewFilterKey of canonicalLegacyReviewFilterKeys) {
+      const canonicalLegacySnapshot = readReviewLoadingSnapshotForStoredKey(
+        workspaceId,
+        selectedReviewFilterKey,
+        canonicalLegacyReviewFilterKey,
+      );
+      if (canonicalLegacySnapshot !== null) {
+        return canonicalLegacySnapshot;
+      }
+    }
   }
 
   const legacyTagReviewFilterKey = buildLegacyTagReviewFilterKey(reviewFilter);
@@ -369,10 +446,13 @@ function readReviewLoadingSnapshotForStoredKey(
     return snapshot;
   }
 
-  return {
+  const migratedSnapshot: ReviewLoadingSnapshot = {
     ...snapshot,
     selectedReviewFilterKey,
   };
+  writeReviewLoadingSnapshot(migratedSnapshot);
+  removeLocalStorageValue(storageKey);
+  return migratedSnapshot;
 }
 
 export function writeReviewLoadingSnapshot(snapshot: ReviewLoadingSnapshot): void {

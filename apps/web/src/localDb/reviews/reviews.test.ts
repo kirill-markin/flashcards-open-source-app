@@ -97,7 +97,7 @@ describe("localDb reviews", () => {
       }
     });
 
-    it("matches local review tag and deck filters by normalized Unicode tag keys", async () => {
+    it("aggregates and matches canonically equivalent Unicode tags with deterministic display text", async () => {
       const nowTimestamp = Date.parse("2026-03-10T12:00:00.000Z");
       const originalNow = Date.now;
       Date.now = () => nowTimestamp;
@@ -107,7 +107,7 @@ describe("localDb reviews", () => {
           cardId: "unicode-tag-card",
           frontText: "Unicode tag",
           backText: "back",
-          tags: ["Éclair"],
+          tags: ["E\u0301clair"],
           dueAt: "2026-03-10T11:00:00.000Z",
           createdAt: "2026-03-10T09:00:00.000Z",
         });
@@ -119,31 +119,57 @@ describe("localDb reviews", () => {
           dueAt: "2026-03-10T11:05:00.000Z",
           createdAt: "2026-03-10T09:05:00.000Z",
         });
+        const equivalentUnicodeTagCard = makeCard({
+          cardId: "equivalent-unicode-tag-card",
+          frontText: "Equivalent Unicode tag",
+          backText: "back",
+          tags: ["Éclair"],
+          dueAt: "2026-03-10T11:02:00.000Z",
+          createdAt: "2026-03-10T09:02:00.000Z",
+        });
         const unicodeDeck = makeDeck({
           deckId: "deck-unicode-tag",
           name: "Unicode tag",
-          tags: ["éclair"],
+          tags: ["e\u0301clair"],
           createdAt: "2026-03-10T08:00:00.000Z",
         });
 
         await replaceDecks(workspaceId, [unicodeDeck]);
-        await replaceCards(workspaceId, [unicodeTagCard, otherCard]);
+        await replaceCards(workspaceId, [unicodeTagCard, equivalentUnicodeTagCard, otherCard]);
 
-        const tagQueueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "tags", tags: ["éclair"] }, 10);
+        const persistedFilter = parsePersistedReviewFilter(JSON.stringify({
+          kind: "tags",
+          tags: [" E\u0301CLAIR "],
+        }));
+        const tagQueueSnapshot = await loadReviewQueueSnapshot(workspaceId, persistedFilter, 10);
         const deckQueueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "deck", deckId: unicodeDeck.deckId }, 10);
-        const tagTimelinePage = await loadReviewTimelinePage(workspaceId, { kind: "tags", tags: ["éclair"] }, 10, 0);
+        const tagTimelinePage = await loadReviewTimelinePage(workspaceId, persistedFilter, 10, 0);
+        const tagsSummary = await loadWorkspaceTagsSummary(workspaceId);
 
         expect(tagQueueSnapshot.resolvedReviewFilter).toEqual({
           kind: "tags",
           tags: ["Éclair"],
         });
-        expect(tagQueueSnapshot.cards.map((card) => card.cardId)).toEqual(["unicode-tag-card"]);
+        expect(tagQueueSnapshot.cards.map((card) => card.cardId)).toEqual([
+          "unicode-tag-card",
+          "equivalent-unicode-tag-card",
+        ]);
         expect(tagQueueSnapshot.reviewCounts).toEqual({
-          dueCount: 1,
-          totalCount: 1,
+          dueCount: 2,
+          totalCount: 2,
         });
-        expect(deckQueueSnapshot.cards.map((card) => card.cardId)).toEqual(["unicode-tag-card"]);
-        expect(tagTimelinePage.cards.map((card) => card.cardId)).toEqual(["unicode-tag-card"]);
+        expect(deckQueueSnapshot.cards.map((card) => card.cardId)).toEqual([
+          "unicode-tag-card",
+          "equivalent-unicode-tag-card",
+        ]);
+        expect(tagTimelinePage.cards.map((card) => card.cardId)).toEqual([
+          "unicode-tag-card",
+          "equivalent-unicode-tag-card",
+        ]);
+        expect(tagsSummary.tags).toEqual([
+          { tag: "Éclair", cardsCount: 2 },
+          { tag: "code", cardsCount: 1 },
+        ]);
       } finally {
         Date.now = originalNow;
       }
@@ -247,6 +273,10 @@ describe("localDb reviews", () => {
         "verbs-card",
         "untagged-card",
       ]);
+      const promotedPersistedFilter = parsePersistedReviewFilter(
+        JSON.stringify(restoredAllTagsSnapshot.resolvedReviewFilter),
+      );
+      expect(promotedPersistedFilter).toEqual({ kind: "allCards" });
 
       const codeCard = makeCard({
         cardId: "code-card",
@@ -258,13 +288,19 @@ describe("localDb reviews", () => {
       });
       await replaceCards(workspaceId, [grammarCard, verbsCard, untaggedCard, codeCard]);
 
-      const expandedTagSetSnapshot = await loadReviewQueueSnapshot(workspaceId, persistedFilter, 10);
+      const expandedTagSetSnapshot = await loadReviewQueueSnapshot(
+        workspaceId,
+        promotedPersistedFilter,
+        10,
+      );
 
-      expect(expandedTagSetSnapshot.resolvedReviewFilter).toEqual({
-        kind: "tags",
-        tags: ["Grammar", "verbs"],
-      });
-      expect(expandedTagSetSnapshot.cards.map((card) => card.cardId)).toEqual(["grammar-card", "verbs-card"]);
+      expect(expandedTagSetSnapshot.resolvedReviewFilter).toEqual({ kind: "allCards" });
+      expect(expandedTagSetSnapshot.cards.map((card) => card.cardId)).toEqual([
+        "grammar-card",
+        "verbs-card",
+        "untagged-card",
+        "code-card",
+      ]);
 
       await replaceCards(workspaceId, [grammarCard, untaggedCard]);
 

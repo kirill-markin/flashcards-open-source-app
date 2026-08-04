@@ -19,7 +19,7 @@ import { putDeckInTransaction } from "../decks";
 import { loadProgressCacheState, markProgressCacheDirtyInTransaction } from "../../progress/progress";
 import { putReviewEventInTransaction } from "../../reviews/reviews";
 import { putMediaAssetInTransaction } from "../../mediaAssets";
-import { normalizeTagKey } from "../../../appData/domain";
+import { normalizeTag, normalizeTagKey } from "../../../appData/domain";
 
 type HotSyncStateUpdate = Readonly<{
   lastAppliedHotChangeId: number;
@@ -163,7 +163,7 @@ export async function loadWorkspaceTagsSummary(workspaceId: string): Promise<Wor
       const currentTagStats = tagStatsByKey.get(tagKey);
       if (currentTagStats === undefined) {
         tagStatsByKey.set(tagKey, {
-          tag: record.tag.trim(),
+          tag: normalizeTag(record.tag),
           cardIds: new Set([record.cardId]),
         });
       } else {

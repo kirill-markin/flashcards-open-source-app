@@ -1,13 +1,23 @@
 // @vitest-environment jsdom
+import { useCallback, useEffect, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
+import {
+  buildSelectedReviewFilterStorageKey,
+  loadSelectedReviewFilterForWorkspace,
+  storeSelectedReviewFilterForWorkspace,
+} from "../../../appData/context/reviewFilterPersistence";
+import type { ReviewFilter, ReviewQueueSnapshot } from "../../../types";
 import {
   clickElementAsync,
   createCard,
+  createDeferredPromise,
   createDecks,
+  createStorageMock,
   loadReviewQueueSnapshotMock,
   reviewStylesContain,
   setTextFieldValueAsync,
   setupReviewScreenTest,
+  useAppDataMock,
 } from "../testSupport/ReviewScreenTestSupport";
 import {
   composingKeydownElementAsync,
@@ -593,6 +603,117 @@ describe("ReviewScreen filter controls", () => {
       expect(trigger.textContent).toContain("1 tag");
       expect(trigger.textContent).not.toContain("2 tags");
     });
+  });
+
+  it("carries a restored exact-all snapshot through the stateful persisted All Cards promotion", async () => {
+    const state = getState();
+    const workspaceId = "workspace-1";
+    state.cards = [
+      createCard({ cardId: "grammar-card", tags: ["grammar"] }),
+      createCard({ cardId: "verbs-card", tags: ["verbs"] }),
+    ];
+    state.reviewQueue = state.cards;
+    state.reviewTimeline = state.cards;
+    state.appData.selectedReviewFilter = {
+      kind: "tags",
+      tags: ["grammar", "verbs"],
+    };
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: createStorageMock(),
+    });
+    storeSelectedReviewFilterForWorkspace(workspaceId, state.appData.selectedReviewFilter);
+    const promotedSelections = vi.fn<(reviewFilter: ReviewFilter) => void>();
+    useAppDataMock.mockImplementation(() => {
+      const [selectedReviewFilter, setSelectedReviewFilter] = useState<ReviewFilter>(
+        () => loadSelectedReviewFilterForWorkspace(workspaceId),
+      );
+      useEffect(() => {
+        storeSelectedReviewFilterForWorkspace(workspaceId, selectedReviewFilter);
+      }, [selectedReviewFilter]);
+      const selectReviewFilter = useCallback((reviewFilter: ReviewFilter): void => {
+        promotedSelections(reviewFilter);
+        setSelectedReviewFilter(reviewFilter);
+      }, []);
+
+      return {
+        ...state.appData,
+        selectedReviewFilter,
+        selectReviewFilter,
+      };
+    });
+    const unexpectedSecondLoad = createDeferredPromise<ReviewQueueSnapshot>();
+    loadReviewQueueSnapshotMock.mockResolvedValueOnce({
+      resolvedReviewFilter: { kind: "allCards" },
+      cards: state.reviewQueue,
+      nextCursor: null,
+      reviewCounts: {
+        dueCount: state.reviewQueue.length,
+        totalCount: state.reviewQueue.length,
+      },
+    });
+    loadReviewQueueSnapshotMock.mockImplementation(() => unexpectedSecondLoad.promise);
+
+    await renderReviewScreen();
+
+    await vi.waitFor(() => {
+      expect(promotedSelections).toHaveBeenCalledTimes(1);
+      expect(promotedSelections).toHaveBeenCalledWith({ kind: "allCards" });
+      expect(loadSelectedReviewFilterForWorkspace(workspaceId)).toEqual({ kind: "allCards" });
+    });
+
+    await openReviewFilterMenu();
+
+    const allCardsOption = getReviewFilterMenu().querySelector("[data-review-filter-key='allCards']");
+    const grammarOption = getReviewFilterMenu().querySelector("[data-review-filter-key='tag:grammar']");
+    const verbsOption = getReviewFilterMenu().querySelector("[data-review-filter-key='tag:verbs']");
+    const trigger = getContainer().querySelector("[data-testid='review-filter-trigger']");
+    const reviewPane = getContainer().querySelector("[data-testid='review-pane']");
+    if (
+      !(allCardsOption instanceof HTMLElement)
+      || !(grammarOption instanceof HTMLElement)
+      || !(verbsOption instanceof HTMLElement)
+      || !(trigger instanceof HTMLButtonElement)
+      || !(reviewPane instanceof HTMLElement)
+    ) {
+      throw new Error("Promoted All Cards filter controls were not found");
+    }
+
+    expect(trigger.textContent).toContain("All cards");
+    expect(allCardsOption.getAttribute("aria-selected")).toBe("true");
+    expect(grammarOption.getAttribute("aria-selected")).toBe("true");
+    expect(verbsOption.getAttribute("aria-selected")).toBe("true");
+    expect(reviewPane.dataset.reviewPaneState).toBe("card");
+    expect(loadReviewQueueSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(window.localStorage.getItem(buildSelectedReviewFilterStorageKey(workspaceId))).toBe(
+      JSON.stringify({ kind: "allCards" }),
+    );
+  });
+
+  it.each([
+    ["explicit empty", { kind: "tags", tags: [] }, { kind: "tags", tags: [] }],
+    ["missing tag", { kind: "tags", tags: ["grammar", "missing"] }, { kind: "tags", tags: ["grammar"] }],
+    ["subset", { kind: "tags", tags: ["grammar"] }, { kind: "tags", tags: ["grammar"] }],
+  ] as const)("does not promote a %s tag selection", async (_scenario, selectedReviewFilter, resolvedReviewFilter) => {
+    const state = getState();
+    const card = createCard({ cardId: "grammar-card", tags: ["grammar"] });
+    state.cards = [card];
+    state.reviewQueue = [card];
+    state.reviewTimeline = [card];
+    state.appData.selectedReviewFilter = selectedReviewFilter;
+    loadReviewQueueSnapshotMock.mockResolvedValue({
+      resolvedReviewFilter,
+      cards: resolvedReviewFilter.tags.length === 0 ? [] : [card],
+      nextCursor: null,
+      reviewCounts: {
+        dueCount: resolvedReviewFilter.tags.length === 0 ? 0 : 1,
+        totalCount: resolvedReviewFilter.tags.length === 0 ? 0 : 1,
+      },
+    });
+
+    await renderReviewScreen();
+
+    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
   });
 
   it("materializes deck tags and canonicalizes a complete custom selection to All Cards", async () => {

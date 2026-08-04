@@ -59,6 +59,7 @@ type UseReviewScreenDataParams = Readonly<{
   installationId: string | null;
   isSyncing: boolean;
   localReadVersion: number;
+  selectReviewFilter: (reviewFilter: ReviewFilter) => void;
   selectedReviewFilter: ReviewFilter;
   setErrorMessage: (message: string) => void;
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
@@ -66,6 +67,11 @@ type UseReviewScreenDataParams = Readonly<{
 }>;
 
 type LocalHotStateStatus = "loading" | "hydrated" | "unhydrated";
+
+type CarriedReviewDataContext = Readonly<{
+  contextKey: string;
+  localReadVersion: number;
+}>;
 
 export type ReviewSubmissionOutcome = "saved" | "failed" | "stale";
 
@@ -105,6 +111,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     installationId,
     isSyncing,
     localReadVersion,
+    selectReviewFilter,
     selectedReviewFilter,
     setErrorMessage,
     submitReviewItem,
@@ -143,6 +150,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const reviewDataContextKey = buildReviewDataContextKey(activeWorkspaceId, selectedReviewFilterKey);
   const reviewDataContextKeyRef = useRef<string>(reviewDataContextKey);
   const loadedReviewDataContextKeyRef = useRef<string | null>(null);
+  const carriedReviewDataContextRef = useRef<CarriedReviewDataContext | null>(null);
   const observationIdentityRef = useRef<Readonly<{
     userId: string | null;
     installationId: string | null;
@@ -257,6 +265,16 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   }
 
   useEffect(() => {
+    const carriedReviewDataContext = carriedReviewDataContextRef.current;
+    if (
+      carriedReviewDataContext?.contextKey === reviewDataContextKey
+      && carriedReviewDataContext.localReadVersion === localReadVersion
+    ) {
+      carriedReviewDataContextRef.current = null;
+      return;
+    }
+    carriedReviewDataContextRef.current = null;
+
     let isCancelled = false;
     const shouldShowBlockingLoader = loadedReviewDataContextKeyRef.current !== reviewDataContextKey;
 
@@ -295,6 +313,17 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           pendingReviewSnapshotsBeforePresentation,
         );
         const nextResolvedReviewFilter = reviewQueueSnapshot.resolvedReviewFilter;
+        const shouldPromoteResolvedReviewFilter = selectedReviewFilter.kind === "tags"
+          && selectedReviewFilter.tags.length > 0
+          && nextResolvedReviewFilter.kind === "allCards";
+        const loadedSelectedReviewFilter = shouldPromoteResolvedReviewFilter
+          ? nextResolvedReviewFilter
+          : selectedReviewFilter;
+        const loadedSelectedReviewFilterKey = serializeReviewFilterKey(loadedSelectedReviewFilter);
+        const loadedReviewDataContextKey = buildReviewDataContextKey(
+          activeWorkspaceId,
+          loadedSelectedReviewFilterKey,
+        );
         const nextSelectedReviewFilterTitle = resolveReviewFilterTitle(
           nextResolvedReviewFilter,
           decksSnapshot.deckSummaries,
@@ -343,7 +372,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         const nextActiveReviewQueue = buildDisplayedReviewQueue(nextCanonicalReviewQueue, nextPresentedCard);
         const nextQueueCards = buildDisplayedReviewTimeline(nextReviewTimelineCards, nextActiveReviewQueue);
         applyFreshReviewSessionSignature(buildReviewSessionSignature(
-          selectedReviewFilterKey,
+          loadedSelectedReviewFilterKey,
           nextActiveReviewQueue,
           nextQueueCards,
         ));
@@ -359,14 +388,14 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         setLocalWorkspaceCardCount(tagsSummary.totalCards);
         setLocalHotStateStatus(isHotStateHydrated ? "hydrated" : "unhydrated");
         loadedWorkspaceIdRef.current = activeWorkspaceId;
-        loadedReviewDataContextKeyRef.current = reviewDataContextKey;
-        setLoadedReviewDataContextKey(reviewDataContextKey);
+        loadedReviewDataContextKeyRef.current = loadedReviewDataContextKey;
+        setLoadedReviewDataContextKey(loadedReviewDataContextKey);
         setTagSuggestions(toTagSuggestions(tagsSummary.tags));
         setDeckSummariesState(decksSnapshot.deckSummaries);
         writeReviewLoadingSnapshot({
           version: 1,
           workspaceId: activeWorkspaceId,
-          selectedReviewFilterKey: serializeReviewFilterKey(selectedReviewFilter),
+          selectedReviewFilterKey: loadedSelectedReviewFilterKey,
           resolvedReviewFilterTitle: nextSelectedReviewFilterTitle,
           reviewCounts: reviewQueueSnapshot.reviewCounts,
           currentCard: nextActiveReviewQueue[0] === undefined ? null : buildReviewLoadingCardPreview(nextActiveReviewQueue[0]),
@@ -376,6 +405,13 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           savedAt: new Date().toISOString(),
         });
         setHasLoadedReviewData(true);
+        if (shouldPromoteResolvedReviewFilter) {
+          carriedReviewDataContextRef.current = {
+            contextKey: loadedReviewDataContextKey,
+            localReadVersion,
+          };
+          selectReviewFilter(nextResolvedReviewFilter);
+        }
       } catch (error) {
         if (isCancelled) {
           return;
@@ -405,7 +441,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     return () => {
       isCancelled = true;
     };
-  }, [activeWorkspaceId, getCardById, localReadVersion, reviewDataContextKey, selectedReviewFilter]);
+  }, [activeWorkspaceId, getCardById, localReadVersion, reviewDataContextKey, selectReviewFilter, selectedReviewFilter]);
 
   async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<ReviewSubmissionOutcome> {
     if (loadedReviewDataContextKeyRef.current !== reviewDataContextKeyRef.current) {

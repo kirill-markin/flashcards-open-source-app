@@ -144,6 +144,30 @@ export type ReviewQueueChunkResult = Readonly<{
   nextCursor: string | null;
 }>;
 
+export function createStorageMock(): Storage {
+  const state = new Map<string, string>();
+  return {
+    get length(): number {
+      return state.size;
+    },
+    clear(): void {
+      state.clear();
+    },
+    getItem(key: string): string | null {
+      return state.get(key) ?? null;
+    },
+    key(index: number): string | null {
+      return [...state.keys()][index] ?? null;
+    },
+    removeItem(key: string): void {
+      state.delete(key);
+    },
+    setItem(key: string, value: string): void {
+      state.set(key, value);
+    },
+  };
+}
+
 type ReviewScreenDataHarnessProps = Readonly<{
   onResult: (result: UseReviewScreenDataResult) => void;
   state: ReviewScreenTestState;
@@ -180,6 +204,7 @@ function ReviewScreenDataHarnessContent(props: ReviewScreenDataHarnessProps): Re
     installationId: state.appData.cloudSettings?.installationId ?? null,
     isSyncing: state.appData.isSyncing,
     localReadVersion: state.appData.localReadVersion,
+    selectReviewFilter: state.appData.selectReviewFilter,
     selectedReviewFilter: state.appData.selectedReviewFilter,
     setErrorMessage: state.appData.setErrorMessage,
     submitReviewItem: state.appData.submitReviewItem,
