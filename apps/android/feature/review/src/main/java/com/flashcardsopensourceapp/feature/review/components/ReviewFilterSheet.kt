@@ -152,7 +152,9 @@ internal fun ReviewFilterSheet(
             item {
                 TextButton(
                     onClick = onManageDecks,
-                    modifier = Modifier.padding(horizontal = 24.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 24.dp)
+                        .testTag(reviewManageDecksButtonTag)
                 ) {
                     Text(stringResource(id = R.string.review_manage_filtered_decks))
                 }

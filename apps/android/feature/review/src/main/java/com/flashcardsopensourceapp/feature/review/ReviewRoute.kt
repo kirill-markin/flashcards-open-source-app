@@ -49,7 +49,7 @@ fun ReviewRoute(
     workspaceId: String?,
     reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
     reviewReactionAnimationsEnabled: Boolean,
-    onSelectFilter: (String, ReviewFilter) -> Unit,
+    onSelectFilter: (String, ReviewFilter, ReviewFilter) -> Unit,
     onOpenPreview: () -> Unit,
     onOpenCurrentCard: (String) -> Unit,
     onOpenCurrentCardWithAi: (
@@ -139,12 +139,13 @@ fun ReviewRoute(
             workspaceId = workspaceId,
             selection = uiState.requestedFilter
         )
-        if (
-            workspaceId != null
-            && transaction.workspaceId == workspaceId
-            && transaction.draftSelection != transaction.openingSelection
-        ) {
-            onSelectFilter(workspaceId, transaction.draftSelection)
+        val openingWorkspaceId: String = transaction.workspaceId ?: return
+        if (transaction.draftSelection != transaction.openingSelection) {
+            onSelectFilter(
+                openingWorkspaceId,
+                transaction.openingSelection,
+                transaction.draftSelection
+            )
         }
     }
     val onRateAgainWithReaction: () -> Unit = {
@@ -179,12 +180,15 @@ fun ReviewRoute(
         }
     }
 
-    LaunchedEffect(workspaceId) {
+    LaunchedEffect(workspaceId, uiState.requestedFilter, uiState.isLoading) {
         val transaction: ReviewFilterSheetTransaction = filterSheetTransaction
         if (
-            workspaceId != null
-            && transaction.isVisible
-            && transaction.workspaceId != workspaceId
+            transaction.isVisible
+            && uiState.isLoading.not()
+            && (
+                transaction.workspaceId != workspaceId
+                    || transaction.openingSelection != uiState.requestedFilter
+                )
         ) {
             filterSheetTransaction = closedReviewFilterSheetTransaction(
                 workspaceId = workspaceId,
@@ -244,7 +248,7 @@ fun ReviewRoute(
                 reviewProgressBadge = uiState.reviewProgressBadge,
                 selectedFilterTitle = uiState.selectedFilterTitle,
                 onOpenFilter = {
-                    if (workspaceId != null) {
+                    if (workspaceId != null && uiState.isLoading.not()) {
                         filterSheetTransaction = openReviewFilterSheetTransaction(
                             workspaceId = workspaceId,
                             selection = uiState.requestedFilter
