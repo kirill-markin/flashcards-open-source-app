@@ -532,20 +532,11 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOn()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOn().performClick()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOn()
+        composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).performClick()
 
         composeRule.onNodeWithTag(reviewFilterSheetTag).assertIsDisplayed()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText("2 tags").fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNodeWithTag(reviewQueueButtonTag)
-            .assertContentDescriptionEquals("Review queue 2 cards.")
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).performClick()
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText("Beta").fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).performClick()
+        composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
@@ -557,12 +548,37 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
             .assertContentDescriptionEquals("Review queue 0 cards.")
 
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).performClick()
+        composeRule.onNodeWithTag(reviewFilterSheetTag).assertIsDisplayed()
+        composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOff()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOff()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText("Alpha").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag(reviewQueueButtonTag)
+            .assertContentDescriptionEquals("Review queue 1 card.")
+
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).performClick()
-        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).performClick()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOn()
+        composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText("2 tags").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag(reviewQueueButtonTag)
+            .assertContentDescriptionEquals("Review queue 2 cards.")
+
+        composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).performClick()
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOn()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText("All cards").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag(reviewQueueButtonTag)
+            .assertContentDescriptionEquals("Review queue 3 cards.")
 
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).performClick()
         pressBack()
