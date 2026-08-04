@@ -16,6 +16,7 @@ export type TagCardIdsLookup = Readonly<{
 export type ReviewTagFilterLookup = Readonly<{
   cardIds: ReadonlySet<string>;
   canonicalTags: ReadonlyArray<string>;
+  availableTagKeys: ReadonlySet<string>;
 }>;
 
 function putCardTags(cardTagsStore: IDBObjectStore, workspaceId: string, card: Card): void {
@@ -181,15 +182,13 @@ export async function loadReviewTagFilterLookupForTags(
   const allowedCardIds = new Set<string>();
   const requestedTagKeys = new Set(tags.map((tag) => normalizeTagKey(tag)).filter((tagKey) => tagKey !== ""));
   const canonicalTagsByKey = new Map<string, string>();
-  if (requestedTagKeys.size === 0) {
-    return {
-      cardIds: allowedCardIds,
-      canonicalTags: [],
-    };
-  }
-
+  const availableTagKeys = new Set<string>();
   await iterateAllCardTags(database, workspaceId, (record) => {
     const tagKey = normalizeTagKey(record.tag);
+    if (tagKey !== "") {
+      availableTagKeys.add(tagKey);
+    }
+
     if (requestedTagKeys.has(tagKey) === false) {
       return true;
     }
@@ -207,6 +206,7 @@ export async function loadReviewTagFilterLookupForTags(
     canonicalTags: [...canonicalTagsByKey.entries()]
       .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
       .map(([, tag]) => tag),
+    availableTagKeys,
   };
 }
 
