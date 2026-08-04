@@ -19,8 +19,8 @@ class ReviewRepositorySupportTest {
 
         assertEquals(
             listOf(
-                ReviewTagFilterOption(tag = "Future", totalCount = 0),
-                ReviewTagFilterOption(tag = decomposedTag, totalCount = 3)
+                ReviewTagFilterOption(tag = decomposedTag, totalCount = 3),
+                ReviewTagFilterOption(tag = "Future", totalCount = 0)
             ),
             buildReviewTagFilterOptionsFromRows(
                 rows = rows,
