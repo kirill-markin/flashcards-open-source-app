@@ -1,7 +1,7 @@
 import Foundation
 
 private func loadStoredTagNames(database: LocalDatabase, workspaceId: String) throws -> [String] {
-    try database.loadWorkspaceTagsSummary(workspaceId: workspaceId).tags.map(\.tag)
+    try database.cardStore.loadStoredTagNames(workspaceId: workspaceId)
 }
 
 extension LocalDatabase {

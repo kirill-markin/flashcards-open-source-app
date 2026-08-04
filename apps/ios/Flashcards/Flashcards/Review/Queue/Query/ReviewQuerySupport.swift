@@ -411,8 +411,8 @@ func selectedReviewTagNames(
             return []
         }
 
-        return resolveReviewTagNamesPreservingUnmatched(
-            requestedTagNames: deck.filterDefinition.tags,
+        return selectedReviewDeckTagNames(
+            deckFilterTagNames: deck.filterDefinition.tags,
             storedTagNames: storedTagNames
         )
     case .tags(let tags):
@@ -421,6 +421,20 @@ func selectedReviewTagNames(
             storedTagNames: storedTagNames
         )
     }
+}
+
+func selectedReviewDeckTagNames(
+    deckFilterTagNames: [String],
+    storedTagNames: [String]
+) -> [String] {
+    if deckFilterTagNames.isEmpty {
+        return normalizedReviewTagNames(tags: storedTagNames)
+    }
+
+    return resolveReviewTagNamesPreservingUnmatched(
+        requestedTagNames: deckFilterTagNames,
+        storedTagNames: storedTagNames
+    )
 }
 
 func reviewFilterByTogglingTag(

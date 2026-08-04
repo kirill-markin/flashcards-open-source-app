@@ -29,11 +29,42 @@ func resolveExactStoredTagNames(requestedTagNames: [String], storedTagNames: [St
         guard requestedTagKeySet.contains(normalizeTagKey(tag: storedTagName)) else {
             return
         }
-        guard result.contains(storedTagName) == false else {
+        guard result.contains(where: { resultTagName in
+            resultTagName.unicodeScalars.elementsEqual(storedTagName.unicodeScalars)
+        }) == false else {
             return
         }
 
         result.append(storedTagName)
+    }
+}
+
+private struct WorkspaceTagAccumulator {
+    let tag: String
+    var cardIds: Set<String>
+}
+
+func makeWorkspaceTagSummaries(storedCardTags: [StoredCardTag]) -> [WorkspaceTagSummary] {
+    let accumulators = storedCardTags.reduce(into: [String: WorkspaceTagAccumulator]()) { result, storedCardTag in
+        let tag = normalizeTag(rawValue: storedCardTag.tag)
+        let tagKey = normalizeTagKey(tag: tag)
+        guard tagKey.isEmpty == false else {
+            return
+        }
+
+        if var accumulator = result[tagKey] {
+            accumulator.cardIds.insert(storedCardTag.cardId)
+            result[tagKey] = accumulator
+        } else {
+            result[tagKey] = WorkspaceTagAccumulator(
+                tag: tag,
+                cardIds: [storedCardTag.cardId]
+            )
+        }
+    }
+
+    return accumulators.values.map { accumulator in
+        WorkspaceTagSummary(tag: accumulator.tag, cardsCount: accumulator.cardIds.count)
     }
 }
 
@@ -194,14 +225,12 @@ func makeWorkspaceTagsSummary(cards: [Card]) -> WorkspaceTagsSummary {
     let activeCards = cards.filter { card in
         card.deletedAt == nil
     }
-    let counts = activeCards.reduce(into: [String: Int]()) { result, card in
-        for tag in card.tags {
-            result[tag, default: 0] += 1
+    let storedCardTags = activeCards.flatMap { card in
+        card.tags.map { tag in
+            StoredCardTag(cardId: card.cardId, tag: tag)
         }
     }
-    let tags = counts.map { entry in
-        WorkspaceTagSummary(tag: entry.key, cardsCount: entry.value)
-    }.sorted { leftTag, rightTag in
+    let tags = makeWorkspaceTagSummaries(storedCardTags: storedCardTags).sorted { leftTag, rightTag in
         if leftTag.cardsCount != rightTag.cardsCount {
             return leftTag.cardsCount > rightTag.cardsCount
         }

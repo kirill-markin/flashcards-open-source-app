@@ -275,6 +275,78 @@ final class FsrsReviewPresentationTests: XCTestCase {
         )
     }
 
+    func testEmptyTagDeckPresetKeepsDeckSelectionUntilTagToggleThenRemovesTagFromMatchAll() {
+        let decks = [
+            FsrsSchedulerTestSupport.makeDeck(
+                deckId: "all-cards-preset",
+                name: "All cards preset",
+                filterDefinition: buildDeckFilterDefinition(tags: [])
+            )
+        ]
+        let storedTagNames = ["Chemistry", "Biology"]
+        let selectedFilter = ReviewFilter.deck(deckId: "all-cards-preset")
+
+        XCTAssertEqual(
+            resolveReviewFilter(
+                reviewFilter: selectedFilter,
+                decks: decks,
+                storedTagNames: storedTagNames
+            ),
+            selectedFilter
+        )
+        XCTAssertEqual(
+            selectedReviewTagNames(
+                reviewFilter: selectedFilter,
+                decks: decks,
+                storedTagNames: storedTagNames
+            ),
+            ["Biology", "Chemistry"]
+        )
+        XCTAssertEqual(
+            reviewFilterByTogglingTag(
+                reviewFilter: selectedFilter,
+                tag: "biology",
+                decks: decks,
+                storedTagNames: storedTagNames
+            ),
+            makeReviewTagsFilter(tags: ["Chemistry"])
+        )
+    }
+
+    func testReviewTagMenuUsesOneNormalizedIdentityAndDistinctCardCount() {
+        let decomposedTag = "E\u{301}clair"
+        let tagSummaries = makeWorkspaceTagSummaries(
+            storedCardTags: [
+                StoredCardTag(cardId: "card-1", tag: "Éclair"),
+                StoredCardTag(cardId: "card-1", tag: "éclair"),
+                StoredCardTag(cardId: "card-2", tag: decomposedTag)
+            ]
+        )
+        let tagSummary = tagSummaries[0]
+        let storedTagNames = tagSummaries.map(\.tag)
+
+        XCTAssertEqual(tagSummaries.count, 1)
+        XCTAssertEqual(tagSummary.cardsCount, 2)
+        XCTAssertEqual(normalizeTagKey(tag: tagSummary.tag), normalizeTagKey(tag: "éclair"))
+        XCTAssertEqual(
+            Set(selectedReviewTagNames(
+                reviewFilter: .allCards,
+                decks: [],
+                storedTagNames: storedTagNames
+            ).map(normalizeTagKey)),
+            Set([normalizeTagKey(tag: tagSummary.tag)])
+        )
+        XCTAssertEqual(
+            reviewFilterByTogglingTag(
+                reviewFilter: .allCards,
+                tag: tagSummary.tag,
+                decks: [],
+                storedTagNames: storedTagNames
+            ),
+            makeReviewTagsFilter(tags: [])
+        )
+    }
+
     func testDeckFilterTagMatchesUnicodeStoredTagByNormalizedKey() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
         let decks = [
