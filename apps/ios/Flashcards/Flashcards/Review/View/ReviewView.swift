@@ -12,6 +12,11 @@ private let showAnswerButtonMinHeight: CGFloat = 56
 let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
 private let reviewQueuePreviewPageSize: Int = 50
 
+private struct ReviewFilterPresentationContext: Equatable {
+    let workspaceId: String?
+    let committedFilter: ReviewFilter
+}
+
 struct ReviewView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.isLowPowerModeEnabled) var isLowPowerModeEnabled: Bool
@@ -47,7 +52,7 @@ struct ReviewView: View {
     @State var totalCardsCount: Int = 0
     @State var isReviewFilterPopoverPresented: Bool = false
     @State var reviewFilterDraft: ReviewFilter = .allCards
-    @State var reviewFilterAtPresentation: ReviewFilter = .allCards
+    @State private var reviewFilterPresentationContext: ReviewFilterPresentationContext? = nil
 
     private var availableTagSuggestions: [TagSuggestion] {
         self.reviewTagSummaries.map { tagSummary in
@@ -303,8 +308,12 @@ struct ReviewView: View {
 
     private var reviewFilterMenu: some View {
         Button {
-            self.reviewFilterDraft = store.selectedReviewFilter
-            self.reviewFilterAtPresentation = store.selectedReviewFilter
+            let committedFilter = store.selectedReviewFilter
+            self.reviewFilterDraft = committedFilter
+            self.reviewFilterPresentationContext = ReviewFilterPresentationContext(
+                workspaceId: store.workspace?.workspaceId,
+                committedFilter: committedFilter
+            )
             self.isReviewFilterPopoverPresented = true
         } label: {
             HStack(spacing: 4) {
@@ -328,22 +337,46 @@ struct ReviewView: View {
         }
         .onChange(of: self.isReviewFilterPopoverPresented) { _, isPresented in
             if isPresented == false {
-                self.commitReviewFilterDraft()
+                self.finalizeReviewFilterDraft()
             }
+        }
+        .onChange(of: store.workspace?.workspaceId) { _, _ in
+            self.dismissReviewFilterPopoverIfContextDiverged()
+        }
+        .onChange(of: store.selectedReviewFilter) { _, _ in
+            self.dismissReviewFilterPopoverIfContextDiverged()
         }
     }
 
-    private func commitReviewFilterDraft() {
-        guard self.reviewFilterDraft != self.reviewFilterAtPresentation else {
+    private func finalizeReviewFilterDraft() {
+        guard let presentationContext = self.reviewFilterPresentationContext else {
+            return
+        }
+        self.reviewFilterPresentationContext = nil
+
+        guard presentationContext.workspaceId == store.workspace?.workspaceId,
+              presentationContext.committedFilter == store.selectedReviewFilter,
+              presentationContext.committedFilter != self.reviewFilterDraft else {
             return
         }
 
-        self.reviewFilterAtPresentation = self.reviewFilterDraft
         store.selectReviewFilter(reviewFilter: self.reviewFilterDraft)
     }
 
+    private func dismissReviewFilterPopoverIfContextDiverged() {
+        guard self.isReviewFilterPopoverPresented,
+              let presentationContext = self.reviewFilterPresentationContext,
+              presentationContext.workspaceId != store.workspace?.workspaceId
+                || presentationContext.committedFilter != store.selectedReviewFilter else {
+            return
+        }
+
+        self.finalizeReviewFilterDraft()
+        self.isReviewFilterPopoverPresented = false
+    }
+
     private func dismissReviewFilterPopoverAndOpenDecks() {
-        self.commitReviewFilterDraft()
+        self.finalizeReviewFilterDraft()
         self.isReviewFilterPopoverPresented = false
         navigation.openSettings(destination: .workspaceDecks)
     }
