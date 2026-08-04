@@ -45,6 +45,9 @@ struct ReviewView: View {
     @State var reviewTagSummaries: [WorkspaceTagSummary] = []
     @State var reviewDeckSummaries: [DeckSummary] = []
     @State var totalCardsCount: Int = 0
+    @State var isReviewFilterPopoverPresented: Bool = false
+    @State var reviewFilterDraft: ReviewFilter = .allCards
+    @State var reviewFilterAtPresentation: ReviewFilter = .allCards
 
     private var availableTagSuggestions: [TagSuggestion] {
         self.reviewTagSummaries.map { tagSummary in
@@ -68,78 +71,8 @@ struct ReviewView: View {
         }
     }
 
-    private var selectedReviewTagKeys: Set<String> {
-        let storedTagNames = self.reviewTagSummaries.map(\.tag)
-        let selectedTags: [String]
-        switch store.selectedReviewFilter {
-        case .allCards:
-            selectedTags = storedTagNames
-        case .deck(let deckId):
-            selectedTags = self.reviewDeckSummaries.first(where: { deckSummary in
-                deckSummary.deckId == deckId
-            }).map { deckSummary in
-                selectedReviewDeckTagNames(
-                    deckFilterTagNames: deckSummary.filterDefinition.tags,
-                    storedTagNames: storedTagNames
-                )
-            } ?? []
-        case .tags(let tags):
-            selectedTags = resolveExactStoredTagNames(
-                requestedTagNames: tags,
-                storedTagNames: storedTagNames
-            )
-        }
-
-        return Set(selectedTags.map(normalizeTagKey))
-    }
-
     var areReviewReactionAnimationsEnabled: Bool {
         store.accountPreferences.reviewReactionAnimationsEnabled && self.isLowPowerModeEnabled == false
-    }
-
-    private func reviewFilterMenuItemLabel(reviewFilter: ReviewFilter) -> String {
-        switch reviewFilter {
-        case .allCards:
-            return localizedAllCardsLabel()
-        case .deck(let deckId):
-            return self.reviewDeckSummaries.first(where: { deckSummary in
-                deckSummary.deckId == deckId
-            })?.name ?? localizedAllCardsLabel()
-        case .tags(let tags):
-            return tags.joined(separator: ", ")
-        }
-    }
-
-    private func selectReviewTag(tag: String) {
-        let storedTagNames = self.reviewTagSummaries.map(\.tag)
-        let nextReviewFilter: ReviewFilter
-        switch store.selectedReviewFilter {
-        case .deck(let deckId):
-            let deckTags = self.reviewDeckSummaries.first(where: { deckSummary in
-                deckSummary.deckId == deckId
-            })?.filterDefinition.tags ?? []
-            let deckTagFilter = makeReviewTagsFilter(
-                tags: selectedReviewDeckTagNames(
-                    deckFilterTagNames: deckTags,
-                    storedTagNames: storedTagNames
-                )
-            )
-            nextReviewFilter = reviewFilterByTogglingTag(
-                reviewFilter: deckTagFilter,
-                tag: tag,
-                decks: [],
-                storedTagNames: storedTagNames
-            )
-        case .allCards, .tags:
-            nextReviewFilter = reviewFilterByTogglingTag(
-                reviewFilter: store.selectedReviewFilter,
-                tag: tag,
-                decks: [],
-                storedTagNames: storedTagNames
-            )
-        }
-
-        store.selectReviewFilter(reviewFilter: nextReviewFilter)
     }
 
     private var currentCard: Card? {
@@ -369,68 +302,10 @@ struct ReviewView: View {
     }
 
     private var reviewFilterMenu: some View {
-        Menu {
-            Toggle(
-                isOn: Binding(
-                    get: {
-                        store.selectedReviewFilter == .allCards
-                    },
-                    set: { isEnabled in
-                        let reviewFilter: ReviewFilter = isEnabled
-                            ? .allCards
-                            : makeReviewTagsFilter(tags: [])
-                        store.selectReviewFilter(reviewFilter: reviewFilter)
-                    }
-                )
-            ) {
-                Text(localizedAllCardsLabel())
-            }
-            .menuActionDismissBehavior(.disabled)
-            .accessibilityIdentifier(UITestIdentifier.reviewFilterAllCardsAction)
-
-            ForEach(self.reviewDeckSummaries, id: \.deckId) { deckSummary in
-                let reviewFilter = ReviewFilter.deck(deckId: deckSummary.deckId)
-                Button {
-                    store.selectReviewFilter(reviewFilter: reviewFilter)
-                } label: {
-                    if store.selectedReviewFilter == reviewFilter {
-                        Label(reviewFilterMenuItemLabel(reviewFilter: reviewFilter), systemImage: "checkmark")
-                    } else {
-                        Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
-                    }
-                }
-                .menuActionDismissBehavior(.disabled)
-                .accessibilityIdentifier(UITestIdentifier.reviewFilterDeckActionPrefix + deckSummary.deckId)
-            }
-
-            Button {
-                navigation.openSettings(destination: .workspaceDecks)
-            } label: {
-                Label(String(localized: "Edit decks", table: reviewCardsStringsTableName), systemImage: "square.stack.3d.up")
-            }
-
-            Divider()
-
-            if reviewTagSummaries.isEmpty == false {
-                ForEach(reviewTagSummaries, id: \.tag) { tagSummary in
-                    Toggle(
-                        isOn: Binding(
-                            get: {
-                                self.selectedReviewTagKeys.contains(normalizeTagKey(tag: tagSummary.tag))
-                            },
-                            set: { _ in
-                                self.selectReviewTag(tag: tagSummary.tag)
-                            }
-                        )
-                    ) {
-                        Text("\(tagSummary.tag) (\(tagSummary.cardsCount.formatted()))")
-                    }
-                    .menuActionDismissBehavior(.disabled)
-                    .accessibilityIdentifier(UITestIdentifier.reviewFilterTagTogglePrefix + tagSummary.tag)
-                }
-
-                Divider()
-            }
+        Button {
+            self.reviewFilterDraft = store.selectedReviewFilter
+            self.reviewFilterAtPresentation = store.selectedReviewFilter
+            self.isReviewFilterPopoverPresented = true
         } label: {
             HStack(spacing: 4) {
                 Text(self.selectedReviewFilterTitle)
@@ -442,6 +317,35 @@ struct ReviewView: View {
             }
         }
         .accessibilityIdentifier(UITestIdentifier.reviewFilterMenu)
+        .popover(isPresented: self.$isReviewFilterPopoverPresented) {
+            ReviewFilterPopover(
+                reviewFilter: self.$reviewFilterDraft,
+                deckSummaries: self.reviewDeckSummaries,
+                tagSummaries: self.reviewTagSummaries,
+                onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks
+            )
+            .presentationCompactAdaptation(.popover)
+        }
+        .onChange(of: self.isReviewFilterPopoverPresented) { _, isPresented in
+            if isPresented == false {
+                self.commitReviewFilterDraft()
+            }
+        }
+    }
+
+    private func commitReviewFilterDraft() {
+        guard self.reviewFilterDraft != self.reviewFilterAtPresentation else {
+            return
+        }
+
+        self.reviewFilterAtPresentation = self.reviewFilterDraft
+        store.selectReviewFilter(reviewFilter: self.reviewFilterDraft)
+    }
+
+    private func dismissReviewFilterPopoverAndOpenDecks() {
+        self.commitReviewFilterDraft()
+        self.isReviewFilterPopoverPresented = false
+        navigation.openSettings(destination: .workspaceDecks)
     }
 
     private var reviewLoadingView: some View {
