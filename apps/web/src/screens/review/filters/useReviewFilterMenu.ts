@@ -82,7 +82,9 @@ function buildReviewDeckFilterMenuItems(
     {
       key: toReviewFilterMenuItemKey(ALL_CARDS_REVIEW_FILTER),
       label: allCardsLabel,
-      reviewFilter: ALL_CARDS_REVIEW_FILTER,
+      reviewFilter: selectedReviewFilter.kind === "allCards"
+        ? makeTagsReviewFilter([])
+        : ALL_CARDS_REVIEW_FILTER,
       subtitle: null,
       isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(ALL_CARDS_REVIEW_FILTER),
     },

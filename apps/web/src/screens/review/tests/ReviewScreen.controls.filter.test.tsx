@@ -323,6 +323,88 @@ describe("ReviewScreen filter controls", () => {
     expect(listbox.querySelector("[data-review-filter-key='tag:grammar']")?.getAttribute("aria-selected")).toBe("true");
     expect(listbox.querySelector("[data-review-filter-key='tag:verbs']")?.getAttribute("aria-selected")).toBe("true");
     expect(listbox.querySelector("[data-review-filter-key='tag:medium']")?.getAttribute("aria-selected")).toBe("true");
+
+    const selectedAllCardsOption = listbox.querySelector("[data-review-filter-key='allCards']");
+    if (!(selectedAllCardsOption instanceof HTMLElement)) {
+      throw new Error("Selected All Cards review filter option was not found");
+    }
+
+    await clickElementAsync(selectedAllCardsOption);
+
+    expect(state.appData.selectReviewFilter).toHaveBeenLastCalledWith({
+      kind: "tags",
+      tags: [],
+    });
+    expect(queryReviewFilterMenu()).not.toBeNull();
+
+    state.appData.selectedReviewFilter = {
+      kind: "tags",
+      tags: [],
+    };
+    state.reviewQueue = [];
+    state.reviewTimeline = [];
+    await rerenderReviewScreen();
+
+    await vi.waitFor(() => {
+      expect(getReviewFilterMenu().querySelector("[data-review-filter-key='allCards']")?.getAttribute("aria-selected")).toBe("false");
+      expect(getReviewFilterMenu().querySelector("[data-review-filter-key='tag:grammar']")?.getAttribute("aria-selected")).toBe("false");
+      expect(getReviewFilterMenu().querySelector("[data-review-filter-key='tag:verbs']")?.getAttribute("aria-selected")).toBe("false");
+      expect(getReviewFilterMenu().querySelector("[data-review-filter-key='tag:medium']")?.getAttribute("aria-selected")).toBe("false");
+      expect(getContainer().querySelector("[data-testid='review-pane']")?.getAttribute("data-review-pane-state")).toBe("empty");
+      expect(getContainer().querySelector("[data-testid='review-pane']")?.getAttribute("data-review-current-card-id")).toBe("");
+    });
+
+    const grammarOptionFromEmpty = getReviewFilterMenu().querySelector("[data-review-filter-key='tag:grammar']");
+    if (!(grammarOptionFromEmpty instanceof HTMLElement)) {
+      throw new Error("Grammar review filter option was not found after clearing All Cards");
+    }
+
+    await clickElementAsync(grammarOptionFromEmpty);
+
+    expect(state.appData.selectReviewFilter).toHaveBeenLastCalledWith({
+      kind: "tags",
+      tags: ["grammar"],
+    });
+    expect(queryReviewFilterMenu()).not.toBeNull();
+
+    state.appData.selectedReviewFilter = {
+      kind: "tags",
+      tags: ["grammar"],
+    };
+    state.reviewQueue = [state.cards[0] as (typeof state.cards)[number]];
+    state.reviewTimeline = state.reviewQueue;
+    await rerenderReviewScreen();
+
+    await vi.waitFor(() => {
+      expect(getReviewFilterMenu().querySelector("[data-review-filter-key='allCards']")?.getAttribute("aria-selected")).toBe("false");
+      expect(getReviewFilterMenu().querySelector("[data-review-filter-key='tag:grammar']")?.getAttribute("aria-selected")).toBe("true");
+      expect(getReviewFilterMenu().querySelector("[data-review-filter-key='tag:verbs']")?.getAttribute("aria-selected")).toBe("false");
+      expect(getReviewFilterMenu().querySelector("[data-review-filter-key='tag:medium']")?.getAttribute("aria-selected")).toBe("false");
+    });
+
+    const unselectedAllCardsOption = getReviewFilterMenu().querySelector("[data-review-filter-key='allCards']");
+    if (!(unselectedAllCardsOption instanceof HTMLElement)) {
+      throw new Error("Unselected All Cards review filter option was not found");
+    }
+
+    await clickElementAsync(unselectedAllCardsOption);
+
+    expect(state.appData.selectReviewFilter).toHaveBeenLastCalledWith({ kind: "allCards" });
+    expect(queryReviewFilterMenu()).not.toBeNull();
+
+    state.appData.selectedReviewFilter = { kind: "allCards" };
+    state.reviewQueue = state.cards;
+    state.reviewTimeline = state.cards;
+    await rerenderReviewScreen();
+
+    await vi.waitFor(() => {
+      expect(getReviewFilterMenu().querySelector("[data-review-filter-key='allCards']")?.getAttribute("aria-selected")).toBe("true");
+      expect(getReviewFilterMenu().querySelector("[data-review-filter-key='tag:grammar']")?.getAttribute("aria-selected")).toBe("true");
+      expect(getReviewFilterMenu().querySelector("[data-review-filter-key='tag:verbs']")?.getAttribute("aria-selected")).toBe("true");
+      expect(getReviewFilterMenu().querySelector("[data-review-filter-key='tag:medium']")?.getAttribute("aria-selected")).toBe("true");
+    });
+    state.appData.selectReviewFilter.mockClear();
+
     expect(reviewStylesContain(
       ".review-filter-menu",
       "display: flex",
