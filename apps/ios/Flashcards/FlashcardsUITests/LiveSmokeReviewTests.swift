@@ -51,8 +51,9 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
     func testLiveSmokeReviewFilterMenuSupportsEmptyTagAndAllCardsStates() throws {
         try self.launchApplication(launchScenario: .guestAIReviewCard, selectedTab: .review)
         let tagToggleIdentifier = LiveSmokeIdentifier.reviewFilterTagTogglePrefix + "smoke-guest-ai-review"
+        let lowerTagToggleIdentifier = LiveSmokeIdentifier.reviewFilterTagTogglePrefix + "smoke-overflow-12"
 
-        try self.step("clear all review filters without dismissing the menu") {
+        try self.step("keep a lower review filter row visible after changing its draft selection") {
             try self.assertElementExists(
                 identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
                 timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
@@ -61,6 +62,36 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 identifier: LiveSmokeIdentifier.reviewFilterMenu,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
+            try self.tapReviewFilterButtonScrollingIntoView(identifier: lowerTagToggleIdentifier)
+            try self.assertReviewFilterToggleValue(
+                identifier: lowerTagToggleIdentifier,
+                expectedValue: .off,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+
+            let lowerTagToggle = self.app.buttons[lowerTagToggleIdentifier].firstMatch
+            guard lowerTagToggle.isHittable else {
+                throw LiveSmokeFailure.unexpectedReviewState(
+                    message: "The toggled lower review filter row moved out of view.",
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+
+            lowerTagToggle.tap()
+            try self.assertReviewFilterToggleValue(
+                identifier: lowerTagToggleIdentifier,
+                expectedValue: .on,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.scrollReviewFilterToTop()
+        }
+
+        try self.step("clear all review filters without dismissing the menu") {
             try self.assertReviewFilterToggleValue(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
                 expectedValue: .on,
@@ -87,13 +118,14 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 expectedValue: .off,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
         }
 
         try self.step("dismiss the empty review filter menu with an outside tap") {
-            self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.reviewScreen)
-                .firstMatch
-                .tap()
+            self.dismissReviewFilterPopoverWithOutsideTap()
             try self.assertElementDoesNotExist(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -139,10 +171,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
         }
 
         try self.step("verify the tagged card returns after dismissing the menu") {
-            self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.reviewScreen)
-                .firstMatch
-                .tap()
+            self.dismissReviewFilterPopoverWithOutsideTap()
             try self.assertElementDoesNotExist(
                 identifier: tagToggleIdentifier,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -176,10 +205,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
         }
 
         try self.step("verify the all cards review returns after dismissing the menu") {
-            self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.reviewScreen)
-                .firstMatch
-                .tap()
+            self.dismissReviewFilterPopoverWithOutsideTap()
             try self.assertElementDoesNotExist(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -214,5 +240,63 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
+    }
+
+    @MainActor
+    private func tapReviewFilterButtonScrollingIntoView(identifier: String) throws {
+        let scrollSurface = self.app.scrollViews[LiveSmokeIdentifier.reviewFilterScrollSurface].firstMatch
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.reviewFilterScrollSurface,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+
+        let button = self.app.buttons[identifier].firstMatch
+        let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        while Date() < deadline {
+            if button.exists && button.isHittable {
+                button.tap()
+                return
+            }
+
+            scrollSurface.swipeUp()
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        throw LiveSmokeFailure.missingElement(
+            identifier: identifier,
+            timeoutSeconds: LiveSmokeConfiguration.shortUiTimeoutSeconds,
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+
+    @MainActor
+    private func scrollReviewFilterToTop() throws {
+        let scrollSurface = self.app.scrollViews[LiveSmokeIdentifier.reviewFilterScrollSurface].firstMatch
+        let allCardsButton = self.app.buttons[LiveSmokeIdentifier.reviewFilterAllCardsToggle].firstMatch
+        let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        while Date() < deadline {
+            if allCardsButton.exists && allCardsButton.isHittable {
+                return
+            }
+
+            scrollSurface.swipeDown()
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        throw LiveSmokeFailure.missingElement(
+            identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
+            timeoutSeconds: LiveSmokeConfiguration.shortUiTimeoutSeconds,
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+
+    @MainActor
+    private func dismissReviewFilterPopoverWithOutsideTap() {
+        let reviewScreen = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.reviewScreen)
+            .firstMatch
+        reviewScreen.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
     }
 }
