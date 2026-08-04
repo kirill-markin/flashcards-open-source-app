@@ -228,16 +228,31 @@ fun buildReviewTagFilterOptions(cards: List<CardSummary>, reviewedAtMillis: Long
     val dueCards = cards.filter { card ->
         isCardDue(card = card, nowMillis = reviewedAtMillis)
     }
-    val counts = dueCards.fold(emptyMap<String, Int>()) { result, card ->
-        card.tags.fold(result) { tagResult, tag ->
-            tagResult + (tag to ((tagResult[tag] ?: 0) + 1))
+    val cardIdsByTagKey: Map<String, Set<String>> = dueCards
+        .flatMap { card ->
+            card.tags.map { tag ->
+                normalizeTagKey(tag = tag) to card.cardId
+            }
         }
-    }
+        .groupBy(
+            keySelector = { (tagKey, _) -> tagKey },
+            valueTransform = { (_, cardId) -> cardId }
+        )
+        .mapValues { (_, cardIds) ->
+            cardIds.toSet()
+        }
+    val tagNamesByKey: Map<String, List<String>> = dueCards
+        .flatMap(CardSummary::tags)
+        .groupBy { tag ->
+            normalizeTagKey(tag = tag)
+        }
 
-    return counts.entries.map { entry ->
+    return tagNamesByKey.map { (tagKey, equivalentTagNames) ->
+        val canonicalTagName: String = equivalentTagNames.minOrNull()
+            ?: error("Review tag identity group cannot be empty.")
         ReviewTagFilterOption(
-            tag = entry.key,
-            totalCount = entry.value
+            tag = canonicalTagName,
+            totalCount = cardIdsByTagKey[tagKey]?.size ?: 0
         )
     }.sortedWith(
         compareBy<ReviewTagFilterOption> { option ->

@@ -222,9 +222,10 @@ class ReviewFilterAndSessionGenerationTest {
 
     @Test
     fun ownedLocalReviewMatchesCommittedTagsByNormalizedKey() {
+        val decomposedTag = "E\u0301clair"
         val submittedCard = makePinnedReviewCard(
             cardId = "normalized-tag-card",
-            tags = listOf("éCLAIR", "Éclair"),
+            tags = listOf("Éclair", decomposedTag),
             updatedAtMillis = 46L
         )
         val pendingReviewedCard = PendingReviewedCard(
@@ -248,7 +249,7 @@ class ReviewFilterAndSessionGenerationTest {
             remainingCount = 0,
             totalCount = 1,
             availableTagFilters = listOf(
-                ReviewTagFilterOption(tag = "éCLAIR", totalCount = 0)
+                ReviewTagFilterOption(tag = decomposedTag, totalCount = 0)
             )
         )
         val state = makePinnedReviewDraftState(

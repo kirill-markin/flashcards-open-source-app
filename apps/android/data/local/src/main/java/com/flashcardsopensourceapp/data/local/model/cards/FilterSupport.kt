@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.data.local.model.cards
 
+import java.text.Normalizer
+import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -30,7 +32,9 @@ fun normalizeTag(rawValue: String): String {
 }
 
 fun normalizeTagKey(tag: String): String {
-    return normalizeTag(rawValue = tag).lowercase()
+    return Normalizer.normalize(tag, Normalizer.Form.NFC)
+        .lowercase(Locale.ROOT)
+        .trim()
 }
 
 fun canonicalTagValue(rawValue: String, referenceTags: List<String>): String? {
