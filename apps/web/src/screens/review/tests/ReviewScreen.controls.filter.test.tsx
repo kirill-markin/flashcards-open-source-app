@@ -500,6 +500,98 @@ describe("ReviewScreen filter controls", () => {
     expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "deck", deckId: "deck-4" });
   });
 
+  it("discards a draft after a keyboard workspace switch and applies a reopened draft once", async () => {
+    const state = getState();
+    state.decks = createDecks(["Grammar"]);
+    state.cards = [
+      createCard({ cardId: "workspace-switch-grammar", tags: ["grammar"] }),
+      createCard({ cardId: "workspace-switch-verbs", tags: ["verbs"] }),
+    ];
+    state.reviewQueue = state.cards;
+    state.reviewTimeline = state.cards;
+
+    await renderReviewScreen();
+    await openReviewFilterMenu();
+
+    const grammarOption = getReviewFilterMenu().querySelector("[data-review-filter-key='tag:grammar']");
+    if (!(grammarOption instanceof HTMLElement)) {
+      throw new Error("Grammar review filter option was not found before the workspace switch");
+    }
+
+    await clickElementAsync(grammarOption);
+    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "2") {
+        return;
+      }
+
+      state.appData.activeWorkspace = {
+        workspaceId: "workspace-2",
+        name: "Secondary",
+        createdAt: "2026-03-11T00:00:00.000Z",
+        isSelected: true,
+      };
+      state.appData.selectedReviewFilter = { kind: "tags", tags: ["verbs"] };
+    }, { once: true });
+
+    await dispatchDocumentKeydown("2");
+    await rerenderReviewScreen();
+
+    expect(queryReviewFilterMenu()).toBeNull();
+    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
+
+    await openReviewFilterMenu();
+    expect(getReviewFilterMenu().querySelector("[data-review-filter-key='tag:verbs']")?.getAttribute("aria-selected")).toBe("true");
+    const deckOption = getReviewFilterMenu().querySelector("[data-review-filter-key='deck:deck-1']");
+    const trigger = getContainer().querySelector("[data-testid='review-filter-trigger']");
+    if (!(deckOption instanceof HTMLElement) || !(trigger instanceof HTMLButtonElement)) {
+      throw new Error("Reopened review filter controls were not found after the workspace switch");
+    }
+
+    await clickElementAsync(deckOption);
+    await clickElementAsync(trigger);
+    await dispatchDocumentKeydown("Escape");
+    await pointerDownElementAsync(document.body);
+
+    expect(queryReviewFilterMenu()).toBeNull();
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledTimes(1);
+    expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({ kind: "deck", deckId: "deck-1" });
+  });
+
+  it("discards a draft when the committed filter changes in the same workspace", async () => {
+    const state = getState();
+    state.decks = createDecks(["Grammar"]);
+    state.cards = [
+      createCard({ cardId: "external-filter-grammar", tags: ["grammar"] }),
+      createCard({ cardId: "external-filter-verbs", tags: ["verbs"] }),
+    ];
+    state.reviewQueue = state.cards;
+    state.reviewTimeline = state.cards;
+
+    await renderReviewScreen();
+    await openReviewFilterMenu();
+
+    const grammarOption = getReviewFilterMenu().querySelector("[data-review-filter-key='tag:grammar']");
+    if (!(grammarOption instanceof HTMLElement)) {
+      throw new Error("Grammar review filter option was not found before the committed filter changed");
+    }
+
+    await clickElementAsync(grammarOption);
+    state.appData.selectedReviewFilter = { kind: "deck", deckId: "deck-1" };
+    await rerenderReviewScreen();
+
+    expect(queryReviewFilterMenu()).toBeNull();
+    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
+
+    await openReviewFilterMenu();
+    expect(getReviewFilterMenu().querySelector("[data-review-filter-key='deck:deck-1']")?.getAttribute("aria-selected")).toBe("true");
+    await dispatchDocumentKeydown("Escape");
+
+    expect(queryReviewFilterMenu()).toBeNull();
+    expect(state.appData.selectReviewFilter).not.toHaveBeenCalled();
+  });
+
   it("selects items by keyboard when the review filter menu has no search field", async () => {
     const state = getState();
     state.decks = createDecks(["Alpha", "Beta"]);

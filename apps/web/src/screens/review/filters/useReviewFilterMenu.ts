@@ -35,6 +35,12 @@ type UseReviewFilterMenuParams = Readonly<{
   onSelectReviewFilter: (reviewFilter: ReviewFilter) => void;
   reviewTagSummaries: ReadonlyArray<WorkspaceTagSummary>;
   selectedReviewFilter: ReviewFilter;
+  workspaceId: string | null;
+}>;
+
+type ReviewFilterMenuContext = Readonly<{
+  reviewFilter: ReviewFilter;
+  workspaceId: string | null;
 }>;
 
 export type UseReviewFilterMenuResult = Readonly<{
@@ -239,24 +245,41 @@ function isReviewFilterComboboxComposing(event: ReactKeyboardEvent<HTMLInputElem
   return event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229;
 }
 
+function isReviewFilterMenuContextEqual(
+  leftContext: ReviewFilterMenuContext,
+  rightContext: ReviewFilterMenuContext,
+): boolean {
+  return leftContext.workspaceId === rightContext.workspaceId
+    && isReviewFilterEqual(leftContext.reviewFilter, rightContext.reviewFilter);
+}
+
 export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseReviewFilterMenuResult {
   const {
     deckSummaries,
     onSelectReviewFilter,
     reviewTagSummaries,
     selectedReviewFilter,
+    workspaceId,
   } = params;
   const { t } = useI18n();
   const [isReviewFilterMenuOpen, setIsReviewFilterMenuOpen] = useState<boolean>(false);
   const [reviewFilterDraft, setReviewFilterDraft] = useState<ReviewFilter | null>(null);
   const [reviewDeckSearchText, setReviewDeckSearchText] = useState<string>("");
   const [activeReviewFilterOptionKey, setActiveReviewFilterOptionKey] = useState<string | null>(null);
-  const openingReviewFilterRef = useRef<ReviewFilter | null>(null);
+  const currentReviewFilterMenuContextRef = useRef<ReviewFilterMenuContext>({
+    reviewFilter: selectedReviewFilter,
+    workspaceId,
+  });
+  const openingReviewFilterMenuContextRef = useRef<ReviewFilterMenuContext | null>(null);
   const reviewFilterDraftRef = useRef<ReviewFilter | null>(null);
   const reviewFilterTriggerRef = useRef<HTMLButtonElement | null>(null);
   const reviewFilterMenuRef = useRef<HTMLDivElement | null>(null);
   const reviewDeckSearchInputRef = useRef<HTMLInputElement | null>(null);
   const reviewFilterListboxRef = useRef<HTMLDivElement | null>(null);
+  currentReviewFilterMenuContextRef.current = {
+    reviewFilter: selectedReviewFilter,
+    workspaceId,
+  };
   const displayedReviewFilter = isReviewFilterMenuOpen && reviewFilterDraft !== null
     ? reviewFilterDraft
     : selectedReviewFilter;
@@ -352,6 +375,19 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
   }, [isReviewFilterMenuOpen, shouldShowReviewDeckSearch]);
 
   useEffect(() => {
+    const openingContext = openingReviewFilterMenuContextRef.current;
+    if (
+      !isReviewFilterMenuOpen
+      || openingContext === null
+      || isReviewFilterMenuContextEqual(openingContext, currentReviewFilterMenuContextRef.current)
+    ) {
+      return;
+    }
+
+    handleCloseMenu();
+  }, [isReviewFilterMenuOpen, selectedReviewFilter, workspaceId]);
+
+  useEffect(() => {
     if (!isReviewFilterMenuOpen) {
       return;
     }
@@ -367,9 +403,9 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
   }, [isReviewFilterMenuOpen]);
 
   function handleCloseMenu(): void {
-    const openingReviewFilter = openingReviewFilterRef.current;
+    const openingContext = openingReviewFilterMenuContextRef.current;
     const finalReviewFilterDraft = reviewFilterDraftRef.current;
-    openingReviewFilterRef.current = null;
+    openingReviewFilterMenuContextRef.current = null;
     reviewFilterDraftRef.current = null;
     setReviewFilterDraft(null);
     setReviewDeckSearchText("");
@@ -377,9 +413,10 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     setIsReviewFilterMenuOpen(false);
 
     if (
-      openingReviewFilter !== null
+      openingContext !== null
       && finalReviewFilterDraft !== null
-      && isReviewFilterEqual(openingReviewFilter, finalReviewFilterDraft) === false
+      && isReviewFilterMenuContextEqual(openingContext, currentReviewFilterMenuContextRef.current)
+      && isReviewFilterEqual(openingContext.reviewFilter, finalReviewFilterDraft) === false
     ) {
       onSelectReviewFilter(finalReviewFilterDraft);
     }
@@ -392,7 +429,7 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
       return;
     }
 
-    openingReviewFilterRef.current = selectedReviewFilter;
+    openingReviewFilterMenuContextRef.current = currentReviewFilterMenuContextRef.current;
     reviewFilterDraftRef.current = selectedReviewFilter;
     setReviewFilterDraft(selectedReviewFilter);
     setActiveReviewFilterOptionKey(findDefaultReviewFilterOptionKey(visibleReviewFilterChoiceMenuItems));
