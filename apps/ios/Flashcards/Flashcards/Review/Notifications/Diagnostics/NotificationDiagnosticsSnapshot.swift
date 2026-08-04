@@ -546,5 +546,7 @@ private func notificationDiagnosticsReviewFilterValue(reviewFilter: PersistedRev
         return "legacy_effort:\(reviewFilter.effortLevel ?? "missing")"
     case .tag:
         return "tag:\(reviewFilter.tag ?? "missing")"
+    case .tags:
+        return "tags:\(reviewFilter.tags?.joined(separator: ",") ?? "missing")"
     }
 }

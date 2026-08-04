@@ -596,7 +596,7 @@ struct FlashcardsApp: App {
             request: envelope.request,
             currentWorkspaceId: self.store.workspace?.workspaceId
         ) {
-            if case .openReviewReminder(let workspaceId) = envelope.request {
+            if let workspaceId = reviewReminderWorkspaceId(request: envelope.request) {
                 self.store.clearReviewReminderAttention(workspaceId: workspaceId)
             }
             let droppedMetadata = makeAppNotificationTapLogMetadata(

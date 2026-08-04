@@ -131,6 +131,150 @@ final class FsrsReviewPresentationTests: XCTestCase {
         XCTAssertEqual(submissionContext.reviewQueryDefinition, .tag(exactTagNames: ["Éclair", "éclair"]))
     }
 
+    func testReviewFilterTagsMatchAnySelectedTagAndEmptySelectionMatchesNone() throws {
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+        let cards = [
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "biology",
+                tags: ["Biology"],
+                dueAt: nil,
+                updatedAt: "2026-03-09T08:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "chemistry",
+                tags: ["Chemistry"],
+                dueAt: nil,
+                updatedAt: "2026-03-09T07:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "untagged",
+                tags: [],
+                dueAt: nil,
+                updatedAt: "2026-03-09T06:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "physics",
+                tags: ["Physics"],
+                dueAt: nil,
+                updatedAt: "2026-03-09T05:00:00.000Z"
+            )
+        ]
+
+        XCTAssertEqual(
+            makeReviewQueue(
+                reviewFilter: makeReviewTagsFilter(tags: ["chemistry", "biology"]),
+                decks: [],
+                cards: cards,
+                now: now
+            ).map(\.cardId),
+            ["chemistry", "biology"]
+        )
+        XCTAssertEqual(
+            makeReviewQueue(
+                reviewFilter: makeReviewTagsFilter(tags: []),
+                decks: [],
+                cards: cards,
+                now: now
+            ),
+            []
+        )
+        XCTAssertEqual(
+            makeReviewQueue(reviewFilter: .allCards, decks: [], cards: cards, now: now).map(\.cardId),
+            ["physics", "untagged", "chemistry", "biology"]
+        )
+        XCTAssertEqual(
+            resolveReviewFilter(
+                reviewFilter: makeReviewTagsFilter(tags: ["Biology", "Chemistry", "Physics"]),
+                decks: [],
+                cards: cards
+            ),
+            .allCards
+        )
+    }
+
+    func testReviewTagToggleConvertsDeckToCustomAndCanonicalizesEveryTagToAllCards() {
+        let decks = [
+            FsrsSchedulerTestSupport.makeDeck(
+                deckId: "science",
+                name: "Science",
+                filterDefinition: buildDeckFilterDefinition(tags: ["Biology"])
+            )
+        ]
+        let storedTagNames = ["Chemistry", "Biology"]
+
+        XCTAssertEqual(
+            selectedReviewTagNames(
+                reviewFilter: .allCards,
+                decks: decks,
+                storedTagNames: storedTagNames
+            ),
+            ["Biology", "Chemistry"]
+        )
+        XCTAssertEqual(
+            selectedReviewTagNames(
+                reviewFilter: .deck(deckId: "science"),
+                decks: decks,
+                storedTagNames: storedTagNames
+            ),
+            ["Biology"]
+        )
+
+        let customFilter = reviewFilterByTogglingTag(
+            reviewFilter: .deck(deckId: "science"),
+            tag: "Biology",
+            decks: decks,
+            storedTagNames: storedTagNames
+        )
+        XCTAssertEqual(customFilter, makeReviewTagsFilter(tags: []))
+
+        let allCardsFilter = reviewFilterByTogglingTag(
+            reviewFilter: makeReviewTagsFilter(tags: ["Biology"]),
+            tag: "chemistry",
+            decks: decks,
+            storedTagNames: storedTagNames
+        )
+        XCTAssertEqual(allCardsFilter, .allCards)
+
+        let restoredCompleteSelection = resolveTagsReviewQuery(
+            requestedTags: ["biology", "chemistry"],
+            storedTagNames: storedTagNames
+        )
+        XCTAssertEqual(restoredCompleteSelection.reviewFilter, .allCards)
+        XCTAssertEqual(restoredCompleteSelection.queryDefinition, .allCards)
+
+        let selectionBeforeWorkspaceTagRemoval = resolveTagsReviewQuery(
+            requestedTags: ["biology", "chemistry"],
+            storedTagNames: storedTagNames + ["Physics"]
+        )
+        XCTAssertEqual(
+            selectionBeforeWorkspaceTagRemoval.reviewFilter,
+            makeReviewTagsFilter(tags: ["Biology", "Chemistry"])
+        )
+        XCTAssertEqual(
+            selectionBeforeWorkspaceTagRemoval.queryDefinition,
+            .tag(exactTagNames: ["Chemistry", "Biology"])
+        )
+
+        let resolvedQuery = resolveTagsReviewQuery(
+            requestedTags: ["biology", "Missing"],
+            storedTagNames: storedTagNames
+        )
+        XCTAssertEqual(
+            resolvedQuery.reviewFilter,
+            makeReviewTagsFilter(tags: ["Biology", "Missing"])
+        )
+        XCTAssertEqual(resolvedQuery.queryDefinition, .tag(exactTagNames: ["Biology"]))
+        XCTAssertEqual(
+            reviewFilterByTogglingTag(
+                reviewFilter: resolvedQuery.reviewFilter,
+                tag: "Chemistry",
+                decks: decks,
+                storedTagNames: storedTagNames
+            ),
+            makeReviewTagsFilter(tags: ["Biology", "Chemistry", "Missing"])
+        )
+    }
+
     func testDeckFilterTagMatchesUnicodeStoredTagByNormalizedKey() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
         let decks = [

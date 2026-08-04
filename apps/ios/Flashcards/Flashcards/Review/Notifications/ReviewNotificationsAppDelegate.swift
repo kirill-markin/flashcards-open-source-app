@@ -40,7 +40,7 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
         case .unrelated:
             return [.banner, .sound]
         case .owned(let request):
-            if case .openReviewReminder = request {
+            if reviewReminderWorkspaceId(request: request) != nil {
                 persistReviewReminderAttentionState(
                     notification: notification,
                     userDefaults: .standard,
@@ -99,7 +99,7 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
             completionHandler()
             return
         }
-        if case .openReviewReminder = request {
+        if reviewReminderWorkspaceId(request: request) != nil {
             persistReviewReminderAttentionState(
                 notification: response.notification,
                 userDefaults: .standard,

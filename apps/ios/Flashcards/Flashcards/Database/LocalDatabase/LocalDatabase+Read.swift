@@ -158,19 +158,12 @@ extension LocalDatabase {
                     )
                 )
             )
-        case .tag(let tag):
+        case .tags(let tags):
             let storedTagNames = try loadStoredTagNames(database: self, workspaceId: workspaceId)
-            guard let resolvedTagReviewQuery = resolveTagReviewQuery(
-                requestedTag: tag,
+            return resolveTagsReviewQuery(
+                requestedTags: tags,
                 storedTagNames: storedTagNames
-            ) else {
-                return ResolvedReviewQuery(
-                    reviewFilter: .allCards,
-                    queryDefinition: .allCards
-                )
-            }
-
-            return resolvedTagReviewQuery
+            )
         }
     }
 

@@ -23,6 +23,7 @@ struct ReviewQueueRuntimeState {
     var pendingReviewRequests: [ReviewSubmissionRequest]
     var isReviewProcessorRunning: Bool
     var reviewSourceVersion: Int
+    var reviewReconciliationGeneration: Int
     var hasMoreReviewQueueCards: Bool
 }
 
@@ -48,6 +49,7 @@ struct ReviewQueueRuntime {
             pendingReviewRequests: [],
             isReviewProcessorRunning: false,
             reviewSourceVersion: 0,
+            reviewReconciliationGeneration: 0,
             hasMoreReviewQueueCards: false
         )
     }

@@ -334,6 +334,24 @@ extension FlashcardsStore {
             }
             self.reloadReviewReminderAttentionState()
             navigation.selectTab(.review)
+        case .openFilteredReviewReminder(_, let persistedReviewFilter):
+            if let fallback = appNotificationTapWorkspaceOwnershipFallback(
+                request: request,
+                currentWorkspaceId: self.workspace?.workspaceId
+            ) {
+                logAppNotificationTapFallback(fallback: fallback)
+                return
+            }
+            do {
+                self.selectReviewFilter(
+                    reviewFilter: try makeReviewFilter(persistedReviewFilter: persistedReviewFilter)
+                )
+            } catch {
+                self.presentTechnicalError(error)
+                return
+            }
+            self.reloadReviewReminderAttentionState()
+            navigation.selectTab(.review)
         case .openStrictReminder:
             navigation.selectTab(.review)
         }

@@ -163,15 +163,11 @@ func resolveReviewFilter(
         }
 
         return .allCards
-    case .tag(let tag):
-        if let exactTagName = resolveExactStoredTagNames(
-            requestedTagNames: [tag],
+    case .tags(let tags):
+        return resolveTagsReviewQuery(
+            requestedTags: tags,
             storedTagNames: storedTagNames
-        ).first {
-            return .tag(tag: exactTagName)
-        }
-
-        return .allCards
+        ).reviewFilter
     }
 }
 
@@ -189,9 +185,12 @@ func cardsMatchingReviewFilter(reviewFilter: ReviewFilter, decks: [Deck], cards:
         }
 
         return cardsMatchingDeck(deck: deck, cards: cards)
-    case .tag(let tag):
+    case .tags(let tags):
+        let selectedTagKeys = Set(tags.map(normalizeTagKey))
         return deriveActiveCards(cards: cards).filter { card in
-            hasTagMatchingRequest(storedTagNames: card.tags, requestedTagName: tag)
+            card.tags.contains { tag in
+                selectedTagKeys.contains(normalizeTagKey(tag: tag))
+            }
         }
     }
 }
@@ -210,8 +209,8 @@ func reviewFilterTitle(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card])
         }
 
         return deck.name
-    case .tag(let tag):
-        return tag
+    case .tags(let tags):
+        return localizedReviewTagsFilterTitle(tags: tags)
     }
 }
 
@@ -221,7 +220,7 @@ func shouldShowSwitchToAllCardsReviewAction(reviewFilter: ReviewFilter, decks: [
     switch resolvedReviewFilter {
     case .allCards:
         return false
-    case .deck, .tag:
+    case .deck, .tags:
         return true
     }
 }
@@ -249,8 +248,11 @@ private func cardMatchesResolvedReviewFilter(reviewFilter: ReviewFilter, decks: 
         }
 
         return matchesDeckFilterDefinition(filterDefinition: deck.filterDefinition, card: card)
-    case .tag(let tag):
-        return hasTagMatchingRequest(storedTagNames: card.tags, requestedTagName: tag)
+    case .tags(let tags):
+        let selectedTagKeys = Set(tags.map(normalizeTagKey))
+        return card.tags.contains { tag in
+            selectedTagKeys.contains(normalizeTagKey(tag: tag))
+        }
     }
 }
 
@@ -304,18 +306,41 @@ private func insertReviewQueueCandidate(
     return Array(updatedTopCards.prefix(limit))
 }
 
-func resolveTagReviewQuery(requestedTag: String, storedTagNames: [String]) -> ResolvedReviewQuery? {
+func resolveTagsReviewQuery(requestedTags: [String], storedTagNames: [String]) -> ResolvedReviewQuery {
     let exactTagNames = resolveExactStoredTagNames(
-        requestedTagNames: [requestedTag],
+        requestedTagNames: requestedTags,
         storedTagNames: storedTagNames
     )
-    guard let displayTagName = exactTagNames.first else {
-        return nil
+    let selectedTagNames = resolveReviewTagNamesPreservingUnmatched(
+        requestedTagNames: requestedTags,
+        storedTagNames: storedTagNames
+    )
+    let currentTagKeys = Set(normalizedReviewTagNames(tags: storedTagNames).map(normalizeTagKey))
+    let selectedTagKeys = Set(selectedTagNames.map(normalizeTagKey))
+    let exactTagKeys = Set(exactTagNames.map(normalizeTagKey))
+    if
+        currentTagKeys.isEmpty == false,
+        selectedTagKeys == exactTagKeys,
+        exactTagKeys == currentTagKeys
+    {
+        return ResolvedReviewQuery(
+            reviewFilter: .allCards,
+            queryDefinition: .allCards
+        )
     }
 
     return ResolvedReviewQuery(
-        reviewFilter: .tag(tag: displayTagName),
+        reviewFilter: .tags(tags: selectedTagNames),
         queryDefinition: .tag(exactTagNames: exactTagNames)
+    )
+}
+
+func resolveReviewTagNamesPreservingUnmatched(
+    requestedTagNames: [String],
+    storedTagNames: [String]
+) -> [String] {
+    normalizedReviewTagNames(
+        tags: normalizeTags(values: requestedTagNames, referenceTags: storedTagNames)
     )
 }
 
@@ -363,15 +388,76 @@ func resolveReviewQuery(
                 )
             )
         )
-    case .tag(let tag):
-        return resolveTagReviewQuery(
-            requestedTag: tag,
+    case .tags(let tags):
+        return resolveTagsReviewQuery(
+            requestedTags: tags,
             storedTagNames: storedTagNames
-        ) ?? ResolvedReviewQuery(
-            reviewFilter: .allCards,
-            queryDefinition: .allCards
         )
     }
+}
+
+func selectedReviewTagNames(
+    reviewFilter: ReviewFilter,
+    decks: [Deck],
+    storedTagNames: [String]
+) -> [String] {
+    switch reviewFilter {
+    case .allCards:
+        return normalizedReviewTagNames(tags: storedTagNames)
+    case .deck(let deckId):
+        guard let deck = decks.first(where: { deck in
+            deck.deckId == deckId
+        }) else {
+            return []
+        }
+
+        return resolveReviewTagNamesPreservingUnmatched(
+            requestedTagNames: deck.filterDefinition.tags,
+            storedTagNames: storedTagNames
+        )
+    case .tags(let tags):
+        return resolveReviewTagNamesPreservingUnmatched(
+            requestedTagNames: tags,
+            storedTagNames: storedTagNames
+        )
+    }
+}
+
+func reviewFilterByTogglingTag(
+    reviewFilter: ReviewFilter,
+    tag: String,
+    decks: [Deck],
+    storedTagNames: [String]
+) -> ReviewFilter {
+    let canonicalStoredTags = normalizedReviewTagNames(tags: storedTagNames)
+    guard let canonicalTag = resolveExactStoredTagNames(
+        requestedTagNames: [tag],
+        storedTagNames: canonicalStoredTags
+    ).first else {
+        return reviewFilter
+    }
+
+    let selectedTags = selectedReviewTagNames(
+        reviewFilter: reviewFilter,
+        decks: decks,
+        storedTagNames: canonicalStoredTags
+    )
+    let toggledTagKey = normalizeTagKey(tag: canonicalTag)
+    let nextTags: [String]
+    if selectedTags.contains(where: { selectedTag in
+        normalizeTagKey(tag: selectedTag) == toggledTagKey
+    }) {
+        nextTags = selectedTags.filter { selectedTag in
+            normalizeTagKey(tag: selectedTag) != toggledTagKey
+        }
+    } else {
+        nextTags = normalizedReviewTagNames(tags: selectedTags + [canonicalTag])
+    }
+
+    return resolveTagsReviewQuery(
+        requestedTags: nextTags,
+        storedTagNames: canonicalStoredTags
+    ).reviewFilter
 }
 
 func makeReviewSubmissionContext(

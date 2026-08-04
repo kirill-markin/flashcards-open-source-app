@@ -198,6 +198,10 @@ private func buildRepeatedReviewNotificationPayloads(
 func loadScheduledReviewNotificationPayloads(
     snapshot: ReviewNotificationSchedulingSnapshot
 ) async throws -> ScheduledReviewNotificationLoadResult {
+    if case .tags(let tags) = snapshot.reviewFilter, tags.isEmpty {
+        return ScheduledReviewNotificationLoadResult(payloads: [])
+    }
+
     guard let databaseURL = snapshot.databaseURL else {
         return ScheduledReviewNotificationLoadResult(payloads: [])
     }
