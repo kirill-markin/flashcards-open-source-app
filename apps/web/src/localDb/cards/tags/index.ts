@@ -1,5 +1,5 @@
 import type { Card } from "../../../types";
-import { normalizeTagKey } from "../../../appData/domain";
+import { normalizeTag, normalizeTagKey } from "../../../appData/domain";
 import { describeIndexedDbError } from "../../core/database";
 
 export type CardTagRecord = Readonly<{
@@ -195,7 +195,7 @@ export async function loadReviewTagFilterLookupForTags(
 
     allowedCardIds.add(record.cardId);
     if (canonicalTagsByKey.has(tagKey) === false) {
-      canonicalTagsByKey.set(tagKey, record.tag.trim());
+      canonicalTagsByKey.set(tagKey, normalizeTag(record.tag));
     }
 
     return true;
@@ -231,7 +231,7 @@ export async function loadAllowedCardIdsForTag(
     }
 
     allowedCardIds.add(record.cardId);
-    canonicalTag = canonicalTag ?? record.tag.trim();
+    canonicalTag = canonicalTag ?? normalizeTag(record.tag);
     return true;
   });
 

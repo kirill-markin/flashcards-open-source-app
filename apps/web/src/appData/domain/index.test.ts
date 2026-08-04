@@ -14,6 +14,7 @@ import {
   matchesCardFilter,
   matchesDeckFilterDefinition,
   makeTagsReviewFilter,
+  normalizeTag,
   normalizeReviewFilterTags,
   normalizeTagKey,
   recentDuePriorityWindow,
@@ -282,12 +283,15 @@ describe("review order domain", () => {
 });
 
 describe("review tag matching domain", () => {
-  it("normalizes tag keys by trimming and lowercasing Unicode text", () => {
+  it("canonically normalizes tag text before trimming and lowercasing identity keys", () => {
+    expect(normalizeTag(" E\u0301clair ")).toBe("Éclair");
     expect(normalizeTagKey(" Éclair ")).toBe("éclair");
+    expect(normalizeTagKey(" E\u0301CLAIR ")).toBe("éclair");
   });
 
   it("normalizes, deduplicates, and deterministically orders explicit review tags", () => {
-    expect(normalizeReviewFilterTags([" verbs ", "Grammar", "grammar", ""])).toEqual([
+    expect(normalizeReviewFilterTags([" verbs ", "Grammar", "grammar", " E\u0301clair ", "Éclair", ""])).toEqual([
+      "Éclair",
       "Grammar",
       "verbs",
     ]);

@@ -65,6 +65,13 @@ describe("workspace review filter persistence", () => {
       kind: "deck",
       deckId: "deck-1",
     });
+    expect(parsePersistedReviewFilter(JSON.stringify({
+      kind: "tags",
+      tags: [" E\u0301clair ", "Éclair"],
+    }))).toEqual({
+      kind: "tags",
+      tags: ["Éclair"],
+    });
   });
 
   it("migrates the legacy global selection into only the first activated workspace", () => {
@@ -96,6 +103,21 @@ describe("workspace review filter persistence", () => {
     expect(loadSelectedReviewFilterForWorkspace("workspace-2")).toEqual({
       kind: "deck",
       deckId: "deck-2",
+    });
+  });
+
+  it("stores canonically normalized tag selections while keeping legacy values readable", () => {
+    storeSelectedReviewFilterForWorkspace("workspace-1", {
+      kind: "tags",
+      tags: [" E\u0301clair ", "Éclair"],
+    });
+
+    expect(window.localStorage.getItem(buildSelectedReviewFilterStorageKey("workspace-1"))).toBe(
+      JSON.stringify({ kind: "tags", tags: ["Éclair"] }),
+    );
+    expect(loadSelectedReviewFilterForWorkspace("workspace-1")).toEqual({
+      kind: "tags",
+      tags: ["Éclair"],
     });
   });
 

@@ -2,12 +2,18 @@
 import { act } from "react";
 import { describe, expect, it } from "vitest";
 import { ApiError } from "../../../api";
+import { parsePersistedReviewFilter } from "../../../appData/context/reviewFilterPersistence";
 import type { ReviewQueueSnapshot } from "../../../types";
-import { buildReviewLoadingCardPreview, writeReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
+import {
+  buildReviewLoadingCardPreview,
+  serializeReviewFilterKey,
+  writeReviewLoadingSnapshot,
+} from "../../shared/loadingSnapshots";
 import {
   clickElementAsync,
   createCard,
   createDeferredPromise,
+  createStorageMock,
   hasHydratedHotStateMock,
   loadReviewQueueSnapshotMock,
   setupReviewScreenTest,
@@ -91,6 +97,92 @@ describe("ReviewScreen loading controls", () => {
     expect(reviewPane.querySelector(".review-card-answer")).toBeNull();
     expect(frontCard.textContent).toContain("Snapshot front prompt");
     expect(speechButton.disabled).toBe(true);
+
+    await act(async () => {
+      pendingReviewQueueSnapshot.resolve({
+        resolvedReviewFilter: state.appData.selectedReviewFilter,
+        cards: [snapshotCard],
+        nextCursor: null,
+        reviewCounts: {
+          dueCount: 1,
+          totalCount: 1,
+        },
+      });
+      await pendingReviewQueueSnapshot.promise;
+    });
+    await flushReviewScreenPromises();
+  });
+
+  it("restores and migrates a decomposed legacy tag snapshot for a normalized persisted selection", async () => {
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: createStorageMock(),
+    });
+    const state = getState();
+    const snapshotCard = createCard({
+      cardId: "legacy-unicode-loading-preview",
+      frontText: "Legacy Unicode snapshot prompt",
+      backText: "Snapshot answer",
+      tags: ["E\u0301clair"],
+    });
+    state.cards = [snapshotCard];
+    state.reviewQueue = [snapshotCard];
+    state.reviewTimeline = [snapshotCard];
+    state.appData.selectedReviewFilter = parsePersistedReviewFilter(JSON.stringify({
+      kind: "tags",
+      tags: [" E\u0301CLAIR "],
+    }));
+    const legacySelectedReviewFilterKey = `tags:${encodeURIComponent("e\u0301clair")}`;
+    writeReviewLoadingSnapshot({
+      version: 1,
+      workspaceId: "workspace-1",
+      selectedReviewFilterKey: legacySelectedReviewFilterKey,
+      resolvedReviewFilterTitle: "1 tag",
+      reviewCounts: {
+        dueCount: 1,
+        totalCount: 1,
+      },
+      currentCard: buildReviewLoadingCardPreview(snapshotCard),
+      queuePreview: [buildReviewLoadingCardPreview(snapshotCard)],
+      savedAt: "2026-03-10T12:00:00.000Z",
+    });
+    const legacyStorageKey = window.localStorage.key(0);
+    if (legacyStorageKey === null) {
+      throw new Error("Legacy review loading snapshot storage key was not written");
+    }
+    const pendingReviewQueueSnapshot = createDeferredPromise<ReviewQueueSnapshot>();
+    loadReviewQueueSnapshotMock.mockImplementation(() => pendingReviewQueueSnapshot.promise);
+
+    await renderReviewScreen();
+
+    const reviewPane = getContainer().querySelector("[data-testid='review-pane']");
+    const frontCard = reviewPane?.querySelector("[data-testid='review-current-front-card']");
+    if (!(reviewPane instanceof HTMLElement) || !(frontCard instanceof HTMLElement)) {
+      throw new Error("Migrated Unicode review loading preview was not rendered");
+    }
+    const canonicalSelectedReviewFilterKey = serializeReviewFilterKey(state.appData.selectedReviewFilter);
+    const canonicalStorageKey = window.localStorage.key(0);
+    if (canonicalStorageKey === null) {
+      throw new Error("Canonical review loading snapshot storage key was not written");
+    }
+    const canonicalSnapshotValue = window.localStorage.getItem(canonicalStorageKey);
+    if (canonicalSnapshotValue === null) {
+      throw new Error("Canonical review loading snapshot value was not written");
+    }
+
+    expect(frontCard.textContent).toContain("Legacy Unicode snapshot prompt");
+    expect(reviewPane.querySelector(".review-loading-card-surface")).toBeNull();
+    expect(loadReviewQueueSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(window.localStorage.length).toBe(1);
+    expect(window.localStorage.getItem(legacyStorageKey)).toBeNull();
+    expect(canonicalStorageKey.endsWith(`:${canonicalSelectedReviewFilterKey}`)).toBe(true);
+    expect(JSON.parse(canonicalSnapshotValue)).toMatchObject({
+      selectedReviewFilterKey: canonicalSelectedReviewFilterKey,
+      currentCard: {
+        cardId: snapshotCard.cardId,
+        frontText: snapshotCard.frontText,
+      },
+    });
 
     await act(async () => {
       pendingReviewQueueSnapshot.resolve({

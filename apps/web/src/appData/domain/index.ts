@@ -135,17 +135,21 @@ export function isReviewFilterEqual(left: ReviewFilter, right: ReviewFilter): bo
   return false;
 }
 
+export function normalizeTag(tag: string): string {
+  return tag.normalize("NFC").trim();
+}
+
 export function normalizeTagKey(tag: string): string {
-  return tag.trim().toLowerCase();
+  return normalizeTag(tag).toLowerCase();
 }
 
 export function normalizeReviewFilterTags(tags: ReadonlyArray<string>): ReadonlyArray<string> {
   const tagsByKey = new Map<string, string>();
   for (const tag of tags) {
-    const trimmedTag = tag.trim();
-    const tagKey = normalizeTagKey(trimmedTag);
+    const normalizedTag = normalizeTag(tag);
+    const tagKey = normalizeTagKey(normalizedTag);
     if (tagKey !== "" && tagsByKey.has(tagKey) === false) {
-      tagsByKey.set(tagKey, trimmedTag);
+      tagsByKey.set(tagKey, normalizedTag);
     }
   }
 
@@ -220,7 +224,7 @@ export function makeWorkspaceTagsSummary(cards: ReadonlyArray<Card>): WorkspaceT
       const currentTagStats = result.get(tagKey);
       if (currentTagStats === undefined) {
         result.set(tagKey, {
-          tag: tag.trim(),
+          tag: normalizeTag(tag),
           cardIds: new Set([card.cardId]),
         });
       } else {
@@ -257,7 +261,7 @@ function resolveActiveTags(tags: ReadonlyArray<string>, cards: ReadonlyArray<Car
     for (const tag of card.tags) {
       const tagKey = normalizeTagKey(tag);
       if (tagKey !== "" && canonicalTagsByKey.has(tagKey) === false) {
-        canonicalTagsByKey.set(tagKey, tag.trim());
+        canonicalTagsByKey.set(tagKey, normalizeTag(tag));
       }
     }
   }
@@ -590,7 +594,7 @@ export function normalizeRequiredDeckName(value: string): string {
 
 function normalizeDeckFilterDefinition(filterDefinition: DeckFilterDefinition): DeckFilterDefinition {
   const normalizedTags = filterDefinition.tags.reduce<Array<string>>((result, tag) => {
-    const normalizedTag = tag.trim();
+    const normalizedTag = normalizeTag(tag);
     const normalizedTagKey = normalizeTagKey(normalizedTag);
     if (normalizedTag === "" || result.some((existingTag) => normalizeTagKey(existingTag) === normalizedTagKey)) {
       return result;

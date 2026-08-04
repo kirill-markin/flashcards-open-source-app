@@ -205,6 +205,7 @@ export function useReviewScreenController(
     installationId: cloudSettings?.installationId ?? null,
     isSyncing,
     localReadVersion,
+    selectReviewFilter,
     selectedReviewFilter,
     setErrorMessage,
     submitReviewItem,
