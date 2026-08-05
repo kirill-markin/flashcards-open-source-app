@@ -166,12 +166,16 @@ export function createPublicTerminalErrorMessage(error: unknown): string {
   const category = classifyProviderErrorCategory(error, providerMetadata.upstreamStatus);
   const providerErrorCode = readErrorRecordStringField(error, "code");
 
-  if (isChatAttachmentUnsupportedTypeError(error) || providerErrorCode === "invalid_file") {
+  if (isChatAttachmentRejectedError(error)) {
     return chatAttachmentUnsupportedTypeMessage;
   }
 
   if (providerErrorCode === "context_length_exceeded") {
     return PROVIDER_CONTEXT_LENGTH_ERROR_MESSAGE;
+  }
+
+  if (isProviderQuotaExhaustedError(error)) {
+    return PROVIDER_UNAVAILABLE_ERROR_MESSAGE;
   }
 
   if (category === "provider_auth") {
@@ -216,4 +220,14 @@ export function isUserAbortError(error: unknown): boolean {
 
 export function isContextLengthExceededError(error: unknown): boolean {
   return readErrorRecordStringField(error, "code") === "context_length_exceeded";
+}
+
+export function isChatAttachmentRejectedError(error: unknown): boolean {
+  return isChatAttachmentUnsupportedTypeError(error)
+    || readErrorRecordStringField(error, "code") === "invalid_file";
+}
+
+export function isProviderQuotaExhaustedError(error: unknown): boolean {
+  return readErrorRecordStringField(error, "code") === "credit_balance_exhausted"
+    || normalizeProviderErrorType(readErrorRecordStringField(error, "type")) === "insufficient_quota";
 }

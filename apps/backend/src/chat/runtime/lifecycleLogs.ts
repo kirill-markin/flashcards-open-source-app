@@ -8,6 +8,7 @@ import {
 } from "../worker/logging";
 import {
   createSafeProviderErrorDetails,
+  isChatAttachmentRejectedError,
   isContextLengthExceededError,
   isHandledProviderFailure,
 } from "./providerErrors";
@@ -134,15 +135,19 @@ export function logTerminalStatePersisted(
     return;
   }
 
-  // Demote context_length_exceeded to a breadcrumb instead of a Sentry warning:
-  // it is an expected, user-actionable terminal already surfaced to the user with a
-  // clean "start a new chat" message, and the root cause is mitigated in the OpenAI loop,
-  // so it should not page as a warning. The payload (including providerErrorCode) is
-  // unchanged, so the event stays fully searchable in CloudWatch.
+  // Demote expected, user-actionable terminals to breadcrumbs instead of Sentry warnings.
+  // context_length_exceeded already carries a clean "start a new chat" message and its root
+  // cause is mitigated in the OpenAI loop; a rejected attachment is the user picking a file
+  // the provider cannot read, and it is surfaced with the attachment guidance message. Neither
+  // is actionable for us, so neither should page as a warning. Provider-side and infrastructure
+  // failures stay warnings. The payload (including providerErrorCode) is unchanged, so the
+  // events stay fully searchable in CloudWatch.
+  const isExpectedUserTerminal = isContextLengthExceededError(error)
+    || isChatAttachmentRejectedError(error);
   logChatWorkerLifecycleEvent(
     "chat_worker_terminal_state_persisted",
     context,
     payload,
-    runStatus === "failed" && !isContextLengthExceededError(error),
+    runStatus === "failed" && !isExpectedUserTerminal,
   );
 }
