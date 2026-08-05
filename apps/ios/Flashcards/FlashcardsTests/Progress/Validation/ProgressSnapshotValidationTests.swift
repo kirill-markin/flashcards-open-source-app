@@ -461,7 +461,7 @@ final class ProgressSnapshotValidationTests: XCTestCase {
         }
     }
 
-    func testProgressSnapshotRejectsReviewedStreakStateWithoutReviewCount() throws {
+    func testProgressSnapshotAcceptsReviewedStreakStateWithoutReviewCount() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
         let scopeKey = makeProgressScopeKeyForTests(
@@ -491,28 +491,17 @@ final class ProgressSnapshotValidationTests: XCTestCase {
             reviewHistoryWatermarks: []
         )
 
-        XCTAssertThrowsError(
-            try makeProgressSnapshot(
-                summary: makeEmptyProgressSummaryForTests(),
-                series: series,
-                scopeKey: scopeKey,
-                summarySourceState: .serverBase,
-                seriesSourceState: .serverBase,
-                calendar: calendar
-            )
-        ) { error in
-            guard case ProgressPresentationError.inconsistentStreakDay(
-                localDate: let localDate,
-                reviewCount: let reviewCount,
-                streakState: let state
-            ) = error else {
-                XCTFail("Expected ProgressPresentationError.inconsistentStreakDay, received \(error)")
-                return
-            }
+        let snapshot = try makeProgressSnapshot(
+            summary: makeEmptyProgressSummaryForTests(),
+            series: series,
+            scopeKey: scopeKey,
+            summarySourceState: .serverBase,
+            seriesSourceState: .serverBase,
+            calendar: calendar
+        )
 
-            XCTAssertEqual("2026-02-03", localDate)
-            XCTAssertEqual(0, reviewCount)
-            XCTAssertEqual(.reviewed, state)
-        }
+        let day = try XCTUnwrap(snapshot.chartData.chartDays.first { $0.localDate == "2026-02-03" })
+        XCTAssertEqual(0, day.reviewCount)
+        XCTAssertEqual(.reviewed, day.streakState)
     }
 }

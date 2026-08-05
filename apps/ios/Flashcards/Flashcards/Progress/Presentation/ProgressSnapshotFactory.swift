@@ -652,7 +652,13 @@ private func makeProgressTimeline(
         guard let streakState = streakStatesByLocalDate[localDate] else {
             throw ProgressPresentationError.missingStreakDay(localDate)
         }
-        guard (reviewCount > 0) == (streakState == .reviewed) else {
+        // Progress is temporarily mixed-scope: daily review bars still reflect the current
+        // legacy review-event scope, while streak days are user-wide. A user-wide reviewed
+        // streak day can therefore have zero reviews in the daily series, and the backend
+        // permits exactly that combination when it builds the series. Only the reverse —
+        // reviews recorded on a day the streak does not consider reviewed — is a real
+        // inconsistency worth refusing to present.
+        guard reviewCount == 0 || streakState == .reviewed else {
             throw ProgressPresentationError.inconsistentStreakDay(
                 localDate: localDate,
                 reviewCount: reviewCount,
