@@ -25,6 +25,7 @@ const PROVIDER_CONTEXT_LENGTH_ERROR_MESSAGE = "This conversation has grown too l
 const PROVIDER_ERROR_TYPE_MAX_LENGTH = 128;
 const PROVIDER_ERROR_PARAM_MAX_LENGTH = 256;
 const MISSING_PROVIDER_FINGERPRINT_COMPONENT = "none";
+const STREAM_ENUM_LIKE_VALUE_MAX_LENGTH = 128;
 
 type SafeProviderErrorDetails = Pick<
   ChatWorkerLifecycleDetails,
@@ -36,7 +37,32 @@ type SafeProviderErrorDetails = Pick<
   | "providerErrorParam"
   | "providerErrorCategory"
   | "providerRequestId"
+  | "streamResponseId"
+  | "streamEventCount"
+  | "streamLastEventType"
+  | "streamSawIncompleteEvent"
+  | "streamSawFailedEvent"
+  | "streamedTextLength"
 >;
+
+type SafeProviderStreamDiagnostics = Pick<
+  ChatWorkerLifecycleDetails,
+  | "streamResponseId"
+  | "streamEventCount"
+  | "streamLastEventType"
+  | "streamSawIncompleteEvent"
+  | "streamSawFailedEvent"
+  | "streamedTextLength"
+>;
+
+const MISSING_STREAM_DIAGNOSTICS: SafeProviderStreamDiagnostics = {
+  streamResponseId: null,
+  streamEventCount: null,
+  streamLastEventType: null,
+  streamSawIncompleteEvent: null,
+  streamSawFailedEvent: null,
+  streamedTextLength: null,
+};
 
 type ChatTerminalWarningFingerprintDetails = Pick<
   ChatWorkerLifecycleDetails,
@@ -83,6 +109,75 @@ function normalizeProviderErrorParam(value: string | null): string | null {
   }
 
   return value.replace(/\[\d+\]/g, "[]");
+}
+
+function readStreamDiagnosticsRecord(error: unknown): Readonly<Record<string, unknown>> | null {
+  if (typeof error !== "object" || error === null) {
+    return null;
+  }
+
+  const value = (error as Readonly<Record<string, unknown>>).streamDiagnostics;
+  return typeof value === "object" && value !== null
+    ? value as Readonly<Record<string, unknown>>
+    : null;
+}
+
+function readStreamEnumLikeField(
+  record: Readonly<Record<string, unknown>>,
+  fieldName: string,
+): string | null {
+  const value = record[fieldName];
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  if (
+    trimmedValue === ""
+    || trimmedValue.length > STREAM_ENUM_LIKE_VALUE_MAX_LENGTH
+    || !/^[A-Za-z0-9_.-]+$/.test(trimmedValue)
+  ) {
+    return null;
+  }
+
+  return trimmedValue;
+}
+
+function readStreamCountField(
+  record: Readonly<Record<string, unknown>>,
+  fieldName: string,
+): number | null {
+  const value = record[fieldName];
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+function readStreamFlagField(
+  record: Readonly<Record<string, unknown>>,
+  fieldName: string,
+): boolean | null {
+  const value = record[fieldName];
+  return typeof value === "boolean" ? value : null;
+}
+
+/**
+ * Lifts the stream-shape diagnostics an OpenAI loop terminal error carries into
+ * the lifecycle payload. Every field is re-validated here rather than trusted,
+ * so only counts, lengths and enum-like identifiers can ever reach the logs.
+ */
+function createSafeProviderStreamDiagnostics(error: unknown | null): SafeProviderStreamDiagnostics {
+  const record = readStreamDiagnosticsRecord(error);
+  if (record === null) {
+    return MISSING_STREAM_DIAGNOSTICS;
+  }
+
+  return {
+    streamResponseId: readStreamEnumLikeField(record, "streamResponseId"),
+    streamEventCount: readStreamCountField(record, "streamEventCount"),
+    streamLastEventType: readStreamEnumLikeField(record, "streamLastEventType"),
+    streamSawIncompleteEvent: readStreamFlagField(record, "streamSawIncompleteEvent"),
+    streamSawFailedEvent: readStreamFlagField(record, "streamSawFailedEvent"),
+    streamedTextLength: readStreamCountField(record, "streamedTextLength"),
+  };
 }
 
 function toProviderFingerprintComponent(value: string | number | null | undefined): string {
@@ -143,6 +238,7 @@ export function createSafeProviderErrorDetails(error: unknown | null): SafeProvi
       providerErrorParam: null,
       providerErrorCategory: null,
       providerRequestId: null,
+      ...MISSING_STREAM_DIAGNOSTICS,
     };
   }
 
@@ -158,6 +254,7 @@ export function createSafeProviderErrorDetails(error: unknown | null): SafeProvi
     providerErrorParam: normalizeProviderErrorParam(readErrorRecordStringField(error, "param")),
     providerErrorCategory: classifyProviderErrorCategory(error, providerMetadata.upstreamStatus),
     providerRequestId: providerMetadata.upstreamRequestId,
+    ...createSafeProviderStreamDiagnostics(error),
   };
 }
 

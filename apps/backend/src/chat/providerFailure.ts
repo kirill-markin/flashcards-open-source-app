@@ -2,13 +2,30 @@ import { HttpError } from "../shared/errors";
 
 export const CHAT_PROVIDER_TERMINAL_EVENT_ERROR_NAME = "ChatProviderTerminalEventError";
 
+/**
+ * Shape of the provider event stream behind a terminal failure, carried on the
+ * error so the chat worker lifecycle payload can report what the stream had
+ * produced before it died. Counts, lengths and enum-like strings only: never
+ * provider text, prompt text or attachment content.
+ */
+export type ChatProviderStreamDiagnostics = Readonly<{
+  streamResponseId: string | null;
+  streamEventCount: number;
+  streamLastEventType: string | null;
+  streamSawIncompleteEvent: boolean;
+  streamSawFailedEvent: boolean;
+  streamedTextLength: number;
+}>;
+
 export type ChatProviderTerminalEventDetail = Readonly<{
   code?: string | null;
   message?: string | null;
+  streamDiagnostics?: ChatProviderStreamDiagnostics | null;
 }>;
 
 type ChatProviderTerminalEventError = Error & Readonly<{
   code?: string;
+  streamDiagnostics?: ChatProviderStreamDiagnostics;
 }>;
 
 function buildTerminalErrorMessage(detail: ChatProviderTerminalEventDetail | undefined): string {
@@ -30,18 +47,25 @@ function buildTerminalErrorMessage(detail: ChatProviderTerminalEventDetail | und
  * executor produce the same classified `provider_error` without depending on
  * each other. The optional detail carries the real provider code/message; when
  * `detail.code` is set it is exposed as an own `code` property so
- * `createSafeProviderErrorDetails` can surface `providerErrorCode`.
+ * `createSafeProviderErrorDetails` can surface `providerErrorCode`, and
+ * `detail.streamDiagnostics` is exposed the same way so it can surface the
+ * stream shape.
  */
 export function createProviderTerminalEventError(detail?: ChatProviderTerminalEventDetail): ChatProviderTerminalEventError {
   const error: ChatProviderTerminalEventError = new Error(buildTerminalErrorMessage(detail));
   error.name = CHAT_PROVIDER_TERMINAL_EVENT_ERROR_NAME;
 
+  const streamDiagnostics = detail?.streamDiagnostics ?? null;
+  const errorWithDiagnostics = streamDiagnostics === null
+    ? error
+    : Object.assign(error, { streamDiagnostics });
+
   const trimmedCode = typeof detail?.code === "string" ? detail.code.trim() : "";
   if (trimmedCode !== "") {
-    return Object.assign(error, { code: trimmedCode });
+    return Object.assign(errorWithDiagnostics, { code: trimmedCode });
   }
 
-  return error;
+  return errorWithDiagnostics;
 }
 
 export type AIProviderFailureMetadata = Readonly<{

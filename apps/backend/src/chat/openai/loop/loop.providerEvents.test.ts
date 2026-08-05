@@ -257,7 +257,15 @@ test("startOpenAILoopWithDeps fails with a classified terminal error when the st
     (error: unknown): boolean => {
       assert(error instanceof Error);
       assert.equal(error.name, "ChatProviderTerminalEventError");
-      assert.equal((error as { code?: string }).code, "stream_closed_without_response");
+      assert.equal((error as { code?: string }).code, "stream_closed_without_final_response_accessor");
+      assert.deepEqual((error as { streamDiagnostics?: unknown }).streamDiagnostics, {
+        streamResponseId: null,
+        streamEventCount: 1,
+        streamLastEventType: "response.output_text.delta",
+        streamSawIncompleteEvent: false,
+        streamSawFailedEvent: false,
+        streamedTextLength: "partial".length,
+      });
       return true;
     },
   );
