@@ -149,29 +149,40 @@ extension AIChatStore {
             cloudState: self.flashcardsStore.cloudSettings?.cloudState,
             configurationMode: nil
         )
-        FlashcardsObservability.captureException(
-            .aiLiveStreamFailed(
-                error: AIChatLiveTerminalFailureError.failedRun,
-                scope: scope,
-                details: AILiveStreamFailureDetails(
+        // A `run_terminal` error means the backend already failed the run and reported it with
+        // the full provider classification (`chat_worker_terminal_state_persisted`). The client
+        // adds no diagnostic detail here — it has no app frame and no provider code — so capture
+        // it as a warning that records user impact instead of a second, higher-severity copy of
+        // a failure that is not an iOS defect.
+        FlashcardsObservability.captureWarning(
+            .aiLiveLifecycle(
+                AILiveLifecycleObservation(
+                    action: .error,
+                    scope: scope,
                     sessionId: sessionId,
                     runId: runId,
                     afterCursor: metadata.cursor ?? self.liveCursor,
                     requestId: requestId,
                     backendRequestId: nil,
-                    statusCode: nil,
                     backendCode: nil,
-                    clientRequestId: clientRequestId,
+                    statusCode: nil,
+                    eventType: "run_terminal",
+                    sequenceNumber: nil,
+                    cursor: metadata.cursor,
+                    streamEpoch: nil,
+                    itemId: nil,
+                    toolName: nil,
+                    toolStatus: nil,
+                    contentCount: nil,
+                    textLength: nil,
+                    summaryLength: nil,
+                    suggestionCount: nil,
+                    isError: isError,
+                    isStopped: isStopped,
+                    outcome: AIChatRunTerminalOutcome.error.rawValue,
                     failureKind: AIChatFailureKind.runTerminalError.rawValue,
                     stage: .runTerminal,
                     errorKind: .runTerminalError,
-                    eventType: "run_terminal",
-                    outcome: AIChatRunTerminalOutcome.error.rawValue,
-                    decoderSummary: nil,
-                    rawSnippetLength: nil,
-                    idleTimeoutSeconds: nil,
-                    isError: isError,
-                    isStopped: isStopped,
                     resumeAttempt: self.activeLiveResumeAttemptSequence
                 )
             )
