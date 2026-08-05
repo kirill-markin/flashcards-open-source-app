@@ -282,6 +282,7 @@ final class ReviewNotificationPayloadTests: ReviewNotificationsTestCase {
         XCTAssertEqual(try makeReviewFilter(persistedReviewFilter: decodedMultiTagFilter), multiTagFilter)
     }
 
+    @MainActor
     func testSelectedMultipleTagFilterPersistsPerWorkspace() throws {
         let suiteName = "ReviewFilterPersistenceTests-\(UUID().uuidString)"
         guard let userDefaults = UserDefaults(suiteName: suiteName) else {
