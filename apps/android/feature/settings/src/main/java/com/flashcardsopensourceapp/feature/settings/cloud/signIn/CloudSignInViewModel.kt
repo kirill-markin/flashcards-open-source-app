@@ -309,12 +309,24 @@ class CloudSignInViewModel(
     }
 
     suspend fun verifyCode(): Boolean {
-        val challenge = requireNotNull(draftState.value.challenge) {
-            strings.get(R.string.settings_sign_in_request_code_first)
-        }
+        val challenge = draftState.value.challenge
         val authAttemptId = nextAuthAttemptId(draftState.value)
         draftState.update { state ->
             startCloudVerifyCodeAttempt(state = state, authAttemptId = authAttemptId)
+        }
+        if (challenge == null) {
+            draftState.update { state ->
+                failCloudVerifyCode(
+                    state = state,
+                    authAttemptId = authAttemptId,
+                    errorPresentation = CloudSignInErrorPresentation(
+                        message = strings.get(R.string.settings_sign_in_request_code_first),
+                        technicalDetails = null,
+                        technicalDetailsReportId = null
+                    )
+                )
+            }
+            return false
         }
         return try {
             val linkContext = cloudAccountRepository.verifyCode(
