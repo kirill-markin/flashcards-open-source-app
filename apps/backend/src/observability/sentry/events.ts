@@ -500,6 +500,15 @@ export type ChatWorkerLifecycleDetails = Readonly<{
   providerErrorParam: string | null;
   providerErrorCategory?: string | null;
   providerRequestId: string | null;
+  // Shape of the provider event stream that produced a terminal failure. Counts,
+  // lengths and enum-like strings only, so a truncated stream stays diagnosable
+  // without ever carrying provider text, prompt text or attachment content.
+  streamResponseId?: string | null;
+  streamEventCount?: number | null;
+  streamLastEventType?: string | null;
+  streamSawIncompleteEvent?: boolean | null;
+  streamSawFailedEvent?: boolean | null;
+  streamedTextLength?: number | null;
   heartbeatAt: string | null;
   startedAt: string | null;
   finishedAt: string | null;

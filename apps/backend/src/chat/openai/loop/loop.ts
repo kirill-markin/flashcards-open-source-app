@@ -34,7 +34,10 @@ import {
 } from "../tools/tools";
 import { buildOpenAISafetyIdentifier } from "../safetyIdentifier";
 import type { ChatStreamEvent, ContentPart } from "../../types";
-import { createProviderTerminalEventError } from "../../providerFailure";
+import {
+  createProviderTerminalEventError,
+  type ChatProviderStreamDiagnostics,
+} from "../../providerFailure";
 import {
   CHAT_HISTORY_REPLAY_TOKEN_BUDGET,
   CHAT_MAX_OUTPUT_TOKENS,
@@ -267,17 +270,122 @@ function isOpenAIAbortError(error: unknown): boolean {
     || error instanceof OpenAIStreamAbortError;
 }
 
+/**
+ * Cheap running description of the provider event stream, accumulated while the
+ * loop iterates so a stream that dies without a response stays diagnosable.
+ * Only counts and enum-like values are kept, never event payload text.
+ */
+type ResponseStreamCounters = Readonly<{
+  responseId: string | null;
+  eventCount: number;
+  lastEventType: string | null;
+  sawIncompleteEvent: boolean;
+  sawFailedEvent: boolean;
+}>;
+
+const EMPTY_RESPONSE_STREAM_COUNTERS: ResponseStreamCounters = {
+  responseId: null,
+  eventCount: 0,
+  lastEventType: null,
+  sawIncompleteEvent: false,
+  sawFailedEvent: false,
+};
+
+function accumulateResponseStreamCounters(
+  counters: ResponseStreamCounters,
+  event: OpenAI.Responses.ResponseStreamEvent,
+): ResponseStreamCounters {
+  return {
+    responseId: event.type === "response.created" ? event.response.id : counters.responseId,
+    eventCount: counters.eventCount + 1,
+    lastEventType: event.type,
+    sawIncompleteEvent: counters.sawIncompleteEvent || isResponseIncompleteEvent(event),
+    sawFailedEvent: counters.sawFailedEvent || isResponseFailedEvent(event),
+  };
+}
+
+function toStreamDiagnostics(
+  counters: ResponseStreamCounters,
+  streamedTextLength: number,
+): ChatProviderStreamDiagnostics {
+  return {
+    streamResponseId: counters.responseId,
+    streamEventCount: counters.eventCount,
+    streamLastEventType: counters.lastEventType,
+    streamSawIncompleteEvent: counters.sawIncompleteEvent,
+    streamSawFailedEvent: counters.sawFailedEvent,
+    streamedTextLength,
+  };
+}
+
+function hasProviderErrorCode(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+
+  const code = (error as Readonly<Record<string, unknown>>).code;
+  return typeof code === "string" && code.trim() !== "";
+}
+
+/**
+ * Tags a rejected `finalResponse()` with the shape of the stream that produced
+ * it, and with a code that fingerprints this terminal branch on its own when the
+ * rejection carries none.
+ *
+ * The rejection is annotated and rethrown rather than replaced: its class and
+ * any existing `code` are what the abort handling, the history-overflow retry
+ * and `createPublicTerminalErrorMessage` classify on, so wrapping it would
+ * change behavior that this diagnostics-only path must leave alone.
+ */
+function markFinalResponseRejection(
+  error: unknown,
+  streamDiagnostics: ChatProviderStreamDiagnostics,
+): unknown {
+  if (typeof error !== "object" || error === null) {
+    return error;
+  }
+
+  if (hasProviderErrorCode(error)) {
+    return Object.assign(error, { streamDiagnostics });
+  }
+
+  return Object.assign(error, {
+    streamDiagnostics,
+    code: "stream_final_response_rejected",
+  });
+}
+
+/**
+ * Resolves the response the loop must return once the event stream ended.
+ *
+ * The terminal branches carry distinct provider error codes because
+ * `createChatTerminalWarningFingerprint` fingerprints Sentry groups by
+ * `providerErrorCode`, so "the stream exposed no final response accessor" and
+ * "the final response could not be resolved" become separate, separately
+ * diagnosable groups instead of one shared code.
+ */
 async function getFinalResponseFromStream(
   stream: ResponseStreamWithOptionalFinalResponse,
   completedResponse: OpenAI.Responses.Response | null,
   signal: AbortSignal | undefined,
+  streamDiagnostics: ChatProviderStreamDiagnostics,
 ): Promise<OpenAI.Responses.Response> {
   if (completedResponse !== null) {
     return completedResponse;
   }
 
   if (typeof stream.finalResponse === "function") {
-    return stream.finalResponse();
+    try {
+      return await stream.finalResponse();
+    } catch (error) {
+      // An aborted run keeps its rejection untouched: the loop recognizes that
+      // error to finish as `stopped_before_next_step` rather than as a failure.
+      if (isOpenAIAbortError(error) || signal?.aborted === true) {
+        throw error;
+      }
+
+      throw markFinalResponseRejection(error, streamDiagnostics);
+    }
   }
 
   if (signal?.aborted === true) {
@@ -285,8 +393,9 @@ async function getFinalResponseFromStream(
   }
 
   throw createProviderTerminalEventError({
-    code: "stream_closed_without_response",
-    message: "OpenAI response stream completed without a final response",
+    code: "stream_closed_without_final_response_accessor",
+    message: "OpenAI response stream completed without a final response and exposed no final response accessor",
+    streamDiagnostics,
   });
 }
 
@@ -510,8 +619,11 @@ async function runOneModelCall(
   let completedResponse: OpenAI.Responses.Response | null = null;
   let streamedText = "";
   let forceComplete = false;
+  let streamCounters = EMPTY_RESPONSE_STREAM_COUNTERS;
 
   for await (const event of stream) {
+    streamCounters = accumulateResponseStreamCounters(streamCounters, event);
+
     if (isResponseCompletedEvent(event)) {
       completedResponse = event.response;
       continue;
@@ -521,6 +633,7 @@ async function runOneModelCall(
       throw createProviderTerminalEventError({
         code: event.response.error?.code ?? null,
         message: event.response.error?.message ?? null,
+        streamDiagnostics: toStreamDiagnostics(streamCounters, streamedText.length),
       });
     }
 
@@ -546,6 +659,7 @@ async function runOneModelCall(
       throw createProviderTerminalEventError({
         code: event.response.incomplete_details?.reason ?? null,
         message: null,
+        streamDiagnostics: toStreamDiagnostics(streamCounters, streamedText.length),
       });
     }
 
@@ -553,6 +667,7 @@ async function runOneModelCall(
       throw createProviderTerminalEventError({
         code: event.code ?? null,
         message: event.message,
+        streamDiagnostics: toStreamDiagnostics(streamCounters, streamedText.length),
       });
     }
 
@@ -659,7 +774,12 @@ async function runOneModelCall(
     }
   }
 
-  const finalResponse = await getFinalResponseFromStream(stream, completedResponse, params.signal);
+  const finalResponse = await getFinalResponseFromStream(
+    stream,
+    completedResponse,
+    params.signal,
+    toStreamDiagnostics(streamCounters, streamedText.length),
+  );
   return {
     finalResponse,
     functionCalls: finalResponse.output
