@@ -60,14 +60,9 @@ struct ReviewFilterPopover: View {
                 Divider()
                     .padding(.vertical, 4)
 
-                if self.tagSummaries.isEmpty == false {
-                    ForEach(self.tagSummaries, id: \.tag) { tagSummary in
-                        self.tagButton(tagSummary: tagSummary)
-                            .id("tag:\(normalizeTagKey(tag: tagSummary.tag))")
-                    }
-
-                    Divider()
-                        .padding(.vertical, 4)
+                ForEach(self.tagSummaries, id: \.tag) { tagSummary in
+                    self.tagButton(tagSummary: tagSummary)
+                        .id("tag:\(normalizeTagKey(tag: tagSummary.tag))")
                 }
             }
             .scrollTargetLayout()
@@ -81,7 +76,6 @@ struct ReviewFilterPopover: View {
         let isSelected = self.reviewFilter == .allCards
         return self.selectionButton(
             title: localizedAllCardsLabel(),
-            systemImage: "rectangle.stack",
             isSelected: isSelected,
             accessibilityIdentifier: UITestIdentifier.reviewFilterAllCardsAction,
             action: {
@@ -96,7 +90,6 @@ struct ReviewFilterPopover: View {
         let deckFilter = ReviewFilter.deck(deckId: deckSummary.deckId)
         return self.selectionButton(
             title: deckSummary.name,
-            systemImage: nil,
             isSelected: self.reviewFilter == deckFilter,
             accessibilityIdentifier: UITestIdentifier.reviewFilterDeckActionPrefix + deckSummary.deckId,
             action: {
@@ -126,7 +119,6 @@ struct ReviewFilterPopover: View {
         let tagKey = normalizeTagKey(tag: tagSummary.tag)
         return self.selectionButton(
             title: "\(tagSummary.tag) (\(tagSummary.cardsCount.formatted()))",
-            systemImage: nil,
             isSelected: self.selectedTagKeys.contains(tagKey),
             accessibilityIdentifier: UITestIdentifier.reviewFilterTagTogglePrefix + tagSummary.tag,
             action: {
@@ -137,24 +129,17 @@ struct ReviewFilterPopover: View {
 
     private func selectionButton(
         title: String,
-        systemImage: String?,
         isSelected: Bool,
         accessibilityIdentifier: String,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             HStack(spacing: reviewFilterRowSpacing) {
-                ZStack {
-                    if isSelected {
-                        Image(systemName: "checkmark")
-                            .font(.body.weight(.semibold))
-                    }
-                }
-                .frame(width: reviewFilterSelectionColumnWidth)
-
-                if let systemImage {
-                    Image(systemName: systemImage)
-                }
+                // Always rendered so the row height does not depend on selection.
+                Image(systemName: "checkmark")
+                    .font(.body.weight(.semibold))
+                    .opacity(isSelected ? 1 : 0)
+                    .frame(width: reviewFilterSelectionColumnWidth)
 
                 Text(title)
                     .lineLimit(1)
