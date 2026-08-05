@@ -4,6 +4,7 @@ import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressStreakLeaderboardSnapshot
+import com.flashcardsopensourceapp.data.local.network.isLikelyTransientNetworkIoException
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.findProgressStreakLeaderboardServerBase
@@ -20,6 +21,7 @@ import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.Prog
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressStreakLeaderboardStoreState
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.createProgressStreakLeaderboardScopeKey
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.createProgressStreakLeaderboardStoreState
+import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -130,7 +132,7 @@ internal class ProgressStreakLeaderboardOrchestration(
         } catch (error: Exception) {
             failedRemoteLoadScopeKeyMutable.value = serializedScopeKey
             publishLatestSnapshot()
-            if (shouldSuppressRemoteLoadWarning(refreshStoreState = refreshStoreState)) {
+            if (shouldSuppressRemoteLoadWarning(refreshStoreState = refreshStoreState, error = error)) {
                 return
             }
             logProgressRefreshWarning(
@@ -162,14 +164,21 @@ internal class ProgressStreakLeaderboardOrchestration(
     }
 
     private fun shouldSuppressRemoteLoadWarning(
-        refreshStoreState: ProgressStreakLeaderboardStoreState
+        refreshStoreState: ProgressStreakLeaderboardStoreState,
+        error: Exception
     ): Boolean {
         val latestStoreState = currentStoreState() ?: return true
         if (latestStoreState.scopeKey != refreshStoreState.scopeKey) {
             return true
         }
+        if (latestStoreState.cloudState != CloudAccountState.LINKED) {
+            return true
+        }
 
-        return latestStoreState.cloudState != CloudAccountState.LINKED
+        // A leaderboard refresh that dies on an unreachable network means the device is offline,
+        // not that the product failed: the request already exhausted its transient retry ladder
+        // and the cached snapshot stays on screen.
+        return error is IOException && isLikelyTransientNetworkIoException(error = error)
     }
 
     private fun publishLatestSnapshot() {
