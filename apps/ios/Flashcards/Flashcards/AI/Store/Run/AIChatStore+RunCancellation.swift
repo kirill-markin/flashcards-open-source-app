@@ -92,6 +92,18 @@ func makeAIChatStopFailureMetadata(
     return metadata
 }
 
+/// A stop request the backend answers with 404 means the session it was asked to stop no longer
+/// exists, which is the outcome the stop wanted. This happens routinely when a stale session is
+/// stopped after a workspace switch or a guest-to-linked upgrade, so it is expected cleanup
+/// rather than a failure worth reporting.
+private func isExpectedStaleAIChatStopFailure(error: Error) -> Bool {
+    guard let diagnosticError = error as? any AIChatFailureDiagnosticProviding else {
+        return false
+    }
+
+    return diagnosticError.diagnostics.statusCode == 404
+}
+
 extension AIChatStore {
     func cancelStreaming() {
         guard let stopContext = self.prepareStreamingCancellationForRemoteStop() else {
@@ -295,6 +307,9 @@ extension AIChatStore {
                 self.repairStatus = nil
             }
         } catch {
+            if isExpectedStaleAIChatStopFailure(error: error) {
+                return
+            }
             logAIChatStoreEvent(
                 action: "ai_stop_failed",
                 metadata: makeAIChatStopFailureMetadata(
