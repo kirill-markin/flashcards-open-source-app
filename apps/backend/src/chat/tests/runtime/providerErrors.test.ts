@@ -118,7 +118,7 @@ test("runPersistedChatSessionWithDeps maps provider invalid_file failures to att
     chatAttachmentUnsupportedTypeMessage,
   );
   const terminalLog = findLog(logs, "chat_worker_terminal_state_persisted");
-  assert.equal(terminalLog?.consoleMethod, "warn");
+  assert.equal(terminalLog?.consoleMethod, "log");
   assert.equal(terminalLog?.providerErrorClass, "BadRequestError");
   assert.equal(terminalLog?.providerErrorMessage, null);
   assert.equal(terminalLog?.providerErrorStatus, 400);
@@ -165,7 +165,7 @@ test("runPersistedChatSessionWithDeps maps local attachment validation failures 
     chatAttachmentUnsupportedTypeMessage,
   );
   const terminalLog = findLog(logs, "chat_worker_terminal_state_persisted");
-  assert.equal(terminalLog?.consoleMethod, "warn");
+  assert.equal(terminalLog?.consoleMethod, "log");
   assert.equal(terminalLog?.providerErrorMessage, null);
   assert.equal(terminalLog?.providerErrorType, null);
   assert.equal(terminalLog?.providerErrorParam, null);
