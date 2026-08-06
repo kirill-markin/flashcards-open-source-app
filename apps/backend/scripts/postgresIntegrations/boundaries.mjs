@@ -71,6 +71,13 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0108_multipart_absolute_lease_target.sql",
+    expectedMigrationCount: 110,
+    testFiles: Object.freeze([
+      "src/mediaAssets/multipart/atomicWriter.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0107_catalog_test_collection.sql",
     expectedMigrationCount: 109,
     testFiles: Object.freeze([
@@ -90,7 +97,6 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0101_multipart_foreground_completion_fencing.sql",
     expectedMigrationCount: 103,
     testFiles: Object.freeze([
-      "src/mediaAssets/multipart/atomicWriter.postgres.integration.ts",
       "src/mediaAssets/multipart/foregroundFencing.postgres.integration.ts",
     ]),
   }),

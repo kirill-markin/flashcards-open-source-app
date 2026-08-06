@@ -205,7 +205,7 @@ test("release deploys migration-gated runtime disabled, verifies migrations, the
     "multipartCompletionReconciliationScheduleState=DISABLED",
   );
   const requiredMigration = workflow.indexOf(
-    "--require-migration 0107_catalog_test_collection.sql",
+    "--require-migration 0108_multipart_absolute_lease_target.sql",
   );
   const enabledDeploy = workflow.indexOf(
     "multipartCompletionReconciliationScheduleState=ENABLED",
@@ -235,7 +235,7 @@ test("release deploys migration-gated runtime disabled, verifies migrations, the
   const stackSource = readLibSource("lib/stack.ts");
   assert.match(
     stackSource,
-    /databaseMigrationGate\([\s\S]*"0107_catalog_test_collection\.sql"[\s\S]*addDatabaseMigrationDependency\(api\.backendFn, migrationGate\)/,
+    /databaseMigrationGate\([\s\S]*"0108_multipart_absolute_lease_target\.sql"[\s\S]*addDatabaseMigrationDependency\(api\.backendFn, migrationGate\)/,
   );
 
   const outputsSource = readLibSource("lib/outputs.ts");
@@ -260,7 +260,7 @@ test("release deploys migration-gated runtime disabled, verifies migrations, the
     "multipartCompletionReconciliationScheduleState=DISABLED",
   );
   const bootstrapMigration = bootstrapScript.indexOf(
-    "--require-migration 0107_catalog_test_collection.sql",
+    "--require-migration 0108_multipart_absolute_lease_target.sql",
   );
   const bootstrapEnabled = bootstrapScript.indexOf(
     "multipartCompletionReconciliationScheduleState=ENABLED",
