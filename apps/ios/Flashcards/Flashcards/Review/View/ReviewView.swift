@@ -371,7 +371,10 @@ struct ReviewView: View {
             return
         }
 
-        self.finalizeReviewFilterDraft()
+        // The committed filter moved underneath the open popover, so the draft is built on a stale
+        // snapshot and is discarded instead of applied; reopening the menu re-seeds it. Clearing the
+        // context first also keeps the finalize on popover dismissal a no-op.
+        self.reviewFilterPresentationContext = nil
         self.isReviewFilterPopoverPresented = false
     }
 
