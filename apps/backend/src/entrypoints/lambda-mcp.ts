@@ -145,6 +145,11 @@ function extractBearerToken(authorization: string | undefined): string | null {
  * custom-domain Host to the Lambda); the non-canonical execute-api host is not
  * used by real clients because issued tokens bind to the custom-domain
  * `resource` and would 401 on any other host.
+ *
+ * The request `User-Agent` is handed to the server as the caller label for SQL
+ * telemetry. Because the transport is stateless, a `tools/call` never carries
+ * the client's `initialize` clientInfo, so the header is the only caller signal
+ * available here (see `resolveMcpCaller` in apps/backend/src/mcp/server.ts).
  */
 async function handleMcpTransportRequest(
   request: Request,
@@ -156,6 +161,7 @@ async function handleMcpTransportRequest(
     getResourceUrl(baseDomain),
     getWebsiteUrl(baseDomain),
     getIconUrl(baseDomain),
+    request.headers.get("user-agent"),
   );
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,

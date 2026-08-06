@@ -72,6 +72,36 @@ const DEFAULT_MCP_SERVER_DEPENDENCIES: McpServerDependencies = {
   listUserWorkspacesWithStatsForSelectedWorkspace,
 };
 
+const MAX_MCP_CALLER_CHARS = 120;
+
+/**
+ * Caller label recorded on the agent SQL telemetry record so the dialect
+ * failure rate can be split per MCP client.
+ *
+ * The `initialize` clientInfo is not reachable here: the MCP Lambda runs the
+ * transport statelessly (`sessionIdGenerator: undefined` in
+ * apps/backend/src/entrypoints/lambda-mcp.ts), so a `tools/call` arrives as its
+ * own HTTP request on a freshly built server that never saw the client's
+ * `initialize`. The request `User-Agent` is the one caller signal that is
+ * observable without restructuring the entrypoint, so it is what gets recorded,
+ * trimmed and capped. Clients that send no `User-Agent` are recorded as null
+ * rather than guessed at.
+ */
+function resolveMcpCaller(callerUserAgent: string | null): string | null {
+  if (callerUserAgent === null) {
+    return null;
+  }
+
+  const trimmedCaller = callerUserAgent.trim();
+  if (trimmedCaller === "") {
+    return null;
+  }
+
+  return trimmedCaller.length <= MAX_MCP_CALLER_CHARS
+    ? trimmedCaller
+    : trimmedCaller.slice(0, MAX_MCP_CALLER_CHARS);
+}
+
 function buildToolResultText(payload: unknown): string {
   return JSON.stringify(payload, null, 2);
 }
@@ -336,18 +366,22 @@ const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
  * `iconUrl` is the absolute https URL of the served branded SVG icon
  * (`/icon.svg`), advertised as the server `icons` entry so spec-current MCP
  * clients and auto-ingesting catalogs can render the brand.
+ * `callerUserAgent` is the request `User-Agent` (see `resolveMcpCaller`), used
+ * only to label the SQL telemetry record with the calling client.
  */
 export function createMcpServer(
   connection: AuthenticatedMcpAccessToken,
   resourceUrl: string,
   websiteUrl: string,
   iconUrl: string,
+  callerUserAgent: string | null,
 ): McpServer {
   return createMcpServerWithDependencies(
     connection,
     resourceUrl,
     websiteUrl,
     iconUrl,
+    callerUserAgent,
     DEFAULT_MCP_SERVER_DEPENDENCIES,
   );
 }
@@ -357,8 +391,10 @@ export function createMcpServerWithDependencies(
   resourceUrl: string,
   websiteUrl: string,
   iconUrl: string,
+  callerUserAgent: string | null,
   dependencies: McpServerDependencies,
 ): McpServer {
+  const caller = resolveMcpCaller(callerUserAgent);
   const server = new McpServer(
     {
       name: SERVER_NAME,
@@ -416,6 +452,8 @@ export function createMcpServerWithDependencies(
           workspaceId,
           selectedWorkspaceId: connection.selectedWorkspaceId,
           connectionId: connection.connectionId,
+          surface: "mcp",
+          caller,
         }, sql);
 
         return buildToolResult(
@@ -465,6 +503,8 @@ export function createMcpServerWithDependencies(
           workspaceId,
           selectedWorkspaceId: connection.selectedWorkspaceId,
           connectionId: connection.connectionId,
+          surface: "mcp",
+          caller,
         }, sql);
 
         return buildToolResult(

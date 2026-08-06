@@ -132,7 +132,10 @@ export class MediaBlobLifecycleConflictError extends HttpError {
   }
 }
 export class MediaBlobWriterFenceError extends Error {
-  constructor(action: string) { super(`Permanent media blob writer reservation rejected a stale exact token. action=${action}`); this.name = "MediaBlobWriterFenceError";
+  // Retained as structured data because Sentry redacts exception text, which otherwise
+  // makes every fence rejection indistinguishable from the throw site.
+  readonly action: string;
+  constructor(action: string) { super(`Permanent media blob writer reservation rejected a stale exact token. action=${action}`); this.name = "MediaBlobWriterFenceError"; this.action = action;
   }
 }
 export function assertMediaBlobWriterReservationToken(reservationToken: string): void {
