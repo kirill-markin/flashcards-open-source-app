@@ -314,6 +314,7 @@ test("startOpenAILoopWithDeps retries a callIndex > 1 overflow once with the red
         shouldInvalidateMainContent: false,
         stopReason: null,
         generatedImageTelemetry: null,
+        sqlTelemetry: null,
       };
     },
   };

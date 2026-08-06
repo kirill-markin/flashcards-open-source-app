@@ -20,7 +20,7 @@ import {
   type AgentToolOperationDependencies,
 } from "../../../aiTools/agentSql/operations";
 import { parseSqlStatement, splitSqlStatements } from "../../../aiTools/sqlDialect";
-import { isSqlMutationStatement } from "../../../aiTools/agentSql/shared";
+import { isSqlMutationStatement, type AgentSqlPayload } from "../../../aiTools/agentSql/shared";
 import {
   OPENAI_SQL_TOOL,
   SQL_TOOL_ARGUMENT_VALIDATOR,
@@ -67,6 +67,23 @@ export type GeneratedImageToolTelemetry = Readonly<{
   status: string;
 }>;
 
+/**
+ * Structured outcome of one SQL tool call, exported to Langfuse by the tool executor.
+ * A failed SQL call returns an error envelope to the model instead of throwing, so this
+ * is the only signal that tells the failure apart from a successful call.
+ * `dialectReason` is read as an opaque value: the dialect owns its vocabulary of codes.
+ */
+export type SqlToolTelemetry = Readonly<{
+  succeeded: boolean;
+  errorCode: string | null;
+  errorClass: string | null;
+  dialectReason: string | null;
+  statementType: string | null;
+  statementCount: number | null;
+  rowOrAffectedCount: number | null;
+  durationMs: number;
+}>;
+
 export type ExecutedChatToolCall = Readonly<{
   output: string;
   isMutating: boolean;
@@ -74,6 +91,7 @@ export type ExecutedChatToolCall = Readonly<{
   shouldInvalidateMainContent: boolean;
   stopReason: "deadline_reached" | "run_inactive" | null;
   generatedImageTelemetry: GeneratedImageToolTelemetry | null;
+  sqlTelemetry: SqlToolTelemetry | null;
 }>;
 
 export type OpenAIToolDependencies = Readonly<{
@@ -234,6 +252,33 @@ function getIsMutatingSql(sql: string | null): boolean {
   }
 }
 
+function getSqlStatementCount(payload: AgentSqlPayload): number {
+  return payload.statementType === "batch" ? payload.statementCount : 1;
+}
+
+function getSqlRowOrAffectedCount(payload: AgentSqlPayload): number | null {
+  switch (payload.statementType) {
+    case "batch":
+      return payload.affectedCountTotal;
+    case "insert":
+    case "update":
+    case "delete":
+      return payload.affectedCount;
+    default:
+      return payload.rowCount;
+  }
+}
+
+/**
+ * Reads the dialect reason of a failed SQL tool call without depending on the dialect vocabulary.
+ * The value is whatever the dialect reports today and stays valid when those codes change.
+ */
+function getSqlDialectReason(error: unknown): string | null {
+  return error instanceof HttpError
+    ? error.details?.validationIssues?.[0]?.code ?? null
+    : null;
+}
+
 export const OPENAI_CHAT_TOOLS: ReadonlyArray<OpenAI.Responses.FunctionTool> = [OPENAI_SQL_TOOL];
 
 const DEFAULT_OPENAI_TOOL_DEPENDENCIES: OpenAIToolDependencies = {
@@ -255,7 +300,7 @@ export function buildOpenAIChatTools(
 }
 
 type GeneratedImageExecutionState =
-  Omit<ExecutedChatToolCall, "output" | "generatedImageTelemetry"> & Readonly<{
+  Omit<ExecutedChatToolCall, "output" | "generatedImageTelemetry" | "sqlTelemetry"> & Readonly<{
     attempt: number | null;
     status: string;
   }>;
@@ -269,6 +314,7 @@ function createGeneratedImageResult(
     output: JSON.stringify({ tool: GENERATED_IMAGE_TOOL_NAME, ...payload }),
     ...executionResult,
     generatedImageTelemetry: { attempt, status },
+    sqlTelemetry: null,
   };
 }
 
@@ -531,6 +577,7 @@ export async function executeChatToolCallWithDependencies(
 
   const sql = getSqlFromRawArguments(rawArguments);
   const isMutating = getIsMutatingSql(sql);
+  const startedAt = Date.now();
 
   try {
     const parsed = SQL_TOOL_ARGUMENT_VALIDATOR.parse(JSON.parse(rawArguments));
@@ -557,6 +604,16 @@ export async function executeChatToolCallWithDependencies(
       shouldInvalidateMainContent: isMutating,
       stopReason: null,
       generatedImageTelemetry: null,
+      sqlTelemetry: {
+        succeeded: true,
+        errorCode: null,
+        errorClass: null,
+        dialectReason: null,
+        statementType: result.data.statementType,
+        statementCount: getSqlStatementCount(result.data),
+        rowOrAffectedCount: getSqlRowOrAffectedCount(result.data),
+        durationMs: Date.now() - startedAt,
+      },
     };
   } catch (error) {
     const payload: ToolErrorPayload = error instanceof HttpError
@@ -578,6 +635,16 @@ export async function executeChatToolCallWithDependencies(
       shouldInvalidateMainContent: false,
       stopReason: null,
       generatedImageTelemetry: null,
+      sqlTelemetry: {
+        succeeded: false,
+        errorCode: error instanceof HttpError ? error.code : null,
+        errorClass: serializeToolError(error).name,
+        dialectReason: getSqlDialectReason(error),
+        statementType: null,
+        statementCount: null,
+        rowOrAffectedCount: null,
+        durationMs: Date.now() - startedAt,
+      },
     };
   }
 }
