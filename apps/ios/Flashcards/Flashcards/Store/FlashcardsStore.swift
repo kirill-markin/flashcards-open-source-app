@@ -214,7 +214,9 @@ final class FlashcardsStore {
         let initialGlobalErrorMessage: String
 
         do {
-            database = try LocalDatabase()
+            let localDatabase = try LocalDatabase()
+            try localDatabase.seedOnboardingDemoCardIfNeeded()
+            database = localDatabase
             initialGlobalErrorMessage = ""
         } catch {
             database = nil

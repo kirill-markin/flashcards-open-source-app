@@ -16,6 +16,9 @@ final class DatabaseCore {
     let connection: OpaquePointer
     let encoder: JSONEncoder
     let decoder: JSONDecoder
+    /// Workspace id inserted by the most recent bootstrap when it created the
+    /// first local workspace row, and `nil` when a workspace already existed.
+    private(set) var createdDefaultWorkspaceId: String?
     private var isClosed: Bool
 
     convenience init() throws {
@@ -26,13 +29,14 @@ final class DatabaseCore {
         self.databaseURL = databaseURL
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
+        self.createdDefaultWorkspaceId = nil
         self.isClosed = false
         self.connection = try Self.openConnection(databaseURL: databaseURL)
         sqlite3_busy_timeout(self.connection, 5_000)
         try self.enableForeignKeys()
         try self.enableWriteAheadLogging()
         try LocalDatabaseMigrator(core: self).migrate()
-        try LocalDatabaseBootstrapper(core: self).ensureDefaultState()
+        self.createdDefaultWorkspaceId = try LocalDatabaseBootstrapper(core: self).ensureDefaultState()
     }
 
     deinit {
@@ -176,7 +180,7 @@ final class DatabaseCore {
         let migrator = LocalDatabaseMigrator(core: self)
         try migrator.resetLocalSchema()
         try migrator.migrate()
-        try LocalDatabaseBootstrapper(core: self).ensureDefaultState()
+        self.createdDefaultWorkspaceId = try LocalDatabaseBootstrapper(core: self).ensureDefaultState()
     }
 
     static func columnText(statement: OpaquePointer, index: Int32) -> String {
