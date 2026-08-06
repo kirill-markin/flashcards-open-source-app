@@ -29,6 +29,37 @@ For each backend-owned `/chat` turn, expect:
 
 If the turn uses tools, expect nested tool observations under the same trace.
 
+### Tool observation shape
+
+Each nested tool observation carries metadata describing how the call ended:
+
+- `outcome` is `success`, `tool_error`, or `thrown`. A failed SQL call returns an error envelope
+  to the model instead of throwing, so it is `tool_error`, not `thrown`.
+- `errorClass`, `errorCode`, and `dialectReason` identify the failure. `dialectReason` is the
+  first `validationIssues` code reported by the SQL dialect and is read as an opaque value.
+- `errorMessage` carries the sanitized first line of a thrown error.
+- `sqlStatementType`, `sqlStatementCount`, `sqlRowOrAffectedCount`, and `sqlDurationMs` describe
+  the SQL call itself.
+- `generatedImageAttempt` and `generatedImageStatus` describe the generated-image call.
+
+An observation is exported with level `ERROR` and a `statusMessage` naming the cause, so the
+built-in Langfuse error filter finds it, when the call threw or when a SQL call returned an error
+envelope. A generated-image `tool_error` stays at the default level because that tool reports
+expected product outcomes such as `limit_reached` the same way; read its `outcome` and
+`generatedImageStatus` metadata instead, and its provider failures under the provider observation.
+
+### Failed SQL share
+
+In the Langfuse UI, filter observations by `name = sql`:
+
+- failed calls: `metadata.outcome` is not `success` (for `name = sql` this is the same set as
+  level `ERROR`)
+- share of failed SQL calls: that count divided by all `name = sql` observations in the same
+  time range
+
+Group the failed set by `metadata.dialectReason` or `metadata.errorCode` to see which failures
+dominate.
+
 ## Expected transcription trace shape
 
 For each `/chat/transcriptions` request, expect:

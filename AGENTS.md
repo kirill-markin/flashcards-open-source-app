@@ -54,6 +54,7 @@ Nothing compiles iOS before merge by design, though `PR Checks` still runs the s
 Swift builds and tests run in Xcode Cloud, whose workflow definitions live in App Store Connect; its in-repo build inputs are documented in [docs/ios-ci-cd.md](docs/ios-ci-cd.md).
 Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.
 Details, rollback rules, and live smoke references: [docs/release-gates.md](docs/release-gates.md).
+Agent SQL executions emit one structured CloudWatch record per run on every surface; the record fields and the failure-rate queries live in [docs/agent-sql-telemetry.md](docs/agent-sql-telemetry.md).
 
 ## Repository Strategy
 

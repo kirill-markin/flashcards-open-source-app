@@ -671,38 +671,18 @@ export async function beginMediaAssetUploadSessionCompletionAttemptAtLeaseTarget
         [snapshot.userId, snapshot.workspaceId],
       );
       const result = await executor.query<MultipartAttemptBeginRow>(
-        `WITH lease AS MATERIALIZED (
-           SELECT
-             $2::BIGINT
-               - pg_catalog.floor(
-                   EXTRACT(
-                     EPOCH FROM pg_catalog.clock_timestamp()
-                   ) * 1000
-                 )::BIGINT
-               - $3::BIGINT AS duration_ms
-         )
-         SELECT
-           attempt.attempt_status,
-           attempt.reservation_token,
-           attempt.normalization_version,
-           attempt.lease_expires_at
-         FROM lease
-         CROSS JOIN LATERAL
-           content.begin_media_upload_session_completion_attempt_with_owner(
-             $1,
-             lease.duration_ms::INTEGER,
-             ROW(
-               $4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,
-               $20,$21,$22,$23
-             )::content.multipart_media_blob_writer_attempt_payload
-           ) AS attempt
-         WHERE lease.duration_ms BETWEEN 1 AND $24`,
+        `SELECT attempt_status, reservation_token, normalization_version, lease_expires_at
+         FROM content.begin_media_upload_session_completion_attempt_at_lease_target_with_owner(
+           $1,
+           pg_catalog.to_timestamp($2::BIGINT / 1000.0),
+           ROW(
+             $3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
+           )::content.multipart_media_blob_writer_attempt_payload
+         )`,
         [
           snapshot.attemptToken,
-          leaseTargetAtMs,
-          multipartAttemptAbsoluteLeaseGrantPaddingMs,
+          leaseTargetAtMs - multipartAttemptAbsoluteLeaseGrantPaddingMs,
           ...toMultipartAttemptParams(snapshot),
-          maximumMultipartAttemptLeaseDurationMs,
         ],
       );
       if (result.rows.length === 0) {
@@ -713,16 +693,7 @@ export async function beginMediaAssetUploadSessionCompletionAttemptAtLeaseTarget
           "PostgreSQL returned an invalid absolute-target multipart writer attempt row count.",
         );
       }
-      const mapped = mapMultipartAttemptBeginRow(result.rows[0], snapshot);
-      if (
-        "reservationToken" in mapped
-        && Date.parse(mapped.leaseExpiresAt) >= leaseTargetAtMs
-      ) {
-        throw new MediaBlobWriterFenceError(
-          "multipart_attempt_absolute_lease_target",
-        );
-      }
-      return mapped;
+      return mapMultipartAttemptBeginRow(result.rows[0], snapshot);
     },
   );
 }

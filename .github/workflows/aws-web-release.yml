@@ -411,7 +411,7 @@ jobs:
         run: |
           bash scripts/deploy/migrate-aws.sh \
             --stack-name ${{ env.STACK_NAME }} \
-            --require-migration 0107_catalog_test_collection.sql
+            --require-migration 0108_multipart_absolute_lease_target.sql
 
       - name: CDK deploy with reconciliation schedule enabled
         working-directory: infra/aws

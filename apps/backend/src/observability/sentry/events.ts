@@ -1,3 +1,4 @@
+import type { AgentSqlSurface } from "../../aiTools/agentSql/shared";
 import type { MediaAssetStorageErrorDetails } from "../../shared/errors";
 
 export type BackendService =
@@ -87,6 +88,39 @@ export type AdminQueryDetails = Readonly<{
   durationMs: number;
   success: boolean;
   sqlFingerprint: string;
+}>;
+
+/**
+ * One record per agent SQL execution, emitted on success and on failure by
+ * every surface (`chat-tool`, `agent-rest`, `mcp`). `succeeded` is the
+ * denominator the failure ratio is computed from, and `errorCode` /
+ * `dialectReason` are the aggregable causes. `dialectReason` is the first
+ * validation-issue code carried by the failure, recorded as an opaque value:
+ * the dialect owns that vocabulary and may change it.
+ *
+ * Raw SQL text is deliberately absent; `sqlFingerprint` plus `sqlLength` are
+ * what make repeated failures groupable, matching `AdminQueryDetails`.
+ *
+ * The error message is deliberately absent too: dialect errors quote the
+ * offending SQL fragment verbatim, so the message carries flashcard content that
+ * no delimiter heuristic can strip reliably. Unexpected failures still reach
+ * Sentry with their full message and stack through `captureBackendException`.
+ */
+export type AgentSqlDetails = Readonly<{
+  surface: AgentSqlSurface;
+  caller: string | null;
+  connectionId: string;
+  succeeded: boolean;
+  statementType: string | null;
+  resource: string | null;
+  statementCount: number | null;
+  rowOrAffectedCount: number | null;
+  durationMs: number;
+  sqlLength: number;
+  sqlFingerprint: string;
+  errorCode: string | null;
+  dialectReason: string | null;
+  errorClass: string | null;
 }>;
 
 export type SyncPushDetails = Readonly<{
@@ -897,6 +931,7 @@ type SyncConflictFailureDetailsFor<Details> = FailureDetailsFor<Details> & Backe
 
 export type BackendBreadcrumbEvent =
   | EventByAction<"admin_query", AdminQueryDetails>
+  | EventByAction<"agent_sql", AgentSqlDetails>
   | EventByAction<"request_error", RequestErrorDetails>
   | EventByAction<"global_metrics_snapshot_generated", GlobalMetricsSnapshotGeneratedDetails>
   | EventByAction<"community_leaderboard_snapshot_generated", CommunityLeaderboardSnapshotGeneratedDetails>
