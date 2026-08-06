@@ -13,10 +13,20 @@ import java.util.UUID
 
 const val localWorkspaceName: String = "Personal"
 
+/**
+ * Result of the local workspace shell bootstrap. [didCreateWorkspace] is true
+ * only for the call that actually inserted the workspace row, which is the
+ * new-user moment callers use for one-time local onboarding work.
+ */
+data class LocalWorkspaceShell(
+    val workspaceId: String,
+    val didCreateWorkspace: Boolean
+)
+
 suspend fun ensureLocalWorkspaceShell(
     database: AppDatabase,
     currentTimeMillis: Long
-): String {
+): LocalWorkspaceShell {
     return database.withTransaction {
         val existingWorkspace = database.workspaceDao().loadAnyWorkspace()
         if (existingWorkspace != null) {
@@ -30,7 +40,10 @@ suspend fun ensureLocalWorkspaceShell(
                 workspaceId = existingWorkspace.workspaceId,
                 currentTimeMillis = currentTimeMillis
             )
-            return@withTransaction existingWorkspace.workspaceId
+            return@withTransaction LocalWorkspaceShell(
+                workspaceId = existingWorkspace.workspaceId,
+                didCreateWorkspace = false
+            )
         }
 
         val workspace = WorkspaceEntity(
@@ -49,7 +62,10 @@ suspend fun ensureLocalWorkspaceShell(
             workspaceId = workspace.workspaceId,
             currentTimeMillis = currentTimeMillis
         )
-        workspace.workspaceId
+        LocalWorkspaceShell(
+            workspaceId = workspace.workspaceId,
+            didCreateWorkspace = true
+        )
     }
 }
 

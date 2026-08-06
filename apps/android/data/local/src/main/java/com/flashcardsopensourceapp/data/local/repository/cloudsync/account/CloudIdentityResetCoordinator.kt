@@ -45,7 +45,7 @@ class CloudIdentityResetCoordinator(
                 val activeWorkspaceId = ensureLocalWorkspaceShell(
                     database = database,
                     currentTimeMillis = System.currentTimeMillis()
-                )
+                ).workspaceId
                 cloudPreferencesStore.regenerateInstallationId()
                 cloudPreferencesStore.updateCloudSettings(
                     cloudState = CloudAccountState.DISCONNECTED,
@@ -74,7 +74,7 @@ class CloudIdentityResetCoordinator(
                 val activeWorkspaceId = ensureLocalWorkspaceShell(
                     database = database,
                     currentTimeMillis = System.currentTimeMillis()
-                )
+                ).workspaceId
                 cloudPreferencesStore.regenerateInstallationId()
                 cloudPreferencesStore.updateCloudSettings(
                     cloudState = CloudAccountState.DISCONNECTED,
@@ -111,7 +111,7 @@ class CloudIdentityResetCoordinator(
                 val activeWorkspaceId = ensureLocalWorkspaceShell(
                     database = database,
                     currentTimeMillis = System.currentTimeMillis()
-                )
+                ).workspaceId
                 cloudPreferencesStore.updateCloudSettings(
                     cloudState = CloudAccountState.DISCONNECTED,
                     linkedUserId = null,

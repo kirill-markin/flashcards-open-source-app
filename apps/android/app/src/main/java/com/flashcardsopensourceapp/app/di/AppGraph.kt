@@ -34,6 +34,7 @@ import com.flashcardsopensourceapp.app.notifications.review.ReviewReminderAttent
 import com.flashcardsopensourceapp.app.notifications.review.ReviewNotificationsManager
 import com.flashcardsopensourceapp.app.notifications.strict.AndroidStrictRemindersScheduler
 import com.flashcardsopensourceapp.app.notifications.strict.StrictRemindersManager
+import com.flashcardsopensourceapp.app.onboarding.seedDemoCardForNewWorkspace
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatLiveRemoteService
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatHistoryStore
@@ -615,11 +616,19 @@ class AppGraph(
     }
 
     suspend fun ensureLocalWorkspaceShell(currentTimeMillis: Long) {
-        ensureLocalWorkspaceShell(
+        val localWorkspaceShell = ensureLocalWorkspaceShell(
             database = database,
             currentTimeMillis = currentTimeMillis
         )
         cloudPreferencesStore.hydrateCloudSettingsFromDatabase()
+        if (localWorkspaceShell.didCreateWorkspace) {
+            seedDemoCardForNewWorkspace(
+                context = applicationContext,
+                database = database,
+                cardsRepository = cardsRepository,
+                workspaceId = localWorkspaceShell.workspaceId
+            )
+        }
     }
 
     suspend fun ensureGuestCloudSession(workspaceId: String): AppGuestCloudSession {
