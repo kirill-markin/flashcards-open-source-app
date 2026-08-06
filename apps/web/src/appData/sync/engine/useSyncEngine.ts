@@ -88,6 +88,7 @@ type UseSyncEngineParams = Readonly<{
   sessionVerificationState: SessionVerificationState;
   session: SessionInfo | null;
   activeWorkspace: WorkspaceSummary | null;
+  availableWorkspaces: ReadonlyArray<WorkspaceSummary>;
   setWorkspaceSettings: Dispatch<SetStateAction<WorkspaceSchedulerSettings | null>>;
   setCloudSettings: Dispatch<SetStateAction<CloudSettings | null>>;
   setLocalReadVersion: Dispatch<SetStateAction<number>>;
@@ -153,6 +154,17 @@ function calculateMediaUploadRetryTimerDelayMs(nextAttemptAt: string, nowMs: num
   return delayMs > maximumMediaUploadRetryTimerDelayMs ? null : delayMs;
 }
 
+// A brand-new user owns exactly one workspace, the one created for the account at sign-up.
+// Creating a further workspace never removes the earlier ones, so an account that still has
+// a single workspace is the only user-scoped signal remote sync needs to tell a new user
+// apart from an existing user who deliberately created another empty workspace.
+function isOnlyWorkspaceOfAccount(
+  availableWorkspaces: ReadonlyArray<WorkspaceSummary>,
+  workspaceId: string,
+): boolean {
+  return availableWorkspaces.length === 1 && availableWorkspaces[0].workspaceId === workspaceId;
+}
+
 function isBrowserOnline(): boolean {
   return typeof navigator === "undefined" || navigator.onLine !== false;
 }
@@ -192,6 +204,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     sessionVerificationState,
     session,
     activeWorkspace,
+    availableWorkspaces,
     setWorkspaceSettings,
     setCloudSettings,
     setLocalReadVersion,
@@ -200,6 +213,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     setTechnicalError,
   } = params;
   const activeWorkspaceRef = useRef<WorkspaceSummary | null>(activeWorkspace);
+  const availableWorkspacesRef = useRef<ReadonlyArray<WorkspaceSummary>>(availableWorkspaces);
   const syncPromisesRef = useRef<Map<string, Promise<void>>>(new Map());
   const localReadPromisesRef = useRef<Set<Promise<unknown>>>(new Set());
   const localMutationPromisesRef = useRef<Set<Promise<unknown>>>(new Set());
@@ -220,6 +234,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const isDiscardingAllSyncWorkRef = useRef<boolean>(false);
   const discardAllSyncWorkPromiseRef = useRef<Promise<void> | null>(null);
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
+  // Mirrored during render, not in an effect: workspace activation publishes the new
+  // workspace list and starts the sync run for the new workspace in the same tick, and the
+  // run must not decide "only workspace of the account" from the pre-creation list.
+  availableWorkspacesRef.current = availableWorkspaces;
 
   useEffect(() => {
     sessionLoadStateRef.current = sessionLoadState;
@@ -635,6 +653,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           workspaceId,
           installationId,
           syncRunId,
+          isOnlyWorkspaceForUser: isOnlyWorkspaceOfAccount(availableWorkspacesRef.current, workspaceId),
           requireWorkspaceSyncNotDiscarded: requireCurrentWorkspaceSync,
           publishWorkspaceSettings: publishCurrentWorkspaceSettings,
           refreshWorkspaceView: refreshCurrentWorkspaceView,

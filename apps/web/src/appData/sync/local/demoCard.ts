@@ -38,6 +38,7 @@ export type SeedDemoCardInput = Readonly<{
   userId: string;
   workspaceId: string;
   installationId: string;
+  isOnlyWorkspaceForUser: boolean;
   remoteIsEmpty: boolean | null;
   localCardCount: number;
 }>;
@@ -73,17 +74,29 @@ function buildDemoCardText(): DemoCardText {
 // it goes through createCardLocally, so it lands in IndexedDB and in the outbox and is
 // pushed by the normal sync path. Nothing else in the app special-cases it.
 //
+// This is a new-user card, not a new-workspace card. An empty workspace is not by itself
+// a new account: an existing user who deliberately creates a second workspace is handed an
+// empty one too, and would otherwise be onboarded again. isOnlyWorkspaceForUser carries
+// that user-scoped signal, decided by the caller from the account's workspace list.
+//
 // The backend never seeds this card, because a server-side seed would make a new
 // workspace non-empty and push mobile cloud linking into the replace_local_shell branch,
 // discarding a new user's offline work. Deduplication is therefore purely local: each
 // client seeds only at its own new-user moment, and only into a workspace that holds no
 // cards at all.
 //
+// Every condition is decided by the caller and passed in, so this stays a pure guard over
+// its input and never re-reads workspace state.
+//
 // Failing to seed must never fail a sync run, so a seed failure is reported and swallowed.
 export async function seedDemoCardForNewWorkspace(
   input: SeedDemoCardInput,
 ): Promise<LocalCardMutationResult | null> {
-  if (input.remoteIsEmpty !== true || input.localCardCount !== 0) {
+  if (
+    input.isOnlyWorkspaceForUser !== true
+    || input.remoteIsEmpty !== true
+    || input.localCardCount !== 0
+  ) {
     return null;
   }
 
