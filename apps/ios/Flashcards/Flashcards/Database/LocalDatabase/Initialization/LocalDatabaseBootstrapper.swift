@@ -1,19 +1,33 @@
 import Foundation
 
+private struct DefaultWorkspaceRow {
+    let workspaceId: String
+    let wasCreated: Bool
+}
+
 struct LocalDatabaseBootstrapper {
     let core: DatabaseCore
 
-    func ensureDefaultState() throws {
+    /**
+     Ensures the local default rows exist.
+
+     Returns the workspace id when this run inserted the very first local
+     workspace row, and `nil` when a workspace row was already present. That
+     signal is the only "this device is brand new" moment the local database
+     ever observes, so new-user seeding hangs off it.
+     */
+    func ensureDefaultState() throws -> String? {
         if try self.defaultStateNeedsInitialization() == false {
-            return
+            return nil
         }
 
-        try self.core.inTransaction {
+        return try self.core.inTransaction {
             let installationId = try self.ensureAppLocalSettingsRow()
-            let workspaceId = try self.ensureDefaultWorkspaceRow(installationId: installationId)
-            try self.ensureActiveWorkspaceReference(defaultWorkspaceId: workspaceId)
-            try self.ensureSyncStateRow(workspaceId: workspaceId)
-            try self.ensureUserSettingsRow(workspaceId: workspaceId)
+            let defaultWorkspace = try self.ensureDefaultWorkspaceRow(installationId: installationId)
+            try self.ensureActiveWorkspaceReference(defaultWorkspaceId: defaultWorkspace.workspaceId)
+            try self.ensureSyncStateRow(workspaceId: defaultWorkspace.workspaceId)
+            try self.ensureUserSettingsRow(workspaceId: defaultWorkspace.workspaceId)
+            return defaultWorkspace.wasCreated ? defaultWorkspace.workspaceId : nil
         }
     }
 
@@ -100,7 +114,7 @@ struct LocalDatabaseBootstrapper {
         )
     }
 
-    private func ensureDefaultWorkspaceRow(installationId: String) throws -> String {
+    private func ensureDefaultWorkspaceRow(installationId: String) throws -> DefaultWorkspaceRow {
         let workspaceCount = try self.core.scalarInt(
             sql: "SELECT COUNT(*) FROM workspaces",
             values: []
@@ -144,10 +158,10 @@ struct LocalDatabaseBootstrapper {
                     .text(nowIsoTimestamp())
                 ]
             )
-            return workspaceId
+            return DefaultWorkspaceRow(workspaceId: workspaceId, wasCreated: true)
         }
 
-        return try self.core.scalarText(
+        let existingWorkspaceId = try self.core.scalarText(
             sql: """
             SELECT workspace_id
             FROM workspaces
@@ -156,6 +170,7 @@ struct LocalDatabaseBootstrapper {
             """,
             values: []
         )
+        return DefaultWorkspaceRow(workspaceId: existingWorkspaceId, wasCreated: false)
     }
 
     private func ensureActiveWorkspaceReference(defaultWorkspaceId: String) throws {
