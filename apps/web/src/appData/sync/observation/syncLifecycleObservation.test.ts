@@ -20,6 +20,7 @@ import {
 
 const observabilityMocks = vi.hoisted(() => ({
   addWebBreadcrumbMock: vi.fn(),
+  captureWebExceptionMock: vi.fn(),
   captureWebWarningMock: vi.fn(),
 }));
 
@@ -36,7 +37,9 @@ const localCardMocks = vi.hoisted(() => ({
 
 vi.mock("../../../observability/webObservability", () => ({
   addWebBreadcrumb: observabilityMocks.addWebBreadcrumbMock,
+  captureWebException: observabilityMocks.captureWebExceptionMock,
   captureWebWarning: observabilityMocks.captureWebWarningMock,
+  normalizeCaughtError: (error: unknown): Error => error instanceof Error ? error : new Error(`Caught non-Error value of type ${typeof error}`),
 }));
 
 vi.mock("../../../localDb/cards/cards", async (importOriginal) => {
@@ -53,12 +56,20 @@ vi.mock("../../../localDb/cards/cards", async (importOriginal) => {
   };
 });
 
-vi.mock("../../../api", () => ({
-  bootstrapPullSyncState: apiMocks.bootstrapPullSyncStateMock,
-  pullReviewHistorySync: apiMocks.pullReviewHistorySyncMock,
-  pullSyncChanges: apiMocks.pullSyncChangesMock,
-  pushSyncOperations: apiMocks.pushSyncOperationsMock,
-}));
+vi.mock("../../../api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../api")>();
+
+  return {
+    ApiContractError: actual.ApiContractError,
+    ApiError: actual.ApiError,
+    ApiNetworkError: actual.ApiNetworkError,
+    AuthRedirectError: actual.AuthRedirectError,
+    bootstrapPullSyncState: apiMocks.bootstrapPullSyncStateMock,
+    pullReviewHistorySync: apiMocks.pullReviewHistorySyncMock,
+    pullSyncChanges: apiMocks.pullSyncChangesMock,
+    pushSyncOperations: apiMocks.pushSyncOperationsMock,
+  };
+});
 
 const currentWebSyncDatabaseVersion = 18;
 
@@ -327,6 +338,7 @@ describe("sync lifecycle observation", () => {
     window.localStorage.clear();
     installPersistentStorageMock();
     observabilityMocks.addWebBreadcrumbMock.mockReset();
+    observabilityMocks.captureWebExceptionMock.mockReset();
     observabilityMocks.captureWebWarningMock.mockReset();
     apiMocks.bootstrapPullSyncStateMock.mockReset();
     apiMocks.pullReviewHistorySyncMock.mockReset();
