@@ -16,6 +16,7 @@ private const val cloudApiGatewayRequestIdHeaderName: String = "X-Amz-Apigw-Id"
 private const val cloudHealthValidationPath: String = "/health"
 private const val officialCloudApiHost: String = "api.flashcards-open-source-app.com"
 private const val officialCloudAuthHost: String = "auth.flashcards-open-source-app.com"
+private val cloudObservationRouteLiteralSegments: Set<String> = setOf("upload-sessions")
 
 internal data class CloudHttpObservationVersions(
     val appVersion: String?,
@@ -199,14 +200,26 @@ internal fun cloudObservationEndpointName(path: String): String {
     }
 
     val normalizedSegments = segments.mapIndexed { index, segment ->
+        val previousSegment = segments.getOrNull(index = index - 1)
         when {
-            index > 0 && segments[index - 1] == "workspaces" -> "{workspaceId}"
-            index > 0 && segments[index - 1] == "media-assets" -> "{mediaAssetId}"
-            index > 0 && segments[index - 1] == "agent-api-keys" -> "{connectionId}"
+            !isCloudObservationIdentifierSegment(segment = segment) -> segment
+            previousSegment == "workspaces" -> "{workspaceId}"
+            previousSegment == "upload-sessions" -> "{uploadSessionId}"
+            previousSegment == "media-assets" -> "{mediaAssetId}"
+            previousSegment == "agent-api-keys" -> "{connectionId}"
             else -> segment
         }
     }
     return "/" + normalizedSegments.joinToString(separator = "/")
+}
+
+/**
+ * Route templating replaces a segment only when it can carry an opaque identifier.
+ * Identifier shapes vary across clients and eras, so literal route segments that follow an
+ * identifier-bearing prefix are listed explicitly instead of being inferred from the segment value.
+ */
+private fun isCloudObservationIdentifierSegment(segment: String): Boolean {
+    return segment !in cloudObservationRouteLiteralSegments
 }
 
 private fun cloudObservationFeature(request: Request): AndroidObservationFeature {
