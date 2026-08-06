@@ -105,6 +105,7 @@ function renderSyncEngineHarness(): Readonly<{
       sessionVerificationState: "verified",
       session,
       activeWorkspace: workspace,
+      availableWorkspaces: [workspace],
       setWorkspaceSettings,
       setCloudSettings,
       setLocalReadVersion,

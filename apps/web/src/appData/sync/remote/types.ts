@@ -17,6 +17,10 @@ export type WorkspaceRemoteSyncInput = Readonly<{
   workspaceId: string;
   installationId: string;
   syncRunId: string;
+  // True when this workspace is the only one the account owns, which is the user-scoped
+  // signal for a brand-new user. Resolved by the sync engine from the account's workspace
+  // list, because remote sync itself only ever sees one workspace.
+  isOnlyWorkspaceForUser: boolean;
   requireWorkspaceSyncNotDiscarded: (workspaceId: string) => void;
   publishWorkspaceSettings: (workspaceId: string, settings: WorkspaceSchedulerSettings) => void;
   refreshWorkspaceView: (workspaceId: string) => Promise<void>;

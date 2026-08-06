@@ -79,6 +79,7 @@ function createRemoteSyncInput(): WorkspaceRemoteSyncInput {
     workspaceId: "workspace-1",
     installationId: "installation-1",
     syncRunId: "sync-run-1",
+    isOnlyWorkspaceForUser: true,
     requireWorkspaceSyncNotDiscarded: (_workspaceId: string): void => {},
     publishWorkspaceSettings: (_workspaceId, _settings): void => {},
     refreshWorkspaceView: async (_workspaceId: string): Promise<void> => {},
