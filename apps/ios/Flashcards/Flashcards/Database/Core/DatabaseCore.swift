@@ -16,8 +16,10 @@ final class DatabaseCore {
     let connection: OpaquePointer
     let encoder: JSONEncoder
     let decoder: JSONDecoder
-    /// Workspace id inserted by the most recent bootstrap when it created the
-    /// first local workspace row, and `nil` when a workspace already existed.
+    /// Workspace id inserted when initialization bootstrapped the first local
+    /// workspace row on a brand-new device, and `nil` otherwise — including
+    /// after `resetForAccountDeletion()`, which recreates the workspace on a
+    /// device that is not new.
     private(set) var createdDefaultWorkspaceId: String?
     private var isClosed: Bool
 
@@ -180,7 +182,11 @@ final class DatabaseCore {
         let migrator = LocalDatabaseMigrator(core: self)
         try migrator.resetLocalSchema()
         try migrator.migrate()
-        self.createdDefaultWorkspaceId = try LocalDatabaseBootstrapper(core: self).ensureDefaultState()
+        _ = try LocalDatabaseBootstrapper(core: self).ensureDefaultState()
+        // A reset always recreates the workspace, so keeping the id here would mark
+        // every logout, account deletion and credential erase as a brand-new device.
+        // Only the genuine first creation during initialization may leave it armed.
+        self.createdDefaultWorkspaceId = nil
     }
 
     static func columnText(statement: OpaquePointer, index: Int32) -> String {
