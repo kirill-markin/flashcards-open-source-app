@@ -13,6 +13,7 @@ import type {
   SyncLocalDbRecoveryFailurePhase,
   SyncRestoreLocalBootstrapState,
 } from "../../../observability/webObservability";
+import { seedDemoCardForNewWorkspace } from "../local/demoCard";
 import {
   observeLocalDbMissing,
   observeLocalDbRecoveryFailed,
@@ -384,6 +385,29 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         observeSlowHotBootstrap(slowHotBootstrapDetails);
       } else if (shouldBreadcrumbSlowHotBootstrap(slowBootstrapObservation)) {
         observeToleratedSlowHotBootstrap(slowHotBootstrapDetails);
+      }
+    }
+
+    // Brand-new user: the first successful bootstrap of the account's only workspace, when
+    // that workspace is empty on the backend and holds no local cards. isOnlyWorkspaceForUser
+    // is what makes this a new-user rule rather than a new-workspace rule, so an existing
+    // user who deliberately creates another empty workspace is not onboarded again.
+    // isLocalDbRecovery excludes a re-hydration of an evicted local cache, which is by
+    // definition a workspace this browser already bootstrapped once. The seed runs after the
+    // observations above so it cannot change localCardCountAfter, and after the
+    // restore-history write so both keep describing the bootstrap result itself.
+    if (isLocalDbRecovery === false) {
+      input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
+      const demoCardSeedResult = await seedDemoCardForNewWorkspace({
+        userId: input.userId,
+        workspaceId: input.workspaceId,
+        installationId: input.installationId,
+        isOnlyWorkspaceForUser: input.isOnlyWorkspaceForUser,
+        remoteIsEmpty,
+        localCardCount: localCardCountAfter,
+      });
+      if (demoCardSeedResult !== null && demoCardSeedResult.didChangeReviewSchedule) {
+        didChangeReviewSchedule = true;
       }
     }
 

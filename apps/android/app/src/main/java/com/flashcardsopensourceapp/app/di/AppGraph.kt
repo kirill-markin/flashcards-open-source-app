@@ -34,6 +34,7 @@ import com.flashcardsopensourceapp.app.notifications.review.ReviewReminderAttent
 import com.flashcardsopensourceapp.app.notifications.review.ReviewNotificationsManager
 import com.flashcardsopensourceapp.app.notifications.strict.AndroidStrictRemindersScheduler
 import com.flashcardsopensourceapp.app.notifications.strict.StrictRemindersManager
+import com.flashcardsopensourceapp.app.onboarding.seedDemoCardForNewWorkspace
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatLiveRemoteService
 import com.flashcardsopensourceapp.data.local.ai.store.AiChatHistoryStore
@@ -615,11 +616,41 @@ class AppGraph(
     }
 
     suspend fun ensureLocalWorkspaceShell(currentTimeMillis: Long) {
-        ensureLocalWorkspaceShell(
+        val localWorkspaceShell = ensureLocalWorkspaceShell(
             database = database,
             currentTimeMillis = currentTimeMillis
         )
         cloudPreferencesStore.hydrateCloudSettingsFromDatabase()
+        if (localWorkspaceShell.didCreateWorkspace) {
+            // The demo card is onboarding decoration, so a seed failure is reported and
+            // swallowed instead of failing startup, exactly like the web client does.
+            try {
+                seedDemoCardForNewWorkspace(
+                    context = applicationContext,
+                    database = database,
+                    cardsRepository = cardsRepository,
+                    workspaceId = localWorkspaceShell.workspaceId
+                )
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                observability.captureException(
+                    event = AndroidExceptionIssueEvent.AppStartupException(
+                        throwable = error,
+                        startupPhase = "demo_card_seed",
+                        appVersion = appPackageInfo.versionName,
+                        clientVersion = appPackageInfo.versionName,
+                        versionCode = appPackageInfo.longVersionCode.toInt()
+                    )
+                )
+                Log.w(
+                    appGraphLogTag,
+                    "event=demo_card_seed_failed " +
+                        "workspace_id=${localWorkspaceShell.workspaceId} " +
+                        renderSanitizedThrowableLogFields(error = error)
+                )
+            }
+        }
     }
 
     suspend fun ensureGuestCloudSession(workspaceId: String): AppGuestCloudSession {

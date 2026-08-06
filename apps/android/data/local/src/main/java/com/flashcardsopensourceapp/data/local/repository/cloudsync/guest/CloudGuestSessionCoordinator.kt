@@ -577,7 +577,7 @@ class CloudGuestSessionCoordinator(
             ensureLocalWorkspaceShell(
                 database = database,
                 currentTimeMillis = System.currentTimeMillis()
-            )
+            ).workspaceId
         }
         preferencesStore.updateActiveWorkspaceId(activeWorkspaceId = resolvedWorkspaceId)
     }

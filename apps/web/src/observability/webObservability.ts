@@ -398,6 +398,7 @@ export type WebAppOperation =
   | "workspace_import"
   | "catalog_import"
   | "media_upload_transfers"
+  | "demo_card_seed"
   | "refresh_local_metadata";
 
 export type WebAppOperationFailureDetails = Readonly<{

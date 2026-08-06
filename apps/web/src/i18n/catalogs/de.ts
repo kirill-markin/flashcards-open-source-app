@@ -927,6 +927,14 @@ const deCatalog: TranslationCatalog = {
     dismiss: "Verstanden",
     title: "Kurze Erinnerung",
   },
+  demoCard: {
+    front: "Welche Anwendung eignet sich am besten zum Lernen?",
+    back1: "{{appName}} — die App, die du gerade vor dir hast.",
+    back2: "Alles hier ist eine Lernkarte: vorne eine Frage, hinten die Antwort. Du kannst Karten selbst schreiben oder dem eingebauten KI-Chat einfach ein Thema nennen, und er erstellt einen Satz Karten für dich.",
+    back3: "Beim Wiederholen versuchst du, dich an die Antwort zu erinnern, und bewertest danach, wie es lief. Von da an plant sich jede Karte selbst: Was du gut kannst, kommt erst in Wochen oder Monaten zurück, was du immer wieder vergisst, schon heute oder morgen.",
+    back4: "Bewerte ehrlich, genau das macht die Methode wirksam. Wenn du die Antwort nicht wusstest, wähle {{againLabel}} — auch dann, wenn du spicken musstest. {{hardLabel}} ist nur für Antworten, die du wusstest, die aber schwer abzurufen waren.",
+    back5: "Probiere es gleich aus: bewerte diese Karte mit {{againLabel}}, dann kommt sie in etwa einer Minute zurück — so bleibt diese Antwort hängen.",
+  },
   mobileAppPromo: {
     title: "Auf dem Smartphone wiederholen",
     body: "Installiere die iOS- oder Android-App, um schnell mit Offline-Zugriff weiterzulernen.",

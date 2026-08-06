@@ -141,6 +141,7 @@ export function AppDataProvider(props: Props): ReactElement {
     sessionVerificationState,
     session,
     activeWorkspace,
+    availableWorkspaces,
     setWorkspaceSettings,
     setCloudSettings,
     setLocalReadVersion,

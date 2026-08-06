@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name">Flashcards Open Source App</string>
     <string name="top_level_review">Review</string>
     <string name="top_level_ai">AI</string>
@@ -34,6 +34,18 @@
     <string name="feedback_prompt_submit_failed">Feedback could not be sent. Check your connection and try again.</string>
     <string name="feedback_prompt_empty_message">Write a message before sending.</string>
     <string name="feedback_prompt_message_too_long">Feedback must be %1$d characters or fewer.</string>
+    <!-- Question shown on the front of the onboarding demo flashcard seeded for a new install. -->
+    <string name="demo_card_front">What is the best application for studying?</string>
+    <!-- First paragraph on the back of the onboarding demo flashcard. The placeholder is the product name. -->
+    <string name="demo_card_back_1"><xliff:g id="app_name" example="Flashcards Open Source App">%1$s</xliff:g> — the app you are looking at right now.</string>
+    <!-- Second paragraph on the back of the onboarding demo flashcard. -->
+    <string name="demo_card_back_2">Everything here is a flashcard: a question on the front, the answer on the back. You can write cards yourself, or just give the built-in AI chat a topic and it will create a set of cards for you.</string>
+    <!-- Third paragraph on the back of the onboarding demo flashcard. -->
+    <string name="demo_card_back_3">When you review, you try to recall the answer, then rate how it went. Every card schedules itself from there: what you know well comes back in weeks or months, what you keep forgetting comes back today or tomorrow.</string>
+    <!-- Fourth paragraph on the back of the onboarding demo flashcard. The placeholders are the review rating button labels. -->
+    <string name="demo_card_back_4">Rate honestly, this is what makes it work. If you did not know the answer, choose <xliff:g id="again_button" example="Again">%1$s</xliff:g> — including when you had to peek. <xliff:g id="hard_button" example="Hard">%2$s</xliff:g> is only for answers you knew but struggled to recall.</string>
+    <!-- Fifth paragraph on the back of the onboarding demo flashcard. The placeholder is the review rating button label. -->
+    <string name="demo_card_back_5">Try it right now: rate this card <xliff:g id="again_button" example="Again">%1$s</xliff:g>, and it will come back in about a minute — so this answer sticks.</string>
     <string name="review_notification_channel_name">Review reminders</string>
     <string name="review_notification_channel_description">Study reminders with cards from your review queue.</string>
 </resources>
