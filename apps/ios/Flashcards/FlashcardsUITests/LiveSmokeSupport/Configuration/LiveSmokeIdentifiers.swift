@@ -22,6 +22,10 @@ enum LiveSmokeIdentifier {
     static let reviewFilterScrollSurface: String = "review.filter.scrollSurface"
     static let reviewFilterAllCardsToggle: String = "review.filter.allCards"
     static let reviewFilterTagTogglePrefix: String = "review.filter.tag."
+    // UIKit exposes the transparent tap-catching region behind a presented popover under this
+    // fixed accessibility identifier. Tapping it is the deterministic way to dismiss a popover,
+    // instead of guessing a screen coordinate that happens to fall outside it.
+    static let popoverDismissRegion: String = "PopoverDismissRegion"
     static let aiScreen: String = "ai.screen"
     static let progressScreen: String = "progress.screen"
     static let progressStreakSection: String = "progress.streakSection"
