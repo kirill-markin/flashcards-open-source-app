@@ -93,7 +93,7 @@ internal suspend fun bootstrapTestWorkspace(
     val workspaceId = ensureLocalWorkspaceShell(
         database = runtime.database,
         currentTimeMillis = currentTimeMillis
-    )
+    ).workspaceId
     runtime.preferencesStore.hydrateCloudSettingsFromDatabase()
     return workspaceId
 }
