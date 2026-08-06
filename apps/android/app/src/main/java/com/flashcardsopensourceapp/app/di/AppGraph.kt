@@ -622,12 +622,34 @@ class AppGraph(
         )
         cloudPreferencesStore.hydrateCloudSettingsFromDatabase()
         if (localWorkspaceShell.didCreateWorkspace) {
-            seedDemoCardForNewWorkspace(
-                context = applicationContext,
-                database = database,
-                cardsRepository = cardsRepository,
-                workspaceId = localWorkspaceShell.workspaceId
-            )
+            // The demo card is onboarding decoration, so a seed failure is reported and
+            // swallowed instead of failing startup, exactly like the web client does.
+            try {
+                seedDemoCardForNewWorkspace(
+                    context = applicationContext,
+                    database = database,
+                    cardsRepository = cardsRepository,
+                    workspaceId = localWorkspaceShell.workspaceId
+                )
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                observability.captureException(
+                    event = AndroidExceptionIssueEvent.AppStartupException(
+                        throwable = error,
+                        startupPhase = "demo_card_seed",
+                        appVersion = appPackageInfo.versionName,
+                        clientVersion = appPackageInfo.versionName,
+                        versionCode = appPackageInfo.longVersionCode.toInt()
+                    )
+                )
+                Log.w(
+                    appGraphLogTag,
+                    "event=demo_card_seed_failed " +
+                        "workspace_id=${localWorkspaceShell.workspaceId} " +
+                        renderSanitizedThrowableLogFields(error = error)
+                )
+            }
         }
     }
 

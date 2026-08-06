@@ -12,6 +12,13 @@ const val demoCardTag: String = "demo"
 private const val demoCardParagraphSeparator: String = "\n\n"
 
 /**
+ * The product name is a brand and is never translated, so it is a literal here
+ * instead of `R.string.app_name`, which Play may translate. Web and iOS carry
+ * the same literal.
+ */
+private const val demoCardProductName: String = "Flashcards Open Source App"
+
+/**
  * Builds the onboarding demo card from the current app locale. The rating
  * labels are read from the review feature so the card always names the same
  * buttons the user sees while reviewing.
@@ -26,7 +33,7 @@ private const val demoCardParagraphSeparator: String = "\n\n"
  * whoever removes them must also remove the bold.
  */
 fun buildDemoCardDraft(context: Context): CardDraft {
-    val productName: String = "**${context.getString(R.string.app_name)}**"
+    val productName: String = "**$demoCardProductName**"
     val againLabel: String = "`${context.getString(ReviewR.string.review_again)}`"
     val hardLabel: String = "`${context.getString(ReviewR.string.review_hard)}`"
     val backParagraphs: List<String> = listOf(
