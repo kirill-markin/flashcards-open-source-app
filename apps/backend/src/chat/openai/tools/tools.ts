@@ -540,6 +540,7 @@ export async function executeChatToolCallWithDependencies(
         workspaceId: context.workspaceId,
         selectedWorkspaceId: context.workspaceId,
         connectionId: "chat-v2",
+        surface: "chat-tool",
       },
       parsed.sql,
       dependencies.createToolDependencies(context),

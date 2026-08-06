@@ -262,6 +262,7 @@ test("executeSqlMutationBatch appends legacy deck effort tags after final tags a
       userId: "user-1",
       selectedWorkspaceId: null,
       connectionId: "connection-1",
+      surface: "agent-rest",
     };
 
     await executeSqlMutationBatch(

@@ -11,11 +11,25 @@ import type {
 } from "../sqlDialect";
 import { MAX_SQL_RECORD_LIMIT } from "../toolContract/sqlToolLimits";
 
+/**
+ * Entrypoint that executed the SQL. Kept as a closed union and required on
+ * `AgentSqlContext` so a future surface cannot reach the shared executors
+ * silently untagged in telemetry.
+ */
+export type AgentSqlSurface = "chat-tool" | "agent-rest" | "mcp";
+
 export type AgentSqlContext = Readonly<{
   userId: string;
   workspaceId: string;
   selectedWorkspaceId: string | null;
   connectionId: string;
+  surface: AgentSqlSurface;
+  /**
+   * Best-effort label of the foreign client behind the surface, recorded so the
+   * SQL failure rate can be split per client. Only the MCP surface can observe
+   * one today (see `apps/backend/src/mcp/server.ts`), so it stays optional.
+   */
+  caller?: string | null;
 }>;
 
 export type AgentSqlReadPayload = Readonly<{
