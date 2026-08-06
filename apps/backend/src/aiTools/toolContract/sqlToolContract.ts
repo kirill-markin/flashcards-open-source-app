@@ -38,6 +38,7 @@ export const SQL_QUERY_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
   "- sql_query => {\"sql\": \"SELECT * FROM cards WHERE due_at IS NULL OR due_at <= NOW() ORDER BY due_at ASC, created_at DESC, card_id ASC LIMIT 20 OFFSET 0\"}",
   "- sql_query => {\"sql\": \"SELECT card_id, front_text, back_text, tags FROM cards UNNEST tags AS tag WHERE LOWER(tag) = 'english' AND (LOWER(front_text) LIKE '%example%' OR LOWER(back_text) NOT LIKE '%draft%') ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0\"}",
   "- sql_query => {\"sql\": \"SELECT card_id, front_text, back_text, tags FROM cards WHERE tags = () ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0\"}",
+  "- sql_query => {\"sql\": \"SELECT card_id, front_text, back_text, tags FROM cards WHERE tags OVERLAP ('english', 'slang') ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0\"}",
 ]);
 
 /**
@@ -51,6 +52,7 @@ export const SQL_EXECUTE_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
   "- sql_execute => {\"sql\": \"UPDATE cards SET back_text = 'Updated answer' WHERE card_id = '00000000-0000-4000-8000-000000000000'\"}",
   "- sql_execute => {\"sql\": \"UPDATE cards SET back_text = 'First update' WHERE card_id = '00000000-0000-4000-8000-000000000000'; UPDATE cards SET back_text = 'Second update' WHERE card_id = '00000000-0000-4000-8000-000000000001'\"}",
   "- sql_execute => {\"sql\": \"DELETE FROM decks WHERE deck_id IN ('00000000-0000-4000-8000-000000000000')\"}",
+  "- sql_execute => {\"sql\": \"DELETE FROM cards WHERE tags OVERLAP ('some-tag')\"}",
 ]);
 
 /**
@@ -73,17 +75,23 @@ const SQL_DIALECT_DESCRIPTION_LINES = Object.freeze([
   "Use one JSON object: {\"sql\": \"...\"}.",
   "Public docs: https://flashcards-open-source-app.com/docs/mcp-connector/ and https://flashcards-open-source-app.com/docs/api/.",
   "Published resources: workspace, cards, decks, review_events.",
+  "Resource semantics: cards have no deck_id column and no deck membership.",
+  "A deck is a saved tag filter whose tags column defines the filter, so the only association between a card and a deck is matching tags.",
+  "Decks expose deck_id, name, tags, created_at, updated_at, and deleted_at, and have no description column.",
   "Multiple supported statements may be separated with semicolons in one sql string.",
   `A batch may contain at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements.`,
+  "Schema discovery (SHOW TABLES, DESCRIBE, SHOW COLUMNS) must be its own read call and must never share a semicolon-separated sql string with statements that depend on its result, because the whole batch is composed before any statement runs.",
 ]);
 
 /**
  * Shared WHERE-clause grammar fragment. UPDATE and DELETE resolve their target
  * rows through the same SELECT evaluator, so the read and write surfaces must
- * advertise exactly the same WHERE forms.
+ * advertise exactly the same WHERE forms. The fragment is a bare comma-separated
+ * list of forms with no "WHERE" framing and no trailing conjunction of its own,
+ * so each surface can end its own sentence with it.
  */
 const SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION =
-  "parenthesized AND/OR groups in WHERE where AND binds tighter than OR, LIKE, NOT LIKE, ILIKE, LOWER(column) = 'value', LOWER(column) LIKE '...', LOWER(column) NOT LIKE '...', LOWER(column) ILIKE '...', LOWER(column) IN (...), and LOWER(column) NOT IN (...) for case-insensitive exact string matches, array comparison against a literal tag list such as tags = ('english', 'slang') or tags = () for rows with no tags";
+  "parenthesized AND/OR groups where AND binds tighter than OR, LIKE, NOT LIKE, ILIKE, LOWER(column) = 'value', LOWER(column) LIKE '...', LOWER(column) NOT LIKE '...', LOWER(column) ILIKE '...', LOWER(column) IN (...), and LOWER(column) NOT IN (...) for case-insensitive exact string matches, array comparison against a literal tag list such as tags = ('english', 'slang') or tags = () for rows with no tags, array-column intersection such as tags OVERLAP ('english', 'slang') for rows carrying at least one of the listed values, compared exactly and case-sensitively, so pass tag values as they are stored, MATCH('text') to keep rows where any column of the row contains that text as a case-insensitive substring (it scans every column, including tags and JSON metadata, and there is no tokenization, so prefer one word or an exact phrase)";
 
 /**
  * Shared supported-forms sentence reused by the split `sql_query` description
@@ -91,14 +99,33 @@ const SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION =
  * same SELECT grammar.
  */
 const SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION =
-  `SELECT supports projected column lists, ${SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION}, COUNT(*), SUM, AVG, MIN, MAX, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards UNNEST tags AS tag.`;
+  `SELECT supports projected column lists, COUNT(*), SUM, AVG, MIN, MAX, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards UNNEST tags AS tag. SELECT WHERE clauses support ${SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION}.`;
+
+/**
+ * Tag filtering on the write side. `UNNEST` only exists in `SELECT`, so `OVERLAP`
+ * is the only way to target rows by tag in `UPDATE` and `DELETE`.
+ */
+const SQL_MUTATION_TAG_FILTER_DESCRIPTION =
+  "Filter by tag in UPDATE and DELETE with tags OVERLAP ('tag'), because UNNEST is only available in SELECT.";
 
 /**
  * Write-side mirror of the WHERE grammar for the `sql_execute` surface, matching
  * the description in `api/src/paths/agent_sql_execute.yaml`.
  */
 const SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION =
-  `UPDATE and DELETE WHERE clauses support ${SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION}.`;
+  `UPDATE and DELETE WHERE clauses support ${SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION}. ${SQL_MUTATION_TAG_FILTER_DESCRIPTION}`;
+
+/**
+ * Self-contained bulk-write split arithmetic for every write surface, so an
+ * agent can size a batch without cross-referencing other description lines.
+ *
+ * Deliberately limited to the three limits the dialect actually enforces on
+ * every write surface. Result-payload budgets differ per surface (the split
+ * `sql_query`/`sql_execute` entrypoints reject an oversized payload, while the
+ * in-app `sql` tool truncates it), so they are not stated here.
+ */
+const SQL_BULK_WRITE_SPLIT_DESCRIPTION =
+  `Bulk-write split arithmetic: at most ${MAX_SQL_RECORD_LIMIT} rows affected per statement, at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements per batch, and a batch must not mix read and write statements. Split larger work across separate statements or separate tool calls.`;
 
 /**
  * Read-only contract description for the split `sql_query` surface.
@@ -123,8 +150,7 @@ export const SQL_EXECUTE_TOOL_DESCRIPTION = [
   "Supported statements: INSERT, UPDATE, DELETE.",
   "This tool is write-only and rejects SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT; use sql_query for reads.",
   "Mutation batches are applied atomically: all statements succeed or the whole batch fails.",
-  `INSERT, UPDATE, and DELETE may affect at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
-  `If you need to create, update, or delete more than ${MAX_SQL_RECORD_LIMIT} records, split the work into multiple batches of at most ${MAX_SQL_RECORD_LIMIT} records across separate SQL statements or separate tool calls.`,
+  SQL_BULK_WRITE_SPLIT_DESCRIPTION,
   "Array columns (e.g. tags) take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
   SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION,
   "Examples (tool-call JSON):",
@@ -136,20 +162,14 @@ export const OPENAI_SQL_TOOL: FunctionTool = {
   name: SQL_TOOL_NAME,
   description: [
     "Query and mutate the flashcards workspace with the published SQL dialect.",
-    "This is not full PostgreSQL.",
-    "Cards, decks, review_events, and workspace are already scoped to the selected workspace.",
-    "Use one JSON object: {\"sql\": \"...\"}.",
-    "Public docs: https://flashcards-open-source-app.com/docs/mcp-connector/ and https://flashcards-open-source-app.com/docs/api/.",
-    "Published resources: workspace, cards, decks, review_events.",
+    ...SQL_DIALECT_DESCRIPTION_LINES,
     "Supported statements: SHOW TABLES, DESCRIBE <resource>, SHOW COLUMNS FROM <resource>, SELECT, INSERT, UPDATE, DELETE.",
-    "Multiple supported statements may be separated with semicolons in one sql string.",
-    `A batch may contain at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements.`,
-    "A batch must contain only read statements or only mutation statements.",
     "Mutation batches are applied atomically: all statements succeed or the whole batch fails.",
     `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
-    `INSERT, UPDATE, and DELETE may affect at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
-    `If you need to create, update, or delete more than ${MAX_SQL_RECORD_LIMIT} records, split the work into multiple batches of at most ${MAX_SQL_RECORD_LIMIT} records across separate SQL statements or separate tool calls.`,
+    SQL_BULK_WRITE_SPLIT_DESCRIPTION,
     SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION,
+    "UPDATE and DELETE WHERE clauses support the same forms as SELECT WHERE clauses.",
+    SQL_MUTATION_TAG_FILTER_DESCRIPTION,
     "Array columns (e.g. tags) take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
     "Examples (tool-call JSON):",
     ...SQL_TOOL_PROMPT_EXAMPLE_LINES,
