@@ -36,6 +36,8 @@ export const SQL_QUERY_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
   "- sql_query => {\"sql\": \"SELECT * FROM review_events WHERE card_id = '00000000-0000-4000-8000-000000000000' ORDER BY reviewed_at_server DESC LIMIT 20 OFFSET 0\"}",
   "- sql_query => {\"sql\": \"SELECT tag, COUNT(*) AS cards_count FROM cards UNNEST tags AS tag GROUP BY tag ORDER BY cards_count DESC LIMIT 100 OFFSET 0\"}",
   "- sql_query => {\"sql\": \"SELECT * FROM cards WHERE due_at IS NULL OR due_at <= NOW() ORDER BY due_at ASC, created_at DESC, card_id ASC LIMIT 20 OFFSET 0\"}",
+  "- sql_query => {\"sql\": \"SELECT card_id, front_text, back_text, tags FROM cards UNNEST tags AS tag WHERE LOWER(tag) = 'english' AND (LOWER(front_text) LIKE '%example%' OR LOWER(back_text) NOT LIKE '%draft%') ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0\"}",
+  "- sql_query => {\"sql\": \"SELECT card_id, front_text, back_text, tags FROM cards WHERE tags = () ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0\"}",
 ]);
 
 /**
@@ -76,6 +78,29 @@ const SQL_DIALECT_DESCRIPTION_LINES = Object.freeze([
 ]);
 
 /**
+ * Shared WHERE-clause grammar fragment. UPDATE and DELETE resolve their target
+ * rows through the same SELECT evaluator, so the read and write surfaces must
+ * advertise exactly the same WHERE forms.
+ */
+const SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION =
+  "parenthesized AND/OR groups in WHERE where AND binds tighter than OR, LIKE, NOT LIKE, ILIKE, LOWER(column) = 'value', LOWER(column) LIKE '...', LOWER(column) NOT LIKE '...', LOWER(column) ILIKE '...', LOWER(column) IN (...), and LOWER(column) NOT IN (...) for case-insensitive exact string matches, array comparison against a literal tag list such as tags = ('english', 'slang') or tags = () for rows with no tags";
+
+/**
+ * Shared supported-forms sentence reused by the split `sql_query` description
+ * and the combined in-app `sql` tool description so both surfaces advertise the
+ * same SELECT grammar.
+ */
+const SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION =
+  `SELECT supports projected column lists, ${SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION}, COUNT(*), SUM, AVG, MIN, MAX, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards UNNEST tags AS tag.`;
+
+/**
+ * Write-side mirror of the WHERE grammar for the `sql_execute` surface, matching
+ * the description in `api/src/paths/agent_sql_execute.yaml`.
+ */
+const SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION =
+  `UPDATE and DELETE WHERE clauses support ${SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION}.`;
+
+/**
  * Read-only contract description for the split `sql_query` surface.
  */
 export const SQL_QUERY_TOOL_DESCRIPTION = [
@@ -84,7 +109,7 @@ export const SQL_QUERY_TOOL_DESCRIPTION = [
   "Supported statements: SHOW TABLES, DESCRIBE <resource>, SHOW COLUMNS FROM <resource>, SELECT.",
   "This tool is read-only and rejects INSERT, UPDATE, and DELETE; use sql_execute for writes.",
   `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
-  "SELECT supports projected column lists, LIKE, LOWER(column) = 'value', LOWER(column) IN (...), and LOWER(column) NOT IN (...) for case-insensitive exact string matches, COUNT(*), SUM, AVG, MIN, MAX, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards UNNEST tags AS tag.",
+  SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION,
   "Examples (tool-call JSON):",
   ...SQL_QUERY_TOOL_PROMPT_EXAMPLE_LINES,
 ].join(" ");
@@ -101,6 +126,7 @@ export const SQL_EXECUTE_TOOL_DESCRIPTION = [
   `INSERT, UPDATE, and DELETE may affect at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
   `If you need to create, update, or delete more than ${MAX_SQL_RECORD_LIMIT} records, split the work into multiple batches of at most ${MAX_SQL_RECORD_LIMIT} records across separate SQL statements or separate tool calls.`,
   "Array columns (e.g. tags) take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
+  SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION,
   "Examples (tool-call JSON):",
   ...SQL_EXECUTE_TOOL_PROMPT_EXAMPLE_LINES,
 ].join(" ");
@@ -123,7 +149,7 @@ export const OPENAI_SQL_TOOL: FunctionTool = {
     `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
     `INSERT, UPDATE, and DELETE may affect at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
     `If you need to create, update, or delete more than ${MAX_SQL_RECORD_LIMIT} records, split the work into multiple batches of at most ${MAX_SQL_RECORD_LIMIT} records across separate SQL statements or separate tool calls.`,
-    "SELECT supports projected column lists, LIKE, LOWER(column) = 'value', LOWER(column) IN (...), and LOWER(column) NOT IN (...) for case-insensitive exact string matches, COUNT(*), SUM, AVG, MIN, MAX, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards UNNEST tags AS tag.",
+    SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION,
     "Array columns (e.g. tags) take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
     "Examples (tool-call JSON):",
     ...SQL_TOOL_PROMPT_EXAMPLE_LINES,

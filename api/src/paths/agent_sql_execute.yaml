@@ -12,7 +12,13 @@ post:
     atomically: all statements succeed or the whole batch fails. INSERT,
     UPDATE, and DELETE may affect at most 100 rows per statement. Array columns
     (e.g. tags) take a parenthesized list such as ('tag1', 'tag2'), or () for
-    empty.
+    empty. UPDATE and DELETE WHERE clauses support parenthesized AND/OR groups
+    where AND binds tighter than OR, LIKE, NOT LIKE, ILIKE, case-insensitive
+    exact string matches via LOWER(column) = 'value', LOWER(column) IN (...),
+    and LOWER(column) NOT IN (...), the LOWER(column) LIKE, LOWER(column) NOT
+    LIKE, and LOWER(column) ILIKE forms, and array comparison against a literal
+    tag list such as tags = ('english', 'slang') or tags = () for rows with no
+    tags.
   security:
     - ApiKeyHeader: []
   requestBody:

@@ -78,7 +78,7 @@ function selectMutationRows(
       unnestColumnName: null,
     },
     selectItems: [{ type: "wildcard" }],
-    predicateClauses: statement.predicateClauses,
+    predicate: statement.predicate,
     groupBy: [],
     orderBy: [],
     limit: MAX_SQL_LIMIT,

@@ -8,8 +8,8 @@ import {
   parseUpdateStatement,
 } from "./mutationParser";
 import {
-  parsePredicateClauses,
   parseStringLiteral,
+  parseWherePredicate,
 } from "./predicateParser";
 import {
   extractTopLevelClauses,
@@ -236,9 +236,9 @@ function parseSelectStatement(normalizedSql: string): SqlSelectStatement {
     type: "select",
     source,
     selectItems,
-    predicateClauses: extractedClauses.clauseValues.has("where")
-      ? parsePredicateClauses(source, extractedClauses.clauseValues.get("where") ?? "")
-      : [],
+    predicate: extractedClauses.clauseValues.has("where")
+      ? parseWherePredicate(source, extractedClauses.clauseValues.get("where") ?? "")
+      : null,
     groupBy,
     orderBy: extractedClauses.clauseValues.has("orderBy")
       ? parseOrderBy(extractedClauses.clauseValues.get("orderBy") ?? "")

@@ -9,10 +9,13 @@ post:
     published logical resources only. This endpoint rejects INSERT, UPDATE, and
     DELETE; use POST /agent/sql/execute for writes. Multiple read statements may
     be separated with semicolons in one sql string. SELECT supports projected
-    column lists, LIKE, case-insensitive exact string matches via
+    column lists, parenthesized AND/OR groups in WHERE where AND binds tighter
+    than OR, LIKE, NOT LIKE, ILIKE, case-insensitive exact string matches via
     LOWER(column) = 'value', LOWER(column) IN (...), and LOWER(column) NOT IN
-    (...), aggregates, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards
-    UNNEST tags AS tag.
+    (...), the LOWER(column) LIKE, LOWER(column) NOT LIKE, and LOWER(column)
+    ILIKE forms, array comparison against a literal tag list such as
+    tags = ('english', 'slang') or tags = () for rows with no tags, aggregates,
+    GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards UNNEST tags AS tag.
   security:
     - ApiKeyHeader: []
   requestBody:
