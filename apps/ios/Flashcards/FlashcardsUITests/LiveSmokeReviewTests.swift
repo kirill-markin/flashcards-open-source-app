@@ -125,7 +125,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
         }
 
         try self.step("dismiss the empty review filter menu with an outside tap") {
-            self.dismissReviewFilterPopoverWithOutsideTap()
+            try self.dismissReviewFilterPopoverWithOutsideTap()
             try self.assertElementDoesNotExist(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -171,7 +171,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
         }
 
         try self.step("verify the tagged card returns after dismissing the menu") {
-            self.dismissReviewFilterPopoverWithOutsideTap()
+            try self.dismissReviewFilterPopoverWithOutsideTap()
             try self.assertElementDoesNotExist(
                 identifier: tagToggleIdentifier,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -205,7 +205,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
         }
 
         try self.step("verify the all cards review returns after dismissing the menu") {
-            self.dismissReviewFilterPopoverWithOutsideTap()
+            try self.dismissReviewFilterPopoverWithOutsideTap()
             try self.assertElementDoesNotExist(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -293,10 +293,16 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
     }
 
     @MainActor
-    private func dismissReviewFilterPopoverWithOutsideTap() {
-        let reviewScreen = self.app.descendants(matching: .any)
-            .matching(identifier: LiveSmokeIdentifier.reviewScreen)
-            .firstMatch
-        reviewScreen.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+    private func dismissReviewFilterPopoverWithOutsideTap() throws {
+        let dismissRegion = self.app.otherElements[LiveSmokeIdentifier.popoverDismissRegion].firstMatch
+        guard dismissRegion.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds) else {
+            throw LiveSmokeFailure.unexpectedReviewState(
+                message: "The review filter popover dismiss region was not present, so the popover could not be dismissed.",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        dismissRegion.tap()
     }
 }
