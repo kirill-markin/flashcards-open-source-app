@@ -20,11 +20,13 @@ post:
     because the whole batch is composed before any statement runs. SELECT
     supports projected column lists, aggregates, GROUP BY, NOW(), standalone
     ORDER BY RANDOM(), and cards UNNEST tags AS tag. SELECT WHERE clauses
-    support parenthesized AND/OR groups where AND binds tighter than OR; LIKE,
+    support parenthesized AND/OR groups where AND binds tighter than OR; scalar
+    comparison with =, <, <=, >, and >=; IS NULL and IS NOT NULL; LIKE,
     NOT LIKE, ILIKE, LOWER(column) LIKE, LOWER(column) NOT LIKE,
     LOWER(column) ILIKE, and LOWER(column) = 'value', which is a
     case-insensitive whole-string LIKE match, so % and _ in the value are
-    wildcards rather than literal characters; case-insensitive exact string
+    wildcards rather than literal characters; exact value matches via
+    column IN (...); case-insensitive exact string
     matches via LOWER(column) IN (...) and LOWER(column) NOT IN (...); array
     comparison against a
     literal tag list such as tags = ('english', 'slang'), which is exact set
@@ -44,8 +46,12 @@ post:
     text-valued columns, meaning the string, uuid, and datetime column types; on
     array columns such as tags they are rejected with a
     clear error. LOWER(column) IN (...) and LOWER(column) NOT IN (...) compare
-    text values only: on an array column such as tags they are not rejected, but
-    both match no rows. Match tags
+    text values only; plain column IN (...) compares the column value exactly,
+    so pass integer and boolean literals unquoted. On an array column such as
+    tags none of these IN forms are rejected, but they all match no rows. The
+    negated form exists
+    only as LOWER(column) NOT IN (...); a plain column NOT IN (...) is rejected
+    as an unsupported predicate for every column type. Match tags
     with tags OVERLAP ('english') or tags = ('english', 'slang') instead, or
     with LOWER(tag) IN (...) over cards UNNEST tags AS tag. metadata is neither
     filterable nor sortable, so it can never appear in WHERE or in ORDER BY.

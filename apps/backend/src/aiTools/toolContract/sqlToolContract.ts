@@ -94,7 +94,7 @@ const SQL_DIALECT_DESCRIPTION_LINES = Object.freeze([
  * explanations of their own.
  */
 const SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION =
-  "parenthesized AND/OR groups where AND binds tighter than OR; LIKE, NOT LIKE, ILIKE, LOWER(column) LIKE '...', LOWER(column) NOT LIKE '...', LOWER(column) ILIKE '...', and LOWER(column) = 'value', which is a case-insensitive whole-string LIKE match, so % and _ in the value are wildcards rather than literal characters; case-insensitive exact string matches via LOWER(column) IN (...) and LOWER(column) NOT IN (...); array comparison against a literal tag list such as tags = ('english', 'slang'), which is exact set equality, meaning the row array must equal exactly the listed values, order-independent and case-sensitive, so a card carrying any additional tag does not match; tags = () for rows with no tags; array-column intersection such as tags OVERLAP ('english', 'slang') for rows carrying at least one of the listed values, compared exactly and case-sensitively, so pass tag values as they are stored; for cards carrying all of several tags, combine intersections such as tags OVERLAP ('english') AND tags OVERLAP ('slang'); MATCH('text') to keep rows where any column of the row contains that text as a case-insensitive substring (it scans every column, including tags and JSON metadata, and there is no tokenization, so prefer one word or an exact phrase)";
+  "parenthesized AND/OR groups where AND binds tighter than OR; scalar comparison with =, <, <=, >, and >=; IS NULL and IS NOT NULL; LIKE, NOT LIKE, ILIKE, LOWER(column) LIKE '...', LOWER(column) NOT LIKE '...', LOWER(column) ILIKE '...', and LOWER(column) = 'value', which is a case-insensitive whole-string LIKE match, so % and _ in the value are wildcards rather than literal characters; exact value matches via column IN (...); case-insensitive exact string matches via LOWER(column) IN (...) and LOWER(column) NOT IN (...); array comparison against a literal tag list such as tags = ('english', 'slang'), which is exact set equality, meaning the row array must equal exactly the listed values, order-independent and case-sensitive, so a card carrying any additional tag does not match; tags = () for rows with no tags; array-column intersection such as tags OVERLAP ('english', 'slang') for rows carrying at least one of the listed values, compared exactly and case-sensitively, so pass tag values as they are stored; for cards carrying all of several tags, combine intersections such as tags OVERLAP ('english') AND tags OVERLAP ('slang'); MATCH('text') to keep rows where any column of the row contains that text as a case-insensitive substring (it scans every column, including tags and JSON metadata, and there is no tokenization, so prefer one word or an exact phrase)";
 
 /**
  * Text-only WHERE forms. The pattern family (LIKE, NOT LIKE, ILIKE and
@@ -102,19 +102,26 @@ const SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION =
  * predicate, so `%` and `_` stay wildcards there too) is gated by
  * `LIKE_SUPPORTED_COLUMN_TYPES` in
  * `apps/backend/src/aiTools/sqlDialect/selectExecutor.ts` and rejects non-text
- * columns. `LOWER(column) IN (...)` is a separate `in` predicate that the same
- * gate does not cover, so the dialect accepts it on a filterable array column
- * such as `tags`; `rowMatchesInPredicate` then returns `false` for the
- * non-string column value before negation is applied, so the plain and the
- * negated form both match no rows. `metadata` reaches neither gate because the
- * dialect schema marks it `filterable: false`.
+ * columns. `column IN (...)` and `LOWER(column) IN (...)` are separate `in`
+ * predicates that the same gate does not cover, so the dialect accepts them on a
+ * filterable array column such as `tags`; `rowMatchesInPredicate` then returns
+ * `false` for the array column value before negation is applied, so the plain,
+ * the lowered, and the negated lowered form all match no rows. Only the lowered
+ * forms are text-only: `parseLoweredStringLiteralList` accepts string literals
+ * alone, while the plain form parses its literals with `parseSqlLiteral` and
+ * `valuesEqual` compares them strictly, so `column IN (1, 2)` and
+ * `column IN (true)` do compare and do match. The negation exists only as
+ * `LOWER(column) NOT IN (...)`: `predicateParser.ts` has no plain
+ * `column NOT IN (...)` branch, so that spelling reaches the
+ * unsupported-predicate error for every column type. `metadata` reaches neither
+ * gate because the dialect schema marks it `filterable: false`.
  *
  * Every outcome claim here is read out of the evaluator. Do not add an intuited
  * one: it would ship a wrong mental model into the in-app prompt, the MCP tool
  * descriptions, and the published spec.
  */
 const SQL_TEXT_COLUMN_FORMS_DESCRIPTION =
-  "LIKE, NOT LIKE, ILIKE, their LOWER(column) variants, and LOWER(column) = 'value' apply only to text-valued columns, meaning the string, uuid, and datetime column types; on array columns such as tags they are rejected with a clear error. LOWER(column) IN (...) and LOWER(column) NOT IN (...) compare text values only: on an array column such as tags they are not rejected, but both match no rows. Match tags with tags OVERLAP ('english') or tags = ('english', 'slang') instead. metadata is neither filterable nor sortable, so it can never appear in WHERE or ORDER BY.";
+  "LIKE, NOT LIKE, ILIKE, their LOWER(column) variants, and LOWER(column) = 'value' apply only to text-valued columns, meaning the string, uuid, and datetime column types; on array columns such as tags they are rejected with a clear error. LOWER(column) IN (...) and LOWER(column) NOT IN (...) compare text values only; plain column IN (...) compares the column value exactly, so pass integer and boolean literals unquoted. On an array column such as tags none of these IN forms are rejected, but they all match no rows. The negated form exists only as LOWER(column) NOT IN (...); a plain column NOT IN (...) is rejected as an unsupported predicate for every column type. Match tags with tags OVERLAP ('english') or tags = ('english', 'slang') instead. metadata is neither filterable nor sortable, so it can never appear in WHERE or ORDER BY.";
 
 /**
  * Shared supported-forms sentence reused by the split `sql_query` description
