@@ -19,6 +19,7 @@ const LIST_WORKSPACES_TOOL_NAME = "list_workspaces";
 const RESOURCE_URL = "https://mcp.flashcards-open-source-app.com/mcp";
 const WEBSITE_URL = "https://flashcards-open-source-app.com";
 const ICON_URL = "https://mcp.flashcards-open-source-app.com/icon.svg";
+const CALLER_USER_AGENT = "mcp-protocol-smoke/1.0.0";
 const LEGACY_POSTGRES_WORKSPACE_ID = "35274129-ef97-d366-954c-955b4bb0fbf0";
 
 type ResolveWorkspaceCall = Readonly<{
@@ -254,6 +255,7 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
     RESOURCE_URL,
     WEBSITE_URL,
     ICON_URL,
+    CALLER_USER_AGENT,
     createFakeDependencies(calls, workspaces),
   );
   const client = new Client({ name: "mcp-protocol-smoke", version: "1.0.0" });
@@ -350,6 +352,8 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
         workspaceId: requestedWorkspaceId,
         selectedWorkspaceId: connection.selectedWorkspaceId,
         connectionId: connection.connectionId,
+        surface: "mcp",
+        caller: CALLER_USER_AGENT,
       },
       sql,
     }]);
@@ -359,6 +363,8 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
         workspaceId: requestedWorkspaceId,
         selectedWorkspaceId: connection.selectedWorkspaceId,
         connectionId: connection.connectionId,
+        surface: "mcp",
+        caller: CALLER_USER_AGENT,
       },
       sql: executeSql,
     }]);
@@ -381,6 +387,7 @@ test("MCP SQL tools reject malformed workspace IDs before access resolution", as
     RESOURCE_URL,
     WEBSITE_URL,
     ICON_URL,
+    CALLER_USER_AGENT,
     createFakeDependencies(calls, []),
   );
   const client = new Client({ name: "mcp-protocol-smoke", version: "1.0.0" });

@@ -1,4 +1,6 @@
+import { createHash } from "node:crypto";
 import { HttpError } from "../shared/errors";
+import { logAgentSqlEvent } from "../server/logging";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
   type AgentToolOperationDependencies,
@@ -15,6 +17,8 @@ import {
   isSqlReadStatement,
   type AgentSqlContext,
   type AgentSqlExecutionResult,
+  type AgentSqlPayload,
+  type AgentSqlSinglePayload,
 } from "./agentSql/shared";
 import { executeSqlMutationStatement } from "./agentSql/singleMutation";
 import { buildInvalidSqlError } from "./sqlErrors";
@@ -104,31 +108,160 @@ function assertSqlResultWithinSizeBudget<T extends AgentSqlExecutionResult>(resu
   return result;
 }
 
+function getAgentSqlFingerprint(sql: string): string {
+  return createHash("sha256")
+    .update(sql)
+    .digest("hex");
+}
+
+function getSingleStatementRowOrAffectedCount(payload: AgentSqlSinglePayload): number {
+  return "rowCount" in payload ? payload.rowCount : payload.affectedCount;
+}
+
+function getAgentSqlRowOrAffectedCount(payload: AgentSqlPayload): number {
+  if (payload.statementType === "batch") {
+    return payload.statements.reduce(
+      (total, statement) => total + getSingleStatementRowOrAffectedCount(statement),
+      0,
+    );
+  }
+
+  return getSingleStatementRowOrAffectedCount(payload);
+}
+
+function getAgentSqlStatementCount(payload: AgentSqlPayload): number {
+  return payload.statementType === "batch" ? payload.statementCount : 1;
+}
+
+function getAgentSqlErrorCode(error: unknown): string | null {
+  return error instanceof HttpError ? error.code : null;
+}
+
+/**
+ * Reads the dialect's reason for a rejection defensively: the first validation
+ * issue code carried by the failure, treated as an opaque value. The dialect
+ * owns that vocabulary (today it is one constant everywhere, later it will be
+ * specific), so nothing here may depend on which values appear.
+ */
+function getAgentSqlDialectReason(error: unknown): string | null {
+  if (error instanceof HttpError) {
+    const validationIssues = error.details?.validationIssues ?? [];
+    return validationIssues.length === 0 ? null : validationIssues[0].code;
+  }
+
+  return null;
+}
+
+/**
+ * Reads the same minification-safe `error.name` that `getBackendErrorLogDetails`
+ * records. The constructor binding is not usable here: backend Lambdas are
+ * bundled with esbuild `minify: true` and no `keepNames`, so `constructor.name`
+ * would be a mangled label that changes between deploys.
+ */
+function getAgentSqlErrorClass(error: unknown): string {
+  return error instanceof Error ? error.name : typeof error;
+}
+
+/**
+ * Emits exactly one structured `agent_sql` record per execution, on success and
+ * on failure alike, so the failure ratio of the agent SQL surface is computable
+ * per surface and per caller instead of being invisible.
+ *
+ * It must stay wrapped around the executor bodies below, i.e. *inside*
+ * `executeAgentSql` / `runSqlQuery` / `runSqlExecute`. The MCP tool handlers in
+ * `apps/backend/src/mcp/server.ts` catch their own errors and answer with a
+ * `CallToolResult`, so nothing above them ever reaches `app.onError`; anything
+ * recorded higher up would leave every MCP dialect rejection unobserved, which
+ * is the blind spot this exists to close.
+ *
+ * The record carries no error message on purpose. Dialect and batch errors quote
+ * the offending SQL fragment verbatim, so the text carries flashcard content,
+ * and no delimiter heuristic can strip it reliably: an unquoted or typographic
+ * operand (`... WHERE front_text = Paris`) has no delimiter to find. Only the
+ * low-cardinality dimensions below are recorded, and unexpected failures still
+ * reach Sentry with their full message and stack through
+ * `captureBackendException`, so nothing debuggable is lost.
+ *
+ * Instrumentation only: the caller's result is returned and the caller's error
+ * is rethrown untouched.
+ */
+async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
+  context: AgentSqlContext,
+  sql: string,
+  execute: () => Promise<Result>,
+): Promise<Result> {
+  const startedAt = Date.now();
+  const executionDetails = {
+    userId: context.userId,
+    workspaceId: context.workspaceId,
+    surface: context.surface,
+    caller: context.caller ?? null,
+    connectionId: context.connectionId,
+    sqlLength: sql.length,
+    sqlFingerprint: getAgentSqlFingerprint(sql),
+  };
+
+  try {
+    const result = await execute();
+    logAgentSqlEvent({
+      ...executionDetails,
+      succeeded: true,
+      statementType: result.data.statementType,
+      resource: result.data.resource,
+      statementCount: getAgentSqlStatementCount(result.data),
+      rowOrAffectedCount: getAgentSqlRowOrAffectedCount(result.data),
+      durationMs: Date.now() - startedAt,
+      errorCode: null,
+      dialectReason: null,
+      errorClass: null,
+    });
+
+    return result;
+  } catch (error) {
+    logAgentSqlEvent({
+      ...executionDetails,
+      succeeded: false,
+      statementType: null,
+      resource: null,
+      statementCount: null,
+      rowOrAffectedCount: null,
+      durationMs: Date.now() - startedAt,
+      errorCode: getAgentSqlErrorCode(error),
+      dialectReason: getAgentSqlDialectReason(error),
+      errorClass: getAgentSqlErrorClass(error),
+    });
+
+    throw error;
+  }
+}
+
 export async function executeAgentSql(
   context: AgentSqlContext,
   sql: string,
   dependencies: AgentToolOperationDependencies = DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
 ) {
-  const statements = parseSqlBatch(sql);
-  const statementSqls = toStatementSqls(sql, statements);
+  return withAgentSqlTelemetry(context, sql, async () => {
+    const statements = parseSqlBatch(sql);
+    const statementSqls = toStatementSqls(sql, statements);
 
-  if (statements.every(isSqlReadStatement)) {
-    if (statements.length === 1) {
-      return executeSqlReadStatement(dependencies, context, sql, statements[0]);
+    if (statements.every(isSqlReadStatement)) {
+      if (statements.length === 1) {
+        return executeSqlReadStatement(dependencies, context, sql, statements[0]);
+      }
+
+      return executeSqlReadBatch(dependencies, context, sql, statements, statementSqls);
     }
 
-    return executeSqlReadBatch(dependencies, context, sql, statements, statementSqls);
-  }
+    if (statements.every(isSqlMutationStatement)) {
+      if (statements.length === 1) {
+        return executeSqlMutationStatement(dependencies, context, sql, statements[0]);
+      }
 
-  if (statements.every(isSqlMutationStatement)) {
-    if (statements.length === 1) {
-      return executeSqlMutationStatement(dependencies, context, sql, statements[0]);
+      return executeSqlMutationBatch(dependencies, context, sql, statements, statementSqls);
     }
 
-    return executeSqlMutationBatch(dependencies, context, sql, statements, statementSqls);
-  }
-
-  throw buildInvalidSqlError("SQL batch must contain only read statements or only mutation statements");
+    throw buildInvalidSqlError("SQL batch must contain only read statements or only mutation statements");
+  });
 }
 
 /**
@@ -148,24 +281,26 @@ export async function runSqlQuery(
   sql: string,
   dependencies: AgentToolOperationDependencies = DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
 ) {
-  const statements = parseSqlBatch(sql);
-  const statementSqls = toStatementSqls(sql, statements);
+  return withAgentSqlTelemetry(context, sql, async () => {
+    const statements = parseSqlBatch(sql);
+    const statementSqls = toStatementSqls(sql, statements);
 
-  if (statements.every(isSqlReadStatement)) {
-    if (statements.length === 1) {
+    if (statements.every(isSqlReadStatement)) {
+      if (statements.length === 1) {
+        return assertSqlResultWithinSizeBudget(
+          await executeSqlReadStatement(dependencies, context, sql, statements[0]),
+        );
+      }
+
       return assertSqlResultWithinSizeBudget(
-        await executeSqlReadStatement(dependencies, context, sql, statements[0]),
+        await executeSqlReadBatch(dependencies, context, sql, statements, statementSqls),
       );
     }
 
-    return assertSqlResultWithinSizeBudget(
-      await executeSqlReadBatch(dependencies, context, sql, statements, statementSqls),
+    throw buildInvalidSqlError(
+      "sql_query is read-only and accepts only SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT statements. Use sql_execute for INSERT, UPDATE, and DELETE.",
     );
-  }
-
-  throw buildInvalidSqlError(
-    "sql_query is read-only and accepts only SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT statements. Use sql_execute for INSERT, UPDATE, and DELETE.",
-  );
+  });
 }
 
 /**
@@ -179,22 +314,24 @@ export async function runSqlExecute(
   sql: string,
   dependencies: AgentToolOperationDependencies = DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
 ) {
-  const statements = parseSqlBatch(sql);
-  const statementSqls = toStatementSqls(sql, statements);
+  return withAgentSqlTelemetry(context, sql, async () => {
+    const statements = parseSqlBatch(sql);
+    const statementSqls = toStatementSqls(sql, statements);
 
-  if (statements.every(isSqlMutationStatement)) {
-    if (statements.length === 1) {
+    if (statements.every(isSqlMutationStatement)) {
+      if (statements.length === 1) {
+        return assertSqlResultWithinSizeBudget(
+          await executeSqlMutationStatement(dependencies, context, sql, statements[0]),
+        );
+      }
+
       return assertSqlResultWithinSizeBudget(
-        await executeSqlMutationStatement(dependencies, context, sql, statements[0]),
+        await executeSqlMutationBatch(dependencies, context, sql, statements, statementSqls),
       );
     }
 
-    return assertSqlResultWithinSizeBudget(
-      await executeSqlMutationBatch(dependencies, context, sql, statements, statementSqls),
+    throw buildInvalidSqlError(
+      "sql_execute is write-only and accepts only INSERT, UPDATE, and DELETE statements. Use sql_query for SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT.",
     );
-  }
-
-  throw buildInvalidSqlError(
-    "sql_execute is write-only and accepts only INSERT, UPDATE, and DELETE statements. Use sql_query for SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT.",
-  );
+  });
 }
