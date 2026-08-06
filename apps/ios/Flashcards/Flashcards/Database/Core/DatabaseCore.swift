@@ -183,9 +183,11 @@ final class DatabaseCore {
         try migrator.resetLocalSchema()
         try migrator.migrate()
         _ = try LocalDatabaseBootstrapper(core: self).ensureDefaultState()
-        // A reset always recreates the workspace, so keeping the id here would mark
-        // every logout, account deletion and credential erase as a brand-new device.
-        // Only the genuine first creation during initialization may leave it armed.
+        // `DatabaseCore` outlives the reset, so without this line the property would
+        // keep reporting a creation for the workspace this reset just wiped and
+        // recreated. Assigning `nil` keeps it meaning what it claims for the object's
+        // whole lifetime. Only the genuine first creation during initialization may
+        // leave it armed.
         self.createdDefaultWorkspaceId = nil
     }
 

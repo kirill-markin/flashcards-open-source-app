@@ -26,8 +26,9 @@ Per-client new-user rule:
   and
   `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/bootstrap/LocalWorkspaceBootstrap.kt`,
   but reaching those entrypoints is not by itself the seeding condition — see the next section.
-- Web: after the first hot bootstrap, only when the backend reported `remoteIsEmpty === true` and
-  the local card count is `0` (`apps/web/src/appData/sync/remote/bootstrapHotState.ts`).
+- Web: at the end of a workspace's first successful hot bootstrap
+  (`apps/web/src/appData/sync/remote/bootstrapHotState.ts`), under four conditions that are checked
+  together — see [Web: the four seed conditions](#web-the-four-seed-conditions).
 
 ### Mobile: never seed on a cloud-identity reset
 
@@ -52,18 +53,70 @@ The binding rule is therefore an outcome, not a mechanism: a client seeds only a
 first creation of its local workspace row, and never from a reset or erase path, however many times
 that row is re-created afterwards.
 
-How each client reaches that outcome is up to it, and neither client needs to persist extra state
-for it: the bootstrap must report whether it just created the workspace row, and only the app-start
-call site may act on that signal. The reset paths call the same bootstrap and must ignore it.
+How each client reaches that outcome is up to it, and neither client persists extra state for it:
+the bootstrap reports whether it just created the workspace row, and only the app-start call site
+acts on that signal. The reset paths call the same bootstrap and ignore it.
 
-Neither bootstrap reports that signal today, so both clients have to add it. On Android
-`ensureLocalWorkspaceShell` returns only the workspace id and is identical on the created and the
-reused branch. On iOS `LocalDatabaseBootstrapper.ensureDefaultState()` returns `Void` and is not
-reachable from an app-start call site at all: it runs inside `DatabaseCore.init(databaseURL:)`
-(`apps/ios/Flashcards/Flashcards/Database/Core/DatabaseCore.swift`), and
-`DatabaseCore.resetForAccountDeletion()` in the same file drives the same initializer chain. On iOS
-the signal therefore has to be surfaced out of `DatabaseCore` and explicitly suppressed on the reset
-path, rather than assumed absent there.
+Both bootstraps report that signal:
+
+- Android: `ensureLocalWorkspaceShell` returns a `LocalWorkspaceShell` value type carrying
+  `workspaceId` and `didCreateWorkspace`, and the two branches differ:
+  `didCreateWorkspace` is `true` only on the branch that inserted the workspace row and `false` on
+  the branch that found one. The only reader is `AppGraph.ensureLocalWorkspaceShell`
+  (`apps/android/app/src/main/java/com/flashcardsopensourceapp/app/di/AppGraph.kt`), which calls
+  `seedDemoCardForNewWorkspace` under that flag. `CloudIdentityResetCoordinator` reads only
+  `workspaceId` from the same result and never looks at the flag, so its resets cannot seed.
+- iOS: `LocalDatabaseBootstrapper.ensureDefaultState()` returns `String?` — the workspace id when
+  that run inserted the very first workspace row, and `nil` when a workspace row was already there.
+  It runs inside `DatabaseCore.init(databaseURL:)`
+  (`apps/ios/Flashcards/Flashcards/Database/Core/DatabaseCore.swift`), which stores the result in
+  the `createdDefaultWorkspaceId` property. That property is how the signal leaves the initializer
+  and reaches the app-start call site: `FlashcardsStore.init()` calls
+  `seedOnboardingDemoCardReportingFailure()` immediately after `LocalDatabase()` succeeds, and
+  `seedOnboardingDemoCardIfNeeded()` in
+  `apps/ios/Flashcards/Flashcards/Database/LocalDatabase/LocalDatabase+OnboardingDemoCard.swift`
+  returns early unless `createdDefaultWorkspaceId` is set.
+
+On iOS the suppression is an explicit property assignment rather than anything the bootstrapper
+reports back. `DatabaseCore.resetForAccountDeletion()` re-runs the bootstrapper and discards its
+result (`_ = try LocalDatabaseBootstrapper(core: self).ensureDefaultState()`), so the creation that
+run reports never reaches `createdDefaultWorkspaceId`; a separate line then assigns that property
+`nil`. What the assignment clears is therefore whatever `init(databaseURL:)` left in it, which is
+already `nil` on any device whose local workspace row existed at launch, and holds an id only in a
+session that created that row itself and then resets in the same app run — a fresh install that
+signs in and then logs out, hits a linked-account change, deletes the account, or erases
+credentials. `DatabaseCore` outlives the reset, so without that line it would keep reporting a
+creation for a workspace the reset has just wiped and recreated, and that no-longer-new device would
+read as brand-new, which, as above, the card-count guard could not catch. The single reader today,
+`FlashcardsStore.init()`, runs before any reset can happen, so the line is what keeps the property's
+stated meaning true for the object's whole lifetime; the binding rule is that no reset path may
+leave the signal armed.
+
+### Web: the four seed conditions
+
+The web seed is the last step of a workspace's first successful hot bootstrap in
+`apps/web/src/appData/sync/remote/bootstrapHotState.ts`. It never runs on the already-hydrated path,
+which returns before the bootstrap body. Four conditions must all hold:
+
+- `isLocalDbRecovery === false`. This one is a property of the bootstrap run rather than of the
+  workspace, so it is checked at the call site and gates whether the seed is invoked at all. A
+  local-db recovery is a re-hydration of an evicted IndexedDB cache, which is by definition a
+  workspace this browser already bootstrapped once.
+- `isOnlyWorkspaceForUser === true`, computed by the caller with `isOnlyWorkspaceOfAccount(...)` in
+  `apps/web/src/appData/sync/engine/useSyncEngine.ts` over the account's known workspaces.
+- `remoteIsEmpty === true`, as the backend reported it for this bootstrap.
+- `localCardCount === 0`, read after the hot pages were applied.
+
+The last three are the guard inside `seedDemoCardForNewWorkspace`
+(`apps/web/src/appData/sync/local/demoCard.ts`). That function is a pure guard over its input: every
+value is decided by the caller and passed in, and it never re-reads workspace state.
+
+`isOnlyWorkspaceForUser` is what makes this a new-*user* rule instead of a new-*workspace* rule, and
+it is the condition that was easiest to miss. An empty workspace is not by itself a new account: an
+existing user who deliberately creates a second workspace is handed an empty one too, on a backend
+workspace that is empty as well. Without the user-scoped condition every such workspace would be
+seeded, which would contradict the "only new users" rule above and diverge from mobile, where the
+seed can only ever fire at the first creation of the device's local workspace row.
 
 ## Why nothing may seed into a new user's remote workspace on the server
 
@@ -77,12 +130,12 @@ client-side, so it is recorded explicitly:
   demo card apart from any other card, or one seeder apart from another.
 - Bootstrap push rejects a non-empty remote workspace with `409 SYNC_BOOTSTRAP_NOT_EMPTY`
   (same file).
-- Mobile link then takes the `replace_local_shell` branch instead of `fork_local_data`
-  (`migrateLocalShellToLinkedWorkspace` in
-  `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/identity/WorkspaceIdentityLocalStore.kt`,
-  and the same branch in
-  `apps/ios/Flashcards/Flashcards/Cloud/Store/Account/Identity/FlashcardsStore+CloudLink.swift`),
-  which discards local content.
+- Mobile link then takes the `replace_local_shell` branch instead of the empty-remote branch, and
+  `replace_local_shell` discards local content. Only that label is shared by both clients: Android
+  calls the empty-remote branch `fork_local_data` (`migrateLocalShellToLinkedWorkspace` in
+  `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/identity/WorkspaceIdentityLocalStore.kt`)
+  and iOS calls it `preserve_local_data`
+  (`apps/ios/Flashcards/Flashcards/Cloud/Store/Account/Identity/FlashcardsStore+CloudLink.swift`).
 - Net effect: any card sitting in a brand-new user's remote workspace makes their first cloud link
   destroy the offline work they had already done on device.
 
@@ -108,20 +161,35 @@ Instead:
 - each client seeds at most once, at its own new-user moment;
 - each client additionally skips seeding when the workspace already has any card.
 
-The `remoteIsEmpty` guard on web and the fresh-install-only seed moment on mobile keep the web and
-mobile seeds from both firing for the same account on the two link paths, `fork_local_data` and
-`replace_local_shell`, in either arrival order.
+The invariant those guards buy is about survival, not about seed-time exclusion. Both seeds can fire
+for the same account, and no guard prevents that: the mobile seed happens offline at first launch,
+before any account exists on that device, so no account-scoped guard on mobile can observe a web
+seed, and the web guard is evaluated against a remote workspace the mobile device has not linked to
+yet. What the design guarantees is that at most one copy survives, because on each of the two
+first-link paths only one side's content ends up in the linked workspace:
 
-Guest upgrade is the exception. It merges the already-synced guest workspace into the destination
+- remote empty — Android takes `fork_local_data` and iOS takes `preserve_local_data`, keeping the
+  local content. The remote workspace holds no card at all on this path, so there is no web-seeded
+  copy to meet, and the mobile-seeded card is the only one.
+- remote non-empty — both clients take `replace_local_shell`, which discards the local shell. If
+  the web app seeded, its card is what made the workspace non-empty, so the mobile-seeded copy is
+  dropped and the web copy is the only one.
+
+Both link paths end with exactly one local workspace and at most one demo card, in either arrival
+order.
+
+Guest upgrade is where that outcome does not hold, and it follows from the same reasoning rather
+than contradicting it. Guest upgrade merges the already-synced guest workspace into the destination
 workspace instead of choosing a side (see
-[docs/sync-identity-model.md](sync-identity-model.md)), so a mobile guest that already seeded its
-card and then upgrades into a web-seeded account keeps both copies. No guard can fire there: each
-client evaluated its own guard correctly at its own new-user moment, before the two workspaces ever
-met.
+[docs/sync-identity-model.md](sync-identity-model.md)), so neither copy is discarded and a mobile
+guest that already seeded its card and then upgrades into a web-seeded account keeps both. No guard
+could have prevented it: each client evaluated its own guard correctly at its own new-user moment,
+before the two workspaces ever met.
 
-So the card may occasionally land in an account that already existed, and may occasionally appear
-twice after a guest upgrade. Both are accepted, and both leave ordinary cards behind. There is no
-cleanup-by-tag and no unlinking logic anywhere.
+That same path is also how the card can land in an account that already existed: the guest device
+seeded it before it knew about any account. Both outcomes — the extra copy and the arrival into an
+existing account — are accepted, and both leave ordinary cards behind. There is no cleanup-by-tag
+and no unlinking logic anywhere.
 
 ## Deletion
 
@@ -215,8 +283,16 @@ The six strings are named `demo_card_front` and `demo_card_back_1` … `demo_car
 canonical names are binding: use them verbatim wherever the platform's localization format takes a
 free-form key, so the same paragraph is findable under the same name in every client.
 
-- Android: `apps/android/feature/review/src/main/res/values/strings.xml`, canonical names verbatim,
-  matching the existing snake_case resource ids such as `review_again` and `review_hard`.
+- Android: `apps/android/app/src/main/res/values/strings.xml`, the app module's resources, canonical
+  names verbatim in the existing snake_case style of that file. The `review_again` and `review_hard`
+  labels the card interpolates are a different file in a different module,
+  `apps/android/feature/review/src/main/res/values/strings.xml`, and `DemoCardSeed.kt` reads them
+  through the review module's `R` (imported as `ReviewR`) while reading the six demo-card strings
+  through the app module's `R`. Keep the two files apart: `android.nonTransitiveRClass=true` in
+  `apps/android/gradle.properties` means the app module's `R` carries only the resources declared in
+  `apps/android/app`, so moving the six demo-card strings to the review module would leave every
+  `R.string.demo_card_*` reference in `DemoCardSeed.kt` unresolved and break the Android build — a
+  loud compile failure, not a silent no-op.
 - iOS: `apps/ios/Flashcards/Flashcards/ReviewCards.xcstrings`, the Review/Cards string table (the
   iOS localization buckets are listed in [docs/ios-localization.md](ios-localization.md)), with the
   canonical names verbatim as `.xcstrings` keys. Most entries in that table are keyed by their
