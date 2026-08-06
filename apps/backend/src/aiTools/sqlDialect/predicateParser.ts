@@ -1,4 +1,7 @@
-import { ensureSqlSourceColumnExists } from "./schema";
+import {
+  ensureSqlSourceColumnExists,
+  getSqlSourceColumnDescriptors,
+} from "./schema";
 import {
   assert,
   splitTopLevel,
@@ -9,9 +12,15 @@ import type {
   SqlFromSource,
   SqlLiteral,
   SqlPredicate,
-  SqlPredicateClause,
+  SqlPredicateExpression,
   SqlPredicateValue,
 } from "./types";
+
+/**
+ * Parenthesized WHERE groups nest, so recursion needs an explicit terminal
+ * limit instead of relying on the JavaScript stack.
+ */
+const MAXIMUM_PREDICATE_GROUP_DEPTH = 16;
 
 export function parseStringLiteral(value: string): string {
   assert(value.startsWith("'") && value.endsWith("'"), "Expected a quoted string literal");
@@ -151,15 +160,18 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
     };
   }
 
-  const loweredLikePredicate = trimmedValue.match(/^LOWER\s*\(\s*([a-z_][a-z0-9_]*)\s*\)\s+LIKE\s+('(?:''|[^'])*')$/i);
+  const loweredLikePredicate = trimmedValue.match(
+    /^LOWER\s*\(\s*([a-z_][a-z0-9_]*)\s*\)\s+(NOT\s+)?I?LIKE\s+('(?:''|[^'])*')$/i,
+  );
   if (loweredLikePredicate !== null) {
     const columnName = (loweredLikePredicate[1] ?? "").toLowerCase();
     ensureSqlSourceColumnExists(source, columnName);
     return {
       type: "like",
       columnName,
-      pattern: parseStringLiteral(loweredLikePredicate[2] ?? ""),
+      pattern: parseStringLiteral(loweredLikePredicate[3] ?? ""),
       caseInsensitive: true,
+      isNegated: loweredLikePredicate[2] !== undefined,
     };
   }
 
@@ -172,6 +184,7 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
       columnName,
       pattern: parseStringLiteral(loweredEqualsPredicate[2] ?? ""),
       caseInsensitive: true,
+      isNegated: false,
     };
   }
 
@@ -191,15 +204,18 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
     };
   }
 
-  const likePredicate = trimmedValue.match(/^([a-z_][a-z0-9_]*)\s+LIKE\s+('(?:''|[^'])*')$/i);
+  const likePredicate = trimmedValue.match(
+    /^([a-z_][a-z0-9_]*)\s+(NOT\s+)?(I?LIKE)\s+('(?:''|[^'])*')$/i,
+  );
   if (likePredicate !== null) {
     const columnName = (likePredicate[1] ?? "").toLowerCase();
     ensureSqlSourceColumnExists(source, columnName);
     return {
       type: "like",
       columnName,
-      pattern: parseStringLiteral(likePredicate[2] ?? ""),
-      caseInsensitive: false,
+      pattern: parseStringLiteral(likePredicate[4] ?? ""),
+      caseInsensitive: (likePredicate[3] ?? "").toUpperCase() === "ILIKE",
+      isNegated: likePredicate[2] !== undefined,
     };
   }
 
@@ -251,23 +267,140 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
   if (comparisonPredicate !== null) {
     const columnName = (comparisonPredicate[1] ?? "").toLowerCase();
     ensureSqlSourceColumnExists(source, columnName);
+    const operator = (comparisonPredicate[2] ?? "=") as SqlComparisonOperator;
+    const rightSideValue = comparisonPredicate[3] ?? "";
+    if (operator === "=" && getSqlSourceColumnDescriptors(source)[columnName]?.type === "string[]") {
+      return {
+        type: "array_equals",
+        columnName,
+        values: parseStringArrayLiteralList(rightSideValue, columnName),
+      };
+    }
+
     return {
       type: "comparison",
       columnName,
-      operator: (comparisonPredicate[2] ?? "=") as SqlComparisonOperator,
-      value: parsePredicateValue(comparisonPredicate[3] ?? ""),
+      operator,
+      value: parsePredicateValue(rightSideValue),
     };
   }
 
   throw new Error(`Unsupported predicate: ${trimmedValue}`);
 }
 
-export function parsePredicateClauses(source: SqlFromSource, value: string): ReadonlyArray<SqlPredicateClause> {
-  const trimmedValue = value.trim();
-  if (trimmedValue === "") {
-    return [];
+/**
+ * A segment is a parenthesized group only when its own wrapping parentheses are
+ * balanced and enclose the whole segment, e.g. `(a = 1 OR b = 2)` but not
+ * `(a = 1) AND (b = 2)`.
+ */
+function isParenthesizedGroup(value: string): boolean {
+  if (value.startsWith("(") === false || value.endsWith(")") === false) {
+    return false;
   }
 
-  return splitTopLevelByKeyword(trimmedValue, "OR").map((clause) =>
-    splitTopLevelByKeyword(clause, "AND").map((predicate) => parsePredicate(source, predicate)));
+  let depth = 0;
+  let inString = false;
+  let inDoubleQuote = false;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    const nextCharacter = value[index + 1];
+    if (character === "'" && inDoubleQuote === false) {
+      if (inString && nextCharacter === "'") {
+        index += 1;
+        continue;
+      }
+
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) {
+      continue;
+    }
+
+    if (character === '"') {
+      const isEscapedQuote = inDoubleQuote && value[index - 1] === "\\";
+      if (isEscapedQuote === false) {
+        inDoubleQuote = !inDoubleQuote;
+      }
+
+      continue;
+    }
+
+    if (inDoubleQuote) {
+      continue;
+    }
+
+    if (character === "(") {
+      depth += 1;
+      continue;
+    }
+
+    if (character === ")") {
+      depth -= 1;
+      if (depth < 0) {
+        return false;
+      }
+
+      if (depth === 0 && index !== value.length - 1) {
+        return false;
+      }
+    }
+  }
+
+  return depth === 0;
+}
+
+function parsePredicateExpression(
+  source: SqlFromSource,
+  value: string,
+  depth: number,
+): SqlPredicateExpression {
+  if (depth > MAXIMUM_PREDICATE_GROUP_DEPTH) {
+    throw new Error(
+      `WHERE clause nests parenthesized groups deeper than the supported limit of ${MAXIMUM_PREDICATE_GROUP_DEPTH}`,
+    );
+  }
+
+  const trimmedValue = value.trim();
+  if (trimmedValue === "") {
+    throw new Error("WHERE clause contains an empty predicate group");
+  }
+
+  const orSegments = splitTopLevelByKeyword(trimmedValue, "OR");
+  if (orSegments.length > 1) {
+    return {
+      type: "or",
+      operands: orSegments.map((segment) => parsePredicateExpression(source, segment, depth)),
+    };
+  }
+
+  const orSegment = orSegments[0] ?? trimmedValue;
+  const andSegments = splitTopLevelByKeyword(orSegment, "AND");
+  if (andSegments.length > 1) {
+    return {
+      type: "and",
+      operands: andSegments.map((segment) => parsePredicateExpression(source, segment, depth)),
+    };
+  }
+
+  const primarySegment = andSegments[0] ?? orSegment;
+  if (isParenthesizedGroup(primarySegment)) {
+    return parsePredicateExpression(source, primarySegment.slice(1, -1), depth + 1);
+  }
+
+  return {
+    type: "predicate",
+    predicate: parsePredicate(source, primarySegment),
+  };
+}
+
+export function parseWherePredicate(source: SqlFromSource, value: string): SqlPredicateExpression | null {
+  const trimmedValue = value.trim();
+  if (trimmedValue === "") {
+    return null;
+  }
+
+  return parsePredicateExpression(source, trimmedValue, 0);
 }

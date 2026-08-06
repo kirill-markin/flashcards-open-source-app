@@ -5,9 +5,9 @@ import {
   splitTopLevel,
 } from "./parserSplitting";
 import {
-  parsePredicateClauses,
   parseSqlLiteral,
   parseStringArrayLiteralList,
+  parseWherePredicate,
 } from "./predicateParser";
 import type {
   SqlDeleteStatement,
@@ -137,7 +137,7 @@ export function parseUpdateStatement(normalizedSql: string): SqlUpdateStatement 
     type: "update",
     resourceName,
     assignments: parseAssignments(resourceName, assignmentsValue),
-    predicateClauses: parsePredicateClauses(source, predicateValue),
+    predicate: parseWherePredicate(source, predicateValue),
     normalizedSql,
   };
 }
@@ -171,7 +171,7 @@ export function parseDeleteStatement(normalizedSql: string): SqlDeleteStatement 
   return {
     type: "delete",
     resourceName,
-    predicateClauses: parsePredicateClauses(source, predicateValue),
+    predicate: parseWherePredicate(source, predicateValue),
     normalizedSql,
   };
 }

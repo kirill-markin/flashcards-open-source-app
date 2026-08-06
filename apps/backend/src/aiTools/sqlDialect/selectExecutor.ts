@@ -2,10 +2,11 @@ import { buildInvalidSqlError } from "../sqlErrors";
 import { getSqlSourceColumnDescriptors } from "./schema";
 import type {
   SqlAggregateFunctionName,
+  SqlColumnType,
   SqlFromSource,
   SqlLiteral,
   SqlPredicate,
-  SqlPredicateClause,
+  SqlPredicateExpression,
   SqlPredicateValue,
   SqlRow,
   SqlRowScalar,
@@ -170,6 +171,32 @@ function rowMatchesInPredicate(columnValue: SqlRowValue | undefined, predicate: 
   return predicate.isNegated ? hasMatch === false : hasMatch;
 }
 
+function rowMatchesArrayEqualsPredicate(
+  columnValue: SqlRowValue | undefined,
+  values: ReadonlyArray<string>,
+): boolean {
+  const normalizedColumnValues = normalizeStringArray(columnValue);
+  if (normalizedColumnValues.length !== values.length) {
+    return false;
+  }
+
+  const sortedColumnValues = [...normalizedColumnValues].sort();
+  const sortedValues = [...values].sort();
+  return sortedColumnValues.every((value, index) => value === sortedValues[index]);
+}
+
+/**
+ * LIKE, NOT LIKE, ILIKE and `LOWER(column) = 'value'` all match a text pattern,
+ * so they only make sense on text-valued columns. Any other column type is
+ * rejected instead of silently evaluating to "no match", which would invert the
+ * answer for the negated form.
+ */
+const LIKE_SUPPORTED_COLUMN_TYPES: ReadonlySet<SqlColumnType> = new Set<SqlColumnType>([
+  "string",
+  "uuid",
+  "datetime",
+]);
+
 function validatePredicate(source: SqlFromSource, predicate: SqlPredicate): void {
   if (predicate.type === "match") {
     if (predicate.query.trim() === "") {
@@ -187,6 +214,10 @@ function validatePredicate(source: SqlFromSource, predicate: SqlPredicate): void
   if (columnDescriptor.filterable === false) {
     throw buildInvalidSqlError(`Column is not filterable: ${predicate.columnName}`);
   }
+
+  if (predicate.type === "like" && LIKE_SUPPORTED_COLUMN_TYPES.has(columnDescriptor.type) === false) {
+    throw buildInvalidSqlError(`LIKE is not supported for column: ${predicate.columnName}`);
+  }
 }
 
 function rowMatchesPredicate(row: SqlRow, predicate: SqlPredicate): boolean {
@@ -201,7 +232,8 @@ function rowMatchesPredicate(row: SqlRow, predicate: SqlPredicate): boolean {
       return false;
     }
 
-    return createLikePatternRegExp(predicate.pattern, predicate.caseInsensitive).test(columnValue);
+    const matchesPattern = createLikePatternRegExp(predicate.pattern, predicate.caseInsensitive).test(columnValue);
+    return predicate.isNegated ? matchesPattern === false : matchesPattern;
   }
 
   const columnValue = row[predicate.columnName];
@@ -243,25 +275,47 @@ function rowMatchesPredicate(row: SqlRow, predicate: SqlPredicate): boolean {
     return columnValue !== null && columnValue !== undefined;
   }
 
+  if (predicate.type === "array_equals") {
+    return rowMatchesArrayEqualsPredicate(columnValue, predicate.values);
+  }
+
   return normalizeStringArray(columnValue).some((value) => predicate.values.includes(value));
 }
 
-function applyPredicateClauses(
-  source: SqlFromSource,
-  rows: ReadonlyArray<SqlRow>,
-  predicateClauses: ReadonlyArray<SqlPredicateClause>,
-): ReadonlyArray<SqlRow> {
-  for (const clause of predicateClauses) {
-    for (const predicate of clause) {
-      validatePredicate(source, predicate);
-    }
+function validatePredicateExpression(source: SqlFromSource, expression: SqlPredicateExpression): void {
+  if (expression.type === "predicate") {
+    validatePredicate(source, expression.predicate);
+    return;
   }
 
-  if (predicateClauses.length === 0) {
+  for (const operand of expression.operands) {
+    validatePredicateExpression(source, operand);
+  }
+}
+
+function rowMatchesPredicateExpression(row: SqlRow, expression: SqlPredicateExpression): boolean {
+  if (expression.type === "predicate") {
+    return rowMatchesPredicate(row, expression.predicate);
+  }
+
+  if (expression.type === "and") {
+    return expression.operands.every((operand) => rowMatchesPredicateExpression(row, operand));
+  }
+
+  return expression.operands.some((operand) => rowMatchesPredicateExpression(row, operand));
+}
+
+function applyPredicateExpression(
+  source: SqlFromSource,
+  rows: ReadonlyArray<SqlRow>,
+  predicate: SqlPredicateExpression | null,
+): ReadonlyArray<SqlRow> {
+  if (predicate === null) {
     return rows;
   }
 
-  return rows.filter((row) => predicateClauses.some((clause) => clause.every((predicate) => rowMatchesPredicate(row, predicate))));
+  validatePredicateExpression(source, predicate);
+  return rows.filter((row) => rowMatchesPredicateExpression(row, predicate));
 }
 
 function applyOrderBy(
@@ -569,7 +623,7 @@ export function executeSqlSelect(
   const limit = normalizeSqlLimit(statement.limit, maximumLimit);
   const offset = normalizeSqlOffset(statement.offset);
   const expandedRows = expandRowsForSource(statement.source, rows);
-  const filteredRows = applyPredicateClauses(statement.source, expandedRows, statement.predicateClauses);
+  const filteredRows = applyPredicateExpression(statement.source, expandedRows, statement.predicate);
   const orderedRows = isWildcardSelect(statement)
     ? (() => {
       validateRowOrderBy(statement.source, statement.orderBy);

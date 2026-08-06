@@ -37,7 +37,7 @@ function selectTargetRows(
       unnestColumnName: null,
     },
     selectItems: [{ type: "wildcard" }],
-    predicateClauses: statement.predicateClauses,
+    predicate: statement.predicate,
     groupBy: [],
     orderBy: [],
     limit: 100,
