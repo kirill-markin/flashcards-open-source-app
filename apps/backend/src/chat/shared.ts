@@ -19,7 +19,7 @@ function buildWorkspaceSection(): string {
   return joinLines([
     "You work over the synced workspace state managed by the backend.",
     "Use the shared sql tool to inspect workspace data.",
-    "Decks are saved tag filters: a deck row exposes deck_id, name, and tags, and has no description.",
+    "Decks are saved tag filters: a deck row exposes deck_id, name, and tags among other columns, and has no description column.",
     "Cards have no deck_id and no deck membership, so a card belongs to a deck only by matching that deck's tags.",
     "You help with card drafting, deck cleanup, review analysis, study planning, and organizing content.",
   ]);

@@ -6,6 +6,10 @@ import {
   type AgentErrorEnvelope,
 } from "./envelope";
 import { ensureAgentSyncReplica } from "./syncIdentity";
+import {
+  MAX_SQL_BATCH_STATEMENT_COUNT,
+  MAX_SQL_RECORD_LIMIT,
+} from "../aiTools/toolContract/sqlToolLimits";
 import type { AuthTransport } from "../auth";
 import type { PublicHttpErrorDetails } from "../shared/errors";
 import { getPublicApiBaseUrl } from "../shared/publicUrls";
@@ -37,6 +41,10 @@ function buildPermissionGuidanceLine(): string {
   return "For routine low-risk writes, a clear user request already counts as permission. Ask again only for risky or unclear actions.";
 }
 
+function buildBulkWriteSplitLine(): string {
+  return `Bulk-write split arithmetic: at most ${MAX_SQL_RECORD_LIMIT} rows affected per statement, at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements per batch, and a batch must not mix read and write statements. Split larger work across separate statements or separate requests.`;
+}
+
 function buildMediaDiscoveryGuidanceLine(requestUrl: string): string {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
   return `Use GET ${apiBaseUrl}/agent for the full media-capable discovery surface, including workspace-scoped image ingestion, multipart upload session, part URL, complete, abort, metadata, and download URL templates. Before creating a media asset, call GET ${apiBaseUrl}/agent/me after workspace selection and use data.agentWorkspaceReplicaId as lastModifiedByReplicaId.`;
@@ -52,7 +60,7 @@ function buildAccountBootstrapInstructions(requestUrl: string): string {
     `After a workspace is selected, use POST ${apiBaseUrl}/agent/sql/query for reads and SQL introspection and POST ${apiBaseUrl}/agent/sql/execute for writes.`,
     buildMediaDiscoveryGuidanceLine(requestUrl),
     buildPermissionGuidanceLine(),
-    "If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls.",
+    buildBulkWriteSplitLine(),
     "Read payload from data.* and use docs.openapiUrl for the published external agent contract.",
   ].join(" ");
 }
@@ -65,7 +73,7 @@ function buildNoWorkspaceInstructions(requestUrl: string): string {
     `After the workspace is created, use POST ${apiBaseUrl}/agent/sql/query for reads and SQL introspection and POST ${apiBaseUrl}/agent/sql/execute for writes.`,
     buildMediaDiscoveryGuidanceLine(requestUrl),
     buildPermissionGuidanceLine(),
-    "If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls.",
+    buildBulkWriteSplitLine(),
     "Read payload from data.* and use docs.openapiUrl for the published external agent contract.",
   ].join(" ");
 }
@@ -78,7 +86,7 @@ function buildSelectWorkspaceInstructions(requestUrl: string): string {
     `After a workspace is selected, use POST ${apiBaseUrl}/agent/sql/query for reads and SQL introspection and POST ${apiBaseUrl}/agent/sql/execute for writes.`,
     buildMediaDiscoveryGuidanceLine(requestUrl),
     buildPermissionGuidanceLine(),
-    "If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls.",
+    buildBulkWriteSplitLine(),
     "Read payload from data.* and use docs.openapiUrl for the published external agent contract.",
   ].join(" ");
 }
@@ -92,8 +100,8 @@ function buildWorkspaceReadyInstructions(requestUrl: string): string {
     buildMediaDiscoveryGuidanceLine(requestUrl),
     buildPermissionGuidanceLine(),
     "This endpoint accepts the published SQL dialect, not full PostgreSQL.",
-    "SELECT returns at most 100 rows per statement, and INSERT, UPDATE, and DELETE may affect at most 100 rows per statement.",
-    "If you need more than 100 writes, split the work into multiple batches of at most 100 records across separate SQL statements or separate tool calls.",
+    `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
+    buildBulkWriteSplitLine(),
     "Read payload from data.* and use docs.openapiUrl for the published external agent contract.",
   ].join(" ");
 }
