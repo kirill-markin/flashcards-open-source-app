@@ -78,6 +78,7 @@ const SQL_DIALECT_DESCRIPTION_LINES = Object.freeze([
   "Resource semantics: cards have no deck_id column and no deck membership.",
   "A deck is a saved tag filter whose tags column defines the filter, so the only association between a card and a deck is matching tags.",
   "Decks expose deck_id, name, tags, created_at, updated_at, and deleted_at, and have no description column.",
+  "deleted_at exists only on cards and decks, is returned by reads, and can never appear in a WHERE clause or in ORDER BY.",
   "Multiple supported statements may be separated with semicolons in one sql string.",
   `A batch may contain at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements.`,
   "Schema discovery (SHOW TABLES, DESCRIBE, SHOW COLUMNS) must be its own read call and must never share a semicolon-separated sql string with statements that depend on its result, because the whole batch is composed before any statement runs.",
@@ -86,12 +87,34 @@ const SQL_DIALECT_DESCRIPTION_LINES = Object.freeze([
 /**
  * Shared WHERE-clause grammar fragment. UPDATE and DELETE resolve their target
  * rows through the same SELECT evaluator, so the read and write surfaces must
- * advertise exactly the same WHERE forms. The fragment is a bare comma-separated
- * list of forms with no "WHERE" framing and no trailing conjunction of its own,
- * so each surface can end its own sentence with it.
+ * advertise exactly the same WHERE forms. The fragment is a bare
+ * semicolon-separated list of forms with no "WHERE" framing and no trailing
+ * conjunction of its own, so each surface can end its own sentence with it.
+ * Semicolons mark the item boundaries because several items carry multi-clause
+ * explanations of their own.
  */
 const SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION =
-  "parenthesized AND/OR groups where AND binds tighter than OR, LIKE, NOT LIKE, ILIKE, LOWER(column) = 'value', LOWER(column) LIKE '...', LOWER(column) NOT LIKE '...', LOWER(column) ILIKE '...', LOWER(column) IN (...), and LOWER(column) NOT IN (...) for case-insensitive exact string matches, array comparison against a literal tag list such as tags = ('english', 'slang') or tags = () for rows with no tags, array-column intersection such as tags OVERLAP ('english', 'slang') for rows carrying at least one of the listed values, compared exactly and case-sensitively, so pass tag values as they are stored, MATCH('text') to keep rows where any column of the row contains that text as a case-insensitive substring (it scans every column, including tags and JSON metadata, and there is no tokenization, so prefer one word or an exact phrase)";
+  "parenthesized AND/OR groups where AND binds tighter than OR; LIKE, NOT LIKE, ILIKE, LOWER(column) LIKE '...', LOWER(column) NOT LIKE '...', LOWER(column) ILIKE '...', and LOWER(column) = 'value', which is a case-insensitive whole-string LIKE match, so % and _ in the value are wildcards rather than literal characters; case-insensitive exact string matches via LOWER(column) IN (...) and LOWER(column) NOT IN (...); array comparison against a literal tag list such as tags = ('english', 'slang'), which is exact set equality, meaning the row array must equal exactly the listed values, order-independent and case-sensitive, so a card carrying any additional tag does not match; tags = () for rows with no tags; array-column intersection such as tags OVERLAP ('english', 'slang') for rows carrying at least one of the listed values, compared exactly and case-sensitively, so pass tag values as they are stored; for cards carrying all of several tags, combine intersections such as tags OVERLAP ('english') AND tags OVERLAP ('slang'); MATCH('text') to keep rows where any column of the row contains that text as a case-insensitive substring (it scans every column, including tags and JSON metadata, and there is no tokenization, so prefer one word or an exact phrase)";
+
+/**
+ * Text-only WHERE forms. The pattern family (LIKE, NOT LIKE, ILIKE and
+ * `LOWER(column) = 'value'`, which the parser compiles into the same `like`
+ * predicate, so `%` and `_` stay wildcards there too) is gated by
+ * `LIKE_SUPPORTED_COLUMN_TYPES` in
+ * `apps/backend/src/aiTools/sqlDialect/selectExecutor.ts` and rejects non-text
+ * columns. `LOWER(column) IN (...)` is a separate `in` predicate that the same
+ * gate does not cover, so the dialect accepts it on a filterable array column
+ * such as `tags`; `rowMatchesInPredicate` then returns `false` for the
+ * non-string column value before negation is applied, so the plain and the
+ * negated form both match no rows. `metadata` reaches neither gate because the
+ * dialect schema marks it `filterable: false`.
+ *
+ * Every outcome claim here is read out of the evaluator. Do not add an intuited
+ * one: it would ship a wrong mental model into the in-app prompt, the MCP tool
+ * descriptions, and the published spec.
+ */
+const SQL_TEXT_COLUMN_FORMS_DESCRIPTION =
+  "LIKE, NOT LIKE, ILIKE, their LOWER(column) variants, and LOWER(column) = 'value' apply only to text-valued columns, meaning the string, uuid, and datetime column types; on array columns such as tags they are rejected with a clear error. LOWER(column) IN (...) and LOWER(column) NOT IN (...) compare text values only: on an array column such as tags they are not rejected, but both match no rows. Match tags with tags OVERLAP ('english') or tags = ('english', 'slang') instead. metadata is neither filterable nor sortable, so it can never appear in WHERE or ORDER BY.";
 
 /**
  * Shared supported-forms sentence reused by the split `sql_query` description
@@ -99,7 +122,7 @@ const SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION =
  * same SELECT grammar.
  */
 const SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION =
-  `SELECT supports projected column lists, COUNT(*), SUM, AVG, MIN, MAX, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards UNNEST tags AS tag. SELECT WHERE clauses support ${SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION}.`;
+  `SELECT supports projected column lists, COUNT(*), SUM, AVG, MIN, MAX, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards UNNEST tags AS tag. SELECT WHERE clauses support ${SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION}. ${SQL_TEXT_COLUMN_FORMS_DESCRIPTION}`;
 
 /**
  * Tag filtering on the write side. `UNNEST` only exists in `SELECT`, so `OVERLAP`
@@ -113,7 +136,7 @@ const SQL_MUTATION_TAG_FILTER_DESCRIPTION =
  * the description in `api/src/paths/agent_sql_execute.yaml`.
  */
 const SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION =
-  `UPDATE and DELETE WHERE clauses support ${SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION}. ${SQL_MUTATION_TAG_FILTER_DESCRIPTION}`;
+  `UPDATE and DELETE WHERE clauses support ${SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION}. ${SQL_TEXT_COLUMN_FORMS_DESCRIPTION} ${SQL_MUTATION_TAG_FILTER_DESCRIPTION}`;
 
 /**
  * Self-contained bulk-write split arithmetic for every write surface, so an

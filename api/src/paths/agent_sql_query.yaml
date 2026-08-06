@@ -11,25 +11,44 @@ post:
     and no deck membership: a deck is a saved tag filter whose tags column
     defines the filter, so the only association between a card and a deck is
     matching tags. Decks expose deck_id, name, tags, created_at, updated_at, and
-    deleted_at, and have no description column. Multiple read statements may
-    be separated with semicolons in one sql string. Send SHOW TABLES, DESCRIBE,
-    and SHOW COLUMNS as their own request, and never in the same
+    deleted_at, and have no description column. deleted_at exists only on cards
+    and decks, is returned by reads, and can never appear in a WHERE clause or
+    in ORDER BY. Multiple read
+    statements may be separated with semicolons in one sql string. Send SHOW
+    TABLES, DESCRIBE, and SHOW COLUMNS as their own request, and never in the same
     semicolon-separated sql string as statements that depend on the result,
     because the whole batch is composed before any statement runs. SELECT
     supports projected column lists, aggregates, GROUP BY, NOW(), standalone
     ORDER BY RANDOM(), and cards UNNEST tags AS tag. SELECT WHERE clauses
-    support parenthesized AND/OR groups where AND binds tighter than OR, LIKE,
-    NOT LIKE, ILIKE, case-insensitive exact string matches via
-    LOWER(column) = 'value', LOWER(column) IN (...), and LOWER(column) NOT IN
-    (...), the LOWER(column) LIKE, LOWER(column) NOT LIKE, and LOWER(column)
-    ILIKE forms, array comparison against a literal tag list such as
-    tags = ('english', 'slang') or tags = () for rows with no tags, array-column
+    support parenthesized AND/OR groups where AND binds tighter than OR; LIKE,
+    NOT LIKE, ILIKE, LOWER(column) LIKE, LOWER(column) NOT LIKE,
+    LOWER(column) ILIKE, and LOWER(column) = 'value', which is a
+    case-insensitive whole-string LIKE match, so % and _ in the value are
+    wildcards rather than literal characters; case-insensitive exact string
+    matches via LOWER(column) IN (...) and LOWER(column) NOT IN (...); array
+    comparison against a
+    literal tag list such as tags = ('english', 'slang'), which is exact set
+    equality, meaning the row array must equal exactly the listed values,
+    order-independent and case-sensitive, so a card carrying any additional tag
+    does not match; tags = () for rows with no tags; array-column
     intersection such as tags OVERLAP ('english', 'slang') for rows carrying at
     least one of the listed values, compared exactly and case-sensitively, so
-    pass tag values as they are stored, MATCH('text') to keep rows where any column
+    pass tag values as they are stored; for cards carrying all of several tags,
+    combine intersections such as
+    tags OVERLAP ('english') AND tags OVERLAP ('slang');
+    MATCH('text') to keep rows where any column
     of the row contains that text as a case-insensitive substring (it scans every
     column, including tags and JSON metadata, and there is no tokenization, so
-    prefer one word or an exact phrase).
+    prefer one word or an exact phrase). LIKE, NOT LIKE, ILIKE, their
+    LOWER(column) variants, and LOWER(column) = 'value' apply only to
+    text-valued columns, meaning the string, uuid, and datetime column types; on
+    array columns such as tags they are rejected with a
+    clear error. LOWER(column) IN (...) and LOWER(column) NOT IN (...) compare
+    text values only: on an array column such as tags they are not rejected, but
+    both match no rows. Match tags
+    with tags OVERLAP ('english') or tags = ('english', 'slang') instead, or
+    with LOWER(tag) IN (...) over cards UNNEST tags AS tag. metadata is neither
+    filterable nor sortable, so it can never appear in WHERE or in ORDER BY.
   security:
     - ApiKeyHeader: []
   requestBody:
