@@ -6,6 +6,41 @@ private let onboardingDemoCardProductName: String = "**Flashcards Open Source Ap
 
 extension LocalDatabase {
     /**
+     Seeds the onboarding demo card without ever failing the caller.
+
+     The card is an onboarding decoration, so a seeding failure must never take
+     down whatever the caller is doing — on first launch that is the decision of
+     whether the app has a local database at all. The failure is reported to
+     observability instead of being swallowed, and the user simply starts with
+     an empty workspace.
+     */
+    func seedOnboardingDemoCardReportingFailure() {
+        do {
+            try self.seedOnboardingDemoCardIfNeeded()
+        } catch {
+            FlashcardsObservability.captureSilentFailure(
+                error: error,
+                scope: IOSObservationScope(
+                    feature: .localData,
+                    userId: nil,
+                    workspaceId: self.core.createdDefaultWorkspaceId,
+                    requestId: nil,
+                    clientRequestId: nil,
+                    sessionId: nil,
+                    runId: nil,
+                    cloudState: nil,
+                    configurationMode: nil
+                ),
+                action: "demo_card_seed",
+                stage: "startup",
+                statusCode: nil,
+                backendCode: nil,
+                requestId: nil
+            )
+        }
+    }
+
+    /**
      Creates the onboarding demo card at the moment this device first creates
      its local default workspace row, offline and before any network call.
 
@@ -46,8 +81,10 @@ extension LocalDatabase {
 
 private func onboardingDemoCardFrontText() -> String {
     String(
-        localized: "What is the best application for studying?",
-        table: reviewCardsStringsTableName
+        localized: "demo_card_front",
+        defaultValue: "What is the best application for studying?",
+        table: reviewCardsStringsTableName,
+        comment: "Front of the onboarding demo flashcard"
     )
 }
 
@@ -73,31 +110,41 @@ private func onboardingDemoCardBackText() -> String {
     let paragraphs: [String] = [
         String(
             format: String(
-                localized: "%@ — the app you are looking at right now.",
-                table: reviewCardsStringsTableName
+                localized: "demo_card_back_1",
+                defaultValue: "%@ — the app you are looking at right now.",
+                table: reviewCardsStringsTableName,
+                comment: "Paragraph on the back of the onboarding demo flashcard. %@ is the never-localized product name, already wrapped in Markdown bold."
             ),
             onboardingDemoCardProductName
         ),
         String(
-            localized: "Everything here is a flashcard: a question on the front, the answer on the back. You can write cards yourself, or just give the built-in AI chat a topic and it will create a set of cards for you.",
-            table: reviewCardsStringsTableName
+            localized: "demo_card_back_2",
+            defaultValue: "Everything here is a flashcard: a question on the front, the answer on the back. You can write cards yourself, or just give the built-in AI chat a topic and it will create a set of cards for you.",
+            table: reviewCardsStringsTableName,
+            comment: "Paragraph on the back of the onboarding demo flashcard"
         ),
         String(
-            localized: "When you review, you try to recall the answer, then rate how it went. Every card schedules itself from there: what you know well comes back in weeks or months, what you keep forgetting comes back today or tomorrow.",
-            table: reviewCardsStringsTableName
+            localized: "demo_card_back_3",
+            defaultValue: "When you review, you try to recall the answer, then rate how it went. Every card schedules itself from there: what you know well comes back in weeks or months, what you keep forgetting comes back today or tomorrow.",
+            table: reviewCardsStringsTableName,
+            comment: "Paragraph on the back of the onboarding demo flashcard"
         ),
         String(
             format: String(
-                localized: "Rate honestly, this is what makes it work. If you did not know the answer, choose %1$@ — including when you had to peek. %2$@ is only for answers you knew but struggled to recall.",
-                table: reviewCardsStringsTableName
+                localized: "demo_card_back_4",
+                defaultValue: "Rate honestly, this is what makes it work. If you did not know the answer, choose %1$@ — including when you had to peek. %2$@ is only for answers you knew but struggled to recall.",
+                table: reviewCardsStringsTableName,
+                comment: "Paragraph on the back of the onboarding demo flashcard. %1$@ is the Again rating label and %2$@ the Hard rating label; both arrive already wrapped in Markdown inline code, so do not add quotation marks around them."
             ),
             againRatingLabel,
             hardRatingLabel
         ),
         String(
             format: String(
-                localized: "Try it right now: rate this card %@, and it will come back in about a minute — so this answer sticks.",
-                table: reviewCardsStringsTableName
+                localized: "demo_card_back_5",
+                defaultValue: "Try it right now: rate this card %@, and it will come back in about a minute — so this answer sticks.",
+                table: reviewCardsStringsTableName,
+                comment: "Paragraph on the back of the onboarding demo flashcard. %@ is the Again rating label, already wrapped in Markdown inline code, so do not add quotation marks around it."
             ),
             againRatingLabel
         )

@@ -215,7 +215,7 @@ final class FlashcardsStore {
 
         do {
             let localDatabase = try LocalDatabase()
-            try localDatabase.seedOnboardingDemoCardIfNeeded()
+            localDatabase.seedOnboardingDemoCardReportingFailure()
             database = localDatabase
             initialGlobalErrorMessage = ""
         } catch {
