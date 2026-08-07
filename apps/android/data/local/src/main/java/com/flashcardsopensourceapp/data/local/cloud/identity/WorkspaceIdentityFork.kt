@@ -2,10 +2,12 @@ package com.flashcardsopensourceapp.data.local.cloud.identity
 
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
+import com.flashcardsopensourceapp.data.local.database.entities.MediaAssetEntity
 import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.cloud.wire.parseSyncEntityType
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
+import com.flashcardsopensourceapp.data.local.model.media.rewriteManagedMediaAssetReferences
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import org.json.JSONObject
 import java.nio.ByteBuffer
@@ -16,13 +18,15 @@ import java.util.UUID
 private val cardIdentityForkNamespace: UUID = UUID.fromString("5b0c7f2e-6f2a-4b7e-9e1b-2b5f0a4a91b1")
 private val deckIdentityForkNamespace: UUID = UUID.fromString("98e66f2c-d3c7-4e3f-a7df-55d8e19ad2b4")
 private val reviewEventIdentityForkNamespace: UUID = UUID.fromString("3a214a3e-9c89-426d-a21f-11a5f5c1d6e8")
+private val mediaAssetIdentityForkNamespace: UUID = UUID.fromString("b6f4d0a1-9c3e-4d58-8f21-7a6c5e0b3d94")
 
 internal const val syncWorkspaceForkRequiredErrorCode: String = "SYNC_WORKSPACE_FORK_REQUIRED"
 
 internal data class WorkspaceForkIdMappings(
     val cardIdsBySourceId: Map<String, String>,
     val deckIdsBySourceId: Map<String, String>,
-    val reviewEventIdsBySourceId: Map<String, String>
+    val reviewEventIdsBySourceId: Map<String, String>,
+    val mediaAssetIdsBySourceId: Map<String, String>
 )
 
 internal fun forkedCardId(
@@ -64,6 +68,25 @@ internal fun forkedReviewEventId(
     )
 }
 
+/**
+ * A forked media asset cannot keep its id because the backend registry keys
+ * `content.media_assets` by a bare media asset id, so the same id cannot exist
+ * in two workspaces. The blob itself is shared, because storage is keyed by
+ * `sha256`, so forking is a registry-row copy under a derived id.
+ */
+internal fun forkedMediaAssetId(
+    sourceWorkspaceId: String,
+    destinationWorkspaceId: String,
+    sourceMediaAssetId: String
+): String {
+    return forkedWorkspaceEntityId(
+        namespace = mediaAssetIdentityForkNamespace,
+        sourceWorkspaceId = sourceWorkspaceId,
+        destinationWorkspaceId = destinationWorkspaceId,
+        sourceEntityId = sourceMediaAssetId
+    )
+}
+
 private fun forkedWorkspaceEntityId(
     namespace: UUID,
     sourceWorkspaceId: String,
@@ -102,7 +125,8 @@ internal fun buildWorkspaceForkIdMappings(
     destinationWorkspaceId: String,
     cards: List<CardEntity>,
     decks: List<DeckEntity>,
-    reviewLogs: List<ReviewLogEntity>
+    reviewLogs: List<ReviewLogEntity>,
+    mediaAssets: List<MediaAssetEntity>
 ): WorkspaceForkIdMappings {
     return WorkspaceForkIdMappings(
         cardIdsBySourceId = cards.associate { card ->
@@ -124,6 +148,13 @@ internal fun buildWorkspaceForkIdMappings(
                 sourceWorkspaceId = sourceWorkspaceId,
                 destinationWorkspaceId = destinationWorkspaceId,
                 sourceReviewEventId = reviewLog.reviewLogId
+            )
+        },
+        mediaAssetIdsBySourceId = mediaAssets.associate { mediaAsset ->
+            mediaAsset.mediaAssetId to forkedMediaAssetId(
+                sourceWorkspaceId = sourceWorkspaceId,
+                destinationWorkspaceId = destinationWorkspaceId,
+                sourceMediaAssetId = mediaAsset.mediaAssetId
             )
         }
     )
@@ -154,8 +185,9 @@ internal fun rewriteOutboxEntryForFork(
             sourceId = entry.entityId
         )
 
-        SyncEntityType.MEDIA_ASSET -> throw IllegalArgumentException(
-            "Cannot rewrite media_asset outbox entry '${entry.outboxEntryId}' during workspace identity fork."
+        SyncEntityType.MEDIA_ASSET -> forkMappings.mediaAssetIdsBySourceId.requireMappedId(
+            entityType = "media_asset",
+            sourceId = entry.entityId
         )
     }
     when (entityType) {
@@ -165,6 +197,20 @@ internal fun rewriteOutboxEntryForFork(
                 forkMappings.cardIdsBySourceId.requireMappedId(
                     entityType = "card",
                     sourceId = payloadJson.requireCloudString("cardId", "fork.outbox.card.cardId")
+                )
+            )
+            payloadJson.put(
+                "frontText",
+                rewriteManagedMediaAssetReferences(
+                    markdown = payloadJson.requireCloudString("frontText", "fork.outbox.card.frontText"),
+                    mediaAssetIdsBySourceId = forkMappings.mediaAssetIdsBySourceId
+                )
+            )
+            payloadJson.put(
+                "backText",
+                rewriteManagedMediaAssetReferences(
+                    markdown = payloadJson.requireCloudString("backText", "fork.outbox.card.backText"),
+                    mediaAssetIdsBySourceId = forkMappings.mediaAssetIdsBySourceId
                 )
             )
         }
@@ -201,9 +247,16 @@ internal fun rewriteOutboxEntryForFork(
             )
         }
 
-        SyncEntityType.MEDIA_ASSET -> throw IllegalArgumentException(
-            "Cannot rewrite media_asset outbox entry '${entry.outboxEntryId}' during workspace identity fork."
-        )
+        SyncEntityType.MEDIA_ASSET -> {
+            payloadJson.put(
+                "mediaAssetId",
+                forkMappings.mediaAssetIdsBySourceId.requireMappedId(
+                    entityType = "media_asset",
+                    sourceId = payloadJson.requireCloudString("mediaAssetId", "fork.outbox.mediaAsset.mediaAssetId")
+                )
+            )
+            payloadJson.put("workspaceId", destinationWorkspaceId)
+        }
     }
     return entry.copy(
         workspaceId = destinationWorkspaceId,

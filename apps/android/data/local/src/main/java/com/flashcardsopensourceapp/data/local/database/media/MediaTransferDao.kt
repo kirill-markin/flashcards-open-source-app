@@ -86,6 +86,26 @@ interface MediaTransferDao {
 
     @Query(
         """
+        SELECT EXISTS(
+            SELECT 1 FROM media_transfer_queue
+            WHERE workspaceId = :workspaceId
+                AND mediaAssetId = :mediaAssetId
+                AND sha256 = :sha256
+                AND kind = :kind
+                AND status IN (:statuses)
+        )
+        """
+    )
+    suspend fun hasMediaTransferForMediaAsset(
+        workspaceId: String,
+        mediaAssetId: String,
+        sha256: String,
+        kind: String,
+        statuses: List<String>
+    ): Boolean
+
+    @Query(
+        """
         SELECT
             COUNT(
                 CASE
@@ -309,21 +329,12 @@ interface MediaTransferDao {
 
     @Query(
         """
-        UPDATE media_transfer_queue
-        SET workspaceId = :newWorkspaceId,
-            updatedAtMillis = :updatedAtMillis
-        WHERE workspaceId = :oldWorkspaceId
-            AND kind = :uploadKind
-            AND status != :succeededStatus
+        SELECT * FROM media_transfer_queue
+        WHERE workspaceId = :workspaceId
+        ORDER BY createdAtMillis ASC, transferId ASC
         """
     )
-    suspend fun reassignPendingUploadMediaTransfers(
-        oldWorkspaceId: String,
-        newWorkspaceId: String,
-        uploadKind: String,
-        succeededStatus: String,
-        updatedAtMillis: Long
-    )
+    suspend fun loadMediaTransfersForWorkspace(workspaceId: String): List<MediaTransferQueueEntity>
 
     @Query("DELETE FROM media_transfer_queue WHERE workspaceId = :workspaceId")
     suspend fun deleteMediaTransfersForWorkspace(workspaceId: String)

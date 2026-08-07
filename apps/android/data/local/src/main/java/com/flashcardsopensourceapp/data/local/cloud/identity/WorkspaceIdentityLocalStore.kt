@@ -6,6 +6,8 @@ import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
+import com.flashcardsopensourceapp.data.local.database.entities.MediaAssetEntity
+import com.flashcardsopensourceapp.data.local.database.entities.MediaTransferQueueEntity
 import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.TagEntity
@@ -17,12 +19,10 @@ import com.flashcardsopensourceapp.data.local.cloud.sync.ReviewHistoryChangedEve
 import com.flashcardsopensourceapp.data.local.cloud.sync.emptySyncStateEntity
 import com.flashcardsopensourceapp.data.local.cloud.wire.toRemoteValue
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
-import com.flashcardsopensourceapp.data.local.model.media.MediaTransferKind
-import com.flashcardsopensourceapp.data.local.model.media.MediaTransferStatus
+import com.flashcardsopensourceapp.data.local.model.media.rewriteManagedMediaAssetReferences
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorkspaceSchedulerSettings
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.buildClientWorkspaceReplicaId
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
@@ -36,6 +36,8 @@ private data class WorkspaceForkSnapshot(
     val tags: List<TagEntity>,
     val cardTags: List<CardTagEntity>,
     val reviewLogs: List<ReviewLogEntity>,
+    val mediaAssets: List<MediaAssetEntity>,
+    val mediaTransfers: List<MediaTransferQueueEntity>,
     val outboxEntries: List<OutboxEntryEntity>,
     val schedulerSettings: WorkspaceSchedulerSettingsEntity?
 )
@@ -293,35 +295,16 @@ internal class WorkspaceIdentityLocalStore(
         ) {
             "Cannot fork workspace identity because current local workspace '$currentLocalWorkspaceId' does not exist."
         }
-        val registeredMediaAssetCount = database.mediaAssetDao().countMediaAssetsExcludingPendingUploads(
-            workspaceId = currentLocalWorkspaceId,
-            uploadKind = MediaTransferKind.UPLOAD.wireKey,
-            succeededStatus = MediaTransferStatus.SUCCEEDED.wireKey
-        )
-        require(registeredMediaAssetCount == 0) {
-            "Cannot fork workspace identity from workspace '$currentLocalWorkspaceId' to " +
-                "'${destinationWorkspace.workspaceId}' because the source workspace has $registeredMediaAssetCount " +
-                "registered media asset row(s). Android can only reassign pending media uploads."
-        }
         val snapshot = loadWorkspaceForkSnapshot(workspaceId = currentLocalWorkspaceId)
         val forkMappings = buildWorkspaceForkIdMappings(
             sourceWorkspaceId = sourceWorkspaceId,
             destinationWorkspaceId = destinationWorkspace.workspaceId,
             cards = snapshot.cards,
             decks = snapshot.decks,
-            reviewLogs = snapshot.reviewLogs
+            reviewLogs = snapshot.reviewLogs,
+            mediaAssets = snapshot.mediaAssets
         )
         val destinationMatchesCurrentWorkspace = currentLocalWorkspaceId == destinationWorkspace.workspaceId
-        if (destinationMatchesCurrentWorkspace.not()) {
-            val destinationMediaAssetCount = database.mediaAssetDao()
-                .countMediaAssets(workspaceId = destinationWorkspace.workspaceId)
-            require(destinationMediaAssetCount == 0) {
-                "Cannot fork workspace identity from workspace '$currentLocalWorkspaceId' to " +
-                    "'${destinationWorkspace.workspaceId}' because the destination workspace has " +
-                    "$destinationMediaAssetCount media asset registry row(s). Android cannot delete or reassign " +
-                    "managed media assets in this sync/storage split."
-            }
-        }
 
         if (destinationMatchesCurrentWorkspace) {
             database.workspaceDao().updateWorkspace(
@@ -354,10 +337,6 @@ internal class WorkspaceIdentityLocalStore(
                     newWorkspaceId = destinationWorkspace.workspaceId
                 )
             }
-            reassignPendingMediaUploadsForWorkspaceFork(
-                oldWorkspaceId = currentLocalWorkspaceId,
-                newWorkspaceId = destinationWorkspace.workspaceId
-            )
             localProgressCacheStore.reassignWorkspaceInTransaction(
                 oldWorkspaceId = currentLocalWorkspaceId,
                 newWorkspaceId = destinationWorkspace.workspaceId
@@ -375,7 +354,15 @@ internal class WorkspaceIdentityLocalStore(
                 }
                 card.copy(
                     cardId = rewrittenCardId,
-                    workspaceId = destinationWorkspace.workspaceId
+                    workspaceId = destinationWorkspace.workspaceId,
+                    frontText = rewriteManagedMediaAssetReferences(
+                        markdown = card.frontText,
+                        mediaAssetIdsBySourceId = forkMappings.mediaAssetIdsBySourceId
+                    ),
+                    backText = rewriteManagedMediaAssetReferences(
+                        markdown = card.backText,
+                        mediaAssetIdsBySourceId = forkMappings.mediaAssetIdsBySourceId
+                    )
                 )
             }
             if (cardsToInsert.isNotEmpty()) {
@@ -437,6 +424,49 @@ internal class WorkspaceIdentityLocalStore(
                 database.reviewLogDao().insertReviewLogs(reviewLogs = reviewLogsToInsert)
             }
         }
+        if (snapshot.mediaAssets.isNotEmpty()) {
+            val mediaAssetsToInsert = snapshot.mediaAssets.mapNotNull { mediaAsset ->
+                val rewrittenMediaAssetId = forkMappings.mediaAssetIdsBySourceId.requireMappedId(
+                    entityType = "media_asset",
+                    sourceId = mediaAsset.mediaAssetId
+                )
+                if (destinationMatchesCurrentWorkspace && rewrittenMediaAssetId == mediaAsset.mediaAssetId) {
+                    return@mapNotNull null
+                }
+                mediaAsset.copy(
+                    mediaAssetId = rewrittenMediaAssetId,
+                    workspaceId = destinationWorkspace.workspaceId
+                )
+            }
+            if (mediaAssetsToInsert.isNotEmpty()) {
+                database.mediaAssetDao().insertMediaAssets(mediaAssets = mediaAssetsToInsert)
+            }
+        }
+        if (snapshot.mediaTransfers.isNotEmpty()) {
+            // Transfers carry no foreign key to the registry, so derive the forked
+            // asset id directly instead of failing on a transfer that outlived its
+            // media asset row.
+            val mediaTransfersToUpsert = snapshot.mediaTransfers.mapNotNull { mediaTransfer ->
+                val rewrittenMediaAssetId = forkedMediaAssetId(
+                    sourceWorkspaceId = sourceWorkspaceId,
+                    destinationWorkspaceId = destinationWorkspace.workspaceId,
+                    sourceMediaAssetId = mediaTransfer.mediaAssetId
+                )
+                if (
+                    rewrittenMediaAssetId == mediaTransfer.mediaAssetId &&
+                    mediaTransfer.workspaceId == destinationWorkspace.workspaceId
+                ) {
+                    return@mapNotNull null
+                }
+                mediaTransfer.copy(
+                    mediaAssetId = rewrittenMediaAssetId,
+                    workspaceId = destinationWorkspace.workspaceId
+                )
+            }
+            if (mediaTransfersToUpsert.isNotEmpty()) {
+                database.mediaTransferDao().upsertMediaTransfers(mediaTransfers = mediaTransfersToUpsert)
+            }
+        }
         if (snapshot.outboxEntries.isNotEmpty()) {
             val outboxEntriesToInsert = snapshot.outboxEntries.mapNotNull { entry ->
                 val rewrittenEntry = rewriteOutboxEntryForFork(
@@ -480,6 +510,16 @@ internal class WorkspaceIdentityLocalStore(
                     ) != card.cardId
                 }
                 .forEach { card -> database.cardDao().deleteCard(cardId = card.cardId) }
+            snapshot.mediaAssets
+                .filter { mediaAsset ->
+                    forkMappings.mediaAssetIdsBySourceId.requireMappedId(
+                        entityType = "media_asset",
+                        sourceId = mediaAsset.mediaAssetId
+                    ) != mediaAsset.mediaAssetId
+                }
+                .forEach { mediaAsset ->
+                    database.mediaAssetDao().deleteMediaAsset(mediaAssetId = mediaAsset.mediaAssetId)
+                }
             if (didRewriteLocalEntityIds) {
                 resetVolatileWorkspaceSelectionsAfterLocalEntityReId(workspaceId = destinationWorkspace.workspaceId)
             }
@@ -491,32 +531,6 @@ internal class WorkspaceIdentityLocalStore(
         replaceSyncStateWithEmptyProgress(workspaceId = destinationWorkspace.workspaceId)
     }
 
-    private suspend fun reassignPendingMediaUploadsForWorkspaceFork(
-        oldWorkspaceId: String,
-        newWorkspaceId: String
-    ) {
-        val updatedAtMillis: Long = System.currentTimeMillis()
-        val lastModifiedByReplicaId: String = buildClientWorkspaceReplicaId(
-            workspaceId = newWorkspaceId,
-            installationId = preferencesStore.currentCloudSettings().installationId
-        )
-        database.mediaAssetDao().reassignPendingUploadMediaAssets(
-            oldWorkspaceId = oldWorkspaceId,
-            newWorkspaceId = newWorkspaceId,
-            uploadKind = MediaTransferKind.UPLOAD.wireKey,
-            succeededStatus = MediaTransferStatus.SUCCEEDED.wireKey,
-            lastModifiedByReplicaId = lastModifiedByReplicaId,
-            updatedAtMillis = updatedAtMillis
-        )
-        database.mediaTransferDao().reassignPendingUploadMediaTransfers(
-            oldWorkspaceId = oldWorkspaceId,
-            newWorkspaceId = newWorkspaceId,
-            uploadKind = MediaTransferKind.UPLOAD.wireKey,
-            succeededStatus = MediaTransferStatus.SUCCEEDED.wireKey,
-            updatedAtMillis = updatedAtMillis
-        )
-    }
-
     private suspend fun loadWorkspaceForkSnapshot(workspaceId: String): WorkspaceForkSnapshot {
         val cards = database.cardDao().loadCards(workspaceId = workspaceId)
         return WorkspaceForkSnapshot(
@@ -525,6 +539,8 @@ internal class WorkspaceIdentityLocalStore(
             tags = database.tagDao().loadTags(workspaceId = workspaceId),
             cardTags = database.tagDao().loadCardTags(workspaceId = workspaceId),
             reviewLogs = database.reviewLogDao().loadReviewLogs(workspaceId = workspaceId),
+            mediaAssets = database.mediaAssetDao().loadMediaAssets(workspaceId = workspaceId),
+            mediaTransfers = database.mediaTransferDao().loadMediaTransfersForWorkspace(workspaceId = workspaceId),
             outboxEntries = database.outboxDao().loadAllOutboxEntries(workspaceId = workspaceId),
             schedulerSettings = database.workspaceSchedulerSettingsDao()
                 .loadWorkspaceSchedulerSettings(workspaceId = workspaceId)
@@ -707,6 +723,11 @@ private fun hasWorkspaceForkEntityIdRewrites(
             entityType = "review_event",
             sourceId = reviewLog.reviewLogId
         ) != reviewLog.reviewLogId
+    } || snapshot.mediaAssets.any { mediaAsset ->
+        forkMappings.mediaAssetIdsBySourceId.requireMappedId(
+            entityType = "media_asset",
+            sourceId = mediaAsset.mediaAssetId
+        ) != mediaAsset.mediaAssetId
     }
 }
 
