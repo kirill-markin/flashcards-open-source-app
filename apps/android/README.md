@@ -199,7 +199,7 @@ The repository policy for Android CI/CD is:
 - Firebase Test Lab is the cloud device test runner
 - `cloudbuild.android.yaml` is the Google-native Cloud Build entrypoint
 - Google auth from GitHub must use Workload Identity Federation, not a JSON key
-- Android pull requests and automatic Android CI on `main` both run unit tests, debug builds, lint, and GitHub-hosted `data:local` instrumentation without uploading to Google Play or submitting Firebase Test Lab
+- Android pull requests run unit tests, debug builds, and lint, and add the GitHub-hosted `data:local` instrumentation only when the Android data layer or shared Android Gradle configuration changes; automatic Android CI on `main` always runs both. Neither uploads to Google Play or submits Firebase Test Lab
 - the manual `Android Release` workflow runs the same GitHub-hosted Android gate, submits Firebase Test Lab app instrumentation, then uploads a Google Play production-track draft
 - one shared `ANDROID_VERSION_CODE` is resolved once per release run and reused across Android release artifacts and the Play draft bundle
 - one shared manager-readable release identifier, currently `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`, is reused in the Play release name and Firebase Test Lab result naming so the same release stays traceable across GitHub, Play, and Firebase

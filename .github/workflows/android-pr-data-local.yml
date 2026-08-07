@@ -1,28 +1,26 @@
-name: Android PR
+name: Android PR data:local
 
 on:
   pull_request:
     branches: [main]
     paths:
-      - 'apps/android/**'
-      - '!apps/android/README.md'
-      - '!apps/android/docs/**'
-      - 'cloudbuild.android.yaml'
-      - 'scripts/android/run-android-ci.sh'
-      - 'scripts/android/run-android-firebase-test-lab.sh'
-      - 'scripts/android/run-android-release.sh'
-      - 'scripts/android/setup-github-android.sh'
-      - '.github/workflows/android-pr.yml'
+      - 'apps/android/data/**'
+      - 'apps/android/core/observability/**'
+      - 'apps/android/build.gradle.kts'
+      - 'apps/android/settings.gradle.kts'
+      - 'apps/android/gradle.properties'
+      - 'apps/android/gradle/**'
+      - '.github/workflows/android-pr-data-local.yml'
       - '.github/workflows/android-ci-reusable.yml'
 
 permissions:
   contents: read
 
 jobs:
-  android_pr:
-    name: Android PR
+  android_pr_data_local:
+    name: Android PR data:local
     concurrency:
-      group: android-pr-${{ github.event.pull_request.number }}
+      group: android-pr-data-local-${{ github.event.pull_request.number }}
       cancel-in-progress: true
     uses: ./.github/workflows/android-ci-reusable.yml
     with:
@@ -30,5 +28,6 @@ jobs:
       # merge result rather than the branch tip and gates on what will actually land on main.
       target_ref: ${{ github.sha }}
       android_version_code: ${{ github.run_number }}
-      run_data_local_instrumentation: false
+      run_build: false
+      run_data_local_instrumentation: true
     secrets: inherit

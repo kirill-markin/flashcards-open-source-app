@@ -9,6 +9,10 @@ on:
       android_version_code:
         required: true
         type: string
+      run_build:
+        required: false
+        type: boolean
+        default: true
       run_data_local_instrumentation:
         required: false
         type: boolean
@@ -17,6 +21,7 @@ on:
 jobs:
   build:
     name: Android build, unit tests, and lint
+    if: ${{ inputs.run_build }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
