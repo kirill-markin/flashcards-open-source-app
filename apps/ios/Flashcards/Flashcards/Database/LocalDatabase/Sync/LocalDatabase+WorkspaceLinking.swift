@@ -197,6 +197,7 @@ extension LocalDatabase {
             core: self.core,
             workspaceSettingsStore: self.workspaceSettingsStore,
             shellStore: shellStore,
+            mediaTransferStore: self.mediaTransferStore,
             outboxRewriter: self.makeWorkspaceOutboxRewriter()
         )
     }
