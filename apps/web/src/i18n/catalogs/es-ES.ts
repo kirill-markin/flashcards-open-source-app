@@ -730,6 +730,7 @@ const esEsCatalog: TranslationCatalog = {
     loading: "Cargando paquete del catálogo...",
     packageSummary: "{{title}} — {{count}}",
     author: "De {{author}}",
+    accountEmail: "Sesión iniciada como {{email}}",
     signInTitle: "Inicia sesión o crea una cuenta",
     signInBody: "Usa la pantalla combinada de inicio de sesión y registro y vuelve aquí para elegir un espacio de trabajo e importar el paquete.",
     signInAction: "Continuar para iniciar sesión",

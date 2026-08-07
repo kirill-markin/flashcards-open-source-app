@@ -730,6 +730,7 @@ const arCatalog: TranslationCatalog = {
     loading: "جارٍ تحميل حزمة الكتالوج...",
     packageSummary: "{{title}} — {{count}}",
     author: "بواسطة {{author}}",
+    accountEmail: "مسجّل الدخول باسم {{email}}",
     signInTitle: "سجّل الدخول أو أنشئ حسابًا",
     signInBody: "استخدم شاشة تسجيل الدخول وإنشاء الحساب المشتركة، ثم عُد لاختيار مساحة عمل واستيراد الحزمة.",
     signInAction: "المتابعة لتسجيل الدخول",

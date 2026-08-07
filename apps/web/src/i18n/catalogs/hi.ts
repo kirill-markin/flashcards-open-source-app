@@ -730,6 +730,7 @@ const hiCatalog: TranslationCatalog = {
     loading: "कैटलॉग पैकेज लोड हो रहा है...",
     packageSummary: "{{title}} — {{count}}",
     author: "{{author}} द्वारा",
+    accountEmail: "{{email}} के रूप में साइन इन",
     signInTitle: "साइन इन करें या अकाउंट बनाएँ",
     signInBody: "संयुक्त लॉगिन और साइन-अप स्क्रीन का उपयोग करें, फिर वर्कस्पेस चुनने और पैकेज इम्पोर्ट करने के लिए यहाँ लौटें।",
     signInAction: "लॉगिन या साइन अप पर जाएँ",

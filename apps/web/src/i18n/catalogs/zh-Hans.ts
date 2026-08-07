@@ -730,6 +730,7 @@ export const zhHansCatalog = {
     loading: "正在加载目录包...",
     packageSummary: "{{title}} — {{count}}",
     author: "作者：{{author}}",
+    accountEmail: "已登录为 {{email}}",
     signInTitle: "登录或创建账户",
     signInBody: "使用合并的登录和注册页面，然后返回此处选择工作区并导入此包。",
     signInAction: "前往登录或注册",

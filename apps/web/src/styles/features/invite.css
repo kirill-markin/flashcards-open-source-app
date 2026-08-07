@@ -14,6 +14,8 @@
 }
 
 .invite-panel {
+  /* Inner blocks follow the half-radius rule instead of the padding-derived default. */
+  --content-card-inner-radius: calc(var(--content-card-radius) / 2);
   width: min(100%, 560px);
   display: grid;
   gap: 16px;
@@ -212,6 +214,11 @@
   line-height: 1.35;
 }
 
+/* An email address is one unbreakable token, so it has to wrap inside the fixed-width card. */
+.catalog-import-account-email {
+  overflow-wrap: anywhere;
+}
+
 .catalog-import-workspace-option-active {
   background: var(--accent-soft);
   color: var(--accent-strong);
@@ -243,7 +250,7 @@
 }
 
 .catalog-import-advanced {
-  border-radius: var(--radius-md);
+  border-radius: var(--content-card-inner-radius, var(--radius-sm));
   background: var(--surface-hover);
   overflow: hidden;
 }
@@ -277,8 +284,33 @@
   flex: 1 1 auto;
 }
 
+/* Aligns the back arrow with the left edge of the centered cards in the .invite-page grid. */
+.catalog-import-back-nav {
+  width: min(100%, 560px);
+  display: flex;
+  justify-content: flex-start;
+}
+
 .catalog-import-back-button {
-  min-width: 120px;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  /* .ghost-btn keeps a 46px min-height for text buttons, so the icon button clears it to stay square. */
+  min-height: 0;
+  height: 40px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+}
+
+.catalog-import-back-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* The chevron path is hardcoded left-pointing, so RTL locales need it mirrored. Only the icon flips
+   so the button's focus ring geometry stays untouched. */
+[dir="rtl"] .catalog-import-back-icon {
+  transform: scaleX(-1);
 }
 
 .catalog-import-success-header {
@@ -393,8 +425,7 @@
     width: 100%;
   }
 
-  .catalog-import-actions > .primary-btn,
-  .catalog-import-back-button {
+  .catalog-import-actions > .primary-btn {
     width: 100%;
   }
 

@@ -730,6 +730,7 @@ const deCatalog: TranslationCatalog = {
     loading: "Katalogpaket wird geladen...",
     packageSummary: "{{title}} — {{count}}",
     author: "Von {{author}}",
+    accountEmail: "Angemeldet als {{email}}",
     signInTitle: "Anmelden oder Konto erstellen",
     signInBody: "Nutze die gemeinsame Anmelde- und Registrierungsseite und kehre dann hierher zurück, um einen Arbeitsbereich auszuwählen.",
     signInAction: "Weiter zur Anmeldung",

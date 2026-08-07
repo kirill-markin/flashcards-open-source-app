@@ -728,6 +728,7 @@ const enCatalog = {
     loading: "Loading catalog package...",
     packageSummary: "{{title}} — {{count}}",
     author: "By {{author}}",
+    accountEmail: "Signed in as {{email}}",
     signInTitle: "Sign in or create an account",
     signInBody: "Use the combined login and sign-up screen, then return here to choose a workspace and import this package.",
     signInAction: "Continue to login or sign up",
