@@ -1,5 +1,4 @@
 import type { ReactElement } from "react";
-import { Link } from "react-router";
 
 const appStoreBadgeSrc: string = "/home/app-store-badge.svg";
 const googlePlayLockupSrc: string = "/home/google-play-lockup.png";
@@ -47,7 +46,6 @@ export type AppPlatformLinkLabels = Readonly<{
 type AppPlatformLinksProps = Readonly<{
   labels: AppPlatformLinkLabels;
   storeLinks: AppPlatformStoreLinks;
-  webRoute: string;
   webHref: string;
   gridTestId: string;
   webHrefTestId: string;
@@ -75,7 +73,6 @@ function WebAppIcon(): ReactElement {
 export function AppPlatformLinks({
   labels,
   storeLinks,
-  webRoute,
   webHref,
   gridTestId,
   webHrefTestId,
@@ -102,15 +99,17 @@ export function AppPlatformLinks({
       >
         <GooglePlayBadge />
       </a>
-      <Link
+      <a
         className="invite-platform-link"
-        to={webRoute}
+        href={webHref}
+        rel="noreferrer"
+        target="_blank"
         aria-label={labels.web}
         data-testid="app-platform-link-web"
       >
         <WebAppIcon />
         <span className="invite-platform-label">{labels.web}</span>
-      </Link>
+      </a>
       <span data-testid={webHrefTestId} hidden>{webHref}</span>
     </div>
   );

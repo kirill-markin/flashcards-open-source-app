@@ -128,7 +128,8 @@ describe("ShareAppScreen", () => {
     const androidLink: HTMLElement = requireElement(container, "[data-testid='app-platform-link-android']");
     expect(androidLink.getAttribute("href")).toBe(shareAppAndroidHref);
     const webLink: HTMLElement = requireElement(container, "[data-testid='app-platform-link-web']");
-    expect(webLink.getAttribute("href")).toBe(reviewRoute);
+    expect(webLink.getAttribute("href")).toBe(`${window.location.origin}${reviewRoute}`);
+    expect(webLink.getAttribute("target")).toBe("_blank");
     expect(requireElement(container, "[data-testid='share-app-web-link-value']").textContent).toBe(
       `${window.location.origin}${reviewRoute}`,
     );

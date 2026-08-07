@@ -5,7 +5,7 @@ import {
   GooglePlayBadge,
   type AppPlatformStoreLinks,
 } from "../../share/AppPlatformLinks";
-import { MobileAppQrCode } from "./MobileAppQrCode";
+import { MobileAppQrCode } from "../../share/MobileAppQrCode";
 
 export type MobileAppPromotionDialogProps = Readonly<{
   isOpen: boolean;
