@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppErrorDialogProvider } from "../../appError/AppErrorContext";
 import { I18nProvider } from "../../i18n";
+import { progressLeaderboardRoute } from "../../routes";
 import type { SessionInfo } from "../../types";
 import { FriendInviteScreen } from "./FriendInviteScreen";
 
@@ -175,7 +176,12 @@ describe("FriendInviteScreen", () => {
     expect(container.textContent).toContain("You are now friends");
     expect(container.textContent).toContain("Mobile apps require signing in with the same email.");
     expect(container.querySelector("[data-testid='friend-invite-success-links']")).not.toBeNull();
-    expect(container.querySelector("a[href='/progress#leaderboard']")).not.toBeNull();
+    const webLink = container.querySelector("[data-testid='app-platform-link-web']");
+    if (!(webLink instanceof HTMLAnchorElement)) {
+      throw new Error("Invite web app link was not found");
+    }
+    expect(webLink.getAttribute("href")).toBe(`${window.location.origin}${progressLeaderboardRoute}`);
+    expect(webLink.getAttribute("target")).toBe("_blank");
   });
 
   it("keeps accept disabled until a display name is entered", async () => {

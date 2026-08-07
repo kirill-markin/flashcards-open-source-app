@@ -86,7 +86,6 @@ function InviteSuccessLinks(): ReactElement {
         web: t("friendInvite.links.web"),
       }}
       storeLinks={defaultAppPlatformStoreLinks}
-      webRoute={progressLeaderboardRoute}
       webHref={webHref}
       gridTestId="friend-invite-success-links"
       webHrefTestId="friend-invite-web-link-value"

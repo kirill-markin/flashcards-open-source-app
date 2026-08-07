@@ -26,7 +26,6 @@ export function ShareAppScreen(): ReactElement {
             web: t("shareApp.links.web"),
           }}
           storeLinks={shareAppStoreLinks}
-          webRoute={reviewRoute}
           webHref={webHref}
           gridTestId="share-app-platform-links"
           webHrefTestId="share-app-web-link-value"
