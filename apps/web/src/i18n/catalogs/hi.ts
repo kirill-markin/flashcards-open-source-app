@@ -753,6 +753,7 @@ const hiCatalog: TranslationCatalog = {
     success: "{{count}} कार्ड इम्पोर्ट किए गए। सिंक उन्हें आपके डिवाइस पर उपलब्ध कर देगा।",
     successWithTag: "{{tag}} टैग के साथ {{count}} कार्ड इम्पोर्ट किए गए। सिंक उन्हें आपके डिवाइस पर उपलब्ध कर देगा।",
     successTitle: "इम्पोर्ट पूरा हुआ",
+    successAccountLabel: "खाता",
     successWorkspaceLabel: "वर्कस्पेस",
     successSameEmailNote: "ये कार्ड देखने के लिए मोबाइल ऐप्स में उसी ईमेल से साइन इन करें।",
     successSameEmailNoteWithAddress: "ये कार्ड देखने के लिए मोबाइल ऐप्स में {{email}} से साइन इन करें।",

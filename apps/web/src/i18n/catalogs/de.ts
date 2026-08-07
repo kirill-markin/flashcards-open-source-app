@@ -753,6 +753,7 @@ const deCatalog: TranslationCatalog = {
     success: "{{count}} Karten importiert. Durch die Synchronisierung werden sie auf deinen Geräten verfügbar.",
     successWithTag: "{{count}} Karten mit Tag {{tag}} importiert. Durch die Synchronisierung werden sie auf deinen Geräten verfügbar.",
     successTitle: "Import abgeschlossen",
+    successAccountLabel: "Konto",
     successWorkspaceLabel: "Arbeitsbereich",
     successSameEmailNote: "Melde dich in den mobilen Apps mit derselben E-Mail-Adresse an, um diese Karten zu sehen.",
     successSameEmailNoteWithAddress: "Melde dich in den mobilen Apps mit {{email}} an, um diese Karten zu sehen.",

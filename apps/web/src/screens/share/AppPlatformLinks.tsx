@@ -51,7 +51,7 @@ type AppPlatformLinksProps = Readonly<{
   webHrefTestId: string;
 }>;
 
-function WebAppIcon(): ReactElement {
+export function WebAppIcon(): ReactElement {
   return (
     <svg
       viewBox="0 0 24 24"
