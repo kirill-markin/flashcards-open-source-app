@@ -630,7 +630,7 @@ export function AppShell(): ReactElement {
             {availableWorkspaces.map((workspace) => (
               <button
                 key={workspace.workspaceId}
-                className="ghost-btn workspace-choice-btn"
+                className="workspace-choice-btn"
                 type="button"
                 onClick={() => void chooseWorkspace(workspace.workspaceId)}
                 disabled={isChoosingWorkspace}

@@ -251,6 +251,10 @@
   cursor: pointer;
 }
 
+.account-menu-item + .account-menu-item {
+  margin-top: 4px;
+}
+
 .account-menu-link {
   text-decoration: none;
 }
