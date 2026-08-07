@@ -55,6 +55,7 @@ Swift builds and tests run in Xcode Cloud, whose workflow definitions live in Ap
 Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.
 Details, rollback rules, and live smoke references: [docs/release-gates.md](docs/release-gates.md).
 Agent SQL executions emit one structured CloudWatch record per run on every surface; the record fields and the failure-rate queries live in [docs/agent-sql-telemetry.md](docs/agent-sql-telemetry.md).
+iOS `WatchdogTermination` events carry no stack trace by design; the memory fields carried on the app's own breadcrumbs and the decision tree for reading such an event live in [docs/ios-memory-diagnostics.md](docs/ios-memory-diagnostics.md).
 
 ## Repository Strategy
 
