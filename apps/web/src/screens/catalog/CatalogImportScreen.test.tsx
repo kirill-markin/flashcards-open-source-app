@@ -626,6 +626,7 @@ describe("CatalogImportScreen", () => {
 
     expect(container.querySelector("[data-testid='catalog-import-success']")).not.toBeNull();
     expect(container.querySelector("[data-testid='catalog-import-success-workspace']")?.textContent).toBe("Primary");
+    expect(container.querySelector("[data-testid='catalog-import-success-account']")?.textContent).toBe("user@example.com");
     // The jsdom user agent is a desktop string, so both store options keep their QR code.
     const platformLinks = Array.from(container.querySelectorAll("[data-testid^='catalog-import-success-link-']"));
     expect(platformLinks.map((link) => [

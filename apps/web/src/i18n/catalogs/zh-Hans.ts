@@ -753,6 +753,7 @@ export const zhHansCatalog = {
     success: "已导入 {{count}} 张卡片。同步后可在你的设备上使用。",
     successWithTag: "已导入 {{count}} 张带有标签 {{tag}} 的卡片。同步后可在你的设备上使用。",
     successTitle: "导入完成",
+    successAccountLabel: "账户",
     successWorkspaceLabel: "工作区",
     successSameEmailNote: "在移动应用中使用同一个电子邮件地址登录即可看到这些卡片。",
     successSameEmailNoteWithAddress: "在移动应用中使用 {{email}} 登录即可看到这些卡片。",

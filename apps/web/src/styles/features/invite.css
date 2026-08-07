@@ -236,6 +236,12 @@
   font-size: 14px;
 }
 
+/* The account address is the detail the visitor has to reuse on another device. */
+.catalog-import-target-account {
+  color: var(--accent-strong);
+  overflow-wrap: anywhere;
+}
+
 .catalog-import-advanced {
   border-radius: var(--radius-md);
   background: var(--surface-hover);
@@ -335,9 +341,16 @@
   outline-offset: 3px;
 }
 
+/* The Google Play lockup is wider than the App Store badge, so it is capped lower to read as the same weight. */
+.catalog-import-success-option .invite-platform-badge-google-play {
+  max-height: 34px;
+}
+
 .catalog-import-success-option-web {
   grid-column: 1 / -1;
   min-height: 64px;
+  flex-direction: row;
+  gap: 10px;
 }
 
 .catalog-import-success-option-label {

@@ -753,6 +753,7 @@ export const jaCatalog = {
     success: "{{count}}件のカードをインポートしました。同期後、各デバイスで利用できます。",
     successWithTag: "{{tag}} タグ付きで {{count}}件のカードをインポートしました。同期後、各デバイスで利用できます。",
     successTitle: "インポートが完了しました",
+    successAccountLabel: "アカウント",
     successWorkspaceLabel: "ワークスペース",
     successSameEmailNote: "これらのカードを見るには、モバイルアプリで同じメールアドレスでサインインしてください。",
     successSameEmailNoteWithAddress: "これらのカードを見るには、モバイルアプリで {{email}} でサインインしてください。",

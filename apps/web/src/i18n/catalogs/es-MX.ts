@@ -753,6 +753,7 @@ const esMxCatalog: TranslationCatalog = {
     success: "Se importaron {{count}} tarjetas. La sincronización las mostrará en tus dispositivos.",
     successWithTag: "Se importaron {{count}} tarjetas con la etiqueta {{tag}}. La sincronización las mostrará en tus dispositivos.",
     successTitle: "Importación completada",
+    successAccountLabel: "Cuenta",
     successWorkspaceLabel: "Espacio de trabajo",
     successSameEmailNote: "Inicia sesión en las apps móviles con el mismo correo electrónico para ver estas tarjetas.",
     successSameEmailNoteWithAddress: "Inicia sesión en las apps móviles con {{email}} para ver estas tarjetas.",

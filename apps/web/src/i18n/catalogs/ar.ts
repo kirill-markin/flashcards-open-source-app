@@ -753,6 +753,7 @@ const arCatalog: TranslationCatalog = {
     success: "تم استيراد {{count}} بطاقة. ستجعلها المزامنة متاحة على أجهزتك.",
     successWithTag: "تم استيراد {{count}} بطاقة مع الوسم {{tag}}. ستجعلها المزامنة متاحة على أجهزتك.",
     successTitle: "اكتمل الاستيراد",
+    successAccountLabel: "الحساب",
     successWorkspaceLabel: "مساحة العمل",
     successSameEmailNote: "سجّل الدخول إلى تطبيقات الهاتف بالبريد الإلكتروني نفسه لرؤية هذه البطاقات.",
     successSameEmailNoteWithAddress: "سجّل الدخول إلى تطبيقات الهاتف باستخدام {{email}} لرؤية هذه البطاقات.",

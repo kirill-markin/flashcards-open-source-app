@@ -751,6 +751,7 @@ const enCatalog = {
     success: "Imported {{count}} cards. Sync will make them available on your devices.",
     successWithTag: "Imported {{count}} cards with tag {{tag}}. Sync will make them available on your devices.",
     successTitle: "Import complete",
+    successAccountLabel: "Account",
     successWorkspaceLabel: "Workspace",
     successSameEmailNote: "Sign in to the mobile apps with the same email to see these cards.",
     successSameEmailNoteWithAddress: "Sign in to the mobile apps with {{email}} to see these cards.",
