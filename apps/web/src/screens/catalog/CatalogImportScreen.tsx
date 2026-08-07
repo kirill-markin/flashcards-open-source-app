@@ -854,7 +854,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       ) : null}
       <CatalogImportContextCard
         catalogContext={catalogContext}
-        accountEmail={cloudSettings?.linkedEmail ?? session?.profile.email ?? null}
+        accountEmail={step === "done" ? null : (cloudSettings?.linkedEmail ?? session?.profile.email ?? null)}
       />
       {workspaceErrorMessage === "" ? null : (
         <section className="content-card invite-panel" data-testid="catalog-import-workspace-error">
