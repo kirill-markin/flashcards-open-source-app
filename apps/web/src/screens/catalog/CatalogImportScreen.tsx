@@ -148,7 +148,7 @@ function CatalogImportContextCard(props: Readonly<{
         {t("catalogImport.author", { author: catalogContext.author.displayName })}
       </p>
       {accountEmail === null ? null : (
-        <p className="subtitle" data-testid="catalog-import-account-email">
+        <p className="subtitle catalog-import-account-email" data-testid="catalog-import-account-email">
           {t("catalogImport.accountEmail", { email: accountEmail })}
         </p>
       )}
@@ -161,7 +161,7 @@ function CatalogImportBackNav(props: Readonly<{ isDisabled: boolean; onBack: () 
   const { t } = useI18n();
 
   return (
-    <nav className="catalog-import-back-nav">
+    <div className="catalog-import-back-nav">
       <button
         className="ghost-btn catalog-import-back-button"
         type="button"
@@ -183,7 +183,7 @@ function CatalogImportBackNav(props: Readonly<{ isDisabled: boolean; onBack: () 
           <path d="M15 5l-7 7 7 7" />
         </svg>
       </button>
-    </nav>
+    </div>
   );
 }
 

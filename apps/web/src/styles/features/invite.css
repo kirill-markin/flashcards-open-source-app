@@ -214,6 +214,11 @@
   line-height: 1.35;
 }
 
+/* An email address is one unbreakable token, so it has to wrap inside the fixed-width card. */
+.catalog-import-account-email {
+  overflow-wrap: anywhere;
+}
+
 .catalog-import-workspace-option-active {
   background: var(--accent-soft);
   color: var(--accent-strong);
