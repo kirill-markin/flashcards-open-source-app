@@ -302,6 +302,12 @@
   height: 20px;
 }
 
+/* The chevron path is hardcoded left-pointing, so RTL locales need it mirrored. Only the icon flips
+   so the button's focus ring geometry stays untouched. */
+[dir="rtl"] .catalog-import-back-icon {
+  transform: scaleX(-1);
+}
+
 .catalog-import-success-header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
