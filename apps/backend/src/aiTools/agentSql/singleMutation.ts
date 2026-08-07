@@ -9,6 +9,7 @@ import {
 } from "./operations";
 import { executeSqlSelect, type SqlRow } from "../sqlDialect";
 import {
+  MAX_SQL_LIMIT,
   assertSqlMutationRecordLimit,
   buildCardUpdateInput,
   buildCreateCardInput,
@@ -25,6 +26,11 @@ import {
 import { loadSelectRows } from "./readExecution";
 import { HttpError } from "../../shared/errors";
 
+/**
+ * Resolves target rows one row past the per-statement write limit so a broader
+ * match set reaches `assertSqlMutationRecordLimit` and is rejected, instead of
+ * being truncated to the first `MAX_SQL_LIMIT` rows and written as a success.
+ */
 function selectTargetRows(
   statement: Extract<AgentSqlMutationStatement, Readonly<{ type: "update" | "delete" }>>,
   rows: ReadonlyArray<SqlRow>,
@@ -37,10 +43,10 @@ function selectTargetRows(
       unnestColumnName: null,
     },
     selectItems: [{ type: "wildcard" }],
-    predicateClauses: statement.predicateClauses,
+    predicate: statement.predicate,
     groupBy: [],
     orderBy: [],
-    limit: 100,
+    limit: MAX_SQL_LIMIT + 1,
     offset: 0,
     normalizedSql: statement.normalizedSql,
   }, rows, Number.MAX_SAFE_INTEGER).rows;

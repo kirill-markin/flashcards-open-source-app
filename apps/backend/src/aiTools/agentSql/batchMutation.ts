@@ -62,6 +62,11 @@ function buildMutationMetadata(
   };
 }
 
+/**
+ * Resolves target rows one row past the per-statement write limit so a broader
+ * match set reaches `assertSqlMutationRecordLimit` and fails the whole batch,
+ * instead of being truncated to the first `MAX_SQL_LIMIT` rows and written.
+ */
 function selectMutationRows(
   statement: Extract<AgentSqlMutationStatement, Readonly<{ type: "update" | "delete" }>>,
   state: MutationBatchState,
@@ -78,10 +83,10 @@ function selectMutationRows(
       unnestColumnName: null,
     },
     selectItems: [{ type: "wildcard" }],
-    predicateClauses: statement.predicateClauses,
+    predicate: statement.predicate,
     groupBy: [],
     orderBy: [],
-    limit: MAX_SQL_LIMIT,
+    limit: MAX_SQL_LIMIT + 1,
     offset: 0,
     normalizedSql: statement.normalizedSql,
   }, currentRows, Number.MAX_SAFE_INTEGER).rows;

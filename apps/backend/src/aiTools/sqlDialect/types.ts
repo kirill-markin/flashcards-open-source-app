@@ -58,6 +58,7 @@ export type SqlPredicate =
     columnName: string;
     pattern: string;
     caseInsensitive: boolean;
+    isNegated: boolean;
   }>
   | Readonly<{
     type: "in";
@@ -68,6 +69,11 @@ export type SqlPredicate =
   }>
   | Readonly<{
     type: "overlap";
+    columnName: string;
+    values: ReadonlyArray<string>;
+  }>
+  | Readonly<{
+    type: "array_equals";
     columnName: string;
     values: ReadonlyArray<string>;
   }>
@@ -84,7 +90,19 @@ export type SqlPredicate =
     query: string;
   }>;
 
-export type SqlPredicateClause = ReadonlyArray<SqlPredicate>;
+/**
+ * WHERE clauses are a boolean expression tree so parenthesized AND/OR groups
+ * keep SQL precedence, where AND binds tighter than OR.
+ */
+export type SqlPredicateExpression =
+  | Readonly<{
+    type: "and" | "or";
+    operands: ReadonlyArray<SqlPredicateExpression>;
+  }>
+  | Readonly<{
+    type: "predicate";
+    predicate: SqlPredicate;
+  }>;
 
 export type SqlSelectOrderBy =
   | Readonly<{
@@ -124,7 +142,7 @@ export type SqlSelectStatement = Readonly<{
   type: "select";
   source: SqlFromSource;
   selectItems: ReadonlyArray<SqlSelectItem>;
-  predicateClauses: ReadonlyArray<SqlPredicateClause>;
+  predicate: SqlPredicateExpression | null;
   groupBy: ReadonlyArray<string>;
   orderBy: ReadonlyArray<SqlSelectOrderBy>;
   limit: number | null;
@@ -159,14 +177,14 @@ export type SqlUpdateStatement = Readonly<{
     columnName: string;
     value: SqlLiteral | ReadonlyArray<string>;
   }>>;
-  predicateClauses: ReadonlyArray<SqlPredicateClause>;
+  predicate: SqlPredicateExpression | null;
   normalizedSql: string;
 }>;
 
 export type SqlDeleteStatement = Readonly<{
   type: "delete";
   resourceName: "cards" | "decks";
-  predicateClauses: ReadonlyArray<SqlPredicateClause>;
+  predicate: SqlPredicateExpression | null;
   normalizedSql: string;
 }>;
 

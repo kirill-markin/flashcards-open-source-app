@@ -219,10 +219,10 @@ get:
               an import tag. The install creates normal cards in catalog ordinal
               order and logical media assets without copying object-storage bytes.
               SELECT returns at most
-              100 rows per statement, and INSERT, UPDATE, and DELETE may affect
-              at most 100 rows per statement. If you need more than 100
-              writes, split the work into multiple batches of at most 100
-              records across separate SQL statements or separate tool calls.
+              100 rows per statement. Bulk-write split arithmetic: at most 100
+              rows affected per statement, at most 50 statements per batch, and
+              a batch must not mix read and write statements. Split larger work
+              across separate statements or separate requests.
               Use
               https://api.flashcards-open-source-app.com/v1/agent/openapi.json
               for the published external agent contract. The SQL surface is intentionally limited

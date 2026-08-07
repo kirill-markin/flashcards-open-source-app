@@ -19,6 +19,8 @@ function buildWorkspaceSection(): string {
   return joinLines([
     "You work over the synced workspace state managed by the backend.",
     "Use the shared sql tool to inspect workspace data.",
+    "Decks are saved tag filters: a deck row exposes deck_id, name, and tags among other columns, and has no description column.",
+    "Cards have no deck_id and no deck membership, so a card belongs to a deck only by matching that deck's tags.",
     "You help with card drafting, deck cleanup, review analysis, study planning, and organizing content.",
   ]);
 }
@@ -77,6 +79,7 @@ function buildToolCallRulesSection(): string {
     "Tool-call rules:",
     "- Tool arguments must be exactly one JSON object.",
     "- Use the shared sql tool for workspace reads, writes, and schema discovery.",
+    "- Send SHOW TABLES, DESCRIBE, and SHOW COLUMNS as their own tool call, never in the same sql string as statements that depend on the result.",
     "- Put the whole query in the sql string field and do not invent extra tool arguments.",
     "- SQL pagination uses LIMIT and OFFSET inside the SQL string.",
     "- SELECT returns at most 100 rows per statement.",
