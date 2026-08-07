@@ -730,6 +730,7 @@ export const jaCatalog = {
     loading: "カタログパッケージを読み込んでいます...",
     packageSummary: "{{title}} — {{count}}",
     author: "作成者: {{author}}",
+    accountEmail: "{{email}} でサインイン中",
     signInTitle: "サインインまたはアカウント作成",
     signInBody: "共通のログイン・登録画面を使い、ここに戻ってワークスペースを選択し、パッケージをインポートします。",
     signInAction: "ログインまたは登録へ進む",
