@@ -242,6 +242,18 @@ struct FlashcardsApp: App {
                     self.store.reloadReviewReminderAttentionState()
                     self.store.reconcileReviewReminderAttentionAfterReviewLogs(now: now)
                 }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
+                    logAppLifecycleBreadcrumb(
+                        action: .memoryWarningReceived,
+                        store: self.store,
+                        stage: "memory_warning",
+                        scenePhase: self.scenePhase,
+                        selectedTab: self.navigation.selectedTab,
+                        isStartupReady: self.isStartupReadyForBackgroundWork,
+                        isRecoveryGateActive: self.isCloudCredentialRecoveryGateActive,
+                        messageSummary: nil
+                    )
+                }
                 .task(id: self.isAppNotificationTapConsumptionReady) {
                     await self.consumePendingAppNotificationTapIfNeeded()
                 }

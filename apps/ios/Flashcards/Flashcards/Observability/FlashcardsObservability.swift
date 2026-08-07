@@ -2,6 +2,7 @@ import Foundation
 
 enum FlashcardsObservability {
     static func configure(bundle: Bundle, processInfo: ProcessInfo) {
+        startAppUptimeReference(processInfo: processInfo)
         SentryObservabilityAdapter.configure(bundle: bundle, processInfo: processInfo)
     }
 

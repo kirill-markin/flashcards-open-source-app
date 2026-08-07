@@ -178,8 +178,25 @@ extension SentryObservabilityAdapter {
         let breadcrumb: Breadcrumb = Breadcrumb(level: level, category: category)
         breadcrumb.type = "default"
         breadcrumb.message = message
-        breadcrumb.data = sanitizedDictionary(data) ?? [:]
+        breadcrumb.data = sanitizedDictionary(self.dataWithProcessDiagnostics(data)) ?? [:]
         SentrySDK.addBreadcrumb(breadcrumb)
+    }
+
+    /// Sentry never puts memory data on a watchdog termination event, but it
+    /// does replay breadcrumbs onto it, so every breadcrumb carries the current
+    /// process state. A caller-supplied key of the same name wins.
+    private static func dataWithProcessDiagnostics(_ data: [String: Any]) -> [String: Any] {
+        let processInfo: ProcessInfo = ProcessInfo.processInfo
+        var enrichedData: [String: Any] = [
+            "app_memory_footprint_bytes": currentMemoryFootprintBytes().map { footprintBytes in String(footprintBytes) } ?? "",
+            "app_memory_available_bytes": String(availableMemoryBytes()),
+            "thermal_state": currentThermalStateName(processInfo: processInfo),
+            "app_uptime_seconds": appUptimeSeconds(processInfo: processInfo).map { uptimeSeconds in String(uptimeSeconds) } ?? ""
+        ]
+        for (key, value) in data {
+            enrichedData[key] = value
+        }
+        return enrichedData
     }
 
     private static func applyScope(_ scope: Scope, payload: ObservationPayload) {

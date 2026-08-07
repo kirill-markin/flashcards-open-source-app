@@ -85,6 +85,7 @@ enum AppLifecycleAction: String, Sendable, Hashable {
     case progressContextRefresh = "progress_context_refresh"
     case launchCloudSyncTriggered = "launch_cloud_sync_triggered"
     case launchNotificationReconcileTriggered = "launch_notification_reconcile_triggered"
+    case memoryWarningReceived = "memory_warning_received"
 }
 
 struct AppLifecycleObservation: Sendable, Hashable {
