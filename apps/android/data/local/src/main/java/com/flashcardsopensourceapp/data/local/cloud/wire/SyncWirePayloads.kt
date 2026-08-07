@@ -210,23 +210,6 @@ internal fun buildWorkspaceSchedulerSettingsBootstrapEntryJson(
         )
 }
 
-internal fun buildMediaAssetBootstrapEntryJson(
-    mediaAsset: MediaAssetEntity,
-    lastOperationId: String
-): JSONObject {
-    return JSONObject()
-        .put("entityType", "media_asset")
-        .put("entityId", mediaAsset.mediaAssetId)
-        .put("action", "upsert")
-        .put(
-            "payload",
-            buildMediaAssetBootstrapPayloadJson(
-                mediaAsset = mediaAsset,
-                lastOperationId = lastOperationId
-            )
-        )
-}
-
 internal fun buildReviewHistoryImportEventJson(reviewLog: ReviewLogEntity): JSONObject {
     return JSONObject()
         .put("reviewEventId", reviewLog.reviewLogId)
@@ -539,15 +522,4 @@ internal fun toCardSummary(card: CardWithRelations): CardSummary {
         fsrsScheduledDays = card.card.fsrsScheduledDays,
         deletedAtMillis = card.card.deletedAtMillis
     )
-}
-
-private fun buildMediaAssetBootstrapPayloadJson(
-    mediaAsset: MediaAssetEntity,
-    lastOperationId: String
-): JSONObject {
-    return buildMediaAssetOutboxPayloadJson(mediaAsset = mediaAsset)
-        .put("clientUpdatedAt", formatIsoTimestamp(mediaAsset.clientUpdatedAtMillis))
-        .put("lastModifiedByReplicaId", mediaAsset.lastModifiedByReplicaId)
-        .put("lastOperationId", lastOperationId)
-        .put("updatedAt", formatIsoTimestamp(mediaAsset.updatedAtMillis))
 }

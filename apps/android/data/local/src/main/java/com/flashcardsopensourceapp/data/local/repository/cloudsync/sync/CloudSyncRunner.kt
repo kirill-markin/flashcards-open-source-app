@@ -263,6 +263,9 @@ private suspend fun runBootstrapHydrationWithForkRecovery(
             )
 
             if (bootstrapResponse.remoteIsEmpty) {
+                // Bootstrap entries never carry media assets, so queue the
+                // media-assets uploads the local cards still reference first.
+                syncLocalStore.prepareReferencedMediaAssetUploads(workspaceId = workspaceId)
                 val bootstrapEntries = syncLocalStore.buildBootstrapEntries(workspaceId)
                 if (bootstrapEntries.length() > 0) {
                     try {

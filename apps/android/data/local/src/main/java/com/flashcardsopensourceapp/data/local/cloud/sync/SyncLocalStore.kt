@@ -46,7 +46,8 @@ class SyncLocalStore(
     private val bootstrapLocalStore = SyncBootstrapLocalStore(
         database = database,
         outboxLocalStore = outboxLocalStore,
-        hotStateLocalStore = hotStateLocalStore
+        hotStateLocalStore = hotStateLocalStore,
+        timeProvider = timeProvider
     )
     private val reviewHistoryLocalStore = SyncReviewHistoryLocalStore(
         database = database,
@@ -220,6 +221,10 @@ class SyncLocalStore(
 
     suspend fun bindGuestUpgradeToLinkedWorkspace(workspace: CloudWorkspaceSummary): WorkspaceEntity {
         return workspaceIdentityLocalStore.bindGuestUpgradeToLinkedWorkspace(workspace = workspace)
+    }
+
+    suspend fun prepareReferencedMediaAssetUploads(workspaceId: String) {
+        bootstrapLocalStore.prepareReferencedMediaAssetUploads(workspaceId = workspaceId)
     }
 
     suspend fun buildBootstrapEntries(workspaceId: String): JSONArray {

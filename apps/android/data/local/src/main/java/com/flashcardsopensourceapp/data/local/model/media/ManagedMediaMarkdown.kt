@@ -33,6 +33,49 @@ fun extractManagedMediaAssetReferences(markdown: String): Set<String> {
         .toSet()
 }
 
+/**
+ * A card can reference managed media from either face, so every flow that needs
+ * the assets a card depends on — sync bootstrap upload preparation and local
+ * sync diagnostics — reads them through this one helper instead of repeating the
+ * `fcasset:` scan.
+ */
+fun managedMediaAssetIdsReferencedByCardText(
+    frontText: String,
+    backText: String
+): Set<String> {
+    return extractManagedMediaAssetReferences(markdown = frontText) +
+        extractManagedMediaAssetReferences(markdown = backText)
+}
+
+/**
+ * Card text points at managed media through `fcasset:` links, so any flow that
+ * re-identifies media assets, such as the workspace identity fork, must carry
+ * the card bodies onto the new asset ids. References without a mapping are left
+ * untouched.
+ */
+fun rewriteManagedMediaAssetReferences(
+    markdown: String,
+    mediaAssetIdsBySourceId: Map<String, String>
+): String {
+    if (mediaAssetIdsBySourceId.isEmpty()) {
+        return markdown
+    }
+
+    return managedMediaAssetReferenceRegex.replace(input = markdown) { matchResult ->
+        val rawReference: String = matchResult.groupValues[1]
+        val mediaAssetId: String? = parseManagedMediaReference(reference = matchResult.value)?.mediaAssetId
+        val rewrittenMediaAssetId: String? = mediaAssetId?.let(mediaAssetIdsBySourceId::get)
+        if (mediaAssetId == null || rewrittenMediaAssetId == null) {
+            matchResult.value
+        } else {
+            managedMediaAssetSchemePrefix + rawReference.replaceFirst(
+                oldValue = mediaAssetId,
+                newValue = rewrittenMediaAssetId
+            )
+        }
+    }
+}
+
 fun parseManagedMediaReference(reference: String): ManagedMediaReference? {
     val normalizedReference: String = reference.trim()
     if (normalizedReference.startsWith(prefix = managedMediaAssetSchemePrefix, ignoreCase = true).not()) {

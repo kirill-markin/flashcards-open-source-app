@@ -1,20 +1,41 @@
 package com.flashcardsopensourceapp.data.local.cloud.sync
 
+import android.util.Log
 import androidx.room.withTransaction
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.entities.MediaAssetEntity
+import com.flashcardsopensourceapp.data.local.database.entities.MediaBlobCacheEntity
+import com.flashcardsopensourceapp.data.local.database.entities.MediaTransferQueueEntity
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapEntry
 import com.flashcardsopensourceapp.data.local.cloud.wire.buildCardBootstrapEntryJson
 import com.flashcardsopensourceapp.data.local.cloud.wire.buildDeckBootstrapEntryJson
-import com.flashcardsopensourceapp.data.local.cloud.wire.buildMediaAssetBootstrapEntryJson
 import com.flashcardsopensourceapp.data.local.cloud.wire.buildReviewHistoryImportEventJson
 import com.flashcardsopensourceapp.data.local.cloud.wire.buildWorkspaceSchedulerSettingsBootstrapEntryJson
 import com.flashcardsopensourceapp.data.local.cloud.wire.toCardSummary
 import com.flashcardsopensourceapp.data.local.model.media.MediaTransferKind
 import com.flashcardsopensourceapp.data.local.model.media.MediaTransferStatus
+import com.flashcardsopensourceapp.data.local.model.media.managedMediaAssetIdsReferencedByCardText
+import com.flashcardsopensourceapp.data.local.model.media.normalizeMediaSha256
 import com.flashcardsopensourceapp.data.local.model.sync.SyncEntityType
+import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import java.util.UUID
+
+private const val bootstrapMediaUploadLogTag: String = "FlashcardsBootstrapMedia"
+
+/**
+ * Only an upload that has not finished yet makes a new bootstrap upload
+ * redundant. A `succeeded` row deliberately does not count: after a workspace
+ * fork it describes an upload made under the source workspace and source media
+ * asset id, so the destination workspace still has to register the asset.
+ * Mirrors the iOS `.pendingOnly` policy in
+ * `apps/ios/Flashcards/Flashcards/Database/MediaTransferStore/MediaTransferStore.swift`.
+ */
+private val pendingUploadMediaTransferStatuses: List<String> = listOf(
+    MediaTransferStatus.QUEUED.wireKey,
+    MediaTransferStatus.IN_PROGRESS.wireKey
+)
 
 internal data class PendingLocalHotEntityKey(
     val entityType: SyncEntityType,
@@ -29,8 +50,16 @@ internal data class BootstrapApplyResult(
 internal class SyncBootstrapLocalStore(
     private val database: AppDatabase,
     private val outboxLocalStore: SyncOutboxLocalStore,
-    private val hotStateLocalStore: SyncHotStateLocalStore
+    private val hotStateLocalStore: SyncHotStateLocalStore,
+    private val timeProvider: TimeProvider
 ) {
+    /**
+     * Media assets are registered remotely only through the media-assets upload
+     * API, and sync replication rejects `media_asset` writes outright, so the
+     * bootstrap entries here stay limited to cards, decks and workspace
+     * scheduler settings. Mirrors `loadHotBootstrapEntries` in
+     * `apps/ios/Flashcards/Flashcards/Database/LocalDatabase/Sync/LocalDatabase+Sync.swift`.
+     */
     suspend fun buildBootstrapEntries(workspaceId: String): JSONArray {
         val entries = JSONArray()
         database.cardDao().observeCardsWithRelations().first()
@@ -56,20 +85,6 @@ internal class SyncBootstrapLocalStore(
                 )
             }
 
-        database.mediaAssetDao().loadMediaAssetsExcludingPendingUploads(
-            workspaceId = workspaceId,
-            uploadKind = MediaTransferKind.UPLOAD.wireKey,
-            succeededStatus = MediaTransferStatus.SUCCEEDED.wireKey
-        )
-            .forEach { mediaAsset ->
-                entries.put(
-                    buildMediaAssetBootstrapEntryJson(
-                        mediaAsset = mediaAsset,
-                        lastOperationId = mediaAsset.lastOperationId
-                    )
-                )
-            }
-
         val settings = database.workspaceSchedulerSettingsDao().loadWorkspaceSchedulerSettings(workspaceId = workspaceId)
         if (settings != null) {
             entries.put(
@@ -82,6 +97,98 @@ internal class SyncBootstrapLocalStore(
         }
 
         return entries
+    }
+
+    /**
+     * Queues a media-assets upload for every asset the workspace's active cards
+     * still reference, so a workspace bootstrapped into an empty remote — most
+     * notably one forked from a guest workspace at sign-in — registers its
+     * images through the upload API that the bootstrap entries cannot carry.
+     * Mirrors `prepareReferencedMediaAssetUploadsForHotBootstrap` in
+     * `apps/ios/Flashcards/Flashcards/Database/LocalDatabase/Sync/LocalDatabase+Sync.swift`.
+     */
+    suspend fun prepareReferencedMediaAssetUploads(workspaceId: String) {
+        val referencedMediaAssetIds: List<String> = database.cardDao().loadCards(workspaceId = workspaceId)
+            .filter { card -> card.deletedAtMillis == null }
+            .flatMapTo(destination = mutableSetOf()) { card ->
+                managedMediaAssetIdsReferencedByCardText(
+                    frontText = card.frontText,
+                    backText = card.backText
+                )
+            }
+            .sorted()
+        if (referencedMediaAssetIds.isEmpty()) {
+            return
+        }
+
+        database.withTransaction {
+            val mediaAssetsById: Map<String, MediaAssetEntity> = database.mediaAssetDao()
+                .loadMediaAssets(workspaceId = workspaceId)
+                .associateBy { mediaAsset -> mediaAsset.mediaAssetId }
+            referencedMediaAssetIds.forEach { mediaAssetId ->
+                enqueueReferencedMediaAssetUpload(
+                    workspaceId = workspaceId,
+                    mediaAssetId = mediaAssetId,
+                    mediaAsset = mediaAssetsById[mediaAssetId]
+                )
+            }
+        }
+    }
+
+    private suspend fun enqueueReferencedMediaAssetUpload(
+        workspaceId: String,
+        mediaAssetId: String,
+        mediaAsset: MediaAssetEntity?
+    ) {
+        if (mediaAsset == null || mediaAsset.deletedAtMillis != null) {
+            logSkippedReferencedMediaAssetUpload(
+                workspaceId = workspaceId,
+                mediaAssetId = mediaAssetId,
+                reason = if (mediaAsset == null) "missingLocalMediaAsset" else "deletedMediaAsset"
+            )
+            return
+        }
+
+        val sha256: String = normalizeMediaSha256(rawSha256 = mediaAsset.sha256)
+        val mediaBlobCache: MediaBlobCacheEntity? = database.mediaTransferDao().loadMediaBlobCache(sha256 = sha256)
+        if (mediaBlobCache == null) {
+            logSkippedReferencedMediaAssetUpload(
+                workspaceId = workspaceId,
+                mediaAssetId = mediaAssetId,
+                reason = "missingLocalMediaBlob"
+            )
+            return
+        }
+        val hasPendingUpload: Boolean = database.mediaTransferDao().hasMediaTransferForMediaAsset(
+            workspaceId = workspaceId,
+            mediaAssetId = mediaAssetId,
+            sha256 = sha256,
+            kind = MediaTransferKind.UPLOAD.wireKey,
+            statuses = pendingUploadMediaTransferStatuses
+        )
+        if (hasPendingUpload) {
+            return
+        }
+
+        val nowMillis: Long = timeProvider.currentTimeMillis()
+        database.mediaTransferDao().upsertMediaTransfer(
+            mediaTransfer = MediaTransferQueueEntity(
+                transferId = UUID.randomUUID().toString(),
+                workspaceId = workspaceId,
+                mediaAssetId = mediaAssetId,
+                kind = MediaTransferKind.UPLOAD.wireKey,
+                status = MediaTransferStatus.QUEUED.wireKey,
+                sha256 = sha256,
+                mimeType = mediaAsset.mimeType,
+                sizeBytes = mediaAsset.sizeBytes,
+                localRelativePath = mediaBlobCache.localRelativePath,
+                attemptCount = 0,
+                nextAttemptAtMillis = nowMillis,
+                lastError = null,
+                createdAtMillis = nowMillis,
+                updatedAtMillis = nowMillis
+            )
+        )
     }
 
     suspend fun buildReviewHistoryImportEvents(workspaceId: String): JSONArray {
@@ -137,6 +244,18 @@ internal class SyncBootstrapLocalStore(
                 .any { pendingHotEntityKey -> pendingHotEntityKey in appliedHotEntityKeys }
         }
     }
+}
+
+private fun logSkippedReferencedMediaAssetUpload(
+    workspaceId: String,
+    mediaAssetId: String,
+    reason: String
+) {
+    Log.w(
+        bootstrapMediaUploadLogTag,
+        "outcome=skippedReferencedMediaAssetUpload workspaceId=$workspaceId " +
+            "mediaAssetId=$mediaAssetId reason=$reason"
+    )
 }
 
 private fun RemoteBootstrapEntry.toPendingLocalHotEntityKey(): PendingLocalHotEntityKey? {

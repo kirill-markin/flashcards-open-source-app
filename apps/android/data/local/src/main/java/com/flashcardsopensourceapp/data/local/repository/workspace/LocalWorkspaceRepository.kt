@@ -18,7 +18,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.sync.DeviceDiagnosticsSummary
 import com.flashcardsopensourceapp.data.local.model.media.MediaTransferKind
 import com.flashcardsopensourceapp.data.local.model.media.MediaTransferStatus
-import com.flashcardsopensourceapp.data.local.model.media.extractManagedMediaAssetReferences
+import com.flashcardsopensourceapp.data.local.model.media.managedMediaAssetIdsReferencedByCardText
 import com.flashcardsopensourceapp.data.local.model.sync.LocalSyncDiagnosticsCardOutboxProblem
 import com.flashcardsopensourceapp.data.local.model.sync.LocalSyncDiagnosticsCardsSync
 import com.flashcardsopensourceapp.data.local.model.sync.LocalSyncDiagnosticsManagedMediaSync
@@ -361,8 +361,9 @@ class LocalWorkspaceRepository(
                 .map(LocalSyncDiagnosticsMediaAssetIdRow::mediaAssetId)
                 .toSet()
             val referencedMediaAssetIds: Set<String> = cardMarkdownRows
-                .flatMap(::extractManagedMediaReferences)
-                .toSet()
+                .flatMapTo(destination = mutableSetOf()) { row ->
+                    managedMediaAssetIdsReferencedByCardText(frontText = row.frontText, backText = row.backText)
+                }
             val missingMediaReferences: List<LocalSyncDiagnosticsMissingMediaReferenceProblem> =
                 makeMissingMediaReferenceProblems(
                     cardMarkdownRows = cardMarkdownRows,
@@ -416,17 +417,12 @@ class LocalWorkspaceRepository(
     }
 }
 
-private fun extractManagedMediaReferences(row: LocalSyncDiagnosticsCardMarkdownRow): Set<String> {
-    return extractManagedMediaAssetReferences(markdown = row.frontText) +
-        extractManagedMediaAssetReferences(markdown = row.backText)
-}
-
 private fun makeMissingMediaReferenceProblems(
     cardMarkdownRows: List<LocalSyncDiagnosticsCardMarkdownRow>,
     activeMediaAssetIds: Set<String>
 ): List<LocalSyncDiagnosticsMissingMediaReferenceProblem> {
     return cardMarkdownRows.flatMap { row ->
-        extractManagedMediaReferences(row = row)
+        managedMediaAssetIdsReferencedByCardText(frontText = row.frontText, backText = row.backText)
             .filter { mediaAssetId -> activeMediaAssetIds.contains(mediaAssetId).not() }
             .map { mediaAssetId ->
                 LocalSyncDiagnosticsMissingMediaReferenceProblem(
