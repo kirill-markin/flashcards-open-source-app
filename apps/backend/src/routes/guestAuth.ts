@@ -48,6 +48,8 @@ type GuestUpgradeCompleteEnvelope = Readonly<{
     cardIds: ReadonlyArray<string>;
     deckIds: ReadonlyArray<string>;
     reviewEventIds: ReadonlyArray<string>;
+    // Absent when replaying a guest upgrade recorded before media assets merged.
+    mediaAssetIds?: ReadonlyArray<string>;
   }>;
 }>;
 

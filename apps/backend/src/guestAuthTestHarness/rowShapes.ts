@@ -1,6 +1,8 @@
 import type {
   CardState,
   DeckState,
+  MediaAssetState,
+  MediaBlobState,
   ReviewEventState,
 } from "./models";
 
@@ -57,6 +59,45 @@ export function createDeckQueryRow(deck: DeckState): Readonly<Record<string, unk
     last_operation_id: deck.last_operation_id,
     updated_at: deck.updated_at,
     deleted_at: deck.deleted_at,
+  };
+}
+
+export function createMediaBlobQueryRow(mediaBlob: MediaBlobState): Readonly<Record<string, unknown>> {
+  return {
+    media_blob_id: mediaBlob.media_blob_id,
+    mime_type: mediaBlob.mime_type,
+    size_bytes: mediaBlob.size_bytes,
+    sha256: mediaBlob.sha256,
+    storage_key: mediaBlob.storage_key,
+    normalization_version: mediaBlob.normalization_version,
+    created_at: mediaBlob.created_at,
+    updated_at: mediaBlob.updated_at,
+  };
+}
+
+// Mirrors MEDIA_ASSET_COLUMNS over MEDIA_ASSET_JOIN_CLAUSE.
+export function createMediaAssetQueryRow(
+  mediaAsset: MediaAssetState,
+  mediaBlob: MediaBlobState,
+): Readonly<Record<string, unknown>> {
+  return {
+    media_asset_id: mediaAsset.media_asset_id,
+    workspace_id: mediaAsset.workspace_id,
+    media_blob_id: mediaBlob.media_blob_id,
+    mime_type: mediaBlob.mime_type,
+    size_bytes: mediaBlob.size_bytes,
+    sha256: mediaBlob.sha256,
+    storage_key: mediaBlob.storage_key,
+    blob_normalization_version: mediaBlob.normalization_version,
+    blob_created_at: mediaBlob.created_at,
+    blob_updated_at: mediaBlob.updated_at,
+    source_url: mediaAsset.source_url,
+    created_at: mediaAsset.created_at,
+    client_updated_at: mediaAsset.client_updated_at,
+    last_modified_by_replica_id: mediaAsset.last_modified_by_replica_id,
+    last_operation_id: mediaAsset.last_operation_id,
+    updated_at: mediaAsset.updated_at,
+    deleted_at: mediaAsset.deleted_at,
   };
 }
 

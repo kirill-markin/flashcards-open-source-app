@@ -1,9 +1,12 @@
 import { createHash } from "node:crypto";
 import type { GuestUpgradeCompleteCapabilities } from "../guestAuth";
+import { buildMediaBlobStorageKey } from "../mediaAssets/storageKeys";
+import { passthroughMediaBlobNormalizationVersion } from "../mediaAssets/types";
 import {
   membershipKey,
   type CardState,
   type InstallationState,
+  type MediaBlobState,
   type MutableState,
   type ReviewEventClientEventDedupMergeFixture,
   type UserSettingsState,
@@ -90,6 +93,29 @@ export function createWorkspaceState(
   };
 }
 
+/**
+ * Builds one deduplicated blob row. Its storage key is content-addressed from
+ * the digest exactly like the backend derives it, so a merged media asset that
+ * reuses this blob keeps the same bytes without any re-keying.
+ */
+export function createMediaBlobState(
+  mediaBlobId: string,
+  sha256: string,
+  mimeType: string,
+  sizeBytes: number,
+): MediaBlobState {
+  return {
+    media_blob_id: mediaBlobId,
+    sha256,
+    mime_type: mimeType,
+    size_bytes: sizeBytes,
+    storage_key: buildMediaBlobStorageKey(sha256),
+    normalization_version: passthroughMediaBlobNormalizationVersion,
+    created_at: "2026-04-02T13:00:00.000Z",
+    updated_at: "2026-04-02T13:00:00.000Z",
+  };
+}
+
 export function createMergeState(params: Readonly<{
   guestToken: string;
   guestSessionId: string;
@@ -170,6 +196,8 @@ export function createMergeState(params: Readonly<{
     cards: [],
     decks: [],
     reviewEvents: [],
+    mediaBlobs: [],
+    mediaAssets: [],
     guestUpgradeHistory: [],
     guestReplicaAliases: [],
     hotChanges: [],

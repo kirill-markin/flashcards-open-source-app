@@ -32,6 +32,10 @@ export type GuestUpgradeDroppedEntities = Readonly<{
   cardIds: ReadonlyArray<string>;
   deckIds: ReadonlyArray<string>;
   reviewEventIds: ReadonlyArray<string>;
+  // Added after the first dropped-entity clients shipped. Replayed
+  // auth.guest_upgrade_history rows written before media assets merged do not
+  // carry it, so readers must tolerate an absent array.
+  mediaAssetIds?: ReadonlyArray<string>;
 }>;
 
 export type GuestUpgradeCompletion = Readonly<{

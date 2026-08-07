@@ -115,6 +115,30 @@ export type ReviewEventState = Readonly<{
   reviewed_by_user_id?: string | null;
 }>;
 
+export type MediaBlobState = Readonly<{
+  media_blob_id: string;
+  sha256: string;
+  mime_type: string;
+  size_bytes: number;
+  storage_key: string;
+  normalization_version: string;
+  created_at: string;
+  updated_at: string;
+}>;
+
+export type MediaAssetState = Readonly<{
+  media_asset_id: string;
+  workspace_id: string;
+  media_blob_id: string;
+  source_url: string | null;
+  created_at: string;
+  client_updated_at: string;
+  last_modified_by_replica_id: string;
+  last_operation_id: string;
+  updated_at: string;
+  deleted_at: string | null;
+}>;
+
 export type WorkspaceMembershipRole = "owner" | "member";
 
 export type GuestUpgradeHistoryState = Readonly<{
@@ -131,6 +155,7 @@ export type GuestUpgradeHistoryState = Readonly<{
     cardIds: ReadonlyArray<string>;
     deckIds: ReadonlyArray<string>;
     reviewEventIds: ReadonlyArray<string>;
+    mediaAssetIds?: ReadonlyArray<string>;
   }> | null;
 }>;
 
@@ -194,6 +219,8 @@ export type MutableState = {
   cards: Array<CardState>;
   decks: Array<DeckState>;
   reviewEvents: Array<ReviewEventState>;
+  mediaBlobs: Array<MediaBlobState>;
+  mediaAssets: Array<MediaAssetState>;
   guestUpgradeHistory: Array<GuestUpgradeHistoryState>;
   guestReplicaAliases: Array<GuestReplicaAliasState>;
   hotChanges: Array<HotChangeState>;

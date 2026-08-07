@@ -4,6 +4,7 @@ export * from "./decks";
 export * from "./deletion";
 export * from "./feedback";
 export * from "./identity";
+export * from "./mediaAssets";
 export * from "./replicas";
 export * from "./reviewEvents";
 export * from "./scheduler";

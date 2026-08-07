@@ -37,6 +37,10 @@ export function findSyncConflictWorkspaceId(
     return state.reviewEvents.find((reviewEvent) => reviewEvent.review_event_id === entityId)?.workspace_id ?? null;
   }
 
+  if (entityType === "media_asset") {
+    return state.mediaAssets.find((mediaAsset) => mediaAsset.media_asset_id === entityId)?.workspace_id ?? null;
+  }
+
   throw new Error(`Unexpected sync conflict entity type: ${entityType}`);
 }
 
@@ -52,4 +56,8 @@ export function deleteWorkspaceFromState(state: MutableState, workspaceId: strin
   state.cards = state.cards.filter((card) => card.workspace_id !== workspaceId);
   state.decks = state.decks.filter((deck) => deck.workspace_id !== workspaceId);
   state.reviewEvents = state.reviewEvents.filter((reviewEvent) => reviewEvent.workspace_id !== workspaceId);
+  // Mirrors content.media_assets.workspace_id ON DELETE CASCADE. The shared
+  // content.media_blobs rows survive; the cleanup reconciler owns reclaiming
+  // them.
+  state.mediaAssets = state.mediaAssets.filter((mediaAsset) => mediaAsset.workspace_id !== workspaceId);
 }
