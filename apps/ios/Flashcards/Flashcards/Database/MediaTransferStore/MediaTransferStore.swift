@@ -275,6 +275,53 @@ struct MediaTransferStore {
         return try self.loadTransfer(transferId: transferId)
     }
 
+    /// Moves queued byte transfers onto the forked workspace and asset ids.
+    ///
+    /// Transfer rows cascade away with the source workspace, so an interrupted
+    /// upload would otherwise be lost during a workspace identity fork. Queue
+    /// timestamps stay untouched because the fork changes only identity, not
+    /// the transfer attempt state or its retry position.
+    func rewriteTransfersForWorkspaceFork(
+        sourceWorkspaceId: String,
+        destinationWorkspaceId: String,
+        mediaAssetIdsBySourceId: [String: String]
+    ) throws {
+        let transferRows = try self.core.query(
+            sql: """
+            SELECT transfer_id, media_asset_id
+            FROM media_transfer_queue
+            WHERE workspace_id = ?
+            ORDER BY transfer_id ASC
+            """,
+            values: [.text(sourceWorkspaceId)]
+        ) { statement in
+            (
+                DatabaseCore.columnText(statement: statement, index: 0),
+                DatabaseCore.columnText(statement: statement, index: 1)
+            )
+        }
+
+        for (transferId, sourceMediaAssetId) in transferRows {
+            try self.core.execute(
+                sql: """
+                UPDATE media_transfer_queue
+                SET workspace_id = ?, media_asset_id = ?
+                WHERE transfer_id = ?
+                """,
+                values: [
+                    .text(destinationWorkspaceId),
+                    .text(
+                        try mediaAssetIdsBySourceId.requireMappedId(
+                            entityType: "media_asset",
+                            sourceId: sourceMediaAssetId
+                        )
+                    ),
+                    .text(transferId)
+                ]
+            )
+        }
+    }
+
     func claimDueTransfers(
         now: String,
         staleClaimedBefore: String,

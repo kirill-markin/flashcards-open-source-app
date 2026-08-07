@@ -4,10 +4,12 @@ import Foundation
 private let cardIdentityForkNamespace: UUID = UUID(uuidString: "5b0c7f2e-6f2a-4b7e-9e1b-2b5f0a4a91b1")!
 private let deckIdentityForkNamespace: UUID = UUID(uuidString: "98e66f2c-d3c7-4e3f-a7df-55d8e19ad2b4")!
 private let reviewEventIdentityForkNamespace: UUID = UUID(uuidString: "3a214a3e-9c89-426d-a21f-11a5f5c1d6e8")!
+private let mediaAssetIdentityForkNamespace: UUID = UUID(uuidString: "c1f3a5d7-8b62-4e9a-9f14-7d3c6a2b58e0")!
 
 struct WorkspaceForkIdMappings {
     let cardIdsBySourceId: [String: String]
     let deckIdsBySourceId: [String: String]
+    let mediaAssetIdsBySourceId: [String: String]
     let reviewEventIdsBySourceId: [String: String]
 }
 
@@ -34,6 +36,19 @@ func forkedDeckIdForWorkspace(
         sourceWorkspaceId: sourceWorkspaceId,
         destinationWorkspaceId: destinationWorkspaceId,
         sourceEntityId: sourceDeckId
+    )
+}
+
+func forkedMediaAssetIdForWorkspace(
+    sourceWorkspaceId: String,
+    destinationWorkspaceId: String,
+    sourceMediaAssetId: String
+) -> String {
+    forkedWorkspaceEntityId(
+        namespace: mediaAssetIdentityForkNamespace,
+        sourceWorkspaceId: sourceWorkspaceId,
+        destinationWorkspaceId: destinationWorkspaceId,
+        sourceEntityId: sourceMediaAssetId
     )
 }
 

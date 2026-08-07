@@ -2,6 +2,12 @@ import Foundation
 
 private let workspaceForkReviewEventSelectBatchSize: Int = 500
 
+private struct WorkspaceForkCardTextRow {
+    let cardId: String
+    let frontText: String
+    let backText: String
+}
+
 private struct WorkspaceForkReviewEventRow {
     let sourceReviewEventId: String
     let sourceCardId: String
@@ -17,6 +23,7 @@ struct WorkspaceForker {
     let core: DatabaseCore
     let workspaceSettingsStore: WorkspaceSettingsStore
     let shellStore: WorkspaceShellStore
+    let mediaTransferStore: MediaTransferStore
     let outboxRewriter: WorkspaceOutboxRewriter
 
     func preserveLocalDataForEmptyRemoteWorkspace(
@@ -42,6 +49,20 @@ struct WorkspaceForker {
             sourceWorkspaceId: sourceWorkspaceId,
             destinationWorkspaceId: destinationWorkspaceId,
             forkMappings: forkMappings
+        )
+        try self.insertForkedMediaAssets(
+            sourceWorkspaceId: sourceWorkspaceId,
+            destinationWorkspaceId: destinationWorkspaceId,
+            forkMappings: forkMappings
+        )
+        try self.rewriteForkedCardMediaAssetReferences(
+            destinationWorkspaceId: destinationWorkspaceId,
+            forkMappings: forkMappings
+        )
+        try self.mediaTransferStore.rewriteTransfersForWorkspaceFork(
+            sourceWorkspaceId: sourceWorkspaceId,
+            destinationWorkspaceId: destinationWorkspaceId,
+            mediaAssetIdsBySourceId: forkMappings.mediaAssetIdsBySourceId
         )
         try self.insertForkedDecks(
             sourceWorkspaceId: sourceWorkspaceId,
@@ -104,6 +125,12 @@ struct WorkspaceForker {
             sql: "SELECT review_event_id FROM review_events WHERE workspace_id = ? ORDER BY review_event_id ASC",
             workspaceId: sourceWorkspaceId
         )
+        // Tombstoned media assets are mapped too so forked cards, forked
+        // registry rows, and pending operations keep referencing one id space.
+        let mediaAssetIds = try self.loadEntityIds(
+            sql: "SELECT media_asset_id FROM media_assets WHERE workspace_id = ? ORDER BY media_asset_id ASC",
+            workspaceId: sourceWorkspaceId
+        )
 
         return WorkspaceForkIdMappings(
             cardIdsBySourceId: Dictionary(uniqueKeysWithValues: cardIds.map { cardId in
@@ -123,6 +150,16 @@ struct WorkspaceForker {
                         sourceWorkspaceId: sourceWorkspaceId,
                         destinationWorkspaceId: destinationWorkspaceId,
                         sourceDeckId: deckId
+                    )
+                )
+            }),
+            mediaAssetIdsBySourceId: Dictionary(uniqueKeysWithValues: mediaAssetIds.map { mediaAssetId in
+                (
+                    mediaAssetId,
+                    forkedMediaAssetIdForWorkspace(
+                        sourceWorkspaceId: sourceWorkspaceId,
+                        destinationWorkspaceId: destinationWorkspaceId,
+                        sourceMediaAssetId: mediaAssetId
                     )
                 )
             }),
@@ -259,6 +296,115 @@ struct WorkspaceForker {
                     .text(destinationWorkspaceId),
                     .text(sourceWorkspaceId),
                     .text(sourceDeckId)
+                ]
+            )
+        }
+    }
+
+    private func insertForkedMediaAssets(
+        sourceWorkspaceId: String,
+        destinationWorkspaceId: String,
+        forkMappings: WorkspaceForkIdMappings
+    ) throws {
+        for (sourceMediaAssetId, destinationMediaAssetId) in forkMappings.mediaAssetIdsBySourceId {
+            try self.core.execute(
+                sql: """
+                INSERT INTO media_assets (
+                    media_asset_id,
+                    workspace_id,
+                    mime_type,
+                    size_bytes,
+                    sha256,
+                    source_url,
+                    created_at,
+                    client_updated_at,
+                    last_modified_by_replica_id,
+                    last_operation_id,
+                    updated_at,
+                    deleted_at
+                )
+                SELECT
+                    ?,
+                    ?,
+                    mime_type,
+                    size_bytes,
+                    sha256,
+                    source_url,
+                    created_at,
+                    client_updated_at,
+                    last_modified_by_replica_id,
+                    last_operation_id,
+                    updated_at,
+                    deleted_at
+                FROM media_assets
+                WHERE workspace_id = ? AND media_asset_id = ?
+                """,
+                values: [
+                    .text(destinationMediaAssetId),
+                    .text(destinationWorkspaceId),
+                    .text(sourceWorkspaceId),
+                    .text(sourceMediaAssetId)
+                ]
+            )
+        }
+    }
+
+    /// Repoints `fcasset:` links in forked card text at the forked asset ids.
+    ///
+    /// Media bytes stay addressed by `sha256` in the workspace-independent blob
+    /// cache, so only the registry ids inside the card bodies have to move.
+    private func rewriteForkedCardMediaAssetReferences(
+        destinationWorkspaceId: String,
+        forkMappings: WorkspaceForkIdMappings
+    ) throws {
+        guard forkMappings.mediaAssetIdsBySourceId.isEmpty == false else {
+            return
+        }
+
+        let cardTextRows: [WorkspaceForkCardTextRow] = try self.core.query(
+            sql: """
+            SELECT card_id, front_text, back_text
+            FROM cards
+            WHERE workspace_id = ? AND (front_text LIKE ? OR back_text LIKE ?)
+            ORDER BY card_id ASC
+            """,
+            values: [
+                .text(destinationWorkspaceId),
+                .text("%\(managedMediaAssetReferenceSchemePrefix)%"),
+                .text("%\(managedMediaAssetReferenceSchemePrefix)%")
+            ]
+        ) { statement in
+            WorkspaceForkCardTextRow(
+                cardId: DatabaseCore.columnText(statement: statement, index: 0),
+                frontText: DatabaseCore.columnText(statement: statement, index: 1),
+                backText: DatabaseCore.columnText(statement: statement, index: 2)
+            )
+        }
+
+        for cardTextRow in cardTextRows {
+            let frontText: String = markdownByRewritingManagedMediaAssetIds(
+                text: cardTextRow.frontText,
+                mediaAssetIdsBySourceId: forkMappings.mediaAssetIdsBySourceId
+            )
+            let backText: String = markdownByRewritingManagedMediaAssetIds(
+                text: cardTextRow.backText,
+                mediaAssetIdsBySourceId: forkMappings.mediaAssetIdsBySourceId
+            )
+            guard frontText != cardTextRow.frontText || backText != cardTextRow.backText else {
+                continue
+            }
+
+            try self.core.execute(
+                sql: """
+                UPDATE cards
+                SET front_text = ?, back_text = ?
+                WHERE workspace_id = ? AND card_id = ?
+                """,
+                values: [
+                    .text(frontText),
+                    .text(backText),
+                    .text(destinationWorkspaceId),
+                    .text(cardTextRow.cardId)
                 ]
             )
         }

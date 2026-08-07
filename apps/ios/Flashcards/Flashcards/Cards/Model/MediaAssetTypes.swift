@@ -220,28 +220,45 @@ func managedMediaAssetReferenceState(reference: String) -> ManagedMediaAssetRefe
 }
 
 func managedMediaAssetIdsReferencedInMarkdown(text: String) -> Set<String> {
-    var activeFenceMarker: String?
     var mediaAssetIds = Set<String>()
 
-    for line in text.components(separatedBy: .newlines) {
-        let fenceMarker = managedMediaFenceMarker(line: line)
-
-        if let currentFenceMarker = activeFenceMarker {
-            if fenceMarker == currentFenceMarker {
-                activeFenceMarker = nil
-            }
-            continue
-        }
-
-        if let fenceMarker {
-            activeFenceMarker = fenceMarker
-            continue
-        }
-
-        mediaAssetIds.formUnion(managedMediaAssetIdsReferencedInLine(line: line))
+    for line in managedMediaMarkdownLines(text: text) where line.isInsideFencedBlock == false {
+        mediaAssetIds.formUnion(managedMediaAssetIdsReferencedInLine(line: String(line.content)))
     }
 
     return mediaAssetIds
+}
+
+/// Rewrites managed media references to the mapped media asset ids.
+///
+/// Workspace identity forks give every media asset a new id, so card text that
+/// was copied into the destination workspace must point at the forked ids.
+/// References whose id has no mapping are left untouched because they already
+/// pointed at a media asset that does not exist in the source registry.
+func markdownByRewritingManagedMediaAssetIds(
+    text: String,
+    mediaAssetIdsBySourceId: [String: String]
+) -> String {
+    guard mediaAssetIdsBySourceId.isEmpty == false else {
+        return text
+    }
+
+    var rewrittenText = ""
+    for line in managedMediaMarkdownLines(text: text) {
+        if line.isInsideFencedBlock {
+            rewrittenText.append(contentsOf: line.content)
+        } else {
+            rewrittenText.append(
+                managedMediaAssetLineByRewritingIds(
+                    line: String(line.content),
+                    mediaAssetIdsBySourceId: mediaAssetIdsBySourceId
+                )
+            )
+        }
+        rewrittenText.append(contentsOf: line.terminator)
+    }
+
+    return rewrittenText
 }
 
 private func parserSafeManagedImageMarkdownAltText(altText: String) -> String {
@@ -251,6 +268,105 @@ private func parserSafeManagedImageMarkdownAltText(altText: String) -> String {
         .replacingOccurrences(of: "\n", with: " ")
         .replacingOccurrences(of: "[", with: " ")
         .replacingOccurrences(of: "]", with: " ")
+}
+
+private struct ManagedMediaMarkdownLine {
+    let content: Substring
+    let terminator: Substring
+    let isInsideFencedBlock: Bool
+}
+
+/// Splits Markdown into lines that keep their original terminators and know
+/// whether they belong to a fenced block, so reference reads and reference
+/// rewrites always agree on which references are live media links.
+private func managedMediaMarkdownLines(text: String) -> [ManagedMediaMarkdownLine] {
+    var lines: [ManagedMediaMarkdownLine] = []
+    var activeFenceMarker: String?
+    var lineStart = text.startIndex
+
+    while lineStart < text.endIndex {
+        let lineEnd = text[lineStart...].firstIndex { character in
+            character.isNewline
+        } ?? text.endIndex
+        let content = text[lineStart..<lineEnd]
+        let terminator = lineEnd < text.endIndex ? text[lineEnd..<text.index(after: lineEnd)] : text[lineEnd..<lineEnd]
+        let fenceMarker = managedMediaFenceMarker(line: String(content))
+        var isInsideFencedBlock = true
+
+        if let currentFenceMarker = activeFenceMarker {
+            if fenceMarker == currentFenceMarker {
+                activeFenceMarker = nil
+            }
+        } else if let fenceMarker {
+            activeFenceMarker = fenceMarker
+        } else {
+            isInsideFencedBlock = false
+        }
+
+        lines.append(
+            ManagedMediaMarkdownLine(
+                content: content,
+                terminator: terminator,
+                isInsideFencedBlock: isInsideFencedBlock
+            )
+        )
+        lineStart = terminator.isEmpty ? lineEnd : text.index(after: lineEnd)
+    }
+
+    return lines
+}
+
+private func managedMediaAssetLineByRewritingIds(
+    line: String,
+    mediaAssetIdsBySourceId: [String: String]
+) -> String {
+    let fullRange = NSRange(line.startIndex..<line.endIndex, in: line)
+    let matches = managedMediaAssetReferenceExpression.matches(in: line, options: [], range: fullRange)
+    var rewrittenLine = ""
+    var segmentStart = line.startIndex
+
+    for match in matches {
+        guard let destinationRange = Range(match.range(at: 3), in: line) else {
+            continue
+        }
+
+        let destination = String(line[destinationRange])
+        guard let sourceMediaAssetId = managedMediaAssetId(reference: destination),
+              let destinationMediaAssetId = mediaAssetIdsBySourceId[sourceMediaAssetId],
+              let rewrittenDestination = managedMediaAssetReferenceByReplacingId(
+                  reference: destination,
+                  mediaAssetId: destinationMediaAssetId
+              ) else {
+            continue
+        }
+
+        rewrittenLine.append(contentsOf: line[segmentStart..<destinationRange.lowerBound])
+        rewrittenLine.append(rewrittenDestination)
+        segmentStart = destinationRange.upperBound
+    }
+
+    rewrittenLine.append(contentsOf: line[segmentStart...])
+    return rewrittenLine
+}
+
+private func managedMediaAssetReferenceByReplacingId(reference: String, mediaAssetId: String) -> String? {
+    guard reference.lowercased().hasPrefix(managedMediaAssetReferenceSchemePrefix) else {
+        return nil
+    }
+
+    var mediaAssetIdStart = reference.index(
+        reference.startIndex,
+        offsetBy: managedMediaAssetReferenceSchemePrefix.count
+    )
+    while mediaAssetIdStart < reference.endIndex, reference[mediaAssetIdStart] == "/" {
+        mediaAssetIdStart = reference.index(after: mediaAssetIdStart)
+    }
+
+    let queryOrFragmentStart = reference[mediaAssetIdStart...].firstIndex { character in
+        character == "?" || character == "#"
+    } ?? reference.endIndex
+
+    return String(reference[..<mediaAssetIdStart]) + mediaAssetId + String(reference[queryOrFragmentStart...])
 }
 
 private func managedMediaAssetIdsReferencedInLine(line: String) -> Set<String> {

@@ -87,6 +87,7 @@ struct WorkspaceOutboxRewriter {
             )
             let rewrittenPayloadJson = try self.rewrittenWorkspaceForkOutboxPayloadJson(
                 row: row,
+                destinationWorkspaceId: destinationWorkspaceId,
                 forkMappings: forkMappings
             )
             try self.core.execute(
@@ -203,8 +204,9 @@ struct WorkspaceOutboxRewriter {
         case .deck:
             return try forkMappings.deckIdsBySourceId.requireMappedId(entityType: "deck", sourceId: row.entityId)
         case .mediaAsset:
-            throw LocalStoreError.database(
-                "Workspace identity fork cannot rewrite pending media_asset operation \(row.operationId)"
+            return try forkMappings.mediaAssetIdsBySourceId.requireMappedId(
+                entityType: "media_asset",
+                sourceId: row.entityId
             )
         case .workspaceSchedulerSettings:
             return destinationWorkspaceId
@@ -218,6 +220,7 @@ struct WorkspaceOutboxRewriter {
 
     private func rewrittenWorkspaceForkOutboxPayloadJson(
         row: WorkspaceForkOutboxRow,
+        destinationWorkspaceId: String,
         forkMappings: WorkspaceForkIdMappings
     ) throws -> String {
         var payload = try self.core.decoder.decode(
@@ -231,15 +234,39 @@ struct WorkspaceOutboxRewriter {
             payload["cardId"] = .string(
                 try forkMappings.cardIdsBySourceId.requireMappedId(entityType: "card", sourceId: sourceCardId)
             )
+            // The pending card body still carries the source asset ids, so it
+            // has to follow the same rewrite the forked card row received.
+            if forkMappings.mediaAssetIdsBySourceId.isEmpty == false {
+                payload["frontText"] = .string(
+                    markdownByRewritingManagedMediaAssetIds(
+                        text: try payload.requireString(fieldName: "frontText", context: "fork.outbox.card.frontText"),
+                        mediaAssetIdsBySourceId: forkMappings.mediaAssetIdsBySourceId
+                    )
+                )
+                payload["backText"] = .string(
+                    markdownByRewritingManagedMediaAssetIds(
+                        text: try payload.requireString(fieldName: "backText", context: "fork.outbox.card.backText"),
+                        mediaAssetIdsBySourceId: forkMappings.mediaAssetIdsBySourceId
+                    )
+                )
+            }
         case .deck:
             let sourceDeckId = try payload.requireString(fieldName: "deckId", context: "fork.outbox.deck.deckId")
             payload["deckId"] = .string(
                 try forkMappings.deckIdsBySourceId.requireMappedId(entityType: "deck", sourceId: sourceDeckId)
             )
         case .mediaAsset:
-            throw LocalStoreError.database(
-                "Workspace identity fork cannot rewrite pending media_asset operation \(row.operationId)"
+            let sourceMediaAssetId = try payload.requireString(
+                fieldName: "mediaAssetId",
+                context: "fork.outbox.mediaAsset.mediaAssetId"
             )
+            payload["mediaAssetId"] = .string(
+                try forkMappings.mediaAssetIdsBySourceId.requireMappedId(
+                    entityType: "media_asset",
+                    sourceId: sourceMediaAssetId
+                )
+            )
+            payload["workspaceId"] = .string(destinationWorkspaceId)
         case .workspaceSchedulerSettings:
             break
         case .reviewEvent:
