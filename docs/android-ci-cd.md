@@ -65,7 +65,7 @@ Pull-request GitHub Actions workflow: `.github/workflows/android-pr.yml`
 
 - Starts on `pull_request` targeting `main` when Android-impacting files change, excluding `apps/android/README.md` and `apps/android/docs/**`
 - Calls `.github/workflows/android-ci-reusable.yml` for the pull-request merge commit, so the gate covers what will actually land on `main`
-- Runs the GitHub-hosted `data:local` emulator instrumentation gate, so a failing `data:local` test fails the pull request first; the same suite still runs on `main` after merge
+- Runs the GitHub-hosted `data:local` emulator instrumentation gate in parallel with the build/unit/lint job for the same ref, so a failing `data:local` test fails the pull request first; the same suite still runs on `main` after merge
 - Does not upload a Google Play draft
 - Does not submit Firebase Test Lab
 
@@ -88,6 +88,7 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 - Boots a headless Android 17 / API 37 emulator in GitHub Actions with `-gpu swiftshader`
 - Runs `:data:local:connectedDebugAndroidTest` on that emulator
 - Uploads `data:local` instrumentation reports from the emulator run when the Gradle task produced them
+- Intentionally does not make the emulator job depend on the build job, because the emulator job does its own checkout and Gradle build, so a failing build no longer prevents or cancels the emulator run
 - Reuses the caller-provided `ANDROID_VERSION_CODE` across Android CI/build artifacts
 - Uses the Sentry release name `com.flashcardsopensourceapp.app@<versionName>+<versionCode>` for Android release artifact correlation; the workflow summary also prints the manager-readable Play release identifier, but runtime Sentry event tags/contexts are controlled by app runtime code
 
@@ -101,7 +102,7 @@ Top-level release workflow Firebase job: `.github/workflows/android-release.yml`
 The pull-request Android flow is:
 
 1. `android-pr.yml` starts on `pull_request` targeting `main` for Android-impacting changes and validates the pull-request merge commit
-2. It runs the same GitHub-hosted gate as `Android CI`: unit tests, debug builds, and lint first, then `data:local` instrumentation on the emulator once the build job succeeds
+2. It runs the same GitHub-hosted gate as `Android CI`: the unit test, debug build, and lint job and the `data:local` emulator instrumentation job run in parallel for the same ref, and the pull request is green only when both pass
 3. The `android-pr-<pull request number>` concurrency group cancels superseded runs, so a new push replaces the in-flight emulator run instead of queueing another one
 4. The workflow stops there: no Firebase Test Lab submission and no Google Play draft upload
 

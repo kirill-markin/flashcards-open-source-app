@@ -74,8 +74,6 @@ jobs:
 
   emulator-data-local-instrumentation:
     name: Android emulator data:local instrumentation
-    needs:
-      - build
     if: ${{ inputs.run_data_local_instrumentation }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
