@@ -148,6 +148,37 @@ function CatalogImportContextCard(props: Readonly<{ catalogContext: CatalogImpor
   );
 }
 
+function CatalogImportBackNav(props: Readonly<{ isDisabled: boolean; onBack: () => void }>): ReactElement {
+  const { isDisabled, onBack } = props;
+  const { t } = useI18n();
+
+  return (
+    <nav className="catalog-import-back-nav">
+      <button
+        className="ghost-btn catalog-import-back-button"
+        type="button"
+        disabled={isDisabled}
+        aria-label={t("catalogImport.back")}
+        data-testid="catalog-import-back"
+        onClick={onBack}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          className="catalog-import-back-icon"
+          aria-hidden="true"
+        >
+          <path d="M15 5l-7 7 7 7" />
+        </svg>
+      </button>
+    </nav>
+  );
+}
+
 function CatalogImportStatePanel(props: Readonly<{
   testId: string;
   title: string;
@@ -807,6 +838,12 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
 
   return (
     <main className="invite-page" data-testid="catalog-import-authenticated">
+      {hasWorkspaceStep && step === "confirm" ? (
+        <CatalogImportBackNav
+          isDisabled={isImportBusy || isWorkspaceSelectionBusy || areImportOptionsLocked}
+          onBack={() => setStep("workspace")}
+        />
+      ) : null}
       <CatalogImportContextCard catalogContext={catalogContext} />
       {workspaceErrorMessage === "" ? null : (
         <section className="content-card invite-panel" data-testid="catalog-import-workspace-error">
@@ -833,7 +870,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
             tagsTitle: t("workspaceImport.previewTagsTitle"),
             confirmActionLabel: t("catalogImport.confirm"),
             confirmingActionLabel: t("catalogImport.installing"),
-            backActionLabel: t("catalogImport.back"),
             retryPreviewLabel: t("common.retry"),
           }}
           workspaceName={activeWorkspace.name}
@@ -841,7 +877,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
           options={options}
           isControlDisabled={!isImportAvailable || isImportBusy || areImportOptionsLocked}
           isPreviewLoading={isPreviewing}
-          isBackDisabled={isImportBusy || isWorkspaceSelectionBusy || areImportOptionsLocked}
           canConfirm={isPreviewCurrent && !isImportBusy && !isWorkspaceSelectionBusy}
           isConfirming={isInstalling}
           unavailableMessage={isImportAvailable ? null : t("catalogImport.workspaceUnavailable")}
@@ -849,7 +884,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
           onOptionsChange={setOptions}
           onConfirm={(nextOptions) => void confirmInstall(nextOptions)}
           onRetryPreview={canRetryPreview ? () => void refreshPreview() : null}
-          onBack={hasWorkspaceStep ? () => setStep("workspace") : null}
         />
       ) : null}
       {step === "done" && completion !== null ? (

@@ -16,7 +16,6 @@ export type CatalogImportConfirmCopy = Readonly<{
   tagsTitle: string;
   confirmActionLabel: string;
   confirmingActionLabel: string;
-  backActionLabel: string;
   retryPreviewLabel: string;
 }>;
 
@@ -27,7 +26,6 @@ type CatalogImportConfirmPanelProps = Readonly<{
   options: WorkspaceImportOptions;
   isControlDisabled: boolean;
   isPreviewLoading: boolean;
-  isBackDisabled: boolean;
   canConfirm: boolean;
   isConfirming: boolean;
   unavailableMessage: string | null;
@@ -35,7 +33,6 @@ type CatalogImportConfirmPanelProps = Readonly<{
   onOptionsChange: (options: WorkspaceImportOptions) => void;
   onConfirm: (options: WorkspaceImportOptions) => void;
   onRetryPreview: (() => void) | null;
-  onBack: (() => void) | null;
 }>;
 
 type CatalogImportPreviewSummaryProps = Readonly<{
@@ -181,7 +178,6 @@ export function CatalogImportConfirmPanel(props: CatalogImportConfirmPanelProps)
     options,
     isControlDisabled,
     isPreviewLoading,
-    isBackDisabled,
     canConfirm,
     isConfirming,
     unavailableMessage,
@@ -189,7 +185,6 @@ export function CatalogImportConfirmPanel(props: CatalogImportConfirmPanelProps)
     onOptionsChange,
     onConfirm,
     onRetryPreview,
-    onBack,
   } = props;
 
   return (
@@ -223,17 +218,6 @@ export function CatalogImportConfirmPanel(props: CatalogImportConfirmPanelProps)
         >
           {isConfirming ? copy.confirmingActionLabel : copy.confirmActionLabel}
         </button>
-        {onBack === null ? null : (
-          <button
-            className="ghost-btn catalog-import-back-button"
-            type="button"
-            disabled={isBackDisabled}
-            data-testid="catalog-import-back"
-            onClick={onBack}
-          >
-            {copy.backActionLabel}
-          </button>
-        )}
       </div>
       {unavailableMessage === null ? null : (
         <p className="subtitle" data-testid="workspace-package-import-unavailable">{unavailableMessage}</p>
