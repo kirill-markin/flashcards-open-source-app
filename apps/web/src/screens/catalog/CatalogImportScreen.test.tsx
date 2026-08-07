@@ -623,6 +623,31 @@ describe("CatalogImportScreen", () => {
     );
     expect(appData.refreshLocalData).toHaveBeenCalledTimes(2);
     expect(container.querySelector("[data-testid='workspace-import-success']")?.textContent).toContain("Imported 2 cards with tag custom-tag");
+
+    expect(container.querySelector("[data-testid='catalog-import-success']")).not.toBeNull();
+    expect(container.querySelector("[data-testid='catalog-import-success-workspace']")?.textContent).toBe("Primary");
+    // The jsdom user agent is a desktop string, so both store options keep their QR code.
+    const platformLinks = Array.from(container.querySelectorAll("[data-testid^='catalog-import-success-link-']"));
+    expect(platformLinks.map((link) => [
+      link.getAttribute("data-testid"),
+      link.getAttribute("href"),
+      link.getAttribute("target"),
+    ])).toEqual([
+      [
+        "catalog-import-success-link-ios",
+        "https://apps.apple.com/app/apple-store/id6760538964?pt=128797295&ct=catalog_import&mt=8",
+        "_blank",
+      ],
+      [
+        "catalog-import-success-link-android",
+        "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&utm_source=flashcards_website&utm_medium=referral&utm_campaign=catalog_import",
+        "_blank",
+      ],
+      ["catalog-import-success-link-web", "http://localhost:3000/review", "_blank"],
+    ]);
+    expect(container.querySelector("[data-testid='catalog-import-success-qr-ios']")).not.toBeNull();
+    expect(container.querySelector("[data-testid='catalog-import-success-qr-android']")).not.toBeNull();
+    expect(container.querySelector("[data-testid='catalog-import-success-qr-web']")).toBeNull();
   });
 
   it("reuses one install identity after an ambiguous response and accepts the verified replay result", async () => {
