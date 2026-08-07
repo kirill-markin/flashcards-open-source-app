@@ -543,6 +543,7 @@ describe("CatalogImportScreen", () => {
       createWorkspace("workspace-2", "Secondary", true),
     ]);
     await renderRoute(`/catalog/import/${packageVersionId}`);
+    await clickWorkspaceOption("workspace-2");
     await waitForCondition("The new workspace preview did not load", () => (
       previewCatalogPackageInstallMock.mock.calls.some(([workspaceId]) => workspaceId === "workspace-2")
     ));
