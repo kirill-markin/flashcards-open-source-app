@@ -127,8 +127,11 @@ function createInitialImportOptions(): WorkspaceImportOptions {
   };
 }
 
-function CatalogImportContextCard(props: Readonly<{ catalogContext: CatalogImportContext }>): ReactElement {
-  const { catalogContext } = props;
+function CatalogImportContextCard(props: Readonly<{
+  catalogContext: CatalogImportContext;
+  accountEmail: string | null;
+}>): ReactElement {
+  const { catalogContext, accountEmail } = props;
   const { messages, t, formatCount } = useI18n();
   const cardCount = formatCount(catalogContext.packageVersion.cardCount, messages.common.countLabels.card);
 
@@ -144,6 +147,11 @@ function CatalogImportContextCard(props: Readonly<{ catalogContext: CatalogImpor
       <p className="subtitle" data-testid="catalog-import-author">
         {t("catalogImport.author", { author: catalogContext.author.displayName })}
       </p>
+      {accountEmail === null ? null : (
+        <p className="subtitle" data-testid="catalog-import-account-email">
+          {t("catalogImport.accountEmail", { email: accountEmail })}
+        </p>
+      )}
     </section>
   );
 }
@@ -208,7 +216,7 @@ function CatalogImportSignedOutScreen(props: Readonly<{ catalogContext: CatalogI
 
   return (
     <main className="invite-page" data-testid="catalog-import-signed-out">
-      <CatalogImportContextCard catalogContext={catalogContext} />
+      <CatalogImportContextCard catalogContext={catalogContext} accountEmail={null} />
       <section className="content-card invite-panel">
         <h2 className="panel-subtitle">{t("catalogImport.signInTitle")}</h2>
         <p className="subtitle">{t("catalogImport.signInBody")}</p>
@@ -844,7 +852,10 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
           onBack={() => setStep("workspace")}
         />
       ) : null}
-      <CatalogImportContextCard catalogContext={catalogContext} />
+      <CatalogImportContextCard
+        catalogContext={catalogContext}
+        accountEmail={cloudSettings?.linkedEmail ?? session?.profile.email ?? null}
+      />
       {workspaceErrorMessage === "" ? null : (
         <section className="content-card invite-panel" data-testid="catalog-import-workspace-error">
           <p className="error-banner" role="alert">{workspaceErrorMessage}</p>
