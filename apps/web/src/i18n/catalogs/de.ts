@@ -726,7 +726,7 @@ const deCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} entfernen ({{count}} Karten)",
   },
   catalogImport: {
-    title: "Aus Katalog importieren",
+    title: "Karten aus Katalog importieren",
     loading: "Katalogpaket wird geladen...",
     packageSummary: "{{title}} — {{count}}",
     author: "Von {{author}}",

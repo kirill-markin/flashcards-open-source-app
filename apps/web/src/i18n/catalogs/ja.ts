@@ -726,7 +726,7 @@ export const jaCatalog = {
     previewRemoveTagLabel: "{{tag}} を削除 ({{count}}件のカード)",
   },
   catalogImport: {
-    title: "カタログからインポート",
+    title: "カタログからカードをインポート",
     loading: "カタログパッケージを読み込んでいます...",
     packageSummary: "{{title}} — {{count}}",
     author: "作成者: {{author}}",

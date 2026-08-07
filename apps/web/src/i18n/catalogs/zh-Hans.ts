@@ -726,7 +726,7 @@ export const zhHansCatalog = {
     previewRemoveTagLabel: "移除 {{tag}}（{{count}} 张卡片）",
   },
   catalogImport: {
-    title: "从目录导入",
+    title: "从目录导入卡片",
     loading: "正在加载目录包...",
     packageSummary: "{{title}} — {{count}}",
     author: "作者：{{author}}",
