@@ -724,7 +724,7 @@ const enCatalog = {
     previewRemoveTagLabel: "Remove {{tag}} ({{count}} cards)",
   },
   catalogImport: {
-    title: "Import from catalog",
+    title: "Import cards from catalog",
     loading: "Loading catalog package...",
     packageSummary: "{{title}} — {{count}}",
     author: "By {{author}}",

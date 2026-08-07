@@ -726,7 +726,7 @@ const hiCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} हटाएँ ({{count}} कार्ड)",
   },
   catalogImport: {
-    title: "कैटलॉग से इम्पोर्ट करें",
+    title: "कैटलॉग से कार्ड इम्पोर्ट करें",
     loading: "कैटलॉग पैकेज लोड हो रहा है...",
     packageSummary: "{{title}} — {{count}}",
     author: "{{author}} द्वारा",
