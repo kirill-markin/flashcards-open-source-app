@@ -204,6 +204,7 @@ test("completeGuestUpgradeInExecutor rejects deleted-session replay with dropped
     cardIds: [],
     deckIds: [],
     reviewEventIds: [fixture.guestReviewEventId],
+    mediaAssetIds: [],
   });
   assert.equal(fixture.state.guestSession, null);
 });
@@ -251,6 +252,8 @@ test("completeGuestUpgradeInExecutor rejects a replay from a different subject",
     cards: [],
     decks: [],
     reviewEvents: [],
+    mediaBlobs: [],
+    mediaAssets: [],
     guestUpgradeHistory: [{
       upgrade_id: "upgrade-1",
       source_guest_user_id: guestUserId,
@@ -319,6 +322,8 @@ test("completeGuestUpgradeInExecutor rejects a revoked guest session without rep
     cards: [],
     decks: [],
     reviewEvents: [],
+    mediaBlobs: [],
+    mediaAssets: [],
     guestUpgradeHistory: [],
     guestReplicaAliases: [],
     hotChanges: [],

@@ -8,6 +8,7 @@ import { completeGuestUpgradeInExecutor } from "..";
 import {
   addWorkspaceMembership,
   createGuestUpgradeExecutor,
+  createMediaBlobState,
   createMergeState,
   DROPPED_ENTITIES_UNSUPPORTED,
   GUEST_SYNC_NOT_DRAINED,
@@ -647,6 +648,9 @@ test("completeGuestUpgradeInExecutor preserves guest entity ids when merging int
   const sourceCardId = "11111111-1111-4111-8111-111111111111";
   const sourceDeckId = "22222222-2222-4222-8222-222222222222";
   const sourceReviewEventId = "33333333-3333-4333-8333-333333333333";
+  const sourceMediaAssetId = "44444444-4444-4444-8444-444444444444";
+  const mediaBlobId = "55555555-5555-4555-8555-555555555555";
+  const mediaSha256 = "a".repeat(64);
 
   const state = createMergeState({
     guestToken,
@@ -710,6 +714,19 @@ test("completeGuestUpgradeInExecutor preserves guest entity ids when merging int
     reviewed_at_client: "2026-04-02T14:00:06.000Z",
     reviewed_at_server: "2026-04-02T14:00:06.000Z",
   });
+  state.mediaBlobs.push(createMediaBlobState(mediaBlobId, mediaSha256, "image/png", 2048));
+  state.mediaAssets.push({
+    media_asset_id: sourceMediaAssetId,
+    workspace_id: guestWorkspaceId,
+    media_blob_id: mediaBlobId,
+    source_url: null,
+    created_at: "2026-04-02T14:00:07.000Z",
+    client_updated_at: "2026-04-02T14:00:08.000Z",
+    last_modified_by_replica_id: guestReplicaId,
+    last_operation_id: "guest-media-asset-op",
+    updated_at: "2026-04-02T14:00:08.000Z",
+    deleted_at: null,
+  });
 
   const executor = createGuestUpgradeExecutor(state);
   const result = await completeGuestUpgradeInExecutor(
@@ -736,6 +753,23 @@ test("completeGuestUpgradeInExecutor preserves guest entity ids when merging int
   assert.ok(targetReviewEvent);
   assert.equal(targetReviewEvent?.review_event_id, sourceReviewEventId);
   assert.equal(targetReviewEvent?.card_id, sourceCardId);
+
+  const mergedMediaAssets = state.mediaAssets.filter((mediaAsset) => (
+    mediaAsset.media_asset_id === sourceMediaAssetId
+  ));
+  assert.equal(mergedMediaAssets.length, 1);
+  assert.equal(mergedMediaAssets[0]?.workspace_id, targetWorkspaceId);
+  // The registry row moved; the deduplicated blob and its bytes did not.
+  assert.equal(mergedMediaAssets[0]?.media_blob_id, mediaBlobId);
+  assert.equal(mergedMediaAssets[0]?.last_operation_id, "guest-media-asset-op");
+  assert.equal(state.mediaBlobs.length, 1);
+  assert.equal(state.mediaBlobs[0]?.media_blob_id, mediaBlobId);
+  assert.equal(Object.hasOwn(result, "droppedEntities"), false);
+  assert.ok(state.hotChanges.some((change) => (
+    change.workspace_id === targetWorkspaceId
+    && change.entity_type === "media_asset"
+    && change.entity_id === sourceMediaAssetId
+  )));
 });
 
 test("completeGuestUpgradeInExecutor repairs legacy invalid guest card fsrs state during merge", async () => {

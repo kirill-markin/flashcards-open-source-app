@@ -29,6 +29,11 @@ import {
   type DeckMutationMetadata,
   type DeckSnapshotInput,
 } from "../../decks";
+import { upsertMediaAssetSnapshotInExecutor } from "../../mediaAssets";
+import type {
+  MediaAsset,
+  MediaAssetSnapshotInput,
+} from "../../mediaAssets/types";
 import {
   insertSyncChange,
   lockWorkspaceSyncMetadataForHotChangesInExecutor,
@@ -47,6 +52,7 @@ import {
   type GuestWorkspaceSchedulerRecord,
   loadGuestCardsInExecutor,
   loadGuestDecksInExecutor,
+  loadGuestMediaAssetsInExecutor,
   loadGuestReplicasInExecutor,
   loadGuestReviewEventsInExecutor,
   loadWorkspaceSchedulerInExecutor,
@@ -61,10 +67,8 @@ import type {
 } from "../types";
 import { toIsoString } from "../shared";
 
-type GuestMergeEntityType = Exclude<SyncConflictEntityType, "media_asset">;
-
 type GuestMergeWriteInput = Readonly<{
-  entityType: GuestMergeEntityType;
+  entityType: SyncConflictEntityType;
   entityId: string;
   sourceGuestWorkspaceId: string;
   targetWorkspaceId: string;
@@ -76,6 +80,7 @@ type GuestMergeDroppedEntitiesAccumulator = {
   cardIds: Array<string>;
   deckIds: Array<string>;
   reviewEventIds: Array<string>;
+  mediaAssetIds: Array<string>;
 };
 
 type GuestMergeResult = Readonly<{
@@ -209,6 +214,20 @@ function createDeckSnapshotInput(
   };
 }
 
+function createMediaAssetSnapshotInput(
+  mediaAsset: MediaAsset,
+): MediaAssetSnapshotInput {
+  return {
+    mediaAssetId: mediaAsset.mediaAssetId,
+    mimeType: mediaAsset.mimeType,
+    sizeBytes: mediaAsset.sizeBytes,
+    sha256: mediaAsset.sha256,
+    sourceUrl: mediaAsset.sourceUrl,
+    createdAt: mediaAsset.createdAt,
+    deletedAt: mediaAsset.deletedAt,
+  };
+}
+
 function createReviewEventSnapshot(
   workspaceId: string,
   reviewEvent: GuestReviewEventRecord,
@@ -232,11 +251,12 @@ function createGuestMergeDroppedEntitiesAccumulator(): GuestMergeDroppedEntities
     cardIds: [],
     deckIds: [],
     reviewEventIds: [],
+    mediaAssetIds: [],
   };
 }
 
 function createGuestMergeSourceCleanupInvariantError(
-  entityType: GuestMergeEntityType,
+  entityType: SyncConflictEntityType,
   entityId: string,
   sourceGuestWorkspaceId: string,
 ): Error {
@@ -248,7 +268,7 @@ function createGuestMergeSourceCleanupInvariantError(
 
 function recordDroppedGuestMergeEntity(
   droppedEntities: GuestMergeDroppedEntitiesAccumulator,
-  entityType: GuestMergeEntityType,
+  entityType: SyncConflictEntityType,
   entityId: string,
 ): void {
   if (entityType === "card") {
@@ -258,6 +278,11 @@ function recordDroppedGuestMergeEntity(
 
   if (entityType === "deck") {
     droppedEntities.deckIds.push(entityId);
+    return;
+  }
+
+  if (entityType === "media_asset") {
+    droppedEntities.mediaAssetIds.push(entityId);
     return;
   }
 
@@ -271,6 +296,7 @@ function finalizeGuestMergeDroppedEntities(
     droppedEntities.cardIds.length === 0
     && droppedEntities.deckIds.length === 0
     && droppedEntities.reviewEventIds.length === 0
+    && droppedEntities.mediaAssetIds.length === 0
   ) {
     return undefined;
   }
@@ -279,11 +305,12 @@ function finalizeGuestMergeDroppedEntities(
     cardIds: droppedEntities.cardIds,
     deckIds: droppedEntities.deckIds,
     reviewEventIds: droppedEntities.reviewEventIds,
+    mediaAssetIds: droppedEntities.mediaAssetIds,
   };
 }
 
 function createGuestMergeDroppedEntitiesUnsupportedError(
-  entityType: GuestMergeEntityType,
+  entityType: SyncConflictEntityType,
   entityId: string,
   conflictingWorkspaceId: string,
 ): HttpError {
@@ -330,7 +357,7 @@ function createGuestMergeDedupedReviewEventUnsupportedError(
 
 function resolveGuestMergeThirdWorkspaceConflict(
   error: unknown,
-  entityType: GuestMergeEntityType,
+  entityType: SyncConflictEntityType,
   entityId: string,
   sourceGuestWorkspaceId: string,
   targetWorkspaceId: string,
@@ -372,7 +399,7 @@ function resolveGuestMergeThirdWorkspaceConflict(
 }
 
 function logGuestMergeDroppedEntity(
-  entityType: GuestMergeEntityType,
+  entityType: SyncConflictEntityType,
   entityId: string,
   sourceGuestWorkspaceId: string,
   targetWorkspaceId: string,
@@ -515,6 +542,57 @@ async function recreateGuestReplicasInExecutor(
   }
 
   return new Map<string, string>(replicaIdMapEntries);
+}
+
+/**
+ * Re-registers the guest workspace media asset rows in the target workspace.
+ *
+ * Only the workspace-scoped registry row moves. The snapshot carries the blob
+ * digest, so the shared deduplicated `content.media_blobs` row is resolved by
+ * sha256 and reused as-is: no object storage bytes are copied and no storage
+ * key is re-derived.
+ */
+async function mergeMediaAssetsIntoTargetInExecutor(
+  executor: DatabaseExecutor,
+  targetUserId: string,
+  targetWorkspaceId: string,
+  sourceGuestWorkspaceId: string,
+  mediaAssets: ReadonlyArray<MediaAsset>,
+  replicaIdMap: ReadonlyMap<string, string>,
+  supportsDroppedEntities: boolean,
+  droppedEntities: GuestMergeDroppedEntitiesAccumulator,
+): Promise<void> {
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: targetUserId,
+    workspaceId: targetWorkspaceId,
+  });
+
+  for (const mediaAsset of mediaAssets) {
+    const targetReplicaId = requireMappedReplicaId(replicaIdMap, mediaAsset.lastModifiedByReplicaId);
+    const wasWritten = await writeGuestEntityIntoTargetInExecutor({
+      entityType: "media_asset",
+      entityId: mediaAsset.mediaAssetId,
+      sourceGuestWorkspaceId,
+      targetWorkspaceId,
+      supportsDroppedEntities,
+      write: async (): Promise<boolean> => {
+        await upsertMediaAssetSnapshotInExecutor(
+          executor,
+          targetWorkspaceId,
+          createMediaAssetSnapshotInput(mediaAsset),
+          createGuestMutationMetadata(
+            mediaAsset.clientUpdatedAt,
+            targetReplicaId,
+            mediaAsset.lastOperationId,
+          ),
+        );
+        return true;
+      },
+    });
+    if (!wasWritten) {
+      recordDroppedGuestMergeEntity(droppedEntities, "media_asset", mediaAsset.mediaAssetId);
+    }
+  }
 }
 
 async function mergeCardsIntoTargetInExecutor(
@@ -733,15 +811,18 @@ async function maybeApplyGuestSchedulerInExecutor(
  * destination workspace and returns the durable replica alias metadata that
  * must be recorded before the live guest rows are deleted.
  *
- * Cards, decks, and review events keep their existing ids by default. The
- * source content rows are deleted first inside the same transaction to free
- * the global ids, then cards/decks reuse normal snapshot LWW behavior in the
- * target workspace and review events reuse append-only insert-or-no-op
- * behavior. The backend does not create card/deck/review id aliases or consume
- * pending client-local outbox rows. If an impossible global-id conflict still
- * resolves to a true third workspace, the guest entity is dropped only for
- * clients that declared dropped-entity reconciliation support; older clients
- * receive a typed error.
+ * Cards, decks, review events, and media assets keep their existing ids by
+ * default. The source content rows are deleted first inside the same
+ * transaction to free the global ids, then cards/decks/media assets reuse
+ * normal snapshot LWW behavior in the target workspace and review events reuse
+ * append-only insert-or-no-op behavior. Media assets move as workspace-scoped
+ * registry rows only: they keep pointing at the same deduplicated
+ * `content.media_blobs` row, so no object storage bytes are copied. The backend
+ * does not create card/deck/review/media id aliases or consume pending
+ * client-local outbox rows. If an impossible global-id conflict still resolves
+ * to a true third workspace, the guest entity is dropped only for clients that
+ * declared dropped-entity reconciliation support; older clients receive a typed
+ * error.
  */
 export async function mergeGuestWorkspaceIntoTargetInExecutor(
   executor: DatabaseExecutor,
@@ -773,6 +854,7 @@ export async function mergeGuestWorkspaceIntoTargetInExecutor(
   const guestCards = await loadGuestCardsInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
   const guestDecks = await loadGuestDecksInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
   const guestReviewEvents = await loadGuestReviewEventsInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
+  const guestMediaAssets = await loadGuestMediaAssetsInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
   const guestScheduler = await loadWorkspaceSchedulerInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
   const targetScheduler = await loadWorkspaceSchedulerInExecutor(executor, params.targetUserId, params.targetWorkspaceId);
   const droppedEntities = createGuestMergeDroppedEntitiesAccumulator();
@@ -786,6 +868,16 @@ export async function mergeGuestWorkspaceIntoTargetInExecutor(
     params.targetWorkspaceId,
   );
 
+  await mergeMediaAssetsIntoTargetInExecutor(
+    executor,
+    params.targetUserId,
+    params.targetWorkspaceId,
+    params.guestWorkspaceId,
+    guestMediaAssets,
+    replicaIdMap,
+    params.supportsDroppedEntities,
+    droppedEntities,
+  );
   const mergedCardIds = await mergeCardsIntoTargetInExecutor(
     executor,
     params.targetUserId,

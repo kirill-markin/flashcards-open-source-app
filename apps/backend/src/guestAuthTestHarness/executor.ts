@@ -3,6 +3,7 @@ import type pg from "pg";
 import type { DatabaseExecutor } from "../database";
 import { handleAuthExecutorQuery } from "./handlers/auth";
 import { handleContentExecutorQuery } from "./handlers/content";
+import { handleMediaExecutorQuery } from "./handlers/media";
 import { handleSyncExecutorQuery } from "./handlers/sync";
 import { handleUserSettingsExecutorQuery } from "./handlers/userSettings";
 import { handleWorkspaceExecutorQuery } from "./handlers/workspaces";
@@ -296,6 +297,11 @@ export function createGuestUpgradeExecutor(state: MutableState): DatabaseExecuto
         return contentResult;
       }
 
+      const mediaResult = handleMediaExecutorQuery<Row>(context, text, params);
+      if (mediaResult !== null) {
+        return mediaResult;
+      }
+
       const feedbackResult = handleFeedbackExecutorQuery<Row>(context, text, params);
       if (feedbackResult !== null) {
         return feedbackResult;
@@ -351,6 +357,8 @@ export function isGuestUpgradeMergeOnlyExecutorQuery(text: string): boolean {
     || text.startsWith("DELETE FROM content.")
     || text.startsWith("INSERT INTO content.")
     || text.startsWith("UPDATE content.")
+    || text.includes("content.media_assets")
+    || text.includes("content.media_blobs")
     || text.startsWith("DELETE FROM org.workspaces")
     || text === "DELETE FROM org.user_settings WHERE user_id = $1"
     || text

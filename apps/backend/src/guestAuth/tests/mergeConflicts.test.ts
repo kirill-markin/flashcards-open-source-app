@@ -6,6 +6,7 @@ import { completeGuestUpgradeInExecutor } from "..";
 import {
   addWorkspaceMembership,
   createGuestUpgradeExecutor,
+  createMediaBlobState,
   createMergeState,
   createQueryResult,
   createReviewEventClientEventDedupMergeFixture,
@@ -27,6 +28,8 @@ test("completeGuestUpgradeInExecutor resolves same-id merge conflicts with LWW c
   const sharedCardId = "44444444-4444-4444-8444-444444444444";
   const sharedDeckId = "55555555-5555-4555-8555-555555555555";
   const sharedReviewEventId = "66666666-6666-4666-8666-666666666666";
+  const sharedMediaAssetId = "12345678-1234-4234-8234-123456789012";
+  const sharedMediaBlobId = "87654321-4321-4321-8321-210987654321";
 
   const state = createMergeState({
     guestToken,
@@ -139,6 +142,33 @@ test("completeGuestUpgradeInExecutor resolves same-id merge conflicts with LWW c
     reviewed_at_client: "2026-04-02T14:10:06.000Z",
     reviewed_at_server: "2026-04-02T14:10:06.000Z",
   });
+  // Both workspaces registered the same logical asset over the same
+  // deduplicated blob, which is what dedupe by digest produces in practice.
+  state.mediaBlobs.push(createMediaBlobState(sharedMediaBlobId, "b".repeat(64), "image/png", 4096));
+  state.mediaAssets.push({
+    media_asset_id: sharedMediaAssetId,
+    workspace_id: guestWorkspaceId,
+    media_blob_id: sharedMediaBlobId,
+    source_url: "https://example.com/guest-newer.png",
+    created_at: "2026-04-02T14:00:07.000Z",
+    client_updated_at: "2026-04-02T14:20:00.000Z",
+    last_modified_by_replica_id: guestReplicaId,
+    last_operation_id: "guest-media-asset-op",
+    updated_at: "2026-04-02T14:20:00.000Z",
+    deleted_at: null,
+  });
+  state.mediaAssets.push({
+    media_asset_id: sharedMediaAssetId,
+    workspace_id: targetWorkspaceId,
+    media_blob_id: sharedMediaBlobId,
+    source_url: "https://example.com/target-older.png",
+    created_at: "2026-04-02T13:59:58.000Z",
+    client_updated_at: "2026-04-02T14:10:00.000Z",
+    last_modified_by_replica_id: "target-replica-existing",
+    last_operation_id: "target-media-asset-op",
+    updated_at: "2026-04-02T14:10:00.000Z",
+    deleted_at: null,
+  });
 
   const executor = createGuestUpgradeExecutor(state);
   const result = await completeGuestUpgradeInExecutor(
@@ -168,6 +198,16 @@ test("completeGuestUpgradeInExecutor resolves same-id merge conflicts with LWW c
   assert.equal(mergedReviewEvents.length, 1);
   assert.equal(mergedReviewEvents[0]?.workspace_id, targetWorkspaceId);
   assert.equal(mergedReviewEvents[0]?.rating, 4);
+
+  const mergedMediaAssets = state.mediaAssets.filter((mediaAsset) => (
+    mediaAsset.media_asset_id === sharedMediaAssetId
+  ));
+  assert.equal(mergedMediaAssets.length, 1);
+  assert.equal(mergedMediaAssets[0]?.workspace_id, targetWorkspaceId);
+  assert.equal(mergedMediaAssets[0]?.source_url, "https://example.com/guest-newer.png");
+  assert.equal(mergedMediaAssets[0]?.media_blob_id, sharedMediaBlobId);
+  assert.equal(state.mediaBlobs.length, 1);
+  assert.equal(Object.hasOwn(result, "droppedEntities"), false);
 });
 
 test("completeGuestUpgradeInExecutor drops review events deduped to a different target id for capable clients", async () => {
@@ -189,11 +229,13 @@ test("completeGuestUpgradeInExecutor drops review events deduped to a different 
     cardIds: [],
     deckIds: [],
     reviewEventIds: [fixture.guestReviewEventId],
+    mediaAssetIds: [],
   });
   assert.deepEqual(fixture.state.guestUpgradeHistory[0]?.dropped_entities, {
     cardIds: [],
     deckIds: [],
     reviewEventIds: [fixture.guestReviewEventId],
+    mediaAssetIds: [],
   });
 
   const targetReviewEvents = fixture.state.reviewEvents.filter((reviewEvent) => (
@@ -267,6 +309,10 @@ test("completeGuestUpgradeInExecutor drops guest entities on third-workspace glo
   const conflictingReviewEventId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
   const skippedReviewEventId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
   const mergedReviewEventId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+  const conflictingMediaAssetId = "0f0f0f0f-0f0f-4f0f-8f0f-0f0f0f0f0f0f";
+  const mergedMediaAssetId = "1a1a1a1a-1a1a-4a1a-8a1a-1a1a1a1a1a1a";
+  const conflictingMediaBlobId = "2b2b2b2b-2b2b-4b2b-8b2b-2b2b2b2b2b2b";
+  const mergedMediaBlobId = "3c3c3c3c-3c3c-4c3c-8c3c-3c3c3c3c3c3c";
 
   const state = createMergeState({
     guestToken,
@@ -438,11 +484,52 @@ test("completeGuestUpgradeInExecutor drops guest entities on third-workspace glo
     reviewed_at_client: "2026-04-02T13:30:06.000Z",
     reviewed_at_server: "2026-04-02T13:30:06.000Z",
   });
+  state.mediaBlobs.push(
+    createMediaBlobState(conflictingMediaBlobId, "c".repeat(64), "image/png", 1024),
+    createMediaBlobState(mergedMediaBlobId, "d".repeat(64), "image/jpeg", 2048),
+  );
+  state.mediaAssets.push({
+    media_asset_id: conflictingMediaAssetId,
+    workspace_id: guestWorkspaceId,
+    media_blob_id: conflictingMediaBlobId,
+    source_url: null,
+    created_at: "2026-04-02T14:00:11.000Z",
+    client_updated_at: "2026-04-02T14:00:12.000Z",
+    last_modified_by_replica_id: guestReplicaId,
+    last_operation_id: "guest-conflicting-media-asset-op",
+    updated_at: "2026-04-02T14:00:12.000Z",
+    deleted_at: null,
+  });
+  state.mediaAssets.push({
+    media_asset_id: mergedMediaAssetId,
+    workspace_id: guestWorkspaceId,
+    media_blob_id: mergedMediaBlobId,
+    source_url: null,
+    created_at: "2026-04-02T14:00:13.000Z",
+    client_updated_at: "2026-04-02T14:00:14.000Z",
+    last_modified_by_replica_id: guestReplicaId,
+    last_operation_id: "guest-kept-media-asset-op",
+    updated_at: "2026-04-02T14:00:14.000Z",
+    deleted_at: null,
+  });
+  state.mediaAssets.push({
+    media_asset_id: conflictingMediaAssetId,
+    workspace_id: thirdWorkspaceId,
+    media_blob_id: conflictingMediaBlobId,
+    source_url: null,
+    created_at: "2026-04-02T13:30:07.000Z",
+    client_updated_at: "2026-04-02T13:30:08.000Z",
+    last_modified_by_replica_id: "third-replica-existing",
+    last_operation_id: "third-media-asset-op",
+    updated_at: "2026-04-02T13:30:08.000Z",
+    deleted_at: null,
+  });
 
   const expectedDroppedEntities = {
     cardIds: [conflictingCardId],
     deckIds: [conflictingDeckId],
     reviewEventIds: [skippedReviewEventId, conflictingReviewEventId],
+    mediaAssetIds: [conflictingMediaAssetId],
   };
 
   const executor = createGuestUpgradeExecutor(state);
@@ -476,6 +563,7 @@ test("completeGuestUpgradeInExecutor drops guest entities on third-workspace glo
   assert.equal(state.cards.some((card) => card.workspace_id === guestWorkspaceId), false);
   assert.equal(state.decks.some((deck) => deck.workspace_id === guestWorkspaceId), false);
   assert.equal(state.reviewEvents.some((reviewEvent) => reviewEvent.workspace_id === guestWorkspaceId), false);
+  assert.equal(state.mediaAssets.some((mediaAsset) => mediaAsset.workspace_id === guestWorkspaceId), false);
 
   const keptTargetCard = state.cards.find((card) => (
     card.workspace_id === targetWorkspaceId
@@ -514,6 +602,22 @@ test("completeGuestUpgradeInExecutor drops guest entities on third-workspace glo
   ));
   assert.equal(conflictingReviewEvents.length, 1);
   assert.equal(conflictingReviewEvents[0]?.workspace_id, thirdWorkspaceId);
+
+  const keptTargetMediaAssets = state.mediaAssets.filter((mediaAsset) => (
+    mediaAsset.media_asset_id === mergedMediaAssetId
+  ));
+  assert.equal(keptTargetMediaAssets.length, 1);
+  assert.equal(keptTargetMediaAssets[0]?.workspace_id, targetWorkspaceId);
+  assert.equal(keptTargetMediaAssets[0]?.media_blob_id, mergedMediaBlobId);
+
+  const conflictingMediaAssets = state.mediaAssets.filter((mediaAsset) => (
+    mediaAsset.media_asset_id === conflictingMediaAssetId
+  ));
+  assert.equal(conflictingMediaAssets.length, 1);
+  assert.equal(conflictingMediaAssets[0]?.workspace_id, thirdWorkspaceId);
+  // Dropping a guest asset never removes the shared blob; the cleanup
+  // reconciler owns reclaiming unreferenced bytes.
+  assert.equal(state.mediaBlobs.length, 2);
 });
 
 test("completeGuestUpgradeInExecutor rejects third-workspace global-id conflicts without droppedEntities support", async () => {

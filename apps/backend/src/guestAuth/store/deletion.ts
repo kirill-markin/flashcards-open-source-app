@@ -32,6 +32,14 @@ export async function deleteGuestWorkspaceContentInExecutor(
     "DELETE FROM content.cards WHERE workspace_id = $1",
     [guestWorkspaceId],
   );
+  // Frees the globally unique media asset ids so the merge can re-register the
+  // same logical rows in the target workspace. The referenced
+  // content.media_blobs rows and their object storage bytes are untouched;
+  // reclaiming unreferenced blobs stays owned by the cleanup reconciler.
+  await executor.query(
+    "DELETE FROM content.media_assets WHERE workspace_id = $1",
+    [guestWorkspaceId],
+  );
 }
 
 export async function deleteWorkspaceInExecutor(

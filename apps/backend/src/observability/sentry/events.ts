@@ -1,5 +1,5 @@
 import type { AgentSqlSurface } from "../../aiTools/agentSql/shared";
-import type { MediaAssetStorageErrorDetails } from "../../shared/errors";
+import type { MediaAssetStorageErrorDetails, SyncConflictEntityType } from "../../shared/errors";
 
 export type BackendService =
   | "backend-api"
@@ -362,7 +362,7 @@ export type ResetInvalidFsrsStateDetails = Readonly<{
 }>;
 
 export type GuestMergeDropThirdWorkspaceConflictDetails = Readonly<{
-  entityType: "card" | "deck" | "review_event";
+  entityType: SyncConflictEntityType;
   entityId: string;
   sourceGuestWorkspaceId: string;
   targetWorkspaceId: string;
