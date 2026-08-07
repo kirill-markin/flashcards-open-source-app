@@ -5,6 +5,7 @@ import { reviewRoute } from "../../routes";
 import {
   AppStoreBadge,
   GooglePlayBadge,
+  WebAppIcon,
   type AppPlatformStoreLinks,
 } from "../share/AppPlatformLinks";
 import { MobileAppQrCode } from "../share/MobileAppQrCode";
@@ -26,7 +27,7 @@ type CatalogImportSuccessOption = Readonly<{
   platform: "ios" | "android" | "web";
   href: string;
   label: string;
-  badge: ReactElement | null;
+  badge: ReactElement;
   qrTitle: string | null;
 }>;
 
@@ -77,7 +78,12 @@ function buildCatalogImportSuccessOptions(
     platform: "web",
     href: `${getAppConfig().appBaseUrl}${reviewRoute}`,
     label: t("catalogImport.successOpenWeb"),
-    badge: null,
+    badge: (
+      <>
+        <WebAppIcon />
+        <span className="catalog-import-success-option-label">{t("catalogImport.successOpenWeb")}</span>
+      </>
+    ),
     qrTitle: null,
   };
 
@@ -106,6 +112,17 @@ export function CatalogImportSuccessPanel(props: CatalogImportSuccessPanelProps)
           <p className="subtitle" data-testid="workspace-import-success">{summaryMessage}</p>
         </div>
       </div>
+      {accountEmail === null ? null : (
+        <p className="catalog-import-target">
+          <span className="catalog-import-target-label">{t("catalogImport.successAccountLabel")}</span>
+          <strong
+            className="catalog-import-target-account"
+            data-testid="catalog-import-success-account"
+          >
+            {accountEmail}
+          </strong>
+        </p>
+      )}
       <p className="catalog-import-target">
         <span className="catalog-import-target-label">{t("catalogImport.successWorkspaceLabel")}</span>
         <strong data-testid="catalog-import-success-workspace">{workspaceName}</strong>
@@ -122,9 +139,7 @@ export function CatalogImportSuccessPanel(props: CatalogImportSuccessPanelProps)
             aria-label={option.label}
             data-testid={`catalog-import-success-link-${option.platform}`}
           >
-            {option.badge === null
-              ? <span className="catalog-import-success-option-label">{option.label}</span>
-              : option.badge}
+            {option.badge}
             {option.qrTitle === null ? null : (
               <span className="catalog-import-success-qr-frame">
                 <MobileAppQrCode
