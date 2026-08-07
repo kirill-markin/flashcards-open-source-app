@@ -444,28 +444,46 @@
 
 .workspace-choice-list {
   display: grid;
-  gap: 12px;
+  gap: 4px;
 }
 
 .workspace-choice-btn {
+  display: grid;
+  gap: 4px;
   width: 100%;
-  justify-content: flex-start;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 400;
+  font-family: inherit;
   text-align: start;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    opacity 140ms ease;
+}
+
+.workspace-choice-btn:hover:not(:disabled) {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.workspace-choice-btn:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 .workspace-choice-name {
-  color: var(--text);
-  font-weight: 600;
-  font-size: 16px;
+  color: inherit;
 }
 
 .workspace-choice-meta {
   color: var(--text-secondary);
-  font-size: 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 @media (max-width: 1024px) {

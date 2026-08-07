@@ -213,14 +213,13 @@
 }
 
 .catalog-import-workspace-option-active {
-  border-color: var(--accent);
   background: var(--accent-soft);
-  color: var(--text);
+  color: var(--accent-strong);
 }
 
 .catalog-import-workspace-option-active:hover:not(:disabled) {
-  border-color: var(--accent-strong);
   background: var(--accent-muted);
+  color: var(--accent-strong);
 }
 
 .catalog-import-target {

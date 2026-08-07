@@ -263,7 +263,7 @@ function CatalogImportWorkspaceChooser(props: Readonly<{
           return (
             <button
               key={workspace.workspaceId}
-              className={`ghost-btn workspace-choice-btn${isActiveWorkspace ? " catalog-import-workspace-option-active" : ""}`}
+              className={`workspace-choice-btn${isActiveWorkspace ? " catalog-import-workspace-option-active" : ""}`}
               type="button"
               disabled={isChoosingWorkspace || isSelectionBusy}
               aria-current={isActiveWorkspace ? "true" : undefined}
