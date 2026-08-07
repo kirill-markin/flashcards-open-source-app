@@ -4,6 +4,9 @@
   display: grid;
   grid-template-columns: min(100%, 560px);
   justify-content: center;
+  /* Engines without safe overflow alignment (Safari below 16) drop the second declaration
+     and keep the first one, so the page still centers instead of falling back to stretch. */
+  align-content: center;
   align-content: safe center;
   gap: 16px;
   overflow-y: auto;
