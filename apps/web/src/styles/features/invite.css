@@ -209,6 +209,70 @@
   line-height: 1.35;
 }
 
+.catalog-import-workspace-option-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.catalog-import-workspace-option-active:hover:not(:disabled) {
+  border-color: var(--accent-strong);
+  background: var(--accent-muted);
+}
+
+.catalog-import-target {
+  margin: 0;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  color: var(--text);
+}
+
+.catalog-import-target-label {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.catalog-import-advanced {
+  border-radius: var(--radius-md);
+  background: var(--surface-hover);
+  overflow: hidden;
+}
+
+.catalog-import-advanced > summary {
+  padding: 12px 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.catalog-import-advanced > summary:hover {
+  color: var(--text);
+}
+
+.catalog-import-advanced-body {
+  display: grid;
+  gap: 14px;
+  padding: 0 14px 14px;
+}
+
+.catalog-import-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.catalog-import-actions > .primary-btn {
+  flex: 1 1 auto;
+}
+
+.catalog-import-back-button {
+  min-width: 120px;
+}
+
 @media (max-width: 640px) {
   .invite-page {
     padding: 16px;
@@ -224,6 +288,11 @@
   }
 
   .invite-mcp-copy-button {
+    width: 100%;
+  }
+
+  .catalog-import-actions > .primary-btn,
+  .catalog-import-back-button {
     width: 100%;
   }
 }
