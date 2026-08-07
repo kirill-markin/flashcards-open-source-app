@@ -726,7 +726,7 @@ export const ruCatalog = {
     previewRemoveTagLabel: "Удалить {{tag}} (карточек: {{count}})",
   },
   catalogImport: {
-    title: "Импорт из каталога",
+    title: "Импорт карточек из каталога",
     loading: "Загрузка пакета из каталога...",
     packageSummary: "{{title}} — {{count}}",
     author: "Автор: {{author}}",

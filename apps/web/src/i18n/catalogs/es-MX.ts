@@ -726,7 +726,7 @@ const esMxCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Quitar {{tag}} ({{count}} tarjetas)",
   },
   catalogImport: {
-    title: "Importar del catálogo",
+    title: "Importar tarjetas del catálogo",
     loading: "Cargando paquete del catálogo...",
     packageSummary: "{{title}} — {{count}}",
     author: "De {{author}}",

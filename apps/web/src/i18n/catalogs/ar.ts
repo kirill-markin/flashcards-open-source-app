@@ -726,7 +726,7 @@ const arCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "إزالة {{tag}} ({{count}} بطاقة)",
   },
   catalogImport: {
-    title: "الاستيراد من الكتالوج",
+    title: "استيراد البطاقات من الكتالوج",
     loading: "جارٍ تحميل حزمة الكتالوج...",
     packageSummary: "{{title}} — {{count}}",
     author: "بواسطة {{author}}",
