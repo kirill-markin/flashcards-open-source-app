@@ -10,17 +10,17 @@ import {
   MediaBlobWriterFenceError,
   type DirectMediaBlobStorageCapability,
   type DirectMediaBlobWriterAttemptExactInput,
-} from "../blobLifecycle";
+} from "../../blobLifecycle";
 import type {
   MultipartMediaBlobStorageCapability,
   MultipartMediaBlobWriterAttemptExactInput,
-} from "../uploadSessions";
-import { createPublicHttpErrorDetails, HttpError } from "../../shared/errors";
+} from "../../uploadSessions";
+import { createPublicHttpErrorDetails, HttpError } from "../../../shared/errors";
 import {
   assertMediaAssetObjectMatchesWithDependencies,
   loadMediaAssetObjectMetadataWithDependencies,
   storeMediaAssetBlobBytesIfAbsentWithDependencies,
-} from ".";
+} from "..";
 import {
   promoteMediaAssetUploadToBlobWithCapabilityVerifier,
   storeMediaAssetBlobBytesIfAbsentWithCapabilityVerifier,
@@ -41,7 +41,7 @@ import {
   testStagingStorageKey,
   testUploadStorageKey,
   testWorkspaceId,
-} from "./testHelpers";
+} from "../testHelpers";
 
 const testWriter: DirectMediaBlobWriterAttemptExactInput = {
   attemptToken: "66666666-6666-4666-8666-666666666666",

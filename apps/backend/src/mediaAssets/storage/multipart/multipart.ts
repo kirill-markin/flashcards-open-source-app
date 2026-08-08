@@ -4,13 +4,13 @@ import {
   CopyObjectCommand,
   CreateMultipartUploadCommand,
 } from "@aws-sdk/client-s3";
-import type { CreatedMultipartMediaAssetUpload } from "../types";
-import { MediaBlobWriterFenceError } from "../blobLifecycle";
-import { HttpError } from "../../shared/errors";
+import type { CreatedMultipartMediaAssetUpload } from "../../types";
+import { MediaBlobWriterFenceError } from "../../blobLifecycle";
+import { HttpError } from "../../../shared/errors";
 import {
   createExpiresAt,
   multipartUploadExpiresSeconds,
-} from "./config";
+} from "../config";
 import type {
   AbortMultipartMediaAssetUploadInput,
   AbortMultipartMediaAssetUploadUntilDeadlineInput,
@@ -19,31 +19,31 @@ import type {
   CreateMultipartMediaAssetUploadInput,
   MediaAssetStorageContext,
   MediaAssetStorageDependencies,
-} from "./contracts";
+} from "../contracts";
 import {
   createMediaAssetStorageError,
   isNoSuchMultipartUploadError,
   rethrowMediaAssetStorageAbortReason,
   runMediaAssetStorageOperationWithRetries,
   runMediaAssetStorageOperationWithRetriesAndAbortSignal,
-} from "./errors";
-import { loadMediaAssetObjectMetadataWithAbortSignalAndDependencies } from "./objects";
+} from "../errors";
+import { loadMediaAssetObjectMetadataWithAbortSignalAndDependencies } from "../objects";
 import {
   assertMediaAssetObjectMetadataMatches,
   assertMediaAssetObjectShapeAndProofMatches,
   createUploadProofMetadata,
   toBase64Sha256Digest,
-} from "./proof";
+} from "../proof";
 import {
   createMediaAssetCopySource,
   promoteVerifiedMediaAssetUploadToBlobWithCapabilityVerifier,
-} from "./promotion";
+} from "../promotion/promotion";
 import {
   assertMultipartMediaBlobStorageCapabilityForMutation,
   createMediaAssetUploadSessionCompletedPartsFingerprint,
   type MultipartMediaBlobStorageCapability,
   type MultipartMediaBlobWriterAttemptExactInput,
-} from "../uploadSessions";
+} from "../../uploadSessions";
 
 type MultipartMediaBlobStorageCapabilityVerifier = (
   capability: MultipartMediaBlobStorageCapability,

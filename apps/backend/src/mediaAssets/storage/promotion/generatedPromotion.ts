@@ -6,19 +6,19 @@ import {
   assertGeneratedMediaBlobStorageCapabilityForMutation,
   type GeneratedMediaBlobStorageCapability,
   type GeneratedMediaBlobWriterExactInput,
-} from "../../chat/cardImages/promotion/jobs";
-import { addBackendBreadcrumb, type BackendObservationScope } from "../../observability/sentry";
-import { MediaBlobWriterFenceError } from "../blobLifecycle";
-import { imageJpegCardMediaBlobMimeType, type MediaAssetObjectMetadata } from "../types";
-import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../storageKeys";
-import { getMediaAssetsS3Client, getMediaAssetsStorageConfig } from "./config";
-import type { MediaAssetStorageDependencies } from "./contracts";
-import { getS3ErrorStatusCode } from "./errors";
+} from "../../../chat/cardImages/promotion/jobs";
+import { addBackendBreadcrumb, type BackendObservationScope } from "../../../observability/sentry";
+import { MediaBlobWriterFenceError } from "../../blobLifecycle";
+import { imageJpegCardMediaBlobMimeType, type MediaAssetObjectMetadata } from "../../types";
+import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../../storageKeys";
+import { getMediaAssetsS3Client, getMediaAssetsStorageConfig } from "../config";
+import type { MediaAssetStorageDependencies } from "../contracts";
+import { getS3ErrorStatusCode } from "../errors";
 import {
   createUploadProofMetadata, toBase64Sha256Digest, toHexSha256Digest,
   uploadProofLastOperationIdSha256Key,
   uploadProofMediaAssetIdKey, uploadProofSha256Key, uploadProofWorkspaceIdKey,
-} from "./proof";
+} from "../proof";
 const maximumS3Attempts = 3;
 let generatedMediaPromotionS3Client: S3Client | undefined;
 type GeneratedMediaStorageRequestInput = Readonly<{

@@ -8,15 +8,15 @@ import {
   type ListPartsCommandOutput,
 } from "@aws-sdk/client-s3";
 import { createHash } from "node:crypto";
-import { addBackendRuntimeBreadcrumb } from "../../observability/runtime";
-import { HttpError } from "../../shared/errors";
-import type { MediaAssetObjectMetadata } from "../types";
+import { addBackendRuntimeBreadcrumb } from "../../../observability/runtime";
+import { HttpError } from "../../../shared/errors";
+import type { MediaAssetObjectMetadata } from "../../types";
 import type {
   AssertMediaAssetObjectInput,
   MediaAssetStorageDependencies,
   MediaAssetStorageOperation,
   ReconcileMultipartMediaAssetUploadInput,
-} from "./contracts";
+} from "../contracts";
 import {
   createMultipartCompletionReconciliationS3Diagnostics,
   getS3ErrorStatusCode,
@@ -25,7 +25,7 @@ import {
   mediaAssetStorageMaximumAttemptCount,
   MultipartCompletionReconciliationStorageTerminalError,
   MultipartCompletionReconciliationStorageTransientError,
-} from "./errors";
+} from "../errors";
 import {
   assertMediaAssetObjectContentMatches,
   assertMediaAssetObjectMetadataMatches,
@@ -37,7 +37,7 @@ import {
   uploadProofLastOperationIdSha256Key,
   uploadProofMediaAssetIdKey,
   uploadProofWorkspaceIdKey,
-} from "./proof";
+} from "../proof";
 
 const maximumMultipartPartCount = 10_000;
 const listPartsPageSize = 1_000;
