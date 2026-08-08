@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
-import { HttpError } from "../../shared/errors";
-import type { CatalogPackageInstallConfirmInput } from "../types";
+import { HttpError } from "../../../shared/errors";
+import type { CatalogPackageInstallConfirmInput } from "../../types";
 import { installCatalogPackageVersion } from "./install";
 
 type InstallEffectCounts = Readonly<{

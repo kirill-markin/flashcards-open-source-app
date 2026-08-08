@@ -1,6 +1,6 @@
-import type { DatabaseExecutor, SqlValue } from "../../database";
-import { unsafeRepeatableReadReadOnlyTransaction } from "../../database/core";
-import { HttpError } from "../../shared/errors";
+import type { DatabaseExecutor, SqlValue } from "../../../database";
+import { unsafeRepeatableReadReadOnlyTransaction } from "../../../database/core";
+import { HttpError } from "../../../shared/errors";
 import {
   isUnsafePublicPackageMediaKey,
   normalizeNonEmptyString,
@@ -8,17 +8,17 @@ import {
   normalizeSlug,
   toIsoString,
   toSafeNumber,
-} from "../common";
+} from "../../common";
 import {
   getCatalogCardRequiredPackageMediaKeys,
-} from "../cardMedia";
+} from "../../cardMedia";
 import {
   getPublicCatalogAuthorEligibilityIssue,
   getPublicCatalogVersionEligibilityIssue,
   isPublicCatalogCardMarkdownSafe,
   isPublicCatalogTextArraySafe,
   isPublicCatalogTextSafe,
-} from "../publicSafety";
+} from "../../publicSafety";
 import type {
   CatalogPublicAuthor,
   CatalogPublicPackageCardPreview,
@@ -38,8 +38,8 @@ import type {
   CatalogPublicSnapshotPackage,
   CatalogPublicSnapshotPackageVersion,
   TimestampValue,
-} from "../types";
-import { catalogPublicSnapshotSchemaVersion } from "../types";
+} from "../../types";
+import { catalogPublicSnapshotSchemaVersion } from "../../types";
 
 type PublicCatalogQuery = Readonly<{
   text: string;

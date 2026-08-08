@@ -3,11 +3,11 @@ import test from "node:test";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type pg from "pg";
-import type { DatabaseExecutor, SqlValue } from "../../database";
-import { createCatalogPublicRoutes } from "../../routes/catalogPublic";
-import type { AppEnv } from "../../server/app";
-import { HttpError } from "../../shared/errors";
-import { maximumPublicCatalogMediaDownloadBytes } from "../publicMediaDelivery";
+import type { DatabaseExecutor, SqlValue } from "../../../database";
+import { createCatalogPublicRoutes } from "../../../routes/catalogPublic";
+import type { AppEnv } from "../../../server/app";
+import { HttpError } from "../../../shared/errors";
+import { maximumPublicCatalogMediaDownloadBytes } from "../../publicMediaDelivery";
 import {
   listPublicCatalogPackagesInExecutor,
   loadPublicCatalogSnapshotInExecutor,
@@ -23,8 +23,8 @@ import {
   testPackageVersionId,
   testTimestamp,
   testWorkspaceMediaAssetId,
-} from "../testSupport";
-import type { CatalogPublicPackageMediaDownloadSource } from "../types";
+} from "../../testSupport";
+import type { CatalogPublicPackageMediaDownloadSource } from "../../types";
 
 const legacyPrivateWorkspacePackageMediaKey = `w-${testWorkspaceMediaAssetId}`;
 const unsafeShaPackageMediaKey = "a".repeat(64);

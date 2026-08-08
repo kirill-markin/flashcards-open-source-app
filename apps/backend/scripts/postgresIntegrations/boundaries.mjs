@@ -81,8 +81,8 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0107_catalog_test_collection.sql",
     expectedMigrationCount: 109,
     testFiles: Object.freeze([
-      "src/catalog/distribution/public.postgres.integration.ts",
-      "src/catalog/distribution/install.postgres.integration.ts",
+      "src/catalog/distribution/public/public.postgres.integration.ts",
+      "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/catalog/authoring/lockOrder.postgres.integration.ts",
       "src/cards/generatedImageAppend.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",
