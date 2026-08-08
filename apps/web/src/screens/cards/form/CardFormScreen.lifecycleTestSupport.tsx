@@ -8,7 +8,7 @@ import { createStorageMock } from "../../../api/ApiTestSupport";
 import { I18nProvider } from "../../../i18n";
 import type { Card } from "../../../types";
 
-export const mocks = vi.hoisted(() => ({
+const mocks = vi.hoisted(() => ({
   deleteCardItemMock: vi.fn(),
   handoffCardToAiMock: vi.fn(),
   loadCardByIdMock: vi.fn(),
@@ -22,6 +22,8 @@ export const mocks = vi.hoisted(() => ({
   useAppDataMock: vi.fn(),
   writeMediaBlobCacheRecordMock: vi.fn(),
 }));
+
+export { mocks };
 
 vi.mock("../../../appData", () => ({
   useAppData: mocks.useAppDataMock,
