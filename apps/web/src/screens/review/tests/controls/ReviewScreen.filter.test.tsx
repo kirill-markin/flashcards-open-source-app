@@ -5,8 +5,8 @@ import {
   buildSelectedReviewFilterStorageKey,
   loadSelectedReviewFilterForWorkspace,
   storeSelectedReviewFilterForWorkspace,
-} from "../../../appData/context/reviewFilterPersistence";
-import type { ReviewFilter, ReviewQueueSnapshot } from "../../../types";
+} from "../../../../appData/context/reviewFilterPersistence";
+import type { ReviewFilter, ReviewQueueSnapshot } from "../../../../types";
 import {
   clickElementAsync,
   createCard,
@@ -18,7 +18,7 @@ import {
   setTextFieldValueAsync,
   setupReviewScreenTest,
   useAppDataMock,
-} from "../testSupport/ReviewScreenTestSupport";
+} from "../../testSupport/ReviewScreenTestSupport";
 import {
   composingKeydownElementAsync,
   flushReviewScreenPromises,
@@ -26,7 +26,7 @@ import {
   keydownElementAsync,
   pointerDownAndClickElementAsync,
   pointerDownElementAsync,
-} from "./ReviewScreen.controlsTestSupport";
+} from "./ReviewScreenControlTestSupport";
 
 const {
   dispatchDocumentKeydown,

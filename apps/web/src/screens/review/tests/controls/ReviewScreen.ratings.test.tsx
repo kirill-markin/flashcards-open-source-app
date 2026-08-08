@@ -1,22 +1,23 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import type { Card } from "../../../types";
+import type { Card } from "../../../../types";
 import {
   clickElementAsync,
   createCard,
+  loadReviewQueueSnapshotMock,
   reviewReactionLottieLoadAnimationMock,
   reviewStylesContain,
   setupReviewScreenTest,
-} from "../testSupport/ReviewScreenTestSupport";
+} from "../../testSupport/ReviewScreenTestSupport";
 import {
   isReviewReactionLottieAssetReady,
   reviewReactionLottieVariants,
-} from "../reactions/lottie/reviewReactionLottie";
+} from "../../reactions/lottie/reviewReactionLottie";
 import {
   flushReviewScreenPromises,
   pointerDownAndClickElementAsync,
   pointerDownElementAsync,
-} from "./ReviewScreen.controlsTestSupport";
+} from "./ReviewScreenControlTestSupport";
 
 const {
   dispatchDocumentKeydown,
@@ -393,4 +394,29 @@ describe("ReviewScreen rating controls", () => {
     expect(getContainer().querySelector(".review-pane-head-actions .review-card-ai-btn")).toBeNull();
     expect(getContainer().querySelector(".review-card-answer .review-card-speech-btn")).not.toBeNull();
   });
+
+  it("keeps rating shortcuts disabled until the answer is visible", async () => {
+    const state = getState();
+    const card = createCard({
+      cardId: "card-hidden-answer",
+      frontText: "Question",
+      backText: "Answer",
+    });
+    state.cards = [card];
+    state.reviewQueue = [card];
+    state.reviewTimeline = [card];
+    state.appData.submitReviewItem.mockImplementation(async (): Promise<Card> => card);
+    loadReviewQueueSnapshotMock.mockClear();
+
+    await renderReviewScreen();
+    await dispatchDocumentKeydown("1");
+
+    expect(state.appData.submitReviewItem).not.toHaveBeenCalled();
+
+    await revealAnswer();
+    await dispatchDocumentKeydown("1");
+
+    expect(state.appData.submitReviewItem).toHaveBeenCalledWith("card-hidden-answer", 0);
+  });
 });
+

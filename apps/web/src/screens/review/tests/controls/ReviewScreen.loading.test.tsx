@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { describe, expect, it } from "vitest";
-import { ApiError } from "../../../api";
-import { parsePersistedReviewFilter } from "../../../appData/context/reviewFilterPersistence";
-import type { ReviewQueueSnapshot } from "../../../types";
+import { ApiError } from "../../../../api";
+import { parsePersistedReviewFilter } from "../../../../appData/context/reviewFilterPersistence";
+import type { ReviewQueueSnapshot } from "../../../../types";
 import {
   buildReviewLoadingCardPreview,
   serializeReviewFilterKey,
   writeReviewLoadingSnapshot,
-} from "../../shared/loadingSnapshots";
+} from "../../../shared/loadingSnapshots";
 import {
   clickElementAsync,
   createCard,
@@ -17,8 +17,8 @@ import {
   hasHydratedHotStateMock,
   loadReviewQueueSnapshotMock,
   setupReviewScreenTest,
-} from "../testSupport/ReviewScreenTestSupport";
-import { flushReviewScreenPromises } from "./ReviewScreen.controlsTestSupport";
+} from "../../testSupport/ReviewScreenTestSupport";
+import { flushReviewScreenPromises } from "./ReviewScreenControlTestSupport";
 
 const {
   getContainer,
