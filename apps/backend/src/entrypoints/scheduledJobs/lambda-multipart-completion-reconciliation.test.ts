@@ -3,8 +3,10 @@ import test from "node:test";
 import { createBackendObservationScope } from "../../observability/sentry";
 import {
   MultipartCompletionFailureReportBatchError,
-  MultipartCompletionReconciliationBatchError,
   type MultipartCompletionFailureReportBatchResult,
+} from "../../mediaAssets/multipart/completion/completionFailureReports";
+import {
+  MultipartCompletionReconciliationBatchError,
   type MultipartCompletionReconciliationBatchResult,
 } from "../../mediaAssets/multipart/completion/completionReconciliation";
 import {
