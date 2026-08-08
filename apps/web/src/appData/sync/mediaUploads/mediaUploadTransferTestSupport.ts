@@ -2,12 +2,10 @@ import { createHash } from "node:crypto";
 import { Blob as NodeBlob } from "node:buffer";
 import { vi } from "vitest";
 import "../../../api/endpoints/endpointsTestSupport";
-import { primeSessionCsrfToken, setNavigationHandlerForTests } from "../../../api";
 import { createJsonResponse } from "../../../api/ApiTestSupport";
 import { clearWebSyncCache } from "../../../localDb/core/cache";
 import {
   enqueueMediaTransferUpload,
-  loadMediaTransferQueueRecord,
   type MediaTransferQueueRecord,
   type RenewInProgressMediaTransferClaimInput,
   writeMediaBlobCacheRecord,
@@ -15,24 +13,17 @@ import {
 import { putCloudSettings } from "../../../localDb/sync/cloudSettings";
 import type { CloudSettings, MediaAsset } from "../../../types";
 import {
-  processDueMediaUploadTransfersForWorkspace as runDueMediaUploadTransfersForWorkspace,
+  processDueMediaUploadTransfersForWorkspace as runMediaUploadTransferRunner,
 } from "./mediaUploadTransferRunner";
-
-export {
-  primeSessionCsrfToken,
-  setNavigationHandlerForTests,
-  createJsonResponse,
-  loadMediaTransferQueueRecord,
-  runDueMediaUploadTransfersForWorkspace,
-};
-
 
 type RenewMediaTransferClaim = (input: RenewInProgressMediaTransferClaimInput) => Promise<MediaTransferQueueRecord>;
 
-export const mediaTransferRenewMock = vi.hoisted(() => ({
+const mediaTransferRenewMock = vi.hoisted(() => ({
   defaultRenewInProgressMediaTransferClaim: null as RenewMediaTransferClaim | null,
   renewInProgressMediaTransferClaim: vi.fn<RenewMediaTransferClaim>(),
 }));
+
+export { mediaTransferRenewMock };
 
 vi.mock("../../../localDb/mediaTransfers", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../localDb/mediaTransfers")>();
@@ -54,10 +45,17 @@ export const textMimeType = "text/plain";
 export const futurePartUrlExpiresAt = "9999-12-31T23:59:59.999Z";
 
 export function processDueMediaUploadTransfersForWorkspace(testWorkspaceId: string): Promise<void> {
-  return runDueMediaUploadTransfersForWorkspace(
+  return runMediaUploadTransferRunner(
     testWorkspaceId,
     new AbortController().signal,
   );
+}
+
+export function runDueMediaUploadTransfersForWorkspace(
+  testWorkspaceId: string,
+  signal: AbortSignal,
+): Promise<void> {
+  return runMediaUploadTransferRunner(testWorkspaceId, signal);
 }
 
 function toTestUuidFromHexDigest(hexDigest: string): string {
