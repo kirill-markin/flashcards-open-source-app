@@ -9,24 +9,24 @@ import {
   HeadObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-import { createPublicHttpErrorDetails, HttpError } from "../../shared/errors";
+import { createPublicHttpErrorDetails, HttpError } from "../../../shared/errors";
 import {
   createMultipartMediaAssetUploadWithDependencies,
-} from ".";
+} from "..";
 import {
   abortMultipartMediaAssetUploadWithDependencies,
   completeMultipartMediaAssetUploadWithCapabilityVerifier,
   completeMultipartMediaAssetUploadWithDependencies,
 } from "./multipart";
-import { MediaBlobWriterFenceError } from "../blobLifecycle";
+import { MediaBlobWriterFenceError } from "../../blobLifecycle";
 import type {
   CompleteMultipartMediaAssetUploadInput,
-} from "./contracts";
+} from "../contracts";
 import {
   createMediaAssetUploadSessionCompletedPartsFingerprint,
   type MultipartMediaBlobStorageCapability,
   type MultipartMediaBlobWriterAttemptExactInput,
-} from "../uploadSessions";
+} from "../../uploadSessions";
 import {
   createFailingS3Client,
   createHeadObjectResponse,
@@ -44,7 +44,7 @@ import {
   testSha256,
   testStagingStorageKey,
   testWorkspaceId,
-} from "./testHelpers";
+} from "../testHelpers";
 
 const testMultipartStorageCapability =
   Object.freeze({}) as MultipartMediaBlobStorageCapability;

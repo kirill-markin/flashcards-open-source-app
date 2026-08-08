@@ -58,7 +58,7 @@ import {
 import type { CompleteMediaAssetUploadPartInput } from "../types";
 import {
   completeMultipartMediaAssetUploadWithDependencies,
-} from "../storage/multipart";
+} from "../storage/multipart/multipart";
 import {
   applyMultipartCompletionReconciliation,
   claimMultipartCompletionReconciliations,
@@ -67,7 +67,7 @@ import {
 } from "./completionReconciliation";
 import {
   reconcileMultipartMediaAssetUploadWithDependencies,
-} from "../storage/multipartReconciliation";
+} from "../storage/multipart/reconciliation";
 import {
   createS3Error,
   getTestMediaAssetsStorageConfig,

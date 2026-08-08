@@ -5,10 +5,10 @@ import { CopyObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from
 import type {
   GeneratedMediaBlobStorageCapability,
   GeneratedMediaBlobWriterExactInput,
-} from "../../chat/cardImages/promotion/jobs";
-import { MediaBlobWriterFenceError } from "../blobLifecycle";
-import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../storageKeys";
-import { imageJpegCardMediaBlobNormalizationVersion } from "../types";
+} from "../../../chat/cardImages/promotion/jobs";
+import { MediaBlobWriterFenceError } from "../../blobLifecycle";
+import { buildMediaBlobStorageKey, buildMediaUploadStagingStorageKey } from "../../storageKeys";
+import { imageJpegCardMediaBlobNormalizationVersion } from "../../types";
 import {
   GeneratedMediaPromotionStorageTerminalError,
   GeneratedMediaPromotionStorageTransientError,
@@ -20,11 +20,11 @@ import {
   type GeneratedMediaObjectPromotionInput,
   type StoreGeneratedMediaStagingObjectInput,
 } from "./generatedPromotion";
-import { createUploadProofMetadata } from "./proof";
+import { createUploadProofMetadata } from "../proof";
 import {
   createS3Error, createTestS3Client, getTestMediaAssetsStorageConfig,
   testMediaAssetId, testObservationScope, testSha256, testWorkspaceId,
-} from "./testHelpers";
+} from "../testHelpers";
 const operationId = "33333333-3333-4333-8333-333333333333";
 const mimeType = "image/jpeg";
 const sizeBytes = 42;

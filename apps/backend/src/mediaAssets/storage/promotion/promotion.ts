@@ -10,21 +10,21 @@ import {
   MediaBlobWriterFenceError,
   type DirectMediaBlobStorageCapability,
   type DirectMediaBlobWriterAttemptExactInput,
-} from "../blobLifecycle";
+} from "../../blobLifecycle";
 import {
   assertMultipartMediaBlobStorageCapabilityForMutation,
   type MultipartMediaBlobStorageCapability,
   type MultipartMediaBlobWriterAttemptExactInput,
-} from "../uploadSessions";
-import type { BackendObservationScope } from "../../observability/sentry/events";
-import { HttpError } from "../../shared/errors";
+} from "../../uploadSessions";
+import type { BackendObservationScope } from "../../../observability/sentry/events";
+import { HttpError } from "../../../shared/errors";
 import type {
   AssertMediaAssetObjectInput,
   MediaAssetStorageContext,
   MediaAssetStorageDependencies,
   PromoteMediaAssetUploadInput,
   StoreMediaAssetBlobBytesInput,
-} from "./contracts";
+} from "../contracts";
 import {
   createMediaAssetStorageError,
   getS3ErrorStatusCode,
@@ -33,18 +33,18 @@ import {
   rethrowMediaAssetStorageAbortReason,
   runMediaAssetStorageOperationWithRetries,
   runMediaAssetStorageOperationWithRetriesAndAbortSignal,
-} from "./errors";
+} from "../errors";
 import {
   loadMediaAssetObjectMetadataWithAbortSignalAndDependencies,
   loadMediaAssetObjectMetadataWithDependencies,
-} from "./objects";
+} from "../objects";
 import {
   assertMediaAssetObjectContentMatches,
   assertMediaAssetObjectMetadataMatches,
   toBase64Sha256Digest,
   toHexSha256Digest,
   uploadProofSha256Key,
-} from "./proof";
+} from "../proof";
 
 type CopyMediaAssetObjectInput = Readonly<{
   writer: MultipartMediaBlobWriterAttemptExactInput;
