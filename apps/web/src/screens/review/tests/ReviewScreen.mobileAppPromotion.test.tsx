@@ -11,7 +11,7 @@ import {
 } from "../testSupport/ReviewScreenTestSupport";
 import {
   flushReviewScreenPromises,
-} from "./ReviewScreen.controlsTestSupport";
+} from "./controls/ReviewScreenControlTestSupport";
 
 const apiMocks = vi.hoisted(() => ({
   loadFeedbackStateMock: vi.fn(),
