@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import pg from "pg";
-import type { DatabaseExecutor, SqlValue } from "../../database";
+import type { DatabaseExecutor, SqlValue } from "../../../database";
 import { loadPublicCatalogSnapshotInExecutor } from "./public";
 
 const fixtureAuthorId = "00000000-0000-4000-a105-000000000001";

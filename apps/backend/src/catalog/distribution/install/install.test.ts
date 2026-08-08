@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
-import type { DatabaseExecutor, SqlValue } from "../../database";
-import { createCatalogInstallRoutes } from "../../routes/catalogInstall";
-import { HttpError } from "../../shared/errors";
+import type { DatabaseExecutor, SqlValue } from "../../../database";
+import { createCatalogInstallRoutes } from "../../../routes/catalogInstall";
+import { HttpError } from "../../../shared/errors";
 import {
   catalogPackageInstallOperationIdPrefixMaximumLength,
   installCatalogPackageVersionInExecutor,
@@ -21,12 +21,12 @@ import {
   testWorkspaceCardId,
   testWorkspaceId,
   testWorkspaceMediaAssetId,
-} from "../testSupport";
+} from "../../testSupport";
 import type {
   CatalogPackageInstallConfirmInput,
   CatalogPackageInstallResult,
   CatalogPackageStatus,
-} from "../types";
+} from "../../types";
 
 const testWorkspaceReplicaId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const testInstallTimestamp = "2026-04-19T10:30:00.000Z";
