@@ -15,7 +15,7 @@ import {
 } from "../../cardImages/operation";
 import {
   OpenAIImageGenerationResponseError,
-} from "../../cardImages/openaiAdapter";
+} from "../../cardImages/provider/openaiAdapter";
 import {
   GeneratedCardImageProviderOutcomeUnknownError,
   GeneratedCardImageStagingOutcomeUnknownError,
