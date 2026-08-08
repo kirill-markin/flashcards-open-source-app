@@ -5,7 +5,7 @@ import {
 import { HttpError } from "../../shared/errors";
 import {
   createMultipartCompletionWriterLeaseTargetAtMs,
-} from "../../server/multipartCompletionRequestTiming";
+} from "../../server/mediaRequests/multipartCompletionRequestTiming";
 import {
   MediaBlobLifecycleBusyError,
 } from "../blobLifecycle";

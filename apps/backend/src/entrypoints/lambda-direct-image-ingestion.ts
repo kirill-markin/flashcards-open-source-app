@@ -1,5 +1,5 @@
 import { handle } from "hono/aws-lambda";
-import { createDirectImageIngestionApp } from "../server/directImageIngestionApp";
+import { createDirectImageIngestionApp } from "../server/mediaRequests/directImageIngestionApp";
 import { getAllowedBrowserOrigins } from "../server/browserCors";
 import { createDirectImageIngestionLambdaHandler } from "./directImageIngestionLambdaHandler";
 

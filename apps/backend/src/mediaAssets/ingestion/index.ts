@@ -43,12 +43,12 @@ import {
   directImageIngestionResponseMarginMs,
   publicRestApiIntegrationTimeoutMs,
   type DirectImageIngestionRequestTiming,
-} from "../../server/directImageIngestionRequestTiming";
+} from "../../server/mediaRequests/directImageIngestionRequestTiming";
 
 export {
   directImageIngestionMinimumAcquisitionBudgetMs,
   directImageIngestionRequestBudgetMs,
-} from "../../server/directImageIngestionRequestTiming";
+} from "../../server/mediaRequests/directImageIngestionRequestTiming";
 
 export const directImageIngestionWorkCompletionMarginMs = 4_000;
 export const directImageIngestionLeaseTerminalMarginMs = 2_000;

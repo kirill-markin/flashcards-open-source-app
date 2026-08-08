@@ -21,7 +21,7 @@ import type { RequestContext } from "../server/requestContext";
 import {
   createMultipartCompletionRequestTiming,
   runWithMultipartCompletionRequestTiming,
-} from "../server/multipartCompletionRequestTiming";
+} from "../server/mediaRequests/multipartCompletionRequestTiming";
 import {
   createMultipartCompletionRequestDeadline,
   replayMultipartDatabaseCommitUnknownUntilDeadline,
