@@ -29,10 +29,12 @@ export {
 
 type RenewMediaTransferClaim = (input: RenewInProgressMediaTransferClaimInput) => Promise<MediaTransferQueueRecord>;
 
-export const mediaTransferRenewMock = vi.hoisted(() => ({
+const mediaTransferRenewMock = vi.hoisted(() => ({
   defaultRenewInProgressMediaTransferClaim: null as RenewMediaTransferClaim | null,
   renewInProgressMediaTransferClaim: vi.fn<RenewMediaTransferClaim>(),
 }));
+
+export { mediaTransferRenewMock };
 
 vi.mock("../../../localDb/mediaTransfers", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../localDb/mediaTransfers")>();
