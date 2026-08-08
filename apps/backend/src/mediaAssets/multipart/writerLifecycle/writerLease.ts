@@ -2,26 +2,26 @@ import { setTimeout as wait } from "node:timers/promises";
 import {
   DatabaseDeadlineExceededError,
   runDatabaseOperationsWithDeadline,
-} from "../../database";
+} from "../../../database";
 import {
   DatabaseCommitOutcomeUnknownError,
   getDatabaseErrorFields,
   isTransientDatabaseError,
   TransientDatabaseHttpError,
-} from "../../database/transient";
+} from "../../../database/transient";
 import {
   captureBackendWarning,
   type BackendObservationScope,
-} from "../../observability/sentry";
-import { HttpError } from "../../shared/errors";
+} from "../../../observability/sentry";
+import { HttpError } from "../../../shared/errors";
 import {
   MediaBlobLifecycleBusyError,
   MediaBlobWriterFenceError,
-} from "../blobLifecycle";
+} from "../../blobLifecycle";
 import type {
   MediaAsset,
   MediaAssetUploadSession,
-} from "../types";
+} from "../../types";
 import {
   beginMediaAssetUploadSessionCompletionAttemptAtLeaseTargetWithOwnerUntilSettled,
   handoffMediaAssetUploadSessionCompletionAttemptAfterAccessRevocation,
@@ -35,7 +35,7 @@ import {
   type MultipartMediaBlobWriterAttemptHandoffStatus,
   type MultipartMediaBlobWriterAttemptInput,
   type MultipartMediaBlobWriterAttemptResult,
-} from "../uploadSessions";
+} from "../../uploadSessions";
 import {
   assertMultipartCompletionRequestActive,
   createMultipartCompletionDeadlineError,
@@ -47,7 +47,7 @@ import {
   multipartWriterLeaseExpiryObservationPaddingMs,
   type MultipartCompletionRequestDeadline,
   type MultipartDatabaseCommitReplay,
-} from "./requestBoundary";
+} from "../requestBoundary";
 
 export function isMultipartCompletionDeadlineFailure(
   error: unknown,

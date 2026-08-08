@@ -1,19 +1,19 @@
 import { setTimeout as wait } from "node:timers/promises";
-import { runDatabaseOperationsWithDeadline } from "../../database";
-import { DatabaseCommitOutcomeUnknownError } from "../../database/transient";
+import { runDatabaseOperationsWithDeadline } from "../../../database";
+import { DatabaseCommitOutcomeUnknownError } from "../../../database/transient";
 import {
   normalizeCaughtError,
   type BackendObservationScope,
-} from "../../observability/sentry";
-import { HttpError } from "../../shared/errors";
+} from "../../../observability/sentry";
+import { HttpError } from "../../../shared/errors";
 import {
   abortMultipartMediaAssetUploadUntilDeadline,
   createMultipartMediaAssetUpload,
-} from "../storage";
+} from "../../storage";
 import type {
   MediaAssetUploadSessionCreateInput,
   MediaAssetUploadSessionCreateResult,
-} from "../types";
+} from "../../types";
 import {
   acquireMediaAssetUploadSessionCreationClaimForWorkspace,
   createMediaAssetFromAvailableBlobForWorkspace,
@@ -22,7 +22,7 @@ import {
   releaseMediaAssetUploadSessionCreationClaimForWorkspace,
   type MediaAssetUploadSessionCreationClaimResult,
   type MediaAssetUploadSessionCreationReplayResult,
-} from "../uploadSessions";
+} from "../../uploadSessions";
 
 export const multipartUploadSessionCreationClaimLeaseDurationMs = 60_000;
 const multipartUploadSessionCreationMaximumOperationReserveMs = 5_000;

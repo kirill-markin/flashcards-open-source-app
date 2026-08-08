@@ -1,23 +1,23 @@
 import {
   captureBackendWarning,
   type BackendObservationScope,
-} from "../../observability/sentry";
-import { HttpError } from "../../shared/errors";
+} from "../../../observability/sentry";
+import { HttpError } from "../../../shared/errors";
 import {
   createMultipartCompletionWriterLeaseTargetAtMs,
-} from "../../server/mediaRequests/multipartCompletionRequestTiming";
+} from "../../../server/mediaRequests/multipartCompletionRequestTiming";
 import {
   MediaBlobLifecycleBusyError,
-} from "../blobLifecycle";
-import { isValidMediaAssetLastOperationId } from "../lastOperationId";
+} from "../../blobLifecycle";
+import { isValidMediaAssetLastOperationId } from "../../lastOperationId";
 import {
   abortMultipartMediaAssetUpload,
   completeMultipartMediaAssetUpload,
-} from "../storage";
+} from "../../storage";
 import type {
   CompleteMediaAssetUploadPartInput,
   MediaAssetUploadSession,
-} from "../types";
+} from "../../types";
 import {
   assertMediaAssetUploadSessionCompletionPartsMatch,
   assertMediaAssetUploadSessionSupportsDurableCompletion,
@@ -34,7 +34,7 @@ import {
   type MultipartMediaBlobWriterAttemptExactInput,
   type MultipartMediaBlobWriterAttemptHandoffStatus,
   type MultipartMediaBlobWriterAttemptInput,
-} from "../uploadSessions";
+} from "../../uploadSessions";
 import {
   createMultipartCompletionHandedOffError,
   createMultipartCompletionInProgressError,
@@ -46,7 +46,7 @@ import {
   toMultipartAttemptInput,
   type MultipartCompletionRequestDeadline,
   type MultipartDatabaseCommitReplay,
-} from "./requestBoundary";
+} from "../requestBoundary";
 import {
   createMultipartAttemptError,
   createMultipartCompletionResolutionError,
@@ -64,7 +64,7 @@ import {
   type MultipartExactResolutionResult,
   type MultipartWriterHeartbeat,
   type MultipartWriterLease,
-} from "./writerLease";
+} from "../writerLifecycle/writerLease";
 
 export async function beginUploadSessionAbort(
   userId: string,

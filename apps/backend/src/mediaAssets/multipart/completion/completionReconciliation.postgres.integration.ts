@@ -5,8 +5,8 @@ import type pg from "pg";
 import {
   type PostgresIntegrationFixture,
   withPostgresIntegrationFixture,
-} from "../../testSupport/postgresIntegration";
-import { HttpError } from "../../shared/errors";
+} from "../../../testSupport/postgresIntegration";
+import { HttpError } from "../../../shared/errors";
 import {
   applyMultipartCompletionReconciliation,
   claimMultipartCompletionFailureReports,
@@ -22,7 +22,7 @@ import {
   type ClaimedMultipartCompletionFailureReport,
   type ClaimedMultipartCompletionReconciliation,
 } from "./completionReconciliation";
-import { isValidMediaAssetLastOperationId } from "../lastOperationId";
+import { isValidMediaAssetLastOperationId } from "../../lastOperationId";
 import {
   beginMediaAssetUploadSessionCompletionAttemptWithOwner,
   beginMediaAssetUploadSessionCompletionForWorkspace,
@@ -31,12 +31,12 @@ import {
   markMediaAssetUploadSessionAbortedForWorkspace,
   recordMediaAssetUploadSessionForWorkspace,
   type MultipartMediaBlobWriterAttemptInput,
-} from "../uploadSessions";
-import { passthroughMediaBlobNormalizationVersion } from "../types";
+} from "../../uploadSessions";
+import { passthroughMediaBlobNormalizationVersion } from "../../types";
 import {
   buildMediaBlobStorageKey,
   buildMediaMultipartUploadStagingStorageKey,
-} from "../storageKeys";
+} from "../../storageKeys";
 
 type MultipartPayload = Readonly<{
   userId: string;
