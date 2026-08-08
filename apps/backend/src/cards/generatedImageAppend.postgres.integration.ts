@@ -10,7 +10,7 @@ import {
   appendPendingManagedImageToCardSideInExecutor,
   markPendingManagedImageFailedOnCardSideInExecutor,
   markPendingManagedImageReadyOnCardSideInExecutor,
-} from "./index";
+} from "./managedImageSettlement";
 import type { AppendManagedImageToCardSideInput, AppendManagedImageToCardSideResult } from "./types";
 
 const futureClientUpdatedAt = "2099-01-01T00:00:00.000Z";
