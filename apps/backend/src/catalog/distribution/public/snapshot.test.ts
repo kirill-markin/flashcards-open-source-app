@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
 import type { DatabaseExecutor, SqlValue } from "../../../database";
-import { createCatalogPublicRoutes } from "../../../routes/catalogPublic";
+import { createCatalogPublicRoutes } from "../../../routes/catalog/public";
 import { maximumPublicCatalogMediaDownloadBytes } from "../../publicMediaDelivery";
 import { loadPublicCatalogSnapshotInExecutor } from "./index";
 import {

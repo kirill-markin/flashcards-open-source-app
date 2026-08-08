@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCatalogInstallRoutes } from "../../../routes/catalogInstall";
+import { createCatalogInstallRoutes } from "../../../routes/catalog/install";
 import { HttpError } from "../../../shared/errors";
 import {
   testInstallTimestamp,
