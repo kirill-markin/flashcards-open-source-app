@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { requireAdminRequest, type AdminRequestContext } from "../admin/authz";
-import { normalizeCardMetadata } from "../cards/shared";
+import { requireAdminRequest, type AdminRequestContext } from "../../admin/authz";
+import { normalizeCardMetadata } from "../../cards/shared";
 import {
   attachCatalogPackageDraftMediaAsset,
   createCatalogAuthor,
@@ -13,7 +13,7 @@ import {
   updateCatalogAuthor,
   updateCatalogPackageDraft,
   updateCatalogPackageVersionReviewStatus,
-} from "../catalog";
+} from "../../catalog";
 import {
   catalogPackageStatuses,
   type AttachCatalogPackageMediaAssetInput,
@@ -30,16 +30,16 @@ import {
   type UpdateCatalogPackageDraftInput,
   type UpdateCatalogPackageVersionStatusInput,
   type UpsertCatalogAuthorInput,
-} from "../catalog/types";
+} from "../../catalog/types";
 import {
   expectNonEmptyString,
   expectRecord,
   expectUuidString,
   expectWorkspaceIdString,
   parseJsonBodyWithByteLimit,
-} from "../server/requestParsing";
-import { HttpError } from "../shared/errors";
-import type { AppEnv } from "../server/app";
+} from "../../server/requestParsing";
+import { HttpError } from "../../shared/errors";
+import type { AppEnv } from "../../server/app";
 
 type CatalogAdminRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;

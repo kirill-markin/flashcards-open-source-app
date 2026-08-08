@@ -5,16 +5,16 @@ import {
   loadPublicCatalogPackageDetail,
   loadPublicCatalogPackageMediaForDownload,
   loadPublicCatalogPackageVersionCardPreview,
-} from "../catalog";
+} from "../../catalog";
 import {
   isUnsafePublicPackageMediaKey,
   normalizePackageMediaKey,
   normalizeSlug,
-} from "../catalog/common";
+} from "../../catalog/common";
 import {
   getPublicCatalogMediaDeliveryIssue,
   maximumPublicCatalogMediaDownloadBytes,
-} from "../catalog/publicMediaDelivery";
+} from "../../catalog/publicMediaDelivery";
 import type {
   CatalogPublicPackageCardPreview,
   CatalogPublicPackageDetail,
@@ -22,23 +22,23 @@ import type {
   CatalogPublicPackageMediaDownloadSource,
   CatalogPublicPackageSummary,
   CatalogPublicSnapshot,
-} from "../catalog/types";
+} from "../../catalog/types";
 import {
   loadMediaAssetObjectBytes,
   type LoadedMediaAssetObjectBytes,
   type LoadMediaAssetObjectBytesInput,
-} from "../mediaAssets/storage";
+} from "../../mediaAssets/storage";
 import {
   createBackendObservationScope,
   type BackendObservationScope,
-} from "../observability/sentry";
-import type { AppEnv } from "../server/app";
-import { expectUuidString } from "../server/requestParsing";
-import { HttpError } from "../shared/errors";
+} from "../../observability/sentry";
+import type { AppEnv } from "../../server/app";
+import { expectUuidString } from "../../server/requestParsing";
+import { HttpError } from "../../shared/errors";
 import {
   getPublicApiBaseUrl,
   getPublicAppBaseUrl,
-} from "../shared/publicUrls";
+} from "../../shared/publicUrls";
 
 type CatalogPublicRoutesOptions = Readonly<{
   loadPublicCatalogSnapshotFn?: (

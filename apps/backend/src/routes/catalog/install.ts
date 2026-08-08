@@ -1,30 +1,30 @@
 import { Hono } from "hono";
-import { listWorkspaceTagsSummary } from "../cards";
+import { listWorkspaceTagsSummary } from "../../cards";
 import {
   catalogPackageInstallOperationIdPrefixMaximumLength,
   installCatalogPackageVersion,
   isValidCatalogPackageInstallOperationIdPrefix,
   previewCatalogPackageInstall,
-} from "../catalog";
+} from "../../catalog";
 import type {
   CatalogPackageInstallConfirmInput,
   CatalogPackageInstallPreview,
   CatalogPackageInstallResult,
-} from "../catalog/types";
-import { assertUserHasWorkspaceAccess } from "../workspaces";
-import type { AppEnv } from "../server/app";
+} from "../../catalog/types";
+import { assertUserHasWorkspaceAccess } from "../../workspaces";
+import type { AppEnv } from "../../server/app";
 import {
   loadRequestContextFromRequest,
   parseWorkspaceIdParam,
-} from "../server/requestContext";
+} from "../../server/requestContext";
 import {
   expectNonEmptyString,
   expectBoolean,
   expectRecord,
   expectUuidString,
   parseJsonBody,
-} from "../server/requestParsing";
-import { HttpError } from "../shared/errors";
+} from "../../server/requestParsing";
+import { HttpError } from "../../shared/errors";
 
 export type CatalogInstallRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;

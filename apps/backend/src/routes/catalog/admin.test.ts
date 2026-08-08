@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import type { AdminRequestContext } from "../admin/authz";
+import type { AdminRequestContext } from "../../admin/authz";
 import type {
   CatalogPackageVersion,
   CreateCatalogPackageVersionFromWorkspaceInput,
-} from "../catalog/types";
-import type { AppEnv } from "../server/app";
-import { HttpError } from "../shared/errors";
-import { createCatalogAdminRoutes } from "./catalogAdmin";
+} from "../../catalog/types";
+import type { AppEnv } from "../../server/app";
+import { HttpError } from "../../shared/errors";
+import { createCatalogAdminRoutes } from "./admin";
 
 const packageId = "11111111-1111-4111-8111-111111111111";
 const packageVersionId = "22222222-2222-4222-8222-222222222222";
