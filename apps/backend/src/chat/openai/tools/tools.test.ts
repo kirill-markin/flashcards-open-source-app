@@ -37,7 +37,7 @@ import {
 import {
   OpenAIGeneratedCardImageProvider,
   OpenAIImageGenerationResponseError,
-} from "../../cardImages/openaiAdapter";
+} from "../../cardImages/provider/openaiAdapter";
 import {
   GeneratedCardImageDeadlineExceededError,
   GeneratedCardImageProviderOutcomeUnknownError,

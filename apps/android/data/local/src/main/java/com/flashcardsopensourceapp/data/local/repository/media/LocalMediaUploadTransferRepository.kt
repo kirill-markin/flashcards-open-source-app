@@ -20,20 +20,15 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.media.CompleteMediaAssetUploadPart
 import com.flashcardsopensourceapp.data.local.model.media.CompleteMediaAssetUploadSessionRequest
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
-import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadPartRequest
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadPartUrl
-import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadPartUrlsRequest
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadPartUrlsResponse
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadCompletion
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSession
-import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionCreateRequest
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionCreateResponse
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionCreateStatus
 import com.flashcardsopensourceapp.data.local.model.media.MediaTransferKind
 import com.flashcardsopensourceapp.data.local.model.media.MediaTransferQueueItem
 import com.flashcardsopensourceapp.data.local.model.media.MediaTransferStatus
-import com.flashcardsopensourceapp.data.local.model.media.buildMediaBlobCacheRelativePath
-import com.flashcardsopensourceapp.data.local.model.media.normalizeMediaSha256
 import com.flashcardsopensourceapp.data.local.network.SignedPutUploadHttpException
 import com.flashcardsopensourceapp.data.local.network.SignedPutUploader
 import com.flashcardsopensourceapp.data.local.network.isRetryableHttpStatusCode
@@ -42,23 +37,17 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.loadAct
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.AuthenticatedCloudSession
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudSessionProvider
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.buildClientWorkspaceReplicaId
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
-import java.io.EOFException
 import java.io.File
-import java.io.FileInputStream
-import java.io.IOException
-import java.io.RandomAccessFile
-import java.security.MessageDigest
 
-private const val mediaUploadPartSizeBytes: Long = 8_388_608L
 private const val mediaUploadPartUrlBatchSize: Int = 100
 private const val mediaUploadMaxTransfersPerRun: Int = 3
 private const val mediaUploadRetryBaseDelayMillis: Long = 60_000L
@@ -186,10 +175,14 @@ class LocalMediaUploadTransferRepository(
         var activeUploadSession: ActiveMediaUploadSession? = null
         try {
             val transfer: MediaTransferQueueItem = toMediaTransferQueueItem(entity = transferEntity)
-            requireUploadTransferCanUseSession(transfer = transfer, cloudSession = cloudSession)
+            requireUploadTransferCanUseSession(
+                transfer = transfer,
+                cloudSettings = cloudSession.cloudSettings
+            )
             val uploadFilePlan: MediaUploadFilePlan = planUploadFile(
                 transfer = transfer,
-                mediaFileRootDirectory = mediaFileRootDirectory
+                mediaFileRootDirectory = mediaFileRootDirectory,
+                ioDispatcher = Dispatchers.IO
             )
             val createResponse: MediaAssetUploadSessionCreateResponse = remoteService.createMediaAssetUploadSession(
                 apiBaseUrl = cloudSession.apiBaseUrl,
@@ -228,7 +221,8 @@ class LocalMediaUploadTransferRepository(
                     )
                     requireUploadSessionMatchesPlan(
                         uploadSession = uploadSession,
-                        uploadFilePlan = uploadFilePlan
+                        uploadFilePlan = uploadFilePlan,
+                        currentTimeMillis = System.currentTimeMillis()
                     )
                     val completionResult: MediaUploadCompletionReplayResult = uploadMultipartBytes(
                         transfer = transfer,
@@ -278,20 +272,16 @@ class LocalMediaUploadTransferRepository(
     ): MediaUploadCompletionReplayResult {
         val completedParts = mutableListOf<CompleteMediaAssetUploadPart>()
         uploadFilePlan.parts.chunked(size = mediaUploadPartUrlBatchSize).forEach { partBatch ->
-            requireUploadSessionNotExpired(uploadSession = uploadSession)
+            requireUploadSessionNotExpired(
+                uploadSession = uploadSession,
+                currentTimeMillis = System.currentTimeMillis()
+            )
             val partUrlsResponse: MediaAssetUploadPartUrlsResponse = remoteService.createMediaAssetUploadPartUrls(
                 apiBaseUrl = cloudSession.apiBaseUrl,
                 authorizationHeader = cloudSession.authorizationHeader,
                 workspaceId = transfer.workspaceId,
                 sessionId = uploadSession.sessionId,
-                request = MediaAssetUploadPartUrlsRequest(
-                    parts = partBatch.map { part ->
-                        MediaAssetUploadPartRequest(
-                            partNumber = part.partNumber,
-                            sha256 = part.sha256
-                        )
-                    }
-                )
+                request = buildUploadPartUrlsRequest(parts = partBatch)
             )
             val partUrlsByNumber: Map<Int, MediaAssetUploadPartUrl> = requirePartUrlsMatchRequest(
                 partUrlsResponse = partUrlsResponse,
@@ -302,10 +292,14 @@ class LocalMediaUploadTransferRepository(
                 val partUrl: MediaAssetUploadPartUrl = requireNotNull(partUrlsByNumber[part.partNumber]) {
                     "Media upload part URL response did not include partNumber=${part.partNumber}."
                 }
-                requirePartUrlNotExpired(partUrl = partUrl)
+                requirePartUrlNotExpired(
+                    partUrl = partUrl,
+                    currentTimeMillis = System.currentTimeMillis()
+                )
                 val partBytes: ByteArray = readUploadPartBytes(
                     file = uploadFilePlan.file,
-                    part = part
+                    part = part,
+                    ioDispatcher = Dispatchers.IO
                 )
                 val uploadResult = signedPutUploader.uploadSignedPut(
                     url = partUrl.url,
@@ -320,9 +314,12 @@ class LocalMediaUploadTransferRepository(
             }
         }
 
-        requireUploadSessionNotExpired(uploadSession = uploadSession)
-        val completionRequest = CompleteMediaAssetUploadSessionRequest(
-            parts = completedParts.sortedBy { part -> part.partNumber }
+        requireUploadSessionNotExpired(
+            uploadSession = uploadSession,
+            currentTimeMillis = System.currentTimeMillis()
+        )
+        val completionRequest: CompleteMediaAssetUploadSessionRequest = buildUploadCompletionRequest(
+            parts = completedParts
         )
         return retryMediaUploadSessionCompletion(
             complete = {
@@ -481,64 +478,6 @@ private data class ActiveMediaUploadSession(
     val workspaceId: String,
     val sessionId: String
 )
-
-private data class MediaUploadFilePlan(
-    val file: File,
-    val sizeBytes: Long,
-    val sha256: String,
-    val partSizeBytes: Long,
-    val parts: List<MediaUploadFilePart>
-) {
-    init {
-        require(sizeBytes > 0L) {
-            "Media upload file plan sizeBytes must be positive."
-        }
-        require(sha256 == normalizeMediaSha256(rawSha256 = sha256)) {
-            "Media upload file plan sha256 must already be normalized."
-        }
-        require(partSizeBytes > 0L) {
-            "Media upload file plan partSizeBytes must be positive."
-        }
-        require(parts.isNotEmpty()) {
-            "Media upload file plan parts must not be empty."
-        }
-    }
-}
-
-private data class MediaUploadFilePart(
-    val partNumber: Int,
-    val offsetBytes: Long,
-    val sizeBytes: Long,
-    val sha256: String
-) {
-    init {
-        require(partNumber > 0) {
-            "Media upload file part partNumber must be positive."
-        }
-        require(offsetBytes >= 0L) {
-            "Media upload file part offsetBytes must not be negative."
-        }
-        require(sizeBytes > 0L) {
-            "Media upload file part sizeBytes must be positive."
-        }
-        require(sizeBytes <= Int.MAX_VALUE.toLong()) {
-            "Media upload file part sizeBytes must fit in memory."
-        }
-        require(sha256 == normalizeMediaSha256(rawSha256 = sha256)) {
-            "Media upload file part sha256 must already be normalized."
-        }
-    }
-}
-
-private class MediaUploadTransferPermanentException(
-    message: String,
-    cause: Throwable?
-) : IllegalStateException(message, cause)
-
-private class MediaUploadTransferSessionExpiredException(
-    message: String,
-    cause: Throwable?
-) : IOException(message, cause)
 
 internal enum class MediaUploadCompletionTerminalReason(
     val wireKey: String
@@ -712,353 +651,6 @@ private fun toMediaTransferQueueItem(entity: MediaTransferQueueEntity): MediaTra
     )
 }
 
-private fun planUploadFile(
-    transfer: MediaTransferQueueItem,
-    mediaFileRootDirectory: File
-): MediaUploadFilePlan {
-    if (transfer.kind != MediaTransferKind.UPLOAD) {
-        throw MediaUploadTransferPermanentException(
-            message = "Managed media upload transfer '${transfer.transferId}' has unexpected kind '${transfer.kind.wireKey}'.",
-            cause = null
-        )
-    }
-    if (transfer.status != MediaTransferStatus.IN_PROGRESS) {
-        throw MediaUploadTransferPermanentException(
-            message = "Managed media upload transfer '${transfer.transferId}' must be in_progress before upload.",
-            cause = null
-        )
-    }
-    if (transfer.localRelativePath != buildMediaBlobCacheRelativePath(sha256 = transfer.sha256)) {
-        throw MediaUploadTransferPermanentException(
-            message = "Managed media upload transfer '${transfer.transferId}' local path does not match SHA-256.",
-            cause = null
-        )
-    }
-
-    val uploadFile: File = resolveUploadFile(
-        mediaFileRootDirectory = mediaFileRootDirectory,
-        localRelativePath = transfer.localRelativePath
-    )
-    if (uploadFile.exists().not()) {
-        throw MediaUploadTransferPermanentException(
-            message = "Managed media upload file is missing: ${uploadFile.absolutePath}",
-            cause = null
-        )
-    }
-    if (uploadFile.isFile.not()) {
-        throw MediaUploadTransferPermanentException(
-            message = "Managed media upload path is not a file: ${uploadFile.absolutePath}",
-            cause = null
-        )
-    }
-    if (uploadFile.length() <= 0L) {
-        throw MediaUploadTransferPermanentException(
-            message = "Managed media upload file must not be empty: ${uploadFile.absolutePath}",
-            cause = null
-        )
-    }
-    if (uploadFile.length() != transfer.sizeBytes) {
-        throw MediaUploadTransferPermanentException(
-            message = "Managed media upload size mismatch for transfer '${transfer.transferId}': " +
-                "queue sizeBytes=${transfer.sizeBytes} file sizeBytes=${uploadFile.length()}.",
-            cause = null
-        )
-    }
-
-    return try {
-        buildUploadFilePlan(
-            file = uploadFile,
-            expectedSha256 = transfer.sha256,
-            expectedSizeBytes = transfer.sizeBytes
-        )
-    } catch (error: IOException) {
-        throw MediaUploadTransferPermanentException(
-            message = "Cannot read managed media upload file '${uploadFile.absolutePath}': " +
-                (error.message ?: error::class.java.simpleName),
-            cause = error
-        )
-    }
-}
-
-private fun resolveUploadFile(
-    mediaFileRootDirectory: File,
-    localRelativePath: String
-): File {
-    val rootDirectory: File = mediaFileRootDirectory.canonicalFile
-    val uploadFile: File = File(rootDirectory, localRelativePath).canonicalFile
-    val rootPath: String = rootDirectory.path
-    val uploadFilePath: String = uploadFile.path
-    if (uploadFilePath != rootPath && uploadFilePath.startsWith(prefix = "$rootPath${File.separator}").not()) {
-        throw MediaUploadTransferPermanentException(
-            message = "Managed media upload path escapes file root: root='$rootPath' relativePath='$localRelativePath'.",
-            cause = null
-        )
-    }
-    return uploadFile
-}
-
-private fun buildUploadFilePlan(
-    file: File,
-    expectedSha256: String,
-    expectedSizeBytes: Long
-): MediaUploadFilePlan {
-    val fullDigest: MessageDigest = MessageDigest.getInstance("SHA-256")
-    var partDigest: MessageDigest = MessageDigest.getInstance("SHA-256")
-    val parts = mutableListOf<MediaUploadFilePart>()
-    val buffer = ByteArray(size = 64 * 1024)
-    var totalSizeBytes = 0L
-    var currentPartSizeBytes = 0L
-    var currentPartOffsetBytes = 0L
-    var currentPartNumber = 1
-
-    FileInputStream(file).use { input ->
-        while (true) {
-            val readByteCount: Int = input.read(buffer)
-            if (readByteCount == -1) {
-                break
-            }
-
-            var consumedByteCount = 0
-            while (consumedByteCount < readByteCount) {
-                val remainingReadBytes: Int = readByteCount - consumedByteCount
-                val remainingPartBytes: Long = mediaUploadPartSizeBytes - currentPartSizeBytes
-                val chunkByteCount: Int = minOf(remainingReadBytes, remainingPartBytes.toInt())
-                fullDigest.update(buffer, consumedByteCount, chunkByteCount)
-                partDigest.update(buffer, consumedByteCount, chunkByteCount)
-                consumedByteCount += chunkByteCount
-                currentPartSizeBytes += chunkByteCount.toLong()
-                totalSizeBytes += chunkByteCount.toLong()
-
-                if (currentPartSizeBytes == mediaUploadPartSizeBytes) {
-                    parts += MediaUploadFilePart(
-                        partNumber = currentPartNumber,
-                        offsetBytes = currentPartOffsetBytes,
-                        sizeBytes = currentPartSizeBytes,
-                        sha256 = encodeDigestHex(bytes = partDigest.digest())
-                    )
-                    currentPartNumber += 1
-                    currentPartOffsetBytes = totalSizeBytes
-                    currentPartSizeBytes = 0L
-                    partDigest = MessageDigest.getInstance("SHA-256")
-                }
-            }
-        }
-    }
-
-    if (currentPartSizeBytes > 0L) {
-        parts += MediaUploadFilePart(
-            partNumber = currentPartNumber,
-            offsetBytes = currentPartOffsetBytes,
-            sizeBytes = currentPartSizeBytes,
-            sha256 = encodeDigestHex(bytes = partDigest.digest())
-        )
-    }
-
-    val computedSha256: String = encodeDigestHex(bytes = fullDigest.digest())
-    if (totalSizeBytes != expectedSizeBytes) {
-        throw MediaUploadTransferPermanentException(
-            message = "Managed media upload size changed while reading: " +
-                "expected $expectedSizeBytes byte(s), read $totalSizeBytes byte(s).",
-            cause = null
-        )
-    }
-    if (computedSha256 != expectedSha256) {
-        throw MediaUploadTransferPermanentException(
-            message = "Managed media upload SHA-256 mismatch: expected '$expectedSha256' but read '$computedSha256'.",
-            cause = null
-        )
-    }
-
-    return MediaUploadFilePlan(
-        file = file,
-        sizeBytes = totalSizeBytes,
-        sha256 = computedSha256,
-        partSizeBytes = mediaUploadPartSizeBytes,
-        parts = parts
-    )
-}
-
-private fun buildUploadSessionCreateRequest(
-    transfer: MediaTransferQueueItem,
-    uploadFilePlan: MediaUploadFilePlan,
-    cloudSettings: CloudSettings
-): MediaAssetUploadSessionCreateRequest {
-    return MediaAssetUploadSessionCreateRequest(
-        mediaAssetId = transfer.mediaAssetId,
-        mimeType = transfer.mimeType,
-        sizeBytes = uploadFilePlan.sizeBytes,
-        sha256 = uploadFilePlan.sha256,
-        partSizeBytes = uploadFilePlan.partSizeBytes,
-        partCount = uploadFilePlan.parts.size,
-        sourceUrl = null,
-        createdAtMillis = transfer.createdAtMillis,
-        clientUpdatedAtMillis = transfer.updatedAtMillis,
-        lastModifiedByReplicaId = buildClientWorkspaceReplicaId(
-            workspaceId = transfer.workspaceId,
-            installationId = cloudSettings.installationId
-        ),
-        lastOperationId = transfer.transferId
-    )
-}
-
-private fun requireUploadTransferCanUseSession(
-    transfer: MediaTransferQueueItem,
-    cloudSession: MediaUploadCloudSession
-) {
-    val activeWorkspaceId: String? = cloudSession.cloudSettings.activeWorkspaceId
-        ?: cloudSession.cloudSettings.linkedWorkspaceId
-    if (activeWorkspaceId != transfer.workspaceId) {
-        throw MediaUploadTransferPermanentException(
-            message = "Managed media upload transfer '${transfer.transferId}' targets workspace " +
-                "'${transfer.workspaceId}', but active cloud workspace is '$activeWorkspaceId'.",
-            cause = null
-        )
-    }
-}
-
-private fun requireCreateResponseMatchesTransfer(
-    createResponse: MediaAssetUploadSessionCreateResponse,
-    transfer: MediaTransferQueueItem
-) {
-    if (createResponse.workspaceId != transfer.workspaceId) {
-        throw CloudContractMismatchException(
-            "Cloud contract mismatch for media upload create workspaceId: " +
-                "expected '${transfer.workspaceId}', got '${createResponse.workspaceId}'."
-        )
-    }
-    if (createResponse.mediaAssetId != transfer.mediaAssetId) {
-        throw CloudContractMismatchException(
-            "Cloud contract mismatch for media upload create mediaAssetId: " +
-                "expected '${transfer.mediaAssetId}', got '${createResponse.mediaAssetId}'."
-        )
-    }
-}
-
-private fun requireUploadSessionMatchesPlan(
-    uploadSession: MediaAssetUploadSession,
-    uploadFilePlan: MediaUploadFilePlan
-) {
-    if (uploadSession.partSizeBytes != uploadFilePlan.partSizeBytes) {
-        throw CloudContractMismatchException(
-            "Cloud contract mismatch for media upload session partSizeBytes: " +
-                "expected ${uploadFilePlan.partSizeBytes}, got ${uploadSession.partSizeBytes}."
-        )
-    }
-    if (uploadSession.partCount != uploadFilePlan.parts.size) {
-        throw CloudContractMismatchException(
-            "Cloud contract mismatch for media upload session partCount: " +
-                "expected ${uploadFilePlan.parts.size}, got ${uploadSession.partCount}."
-        )
-    }
-    requireUploadSessionNotExpired(uploadSession = uploadSession)
-}
-
-private fun requireUploadSessionNotExpired(uploadSession: MediaAssetUploadSession) {
-    if (uploadSession.expiresAtMillis <= System.currentTimeMillis()) {
-        throw MediaUploadTransferSessionExpiredException(
-            message = "Media upload session '${uploadSession.sessionId}' is expired.",
-            cause = null
-        )
-    }
-}
-
-private fun requirePartUrlNotExpired(partUrl: MediaAssetUploadPartUrl) {
-    if (partUrl.expiresAtMillis <= System.currentTimeMillis()) {
-        throw MediaUploadTransferSessionExpiredException(
-            message = "Media upload part URL for partNumber=${partUrl.partNumber} is expired.",
-            cause = null
-        )
-    }
-}
-
-private fun requirePartUrlsMatchRequest(
-    partUrlsResponse: MediaAssetUploadPartUrlsResponse,
-    uploadSession: MediaAssetUploadSession,
-    requestedParts: List<MediaUploadFilePart>
-): Map<Int, MediaAssetUploadPartUrl> {
-    if (partUrlsResponse.sessionId != uploadSession.sessionId) {
-        throw CloudContractMismatchException(
-            "Cloud contract mismatch for media upload part URLs sessionId: " +
-                "expected '${uploadSession.sessionId}', got '${partUrlsResponse.sessionId}'."
-        )
-    }
-    val expectedPartNumbers: Set<Int> = requestedParts.map { part -> part.partNumber }.toSet()
-    val actualPartNumbers: Set<Int> = partUrlsResponse.partUrls.map { partUrl -> partUrl.partNumber }.toSet()
-    if (actualPartNumbers != expectedPartNumbers) {
-        throw CloudContractMismatchException(
-            "Cloud contract mismatch for media upload part URLs: " +
-                "expected partNumbers=$expectedPartNumbers, got partNumbers=$actualPartNumbers."
-        )
-    }
-    return partUrlsResponse.partUrls.associateBy { partUrl -> partUrl.partNumber }
-}
-
-private fun readUploadPartBytes(
-    file: File,
-    part: MediaUploadFilePart
-): ByteArray {
-    return try {
-        RandomAccessFile(file, "r").use { randomAccessFile ->
-            randomAccessFile.seek(part.offsetBytes)
-            val bytes = ByteArray(size = part.sizeBytes.toInt())
-            randomAccessFile.readFully(bytes)
-            bytes
-        }
-    } catch (error: EOFException) {
-        throw MediaUploadTransferPermanentException(
-            message = "Managed media upload file ended before partNumber=${part.partNumber}.",
-            cause = error
-        )
-    } catch (error: IOException) {
-        throw MediaUploadTransferPermanentException(
-            message = "Cannot read managed media upload partNumber=${part.partNumber}: " +
-                (error.message ?: error::class.java.simpleName),
-            cause = error
-        )
-    }
-}
-
-private fun requireMediaAssetMatchesTransfer(
-    mediaAsset: MediaAsset,
-    transfer: MediaTransferQueueItem
-) {
-    if (mediaAsset.mediaAssetId != transfer.mediaAssetId) {
-        throw CloudContractMismatchException(
-            "Cloud contract mismatch for completed media asset id: " +
-                "expected '${transfer.mediaAssetId}', got '${mediaAsset.mediaAssetId}'."
-        )
-    }
-    if (mediaAsset.workspaceId != transfer.workspaceId) {
-        throw CloudContractMismatchException(
-            "Cloud contract mismatch for completed media asset workspaceId: " +
-                "expected '${transfer.workspaceId}', got '${mediaAsset.workspaceId}'."
-        )
-    }
-    if (mediaAsset.sha256 != transfer.sha256) {
-        throw CloudContractMismatchException(
-            "Cloud contract mismatch for completed media asset sha256: " +
-                "expected '${transfer.sha256}', got '${mediaAsset.sha256}'."
-        )
-    }
-    if (mediaAsset.sizeBytes != transfer.sizeBytes) {
-        throw CloudContractMismatchException(
-            "Cloud contract mismatch for completed media asset sizeBytes: " +
-                "expected ${transfer.sizeBytes}, got ${mediaAsset.sizeBytes}."
-        )
-    }
-    if (mediaAsset.mimeType != transfer.mimeType) {
-        throw CloudContractMismatchException(
-            "Cloud contract mismatch for completed media asset mimeType: " +
-                "expected '${transfer.mimeType}', got '${mediaAsset.mimeType}'."
-        )
-    }
-    if (mediaAsset.deletedAtMillis != null) {
-        throw CloudContractMismatchException(
-            "Cloud contract mismatch for completed media asset deletedAtMillis: expected null, got ${mediaAsset.deletedAtMillis}."
-        )
-    }
-}
-
 private fun toMediaAssetEntity(mediaAsset: MediaAsset): MediaAssetEntity {
     return MediaAssetEntity(
         mediaAssetId = mediaAsset.mediaAssetId,
@@ -1138,15 +730,4 @@ private fun renderMediaUploadError(error: Exception): String {
         "$message Suppressed=${suppressedMessages.joinToString(separator = " | ")}"
     }
     return fullMessage.take(n = mediaUploadErrorMessageLimit)
-}
-
-private fun encodeDigestHex(bytes: ByteArray): String {
-    val hexChars = "0123456789abcdef".toCharArray()
-    val result = CharArray(size = bytes.size * 2)
-    bytes.forEachIndexed { index, byte ->
-        val value: Int = byte.toInt() and 0xff
-        result[index * 2] = hexChars[value ushr 4]
-        result[(index * 2) + 1] = hexChars[value and 0x0f]
-    }
-    return String(result)
 }

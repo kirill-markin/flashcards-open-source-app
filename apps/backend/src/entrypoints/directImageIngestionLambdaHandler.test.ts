@@ -15,7 +15,7 @@ import {
 import type {
   BackendExceptionEvent,
 } from "../observability/sentry/events";
-import { createDirectImageIngestionApp } from "../server/directImageIngestionApp";
+import { createDirectImageIngestionApp } from "../server/mediaRequests/directImageIngestionApp";
 import {
   directImageIngestionGatewayServiceHeadroomMs,
   directImageIngestionIntegrationEnvelopeMs,
@@ -25,7 +25,7 @@ import {
   directImageIngestionResponseMarginMs,
   publicRestApiIntegrationTimeoutMs,
   getDirectImageIngestionRequestTiming,
-} from "../server/directImageIngestionRequestTiming";
+} from "../server/mediaRequests/directImageIngestionRequestTiming";
 
 const directImagePath =
   "/workspaces/11111111-1111-4111-8111-111111111111/media-assets/images";

@@ -31,8 +31,8 @@ import {
   abortMultipartMediaAssetUploadUntilDeadlineWithDependencies,
   completeMultipartMediaAssetUploadWithDependencies,
   createMultipartMediaAssetUploadWithDependencies,
-} from "./multipart";
-import { reconcileMultipartMediaAssetUploadWithDependencies } from "./multipartReconciliation";
+} from "./multipart/multipart";
+import { reconcileMultipartMediaAssetUploadWithDependencies } from "./multipart/reconciliation";
 import {
   assertMediaAssetObjectMatchesWithDependencies,
   loadMediaAssetObjectBytesWithDependencies,
@@ -46,7 +46,7 @@ import {
 import {
   promoteMediaAssetUploadToBlobWithDependencies,
   storeMediaAssetBlobBytesIfAbsentWithDependencies,
-} from "./promotion";
+} from "./promotion/promotion";
 export {
   GeneratedMediaPromotionStorageTerminalError,
   GeneratedMediaPromotionStorageTransientError,
@@ -56,13 +56,13 @@ export {
   promoteGeneratedMediaObjectWithDependencies,
   storeGeneratedMediaStagingObject,
   storeGeneratedMediaStagingObjectWithDependencies,
-} from "./generatedPromotion";
+} from "./promotion/generatedPromotion";
 export type {
   GeneratedMediaObjectPromotionInput,
   GeneratedMediaStagingObject,
   GeneratedMediaStagingObjectInput,
   StoreGeneratedMediaStagingObjectInput,
-} from "./generatedPromotion";
+} from "./promotion/generatedPromotion";
 
 export { getMediaAssetsStorageConfig } from "./config";
 export type { MediaAssetsStorageConfig } from "./config";
@@ -96,11 +96,11 @@ export {
   abortMultipartMediaAssetUploadUntilDeadlineWithDependencies,
   completeMultipartMediaAssetUploadWithDependencies,
   createMultipartMediaAssetUploadWithDependencies,
-} from "./multipart";
+} from "./multipart/multipart";
 export {
   createMultipartCompletedPartsFingerprint,
   reconcileMultipartMediaAssetUploadWithDependencies,
-} from "./multipartReconciliation";
+} from "./multipart/reconciliation";
 export {
   MultipartCompletionReconciliationStorageTerminalError,
   MultipartCompletionReconciliationStorageTransientError,
@@ -118,7 +118,7 @@ export {
 export {
   promoteMediaAssetUploadToBlobWithDependencies,
   storeMediaAssetBlobBytesIfAbsentWithDependencies,
-} from "./promotion";
+} from "./promotion/promotion";
 
 export async function createMultipartMediaAssetUpload(
   input: CreateMultipartMediaAssetUploadInput,

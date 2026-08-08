@@ -21,7 +21,7 @@ import type { RequestContext } from "../server/requestContext";
 import {
   createMultipartCompletionRequestTiming,
   runWithMultipartCompletionRequestTiming,
-} from "../server/multipartCompletionRequestTiming";
+} from "../server/mediaRequests/multipartCompletionRequestTiming";
 import {
   createMultipartCompletionRequestDeadline,
   replayMultipartDatabaseCommitUnknownUntilDeadline,
@@ -32,11 +32,11 @@ import {
   isExpiredMultipartCompletionCleanupRequired,
   replayCompletedMultipartResultWithDependencies,
   resolveMultipartOperationExactlyUntilSafe,
-} from "../mediaAssets/multipart/writerLease";
+} from "../mediaAssets/multipart/writerLifecycle/writerLease";
 import {
   completeMultipartUploadSessionAtApplicationBoundary,
   type MultipartCompletionApplicationDependencies,
-} from "../mediaAssets/multipart/completionBoundary";
+} from "../mediaAssets/multipart/completion/completionBoundary";
 import { createMediaAssetsRoutes } from "./mediaAssets";
 
 const legacyWorkspaceId = "35274129-ef97-d366-954c-955b4bb0fbf0";

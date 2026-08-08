@@ -27,7 +27,7 @@ import {
   SQL_TOOL_NAME,
 } from "../../../aiTools/toolContract/sqlToolContract";
 import { generateCardImage, type GeneratedCardImageObservationContext } from "../../cardImages";
-import { isOpenAIImageGenerationProviderError } from "../../cardImages/openaiAdapter";
+import { isOpenAIImageGenerationProviderError } from "../../cardImages/provider/openaiAdapter";
 import {
   GeneratedCardImageDeadlineExceededError,
   GeneratedCardImageProviderOutcomeUnknownError,

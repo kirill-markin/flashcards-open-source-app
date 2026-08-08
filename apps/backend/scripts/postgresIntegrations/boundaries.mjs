@@ -74,19 +74,23 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0108_multipart_absolute_lease_target.sql",
     expectedMigrationCount: 110,
     testFiles: Object.freeze([
-      "src/mediaAssets/multipart/atomicWriter.postgres.integration.ts",
+      "src/mediaAssets/multipart/creation/atomicWriterCreation.postgres.integration.ts",
+      "src/mediaAssets/multipart/completion/atomicWriterCompletion.postgres.integration.ts",
+      "src/mediaAssets/multipart/writerLifecycle/atomicWriterLease.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
     migrationFileName: "0107_catalog_test_collection.sql",
     expectedMigrationCount: 109,
     testFiles: Object.freeze([
-      "src/catalog/distribution/public.postgres.integration.ts",
-      "src/catalog/distribution/install.postgres.integration.ts",
+      "src/catalog/distribution/public/public.postgres.integration.ts",
+      "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/catalog/authoring/lockOrder.postgres.integration.ts",
       "src/cards/generatedImageAppend.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",
-      "src/chat/cardImages/promotion/jobs.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsRevocation.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
       "src/database/aiChatInitiatingAuthClassification.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/cleanup.postgres.integration.ts",
@@ -97,15 +101,15 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0101_multipart_foreground_completion_fencing.sql",
     expectedMigrationCount: 103,
     testFiles: Object.freeze([
-      "src/mediaAssets/multipart/foregroundFencing.postgres.integration.ts",
+      "src/mediaAssets/multipart/writerLifecycle/foregroundFencing.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
     migrationFileName: "0100_multipart_replacement_creation_claim.sql",
     expectedMigrationCount: 102,
     testFiles: Object.freeze([
-      "src/mediaAssets/multipart/replacementCreationClaim.postgres.integration.ts",
-      "src/mediaAssets/multipart/uploadSessionCreation.postgres.integration.ts",
+      "src/mediaAssets/multipart/creation/replacementCreationClaim.postgres.integration.ts",
+      "src/mediaAssets/multipart/creation/uploadSessionCreation.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -115,8 +119,8 @@ export const boundaryDefinitions = Object.freeze([
       "src/database/deadline.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
       "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
-      "src/mediaAssets/multipart/completionReconciliation.postgres.integration.ts",
-      "src/mediaAssets/multipart/writerAbortReplay.postgres.integration.ts",
+      "src/mediaAssets/multipart/completion/completionReconciliation.postgres.integration.ts",
+      "src/mediaAssets/multipart/writerLifecycle/writerAbortReplay.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -126,21 +130,21 @@ export const boundaryDefinitions = Object.freeze([
       "src/database/deadline.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
       "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
-      "src/mediaAssets/multipart/writerAbortReplay.postgres.integration.ts",
+      "src/mediaAssets/multipart/writerLifecycle/writerAbortReplay.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
     migrationFileName: "0097_direct_multipart_writer_attempt_fencing.sql",
     expectedMigrationCount: 99,
     testFiles: Object.freeze([
-      "src/mediaAssets/multipart/writerAbortReplay.postgres.integration.ts",
+      "src/mediaAssets/multipart/writerLifecycle/writerAbortReplay.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
     migrationFileName: "0096_atomic_multipart_completion_resolution.sql",
     expectedMigrationCount: 98,
     testFiles: Object.freeze([
-      "src/mediaAssets/multipart/writerAttempts.postgres.integration.ts",
+      "src/mediaAssets/multipart/writerLifecycle/writerAttempts.postgres.integration.ts",
     ]),
   }),
 ]);

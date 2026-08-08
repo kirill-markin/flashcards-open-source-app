@@ -6,19 +6,6 @@ export type GeneratedCardImageObservationContext = Readonly<{
   rootObservation: LangfuseObservation | null;
 }>;
 
-export type GeneratedProviderImage = Readonly<{
-  bytes: Buffer;
-  providerRequestId: string | null;
-}>;
-
-export type OpenAIImageGenerationInput = Readonly<{
-  userId: string;
-  imagePrompt: string;
-  observationContext: GeneratedCardImageObservationContext;
-  signal: AbortSignal;
-  operationDeadlineMs: number;
-}>;
-
 export class GeneratedCardImageDeadlineExceededError extends Error {
   readonly code = "GENERATED_CARD_IMAGE_DEADLINE_EXCEEDED";
 

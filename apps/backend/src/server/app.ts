@@ -24,9 +24,9 @@ import { createWorkspacePackageRoutes } from "../routes/workspacePackages";
 import { createSyncRoutes } from "../routes/sync/index";
 import { createSystemRoutes } from "../routes/system";
 import { createAdminRoutes } from "../routes/admin";
-import { createCatalogAdminRoutes } from "../routes/catalogAdmin";
-import { createCatalogPublicRoutes } from "../routes/catalogPublic";
-import { createCatalogInstallRoutes } from "../routes/catalogInstall";
+import { createCatalogAdminRoutes } from "../routes/catalog/admin";
+import { createCatalogPublicRoutes } from "../routes/catalog/public";
+import { createCatalogInstallRoutes } from "../routes/catalog/install";
 import { createGuestAuthRoutes } from "../routes/guestAuth";
 import { createWorkspaceRoutes } from "../routes/workspaces/index";
 import {

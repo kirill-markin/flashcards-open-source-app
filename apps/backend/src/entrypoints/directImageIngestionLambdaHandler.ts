@@ -5,7 +5,7 @@ import {
   createDirectImageIngestionRequestTiming,
   runWithDirectImageIngestionRequestContext,
   type DirectImageIngestionRequestTiming,
-} from "../server/directImageIngestionRequestTiming";
+} from "../server/mediaRequests/directImageIngestionRequestTiming";
 import { createCredentialedBrowserCorsResponseHeaders } from "../server/browserCors";
 import {
   createAgentApiKeyErrorEnvelope,

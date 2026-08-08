@@ -33,6 +33,23 @@ export const CARD_SELECT = [
   "FROM content.cards",
 ].join(" ");
 
+export async function loadCardRowForMutation(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  cardId: string,
+): Promise<CardRow | undefined> {
+  const result = await executor.query<CardRow>(
+    [
+      CARD_SELECT,
+      "WHERE workspace_id = $1 AND card_id = $2",
+      "FOR UPDATE",
+    ].join(" "),
+    [workspaceId, cardId],
+  );
+
+  return result.rows[0];
+}
+
 export function toIsoString(value: TimestampValue): string {
   if (value instanceof Date) {
     return value.toISOString();
