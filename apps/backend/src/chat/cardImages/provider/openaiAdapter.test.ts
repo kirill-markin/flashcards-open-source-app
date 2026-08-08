@@ -10,14 +10,14 @@ import test from "node:test";
 import type { LangfuseObservation } from "@langfuse/tracing";
 import * as Sentry from "@sentry/aws-serverless";
 import OpenAI from "openai";
-import { maximumImageIngestionOriginalBytes } from "../../mediaAssets/validators";
+import { maximumImageIngestionOriginalBytes } from "../../../mediaAssets/validators";
 import {
   createBackendObservationScope,
-} from "../../observability/sentry";
+} from "../../../observability/sentry";
 import {
   sentryModule,
-} from "../../observability/sentry/testHelpers";
-import { buildOpenAISafetyIdentifier } from "../openai/safetyIdentifier";
+} from "../../../observability/sentry/testHelpers";
+import { buildOpenAISafetyIdentifier } from "../../openai/safetyIdentifier";
 import {
   decodeGeneratedCardImageBase64,
   generatedCardImageModel,
@@ -31,7 +31,7 @@ import {
 import type {
   OpenAIImageGenerationInput,
 } from "./providerTypes";
-import { GeneratedCardImageDeadlineExceededError } from "./providerTypes";
+import { GeneratedCardImageDeadlineExceededError } from "../providerTypes";
 
 type CapturedProviderRequest = Readonly<{
   method: string | null;

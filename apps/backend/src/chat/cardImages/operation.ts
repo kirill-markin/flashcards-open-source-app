@@ -33,15 +33,17 @@ import {
   type MarkGeneratedCardImageProviderStartedResult,
 } from "../openai/tools/generatedImageAttemptBudget";
 import { deriveGeneratedCardImageOperationMetadata } from "./metadata";
-import { createOpenAIGeneratedCardImageProvider } from "./openaiAdapter";
+import { createOpenAIGeneratedCardImageProvider } from "./provider/openaiAdapter";
 import { withGeneratedCardImageOperationLock } from "./operationLock";
 import { enqueueGeneratedMediaPromotionJob, type EnqueueGeneratedMediaPromotionJobResult } from "./promotion/jobs";
+import {
+  type GeneratedProviderImage,
+  type OpenAIImageGenerationInput,
+} from "./provider/providerTypes";
 import {
   GeneratedCardImageDeadlineExceededError,
   GeneratedCardImageProviderOutcomeUnknownError,
   GeneratedCardImageStagingOutcomeUnknownError,
-  type GeneratedProviderImage,
-  type OpenAIImageGenerationInput,
 } from "./providerTypes";
 import type {
   GeneratedCardImageInput,

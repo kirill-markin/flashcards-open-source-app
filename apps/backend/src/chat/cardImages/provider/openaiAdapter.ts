@@ -1,14 +1,14 @@
 import OpenAI from "openai";
-import { buildOpenAISafetyIdentifier } from "../openai/safetyIdentifier";
-import { getOpenAIClient } from "../openai/client";
+import { buildOpenAISafetyIdentifier } from "../../openai/safetyIdentifier";
+import { getOpenAIClient } from "../../openai/client";
 import {
   addBackendBreadcrumb,
   captureBackendWarning,
   type GeneratedCardImageProviderDetails,
-} from "../../observability/sentry";
-import { maximumImageIngestionOriginalBytes } from "../../mediaAssets/validators";
+} from "../../../observability/sentry";
+import { maximumImageIngestionOriginalBytes } from "../../../mediaAssets/validators";
+import { GeneratedCardImageDeadlineExceededError } from "../providerTypes";
 import {
-  GeneratedCardImageDeadlineExceededError,
   type GeneratedProviderImage,
   type OpenAIImageGenerationInput,
 } from "./providerTypes";
