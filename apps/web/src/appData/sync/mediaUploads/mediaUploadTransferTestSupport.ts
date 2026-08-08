@@ -2,12 +2,10 @@ import { createHash } from "node:crypto";
 import { Blob as NodeBlob } from "node:buffer";
 import { vi } from "vitest";
 import "../../../api/endpoints/endpointsTestSupport";
-import { primeSessionCsrfToken, setNavigationHandlerForTests } from "../../../api";
 import { createJsonResponse } from "../../../api/ApiTestSupport";
 import { clearWebSyncCache } from "../../../localDb/core/cache";
 import {
   enqueueMediaTransferUpload,
-  loadMediaTransferQueueRecord,
   type MediaTransferQueueRecord,
   type RenewInProgressMediaTransferClaimInput,
   writeMediaBlobCacheRecord,
@@ -17,15 +15,6 @@ import type { CloudSettings, MediaAsset } from "../../../types";
 import {
   processDueMediaUploadTransfersForWorkspace as runDueMediaUploadTransfersForWorkspace,
 } from "./mediaUploadTransferRunner";
-
-export {
-  primeSessionCsrfToken,
-  setNavigationHandlerForTests,
-  createJsonResponse,
-  loadMediaTransferQueueRecord,
-  runDueMediaUploadTransfersForWorkspace,
-};
-
 
 type RenewMediaTransferClaim = (input: RenewInProgressMediaTransferClaimInput) => Promise<MediaTransferQueueRecord>;
 
