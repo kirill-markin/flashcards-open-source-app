@@ -36,7 +36,7 @@ import {
 import {
   createStandaloneDirectImageIngestionRequestTiming,
   getDirectImageIngestionRequestTiming,
-} from "../server/directImageIngestionRequestTiming";
+} from "../server/mediaRequests/directImageIngestionRequestTiming";
 
 export type DirectImageIngestionRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;

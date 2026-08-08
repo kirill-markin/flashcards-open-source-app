@@ -89,7 +89,7 @@ import {
 } from "./completionBoundary";
 import {
   createMultipartCompletionWriterLeaseTargetAtMs,
-} from "../../server/multipartCompletionRequestTiming";
+} from "../../server/mediaRequests/multipartCompletionRequestTiming";
 
 const migration0094 = readFileSync(resolve(
   __dirname, "../../../../../db/migrations/0094_direct_multipart_writer_abandonment.sql",

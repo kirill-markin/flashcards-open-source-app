@@ -2,27 +2,27 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { cors } from "hono/cors";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { AuthError } from "../auth";
+import { AuthError } from "../../auth";
 import {
   createAgentApiKeyErrorEnvelope,
   isAgentApiKeyAuthorizationHeader,
-} from "../agent/envelope";
-import { getAuthConfig } from "../auth/config";
-import { createDirectImageIngestionRoutes } from "../routes/directImageIngestion";
+} from "../../agent/envelope";
+import { getAuthConfig } from "../../auth/config";
+import { createDirectImageIngestionRoutes } from "../../routes/directImageIngestion";
 import {
   createPublicHttpErrorDetails,
   HttpError,
-} from "../shared/errors";
-import type { AppEnv } from "./appEnv";
+} from "../../shared/errors";
+import type { AppEnv } from "../appEnv";
 import {
   browserCorsAllowHeaders,
   browserCorsExposeHeaders,
   getAllowedBrowserOrigins,
-} from "./browserCors";
+} from "../browserCors";
 import {
   getDirectImageIngestionRequestId,
 } from "./directImageIngestionRequestTiming";
-import { getHttpErrorResponseHeaders } from "./httpErrorResponseHeaders";
+import { getHttpErrorResponseHeaders } from "../httpErrorResponseHeaders";
 
 function applyHttpErrorResponseHeaders(
   context: Context<AppEnv>,

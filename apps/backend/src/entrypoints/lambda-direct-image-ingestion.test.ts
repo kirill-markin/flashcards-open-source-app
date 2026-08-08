@@ -65,7 +65,7 @@ function collectRuntimeImportGraph(entrypoint: string): Readonly<{
 
 test("dedicated direct ingestion entrypoint excludes the shared app, AI, Langfuse, and Sentry SDK", () => {
   const graph = collectRuntimeImportGraph(directEntrypoint);
-  assert.ok(graph.files.includes("server/directImageIngestionApp.ts"));
+  assert.ok(graph.files.includes("server/mediaRequests/directImageIngestionApp.ts"));
   assert.equal(graph.files.includes("server/app.ts"), false);
   assert.equal(
     graph.files.some((filePath) =>

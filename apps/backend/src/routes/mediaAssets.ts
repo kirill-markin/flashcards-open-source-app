@@ -73,7 +73,7 @@ import {
 import {
   createStandaloneMultipartCompletionRequestTiming,
   getMultipartCompletionRequestTimingContext,
-} from "../server/multipartCompletionRequestTiming";
+} from "../server/mediaRequests/multipartCompletionRequestTiming";
 
 type MediaAssetsRoutesOptions = DirectImageIngestionRoutesOptions & Readonly<{
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;

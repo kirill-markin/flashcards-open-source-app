@@ -19,13 +19,13 @@ import {
   isDirectImageIngestionPostTarget,
   isMultipartCompletionPostTarget,
   readApiGatewayRequestTarget,
-} from "../server/directImageIngestionRouting";
+} from "../server/mediaRequests/directImageIngestionRouting";
 import {
   createMultipartCompletionRequestTiming,
   readMultipartCompletionIngressAtMs,
   runWithMultipartCompletionRequestTiming,
   type MultipartCompletionRequestTiming,
-} from "../server/multipartCompletionRequestTiming";
+} from "../server/mediaRequests/multipartCompletionRequestTiming";
 
 initializeBackendSentry("backend-api");
 
