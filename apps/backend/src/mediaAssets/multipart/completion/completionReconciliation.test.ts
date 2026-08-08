@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { DatabaseDeadlineExceededError } from "../../database";
-import { DatabaseCommitOutcomeUnknownError } from "../../database/transient";
-import { createBackendObservationScope } from "../../observability/sentry";
-import { HttpError } from "../../shared/errors";
+import { DatabaseDeadlineExceededError } from "../../../database";
+import { DatabaseCommitOutcomeUnknownError } from "../../../database/transient";
+import { createBackendObservationScope } from "../../../observability/sentry";
+import { HttpError } from "../../../shared/errors";
 import {
   MultipartCompletionReconciliationStorageTerminalError,
   MultipartCompletionReconciliationStorageTransientError,
-} from "../storage";
+} from "../../storage";
 import {
   buildMediaBlobStorageKey,
   buildMediaMultipartUploadStagingStorageKey,
-} from "../storageKeys";
+} from "../../storageKeys";
 import {
   MultipartCompletionFailureReportBatchError,
   MultipartCompletionFailureReportLeaseLostError,

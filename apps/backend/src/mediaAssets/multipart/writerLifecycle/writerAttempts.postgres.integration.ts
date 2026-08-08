@@ -4,8 +4,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 import type pg from "pg";
-import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../testSupport/postgresIntegration";
-import { buildMediaBlobStorageKey } from "../storageKeys";
+import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../../testSupport/postgresIntegration";
+import { buildMediaBlobStorageKey } from "../../storageKeys";
 type DirectPayload = Readonly<{
   userId: string; workspaceId: string; mediaAssetId: string; operationId: string;
   replicaId: string; sha256: string; storageKey: string; mimeType: string;
@@ -31,7 +31,7 @@ type SqlValue = string | number | null;
 type QueryExecutor = Pick<pg.PoolClient, "query">;
 const cleanupDelayMs = 3_600_000;
 const migration0097 = readFileSync(resolve(
-  __dirname, "../../../../../db/migrations/0097_direct_multipart_writer_attempt_fencing.sql",
+  __dirname, "../../../../../../db/migrations/0097_direct_multipart_writer_attempt_fencing.sql",
 ), "utf8");
 const directRow = `ROW($3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
   ::content.direct_media_blob_writer_attempt_payload`;

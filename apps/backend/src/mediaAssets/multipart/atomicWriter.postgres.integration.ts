@@ -64,7 +64,7 @@ import {
   claimMultipartCompletionReconciliations,
   renewMultipartCompletionReconciliationLease,
   type ClaimedMultipartCompletionReconciliation,
-} from "./completionReconciliation";
+} from "./completion/completionReconciliation";
 import {
   reconcileMultipartMediaAssetUploadWithDependencies,
 } from "../storage/multipart/reconciliation";
@@ -78,15 +78,15 @@ import {
 } from "./requestBoundary";
 import {
   createMultipartUploadSessionAtApplicationBoundary,
-} from "./creationBoundary";
+} from "./creation/creationBoundary";
 import {
   createMultipartWriterHeartbeat,
   isExpiredMultipartCompletionCleanupRequired,
-} from "./writerLease";
+} from "./writerLifecycle/writerLease";
 import {
   abortMultipartUploadSessionAtApplicationBoundary,
   completeMultipartUploadSessionAtApplicationBoundary,
-} from "./completionBoundary";
+} from "./completion/completionBoundary";
 import {
   createMultipartCompletionWriterLeaseTargetAtMs,
 } from "../../server/mediaRequests/multipartCompletionRequestTiming";

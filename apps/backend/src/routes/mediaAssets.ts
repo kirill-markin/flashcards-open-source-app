@@ -23,16 +23,16 @@ import {
   multipartUploadSessionCreationApplicationDependencies,
   multipartUploadSessionCreationClaimLeaseDurationMs,
   type MultipartUploadSessionCreationApplicationDependencies,
-} from "../mediaAssets/multipart/creationBoundary";
+} from "../mediaAssets/multipart/creation/creationBoundary";
 import {
   mapMultipartCompletionDeadlineError,
-} from "../mediaAssets/multipart/writerLease";
+} from "../mediaAssets/multipart/writerLifecycle/writerLease";
 import {
   abortMultipartUploadSessionAtApplicationBoundary,
   beginUploadSessionAbort,
   completeMultipartUploadSessionAtApplicationBoundary,
   multipartCompletionApplicationDependencies,
-} from "../mediaAssets/multipart/completionBoundary";
+} from "../mediaAssets/multipart/completion/completionBoundary";
 import {
   buildMediaBlobStorageKey,
   buildMediaMultipartUploadStagingStorageKey,
