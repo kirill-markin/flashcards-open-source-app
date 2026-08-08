@@ -9,9 +9,6 @@ import {
   markMediaTransferSucceeded,
 } from "../../../localDb/mediaTransfers";
 import {
-  processDueMediaUploadTransfersForWorkspace as runDueMediaUploadTransfersForWorkspace,
-} from "./mediaUploadTransferRunner";
-import {
   bufferSourceToBytes,
   createAbortResponse,
   createTestBlob,
@@ -25,6 +22,7 @@ import {
   parseRequestBody,
   processDueMediaUploadTransfersForWorkspace,
   resetMediaUploadTransferTestState,
+  runDueMediaUploadTransfersForWorkspace,
   seedQueuedUpload,
   textMimeType,
   toArrayBuffer,

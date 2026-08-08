@@ -6,9 +6,6 @@ import { primeSessionCsrfToken } from "../../../api";
 import { createJsonResponse } from "../../../api/ApiTestSupport";
 import { loadMediaTransferQueueRecord } from "../../../localDb/mediaTransfers";
 import {
-  processDueMediaUploadTransfersForWorkspace as runDueMediaUploadTransfersForWorkspace,
-} from "./mediaUploadTransferRunner";
-import {
   createAbortResponse,
   createTestBlob,
   createUploadRequiredResponse,
@@ -19,6 +16,7 @@ import {
   parseRequestBody,
   processDueMediaUploadTransfersForWorkspace,
   resetMediaUploadTransferTestState,
+  runDueMediaUploadTransfersForWorkspace,
   seedQueuedUpload,
   textMimeType,
   transferId,

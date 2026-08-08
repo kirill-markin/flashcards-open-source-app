@@ -13,7 +13,7 @@ import {
 import { putCloudSettings } from "../../../localDb/sync/cloudSettings";
 import type { CloudSettings, MediaAsset } from "../../../types";
 import {
-  processDueMediaUploadTransfersForWorkspace as runDueMediaUploadTransfersForWorkspace,
+  processDueMediaUploadTransfersForWorkspace as runMediaUploadTransferRunner,
 } from "./mediaUploadTransferRunner";
 
 type RenewMediaTransferClaim = (input: RenewInProgressMediaTransferClaimInput) => Promise<MediaTransferQueueRecord>;
@@ -45,10 +45,17 @@ export const textMimeType = "text/plain";
 export const futurePartUrlExpiresAt = "9999-12-31T23:59:59.999Z";
 
 export function processDueMediaUploadTransfersForWorkspace(testWorkspaceId: string): Promise<void> {
-  return runDueMediaUploadTransfersForWorkspace(
+  return runMediaUploadTransferRunner(
     testWorkspaceId,
     new AbortController().signal,
   );
+}
+
+export function runDueMediaUploadTransfersForWorkspace(
+  testWorkspaceId: string,
+  signal: AbortSignal,
+): Promise<void> {
+  return runMediaUploadTransferRunner(testWorkspaceId, signal);
 }
 
 function toTestUuidFromHexDigest(hexDigest: string): string {
