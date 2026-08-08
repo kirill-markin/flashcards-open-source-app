@@ -74,7 +74,9 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0108_multipart_absolute_lease_target.sql",
     expectedMigrationCount: 110,
     testFiles: Object.freeze([
-      "src/mediaAssets/multipart/atomicWriter.postgres.integration.ts",
+      "src/mediaAssets/multipart/creation/atomicWriterCreation.postgres.integration.ts",
+      "src/mediaAssets/multipart/completion/atomicWriterCompletion.postgres.integration.ts",
+      "src/mediaAssets/multipart/writerLifecycle/atomicWriterLease.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
