@@ -81,11 +81,10 @@ class ReviewSpeechController(
 
     fun toggleSpeech(
         side: ReviewSpeechSide,
-        sourceText: String,
+        speakableText: String,
         fallbackLanguageTag: String,
         onError: (String) -> Unit
     ) {
-        val speakableText = makeReviewSpeakableText(text = sourceText)
         if (speakableText.isEmpty()) {
             return
         }

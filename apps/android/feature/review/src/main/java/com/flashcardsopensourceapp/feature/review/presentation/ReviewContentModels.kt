@@ -37,7 +37,17 @@ sealed interface ReviewManagedMarkdownBlock {
     data class ManagedMedia(
         val reference: ReviewManagedMediaReference
     ) : ReviewManagedMarkdownBlock
+
+    data class Formula(
+        val source: String,
+        val delimitedSource: String
+    ) : ReviewManagedMarkdownBlock
 }
+
+internal data class PreparedReviewContent(
+    val renderedContent: ReviewRenderedContent,
+    val speakableText: String
+)
 
 data class ReviewManagedMediaReference(
     val mediaAssetId: String,

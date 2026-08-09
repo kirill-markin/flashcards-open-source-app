@@ -16,6 +16,14 @@ fun prepareReviewCardPresentation(
     } else {
         card.backText
     }
+    val preparedFrontContent: PreparedReviewContent = prepareReviewContent(
+        text = card.frontText,
+        mediaAssetsById = mediaAssetsById
+    )
+    val preparedBackContent: PreparedReviewContent = prepareReviewContent(
+        text = normalizedBackText,
+        mediaAssetsById = mediaAssetsById
+    )
 
     return PreparedReviewCardPresentation(
         card = card,
@@ -23,16 +31,14 @@ fun prepareReviewCardPresentation(
         dueLabel = textProvider.dueLabel(dueAtMillis = card.dueAtMillis),
         repsLabel = textProvider.repsLabel(reps = card.reps),
         lapsesLabel = textProvider.lapsesLabel(lapses = card.lapses),
-        frontContent = makeReviewRenderedContent(
-            text = card.frontText,
-            mediaAssetsById = mediaAssetsById
-        ),
-        backContent = makeReviewRenderedContent(
-            text = normalizedBackText,
-            mediaAssetsById = mediaAssetsById
-        ),
-        frontSpeakableText = makeReviewSpeakableText(text = card.frontText),
-        backSpeakableText = makeReviewSpeakableText(text = card.backText),
+        frontContent = preparedFrontContent.renderedContent,
+        backContent = preparedBackContent.renderedContent,
+        frontSpeakableText = preparedFrontContent.speakableText,
+        backSpeakableText = if (card.backText.trim().isEmpty()) {
+            ""
+        } else {
+            preparedBackContent.speakableText
+        },
         answerOptions = answerOptions.map { option ->
             PreparedReviewAnswerOption(
                 rating = option.rating,
@@ -55,18 +61,24 @@ fun refreshPreparedReviewCardPresentationMedia(
     } else {
         card.backText
     }
+    val preparedFrontContent: PreparedReviewContent = prepareReviewContent(
+        text = card.frontText,
+        mediaAssetsById = mediaAssetsById
+    )
+    val preparedBackContent: PreparedReviewContent = prepareReviewContent(
+        text = normalizedBackText,
+        mediaAssetsById = mediaAssetsById
+    )
 
     return presentation.copy(
-        frontContent = makeReviewRenderedContent(
-            text = card.frontText,
-            mediaAssetsById = mediaAssetsById
-        ),
-        backContent = makeReviewRenderedContent(
-            text = normalizedBackText,
-            mediaAssetsById = mediaAssetsById
-        ),
-        frontSpeakableText = makeReviewSpeakableText(text = card.frontText),
-        backSpeakableText = makeReviewSpeakableText(text = card.backText)
+        frontContent = preparedFrontContent.renderedContent,
+        backContent = preparedBackContent.renderedContent,
+        frontSpeakableText = preparedFrontContent.speakableText,
+        backSpeakableText = if (card.backText.trim().isEmpty()) {
+            ""
+        } else {
+            preparedBackContent.speakableText
+        }
     )
 }
 
