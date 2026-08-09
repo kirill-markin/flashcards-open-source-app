@@ -22,6 +22,15 @@ type DeckEditorIdentity = Readonly<{
   workspaceId: string;
 }>;
 
+type RefreshOutcome = "accepted" | "failed" | "stale";
+
+type RefreshBarrier = Readonly<{
+  editorIdentity: DeckEditorIdentity;
+  generation: number;
+  promise: Promise<RefreshOutcome>;
+  settle: (outcome: RefreshOutcome) => void;
+}>;
+
 function createInitialFormState(): FormState {
   return {
     name: "",
@@ -59,6 +68,26 @@ function areDeckEditorIdentitiesEqual(
     && left.workspaceId === right.workspaceId;
 }
 
+function createRefreshBarrier(
+  editorIdentity: DeckEditorIdentity,
+  generation: number,
+): RefreshBarrier {
+  let settlePromise: ((outcome: RefreshOutcome) => void) | undefined;
+  const promise = new Promise<RefreshOutcome>((resolve) => {
+    settlePromise = resolve;
+  });
+  if (settlePromise === undefined) {
+    throw new Error("Refresh barrier initialization failed");
+  }
+
+  return {
+    editorIdentity,
+    generation,
+    promise,
+    settle: settlePromise,
+  };
+}
+
 export function DeckFormScreen(): ReactElement {
   const { deckId } = useParams();
   const navigate = useNavigate();
@@ -83,9 +112,12 @@ export function DeckFormScreen(): ReactElement {
   const [formErrorMessage, setFormErrorMessage] = useState<string>("");
   const formStateRef = useRef<FormState>(formState);
   const authoritativeFormStateRef = useRef<FormState>(formState);
+  const isMountedRef = useRef<boolean>(true);
+  const isSavingRef = useRef<boolean>(false);
   const editorIdentityRef = useRef<DeckEditorIdentity | null>(null);
   const renderedEditorIdentityRef = useRef<DeckEditorIdentity | null>(null);
   const loadRequestSequenceRef = useRef<number>(0);
+  const latestRelevantRefreshRef = useRef<RefreshBarrier | null>(null);
   const observationIdentityRef = useRef<Readonly<{
     userId: string | null;
     installationId: string | null;
@@ -130,6 +162,8 @@ export function DeckFormScreen(): ReactElement {
     }
 
     previousRenderedEditorIdentityRef.current = nextEditorIdentity;
+    latestRelevantRefreshRef.current?.settle("stale");
+    latestRelevantRefreshRef.current = null;
     editorIdentityRef.current = null;
     loadRequestSequenceRef.current += 1;
     const initialFormState = createInitialFormState();
@@ -143,7 +177,7 @@ export function DeckFormScreen(): ReactElement {
     setFormErrorMessage("");
   }, [activeWorkspace?.workspaceId, deckId, isCreateMode]);
 
-  const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
+  const loadScreenData = useCallback(function loadScreenData(): Promise<void> {
     const requestSequence = loadRequestSequenceRef.current + 1;
     loadRequestSequenceRef.current = requestSequence;
     const requestEditorIdentity = renderedEditorIdentityRef.current;
@@ -162,6 +196,15 @@ export function DeckFormScreen(): ReactElement {
       editorIdentityRef.current,
       requestEditorIdentity,
     );
+    const refreshBarrier = isBackgroundRefresh
+      && requestEditorIdentity !== null
+      && requestEditorIdentity.mode === "edit"
+      ? createRefreshBarrier(requestEditorIdentity, requestSequence)
+      : null;
+    if (refreshBarrier !== null) {
+      latestRelevantRefreshRef.current?.settle("stale");
+      latestRelevantRefreshRef.current = refreshBarrier;
+    }
     if (isBackgroundRefresh === false) {
       setIsLoading(true);
       setScreenErrorMessage("");
@@ -169,87 +212,93 @@ export function DeckFormScreen(): ReactElement {
       setFormErrorMessage("");
     }
 
-    try {
-      if (activeWorkspace === null || requestEditorIdentity === null) {
-        throw new Error("Workspace is unavailable");
-      }
+    return (async function performScreenDataLoad(): Promise<void> {
+      let refreshOutcome: RefreshOutcome = "stale";
+      try {
+        if (activeWorkspace === null || requestEditorIdentity === null) {
+          throw new Error("Workspace is unavailable");
+        }
 
-      const [tagsSummary, loadedDeck] = await Promise.all([
-        loadWorkspaceTagsSummary(requestEditorIdentity.workspaceId),
-        deckId === undefined
-          ? Promise.resolve(null)
-          : deckId === ALL_CARDS_DECK_SLUG
-            ? Promise.reject(new Error(t("deckForm.systemDeckReadonly")))
-            : getDeckById(deckId),
-      ]);
-      if (isCurrentLoadRequest() === false) {
-        return;
-      }
+        const [tagsSummary, loadedDeck] = await Promise.all([
+          loadWorkspaceTagsSummary(requestEditorIdentity.workspaceId),
+          deckId === undefined
+            ? Promise.resolve(null)
+            : deckId === ALL_CARDS_DECK_SLUG
+              ? Promise.reject(new Error(t("deckForm.systemDeckReadonly")))
+              : getDeckById(deckId),
+        ]);
+        if (isCurrentLoadRequest() === false) {
+          return;
+        }
 
-      setTagSuggestions(tagsSummary.tags.map((tagSummary) => ({
-        tag: tagSummary.tag,
-        countState: "ready",
-        cardsCount: tagSummary.cardsCount,
-      })));
-      setRefreshErrorMessage("");
-      const authoritativeFormState = loadedDeck === null
-        ? createInitialFormState()
-        : {
-          name: loadedDeck.name,
-          tags: loadedDeck.filterDefinition.tags,
-        };
-      if (isBackgroundRefresh === false) {
-        editorIdentityRef.current = requestEditorIdentity;
-        formStateRef.current = authoritativeFormState;
-        authoritativeFormStateRef.current = authoritativeFormState;
-        setFormState(authoritativeFormState);
-      } else {
-        const nextFormState = applyAuthoritativeFormState(
-          formStateRef.current,
-          authoritativeFormStateRef.current,
-          authoritativeFormState,
-        );
-        formStateRef.current = nextFormState;
-        authoritativeFormStateRef.current = authoritativeFormState;
-        setFormState(nextFormState);
-      }
-    } catch (error) {
-      if (isCurrentLoadRequest() === false) {
-        return;
-      }
+        setTagSuggestions(tagsSummary.tags.map((tagSummary) => ({
+          tag: tagSummary.tag,
+          countState: "ready",
+          cardsCount: tagSummary.cardsCount,
+        })));
+        setRefreshErrorMessage("");
+        const authoritativeFormState = loadedDeck === null
+          ? createInitialFormState()
+          : {
+            name: loadedDeck.name,
+            tags: loadedDeck.filterDefinition.tags,
+          };
+        if (isBackgroundRefresh === false) {
+          editorIdentityRef.current = requestEditorIdentity;
+          formStateRef.current = authoritativeFormState;
+          authoritativeFormStateRef.current = authoritativeFormState;
+          setFormState(authoritativeFormState);
+        } else {
+          const nextFormState = applyAuthoritativeFormState(
+            formStateRef.current,
+            authoritativeFormStateRef.current,
+            authoritativeFormState,
+          );
+          formStateRef.current = nextFormState;
+          authoritativeFormStateRef.current = authoritativeFormState;
+          setFormState(nextFormState);
+        }
+        refreshOutcome = "accepted";
+      } catch (error) {
+        if (isCurrentLoadRequest() === false) {
+          return;
+        }
 
-      let errorMessage: string;
-      if (activeWorkspace !== null && deckId !== ALL_CARDS_DECK_SLUG) {
-        const observationIdentity = observationIdentityRef.current;
-        const wasCaptured = captureAppOperationError(error, {
-          feature: "settings",
-          operation: "deck_detail_load",
-          userId: observationIdentity.userId,
-          workspaceId: activeWorkspace.workspaceId,
-          installationId: observationIdentity.installationId,
-          entityId: deckId ?? null,
-        });
-        if (wasCaptured) {
-          if (isBackgroundRefresh === false) {
-            showCapturedTechnicalError(error);
+        refreshOutcome = "failed";
+        let errorMessage: string;
+        if (activeWorkspace !== null && deckId !== ALL_CARDS_DECK_SLUG) {
+          const observationIdentity = observationIdentityRef.current;
+          const wasCaptured = captureAppOperationError(error, {
+            feature: "settings",
+            operation: "deck_detail_load",
+            userId: observationIdentity.userId,
+            workspaceId: activeWorkspace.workspaceId,
+            installationId: observationIdentity.installationId,
+            entityId: deckId ?? null,
+          });
+          if (wasCaptured) {
+            if (isBackgroundRefresh === false) {
+              showCapturedTechnicalError(error);
+            }
+            errorMessage = technicalErrorMessage;
+          } else {
+            errorMessage = error instanceof Error ? error.message : String(error);
           }
-          errorMessage = technicalErrorMessage;
         } else {
           errorMessage = error instanceof Error ? error.message : String(error);
         }
-      } else {
-        errorMessage = error instanceof Error ? error.message : String(error);
+        if (isBackgroundRefresh) {
+          setRefreshErrorMessage(errorMessage);
+        } else {
+          setScreenErrorMessage(errorMessage);
+        }
+      } finally {
+        if (isCurrentLoadRequest()) {
+          setIsLoading(false);
+        }
+        refreshBarrier?.settle(refreshOutcome);
       }
-      if (isBackgroundRefresh) {
-        setRefreshErrorMessage(errorMessage);
-      } else {
-        setScreenErrorMessage(errorMessage);
-      }
-    } finally {
-      if (isCurrentLoadRequest()) {
-        setIsLoading(false);
-      }
-    }
+    })();
   }, [activeWorkspace, deckId, getDeckById, showCapturedTechnicalError, t, technicalErrorMessage]);
 
   useEffect(() => {
@@ -258,6 +307,15 @@ export function DeckFormScreen(): ReactElement {
       loadRequestSequenceRef.current += 1;
     };
   }, [loadScreenData, localReadVersion]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      latestRelevantRefreshRef.current?.settle("stale");
+      latestRelevantRefreshRef.current = null;
+    };
+  }, []);
 
   function updateField<Key extends keyof FormState>(key: Key, value: FormState[Key]): void {
     setFormErrorMessage("");
@@ -269,19 +327,78 @@ export function DeckFormScreen(): ReactElement {
     setFormState(nextFormState);
   }
 
-  async function handleSubmit(): Promise<void> {
-    setErrorMessage("");
-    setFormErrorMessage("");
+  async function readFormStateAfterLatestRefresh(
+    submitEditorIdentity: DeckEditorIdentity,
+  ): Promise<FormState | null> {
+    if (submitEditorIdentity.mode === "create") {
+      return formStateRef.current;
+    }
 
-    const latestFormState = formStateRef.current;
-    if (hasDeckRules(latestFormState) === false) {
-      setFormErrorMessage(t("deckForm.errors.emptyRules"));
+    while (
+      isMountedRef.current
+      && areDeckEditorIdentitiesEqual(renderedEditorIdentityRef.current, submitEditorIdentity)
+    ) {
+      const refreshBarrier = latestRelevantRefreshRef.current;
+      if (
+        refreshBarrier === null
+        || areDeckEditorIdentitiesEqual(refreshBarrier.editorIdentity, submitEditorIdentity) === false
+      ) {
+        return formStateRef.current;
+      }
+
+      const refreshOutcome = await refreshBarrier.promise;
+      if (
+        isMountedRef.current === false
+        || areDeckEditorIdentitiesEqual(renderedEditorIdentityRef.current, submitEditorIdentity) === false
+      ) {
+        return null;
+      }
+
+      const latestRefreshBarrier = latestRelevantRefreshRef.current;
+      if (
+        latestRefreshBarrier !== null
+        && areDeckEditorIdentitiesEqual(latestRefreshBarrier.editorIdentity, submitEditorIdentity)
+        && latestRefreshBarrier.generation !== refreshBarrier.generation
+      ) {
+        continue;
+      }
+      if (refreshOutcome !== "accepted") {
+        return null;
+      }
+
+      return formStateRef.current;
+    }
+
+    return null;
+  }
+
+  async function handleSubmit(): Promise<void> {
+    if (isSavingRef.current) {
       return;
     }
 
+    isSavingRef.current = true;
     setIsSaving(true);
+    setErrorMessage("");
+    setFormErrorMessage("");
 
     try {
+      const submitEditorIdentity = renderedEditorIdentityRef.current;
+      if (submitEditorIdentity === null) {
+        throw new Error("Deck editor is unavailable");
+      }
+      const latestFormState = await readFormStateAfterLatestRefresh(submitEditorIdentity);
+      if (latestFormState === null) {
+        return;
+      }
+      if (areDeckEditorIdentitiesEqual(renderedEditorIdentityRef.current, submitEditorIdentity) === false) {
+        return;
+      }
+      if (hasDeckRules(latestFormState) === false) {
+        setFormErrorMessage(t("deckForm.errors.emptyRules"));
+        return;
+      }
+
       const payload: UpdateDeckInput = {
         name: latestFormState.name,
         filterDefinition: buildDeckFilterDefinition(latestFormState.tags),
@@ -310,6 +427,7 @@ export function DeckFormScreen(): ReactElement {
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
     } finally {
+      isSavingRef.current = false;
       setIsSaving(false);
     }
   }
