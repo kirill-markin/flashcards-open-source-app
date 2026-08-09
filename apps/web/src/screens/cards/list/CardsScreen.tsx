@@ -8,7 +8,11 @@ import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss } fro
 import { useI18n } from "../../../i18n";
 import { CardTagsInput, type CardTagsInputHandle } from "../CardTagsInput";
 import { getExpectedCardMutationInlineErrorMessage } from "../cardMutationErrors";
-import { EditableCardTagsCell, EditableCardTextCell } from "./CardsTableEditors";
+import {
+  EditableCardTagsCell,
+  EditableCardTextCell,
+  type CardInlineEditorToken,
+} from "./CardsTableEditors";
 import { queryLocalCardsPage } from "../../../localDb/cards/cards";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
@@ -32,12 +36,20 @@ type CardsQueryState = Readonly<{
 
 type CardsQueryRequestKind = "reset" | "refresh" | "loadMore";
 
+type CardsQueryWindow = Readonly<{
+  items: ReadonlyArray<Card>;
+  totalCount: number;
+  nextCursor: string | null;
+}>;
+
 type CardsQueryControl = Readonly<{
   queryIdentity: string;
   requestSequence: number;
   acceptedRowCount: number;
   nextCursor: string | null;
   activeRequest: CardsQueryRequestKind | null;
+  authoritativeWindow: CardsQueryWindow;
+  hasPendingPublication: boolean;
 }>;
 
 const cardsPageSize = 50;
@@ -50,6 +62,34 @@ function createInitialCardsQueryState(): CardsQueryState {
     totalCount: 0,
     nextCursor: null,
     hasLoaded: false,
+    isLoading: false,
+    isLoadingMore: false,
+    errorMessage: "",
+  };
+}
+
+function createEmptyCardsQueryWindow(): CardsQueryWindow {
+  return {
+    items: [],
+    totalCount: 0,
+    nextCursor: null,
+  };
+}
+
+function createCardsQueryWindow(nextPage: QueryCardsPage): CardsQueryWindow {
+  return {
+    items: nextPage.cards,
+    totalCount: nextPage.totalCount,
+    nextCursor: nextPage.nextCursor,
+  };
+}
+
+function createPublishedCardsQueryState(queryWindow: CardsQueryWindow): CardsQueryState {
+  return {
+    items: queryWindow.items,
+    totalCount: queryWindow.totalCount,
+    nextCursor: queryWindow.nextCursor,
+    hasLoaded: true,
     isLoading: false,
     isLoadingMore: false,
     errorMessage: "",
@@ -135,19 +175,19 @@ function getSortPriority(
   return index === -1 ? null : index + 1;
 }
 
-function mergeCardsPage(
-  currentState: CardsQueryState,
+function mergeCardsQueryWindow(
+  currentWindow: CardsQueryWindow,
   nextPage: QueryCardsPage,
-): CardsQueryState {
+): CardsQueryWindow {
   return {
-    items: [...currentState.items, ...nextPage.cards],
+    items: [...currentWindow.items, ...nextPage.cards],
     totalCount: nextPage.totalCount,
     nextCursor: nextPage.nextCursor,
-    hasLoaded: true,
-    isLoading: false,
-    isLoadingMore: false,
-    errorMessage: "",
   };
+}
+
+function getCardInlineEditorTokenKey(editorToken: CardInlineEditorToken): string {
+  return `${editorToken.cardId}:${editorToken.field}`;
 }
 
 export function CardsScreen(): ReactElement {
@@ -171,6 +211,7 @@ export function CardsScreen(): ReactElement {
   const [cardsQueryState, setCardsQueryState] = useState<CardsQueryState>(createInitialCardsQueryState);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const loadMoreSentinelRef = useRef<HTMLTableRowElement | null>(null);
+  const loadMoreSentinelIntersectionConsumedRef = useRef<boolean>(false);
   const filterWrapRef = useRef<HTMLDivElement | null>(null);
   const filterPopoverRef = useRef<HTMLDivElement | null>(null);
   const filterTagsInputRef = useRef<CardTagsInputHandle | null>(null);
@@ -187,7 +228,11 @@ export function CardsScreen(): ReactElement {
     acceptedRowCount: 0,
     nextCursor: null,
     activeRequest: null,
+    authoritativeWindow: createEmptyCardsQueryWindow(),
+    hasPendingPublication: false,
   });
+  const activeEditorLifecyclesRef = useRef<Map<string, number>>(new Map());
+  const nextEditorLifecycleRef = useRef<number>(0);
   const observedQueryIdentityRef = useRef<string | null>(null);
   const observedLocalReadVersionRef = useRef<number>(localReadVersion);
   const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
@@ -229,14 +274,85 @@ export function CardsScreen(): ReactElement {
     return () => window.clearTimeout(timeoutId);
   }, [searchText]);
 
+  function acceptCardsQueryWindow(
+    queryIdentity: string,
+    requestSequence: number,
+    queryWindow: CardsQueryWindow,
+  ): void {
+    const shouldDeferPublication = activeEditorLifecyclesRef.current.size > 0;
+    cardsQueryControlRef.current = {
+      queryIdentity,
+      requestSequence,
+      acceptedRowCount: queryWindow.items.length,
+      nextCursor: queryWindow.nextCursor,
+      activeRequest: null,
+      authoritativeWindow: queryWindow,
+      hasPendingPublication: shouldDeferPublication,
+    };
+
+    if (shouldDeferPublication) {
+      setCardsQueryState((currentState) => ({
+        ...currentState,
+        isLoading: false,
+        isLoadingMore: false,
+        errorMessage: "",
+      }));
+      return;
+    }
+
+    loadMoreSentinelIntersectionConsumedRef.current = false;
+    setCardsQueryState(createPublishedCardsQueryState(queryWindow));
+  }
+
+  const handleInlineEditorOpen = useCallback((editorToken: CardInlineEditorToken): number => {
+    const editorLifecycle = nextEditorLifecycleRef.current + 1;
+    nextEditorLifecycleRef.current = editorLifecycle;
+    activeEditorLifecyclesRef.current.set(
+      getCardInlineEditorTokenKey(editorToken),
+      editorLifecycle,
+    );
+    return editorLifecycle;
+  }, []);
+
+  const handleInlineEditorClose = useCallback((
+    editorToken: CardInlineEditorToken,
+    editorLifecycle: number,
+  ): void => {
+    const editorTokenKey = getCardInlineEditorTokenKey(editorToken);
+    if (activeEditorLifecyclesRef.current.get(editorTokenKey) !== editorLifecycle) {
+      return;
+    }
+
+    activeEditorLifecyclesRef.current.delete(editorTokenKey);
+    if (activeEditorLifecyclesRef.current.size > 0) {
+      return;
+    }
+
+    const currentControl = cardsQueryControlRef.current;
+    if (!currentControl.hasPendingPublication) {
+      return;
+    }
+
+    cardsQueryControlRef.current = {
+      ...currentControl,
+      hasPendingPublication: false,
+    };
+    loadMoreSentinelIntersectionConsumedRef.current = false;
+    setCardsQueryState(createPublishedCardsQueryState(currentControl.authoritativeWindow));
+  }, []);
+
   async function resetCardsQuery(queryIdentity: string): Promise<void> {
     const requestSequence = cardsQueryControlRef.current.requestSequence + 1;
+    activeEditorLifecyclesRef.current.clear();
+    loadMoreSentinelIntersectionConsumedRef.current = false;
     cardsQueryControlRef.current = {
       queryIdentity,
       requestSequence,
       acceptedRowCount: 0,
       nextCursor: null,
       activeRequest: activeWorkspace === null ? null : "reset",
+      authoritativeWindow: createEmptyCardsQueryWindow(),
+      hasPendingPublication: false,
     };
 
     if (activeWorkspace === null) {
@@ -266,13 +382,11 @@ export function CardsScreen(): ReactElement {
         return;
       }
 
-      cardsQueryControlRef.current = {
+      acceptCardsQueryWindow(
         queryIdentity,
         requestSequence,
-        acceptedRowCount: nextPage.cards.length,
-        nextCursor: nextPage.nextCursor,
-        activeRequest: null,
-      };
+        createCardsQueryWindow(nextPage),
+      );
 
       setTagSuggestions(tagsSummary.tags.map((tagSummary) => ({
         tag: tagSummary.tag,
@@ -285,15 +399,6 @@ export function CardsScreen(): ReactElement {
         totalCount: nextPage.totalCount,
         rows: nextPage.cards.slice(0, 8).map((card) => buildCardsLoadingRowPreview(card)),
         savedAt: new Date().toISOString(),
-      });
-      setCardsQueryState({
-        items: nextPage.cards,
-        totalCount: nextPage.totalCount,
-        nextCursor: nextPage.nextCursor,
-        hasLoaded: true,
-        isLoading: false,
-        isLoadingMore: false,
-        errorMessage: "",
       });
     } catch (error) {
       if (!ownsCardsQueryRequest(cardsQueryControlRef.current, queryIdentity, requestSequence)) {
@@ -364,13 +469,11 @@ export function CardsScreen(): ReactElement {
         return;
       }
 
-      cardsQueryControlRef.current = {
+      acceptCardsQueryWindow(
         queryIdentity,
         requestSequence,
-        acceptedRowCount: nextPage.cards.length,
-        nextCursor: nextPage.nextCursor,
-        activeRequest: null,
-      };
+        createCardsQueryWindow(nextPage),
+      );
       setTagSuggestions(tagsSummary.tags.map((tagSummary) => ({
         tag: tagSummary.tag,
         countState: "ready",
@@ -382,15 +485,6 @@ export function CardsScreen(): ReactElement {
         totalCount: nextPage.totalCount,
         rows: nextPage.cards.slice(0, 8).map((card) => buildCardsLoadingRowPreview(card)),
         savedAt: new Date().toISOString(),
-      });
-      setCardsQueryState({
-        items: nextPage.cards,
-        totalCount: nextPage.totalCount,
-        nextCursor: nextPage.nextCursor,
-        hasLoaded: true,
-        isLoading: false,
-        isLoadingMore: false,
-        errorMessage: "",
       });
     } catch (error) {
       if (!ownsCardsQueryRequest(cardsQueryControlRef.current, queryIdentity, requestSequence)) {
@@ -457,15 +551,11 @@ export function CardsScreen(): ReactElement {
         return;
       }
 
-      cardsQueryControlRef.current = {
-        queryIdentity: cardsQueryIdentity,
+      acceptCardsQueryWindow(
+        cardsQueryIdentity,
         requestSequence,
-        acceptedRowCount: currentControl.acceptedRowCount + nextPage.cards.length,
-        nextCursor: nextPage.nextCursor,
-        activeRequest: null,
-      };
-
-      setCardsQueryState((currentState) => mergeCardsPage(currentState, nextPage));
+        mergeCardsQueryWindow(currentControl.authoritativeWindow, nextPage),
+      );
     } catch (error) {
       if (!ownsCardsQueryRequest(cardsQueryControlRef.current, cardsQueryIdentity, requestSequence)) {
         return;
@@ -542,9 +632,24 @@ export function CardsScreen(): ReactElement {
 
     const observer = new IntersectionObserver((entries) => {
       const firstEntry = entries[0];
-      if (firstEntry?.isIntersecting) {
-        void loadNextPage();
+      if (!firstEntry?.isIntersecting) {
+        loadMoreSentinelIntersectionConsumedRef.current = false;
+        return;
       }
+
+      const currentControl = cardsQueryControlRef.current;
+      if (
+        loadMoreSentinelIntersectionConsumedRef.current
+        || activeWorkspace === null
+        || currentControl.queryIdentity !== cardsQueryIdentity
+        || currentControl.nextCursor === null
+        || currentControl.activeRequest !== null
+      ) {
+        return;
+      }
+
+      loadMoreSentinelIntersectionConsumedRef.current = true;
+      void loadNextPage();
     }, {
       root: scrollContainer,
       rootMargin: "160px 0px",
@@ -817,27 +922,36 @@ export function CardsScreen(): ReactElement {
                       <Link className="row-open-link" to={`/cards/${card.cardId}`}>{t("cardsScreen.table.open")}</Link>
                     </td>
                     <EditableCardTextCell
+                      editorToken={{ cardId: card.cardId, field: "frontText" }}
                       value={card.frontText}
                       displayValue={card.frontText}
                       cellClassName="cards-col-front"
                       multiline={true}
                       saving={isSaving}
                       onCommit={(nextValue) => handleInlineSave(card, { frontText: nextValue })}
+                      onEditorOpen={handleInlineEditorOpen}
+                      onEditorClose={handleInlineEditorClose}
                     />
                     <EditableCardTextCell
+                      editorToken={{ cardId: card.cardId, field: "backText" }}
                       value={card.backText}
                       displayValue={card.backText}
                       cellClassName="cards-col-back"
                       multiline={true}
                       saving={isSaving}
                       onCommit={(nextValue) => handleInlineSave(card, { backText: nextValue })}
+                      onEditorOpen={handleInlineEditorOpen}
+                      onEditorClose={handleInlineEditorClose}
                     />
                     <EditableCardTagsCell
+                      editorToken={{ cardId: card.cardId, field: "tags" }}
                       value={card.tags}
                       suggestions={tagSuggestions}
                       cellClassName="cards-col-tags cards-tag-cell"
                       saving={isSaving}
                       onCommit={(nextValue) => handleInlineSave(card, { tags: nextValue })}
+                      onEditorOpen={handleInlineEditorOpen}
+                      onEditorClose={handleInlineEditorClose}
                     />
                     <td className="txn-cell txn-cell-mono cards-col-due">{formatNullableDateTime(card.dueAt, formatDateTime, t)}</td>
                     <td className="txn-cell txn-cell-mono cards-col-reps">{card.reps}</td>
