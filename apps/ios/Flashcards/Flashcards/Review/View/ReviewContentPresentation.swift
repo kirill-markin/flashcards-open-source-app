@@ -198,22 +198,20 @@ private func makeReviewSpeakableTextWithoutMath(text: String) -> String {
         return normalizeReviewSpeakableLines(lines: text.components(separatedBy: .newlines))
     }
 
-    var activeFenceMarker: String? = nil
+    var activeFence: ReviewMathFence? = nil
     var speakableLines: [String] = []
 
     for line in text.components(separatedBy: .newlines) {
-        let fenceMarker = reviewFenceMarker(line: line)
-
-        if let currentFenceMarker = activeFenceMarker {
-            if fenceMarker == currentFenceMarker {
-                activeFenceMarker = nil
+        if let openingFence = activeFence {
+            if reviewMathFenceCloses(line: line, openingFence: openingFence) {
+                activeFence = nil
             }
 
             continue
         }
 
-        if let fenceMarker {
-            activeFenceMarker = fenceMarker
+        if let openingFence = reviewMathFence(line: line) {
+            activeFence = openingFence
             continue
         }
 
@@ -260,14 +258,6 @@ private func hasStrongMarkdownCue(text: String) -> Bool {
     }
 }
 
-private func reviewFenceMarker(line: String) -> String? {
-    guard let fence = reviewMathFence(line: line) else {
-        return nil
-    }
-
-    return String(repeating: fence.marker, count: fence.minimumLength)
-}
-
 private func normalizeReviewSpeakableMarkdownLine(line: String) -> String {
     let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
     if trimmedLine.isEmpty {
@@ -303,24 +293,22 @@ private func normalizeReviewSpeakableInlineText(text: String) -> String {
 }
 
 private func makeReviewManagedMarkdownContent(text: String) -> ReviewManagedMarkdownContent? {
-    var activeFenceMarker: String? = nil
+    var activeFence: ReviewMathFence? = nil
     var pendingMarkdownLines: [String] = []
     var blocks: [ReviewManagedMarkdownBlock] = []
     var didFindManagedMedia = false
 
     for line in text.components(separatedBy: .newlines) {
-        let fenceMarker = reviewFenceMarker(line: line)
-
-        if let currentFenceMarker = activeFenceMarker {
+        if let openingFence = activeFence {
             pendingMarkdownLines.append(line)
-            if fenceMarker == currentFenceMarker {
-                activeFenceMarker = nil
+            if reviewMathFenceCloses(line: line, openingFence: openingFence) {
+                activeFence = nil
             }
             continue
         }
 
-        if let fenceMarker {
-            activeFenceMarker = fenceMarker
+        if let openingFence = reviewMathFence(line: line) {
+            activeFence = openingFence
             pendingMarkdownLines.append(line)
             continue
         }

@@ -76,7 +76,7 @@ func extractReviewMathBlocks(text: String) -> ReviewMathBlockExtraction {
                 pendingMarkdown += fencedLine.content + fencedLine.separator
                 lineIndex += 1
 
-                if reviewMathFenceCloses(line: fencedLine.content, fence: fence) {
+                if reviewMathFenceCloses(line: fencedLine.content, openingFence: fence) {
                     break
                 }
             }
@@ -146,7 +146,7 @@ func extractReviewMathBlocks(text: String) -> ReviewMathBlockExtraction {
                     if detectsContainerReferences {
                         let containerContent = reviewMathContainerContent(line: containerLine.content)
                         if let fence = containerFence {
-                            if reviewMathFenceCloses(line: containerContent, fence: fence) {
+                            if reviewMathFenceCloses(line: containerContent, openingFence: fence) {
                                 containerFence = nil
                             }
                         } else if reviewMathLineIsIndentedCode(line: containerContent) == false {
@@ -291,12 +291,12 @@ func reviewMathFence(line: String) -> ReviewMathFence? {
     return ReviewMathFence(marker: marker, minimumLength: markerLength)
 }
 
-private func reviewMathFenceCloses(line: String, fence: ReviewMathFence) -> Bool {
+func reviewMathFenceCloses(line: String, openingFence: ReviewMathFence) -> Bool {
     let content = line.dropFirst(min(reviewMathLeadingSpaceCount(line: line), 3))
     let markerLength = content.prefix(while: { character in
-        character == fence.marker
+        character == openingFence.marker
     }).count
-    guard markerLength >= fence.minimumLength else {
+    guard markerLength >= openingFence.minimumLength else {
         return false
     }
 
