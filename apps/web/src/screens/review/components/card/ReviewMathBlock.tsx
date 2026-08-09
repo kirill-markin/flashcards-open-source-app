@@ -76,6 +76,8 @@ export function ReviewMathBlock(props: ReviewMathBlockProps): ReactElement {
     if (container === null || canvas === null) {
       throw new Error("Review formula canvas was unavailable during rendering");
     }
+    const renderContainer = container;
+    const renderCanvas = canvas;
 
     const controller = new AbortController();
     canvas.width = 0;
@@ -86,13 +88,13 @@ export function ReviewMathBlock(props: ReviewMathBlockProps): ReactElement {
         await initRatex();
         controller.signal.throwIfAborted();
         await loadReviewMathFonts(controller.signal);
-        const color = getComputedStyle(container).getPropertyValue("--text").trim();
+        const color = getComputedStyle(renderContainer).getPropertyValue("--text").trim();
         if (color === "") {
           throw new Error("Review formula rendering could not resolve the theme text color");
         }
         renderLatexToCanvas(
           formulaSource,
-          canvas,
+          renderCanvas,
           {
             backgroundColor: "transparent",
             fontSize: REVIEW_MATH_FONT_SIZE,
