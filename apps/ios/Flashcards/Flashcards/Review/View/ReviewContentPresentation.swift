@@ -34,7 +34,18 @@ struct ReviewManagedMarkdownContent {
 
 enum ReviewManagedMarkdownBlock {
     case markdown(MarkdownContent)
+    case formula(ReviewFormulaContent)
     case managedMedia(ReviewManagedMediaReference)
+}
+
+struct ReviewFormulaContent {
+    let originalSource: String
+    let latex: String
+
+    init(originalSource: String, latex: String) {
+        self.originalSource = originalSource
+        self.latex = latex
+    }
 }
 
 struct ReviewManagedMediaReference: Hashable {
@@ -90,6 +101,13 @@ func classifyReviewContentPresentation(text: String) -> ReviewContentPresentatio
         return .markdown
     }
 
+    switch extractReviewMathBlocks(text: text) {
+    case .literalMarkdown, .segmented:
+        return .markdown
+    case .none:
+        break
+    }
+
     if trimmedText.isEmpty {
         return .paragraphPlain
     }
@@ -115,6 +133,18 @@ func makeReviewMarkdownContent(text: String) -> MarkdownContent {
 }
 
 func makeReviewRenderedContent(text: String) -> ReviewRenderedContent {
+    switch extractReviewMathBlocks(text: text) {
+    case .segmented(let mathBlocks):
+        return .managedMarkdown(makeReviewSegmentedMarkdownContent(mathBlocks: mathBlocks))
+    case .literalMarkdown:
+        if let managedMarkdownContent = makeReviewManagedMarkdownContent(text: text) {
+            return .managedMarkdown(managedMarkdownContent)
+        }
+        return .markdown(makeReviewMarkdownContent(text: text))
+    case .none:
+        break
+    }
+
     if let managedMarkdownContent = makeReviewManagedMarkdownContent(text: text) {
         return .managedMarkdown(managedMarkdownContent)
     }
@@ -139,6 +169,24 @@ func makeReviewSpeakableText(text: String) -> String {
         return ""
     }
 
+    switch extractReviewMathBlocks(text: text) {
+    case .segmented(let mathBlocks):
+        return mathBlocks.map { block in
+            switch block {
+            case .markdown(let source):
+                return makeReviewSpeakableTextWithoutMath(text: source)
+            case .formula(let formula):
+                return formula.latex
+            }
+        }.filter { segment in
+            segment.isEmpty == false
+        }.joined(separator: "\n")
+    case .literalMarkdown, .none:
+        return makeReviewSpeakableTextWithoutMath(text: text)
+    }
+}
+
+private func makeReviewSpeakableTextWithoutMath(text: String) -> String {
     if classifyReviewContentPresentation(text: text) != .markdown {
         return normalizeReviewSpeakableLines(lines: text.components(separatedBy: .newlines))
     }
@@ -169,6 +217,27 @@ func makeReviewSpeakableText(text: String) -> String {
     }
 
     return normalizeReviewSpeakableLines(lines: speakableLines)
+}
+
+private func makeReviewSegmentedMarkdownContent(
+    mathBlocks: [ReviewMathBlock]
+) -> ReviewManagedMarkdownContent {
+    var blocks: [ReviewManagedMarkdownBlock] = []
+
+    for mathBlock in mathBlocks {
+        switch mathBlock {
+        case .markdown(let text):
+            if let managedMarkdownContent = makeReviewManagedMarkdownContent(text: text) {
+                blocks.append(contentsOf: managedMarkdownContent.blocks)
+            } else {
+                appendReviewMarkdownBlock(text: text, blocks: &blocks)
+            }
+        case .formula(let formula):
+            blocks.append(.formula(formula))
+        }
+    }
+
+    return ReviewManagedMarkdownContent(blocks: blocks)
 }
 
 private func hasStrongMarkdownCue(text: String) -> Bool {
@@ -367,7 +436,7 @@ private func reviewSpeakableTextReplacingManagedMediaReferences(text: String) ->
     return output
 }
 
-private func makeReviewContentRegularExpression(pattern: String) -> NSRegularExpression {
+func makeReviewContentRegularExpression(pattern: String) -> NSRegularExpression {
     do {
         return try NSRegularExpression(
             pattern: pattern,
@@ -378,7 +447,7 @@ private func makeReviewContentRegularExpression(pattern: String) -> NSRegularExp
     }
 }
 
-private extension NSRegularExpression {
+extension NSRegularExpression {
     func matches(_ text: String) -> Bool {
         let range = NSRange(text.startIndex..<text.endIndex, in: text)
         return self.firstMatch(in: text, options: [], range: range) != nil
