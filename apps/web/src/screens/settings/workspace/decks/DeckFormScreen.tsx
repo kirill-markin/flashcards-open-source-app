@@ -33,6 +33,21 @@ function hasDeckRules(formState: FormState): boolean {
   return formState.tags.length > 0;
 }
 
+function areTagsEqual(left: ReadonlyArray<string>, right: ReadonlyArray<string>): boolean {
+  return left.length === right.length && left.every((tag, index) => tag === right[index]);
+}
+
+function applyAuthoritativeFormState(
+  draft: FormState,
+  previousBaseline: FormState,
+  authoritativeState: FormState,
+): FormState {
+  return {
+    name: draft.name === previousBaseline.name ? authoritativeState.name : draft.name,
+    tags: areTagsEqual(draft.tags, previousBaseline.tags) ? authoritativeState.tags : draft.tags,
+  };
+}
+
 function areDeckEditorIdentitiesEqual(
   left: DeckEditorIdentity | null,
   right: DeckEditorIdentity | null,
@@ -66,6 +81,8 @@ export function DeckFormScreen(): ReactElement {
   const [screenErrorMessage, setScreenErrorMessage] = useState<string>("");
   const [refreshErrorMessage, setRefreshErrorMessage] = useState<string>("");
   const [formErrorMessage, setFormErrorMessage] = useState<string>("");
+  const formStateRef = useRef<FormState>(formState);
+  const authoritativeFormStateRef = useRef<FormState>(formState);
   const editorIdentityRef = useRef<DeckEditorIdentity | null>(null);
   const renderedEditorIdentityRef = useRef<DeckEditorIdentity | null>(null);
   const loadRequestSequenceRef = useRef<number>(0);
@@ -115,7 +132,10 @@ export function DeckFormScreen(): ReactElement {
     previousRenderedEditorIdentityRef.current = nextEditorIdentity;
     editorIdentityRef.current = null;
     loadRequestSequenceRef.current += 1;
-    setFormState(createInitialFormState());
+    const initialFormState = createInitialFormState();
+    formStateRef.current = initialFormState;
+    authoritativeFormStateRef.current = initialFormState;
+    setFormState(initialFormState);
     setTagSuggestions([]);
     setIsLoading(true);
     setScreenErrorMessage("");
@@ -172,14 +192,26 @@ export function DeckFormScreen(): ReactElement {
         cardsCount: tagSummary.cardsCount,
       })));
       setRefreshErrorMessage("");
+      const authoritativeFormState = loadedDeck === null
+        ? createInitialFormState()
+        : {
+          name: loadedDeck.name,
+          tags: loadedDeck.filterDefinition.tags,
+        };
       if (isBackgroundRefresh === false) {
         editorIdentityRef.current = requestEditorIdentity;
-        setFormState(loadedDeck === null
-          ? createInitialFormState()
-          : {
-            name: loadedDeck.name,
-            tags: loadedDeck.filterDefinition.tags,
-          });
+        formStateRef.current = authoritativeFormState;
+        authoritativeFormStateRef.current = authoritativeFormState;
+        setFormState(authoritativeFormState);
+      } else {
+        const nextFormState = applyAuthoritativeFormState(
+          formStateRef.current,
+          authoritativeFormStateRef.current,
+          authoritativeFormState,
+        );
+        formStateRef.current = nextFormState;
+        authoritativeFormStateRef.current = authoritativeFormState;
+        setFormState(nextFormState);
       }
     } catch (error) {
       if (isCurrentLoadRequest() === false) {
@@ -229,17 +261,20 @@ export function DeckFormScreen(): ReactElement {
 
   function updateField<Key extends keyof FormState>(key: Key, value: FormState[Key]): void {
     setFormErrorMessage("");
-    setFormState((currentFormState) => ({
-      ...currentFormState,
+    const nextFormState = {
+      ...formStateRef.current,
       [key]: value,
-    }));
+    };
+    formStateRef.current = nextFormState;
+    setFormState(nextFormState);
   }
 
   async function handleSubmit(): Promise<void> {
     setErrorMessage("");
     setFormErrorMessage("");
 
-    if (hasDeckRules(formState) === false) {
+    const latestFormState = formStateRef.current;
+    if (hasDeckRules(latestFormState) === false) {
       setFormErrorMessage(t("deckForm.errors.emptyRules"));
       return;
     }
@@ -248,8 +283,8 @@ export function DeckFormScreen(): ReactElement {
 
     try {
       const payload: UpdateDeckInput = {
-        name: formState.name,
-        filterDefinition,
+        name: latestFormState.name,
+        filterDefinition: buildDeckFilterDefinition(latestFormState.tags),
       };
 
       if (isCreateMode) {
