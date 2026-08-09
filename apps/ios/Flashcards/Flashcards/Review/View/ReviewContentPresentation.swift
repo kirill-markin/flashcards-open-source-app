@@ -81,7 +81,6 @@ private let reviewContentMarkdownExpressions: [NSRegularExpression] = [
     makeReviewContentRegularExpression(pattern: #"^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$"#),
     makeReviewContentRegularExpression(pattern: #"^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$"#)
 ]
-private let reviewContentFenceExpression = makeReviewContentRegularExpression(pattern: #"^\s{0,3}(`{3,}|~{3,})"#)
 private let reviewContentHeadingExpression = makeReviewContentRegularExpression(pattern: #"^\s{0,3}#{1,6}\s+"#)
 private let reviewContentBlockquoteExpression = makeReviewContentRegularExpression(pattern: #"^\s{0,3}>\s?"#)
 private let reviewContentUnorderedListExpression = makeReviewContentRegularExpression(pattern: #"^\s{0,3}[-*+]\s+"#)
@@ -262,13 +261,11 @@ private func hasStrongMarkdownCue(text: String) -> Bool {
 }
 
 private func reviewFenceMarker(line: String) -> String? {
-    let range = NSRange(line.startIndex..<line.endIndex, in: line)
-    guard let match = reviewContentFenceExpression.firstMatch(in: line, options: [], range: range),
-          let markerRange = Range(match.range(at: 1), in: line) else {
+    guard let fence = reviewMathFence(line: line) else {
         return nil
     }
 
-    return String(line[markerRange])
+    return String(repeating: fence.marker, count: fence.minimumLength)
 }
 
 private func normalizeReviewSpeakableMarkdownLine(line: String) -> String {
