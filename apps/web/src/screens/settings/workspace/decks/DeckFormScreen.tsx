@@ -301,7 +301,7 @@ export function DeckFormScreen(): ReactElement {
     })();
   }, [activeWorkspace, deckId, getDeckById, showCapturedTechnicalError, t, technicalErrorMessage]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     void loadScreenData();
     return () => {
       loadRequestSequenceRef.current += 1;
