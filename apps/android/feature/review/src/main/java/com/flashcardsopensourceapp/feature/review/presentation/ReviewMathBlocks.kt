@@ -12,6 +12,11 @@ internal sealed interface ReviewMathBlock {
     ) : ReviewMathBlock
 }
 
+internal data class ReviewMathBlockExtraction(
+    val blocks: List<ReviewMathBlock>,
+    val requiresMarkdownRendering: Boolean
+)
+
 private data class ReviewMathLine(
     val startOffset: Int,
     val contentEndOffset: Int,
@@ -60,7 +65,7 @@ private val reviewExplicitLinkRegex: Regex = Regex(
     pattern = """!?\[[^]\r\n]*]\s*(?:\([^)]*\)|\[[^]\r\n]*])"""
 )
 
-internal fun extractReviewMathBlocks(markdown: String): List<ReviewMathBlock> {
+internal fun extractReviewMathBlocks(markdown: String): ReviewMathBlockExtraction {
     val lines: List<ReviewMathLine> = makeReviewMathLines(markdown = markdown)
     val extraction: ReviewMathExtraction = extractReviewMathCandidates(
         markdown = markdown,
@@ -78,10 +83,13 @@ internal fun extractReviewMathBlocks(markdown: String): List<ReviewMathBlock> {
         extraction.candidates.sortedBy { candidate -> candidate.startOffset }
     }
 
-    return makeReviewMathBlocks(
-        markdown = markdown,
-        candidates = candidates,
-        escapedDollarOffsets = extraction.escapedDollarOffsets
+    return ReviewMathBlockExtraction(
+        blocks = makeReviewMathBlocks(
+            markdown = markdown,
+            candidates = candidates,
+            escapedDollarOffsets = extraction.escapedDollarOffsets
+        ),
+        requiresMarkdownRendering = hasReferenceDefinition
     )
 }
 

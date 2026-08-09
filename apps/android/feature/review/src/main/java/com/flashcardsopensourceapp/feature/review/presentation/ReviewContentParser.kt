@@ -65,22 +65,24 @@ internal fun prepareReviewContent(
     text: String,
     mediaAssetsById: Map<String, MediaAsset>
 ): PreparedReviewContent {
-    val mathBlocks: List<ReviewMathBlock> = extractReviewMathBlocks(markdown = text)
+    val mathExtraction: ReviewMathBlockExtraction = extractReviewMathBlocks(markdown = text)
     val renderedContent: ReviewRenderedContent = makeReviewRenderedContent(
         text = text,
         mediaAssetsById = mediaAssetsById,
-        mathBlocks = mathBlocks
+        mathBlocks = mathExtraction.blocks,
+        requiresMarkdownRendering = mathExtraction.requiresMarkdownRendering
     )
     return PreparedReviewContent(
         renderedContent = renderedContent,
-        speakableText = makeReviewSpeakableText(mathBlocks = mathBlocks)
+        speakableText = makeReviewSpeakableText(mathBlocks = mathExtraction.blocks)
     )
 }
 
 private fun makeReviewRenderedContent(
     text: String,
     mediaAssetsById: Map<String, MediaAsset>,
-    mathBlocks: List<ReviewMathBlock>
+    mathBlocks: List<ReviewMathBlock>,
+    requiresMarkdownRendering: Boolean
 ): ReviewRenderedContent {
     if (mathBlocks.any { block -> block is ReviewMathBlock.Formula }) {
         return makeReviewMathMarkdownContent(
@@ -94,7 +96,11 @@ private fun makeReviewRenderedContent(
         mediaAssetsById = mediaAssetsById
     )
     if (managedMarkdown != null) {
+        // Managed media keeps the segmented renderer authoritative; V1 does not rebuild document-wide reference context.
         return managedMarkdown
+    }
+    if (requiresMarkdownRendering) {
+        return ReviewRenderedContent.Markdown(markdown = text)
     }
 
     val plainText: String = (mathBlocks.single() as ReviewMathBlock.Markdown).normalizedMarkdown
