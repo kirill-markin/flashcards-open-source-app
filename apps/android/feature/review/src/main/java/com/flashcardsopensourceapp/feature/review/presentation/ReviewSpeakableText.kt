@@ -4,21 +4,41 @@ internal fun makeReviewSpeakableText(
     mathBlocks: List<ReviewMathBlock>
 ): String {
     if (mathBlocks.any { block -> block is ReviewMathBlock.Formula }) {
-        return mathBlocks.mapNotNull { block ->
-            when (block) {
-                is ReviewMathBlock.Formula -> block.source
-                is ReviewMathBlock.Markdown -> makeReviewSpeakableTextWithoutMath(
-                    text = block.normalizedMarkdown
-                ).ifEmpty { null }
+        var preservesNextOpeningBlockPrefix: Boolean = false
+        val speakableSegments: List<String> = buildList {
+            mathBlocks.forEach { block ->
+                when (block) {
+                    is ReviewMathBlock.Formula -> {
+                        add(block.source)
+                        preservesNextOpeningBlockPrefix = block.continuesParagraph
+                    }
+                    is ReviewMathBlock.Markdown -> {
+                        val segment: String = makeReviewSpeakableTextWithoutMath(
+                            text = block.normalizedMarkdown,
+                            preservesOpeningBlockPrefix = preservesNextOpeningBlockPrefix
+                        )
+                        if (segment.isNotEmpty()) {
+                            add(segment)
+                        }
+                        preservesNextOpeningBlockPrefix = false
+                    }
+                }
             }
-        }.joinToString(separator = "\n")
+        }
+        return speakableSegments.joinToString(separator = "\n")
     }
 
     val markdownBlock: ReviewMathBlock.Markdown = mathBlocks.single() as ReviewMathBlock.Markdown
-    return makeReviewSpeakableTextWithoutMath(text = markdownBlock.normalizedMarkdown)
+    return makeReviewSpeakableTextWithoutMath(
+        text = markdownBlock.normalizedMarkdown,
+        preservesOpeningBlockPrefix = false
+    )
 }
 
-private fun makeReviewSpeakableTextWithoutMath(text: String): String {
+private fun makeReviewSpeakableTextWithoutMath(
+    text: String,
+    preservesOpeningBlockPrefix: Boolean
+): String {
     if (text.trim().isEmpty()) {
         return ""
     }
@@ -30,7 +50,7 @@ private fun makeReviewSpeakableTextWithoutMath(text: String): String {
     val speakableLines: List<String> = buildList {
         var activeFenceMarker: String? = null
 
-        text.lines().forEach { line ->
+        text.lines().forEachIndexed { lineIndex, line ->
             val fenceMarker: String? = reviewFenceMarker(line = line)
             val currentFenceMarker: String? = activeFenceMarker
 
@@ -38,15 +58,19 @@ private fun makeReviewSpeakableTextWithoutMath(text: String): String {
                 if (isReviewFenceClosingLine(line = line, openingMarker = currentFenceMarker)) {
                     activeFenceMarker = null
                 }
-                return@forEach
+                return@forEachIndexed
             }
 
             if (fenceMarker != null) {
                 activeFenceMarker = fenceMarker
-                return@forEach
+                return@forEachIndexed
             }
 
-            val normalizedLine: String = normalizeReviewSpeakableMarkdownLine(line = line)
+            val normalizedLine: String = if (preservesOpeningBlockPrefix && lineIndex == 0) {
+                normalizeReviewSpeakableInlineText(text = line)
+            } else {
+                normalizeReviewSpeakableMarkdownLine(line = line)
+            }
             if (normalizedLine.isNotEmpty()) {
                 add(normalizedLine)
             }

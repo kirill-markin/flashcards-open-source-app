@@ -172,28 +172,48 @@ func makeReviewSpeakableText(text: String) -> String {
 
     switch extractReviewMathBlocks(text: text) {
     case .segmented(let mathBlocks):
-        return mathBlocks.map { block in
+        var preservesNextOpeningBlockPrefix = false
+        var speakableSegments: [String] = []
+        for block in mathBlocks {
             switch block {
             case .markdown(let source):
-                return makeReviewSpeakableTextWithoutMath(text: source)
+                let segment = makeReviewSpeakableTextWithoutMath(
+                    text: source,
+                    preservesOpeningBlockPrefix: preservesNextOpeningBlockPrefix
+                )
+                if segment.isEmpty == false {
+                    speakableSegments.append(segment)
+                }
+                preservesNextOpeningBlockPrefix = false
             case .formula(let formula):
-                return formula.latex
+                if formula.latex.isEmpty == false {
+                    speakableSegments.append(formula.latex)
+                }
+                preservesNextOpeningBlockPrefix = formula.continuesParagraph
             }
-        }.filter { segment in
-            segment.isEmpty == false
-        }.joined(separator: "\n")
+        }
+        return speakableSegments.joined(separator: "\n")
     case .literalMarkdown:
-        return makeReviewSpeakableTextWithoutMath(text: text)
+        return makeReviewSpeakableTextWithoutMath(
+            text: text,
+            preservesOpeningBlockPrefix: false
+        )
     case .none:
         if classifyReviewContentPresentation(text: text) != .markdown {
             let plainText = normalizeReviewPlainTextEscapedDollars(text: text)
             return normalizeReviewSpeakableLines(lines: plainText.components(separatedBy: .newlines))
         }
-        return makeReviewSpeakableTextWithoutMath(text: text)
+        return makeReviewSpeakableTextWithoutMath(
+            text: text,
+            preservesOpeningBlockPrefix: false
+        )
     }
 }
 
-private func makeReviewSpeakableTextWithoutMath(text: String) -> String {
+private func makeReviewSpeakableTextWithoutMath(
+    text: String,
+    preservesOpeningBlockPrefix: Bool
+) -> String {
     if classifyReviewContentPresentation(text: text) != .markdown {
         return normalizeReviewSpeakableLines(lines: text.components(separatedBy: .newlines))
     }
@@ -201,7 +221,7 @@ private func makeReviewSpeakableTextWithoutMath(text: String) -> String {
     var activeFence: ReviewMathFence? = nil
     var speakableLines: [String] = []
 
-    for line in text.components(separatedBy: .newlines) {
+    for (lineIndex, line) in text.components(separatedBy: .newlines).enumerated() {
         if let openingFence = activeFence {
             if reviewMathFenceCloses(line: line, openingFence: openingFence) {
                 activeFence = nil
@@ -215,7 +235,9 @@ private func makeReviewSpeakableTextWithoutMath(text: String) -> String {
             continue
         }
 
-        let normalizedLine = normalizeReviewSpeakableMarkdownLine(line: line)
+        let normalizedLine = preservesOpeningBlockPrefix && lineIndex == 0
+            ? normalizeReviewSpeakableInlineText(text: line)
+            : normalizeReviewSpeakableMarkdownLine(line: line)
         if normalizedLine.isEmpty == false {
             speakableLines.append(normalizedLine)
         }
