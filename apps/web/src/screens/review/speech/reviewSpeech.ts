@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Locale } from "../../../i18n/types";
 import { classifyReviewContentPresentation } from "../components/card/reviewContentPresentation";
 import {
+  normalizeReviewPlainTextEscapedDollars,
   splitEligibleReviewMathForSpeech,
   type ReviewMathSpeechSegment,
 } from "../components/card/reviewMathBlocks";
@@ -134,7 +135,8 @@ function normalizeMarkdownSpeakableLine(line: string, startsAtLineBoundary: bool
 
 export function makeReviewSpeakableText(text: string): string {
   if (classifyReviewContentPresentation(text) !== "markdown") {
-    return normalizeSpeakableParagraphs(text.split(/\r?\n+/));
+    const plainText = normalizeReviewPlainTextEscapedDollars(text);
+    return normalizeSpeakableParagraphs(plainText.split(/\r?\n+/));
   }
 
   const segments: ReadonlyArray<ReviewMathSpeechSegment> = text.includes("$")

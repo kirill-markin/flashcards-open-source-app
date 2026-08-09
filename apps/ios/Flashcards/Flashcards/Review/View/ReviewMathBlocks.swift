@@ -230,6 +230,28 @@ func extractReviewMathBlocks(text: String) -> ReviewMathBlockExtraction {
     return .segmented(blocks)
 }
 
+func normalizeReviewPlainTextEscapedDollars(text: String) -> String {
+    var normalizedText = ""
+    var precedingBackslashCount = 0
+
+    for character in text {
+        if character == "\\" {
+            precedingBackslashCount += 1
+            continue
+        }
+
+        let preservedBackslashCount = character == "$" && precedingBackslashCount.isMultiple(of: 2) == false
+            ? precedingBackslashCount - 1
+            : precedingBackslashCount
+        normalizedText += String(repeating: "\\", count: preservedBackslashCount)
+        normalizedText.append(character)
+        precedingBackslashCount = 0
+    }
+
+    normalizedText += String(repeating: "\\", count: precedingBackslashCount)
+    return normalizedText
+}
+
 private func makeReviewMathSourceLines(text: String) -> [ReviewMathSourceLine] {
     let rawLines = text.components(separatedBy: "\n")
     return rawLines.enumerated().map { index, rawLine in

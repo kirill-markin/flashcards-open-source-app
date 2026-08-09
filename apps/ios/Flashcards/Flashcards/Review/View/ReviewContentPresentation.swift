@@ -151,9 +151,9 @@ func makeReviewRenderedContent(text: String) -> ReviewRenderedContent {
 
     switch classifyReviewContentPresentation(text: text) {
     case .shortPlain:
-        return .shortPlain(text)
+        return .shortPlain(normalizeReviewPlainTextEscapedDollars(text: text))
     case .paragraphPlain:
-        return .paragraphPlain(text)
+        return .paragraphPlain(normalizeReviewPlainTextEscapedDollars(text: text))
     case .markdown:
         return .markdown(makeReviewMarkdownContent(text: text))
     }
@@ -181,7 +181,13 @@ func makeReviewSpeakableText(text: String) -> String {
         }.filter { segment in
             segment.isEmpty == false
         }.joined(separator: "\n")
-    case .literalMarkdown, .none:
+    case .literalMarkdown:
+        return makeReviewSpeakableTextWithoutMath(text: text)
+    case .none:
+        if classifyReviewContentPresentation(text: text) != .markdown {
+            let plainText = normalizeReviewPlainTextEscapedDollars(text: text)
+            return normalizeReviewSpeakableLines(lines: plainText.components(separatedBy: .newlines))
+        }
         return makeReviewSpeakableTextWithoutMath(text: text)
     }
 }
