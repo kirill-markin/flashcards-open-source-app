@@ -8,7 +8,8 @@ internal sealed interface ReviewMathBlock {
 
     data class Formula(
         val source: String,
-        val delimitedSource: String
+        val delimitedSource: String,
+        val continuesParagraph: Boolean
     ) : ReviewMathBlock
 }
 
@@ -566,7 +567,8 @@ private fun makeReviewMathBlocks(
             add(
                 ReviewMathBlock.Formula(
                     source = candidate.source,
-                    delimitedSource = candidate.delimitedSource
+                    delimitedSource = candidate.delimitedSource,
+                    continuesParagraph = candidate.kind == ReviewMathCandidateKind.INLINE
                 )
             )
             currentOffset = candidate.endOffset
