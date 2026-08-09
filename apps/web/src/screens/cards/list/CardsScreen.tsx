@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router";
 import { useAppData } from "../../../appData";
+import { normalizeTagKey } from "../../../appData/domain";
 import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { getCardFilterActiveDimensionCount, normalizeCardFilter } from "../../../cardFilters";
 import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
@@ -29,6 +30,16 @@ type CardsQueryState = Readonly<{
   errorMessage: string;
 }>;
 
+type CardsQueryRequestKind = "reset" | "refresh" | "loadMore";
+
+type CardsQueryControl = Readonly<{
+  queryIdentity: string;
+  requestSequence: number;
+  acceptedRowCount: number;
+  nextCursor: string | null;
+  activeRequest: CardsQueryRequestKind | null;
+}>;
+
 const cardsPageSize = 50;
 const cardsSearchDebounceMs = 300;
 const maximumUserSortCount = 3;
@@ -48,6 +59,34 @@ function createInitialCardsQueryState(): CardsQueryState {
 function normalizeCardsSearchText(searchText: string): string | null {
   const normalizedSearchText = searchText.trim();
   return normalizedSearchText === "" ? null : normalizedSearchText;
+}
+
+function buildCardsQueryIdentity(
+  workspaceId: string | null,
+  searchText: string | null,
+  filter: CardFilter | null,
+  sorts: ReadonlyArray<CardQuerySort>,
+): string {
+  const normalizedTagKeys = filter === null
+    ? null
+    : [...new Set(filter.tags.map((tag) => normalizeTagKey(tag)))]
+      .sort((leftTag, rightTag) => leftTag.localeCompare(rightTag));
+
+  return JSON.stringify([
+    workspaceId,
+    searchText?.toLowerCase() ?? null,
+    normalizedTagKeys,
+    sorts.map((sort) => [sort.key, sort.direction]),
+  ]);
+}
+
+function ownsCardsQueryRequest(
+  control: CardsQueryControl,
+  queryIdentity: string,
+  requestSequence: number,
+): boolean {
+  return control.queryIdentity === queryIdentity
+    && control.requestSequence === requestSequence;
 }
 
 function createEmptyCardFilter(): CardFilter {
@@ -142,10 +181,24 @@ export function CardsScreen(): ReactElement {
     userId: null,
     installationId: null,
   });
-  const requestSequenceRef = useRef<number>(0);
+  const cardsQueryControlRef = useRef<CardsQueryControl>({
+    queryIdentity: "",
+    requestSequence: 0,
+    acceptedRowCount: 0,
+    nextCursor: null,
+    activeRequest: null,
+  });
+  const observedQueryIdentityRef = useRef<string | null>(null);
+  const observedLocalReadVersionRef = useRef<number>(localReadVersion);
   const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
 
   const normalizedSearchText = normalizeCardsSearchText(debouncedSearchText);
+  const cardsQueryIdentity = buildCardsQueryIdentity(
+    activeWorkspace?.workspaceId ?? null,
+    normalizedSearchText,
+    cardFilter,
+    sorts,
+  );
   const activeFilterDimensionCount = getCardFilterActiveDimensionCount(cardFilter);
   const hasActiveSearchOrFilter = normalizedSearchText !== null || cardFilter !== null;
   const draftFilterValue = draftCardFilter ?? createEmptyCardFilter();
@@ -176,20 +229,26 @@ export function CardsScreen(): ReactElement {
     return () => window.clearTimeout(timeoutId);
   }, [searchText]);
 
-  async function loadFirstPage(): Promise<void> {
+  async function resetCardsQuery(queryIdentity: string): Promise<void> {
+    const requestSequence = cardsQueryControlRef.current.requestSequence + 1;
+    cardsQueryControlRef.current = {
+      queryIdentity,
+      requestSequence,
+      acceptedRowCount: 0,
+      nextCursor: null,
+      activeRequest: activeWorkspace === null ? null : "reset",
+    };
+
     if (activeWorkspace === null) {
       setCardsQueryState(createInitialCardsQueryState());
+      setTagSuggestions([]);
       return;
     }
 
-    const requestSequence = requestSequenceRef.current + 1;
-    requestSequenceRef.current = requestSequence;
-    setCardsQueryState((currentState) => ({
-      ...currentState,
+    setCardsQueryState({
+      ...createInitialCardsQueryState(),
       isLoading: true,
-      isLoadingMore: false,
-      errorMessage: "",
-    }));
+    });
 
     try {
       const [nextPage, tagsSummary] = await Promise.all([
@@ -203,9 +262,17 @@ export function CardsScreen(): ReactElement {
         loadWorkspaceTagsSummary(activeWorkspace.workspaceId),
       ]);
 
-      if (requestSequenceRef.current !== requestSequence) {
+      if (!ownsCardsQueryRequest(cardsQueryControlRef.current, queryIdentity, requestSequence)) {
         return;
       }
+
+      cardsQueryControlRef.current = {
+        queryIdentity,
+        requestSequence,
+        acceptedRowCount: nextPage.cards.length,
+        nextCursor: nextPage.nextCursor,
+        activeRequest: null,
+      };
 
       setTagSuggestions(tagsSummary.tags.map((tagSummary) => ({
         tag: tagSummary.tag,
@@ -229,9 +296,14 @@ export function CardsScreen(): ReactElement {
         errorMessage: "",
       });
     } catch (error) {
-      if (requestSequenceRef.current !== requestSequence) {
+      if (!ownsCardsQueryRequest(cardsQueryControlRef.current, queryIdentity, requestSequence)) {
         return;
       }
+
+      cardsQueryControlRef.current = {
+        ...cardsQueryControlRef.current,
+        activeRequest: null,
+      };
 
       const observationIdentity = observationIdentityRef.current;
       captureAppOperationError(error, {
@@ -253,19 +325,119 @@ export function CardsScreen(): ReactElement {
     }
   }
 
-  async function loadNextPage(): Promise<void> {
+  async function refreshCardsQuery(queryIdentity: string): Promise<void> {
     if (
       activeWorkspace === null
-      || cardsQueryState.nextCursor === null
-      || cardsQueryState.isLoading
-      || cardsQueryState.isLoadingMore
+      || cardsQueryControlRef.current.queryIdentity !== queryIdentity
     ) {
       return;
     }
 
-    const requestSequence = requestSequenceRef.current + 1;
-    requestSequenceRef.current = requestSequence;
-    const currentCursor = cardsQueryState.nextCursor;
+    const currentControl = cardsQueryControlRef.current;
+    const requestSequence = currentControl.requestSequence + 1;
+    const refreshLimit = Math.max(cardsPageSize, currentControl.acceptedRowCount);
+    cardsQueryControlRef.current = {
+      ...currentControl,
+      requestSequence,
+      activeRequest: "refresh",
+    };
+    setCardsQueryState((currentState) => ({
+      ...currentState,
+      isLoading: true,
+      isLoadingMore: false,
+      errorMessage: "",
+    }));
+
+    try {
+      const [nextPage, tagsSummary] = await Promise.all([
+        queryLocalCardsPage(activeWorkspace.workspaceId, {
+          searchText: normalizedSearchText,
+          cursor: null,
+          limit: refreshLimit,
+          sorts,
+          filter: cardFilter,
+        }),
+        loadWorkspaceTagsSummary(activeWorkspace.workspaceId),
+      ]);
+
+      if (!ownsCardsQueryRequest(cardsQueryControlRef.current, queryIdentity, requestSequence)) {
+        return;
+      }
+
+      cardsQueryControlRef.current = {
+        queryIdentity,
+        requestSequence,
+        acceptedRowCount: nextPage.cards.length,
+        nextCursor: nextPage.nextCursor,
+        activeRequest: null,
+      };
+      setTagSuggestions(tagsSummary.tags.map((tagSummary) => ({
+        tag: tagSummary.tag,
+        countState: "ready",
+        cardsCount: tagSummary.cardsCount,
+      })));
+      writeCardsLoadingSnapshot({
+        version: 1,
+        workspaceId: activeWorkspace.workspaceId,
+        totalCount: nextPage.totalCount,
+        rows: nextPage.cards.slice(0, 8).map((card) => buildCardsLoadingRowPreview(card)),
+        savedAt: new Date().toISOString(),
+      });
+      setCardsQueryState({
+        items: nextPage.cards,
+        totalCount: nextPage.totalCount,
+        nextCursor: nextPage.nextCursor,
+        hasLoaded: true,
+        isLoading: false,
+        isLoadingMore: false,
+        errorMessage: "",
+      });
+    } catch (error) {
+      if (!ownsCardsQueryRequest(cardsQueryControlRef.current, queryIdentity, requestSequence)) {
+        return;
+      }
+
+      cardsQueryControlRef.current = {
+        ...cardsQueryControlRef.current,
+        activeRequest: null,
+      };
+      const observationIdentity = observationIdentityRef.current;
+      captureAppOperationError(error, {
+        feature: "cards",
+        operation: "cards_list_load",
+        userId: observationIdentity.userId,
+        workspaceId: activeWorkspace.workspaceId,
+        installationId: observationIdentity.installationId,
+        entityId: null,
+      });
+      showCapturedTechnicalError(error);
+      setCardsQueryState((currentState) => ({
+        ...currentState,
+        isLoading: false,
+        isLoadingMore: false,
+        errorMessage: t("appError.technicalError.message"),
+      }));
+    }
+  }
+
+  async function loadNextPage(): Promise<void> {
+    const currentControl = cardsQueryControlRef.current;
+    if (
+      activeWorkspace === null
+      || currentControl.queryIdentity !== cardsQueryIdentity
+      || currentControl.nextCursor === null
+      || currentControl.activeRequest !== null
+    ) {
+      return;
+    }
+
+    const requestSequence = currentControl.requestSequence + 1;
+    const currentCursor = currentControl.nextCursor;
+    cardsQueryControlRef.current = {
+      ...currentControl,
+      requestSequence,
+      activeRequest: "loadMore",
+    };
     setCardsQueryState((currentState) => ({
       ...currentState,
       isLoadingMore: true,
@@ -281,15 +453,28 @@ export function CardsScreen(): ReactElement {
         filter: cardFilter,
       });
 
-      if (requestSequenceRef.current !== requestSequence) {
+      if (!ownsCardsQueryRequest(cardsQueryControlRef.current, cardsQueryIdentity, requestSequence)) {
         return;
       }
 
+      cardsQueryControlRef.current = {
+        queryIdentity: cardsQueryIdentity,
+        requestSequence,
+        acceptedRowCount: currentControl.acceptedRowCount + nextPage.cards.length,
+        nextCursor: nextPage.nextCursor,
+        activeRequest: null,
+      };
+
       setCardsQueryState((currentState) => mergeCardsPage(currentState, nextPage));
     } catch (error) {
-      if (requestSequenceRef.current !== requestSequence) {
+      if (!ownsCardsQueryRequest(cardsQueryControlRef.current, cardsQueryIdentity, requestSequence)) {
         return;
       }
+
+      cardsQueryControlRef.current = {
+        ...cardsQueryControlRef.current,
+        activeRequest: null,
+      };
 
       const observationIdentity = observationIdentityRef.current;
       captureAppOperationError(error, {
@@ -310,8 +495,18 @@ export function CardsScreen(): ReactElement {
   }
 
   useEffect(() => {
-    void loadFirstPage();
-  }, [activeWorkspace, cardFilter, localReadVersion, normalizedSearchText, sorts]);
+    if (observedQueryIdentityRef.current !== cardsQueryIdentity) {
+      observedQueryIdentityRef.current = cardsQueryIdentity;
+      observedLocalReadVersionRef.current = localReadVersion;
+      void resetCardsQuery(cardsQueryIdentity);
+      return;
+    }
+
+    if (observedLocalReadVersionRef.current !== localReadVersion) {
+      observedLocalReadVersionRef.current = localReadVersion;
+      void refreshCardsQuery(cardsQueryIdentity);
+    }
+  }, [cardsQueryIdentity, localReadVersion]);
 
   useEffect(() => {
     if (!isFilterPopoverOpen) {
@@ -388,7 +583,7 @@ export function CardsScreen(): ReactElement {
       }
 
       try {
-        await loadFirstPage();
+        await refreshCardsQuery(cardsQueryIdentity);
       } catch (error) {
         showCapturedTechnicalError(error);
         setErrorMessage(t("appError.technicalError.message"));
@@ -472,7 +667,7 @@ export function CardsScreen(): ReactElement {
       <section className="panel cards-panel">
         {cardsQueryState.errorMessage !== "" ? <p className="error-banner">{cardsQueryState.errorMessage}</p> : null}
         {cardsQueryState.errorMessage !== "" && cardsQueryState.hasLoaded === false ? (
-          <button className="primary-btn cards-loading-retry-btn" type="button" onClick={() => void loadFirstPage()}>
+          <button className="primary-btn cards-loading-retry-btn" type="button" onClick={() => void resetCardsQuery(cardsQueryIdentity)}>
             {t("common.retry")}
           </button>
         ) : null}
