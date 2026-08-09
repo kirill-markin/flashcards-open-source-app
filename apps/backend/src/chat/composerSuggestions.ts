@@ -4,7 +4,10 @@
  * separately as append-only generations.
  */
 import { z } from "zod";
-import { CHAT_MODEL_ID } from "./config";
+import {
+  CHAT_COMPOSER_SUGGESTIONS_REASONING_EFFORT,
+  CHAT_MODEL_ID,
+} from "./config";
 import { getOpenAIClient } from "./openai/client";
 import { buildOpenAISafetyIdentifier } from "./openai/safetyIdentifier";
 import type { ContentPart } from "./types";
@@ -620,6 +623,9 @@ export async function generateFollowUpChatComposerSuggestionsWithDependencies(
 
   const response = await dependencies.getOpenAIClient().responses.create({
     model: CHAT_MODEL_ID,
+    reasoning: {
+      effort: CHAT_COMPOSER_SUGGESTIONS_REASONING_EFFORT,
+    },
     store: false,
     safety_identifier: buildOpenAISafetyIdentifier(userId),
     input: [{

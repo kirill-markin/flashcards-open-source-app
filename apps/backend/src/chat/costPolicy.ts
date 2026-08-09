@@ -94,7 +94,7 @@ function mapSignalRow(row: ChatCostPolicySignalRow): ChatCostPolicySignals {
   };
 }
 
-function getDecisionRuntimeConfig(mode: ChatCostPolicyMode): Readonly<{
+export function getChatRuntimeConfigForCostPolicyMode(mode: ChatCostPolicyMode): Readonly<{
   modelId: ChatRuntimeModelId;
   reasoningEffort: ChatRuntimeReasoningEffort;
 }> {
@@ -105,10 +105,14 @@ function getDecisionRuntimeConfig(mode: ChatCostPolicyMode): Readonly<{
     };
   }
 
-  return {
-    modelId: CHAT_MODEL_ID,
-    reasoningEffort: CHAT_MODEL_REASONING_EFFORT,
-  };
+  if (mode === CHAT_COST_POLICY_MODE_NORMAL) {
+    return {
+      modelId: CHAT_MODEL_ID,
+      reasoningEffort: CHAT_MODEL_REASONING_EFFORT,
+    };
+  }
+
+  throw new Error(`Unsupported chat cost policy mode: ${String(mode)}`);
 }
 
 /**
@@ -125,7 +129,7 @@ export function decideChatCostPolicy(signals: ChatCostPolicySignals): ChatCostPo
     && signals.goodReviewDaysLast7d < CHAT_COST_POLICY_GOOD_REVIEW_DAYS_7D_THRESHOLD
     ? CHAT_COST_POLICY_MODE_LOW_COST
     : CHAT_COST_POLICY_MODE_NORMAL;
-  const runtimeConfig = getDecisionRuntimeConfig(mode);
+  const runtimeConfig = getChatRuntimeConfigForCostPolicyMode(mode);
 
   return {
     ...signals,

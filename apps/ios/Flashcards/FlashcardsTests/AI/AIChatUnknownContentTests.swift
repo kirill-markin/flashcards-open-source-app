@@ -36,8 +36,8 @@ final class AIChatUnknownContentTests: XCTestCase {
           "composerSuggestions": [],
           "chatConfig": {
             "provider": { "id": "openai", "label": "OpenAI" },
-            "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
-            "reasoning": { "effort": "medium", "label": "Medium" },
+            "model": { "id": "gpt-5.6-terra", "label": "GPT-5.6 Terra", "badgeLabel": "GPT-5.6 Terra · XHigh" },
+            "reasoning": { "effort": "xhigh", "label": "XHigh" },
             "features": {
               "modelPickerEnabled": false,
               "dictationEnabled": true,

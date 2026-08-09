@@ -45,7 +45,7 @@ export async function createRun(
        reasoning_effort, timezone, turn_input, worker_claimed_at,
        worker_heartbeat_at, started_at
      ) VALUES (
-       $4, $1, $5, 'running', $6, 'gpt-5.4', 'medium', 'Europe/Madrid',
+       $4, $1, $5, 'running', $6, 'gpt-5.6-terra', 'xhigh', 'Europe/Madrid',
        '[]'::jsonb, statement_timestamp(), statement_timestamp(), statement_timestamp()
      )
      RETURNING worker_claimed_at::text AS claim_token`,

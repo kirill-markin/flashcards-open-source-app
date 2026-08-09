@@ -99,7 +99,7 @@ async function insertRuntimeRunWithClassification(
        reasoning_effort, timezone, turn_input,
        initiating_auth_is_signed_in
      ) VALUES (
-       $1, $2, $3, 'queued', $4, 'gpt-5.4', 'medium', 'Europe/Madrid',
+       $1, $2, $3, 'queued', $4, 'gpt-5.6-terra', 'xhigh', 'Europe/Madrid',
        '[]'::jsonb, $5
      )
      RETURNING initiating_auth_is_signed_in`,
@@ -130,7 +130,7 @@ async function insertRuntimeRunWithDefaultClassification(
        run_id, session_id, assistant_item_id, status, request_id, model_id,
        reasoning_effort, timezone, turn_input
      ) VALUES (
-       $1, $2, $3, 'queued', $4, 'gpt-5.4', 'medium', 'Europe/Madrid',
+       $1, $2, $3, 'queued', $4, 'gpt-5.6-terra', 'xhigh', 'Europe/Madrid',
        '[]'::jsonb
      )
      RETURNING initiating_auth_is_signed_in`,
