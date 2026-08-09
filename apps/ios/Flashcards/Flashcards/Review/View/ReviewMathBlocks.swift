@@ -31,7 +31,9 @@ private struct ReviewInlineMathLine {
     let containsFormula: Bool
 }
 
-private let reviewMathReferenceDefinitionExpression = makeReviewContentRegularExpression(pattern: #"^ {0,3}\[[^\]]+\]:"#)
+private let reviewMathReferenceDefinitionExpression = makeReviewContentRegularExpression(
+    pattern: #"^ {0,3}\[(?:\\.|[^\\\]])+\]:"#
+)
 private let reviewMathContainerPrefixExpression = makeReviewContentRegularExpression(
     pattern: #"^ {0,3}(?:>[ \t]?|(?:[-+*]|\d{1,9}[.)])[ \t])"#
 )
@@ -278,6 +280,11 @@ private func reviewMathFence(line: String) -> ReviewMathFence? {
         character == marker
     }).count
     guard markerLength >= 3 else {
+        return nil
+    }
+
+    let info = content.dropFirst(markerLength)
+    if marker == "`", info.contains("`") {
         return nil
     }
 

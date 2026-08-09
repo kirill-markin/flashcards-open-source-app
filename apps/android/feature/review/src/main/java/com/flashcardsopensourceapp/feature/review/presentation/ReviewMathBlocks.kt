@@ -380,6 +380,7 @@ private fun extractReviewInlineLine(
     val escapedDollarOffsets: MutableList<Int> = mutableListOf()
     val prose: StringBuilder = StringBuilder()
     var openingDollarOffset: Int? = null
+    var literalDoubleDollarSecondOffset: Int? = null
     var precedingBackslashCount: Int = 0
 
     line.content.forEachIndexed { index, character ->
@@ -400,6 +401,11 @@ private fun extractReviewInlineLine(
             return@forEachIndexed
         }
 
+        if (literalDoubleDollarSecondOffset == index) {
+            literalDoubleDollarSecondOffset = null
+            return@forEachIndexed
+        }
+
         if (isEscaped) {
             escapedDollarOffsets.add(line.startOffset + index - 1)
             if (openingDollarOffset == null) {
@@ -409,7 +415,12 @@ private fun extractReviewInlineLine(
         }
 
         if (line.content.getOrNull(index = index + 1) == '$') {
-            return null
+            if (openingDollarOffset != null) {
+                return null
+            }
+            prose.append("$$")
+            literalDoubleDollarSecondOffset = index + 1
+            return@forEachIndexed
         }
 
         val openingOffset: Int? = openingDollarOffset
