@@ -26,7 +26,6 @@ extension AIChatView {
                 scrollGeometry: context.geometry,
                 bottomThreshold: aiChatAutoScrollBottomThreshold
             )
-            self.currentScrollState = nextScrollState
 
             // Only user-driven scrolls can detach auto-follow. Animated scrolls are
             // app-driven and should not flip the latch while assistant content grows.
@@ -56,9 +55,8 @@ extension AIChatView {
             }
         }
         .onAppear {
-            // Keep the one-shot deferred sync only when the previous geometry already
-            // proved the reader was at the bottom, so tab return cannot override a
-            // deliberate manual scroll-away.
+            // Keep the one-shot deferred sync behind the auto-follow latch so tab
+            // return cannot override a deliberate manual scroll-away.
             self.scheduleDeferredBottomSyncIfNeeded()
             if self.chatStore.isStreaming {
                 self.startAutoScrollTask()
@@ -71,7 +69,6 @@ extension AIChatView {
         .onChange(of: self.chatStore.messages) { previousMessages, messages in
             guard messages.isEmpty == false else {
                 self.isAutoFollowEnabled = true
-                self.currentScrollState = nil
                 self.hasActiveUserScrollGesture = false
                 self.scrollToBottom(isAnimated: false)
                 return
