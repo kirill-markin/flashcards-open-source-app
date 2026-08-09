@@ -88,11 +88,33 @@ internal fun ReviewContent(
     onSwitchToAllCards: () -> Unit,
     onLoadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
+    onConsumeRelocationTarget: (String?, Boolean) -> ReviewRelocationTarget?,
     onToggleFrontSpeech: () -> Unit,
     onToggleBackSpeech: () -> Unit,
     modifier: Modifier,
     contentPadding: PaddingValues
 ) {
+    val presentedCardId: String? = if (uiState.isLoading) {
+        null
+    } else {
+        uiState.preparedCurrentCard?.card?.cardId
+    }
+    val frontBringIntoViewRequester = remember { BringIntoViewRequester() }
+    val backBringIntoViewRequester = remember { BringIntoViewRequester() }
+
+    LaunchedEffect(presentedCardId, uiState.isAnswerVisible) {
+        when (
+            onConsumeRelocationTarget(
+                presentedCardId,
+                uiState.isAnswerVisible
+            )
+        ) {
+            ReviewRelocationTarget.FRONT -> frontBringIntoViewRequester.bringIntoView()
+            ReviewRelocationTarget.BACK -> backBringIntoViewRequester.bringIntoView()
+            null -> Unit
+        }
+    }
+
     if (uiState.isLoading.not() && uiState.preparedCurrentCard == null && uiState.emptyState != null) {
         Box(
             contentAlignment = Alignment.Center,
@@ -143,7 +165,9 @@ internal fun ReviewContent(
                         onLoadManagedMediaFile = onLoadManagedMediaFile,
                         onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                         onToggleFrontSpeech = onToggleFrontSpeech,
-                        onToggleBackSpeech = onToggleBackSpeech
+                        onToggleBackSpeech = onToggleBackSpeech,
+                        frontBringIntoViewRequester = frontBringIntoViewRequester,
+                        backBringIntoViewRequester = backBringIntoViewRequester
                     )
                 }
 
@@ -238,23 +262,12 @@ private fun ReviewCardContent(
     onLoadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     onToggleFrontSpeech: () -> Unit,
-    onToggleBackSpeech: () -> Unit
+    onToggleBackSpeech: () -> Unit,
+    frontBringIntoViewRequester: BringIntoViewRequester,
+    backBringIntoViewRequester: BringIntoViewRequester
 ) {
     val context = LocalContext.current
     val locale = currentResourceLocale(resources = context.resources)
-    val frontBringIntoViewRequester = remember { BringIntoViewRequester() }
-    val backBringIntoViewRequester = remember { BringIntoViewRequester() }
-    val currentCardId: String = currentCard.card.cardId
-
-    LaunchedEffect(currentCardId) {
-        frontBringIntoViewRequester.bringIntoView()
-    }
-
-    LaunchedEffect(currentCardId, isAnswerVisible) {
-        if (isAnswerVisible) {
-            backBringIntoViewRequester.bringIntoView()
-        }
-    }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),

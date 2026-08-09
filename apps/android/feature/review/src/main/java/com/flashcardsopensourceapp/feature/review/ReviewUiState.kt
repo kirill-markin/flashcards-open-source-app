@@ -23,6 +23,11 @@ enum class ReviewEmptyState {
     SESSION_COMPLETE
 }
 
+enum class ReviewRelocationTarget {
+    FRONT,
+    BACK
+}
+
 data class ReviewUiState(
     val isLoading: Boolean,
     val requestedFilter: ReviewFilter,

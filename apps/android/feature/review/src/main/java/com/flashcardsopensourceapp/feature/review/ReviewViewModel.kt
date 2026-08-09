@@ -135,6 +135,8 @@ class ReviewViewModel(
     private var reviewFilterGeneration: Long = 0L
     private var activeWorkspaceId: String? = null
     private var workspaceGeneration: Long = 0L
+    private var handledPresentedCardId: String? = null
+    private var handledAnswerRevealCardId: String? = null
     /** Fixed-size in-memory review history for the current review session only. */
     private var recentReviewRatings: List<ReviewRating> = emptyList()
     /** Device-level cooldown timestamp for the hard-answer reminder. */
@@ -234,6 +236,28 @@ class ReviewViewModel(
                 errorMessage = ""
             )
         }
+    }
+
+    fun consumeReviewRelocationTarget(
+        presentedCardId: String?,
+        isAnswerVisible: Boolean
+    ): ReviewRelocationTarget? {
+        if (presentedCardId != handledPresentedCardId) {
+            handledPresentedCardId = presentedCardId
+            handledAnswerRevealCardId = if (isAnswerVisible) presentedCardId else null
+            return if (presentedCardId == null) null else ReviewRelocationTarget.FRONT
+        }
+
+        if (isAnswerVisible.not()) {
+            handledAnswerRevealCardId = null
+            return null
+        }
+        if (presentedCardId == null || handledAnswerRevealCardId == presentedCardId) {
+            return null
+        }
+
+        handledAnswerRevealCardId = presentedCardId
+        return ReviewRelocationTarget.BACK
     }
 
     fun dismissErrorMessage() {
