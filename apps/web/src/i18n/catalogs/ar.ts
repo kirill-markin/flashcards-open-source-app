@@ -218,9 +218,9 @@ const arCatalog: TranslationCatalog = {
       offlineEmpty: "لوحة صدارة التقييمات غير متاحة دون اتصال. اتصل بالإنترنت لرؤية الترتيب.",
       unavailable: "لوحة صدارة التقييمات غير متاحة الآن. عُد لاحقًا.",
       invite: {
-        actionLabel: "إنشاء دعوة صديق",
-        actionText: "دعوة صديق",
-        title: "دعوة صديق",
+        actionLabel: "إضافة صديق",
+        actionText: "إضافة صديق",
+        title: "إضافة صديق",
         body: "أنشئ رابط صديق خاصًا للوحة الصدارة.",
         friendNameLabel: "اسم الصديق في تقييماتك",
         expiryNote: "تنتهي روابط الدعوة بعد يومين.",
@@ -381,8 +381,8 @@ const arCatalog: TranslationCatalog = {
     title: "الإعدادات",
     subtitle: "أدر الحساب ومساحة العمل والدعم وإعدادات الويب المتقدمة.",
     inviteFriend: {
-      actionText: "دعوة صديق",
-      ariaLabel: "إنشاء دعوة صديق",
+      actionText: "إضافة صديق",
+      ariaLabel: "إضافة صديق",
     },
     groups: {
       share: "مشاركة",

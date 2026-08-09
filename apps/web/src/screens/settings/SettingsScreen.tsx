@@ -152,6 +152,24 @@ export function SettingsScreen(): ReactElement {
       subtitle={t("settingsHome.subtitle")}
       activeTab="general"
     >
+      <SettingsGroup title={t("settingsHome.groups.feedback")} testId="settings-group-feedback">
+        <div className="settings-nav-list">
+          <SettingsExternalLinkCard
+            title={t("settingsHome.reviewAppStore.title")}
+            description={t("settingsHome.reviewAppStore.description")}
+            href={appStoreListingUrl}
+            testId="settings-row-review-app-store"
+          />
+          <SettingsNavigationCard
+            title={t("settingsHome.privateFeedback.title")}
+            description={t("settingsHome.privateFeedback.description")}
+            value={null}
+            to={settingsFeedbackRoute}
+            testId="settings-row-private-feedback"
+          />
+        </div>
+      </SettingsGroup>
+
       <SettingsGroup title={t("settingsHome.groups.share")}>
         <div className="settings-nav-list">
           <div className="settings-invite-row">
@@ -185,24 +203,6 @@ export function SettingsScreen(): ReactElement {
             {shareErrorMessage}
           </p>
         )}
-      </SettingsGroup>
-
-      <SettingsGroup title={t("settingsHome.groups.feedback")} testId="settings-group-feedback">
-        <div className="settings-nav-list">
-          <SettingsExternalLinkCard
-            title={t("settingsHome.reviewAppStore.title")}
-            description={t("settingsHome.reviewAppStore.description")}
-            href={appStoreListingUrl}
-            testId="settings-row-review-app-store"
-          />
-          <SettingsNavigationCard
-            title={t("settingsHome.privateFeedback.title")}
-            description={t("settingsHome.privateFeedback.description")}
-            value={null}
-            to={settingsFeedbackRoute}
-            testId="settings-row-private-feedback"
-          />
-        </div>
       </SettingsGroup>
 
       <SettingsGroup title={t("settingsHome.groups.account")}>
