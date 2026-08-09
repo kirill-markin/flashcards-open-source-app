@@ -334,10 +334,12 @@ export function DeckFormScreen(): ReactElement {
       return formStateRef.current;
     }
 
-    while (
-      isMountedRef.current
-      && areDeckEditorIdentitiesEqual(renderedEditorIdentityRef.current, submitEditorIdentity)
-    ) {
+    const isSubmitEditorCurrent = function isSubmitEditorCurrent(): boolean {
+      return isMountedRef.current
+        && areDeckEditorIdentitiesEqual(renderedEditorIdentityRef.current, submitEditorIdentity);
+    };
+
+    while (isSubmitEditorCurrent()) {
       const refreshBarrier = latestRelevantRefreshRef.current;
       if (
         refreshBarrier === null
@@ -347,10 +349,7 @@ export function DeckFormScreen(): ReactElement {
       }
 
       const refreshOutcome = await refreshBarrier.promise;
-      if (
-        isMountedRef.current === false
-        || areDeckEditorIdentitiesEqual(renderedEditorIdentityRef.current, submitEditorIdentity) === false
-      ) {
+      if (isSubmitEditorCurrent() === false) {
         return null;
       }
 
