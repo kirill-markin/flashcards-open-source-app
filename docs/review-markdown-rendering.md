@@ -16,6 +16,8 @@ An ordinary Markdown link or image is a Markdown presentation cue on every
 client. Inline emphasis by itself does not change presentation selection. For
 example, `A **short** answer` remains subject to the existing plain-text
 selection policy unless the same content contains another Markdown cue.
+Recognized inline or display math is also a Markdown presentation cue. Escaped
+or unbalanced dollar signs and dollar signs inside code are not math cues.
 
 ## Markdown subset
 
@@ -32,9 +34,80 @@ GFM subset:
 - links
 - tables
 - images
+- inline and display math
 
-Raw HTML and LaTeX are unsupported. Card content must not depend on either
-syntax being interpreted.
+Raw HTML is unsupported. Full TeX documents, custom packages, DOM commands, and
+platform-specific syntax are also unsupported. Card content must not depend on
+those forms being interpreted.
+
+## Math syntax
+
+Outside code, an unescaped single dollar sign opens inline math and the next
+unescaped single dollar sign on the same line closes it. The content between the
+delimiters is the LaTeX source. Inline math cannot span lines.
+
+Display math opens and closes with separate delimiter lines. Each delimiter line
+contains only optional spaces or tabs and exactly `$$`; the body between them may
+span lines. A `$$` token anywhere else is literal text.
+
+Outside code, `\$` produces a literal dollar sign and cannot open or close math.
+Currency dollar signs therefore need escaping, for example `\$5` and `\$10`.
+Any inline or display delimiter without a matching close remains literal,
+including its opening delimiter.
+
+Fenced code blocks and inline code spans take precedence over math and are never
+scanned for math delimiters. Math recognition applies only to Markdown text
+content, not link or image destinations, so it does not reinterpret `fcasset:`
+managed-media URLs. Existing managed-media parsing and rendering behavior is
+unchanged.
+
+Applications maintain no LaTeX command allowlist. Every expression that RaTeX
+accepts is eligible to render. This does not extend support to full TeX
+documents, custom packages, DOM commands, or platform-specific syntax that
+RaTeX does not accept.
+
+## Math rendering and accessibility
+
+Inline formulas participate in the surrounding text flow. Display formulas are
+top-level blocks with horizontal scrolling so wide formulas do not resize or
+clip the card.
+
+When RaTeX rejects a recognized formula, the formula remains visibly
+represented by its original delimited source, the UI exposes an explicit render
+error, and the client logs the underlying RaTeX error. A rejected formula must
+not disappear or degrade to an empty placeholder.
+
+Speech output and accessibility labels expose the LaTeX source between the
+delimiters, without the opening or closing dollar signs.
+
+## Compact math parity fixture
+
+For a runnable fixture, replace `<mediaAssetId>` with an asset ID inserted
+through the app's image action; do not type or invent an asset ID.
+
+````markdown
+Inline math: $E = mc^2$ and currency: \$5.
+
+Inline code keeps dollars literal: `$not_math$`.
+
+$$
+\int_0^1 x^2\,dx = \frac{1}{3}
+$$
+
+```text
+$also_not_math$ and $$
+```
+
+![Managed image](fcasset:<mediaAssetId>)
+
+Invalid recognized formula: $\frac{1}{$
+````
+
+Every client must produce equivalent semantics: the inline and display formulas
+render in their respective layouts; the escaped dollar and code examples stay
+literal; the managed image uses the existing native managed-media path; and the
+invalid formula remains visible with an explicit render error while its
+underlying RaTeX error is logged.
 
 ## Managed media
 
