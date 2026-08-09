@@ -129,7 +129,7 @@
 "common.unavailable" = "不可用";
 
 "settings.title" = "设置";
-"settings.inviteFriend.button" = "邀请朋友";
+"settings.inviteFriend.button" = "添加好友";
 "settings.section.share" = "分享";
 "settings.row.shareApp" = "分享 Flashcards";
 "settings.section.feedback" = "反馈";

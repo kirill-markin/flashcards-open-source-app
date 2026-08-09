@@ -129,7 +129,7 @@
 "common.unavailable" = "غير متاح";
 
 "settings.title" = "الإعدادات";
-"settings.inviteFriend.button" = "دعوة صديق";
+"settings.inviteFriend.button" = "إضافة صديق";
 "settings.section.share" = "مشاركة";
 "settings.row.shareApp" = "مشاركة Flashcards";
 "settings.section.feedback" = "الملاحظات";

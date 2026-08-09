@@ -106,7 +106,7 @@ struct ProgressLeaderboardSection: View {
                 Text(
                     String(
                         localized: "progress.screen.leaderboard.invite.button",
-                        defaultValue: "Invite Friend",
+                        defaultValue: "Add Friend",
                         table: progressStringsTableName,
                         comment: "Button title for creating a leaderboard friend invite link"
                     )
@@ -119,7 +119,7 @@ struct ProgressLeaderboardSection: View {
         .accessibilityLabel(
             String(
                 localized: "progress.screen.leaderboard.invite.accessibility_label",
-                defaultValue: "Invite a friend",
+                defaultValue: "Add a friend",
                 table: progressStringsTableName,
                 comment: "Accessibility label for the leaderboard friend invite button"
             )
