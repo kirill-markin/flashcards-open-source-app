@@ -854,6 +854,7 @@ const arCatalog: TranslationCatalog = {
       queue: "لا توجد بطاقات للمراجعة الآن.",
     },
     errors: {
+      mathRenderFailed: "تعذر عرض الصيغة.",
       schedulerUnavailable: "لم يتم تحميل إعدادات جدولة مساحة العمل",
     },
     leaderboardShortcut: {

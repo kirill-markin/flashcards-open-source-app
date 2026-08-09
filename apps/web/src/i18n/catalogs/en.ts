@@ -852,6 +852,7 @@ const enCatalog = {
       queue: "No cards to review right now.",
     },
     errors: {
+      mathRenderFailed: "The formula could not be rendered.",
       schedulerUnavailable: "Workspace scheduler settings are not loaded",
     },
     leaderboardShortcut: {

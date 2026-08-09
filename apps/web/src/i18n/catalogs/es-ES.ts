@@ -854,6 +854,7 @@ const esEsCatalog: TranslationCatalog = {
       queue: "No hay tarjetas para repasar ahora mismo.",
     },
     errors: {
+      mathRenderFailed: "No se pudo mostrar la fórmula.",
       schedulerUnavailable: "Los ajustes del programador del espacio de trabajo no están cargados",
     },
     leaderboardShortcut: {

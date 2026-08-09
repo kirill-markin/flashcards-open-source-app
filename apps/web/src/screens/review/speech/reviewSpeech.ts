@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Locale } from "../../../i18n/types";
 import { classifyReviewContentPresentation } from "../components/card/reviewContentPresentation";
+import {
+  splitEligibleReviewMathForSpeech,
+  type ReviewMathSpeechSegment,
+} from "../components/card/reviewMathBlocks";
 
 export type ReviewSpeechSide = "front" | "back";
 
@@ -105,11 +109,15 @@ function fenceMarkerForLine(line: string): string | null {
   return match[1] ?? null;
 }
 
-function normalizeMarkdownSpeakableLine(line: string): string {
+function normalizeMarkdownSpeakableLine(line: string, startsAtLineBoundary: boolean): string {
   const trimmedLine = line.trim();
 
   if (trimmedLine === "") {
     return "";
+  }
+
+  if (startsAtLineBoundary === false) {
+    return normalizeSpeakableInlineText(line);
   }
 
   if (REVIEW_THEMATIC_BREAK_PATTERN.test(trimmedLine) || REVIEW_TABLE_SEPARATOR_PATTERN.test(trimmedLine)) {
@@ -129,33 +137,45 @@ export function makeReviewSpeakableText(text: string): string {
     return normalizeSpeakableParagraphs(text.split(/\r?\n+/));
   }
 
+  const segments: ReadonlyArray<ReviewMathSpeechSegment> = text.includes("$")
+    ? splitEligibleReviewMathForSpeech(text)
+    : [{ kind: "prose", startsAtLineBoundary: true, value: text }];
   const speakableLines: Array<string> = [];
-  const lines = text.split(/\r?\n/);
   let activeFenceMarker: string | null = null;
 
-  for (const line of lines) {
-    const marker = fenceMarkerForLine(line);
+  for (const segment of segments) {
+    if (segment.kind === "formula") {
+      if (segment.value !== "") {
+        speakableLines.push(segment.value);
+      }
+      continue;
+    }
 
-    if (activeFenceMarker !== null) {
-      if (marker === activeFenceMarker) {
-        activeFenceMarker = null;
+    const lines = segment.value.split(/\r?\n/);
+    for (const [lineIndex, line] of lines.entries()) {
+      const startsAtLineBoundary = segment.startsAtLineBoundary || lineIndex > 0;
+      const marker = startsAtLineBoundary ? fenceMarkerForLine(line) : null;
+
+      if (activeFenceMarker !== null) {
+        if (marker === activeFenceMarker) {
+          activeFenceMarker = null;
+        }
+        continue;
       }
 
-      continue;
-    }
+      if (marker !== null) {
+        activeFenceMarker = marker;
+        continue;
+      }
 
-    if (marker !== null) {
-      activeFenceMarker = marker;
-      continue;
-    }
-
-    const normalizedLine = normalizeMarkdownSpeakableLine(line);
-    if (normalizedLine !== "") {
-      speakableLines.push(normalizedLine);
+      const normalizedLine = normalizeMarkdownSpeakableLine(line, startsAtLineBoundary);
+      if (normalizedLine !== "") {
+        speakableLines.push(normalizedLine);
+      }
     }
   }
 
-  return normalizeSpeakableParagraphs(speakableLines);
+  return speakableLines.join("\n");
 }
 
 function scoreLanguageHeuristic(text: string, heuristic: LanguageHeuristic): number {

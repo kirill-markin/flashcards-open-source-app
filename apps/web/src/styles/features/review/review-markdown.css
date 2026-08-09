@@ -36,8 +36,38 @@
 .review-markdown-blockquote,
 .review-markdown-pre,
 .review-markdown-table,
-.review-markdown-managed-media {
+.review-markdown-managed-media,
+.review-math-block {
   margin: 0 0 0.75em;
+}
+
+.review-math-block {
+  max-width: 100%;
+  color: var(--text);
+  overflow-x: auto;
+}
+
+.review-math-block-canvas {
+  display: block;
+  width: auto;
+  max-width: none;
+  height: auto;
+}
+
+.review-math-block-canvas[hidden] {
+  display: none;
+}
+
+.review-math-block-error {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--danger);
+}
+
+.review-math-block-source {
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .review-markdown-a {

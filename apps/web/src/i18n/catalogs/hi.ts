@@ -854,6 +854,7 @@ const hiCatalog: TranslationCatalog = {
       queue: "अभी रिव्यू करने के लिए कोई कार्ड नहीं है।",
     },
     errors: {
+      mathRenderFailed: "फ़ॉर्मूला रेंडर नहीं किया जा सका।",
       schedulerUnavailable: "वर्कस्पेस शेड्यूलर सेटिंग्स लोड नहीं हुई हैं",
     },
     leaderboardShortcut: {
