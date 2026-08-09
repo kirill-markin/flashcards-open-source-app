@@ -103,7 +103,6 @@ struct AIChatView: View {
     @State var isPhotoPickerPresented: Bool
     @State var selectedPhotoItem: PhotosPickerItem?
     @State var isAutoFollowEnabled: Bool
-    @State var currentScrollState: AIChatScrollState?
     @State var hasActiveUserScrollGesture: Bool
     @State var scrollPosition: ScrollPosition
     @State var autoScrollTask: Task<Void, Never>?
@@ -120,7 +119,6 @@ struct AIChatView: View {
         self.isPhotoPickerPresented = false
         self.selectedPhotoItem = nil
         self.isAutoFollowEnabled = true
-        self.currentScrollState = nil
         self.hasActiveUserScrollGesture = false
         self.scrollPosition = ScrollPosition(idType: String.self)
         self.autoScrollTask = nil
@@ -800,6 +798,7 @@ struct AIChatView: View {
             return
         }
 
+        self.scheduleDeferredBottomSyncIfNeeded()
         self.handleAIChatPresentationRequest(
             request: self.deferredPresentationRequest,
             source: .bootstrapReady
