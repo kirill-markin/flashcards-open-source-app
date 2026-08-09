@@ -122,6 +122,12 @@ struct ReviewCardSideView: View {
                             surfaceStyle: surfaceStyle
                         )
                         .frame(maxWidth: .infinity, alignment: .topLeading)
+                    case .formula(let formula):
+                        ReviewMathFormulaView(
+                            formula: formula,
+                            surfaceStyle: surfaceStyle
+                        )
+                        .id(formula.originalSource)
                     case .managedMedia(let reference):
                         ReviewManagedMediaView(
                             reference: reference,

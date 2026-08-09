@@ -1,5 +1,12 @@
 import MarkdownUI
+import OSLog
+import RaTeX
 import SwiftUI
+
+private let reviewMathFormulaLogger: Logger = Logger(
+    subsystem: appBundleIdentifier(),
+    category: "review_math"
+)
 
 enum ReviewCardSurfaceStyle {
     case front
@@ -230,5 +237,66 @@ struct ReviewMarkdownText: View {
         Markdown(markdownContent)
             .markdownTheme(makeReviewMarkdownTheme(surfaceStyle: surfaceStyle))
             .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+}
+
+struct ReviewMathFormulaView: View {
+    let formula: ReviewFormulaContent
+    let surfaceStyle: ReviewCardSurfaceStyle
+
+    @ScaledMetric(relativeTo: .body) private var formulaFontSize: CGFloat = 20
+    @State private var renderFailed: Bool = false
+
+    private var localizedRenderError: String {
+        String(
+            localized: "Formula couldn't be rendered. Check the LaTeX syntax.",
+            table: "ReviewCards"
+        )
+    }
+
+    var body: some View {
+        Group {
+            if self.renderFailed {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(self.formula.originalSource)
+                        .font(.body.monospaced())
+                        .foregroundStyle(reviewMarkdownTextColor(surfaceStyle: self.surfaceStyle))
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Label(
+                        self.localizedRenderError,
+                        systemImage: "exclamationmark.triangle"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(self.formula.latex)
+                .accessibilityValue(self.localizedRenderError)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    RaTeXFormula(
+                        latex: self.formula.latex,
+                        fontSize: self.formulaFontSize,
+                        displayMode: true,
+                        color: reviewMarkdownTextColor(surfaceStyle: self.surfaceStyle),
+                        onError: { error in
+                            reviewMathFormulaLogger.error(
+                                "Review formula rendering failed. latex=\(self.formula.latex, privacy: .private(mask: .hash)) error=\(error.localizedDescription, privacy: .public)"
+                            )
+                            Task { @MainActor in
+                                self.renderFailed = true
+                            }
+                        },
+                        onLayout: nil
+                    )
+                    .fixedSize(horizontal: true, vertical: true)
+                    .padding(.vertical, 2)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(self.formula.latex)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
     }
 }
