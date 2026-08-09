@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router";
 import { useAppData } from "../../../appData";
+import { normalizeTagKey } from "../../../appData/domain";
 import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import { getCardFilterActiveDimensionCount, normalizeCardFilter } from "../../../cardFilters";
 import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
 import { useI18n } from "../../../i18n";
 import { CardTagsInput, type CardTagsInputHandle } from "../CardTagsInput";
 import { getExpectedCardMutationInlineErrorMessage } from "../cardMutationErrors";
-import { EditableCardTagsCell, EditableCardTextCell } from "./CardsTableEditors";
+import {
+  EditableCardTagsCell,
+  EditableCardTextCell,
+  type CardInlineEditorToken,
+} from "./CardsTableEditors";
 import { queryLocalCardsPage } from "../../../localDb/cards/cards";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
@@ -29,6 +34,24 @@ type CardsQueryState = Readonly<{
   errorMessage: string;
 }>;
 
+type CardsQueryRequestKind = "reset" | "refresh" | "loadMore";
+
+type CardsQueryWindow = Readonly<{
+  items: ReadonlyArray<Card>;
+  totalCount: number;
+  nextCursor: string | null;
+}>;
+
+type CardsQueryControl = Readonly<{
+  queryIdentity: string;
+  requestSequence: number;
+  acceptedRowCount: number;
+  nextCursor: string | null;
+  activeRequest: CardsQueryRequestKind | null;
+  authoritativeWindow: CardsQueryWindow;
+  hasPendingPublication: boolean;
+}>;
+
 const cardsPageSize = 50;
 const cardsSearchDebounceMs = 300;
 const maximumUserSortCount = 3;
@@ -45,9 +68,65 @@ function createInitialCardsQueryState(): CardsQueryState {
   };
 }
 
+function createEmptyCardsQueryWindow(): CardsQueryWindow {
+  return {
+    items: [],
+    totalCount: 0,
+    nextCursor: null,
+  };
+}
+
+function createCardsQueryWindow(nextPage: QueryCardsPage): CardsQueryWindow {
+  return {
+    items: nextPage.cards,
+    totalCount: nextPage.totalCount,
+    nextCursor: nextPage.nextCursor,
+  };
+}
+
+function createPublishedCardsQueryState(queryWindow: CardsQueryWindow): CardsQueryState {
+  return {
+    items: queryWindow.items,
+    totalCount: queryWindow.totalCount,
+    nextCursor: queryWindow.nextCursor,
+    hasLoaded: true,
+    isLoading: false,
+    isLoadingMore: false,
+    errorMessage: "",
+  };
+}
+
 function normalizeCardsSearchText(searchText: string): string | null {
   const normalizedSearchText = searchText.trim();
   return normalizedSearchText === "" ? null : normalizedSearchText;
+}
+
+function buildCardsQueryIdentity(
+  workspaceId: string | null,
+  searchText: string | null,
+  filter: CardFilter | null,
+  sorts: ReadonlyArray<CardQuerySort>,
+): string {
+  const normalizedTagKeys = filter === null
+    ? null
+    : [...new Set(filter.tags.map((tag) => normalizeTagKey(tag)))]
+      .sort((leftTag, rightTag) => leftTag.localeCompare(rightTag));
+
+  return JSON.stringify([
+    workspaceId,
+    searchText?.toLowerCase() ?? null,
+    normalizedTagKeys,
+    sorts.map((sort) => [sort.key, sort.direction]),
+  ]);
+}
+
+function ownsCardsQueryRequest(
+  control: CardsQueryControl,
+  queryIdentity: string,
+  requestSequence: number,
+): boolean {
+  return control.queryIdentity === queryIdentity
+    && control.requestSequence === requestSequence;
 }
 
 function createEmptyCardFilter(): CardFilter {
@@ -96,19 +175,19 @@ function getSortPriority(
   return index === -1 ? null : index + 1;
 }
 
-function mergeCardsPage(
-  currentState: CardsQueryState,
+function mergeCardsQueryWindow(
+  currentWindow: CardsQueryWindow,
   nextPage: QueryCardsPage,
-): CardsQueryState {
+): CardsQueryWindow {
   return {
-    items: [...currentState.items, ...nextPage.cards],
+    items: [...currentWindow.items, ...nextPage.cards],
     totalCount: nextPage.totalCount,
     nextCursor: nextPage.nextCursor,
-    hasLoaded: true,
-    isLoading: false,
-    isLoadingMore: false,
-    errorMessage: "",
   };
+}
+
+function getCardInlineEditorTokenKey(editorToken: CardInlineEditorToken): string {
+  return `${editorToken.cardId}:${editorToken.field}`;
 }
 
 export function CardsScreen(): ReactElement {
@@ -128,10 +207,11 @@ export function CardsScreen(): ReactElement {
   const [cardFilter, setCardFilter] = useState<CardFilter | null>(null);
   const [draftCardFilter, setDraftCardFilter] = useState<CardFilter | null>(null);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState<boolean>(false);
-  const [savingCardId, setSavingCardId] = useState<string>("");
+  const [savingCardIds, setSavingCardIds] = useState<ReadonlySet<string>>(new Set<string>());
   const [cardsQueryState, setCardsQueryState] = useState<CardsQueryState>(createInitialCardsQueryState);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const loadMoreSentinelRef = useRef<HTMLTableRowElement | null>(null);
+  const loadMoreSentinelIntersectionConsumedRef = useRef<boolean>(false);
   const filterWrapRef = useRef<HTMLDivElement | null>(null);
   const filterPopoverRef = useRef<HTMLDivElement | null>(null);
   const filterTagsInputRef = useRef<CardTagsInputHandle | null>(null);
@@ -142,10 +222,29 @@ export function CardsScreen(): ReactElement {
     userId: null,
     installationId: null,
   });
-  const requestSequenceRef = useRef<number>(0);
+  const cardsQueryControlRef = useRef<CardsQueryControl>({
+    queryIdentity: "",
+    requestSequence: 0,
+    acceptedRowCount: 0,
+    nextCursor: null,
+    activeRequest: null,
+    authoritativeWindow: createEmptyCardsQueryWindow(),
+    hasPendingPublication: false,
+  });
+  const activeEditorLifecyclesRef = useRef<Map<string, number>>(new Map());
+  const nextEditorLifecycleRef = useRef<number>(0);
+  const inlineSaveTailsRef = useRef<Map<string, Promise<void>>>(new Map());
+  const observedQueryIdentityRef = useRef<string | null>(null);
+  const observedLocalReadVersionRef = useRef<number>(localReadVersion);
   const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
 
   const normalizedSearchText = normalizeCardsSearchText(debouncedSearchText);
+  const cardsQueryIdentity = buildCardsQueryIdentity(
+    activeWorkspace?.workspaceId ?? null,
+    normalizedSearchText,
+    cardFilter,
+    sorts,
+  );
   const activeFilterDimensionCount = getCardFilterActiveDimensionCount(cardFilter);
   const hasActiveSearchOrFilter = normalizedSearchText !== null || cardFilter !== null;
   const draftFilterValue = draftCardFilter ?? createEmptyCardFilter();
@@ -176,20 +275,97 @@ export function CardsScreen(): ReactElement {
     return () => window.clearTimeout(timeoutId);
   }, [searchText]);
 
-  async function loadFirstPage(): Promise<void> {
-    if (activeWorkspace === null) {
-      setCardsQueryState(createInitialCardsQueryState());
+  function acceptCardsQueryWindow(
+    queryIdentity: string,
+    requestSequence: number,
+    queryWindow: CardsQueryWindow,
+  ): void {
+    const shouldDeferPublication = activeEditorLifecyclesRef.current.size > 0;
+    cardsQueryControlRef.current = {
+      queryIdentity,
+      requestSequence,
+      acceptedRowCount: queryWindow.items.length,
+      nextCursor: queryWindow.nextCursor,
+      activeRequest: null,
+      authoritativeWindow: queryWindow,
+      hasPendingPublication: shouldDeferPublication,
+    };
+
+    if (shouldDeferPublication) {
+      setCardsQueryState((currentState) => ({
+        ...currentState,
+        isLoading: false,
+        isLoadingMore: false,
+        errorMessage: "",
+      }));
       return;
     }
 
-    const requestSequence = requestSequenceRef.current + 1;
-    requestSequenceRef.current = requestSequence;
-    setCardsQueryState((currentState) => ({
-      ...currentState,
+    loadMoreSentinelIntersectionConsumedRef.current = false;
+    setCardsQueryState(createPublishedCardsQueryState(queryWindow));
+  }
+
+  const handleInlineEditorOpen = useCallback((editorToken: CardInlineEditorToken): number => {
+    const editorLifecycle = nextEditorLifecycleRef.current + 1;
+    nextEditorLifecycleRef.current = editorLifecycle;
+    activeEditorLifecyclesRef.current.set(
+      getCardInlineEditorTokenKey(editorToken),
+      editorLifecycle,
+    );
+    return editorLifecycle;
+  }, []);
+
+  const handleInlineEditorClose = useCallback((
+    editorToken: CardInlineEditorToken,
+    editorLifecycle: number,
+  ): void => {
+    const editorTokenKey = getCardInlineEditorTokenKey(editorToken);
+    if (activeEditorLifecyclesRef.current.get(editorTokenKey) !== editorLifecycle) {
+      return;
+    }
+
+    activeEditorLifecyclesRef.current.delete(editorTokenKey);
+    if (activeEditorLifecyclesRef.current.size > 0) {
+      return;
+    }
+
+    const currentControl = cardsQueryControlRef.current;
+    if (!currentControl.hasPendingPublication) {
+      return;
+    }
+
+    cardsQueryControlRef.current = {
+      ...currentControl,
+      hasPendingPublication: false,
+    };
+    loadMoreSentinelIntersectionConsumedRef.current = false;
+    setCardsQueryState(createPublishedCardsQueryState(currentControl.authoritativeWindow));
+  }, []);
+
+  async function resetCardsQuery(queryIdentity: string): Promise<void> {
+    const requestSequence = cardsQueryControlRef.current.requestSequence + 1;
+    activeEditorLifecyclesRef.current.clear();
+    loadMoreSentinelIntersectionConsumedRef.current = false;
+    cardsQueryControlRef.current = {
+      queryIdentity,
+      requestSequence,
+      acceptedRowCount: 0,
+      nextCursor: null,
+      activeRequest: activeWorkspace === null ? null : "reset",
+      authoritativeWindow: createEmptyCardsQueryWindow(),
+      hasPendingPublication: false,
+    };
+
+    if (activeWorkspace === null) {
+      setCardsQueryState(createInitialCardsQueryState());
+      setTagSuggestions([]);
+      return;
+    }
+
+    setCardsQueryState({
+      ...createInitialCardsQueryState(),
       isLoading: true,
-      isLoadingMore: false,
-      errorMessage: "",
-    }));
+    });
 
     try {
       const [nextPage, tagsSummary] = await Promise.all([
@@ -203,9 +379,15 @@ export function CardsScreen(): ReactElement {
         loadWorkspaceTagsSummary(activeWorkspace.workspaceId),
       ]);
 
-      if (requestSequenceRef.current !== requestSequence) {
+      if (!ownsCardsQueryRequest(cardsQueryControlRef.current, queryIdentity, requestSequence)) {
         return;
       }
+
+      acceptCardsQueryWindow(
+        queryIdentity,
+        requestSequence,
+        createCardsQueryWindow(nextPage),
+      );
 
       setTagSuggestions(tagsSummary.tags.map((tagSummary) => ({
         tag: tagSummary.tag,
@@ -219,19 +401,15 @@ export function CardsScreen(): ReactElement {
         rows: nextPage.cards.slice(0, 8).map((card) => buildCardsLoadingRowPreview(card)),
         savedAt: new Date().toISOString(),
       });
-      setCardsQueryState({
-        items: nextPage.cards,
-        totalCount: nextPage.totalCount,
-        nextCursor: nextPage.nextCursor,
-        hasLoaded: true,
-        isLoading: false,
-        isLoadingMore: false,
-        errorMessage: "",
-      });
     } catch (error) {
-      if (requestSequenceRef.current !== requestSequence) {
+      if (!ownsCardsQueryRequest(cardsQueryControlRef.current, queryIdentity, requestSequence)) {
         return;
       }
+
+      cardsQueryControlRef.current = {
+        ...cardsQueryControlRef.current,
+        activeRequest: null,
+      };
 
       const observationIdentity = observationIdentityRef.current;
       captureAppOperationError(error, {
@@ -253,19 +431,108 @@ export function CardsScreen(): ReactElement {
     }
   }
 
-  async function loadNextPage(): Promise<void> {
+  async function refreshCardsQuery(queryIdentity: string): Promise<void> {
     if (
       activeWorkspace === null
-      || cardsQueryState.nextCursor === null
-      || cardsQueryState.isLoading
-      || cardsQueryState.isLoadingMore
+      || cardsQueryControlRef.current.queryIdentity !== queryIdentity
     ) {
       return;
     }
 
-    const requestSequence = requestSequenceRef.current + 1;
-    requestSequenceRef.current = requestSequence;
-    const currentCursor = cardsQueryState.nextCursor;
+    const currentControl = cardsQueryControlRef.current;
+    const requestSequence = currentControl.requestSequence + 1;
+    const refreshLimit = Math.max(cardsPageSize, currentControl.acceptedRowCount);
+    cardsQueryControlRef.current = {
+      ...currentControl,
+      requestSequence,
+      activeRequest: "refresh",
+    };
+    setCardsQueryState((currentState) => ({
+      ...currentState,
+      isLoading: true,
+      isLoadingMore: false,
+      errorMessage: "",
+    }));
+
+    try {
+      const [nextPage, tagsSummary] = await Promise.all([
+        queryLocalCardsPage(activeWorkspace.workspaceId, {
+          searchText: normalizedSearchText,
+          cursor: null,
+          limit: refreshLimit,
+          sorts,
+          filter: cardFilter,
+        }),
+        loadWorkspaceTagsSummary(activeWorkspace.workspaceId),
+      ]);
+
+      if (!ownsCardsQueryRequest(cardsQueryControlRef.current, queryIdentity, requestSequence)) {
+        return;
+      }
+
+      acceptCardsQueryWindow(
+        queryIdentity,
+        requestSequence,
+        createCardsQueryWindow(nextPage),
+      );
+      setTagSuggestions(tagsSummary.tags.map((tagSummary) => ({
+        tag: tagSummary.tag,
+        countState: "ready",
+        cardsCount: tagSummary.cardsCount,
+      })));
+      writeCardsLoadingSnapshot({
+        version: 1,
+        workspaceId: activeWorkspace.workspaceId,
+        totalCount: nextPage.totalCount,
+        rows: nextPage.cards.slice(0, 8).map((card) => buildCardsLoadingRowPreview(card)),
+        savedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      if (!ownsCardsQueryRequest(cardsQueryControlRef.current, queryIdentity, requestSequence)) {
+        return;
+      }
+
+      cardsQueryControlRef.current = {
+        ...cardsQueryControlRef.current,
+        activeRequest: null,
+      };
+      const observationIdentity = observationIdentityRef.current;
+      captureAppOperationError(error, {
+        feature: "cards",
+        operation: "cards_list_load",
+        userId: observationIdentity.userId,
+        workspaceId: activeWorkspace.workspaceId,
+        installationId: observationIdentity.installationId,
+        entityId: null,
+      });
+      showCapturedTechnicalError(error);
+      setCardsQueryState((currentState) => ({
+        ...currentState,
+        isLoading: false,
+        isLoadingMore: false,
+        errorMessage: t("appError.technicalError.message"),
+      }));
+    }
+  }
+
+  async function loadNextPage(): Promise<void> {
+    const currentControl = cardsQueryControlRef.current;
+    if (
+      activeWorkspace === null
+      || currentControl.queryIdentity !== cardsQueryIdentity
+      || currentControl.nextCursor === null
+      || currentControl.activeRequest !== null
+    ) {
+      return;
+    }
+
+    const requestSequence = currentControl.requestSequence + 1;
+    const currentCursor = currentControl.nextCursor;
+    cardsQueryControlRef.current = {
+      ...currentControl,
+      requestSequence,
+      activeRequest: "loadMore",
+    };
     setCardsQueryState((currentState) => ({
       ...currentState,
       isLoadingMore: true,
@@ -281,15 +548,24 @@ export function CardsScreen(): ReactElement {
         filter: cardFilter,
       });
 
-      if (requestSequenceRef.current !== requestSequence) {
+      if (!ownsCardsQueryRequest(cardsQueryControlRef.current, cardsQueryIdentity, requestSequence)) {
         return;
       }
 
-      setCardsQueryState((currentState) => mergeCardsPage(currentState, nextPage));
+      acceptCardsQueryWindow(
+        cardsQueryIdentity,
+        requestSequence,
+        mergeCardsQueryWindow(currentControl.authoritativeWindow, nextPage),
+      );
     } catch (error) {
-      if (requestSequenceRef.current !== requestSequence) {
+      if (!ownsCardsQueryRequest(cardsQueryControlRef.current, cardsQueryIdentity, requestSequence)) {
         return;
       }
+
+      cardsQueryControlRef.current = {
+        ...cardsQueryControlRef.current,
+        activeRequest: null,
+      };
 
       const observationIdentity = observationIdentityRef.current;
       captureAppOperationError(error, {
@@ -310,8 +586,18 @@ export function CardsScreen(): ReactElement {
   }
 
   useEffect(() => {
-    void loadFirstPage();
-  }, [activeWorkspace, cardFilter, localReadVersion, normalizedSearchText, sorts]);
+    if (observedQueryIdentityRef.current !== cardsQueryIdentity) {
+      observedQueryIdentityRef.current = cardsQueryIdentity;
+      observedLocalReadVersionRef.current = localReadVersion;
+      void resetCardsQuery(cardsQueryIdentity);
+      return;
+    }
+
+    if (observedLocalReadVersionRef.current !== localReadVersion) {
+      observedLocalReadVersionRef.current = localReadVersion;
+      void refreshCardsQuery(cardsQueryIdentity);
+    }
+  }, [cardsQueryIdentity, localReadVersion]);
 
   useEffect(() => {
     if (!isFilterPopoverOpen) {
@@ -347,9 +633,24 @@ export function CardsScreen(): ReactElement {
 
     const observer = new IntersectionObserver((entries) => {
       const firstEntry = entries[0];
-      if (firstEntry?.isIntersecting) {
-        void loadNextPage();
+      if (!firstEntry?.isIntersecting) {
+        loadMoreSentinelIntersectionConsumedRef.current = false;
+        return;
       }
+
+      const currentControl = cardsQueryControlRef.current;
+      if (
+        loadMoreSentinelIntersectionConsumedRef.current
+        || activeWorkspace === null
+        || currentControl.queryIdentity !== cardsQueryIdentity
+        || currentControl.nextCursor === null
+        || currentControl.activeRequest !== null
+      ) {
+        return;
+      }
+
+      loadMoreSentinelIntersectionConsumedRef.current = true;
+      void loadNextPage();
     }, {
       root: scrollContainer,
       rootMargin: "160px 0px",
@@ -359,18 +660,19 @@ export function CardsScreen(): ReactElement {
     return () => observer.disconnect();
   }, [cardsQueryState.nextCursor, loadNextPage]);
 
-  async function handleInlineSave(card: Card, patch: UpdateCardInput): Promise<void> {
-    setSavingCardId(card.cardId);
+  function handleInlineSave(card: Card, patch: UpdateCardInput): Promise<void> {
+    setSavingCardIds((currentCardIds) => new Set([...currentCardIds, card.cardId]));
     setErrorMessage("");
 
-    try {
+    const previousTail = inlineSaveTailsRef.current.get(card.cardId) ?? Promise.resolve();
+    const savePromise = previousTail.then(async () => {
       try {
         await updateCardItem(card.cardId, patch);
       } catch (error) {
         const expectedErrorMessage = getExpectedCardMutationInlineErrorMessage(error, t("cardForm.errors.cardNotFound"));
         if (expectedErrorMessage !== null) {
           setErrorMessage(expectedErrorMessage);
-          return;
+          throw error;
         }
 
         const observationIdentity = observationIdentityRef.current;
@@ -384,18 +686,36 @@ export function CardsScreen(): ReactElement {
         });
         showCapturedTechnicalError(error);
         setErrorMessage(t("appError.technicalError.message"));
-        return;
+        throw error;
       }
 
       try {
-        await loadFirstPage();
+        await refreshCardsQuery(cardsQueryIdentity);
       } catch (error) {
         showCapturedTechnicalError(error);
         setErrorMessage(t("appError.technicalError.message"));
       }
-    } finally {
-      setSavingCardId("");
-    }
+    });
+    const nextTail = savePromise.then(
+      () => undefined,
+      () => undefined,
+    );
+    inlineSaveTailsRef.current.set(card.cardId, nextTail);
+
+    void nextTail.then(() => {
+      if (inlineSaveTailsRef.current.get(card.cardId) !== nextTail) {
+        return;
+      }
+
+      inlineSaveTailsRef.current.delete(card.cardId);
+      setSavingCardIds((currentCardIds) => {
+        const nextCardIds = new Set(currentCardIds);
+        nextCardIds.delete(card.cardId);
+        return nextCardIds;
+      });
+    });
+
+    return savePromise;
   }
 
   function handleSortChange(sortKey: CardQuerySortKey): void {
@@ -472,7 +792,7 @@ export function CardsScreen(): ReactElement {
       <section className="panel cards-panel">
         {cardsQueryState.errorMessage !== "" ? <p className="error-banner">{cardsQueryState.errorMessage}</p> : null}
         {cardsQueryState.errorMessage !== "" && cardsQueryState.hasLoaded === false ? (
-          <button className="primary-btn cards-loading-retry-btn" type="button" onClick={() => void loadFirstPage()}>
+          <button className="primary-btn cards-loading-retry-btn" type="button" onClick={() => void resetCardsQuery(cardsQueryIdentity)}>
             {t("common.retry")}
           </button>
         ) : null}
@@ -609,7 +929,7 @@ export function CardsScreen(): ReactElement {
                   ))
                 )
               ) : cardsQueryState.items.map((card) => {
-                const isSaving = savingCardId === card.cardId;
+                const isSaving = savingCardIds.has(card.cardId);
                 return (
                   <tr
                     key={card.cardId}
@@ -622,27 +942,36 @@ export function CardsScreen(): ReactElement {
                       <Link className="row-open-link" to={`/cards/${card.cardId}`}>{t("cardsScreen.table.open")}</Link>
                     </td>
                     <EditableCardTextCell
+                      editorToken={{ cardId: card.cardId, field: "frontText" }}
                       value={card.frontText}
                       displayValue={card.frontText}
                       cellClassName="cards-col-front"
                       multiline={true}
                       saving={isSaving}
                       onCommit={(nextValue) => handleInlineSave(card, { frontText: nextValue })}
+                      onEditorOpen={handleInlineEditorOpen}
+                      onEditorClose={handleInlineEditorClose}
                     />
                     <EditableCardTextCell
+                      editorToken={{ cardId: card.cardId, field: "backText" }}
                       value={card.backText}
                       displayValue={card.backText}
                       cellClassName="cards-col-back"
                       multiline={true}
                       saving={isSaving}
                       onCommit={(nextValue) => handleInlineSave(card, { backText: nextValue })}
+                      onEditorOpen={handleInlineEditorOpen}
+                      onEditorClose={handleInlineEditorClose}
                     />
                     <EditableCardTagsCell
+                      editorToken={{ cardId: card.cardId, field: "tags" }}
                       value={card.tags}
                       suggestions={tagSuggestions}
                       cellClassName="cards-col-tags cards-tag-cell"
                       saving={isSaving}
                       onCommit={(nextValue) => handleInlineSave(card, { tags: nextValue })}
+                      onEditorOpen={handleInlineEditorOpen}
+                      onEditorClose={handleInlineEditorClose}
                     />
                     <td className="txn-cell txn-cell-mono cards-col-due">{formatNullableDateTime(card.dueAt, formatDateTime, t)}</td>
                     <td className="txn-cell txn-cell-mono cards-col-reps">{card.reps}</td>
