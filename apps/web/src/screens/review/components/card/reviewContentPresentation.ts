@@ -1,3 +1,5 @@
+import { hasEligibleReviewMath } from "./reviewMathBlocks";
+
 /**
  * Keep review content presentation heuristics aligned with:
  * - apps/ios/Flashcards/Flashcards/Review/View/ReviewContentPresentation.swift
@@ -11,6 +13,8 @@ const markdownUnorderedListPattern = /^\s{0,3}[-*+]\s+\S/m;
 const markdownOrderedListPattern = /^\s{0,3}\d+\.\s+\S/m;
 const markdownFencedCodePattern = /^\s{0,3}(?:```|~~~)/m;
 const markdownLinkOrMediaPattern = /!?\[[^\]]*]\([^)]+\)/;
+const markdownReferenceLinkOrMediaPattern = /!?\[[^\]]+]\[[^\]]*]/;
+const markdownReferenceDefinitionPattern = /^\s{0,3}\[[^\]]+]:\s+\S/m;
 const markdownThematicBreakPattern = /^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$/m;
 const markdownTableSeparatorPattern = /^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$/m;
 const newlinePattern = /[\r\n]/;
@@ -25,6 +29,8 @@ function hasStrongMarkdownCue(text: string): boolean {
     || markdownOrderedListPattern.test(text)
     || markdownFencedCodePattern.test(text)
     || markdownLinkOrMediaPattern.test(text)
+    || markdownReferenceLinkOrMediaPattern.test(text)
+    || markdownReferenceDefinitionPattern.test(text)
     || markdownThematicBreakPattern.test(text)
     || markdownTableSeparatorPattern.test(text);
 }
@@ -37,6 +43,10 @@ export function classifyReviewContentPresentation(text: string): ReviewContentPr
   }
 
   if (hasStrongMarkdownCue(trimmedText)) {
+    return "markdown";
+  }
+
+  if (text.includes("$") && hasEligibleReviewMath(text)) {
     return "markdown";
   }
 

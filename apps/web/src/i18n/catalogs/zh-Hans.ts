@@ -854,6 +854,7 @@ export const zhHansCatalog = {
       queue: "当前没有可复习的卡片。",
     },
     errors: {
+      mathRenderFailed: "无法呈现公式。",
       schedulerUnavailable: "工作区调度器设置尚未加载",
     },
     leaderboardShortcut: {

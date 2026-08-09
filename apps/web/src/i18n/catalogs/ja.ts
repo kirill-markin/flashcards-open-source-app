@@ -854,6 +854,7 @@ export const jaCatalog = {
       queue: "現在、復習するカードはありません。",
     },
     errors: {
+      mathRenderFailed: "数式を表示できませんでした。",
       schedulerUnavailable: "ワークスペースのスケジューラー設定が読み込まれていません",
     },
     leaderboardShortcut: {
