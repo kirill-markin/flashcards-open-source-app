@@ -129,7 +129,7 @@
 "common.unavailable" = "利用できません";
 
 "settings.title" = "設定";
-"settings.inviteFriend.button" = "友達を招待";
+"settings.inviteFriend.button" = "友達を追加";
 "settings.section.share" = "共有";
 "settings.row.shareApp" = "Flashcardsを共有";
 "settings.section.feedback" = "フィードバック";

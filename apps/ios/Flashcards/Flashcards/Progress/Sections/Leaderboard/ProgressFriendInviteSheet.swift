@@ -169,7 +169,7 @@ struct ProgressFriendInviteSheet: View {
             .navigationTitle(
                 String(
                     localized: "progress.friend_invite.title",
-                    defaultValue: "Invite Friend",
+                    defaultValue: "Add Friend",
                     table: progressStringsTableName,
                     comment: "Navigation title for the friend invite creation sheet"
                 )

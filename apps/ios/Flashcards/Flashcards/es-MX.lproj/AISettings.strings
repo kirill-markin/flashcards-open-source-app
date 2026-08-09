@@ -129,7 +129,7 @@
 "common.unavailable" = "No disponible";
 
 "settings.title" = "Ajustes";
-"settings.inviteFriend.button" = "Invitar amigo";
+"settings.inviteFriend.button" = "Agregar amigo";
 "settings.section.share" = "Compartir";
 "settings.row.shareApp" = "Compartir Flashcards";
 "settings.section.feedback" = "Comentarios";

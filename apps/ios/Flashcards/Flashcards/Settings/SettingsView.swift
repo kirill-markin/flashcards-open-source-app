@@ -50,20 +50,6 @@ struct SettingsView: View {
 
     var body: some View {
         List {
-            Section(aiSettingsLocalized("settings.section.share", "Share")) {
-                self.friendInviteButton
-
-                ShareLink(item: flashcardsAppShareUrl) {
-                    SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.shareApp", "Share Flashcards"),
-                        value: nil,
-                        systemImage: "square.and.arrow.up",
-                        attentionCount: nil
-                    )
-                }
-                .accessibilityIdentifier(UITestIdentifier.settingsShareAppRow)
-            }
-
             Section(aiSettingsLocalized("settings.section.feedback", "Feedback")) {
                 Link(destination: flashcardsAppStoreUrl) {
                     SettingsNavigationRow(
@@ -84,6 +70,20 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsPrivateFeedbackRow)
+            }
+
+            Section(aiSettingsLocalized("settings.section.share", "Share")) {
+                self.friendInviteButton
+
+                ShareLink(item: flashcardsAppShareUrl) {
+                    SettingsNavigationRow(
+                        title: aiSettingsLocalized("settings.row.shareApp", "Share Flashcards"),
+                        value: nil,
+                        systemImage: "square.and.arrow.up",
+                        attentionCount: nil
+                    )
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsShareAppRow)
             }
 
             Section(aiSettingsLocalized("settings.section.account", "Account")) {
@@ -359,14 +359,14 @@ struct SettingsView: View {
             self.openFriendInviteFlow()
         } label: {
             SettingsNavigationRow(
-                title: aiSettingsLocalized("settings.inviteFriend.button", "Invite Friend"),
+                title: aiSettingsLocalized("settings.inviteFriend.button", "Add Friend"),
                 value: nil,
                 systemImage: "person.crop.circle.badge.plus",
                 attentionCount: nil
             )
         }
         .accessibilityIdentifier(UITestIdentifier.settingsInviteFriendButton)
-        .accessibilityLabel(aiSettingsLocalized("settings.inviteFriend.button", "Invite Friend"))
+        .accessibilityLabel(aiSettingsLocalized("settings.inviteFriend.button", "Add Friend"))
     }
 
     private func openFriendInviteFlow() {
