@@ -61,6 +61,12 @@ fun ReviewRenderedContentView(
                                 onLoadManagedMediaFile = onLoadManagedMediaFile,
                                 onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl
                             )
+
+                            is ReviewManagedMarkdownBlock.Formula -> ReviewMathFormulaBlock(
+                                source = block.source,
+                                delimitedSource = block.delimitedSource,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }

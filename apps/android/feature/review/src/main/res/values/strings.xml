@@ -72,6 +72,7 @@
     <string name="review_media_status_content_description">%1$s. %2$s</string>
     <string name="review_media_unavailable">Media unavailable</string>
     <string name="review_media_video_label">Video attachment</string>
+    <string name="review_math_render_failed">Formula couldn\'t be rendered.</string>
     <string name="review_no_back_text">No back text</string>
     <string name="review_reps_label">Reps %1$d</string>
     <string name="review_lapses_label">Lapses %1$d</string>

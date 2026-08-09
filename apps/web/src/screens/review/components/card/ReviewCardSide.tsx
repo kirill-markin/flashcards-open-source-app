@@ -5,6 +5,7 @@ import {
 } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import {
   ManagedMediaReference,
   parseManagedMediaUrlReference,
@@ -15,9 +16,12 @@ import {
   type ManagedMediaReferenceState,
 } from "../../../../media/managedMediaMarkdown";
 import { classifyReviewContentPresentation } from "./reviewContentPresentation";
+import reviewMathBlocks, { normalizeReviewPlainTextEscapedDollars } from "./reviewMathBlocks";
+import { ReviewMathBlock } from "./ReviewMathBlock";
 
 const REVIEW_MARKDOWN_FENCE_PATTERN = /^\s{0,3}(`{3,}|~{3,})/;
 const REVIEW_MARKDOWN_SYMBOL_ONLY_LIST_ITEM_PATTERN = /^(\s{0,3}[-*+]\s+)([+*\-#>])(\s*)$/;
+const REVIEW_MARKDOWN_DISPLAY_MATH_DELIMITER_PATTERN = /^[ \t]*\$\$[ \t]*$/;
 
 type MarkdownFenceMarker = "`" | "~";
 type ReviewMarkdownRenderContextValue = Readonly<{
@@ -108,6 +112,7 @@ export function normalizeReviewMarkdownForWeb(text: string): string {
   const lines = text.split("\n");
   const normalizedLines: Array<string> = [];
   let activeFenceMarker: MarkdownFenceMarker | null = null;
+  let isInsideDisplayMath = false;
 
   for (const line of lines) {
     const lineFenceMarker = toMarkdownFenceMarker(line);
@@ -119,6 +124,17 @@ export function normalizeReviewMarkdownForWeb(text: string): string {
         activeFenceMarker = null;
       }
 
+      continue;
+    }
+
+    if (REVIEW_MARKDOWN_DISPLAY_MATH_DELIMITER_PATTERN.test(line)) {
+      isInsideDisplayMath = !isInsideDisplayMath;
+      normalizedLines.push(line);
+      continue;
+    }
+
+    if (isInsideDisplayMath) {
+      normalizedLines.push(line);
       continue;
     }
 
@@ -135,6 +151,18 @@ export function normalizeReviewMarkdownForWeb(text: string): string {
 }
 
 const reviewMarkdownComponents: Components = {
+  div: function ReviewMarkdownDiv({ children, node }) {
+    const formulaSource = node?.properties["data-formula-source"];
+    const delimitedSource = node?.properties["data-delimited-source"];
+    if (typeof formulaSource === "string" && typeof delimitedSource === "string") {
+      return <ReviewMathBlock formulaSource={formulaSource} delimitedSource={delimitedSource} />;
+    }
+    if (formulaSource !== undefined || delimitedSource !== undefined) {
+      throw new Error("Review formula block was missing its source properties");
+    }
+
+    return <div>{children}</div>;
+  },
   a: function ReviewMarkdownAnchor({ children, href, title }) {
     const { localReadVersion, workspaceId } = useReviewMarkdownRenderContext();
     const mediaReference = parseManagedMediaUrlReference(href);
@@ -269,7 +297,9 @@ function ReviewCardMarkdown(props: Readonly<{
       <ReactMarkdown
         urlTransform={reviewMarkdownUrlTransform}
         components={reviewMarkdownComponents}
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={normalizedText.includes("$")
+          ? [remarkGfm, remarkMath, reviewMathBlocks]
+          : [remarkGfm]}
       >
         {normalizedText}
       </ReactMarkdown>
@@ -376,7 +406,7 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
           >
             {presentationMode === "markdown" ? (
               <ReviewCardMarkdown localReadVersion={localReadVersion} text={text} workspaceId={workspaceId} />
-            ) : text}
+            ) : normalizeReviewPlainTextEscapedDollars(text)}
           </div>
         </div>
 

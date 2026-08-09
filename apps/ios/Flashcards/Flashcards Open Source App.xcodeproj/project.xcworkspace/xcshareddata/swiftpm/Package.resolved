@@ -1,5 +1,5 @@
 {
-  "originHash" : "c0676fb5ae1d6cfdbed9fcd27bd932bb893f8eae26dd45898029abcbdded7265",
+  "originHash" : "9337160084b5abfa3c4116fcd1d29d8c8703df02ae336e6028b1ad146889f1f3",
   "pins" : [
     {
       "identity" : "lottie-spm",
@@ -17,6 +17,15 @@
       "state" : {
         "revision" : "2849f5323265386e200484b0d0f896e73c3411b9",
         "version" : "6.0.1"
+      }
+    },
+    {
+      "identity" : "ratex",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/erweixin/RaTeX",
+      "state" : {
+        "revision" : "ae391d727ac615437c63c308f4538d971a84bede",
+        "version" : "0.1.14"
       }
     },
     {

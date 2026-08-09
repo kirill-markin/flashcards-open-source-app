@@ -854,6 +854,7 @@ const esMxCatalog: TranslationCatalog = {
       queue: "No hay tarjetas para repasar en este momento.",
     },
     errors: {
+      mathRenderFailed: "No se pudo mostrar la fórmula.",
       schedulerUnavailable: "La configuración del programador del espacio de trabajo no está cargada",
     },
     leaderboardShortcut: {

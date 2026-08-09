@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		A1000000000000000000003B /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = A1000000000000000000003D /* Sentry */; };
 		A1000000000000000000003E /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = A1000000000000000000003F /* Lottie */; };
+		A10000000000000000000041 /* RaTeX in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000043 /* RaTeX */; };
 		ED45BBBE2F61DADF00E259C4 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = A1000000000000000000002C /* MarkdownUI */; };
 /* End PBXBuildFile section */
 
@@ -63,6 +64,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1000000000000000000003E /* Lottie in Frameworks */,
+				A10000000000000000000041 /* RaTeX in Frameworks */,
 				A1000000000000000000003B /* Sentry in Frameworks */,
 				ED45BBBE2F61DADF00E259C4 /* MarkdownUI in Frameworks */,
 			);
@@ -140,6 +142,7 @@
 				A1000000000000000000002C /* MarkdownUI */,
 				A1000000000000000000003D /* Sentry */,
 				A1000000000000000000003F /* Lottie */,
+				A10000000000000000000043 /* RaTeX */,
 			);
 			productName = "Flashcards Open Source App";
 			productReference = A10000000000000000000005 /* Flashcards Open Source App.app */;
@@ -231,6 +234,7 @@
 				A1000000000000000000002B /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
 				A1000000000000000000003C /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 				A10000000000000000000040 /* XCRemoteSwiftPackageReference "lottie-spm" */,
+				A10000000000000000000042 /* XCRemoteSwiftPackageReference "RaTeX" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A10000000000000000000003 /* Products */;
@@ -577,6 +581,14 @@
 				minimumVersion = 4.6.1;
 			};
 		};
+		A10000000000000000000042 /* XCRemoteSwiftPackageReference "RaTeX" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/erweixin/RaTeX";
+			requirement = {
+				kind = exactVersion;
+				version = 0.1.14;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -594,6 +606,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A10000000000000000000040 /* XCRemoteSwiftPackageReference "lottie-spm" */;
 			productName = Lottie;
+		};
+		A10000000000000000000043 /* RaTeX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A10000000000000000000042 /* XCRemoteSwiftPackageReference "RaTeX" */;
+			productName = RaTeX;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

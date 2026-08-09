@@ -854,6 +854,7 @@ const deCatalog: TranslationCatalog = {
       queue: "Zurzeit gibt es keine Karten zum Wiederholen.",
     },
     errors: {
+      mathRenderFailed: "Die Formel konnte nicht dargestellt werden.",
       schedulerUnavailable: "Die Planer-Einstellungen des Arbeitsbereichs sind nicht geladen",
     },
     leaderboardShortcut: {

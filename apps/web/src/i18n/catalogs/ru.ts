@@ -854,6 +854,7 @@ export const ruCatalog = {
       queue: "Сейчас нет карточек для повторения.",
     },
     errors: {
+      mathRenderFailed: "Не удалось отобразить формулу.",
       schedulerUnavailable: "Настройки планировщика рабочего пространства не загружены",
     },
     leaderboardShortcut: {

@@ -34,7 +34,20 @@ struct ReviewManagedMarkdownContent {
 
 enum ReviewManagedMarkdownBlock {
     case markdown(MarkdownContent)
+    case formula(ReviewFormulaContent)
     case managedMedia(ReviewManagedMediaReference)
+}
+
+struct ReviewFormulaContent {
+    let originalSource: String
+    let latex: String
+    let continuesParagraph: Bool
+
+    init(originalSource: String, latex: String, continuesParagraph: Bool) {
+        self.originalSource = originalSource
+        self.latex = latex
+        self.continuesParagraph = continuesParagraph
+    }
 }
 
 struct ReviewManagedMediaReference: Hashable {
@@ -68,7 +81,6 @@ private let reviewContentMarkdownExpressions: [NSRegularExpression] = [
     makeReviewContentRegularExpression(pattern: #"^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$"#),
     makeReviewContentRegularExpression(pattern: #"^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$"#)
 ]
-private let reviewContentFenceExpression = makeReviewContentRegularExpression(pattern: #"^\s{0,3}(`{3,}|~{3,})"#)
 private let reviewContentHeadingExpression = makeReviewContentRegularExpression(pattern: #"^\s{0,3}#{1,6}\s+"#)
 private let reviewContentBlockquoteExpression = makeReviewContentRegularExpression(pattern: #"^\s{0,3}>\s?"#)
 private let reviewContentUnorderedListExpression = makeReviewContentRegularExpression(pattern: #"^\s{0,3}[-*+]\s+"#)
@@ -88,6 +100,13 @@ func classifyReviewContentPresentation(text: String) -> ReviewContentPresentatio
 
     if hasStrongMarkdownCue(text: trimmedText) {
         return .markdown
+    }
+
+    switch extractReviewMathBlocks(text: text) {
+    case .literalMarkdown, .segmented:
+        return .markdown
+    case .none:
+        break
     }
 
     if trimmedText.isEmpty {
@@ -115,15 +134,27 @@ func makeReviewMarkdownContent(text: String) -> MarkdownContent {
 }
 
 func makeReviewRenderedContent(text: String) -> ReviewRenderedContent {
+    switch extractReviewMathBlocks(text: text) {
+    case .segmented(let mathBlocks):
+        return .managedMarkdown(makeReviewSegmentedMarkdownContent(mathBlocks: mathBlocks))
+    case .literalMarkdown:
+        if let managedMarkdownContent = makeReviewManagedMarkdownContent(text: text) {
+            return .managedMarkdown(managedMarkdownContent)
+        }
+        return .markdown(makeReviewMarkdownContent(text: text))
+    case .none:
+        break
+    }
+
     if let managedMarkdownContent = makeReviewManagedMarkdownContent(text: text) {
         return .managedMarkdown(managedMarkdownContent)
     }
 
     switch classifyReviewContentPresentation(text: text) {
     case .shortPlain:
-        return .shortPlain(text)
+        return .shortPlain(normalizeReviewPlainTextEscapedDollars(text: text))
     case .paragraphPlain:
-        return .paragraphPlain(text)
+        return .paragraphPlain(normalizeReviewPlainTextEscapedDollars(text: text))
     case .markdown:
         return .markdown(makeReviewMarkdownContent(text: text))
     }
@@ -139,30 +170,74 @@ func makeReviewSpeakableText(text: String) -> String {
         return ""
     }
 
+    switch extractReviewMathBlocks(text: text) {
+    case .segmented(let mathBlocks):
+        var preservesNextOpeningBlockPrefix = false
+        var speakableSegments: [String] = []
+        for block in mathBlocks {
+            switch block {
+            case .markdown(let source):
+                let segment = makeReviewSpeakableTextWithoutMath(
+                    text: source,
+                    preservesOpeningBlockPrefix: preservesNextOpeningBlockPrefix
+                )
+                if segment.isEmpty == false {
+                    speakableSegments.append(segment)
+                }
+                preservesNextOpeningBlockPrefix = false
+            case .formula(let formula):
+                if formula.latex.isEmpty == false {
+                    speakableSegments.append(formula.latex)
+                }
+                preservesNextOpeningBlockPrefix = formula.continuesParagraph
+            }
+        }
+        return speakableSegments.joined(separator: "\n")
+    case .literalMarkdown:
+        return makeReviewSpeakableTextWithoutMath(
+            text: text,
+            preservesOpeningBlockPrefix: false
+        )
+    case .none:
+        if classifyReviewContentPresentation(text: text) != .markdown {
+            let plainText = normalizeReviewPlainTextEscapedDollars(text: text)
+            return normalizeReviewSpeakableLines(lines: plainText.components(separatedBy: .newlines))
+        }
+        return makeReviewSpeakableTextWithoutMath(
+            text: text,
+            preservesOpeningBlockPrefix: false
+        )
+    }
+}
+
+private func makeReviewSpeakableTextWithoutMath(
+    text: String,
+    preservesOpeningBlockPrefix: Bool
+) -> String {
     if classifyReviewContentPresentation(text: text) != .markdown {
         return normalizeReviewSpeakableLines(lines: text.components(separatedBy: .newlines))
     }
 
-    var activeFenceMarker: String? = nil
+    var activeFence: ReviewMathFence? = nil
     var speakableLines: [String] = []
 
-    for line in text.components(separatedBy: .newlines) {
-        let fenceMarker = reviewFenceMarker(line: line)
-
-        if let currentFenceMarker = activeFenceMarker {
-            if fenceMarker == currentFenceMarker {
-                activeFenceMarker = nil
+    for (lineIndex, line) in text.components(separatedBy: .newlines).enumerated() {
+        if let openingFence = activeFence {
+            if reviewMathFenceCloses(line: line, openingFence: openingFence) {
+                activeFence = nil
             }
 
             continue
         }
 
-        if let fenceMarker {
-            activeFenceMarker = fenceMarker
+        if let openingFence = reviewMathFence(line: line) {
+            activeFence = openingFence
             continue
         }
 
-        let normalizedLine = normalizeReviewSpeakableMarkdownLine(line: line)
+        let normalizedLine = preservesOpeningBlockPrefix && lineIndex == 0
+            ? normalizeReviewSpeakableInlineText(text: line)
+            : normalizeReviewSpeakableMarkdownLine(line: line)
         if normalizedLine.isEmpty == false {
             speakableLines.append(normalizedLine)
         }
@@ -171,21 +246,38 @@ func makeReviewSpeakableText(text: String) -> String {
     return normalizeReviewSpeakableLines(lines: speakableLines)
 }
 
+private func makeReviewSegmentedMarkdownContent(
+    mathBlocks: [ReviewMathBlock]
+) -> ReviewManagedMarkdownContent {
+    var blocks: [ReviewManagedMarkdownBlock] = []
+    var normalizesNextMarkdownFragment = false
+
+    for mathBlock in mathBlocks {
+        switch mathBlock {
+        case .markdown(let text):
+            let renderedText = normalizesNextMarkdownFragment
+                ? normalizeReviewInlineMathParagraphContinuation(markdown: text)
+                : text
+            if let managedMarkdownContent = makeReviewManagedMarkdownContent(text: renderedText) {
+                blocks.append(contentsOf: managedMarkdownContent.blocks)
+            } else {
+                appendReviewMarkdownBlock(text: renderedText, blocks: &blocks)
+            }
+            normalizesNextMarkdownFragment = false
+        case .formula(let formula):
+            blocks.append(.formula(formula))
+            normalizesNextMarkdownFragment = formula.continuesParagraph
+        }
+    }
+
+    return ReviewManagedMarkdownContent(blocks: blocks)
+}
+
 private func hasStrongMarkdownCue(text: String) -> Bool {
     let fullRange = NSRange(text.startIndex..<text.endIndex, in: text)
     return reviewContentMarkdownExpressions.contains { expression in
         expression.firstMatch(in: text, options: [], range: fullRange) != nil
     }
-}
-
-private func reviewFenceMarker(line: String) -> String? {
-    let range = NSRange(line.startIndex..<line.endIndex, in: line)
-    guard let match = reviewContentFenceExpression.firstMatch(in: line, options: [], range: range),
-          let markerRange = Range(match.range(at: 1), in: line) else {
-        return nil
-    }
-
-    return String(line[markerRange])
 }
 
 private func normalizeReviewSpeakableMarkdownLine(line: String) -> String {
@@ -223,24 +315,22 @@ private func normalizeReviewSpeakableInlineText(text: String) -> String {
 }
 
 private func makeReviewManagedMarkdownContent(text: String) -> ReviewManagedMarkdownContent? {
-    var activeFenceMarker: String? = nil
+    var activeFence: ReviewMathFence? = nil
     var pendingMarkdownLines: [String] = []
     var blocks: [ReviewManagedMarkdownBlock] = []
     var didFindManagedMedia = false
 
     for line in text.components(separatedBy: .newlines) {
-        let fenceMarker = reviewFenceMarker(line: line)
-
-        if let currentFenceMarker = activeFenceMarker {
+        if let openingFence = activeFence {
             pendingMarkdownLines.append(line)
-            if fenceMarker == currentFenceMarker {
-                activeFenceMarker = nil
+            if reviewMathFenceCloses(line: line, openingFence: openingFence) {
+                activeFence = nil
             }
             continue
         }
 
-        if let fenceMarker {
-            activeFenceMarker = fenceMarker
+        if let openingFence = reviewMathFence(line: line) {
+            activeFence = openingFence
             pendingMarkdownLines.append(line)
             continue
         }
@@ -367,7 +457,7 @@ private func reviewSpeakableTextReplacingManagedMediaReferences(text: String) ->
     return output
 }
 
-private func makeReviewContentRegularExpression(pattern: String) -> NSRegularExpression {
+func makeReviewContentRegularExpression(pattern: String) -> NSRegularExpression {
     do {
         return try NSRegularExpression(
             pattern: pattern,
@@ -378,7 +468,7 @@ private func makeReviewContentRegularExpression(pattern: String) -> NSRegularExp
     }
 }
 
-private extension NSRegularExpression {
+extension NSRegularExpression {
     func matches(_ text: String) -> Bool {
         let range = NSRange(text.startIndex..<text.endIndex, in: text)
         return self.firstMatch(in: text, options: [], range: range) != nil
