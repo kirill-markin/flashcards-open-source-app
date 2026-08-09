@@ -160,7 +160,18 @@ final class DatabaseCore {
     }
 
     func inTransaction<T>(_ body: () throws -> T) throws -> T {
-        let beginResult = sqlite3_exec(connection, "BEGIN IMMEDIATE TRANSACTION", nil, nil, nil)
+        try self.runTransaction(beginStatement: "BEGIN IMMEDIATE TRANSACTION", body)
+    }
+
+    func inReadTransaction<T>(_ body: () throws -> T) throws -> T {
+        try self.runTransaction(beginStatement: "BEGIN DEFERRED TRANSACTION", body)
+    }
+
+    private func runTransaction<T>(
+        beginStatement: String,
+        _ body: () throws -> T
+    ) throws -> T {
+        let beginResult = sqlite3_exec(connection, beginStatement, nil, nil, nil)
         guard beginResult == SQLITE_OK else {
             throw LocalStoreError.database("Failed to begin transaction: \(self.lastErrorMessage())")
         }

@@ -6,17 +6,29 @@ protocol ReviewSubmissionExecuting: Sendable {
     func submitReview(workspaceId: String, submission: ReviewSubmission) async throws -> Card
 }
 
+struct ReviewSubmissionMutationState: Sendable {
+    let revision: Int
+    let activeSubmissionCount: Int
+}
+
+enum ReviewSubmissionProtectedPublication<Result> {
+    case published(Result)
+    case stale(ReviewSubmissionMutationState)
+}
+
 final class ReviewSubmissionOutboxMutationGate: @unchecked Sendable {
     private let lock: NSLock
     private var isBlockedForGuestUpgrade: Bool
     private var activeReviewSubmissionCount: Int
     private var activeReviewSubmissionWaiters: [CheckedContinuation<Void, Never>]
+    private var reviewSubmissionMutationRevision: Int
 
     init() {
         self.lock = NSLock()
         self.isBlockedForGuestUpgrade = false
         self.activeReviewSubmissionCount = 0
         self.activeReviewSubmissionWaiters = []
+        self.reviewSubmissionMutationRevision = 0
     }
 
     func beginReviewSubmission() throws {
@@ -30,6 +42,7 @@ final class ReviewSubmissionOutboxMutationGate: @unchecked Sendable {
         }
 
         self.activeReviewSubmissionCount += 1
+        self.reviewSubmissionMutationRevision += 1
     }
 
     func finishReviewSubmission() {
@@ -42,6 +55,7 @@ final class ReviewSubmissionOutboxMutationGate: @unchecked Sendable {
         }
 
         self.activeReviewSubmissionCount -= 1
+        self.reviewSubmissionMutationRevision += 1
         if self.activeReviewSubmissionCount == 0 {
             waiters = self.activeReviewSubmissionWaiters
             self.activeReviewSubmissionWaiters = []
@@ -74,6 +88,32 @@ final class ReviewSubmissionOutboxMutationGate: @unchecked Sendable {
         self.lock.unlock()
     }
 
+    func currentReviewSubmissionMutationState() -> ReviewSubmissionMutationState {
+        self.lock.lock()
+        defer {
+            self.lock.unlock()
+        }
+        return self.reviewSubmissionMutationState()
+    }
+
+    @MainActor
+    func publishIfReviewSubmissionMutationIsStable<Result>(
+        expectedRevision: Int,
+        publication: () -> Result
+    ) -> ReviewSubmissionProtectedPublication<Result> {
+        self.lock.lock()
+        defer {
+            self.lock.unlock()
+        }
+
+        let mutationState = self.reviewSubmissionMutationState()
+        guard mutationState.revision == expectedRevision,
+            mutationState.activeSubmissionCount == 0 else {
+            return .stale(mutationState)
+        }
+        return .published(publication())
+    }
+
     private func blockNewReviewSubmissions() -> Bool {
         self.lock.lock()
         self.isBlockedForGuestUpgrade = true
@@ -96,6 +136,13 @@ final class ReviewSubmissionOutboxMutationGate: @unchecked Sendable {
 
         self.activeReviewSubmissionWaiters.append(continuation)
         return false
+    }
+
+    private func reviewSubmissionMutationState() -> ReviewSubmissionMutationState {
+        ReviewSubmissionMutationState(
+            revision: self.reviewSubmissionMutationRevision,
+            activeSubmissionCount: self.activeReviewSubmissionCount
+        )
     }
 }
 

@@ -7,6 +7,13 @@ private struct LoadedLocalReadModels {
     let homeSnapshot: HomeSnapshot
 }
 
+private struct BootstrapReadExpectation: Sendable {
+    let databaseIdentity: ObjectIdentifier
+    let databaseURL: URL
+    let localReadVersion: Int
+    let reviewSubmissionMutationRevision: Int
+}
+
 private func loadLocalReadModels(
     database: LocalDatabase,
     snapshot: AppBootstrapSnapshot,
@@ -244,29 +251,86 @@ extension FlashcardsStore {
     }
 
     @discardableResult
-    func refreshBootstrapSnapshotWithoutReset(now: Date) throws -> BootstrapSnapshotRefreshOutcome {
-        let outcome = try self.refreshBootstrapSnapshotContentWithoutReset(now: now)
+    func refreshBootstrapSnapshotWithoutReset(now: Date) async throws -> BootstrapSnapshotRefreshOutcome {
+        let outcome = try await self.refreshBootstrapSnapshotContentWithoutReset(now: now)
         self.handleProgressContextDidChange(now: now)
         return outcome
     }
 
     @discardableResult
-    func refreshBootstrapSnapshotWithoutProgressContextRefresh(now: Date) throws -> BootstrapSnapshotRefreshOutcome {
-        try self.refreshBootstrapSnapshotContentWithoutReset(now: now)
+    func refreshBootstrapSnapshotWithoutProgressContextRefresh(now: Date) async throws -> BootstrapSnapshotRefreshOutcome {
+        try await self.refreshBootstrapSnapshotContentWithoutReset(now: now)
     }
 
-    private func refreshBootstrapSnapshotContentWithoutReset(now: Date) throws -> BootstrapSnapshotRefreshOutcome {
-        let database = try requireLocalDatabase(database: self.database)
-        let bootstrapSnapshot = try database.loadBootstrapSnapshot()
-        let localReadModels = try loadLocalReadModels(
-            database: database,
-            snapshot: bootstrapSnapshot,
-            now: now
-        )
-        let nextCards = localReadModels.cards
-        let nextDecks = localReadModels.decks
-        let nextDeckItems = localReadModels.deckItems
-        let resolvedHomeSnapshot = localReadModels.homeSnapshot
+    private func refreshBootstrapSnapshotContentWithoutReset(now: Date) async throws -> BootstrapSnapshotRefreshOutcome {
+        var staleResultCount = 0
+
+        while true {
+            let expectation = try self.currentBootstrapReadExpectation()
+            let loadedSnapshot = try await defaultBootstrapSnapshotLoader(
+                databaseURL: expectation.databaseURL,
+                now: now
+            )
+            let actualDatabase = self.database
+            let actualDatabaseIdentity = actualDatabase.map { ObjectIdentifier($0) }
+            let actualDatabaseURL = actualDatabase?.databaseURL
+            let actualLocalReadVersion = self.localReadVersion
+            let isCurrentDatabaseState = actualDatabaseIdentity == expectation.databaseIdentity
+                && actualDatabaseURL == expectation.databaseURL
+                && actualLocalReadVersion == expectation.localReadVersion
+
+            guard isCurrentDatabaseState else {
+                if staleResultCount == 0 {
+                    staleResultCount += 1
+                    continue
+                }
+                throw self.staleBootstrapSnapshotError(
+                    expectation: expectation,
+                    actualDatabaseIdentity: actualDatabaseIdentity,
+                    actualDatabaseURL: actualDatabaseURL,
+                    actualLocalReadVersion: actualLocalReadVersion,
+                    actualReviewSubmissionMutationState: self.reviewSubmissionOutboxMutationGate
+                        .currentReviewSubmissionMutationState()
+                )
+            }
+
+            let publication = self.reviewSubmissionOutboxMutationGate
+                .publishIfReviewSubmissionMutationIsStable(
+                    expectedRevision: expectation.reviewSubmissionMutationRevision
+                ) {
+                    self.applyRefreshedBootstrapSnapshotContent(
+                        loadedSnapshot: loadedSnapshot,
+                        now: now
+                    )
+                }
+            switch publication {
+            case .published(let outcome):
+                return outcome
+            case .stale(let actualReviewSubmissionMutationState):
+                if staleResultCount == 0 {
+                    staleResultCount += 1
+                    continue
+                }
+                throw self.staleBootstrapSnapshotError(
+                    expectation: expectation,
+                    actualDatabaseIdentity: actualDatabaseIdentity,
+                    actualDatabaseURL: actualDatabaseURL,
+                    actualLocalReadVersion: actualLocalReadVersion,
+                    actualReviewSubmissionMutationState: actualReviewSubmissionMutationState
+                )
+            }
+        }
+    }
+
+    private func applyRefreshedBootstrapSnapshotContent(
+        loadedSnapshot: LoadedBootstrapSnapshot,
+        now: Date
+    ) -> BootstrapSnapshotRefreshOutcome {
+        let bootstrapSnapshot = loadedSnapshot.snapshot
+        let nextCards = loadedSnapshot.cards
+        let nextDecks = loadedSnapshot.decks
+        let nextDeckItems = loadedSnapshot.deckItems
+        let resolvedHomeSnapshot = loadedSnapshot.homeSnapshot
 
         let previousWorkspaceId = self.workspace?.workspaceId
         let didSwitchWorkspace = previousWorkspaceId != bootstrapSnapshot.workspace.workspaceId
@@ -344,6 +408,32 @@ extension FlashcardsStore {
             workspaceChanged: workspaceChanged,
             cardsChanged: cardsChanged,
             homeSnapshotChanged: homeSnapshotChanged
+        )
+    }
+
+    private func currentBootstrapReadExpectation() throws -> BootstrapReadExpectation {
+        let database = try requireLocalDatabase(database: self.database)
+        return BootstrapReadExpectation(
+            databaseIdentity: ObjectIdentifier(database),
+            databaseURL: database.databaseURL,
+            localReadVersion: self.localReadVersion,
+            reviewSubmissionMutationRevision: self.reviewSubmissionOutboxMutationGate
+                .currentReviewSubmissionMutationState()
+                .revision
+        )
+    }
+
+    private func staleBootstrapSnapshotError(
+        expectation: BootstrapReadExpectation,
+        actualDatabaseIdentity: ObjectIdentifier?,
+        actualDatabaseURL: URL?,
+        actualLocalReadVersion: Int,
+        actualReviewSubmissionMutationState: ReviewSubmissionMutationState
+    ) -> LocalStoreError {
+        let actualDatabaseIdentityDescription = actualDatabaseIdentity.map { String(describing: $0) } ?? "none"
+        let actualDatabaseURLDescription = actualDatabaseURL?.path ?? "none"
+        return LocalStoreError.database(
+            "Bootstrap snapshot load produced a stale result twice. Expected database identity \(expectation.databaseIdentity) at \(expectation.databaseURL.path) with local read version \(expectation.localReadVersion) and review submission mutation revision \(expectation.reviewSubmissionMutationRevision), but found identity \(actualDatabaseIdentityDescription) at \(actualDatabaseURLDescription) with local read version \(actualLocalReadVersion), review submission mutation revision \(actualReviewSubmissionMutationState.revision), and \(actualReviewSubmissionMutationState.activeSubmissionCount) active review submissions."
         )
     }
 

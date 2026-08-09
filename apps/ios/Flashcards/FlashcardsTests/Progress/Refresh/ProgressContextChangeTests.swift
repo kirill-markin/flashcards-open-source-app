@@ -196,13 +196,13 @@ final class ProgressContextChangeTests: ProgressStoreTestCase {
             reviewedAtClient: "\(requestRange.to)T09:00:00.000Z"
         )
 
-        _ = try context.store.refreshBootstrapSnapshotWithoutProgressContextRefresh(now: now)
+        _ = try await context.store.refreshBootstrapSnapshotWithoutProgressContextRefresh(now: now)
 
         XCTAssertEqual(makeEmptyReviewProgressBadgeState(), context.store.reviewProgressBadgeState)
         XCTAssertEqual(0, context.cloudSyncService.loadProgressSummaryCallCount)
         XCTAssertEqual(0, context.cloudSyncService.loadProgressSeriesCallCount)
 
-        _ = try context.store.refreshBootstrapSnapshotWithoutReset(now: now)
+        _ = try await context.store.refreshBootstrapSnapshotWithoutReset(now: now)
 
         XCTAssertEqual(
             ReviewProgressBadgeState(
