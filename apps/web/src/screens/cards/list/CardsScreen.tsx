@@ -207,7 +207,7 @@ export function CardsScreen(): ReactElement {
   const [cardFilter, setCardFilter] = useState<CardFilter | null>(null);
   const [draftCardFilter, setDraftCardFilter] = useState<CardFilter | null>(null);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState<boolean>(false);
-  const [savingCardId, setSavingCardId] = useState<string>("");
+  const [savingCardIds, setSavingCardIds] = useState<ReadonlySet<string>>(new Set<string>());
   const [cardsQueryState, setCardsQueryState] = useState<CardsQueryState>(createInitialCardsQueryState);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const loadMoreSentinelRef = useRef<HTMLTableRowElement | null>(null);
@@ -233,6 +233,7 @@ export function CardsScreen(): ReactElement {
   });
   const activeEditorLifecyclesRef = useRef<Map<string, number>>(new Map());
   const nextEditorLifecycleRef = useRef<number>(0);
+  const inlineSaveTailsRef = useRef<Map<string, Promise<void>>>(new Map());
   const observedQueryIdentityRef = useRef<string | null>(null);
   const observedLocalReadVersionRef = useRef<number>(localReadVersion);
   const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
@@ -659,18 +660,19 @@ export function CardsScreen(): ReactElement {
     return () => observer.disconnect();
   }, [cardsQueryState.nextCursor, loadNextPage]);
 
-  async function handleInlineSave(card: Card, patch: UpdateCardInput): Promise<void> {
-    setSavingCardId(card.cardId);
+  function handleInlineSave(card: Card, patch: UpdateCardInput): Promise<void> {
+    setSavingCardIds((currentCardIds) => new Set([...currentCardIds, card.cardId]));
     setErrorMessage("");
 
-    try {
+    const previousTail = inlineSaveTailsRef.current.get(card.cardId) ?? Promise.resolve();
+    const savePromise = previousTail.then(async () => {
       try {
         await updateCardItem(card.cardId, patch);
       } catch (error) {
         const expectedErrorMessage = getExpectedCardMutationInlineErrorMessage(error, t("cardForm.errors.cardNotFound"));
         if (expectedErrorMessage !== null) {
           setErrorMessage(expectedErrorMessage);
-          return;
+          throw error;
         }
 
         const observationIdentity = observationIdentityRef.current;
@@ -684,7 +686,7 @@ export function CardsScreen(): ReactElement {
         });
         showCapturedTechnicalError(error);
         setErrorMessage(t("appError.technicalError.message"));
-        return;
+        throw error;
       }
 
       try {
@@ -693,9 +695,27 @@ export function CardsScreen(): ReactElement {
         showCapturedTechnicalError(error);
         setErrorMessage(t("appError.technicalError.message"));
       }
-    } finally {
-      setSavingCardId("");
-    }
+    });
+    const nextTail = savePromise.then(
+      () => undefined,
+      () => undefined,
+    );
+    inlineSaveTailsRef.current.set(card.cardId, nextTail);
+
+    void nextTail.then(() => {
+      if (inlineSaveTailsRef.current.get(card.cardId) !== nextTail) {
+        return;
+      }
+
+      inlineSaveTailsRef.current.delete(card.cardId);
+      setSavingCardIds((currentCardIds) => {
+        const nextCardIds = new Set(currentCardIds);
+        nextCardIds.delete(card.cardId);
+        return nextCardIds;
+      });
+    });
+
+    return savePromise;
   }
 
   function handleSortChange(sortKey: CardQuerySortKey): void {
@@ -909,7 +929,7 @@ export function CardsScreen(): ReactElement {
                   ))
                 )
               ) : cardsQueryState.items.map((card) => {
-                const isSaving = savingCardId === card.cardId;
+                const isSaving = savingCardIds.has(card.cardId);
                 return (
                   <tr
                     key={card.cardId}
