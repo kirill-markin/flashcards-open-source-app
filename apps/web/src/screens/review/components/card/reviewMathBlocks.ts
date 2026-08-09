@@ -274,6 +274,27 @@ export function hasEligibleReviewMath(text: string): boolean {
   return collectAcceptedReviewMathSources(reviewMathProcessor.parse(text), text).length > 0;
 }
 
+export function normalizeReviewPlainTextEscapedDollars(text: string): string {
+  const normalizedCharacters: Array<string> = [];
+  let precedingBackslashCount = 0;
+
+  for (const character of text) {
+    if (character === "\\") {
+      precedingBackslashCount += 1;
+      continue;
+    }
+
+    const preservedBackslashCount = character === "$" && precedingBackslashCount % 2 !== 0
+      ? precedingBackslashCount - 1
+      : precedingBackslashCount;
+    normalizedCharacters.push("\\".repeat(preservedBackslashCount), character);
+    precedingBackslashCount = 0;
+  }
+
+  normalizedCharacters.push("\\".repeat(precedingBackslashCount));
+  return normalizedCharacters.join("");
+}
+
 export function splitEligibleReviewMathForSpeech(text: string): ReadonlyArray<ReviewMathSpeechSegment> {
   const sources = [...collectAcceptedReviewMathSources(reviewMathProcessor.parse(text), text)]
     .sort((left, right) => left.startIndex - right.startIndex);

@@ -16,7 +16,7 @@ import {
   type ManagedMediaReferenceState,
 } from "../../../../media/managedMediaMarkdown";
 import { classifyReviewContentPresentation } from "./reviewContentPresentation";
-import reviewMathBlocks from "./reviewMathBlocks";
+import reviewMathBlocks, { normalizeReviewPlainTextEscapedDollars } from "./reviewMathBlocks";
 import { ReviewMathBlock } from "./ReviewMathBlock";
 
 const REVIEW_MARKDOWN_FENCE_PATTERN = /^\s{0,3}(`{3,}|~{3,})/;
@@ -406,7 +406,7 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
           >
             {presentationMode === "markdown" ? (
               <ReviewCardMarkdown localReadVersion={localReadVersion} text={text} workspaceId={workspaceId} />
-            ) : text}
+            ) : normalizeReviewPlainTextEscapedDollars(text)}
           </div>
         </div>
 
