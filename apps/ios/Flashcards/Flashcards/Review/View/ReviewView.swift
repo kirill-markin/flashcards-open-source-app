@@ -12,6 +12,11 @@ private let showAnswerButtonMinHeight: CGFloat = 56
 let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
 private let reviewQueuePreviewPageSize: Int = 50
 
+private enum ReviewCardScrollTarget: Hashable {
+    case front
+    case back
+}
+
 private struct ReviewFilterPresentationContext: Equatable {
     let workspaceId: String?
     let committedFilter: ReviewFilter
@@ -395,13 +400,25 @@ struct ReviewView: View {
     }
 
     private func activeCardView(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
-        ScrollView {
-            ReadableContentLayout(
-                maxWidth: flashcardsReadableContentMaxWidth,
-                horizontalPadding: 20
-            ) {
-                activeCardContentView(card: card, preparedRevealState: preparedRevealState)
-                    .padding(.vertical, 20)
+        ScrollViewReader { proxy in
+            ScrollView {
+                ReadableContentLayout(
+                    maxWidth: flashcardsReadableContentMaxWidth,
+                    horizontalPadding: 20
+                ) {
+                    activeCardContentView(card: card, preparedRevealState: preparedRevealState)
+                        .padding(.vertical, 20)
+                }
+            }
+            .onChange(of: isAnswerVisible) { wasVisible, isVisible in
+                guard wasVisible == false, isVisible else {
+                    return
+                }
+
+                proxy.scrollTo(ReviewCardScrollTarget.back, anchor: .top)
+            }
+            .onChange(of: card.cardId) { _, _ in
+                proxy.scrollTo(ReviewCardScrollTarget.front, anchor: .top)
             }
         }
     }
@@ -443,6 +460,7 @@ struct ReviewView: View {
                 onOpenAi: {},
                 surfaceStyle: .front
             )
+            .id(ReviewCardScrollTarget.front)
 
             if isAnswerVisible {
                 ReviewCardSideView(
@@ -459,6 +477,7 @@ struct ReviewView: View {
                     },
                     surfaceStyle: .back
                 )
+                .id(ReviewCardScrollTarget.back)
             }
 
             HStack(spacing: 12) {

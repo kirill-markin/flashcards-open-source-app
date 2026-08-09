@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { useLayoutEffect, useRef, type ReactElement } from "react";
 import { Link } from "react-router";
 import type { ReviewRating } from "../../../../../backend/src/scheduling";
 import { useI18n } from "../../../i18n";
@@ -18,6 +18,12 @@ import {
 } from "./reviewScreenTypes";
 
 const REVIEW_BUTTONS_PER_COLUMN = 2;
+const REVIEW_SCROLL_INTO_VIEW_OPTIONS = {
+  behavior: "instant",
+  block: "start",
+  container: "nearest",
+  inline: "nearest",
+} as const satisfies ScrollIntoViewOptions & { container: "nearest" };
 
 export type ReviewPaneProps = Readonly<{
   activeSpeechSide: ReviewSpeechSide | null;
@@ -266,6 +272,27 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
   const backSideLabel = t("reviewScreen.sides.back");
   const leftReviewButtonOptions = reviewButtonOptions.slice(0, REVIEW_BUTTONS_PER_COLUMN);
   const rightReviewButtonOptions = reviewButtonOptions.slice(REVIEW_BUTTONS_PER_COLUMN, REVIEW_BUTTONS_PER_COLUMN * 2);
+  const frontTargetRef = useRef<HTMLDivElement>(null);
+  const backTargetRef = useRef<HTMLDivElement>(null);
+  const previousCardIdRef = useRef<string | null>(null);
+  const wasAnswerVisibleRef = useRef(false);
+
+  useLayoutEffect(() => {
+    const didCardChange = previousCardIdRef.current !== selectedCard.cardId;
+    const didRevealAnswer = !didCardChange && !wasAnswerVisibleRef.current && isAnswerVisible;
+
+    previousCardIdRef.current = selectedCard.cardId;
+    wasAnswerVisibleRef.current = isAnswerVisible;
+
+    if (didCardChange) {
+      frontTargetRef.current?.scrollIntoView(REVIEW_SCROLL_INTO_VIEW_OPTIONS);
+      return;
+    }
+
+    if (didRevealAnswer) {
+      backTargetRef.current?.scrollIntoView(REVIEW_SCROLL_INTO_VIEW_OPTIONS);
+    }
+  }, [isAnswerVisible, selectedCard.cardId]);
 
   return (
     <>
@@ -286,49 +313,53 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
         </div>
       </div>
       <div className="review-card-stack">
-        <ReviewCardSide
-          label={frontSideLabel}
-          aiButtonAriaLabel={null}
-          text={selectedCard.frontText}
-          contentClassName="review-front"
-          isSpeaking={activeSpeechSide === "front"}
-          onOpenAi={null}
-          onToggleSpeech={() => onToggleSpeech("front", selectedCard.frontText)}
-          showAiButton={false}
-          showSpeechButton={selectedFrontSpeakableText !== ""}
-          speechButtonAriaLabel={t(activeSpeechSide === "front" ? "reviewScreen.speakAriaLabel.stop" : "reviewScreen.speakAriaLabel.start", {
-            side: frontSideLabel.toLowerCase(),
-          })}
-          speechButtonDisabled={false}
-          localReadVersion={localReadVersion}
-          surfaceCardId={selectedCard.cardId}
-          surfaceClassName="review-card-surface review-card-surface-front"
-          surfaceFrontText={selectedCard.frontText}
-          surfaceTestId="review-current-front-card"
-          workspaceId={workspaceId}
-        />
-
-        {isAnswerVisible ? (
+        <div className="review-card-scroll-target" ref={frontTargetRef}>
           <ReviewCardSide
-            label={backSideLabel}
-            aiButtonAriaLabel={t("reviewScreen.aiOpenAriaLabel", {
-              side: backSideLabel.toLowerCase(),
-            })}
-            text={selectedCard.backText === "" ? t("common.noBackText") : selectedCard.backText}
-            contentClassName="review-back"
-            isSpeaking={activeSpeechSide === "back"}
-            onOpenAi={() => void onAiHandoff(selectedCard)}
-            onToggleSpeech={() => onToggleSpeech("back", selectedCard.backText)}
-            showAiButton={true}
-            showSpeechButton={selectedBackSpeakableText !== ""}
-            speechButtonAriaLabel={t(activeSpeechSide === "back" ? "reviewScreen.speakAriaLabel.stop" : "reviewScreen.speakAriaLabel.start", {
-              side: backSideLabel.toLowerCase(),
+            label={frontSideLabel}
+            aiButtonAriaLabel={null}
+            text={selectedCard.frontText}
+            contentClassName="review-front"
+            isSpeaking={activeSpeechSide === "front"}
+            onOpenAi={null}
+            onToggleSpeech={() => onToggleSpeech("front", selectedCard.frontText)}
+            showAiButton={false}
+            showSpeechButton={selectedFrontSpeakableText !== ""}
+            speechButtonAriaLabel={t(activeSpeechSide === "front" ? "reviewScreen.speakAriaLabel.stop" : "reviewScreen.speakAriaLabel.start", {
+              side: frontSideLabel.toLowerCase(),
             })}
             speechButtonDisabled={false}
             localReadVersion={localReadVersion}
-            surfaceClassName="review-card-surface review-card-answer"
+            surfaceCardId={selectedCard.cardId}
+            surfaceClassName="review-card-surface review-card-surface-front"
+            surfaceFrontText={selectedCard.frontText}
+            surfaceTestId="review-current-front-card"
             workspaceId={workspaceId}
           />
+        </div>
+
+        {isAnswerVisible ? (
+          <div className="review-card-scroll-target" ref={backTargetRef}>
+            <ReviewCardSide
+              label={backSideLabel}
+              aiButtonAriaLabel={t("reviewScreen.aiOpenAriaLabel", {
+                side: backSideLabel.toLowerCase(),
+              })}
+              text={selectedCard.backText === "" ? t("common.noBackText") : selectedCard.backText}
+              contentClassName="review-back"
+              isSpeaking={activeSpeechSide === "back"}
+              onOpenAi={() => void onAiHandoff(selectedCard)}
+              onToggleSpeech={() => onToggleSpeech("back", selectedCard.backText)}
+              showAiButton={true}
+              showSpeechButton={selectedBackSpeakableText !== ""}
+              speechButtonAriaLabel={t(activeSpeechSide === "back" ? "reviewScreen.speakAriaLabel.stop" : "reviewScreen.speakAriaLabel.start", {
+                side: backSideLabel.toLowerCase(),
+              })}
+              speechButtonDisabled={false}
+              localReadVersion={localReadVersion}
+              surfaceClassName="review-card-surface review-card-answer"
+              workspaceId={workspaceId}
+            />
+          </div>
         ) : null}
       </div>
 
