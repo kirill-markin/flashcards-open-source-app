@@ -358,7 +358,7 @@ final class ReviewBackgroundIdentityTests: ProgressStoreTestCase {
             cardId: nil,
             mediaAssetIdsReadyForUpload: []
         )
-        let refreshOutcome = try store.refreshBootstrapSnapshotWithoutProgressContextRefresh(
+        let refreshOutcome = try await store.refreshBootstrapSnapshotWithoutProgressContextRefresh(
             now: try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T10:01:00.000Z"))
         )
         XCTAssertTrue(refreshOutcome.cardsChanged)
@@ -530,4 +530,3 @@ final class ReviewBackgroundIdentityTests: ProgressStoreTestCase {
         XCTAssertFalse(store.isReviewQueueChunkLoading)
     }
 }
-

@@ -550,7 +550,7 @@ extension FlashcardsStore {
 
     func processReviewSubmissionRequest(request: ReviewSubmissionRequest) async {
         guard let reviewSubmissionExecutor = self.dependencies.reviewSubmissionExecutor else {
-            self.handleReviewSubmissionFailure(
+            await self.handleReviewSubmissionFailure(
                 request: request,
                 submissionError: self.reviewRuntime.reviewSubmissionExecutorUnavailableError()
             )
@@ -569,7 +569,7 @@ extension FlashcardsStore {
                 )
             )
         } catch {
-            self.handleReviewSubmissionFailure(request: request, submissionError: error)
+            await self.handleReviewSubmissionFailure(request: request, submissionError: error)
             return
         }
 
@@ -589,7 +589,7 @@ extension FlashcardsStore {
         let bootstrapRefreshOutcome: BootstrapSnapshotRefreshOutcome
         let didReconcileReviewState: Bool
         do {
-            bootstrapRefreshOutcome = try self.refreshBootstrapSnapshotWithoutProgressContextRefresh(now: now)
+            bootstrapRefreshOutcome = try await self.refreshBootstrapSnapshotWithoutProgressContextRefresh(now: now)
             didReconcileReviewState = try await self.reconcileReviewState(
                 now: now,
                 trigger: .localReview
@@ -739,7 +739,7 @@ extension FlashcardsStore {
         self.refreshLocalReadModels(now: now)
     }
 
-    func handleReviewSubmissionFailure(request: ReviewSubmissionRequest, submissionError: Error) {
+    func handleReviewSubmissionFailure(request: ReviewSubmissionRequest, submissionError: Error) async {
         let submissionErrorMessage = Flashcards.errorMessage(error: submissionError)
         let now = Date()
         // Capture the pre-refresh validation context once so the staleness classification
@@ -756,7 +756,7 @@ extension FlashcardsStore {
         }
 
         do {
-            _ = try self.refreshBootstrapSnapshotWithoutReset(now: now)
+            _ = try await self.refreshBootstrapSnapshotWithoutReset(now: now)
             let rollbackValidationContext = self.makeReviewSubmissionRollbackValidationContext(now: now)
             guard self.reviewSubmissionRequestMatchesCurrentContext(
                 request: request,

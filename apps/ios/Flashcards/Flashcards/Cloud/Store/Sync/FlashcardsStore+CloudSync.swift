@@ -279,7 +279,7 @@ extension FlashcardsStore {
             try self.throwIfCloudCredentialRecoveryRequired()
             let failureError: Error
             do {
-                failureError = try self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
+                failureError = try await self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
                     error: error,
                     now: Date()
                 )
@@ -615,7 +615,7 @@ extension FlashcardsStore {
         now: Date,
         trigger: CloudSyncTrigger
     ) async throws {
-        let bootstrapRefreshOutcome = try self.refreshBootstrapSnapshotWithoutReset(now: now)
+        let bootstrapRefreshOutcome = try await self.refreshBootstrapSnapshotWithoutReset(now: now)
         let didResetVolatileReviewSelection = self.resetVolatileReviewSelectionAfterLocalIdRepairIfNeeded(
             syncResult: syncResult,
             now: now
@@ -666,12 +666,12 @@ extension FlashcardsStore {
     private func failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
         error: Error,
         now: Date
-    ) throws -> Error {
+    ) async throws -> Error {
         guard let localIdRepairFailure = error as? CloudSyncLocalIdRepairFailure else {
             return error
         }
 
-        try self.applyLocalIdRepairSideEffectsAfterSyncFailure(
+        try await self.applyLocalIdRepairSideEffectsAfterSyncFailure(
             syncResult: localIdRepairFailure.syncResult,
             now: now
         )
@@ -681,8 +681,8 @@ extension FlashcardsStore {
     private func applyLocalIdRepairSideEffectsAfterSyncFailure(
         syncResult: CloudSyncResult,
         now: Date
-    ) throws {
-        let bootstrapRefreshOutcome = try self.refreshBootstrapSnapshotWithoutReset(now: now)
+    ) async throws {
+        let bootstrapRefreshOutcome = try await self.refreshBootstrapSnapshotWithoutReset(now: now)
         let didResetVolatileReviewSelection = self.resetVolatileReviewSelectionAfterLocalIdRepairIfNeeded(
             syncResult: syncResult,
             now: now
@@ -894,7 +894,7 @@ extension FlashcardsStore {
 
             return try await self.cloudRuntime.runLinkedSync(linkedSession: linkedSession)
         } catch {
-            let failureError = try self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
+            let failureError = try await self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
                 error: error,
                 now: Date()
             )
@@ -933,7 +933,7 @@ extension FlashcardsStore {
 
             return try await self.cloudRuntime.runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: linkedSession)
         } catch {
-            let failureError = try self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
+            let failureError = try await self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
                 error: error,
                 now: Date()
             )

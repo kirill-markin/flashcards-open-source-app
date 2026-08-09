@@ -477,7 +477,7 @@ final class ReviewBackgroundSubmissionSettlementTests: ProgressStoreTestCase {
     }
 
     @MainActor
-    func testReviewSubmissionFailureReloadFailureDoesNotRestoreStaleRollbackCard() throws {
+    func testReviewSubmissionFailureReloadFailureDoesNotRestoreStaleRollbackCard() async throws {
         let suiteName = "review-submit-reload-failure-\(UUID().uuidString.lowercased())"
         let userDefaults = UserDefaults(suiteName: suiteName)!
         let credentialStore = CloudCredentialStore(service: "tests-\(suiteName)-cloud-auth")
@@ -554,7 +554,7 @@ final class ReviewBackgroundSubmissionSettlementTests: ProgressStoreTestCase {
             reviewedTimeZone: "UTC"
         )
 
-        store.handleReviewSubmissionFailure(
+        await store.handleReviewSubmissionFailure(
             request: request,
             submissionError: LocalStoreError.validation("Submission failed")
         )
@@ -567,7 +567,7 @@ final class ReviewBackgroundSubmissionSettlementTests: ProgressStoreTestCase {
     }
 
     @MainActor
-    func testReviewSubmissionFailureClassifiesStaleContextBeforeRefreshingReviewState() throws {
+    func testReviewSubmissionFailureClassifiesStaleContextBeforeRefreshingReviewState() async throws {
         let database = try self.makeDatabase()
         let suiteName = "review-submit-stale-before-refresh-\(UUID().uuidString.lowercased())"
         let userDefaults = UserDefaults(suiteName: suiteName)!
@@ -651,7 +651,7 @@ final class ReviewBackgroundSubmissionSettlementTests: ProgressStoreTestCase {
             reviewedTimeZone: "UTC"
         )
 
-        store.handleReviewSubmissionFailure(
+        await store.handleReviewSubmissionFailure(
             request: request,
             submissionError: LocalStoreError.validation("Submission failed")
         )
