@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
@@ -32,6 +34,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -86,12 +90,13 @@ internal fun ReviewContent(
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     onToggleFrontSpeech: () -> Unit,
     onToggleBackSpeech: () -> Unit,
+    modifier: Modifier,
     contentPadding: PaddingValues
 ) {
     if (uiState.isLoading.not() && uiState.preparedCurrentCard == null && uiState.emptyState != null) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
                 .padding(contentPadding)
                 .testTag(reviewEmptyStateTag)
@@ -110,7 +115,7 @@ internal fun ReviewContent(
     LazyColumn(
         contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize()
     ) {
         item {
             when {
@@ -237,6 +242,19 @@ private fun ReviewCardContent(
 ) {
     val context = LocalContext.current
     val locale = currentResourceLocale(resources = context.resources)
+    val frontBringIntoViewRequester = remember { BringIntoViewRequester() }
+    val backBringIntoViewRequester = remember { BringIntoViewRequester() }
+    val currentCardId: String = currentCard.card.cardId
+
+    LaunchedEffect(currentCardId) {
+        frontBringIntoViewRequester.bringIntoView()
+    }
+
+    LaunchedEffect(currentCardId, isAnswerVisible) {
+        if (isAnswerVisible) {
+            backBringIntoViewRequester.bringIntoView()
+        }
+    }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -294,6 +312,10 @@ private fun ReviewCardContent(
                 ReviewCardSideSection(
                     label = stringResource(id = R.string.review_front_label),
                     content = currentCard.frontContent,
+                    sectionModifier = Modifier,
+                    labelModifier = Modifier.bringIntoViewRequester(
+                        frontBringIntoViewRequester
+                    ),
                     contentModifier = Modifier.testTag(reviewCurrentCardFrontContentTag),
                     onLoadManagedMediaFile = onLoadManagedMediaFile,
                     onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
@@ -308,6 +330,10 @@ private fun ReviewCardContent(
                     ReviewCardSideSection(
                         label = stringResource(id = R.string.review_back_label),
                         content = currentCard.backContent,
+                        sectionModifier = Modifier.bringIntoViewRequester(
+                            backBringIntoViewRequester
+                        ),
+                        labelModifier = Modifier,
                         contentModifier = Modifier,
                         onLoadManagedMediaFile = onLoadManagedMediaFile,
                         onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
@@ -352,6 +378,8 @@ private fun ReviewCardContent(
 private fun ReviewCardSideSection(
     label: String,
     content: ReviewRenderedContent,
+    sectionModifier: Modifier,
+    labelModifier: Modifier,
     contentModifier: Modifier,
     onLoadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
@@ -366,12 +394,13 @@ private fun ReviewCardSideSection(
 
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = sectionModifier.fillMaxWidth()
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = labelModifier
         )
         ReviewRenderedContentView(
             content = content,
