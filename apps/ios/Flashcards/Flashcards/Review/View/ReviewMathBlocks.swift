@@ -42,7 +42,7 @@ private let reviewMathThematicBreakExpression = makeReviewContentRegularExpressi
 private let reviewMathSetextHeadingExpression = makeReviewContentRegularExpression(pattern: #"^ {0,3}(?:=+[ \t]*|-+[ \t]*)$"#)
 private let reviewMathTableSeparatorExpression = makeReviewContentRegularExpression(pattern: #"^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$"#)
 private let reviewMathHTMLExpression = makeReviewContentRegularExpression(pattern: #"^ {0,3}<"#)
-private let reviewMathUnsupportedInlineExpression = makeReviewContentRegularExpression(pattern: #"[`*_~\[\]<>]"#)
+private let reviewMathUnsupportedInlineCharacters = "[]`|<>*_~"
 private let reviewMathBareURLExpression = makeReviewContentRegularExpression(pattern: #"(?i)\b(?:https?://|www\.)"#)
 private let reviewMathBareEmailExpression = makeReviewContentRegularExpression(
     pattern: #"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b"#
@@ -120,7 +120,8 @@ func extractReviewMathBlocks(text: String) -> ReviewMathBlockExtraction {
                 .formula(
                     ReviewFormulaContent(
                         originalSource: originalSource,
-                        latex: latex
+                        latex: latex,
+                        continuesParagraph: false
                     )
                 )
             )
@@ -422,6 +423,11 @@ private func splitReviewMathParagraph(lines: [ReviewMathSourceLine]) -> [ReviewM
     }) {
         return nil
     }
+    if lines.dropLast().contains(where: { line in
+        reviewMathLineHasHardBreak(line: line.content)
+    }) {
+        return nil
+    }
 
     var parsedLines: [ReviewInlineMathLine] = []
     for line in lines {
@@ -470,7 +476,7 @@ private func reviewMathParagraphIsEligible(lines: [ReviewInlineMathLine]) -> Boo
         line.parts.allSatisfy { part in
             switch part {
             case .text(let text):
-                return reviewMathUnsupportedInlineExpression.matches(text) == false
+                return reviewMathContainsUnsupportedInlineSyntax(text: text) == false
                     && reviewMathBareURLExpression.matches(text) == false
                     && reviewMathBareEmailExpression.matches(text) == false
             case .formula:
@@ -487,7 +493,7 @@ private func splitReviewInlineMathLine(line: String) -> ReviewInlineMathLine? {
     var didFindFormula = false
 
     while index < line.endIndex {
-        guard line[index] == "$", reviewMathDollarIsUnescaped(line: line, index: index) else {
+        guard line[index] == "$", reviewMathCharacterIsUnescaped(text: line, index: index) else {
             index = line.index(after: index)
             continue
         }
@@ -512,7 +518,8 @@ private func splitReviewInlineMathLine(line: String) -> ReviewInlineMathLine? {
             .formula(
                 ReviewFormulaContent(
                     originalSource: String(line[index..<afterClosing]),
-                    latex: String(line[latexStart..<closingIndex])
+                    latex: String(line[latexStart..<closingIndex]),
+                    continuesParagraph: true
                 )
             )
         )
@@ -535,7 +542,7 @@ private func reviewInlineMathClosingIndex(line: String, openingIndex: String.Ind
     var index = line.index(after: openingIndex)
 
     while index < line.endIndex {
-        guard line[index] == "$", reviewMathDollarIsUnescaped(line: line, index: index) else {
+        guard line[index] == "$", reviewMathCharacterIsUnescaped(text: line, index: index) else {
             index = line.index(after: index)
             continue
         }
@@ -551,13 +558,20 @@ private func reviewInlineMathClosingIndex(line: String, openingIndex: String.Ind
     return nil
 }
 
-private func reviewMathDollarIsUnescaped(line: String, index: String.Index) -> Bool {
+private func reviewMathContainsUnsupportedInlineSyntax(text: String) -> Bool {
+    text.indices.contains { index in
+        reviewMathUnsupportedInlineCharacters.contains(text[index])
+            && reviewMathCharacterIsUnescaped(text: text, index: index)
+    }
+}
+
+private func reviewMathCharacterIsUnescaped(text: String, index: String.Index) -> Bool {
     var backslashCount = 0
     var cursor = index
 
-    while cursor > line.startIndex {
-        let previousIndex = line.index(before: cursor)
-        guard line[previousIndex] == "\\" else {
+    while cursor > text.startIndex {
+        let previousIndex = text.index(before: cursor)
+        guard text[previousIndex] == "\\" else {
             break
         }
         backslashCount += 1
@@ -565,6 +579,56 @@ private func reviewMathDollarIsUnescaped(line: String, index: String.Index) -> B
     }
 
     return backslashCount.isMultiple(of: 2)
+}
+
+private func reviewMathLineHasHardBreak(line: String) -> Bool {
+    if line.reversed().prefix(while: { character in character == " " }).count >= 2 {
+        return true
+    }
+    return line.reversed().prefix(while: { character in character == "\\" }).count.isMultiple(of: 2) == false
+}
+
+func normalizeReviewInlineMathParagraphContinuation(markdown: String) -> String {
+    guard let firstCharacter = markdown.first, firstCharacter != "\r", firstCharacter != "\n" else {
+        return markdown
+    }
+
+    // A mid-paragraph fragment must not acquire document-level block syntax after splitting.
+    let leadingWhitespaceCount = markdown.prefix(while: { character in
+        character == " " || character == "\t"
+    }).count
+    let content = String(markdown.dropFirst(leadingWhitespaceCount))
+    let normalizedPrefix = leadingWhitespaceCount == 0 ? "" : " "
+    let startsHeading = makeReviewContentRegularExpression(
+        pattern: #"^#{1,6}(?:[ \t]+|$)"#
+    ).matches(content)
+    let startsUnorderedList = makeReviewContentRegularExpression(
+        pattern: #"^[-+*](?:[ \t]+|$)"#
+    ).matches(content)
+    let startsThematicBreak = makeReviewContentRegularExpression(
+        pattern: #"^(?:-[ \t]*){3,}(?:\r?\n|$)"#
+    ).matches(content)
+    if startsHeading || startsUnorderedList || startsThematicBreak {
+        return normalizedPrefix + "\\" + content
+    }
+
+    let digitCount = content.prefix(while: { character in
+        "0123456789".contains(character)
+    }).count
+    guard digitCount > 0, digitCount <= 9, digitCount < content.count else {
+        return normalizedPrefix + content
+    }
+    let punctuationIndex = content.index(content.startIndex, offsetBy: digitCount)
+    let afterPunctuationIndex = content.index(after: punctuationIndex)
+    guard (content[punctuationIndex] == "." || content[punctuationIndex] == ")"),
+          afterPunctuationIndex == content.endIndex
+            || " \t\r\n".contains(content[afterPunctuationIndex]) else {
+        return normalizedPrefix + content
+    }
+
+    var escapedContent = content
+    escapedContent.insert("\\", at: punctuationIndex)
+    return normalizedPrefix + escapedContent
 }
 
 private func reviewMathSource(lines: [ReviewMathSourceLine]) -> String {

@@ -41,10 +41,12 @@ enum ReviewManagedMarkdownBlock {
 struct ReviewFormulaContent {
     let originalSource: String
     let latex: String
+    let continuesParagraph: Bool
 
-    init(originalSource: String, latex: String) {
+    init(originalSource: String, latex: String, continuesParagraph: Bool) {
         self.originalSource = originalSource
         self.latex = latex
+        self.continuesParagraph = continuesParagraph
     }
 }
 
@@ -229,17 +231,23 @@ private func makeReviewSegmentedMarkdownContent(
     mathBlocks: [ReviewMathBlock]
 ) -> ReviewManagedMarkdownContent {
     var blocks: [ReviewManagedMarkdownBlock] = []
+    var normalizesNextMarkdownFragment = false
 
     for mathBlock in mathBlocks {
         switch mathBlock {
         case .markdown(let text):
-            if let managedMarkdownContent = makeReviewManagedMarkdownContent(text: text) {
+            let renderedText = normalizesNextMarkdownFragment
+                ? normalizeReviewInlineMathParagraphContinuation(markdown: text)
+                : text
+            if let managedMarkdownContent = makeReviewManagedMarkdownContent(text: renderedText) {
                 blocks.append(contentsOf: managedMarkdownContent.blocks)
             } else {
-                appendReviewMarkdownBlock(text: text, blocks: &blocks)
+                appendReviewMarkdownBlock(text: renderedText, blocks: &blocks)
             }
+            normalizesNextMarkdownFragment = false
         case .formula(let formula):
             blocks.append(.formula(formula))
+            normalizesNextMarkdownFragment = formula.continuesParagraph
         }
     }
 
