@@ -38,8 +38,8 @@ test("decideChatCostPolicy routes 20 chat turns with 0 good review days to low-c
   });
 
   assert.equal(decision.mode, "low_cost");
-  assert.equal(decision.modelId, "gpt-5.4-nano");
-  assert.equal(decision.reasoningEffort, "low");
+  assert.equal(decision.modelId, "gpt-5.6-luna");
+  assert.equal(decision.reasoningEffort, "high");
 });
 
 test("decideChatCostPolicy keeps 20 chat turns with one good review day in low-cost", () => {
@@ -58,8 +58,8 @@ test("decideChatCostPolicy trusts two good review days", () => {
   });
 
   assert.equal(decision.mode, "normal");
-  assert.equal(decision.modelId, "gpt-5.4");
-  assert.equal(decision.reasoningEffort, "medium");
+  assert.equal(decision.modelId, "gpt-5.6-terra");
+  assert.equal(decision.reasoningEffort, "xhigh");
 });
 
 test("decideChatCostPolicy keeps 19 chat turns in normal mode without reviews", () => {

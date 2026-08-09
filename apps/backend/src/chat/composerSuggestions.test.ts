@@ -7,7 +7,7 @@ import {
 } from "./composerSuggestions";
 import { buildOpenAISafetyIdentifier } from "./openai/safetyIdentifier";
 
-test("generateFollowUpChatComposerSuggestions sends the hashed safety identifier to OpenAI", async () => {
+test("generateFollowUpChatComposerSuggestions uses the configured request metadata", async () => {
   const capturedRequests: Array<OpenAI.Responses.ResponseCreateParams> = [];
   const dependencies: ChatComposerSuggestionsDependencies = {
     getOpenAIClient: () => ({
@@ -32,6 +32,8 @@ test("generateFollowUpChatComposerSuggestions sends the hashed safety identifier
   );
 
   assert.equal(capturedRequests.length, 1);
+  assert.equal(capturedRequests[0].model, "gpt-5.6-terra");
+  assert.equal(capturedRequests[0].reasoning?.effort, "none");
   assert.equal(capturedRequests[0].safety_identifier, buildOpenAISafetyIdentifier("user-1"));
   assert.equal(Object.hasOwn(capturedRequests[0], "user"), false);
   assert.deepEqual(

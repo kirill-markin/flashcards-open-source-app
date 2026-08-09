@@ -21,7 +21,7 @@ import type { ContentPart } from "../../types";
 import {
   CHAT_HISTORY_REPLAY_TOKEN_BUDGET,
   CHAT_MAX_OUTPUT_TOKENS,
-  CHAT_MODEL_CONTEXT_WINDOW_TOKENS,
+  CHAT_MODEL_OPERATING_CONTEXT_WINDOW_TOKENS,
   type ChatRuntimeModelId,
   type ChatRuntimeReasoningEffort,
 } from "../../config";
@@ -56,7 +56,7 @@ export type { OpenAILoopEventSink };
  * into the tool-limit summary turn instead of scheduling another tool-enabled
  * call.
  */
-const MAX_WITHIN_RUN_REPLAY_TOKENS = CHAT_MODEL_CONTEXT_WINDOW_TOKENS
+const MAX_WITHIN_RUN_REPLAY_TOKENS = CHAT_MODEL_OPERATING_CONTEXT_WINDOW_TOKENS
   - CHAT_HISTORY_REPLAY_TOKEN_BUDGET
   - CHAT_MAX_OUTPUT_TOKENS;
 

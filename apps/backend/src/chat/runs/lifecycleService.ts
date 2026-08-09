@@ -10,12 +10,11 @@ import type { ChatSessionRow } from "../store/repository";
 import type { ChatSessionRunState } from "../store";
 import {
   decideChatCostPolicyWithExecutor,
+  getChatRuntimeConfigForCostPolicyMode,
 } from "../costPolicy";
 import {
   CHAT_MODEL_ID,
   CHAT_MODEL_REASONING_EFFORT,
-  parseChatRuntimeModelId,
-  parseChatRuntimeReasoningEffort,
 } from "../config";
 import {
   type ChatComposerSuggestionsLocale,
@@ -232,8 +231,11 @@ export async function claimChatRun(
     );
 
     const messages = await buildLocalMessagesForClaimedRun(executor, scope, claimedRun.session_id, claimedRun.assistant_item_id);
-    const modelId = parseChatRuntimeModelId(claimedRun.model_id);
-    const reasoningEffort = parseChatRuntimeReasoningEffort(claimedRun.reasoning_effort);
+    // The policy mode is the stable producer/worker contract across rolling
+    // deployments. Resolve provider settings at claim time so the current
+    // worker can execute runs prepared by the previous API version without
+    // admitting retired provider model IDs into the runtime configuration.
+    const runtimeConfig = getChatRuntimeConfigForCostPolicyMode(claimedRun.ai_cost_mode);
 
     return {
       runId: claimedRun.run_id,
@@ -244,13 +246,14 @@ export async function claimChatRun(
       workspaceId,
       timezone: claimedRun.timezone,
       uiLocale: claimedRun.ui_locale,
-      modelId,
-      reasoningEffort,
+      modelId: runtimeConfig.modelId,
+      reasoningEffort: runtimeConfig.reasoningEffort,
       assistantItemId: claimedRun.assistant_item_id,
       localMessages: messages,
       turnInput: claimedRun.turn_input,
       initiatingAuthIsSignedIn: claimedRun.initiating_auth_is_signed_in,
       diagnostics: createDiagnostics(scope, claimedRun, messages, {
+        model: runtimeConfig.modelId,
         aiCostMode: claimedRun.ai_cost_mode,
         chatTurnsLast7d: claimedRun.chat_turns_last_7d,
         goodReviewDaysLast7d: claimedRun.good_review_days_last_7d,

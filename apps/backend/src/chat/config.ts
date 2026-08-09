@@ -3,59 +3,61 @@
  * This module is the canonical source for the fixed provider, model, and reasoning settings.
  */
 export const CHAT_VENDOR = "openai" as const;
-export const CHAT_MODEL_ID = "gpt-5.4" as const;
-export const CHAT_MODEL_REASONING_EFFORT = "medium" as const;
+export const CHAT_MODEL_ID = "gpt-5.6-terra" as const;
+export const CHAT_MODEL_REASONING_EFFORT = "xhigh" as const;
 export const CHAT_MODEL_REASONING_SUMMARY = "auto" as const;
-export const CHAT_LOW_COST_MODEL_ID = "gpt-5.4-nano" as const;
-export const CHAT_LOW_COST_MODEL_REASONING_EFFORT = "low" as const;
-export const CHAT_MODEL_LABEL = "GPT-5.4" as const;
+export const CHAT_LOW_COST_MODEL_ID = "gpt-5.6-luna" as const;
+export const CHAT_LOW_COST_MODEL_REASONING_EFFORT = "high" as const;
+export const CHAT_COMPOSER_SUGGESTIONS_REASONING_EFFORT = "none" as const;
+export const CHAT_MODEL_LABEL = "GPT-5.6 Terra" as const;
 export const CHAT_PROVIDER_LABEL = "OpenAI" as const;
-export const CHAT_MODEL_REASONING_LABEL = `${CHAT_MODEL_REASONING_EFFORT.slice(0, 1).toUpperCase()}${CHAT_MODEL_REASONING_EFFORT.slice(1)}` as const;
+export const CHAT_MODEL_REASONING_LABEL = "XHigh" as const;
 export const CHAT_MODEL_BADGE_LABEL = `${CHAT_MODEL_LABEL} · ${CHAT_MODEL_REASONING_LABEL}` as const;
 
 /**
  * Maximum estimated token size of replayed chat history sent to the model.
  *
- * gpt-5.4 exposes a standard 272K-token context window (the ~1M window is an
- * experimental opt-in we do not enable). Token sizes are estimated from
- * character length, which under-counts dense/non-Latin/encrypted content
- * (Cyrillic/CJK and base64 reasoning tokenize far denser than 4 chars/token),
- * so this is a deliberately conservative cap rather than an exact token count.
+ * The configured GPT-5.6 Terra and Luna models support a 1.05M-token context
+ * window, but requests above 272K input tokens use long-context pricing. Token
+ * sizes are estimated from character length, which under-counts dense,
+ * non-Latin, and encrypted content. Cyrillic, CJK, and base64 reasoning tokenize
+ * far denser than 4 chars/token, so this is a deliberately conservative cap
+ * rather than an exact token count.
  *
- * We keep replayed history well under the 272K window so that, even when the
- * char-based estimate under-counts, the system prompt, the current turn (which
- * is reserved separately and never truncated), within-run tool-call/reasoning
- * growth, and model output still fit. Budgeting history at 110K leaves roughly
- * 160K of headroom under 272K for that under-counting plus output. Full history
- * stays in storage; only the provider input is windowed.
+ * We keep replayed history well under a 272K operating envelope so that, even
+ * when the char-based estimate under-counts, the system prompt, the current
+ * turn (which is reserved separately and never truncated), within-run
+ * tool-call/reasoning growth, and model output still fit. Budgeting history at
+ * 110K leaves roughly 160K of headroom under 272K for that under-counting plus
+ * output while avoiding the long-context pricing tier. Full history stays in
+ * storage; only the provider input is windowed.
  */
 export const CHAT_HISTORY_REPLAY_TOKEN_BUDGET = 110_000 as const;
 
 /**
- * Total gpt-5.4 context window in tokens. Exposed so within-run caps and
- * context-overflow retry logic can bound input against the real model window.
+ * Conservative operating envelope in tokens. This intentionally stays below
+ * the configured GPT-5.6 models' full context window to avoid crossing their
+ * 272K input pricing threshold during long tool-driven runs.
  */
-export const CHAT_MODEL_CONTEXT_WINDOW_TOKENS = 272_000 as const;
+export const CHAT_MODEL_OPERATING_CONTEXT_WINDOW_TOKENS = 272_000 as const;
 
 /**
  * Output headroom reserved on every model call via `max_output_tokens`.
  *
  * In the Responses API this cap covers reasoning tokens plus visible output
- * combined. With `medium` reasoning effort a long multi-tool turn can spend
- * tens of thousands of tokens on reasoning before any answer text streams, so
- * the cap is sized to stay comfortably above that worst-case reasoning budget.
- * If it fires, it should only ever fire after a substantial visible answer has
- * already streamed, which the loop then finishes gracefully with the partial
- * text instead of hard-failing the turn.
+ * combined. We preserve the existing 32K output envelope for predictable cost
+ * and latency with `xhigh` on the primary route and `high` on the low-cost
+ * route. If the cap fires after visible output has streamed, the loop finishes
+ * gracefully with the partial text instead of hard-failing the turn.
  *
  * `CHAT_HISTORY_REPLAY_TOKEN_BUDGET + CHAT_MAX_OUTPUT_TOKENS` (110K + 32K = 142K)
- * stays well under `CHAT_MODEL_CONTEXT_WINDOW_TOKENS` (272K), so the input plus
- * reserved output always fits the window with room to spare. Reserving output
- * headroom turns oversized input into a fast, deterministic pre-flight
- * `context_length_exceeded` rejection instead of a mid-generation failure ~30s
- * in, and bounds within-run growth against the remaining window so the loop
- * diverts into the summary turn before base input + continuation + reserved
- * output can exceed the window.
+ * stays well under `CHAT_MODEL_OPERATING_CONTEXT_WINDOW_TOKENS` (272K), so the
+ * input plus reserved output stays inside the configured operating envelope.
+ * Reserving output headroom turns oversized input into a fast, deterministic
+ * pre-flight `context_length_exceeded` rejection instead of a mid-generation
+ * failure ~30s in. It also bounds within-run growth against the remaining
+ * envelope so the loop diverts into the summary turn before base input,
+ * continuation, and reserved output can exceed it.
  */
 export const CHAT_MAX_OUTPUT_TOKENS = 32_000 as const;
 
@@ -100,22 +102,6 @@ export const CHAT_MODEL: ChatModelDef = {
   label: CHAT_MODEL_LABEL,
   vendor: CHAT_VENDOR,
 };
-
-export function parseChatRuntimeModelId(value: string): ChatRuntimeModelId {
-  if (value === CHAT_MODEL_ID || value === CHAT_LOW_COST_MODEL_ID) {
-    return value;
-  }
-
-  throw new Error(`Unsupported persisted chat model_id: ${value}`);
-}
-
-export function parseChatRuntimeReasoningEffort(value: string): ChatRuntimeReasoningEffort {
-  if (value === CHAT_MODEL_REASONING_EFFORT || value === CHAT_LOW_COST_MODEL_REASONING_EFFORT) {
-    return value;
-  }
-
-  throw new Error(`Unsupported persisted chat reasoning_effort: ${value}`);
-}
 
 /**
  * Returns backend-owned runtime configuration plus legacy client display metadata.
