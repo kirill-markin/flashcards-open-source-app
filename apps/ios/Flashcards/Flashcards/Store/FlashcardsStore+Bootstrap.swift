@@ -304,7 +304,14 @@ extension FlashcardsStore {
         self.homeSnapshot = resolvedHomeSnapshot
         self.globalErrorMessage = ""
         if shouldRestartActiveReviewLoad {
-            self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
+            if self.reviewQueue.isEmpty && self.presentedReviewCard == nil {
+                self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
+            } else {
+                let settledReviewState = self.reviewRuntime.settleInvalidatedReviewLoads(
+                    publishedState: self.currentReviewPublishedState()
+                )
+                self.applyReviewPublishedState(reviewState: settledReviewState)
+            }
         }
         if didTransitionWorkspace {
             self.clearScheduledNotificationStorageForWorkspaceSwitch(
