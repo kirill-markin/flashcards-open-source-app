@@ -127,10 +127,12 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         }
         assertRootItemsInOrder(
             itemTags = listOf(
-                settingsShareAppRowTag,
                 settingsFeedbackSectionTag,
                 settingsReviewAppRowTag,
                 settingsPrivateFeedbackRowTag,
+                settingsShareSectionTag,
+                settingsInviteFriendButtonTag,
+                settingsShareAppRowTag,
                 settingsAccountSectionTag
             )
         )

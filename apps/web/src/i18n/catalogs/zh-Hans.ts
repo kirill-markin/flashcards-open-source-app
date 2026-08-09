@@ -218,9 +218,9 @@ export const zhHansCatalog = {
       offlineEmpty: "离线时评分排行榜不可用。联网后即可查看排名。",
       unavailable: "评分排行榜暂时不可用。请稍后再来看看。",
       invite: {
-        actionLabel: "创建好友邀请",
-        actionText: "邀请好友",
-        title: "邀请好友",
+        actionLabel: "添加好友",
+        actionText: "添加好友",
+        title: "添加好友",
         body: "为排行榜创建一个私密好友链接。",
         friendNameLabel: "你在评分中看到的好友名称",
         expiryNote: "邀请链接会在 2 天后过期。",
@@ -381,8 +381,8 @@ export const zhHansCatalog = {
     title: "设置",
     subtitle: "管理账户、工作区、支持和高级 Web 设置。",
     inviteFriend: {
-      actionText: "邀请好友",
-      ariaLabel: "创建好友邀请",
+      actionText: "添加好友",
+      ariaLabel: "添加好友",
     },
     groups: {
       share: "分享",

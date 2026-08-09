@@ -129,7 +129,7 @@
 "common.unavailable" = "Nicht verfügbar";
 
 "settings.title" = "Einstellungen";
-"settings.inviteFriend.button" = "Freund einladen";
+"settings.inviteFriend.button" = "Freund hinzufügen";
 "settings.section.share" = "Teilen";
 "settings.row.shareApp" = "Flashcards teilen";
 "settings.section.feedback" = "Feedback";

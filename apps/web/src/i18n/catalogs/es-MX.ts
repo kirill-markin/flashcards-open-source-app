@@ -218,9 +218,9 @@ const esMxCatalog: TranslationCatalog = {
       offlineEmpty: "La tabla por calificaciones no está disponible sin conexión. Conéctate para ver las posiciones.",
       unavailable: "La tabla por calificaciones no está disponible por ahora. Vuelve más tarde.",
       invite: {
-        actionLabel: "Crear invitación de amigo",
-        actionText: "Invitar a un amigo",
-        title: "Invitar a un amigo",
+        actionLabel: "Agregar amigo",
+        actionText: "Agregar amigo",
+        title: "Agregar a un amigo",
         body: "Crea un enlace privado de amigo para la tabla de posiciones.",
         friendNameLabel: "Nombre del amigo en tus calificaciones",
         expiryNote: "Los enlaces de invitación vencen después de 2 días.",
@@ -381,8 +381,8 @@ const esMxCatalog: TranslationCatalog = {
     title: "Configuración",
     subtitle: "Administra la cuenta, el espacio de trabajo, el soporte y la configuración web avanzada.",
     inviteFriend: {
-      actionText: "Invitar a un amigo",
-      ariaLabel: "Crear invitación de amigo",
+      actionText: "Agregar amigo",
+      ariaLabel: "Agregar amigo",
     },
     groups: {
       share: "Compartir",

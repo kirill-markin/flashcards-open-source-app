@@ -129,7 +129,7 @@
 "common.unavailable" = "Недоступно";
 
 "settings.title" = "Настройки";
-"settings.inviteFriend.button" = "Пригласить друга";
+"settings.inviteFriend.button" = "Добавить друга";
 "settings.section.share" = "Поделиться";
 "settings.row.shareApp" = "Поделиться Flashcards";
 "settings.section.feedback" = "Обратная связь";

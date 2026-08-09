@@ -3252,55 +3252,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "دعوة صديق"
+            "value" : "إضافة صديق"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Freund einladen"
+            "value" : "Freund hinzufügen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invite Friend"
+            "value" : "Add Friend"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invitar amigo"
+            "value" : "Añadir amigo"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invitar amigo"
+            "value" : "Agregar amigo"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "दोस्त को आमंत्रित करें"
+            "value" : "दोस्त जोड़ें"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "友達を招待"
+            "value" : "友達を追加"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Пригласить друга"
+            "value" : "Добавить друга"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "邀请朋友"
+            "value" : "添加好友"
           }
         }
       }
@@ -5140,55 +5140,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "دعوة صديق"
+            "value" : "إضافة صديق"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Freund einladen"
+            "value" : "Freund hinzufügen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invite Friend"
+            "value" : "Add Friend"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invitar amigo"
+            "value" : "Añadir amigo"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invitar amigo"
+            "value" : "Agregar amigo"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "दोस्त को आमंत्रित करें"
+            "value" : "दोस्त जोड़ें"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "友達を招待"
+            "value" : "友達を追加"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Пригласить друга"
+            "value" : "Добавить друга"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "邀请朋友"
+            "value" : "添加好友"
           }
         }
       }
@@ -5199,55 +5199,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "دعوة صديق"
+            "value" : "إضافة صديق"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Freund einladen"
+            "value" : "Freund hinzufügen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invite a friend"
+            "value" : "Add a friend"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invitar a un amigo"
+            "value" : "Añadir amigo"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invitar a un amigo"
+            "value" : "Agregar amigo"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "दोस्त को आमंत्रित करें"
+            "value" : "दोस्त जोड़ें"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "友達を招待"
+            "value" : "友達を追加"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Пригласить друга"
+            "value" : "Добавить друга"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "邀请朋友"
+            "value" : "添加好友"
           }
         }
       }

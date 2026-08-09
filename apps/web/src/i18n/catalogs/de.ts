@@ -218,9 +218,9 @@ const deCatalog: TranslationCatalog = {
       offlineEmpty: "Die Bewertungs-Bestenliste ist offline nicht verfügbar. Stelle eine Verbindung her, um Platzierungen zu sehen.",
       unavailable: "Die Bewertungs-Bestenliste ist gerade nicht verfügbar. Schau später wieder vorbei.",
       invite: {
-        actionLabel: "Freundes-Einladung erstellen",
-        actionText: "Freund einladen",
-        title: "Freund einladen",
+        actionLabel: "Freund hinzufügen",
+        actionText: "Freund hinzufügen",
+        title: "Freund hinzufügen",
         body: "Erstelle einen privaten Freundeslink für die Bestenliste.",
         friendNameLabel: "Freundesname in deinen Wertungen",
         expiryNote: "Einladungslinks laufen nach 2 Tagen ab.",
@@ -381,8 +381,8 @@ const deCatalog: TranslationCatalog = {
     title: "Einstellungen",
     subtitle: "Verwalte Konto, Arbeitsbereich, Support und erweiterte Web-Einstellungen.",
     inviteFriend: {
-      actionText: "Freund einladen",
-      ariaLabel: "Freundes-Einladung erstellen",
+      actionText: "Freund hinzufügen",
+      ariaLabel: "Freund hinzufügen",
     },
     groups: {
       share: "Teilen",
