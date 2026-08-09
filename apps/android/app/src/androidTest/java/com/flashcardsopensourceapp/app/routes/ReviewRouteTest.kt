@@ -153,6 +153,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                             "ReviewRouteTest does not load managed media. mediaAssetId=$mediaAssetId"
                         )
                     },
+                    onConsumeRelocationTarget = { _, _ -> null },
                     onScreenVisible = {
                         screenVisibleCalls += 1
                     },
@@ -465,6 +466,7 @@ private fun ReviewRouteTestContent(
                     "ReviewRouteTest does not load managed media. mediaAssetId=$mediaAssetId"
                 )
             },
+            onConsumeRelocationTarget = { _, _ -> null },
             onRevealAnswer = {},
             onRateAgain = {},
             onRateHard = {},
