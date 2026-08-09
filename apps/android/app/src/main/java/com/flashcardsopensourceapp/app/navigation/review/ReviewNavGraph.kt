@@ -180,6 +180,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 },
                 onLoadManagedMediaFile = reviewViewModel::loadManagedMediaFile,
                 onLoadManagedMediaDownloadUrl = reviewViewModel::loadManagedMediaDownloadUrl,
+                onConsumeRelocationTarget = reviewViewModel::consumeReviewRelocationTarget,
                 onRevealAnswer = reviewViewModel::revealAnswer,
                 onRateAgain = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.AGAIN) },
                 onRateHard = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.HARD) },

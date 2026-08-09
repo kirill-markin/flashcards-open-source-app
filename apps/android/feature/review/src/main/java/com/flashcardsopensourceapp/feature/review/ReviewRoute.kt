@@ -65,6 +65,7 @@ fun ReviewRoute(
     onSwitchToAllCards: () -> Unit,
     onLoadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
+    onConsumeRelocationTarget: (String?, Boolean) -> ReviewRelocationTarget?,
     onRevealAnswer: () -> Unit,
     onRateAgain: () -> Unit,
     onRateHard: () -> Unit,
@@ -288,6 +289,7 @@ fun ReviewRoute(
                 onSwitchToAllCards = onSwitchToAllCards,
                 onLoadManagedMediaFile = onLoadManagedMediaFile,
                 onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
+                onConsumeRelocationTarget = onConsumeRelocationTarget,
                 onToggleFrontSpeech = {
                     uiState.preparedCurrentCard?.let { currentCard ->
                         reviewSpeechController.toggleSpeech(
