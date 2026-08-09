@@ -592,6 +592,7 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
     reviewReactionLottieLoadAnimationMock.mockReset();
     reviewReactionLottieLoadAnimationMock.mockImplementation(() => makeReviewReactionLottieAnimationItemForTest());
     vi.stubGlobal("fetch", vi.fn(fetchReviewReactionLottieAssetForTest));
+    HTMLElement.prototype.scrollIntoView = vi.fn();
 
     state = createDefaultReviewScreenTestState();
     container = document.createElement("div");
