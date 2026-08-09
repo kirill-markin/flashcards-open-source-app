@@ -77,7 +77,7 @@ async function createChatRunFixture(
          reasoning_effort, timezone, turn_input, worker_claimed_at,
          worker_heartbeat_at, started_at
        ) VALUES (
-         $1, $2, $3, 'running', $4, 'gpt-5.4', 'medium', 'Europe/Madrid',
+         $1, $2, $3, 'running', $4, 'gpt-5.6-terra', 'xhigh', 'Europe/Madrid',
          '[]'::jsonb, $5, $5, $5
        )
        RETURNING worker_claimed_at::text AS claim_token`,

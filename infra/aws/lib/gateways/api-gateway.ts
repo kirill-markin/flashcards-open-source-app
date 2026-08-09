@@ -871,6 +871,10 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     cors: createChatLiveFunctionUrlCorsOptions(allowedOrigins),
   });
 
+  // Update the worker before the API can persist runs with a new model
+  // configuration. The worker resolves execution settings from the stable
+  // ai_cost_mode role, so it can claim runs prepared by the previous API build.
+  backendFn.node.addDependency(chatWorkerFn);
   backendFn.addEnvironment("CHAT_WORKER_FUNCTION_NAME", chatWorkerFn.functionName);
   backendFn.addEnvironment("CHAT_LIVE_URL", chatLiveFunctionUrl.url);
   chatWorkerFn.grantInvoke(backendFn);

@@ -76,8 +76,8 @@ test("startOpenAILoopWithDeps uses the persisted runtime model and reasoning eff
 
   await startOpenAILoopWithDeps(
     createParams({
-      modelId: "gpt-5.4-nano",
-      reasoningEffort: "low",
+      modelId: "gpt-5.6-luna",
+      reasoningEffort: "high",
     }),
     async (): Promise<void> => undefined,
     {
@@ -96,8 +96,8 @@ test("startOpenAILoopWithDeps uses the persisted runtime model and reasoning eff
   );
 
   assert.equal(requests.length, 1);
-  assert.equal(requests[0].model, "gpt-5.4-nano");
-  assert.equal(requests[0].reasoning?.effort, "low");
+  assert.equal(requests[0].model, "gpt-5.6-luna");
+  assert.equal(requests[0].reasoning?.effort, "high");
   assert.deepEqual((requests[0]?.tools ?? []).flatMap(
     (tool) => tool.type === "function" ? [tool.name] : [],
   ), ["sql"]);

@@ -258,11 +258,11 @@ test("runPersistedChatSessionWithDeps passes low-cost model and policy metadata 
   const result = await runPersistedChatSessionWithDeps(
     {
       ...baseParams,
-      modelId: "gpt-5.4-nano",
-      reasoningEffort: "low",
+      modelId: "gpt-5.6-luna",
+      reasoningEffort: "high",
       diagnostics: {
         ...baseParams.diagnostics,
-        model: "gpt-5.4-nano",
+        model: "gpt-5.6-luna",
         aiCostMode: "low_cost",
         chatTurnsLast7d: 20,
         goodReviewDaysLast7d: 1,
@@ -291,10 +291,10 @@ test("runPersistedChatSessionWithDeps passes low-cost model and policy metadata 
   );
 
   assert.equal(result.outcome, "completed");
-  assert.equal(observedModel, "gpt-5.4-nano");
+  assert.equal(observedModel, "gpt-5.6-luna");
   assert.equal(observedAiCostMode, "low_cost");
   assert.equal(observedChatTurnsLast7d, 20);
   assert.equal(observedGoodReviewDaysLast7d, 1);
-  assert.equal(openAIModel, "gpt-5.4-nano");
-  assert.equal(openAIReasoningEffort, "low");
+  assert.equal(openAIModel, "gpt-5.6-luna");
+  assert.equal(openAIReasoningEffort, "high");
 });

@@ -17,7 +17,7 @@ type SessionResponsePreferences = Readonly<{
 type LegacyChatConfigResponseValue = Readonly<{
   provider: Readonly<{ id: "openai"; label: string }>;
   model: Readonly<{ id: string; label: string; badgeLabel: string }>;
-  reasoning: Readonly<{ effort: "medium"; label: string }>;
+  reasoning: Readonly<{ effort: "xhigh"; label: string }>;
   features: Readonly<{
     modelPickerEnabled: boolean;
     dictationEnabled: boolean;
@@ -169,13 +169,13 @@ export function createLegacyChatConfigResponseValue(): LegacyChatConfigResponseV
       label: "OpenAI",
     },
     model: {
-      id: "gpt-5",
-      label: "GPT-5",
-      badgeLabel: "Fast",
+      id: "gpt-5.6-terra",
+      label: "GPT-5.6 Terra",
+      badgeLabel: "GPT-5.6 Terra · XHigh",
     },
     reasoning: {
-      effort: "medium",
-      label: "Balanced",
+      effort: "xhigh",
+      label: "XHigh",
     },
     features: {
       modelPickerEnabled: true,

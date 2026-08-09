@@ -26,7 +26,10 @@ import {
 } from "./repository";
 import type { ChatRunDiagnostics, ClaimedChatRun } from "./types";
 
-type ChatRunCostDiagnostics = Pick<ChatRunDiagnostics, "aiCostMode" | "chatTurnsLast7d" | "goodReviewDaysLast7d">;
+type ChatRunCostDiagnostics = Pick<
+  ChatRunDiagnostics,
+  "model" | "aiCostMode" | "chatTurnsLast7d" | "goodReviewDaysLast7d"
+>;
 
 function findAssistantItem(
   messages: ReadonlyArray<PersistedChatMessageItem>,
@@ -215,7 +218,7 @@ export function createDiagnostics(
     userId: scope.userId,
     workspaceId: scope.workspaceId,
     sessionId: run.session_id,
-    model: run.model_id,
+    model: costDiagnostics.model,
     aiCostMode: costDiagnostics.aiCostMode,
     chatTurnsLast7d: costDiagnostics.chatTurnsLast7d,
     goodReviewDaysLast7d: costDiagnostics.goodReviewDaysLast7d,
