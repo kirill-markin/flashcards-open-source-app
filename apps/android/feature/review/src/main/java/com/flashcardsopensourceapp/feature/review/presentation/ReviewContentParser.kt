@@ -61,10 +61,34 @@ fun classifyReviewContentPresentation(text: String): ReviewContentPresentationMo
     return ReviewContentPresentationMode.SHORT_PLAIN
 }
 
-fun makeReviewRenderedContent(
+internal fun prepareReviewContent(
     text: String,
     mediaAssetsById: Map<String, MediaAsset>
+): PreparedReviewContent {
+    val mathBlocks: List<ReviewMathBlock> = extractReviewMathBlocks(markdown = text)
+    val renderedContent: ReviewRenderedContent = makeReviewRenderedContent(
+        text = text,
+        mediaAssetsById = mediaAssetsById,
+        mathBlocks = mathBlocks
+    )
+    return PreparedReviewContent(
+        renderedContent = renderedContent,
+        speakableText = makeReviewSpeakableText(mathBlocks = mathBlocks)
+    )
+}
+
+private fun makeReviewRenderedContent(
+    text: String,
+    mediaAssetsById: Map<String, MediaAsset>,
+    mathBlocks: List<ReviewMathBlock>
 ): ReviewRenderedContent {
+    if (mathBlocks.any { block -> block is ReviewMathBlock.Formula }) {
+        return makeReviewMathMarkdownContent(
+            mathBlocks = mathBlocks,
+            mediaAssetsById = mediaAssetsById
+        )
+    }
+
     val managedMarkdown: ReviewRenderedContent.ManagedMarkdown? = makeReviewManagedMarkdownContent(
         text = text,
         mediaAssetsById = mediaAssetsById
@@ -73,10 +97,57 @@ fun makeReviewRenderedContent(
         return managedMarkdown
     }
 
+    val plainText: String = (mathBlocks.single() as ReviewMathBlock.Markdown).normalizedMarkdown
     return when (classifyReviewContentPresentation(text = text)) {
-        ReviewContentPresentationMode.SHORT_PLAIN -> ReviewRenderedContent.ShortPlain(text = text)
-        ReviewContentPresentationMode.PARAGRAPH_PLAIN -> ReviewRenderedContent.ParagraphPlain(text = text)
+        ReviewContentPresentationMode.SHORT_PLAIN -> ReviewRenderedContent.ShortPlain(text = plainText)
+        ReviewContentPresentationMode.PARAGRAPH_PLAIN -> {
+            ReviewRenderedContent.ParagraphPlain(text = plainText)
+        }
         ReviewContentPresentationMode.RICH -> ReviewRenderedContent.Markdown(markdown = text)
+    }
+}
+
+private fun makeReviewMathMarkdownContent(
+    mathBlocks: List<ReviewMathBlock>,
+    mediaAssetsById: Map<String, MediaAsset>
+): ReviewRenderedContent.ManagedMarkdown {
+    val renderedBlocks: List<ReviewManagedMarkdownBlock> = buildList {
+        mathBlocks.forEach { block ->
+            when (block) {
+                is ReviewMathBlock.Markdown -> addAll(
+                    reviewManagedMarkdownBlocks(
+                        text = block.markdown,
+                        mediaAssetsById = mediaAssetsById
+                    )
+                )
+
+                is ReviewMathBlock.Formula -> add(
+                    ReviewManagedMarkdownBlock.Formula(
+                        source = block.source,
+                        delimitedSource = block.delimitedSource
+                    )
+                )
+            }
+        }
+    }
+    return ReviewRenderedContent.ManagedMarkdown(blocks = renderedBlocks)
+}
+
+private fun reviewManagedMarkdownBlocks(
+    text: String,
+    mediaAssetsById: Map<String, MediaAsset>
+): List<ReviewManagedMarkdownBlock> {
+    val managedContent: ReviewRenderedContent.ManagedMarkdown? = makeReviewManagedMarkdownContent(
+        text = text,
+        mediaAssetsById = mediaAssetsById
+    )
+    if (managedContent != null) {
+        return managedContent.blocks
+    }
+    return if (text.isBlank()) {
+        emptyList()
+    } else {
+        listOf(ReviewManagedMarkdownBlock.Markdown(markdown = text))
     }
 }
 

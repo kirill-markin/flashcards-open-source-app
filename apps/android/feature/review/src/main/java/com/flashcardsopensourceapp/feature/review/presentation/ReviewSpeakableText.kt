@@ -1,6 +1,24 @@
 package com.flashcardsopensourceapp.feature.review
 
-fun makeReviewSpeakableText(text: String): String {
+internal fun makeReviewSpeakableText(
+    mathBlocks: List<ReviewMathBlock>
+): String {
+    if (mathBlocks.any { block -> block is ReviewMathBlock.Formula }) {
+        return mathBlocks.mapNotNull { block ->
+            when (block) {
+                is ReviewMathBlock.Formula -> block.source
+                is ReviewMathBlock.Markdown -> makeReviewSpeakableTextWithoutMath(
+                    text = block.normalizedMarkdown
+                ).ifEmpty { null }
+            }
+        }.joinToString(separator = "\n")
+    }
+
+    val markdownBlock: ReviewMathBlock.Markdown = mathBlocks.single() as ReviewMathBlock.Markdown
+    return makeReviewSpeakableTextWithoutMath(text = markdownBlock.normalizedMarkdown)
+}
+
+private fun makeReviewSpeakableTextWithoutMath(text: String): String {
     if (text.trim().isEmpty()) {
         return ""
     }

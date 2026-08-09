@@ -12,6 +12,7 @@ lottieCompose = "6.7.1"
 coil = "3.5.0"
 # Android 14: pin for ArrayList.removeLast() incompatibility; upgrade once the renderer uses org.jetbrains:markdown 0.7.9+: https://github.com/JetBrains/markdown/issues/197
 markdownRenderer = "0.41.0"
+ratex = "0.1.14"
 room = "2.8.4"
 work = "2.11.2"
 adaptive = "1.2.0"
@@ -57,6 +58,7 @@ coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp"
 markdown-renderer = { group = "com.mikepenz", name = "multiplatform-markdown-renderer", version.ref = "markdownRenderer" }
 markdown-renderer-m3 = { group = "com.mikepenz", name = "multiplatform-markdown-renderer-m3", version.ref = "markdownRenderer" }
 markdown-renderer-coil3 = { group = "com.mikepenz", name = "multiplatform-markdown-renderer-coil3", version.ref = "markdownRenderer" }
+ratex-android = { group = "io.github.erweixin", name = "ratex-android", version.ref = "ratex" }
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }

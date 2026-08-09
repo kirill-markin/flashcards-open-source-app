@@ -294,7 +294,7 @@ fun ReviewRoute(
                     uiState.preparedCurrentCard?.let { currentCard ->
                         reviewSpeechController.toggleSpeech(
                             side = ReviewSpeechSide.FRONT,
-                            sourceText = currentCard.card.frontText,
+                            speakableText = currentCard.frontSpeakableText,
                             fallbackLanguageTag = reviewSpeechFallbackLanguageTag,
                             onError = { message ->
                                 speechErrorMessage = message
@@ -306,7 +306,7 @@ fun ReviewRoute(
                     uiState.preparedCurrentCard?.let { currentCard ->
                         reviewSpeechController.toggleSpeech(
                             side = ReviewSpeechSide.BACK,
-                            sourceText = currentCard.card.backText,
+                            speakableText = currentCard.backSpeakableText,
                             fallbackLanguageTag = reviewSpeechFallbackLanguageTag,
                             onError = { message ->
                                 speechErrorMessage = message
