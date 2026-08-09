@@ -129,30 +129,6 @@ fun SettingsRoute(
         ) {
             item {
                 SettingsRootSectionTitle(
-                    title = stringResource(R.string.settings_section_share),
-                    testTag = settingsShareSectionTag
-                )
-            }
-
-            item {
-                SettingsInviteFriendButton(
-                    isEnabled = uiState.friendInviteAvailability != SettingsFriendInviteAvailability.LOADING,
-                    onClick = onOpenFriendInvite
-                )
-            }
-
-            item {
-                SettingsRootRow(
-                    title = stringResource(R.string.settings_share_app_title),
-                    summary = stringResource(R.string.settings_share_app_summary),
-                    attentionCount = null,
-                    testTag = settingsShareAppRowTag,
-                    onClick = onShareApp
-                )
-            }
-
-            item {
-                SettingsRootSectionTitle(
                     title = stringResource(R.string.settings_section_feedback),
                     testTag = settingsFeedbackSectionTag
                 )
@@ -175,6 +151,30 @@ fun SettingsRoute(
                     attentionCount = null,
                     testTag = settingsPrivateFeedbackRowTag,
                     onClick = onOpenFeedback
+                )
+            }
+
+            item {
+                SettingsRootSectionTitle(
+                    title = stringResource(R.string.settings_section_share),
+                    testTag = settingsShareSectionTag
+                )
+            }
+
+            item {
+                SettingsInviteFriendButton(
+                    isEnabled = uiState.friendInviteAvailability != SettingsFriendInviteAvailability.LOADING,
+                    onClick = onOpenFriendInvite
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_share_app_title),
+                    summary = stringResource(R.string.settings_share_app_summary),
+                    attentionCount = null,
+                    testTag = settingsShareAppRowTag,
+                    onClick = onShareApp
                 )
             }
 
