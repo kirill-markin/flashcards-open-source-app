@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -311,14 +312,18 @@ fun ReviewRoute(
                         )
                     }
                 },
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = innerPadding.calculateTopPadding() + 16.dp,
-                    end = 16.dp,
+                modifier = Modifier.padding(
+                    top = innerPadding.calculateTopPadding(),
                     bottom = innerPadding.calculateBottomPadding() + reviewContentBottomPadding(
                         hasCurrentCard = uiState.preparedCurrentCard != null,
                         isAnswerVisible = uiState.isAnswerVisible
                     )
+                ),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = 16.dp,
+                    end = 16.dp,
+                    bottom = 0.dp
                 )
             )
 
