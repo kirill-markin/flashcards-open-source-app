@@ -128,9 +128,18 @@ final class ReviewBackgroundSubmissionSettlementTests: ProgressStoreTestCase {
         let staleCountsTask = try XCTUnwrap(store.reviewRuntime.state.activeReviewCountsTask)
         await firstHeadLoadGate.waitUntilEntered()
         await firstCountsLoadGate.waitUntilEntered()
+        XCTAssertTrue(store.reviewQueue.isEmpty)
+        XCTAssertNil(store.presentedReviewCard)
+        XCTAssertTrue(store.isReviewHeadLoading)
+        XCTAssertTrue(store.isReviewCountsLoading)
 
         await submissionGate.release()
         await submissionTask.value
+
+        XCTAssertTrue(store.reviewQueue.isEmpty)
+        XCTAssertNil(store.presentedReviewCard)
+        XCTAssertTrue(store.isReviewHeadLoading)
+        XCTAssertTrue(store.isReviewCountsLoading)
 
         await freshHeadLoadGate.waitUntilEntered()
         await freshCountsLoadGate.waitUntilEntered()
@@ -153,6 +162,166 @@ final class ReviewBackgroundSubmissionSettlementTests: ProgressStoreTestCase {
 
         XCTAssertEqual(store.currentReviewPublishedState(), freshState)
     }
+
+    @MainActor
+    func testLocalSubmissionSettlementPreservesPresentedCardAndRebasesNewlyDueCardBehindIt() async throws {
+        let database = try self.makeDatabase()
+        let bootstrapSnapshot = try database.loadBootstrapSnapshot()
+        let workspaceId = bootstrapSnapshot.workspace.workspaceId
+        let now = Date()
+        let cardASeed = try self.addDueReviewScheduleCard(
+            database: database,
+            workspaceId: workspaceId,
+            dueAt: now.addingTimeInterval(-180)
+        )
+        let cardBSeed = try self.addDueReviewScheduleCard(
+            database: database,
+            workspaceId: workspaceId,
+            dueAt: now.addingTimeInterval(-120)
+        )
+        let cardCSeed = try self.addDueReviewScheduleCard(
+            database: database,
+            workspaceId: workspaceId,
+            dueAt: now.addingTimeInterval(3_600)
+        )
+        let initialCards = try database.loadActiveCards(workspaceId: workspaceId)
+        let cardA = try XCTUnwrap(initialCards.first { card in
+            card.cardId == cardASeed.cardId
+        })
+        let cardB = try XCTUnwrap(initialCards.first { card in
+            card.cardId == cardBSeed.cardId
+        })
+        let submissionGate = ReviewReconcileAsyncGate()
+        let staleChunkGate = ReviewReconcileAsyncGate()
+        let freshReadGate = ReviewReconcileAsyncGate()
+        let suiteName = "review-submit-preserve-presented-\(UUID().uuidString.lowercased())"
+        let userDefaults = UserDefaults(suiteName: suiteName)!
+        let credentialStore = CloudCredentialStore(service: "tests-\(suiteName)-cloud-auth")
+        let guestCredentialStore = GuestCloudCredentialStore(
+            service: "tests-\(suiteName)-guest-auth",
+            bundle: .main,
+            userDefaults: userDefaults
+        )
+        defer {
+            userDefaults.removePersistentDomain(forName: suiteName)
+            try? credentialStore.clearCredentials()
+            try? guestCredentialStore.clearGuestSession()
+        }
+
+        let submissionExecutor = GatedDatabaseReviewSubmissionExecutor(
+            databaseURL: database.databaseURL,
+            gate: submissionGate
+        )
+        let store = self.makeReviewStoreForIdentityTest(
+            database: database,
+            userDefaults: userDefaults,
+            credentialStore: credentialStore,
+            guestCredentialStore: guestCredentialStore,
+            reviewSubmissionExecutor: submissionExecutor,
+            reviewHeadLoader: { databaseURL, workspaceId, resolvedReviewFilter, reviewQueryDefinition, now, limit in
+                XCTFail("Local submission settlement must not start a blocking review head load")
+                await freshReadGate.wait()
+                return try await defaultReviewHeadLoader(
+                    databaseURL: databaseURL,
+                    workspaceId: workspaceId,
+                    resolvedReviewFilter: resolvedReviewFilter,
+                    reviewQueryDefinition: reviewQueryDefinition,
+                    now: now,
+                    seedQueueSize: limit
+                )
+            },
+            reviewCountsLoader: defaultReviewCountsLoader,
+            reviewQueueChunkLoader: { databaseURL, workspaceId, reviewQueryDefinition, excludedCardIds, now, limit in
+                await staleChunkGate.wait()
+                try Task.checkCancellation()
+                return try await defaultReviewQueueChunkLoader(
+                    databaseURL: databaseURL,
+                    workspaceId: workspaceId,
+                    reviewQueryDefinition: reviewQueryDefinition,
+                    excludedCardIds: excludedCardIds,
+                    now: now,
+                    chunkSize: limit
+                )
+            },
+            reviewQueueWindowLoader: { databaseURL, workspaceId, reviewQueryDefinition, now, limit in
+                await freshReadGate.wait()
+                return try await defaultReviewQueueWindowLoader(
+                    databaseURL: databaseURL,
+                    workspaceId: workspaceId,
+                    reviewQueryDefinition: reviewQueryDefinition,
+                    now: now,
+                    limit: limit
+                )
+            },
+            reviewTimelinePageLoader: defaultReviewTimelinePageLoader
+        )
+        defer {
+            store.shutdownForTests()
+        }
+        store.reviewRuntime.cancelForAccountDeletion()
+        store.workspace = bootstrapSnapshot.workspace
+        store.schedulerSettings = bootstrapSnapshot.schedulerSettings
+        store.cards = initialCards
+        store.decks = []
+        store.applyReviewPublishedState(
+            reviewState: ReviewQueuePublishedState(
+                selectedReviewFilter: .allCards,
+                reviewQueue: [cardA, cardB],
+                presentedReviewCard: cardA,
+                reviewCounts: ReviewCounts(dueCount: 2, totalCount: 3),
+                isReviewHeadLoading: false,
+                isReviewCountsLoading: false,
+                isReviewQueueChunkLoading: false,
+                pendingReviewCardIds: [],
+                reviewSubmissionFailure: nil
+            )
+        )
+        store.reviewRuntime.state.hasMoreReviewQueueCards = true
+
+        try store.enqueueReviewSubmission(cardId: cardA.cardId, rating: .good)
+        let firstSubmissionTask = try XCTUnwrap(store.reviewRuntime.state.activeReviewProcessorTask)
+        let staleChunkTask = try XCTUnwrap(store.reviewRuntime.state.activeReviewQueueChunkTask)
+        await submissionGate.waitUntilEntered()
+        await staleChunkGate.waitUntilEntered()
+        XCTAssertEqual(store.presentedReviewCard?.cardId, cardB.cardId)
+
+        try self.moveReviewScheduleCardDueAt(
+            database: database,
+            workspaceId: workspaceId,
+            cardId: cardCSeed.cardId,
+            dueAt: now.addingTimeInterval(-60)
+        )
+        await submissionGate.release()
+        await freshReadGate.waitUntilEntered()
+
+        XCTAssertEqual(store.presentedReviewCard?.cardId, cardB.cardId)
+        XCTAssertEqual(store.reviewQueue.map(\.cardId), [cardA.cardId, cardB.cardId])
+        XCTAssertEqual(store.reviewCounts, ReviewCounts(dueCount: 2, totalCount: 3))
+        XCTAssertEqual(store.pendingReviewCardIds, [cardA.cardId])
+        XCTAssertNil(store.reviewSubmissionFailure)
+        XCTAssertFalse(store.isReviewQueueChunkLoading)
+
+        await freshReadGate.release()
+        await firstSubmissionTask.value
+
+        XCTAssertEqual(store.presentedReviewCard?.cardId, cardB.cardId)
+        XCTAssertEqual(store.effectiveReviewQueue.map(\.cardId), [cardB.cardId, cardCSeed.cardId])
+        XCTAssertFalse(store.pendingReviewCardIds.contains(cardA.cardId))
+
+        await staleChunkGate.release()
+        await staleChunkTask.value
+        XCTAssertEqual(store.presentedReviewCard?.cardId, cardB.cardId)
+        XCTAssertEqual(store.effectiveReviewQueue.map(\.cardId), [cardB.cardId, cardCSeed.cardId])
+
+        try store.enqueueReviewSubmission(cardId: cardB.cardId, rating: .good)
+        let secondSubmissionTask = try XCTUnwrap(store.reviewRuntime.state.activeReviewProcessorTask)
+        XCTAssertEqual(store.presentedReviewCard?.cardId, cardCSeed.cardId)
+        await secondSubmissionTask.value
+
+        XCTAssertEqual(store.presentedReviewCard?.cardId, cardCSeed.cardId)
+        XCTAssertEqual(store.effectiveReviewQueue.first?.cardId, cardCSeed.cardId)
+    }
+
     @MainActor
     func testSchedulerWriteSnapshotReadFailurePreservesPublishedReviewState() throws {
         let database = try self.makeDatabase()
@@ -710,4 +879,3 @@ private actor GatedDatabaseReviewSubmissionExecutor: ReviewSubmissionExecuting {
         return try await self.executor.submitReview(workspaceId: workspaceId, submission: submission)
     }
 }
-
