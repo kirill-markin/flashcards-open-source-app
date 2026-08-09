@@ -16,7 +16,7 @@ private struct ReviewMathSourceLine {
     let separator: String
 }
 
-private struct ReviewMathFence {
+struct ReviewMathFence {
     let marker: Character
     let minimumLength: Int
 }
@@ -270,7 +270,7 @@ private func makeReviewMathSourceLines(text: String) -> [ReviewMathSourceLine] {
     }
 }
 
-private func reviewMathFence(line: String) -> ReviewMathFence? {
+func reviewMathFence(line: String) -> ReviewMathFence? {
     let content = line.dropFirst(min(reviewMathLeadingSpaceCount(line: line), 3))
     guard let marker = content.first, marker == "`" || marker == "~" else {
         return nil
