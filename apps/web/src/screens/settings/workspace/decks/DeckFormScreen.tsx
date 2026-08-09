@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type ReactElement } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useAppData } from "../../../../appData";
 import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
@@ -16,6 +16,12 @@ type FormState = Readonly<{
   tags: ReadonlyArray<string>;
 }>;
 
+type DeckEditorIdentity = Readonly<{
+  deckId: string | null;
+  mode: "create" | "edit";
+  workspaceId: string;
+}>;
+
 function createInitialFormState(): FormState {
   return {
     name: "",
@@ -25,6 +31,17 @@ function createInitialFormState(): FormState {
 
 function hasDeckRules(formState: FormState): boolean {
   return formState.tags.length > 0;
+}
+
+function areDeckEditorIdentitiesEqual(
+  left: DeckEditorIdentity | null,
+  right: DeckEditorIdentity | null,
+): boolean {
+  return left !== null
+    && right !== null
+    && left.deckId === right.deckId
+    && left.mode === right.mode
+    && left.workspaceId === right.workspaceId;
 }
 
 export function DeckFormScreen(): ReactElement {
@@ -47,7 +64,11 @@ export function DeckFormScreen(): ReactElement {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [screenErrorMessage, setScreenErrorMessage] = useState<string>("");
+  const [refreshErrorMessage, setRefreshErrorMessage] = useState<string>("");
   const [formErrorMessage, setFormErrorMessage] = useState<string>("");
+  const editorIdentityRef = useRef<DeckEditorIdentity | null>(null);
+  const renderedEditorIdentityRef = useRef<DeckEditorIdentity | null>(null);
+  const loadRequestSequenceRef = useRef<number>(0);
   const observationIdentityRef = useRef<Readonly<{
     userId: string | null;
     installationId: string | null;
@@ -66,40 +87,106 @@ export function DeckFormScreen(): ReactElement {
     userId: session?.userId ?? null,
     installationId: cloudSettings?.installationId ?? null,
   };
+  renderedEditorIdentityRef.current = activeWorkspace === null
+    ? null
+    : {
+      deckId: deckId ?? null,
+      mode: isCreateMode ? "create" : "edit",
+      workspaceId: activeWorkspace.workspaceId,
+    };
+  const previousRenderedEditorIdentityRef = useRef<DeckEditorIdentity | null>(
+    renderedEditorIdentityRef.current,
+  );
+  const isEditorInitialized = areDeckEditorIdentitiesEqual(
+    editorIdentityRef.current,
+    renderedEditorIdentityRef.current,
+  );
 
-  const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
+  useLayoutEffect(() => {
+    const previousEditorIdentity = previousRenderedEditorIdentityRef.current;
+    const nextEditorIdentity = renderedEditorIdentityRef.current;
+    const isSameEditorIdentity = previousEditorIdentity === null
+      ? nextEditorIdentity === null
+      : areDeckEditorIdentitiesEqual(previousEditorIdentity, nextEditorIdentity);
+    if (isSameEditorIdentity) {
+      return;
+    }
+
+    previousRenderedEditorIdentityRef.current = nextEditorIdentity;
+    editorIdentityRef.current = null;
+    loadRequestSequenceRef.current += 1;
+    setFormState(createInitialFormState());
+    setTagSuggestions([]);
     setIsLoading(true);
     setScreenErrorMessage("");
+    setRefreshErrorMessage("");
     setFormErrorMessage("");
+  }, [activeWorkspace?.workspaceId, deckId, isCreateMode]);
+
+  const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
+    const requestSequence = loadRequestSequenceRef.current + 1;
+    loadRequestSequenceRef.current = requestSequence;
+    const requestEditorIdentity = renderedEditorIdentityRef.current;
+    const isCurrentLoadRequest = function isCurrentLoadRequest(): boolean {
+      return loadRequestSequenceRef.current === requestSequence
+        && (
+          requestEditorIdentity === null
+            ? renderedEditorIdentityRef.current === null
+            : areDeckEditorIdentitiesEqual(
+              renderedEditorIdentityRef.current,
+              requestEditorIdentity,
+            )
+        );
+    };
+    const isBackgroundRefresh = areDeckEditorIdentitiesEqual(
+      editorIdentityRef.current,
+      requestEditorIdentity,
+    );
+    if (isBackgroundRefresh === false) {
+      setIsLoading(true);
+      setScreenErrorMessage("");
+      setRefreshErrorMessage("");
+      setFormErrorMessage("");
+    }
 
     try {
-      if (activeWorkspace === null) {
+      if (activeWorkspace === null || requestEditorIdentity === null) {
         throw new Error("Workspace is unavailable");
       }
 
       const [tagsSummary, loadedDeck] = await Promise.all([
-        loadWorkspaceTagsSummary(activeWorkspace.workspaceId),
+        loadWorkspaceTagsSummary(requestEditorIdentity.workspaceId),
         deckId === undefined
           ? Promise.resolve(null)
           : deckId === ALL_CARDS_DECK_SLUG
             ? Promise.reject(new Error(t("deckForm.systemDeckReadonly")))
             : getDeckById(deckId),
       ]);
+      if (isCurrentLoadRequest() === false) {
+        return;
+      }
 
       setTagSuggestions(tagsSummary.tags.map((tagSummary) => ({
         tag: tagSummary.tag,
         countState: "ready",
         cardsCount: tagSummary.cardsCount,
       })));
-      if (loadedDeck === null) {
-        setFormState(createInitialFormState());
-      } else {
-        setFormState({
-          name: loadedDeck.name,
-          tags: loadedDeck.filterDefinition.tags,
-        });
+      setRefreshErrorMessage("");
+      if (isBackgroundRefresh === false) {
+        editorIdentityRef.current = requestEditorIdentity;
+        setFormState(loadedDeck === null
+          ? createInitialFormState()
+          : {
+            name: loadedDeck.name,
+            tags: loadedDeck.filterDefinition.tags,
+          });
       }
     } catch (error) {
+      if (isCurrentLoadRequest() === false) {
+        return;
+      }
+
+      let errorMessage: string;
       if (activeWorkspace !== null && deckId !== ALL_CARDS_DECK_SLUG) {
         const observationIdentity = observationIdentityRef.current;
         const wasCaptured = captureAppOperationError(error, {
@@ -111,19 +198,33 @@ export function DeckFormScreen(): ReactElement {
           entityId: deckId ?? null,
         });
         if (wasCaptured) {
-          showCapturedTechnicalError(error);
-          setScreenErrorMessage(technicalErrorMessage);
-          return;
+          if (isBackgroundRefresh === false) {
+            showCapturedTechnicalError(error);
+          }
+          errorMessage = technicalErrorMessage;
+        } else {
+          errorMessage = error instanceof Error ? error.message : String(error);
         }
+      } else {
+        errorMessage = error instanceof Error ? error.message : String(error);
       }
-      setScreenErrorMessage(error instanceof Error ? error.message : String(error));
+      if (isBackgroundRefresh) {
+        setRefreshErrorMessage(errorMessage);
+      } else {
+        setScreenErrorMessage(errorMessage);
+      }
     } finally {
-      setIsLoading(false);
+      if (isCurrentLoadRequest()) {
+        setIsLoading(false);
+      }
     }
-  }, [activeWorkspace, deckId, getDeckById, t]);
+  }, [activeWorkspace, deckId, getDeckById, showCapturedTechnicalError, t, technicalErrorMessage]);
 
   useEffect(() => {
     void loadScreenData();
+    return () => {
+      loadRequestSequenceRef.current += 1;
+    };
   }, [loadScreenData, localReadVersion]);
 
   function updateField<Key extends keyof FormState>(key: Key, value: FormState[Key]): void {
@@ -178,7 +279,7 @@ export function DeckFormScreen(): ReactElement {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || (screenErrorMessage === "" && isEditorInitialized === false)) {
     return (
       <main className="container">
         <section className="panel">
@@ -206,6 +307,14 @@ export function DeckFormScreen(): ReactElement {
   return (
     <main className="container">
       <section className="panel">
+        {refreshErrorMessage !== "" ? (
+          <>
+            <p className="error-banner" role="alert">{refreshErrorMessage}</p>
+            <button className="ghost-btn" type="button" onClick={() => void loadScreenData()}>
+              {t("common.retry")}
+            </button>
+          </>
+        ) : null}
         <div className="screen-head">
           <div>
             <h1 className="title">{screenTitle}</h1>
