@@ -39,13 +39,13 @@ private enum class ReviewMathCandidateKind {
 
 private data class ReviewMathExtraction(
     val candidates: List<ReviewMathCandidate>,
-    val escapedDollarOffsets: List<Int>,
-    val hasAmbiguousDisplayDelimiter: Boolean
+    val escapedDollarOffsets: List<Int>
 )
 
 private data class ReviewInlineMathExtraction(
     val candidates: List<ReviewMathCandidate>,
-    val escapedDollarOffsets: List<Int>
+    val escapedDollarOffsets: List<Int>,
+    val hasUnmatchedOpener: Boolean
 )
 
 private const val reviewProtectedProseCharacters: String = "[]`|<>*_~"
@@ -73,14 +73,12 @@ internal fun extractReviewMathBlocks(markdown: String): ReviewMathBlockExtractio
         markdown = markdown,
         lines = lines
     )
-    val hasReferenceDefinition: Boolean = hasReviewReferenceDefinitionOutsideDisplayMath(
+    val hasReferenceDefinition: Boolean = hasReviewReferenceDefinitionOutsideProtectedContexts(
         lines = lines,
         candidates = extraction.candidates
     )
     // This conservative boundary is intentional cross-client V1 behavior.
-    val candidates: List<ReviewMathCandidate> = if (
-        hasReferenceDefinition || extraction.hasAmbiguousDisplayDelimiter
-    ) {
+    val candidates: List<ReviewMathCandidate> = if (hasReferenceDefinition) {
         emptyList()
     } else {
         extraction.candidates.sortedBy { candidate -> candidate.startOffset }
@@ -96,20 +94,49 @@ internal fun extractReviewMathBlocks(markdown: String): ReviewMathBlockExtractio
     )
 }
 
-private fun hasReviewReferenceDefinitionOutsideDisplayMath(
+private fun hasReviewReferenceDefinitionOutsideProtectedContexts(
     lines: List<ReviewMathLine>,
     candidates: List<ReviewMathCandidate>
 ): Boolean {
     val displayCandidates: List<ReviewMathCandidate> = candidates.filter { candidate ->
         candidate.kind == ReviewMathCandidateKind.DISPLAY
     }
-    return lines.any { line ->
-        reviewReferenceDefinitionRegex.containsMatchIn(line.content) &&
-            displayCandidates.none { candidate ->
-                line.startOffset >= candidate.startOffset &&
-                    line.contentEndOffset <= candidate.endOffset
+    var lineIndex: Int = 0
+    while (lineIndex < lines.size) {
+        val line: ReviewMathLine = lines[lineIndex]
+        val isInsideDisplayMath: Boolean = displayCandidates.any { candidate ->
+            line.startOffset >= candidate.startOffset &&
+                line.contentEndOffset <= candidate.endOffset
+        }
+        val fenceMarker: String? = reviewFenceMarker(line = line.content)
+        when {
+            isInsideDisplayMath -> lineIndex += 1
+            isReviewIndentedCodeLine(line = line.content) -> lineIndex += 1
+            fenceMarker != null -> {
+                lineIndex = reviewLineIndexAfterFence(
+                    lines = lines,
+                    openingLineIndex = lineIndex,
+                    marker = fenceMarker
+                )
             }
+            isReviewDisplayDelimiterLine(line = line.content) -> {
+                val closingLineIndex: Int? = findReviewDisplayClosingLine(
+                    lines = lines,
+                    openingLineIndex = lineIndex
+                )
+                if (closingLineIndex == null) {
+                    // The unmatched display tail is literal, including reference-looking lines.
+                    return false
+                } else {
+                    lineIndex = closingLineIndex + 1
+                }
+            }
+            // V1 avoids container-aware Markdown reconstruction, so container code may veto conservatively.
+            reviewReferenceDefinitionRegex.containsMatchIn(line.content) -> return true
+            else -> lineIndex += 1
+        }
     }
+    return false
 }
 
 private fun extractReviewMathCandidates(
@@ -118,7 +145,6 @@ private fun extractReviewMathCandidates(
 ): ReviewMathExtraction {
     val candidates: MutableList<ReviewMathCandidate> = mutableListOf()
     val escapedDollarOffsets: MutableList<Int> = mutableListOf()
-    var hasAmbiguousDisplayDelimiter: Boolean = false
     var lineIndex: Int = 0
 
     while (lineIndex < lines.size) {
@@ -127,6 +153,8 @@ private fun extractReviewMathCandidates(
         when {
             line.content.isBlank() -> lineIndex += 1
 
+            isReviewIndentedCodeLine(line = line.content) -> lineIndex += 1
+
             fenceMarker != null -> {
                 lineIndex = reviewLineIndexAfterFence(
                     lines = lines,
@@ -134,8 +162,6 @@ private fun extractReviewMathCandidates(
                     marker = fenceMarker
                 )
             }
-
-            isReviewIndentedCodeLine(line = line.content) -> lineIndex += 1
 
             reviewReferenceDefinitionRegex.containsMatchIn(line.content) -> {
                 lineIndex = reviewLineIndexAfterLiteralBlock(
@@ -150,11 +176,8 @@ private fun extractReviewMathCandidates(
                     openingLineIndex = lineIndex
                 )
                 if (closingLineIndex == null) {
-                    hasAmbiguousDisplayDelimiter = true
-                    lineIndex = reviewLineIndexAfterLiteralBlock(
-                        lines = lines,
-                        startLineIndex = lineIndex
-                    )
+                    // V1 avoids tail Markdown reconstruction; the unmatched tail stays byte-for-byte literal.
+                    lineIndex = lines.size
                 } else {
                     makeReviewDisplayCandidate(
                         markdown = markdown,
@@ -204,8 +227,7 @@ private fun extractReviewMathCandidates(
 
     return ReviewMathExtraction(
         candidates = candidates,
-        escapedDollarOffsets = escapedDollarOffsets,
-        hasAmbiguousDisplayDelimiter = hasAmbiguousDisplayDelimiter
+        escapedDollarOffsets = escapedDollarOffsets
     )
 }
 
@@ -247,7 +269,10 @@ private fun reviewLineIndexAfterFence(
 ): Int {
     var lineIndex: Int = openingLineIndex + 1
     while (lineIndex < lines.size) {
-        if (isReviewFenceClosingLine(line = lines[lineIndex].content, openingMarker = marker)) {
+        val line: String = lines[lineIndex].content
+        if (isReviewIndentedCodeLine(line = line).not() &&
+            isReviewFenceClosingLine(line = line, openingMarker = marker)
+        ) {
             return lineIndex + 1
         }
         lineIndex += 1
@@ -326,6 +351,7 @@ private fun extractReviewInlineParagraph(
     }
     val candidates: MutableList<ReviewMathCandidate> = mutableListOf()
     val escapedDollarOffsets: MutableList<Int> = mutableListOf()
+    var hasUnmatchedOpener: Boolean = false
     lines.forEach { line ->
         val lineExtraction: ReviewInlineMathExtraction = extractReviewInlineLine(
             markdown = markdown,
@@ -333,10 +359,12 @@ private fun extractReviewInlineParagraph(
         ) ?: return null
         candidates.addAll(lineExtraction.candidates)
         escapedDollarOffsets.addAll(lineExtraction.escapedDollarOffsets)
+        hasUnmatchedOpener = hasUnmatchedOpener || lineExtraction.hasUnmatchedOpener
     }
     return ReviewInlineMathExtraction(
-        candidates = candidates,
-        escapedDollarOffsets = escapedDollarOffsets
+        candidates = if (hasUnmatchedOpener) emptyList() else candidates,
+        escapedDollarOffsets = escapedDollarOffsets,
+        hasUnmatchedOpener = hasUnmatchedOpener
     )
 }
 
@@ -373,8 +401,8 @@ private fun extractReviewInlineLine(
         }
 
         if (isEscaped) {
+            escapedDollarOffsets.add(line.startOffset + index - 1)
             if (openingDollarOffset == null) {
-                escapedDollarOffsets.add(line.startOffset + index - 1)
                 prose.append(character)
             }
             return@forEachIndexed
@@ -411,12 +439,14 @@ private fun extractReviewInlineLine(
         }
     }
 
-    if (openingDollarOffset != null || containsReviewProtectedProse(source = prose.toString())) {
+    if (containsReviewProtectedProse(source = prose.toString())) {
         return null
     }
+    val hasUnmatchedOpener: Boolean = openingDollarOffset != null
     return ReviewInlineMathExtraction(
-        candidates = candidates,
-        escapedDollarOffsets = escapedDollarOffsets
+        candidates = if (hasUnmatchedOpener) emptyList() else candidates,
+        escapedDollarOffsets = escapedDollarOffsets,
+        hasUnmatchedOpener = hasUnmatchedOpener
     )
 }
 
@@ -472,7 +502,18 @@ private fun isReviewRawHtmlLine(line: String): Boolean {
 }
 
 private fun isReviewIndentedCodeLine(line: String): Boolean {
-    return line.startsWith(prefix = "\t") || line.startsWith(prefix = "    ")
+    var indentationColumns: Int = 0
+    line.forEach { character ->
+        indentationColumns = when (character) {
+            ' ' -> indentationColumns + 1
+            '\t' -> indentationColumns + (4 - indentationColumns % 4)
+            else -> return false
+        }
+        if (indentationColumns >= 4) {
+            return true
+        }
+    }
+    return false
 }
 
 private fun isReviewDisplayDelimiterLine(line: String): Boolean {
