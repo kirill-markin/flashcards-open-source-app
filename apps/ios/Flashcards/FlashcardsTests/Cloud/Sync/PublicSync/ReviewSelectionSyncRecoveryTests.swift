@@ -4,6 +4,178 @@ import XCTest
 
 final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
     @MainActor
+    func testAppliedRemotePullReportsPresentedReviewCardReplacementForSilentTrigger() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let currentCard = try database.saveCard(
+            workspaceId: workspace.workspaceId,
+            input: CardEditorInput(
+                frontText: "Current question",
+                backText: "Current answer",
+                tags: [],
+            ),
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
+        )
+        let replacementCard = try database.saveCard(
+            workspaceId: workspace.workspaceId,
+            input: CardEditorInput(
+                frontText: "Replacement question",
+                backText: "Replacement answer",
+                tags: [],
+            ),
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
+        )
+        let suiteName = "review-selection-applied-pull-\(UUID().uuidString.lowercased())"
+        let userDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        let credentialStore = CloudCredentialStore(service: "tests-\(suiteName)-cloud-auth")
+        defer {
+            try? credentialStore.clearCredentials()
+            userDefaults.removePersistentDomain(forName: suiteName)
+        }
+        let store = self.makeReviewReconciliationStore(
+            database: database,
+            userDefaults: userDefaults,
+            credentialStore: credentialStore
+        )
+        defer {
+            store.shutdownForTests()
+        }
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+
+        store.workspace = workspace
+        store.schedulerSettings = try database.workspaceSettingsStore.loadWorkspaceSchedulerSettings(
+            workspaceId: workspace.workspaceId
+        )
+        store.cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        store.cards = [currentCard, replacementCard]
+        store.applyReviewPublishedState(
+            reviewState: ReviewQueuePublishedState(
+                selectedReviewFilter: .allCards,
+                reviewQueue: [currentCard, replacementCard],
+                presentedReviewCard: currentCard,
+                reviewCounts: ReviewCounts(dueCount: 2, totalCount: 2),
+                isReviewHeadLoading: false,
+                isReviewCountsLoading: false,
+                isReviewQueueChunkLoading: false,
+                pendingReviewCardIds: [],
+                reviewSubmissionFailure: nil
+            )
+        )
+
+        let remoteDeletedAt = "2099-01-01T00:00:00.000Z"
+        let applyResult = try database.applySyncChange(
+            workspaceId: workspace.workspaceId,
+            change: SyncChange(
+                changeId: 1,
+                entityType: .card,
+                entityId: currentCard.cardId,
+                action: .upsert,
+                payload: .card(
+                    self.makeRemoteDeletedCard(
+                        card: currentCard,
+                        deletedAt: remoteDeletedAt
+                    )
+                )
+            )
+        )
+        XCTAssertTrue(applyResult.didApply)
+
+        try await store.applySyncResultWithoutBlockingReset(
+            syncResult: CloudSyncResult(
+                appliedPullChangeCount: 1,
+                reviewScheduleImpactingPullChangeCount: 1,
+                changedEntityTypes: [.card],
+                localIdRepairEntityTypes: [],
+                acknowledgedOperationCount: 0,
+                acknowledgedReviewEventOperationCount: 0,
+                acknowledgedReviewScheduleImpactingOperationCount: 0,
+                cleanedUpOperationCount: 0,
+                cleanedUpReviewEventOperationCount: 0,
+                cleanedUpReviewScheduleImpactingOperationCount: 0
+            ),
+            now: now,
+            trigger: self.makeManualSyncTrigger(now: now)
+        )
+
+        XCTAssertEqual(replacementCard.cardId, store.presentedReviewCard?.cardId)
+        XCTAssertEqual(.reviewUpdatedOnAnotherDevice, store.currentTransientBanner?.kind)
+    }
+
+    @MainActor
+    func testAcknowledgementOnlyResultDoesNotReportReviewReplacementForSilentTrigger() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let currentCard = try database.saveCard(
+            workspaceId: workspace.workspaceId,
+            input: CardEditorInput(
+                frontText: "Current question",
+                backText: "Current answer",
+                tags: [],
+            ),
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
+        )
+        let suiteName = "review-selection-acknowledgement-\(UUID().uuidString.lowercased())"
+        let userDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        let credentialStore = CloudCredentialStore(service: "tests-\(suiteName)-cloud-auth")
+        defer {
+            try? credentialStore.clearCredentials()
+            userDefaults.removePersistentDomain(forName: suiteName)
+        }
+        let store = self.makeReviewReconciliationStore(
+            database: database,
+            userDefaults: userDefaults,
+            credentialStore: credentialStore
+        )
+        defer {
+            store.shutdownForTests()
+        }
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+
+        store.workspace = workspace
+        store.schedulerSettings = try database.workspaceSettingsStore.loadWorkspaceSchedulerSettings(
+            workspaceId: workspace.workspaceId
+        )
+        store.cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        store.cards = [currentCard]
+        store.applyReviewPublishedState(
+            reviewState: ReviewQueuePublishedState(
+                selectedReviewFilter: .allCards,
+                reviewQueue: [currentCard],
+                presentedReviewCard: currentCard,
+                reviewCounts: ReviewCounts(dueCount: 1, totalCount: 1),
+                isReviewHeadLoading: false,
+                isReviewCountsLoading: false,
+                isReviewQueueChunkLoading: false,
+                pendingReviewCardIds: [],
+                reviewSubmissionFailure: nil
+            )
+        )
+
+        try await store.applySyncResultWithoutBlockingReset(
+            syncResult: CloudSyncResult(
+                appliedPullChangeCount: 0,
+                reviewScheduleImpactingPullChangeCount: 0,
+                changedEntityTypes: [],
+                localIdRepairEntityTypes: [],
+                acknowledgedOperationCount: 1,
+                acknowledgedReviewEventOperationCount: 0,
+                acknowledgedReviewScheduleImpactingOperationCount: 0,
+                cleanedUpOperationCount: 0,
+                cleanedUpReviewEventOperationCount: 0,
+                cleanedUpReviewScheduleImpactingOperationCount: 0
+            ),
+            now: now,
+            trigger: self.makeManualSyncTrigger(now: now)
+        )
+
+        XCTAssertEqual(currentCard.cardId, store.presentedReviewCard?.cardId)
+        XCTAssertNil(store.currentTransientBanner)
+    }
+
+    @MainActor
     func testApplySyncResultBroadlyResetsReviewSelectionAfterLocalIdRepair() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
@@ -351,6 +523,67 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
                 decoder: JSONDecoder(),
                 workspaceId: workspace.workspaceId
             )
+        )
+    }
+
+    @MainActor
+    private func makeReviewReconciliationStore(
+        database: LocalDatabase,
+        userDefaults: UserDefaults,
+        credentialStore: CloudCredentialStore
+    ) -> FlashcardsStore {
+        let guestCredentialStore = GuestCloudCredentialStore(
+            service: "tests-review-reconciliation-guest-\(UUID().uuidString.lowercased())",
+            bundle: .main,
+            userDefaults: userDefaults
+        )
+        let store = FlashcardsStore(
+            userDefaults: userDefaults,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder(),
+            database: database,
+            cloudAuthService: CloudAuthService(),
+            cloudSyncService: nil,
+            credentialStore: credentialStore,
+            guestCloudAuthService: GuestCloudAuthService(),
+            guestCredentialStore: guestCredentialStore,
+            reviewSubmissionOutboxMutationGate: ReviewSubmissionOutboxMutationGate(),
+            reviewSubmissionExecutor: nil,
+            reviewHeadLoader: defaultReviewHeadLoader,
+            reviewCountsLoader: defaultReviewCountsLoader,
+            reviewQueueChunkLoader: defaultReviewQueueChunkLoader,
+            reviewQueueWindowLoader: defaultReviewQueueWindowLoader,
+            reviewTimelinePageLoader: defaultReviewTimelinePageLoader,
+            initialGlobalErrorMessage: ""
+        )
+        store.updateCurrentVisibleTab(tab: .review)
+        return store
+    }
+
+    private func makeRemoteDeletedCard(card: Card, deletedAt: String) -> Card {
+        Card(
+            cardId: card.cardId,
+            workspaceId: card.workspaceId,
+            frontText: card.frontText,
+            backText: card.backText,
+            cardType: card.cardType,
+            metadata: card.metadata,
+            tags: card.tags,
+            dueAt: card.dueAt,
+            createdAt: card.createdAt,
+            reps: card.reps,
+            lapses: card.lapses,
+            fsrsCardState: card.fsrsCardState,
+            fsrsStepIndex: card.fsrsStepIndex,
+            fsrsStability: card.fsrsStability,
+            fsrsDifficulty: card.fsrsDifficulty,
+            fsrsLastReviewedAt: card.fsrsLastReviewedAt,
+            fsrsScheduledDays: card.fsrsScheduledDays,
+            clientUpdatedAt: deletedAt,
+            lastModifiedByReplicaId: "remote-replica",
+            lastOperationId: "remote-delete-operation",
+            updatedAt: deletedAt,
+            deletedAt: deletedAt
         )
     }
 }

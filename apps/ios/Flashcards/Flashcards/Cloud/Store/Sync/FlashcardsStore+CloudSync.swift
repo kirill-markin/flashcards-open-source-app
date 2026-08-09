@@ -625,7 +625,7 @@ extension FlashcardsStore {
         let didRefreshReviewState: Bool
         if shouldRefreshReviewState {
             let reviewRefreshMode: ReviewRefreshMode
-            if trigger.allowsVisibleChangeBanner {
+            if trigger.allowsVisibleChangeBanner || syncResult.appliedPullChanges {
                 reviewRefreshMode = .backgroundReconcileWithVisibleChangeBanner
             } else {
                 reviewRefreshMode = .backgroundReconcileSilently
