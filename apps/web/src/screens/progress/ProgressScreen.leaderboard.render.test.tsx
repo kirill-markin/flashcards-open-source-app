@@ -229,7 +229,7 @@ describe("ProgressScreen leaderboard", () => {
     if (!(inviteOpenButton instanceof HTMLButtonElement)) {
       throw new Error("Leaderboard invite button was not found");
     }
-    expect(inviteOpenButton.textContent).toBe("Invite friend");
+    expect(inviteOpenButton.textContent).toBe("Add friend");
     expect(inviteOpenButton.className).toContain("primary-btn");
 
     const periodSelector = leaderboardCard.querySelector(".progress-leaderboard-periods");

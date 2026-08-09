@@ -216,9 +216,9 @@ const enCatalog = {
       offlineEmpty: "The rating leaderboard is not available offline. Reconnect to see rankings.",
       unavailable: "The rating leaderboard is not available right now. Check back later.",
       invite: {
-        actionLabel: "Create friend invite",
-        actionText: "Invite friend",
-        title: "Invite a friend",
+        actionLabel: "Add friend",
+        actionText: "Add friend",
+        title: "Add a friend",
         body: "Create a private friend link for the leaderboard.",
         friendNameLabel: "Friend name in your ratings",
         expiryNote: "Invite links expire after 2 days.",
@@ -379,8 +379,8 @@ const enCatalog = {
     title: "Settings",
     subtitle: "Manage account, workspace, support, and advanced web settings.",
     inviteFriend: {
-      actionText: "Invite friend",
-      ariaLabel: "Create friend invite",
+      actionText: "Add friend",
+      ariaLabel: "Add friend",
     },
     groups: {
       share: "Share",

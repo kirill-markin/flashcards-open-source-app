@@ -218,9 +218,9 @@ const hiCatalog: TranslationCatalog = {
       offlineEmpty: "ऑफ़लाइन में रेटिंग लीडरबोर्ड उपलब्ध नहीं है। रैंकिंग देखने के लिए इंटरनेट से जुड़ें।",
       unavailable: "रेटिंग लीडरबोर्ड अभी उपलब्ध नहीं है। बाद में फिर देखें।",
       invite: {
-        actionLabel: "दोस्त का आमंत्रण बनाएं",
-        actionText: "दोस्त को आमंत्रित करें",
-        title: "दोस्त को आमंत्रित करें",
+        actionLabel: "दोस्त जोड़ें",
+        actionText: "दोस्त जोड़ें",
+        title: "दोस्त जोड़ें",
         body: "लीडरबोर्ड के लिए निजी दोस्त लिंक बनाएं।",
         friendNameLabel: "आपकी रेटिंग में दोस्त का नाम",
         expiryNote: "आमंत्रण लिंक 2 दिन बाद समाप्त हो जाते हैं।",
@@ -381,8 +381,8 @@ const hiCatalog: TranslationCatalog = {
     title: "सेटिंग्स",
     subtitle: "खाता, वर्कस्पेस, सहायता और उन्नत वेब सेटिंग्स मैनेज करें।",
     inviteFriend: {
-      actionText: "दोस्त को आमंत्रित करें",
-      ariaLabel: "दोस्त का आमंत्रण बनाएं",
+      actionText: "दोस्त जोड़ें",
+      ariaLabel: "दोस्त जोड़ें",
     },
     groups: {
       share: "शेयर करें",

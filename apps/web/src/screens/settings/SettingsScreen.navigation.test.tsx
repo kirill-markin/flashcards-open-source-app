@@ -369,12 +369,12 @@ describe("SettingsScreen navigation", () => {
     ].forEach(expectRowVisible);
     expectRowVisible("settings-invite-open");
     expectRowVisible("settings-share-app-open");
-    expect(getContainer().querySelector("[data-testid='settings-invite-open']")?.textContent).toBe("Invite friend");
-    expect(rowIndex("settings-invite-open")).toBeLessThan(rowIndex("settings-row-account-status"));
-    expect(rowIndex("settings-invite-open")).toBeLessThan(rowIndex("settings-share-app-open"));
-    expect(rowIndex("settings-share-app-open")).toBeLessThan(rowIndex("settings-group-feedback"));
+    expect(getContainer().querySelector("[data-testid='settings-invite-open']")?.textContent).toBe("Add friend");
     expect(rowIndex("settings-group-feedback")).toBeLessThan(rowIndex("settings-row-review-app-store"));
     expect(rowIndex("settings-row-review-app-store")).toBeLessThan(rowIndex("settings-row-private-feedback"));
+    expect(rowIndex("settings-row-private-feedback")).toBeLessThan(rowIndex("settings-invite-open"));
+    expect(rowIndex("settings-invite-open")).toBeLessThan(rowIndex("settings-share-app-open"));
+    expect(rowIndex("settings-share-app-open")).toBeLessThan(rowIndex("settings-row-account-status"));
     expect(rowIndex("settings-row-private-feedback")).toBeLessThan(rowIndex("settings-row-account-status"));
     expect(rowIndex("settings-row-review-reminders")).toBeLessThan(rowIndex("settings-row-review-animations"));
     expect(rowIndex("settings-row-review-animations")).toBeLessThan(rowIndex("settings-row-ai-chat-suggestions"));

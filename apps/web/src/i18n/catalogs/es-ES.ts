@@ -218,9 +218,9 @@ const esEsCatalog: TranslationCatalog = {
       offlineEmpty: "La clasificación por valoraciones no está disponible sin conexión. Conéctate para ver los puestos.",
       unavailable: "La clasificación por valoraciones no está disponible ahora mismo. Vuelve más tarde.",
       invite: {
-        actionLabel: "Crear invitación de amigo",
-        actionText: "Invitar a un amigo",
-        title: "Invitar a un amigo",
+        actionLabel: "Añadir amigo",
+        actionText: "Añadir amigo",
+        title: "Añadir a un amigo",
         body: "Crea un enlace privado de amigo para la clasificación.",
         friendNameLabel: "Nombre del amigo en tus puntuaciones",
         expiryNote: "Los enlaces de invitación caducan después de 2 días.",
@@ -381,8 +381,8 @@ const esEsCatalog: TranslationCatalog = {
     title: "Ajustes",
     subtitle: "Gestiona la cuenta, el espacio de trabajo, el soporte y los ajustes web avanzados.",
     inviteFriend: {
-      actionText: "Invitar a un amigo",
-      ariaLabel: "Crear invitación de amigo",
+      actionText: "Añadir amigo",
+      ariaLabel: "Añadir amigo",
     },
     groups: {
       share: "Compartir",
