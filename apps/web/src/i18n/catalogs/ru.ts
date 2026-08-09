@@ -856,6 +856,7 @@ export const ruCatalog = {
     errors: {
       schedulerUnavailable: "Настройки планировщика рабочего пространства не загружены",
     },
+    formulaRenderError: "Не удалось отобразить формулу.",
     leaderboardShortcut: {
       ariaLabel: "Открыть таблицу лидеров",
     },

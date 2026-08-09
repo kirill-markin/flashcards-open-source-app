@@ -490,18 +490,6 @@ function resolveManagedMediaLabel(
   return fallbackLabel;
 }
 
-function readTextFromReactNode(node: ReactNode): string {
-  if (typeof node === "string" || typeof node === "number") {
-    return String(node);
-  }
-
-  if (Array.isArray(node)) {
-    return node.map(readTextFromReactNode).join("");
-  }
-
-  return "";
-}
-
 function readDecodedManagedImageDimensions(image: HTMLImageElement): ManagedMediaImageDimensions | null {
   if (image.naturalWidth > 0 && image.naturalHeight > 0) {
     return {
@@ -586,12 +574,25 @@ function ManagedMediaFallback(props: Readonly<{
   );
 }
 
+function renderManagedMediaWithRichLabel(content: ReactElement, richLabel: ReactNode | null): ReactElement {
+  if (richLabel === null) {
+    return content;
+  }
+
+  return (
+    <span className="review-markdown-managed-media review-markdown-media-rich-reference">
+      <span className="review-markdown-media-label">{richLabel}</span>
+      {content}
+    </span>
+  );
+}
+
 function GeneratedImagePlaceholder(props: Readonly<{
-  label: string;
+  accessibleLabel: string;
   mediaAssetId: string;
   state: Exclude<ManagedMediaReferenceState, "ready">;
 }>): ReactElement {
-  const { label, mediaAssetId, state } = props;
+  const { accessibleLabel, mediaAssetId, state } = props;
   const { t } = useI18n();
   const isPending = state === "pending";
 
@@ -601,12 +602,7 @@ function GeneratedImagePlaceholder(props: Readonly<{
       data-fcasset-id={mediaAssetId}
       data-state={state}
       aria-busy={isPending ? "true" : undefined}
-      aria-label={t(
-        isPending
-          ? "reviewScreen.media.imagePendingAccessible"
-          : "reviewScreen.media.imageFailedAccessible",
-        { label },
-      )}
+      aria-label={accessibleLabel}
       role={isPending ? "status" : "alert"}
     >
       {isPending ? null : (
@@ -629,21 +625,25 @@ function GeneratedImagePlaceholder(props: Readonly<{
 }
 
 export function ManagedMediaReference(props: Readonly<{
+  accessibleLabelText: string;
   altText: string;
-  children: ReactNode;
+  labelText: string;
   localReadVersion: number;
   mediaAssetId: string;
   referencePresentation: ManagedMediaReferencePresentation;
   referenceState: ManagedMediaReferenceState;
+  richLabel: ReactNode | null;
   workspaceId: string | null;
 }>): ReactElement {
   const {
+    accessibleLabelText,
     altText,
-    children,
+    labelText,
     localReadVersion,
     mediaAssetId,
     referencePresentation,
     referenceState,
+    richLabel,
     workspaceId,
   } = props;
   const { t } = useI18n();
@@ -797,54 +797,66 @@ export function ManagedMediaReference(props: Readonly<{
     };
   }, [localReadVersion, mediaAssetId, referenceState, workspaceId]);
 
-  const childrenText = readTextFromReactNode(children);
   if (referenceState !== "ready") {
+    const isPending = referenceState === "pending";
     const trimmedAltText = altText.trim();
-    const trimmedChildrenText = childrenText.trim();
+    const trimmedLabelText = accessibleLabelText.trim();
     const label = trimmedAltText !== ""
       ? trimmedAltText
-      : trimmedChildrenText !== ""
-        ? trimmedChildrenText
+      : trimmedLabelText !== ""
+        ? trimmedLabelText
         : t("reviewScreen.media.imageAlt");
-    return (
+    const accessibleStatus = richLabel === null
+      ? t(
+          isPending
+            ? "reviewScreen.media.imagePendingAccessible"
+            : "reviewScreen.media.imageFailedAccessible",
+          { label },
+        )
+      : t(isPending ? "reviewScreen.media.imagePending" : "reviewScreen.media.imageFailed");
+    return renderManagedMediaWithRichLabel(
       <GeneratedImagePlaceholder
-        label={label}
+        accessibleLabel={accessibleStatus}
         mediaAssetId={mediaAssetId}
         state={referenceState}
-      />
+      />,
+      richLabel,
     );
   }
 
   if (loadState.status === "loading") {
     if (referencePresentation === "image") {
-      return (
+      return renderManagedMediaWithRichLabel(
         <span
           className="review-markdown-managed-media review-markdown-media-image-loading"
           data-fcasset-id={mediaAssetId}
           aria-busy="true"
           aria-label={t("reviewScreen.media.loading")}
           role="status"
-        />
+        />,
+        richLabel,
       );
     }
 
-    return (
+    return renderManagedMediaWithRichLabel(
       <span
         className="review-markdown-managed-media review-markdown-media-loading"
         data-fcasset-id={mediaAssetId}
         aria-busy="true"
       >
         {t("reviewScreen.media.loading")}
-      </span>
+      </span>,
+      richLabel,
     );
   }
 
   if (loadState.status === "unavailable") {
-    return (
+    return renderManagedMediaWithRichLabel(
       <ManagedMediaFallback
         mediaAssetId={mediaAssetId}
         message={t("reviewScreen.media.unavailable")}
-      />
+      />,
+      richLabel,
     );
   }
 
@@ -856,26 +868,38 @@ export function ManagedMediaReference(props: Readonly<{
       : mediaKind === "image"
         ? t("reviewScreen.media.imageAlt")
         : t("reviewScreen.media.attachmentLabel");
-  const label = resolveManagedMediaLabel(loadState.mediaAsset, childrenText, fallbackLabel);
+  const label = resolveManagedMediaLabel(loadState.mediaAsset, labelText, fallbackLabel);
+  const accessibleLabel = resolveManagedMediaLabel(
+    loadState.mediaAsset,
+    accessibleLabelText,
+    fallbackLabel,
+  );
 
   if (mediaKind === "image") {
-    return (
+    return renderManagedMediaWithRichLabel(
       <img
         className="review-markdown-media-image"
         src={loadState.url}
-        alt={altText.trim() === "" ? t("reviewScreen.media.imageAlt") : altText}
+        alt={richLabel !== null
+          ? ""
+          : referencePresentation === "link"
+            ? accessibleLabel
+            : altText.trim() === ""
+              ? t("reviewScreen.media.imageAlt")
+              : altText}
         loading="lazy"
         decoding="async"
         style={createManagedImageStyle(loadState.imageDimensions)}
-      />
+      />,
+      richLabel,
     );
   }
 
   if (mediaKind === "audio") {
     return (
       <span className="review-markdown-managed-media review-markdown-media-audio" data-fcasset-id={mediaAssetId}>
-        <span className="review-markdown-media-label">{label}</span>
-        <audio className="review-markdown-media-control" src={loadState.url} controls preload="metadata" aria-label={label} />
+        <span className="review-markdown-media-label">{richLabel ?? label}</span>
+        <audio className="review-markdown-media-control" src={loadState.url} controls preload="metadata" aria-label={accessibleLabel} />
       </span>
     );
   }
@@ -883,8 +907,8 @@ export function ManagedMediaReference(props: Readonly<{
   if (mediaKind === "video") {
     return (
       <span className="review-markdown-managed-media review-markdown-media-video" data-fcasset-id={mediaAssetId}>
-        <span className="review-markdown-media-label">{label}</span>
-        <video className="review-markdown-media-control" src={loadState.url} controls preload="metadata" aria-label={label} />
+        <span className="review-markdown-media-label">{richLabel ?? label}</span>
+        <video className="review-markdown-media-control" src={loadState.url} controls preload="metadata" aria-label={accessibleLabel} />
       </span>
     );
   }
@@ -897,7 +921,7 @@ export function ManagedMediaReference(props: Readonly<{
       rel="noreferrer"
       data-fcasset-id={mediaAssetId}
     >
-      {label}
+      {richLabel ?? label}
     </a>
   );
 }

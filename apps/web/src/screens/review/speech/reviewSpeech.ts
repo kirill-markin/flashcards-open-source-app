@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Locale } from "../../../i18n/types";
 import { classifyReviewContentPresentation } from "../components/card/reviewContentPresentation";
+import {
+  readRecognizedReviewMathSourceRanges,
+  restoreEscapedReviewDollarSigns,
+  type ReviewMathSourceRange,
+} from "../components/card/reviewMathSyntax";
 
 export type ReviewSpeechSide = "front" | "back";
 
@@ -27,6 +32,14 @@ const REVIEW_TABLE_SEPARATOR_PATTERN = /^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:
 type LanguageHeuristic = Readonly<{
   languageTag: string;
   markers: ReadonlyArray<string>;
+}>;
+type ProtectedReviewMathSource = Readonly<{
+  source: string;
+  token: string;
+}>;
+type ReviewMathSpeechSource = Readonly<{
+  protectedMathSources: ReadonlyArray<ProtectedReviewMathSource>;
+  text: string;
 }>;
 
 const LATIN_LANGUAGE_HEURISTICS: ReadonlyArray<LanguageHeuristic> = [
@@ -81,7 +94,7 @@ function resolveDetectedLanguageTag(detectedLanguageTag: string, fallbackLanguag
 }
 
 function normalizeSpeakableInlineText(text: string): string {
-  return text
+  return restoreEscapedReviewDollarSigns(text)
     .replaceAll("`", "")
     .replaceAll("|", " ")
     .replace(/\s+/g, " ")
@@ -95,6 +108,52 @@ function normalizeSpeakableParagraphs(lines: ReadonlyArray<string>): string {
     .join("\n");
 }
 
+function createReviewMathSpeechToken(text: string, index: number): string {
+  let token = `\uE000review-math-${index}\uE001`;
+  while (text.includes(token)) {
+    token = `\uE000${token}\uE001`;
+  }
+
+  return token;
+}
+
+function protectReviewMathForSpeech(
+  text: string,
+  sourceRanges: ReadonlyArray<ReviewMathSourceRange>,
+): ReviewMathSpeechSource {
+  const protectedMathSources = sourceRanges.map((sourceRange, index): ProtectedReviewMathSource => ({
+    source: sourceRange.source,
+    token: createReviewMathSpeechToken(text, index),
+  }));
+  const protectedText = sourceRanges
+    .map((sourceRange, index) => ({
+      ...sourceRange,
+      token: protectedMathSources[index]?.token,
+    }))
+    .sort((left, right) => right.startOffset - left.startOffset)
+    .reduce((result, sourceRange) => {
+      if (sourceRange.token === undefined) {
+        throw new Error(`Review speech math token is unavailable: startOffset=${sourceRange.startOffset}`);
+      }
+
+      return `${result.slice(0, sourceRange.startOffset)}${sourceRange.token}${result.slice(sourceRange.endOffset)}`;
+    }, text);
+
+  return {
+    protectedMathSources,
+    text: protectedText,
+  };
+}
+
+function restoreReviewMathSpeechSource(
+  text: string,
+  protectedMathSources: ReadonlyArray<ProtectedReviewMathSource>,
+): string {
+  return protectedMathSources.reduce((result, protectedMathSource) => (
+    result.replaceAll(protectedMathSource.token, protectedMathSource.source)
+  ), text);
+}
+
 function fenceMarkerForLine(line: string): string | null {
   const match = REVIEW_FENCE_PATTERN.exec(line);
 
@@ -105,7 +164,10 @@ function fenceMarkerForLine(line: string): string | null {
   return match[1] ?? null;
 }
 
-function normalizeMarkdownSpeakableLine(line: string): string {
+function normalizeMarkdownSpeakableLine(
+  line: string,
+  protectedMathSources: ReadonlyArray<ProtectedReviewMathSource>,
+): string {
   const trimmedLine = line.trim();
 
   if (trimmedLine === "") {
@@ -121,7 +183,10 @@ function normalizeMarkdownSpeakableLine(line: string): string {
   const withoutUnorderedList = withoutQuote.replace(REVIEW_UNORDERED_LIST_PATTERN, "");
   const withoutOrderedList = withoutUnorderedList.replace(REVIEW_ORDERED_LIST_PATTERN, "");
 
-  return normalizeSpeakableInlineText(withoutOrderedList);
+  return restoreReviewMathSpeechSource(
+    normalizeSpeakableInlineText(withoutOrderedList),
+    protectedMathSources,
+  );
 }
 
 export function makeReviewSpeakableText(text: string): string {
@@ -129,8 +194,12 @@ export function makeReviewSpeakableText(text: string): string {
     return normalizeSpeakableParagraphs(text.split(/\r?\n+/));
   }
 
+  const mathSpeechSource = protectReviewMathForSpeech(
+    text,
+    readRecognizedReviewMathSourceRanges(text),
+  );
   const speakableLines: Array<string> = [];
-  const lines = text.split(/\r?\n/);
+  const lines = mathSpeechSource.text.split(/\r?\n/);
   let activeFenceMarker: string | null = null;
 
   for (const line of lines) {
@@ -149,13 +218,16 @@ export function makeReviewSpeakableText(text: string): string {
       continue;
     }
 
-    const normalizedLine = normalizeMarkdownSpeakableLine(line);
+    const normalizedLine = normalizeMarkdownSpeakableLine(
+      line,
+      mathSpeechSource.protectedMathSources,
+    );
     if (normalizedLine !== "") {
       speakableLines.push(normalizedLine);
     }
   }
 
-  return normalizeSpeakableParagraphs(speakableLines);
+  return speakableLines.join("\n");
 }
 
 function scoreLanguageHeuristic(text: string, heuristic: LanguageHeuristic): number {

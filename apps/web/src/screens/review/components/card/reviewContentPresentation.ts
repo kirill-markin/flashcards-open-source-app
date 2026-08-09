@@ -1,3 +1,5 @@
+import { hasRecognizedReviewMath } from "./reviewMathSyntax";
+
 /**
  * Keep review content presentation heuristics aligned with:
  * - apps/ios/Flashcards/Flashcards/Review/View/ReviewContentPresentation.swift
@@ -26,7 +28,8 @@ function hasStrongMarkdownCue(text: string): boolean {
     || markdownFencedCodePattern.test(text)
     || markdownLinkOrMediaPattern.test(text)
     || markdownThematicBreakPattern.test(text)
-    || markdownTableSeparatorPattern.test(text);
+    || markdownTableSeparatorPattern.test(text)
+    || hasRecognizedReviewMath(text);
 }
 
 export function classifyReviewContentPresentation(text: string): ReviewContentPresentationMode {

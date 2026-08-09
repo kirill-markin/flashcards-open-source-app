@@ -856,6 +856,7 @@ export const jaCatalog = {
     errors: {
       schedulerUnavailable: "ワークスペースのスケジューラー設定が読み込まれていません",
     },
+    formulaRenderError: "数式を表示できませんでした。",
     leaderboardShortcut: {
       ariaLabel: "リーダーボードを開く",
     },

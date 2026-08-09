@@ -856,6 +856,7 @@ export const zhHansCatalog = {
     errors: {
       schedulerUnavailable: "工作区调度器设置尚未加载",
     },
+    formulaRenderError: "无法显示公式。",
     leaderboardShortcut: {
       ariaLabel: "打开排行榜",
     },

@@ -856,6 +856,7 @@ const esEsCatalog: TranslationCatalog = {
     errors: {
       schedulerUnavailable: "Los ajustes del programador del espacio de trabajo no están cargados",
     },
+    formulaRenderError: "No se pudo mostrar la fórmula.",
     leaderboardShortcut: {
       ariaLabel: "Abrir clasificación",
     },

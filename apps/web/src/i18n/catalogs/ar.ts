@@ -856,6 +856,7 @@ const arCatalog: TranslationCatalog = {
     errors: {
       schedulerUnavailable: "لم يتم تحميل إعدادات جدولة مساحة العمل",
     },
+    formulaRenderError: "تعذّر عرض الصيغة.",
     leaderboardShortcut: {
       ariaLabel: "فتح لوحة المتصدرين",
     },

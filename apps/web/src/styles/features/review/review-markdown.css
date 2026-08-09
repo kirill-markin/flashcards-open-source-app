@@ -36,8 +36,74 @@
 .review-markdown-blockquote,
 .review-markdown-pre,
 .review-markdown-table,
+.review-markdown-math-display,
 .review-markdown-managed-media {
   margin: 0 0 0.75em;
+}
+
+.review-markdown-math-inline {
+  display: inline-block;
+  line-height: 1;
+}
+
+.review-markdown-math-inline[dir="ltr"],
+.review-markdown-math-display[dir="ltr"] {
+  unicode-bidi: isolate;
+}
+
+.review-markdown-math-display {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.2em;
+}
+
+.review-markdown-math-canvas {
+  display: block;
+  max-width: none;
+}
+
+.review-markdown-math-canvas[hidden] {
+  display: none;
+}
+
+.review-markdown-math-inline > .review-markdown-math-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.review-markdown-math-loading {
+  unicode-bidi: isolate;
+  white-space: pre-wrap;
+}
+
+.review-markdown-math-error {
+  display: inline-flex;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35em;
+  color: #ffd6d9;
+  line-height: 1.35;
+}
+
+.review-markdown-math-display .review-markdown-math-error {
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+}
+
+.review-markdown-math-error-source {
+  unicode-bidi: isolate;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.review-markdown-math-error-message {
+  font-size: 0.9em;
 }
 
 .review-markdown-a {
@@ -133,6 +199,16 @@
 .review-markdown-managed-media {
   max-width: 100%;
   min-width: 0;
+}
+
+.review-markdown-media-rich-reference {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.review-markdown-media-rich-reference > .review-markdown-managed-media {
+  margin-bottom: 0;
 }
 
 .review-markdown-media-image-loading {

@@ -1,0 +1,39 @@
+{
+  "name": "micromark-extension-math",
+  "version": "3.1.0",
+  "description": "micromark extension to support math (`$C_L$`)",
+  "license": "MIT",
+  "keywords": [
+    "micromark",
+    "micromark-extension",
+    "math",
+    "latex",
+    "tex",
+    "markdown",
+    "unified"
+  ],
+  "repository": "micromark/micromark-extension-math",
+  "bugs": "https://github.com/micromark/micromark-extension-math/issues",
+  "funding": {
+    "type": "opencollective",
+    "url": "https://opencollective.com/unified"
+  },
+  "author": "Titus Wormer <tituswormer@gmail.com> (https://wooorm.com)",
+  "contributors": [
+    "Titus Wormer <tituswormer@gmail.com> (https://wooorm.com)"
+  ],
+  "sideEffects": false,
+  "type": "module",
+  "exports": "./index.js",
+  "files": [
+    "lib/",
+    "index.d.ts",
+    "index.js",
+    "license"
+  ],
+  "dependencies": {
+    "micromark-factory-space": "^2.0.0",
+    "micromark-util-character": "^2.0.0",
+    "micromark-util-types": "^2.0.0"
+  }
+}

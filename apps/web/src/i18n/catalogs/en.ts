@@ -854,6 +854,7 @@ const enCatalog = {
     errors: {
       schedulerUnavailable: "Workspace scheduler settings are not loaded",
     },
+    formulaRenderError: "Formula could not be rendered.",
     leaderboardShortcut: {
       ariaLabel: "Open leaderboard",
     },

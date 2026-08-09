@@ -3,8 +3,10 @@ import {
   useContext,
   type ReactElement,
 } from "react";
+import type { Element, ElementContent } from "hast";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import {
   ManagedMediaReference,
   parseManagedMediaUrlReference,
@@ -15,6 +17,14 @@ import {
   type ManagedMediaReferenceState,
 } from "../../../../media/managedMediaMarkdown";
 import { classifyReviewContentPresentation } from "./reviewContentPresentation";
+import { ReviewMathFormula } from "./ReviewMath";
+import {
+  normalizeReviewMathSyntax,
+  prepareReviewMathForRemark,
+  readRecognizedReviewMathSourceRanges,
+  readReviewMathHastSource,
+  restoreEscapedReviewDollarSigns,
+} from "./reviewMathSyntax";
 
 const REVIEW_MARKDOWN_FENCE_PATTERN = /^\s{0,3}(`{3,}|~{3,})/;
 const REVIEW_MARKDOWN_SYMBOL_ONLY_LIST_ITEM_PATTERN = /^(\s{0,3}[-*+]\s+)([+*\-#>])(\s*)$/;
@@ -23,6 +33,11 @@ type MarkdownFenceMarker = "`" | "~";
 type ReviewMarkdownRenderContextValue = Readonly<{
   localReadVersion: number;
   workspaceId: string | null;
+}>;
+type ReviewMarkdownLabelSource = Readonly<{
+  accessibleText: string;
+  hasMath: boolean;
+  text: string;
 }>;
 
 const ReviewMarkdownRenderContext = createContext<ReviewMarkdownRenderContextValue | null>(null);
@@ -75,6 +90,14 @@ function useReviewMarkdownRenderContext(): ReviewMarkdownRenderContextValue {
   return contextValue;
 }
 
+function requireReviewMarkdownNode(node: Element | undefined, componentName: string): Element {
+  if (node === undefined) {
+    throw new Error(`Review markdown HAST node is unavailable: component=${componentName}`);
+  }
+
+  return node;
+}
+
 function toMarkdownFenceMarker(line: string): MarkdownFenceMarker | null {
   const match = REVIEW_MARKDOWN_FENCE_PATTERN.exec(line);
 
@@ -106,14 +129,21 @@ function escapeSymbolOnlyListItem(line: string): string {
 
 export function normalizeReviewMarkdownForWeb(text: string): string {
   const lines = text.split("\n");
+  const mathSourceRanges = readRecognizedReviewMathSourceRanges(text);
   const normalizedLines: Array<string> = [];
   let activeFenceMarker: MarkdownFenceMarker | null = null;
+  let lineStartOffset = 0;
 
   for (const line of lines) {
+    const lineEndOffset = lineStartOffset + line.length;
+    const lineContainsMath = mathSourceRanges.some((sourceRange) => (
+      sourceRange.startOffset <= lineEndOffset && sourceRange.endOffset >= lineStartOffset
+    ));
     const lineFenceMarker = toMarkdownFenceMarker(line);
 
     if (activeFenceMarker !== null) {
       normalizedLines.push(line);
+      lineStartOffset = lineEndOffset + 1;
 
       if (lineFenceMarker === activeFenceMarker) {
         activeFenceMarker = null;
@@ -125,32 +155,87 @@ export function normalizeReviewMarkdownForWeb(text: string): string {
     if (lineFenceMarker !== null) {
       activeFenceMarker = lineFenceMarker;
       normalizedLines.push(line);
+      lineStartOffset = lineEndOffset + 1;
       continue;
     }
 
-    normalizedLines.push(escapeSymbolOnlyListItem(line));
+    normalizedLines.push(lineContainsMath ? line : escapeSymbolOnlyListItem(line));
+    lineStartOffset = lineEndOffset + 1;
   }
 
   return normalizedLines.join("\n");
 }
 
+function readReviewMathClassName(className: string | undefined): "inline" | "display" | null {
+  const classNameTokens = className?.split(/\s+/).filter((token) => token !== "") ?? [];
+  if (classNameTokens.includes("math-inline")) {
+    return "inline";
+  }
+
+  if (classNameTokens.includes("math-display")) {
+    return "display";
+  }
+
+  return null;
+}
+
+function readReviewMarkdownLabelSource(children: ReadonlyArray<ElementContent>): ReviewMarkdownLabelSource {
+  return children.reduce<ReviewMarkdownLabelSource>((labelSource, child) => {
+    if (child.type === "text") {
+      return {
+        accessibleText: `${labelSource.accessibleText}${child.value}`,
+        hasMath: labelSource.hasMath,
+        text: `${labelSource.text}${child.value}`,
+      };
+    }
+
+    if (child.type !== "element") {
+      return labelSource;
+    }
+
+    const classNames = child.properties.className;
+    if (
+      child.tagName === "code"
+      && Array.isArray(classNames)
+      && (classNames.includes("math-inline") || classNames.includes("math-display"))
+    ) {
+      const mathSource = readReviewMathHastSource(child.properties);
+      return {
+        accessibleText: `${labelSource.accessibleText}${mathSource.source}`,
+        hasMath: true,
+        text: `${labelSource.text}${mathSource.delimitedSource}`,
+      };
+    }
+
+    const childLabelSource = readReviewMarkdownLabelSource(child.children);
+    return {
+      accessibleText: `${labelSource.accessibleText}${childLabelSource.accessibleText}`,
+      hasMath: labelSource.hasMath || childLabelSource.hasMath,
+      text: `${labelSource.text}${childLabelSource.text}`,
+    };
+  }, { accessibleText: "", hasMath: false, text: "" });
+}
+
 const reviewMarkdownComponents: Components = {
-  a: function ReviewMarkdownAnchor({ children, href, title }) {
+  a: function ReviewMarkdownAnchor({ children, href, node, title }) {
     const { localReadVersion, workspaceId } = useReviewMarkdownRenderContext();
     const mediaReference = parseManagedMediaUrlReference(href);
     if (mediaReference !== null) {
+      const hastNode = requireReviewMarkdownNode(node, "a");
+      const labelSource = readReviewMarkdownLabelSource(hastNode.children);
       return (
         <ManagedMediaReference
           key={createManagedMediaReferenceKey(workspaceId, mediaReference.mediaAssetId, mediaReference.state)}
+          accessibleLabelText={labelSource.accessibleText}
           altText=""
+          labelText={labelSource.text}
           localReadVersion={localReadVersion}
           mediaAssetId={mediaReference.mediaAssetId}
           referencePresentation="link"
           referenceState={mediaReference.state}
+          richLabel={labelSource.hasMath ? children : null}
           workspaceId={workspaceId}
-        >
-          {children}
-        </ManagedMediaReference>
+        />
       );
     }
 
@@ -210,40 +295,81 @@ const reviewMarkdownComponents: Components = {
   td: function ReviewMarkdownTableCell({ children }) {
     return <td className={reviewMarkdownClassName("td")}>{children}</td>;
   },
-  pre: function ReviewMarkdownPre({ children }) {
+  pre: function ReviewMarkdownPre({ children, node }) {
+    const hastNode = requireReviewMarkdownNode(node, "pre");
+    const firstChild = hastNode.children[0];
+    if (
+      hastNode.children.length === 1
+      && firstChild?.type === "element"
+      && Array.isArray(firstChild.properties.className)
+      && firstChild.properties.className.includes("math-display")
+    ) {
+      return <>{children}</>;
+    }
+
     return <pre className={reviewMarkdownClassName("pre")}>{children}</pre>;
   },
-  img: function ReviewMarkdownImage({ alt, src, title }) {
+  img: function ReviewMarkdownImage({ alt, children, node, src, title }) {
     const { localReadVersion, workspaceId } = useReviewMarkdownRenderContext();
+    const hastNode = requireReviewMarkdownNode(node, "img");
+    const labelSource = readReviewMarkdownLabelSource(hastNode.children);
+    const hasRichLabel = labelSource.hasMath;
+    const accessibleLabelText = hasRichLabel ? labelSource.accessibleText : (alt ?? "");
+    const labelText = hasRichLabel ? labelSource.text : (alt ?? "");
     const mediaReference = parseManagedMediaUrlReference(src);
     if (mediaReference !== null) {
       return (
         <ManagedMediaReference
           key={createManagedMediaReferenceKey(workspaceId, mediaReference.mediaAssetId, mediaReference.state)}
-          altText={alt ?? ""}
+          accessibleLabelText={accessibleLabelText}
+          altText={accessibleLabelText}
+          labelText={labelText}
           localReadVersion={localReadVersion}
           mediaAssetId={mediaReference.mediaAssetId}
           referencePresentation="image"
           referenceState={mediaReference.state}
+          richLabel={hasRichLabel ? children : null}
           workspaceId={workspaceId}
-        >
-          {alt ?? ""}
-        </ManagedMediaReference>
+        />
       );
     }
 
-    return (
+    const image = (
       <img
         className="review-markdown-img"
         src={src}
-        alt={alt ?? ""}
+        alt={hasRichLabel ? "" : accessibleLabelText}
         title={title}
         loading="lazy"
         decoding="async"
       />
     );
+    if (hasRichLabel === false) {
+      return image;
+    }
+
+    return (
+      <span className="review-markdown-managed-media review-markdown-media-rich-reference">
+        <span className="review-markdown-media-label">{children}</span>
+        {image}
+      </span>
+    );
   },
-  code: function ReviewMarkdownCode({ children, className }) {
+  code: function ReviewMarkdownCode({ children, className, node }) {
+    const mathPresentation = readReviewMathClassName(className);
+    if (mathPresentation !== null) {
+      const hastNode = requireReviewMarkdownNode(node, "code");
+      const mathSource = readReviewMathHastSource(hastNode.properties);
+
+      return (
+        <ReviewMathFormula
+          delimitedSource={mathSource.delimitedSource}
+          isDisplay={mathPresentation === "display"}
+          source={mathSource.source}
+        />
+      );
+    }
+
     return (
       <code className={`${reviewMarkdownClassName("code")}${className === undefined ? "" : ` ${className}`}`}>
         {children}
@@ -263,15 +389,20 @@ function ReviewCardMarkdown(props: Readonly<{
     workspaceId,
   } = props;
   const normalizedText = normalizeReviewMarkdownForWeb(text);
+  const preparedText = prepareReviewMathForRemark(normalizedText);
 
   return (
     <ReviewMarkdownRenderContext.Provider value={{ localReadVersion, workspaceId }}>
       <ReactMarkdown
         urlTransform={reviewMarkdownUrlTransform}
         components={reviewMarkdownComponents}
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[
+          remarkGfm,
+          remarkMath,
+          [normalizeReviewMathSyntax, { preparedSource: preparedText }],
+        ]}
       >
-        {normalizedText}
+        {preparedText.text}
       </ReactMarkdown>
     </ReviewMarkdownRenderContext.Provider>
   );
@@ -376,7 +507,7 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
           >
             {presentationMode === "markdown" ? (
               <ReviewCardMarkdown localReadVersion={localReadVersion} text={text} workspaceId={workspaceId} />
-            ) : text}
+            ) : restoreEscapedReviewDollarSigns(text)}
           </div>
         </div>
 

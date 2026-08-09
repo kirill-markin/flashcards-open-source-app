@@ -560,15 +560,16 @@ function ManagedMediaReferenceStrip(props: Readonly<{
             <div className="card-form-managed-media-body">
               <div className="card-form-managed-media-preview">
                 <ManagedMediaReference
+                  accessibleLabelText={referenceLabel}
                   altText={reference.altText}
+                  labelText={referenceLabel}
                   localReadVersion={localReadVersion}
                   mediaAssetId={reference.mediaAssetId}
                   referencePresentation="image"
                   referenceState={reference.state}
+                  richLabel={null}
                   workspaceId={workspaceId}
-                >
-                  {referenceLabel}
-                </ManagedMediaReference>
+                />
               </div>
               {uploadDisplayState !== null ? (
                 <div

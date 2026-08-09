@@ -856,6 +856,7 @@ const esMxCatalog: TranslationCatalog = {
     errors: {
       schedulerUnavailable: "La configuración del programador del espacio de trabajo no está cargada",
     },
+    formulaRenderError: "No se pudo mostrar la fórmula.",
     leaderboardShortcut: {
       ariaLabel: "Abrir clasificación",
     },

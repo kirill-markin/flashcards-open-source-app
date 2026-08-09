@@ -856,6 +856,7 @@ const deCatalog: TranslationCatalog = {
     errors: {
       schedulerUnavailable: "Die Planer-Einstellungen des Arbeitsbereichs sind nicht geladen",
     },
+    formulaRenderError: "Die Formel konnte nicht dargestellt werden.",
     leaderboardShortcut: {
       ariaLabel: "Bestenliste öffnen",
     },

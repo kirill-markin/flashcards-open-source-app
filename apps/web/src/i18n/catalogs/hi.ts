@@ -856,6 +856,7 @@ const hiCatalog: TranslationCatalog = {
     errors: {
       schedulerUnavailable: "वर्कस्पेस शेड्यूलर सेटिंग्स लोड नहीं हुई हैं",
     },
+    formulaRenderError: "फ़ॉर्मूला रेंडर नहीं किया जा सका।",
     leaderboardShortcut: {
       ariaLabel: "लीडरबोर्ड खोलें",
     },
