@@ -170,11 +170,28 @@ internal fun ReviewManagedMediaContent(
         ManagedMediaReferenceState.READY -> Unit
     }
     if (isUnavailable) {
-        ReviewManagedMediaPlaceholderRow(
-            label = label,
-            supportingText = stringResource(id = R.string.review_media_unavailable),
-            icon = Icons.Outlined.WarningAmber
-        )
+        val supportingText = stringResource(id = R.string.review_media_unavailable)
+        if (category == ReviewManagedMediaCategory.IMAGE) {
+            ReviewManagedMediaImageState(
+                label = label,
+                supportingText = supportingText,
+                accessibilityLabel = stringResource(
+                    id = R.string.review_media_status_content_description,
+                    label,
+                    supportingText
+                ),
+                style = ReviewManagedMediaImageStateStyle.WARNING,
+                modifier = Modifier.reviewManagedMediaImageFrame(
+                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+                )
+            )
+        } else {
+            ReviewManagedMediaPlaceholderRow(
+                label = label,
+                supportingText = supportingText,
+                icon = Icons.Outlined.WarningAmber
+            )
+        }
         return
     }
 
