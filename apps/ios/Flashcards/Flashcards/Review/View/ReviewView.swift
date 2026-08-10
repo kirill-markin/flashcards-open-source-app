@@ -208,6 +208,7 @@ struct ReviewView: View {
                     isEditing: true,
                     errorMessage: screenErrorMessage,
                     availableTagSuggestions: self.availableTagSuggestions,
+                    readOnlyMetadata: self.editingCard().map(cardEditorReadOnlyMetadata),
                     formState: self.$cardFormState,
                     onEditWithAI: {
                         let cardReference: AIChatCardReference?
@@ -433,6 +434,7 @@ struct ReviewView: View {
             HStack(alignment: .top, spacing: 12) {
                 HStack(spacing: 12) {
                     Label(card.tags.isEmpty ? localizedNoTagsLabel() : formatTags(tags: card.tags), systemImage: "tag")
+                    reviewRepetitionBadge(reps: card.reps)
                 }
 
                 Spacer(minLength: 12)
@@ -479,14 +481,6 @@ struct ReviewView: View {
                 )
                 .id(ReviewCardScrollTarget.back)
             }
-
-            HStack(spacing: 12) {
-                Label(localizedReviewDueLabel(value: card.dueAt), systemImage: "clock")
-                Label(localizedReviewRepsLabel(value: card.reps), systemImage: "arrow.clockwise")
-                Label(localizedReviewLapsesLabel(value: card.lapses), systemImage: "exclamationmark.circle")
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
 
             if let reviewActionErrorMessage = reviewActionErrorMessage(card: card) {
                 Text(reviewActionErrorMessage)
@@ -852,39 +846,32 @@ private func reviewAnswerButtonIdentifier(rating: ReviewRating) -> String {
     return "review.rating.\(rating.rawValue)"
 }
 
-private func localizedReviewDueLabel(value: String?) -> String {
-    guard let value else {
-        return String(localized: "New", table: reviewCardsStringsTableName)
-    }
+@ViewBuilder
+private func reviewRepetitionBadge(reps: Int) -> some View {
+    let accessibilityLabel = String(localized: "Reps", table: reviewCardsStringsTableName)
 
-    let dueDateLabel: String
-    if let date = parseIsoTimestamp(value: value) {
-        dueDateLabel = date.formatted(date: .abbreviated, time: .shortened)
+    if reps == 0 {
+        let accessibilityValue = String(localized: "New", table: reviewCardsStringsTableName)
+
+        Label(accessibilityValue, systemImage: "arrow.clockwise")
+            .fontWeight(.semibold)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.accentColor, in: Capsule(style: .continuous))
+            .accessibilityLabel(accessibilityLabel)
+            .accessibilityValue(accessibilityValue)
     } else {
-        dueDateLabel = value
+        let accessibilityValue = localizedCardCountValue(count: reps)
+
+        Label(accessibilityValue, systemImage: "arrow.clockwise")
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(.thinMaterial, in: Capsule(style: .continuous))
+            .accessibilityLabel(accessibilityLabel)
+            .accessibilityValue(accessibilityValue)
     }
-
-    return String(
-        format: String(localized: "Due %@", table: reviewCardsStringsTableName),
-        locale: Locale.current,
-        dueDateLabel
-    )
-}
-
-private func localizedReviewRepsLabel(value: Int) -> String {
-    String(
-        format: String(localized: "Reps %@", table: reviewCardsStringsTableName),
-        locale: Locale.current,
-        value.formatted()
-    )
-}
-
-private func localizedReviewLapsesLabel(value: Int) -> String {
-    String(
-        format: String(localized: "Lapses %@", table: reviewCardsStringsTableName),
-        locale: Locale.current,
-        value.formatted()
-    )
 }
 
 #Preview {

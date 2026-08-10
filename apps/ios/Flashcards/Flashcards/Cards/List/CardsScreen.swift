@@ -216,6 +216,7 @@ struct CardsScreen: View {
                     isEditing: presentation.isEditing,
                     errorMessage: self.screenErrorMessage,
                     availableTagSuggestions: self.availableTagSuggestions,
+                    readOnlyMetadata: self.editingCard().map(cardEditorReadOnlyMetadata),
                     formState: self.$cardFormState,
                     onEditWithAI: presentation.editingCardId.map { editingCardId in
                         {
@@ -643,7 +644,7 @@ struct CardRow: View {
 
             HStack(spacing: 12) {
                 Label(card.tags.isEmpty ? localizedNoTagsLabel() : formatTags(tags: card.tags), systemImage: "tag")
-                Label(localizedDueDateLabel(value: card.dueAt), systemImage: "clock")
+                Label(localizedCardDueValue(dueAt: card.dueAt), systemImage: "clock")
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -660,16 +661,4 @@ struct CardRow: View {
             .environment(FlashcardsStore())
             .environment(AppNavigationModel())
     }
-}
-
-private func localizedDueDateLabel(value: String?) -> String {
-    guard let value else {
-        return String(localized: "New", table: reviewCardsStringsTableName)
-    }
-
-    guard let date = parseIsoTimestamp(value: value) else {
-        return value
-    }
-
-    return date.formatted(date: .abbreviated, time: .shortened)
 }
