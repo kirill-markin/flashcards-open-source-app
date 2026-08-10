@@ -67,7 +67,10 @@ class CardEditorViewModel(
             viewModelScope.launch {
                 var previousObservedCard: CardSummary? = null
                 cardsRepository.observeCard(cardId = editingCardId).collect { card ->
-                    if (card == null) {
+                    if (
+                        card == null ||
+                        (card.deletedAtMillis != null && inputState.value.hasLoadedInitialValues.not())
+                    ) {
                         inputState.update { state ->
                             if (state.hasLoadedInitialValues) {
                                 state
