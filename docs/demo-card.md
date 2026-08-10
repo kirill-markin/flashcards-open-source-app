@@ -206,16 +206,12 @@ Front:
 What is the best application for studying?
 ```
 
-Back, five paragraphs joined with a blank line:
+Back, three paragraphs joined with a blank line:
 
 ```text
-**Flashcards Open Source App** — the app you are looking at right now.
+**Flashcards Open Source App** — the app you are looking at right now. Everything here is a flashcard: a question on the front, the answer on the back.
 
-Everything here is a flashcard: a question on the front, the answer on the back. You can write cards yourself, or just give the built-in AI chat a topic and it will create a set of cards for you.
-
-When you review, you try to recall the answer, then rate how it went. Every card schedules itself from there: what you know well comes back in weeks or months, what you keep forgetting comes back today or tomorrow.
-
-Rate honestly, this is what makes it work. If you did not know the answer, choose `Again` — including when you had to peek. `Hard` is only for answers you knew but struggled to recall.
+Give the built-in AI chat a topic and it will create a set of cards for you.
 
 Try it right now: rate this card `Again`, and it will come back in about a minute — so this answer sticks.
 ```
@@ -240,24 +236,22 @@ Anyone removing the backticks must also remove the bold.
 
 Binding for all three clients:
 
-- one paragraph per string resource: six resources per client, one front string plus five back
+- one paragraph per string resource: four resources per client, one front string plus three back
   strings. A given string carries the same placeholder set in all three clients, and the sets differ
   per string:
   - front: no placeholder;
   - back 1: the product name;
-  - back 2 and back 3: no placeholder;
-  - back 4: the `Again` label and the `Hard` label;
-  - back 5: the `Again` label;
+  - back 2: no placeholder;
+  - back 3: the `Again` label;
 - no Markdown syntax inside translated strings; each client assembles the Markdown in code and joins
   the paragraphs with a blank line;
 - the product name `Flashcards Open Source App` is never translated and is injected as a
   placeholder, already wrapped in `**` by the client;
-- the rating labels in paragraphs 4 and 5 are injected as placeholders taken from each client's
-  existing translated `Again` / `Hard` review labels, so the card always matches the button text in
-  that language. The client wraps each resolved label in backticks in code, exactly the way it wraps
-  the product name in `**`. The translated strings therefore carry a bare placeholder with no
-  quotation marks and no backticks — the same rule as everywhere else here: translators never see
-  Markdown;
+- the rating label in paragraph 3 is injected as a placeholder taken from each client's existing
+  translated `Again` review label, so the card always matches the button text in that language. The
+  client wraps the resolved label in backticks in code, exactly the way it wraps the product name in
+  `**`. The translated string therefore carries a bare placeholder with no quotation marks and no
+  backticks — the same rule as everywhere else here: translators never see Markdown;
 - each string carries translator context explaining that it is the front or back side of an
   onboarding flashcard, wherever the platform's localization format has a comment channel: an XML
   comment in the Android `strings.xml`, and the `comment` field of the `.xcstrings` entry on iOS.
@@ -265,13 +259,13 @@ Binding for all three clients:
 - Android translations come from Google Play App translations and are not committed to the
   repository (see [apps/android/README.md](../apps/android/README.md)); iOS and web translations are
   repository-owned. Wording will therefore differ slightly per platform, and that is accepted;
-- on iOS the six strings must land already translated into every required locale in the same change.
+- on iOS the four strings must land already translated into every required locale in the same change.
   `scripts/checks/pr/check-ios-localization-parity.mjs` runs in the required `Repository static
   checks` job of [.github/workflows/pr-checks.yml](../.github/workflows/pr-checks.yml), and it fails
   any `.xcstrings` entry whose `ar`, `de`, `es-ES`, `es-MX`, `hi`, `ja`, `ru`, or `zh-Hans`
   localization is missing, empty, or not in `state: "translated"`. English-only demo-card entries
   turn that check red;
-- on web the six strings must land in all nine catalogs in `apps/web/src/i18n/catalogs/` in the same
+- on web the four strings must land in all nine catalogs in `apps/web/src/i18n/catalogs/` in the same
   change. `enCatalog` defines the catalog shape and every other catalog is annotated
   `TranslationCatalog` (see [docs/web-localization.md](web-localization.md)), so an English-only
   addition fails the `Build web app` step of the required `Type checks and builds` job in
@@ -279,18 +273,18 @@ Binding for all three clients:
 
 ### Resource keys and where the strings live
 
-The six strings are named `demo_card_front` and `demo_card_back_1` … `demo_card_back_5`. These
+The four strings are named `demo_card_front` and `demo_card_back_1` … `demo_card_back_3`. These
 canonical names are binding: use them verbatim wherever the platform's localization format takes a
 free-form key, so the same paragraph is findable under the same name in every client.
 
 - Android: `apps/android/app/src/main/res/values/strings.xml`, the app module's resources, canonical
-  names verbatim in the existing snake_case style of that file. The `review_again` and `review_hard`
-  labels the card interpolates are a different file in a different module,
-  `apps/android/feature/review/src/main/res/values/strings.xml`, and `DemoCardSeed.kt` reads them
-  through the review module's `R` (imported as `ReviewR`) while reading the six demo-card strings
+  names verbatim in the existing snake_case style of that file. The `review_again` label the card
+  interpolates is in a different file in a different module,
+  `apps/android/feature/review/src/main/res/values/strings.xml`, and `DemoCardSeed.kt` reads it
+  through the review module's `R` (imported as `ReviewR`) while reading the four demo-card strings
   through the app module's `R`. Keep the two files apart: `android.nonTransitiveRClass=true` in
   `apps/android/gradle.properties` means the app module's `R` carries only the resources declared in
-  `apps/android/app`, so moving the six demo-card strings to the review module would leave every
+  `apps/android/app`, so moving the four demo-card strings to the review module would leave every
   `R.string.demo_card_*` reference in `DemoCardSeed.kt` unresolved and break the Android build — a
   loud compile failure, not a silent no-op.
 - iOS: `apps/ios/Flashcards/Flashcards/ReviewCards.xcstrings`, the Review/Cards string table (the
@@ -302,7 +296,7 @@ free-form key, so the same paragraph is findable under the same name in every cl
   `apps/ios/Flashcards/Flashcards/Resources/Localization/Foundation.xcstrings`, where every entry is
   keyed that way (`access_permission.camera.title`).
 - Web: `apps/web/src/i18n/catalogs/`. These catalogs are nested camelCase objects, so the canonical
-  names are spelled there as `demoCard.front` and `demoCard.back1` … `demoCard.back5`. This is the
+  names are spelled there as `demoCard.front` and `demoCard.back1` … `demoCard.back3`. This is the
   only place where the spelling differs from the canonical names, and it is a deliberate adaptation
   to the catalog format, not a different set of strings.
 
@@ -312,7 +306,7 @@ The front is only the question. The answer lives entirely in the back text. This
 mandatory flashcard side contract in the root [AGENTS.md](../AGENTS.md): `frontText` is only a
 question/review prompt and never the answer, and `backText` contains the answer.
 
-## Factual note for paragraph 5
+## Factual note for paragraph 3
 
 The claim "about a minute" is true because:
 
