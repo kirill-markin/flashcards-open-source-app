@@ -224,7 +224,7 @@ Try it right now: rate this card `Again`, and it will come back in about a minut
 
 `classifyReviewContentPresentation` returns the Markdown mode as soon as the text contains a
 backtick, on all three clients
-(`apps/ios/Flashcards/Flashcards/Review/View/ReviewContentPresentation.swift`,
+(`apps/ios/Flashcards/Flashcards/Review/View/Content/ReviewContentPresentation.swift`,
 `apps/web/src/screens/review/components/card/reviewContentPresentation.ts`,
 `apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/presentation/ReviewContentParser.kt`).
 
