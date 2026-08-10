@@ -34,7 +34,6 @@
     <string name="review_edit_card_content_description">Edit card</string>
     <string name="review_front_label">Front</string>
     <string name="review_back_label">Back</string>
-    <string name="review_due_label">Due %1$s</string>
     <string name="review_stop_speech">Stop %1$s speech</string>
     <string name="review_speak">Speak %1$s</string>
     <string name="review_show_answer">Show answer</string>
@@ -74,12 +73,11 @@
     <string name="review_media_video_label">Video attachment</string>
     <string name="review_math_render_failed">Formula couldn\'t be rendered.</string>
     <string name="review_no_back_text">No back text</string>
-    <string name="review_reps_label">Reps %1$d</string>
-    <string name="review_lapses_label">Lapses %1$d</string>
     <string name="review_later_section">Later</string>
     <string name="review_loading">Loading...</string>
     <string name="review_no_tags_label">No tags</string>
     <string name="review_due_new">New</string>
+    <string name="review_repetition_content_description">Repetitions: %1$s</string>
     <string name="review_interval_now">now</string>
     <string name="review_interval_less_than_one_minute">in less than a minute</string>
     <plurals name="review_interval_minutes">

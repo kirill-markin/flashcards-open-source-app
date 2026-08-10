@@ -137,6 +137,17 @@ class CardEditorViewModel(
                     referenceTags = tagsSummary.tags.map(WorkspaceTagSummary::tag)
                 ),
                 availableTagSuggestions = tagsSummary.tags,
+                schedulingMetadata = if (currentState.hasLoadedInitialValues) {
+                    card?.let { loadedCard ->
+                        CardEditorSchedulingMetadata(
+                            dueAtMillis = loadedCard.dueAtMillis,
+                            reps = loadedCard.reps,
+                            lapses = loadedCard.lapses
+                        )
+                    }
+                } else {
+                    null
+                },
                 frontTextErrorMessage = currentState.frontTextErrorMessage,
                 backTextErrorMessage = currentState.backTextErrorMessage,
                 tagsErrorMessage = currentState.tagsErrorMessage,
@@ -158,6 +169,7 @@ class CardEditorViewModel(
                 backManagedImageReferences = emptyList(),
                 selectedTags = emptyList(),
                 availableTagSuggestions = emptyList(),
+                schedulingMetadata = null,
                 frontTextErrorMessage = "",
                 backTextErrorMessage = "",
                 tagsErrorMessage = "",

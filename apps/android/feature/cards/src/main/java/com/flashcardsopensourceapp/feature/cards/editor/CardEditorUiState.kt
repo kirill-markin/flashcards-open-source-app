@@ -41,6 +41,12 @@ data class CardEditorManagedImageReference(
     }
 }
 
+data class CardEditorSchedulingMetadata(
+    val dueAtMillis: Long?,
+    val reps: Int,
+    val lapses: Int
+)
+
 data class CardEditorUiState(
     val isLoading: Boolean,
     val title: String,
@@ -53,6 +59,7 @@ data class CardEditorUiState(
     val backManagedImageReferences: List<CardEditorManagedImageReference>,
     val selectedTags: List<String>,
     val availableTagSuggestions: List<WorkspaceTagSummary>,
+    val schedulingMetadata: CardEditorSchedulingMetadata?,
     val frontTextErrorMessage: String,
     val backTextErrorMessage: String,
     val tagsErrorMessage: String,

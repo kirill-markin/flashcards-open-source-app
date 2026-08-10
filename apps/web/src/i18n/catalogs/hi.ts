@@ -845,6 +845,8 @@ const hiCatalog: TranslationCatalog = {
       switchToAllCards: "सभी कार्ड डेक पर जाएँ",
     },
     aiOpenAriaLabel: "{{side}} कार्ड को AI चैट में खोलें",
+    repetitionBadgeAriaLabel: "रिव्यू: {{value}}",
+    repetitionBadgeNew: "नया",
     empty: {
       noCardsBody: "आपने अभी तक कोई कार्ड नहीं बनाया है। पढ़ाई शुरू करने के लिए अपना पहला कार्ड जोड़ें।",
       noCardsTitle: "अभी तक कोई कार्ड नहीं",
@@ -889,11 +891,6 @@ const hiCatalog: TranslationCatalog = {
       loading: "मीडिया लोड हो रहा है...",
       unavailable: "मीडिया उपलब्ध नहीं है",
       videoLabel: "वीडियो अटैचमेंट",
-    },
-    meta: {
-      due: "बाकी {{value}}",
-      lapses: "चूक {{count}}",
-      reps: "रिव्यू {{count}}",
     },
     queue: {
       cards: "{{count}} कार्ड",

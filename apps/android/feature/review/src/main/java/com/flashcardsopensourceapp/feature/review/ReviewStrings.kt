@@ -105,10 +105,6 @@ class ReviewTextProvider(
             .format(Instant.ofEpochMilli(dueAtMillis).atZone(ZoneId.systemDefault()))
     }
 
-    fun repsLabel(reps: Int): String = resources.getString(R.string.review_reps_label, reps)
-
-    fun lapsesLabel(lapses: Int): String = resources.getString(R.string.review_lapses_label, lapses)
-
     fun filterTitle(
         selectedFilter: ReviewFilter,
         availableDeckFilters: List<ReviewDeckFilterOption>

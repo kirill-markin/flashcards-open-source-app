@@ -12,9 +12,6 @@ internal fun makePreparedReviewCardPresentation(card: ReviewCard): PreparedRevie
     return PreparedReviewCardPresentation(
         card = card,
         tagsLabel = card.tags.joinToString(),
-        dueLabel = "Due",
-        repsLabel = "2 reps",
-        lapsesLabel = "0 lapses",
         frontContent = ReviewRenderedContent.ShortPlain(text = card.frontText),
         backContent = ReviewRenderedContent.ShortPlain(text = card.backText),
         frontSpeakableText = card.frontText,
