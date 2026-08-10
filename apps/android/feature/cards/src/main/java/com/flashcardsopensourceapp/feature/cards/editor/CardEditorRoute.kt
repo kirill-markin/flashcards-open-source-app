@@ -370,6 +370,30 @@ fun CardEditorRoute(
 }
 
 @Composable
+fun CardEditorLoadingOrUnavailableRoute(
+    uiState: CardEditorUiState,
+    onBack: () -> Unit
+) {
+    require(uiState.isLoading || uiState.isCardUnavailable) {
+        "Loading or unavailable card editor route requires a matching UI state."
+    }
+    val unavailableAction: () -> Unit = {
+        error("Card editor actions are unavailable while the card is loading or unavailable.")
+    }
+    CardEditorRoute(
+        uiState = uiState,
+        onOpenFrontTextEditor = unavailableAction,
+        onOpenBackTextEditor = unavailableAction,
+        onOpenTagsEditor = unavailableAction,
+        onEditWithAi = null,
+        onRemoveTag = { unavailableAction() },
+        onSave = unavailableAction,
+        onDelete = null,
+        onBack = onBack
+    )
+}
+
+@Composable
 private fun CardEditorMetadataItem(
     icon: ImageVector,
     label: String
