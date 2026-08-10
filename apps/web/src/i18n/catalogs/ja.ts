@@ -846,6 +846,7 @@ export const jaCatalog = {
     },
     aiOpenAriaLabel: "{{side}} のカードを AI チャットで開く",
     repetitionBadgeAriaLabel: "復習回数: {{value}}",
+    repetitionBadgeNew: "新規",
     empty: {
       noCardsBody: "まだカードを作成していません。最初のカードを追加して学習を始めましょう。",
       noCardsTitle: "カードがまだありません",
