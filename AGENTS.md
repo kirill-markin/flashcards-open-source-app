@@ -53,6 +53,7 @@ Two Android pull-request workflows are an accepted exception and stay: `Android 
 Nothing compiles iOS before merge by design, though `PR Checks` still runs the static iOS checks.
 Swift builds and tests run in Xcode Cloud, whose workflow definitions live in App Store Connect; its in-repo build inputs are documented in [docs/ios-ci-cd.md](docs/ios-ci-cd.md).
 Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.
+Do not trigger Xcode Cloud iOS tests or releases, `Android Release`, or `MCP Registry Publish` unless the user explicitly authorizes that exact action. These actions are human-operated by default; agents may monitor and fix automatically triggered GitHub Actions.
 Details, rollback rules, and live smoke references: [docs/release-gates.md](docs/release-gates.md).
 Agent SQL executions emit one structured CloudWatch record per run on every surface; the record fields and the failure-rate queries live in [docs/agent-sql-telemetry.md](docs/agent-sql-telemetry.md).
 iOS `WatchdogTermination` events carry no stack trace by design; the memory fields carried on the app's own breadcrumbs and the decision tree for reading such an event live in [docs/ios-memory-diagnostics.md](docs/ios-memory-diagnostics.md).
