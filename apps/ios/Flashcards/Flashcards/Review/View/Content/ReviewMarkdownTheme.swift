@@ -7,6 +7,13 @@ private let reviewMathFormulaLogger: Logger = Logger(
     subsystem: appBundleIdentifier(),
     category: "review_math"
 )
+private let reviewMathFormulaColor: Color = Color(
+    .sRGB,
+    red: 254.0 / 255.0,
+    green: 254.0 / 255.0,
+    blue: 254.0 / 255.0,
+    opacity: 1.0
+)
 
 enum ReviewCardSurfaceStyle {
     case front
@@ -279,7 +286,7 @@ struct ReviewMathFormulaView: View {
                         latex: self.formula.latex,
                         fontSize: self.formulaFontSize,
                         displayMode: true,
-                        color: reviewMarkdownTextColor(surfaceStyle: self.surfaceStyle),
+                        color: reviewMathFormulaColor,
                         onError: { error in
                             reviewMathFormulaLogger.error(
                                 "Review formula rendering failed. latex=\(self.formula.latex, privacy: .private(mask: .hash)) error=\(error.localizedDescription, privacy: .public)"
