@@ -12,12 +12,10 @@ import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagSummar
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.feature.cards.CardsTextProvider
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -33,7 +31,9 @@ private data class CardEditorDraftState(
     val tagsErrorMessage: String,
     val errorMessage: String,
     val isDirty: Boolean,
-    val hasLoadedInitialValues: Boolean
+    val hasLoadedInitialValues: Boolean,
+    val isCardUnavailable: Boolean,
+    val schedulingMetadata: CardEditorSchedulingMetadata?
 )
 
 class CardEditorViewModel(
@@ -54,70 +54,84 @@ class CardEditorViewModel(
             tagsErrorMessage = "",
             errorMessage = "",
             isDirty = false,
-            hasLoadedInitialValues = editingCardId == null
+            hasLoadedInitialValues = editingCardId == null,
+            isCardUnavailable = false,
+            schedulingMetadata = null
         )
     )
 
     val uiState: StateFlow<CardEditorUiState>
 
     init {
-        val cardFlow: Flow<CardSummary?> = if (editingCardId == null) {
-            flowOf(null)
-        } else {
-            cardsRepository.observeCard(cardId = editingCardId)
-        }
-        var previousObservedCard: CardSummary? = null
-
-        viewModelScope.launch {
-            cardFlow.collect { card ->
-                if (card == null) {
-                    return@collect
-                }
-
-                val previousCard: CardSummary? = previousObservedCard
-                inputState.update { state ->
-                    if (state.hasLoadedInitialValues && previousCard != null) {
-                        val refreshedFrontText = refreshManagedImageReferenceStates(
-                            text = state.frontText,
-                            selection = state.frontTextSelection,
-                            previousObservedText = previousCard.frontText,
-                            observedText = card.frontText
-                        )
-                        val refreshedBackText = refreshManagedImageReferenceStates(
-                            text = state.backText,
-                            selection = state.backTextSelection,
-                            previousObservedText = previousCard.backText,
-                            observedText = card.backText
-                        )
-                        return@update state.copy(
-                            frontText = refreshedFrontText.text,
-                            backText = refreshedBackText.text,
-                            frontTextSelection = refreshedFrontText.selection,
-                            backTextSelection = refreshedBackText.selection
-                        )
-                    }
-                    if (state.hasLoadedInitialValues) {
-                        return@update state
+        if (editingCardId != null) {
+            viewModelScope.launch {
+                var previousObservedCard: CardSummary? = null
+                cardsRepository.observeCard(cardId = editingCardId).collect { card ->
+                    if (card == null) {
+                        inputState.update { state ->
+                            if (state.hasLoadedInitialValues) {
+                                state
+                            } else {
+                                state.copy(
+                                    errorMessage = textProvider.cardUnavailable,
+                                    hasLoadedInitialValues = true,
+                                    isCardUnavailable = true
+                                )
+                            }
+                        }
+                        return@collect
                     }
 
-                    state.copy(
-                        frontText = card.frontText,
-                        backText = card.backText,
-                        selectedTags = card.tags,
-                        hasLoadedInitialValues = true
-                    )
+                    val previousCard: CardSummary? = previousObservedCard
+                    inputState.update { state ->
+                        if (state.hasLoadedInitialValues && previousCard != null) {
+                            val refreshedFrontText = refreshManagedImageReferenceStates(
+                                text = state.frontText,
+                                selection = state.frontTextSelection,
+                                previousObservedText = previousCard.frontText,
+                                observedText = card.frontText
+                            )
+                            val refreshedBackText = refreshManagedImageReferenceStates(
+                                text = state.backText,
+                                selection = state.backTextSelection,
+                                previousObservedText = previousCard.backText,
+                                observedText = card.backText
+                            )
+                            return@update state.copy(
+                                frontText = refreshedFrontText.text,
+                                backText = refreshedBackText.text,
+                                frontTextSelection = refreshedFrontText.selection,
+                                backTextSelection = refreshedBackText.selection
+                            )
+                        }
+                        if (state.hasLoadedInitialValues) {
+                            return@update state
+                        }
+
+                        state.copy(
+                            frontText = card.frontText,
+                            backText = card.backText,
+                            selectedTags = card.tags,
+                            hasLoadedInitialValues = true,
+                            schedulingMetadata = CardEditorSchedulingMetadata(
+                                dueAtMillis = card.dueAtMillis,
+                                reps = card.reps,
+                                lapses = card.lapses
+                            )
+                        )
+                    }
+                    previousObservedCard = card
                 }
-                previousObservedCard = card
             }
         }
 
         uiState = combine(
-            cardFlow,
             workspaceRepository.observeWorkspaceTagsSummary(),
             inputState
-        ) { card, tagsSummary, currentState ->
+        ) { tagsSummary, currentState ->
             CardEditorUiState(
-                isLoading = editingCardId != null && card != null && currentState.hasLoadedInitialValues.not(),
+                isLoading = currentState.hasLoadedInitialValues.not(),
+                isCardUnavailable = currentState.isCardUnavailable,
                 title = if (editingCardId == null) textProvider.newCardTitle else textProvider.editCardTitle,
                 isEditing = editingCardId != null,
                 frontText = currentState.frontText,
@@ -137,17 +151,7 @@ class CardEditorViewModel(
                     referenceTags = tagsSummary.tags.map(WorkspaceTagSummary::tag)
                 ),
                 availableTagSuggestions = tagsSummary.tags,
-                schedulingMetadata = if (currentState.hasLoadedInitialValues) {
-                    card?.let { loadedCard ->
-                        CardEditorSchedulingMetadata(
-                            dueAtMillis = loadedCard.dueAtMillis,
-                            reps = loadedCard.reps,
-                            lapses = loadedCard.lapses
-                        )
-                    }
-                } else {
-                    null
-                },
+                schedulingMetadata = currentState.schedulingMetadata,
                 frontTextErrorMessage = currentState.frontTextErrorMessage,
                 backTextErrorMessage = currentState.backTextErrorMessage,
                 tagsErrorMessage = currentState.tagsErrorMessage,
@@ -158,7 +162,8 @@ class CardEditorViewModel(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
             initialValue = CardEditorUiState(
-                isLoading = true,
+                isLoading = editingCardId != null,
+                isCardUnavailable = false,
                 title = if (editingCardId == null) textProvider.newCardTitle else textProvider.editCardTitle,
                 isEditing = editingCardId != null,
                 frontText = "",

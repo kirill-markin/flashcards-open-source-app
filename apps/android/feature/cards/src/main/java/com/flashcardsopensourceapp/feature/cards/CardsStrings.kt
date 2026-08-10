@@ -18,7 +18,8 @@ data class CardsTextProvider(
     val enterTagBeforeAdding: String,
     val frontTextRequired: String,
     val backTextRequired: String,
-    val imageReferenceMissing: String
+    val imageReferenceMissing: String,
+    val cardUnavailable: String
 )
 
 fun cardsTextProvider(context: Context): CardsTextProvider {
@@ -29,7 +30,8 @@ fun cardsTextProvider(context: Context): CardsTextProvider {
         enterTagBeforeAdding = context.getString(R.string.cards_enter_tag_before_adding),
         frontTextRequired = context.getString(R.string.cards_front_text_required),
         backTextRequired = context.getString(R.string.cards_back_text_required),
-        imageReferenceMissing = context.getString(R.string.cards_editor_image_reference_missing)
+        imageReferenceMissing = context.getString(R.string.cards_editor_image_reference_missing),
+        cardUnavailable = context.getString(R.string.cards_editor_card_unavailable)
     )
 }
 
