@@ -36,7 +36,7 @@ import io.ratex.RaTeXView
 
 private const val reviewMathLogTag: String = "ReviewMath"
 private val reviewMathBlockCornerRadius = 12.dp
-private val reviewMathMinimumHeight = 48.dp
+private val reviewMathMinimumHeight = 32.dp
 
 @Composable
 internal fun ReviewMathFormulaBlock(
@@ -49,7 +49,7 @@ internal fun ReviewMathFormulaBlock(
     }
     val errorMessage: String = stringResource(id = R.string.review_math_render_failed)
     val formulaColor: Int = MaterialTheme.colorScheme.onSurface.toArgb()
-    val formulaFontSize: TextUnit = MaterialTheme.typography.titleLarge.fontSize
+    val formulaFontSize: TextUnit = MaterialTheme.typography.bodyLarge.fontSize
     val localDensity: Density = LocalDensity.current
     val formulaFontSizeDp: Float = with(localDensity) {
         formulaFontSize.toPx() / density
@@ -84,7 +84,7 @@ internal fun ReviewMathFormulaBlock(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(state = rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     AndroidView(
                         factory = { context -> RaTeXView(context) },
