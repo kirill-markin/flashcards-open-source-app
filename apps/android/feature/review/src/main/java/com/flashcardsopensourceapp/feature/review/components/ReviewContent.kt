@@ -41,6 +41,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -372,6 +374,15 @@ private fun ReviewRepetitionPill(
     formattedReps: String
 ) {
     val isNew = reps == 0
+    val displayedReps = if (isNew) {
+        stringResource(id = R.string.review_due_new)
+    } else {
+        formattedReps
+    }
+    val repetitionContentDescription = stringResource(
+        id = R.string.review_repetition_content_description,
+        displayedReps
+    )
     Surface(
         shape = RoundedCornerShape(percent = 50),
         color = if (isNew) {
@@ -383,6 +394,9 @@ private fun ReviewRepetitionPill(
             MaterialTheme.colorScheme.onPrimary
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        modifier = Modifier.clearAndSetSemantics {
+            contentDescription = repetitionContentDescription
         }
     ) {
         Row(
@@ -396,11 +410,7 @@ private fun ReviewRepetitionPill(
                 modifier = Modifier.size(reviewMetadataIconSize)
             )
             Text(
-                text = if (isNew) {
-                    stringResource(id = R.string.review_due_new)
-                } else {
-                    formattedReps
-                },
+                text = displayedReps,
                 style = MaterialTheme.typography.bodyMedium
             )
         }
