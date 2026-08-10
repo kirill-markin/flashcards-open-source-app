@@ -6,28 +6,29 @@ import {
 import "ratex-wasm/fonts.css";
 import { useI18n } from "../../../../i18n";
 
-const REVIEW_MATH_FONT_SIZE = 32;
+const REVIEW_MATH_FONT_SIZE_CSS_PIXELS = 18;
+const REVIEW_MATH_PADDING_CSS_PIXELS = 4;
 const REVIEW_MATH_FONT_DESCRIPTORS: ReadonlyArray<string> = [
-  "400 32px KaTeX_AMS",
-  "400 32px KaTeX_Caligraphic",
-  "700 32px KaTeX_Caligraphic",
-  "400 32px KaTeX_Fraktur",
-  "700 32px KaTeX_Fraktur",
-  "400 32px KaTeX_Main",
-  "italic 400 32px KaTeX_Main",
-  "700 32px KaTeX_Main",
-  "italic 700 32px KaTeX_Main",
-  "italic 400 32px KaTeX_Math",
-  "italic 700 32px KaTeX_Math",
-  "400 32px KaTeX_SansSerif",
-  "italic 400 32px KaTeX_SansSerif",
-  "700 32px KaTeX_SansSerif",
-  "400 32px KaTeX_Script",
-  "400 32px KaTeX_Size1",
-  "400 32px KaTeX_Size2",
-  "400 32px KaTeX_Size3",
-  "400 32px KaTeX_Size4",
-  "400 32px KaTeX_Typewriter",
+  `400 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_AMS`,
+  `400 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Caligraphic`,
+  `700 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Caligraphic`,
+  `400 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Fraktur`,
+  `700 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Fraktur`,
+  `400 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Main`,
+  `italic 400 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Main`,
+  `700 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Main`,
+  `italic 700 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Main`,
+  `italic 400 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Math`,
+  `italic 700 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Math`,
+  `400 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_SansSerif`,
+  `italic 400 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_SansSerif`,
+  `700 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_SansSerif`,
+  `400 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Script`,
+  `400 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Size1`,
+  `400 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Size2`,
+  `400 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Size3`,
+  `400 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Size4`,
+  `400 ${REVIEW_MATH_FONT_SIZE_CSS_PIXELS}px KaTeX_Typewriter`,
 ];
 
 type ReviewMathBlockProps = Readonly<{
@@ -82,6 +83,8 @@ export function ReviewMathBlock(props: ReviewMathBlockProps): ReactElement {
     const controller = new AbortController();
     canvas.width = 0;
     canvas.height = 0;
+    canvas.style.width = "";
+    canvas.style.height = "";
 
     async function renderFormula(): Promise<void> {
       try {
@@ -92,13 +95,14 @@ export function ReviewMathBlock(props: ReviewMathBlockProps): ReactElement {
         if (color === "") {
           throw new Error("Review formula rendering could not resolve the theme text color");
         }
+        const devicePixelRatio = window.devicePixelRatio;
         renderLatexToCanvas(
           formulaSource,
           renderCanvas,
           {
             backgroundColor: "transparent",
-            fontSize: REVIEW_MATH_FONT_SIZE,
-            padding: 8,
+            fontSize: REVIEW_MATH_FONT_SIZE_CSS_PIXELS * devicePixelRatio,
+            padding: REVIEW_MATH_PADDING_CSS_PIXELS * devicePixelRatio,
           },
           {
             color,
@@ -106,6 +110,8 @@ export function ReviewMathBlock(props: ReviewMathBlockProps): ReactElement {
           },
         );
         controller.signal.throwIfAborted();
+        renderCanvas.style.width = `${renderCanvas.width / devicePixelRatio}px`;
+        renderCanvas.style.height = `${renderCanvas.height / devicePixelRatio}px`;
         setRenderState({
           formulaSource,
           status: "ready",

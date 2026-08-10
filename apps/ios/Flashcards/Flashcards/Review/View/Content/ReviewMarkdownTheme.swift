@@ -244,7 +244,7 @@ struct ReviewMathFormulaView: View {
     let formula: ReviewFormulaContent
     let surfaceStyle: ReviewCardSurfaceStyle
 
-    @ScaledMetric(relativeTo: .body) private var formulaFontSize: CGFloat = 20
+    @ScaledMetric(relativeTo: .body) private var formulaFontSize: CGFloat = 18
     @State private var renderFailed: Bool = false
 
     private var localizedRenderError: String {
