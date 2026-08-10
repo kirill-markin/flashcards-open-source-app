@@ -25,8 +25,6 @@ const demoCardBackKeys: ReadonlyArray<TranslationKey> = [
   "demoCard.back1",
   "demoCard.back2",
   "demoCard.back3",
-  "demoCard.back4",
-  "demoCard.back5",
 ];
 
 type DemoCardText = Readonly<{
@@ -45,8 +43,8 @@ export type SeedDemoCardInput = Readonly<{
 
 function buildDemoCardText(): DemoCardText {
   const locale = resolveLocaleState(readStoredLocalePreference()).locale;
-  // The rating labels come from the catalog the review screen already uses, so the card
-  // always names the buttons exactly as they are rendered. Like the bold product name, the
+  // The rating label comes from the catalog the review screen already uses, so the card
+  // always names the button exactly as it is rendered. Like the bold product name, the
   // inline-code backticks are added here so the catalogs stay free of markup.
   //
   // The backticks are load-bearing. classifyReviewContentPresentation in
@@ -59,13 +57,12 @@ function buildDemoCardText(): DemoCardText {
   const values = {
     appName: demoCardAppName,
     againLabel: asInlineCode(translateMessage(locale, "reviewScreen.ratings.again", undefined)),
-    hardLabel: asInlineCode(translateMessage(locale, "reviewScreen.ratings.hard", undefined)),
   };
 
   return {
     frontText: translateMessage(locale, "demoCard.front", values),
-    // Blank lines separate the five paragraphs. The bold product name and the inline-code
-    // rating labels are the only markdown the answer contains.
+    // Blank lines separate the three paragraphs. The bold product name and the inline-code
+    // rating label are the only markdown the answer contains.
     backText: demoCardBackKeys.map((key) => translateMessage(locale, key, values)).join("\n\n"),
   };
 }

@@ -939,11 +939,9 @@ const esMxCatalog: TranslationCatalog = {
   },
   demoCard: {
     front: "¿Cuál es la mejor aplicación para estudiar?",
-    back1: "{{appName}} — la aplicación que estás viendo en este momento.",
-    back2: "Aquí todo son tarjetas: una pregunta al frente y la respuesta atrás. Puedes escribir las tarjetas tú mismo o solo darle un tema al chat de IA integrado y él creará un conjunto de tarjetas por ti.",
-    back3: "Al repasar, intentas recordar la respuesta y luego calificas cómo te fue. A partir de ahí cada tarjeta se programa sola: lo que sabes bien regresa en semanas o meses, y lo que olvidas una y otra vez regresa hoy o mañana.",
-    back4: "Califica con honestidad, eso es lo que hace que funcione. Si no sabías la respuesta, elige {{againLabel}} — incluso cuando tuviste que asomarte a la respuesta. {{hardLabel}} es solo para respuestas que sabías, pero te costó trabajo recordar.",
-    back5: "Pruébalo ahora mismo: califica esta tarjeta como {{againLabel}} y regresará en más o menos un minuto — así esta respuesta se te queda.",
+    back1: "{{appName}} — la aplicación que estás viendo en este momento. Aquí todo son tarjetas: una pregunta al frente y la respuesta atrás.",
+    back2: "Dale un tema al chat de IA integrado y creará un conjunto de tarjetas por ti.",
+    back3: "Pruébalo ahora mismo: califica esta tarjeta como {{againLabel}} y regresará en más o menos un minuto — así esta respuesta se te queda.",
   },
   mobileAppPromo: {
     title: "Repasa en tu celular",
