@@ -49,6 +49,7 @@ data class CardEditorSchedulingMetadata(
 
 data class CardEditorUiState(
     val isLoading: Boolean,
+    val isCardUnavailable: Boolean,
     val title: String,
     val isEditing: Boolean,
     val frontText: String,
