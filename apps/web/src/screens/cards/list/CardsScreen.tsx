@@ -869,7 +869,14 @@ export function CardsScreen(): ReactElement {
               <div className="cards-filter-actions">
                 <button type="button" className="ghost-btn" onClick={handleFilterClear}>{t("cardsScreen.filters.actions.clear")}</button>
                 <button type="button" className="ghost-btn" onClick={handleFilterCancel}>{t("common.cancel")}</button>
-                <button type="button" className="primary-btn" onClick={handleFilterApply}>{t("cardsScreen.filters.actions.apply")}</button>
+                <button
+                  type="button"
+                  className="primary-btn"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={handleFilterApply}
+                >
+                  {t("cardsScreen.filters.actions.apply")}
+                </button>
               </div>
             </AnchoredFloatingOverlay>
           </div>
