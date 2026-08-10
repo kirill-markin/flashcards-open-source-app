@@ -77,6 +77,7 @@
     <string name="review_loading">Loading...</string>
     <string name="review_no_tags_label">No tags</string>
     <string name="review_due_new">New</string>
+    <string name="review_repetition_content_description">Repetitions: %1$s</string>
     <string name="review_interval_now">now</string>
     <string name="review_interval_less_than_one_minute">in less than a minute</string>
     <plurals name="review_interval_minutes">
