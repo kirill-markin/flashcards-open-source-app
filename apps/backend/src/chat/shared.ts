@@ -3,6 +3,11 @@
  * These helpers keep the new server-owned chat contract aligned across routes, runtime, and replay.
  */
 
+import {
+  CARD_AUTHORING_CONTRACT,
+  CARD_AUTHORING_TOOL_CALL_EXAMPLE,
+} from "../aiTools/toolContract/sqlToolContract";
+
 function joinLines(lines: ReadonlyArray<string>): string {
   return lines.join("\n");
 }
@@ -35,6 +40,13 @@ function buildCardSideContractSection(): string {
     "- Use short Markdown lists when they improve scanability.",
     "- Include concrete examples by default when creating a card unless the user explicitly asks not to.",
     "- For code cards, concrete code snippets are preferred inside the card content itself, usually in fenced Markdown code blocks on the back side.",
+  ]);
+}
+
+function buildCardAuthoringSection(): string {
+  return joinLines([
+    CARD_AUTHORING_CONTRACT,
+    `Example: ${CARD_AUTHORING_TOOL_CALL_EXAMPLE}`,
   ]);
 }
 
@@ -133,6 +145,7 @@ export function buildSystemInstructions(
     buildAssistantRoleSection(),
     buildWorkspaceSection(),
     buildCardSideContractSection(),
+    buildCardAuthoringSection(),
     buildCardStyleAlignmentSection(),
     buildPlainTextChatFormattingSection(),
     buildWritePolicySection(),

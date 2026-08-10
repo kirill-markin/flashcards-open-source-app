@@ -143,10 +143,10 @@ invent an asset ID.
     delimiters, a localized render error, and a logged underlying RaTeX error.
 
 Speech and accessibility expose `x`, `\int_0^1 x^2\,dx = \frac{1}{3}`, and
-other recognized formula sources without delimiters. Client rendering work is
-handled by `02-web-block-math`, `03-android-block-math`, and
-`04-ios-block-math`; AI authoring wording remains deferred to
-`05-ai-card-math-authoring` after release.
+other recognized formula sources without delimiters. Web, Android, and iOS
+implement the rendering contract above. Transport escaping and read-back
+authoring rules use the canonical shared AI authoring contract in
+`apps/backend/src/aiTools/toolContract/sqlToolContract.ts`.
 
 ## Managed media
 

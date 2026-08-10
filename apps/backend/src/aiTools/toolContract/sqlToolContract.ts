@@ -14,6 +14,16 @@ export const SQL_EXECUTE_TOOL_NAME = "sql_execute";
 export const FRONT_BACK_CONTRACT =
   "Card side contract: front_text is only a question or review prompt and must never contain the answer; back_text contains the answer, optionally with a concrete example (prefer a fenced markdown code block when helpful).";
 
+/**
+ * Canonical Markdown and LaTeX authoring contract for every agent surface.
+ * Card content stays untouched; agents author decoded values and verify writes.
+ */
+export const CARD_AUTHORING_CONTRACT =
+  "Card fields hold decoded Markdown, real LFs, supported LaTeX. One LF stays within its Markdown paragraph; two make a blank line/new paragraph; literal `\\n` never lays out content. At JSON boundary, `\\n` becomes LF, `\\\\frac` becomes stored `\\frac`, while double-escaped `\\\\n` stores literal `\\n`. Use `$...$` and top-level delimiter-only `$$` lines as standalone blocks. Keep math outside other Markdown. After multiline/LaTeX writes, compare read-back with intended decoded text; repair only accidental transport double-escaping, preserving literal escapes intentionally requested/taught by user/card.";
+
+export const CARD_AUTHORING_TOOL_CALL_EXAMPLE =
+  "{\"sql\":\"INSERT INTO cards (front_text, back_text, tags) VALUES ('Question?', 'Answer\\n\\n$$\\n\\\\frac{a}{b}\\n$$', ('math'))\"}";
+
 export const SQL_TOOL_ARGUMENT_VALIDATOR = z.object({
   sql: z.string().trim().min(1),
 }).strict();
@@ -46,7 +56,7 @@ export const SQL_QUERY_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
  * the mutation statements (`INSERT`, `UPDATE`, `DELETE`).
  */
 export const SQL_EXECUTE_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
-  "- sql_execute => {\"sql\": \"INSERT INTO cards (front_text, back_text, tags) VALUES ('Question?', 'Answer', ('tag'))\"}",
+  `- sql_execute => ${CARD_AUTHORING_TOOL_CALL_EXAMPLE}`,
   "- sql_execute => {\"sql\": \"INSERT INTO cards (front_text, back_text, tags) VALUES ('Q?', 'A', ('grammar', 'a1'))\"}",
   "- sql_execute => {\"sql\": \"INSERT INTO cards (front_text, back_text, tags) VALUES ('Q?', 'A', ())\"}",
   "- sql_execute => {\"sql\": \"UPDATE cards SET back_text = 'Updated answer' WHERE card_id = '00000000-0000-4000-8000-000000000000'\"}",
@@ -71,6 +81,7 @@ export const SQL_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
  */
 const SQL_DIALECT_DESCRIPTION_LINES = Object.freeze([
   "This is not full PostgreSQL.",
+  CARD_AUTHORING_CONTRACT,
   "Cards, decks, review_events, and workspace are already scoped to the selected workspace.",
   "Use one JSON object: {\"sql\": \"...\"}.",
   "Public docs: https://flashcards-open-source-app.com/docs/mcp-connector/ and https://flashcards-open-source-app.com/docs/api/.",
