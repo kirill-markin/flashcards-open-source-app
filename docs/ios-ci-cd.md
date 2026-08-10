@@ -1,6 +1,6 @@
 # iOS CI/CD
 
-This repository uses Xcode Cloud as the native iOS release gate and distribution path. The GitHub-side AWS/Web release workflow does not wait for Xcode Cloud on `main`.
+This repository uses Xcode Cloud as the human-operated native iOS release gate and distribution path. The GitHub-side AWS/Web release workflow does not start or wait for Xcode Cloud on `main`.
 We do not aim for exhaustive iOS test coverage in this pipeline. The most trusted automated signal is the native simulator-backed live smoke because it exercises the real app closest to production behavior, while any non-smoke tests should stay targeted to important native contracts.
 
 ## Native release gate
@@ -68,9 +68,9 @@ This keeps the login smoke path pinned to the intended review account instead of
 
 `FLASHCARDS_LIVE_REVIEW_EMAIL` remains optional.
 
-## Monitoring expectations
+## Human operation
 
-After pushing to `main`, watch Xcode Cloud separately through the full archive and distribution path. Do not assume the iOS release completed just because the GitHub-side AWS/Web release workflow is green.
+The Xcode Cloud test and build workflows are manually started and monitored by a human. Agents must not trigger or monitor them unless the user explicitly requests that exact action.
 
 ### Sentry environments
 

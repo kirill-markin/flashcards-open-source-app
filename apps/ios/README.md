@@ -135,12 +135,12 @@ Use that document when you need to regenerate localized App Store screenshots or
 iOS CI/CD is documented in [`docs/ios-ci-cd.md`](../../docs/ios-ci-cd.md).
 App Store release-note drafting guidance is documented in [`docs/version-bump.md`](../../docs/version-bump.md#app-store-release-notes).
 
-The expected release gate is:
+The human-operated release gate is:
 
 1. Native XCUITest grouped live smoke
 2. Xcode Cloud archive and distribution
 
-When a change lands on `main`, follow the Xcode Cloud workflow until the release either completes or fails with a concrete error. Do not assume the iOS release finished just because the GitHub-side AWS/Web release workflow is green.
+Xcode Cloud test and build workflows are manually started and monitored by a human. Agents must not trigger or monitor them unless the user explicitly requests that exact action.
 
 ## Respect Existing Code
 

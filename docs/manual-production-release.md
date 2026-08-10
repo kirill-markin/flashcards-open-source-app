@@ -10,6 +10,8 @@ platform actions that a person must start, inspect, or finish.
 
 ## iOS
 
+Start and monitor each Xcode Cloud workflow manually.
+
 1. Run the Xcode Cloud test workflow manually for the release SHA.
 2. Fix every red result, and investigate yellow or warning states until they are
    understood before continuing.
