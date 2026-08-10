@@ -443,6 +443,46 @@ export function createDropEvent(file: File): DragEvent {
   return dropEvent;
 }
 
+export function createImagePasteEvent(file: File): ClipboardEvent {
+  const pasteEvent = new Event("paste", { bubbles: true, cancelable: true }) as ClipboardEvent;
+  const imageItem = {
+    kind: "file",
+    type: file.type,
+    getAsFile: () => file,
+  } as DataTransferItem;
+  const textItem = {
+    kind: "string",
+    type: "text/plain",
+    getAsFile: () => null,
+  } as DataTransferItem;
+  const htmlItem = {
+    kind: "string",
+    type: "text/html",
+    getAsFile: () => null,
+  } as DataTransferItem;
+  Object.defineProperty(pasteEvent, "clipboardData", {
+    value: {
+      items: [textItem, htmlItem, imageItem],
+    },
+  });
+  return pasteEvent;
+}
+
+export function createTextPasteEvent(): ClipboardEvent {
+  const pasteEvent = new Event("paste", { bubbles: true, cancelable: true }) as ClipboardEvent;
+  const textItem = {
+    kind: "string",
+    type: "text/plain",
+    getAsFile: () => null,
+  } as DataTransferItem;
+  Object.defineProperty(pasteEvent, "clipboardData", {
+    value: {
+      items: [textItem],
+    },
+  });
+  return pasteEvent;
+}
+
 export function createChatPanelDragEnterEvent(file: File): DragEvent {
   const dragEvent = new Event("dragenter", { bubbles: true, cancelable: true }) as DragEvent;
   const dataTransfer: { files: ReadonlyArray<File>; dropEffect: DataTransfer["dropEffect"] } = {
@@ -464,6 +504,19 @@ export async function dispatchChatPanelDragEvent(
 
   await act(async () => {
     chatPanel?.dispatchEvent(dragEvent);
+    await Promise.resolve();
+  });
+}
+
+export async function dispatchChatComposerPasteEvent(
+  container: HTMLDivElement,
+  pasteEvent: ClipboardEvent,
+): Promise<void> {
+  const textarea = queryChatComposerInput(container);
+  expect(textarea).not.toBeNull();
+
+  await act(async () => {
+    textarea?.dispatchEvent(pasteEvent);
     await Promise.resolve();
   });
 }

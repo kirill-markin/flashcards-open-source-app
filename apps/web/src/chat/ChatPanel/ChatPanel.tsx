@@ -191,6 +191,7 @@ export function ChatPanel(props: Props): ReactElement {
     handleDragLeave,
     handleDragOver,
     handleDrop,
+    handlePaste,
     ingestFiles,
     isDragOver,
     removeAttachment,
@@ -441,6 +442,7 @@ export function ChatPanel(props: Props): ReactElement {
               updateTrackedDraftSelection(event.target);
             }}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             onSelect={(event) => updateTrackedDraftSelection(event.currentTarget)}
             onClick={(event) => updateTrackedDraftSelection(event.currentTarget)}
             onKeyUp={(event) => updateTrackedDraftSelection(event.currentTarget)}
