@@ -104,8 +104,6 @@ struct AIChatView: View {
     @State var selectedPhotoItem: PhotosPickerItem?
     @State var isAutoFollowEnabled: Bool
     @State var hasActiveUserScrollGesture: Bool
-    @State var scrollPosition: ScrollPosition
-    @State var autoScrollTask: Task<Void, Never>?
     @State var composerSelection: TextSelection?
     @State var deferredPresentationRequest: AIChatPresentationRequest?
     @FocusState var isComposerFocused: Bool
@@ -119,8 +117,6 @@ struct AIChatView: View {
         self.selectedPhotoItem = nil
         self.isAutoFollowEnabled = true
         self.hasActiveUserScrollGesture = false
-        self.scrollPosition = aiChatBottomScrollPosition(messages: chatStore.messages)
-        self.autoScrollTask = nil
         self.composerSelection = nil
         self.deferredPresentationRequest = nil
     }
@@ -186,9 +182,6 @@ struct AIChatView: View {
             }
             .onChange(of: self.navigation.selectedTab) { _, nextTab in
                 self.handleSelectedTabChange(nextTab: nextTab)
-            }
-            .onChange(of: self.isComposerFocused) { _, isFocused in
-                self.handleComposerFocusChange(isFocused: isFocused)
             }
             .onChange(of: self.chatStore.dictationState) { _, nextState in
                 self.handleDictationStateViewChange(nextState: nextState)
@@ -751,14 +744,6 @@ struct AIChatView: View {
         )
     }
 
-    func handleComposerFocusChange(isFocused: Bool) {
-        guard isFocused, self.isAutoFollowEnabled else {
-            return
-        }
-
-        self.scrollToBottomIfNeeded(isAnimated: false)
-    }
-
     func handleViewAppear() {
         self.syncChatSurface(refreshConsent: true)
         self.captureAIChatPresentationRequest(
@@ -799,7 +784,6 @@ struct AIChatView: View {
             return
         }
 
-        self.scrollToBottomIfNeeded(isAnimated: false)
         self.handleAIChatPresentationRequest(
             request: self.deferredPresentationRequest,
             source: .bootstrapReady
@@ -930,7 +914,6 @@ let aiChatComposerStatusLaneHeight: CGFloat = 24
 let aiChatComposerStatusLaneSpacing: CGFloat = 8
 let aiChatComposerDictationTextFieldTopPadding: CGFloat = 12 + aiChatComposerStatusLaneHeight + aiChatComposerStatusLaneSpacing
 let aiChatMessageListHorizontalPadding: CGFloat = 16
-let aiChatAutoScrollIntervalSeconds: Double = 2.0
 let aiChatAutoScrollBottomThreshold: CGFloat = 12
 let aiChatAutoScrollAnimationDurationSeconds: Double = 0.25
 let aiChatBubbleMaximumWidth: CGFloat = 720
