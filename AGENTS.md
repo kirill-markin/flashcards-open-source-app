@@ -47,13 +47,13 @@ For the optional private analytical DB access path, granted reporting permission
 
 ## Release Gates and Monitoring
 
-Pushes to `main` use three independent release streams: AWS/web, Android, and iOS.
+Release and check workflows use independent AWS/web, Android, and iOS streams.
 Pull-request checks stay deliberately light and fast: do not add heavy mobile build or test jobs to pull-request workflows.
 Two Android pull-request workflows are an accepted exception and stay: `Android PR` in `.github/workflows/android-pr.yml` runs build, unit tests, and lint for every Android-impacting pull request (about 6 minutes), and `Android PR data:local` in `.github/workflows/android-pr-data-local.yml` adds the GitHub-hosted `data:local` emulator instrumentation only when the Android data layer or shared Android Gradle configuration changes; the Firebase Test Lab managed-device suite stays out of pull requests.
 Nothing compiles iOS before merge by design, though `PR Checks` still runs the static iOS checks.
 Swift builds and tests run in Xcode Cloud, whose workflow definitions live in App Store Connect; its in-repo build inputs are documented in [docs/ios-ci-cd.md](docs/ios-ci-cd.md).
 Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.
-Do not trigger Xcode Cloud iOS tests or releases, `Android Release`, or `MCP Registry Publish` unless the user explicitly authorizes that exact action. These actions are human-operated by default; agents may monitor and fix automatically triggered GitHub Actions.
+Xcode Cloud iOS test and build workflows are manually started and monitored by a human. Do not trigger or monitor them unless the user explicitly authorizes that exact action. Do not trigger `Android Release` or `MCP Registry Publish` unless the user explicitly authorizes that exact action; agents may monitor and fix automatically triggered GitHub Actions.
 Details, rollback rules, and live smoke references: [docs/release-gates.md](docs/release-gates.md).
 Agent SQL executions emit one structured CloudWatch record per run on every surface; the record fields and the failure-rate queries live in [docs/agent-sql-telemetry.md](docs/agent-sql-telemetry.md).
 iOS `WatchdogTermination` events carry no stack trace by design; the memory fields carried on the app's own breadcrumbs and the decision tree for reading such an event live in [docs/ios-memory-diagnostics.md](docs/ios-memory-diagnostics.md).
