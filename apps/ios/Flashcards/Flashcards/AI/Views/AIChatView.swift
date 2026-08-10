@@ -120,7 +120,7 @@ struct AIChatView: View {
         self.selectedPhotoItem = nil
         self.isAutoFollowEnabled = true
         self.hasActiveUserScrollGesture = false
-        self.scrollPosition = ScrollPosition(idType: String.self)
+        self.scrollPosition = ScrollPosition(idType: String.self, edge: .bottom)
         self.autoScrollTask = nil
         self.deferredBottomSyncTask = nil
         self.composerSelection = nil
@@ -856,12 +856,12 @@ struct AIChatView: View {
             return
         }
 
+        self.resetScrollPositionForTabEntry()
         self.syncChatSurface(refreshConsent: true)
         self.handleAIChatPresentationRequest(
             request: self.deferredPresentationRequest,
             source: .selectedAITab
         )
-        self.scheduleDeferredBottomSyncIfNeeded()
     }
 
     func handleDictationStateViewChange(nextState: AIChatDictationState) {
