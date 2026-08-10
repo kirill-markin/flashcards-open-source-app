@@ -11,8 +11,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Label
+import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,7 +29,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -37,6 +42,8 @@ import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorFrontSummaryCardTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorSaveButtonTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorTagsSummaryCardTag
+import com.flashcardsopensourceapp.feature.cards.formatCardsCount
+import com.flashcardsopensourceapp.feature.cards.formatCardsDueLabel
 import com.flashcardsopensourceapp.feature.cards.formatCardsTagSelectionSummary
 import com.flashcardsopensourceapp.feature.cards.formatCardsTextPreview
 
@@ -241,6 +248,42 @@ fun CardEditorRoute(
                 }
             }
 
+            if (uiState.isEditing && uiState.schedulingMetadata != null) {
+                val metadata = uiState.schedulingMetadata
+                item {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        CardEditorMetadataItem(
+                            icon = Icons.Outlined.AccessTime,
+                            label = stringResource(
+                                id = R.string.cards_due_label,
+                                formatCardsDueLabel(
+                                    resources = resources,
+                                    dueAtMillis = metadata.dueAtMillis
+                                )
+                            )
+                        )
+                        CardEditorMetadataItem(
+                            icon = Icons.Outlined.Autorenew,
+                            label = stringResource(
+                                id = R.string.cards_reps_label,
+                                formatCardsCount(resources = resources, count = metadata.reps)
+                            )
+                        )
+                        CardEditorMetadataItem(
+                            icon = Icons.Outlined.WarningAmber,
+                            label = stringResource(
+                                id = R.string.cards_lapses_label,
+                                formatCardsCount(resources = resources, count = metadata.lapses)
+                            )
+                        )
+                    }
+                }
+            }
+
             item {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -278,5 +321,27 @@ fun CardEditorRoute(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CardEditorMetadataItem(
+    icon: ImageVector,
+    label: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

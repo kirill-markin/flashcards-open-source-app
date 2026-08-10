@@ -30,6 +30,9 @@
     <string name="cards_no_tags_label">No tags</string>
     <string name="cards_tag_with_count">%1$s (%2$d)</string>
     <string name="cards_due_new">New</string>
+    <string name="cards_due_label">Due %1$s</string>
+    <string name="cards_reps_label">Reps %1$s</string>
+    <string name="cards_lapses_label">Lapses %1$s</string>
     <string name="cards_filter_summary_tags">Tags: %1$s</string>
     <string name="cards_updated_on_another_device">Cards updated on another device.</string>
     <string name="cards_new_card_title">New card</string>

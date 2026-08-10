@@ -19,10 +19,8 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
-import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilledIconButton
@@ -31,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,6 +49,7 @@ import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
+import java.text.NumberFormat
 
 private val reviewShowAnswerContentBottomPadding = 120.dp
 private val reviewAnswerGridContentBottomPadding = 184.dp
@@ -287,6 +287,10 @@ private fun ReviewCardContent(
                     icon = Icons.AutoMirrored.Outlined.Label,
                     label = currentCard.tagsLabel
                 )
+                ReviewRepetitionPill(
+                    reps = currentCard.card.reps,
+                    formattedReps = NumberFormat.getIntegerInstance(locale).format(currentCard.card.reps)
+                )
             }
 
             Row(
@@ -359,29 +363,45 @@ private fun ReviewCardContent(
                 }
             }
         }
+    }
+}
 
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
+@Composable
+private fun ReviewRepetitionPill(
+    reps: Int,
+    formattedReps: String
+) {
+    val isNew = reps == 0
+    Surface(
+        shape = RoundedCornerShape(percent = 50),
+        color = if (isNew) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHighest
+        },
+        contentColor = if (isNew) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
-            ReviewMetadataItem(
-                icon = Icons.Outlined.AccessTime,
-                label = stringResource(
-                    id = R.string.review_due_label,
-                    bidiWrap(
-                        text = currentCard.dueLabel,
-                        locale = locale
-                    )
-                )
+            Icon(
+                imageVector = Icons.Outlined.Autorenew,
+                contentDescription = null,
+                modifier = Modifier.size(reviewMetadataIconSize)
             )
-            ReviewMetadataItem(
-                icon = Icons.Outlined.Autorenew,
-                label = currentCard.repsLabel
-            )
-            ReviewMetadataItem(
-                icon = Icons.Outlined.WarningAmber,
-                label = currentCard.lapsesLabel
+            Text(
+                text = if (isNew) {
+                    stringResource(id = R.string.review_due_new)
+                } else {
+                    formattedReps
+                },
+                style = MaterialTheme.typography.bodyMedium
             )
         }
     }

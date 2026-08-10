@@ -28,9 +28,6 @@ fun prepareReviewCardPresentation(
     return PreparedReviewCardPresentation(
         card = card,
         tagsLabel = textProvider.tagsLabel(tags = card.tags),
-        dueLabel = textProvider.dueLabel(dueAtMillis = card.dueAtMillis),
-        repsLabel = textProvider.repsLabel(reps = card.reps),
-        lapsesLabel = textProvider.lapsesLabel(lapses = card.lapses),
         frontContent = preparedFrontContent.renderedContent,
         backContent = preparedBackContent.renderedContent,
         frontSpeakableText = preparedFrontContent.speakableText,
