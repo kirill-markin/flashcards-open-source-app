@@ -843,6 +843,7 @@ const enCatalog = {
       switchToAllCards: "switch to all cards deck",
     },
     aiOpenAriaLabel: "Open {{side}} card in AI chat",
+    repetitionBadgeAriaLabel: "Repetitions: {{value}}",
     empty: {
       noCardsBody: "You have not created any cards yet. Add your first card to start studying.",
       noCardsTitle: "No Cards Yet",
@@ -887,11 +888,6 @@ const enCatalog = {
       loading: "Loading media...",
       unavailable: "Media unavailable",
       videoLabel: "Video attachment",
-    },
-    meta: {
-      due: "Due {{value}}",
-      lapses: "Lapses {{count}}",
-      reps: "Reps {{count}}",
     },
     queue: {
       cards: "{{count}} cards",

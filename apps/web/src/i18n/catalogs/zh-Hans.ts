@@ -845,6 +845,7 @@ export const zhHansCatalog = {
       switchToAllCards: "切换到所有卡片牌组",
     },
     aiOpenAriaLabel: "在 AI 聊天中打开{{side}}卡片",
+    repetitionBadgeAriaLabel: "复习次数：{{value}}",
     empty: {
       noCardsBody: "您还没有创建任何卡片。添加第一张卡片即可开始学习。",
       noCardsTitle: "还没有卡片",
@@ -889,11 +890,6 @@ export const zhHansCatalog = {
       loading: "正在加载媒体...",
       unavailable: "媒体不可用",
       videoLabel: "视频附件",
-    },
-    meta: {
-      due: "到期 {{value}}",
-      lapses: "失误 {{count}}",
-      reps: "复习次数 {{count}}",
     },
     queue: {
       cards: "{{count}} 张卡片",
