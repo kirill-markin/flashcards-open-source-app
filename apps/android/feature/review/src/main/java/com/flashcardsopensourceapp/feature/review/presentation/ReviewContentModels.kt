@@ -65,9 +65,6 @@ data class PreparedReviewAnswerOption(
 data class PreparedReviewCardPresentation(
     val card: ReviewCard,
     val tagsLabel: String,
-    val dueLabel: String,
-    val repsLabel: String,
-    val lapsesLabel: String,
     val frontContent: ReviewRenderedContent,
     val backContent: ReviewRenderedContent,
     val frontSpeakableText: String,

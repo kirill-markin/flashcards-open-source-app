@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.Resources
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
+import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -70,6 +71,11 @@ fun formatCardsDueLabel(resources: Resources, dueAtMillis: Long?): String {
         .ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
         .withLocale(locale)
         .format(Instant.ofEpochMilli(dueAtMillis).atZone(ZoneId.systemDefault()))
+}
+
+fun formatCardsCount(resources: Resources, count: Int): String {
+    val locale = resources.configuration.locales[0] ?: Locale.getDefault()
+    return NumberFormat.getIntegerInstance(locale).format(count)
 }
 
 fun formatCardsMetadataSummary(resources: Resources, card: CardSummary): String {
