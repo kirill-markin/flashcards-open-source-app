@@ -113,7 +113,22 @@ get:
               select one before using POST /v1/agent/sql/query for reads or
               POST /v1/agent/sql/execute for writes. After workspace selection,
               call GET /v1/agent/me and use data.agentWorkspaceReplicaId as
-              lastModifiedByReplicaId when creating media upload sessions. For routine low-risk
+              lastModifiedByReplicaId when creating media upload sessions. Card
+              side contract: front_text is only a question or review prompt and
+              must never contain the answer; back_text contains the answer,
+              optionally with a concrete example (prefer a fenced markdown code
+              block when helpful). Card fields hold decoded Markdown, real LFs,
+              supported LaTeX. One LF stays within its Markdown paragraph; two
+              make a blank line/new paragraph; literal `\n` never lays out
+              content. At JSON boundary, `\n` becomes LF, `\\frac` becomes
+              stored `\frac`, while double-escaped `\\n` stores literal
+              `\n`. Use `$...$` and top-level delimiter-only `$$` lines as
+              standalone blocks. Keep math outside other Markdown. After
+              multiline/LaTeX writes, compare read-back with intended decoded
+              text; repair only accidental transport double-escaping,
+              preserving literal escapes intentionally requested/taught by
+              user/card. Example: {"sql":"INSERT INTO cards (front_text, back_text, tags) VALUES ('Question?', 'Answer\n\n$$\n\\frac{a}{b}\n$$', ('math'))"}
+              For routine low-risk
               writes, a clear user request already counts as permission. Ask
               again only for risky or unclear actions. For media assets, create
               JPEG, PNG, or WebP image assets up to 4000000 bytes with POST
