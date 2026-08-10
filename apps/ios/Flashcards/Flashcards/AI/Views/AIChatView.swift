@@ -106,7 +106,6 @@ struct AIChatView: View {
     @State var hasActiveUserScrollGesture: Bool
     @State var scrollPosition: ScrollPosition
     @State var autoScrollTask: Task<Void, Never>?
-    @State var deferredBottomSyncTask: Task<Void, Never>?
     @State var composerSelection: TextSelection?
     @State var deferredPresentationRequest: AIChatPresentationRequest?
     @FocusState var isComposerFocused: Bool
@@ -120,9 +119,8 @@ struct AIChatView: View {
         self.selectedPhotoItem = nil
         self.isAutoFollowEnabled = true
         self.hasActiveUserScrollGesture = false
-        self.scrollPosition = ScrollPosition(idType: String.self, edge: .bottom)
+        self.scrollPosition = aiChatBottomScrollPosition(messages: chatStore.messages)
         self.autoScrollTask = nil
-        self.deferredBottomSyncTask = nil
         self.composerSelection = nil
         self.deferredPresentationRequest = nil
     }
@@ -351,20 +349,25 @@ struct AIChatView: View {
         }
     }
 
+    @ViewBuilder
     var chatContent: some View {
-        Group {
-            switch self.chatStore.bootstrapPhase {
-            case .loading:
-                if self.chatStore.hasLocalTranscriptDuringBootstrap {
-                    self.chatScrollSurface
-                } else {
-                    self.loadingChatState
-                }
-            case .failed:
-                self.failedChatState
-            case .ready:
-                self.chatScrollSurface
-            }
+        if self.shouldShowChatScrollSurface {
+            self.chatScrollSurface
+        } else if case .failed = self.chatStore.bootstrapPhase {
+            self.failedChatState
+        } else {
+            self.loadingChatState
+        }
+    }
+
+    var shouldShowChatScrollSurface: Bool {
+        switch self.chatStore.bootstrapPhase {
+        case .loading:
+            return self.chatStore.messages.isEmpty == false
+        case .failed:
+            return false
+        case .ready:
+            return true
         }
     }
 
@@ -753,9 +756,7 @@ struct AIChatView: View {
             return
         }
 
-        // Preserve a manual scroll-away, but if the user was still pinned to the
-        // bottom, let the keyboard settle first and then realign the latest chat.
-        self.scheduleDeferredBottomSyncIfNeeded()
+        self.scrollToBottomIfNeeded(isAnimated: false)
     }
 
     func handleViewAppear() {
@@ -798,7 +799,7 @@ struct AIChatView: View {
             return
         }
 
-        self.scheduleDeferredBottomSyncIfNeeded()
+        self.scrollToBottomIfNeeded(isAnimated: false)
         self.handleAIChatPresentationRequest(
             request: self.deferredPresentationRequest,
             source: .bootstrapReady
@@ -851,7 +852,6 @@ struct AIChatView: View {
 
     func handleSelectedTabChange(nextTab: AppTab) {
         guard nextTab == .ai else {
-            self.cancelDeferredBottomSync()
             self.syncChatSurface(refreshConsent: false)
             return
         }

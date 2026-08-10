@@ -69,62 +69,21 @@ func aiChatMessageListUpdateChangesExistingTail(
         }
 }
 
+func aiChatBottomScrollPosition(messages: [AIChatMessage]) -> ScrollPosition {
+    guard let tailMessageId = messages.last?.id else {
+        return ScrollPosition(idType: String.self, edge: .bottom)
+    }
+
+    return ScrollPosition(id: tailMessageId, anchor: .bottom)
+}
+
 extension AIChatView {
     func detachAutoFollow() {
         self.isAutoFollowEnabled = false
-        self.cancelDeferredBottomSync()
     }
 
     func detachAutoFollowForExpandedContent() {
         self.detachAutoFollow()
-    }
-
-    func scheduleDeferredBottomSyncIfNeeded() {
-        guard self.navigation.selectedTab == .ai else {
-            return
-        }
-        guard self.accessState == .ready else {
-            return
-        }
-        guard self.chatStore.bootstrapPhase == .ready else {
-            return
-        }
-        guard self.isAutoFollowEnabled else {
-            return
-        }
-
-        self.cancelDeferredBottomSync()
-        self.deferredBottomSyncTask = Task { @MainActor in
-            await Task.yield()
-
-            guard Task.isCancelled == false else {
-                return
-            }
-            guard self.navigation.selectedTab == .ai else {
-                self.deferredBottomSyncTask = nil
-                return
-            }
-            guard self.accessState == .ready else {
-                self.deferredBottomSyncTask = nil
-                return
-            }
-            guard self.chatStore.bootstrapPhase == .ready else {
-                self.deferredBottomSyncTask = nil
-                return
-            }
-            guard self.isAutoFollowEnabled else {
-                self.deferredBottomSyncTask = nil
-                return
-            }
-
-            self.scrollToBottomIfNeeded(isAnimated: false)
-            self.deferredBottomSyncTask = nil
-        }
-    }
-
-    func cancelDeferredBottomSync() {
-        self.deferredBottomSyncTask?.cancel()
-        self.deferredBottomSyncTask = nil
     }
 
     func scrollToBottomIfNeeded(isAnimated: Bool) {
@@ -138,7 +97,7 @@ extension AIChatView {
     func scrollToBottom(isAnimated: Bool) {
         if isAnimated {
             withAnimation(.easeOut(duration: aiChatAutoScrollAnimationDurationSeconds)) {
-                self.scrollPosition.scrollTo(edge: .bottom)
+                self.updateScrollPositionToBottom()
             }
             return
         }
@@ -146,8 +105,17 @@ extension AIChatView {
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
-            self.scrollPosition.scrollTo(edge: .bottom)
+            self.updateScrollPositionToBottom()
         }
+    }
+
+    private func updateScrollPositionToBottom() {
+        guard let tailMessageId = self.chatStore.messages.last?.id else {
+            self.scrollPosition.scrollTo(edge: .bottom)
+            return
+        }
+
+        self.scrollPosition.scrollTo(id: tailMessageId, anchor: .bottom)
     }
 
     func startAutoScrollTask() {
