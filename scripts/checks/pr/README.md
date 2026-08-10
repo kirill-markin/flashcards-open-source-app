@@ -1,7 +1,8 @@
 # Pre-merge static checks
 
 Repository-wide consistency checks that run on every pull request through the
-`static_checks` job of [`.github/workflows/pr-checks.yml`](../../../.github/workflows/pr-checks.yml).
+`repository_static_validation` job of [`.github/workflows/pr-checks.yml`](../../../.github/workflows/pr-checks.yml).
+Its result is enforced by the required `Repository static checks` aggregate.
 
 `run-all.mjs` discovers every `check-*.mjs` file in this directory, runs them in
 sorted order from the repository root, and exits non-zero when any of them fails.

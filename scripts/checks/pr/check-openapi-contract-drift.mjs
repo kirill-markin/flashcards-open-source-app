@@ -7,8 +7,9 @@
 // and turns the release red.
 //
 // The spec path set is read from the top-level `paths:` mapping of
-// api/src/openapi.yaml rather than from the redocly bundle. The static_checks
-// job that runs this file installs no npm dependencies, and `redocly bundle`
+// api/src/openapi.yaml rather than from the redocly bundle. The
+// repository_static_validation job that runs this file installs no npm
+// dependencies, and `redocly bundle`
 // performs a network version check, so bundling here would be neither available
 // nor offline. Bundling only inlines each `$ref`; it never adds, removes, or
 // renames a top-level path key, so both sources yield the same path set.

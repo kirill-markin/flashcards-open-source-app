@@ -49,7 +49,7 @@ For the optional private analytical DB access path, granted reporting permission
 
 Release and check workflows use independent AWS/web, Android, and iOS streams.
 Pull-request checks stay deliberately light and fast: do not add heavy mobile build or test jobs to pull-request workflows.
-Two Android pull-request workflows are an accepted exception and stay: `Android PR` in `.github/workflows/android-pr.yml` runs build, unit tests, and lint for every Android-impacting pull request (about 6 minutes), and `Android PR data:local` in `.github/workflows/android-pr-data-local.yml` adds the GitHub-hosted `data:local` emulator instrumentation only when the Android data layer or shared Android Gradle configuration changes; the Firebase Test Lab managed-device suite stays out of pull requests.
+Android jobs inside `.github/workflows/pr-checks.yml` are an accepted exception: build, unit tests, and lint run for every Android-impacting pull request, and the GitHub-hosted `data:local` emulator instrumentation runs only when the Android data layer or shared Android Gradle configuration changes. `Repository static checks` is the strict required aggregate PR gate; Firebase Test Lab stays out of pull requests.
 Nothing compiles iOS before merge by design, though `PR Checks` still runs the static iOS checks.
 Swift builds and tests run in Xcode Cloud, whose workflow definitions live in App Store Connect; its in-repo build inputs are documented in [docs/ios-ci-cd.md](docs/ios-ci-cd.md).
 Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.

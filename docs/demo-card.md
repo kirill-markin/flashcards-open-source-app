@@ -260,8 +260,9 @@ Binding for all three clients:
   repository (see [apps/android/README.md](../apps/android/README.md)); iOS and web translations are
   repository-owned. Wording will therefore differ slightly per platform, and that is accepted;
 - on iOS the four strings must land already translated into every required locale in the same change.
-  `scripts/checks/pr/check-ios-localization-parity.mjs` runs in the required `Repository static
-  checks` job of [.github/workflows/pr-checks.yml](../.github/workflows/pr-checks.yml), and it fails
+  `scripts/checks/pr/check-ios-localization-parity.mjs` runs in `Repository static validation`, whose
+  result is enforced by the required `Repository static checks` aggregate in
+  [.github/workflows/pr-checks.yml](../.github/workflows/pr-checks.yml), and it fails
   any `.xcstrings` entry whose `ar`, `de`, `es-ES`, `es-MX`, `hi`, `ja`, `ru`, or `zh-Hans`
   localization is missing, empty, or not in `state: "translated"`. English-only demo-card entries
   turn that check red;

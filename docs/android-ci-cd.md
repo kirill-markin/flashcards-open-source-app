@@ -1,11 +1,10 @@
 # Android CI/CD
 
-This repository uses one reusable Android validation workflow plus four entry workflows: two automatic pull-request workflows, automatic `push main`, and manual release:
+This repository uses one reusable Android validation workflow plus three entry workflows: automatic pull-request checks, automatic `push main`, and manual release:
 
 - GitHub Actions is the primary Android CI/CD entrypoint on `main`
 - `.github/workflows/android-ci-reusable.yml` contains the actual Android CI implementation
-- `.github/workflows/android-pr.yml` is the automatic pull-request build, unit test, and lint workflow
-- `.github/workflows/android-pr-data-local.yml` is the automatic pull-request `data:local` emulator instrumentation workflow, scoped to Android data-layer and shared Android Gradle configuration changes
+- `.github/workflows/pr-checks.yml` contains the required aggregate pull-request gate and conditionally calls the Android validation jobs
 - `.github/workflows/android-ci.yml` is the automatic `push main` Android validation workflow
 - `.github/workflows/android-release.yml` is the manual Android release workflow
 - Firebase Test Lab runs only from the manual release workflow on Google-managed devices
@@ -62,34 +61,28 @@ This Android-specific sync is separate from the AWS deploy bootstrap script `bas
 
 ## What runs
 
-Pull-request GitHub Actions workflow: `.github/workflows/android-pr.yml`
+Pull-request GitHub Actions workflow: `.github/workflows/pr-checks.yml`
 
-- Starts on `pull_request` targeting `main` when Android-impacting files change, excluding `apps/android/README.md` and `apps/android/docs/**`
-- Calls `.github/workflows/android-ci-reusable.yml` for the pull-request merge commit, so the gate covers what will actually land on `main`
-- Passes `run_data_local_instrumentation: false`, so it is the build, unit test, and lint pull-request gate only
-- Does not upload a Google Play draft
-- Does not submit Firebase Test Lab
-
-Pull-request GitHub Actions workflow: `.github/workflows/android-pr-data-local.yml`
-
-- Starts on `pull_request` targeting `main` only when files that can change the `:data:local` suite result change: `apps/android/data/**`, `apps/android/core/observability/**`, the shared Android Gradle configuration (`apps/android/build.gradle.kts`, `apps/android/settings.gradle.kts`, `apps/android/gradle.properties`, `apps/android/gradle/**`), and the two workflow files themselves
-- Calls `.github/workflows/android-ci-reusable.yml` for the pull-request merge commit with `run_build: false` and `run_data_local_instrumentation: true`, so it runs only the GitHub-hosted `data:local` emulator instrumentation job
+- Starts on every `pull_request`, so the required `Repository static checks` context is always reported
+- Detects Android-impacting files while excluding `apps/android/README.md` and `apps/android/docs/**`
+- Calls `.github/workflows/android-ci-reusable.yml` for the pull-request merge commit with `run_data_local_instrumentation: false` when Android-impacting files changed, so unit tests, debug builds, and lint run before merge
+- Calls the reusable workflow separately with `run_build: false` and `run_data_local_instrumentation: true` only when files that can change the `:data:local` suite result change: `apps/android/data/**`, `apps/android/core/observability/**`, or shared Android Gradle configuration
 - The narrow filter exists because `:data:local` depends only on `:core:observability`, so `:app`, `:core:ui`, and `:feature:*` changes cannot change that suite result
-- A pull request that skips this workflow is still covered by `android-ci.yml` on `main` after merge, before any manual `Android Release`
+- Aggregates every conditional and unconditional PR job into `Repository static checks`; branch protection requires that context with strict up-to-date checks before merge
 - Does not upload a Google Play draft
 - Does not submit Firebase Test Lab
 
 Automatic GitHub Actions workflow: `.github/workflows/android-ci.yml`
 
 - Starts on `push main` when Android-impacting files change
-- Calls `.github/workflows/android-ci-reusable.yml` with both inputs left at their `true` defaults, so the build/unit/lint job and the `data:local` emulator instrumentation job both run
-- Is the post-merge backstop for a pull request that skipped the emulator gate, and it runs before any manual `Android Release`
+- Calls `.github/workflows/android-ci-reusable.yml` with `run_build: false`, so only the `data:local` emulator instrumentation job runs
+- Is the post-merge emulator backstop and does not repeat the build, unit tests, or lint already enforced before merge
 - Does not upload a Google Play draft
 - Does not submit Firebase Test Lab
 
 GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 
-- Exposes two boolean inputs that both default to `true`: `run_build` gates the build, unit test, and lint job, and `run_data_local_instrumentation` gates the emulator `data:local` instrumentation job; the two pull-request workflows each turn one of them off, while `android-ci.yml` and `android-release.yml` leave both on
+- Exposes two boolean inputs that both default to `true`: `run_build` gates the build, unit test, and lint job, and `run_data_local_instrumentation` gates the emulator `data:local` instrumentation job; the two conditional callers in `pr-checks.yml` each turn one off, `android-ci.yml` turns off the build job, and `android-release.yml` leaves both on
 - Runs `test` for the whole Android Gradle project
 - Builds `:app:assembleDebug`
 - Builds `:app:assembleDebugAndroidTest`
@@ -113,18 +106,18 @@ Top-level release workflow Firebase job: `.github/workflows/android-release.yml`
 
 The pull-request Android flow is:
 
-1. `android-pr.yml` starts on `pull_request` targeting `main` for Android-impacting changes and validates the pull-request merge commit with the unit test, debug build, and lint job
-2. `android-pr-data-local.yml` starts on the same pull-request merge commit, but only when the Android data layer, `:core:observability`, or the shared Android Gradle configuration changes, and it runs the `data:local` emulator instrumentation job alone
-3. When both workflows are triggered they run independently and in parallel for the same ref, and the pull request is green only when every triggered job passes
-4. The `android-pr-<pull request number>` and `android-pr-data-local-<pull request number>` concurrency groups cancel superseded runs, so a new push replaces the in-flight runs instead of queueing another one
-5. A pull request that does not touch the data layer skips the emulator gate entirely; `android-ci.yml` on `main` runs it after merge
-6. The workflows stop there: no Firebase Test Lab submission and no Google Play draft upload
+1. `pr-checks.yml` starts on every pull request and detects the affected areas
+2. Android-impacting changes validate the pull-request merge commit with unit tests, debug builds, and lint
+3. Android data-layer, `:core:observability`, and shared Gradle configuration changes also run `data:local` emulator instrumentation in parallel
+4. The always-present `Repository static checks` aggregate succeeds only when every in-scope PR job succeeds and every out-of-scope conditional job is skipped
+5. Branch protection requires that aggregate against the latest `main`, so an outdated or failing pull request cannot merge
+6. The workflow stops there: no Firebase Test Lab submission and no Google Play draft upload
 
 The automatic Android CI flow is:
 
 1. `android-ci.yml` starts on `push main` for Android-impacting changes
-2. Android unit tests, debug builds, and lint run in GitHub Actions
-3. `data:local` Android instrumentation runs on a GitHub-hosted Android 17 emulator
+2. `data:local` Android instrumentation runs on a GitHub-hosted Android 17 emulator
+3. The already-required build, unit tests, and lint do not repeat
 4. The workflow stops there: no Firebase Test Lab submission and no Google Play draft upload
 
 The manual Android release flow is:
@@ -138,7 +131,7 @@ The manual Android release flow is:
 
 After pushing to `main`, watch `Android CI` separately when Android-impacting files changed.
 
-For Android, a green `Android CI` run means the GitHub-hosted Android gate passed for that SHA. It does not mean Firebase Test Lab was submitted, a Google Play draft was uploaded, or a release is ready to publish.
+For Android, a green automatic `Android CI` run means the post-merge `data:local` emulator backstop passed for that SHA. The required PR aggregate already enforced the applicable build, unit tests, lint, and pull-request emulator gate. A green automatic run does not mean Firebase Test Lab was submitted, a Google Play draft was uploaded, or a release is ready to publish.
 
 A green manual `Android Release` run means the GitHub-hosted Android gate passed, Firebase Test Lab submission succeeded, and CI uploaded a Play draft. It still does not mean Firebase Test Lab finished or passed, and it does not mean the release is already live. Translation review, Firebase matrix review, Play-delivered build verification, and final publication still happen later in Play Console. A non-green `Android Release` run means one of the required release stages failed or was skipped by a failed dependency.
 

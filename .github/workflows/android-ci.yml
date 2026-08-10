@@ -29,4 +29,5 @@ jobs:
     with:
       target_ref: ${{ github.sha }}
       android_version_code: ${{ github.run_number }}
+      run_build: false
     secrets: inherit
