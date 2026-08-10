@@ -21,7 +21,10 @@
     <string name="review_all_cards">सभी कार्ड</string>
     <string name="review_front_label">सामने</string>
     <string name="review_back_label">पीछे</string>
+    <string name="review_due_label">देय: %1$s</string>
     <string name="review_due_new">नया</string>
+    <string name="review_reps_label">दोहराव %1$d</string>
+    <string name="review_lapses_label">भूल %1$d</string>
     <string name="review_show_answer">उत्तर दिखाएं</string>
     <string name="review_again">फिर से</string>
     <string name="review_hard">कठिन</string>

@@ -21,7 +21,10 @@
     <string name="review_all_cards">كل البطاقات</string>
     <string name="review_front_label">الوجه الأمامي</string>
     <string name="review_back_label">الوجه الخلفي</string>
+    <string name="review_due_label">الاستحقاق: %1$s</string>
     <string name="review_due_new">جديدة</string>
+    <string name="review_reps_label">مرات %1$d</string>
+    <string name="review_lapses_label">أخطاء %1$d</string>
     <string name="review_show_answer">إظهار الإجابة</string>
     <string name="review_again">مرة أخرى</string>
     <string name="review_hard">صعب</string>
