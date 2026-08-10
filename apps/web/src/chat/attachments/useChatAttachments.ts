@@ -37,11 +37,11 @@ type UseChatAttachmentsParams = Readonly<{
 }>;
 
 export type ChatAttachmentControls = Readonly<{
-  handleAttach: (attachment: PendingAttachment) => Promise<void>;
   handleDragEnter: (event: DragEvent<HTMLDivElement>) => void;
   handleDragLeave: (event: DragEvent<HTMLDivElement>) => void;
   handleDragOver: (event: DragEvent<HTMLDivElement>) => void;
   handleDrop: (event: DragEvent<HTMLDivElement>) => Promise<void>;
+  ingestFiles: (files: ReadonlyArray<File>) => Promise<void>;
   isDragOver: boolean;
   removeAttachment: (index: number) => void;
 }>;
@@ -156,6 +156,37 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
     setPendingAttachmentsState(candidateAttachments);
   }
 
+  async function ingestFiles(files: ReadonlyArray<File>): Promise<void> {
+    for (const file of files) {
+      const sizeError = checkFileSize(file);
+      if (sizeError !== null) {
+        window.alert(attachmentLimitMessage);
+        continue;
+      }
+
+      try {
+        await handleAttach(await prepareAttachment(file));
+      } catch (error) {
+        if (isChatAttachmentTooLargeError(error)) {
+          window.alert(attachmentLimitMessage);
+          continue;
+        }
+
+        if (isChatAttachmentUnsupportedTypeError(error)) {
+          window.alert(attachmentUnsupportedMessage);
+          continue;
+        }
+
+        if (isExpectedImageAttachmentPreparationError(error)) {
+          window.alert(attachmentUnsupportedMessage);
+          continue;
+        }
+
+        onTechnicalError(error);
+      }
+    }
+  }
+
   function removeAttachment(index: number): void {
     const currentAttachments = pendingAttachmentsRef.current;
     setPendingAttachmentsState([
@@ -207,44 +238,15 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
       return;
     }
 
-    const files = event.dataTransfer.files;
-    for (let index = 0; index < files.length; index += 1) {
-      const file = files[index];
-      const sizeError = checkFileSize(file);
-      if (sizeError !== null) {
-        window.alert(attachmentLimitMessage);
-        continue;
-      }
-
-      try {
-        await handleAttach(await prepareAttachment(file));
-      } catch (error) {
-        if (isChatAttachmentTooLargeError(error)) {
-          window.alert(attachmentLimitMessage);
-          continue;
-        }
-
-        if (isChatAttachmentUnsupportedTypeError(error)) {
-          window.alert(attachmentUnsupportedMessage);
-          continue;
-        }
-
-        if (isExpectedImageAttachmentPreparationError(error)) {
-          window.alert(attachmentUnsupportedMessage);
-          continue;
-        }
-
-        onTechnicalError(error);
-      }
-    }
+    await ingestFiles(Array.from(event.dataTransfer.files));
   }
 
   return {
-    handleAttach,
     handleDragEnter,
     handleDragLeave,
     handleDragOver,
     handleDrop,
+    ingestFiles,
     isDragOver,
     removeAttachment,
   };

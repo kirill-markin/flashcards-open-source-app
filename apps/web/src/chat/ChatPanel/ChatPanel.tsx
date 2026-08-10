@@ -187,11 +187,11 @@ export function ChatPanel(props: Props): ReactElement {
     sendPhase,
   });
   const {
-    handleAttach,
     handleDragEnter,
     handleDragLeave,
     handleDragOver,
     handleDrop,
+    ingestFiles,
     isDragOver,
     removeAttachment,
   } = useChatAttachments({
@@ -451,10 +451,7 @@ export function ChatPanel(props: Props): ReactElement {
         <div className="chat-controls">
           <div className="chat-controls-right">
             <FileAttachment
-              onAttach={handleAttach}
-              onTechnicalError={(error) => {
-                showChatTechnicalError(error, "chat_attachment_prepare");
-              }}
+              onFiles={ingestFiles}
               disabled={!canAttachDraftFiles}
             />
             <button

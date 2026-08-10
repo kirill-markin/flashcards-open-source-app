@@ -242,13 +242,9 @@ vi.mock("../../../attachments/FileAttachment", () => ({
     maxSidePixels: 1_280,
     quality: 0.55,
   },
-  FileAttachment: ({ disabled, onAttach }: Readonly<{
+  FileAttachment: ({ disabled, onFiles }: Readonly<{
     disabled?: boolean;
-    onAttach: (attachment: {
-      fileName: string;
-      mediaType: string;
-      base64Data: string;
-    }) => Promise<void> | void;
+    onFiles: (files: ReadonlyArray<File>) => Promise<void> | void;
   }>) => createElement(
     "button",
     {
@@ -258,12 +254,7 @@ vi.mock("../../../attachments/FileAttachment", () => ({
       title: "Add attachment",
       disabled: disabled === true,
       onClick: () => {
-        void onAttach({
-          type: "binary",
-          fileName: "attached.txt",
-          mediaType: "text/plain",
-          base64Data: "YXR0YWNoZWQ=",
-        });
+        void onFiles([new File(["attached"], "attached.txt", { type: "text/plain" })]);
       },
     },
     createElement(
@@ -754,9 +745,10 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     listOutboxRecordsMock.mockResolvedValue([]);
     checkFileSizeMock.mockReturnValue(null);
     prepareAttachmentMock.mockResolvedValue({
-      fileName: "test-file.txt",
-      mediaType: "application/pdf",
-      base64Data: "dGVzdA==",
+      type: "binary",
+      fileName: "attached.txt",
+      mediaType: "text/plain",
+      base64Data: "YXR0YWNoZWQ=",
     });
     recompressImageAttachmentMock.mockResolvedValue({
       fileName: "test-image.jpg",
