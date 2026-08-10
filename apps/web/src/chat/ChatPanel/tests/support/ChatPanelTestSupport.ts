@@ -242,13 +242,9 @@ vi.mock("../../../attachments/FileAttachment", () => ({
     maxSidePixels: 1_280,
     quality: 0.55,
   },
-  FileAttachment: ({ disabled, onAttach }: Readonly<{
+  FileAttachment: ({ disabled, onFiles }: Readonly<{
     disabled?: boolean;
-    onAttach: (attachment: {
-      fileName: string;
-      mediaType: string;
-      base64Data: string;
-    }) => Promise<void> | void;
+    onFiles: (files: ReadonlyArray<File>) => Promise<void> | void;
   }>) => createElement(
     "button",
     {
@@ -258,12 +254,7 @@ vi.mock("../../../attachments/FileAttachment", () => ({
       title: "Add attachment",
       disabled: disabled === true,
       onClick: () => {
-        void onAttach({
-          type: "binary",
-          fileName: "attached.txt",
-          mediaType: "text/plain",
-          base64Data: "YXR0YWNoZWQ=",
-        });
+        void onFiles([new File(["attached"], "attached.txt", { type: "text/plain" })]);
       },
     },
     createElement(
@@ -452,6 +443,46 @@ export function createDropEvent(file: File): DragEvent {
   return dropEvent;
 }
 
+export function createImagePasteEvent(file: File): ClipboardEvent {
+  const pasteEvent = new Event("paste", { bubbles: true, cancelable: true }) as ClipboardEvent;
+  const imageItem = {
+    kind: "file",
+    type: file.type,
+    getAsFile: () => file,
+  } as DataTransferItem;
+  const textItem = {
+    kind: "string",
+    type: "text/plain",
+    getAsFile: () => null,
+  } as DataTransferItem;
+  const htmlItem = {
+    kind: "string",
+    type: "text/html",
+    getAsFile: () => null,
+  } as DataTransferItem;
+  Object.defineProperty(pasteEvent, "clipboardData", {
+    value: {
+      items: [textItem, htmlItem, imageItem],
+    },
+  });
+  return pasteEvent;
+}
+
+export function createTextPasteEvent(): ClipboardEvent {
+  const pasteEvent = new Event("paste", { bubbles: true, cancelable: true }) as ClipboardEvent;
+  const textItem = {
+    kind: "string",
+    type: "text/plain",
+    getAsFile: () => null,
+  } as DataTransferItem;
+  Object.defineProperty(pasteEvent, "clipboardData", {
+    value: {
+      items: [textItem],
+    },
+  });
+  return pasteEvent;
+}
+
 export function createChatPanelDragEnterEvent(file: File): DragEvent {
   const dragEvent = new Event("dragenter", { bubbles: true, cancelable: true }) as DragEvent;
   const dataTransfer: { files: ReadonlyArray<File>; dropEffect: DataTransfer["dropEffect"] } = {
@@ -473,6 +504,19 @@ export async function dispatchChatPanelDragEvent(
 
   await act(async () => {
     chatPanel?.dispatchEvent(dragEvent);
+    await Promise.resolve();
+  });
+}
+
+export async function dispatchChatComposerPasteEvent(
+  container: HTMLDivElement,
+  pasteEvent: ClipboardEvent,
+): Promise<void> {
+  const textarea = queryChatComposerInput(container);
+  expect(textarea).not.toBeNull();
+
+  await act(async () => {
+    textarea?.dispatchEvent(pasteEvent);
     await Promise.resolve();
   });
 }
@@ -754,9 +798,10 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     listOutboxRecordsMock.mockResolvedValue([]);
     checkFileSizeMock.mockReturnValue(null);
     prepareAttachmentMock.mockResolvedValue({
-      fileName: "test-file.txt",
-      mediaType: "application/pdf",
-      base64Data: "dGVzdA==",
+      type: "binary",
+      fileName: "attached.txt",
+      mediaType: "text/plain",
+      base64Data: "YXR0YWNoZWQ=",
     });
     recompressImageAttachmentMock.mockResolvedValue({
       fileName: "test-image.jpg",

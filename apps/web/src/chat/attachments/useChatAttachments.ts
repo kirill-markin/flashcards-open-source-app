@@ -1,4 +1,10 @@
-import { useRef, useState, type DragEvent, type MutableRefObject } from "react";
+import {
+  useRef,
+  useState,
+  type ClipboardEvent,
+  type DragEvent,
+  type MutableRefObject,
+} from "react";
 import {
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
   IMAGE_MEDIA_TYPE_PREFIX,
@@ -37,14 +43,41 @@ type UseChatAttachmentsParams = Readonly<{
 }>;
 
 export type ChatAttachmentControls = Readonly<{
-  handleAttach: (attachment: PendingAttachment) => Promise<void>;
   handleDragEnter: (event: DragEvent<HTMLDivElement>) => void;
   handleDragLeave: (event: DragEvent<HTMLDivElement>) => void;
   handleDragOver: (event: DragEvent<HTMLDivElement>) => void;
   handleDrop: (event: DragEvent<HTMLDivElement>) => Promise<void>;
+  handlePaste: (event: ClipboardEvent<HTMLTextAreaElement>) => void;
+  ingestFiles: (files: ReadonlyArray<File>) => Promise<void>;
   isDragOver: boolean;
   removeAttachment: (index: number) => void;
 }>;
+
+function clipboardImageExtension(mediaType: string): string {
+  const normalizedMediaType = mediaType.split(";")[0]?.trim().toLowerCase() ?? "";
+  const imageSubtype = normalizedMediaType.slice(IMAGE_MEDIA_TYPE_PREFIX.length);
+  const extension = imageSubtype.split("+")[0]?.replace(/[^a-z0-9]/g, "") ?? "";
+  if (extension.length === 0) {
+    throw new Error(`Cannot name pasted image because clipboard MIME type "${mediaType}" has no usable subtype.`);
+  }
+
+  return extension === "jpeg" ? "jpg" : extension;
+}
+
+function ensureClipboardImageFileName(file: File, clipboardMediaType: string): File {
+  if (file.name.trim().length > 0) {
+    return file;
+  }
+
+  return new File(
+    [file],
+    `pasted-image.${clipboardImageExtension(clipboardMediaType)}`,
+    {
+      type: clipboardMediaType,
+      lastModified: file.lastModified,
+    },
+  );
+}
 
 function buildDraftRequestBodyForAttachments(params: Readonly<{
   attachments: ReadonlyArray<PendingAttachment>;
@@ -156,6 +189,37 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
     setPendingAttachmentsState(candidateAttachments);
   }
 
+  async function ingestFiles(files: ReadonlyArray<File>): Promise<void> {
+    for (const file of files) {
+      const sizeError = checkFileSize(file);
+      if (sizeError !== null) {
+        window.alert(attachmentLimitMessage);
+        continue;
+      }
+
+      try {
+        await handleAttach(await prepareAttachment(file));
+      } catch (error) {
+        if (isChatAttachmentTooLargeError(error)) {
+          window.alert(attachmentLimitMessage);
+          continue;
+        }
+
+        if (isChatAttachmentUnsupportedTypeError(error)) {
+          window.alert(attachmentUnsupportedMessage);
+          continue;
+        }
+
+        if (isExpectedImageAttachmentPreparationError(error)) {
+          window.alert(attachmentUnsupportedMessage);
+          continue;
+        }
+
+        onTechnicalError(error);
+      }
+    }
+  }
+
   function removeAttachment(index: number): void {
     const currentAttachments = pendingAttachmentsRef.current;
     setPendingAttachmentsState([
@@ -207,44 +271,48 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
       return;
     }
 
-    const files = event.dataTransfer.files;
-    for (let index = 0; index < files.length; index += 1) {
-      const file = files[index];
-      const sizeError = checkFileSize(file);
-      if (sizeError !== null) {
-        window.alert(attachmentLimitMessage);
-        continue;
-      }
+    await ingestFiles(Array.from(event.dataTransfer.files));
+  }
 
-      try {
-        await handleAttach(await prepareAttachment(file));
-      } catch (error) {
-        if (isChatAttachmentTooLargeError(error)) {
-          window.alert(attachmentLimitMessage);
-          continue;
-        }
-
-        if (isChatAttachmentUnsupportedTypeError(error)) {
-          window.alert(attachmentUnsupportedMessage);
-          continue;
-        }
-
-        if (isExpectedImageAttachmentPreparationError(error)) {
-          window.alert(attachmentUnsupportedMessage);
-          continue;
-        }
-
-        onTechnicalError(error);
-      }
+  function handlePaste(event: ClipboardEvent<HTMLTextAreaElement>): void {
+    if (!canAttachDraftFiles) {
+      return;
     }
+
+    const imageItems = Array.from(event.clipboardData.items).filter(
+      (item) => item.kind === "file" && item.type.startsWith(IMAGE_MEDIA_TYPE_PREFIX),
+    );
+    const imageFiles: ReadonlyArray<File> = imageItems.flatMap((item) => {
+      try {
+        const file = item.getAsFile();
+        if (file === null) {
+          throw new Error(
+            `Failed to read pasted image from clipboard item with MIME type "${item.type}".`,
+          );
+        }
+
+        return [ensureClipboardImageFileName(file, item.type)];
+      } catch (error) {
+        onTechnicalError(error);
+        return [];
+      }
+    });
+
+    if (imageFiles.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    void ingestFiles(imageFiles);
   }
 
   return {
-    handleAttach,
     handleDragEnter,
     handleDragLeave,
     handleDragOver,
     handleDrop,
+    handlePaste,
+    ingestFiles,
     isDragOver,
     removeAttachment,
   };

@@ -13,10 +13,7 @@ import {
   isImageMediaType,
   type ImageCompressionOptions,
 } from "../../media/imagePreparation";
-import {
-  isChatAttachmentUnsupportedTypeError,
-  normalizeChatAttachmentFileMediaType,
-} from "./attachmentMediaTypes";
+import { normalizeChatAttachmentFileMediaType } from "./attachmentMediaTypes";
 
 export type { ImageCompressionOptions } from "../../media/imagePreparation";
 
@@ -39,8 +36,7 @@ export type CardPendingAttachment = Readonly<{
 export type PendingAttachment = BinaryPendingAttachment | CardPendingAttachment;
 
 type Props = Readonly<{
-  onAttach: (attachment: PendingAttachment) => Promise<void> | void;
-  onTechnicalError: (error: unknown) => void;
+  onFiles: (files: ReadonlyArray<File>) => Promise<void> | void;
   disabled?: boolean;
 }>;
 
@@ -228,12 +224,10 @@ export async function prepareAttachment(file: File): Promise<PendingAttachment> 
 }
 
 export function FileAttachment(props: Props): ReactElement {
-  const { onAttach, onTechnicalError } = props;
+  const { onFiles } = props;
   const { t } = useI18n();
   const disabled = props.disabled === true;
   const inputRef = useRef<HTMLInputElement>(null);
-  const attachmentLimitMessage = t("chatPanel.alerts.attachmentLimit");
-  const attachmentUnsupportedMessage = t("chatPanel.alerts.attachmentUnsupported");
 
   async function handleChange(): Promise<void> {
     const files = inputRef.current?.files;
@@ -241,35 +235,7 @@ export function FileAttachment(props: Props): ReactElement {
       return;
     }
 
-    for (let index = 0; index < files.length; index++) {
-      const file = files[index];
-      const sizeError = checkFileSize(file);
-      if (sizeError !== null) {
-        window.alert(attachmentLimitMessage);
-        continue;
-      }
-
-      try {
-        await onAttach(await prepareAttachment(file));
-      } catch (error) {
-        if (isChatAttachmentTooLargeError(error)) {
-          window.alert(attachmentLimitMessage);
-          continue;
-        }
-
-        if (isChatAttachmentUnsupportedTypeError(error)) {
-          window.alert(attachmentUnsupportedMessage);
-          continue;
-        }
-
-        if (isExpectedImageAttachmentPreparationError(error)) {
-          window.alert(attachmentUnsupportedMessage);
-          continue;
-        }
-
-        onTechnicalError(error);
-      }
-    }
+    await onFiles(Array.from(files));
 
     if (inputRef.current !== null) {
       inputRef.current.value = "";

@@ -6,7 +6,10 @@ import {
   createChatPanelDragEnterEvent,
   createChatSnapshot,
   createDropEvent,
+  createImagePasteEvent,
   createNewChatSessionMock,
+  createTextPasteEvent,
+  dispatchChatComposerPasteEvent,
   dispatchChatPanelDragEvent,
   getChatSnapshotMock,
   binaryPendingAttachmentExceedsSizeLimitMock,
@@ -30,6 +33,7 @@ import { createVerifiedWorkspaceAppDataMock } from "./support/ChatPanelTestFixtu
 import { getChatComposerCapabilities } from "../../composer/chatComposerState";
 
 const {
+  clickAddAttachment,
   clickMicrophone,
   clickStop,
   flushAsync,
@@ -53,6 +57,62 @@ function createChatConfigWithAttachmentsEnabled(
 }
 
 describe("ChatPanel composer controls", () => {
+  it("prepares picker files through the shared file ingestion boundary", async () => {
+    prepareAttachmentMock.mockResolvedValue({
+      type: "binary",
+      fileName: "attached.txt",
+      mediaType: "text/plain",
+      base64Data: "YXR0YWNoZWQ=",
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    await clickAddAttachment();
+    await flushAsync();
+
+    expect(prepareAttachmentMock).toHaveBeenCalledTimes(1);
+    expect(prepareAttachmentMock.mock.calls[0]?.[0]).toBeInstanceOf(File);
+    expect(prepareAttachmentMock.mock.calls[0]?.[0]?.name).toBe("attached.txt");
+    expect(getContainer().textContent).toContain("attached.txt");
+  });
+
+  it("prevents image paste and prepares the image through shared file ingestion", async () => {
+    prepareAttachmentMock.mockResolvedValue({
+      type: "binary",
+      fileName: "pasted-image.png",
+      mediaType: "image/png",
+      base64Data: "aW1hZ2U=",
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    const pasteEvent = createImagePasteEvent(new File(["image"], "", { type: "image/png" }));
+    await dispatchChatComposerPasteEvent(getContainer(), pasteEvent);
+    await flushAsync();
+
+    expect(pasteEvent.defaultPrevented).toBe(true);
+    expect(prepareAttachmentMock).toHaveBeenCalledTimes(1);
+    expect(prepareAttachmentMock.mock.calls[0]?.[0]).toBeInstanceOf(File);
+    expect(prepareAttachmentMock.mock.calls[0]?.[0]?.name).toBe("pasted-image.png");
+  });
+
+  it("leaves text-only paste native without preparing an attachment", async () => {
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    const pasteEvent = createTextPasteEvent();
+    await dispatchChatComposerPasteEvent(getContainer(), pasteEvent);
+    await flushAsync();
+
+    expect(pasteEvent.defaultPrevented).toBe(false);
+    expect(prepareAttachmentMock).not.toHaveBeenCalled();
+  });
+
   it("includes an explicit sessionId in the first dictation upload", async () => {
     await renderChatPanel();
     await flushAsync();
