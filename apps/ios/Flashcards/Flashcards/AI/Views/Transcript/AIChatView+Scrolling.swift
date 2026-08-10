@@ -69,14 +69,6 @@ func aiChatMessageListUpdateChangesExistingTail(
         }
 }
 
-func aiChatBottomScrollPosition(messages: [AIChatMessage]) -> ScrollPosition {
-    guard let tailMessageId = messages.last?.id else {
-        return ScrollPosition(idType: String.self, edge: .bottom)
-    }
-
-    return ScrollPosition(id: tailMessageId, anchor: .bottom)
-}
-
 extension AIChatView {
     func detachAutoFollow() {
         self.isAutoFollowEnabled = false
@@ -86,18 +78,22 @@ extension AIChatView {
         self.detachAutoFollow()
     }
 
-    func scrollToBottomIfNeeded(isAnimated: Bool) {
+    func scrollToBottomIfNeeded(proxy: ScrollViewProxy, isAnimated: Bool) {
         guard self.isAutoFollowEnabled else {
             return
         }
 
-        self.scrollToBottom(isAnimated: isAnimated)
+        self.scrollToBottom(proxy: proxy, isAnimated: isAnimated)
     }
 
-    func scrollToBottom(isAnimated: Bool) {
+    func scrollToBottom(proxy: ScrollViewProxy, isAnimated: Bool) {
+        guard let lastMessage = self.chatStore.messages.last else {
+            return
+        }
+
         if isAnimated {
             withAnimation(.easeOut(duration: aiChatAutoScrollAnimationDurationSeconds)) {
-                self.updateScrollPositionToBottom()
+                proxy.scrollTo(lastMessage.id, anchor: .bottom)
             }
             return
         }
@@ -105,40 +101,7 @@ extension AIChatView {
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
-            self.updateScrollPositionToBottom()
+            proxy.scrollTo(lastMessage.id, anchor: .bottom)
         }
-    }
-
-    private func updateScrollPositionToBottom() {
-        guard let tailMessageId = self.chatStore.messages.last?.id else {
-            self.scrollPosition.scrollTo(edge: .bottom)
-            return
-        }
-
-        self.scrollPosition.scrollTo(id: tailMessageId, anchor: .bottom)
-    }
-
-    func startAutoScrollTask() {
-        self.stopAutoScrollTask()
-        self.autoScrollTask = Task { @MainActor in
-            while Task.isCancelled == false {
-                do {
-                    try await Task.sleep(for: .seconds(aiChatAutoScrollIntervalSeconds))
-                } catch {
-                    break
-                }
-
-                guard self.chatStore.isStreaming else {
-                    continue
-                }
-
-                self.scrollToBottomIfNeeded(isAnimated: true)
-            }
-        }
-    }
-
-    func stopAutoScrollTask() {
-        self.autoScrollTask?.cancel()
-        self.autoScrollTask = nil
     }
 }
