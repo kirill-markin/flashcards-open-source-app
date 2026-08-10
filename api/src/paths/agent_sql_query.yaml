@@ -7,7 +7,16 @@ post:
     the currently selected workspace. This is not full PostgreSQL. Supported
     statements are SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT across
     published logical resources only. This endpoint rejects INSERT, UPDATE, and
-    DELETE; use POST /agent/sql/execute for writes. Cards have no deck_id column
+    DELETE; use POST /agent/sql/execute for writes. Card fields hold decoded
+    Markdown, real LFs, supported LaTeX. One LF stays within its Markdown
+    paragraph; two make a blank line/new paragraph; literal `\n` never lays
+    out content. At JSON boundary, `\n` becomes LF, `\\frac` becomes
+    stored `\frac`, while double-escaped `\\n` stores literal `\n`.
+    Use `$...$` and top-level delimiter-only `$$` lines as standalone
+    blocks. Keep math outside other Markdown. After multiline/LaTeX writes,
+    compare read-back with intended decoded text; repair only accidental
+    transport double-escaping, preserving literal escapes intentionally
+    requested/taught by user/card. Cards have no deck_id column
     and no deck membership: a deck is a saved tag filter whose tags column
     defines the filter, so the only association between a card and a deck is
     matching tags. Decks expose deck_id, name, tags, created_at, updated_at, and

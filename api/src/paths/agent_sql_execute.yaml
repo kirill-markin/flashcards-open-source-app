@@ -7,8 +7,22 @@ post:
     currently selected workspace. This is not full PostgreSQL. Supported
     statements are INSERT, UPDATE, and DELETE across published writable
     resources only. This endpoint rejects SHOW TABLES, DESCRIBE, SHOW COLUMNS,
-    and SELECT; use POST /agent/sql/query for reads. Cards have no deck_id column
-    and no deck membership: a deck is a saved tag filter whose tags column
+    and SELECT; use POST /agent/sql/query for reads. Card side contract:
+    front_text is only a question or review prompt and must never contain the
+    answer; back_text contains the answer, optionally with a concrete example
+    (prefer a fenced markdown code block when helpful). Card fields hold decoded
+    Markdown, real LFs, supported LaTeX. One LF stays within its Markdown
+    paragraph; two make a blank line/new paragraph; literal `\n` never lays
+    out content. At JSON boundary, `\n` becomes LF, `\\frac` becomes
+    stored `\frac`, while double-escaped `\\n` stores literal `\n`.
+    Use `$...$` and top-level delimiter-only `$$` lines as standalone
+    blocks. Keep math outside other Markdown. After multiline/LaTeX
+    writes, compare read-back with intended decoded text; repair only accidental
+    transport double-escaping, preserving literal escapes intentionally
+    requested/taught by user/card. Example:
+    {"sql":"INSERT INTO cards (front_text, back_text, tags) VALUES ('Question?', 'Answer\n\n$$\n\\frac{a}{b}\n$$', ('math'))"}
+    Cards have no deck_id column and no deck membership: a deck is a saved tag
+    filter whose tags column
     defines the filter, so the only association between a card and a deck is
     matching tags. Decks expose deck_id, name, tags, created_at, updated_at, and
     deleted_at, and have no description column. deleted_at exists only on cards
@@ -72,9 +86,7 @@ post:
         examples:
           insertCard:
             value:
-              sql: >-
-                INSERT INTO cards (front_text, back_text, tags) VALUES
-                ('Question?', 'Answer', ('tag'))
+              sql: "INSERT INTO cards (front_text, back_text, tags) VALUES ('Question?', 'Answer\n\n$$\n\\frac{a}{b}\n$$', ('math'))"
           updateCard:
             value:
               sql: >-

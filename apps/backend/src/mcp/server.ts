@@ -4,6 +4,8 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { runSqlExecute, runSqlQuery } from "../aiTools/agentSql";
 import type { AgentSqlContext, AgentSqlExecutionResult } from "../aiTools/agentSql/shared";
 import {
+  CARD_AUTHORING_CONTRACT,
+  CARD_AUTHORING_TOOL_CALL_EXAMPLE,
   FRONT_BACK_CONTRACT,
   SQL_EXECUTE_TOOL_DESCRIPTION,
   SQL_EXECUTE_TOOL_NAME,
@@ -45,8 +47,12 @@ const WORKSPACE_ID_ARGUMENT_HINT =
 const SQL_QUERY_MCP_TOOL_DESCRIPTION = `${SQL_QUERY_TOOL_DESCRIPTION} ${FRONT_BACK_CONTRACT} ${WORKSPACE_ID_ARGUMENT_HINT}`;
 const SQL_EXECUTE_MCP_TOOL_DESCRIPTION = `${SQL_EXECUTE_TOOL_DESCRIPTION} ${FRONT_BACK_CONTRACT} ${WORKSPACE_ID_ARGUMENT_HINT}`;
 
-const SERVER_INSTRUCTIONS =
-  "Call list_workspaces first to pick a workspaceId (or omit it to use the selected default). Use sql_query for reads (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT) and sql_execute for writes (INSERT, UPDATE, DELETE). The dialect is not full PostgreSQL. front_text is only a question or review prompt and never holds the answer; back_text holds the answer.";
+const SERVER_INSTRUCTIONS = [
+  "Call list_workspaces first to pick a workspaceId (or omit it to use the selected default). Use sql_query for reads (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT) and sql_execute for writes (INSERT, UPDATE, DELETE). The dialect is not full PostgreSQL.",
+  FRONT_BACK_CONTRACT,
+  CARD_AUTHORING_CONTRACT,
+  `Example: ${CARD_AUTHORING_TOOL_CALL_EXAMPLE}`,
+].join(" ");
 
 const LIST_WORKSPACES_TOOL_NAME = "list_workspaces";
 const LIST_WORKSPACES_TOOL_DESCRIPTION =
