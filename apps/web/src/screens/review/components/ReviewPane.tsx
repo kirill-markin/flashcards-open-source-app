@@ -124,7 +124,7 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
         <div className="review-pane-head-meta">
           {loadingReviewCurrentCard !== null ? (
             <>
-              <span className="review-pane-tag-label">{formatTagSummary(loadingReviewCurrentCard.tags)}</span>
+              <span className="review-pane-tag-label">{formatTagSummary(loadingReviewCurrentCard.tags, t)}</span>
             </>
           ) : (
             <>
@@ -313,7 +313,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     <>
       <div className="review-pane-head">
         <div className="review-pane-head-meta">
-          <span className="review-pane-tag-label">{formatTagSummary(selectedCard.tags)}</span>
+          <span className="review-pane-tag-label">{formatTagSummary(selectedCard.tags, t)}</span>
           <span className={`badge review-repetition-badge${selectedCard.reps === 0 ? " review-repetition-badge-new" : ""}`}>
             <ReviewRepetitionIcon />
             <span aria-hidden="true">{repetitionValue}</span>

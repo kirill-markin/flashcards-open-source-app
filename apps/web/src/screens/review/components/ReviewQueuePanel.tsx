@@ -84,7 +84,7 @@ export function ReviewQueuePanel(props: ReviewQueuePanelProps): ReactElement {
                   data-card-id={card.cardId}
                 >
                   <span className="review-queue-card-title">{card.frontText}</span>
-                  <span className="review-queue-card-tags">{formatTagSummary(card.tags)}</span>
+                  <span className="review-queue-card-tags">{formatTagSummary(card.tags, t)}</span>
                   <span className="review-queue-card-meta">
                     <span>{formatNullableDateTime(card.dueAt, formatDateTime, t)}</span>
                     {isDue ? null : <span>{t("reviewScreen.queue.upcoming")}</span>}
@@ -121,7 +121,7 @@ export function ReviewQueuePanel(props: ReviewQueuePanelProps): ReactElement {
                 data-card-id={card.cardId}
               >
                 <span className="review-queue-card-title">{card.frontText}</span>
-                <span className="review-queue-card-tags">{formatTagSummary(card.tags)}</span>
+                <span className="review-queue-card-tags">{formatTagSummary(card.tags, t)}</span>
                 <span className="review-queue-card-meta">
                   <span>{formatNullableDateTime(card.dueAt, formatDateTime, t)}</span>
                   {isDue ? null : <span>{t("reviewScreen.queue.upcoming")}</span>}

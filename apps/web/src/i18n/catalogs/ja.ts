@@ -39,6 +39,7 @@ export const jaCatalog = {
     never: "なし",
     newItem: "新規",
     noBackText: "裏面テキストなし",
+    noTags: "タグなし",
     notRevoked: "取り消されていません",
     ok: "OK",
     off: "オフ",

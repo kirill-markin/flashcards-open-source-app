@@ -39,6 +39,7 @@ const esMxCatalog: TranslationCatalog = {
     never: "Nunca",
     newItem: "nuevo",
     noBackText: "Sin texto en el reverso",
+    noTags: "Sin etiquetas",
     notRevoked: "Sin revocar",
     ok: "OK",
     off: "Desactivado",

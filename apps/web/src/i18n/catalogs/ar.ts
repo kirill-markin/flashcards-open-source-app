@@ -39,6 +39,7 @@ const arCatalog: TranslationCatalog = {
     never: "أبدًا",
     newItem: "جديد",
     noBackText: "لا يوجد نص خلفي",
+    noTags: "لا توجد وسوم",
     notRevoked: "غير ملغى",
     ok: "موافق",
     off: "إيقاف",

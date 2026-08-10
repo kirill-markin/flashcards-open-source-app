@@ -39,6 +39,7 @@ const deCatalog: TranslationCatalog = {
     never: "Nie",
     newItem: "neu",
     noBackText: "Kein Rückseitentext",
+    noTags: "Keine Tags",
     notRevoked: "Nicht widerrufen",
     ok: "OK",
     off: "Aus",

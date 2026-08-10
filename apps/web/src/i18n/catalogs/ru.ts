@@ -39,6 +39,7 @@ export const ruCatalog = {
     never: "Никогда",
     newItem: "новое",
     noBackText: "Нет текста на обратной стороне",
+    noTags: "Нет тегов",
     notRevoked: "Не отозвано",
     ok: "OK",
     off: "Выкл.",

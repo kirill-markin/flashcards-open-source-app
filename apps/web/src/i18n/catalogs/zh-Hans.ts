@@ -39,6 +39,7 @@ export const zhHansCatalog = {
     never: "从不",
     newItem: "新建",
     noBackText: "无背面文本",
+    noTags: "无标签",
     notRevoked: "未撤销",
     ok: "确定",
     off: "关",

@@ -37,6 +37,7 @@ const enCatalog = {
     never: "Never",
     newItem: "new",
     noBackText: "No back text",
+    noTags: "No tags",
     notRevoked: "Not revoked",
     ok: "OK",
     off: "Off",
