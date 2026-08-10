@@ -127,6 +127,7 @@ struct CardEditorScreen: View {
     let isEditing: Bool
     let errorMessage: String
     let availableTagSuggestions: [TagSuggestion]
+    let readOnlyMetadata: CardEditorReadOnlyMetadata?
     @Binding var formState: CardFormState
     let onEditWithAI: (() -> Void)?
     let onCancel: () -> Void
@@ -200,6 +201,29 @@ struct CardEditorScreen: View {
                         )
                     } label: {
                         TagsFieldRow(summary: localizedTagSelectionSummary(tags: formState.tags))
+                    }
+
+                    if isEditing, let readOnlyMetadata {
+                        LabeledContent {
+                            Text(localizedCardDueValue(dueAt: readOnlyMetadata.dueAt))
+                                .foregroundStyle(.secondary)
+                        } label: {
+                            Label(String(localized: "Due", table: reviewCardsStringsTableName), systemImage: "clock")
+                        }
+
+                        LabeledContent {
+                            Text(localizedCardCountValue(count: readOnlyMetadata.reps))
+                                .foregroundStyle(.secondary)
+                        } label: {
+                            Label(String(localized: "Reps", table: reviewCardsStringsTableName), systemImage: "arrow.clockwise")
+                        }
+
+                        LabeledContent {
+                            Text(localizedCardCountValue(count: readOnlyMetadata.lapses))
+                                .foregroundStyle(.secondary)
+                        } label: {
+                            Label(String(localized: "Lapses", table: reviewCardsStringsTableName), systemImage: "exclamationmark.circle")
+                        }
                     }
                 } header: {
                     Text(String(localized: "Metadata", table: reviewCardsStringsTableName))
