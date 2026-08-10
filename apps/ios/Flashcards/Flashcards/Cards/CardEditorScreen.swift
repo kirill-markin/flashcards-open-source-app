@@ -30,6 +30,7 @@ private let cardEditorManagedMediaFenceExpression: NSRegularExpression = {
 
 struct CardFormState {
     var editorSessionId: UUID
+    let readOnlyMetadata: CardEditorReadOnlyMetadata?
     var frontText: String
     var backText: String
     var frontTextSelection: TextSelection?
@@ -124,10 +125,8 @@ struct CardEditorScreen: View {
     @State private var isDeleteConfirmationPresented: Bool = false
 
     let title: String
-    let isEditing: Bool
     let errorMessage: String
     let availableTagSuggestions: [TagSuggestion]
-    let readOnlyMetadata: CardEditorReadOnlyMetadata?
     @Binding var formState: CardFormState
     let onEditWithAI: (() -> Void)?
     let onCancel: () -> Void
@@ -203,7 +202,7 @@ struct CardEditorScreen: View {
                         TagsFieldRow(summary: localizedTagSelectionSummary(tags: formState.tags))
                     }
 
-                    if isEditing, let readOnlyMetadata {
+                    if let readOnlyMetadata = formState.readOnlyMetadata {
                         LabeledContent {
                             Text(localizedCardDueValue(dueAt: readOnlyMetadata.dueAt))
                                 .foregroundStyle(.secondary)
@@ -229,7 +228,7 @@ struct CardEditorScreen: View {
                     Text(String(localized: "Metadata", table: reviewCardsStringsTableName))
                 }
 
-                if isEditing {
+                if formState.readOnlyMetadata != nil {
                     Section {
                         Button(String(localized: "Delete card", table: reviewCardsStringsTableName), role: .destructive) {
                             self.isDeleteConfirmationPresented = true

@@ -1,6 +1,8 @@
 package com.flashcardsopensourceapp.feature.cards.editor
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -18,6 +20,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -78,6 +81,46 @@ fun CardEditorRoute(
             )
         }
     ) { innerPadding ->
+        if (uiState.isLoading) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                CircularProgressIndicator()
+            }
+            return@Scaffold
+        }
+
+        if (uiState.isCardUnavailable) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp)
+            ) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
+                OutlinedButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                ) {
+                    Text(stringResource(id = R.string.cards_editor_back_content_description))
+                }
+            }
+            return@Scaffold
+        }
+
         LazyColumn(
             contentPadding = PaddingValues(
                 start = 16.dp,
@@ -248,8 +291,10 @@ fun CardEditorRoute(
                 }
             }
 
-            if (uiState.isEditing && uiState.schedulingMetadata != null) {
-                val metadata = uiState.schedulingMetadata
+            if (uiState.isEditing) {
+                val metadata = requireNotNull(uiState.schedulingMetadata) {
+                    "Scheduling metadata must be available before rendering an edit card."
+                }
                 item {
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -322,6 +367,30 @@ fun CardEditorRoute(
             }
         }
     }
+}
+
+@Composable
+fun CardEditorLoadingOrUnavailableRoute(
+    uiState: CardEditorUiState,
+    onBack: () -> Unit
+) {
+    require(uiState.isLoading || uiState.isCardUnavailable) {
+        "Loading or unavailable card editor route requires a matching UI state."
+    }
+    val unavailableAction: () -> Unit = {
+        error("Card editor actions are unavailable while the card is loading or unavailable.")
+    }
+    CardEditorRoute(
+        uiState = uiState,
+        onOpenFrontTextEditor = unavailableAction,
+        onOpenBackTextEditor = unavailableAction,
+        onOpenTagsEditor = unavailableAction,
+        onEditWithAi = null,
+        onRemoveTag = { unavailableAction() },
+        onSave = unavailableAction,
+        onDelete = null,
+        onBack = onBack
+    )
 }
 
 @Composable

@@ -82,6 +82,7 @@ extension ReviewView {
         self.editingCardId = card.cardId
         self.cardFormState = CardFormState(
             editorSessionId: UUID(),
+            readOnlyMetadata: cardEditorReadOnlyMetadata(card: card),
             frontText: card.frontText,
             backText: card.backText,
             frontTextSelection: nil,

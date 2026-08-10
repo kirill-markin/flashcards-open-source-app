@@ -27,6 +27,7 @@ import com.flashcardsopensourceapp.feature.cards.R as CardsR
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackTextFieldTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorFrontTextFieldTag
 import com.flashcardsopensourceapp.feature.cards.createCardEditorViewModelFactory
+import com.flashcardsopensourceapp.feature.cards.editor.CardEditorLoadingOrUnavailableRoute
 import com.flashcardsopensourceapp.feature.cards.editor.CardEditorRoute
 import com.flashcardsopensourceapp.feature.cards.editor.CardEditorTextField
 import com.flashcardsopensourceapp.feature.cards.editor.CardEditorViewModel
@@ -188,6 +189,16 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                 )
             )
             val uiState by editorViewModel.uiState.collectAsStateWithLifecycle()
+            if (uiState.isLoading || uiState.isCardUnavailable) {
+                CardEditorLoadingOrUnavailableRoute(
+                    uiState = uiState,
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+                return@composable
+            }
+
             val editorTextField = resolveEditorTextField(field = field)
             val context = LocalContext.current
             val managedImageAltText = stringResource(id = CardsR.string.cards_editor_image_label)
@@ -314,6 +325,15 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                 )
             )
             val uiState by editorViewModel.uiState.collectAsStateWithLifecycle()
+            if (uiState.isLoading || uiState.isCardUnavailable) {
+                CardEditorLoadingOrUnavailableRoute(
+                    uiState = uiState,
+                    onBack = {
+                        navController.popBackStack()
+                    }
+                )
+                return@composable
+            }
 
             CardTagsRoute(
                 uiState = uiState,
