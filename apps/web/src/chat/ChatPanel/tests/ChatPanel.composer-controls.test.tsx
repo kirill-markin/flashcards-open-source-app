@@ -30,6 +30,7 @@ import { createVerifiedWorkspaceAppDataMock } from "./support/ChatPanelTestFixtu
 import { getChatComposerCapabilities } from "../../composer/chatComposerState";
 
 const {
+  clickAddAttachment,
   clickMicrophone,
   clickStop,
   flushAsync,
@@ -53,6 +54,27 @@ function createChatConfigWithAttachmentsEnabled(
 }
 
 describe("ChatPanel composer controls", () => {
+  it("prepares picker files through the shared file ingestion boundary", async () => {
+    prepareAttachmentMock.mockResolvedValue({
+      type: "binary",
+      fileName: "attached.txt",
+      mediaType: "text/plain",
+      base64Data: "YXR0YWNoZWQ=",
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    await clickAddAttachment();
+    await flushAsync();
+
+    expect(prepareAttachmentMock).toHaveBeenCalledTimes(1);
+    expect(prepareAttachmentMock.mock.calls[0]?.[0]).toBeInstanceOf(File);
+    expect(prepareAttachmentMock.mock.calls[0]?.[0]?.name).toBe("attached.txt");
+    expect(getContainer().textContent).toContain("attached.txt");
+  });
+
   it("includes an explicit sessionId in the first dictation upload", async () => {
     await renderChatPanel();
     await flushAsync();
