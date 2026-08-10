@@ -2,7 +2,7 @@ import { hasEligibleReviewMath } from "./reviewMathBlocks";
 
 /**
  * Keep review content presentation heuristics aligned with:
- * - apps/ios/Flashcards/Flashcards/Review/View/ReviewContentPresentation.swift
+ * - apps/ios/Flashcards/Flashcards/Review/View/Content/ReviewContentPresentation.swift
  * - apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/presentation/ReviewContentParser.kt
  */
 export type ReviewContentPresentationMode = "shortPlain" | "paragraphPlain" | "markdown";

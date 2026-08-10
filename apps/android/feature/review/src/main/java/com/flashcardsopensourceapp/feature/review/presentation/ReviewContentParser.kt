@@ -7,7 +7,7 @@ import com.flashcardsopensourceapp.data.local.model.media.parseManagedMediaRefer
 /*
  Keep review content presentation heuristics aligned with:
  - apps/web/src/screens/review/components/card/reviewContentPresentation.ts
- - apps/ios/Flashcards/Flashcards/Review/View/ReviewContentPresentation.swift
+ - apps/ios/Flashcards/Flashcards/Review/View/Content/ReviewContentPresentation.swift
  */
 
 private const val reviewShortPlainWordLimit: Int = 4
