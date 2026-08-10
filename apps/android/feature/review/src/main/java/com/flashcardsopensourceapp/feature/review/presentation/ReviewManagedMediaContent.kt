@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AttachFile
@@ -74,6 +76,7 @@ import java.io.IOException
 
 private val reviewManagedMediaIconSize = 22.dp
 private val reviewManagedMediaActionIconSize = 18.dp
+private val reviewManagedMediaImageMaxWidth = 520.dp
 private const val reviewManagedMediaImagePlaceholderAspectRatio = 4f / 3f
 private val reviewManagedMediaImagePlaceholderHeight = 180.dp
 private val reviewManagedMediaSurfaceCornerRadius = 12.dp
@@ -139,9 +142,9 @@ internal fun ReviewManagedMediaContent(
                     supportingText
                 ),
                 style = ReviewManagedMediaImageStateStyle.PROGRESS,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+                modifier = Modifier.reviewManagedMediaImageFrame(
+                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+                )
             )
             return
         }
@@ -157,9 +160,9 @@ internal fun ReviewManagedMediaContent(
                     supportingText
                 ),
                 style = ReviewManagedMediaImageStateStyle.WARNING,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+                modifier = Modifier.reviewManagedMediaImageFrame(
+                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+                )
             )
             return
         }
@@ -167,11 +170,28 @@ internal fun ReviewManagedMediaContent(
         ManagedMediaReferenceState.READY -> Unit
     }
     if (isUnavailable) {
-        ReviewManagedMediaPlaceholderRow(
-            label = label,
-            supportingText = stringResource(id = R.string.review_media_unavailable),
-            icon = Icons.Outlined.WarningAmber
-        )
+        val supportingText = stringResource(id = R.string.review_media_unavailable)
+        if (category == ReviewManagedMediaCategory.IMAGE) {
+            ReviewManagedMediaImageState(
+                label = label,
+                supportingText = supportingText,
+                accessibilityLabel = stringResource(
+                    id = R.string.review_media_status_content_description,
+                    label,
+                    supportingText
+                ),
+                style = ReviewManagedMediaImageStateStyle.WARNING,
+                modifier = Modifier.reviewManagedMediaImageFrame(
+                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+                )
+            )
+        } else {
+            ReviewManagedMediaPlaceholderRow(
+                label = label,
+                supportingText = supportingText,
+                icon = Icons.Outlined.WarningAmber
+            )
+        }
         return
     }
 
@@ -238,9 +258,9 @@ private fun ReviewManagedMediaImageFile(
                     supportingText
                 ),
                 style = ReviewManagedMediaImageStateStyle.PROGRESS,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+                modifier = Modifier.reviewManagedMediaImageFrame(
+                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+                )
             )
         }
 
@@ -255,9 +275,9 @@ private fun ReviewManagedMediaImageFile(
                     supportingText
                 ),
                 style = ReviewManagedMediaImageStateStyle.WARNING,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+                modifier = Modifier.reviewManagedMediaImageFrame(
+                    sizeModifier = Modifier.aspectRatio(ratio = reviewManagedMediaImagePlaceholderAspectRatio)
+                )
             )
         }
 
@@ -336,11 +356,20 @@ private fun ReviewManagedMediaImage(
                     modifier = Modifier.fillMaxSize()
                 )
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(imageSizeModifier)
+            modifier = Modifier.reviewManagedMediaImageFrame(sizeModifier = imageSizeModifier)
         )
     }
+}
+
+private fun Modifier.reviewManagedMediaImageFrame(sizeModifier: Modifier): Modifier {
+    return fillMaxWidth()
+        .wrapContentWidth(
+            align = Alignment.CenterHorizontally,
+            unbounded = false
+        )
+        .widthIn(max = reviewManagedMediaImageMaxWidth)
+        .fillMaxWidth()
+        .then(sizeModifier)
 }
 
 private fun reviewManagedMediaImageMemoryCacheKey(
