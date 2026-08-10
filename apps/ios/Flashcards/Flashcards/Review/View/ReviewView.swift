@@ -42,6 +42,7 @@ struct ReviewView: View {
     @State var editingCardId: String? = nil
     @State var cardFormState: CardFormState = CardFormState(
         editorSessionId: UUID(),
+        readOnlyMetadata: nil,
         frontText: "",
         backText: "",
         frontTextSelection: nil,
@@ -205,10 +206,8 @@ struct ReviewView: View {
             NavigationStack {
                 CardEditorScreen(
                     title: String(localized: "Edit card", table: reviewCardsStringsTableName),
-                    isEditing: true,
                     errorMessage: screenErrorMessage,
                     availableTagSuggestions: self.availableTagSuggestions,
-                    readOnlyMetadata: self.editingCard().map(cardEditorReadOnlyMetadata),
                     formState: self.$cardFormState,
                     onEditWithAI: {
                         let cardReference: AIChatCardReference?

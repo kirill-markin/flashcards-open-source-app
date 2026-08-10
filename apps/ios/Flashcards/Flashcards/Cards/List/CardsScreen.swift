@@ -95,6 +95,7 @@ struct CardsScreen: View {
     @State private var draftFilter: CardFilter? = nil
     @State private var cardFormState: CardFormState = CardFormState(
         editorSessionId: UUID(),
+        readOnlyMetadata: nil,
         frontText: "",
         backText: "",
         frontTextSelection: nil,
@@ -213,10 +214,8 @@ struct CardsScreen: View {
             NavigationStack {
                 CardEditorScreen(
                     title: presentation.title,
-                    isEditing: presentation.isEditing,
                     errorMessage: self.screenErrorMessage,
                     availableTagSuggestions: self.availableTagSuggestions,
-                    readOnlyMetadata: self.editingCard().map(cardEditorReadOnlyMetadata),
                     formState: self.$cardFormState,
                     onEditWithAI: presentation.editingCardId.map { editingCardId in
                         {
@@ -272,6 +271,7 @@ struct CardsScreen: View {
         self.dismissCardsSearch()
         self.cardFormState = CardFormState(
             editorSessionId: UUID(),
+            readOnlyMetadata: nil,
             frontText: "",
             backText: "",
             frontTextSelection: nil,
@@ -289,6 +289,7 @@ struct CardsScreen: View {
         self.dismissCardsSearch()
         self.cardFormState = CardFormState(
             editorSessionId: UUID(),
+            readOnlyMetadata: cardEditorReadOnlyMetadata(card: card),
             frontText: card.frontText,
             backText: card.backText,
             frontTextSelection: nil,
