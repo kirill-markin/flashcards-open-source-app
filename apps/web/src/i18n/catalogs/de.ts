@@ -845,6 +845,7 @@ const deCatalog: TranslationCatalog = {
       switchToAllCards: "zum Alle-Karten-Deck wechseln",
     },
     aiOpenAriaLabel: "{{side}}-Seite der Karte im AI-Chat öffnen",
+    repetitionBadgeAriaLabel: "Wiederholungen: {{value}}",
     empty: {
       noCardsBody: "Du hast noch keine Karten erstellt. Füge deine erste Karte hinzu, um mit dem Lernen zu beginnen.",
       noCardsTitle: "Noch keine Karten",
@@ -889,11 +890,6 @@ const deCatalog: TranslationCatalog = {
       loading: "Medien werden geladen...",
       unavailable: "Medien nicht verfügbar",
       videoLabel: "Videoanhang",
-    },
-    meta: {
-      due: "Fällig {{value}}",
-      lapses: "Fehlversuche {{count}}",
-      reps: "Wiederholungen {{count}}",
     },
     queue: {
       cards: "{{count}} Karten",

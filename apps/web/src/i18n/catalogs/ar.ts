@@ -845,6 +845,7 @@ const arCatalog: TranslationCatalog = {
       switchToAllCards: "التبديل إلى مجموعة كل البطاقات",
     },
     aiOpenAriaLabel: "افتح جانب {{side}} من البطاقة في دردشة الذكاء الاصطناعي",
+    repetitionBadgeAriaLabel: "المراجعات: {{value}}",
     empty: {
       noCardsBody: "لم تنشئ أي بطاقات بعد. أضف بطاقتك الأولى لبدء الدراسة.",
       noCardsTitle: "لا توجد بطاقات بعد",
@@ -889,11 +890,6 @@ const arCatalog: TranslationCatalog = {
       loading: "جارٍ تحميل الوسائط...",
       unavailable: "الوسائط غير متاحة",
       videoLabel: "مرفق فيديو",
-    },
-    meta: {
-      due: "مستحق {{value}}",
-      lapses: "الإخفاقات {{count}}",
-      reps: "المراجعات {{count}}",
     },
     queue: {
       cards: "{{count}} بطاقة",

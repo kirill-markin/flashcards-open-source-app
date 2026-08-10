@@ -845,6 +845,7 @@ const esEsCatalog: TranslationCatalog = {
       switchToAllCards: "cambiar al mazo de todas las tarjetas",
     },
     aiOpenAriaLabel: "Abrir la tarjeta del {{side}} en el chat con IA",
+    repetitionBadgeAriaLabel: "Repasos: {{value}}",
     empty: {
       noCardsBody: "Aún no has creado ninguna tarjeta. Añade tu primera tarjeta para empezar a estudiar.",
       noCardsTitle: "Aún no hay tarjetas",
@@ -889,11 +890,6 @@ const esEsCatalog: TranslationCatalog = {
       loading: "Cargando archivo multimedia...",
       unavailable: "Archivo multimedia no disponible",
       videoLabel: "Adjunto de video",
-    },
-    meta: {
-      due: "Pendiente {{value}}",
-      lapses: "Fallos {{count}}",
-      reps: "Repasos {{count}}",
     },
     queue: {
       cards: "{{count}} tarjetas",

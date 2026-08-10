@@ -5,7 +5,7 @@ import { useI18n } from "../../../i18n";
 import { cardsRoute, chatRoute } from "../../../routes";
 import type { Card } from "../../../types";
 import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
-import { formatNullableDateTime, formatTagSummary } from "../../shared/featureFormatting";
+import { formatTagSummary } from "../../shared/featureFormatting";
 import { ReviewCardSide, ReviewCardSpeechButton, ReviewEditIcon } from "./card/ReviewCardSide";
 import type { ReviewButtonOption } from "./reviewRatingOptions";
 import type { ReviewSpeechSide } from "../speech/reviewSpeech";
@@ -89,6 +89,20 @@ type ReviewRatingButtonColumnProps = Readonly<{
 }>;
 
 function handleDisabledSpeechToggle(): void {
+}
+
+function ReviewRepetitionIcon(): ReactElement {
+  return (
+    <svg className="review-repetition-badge-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <path
+        d="M21 12A9 9 0 1 1 18.36 5.64L21 8M21 3V8H16"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
 function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
@@ -267,9 +281,10 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     selectedFrontSpeakableText,
     workspaceId,
   } = props;
-  const { t, formatDateTime, formatNumber } = useI18n();
+  const { t, formatNumber } = useI18n();
   const frontSideLabel = t("reviewScreen.sides.front");
   const backSideLabel = t("reviewScreen.sides.back");
+  const repetitionValue = selectedCard.reps === 0 ? t("common.newItem") : formatNumber(selectedCard.reps);
   const leftReviewButtonOptions = reviewButtonOptions.slice(0, REVIEW_BUTTONS_PER_COLUMN);
   const rightReviewButtonOptions = reviewButtonOptions.slice(REVIEW_BUTTONS_PER_COLUMN, REVIEW_BUTTONS_PER_COLUMN * 2);
   const frontTargetRef = useRef<HTMLDivElement>(null);
@@ -298,7 +313,14 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     <>
       <div className="review-pane-head">
         <div className="review-pane-head-meta">
-          <span className="badge">{formatTagSummary(selectedCard.tags)}</span>
+          <span className="badge review-pane-tag-badge">{formatTagSummary(selectedCard.tags)}</span>
+          <span className={`badge review-repetition-badge${selectedCard.reps === 0 ? " review-repetition-badge-new" : ""}`}>
+            <ReviewRepetitionIcon />
+            <span aria-hidden="true">{repetitionValue}</span>
+            <span className="review-repetition-badge-accessible-label">
+              {t("reviewScreen.repetitionBadgeAriaLabel", { value: repetitionValue })}
+            </span>
+          </span>
         </div>
         <div className="review-pane-head-actions">
           <button
@@ -361,12 +383,6 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
             />
           </div>
         ) : null}
-      </div>
-
-      <div className="review-meta">
-        <span>{t("reviewScreen.meta.due", { value: formatNullableDateTime(selectedCard.dueAt, formatDateTime, t) })}</span>
-        <span>{t("reviewScreen.meta.reps", { count: formatNumber(selectedCard.reps) })}</span>
-        <span>{t("reviewScreen.meta.lapses", { count: formatNumber(selectedCard.lapses) })}</span>
       </div>
 
       <div className="review-actions-dock">

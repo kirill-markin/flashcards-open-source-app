@@ -845,6 +845,7 @@ export const ruCatalog = {
       switchToAllCards: "переключиться на колоду всех карточек",
     },
     aiOpenAriaLabel: "Открыть {{side}} карточки в AI-чате",
+    repetitionBadgeAriaLabel: "Повторы: {{value}}",
     empty: {
       noCardsBody: "Вы еще не создали ни одной карточки. Добавьте первую карточку, чтобы начать учиться.",
       noCardsTitle: "Карточек пока нет",
@@ -889,11 +890,6 @@ export const ruCatalog = {
       loading: "Загрузка медиа...",
       unavailable: "Медиа недоступно",
       videoLabel: "Видеовложение",
-    },
-    meta: {
-      due: "Срок {{value}}",
-      lapses: "Ошибки {{count}}",
-      reps: "Повторы {{count}}",
     },
     queue: {
       cards: "{{count}} карточек",

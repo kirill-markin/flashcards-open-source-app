@@ -845,6 +845,7 @@ export const jaCatalog = {
       switchToAllCards: "すべてのカードデッキに切り替える",
     },
     aiOpenAriaLabel: "{{side}} のカードを AI チャットで開く",
+    repetitionBadgeAriaLabel: "復習回数: {{value}}",
     empty: {
       noCardsBody: "まだカードを作成していません。最初のカードを追加して学習を始めましょう。",
       noCardsTitle: "カードがまだありません",
@@ -889,11 +890,6 @@ export const jaCatalog = {
       loading: "メディアを読み込み中...",
       unavailable: "メディアを利用できません",
       videoLabel: "動画添付",
-    },
-    meta: {
-      due: "期限 {{value}}",
-      lapses: "失敗 {{count}}",
-      reps: "復習回数 {{count}}",
     },
     queue: {
       cards: "{{count}} 枚",
