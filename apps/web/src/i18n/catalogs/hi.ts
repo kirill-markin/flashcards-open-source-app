@@ -846,6 +846,7 @@ const hiCatalog: TranslationCatalog = {
     },
     aiOpenAriaLabel: "{{side}} कार्ड को AI चैट में खोलें",
     repetitionBadgeAriaLabel: "रिव्यू: {{value}}",
+    repetitionBadgeNew: "नया",
     empty: {
       noCardsBody: "आपने अभी तक कोई कार्ड नहीं बनाया है। पढ़ाई शुरू करने के लिए अपना पहला कार्ड जोड़ें।",
       noCardsTitle: "अभी तक कोई कार्ड नहीं",

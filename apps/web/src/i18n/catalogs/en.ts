@@ -844,6 +844,7 @@ const enCatalog = {
     },
     aiOpenAriaLabel: "Open {{side}} card in AI chat",
     repetitionBadgeAriaLabel: "Repetitions: {{value}}",
+    repetitionBadgeNew: "New",
     empty: {
       noCardsBody: "You have not created any cards yet. Add your first card to start studying.",
       noCardsTitle: "No Cards Yet",

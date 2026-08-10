@@ -284,7 +284,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
   const { t, formatNumber } = useI18n();
   const frontSideLabel = t("reviewScreen.sides.front");
   const backSideLabel = t("reviewScreen.sides.back");
-  const repetitionValue = selectedCard.reps === 0 ? t("common.newItem") : formatNumber(selectedCard.reps);
+  const repetitionValue = selectedCard.reps === 0 ? t("reviewScreen.repetitionBadgeNew") : formatNumber(selectedCard.reps);
   const leftReviewButtonOptions = reviewButtonOptions.slice(0, REVIEW_BUTTONS_PER_COLUMN);
   const rightReviewButtonOptions = reviewButtonOptions.slice(REVIEW_BUTTONS_PER_COLUMN, REVIEW_BUTTONS_PER_COLUMN * 2);
   const frontTargetRef = useRef<HTMLDivElement>(null);
