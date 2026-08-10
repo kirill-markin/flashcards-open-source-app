@@ -4,6 +4,7 @@ import UIKit
 
 private let reviewManagedMediaStringsTableName: String = "ReviewCards"
 private let reviewManagedMediaCornerRadius: CGFloat = reviewContentSurfaceCornerRadius / 2
+private let reviewManagedImagePresentationMaxWidth: CGFloat = 520
 private let reviewManagedImagePlaceholderAspectRatio: CGFloat = 4.0 / 3.0
 private let reviewManagedAudioHeight: CGFloat = 76
 private let reviewManagedVideoMinHeight: CGFloat = 190
@@ -137,6 +138,7 @@ struct ReviewManagedMediaView: View {
         RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius)
             .fill(mediaBackgroundStyle)
             .aspectRatio(reviewManagedImagePlaceholderAspectRatio, contentMode: .fit)
+            .frame(maxWidth: reviewManagedImagePresentationMaxWidth)
             .frame(maxWidth: .infinity, alignment: .center)
             .overlay {
                 ProgressView(loadingMediaLabel)
@@ -151,6 +153,7 @@ struct ReviewManagedMediaView: View {
         RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius)
             .fill(mediaBackgroundStyle)
             .aspectRatio(reviewManagedImagePlaceholderAspectRatio, contentMode: .fit)
+            .frame(maxWidth: reviewManagedImagePresentationMaxWidth)
             .frame(maxWidth: .infinity, alignment: .center)
             .overlay {
                 VStack(spacing: 10) {
@@ -172,6 +175,7 @@ struct ReviewManagedMediaView: View {
         RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius)
             .fill(mediaBackgroundStyle)
             .aspectRatio(reviewManagedImagePlaceholderAspectRatio, contentMode: .fit)
+            .frame(maxWidth: reviewManagedImagePresentationMaxWidth)
             .frame(maxWidth: .infinity, alignment: .center)
             .overlay {
                 VStack(spacing: 8) {
@@ -288,8 +292,9 @@ struct ReviewManagedMediaView: View {
                     .scaledToFit()
             }
         }
-        .frame(maxWidth: .infinity, alignment: .center)
+        .frame(maxWidth: reviewManagedImagePresentationMaxWidth)
         .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
+        .frame(maxWidth: .infinity, alignment: .center)
         .accessibilityLabel(accessibilityLabel)
     }
 
