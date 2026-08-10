@@ -48,21 +48,30 @@
   min-width: 0;
 }
 
-.review-pane-tag-badge {
+.review-pane-tag-label {
+  display: inline-flex;
+  align-items: center;
   flex: 0 1 auto;
+  min-height: 30px;
   min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
 .review-repetition-badge {
   flex: 0 0 auto;
   gap: 6px;
-  min-height: 26px;
+  min-height: 30px;
   padding-inline: 9px;
+  border: 0;
 }
 
 .review-repetition-badge-new {
-  border-color: var(--accent);
   background: var(--accent);
   color: #fff;
 }
