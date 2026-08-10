@@ -19,13 +19,13 @@ private const val demoCardParagraphSeparator: String = "\n\n"
 private const val demoCardProductName: String = "Flashcards Open Source App"
 
 /**
- * Builds the onboarding demo card from the current app locale. The rating
- * labels are read from the review feature so the card always names the same
- * buttons the user sees while reviewing.
+ * Builds the onboarding demo card from the current app locale. The three back
+ * paragraphs use the review feature's Again label so the card names the same
+ * button the user sees while reviewing.
  *
  * The Markdown lives here rather than in the translatable strings: the back
  * text carries exactly the bold product name and the inline-code rating
- * labels. The backticks are load-bearing, not decoration.
+ * label. The backticks are load-bearing, not decoration.
  * `classifyReviewContentPresentation` only switches to Markdown on a backtick
  * or a block-level cue, and inline emphasis alone never switches the mode
  * (see docs/review-markdown-rendering.md). Removing the backticks would demote
@@ -35,13 +35,10 @@ private const val demoCardProductName: String = "Flashcards Open Source App"
 fun buildDemoCardDraft(context: Context): CardDraft {
     val productName: String = "**$demoCardProductName**"
     val againLabel: String = "`${context.getString(ReviewR.string.review_again)}`"
-    val hardLabel: String = "`${context.getString(ReviewR.string.review_hard)}`"
     val backParagraphs: List<String> = listOf(
         context.getString(R.string.demo_card_back_1, productName),
         context.getString(R.string.demo_card_back_2),
-        context.getString(R.string.demo_card_back_3),
-        context.getString(R.string.demo_card_back_4, againLabel, hardLabel),
-        context.getString(R.string.demo_card_back_5, againLabel)
+        context.getString(R.string.demo_card_back_3, againLabel)
     )
     return CardDraft(
         frontText = context.getString(R.string.demo_card_front),
