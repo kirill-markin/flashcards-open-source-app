@@ -154,7 +154,8 @@
   display: block;
   width: 100%;
   height: auto;
-  max-width: 100%;
+  max-width: 520px;
+  margin-inline: auto;
   border-radius: var(--review-managed-media-image-radius, 8px);
   background: rgba(7, 7, 10, 0.34);
   object-fit: contain;
@@ -168,7 +169,8 @@
 .review-markdown-media-image-loading {
   display: block;
   width: 100%;
-  max-width: 100%;
+  max-width: 520px;
+  margin-inline: auto;
   aspect-ratio: 4 / 3;
   border-radius: var(--review-managed-media-image-radius, 8px);
   background: rgba(7, 7, 10, 0.34);
@@ -179,7 +181,8 @@
   display: flex;
   box-sizing: border-box;
   width: 100%;
-  max-width: 100%;
+  max-width: 520px;
+  margin-inline: auto;
   aspect-ratio: 4 / 3;
   align-items: center;
   justify-content: center;
