@@ -91,11 +91,11 @@ private func onboardingDemoCardFrontText() -> String {
 /**
  Builds the demo card answer from the localized paragraphs.
 
- The rating labels come from the same `Again` and `Hard` entries the review
- buttons use, so the card always names the buttons the reader can see. The
- product name is never localized. The assembled text carries exactly two kinds
- of Markdown, both added here rather than in the localized values: bold around
- the product name and inline code around each rating label.
+ The rating label comes from the same `Again` entry the review button uses, so
+ the card always names the button the reader can see. The product name is never
+ localized. The three assembled paragraphs carry exactly two kinds of Markdown,
+ both added here rather than in the localized values: bold around the product
+ name and inline code around the rating label.
 
  The backticks are load-bearing. `classifyReviewContentPresentation` switches a
  card side to Markdown only on a backtick or a block-level cue, and inline
@@ -106,12 +106,11 @@ private func onboardingDemoCardFrontText() -> String {
  */
 private func onboardingDemoCardBackText() -> String {
     let againRatingLabel = "`\(String(localized: "Again", table: reviewCardsStringsTableName))`"
-    let hardRatingLabel = "`\(String(localized: "Hard", table: reviewCardsStringsTableName))`"
     let paragraphs: [String] = [
         String(
             format: String(
                 localized: "demo_card_back_1",
-                defaultValue: "%@ — the app you are looking at right now.",
+                defaultValue: "%@ — the app you are looking at right now. Everything here is a flashcard: a question on the front, the answer on the back.",
                 table: reviewCardsStringsTableName,
                 comment: "Paragraph on the back of the onboarding demo flashcard. %@ is the never-localized product name, already wrapped in Markdown bold."
             ),
@@ -119,29 +118,13 @@ private func onboardingDemoCardBackText() -> String {
         ),
         String(
             localized: "demo_card_back_2",
-            defaultValue: "Everything here is a flashcard: a question on the front, the answer on the back. You can write cards yourself, or just give the built-in AI chat a topic and it will create a set of cards for you.",
-            table: reviewCardsStringsTableName,
-            comment: "Paragraph on the back of the onboarding demo flashcard"
-        ),
-        String(
-            localized: "demo_card_back_3",
-            defaultValue: "When you review, you try to recall the answer, then rate how it went. Every card schedules itself from there: what you know well comes back in weeks or months, what you keep forgetting comes back today or tomorrow.",
+            defaultValue: "Give the built-in AI chat a topic and it will create a set of cards for you.",
             table: reviewCardsStringsTableName,
             comment: "Paragraph on the back of the onboarding demo flashcard"
         ),
         String(
             format: String(
-                localized: "demo_card_back_4",
-                defaultValue: "Rate honestly, this is what makes it work. If you did not know the answer, choose %1$@ — including when you had to peek. %2$@ is only for answers you knew but struggled to recall.",
-                table: reviewCardsStringsTableName,
-                comment: "Paragraph on the back of the onboarding demo flashcard. %1$@ is the Again rating label and %2$@ the Hard rating label; both arrive already wrapped in Markdown inline code, so do not add quotation marks around them."
-            ),
-            againRatingLabel,
-            hardRatingLabel
-        ),
-        String(
-            format: String(
-                localized: "demo_card_back_5",
+                localized: "demo_card_back_3",
                 defaultValue: "Try it right now: rate this card %@, and it will come back in about a minute — so this answer sticks.",
                 table: reviewCardsStringsTableName,
                 comment: "Paragraph on the back of the onboarding demo flashcard. %@ is the Again rating label, already wrapped in Markdown inline code, so do not add quotation marks around it."
