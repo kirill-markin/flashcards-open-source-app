@@ -21,10 +21,7 @@
     <string name="review_all_cards">Все карточки</string>
     <string name="review_front_label">Лицевая сторона</string>
     <string name="review_back_label">Обратная сторона</string>
-    <string name="review_due_label">Срок: %1$s</string>
     <string name="review_due_new">Новая</string>
-    <string name="review_reps_label">Повторы %1$d</string>
-    <string name="review_lapses_label">Ошибки %1$d</string>
     <string name="review_show_answer">Показать ответ</string>
     <string name="review_again">Снова</string>
     <string name="review_hard">Трудно</string>

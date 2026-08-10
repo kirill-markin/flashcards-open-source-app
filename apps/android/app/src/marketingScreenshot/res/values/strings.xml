@@ -21,10 +21,7 @@
     <string name="review_all_cards">All cards</string>
     <string name="review_front_label">Front</string>
     <string name="review_back_label">Back</string>
-    <string name="review_due_label">Due %1$s</string>
     <string name="review_due_new">New</string>
-    <string name="review_reps_label">Reps %1$d</string>
-    <string name="review_lapses_label">Lapses %1$d</string>
     <string name="review_show_answer">Show answer</string>
     <string name="review_again">Again</string>
     <string name="review_hard">Hard</string>

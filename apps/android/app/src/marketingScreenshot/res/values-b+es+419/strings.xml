@@ -21,10 +21,7 @@
     <string name="review_all_cards">Todas las tarjetas</string>
     <string name="review_front_label">Frente</string>
     <string name="review_back_label">Reverso</string>
-    <string name="review_due_label">Vence: %1$s</string>
     <string name="review_due_new">Nueva</string>
-    <string name="review_reps_label">Repasos %1$d</string>
-    <string name="review_lapses_label">Errores %1$d</string>
     <string name="review_show_answer">Mostrar respuesta</string>
     <string name="review_again">Otra vez</string>
     <string name="review_hard">Difícil</string>
