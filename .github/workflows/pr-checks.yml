@@ -23,6 +23,8 @@ jobs:
       admin_changed: ${{ steps.detect.outputs.admin_changed }}
       infra_changed: ${{ steps.detect.outputs.infra_changed }}
       node_changed: ${{ steps.detect.outputs.node_changed }}
+      android_changed: ${{ steps.detect.outputs.android_changed }}
+      android_data_local_changed: ${{ steps.detect.outputs.android_data_local_changed }}
 
     steps:
       - uses: actions/checkout@v7
@@ -49,6 +51,8 @@ jobs:
           web_changed=false
           admin_changed=false
           infra_changed=false
+          android_changed=false
+          android_data_local_changed=false
 
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             api_changed=true
@@ -57,6 +61,8 @@ jobs:
             web_changed=true
             admin_changed=true
             infra_changed=true
+            android_changed=true
+            android_data_local_changed=true
           else
             if grep -Eq '^(api/|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
               api_changed=true
@@ -83,6 +89,22 @@ jobs:
             if grep -Eq '^(infra/|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
               infra_changed=true
             fi
+
+            while IFS= read -r changed_file; do
+              case "${changed_file}" in
+                apps/android/README.md|apps/android/docs/*)
+                  ;;
+                apps/android/*|cloudbuild.android.yaml|scripts/android/*|.github/workflows/android-ci.yml|.github/workflows/android-ci-reusable.yml|.github/workflows/android-release.yml|.github/workflows/pr-checks.yml)
+                  android_changed=true
+                  ;;
+              esac
+
+              case "${changed_file}" in
+                apps/android/data/*|apps/android/core/observability/*|apps/android/build.gradle.kts|apps/android/settings.gradle.kts|apps/android/gradle.properties|apps/android/gradle/*|.github/workflows/android-ci-reusable.yml|.github/workflows/pr-checks.yml)
+                  android_data_local_changed=true
+                  ;;
+              esac
+            done < "${changed_files_path}"
           fi
 
           node_changed=false
@@ -99,6 +121,8 @@ jobs:
             echo "admin_changed=${admin_changed}"
             echo "infra_changed=${infra_changed}"
             echo "node_changed=${node_changed}"
+            echo "android_changed=${android_changed}"
+            echo "android_data_local_changed=${android_data_local_changed}"
           } >> "${GITHUB_OUTPUT}"
 
       - name: Summarize changed areas
@@ -109,6 +133,8 @@ jobs:
           WEB_CHANGED: ${{ steps.detect.outputs.web_changed }}
           ADMIN_CHANGED: ${{ steps.detect.outputs.admin_changed }}
           INFRA_CHANGED: ${{ steps.detect.outputs.infra_changed }}
+          ANDROID_CHANGED: ${{ steps.detect.outputs.android_changed }}
+          ANDROID_DATA_LOCAL_CHANGED: ${{ steps.detect.outputs.android_data_local_changed }}
         run: |
           set -euo pipefail
 
@@ -123,6 +149,8 @@ jobs:
             echo "- Web changed: \`${WEB_CHANGED}\`"
             echo "- Admin changed: \`${ADMIN_CHANGED}\`"
             echo "- Infra changed: \`${INFRA_CHANGED}\`"
+            echo "- Android changed: \`${ANDROID_CHANGED}\`"
+            echo "- Android data:local changed: \`${ANDROID_DATA_LOCAL_CHANGED}\`"
             echo ""
             echo "### Changed files"
             echo ""
@@ -132,6 +160,29 @@ jobs:
               echo "No changed files detected."
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
+
+  android_build:
+    name: Android build, unit tests, and lint
+    needs: changes
+    if: ${{ needs.changes.outputs.android_changed == 'true' }}
+    uses: ./.github/workflows/android-ci-reusable.yml
+    with:
+      target_ref: ${{ github.sha }}
+      android_version_code: ${{ github.run_number }}
+      run_data_local_instrumentation: false
+    secrets: inherit
+
+  android_data_local:
+    name: Android data:local instrumentation
+    needs: changes
+    if: ${{ needs.changes.outputs.android_data_local_changed == 'true' }}
+    uses: ./.github/workflows/android-ci-reusable.yml
+    with:
+      target_ref: ${{ github.sha }}
+      android_version_code: ${{ github.run_number }}
+      run_build: false
+      run_data_local_instrumentation: true
+    secrets: inherit
 
   checks:
     name: Type checks and builds
@@ -252,8 +303,8 @@ jobs:
       - name: Test web app
         run: npm test --prefix apps/web
 
-  static_checks:
-    name: Repository static checks
+  repository_static_validation:
+    name: Repository static validation
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
@@ -329,3 +380,79 @@ jobs:
 
           "${install_dir}/actionlint" --version
           "${install_dir}/actionlint"
+
+  static_checks:
+    name: Repository static checks
+    needs:
+      - changes
+      - checks
+      - backend_tests
+      - web_tests
+      - android_build
+      - android_data_local
+      - repository_static_validation
+      - lint_scripts
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Require successful PR checks
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          NODE_CHANGED: ${{ needs.changes.outputs.node_changed }}
+          BACKEND_CHANGED: ${{ needs.changes.outputs.backend_changed }}
+          WEB_CHANGED: ${{ needs.changes.outputs.web_changed }}
+          ANDROID_CHANGED: ${{ needs.changes.outputs.android_changed }}
+          ANDROID_DATA_LOCAL_CHANGED: ${{ needs.changes.outputs.android_data_local_changed }}
+          TYPE_CHECKS_RESULT: ${{ needs.checks.result }}
+          BACKEND_TESTS_RESULT: ${{ needs.backend_tests.result }}
+          WEB_TESTS_RESULT: ${{ needs.web_tests.result }}
+          ANDROID_BUILD_RESULT: ${{ needs.android_build.result }}
+          ANDROID_DATA_LOCAL_RESULT: ${{ needs.android_data_local.result }}
+          STATIC_VALIDATION_RESULT: ${{ needs.repository_static_validation.result }}
+          SCRIPT_LINT_RESULT: ${{ needs.lint_scripts.result }}
+        run: |
+          set -euo pipefail
+
+          require_success() {
+            local check_name="$1"
+            local check_result="$2"
+
+            if [[ "${check_result}" != "success" ]]; then
+              echo "Required PR check '${check_name}' did not succeed. Result: ${check_result}." >&2
+              exit 1
+            fi
+          }
+
+          require_conditional_success() {
+            local check_name="$1"
+            local check_expected="$2"
+            local check_result="$3"
+
+            if [[ "${check_expected}" == "true" ]]; then
+              require_success "${check_name}" "${check_result}"
+              return
+            fi
+
+            if [[ "${check_expected}" == "false" && "${check_result}" == "skipped" ]]; then
+              return
+            fi
+
+            if [[ "${check_expected}" != "false" ]]; then
+              echo "Conditional PR check '${check_name}' has invalid scope value: ${check_expected}." >&2
+              exit 1
+            fi
+
+            echo "Conditional PR check '${check_name}' ran outside its detected scope. Result: ${check_result}." >&2
+            exit 1
+          }
+
+          require_success "Detect changed areas" "${CHANGES_RESULT}"
+          require_success "Repository static validation" "${STATIC_VALIDATION_RESULT}"
+          require_success "Shell and workflow lint" "${SCRIPT_LINT_RESULT}"
+          require_conditional_success "Type checks and builds" "${NODE_CHANGED}" "${TYPE_CHECKS_RESULT}"
+          require_conditional_success "Backend test suites" "${BACKEND_CHANGED}" "${BACKEND_TESTS_RESULT}"
+          require_conditional_success "Web test suite" "${WEB_CHANGED}" "${WEB_TESTS_RESULT}"
+          require_conditional_success "Android build, unit tests, and lint" "${ANDROID_CHANGED}" "${ANDROID_BUILD_RESULT}"
+          require_conditional_success "Android data:local instrumentation" "${ANDROID_DATA_LOCAL_CHANGED}" "${ANDROID_DATA_LOCAL_RESULT}"
