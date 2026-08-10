@@ -340,7 +340,7 @@ struct RootTabView: View {
                     isRecoveryGateActive: self.store.cloudCredentialRecoveryState != nil,
                     now: Date()
                 )
-                navigation.selectedTab = nextTab
+                navigation.selectTab(nextTab)
             }
         )
 
@@ -557,6 +557,7 @@ struct RootTabView: View {
     private var aiTab: some View {
         NavigationStack {
             AIChatView(chatStore: store.aiChatStore)
+                .id(self.navigation.aiTabVisitID)
         }
         .tabItem {
             Label(
