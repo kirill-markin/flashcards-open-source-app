@@ -21,7 +21,10 @@
     <string name="review_all_cards">Alle Karten</string>
     <string name="review_front_label">Vorderseite</string>
     <string name="review_back_label">Rückseite</string>
+    <string name="review_due_label">Fällig: %1$s</string>
     <string name="review_due_new">Neu</string>
+    <string name="review_reps_label">Wdh. %1$d</string>
+    <string name="review_lapses_label">Fehler %1$d</string>
     <string name="review_show_answer">Antwort anzeigen</string>
     <string name="review_again">Nochmal</string>
     <string name="review_hard">Schwer</string>
