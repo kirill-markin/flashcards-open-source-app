@@ -70,18 +70,6 @@ func aiChatMessageListUpdateChangesExistingTail(
 }
 
 extension AIChatView {
-    func resetScrollPositionForTabEntry() {
-        self.cancelDeferredBottomSync()
-
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            self.isAutoFollowEnabled = true
-            self.hasActiveUserScrollGesture = false
-            self.scrollPosition = ScrollPosition(idType: String.self, edge: .bottom)
-        }
-    }
-
     func detachAutoFollow() {
         self.isAutoFollowEnabled = false
         self.cancelDeferredBottomSync()

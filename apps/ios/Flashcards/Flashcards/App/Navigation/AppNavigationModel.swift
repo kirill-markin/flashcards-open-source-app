@@ -65,7 +65,8 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
 @MainActor
 @Observable
 final class AppNavigationModel {
-    var selectedTab: AppTab
+    private(set) var selectedTab: AppTab
+    private(set) var aiTabVisitID: UUID
     var settingsPath: [SettingsNavigationDestination]
     var cardsPresentationRequest: CardsPresentationRequest?
     var aiChatPresentationRequest: AIChatPresentationRequest?
@@ -73,6 +74,7 @@ final class AppNavigationModel {
 
     init() {
         self.selectedTab = .review
+        self.aiTabVisitID = UUID()
         self.settingsPath = []
         self.cardsPresentationRequest = nil
         self.aiChatPresentationRequest = nil
@@ -87,6 +89,7 @@ final class AppNavigationModel {
         progressPresentationRequest: ProgressPresentationRequest?
     ) {
         self.selectedTab = selectedTab
+        self.aiTabVisitID = UUID()
         self.settingsPath = settingsPath
         self.cardsPresentationRequest = cardsPresentationRequest
         self.aiChatPresentationRequest = aiChatPresentationRequest
@@ -94,26 +97,30 @@ final class AppNavigationModel {
     }
 
     func selectTab(_ tab: AppTab) {
+        if self.selectedTab != .ai, tab == .ai {
+            self.aiTabVisitID = UUID()
+        }
+
         self.selectedTab = tab
     }
 
     func openCardCreation() {
-        self.selectedTab = .cards
+        self.selectTab(.cards)
         self.cardsPresentationRequest = .createCard
     }
 
     func openAICardCreation() {
-        self.selectedTab = .ai
+        self.selectTab(.ai)
         self.aiChatPresentationRequest = .createCard
     }
 
     func openAICardHandoff(card: AIChatCardReference) {
-        self.selectedTab = .ai
+        self.selectTab(.ai)
         self.aiChatPresentationRequest = .attachCard(card)
     }
 
     func openProgress(target: ProgressPresentationTarget) {
-        self.selectedTab = .progress
+        self.selectTab(.progress)
         self.progressPresentationRequest = ProgressPresentationRequest(
             id: UUID(),
             target: target
@@ -121,7 +128,7 @@ final class AppNavigationModel {
     }
 
     func openSettings(destination: SettingsNavigationDestination) {
-        self.selectedTab = .settings
+        self.selectTab(.settings)
         self.settingsPath = makeSettingsNavigationPath(destination: destination)
     }
 

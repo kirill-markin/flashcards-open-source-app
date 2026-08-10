@@ -856,7 +856,6 @@ struct AIChatView: View {
             return
         }
 
-        self.resetScrollPositionForTabEntry()
         self.syncChatSurface(refreshConsent: true)
         self.handleAIChatPresentationRequest(
             request: self.deferredPresentationRequest,
