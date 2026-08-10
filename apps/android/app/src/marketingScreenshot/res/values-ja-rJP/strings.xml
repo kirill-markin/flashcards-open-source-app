@@ -21,10 +21,7 @@
     <string name="review_all_cards">すべてのカード</string>
     <string name="review_front_label">表面</string>
     <string name="review_back_label">裏面</string>
-    <string name="review_due_label">期限: %1$s</string>
     <string name="review_due_new">新規</string>
-    <string name="review_reps_label">復習 %1$d</string>
-    <string name="review_lapses_label">忘れ %1$d</string>
     <string name="review_show_answer">答えを表示</string>
     <string name="review_again">もう一度</string>
     <string name="review_hard">難しい</string>

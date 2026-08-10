@@ -21,10 +21,7 @@
     <string name="review_all_cards">所有卡片</string>
     <string name="review_front_label">正面</string>
     <string name="review_back_label">背面</string>
-    <string name="review_due_label">到期：%1$s</string>
     <string name="review_due_new">新卡</string>
-    <string name="review_reps_label">次数 %1$d</string>
-    <string name="review_lapses_label">遗忘 %1$d</string>
     <string name="review_show_answer">显示答案</string>
     <string name="review_again">再来一次</string>
     <string name="review_hard">困难</string>
