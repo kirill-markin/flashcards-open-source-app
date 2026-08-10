@@ -557,8 +557,8 @@ struct RootTabView: View {
     private var aiTab: some View {
         NavigationStack {
             AIChatView(chatStore: store.aiChatStore)
-                .id(self.navigation.aiTabVisitID)
         }
+        .id(self.navigation.aiTabVisitID)
         .tabItem {
             Label(
                 String(

@@ -6,12 +6,6 @@ extension AIChatView {
         .accessibilityIdentifier(UITestIdentifier.aiConversationScrollSurface)
         .defaultScrollAnchor(.bottom, for: .initialOffset)
         .defaultScrollAnchor(.bottom, for: .alignment)
-        // Let SwiftUI preserve the visible content while the viewport changes.
-        // We removed the old geometry-height-driven `scrollToBottomIfNeeded` here
-        // because keyboard-open resizes were getting two competing corrections:
-        // `scrollPosition` preserving the current view and our forced bottom jump.
-        // That over-correction was causing the temporary empty gap above the keyboard
-        // until the user nudged the scroll view manually.
         .scrollPosition(self.$scrollPosition, anchor: .bottom)
         .contentMargins(.horizontal, aiChatMessageListHorizontalPadding, for: .scrollContent)
         .contentMargins(.vertical, 12, for: .scrollContent)
@@ -55,15 +49,12 @@ extension AIChatView {
             }
         }
         .onAppear {
-            // Keep the one-shot deferred sync behind the auto-follow latch so tab
-            // return cannot override a deliberate manual scroll-away.
-            self.scheduleDeferredBottomSyncIfNeeded()
+            self.scrollToBottomIfNeeded(isAnimated: false)
             if self.chatStore.isStreaming {
                 self.startAutoScrollTask()
             }
         }
         .onDisappear {
-            self.cancelDeferredBottomSync()
             self.stopAutoScrollTask()
         }
         .onChange(of: self.chatStore.messages) { previousMessages, messages in
@@ -86,7 +77,9 @@ extension AIChatView {
             guard didAppendTail || didChangeStreamingTail else {
                 return
             }
-            self.scrollToBottomIfNeeded(isAnimated: self.chatStore.isStreaming == false)
+            self.scrollToBottomIfNeeded(
+                isAnimated: previousMessages.isEmpty == false && self.chatStore.isStreaming == false
+            )
         }
         .onChange(of: self.chatStore.isStreaming) { _, isStreaming in
             if isStreaming {

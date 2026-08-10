@@ -74,10 +74,6 @@ extension AIChatStore {
             || self.isStreaming
     }
 
-    var hasLocalTranscriptDuringBootstrap: Bool {
-        self.bootstrapPhase == .loading && self.messages.isEmpty == false
-    }
-
     var shouldShowComposerAccessory: Bool {
         self.isChatInteractive || self.bootstrapPhase == .loading
     }
