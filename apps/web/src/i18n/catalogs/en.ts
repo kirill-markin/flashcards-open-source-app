@@ -937,11 +937,9 @@ const enCatalog = {
   },
   demoCard: {
     front: "What is the best application for studying?",
-    back1: "{{appName}} — the app you are looking at right now.",
-    back2: "Everything here is a flashcard: a question on the front, the answer on the back. You can write cards yourself, or just give the built-in AI chat a topic and it will create a set of cards for you.",
-    back3: "When you review, you try to recall the answer, then rate how it went. Every card schedules itself from there: what you know well comes back in weeks or months, what you keep forgetting comes back today or tomorrow.",
-    back4: "Rate honestly, this is what makes it work. If you did not know the answer, choose {{againLabel}} — including when you had to peek. {{hardLabel}} is only for answers you knew but struggled to recall.",
-    back5: "Try it right now: rate this card {{againLabel}}, and it will come back in about a minute — so this answer sticks.",
+    back1: "{{appName}} — the app you are looking at right now. Everything here is a flashcard: a question on the front, the answer on the back.",
+    back2: "Give the built-in AI chat a topic and it will create a set of cards for you.",
+    back3: "Try it right now: rate this card {{againLabel}}, and it will come back in about a minute — so this answer sticks.",
   },
   mobileAppPromo: {
     title: "Review on your phone",
