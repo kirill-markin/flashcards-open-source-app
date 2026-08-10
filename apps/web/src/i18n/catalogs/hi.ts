@@ -39,6 +39,7 @@ const hiCatalog: TranslationCatalog = {
     never: "कभी नहीं",
     newItem: "नया",
     noBackText: "कोई बैक टेक्स्ट नहीं",
+    noTags: "कोई टैग नहीं",
     notRevoked: "निरस्त नहीं",
     ok: "ठीक है",
     off: "बंद",

@@ -5,8 +5,6 @@ import type { CardFilter, DeckFilterDefinition } from "../../types";
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;
 type FormatDateTime = (value: DateTimeValue, options?: Readonly<Intl.DateTimeFormatOptions>) => string;
 
-const EMPTY_LIST_PLACEHOLDER = "\u2014";
-
 function joinFilterSummaryParts(parts: ReadonlyArray<string>, t: Translate): string {
   if (parts.length === 0) {
     return t("filters.none");
@@ -27,9 +25,9 @@ export function formatNullableDateTime(
   return formatDateTime(value);
 }
 
-export function formatTagSummary(tags: ReadonlyArray<string>): string {
+export function formatTagSummary(tags: ReadonlyArray<string>, t: Translate): string {
   if (tags.length === 0) {
-    return EMPTY_LIST_PLACEHOLDER;
+    return t("common.noTags");
   }
 
   return tags.join(", ");

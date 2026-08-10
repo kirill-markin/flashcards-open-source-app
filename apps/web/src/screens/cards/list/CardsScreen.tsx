@@ -911,7 +911,7 @@ export function CardsScreen(): ReactElement {
                         <span className="cards-loading-cell-text">{card.backText === "" ? t("common.noBackText") : card.backText}</span>
                       </td>
                       <td className="txn-cell cards-col-tags">
-                        <span className="cards-loading-cell-text">{formatTagSummary(card.tags)}</span>
+                        <span className="cards-loading-cell-text">{formatTagSummary(card.tags, t)}</span>
                       </td>
                       <td className="txn-cell txn-cell-mono cards-col-due">{formatNullableDateTime(card.dueAt, formatDateTime, t)}</td>
                       <td className="txn-cell txn-cell-mono cards-col-reps">{card.reps}</td>

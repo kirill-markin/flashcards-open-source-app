@@ -332,7 +332,7 @@ export function DeckDetailScreen(): ReactElement {
                   {detailState.cards.map((card) => (
                     <article key={card.cardId} className="content-card deck-detail-card">
                       <div className="deck-detail-card-head">
-                        <span className="badge">{formatTagSummary(card.tags)}</span>
+                        <span className="badge">{formatTagSummary(card.tags, t)}</span>
                       </div>
                       <h3 className="panel-subtitle">{card.frontText}</h3>
                       <p className="subtitle">{card.backText === "" ? t("common.noBackText") : card.backText}</p>
