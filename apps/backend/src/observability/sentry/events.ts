@@ -1,5 +1,11 @@
 import type { AgentSqlSurface } from "../../aiTools/agentSql/shared";
-import type { MediaAssetStorageErrorDetails, SyncConflictEntityType } from "../../shared/errors";
+import type { SyncConflictEntityType } from "../../shared/errors";
+import type { BackendFailureDetails } from "../failureDetails";
+
+export type {
+  BackendFailureDetails,
+  BackendValidationIssueDetail,
+} from "../failureDetails";
 
 export type BackendService =
   | "backend-api"
@@ -32,11 +38,6 @@ export type BackendTraceCarrier = Readonly<{
   baggage: string | null;
 }>;
 
-export type BackendValidationIssueDetail = Readonly<{
-  path: string;
-  code: string;
-}>;
-
 export type BackendErrorLogDetails = Readonly<{
   errorClass: string;
   errorMessage: string;
@@ -44,14 +45,6 @@ export type BackendErrorLogDetails = Readonly<{
   sourceFile: string | null;
   sourceLine: number | null;
   sourceColumn: number | null;
-}>;
-
-export type BackendFailureDetails = Readonly<{
-  statusCode: number;
-  code: string | null;
-  message: string | null;
-  validationIssues: ReadonlyArray<BackendValidationIssueDetail>;
-  mediaAssetStorage?: MediaAssetStorageErrorDetails;
 }>;
 
 export type RequestErrorDetails = BackendFailureDetails & BackendErrorLogDetails & Readonly<{
