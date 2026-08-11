@@ -71,6 +71,13 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0109_catalog_image_blob_ingestion.sql",
+    expectedMigrationCount: 111,
+    testFiles: Object.freeze([
+      "src/mediaAssets/blobLifecycle/cleanup.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0108_multipart_absolute_lease_target.sql",
     expectedMigrationCount: 110,
     testFiles: Object.freeze([
@@ -94,7 +101,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/chat/cardImages/promotion/jobsRevocation.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
       "src/database/aiChatInitiatingAuthClassification.postgres.integration.ts",
-      "src/mediaAssets/blobLifecycle/cleanup.postgres.integration.ts",
       "src/sync/freshBootstrap.postgres.integration.ts",
     ]),
   }),
