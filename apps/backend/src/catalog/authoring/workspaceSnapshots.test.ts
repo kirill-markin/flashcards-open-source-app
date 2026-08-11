@@ -73,6 +73,11 @@ test("workspace-selected catalog versions generate fresh package card ids", asyn
         } as unknown as Row]);
       }
 
+      if (text.includes("lock_catalog_package_version_media_blob_lifecycles")) {
+        assert.deepEqual(params, [testPackageId, []]);
+        return createQueryResult([]);
+      }
+
       if (text.includes("INSERT INTO catalog.package_media_assets")) {
         assert.deepEqual(params, [testPackageId, testPackageVersionId]);
         return createQueryResult([]);
@@ -205,6 +210,14 @@ test("workspace-selected catalog versions preserve managed media as package medi
           ...createPackageVersionRow("draft"),
           source_workspace_id: testWorkspaceId,
         } as unknown as Row]);
+      }
+
+      if (text.includes("lock_catalog_package_version_media_blob_lifecycles")) {
+        assert.deepEqual(params, [
+          testPackageId,
+          [testMediaBlobId, testSecondMediaBlobId],
+        ]);
+        return createQueryResult([]);
       }
 
       if (text.includes("INSERT INTO catalog.package_media_assets")) {
