@@ -196,9 +196,8 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
       DB_NAME: "flashcards",
       MCP_BASE_DOMAIN: props.baseDomain,
       // The MCP sql_query and sql_execute tools return the shared agent
-      // envelope; pin the docs base to the public API host so `docs.openapiUrl`
-      // matches `/agent/sql/query` and `/agent/sql/execute` instead of resolving
-      // against the mcp.<domain> request host.
+      // envelope; pin `docs.discoveryUrl` to the public API host instead of
+      // resolving it against the mcp.<domain> request host.
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
       // Public marketing-site origin surfaced in the MCP implementation
       // metadata (websiteUrl). Defaults to the apex domain; an optional CDK
