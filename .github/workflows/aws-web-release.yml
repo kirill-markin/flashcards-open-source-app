@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
     paths:
-      - 'api/**'
       - 'apps/auth/**'
       - 'apps/backend/**'
       - 'apps/web/**'
@@ -45,7 +44,6 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       aws_changed: ${{ steps.detect.outputs.aws_changed }}
-      api_changed: ${{ steps.detect.outputs.api_changed }}
       auth_changed: ${{ steps.detect.outputs.auth_changed }}
       backend_changed: ${{ steps.detect.outputs.backend_changed }}
       web_changed: ${{ steps.detect.outputs.web_changed }}
@@ -83,11 +81,10 @@ jobs:
           aws_changed=false
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             aws_changed=true
-          elif grep -Eq "^(api/|apps/auth/|apps/backend/|apps/web/|apps/admin/|db/|infra/|\\.github/workflows/aws-web-release\\.yml$)" "${changed_files_path}" || grep -Eq "${aws_release_script_pattern}" "${changed_files_path}"; then
+          elif grep -Eq "^(apps/auth/|apps/backend/|apps/web/|apps/admin/|db/|infra/|\\.github/workflows/aws-web-release\\.yml$)" "${changed_files_path}" || grep -Eq "${aws_release_script_pattern}" "${changed_files_path}"; then
             aws_changed=true
           fi
 
-          api_changed=false
           auth_changed=false
           backend_changed=false
           web_changed=false
@@ -95,17 +92,12 @@ jobs:
           infra_changed=false
 
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            api_changed=true
             auth_changed=true
             backend_changed=true
             web_changed=true
             admin_changed=true
             infra_changed=true
           else
-            if grep -Eq '^(api/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
-              api_changed=true
-            fi
-
             if grep -Eq '^(apps/auth/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
               auth_changed=true
             fi
@@ -129,7 +121,6 @@ jobs:
 
           {
             echo "aws_changed=${aws_changed}"
-            echo "api_changed=${api_changed}"
             echo "auth_changed=${auth_changed}"
             echo "backend_changed=${backend_changed}"
             echo "web_changed=${web_changed}"
@@ -148,7 +139,6 @@ jobs:
             echo "## Release scope"
             echo ""
             echo "- AWS changed: \`${{ steps.detect.outputs.aws_changed }}\`"
-            echo "- API changed: \`${{ steps.detect.outputs.api_changed }}\`"
             echo "- Auth changed: \`${{ steps.detect.outputs.auth_changed }}\`"
             echo "- Backend changed: \`${{ steps.detect.outputs.backend_changed }}\`"
             echo "- Web changed: \`${{ steps.detect.outputs.web_changed }}\`"
@@ -193,7 +183,6 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: |
-            api/package-lock.json
             apps/auth/package-lock.json
             apps/backend/package-lock.json
             apps/web/package-lock.json
@@ -202,19 +191,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci --prefix api
           npm ci --prefix apps/auth
           npm ci --prefix apps/backend
           npm ci --prefix apps/web
           npm ci --prefix apps/admin
           npm ci --prefix infra/aws
-
-      - name: Lint OpenAPI spec
-        if: ${{ needs.changes.outputs.api_changed == 'true' }}
-        run: npm run lint --prefix api
-
-      - name: Bundle OpenAPI spec
-        run: npm run bundle --prefix api
 
       - name: Build auth app
         if: ${{ needs.changes.outputs.auth_changed == 'true' }}
@@ -319,7 +300,6 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: |
-            api/package-lock.json
             apps/auth/package-lock.json
             apps/backend/package-lock.json
             apps/web/package-lock.json
@@ -328,15 +308,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci --prefix api
           npm ci --prefix apps/auth
           npm ci --prefix apps/backend
           npm ci --prefix apps/web
           npm ci --prefix apps/admin
           npm ci --prefix infra/aws
-
-      - name: Bundle OpenAPI spec
-        run: npm run bundle --prefix api
 
       - name: Build web app
         env:

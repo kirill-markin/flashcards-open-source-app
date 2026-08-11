@@ -1,9 +1,0 @@
-type: object
-additionalProperties: false
-required:
-  - kind
-properties:
-  kind:
-    type: string
-    enum:
-      - allActiveCards

@@ -128,8 +128,8 @@ const SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION =
  * gate because the dialect schema marks it `filterable: false`.
  *
  * Every outcome claim here is read out of the evaluator. Do not add an intuited
- * one: it would ship a wrong mental model into the in-app prompt, the MCP tool
- * descriptions, and the published spec.
+ * one: it would ship a wrong mental model into the in-app and MCP SQL tool
+ * descriptions.
  */
 const SQL_TEXT_COLUMN_FORMS_DESCRIPTION =
   "LIKE, NOT LIKE, ILIKE, their LOWER(column) variants, and LOWER(column) = 'value' apply only to text-valued columns, meaning the string, uuid, and datetime column types; on array columns such as tags they are rejected with a clear error. LOWER(column) IN (...) and LOWER(column) NOT IN (...) compare text values only; plain column IN (...) compares the column value exactly, so pass integer and boolean literals unquoted. On an array column such as tags none of these IN forms are rejected, but they all match no rows. The negated form exists only as LOWER(column) NOT IN (...); a plain column NOT IN (...) is rejected as an unsupported predicate for every column type. Match tags with tags OVERLAP ('english') or tags = ('english', 'slang') instead. metadata is neither filterable nor sortable, so it can never appear in WHERE or ORDER BY.";
@@ -150,8 +150,9 @@ const SQL_MUTATION_TAG_FILTER_DESCRIPTION =
   "Filter by tag in UPDATE and DELETE with tags OVERLAP ('tag'), because UNNEST is only available in SELECT.";
 
 /**
- * Write-side mirror of the WHERE grammar for the `sql_execute` surface, matching
- * the description in `api/src/paths/agent_sql_execute.yaml`.
+ * Write-side mirror of the WHERE grammar for the MCP `sql_execute` description,
+ * composed from the same predicate guidance as the in-app `sql` description.
+ * Runtime parsing lives in `apps/backend/src/aiTools/sqlDialect/predicateParser.ts`.
  */
 const SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION =
   `UPDATE and DELETE WHERE clauses support ${SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION}. ${SQL_TEXT_COLUMN_FORMS_DESCRIPTION} ${SQL_MUTATION_TAG_FILTER_DESCRIPTION}`;

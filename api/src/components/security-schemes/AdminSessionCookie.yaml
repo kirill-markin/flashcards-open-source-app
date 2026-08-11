@@ -1,4 +1,0 @@
-type: apiKey
-in: cookie
-name: session
-description: Signed-in browser session cookie. Admin catalog writes also require X-CSRF-Token.

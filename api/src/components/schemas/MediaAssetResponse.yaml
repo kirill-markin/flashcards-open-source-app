@@ -1,7 +1,0 @@
-type: object
-additionalProperties: false
-required:
-  - mediaAsset
-properties:
-  mediaAsset:
-    $ref: ./MediaAsset.yaml
