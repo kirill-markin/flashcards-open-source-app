@@ -244,6 +244,12 @@ test("direct ingestion routes keep shared workspace and catalog admin fallbacks"
   );
   assert.doesNotThrow(() => routes.catalogCover.node.findChild("ANY"));
   assert.doesNotThrow(() => routes.catalogCover.node.findChild("PUT"));
+  assert.equal(
+    routes.catalogCollectionCover.path,
+    "/admin/catalog/collections/{collectionId}/cover",
+  );
+  assert.doesNotThrow(() => routes.catalogCollectionCover.node.findChild("ANY"));
+  assert.doesNotThrow(() => routes.catalogCollectionCover.node.findChild("PUT"));
   const workspaces = restApi.root.getResource("workspaces");
   const workspace = workspaces?.getResource("{workspaceId}");
   const mediaAssets = workspace?.getResource("media-assets");
@@ -254,10 +260,13 @@ test("direct ingestion routes keep shared workspace and catalog admin fallbacks"
   const packages = catalog?.getResource("packages");
   const catalogPackage = packages?.getResource("{packageId}");
   const packageMediaAssets = catalogPackage?.getResource("media-assets");
+  const collections = catalog?.getResource("collections");
+  const catalogCollection = collections?.getResource("{collectionId}");
   assert.notEqual(admin?.getResource("{proxy+}"), undefined);
   assert.notEqual(catalog?.getResource("{proxy+}"), undefined);
   assert.notEqual(catalogPackage?.getResource("{proxy+}"), undefined);
   assert.notEqual(packageMediaAssets?.getResource("{proxy+}"), undefined);
+  assert.notEqual(catalogCollection?.getResource("{proxy+}"), undefined);
 });
 
 test("custom-domain mapping strips one v1 segment before direct route selection", () => {

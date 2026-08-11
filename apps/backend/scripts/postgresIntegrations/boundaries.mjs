@@ -71,8 +71,8 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0109_catalog_image_blob_ingestion.sql",
-    expectedMigrationCount: 111,
+    migrationFileName: "0110_collection_cover_media.sql",
+    expectedMigrationCount: 112,
     testFiles: Object.freeze([
       "src/mediaAssets/blobLifecycle/cleanup.postgres.integration.ts",
     ]),

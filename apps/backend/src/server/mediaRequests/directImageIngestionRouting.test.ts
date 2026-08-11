@@ -11,6 +11,8 @@ const directPath = `/workspaces/${workspaceId}/media-assets/images`;
 const catalogCardImagePath =
   `/admin/catalog/packages/${workspaceId}/media-assets/images`;
 const catalogCoverImagePath = `/admin/catalog/packages/${workspaceId}/cover`;
+const catalogCollectionCoverImagePath =
+  `/admin/catalog/collections/${workspaceId}/cover`;
 const multipartSessionId = "22222222-2222-4222-8222-222222222222";
 const multipartCompletionPath =
   `/workspaces/${workspaceId}/media-assets/upload-sessions/${multipartSessionId}/complete`;
@@ -83,16 +85,21 @@ test("shared Lambda matches every direct-image POST path across REST v1 and HTTP
   }
 });
 
-test("shared Lambda matches only PUT for the exact catalog cover path", () => {
+test("shared Lambda matches only PUT for the exact catalog cover paths", () => {
   const eventFactories = [createRestApiEvent, createHttpApiEvent] as const;
   for (const createEvent of eventFactories) {
-    assert.equal(matchesDirectImageTarget(createEvent(catalogCoverImagePath, "PUT")), true);
-    assert.equal(matchesDirectImageTarget(createEvent(`/v1${catalogCoverImagePath}/`, "PUT")), true);
-    assert.equal(matchesDirectImageTarget(createEvent(catalogCoverImagePath, "POST")), false);
-    assert.equal(
-      matchesDirectImageTarget(createEvent(`${catalogCoverImagePath}/unexpected`, "PUT")),
-      false,
-    );
+    for (const coverPath of [
+      catalogCoverImagePath,
+      catalogCollectionCoverImagePath,
+    ]) {
+      assert.equal(matchesDirectImageTarget(createEvent(coverPath, "PUT")), true);
+      assert.equal(matchesDirectImageTarget(createEvent(`/v1${coverPath}/`, "PUT")), true);
+      assert.equal(matchesDirectImageTarget(createEvent(coverPath, "POST")), false);
+      assert.equal(
+        matchesDirectImageTarget(createEvent(`${coverPath}/unexpected`, "PUT")),
+        false,
+      );
+    }
   }
 });
 
@@ -115,6 +122,7 @@ test("shared Lambda preserves other methods and unrelated shared routes", () => 
     ["missing workspace id", "/workspaces//media-assets/images", "POST"],
     ["discovery", "/v1/agent", "POST"],
     ["catalog card image wrong method", catalogCardImagePath, "PUT"],
+    ["collection cover wrong method", catalogCollectionCoverImagePath, "PATCH"],
   ] as const;
   const eventFactories = [createRestApiEvent, createHttpApiEvent] as const;
 

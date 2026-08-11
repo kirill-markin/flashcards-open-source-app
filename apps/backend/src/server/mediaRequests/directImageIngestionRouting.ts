@@ -4,6 +4,8 @@ const catalogCardImageIngestionPathPattern =
   /^\/(?:v1\/)*admin\/catalog\/packages\/[^/]+\/media-assets\/images\/?$/u;
 const catalogCoverImageIngestionPathPattern =
   /^\/(?:v1\/)*admin\/catalog\/packages\/[^/]+\/cover\/?$/u;
+const catalogCollectionCoverImageIngestionPathPattern =
+  /^\/(?:v1\/)*admin\/catalog\/collections\/[^/]+\/cover\/?$/u;
 
 export type RequestTarget = Readonly<{
   method: string;
@@ -52,7 +54,10 @@ export function isDirectImageIngestionTarget(
     )
   ) || (
     target.method === "PUT"
-    && catalogCoverImageIngestionPathPattern.test(target.path)
+    && (
+      catalogCoverImageIngestionPathPattern.test(target.path)
+      || catalogCollectionCoverImageIngestionPathPattern.test(target.path)
+    )
   );
 }
 

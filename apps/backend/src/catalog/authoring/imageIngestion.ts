@@ -29,7 +29,14 @@ import {
 import type { BackendObservationScope } from "../../observability/sentry/events";
 import { HttpError } from "../../shared/errors";
 import { maximumPublicCatalogMediaDownloadBytes } from "../publicMediaDelivery";
-import type { CatalogPackageMediaAsset } from "../types";
+import type {
+  CatalogCollectionCover,
+  CatalogPackageMediaAsset,
+} from "../types";
+import {
+  replaceCatalogCollectionCoverInExecutor,
+  type CatalogCollectionCoverMutationResult,
+} from "./collectionCovers";
 import {
   createOrReplayCatalogPackageDraftCardImageInExecutor,
   replaceCatalogPackageDraftCoverInExecutor,
@@ -57,8 +64,20 @@ export type CatalogPackageCoverImageIngestionInput =
     packageId: string;
   }>;
 
+export type CatalogCollectionCoverImageIngestionInput =
+  CatalogImageBlobIngestionInput & Readonly<{
+    collectionId: string;
+  }>;
+
 export type CatalogPackageImageIngestionResult = Readonly<{
   mediaAsset: CatalogPackageMediaAsset;
+  applied: boolean;
+  mimeType: string;
+  sizeBytes: number;
+}>;
+
+export type CatalogCollectionCoverImageIngestionResult = Readonly<{
+  collectionCover: CatalogCollectionCover;
   applied: boolean;
   mimeType: string;
   sizeBytes: number;
@@ -434,17 +453,29 @@ async function ingestCatalogCoverImageBlobWithDeadline(
   );
 }
 
-async function mutateCatalogPackageImageWithReplay(
-  operation: (executor: DatabaseExecutor) => Promise<CatalogPackageMediaMutationResult>,
+async function mutateCatalogImageWithReplay<Result>(
+  operation: (executor: DatabaseExecutor) => Promise<Result>,
   deadlineAtMs: number,
   signal: AbortSignal,
-): Promise<CatalogPackageMediaMutationResult> {
+): Promise<Result> {
   return replayCommitUnknown(
     () => unsafeTransactionWithDeadline(deadlineAtMs, operation),
     deadlineAtMs,
     signal,
     Date.now,
   );
+}
+
+function toCatalogCollectionCoverImageIngestionResult(
+  mediaBlob: MediaBlob,
+  mutation: CatalogCollectionCoverMutationResult,
+): CatalogCollectionCoverImageIngestionResult {
+  return {
+    collectionCover: mutation.collectionCover,
+    applied: mutation.applied,
+    mimeType: mediaBlob.mimeType,
+    sizeBytes: mediaBlob.sizeBytes,
+  };
 }
 
 function toCatalogPackageImageIngestionResult(
@@ -482,7 +513,7 @@ export async function ingestCatalogPackageCardImage(
 ): Promise<CatalogPackageImageIngestionResult> {
   return withCatalogImageBlobDeadline(input, async (deadlineInput) => {
     const mediaBlob = await ingestCatalogCardImageBlobWithDeadline(deadlineInput);
-    const mutation = await mutateCatalogPackageImageWithReplay(
+    const mutation = await mutateCatalogImageWithReplay(
       (executor) => createOrReplayCatalogPackageDraftCardImageInExecutor(
         executor,
         input.packageId,
@@ -501,7 +532,7 @@ export async function replaceCatalogPackageCoverImage(
 ): Promise<CatalogPackageImageIngestionResult> {
   return withCatalogImageBlobDeadline(input, async (deadlineInput) => {
     const mediaBlob = await ingestCatalogCoverImageBlobWithDeadline(deadlineInput);
-    const mutation = await mutateCatalogPackageImageWithReplay(
+    const mutation = await mutateCatalogImageWithReplay(
       (executor) => replaceCatalogPackageDraftCoverInExecutor(
         executor,
         input.packageId,
@@ -511,5 +542,23 @@ export async function replaceCatalogPackageCoverImage(
       deadlineInput.signal,
     );
     return toCatalogPackageImageIngestionResult(mediaBlob, mutation);
+  });
+}
+
+export async function replaceCatalogCollectionCoverImage(
+  input: CatalogCollectionCoverImageIngestionInput,
+): Promise<CatalogCollectionCoverImageIngestionResult> {
+  return withCatalogImageBlobDeadline(input, async (deadlineInput) => {
+    const mediaBlob = await ingestCatalogCoverImageBlobWithDeadline(deadlineInput);
+    const mutation = await mutateCatalogImageWithReplay(
+      (executor) => replaceCatalogCollectionCoverInExecutor(
+        executor,
+        input.collectionId,
+        mediaBlob.mediaBlobId,
+      ),
+      deadlineInput.deadlineAtMs,
+      deadlineInput.signal,
+    );
+    return toCatalogCollectionCoverImageIngestionResult(mediaBlob, mutation);
   });
 }

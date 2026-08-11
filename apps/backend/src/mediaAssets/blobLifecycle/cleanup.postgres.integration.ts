@@ -6,9 +6,11 @@ import {
   enqueueGeneratedMediaPromotionJob,
   type EnqueueGeneratedMediaPromotionJobInput,
 } from "../../chat/cardImages/promotion/jobs";
+import { replaceCatalogCollectionCoverInExecutor } from "../../catalog/authoring/collectionCovers";
 import {
   transactionWithWorkspaceScope,
 } from "../../database";
+import { unsafeTransaction } from "../../database/unsafe";
 import {
   type PostgresIntegrationFixture,
   withPostgresIntegrationFixture,
@@ -299,15 +301,21 @@ async function deleteCleanupFixtures(
   );
 }
 
-test("catalog image admission is reclaimable until attachment fences cleanup", async () => {
+test("catalog image admission stays fenced across reverse-SHA collection cover replacement", async () => {
   await withPostgresIntegrationFixture(async (fixture) => {
-    const attachedSha256 = createSha256();
+    const firstCoverSha256 = createSha256();
+    const secondCoverSha256 = createSha256();
+    const [replacementSha256, attachedSha256] = firstCoverSha256 < secondCoverSha256
+      ? [firstCoverSha256, secondCoverSha256] as const
+      : [secondCoverSha256, firstCoverSha256] as const;
     const abandonedSha256 = createSha256();
-    const sha256s = [attachedSha256, abandonedSha256];
+    const sha256s = [attachedSha256, abandonedSha256, replacementSha256];
     const authorId = randomUUID();
     const packageId = randomUUID();
+    const collectionId = randomUUID();
     const packageMediaAssetId = randomUUID();
     const mediaBlobId = randomUUID();
+    const replacementMediaBlobId = randomUUID();
     const slug = randomUUID();
     const storageKey = (sha256: string) => buildMediaBlobStorageKey(sha256);
     try {
@@ -416,10 +424,89 @@ test("catalog image admission is reclaimable until attachment fences cleanup", a
         "DELETE FROM catalog.package_media_assets WHERE package_media_asset_id=$1",
         [packageMediaAssetId],
       );
+      await fixture.runtimePool.query(
+        "SELECT * FROM content.admit_catalog_image_blob_write($1,$2,$3,$4,$5,$6)",
+        admissionParams(
+          replacementSha256,
+          imageJpegCatalogCoverMediaBlobNormalizationVersion,
+        ),
+      );
+      await fixture.runtimePool.query(
+        `INSERT INTO content.media_blobs(
+           media_blob_id,sha256,mime_type,size_bytes,storage_key,
+           normalization_version
+         ) VALUES($1,$2,'image/jpeg',42,$3,$4)`,
+        [
+          replacementMediaBlobId,
+          replacementSha256,
+          storageKey(replacementSha256),
+          imageJpegCatalogCoverMediaBlobNormalizationVersion,
+        ],
+      );
+      await fixture.runtimePool.query(
+        `INSERT INTO catalog.collections(
+           collection_id,slug,title,summary,description,language_tags,
+           topic_tags,cover_package_id,cover_media_blob_id
+         ) VALUES($1,$2,'Images','Summary','Description',ARRAY['en'],
+           ARRAY['test'],$3,$4)`,
+        [collectionId, `image-collection-${slug}`, packageId, mediaBlobId],
+      );
       assert.equal((await fixture.runtimePool.query<{ scheduled: boolean }>(
         "SELECT content.schedule_media_blob_cleanup($1,$2) AS scheduled",
         [mediaBlobId, 1],
-      )).rows[0]?.scheduled, true);
+      )).rows[0]?.scheduled, false);
+
+      const replaced = await unsafeTransaction(
+        (executor) => replaceCatalogCollectionCoverInExecutor(
+          executor,
+          collectionId,
+          replacementMediaBlobId,
+        ),
+      );
+      assert.equal(replaced.applied, true);
+      assert.equal(
+        replaced.collectionCover.coverMediaBlobId,
+        replacementMediaBlobId,
+      );
+      const replayed = await unsafeTransaction(
+        (executor) => replaceCatalogCollectionCoverInExecutor(
+          executor,
+          collectionId,
+          replacementMediaBlobId,
+        ),
+      );
+      assert.equal(replayed.applied, false);
+      assert.deepEqual((await fixture.ownerPool.query<Readonly<{
+        cover_package_id: string | null;
+        cover_media_blob_id: string | null;
+        replacement_fenced: boolean;
+        old_cleanup_scheduled: boolean;
+      }>>(
+        `SELECT collections.cover_package_id,collections.cover_media_blob_id,
+           replacement_lifecycle.cleanup_eligible_at IS NULL AS replacement_fenced,
+           old_lifecycle.cleanup_eligible_at>clock_timestamp() AS old_cleanup_scheduled
+         FROM catalog.collections AS collections
+         INNER JOIN content.media_blobs AS replacement_blob
+           ON replacement_blob.media_blob_id=collections.cover_media_blob_id
+         INNER JOIN content.media_blob_lifecycles AS replacement_lifecycle
+           ON replacement_lifecycle.sha256=replacement_blob.sha256
+         INNER JOIN content.media_blob_lifecycles AS old_lifecycle
+           ON old_lifecycle.sha256=$2
+         WHERE collections.collection_id=$1`,
+        [collectionId, attachedSha256],
+      )).rows[0], {
+        cover_package_id: packageId,
+        cover_media_blob_id: replacementMediaBlobId,
+        replacement_fenced: true,
+        old_cleanup_scheduled: true,
+      });
+      await assert.rejects(
+        fixture.runtimePool.query(
+          "DELETE FROM content.media_blobs WHERE media_blob_id=$1",
+          [replacementMediaBlobId],
+        ),
+        (error: unknown) => hasPostgresCode(error, "23503"),
+      );
       await fixture.ownerPool.query(
         "UPDATE content.media_blob_lifecycles SET cleanup_eligible_at=clock_timestamp()-interval '1 second' WHERE sha256=$1",
         [attachedSha256],
@@ -436,6 +523,10 @@ test("catalog image admission is reclaimable until attachment fences cleanup", a
         (error: unknown) => hasPostgresCode(error, "55P03"),
       );
     } finally {
+      await fixture.ownerPool.query(
+        "DELETE FROM catalog.collections WHERE collection_id=$1",
+        [collectionId],
+      );
       await fixture.ownerPool.query("DELETE FROM catalog.packages WHERE package_id=$1", [packageId]);
       await fixture.ownerPool.query("DELETE FROM catalog.authors WHERE author_id=$1", [authorId]);
       await fixture.ownerPool.query(

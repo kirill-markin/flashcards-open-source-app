@@ -47,7 +47,7 @@ function assertCatalogPackageIsDraft(
   );
 }
 
-async function scheduleDisplacedMediaBlobCleanupInExecutor(
+export async function scheduleDisplacedMediaBlobCleanupInExecutor(
   executor: DatabaseExecutor,
   mediaBlobId: string,
 ): Promise<void> {
