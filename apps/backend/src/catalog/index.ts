@@ -9,6 +9,10 @@ export {
   attachCatalogPackageDraftMediaAssetInExecutor,
 } from "./authoring/draftMedia";
 export {
+  ingestCatalogCardImageBlob,
+  ingestCatalogCoverImageBlob,
+} from "./authoring/imageIngestion";
+export {
   createCatalogPackageDraft,
   createCatalogPackageDraftInExecutor,
   loadCatalogPackageDraft,
