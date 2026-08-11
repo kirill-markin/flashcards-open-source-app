@@ -355,10 +355,14 @@ BEGIN
   END IF;
 
   UPDATE content.media_blob_lifecycles AS lifecycles SET
-    cleanup_eligible_at = GREATEST(
-      COALESCE(lifecycles.cleanup_eligible_at, '-infinity'::TIMESTAMPTZ),
-      admitted_cleanup_at
-    ),
+    cleanup_eligible_at = CASE
+      WHEN content.media_blob_has_active_reference_internal(p_sha256)
+      THEN NULL
+      ELSE GREATEST(
+        COALESCE(lifecycles.cleanup_eligible_at, '-infinity'::TIMESTAMPTZ),
+        admitted_cleanup_at
+      )
+    END,
     cleanup_lease_token = NULL,
     cleanup_lease_expires_at = NULL,
     updated_at = admitted_at

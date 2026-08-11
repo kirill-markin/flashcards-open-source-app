@@ -366,6 +366,19 @@ test("catalog image admission stays fenced across reverse-SHA package and collec
          ) VALUES($1,$2,NULL,'cover',$3)`,
         [packageMediaAssetId, packageId, mediaBlobId],
       );
+      const replayedAdmission = await fixture.runtimePool.query<{
+        normalization_version: string;
+      }>(
+        "SELECT * FROM content.admit_catalog_image_blob_write($1,$2,$3,$4,$5,$6)",
+        admissionParams(
+          attachedSha256,
+          imageJpegCatalogCoverMediaBlobNormalizationVersion,
+        ),
+      );
+      assert.equal(
+        replayedAdmission.rows[0]?.normalization_version,
+        imageJpegCatalogCoverMediaBlobNormalizationVersion,
+      );
       assert.equal((await fixture.ownerPool.query<{ fenced: boolean }>(
         "SELECT cleanup_eligible_at IS NULL AS fenced FROM content.media_blob_lifecycles WHERE sha256=$1",
         [attachedSha256],
