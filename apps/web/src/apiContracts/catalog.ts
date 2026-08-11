@@ -23,6 +23,7 @@ import {
   parseNonNegativeInteger,
   parseNullableString,
   parseObject,
+  parseOptionalField,
   parseRequiredField,
   parseString,
   parseStringArray,
@@ -149,6 +150,13 @@ function parseCatalogPublicSnapshotCollection(
   path: string,
 ): CatalogPublicSnapshotCollection {
   const objectValue = parseObject(value, endpoint, path);
+  const coverDownloadUrl = parseOptionalField(
+    objectValue,
+    "coverDownloadUrl",
+    endpoint,
+    path,
+    parseString,
+  );
   return {
     collectionId: parseRequiredField(objectValue, "collectionId", endpoint, path, parseString),
     slug: parseRequiredField(objectValue, "slug", endpoint, path, parseString),
@@ -158,6 +166,7 @@ function parseCatalogPublicSnapshotCollection(
     languageTags: parseRequiredField(objectValue, "languageTags", endpoint, path, parseStringArray),
     topicTags: parseRequiredField(objectValue, "topicTags", endpoint, path, parseStringArray),
     coverPackageId: parseRequiredField(objectValue, "coverPackageId", endpoint, path, parseNullableString),
+    ...(coverDownloadUrl === undefined ? {} : { coverDownloadUrl }),
     status: parseLiteral(
       parseRequiredField(objectValue, "status", endpoint, path, parseString),
       endpoint,

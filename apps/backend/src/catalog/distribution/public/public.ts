@@ -1,6 +1,9 @@
 export {
   listPublicCatalogPackages,
   listPublicCatalogPackagesInExecutor,
+  loadPublicCatalogCollectionCoverForDownload,
+  loadPublicCatalogCollectionCoverForDownloadInExecutor,
+  loadPublicCatalogCollectionCoversInExecutor,
   loadPublicCatalogPackageDetail,
   loadPublicCatalogPackageDetailInExecutor,
   loadPublicCatalogPackageMediaAssetsInExecutor,

@@ -9,6 +9,11 @@ export {
   normalizeCatalogPublicPackageListInput,
 } from "./browse";
 export {
+  loadPublicCatalogCollectionCoverForDownload,
+  loadPublicCatalogCollectionCoverForDownloadInExecutor,
+  loadPublicCatalogCollectionCoversInExecutor,
+} from "./collectionMedia";
+export {
   loadPublicCatalogPackageMediaAssetsInExecutor,
   loadPublicCatalogPackageMediaForDownload,
   loadPublicCatalogPackageMediaForDownloadInExecutor,
