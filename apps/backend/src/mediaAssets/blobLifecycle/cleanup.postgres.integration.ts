@@ -7,6 +7,7 @@ import {
   type EnqueueGeneratedMediaPromotionJobInput,
 } from "../../chat/cardImages/promotion/jobs";
 import { replaceCatalogCollectionCoverInExecutor } from "../../catalog/authoring/collectionCovers";
+import { replaceCatalogPackageDraftCoverInExecutor } from "../../catalog/authoring/draftMedia";
 import {
   transactionWithWorkspaceScope,
 } from "../../database";
@@ -301,7 +302,7 @@ async function deleteCleanupFixtures(
   );
 }
 
-test("catalog image admission stays fenced across reverse-SHA collection cover replacement", async () => {
+test("catalog image admission stays fenced across reverse-SHA package and collection cover replacement", async () => {
   await withPostgresIntegrationFixture(async (fixture) => {
     const firstCoverSha256 = createSha256();
     const secondCoverSha256 = createSha256();
@@ -362,7 +363,7 @@ test("catalog image admission stays fenced across reverse-SHA collection cover r
         `INSERT INTO catalog.package_media_assets(
            package_media_asset_id,package_id,package_version_id,
            package_media_key,media_blob_id
-         ) VALUES($1,$2,NULL,'cover.jpg',$3)`,
+         ) VALUES($1,$2,NULL,'cover',$3)`,
         [packageMediaAssetId, packageId, mediaBlobId],
       );
       assert.equal((await fixture.ownerPool.query<{ fenced: boolean }>(
@@ -421,10 +422,6 @@ test("catalog image admission stays fenced across reverse-SHA collection cover r
       );
 
       await fixture.runtimePool.query(
-        "DELETE FROM catalog.package_media_assets WHERE package_media_asset_id=$1",
-        [packageMediaAssetId],
-      );
-      await fixture.runtimePool.query(
         "SELECT * FROM content.admit_catalog_image_blob_write($1,$2,$3,$4,$5,$6)",
         admissionParams(
           replacementSha256,
@@ -442,6 +439,45 @@ test("catalog image admission stays fenced across reverse-SHA collection cover r
           storageKey(replacementSha256),
           imageJpegCatalogCoverMediaBlobNormalizationVersion,
         ],
+      );
+      assert.ok(replacementSha256 < attachedSha256);
+      const replacedPackageCover = await unsafeTransaction(
+        (executor) => replaceCatalogPackageDraftCoverInExecutor(
+          executor,
+          packageId,
+          replacementMediaBlobId,
+        ),
+      );
+      assert.equal(replacedPackageCover.applied, true);
+      assert.equal(
+        replacedPackageCover.mediaAsset.mediaBlobId,
+        replacementMediaBlobId,
+      );
+      const replayedPackageCover = await unsafeTransaction(
+        (executor) => replaceCatalogPackageDraftCoverInExecutor(
+          executor,
+          packageId,
+          replacementMediaBlobId,
+        ),
+      );
+      assert.equal(replayedPackageCover.applied, false);
+      assert.deepEqual((await fixture.ownerPool.query<Readonly<{
+        replacement_fenced: boolean;
+        old_cleanup_scheduled: boolean;
+      }>>(
+        `SELECT
+           (SELECT cleanup_eligible_at IS NULL
+            FROM content.media_blob_lifecycles WHERE sha256=$1) AS replacement_fenced,
+           (SELECT cleanup_eligible_at>clock_timestamp()
+            FROM content.media_blob_lifecycles WHERE sha256=$2) AS old_cleanup_scheduled`,
+        [replacementSha256, attachedSha256],
+      )).rows[0], {
+        replacement_fenced: true,
+        old_cleanup_scheduled: true,
+      });
+      await fixture.runtimePool.query(
+        "DELETE FROM catalog.package_media_assets WHERE package_media_asset_id=$1",
+        [packageMediaAssetId],
       );
       await fixture.runtimePool.query(
         `INSERT INTO catalog.collections(

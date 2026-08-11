@@ -194,6 +194,10 @@ export async function replaceCatalogPackageDraftCoverInExecutor(
     } else if (existing.media_blob_id === mediaBlobId) {
       mediaAsset = mapCatalogPackageMediaAssetRow(existing);
     } else {
+      await executor.query(
+        "SELECT content.lock_media_blob_lifecycles_for_reference_swap($1, $2)",
+        [existing.media_blob_id, mediaBlobId],
+      );
       const updateResult = await executor.query<CatalogPackageMediaAssetRow>(
         [
           "UPDATE catalog.package_media_assets",
