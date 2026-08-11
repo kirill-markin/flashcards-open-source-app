@@ -353,7 +353,7 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
 
     context.header("Content-Type", objectBytes.mimeType ?? coverDownloadSource.collectionCover.mimeType);
     context.header("Content-Length", objectBytes.sizeBytes.toString());
-    context.header("Cache-Control", "public, max-age=3600");
+    context.header("Cache-Control", "public, no-cache");
     return context.body(new Uint8Array(objectBytes.bytes), 200);
   });
 
