@@ -160,7 +160,8 @@ assert payload["data"]["authBaseUrl"] == auth_base_url
 assert payload["data"]["authentication"]["sendCodeUrl"] == f"{auth_base_url}/api/agent/send-code"
 assert payload["data"]["authentication"]["verifyCodeUrl"] == f"{auth_base_url}/api/agent/verify-code"
 assert payload["data"]["surface"]["accountUrl"] == f"{api_base_url}/agent/me"
-assert payload["docs"]["openapiUrl"] == f"{api_base_url}/agent/openapi.json"
+assert payload["docs"]["discoveryUrl"] == f"{api_base_url}/"
+assert payload["docs"]["source"]["repositoryUrl"] == "https://github.com/kirill-markin/flashcards-open-source-app"
 assert isinstance(payload["instructions"], str) and payload["instructions"] != ""
 assert demo_email.endswith("@example.com")
 PY
@@ -179,82 +180,61 @@ PY
 
 request_json "GET" "${API_BASE_URL%/}/agent/openapi.json" "" ""
 assert_status "200" "GET /v1/agent/openapi.json"
-CANONICAL_OPENAPI_BODY="${LAST_BODY_FILE}"
-python3 - <<'PY' "${CANONICAL_OPENAPI_BODY}"
+CANONICAL_SOURCE_DISCOVERY_BODY="${LAST_BODY_FILE}"
+CANONICAL_SOURCE_DISCOVERY_HEADERS="${LAST_HEADERS_FILE}"
+python3 - <<'PY' "${CANONICAL_SOURCE_DISCOVERY_BODY}" "${CANONICAL_SOURCE_DISCOVERY_HEADERS}" "${API_BASE_URL%/}"
 import json
 import sys
+from urllib.parse import urlparse
 
 payload = json.load(open(sys.argv[1], encoding="utf-8"))
-required_paths = {
-    "/",
-    "/agent",
-    "/api/agent/send-code",
-    "/api/agent/verify-code",
-    "/agent/me",
-    "/agent/workspaces",
-    "/agent/workspaces/{workspaceId}/select",
-    "/agent/sql/query",
-    "/agent/sql/execute",
-    "/workspaces/{workspaceId}/media-assets/images",
-    "/workspaces/{workspaceId}/media-assets/upload-sessions",
-    "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/parts",
-    "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/complete",
-    "/workspaces/{workspaceId}/media-assets/upload-sessions/{sessionId}/abort",
-    "/workspaces/{workspaceId}/media-assets/{mediaAssetId}",
-    "/workspaces/{workspaceId}/media-assets/{mediaAssetId}/download-url",
-    "/workspaces/{workspaceId}/packages/export",
-    "/workspaces/{workspaceId}/packages/export/preview",
-    "/workspaces/{workspaceId}/packages/import",
-    "/workspaces/{workspaceId}/packages/import/preview",
-    "/catalog",
-    "/catalog/packages",
-    "/catalog/packages/{packageSlug}",
-    "/catalog/package-versions/{packageVersionId}/cards",
-    "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download-url",
-    "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download",
-    "/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install",
-    "/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install/preview",
-    "/admin/catalog/authors",
-    "/admin/catalog/authors/{authorId}",
-    "/admin/catalog/package-versions/{packageVersionId}/delist",
-    "/admin/catalog/package-versions/{packageVersionId}/publish",
-    "/admin/catalog/package-versions/{packageVersionId}/review-status",
-    "/admin/catalog/packages",
-    "/admin/catalog/packages/{packageId}",
-    "/admin/catalog/packages/{packageId}/draft",
-    "/admin/catalog/packages/{packageId}/media-assets",
-    "/admin/catalog/packages/{packageId}/versions",
-    "/admin/catalog/packages/{packageId}/versions/from-workspace",
+headers = open(sys.argv[2], encoding="utf-8").read().lower()
+api_base_url = sys.argv[3]
+
+assert set(payload.keys()) == {
+    "ok",
+    "openapiAvailable",
+    "message",
+    "discoveryUrl",
+    "docsUrl",
+    "source",
 }
-assert payload["openapi"] == "3.1.0"
-missing_paths = sorted(required_paths.difference(payload["paths"].keys()))
-unexpected_paths = sorted(set(payload["paths"].keys()).difference(required_paths))
-assert missing_paths == [], missing_paths
-assert unexpected_paths == [], unexpected_paths
-send_code_400 = payload["paths"]["/api/agent/send-code"]["post"]["responses"]["400"]
-assert send_code_400["content"]["application/json"]["schema"]["$ref"] == "#/components/schemas/AgentErrorEnvelope"
+assert payload["ok"] is True
+assert payload["openapiAvailable"] is False
+assert isinstance(payload["message"], str) and 0 < len(payload["message"]) <= 100
+assert payload["message"].isascii()
+assert payload["discoveryUrl"] == f"{api_base_url}/"
+docs_url = urlparse(payload["docsUrl"])
+assert docs_url.scheme in {"http", "https"} and docs_url.netloc != ""
+assert set(payload["source"].keys()) == {
+    "repositoryUrl",
+    "agentRoutesUrl",
+    "authRoutesUrl",
+}
+assert payload["source"] == {
+    "repositoryUrl": "https://github.com/kirill-markin/flashcards-open-source-app",
+    "agentRoutesUrl": "https://github.com/kirill-markin/flashcards-open-source-app/tree/main/apps/backend/src/routes",
+    "authRoutesUrl": "https://github.com/kirill-markin/flashcards-open-source-app/tree/main/apps/auth/src/routes/agent",
+}
+assert "\ncontent-type: application/json" in f"\n{headers}"
 PY
 
 request_json "GET" "${API_BASE_URL%/}/openapi.json" "" ""
 assert_status "200" "GET /v1/openapi.json"
-ROOT_OPENAPI_BODY="${LAST_BODY_FILE}"
+ROOT_SOURCE_DISCOVERY_BODY="${LAST_BODY_FILE}"
 request_json "GET" "${API_BASE_URL%/}/swagger.json" "" ""
 assert_status "200" "GET /v1/swagger.json"
-ROOT_SWAGGER_BODY="${LAST_BODY_FILE}"
+ROOT_SWAGGER_SOURCE_DISCOVERY_BODY="${LAST_BODY_FILE}"
 request_json "GET" "${API_BASE_URL%/}/agent/swagger.json" "" ""
 assert_status "200" "GET /v1/agent/swagger.json"
-AGENT_SWAGGER_BODY="${LAST_BODY_FILE}"
-python3 - <<'PY' "${CANONICAL_OPENAPI_BODY}" "${ROOT_OPENAPI_BODY}" "${ROOT_SWAGGER_BODY}" "${AGENT_SWAGGER_BODY}"
+AGENT_SWAGGER_SOURCE_DISCOVERY_BODY="${LAST_BODY_FILE}"
+python3 - <<'PY' "${CANONICAL_SOURCE_DISCOVERY_BODY}" "${ROOT_SOURCE_DISCOVERY_BODY}" "${ROOT_SWAGGER_SOURCE_DISCOVERY_BODY}" "${AGENT_SWAGGER_SOURCE_DISCOVERY_BODY}"
 import json
 import sys
 
 canonical = json.load(open(sys.argv[1], encoding="utf-8"))
-root_openapi = json.load(open(sys.argv[2], encoding="utf-8"))
-root_swagger = json.load(open(sys.argv[3], encoding="utf-8"))
-agent_swagger = json.load(open(sys.argv[4], encoding="utf-8"))
-assert canonical == root_openapi
-assert canonical == root_swagger
-assert canonical == agent_swagger
+aliases = [json.load(open(path, encoding="utf-8")) for path in sys.argv[2:]]
+assert all(payload == canonical for payload in aliases)
 PY
 
 request_json "POST" "${AUTH_BASE_URL%/}/api/agent/send-code" '{"email":"invalid"}' ""
@@ -293,7 +273,8 @@ assert payload["data"]["authBaseUrl"] == auth_base_url
 assert payload["data"]["apiBaseUrl"] == api_base_url
 assert payload["actions"][0]["name"] == "verify_code"
 assert payload["actions"][0]["url"] == f"{auth_base_url}/api/agent/verify-code"
-assert payload["docs"]["openapiUrl"] == f"{api_base_url}/agent/openapi.json"
+assert payload["docs"]["discoveryUrl"] == f"{api_base_url}/"
+assert payload["docs"]["source"]["authRoutesUrl"].endswith("/apps/auth/src/routes/agent")
 assert "00000000" in payload["instructions"]
 print(otp_session_token)
 PY

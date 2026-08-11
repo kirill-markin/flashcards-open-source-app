@@ -134,7 +134,10 @@ test("shared Lambda returns the published agent envelope to API-key callers", as
       ok: boolean;
       data: Readonly<Record<string, never>>;
       instructions: string;
-      docs: Readonly<{ openapiUrl: string }>;
+      docs: Readonly<{
+        discoveryUrl: string;
+        source: Readonly<{ repositoryUrl: string }>;
+      }>;
       error: Readonly<{ code: string; message: string }>;
       requestId: string;
     }>;
@@ -155,8 +158,12 @@ test("shared Lambda returns the published agent envelope to API-key callers", as
       "Verify that the referenced resource id exists in the selected workspace, then retry only after correcting the id.",
     );
     assert.equal(
-      body.docs.openapiUrl,
-      "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+      body.docs.discoveryUrl,
+      "https://api.flashcards-open-source-app.com/v1/",
+    );
+    assert.equal(
+      body.docs.source.repositoryUrl,
+      "https://github.com/kirill-markin/flashcards-open-source-app",
     );
     assert.equal(body.requestId, "api-gateway-request-1");
   } finally {
