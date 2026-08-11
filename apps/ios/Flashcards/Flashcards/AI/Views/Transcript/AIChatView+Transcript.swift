@@ -1,5 +1,9 @@
 import SwiftUI
 
+enum AIChatTranscriptScrollTarget: Hashable {
+    case bottom
+}
+
 extension AIChatView {
     var chatScrollSurface: some View {
         // Keep programmatic navigation tied to stable native List row IDs through
@@ -11,7 +15,9 @@ extension AIChatView {
                 .defaultScrollAnchor(.bottom, for: .initialOffset)
                 .defaultScrollAnchor(.bottom, for: .alignment)
                 .contentMargins(.horizontal, aiChatMessageListHorizontalPadding, for: .scrollContent)
-                .contentMargins(.vertical, 12, for: .scrollContent)
+                // The zero-height anchor's row gap preserves the existing bottom spacing.
+                .contentMargins(.top, 12, for: .scrollContent)
+                .contentMargins(.bottom, 0, for: .scrollContent)
                 .contentMargins(.horizontal, 0, for: .scrollIndicators)
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -119,7 +125,8 @@ extension AIChatView {
 
     @ViewBuilder
     var chatScrollContent: some View {
-        // The transcript must use a native virtualized container and stable row IDs.
+        // Keep List: LazyVStack produced blank transcript content during keyboard-driven
+        // relayout, while non-lazy VStack could not virtualize long transcripts.
         List {
             if self.chatStore.messages.isEmpty == false {
                 let tailMessageId: String? = self.chatStore.messages.last?.id
@@ -141,14 +148,25 @@ extension AIChatView {
                     .listRowBackground(Color.clear)
                 }
             }
+
+            // Never use a message ID here: messages can be cleared or replaced while
+            // a pending ScrollViewReader request still needs a mounted target.
+            Color.clear
+                .frame(height: 0)
+                .id(AIChatTranscriptScrollTarget.bottom)
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .accessibilityHidden(true)
+                .allowsHitTesting(false)
         }
         .listStyle(.plain)
         .listRowSpacing(12)
+        .environment(\.defaultMinListRowHeight, 0)
         .scrollContentBackground(.hidden)
         .overlay {
-            // Keep ContentUnavailableView out of List rows: vertical containerRelativeFrame
-            // row sizing clipped its description on a physical iPhone. This overlay receives
-            // the full List viewport while keeping the List mounted.
+            // Keep the empty state in the full List viewport: placing it in a row clipped
+            // its description on a physical iPhone.
             if self.chatStore.messages.isEmpty {
                 self.emptyChatState
             }
