@@ -1,5 +1,8 @@
 import { Hono } from "hono";
-import { requireAdminRequest, type AdminRequestContext } from "../../admin/authz";
+import {
+  requireCatalogAdminRequest,
+  type CatalogAdminRequestContext,
+} from "../../admin/authz";
 import { normalizeCardMetadata } from "../../cards/shared";
 import {
   attachCatalogPackageDraftMediaAsset,
@@ -46,7 +49,7 @@ type CatalogAdminRoutesOptions = Readonly<{
   requireAdminRequestFn?: (
     request: Request,
     allowedOrigins: ReadonlyArray<string>,
-  ) => Promise<AdminRequestContext>;
+  ) => Promise<CatalogAdminRequestContext>;
   createCatalogAuthorFn?: (input: UpsertCatalogAuthorInput) => Promise<CatalogAuthor>;
   updateCatalogAuthorFn?: (input: UpsertCatalogAuthorInput) => Promise<CatalogAuthor>;
   createCatalogPackageDraftFn?: (input: CreateCatalogPackageDraftInput) => Promise<CatalogPackage>;
@@ -292,7 +295,7 @@ function parseNoteInput(record: Readonly<Record<string, unknown>>): string | nul
 
 export function createCatalogAdminRoutes(options: CatalogAdminRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
-  const requireAdminRequestFn = options.requireAdminRequestFn ?? requireAdminRequest;
+  const requireAdminRequestFn = options.requireAdminRequestFn ?? requireCatalogAdminRequest;
   const createCatalogAuthorFn = options.createCatalogAuthorFn ?? createCatalogAuthor;
   const updateCatalogAuthorFn = options.updateCatalogAuthorFn ?? updateCatalogAuthor;
   const createCatalogPackageDraftFn = options.createCatalogPackageDraftFn ?? createCatalogPackageDraft;
