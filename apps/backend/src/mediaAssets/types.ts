@@ -3,10 +3,13 @@ export type TimestampValue = Date | string;
 export const imageJpegCardMediaBlobMimeType = "image/jpeg";
 export const passthroughMediaBlobNormalizationVersion = "passthrough-v1";
 export const imageJpegCardMediaBlobNormalizationVersion = "image-jpeg-card-v1";
+export const imageJpegCatalogCoverMediaBlobNormalizationVersion =
+  "image-jpeg-catalog-cover-v1";
 
 export const mediaBlobNormalizationVersions = [
   passthroughMediaBlobNormalizationVersion,
   imageJpegCardMediaBlobNormalizationVersion,
+  imageJpegCatalogCoverMediaBlobNormalizationVersion,
 ] as const;
 
 export type MediaBlobNormalizationVersion = typeof mediaBlobNormalizationVersions[number];

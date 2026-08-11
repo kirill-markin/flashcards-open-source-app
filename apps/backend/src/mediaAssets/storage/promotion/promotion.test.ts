@@ -23,6 +23,7 @@ import {
 } from "..";
 import {
   promoteMediaAssetUploadToBlobWithCapabilityVerifier,
+  storeCatalogImageBlobBytesIfAbsentWithDependencies,
   storeMediaAssetBlobBytesIfAbsentWithCapabilityVerifier,
 } from "./promotion";
 import {
@@ -200,6 +201,59 @@ test("storeMediaAssetBlobBytesIfAbsentWithDependencies verifies an existing cond
     `head:${testBlobStorageKey}`,
   ]);
   assert.equal(capabilityChecks, 3);
+});
+
+test("catalog image storage reuses the conditional write and checksum winner verification path", async () => {
+  const sentCommands: Array<string> = [];
+  const signal = AbortSignal.timeout(10_000);
+  const client = createTestS3Client();
+  client.send = (async (
+    command: unknown,
+    options: Readonly<{ abortSignal?: AbortSignal }>,
+  ) => {
+    assert.equal(options.abortSignal, signal);
+    if (command instanceof PutObjectCommand) {
+      sentCommands.push(`put:${String(command.input.Key)}`);
+      assert.equal(command.input.IfNoneMatch, "*");
+      assert.equal(
+        command.input.ChecksumSHA256,
+        Buffer.from(testSha256, "hex").toString("base64"),
+      );
+      throw createS3Error(412, "PreconditionFailed", "Object already exists");
+    }
+    if (command instanceof HeadObjectCommand) {
+      sentCommands.push(`head:${String(command.input.Key)}`);
+      return createHeadObjectResponse({
+        sizeBytes: testObjectBytes.byteLength,
+        mimeType: "image/jpeg",
+        sha256: testSha256,
+      });
+    }
+    throw new Error(
+      `Unexpected S3 command ${getUnexpectedS3CommandName(command)}`,
+    );
+  }) as S3Client["send"];
+
+  await storeCatalogImageBlobBytesIfAbsentWithDependencies(
+    {
+      signal,
+      storageKey: testBlobStorageKey,
+      mimeType: "image/jpeg",
+      sizeBytes: testObjectBytes.byteLength,
+      sha256: testSha256,
+      bytes: testObjectBytes,
+      observationScope: testObservationScope,
+    },
+    {
+      s3Client: client,
+      getMediaAssetsStorageConfigFn: getTestMediaAssetsStorageConfig,
+    },
+  );
+
+  assert.deepEqual(sentCommands, [
+    `put:${testBlobStorageKey}`,
+    `head:${testBlobStorageKey}`,
+  ]);
 });
 
 test("direct conditional PutObject retries 409 without verification and succeeds on retry", async () => {

@@ -14,11 +14,16 @@ import type {
 } from "../uploadSessions";
 import type { getMediaAssetsStorageConfig } from "./config";
 
-export type MediaAssetStorageContext = Readonly<{
-  workspaceId: string;
-  mediaAssetId: string;
+export type MediaBlobStorageContext = Readonly<{
+  workspaceId: string | null;
+  mediaAssetId: string | null;
   storageKey: string;
   observationScope: BackendObservationScope;
+}>;
+
+export type MediaAssetStorageContext = MediaBlobStorageContext & Readonly<{
+  workspaceId: string;
+  mediaAssetId: string;
 }>;
 
 export type DeletePermanentMediaBlobInput = Readonly<{
@@ -79,6 +84,16 @@ export type StoreMediaAssetBlobBytesInput = Readonly<{
   mimeType: string;
   sha256: string;
   lastOperationId: string;
+  bytes: Buffer;
+  observationScope: BackendObservationScope;
+}>;
+
+export type StoreCatalogImageBlobBytesInput = Readonly<{
+  signal: AbortSignal;
+  storageKey: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
   bytes: Buffer;
   observationScope: BackendObservationScope;
 }>;
