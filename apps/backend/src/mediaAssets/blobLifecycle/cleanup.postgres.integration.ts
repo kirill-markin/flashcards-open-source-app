@@ -30,6 +30,7 @@ import {
 } from "./index";
 import {
   buildMediaBlobStorageKey,
+  buildMediaMultipartUploadStagingStorageKey,
   buildMediaUploadStagingStorageKey,
 } from "../storageKeys";
 import { imageJpegCardMediaBlobNormalizationVersion } from "../types";
@@ -554,7 +555,7 @@ test("catalog image admission stays fenced across reverse-SHA package and collec
           "DELETE FROM content.media_blobs WHERE media_blob_id=$1",
           [replacementMediaBlobId],
         ),
-        (error: unknown) => hasPostgresCode(error, "23503"),
+        (error: unknown) => hasPostgresCode(error, "23001"),
       );
       await fixture.ownerPool.query(
         "UPDATE content.media_blob_lifecycles SET cleanup_eligible_at=clock_timestamp()-interval '1 second' WHERE sha256=$1",
@@ -601,7 +602,7 @@ test("workspace multipart ingestion adopts existing catalog cover provenance", a
     const lastOperationId = randomUUID();
     const s3UploadId = `upload-${randomUUID()}`;
     const storageKey = buildMediaBlobStorageKey(sha256);
-    const stagingStorageKey = buildMediaUploadStagingStorageKey(
+    const stagingStorageKey = buildMediaMultipartUploadStagingStorageKey(
       fixture.workspaceId,
       mediaAssetId,
       sessionId,
