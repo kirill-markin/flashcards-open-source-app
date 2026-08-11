@@ -87,13 +87,9 @@ extension AIChatView {
     }
 
     func scrollToBottom(proxy: ScrollViewProxy, isAnimated: Bool) {
-        guard let lastMessage = self.chatStore.messages.last else {
-            return
-        }
-
         if isAnimated {
             withAnimation(.easeOut(duration: aiChatAutoScrollAnimationDurationSeconds)) {
-                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                proxy.scrollTo(AIChatTranscriptScrollTarget.bottom, anchor: .bottom)
             }
             return
         }
@@ -101,7 +97,7 @@ extension AIChatView {
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
-            proxy.scrollTo(lastMessage.id, anchor: .bottom)
+            proxy.scrollTo(AIChatTranscriptScrollTarget.bottom, anchor: .bottom)
         }
     }
 }
