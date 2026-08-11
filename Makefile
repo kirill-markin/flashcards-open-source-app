@@ -16,8 +16,6 @@ dev:
 	docker compose -f $(COMPOSE_FILE) up --build
 
 build:
-	npm ci --prefix api
-	npm run lint --prefix api
 	npm ci --prefix apps/auth
 	npm run build --prefix apps/auth
 	npm ci --prefix apps/backend
@@ -30,8 +28,6 @@ build:
 	npm run build --prefix infra/aws
 
 lint:
-	npm ci --prefix api
-	npm run lint --prefix api
 	npm run build --prefix apps/auth
 	npm run lint --prefix apps/backend
 	npm run build --prefix apps/web

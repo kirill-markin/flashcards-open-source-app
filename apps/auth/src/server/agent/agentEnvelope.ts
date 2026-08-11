@@ -1,4 +1,4 @@
-import { getPublicAgentDocs } from "../publicUrls.js";
+import { getPublicAgentDocs, type PublicAgentDocs } from "../publicUrls.js";
 
 export type AgentAction = Readonly<{
   name: "send_code" | "verify_code" | "load_discovery" | "load_account" | "list_workspaces" | "create_workspace" | "select_workspace";
@@ -18,10 +18,7 @@ export type AgentEnvelope<Data> = Readonly<{
   data: Data;
   actions: ReadonlyArray<AgentAction>;
   instructions: string;
-  docs: Readonly<{
-    openapiUrl: string;
-    swaggerUrl: string;
-  }>;
+  docs: PublicAgentDocs;
   error?: Readonly<{
     code: string;
     message: string;

@@ -16,7 +16,6 @@
 infra/aws/cdk.context.json
 infra/aws/cdk.context.local.json
 infra/aws/cdk.out/
-api/dist/
 
 # Logs
 **/*.log

@@ -16,7 +16,6 @@ jobs:
     name: Detect changed areas
     runs-on: ubuntu-24.04
     outputs:
-      api_changed: ${{ steps.detect.outputs.api_changed }}
       auth_changed: ${{ steps.detect.outputs.auth_changed }}
       backend_changed: ${{ steps.detect.outputs.backend_changed }}
       web_changed: ${{ steps.detect.outputs.web_changed }}
@@ -45,7 +44,6 @@ jobs:
             git diff --name-only "origin/${GITHUB_BASE_REF}...HEAD" > "${changed_files_path}"
           fi
 
-          api_changed=false
           auth_changed=false
           backend_changed=false
           web_changed=false
@@ -55,7 +53,6 @@ jobs:
           android_data_local_changed=false
 
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            api_changed=true
             auth_changed=true
             backend_changed=true
             web_changed=true
@@ -64,17 +61,11 @@ jobs:
             android_changed=true
             android_data_local_changed=true
           else
-            if grep -Eq '^(api/|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
-              api_changed=true
-            fi
-
             if grep -Eq '^(apps/auth/|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
               auth_changed=true
             fi
 
-            # The backend is contract-coupled to the spec: its contract tests bundle
-            # api/src/openapi.yaml and assert the handlers still agree with it.
-            if grep -Eq '^(apps/backend/|api/|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
+            if grep -Eq '^(apps/backend/|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
               backend_changed=true
             fi
 
@@ -108,13 +99,12 @@ jobs:
           fi
 
           node_changed=false
-          if [[ "${api_changed}" == "true" || "${auth_changed}" == "true" || "${backend_changed}" == "true" \
+          if [[ "${auth_changed}" == "true" || "${backend_changed}" == "true" \
              || "${web_changed}" == "true" || "${admin_changed}" == "true" || "${infra_changed}" == "true" ]]; then
             node_changed=true
           fi
 
           {
-            echo "api_changed=${api_changed}"
             echo "auth_changed=${auth_changed}"
             echo "backend_changed=${backend_changed}"
             echo "web_changed=${web_changed}"
@@ -127,7 +117,6 @@ jobs:
 
       - name: Summarize changed areas
         env:
-          API_CHANGED: ${{ steps.detect.outputs.api_changed }}
           AUTH_CHANGED: ${{ steps.detect.outputs.auth_changed }}
           BACKEND_CHANGED: ${{ steps.detect.outputs.backend_changed }}
           WEB_CHANGED: ${{ steps.detect.outputs.web_changed }}
@@ -143,7 +132,6 @@ jobs:
           {
             echo "## PR check scope"
             echo ""
-            echo "- API changed: \`${API_CHANGED}\`"
             echo "- Auth changed: \`${AUTH_CHANGED}\`"
             echo "- Backend changed: \`${BACKEND_CHANGED}\`"
             echo "- Web changed: \`${WEB_CHANGED}\`"
@@ -199,7 +187,6 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: |
-            api/package-lock.json
             apps/auth/package-lock.json
             apps/backend/package-lock.json
             apps/web/package-lock.json
@@ -208,19 +195,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci --prefix api
           npm ci --prefix apps/auth
           npm ci --prefix apps/backend
           npm ci --prefix apps/web
           npm ci --prefix apps/admin
           npm ci --prefix infra/aws
-
-      - name: Lint OpenAPI spec
-        if: ${{ needs.changes.outputs.api_changed == 'true' }}
-        run: npm run lint --prefix api
-
-      - name: Bundle OpenAPI spec
-        run: npm run bundle --prefix api
 
       - name: Build auth app
         if: ${{ needs.changes.outputs.auth_changed == 'true' }}
@@ -269,13 +248,10 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: |
-            api/package-lock.json
             apps/backend/package-lock.json
 
       - name: Install dependencies
-        run: |
-          npm ci --prefix api
-          npm ci --prefix apps/backend
+        run: npm ci --prefix apps/backend
 
       - name: Test backend
         run: npm test --prefix apps/backend

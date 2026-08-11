@@ -3,8 +3,7 @@ import Foundation
 private let progressLeaderboardMaximumGapRowCount: Int = 2
 
 // Wire contract for GET /me/progress/leaderboard.
-// Keep aligned with api/src/openapi.yaml and
-// apps/backend/src/community/leaderboard/progress/progressLeaderboard.ts.
+// Keep aligned with apps/backend/src/community/leaderboard/progress/progressLeaderboard.ts.
 enum LeaderboardWindowKey: String, Codable, CaseIterable, Identifiable, Sendable {
     case last24Hours = "last_24_hours"
     case last3Days = "last_3_days"

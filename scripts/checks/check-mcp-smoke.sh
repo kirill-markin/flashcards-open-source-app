@@ -249,7 +249,12 @@ assert payload["data"]["authBaseUrl"] == auth_base_url
 assert payload["data"]["apiBaseUrl"] == api_base_url
 assert payload["actions"][0]["name"] == "verify_code"
 assert payload["actions"][0]["url"] == f"{auth_base_url}/api/agent/verify-code"
-assert payload["docs"]["openapiUrl"] == f"{api_base_url}/agent/openapi.json"
+assert payload["docs"]["discoveryUrl"] == f"{api_base_url}/"
+assert payload["docs"]["source"] == {
+    "repositoryUrl": "https://github.com/kirill-markin/flashcards-open-source-app",
+    "agentRoutesUrl": "https://github.com/kirill-markin/flashcards-open-source-app/tree/main/apps/backend/src/routes",
+    "authRoutesUrl": "https://github.com/kirill-markin/flashcards-open-source-app/tree/main/apps/auth/src/routes/agent",
+}
 assert "00000000" in payload["instructions"]
 print(otp_session_token)
 PY
