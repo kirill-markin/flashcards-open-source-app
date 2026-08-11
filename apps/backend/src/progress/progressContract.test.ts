@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { loadOpenApiDocument } from "../shared/openapi";
 import {
   loadLeaderboardProfile,
   loadLeaderboardProfileInExecutor,
@@ -27,21 +26,7 @@ function assertApiGatewayUsesBackendProxy(apiGatewaySource: string): void {
   );
 }
 
-test("published contract excludes progress endpoints while API Gateway proxies backend routes", () => {
-  const openApiDocument = loadOpenApiDocument() as Readonly<{
-    info?: Readonly<{ title?: string; description?: string }>;
-    paths?: Readonly<Record<string, object>>;
-  }>;
-  assert.equal(openApiDocument.info?.title, "Flashcards Open Source App External AI-Agent API");
-  assert.match(openApiDocument.info?.description ?? "", /external ai agents/i);
-  assert.equal(openApiDocument.paths?.["/me/progress"], undefined);
-  assert.equal(openApiDocument.paths?.["/me/progress/summary"], undefined);
-  assert.equal(openApiDocument.paths?.["/me/progress/review-schedule"], undefined);
-  assert.equal(openApiDocument.paths?.["/me/progress/series"], undefined);
-  assert.equal(openApiDocument.paths?.["/me/progress/leaderboard"], undefined);
-  assert.equal(openApiDocument.paths?.["/me/progress/leaderboards/streak"], undefined);
-  assert.equal(openApiDocument.paths?.["/me/progress/leaderboards/profiles/{publicProfileId}"], undefined);
-
+test("API Gateway proxies backend-owned progress routes", () => {
   const apiGatewaySource = loadApiGatewaySource();
   assertApiGatewayUsesBackendProxy(apiGatewaySource);
 });
@@ -88,16 +73,4 @@ test("public progress streak loaders retry transient repeatable-read failures", 
     source,
     /export async function loadUserProgressReviewSchedule\( request: ProgressReviewScheduleRequest, \): Promise<ProgressReviewSchedule> \{ return withTransientDatabaseRetry/,
   );
-});
-
-test("published contract omits progress leaderboards while API Gateway proxies backend routes", () => {
-  const openApiDocument = loadOpenApiDocument() as Readonly<{
-    paths?: Readonly<Record<string, object>>;
-  }>;
-  assert.equal(openApiDocument.paths?.["/me/progress/leaderboard"], undefined);
-  assert.equal(openApiDocument.paths?.["/me/progress/leaderboards/streak"], undefined);
-  assert.equal(openApiDocument.paths?.["/me/progress/leaderboards/profiles/{publicProfileId}"], undefined);
-
-  const apiGatewaySource = loadApiGatewaySource();
-  assertApiGatewayUsesBackendProxy(apiGatewaySource);
 });

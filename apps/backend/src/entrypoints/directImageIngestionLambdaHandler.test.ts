@@ -256,8 +256,12 @@ test("outer API-key deadline failures preserve the published agent error envelop
       "Retry the unchanged request after the Retry-After delay. If it fails again, stop and use requestId when debugging.",
     );
     assert.equal(
-      body.docs.openapiUrl,
-      "https://api.flashcards-open-source-app.com/v1/agent/openapi.json",
+      body.docs.discoveryUrl,
+      "https://api.flashcards-open-source-app.com/v1/",
+    );
+    assert.equal(
+      body.docs.source.repositoryUrl,
+      "https://github.com/kirill-markin/flashcards-open-source-app",
     );
     assert.equal(body.requestId, "api-gateway-request-1");
   } finally {

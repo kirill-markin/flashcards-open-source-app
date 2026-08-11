@@ -56,7 +56,12 @@ type AgentEnvelopeJson = Readonly<{
   data: JsonObject;
   instructions: string;
   docs: Readonly<{
-    openapiUrl: string;
+    discoveryUrl: string;
+    source: Readonly<{
+      repositoryUrl: string;
+      agentRoutesUrl: string;
+      authRoutesUrl: string;
+    }>;
   }>;
 }>;
 
@@ -95,13 +100,20 @@ function parseAgentEnvelope(text: string): AgentEnvelopeJson {
   const data = readJsonObject(value, "data");
   const instructions = readJsonString(value, "instructions");
   const docs = readJsonObject(value, "docs");
-  const openapiUrl = readJsonString(docs, "openapiUrl");
+  const source = readJsonObject(docs, "source");
 
   return {
     ok: true,
     data,
     instructions,
-    docs: { openapiUrl },
+    docs: {
+      discoveryUrl: readJsonString(docs, "discoveryUrl"),
+      source: {
+        repositoryUrl: readJsonString(source, "repositoryUrl"),
+        agentRoutesUrl: readJsonString(source, "agentRoutesUrl"),
+        authRoutesUrl: readJsonString(source, "authRoutesUrl"),
+      },
+    },
   };
 }
 
@@ -304,7 +316,8 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
     const listWorkspacesEnvelope = parseAgentEnvelope(readSingleTextContent(listWorkspacesResult));
     assert.deepEqual(listWorkspacesEnvelope.data, { workspaces });
     assert.notEqual(listWorkspacesEnvelope.instructions, "");
-    assert.notEqual(listWorkspacesEnvelope.docs.openapiUrl, "");
+    assert.notEqual(listWorkspacesEnvelope.docs.discoveryUrl, "");
+    assert.notEqual(listWorkspacesEnvelope.docs.source.repositoryUrl, "");
 
     const sql = "SELECT card_id, front_text, back_text FROM cards LIMIT 1";
     const sqlQueryResult = await client.callTool({
@@ -314,7 +327,8 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
     const sqlQueryEnvelope = parseAgentEnvelope(readSingleTextContent(sqlQueryResult));
     assert.equal(sqlQueryEnvelope.data.sql, sql);
     assert.notEqual(sqlQueryEnvelope.instructions, "");
-    assert.notEqual(sqlQueryEnvelope.docs.openapiUrl, "");
+    assert.notEqual(sqlQueryEnvelope.docs.discoveryUrl, "");
+    assert.notEqual(sqlQueryEnvelope.docs.source.agentRoutesUrl, "");
 
     const executeSql = "UPDATE cards SET back_text = 'Paris' WHERE card_id = 'card-1'";
     const sqlExecuteResult = await client.callTool({
@@ -324,7 +338,8 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
     const sqlExecuteEnvelope = parseAgentEnvelope(readSingleTextContent(sqlExecuteResult));
     assert.equal(sqlExecuteEnvelope.data.sql, executeSql);
     assert.notEqual(sqlExecuteEnvelope.instructions, "");
-    assert.notEqual(sqlExecuteEnvelope.docs.openapiUrl, "");
+    assert.notEqual(sqlExecuteEnvelope.docs.discoveryUrl, "");
+    assert.notEqual(sqlExecuteEnvelope.docs.source.authRoutesUrl, "");
 
     assert.deepEqual(calls.listWorkspaces, [{
       userId: connection.userId,

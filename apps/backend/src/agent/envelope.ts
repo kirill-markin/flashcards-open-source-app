@@ -1,9 +1,7 @@
 import type { PublicHttpErrorDetails } from "../shared/errors";
-import { getPublicAgentDocs } from "../shared/publicUrls";
+import { getPublicAgentDocs, type PublicAgentDocs } from "../shared/publicUrls";
 
-export type AgentDocs = Readonly<{
-  openapiUrl: string;
-}>;
+export type AgentDocs = PublicAgentDocs;
 
 export type AgentEnvelope<Data> = Readonly<{
   ok: true;
@@ -181,7 +179,7 @@ export function createAgentErrorInstructions(
       return "Use a valid non-revoked API key in the Authorization header as: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY after exporting it once. If needed, restart from GET /v1/agent.";
     case "QUERY_INVALID_SQL":
     case "QUERY_UNSUPPORTED_SYNTAX":
-      return "Fix the sql string using error.message and any error.details.validationIssues, then retry the same endpoint: POST /v1/agent/sql/query for reads or POST /v1/agent/sql/execute for writes. Use docs.openapiUrl for the published SQL dialect.";
+      return "Fix the sql string using error.message and any error.details.validationIssues, then retry the same endpoint: POST /v1/agent/sql/query for reads or POST /v1/agent/sql/execute for writes. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
     case "WORKSPACE_SELECTION_REQUIRED":
       return "Call GET /v1/agent/me, then GET /v1/agent/workspaces?limit=100. A first workspace is auto-provisioned for new users. If data.nextCursor is not null, continue with the same limit and cursor=data.nextCursor. If multiple workspaces exist, select one with POST /v1/agent/workspaces/{workspaceId}/select before calling POST /v1/agent/sql/query or POST /v1/agent/sql/execute.";
     case "WORKSPACE_ID_REQUIRED":

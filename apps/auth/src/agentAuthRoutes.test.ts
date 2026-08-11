@@ -7,6 +7,15 @@ import type { AgentOtpChallengeLookup } from "./server/agent/agentOtpChallenges.
 import type { OtpVerifyAttemptState, OtpVerifyFailureRecordResult } from "./server/otp/otpVerifyAttempts.js";
 import type { TokenResult } from "./server/cognito/cognitoAuth.js";
 
+type AgentDocsResponse = Readonly<{
+  discoveryUrl: string;
+  source: Readonly<{
+    repositoryUrl: string;
+    agentRoutesUrl: string;
+    authRoutesUrl: string;
+  }>;
+}>;
+
 type AgentSendCodeResponse = Readonly<{
   ok: boolean;
   data: Readonly<{
@@ -22,10 +31,7 @@ type AgentSendCodeResponse = Readonly<{
     url?: string;
   }>>;
   instructions: string;
-  docs: Readonly<{
-    openapiUrl: string;
-    swaggerUrl: string;
-  }>;
+  docs: AgentDocsResponse;
 }>;
 
 type AgentVerifyCodeResponse = Readonly<{
@@ -49,6 +55,7 @@ type AgentVerifyCodeResponse = Readonly<{
     urlTemplate?: string;
   }>>;
   instructions: string;
+  docs: AgentDocsResponse;
 }>;
 
 type AgentErrorResponse = Readonly<{
@@ -163,6 +170,14 @@ test("agent send-code uses Cognito OTP for non-demo emails", async () => {
   assert.equal(payload.data.email, "user@example.com");
   assert.equal(payload.data.otpSessionToken, "AGENT-OTP-TOKEN");
   assert.equal(payload.actions[0]?.name, "verify_code");
+  assert.deepEqual(payload.docs, {
+    discoveryUrl: "https://api.flashcards-open-source-app.com/v1/",
+    source: {
+      repositoryUrl: "https://github.com/kirill-markin/flashcards-open-source-app",
+      agentRoutesUrl: "https://github.com/kirill-markin/flashcards-open-source-app/tree/main/apps/backend/src/routes",
+      authRoutesUrl: "https://github.com/kirill-markin/flashcards-open-source-app/tree/main/apps/auth/src/routes/agent",
+    },
+  });
   assert.doesNotMatch(payload.instructions, /with the email/);
   assert.equal(initiateEmailOtpCalled, true);
   assert.equal(createdChallengeSession, "cognito-session-1");
@@ -334,6 +349,11 @@ test("agent verify-code uses the OTP challenge for non-demo emails", async () =>
   assert.equal(payload.data.connection.label, "ci-agent");
   assert.equal(payload.actions.map((action) => action.name).join(","), "load_discovery,load_account,list_workspaces,create_workspace,select_workspace");
   assert.equal(payload.actions.find((action) => action.name === "load_discovery")?.url, "https://api.flashcards-open-source-app.com/v1/agent");
+  assert.equal(payload.docs.discoveryUrl, "https://api.flashcards-open-source-app.com/v1/");
+  assert.equal(
+    payload.docs.source.authRoutesUrl,
+    "https://github.com/kirill-markin/flashcards-open-source-app/tree/main/apps/auth/src/routes/agent",
+  );
   assert.equal(payload.actions.find((action) => action.name === "list_workspaces")?.url, "https://api.flashcards-open-source-app.com/v1/agent/workspaces?limit=100");
   assert.match(payload.instructions, /GET https:\/\/api\.flashcards-open-source-app\.com\/v1\/agent/);
   assert.match(payload.instructions, /media-capable discovery surface/);

@@ -6,7 +6,7 @@ import {
   shouldUseAgentSetupEnvelope,
 } from "../../agent/setup";
 import { unsafeQuery } from "../../database/unsafe";
-import { loadOpenApiDocument } from "../../shared/openapi";
+import { createSourceDiscoveryResponse } from "../../shared/sourceDiscovery";
 import { getSessionCsrfToken } from "../../auth/requestSecurity";
 import { loadRequestContextFromRequest } from "../../server/requestContext";
 import type { AppEnv } from "../../server/app";
@@ -60,8 +60,8 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
 
   app.get("/", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
   app.get("/agent", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
-  app.get("/openapi.json", async (context) => context.json(loadOpenApiDocument()));
-  app.get("/swagger.json", async (context) => context.json(loadOpenApiDocument()));
+  app.get("/openapi.json", async (context) => context.json(createSourceDiscoveryResponse(context.req.url)));
+  app.get("/swagger.json", async (context) => context.json(createSourceDiscoveryResponse(context.req.url)));
 
   app.get("/health", async (context) => {
     const result = await unsafeQuery<Readonly<{ now: Date | string }>>("SELECT now() AS now", []);
