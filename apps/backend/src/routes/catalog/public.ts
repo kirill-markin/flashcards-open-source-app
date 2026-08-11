@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import {
   listPublicCatalogPackages,
+  loadPublicCatalogCollectionCoverForDownload,
   loadPublicCatalogSnapshot,
   loadPublicCatalogPackageDetail,
   loadPublicCatalogPackageMediaForDownload,
@@ -17,6 +18,7 @@ import {
 } from "../../catalog/publicMediaDelivery";
 import type {
   CatalogPublicPackageCardPreview,
+  CatalogPublicCollectionCoverDownloadSource,
   CatalogPublicPackageDetail,
   CatalogPublicPackageListInput,
   CatalogPublicPackageMediaDownloadSource,
@@ -56,6 +58,9 @@ type CatalogPublicRoutesOptions = Readonly<{
     packageVersionId: string,
     packageMediaKey: string,
   ) => Promise<CatalogPublicPackageMediaDownloadSource>;
+  loadPublicCatalogCollectionCoverForDownloadFn?: (
+    collectionId: string,
+  ) => Promise<CatalogPublicCollectionCoverDownloadSource>;
   loadMediaAssetObjectBytesFn?: (
     input: LoadMediaAssetObjectBytesInput,
   ) => Promise<LoadedMediaAssetObjectBytes>;
@@ -124,6 +129,18 @@ function parsePackageVersionIdParam(value: string | undefined): string {
   }
 }
 
+function parseCollectionIdParam(value: string | undefined): string {
+  if (value === undefined) {
+    throw new HttpError(400, "collectionId is required", "CATALOG_PUBLIC_PARAM_REQUIRED");
+  }
+
+  try {
+    return expectUuidString(value, "collectionId");
+  } catch {
+    throw new HttpError(400, "collectionId must be a UUID", "CATALOG_PUBLIC_PARAM_INVALID");
+  }
+}
+
 function parsePackageMediaKeyParam(value: string | undefined): string {
   if (value === undefined) {
     throw new HttpError(400, "packageMediaKey is required", "CATALOG_PUBLIC_PARAM_REQUIRED");
@@ -179,6 +196,40 @@ function createBackendDownloadUrl(
   ].join("/");
 }
 
+function createBackendCollectionCoverDownloadUrl(
+  requestUrl: string,
+  collectionId: string,
+): string {
+  return [
+    getPublicApiBaseUrl(requestUrl),
+    "catalog",
+    "collections",
+    collectionId,
+    "cover",
+    "download",
+  ].join("/");
+}
+
+function rethrowCollectionCoverObjectLoadError(error: unknown, collectionId: string): never {
+  if (error instanceof HttpError && error.code === "MEDIA_ASSET_UPLOAD_NOT_FOUND") {
+    throw new HttpError(
+      409,
+      `Published catalog collection cover object is missing. collectionId=${collectionId}`,
+      "CATALOG_PUBLIC_COLLECTION_COVER_OBJECT_NOT_FOUND",
+      error.details ?? undefined,
+    );
+  }
+  if (error instanceof HttpError && error.code === "MEDIA_ASSET_OBJECT_BYTES_TOO_LARGE") {
+    throw new HttpError(
+      413,
+      `Published catalog collection cover is too large for public delivery. collectionId=${collectionId}`,
+      "CATALOG_PUBLIC_COLLECTION_COVER_TOO_LARGE",
+    );
+  }
+
+  throw error;
+}
+
 function assertPublicCatalogMediaDownloadSupported(
   mediaDownloadSource: CatalogPublicPackageMediaDownloadSource,
 ): void {
@@ -221,6 +272,8 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
     ?? loadPublicCatalogPackageVersionCardPreview;
   const loadPublicCatalogPackageMediaForDownloadFn = options.loadPublicCatalogPackageMediaForDownloadFn
     ?? loadPublicCatalogPackageMediaForDownload;
+  const loadPublicCatalogCollectionCoverForDownloadFn = options.loadPublicCatalogCollectionCoverForDownloadFn
+    ?? loadPublicCatalogCollectionCoverForDownload;
   const loadMediaAssetObjectBytesFn = options.loadMediaAssetObjectBytesFn ?? loadMediaAssetObjectBytes;
 
   app.get("/catalog", async (context) => context.json(await loadPublicCatalogSnapshotFn(
@@ -252,6 +305,56 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
       limit: parseLimitQuery(context.req.query("limit"), "limit", defaultCardPreviewLimit),
     });
     return context.json({ packageVersionId, cards });
+  });
+
+  app.get("/catalog/collections/:collectionId/cover/download-url", async (context) => {
+    const collectionId = parseCollectionIdParam(context.req.param("collectionId"));
+    const coverDownloadSource = await loadPublicCatalogCollectionCoverForDownloadFn(collectionId);
+    const download = {
+      method: "GET",
+      url: createBackendCollectionCoverDownloadUrl(context.req.url, collectionId),
+      expiresAt: null,
+      rangeRequests: false,
+    } as const;
+
+    return context.json({
+      collectionCover: coverDownloadSource.collectionCover,
+      download,
+    });
+  });
+
+  app.get("/catalog/collections/:collectionId/cover/download", async (context) => {
+    const requestId = context.get("requestId");
+    const collectionId = parseCollectionIdParam(context.req.param("collectionId"));
+    const scope = createCatalogPublicScope(
+      requestId,
+      context.req.path,
+      context.req.method,
+      context.get("clientAppVersion"),
+      context.get("clientPlatform"),
+    );
+    const coverDownloadSource = await loadPublicCatalogCollectionCoverForDownloadFn(collectionId);
+
+    let objectBytes: LoadedMediaAssetObjectBytes;
+    try {
+      objectBytes = await loadMediaAssetObjectBytesFn({
+        workspaceId: collectionId,
+        mediaAssetId: "cover",
+        storageKey: coverDownloadSource.storageKey,
+        mimeType: coverDownloadSource.collectionCover.mimeType,
+        sizeBytes: coverDownloadSource.collectionCover.sizeBytes,
+        sha256: coverDownloadSource.sha256,
+        maxByteSize: maximumPublicCatalogMediaDownloadBytes,
+        observationScope: scope,
+      });
+    } catch (error) {
+      rethrowCollectionCoverObjectLoadError(error, collectionId);
+    }
+
+    context.header("Content-Type", objectBytes.mimeType ?? coverDownloadSource.collectionCover.mimeType);
+    context.header("Content-Length", objectBytes.sizeBytes.toString());
+    context.header("Cache-Control", "public, max-age=3600");
+    return context.body(new Uint8Array(objectBytes.bytes), 200);
   });
 
   app.get("/catalog/package-versions/:packageVersionId/media-assets/:packageMediaKey/download-url", async (context) => {

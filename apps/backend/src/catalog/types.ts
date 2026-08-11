@@ -297,6 +297,18 @@ export type CatalogPublicPackageMediaDownloadSource = Readonly<{
   sha256: string;
 }>;
 
+export type CatalogPublicCollectionCover = Readonly<{
+  collectionId: string;
+  mimeType: string;
+  sizeBytes: number;
+}>;
+
+export type CatalogPublicCollectionCoverDownloadSource = Readonly<{
+  collectionCover: CatalogPublicCollectionCover;
+  storageKey: string;
+  sha256: string;
+}>;
+
 export const catalogPublicSnapshotSchemaVersion = 1 as const;
 
 export type CatalogPublicSnapshotAuthor = Readonly<{
@@ -369,6 +381,7 @@ export type CatalogPublicSnapshotCollection = Readonly<{
   languageTags: ReadonlyArray<string>;
   topicTags: ReadonlyArray<string>;
   coverPackageId: string | null;
+  coverDownloadUrl?: string;
   status: "published";
   updatedAt: string;
   publishedAt: string;

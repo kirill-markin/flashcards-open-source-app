@@ -45,6 +45,9 @@ export {
 export {
   listPublicCatalogPackages,
   listPublicCatalogPackagesInExecutor,
+  loadPublicCatalogCollectionCoverForDownload,
+  loadPublicCatalogCollectionCoverForDownloadInExecutor,
+  loadPublicCatalogCollectionCoversInExecutor,
   loadPublicCatalogSnapshot,
   loadPublicCatalogSnapshotInExecutor,
   loadPublicCatalogPackageDetail,
