@@ -1,8 +1,6 @@
 // Fails when the repo-owned release version surfaces do not all report the same
 // semantic version, so a half-finished version bump is caught before merge.
 // The surfaces and their alignment rules are defined in docs/version-bump.md.
-// API contract values (`/v1` paths, OpenAPI `info.version`, API Gateway stage
-// names) are deliberately not checked here: they do not move with a release.
 
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -17,7 +15,6 @@ const SEMANTIC_VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 const NODE_PACKAGE_DIRECTORIES = [
   "apps/backend",
   "apps/admin",
-  "api",
   "apps/auth",
   "infra/aws",
   "apps/web",

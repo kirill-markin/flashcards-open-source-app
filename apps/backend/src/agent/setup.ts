@@ -61,7 +61,7 @@ function buildAccountBootstrapInstructions(requestUrl: string): string {
     buildMediaDiscoveryGuidanceLine(requestUrl),
     buildPermissionGuidanceLine(),
     buildBulkWriteSplitLine(),
-    "Read payload from data.* and use docs.openapiUrl for the published external agent contract.",
+    "Read payload from data.* and use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.",
   ].join(" ");
 }
 
@@ -74,7 +74,7 @@ function buildNoWorkspaceInstructions(requestUrl: string): string {
     buildMediaDiscoveryGuidanceLine(requestUrl),
     buildPermissionGuidanceLine(),
     buildBulkWriteSplitLine(),
-    "Read payload from data.* and use docs.openapiUrl for the published external agent contract.",
+    "Read payload from data.* and use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.",
   ].join(" ");
 }
 
@@ -87,7 +87,7 @@ function buildSelectWorkspaceInstructions(requestUrl: string): string {
     buildMediaDiscoveryGuidanceLine(requestUrl),
     buildPermissionGuidanceLine(),
     buildBulkWriteSplitLine(),
-    "Read payload from data.* and use docs.openapiUrl for the published external agent contract.",
+    "Read payload from data.* and use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.",
   ].join(" ");
 }
 
@@ -102,7 +102,7 @@ function buildWorkspaceReadyInstructions(requestUrl: string): string {
     "This endpoint accepts the published SQL dialect, not full PostgreSQL.",
     `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
     buildBulkWriteSplitLine(),
-    "Read payload from data.* and use docs.openapiUrl for the published external agent contract.",
+    "Read payload from data.* and use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.",
   ].join(" ");
 }
 

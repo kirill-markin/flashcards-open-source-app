@@ -108,14 +108,10 @@ ensure_bootstrap_sentry_context_defaults() {
 }
 
 echo "=== Install dependencies ==="
-npm ci --silent --prefix "${ROOT_DIR}/api"
 npm ci --silent --prefix "${ROOT_DIR}/apps/backend"
 npm ci --silent --prefix "${ROOT_DIR}/apps/admin"
 npm ci --silent --prefix "${ROOT_DIR}/apps/web"
 npm ci --silent --prefix "$CDK_DIR"
-
-echo "=== Bundle OpenAPI spec ==="
-npm run bundle --silent --prefix "${ROOT_DIR}/api"
 
 echo "=== Configure required Resend secret ==="
 bash "${ROOT_DIR}/scripts/setup/setup-resend-secret.sh" --region "$REGION"

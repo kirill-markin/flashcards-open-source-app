@@ -1,7 +1,0 @@
-type: object
-additionalProperties: false
-required:
-  - catalogPackage
-properties:
-  catalogPackage:
-    $ref: ./CatalogPublicPackageDetail.yaml

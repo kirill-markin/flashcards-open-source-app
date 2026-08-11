@@ -1,4 +1,0 @@
-type: apiKey
-in: header
-name: X-CSRF-Token
-description: CSRF token returned by GET /admin/session for session-authenticated unsafe admin requests.

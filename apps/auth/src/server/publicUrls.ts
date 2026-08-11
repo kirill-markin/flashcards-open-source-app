@@ -61,17 +61,36 @@ export function getMcpResource(requestUrl: string): string {
   return `${stripTrailingSlash(`${url.protocol}//${url.host}`)}/mcp`;
 }
 
+export type PublicSourceLinks = Readonly<{
+  repositoryUrl: string;
+  agentRoutesUrl: string;
+  authRoutesUrl: string;
+}>;
+
+export type PublicAgentDocs = Readonly<{
+  discoveryUrl: string;
+  source: PublicSourceLinks;
+}>;
+
+export function getPublicSourceLinks(): PublicSourceLinks {
+  const repositoryUrl = "https://github.com/kirill-markin/flashcards-open-source-app";
+
+  return {
+    repositoryUrl,
+    agentRoutesUrl: `${repositoryUrl}/tree/main/apps/backend/src/routes`,
+    authRoutesUrl: `${repositoryUrl}/tree/main/apps/auth/src/routes/agent`,
+  };
+}
+
 /**
- * Builds the public AI-agent documentation URLs served by the API host.
+ * Builds the public runtime-discovery and implementation-source links surfaced
+ * inside AI-agent responses.
  */
-export function getPublicAgentDocs(requestUrl: string): Readonly<{
-  openapiUrl: string;
-  swaggerUrl: string;
-}> {
+export function getPublicAgentDocs(requestUrl: string): PublicAgentDocs {
   const apiBaseUrl = getPublicApiBaseUrl(requestUrl);
 
   return {
-    openapiUrl: `${apiBaseUrl}/agent/openapi.json`,
-    swaggerUrl: `${apiBaseUrl}/agent/swagger.json`,
+    discoveryUrl: `${apiBaseUrl}/`,
+    source: getPublicSourceLinks(),
   };
 }

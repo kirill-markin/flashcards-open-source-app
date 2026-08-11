@@ -337,10 +337,6 @@ function createLambdaBundling(
     forceDockerBundling: boolean;
   }>,
 ): lambdaNodejs.BundlingOptions {
-  const openApiDocumentPath = input.forceDockerBundling
-    ? `${dockerBundlingRepoRootPath}/api/dist/openapi.json`
-    : resolveFromRepoRoot("api", "dist", "openapi.json");
-
   return {
     minify: true,
     sourceMap: true,
@@ -363,8 +359,6 @@ function createLambdaBundling(
       beforeInstall: () => [],
       afterBundling: (_inputDir: string, outputDir: string) => [
         `curl -sfo ${outputDir}/rds-global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem`,
-        `mkdir -p ${outputDir}/api/dist`,
-        `cp ${openApiDocumentPath} ${outputDir}/api/dist/openapi.json`,
         createSentrySourceMapUploadCommand(outputDir),
       ],
     },

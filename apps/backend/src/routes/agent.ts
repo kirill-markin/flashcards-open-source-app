@@ -7,7 +7,7 @@ import {
   loadAgentWorkspaceReplicaIdForSetup,
 } from "../agent/setup";
 import { runSqlExecute, runSqlQuery } from "../aiTools/agentSql";
-import { loadOpenApiDocument } from "../shared/openapi";
+import { createSourceDiscoveryResponse } from "../shared/sourceDiscovery";
 import { parseOptionalCursorQuery, parseRequiredPageLimit } from "../shared/pagination";
 import {
   createWorkspaceForApiKeyConnection,
@@ -76,8 +76,8 @@ async function loadAgentRequest(
 export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
-  app.get("/agent/openapi.json", async (context) => context.json(loadOpenApiDocument()));
-  app.get("/agent/swagger.json", async (context) => context.json(loadOpenApiDocument()));
+  app.get("/agent/openapi.json", async (context) => context.json(createSourceDiscoveryResponse(context.req.url)));
+  app.get("/agent/swagger.json", async (context) => context.json(createSourceDiscoveryResponse(context.req.url)));
 
   app.get("/agent/me", async (context) => {
     const { requestContext } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
