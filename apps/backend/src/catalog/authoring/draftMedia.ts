@@ -21,7 +21,6 @@ import type {
   AttachCatalogPackageMediaAssetInput,
   CatalogPackageMediaAsset,
   CatalogPackageMediaAssetRow,
-  CatalogPackageStatus,
   CatalogPackageVersionMediaAssetInput,
 } from "../types";
 
@@ -31,21 +30,6 @@ export type CatalogPackageMediaMutationResult = Readonly<{
   mediaAsset: CatalogPackageMediaAsset;
   applied: boolean;
 }>;
-
-function assertCatalogPackageIsDraft(
-  packageId: string,
-  status: CatalogPackageStatus,
-): void {
-  if (status === "draft") {
-    return;
-  }
-
-  throw new HttpError(
-    409,
-    `Catalog package is not a draft authoring target. packageId=${packageId} status=${status}`,
-    "CATALOG_PACKAGE_NOT_DRAFT",
-  );
-}
 
 export async function scheduleDisplacedMediaBlobCleanupInExecutor(
   executor: DatabaseExecutor,
@@ -135,8 +119,7 @@ export async function createOrReplayCatalogPackageDraftCardImageInExecutor(
     );
   }
   try {
-    const catalogPackage = await lockCatalogPackageInExecutor(executor, packageId);
-    assertCatalogPackageIsDraft(packageId, catalogPackage.status);
+    await lockCatalogPackageInExecutor(executor, packageId);
     const existing = await loadCatalogPackageDraftMediaAssetForUpdateInExecutor(
       executor,
       packageId,
@@ -175,7 +158,6 @@ export async function replaceCatalogPackageDraftCoverInExecutor(
   const packageMediaKey = "cover";
   try {
     const catalogPackage = await lockCatalogPackageInExecutor(executor, packageId);
-    assertCatalogPackageIsDraft(packageId, catalogPackage.status);
     const existing = await loadCatalogPackageDraftMediaAssetForUpdateInExecutor(
       executor,
       packageId,

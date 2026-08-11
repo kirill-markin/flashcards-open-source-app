@@ -469,7 +469,7 @@ test("catalog package media assets attach through content.media_blobs", async ()
   assert.equal(queries.length, 2);
 });
 
-test("catalog package image authoring replays card bytes and safely replaces cover bytes", async () => {
+test("published catalog packages can stage and replay card images and replace covers for later versions", async () => {
   const replacementBlobId = "66666666-6666-4666-8666-666666666666";
   const cardMediaAssetId = "77777777-7777-4777-8777-777777777777";
   let cardRow: CatalogPackageMediaAssetRow | null = null;
@@ -493,7 +493,11 @@ test("catalog package image authoring replays card bytes and safely replaces cov
       params: ReadonlyArray<SqlValue>,
     ): Promise<pg.QueryResult<Row>> {
       if (text.includes("FROM catalog.packages") && text.includes("FOR UPDATE")) {
-        return createQueryResult([createPackageRow() as unknown as Row]);
+        return createQueryResult([{
+          ...createPackageRow(),
+          status: "published",
+          published_at: testTimestamp,
+        } as unknown as Row]);
       }
       if (text.includes("FROM catalog.package_media_assets") && text.includes("FOR UPDATE")) {
         const row = params[1] === "cover" ? coverRow : cardRow;
