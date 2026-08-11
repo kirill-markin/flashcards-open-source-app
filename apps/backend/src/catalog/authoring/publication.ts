@@ -352,10 +352,10 @@ export async function updateCatalogPackageVersionReviewStatusInExecutor(
     const result = await executor.query<CatalogPackageVersionRow>(
       [
         "UPDATE catalog.package_versions",
-        "SET status = $2,",
-        "submitted_at = CASE WHEN $2 = 'submitted' THEN now() ELSE submitted_at END,",
-        "reviewed_at = CASE WHEN $2 IN ('needs_changes', 'approved', 'rejected') THEN now() ELSE reviewed_at END,",
-        "reviewed_by_admin_email = CASE WHEN $2 IN ('needs_changes', 'approved', 'rejected') THEN $3 ELSE reviewed_by_admin_email END",
+        "SET status = $2::catalog.package_status,",
+        "submitted_at = CASE WHEN $2::catalog.package_status = 'submitted' THEN now() ELSE submitted_at END,",
+        "reviewed_at = CASE WHEN $2::catalog.package_status IN ('needs_changes', 'approved', 'rejected') THEN now() ELSE reviewed_at END,",
+        "reviewed_by_admin_email = CASE WHEN $2::catalog.package_status IN ('needs_changes', 'approved', 'rejected') THEN $3 ELSE reviewed_by_admin_email END",
         "WHERE package_version_id = $1",
         "RETURNING",
         catalogPackageVersionColumns,

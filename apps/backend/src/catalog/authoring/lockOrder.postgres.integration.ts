@@ -5,10 +5,20 @@ import test from "node:test";
 import pg from "pg";
 import type { DatabaseExecutor, SqlValue } from "../../database";
 import { updateCatalogPackageDraftInExecutor } from "./drafts";
-import { publishCatalogPackageVersionInExecutor } from "./versions";
+import {
+  publishCatalogPackageVersionInExecutor,
+  updateCatalogPackageVersionReviewStatusInExecutor,
+} from "./versions";
 
 type ActivityRow = Readonly<{
   wait_event_type: string | null;
+}>;
+
+type PersistedReviewStatusRow = Readonly<{
+  status: string;
+  submitted_at: Date | null;
+  reviewed_at: Date | null;
+  reviewed_by_admin_email: string | null;
 }>;
 
 function requireTestDatabaseUrl(): string {
@@ -67,6 +77,115 @@ function hasPostgresCode(error: unknown, code: string): boolean {
 function isLockNotAvailable(error: unknown): boolean {
   return hasPostgresCode(error, "55P03");
 }
+
+test("catalog review transitions use the package-status enum parameter consistently", async () => {
+  const pool = new pg.Pool({
+    connectionString: requireRuntimeDatabaseUrl(),
+    application_name: "catalog-review-status-integration",
+    max: 1,
+  });
+  const client = await pool.connect();
+  const suffix = randomUUID().replaceAll("-", "");
+  const authorId = randomUUID();
+  const packageId = randomUUID();
+  const packageVersionId = randomUUID();
+  const adminEmail = "catalog-review@example.test";
+  let transactionOpen = false;
+
+  try {
+    await client.query("BEGIN");
+    transactionOpen = true;
+    await client.query(
+      [
+        "INSERT INTO catalog.authors (author_id, slug, display_name)",
+        "VALUES ($1, $2, $3)",
+      ].join(" "),
+      [authorId, `review-status-author-${suffix}`, "Review status author"],
+    );
+    await client.query(
+      [
+        "INSERT INTO catalog.packages",
+        "(package_id, author_id, slug, title, summary, description, language_tags, topic_tags, license)",
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+      ].join(" "),
+      [
+        packageId,
+        authorId,
+        `review-status-package-${suffix}`,
+        "Review status package",
+        "Review status summary",
+        "Review status description",
+        ["en"],
+        ["testing"],
+        "CC-BY-4.0",
+      ],
+    );
+    await client.query(
+      [
+        "INSERT INTO catalog.package_versions",
+        "(package_version_id, package_id, version_number, slug, title, summary, description,",
+        "language_tags, topic_tags, license, card_count, created_by_admin_email)",
+        "VALUES ($1, $2, 1, $3, $4, $5, $6, $7, $8, $9, 0, $10)",
+      ].join(" "),
+      [
+        packageVersionId,
+        packageId,
+        `review-status-package-${suffix}-v1`,
+        "Review status package",
+        "Review status summary",
+        "Review status description",
+        ["en"],
+        ["testing"],
+        "CC-BY-4.0",
+        adminEmail,
+      ],
+    );
+
+    const executor = createClientExecutor(client);
+    const submittedVersion = await updateCatalogPackageVersionReviewStatusInExecutor(
+      executor,
+      packageVersionId,
+      { status: "submitted", note: null },
+      adminEmail,
+    );
+    assert.equal(submittedVersion.status, "submitted");
+    assert.notEqual(submittedVersion.submittedAt, null);
+    assert.equal(submittedVersion.reviewedAt, null);
+    assert.equal(submittedVersion.reviewedByAdminEmail, null);
+
+    const approvedVersion = await updateCatalogPackageVersionReviewStatusInExecutor(
+      executor,
+      packageVersionId,
+      { status: "approved", note: null },
+      adminEmail,
+    );
+    assert.equal(approvedVersion.status, "approved");
+    assert.equal(approvedVersion.submittedAt, submittedVersion.submittedAt);
+    assert.notEqual(approvedVersion.reviewedAt, null);
+    assert.equal(approvedVersion.reviewedByAdminEmail, adminEmail);
+
+    const persistedResult = await client.query<PersistedReviewStatusRow>(
+      [
+        "SELECT status::text AS status, submitted_at, reviewed_at, reviewed_by_admin_email",
+        "FROM catalog.package_versions",
+        "WHERE package_version_id = $1",
+      ].join(" "),
+      [packageVersionId],
+    );
+    const persistedRow = persistedResult.rows[0];
+    assert.ok(persistedRow !== undefined);
+    assert.equal(persistedRow.status, "approved");
+    assert.ok(persistedRow.submitted_at instanceof Date);
+    assert.ok(persistedRow.reviewed_at instanceof Date);
+    assert.equal(persistedRow.reviewed_by_admin_email, adminEmail);
+  } finally {
+    if (transactionOpen) {
+      await client.query("ROLLBACK");
+    }
+    client.release();
+    await pool.end();
+  }
+});
 
 test("catalog package update locks the package before its selected author", async () => {
   const pool = new pg.Pool({
