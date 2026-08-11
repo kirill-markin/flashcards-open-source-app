@@ -485,6 +485,7 @@ test("catalog package image authoring replays card bytes and safely replaces cov
     created_at: testTimestamp,
     updated_at: testTimestamp,
   };
+  const lifecycleSwapParams: Array<ReadonlyArray<SqlValue>> = [];
   const cleanupParams: Array<ReadonlyArray<SqlValue>> = [];
   const executor: DatabaseExecutor = {
     async query<Row extends pg.QueryResultRow>(
@@ -507,6 +508,10 @@ test("catalog package image authoring replays card bytes and safely replaces cov
         };
         assert.match(text, /gen_random_uuid\(\)/u);
         return createQueryResult([cardRow as unknown as Row]);
+      }
+      if (text.includes("lock_media_blob_lifecycles_for_reference_swap")) {
+        lifecycleSwapParams.push(params);
+        return createQueryResult([]);
       }
       if (text.includes("UPDATE catalog.package_media_assets")) {
         coverRow = { ...coverRow, media_blob_id: String(params[2]) };
@@ -559,6 +564,7 @@ test("catalog package image authoring replays card bytes and safely replaces cov
   assert.equal(replaced.applied, true);
   assert.equal(replaced.mediaAsset.packageMediaKey, "cover");
   assert.equal(replaced.mediaAsset.mediaBlobId, replacementBlobId);
+  assert.deepEqual(lifecycleSwapParams, [[testMediaBlobId, replacementBlobId]]);
   assert.equal(cleanupParams.length, 1);
   assert.equal(cleanupParams[0]?.[0], testMediaBlobId);
 });
