@@ -29,7 +29,6 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 - `apps/web`: React + Vite web app with IndexedDB local storage
 - `apps/admin`: React + Vite admin app with server-side analytics data loading
 - `apps/ios`: SwiftUI iOS app with SQLite local storage
-- `api`: published OpenAPI source used by the backend and agent docs
 - `db/migrations`: PostgreSQL schema, security, and runtime-role migrations
 - `db/views`: SQL views applied after migrations
 - `infra/aws`: CDK stack for networking, database, auth, API, web hosting, CI/CD, backups, and monitoring
@@ -91,8 +90,8 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 
 `apps/backend/src/server/app.ts` mounts ten route modules:
 
-- `system`: discovery, health, OpenAPI, session/account inspection, account deletion
-- `agent`: machine-facing discovery, workspace bootstrap, SQL endpoint, and agent OpenAPI documents
+- `system`: runtime discovery, source-discovery probes, health, session/account inspection, and account deletion
+- `agent`: machine-facing source-discovery aliases, workspace bootstrap, and SQL endpoints
 - `workspaces`: list/create/select workspaces, workspace lifecycle actions, and human-session agent API key management
 - `admin`: admin session and report query endpoints
 - `cards`: workspace card query and tag summary endpoints
@@ -267,7 +266,7 @@ The machine-facing API is intentionally narrower than the human app API:
 - workspace listing and bootstrap at `GET/POST /v1/agent/workspaces`
 - workspace selection at `POST /v1/agent/workspaces/{workspaceId}/select`
 - SQL reads at `POST /v1/agent/sql/query` (read-only) and SQL writes at `POST /v1/agent/sql/execute`
-- published docs at `GET /v1/agent/openapi.json` and `GET /v1/agent/swagger.json`
+- conventional document probes at `GET /v1/openapi.json`, `GET /v1/swagger.json`, `GET /v1/agent/openapi.json`, and `GET /v1/agent/swagger.json`; all four return the same concise source-discovery JSON linking to the open-source repository and the relevant backend and auth route source files, not an OpenAPI document
 
 The SQL dialect is not full PostgreSQL. It is a constrained contract implemented in `apps/backend/src/aiTools`.
 

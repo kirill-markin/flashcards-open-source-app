@@ -50,7 +50,7 @@ In normal releases, backend, web, Android, and iOS should all move to the same n
 
 A version bump is not complete until the repo-owned version surfaces that participate in that release stay aligned with each other and with each platform's runtime-reported version source.
 
-Do not change `/v1` API paths, OpenAPI `info.version: v1`, or API Gateway stage names as part of an app release bump. Those values describe the public API contract version, not the app release version.
+Do not change `/v1` API paths or API Gateway stage names as part of an app release bump. Those values describe the public API contract version, not the app release version.
 
 ## Source Of Truth By Platform
 
@@ -62,7 +62,6 @@ Update these package manifests together:
 
 - `apps/backend/package.json`
 - `apps/admin/package.json`
-- `api/package.json`
 - `apps/auth/package.json`
 - `infra/aws/package.json`
 
