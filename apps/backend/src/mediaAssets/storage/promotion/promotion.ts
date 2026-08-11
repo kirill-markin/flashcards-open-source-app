@@ -370,6 +370,14 @@ function createCatalogImageBlobObjectMismatchError(
     409,
     `Catalog image blob conflicts with stored object bytes. sha256=${input.sha256} mismatchedFields=${mismatchedFields.join(",")}`,
     "CATALOG_IMAGE_BLOB_OBJECT_MISMATCH",
+    {
+      catalogImageBlob: {
+        reason: "stored_object_mismatch",
+        sha256: input.sha256,
+        storageKey: input.storageKey,
+        mismatchedFields,
+      },
+    },
   );
 }
 
@@ -387,6 +395,16 @@ function createCatalogImageBlobStorageError(
       `s3ErrorClass=${error instanceof Error ? error.name : "UnknownError"}`,
     ].join(" "),
     "CATALOG_IMAGE_BLOB_STORAGE_UNAVAILABLE",
+    {
+      catalogImageBlob: {
+        reason: "storage_temporarily_unavailable",
+        sha256: input.sha256,
+        storageKey: input.storageKey,
+        s3StatusCode: getS3ErrorStatusCode(error),
+        s3ErrorClass: error instanceof Error ? error.name : "UnknownError",
+        s3ErrorMessage: error instanceof Error ? error.message : String(error),
+      },
+    },
   );
 }
 

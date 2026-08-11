@@ -12,6 +12,7 @@ import { createDirectImageIngestionRoutes } from "../../routes/directImageIngest
 import { createCatalogAdminImageIngestionRoutes } from "../../routes/catalog/adminImageIngestion";
 import {
   createPublicHttpErrorDetails,
+  createPublicHttpErrorMessage,
   HttpError,
 } from "../../shared/errors";
 import type { AppEnv } from "../appEnv";
@@ -84,18 +85,19 @@ function createDirectImageIngestionMountedApp(
       context.status(error.statusCode as ContentfulStatusCode);
       applyHttpErrorResponseHeaders(context, error);
       const publicDetails = createPublicHttpErrorDetails(error.details);
+      const publicMessage = createPublicHttpErrorMessage(error);
       if (apiKeyRequest) {
         return context.json(createAgentApiKeyErrorEnvelope(
           context.req.url,
           error.code ?? "REQUEST_FAILED",
-          error.message,
+          publicMessage,
           error.statusCode,
           requestId,
           publicDetails ?? undefined,
         ));
       }
       return context.json({
-        error: error.message,
+        error: publicMessage,
         requestId,
         code: error.code,
         ...(publicDetails === null ? {} : { details: publicDetails }),

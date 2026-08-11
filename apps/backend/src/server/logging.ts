@@ -89,6 +89,7 @@ function createErrorLevelRequestErrorDetails(
     code: details.code,
     validationIssues: details.validationIssues,
     ...(details.mediaAssetStorage === undefined ? {} : { mediaAssetStorage: details.mediaAssetStorage }),
+    ...(details.catalogImageBlob === undefined ? {} : { catalogImageBlob: details.catalogImageBlob }),
     sqlState: details.sqlState,
     errorClass: details.errorClass,
     errorMessage: details.errorMessage,
