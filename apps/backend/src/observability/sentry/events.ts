@@ -881,8 +881,8 @@ export type MediaAssetStorageRetryDetails = Readonly<{
     | "put_object";
   attempt: number;
   maxAttempts: number;
-  workspaceId: string;
-  mediaAssetId: string;
+  workspaceId: string | null;
+  mediaAssetId: string | null;
   statusCode: number | null;
   errorClass: string;
 }>;

@@ -9,10 +9,12 @@ import test from "node:test";
 import sharp from "sharp";
 import { HttpError } from "../../shared/errors";
 import {
+  imageJpegCatalogCoverMaxSidePixels,
   imageJpegCardMaxSidePixels,
   imageJpegCardTransparentPixelLightCardGray,
   normalizeImageBytesForCard,
   normalizeImageBytesForCardUntilDeadline,
+  normalizeImageBytesForCatalogCover,
   runImageNormalizationWorker,
   type ImageNormalizationProcessDependencies,
 } from "./imageNormalization";
@@ -45,6 +47,21 @@ async function createLargeJpeg(): Promise<Buffer> {
     create: {
       width: 1_600,
       height: 800,
+      channels: 3,
+      background: {
+        r: 20,
+        g: 30,
+        b: 40,
+      },
+    },
+  }).jpeg().toBuffer();
+}
+
+async function createCatalogCoverJpeg(): Promise<Buffer> {
+  return sharp({
+    create: {
+      width: 3_000,
+      height: 1_500,
       channels: 3,
       background: {
         r: 20,
@@ -101,6 +118,47 @@ test("normalizeImageBytesForCard constrains the longest side", async () => {
 
   assert.equal(metadata.width, imageJpegCardMaxSidePixels);
   assert.equal(metadata.height, 600);
+});
+
+test("normalizeImageBytesForCard preserves the workspace card transform profile", async () => {
+  const inputBytes = await createLargeJpeg();
+  const expectedBytes = await sharp(inputBytes, {
+    animated: false,
+    failOn: "warning",
+    limitInputPixels: 24_000_000,
+  })
+    .rotate()
+    .resize({
+      width: 1_200,
+      height: 1_200,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .flatten({ background: { r: 241, g: 243, b: 244 } })
+    .toColorspace("srgb")
+    .jpeg({
+      quality: 82,
+      progressive: false,
+      mozjpeg: false,
+    })
+    .toBuffer();
+
+  const result = await normalizeImageBytesForCard(inputBytes);
+
+  assert.deepEqual(result.bytes, expectedBytes);
+});
+
+test("normalizeImageBytesForCatalogCover is deterministic and constrains the longest side", async () => {
+  const inputBytes = await createCatalogCoverJpeg();
+
+  const firstResult = await normalizeImageBytesForCatalogCover(inputBytes);
+  const secondResult = await normalizeImageBytesForCatalogCover(inputBytes);
+  const metadata = await sharp(firstResult.bytes).metadata();
+
+  assert.deepEqual(firstResult.bytes, secondResult.bytes);
+  assert.equal(firstResult.mimeType, imageJpegCardMediaBlobMimeType);
+  assert.equal(metadata.width, imageJpegCatalogCoverMaxSidePixels);
+  assert.equal(metadata.height, 1_200);
 });
 
 test("normalizeImageBytesForCard rejects GIF input", async () => {
