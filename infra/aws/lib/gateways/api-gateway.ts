@@ -108,6 +108,7 @@ export type DirectImageIngestionApiRoutes = Readonly<{
   workspaceImages: apigw.Resource;
   catalogCardImages: apigw.Resource;
   catalogCover: apigw.Resource;
+  catalogCollectionCover: apigw.Resource;
 }>;
 
 export function addDirectImageIngestionApiRoutes(
@@ -147,10 +148,20 @@ export function addDirectImageIngestionApiRoutes(
   const catalogCover = catalogPackage.addResource("cover");
   catalogCover.addMethod("ANY", sharedIntegration);
   catalogCover.addMethod("PUT", directIntegration);
+
+  const collections = catalog.addResource("collections");
+  collections.addMethod("ANY", sharedIntegration);
+  const catalogCollection = collections.addResource("{collectionId}");
+  catalogCollection.addMethod("ANY", sharedIntegration);
+  catalogCollection.addResource("{proxy+}").addMethod("ANY", sharedIntegration);
+  const catalogCollectionCover = catalogCollection.addResource("cover");
+  catalogCollectionCover.addMethod("ANY", sharedIntegration);
+  catalogCollectionCover.addMethod("PUT", directIntegration);
   return {
     workspaceImages: directImages,
     catalogCardImages,
     catalogCover,
+    catalogCollectionCover,
   };
 }
 

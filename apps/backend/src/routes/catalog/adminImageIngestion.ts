@@ -5,13 +5,19 @@ import {
 } from "../../admin/authz";
 import {
   ingestCatalogPackageCardImage,
+  replaceCatalogCollectionCoverImage,
   replaceCatalogPackageCoverImage,
+  type CatalogCollectionCoverImageIngestionInput,
+  type CatalogCollectionCoverImageIngestionResult,
   type CatalogPackageCardImageIngestionInput,
   type CatalogPackageCoverImageIngestionInput,
   type CatalogPackageImageIngestionResult,
 } from "../../catalog/authoring/imageIngestion";
 import { normalizePackageMediaKey } from "../../catalog/common";
-import type { CatalogPackageMediaAsset } from "../../catalog/types";
+import type {
+  CatalogCollectionCover,
+  CatalogPackageMediaAsset,
+} from "../../catalog/types";
 import {
   DatabaseDeadlineExceededError,
   runDatabaseOperationsWithDeadline,
@@ -39,12 +45,14 @@ import { expectUuidString } from "../../server/requestParsing";
 import { HttpError } from "../../shared/errors";
 
 type PublicCatalogPackageMediaAsset = Omit<CatalogPackageMediaAsset, "mediaBlobId">;
+type PublicCatalogCollectionCover = Omit<CatalogCollectionCover, "coverMediaBlobId">;
 
 export type CatalogAdminImageIngestionRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   requireAdminRequestFn?: (request: Request, allowedOrigins: ReadonlyArray<string>) => Promise<CatalogAdminRequestContext>;
   ingestCatalogPackageCardImageFn?: (input: CatalogPackageCardImageIngestionInput) => Promise<CatalogPackageImageIngestionResult>;
   replaceCatalogPackageCoverImageFn?: (input: CatalogPackageCoverImageIngestionInput) => Promise<CatalogPackageImageIngestionResult>;
+  replaceCatalogCollectionCoverImageFn?: (input: CatalogCollectionCoverImageIngestionInput) => Promise<CatalogCollectionCoverImageIngestionResult>;
 }>;
 
 function parsePackageId(value: string | undefined): string {
@@ -55,6 +63,17 @@ function parsePackageId(value: string | undefined): string {
     return expectUuidString(value, "packageId");
   } catch {
     throw new HttpError(400, "packageId must be a UUID", "CATALOG_ADMIN_PARAM_INVALID");
+  }
+}
+
+function parseCollectionId(value: string | undefined): string {
+  if (value === undefined) {
+    throw new HttpError(400, "collectionId is required", "CATALOG_ADMIN_PARAM_REQUIRED");
+  }
+  try {
+    return expectUuidString(value, "collectionId");
+  } catch {
+    throw new HttpError(400, "collectionId must be a UUID", "CATALOG_ADMIN_PARAM_INVALID");
   }
 }
 
@@ -80,6 +99,14 @@ function toPublicCatalogPackageMediaAsset(
   const { mediaBlobId, ...publicMediaAsset } = mediaAsset;
   void mediaBlobId;
   return publicMediaAsset;
+}
+
+function toPublicCatalogCollectionCover(
+  collectionCover: CatalogCollectionCover,
+): PublicCatalogCollectionCover {
+  const { coverMediaBlobId, ...publicCollectionCover } = collectionCover;
+  void coverMediaBlobId;
+  return publicCollectionCover;
 }
 
 function createCatalogImageIngestionScope(context: Context<AppEnv>, userId: string | null): BackendObservationScope {
@@ -165,6 +192,25 @@ function addCatalogImageIngestionSuccess(
   });
 }
 
+function addCatalogCollectionCoverIngestionSuccess(
+  scope: BackendObservationScope,
+  result: CatalogCollectionCoverImageIngestionResult,
+  statusCode: number,
+): void {
+  addBackendRuntimeBreadcrumb({
+    action: "media_asset_image_ingest",
+    scope,
+    details: {
+      statusCode,
+      mediaAssetId: null,
+      collectionId: result.collectionCover.collectionId,
+      mimeType: result.mimeType,
+      sizeBytes: result.sizeBytes,
+      applied: result.applied,
+    },
+  });
+}
+
 function createRequestDeadline(): DirectImageIngestionRequestDeadline {
   const timing = getDirectImageIngestionRequestTiming()
     ?? createStandaloneDirectImageIngestionRequestTiming(Date.now());
@@ -179,6 +225,8 @@ export function createCatalogAdminImageIngestionRoutes(options: CatalogAdminImag
     ?? ingestCatalogPackageCardImage;
   const replaceCatalogPackageCoverImageFn = options.replaceCatalogPackageCoverImageFn
     ?? replaceCatalogPackageCoverImage;
+  const replaceCatalogCollectionCoverImageFn = options.replaceCatalogCollectionCoverImageFn
+    ?? replaceCatalogCollectionCoverImage;
 
   app.post("/admin/catalog/packages/:packageId/media-assets/images", async (context) => {
     const deadline = createRequestDeadline();
@@ -248,6 +296,44 @@ export function createCatalogAdminImageIngestionRoutes(options: CatalogAdminImag
       addCatalogImageIngestionSuccess(scope, result, 200);
       return context.json({
         mediaAsset: toPublicCatalogPackageMediaAsset(result.mediaAsset),
+      });
+    } catch (error) {
+      reportAndRethrowCatalogImageIngestionError(error, deadline, context, userId);
+    } finally {
+      deadline.dispose();
+    }
+  });
+
+  // TODO: Add future collection metadata/status and ordered-membership authoring.
+  app.put("/admin/catalog/collections/:collectionId/cover", async (context) => {
+    const deadline = createRequestDeadline();
+    let userId: string | null = null;
+    try {
+      const prepared = await runDatabaseOperationsWithDeadline(
+        deadline.preprocessingDeadlineAtMs,
+        async () => {
+          const admin = await requireAdminRequestFn(context.req.raw, options.allowedOrigins);
+          userId = admin.userId;
+          const collectionId = parseCollectionId(context.req.param("collectionId"));
+          const imageBytes = await readMediaAssetImageIngestionBytesWithAbortSignal(
+            context.req.raw,
+            deadline.preprocessingSignal,
+          );
+          return { collectionId, imageBytes };
+        },
+      );
+      deadline.disposePreprocessing();
+      const scope = createCatalogImageIngestionScope(context, userId);
+      const result = await replaceCatalogCollectionCoverImageFn({
+        collectionId: prepared.collectionId,
+        imageBytes: prepared.imageBytes,
+        deadlineAtMs: deadline.requestDeadlineAtMs,
+        signal: deadline.requestSignal,
+        observationScope: scope,
+      });
+      addCatalogCollectionCoverIngestionSuccess(scope, result, 200);
+      return context.json({
+        collectionCover: toPublicCatalogCollectionCover(result.collectionCover),
       });
     } catch (error) {
       reportAndRethrowCatalogImageIngestionError(error, deadline, context, userId);

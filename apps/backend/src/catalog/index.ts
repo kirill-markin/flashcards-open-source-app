@@ -11,9 +11,13 @@ export {
   replaceCatalogPackageDraftCoverInExecutor,
 } from "./authoring/draftMedia";
 export {
+  replaceCatalogCollectionCoverInExecutor,
+} from "./authoring/collectionCovers";
+export {
   ingestCatalogCardImageBlob,
   ingestCatalogCoverImageBlob,
   ingestCatalogPackageCardImage,
+  replaceCatalogCollectionCoverImage,
   replaceCatalogPackageCoverImage,
 } from "./authoring/imageIngestion";
 export {

@@ -340,7 +340,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const migrationGate = databaseMigrationGate(
       this,
       migrationFn,
-      "0109_catalog_image_blob_ingestion.sql",
+      "0110_collection_cover_media.sql",
     );
     const api = apiGateway(this, {
       vpc: net.vpc,
@@ -369,6 +369,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       userPoolClientId: authResult.userPoolClient.userPoolClientId,
     });
     addDatabaseMigrationDependency(api.backendFn, migrationGate);
+    addDatabaseMigrationDependency(api.directImageIngestionFn, migrationGate);
     const web = webApp(this, {
       baseDomain,
       webCertificateArnUsEast1,

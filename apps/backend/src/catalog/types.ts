@@ -107,6 +107,19 @@ export type UpdateCatalogPackageDraftInput = Readonly<{
   coverPackageMediaKey: string | null;
 }>;
 
+// TODO: Add future collection metadata/status and ordered-membership authoring.
+export type CatalogCollectionCoverRow = Readonly<{
+  collection_id: string;
+  cover_media_blob_id: string | null;
+  updated_at: TimestampValue;
+}>;
+
+export type CatalogCollectionCover = Readonly<{
+  collectionId: string;
+  coverMediaBlobId: string | null;
+  updatedAt: string;
+}>;
+
 export type CatalogPackageMediaAssetRow = Readonly<{
   package_media_asset_id: string;
   package_id: string;

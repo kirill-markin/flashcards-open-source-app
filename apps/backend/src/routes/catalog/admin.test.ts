@@ -4,17 +4,22 @@ import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { AdminRequestContext } from "../../admin/authz";
 import type {
+  CatalogCollectionCover,
   CatalogPackageMediaAsset,
   CatalogPackageVersion,
   CreateCatalogPackageVersionFromWorkspaceInput,
 } from "../../catalog/types";
-import type { CatalogPackageImageIngestionResult } from "../../catalog/authoring/imageIngestion";
+import type {
+  CatalogCollectionCoverImageIngestionResult,
+  CatalogPackageImageIngestionResult,
+} from "../../catalog/authoring/imageIngestion";
 import type { AppEnv } from "../../server/app";
 import { HttpError } from "../../shared/errors";
 import { createCatalogAdminRoutes } from "./admin";
 import { createCatalogAdminImageIngestionRoutes } from "./adminImageIngestion";
 
 const packageId = "11111111-1111-4111-8111-111111111111";
+const collectionId = "66666666-6666-4666-8666-666666666666";
 const packageVersionId = "22222222-2222-4222-8222-222222222222";
 const cardId = "33333333-3333-4333-8333-333333333333";
 const legacyWorkspaceId = "35274129-ef97-d366-954c-955b4bb0fbf0";
@@ -188,9 +193,24 @@ function createCatalogImageResult(packageMediaKey: string): CatalogPackageImageI
   return { mediaAsset, applied: true, mimeType: "image/jpeg", sizeBytes: 3 };
 }
 
+function createCatalogCollectionCoverResult(): CatalogCollectionCoverImageIngestionResult {
+  const collectionCover: CatalogCollectionCover = {
+    collectionId,
+    coverMediaBlobId: "77777777-7777-4777-8777-777777777777",
+    updatedAt: "2026-08-11T00:00:00.000Z",
+  };
+  return {
+    collectionCover,
+    applied: true,
+    mimeType: "image/jpeg",
+    sizeBytes: 3,
+  };
+}
+
 function createCatalogImageTestApp(
   authorize: () => Promise<AdminRequestContext>,
   ingestCard: (packageMediaKey: string, imageBytes: Buffer) => Promise<CatalogPackageImageIngestionResult>,
+  replaceCollectionCover: (receivedCollectionId: string, imageBytes: Buffer) => Promise<CatalogCollectionCoverImageIngestionResult>,
 ): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   app.use("*", async (context, next) => {
@@ -214,6 +234,10 @@ function createCatalogImageTestApp(
       input.imageBytes,
     ),
     replaceCatalogPackageCoverImageFn: async () => createCatalogImageResult("cover"),
+    replaceCatalogCollectionCoverImageFn: async (input) => replaceCollectionCover(
+      input.collectionId,
+      input.imageBytes,
+    ),
   }));
   return app;
 }
@@ -228,18 +252,28 @@ test("catalog image routes authorize before validating raw bodies", async () => 
       processingCalls += 1;
       return createCatalogImageResult("diagram");
     },
+    async () => {
+      processingCalls += 1;
+      return createCatalogCollectionCoverResult();
+    },
   );
 
-  const response = await app.request(
-    `http://localhost/admin/catalog/packages/${packageId}/media-assets/images`,
-    { method: "POST", body: "not-an-image" },
-  );
-  assert.equal(response.status, 403);
+  for (const [path, method] of [
+    [`/admin/catalog/packages/${packageId}/media-assets/images`, "POST"],
+    [`/admin/catalog/collections/${collectionId}/cover`, "PUT"],
+  ] as const) {
+    const response = await app.request(
+      `http://localhost${path}`,
+      { method, body: "not-an-image" },
+    );
+    assert.equal(response.status, 403);
+  }
   assert.equal(processingCalls, 0);
 });
 
 test("catalog image routes validate raw input and never expose media blob IDs", async () => {
   let cardCalls = 0;
+  let collectionCalls = 0;
   const app = createCatalogImageTestApp(
     async () => createAdminRequestContext(),
     async (packageMediaKey, imageBytes) => {
@@ -247,6 +281,12 @@ test("catalog image routes validate raw input and never expose media blob IDs", 
       assert.equal(packageMediaKey, "diagram");
       assert.deepEqual(imageBytes, Buffer.from([1, 2, 3]));
       return createCatalogImageResult(packageMediaKey);
+    },
+    async (receivedCollectionId, imageBytes) => {
+      collectionCalls += 1;
+      assert.equal(receivedCollectionId, collectionId);
+      assert.deepEqual(imageBytes, Buffer.from([1, 2, 3]));
+      return createCatalogCollectionCoverResult();
     },
   );
   const invalidResponse = await app.request(
@@ -276,7 +316,21 @@ test("catalog image routes validate raw input and never expose media blob IDs", 
     assert.equal(response.status, method === "POST" ? 201 : 200);
     assert.equal("mediaBlobId" in payload.mediaAsset, false);
   }
+  const collectionResponse = await app.request(
+    `http://localhost/admin/catalog/collections/${collectionId}/cover`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "image/png" },
+      body: Buffer.from([1, 2, 3]),
+    },
+  );
+  const collectionPayload = await collectionResponse.json() as Readonly<{
+    collectionCover: Readonly<Record<string, unknown>>;
+  }>;
+  assert.equal(collectionResponse.status, 200);
+  assert.equal("coverMediaBlobId" in collectionPayload.collectionCover, false);
   assert.equal(cardCalls, 1);
+  assert.equal(collectionCalls, 1);
 });
 
 test("catalog image routes normalize ingestion deadline errors", async () => {
@@ -290,6 +344,7 @@ test("catalog image routes normalize ingestion deadline errors", async () => {
       async () => {
         throw error;
       },
+      async () => createCatalogCollectionCoverResult(),
     );
     const response = await app.request(
       `http://localhost/admin/catalog/packages/${packageId}/media-assets/images`,

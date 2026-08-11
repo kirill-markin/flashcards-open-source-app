@@ -8,6 +8,8 @@ import {
 import type {
   CatalogAuthor,
   CatalogAuthorRow,
+  CatalogCollectionCover,
+  CatalogCollectionCoverRow,
   CatalogPackage,
   CatalogPackageMediaAsset,
   CatalogPackageMediaAssetRow,
@@ -55,6 +57,12 @@ export const catalogPackageMediaAssetColumns = [
   "credit",
   "license",
   "created_at",
+  "updated_at",
+].join(", ");
+
+export const catalogCollectionCoverColumns = [
+  "collection_id",
+  "cover_media_blob_id",
   "updated_at",
 ].join(", ");
 
@@ -132,6 +140,16 @@ export function mapCatalogPackageMediaAssetRow(row: CatalogPackageMediaAssetRow)
   };
 }
 
+export function mapCatalogCollectionCoverRow(
+  row: CatalogCollectionCoverRow,
+): CatalogCollectionCover {
+  return {
+    collectionId: row.collection_id,
+    coverMediaBlobId: row.cover_media_blob_id,
+    updatedAt: toIsoString(row.updated_at),
+  };
+}
+
 export function mapCatalogPackageVersionRow(row: CatalogPackageVersionRow): CatalogPackageVersion {
   return {
     packageVersionId: row.package_version_id,
@@ -177,6 +195,32 @@ export async function lockCatalogPackageInExecutor(
   const row = result.rows[0];
   if (row === undefined) {
     throw new HttpError(404, `Catalog package not found. packageId=${packageId}`, "CATALOG_PACKAGE_NOT_FOUND");
+  }
+
+  return row;
+}
+
+export async function lockCatalogCollectionCoverInExecutor(
+  executor: DatabaseExecutor,
+  collectionId: string,
+): Promise<CatalogCollectionCoverRow> {
+  const result = await executor.query<CatalogCollectionCoverRow>(
+    [
+      "SELECT",
+      catalogCollectionCoverColumns,
+      "FROM catalog.collections",
+      "WHERE collection_id = $1",
+      "FOR UPDATE",
+    ].join(" "),
+    [collectionId],
+  );
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new HttpError(
+      404,
+      `Catalog collection not found. collectionId=${collectionId}`,
+      "CATALOG_COLLECTION_NOT_FOUND",
+    );
   }
 
   return row;
