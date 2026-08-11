@@ -104,11 +104,17 @@ export const publicRestApiDefaultIntegrationTimeoutSeconds = 29;
 export const directImageIngestionMaximumOnDemandInitSeconds = 10;
 export const directImageIngestionLambdaTimeoutSeconds = 15;
 
+export type DirectImageIngestionApiRoutes = Readonly<{
+  workspaceImages: apigw.Resource;
+  catalogCardImages: apigw.Resource;
+  catalogCover: apigw.Resource;
+}>;
+
 export function addDirectImageIngestionApiRoutes(
   restApi: apigw.RestApi,
   sharedIntegration: apigw.Integration,
   directIntegration: apigw.Integration,
-): apigw.Resource {
+): DirectImageIngestionApiRoutes {
   const workspaces = restApi.root.addResource("workspaces");
   workspaces.addMethod("ANY", sharedIntegration);
   const workspace = workspaces.addResource("{workspaceId}");
@@ -120,7 +126,32 @@ export function addDirectImageIngestionApiRoutes(
   const directImages = mediaAssets.addResource("images");
   directImages.addMethod("ANY", sharedIntegration);
   directImages.addMethod("POST", directIntegration);
-  return directImages;
+
+  const admin = restApi.root.addResource("admin");
+  admin.addMethod("ANY", sharedIntegration);
+  admin.addResource("{proxy+}").addMethod("ANY", sharedIntegration);
+  const catalog = admin.addResource("catalog");
+  catalog.addMethod("ANY", sharedIntegration);
+  catalog.addResource("{proxy+}").addMethod("ANY", sharedIntegration);
+  const packages = catalog.addResource("packages");
+  packages.addMethod("ANY", sharedIntegration);
+  const catalogPackage = packages.addResource("{packageId}");
+  catalogPackage.addMethod("ANY", sharedIntegration);
+  catalogPackage.addResource("{proxy+}").addMethod("ANY", sharedIntegration);
+  const packageMediaAssets = catalogPackage.addResource("media-assets");
+  packageMediaAssets.addMethod("ANY", sharedIntegration);
+  packageMediaAssets.addResource("{proxy+}").addMethod("ANY", sharedIntegration);
+  const catalogCardImages = packageMediaAssets.addResource("images");
+  catalogCardImages.addMethod("ANY", sharedIntegration);
+  catalogCardImages.addMethod("POST", directIntegration);
+  const catalogCover = catalogPackage.addResource("cover");
+  catalogCover.addMethod("ANY", sharedIntegration);
+  catalogCover.addMethod("PUT", directIntegration);
+  return {
+    workspaceImages: directImages,
+    catalogCardImages,
+    catalogCover,
+  };
 }
 
 interface GlobalMetricsConfig {
@@ -170,6 +201,7 @@ const browserCorsAllowHeaders = [
   "x-media-client-updated-at",
   "x-media-last-modified-by-replica-id",
   "x-media-last-operation-id",
+  "x-package-media-key",
 ] as const;
 
 const browserCorsExposeHeaders = [

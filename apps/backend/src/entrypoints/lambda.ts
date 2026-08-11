@@ -16,7 +16,7 @@ import {
   getAllowedBrowserOrigins,
 } from "../server/browserCors";
 import {
-  isDirectImageIngestionPostTarget,
+  isDirectImageIngestionTarget,
   isMultipartCompletionPostTarget,
   readApiGatewayRequestTarget,
 } from "../server/mediaRequests/directImageIngestionRouting";
@@ -126,7 +126,7 @@ const backendApiBootstrapHandler: BackendApiHandler = async (event, context) => 
     null,
     null,
   );
-  if (isDirectImageIngestionPostTarget(readApiGatewayRequestTarget(event))) {
+  if (isDirectImageIngestionTarget(readApiGatewayRequestTarget(event))) {
     const requestId = requestContext.requestId ?? context.awsRequestId;
     const requestHeaders = Object.entries(event.headers ?? {});
     const readRequestHeader = (headerName: string): string | null =>

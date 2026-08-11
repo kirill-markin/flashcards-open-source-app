@@ -7,10 +7,14 @@ export {
 export {
   attachCatalogPackageDraftMediaAsset,
   attachCatalogPackageDraftMediaAssetInExecutor,
+  createOrReplayCatalogPackageDraftCardImageInExecutor,
+  replaceCatalogPackageDraftCoverInExecutor,
 } from "./authoring/draftMedia";
 export {
   ingestCatalogCardImageBlob,
   ingestCatalogCoverImageBlob,
+  ingestCatalogPackageCardImage,
+  replaceCatalogPackageCoverImage,
 } from "./authoring/imageIngestion";
 export {
   createCatalogPackageDraft,

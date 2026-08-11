@@ -23,7 +23,11 @@ import {
   unsafePublicCatalogStorageReference,
 } from "./authoringTestSupport";
 import { createCatalogAuthorInExecutor, updateCatalogAuthorInExecutor } from "./authors";
-import { attachCatalogPackageDraftMediaAssetInExecutor } from "./draftMedia";
+import {
+  attachCatalogPackageDraftMediaAssetInExecutor,
+  createOrReplayCatalogPackageDraftCardImageInExecutor,
+  replaceCatalogPackageDraftCoverInExecutor,
+} from "./draftMedia";
 import { createCatalogPackageDraftInExecutor, updateCatalogPackageDraftInExecutor } from "./drafts";
 
 function createAuthorRow(websiteUrl: string | null): CatalogAuthorRow {
@@ -463,4 +467,98 @@ test("catalog package media assets attach through content.media_blobs", async ()
   assert.equal(mediaAsset.mediaBlobId, testMediaBlobId);
   assert.equal(mediaAsset.packageMediaKey, "cover");
   assert.equal(queries.length, 2);
+});
+
+test("catalog package image authoring replays card bytes and safely replaces cover bytes", async () => {
+  const replacementBlobId = "66666666-6666-4666-8666-666666666666";
+  const cardMediaAssetId = "77777777-7777-4777-8777-777777777777";
+  let cardRow: CatalogPackageMediaAssetRow | null = null;
+  let coverRow: CatalogPackageMediaAssetRow = {
+    package_media_asset_id: testPackageMediaAssetId,
+    package_id: testPackageId,
+    package_version_id: null,
+    package_media_key: "cover",
+    media_blob_id: testMediaBlobId,
+    alt_text: null,
+    credit: null,
+    license: null,
+    created_at: testTimestamp,
+    updated_at: testTimestamp,
+  };
+  const cleanupParams: Array<ReadonlyArray<SqlValue>> = [];
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<SqlValue>,
+    ): Promise<pg.QueryResult<Row>> {
+      if (text.includes("FROM catalog.packages") && text.includes("FOR UPDATE")) {
+        return createQueryResult([createPackageRow() as unknown as Row]);
+      }
+      if (text.includes("FROM catalog.package_media_assets") && text.includes("FOR UPDATE")) {
+        const row = params[1] === "cover" ? coverRow : cardRow;
+        return createQueryResult(row === null ? [] : [row as unknown as Row]);
+      }
+      if (text.includes("INSERT INTO catalog.package_media_assets")) {
+        cardRow = {
+          ...coverRow,
+          package_media_asset_id: cardMediaAssetId,
+          package_media_key: String(params[1]),
+          media_blob_id: String(params[2]),
+        };
+        assert.match(text, /gen_random_uuid\(\)/u);
+        return createQueryResult([cardRow as unknown as Row]);
+      }
+      if (text.includes("UPDATE catalog.package_media_assets")) {
+        coverRow = { ...coverRow, media_blob_id: String(params[2]) };
+        return createQueryResult([coverRow as unknown as Row]);
+      }
+      if (text.includes("UPDATE catalog.packages")) {
+        assert.deepEqual(params, [testPackageId, "cover"]);
+        return createQueryResult([]);
+      }
+      if (text.includes("schedule_media_blob_cleanup")) {
+        cleanupParams.push(params);
+        return createQueryResult([]);
+      }
+      throw new Error(`Unexpected query: ${text}`);
+    },
+  };
+
+  const created = await createOrReplayCatalogPackageDraftCardImageInExecutor(
+    executor,
+    testPackageId,
+    " Diagram ",
+    testMediaBlobId,
+  );
+  const replayed = await createOrReplayCatalogPackageDraftCardImageInExecutor(
+    executor,
+    testPackageId,
+    "diagram",
+    testMediaBlobId,
+  );
+  assert.equal(created.applied, true);
+  assert.equal(replayed.applied, false);
+  assert.equal(replayed.mediaAsset.packageMediaAssetId, cardMediaAssetId);
+  await assert.rejects(
+    createOrReplayCatalogPackageDraftCardImageInExecutor(
+      executor,
+      testPackageId,
+      "diagram",
+      replacementBlobId,
+    ),
+    (error: unknown) => error instanceof HttpError
+      && error.statusCode === 409
+      && error.code === "CATALOG_PACKAGE_MEDIA_KEY_CONTENT_CONFLICT",
+  );
+
+  const replaced = await replaceCatalogPackageDraftCoverInExecutor(
+    executor,
+    testPackageId,
+    replacementBlobId,
+  );
+  assert.equal(replaced.applied, true);
+  assert.equal(replaced.mediaAsset.packageMediaKey, "cover");
+  assert.equal(replaced.mediaAsset.mediaBlobId, replacementBlobId);
+  assert.equal(cleanupParams.length, 1);
+  assert.equal(cleanupParams[0]?.[0], testMediaBlobId);
 });

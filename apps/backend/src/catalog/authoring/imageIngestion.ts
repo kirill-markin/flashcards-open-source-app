@@ -5,10 +5,7 @@ import {
 } from "../../database";
 import { unsafeTransactionWithDeadline } from "../../database/unsafe";
 import { DatabaseCommitOutcomeUnknownError } from "../../database/transient";
-import {
-  MediaBlobLifecycleBusyError,
-  MediaBlobLifecycleConflictError,
-} from "../../mediaAssets/blobLifecycle";
+import { MediaBlobLifecycleConflictError } from "../../mediaAssets/blobLifecycle";
 import {
   assertMediaBlobMatchesMetadata,
   findMediaBlobRowBySha256InExecutor,
@@ -32,6 +29,12 @@ import {
 import type { BackendObservationScope } from "../../observability/sentry/events";
 import { HttpError } from "../../shared/errors";
 import { maximumPublicCatalogMediaDownloadBytes } from "../publicMediaDelivery";
+import type { CatalogPackageMediaAsset } from "../types";
+import {
+  createOrReplayCatalogPackageDraftCardImageInExecutor,
+  replaceCatalogPackageDraftCoverInExecutor,
+  type CatalogPackageMediaMutationResult,
+} from "./draftMedia";
 
 const catalogImageBlobAdmissionCleanupDelayMs = 3_600_000;
 const maximumCatalogImageBlobIngestionRequestLifetimeMs = 60_000;
@@ -41,6 +44,24 @@ type CatalogImageBlobIngestionInput = Readonly<{
   deadlineAtMs: number;
   signal: AbortSignal;
   observationScope: BackendObservationScope;
+}>;
+
+export type CatalogPackageCardImageIngestionInput =
+  CatalogImageBlobIngestionInput & Readonly<{
+    packageId: string;
+    packageMediaKey: string;
+  }>;
+
+export type CatalogPackageCoverImageIngestionInput =
+  CatalogImageBlobIngestionInput & Readonly<{
+    packageId: string;
+  }>;
+
+export type CatalogPackageImageIngestionResult = Readonly<{
+  mediaAsset: CatalogPackageMediaAsset;
+  applied: boolean;
+  mimeType: string;
+  sizeBytes: number;
 }>;
 
 type CatalogImageBlobMetadata = Readonly<{
@@ -235,9 +256,6 @@ function rethrowCatalogImageBlobAdmissionError(error: unknown): never {
   if (hasSqlState(error, "23514")) {
     throw new MediaBlobLifecycleConflictError();
   }
-  if (hasSqlState(error, "55P03")) {
-    throw new MediaBlobLifecycleBusyError();
-  }
   throw error;
 }
 
@@ -384,24 +402,69 @@ const productionCatalogImageBlobIngestionDependencies: CatalogImageBlobIngestion
   nowFn: Date.now,
 };
 
+async function ingestCatalogCardImageBlobWithDeadline(
+  input: CatalogImageBlobIngestionInput,
+): Promise<MediaBlob> {
+  const normalizedImage = await normalizeImageBytesForCardUntilDeadline(
+    input.imageBytes,
+    input.deadlineAtMs,
+    input.signal,
+  );
+  return storeNormalizedCatalogImageBlob(
+    input,
+    normalizedImage,
+    imageJpegCardMediaBlobNormalizationVersion,
+    productionCatalogImageBlobIngestionDependencies,
+  );
+}
+
+async function ingestCatalogCoverImageBlobWithDeadline(
+  input: CatalogImageBlobIngestionInput,
+): Promise<MediaBlob> {
+  const normalizedImage = await normalizeImageBytesForCatalogCoverUntilDeadline(
+    input.imageBytes,
+    input.deadlineAtMs,
+    input.signal,
+  );
+  return storeNormalizedCatalogImageBlob(
+    input,
+    normalizedImage,
+    imageJpegCatalogCoverMediaBlobNormalizationVersion,
+    productionCatalogImageBlobIngestionDependencies,
+  );
+}
+
+async function mutateCatalogPackageImageWithReplay(
+  operation: (executor: DatabaseExecutor) => Promise<CatalogPackageMediaMutationResult>,
+  deadlineAtMs: number,
+  signal: AbortSignal,
+): Promise<CatalogPackageMediaMutationResult> {
+  return replayCommitUnknown(
+    () => unsafeTransactionWithDeadline(deadlineAtMs, operation),
+    deadlineAtMs,
+    signal,
+    Date.now,
+  );
+}
+
+function toCatalogPackageImageIngestionResult(
+  mediaBlob: MediaBlob,
+  mutation: CatalogPackageMediaMutationResult,
+): CatalogPackageImageIngestionResult {
+  return {
+    mediaAsset: mutation.mediaAsset,
+    applied: mutation.applied,
+    mimeType: mediaBlob.mimeType,
+    sizeBytes: mediaBlob.sizeBytes,
+  };
+}
+
 export async function ingestCatalogCardImageBlob(
   input: CatalogImageBlobIngestionInput,
 ): Promise<MediaBlob> {
   return withCatalogImageBlobDeadline(
     input,
-    async (deadlineInput) => {
-      const normalizedImage = await normalizeImageBytesForCardUntilDeadline(
-        deadlineInput.imageBytes,
-        deadlineInput.deadlineAtMs,
-        deadlineInput.signal,
-      );
-      return storeNormalizedCatalogImageBlob(
-        deadlineInput,
-        normalizedImage,
-        imageJpegCardMediaBlobNormalizationVersion,
-        productionCatalogImageBlobIngestionDependencies,
-      );
-    },
+    ingestCatalogCardImageBlobWithDeadline,
   );
 }
 
@@ -410,18 +473,43 @@ export async function ingestCatalogCoverImageBlob(
 ): Promise<MediaBlob> {
   return withCatalogImageBlobDeadline(
     input,
-    async (deadlineInput) => {
-      const normalizedImage = await normalizeImageBytesForCatalogCoverUntilDeadline(
-        deadlineInput.imageBytes,
-        deadlineInput.deadlineAtMs,
-        deadlineInput.signal,
-      );
-      return storeNormalizedCatalogImageBlob(
-        deadlineInput,
-        normalizedImage,
-        imageJpegCatalogCoverMediaBlobNormalizationVersion,
-        productionCatalogImageBlobIngestionDependencies,
-      );
-    },
+    ingestCatalogCoverImageBlobWithDeadline,
   );
+}
+
+export async function ingestCatalogPackageCardImage(
+  input: CatalogPackageCardImageIngestionInput,
+): Promise<CatalogPackageImageIngestionResult> {
+  return withCatalogImageBlobDeadline(input, async (deadlineInput) => {
+    const mediaBlob = await ingestCatalogCardImageBlobWithDeadline(deadlineInput);
+    const mutation = await mutateCatalogPackageImageWithReplay(
+      (executor) => createOrReplayCatalogPackageDraftCardImageInExecutor(
+        executor,
+        input.packageId,
+        input.packageMediaKey,
+        mediaBlob.mediaBlobId,
+      ),
+      deadlineInput.deadlineAtMs,
+      deadlineInput.signal,
+    );
+    return toCatalogPackageImageIngestionResult(mediaBlob, mutation);
+  });
+}
+
+export async function replaceCatalogPackageCoverImage(
+  input: CatalogPackageCoverImageIngestionInput,
+): Promise<CatalogPackageImageIngestionResult> {
+  return withCatalogImageBlobDeadline(input, async (deadlineInput) => {
+    const mediaBlob = await ingestCatalogCoverImageBlobWithDeadline(deadlineInput);
+    const mutation = await mutateCatalogPackageImageWithReplay(
+      (executor) => replaceCatalogPackageDraftCoverInExecutor(
+        executor,
+        input.packageId,
+        mediaBlob.mediaBlobId,
+      ),
+      deadlineInput.deadlineAtMs,
+      deadlineInput.signal,
+    );
+    return toCatalogPackageImageIngestionResult(mediaBlob, mutation);
+  });
 }
