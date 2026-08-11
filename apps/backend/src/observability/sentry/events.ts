@@ -317,6 +317,7 @@ export type WorkspacePackageImportDetails = Readonly<{
 export type MediaAssetRouteDetails = Readonly<{
   statusCode: number;
   mediaAssetId: string | null;
+  collectionId?: string;
   sessionId?: string | null;
   mimeType?: string;
   sizeBytes?: number;
