@@ -236,7 +236,7 @@ export function AgentConnectionsScreen(): ReactElement {
         >
           <div className="cell-stack">
             <h2 className="panel-subtitle">{t("agentConnections.keyShownOnceTitle")}</h2>
-            <p className="error-banner settings-delete-warning">{t("agentConnections.keyShownOnceWarning")}</p>
+            <p className="warning-banner">{t("agentConnections.keyShownOnceWarning")}</p>
             <code className="settings-key-value" data-testid="agent-key-generated-value">{generatedApiKey}</code>
           </div>
           <div className="screen-actions">
