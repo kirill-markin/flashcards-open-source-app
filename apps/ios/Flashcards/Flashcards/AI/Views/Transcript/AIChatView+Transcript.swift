@@ -118,14 +118,7 @@ extension AIChatView {
     var chatScrollContent: some View {
         // The transcript must use a native virtualized container and stable row IDs.
         List {
-            if self.chatStore.messages.isEmpty {
-                self.emptyChatState
-                    .frame(maxWidth: .infinity)
-                    .containerRelativeFrame(.vertical, alignment: .center)
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-            } else {
+            if self.chatStore.messages.isEmpty == false {
                 let tailMessageId: String? = self.chatStore.messages.last?.id
 
                 ForEach(self.chatStore.messages) { message in
@@ -149,5 +142,10 @@ extension AIChatView {
         .listStyle(.plain)
         .listRowSpacing(12)
         .scrollContentBackground(.hidden)
+        .overlay {
+            if self.chatStore.messages.isEmpty {
+                self.emptyChatState
+            }
+        }
     }
 }
