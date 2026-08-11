@@ -1,4 +1,4 @@
-import { AuthError, authenticateRequest, type AuthRequest, type AuthResult } from "../auth";
+import { authenticateRequest, type AuthRequest, type AuthResult } from "../auth";
 import { ensureCognitoUserProfile, type UserProfile } from "../auth/ensureUser";
 import { HttpError } from "../shared/errors";
 import {
@@ -7,10 +7,15 @@ import {
   toAuthRequest,
   type RequestAuthInputs,
 } from "../auth/requestSecurity";
+import { queryWithUserScopeReadOnly } from "../database";
 import { unsafeQuery } from "../database/unsafe";
 
 type AdminAccessQueryRow = Readonly<{
   exists: number;
+}>;
+
+type AdminProfileEmailQueryRow = Readonly<{
+  email: string | null;
 }>;
 
 type RequireAdminRequestDependencies = Readonly<{
@@ -19,11 +24,27 @@ type RequireAdminRequestDependencies = Readonly<{
   hasActiveAdminGrantFn: (email: string) => Promise<boolean>;
 }>;
 
-export type AdminRequestContext = Readonly<{
+type RequireCatalogAdminRequestDependencies = RequireAdminRequestDependencies & Readonly<{
+  loadAdminProfileEmailFn: (userId: string) => Promise<AdminProfileEmailQueryRow | null>;
+}>;
+
+type AdminRequestContextFields = Readonly<{
   email: string;
-  transport: "session" | "none";
   userId: string;
   subjectUserId: string;
+  requestAuthInputs: RequestAuthInputs;
+}>;
+
+export type AdminRequestContext = AdminRequestContextFields & Readonly<{
+  transport: "session" | "none";
+}>;
+
+export type CatalogAdminRequestContext = AdminRequestContextFields & Readonly<{
+  transport: "session" | "api_key" | "none";
+}>;
+
+type AuthenticatedAdminRequest = Readonly<{
+  auth: AuthResult;
   requestAuthInputs: RequestAuthInputs;
 }>;
 
@@ -53,6 +74,25 @@ export async function hasActiveAdminGrant(email: string): Promise<boolean> {
   return result.rowCount !== 0;
 }
 
+export async function loadAdminProfileEmail(
+  userId: string,
+): Promise<AdminProfileEmailQueryRow | null> {
+  const result = await queryWithUserScopeReadOnly<AdminProfileEmailQueryRow>(
+    { userId },
+    "SELECT email FROM org.user_settings WHERE user_id = $1 LIMIT 1",
+    [userId],
+  );
+  const profile = result.rows[0];
+  if (profile === undefined) {
+    return null;
+  }
+  if (profile.email !== null && typeof profile.email !== "string") {
+    throw new Error(`Admin profile email has an invalid database value. userId=${userId}`);
+  }
+
+  return { email: profile.email };
+}
+
 function isLoopbackHostname(hostname: string): boolean {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
 }
@@ -66,50 +106,45 @@ function isAllowedInsecureLocalAdminRequest(request: Request, auth: AuthResult):
   return isLoopbackHostname(requestHostname);
 }
 
-export async function requireAdminRequestWithDependencies(
+async function authenticateAdminRequest(
   request: Request,
-  allowedOrigins: ReadonlyArray<string>,
-  dependencies: RequireAdminRequestDependencies,
-): Promise<AdminRequestContext> {
+  authenticateRequestFn: (request: AuthRequest) => Promise<AuthResult>,
+): Promise<AuthenticatedAdminRequest> {
   const requestAuthInputs = extractRequestAuthInputs(request);
-  let auth: AuthResult;
+  const auth = await authenticateRequestFn(toAuthRequest(requestAuthInputs));
 
-  try {
-    auth = await dependencies.authenticateRequestFn(toAuthRequest(requestAuthInputs));
-  } catch (error) {
-    if (error instanceof AuthError) {
-      throw error;
-    }
+  return { auth, requestAuthInputs };
+}
 
-    throw error;
-  }
-
-  if (auth.transport === "none") {
-    if (!isAllowedInsecureLocalAdminRequest(request, auth)) {
-      throw new HttpError(
-        403,
-        "Insecure local admin access is limited to localhost development requests.",
-        "ADMIN_LOCALHOST_ONLY",
-      );
-    }
-
-    return {
-      email: localAdminEmail,
-      transport: "none",
-      userId: auth.userId,
-      subjectUserId: auth.subjectUserId,
-      requestAuthInputs,
-    };
-  }
-
-  if (auth.transport !== "session") {
+function requireLocalAdminRequest(
+  request: Request,
+  auth: AuthResult,
+  requestAuthInputs: RequestAuthInputs,
+): AdminRequestContext {
+  if (!isAllowedInsecureLocalAdminRequest(request, auth)) {
     throw new HttpError(
       403,
-      "Admin endpoints require a signed-in browser session.",
-      "ADMIN_HUMAN_AUTH_REQUIRED",
+      "Insecure local admin access is limited to localhost development requests.",
+      "ADMIN_LOCALHOST_ONLY",
     );
   }
 
+  return {
+    email: localAdminEmail,
+    transport: "none",
+    userId: auth.userId,
+    subjectUserId: auth.subjectUserId,
+    requestAuthInputs,
+  };
+}
+
+async function requireSessionAdminRequest(
+  request: Request,
+  allowedOrigins: ReadonlyArray<string>,
+  auth: AuthResult,
+  requestAuthInputs: RequestAuthInputs,
+  dependencies: RequireAdminRequestDependencies,
+): Promise<AdminRequestContext> {
   await enforceSessionCsrfProtection(request.method, requestAuthInputs, allowedOrigins);
 
   const normalizedEmail = normalizeAdminEmail(auth.email ?? "");
@@ -121,11 +156,99 @@ export async function requireAdminRequestWithDependencies(
 
   return {
     email: normalizedEmail,
-    transport: auth.transport,
+    transport: "session",
     userId: userProfile.userId,
     subjectUserId: auth.subjectUserId,
     requestAuthInputs,
   };
+}
+
+async function requireCatalogApiKeyAdminRequest(
+  auth: AuthResult,
+  requestAuthInputs: RequestAuthInputs,
+  dependencies: RequireCatalogAdminRequestDependencies,
+): Promise<CatalogAdminRequestContext> {
+  const profile = await dependencies.loadAdminProfileEmailFn(auth.userId);
+  if (profile === null) {
+    throw new HttpError(
+      403,
+      "Catalog admin API-key access requires an existing user profile.",
+      "ADMIN_ACCESS_REQUIRED",
+    );
+  }
+  if (profile.email === null || profile.email.trim() === "") {
+    throw new HttpError(
+      403,
+      "Catalog admin API-key access requires a profile email.",
+      "ADMIN_ACCESS_REQUIRED",
+    );
+  }
+
+  const normalizedEmail = normalizeAdminEmail(profile.email);
+  const hasGrant = await dependencies.hasActiveAdminGrantFn(normalizedEmail);
+  if (!hasGrant) {
+    throw new HttpError(403, "Admin access required.", "ADMIN_ACCESS_REQUIRED");
+  }
+
+  return {
+    email: normalizedEmail,
+    transport: "api_key",
+    userId: auth.userId,
+    subjectUserId: auth.subjectUserId,
+    requestAuthInputs,
+  };
+}
+
+export async function requireAdminRequestWithDependencies(
+  request: Request,
+  allowedOrigins: ReadonlyArray<string>,
+  dependencies: RequireAdminRequestDependencies,
+): Promise<AdminRequestContext> {
+  const { auth, requestAuthInputs } = await authenticateAdminRequest(
+    request,
+    dependencies.authenticateRequestFn,
+  );
+
+  if (auth.transport === "none") {
+    return requireLocalAdminRequest(request, auth, requestAuthInputs);
+  }
+
+  if (auth.transport !== "session") {
+    throw new HttpError(
+      403,
+      "Admin endpoints require a signed-in browser session.",
+      "ADMIN_HUMAN_AUTH_REQUIRED",
+    );
+  }
+
+  return requireSessionAdminRequest(request, allowedOrigins, auth, requestAuthInputs, dependencies);
+}
+
+export async function requireCatalogAdminRequestWithDependencies(
+  request: Request,
+  allowedOrigins: ReadonlyArray<string>,
+  dependencies: RequireCatalogAdminRequestDependencies,
+): Promise<CatalogAdminRequestContext> {
+  const { auth, requestAuthInputs } = await authenticateAdminRequest(
+    request,
+    dependencies.authenticateRequestFn,
+  );
+
+  if (auth.transport === "none") {
+    return requireLocalAdminRequest(request, auth, requestAuthInputs);
+  }
+  if (auth.transport === "session") {
+    return requireSessionAdminRequest(request, allowedOrigins, auth, requestAuthInputs, dependencies);
+  }
+  if (auth.transport === "api_key") {
+    return requireCatalogApiKeyAdminRequest(auth, requestAuthInputs, dependencies);
+  }
+
+  throw new HttpError(
+    403,
+    "Catalog admin endpoints require a signed-in browser session or admin API key.",
+    "ADMIN_HUMAN_AUTH_REQUIRED",
+  );
 }
 
 export async function requireAdminRequest(
@@ -136,5 +259,17 @@ export async function requireAdminRequest(
     authenticateRequestFn: authenticateRequest,
     ensureCognitoUserProfileFn: ensureCognitoUserProfile,
     hasActiveAdminGrantFn: hasActiveAdminGrant,
+  });
+}
+
+export async function requireCatalogAdminRequest(
+  request: Request,
+  allowedOrigins: ReadonlyArray<string>,
+): Promise<CatalogAdminRequestContext> {
+  return requireCatalogAdminRequestWithDependencies(request, allowedOrigins, {
+    authenticateRequestFn: authenticateRequest,
+    ensureCognitoUserProfileFn: ensureCognitoUserProfile,
+    hasActiveAdminGrantFn: hasActiveAdminGrant,
+    loadAdminProfileEmailFn: loadAdminProfileEmail,
   });
 }
