@@ -2,6 +2,9 @@ import SwiftUI
 
 extension AIChatView {
     var chatScrollSurface: some View {
+        // Keep programmatic navigation tied to stable native List row IDs through
+        // ScrollViewReader; ScrollPosition reopened physical-iPhone transcripts at
+        // the top instead of resolving the tail.
         ScrollViewReader { proxy in
             self.chatScrollContent
                 .accessibilityIdentifier(UITestIdentifier.aiConversationScrollSurface)
@@ -143,6 +146,9 @@ extension AIChatView {
         .listRowSpacing(12)
         .scrollContentBackground(.hidden)
         .overlay {
+            // Keep ContentUnavailableView out of List rows: vertical containerRelativeFrame
+            // row sizing clipped its description on a physical iPhone. This overlay receives
+            // the full List viewport while keeping the List mounted.
             if self.chatStore.messages.isEmpty {
                 self.emptyChatState
             }
