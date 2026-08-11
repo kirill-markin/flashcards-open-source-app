@@ -1,6 +1,7 @@
 import { AuthError } from "../auth";
 import {
   HttpError,
+  type CatalogImageBlobErrorDetails,
   type MediaAssetStorageErrorDetails,
 } from "../shared/errors";
 
@@ -15,6 +16,7 @@ export type BackendFailureDetails = Readonly<{
   message: string | null;
   validationIssues: ReadonlyArray<BackendValidationIssueDetail>;
   mediaAssetStorage?: MediaAssetStorageErrorDetails;
+  catalogImageBlob?: CatalogImageBlobErrorDetails;
 }>;
 
 function getInternalErrorMessage(error: unknown): string {
@@ -51,16 +53,28 @@ function getMediaAssetStorageErrorDetails(
   return undefined;
 }
 
+function getCatalogImageBlobErrorDetails(
+  error: AuthError | HttpError | unknown,
+): CatalogImageBlobErrorDetails | undefined {
+  if (error instanceof HttpError) {
+    return error.details?.catalogImageBlob;
+  }
+
+  return undefined;
+}
+
 export function createBackendFailureDetails(
   error: AuthError | HttpError | unknown,
 ): BackendFailureDetails {
   const mediaAssetStorage = getMediaAssetStorageErrorDetails(error);
+  const catalogImageBlob = getCatalogImageBlobErrorDetails(error);
   return {
     statusCode: getRequestErrorStatusCode(error),
     code: getRequestErrorCode(error),
     message: getInternalErrorMessage(error),
     validationIssues: summarizeValidationIssues(error),
     ...(mediaAssetStorage === undefined ? {} : { mediaAssetStorage }),
+    ...(catalogImageBlob === undefined ? {} : { catalogImageBlob }),
   };
 }
 
