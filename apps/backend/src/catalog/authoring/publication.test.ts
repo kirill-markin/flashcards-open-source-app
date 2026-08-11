@@ -118,6 +118,11 @@ function createCatalogPublicationBoundaryHarness(
         return createQueryResult([versionRow as unknown as Row]);
       }
 
+      if (text.includes("lock_catalog_package_version_media_blob_lifecycles")) {
+        assert.deepEqual(params, [testPackageId, []]);
+        return createQueryResult([]);
+      }
+
       if (text.includes("INSERT INTO catalog.package_media_assets") && text.includes("SELECT gen_random_uuid()")) {
         versionMediaKeys = [...input.draftMediaKeys];
         return createQueryResult([]);

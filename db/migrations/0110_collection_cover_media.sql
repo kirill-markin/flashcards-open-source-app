@@ -37,6 +37,74 @@ BEFORE INSERT OR UPDATE OF cover_media_blob_id ON catalog.collections
 FOR EACH ROW
 EXECUTE FUNCTION content.fence_catalog_collection_cover_reference();
 
+CREATE FUNCTION content.lock_media_blob_lifecycles_for_references(
+  p_media_blob_ids UUID[]
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $$
+DECLARE
+  expected_count BIGINT;
+  ordered_media_blob_ids UUID[];
+  ordered_sha256s TEXT[];
+  requested_index INTEGER;
+  locked_sha256 TEXT;
+BEGIN
+  IF p_media_blob_ids IS NULL
+    OR pg_catalog.array_position(p_media_blob_ids, NULL) IS NOT NULL
+  THEN
+    RAISE EXCEPTION 'p_media_blob_ids must be a non-null array of media blob ids'
+      USING ERRCODE = '22023';
+  END IF;
+
+  SELECT pg_catalog.count(DISTINCT requested.media_blob_id)
+  INTO expected_count
+  FROM pg_catalog.unnest(p_media_blob_ids) AS requested(media_blob_id);
+  IF expected_count = 0 THEN
+    RETURN;
+  END IF;
+
+  SELECT
+    pg_catalog.array_agg(blobs.media_blob_id ORDER BY blobs.sha256),
+    pg_catalog.array_agg(blobs.sha256 ORDER BY blobs.sha256)
+  INTO ordered_media_blob_ids, ordered_sha256s
+  FROM content.media_blobs AS blobs
+  WHERE blobs.media_blob_id = ANY(p_media_blob_ids);
+  IF COALESCE(pg_catalog.cardinality(ordered_media_blob_ids), 0) <> expected_count
+  THEN
+    RAISE EXCEPTION 'Media blob lifecycle lock request targets a missing media blob'
+      USING ERRCODE = '23503';
+  END IF;
+
+  FOREACH locked_sha256 IN ARRAY ordered_sha256s
+  LOOP
+    PERFORM 1
+    FROM content.media_blob_lifecycles AS lifecycles
+    WHERE lifecycles.sha256 = locked_sha256
+    FOR UPDATE;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Media blob lifecycle lock request targets missing lifecycle metadata'
+        USING ERRCODE = '23514';
+    END IF;
+  END LOOP;
+
+  FOR requested_index IN 1..pg_catalog.cardinality(ordered_media_blob_ids)
+  LOOP
+    PERFORM 1
+    FROM content.media_blobs AS blobs
+    WHERE blobs.media_blob_id = ordered_media_blob_ids[requested_index]
+      AND blobs.sha256 = ordered_sha256s[requested_index]
+    FOR SHARE;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Media blob lifecycle lock request targets a missing media blob'
+        USING ERRCODE = '23503';
+    END IF;
+  END LOOP;
+END;
+$$;
+
 CREATE FUNCTION content.lock_media_blob_lifecycles_for_reference_swap(
   p_old_media_blob_id UUID,
   p_new_media_blob_id UUID
@@ -47,39 +115,70 @@ SECURITY DEFINER
 SET search_path = pg_catalog
 AS $$
 DECLARE
-  expected_count BIGINT;
-  locked_count BIGINT;
+  requested_media_blob_ids UUID[];
 BEGIN
   IF p_new_media_blob_id IS NULL THEN
     RAISE EXCEPTION 'p_new_media_blob_id is required' USING ERRCODE = '22023';
   END IF;
-  expected_count := CASE
+  requested_media_blob_ids := CASE
     WHEN p_old_media_blob_id IS NULL
       OR p_old_media_blob_id = p_new_media_blob_id
-    THEN 1
-    ELSE 2
+    THEN ARRAY[p_new_media_blob_id]
+    ELSE ARRAY[p_old_media_blob_id, p_new_media_blob_id]
   END;
-  SELECT pg_catalog.count(*) INTO locked_count
-  FROM content.media_blobs AS blobs
-  WHERE blobs.media_blob_id = p_new_media_blob_id
-    OR blobs.media_blob_id = p_old_media_blob_id;
-  IF locked_count <> expected_count THEN
-    RAISE EXCEPTION 'Media blob reference swap targets a missing media blob'
-      USING ERRCODE = '23503';
+  BEGIN
+    PERFORM content.lock_media_blob_lifecycles_for_references(
+      requested_media_blob_ids
+    );
+  EXCEPTION
+    WHEN foreign_key_violation THEN
+      RAISE EXCEPTION 'Media blob reference swap targets a missing media blob'
+        USING ERRCODE = '23503';
+    WHEN check_violation THEN
+      RAISE EXCEPTION 'Media blob reference swap targets missing lifecycle metadata'
+        USING ERRCODE = '23514';
+  END;
+END;
+$$;
+
+CREATE FUNCTION content.lock_catalog_package_version_media_blob_lifecycles(
+  p_package_id UUID,
+  p_version_media_blob_ids UUID[]
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $$
+DECLARE
+  requested_media_blob_ids UUID[];
+BEGIN
+  IF p_package_id IS NULL THEN
+    RAISE EXCEPTION 'p_package_id is required' USING ERRCODE = '22023';
+  END IF;
+  IF p_version_media_blob_ids IS NULL
+    OR pg_catalog.array_position(p_version_media_blob_ids, NULL) IS NOT NULL
+  THEN
+    RAISE EXCEPTION 'p_version_media_blob_ids must be a non-null array of media blob ids'
+      USING ERRCODE = '22023';
   END IF;
 
-  PERFORM 1
-  FROM content.media_blob_lifecycles AS lifecycles
-  INNER JOIN content.media_blobs AS blobs USING (sha256)
-  WHERE blobs.media_blob_id = p_new_media_blob_id
-    OR blobs.media_blob_id = p_old_media_blob_id
-  ORDER BY lifecycles.sha256
-  FOR UPDATE OF lifecycles;
-  GET DIAGNOSTICS locked_count = ROW_COUNT;
-  IF locked_count <> expected_count THEN
-    RAISE EXCEPTION 'Media blob reference swap targets missing lifecycle metadata'
-      USING ERRCODE = '23514';
-  END IF;
+  SELECT pg_catalog.array_agg(requested.media_blob_id)
+  INTO requested_media_blob_ids
+  FROM (
+    SELECT assets.media_blob_id
+    FROM catalog.package_media_assets AS assets
+    WHERE assets.package_id = p_package_id
+      AND assets.package_version_id IS NULL
+    UNION
+    SELECT version_media.media_blob_id
+    FROM pg_catalog.unnest(p_version_media_blob_ids)
+      AS version_media(media_blob_id)
+  ) AS requested;
+
+  PERFORM content.lock_media_blob_lifecycles_for_references(
+    COALESCE(requested_media_blob_ids, ARRAY[]::UUID[])
+  );
 END;
 $$;
 
@@ -322,7 +421,13 @@ $$;
 REVOKE ALL ON FUNCTION content.fence_catalog_collection_cover_reference()
 FROM PUBLIC, backend_app, auth_app, reporting_readonly;
 REVOKE ALL ON FUNCTION
+  content.lock_media_blob_lifecycles_for_references(UUID[])
+FROM PUBLIC, backend_app, auth_app, reporting_readonly;
+REVOKE ALL ON FUNCTION
   content.lock_media_blob_lifecycles_for_reference_swap(UUID, UUID)
+FROM PUBLIC, backend_app, auth_app, reporting_readonly;
+REVOKE ALL ON FUNCTION
+  content.lock_catalog_package_version_media_blob_lifecycles(UUID, UUID[])
 FROM PUBLIC, backend_app, auth_app, reporting_readonly;
 REVOKE ALL ON FUNCTION content.media_blob_has_active_reference_internal(TEXT)
 FROM PUBLIC, backend_app, auth_app, reporting_readonly;
@@ -331,4 +436,7 @@ REVOKE ALL ON FUNCTION
 FROM PUBLIC, backend_app, auth_app, reporting_readonly;
 GRANT EXECUTE ON FUNCTION
   content.lock_media_blob_lifecycles_for_reference_swap(UUID, UUID)
+TO backend_app;
+GRANT EXECUTE ON FUNCTION
+  content.lock_catalog_package_version_media_blob_lifecycles(UUID, UUID[])
 TO backend_app;

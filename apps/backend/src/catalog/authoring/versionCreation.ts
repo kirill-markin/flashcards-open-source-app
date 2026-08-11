@@ -292,6 +292,17 @@ async function copyDraftMediaAssetsToPackageVersionInExecutor(
   );
 }
 
+async function lockPackageVersionMediaBlobLifecyclesInExecutor(
+  executor: DatabaseExecutor,
+  packageId: string,
+  versionMediaAssets: ReadonlyArray<CatalogPackageVersionMediaAssetInput>,
+): Promise<void> {
+  await executor.query(
+    "SELECT content.lock_catalog_package_version_media_blob_lifecycles($1, $2::uuid[])",
+    [packageId, versionMediaAssets.map((mediaAsset) => mediaAsset.mediaBlobId)],
+  );
+}
+
 async function insertPackageCardsInExecutor(
   executor: DatabaseExecutor,
   packageVersionId: string,
@@ -376,6 +387,11 @@ export async function createPackageVersionFromNormalizedCardsInExecutor(
     throw new Error("Expected catalog package version insert to return a row");
   }
 
+  await lockPackageVersionMediaBlobLifecyclesInExecutor(
+    executor,
+    packageId,
+    versionMediaAssets,
+  );
   await copyDraftMediaAssetsToPackageVersionInExecutor(executor, packageId, input.packageVersionId);
   await insertCatalogPackageVersionMediaAssetsInExecutor(
     executor,

@@ -19,6 +19,14 @@ function requireTestDatabaseUrl(): string {
   return databaseUrl;
 }
 
+function requireRuntimeDatabaseUrl(): string {
+  const databaseUrl = process.env.DATABASE_URL?.trim();
+  if (databaseUrl === undefined || databaseUrl === "") {
+    throw new Error("DATABASE_URL is required for the catalog authoring lock-order integration test.");
+  }
+  return databaseUrl;
+}
+
 function createClientExecutor(client: pg.PoolClient): DatabaseExecutor {
   return {
     query<Row extends pg.QueryResultRow>(
@@ -49,11 +57,15 @@ async function waitForLockWait(
   throw new Error(`Timed out waiting for ${operationName} to reach a PostgreSQL lock wait.`);
 }
 
-function isLockNotAvailable(error: unknown): boolean {
+function hasPostgresCode(error: unknown, code: string): boolean {
   return typeof error === "object"
     && error !== null
     && "code" in error
-    && error.code === "55P03";
+    && error.code === code;
+}
+
+function isLockNotAvailable(error: unknown): boolean {
+  return hasPostgresCode(error, "55P03");
 }
 
 test("catalog package update locks the package before its selected author", async () => {
@@ -235,5 +247,168 @@ test("catalog package update locks the package before its selected author", asyn
       [[originalAuthorId, selectedAuthorId]],
     );
     await pool.end();
+  }
+});
+
+test("package-version and cover-swap contracts prelock reverse-ordered lifecycle rows by SHA", async () => {
+  const adminPool = new pg.Pool({
+    connectionString: requireTestDatabaseUrl(),
+    application_name: "catalog-version-lifecycle-lock-order-admin-integration",
+    max: 3,
+  });
+  const runtimePool = new pg.Pool({
+    connectionString: requireRuntimeDatabaseUrl(),
+    application_name: "catalog-version-lifecycle-lock-order-runtime-integration",
+    max: 2,
+  });
+  const blockerClient = await adminPool.connect();
+  const versionClient = await runtimePool.connect();
+  const coverClient = await runtimePool.connect();
+  const firstSha256 = randomUUID().replaceAll("-", "").repeat(2);
+  const secondSha256 = randomUUID().replaceAll("-", "").repeat(2);
+  const [lowSha256, highSha256] = firstSha256 < secondSha256
+    ? [firstSha256, secondSha256] as const
+    : [secondSha256, firstSha256] as const;
+  const lowMediaBlobId = randomUUID();
+  const highMediaBlobId = randomUUID();
+  const packageId = randomUUID();
+  const storageKey = (sha256: string): string => (
+    `media/blobs/sha256/${sha256.slice(0, 2)}/${sha256.slice(2, 4)}/${sha256}`
+  );
+  let versionLockPromise: Promise<unknown> | null = null;
+  let coverLockPromise: Promise<unknown> | null = null;
+  let blockerTransactionOpen = false;
+  let versionTransactionOpen = false;
+  let coverTransactionOpen = false;
+
+  try {
+    await adminPool.query(
+      [
+        "INSERT INTO content.media_blob_lifecycles",
+        "(sha256,storage_key,mime_type,size_bytes,normalization_version)",
+        "VALUES($1,$2,'image/jpeg',42,'passthrough-v1'),",
+        "($3,$4,'image/jpeg',42,'passthrough-v1')",
+      ].join(" "),
+      [lowSha256, storageKey(lowSha256), highSha256, storageKey(highSha256)],
+    );
+    await adminPool.query(
+      [
+        "INSERT INTO content.media_blobs",
+        "(media_blob_id,sha256,mime_type,size_bytes,storage_key,normalization_version)",
+        "VALUES($1,$2,'image/jpeg',42,$3,'passthrough-v1'),",
+        "($4,$5,'image/jpeg',42,$6,'passthrough-v1')",
+      ].join(" "),
+      [
+        lowMediaBlobId,
+        lowSha256,
+        storageKey(lowSha256),
+        highMediaBlobId,
+        highSha256,
+        storageKey(highSha256),
+      ],
+    );
+
+    await blockerClient.query("BEGIN");
+    blockerTransactionOpen = true;
+    await blockerClient.query(
+      "SELECT 1 FROM content.media_blob_lifecycles WHERE sha256=$1 FOR UPDATE",
+      [lowSha256],
+    );
+
+    await versionClient.query("BEGIN");
+    versionTransactionOpen = true;
+    await versionClient.query("SET LOCAL statement_timeout = '10s'");
+    const versionPid = Number((await versionClient.query<{ pid: number }>(
+      "SELECT pg_backend_pid() AS pid",
+    )).rows[0]?.pid);
+    versionLockPromise = versionClient.query(
+      "SELECT content.lock_catalog_package_version_media_blob_lifecycles($1,$2::uuid[])",
+      [packageId, [highMediaBlobId, lowMediaBlobId]],
+    );
+    await waitForLockWait(adminPool, versionPid, "reverse-ordered package-version prelock");
+
+    await coverClient.query("BEGIN");
+    coverTransactionOpen = true;
+    await coverClient.query("SET LOCAL statement_timeout = '10s'");
+    const coverPid = Number((await coverClient.query<{ pid: number }>(
+      "SELECT pg_backend_pid() AS pid",
+    )).rows[0]?.pid);
+    coverLockPromise = coverClient.query(
+      "SELECT content.lock_media_blob_lifecycles_for_reference_swap($1,$2)",
+      [highMediaBlobId, lowMediaBlobId],
+    );
+    await waitForLockWait(adminPool, coverPid, "concurrent cover-swap prelock");
+
+    const unlockedHighSha = await adminPool.query<{ sha256: string }>(
+      "SELECT sha256 FROM content.media_blob_lifecycles WHERE sha256=$1 FOR UPDATE NOWAIT",
+      [highSha256],
+    );
+    assert.equal(unlockedHighSha.rows[0]?.sha256, highSha256);
+
+    await blockerClient.query("COMMIT");
+    blockerTransactionOpen = false;
+    const firstCompleted = await Promise.race([
+      versionLockPromise.then(() => "version" as const),
+      coverLockPromise.then(() => "cover" as const),
+    ]);
+    if (firstCompleted === "version") {
+      await versionClient.query("COMMIT");
+      versionTransactionOpen = false;
+      await coverLockPromise;
+      await coverClient.query("COMMIT");
+      coverTransactionOpen = false;
+    } else {
+      await coverClient.query("COMMIT");
+      coverTransactionOpen = false;
+      await versionLockPromise;
+      await versionClient.query("COMMIT");
+      versionTransactionOpen = false;
+    }
+
+    await assert.rejects(
+      versionClient.query(
+        "SELECT content.lock_catalog_package_version_media_blob_lifecycles($1,$2::uuid[])",
+        [packageId, [lowMediaBlobId, randomUUID()]],
+      ),
+      (error: unknown) => hasPostgresCode(error, "23503"),
+    );
+    await adminPool.query(
+      "DELETE FROM content.media_blob_lifecycles WHERE sha256=$1",
+      [highSha256],
+    );
+    await assert.rejects(
+      versionClient.query(
+        "SELECT content.lock_catalog_package_version_media_blob_lifecycles($1,$2::uuid[])",
+        [packageId, [highMediaBlobId]],
+      ),
+      (error: unknown) => hasPostgresCode(error, "23514"),
+    );
+  } finally {
+    if (blockerTransactionOpen) {
+      await blockerClient.query("ROLLBACK");
+    }
+    if (versionTransactionOpen) {
+      await versionClient.query("ROLLBACK");
+    }
+    if (coverTransactionOpen) {
+      await coverClient.query("ROLLBACK");
+    }
+    await Promise.allSettled([
+      versionLockPromise ?? Promise.resolve(),
+      coverLockPromise ?? Promise.resolve(),
+    ]);
+    blockerClient.release();
+    versionClient.release();
+    coverClient.release();
+    await adminPool.query(
+      "DELETE FROM content.media_blobs WHERE media_blob_id=ANY($1::uuid[])",
+      [[lowMediaBlobId, highMediaBlobId]],
+    );
+    await adminPool.query(
+      "DELETE FROM content.media_blob_lifecycles WHERE sha256=ANY($1::text[])",
+      [[lowSha256, highSha256]],
+    );
+    await runtimePool.end();
+    await adminPool.end();
   }
 });

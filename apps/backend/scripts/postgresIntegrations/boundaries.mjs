@@ -74,6 +74,7 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0110_collection_cover_media.sql",
     expectedMigrationCount: 112,
     testFiles: Object.freeze([
+      "src/catalog/authoring/lockOrder.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/cleanup.postgres.integration.ts",
     ]),
   }),
@@ -93,7 +94,6 @@ export const boundaryDefinitions = Object.freeze([
     testFiles: Object.freeze([
       "src/catalog/distribution/public/public.postgres.integration.ts",
       "src/catalog/distribution/install/install.postgres.integration.ts",
-      "src/catalog/authoring/lockOrder.postgres.integration.ts",
       "src/cards/generatedImageAppend.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
