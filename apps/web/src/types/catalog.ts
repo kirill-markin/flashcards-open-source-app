@@ -68,6 +68,7 @@ export type CatalogPublicSnapshotCollection = Readonly<{
   languageTags: ReadonlyArray<string>;
   topicTags: ReadonlyArray<string>;
   coverPackageId: string | null;
+  coverDownloadUrl?: string;
   status: "published";
   updatedAt: string;
   publishedAt: string;

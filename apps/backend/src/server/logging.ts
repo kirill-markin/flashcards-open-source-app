@@ -1,5 +1,6 @@
 import { AuthError, authVerificationTemporarilyUnavailableCode } from "../auth";
-import { HttpError, type MediaAssetStorageErrorDetails } from "../shared/errors";
+import { HttpError } from "../shared/errors";
+import { createBackendFailureDetails } from "../observability/failureDetails";
 import { sanitizeBackendTelemetryValue } from "../observability/sanitizer";
 import {
   addBackendBreadcrumb,
@@ -11,13 +12,13 @@ import {
   type BackendObservationScope,
   type BackendService,
   type BackendErrorLogDetails,
-  type BackendFailureDetails,
   type RequestErrorDetails,
 } from "../observability/sentry";
 
-function getInternalErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
+export {
+  createBackendFailureDetails,
+  summarizeValidationIssues,
+} from "../observability/failureDetails";
 
 export type ErrorLogContext = BackendErrorLogDetails;
 
@@ -72,45 +73,6 @@ function shouldLogRequestErrorAtErrorLevel(error: AuthError | HttpError | unknow
   return true;
 }
 
-function getRequestErrorStatusCode(error: AuthError | HttpError | unknown): number {
-  if (error instanceof AuthError || error instanceof HttpError) {
-    return error.statusCode;
-  }
-
-  return 500;
-}
-
-function getRequestErrorCode(error: AuthError | HttpError | unknown): string | null {
-  if (error instanceof AuthError) {
-    return "AUTH_UNAUTHORIZED";
-  }
-
-  if (error instanceof HttpError) {
-    return error.code;
-  }
-
-  return "INTERNAL_ERROR";
-}
-
-function getMediaAssetStorageErrorDetails(error: AuthError | HttpError | unknown): MediaAssetStorageErrorDetails | undefined {
-  if (error instanceof HttpError) {
-    return error.details?.mediaAssetStorage;
-  }
-
-  return undefined;
-}
-
-export function createBackendFailureDetails(error: AuthError | HttpError | unknown): BackendFailureDetails {
-  const mediaAssetStorage = getMediaAssetStorageErrorDetails(error);
-  return {
-    statusCode: getRequestErrorStatusCode(error),
-    code: getRequestErrorCode(error),
-    message: getInternalErrorMessage(error),
-    validationIssues: summarizeValidationIssues(error),
-    ...(mediaAssetStorage === undefined ? {} : { mediaAssetStorage }),
-  };
-}
-
 function createRequestErrorDetails(error: AuthError | HttpError | unknown): RequestErrorDetails {
   return {
     ...createBackendFailureDetails(error),
@@ -127,6 +89,7 @@ function createErrorLevelRequestErrorDetails(
     code: details.code,
     validationIssues: details.validationIssues,
     ...(details.mediaAssetStorage === undefined ? {} : { mediaAssetStorage: details.mediaAssetStorage }),
+    ...(details.catalogImageBlob === undefined ? {} : { catalogImageBlob: details.catalogImageBlob }),
     sqlState: details.sqlState,
     errorClass: details.errorClass,
     errorMessage: details.errorMessage,
@@ -293,18 +256,4 @@ export function logAgentSqlEvent(payload: AgentSqlLogPayload): void {
     scope,
     details,
   });
-}
-
-export function summarizeValidationIssues(
-  error: HttpError | unknown,
-): ReadonlyArray<Readonly<{ path: string; code: string }>> {
-  if (!(error instanceof HttpError)) {
-    return [];
-  }
-
-  const validationIssues = error.details?.validationIssues ?? [];
-  return validationIssues.map((issue) => ({
-    path: issue.path,
-    code: issue.code,
-  }));
 }

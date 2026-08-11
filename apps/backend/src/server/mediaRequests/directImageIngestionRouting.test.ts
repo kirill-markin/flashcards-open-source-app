@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  isDirectImageIngestionPostTarget,
+  isDirectImageIngestionTarget,
   isMultipartCompletionPostTarget,
   readApiGatewayRequestTarget,
 } from "./directImageIngestionRouting";
 
 const workspaceId = "11111111-1111-4111-8111-111111111111";
 const directPath = `/workspaces/${workspaceId}/media-assets/images`;
+const catalogCardImagePath =
+  `/admin/catalog/packages/${workspaceId}/media-assets/images`;
+const catalogCoverImagePath = `/admin/catalog/packages/${workspaceId}/cover`;
+const catalogCollectionCoverImagePath =
+  `/admin/catalog/collections/${workspaceId}/cover`;
 const multipartSessionId = "22222222-2222-4222-8222-222222222222";
 const multipartCompletionPath =
   `/workspaces/${workspaceId}/media-assets/upload-sessions/${multipartSessionId}/complete`;
@@ -40,8 +45,8 @@ function createHttpApiEvent(path: string, method: string): unknown {
   };
 }
 
-function matchesDirectImagePost(event: unknown): boolean {
-  return isDirectImageIngestionPostTarget(
+function matchesDirectImageTarget(event: unknown): boolean {
+  return isDirectImageIngestionTarget(
     readApiGatewayRequestTarget(event),
   );
 }
@@ -60,6 +65,9 @@ test("shared Lambda matches every direct-image POST path across REST v1 and HTTP
     ["single v1 prefix trailing slash", `/v1${directPath}/`],
     ["execute-api double-v1 spelling", `/v1/v1${directPath}`],
     ["repeated v1 prefixes", `/v1/v1/v1${directPath}`],
+    ["catalog card image", catalogCardImagePath],
+    ["catalog card image trailing slash", `${catalogCardImagePath}/`],
+    ["catalog card image v1", `/v1${catalogCardImagePath}`],
   ] as const;
   const eventFactories = [
     ["REST v1", createRestApiEvent],
@@ -69,9 +77,27 @@ test("shared Lambda matches every direct-image POST path across REST v1 and HTTP
   for (const [eventLabel, createEvent] of eventFactories) {
     for (const [pathLabel, path] of directPostPaths) {
       assert.equal(
-        matchesDirectImagePost(createEvent(path, "POST")),
+        matchesDirectImageTarget(createEvent(path, "POST")),
         true,
         `${eventLabel}: ${pathLabel}`,
+      );
+    }
+  }
+});
+
+test("shared Lambda matches only PUT for the exact catalog cover paths", () => {
+  const eventFactories = [createRestApiEvent, createHttpApiEvent] as const;
+  for (const createEvent of eventFactories) {
+    for (const coverPath of [
+      catalogCoverImagePath,
+      catalogCollectionCoverImagePath,
+    ]) {
+      assert.equal(matchesDirectImageTarget(createEvent(coverPath, "PUT")), true);
+      assert.equal(matchesDirectImageTarget(createEvent(`/v1${coverPath}/`, "PUT")), true);
+      assert.equal(matchesDirectImageTarget(createEvent(coverPath, "POST")), false);
+      assert.equal(
+        matchesDirectImageTarget(createEvent(`${coverPath}/unexpected`, "PUT")),
+        false,
       );
     }
   }
@@ -95,13 +121,15 @@ test("shared Lambda preserves other methods and unrelated shared routes", () => 
     ["double trailing slash", `${directPath}//`, "POST"],
     ["missing workspace id", "/workspaces//media-assets/images", "POST"],
     ["discovery", "/v1/agent", "POST"],
+    ["catalog card image wrong method", catalogCardImagePath, "PUT"],
+    ["collection cover wrong method", catalogCollectionCoverImagePath, "PATCH"],
   ] as const;
   const eventFactories = [createRestApiEvent, createHttpApiEvent] as const;
 
   for (const createEvent of eventFactories) {
     for (const [label, path, method] of preservedTargets) {
       assert.equal(
-        matchesDirectImagePost(createEvent(path, method)),
+        matchesDirectImageTarget(createEvent(path, method)),
         false,
         label,
       );
@@ -172,7 +200,7 @@ test("route selection ignores client headers and uses REST v1 method and path fi
     },
   };
 
-  assert.equal(matchesDirectImagePost(event), false);
+  assert.equal(matchesDirectImageTarget(event), false);
 });
 
 test("route selection ignores client headers and uses HTTP v2 method and raw path fields", () => {
@@ -187,7 +215,7 @@ test("route selection ignores client headers and uses HTTP v2 method and raw pat
     },
   };
 
-  assert.equal(matchesDirectImagePost(event), false);
+  assert.equal(matchesDirectImageTarget(event), false);
 });
 
 test("malformed and unsupported events do not match the guarded route", () => {
@@ -206,6 +234,6 @@ test("malformed and unsupported events do not match the guarded route", () => {
   ];
 
   for (const event of malformedEvents) {
-    assert.equal(matchesDirectImagePost(event), false);
+    assert.equal(matchesDirectImageTarget(event), false);
   }
 });

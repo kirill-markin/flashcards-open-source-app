@@ -107,6 +107,19 @@ export type UpdateCatalogPackageDraftInput = Readonly<{
   coverPackageMediaKey: string | null;
 }>;
 
+// TODO: Add future collection metadata/status and ordered-membership authoring.
+export type CatalogCollectionCoverRow = Readonly<{
+  collection_id: string;
+  cover_media_blob_id: string | null;
+  updated_at: TimestampValue;
+}>;
+
+export type CatalogCollectionCover = Readonly<{
+  collectionId: string;
+  coverMediaBlobId: string | null;
+  updatedAt: string;
+}>;
+
 export type CatalogPackageMediaAssetRow = Readonly<{
   package_media_asset_id: string;
   package_id: string;
@@ -284,6 +297,18 @@ export type CatalogPublicPackageMediaDownloadSource = Readonly<{
   sha256: string;
 }>;
 
+export type CatalogPublicCollectionCover = Readonly<{
+  collectionId: string;
+  mimeType: string;
+  sizeBytes: number;
+}>;
+
+export type CatalogPublicCollectionCoverDownloadSource = Readonly<{
+  collectionCover: CatalogPublicCollectionCover;
+  storageKey: string;
+  sha256: string;
+}>;
+
 export const catalogPublicSnapshotSchemaVersion = 1 as const;
 
 export type CatalogPublicSnapshotAuthor = Readonly<{
@@ -356,6 +381,7 @@ export type CatalogPublicSnapshotCollection = Readonly<{
   languageTags: ReadonlyArray<string>;
   topicTags: ReadonlyArray<string>;
   coverPackageId: string | null;
+  coverDownloadUrl?: string;
   status: "published";
   updatedAt: string;
   publishedAt: string;

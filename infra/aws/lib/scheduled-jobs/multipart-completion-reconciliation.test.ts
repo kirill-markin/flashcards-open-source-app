@@ -205,7 +205,7 @@ test("release deploys migration-gated runtime disabled, verifies migrations, the
     "multipartCompletionReconciliationScheduleState=DISABLED",
   );
   const requiredMigration = workflow.indexOf(
-    "--require-migration 0108_multipart_absolute_lease_target.sql",
+    "--require-migration 0110_collection_cover_media.sql",
   );
   const enabledDeploy = workflow.indexOf(
     "multipartCompletionReconciliationScheduleState=ENABLED",
@@ -235,7 +235,7 @@ test("release deploys migration-gated runtime disabled, verifies migrations, the
   const stackSource = readLibSource("lib/stack.ts");
   assert.match(
     stackSource,
-    /databaseMigrationGate\([\s\S]*"0108_multipart_absolute_lease_target\.sql"[\s\S]*addDatabaseMigrationDependency\(api\.backendFn, migrationGate\)/,
+    /databaseMigrationGate\([\s\S]*"0110_collection_cover_media\.sql"[\s\S]*addDatabaseMigrationDependency\(api\.backendFn, migrationGate\)[\s\S]*addDatabaseMigrationDependency\(api\.directImageIngestionFn, migrationGate\)/,
   );
 
   const outputsSource = readLibSource("lib/outputs.ts");
@@ -260,7 +260,7 @@ test("release deploys migration-gated runtime disabled, verifies migrations, the
     "multipartCompletionReconciliationScheduleState=DISABLED",
   );
   const bootstrapMigration = bootstrapScript.indexOf(
-    "--require-migration 0108_multipart_absolute_lease_target.sql",
+    "--require-migration 0110_collection_cover_media.sql",
   );
   const bootstrapEnabled = bootstrapScript.indexOf(
     "multipartCompletionReconciliationScheduleState=ENABLED",

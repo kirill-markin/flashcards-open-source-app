@@ -20,9 +20,11 @@ import type { BackendObservationScope } from "../../../observability/sentry/even
 import { HttpError } from "../../../shared/errors";
 import type {
   AssertMediaAssetObjectInput,
+  MediaBlobStorageContext,
   MediaAssetStorageContext,
   MediaAssetStorageDependencies,
   PromoteMediaAssetUploadInput,
+  StoreCatalogImageBlobBytesInput,
   StoreMediaAssetBlobBytesInput,
 } from "../contracts";
 import {
@@ -206,51 +208,68 @@ function rethrowDirectStorageAbortReason(
   }
 }
 
-async function assertStoredMediaAssetBlobObjectContentMatchesWithDependencies(
-  input: StoreMediaAssetBlobBytesInput,
+type StoreContentAddressedMediaBlobBytesInput = Readonly<{
+  signal: AbortSignal;
+  storageKey: string;
+  mimeType: string;
+  sha256: string;
+  bytes: Buffer;
+  observationScope: BackendObservationScope;
+}>;
+
+async function storeContentAddressedMediaBlobBytesIfAbsentWithDependencies(
+  input: StoreContentAddressedMediaBlobBytesInput,
+  context: MediaBlobStorageContext,
   dependencies: MediaAssetStorageDependencies,
-  verifyCapability: DirectMediaBlobStorageCapabilityVerifier,
+  assertMutationAuthorized: () => void,
+  assertWinnerMatches: (response: HeadObjectCommandOutput) => void,
 ): Promise<void> {
-  const blobObjectInput: AssertMediaAssetObjectInput = {
-    workspaceId: input.workspaceId,
-    mediaAssetId: input.mediaAssetId,
-    storageKey: input.storageKey,
-    mimeType: input.mimeType,
-    sizeBytes: input.bytes.byteLength,
-    sha256: input.sha256,
-    lastOperationId: input.lastOperationId,
-    observationScope: input.observationScope,
-  };
   const config = dependencies.getMediaAssetsStorageConfigFn();
-  const context = { ...blobObjectInput, storageKey: input.storageKey };
-  let response: HeadObjectCommandOutput;
-  try {
-    response = await runMediaAssetStorageOperationWithRetries(
-      context,
-      "head_object",
-      () => {
-        assertDirectStorageMutationAuthorized(input, verifyCapability);
-        return dependencies.s3Client.send(new HeadObjectCommand({
+  const checksumSha256 = toBase64Sha256Digest(input.sha256);
+  const stored = await runMediaAssetStorageOperationWithRetries(
+    context,
+    "put_object",
+    async () => {
+      assertMutationAuthorized();
+      try {
+        await dependencies.s3Client.send(new PutObjectCommand({
           Bucket: config.bucketName,
           Key: input.storageKey,
-          ChecksumMode: "ENABLED",
+          Body: input.bytes,
+          ContentType: input.mimeType,
+          ChecksumSHA256: checksumSha256,
+          IfNoneMatch: "*",
+          Metadata: {
+            [uploadProofSha256Key]: input.sha256,
+          },
         }), { abortSignal: input.signal });
-      },
-    );
-  } catch (error) {
-    rethrowDirectStorageAbortReason(input.signal, error);
-    if (error instanceof MediaBlobWriterFenceError) throw error;
-    throw createMediaAssetStorageError(context, "put_object", error);
-  }
-  assertMediaAssetObjectContentMatches(blobObjectInput, {
-    sizeBytes: response.ContentLength ?? null, mimeType: response.ContentType ?? null,
-    eTag: response.ETag ?? null,
-    checksumSha256: toHexSha256Digest(response.ChecksumSHA256),
-    checksumType: response.ChecksumType ?? null,
-    uploadProof: {
-      workspaceId: null, mediaAssetId: null, lastOperationIdSha256: null, sha256: null,
+        return true;
+      } catch (error) {
+        if (getS3ErrorStatusCode(error) === 412) {
+          return false;
+        }
+        throw error;
+      }
     },
-  });
+  );
+
+  if (stored) {
+    return;
+  }
+
+  const response = await runMediaAssetStorageOperationWithRetries(
+    context,
+    "head_object",
+    () => {
+      assertMutationAuthorized();
+      return dependencies.s3Client.send(new HeadObjectCommand({
+        Bucket: config.bucketName,
+        Key: input.storageKey,
+        ChecksumMode: "ENABLED",
+      }), { abortSignal: input.signal });
+    },
+  );
+  assertWinnerMatches(response);
 }
 
 export async function storeMediaAssetBlobBytesIfAbsentWithDependencies(
@@ -269,53 +288,48 @@ export async function storeMediaAssetBlobBytesIfAbsentWithCapabilityVerifier(
   dependencies: MediaAssetStorageDependencies,
   verifyCapability: DirectMediaBlobStorageCapabilityVerifier,
 ): Promise<void> {
-  assertDirectStorageMutationAuthorized(input, verifyCapability);
-  const config = dependencies.getMediaAssetsStorageConfigFn();
+  const assertMutationAuthorized = (): void => {
+    assertDirectStorageMutationAuthorized(input, verifyCapability);
+  };
+  assertMutationAuthorized();
   const context: MediaAssetStorageContext = {
     workspaceId: input.workspaceId,
     mediaAssetId: input.mediaAssetId,
     storageKey: input.storageKey,
     observationScope: input.observationScope,
   };
-  const checksumSha256 = toBase64Sha256Digest(input.sha256);
 
   try {
-    const stored = await runMediaAssetStorageOperationWithRetries(
-      context,
-      "put_object",
-      async () => {
-        assertDirectStorageMutationAuthorized(input, verifyCapability);
-        try {
-          await dependencies.s3Client.send(new PutObjectCommand({
-            Bucket: config.bucketName,
-            Key: input.storageKey,
-            Body: input.bytes,
-            ContentType: input.mimeType,
-            ChecksumSHA256: checksumSha256,
-            IfNoneMatch: "*",
-            Metadata: {
-              [uploadProofSha256Key]: input.sha256,
-            },
-          }), { abortSignal: input.signal });
-          return true;
-        } catch (error) {
-          if (getS3ErrorStatusCode(error) === 412) {
-            return false;
-          }
-
-          throw error;
-        }
-      },
-    );
-
-    if (stored) {
-      return;
-    }
-
-    await assertStoredMediaAssetBlobObjectContentMatchesWithDependencies(
+    await storeContentAddressedMediaBlobBytesIfAbsentWithDependencies(
       input,
+      context,
       dependencies,
-      verifyCapability,
+      assertMutationAuthorized,
+      (response) => assertMediaAssetObjectContentMatches(
+        {
+          workspaceId: input.workspaceId,
+          mediaAssetId: input.mediaAssetId,
+          storageKey: input.storageKey,
+          mimeType: input.mimeType,
+          sizeBytes: input.bytes.byteLength,
+          sha256: input.sha256,
+          lastOperationId: input.lastOperationId,
+          observationScope: input.observationScope,
+        },
+        {
+          sizeBytes: response.ContentLength ?? null,
+          mimeType: response.ContentType ?? null,
+          eTag: response.ETag ?? null,
+          checksumSha256: toHexSha256Digest(response.ChecksumSHA256),
+          checksumType: response.ChecksumType ?? null,
+          uploadProof: {
+            workspaceId: null,
+            mediaAssetId: null,
+            lastOperationIdSha256: null,
+            sha256: null,
+          },
+        },
+      ),
     );
   } catch (error) {
     rethrowDirectStorageAbortReason(input.signal, error);
@@ -324,6 +338,113 @@ export async function storeMediaAssetBlobBytesIfAbsentWithCapabilityVerifier(
     }
 
     throw createMediaAssetStorageError(context, "put_object", error);
+  }
+}
+
+function assertCatalogImageBlobStorageInput(
+  input: StoreCatalogImageBlobBytesInput,
+): void {
+  const actualSha256 = createHash("sha256").update(input.bytes).digest("hex");
+  if (
+    input.storageKey !== `media/blobs/sha256/${input.sha256.slice(0, 2)}/${input.sha256.slice(2, 4)}/${input.sha256}`
+    || input.mimeType !== "image/jpeg"
+    || input.sizeBytes !== input.bytes.byteLength
+    || actualSha256 !== input.sha256
+  ) {
+    throw new TypeError("Catalog image blob storage input does not match its normalized bytes.");
+  }
+}
+
+function createCatalogImageBlobObjectMismatchError(
+  input: StoreCatalogImageBlobBytesInput,
+  response: HeadObjectCommandOutput,
+): HttpError {
+  const checksumSha256 = toHexSha256Digest(response.ChecksumSHA256);
+  const mismatchedFields = [
+    ...(response.ContentLength === input.sizeBytes ? [] : ["sizeBytes"]),
+    ...(response.ContentType === input.mimeType ? [] : ["mimeType"]),
+    ...(response.ChecksumType === "FULL_OBJECT" ? [] : ["checksumType"]),
+    ...(checksumSha256 === input.sha256 ? [] : ["sha256"]),
+  ];
+  return new HttpError(
+    409,
+    `Catalog image blob conflicts with stored object bytes. sha256=${input.sha256} mismatchedFields=${mismatchedFields.join(",")}`,
+    "CATALOG_IMAGE_BLOB_OBJECT_MISMATCH",
+    {
+      catalogImageBlob: {
+        reason: "stored_object_mismatch",
+        sha256: input.sha256,
+        storageKey: input.storageKey,
+        mismatchedFields,
+      },
+    },
+  );
+}
+
+function createCatalogImageBlobStorageError(
+  input: StoreCatalogImageBlobBytesInput,
+  error: unknown,
+): HttpError {
+  return new HttpError(
+    503,
+    [
+      "Catalog image blob storage is temporarily unavailable.",
+      `sha256=${input.sha256}`,
+      `storageKey=${input.storageKey}`,
+      `s3StatusCode=${String(getS3ErrorStatusCode(error))}`,
+      `s3ErrorClass=${error instanceof Error ? error.name : "UnknownError"}`,
+    ].join(" "),
+    "CATALOG_IMAGE_BLOB_STORAGE_UNAVAILABLE",
+    {
+      catalogImageBlob: {
+        reason: "storage_temporarily_unavailable",
+        sha256: input.sha256,
+        storageKey: input.storageKey,
+        s3StatusCode: getS3ErrorStatusCode(error),
+        s3ErrorClass: error instanceof Error ? error.name : "UnknownError",
+        s3ErrorMessage: error instanceof Error ? error.message : String(error),
+      },
+    },
+  );
+}
+
+export async function storeCatalogImageBlobBytesIfAbsentWithDependencies(
+  input: StoreCatalogImageBlobBytesInput,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<void> {
+  assertCatalogImageBlobStorageInput(input);
+  const context: MediaBlobStorageContext = {
+    workspaceId: null,
+    mediaAssetId: null,
+    storageKey: input.storageKey,
+    observationScope: input.observationScope,
+  };
+  const assertMutationAuthorized = (): void => {
+    input.signal.throwIfAborted();
+  };
+  try {
+    await storeContentAddressedMediaBlobBytesIfAbsentWithDependencies(
+      input,
+      context,
+      dependencies,
+      assertMutationAuthorized,
+      (response) => {
+        if (
+          response.ContentLength !== input.sizeBytes
+          || response.ContentType !== input.mimeType
+          || response.ChecksumType !== "FULL_OBJECT"
+          || toHexSha256Digest(response.ChecksumSHA256) !== input.sha256
+        ) {
+          throw createCatalogImageBlobObjectMismatchError(input, response);
+        }
+      },
+    );
+  } catch (error) {
+    rethrowDirectStorageAbortReason(input.signal, error);
+    if (error instanceof HttpError) {
+      throw error;
+    }
+    throw createCatalogImageBlobStorageError(input, error);
   }
 }
 

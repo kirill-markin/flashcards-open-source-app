@@ -39,6 +39,8 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
   const unsafeCollectionId = "66666666-6666-4666-8666-666666666666";
   const firstCollectionId = "99999999-8888-4888-8888-888888888888";
   const secondCollectionId = "99999999-9999-4999-8999-999999999999";
+  const collectionCoverSha256 = "b".repeat(64);
+  const collectionCoverStorageKey = `media/blobs/sha256/bb/bb/${collectionCoverSha256}`;
   const privateCoverMediaKey = testWorkspaceMediaAssetId;
   const publicApiBaseUrl = "https://api.example.com/v1";
   const publicAppBaseUrl = "https://app.example.com";
@@ -115,6 +117,19 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
       params: ReadonlyArray<SqlValue>,
     ): Promise<pg.QueryResult<Row>> {
       assert.deepEqual(params, []);
+      if (text.includes("WHERE collections.cover_media_blob_id IS NOT NULL")) {
+        assert.match(text, /LEFT JOIN content\.media_blobs AS media_blobs/);
+        assert.match(text, /collections\.status = 'published'/);
+        assert.match(text, /collections\.delisted_at IS NULL/);
+        return createQueryResult([{
+          collection_id: firstCollectionId,
+          cover_media_blob_id: "99999999-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          mime_type: "image/jpeg",
+          size_bytes: 1_234,
+          storage_key: collectionCoverStorageKey,
+          sha256: collectionCoverSha256,
+        }] as unknown as ReadonlyArray<Row>);
+      }
       if (text.includes("FROM catalog.collection_packages AS memberships")) {
         assert.match(text, /collections\.status = 'published'/);
         assert.match(text, /packages\.status = 'published'/);
@@ -282,7 +297,12 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
     { collectionId: secondCollectionId, packageId: testPackageId, ordinal: 3 },
   ]);
   assert.equal(snapshot.collections[0]?.coverPackageId, testPackageId);
+  assert.equal(
+    snapshot.collections[0]?.coverDownloadUrl,
+    `${publicApiBaseUrl}/catalog/collections/${firstCollectionId}/cover/download`,
+  );
   assert.equal(snapshot.collections[1]?.coverPackageId, null);
+  assert.equal("coverDownloadUrl" in (snapshot.collections[1] ?? {}), false);
 
   const authorIds = new Set(snapshot.authors.map((author) => author.authorId));
   const packageIds = new Set(snapshot.packages.map((catalogPackage) => catalogPackage.packageId));
@@ -320,6 +340,7 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
   assert.doesNotMatch(JSON.stringify(snapshot), new RegExp(unsafeOnlyPackageCardId));
   assert.doesNotMatch(JSON.stringify(snapshot), new RegExp(unsafeCollectionId));
   assert.doesNotMatch(JSON.stringify(snapshot), new RegExp(unsafeStorageKeyPathDestination));
+  assert.doesNotMatch(JSON.stringify(snapshot), /cover_media_blob_id|storage_key|media\/blobs|sha256/);
 });
 
 const ineligibleSnapshotPublicRelationFixtures: ReadonlyArray<readonly [
@@ -372,6 +393,9 @@ for (const [fixtureName, relationPatch] of ineligibleSnapshotPublicRelationFixtu
         params: ReadonlyArray<SqlValue>,
       ): Promise<pg.QueryResult<Row>> {
         assert.deepEqual(params, []);
+        if (text.includes("WHERE collections.cover_media_blob_id IS NOT NULL")) {
+          return createQueryResult([]);
+        }
         if (text.includes("FROM catalog.collection_packages AS memberships")) {
           return createQueryResult([{
             collection_id: collectionId,
@@ -481,6 +505,9 @@ for (const [fixtureName, ineligibleFixture] of ineligibleSnapshotMediaFixtures) 
         params: ReadonlyArray<SqlValue>,
       ): Promise<pg.QueryResult<Row>> {
         assert.deepEqual(params, []);
+        if (text.includes("WHERE collections.cover_media_blob_id IS NOT NULL")) {
+          return createQueryResult([]);
+        }
         if (text.includes("FROM catalog.collection_packages AS memberships")) {
           return createQueryResult([
             {
@@ -684,4 +711,3 @@ test("public catalog snapshot route serves the exact unversioned catalog path", 
     }
   }
 });
-

@@ -9,8 +9,10 @@ import {
 } from "../../agent/envelope";
 import { getAuthConfig } from "../../auth/config";
 import { createDirectImageIngestionRoutes } from "../../routes/directImageIngestion";
+import { createCatalogAdminImageIngestionRoutes } from "../../routes/catalog/adminImageIngestion";
 import {
   createPublicHttpErrorDetails,
+  createPublicHttpErrorMessage,
   HttpError,
 } from "../../shared/errors";
 import type { AppEnv } from "../appEnv";
@@ -40,7 +42,7 @@ function createDirectImageIngestionMountedApp(
   const app = new Hono<AppEnv>({ strict: false }).basePath(basePath);
   const browserCorsMiddleware = cors({
     origin: allowedOrigins,
-    allowMethods: ["POST", "OPTIONS"],
+    allowMethods: ["POST", "PUT", "OPTIONS"],
     allowHeaders: [...browserCorsAllowHeaders],
     exposeHeaders: [...browserCorsExposeHeaders],
     credentials: true,
@@ -83,18 +85,19 @@ function createDirectImageIngestionMountedApp(
       context.status(error.statusCode as ContentfulStatusCode);
       applyHttpErrorResponseHeaders(context, error);
       const publicDetails = createPublicHttpErrorDetails(error.details);
+      const publicMessage = createPublicHttpErrorMessage(error);
       if (apiKeyRequest) {
         return context.json(createAgentApiKeyErrorEnvelope(
           context.req.url,
           error.code ?? "REQUEST_FAILED",
-          error.message,
+          publicMessage,
           error.statusCode,
           requestId,
           publicDetails ?? undefined,
         ));
       }
       return context.json({
-        error: error.message,
+        error: publicMessage,
         requestId,
         code: error.code,
         ...(publicDetails === null ? {} : { details: publicDetails }),
@@ -119,6 +122,7 @@ function createDirectImageIngestionMountedApp(
     });
   });
   app.route("/", createDirectImageIngestionRoutes({ allowedOrigins }));
+  app.route("/", createCatalogAdminImageIngestionRoutes({ allowedOrigins }));
   return app;
 }
 

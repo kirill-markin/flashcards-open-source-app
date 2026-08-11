@@ -1,5 +1,11 @@
 const directImageIngestionPathPattern =
   /^\/(?:v1\/)*workspaces\/[^/]+\/media-assets\/images\/?$/u;
+const catalogCardImageIngestionPathPattern =
+  /^\/(?:v1\/)*admin\/catalog\/packages\/[^/]+\/media-assets\/images\/?$/u;
+const catalogCoverImageIngestionPathPattern =
+  /^\/(?:v1\/)*admin\/catalog\/packages\/[^/]+\/cover\/?$/u;
+const catalogCollectionCoverImageIngestionPathPattern =
+  /^\/(?:v1\/)*admin\/catalog\/collections\/[^/]+\/cover\/?$/u;
 
 export type RequestTarget = Readonly<{
   method: string;
@@ -34,12 +40,25 @@ export function readApiGatewayRequestTarget(event: unknown): RequestTarget | nul
     : null;
 }
 
-export function isDirectImageIngestionPostTarget(
+export function isDirectImageIngestionTarget(
   target: RequestTarget | null,
 ): boolean {
-  return target !== null
-    && target.method === "POST"
-    && directImageIngestionPathPattern.test(target.path);
+  if (target === null) {
+    return false;
+  }
+  return (
+    target.method === "POST"
+    && (
+      directImageIngestionPathPattern.test(target.path)
+      || catalogCardImageIngestionPathPattern.test(target.path)
+    )
+  ) || (
+    target.method === "PUT"
+    && (
+      catalogCoverImageIngestionPathPattern.test(target.path)
+      || catalogCollectionCoverImageIngestionPathPattern.test(target.path)
+    )
+  );
 }
 
 export function isMultipartCompletionPostTarget(

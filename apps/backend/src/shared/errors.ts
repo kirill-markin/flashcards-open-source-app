@@ -37,10 +37,28 @@ export type PublicMediaAssetStorageErrorDetails = Readonly<{
   retryable: boolean;
 }>;
 
+export type CatalogImageBlobErrorDetails = Readonly<
+  | {
+    reason: "stored_object_mismatch";
+    sha256: string;
+    storageKey: string;
+    mismatchedFields: ReadonlyArray<string>;
+  }
+  | {
+    reason: "storage_temporarily_unavailable";
+    sha256: string;
+    storageKey: string;
+    s3StatusCode: number | null;
+    s3ErrorClass: string;
+    s3ErrorMessage: string;
+  }
+>;
+
 export type HttpErrorDetails = Readonly<{
   validationIssues?: ReadonlyArray<ValidationIssueSummary>;
   syncConflict?: SyncConflictDetails;
   mediaAssetStorage?: MediaAssetStorageErrorDetails;
+  catalogImageBlob?: CatalogImageBlobErrorDetails;
   retryAfterSeconds?: number;
 }>;
 
@@ -111,5 +129,16 @@ export class HttpError extends Error {
     this.statusCode = statusCode;
     this.code = code ?? null;
     this.details = details ?? null;
+  }
+}
+
+export function createPublicHttpErrorMessage(error: HttpError): string {
+  switch (error.code) {
+    case "CATALOG_IMAGE_BLOB_OBJECT_MISMATCH":
+      return "Catalog image storage conflict. Upload the image again and use requestId if the failure persists.";
+    case "CATALOG_IMAGE_BLOB_STORAGE_UNAVAILABLE":
+      return "Catalog image storage is temporarily unavailable. Retry shortly and use requestId if the failure persists.";
+    default:
+      return error.message;
   }
 }

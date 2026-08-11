@@ -29,6 +29,8 @@ import {
 
 const directImagePath =
   "/workspaces/11111111-1111-4111-8111-111111111111/media-assets/images";
+const catalogCollectionCoverPath =
+  "/admin/catalog/collections/22222222-2222-4222-8222-222222222222/cover";
 const allowedOrigin = "https://app.flashcards-open-source-app.com";
 
 function createLambdaContext(remainingTimeMs: number): Context {
@@ -136,6 +138,27 @@ test("valid REST event carries its server-authored ingress timing", async () => 
   assert.equal(result.statusCode, 200);
   assert.equal(handleCalls, 1);
   assert.equal(context.callbackWaitsForEmptyEventLoop, false);
+});
+
+test("valid collection cover PUT reaches the dedicated Lambda boundary", () => {
+  const ingressAtMs = 1_000_000;
+  const event = {
+    ...createRestApiEvent(ingressAtMs, null) as unknown as Record<string, unknown>,
+    httpMethod: "PUT",
+    path: catalogCollectionCoverPath,
+    pathParameters: {
+      collectionId: "22222222-2222-4222-8222-222222222222",
+    },
+    resource: "/admin/catalog/collections/{collectionId}/cover",
+  } as unknown as LambdaEvent;
+
+  assert.notEqual(
+    parseDirectImageIngestionLambdaEvent(
+      event,
+      createLambdaContext(directImageIngestionLambdaInvokeTimeoutMs),
+    ),
+    null,
+  );
 });
 
 test("Lambda remaining time clamps the application deadline", async () => {

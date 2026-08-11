@@ -12,7 +12,12 @@ import {
   isAgentApiKeyAuthorizationHeader,
 } from "../agent/envelope";
 import { getAuthConfig } from "../auth/config";
-import { createPublicHttpErrorDetails, HttpError, type PublicHttpErrorDetails } from "../shared/errors";
+import {
+  createPublicHttpErrorDetails,
+  createPublicHttpErrorMessage,
+  HttpError,
+  type PublicHttpErrorDetails,
+} from "../shared/errors";
 import { createChatRoutes } from "../routes/chat";
 import { createChatTranscriptionsRoutes } from "../routes/chatTranscriptions";
 import { createAgentRoutes } from "../routes/agent";
@@ -25,6 +30,7 @@ import { createSyncRoutes } from "../routes/sync/index";
 import { createSystemRoutes } from "../routes/system";
 import { createAdminRoutes } from "../routes/admin";
 import { createCatalogAdminRoutes } from "../routes/catalog/admin";
+import { createCatalogAdminImageIngestionRoutes } from "../routes/catalog/adminImageIngestion";
 import { createCatalogPublicRoutes } from "../routes/catalog/public";
 import { createCatalogInstallRoutes } from "../routes/catalog/install";
 import { createGuestAuthRoutes } from "../routes/guestAuth";
@@ -96,7 +102,7 @@ export function createPublicHttpErrorBody(error: HttpError, requestId: string): 
 }> {
   const publicDetails = createPublicHttpErrorDetails(error.details);
   return {
-    error: error.message,
+    error: createPublicHttpErrorMessage(error),
     requestId,
     code: error.code,
     ...(publicDetails === null ? {} : { details: publicDetails }),
@@ -326,6 +332,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
     if (error instanceof HttpError) {
       context.status(error.statusCode as ContentfulStatusCode);
       applyHttpErrorResponseHeaders(context, error);
+      const publicMessage = createPublicHttpErrorMessage(error);
       if (publicCatalogRequest) {
         return context.json(createPublicHttpErrorBody(error, requestId));
       }
@@ -334,7 +341,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
           createAgentApiKeyErrorEnvelope(
             context.req.url,
             error.code ?? "REQUEST_FAILED",
-            error.message,
+            publicMessage,
             error.statusCode,
             requestId,
             createPublicHttpErrorDetails(error.details) ?? undefined,
@@ -345,7 +352,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
         return context.json(
           createAgentConnectionManagementErrorEnvelope(
             error.code ?? "REQUEST_FAILED",
-            error.message,
+            publicMessage,
             createAgentConnectionManagementInstructions(error.code, error.statusCode),
             requestId,
           ),
@@ -396,6 +403,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createWorkspaceRoutes({ allowedOrigins }));
   app.route("/", createAdminRoutes({ allowedOrigins }));
   app.route("/", createCatalogAdminRoutes({ allowedOrigins }));
+  app.route("/", createCatalogAdminImageIngestionRoutes({ allowedOrigins }));
   app.route("/", createCatalogPublicRoutes({}));
   app.route("/", createCatalogInstallRoutes({ allowedOrigins }));
   app.route("/", createCardsRoutes({ allowedOrigins }));

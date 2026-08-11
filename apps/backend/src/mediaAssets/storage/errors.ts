@@ -3,6 +3,7 @@ import {
 } from "../../observability/runtime";
 import { HttpError, type MediaAssetStorageErrorDetails } from "../../shared/errors";
 import type {
+  MediaBlobStorageContext,
   MediaAssetStorageContext,
   MediaAssetStorageOperation,
 } from "./contracts";
@@ -124,7 +125,7 @@ function isUploadNotAvailableStorageError(operation: MediaAssetStorageOperation,
 }
 
 export async function runMediaAssetStorageOperationWithRetries<Result>(
-  context: MediaAssetStorageContext,
+  context: MediaBlobStorageContext,
   operation: MediaAssetStorageOperation,
   run: () => Promise<Result>,
 ): Promise<Result> {
@@ -137,7 +138,7 @@ export async function runMediaAssetStorageOperationWithRetries<Result>(
 }
 
 async function runMediaAssetStorageOperationWithRetriesAndOptionalAbortSignal<Result>(
-  context: MediaAssetStorageContext,
+  context: MediaBlobStorageContext,
   operation: MediaAssetStorageOperation,
   signal: AbortSignal | null,
   run: () => Promise<Result>,
@@ -181,7 +182,7 @@ async function runMediaAssetStorageOperationWithRetriesAndOptionalAbortSignal<Re
 }
 
 export function runMediaAssetStorageOperationWithRetriesAndAbortSignal<Result>(
-  context: MediaAssetStorageContext,
+  context: MediaBlobStorageContext,
   operation: MediaAssetStorageOperation,
   signal: AbortSignal,
   run: () => Promise<Result>,

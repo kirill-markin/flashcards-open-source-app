@@ -15,6 +15,7 @@ import type {
   MultipartMediaBlobStorageCapability,
   MultipartMediaBlobWriterAttemptExactInput,
 } from "../../uploadSessions";
+import { createBackendFailureDetails } from "../../../observability/failureDetails";
 import { createPublicHttpErrorDetails, HttpError } from "../../../shared/errors";
 import {
   assertMediaAssetObjectMatchesWithDependencies,
@@ -23,6 +24,7 @@ import {
 } from "..";
 import {
   promoteMediaAssetUploadToBlobWithCapabilityVerifier,
+  storeCatalogImageBlobBytesIfAbsentWithDependencies,
   storeMediaAssetBlobBytesIfAbsentWithCapabilityVerifier,
 } from "./promotion";
 import {
@@ -200,6 +202,168 @@ test("storeMediaAssetBlobBytesIfAbsentWithDependencies verifies an existing cond
     `head:${testBlobStorageKey}`,
   ]);
   assert.equal(capabilityChecks, 3);
+});
+
+test("catalog image storage reuses the conditional write and checksum winner verification path", async () => {
+  const sentCommands: Array<string> = [];
+  const signal = AbortSignal.timeout(10_000);
+  const client = createTestS3Client();
+  client.send = (async (
+    command: unknown,
+    options: Readonly<{ abortSignal?: AbortSignal }>,
+  ) => {
+    assert.equal(options.abortSignal, signal);
+    if (command instanceof PutObjectCommand) {
+      sentCommands.push(`put:${String(command.input.Key)}`);
+      assert.equal(command.input.IfNoneMatch, "*");
+      assert.equal(
+        command.input.ChecksumSHA256,
+        Buffer.from(testSha256, "hex").toString("base64"),
+      );
+      throw createS3Error(412, "PreconditionFailed", "Object already exists");
+    }
+    if (command instanceof HeadObjectCommand) {
+      sentCommands.push(`head:${String(command.input.Key)}`);
+      return createHeadObjectResponse({
+        sizeBytes: testObjectBytes.byteLength,
+        mimeType: "image/jpeg",
+        sha256: testSha256,
+      });
+    }
+    throw new Error(
+      `Unexpected S3 command ${getUnexpectedS3CommandName(command)}`,
+    );
+  }) as S3Client["send"];
+
+  await storeCatalogImageBlobBytesIfAbsentWithDependencies(
+    {
+      signal,
+      storageKey: testBlobStorageKey,
+      mimeType: "image/jpeg",
+      sizeBytes: testObjectBytes.byteLength,
+      sha256: testSha256,
+      bytes: testObjectBytes,
+      observationScope: testObservationScope,
+    },
+    {
+      s3Client: client,
+      getMediaAssetsStorageConfigFn: getTestMediaAssetsStorageConfig,
+    },
+  );
+
+  assert.deepEqual(sentCommands, [
+    `put:${testBlobStorageKey}`,
+    `head:${testBlobStorageKey}`,
+  ]);
+});
+
+test("catalog image storage keeps S3 failure diagnostics in internal error details", async () => {
+  const signal = AbortSignal.timeout(10_000);
+  const s3ErrorMessage =
+    `raw S3 body for s3://test-media-assets-bucket/${testBlobStorageKey}`;
+
+  await assert.rejects(
+    storeCatalogImageBlobBytesIfAbsentWithDependencies(
+      {
+        signal,
+        storageKey: testBlobStorageKey,
+        mimeType: "image/jpeg",
+        sizeBytes: testObjectBytes.byteLength,
+        sha256: testSha256,
+        bytes: testObjectBytes,
+        observationScope: testObservationScope,
+      },
+      {
+        s3Client: createFailingS3Client(
+          createS3Error(500, "InternalError", s3ErrorMessage),
+        ),
+        getMediaAssetsStorageConfigFn: getTestMediaAssetsStorageConfig,
+      },
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.statusCode, 503);
+      assert.equal(error.code, "CATALOG_IMAGE_BLOB_STORAGE_UNAVAILABLE");
+      assert.match(error.message, new RegExp(testSha256));
+      assert.match(error.message, new RegExp(testBlobStorageKey));
+      assert.deepEqual(error.details?.catalogImageBlob, {
+        reason: "storage_temporarily_unavailable",
+        sha256: testSha256,
+        storageKey: testBlobStorageKey,
+        s3StatusCode: 500,
+        s3ErrorClass: "InternalError",
+        s3ErrorMessage,
+      });
+      assert.deepEqual(
+        createBackendFailureDetails(error).catalogImageBlob,
+        error.details?.catalogImageBlob,
+      );
+      assert.equal(createPublicHttpErrorDetails(error.details), null);
+      return true;
+    },
+  );
+});
+
+test("catalog image winner mismatch keeps blob diagnostics in internal error details", async () => {
+  const signal = AbortSignal.timeout(10_000);
+  const client = createTestS3Client();
+  client.send = (async (command: unknown) => {
+    if (command instanceof PutObjectCommand) {
+      throw createS3Error(412, "PreconditionFailed", "Object already exists");
+    }
+    if (command instanceof HeadObjectCommand) {
+      return createHeadObjectResponse({
+        sizeBytes: testObjectBytes.byteLength + 1,
+        mimeType: "image/png",
+        sha256: "0".repeat(64),
+        checksumType: "COMPOSITE",
+      });
+    }
+    throw new Error(
+      `Unexpected S3 command ${getUnexpectedS3CommandName(command)}`,
+    );
+  }) as S3Client["send"];
+
+  await assert.rejects(
+    storeCatalogImageBlobBytesIfAbsentWithDependencies(
+      {
+        signal,
+        storageKey: testBlobStorageKey,
+        mimeType: "image/jpeg",
+        sizeBytes: testObjectBytes.byteLength,
+        sha256: testSha256,
+        bytes: testObjectBytes,
+        observationScope: testObservationScope,
+      },
+      {
+        s3Client: client,
+        getMediaAssetsStorageConfigFn: getTestMediaAssetsStorageConfig,
+      },
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.statusCode, 409);
+      assert.equal(error.code, "CATALOG_IMAGE_BLOB_OBJECT_MISMATCH");
+      assert.match(error.message, new RegExp(testSha256));
+      assert.deepEqual(error.details?.catalogImageBlob, {
+        reason: "stored_object_mismatch",
+        sha256: testSha256,
+        storageKey: testBlobStorageKey,
+        mismatchedFields: [
+          "sizeBytes",
+          "mimeType",
+          "checksumType",
+          "sha256",
+        ],
+      });
+      assert.deepEqual(
+        createBackendFailureDetails(error).catalogImageBlob,
+        error.details?.catalogImageBlob,
+      );
+      assert.equal(createPublicHttpErrorDetails(error.details), null);
+      return true;
+    },
+  );
 });
 
 test("direct conditional PutObject retries 409 without verification and succeeds on retry", async () => {

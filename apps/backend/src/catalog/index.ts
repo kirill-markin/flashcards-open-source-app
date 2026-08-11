@@ -7,7 +7,19 @@ export {
 export {
   attachCatalogPackageDraftMediaAsset,
   attachCatalogPackageDraftMediaAssetInExecutor,
+  createOrReplayCatalogPackageDraftCardImageInExecutor,
+  replaceCatalogPackageDraftCoverInExecutor,
 } from "./authoring/draftMedia";
+export {
+  replaceCatalogCollectionCoverInExecutor,
+} from "./authoring/collectionCovers";
+export {
+  ingestCatalogCardImageBlob,
+  ingestCatalogCoverImageBlob,
+  ingestCatalogPackageCardImage,
+  replaceCatalogCollectionCoverImage,
+  replaceCatalogPackageCoverImage,
+} from "./authoring/imageIngestion";
 export {
   createCatalogPackageDraft,
   createCatalogPackageDraftInExecutor,
@@ -33,6 +45,9 @@ export {
 export {
   listPublicCatalogPackages,
   listPublicCatalogPackagesInExecutor,
+  loadPublicCatalogCollectionCoverForDownload,
+  loadPublicCatalogCollectionCoverForDownloadInExecutor,
+  loadPublicCatalogCollectionCoversInExecutor,
   loadPublicCatalogSnapshot,
   loadPublicCatalogSnapshotInExecutor,
   loadPublicCatalogPackageDetail,

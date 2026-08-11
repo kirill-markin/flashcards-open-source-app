@@ -107,7 +107,7 @@ test("release disables cleanup until the latest migration is confirmed", () => {
       "mediaBlobCleanupEnabled=false",
     );
     const migration = source.indexOf(
-      "--require-migration 0108_multipart_absolute_lease_target.sql",
+      "--require-migration 0110_collection_cover_media.sql",
     );
     const enabled = source.indexOf(
       "generatedMediaPromotionScheduleState=ENABLED",

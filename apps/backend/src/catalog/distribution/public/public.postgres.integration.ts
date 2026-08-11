@@ -98,6 +98,7 @@ test("latest migrations expose the deterministic collection through the public c
     assert.deepEqual(cards.map((card) => card.packageCardId), fixtureCardIds);
     assert.deepEqual(cards.map((card) => card.ordinal), [1, 2]);
     assert.equal(collection?.coverPackageId, fixturePackageId);
+    assert.equal("coverDownloadUrl" in (collection ?? {}), false);
     assert.deepEqual(collectionPackage, {
       collectionId: fixtureCollectionId,
       packageId: fixturePackageId,

@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   createApp,
   createAgentInstructions,
+  createPublicHttpErrorBody,
   getHttpErrorResponseHeaders,
 } from "./app";
 import {
@@ -274,6 +275,71 @@ test("getHttpErrorResponseHeaders adds Retry-After for service unavailable", () 
     ),
     [["Retry-After", "1"]],
   );
+});
+
+test("public HTTP error boundary sanitizes catalog blob diagnostics", () => {
+  const sha256 = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8";
+  const storageKey = `media/blobs/sha256/5e/88/${sha256}`;
+  const requestId = "request-catalog-image-1";
+  const fixtures = [
+    {
+      statusCode: 409,
+      code: "CATALOG_IMAGE_BLOB_OBJECT_MISMATCH",
+      internalMessage:
+        `Catalog image blob conflict. sha256=${sha256} storageKey=${storageKey}`,
+      details: {
+        reason: "stored_object_mismatch" as const,
+        sha256,
+        storageKey,
+        mismatchedFields: ["sha256"],
+      },
+      publicMessage:
+        "Catalog image storage conflict. Upload the image again and use requestId if the failure persists.",
+    },
+    {
+      statusCode: 503,
+      code: "CATALOG_IMAGE_BLOB_STORAGE_UNAVAILABLE",
+      internalMessage:
+        `Catalog image storage failed for s3://private-bucket/${storageKey}. raw S3 body`,
+      details: {
+        reason: "storage_temporarily_unavailable" as const,
+        sha256,
+        storageKey,
+        s3StatusCode: 500,
+        s3ErrorClass: "InternalError",
+        s3ErrorMessage: "raw S3 body",
+      },
+      publicMessage:
+        "Catalog image storage is temporarily unavailable. Retry shortly and use requestId if the failure persists.",
+    },
+  ];
+
+  for (const fixture of fixtures) {
+    const error = new HttpError(
+      fixture.statusCode,
+      fixture.internalMessage,
+      fixture.code,
+      { catalogImageBlob: fixture.details },
+    );
+    const body = createPublicHttpErrorBody(error, requestId);
+    const serializedBody = JSON.stringify(body);
+
+    assert.equal(error.message, fixture.internalMessage);
+    assert.deepEqual(body, {
+      error: fixture.publicMessage,
+      requestId,
+      code: fixture.code,
+    });
+    for (const privateDiagnostic of [
+      sha256,
+      storageKey,
+      "private-bucket",
+      "InternalError",
+      "raw S3 body",
+    ]) {
+      assert.equal(serializedBody.includes(privateDiagnostic), false);
+    }
+  }
 });
 
 test("getHttpErrorResponseHeaders adds Retry-After for temporary auth verification failures", () => {

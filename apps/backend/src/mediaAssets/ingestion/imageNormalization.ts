@@ -8,6 +8,8 @@ import { imageJpegCardMediaBlobMimeType } from "../types";
 
 export const imageJpegCardMaxSidePixels = 1_200;
 export const imageJpegCardJpegQuality = 82;
+export const imageJpegCatalogCoverMaxSidePixels = 2_400;
+export const imageJpegCatalogCoverJpegQuality = 90;
 export const imageJpegCardMaximumDecodedPixels = 24_000_000;
 export const imageJpegCardTransparentPixelLightCardGray = {
   r: 241,
@@ -56,7 +58,11 @@ type ImageNormalizationWorkerError = Readonly<{
   detail: string;
 }>;
 
-const imageNormalizationWorkerScript = String.raw`
+function createImageNormalizationWorkerScript(
+  maximumSidePixels: number,
+  jpegQuality: number,
+): string {
+  return String.raw`
 "use strict";
 const sharp = require(process.argv[1]);
 const maximumDecodedPixels = ${imageJpegCardMaximumDecodedPixels};
@@ -120,15 +126,15 @@ async function main() {
   })
     .rotate()
     .resize({
-      width: ${imageJpegCardMaxSidePixels},
-      height: ${imageJpegCardMaxSidePixels},
+      width: ${maximumSidePixels},
+      height: ${maximumSidePixels},
       fit: "inside",
       withoutEnlargement: true,
     })
     .flatten({ background })
     .toColorspace("srgb")
     .jpeg({
-      quality: ${imageJpegCardJpegQuality},
+      quality: ${jpegQuality},
       progressive: false,
       mozjpeg: false,
     })
@@ -137,9 +143,21 @@ async function main() {
 }
 main().catch(writeFailure);
 `;
+}
 
-const productionImageNormalizationWorker = Object.freeze({
-  script: imageNormalizationWorkerScript,
+const productionCardImageNormalizationWorker = Object.freeze({
+  script: createImageNormalizationWorkerScript(
+    imageJpegCardMaxSidePixels,
+    imageJpegCardJpegQuality,
+  ),
+  arguments: [require.resolve("sharp")],
+});
+
+const productionCatalogCoverImageNormalizationWorker = Object.freeze({
+  script: createImageNormalizationWorkerScript(
+    imageJpegCatalogCoverMaxSidePixels,
+    imageJpegCatalogCoverJpegQuality,
+  ),
   arguments: [require.resolve("sharp")],
 });
 
@@ -512,6 +530,7 @@ async function normalizeImageBytes(
   inputBytes: Buffer,
   deadlineAtMs: number,
   abortSignal: AbortSignal,
+  worker: ImageNormalizationWorker,
 ): Promise<NormalizedImageBytes> {
   const unsupportedContainerFormat = detectUnsupportedContainerFormat(inputBytes);
   if (unsupportedContainerFormat !== null) {
@@ -521,7 +540,7 @@ async function normalizeImageBytes(
     inputBytes,
     deadlineAtMs,
     abortSignal,
-    productionImageNormalizationWorker,
+    worker,
     productionImageNormalizationProcessDependencies,
   );
   return {
@@ -537,6 +556,7 @@ export async function normalizeImageBytesForCard(inputBytes: Buffer): Promise<No
     inputBytes,
     Date.now() + standaloneImageNormalizationBudgetMs,
     controller.signal,
+    productionCardImageNormalizationWorker,
   );
 }
 
@@ -545,5 +565,35 @@ export async function normalizeImageBytesForCardUntilDeadline(
   deadlineAtMs: number,
   abortSignal: AbortSignal,
 ): Promise<NormalizedImageBytes> {
-  return normalizeImageBytes(inputBytes, deadlineAtMs, abortSignal);
+  return normalizeImageBytes(
+    inputBytes,
+    deadlineAtMs,
+    abortSignal,
+    productionCardImageNormalizationWorker,
+  );
+}
+
+export async function normalizeImageBytesForCatalogCover(
+  inputBytes: Buffer,
+): Promise<NormalizedImageBytes> {
+  const controller = new AbortController();
+  return normalizeImageBytes(
+    inputBytes,
+    Date.now() + standaloneImageNormalizationBudgetMs,
+    controller.signal,
+    productionCatalogCoverImageNormalizationWorker,
+  );
+}
+
+export async function normalizeImageBytesForCatalogCoverUntilDeadline(
+  inputBytes: Buffer,
+  deadlineAtMs: number,
+  abortSignal: AbortSignal,
+): Promise<NormalizedImageBytes> {
+  return normalizeImageBytes(
+    inputBytes,
+    deadlineAtMs,
+    abortSignal,
+    productionCatalogCoverImageNormalizationWorker,
+  );
 }

@@ -28,6 +28,7 @@ import type {
   TimestampValue,
 } from "../../types";
 import { catalogPublicSnapshotSchemaVersion } from "../../types";
+import { loadPublicCatalogCollectionCoversInExecutor } from "./collectionMedia";
 
 type PublicCatalogQuery = Readonly<{
   text: string;
@@ -369,6 +370,20 @@ function buildSnapshotMediaDownloadUrl(
   ].join("/");
 }
 
+function buildSnapshotCollectionCoverDownloadUrl(
+  publicApiBaseUrl: string,
+  collectionId: string,
+): string {
+  return [
+    publicApiBaseUrl,
+    "catalog",
+    "collections",
+    collectionId,
+    "cover",
+    "download",
+  ].join("/");
+}
+
 function getSnapshotCardRequiredMediaAssetKeys(
   row: CatalogPublicSnapshotCardRow,
 ): ReadonlyArray<string> {
@@ -695,6 +710,8 @@ function assertPublicSnapshotCollectionTextSafe(
 function mapCatalogPublicSnapshotCollections(
   rows: ReadonlyArray<CatalogPublicSnapshotCollectionRow>,
   publicPackageIds: ReadonlySet<string>,
+  collectionCoverIds: ReadonlySet<string>,
+  publicApiBaseUrl: string,
 ): ReadonlyArray<CatalogPublicSnapshotCollection> {
   return rows.map((row) => {
     assertPublicSnapshotCollectionTextSafe(row.collection_id, row.slug);
@@ -719,6 +736,12 @@ function mapCatalogPublicSnapshotCollections(
       coverPackageId: row.cover_package_id !== null && publicPackageIds.has(row.cover_package_id)
         ? row.cover_package_id
         : null,
+      ...(collectionCoverIds.has(row.collection_id) ? {
+        coverDownloadUrl: buildSnapshotCollectionCoverDownloadUrl(
+          publicApiBaseUrl,
+          row.collection_id,
+        ),
+      } : {}),
       status: "published",
       updatedAt: toIsoString(row.updated_at),
       publishedAt: toIsoString(row.published_at),
@@ -766,6 +789,7 @@ export async function loadPublicCatalogSnapshotInExecutor(
     collectionsQuery.text,
     collectionsQuery.params,
   );
+  const collectionCovers = await loadPublicCatalogCollectionCoversInExecutor(executor);
   const collectionPackagesQuery = buildPublicCatalogSnapshotCollectionPackagesQuery();
   const collectionPackagesResult = await executor.query<CatalogPublicSnapshotCollectionPackageRow>(
     collectionPackagesQuery.text,
@@ -797,9 +821,14 @@ export async function loadPublicCatalogSnapshotInExecutor(
   const mediaAssetIdsByKey = indexSnapshotMediaAssets(mediaAssets);
   const packages = mapCatalogPublicSnapshotPackages(packageVersionRows);
   const publicPackageIds = new Set(packages.map((catalogPackage) => catalogPackage.packageId));
+  const collectionCoverIds = new Set(collectionCovers.map(
+    (cover) => cover.collectionCover.collectionId,
+  ));
   const collections = mapCatalogPublicSnapshotCollections(
     collectionRows,
     publicPackageIds,
+    collectionCoverIds,
+    input.publicApiBaseUrl,
   );
   const publicCollectionIds = new Set(collections.map((collection) => collection.collectionId));
 

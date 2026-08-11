@@ -210,7 +210,7 @@ test("direct ingestion monitoring covers handled HTTP 5xx and thrown Lambda fail
   );
 });
 
-test("direct ingestion route keeps shared workspace fallbacks without synthesis", () => {
+test("direct ingestion routes keep shared workspace and catalog admin fallbacks", () => {
   const stack = new cdk.Stack();
   const restApi = new apigw.RestApi(stack, "Api");
   const sharedIntegration = new apigw.MockIntegration({
@@ -220,23 +220,53 @@ test("direct ingestion route keeps shared workspace fallbacks without synthesis"
     integrationResponses: [{ statusCode: "201" }],
   });
 
-  const directImages = addDirectImageIngestionApiRoutes(
+  const routes = addDirectImageIngestionApiRoutes(
     restApi,
     sharedIntegration,
     directIntegration,
   );
 
   assert.equal(
-    directImages.path,
+    routes.workspaceImages.path,
     "/workspaces/{workspaceId}/media-assets/images",
   );
-  assert.doesNotThrow(() => directImages.node.findChild("ANY"));
-  assert.doesNotThrow(() => directImages.node.findChild("POST"));
+  assert.doesNotThrow(() => routes.workspaceImages.node.findChild("ANY"));
+  assert.doesNotThrow(() => routes.workspaceImages.node.findChild("POST"));
+  assert.equal(
+    routes.catalogCardImages.path,
+    "/admin/catalog/packages/{packageId}/media-assets/images",
+  );
+  assert.doesNotThrow(() => routes.catalogCardImages.node.findChild("ANY"));
+  assert.doesNotThrow(() => routes.catalogCardImages.node.findChild("POST"));
+  assert.equal(
+    routes.catalogCover.path,
+    "/admin/catalog/packages/{packageId}/cover",
+  );
+  assert.doesNotThrow(() => routes.catalogCover.node.findChild("ANY"));
+  assert.doesNotThrow(() => routes.catalogCover.node.findChild("PUT"));
+  assert.equal(
+    routes.catalogCollectionCover.path,
+    "/admin/catalog/collections/{collectionId}/cover",
+  );
+  assert.doesNotThrow(() => routes.catalogCollectionCover.node.findChild("ANY"));
+  assert.doesNotThrow(() => routes.catalogCollectionCover.node.findChild("PUT"));
   const workspaces = restApi.root.getResource("workspaces");
   const workspace = workspaces?.getResource("{workspaceId}");
   const mediaAssets = workspace?.getResource("media-assets");
   assert.notEqual(workspace?.getResource("{proxy+}"), undefined);
   assert.notEqual(mediaAssets?.getResource("{proxy+}"), undefined);
+  const admin = restApi.root.getResource("admin");
+  const catalog = admin?.getResource("catalog");
+  const packages = catalog?.getResource("packages");
+  const catalogPackage = packages?.getResource("{packageId}");
+  const packageMediaAssets = catalogPackage?.getResource("media-assets");
+  const collections = catalog?.getResource("collections");
+  const catalogCollection = collections?.getResource("{collectionId}");
+  assert.notEqual(admin?.getResource("{proxy+}"), undefined);
+  assert.notEqual(catalog?.getResource("{proxy+}"), undefined);
+  assert.notEqual(catalogPackage?.getResource("{proxy+}"), undefined);
+  assert.notEqual(packageMediaAssets?.getResource("{proxy+}"), undefined);
+  assert.notEqual(catalogCollection?.getResource("{proxy+}"), undefined);
 });
 
 test("custom-domain mapping strips one v1 segment before direct route selection", () => {
@@ -372,6 +402,7 @@ test("chat live Lambda Function URL CORS exposes request id header", () => {
         "x-media-client-updated-at",
         "x-media-last-modified-by-replica-id",
         "x-media-last-operation-id",
+        "x-package-media-key",
       ],
       AllowMethods: ["GET"],
       AllowOrigins: ["https://app.example.test"],
@@ -463,6 +494,7 @@ test("default API Gateway generated errors expose supported request id headers",
     "x-media-client-updated-at",
     "x-media-last-modified-by-replica-id",
     "x-media-last-operation-id",
+    "x-package-media-key",
   ].join(",");
   const responseParameters = {
     "gatewayresponse.header.Access-Control-Allow-Credentials": "'true'",

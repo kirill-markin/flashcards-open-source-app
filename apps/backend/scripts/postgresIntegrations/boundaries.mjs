@@ -71,6 +71,14 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0110_collection_cover_media.sql",
+    expectedMigrationCount: 112,
+    testFiles: Object.freeze([
+      "src/catalog/authoring/lockOrder.postgres.integration.ts",
+      "src/mediaAssets/blobLifecycle/cleanup.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0108_multipart_absolute_lease_target.sql",
     expectedMigrationCount: 110,
     testFiles: Object.freeze([
@@ -86,7 +94,6 @@ export const boundaryDefinitions = Object.freeze([
     testFiles: Object.freeze([
       "src/catalog/distribution/public/public.postgres.integration.ts",
       "src/catalog/distribution/install/install.postgres.integration.ts",
-      "src/catalog/authoring/lockOrder.postgres.integration.ts",
       "src/cards/generatedImageAppend.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
@@ -94,7 +101,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/chat/cardImages/promotion/jobsRevocation.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
       "src/database/aiChatInitiatingAuthClassification.postgres.integration.ts",
-      "src/mediaAssets/blobLifecycle/cleanup.postgres.integration.ts",
       "src/sync/freshBootstrap.postgres.integration.ts",
     ]),
   }),

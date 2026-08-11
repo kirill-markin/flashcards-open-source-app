@@ -17,6 +17,7 @@ const workspaceId = "11111111-1111-4111-8111-111111111111";
 const packageVersionId = "22222222-2222-4222-8222-222222222222";
 const packageId = "33333333-3333-4333-8333-333333333333";
 const authorId = "44444444-4444-4444-8444-444444444444";
+const collectionId = "99999999-9999-4999-8999-999999999999";
 
 function createPackageVersion(): CatalogPackageInstallPackageVersion {
   return {
@@ -104,7 +105,32 @@ describe("catalog API endpoints", () => {
         }],
         cards: [],
         mediaAssets: [],
-        collections: [],
+        collections: [{
+          collectionId,
+          slug: "test-collection",
+          title: "Test collection",
+          summary: "Test collection",
+          description: "Test collection",
+          languageTags: ["en"],
+          topicTags: ["test"],
+          coverPackageId: packageId,
+          coverDownloadUrl: `http://localhost:8080/v1/catalog/collections/${collectionId}/cover/download`,
+          status: "published",
+          updatedAt: "2026-08-01T10:00:00.000Z",
+          publishedAt: "2026-08-01T10:00:00.000Z",
+        }, {
+          collectionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          slug: "legacy-collection",
+          title: "Legacy collection",
+          summary: "Legacy collection",
+          description: "Legacy collection",
+          languageTags: ["en"],
+          topicTags: ["test"],
+          coverPackageId: packageId,
+          status: "published",
+          updatedAt: "2026-08-01T10:00:00.000Z",
+          publishedAt: "2026-08-01T10:00:00.000Z",
+        }],
         collectionPackages: [],
       }), {
         status: 200,
@@ -130,7 +156,12 @@ describe("catalog API endpoints", () => {
       operationIdPrefix: "77777777-7777-4777-8777-777777777777",
     };
 
-    await expect(loadPublicCatalog()).resolves.toMatchObject({ schemaVersion: 1 });
+    const catalog = await loadPublicCatalog();
+    expect(catalog).toMatchObject({ schemaVersion: 1 });
+    expect(catalog.collections[0]?.coverDownloadUrl).toBe(
+      `http://localhost:8080/v1/catalog/collections/${collectionId}/cover/download`,
+    );
+    expect("coverDownloadUrl" in (catalog.collections[1] ?? {})).toBe(false);
     await expect(previewCatalogPackageInstall(workspaceId, packageVersionId)).resolves.toEqual(previewResponse);
     await expect(confirmCatalogPackageInstall(workspaceId, packageVersionId, options)).resolves.toEqual(confirmResponse);
 

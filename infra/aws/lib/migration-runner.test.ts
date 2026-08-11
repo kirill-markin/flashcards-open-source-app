@@ -24,7 +24,7 @@ test("database migration gate blocks the dependent backend runtime", () => {
   const migrationGate = databaseMigrationGate(
     stack,
     migrationFn,
-    "0108_multipart_absolute_lease_target.sql",
+    "0110_collection_cover_media.sql",
   );
   const dependentRuntime = new lambda.Function(stack, "DependentBackendHandler", {
     code: lambda.Code.fromInline("exports.handler = async () => ({});"),
@@ -40,7 +40,7 @@ test("database migration gate blocks the dependent backend runtime", () => {
   }>;
   const migrationGateEntry = Object.entries(template.Resources).find(([, resource]) => (
     resource.Type === "AWS::CloudFormation::CustomResource"
-    && resource.Properties?.RequiredMigration === "0108_multipart_absolute_lease_target.sql"
+    && resource.Properties?.RequiredMigration === "0110_collection_cover_media.sql"
   ));
   if (migrationGateEntry === undefined) {
     throw new Error("Synthesized template is missing the required database migration gate");
