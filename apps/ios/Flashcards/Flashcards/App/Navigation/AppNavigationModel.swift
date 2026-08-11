@@ -115,8 +115,9 @@ final class AppNavigationModel {
     }
 
     func openAICardHandoff(card: AIChatCardReference) {
-        self.selectTab(.ai)
+        // Publish the reset request before tab entry can enqueue a scroll against the old transcript.
         self.aiChatPresentationRequest = .attachCard(card)
+        self.selectTab(.ai)
     }
 
     func openProgress(target: ProgressPresentationTarget) {
