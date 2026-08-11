@@ -274,14 +274,24 @@
   transform: none;
 }
 
-.error-banner {
+.error-banner,
+.warning-banner {
   margin: 0;
   padding: 11px 14px;
-  border: 1px solid rgba(255, 77, 87, 0.26);
   border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+
+.error-banner {
+  border: 1px solid rgba(255, 77, 87, 0.26);
   background: rgba(112, 20, 28, 0.38);
   color: #ffd6d9;
-  font-size: 14px;
+}
+
+.warning-banner {
+  border: 1px solid #d6a84b;
+  background: #3a2a0a;
+  color: #ffe7b0;
 }
 
 .app-error-dialog-backdrop {
