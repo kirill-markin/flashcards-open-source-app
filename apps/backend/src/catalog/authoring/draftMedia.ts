@@ -1,5 +1,11 @@
 import type { DatabaseExecutor } from "../../database";
+import { getDatabaseErrorFields } from "../../database/transient";
 import { unsafeTransaction } from "../../database/core";
+import {
+  mediaBlobCleanupDelayMs,
+  MediaBlobLifecycleBusyError,
+  MediaBlobLifecycleConflictError,
+} from "../../mediaAssets/blobLifecycle";
 import { HttpError } from "../../shared/errors";
 import {
   normalizeNullableString,
@@ -15,10 +21,219 @@ import type {
   AttachCatalogPackageMediaAssetInput,
   CatalogPackageMediaAsset,
   CatalogPackageMediaAssetRow,
+  CatalogPackageStatus,
   CatalogPackageVersionMediaAssetInput,
 } from "../types";
 
 type PackageMediaKeyRow = Readonly<{ package_media_key: string }>;
+
+export type CatalogPackageMediaMutationResult = Readonly<{
+  mediaAsset: CatalogPackageMediaAsset;
+  applied: boolean;
+}>;
+
+function assertCatalogPackageIsDraft(
+  packageId: string,
+  status: CatalogPackageStatus,
+): void {
+  if (status === "draft") {
+    return;
+  }
+
+  throw new HttpError(
+    409,
+    `Catalog package is not a draft authoring target. packageId=${packageId} status=${status}`,
+    "CATALOG_PACKAGE_NOT_DRAFT",
+  );
+}
+
+async function scheduleDisplacedMediaBlobCleanupInExecutor(
+  executor: DatabaseExecutor,
+  mediaBlobId: string,
+): Promise<void> {
+  try {
+    await executor.query(
+      "SELECT content.schedule_media_blob_cleanup($1, $2)",
+      [mediaBlobId, mediaBlobCleanupDelayMs],
+    );
+  } catch (error) {
+    const { sqlState } = getDatabaseErrorFields(error);
+    if (sqlState === "55P03") {
+      throw new MediaBlobLifecycleBusyError();
+    }
+    if (sqlState === "23514") {
+      throw new MediaBlobLifecycleConflictError();
+    }
+    throw error;
+  }
+}
+
+async function loadCatalogPackageDraftMediaAssetForUpdateInExecutor(
+  executor: DatabaseExecutor,
+  packageId: string,
+  packageMediaKey: string,
+): Promise<CatalogPackageMediaAssetRow | null> {
+  const result = await executor.query<CatalogPackageMediaAssetRow>(
+    [
+      "SELECT",
+      catalogPackageMediaAssetColumns,
+      "FROM catalog.package_media_assets",
+      "WHERE package_id = $1",
+      "AND package_version_id IS NULL",
+      "AND package_media_key = $2",
+      "FOR UPDATE",
+    ].join(" "),
+    [packageId, packageMediaKey],
+  );
+  return result.rows[0] ?? null;
+}
+
+async function insertCatalogPackageDraftImageInExecutor(
+  executor: DatabaseExecutor,
+  packageId: string,
+  packageMediaKey: string,
+  mediaBlobId: string,
+): Promise<CatalogPackageMediaAsset> {
+  const result = await executor.query<CatalogPackageMediaAssetRow>(
+    [
+      "INSERT INTO catalog.package_media_assets",
+      "(package_media_asset_id, package_id, package_version_id, package_media_key, media_blob_id, alt_text, credit, license)",
+      "SELECT gen_random_uuid(), $1, NULL, $2, media_blobs.media_blob_id, NULL, NULL, NULL",
+      "FROM content.media_blobs AS media_blobs",
+      "WHERE media_blobs.media_blob_id = $3",
+      "RETURNING",
+      catalogPackageMediaAssetColumns,
+    ].join(" "),
+    [packageId, packageMediaKey, mediaBlobId],
+  );
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new HttpError(
+      400,
+      "Normalized media blob not found for catalog package image attachment.",
+      "CATALOG_MEDIA_BLOB_NOT_FOUND",
+    );
+  }
+  return mapCatalogPackageMediaAssetRow(row);
+}
+
+export async function createOrReplayCatalogPackageDraftCardImageInExecutor(
+  executor: DatabaseExecutor,
+  packageId: string,
+  packageMediaKey: string,
+  mediaBlobId: string,
+): Promise<CatalogPackageMediaMutationResult> {
+  const normalizedPackageMediaKey = normalizePackageMediaKey(
+    packageMediaKey,
+    "packageMediaKey",
+  );
+  if (normalizedPackageMediaKey === "cover") {
+    throw new HttpError(
+      400,
+      "Catalog package media key cover is reserved for package cover replacement.",
+      "CATALOG_PACKAGE_MEDIA_KEY_RESERVED",
+    );
+  }
+  try {
+    const catalogPackage = await lockCatalogPackageInExecutor(executor, packageId);
+    assertCatalogPackageIsDraft(packageId, catalogPackage.status);
+    const existing = await loadCatalogPackageDraftMediaAssetForUpdateInExecutor(
+      executor,
+      packageId,
+      normalizedPackageMediaKey,
+    );
+    if (existing !== null) {
+      if (existing.media_blob_id !== mediaBlobId) {
+        throw new HttpError(
+          409,
+          `Catalog package media key already contains different normalized bytes. packageId=${packageId} packageMediaKey=${normalizedPackageMediaKey}`,
+          "CATALOG_PACKAGE_MEDIA_KEY_CONTENT_CONFLICT",
+        );
+      }
+      return { mediaAsset: mapCatalogPackageMediaAssetRow(existing), applied: false };
+    }
+
+    return {
+      mediaAsset: await insertCatalogPackageDraftImageInExecutor(
+        executor,
+        packageId,
+        normalizedPackageMediaKey,
+        mediaBlobId,
+      ),
+      applied: true,
+    };
+  } catch (error) {
+    rethrowCatalogPersistenceError(error);
+  }
+}
+
+export async function replaceCatalogPackageDraftCoverInExecutor(
+  executor: DatabaseExecutor,
+  packageId: string,
+  mediaBlobId: string,
+): Promise<CatalogPackageMediaMutationResult> {
+  const packageMediaKey = "cover";
+  try {
+    const catalogPackage = await lockCatalogPackageInExecutor(executor, packageId);
+    assertCatalogPackageIsDraft(packageId, catalogPackage.status);
+    const existing = await loadCatalogPackageDraftMediaAssetForUpdateInExecutor(
+      executor,
+      packageId,
+      packageMediaKey,
+    );
+    let mediaAsset: CatalogPackageMediaAsset;
+    let applied = catalogPackage.cover_package_media_key !== packageMediaKey;
+    if (existing === null) {
+      mediaAsset = await insertCatalogPackageDraftImageInExecutor(
+        executor,
+        packageId,
+        packageMediaKey,
+        mediaBlobId,
+      );
+      applied = true;
+    } else if (existing.media_blob_id === mediaBlobId) {
+      mediaAsset = mapCatalogPackageMediaAssetRow(existing);
+    } else {
+      const updateResult = await executor.query<CatalogPackageMediaAssetRow>(
+        [
+          "UPDATE catalog.package_media_assets",
+          "SET media_blob_id = $3",
+          "WHERE package_id = $1",
+          "AND package_version_id IS NULL",
+          "AND package_media_key = $2",
+          "RETURNING",
+          catalogPackageMediaAssetColumns,
+        ].join(" "),
+        [packageId, packageMediaKey, mediaBlobId],
+      );
+      const updated = updateResult.rows[0];
+      if (updated === undefined) {
+        throw new Error(
+          `Locked catalog package cover disappeared during replacement. packageId=${packageId}`,
+        );
+      }
+      mediaAsset = mapCatalogPackageMediaAssetRow(updated);
+      applied = true;
+    }
+
+    await executor.query(
+      [
+        "UPDATE catalog.packages SET cover_package_media_key = $2",
+        "WHERE package_id = $1 AND cover_package_media_key IS DISTINCT FROM $2",
+      ].join(" "),
+      [packageId, packageMediaKey],
+    );
+    if (existing !== null && existing.media_blob_id !== mediaBlobId) {
+      await scheduleDisplacedMediaBlobCleanupInExecutor(
+        executor,
+        existing.media_blob_id,
+      );
+    }
+    return { mediaAsset, applied };
+  } catch (error) {
+    rethrowCatalogPersistenceError(error);
+  }
+}
 
 function normalizePackageMediaAssetInput(
   input: AttachCatalogPackageMediaAssetInput,

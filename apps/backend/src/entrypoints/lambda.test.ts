@@ -177,7 +177,7 @@ test("shared direct-image guard remains before lazy runtime initialization", () 
     "const backendApiBootstrapHandler: BackendApiHandler",
   );
   const guardStart = source.indexOf(
-    "isDirectImageIngestionPostTarget(readApiGatewayRequestTarget(event))",
+    "isDirectImageIngestionTarget(readApiGatewayRequestTarget(event))",
     handlerStart,
   );
   const runtimeStart = source.indexOf(

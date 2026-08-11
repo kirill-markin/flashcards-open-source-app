@@ -11,9 +11,9 @@ import {
   createAgentApiKeyErrorEnvelope,
   isAgentApiKeyAuthorizationHeader,
 } from "../agent/envelope";
-
-const directImageIngestionPathPattern =
-  /^\/(?:v1\/)?workspaces\/[^/]+\/media-assets\/images\/?$/u;
+import {
+  isDirectImageIngestionTarget,
+} from "../server/mediaRequests/directImageIngestionRouting";
 
 type JsonRecord = Readonly<Record<string, unknown>>;
 
@@ -86,7 +86,6 @@ function parseVersionTwoEvent(event: JsonRecord): number | null {
   if (
     event.version !== "2.0"
     || typeof rawPath !== "string"
-    || !directImageIngestionPathPattern.test(rawPath)
     || typeof event.rawQueryString !== "string"
     || !isHeaderRecord(event.headers)
     || !isRequestBody(event.body)
@@ -102,9 +101,10 @@ function parseVersionTwoEvent(event: JsonRecord): number | null {
     || http === null
     || typeof requestContext.requestId !== "string"
     || requestContext.requestId === ""
-    || http.method !== "POST"
+    || typeof http.method !== "string"
     || typeof http.path !== "string"
     || http.path !== rawPath
+    || !isDirectImageIngestionTarget({ method: http.method, path: rawPath })
   ) {
     return null;
   }
@@ -116,8 +116,8 @@ function parseVersionOneEvent(event: JsonRecord): number | null {
   const path = event.path;
   if (
     typeof path !== "string"
-    || !directImageIngestionPathPattern.test(path)
-    || event.httpMethod !== "POST"
+    || typeof event.httpMethod !== "string"
+    || !isDirectImageIngestionTarget({ method: event.httpMethod, path })
     || !isHeaderRecord(event.headers)
     || !isRequestBody(event.body)
     || typeof event.isBase64Encoded !== "boolean"

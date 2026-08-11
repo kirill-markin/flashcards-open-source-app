@@ -25,6 +25,7 @@ import { createSyncRoutes } from "../routes/sync/index";
 import { createSystemRoutes } from "../routes/system";
 import { createAdminRoutes } from "../routes/admin";
 import { createCatalogAdminRoutes } from "../routes/catalog/admin";
+import { createCatalogAdminImageIngestionRoutes } from "../routes/catalog/adminImageIngestion";
 import { createCatalogPublicRoutes } from "../routes/catalog/public";
 import { createCatalogInstallRoutes } from "../routes/catalog/install";
 import { createGuestAuthRoutes } from "../routes/guestAuth";
@@ -396,6 +397,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createWorkspaceRoutes({ allowedOrigins }));
   app.route("/", createAdminRoutes({ allowedOrigins }));
   app.route("/", createCatalogAdminRoutes({ allowedOrigins }));
+  app.route("/", createCatalogAdminImageIngestionRoutes({ allowedOrigins }));
   app.route("/", createCatalogPublicRoutes({}));
   app.route("/", createCatalogInstallRoutes({ allowedOrigins }));
   app.route("/", createCardsRoutes({ allowedOrigins }));
