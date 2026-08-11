@@ -24,6 +24,7 @@ import {
 } from "../../database";
 import { getDatabaseErrorFields } from "../../database/transient";
 import { readMediaAssetImageIngestionBytesWithAbortSignal } from "../../mediaAssets/validators";
+import { createBackendFailureDetails } from "../../observability/failureDetails";
 import type { BackendObservationScope } from "../../observability/sentry/events";
 import {
   addBackendRuntimeBreadcrumb,
@@ -31,7 +32,6 @@ import {
 } from "../../observability/runtime";
 import { reportBackendExceptionOrBreadcrumb } from "../../observability/reporting";
 import type { AppEnv } from "../../server/appEnv";
-import { createBackendFailureDetails } from "../../server/logging";
 import {
   createDirectImageIngestionDeadlineError,
   createDirectImageIngestionRequestDeadline,
