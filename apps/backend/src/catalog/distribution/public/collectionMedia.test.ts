@@ -201,6 +201,7 @@ test("public collection cover routes return a backend URL and proxy verified byt
   assert.equal(loadedStorageKey, coverStorageKey);
   assert.equal(bytesResponse.headers.get("content-type"), "image/jpeg");
   assert.equal(bytesResponse.headers.get("content-length"), "3");
+  assert.equal(bytesResponse.headers.get("cache-control"), "public, no-cache");
   assert.deepEqual(Buffer.from(await bytesResponse.arrayBuffer()), Buffer.from([1, 2, 3]));
 });
 
