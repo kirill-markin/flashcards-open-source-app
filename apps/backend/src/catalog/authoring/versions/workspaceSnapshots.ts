@@ -2,30 +2,30 @@ import { randomUUID } from "node:crypto";
 import {
   applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
-} from "../../database";
-import { HttpError } from "../../shared/errors";
+} from "../../../database";
+import { HttpError } from "../../../shared/errors";
 import {
   extractMarkdownFcAssetIds,
   rewriteMarkdownFcAssetUrlsToFcAssets,
-} from "../../workspacePackages";
-import { normalizeAdminEmail, normalizePackageMediaKey } from "../common";
-import { rethrowCatalogPersistenceError } from "../errors";
-import { lockCatalogPackageInExecutor } from "../rows";
+} from "../../../workspacePackages";
+import { normalizeAdminEmail, normalizePackageMediaKey } from "../../common";
+import { rethrowCatalogPersistenceError } from "../../errors";
+import { lockCatalogPackageInExecutor } from "../../rows";
 import type {
   CatalogPackageCardSnapshotInput,
   CatalogPackageVersion,
   CatalogPackageVersionMediaAssetInput,
   CatalogWorkspaceCardRow,
   CreateCatalogPackageVersionFromWorkspaceInput,
-} from "../types";
-import { loadCatalogPackageDraftMediaKeysInExecutor } from "./draftMedia";
+} from "../../types";
+import { loadCatalogPackageDraftMediaKeysInExecutor } from "../media/draftMedia";
 import {
   collectCardManagedMediaLifecycleIssues,
   createPackageVersionFromNormalizedCardsInExecutor,
   describeManagedMediaLifecycleIssues,
   hasManagedMediaLifecycleIssues,
   normalizeCreatePackageVersionInput,
-} from "./versionCreation";
+} from "./creation";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 

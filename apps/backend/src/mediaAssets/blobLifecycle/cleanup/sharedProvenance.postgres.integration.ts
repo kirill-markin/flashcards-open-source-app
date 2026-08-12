@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import test from "node:test";
-import { replaceCatalogCollectionCoverInExecutor } from "../../../catalog/authoring/collectionCovers";
-import { replaceCatalogPackageDraftCoverInExecutor } from "../../../catalog/authoring/draftMedia";
+import { replaceCatalogCollectionCoverInExecutor } from "../../../catalog/authoring/media/collectionCovers";
+import { replaceCatalogPackageDraftCoverInExecutor } from "../../../catalog/authoring/media/draftMedia";
 import {
   transactionWithWorkspaceScope,
 } from "../../../database";
