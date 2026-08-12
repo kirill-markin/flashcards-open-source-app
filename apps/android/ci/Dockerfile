@@ -1,4 +1,4 @@
-FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:577.0.0-stable
+FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:580.0.0-stable
 
 ARG ANDROID_CMDLINE_TOOLS_VERSION=15859902
 ARG ANDROID_BUILD_TOOLS_VERSION=37.0.0
