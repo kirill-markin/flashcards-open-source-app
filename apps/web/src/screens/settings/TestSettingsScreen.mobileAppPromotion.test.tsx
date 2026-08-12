@@ -68,8 +68,8 @@ describe("TestSettingsScreen mobile app promotion preview", () => {
     });
 
     expect(requireElement(container, "mobile-app-promo-dialog")).toBeTruthy();
-    expect(requireElement(container, "mobile-app-promo-platform-ios")).toBeTruthy();
-    expect(requireElement(container, "mobile-app-promo-platform-android")).toBeTruthy();
+    expect(requireElement(container, "mobile-app-promo-link-ios")).toBeTruthy();
+    expect(requireElement(container, "mobile-app-promo-link-android")).toBeTruthy();
 
     const closeButton = requireElement(container, "mobile-app-promo-close");
     await act(async () => {
