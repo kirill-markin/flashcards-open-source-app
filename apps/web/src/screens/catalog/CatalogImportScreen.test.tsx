@@ -649,6 +649,7 @@ describe("CatalogImportScreen", () => {
     expect(container.querySelector("[data-testid='catalog-import-success-qr-ios']")).not.toBeNull();
     expect(container.querySelector("[data-testid='catalog-import-success-qr-android']")).not.toBeNull();
     expect(container.querySelector("[data-testid='catalog-import-success-qr-web']")).toBeNull();
+    expect(container.querySelector("[data-testid='catalog-import-success-mcp-option']")).not.toBeNull();
   });
 
   it("reuses one install identity after an ambiguous response and accepts the verified replay result", async () => {
