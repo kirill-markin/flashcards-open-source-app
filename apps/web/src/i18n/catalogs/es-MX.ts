@@ -132,6 +132,8 @@ const esMxCatalog: TranslationCatalog = {
     dangerZone: "Cargando la zona de peligro...",
     testSettings: "Cargando la configuración de prueba...",
     testAnimations: "Cargando las animaciones...",
+    testAppPlatformLinks: "Cargando los enlaces de plataforma de la app...",
+    testCatalogImportSuccess: "Cargando el resultado de la importación del catálogo...",
     aiChat: "Cargando el chat con IA...",
     progress: "Cargando el progreso...",
   },
@@ -289,6 +291,24 @@ const esMxCatalog: TranslationCatalog = {
     table: {
       date: "Fecha",
       reviews: "Repasos",
+    },
+  },
+  appPlatformLinks: {
+    ios: "Abrir en App Store",
+    android: "Abrir en Google Play",
+    web: "Abrir la app web",
+    qr: {
+      ios: "Código QR para el enlace de la app de iOS",
+      android: "Código QR para el enlace de la app de Android",
+    },
+    mcp: {
+      label: "Para agentes de IA",
+      title: "Conecta con MCP",
+      description: "Los agentes de IA pueden conectarse por MCP para leer, crear y editar tarjetas.",
+      caption: "Agrega este servidor MCP a tu cliente de IA:",
+      copy: "Copiar",
+      copied: "Copiado",
+      copyFailed: "No se pudo copiar",
     },
   },
   shareApp: {
@@ -572,6 +592,26 @@ const esMxCatalog: TranslationCatalog = {
         sha256: "SHA-256",
         error: "Error",
       },
+    },
+    appPlatformLinks: {
+      title: "Enlaces de plataforma de la app",
+      description: "Previsualiza la cuadrícula compartida de enlaces en todas las configuraciones.",
+      value: "4 pantallas",
+      screenTitle: "Enlaces de plataforma de la app",
+      screenSubtitle: "Todas las configuraciones de la cuadrícula compartida de enlaces.",
+      surfaces: {
+        share: "Pantalla de compartir",
+        reviewPromo: "Diálogo de promoción en el repaso",
+        catalogImport: "Importación de catálogo correcta",
+        friendInvite: "Invitación de amistad correcta",
+      },
+    },
+    catalogImportSuccess: {
+      title: "Importación de catálogo correcta",
+      description: "Previsualiza el panel de importación correcta con datos de ejemplo fijos.",
+      value: "Vista previa",
+      screenTitle: "Importación de catálogo correcta",
+      screenSubtitle: "El panel de importación correcta con datos de ejemplo fijos.",
     },
     technicalError: {
       title: "Diálogo de error técnico",

@@ -132,6 +132,8 @@ export const ruCatalog = {
     dangerZone: "Загрузка опасной зоны...",
     testSettings: "Загрузка тестовых настроек...",
     testAnimations: "Загрузка анимаций...",
+    testAppPlatformLinks: "Загрузка ссылок на платформы приложения...",
+    testCatalogImportSuccess: "Загрузка экрана успешного импорта каталога...",
     aiChat: "Загрузка AI-чата...",
     progress: "Загрузка прогресса...",
   },
@@ -289,6 +291,24 @@ export const ruCatalog = {
     table: {
       date: "Дата",
       reviews: "Повторения",
+    },
+  },
+  appPlatformLinks: {
+    ios: "Открыть в App Store",
+    android: "Открыть в Google Play",
+    web: "Открыть веб-приложение",
+    qr: {
+      ios: "QR-код для ссылки на приложение iOS",
+      android: "QR-код для ссылки на приложение Android",
+    },
+    mcp: {
+      label: "Для AI-агента",
+      title: "Подключение через MCP",
+      description: "AI-агенты могут подключаться через MCP, чтобы читать, создавать и редактировать карточки.",
+      caption: "Добавьте этот MCP-сервер в свой AI-клиент:",
+      copy: "Скопировать",
+      copied: "Скопировано",
+      copyFailed: "Не удалось скопировать",
     },
   },
   shareApp: {
@@ -572,6 +592,26 @@ export const ruCatalog = {
         sha256: "SHA-256",
         error: "Ошибка",
       },
+    },
+    appPlatformLinks: {
+      title: "Ссылки на платформы приложения",
+      description: "Предпросмотр общей сетки ссылок на платформы во всех конфигурациях экранов.",
+      value: "4 экрана",
+      screenTitle: "Ссылки на платформы приложения",
+      screenSubtitle: "Все конфигурации общей сетки ссылок на платформы.",
+      surfaces: {
+        share: "Экран «Поделиться»",
+        reviewPromo: "Диалог промо в обзоре",
+        catalogImport: "Успешный импорт каталога",
+        friendInvite: "Успешное приглашение друга",
+      },
+    },
+    catalogImportSuccess: {
+      title: "Успешный импорт каталога",
+      description: "Предпросмотр панели успешного импорта каталога с фиксированными данными.",
+      value: "Предпросмотр",
+      screenTitle: "Успешный импорт каталога",
+      screenSubtitle: "Панель успешного импорта каталога с фиксированными данными.",
     },
     technicalError: {
       title: "Диалог технической ошибки",

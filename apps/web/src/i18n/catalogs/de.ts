@@ -132,6 +132,8 @@ const deCatalog: TranslationCatalog = {
     dangerZone: "Gefahrenbereich wird geladen...",
     testSettings: "Testeinstellungen werden geladen...",
     testAnimations: "Animationen werden geladen...",
+    testAppPlatformLinks: "App-Plattformlinks werden geladen...",
+    testCatalogImportSuccess: "Katalogimport-Erfolg wird geladen...",
     aiChat: "AI-Chat wird geladen...",
     progress: "Fortschritt wird geladen...",
   },
@@ -289,6 +291,24 @@ const deCatalog: TranslationCatalog = {
     table: {
       date: "Datum",
       reviews: "Wiederholungen",
+    },
+  },
+  appPlatformLinks: {
+    ios: "Im App Store öffnen",
+    android: "In Google Play öffnen",
+    web: "Web-App öffnen",
+    qr: {
+      ios: "QR-Code für den iOS-App-Link",
+      android: "QR-Code für den Android-App-Link",
+    },
+    mcp: {
+      label: "Für KI-Agenten",
+      title: "Mit MCP verbinden",
+      description: "KI-Agenten können sich per MCP verbinden, um Karten zu lesen, zu erstellen und zu bearbeiten.",
+      caption: "Füge diesen MCP-Server zu deinem KI-Client hinzu:",
+      copy: "Kopieren",
+      copied: "Kopiert",
+      copyFailed: "Kopieren fehlgeschlagen",
     },
   },
   shareApp: {
@@ -572,6 +592,26 @@ const deCatalog: TranslationCatalog = {
         sha256: "SHA-256",
         error: "Fehler",
       },
+    },
+    appPlatformLinks: {
+      title: "App-Plattformlinks",
+      description: "Zeige das gemeinsame Plattform-Linkraster in jeder Oberflächenkonfiguration.",
+      value: "4 Oberflächen",
+      screenTitle: "App-Plattformlinks",
+      screenSubtitle: "Alle Konfigurationen des gemeinsamen Plattform-Linkrasters.",
+      surfaces: {
+        share: "Teilen-Bildschirm",
+        reviewPromo: "Promo-Dialog beim Wiederholen",
+        catalogImport: "Katalogimport-Erfolg",
+        friendInvite: "Freundeseinladung-Erfolg",
+      },
+    },
+    catalogImportSuccess: {
+      title: "Katalogimport-Erfolg",
+      description: "Zeige das Katalogimport-Erfolgspanel mit festen Beispieldaten.",
+      value: "Vorschau",
+      screenTitle: "Katalogimport-Erfolg",
+      screenSubtitle: "Das Katalogimport-Erfolgspanel mit festen Beispieldaten.",
     },
     technicalError: {
       title: "Dialog für technischen Fehler",

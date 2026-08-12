@@ -132,6 +132,8 @@ export const zhHansCatalog = {
     dangerZone: "正在加载危险区域...",
     testSettings: "正在加载测试设置...",
     testAnimations: "正在加载动画...",
+    testAppPlatformLinks: "正在加载应用平台链接...",
+    testCatalogImportSuccess: "正在加载目录导入成功页面...",
     aiChat: "正在加载 AI 聊天...",
     progress: "正在加载进度...",
   },
@@ -289,6 +291,24 @@ export const zhHansCatalog = {
     table: {
       date: "日期",
       reviews: "复习次数",
+    },
+  },
+  appPlatformLinks: {
+    ios: "在 App Store 打开",
+    android: "在 Google Play 打开",
+    web: "打开网页应用",
+    qr: {
+      ios: "iOS 应用链接的二维码",
+      android: "Android 应用链接的二维码",
+    },
+    mcp: {
+      label: "面向 AI 代理",
+      title: "通过 MCP 连接",
+      description: "AI 代理可以通过 MCP 连接，以读取、创建和编辑卡片。",
+      caption: "将此 MCP 服务器添加到你的 AI 客户端：",
+      copy: "复制",
+      copied: "已复制",
+      copyFailed: "复制失败",
     },
   },
   shareApp: {
@@ -572,6 +592,26 @@ export const zhHansCatalog = {
         sha256: "SHA-256",
         error: "错误",
       },
+    },
+    appPlatformLinks: {
+      title: "应用平台链接",
+      description: "预览共享平台链接网格的所有页面配置。",
+      value: "4 种配置",
+      screenTitle: "应用平台链接",
+      screenSubtitle: "共享平台链接网格的所有配置。",
+      surfaces: {
+        share: "分享页面",
+        reviewPromo: "复习推广对话框",
+        catalogImport: "目录导入成功",
+        friendInvite: "好友邀请成功",
+      },
+    },
+    catalogImportSuccess: {
+      title: "目录导入成功",
+      description: "使用固定示例数据预览目录导入成功面板。",
+      value: "预览",
+      screenTitle: "目录导入成功",
+      screenSubtitle: "使用固定示例数据的目录导入成功面板。",
     },
     technicalError: {
       title: "技术错误对话框",

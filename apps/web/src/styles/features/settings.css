@@ -203,6 +203,11 @@
   outline-offset: 4px;
 }
 
+.settings-test-app-platform-links-list {
+  display: grid;
+  gap: 18px;
+}
+
 .settings-panel-test-animations {
   position: relative;
   grid-template-rows: auto auto minmax(0, 1fr);

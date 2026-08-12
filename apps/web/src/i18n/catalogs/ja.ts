@@ -132,6 +132,8 @@ export const jaCatalog = {
     dangerZone: "危険な操作を読み込んでいます...",
     testSettings: "テスト設定を読み込んでいます...",
     testAnimations: "アニメーションを読み込んでいます...",
+    testAppPlatformLinks: "アプリのプラットフォームリンクを読み込んでいます...",
+    testCatalogImportSuccess: "カタログインポート完了画面を読み込んでいます...",
     aiChat: "AIチャットを読み込んでいます...",
     progress: "進捗を読み込んでいます...",
   },
@@ -289,6 +291,24 @@ export const jaCatalog = {
     table: {
       date: "日付",
       reviews: "復習回数",
+    },
+  },
+  appPlatformLinks: {
+    ios: "App Store で開く",
+    android: "Google Play で開く",
+    web: "Web アプリを開く",
+    qr: {
+      ios: "iOS アプリリンクの QR コード",
+      android: "Android アプリリンクの QR コード",
+    },
+    mcp: {
+      label: "AIエージェント向け",
+      title: "MCP で接続",
+      description: "AI エージェントは MCP 経由で接続し、カードの読み取り、作成、編集ができます。",
+      caption: "この MCP サーバーを AI クライアントに追加してください:",
+      copy: "コピー",
+      copied: "コピー済み",
+      copyFailed: "コピーできませんでした",
     },
   },
   shareApp: {
@@ -572,6 +592,26 @@ export const jaCatalog = {
         sha256: "SHA-256",
         error: "エラー",
       },
+    },
+    appPlatformLinks: {
+      title: "アプリのプラットフォームリンク",
+      description: "共通のプラットフォームリンクグリッドをすべての画面構成でプレビューします。",
+      value: "4 構成",
+      screenTitle: "アプリのプラットフォームリンク",
+      screenSubtitle: "共通のプラットフォームリンクグリッドのすべての構成。",
+      surfaces: {
+        share: "共有画面",
+        reviewPromo: "復習プロモダイアログ",
+        catalogImport: "カタログインポート完了",
+        friendInvite: "友だち招待完了",
+      },
+    },
+    catalogImportSuccess: {
+      title: "カタログインポート完了",
+      description: "固定のサンプルデータでカタログインポート完了パネルをプレビューします。",
+      value: "プレビュー",
+      screenTitle: "カタログインポート完了",
+      screenSubtitle: "固定のサンプルデータのカタログインポート完了パネル。",
     },
     technicalError: {
       title: "技術エラーダイアログ",

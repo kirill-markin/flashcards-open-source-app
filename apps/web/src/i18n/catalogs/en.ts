@@ -130,6 +130,8 @@ const enCatalog = {
     dangerZone: "Loading danger zone...",
     testSettings: "Loading test settings...",
     testAnimations: "Loading animations...",
+    testAppPlatformLinks: "Loading app platform links...",
+    testCatalogImportSuccess: "Loading catalog import success...",
     aiChat: "Loading AI chat...",
     progress: "Loading progress...",
   },
@@ -287,6 +289,24 @@ const enCatalog = {
     table: {
       date: "Date",
       reviews: "Reviews",
+    },
+  },
+  appPlatformLinks: {
+    ios: "Open in App Store",
+    android: "Open in Google Play",
+    web: "Open the web app",
+    qr: {
+      ios: "QR code for the iOS app link",
+      android: "QR code for the Android app link",
+    },
+    mcp: {
+      label: "For AI Agent",
+      title: "Connect with MCP",
+      description: "AI agents can connect over MCP to read, create, and edit cards.",
+      caption: "Add this MCP server to your AI client:",
+      copy: "Copy",
+      copied: "Copied",
+      copyFailed: "Copy failed",
     },
   },
   shareApp: {
@@ -570,6 +590,26 @@ const enCatalog = {
         sha256: "SHA-256",
         error: "Error",
       },
+    },
+    appPlatformLinks: {
+      title: "App platform links",
+      description: "Preview the shared platform link grid in every surface configuration.",
+      value: "4 surfaces",
+      screenTitle: "App platform links",
+      screenSubtitle: "Every surface configuration of the shared platform link grid.",
+      surfaces: {
+        share: "Share screen",
+        reviewPromo: "Review promo dialog",
+        catalogImport: "Catalog import success",
+        friendInvite: "Friend invite success",
+      },
+    },
+    catalogImportSuccess: {
+      title: "Catalog import success",
+      description: "Preview the catalog import success panel with fixed sample data.",
+      value: "Preview",
+      screenTitle: "Catalog import success",
+      screenSubtitle: "The catalog import success panel with fixed sample data.",
     },
     technicalError: {
       title: "Technical error dialog",
