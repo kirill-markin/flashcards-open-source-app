@@ -8,7 +8,7 @@ import {
   normalizeSlug,
   normalizeTextArray,
 } from "../common";
-import { assertDraftMediaKeysExistInExecutor } from "./draftMedia";
+import { assertDraftMediaKeysExistInExecutor } from "./media/draftMedia";
 import { rethrowCatalogPersistenceError } from "../errors";
 import {
   getPublicCatalogAuthorEligibilityIssue,

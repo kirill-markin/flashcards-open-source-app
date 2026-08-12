@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
-import type { DatabaseExecutor, SqlValue } from "../../database";
-import { HttpError } from "../../shared/errors";
+import type { DatabaseExecutor, SqlValue } from "../../../database";
+import { HttpError } from "../../../shared/errors";
 import {
   assertPublicPayloadDoesNotContainUnsafeMediaReferences,
   createQueryResult,
@@ -13,12 +13,12 @@ import {
   testWorkspaceCardId,
   testWorkspaceId,
   testWorkspaceMediaAssetId,
-} from "../testSupport";
-import { createPackageRow, createPackageVersionRow } from "./authoringTestSupport";
+} from "../../testSupport";
+import { createPackageRow, createPackageVersionRow } from "../authoringTestSupport";
 import {
   createCatalogPackageVersionFromCardsInExecutor,
   createCatalogPackageVersionFromWorkspaceSelectionInExecutor,
-} from "./versions";
+} from "./index";
 
 const testSecondWorkspaceMediaAssetId = "99999999-9999-4999-8999-999999999999";
 const testSecondMediaBlobId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";

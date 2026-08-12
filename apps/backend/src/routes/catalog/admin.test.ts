@@ -13,7 +13,7 @@ import type {
   CatalogCollectionCoverImageIngestionResult,
   CatalogPackageCoverImageIngestionInput,
   CatalogPackageImageIngestionResult,
-} from "../../catalog/authoring/imageIngestion";
+} from "../../catalog/authoring/media/imageIngestion";
 import type { AppEnv } from "../../server/app";
 import { HttpError } from "../../shared/errors";
 import { createCatalogAdminRoutes } from "./admin";

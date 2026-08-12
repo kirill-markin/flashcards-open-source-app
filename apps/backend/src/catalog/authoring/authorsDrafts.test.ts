@@ -27,7 +27,7 @@ import {
   attachCatalogPackageDraftMediaAssetInExecutor,
   createOrReplayCatalogPackageDraftCardImageInExecutor,
   replaceCatalogPackageDraftCoverInExecutor,
-} from "./draftMedia";
+} from "./media/draftMedia";
 import { createCatalogPackageDraftInExecutor, updateCatalogPackageDraftInExecutor } from "./drafts";
 
 function createAuthorRow(websiteUrl: string | null): CatalogAuthorRow {

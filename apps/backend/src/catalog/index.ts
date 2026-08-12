@@ -9,17 +9,17 @@ export {
   attachCatalogPackageDraftMediaAssetInExecutor,
   createOrReplayCatalogPackageDraftCardImageInExecutor,
   replaceCatalogPackageDraftCoverInExecutor,
-} from "./authoring/draftMedia";
+} from "./authoring/media/draftMedia";
 export {
   replaceCatalogCollectionCoverInExecutor,
-} from "./authoring/collectionCovers";
+} from "./authoring/media/collectionCovers";
 export {
   ingestCatalogCardImageBlob,
   ingestCatalogCoverImageBlob,
   ingestCatalogPackageCardImage,
   replaceCatalogCollectionCoverImage,
   replaceCatalogPackageCoverImage,
-} from "./authoring/imageIngestion";
+} from "./authoring/media/imageIngestion";
 export {
   createCatalogPackageDraft,
   createCatalogPackageDraftInExecutor,

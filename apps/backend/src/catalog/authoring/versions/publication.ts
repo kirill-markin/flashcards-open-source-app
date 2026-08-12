@@ -1,30 +1,30 @@
-import type { DatabaseExecutor } from "../../database";
-import { HttpError } from "../../shared/errors";
-import { normalizeAdminEmail, normalizeNullableString } from "../common";
-import { rethrowCatalogPersistenceError } from "../errors";
+import type { DatabaseExecutor } from "../../../database";
+import { HttpError } from "../../../shared/errors";
+import { normalizeAdminEmail, normalizeNullableString } from "../../common";
+import { rethrowCatalogPersistenceError } from "../../errors";
 import {
   maximumPublicCatalogMediaDownloadBytes,
   publicCatalogMediaDownloadMimeTypes,
-} from "../publicMediaDelivery";
+} from "../../publicMediaDelivery";
 import {
   getPublicCatalogVersionEligibilityIssue,
   type PublicCatalogAuthorEligibilityInput,
   type PublicCatalogPackageEligibilityInput,
   type PublicCatalogVersionEligibilityIssue,
   type PublicCatalogVersionMediaAssetInput,
-} from "../publicSafety";
+} from "../../publicSafety";
 import {
   catalogPackageVersionColumns,
   lockCatalogPackageInExecutor,
   mapCatalogPackageVersionRow,
-} from "../rows";
+} from "../../rows";
 import type {
   CatalogPackageStatus,
   CatalogPackageVersion,
   CatalogPackageVersionRow,
   UpdateCatalogPackageVersionStatusInput,
-} from "../types";
-import { insertPackageVersionStatusEventInExecutor } from "./versionCreation";
+} from "../../types";
+import { insertPackageVersionStatusEventInExecutor } from "./creation";
 
 const reviewStatusRouteTargets: ReadonlySet<CatalogPackageStatus> = new Set([
   "draft",
