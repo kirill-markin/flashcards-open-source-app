@@ -2,9 +2,9 @@
 .review-queue-panel {
   --review-pane-padding: 12px;
   --review-pane-radius: var(--panel-inner-radius, var(--radius-lg));
-  --review-pane-inner-radius: max(0px, calc(var(--review-pane-radius) - var(--review-pane-padding)));
+  --review-pane-inner-radius: calc(var(--review-pane-radius) / 2);
   --review-card-radius: var(--panel-inner-radius, var(--radius-lg));
-  --review-managed-media-image-radius: max(0px, calc(var(--review-card-radius) - 4px));
+  --review-managed-media-image-radius: calc(var(--review-card-radius) / 2);
   display: grid;
   gap: 10px;
   min-width: 0;
