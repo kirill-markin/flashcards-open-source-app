@@ -77,18 +77,21 @@ async function insertCatalogPackageDraftImageInExecutor(
   packageId: string,
   packageMediaKey: string,
   mediaBlobId: string,
+  altText: string | null,
+  credit: string | null,
+  license: string | null,
 ): Promise<CatalogPackageMediaAsset> {
   const result = await executor.query<CatalogPackageMediaAssetRow>(
     [
       "INSERT INTO catalog.package_media_assets",
       "(package_media_asset_id, package_id, package_version_id, package_media_key, media_blob_id, alt_text, credit, license)",
-      "SELECT gen_random_uuid(), $1, NULL, $2, media_blobs.media_blob_id, NULL, NULL, NULL",
+      "SELECT gen_random_uuid(), $1, NULL, $2, media_blobs.media_blob_id, $4, $5, $6",
       "FROM content.media_blobs AS media_blobs",
       "WHERE media_blobs.media_blob_id = $3",
       "RETURNING",
       catalogPackageMediaAssetColumns,
     ].join(" "),
-    [packageId, packageMediaKey, mediaBlobId],
+    [packageId, packageMediaKey, mediaBlobId, altText, credit, license],
   );
   const row = result.rows[0];
   if (row === undefined) {
@@ -142,6 +145,9 @@ export async function createOrReplayCatalogPackageDraftCardImageInExecutor(
         packageId,
         normalizedPackageMediaKey,
         mediaBlobId,
+        null,
+        null,
+        null,
       ),
       applied: true,
     };
@@ -154,8 +160,14 @@ export async function replaceCatalogPackageDraftCoverInExecutor(
   executor: DatabaseExecutor,
   packageId: string,
   mediaBlobId: string,
+  altText: string | null,
+  credit: string | null,
+  license: string | null,
 ): Promise<CatalogPackageMediaMutationResult> {
   const packageMediaKey = "cover";
+  const normalizedAltText = normalizeNullableString(altText, "altText");
+  const normalizedCredit = normalizeNullableString(credit, "credit");
+  const normalizedLicense = normalizeNullableString(license, "license");
   try {
     const catalogPackage = await lockCatalogPackageInExecutor(executor, packageId);
     const existing = await loadCatalogPackageDraftMediaAssetForUpdateInExecutor(
@@ -163,6 +175,8 @@ export async function replaceCatalogPackageDraftCoverInExecutor(
       packageId,
       packageMediaKey,
     );
+    const mediaBlobChanged = existing !== null
+      && existing.media_blob_id !== mediaBlobId;
     let mediaAsset: CatalogPackageMediaAsset;
     let applied = catalogPackage.cover_package_media_key !== packageMediaKey;
     if (existing === null) {
@@ -171,26 +185,43 @@ export async function replaceCatalogPackageDraftCoverInExecutor(
         packageId,
         packageMediaKey,
         mediaBlobId,
+        normalizedAltText,
+        normalizedCredit,
+        normalizedLicense,
       );
       applied = true;
-    } else if (existing.media_blob_id === mediaBlobId) {
+    } else if (
+      mediaBlobChanged === false
+      && existing.alt_text === normalizedAltText
+      && existing.credit === normalizedCredit
+      && existing.license === normalizedLicense
+    ) {
       mediaAsset = mapCatalogPackageMediaAssetRow(existing);
     } else {
-      await executor.query(
-        "SELECT content.lock_media_blob_lifecycles_for_reference_swap($1, $2)",
-        [existing.media_blob_id, mediaBlobId],
-      );
+      if (mediaBlobChanged) {
+        await executor.query(
+          "SELECT content.lock_media_blob_lifecycles_for_reference_swap($1, $2)",
+          [existing.media_blob_id, mediaBlobId],
+        );
+      }
       const updateResult = await executor.query<CatalogPackageMediaAssetRow>(
         [
           "UPDATE catalog.package_media_assets",
-          "SET media_blob_id = $3",
+          "SET media_blob_id = $3, alt_text = $4, credit = $5, license = $6",
           "WHERE package_id = $1",
           "AND package_version_id IS NULL",
           "AND package_media_key = $2",
           "RETURNING",
           catalogPackageMediaAssetColumns,
         ].join(" "),
-        [packageId, packageMediaKey, mediaBlobId],
+        [
+          packageId,
+          packageMediaKey,
+          mediaBlobId,
+          normalizedAltText,
+          normalizedCredit,
+          normalizedLicense,
+        ],
       );
       const updated = updateResult.rows[0];
       if (updated === undefined) {
@@ -209,7 +240,7 @@ export async function replaceCatalogPackageDraftCoverInExecutor(
       ].join(" "),
       [packageId, packageMediaKey],
     );
-    if (existing !== null && existing.media_blob_id !== mediaBlobId) {
+    if (existing !== null && mediaBlobChanged) {
       await scheduleDisplacedMediaBlobCleanupInExecutor(
         executor,
         existing.media_blob_id,

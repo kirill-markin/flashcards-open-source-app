@@ -277,11 +277,18 @@ export function createCatalogAdminImageIngestionRoutes(options: CatalogAdminImag
           const admin = await requireAdminRequestFn(context.req.raw, options.allowedOrigins);
           userId = admin.userId;
           const packageId = parsePackageId(context.req.param("packageId"));
+          const requestUrl = new URL(context.req.url);
           const imageBytes = await readMediaAssetImageIngestionBytesWithAbortSignal(
             context.req.raw,
             deadline.preprocessingSignal,
           );
-          return { packageId, imageBytes };
+          return {
+            packageId,
+            imageBytes,
+            altText: requestUrl.searchParams.get("altText"),
+            credit: requestUrl.searchParams.get("credit"),
+            license: requestUrl.searchParams.get("license"),
+          };
         },
       );
       deadline.disposePreprocessing();
@@ -289,6 +296,9 @@ export function createCatalogAdminImageIngestionRoutes(options: CatalogAdminImag
       const result = await replaceCatalogPackageCoverImageFn({
         packageId: prepared.packageId,
         imageBytes: prepared.imageBytes,
+        altText: prepared.altText,
+        credit: prepared.credit,
+        license: prepared.license,
         deadlineAtMs: deadline.requestDeadlineAtMs,
         signal: deadline.requestSignal,
         observationScope: scope,
