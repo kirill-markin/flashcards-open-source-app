@@ -11,6 +11,7 @@ import type {
 } from "../../catalog/types";
 import type {
   CatalogCollectionCoverImageIngestionResult,
+  CatalogPackageCoverImageIngestionInput,
   CatalogPackageImageIngestionResult,
 } from "../../catalog/authoring/imageIngestion";
 import type { AppEnv } from "../../server/app";
@@ -210,6 +211,7 @@ function createCatalogCollectionCoverResult(): CatalogCollectionCoverImageIngest
 function createCatalogImageTestApp(
   authorize: () => Promise<AdminRequestContext>,
   ingestCard: (packageMediaKey: string, imageBytes: Buffer) => Promise<CatalogPackageImageIngestionResult>,
+  replacePackageCover: (input: CatalogPackageCoverImageIngestionInput) => Promise<CatalogPackageImageIngestionResult>,
   replaceCollectionCover: (receivedCollectionId: string, imageBytes: Buffer) => Promise<CatalogCollectionCoverImageIngestionResult>,
 ): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
@@ -233,7 +235,7 @@ function createCatalogImageTestApp(
       input.packageMediaKey,
       input.imageBytes,
     ),
-    replaceCatalogPackageCoverImageFn: async () => createCatalogImageResult("cover"),
+    replaceCatalogPackageCoverImageFn: replacePackageCover,
     replaceCatalogCollectionCoverImageFn: async (input) => replaceCollectionCover(
       input.collectionId,
       input.imageBytes,
@@ -251,6 +253,10 @@ test("catalog image routes authorize before validating raw bodies", async () => 
     async () => {
       processingCalls += 1;
       return createCatalogImageResult("diagram");
+    },
+    async () => {
+      processingCalls += 1;
+      return createCatalogImageResult("cover");
     },
     async () => {
       processingCalls += 1;
@@ -273,6 +279,7 @@ test("catalog image routes authorize before validating raw bodies", async () => 
 
 test("catalog image routes validate raw input and never expose media blob IDs", async () => {
   let cardCalls = 0;
+  const coverInputs: Array<CatalogPackageCoverImageIngestionInput> = [];
   let collectionCalls = 0;
   const app = createCatalogImageTestApp(
     async () => createAdminRequestContext(),
@@ -281,6 +288,21 @@ test("catalog image routes validate raw input and never expose media blob IDs", 
       assert.equal(packageMediaKey, "diagram");
       assert.deepEqual(imageBytes, Buffer.from([1, 2, 3]));
       return createCatalogImageResult(packageMediaKey);
+    },
+    async (input) => {
+      coverInputs.push(input);
+      assert.equal(input.packageId, packageId);
+      assert.deepEqual(input.imageBytes, Buffer.from([1, 2, 3]));
+      const result = createCatalogImageResult("cover");
+      return {
+        ...result,
+        mediaAsset: {
+          ...result.mediaAsset,
+          altText: input.altText,
+          credit: input.credit,
+          license: input.license,
+        },
+      };
     },
     async (receivedCollectionId, imageBytes) => {
       collectionCalls += 1;
@@ -316,6 +338,45 @@ test("catalog image routes validate raw input and never expose media blob IDs", 
     assert.equal(response.status, method === "POST" ? 201 : 200);
     assert.equal("mediaBlobId" in payload.mediaAsset, false);
   }
+  assert.deepEqual(
+    coverInputs.map((input) => ({
+      altText: input.altText,
+      credit: input.credit,
+      license: input.license,
+    })),
+    [{ altText: null, credit: null, license: null }],
+  );
+
+  const coverMetadata = {
+    altText: "Ciudadanía española — niñas estudiando",
+    credit: "© María Núñez",
+    license: "CC BY 4.0",
+  };
+  const metadataResponse = await app.request(
+    `http://localhost/admin/catalog/packages/${packageId}/cover?${new URLSearchParams(coverMetadata)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "image/png" },
+      body: Buffer.from([1, 2, 3]),
+    },
+  );
+  const metadataPayload = await metadataResponse.json() as Readonly<{
+    mediaAsset: Readonly<Record<string, unknown>>;
+  }>;
+  assert.equal(metadataResponse.status, 200);
+  assert.equal("mediaBlobId" in metadataPayload.mediaAsset, false);
+  assert.equal(metadataPayload.mediaAsset.altText, coverMetadata.altText);
+  assert.equal(metadataPayload.mediaAsset.credit, coverMetadata.credit);
+  assert.equal(metadataPayload.mediaAsset.license, coverMetadata.license);
+  assert.deepEqual(
+    coverInputs.slice(1).map((input) => ({
+      altText: input.altText,
+      credit: input.credit,
+      license: input.license,
+    })),
+    [coverMetadata],
+  );
+
   const collectionResponse = await app.request(
     `http://localhost/admin/catalog/collections/${collectionId}/cover`,
     {
@@ -344,6 +405,7 @@ test("catalog image routes normalize ingestion deadline errors", async () => {
       async () => {
         throw error;
       },
+      async () => createCatalogImageResult("cover"),
       async () => createCatalogCollectionCoverResult(),
     );
     const response = await app.request(

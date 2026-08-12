@@ -62,6 +62,9 @@ export type CatalogPackageCardImageIngestionInput =
 export type CatalogPackageCoverImageIngestionInput =
   CatalogImageBlobIngestionInput & Readonly<{
     packageId: string;
+    altText: string | null;
+    credit: string | null;
+    license: string | null;
   }>;
 
 export type CatalogCollectionCoverImageIngestionInput =
@@ -537,6 +540,9 @@ export async function replaceCatalogPackageCoverImage(
         executor,
         input.packageId,
         mediaBlob.mediaBlobId,
+        input.altText,
+        input.credit,
+        input.license,
       ),
       deadlineInput.deadlineAtMs,
       deadlineInput.signal,
