@@ -108,7 +108,7 @@ describe("ShareAppScreen", () => {
     expect(screen.textContent).toContain("Choose where you want to use the app.");
 
     const linkTestIds: ReadonlyArray<string> = Array.from(
-      container.querySelectorAll("[data-testid^='app-platform-link-']"),
+      container.querySelectorAll("[data-testid^='share-app-link-']"),
     ).map((element) => {
       const testId: string | null = element.getAttribute("data-testid");
       if (testId === null) {
@@ -118,27 +118,28 @@ describe("ShareAppScreen", () => {
       return testId;
     });
     expect(linkTestIds).toEqual([
-      "app-platform-link-ios",
-      "app-platform-link-android",
-      "app-platform-link-web",
+      "share-app-link-ios",
+      "share-app-link-android",
+      "share-app-link-web",
     ]);
 
-    const iosLink: HTMLElement = requireElement(container, "[data-testid='app-platform-link-ios']");
+    const iosLink: HTMLElement = requireElement(container, "[data-testid='share-app-link-ios']");
     expect(iosLink.getAttribute("href")).toBe(shareAppIosHref);
-    const androidLink: HTMLElement = requireElement(container, "[data-testid='app-platform-link-android']");
+    const androidLink: HTMLElement = requireElement(container, "[data-testid='share-app-link-android']");
     expect(androidLink.getAttribute("href")).toBe(shareAppAndroidHref);
-    const webLink: HTMLElement = requireElement(container, "[data-testid='app-platform-link-web']");
+    const webLink: HTMLElement = requireElement(container, "[data-testid='share-app-link-web']");
     expect(webLink.getAttribute("href")).toBe(`${window.location.origin}${reviewRoute}`);
     expect(webLink.getAttribute("target")).toBe("_blank");
-    expect(requireElement(container, "[data-testid='share-app-web-link-value']").textContent).toBe(
-      `${window.location.origin}${reviewRoute}`,
-    );
 
-    const platformGrid: HTMLElement = requireElement(container, "[data-testid='share-app-platform-links']");
+    // A desktop user agent keeps both store QR codes, and the web tile never gets one.
+    expect(container.querySelector("[data-testid='share-app-qr-ios']")).not.toBeNull();
+    expect(container.querySelector("[data-testid='share-app-qr-android']")).not.toBeNull();
+    expect(container.querySelector("[data-testid='share-app-qr-web']")).toBeNull();
+
+    const platformGrid: HTMLElement = requireElement(container, "[data-testid='share-app-grid']");
     const mcpOption: HTMLElement = requireElement(container, "[data-testid='share-app-mcp-option']");
-    expect(platformGrid.compareDocumentPosition(mcpOption) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    );
+    expect(mcpOption.parentElement).toBe(platformGrid);
+    expect(platformGrid.lastElementChild).toBe(mcpOption);
     expect(mcpOption.textContent).toContain("For AI Agent");
     expect(requireElement(container, "[data-testid='share-app-mcp-url']").textContent).toBe(expectedMcpServerUrl);
     expect(requireElement(container, "[data-testid='share-app-mcp-copy-button']").textContent).toBe("Copy");
