@@ -109,7 +109,7 @@
 .panel {
   --panel-padding: 16px;
   --panel-radius: var(--radius-xl);
-  --panel-inner-radius: max(0px, calc(var(--panel-radius) - var(--panel-padding)));
+  --panel-inner-radius: calc(var(--panel-radius) / 2);
   display: grid;
   gap: 16px;
   padding: var(--panel-padding);
@@ -153,7 +153,7 @@
   --content-card-padding-block: 12px;
   --content-card-padding-inline: 14px;
   --content-card-radius: var(--panel-inner-radius, var(--radius-md));
-  --content-card-inner-radius: max(0px, calc(var(--content-card-radius) - var(--content-card-padding-block)));
+  --content-card-inner-radius: calc(var(--content-card-radius) / 2);
   padding: var(--content-card-padding-block) var(--content-card-padding-inline);
   border: 0;
   border-radius: var(--content-card-radius);

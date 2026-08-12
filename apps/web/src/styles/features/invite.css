@@ -14,8 +14,6 @@
 }
 
 .invite-panel {
-  /* Inner blocks follow the half-radius rule instead of the padding-derived default. */
-  --content-card-inner-radius: calc(var(--content-card-radius) / 2);
   width: min(100%, 560px);
   display: grid;
   gap: 16px;
