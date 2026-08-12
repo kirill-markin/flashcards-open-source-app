@@ -36,8 +36,11 @@ Current marketing-site App Store campaign URL:
 
 `https://apps.apple.com/app/apple-store/id6760538964?pt=128797295&ct=marketing_site&mt=8`
 
-Keep the App Store Connect-generated URL as-is once generated; do not rewrite
-the path manually.
+Keep the path and the `pt` and `mt` parameters exactly as App Store Connect
+generated them; do not rewrite them manually. Only `ct` differs per bucket,
+and its value is chosen freely without registering the campaign there first.
+A new campaign appears in App Store Connect Analytics on its own after roughly
+five first-time downloads from distinct Apple IDs and 24 hours.
 
 Track fine-grained button placement in site or product analytics, not in store
 campaign names.
