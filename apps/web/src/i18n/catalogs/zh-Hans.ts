@@ -314,20 +314,6 @@ export const zhHansCatalog = {
   shareApp: {
     title: "用 Flashcards 学习",
     body: "选择你想在哪里使用应用。你的卡片可在 iOS、Android 和网页版中继续使用。",
-    links: {
-      ios: "在 App Store 打开",
-      android: "在 Google Play 打开",
-      web: "Web App",
-    },
-    mcp: {
-      label: "面向 AI 代理",
-      title: "通过 MCP 连接",
-      description: "AI 代理可以通过 MCP 连接，以读取、创建和编辑卡片。",
-      caption: "将此 MCP 服务器添加到你的 AI 客户端：",
-      copy: "复制",
-      copied: "已复制",
-      copyFailed: "复制失败",
-    },
   },
   friendInvite: {
     loading: "正在检查邀请链接...",
@@ -349,11 +335,6 @@ export const zhHansCatalog = {
     alreadyFriendsTitle: "你们已经是好友",
     alreadyFriendsBody: "在你的应用中，此好友已保存为 {{name}}。",
     mobileSameEmailNote: "移动应用需要使用同一个电子邮件地址登录。",
-    links: {
-      ios: "在 App Store 打开",
-      android: "在 Google Play 打开",
-      web: "Web App",
-    },
     validation: {
       required: "请输入名称。",
       singleLine: "使用不含控制字符的单行名称。",
@@ -799,9 +780,6 @@ export const zhHansCatalog = {
     successWorkspaceLabel: "工作区",
     successSameEmailNote: "在移动应用中使用同一个电子邮件地址登录即可看到这些卡片。",
     successSameEmailNoteWithAddress: "在移动应用中使用 {{email}} 登录即可看到这些卡片。",
-    successOpenIos: "在 App Store 打开",
-    successOpenAndroid: "在 Google Play 打开",
-    successOpenWeb: "打开网页应用",
     syncing: "正在同步已导入的卡片...",
     syncFailed: "卡片已导入，但同步失败。请检查网络连接后重试同步。",
     retrySync: "重试同步",
@@ -985,16 +963,6 @@ export const zhHansCatalog = {
     title: "在手机上复习",
     body: "安装 iOS 或 Android 应用，在离线时也能快速继续复习。",
     close: "关闭",
-    ios: {
-      title: "iOS",
-      storeLinkLabel: "在 App Store 打开 iOS 应用",
-      qrLabel: "iOS 应用链接的二维码",
-    },
-    android: {
-      title: "Android",
-      storeLinkLabel: "在 Google Play 打开 Android 应用",
-      qrLabel: "Android 应用链接的二维码",
-    },
   },
   feedback: {
     title: "对 Flashcards 有想法吗？",

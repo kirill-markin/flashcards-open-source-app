@@ -314,20 +314,6 @@ const arCatalog: TranslationCatalog = {
   shareApp: {
     title: "ادرس باستخدام Flashcards",
     body: "اختر أين تريد استخدام التطبيق. ستظل بطاقاتك متاحة على iOS وAndroid والويب.",
-    links: {
-      ios: "فتح في App Store",
-      android: "فتح في Google Play",
-      web: "تطبيق الويب",
-    },
-    mcp: {
-      label: "لوكيل الذكاء الاصطناعي",
-      title: "الاتصال عبر MCP",
-      description: "يمكن لوكلاء الذكاء الاصطناعي الاتصال عبر MCP لقراءة البطاقات وإنشائها وتعديلها.",
-      caption: "أضف خادم MCP هذا إلى عميل الذكاء الاصطناعي لديك:",
-      copy: "نسخ",
-      copied: "تم النسخ",
-      copyFailed: "فشل النسخ",
-    },
   },
   friendInvite: {
     loading: "جارٍ فحص رابط الدعوة...",
@@ -349,11 +335,6 @@ const arCatalog: TranslationCatalog = {
     alreadyFriendsTitle: "أنتما صديقان بالفعل",
     alreadyFriendsBody: "في تطبيقك، هذا الصديق محفوظ باسم {{name}}.",
     mobileSameEmailNote: "تتطلب تطبيقات الهاتف تسجيل الدخول بالبريد الإلكتروني نفسه.",
-    links: {
-      ios: "فتح في App Store",
-      android: "فتح في Google Play",
-      web: "Web App",
-    },
     validation: {
       required: "أدخل اسمًا.",
       singleLine: "استخدم اسمًا من سطر واحد بدون محارف تحكم.",
@@ -799,9 +780,6 @@ const arCatalog: TranslationCatalog = {
     successWorkspaceLabel: "مساحة العمل",
     successSameEmailNote: "سجّل الدخول إلى تطبيقات الهاتف بالبريد الإلكتروني نفسه لرؤية هذه البطاقات.",
     successSameEmailNoteWithAddress: "سجّل الدخول إلى تطبيقات الهاتف باستخدام {{email}} لرؤية هذه البطاقات.",
-    successOpenIos: "فتح في App Store",
-    successOpenAndroid: "فتح في Google Play",
-    successOpenWeb: "فتح تطبيق الويب",
     syncing: "جارٍ مزامنة البطاقات المستوردة...",
     syncFailed: "تم استيراد البطاقات، لكن فشلت المزامنة. تحقق من اتصالك وحاول المزامنة مرة أخرى.",
     retrySync: "إعادة محاولة المزامنة",
@@ -985,16 +963,6 @@ const arCatalog: TranslationCatalog = {
     title: "راجع على هاتفك",
     body: "ثبّت تطبيق iOS أو Android لمتابعة المراجعة بسرعة مع الوصول دون اتصال.",
     close: "إغلاق",
-    ios: {
-      title: "iOS",
-      storeLinkLabel: "افتح تطبيق iOS في App Store",
-      qrLabel: "رمز QR لرابط تطبيق iOS",
-    },
-    android: {
-      title: "Android",
-      storeLinkLabel: "افتح تطبيق Android في Google Play",
-      qrLabel: "رمز QR لرابط تطبيق Android",
-    },
   },
   feedback: {
     title: "هل لديك فكرة لـ Flashcards؟",

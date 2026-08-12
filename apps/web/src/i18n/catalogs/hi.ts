@@ -314,20 +314,6 @@ const hiCatalog: TranslationCatalog = {
   shareApp: {
     title: "Flashcards के साथ पढ़ें",
     body: "चुनें कि आप ऐप कहां इस्तेमाल करना चाहते हैं। आपके कार्ड iOS, Android और वेब पर उपलब्ध रहते हैं।",
-    links: {
-      ios: "App Store में खोलें",
-      android: "Google Play में खोलें",
-      web: "वेब ऐप",
-    },
-    mcp: {
-      label: "AI एजेंट के लिए",
-      title: "MCP से कनेक्ट करें",
-      description: "AI एजेंट MCP के जरिए कार्ड पढ़ने, बनाने और संपादित करने के लिए कनेक्ट कर सकते हैं।",
-      caption: "इस MCP सर्वर को अपने AI क्लाइंट में जोड़ें:",
-      copy: "कॉपी करें",
-      copied: "कॉपी हो गया",
-      copyFailed: "कॉपी नहीं हो सका",
-    },
   },
   friendInvite: {
     loading: "आमंत्रण लिंक जांचा जा रहा है...",
@@ -349,11 +335,6 @@ const hiCatalog: TranslationCatalog = {
     alreadyFriendsTitle: "आप पहले से दोस्त हैं",
     alreadyFriendsBody: "आपके ऐप में यह दोस्त {{name}} के रूप में सहेजा गया है।",
     mobileSameEmailNote: "मोबाइल ऐप्स में उसी ईमेल से साइन इन करना आवश्यक है।",
-    links: {
-      ios: "App Store में खोलें",
-      android: "Google Play में खोलें",
-      web: "Web App",
-    },
     validation: {
       required: "नाम दर्ज करें।",
       singleLine: "कंट्रोल वर्णों के बिना एक पंक्ति वाला नाम इस्तेमाल करें।",
@@ -799,9 +780,6 @@ const hiCatalog: TranslationCatalog = {
     successWorkspaceLabel: "वर्कस्पेस",
     successSameEmailNote: "ये कार्ड देखने के लिए मोबाइल ऐप्स में उसी ईमेल से साइन इन करें।",
     successSameEmailNoteWithAddress: "ये कार्ड देखने के लिए मोबाइल ऐप्स में {{email}} से साइन इन करें।",
-    successOpenIos: "App Store में खोलें",
-    successOpenAndroid: "Google Play में खोलें",
-    successOpenWeb: "वेब ऐप खोलें",
     syncing: "इम्पोर्ट किए गए कार्ड सिंक हो रहे हैं...",
     syncFailed: "कार्ड इम्पोर्ट हो गए, लेकिन सिंक नहीं हो सका। अपना कनेक्शन जाँचें और फिर सिंक करें।",
     retrySync: "सिंक फिर से करें",
@@ -985,16 +963,6 @@ const hiCatalog: TranslationCatalog = {
     title: "अपने फोन पर रिव्यू करें",
     body: "ऑफलाइन एक्सेस के साथ तेजी से रिव्यू जारी रखने के लिए iOS या Android ऐप इंस्टॉल करें.",
     close: "बंद करें",
-    ios: {
-      title: "iOS",
-      storeLinkLabel: "App Store में iOS ऐप खोलें",
-      qrLabel: "iOS ऐप लिंक का QR कोड",
-    },
-    android: {
-      title: "Android",
-      storeLinkLabel: "Google Play में Android ऐप खोलें",
-      qrLabel: "Android ऐप लिंक का QR कोड",
-    },
   },
   feedback: {
     title: "Flashcards के लिए कोई विचार है?",

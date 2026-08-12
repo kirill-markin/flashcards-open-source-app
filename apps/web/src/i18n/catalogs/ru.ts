@@ -314,20 +314,6 @@ export const ruCatalog = {
   shareApp: {
     title: "Учитесь с Flashcards",
     body: "Выберите, где использовать приложение. Ваши карточки доступны на iOS, Android и в веб-версии.",
-    links: {
-      ios: "Открыть в App Store",
-      android: "Открыть в Google Play",
-      web: "Веб-приложение",
-    },
-    mcp: {
-      label: "Для AI-агента",
-      title: "Подключение через MCP",
-      description: "AI-агенты могут подключаться через MCP, чтобы читать, создавать и редактировать карточки.",
-      caption: "Добавьте этот MCP-сервер в свой AI-клиент:",
-      copy: "Скопировать",
-      copied: "Скопировано",
-      copyFailed: "Не удалось скопировать",
-    },
   },
   friendInvite: {
     loading: "Проверяем ссылку-приглашение...",
@@ -349,11 +335,6 @@ export const ruCatalog = {
     alreadyFriendsTitle: "Вы уже друзья",
     alreadyFriendsBody: "В вашем приложении этот друг сохранен как {{name}}.",
     mobileSameEmailNote: "В мобильных приложениях нужно войти с тем же адресом электронной почты.",
-    links: {
-      ios: "Открыть в App Store",
-      android: "Открыть в Google Play",
-      web: "Web App",
-    },
     validation: {
       required: "Введите имя.",
       singleLine: "Используйте имя в одну строку без управляющих символов.",
@@ -799,9 +780,6 @@ export const ruCatalog = {
     successWorkspaceLabel: "Рабочее пространство",
     successSameEmailNote: "Чтобы увидеть эти карточки, войдите в мобильные приложения с тем же адресом электронной почты.",
     successSameEmailNoteWithAddress: "Чтобы увидеть эти карточки, войдите в мобильные приложения с адресом {{email}}.",
-    successOpenIos: "Открыть в App Store",
-    successOpenAndroid: "Открыть в Google Play",
-    successOpenWeb: "Открыть веб-приложение",
     syncing: "Синхронизация импортированных карточек...",
     syncFailed: "Карточки импортированы, но синхронизация не удалась. Проверьте подключение и повторите синхронизацию.",
     retrySync: "Повторить синхронизацию",
@@ -985,16 +963,6 @@ export const ruCatalog = {
     title: "Повторяйте на телефоне",
     body: "Установите приложение для iOS или Android, чтобы быстро повторять карточки с офлайн-доступом.",
     close: "Закрыть",
-    ios: {
-      title: "iOS",
-      storeLinkLabel: "Открыть приложение для iOS в App Store",
-      qrLabel: "QR-код для ссылки на приложение iOS",
-    },
-    android: {
-      title: "Android",
-      storeLinkLabel: "Открыть приложение для Android в Google Play",
-      qrLabel: "QR-код для ссылки на приложение Android",
-    },
   },
   feedback: {
     title: "Есть идея для Flashcards?",

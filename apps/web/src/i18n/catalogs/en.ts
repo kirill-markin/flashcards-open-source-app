@@ -312,20 +312,6 @@ const enCatalog = {
   shareApp: {
     title: "Study with Flashcards",
     body: "Choose where you want to use the app. Your cards stay available across iOS, Android, and the web.",
-    links: {
-      ios: "Open in App Store",
-      android: "Open in Google Play",
-      web: "Web App",
-    },
-    mcp: {
-      label: "For AI Agent",
-      title: "Connect with MCP",
-      description: "AI agents can connect over MCP to read, create, and edit cards.",
-      caption: "Add this MCP server to your AI client:",
-      copy: "Copy",
-      copied: "Copied",
-      copyFailed: "Copy failed",
-    },
   },
   friendInvite: {
     loading: "Checking invite link...",
@@ -347,11 +333,6 @@ const enCatalog = {
     alreadyFriendsTitle: "You are already friends",
     alreadyFriendsBody: "In your app, this friend is saved as {{name}}.",
     mobileSameEmailNote: "Mobile apps require signing in with the same email.",
-    links: {
-      ios: "Open in App Store",
-      android: "Open in Google Play",
-      web: "Web App",
-    },
     validation: {
       required: "Enter a name.",
       singleLine: "Use a single-line name without control characters.",
@@ -797,9 +778,6 @@ const enCatalog = {
     successWorkspaceLabel: "Workspace",
     successSameEmailNote: "Sign in to the mobile apps with the same email to see these cards.",
     successSameEmailNoteWithAddress: "Sign in to the mobile apps with {{email}} to see these cards.",
-    successOpenIos: "Open in App Store",
-    successOpenAndroid: "Open in Google Play",
-    successOpenWeb: "Open the web app",
     syncing: "Syncing imported cards...",
     syncFailed: "The cards were imported, but sync failed. Check your connection and try syncing again.",
     retrySync: "Retry sync",
@@ -983,16 +961,6 @@ const enCatalog = {
     title: "Review on your phone",
     body: "Install the iOS or Android app to keep reviewing quickly with offline access.",
     close: "Close",
-    ios: {
-      title: "iOS",
-      storeLinkLabel: "Open iOS app in the App Store",
-      qrLabel: "QR code for the iOS app link",
-    },
-    android: {
-      title: "Android",
-      storeLinkLabel: "Open Android app in Google Play",
-      qrLabel: "QR code for the Android app link",
-    },
   },
   feedback: {
     title: "Have an idea for Flashcards?",
