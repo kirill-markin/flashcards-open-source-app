@@ -12,7 +12,7 @@ import {
   type CatalogPackageCardImageIngestionInput,
   type CatalogPackageCoverImageIngestionInput,
   type CatalogPackageImageIngestionResult,
-} from "../../catalog/authoring/imageIngestion";
+} from "../../catalog/authoring/media/imageIngestion";
 import { normalizePackageMediaKey } from "../../catalog/common";
 import type {
   CatalogCollectionCover,

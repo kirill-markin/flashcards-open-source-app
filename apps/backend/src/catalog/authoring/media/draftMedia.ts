@@ -1,28 +1,28 @@
-import type { DatabaseExecutor } from "../../database";
-import { getDatabaseErrorFields } from "../../database/transient";
-import { unsafeTransaction } from "../../database/core";
+import type { DatabaseExecutor } from "../../../database";
+import { getDatabaseErrorFields } from "../../../database/transient";
+import { unsafeTransaction } from "../../../database/core";
 import {
   mediaBlobCleanupDelayMs,
   MediaBlobLifecycleBusyError,
   MediaBlobLifecycleConflictError,
-} from "../../mediaAssets/blobLifecycle";
-import { HttpError } from "../../shared/errors";
+} from "../../../mediaAssets/blobLifecycle";
+import { HttpError } from "../../../shared/errors";
 import {
   normalizeNullableString,
   normalizePackageMediaKey,
-} from "../common";
-import { rethrowCatalogPersistenceError } from "../errors";
+} from "../../common";
+import { rethrowCatalogPersistenceError } from "../../errors";
 import {
   catalogPackageMediaAssetColumns,
   lockCatalogPackageInExecutor,
   mapCatalogPackageMediaAssetRow,
-} from "../rows";
+} from "../../rows";
 import type {
   AttachCatalogPackageMediaAssetInput,
   CatalogPackageMediaAsset,
   CatalogPackageMediaAssetRow,
   CatalogPackageVersionMediaAssetInput,
-} from "../types";
+} from "../../types";
 
 type PackageMediaKeyRow = Readonly<{ package_media_key: string }>;
 

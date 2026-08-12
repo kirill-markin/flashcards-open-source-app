@@ -3,10 +3,10 @@ import { readFileSync, existsSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import test from "node:test";
 
-const sourceRoot = resolve(__dirname, "..");
+const sourceRoot = resolve(__dirname, "../..");
 const directEntrypoint = resolve(
   __dirname,
-  "lambda-direct-image-ingestion.ts",
+  "lambda.ts",
 );
 
 function resolveLocalModule(

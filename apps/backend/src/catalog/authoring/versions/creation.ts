@@ -1,22 +1,22 @@
-import type { DatabaseExecutor } from "../../database";
-import { HttpError } from "../../shared/errors";
+import type { DatabaseExecutor } from "../../../database";
+import { HttpError } from "../../../shared/errors";
 import {
   extractMarkdownManagedMediaLifecycleIssues,
   type ManagedMediaLifecycleIssues,
-} from "../../workspacePackages";
+} from "../../../workspacePackages";
 import {
   normalizeAdminEmail,
   normalizeNonEmptyString,
   normalizePackageMediaKey,
   normalizeTextArray,
   toSafeNumber,
-} from "../common";
-import { rethrowCatalogPersistenceError } from "../errors";
+} from "../../common";
+import { rethrowCatalogPersistenceError } from "../../errors";
 import {
   catalogPackageVersionColumns,
   lockCatalogPackageInExecutor,
   mapCatalogPackageVersionRow,
-} from "../rows";
+} from "../../rows";
 import type {
   CatalogPackageCardSnapshotInput,
   CatalogPackageStatus,
@@ -24,11 +24,11 @@ import type {
   CatalogPackageVersionMediaAssetInput,
   CatalogPackageVersionRow,
   CreateCatalogPackageVersionInput,
-} from "../types";
+} from "../../types";
 import {
   assertDraftMediaKeysExistInExecutor,
   insertCatalogPackageVersionMediaAssetsInExecutor,
-} from "./draftMedia";
+} from "../media/draftMedia";
 
 export function collectCardManagedMediaLifecycleIssues(
   frontText: string,

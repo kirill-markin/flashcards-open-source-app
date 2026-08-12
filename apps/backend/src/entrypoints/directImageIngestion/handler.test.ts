@@ -6,16 +6,16 @@ import { handle } from "hono/aws-lambda";
 import {
   createDirectImageIngestionLambdaHandler,
   parseDirectImageIngestionLambdaEvent,
-} from "./directImageIngestionLambdaHandler";
-import { resetAuthConfigForTests } from "../auth/config";
+} from "./handler";
+import { resetAuthConfigForTests } from "../../auth/config";
 import {
   configureBackendRuntimeObservability,
   resetBackendRuntimeObservability,
-} from "../observability/runtime";
+} from "../../observability/runtime";
 import type {
   BackendExceptionEvent,
-} from "../observability/sentry/events";
-import { createDirectImageIngestionApp } from "../server/mediaRequests/directImageIngestionApp";
+} from "../../observability/sentry/events";
+import { createDirectImageIngestionApp } from "../../server/mediaRequests/directImageIngestionApp";
 import {
   directImageIngestionGatewayServiceHeadroomMs,
   directImageIngestionIntegrationEnvelopeMs,
@@ -25,7 +25,7 @@ import {
   directImageIngestionResponseMarginMs,
   publicRestApiIntegrationTimeoutMs,
   getDirectImageIngestionRequestTiming,
-} from "../server/mediaRequests/directImageIngestionRequestTiming";
+} from "../../server/mediaRequests/directImageIngestionRequestTiming";
 
 const directImagePath =
   "/workspaces/11111111-1111-4111-8111-111111111111/media-assets/images";

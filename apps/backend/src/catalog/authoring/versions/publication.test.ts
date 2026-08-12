@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
-import type { DatabaseExecutor, SqlValue } from "../../database";
-import { HttpError } from "../../shared/errors";
-import { maximumPublicCatalogMediaDownloadBytes } from "../publicMediaDelivery";
+import type { DatabaseExecutor, SqlValue } from "../../../database";
+import { HttpError } from "../../../shared/errors";
+import { maximumPublicCatalogMediaDownloadBytes } from "../../publicMediaDelivery";
 import {
   createQueryResult,
   testAuthorId,
@@ -11,18 +11,18 @@ import {
   testPackageVersionId,
   testTimestamp,
   testWorkspaceCardId,
-} from "../testSupport";
-import type { CatalogPackageStatus, CatalogPackageVersionRow } from "../types";
+} from "../../testSupport";
+import type { CatalogPackageStatus, CatalogPackageVersionRow } from "../../types";
 import {
   createPackageRow,
   createPackageVersionRow,
   unsafePublicCatalogStorageReference,
-} from "./authoringTestSupport";
+} from "../authoringTestSupport";
 import {
   createCatalogPackageVersionFromCardsInExecutor,
   publishCatalogPackageVersionInExecutor,
   updateCatalogPackageVersionReviewStatusInExecutor,
-} from "./versions";
+} from "./index";
 
 type CatalogPublicationBoundaryHarness = Readonly<{
   executor: DatabaseExecutor;

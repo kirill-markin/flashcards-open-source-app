@@ -1,19 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { DatabaseDeadlineExceededError } from "../../database";
-import { DatabaseCommitOutcomeUnknownError } from "../../database/transient";
-import { createBackendObservationScope } from "../../observability/sentry";
-import { buildMediaBlobStorageKey } from "../storageKeys";
+import { DatabaseDeadlineExceededError } from "../../../database";
+import { DatabaseCommitOutcomeUnknownError } from "../../../database/transient";
+import { createBackendObservationScope } from "../../../observability/sentry";
+import { buildMediaBlobStorageKey } from "../../storageKeys";
 import {
   MediaBlobCleanupBatchError,
   runMediaBlobCleanupBatchWithDependencies,
   type MediaBlobCleanupProcessorDependencies,
-} from "./cleanupProcessor";
-import type { MediaBlobCleanupClaim } from "./cleanupRepository";
+} from "./processor";
+import type { MediaBlobCleanupClaim } from "./repository";
 import {
   MediaBlobCleanupStorageAmbiguousDeleteError,
   MediaBlobCleanupStorageTransientError,
-} from "../storage";
+} from "../../storage";
 
 const sha256 = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8";
 const cleanupToken = "77777777-7777-4777-8777-777777777777";

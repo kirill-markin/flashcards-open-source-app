@@ -1,14 +1,14 @@
-import type { DatabaseExecutor } from "../../database";
-import { rethrowCatalogPersistenceError } from "../errors";
+import type { DatabaseExecutor } from "../../../database";
+import { rethrowCatalogPersistenceError } from "../../errors";
 import {
   catalogCollectionCoverColumns,
   lockCatalogCollectionCoverInExecutor,
   mapCatalogCollectionCoverRow,
-} from "../rows";
+} from "../../rows";
 import type {
   CatalogCollectionCover,
   CatalogCollectionCoverRow,
-} from "../types";
+} from "../../types";
 import { scheduleDisplacedMediaBlobCleanupInExecutor } from "./draftMedia";
 
 export type CatalogCollectionCoverMutationResult = Readonly<{

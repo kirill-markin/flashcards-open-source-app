@@ -2,17 +2,17 @@ import { createHash } from "node:crypto";
 import {
   DatabaseDeadlineExceededError,
   type DatabaseExecutor,
-} from "../../database";
-import { unsafeTransactionWithDeadline } from "../../database/unsafe";
-import { DatabaseCommitOutcomeUnknownError } from "../../database/transient";
-import { MediaBlobLifecycleConflictError } from "../../mediaAssets/blobLifecycle";
+} from "../../../database";
+import { unsafeTransactionWithDeadline } from "../../../database/unsafe";
+import { DatabaseCommitOutcomeUnknownError } from "../../../database/transient";
+import { MediaBlobLifecycleConflictError } from "../../../mediaAssets/blobLifecycle";
 import {
   assertMediaBlobMatchesMetadata,
   findMediaBlobRowBySha256InExecutor,
   mapMediaBlobRow,
-} from "../../mediaAssets/persistence";
-import { storeCatalogImageBlobBytesIfAbsent } from "../../mediaAssets/storage/direct";
-import { buildMediaBlobStorageKey } from "../../mediaAssets/storageKeys";
+} from "../../../mediaAssets/persistence";
+import { storeCatalogImageBlobBytesIfAbsent } from "../../../mediaAssets/storage/direct";
+import { buildMediaBlobStorageKey } from "../../../mediaAssets/storageKeys";
 import {
   imageJpegCardMediaBlobNormalizationVersion,
   imageJpegCatalogCoverMediaBlobNormalizationVersion,
@@ -20,19 +20,19 @@ import {
   type MediaBlob,
   type MediaBlobNormalizationVersion,
   type MediaBlobRow,
-} from "../../mediaAssets/types";
+} from "../../../mediaAssets/types";
 import {
   normalizeImageBytesForCardUntilDeadline,
   normalizeImageBytesForCatalogCoverUntilDeadline,
   type NormalizedImageBytes,
-} from "../../mediaAssets/ingestion/imageNormalization";
-import type { BackendObservationScope } from "../../observability/sentry/events";
-import { HttpError } from "../../shared/errors";
-import { maximumPublicCatalogMediaDownloadBytes } from "../publicMediaDelivery";
+} from "../../../mediaAssets/ingestion/imageNormalization";
+import type { BackendObservationScope } from "../../../observability/sentry/events";
+import { HttpError } from "../../../shared/errors";
+import { maximumPublicCatalogMediaDownloadBytes } from "../../publicMediaDelivery";
 import type {
   CatalogCollectionCover,
   CatalogPackageMediaAsset,
-} from "../types";
+} from "../../types";
 import {
   replaceCatalogCollectionCoverInExecutor,
   type CatalogCollectionCoverMutationResult,
