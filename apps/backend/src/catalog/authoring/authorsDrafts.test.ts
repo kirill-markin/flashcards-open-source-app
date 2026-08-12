@@ -485,8 +485,10 @@ test("published catalog packages can stage and replay card images and replace co
     created_at: testTimestamp,
     updated_at: testTimestamp,
   };
+  let coverPackageMediaKey: string | null = null;
   const lifecycleSwapParams: Array<ReadonlyArray<SqlValue>> = [];
   const cleanupParams: Array<ReadonlyArray<SqlValue>> = [];
+  const mediaUpdateParams: Array<ReadonlyArray<SqlValue>> = [];
   const executor: DatabaseExecutor = {
     async query<Row extends pg.QueryResultRow>(
       text: string,
@@ -495,6 +497,7 @@ test("published catalog packages can stage and replay card images and replace co
       if (text.includes("FROM catalog.packages") && text.includes("FOR UPDATE")) {
         return createQueryResult([{
           ...createPackageRow(),
+          cover_package_media_key: coverPackageMediaKey,
           status: "published",
           published_at: testTimestamp,
         } as unknown as Row]);
@@ -504,6 +507,7 @@ test("published catalog packages can stage and replay card images and replace co
         return createQueryResult(row === null ? [] : [row as unknown as Row]);
       }
       if (text.includes("INSERT INTO catalog.package_media_assets")) {
+        assert.deepEqual(params, [testPackageId, "diagram", testMediaBlobId, null, null, null]);
         cardRow = {
           ...coverRow,
           package_media_asset_id: cardMediaAssetId,
@@ -518,11 +522,19 @@ test("published catalog packages can stage and replay card images and replace co
         return createQueryResult([]);
       }
       if (text.includes("UPDATE catalog.package_media_assets")) {
-        coverRow = { ...coverRow, media_blob_id: String(params[2]) };
+        mediaUpdateParams.push(params);
+        coverRow = {
+          ...coverRow,
+          media_blob_id: String(params[2]),
+          alt_text: params[3] as string | null,
+          credit: params[4] as string | null,
+          license: params[5] as string | null,
+        };
         return createQueryResult([coverRow as unknown as Row]);
       }
       if (text.includes("UPDATE catalog.packages")) {
         assert.deepEqual(params, [testPackageId, "cover"]);
+        coverPackageMediaKey = "cover";
         return createQueryResult([]);
       }
       if (text.includes("schedule_media_blob_cleanup")) {
@@ -564,11 +576,73 @@ test("published catalog packages can stage and replay card images and replace co
     executor,
     testPackageId,
     replacementBlobId,
+    "  Ciudadanía española — niñas estudiando  ",
+    "  © María Núñez  ",
+    " CC BY 4.0 ",
   );
   assert.equal(replaced.applied, true);
   assert.equal(replaced.mediaAsset.packageMediaKey, "cover");
   assert.equal(replaced.mediaAsset.mediaBlobId, replacementBlobId);
+  assert.equal(replaced.mediaAsset.altText, "Ciudadanía española — niñas estudiando");
+  assert.equal(replaced.mediaAsset.credit, "© María Núñez");
+  assert.equal(replaced.mediaAsset.license, "CC BY 4.0");
+  assert.deepEqual(mediaUpdateParams[0], [
+    testPackageId,
+    "cover",
+    replacementBlobId,
+    "Ciudadanía española — niñas estudiando",
+    "© María Núñez",
+    "CC BY 4.0",
+  ]);
   assert.deepEqual(lifecycleSwapParams, [[testMediaBlobId, replacementBlobId]]);
   assert.equal(cleanupParams.length, 1);
   assert.equal(cleanupParams[0]?.[0], testMediaBlobId);
+
+  const metadataUpdated = await replaceCatalogPackageDraftCoverInExecutor(
+    executor,
+    testPackageId,
+    replacementBlobId,
+    "Ciudadanía española — jóvenes estudiando",
+    null,
+    "CC BY 4.0",
+  );
+  assert.equal(metadataUpdated.applied, true);
+  assert.equal(metadataUpdated.mediaAsset.mediaBlobId, replacementBlobId);
+  assert.equal(metadataUpdated.mediaAsset.altText, "Ciudadanía española — jóvenes estudiando");
+  assert.equal(metadataUpdated.mediaAsset.credit, null);
+  assert.deepEqual(mediaUpdateParams[1], [
+    testPackageId,
+    "cover",
+    replacementBlobId,
+    "Ciudadanía española — jóvenes estudiando",
+    null,
+    "CC BY 4.0",
+  ]);
+  assert.equal(lifecycleSwapParams.length, 1);
+  assert.equal(cleanupParams.length, 1);
+
+  const replayedCover = await replaceCatalogPackageDraftCoverInExecutor(
+    executor,
+    testPackageId,
+    replacementBlobId,
+    "Ciudadanía española — jóvenes estudiando",
+    null,
+    "CC BY 4.0",
+  );
+  assert.equal(replayedCover.applied, false);
+  assert.equal(mediaUpdateParams.length, 2);
+
+  await assert.rejects(
+    replaceCatalogPackageDraftCoverInExecutor(
+      executor,
+      testPackageId,
+      replacementBlobId,
+      "  ",
+      null,
+      "CC BY 4.0",
+    ),
+    (error: unknown) => error instanceof HttpError
+      && error.statusCode === 400
+      && error.code === "CATALOG_INVALID_INPUT",
+  );
 });

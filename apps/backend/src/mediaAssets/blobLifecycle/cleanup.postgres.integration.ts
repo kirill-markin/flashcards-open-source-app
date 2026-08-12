@@ -460,6 +460,9 @@ test("catalog image admission stays fenced across reverse-SHA package and collec
           executor,
           packageId,
           replacementMediaBlobId,
+          null,
+          null,
+          null,
         ),
       );
       assert.equal(replacedPackageCover.applied, true);
@@ -472,6 +475,9 @@ test("catalog image admission stays fenced across reverse-SHA package and collec
           executor,
           packageId,
           replacementMediaBlobId,
+          null,
+          null,
+          null,
         ),
       );
       assert.equal(replayedPackageCover.applied, false);
