@@ -314,20 +314,6 @@ const esEsCatalog: TranslationCatalog = {
   shareApp: {
     title: "Estudia con Flashcards",
     body: "Elige dónde quieres usar la app. Tus tarjetas siguen disponibles en iOS, Android y la web.",
-    links: {
-      ios: "Abrir en App Store",
-      android: "Abrir en Google Play",
-      web: "Web App",
-    },
-    mcp: {
-      label: "Para agentes de IA",
-      title: "Conecta con MCP",
-      description: "Los agentes de IA pueden conectarse por MCP para leer, crear y editar tarjetas.",
-      caption: "Añade este servidor MCP a tu cliente de IA:",
-      copy: "Copiar",
-      copied: "Copiado",
-      copyFailed: "Error al copiar",
-    },
   },
   friendInvite: {
     loading: "Comprobando enlace de invitación...",
@@ -349,11 +335,6 @@ const esEsCatalog: TranslationCatalog = {
     alreadyFriendsTitle: "Ya sois amigos",
     alreadyFriendsBody: "En tu app, este amigo está guardado como {{name}}.",
     mobileSameEmailNote: "Las apps móviles requieren iniciar sesión con el mismo correo electrónico.",
-    links: {
-      ios: "Abrir en App Store",
-      android: "Abrir en Google Play",
-      web: "Web App",
-    },
     validation: {
       required: "Introduce un nombre.",
       singleLine: "Usa un nombre de una sola línea sin caracteres de control.",
@@ -799,9 +780,6 @@ const esEsCatalog: TranslationCatalog = {
     successWorkspaceLabel: "Espacio de trabajo",
     successSameEmailNote: "Inicia sesión en las apps móviles con el mismo correo electrónico para ver estas tarjetas.",
     successSameEmailNoteWithAddress: "Inicia sesión en las apps móviles con {{email}} para ver estas tarjetas.",
-    successOpenIos: "Abrir en App Store",
-    successOpenAndroid: "Abrir en Google Play",
-    successOpenWeb: "Abrir la app web",
     syncing: "Sincronizando las tarjetas importadas...",
     syncFailed: "Las tarjetas se importaron, pero falló la sincronización. Comprueba la conexión e inténtalo de nuevo.",
     retrySync: "Reintentar sincronización",
@@ -985,16 +963,6 @@ const esEsCatalog: TranslationCatalog = {
     title: "Repasa en tu móvil",
     body: "Instala la app para iOS o Android para seguir repasando rápido con acceso sin conexión.",
     close: "Cerrar",
-    ios: {
-      title: "iOS",
-      storeLinkLabel: "Abrir la app de iOS en App Store",
-      qrLabel: "Código QR para el enlace de la app de iOS",
-    },
-    android: {
-      title: "Android",
-      storeLinkLabel: "Abrir la app de Android en Google Play",
-      qrLabel: "Código QR para el enlace de la app de Android",
-    },
   },
   feedback: {
     title: "¿Tienes una idea para Flashcards?",

@@ -314,20 +314,6 @@ export const jaCatalog = {
   shareApp: {
     title: "Flashcardsで学習",
     body: "アプリを使う場所を選択してください。カードはiOS、Android、Webで引き続き利用できます。",
-    links: {
-      ios: "App Store で開く",
-      android: "Google Play で開く",
-      web: "Web App",
-    },
-    mcp: {
-      label: "AIエージェント向け",
-      title: "MCP で接続",
-      description: "AI エージェントは MCP 経由で接続し、カードの読み取り、作成、編集ができます。",
-      caption: "この MCP サーバーを AI クライアントに追加してください:",
-      copy: "コピー",
-      copied: "コピー済み",
-      copyFailed: "コピーできませんでした",
-    },
   },
   friendInvite: {
     loading: "招待リンクを確認しています...",
@@ -349,11 +335,6 @@ export const jaCatalog = {
     alreadyFriendsTitle: "すでに友だちです",
     alreadyFriendsBody: "あなたのアプリでは、この友だちは {{name}} として保存されています。",
     mobileSameEmailNote: "モバイルアプリでは同じメールアドレスでサインインする必要があります。",
-    links: {
-      ios: "App Store で開く",
-      android: "Google Play で開く",
-      web: "Web App",
-    },
     validation: {
       required: "名前を入力してください。",
       singleLine: "制御文字を含まない1行の名前を使用してください。",
@@ -799,9 +780,6 @@ export const jaCatalog = {
     successWorkspaceLabel: "ワークスペース",
     successSameEmailNote: "これらのカードを見るには、モバイルアプリで同じメールアドレスでサインインしてください。",
     successSameEmailNoteWithAddress: "これらのカードを見るには、モバイルアプリで {{email}} でサインインしてください。",
-    successOpenIos: "App Store で開く",
-    successOpenAndroid: "Google Play で開く",
-    successOpenWeb: "Web アプリを開く",
     syncing: "インポートしたカードを同期しています...",
     syncFailed: "カードはインポートされましたが、同期に失敗しました。接続を確認して、もう一度同期してください。",
     retrySync: "同期を再試行",
@@ -985,16 +963,6 @@ export const jaCatalog = {
     title: "スマートフォンで復習",
     body: "iOS または Android アプリをインストールして、オフラインでもすばやく復習できます。",
     close: "閉じる",
-    ios: {
-      title: "iOS",
-      storeLinkLabel: "App Store で iOS アプリを開く",
-      qrLabel: "iOS アプリリンクの QR コード",
-    },
-    android: {
-      title: "Android",
-      storeLinkLabel: "Google Play で Android アプリを開く",
-      qrLabel: "Android アプリリンクの QR コード",
-    },
   },
   feedback: {
     title: "Flashcards へのアイデアがありますか？",

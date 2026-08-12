@@ -314,20 +314,6 @@ const deCatalog: TranslationCatalog = {
   shareApp: {
     title: "Mit Flashcards lernen",
     body: "Wähle, wo du die App nutzen möchtest. Deine Karten bleiben auf iOS, Android und im Web verfügbar.",
-    links: {
-      ios: "Im App Store öffnen",
-      android: "In Google Play öffnen",
-      web: "Web App",
-    },
-    mcp: {
-      label: "Für KI-Agenten",
-      title: "Mit MCP verbinden",
-      description: "KI-Agenten können sich per MCP verbinden, um Karten zu lesen, zu erstellen und zu bearbeiten.",
-      caption: "Füge diesen MCP-Server zu deinem KI-Client hinzu:",
-      copy: "Kopieren",
-      copied: "Kopiert",
-      copyFailed: "Kopieren fehlgeschlagen",
-    },
   },
   friendInvite: {
     loading: "Einladungslink wird geprüft...",
@@ -349,11 +335,6 @@ const deCatalog: TranslationCatalog = {
     alreadyFriendsTitle: "Ihr seid bereits Freunde",
     alreadyFriendsBody: "In deiner App ist dieser Freund als {{name}} gespeichert.",
     mobileSameEmailNote: "Mobile Apps erfordern die Anmeldung mit derselben E-Mail-Adresse.",
-    links: {
-      ios: "Im App Store öffnen",
-      android: "In Google Play öffnen",
-      web: "Web App",
-    },
     validation: {
       required: "Gib einen Namen ein.",
       singleLine: "Verwende einen einzeiligen Namen ohne Steuerzeichen.",
@@ -799,9 +780,6 @@ const deCatalog: TranslationCatalog = {
     successWorkspaceLabel: "Arbeitsbereich",
     successSameEmailNote: "Melde dich in den mobilen Apps mit derselben E-Mail-Adresse an, um diese Karten zu sehen.",
     successSameEmailNoteWithAddress: "Melde dich in den mobilen Apps mit {{email}} an, um diese Karten zu sehen.",
-    successOpenIos: "Im App Store öffnen",
-    successOpenAndroid: "In Google Play öffnen",
-    successOpenWeb: "Web-App öffnen",
     syncing: "Importierte Karten werden synchronisiert...",
     syncFailed: "Die Karten wurden importiert, aber die Synchronisierung ist fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.",
     retrySync: "Synchronisierung wiederholen",
@@ -985,16 +963,6 @@ const deCatalog: TranslationCatalog = {
     title: "Auf dem Smartphone wiederholen",
     body: "Installiere die iOS- oder Android-App, um schnell mit Offline-Zugriff weiterzulernen.",
     close: "Schließen",
-    ios: {
-      title: "iOS",
-      storeLinkLabel: "iOS-App im App Store öffnen",
-      qrLabel: "QR-Code für den iOS-App-Link",
-    },
-    android: {
-      title: "Android",
-      storeLinkLabel: "Android-App in Google Play öffnen",
-      qrLabel: "QR-Code für den Android-App-Link",
-    },
   },
   feedback: {
     title: "Hast du eine Idee für Flashcards?",
