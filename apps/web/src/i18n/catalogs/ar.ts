@@ -132,6 +132,8 @@ const arCatalog: TranslationCatalog = {
     dangerZone: "جارٍ تحميل منطقة الخطر...",
     testSettings: "جارٍ تحميل إعدادات الاختبار...",
     testAnimations: "جارٍ تحميل الرسوم المتحركة...",
+    testAppPlatformLinks: "جارٍ تحميل روابط منصات التطبيق...",
+    testCatalogImportSuccess: "جارٍ تحميل شاشة نجاح استيراد الكتالوج...",
     aiChat: "جارٍ تحميل دردشة الذكاء الاصطناعي...",
     progress: "جارٍ تحميل التقدم...",
   },
@@ -289,6 +291,24 @@ const arCatalog: TranslationCatalog = {
     table: {
       date: "التاريخ",
       reviews: "المراجعات",
+    },
+  },
+  appPlatformLinks: {
+    ios: "فتح في App Store",
+    android: "فتح في Google Play",
+    web: "فتح تطبيق الويب",
+    qr: {
+      ios: "رمز QR لرابط تطبيق iOS",
+      android: "رمز QR لرابط تطبيق Android",
+    },
+    mcp: {
+      label: "لوكيل الذكاء الاصطناعي",
+      title: "الاتصال عبر MCP",
+      description: "يمكن لوكلاء الذكاء الاصطناعي الاتصال عبر MCP لقراءة البطاقات وإنشائها وتعديلها.",
+      caption: "أضف خادم MCP هذا إلى عميل الذكاء الاصطناعي لديك:",
+      copy: "نسخ",
+      copied: "تم النسخ",
+      copyFailed: "فشل النسخ",
     },
   },
   shareApp: {
@@ -572,6 +592,26 @@ const arCatalog: TranslationCatalog = {
         sha256: "SHA-256",
         error: "خطأ",
       },
+    },
+    appPlatformLinks: {
+      title: "روابط منصات التطبيق",
+      description: "عاين شبكة روابط المنصات المشتركة في كل تكوينات الشاشات.",
+      value: "4 شاشات",
+      screenTitle: "روابط منصات التطبيق",
+      screenSubtitle: "كل تكوينات شبكة روابط المنصات المشتركة.",
+      surfaces: {
+        share: "شاشة المشاركة",
+        reviewPromo: "مربع حوار الترويج أثناء المراجعة",
+        catalogImport: "نجاح استيراد الكتالوج",
+        friendInvite: "نجاح دعوة صديق",
+      },
+    },
+    catalogImportSuccess: {
+      title: "نجاح استيراد الكتالوج",
+      description: "عاين لوحة نجاح استيراد الكتالوج ببيانات ثابتة.",
+      value: "معاينة",
+      screenTitle: "نجاح استيراد الكتالوج",
+      screenSubtitle: "لوحة نجاح استيراد الكتالوج ببيانات ثابتة.",
     },
     technicalError: {
       title: "مربع حوار الخطأ التقني",

@@ -5,7 +5,7 @@ import { reviewRoute } from "../../routes";
 import { AppPlatformLinks, type AppPlatformStoreLinks } from "./AppPlatformLinks";
 import { ShareMcpOption } from "./ShareMcpOption";
 
-const shareAppStoreLinks: AppPlatformStoreLinks = {
+export const shareAppStoreLinks: AppPlatformStoreLinks = {
   ios: "https://apps.apple.com/app/apple-store/id6760538964?pt=128797295&ct=share_app&mt=8",
   android: "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&utm_source=flashcards_website&utm_medium=referral&utm_campaign=share_app",
 };

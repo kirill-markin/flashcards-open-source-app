@@ -132,6 +132,8 @@ const hiCatalog: TranslationCatalog = {
     dangerZone: "खतरे का क्षेत्र लोड हो रहा है...",
     testSettings: "टेस्ट सेटिंग्स लोड हो रही हैं...",
     testAnimations: "ऐनिमेशन लोड हो रहे हैं...",
+    testAppPlatformLinks: "ऐप प्लेटफ़ॉर्म लिंक लोड हो रहे हैं...",
+    testCatalogImportSuccess: "कैटलॉग इंपोर्ट सफलता स्क्रीन लोड हो रही है...",
     aiChat: "AI चैट लोड हो रही है...",
     progress: "प्रगति लोड हो रही है...",
   },
@@ -289,6 +291,24 @@ const hiCatalog: TranslationCatalog = {
     table: {
       date: "तारीख",
       reviews: "रिव्यू",
+    },
+  },
+  appPlatformLinks: {
+    ios: "App Store में खोलें",
+    android: "Google Play में खोलें",
+    web: "वेब ऐप खोलें",
+    qr: {
+      ios: "iOS ऐप लिंक का QR कोड",
+      android: "Android ऐप लिंक का QR कोड",
+    },
+    mcp: {
+      label: "AI एजेंट के लिए",
+      title: "MCP से कनेक्ट करें",
+      description: "AI एजेंट MCP के जरिए कार्ड पढ़ने, बनाने और संपादित करने के लिए कनेक्ट कर सकते हैं।",
+      caption: "इस MCP सर्वर को अपने AI क्लाइंट में जोड़ें:",
+      copy: "कॉपी करें",
+      copied: "कॉपी हो गया",
+      copyFailed: "कॉपी नहीं हो सका",
     },
   },
   shareApp: {
@@ -572,6 +592,26 @@ const hiCatalog: TranslationCatalog = {
         sha256: "SHA-256",
         error: "त्रुटि",
       },
+    },
+    appPlatformLinks: {
+      title: "ऐप प्लेटफ़ॉर्म लिंक",
+      description: "साझा प्लेटफ़ॉर्म लिंक ग्रिड को हर स्क्रीन कॉन्फ़िगरेशन में देखें।",
+      value: "4 स्क्रीन",
+      screenTitle: "ऐप प्लेटफ़ॉर्म लिंक",
+      screenSubtitle: "साझा प्लेटफ़ॉर्म लिंक ग्रिड के सभी कॉन्फ़िगरेशन।",
+      surfaces: {
+        share: "शेयर स्क्रीन",
+        reviewPromo: "रिव्यू प्रोमो डायलॉग",
+        catalogImport: "कैटलॉग इंपोर्ट सफलता",
+        friendInvite: "मित्र आमंत्रण सफलता",
+      },
+    },
+    catalogImportSuccess: {
+      title: "कैटलॉग इंपोर्ट सफलता",
+      description: "तय नमूना डेटा के साथ कैटलॉग इंपोर्ट सफलता पैनल देखें।",
+      value: "प्रीव्यू",
+      screenTitle: "कैटलॉग इंपोर्ट सफलता",
+      screenSubtitle: "तय नमूना डेटा के साथ कैटलॉग इंपोर्ट सफलता पैनल।",
     },
     technicalError: {
       title: "तकनीकी त्रुटि डायलॉग",
