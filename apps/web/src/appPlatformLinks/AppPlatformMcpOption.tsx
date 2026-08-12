@@ -12,7 +12,7 @@ type AppPlatformMcpOptionProps = Readonly<{
 
 export function AppPlatformMcpOption(props: AppPlatformMcpOptionProps): ReactElement {
   const { label, testIdPrefix } = props;
-  const { t } = useI18n();
+  const { direction, t } = useI18n();
   const [copyStatus, setCopyStatus] = useState<AppPlatformMcpCopyStatus>("idle");
   // Several grids can share one page, so the heading id is derived from the caller's prefix.
   const titleElementId: string = `${testIdPrefix}-mcp-title`;
@@ -39,9 +39,12 @@ export function AppPlatformMcpOption(props: AppPlatformMcpOptionProps): ReactEle
     }
   }
 
+  // This block is all prose, so it carries the locale direction itself and stays
+  // readable even when an ancestor pins the grid to left-to-right for tile placement.
   return (
     <section
       className="app-platform-links-mcp-option"
+      dir={direction}
       data-testid={`${testIdPrefix}-mcp-option`}
       aria-labelledby={titleElementId}
     >

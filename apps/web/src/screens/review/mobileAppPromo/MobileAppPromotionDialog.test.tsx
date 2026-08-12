@@ -4,12 +4,12 @@ import { act } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createStorageMock } from "../../../api/ApiTestSupport";
+import { webReviewMobilePromptStoreLinks } from "../../../appPlatformLinks";
 import { I18nProvider } from "../../../i18n";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "../../../i18n/runtime";
 import {
   MobileAppPromotionDialog,
   type MobileAppPromotionDialogProps,
-  webReviewMobilePromptStoreLinks,
 } from "./MobileAppPromotionDialog";
 
 function requireElement(container: HTMLElement, selector: string): HTMLElement {

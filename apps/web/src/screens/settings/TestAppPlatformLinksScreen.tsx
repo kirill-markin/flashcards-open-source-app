@@ -2,17 +2,18 @@ import type { ReactElement } from "react";
 import {
   AppPlatformLinksGrid,
   buildAppPlatformOptions,
+  catalogImportStoreLinks,
+  friendInviteStoreLinks,
   resolveClientPlatform,
+  shareAppStoreLinks,
+  webReviewMobilePromptStoreLinks,
   type AppPlatformKind,
   type AppPlatformStoreLinks,
 } from "../../appPlatformLinks";
 import { getAppConfig } from "../../config";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../i18n";
 import { progressLeaderboardRoute, reviewRoute } from "../../routes";
-import { CatalogImportSuccessPanel, catalogImportStoreLinks } from "../catalog/CatalogImportSuccessPanel";
-import { friendInviteStoreLinks } from "../invite/FriendInviteScreen";
-import { webReviewMobilePromptStoreLinks } from "../review/mobileAppPromo/MobileAppPromotionDialog";
-import { shareAppStoreLinks } from "../share/ShareAppScreen";
+import { CatalogImportSuccessPanel } from "../catalog/CatalogImportSuccessPanel";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;

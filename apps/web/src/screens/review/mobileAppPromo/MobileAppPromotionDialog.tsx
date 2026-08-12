@@ -13,11 +13,6 @@ export type MobileAppPromotionDialogProps = Readonly<{
   storeLinks: AppPlatformStoreLinks;
 }>;
 
-export const webReviewMobilePromptStoreLinks: AppPlatformStoreLinks = {
-  ios: "https://apps.apple.com/app/apple-store/id6760538964?pt=128797295&ct=web_review_mobile_prompt&mt=8",
-  android: "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&utm_source=flashcards_website&utm_medium=referral&utm_campaign=web_review_mobile_prompt",
-};
-
 const mobileAppPromotionFocusableSelector = [
   "a[href]",
   "button:not([disabled])",

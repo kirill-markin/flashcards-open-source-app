@@ -3,16 +3,11 @@ import {
   AppPlatformLinksGrid,
   buildAppPlatformOptions,
   resolveClientPlatform,
-  type AppPlatformStoreLinks,
+  shareAppStoreLinks,
 } from "../../appPlatformLinks";
 import { getAppConfig } from "../../config";
 import { useI18n } from "../../i18n";
 import { reviewRoute } from "../../routes";
-
-export const shareAppStoreLinks: AppPlatformStoreLinks = {
-  ios: "https://apps.apple.com/app/apple-store/id6760538964?pt=128797295&ct=share_app&mt=8",
-  android: "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&utm_source=flashcards_website&utm_medium=referral&utm_campaign=share_app",
-};
 
 export function ShareAppScreen(): ReactElement {
   const { t } = useI18n();
