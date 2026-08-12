@@ -172,35 +172,35 @@ export function renderStoredMessageContent(
   onTechnicalError: ChatMessageTechnicalErrorHandler,
 ): ReactElement {
   const elements: Array<ReactElement> = [];
-  let previousPartWasAttachment = false;
+  let previousPartNeedsTextSeparator = false;
 
   for (let index = 0; index < message.content.length; index += 1) {
     const part = message.content[index];
     if (part.type === "text") {
-      if (previousPartWasAttachment) {
+      if (previousPartNeedsTextSeparator) {
         elements.push(<br key={`attachment-break-1-${index}`} />);
         elements.push(<br key={`attachment-break-2-${index}`} />);
       }
       elements.push(<span key={`text-${index}`}>{part.text}</span>);
-      previousPartWasAttachment = false;
+      previousPartNeedsTextSeparator = false;
       continue;
     }
 
     if (part.type === "image") {
       elements.push(<span key={`image-${index}`}>{t("chatMessageContent.imageAttached")}</span>);
-      previousPartWasAttachment = true;
+      previousPartNeedsTextSeparator = true;
       continue;
     }
 
     if (part.type === "file") {
       elements.push(<span key={`file-${index}`}>[{part.fileName}]</span>);
-      previousPartWasAttachment = true;
+      previousPartNeedsTextSeparator = true;
       continue;
     }
 
     if (part.type === "card") {
       elements.push(renderCardAttachment(part, `card-${index}`, t));
-      previousPartWasAttachment = true;
+      previousPartNeedsTextSeparator = false;
       continue;
     }
 
@@ -222,11 +222,11 @@ export function renderStoredMessageContent(
           <pre className="chat-tool-call-output">{reasoningText}</pre>
         </details>,
       );
-      previousPartWasAttachment = false;
+      previousPartNeedsTextSeparator = false;
       continue;
     }
 
-    previousPartWasAttachment = false;
+    previousPartNeedsTextSeparator = false;
     const summaryText = buildToolCallSummaryText(part.name, part.input, t);
     elements.push(
       <details
